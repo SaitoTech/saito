@@ -65,18 +65,23 @@
 .hud-clickable {
   cursor: pointer;
   grid-area: hud-clickable;
-  width: 800px;
-  height: 35px;
+  /* width: 800px;
+  height: 35px; */
+  background-color: #333;
+  padding-left: 5px;
+  padding-right: 5px;
 }
 
 .status {
   overflow-y: scroll;
-  height: 22rem;
+  border-right: 1px solid gray;
+  padding-right: 0.8rem;
+  height: 19rem;
 }
 
 .log {
   overflow-y: scroll;
-  height: 22rem;
+  height: 19rem;
   font-size:0.85em;
 }
 
@@ -133,10 +138,13 @@
 .hud {
   display: grid;
   grid-template-areas:
-  "hud-clickable hud-clickable hud-clickable"
-  "hud-header hud-content hud-content";
-  grid-template-columns: 1fr 1fr 5fr;
-  grid-template-rows: 1rem 1rem auto;
+  /* "hud-clickable hud-clickable hud-clickable"
+  "hud-header hud-content hud-content"; */
+  "hud-clickable hud-clickable hud-clickable hud-clickable"
+  "zoombar hud-header hud-content hud-content";
+  grid-template-columns: 2.2rem 1fr 2fr 2fr;
+  /* grid-template-columns: 1fr 1fr 5fr; */
+  grid-template-rows: 2rem auto;
 
   position: fixed;
   float: none;
@@ -145,8 +153,8 @@
   color: #eee;
 
   font-size: 1.3rem;
-  padding-left: 10px;
-  padding-right: 10px;
+  /* padding-left: 10px;
+  padding-right: 10px; */
 
   width: 800px;
   height: 17.3rem;
@@ -156,7 +164,7 @@
   border-bottom: 0px;
 
   left: 50%;
-  bottom: -2%;
+  bottom: 0%;
 
   -webkit-transform: translate(-50%, -0%);
   transform: translate(-50%, -0%);
@@ -207,18 +215,110 @@
   display: grid;
   grid-template-columns: 1fr 0.8fr;
   padding: 0.8rem;
-  width: 770px;
+  /* width: 770px; */
   height: 14rem;
   grid-gap: 1em;
 }
 
+.zoombar {
+  grid-area: zoombar;
+  /* margin-right: 10px; */
+  padding: 5px 0;
+}
 
+.clog {
+  overflow-x: hidden;
+  overflow-y: scroll;
+}
 
+.tall {
+  height: 22rem;
+}
 
+.short {
+  height: 2rem;
+}
 
+.controls {
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+}
 
+.controls > span {
+  margin-right: 10px;
+  /* display: inline-block; */
+}
 
+#pin {
+  margin-left: auto;
+  margin-right: 0px;
+}
 
+.log-small {
+  position: absolute;
+  left: 345px;
+  top: 10px;
+  line-height: 18px;
+  height: 140px;
+  overflow: auto;
+  width: 680px;
+}
+
+.status-small {
+  position: absolute;
+  left: 145px;
+  top: 10px;
+  line-height: 18px;
+  height: 140px;
+  overflow: hidden;
+  width: 200px;
+}
+
+.zoom {
+  height: 20px;
+  width: 350px;
+  border: 1px solid aqua;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  margin: 10px;
+}
+
+.hud-zoom {
+  left: 375px;
+  z-index: 10;
+  margin: 10px;
+}
+
+.ui-slider-range {
+  border: 10px soild orange !important;
+  display: inline-block;
+}
+
+.ui-slider-handle {
+    border: 1px solid #444;
+    background: #333;
+    font-weight: normal;
+    color: #222;
+    top: 0 !important;
+}
+
+.zoombutton {
+  display: flex;
+  margin: 10px 10px;
+}
+
+.pin {
+  float: right;
+}
+
+#clicker {
+  width: 80%;
+  /* height: 100%; */
+}
 
 
 @media screen and (max-width: 800px) {
