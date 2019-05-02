@@ -155,11 +155,10 @@
 .hud {
   display: grid;
   grid-template-areas:
-  "hud-clickable hud-clickable hud-clickable hud-clickable"
-  "zoombar hud-header hud-content hud-content";
-  grid-template-columns: 0 7em 1fr 1fr;
-  grid-template-rows: 2rem auto;
-
+  "hud-header hud-content hud-content";
+  grid-template-columns: 7em 1fr 1fr;
+  grid-template-rows: auto;
+  
   position: fixed;
   float: none;
   z-index: 40000;
@@ -192,6 +191,7 @@
 .hud-header {
   grid-area: hud-header;
   display: flex;
+  flex-flow: column;
   overflow-y: auto;
 }
 
@@ -202,6 +202,7 @@
   text-align: center;
   padding: 0;
   margin: 0;
+  height: 100%;
 }
 
 .hud-header li {
@@ -213,11 +214,12 @@
   cursor: pointer;
 }
 
-.hud-header a {
+.hud-header a, .hud-header span {
   text-decoration: none;
   color: #fff;
   display: block;
   transition: .3s background-color;
+  line-height: 50px;
 }
 
 .hud-header a:hover {
@@ -252,26 +254,55 @@
   display: none;
 }
 
+/*
 .controls {
-  cursor: crosshair;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
+  cursor: pointer;
+  background: #666;
+  
   font-size: 1.4rem;
+  position: absolute;
+  overflow: hidden;
+  border-radius: 1.4em;
+  transition: border-radius 0.3s ease;
+  transition: height 0.3s ease;
+  transition: width 0.4s ease;
+  width: 1.5em;
+  height: 1.5em;
+  line-height: 1.5em;
+  vertical-align: bottom;
+}
+
+.controls-expanded {
+  top: -107px;
+  height: 6em;
+  width: 8em; 
+  border-radius: 2px;
+}
+
+.contols-content {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 6em;
+}
+
+.controls > div {
+  display: block;
+}
+*/
+
+.controls-content div {
+  display: block;
+}
+
+.controls-content .hud-button {
+  width: 1em;
 }
 
 .hud-button {
   padding: 5px 4px;
 }
 
-.controls-left {
-  display: inline-block;
-  margin-left: auto;
-}
-
-#zoomdown {
-  margin-right: 5px;
-}
 
 
 /*
