@@ -160,6 +160,8 @@
   grid-template-rows: auto;
   
   position: fixed;
+  left: 50%;
+  bottom: 0%;
   float: none;
   z-index: 40000;
 
@@ -168,15 +170,13 @@
   font-size: 1.2rem;
   width: 50%;
   min-width: 850px;
+  max-width: 1300px;
   background-color: #707070;
   border: 2px solid #948f8b;
   border-bottom: 0px;
-
-  left: 50%;
-  bottom: 0%;
+  cursor: move;
 
   transform: translate(-50%, -0%);
-
   transition: height 0.2s ease;
 }
 
@@ -236,6 +236,10 @@
   grid-area: zoombar;
 }
 
+.keytip {
+  font-family: 'Courier New', Courier, monospace;
+}
+
 .status, .hud_menu_overlay {
   overflow-y: auto;
   border-right: 1px solid gray;
@@ -291,8 +295,13 @@
 }
 */
 
+.controls {
+  width: 99%;
+}
+
 .controls-content div {
   display: block;
+  line-height: 2em;
 }
 
 .controls-content .hud-button {
@@ -301,8 +310,14 @@
 
 .hud-button {
   padding: 5px 4px;
+  cursor: pointer;
 }
 
+.fa:before {
+  width: 0.8em;
+  display: inline-block;
+  text-align: center;
+}
 
 
 /*
