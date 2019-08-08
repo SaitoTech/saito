@@ -290,19 +290,35 @@ Todo.prototype.webServer = function webServer(app, expressapp) {
 }
 ```
 
-Our serve won't bundle our module into our `browser.js` file with the rest of the modules unless it's added to the `mods.js` file in the root of our modules directory
+Our serve won't bundle our module into our `browser.js` file with the rest of the modules unless it's added to the `mods.config.js` file in the root of our modules directory
 
 ```javascript
-// mods.js
+// mods.config.js
 
 // ...
 
-this.mods.push(require('../../mods/reddit/reddit')(this.app));
-this.mods.push(require('../../mods/remix/remix')(this.app));
-this.mods.push(require('../../mods/money/money')(this.app));
-this.mods.push(require('../../mods/debug/debug')(this.app));
-
-this.mods.push(require('../../mods/todo/todo')(this.app));
+module.exports =
+    [
+        '../../mods/welcome/welcome',
+        '../../mods/chess/chess',
+        '../../mods/arcade/arcade',
+        '../../mods/settings/settings',
+        '../../mods/advert/advert',
+        '../../mods/appstore/appstore',
+        '../../mods/chat/chat',
+        '../../mods/email/email',
+        '../../mods/encrypt/encrypt',
+        '../../mods/explorer/explorer',
+        '../../mods/facebook/facebook',
+        '../../mods/faucet/faucet',
+        '../../mods/registry/registry',
+        '../../mods/reddit/reddit',
+        '../../mods/remix/remix',
+        '../../mods/money/money',
+        '../../mods/debug/debug',
+        '../../mods/todo/todo',
+        
+]
 ```
 
 Ok, now we're starting to see it take form! If you don't have your Saito instance started at this point, make sure to run `npm run nuke` in your temrinal to recompile the modules, then `npm start` and take a look at [`http://localhost:12101/todo`](http://localhost:12101/todo) to check it out and see what it looks like.
