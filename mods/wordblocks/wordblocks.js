@@ -674,9 +674,9 @@ Wordblocks.prototype.addEventsToBoard = function addEventsToBoard() {
     let divname = $(this).attr("id");
     let html = `
       <div class="tile-placement-controls">
-        <span class="action" id="horizontally"><i class="fas fa-arrows-alt-h"></i> horizontally</span>
-        <span class="action" id="vertically"><i class="fas fa-arrows-alt-v"></i> vertically</span>
-        <span class="action" id="cancel"><i class="far fa-window-close"></i> cancel</span>
+        <span class="action" id="<span>horizontally</span>"><i class="fas fa-arrows-alt-h"></i> horizontally</span>
+        <span class="action" id="<span>vertically</span>"><i class="fas fa-arrows-alt-v"></i> vertically</span>
+        <span class="action" id="<span>cancel</span>"><i class="far fa-window-close"></i> cancel</span>
       </div>`;
     let tmpx = divname.split("_");
     let y = tmpx[0];
