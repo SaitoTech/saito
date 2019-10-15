@@ -294,6 +294,7 @@ class Arcade extends ModTemplate {
     if (modname === "Arcade") { return 1; }
     if (modname === "Solitrio") { return 1; }
     if (modname === "Twilight") { return 1; }
+    if (modname === "Imperium") { return 1; }
     if (modname === "Poker") { return 1; }
     if (modname === "Pandemic") { return 1; }
     if (modname === "Chess") { return 1; }
