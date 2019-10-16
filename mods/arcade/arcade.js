@@ -308,7 +308,7 @@ class Arcade extends ModTemplate {
   // onNewBlock //
   ////////////////
   async onNewBlock(blk, lc) {
-    let arcade_self = blk.app.modules.returnModule("Arcade");
+    // let arcade_self = blk.app.modules.returnModule("Arcade");
     // arcade_self.refreshOpenGames();
   }
 
