@@ -25,7 +25,7 @@ function Wallet(app) {
   this.wallet.outputs               = [];
   this.wallet.spends                = [];
   this.wallet.default_fee           = 2;
-  this.wallet.version               = 2.17;
+  this.wallet.version               = 2.19;
   this.wallet.pending               = []; 	// sent but not seen
 
   this.inputs_hmap                  = [];
