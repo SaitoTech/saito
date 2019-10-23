@@ -714,7 +714,7 @@ Wordblocks.prototype.addEventsToBoard = function addEventsToBoard() {
       $('.status').html(updated_status);
       wordblocks_self.enableEvents();
     } else {
-      $('body').append(html);
+      $('#main').append(html);
       $('.tile-placement-controls').addClass("active-status");
       $('.tile-placement-controls').css({ "position": "absolute", "top": top, "left": left });
     }
