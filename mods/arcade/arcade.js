@@ -299,6 +299,7 @@ class Arcade extends ModTemplate {
     if (modname === "Pandemic") { return 1; }
     if (modname === "Chess") { return 1; }
     if (modname === "Wordblocks") { return 1; }
+    if (modname === "Connect4") { return 1; }
     return 0;
   }
 
