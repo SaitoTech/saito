@@ -1,0 +1,41 @@
+body {
+  text-align: center;
+  background-image: url("background-blur.jpg");
+  background-repeat: no-repeat;
+  
+}
+
+#connect4 {
+  background-color: rgb(63, 55, 172);
+  display: inline-block;
+}
+
+.col {
+  width: 90px;
+  height: 90px;
+  display: inline-block;
+  background-color: rgb(255, 255, 255);
+  border-radius: 50%;
+  border: 5px solid black;
+  margin: 10px;
+}
+
+.col.empty {
+  cursor: pointer;
+}
+
+.next-red {
+  background-color: rgba(255, 0, 0, 0.541);
+}
+
+.next-black {
+  background-color: rgba(0, 0, 0, 0.596);
+}
+
+.col.red {
+  background-color: red;
+}
+
+.col.black {
+  background-color: black;
+}
