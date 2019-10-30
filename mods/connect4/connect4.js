@@ -216,6 +216,34 @@ return checkVerticals() ||
   checkDiagonalTLtoBR();
 }
 
+Connect4.prototype.updateStatusMessage = function updateStatusMessage(str = "") {
+
+  if (this.browser_active != 1) { return; }
+
+  if (str != "") {
+    var statusEl = $('#status');
+    statusEl.html(str);
+    return;
+  }
+
+  var status = '';
+
+  var moveColor = 'red';
+  if (this.engine.turn() === 'b') {
+    moveColor = 'black';
+  }
+
+  if (this.engine.checkForWinner() === true) {
+    status = 'Game over, ' + moveColor + 'wins';
+  }
+
+
+  var statusEl = $('#status');
+  statusEl.html(status);
+
+
+};
+
 
 ///////////////
 // webServer //
