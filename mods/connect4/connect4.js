@@ -243,13 +243,9 @@ Connect4.prototype.updateStatusMessage = function updateStatusMessage(str = "") 
     status = 'Game over, ' + moveColor + 'wins';
   }
 
-
   var statusEl = $('#status');
   statusEl.html(status);
-
-
 };
-
 
 ///////////////
 // webServer //
