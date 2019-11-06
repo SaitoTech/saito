@@ -49,7 +49,13 @@ Connect4.prototype.initializeGame = async function initializeGame(game_id)
   if(this.game.status !=""){
     this.updateStatus(this.game.status)
   }
+  if (this.game.initializing == 1) {
 
+    this.game.initializing = 0;
+    this.saveGame(this.game.id);
+  }
+
+}
 
 Connect4.prototype.createGrid = function createGrid(){
   if(this.app.BROWSER){
@@ -264,4 +270,3 @@ Connect4.prototype.webServer = function webServer(app, expressapp) {
       return;
     });
 }  
-}
