@@ -648,26 +648,7 @@ Wordblocks.prototype.addEventsToBoard = function addEventsToBoard() {
   let wordblocks_self = this;
   $('.tosstiles').off();
   $('.tosstiles').on('click', function () {
-    tiles = prompt("Which tiles do you want to discard? Tossed tiles count against your score:");
-
-    if (tiles) {
-      alert("Tossed: " + tiles);
-      wordblocks_self.removeTilesFromHand(tiles);
-      wordblocks_self.addMove("turn\t" + wordblocks_self.game.player);
-      let cards_needed = 7;
-      cards_needed = cards_needed - wordblocks_self.game.deck[0].hand.length;
-
-      if (cards_needed > wordblocks_self.game.deck[0].crypt.length) {
-        cards_needed = wordblocks_self.game.deck[0].crypt.length;
-      }
-
-      if (cards_needed > 0) {
-        wordblocks_self.addMove("DEAL\t1\t" + wordblocks_self.game.player + "\t" + cards_needed);
-      }
-
-      wordblocks_self.showTiles();
-      wordblocks_self.endTurn();
-    }
+    sprompt("Which tiles do you want to discard? Tossed tiles count against your score:", tossTiles, wordblocks_self);
   });
   $('.slot').off();
   $('.slot').on('click', function () {
@@ -726,10 +707,12 @@ Wordblocks.prototype.addEventsToBoard = function addEventsToBoard() {
 
       if (action2 == "horizontally") {
         orientation = "horizontal";
+        $('.tile-placement-controls').remove();
       }
 
       if (action2 == "vertically") {
         orientation = "vertical";
+        $('.tile-placement-controls').remove();
       }
 
       if (action2 == "cancel") {
@@ -738,78 +721,18 @@ Wordblocks.prototype.addEventsToBoard = function addEventsToBoard() {
         wordblocks_self.updateStatusWithTiles("Click on the board to place a letter from that square, or <span class=\"link tosstiles\">discard tiles</span> if you cannot move.");
         wordblocks_self.addEventsToBoard();
         return;
-      }
-
-      word = prompt("Provide your word:");
-
-      if (word) {
-        //
-        // reset board
-        //
-        $('.tile-placement-controls').html('');
-        $('.status').html("Processing your turn.");
-
-        //
-        // if entry is valid
-        //
-
-        if (wordblocks_self.isEntryValid(word, orientation, x, y) == 1) {
-          let myscore = 0;
-          wordblocks_self.addWordToBoard(word, orientation, x, y);
-          myscore = wordblocks_self.scoreWord(word, wordblocks_self.game.player, orientation, x, y);
-
-          if (myscore <= 1) {
-            wordblocks_self.removeWordFromBoard(word, orientation, x, y);
-            wordblocks_self.updateStatusWithTiles(
-              `Try again! Click on the board to place a letter from that square, or
-              <span class="link tosstiles">discard tiles</span> if you cannot move.`
-            );
-            wordblocks_self.addEventsToBoard();
-          } else {
-            wordblocks_self.setBoard(word, orientation, x, y); //
-            // place word on board
-            //
-
-            wordblocks_self.addMove("place\t" + word + "\t" + wordblocks_self.game.player + "\t" + x + "\t" + y + "\t" + orientation); //
-            // discard tiles
-            //
-
-            wordblocks_self.discardTiles(word, orientation, x, y); //
-            // get new cards
-            //
-
-            let cards_needed = 7;
-            cards_needed = cards_needed - wordblocks_self.game.deck[0].hand.length;
-
-            if (cards_needed > wordblocks_self.game.deck[0].crypt.length) {
-              cards_needed = wordblocks_self.game.deck[0].crypt.length;
-            }
-
-            if (cards_needed > 0) {
-              wordblocks_self.addMove("DEAL\t1\t" + wordblocks_self.game.player + "\t" + cards_needed);
-            } //myscore = wordblocks_self.scoreWord(word, wordblocks_self.game.player, orientation, x, y);
+      } 
 
 
-            wordblocks_self.exhaustWord(word, orientation, x, y);
-            wordblocks_self.addScoreToPlayer(wordblocks_self.game.player, myscore);
 
-            if (wordblocks_self.checkForEndGame() == 1) {
-              return;
-            }
+     word = psprompt("Provide your word:", playWord, wordblocks_self, orientation, x, y);
 
-            $('#remainder').html("Tiles left: " + wordblocks_self.game.deck[0].crypt.length);
-            wordblocks_self.endTurn();
-          }
+      //Pprompt('Provide your word:').then((word) => {
+      //  playWord(word, orientation, x, y);
+     // });
 
-          ;
-        } else {
-          wordblocks_self.updateStatusWithTiles(
-            `Word is not valid, try again! Click on the board to place a word, or
-            <span class="link tosstiles">discard tiles</span>`
-          );
-          wordblocks_self.addEventsToBoard();
-        }
-      }
+//XXX
+      
     });
   });
 
@@ -863,7 +786,7 @@ Wordblocks.prototype.isEntryValid = function isEntryValid(word, orientation, x, 
   if (this.firstmove == 1) {
     if (orientation == "vertical") {
       if (x != 6 && x != 10) {
-        alert("First Word must be placed to cross a Star");
+        salert("First Word must be placed to cross a Star");
         return 0;
       }
 
@@ -871,14 +794,14 @@ Wordblocks.prototype.isEntryValid = function isEntryValid(word, orientation, x, 
       let ending_point = y + word.length - 1;
 
       if (starting_point <= 6 && ending_point >= 6 || starting_point <= 10 && ending_point >= 6) { } else {
-        alert("First Word must be long enough to cross a Star");
+        salert("First Word must be long enough to cross a Star");
         return 0;
       }
     }
 
     if (orientation == "horizontal") {
       if (y != 6 && y != 10) {
-        alert("First Word must be placed to cross a Star");
+        salert("First Word must be placed to cross a Star");
         return 0;
       }
 
@@ -886,7 +809,7 @@ Wordblocks.prototype.isEntryValid = function isEntryValid(word, orientation, x, 
       let ending_point = x + word.length - 1;
 
       if (starting_point <= 6 && ending_point >= 6 || starting_point <= 10 && ending_point >= 6) { } else {
-        alert("First Word must be long enough to cross a Star");
+        salert("First Word must be long enough to cross a Star");
         return 0;
       }
     } //this.firstmove = 0;
@@ -922,14 +845,14 @@ Wordblocks.prototype.isEntryValid = function isEntryValid(word, orientation, x, 
       }
 
       if (letter_found == 0) {
-        alert("INVALID: letter not in hand: " + letter);
+        salert("INVALID: letter not in hand: " + letter);
         return 0;
       }
     }
   }
 
   if (valid_placement == 0) {
-    alert("This is an invalid placement!");
+    salert("This is an invalid placement!");
   }
 
   return valid_placement;
@@ -1150,13 +1073,105 @@ Wordblocks.prototype.returnLetters = function returnLetters() {
 checkWord = function checkWord(word) {
   if (word.length >= 1 && typeof this.wordlist != "undefined") {
     if (this.wordlist.indexOf(word.toLowerCase()) <= 0) {
-      alert(word + " is not a playable word.");
+      salert(word + " is not a playable word.");
       return false;
     } else {
       return true;
     }
   } else {
     return true;
+  }
+};
+
+tossTiles = function tossTiles(tiles, game_obj) {
+  if (tiles) {
+    salert("Tossed: " + tiles);
+    game_obj.removeTilesFromHand(tiles);
+    game_obj.addMove("turn\t" + game_obj.game.player);
+    let cards_needed = 7;
+    cards_needed = cards_needed - game_obj.game.deck[0].hand.length;
+
+    if (cards_needed > game_obj.game.deck[0].crypt.length) {
+      cards_needed = game_obj.game.deck[0].crypt.length;
+    }
+
+    if (cards_needed > 0) {
+      game_obj.addMove("DEAL\t1\t" + game_obj.game.player + "\t" + cards_needed);
+    }
+
+    game_obj.showTiles();
+    game_obj.endTurn();
+  }
+};
+
+playWord = function playWord(word, game_obj, orientation, x, y) {
+  if (word) {
+    //
+    // reset board
+    //
+    $('.tile-placement-controls').html('');
+    $('.status').html("Processing your turn.");
+
+    //
+    // if entry is valid
+    //
+
+    if (game_obj.isEntryValid(word, orientation, x, y) == 1) {
+      let myscore = 0;
+      game_obj.addWordToBoard(word, orientation, x, y);
+      myscore = game_obj.scoreWord(word, game_obj.game.player, orientation, x, y);
+
+      if (myscore <= 1) {
+        game_obj.removeWordFromBoard(word, orientation, x, y);
+        game_obj.updateStatusWithTiles(
+          `Try again! Click on the board to place a letter from that square, or
+          <span class="link tosstiles">discard tiles</span> if you cannot move.`
+        );
+        game_obj.addEventsToBoard();
+      } else {
+        game_obj.setBoard(word, orientation, x, y); //
+        // place word on board
+        //
+
+        game_obj.addMove("place\t" + word + "\t" + game_obj.game.player + "\t" + x + "\t" + y + "\t" + orientation); //
+        // discard tiles
+        //
+
+        game_obj.discardTiles(word, orientation, x, y); //
+        // get new cards
+        //
+
+        let cards_needed = 7;
+        cards_needed = cards_needed - game_obj.game.deck[0].hand.length;
+
+        if (cards_needed > game_obj.game.deck[0].crypt.length) {
+          cards_needed = game_obj.game.deck[0].crypt.length;
+        }
+
+        if (cards_needed > 0) {
+          game_obj.addMove("DEAL\t1\t" + game_obj.game.player + "\t" + cards_needed);
+        } //myscore = game_obj.scoreWord(word, game_obj.game.player, orientation, x, y);
+
+
+        game_obj.exhaustWord(word, orientation, x, y);
+        game_obj.addScoreToPlayer(game_obj.game.player, myscore);
+
+        if (game_obj.checkForEndGame() == 1) {
+          return;
+        }
+
+        $('#remainder').html("Tiles left: " + game_obj.game.deck[0].crypt.length);
+        game_obj.endTurn();
+      }
+
+      ;
+    } else {
+      game_obj.updateStatusWithTiles(
+        `Word is not valid, try again! Click on the board to place a word, or
+        <span class="link tosstiles">discard tiles</span>`
+      );
+      game_obj.addEventsToBoard();
+    }
   }
 };
 
@@ -1664,7 +1679,7 @@ Wordblocks.prototype.scoreWord = function scoreWord(word, player, orientation, x
   }
 
   if (this.firstmove == 0 && touchesWord == 0) {
-    alert("Word does not cross our touch an existing word.");
+    salert("Word does not cross our touch an existing word.");
     return -1;
   }
 
@@ -1759,6 +1774,7 @@ Wordblocks.prototype.handleGame = function handleGame(msg = null) {
 
     if (mv[0] === "endgame") {
       //this.moves;
+
       this.game.queue.splice(this.game.queue.length - 1, 1);
       this.addMove("gameover");
       return 1;
@@ -1899,12 +1915,75 @@ Wordblocks.prototype.endTurn = function endTurn() {
   this.sendMessage("game", extra);
 };
 
+if (typeof window !== "undefined") {
+  window.salert = function salert(message) {
+    var t = '<div id="temp-alert"><p>' + message + '</p><button id="alert-ok">ok</button></div>';
+    $('#gameboard').append(t);
+    $('#alert-ok').on('click', function () {
+      $('#temp-alert').remove();
+    });
+  };
+};
+
+if (typeof window !== "undefined") {
+  window.sprompt = function sprompt(message, funke, game_obj) {
+
+    var t = '<div id="temp-prompt"><p>' + message + '</p><input type="text" id="sprompt-value" /><button id="alert-cancel">cancel</button><button id="alert-ok">ok</button></div>';
+    $('#gameboard').append(t);
+    $('#alert-ok').on('click', function () {
+      let tiles = $('#sprompt-value').val();
+      $('#temp-prompt').remove();
+      funke(tiles, game_obj);
+    });
+    $('#alert-cancel').on('click', function () {
+      $('#temp-prompt').remove();
+    });
+  };
+};
+
+if (typeof window !== "undefined") {
+  window.psprompt = function psprompt(message, funke, game_obj, orientation, x, y) {
+    var t = '<div id="temp-prompt"><p>' + message + '</p><input type="text" id="sprompt-value" /><button id="alert-cancel">cancel</button><button id="alert-ok">ok</button></div>';
+    $('#gameboard').append(t);
+    $('#alert-ok').on('click', function () {
+      let word = $('#sprompt-value').val();
+      $('#temp-prompt').remove();
+      funke(word, game_obj, orientation, x, y);
+    });
+    $('#alert-cancel').on('click', function () {
+      $('#temp-prompt').remove();
+    });
+  }
+};
+
+
+if (typeof window !== "undefined") {
+  window.Pprompt = function Pprompt(message) {
+    var word = "";
+    return new Promise(function (resolve) {
+      function getWord() {
+        let word = $('#sprompt-value').val();
+        $('#temp-prompt').remove();
+        return word;
+      };
+      var t = '<div id="temp-prompt"><p>' + message + '</p><input type="text" id="sprompt-value" /><button id="alert-cancel">cancel</button><button id="alert-ok">ok</button></div>';
+      $('#gameboard').append(t);
+      $('#sprompt-value').focus();
+      $('#alert-ok').on('click', word = getWord());
+      $('#alert-cancel').on('click', function () {
+        $('#temp-prompt').remove();
+      });
+      return resolve(word);
+    });
+  };
+};
+  
 Wordblocks.prototype.returnGameOptionsHTML = function returnGameOptionsHTML() {
 
   return `
         <h3>Wordblocks: </h3>
 
-        <form id="options" class="options">
+        <form id="options" class="opmsgtions">
 
           <label for="dictionary">Dictionary:</label>
           <select name="dictionary">
@@ -1914,4 +1993,28 @@ Wordblocks.prototype.returnGameOptionsHTML = function returnGameOptionsHTML() {
           </select>
 
           </form>
-          `}
+        `};
+
+
+        /*
+        if (typeof window !== "undefined") {
+  window.sprompt = function sprompt(message, funke, game_obj) {
+      return new Promise(function (resolve, reject) {
+    let confirmed = window.confirm(msg);
+
+    return confirmed ? resolve(true) : reject(false);
+  });
+    var t = '<div id="temp-prompt"><p>' + message + '</p><input type="text" id="sprompt-value" /><button id="alert-cancel">cancel</button><button id="alert-ok">ok</button></div>';
+    $('#gameboard').append(t);
+    $('#alert-ok').on('click', function () {
+      let tiles = $('#sprompt-value').val();
+      $('#temp-prompt').remove();
+      funke(tiles, game_obj);
+    });
+    $('#alert-cancel').on('click', function () {
+      $('#temp-prompt').remove();
+    });
+  };
+}; 
+
+*/
