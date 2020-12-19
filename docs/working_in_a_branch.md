@@ -1,6 +1,6 @@
-#How to work in a branch when developing a Saito Module
+# How to work in a branch when developing a Saito Module
 
-## Install Satio
+## Install Saito
 
 tl:dr
 
