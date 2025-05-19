@@ -47,8 +47,8 @@ class SaitoOverlay {
 			}
 		);
 
-		max_z_index_bg = 100 + max + 2;
-		max_z_index = 100 + max + 3;
+		let max_z_index_bg = 100 + max + 2;
+		let max_z_index = 100 + max + 3;
 
 		let qs = `saito-overlay${this.ordinal}`;
 		let obj = document.getElementById(qs);
