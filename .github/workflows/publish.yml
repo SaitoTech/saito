@@ -18,6 +18,7 @@ jobs:
       - name: Update versions
         run: ./scripts/update_version.sh
         shell: bash
+        working-directory: ./rust
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -33,7 +34,7 @@ jobs:
           echo current_saito_wasm_version=$(npm pkg get version | tr -d '"') >> $GITHUB_ENV
           echo "current saito-wasm node package version : ${{ env.current_saito_wasm_version }}"
           echo "published saito-wasm node package version : ${{ env.published_saito_wasm_version }}"
-        working-directory: saito-wasm
+        working-directory: ./rust/saito-wasm
 
       - name: version check for saito-wasm
         if: ${{ env.published_saito_wasm_version == env.current_saito_wasm_version }}
@@ -55,16 +56,19 @@ jobs:
         with:
           command: build
           args: --release
+          working-directory: ./rust
 
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --release
+          working-directory: ./rust
 
       - name: Bootstrapping
         run: bash ./scripts/bootstrap_for_ci.sh
         shell: bash
+        working-directory: ./rust
 
       - name: Install npm packages for saito-wasm
         run: npm install
@@ -90,30 +94,32 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: "saito-rust"
-          path: "target/release/saito-rust"
+          path: "rust/target/release/saito-rust"
 
       - name: Build documentation
         run: cargo doc --no-deps
 
       - name: Copy index.html file
-        run: cp .github/workflows/doc_index.template.html target/doc/index.html
+        run: cp .github/workflows/doc_index.template.html rust/target/doc/index.html
 
       - name: Fix permissions
         run: |
           chmod -c -R +rX "target/doc/" | while read line; do
             echo "::warning title=Invalid file permissions automatically fixed::$line"
           done
+        working-directory: ./rust
+        
 
       - name: Upload Documentation to github pages
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "target/doc"
+          path: "rust/target/doc"
 
       - name: get latest saito-js version
         run: |
           echo published_saito_js_version=$(npm show saito-js version) >> $GITHUB_ENV
           echo current_saito_js_version=$(npm pkg get version | tr -d '"') >> $GITHUB_ENV
-        working-directory: saito-js
+        working-directory: rust/saito-js
 
       - name: version check saito-js
         if: ${{ env.published_saito_js_version == env.current_saito_js_version }}
@@ -125,17 +131,17 @@ jobs:
       - name: Install npm packages for saito-js
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
         run: npm install
-        working-directory: saito-js
+        working-directory: rust/saito-js
 
       - name: Update saito-wasm package
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
         run: npm update saito-wasm
-        working-directory: saito-js
+        working-directory: rust/saito-js
 
       - name: build saito-js
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
         run: npm run build
-        working-directory: saito-js
+        working-directory: rust/saito-js
 
       - name: copying saito-js
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
@@ -144,14 +150,14 @@ jobs:
           cp package-lock.json dist
           cp tsconfig.json dist
           cp .npmignore dist
-        working-directory: saito-js
+        working-directory: rust/saito-js
 
       - name: Publish saito-js package
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        working-directory: saito-js/dist
+        working-directory: rust/saito-js/dist
 
   deploy_docs:
     needs: build_and_publish
