@@ -1,0 +1,481 @@
+/* generic modal look and feel */
+
+/*
+NOTE: the .saito-model class is a grid with two sectiions
+This alows for a header with a header with title to be added without extra CSS
+*/
+
+.saito-modal {
+  color: var(--font-color-modal-menu-oldschool);
+  background: var(--background-color-modal-menu-oldschool);
+  /* this seems to be placed on top of the other modal design?? */
+  min-width: 70rem;
+  height: min-content;
+  max-width: 80vw;
+  padding: 2rem;
+  display: grid;
+  grid-template-rows: min-content 1fr;
+  max-height: 95vh;
+  border: var(--border-thickness-modal-menu) solid var(--border-color-modal-menu);
+  border-radius: var(--border-radius-modal-menu);
+}
+
+.saito-modal-title {
+  font-size: 3rem;
+  padding: unset;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saito-contact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  gap: 1rem;
+}
+
+/* We want to trigger the click event on the container */
+
+.saito-contact .saito-user .saito-identicon-box, .saito-contact .saito-user .saito-userline, .saito-contact .saito-user .saito-address {
+  pointer-events: none;
+}
+
+.secure_contact_notice {
+  position: absolute;
+  left: 3rem;
+  top: 0;
+  z-index: 2;
+  color: var(--saito-font-color-light);
+  /* testing */
+  text-shadow: 2px 2px 2px var(--saito-black);
+}
+
+.saito-contact.unconfirmed {
+  filter: brightness(0.7) grayscale(1);
+}
+
+.saito-modal-title + .saito-modal-content {
+  border-top: 1px solid var(--saito-border-color);
+  padding: 0.5rem 0;
+}
+
+.saito-modal-content .saito-user {
+  height: 5rem;
+  align-items: center;
+  font-size: 20px;
+}
+
+.saito-modal .saito-modal-content .saito-user .saito-identicon-box {
+  width: 4.5rem;
+  height: 4.5rem;
+}
+
+.saito-modal-menu .saito-modal-title .saito-user {
+  height: 6rem;
+  margin: 0 1.25rem;
+  padding: 0 1.25rem;
+  cursor: default;
+  align-items: center;
+  width: calc(100% - 2.5rem);
+  white-space: nowrap;
+}
+
+.saito-modal-menu .saito-modal-title .saito-user .saito-identicon-box {
+  width: 5.5rem;
+  height: 5.5rem;
+}
+
+/* saito-modal-menu
+/* theming for a simple menu with font-awesome icon and text in a two col grid */
+
+.saito-modal-menu-option {
+  font-size: 3rem;
+  height: 6rem;
+  margin: 0 2rem;
+  padding: 1.5rem;
+  display: grid;
+  align-items: center;
+  grid-gap: 1rem;
+  grid-template-columns: 4rem 1fr;
+  cursor: pointer;
+  position: relative;
+}
+
+.saito-modal-tagline {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+.saito-modal-point {
+  font-size: 2rem;
+  padding: 0.5rem;
+  display: grid;
+  align-items: center;
+  grid-gap: 2rem;
+  grid-template-columns: 4rem 1fr;
+}
+
+.saito-modal-point i {
+  font-size: 3rem;
+  justify-self: center;
+}
+
+.saito-modal-menu-option.disabled-option {
+  color: var(--saito-gray-mid);
+  cursor: default;
+}
+
+.saito-contact:hover {
+  background-color: var(--background-color-button-hover-chat-container);
+  color: var(--font-color-button-hover-chat-container);
+}
+
+.saito-modal-menu-option:not(.disabled-option):hover, .saito-modal .saito-contact:hover {
+  background-color: var(--background-color-button-hover-modal-oldschool);
+  color: var(--font-color-button-hover-modal-oldschool);
+}
+
+.saito-modal-menu-option > i {
+  justify-self: center;
+  margin-right: 2rem;
+}
+
+.saito-modal-menu-option>div {
+  float: left;
+  margin-right: 2rem;
+  font-size: 2rem;
+  vertical-align: middle;
+  margin-bottom: auto;
+  margin-top: auto;
+  line-height: 3rem;
+  height: 3rem;
+}
+
+.saito-modal-text-input {
+  margin-left: 3rem;
+  margin-right: 3rem;
+  width: 50rem;
+  max-width: 50rem;
+  margin-top: 0.75rem;
+}
+
+.saito-modal-button {
+  background-color: var(--color-white);
+  /* testing */
+  margin-top: 3rem;
+  margin-left: 3rem;
+  max-width: min-content;
+  padding-left: 4rem;
+  padding-right: 4rem;
+}
+
+.saito-modal-button:hover {
+  border: 1px solid var(--color-white);
+  /* testing */
+}
+
+#saito-confirm-add-publickey {
+  background-color: var(--color-white);
+  height: auto;
+  width: 30vh;
+  border-radius: 1.5rem;
+  padding: 2rem;
+}
+
+#saito-confirm-add-publickey .saito-identicon-box {
+  display: inline-block;
+  margin-left: 50%;
+  transform: translateX(-50%);
+  width: 8rem;
+  height: 8rem;
+}
+
+#saito-confirm-add-publickey>.saito-address {
+  width: 100%;
+  max-width: 100%;
+  overflow: inherit;
+  display: block;
+  height: auto;
+  word-break: break-word;
+  text-overflow: inherit;
+  white-space: break-spaces;
+  text-align: center;
+  margin-top: 5rem;
+  margin-bottom: 1rem;
+}
+
+#saito-confirm-add-publickey>.saito-contact-status {
+  text-align: center;
+}
+
+.saito-modal-title .saito-user .saito-address {
+  font-size: 4rem;
+}
+
+.share-link {
+  color: var(--saito-font-color);
+}
+
+/* Exclusively for modal-add-user-confirm.template */
+
+.confirm-modal-wrapper {
+  font-size: 1.5em;
+  padding: 1.5em;
+  color: var(--font-color-modal-confirm);
+  font-weight: bold;
+}
+
+.welcome-invite-box {
+  min-width: 200px;
+  min-height: 120px;
+  max-width: 325px;
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 25px;
+  border: 1px solid var(--saito-border-color);
+  margin: 1em;
+}
+
+/* LIST SELECTION MODAL */
+
+.game-selection-list-overlay {
+  background-color: black;
+  /* testing, i have it as white locally. */
+  max-height: 90vh;
+  overflow-y: scroll;
+  font-size: 2rem;
+  min-width: 400px;
+}
+
+.selection-list li {
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  padding: 10px 0px 10px 20px;
+  list-style: none;
+}
+
+.selection-list li:hover {
+  background-color: #33669999;
+  /* testing */
+}
+
+.selection-list li .tiptext {
+  width: fit-content;
+  ;
+  background-color: #000a;
+  color: #ffffff !important;
+  min-width: 0px;
+  padding: 3px;
+  pointer-events: none;
+  top: 5px;
+  right: 0;
+}
+
+/* Welcome modal */
+
+.welcome-modal-wrapper {
+  max-width: 80vw;
+  font-size: 1.4em;
+}
+
+.welcome-modal-input-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+}
+
+.welcome-modal-input {
+  padding: 0.5rem;
+  font-size: 2.5rem !important;
+  flex-grow: 5;
+  border-radius: 0.5rem;
+  color: var(--font-color-modal-confirm);
+  text-align: end;
+}
+
+.welcome-modal-main {
+  display: flex;
+  flex-direction: column;
+  row-gap: 2rem;
+}
+
+/* Exclusively for modal-add-user-confirm.template */
+
+.confirm-modal-wrapper {
+  font-size: 1.5em;
+  padding: 1.5em;
+  color: var(--font-color-modal-confirm);
+  font-weight: bold;
+}
+
+.welcome-modal-header {
+  font-size: 3rem;
+}
+
+.welcome-modal-info {
+  clear: both;
+}
+
+.welcome-modal-action {}
+
+.welcome-modal-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.welcome-modal-signup {
+  margin: 1em 0;
+  display: flex;
+}
+
+.welcome-modal-explanation {
+  font-size: 0.8em;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-gap: 1em;
+  line-height: 1.3em;
+}
+
+.register-modal-controls {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#signup {
+  margin: 0;
+  width: 15px;
+  height: 21px;
+}
+
+.welcome-modal-action button:hover {
+  border-color: var(--border-thickness-general-dividers);
+}
+
+.saito-overlaid-icon {
+  color: var(--saito-white);
+  position: absolute;
+  left: 34%;
+  top: 34%;
+  background: #000a;
+  width: min(90%, 5rem);
+  height: min(90%, 5rem);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--saito-font-color);
+}
+
+/* Identicons aren't clickable in modals menus */
+
+.saito-modal-menu .saito-identicon-box {
+  cursor: default;
+}
+
+/* mobile modals */
+
+@media only screen and (max-width: 1000px) {
+  .saito-modal {
+    min-width: unset;
+    max-width: unset;
+    padding: 1rem;
+    width: 90vw;
+    grid-template-columns: 100%;
+  }
+  .saito-modal>* {
+    max-width: 100%;
+  }
+  .welcome-modal-wrapper {
+    /*grid-template-columns: 1fr;*/
+    width: 90vw;
+  }
+  .modal-content-blank {
+    width: 100%;
+  }
+  .welcome-modal-action {
+    padding: 0.81em;
+  }
+  i.fas.fa-arrow-right {
+    right: -1em;
+  }
+}
+
+@media only screen and (max-width: 768px) {
+  .saito-modal-menu-option{
+    margin: 0 1rem;
+  }
+  .saito-modal-menu-option>i {
+    font-size: 2.2rem;
+  }
+  .saito-modal-menu-option>div {
+    font-size: 2rem;
+  }
+}
+
+@media only screen and (max-width: 525px) {
+  .saito-modal-menu .saito-modal-title .saito-user {
+    margin: 0;
+  }
+  .saito-modal-menu-option {
+    margin: 0;
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* not sure where this should be */
+
+.saito-modal.contacts {
+  background-color: var(--background-color-modal-contacts);
+  background-image: url(/saito/img/tiled-logo.svg);
+  color: var(--font-color-modal-contacts);
+  grid-template-rows: min-content 1fr min-content;
+  border-radius: var(--border-radius-modal-menu);
+}
+
+.saito-contacts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+  height: 100%;
+  overflow: auto;
+}
+
+.qr-share-overlay{
+  padding: 2rem;
+  border: var(--saito-border);
+  width: max-content;
+}
+
+.qr-share-header {
+  font-size: 3rem;
+  display: flex;
+  justify-content: center;
+}
+
+#qr-share-link {
+  margin: 2rem;
+}
+
+
+#qr-share-link img {
+  height: auto;
+  max-width: 24rem;
+  width: 24vh;
+  border: var(--border-thickness-qr-code) solid var(--border-color-qr-code);
+  padding: var(--border-padding-qr-code);
+  border-radius: var(--border-radius-qr-code);
+  background: var(--background-color-qr-code);
+}
+
+

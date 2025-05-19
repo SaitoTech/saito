@@ -1,0 +1,56 @@
+.league-leaderboard .saito-table .saito-table-body .saito-table-row {
+	grid-template-columns: 4rem auto 5rem 5rem 5rem;
+}
+
+.league-leaderboard .saito-table .saito-table-header {
+	grid-template-columns: 4rem auto 5rem 5rem 5rem;
+	text-align: center;
+	padding: 8px;
+	text-transform: capitalize;
+	margin-bottom: 3px;
+}
+
+.saito-table-header {
+	position: sticky;
+	top: 0px;
+	background: var(--background-color-leaderboard-header);
+	z-index: 3;
+}
+
+.leaderboard-updating-msg {
+	display: none;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	padding: 1rem;
+	border: 1px solid var(--saito-border-color);
+	transform: translate(-50%, -50%);
+	background: var(--background-saito-effects);
+	border-radius: var(--saito-border-radius);
+}
+
+.saito-table-row.league-leaderboard-ranking {
+	border-radius: var(--border-radius-leaderboard-ranking);
+}
+
+.saito-table-row.league-leaderboard-ranking:hover {
+	background: var(--background-color-button-hover-leaderboard-ranking);
+}
+
+.my-leaderboard-position {
+	border: var(--border-thickness-leaderboard-position) solid var(--border-color-leaderboard-position);
+}
+
+.my-leaderboard-position>div:first-child {
+	font-size: 0;
+}
+
+.my-leaderboard-position>div:first-child::before {
+	content: '\22B3';
+	font-size: 1.5rem;
+}
+
+.league-rankings .saito-table {
+	padding: 1rem;
+	border: 1px solid var(--saito-border-color);
+}

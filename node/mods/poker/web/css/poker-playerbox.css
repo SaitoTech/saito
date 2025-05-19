@@ -1,0 +1,218 @@
+
+.game-playerbox-manager {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    width: 95vw;
+    height: max-content;
+    justify-content: space-around;
+    top: 5rem;
+    left: 2.5vw;
+}
+
+.saito-user {
+  grid-template-columns: min-content 1fr;
+}
+
+.other-player-hand {
+	position: absolute;
+	left: 101%;
+}
+.other-player-hand .card {
+	position: absolute;
+}
+.game-playerbox-manager .game-playerbox {
+	overflow: visible;
+}
+
+.game-playerbox.game-playerbox-seat-1 {
+	max-width: unset;
+	bottom: unset;
+}
+
+.game-playerbox-icons {
+	flex-direction: column;
+	align-items: center;
+}
+
+.game-playerbox-icons .poker-stack-balance {
+	font-size: 1.2em;
+}
+.game-playerbox-icons .poker-stack-units {
+	font-size: 0.8em;
+}
+
+.game-playerbox-icons .crypto-hover-balance {
+	position: absolute;
+	display: none;
+	border: 1px solid white;
+	bottom: calc(100% + 2rem);
+	border-radius: 1rem;
+	padding: 0.5rem;
+	font-size: 24px;
+	background-color: #020;
+}
+
+.saito-user > .game-playerbox-icons:after{
+	content: "";
+	position: absolute;
+	width: 6rem;
+	height: 5rem;
+}
+
+.saito-user > .game-playerbox-icons:hover .crypto-hover-balance {
+	display: block;
+}
+
+
+.crypto-hover-raise {
+	position: absolute;
+	display: none;
+	border: 1px solid white;
+	bottom: 100%;
+	border-radius: 1rem;
+	padding: 0.5rem;
+	font-size: 18px;
+	background-color: #020;
+	pointer-events: none;
+	white-space: nowrap;
+}
+
+.raise_option:hover .crypto-hover-raise {
+	display: block;
+}
+
+.game-playerbox {
+	/*width: 100%;*/
+	max-width: min(280px, 50vw);
+	border: 1px solid #fff3;
+	min-height: 7.5rem;
+	color: white;
+	background-color: #0a1808ee;
+	position: relative;
+	border-radius: 1.5rem;
+	transition: all 0.5s;
+	margin: auto; /* auto-center in grid */
+	padding: 1.5rem;
+	gap: 0.5rem;
+	border-radius: 0.5rem;
+    max-width: 350px;
+	box-shadow: 5px 5px 3px #0a1808dd;
+}
+
+.game-playerbox.folded {
+	filter: grayscale(100%) brightness(0.6) opacity(75%);
+}
+
+.game-playerbox.active {
+	border: 1px solid #fff;
+  transform: scale(1.05);
+}
+
+
+.game-playerbox-body {
+	width: 100%;
+	overflow: visible;
+}
+
+.game-playerbox-head .saito-user > .saito-address {
+	color: white;
+}
+
+.game-playerbox-head .saito-user > .saito-userline {
+	text-transform: lowercase;
+	align-items: flex-end;
+	justify-content: start;
+	gap: 3px;
+}
+
+.saito-user > .saito-identicon-box {
+	justify-self: center;
+	align-self: center;
+}
+
+.game-playerbox-graphics {
+	position: absolute;
+	display: flex;
+	height: 100%;
+	width: 100%;
+	top: 0;
+	z-index: -10;
+}
+
+
+.poker-player-stake {
+    display: flex;
+    align-items: center;
+    justify-content: right;
+    font-size: 2.5rem;
+    position: absolute;
+    top: calc(100% + 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 10rem;
+    color: #fff;
+    height: 4rem;
+    width: 10rem;
+    transition: opacity 0.75s;
+    background-image: url(/poker/img/simple-chip.svg);
+    background-size: contain;
+    background-repeat: no-repeat;
+    padding: 2px 2rem 0;
+    border: 1px solid #aaa8;
+    background-color: #0008;
+    box-shadow: 5px 5px 3px #0008;
+}
+
+.poker-player-stake.invisible {
+  opacity: 0;
+}
+
+
+.poker-player-stake::after {
+	content: "BET";
+	position: absolute;
+	top: 50%;
+	left: 1.99rem;
+	font-size: 1.1rem;
+	font-weight: bolder;
+	transform: translate(-51%, -46%);
+  }
+
+.game-playerbox-seat-1 .poker-player-stake{
+	left: unset;
+	transform: unset;
+	top: unset;
+	bottom: calc(100% + 1rem);
+	right: 2px;
+}
+
+.plog-update, .status {
+	width: 100%;
+	text-align: center;
+	margin-top: 0.5rem;
+	cursor: default;
+	min-height: 2.3rem;
+}
+
+
+@media screen and (max-width: 900px) {
+  .game-playerbox-manager {
+    gap: 2rem;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .game-playerbox-manager {
+    gap: 1rem;
+  }
+
+  .game-playerbox.game-playerbox-seat-1 {
+	width: 100vw;
+	transform: none;
+	bottom: 0px;
+  }
+  .dealer-button {
+	left: 1rem;
+	top: -4rem !important;
+  }
+}

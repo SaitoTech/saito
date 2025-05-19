@@ -1,0 +1,1151 @@
+:root {
+	--p1-color: #bb233b; /* redish */
+	--p2-color: #004193; /* bluish */
+	--p3-color: #adce14; /* yellowish */
+	--p4-color: #644700; /* brown */
+	--text-color: #331800;
+
+	--p1-color-lite: #bb233be9; /* redish */
+	--p2-color-lite: #004193e9; /* bluish */
+	--p3-color-lite: #adce14e9; /* yellowish */
+	--p4-color-lite: #644700e9; /* brown */
+
+	--theme-font: bagnard-sans;
+}
+
+@font-face {
+    font-family: bagnard-sans;
+    src: url("/settlers/bagnard-sans.otf") format("opentype");
+	/* https://open-foundry.com/fonts/bagnard_sans_regular */
+}
+
+.mobile-log-tab {
+	background-color: #d3c38df5;
+	color: #424143;
+}
+
+.crypto_logo{
+	left: 50px;
+}
+
+.player-box {
+	min-height: 0vh;
+}
+
+.cardfan {
+	z-index: 9;
+}
+
+body {
+	user-select: none;
+}
+
+p {
+	overflow: unset;
+}
+
+.settlers-user {
+	display: grid;
+	column-gap: 1rem;
+	cursor: pointer;
+	grid-template-columns: min-content 1fr min-content;
+	grid-template-rows: min-content 1fr;
+	justify-items: start;
+	width: 100%;
+	position: relative;
+}
+
+.settlers-userline > .saito-userline {
+	grid-column-start: 2;
+	grid-column-end: span 1;
+	grid-row-start: 2;
+	grid-row-end: span 1;
+	font-size: 1.4rem;
+}
+
+.die_value {
+	font-weight: bold;
+}
+
+.tip {
+	width: unset;
+}
+
+.image-as-token {
+	border-radius: 50%;
+	border: 2px solid #fff8;
+	background-color: #456;
+}
+
+span.tip {
+	border-bottom: 1px dotted;
+	font-weight: bold;
+}
+
+.tip .tiptext {
+	font-weight: normal;
+	min-width: 100px;
+	width: fit-content;
+	padding: 0.5em 1em;
+	box-sizing: content-box;
+	white-space: nowrap;
+	pointer-events: none;
+	z-index: 300;
+}
+
+.cardfan {
+	top: 45vh;
+	left: 5vw;
+}
+
+.hexIn {
+	overflow: unset;
+	padding-bottom: 113%;
+}
+
+.hexLink {
+	overflow: unset;
+	height: 105%;
+}
+
+.hex_bg {
+	margin: unset;
+	left: -12.5%;
+	right: -12.5%;
+}
+
+.hex_bg img {
+	left: -12.5%;
+	right: -12.5%;
+}
+
+
+
+dt {
+	margin-top: 0.8em;
+	margin-bottom: 0.5em;
+}
+
+.saito-address {
+	color: unset;
+}
+
+.main.dark {
+	background-color: #369;
+}
+
+/*Richard background*/
+
+/* !-- background moved to body so board is resizable */
+/* gameboard == ocean, the "board" that gets resized is #hexgrid */
+.main, .scrollable-page {
+	position: absolute;
+    width: 100%;
+    height: 100%;
+    transition: background 2s;
+    background-size: cover;
+    background-blend-mode: multiply;
+    background-image: url(/settlers/img/settlers-ocean.svg);
+    background-position: center;
+}
+
+#game-hexgrid {
+	transform-origin: center;
+    z-index: 2;
+    width: 1000px;
+    padding: 150px 135px 350px;
+    box-sizing: content-box;
+    cursor: grab;
+    background-image: url(/settlers/img/settlers-coast.svg);
+    background-size: 88%;
+    background-repeat: no-repeat;
+    background-position: 85px 90px;
+}
+
+.player-box {
+	background-color: #444e;
+	z-index: 3;
+	max-width: 25vw;
+	padding: 1rem 2rem !important;
+}
+
+.game_board_sizer {
+	z-index: 1000;
+}
+
+.plog {
+	flex: 1;
+}
+
+.plog .status-text-menu ul,
+.plog .status-text-menu ul li {
+	background-color: unset;
+}
+
+.player-box .plog {
+	display: none;
+}
+
+
+#tradenow {
+	text-align: center;
+	width: 80%;
+	margin: 0 10%;
+	border: 1px silver dashed;
+	cursor: pointer;
+	padding: 0.5em 0;
+}
+
+#tradenow:hover {
+	color: black;
+	background-color: #e7e7e7;
+}
+
+.status-message {
+	box-shadow: unset !important;
+}
+
+/* Make room to display two hands of cards*/
+
+.devcards {
+	top: -2vh;
+	position: absolute;
+}
+
+.devcards + .rescards {
+	top: 2vh;
+	position: absolute;
+}
+
+.card .cardtitle {
+	position: absolute;
+	font-family: fantasy;
+	font-size: 1.2em;
+	top: 9.5%;
+	width: 100%;
+	text-align: center;
+	pointer-events: none;
+}
+
+.card .cardrules {
+	position: absolute;
+	font-family: fantasy;
+	top: 60%;
+	height: 40%;
+	width: 100%;
+	padding: 5% 10%;
+	pointer-events: none;
+}
+
+.startmove {
+	cursor: pointer;
+	display: inline-block;
+	text-decoration: underline;
+}
+
+.hover {
+	z-index: 1000;
+}
+
+.chover:hover,
+.city.chover:hover {
+	/*fill: whitesmoke;
+  stroke: whitesmoke;*/
+	background-color: whitesmoke;
+	cursor: pointer;
+	border-color: whitesmoke;
+}
+
+/*.chover:hover:after{
+	content: attr(data-score);
+	color: black;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 100%;
+	font-weight: bold;
+}*/
+
+.chover.noselect:hover{
+	background-color: #222;
+	cursor: help;
+}
+.chover.noselect:hover:after{
+	color: whitesmoke;
+}
+
+.city.empty.rhover {
+    border: 1px solid #fff;
+    position: absolute;
+    z-index: 0;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%), radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4), rgba(0, 0, 1, 0.5) 80%);
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5), 0 5px 15px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(1px);
+    z-index: 999;
+}
+
+.road.rhover {
+    border: 1px solid #aaa;
+    position: absolute;
+    z-index: 9999;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 70%), radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2), rgba(0, 0, 0, 0.3) 80%);
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5), 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+
+
+.rhover:hover,
+.city.empty.rhover:hover {
+	border: 1px solid white;
+	background-color: whitesmoke;
+	cursor: pointer;
+}
+
+.ship {
+	font-size: 3rem;
+	overflow-x: visible;
+	white-space: nowrap;
+}
+
+.ship > .icon {
+	position: relative;
+	top: -20%;
+	width: 85%;
+}
+
+.port {
+	width: 100%;
+	height: 60%;
+	pointer-events: none;
+}
+
+.port1 {
+	top: -40%;
+	left: 40%;
+	transform: rotate(27.5deg);
+}
+
+.port2 {
+	top: 20%;
+	left: 85%;
+	transform: rotate(90deg);
+}
+
+.port3 {
+	top: 80%;
+	left: 40%;
+	transform: rotate(152.5deg);
+}
+
+.port4 {
+	top: 80%;
+	right: 40%;
+	transform: rotate(-152.5deg);
+}
+
+.port5 {
+	right: 85%;
+	top: 20%;
+	transform: rotate(-90deg);
+}
+
+.port6 {
+	top: -40%;
+	right: 40%;
+	transform: rotate(-28.5deg);
+}
+
+.harbor {
+	position: absolute;
+	display: block;
+	width: 45px;
+	height: 12px;
+	background-color: brown;
+	background: linear-gradient(90deg, tan 0%, brown 50%, tan 100%);
+	background-size: 6px 12px;
+	bottom: 15%;
+}
+
+.rharbor {
+	transform: rotate(55deg);
+	right: 17%;
+}
+
+.lharbor {
+	transform: rotate(-55deg);
+	left: 17%;
+}
+
+.road {
+	position: absolute;
+	display: block;
+	width: 65%;
+	height: 14%;
+	background-color: transparent;
+	z-index: 10;
+	border-radius: 10px;
+	transition: background-color 1s;
+}
+
+.road:after {
+	top: -66%;
+	left: 0;
+	width: 100%;
+	height: 233%;
+	position: absolute;
+	content: '';
+}
+
+.road5 {
+	transform: rotate(90deg);
+	left: -34%;
+	top: 43%;
+	width: 63%;
+}
+
+.road6 {
+	transform: rotate(-30deg);
+	top: 7%;
+	left: -9%;
+}
+
+.road1 {
+	transform: rotate(30deg);
+	right: -8%;
+	top: 7%;
+	width: 62%;
+}
+
+.road2 {
+	/* Overlaps with Road5 */
+	transform: rotate(90deg);
+	right: -35%;
+	top: 45%;
+}
+
+.road3 {
+	/* Overlaps with Road6 */
+	transform: rotate(-30deg);
+	bottom: 9%;
+	right: -9%;
+}
+
+.road4 {
+	/* Overlaps with Road1 */
+	transform: rotate(30deg);
+	bottom: 9%;
+	left: -9%;
+}
+
+.city {
+	position: absolute;
+	display: block;
+	width: 28%;
+	height: 23%;
+	background-color: transparent;
+	z-index: 12;
+	font-size: 3rem;
+	text-align: center;
+	border-radius: 50%;
+	scale: 1.6;
+}
+
+.city img,
+.village img {
+	transform: scale(1.4);
+	margin: 0 0 3rem;
+	position: relative;
+	top: 2px;
+}
+
+.city > svg,
+.city > img {
+	width: 93%;
+	padding: 0px;
+}
+
+.city.empty,
+.road.empty {
+	transition: unset;
+}
+
+.player-box {
+	max-width: 80vw;
+	width: unset;
+}
+
+/* p1-4 is legacy code for ownership of cities/roads, not playerboxes  */
+
+.p1 {
+	background-color: var(--p1-color);
+	background: linear-gradient(0deg, var(--p1-color), var(--p1-color)), linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%), radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4), rgba(0, 0, 1, 0.5) 80%);
+}
+
+.p2 {
+	background-color: var(--p2-color);
+	background: linear-gradient(0deg, var(--p2-color), var(--p2-color)), linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%), radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4), rgba(0, 0, 1, 0.5) 80%);
+}
+
+.p3 {
+	background-color: var(--p3-color);
+	background: linear-gradient(0deg, var(--p3-color), var(--p3-color)), linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%), radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4), rgba(0, 0, 1, 0.5) 80%);
+}
+
+.p4 {
+	background-color: var(--p4-color);
+	background: linear-gradient(0deg, var(--p4-color), var(--p4-color)), linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%), radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4), rgba(0, 0, 1, 0.5) 80%);
+}
+
+
+.display-name {
+	text-shadow: 0px 0px 1px;
+	font-weight: bold;
+	margin-right: 2.75rem;
+}
+
+.display-name.p1-lite {
+	color: var(--p1-color);
+}
+
+.display-name.p2-lite {
+	color: var(--p2-color);
+}
+
+.display-name.p3-lite {
+	color: var(--p3-color);
+}
+
+.display-name.p4-lite {
+	color: var(--p4-color);
+}
+
+.game-playerbox .saito-identicon-box {
+	width: 4rem;
+	height: 4rem;
+}
+
+/*
+.p1-lite .saito-identicon-box {
+	border-color: var(--p1-color-lite);
+}
+
+.p2-lite .saito-identicon-box {
+	border-color: var(--p2-color-lite);
+}
+
+.p3-lite .saito-identicon-box {
+	border-color: var(--p3-color-lite);
+}
+
+.p4-lite .saito-identicon-box {
+	border-color: var(--p4-color-lite);
+}
+*/
+
+.saito-userline {
+	width: 100%;
+}
+
+/*.player-box.c1 .saito-userline, .player-box.c1 .saito-address{
+  background-color: var(--p1-color);
+}
+
+.player-box.c2 .saito-userline, .player-box.c2 .saito-address{
+  background-color: var(--p2-color);
+}
+
+.player-box.c3 .saito-userline, .player-box.c3 .saito-address{
+  background-color: var(--p3-color);
+}
+
+.player-box.c4 .saito-userline, .player-box.c4 .saito-address{
+  background-color: var(--p4-color);
+}*/
+
+.player-box.c1 .saito-identicon-box {
+	border: 5px solid var(--p1-color);
+}
+
+.player-box.c2 .saito-identicon-box {
+	border: 5px solid var(--p2-color);
+}
+
+.player-box.c3 .saito-identicon-box {
+	border: 5px solid var(--p3-color);
+}
+
+.player-box.c4 .saito-identicon-box {
+	border: 5px solid var(--p4-color);
+}
+
+.player-box .saito-identicon {
+	width: 100%;
+	height: unset;
+}
+
+.popup-confirm-menu .confirm_check {
+	border: 1px gray solid;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
+input[type='checkbox'] {
+	margin: 0;
+}
+
+.city1 {
+	top: -10%;
+	left: 55%;
+	transform: translate(-50%);
+}
+
+.city2 {
+	top: 15%;
+	right: -17%;
+}
+
+.city3 {
+	bottom: 15%;
+	right: -17%;
+}
+
+.city4 {
+	bottom: -10%;
+	left: 50%;
+	transform: translate(-50%);
+}
+
+.city5 {
+	bottom: 15%;
+	left: -17%;
+}
+
+.city6 {
+	top: 15%;
+	left: -17%;
+}
+
+.sector-container {
+	position: absolute;
+	border-radius: 50%;
+	width: 18rem;
+	height: 18rem;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	text-align: center;
+}
+
+.sector-container.rhover:hover {
+	background: none;
+	border: none;
+	cursor: pointer;
+}
+
+.sector-container.rhover:hover .sector_value {
+	border: 1px solid white;
+	background-color: whitesmoke;
+	cursor: pointer;
+}
+
+.sector_value {
+	position: absolute;
+	font-size: 3.5rem;
+	z-index: 15;
+	font-weight: bold;
+	border: 2px solid #fff;
+	border-radius: 50%;
+	width: 8rem;
+	height: 8rem;
+	background: #6664;
+	color: white;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+
+.sector_value.rolled {
+	box-shadow: 0 0 10px 5px ghostwhite;
+	color: #000;
+	background: #FFF6;
+}
+
+.sector_value::after{
+	position: absolute;
+	left: 50%;
+	top: 42%;
+	transform: translateX(-50%);
+	font-size: 3.4rem;
+}
+
+.sv6::after, .sv8::after {
+	content: '.....';
+}
+.sv5::after, .sv9::after {
+	content: '....';
+}
+.sv4::after, .sv10::after {
+	content: '...';
+}
+.sv3::after, .sv11::after {
+	content: '..';
+}
+.sv2::after, .sv12::after {
+	content: '.';
+}
+
+.bandit {
+	position: relative;
+}
+
+.bandit::after {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	color: #fff9;
+  background-image: url(/settlers/img/icons/bandit.png);
+  background-size: 45%;
+  overflow: visible;
+  border: none;
+  width: 100%; 
+  height: 100%; 
+  background-repeat: no-repeat;
+  background-position: 50% 100%;
+  z-index: 2;
+  transform: unset;
+}
+
+.robinhood .bandit::after {
+	background-image: url(/settlers/img/icons/robinhood.png);
+}
+
+.bandit .hexTileCenter {
+	border-color: #4444;
+	color: #444;
+	z-index: 1;
+}
+
+
+
+.city.p1 {
+	border: 10px solid var(--p1-color);
+	color: var(--p1-color);
+}
+
+.city.p2 {
+	border: 10px solid var(--p2-color);
+	color: var(--p2-color);
+}
+
+.city.p3 {
+	border: 10px solid var(--p3-color);
+	color: var(--p3-color);
+}
+
+.city.p4 {
+	border: 10px solid var(--p4-color);
+	color: var(--p4-color);
+}
+
+/* Disable resource selection in trade overlays */
+
+.noselect .icon {
+	filter: grayscale(100%) brightness(0.55);
+	cursor: default;
+}
+
+.option.noselect {
+	font-style: italic;
+	color: lightgrey;
+}
+
+.icon_multiplier {
+	position: absolute;
+	bottom: 0;
+	right: 2px;
+}
+
+.button {
+	min-width: 120px;
+	text-align: center;
+}
+
+.highlight {
+	font-size: 1.1em;
+	font-weight: bold;
+}
+
+.horizontal_list {
+	display: flex;
+	flex-wrap: wrap;
+	border-top: 1px solid var(--saito-skyline-grey);
+}
+
+.horizontal_list .option .icon,
+.bank .option .icon {
+	margin: 0 0.25em;
+	width: 2em;
+	vertical-align: middle;
+}
+
+ul.horizontal_list li.iconoption {
+	margin: 0;
+	width: 20%;
+	height: 3em;
+	border: unset;
+	background: unset;
+	min-width: 20%;
+}
+
+.status-message {
+	width: unset;
+	background-color: unset;
+}
+
+.hexTileCenter {
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	text-align: center;
+}
+
+/*Sit graphic on top of playerbox*/
+
+.me > .player-box-graphic {
+	position: absolute;
+	left: calc(100% + 12px);
+	top: 5px;
+	/*bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);*/
+}
+
+.notme > .player-box-graphic {
+	position: absolute;
+	top: 50%;
+	right: calc(100% + 12px);
+	transform: translateY(-50%);
+	/*position: relative;
+  z-index: -1;
+  top: 5vh;
+  left: 1vw;*/
+}
+
+/* Dice display (position handled by playerbox-graphic) */
+
+.diceroll {
+	position: relative;
+	display: flex;
+	margin: 0 auto;
+	border: 2px solid black;
+	border-radius: 5px;
+	background-color: #222b;
+	/*width: min(12vw,110px);
+  padding: min(0.5vw,5px) 0;
+  flex-direction: row;*/
+	justify-content: space-evenly;
+	align-items: center;
+	z-index: 3;
+	width: 50px;
+	height: min(12vw, 110px);
+	padding: 0 min(0.5vw, 5px);
+	flex-direction: column;
+}
+
+#log-wrapper {
+	background-color: #111d;
+}
+
+.log > div {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.log .die {
+	width: min(2.5vw, 25px);
+	display: inline-block;
+	text-indent: 0;
+	margin: 1px;
+	padding-left: unset;
+}
+
+/*.notme .diceroll{
+  width: 50px;
+  height: min(12vw, 110px);
+  padding: 0 min(0.5vw,5px);
+  flex-direction: column;
+}*/
+
+.flexline {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-direction: row;
+	width: 100%;
+}
+
+.flexline2 {
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+	flex-direction: row;
+	width: 100%;
+}
+
+.notme .flexline2 {
+	margin-bottom: 0.5em;
+}
+
+.pbtrade ul li {
+	width: 45%;
+	line-height: 1.5em;
+	cursor: pointer;
+	list-style: none;
+	border: 1px solid var(--text-color);
+	text-align: center;
+}
+
+.pbtrade ul li:hover {
+	color: black;
+	background-color: #e7e7e7;
+}
+
+.player-box .trade:hover {
+	color: black;
+	background-color: #a7a7a7;
+}
+
+.trade {
+	cursor: pointer;
+}
+
+
+/*SVG token coloring*/
+
+.token {
+	margin: min(3px, 1vh);
+	background-color: unset;
+}
+
+.token polygon {
+	fill: var(--saito-white);
+}
+
+.token.p1 polygon {
+	fill: var(--p1-color);
+}
+
+.token.p2 polygon {
+	fill: var(--p2-color);
+}
+
+.token.p3 polygon {
+	fill: var(--p3-color);
+}
+
+.token.p4 polygon {
+	fill: var(--p4-color);
+}
+
+.token.p1 line {
+	stroke: var(--p1-color);
+}
+
+.token.p2 line {
+	stroke: var(--p2-color);
+}
+
+.token.p3 line {
+	stroke: var(--p3-color);
+}
+
+.token.p4 line {
+	stroke: var(--p4-color);
+}
+
+/*.c1 i {
+  color: rgb(255,100,100); 
+}
+
+.c2 i{
+  color: rgb(100,100,255); 
+}
+.c3 i{
+  color: rgb(0, 192, 0); 
+}
+.c4 i{
+  color: var(--p4-color);
+}*/
+
+.player-box .icon {
+	display: inline-block;
+	width: 30px;
+	vertical-align: middle;
+	margin: 0 4px;
+	border-radius: 5px;
+}
+
+.player-notice {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex-wrap: wrap;
+	width: max-content;
+	max-width: 100%;
+	font-size: 20px;
+	padding: 3px;
+	gap: 1rem;
+	position: relative;
+}
+
+.status .player-notice {
+	opacity: 0.66;
+}
+
+.status .player-notice:last-child {
+	opacity: 1;
+}
+
+.status .player-notice::before {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 1rem;
+    width: 14rem;
+    border-top: 1px solid var(--text-color);
+    border-radius: 100%;
+    height: 3px;
+    border-bottom: 1px solid var(--text-color);
+    background-color: var(--text-color);
+}
+
+.status .player-notice:last-child::before {
+	display: none;
+}
+
+.player-notice ul {
+	margin-top: 0.5em;
+}
+
+.status-header{
+	font-size: 2rem;
+}
+
+.status-text-menu ul li.textchoice {
+	padding: 1rem 0.5rem;
+	list-style: none;
+	text-align: left;
+	cursor: pointer;
+}
+
+.status-text-menu ul li.textchoice:hover{
+	filter: drop-shadow(1px 1px);
+}
+
+/*******
+.player-box.notme, .opponents {
+  position: absolute;
+  height: fit-content;
+  top: 76px;
+  right: 40px;
+}
+******/
+
+.opponents > .player-box {
+	position: relative;
+	right: unset;
+	top: unset;
+}
+
+.player-box.me {
+	max-height: unset;
+	/* left: 30px; */
+	top: unset;
+	bottom: 1px;
+}
+
+.player-box {
+	display: relative;
+}
+
+
+.flash {
+	animation-name: flash;
+	animation-duration: 1.8s;
+	animation-delay: 0.2s;
+	/*animation-iteration-count: 5;*/
+	/*animation-fill-mode: backwards;*/
+}
+
+@keyframes flash {
+	50% {
+		background-color: #b79e76; /*#b4a09073;*/
+		color: black;
+	}
+}
+
+.saitoa,
+#saito-alert-box {
+	font-family: bagnard-sans;
+	border: 5px solid #424143;
+	background-color: #d3c38df5;
+	border-image: url(/settlers/img/border.png);
+	border-image-slice: 51;
+	border-image-width: 21px;
+	border-image-repeat: stretch;
+	border-style: solid;
+	border-image-outset: 4px;
+	color: var(--text-color);
+}
+
+/* Overwrite the menu color */
+:root {
+	--game-menu-background: #d3c38df5;
+}
+
+.game-menu {
+	color: var(--text-color);
+}
+
+@media screen and (orientation: portrait) and (max-width: 600px) {
+	#game-hexgrid {
+		margin-top: 40px;
+		padding: 100px 45px 125px;
+		border-radius: 300px;
+	}
+
+	.player-notice {
+		font-size: 16px;
+		max-width: 100%;
+		flex-wrap: unset;
+	}
+
+	.saitoa {
+		border-image-width: 15px;
+		border-image-outset: 3px;
+		border-width: 3px;
+	}
+}
+
+@media screen and (orientation: landscape) and (max-height: 600px) {
+	#game-hexgrid {
+		padding: 75px 45px 125px;
+		border-radius: 300px;
+	}
+
+	.player-notice {
+		font-size: 18px;
+	}
+
+	.saitoa {
+		border-image-width: 15px;
+		border-image-outset: 3px;
+		border-width: 3px;
+	}
+}
+

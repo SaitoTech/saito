@@ -1,0 +1,324 @@
+:root {
+	--saito-arcade-width: 1500px;
+}
+
+.arcade-container.saito-container {
+	grid-template-columns: auto 33rem;
+	grid-template-rows: minmax(5px, 1fr);
+	padding: 0 calc((100vw - var(--saito-arcade-width)) / 2);
+	padding-left: calc((100vw - var(--saito-arcade-width)) / 4);
+	overflow: hidden;
+}
+
+/* Filter buttons */
+
+.arcade-game-filter-list {
+	display: flex;
+	width: 100%;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 1rem;
+	position: relative;
+}
+
+.game-filter-item {
+	padding: 1rem;
+	border-radius: 1rem;
+	border: 1px solid var(--saito-border-color);
+	cursor: pointer;
+}
+
+/* right sidebar*/
+
+.saito-sidebar.right {
+	grid-column: unset;
+	grid-row: unset;
+}
+
+/* main panel */
+
+.arcade-main {
+	position: relative;
+	padding: 1rem;
+	height: 100%;
+}
+
+.arcade-scrollable-panel-container {
+	height: 100%;
+}
+
+.arcade-initializer {
+	text-align: center;
+	min-width: 18rem;
+	/*Width of the button*/
+	display: flex;
+	flex-direction: column;
+}
+
+.arcade-main .arcade-initializer {
+	height: calc(100vh - var(--saito-header-height) - 3rem);
+	padding-top: 2rem;
+	gap: min(5rem, 7vh);
+}
+
+.arcade-game-initializer-success-title {
+	text-align: center;
+	font-size: 3rem;
+	margin: min(10rem, 16vh) auto min(5rem, 8vh);
+}
+
+.arcade-game-initializer-success-button {
+	margin: min(3rem, 5vh) auto;
+	width: calc(100% - 2rem);
+	max-width: 35rem;
+}
+
+.arcade-central-panel {
+	height: 100%;
+	position: relative;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	grid-gap: 1rem;
+}
+
+.arcade-sidebar .saito-announcement {
+	margin-bottom: 1rem;
+	line-height: 1.25em;
+}
+
+.saito-sidebar.arcade-sidebar {
+	height: calc(100 * var(--saito-vh) - var(--saito-header-height));
+	top: 0;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+/******************************************
+ *  OVER WRITE Game Selector Overlay code
+ *****************************************/
+
+.arcade-central-panel .arcade-game-selector-game {
+	box-shadow: 0px 2px 4px var(--saito-bubble-shadow);
+	height: min(250px, calc((100vw - 34.5rem) / 4));
+	border-radius: 0.5rem;
+}
+
+.arcade-game-selector-game-image img {
+	border-radius: 0.5rem;
+}
+
+.arcade-central-panel .arcade-game-selector-game-title {
+	height: 5rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 1.5rem;
+	border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.arcade-central-panel .arcade-game-selector-game-title span {
+	font-size: 2.4rem;
+	text-transform: unset;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	flex: 1;
+}
+
+.game-selector-card-buttons {
+	position: absolute;
+	bottom: 0;
+	width: 100%;
+	height: 5rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-around;
+}
+
+.game-selector-card-buttons .saito-button-primary {
+	min-width: 5rem;
+}
+
+.arcade-central-panel .arcade-game-selector-game:hover {
+	transform: none;
+	border-color: var(--saito-font-color-heavy);
+}
+
+.arcade-container.initializing-game .saito-sidebar.right {
+	display: none;
+}
+
+.arcade-container.initializing-game .arcade-main {
+	grid-column: span 2;
+}
+
+/*************************************
+ * Override saito-page-layout 
+ * to make arcade better on mobile
+**************************************/
+
+@media screen and (max-width: 1200px) {
+	.arcade-central-panel {
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	}
+}
+
+@media screen and (max-width: 900px) {
+	.saito-container.arcade-container {
+		grid-template-columns: 1fr;
+		grid-template-rows: repeat(auto-fit, minmax(0px, min-content));
+	}
+	.arcade-container .saito-sidebar.right {
+		display: block;
+		visibility: visible;
+		position: unset;
+		grid-row: unset;
+		grid-column-start: unset;
+		padding: 0 1rem;
+		height: unset;
+	}
+	.arcade-container .saito-main {
+		margin: 0;
+		order: 2;
+	}
+	.arcade-container .saito-sidebar.right .saito-table-row {
+		padding: 1rem;
+	}
+	.arcade-container .saito-sidebar.right .saito-table-body {
+		grid-gap: 0.8rem;
+		font-size: 1.6rem;
+	}
+	.arcade-container .saito-sidebar.right .game-slider, .arcade-container .saito-sidebar.right .chat-manager {
+		display: none;
+	}
+	.arcade-sidebar .saito-announcement {
+		display: none;
+	}
+	.arcade-central-panel .arcade-game-selector-game {
+		height: min(180px, calc(100vw / 3));
+	}
+}
+
+@media screen and (max-width: 600px) {
+	.arcade-main {
+		padding: 0.5rem;
+	}
+	.arcade-central-panel .arcade-game-selector-game-title span {
+		font-size: 1.8rem;
+	}
+}
+
+@media screen and (max-width: 450px) {
+	.arcade-central-panel {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+/************ DEPRECATED ***************/
+
+.arcade-game-list-container {
+	max-height: 60%;
+	position: relative;
+}
+
+.arcade-menu {
+	max-height: calc(100% - 4rem);
+}
+
+/**************************
+ * Fancy scrolling
+**************************/
+
+#top-of-game-list {
+	position: absolute;
+	top: 5rem;
+}
+
+#bottom-of-game-list {
+	position: relative;
+	top: calc(100% - 25px);
+	height: 5px;
+}
+
+.can-scroll-down::before {
+	font-family: FontAwesome;
+	content: "";
+	font-size: 4rem;
+	color: var(--border-color-general-dividers-dark);
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	width: 100%;
+	text-align: center;
+	line-height: 10rem;
+	height: 10rem;
+	text-shadow: -3px -2px 2px var(--border-color-general-dividers), 0px 2px 2px var(--border-color-general-dividers), 3px -2px 2px var(--border-color-general-dividers);
+	z-index: 5;
+	pointer-events: none;
+	background: linear-gradient(180deg, transparent, var(--saito-background-color) 80%);
+}
+
+.can-scroll-down:hover::before {
+	content: "\f0d7";
+}
+
+/*  "\f0d8"  */
+
+.can-scroll-up::after {
+	font-family: FontAwesome;
+	content: "";
+	font-size: 4rem;
+	color: var(--border-color-general-dividers-dark);
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	text-align: center;
+	line-height: 10rem;
+	height: 10rem;
+	text-shadow: -3px 2px 2px var(--border-color-general-dividers), 0px -2px 2px var(--border-color-general-dividers), 3px 2px 2px var(--border-color-general-dividers);
+	z-index: 5;
+	pointer-events: none;
+	background: linear-gradient(0deg, transparent, var(--saito-background-color) 80%);
+}
+
+.can-scroll-up:hover::after {
+	content: "\f0d8";
+}
+
+.arcade-game-selector-teaser .arcade-game-selector-footer {
+    bottom: -2px;
+    right: -2px;
+    max-width: 100%;
+    max-height: 75%;
+    height: 3rem;
+    min-width: 10rem;
+    width: 20rem;
+}
+
+.arcade-game-selector-teaser .arcade-game-selector-footer::before {
+    content: "install";
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%) rotate(-45deg);
+    background: #b90000;
+    color: white;
+    padding: 1rem 20rem;
+    font-family: sans-serif;
+    font-size: 1.8rem;
+    white-space: nowrap;
+    z-index: 1;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+    margin-left: 5rem;
+    margin-bottom: 1.4rem;
+    letter-spacing: 0.2rem;
+    font-weight: bold;
+}
+
+
+
+
+

@@ -1,0 +1,21 @@
+
+.chat-sidebar {
+	width: 35rem;
+	background: var(--background-color-chat-module-sidebar-right-open);
+	height: calc(100vh - var(--saito-header-height));
+	border-left: 1px solid var(--border-color-general-dividers); /* testing */
+	display: grid;
+	grid-template-rows: min-content auto;
+}
+
+
+
+
+
+
+.chat-sidebar .saito-user {
+	font-size: 1.8rem;
+	height: unset;
+	padding: 0.5rem 1rem;
+}
+

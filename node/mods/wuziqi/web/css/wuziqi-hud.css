@@ -1,0 +1,34 @@
+.hud-header {
+	margin: 0;
+}
+
+.hud-controls {
+	display: none;
+}
+
+.hud-header.black {
+	background-color: black;
+	color: white;
+}
+
+.hud-header.white {
+	background-color: white;
+	color: black;
+}
+
+.hud-long {
+	height: unset;
+}
+
+.controls {
+	margin-top: unset;
+}
+
+.controls ul li {
+	height: 50px;
+	margin-top: 1rem;
+	line-height: unset;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}

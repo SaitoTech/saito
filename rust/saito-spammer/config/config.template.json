@@ -1,0 +1,44 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 12202,
+    "protocol": "http",
+    "endpoint": {
+      "host": "127.0.0.1",
+      "port": 12202,
+      "protocol": "http"
+    },
+    "verification_threads": 4,
+    "channel_size": 1000,
+    "stat_timer_in_ms": 5000,
+    "reconnection_wait_time": 10000,
+    "thread_sleep_time_in_ms": 10,
+    "block_fetch_batch_size": 10
+  },
+  "peers": [
+    {
+      "host": "127.0.0.1",
+      "port": 12101,
+      "protocol": "http",
+      "synctype": "full"
+    }
+  ],
+  "consensus":{
+        "genesis_period" : 100,
+        "heartbeat_interval" : 5000,
+        "prune_after_blocks" : 8,
+        "max_staker_recursions" : 3,
+        "default_social_stake":1000000,
+        "default_social_stake_period":60
+    },
+  "spv_mode": false,
+  "spammer": {
+    "timer_in_milli": 100,
+    "burst_count": 100,
+    "tx_size": 1000,
+    "tx_count": 1000000,
+    "tx_payment": 1,
+    "tx_fee": 1,
+    "stop_after": 11000000
+  }
+}

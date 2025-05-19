@@ -1,0 +1,127 @@
+.guns-overlay {
+	min-width: 1131px;
+	min-height: 700px;
+	max-height: 70vh;
+	max-width: 90vw;
+	border-radius: 2rem;
+	background-image: url(/paths/img/backgrounds/general01.png);
+	background-size: cover;
+}
+
+.guns-overlay .controls ul {
+	padding: 0px;
+	padding-left: 0px;
+	padding-right: 0px;
+	padding-bottom: 0px;
+}
+
+.guns-overlay .status {
+        position: relative;
+        height: 4rem;
+        line-height: 4rem;
+        min-height: 0;
+        width: 32rem;
+        max-width: 35rem;
+        background-color: whitesmoke;
+        z-index: 10;
+        border-radius: 1rem;
+        top: 0px;
+        left: 0px;
+        white-space: nowrap;
+        float: left;
+        margin-left: 1rem;
+        margin-top: 1rem;
+}
+
+.guns-overlay .help {
+	background: #0009;
+	width: 100%;
+	color: white;
+	margin-left: auto;
+	margin-right: auto;
+	font-size: 2.4rem;
+	padding: 0.75rem;
+	max-width: 100%;
+	padding: 1rem;
+	line-height: 3.4rem;
+	text-align: center;
+}
+
+.guns-overlay .controls {
+	max-height: 80vh;
+}
+
+.guns-overlay .controls ul {
+        overflow-y: auto;
+        display: block;
+        position: relative;
+        background-color: whitesmoke;
+        line-height: 4rem;
+        width: 32rem;
+        max-width: 35rem;
+        max-height: 80vh;
+        z-index: 10;
+        border-radius: 1rem;
+        top: 0px;
+        left: 0px;
+        white-space: nowrap;
+        float: left;
+        margin-left: 1rem;
+        margin-top: 1rem;
+        clear: both;
+        min-height: max-content;
+        height: auto;
+        cursor: pointer;
+}
+
+.guns-overlay .status ul {
+        list-style: none;
+}
+
+.guns-overlay .status ul .option {
+        padding: 1.5rem;
+        cursor: pointer;
+}
+.guns-overlay .status ul .option:hover {
+        background: #ddd;
+}
+
+.guns-overlay .content {
+	display: flex;
+	align-items: center;
+	flex-direction: rows;
+	width: 100%;
+	height: 100%;
+	margin-top: auto;
+	margin-bottom: auto;
+	position: relative;
+	margin-top: 4rem;
+}
+
+.guns-overlay .cardbox {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.guns-cardbox {
+        position: relative;
+        display: block;
+        right: 2rem;
+        width: 30vw;
+        transform: rotate(5deg);
+        top: 0px;
+        float: right;
+        margin-top: 8vh;
+}
+
+@media screen and (max-width: 900px) {
+  .guns-overlay {
+    display:none;
+  }
+}
+
+.guns-overlay .content {
+	width: 100%;
+}

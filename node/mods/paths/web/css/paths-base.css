@@ -1,0 +1,182 @@
+.space {
+	width: 90px;
+	height: 90px;
+	position: absolute;
+}
+
+
+.fort-besieged {
+    top: +80px !important;
+    right: 0px !important;
+    transform: scale(0.5);
+}
+.fort-destroyed {
+    top: +80px !important;
+    right: 0px !important;
+    transform: scale(0.5);
+}
+.oos-highlight::before {
+	content: ' ';
+	box-shadow: 2rem 2rem 7rem 3rem #fc8c, -2rem -2rem 7rem 3rem #fc8c;
+	height: 6rem;
+	width: 6rem;
+	display: block;
+	margin-top: 1.6rem;
+	margin-left: 1.6rem;
+	position: absolute;
+}
+.central-highlight::before {
+	content: ' ';
+	box-shadow: 2rem 2rem 7rem 3rem #f66c, -2rem -2rem 7rem 3rem #f66c;
+	height: 6rem;
+	width: 6rem;
+	display: block;
+	margin-top: 1.6rem;
+	margin-left: 1.6rem;
+	position: absolute;
+}
+.neutral-highlight::before {
+	content: ' ';
+	box-shadow: 2rem 2rem 7rem 3rem #cfcc, -2rem -2rem 7rem 3rem #cfcc;
+	height: 6rem;
+	width: 6rem;
+	display: block;
+	margin-top: 1.6rem;
+	margin-left: 1.6rem;
+	position: absolute;
+}
+.allies-highlight::before {
+	content: ' ';
+	box-shadow: 2rem 2rem 7rem 3rem #33fc, -2rem -2rem 7rem 3rem #33fc;
+	height: 6rem;
+	width: 6rem;
+	display: block;
+	margin-top: 1.6rem;
+	margin-left: 1.6rem;
+	position: absolute;
+}
+.selectable::before {
+	content: ' ';
+	box-shadow: 2rem 2rem 7rem 3rem #fffc, -2rem -2rem 7rem 3rem #fffc;
+	height: 6rem;
+	width: 6rem;
+	display: block;
+	margin-top: 1.6rem;
+	margin-left: 1.6rem;
+	position: absolute;
+}
+
+.control-tile {
+	right: 0rem !important;
+	top: 0rem !important;
+}
+.trench-tile {
+	width: 100%;
+	height: 100%;
+	position: absolute;
+	z-index: -1;
+    	right: 2rem;
+    	top: 2rem;
+}
+.trench-tile:hover {
+	z-index: 999;
+}
+.activation-tile {
+	height: 100%;
+	width: 100%;
+	position: absolute;
+	top: -15;
+	left: +15px;
+	z-index: 10;
+	display: block;
+}
+.activation-tile:hover {
+	display: none;
+}
+.army-tile {
+	width: 100%;
+	height: 100%;
+	position: absolute;
+}
+.army-tile:hover {
+	z-index: 999;
+}
+
+.reserve-box .army-tile {
+  top: 0 !important;
+  left: 0 !important;
+}
+
+.space .army-tile:nth-child(1) {
+	top: 0;
+	left: 0;
+}
+.space .army-tile:nth-child(2) {
+	top: -30px;
+	left: 30px;
+}
+.space .army-tile:nth-child(3) {
+	top: -60px;
+	left: 60px;
+}
+.space .army-tile:nth-child(4) {
+	top: -90px;
+	left: 90px;
+}
+.space .army-tile:nth-child(5) {
+	top: -120px;
+	left: 120px;
+}
+.space .army-tile:nth-child(6) {
+	top: -150px;
+	left: 150px;
+}
+
+.hud-body .status .status-message {
+	padding-top: 15px;
+}
+
+img {
+	width: unset;
+}
+
+.card {
+	position: relative;
+}
+.cardimg,
+.card img {
+	position: relative;
+}
+.cardimg.cancel_x {
+	position: absolute;
+	width: inherit;
+	top: 20%;
+}
+
+.cancel_x {
+	opacity: 0.3;
+}
+.cardimg {
+	position: absolute;
+	width: 100%;
+	height: auto;
+	top: 0px;
+	left: 0px;
+}
+
+.vp_tile {
+	position: absolute;
+	z-index: 200;
+	height: 100px;
+	width: 100px;
+	top: 100px;
+	left: 100px;
+	display: none;
+}
+
+.gameboard {
+	background-image: url('/paths/img/backgrounds/gameboard-large.jpg');
+	background-size: cover;
+	width: 5100px;
+	height: 3312px;
+}

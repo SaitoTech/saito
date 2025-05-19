@@ -1,0 +1,635 @@
+/*  Page Layout */
+.saito-container.limbo-container {
+	padding: 0 1rem;
+	grid-template-columns: 1fr;
+}
+
+.saito-container.limbo-container.dreaming {
+	grid-template-columns: minmax(30rem, 1fr) 33rem;	
+}
+
+
+.limbo-main {
+	padding: 2rem 0;
+}
+
+.limbo-menu {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2rem;
+}
+
+.limbo-menu h1 {
+	text-align: center;
+}
+
+.dreaming .limbo-main .limbo-menu {
+	display: none;
+}
+
+.limbo-launch-options {
+	width: 100%;
+    max-width: 100rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    gap: 6rem;
+}
+
+.limbo-option {
+	display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0rem;
+    border-radius: 1rem;
+    border: 1px solid var(--saito-font-color);
+    padding: 2.5rem 2rem 1.5rem;
+    cursor: pointer;
+    height: 20rem;
+    width: 20rem;
+    justify-content: space-evenly;
+    justify-self: center;
+}
+
+.limbo-option i {
+	font-size: 5rem;
+}
+
+.limbo-option label {
+	font-size: 3rem;
+}
+
+.limbo-option:hover{
+	transform: scale(1.05);
+}
+
+.spaces-list{
+	gap: 2.5rem;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, 35rem);
+	width: 100%;
+	justify-content: center;
+}
+
+
+.spaces-list .saito-profile {
+	border-radius: var(--saito-border-radius);
+	border: 1px solid var(--saito-border-color);
+	cursor: pointer;
+	overflow: hidden;
+	height: 300px;
+	display: flex;
+	flex-direction: column;
+	/*justify-content: space-between;*/
+}
+
+.spaces-list .saito-profile-header-row .saito-identicon-box {
+	width: 7rem;
+	height: 7rem;
+	font-size: 3.5rem;
+}
+
+.spaces-list .saito-profile-key {
+	display: none;
+}
+
+
+/********  For tighter display in the Redsquare Sidebar   *********/
+
+.redsquare-sidebar .spaces-list {
+	display: flex;
+	flex-direction: column;
+	gap: unset;
+	display: none;
+	max-height: 30vh;
+}
+
+.redsquare-sidebar .spaces-list .saito-profile {
+	height: unset;
+}
+
+.redsquare-sidebar .spaces-list .saito-profile-header-row {
+	height: 2.5rem;
+	margin-bottom: 0.5rem;
+}
+
+.redsquare-sidebar .spaces-list .saito-profile-header-row .saito-identicon-box {
+	width: 3.5rem;
+	height: 3.5rem;
+	font-size: 1.5rem;
+	margin-top: -2rem;
+}
+
+.redsquare-sidebar .spaces-list .saito-profile-username {
+	font-size: 1.5rem;
+}
+
+.redsquare-sidebar .spaces-list .saito-profile-key {
+	font-size: 1.2rem;
+}
+
+.redsquare-sidebar .spaces-list .saito-profile-description {
+	font-size: 1.2rem;
+	padding: 0;
+}
+
+.redsquare-sidebar .spaces-list .saito-profile-menu {
+	min-height: unset;
+	margin-top: 0.3rem;
+}
+
+.redsquare-sidebar .spaces-list .saito-profile-tab {
+	font-size: 1.5rem;
+	padding: 0.2rem 1rem;
+}
+
+.redsquare-sidebar .spaces-list .saito-profile-banner {
+	padding-top: 50px;
+}
+
+
+
+.icon_click_area.click-me i {
+	color: var(--saito-green);
+	animation: pulsate 2s ease-in-out infinite;
+}
+
+
+.limbo-floating-overlay {
+  width: 55rem;
+  max-width: 80vw;
+  height: min-content;
+  max-height: 80vh;
+  padding: 1rem;
+  border: var(--border-thickness-modal-menu) solid var(--border-color-modal-menu);
+  border-radius: var(--border-radius-modal-menu);
+
+  background-color: var(--background-color-modal-contacts);
+  background-image: url(/saito/img/tiled-logo.svg);
+  color: var(--font-color-modal-contacts);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Join Overlay */
+
+.saito-join-space-overlay {
+	width: min(800px, 90vw);
+	height: min(600px, 90vh);
+	padding: 2rem;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+/* Right sidebar */
+.limbo-container .saito-sidebar.right {
+	padding: 0;
+	display: none;
+	grid-column-start: unset;
+	grid-row: unset;
+	margin-left: unset;
+}
+
+.limbo-container.dreaming .saito-sidebar.right{
+	display: block;
+	width: 33rem;
+	height: 100%;
+}
+
+.limbo-sidebar {
+	width: 100%;
+	background: var(--saito-background-color);
+	height: calc(100vh - var(--saito-header-height));
+	border-left: 1px solid var(--saito-border-color);
+	display: grid;
+	grid-template-rows: min-content auto;
+}
+
+
+
+.limbo-sidebar .saito-profile-icons {
+	margin-right: 1rem;
+}
+
+.limbo-sidebar .saito-modal-menu-option {
+    font-size: 2rem;
+    height: unset;
+    width: 100%;
+    padding: 1rem;
+    margin: 0;
+}
+
+.limbo-sidebar .saito-modal-menu-option > div {
+	font-size: 1.8rem;
+	margin-right: unset;
+}
+
+.limbo-sidebar .saito-modal-menu-option > i {
+	margin-right: unset;
+	margin: auto;
+}
+
+
+.limbo-sidebar .saito-user {
+	font-size: 1.8rem;
+	height: unset;
+}
+
+.limbo-sidebar .saito-contact {
+	padding: 1rem;
+}
+
+.limbo-sidebar .saito-modal-content {
+	display: flex;
+	flex-direction: column;
+	font-size: 1.3rem;
+	height: 100%;
+	overflow: auto;
+}
+
+.limbo-sidebar .saito-modal-content .saito-user .saito-identicon-box {
+    width: 3.5rem;
+    height: 3.5rem;
+}
+
+ .limbo-floating-overlay .saito-modal-content .saito-user {
+ 	height: 4.5rem;
+ }
+
+/*  Control Window */
+
+.dream-controls {
+	position: absolute;
+	top: 2rem;
+	left: 2rem;
+	width: 100%;
+	height: 100%;
+	display: grid;
+	grid-template-rows: 1fr;
+	grid-template-columns: minmax(0px, 1fr);
+	border-radius: var(--saito-border-radius);
+	background-image: url(/saito/img/tiled-logo.svg);
+	background-color: var(--color-base);
+
+}
+
+.dream-controls.lite {
+	width: unset;
+	height: unset;
+	display: flex;
+	z-index: 1000;
+	cursor: grab;
+	top: 2rem;
+	left: 2rem;
+	padding: 0;
+}
+
+.dream-controls.lite .control-panel{
+	padding: 2px;
+	gap: 2rem;
+}
+
+.dream-controls.lite .timer{
+	text-align: right;
+}
+
+.dream-controls .video-box-container-large{
+	height: 100%;
+}
+
+
+.dream-controls .video-box-container-large video#presentation {
+	object-fit: cover;
+}
+
+.saito-container.limbo-container .dream-controls {
+	position: revert;
+	margin: auto;
+}
+
+.limbo-main .control-panel {
+	position: absolute;
+	bottom: 4rem;
+	left: 1rem;
+	border: 1px solid var(--saito-border-color);
+	padding: 0.5rem;
+	border-radius: var(--saito-border-radius);
+	background-color: #0004;
+	z-index: 9;
+  }
+
+  .limbo-main .timer .counter {
+	text-align: center;
+  }
+
+.dream-controls .members-control{
+	position: relative;
+}
+
+.dream-controls .saito-notification-dot{
+	bottom: 2.8rem;
+	left: 2.8rem;
+}
+
+.limbo-sidebar .saito-modal-menu-option .saito-notification-dot{
+	min-width: 2.4rem;
+	height: 2.6rem;
+	left: 2.5rem;
+}
+
+
+.default-limbo-image-mask {
+	position: absolute;
+	z-index: 5;
+	width: 25rem;
+	height: 25rem;
+	overflow: hidden;
+	top: 50%;
+	left: 50%;
+	margin: 1rem auto;
+	transform: translate(-50%, -55%);
+	border-radius: 62%;
+	border: 1px solid var(--color-primary);
+	background-image: url('/swarmcast/img/inception.gif');
+	background-position: center;
+	background-size: 200%;
+}
+
+
+.dream-controls .control-panel{
+	align-items: center;
+	justify-content: space-between;
+	max-width: 100%;
+}
+
+
+video#local.noflip{
+	transform: unset;
+}
+
+
+/* Wizard */
+
+.dream-wizard{
+	width: min(550px, 98vw);
+	padding: 2rem 3rem;
+	border-radius: 0.5rem;
+	border: 1px solid;
+	background-color: var(--color-base);
+	color: var(--color-contrast);
+}
+
+.dream-wizard h1{
+	font-size: 4rem;
+}
+
+.dream-wizard .button {
+	margin: 1rem 0;
+	flex: 1;
+}
+
+.dream-wizard .cast-mode {
+	display: flex;
+	justify-content: space-evenly;
+	align-items: center;
+	margin-bottom: 1rem;
+	font-size: 3rem;
+}
+
+.dream-wizard .cast-mode i {
+	text-align: center;
+	min-width: 10.5rem;
+	font-size: 6rem;	
+}
+
+.dream-wizard .cast-mode > div {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1rem;
+	padding: 1rem;
+	border-radius: 2rem;
+	border: 1px solid;
+}
+
+.cast-mode-option {
+	cursor: pointer;
+}
+
+.dream-wizard .cast-mode .selected{
+	color: var(--saito-font-color);
+	border-width: 2px;
+	/*text-shadow: 1px 1px 5px var(--saito-black);*/
+	box-shadow: 1px 1px 4px 1px var(--saito-black);
+}
+
+.dream-wizard input{
+	margin: 1rem 0;
+}
+
+.dream-wizard .post-tweet-textarea {
+	min-height: 10rem;
+}
+
+.dream-wizard .wizard-footer {
+	display: flex;
+	justify-content: space-between;
+	margin-top: 1rem;
+}
+
+.dream-wizard .wizard-footer > div  {
+	display: flex;
+	align-items: center;
+	gap: 2rem;
+	cursor: pointer;
+}
+
+.dream-wizard .wizard-footer > div:hover{
+	color: var(--font-color-primary);
+}
+
+.dream-controls .video-call-info {
+	display: none;
+}
+
+
+
+/* Dynamic Page Layout */
+
+@media screen and (max-width: 1200px){
+	/* Undo base changes */
+
+	.limbo-container .saito-sidebar.left{
+		display: flex;
+		visibility: unset;
+	}
+
+
+	/* But drop left sidebar in a dreamspace */
+	.saito-container.limbo-container.dreaming{
+		grid-template-columns: 1fr min-content;
+	}
+
+}
+
+@media screen and (max-width: 900px){
+	.saito-container.limbo-container, .saito-container.limbo-container.dreaming{
+		grid-template-columns: 1fr;
+		grid-template-rows: min-content auto;
+	}
+
+	.limbo-container .saito-sidebar.left{
+		margin: auto;
+	}
+
+	.dream-controls .control-list {
+		gap: 0.5rem;
+	}
+
+	.dream-controls.lite .control-list{
+		gap: 1px;
+		margin-right: unset;
+	}
+
+	#exit_space{
+		display: grid;
+	}
+
+	.limbo-container.dreaming .saito-sidebar.right {
+		visibility: visible;
+		grid-column-start: unset;
+		grid-row: unset;
+		width: 100%;
+		max-width: 90vw;
+		margin: auto;
+	}
+
+	.limbo-container.dreaming .saito-sidebar.right .saito-profile-menu{
+		display: flex;
+	}
+
+	.limbo-sidebar .saito-modal-menu-option{
+		grid-template-columns: 3rem 1fr;
+	}
+
+	.limbo-sidebar{
+		border-left: unset;
+	}
+
+	.video-box-container-large > #connection-message {
+		width: fit-content;
+		height: 7rem;
+		top: 100%;
+	}
+
+	.dream-controls .video-box-container-large video {
+		position: relative;
+	}
+
+	.dream-controls .control-panel {
+		width: fit-content;
+		left: 2rem;
+	}
+
+	.saito-container.limbo-container {
+		padding: none;
+	}
+
+	.limbo-launch-options {
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.limbo-option {
+		width: 70%;
+		flex-direction: row;
+		justify-content: center;
+		gap: 4rem;
+		height: 9rem;
+	}
+
+	/**********************************
+	 * Do weird things with profile
+	**********************************/
+
+	.limbo-sidebar .saito-profile {
+		display: grid;
+		grid-template-columns: 1fr min-content;
+	}
+
+	.limbo-sidebar .saito-profile-controls{
+		grid-column: 2;
+		grid-row: 1 / span 2;
+		display: flex;
+		flex-direction: column;
+		justify-content: space-evenly;
+	}
+
+	.limbo-sidebar .saito-profile-description, 
+	.limbo-sidebar .saito-profile-menu {
+		grid-column: 1 / span 2;
+	}
+
+	.limbo-sidebar .saito-profile-controls .saito-modal-menu-option{
+		flex-grow: 1;
+	}
+}
+
+
+@media screen and (max-width: 767px){
+	.saito-main.limbo-main {
+		padding: unset;
+		margin-bottom: 2rem;
+	}
+
+
+	.dream-controls .control-panel {
+		bottom: 1rem;
+	}
+	.limbo-option {
+		width: 90%;
+	}
+
+}
+
+.yt-stream {
+	width: min(550px, 98vw);
+    padding: 3rem;
+    border-radius: 0.5rem;
+    border: 1px solid;
+    background-color: var(--color-base);
+    color: var(--color-contrast);
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.yt-stream-title {
+	font-size: 3rem
+}
+
+.yt-stream-title .fa-youtube {
+	color: #f70004;
+}
+
+#yt-stream-btn  {
+	width: fit-content;
+    align-self: flex-end;
+}
+
+.yt-active {
+	background-color: var(--saito-red) !important;
+}
+
+.yt-active > i {
+	animation: pulsate 2s ease-in-out infinite !important;
+}
+
+.yt-stream-type {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}

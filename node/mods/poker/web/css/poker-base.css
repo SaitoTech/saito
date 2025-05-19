@@ -1,0 +1,129 @@
+:root {
+  --ideal-game-log: min(450px, 65vw);
+}
+
+
+body {
+    background-image: url(/poker/img/backgrounds/castle2.png);
+}
+
+.gameboard {
+  position: absolute;
+  background-size: cover;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  padding: 4rem;
+  /* To adjust shade of felt */
+  background-image: url(/saito/img/arcade/greenfelt.jpg);
+  background-blend-mode: luminosity;
+}
+
+.gameboard.red{
+  background-color: #6004;
+}
+
+.gameboard.blue{
+  background-color: #0092;  
+}
+
+.gameboard.threed {
+  border-radius: 12rem;
+  transform: perspective(700px) rotateX(33deg) translateY(-35px);
+  filter: drop-shadow(0px 10px 20px black);
+}
+
+.smaller-font {
+  font-size: 0.8em;
+}
+
+.deal {
+  display: flex;
+  gap: 1rem;
+  margin: 8rem 0 0;
+  height: 230px;
+}
+
+.mystuff {
+  position: absolute;
+  width: 100vw;
+  height: 240px;
+  max-height: 36vh;
+  /*left: calc(50% - 125px);*/  
+  bottom: 10px;
+  /*max-width: min(250px, 66vw);*/
+}
+
+
+/* cool graphics in game-log */
+.suit {
+	font-size: larger;
+}
+
+.htmlhand {
+	text-indent: 0;
+}
+
+.htmlCard {
+	margin: 5px 3px;
+	background: #fffd;
+	border-radius: 6px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.05em;
+  height: 32px;
+  width: 32px;
+}
+
+.dealer-button {
+  width: 4.5rem;
+  height: 4.5rem;
+  border: 2px ridge #999;
+  border-radius: 100%;
+  overflow: hidden;
+  /*background-image: url('/saito/img/arcade/cards/red_back.png');
+  background-size: 169%;
+  background-position: center;
+  background-blend-mode: color;*/
+  background-color: #FEE;
+  position: absolute;
+  right: calc(100% + 5px);
+  top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: black;
+  font-size: 3rem;
+  text-shadow: -1px -1px rgba(0,0,0,0.4), 1px 1px rgba(255,255,255,0.8);
+  color: rgba(0, 0, 0, 0.6);
+  padding-left: 2px;
+  font-weight: bolder;
+  font-family: "Times New Roman", serif;
+  cursor: default;
+}
+
+.module-settings-overlay {
+  min-width: min(400px, 90vw);
+}
+
+@media screen and (max-width: 900px) {
+  .deal {
+    gap: 5px;
+  }
+}
+
+@media screen and (max-width: 600px) {
+  .gameboard {
+    padding: 2rem;
+  }
+  /*
+  .mystuff {
+    left: calc(50vw - min(125px, 33vw));
+  }
+  */
+}

@@ -1,0 +1,136 @@
+
+.game-playerbox-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    position: absolute;
+    top: 6rem;
+    right: 3rem;
+    user-select: none;
+}
+
+.game-playerbox-manager.reverse{
+  flex-direction: column-reverse;
+}
+
+.game-playerbox {
+    padding: 1rem;
+    z-index: 3;
+    max-width: 25vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    user-select: none;
+}
+
+.game-playerbox.active {
+    border: 1px solid white;
+}
+.game-playerbox.flash {
+}
+.game-playerbox.shake {
+}
+
+.game-playerbox-head {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    cursor: default;
+}
+
+.game-playerbox-body {
+    width: 100%;
+    padding: 0rem;
+    margin-top: 0.5rem;
+    line-height: 2.3rem;
+    font-size: 1.6rem;
+    flex-grow: 1;
+}
+
+.game-playerbox-graphics {
+  display: none;
+  position: absolute;
+}
+
+.game-playerbox-icons {
+    top: 0rem;
+    right: 0rem;
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    grid-row: 1 / span 2;
+    grid-column: 3;
+}
+
+.game-playerbox-head .saito-user .saito-address {
+  max-width: calc(100% + 1rem);
+}
+
+.game-playerbox-head .saito-user>.saito-userline {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.game-playerbox-head .saito-user>.saito-userline .player-stake {
+  text-transform: uppercase;
+}
+  
+
+.game-playerbox-seat-6 {
+  order: 1;
+}
+  
+.game-playerbox-seat-5 {
+  order: 2;
+}
+
+.game-playerbox-seat-4 {
+  order: 3;
+}
+
+.game-playerbox-seat-3 {
+  order: 4;
+}
+
+.game-playerbox-seat-2 {
+  order: 5;
+}
+
+.game-playerbox-seat-1 {
+  position: absolute;
+  min-width: 30vh;
+  max-height: 36vh;
+  width: 16vw;
+  bottom: 20px;
+}
+
+
+@media screen and (orientation: portrait) and (max-width: 600px) {
+
+  .game-playerbox-manager {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: max-content;
+    justify-content: space-between;
+    bottom: 1rem;
+    top: unset;
+    right: 2rem;
+    gap: 2rem;
+    position: absolute;
+    height: max-content;
+  }
+
+  .game-playerbox {
+    max-width: 50vw;
+    min-width: unset;
+  }
+
+}
+
+
+

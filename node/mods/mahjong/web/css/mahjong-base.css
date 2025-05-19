@@ -1,0 +1,351 @@
+:root {
+	--theme-font: papyrus;
+}
+
+.mahj-rowbox {
+	margin: 90px;
+	margin-left: 160px;
+	padding: 30px 10px 10px 30px;
+	display: grid;
+	grid-template-columns: repeat(14, 80px) !important;
+	grid-template-rows: repeat(21, 107px);
+	width: 1175px;
+	height: 900px;
+	/*max-width: min(90vw,120vh);*/
+	/*grid-gap: min(0px,1vh);*/
+	/*height: fit-content;*/
+	cursor: grab;
+}
+
+#game_board_size_toggle {
+	display: none;
+}
+
+.mahjong-backdrop {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	border-radius: 5%;
+	backdrop-filter: brightness(1.25);
+}
+
+.mahjong-backdrop:hover {
+	/*background-color: rgba(200,200,200,0.1);*/
+}
+
+.logobox .controls {
+	margin: 0;
+}
+
+.slot {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	opacity: 1;
+	border-radius: 0px 19px 4px 16px;
+
+	/*transform: rotate3d(20, -5, 1, 21deg); */
+
+	/*box-shadow: 3px 3px 6px 4px black, -7px -9px 8px 3px black;*/
+	filter: drop-shadow(-1px -1px 1px black);
+	cursor: default;
+}
+
+.emphasis {
+	filter: brightness(0.8);
+}
+
+.slot.invisible {
+	opacity: 0;
+	pointer-events: none;
+	filter: none;
+}
+
+.slot.hint {
+	background-color: #ffff00;
+	box-shadow: -7px -9px 1px 5px #ffff00;
+}
+
+.slot.selected img,
+.slot.hint img {
+	opacity: 0.75;
+}
+
+.slot img {
+	width: 115%;
+	position: absolute;
+	right: 0;
+	bottom: 0;
+}
+
+.slot.available {
+	cursor: pointer;
+}
+
+.slot.selected,
+.slot.available:hover {
+	background-color: #0000ff;
+	box-shadow: -6px -6px 1px 5px #0000ff;
+}
+
+.slot.available:hover img {
+	opacity: 0.75;
+}
+
+.slot.valid.available:hover,
+.slot.selected.valid {
+	background-color: #00ff00;
+	box-shadow: -6px -6px 1px 5px #00ff00;
+}
+
+.slot.invalid.available:hover {
+	background-color: #ff0000;
+	box-shadow: -6px -6px 1px 5px #ff0000;
+}
+
+.slot.valid.available:hover img,
+.slot.invalid.available:hover img {
+	opacity: 0.65;
+}
+
+.row > img {
+	opacity: 1;
+}
+
+
+.status-header {
+	height: 140px;
+}
+
+
+.gameboard {
+	position: absolute;
+	/*background-image: url(/saito/img/arcade/greenfelt.jpg);*/
+	background-image: url(/wuziqi/img/BG.jpg);
+	background-size: cover;
+	width: 100%;
+	height: 100%;
+	/*display: grid;
+  grid-template-columns: minmax(20%,max-content) 1fr;*/
+}
+
+.logobox {
+	position: absolute;
+	font-size: 20px;
+	max-width: 225px;
+	margin: 50px 10px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	row-gap: 1rem;
+}
+
+.logobox div {
+	border-radius: 5px;
+}
+
+.logobox img, .tiles img {
+	width: 100%;
+}
+
+.status-header {
+	padding: 10px 5px;
+	margin-top: 20px;
+}
+
+#row4_slot1 {
+	position: relative;
+	top: 50%;
+}
+#row5_slot14 {
+	position: relative;
+	bottom: 50%;
+}
+
+/* Upper layers*/
+div[id^='row9'],
+div[id^='row10'],
+div[id^='row11'],
+div[id^='row12'],
+div[id^='row13'],
+div[id^='row14'] {
+	z-index: 2;
+	position: relative;
+	top: -714%;
+	left: -17%;
+}
+div[id^='row9'],
+div[id^='row10'],
+div[id^='row11'],
+div[id^='row12'],
+div[id^='row13'],
+div[id^='row14'] {
+}
+
+div[id^='row15'],
+div[id^='row16'],
+div[id^='row17'],
+div[id^='row18'] {
+	z-index: 4;
+	position: relative;
+	top: -1228%;
+	left: -36%;
+}
+
+div[id^='row19'],
+div[id^='row20'] {
+	z-index: 6;
+	position: relative;
+	top: -1542%;
+	left: -54%;
+}
+
+div[id^='row21'] {
+	z-index: 8;
+	position: relative;
+	top: -1710%;
+	left: -70%;
+}
+
+/********************************
+/** The side display of tiles **/
+/********************************/
+.tiles {
+	position: absolute;
+	bottom: 0;
+	width: 100vw;
+	height: 7.5vw; /* 100vw / 36 x 1.3 x 2 */ 
+	display: grid;
+	grid-template: 1fr 1fr / repeat(36, 1fr);
+	grid-auto-flow: column;
+}
+
+
+.scoreboard_tile {
+	width: 100%;
+}
+
+
+.notfound {
+	filter: grayscale(100%) brightness(0.7);
+}
+
+
+
+@media screen and (orientation: portrait) and (min-height: 1100px) {
+	.tiles {
+		grid-template-columns: repeat(6, 1fr);
+	}
+}
+
+@media screen and (max-width: 900px) { 
+	.tiles {
+		grid-template: repeat(3, 1fr) / repeat(24, 1fr);
+		height: 18vw;
+		grid-auto-flow: row;
+	}
+}
+
+
+@media screen and (orientation: landscape) and (max-height: 700px) {
+	.logobox > img {
+		display: none;
+	}
+}
+
+@media screen and (orientation: landscape) and (max-height: 600px) {
+	.logobox {
+		order: 1;
+		max-width: 180px;
+		min-width: 100px;
+	}
+	.hidable {
+		display: none;
+	}
+
+	.mahj-rowbox {
+		margin: 0; /*40px 60px 40px 180px;*/
+	}
+
+	.tiles {
+		grid-template: repeat(6, 1fr) / repeat(12, 1fr);
+		width: 28vw;
+		height: fit-content;
+	}
+
+}
+
+
+@media screen and (orientation: portrait) and (max-width: 600px) {
+	.gameboard {
+		grid-template-columns: 1fr;
+		grid-template-rows: 1fr 1fr;
+	}
+
+	.mahj-rowbox {
+		margin: 0; /*200px 10px 0 10px;*/
+	}
+
+	.tiles {
+		grid-template: repeat(4, 1fr) / repeat(18, 1fr);
+		height: 32vw;
+	}
+
+
+	.logobox {
+		margin: 10px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 200px;
+	}
+
+	.logobox > img,
+	.hidable {
+		display: none;
+	}
+}
+
+/******* RULES ************/
+.rules-overlay img {
+	max-width: 50vh;
+	border-radius: 8px;
+}
+
+.saito-overlay .rules-overlay p {
+	font-size: 2rem;
+}
+
+.image_container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#saito-alert-box,
+.solitaire-stats-overlay,
+.saito-overlay .rules-overlay {
+	background-color: #f0e7c4;
+	font-family: papyrus;
+}
+
+.solitaire-stats-overlay hr {
+	color: #2e2b1f;
+}
+
+.saito-table-row {
+	background-color: #a1976e23;
+}
+
+.saito-alert-message {
+	font-family: 'Papyrus';
+}
+
+#saito-alert-box button {
+	background-color: #45402f;
+	font-family: 'Papyrus';
+}
+
+#saito-alert-box button:focus-visible {
+	outline: 2px solid var(--saito-primary);
+}

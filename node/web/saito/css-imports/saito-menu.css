@@ -1,0 +1,106 @@
+/*.saito-menu {
+  margin-top: -1rem;
+}*/
+
+
+/* Applies to Arcade and Redsquare left sidebars */
+.saito-menu>ul {
+  padding: 0;
+  list-style-type: none;
+}
+
+.saito-menu>ul>li {
+  padding: 1rem;
+  display: flex;
+  list-style: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-items: center;
+  font-size: 1.92rem;
+  position: relative;
+  border-radius: 0.5rem;
+  border-radius: var(--border-radius-button-sidebar);
+}
+
+
+.saito-menu>ul>li:hover {
+  background: var(--background-color-button-hover-sidebar);
+  color: var(--font-color-button-hover-sidebar);
+  border-radius: var(--border-radius-button-sidebar);
+}
+
+.saito-menu>ul>li:active { /* newly added state, for use in Sangre3000 -only so far */
+  background: var(--background-color-button-active-sidebar);
+ }
+
+.saito-menu>ul>li:hover p {
+  background-color: var(--saito-background-color);
+  color: var(--font-color-button-hover-sidebar);
+}
+
+.saito-menu>ul>li>i {
+  font-size: 2.6rem;
+  width: 2rem;
+  padding-left: 1.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.saito-menu>ul>li>span {
+  font-size: 1.92rem;
+  margin-right: 1rem;
+}
+
+
+
+/* saito header menu */
+
+.saito-header-menu-section .saito-menu>ul {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.saito-header-menu-section .saito-menu>ul>li {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+}
+.saito-header-menu-section .saito-menu>ul>li>i {
+  padding: 0;
+  width: unset !important;
+  font-size: 2.75rem !important;
+  margin-bottom: 0.75rem;
+}
+.saito-header-menu-section .saito-menu>ul>li>i+span {
+  margin: 0;
+  text-overflow: ellipsis;
+  max-width: 10rem;
+  overflow: hidden;
+  white-space: pre-wrap;
+  padding: 0.5rem;
+}
+.saito-header-menu-section .saito-menu>ul>li>span {
+  font-size: 1.33rem;
+  margin: 0;
+}
+
+.appspace-menu .saito-menu {
+  padding: 0 1rem;
+}
+
+
+/* So redsquare left side bar displays correctly*/
+.saito-menu>ul>li>i+span, .saito-menu>ul>li>i+span+span {
+  margin-left: 3.8rem;
+}
+
+/* left sidebar icons */
+.saito-menu i::before {
+  -webkit-text-stroke: var(--font-color-icons-left-sidebar) 1px;
+  color: transparent;
+  font-size: smaller;
+}
+
+.saito-menu li:hover i::before {
+  -webkit-text-stroke: var(--font-color-hover-icons-left-sidebar) 1px;
+}
+
+

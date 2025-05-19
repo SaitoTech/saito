@@ -1,0 +1,9 @@
+rustfmt.toml
+.idea/
+target/
+dist/
+.DS_Store
+.vscode
+config/config.json
+temp_test_directory
+data/

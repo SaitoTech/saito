@@ -1,0 +1,98 @@
+.game-playerbox-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    height: 100%;
+    justify-content: space-around;
+    padding: 5rem 1rem 5rem 3rem;
+	position: relative;
+	right: unset;
+	top: unset;
+}
+
+.game-playerbox {
+	background: #f9efdf;
+	border-radius: 5px;
+	box-shadow: 0 2px 3px 2px #644b37;
+	color: black;
+	min-height: 10rem;
+	border: 2px solid transparent;
+	width: 28rem;
+	padding: 15px;
+	border: 0px solid transparent;
+}
+
+.game-playerbox.active{
+	border: 2px solid black;
+	padding: 10px;
+	border: 5px solid darkorange;
+}	
+
+.game-playerbox.in_check{
+	border: 5px solid red;
+}
+
+.game-playerbox-head {
+	padding: 5px 0;
+}
+
+.game-playerbox-body {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-template-rows: auto;
+	grid-template-areas: "a b" "c c" "d d";
+	margin: 0rem;
+	gap: 1rem;
+}
+
+.game-playerbox-body div:nth-child(3){
+	grid-area: c;
+}
+.game-playerbox-body div:nth-child(4){
+	grid-area: d;
+}
+
+.game-playerbox-body > div {
+	width: 100%;
+}
+
+.trophies {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.status ul li.textchoice {
+	border-top: 1px solid;
+	cursor: pointer;
+	padding: 0.5rem;
+}
+
+.status ul li.textchoice:hover {
+	background-color: #b58863;
+}
+
+@media screen and (orientation: portrait) and (max-width: 900px) {
+	.game-playerbox-manager {
+		display: grid;
+		width: min(60vh, 90vw, 900px);
+		grid-template-columns: repeat(2, 1fr);
+		grid-template-rows: max-content;
+		justify-content: space-between;
+		bottom: 2rem;
+		top: unset;
+		right: unset;
+		gap: 2rem;
+		position: absolute;
+		height: max-content;
+		justify-items: center;
+		max-width: 100%;
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
+	.game-playerbox {
+		max-width: min(40vw, 25rem);
+		min-width: unset;
+	}
+}

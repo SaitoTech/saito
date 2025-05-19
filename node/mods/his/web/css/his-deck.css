@@ -1,0 +1,24 @@
+.deck-overlay {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 2rem;
+  row-gap: 2rem;
+  width: 90vw;
+  height: min-content;
+  max-height: 90vh;
+  overflow: auto;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.saito-overlay:has(> .deck-overlay) {
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.deck-overlay .card {
+	height: calc(20vw * 1.4);
+	width: 20vw;
+	max-width: 230px;
+	max-height: 322px;
+}

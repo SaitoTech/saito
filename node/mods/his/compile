@@ -1,0 +1,47 @@
+
+rm ../../web/saito/saito.js
+
+
+#
+# class constructor
+#
+cat ./src/his-init.js > ./his.js
+
+for file in ./src/factions/*
+do
+  cat $file >> ./his.js
+done
+
+for file in ./src/units/*
+do
+  cat $file >> ./his.js
+done
+
+cat ./src/his-setup.js >> ./his.js
+
+
+
+#
+# and initialize
+#
+cat ./src/his-start.js >> ./his.js
+cat ./src/his-cards.js >> ./his.js
+cat ./src/his-spaces.js >> ./his.js
+cat ./src/his-allies.js >> ./his.js
+cat ./src/his-minor-powers.js >> ./his.js
+cat ./src/his-state.js >> ./his.js
+cat ./src/his-events.js >> ./his.js
+cat ./src/his-gameloop.js >> ./his.js
+cat ./src/his-player.js >> ./his.js
+cat ./src/his-debaters.js >> ./his.js
+cat ./src/his-diplomacy.js >> ./his.js
+cat ./src/his-factions.js >> ./his.js
+cat ./src/his-units.js >> ./his.js
+cat ./src/his-new-world.js >> ./his.js
+cat ./src/his-display.js >> ./his.js
+cat ./src/his-testing.js >> ./his.js
+cat ./src/his-end.js >> ./his.js
+
+
+npm run compile $1
+

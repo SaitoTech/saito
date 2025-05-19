@@ -1,0 +1,236 @@
+name: publish
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install moreutils for sponge
+        run: sudo apt-get install -y moreutils
+
+      - name: Update versions
+        run: ./scripts/update_version.sh
+        shell: bash
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+          cache-dependency-path: saito-wasm/package-lock.json
+
+      - name: get latest saito-wasm version
+        run: |
+          echo published_saito_wasm_version=$(npm show saito-wasm version) >> $GITHUB_ENV
+          echo current_saito_wasm_version=$(npm pkg get version | tr -d '"') >> $GITHUB_ENV
+          echo "current saito-wasm node package version : ${{ env.current_saito_wasm_version }}"
+          echo "published saito-wasm node package version : ${{ env.published_saito_wasm_version }}"
+        working-directory: saito-wasm
+
+      - name: version check for saito-wasm
+        if: ${{ env.published_saito_wasm_version == env.current_saito_wasm_version }}
+        run: |
+          echo "same saito-wasm npm package version is already published"
+          echo "current npm package version : ${{ env.current_saito_wasm_version }}"
+          echo "published npm package version : ${{ env.published_saito_wasm_version }}"
+
+      - name: Setup Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: "wasm32-unknown-unknown"
+          override: true
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release
+
+      - name: Bootstrapping
+        run: bash ./scripts/bootstrap_for_ci.sh
+        shell: bash
+
+      - name: Install npm packages for saito-wasm
+        run: npm install
+        working-directory: saito-wasm
+
+      - name: Wasm Build
+        run: npm run build-prod
+        working-directory: saito-wasm
+
+      - name: Remove gitignore files in saito-wasm
+        if: ${{ env.published_saito_wasm_version != env.current_saito_wasm_version }}
+        run: rm -rf pkg/web/.gitignore pkg/node/.gitignore
+        working-directory: saito-wasm
+
+      - name: Publish saito-wasm package
+        if: ${{ env.published_saito_wasm_version != env.current_saito_wasm_version }}
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: saito-wasm
+
+      - name: Upload Saito Rust Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: "saito-rust"
+          path: "target/release/saito-rust"
+
+      - name: Build documentation
+        run: cargo doc --no-deps
+
+      - name: Copy index.html file
+        run: cp .github/workflows/doc_index.template.html target/doc/index.html
+
+      - name: Fix permissions
+        run: |
+          chmod -c -R +rX "target/doc/" | while read line; do
+            echo "::warning title=Invalid file permissions automatically fixed::$line"
+          done
+
+      - name: Upload Documentation to github pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "target/doc"
+
+      - name: get latest saito-js version
+        run: |
+          echo published_saito_js_version=$(npm show saito-js version) >> $GITHUB_ENV
+          echo current_saito_js_version=$(npm pkg get version | tr -d '"') >> $GITHUB_ENV
+        working-directory: saito-js
+
+      - name: version check saito-js
+        if: ${{ env.published_saito_js_version == env.current_saito_js_version }}
+        run: |
+          echo "same saito-js version is already published"
+          echo "current saito-js version : ${{ env.current_saito_js_version }}"
+          echo "published saito-js version : ${{ env.published_saito_js_version }}"
+
+      - name: Install npm packages for saito-js
+        if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
+        run: npm install
+        working-directory: saito-js
+
+      - name: Update saito-wasm package
+        if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
+        run: npm update saito-wasm
+        working-directory: saito-js
+
+      - name: build saito-js
+        if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
+        run: npm run build
+        working-directory: saito-js
+
+      - name: copying saito-js
+        if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
+        run: |
+          cp package.json dist
+          cp package-lock.json dist
+          cp tsconfig.json dist
+          cp .npmignore dist
+        working-directory: saito-js
+
+      - name: Publish saito-js package
+        if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: saito-js/dist
+
+  deploy_docs:
+    needs: build_and_publish
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  test-issuance-gen:
+    needs: build_and_publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout SLR
+        uses: actions/checkout@v2
+        with:
+          repository: 'SaitoTech/saito-lite-rust'
+          path: 'slr'
+          ref: 'staging'
+
+      - name: update package.json
+        run: npm update saito-js
+        working-directory: 'slr'
+
+      - name: Copy modules.config
+        run: cp config/modules.default.js config/modules.config.js
+        working-directory: 'slr'
+
+      - name: npm install
+        run: npm install
+        working-directory: 'slr'
+
+      - name: ts-node install
+        run: npm install -g ts-node
+
+      - name: Compile SLR
+        run: npm run reset dev
+        working-directory: 'slr'
+
+      - name: create ssh keys
+        run: echo "$CI_SSH_PRIVATE_KEY" >> CI_KEY
+        working-directory: 'slr'
+        env:
+          CI_SSH_PRIVATE_KEY: ${{ secrets.CI_SSH_PRIVATE_KEY }}
+
+      - name: chmod key
+        run: chmod 600 ./CI_KEY
+        working-directory: 'slr'
+
+      - name: gen key
+        run: ssh-keygen -f ./CI_KEY -y > CI_KEY.pub
+        working-directory: "slr"
+
+      - name: print size of key
+        run: ls -l CI_KEY*
+        working-directory: 'slr'
+
+      - name: copy blocks in prod-services into data/blocks folder
+        run: rsync -avPq -e "ssh -o StrictHostKeyChecking=no -i ./CI_KEY" root@prod-services.saito.io:/opt/saito/data/blocks/ data/blocks/
+        working-directory: 'slr'
+
+      - name: ls blocks
+        run: ls -1 data/blocks/ | wc -l
+        working-directory: 'slr'
+
+      - name: run issuance file generation
+        run: npm run generate-issuance
+        working-directory: 'slr'
+
+      - name: check for generated issuance file
+        run: ls data/issuance.file
+        working-directory: 'slr'

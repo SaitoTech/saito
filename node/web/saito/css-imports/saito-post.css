@@ -1,0 +1,194 @@
+.tweet-overlay {
+  max-width: 90vw;
+  background-color: var(--background-color-post);
+  padding: var(--border-padding-overlay-post);
+  border-radius: var(--border-radius-modal-menu);
+  border: var(--border-thickness-overlay-post) solid var(--border-color-overlay-post);
+  max-height: 95vh;
+  overflow: visible;
+  position: relative;
+}
+
+.saito-overlay .tweet-overlay {
+  width: 75rem;
+}
+
+.tweet-overlay-content {
+  display: grid;
+}
+
+.tweet-overlay-header {
+  grid-row: 1;
+}
+
+.tweet-overlay-content-controls {
+  display: flex;
+  flex-direction: row;
+  justify-content: right;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.tweet-overlay-content-controls i {
+  color: transparent;
+  font-size: 2rem;
+  -webkit-text-stroke: var(--saito-primary) 1px; /* testing */
+  padding: 1rem;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.1s;
+}
+
+.tweet-overlay-content-controls i:hover{
+  transform: scale(1.1);
+}
+
+.post-tweet-preview {
+  margin-bottom: 1.5rem;
+}
+
+.post-tweet-preview > .tweet {
+  margin-bottom: 1.5rem;
+  padding: 0 0 2rem;
+}
+
+
+.post-tweet-textarea {
+  display: block;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  width: 100%;
+  outline: none;
+  font-size: 1.6rem;
+  margin: 1rem 0;
+  min-height: 14rem;
+  line-height: 2.25rem;
+
+  /* Copied from textarea in saito-form-elements */
+  background-color: var(--background-color-post-input);
+  color: var(--font-color-post-input);
+  border: var(--border-thickness-post-input) solid var(--border-color-post-input);
+
+}
+
+.post-tweet-img-preview-container {
+  position: absolute;
+  left: 19.5rem;
+  bottom: 1.1rem;
+  width: calc(100% - 42rem);
+  height: 6rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-gap: 1rem;
+  align-items: center;
+}
+
+.post-tweet-img-preview {
+  position: relative;
+  height: auto;
+  width: 100%;
+  cursor: pointer;
+}
+
+.post-tweet-img-preview img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  max-height: 6rem;
+  border: 1px solid var(--saito-primary);
+  border-radius: var(--saito-border-radius);
+  overflow: hidden;
+}
+
+.post-tweet-img-preview i{
+  position: absolute;
+  font-size: 6rem;
+  color: var(--color-primary); /* testing */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+  display: none;
+}
+
+.post-tweet-img-preview:hover img {
+  filter: brightness(0.5);
+}
+
+.post-tweet-img-preview:hover i {
+  display: flex;
+}
+
+.post-tweet-button, .post-delete-button {
+  margin-right: 0;
+  line-height: 4.5rem;
+  font-size: 2.2rem;
+}
+
+.post-delete-button {
+  position: absolute;
+  right: 22rem;
+  bottom: 1rem;
+}
+
+
+
+@media screen and (max-width: 600px) {
+  .post-tweet-preview {
+      display: none;
+  }
+
+  .tweet-overlay {
+    max-width: 98vw;
+  }
+
+  .tweet-overlay .tweet-overlay-content{
+    margin: 0;
+  }
+
+  .tweet-overlay .post-tweet-button, .tweet-overlay .post-delete-button {
+    min-width: 10rem;
+    max-width: 30%;
+    padding: 0.5rem 0;
+    margin-right: 0;
+  }
+
+  .tweet-overlay .post-delete-button {
+    right: 12rem;
+  }
+
+  .post-tweet-img-preview-container {
+    width: calc(100% - 2rem);
+    left: 1rem;
+    top: calc(100% + 0.5rem);
+  }
+
+}
+
+
+/**  In screen reply  */
+.tweet-manager .tweet-overlay {
+  padding-left: 5rem;
+  border-radius: unset;
+}
+
+.tweet-manager .post-tweet-textarea{
+  min-height: unset;
+  height: 10rem;
+}
+
+.tweet-manager .post-tweet-button{
+  line-height: 3rem;
+}
+
+.tweet-manager .saito-input-large {
+  margin-bottom: 0;
+}
+
+.tweet-manager .saito-input-large .selection-box-tabs{
+  align-items: center;
+  width: 12rem;
+  margin-left: unset;
+}

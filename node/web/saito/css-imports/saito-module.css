@@ -1,0 +1,208 @@
+/***
+ * 
+ * We have some name space confusion ....
+ * TODO: FIX !!!!
+ * 
+ * this css looks like it is for game invites in Arcade and the sidebar in RedSquare
+ * 
+ * maybe should change to saito-game...
+ * 
+ */ 
+
+.saito-module {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 1rem;
+    flex-direction: row;
+    justify-content: space-between;
+    position: relative;
+    width: 100%;
+    cursor: pointer;
+    padding: 1rem;
+    align-items: center;
+    background-size: cover;
+    background-position: center;
+    background-color: var(--background-mask-sidebar-game-module);
+    background-blend-mode: soft-light;
+    border-radius: var(--border-radius-sidebar-game-module);
+    overflow: hidden;
+}
+
+.saito-module-titlebar {
+    padding: 0.5rem;
+    max-width: 18rem;
+    min-width: 12rem;
+    width: 18rem;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    overflow-wrap: break-word;
+    opacity: 0.80;
+    background: #000a;
+    border-radius: var(--border-radius-sidebar-game-module);
+}
+
+.saito-module-titlebar > div {
+    margin: 0.25rem;
+}
+
+.saito-module-titlebar-title {
+    color: var(--font-color-invite-stub);
+    font-size: 2rem;
+}
+
+.saito-module-titlebar-details {
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    color: var(--font-color-invite-stub);
+}
+
+.saito-game-details {
+    display: flex;
+    flex-direction: row;
+    column-gap: 1rem;
+    align-items: center;
+    flex-grow: 1;
+    justify-content: flex-end;
+}
+
+.saito-module-identicon {
+    border: none;
+}
+
+
+/*
+    Small tweaks for when the saito-module is crammed into a sidebar
+*/
+.saito-sidebar .saito-module {
+    padding: 0.5rem;
+}
+
+.saito-sidebar .saito-module-titlebar {
+    width: unset;
+}
+
+.saito-sidebar .saito-module-titlebar-details {
+    font-size: 1.2rem;
+}
+
+
+/***
+ * 
+ * Here is fresh code for actual saito-module stuff, a new (19 Jan 2024) UI component
+ * for handling generic module stuff. It should display basic metadata about the module
+ * and have selectable options that we would save in the app.options[module] section.
+ * The basic idea is to have a way to change module settings from outside of the module!
+ * 
+ * Maybe also useful when we resurrect the appstore
+ * 
+ */ 
+
+.saito-module-overlay {
+  display: flex;
+  flex-direction: column;
+  row-gap: 1rem;
+  width: min(90vw, 80rem);
+  max-height: 70vh;
+  overflow: auto;
+  background: var(--background-color-module-menu); 
+  color: var(--font-color-module-menu);
+  border-radius: var(--border-radius-module-menu);
+  border: var(--border-thickness-module-appinfo) solid var(--border-color-module-appinfo);
+}
+
+.saito-module-header {
+    background: var(--dreamscape); /* testing not sure where*/
+    background-size: cover;
+    background-position: center;
+    padding: 0.5rem;
+}
+
+.saito-module-header .saito-module-titlebar {
+    max-width: 100%;
+    width: 100%;
+    padding: 0.5rem 1rem;
+}
+
+.saito-module-overlay .saito-module-titlebar {
+  color: var(--font-color-module-menu-header);
+  background-color: unset;
+}
+
+.saito-module-details {
+    display: grid;
+    grid-template-columns: 10rem 1fr;
+    gap: 1rem;
+    margin: 1rem;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    border: var(--border-thickness-module-appinfo) solid var(--border-color-module-appinfo); /* testing */
+}
+
+.saito-module-overlay > h4 {
+    margin-left: 1rem;
+}
+
+.saito-module-settings{
+    padding: 1rem;
+}
+
+fieldset.saito-grid {
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    gap: 2rem;
+    align-items: center;
+    margin: 1rem 0;
+    border: var(--border-thickness-button-modal) solid var(--border-color-button-modal);
+    border-radius: 0.5rem;
+    position: relative;
+}
+
+fieldset.saito-grid > fieldset.saito-grid{
+  grid-column-start: 1;
+  grid-column-end: span 2;
+}
+
+fieldset.saito-grid .note {
+    margin-left: 5px;
+}
+
+.saito-module-settings .note {
+    font-style: italic;
+}
+
+.saito-grid input, .saito-grid label {
+    cursor: pointer;
+    color: var(--font-color-module-menu);
+}
+
+.saito-grid-extra-button {
+    position: absolute;
+    right: 1rem;
+    height: min(70%, 40px);
+}
+
+.saito-grid i {
+    margin: 0 0.5rem;
+    font-size: 1.8rem;
+    cursor: pointer;
+}
+
+.settings-link, .settings-link label {
+    cursor: pointer;
+}
+
+.settings-link:hover label{
+  text-decoration: var(--text-decoration-switch-global);
+  color: var(--font-color-hover-module-menu);
+}
+
+
+.flex-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 2rem;
+}

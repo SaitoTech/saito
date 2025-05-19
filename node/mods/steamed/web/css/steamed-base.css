@@ -1,0 +1,439 @@
+body {
+	font-family: serif;
+}
+
+:root {
+	--steamed-card-width: min(17.5vh, 20vw);
+	--steamed-card-height: min(27.125vh, 31vw);
+}
+
+.gameboard {
+	/* Default fill the background with image */
+	position: absolute;
+	background-image: url('/steamed/img/gameboard.jpg');
+	background-size: cover;
+	background-position: center;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.status-message {
+	margin-bottom: unset;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-evenly;
+	padding: 5px 0;
+	height: 100%;
+}
+
+.field_slot {
+	width: var(--steamed-card-width);
+	height: var(--steamed-card-height);
+	max-width: 150px;
+	max-height: 233px;
+	position: relative;
+	background-size: contain;
+	background-position: center;
+}
+
+.card {
+	position: absolute;
+	width: 100%;
+	max-width: 150px;
+	height: auto;
+}
+
+.pot {
+	position: absolute;
+	top: 50%;
+	left: 10px;
+	transform: translateY(-50%);
+	width: calc(95vw - 10px);
+	display: grid;
+	grid-template-columns: minmax(150px, 1fr) 5fr minmax(150px, 1fr);
+	grid-gap: 1rem;
+	align-items: center;
+}
+
+.player_field {
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	grid-gap: 10px;
+	background-color: darkslategray;
+	padding: 7px;
+	justify-items: center;
+	align-content: center;
+	min-height: 150px;
+	min-width: 300px;
+	border: 3px solid black;
+	filter: drop-shadow(10px 6px 5px);
+}
+
+.player_field#self{
+	grid-template-columns: repeat(3, 1fr) min-content;
+}
+
+.status {
+	width: 100%;
+	height: 40px;
+	position: absolute;
+	top: -40px;
+	color: white;
+	text-shadow: 1px 2px 6px black;
+	background-color: inherit;
+	box-sizing: content-box;
+	border: inherit;
+}
+
+.steam-controls{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  height: 100%;
+}
+
+.steam-controls .control{
+	font-size: 2.6rem;
+	border-radius: 0.5rem;
+	border: 3px solid;
+	height: 6rem;
+	width: 6rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	background-color: #DDD6;
+	color: black;
+}
+
+#draw_deck {
+	background-size: contain;
+	background-position: center;
+	font-size: 64px;
+	text-align: center;
+	line-height: 190px;
+}
+
+#draw_deck.active_element:hover {
+	box-shadow: 0 0 5px 5px ghostwhite;
+}
+
+#discards {
+	width: calc(0.9 * var(--steamed-card-width));
+	height: calc(0.9 * var(--steamed-card-height));
+	max-width: 120px;
+	max-height: 186px;
+	margin-left: auto;
+}
+
+#discards img {
+	filter: brightness(0.5);
+}
+
+#self {
+	bottom: 15px;
+}
+
+#opponent {
+	top: 40px;
+}
+
+.animation_helper {
+	position: absolute;
+}
+
+#cardfan img {
+	transition: transform 0.3s;
+}
+
+.hidden {
+	visibility: hidden;
+}
+
+.player_field > .field_slot {
+	background-color: rgba(0, 0, 0, 0.4);
+}
+
+.player_field > .field_slot img,
+.player_field > .field_slot div.field_slot {
+	pointer-events: none;
+}
+
+.player_field.active {
+	background-color: lightslategray;
+}
+
+.active_element {
+	cursor: pointer;
+	transition: box-shadow 0.25s, transform 0.25s, filter 0.25s;
+}
+
+.control.active_state {
+	color: whitesmoke;
+	background-color: black;
+	border-color: whitesmoke;
+}
+
+.control {
+	transition: all 0.2s;
+}
+
+.control:hover{
+	box-shadow: 3px 3px 3px;
+	background-color: #5555;
+}
+
+.player_field > .field_slot.active_element:hover {
+	filter: drop-shadow(0 0 10px yellow) hue-rotate(30deg);
+}
+
+.score_card {
+	width: calc(var(--steamed-card-width) / 2);
+	height: calc(var(--steamed-card-height) / 2);
+	max-width: 75px;
+	max-height: 116px;
+	position: absolute;
+	background-size: contain;
+	background-position: center;
+	text-align: center;
+	font-size: min(3vh, 3vw);
+	line-height: min(10vh, 12vw);
+	color: crimson;
+}
+
+.offer {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-evenly;
+	min-width: fit-content;
+	gap: 1rem;
+}
+
+.offer > img.card {
+	position: relative;
+	width: var(--steamed-card-width);
+}
+
+.offer img.card.active_element:hover {
+	transform: rotate(5deg);
+}
+
+#my_score {
+	position: absolute;
+	bottom: 10px;
+	right: 20px;
+}
+
+#opponent_score {
+	position: absolute;
+	top: 40px;
+	right: 20px;
+}
+
+.profit {
+	position: absolute;
+	bottom: 3%;
+	width: 23%;
+	height: 37%;
+	background-color: rgba(175, 175, 50, 0.3);
+	border-radius: 2rem;
+}
+
+.profit1 {
+	left: 4%;
+}
+
+.profit2 {
+	left: 27%;
+}
+
+.profit3 {
+	left: 52%;
+}
+
+.profit4 {
+	left: 77%;
+}
+
+.slot_holder {
+	width: var(--steamed-card-width);
+	height: var(--steamed-card-height);
+	max-width: 150px;
+	max-height: 233px;
+}
+
+.flip-card {
+	width: var(--steamed-card-width);
+	height: var(--steamed-card-height);
+	max-width: 150px;
+	max-height: 233px;
+	position: absolute;
+}
+
+#draw_deck .flip-card {
+	top: 0;
+	left: 0;
+}
+
+.flip-card .card {
+	position: absolute;
+}
+
+.cardFront,
+.cardBack {
+	transition: transform 0.5s ease;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
+}
+
+.cardFront {
+	transform: rotateY(180deg);
+}
+.flipped .cardFront {
+	transform: rotateY(0deg);
+}
+.cardBack {
+	transform: rotateY(0deg);
+}
+.flipped .cardBack {
+	transform: rotateY(-180deg);
+}
+
+.tutorial-highlight {
+	box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.85);
+	z-index: 1000;
+}
+
+.tutorial-help {
+	position: absolute;
+	z-index: 1001;
+	width: max(20vw, 400px);
+	height: max(25vh, 250px);
+	background-color: ghostwhite;
+	font-size: 24px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-evenly;
+	padding: 10px;
+	border-radius: 20px;
+	border: 3px solid var(--saito-primary);
+}
+
+
+.hud .status {
+	position: relative;
+	top: unset;
+	height: unset;
+	color: unset;
+	text-shadow: unset;
+}
+
+.hud-header {
+	display: none;
+}
+
+.jumpy img.card:hover {
+	transform: translate(-12%, -20%);
+}
+
+.jumpy img.card:last-child:hover, .cardfan img.card.active_element.activated {
+	transform: translate(2%, -20%);
+}
+
+.cardfan .active_element:hover, .cardfan .active_element.activated {
+	box-shadow: 0 0 2px 5px lime;
+}
+
+.cardfan .deletable {
+	box-shadow: 0 0 2px 5px indianred;	
+}
+
+.bighand > .card:nth-child(7n + 1) {
+	transform: rotate(-30deg);
+	left: 0px;
+}
+
+.bighand > .card:nth-child(7n + 2) {
+	transform: rotate(-20deg);
+	left: 2.5vh;
+}
+
+.bighand > .card:nth-child(7n + 3) {
+	transform: rotate(-10deg);
+	left: 5vh;
+}
+
+.bighand > .card:nth-child(7n + 4) {
+	transform: rotate(0deg);
+	left: 7.5vh;
+}
+
+.bighand > .card:nth-child(7n + 5) {
+	transform: rotate(10deg);
+	left: 10vh;
+}
+
+.bighand > .card:nth-child(7n + 6) {
+	transform: rotate(20deg);
+	left: 12.5vh;
+}
+
+.bighand > .card:nth-child(7n + 7) {
+	transform: rotate(30deg);
+	left: 15vh;
+}
+
+.bighand > .card:nth-child(n + 8) {
+	top: 5vh;
+}
+
+
+@media screen and (max-width: 700px) {
+	.player_field {
+		min-height: unset;
+		min-width: 250px;
+		padding: 3px;
+		grid-gap: 3px;
+		align-items: center;
+	}
+
+	#opponent_score { 
+		right: 5px;
+		top: 45px;
+	 }
+
+	#my_score{
+		right: 5px;
+		bottom: 5px;
+	}
+
+	#self { 
+		bottom: 7px;
+	 }
+
+	 .pot {
+	 	grid-template-columns: min-content 1fr;
+	 	row-gap: 1rem;
+	 }
+
+	 .offer {
+	 	gap: 5px;
+	 }
+
+	 #draw_deck {
+	 	font-size: 32px;
+	 	line-height: 95px;
+	 }
+
+	 .score_card {
+	 	font-size: 24px;
+	 	line-height: 45px;
+	 }
+}

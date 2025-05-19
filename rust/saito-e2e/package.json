@@ -1,0 +1,26 @@
+{
+  "name": "saito-e2e",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "show-report": "npx playwright show-report",
+    "ui": "npx playwright test --ui"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.17.19",
+    "eslint": "^9.20.1",
+    "globals": "^15.15.0",
+    "path": "latest",
+    "prettier": "^3.2.5",
+    "typescript-eslint": "^8.24.1"
+  },
+  "dependencies": {
+  }
+}

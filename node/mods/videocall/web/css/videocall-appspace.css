@@ -1,0 +1,298 @@
+/* Appspace css */
+
+/*controll changes*/
+
+/*updated for git*/
+
+.stun-appspace {
+	width: 100vw;
+	height: 100vh;
+	height: calc(100 * var(--saito-vh));
+	left: 0;
+	top: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	background-color: var(--saito-background-color);
+	color: var(--saito-font-color);
+	padding: 3rem;
+	justify-content: center;
+	position: relative;
+}
+
+.stun-minimal-appspace {
+	padding: 2rem;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	background-color: var(--saito-background-color);
+	color: var(--saito-font-color);
+	justify-content: space-between;
+	width: min(400px, 98vw);
+	height: min(600px, 80vh);
+}
+
+
+.stun-button-row {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+}
+
+.stun-button-row .saito-button-primary {
+	min-width: 15rem;
+	padding: 1.5rem;
+}
+
+.stun-appspace-content, .videocall-media-settings {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	width: min(95vw, 800px);
+	padding: 3rem;
+	gap: 3rem;
+	border: 1px solid var(--saito-border-color);
+	border-radius: var(--saito-border-radius);
+}
+
+
+.stunx-splash-image{
+	width: 300px;
+	height: 200px;
+	background-image: url(/videocall/img/splash.jpg);
+	background-size: cover;
+	border-radius: var(--saito-border-radius);	
+}
+
+.stun-appspace-footer {
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	color: var(--color-contrast);
+}
+
+.stun-appspace-footer > div {
+	display: flex;
+	align-items: center;
+	gap: 2rem;
+	cursor: pointer;
+}
+
+.stun-appspace-footer > div:hover{
+	color: var(--font-color-main-body);
+}
+
+
+
+.my-stun-container-info {
+	display: none;
+	font-size: 1.75rem;
+}
+
+.stun-title {
+	font-size: 5rem;
+}
+
+.stunx-appspace-actions {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	gap: 2rem;
+	margin-bottom:1rem;
+}
+
+.stunx-precall-link {
+	font-size: 2rem;
+	cursor: pointer;
+	color: var(--color-contrast);
+}
+
+.stunx-precall-link:hover {
+color: var(--font-color-main-body);	
+}
+
+.stunx-appspace-launch-call-btn {
+	width: 100%;
+}
+
+.stunx-appspace-splash {
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	gap: 3rem;
+}
+
+.stun-appspace-navigation {
+	width: 80%;
+	max-width: 900px;
+	display: flex;
+	flex-direction: row-reverse;
+	justify-content: end;
+	padding: 5rem;
+	gap: 3rem;
+}
+
+.stun-appspace-navigation div a {
+	display: flex;
+	flex-direction: row;
+	gap: 0.5rem;
+	font-size: 2rem;
+}
+
+.stun-appspace-navigation div a:hover i::before {
+	content: '\f08e';
+}
+
+/**  Dialer **/
+
+.video_switch {
+	display: flex;
+	align-items: center;
+	justify-content: space-evenly;
+	font-size: 1.8rem;
+	width: 80%;
+}
+
+.video_switch.deactivated {
+	pointer-events: none;
+	color: var(--saito-font-color-light);
+}
+
+.switch {
+	position: relative;
+	display: inline-block;
+	width: 60px;
+	height: 34px;
+}
+
+/* Hide default HTML checkbox */
+
+.switch input {
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+
+/* The slider */
+
+.slider {
+	position: absolute;
+	cursor: pointer;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-color: #ccc;
+	-webkit-transition: 0.4s;
+	transition: 0.4s;
+}
+
+.slider:before {
+	position: absolute;
+	content: '';
+	height: 26px;
+	width: 26px;
+	left: 4px;
+	bottom: 4px;
+	background-color: white;
+	-webkit-transition: 0.4s;
+	transition: 0.4s;
+}
+
+input:checked+.slider {
+	background-color: var(--saito-primary);
+}
+
+input:focus+.slider {
+	box-shadow: 0 0 1px var(--saito-primary);
+}
+
+input:checked+.slider:before {
+	-webkit-transform: translateX(26px);
+	-ms-transform: translateX(26px);
+	transform: translateX(26px);
+}
+
+/* Rounded sliders */
+
+.slider.round {
+	border-radius: 34px;
+}
+
+.slider.round:before {
+	border-radius: 50%;
+}
+
+.stun-minimal-appspace .chat-appspace-settings div {
+	width: 100%;
+}
+
+.stun-minimal-appspace .chat-settings-toggle-icons {
+	display: none;
+}
+
+.stun-minimal-appspace .chat-settings-preview {
+	width: 100% !important;
+}
+
+
+
+.stun-phone-notice {
+	font-style: italic;
+}
+
+@media screen and (max-width: 900px) {
+	.staun-appspace-cards {
+		flex-direction: column;
+		width: 100%;
+	}
+	.chat-settings-preview-section {
+		width: unset;
+	}
+}
+
+/*  responsive */
+
+
+@media screen and (max-width: 900px) {
+	.stun-appspace-content {
+		gap: 1rem;
+	}
+
+	.stun-input-settings {
+		padding: 0;
+	}
+}
+
+@media (max-width: 600px) {
+	.stun-appspace-content {
+		gap: 3rem;
+		border: unset;
+		height: 100%;
+		justify-content: space-evenly;
+	}
+	#createRoom {
+		width: 100%;
+	}
+	.stun-appspace-navigation {
+		gap: 2rem;
+		padding: 2rem;
+		justify-content: center;
+	}
+	.stunx-appspace-actions {
+		order: 2;
+		width: calc(100vw - 2rem);
+		flex-direction: column;
+	}
+	.stun-minimal-appspace {
+		padding: 1rem;
+	}
+	.stun-button-row .saito-button-primary {
+		min-width: 12rem;
+	}
+}

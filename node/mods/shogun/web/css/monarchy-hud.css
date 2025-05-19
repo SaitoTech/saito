@@ -1,0 +1,65 @@
+.game-cardgrid {
+	column-gap: 1rem;
+}
+
+
+.hud-header {
+	background-color: #0005;
+	width: 500px;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.hud-long {
+	/* max-height: 310px; */
+	width: 98vw;
+}
+
+.hud-body {
+	/* position: relative; */
+}
+
+.hud-body #drawpile {
+	position: absolute;
+	left: 1rem;
+	/*bottom: 5%;*/
+	top: 7rem;
+}
+
+.hud-body #discardpile {
+	position: absolute;
+	right: 1rem;
+	/*bottom: 5%;*/
+	top: 7rem;
+	filter: brightness(0.75);
+}
+
+.card, .hud .cardpile {
+	/*width: 120px;
+	height: 190px;*/
+
+	position: relative;
+	width: 10vw;
+	height: calc(10vw * 1.6);
+
+	max-width: 120px;
+	max-height: 190px;
+}
+
+.hud .cardpile div:first-child {
+	position: absolute;
+	width: 100%;
+	top: -25px;
+	color: ghostwhite;
+	font-size: 18px;
+	text-align: center;
+	text-shadow: 1px 1px 2px black;
+}
+
+.playcard{
+	cursor: pointer;
+}
+
+.card.nonplayable{
+	filter: grayscale(75%) brightness(0.75);
+}

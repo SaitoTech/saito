@@ -1,0 +1,76 @@
+.objectives-overlay {
+	width: 100%;
+	height: min-content;
+	width: min-content;
+	max-width: 1000px;
+	max-height: 85vh;
+	padding: 4rem;
+	min-width: 80vw;
+}
+
+.objectives-overlay-title {
+	color: white;
+	font-family: 'bank-gothic';
+	letter-spacing: 0.75rem;
+	font-size: 5rem;
+	font-weight: bold;
+	margin-left: auto;
+	margin-right: auto;
+	width: min-content;
+}
+
+.objectives-overlay-content {
+	display: flex;
+	flex-direction: row;
+	gap: 2rem;
+	justify-content: space-evenly;
+	width: 100%;
+	max-width: 80vw;
+	max-height: 85vh;
+	height: min-content;
+	width: 100%;
+	padding: 2rem;
+}
+
+.objectives_card_content {
+    color: white;
+    background: #0006;
+    position: relative;
+    color: white;
+    margin-top: 0px;
+    padding: 1.4rem;
+    padding-top: 1rem;
+    line-height: 3rem;
+    height: calc(42vh - 5em);
+    text-align: center;
+    font-size: 2.3rem;
+}
+
+.objectives_card_name {
+	color: white;
+	background: #0008;
+	position: relative;
+	min-height: min-content;
+	text-align: center;
+	width: 100%;
+	padding-bottom: 1rem;
+	padding-top: 1rem;
+	font-size: 2.5rem;
+	font-weight: bold;
+	padding-left: 0.5rem;
+	padding-right: 0.5rem;
+}
+
+.objectives_overlay_objectives_card {
+    position: relative;
+    width: calc(50vh* 0.7211);
+    height: 50vh;
+    margin: 10px;
+    background-size: cover;
+    max-width: 36rem;
+    max-height: 54rem;
+    float: left;
+    font-size: 0.8em;
+    z-index: 5;
+    border: 1px solid #fff;
+}

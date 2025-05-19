@@ -1,0 +1,578 @@
+.tweet {
+  cursor: pointer;
+  padding: 1rem 2rem;
+  border-top: 1px solid transparent;
+  border-bottom: var(--border-thickness-post-divider) solid var(--border-color-post-divider);
+  position: relative;
+}
+
+.tweet .saito-address, .tweet .saito-userline {
+  font-size: 1.2rem;
+  margin: 0;
+  color: var(--font-color-post-info);
+}
+
+.tweet-preview .tweet .tweet-body {
+  min-height: 4rem;
+}
+
+.tweet-main .tweet {
+  border-bottom: 0px;
+  border-top: 0px;
+  padding-top: 0px;
+}
+
+.tweet-main ul li {
+  line-height: 2rem;
+}
+
+.tweet.has-reply {
+  border-bottom: none;
+}
+
+.tweet.has-reply::after, .tweet.has-reply-disconnected::after {
+  content: "";
+  position: absolute;
+  width: 0rem;
+  height: 100%;
+  top: 5.5rem;
+  left: 3.5rem;
+  border-left: 5px dotted var(--border-color-post-dotted-line);
+  z-index: 3;
+}
+
+.tweet.has-reply + .tweet-overlay:after{
+  content: "";
+  position: absolute;
+  width: 0rem;
+  height: 100%;
+  top: 0;
+  left: 3.5rem;
+  border-left: 5px dotted var(--border-color-post-dotted-line);
+  z-index: 3;  
+}
+
+.tweet.has-reply-disconnected {
+  border-bottom: none;
+}
+
+/* Changed, not sure where exactly */
+.tweet.has-reply-disconnected::before {
+  content: "\299A";
+  position: absolute;
+  font-size: 3rem;
+  font-family: monospace;
+  color: var(--border-color-general-divider);
+  background-color: var(--background-color-main);
+  z-index: 99;
+  top: calc(50% + 1rem);
+  left: 3.2rem;
+  line-height: 4.5rem;
+}
+
+.tweet:hover.has-reply-disconnected::before {
+  background: var(--saito-background-light);
+}
+
+
+.tweet.is-reply{
+  left: 2.5rem;
+  width: calc(100% - 2.5rem);
+}
+
+.tweet.is-reply::after{
+  content: "";
+  position: absolute;
+  width: 0rem;
+  height: 75%;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 0.75rem;
+  border-left: 1px solid var(--border-color-post-solid-line);
+  z-index: 3;
+}
+
+/*.tweet.is-reply::after{
+  content: "";
+  position: absolute;
+  width: 2rem;
+  height: 100%;
+  bottom: calc(100% - 4rem);
+  left: -0.5rem;
+  border-left: 1px solid var(--saito-border-color-dark);
+  border-bottom: 1px solid var(--saito-border-color-dark);
+  z-index: 3;
+}
+.tweet.highlight-tweet .tweet-body {
+  grid-template-columns: 0 1fr;
+}
+
+*/
+
+
+.tweet-header .saito-user .saito-identicon-box .saito-identicon {
+  z-index: 51;
+  position: absolute;
+}
+
+.tweet-body {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  /*
+  I'm not sure we want this (or at least not here), for one line tweets, 
+  the tweet controls end up with a big gap between them and the tweet divider
+  min-height: 10rem;
+  */
+}
+
+.tweet-overlay .tweet {
+  border-bottom: none;
+}
+
+.tweet-overlay .tweet-body {
+  height: min-content;
+  min-height: auto;
+}
+
+.tweet-overlay .tweet-main {
+  overflow-y: auto;
+  max-height: calc(95vh - 40rem);
+  height: min-content;
+}
+
+.tweet-notice {
+  display: flex;
+  box-sizing: border-box;
+  color: var(--font-color-post-notice);
+  font-family: var(--saito-font);
+  word-wrap: break-word;
+  padding-bottom: 1rem;
+  position: relative;
+  font-size: 1.4rem;
+  white-space: nowrap;
+  margin: 0 0 0 4.5rem;
+}
+
+.tweet-html-markers {
+  display: none;
+}
+
+.tweet-html-markers.show{
+  display: flex;
+}
+
+.tweet-notice .saito-address {
+  display: inline;
+  margin-right: 0.3rem;
+  margin-left: 0.3rem;
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: var(--font-color-post-saito-address); 
+}
+
+.tweet-text {
+  padding: 0.5rem 0;
+  line-height: 2.2rem;
+  max-height: 17.7rem;
+  max-width: 100%;
+  margin-bottom: 1rem;
+  transition: all 0.2s linear;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.tweet-text .saito-mention.saito-address.treated {
+  color: var(--font-color-mention);
+  font-style: normal;
+  font-size: 1.6rem;
+  margin: 0rem!important;
+}
+
+.tweet-text .saito-mention.saito-address.treated:hover {
+  color: var(--font-color-hover-mention);
+}
+
+.tweet-body ul li {
+  list-style-position: inside;
+  line-height: 1.5rem;
+  list-style-type: disc;
+  text-indent: -16px;
+  padding-left: 22px;
+}
+
+.tweet-body ol li {
+  list-style-position: inside;
+  line-height: 1.5rem;
+  list-style-type: decimal;
+  text-indent: -16px;
+  padding-left: 22px;
+}
+
+.tweet-body h1,
+.tweet-body h2,
+.tweet-body h3,
+.tweet-body h4,
+.tweet-body h5,
+.tweet-body h6 {
+  margin-bottom: 0rem;
+  line-height: 1.2em;
+}
+
+/* For overly long tweets, we crop and show that it can be expanded */
+
+.tweet-text.preview {
+  position: relative;
+  padding-right: 2rem;
+}
+
+.tweet-text.preview::before {
+  content: " ";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 10rem;
+  width: 100%;
+  background: linear-gradient(180deg, transparent, var(--saito-background-color));
+  transition: all 2s ease;
+}
+
+.tweet-text.preview:hover::after {
+  font-family: FontAwesome;
+  content: "\f0d7";
+  position: absolute;
+  bottom: 2rem;
+  /* color: var(--saito-primary); */
+  color: var(--font-color-post-downward-arrow); 
+  font-size: 6rem;
+  z-index: 999;
+  text-align: center;
+  line-height: 2.7rem;
+  padding: 0.3rem 1rem;
+  border-radius: var(--saito-border-radius);
+  left: 50%;
+  transform: translateX(-50%);
+  transition: all 1s;
+}
+
+.tweet-text.expanded {
+  max-height: 50rem;
+  overflow-y: scroll;
+  padding-right: 2rem;
+}
+
+.tweet-text a {
+  display: inherit;
+}
+
+/* handling for embedded tweets */
+
+.tweet .tweet {
+  padding: 0;
+}
+
+.tweet .tweet .tweet-body {
+  grid-template-columns: 0 auto;
+  padding: 1rem 0 0;
+}
+
+
+.tweet-main iframe {
+  max-width: 100% !important;
+}
+
+
+.tweet-preview {
+  margin-top: 2rem;
+}
+
+
+.tweet:hover, .tweet.highlight-tweet {
+  background-color: var(--background-color-hover-post);
+}
+
+.tweet:hover .tweet-text.preview::before {
+  background: linear-gradient(180deg, transparent, var(--background-color-hover-post-preview));
+}
+
+.tweet-controls {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.3rem;
+  width: 100%;
+  margin-top: 1rem;
+  padding-bottom: 1rem;
+  cursor: default;
+}
+
+.tweet-controls>div.tweet-tool {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
+  cursor: pointer;
+  color: var(--font-color-post-controls);
+}
+
+.tweet-controls>div.tweet-tool:hover {
+  transform: scale(1.05);
+  color: var(--font-color-hover-post-controls);
+}
+
+.tweet-controls>div.tweet-tool.tweet-tool-more{
+  transition: transform 0.3s;
+}
+.tweet-controls>div.tweet-tool.tweet-tool-more:hover, 
+.tweet-controls>div.tweet-tool.tweet-tool-more.activated-dot-menu {
+  transform: rotate(90deg);
+}
+
+.tweet-tool-more {
+  position: relative;
+}
+
+.tweet-controls span {
+  display: inline-block;
+  font-weight: bold;
+  z-index: 1;
+}
+
+.tweet-controls i {
+  font-size: 1.5rem;
+  margin: 0 1rem;
+  text-align: center;
+}
+
+.tweet-menu {
+  position: absolute;
+  /*right: 0;
+    bottom: -2rem;
+  */
+  width: 28rem;
+  padding: 1rem;
+  border: 1px solid var(--saito-border-color); /* testing, not sure where */
+  background: var(--saito-background-color);
+  z-index: 1;
+  font-size: 1.8rem;
+
+}
+
+.tweet-menu ul.saito-menu-list {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.tweet-menu-list-item {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr;
+  grid-gap: 1.5rem;
+  padding: 1rem 0.5rem;
+  align-items: center;
+  cursor: pointer;
+}
+
+.tweet-menu-list-item:hover{
+  color: var(--saito-primary);
+}
+
+.tweet-menu-list-item i {
+  justify-self: center;
+  min-width: 2.4rem;
+}
+
+.tweet-picture {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(49%, 1fr));
+  grid-gap: 0.3rem;
+  width: 100%;
+}
+
+.tweet-picture>img {
+  width: 100%;
+  max-width: 52rem;
+  /* Often set inline, but maybe a good standard */
+  max-height: max(52rem, 70vh);
+  height: auto;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+
+.tweet-img-icon {
+  font-size: 3rem;
+  color: var(--saito-white);
+  background: var(--saito-gray-mid); /* testing, not sure where */
+  padding: 1.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.tweet-overlay-content-controls-spacer {
+  flex-grow: 1;
+}
+
+.tweet-like-button .heart-icon {
+  background: var(--saito-heart-animation);
+  cursor: pointer;
+  position: absolute;
+  width: 55px;
+  height: 55px;
+  background-size: cover;
+  /* margin-right: .5rem; */
+}
+
+.tweet-tool-like:hover .heart-icon {
+  animation: like-anim 0s steps(28) forwards;
+}
+
+.tweet-like-button .heart-icon.liked {
+  animation: like-anim 0.7s steps(28) forwards;
+}
+
+@keyframes like-anim {
+  to {
+    background-position: right;
+  }
+}
+
+.tweet-like-button .heart-bg {
+  background: rgba(255, 192, 200, 0);
+  border-radius: 50%;
+  width: 60px;
+  display: flex;
+  margin-left: -8px;
+  align-items: center;
+  justify-content: center;
+  transition: all 100ms ease;
+}
+
+.tweet-like-button .heart-bg:hover {
+  background: rgba(255, 192, 200, 0.7);
+}
+
+.tweet-like-button {
+  display: flex;
+  align-items: center;
+}
+
+.tweet-like-button .likes-amount {
+  font-size: 20px;
+  font-family: "Roboto", sans-serif;
+  color: #888;
+  font-weight: 900;
+  margin-left: 6px;
+}
+
+.link-preview {
+  margin: 0.5rem 0;
+}
+
+.link-img {
+  width: 100%;
+  height: 25rem;
+  background-size: cover !important;
+  background-position: center;
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+}
+
+.link-info {
+  padding: 2rem;
+  border: var(--border-thickness-post-link) solid var(--border-color-post-link);
+  border-radius: 0.5rem;
+  border-top: none;
+  border-top-right-radius: unset;
+  border-top-left-radius: unset;
+  overflow-wrap: anywhere;
+}
+
+.link-title {
+  color: var(--font-color-post-link-title);
+  margin: 0.3rem 0px;
+}
+
+.link-url {
+  color: var(--font-color-post-link-url); 
+}
+
+.link-description {
+  color: var(--font-color-post-link-description); 
+}
+
+
+/***  Some formatting for auto-generated tables  ***/
+
+
+.tweet td {
+  text-align: center;
+}
+
+.tweet td, .tweet th, .tweet table {
+  border: 1px solid var(--saito-font-color-light);
+  border-collapse: collapse;
+}
+
+.tweet td, .tweet th {
+  padding: 4px 16px;
+}
+
+
+@media screen and (max-width: 1280px) {
+  .tweet-picture {
+    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  }
+  /*
+  Height should always follow width, no?
+   .tweet-picture>img {
+    max-height: 35rem !important;
+  }*/
+}
+
+@media screen and (max-width: 768px) {
+  .tweet {
+    padding: 1rem 0 0;
+  }
+
+  .tweet.is-reply::after{
+    left: -1rem;
+  }
+
+  .tweet.has-reply::after, .tweet.has-reply-disconnected::after {
+    top: 4.5rem;
+    left: 1.55rem;
+  }
+
+  .tweet.has-reply + .tweet-overlay::after {
+    top: 4rem;
+    left: 1.55rem;
+  }  
+
+  .tweet.has-reply-disconnected::before {
+    left: 1.3rem;
+  }
+
+  .tweet-text {
+    padding-bottom: 0;
+    line-height: 2rem;
+  }
+  .tweet-notice .saito-address {
+    max-width: 70%;
+  }
+  .tweet-overlay .tweet-main {
+    max-height: calc(90vh - 40rem);
+  }
+}
+
+/*
+  Ditto on why unneccesarily crop photo height???
+  the height should scale proportionally with width, maybe looks bad if people are
+  sharing portrait photos
+ @media screen and (max-width: 529px) {
+
+  .tweet-picture>img {
+    height: 15rem;
+  }
+}
+*/

@@ -1,0 +1,28 @@
+
+
+
+.game-help-hidden {
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0s 1s, opacity 1s linear;
+}
+
+.game-help-visible {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 1s linear;
+}
+
+/*.game-help-text {
+    font-size: 2.7rem;
+    padding-top: 12rem;
+    margin-left: 23rem;
+    transform: skew(-55deg);
+    width: 16rem;
+    min-width: 10rem;
+    overflow: visible;
+    line-height: 3.5rem;
+    letter-spacing: 0.1rem;
+    font-weight: bold;
+}*/
+

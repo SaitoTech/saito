@@ -1,0 +1,378 @@
+:root {
+	--game-menu-background: #f9efdf;
+	--font-color-primary: #000;
+}
+
+
+  .player_clock .game-clock {
+	position: static;
+	height: 100%;
+	display: block;
+	font-size: 3rem;
+	filter: none;
+	font-family: "digital-7", monospace, courier-new, courier, sans-serif;
+	background: #fff;
+	border: 1px solid #888;
+	margin: 3px;
+	padding: 7px 7px 0px;
+  }
+
+.log-lock .mobile-log-tab {
+	background-color: #222d;
+	color: #f9efdf;
+}
+.mobile-log-tab {
+	background-color: #f9efdf;
+	height: 4rem;
+	margin-top: 2px;
+	color: black;
+	font-size: 2.2rem;
+	padding-top: 1rem;
+}
+
+.saito-userline {
+	text-transform: lowercase;
+}
+
+/*
+.observer-mode #board {
+	transform: rotate(90deg);
+}
+
+.observer-mode .notation-322f9,
+.observer-mode .piece-417db {
+	transform: rotate(-90deg);
+}
+*/
+#game-observer-hud {
+	border-radius: 7px;
+	font-size: 1rem;
+	height: 110px;
+	width: 300px;
+	padding: 10px;
+  }
+
+  .game-observer-status, #obstatus {
+	font-size: 1.7rem;
+	height: unset;
+  }
+
+  #game-observer-controls {
+	font-size: 2rem;
+	height: 40px;
+  }
+
+h1 {
+	margin: 0;
+}
+
+input[type='checkbox'] {
+	border: 1px solid #fffa;
+	margin: 0;
+}
+
+input[type='checkbox']:checked {
+	background-color: #533a26;
+}
+
+.main {
+	width: 100%;
+	height: 100%;
+	padding: 40px;
+	position: absolute;
+
+	display: grid;
+	grid-template-columns: min(86vh, 60vw, 700px) 280px;
+	grid-template-rows: max-content;
+	column-gap: 7rem;
+	align-items: center;
+	justify-items: center;
+	align-content: center;
+	justify-content: center;
+
+	background: url('/chess/img/background.jpg');
+	background-size: cover;
+}
+
+.scrollable-page {
+	background: url('/chess/img/background.jpg');
+	background-size: cover;	
+}
+
+#board {
+	width: 100%;
+}
+
+.controls-space {
+	width: 35%;
+	max-width: 500px;
+	display: grid;
+	grid-template-rows: repeat(4, 1fr);
+	grid-gap: 6px;
+	font-size: max(14px, 1.2vw);
+}
+
+.tool-cont {
+	display: flex;
+	flex-direction: row;
+	justify-content: left;
+	column-gap: 2rem;
+	align-items: center;
+	padding: 10px 20px;
+	width: 100%;
+	max-width: 450px;
+	background: #f9efdf;
+	border-radius: 10px;
+	box-shadow: 0 2px 3px 2px #644b37;
+	gap: 1rem;
+	overflow: hidden;
+}
+
+.saito-identicon {
+	width: 48px;
+	margin: 1px 4px;
+	border-radius: 5px;
+	border: 1px solid #888;
+}
+
+
+.saito-address.treated {
+    color: unset;
+}
+
+#opponent_id {
+	font-family: 'Courier New', Courier, monospace;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	flex-grow: 1;
+}
+
+.last_move {
+	padding: 0.5rem;
+	cursor: pointer;
+	justify-self: center;
+	align-self: center;
+	white-space: nowrap;
+}
+
+.last_move:hover {
+	background-color: #b58863;
+}
+
+.tool-cont i {
+	color: sandybrown;
+	font-size: 32px;
+	cursor: pointer;
+	transition: all 0.3s ease-in-out;
+	flex-grow: 1;
+}
+
+.tool-cont i:hover {
+	color: var(--saito-color-primary);
+}
+
+#controls{
+	font-size: 1.8rem;
+}
+
+.status{
+	margin-top: 0.5rem;
+}
+
+.turn-shape {
+	box-sizing: border-box;
+	width: 35px;
+	height: 35px;
+	border-radius: 25px;
+	border: 2px solid;
+	grid-row: span 2;
+}
+
+.turn-shape.white {
+	background-color: #fff;
+}
+
+.turn-shape.black {
+	background-color: #111;
+}
+
+.promotion-choices img.captured {
+	width: 50px;
+	height: 50px;
+	border: 2px solid #999;
+	border-radius: 10px;
+	padding: 2px;
+	background-color: #ccc;
+	cursor: pointer;
+}
+
+.promotion-choices img:hover {
+	background-color: #222;
+}
+
+.popup-confirm-menu {
+	padding: 16px;
+	font-size: 18px;
+	color: #efefef;
+	background-color: #000a;
+}
+
+.popup-confirm-menu .action {
+	color: #101010;
+	display: flex;
+	flex-direction: row;
+	padding: 0;
+	justify-content: center;
+	gap: 1rem;
+	align-items: center;
+}
+
+
+.popup-confirm-menu .popup-prompt, .popup-confirm-menu .confirm_check {
+	background-color: unset;
+	box-shadow: none;
+  }
+
+.popup-confirm-menu div {
+	margin: 7px 0;
+	padding: 7px 5px;
+}
+
+.popup-confirm-menu .action div:nth-child(2) {
+	width: 70px;
+}
+
+.popup-confirm-menu .action:hover {
+	background-color: #fffff8;
+}
+
+.promotion-choices.popup-confirm-menu {
+	flex-direction: row;
+	flex-wrap: wrap;
+	width: 140px;
+	justify-content: space-evenly;
+}
+
+.popup-confirm-menu div.action.piece {
+	width: fit-content;
+}
+
+img.captured {
+	width: 25px;
+	height: 25px;
+}
+
+.hidden {
+	visibility: hidden;
+}
+
+/* The letters numbers go in a 30px wide border, default 16px size
+*/
+.alpha-d2270 {
+	bottom: -24px;
+	right: 50%;
+	transform: translateX(50%);
+}
+
+.numeric-fc462 {
+	top: 50%;
+	left: -20px;
+	transform: translateY(-50%);
+}
+
+@media only screen and (max-width: 900px) and (orientation: portrait) {
+	.main {
+		grid-template-rows: min(60vh, 90vw, 900px) 150px;
+		grid-template-columns: min(60vh, 90vw, 900px);
+		row-gap: 20px;
+	}
+
+	.board-b72b1 {
+		border-width: 25px;
+	}
+
+	.alpha-d2270 {
+		bottom: -20px;
+		font-size: 14px;
+	}
+
+	.numeric-fc462 {
+		left: -16px;
+		font-size: 14px;
+	}
+
+	.opponents {
+		flex-direction: row;
+		height: unset;
+		width: calc(100% - 50px);
+	}
+
+	.player-box {
+		max-width: 45%;
+		width: 45%;
+	}
+
+	.turn-shape {
+		margin: 0px;
+	}
+}
+
+@media only screen and (max-width: 525px) {
+	.main {
+		padding: 40px 0px;
+		grid-template-columns: 100vw;
+	}
+
+	.alpha-d2270 {
+		display: none;
+		bottom: -15px;
+		font-size: 12px;
+	}
+
+	.numeric-fc462 {
+		display: none;
+		left: -12px;
+		font-size: 12px;
+	}
+
+	.board-b72b1 {
+		border-width: 6px !important;
+	}
+
+	img.captured {
+		width: 6vw;
+		height: 6vw;
+	}
+}
+
+@media only screen and (max-height: 525px) and (orientation: landscape) {
+	.main {
+		padding: 0 25px;
+		grid-template-columns: 150px min(86vh, 60vw, 500px);
+		grid-template-rows: max-content;
+	}
+
+	.opponents {
+		justify-content: flex-end;
+		height: calc(100% - 32px);
+		row-gap: 10px;
+	}
+
+	#board {
+		order: 2;
+	}
+
+	.board-b72b1 {
+		border-width: 16px;
+	}
+
+	.alpha-d2270 {
+		bottom: -15px;
+		font-size: 12px;
+	}
+
+	.numeric-fc462 {
+		left: -12px;
+		font-size: 12px;
+	}
+}

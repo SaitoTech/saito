@@ -1,0 +1,271 @@
+.game-crypto-transfer-manager-container {
+  max-width: 95vw;
+  align-items: center;
+  color: white;
+  background-color:rgba(0,0,0,0.9);
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  width: auto;
+  padding: 3rem;
+  min-width: 55rem;
+}
+
+.saito-overlay:has(.game-crypto-transfer-manager-container) {
+  background: none;
+}
+
+.game-crypto-transfer-manager-container .auth_title {
+  margin: 0rem;
+}
+
+.ignore {
+  font-size: 2rem;
+}
+
+input[type="checkbox"].ignore_checkbox {
+  border: 1px solid white;
+  vertical-align: bottom;
+  position: relative;
+}
+
+.game-crypto-transfer-manager-container .stake-input-container{
+  position: relative;
+  margin-bottom: 2.5rem;
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+}
+
+.game-crypto-transfer-manager-container .stake-input-container.wallet-balance {
+  margin-bottom: 1.5rem;
+}
+
+.game-crypto-transfer-manager-container .stake-input-container.hidden{
+  display: none;
+}
+
+.stake-input-error {
+  position: absolute;
+  display: none;
+  color: rgb(255, 10, 5);
+  font-size: 1.6rem;
+  top: 105%;
+  left: 1rem;
+  font-weight: bolder;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+
+.game-crypto-transfer-manager-container .stake {
+  background: none;
+  border: none;
+  color: var(--color-white);
+  border-radius: 0;
+  border-bottom: 1px solid var(--color-white);
+  text-align: center;
+  padding: 1rem;
+  font-size: 4rem;
+  display: inline-block;
+  width: 80%;
+  max-width: 25rem;
+}
+
+.stake-input-container .crypto_msg {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-style: italic;
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  right: 0;
+  white-space: nowrap;
+}
+
+
+.stake-input-container .crypto-ticker {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
+.auth_title {
+  font-size:1.7em;
+}
+
+.game-crypto-transfer-manager-container .description p {
+  margin-top: 2rem;
+}
+.game-crypto-transfer-manager-container .description {
+    width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    line-height: 2.8rem;
+}
+
+.crypto_transfer_btn.secondary {
+  background: none;
+  color: var(--saito-white);
+  border: 1px solid var(--border-color-general-dividers); /* testing */
+}
+
+#cryptoManagerFeedback {
+  display: none;
+}
+
+.crypto-stake-offer-btn-container {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  justify-content: space-evenly;
+}
+
+.crypto_amount_btn {
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0rem;
+    width: auto;
+    line-height: 6rem;
+    margin-top: 1rem;
+}
+
+.commentary {
+  font-size: 1.6rem;
+  line-height: 2.5rem;
+  cursor: pointer;
+}
+
+.crypto_transfer_btn.hidden{
+  display: none;
+}
+
+.crypto-stake-confirm-container {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  padding: 0rem;
+  gap: 1rem;
+  width: fit-content;
+  min-width: 35rem; 
+}
+
+.crypto-stake-confirm-container input {
+  background: none;
+}
+
+.crypto_msg {
+  font-size: 1.6rem;
+}
+
+.select_max, .select_min, .select_match {
+  cursor: pointer;
+}
+
+.amount {
+  font-size: 2.4em;
+  margin: auto;
+}
+.from_address {
+  margin-bottom: 20px;
+}
+.send_to {
+  font-size: 1.4em;
+}
+.from_address,
+.to_address {
+  font-size: 1.6em;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.game-crypto-transfer-manager-container .spinner {
+  max-width: 10rem;
+  margin-left: auto;
+  margin-right: auto;
+  width: 10rem;
+}
+
+
+.game-crypto-transfer-manager-container .game-crypto-icon {
+  font-size: 8rem;
+  display: none;
+}
+
+.crypto-transfer-countdown {
+  margin-left: auto;
+}
+
+.crypto-transfer-countdown span {
+  font-family: monospace;
+}
+
+.counterparty-details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.counterparty-details .saito-user {
+  width: unset;
+  align-items: self-end;
+
+}
+
+.counterparty-details .saito-user > .saito-address {
+  color: white;
+  font-size: 1.2em;
+}
+
+.counterparty-details .saito-identicon-box {
+  width: 5rem;
+  height: 5rem;
+}
+
+.counterparty-details .saito-userline {
+  text-transform: unset;
+}
+
+.history-to-publickey {
+  text-align: left;
+  line-height: 2.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  width: 80%;
+}
+
+.history-to-address-container {
+  display: flex;
+  flex-direction: row;
+  width: 80%;
+  justify-content: flex-end;
+}
+
+.history-to-address-container .history-to-address {
+  line-height: 2.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+  width: 100%;
+}
+
+.history-copy-address {
+  line-height: 2.2rem;
+  cursor: pointer;
+}
+

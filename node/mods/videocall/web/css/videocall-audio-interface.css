@@ -1,0 +1,98 @@
+.small-audio-chatbox {
+	display: flex;
+	justify-content: flex-start;
+	align-items: center;
+	position: absolute;
+	z-index: 200;
+	bottom: 0;
+	border: 1px solid var(--saito-border-color);
+	cursor: grab;
+	background: var(--saito-black);
+}
+
+.audio-box {
+	width: 3.5rem;
+	height: 3.5rem;
+	position: relative;
+}
+
+.audio-box.muted {
+	filter: grayscale(100%);
+}
+
+.audio-box i {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	font-size: larger;
+	color: var(--saito-black);
+}
+
+.small-audio-chatbox .stun-identicon-list img {
+	height: 100%;
+	width: 100%;
+}
+
+.paused-timer {
+	visibility: hidden;
+}
+
+.small-audio-chatbox .control-panel .timer {
+	min-width: 14rem;
+	height: 7rem;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-around;
+	align-items: center;
+}
+
+.small-audio-chatbox .control-panel {
+	gap: 1.5rem;
+}
+
+.audio-box.speaking {
+	border-color: var(--saito-secondary);
+	animation: speaker-pulse 0.1s infinite;
+}
+
+@keyframes speaker-pulse {
+	0%,
+	100% {
+		box-shadow: 0 0 20px 10px var(--saito-secondary);
+		border-color: var(--saito-secondary);
+	}
+	50% {
+		box-shadow: 0 0 20px 10px var(--saito-primary);
+		border-color: var(--saito-primary);
+	}
+}
+
+@media screen and (max-width: 900px) {
+	.small-audio-chatbox .control-panel {
+		padding-bottom: unset;
+		padding: 1.5rem;
+	}
+
+	.small-audio-chatbox .control-panel .control-list {
+		margin-bottom: unset;
+		gap: unset;
+		width: 100%;
+		justify-content: space-evenly;
+	}
+}
+
+@media screen and (max-width: 600px) {
+	.small-audio-chatbox .control-panel {
+		width: 100vw;
+	}
+
+	.small-audio-chatbox .control-panel .timer {
+		min-width: unset;
+	}
+
+	.small-audio-chatbox .control-panel .control-list {
+		gap: 1rem;
+		justify-content: flex-end;
+	}
+}

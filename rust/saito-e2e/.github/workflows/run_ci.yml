@@ -1,0 +1,93 @@
+name: Spin up Saito Servers and Run CI Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  setup_and_run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the external repository
+        uses: actions/checkout@v2
+        with:
+          repository: 'SaitoTech/saito-lite-rust'
+          path: 'source_repo'
+
+      - name: Check out the current repository
+        uses: actions/checkout@v2
+        with:
+          path: 'tests'
+
+      - name: Create directories for instances
+        run: |
+          mkdir main_node
+          mkdir service_node
+
+      - name: Copy external repository into instances
+        run: |
+          cp -r source_repo/* main_node/
+          cp -r source_repo/* service_node/
+
+      - name: Install dependencies in main node
+        run: npm install
+        working-directory: ./main_node
+
+      - name: Modify config for main node
+        run: |
+          echo '{"server":{"host":"127.0.0.1","port":12101,"protocol":"http","endpoint":{"host":"127.0.0.1","port":12101,"protocol":"http"},"verification_threads":4,"channel_size":10000,"stat_timer_in_ms":5000,"reconnection_wait_time":10000,"thread_sleep_time_in_ms":10,"block_fetch_batch_size":10},"peers":[],"spv_mode":false,"browser_mode":false,"blockchain":{"last_block_hash":"0000000000000000000000000000000000000000000000000000000000000000","last_block_id":0,"last_timestamp":0,"genesis_block_id":0,"genesis_timestamp":0,"lowest_acceptable_timestamp":0,"lowest_acceptable_block_hash":"0000000000000000000000000000000000000000000000000000000000000000","lowest_acceptable_block_id":0,"fork_id":"0000000000000000000000000000000000000000000000000000000000000000"},"wallet":{}}' > main_node/config/options.conf
+
+      - name: Run server in main node
+        run: npm run dev-server &
+        working-directory: ./main_node
+
+      - name: Health check for main node
+        run: |
+          echo "Waiting for main node to be ready..."
+          until curl --output /dev/null --silent --head --fail http://localhost:12101/redsquare; do
+            printf '.'
+            sleep 5
+          done
+          echo "main node is up and running!"
+
+      - name: Install dependencies in service node
+        run: npm install
+        working-directory: ./service_node
+
+      - name: Modify config for service node
+        run: |
+          echo '{"server":{"host":"127.0.0.1","port":12103,"protocol":"http","endpoint":{"host":"127.0.0.1","port":12103,"protocol":"http"},"verification_threads":4,"channel_size":10000,"stat_timer_in_ms":5000,"reconnection_wait_time":10000,"thread_sleep_time_in_ms":10,"block_fetch_batch_size":10},"peers":[{"host":"localhost","port":12101,"protocol":"http","synctype":"full"}],"spv_mode":false,"browser_mode":false,"blockchain":{"last_block_hash":"0000000000000000000000000000000000000000000000000000000000000000","last_block_id":0,"last_timestamp":0,"genesis_block_id":0,"genesis_timestamp":0,"lowest_acceptable_timestamp":0,"lowest_acceptable_block_hash":"0000000000000000000000000000000000000000000000000000000000000000","lowest_acceptable_block_id":0,"fork_id":"0000000000000000000000000000000000000000000000000000000000000000"},"wallet":{}}' > service_node/config/options.conf
+
+      - name: Run server in service node
+        run: npm run dev-server &
+        working-directory: ./service_node
+
+      - name: Health check for service node
+        run: |
+          echo "Waiting for main node to be ready..."
+          until curl --output /dev/null --silent --head --fail http://localhost:12103/redsquare; do
+            printf '.'
+            sleep 5
+          done
+          echo "main node is up and running!"
+
+      - name: Install dependencies for tests
+        run: npm install
+        working-directory: ./tests
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+        working-directory: ./tests
+
+      - name: Run Playwright tests
+        run: npx playwright test
+        working-directory: ./tests
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: tests/tests/playwright-report/
+          retention-days: 30

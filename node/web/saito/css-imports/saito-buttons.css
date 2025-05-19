@@ -1,0 +1,101 @@
+/* ----------------------------------------------------------------
+buttons
+-----------------------------------------------------------------*/
+
+button,
+.saito-button-primary { /* controls main post buttons */
+  background: var(--background-color-button-primary);
+  transition: 0.5s;
+  background-size: 400% auto;
+  padding: 1rem 1.5rem;
+  text-align: center;
+  letter-spacing: 1px;
+  min-width: 18rem;
+  font-size: 1.8rem;
+  color: var(--font-color-button-primary);
+  font-weight: 500;
+  border-radius: var(--border-radius-button-primary);
+  cursor: pointer;
+  border: var(--border-thickness-button-primary) solid var(--border-color-button-primary);
+  background-position: 1% 1%;
+  box-shadow: var(--shadow-primary-button);
+}
+
+button:focus {
+  outline: none;
+}
+
+.saito-button-secondary { /* found in the settings, top wallet control buttons --AND also for loading new posts  */
+  /*padding: 1rem 1.5rem;
+  text-align: center;*/
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 1px;
+  font-size: 1.8rem;
+  font-weight: 500;
+  min-width: 18rem;
+  border-radius: var(--border-radius-button-wallet-control);
+  cursor: pointer;
+  border: var(--border-thickness-button-wallet-control) solid var(--border-color-button-wallet-control);
+  color: var(--font-color-button-wallet-control);
+  background: var(--background-color-button-wallet-control);
+}
+
+button:hover, .saito-button-primary:hover{
+  background-position: 99% 99%; /* change the direction of the change here */
+  color: var(--font-color-button-hover-primary);
+  border: var(--border-thickness-button-hover-primary) solid var(--border-color-button-hover-primary);
+  text-decoration: none;
+}
+
+.saito-button-primary.disabled, .saito-button-primary[disabled] {
+  background: var(---background-color-main); 
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  cursor: unset;
+  pointer-events: none;
+}
+
+.saito-button-secondary:hover { /* found in the settings, top wallet control buttons --AND also for loading new posts  */
+  background: var(--background-color-button-hover-wallet-control); 
+  color: var(--font-color-button-hover-wallet-control);
+}
+
+button.small,
+.saito-button-primary.small,
+.saito-button-secondary.small,
+.saito-button-gradient.small {
+  padding: 0.75rem 0.7rem;
+  font-size: 1.4rem;
+  min-width: 4rem;
+}
+button.fat, saito-button-primary.fat, .saito-button-secondary.fat, saito-button-gradient.fat {
+    height: 7rem;
+    font-size: 2rem;
+    padding: 2.4rem !important;
+    min-width: 30rem;
+    text-align: center;
+}
+
+
+.saito-button-row {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 1rem;
+  margin: 0 1rem;
+}
+
+@media (max-width: 600px) { 
+
+  .saito-button-secondary {
+    min-width: 10rem;
+  }
+
+  button, .saito-button-primary { /* controls main post buttons */
+    min-width: 12rem;
+  }
+
+}
