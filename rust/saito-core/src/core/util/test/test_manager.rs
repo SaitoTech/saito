@@ -34,7 +34,7 @@ pub mod test {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use ahash::AHashMap;
-    use log::{debug, info};
+    use log::{debug, error, info};
     use rand::rngs::OsRng;
     use secp256k1::Secp256k1;
     use tokio::sync::mpsc::{Receiver, Sender};
@@ -163,6 +163,8 @@ pub mod test {
             };
             let target_filename = format!("issuance-{}.txt", counter);
             let target_path = temp_dir.join(target_filename);
+            let cwd = std::env::current_dir().unwrap();
+            error!("cwd : {:?}  copying file from {:?} to {:?}", cwd, source_path, target_path);
             fs::copy(source_path, &target_path).unwrap();
             // Update the counter in the file for the next instance
             let mut file = fs::File::create(&issuance_counter_path).unwrap();
