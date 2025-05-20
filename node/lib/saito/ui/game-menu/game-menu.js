@@ -47,15 +47,6 @@ class GameMenu {
 			// *************************************************
 			this.addMenuOption('game-share', 'Share');
 
-			// Swap these out when ready to promote game recording and game casting
-
-			/*this.addSubMenuOption('game-game', {
-				text: 'Share',
-				id: 'game-share',
-				class: 'game-share',
-			});*/
-			// *************************************************
-
 			for (const menMod of this.app.modules.respondTo('game-menu', this.game_mod)) {
 				let menu = menMod.respondTo('game-menu', this.game_mod);
 
@@ -453,11 +444,24 @@ class GameMenu {
 	replaceMenuByID(options) {
 		for (let i = 0; i < this.options.length; i++) {
 			if (this.options[i].id === options.id) {
+
 				this.options[i] = options;
-				return;
+
+				if (options?.submenus){
+					// Delete existing sub_options first
+					this.sub_options[i] = [];
+
+					// Re-add!
+					for (let s of options.submenus){
+						this.addSubMenuOption(options.id, s);
+					}
+				}
+				break;
 			}
 		}
+		this.render();
 	}
+
 
 	/**
 	 * Hide the menu from the DOM
