@@ -164,7 +164,10 @@ pub mod test {
             let target_filename = format!("issuance-{}.txt", counter);
             let target_path = temp_dir.join(target_filename);
             let cwd = std::env::current_dir().unwrap();
-            error!("cwd : {:?}  copying file from {:?} to {:?}", cwd, source_path, target_path);
+            error!(
+                "cwd : {:?}  copying file from {:?} to {:?}",
+                cwd, source_path, target_path
+            );
             fs::copy(source_path, &target_path).unwrap();
             // Update the counter in the file for the next instance
             let mut file = fs::File::create(&issuance_counter_path).unwrap();
