@@ -77,7 +77,7 @@ class GameQueue {
 		this.initializeDice(); // Make sure we have dice before initializing the game
 
 		// crypto support
-		if (this.game.options?.crypto) {
+		if (this.game.options?.crypto && !this.game.crypto) {
 			if (typeof this.game.options.stake == 'object') {
 				this.game.stake = this.game.options.stake;
 			} else {
