@@ -1382,7 +1382,7 @@ class GameTemplate extends ModTemplate {
 			let auths = 0;
 			let { ticker, stake, sigs, ts } = txmsg.data;
 
-			console.log(txmsg.data);
+			console.log("STAKE: ", txmsg.data);
 
 			try {
 				let stake_val = typeof stake === "object" ? stake?.min : stake;
@@ -1413,7 +1413,10 @@ class GameTemplate extends ModTemplate {
 							game_mod: this,
 							ticker,
 							stake,
-							accept_callback: () => {
+							accept_callback: (input = null) => {
+								if (input != null){
+									stake[this.publicKey] = input;
+								}
 								this.proposeGameStake(ticker, stake, sigs, ts);
 							},
 							reject_callback: () => {

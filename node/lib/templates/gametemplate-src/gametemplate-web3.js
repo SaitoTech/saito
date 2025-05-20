@@ -11,13 +11,24 @@ class GameWeb3 {
 	//
 	async initializeGameStake(ticker, stake) {
 
-		this.updateLog(`Crypto Activated: ${stake} ${ticker}`);
 		this.game.options.crypto = ticker;
 		this.game.options.stake = stake;
 		this.game.crypto = ticker;
 		this.game.stake = stake;
-		this.saveGame(this.game.id);
+
+		console.log(stake);
+		// Need to parse if asymmetrical
+		if (typeof stake === "object") {
+			console.log("HELLO!!!!");
+			let obj = Object.assign({}, stake);
+			delete obj.min;
+			stake = Object.values(obj).join(" / ");
+		}
+
+		this.updateLog(`Crypto Activated: ${stake} ${ticker}`);
 		siteMessage(`Crypto Activated: ${stake} ${ticker}`, 2000);
+
+		this.saveGame(this.game.id);
 
 		if (this.gameBrowserActive()) {
 			console.log('Get Logo for ' + ticker);
