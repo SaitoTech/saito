@@ -198,14 +198,13 @@ jobs:
       #     ref: 'staging'
       - name: Checkout repository
         uses: actions/checkout@v3
-        
+
       - name: update package.json
         run: npm update saito-js
         working-directory: 'node'
 
       - name: Copy modules.config
-        run: cp config/modules.default.js config/modules.config.js
-        working-directory: 'node'
+        run: cp node/config/modules.default.js node/config/modules.config.js
 
       - name: npm install
         run: npm install
