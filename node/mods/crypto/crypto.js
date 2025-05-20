@@ -108,7 +108,7 @@ class Crypto extends ModTemplate {
 			if (!gm.game?.crypto) {
 				for (let ticker in ac) {
 					let my_balance = parseFloat(gm.game.cryptos[gm.game.player][ticker].balance);
-					//console.log(`My ${ticker} balance: `, my_balance, ac[ticker]);
+					console.log(`My ${ticker} balance: `, my_balance, ac[ticker]);
 					if (my_balance > 0) {
 						menu.submenus.push({
 							parent: 'game-crypto',
@@ -118,14 +118,24 @@ class Crypto extends ModTemplate {
 							callback: async (app, game_mod) => {
 								this.attachStyleSheets();
 
-								//this.max_balance = Math.max(Number(ac[ticker]), my_balance);
-								this.max_balance = ac[ticker]; //this.max_balance.toFixed(8);
-								this.max_match = -1; //ac[ticker];
+								this.max_balance = Math.max(Number(ac[ticker]), my_balance);
+								this.max_balance = this.max_balance.toFixed(8);
+								this.max_match = ac[ticker];
 
 								this.overlay.ticker = ticker;
 
 								this.overlay.render((ticker, amount, match_amount = null) => {
 									console.log('SELECTED CRYPTO: ', ticker, amount, match_amount);
+									if (match_amount){
+										//
+										// asymmetrical staking -- format like pre-game options
+										//
+										let stake = {};
+										stake.min = match_amount;
+										stake[this.publicKey] = amount;
+										amount = stake;	
+									}
+
 									game_mod.menu.hideSubMenus();
 									game_mod.proposeGameStake(ticker, amount);
 									app.browser.logMatomoEvent('StakeCrypto', 'viaGameMenu', ticker);
