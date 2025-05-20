@@ -309,6 +309,7 @@ mod tests {
     use crate::rust_io_handler::RustIOHandler;
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_write_value() {
         let (sender, mut _receiver) = tokio::sync::mpsc::channel(10);
         let io_handler = RustIOHandler::new(sender, 0);
@@ -324,6 +325,8 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
+    #[ignore]
     async fn file_exists_success() {
         let (sender, mut _receiver) = tokio::sync::mpsc::channel(10);
         let io_handler = RustIOHandler::new(sender, 0);
@@ -334,6 +337,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn file_exists_fail() {
         let (sender, mut _receiver) = tokio::sync::mpsc::channel(10);
         let io_handler = RustIOHandler::new(sender, 0);

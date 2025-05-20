@@ -34,7 +34,7 @@ pub mod test {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use ahash::AHashMap;
-    use log::{debug, info};
+    use log::{debug, error, info};
     use rand::rngs::OsRng;
     use secp256k1::Secp256k1;
     use tokio::sync::mpsc::{Receiver, Sender};
@@ -149,28 +149,40 @@ pub mod test {
     impl TestManager {
         pub fn get_test_issuance_file() -> Result<&'static str, std::io::Error> {
             let temp_dir = Path::new("./temp_test_directory").to_path_buf();
-            fs::create_dir_all(&temp_dir)?;
+            fs::create_dir_all(&temp_dir).unwrap();
             let source_path = Path::new(TEST_ISSUANCE_FILEPATH);
             // Read the existing counter from the file or initialize it to 1 if the file doesn't exist
             let issuance_counter_path = temp_dir.join("issuance_counter.txt");
             let counter = if issuance_counter_path.exists() {
-                let mut file = BufReader::new(fs::File::open(&issuance_counter_path)?);
+                let mut file = BufReader::new(fs::File::open(&issuance_counter_path).unwrap());
                 let mut buffer = String::new();
-                file.read_to_string(&mut buffer)?;
+                file.read_to_string(&mut buffer).unwrap();
                 buffer.trim().parse::<usize>().unwrap_or(1)
             } else {
                 1
             };
             let target_filename = format!("issuance-{}.txt", counter);
             let target_path = temp_dir.join(target_filename);
-            fs::copy(source_path, &target_path)?;
+            let cwd = std::env::current_dir().unwrap();
+            // error!(
+            //     "cwd : {:?} copying file from {:?} to {:?}",
+            //     cwd, source_path, target_path
+            // );
+            // if !target_path.exists() {
+            //     error!("target_path does not exist.");
+            // }
+            // if !source_path.exists() {
+            //     error!("source_path does not exist.");
+            // }
+            fs::copy(source_path, &target_path).unwrap();
             // Update the counter in the file for the next instance
-            let mut file = fs::File::create(&issuance_counter_path)?;
-            writeln!(file, "{}", counter + 1)?;
+            let mut file = fs::File::create(&issuance_counter_path).unwrap();
+            writeln!(file, "{}", counter + 1).unwrap();
 
             let target_path_str = target_path
                 .to_str()
-                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Invalid path"))?;
+                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Invalid path"))
+                .unwrap();
 
             let static_str: &'static str = Box::leak(target_path_str.to_string().into_boxed_str());
 

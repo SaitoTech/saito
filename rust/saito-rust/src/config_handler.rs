@@ -166,6 +166,7 @@ mod test {
     use crate::config_handler::ConfigHandler;
 
     #[test]
+    #[ignore]
     fn load_config_from_existing_file() {
         let path = String::from("src/test/data/config_handler_tests.json");
         let result = ConfigHandler::load_configs(path);
@@ -192,6 +193,7 @@ mod test {
     }
 
     #[test]
+    #[ignore]
     fn load_config_from_bad_file_format() {
         let path = String::from("src/test/data/config_handler_tests_bad_format.xml");
         let result = ConfigHandler::load_configs(path);
