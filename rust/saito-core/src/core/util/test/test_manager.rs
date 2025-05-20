@@ -165,9 +165,15 @@ pub mod test {
             let target_path = temp_dir.join(target_filename);
             let cwd = std::env::current_dir().unwrap();
             error!(
-                "cwd : {:?}  copying file from {:?} to {:?}",
+                "cwd : {:?} copying file from {:?} to {:?}",
                 cwd, source_path, target_path
             );
+            if !target_path.exists() {
+                error!("target_path does not exist.");
+            }
+            if !source_path.exists() {
+                error!("source_path does not exist.");
+            }
             fs::copy(source_path, &target_path).unwrap();
             // Update the counter in the file for the next instance
             let mut file = fs::File::create(&issuance_counter_path).unwrap();
