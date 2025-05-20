@@ -122,25 +122,19 @@ export default class Wallet extends SaitoWallet {
 
   public async createSendBoundTransaction(
     amt,
-    slip1UtxoKey,
-    slip2UtxoKey,
-    slip3UtxoKey,
+    nft_id,
     data,
     receipient_publicKey,
   ){
       console.log("values going to saito.ts:");
       console.log(amt);
-      console.log(slip1UtxoKey);
-      console.log(slip2UtxoKey);
-      console.log(slip3UtxoKey);
+      console.log(nft_id);
       console.log(data);
       console.log(receipient_publicKey);
 
       return S.getInstance().createSendBoundTransaction(
         amt,
-        slip1UtxoKey,
-        slip2UtxoKey,
-        slip3UtxoKey,
+        nft_id,
         data,
         receipient_publicKey,
       );
@@ -1217,20 +1211,5 @@ export default class Wallet extends SaitoWallet {
 
   public async produceBlockWithoutGt() {
     return S.getInstance().produceBlockWithoutGt();
-  }
-
-  /**
-  * Update wallet’s nft list
-  * @param {Object[]} nft_list  an array of NFT objects
-  */
-  async saveNftList(nft_list) {
-    if (!Array.isArray(nft_list)) {
-      throw new Error("saveNftList expects an array of NFTs");
-    }
-
-    this.app.options.wallet.nft = nft_list;
-
-    await this.saveWallet();
-
   }
 }
