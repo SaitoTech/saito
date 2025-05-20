@@ -375,27 +375,27 @@ export default class Saito {
         return tx;
     }
 
-
     public async createSendBoundTransaction<T extends Transaction>(
-      amt: bigint,
-      nft_id: string,
-      data: string = "",
-      recipient_public_key: string
+        amt: bigint,
+        slip1UtxoKey: string,
+        slip2UtxoKey: string,
+        slip3UtxoKey: string,
+        data: string = "",
+        recipientPublicKey: string
     ): Promise<T> {
-      
-      let wasmTx = await Saito.getLibInstance().create_send_bound_transaction(
-        amt,
-        nft_id,
-        data,
-        recipient_public_key
-      );
+        const wasmTx = await Saito.getLibInstance().create_send_bound_transaction(
+          amt,
+          slip1UtxoKey,
+          slip2UtxoKey,
+          slip3UtxoKey,
+          data,
+          recipientPublicKey
+        );
+        console.log("WASM NFT transfer transaction:", wasmTx);
 
-      console.log("WASM NFT transfer transaction:", wasmTx);
-
-      let tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-      tx.timestamp = new Date().getTime();
-
-      return tx;
+        const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
+        tx.timestamp = Date.now();
+        return tx;
     }
 
 
@@ -554,9 +554,14 @@ export default class Saito {
     }
 
     public async getNftList(): Promise<string> {
-        const nftList = (await Saito.getLibInstance().get_nft_list()).map((nft: any) => new Nft(nft));
-        return JSON.stringify(nftList.map((nft: any) => nft.toJSON()));
+        const raw = await Saito.getLibInstance().get_nft_list();
+
+        const arr = Array.from(raw) as any[];
+        const json = JSON.stringify(arr.map(w => new Nft(w).toJSON()));
+
+        return json;
     }
+
 
     public async updateBalanceFrom(snapshot: BalanceSnapshot) {
         await Saito.getLibInstance().update_from_balance_snapshot(snapshot.instance);

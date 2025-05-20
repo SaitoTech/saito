@@ -1,13 +1,12 @@
-use js_sys::{Array, JsString, Uint8Array};
+use crate::wasm_slip::WasmSlip;
+use js_sys::Uint8Array;
+use saito_core::core::consensus::wallet::DetailedNFT;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsValue;
-
-use saito_core::core::consensus::wallet::NFT;
 
 #[wasm_bindgen]
 #[derive(Clone, Debug)]
 pub struct WasmNFT {
-    pub(crate) nft: NFT,
+    pub(crate) nft: DetailedNFT,
 }
 
 #[wasm_bindgen]
@@ -15,48 +14,67 @@ impl WasmNFT {
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmNFT {
         WasmNFT {
-            nft: NFT::default(),
+            nft: DetailedNFT::default(),
         }
     }
 
-    #[wasm_bindgen(getter = slip1)]
-    pub fn get_slip1(&self) -> Uint8Array {
-        let buffer = Uint8Array::new_with_length(self.nft.slip1.len() as u32);
-        buffer.copy_from(self.nft.slip1.as_slice());
-        buffer
+    #[wasm_bindgen(getter)]
+    pub fn id(&self) -> Uint8Array {
+        Uint8Array::from(self.nft.id.as_slice())
     }
 
-    #[wasm_bindgen(getter = slip2)]
-    pub fn get_slip2(&self) -> Uint8Array {
-        let buffer = Uint8Array::new_with_length(self.nft.slip2.len() as u32);
-        buffer.copy_from(self.nft.slip2.as_slice());
-        buffer
-    }
-
-    #[wasm_bindgen(getter = slip3)]
-    pub fn get_slip3(&self) -> Uint8Array {
-        let buffer = Uint8Array::new_with_length(self.nft.slip3.len() as u32);
-        buffer.copy_from(self.nft.slip3.as_slice());
-        buffer
-    }
-
-    #[wasm_bindgen(getter = id)]
-    pub fn get_id(&self) -> Uint8Array {
-        let buffer = Uint8Array::new_with_length(self.nft.id.len() as u32);
-        buffer.copy_from(self.nft.id.as_slice());
-        buffer
+    #[wasm_bindgen(setter)]
+    pub fn set_id(&mut self, arr: &Uint8Array) {
+        let mut v = vec![0u8; arr.length() as usize];
+        arr.copy_to(&mut v);
+        self.nft.id = v;
     }
 
     #[wasm_bindgen(getter = tx_sig)]
-    pub fn get_tx_sig(&self) -> Uint8Array {
-        let buffer = Uint8Array::new_with_length(self.nft.tx_sig.len() as u32);
-        buffer.copy_from(self.nft.tx_sig.as_slice());
-        buffer
+    pub fn tx_sig(&self) -> Uint8Array {
+        Uint8Array::from(self.nft.tx_sig.as_ref())
+    }
+
+    #[wasm_bindgen(setter = tx_sig)]
+    pub fn set_tx_sig(&mut self, arr: &Uint8Array) {
+        let mut a = [0u8; 64];
+        arr.copy_to(&mut a);
+        self.nft.tx_sig = a;
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn slip1(&self) -> WasmSlip {
+        WasmSlip::new_from_slip(self.nft.slip1.clone())
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_slip1(&mut self, ws: &WasmSlip) {
+        self.nft.slip1 = ws.slip.clone();
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn slip2(&self) -> WasmSlip {
+        WasmSlip::new_from_slip(self.nft.slip2.clone())
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_slip2(&mut self, ws: &WasmSlip) {
+        self.nft.slip2 = ws.slip.clone();
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn slip3(&self) -> WasmSlip {
+        WasmSlip::new_from_slip(self.nft.slip3.clone())
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_slip3(&mut self, ws: &WasmSlip) {
+        self.nft.slip3 = ws.slip.clone();
     }
 }
 
 impl WasmNFT {
-    pub fn from_nft(nft: NFT) -> WasmNFT {
+    pub fn new_from_nft(nft: DetailedNFT) -> WasmNFT {
         WasmNFT { nft }
     }
 }
