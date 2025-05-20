@@ -13,49 +13,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout SLR
-        uses: actions/checkout@v2
-        with:
-          repository: 'SaitoTech/saito-lite-rust'
-          path: 'slr'
-          ref: 'staging'
+      # - name: Checkout SLR
+      #   uses: actions/checkout@v2
+      #   with:
+      #     repository: 'SaitoTech/saito-lite-rust'
+      #     path: 'slr'
+      #     ref: 'staging'
 
       - name: update package.json
         run: npm update saito-js
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: Copy modules.config
         run: cp config/modules.default.js config/modules.config.js
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: npm install
         run: npm install
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: ts-node install
         run: npm install -g ts-node
 
       - name: Compile SLR
         run: npm run reset
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: create ssh keys
         run: echo "$CI_SSH_PRIVATE_KEY" >> CI_KEY
-        working-directory: 'slr'
+        working-directory: 'node'
         env:
           CI_SSH_PRIVATE_KEY: ${{ secrets.CI_SSH_PRIVATE_KEY }}
 
       - name: chmod key
         run: chmod 600 ./CI_KEY
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: gen key
         run: ssh-keygen -f ./CI_KEY -y > CI_KEY.pub
-        working-directory: "slr"
+        working-directory: "node"
 
       - name: print size of key
         run: ls -l CI_KEY*
-        working-directory: 'slr'
+        working-directory: 'node'
       #
       #      - name: create directory
       #        run: mkdir data/blocks
@@ -63,16 +63,16 @@ jobs:
 
       - name: copy blocks in prod-services into data/blocks folder
         run: rsync -avPq -e "ssh -o StrictHostKeyChecking=no -i ./CI_KEY" root@prod-services.saito.io:/opt/saito/data/blocks/ data/blocks/
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: ls blocks
         run: ls -1 data/blocks/ | wc -l
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: run issuance file generation
         run: npm run generate-issuance
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: check for generated issuance file
         run: ls data/issuance.file
-        working-directory: 'slr'
+        working-directory: 'node'
