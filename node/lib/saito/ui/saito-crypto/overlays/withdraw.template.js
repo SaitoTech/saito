@@ -11,13 +11,8 @@ module.exports = (app, mod, publickey = "", address = "") => {
   <form class="withdrawal-form" id="withdrawal-form" action="/" method="POST">
 
     <div class="saito-overlay-form" id="saito-withdraw-overlay">
-
-        <div class="saito-overlay-form-header nft-title">
-           <div class="saito-overlay-form-header-title">
-              <div>
-                 Send Token
-              </div>
-           </div>
+        <div class="saito-overlay-form-header">
+          <div class="saito-overlay-form-header-title">Send Token</div>
         </div>
 
         <div id="withdraw-step-one">

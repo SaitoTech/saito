@@ -1,7 +1,7 @@
 module.exports = (app, mod) => {
 
   let html = `
-      <div class="container create-nft-container">
+      <div class="container">
 
             <div class="utxo-slips">
         <div class="instructions">
@@ -21,13 +21,7 @@ module.exports = (app, mod) => {
                             <p class="positive">Balance</p>
                         </div>
                     </div>
-                
-                <!--
-                <div class="options">
-                  <div class="data-nft-toggle">switch to json</div>
-                </div>
-                -->
-                
+        <div class="options"><div class="data-nft-toggle">switch to json</div></div>
                 </div>
                 <div class="nft-creator nft-inactive">
                   <div class="inputs">
@@ -43,7 +37,7 @@ module.exports = (app, mod) => {
                     </div>
                     <div>
                       <label for="nfts-fee">Tx Fee</label>
-                      <input type="number" id="nfts-fee" value="0">
+                      <input type="number" id="nfts-fee" value="1">
                     </div>
                     <div>
                       <label for="nfts-change">Change</label>
