@@ -39,6 +39,7 @@ mod tests {
     use crate::core::util::serialize::Serialize;
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn test_serialize_with_full_fork_id() {
         let request = BlockchainRequest {
             latest_block_id: 10,
