@@ -108,7 +108,7 @@ class Crypto extends ModTemplate {
 			if (!gm.game?.crypto) {
 				for (let ticker in ac) {
 					let my_balance = parseFloat(gm.game.cryptos[gm.game.player][ticker].balance);
-					console.log(`My ${ticker} balance: `, my_balance, ac[ticker]);
+					//console.log(`My ${ticker} balance: `, my_balance, ac[ticker]);
 					if (my_balance > 0) {
 						menu.submenus.push({
 							parent: 'game-crypto',
@@ -235,9 +235,6 @@ class Crypto extends ModTemplate {
 	calculateAvailableCryptos(crypto_array) {
 		let union = [];
 
-		console.log('*********** AC *************');
-		console.log(crypto_array);
-
 		for (let player in crypto_array) {
 			for (let c in crypto_array[player]) {
 				if (!union.includes(c)) {
@@ -246,8 +243,6 @@ class Crypto extends ModTemplate {
 			}
 		}
 
-		console.log(union);
-
 		let intersection = {};
 
 		for (let c of union) {
@@ -255,7 +250,6 @@ class Crypto extends ModTemplate {
 			for (let player in crypto_array) {
 				if (crypto_array[player][c]) {
 					let value = parseFloat(crypto_array[player][c].balance);
-					console.log(value);
 					if (min) {
 						min = Math.min(min, value);
 					} else {
@@ -272,8 +266,6 @@ class Crypto extends ModTemplate {
 				intersection[c] = min;
 			}
 		}
-
-		console.log(intersection);
 
 		return intersection;
 	}

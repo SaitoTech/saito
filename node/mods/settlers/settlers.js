@@ -532,55 +532,6 @@ class Settlers extends GameTemplate {
 		}
 	}
 
-	async initializeGameStake(crypto, stake) {
-		await super.initializeGameStake(crypto, stake);
-
-		//Reset Game
-		this.game.state = this.initializeState();
-		this.game.stats = this.initializeStats();
-		this.game.queue = [];
-
-		this.game.queue.push('init');
-
-		let numPlay = this.game.players.length;
-
-		for (let i = 1; i <= numPlay; i++) {
-			this.game.queue.push('player_build_road\t' + i + '\t1');
-			this.game.queue.push(`player_build_city\t${i}\t0`);
-		}
-		for (let i = numPlay; i >= 1; i--) {
-			this.game.queue.push('player_build_road\t' + i + '\t1');
-			this.game.queue.push(`player_build_city\t${i}\t0`);
-		}
-
-		this.game.queue.push('initial_placement');
-
-		this.game.queue.push('READY');
-		this.saveGame(this.game.id);
-
-		$('.main').html('');
-
-		this.hexgrid.render('.main');
-
-		if (this.app.browser.isMobileBrowser(navigator.userAgent)) {
-			this.hammer.render('#game-hexgrid');
-		} else {
-			this.sizer.render();
-			this.sizer.attachEvents('#game-hexgrid');
-		}
-
-		//
-		// Preliminary DOM set up, adding elements to display
-		//
-		this.generateMap();
-		this.addCitiesToGameboard();
-		this.addPortsToGameboard();
-
-		this.displayBoard();
-
-		this.initializeGameQueue(this.game.id);
-	}
-
 	initializeGame(game_id) {
 		if (this.game.state == undefined) {
 			this.game.state = this.initializeState();
