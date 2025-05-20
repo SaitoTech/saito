@@ -106,13 +106,14 @@ jobs:
 
       - name: Build documentation
         run: cargo doc --no-deps
+        working-directory: ./rust
 
       - name: Copy index.html file
         run: cp .github/workflows/doc_index.template.html rust/target/doc/index.html
 
       - name: Fix permissions
         run: |
-          chmod -c -R +rX "target/doc/" | while read line; do
+          chmod -c -R +rX "rust/target/doc/" | while read line; do
             echo "::warning title=Invalid file permissions automatically fixed::$line"
           done
         working-directory: ./rust
