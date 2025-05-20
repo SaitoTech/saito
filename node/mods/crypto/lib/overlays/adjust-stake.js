@@ -16,10 +16,15 @@ class AdjustStake {
 			this.reject_callback = obj.reject_callback;
 		}
 
-		this.my_balance = current_balance;
-
 		this.min_stake = parseFloat(obj.stake.min);
 		this.match_stake = this.min_stake;
+		this.max_stake = current_balance;
+
+		// Don't allow upping the ante
+		if (obj.game_mod?.opengame) {
+			this.max_stake = Math.min(current_balance, this.match_stake);
+		}
+
 		for (let i in obj.stake) {
 			if (parseFloat(obj.stake[i]) > this.match_stake) {
 				this.match_stake = parseFloat(obj.stake[i]);
@@ -45,9 +50,11 @@ class AdjustStake {
 
 		let match_button = document.querySelector('.select_match');
 		if (match_button) {
-			match_button.onclick = (e) => {
-				stake_input.value = this.match_stake;
-			};
+			if (!match_button.classList.contains("nomatch")){
+				match_button.onclick = (e) => {
+					stake_input.value = this.match_stake;
+				};
+			}
 		}
 
 		let min_button = document.querySelector('.select_min');
@@ -60,7 +67,7 @@ class AdjustStake {
 		let max_button = document.querySelector('.select_max');
 		if (max_button) {
 			max_button.onclick = (e) => {
-				stake_input.value = this.my_balance;
+				stake_input.value = this.max_stake;
 			};
 		}
 
@@ -123,7 +130,7 @@ class AdjustStake {
 		// Basic input
 		if (amount < 0) {
 			errorMsg = 'You need to select a non-negative value';
-		} else if (amount > this.my_balance) {
+		} else if (amount > this.max_stake) {
 			errorMsg = `You don't have that much to stake`;
 		} else if (amount < this.min_stake) {
 			errorMsg = `You need to stake at least ${this.min_stake}`;

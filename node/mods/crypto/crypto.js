@@ -26,7 +26,6 @@ class Crypto extends ModTemplate {
 		this.overlay_inadequate = new CryptoInadequate(app, this);
 		this.approve_overlay = new AcceptStake(app, this);
 		this.adjust_overlay = new AdjustStake(app, this);
-		
 	}
 
 	async initialize(app) {
@@ -36,49 +35,46 @@ class Crypto extends ModTemplate {
 		// Turn on crypto for all games that don't explicity opt out
 		//
 		let mod_list = app.modules.returnModulesRespondingTo('arcade-games');
-		for (let m of mod_list){
+		for (let m of mod_list) {
 			if (m.can_bet !== 0) {
 				m.can_bet = 1;
 			}
 		}
 
 		app.connection.on('accept-game-stake', async (sobj) => {
-			
-			console.log("accept-game-stake sobj: ", sobj);
+			console.log('accept-game-stake sobj: ', sobj);
 
 			await this.app.wallet.setPreferredCrypto(sobj.ticker);
 
 			let current_balance = Number(await this.app.wallet.returnPreferredCryptoBalance());
 
-			let network_fee = 0; 
+			let network_fee = 0;
 
-		  let crypto_mod = this.app.wallet.returnPreferredCrypto();
-	    await crypto_mod.checkWithdrawalFeeForAddress('', function(res){
-	      network_fee = Number(res);
-	    });
+			let crypto_mod = this.app.wallet.returnPreferredCrypto();
+			await crypto_mod.checkWithdrawalFeeForAddress('', function (res) {
+				network_fee = Number(res);
+			});
 
-			let needed_balance = (typeof sobj.stake == "object") ? parseFloat(sobj.stake.min) : parseFloat(sobj.stake);
-			
+			let needed_balance =
+				typeof sobj.stake == 'object' ? parseFloat(sobj.stake.min) : parseFloat(sobj.stake);
+
 			console.log(current_balance, needed_balance, network_fee);
 
 			needed_balance += network_fee;
 
-			if (needed_balance > current_balance){
+			if (typeof sobj.stake == 'object') {
+				this.adjust_overlay.render(sobj, current_balance);
+			} else {
+				this.approve_overlay.render(sobj);
+			}
 
+			if (needed_balance > current_balance) {
 				this.app.connection.emit('saito-crypto-deposit-render-request', {
 					ticker: sobj.ticker,
-					amount: (needed_balance - current_balance),
+					amount: needed_balance - current_balance
 				});
-				return;
-			}
-
-			if (typeof sobj.stake == "object"){
-				this.adjust_overlay.render(sobj, current_balance);
-			}else{
-				this.approve_overlay.render(sobj);	
 			}
 		});
-
 	}
 
 	respondTo(type = '') {
@@ -106,41 +102,49 @@ class Crypto extends ModTemplate {
 				submenus: []
 			};
 
-			for (let ticker in ac) {
-				if (!gm.game?.crypto || gm.game.crypto == ticker){
+			//
+			// Table games set game.crypto = "CHIPS" so this blocks them from dynamically adding a stake
+			//
+			if (!gm.game?.crypto) {
+				for (let ticker in ac) {
+					let my_balance = parseFloat(gm.game.cryptos[gm.game.player][ticker].balance);
+					console.log(`My ${ticker} balance: `, my_balance, ac[ticker]);
+					if (my_balance > 0) {
+						menu.submenus.push({
+							parent: 'game-crypto',
+							text: ticker,
+							id: 'game-crypto-' + ticker,
+							class: 'game-crypto-ticker',
+							callback: async (app, game_mod) => {
+								this.attachStyleSheets();
+
+								//this.max_balance = Math.max(Number(ac[ticker]), my_balance);
+								this.max_balance = ac[ticker]; //this.max_balance.toFixed(8);
+								this.max_match = -1; //ac[ticker];
+
+								this.overlay.ticker = ticker;
+
+								this.overlay.render((ticker, amount, match_amount = null) => {
+									console.log('SELECTED CRYPTO: ', ticker, amount, match_amount);
+									game_mod.menu.hideSubMenus();
+									game_mod.proposeGameStake(ticker, amount);
+									app.browser.logMatomoEvent('StakeCrypto', 'viaGameMenu', ticker);
+								});
+							}
+						});
+					}
+				}
+			}else if (gm.game.crypto != 'CHIPS') {
 					menu.submenus.push({
 						parent: 'game-crypto',
-						text: ticker,
-						id: 'game-crypto-' + ticker,
+						text: gm.game.crypto + " ✓",
+						id: 'game-crypto-stake',
 						class: 'game-crypto-ticker',
 						callback: async (app, game_mod) => {
-							this.attachStyleSheets();
-
-							this.max_balance = ac[ticker];
-							this.min_balance = game_mod?.opengame ? this.max_balance : -1;
-
-							if (
-								game_mod.game.crypto &&
-								game_mod.game.crypto != 'CHIPS'
-							) {
-
-								game_mod.showStakeOverlay();
-							
-								return;
-							}
-
-							this.overlay.ticker = ticker;
-
-							this.overlay.render((ticker, amount) => {
-								game_mod.menu.hideSubMenus();
-								game_mod.proposeGameStake(ticker, amount);
-								app.browser.logMatomoEvent('StakeCrypto', 'viaGameMenu', ticker);
-							});
+									game_mod.showStakeOverlay();
 						}
 					});
-				}
 			}
-
 
 			if (Object.keys(ac).length == 0) {
 				menu.submenus.push({
@@ -150,9 +154,19 @@ class Crypto extends ModTemplate {
 					class: 'game-crypto-none',
 					callback: (app, game_mod) => {
 						game_mod.menu.hideSubMenus();
-						salert(
-							'Players do not have any common crypto to play with...'
-						);
+						salert('Players do not have any common crypto to play with...');
+					}
+				});
+			}
+			if (menu.submenus.length == 0) {
+				menu.submenus.push({
+					parent: 'game-crypto',
+					text: 'No Cryptos Available',
+					id: 'game-crypto-none',
+					class: 'game-crypto-none',
+					callback: (app, game_mod) => {
+						game_mod.menu.hideSubMenus();
+						salert('You cannot add a stake to this game...');
 					}
 				});
 			}
@@ -164,20 +178,16 @@ class Crypto extends ModTemplate {
 	}
 
 	async renderInto(qs) {
-		if (qs == "#arcade-advance-opt"){
-
-			this.min_balance = 0;
+		if (qs == '#arcade-advance-opt') {
+			this.max_match = 0;
 
 			let game_name = document.querySelector("input[name='game']")?.value;
-			if (game_name){
+			if (game_name) {
 				this.gm = this.app.modules.returnModuleByName(game_name);
-				if (this.gm?.opengame){
-					this.min_balance = -1;
-				}
-				if (!this.gm?.can_bet){
+				if (!this.gm?.can_bet) {
 					return;
 				}
-			}else {
+			} else {
 				return;
 			}
 
@@ -185,33 +195,38 @@ class Crypto extends ModTemplate {
 
 			this.balances = await this.app.wallet.returnAvailableCryptosAssociativeArray();
 
-			this.app.browser.addElementToSelector(`<div class="game-wizard-crypto-hook"><i class="fa-solid fa-coins"></i></div>`, qs);
+			if (this.gm?.opengame) {
+				//this.max_match = -1;
+			}
 
-			let hook = document.querySelector(".game-wizard-crypto-hook");
+			this.app.browser.addElementToSelector(
+				`<div class="game-wizard-crypto-hook"><i class="fa-solid fa-coins"></i></div>`,
+				qs
+			);
 
-			if (hook){
+			let hook = document.querySelector('.game-wizard-crypto-hook');
+
+			if (hook) {
 				hook.onclick = (e) => {
-
 					this.overlay = new CryptoSelectAmount(this.app, this);
 					this.overlay.fixed = false;
 
-					if (hook.dataset?.amount){
+					if (hook.dataset?.amount) {
 						this.overlay.stake = hook.dataset.amount;
 					}
 
 					this.overlay.render((ticker, amount, match_amount = null) => {
-						console.log("SELECTED CRYPTO: ", ticker, amount, match_amount);
-						hook.dataset["ticker"] = ticker;
-						hook.dataset["amount"] = amount;
-						if (match_amount !== null){
-							hook.dataset["match"] = match_amount;	
+						console.log('SELECTED CRYPTO: ', ticker, amount, match_amount);
+						hook.dataset['ticker'] = ticker;
+						hook.dataset['amount'] = amount;
+						if (match_amount !== null) {
+							hook.dataset['match'] = match_amount;
 						}
 					});
-				}
+				};
 			}
 		}
 	}
-
 
 	/**
 	 * We have a list of each players available cryptos and balances, so
@@ -219,6 +234,9 @@ class Crypto extends ModTemplate {
 	 */
 	calculateAvailableCryptos(crypto_array) {
 		let union = [];
+
+		console.log('*********** AC *************');
+		console.log(crypto_array);
 
 		for (let player in crypto_array) {
 			for (let c in crypto_array[player]) {
@@ -228,6 +246,8 @@ class Crypto extends ModTemplate {
 			}
 		}
 
+		console.log(union);
+
 		let intersection = {};
 
 		for (let c of union) {
@@ -235,47 +255,48 @@ class Crypto extends ModTemplate {
 			for (let player in crypto_array) {
 				if (crypto_array[player][c]) {
 					let value = parseFloat(crypto_array[player][c].balance);
+					console.log(value);
 					if (min) {
 						min = Math.min(min, value);
 					} else {
 						min = value;
 					}
 				} else {
+					console.log('Not all players have the wallet installed...');
 					min = -1;
 					break;
 				}
 			}
 
-			if (min > 0) {
+			if (min >= 0) {
 				intersection[c] = min;
 			}
 		}
 
+		console.log(intersection);
+
 		return intersection;
 	}
-
 
 	includeFeeInMax(ticker) {
 		let fee = 0;
 
-    let crypto_mod = this.app.wallet.returnCryptoModuleByTicker(ticker);
-    crypto_mod.checkWithdrawalFeeForAddress('', function(res){
-      fee = Number(res);
-    });
+		let crypto_mod = this.app.wallet.returnCryptoModuleByTicker(ticker);
+		crypto_mod.checkWithdrawalFeeForAddress('', function (res) {
+			fee = Number(res);
+		});
 
-    let diff = Number(this.max_balance) - Number(fee);
-    diff = parseFloat(diff.toFixed(8));
+		let diff = Number(this.max_balance) - Number(fee);
+		diff = parseFloat(diff.toFixed(8));
 
-    if (diff < 0) {
-      this.max_balance = 0;  
-    } else {
-      this.max_balance = diff;
-    }
+		if (diff < 0) {
+			this.max_balance = 0;
+		} else {
+			this.max_balance = diff;
+		}
 
-    return fee;
+		return fee;
 	}
-
-
 
 	returnCryptoOptionsHTML(values = null) {
 		values = values || [0.001, 0.01, 0.1, 1, 5, 10, 50, 100, 500, 1000];
@@ -287,10 +308,7 @@ class Crypto extends ModTemplate {
 
 		let listed = [];
 		for (let i = 0; i < this.app.modules.mods.length; i++) {
-			if (
-				this.app.modules.mods[i].ticker &&
-				!listed.includes(this.app.modules.mods[i].ticker)
-			) {
+			if (this.app.modules.mods[i].ticker && !listed.includes(this.app.modules.mods[i].ticker)) {
 				html += `<option value="${this.app.modules.mods[i].ticker}">${this.app.modules.mods[i].ticker}</option>`;
 				listed.push(this.app.modules.mods[i].ticker);
 			}
