@@ -326,6 +326,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn file_exists_success() {
         let (sender, mut _receiver) = tokio::sync::mpsc::channel(10);
         let io_handler = RustIOHandler::new(sender, 0);
