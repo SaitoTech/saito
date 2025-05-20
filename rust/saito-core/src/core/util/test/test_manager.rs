@@ -170,7 +170,8 @@ pub mod test {
 
             let target_path_str = target_path
                 .to_str()
-                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Invalid path")).unwrap();
+                .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Invalid path"))
+                .unwrap();
 
             let static_str: &'static str = Box::leak(target_path_str.to_string().into_boxed_str());
 
