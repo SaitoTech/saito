@@ -2042,11 +2042,12 @@ impl Blockchain {
         hash: SaitoHash,
     ) {
         debug!(
-            "adding ghost block : {:?}-{:?} prev_block : {:?} ts : {:?}",
+            "adding ghost block : {:?}-{:?} prev_block : {:?} ts : {:?} pre_hash : {}",
             id,
             hash.to_hex(),
             previous_block_hash.to_hex(),
-            ts
+            ts,
+            pre_hash.to_hex()
         );
         let ring_buffer_size = self.blockring.get_ring_buffer_size();
         let mut block = Block::new();

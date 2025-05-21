@@ -341,6 +341,10 @@ impl RoutingThread {
             {
                 let block = blockchain.get_block(&hash);
                 if let Some(block) = block {
+                    if ghost.start == [0; 32] {
+                        ghost.start = block.previous_block_hash;
+                    }
+
                     ghost.gts.push(block.has_golden_ticket);
                     ghost.block_ts.push(block.timestamp);
                     ghost.prehashes.push(block.pre_hash);
@@ -359,11 +363,17 @@ impl RoutingThread {
                         );
                     }
                     debug!(
-                        "pushing block : {:?} at index : {:?} with txs : {:?} has txs : {:?}",
+                        "pushing block : {:?} at index : {:?} with txs : {:?} has txs : {:?} pre_hash : {} prev_block_hash : {}",
                         clone.hash.to_hex(),
                         i,
                         clone.transactions.len(),
-                        clone.has_keylist_txs(&peer_key_list)
+                        clone.has_keylist_txs(&peer_key_list),
+                        block.pre_hash.to_hex(),
+                        block.previous_block_hash.to_hex()
+                    );
+                    debug_assert_eq!(
+                        block.hash,
+                        crate::core::util::crypto::hash(block.serialize_for_hash().as_slice())
                     );
                     // whether this block has any txs which the peer will be interested in
                     ghost.txs.push(clone.has_keylist_txs(&peer_key_list));
