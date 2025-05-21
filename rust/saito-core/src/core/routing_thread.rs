@@ -341,7 +341,8 @@ impl RoutingThread {
             {
                 let block = blockchain.get_block(&hash);
                 if let Some(block) = block {
-                    if ghost.start == [0; 32] {
+                    if ghost.start == [0; 32] && ghost.gts.is_empty() {
+                        // we only set the start if we are at the beginning of the ghost chain
                         ghost.start = block.previous_block_hash;
                     }
 
