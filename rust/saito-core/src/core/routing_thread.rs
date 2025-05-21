@@ -341,7 +341,6 @@ impl RoutingThread {
             {
                 let block = blockchain.get_block(&hash);
                 if let Some(block) = block {
-
                     if ghost.start == [0; 32] {
                         ghost.start = block.previous_block_hash;
                     }
@@ -372,7 +371,10 @@ impl RoutingThread {
                         block.pre_hash.to_hex(),
                         block.previous_block_hash.to_hex()
                     );
-                    debug_assert_eq!(block.hash, crate::core::util::crypto::hash(block.serialize_for_hash().as_slice()));
+                    debug_assert_eq!(
+                        block.hash,
+                        crate::core::util::crypto::hash(block.serialize_for_hash().as_slice())
+                    );
                     // whether this block has any txs which the peer will be interested in
                     ghost.txs.push(clone.has_keylist_txs(&peer_key_list));
                 }
