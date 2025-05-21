@@ -1377,6 +1377,58 @@ class GameTemplate extends ModTemplate {
 			return;
 		}
 
+		if (txmsg.request == 'STAKE'){
+
+			let auths = 0;
+			let { ticker, stake, sigs, ts } = txmsg.data;
+
+			console.log("STAKE: ", txmsg.data);
+
+			try {
+				let stake_val = typeof stake === "object" ? stake?.min : stake;
+
+				for (let i = 0; i < this.game.players.length; i++) {
+					let msg_to_verify = `${ts} ${ticker} ${stake_val} ${this.game.id}`;
+					if (sigs[i] !== '') {
+						if (
+							this.app.crypto.verifyMessage(
+								msg_to_verify,
+								sigs[i],
+								this.game.players[i]
+							)
+						) {
+							auths++;
+						} 
+				}
+			}
+			} catch (err) {
+				console.error('err: ' + err);
+			}
+
+			if (auths == this.game.players.length) {
+					// the game can initialize anything it needs
+					this.initializeGameStake(ticker, stake);
+			}else if (sigs[this.game.player-1] == "") {
+						this.app.connection.emit('accept-game-stake', {
+							game_mod: this,
+							ticker,
+							stake,
+							accept_callback: (input = null) => {
+								if (input != null){
+									stake[this.publicKey] = input;
+								}
+								this.proposeGameStake(ticker, stake, sigs, ts);
+							},
+							reject_callback: () => {
+								this.refuseGameStake(ticker, stake);
+							}
+						});
+
+				} 
+
+			return;
+		}
+
 		console.warn('Game Engine: unprocessed meta transaction -- ', tx, txmsg);
 	}
 

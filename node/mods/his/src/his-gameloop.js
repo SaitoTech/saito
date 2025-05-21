@@ -13202,7 +13202,7 @@ If this is your first game, it is usually fine to skip the diplomacy phase until
 	if (mv[0] === "check_replacement_cards") {
 
 	  this.game.queue.splice(qe, 1);
-	  faction = mv[1];
+	  let faction = mv[1];
 
 	  let num = 0;
 	  let p = this.returnPlayerOfFaction(faction);

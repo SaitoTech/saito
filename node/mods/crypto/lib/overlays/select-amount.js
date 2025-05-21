@@ -159,8 +159,6 @@ class CryptoSelectAmount {
 		amount = parseFloat(amount);
 		opponent_amount = parseFloat(opponent_amount);
 
-		console.log('***inputted amount: ', amount);
-
 		this.errors.amount = false;
 
 		input_err.innerText = '';
@@ -172,6 +170,9 @@ class CryptoSelectAmount {
 		}
 		if (opponent_amount > amount) {
 			errorMsg2 = `opponent's minimum stake cannot be greater than yours`;
+		}
+		if (opponent_amount > this.mod.match_max){
+			errorMsg2 = 'not all the players have that much to stake';
 		}
 
 		// Basic input
@@ -192,7 +193,7 @@ class CryptoSelectAmount {
 		}
 
 		if (errorMsg2) {
-			input_err_opp.innerText = errorMsg;
+			input_err_opp.innerText = errorMsg2;
 			input_err_opp.style.display = 'block';
 			this.errors.amount = true;
 		}
