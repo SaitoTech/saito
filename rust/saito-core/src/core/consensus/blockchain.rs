@@ -1200,7 +1200,8 @@ impl Blockchain {
                 }
             }
         } else if !new_chain.is_empty() {
-            let mut result = WindingResult::Unwind(0, true, old_chain.to_vec(), WALLET_NOT_UPDATED);
+            let mut result =
+                WindingResult::Unwind(0, false, old_chain.to_vec(), WALLET_NOT_UPDATED);
             loop {
                 match result {
                     WindingResult::Wind(current_wind_index, wind_failure, wallet_status) => {

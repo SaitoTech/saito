@@ -389,10 +389,18 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
     async fn process_event(&mut self, event: ConsensusEvent) -> Option<()> {
         match event {
             ConsensusEvent::NewGoldenTicket { golden_ticket } => {
+                trace!(
+                    "ConsensusThread::process_event : new golden ticket : {:?}",
+                    golden_ticket.target.to_hex()
+                );
                 self.add_gt_to_mempool(golden_ticket).await;
                 Some(())
             }
             ConsensusEvent::BlockFetched { block, .. } => {
+                trace!(
+                    "ConsensusThread::process_event : new block fetched : {:?}",
+                    block.hash.to_hex()
+                );
                 let configs = self.config_lock.read().await;
                 // trace!("locking blockchain 4");
                 let mut blockchain = self.blockchain_lock.write().await;
@@ -431,6 +439,10 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 Some(())
             }
             ConsensusEvent::NewTransaction { transaction } => {
+                trace!(
+                    "ConsensusThread::process_event : new transaction : {:?}",
+                    transaction.signature.to_hex()
+                );
                 self.stats.received_tx.increment();
 
                 if let TransactionType::GoldenTicket = transaction.transaction_type {
@@ -447,6 +459,10 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 Some(())
             }
             ConsensusEvent::NewTransactions { mut transactions } => {
+                trace!(
+                    "ConsensusThread::process_event : new transactions : {:?}",
+                    transactions.len()
+                );
                 self.stats
                     .received_tx
                     .increment_by(transactions.len() as u64);
