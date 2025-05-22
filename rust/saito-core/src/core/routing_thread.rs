@@ -909,6 +909,13 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             }
 
             RoutingEvent::BlockFetchRequest(peer_index, block_hash, block_id) => {
+                trace!(
+                    "
+                    received block fetch request from peer : {:?} for block : {:?}-{:?}",
+                    peer_index,
+                    block_hash.to_hex(),
+                    block_id
+                );
                 self.blockchain_sync_state
                     .add_entry(
                         block_hash,
@@ -919,6 +926,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     .await;
             }
             RoutingEvent::BlockchainRequest(peer_index) => {
+                trace!("received blockchain request from peer : {:?}", peer_index);
                 self.network
                     .request_blockchain_from_peer(peer_index, self.blockchain_lock.clone())
                     .await;
