@@ -4,6 +4,7 @@ module.exports = () => {
       <div class="name"></div>
       <div class="units"></div>
       <div class="status"></div>
+      <div class="control"></div>
     </div>
   `;
 	return html;

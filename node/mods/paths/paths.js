@@ -5626,6 +5626,9 @@ console.log("err: " + err);
 
     let paths_self = this;
 
+    let xpos = 0;
+    let ypos = 0;
+
     //
     // add tiles
     //
@@ -5640,10 +5643,18 @@ console.log("err: " + err);
     //
     if (!paths_self.bound_gameboard_zoom) {
 
-      //$('.main .gameboard').on('mousedown', function (e) {
-      //  if (e.currentTarget.classList.contains("space")) { return; }
-      //});
+      $('.main .gameboard').on('mousedown', function (e) {
+        if (e.currentTarget.classList.contains("space")) { return; }
+        xpos = e.clientX;
+        ypos = e.clientY;
+      });
       $('.main .gameboard').on('mouseup', function (e) {
+
+	//
+	// this indicates drag
+	//
+        if (Math.abs(xpos-e.clientX) > 4) { return; }
+        if (Math.abs(ypos-e.clientY) > 4) { return; }
 
         //
         // if this is a selectable space, let people select directly
