@@ -19,16 +19,6 @@ module.exports = (app, mod) => {
       lid = "";
     }
 
-console.log("%");
-console.log("%");
-console.log("%");
-console.log("%");
-console.log("%");
-console.log("%");
-console.log("% teaser " + game_mod.teaser);
-console.log("%");
-console.log("%");
-
     if (game_mod.teaser == true) {
       games_menu += `
        <div id="${game_mod.name}" class="arcade-game-selector-game arcade-game-selector-teaser" data-id="${ game_mod.name }" data-league="${lid}">

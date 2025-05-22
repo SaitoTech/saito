@@ -34,6 +34,7 @@
 
     obj.key = key;
 
+    if (!obj.ckey)      	{ obj.key       = "XX"; }
     if (!obj.name)      	{ obj.name      = "Unknown"; }
     if (!obj.army)		{ obj.army 	= 0; }
     if (!obj.corps)		{ obj.corps 	= 0; }

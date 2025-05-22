@@ -1213,6 +1213,7 @@ try {
 	  // mandated offensive tracking
 	  //
 	  let au = this.returnAttackerUnits();
+console.log("MO AU: " + JSON.stringify(au));
 	  if (this.game.state.combat.attacking_faction == "central") {
 	    if (this.game.state.mandated_offensives.allies === "AH IT") {
 
@@ -1302,7 +1303,7 @@ try {
 		if (sp.country == "belgium" || sp.country == "france" || sp.country == "germany") {
 		  for (let z = 0; z < sp.units.length; z++) {
 		    if (sp.units[z].ckey == "GE") {
-	              this.game.state.mo["allies"].push(this.game.spaces[this.game.state.combat.key].units[i].ckey);
+	              this.game.state.mo["allies"].push(au[i].ckey);
 		      z = sp.units.length+1;
 		    }
 		  }

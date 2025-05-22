@@ -35,6 +35,7 @@ class SaitoOverlay {
 
 	pullOverlayToFront() {
 
+		let max_z_index_bg = 0;
 		let max_z_index = 0;
 		let max = 0;
 

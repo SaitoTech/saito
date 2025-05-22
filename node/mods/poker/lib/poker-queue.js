@@ -114,6 +114,8 @@ class PokerQueue {
 				this.pot.activate();
 				this.stats.update();
 				this.startRound();
+				this.syncPlayerJoins();
+
 				return 1;
 			}
 
@@ -237,6 +239,10 @@ class PokerQueue {
 					for (let i = 0; i < this.game.state.player_pot.length; i++) {
 						if (i !== player_left_idx) {
 							winnings += this.game.state.player_pot[i];
+
+							// Track who wins how many chips from whom
+							this.game.state.chip_exchange[i][player_left_idx] -= this.game.state.player_pot[i];
+							this.game.state.chip_exchange[player_left_idx][i] += this.game.state.player_pot[i];
 						}
 					}
 					let total_pot = winnings + this.game.state.player_pot[player_left_idx];
@@ -573,6 +579,48 @@ class PokerQueue {
 						pot_total - this.game.state.player_pot[winners[0]],
 						false
 					)} net)`;
+
+
+					for (let i = 0; i < this.game.state.player_pot.length; i++) {
+						// Track who wins how many chips from whom
+						if (i !== winners[0]){
+							this.game.state.chip_exchange[i][winners[0]] -= this.game.state.player_pot[i];
+							this.game.state.chip_exchange[winners[0]][i] += this.game.state.player_pot[i];
+						}
+					}
+				}else{
+					//
+					// It is very complicated when splitting a pot...
+					//
+					let wchips = new Array(winners.length).fill(0);
+					for (let i = 0; i < this.game.state.player_pot.length; i++) {
+
+						if (!winners.includes(i)){
+							let temp_pot = Math.floor(this.game.state.player_pot[i] / winners.length);
+
+							for (let j = 0; j < winners.length; j++){
+								// Track who wins how many chips from whom
+								wchips[j] += temp_pot;
+								this.game.state.chip_exchange[i][winners[j]] -= temp_pot;
+								this.game.state.chip_exchange[winners[j]][i] += temp_pot;
+							}
+
+							let remainder = this.game.state.player_pot[i] - (temp_pot*winners.length);
+							if (remainder) {
+								for (let j = 0; j < winners.length && remainder > 0; j++) {
+									if (wchips[j] < pot_size){
+										remainder--;
+										wchips[j]++;
+										this.game.state.chip_exchange[i][winners[j]]--;
+										this.game.state.chip_exchange[winners[j]][i]++;
+									}
+								}
+
+							}
+
+						}
+					}
+
 				}
 
 				for (let i = 0; i < winners.length; i++) {
@@ -597,6 +645,11 @@ class PokerQueue {
 					this.game.state.player_credit[winners[i]] += pot_size;
 
 					this.game.state.winners.push(winners[i] + 1);
+				}
+
+				let remainder = pot_total - (pot_size * winners.length);
+				if (remainder > 0){
+					this.updateLog(`The pot doesn't divide evenly among the winners, leaving ${remainder} for the house`);
 				}
 
 				this.displayPlayers();
@@ -667,29 +720,7 @@ class PokerQueue {
 
 				this.saveGame(this.game.id);
 
-				if (this.game.player) {
-					html2canvas(document.body, {
-						/*scale: 0.8,
-	                	width: 0.8*window.innerWidth,
-	                	height: 0.8*window.innerHeight,*/
-						ignoreElements: function (element) {
-							if (element.classList.contains('cardBack')) {
-								return true;
-							}
-							if (element.classList.contains('pot')) {
-								return true;
-							}
-							if (element.classList.contains('poker-player-stake')) {
-								return true;
-							}
-							if (element.id === 'log-wrapper') {
-								return true;
-							}
-							if (element.id === 'saito-header') {
-								return true;
-							}
-						}
-					}).then((screenshot) => {
+				const clearBoardAndContinue = (screenshot = null) => {
 						this.playerAcknowledgeNotice(winnerStr, async () => {
 							console.log('Continuing poker...');
 							this.animating = false;
@@ -712,21 +743,43 @@ class PokerQueue {
 								fontsize : "2.1rem",
 								id: 'showdown',
 								callback: () => {
-									let ov = document.querySelector('.game-help-overlay');
-									if (ov) {
-										ov.prepend(screenshot);
+									if (screenshot){
+										let ov = document.querySelector('.game-help-overlay');
+										if (ov) {
+											ov.prepend(screenshot);
+										}
 									}
 								}
 							});
 						});
-					});
+
+				}
+
+				if (this.game.player) {
+					html2canvas(document.body, {
+						/*scale: 0.8,
+	                	width: 0.8*window.innerWidth,
+	                	height: 0.8*window.innerHeight,*/
+						ignoreElements: function (element) {
+							if (element.classList.contains('cardBack')) {
+								return true;
+							}
+							if (element.classList.contains('pot')) {
+								return true;
+							}
+							if (element.classList.contains('poker-player-stake')) {
+								return true;
+							}
+							if (element.id === 'log-wrapper') {
+								return true;
+							}
+							if (element.id === 'saito-header') {
+								return true;
+							}
+						}
+					}).then(clearBoardAndContinue);
 				} else {
-					this.halted = 0;
-					this.pot.clearPot();
-					this.settleLastRound(winner_keys, 'besthand');
-					this.board.clearTable();
-					this.clearPlayers();
-					return 1;
+					clearBoardAndContinue();
 				}
 
 				return 0;

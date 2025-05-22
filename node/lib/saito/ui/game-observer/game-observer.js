@@ -167,14 +167,14 @@ class GameObserver {
 							accept_callback: (input = null) => { 
 								joinBtn.innerHTML = 'waiting';
 								joinBtn.onclick = null;
-								this.game_mod.sendMetaMessage('JOIN');
+								this.game_mod.sendMetaMessage('JOIN', {pkey: this.game_mod.publicKey, round: this.game_mod.currentRound(), sigs: new Array(this.game_mod.game.players.length)});
 								$('#game-observer-play-btn').remove();
 							}
 						});
 					}else{
 						joinBtn.innerHTML = 'waiting';
 						joinBtn.onclick = null;
-						this.game_mod.sendMetaMessage('JOIN');
+						this.game_mod.sendMetaMessage('JOIN', {pkey: this.game_mod.publicKey, round: this.game_mod.currentRound(), sigs: new Array(this.game_mod.game.players.length)});
 						$('#game-observer-play-btn').remove();
 					}
 				}
