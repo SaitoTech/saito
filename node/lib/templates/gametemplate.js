@@ -1465,6 +1465,16 @@ class GameTemplate extends ModTemplate {
 		});
 	}
 
+	currentRound(){
+		if (this.game?.state?.round){
+			return this.game.state.round;
+		} else if (this.game?.round){
+			return this.game.round;
+		}
+
+		return 0;
+	}
+
 	visibilityChange() {
 		if (!this.game.over) {
 			let data = {

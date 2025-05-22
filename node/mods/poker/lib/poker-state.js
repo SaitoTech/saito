@@ -29,6 +29,7 @@ class PokerState {
                 state.player_credit = [];
                 state.passed = [];
                 state.debt = [];
+                state.chip_exchange = [];
 
                 state.winners = [];
                 state.last_fold = null;
@@ -45,6 +46,7 @@ class PokerState {
                                 this.game.players[i],
                                 12
                         );
+                        state.chip_exchange[i] = new Array(num_of_players).fill(0);
                 }
 
                 state.big_blind = 2;
@@ -83,6 +85,14 @@ class PokerState {
                         this.game.state.player_credit.splice(index, 1);
                         this.game.state.passed.splice(index, 1);
                         this.game.state.debt.splice(index, 1);
+
+                        for (let i = 0; i < this.game.players.length; i++){
+                                if (index !== i){
+                                        this.game.state.chip_exchange[i].splice(index, 1);
+                                }
+                        }
+                        this.game.state.chip_exchange.splice(index, 1);
+
                         return `${this.game.stats[pkey].final_chips} CHIPS`;
                 }else{
                         console.warn("Invalid index removePlayerFromState");
@@ -99,6 +109,14 @@ class PokerState {
                 this.game.state.player_credit.push(this.game.chips);
                 this.game.state.passed.push(0);
                 this.game.state.debt.push(0);
+
+                for (let i = 0; i < this.game.players.length; i++){
+                        if (index !== i){
+                                this.game.state.chip_exchange[i].splice(index, 0, 0);
+                        }else {
+                               this.game.state.chip_exchange.splice(index, 0, new Array(this.game.players.length).fill(0));
+                        }
+                }
 
                 // And for stats...
 
