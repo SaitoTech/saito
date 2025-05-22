@@ -586,9 +586,6 @@ console.log("\n\n\n\n");
 	  this.setAllies("hapsburg", "hungary");
 	  this.setActivatedPower("hapsburg", "hungary");
 
-	  this.addNavalSquadron("hapsburg", "gibraltar", 1);
-	  this.addNavalSquadron("hapsburg", "gibraltar", 1);
-
 	  // OTTOMAN
           this.addArmyLeader("ottoman", "istanbul", "suleiman");
           this.addArmyLeader("ottoman", "istanbul", "ibrahim-pasha");
@@ -636,7 +633,6 @@ console.log("\n\n\n\n");
           //this.addRegular("hapsburg", "vienna", 4);
           this.addMercenary("hapsburg", "vienna", 2);
 
-// TESTING
 	  this.addArmyLeader("hapsburg", "palma", "duke-of-alva");
 	  this.addArmyLeader("hapsburg", "palma", "charles-v");
           this.addMercenary("hapsburg", "palma", 4);
@@ -896,7 +892,7 @@ console.log("\n\n\n\n");
 	  this.controlSpace("ottoman", "agram");
 	  this.controlSpace("ottoman", "zara");
 	  this.controlSpace("ottoman", "ragusa");
-          this.addNavalSquadron("hapsburg", "palma", 1);
+          this.addNavalSquadron("venice", "palma", 1);
 
 	  this.addRegular("hapsburg", "prague", 2);
 	  this.addRegular("england", "leipzig", 4);
