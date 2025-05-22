@@ -749,7 +749,7 @@ class ChatPopup {
 		}
 
 
-		chatPopup.onmousedown = this.activate;
+		chatPopup.onmousedown = this.activate.bind(this);
 
 		//
 		// minimize
