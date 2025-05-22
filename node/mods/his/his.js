@@ -2930,9 +2930,6 @@ console.log("\n\n\n\n");
 	  this.setAllies("hapsburg", "hungary");
 	  this.setActivatedPower("hapsburg", "hungary");
 
-	  this.addNavalSquadron("hapsburg", "gibraltar", 1);
-	  this.addNavalSquadron("hapsburg", "gibraltar", 1);
-
 	  // OTTOMAN
           this.addArmyLeader("ottoman", "istanbul", "suleiman");
           this.addArmyLeader("ottoman", "istanbul", "ibrahim-pasha");
@@ -2980,7 +2977,6 @@ console.log("\n\n\n\n");
           //this.addRegular("hapsburg", "vienna", 4);
           this.addMercenary("hapsburg", "vienna", 2);
 
-// TESTING
 	  this.addArmyLeader("hapsburg", "palma", "duke-of-alva");
 	  this.addArmyLeader("hapsburg", "palma", "charles-v");
           this.addMercenary("hapsburg", "palma", 4);
@@ -3240,7 +3236,7 @@ console.log("\n\n\n\n");
 	  this.controlSpace("ottoman", "agram");
 	  this.controlSpace("ottoman", "zara");
 	  this.controlSpace("ottoman", "ragusa");
-          this.addNavalSquadron("hapsburg", "palma", 1);
+          this.addNavalSquadron("venice", "palma", 1);
 
 	  this.addRegular("hapsburg", "prague", 2);
 	  this.addRegular("england", "leipzig", 4);
@@ -7910,7 +7906,7 @@ console.log(JSON.stringify(his_self.game.state.theological_debate));
 	//
 	let skip_keys = ["innsbruck","linz","vienna","graz","zurich","basel"];
 	for (let key in his_self.game.spaces) {
-	  s = his_self.game.spaces[key];
+	  let s = his_self.game.spaces[key];
 	  if (s.language == "german") { 
 	    if (s.religion == "protestant") {
 	      if (!skip_keys.includes(key)) {
@@ -32427,10 +32423,12 @@ console.log("defender units remaining: " + his_self.game.state.field_battle.defe
 	  let faction = mv[1];
 	  let spacekey = mv[2];
 	  let unit_type = mv[3];
+	  let unit_destroyed = false;
 
 	  if (this.game.spaces[spacekey]) {
 	    for (let i = 0; i < this.game.spaces[spacekey].units[faction].length; i++) {
 	      if (this.game.spaces[spacekey].units[faction][i].type == unit_type) {
+		unit_destroyed = true;
 	        this.game.spaces[spacekey].units[faction].splice(i, 1);
 		i = this.game.spaces[spacekey].units[faction].length + 10;
 		break;
@@ -32440,11 +32438,39 @@ console.log("defender units remaining: " + his_self.game.state.field_battle.defe
 	  if (this.game.navalspaces[spacekey]) {
 	    for (let i = 0; i < this.game.navalspaces[spacekey].units[faction].length; i++) {
 	      if (this.game.navalspaces[spacekey].units[faction][i].type == unit_type) {
+		unit_destroyed = true;
 	        this.game.navalspaces[spacekey].units[faction].splice(i, 1);
 		i = this.game.navalspaces[spacekey].units[faction].length + 10;
 		break;
 	      }
 	    }
+	  }
+
+	  if (unit_destroyed == false) {
+	  for (let f in this.game.spaces[spacekey].units) {
+	    if (this.returnControllingPower(f) == this.returnControllingPower(faction)) {
+	    if (this.game.spaces[spacekey] && unit_destroyed == false) {
+	      for (let i = 0; i < this.game.spaces[spacekey].units[f].length; i++) {
+	        if (this.game.spaces[spacekey].units[f][i].type == unit_type) {
+		  unit_destroyed = true;
+	          this.game.spaces[spacekey].units[f].splice(i, 1);
+		  i = this.game.spaces[spacekey].units[f].length + 10;
+		  break;
+	        }
+	      }
+	    }
+	    if (this.game.navalspaces[spacekey] && unit_destroyed == false) {
+	      for (let i = 0; i < this.game.navalspaces[spacekey].units[f].length; i++) {
+	        if (this.game.navalspaces[spacekey].units[f][i].type == unit_type) {
+		  unit_destroyed = true;
+	          this.game.navalspaces[spacekey].units[f].splice(i, 1);
+		  i = this.game.navalspaces[spacekey].units[f].length + 10;
+		  break;
+	        }
+	      }
+	    }
+	    }
+	  }
 	  }
 
 	  this.updateLog(this.returnFactionName(faction) + " " + unit_type + " destroyed in " + this.returnSpaceName(spacekey));
