@@ -255,7 +255,7 @@ class Arcade extends ModTemplate {
 					for (let i = my_games.length - 1; i >= 0; i--) {
 						if (my_games[i].timestamp < cutoff) {
 							this.removeGame(my_games[i].signature);
-							this.addGame(my_games[i], 'close');
+							this.addGame(my_games[i], 'closed');
 							this.app.connection.emit('arcade-invite-manager-render-request');
 						}
 					}
@@ -1065,8 +1065,10 @@ class Arcade extends ModTemplate {
 				console.log(`Change game status from ${game.msg.request} to ${newStatus}`);	
 			}
 
-			if (game?.msg?.request == 'over' && !this?.sudo) {
-				return;
+			if (!this?.sudo){
+				if (game?.msg?.request == 'over' || game?.msg?.request == "closed") {
+					return;
+				}
 			}
 
 			this.removeGame(game_id);
@@ -1817,7 +1819,7 @@ class Arcade extends ModTemplate {
 			list = tx.msg?.request || 'open';
 		}
 
-		if (list !== 'over' && list !== 'close' && list !== 'offline') {
+		if (list !== 'over' && !list.includes('close') && list !== 'offline') {
 			//
 			// Sanity check the target list so my games are grouped together
 			//
