@@ -8,25 +8,25 @@ class Nft {
         this.mod = mod;
         this.overlay = new SaitoOverlay(this.app, this.mod);
 
-	    this.editing_mode = "image"; // "data" shows textarea
+        this.editing_mode = "image"; // "data" shows textarea
 
         this.nft = {};
-    	this.nft.num     = 1;
-    	this.nft.deposit = 0;
-    	this.nft.change  = 0;
-    	this.nft.fee     = 0;
-    	this.nft.slip    = "";
-    	this.nft.id      = "";
+        this.nft.num     = 1;
+        this.nft.deposit = 0;
+        this.nft.change  = 0;
+        this.nft.fee     = 0;
+        this.nft.slip    = "";
+        this.nft.id      = "";
 
-    	this.nft.bid     = 0;
-    	this.nft.tid     = 0;
-    	this.nft.sid     = 0;
-    	this.nft.amt     = 0;
-    	this.nft.type    = 0;
-    	this.nft.image   = "";
+        this.nft.bid     = 0;
+        this.nft.tid     = 0;
+        this.nft.sid     = 0;
+        this.nft.amt     = 0;
+        this.nft.type    = 0;
+        this.nft.image   = "";
 
-    	this.callback    = {};
-    	this.utxo = [];
+        this.callback    = {};
+        this.utxo = [];
         this.nft_selected = 0;
 
     }
@@ -44,14 +44,14 @@ class Nft {
 
 
     attachEvents() {
-	   let nft_self = this;
+       let nft_self = this;
 
 
         document.querySelector('#nfts-change').onchange = async (e) => {
-	        nft_self.nft.change = e.target.value;      
-	        let change = BigInt(nft_self.nft.amt) - BigInt(nft_self.nft.deposit) - BigInt(nft_self.nft.fee);
+            nft_self.nft.change = e.target.value;      
+            let change = BigInt(nft_self.nft.amt) - BigInt(nft_self.nft.deposit) - BigInt(nft_self.nft.fee);
             document.querySelector('#nfts-change').value = change.toString();
-	    }
+        }
 
         if (document.querySelector('.utxo-selection-button')) {
             document.querySelectorAll('.utxo-selection-button').forEach(function(btn) {

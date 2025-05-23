@@ -126,8 +126,6 @@ export default class Wallet extends SaitoWallet {
     data,
     receipient_publicKey,
   ){
-
-
       console.log("values going to saito.ts:");
       console.log(amt);
       console.log(nft_id);

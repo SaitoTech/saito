@@ -1,14 +1,14 @@
 module.exports = (app, mod) => {
 
-	let html = `
-	    <div class="container">
+  let html = `
+      <div class="container">
 
             <div class="utxo-slips">
-	      <div class="instructions">
-		Creating NFTs requires you to have SAITO in your wallet.
-		<p></p>
-		Once you pick a slip you will be able to specify the transaction fee you wish to pay and the "deposit" that you wish to affix to your NFT. This deposit is what keeps your NFT from -- only the user who is able to spend the UTXO you "deposit" will be able to transfer the NFT to a new address.
-	      </div>
+        <div class="instructions">
+    Creating NFTs requires you to have SAITO in your wallet.
+    <p></p>
+    Once you pick a slip you will be able to specify the transaction fee you wish to pay and the "deposit" that you wish to affix to your NFT. This deposit is what keeps your NFT from -- only the user who is able to spend the UTXO you "deposit" will be able to transfer the NFT to a new address.
+        </div>
               <div><b>Your UTXO</b></div>
               <div id="utxo-list"></div>
             </div>
@@ -21,7 +21,7 @@ module.exports = (app, mod) => {
                             <p class="positive">Balance</p>
                         </div>
                     </div>
-		    <div class="options"><div class="data-nft-toggle">switch to json</div></div>
+        <div class="options"><div class="data-nft-toggle">switch to json</div></div>
                 </div>
                 <div class="nft-creator nft-inactive">
                   <div class="inputs">
@@ -55,7 +55,7 @@ module.exports = (app, mod) => {
                 </div>
             </div>
         </div>
-	`;
+  `;
 
-	return html;
+  return html;
 }

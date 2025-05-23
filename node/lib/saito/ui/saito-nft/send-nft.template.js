@@ -1,12 +1,12 @@
 module.exports = (app, mod) => {
 
-	let html = `
-	    <div class="container">
+  let html = `
+      <div class="container">
 
             <div class="utxo-slips">
-	      <div class="instructions">
-	         Select NFT from your wallet to send
-	      </div>
+        <div class="instructions">
+           Select NFT from your wallet to send
+        </div>
               <div><b>Your NFTs</b></div>
               <div id="nft-list"></div>
             </div>
@@ -19,7 +19,7 @@ module.exports = (app, mod) => {
                             <p class="positive">Balance</p>
                         </div>
                     </div>
-		    <div class="options"><div class="data-nft-toggle">image editor</div></div>
+        <div class="options"><div class="data-nft-toggle">image editor</div></div>
                 </div>
                 <div class="nft-creator nft-inactive">
                   <div class="inputs">
@@ -52,7 +52,7 @@ module.exports = (app, mod) => {
                 </div>
             </div>
         </div>
-	`;
+  `;
 
-	return html;
+  return html;
 }
