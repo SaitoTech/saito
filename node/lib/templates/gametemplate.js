@@ -272,6 +272,9 @@ class GameTemplate extends ModTemplate {
 
 		this.statistical_unit = 'game';
 
+		// Want to handle SaitoTalk through the game menu -- not the saito-header
+		this.disable_talk = true;
+
 		this.enable_observer = true;
 
 		app.connection.on('update-username-in-game', () => {
@@ -361,6 +364,10 @@ class GameTemplate extends ModTemplate {
 
 						if (this.game.player) {
 							this.app.connection.emit('relay-notify-peer', this.game.opponents, data);
+						}
+
+						if (this?.room_obj){
+							this.sendMetaMessage("CALL", this.room_obj);
 						}
 					}
 
@@ -1376,6 +1383,23 @@ class GameTemplate extends ModTemplate {
 
 			return;
 		}
+
+		if (txmsg.request == "CALL") {
+			document.getElementById('start-group-video-chat').classList.add('notification');
+			document.getElementById('start-group-video-chat').innerHTML = "Join call";
+
+			if (txmsg.my_key !== this.publicKey && !this?.room_obj) {
+				document.getElementById('game-social').classList.add('notification');
+
+				this.app.connection.emit("stun-receive-ingame-call", (txmsg.data));
+
+				// We should save this, even after hanging up...
+				this.room_obj = txmsg.data;
+
+				siteMessage(`${this.app.keychain.returnUsername(txmsg.my_key)} invites you to an in-game call`, 2000);
+			}
+		}
+
 
 		if (txmsg.request == 'STAKE'){
 

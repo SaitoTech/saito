@@ -69,6 +69,12 @@ class Dialer {
 		}
 
 		this.attachEvents();
+
+		if (!making_call){
+			this.ring_sound = new Audio('/saito/sound/Reverie_edit.mp3');
+			this.startRing(6000);
+		}
+
 	}
 
 	attachEvents() {
@@ -77,7 +83,7 @@ class Dialer {
 
 		let recipient = Object.keys(this.receiver);
 
-		console.log("Send messages to: " + recipient);
+		console.log("*** Send messages to: ", recipient);
 
 		if (video_switch && call_button) {
 			this.activateOptions();
@@ -94,17 +100,6 @@ class Dialer {
 
 				let data = Object.assign({}, this.mod.room_obj);
 
-				this.app.connection.emit('relay-send-message', {
-					recipient,
-					request: 'stun-connection-request',
-					data
-				});
-
-				this.ring_sound = new Audio('/saito/sound/Cloud_edit.mp3');
-				this.startRing(4500);
-				this.updateMessage('Dialing...');
-				this.deactivateOptions();
-
 				//
 				// We will block you from trying to make more than 3 phone calls in a 60 second span
 				// to prevent spamming
@@ -115,6 +110,29 @@ class Dialer {
 						this.call_log.shift();
 					}
 				}, 60000);
+
+				this.ring_sound = new Audio('/saito/sound/Cloud_edit.mp3');
+				this.startRing(4500);
+				this.updateMessage('Dialing...');
+				this.deactivateOptions();
+
+				if (!recipient || recipient.length == 0){
+					call_button.innerHTML = 'starting call...';
+
+					setTimeout(()=> {
+						this.stopRing();
+						this.overlay.remove();
+						this.app.connection.emit("start-game-call");
+					}, 2000);
+					return;
+				}
+
+
+				this.app.connection.emit('relay-send-message', {
+					recipient,
+					request: 'stun-connection-request',
+					data
+				});
 
 				this.dialing = setTimeout(() => {
 					this.app.connection.emit('relay-send-message', {
@@ -142,11 +160,15 @@ class Dialer {
 			};
 		}
 
+		/////////////////////////////
+		// For answering phone calls
+		/////////////////////////////
 		let answer_button = document.getElementById('answercall');
 		let reject_button = document.getElementById('rejectcall');
 
 		if (answer_button) {
 			answer_button.onclick = (e) => {
+
 				this.app.connection.emit('relay-send-message', {
 					recipient,
 					request: 'stun-connection-accepted',
@@ -164,7 +186,7 @@ class Dialer {
 							ui: this.mod.room_obj.ui, 
 							audio: true,
 							video: this.mod.room_obj.ui == "video",
-							auto_disconnect: true,
+							auto_disconnect: recipient.length > 0,
 						}
 					);
 					this.app.connection.emit('start-stun-call');
@@ -259,7 +281,7 @@ class Dialer {
 		video_switch.onchange = null;
 	}
 
-	async establishStunCallWithPeers(recipients) {
+	async establishStunCallWithPeers(recipients = []) {
 		// salert("Establishing a connection with your peers...");
 
 		if (!this.mod.room_obj) {
@@ -267,6 +289,7 @@ class Dialer {
   		}
 
 		// send the information to the other peers and ask them to join the call
+
 		recipients = recipients.filter((player) => {
 			return player !== this.mod.publicKey;
 		});
@@ -306,8 +329,6 @@ class Dialer {
 			if (!this.mod.room_obj) {
 				this.mod.room_obj = txmsg.data;
 				this.render(sender, false);
-				this.ring_sound = new Audio('/saito/sound/Reverie_edit.mp3');
-				this.startRing(6000);
 
 				//
 				// Ping back to let caller know I am online

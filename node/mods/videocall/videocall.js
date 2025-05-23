@@ -223,7 +223,7 @@ class Videocall extends ModTemplate {
 		}
 
 		if (type === 'saito-header') {
-			if (!this.browser_active) {
+			if (!this.browser_active && !this.app.modules.returnActiveModule()?.disable_talk) {
 				this.attachStyleSheets();
 
 				return [
@@ -301,6 +301,12 @@ class Videocall extends ModTemplate {
 			});
 			this.app.connection.on('reset-stun', () => {
 				document.getElementById('start-group-video-chat').classList.remove('disable-menu');
+				document.getElementById('start-group-video-chat').innerHTML = "Start Call"
+			});
+
+			this.app.connection.on("stun-receive-ingame-call", (room_obj)=> {
+				this.room_obj = room_obj;
+				this.dialer.render("", false);
 			});
 
 			if (obj?.game?.players?.length > 1) {
@@ -314,14 +320,46 @@ class Videocall extends ModTemplate {
 							id: 'start-group-video-chat',
 							class: 'start-group-video-chat',
 							callback: function (app, game_mod) {
+								if (!call_self?.added_game_listener){
+									app.connection.on('start-game-call', ()=> {
+										game_mod.sendMetaMessage("CALL", call_self.room_obj);
+										app.connection.emit(
+											'stun-init-call-interface',
+												{
+													ui: call_self.room_obj.ui, 
+													audio: true,
+													video: call_self.room_obj.ui == "video"
+												}
+										);
+										app.connection.emit('start-stun-call');
+									});
+									call_self.added_game_listener = true;
+								}
+
 								//Start Call
 								game_mod.menu.hideSubMenus();
 
+								if (game_mod?.room_obj && !call_self.room_obj) {
+									call_self.room_obj = Object.assign({}, game_mod.room_obj);
+								}
+
 								if (call_self?.room_obj) {
-									salert('Already in or establishing a call');
-									console.log(call_self.room_obj);
+									if (call_self.streams?.active){
+										salert('Already in or establishing a call');
+										console.log(call_self.room_obj);
+									}else {
+										app.connection.emit(
+											'stun-init-call-interface',
+												{
+													ui: call_self.room_obj.ui, 
+													audio: true,
+													video: call_self.room_obj.ui == "video"
+												}
+										);
+										app.connection.emit('start-stun-call');
+									}
 								} else {
-									call_self.dialer.establishStunCallWithPeers([...game_mod.game.players]);
+									call_self.dialer.establishStunCallWithPeers(/*[...game_mod.game.players]*/);
 								}
 							}
 						}
@@ -697,7 +735,16 @@ class Videocall extends ModTemplate {
 				let c = await sconfirm(`${this.app.keychain.returnUsername(from)} ready for ${event.identifier}, join now?`);
 				if (c) {
 					if (event?.link){
-						navigateWindow(event.link);	
+
+						let processed = false;
+						this.app.modules.getRespondTos('saito-link', {link: event.link}).forEach((modResponse) => {
+							processed = true;
+							modResponse.processLink(event.link);
+						});
+
+						if (!processed){
+							navigateWindow(event.link);		
+						}
 					}else{
 						salert("No saved link");
 					}
