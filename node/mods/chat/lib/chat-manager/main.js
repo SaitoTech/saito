@@ -174,6 +174,8 @@ class ChatManager {
 
 			app.connection.emit('chat-popup-render-request', group);
 			this.render_popups_to_screen = popup_status;
+
+			this.popups[group.id].activate();
 		});
 
 		app.connection.on("stun-connection-connected", (peer) => {
