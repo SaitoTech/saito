@@ -590,7 +590,8 @@ class Chat extends ModTemplate {
               }
               chat_self.saveOptions();
               chat_self.app.connection.emit('open-chat-with', {
-                key: publicKey
+                key: publicKey,
+                activate: true
               });
             }
           };
@@ -1902,7 +1903,6 @@ class Chat extends ModTemplate {
 
     // Need to rewrite this!!!
     if (this.app.BROWSER && new_message.mentioned.includes(this.publicKey)) {
-      console.log('CHAT MESSAGE DIRECTED TO ME!!!!');
       group.mentioned = true;
       new_message.flag_message = true;
     }
@@ -1924,10 +1924,9 @@ class Chat extends ModTemplate {
         return 0;
       }
       if (new_message.timestamp < group.txs[i].timestamp) {
-        if (this.debug) {
-          console.log('out of order ' + i);
-          console.log(JSON.parse(JSON.stringify(new_message)));
-        }
+        //if (this.debug) {
+          console.log('CHAT message out of order ' + i, JSON.parse(JSON.stringify(new_message)));
+        //}
         break;
       }
       insertion_index++;
