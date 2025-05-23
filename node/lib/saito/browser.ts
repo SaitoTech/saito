@@ -909,7 +909,7 @@ class Browser {
 	}
 
 	addElementAfterSelector(html, selector = '') {
-		console.log("addElementAfterSelector");
+		//console.log("addElementAfterSelector");
 		if (selector) {
 			let container = document.querySelector(selector);
 			if (container) {
