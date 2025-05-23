@@ -78,7 +78,7 @@ class GameWizard {
 					'hidden';
 			}
 		} else {
-			console.log("Advanced Options!: ", advancedOptions);
+			//console.info("Advanced Options!: ", advancedOptions);
 			let accept_button = `<div id="game-wizard-advanced-return-btn" class="game-wizard-advanced-return-btn button saito-button-primary">Accept</div>`;
 			if (!advancedOptions.includes(accept_button)) {
 				advancedOptions += accept_button;
