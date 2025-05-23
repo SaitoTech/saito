@@ -8267,10 +8267,12 @@ console.log("defender units remaining: " + his_self.game.state.field_battle.defe
 	  let faction = mv[1];
 	  let spacekey = mv[2];
 	  let unit_type = mv[3];
+	  let unit_destroyed = false;
 
 	  if (this.game.spaces[spacekey]) {
 	    for (let i = 0; i < this.game.spaces[spacekey].units[faction].length; i++) {
 	      if (this.game.spaces[spacekey].units[faction][i].type == unit_type) {
+		unit_destroyed = true;
 	        this.game.spaces[spacekey].units[faction].splice(i, 1);
 		i = this.game.spaces[spacekey].units[faction].length + 10;
 		break;
@@ -8280,11 +8282,39 @@ console.log("defender units remaining: " + his_self.game.state.field_battle.defe
 	  if (this.game.navalspaces[spacekey]) {
 	    for (let i = 0; i < this.game.navalspaces[spacekey].units[faction].length; i++) {
 	      if (this.game.navalspaces[spacekey].units[faction][i].type == unit_type) {
+		unit_destroyed = true;
 	        this.game.navalspaces[spacekey].units[faction].splice(i, 1);
 		i = this.game.navalspaces[spacekey].units[faction].length + 10;
 		break;
 	      }
 	    }
+	  }
+
+	  if (unit_destroyed == false) {
+	  for (let f in this.game.spaces[spacekey].units) {
+	    if (this.returnControllingPower(f) == this.returnControllingPower(faction)) {
+	    if (this.game.spaces[spacekey] && unit_destroyed == false) {
+	      for (let i = 0; i < this.game.spaces[spacekey].units[f].length; i++) {
+	        if (this.game.spaces[spacekey].units[f][i].type == unit_type) {
+		  unit_destroyed = true;
+	          this.game.spaces[spacekey].units[f].splice(i, 1);
+		  i = this.game.spaces[spacekey].units[f].length + 10;
+		  break;
+	        }
+	      }
+	    }
+	    if (this.game.navalspaces[spacekey] && unit_destroyed == false) {
+	      for (let i = 0; i < this.game.navalspaces[spacekey].units[f].length; i++) {
+	        if (this.game.navalspaces[spacekey].units[f][i].type == unit_type) {
+		  unit_destroyed = true;
+	          this.game.navalspaces[spacekey].units[f].splice(i, 1);
+		  i = this.game.navalspaces[spacekey].units[f].length + 10;
+		  break;
+	        }
+	      }
+	    }
+	    }
+	  }
 	  }
 
 	  this.updateLog(this.returnFactionName(faction) + " " + unit_type + " destroyed in " + this.returnSpaceName(spacekey));
@@ -13202,7 +13232,7 @@ If this is your first game, it is usually fine to skip the diplomacy phase until
 	if (mv[0] === "check_replacement_cards") {
 
 	  this.game.queue.splice(qe, 1);
-	  faction = mv[1];
+	  let faction = mv[1];
 
 	  let num = 0;
 	  let p = this.returnPlayerOfFaction(faction);

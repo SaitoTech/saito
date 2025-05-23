@@ -5,7 +5,6 @@ class PokerStake {
   initializeGameStake(crypto = 'CHIPS', stake = '100') {
     console.log('Initialize Poker Stakes!');
     this.game.crypto = crypto;
-    this.game.stake = stake;
     this.game.chips = 100;
     this.game.blind_mode = 'static';
 
@@ -16,7 +15,23 @@ class PokerStake {
       this.game.crypto = this.game.options.crypto;
     }
     if (this.game.options.stake) {
-      this.game.stake = this.game.options.stake;
+      console.log("Analyzing game stake....");
+      if (typeof this.game.options.stake == 'object') {
+        let max = 0;
+        for (let p in this.game.options.stake){
+          console.log(p, this.game.options.stake[p]);
+          if (this.game.options.stake[p] > max){
+            max = this.game.options.stake[p];
+            console.log(max);
+          }
+        }
+        this.game.stake = max;
+        this.game.staking_uneven = true;
+      } else {
+        this.game.stake = this.game.options.stake;  
+      }
+    }else{
+      this.game.stake = stake;
     }
     if (this.game.options.blind_mode) {
       this.game.blind_mode = this.game.options.blind_mode;

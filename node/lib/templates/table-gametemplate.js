@@ -29,6 +29,8 @@ class GameTableTemplate extends GameTemplate {
 
 		this.toJoin = [];
 		this.toLeave = [];
+		this.joining = {};
+		this.leaving = {};
 		this.statistical_unit = 'hand';
 		this.resetCommand = 'newround';
 		this.exitOverlay = new SaitoOverlay(app, this, false);
@@ -48,7 +50,7 @@ class GameTableTemplate extends GameTemplate {
 	}
 
 	// Extension for table games
-	receiveMetaMessage(tx) {
+	async receiveMetaMessage(tx) {
 		if (!tx.isTo(this.publicKey)) {
 			console.warn("processing a tx that isn't addressed to us...");
 		}
@@ -56,19 +58,56 @@ class GameTableTemplate extends GameTemplate {
 		let txmsg = tx.returnMessage();
 
 		if (txmsg.request == 'JOIN') {
-			console.log('Join request:' + txmsg.my_key);
-			if (!this.toJoin.includes(txmsg.my_key)) {
-				this.toJoin.push(txmsg.my_key);
-				siteMessage(
-					`${
-						this.publicKey == txmsg.my_key
-							? 'You'
-							: app.keychain.returnUsername(txmsg.my_key)
-					} will be dealt in next hand`,
-					2500
-				);
+
+			let auths = 0;
+			let data = txmsg.data;
+			let pkey = data.pkey;
+
+			// Temporary storage here
+			if (!this.joining[pkey]){
+				this.joining[pkey] = data;
 			}
-			console.log(JSON.stringify(this.toJoin));
+
+			//
+			// But update with each incoming confirmation
+			//
+			for (let i = 0; i < data.sigs.length; i++){
+				if (data.sigs[i]){
+					auths++;
+					this.joining[pkey].sigs[i] = data.sigs[i];
+				}
+			}
+
+			this.joining[pkey].round = Math.max(data.round, this.joining[pkey].round);
+
+			// I am a player, need to confirm...
+			if (this.game.player) {
+				if (!data.sigs[this.game.player - 1]){
+					this.joining[pkey].sigs[this.game.player - 1] = this.app.crypto.signMessage(`ADDPLAYER ${data.pkey}`, await this.app.wallet.getPrivateKey());
+					this.joining[pkey].round = Math.max(data.round, this.currentRound());
+					this.sendMetaMessage('JOIN', this.joining[pkey]);
+					return;
+				}
+			}
+
+			if (auths == this.game.players.length){
+				if (!this.toJoin.includes(pkey)) {
+					if (this.currentRound() >= this.joining[pkey].round){
+						this.toJoin.push(pkey);
+						siteMessage(
+							`${
+								this.publicKey == pkey
+									? 'You'
+									: this.app.keychain.returnUsername(pkey)
+							} will be dealt in next hand`,
+							2500
+						);					
+					}else{
+						console.warn("Don't add player because other players have already started next round!");
+					}
+				}
+				console.log("JOIN SUCCESS:", JSON.stringify(this.toJoin), JSON.stringify(this.joining));
+			}
 			return;
 		}
 
@@ -80,7 +119,7 @@ class GameTableTemplate extends GameTemplate {
 					`${
 						this.publicKey == txmsg.my_key
 							? 'You'
-							: app.keychain.returnUsername(txmsg.my_key)
+							: this.app.keychain.returnUsername(txmsg.my_key)
 					} will leave the table after this hand`,
 					2500
 				);
@@ -91,7 +130,7 @@ class GameTableTemplate extends GameTemplate {
 		if (txmsg.request == 'CANCEL') {
 			this.toJoin = this.toJoin.filter((key) => key !== txmsg.my_key);
 			this.toLeave = this.toLeave.filter((key) => key !== txmsg.my_key);
-			siteMessage(`${app.keychain.returnUsername(txmsg.my_key)} changed their mind`, 2500);
+			siteMessage(`${this.app.keychain.returnUsername(txmsg.my_key)} changed their mind`, 2500);
 			return;
 		}
 
@@ -103,6 +142,39 @@ class GameTableTemplate extends GameTemplate {
 		}
 
 		super.receiveMetaMessage(tx);
+	}
+
+	syncPlayerJoins(){
+
+		for (let pkey in this.joining){
+			if (!this.toJoin.includes(pkey)) {
+				if (this.currentRound() >= this.joining[pkey].round){
+					let auths = 0;
+					for (let i = 0; i < this.joining[pkey].sigs.length; i++){
+						if (this.joining[pkey].sigs[i]){
+							auths++;
+						}
+					}
+					if (auths == this.game.players.length){
+						this.toJoin.push(pkey);
+						siteMessage(
+							`${
+								this.publicKey == pkey
+									? 'You'
+									: this.app.keychain.returnUsername(pkey)
+							} will be dealt in next hand`,
+							2500
+						);					
+					}else{
+						console.warn("Still missing a confirmation...");
+					}
+				}else{
+					console.warn("Don't add player because other players have already started next round!");
+				}
+			}
+		}
+
+
 	}
 
 	addPlayerLate(address) {
@@ -293,6 +365,8 @@ class GameTableTemplate extends GameTemplate {
 						this.toJoin.splice(j, 1);
 					}
 				}
+
+				delete this.joining[pkey];
 			}
 			return 1;
 		});
@@ -339,7 +413,8 @@ class GameTableTemplate extends GameTemplate {
 
 		this.commands.push((game_self, gmv) => {
 			if (gmv[0] === 'PLAYERS') {
-				console.log(this.toLeave, this.toJoin);
+				//console.log(JSON.stringify(this.toLeave), JSON.stringify(this.toJoin));
+				console.log("PLAYERS:", JSON.stringify(this.toJoin), JSON.parse(JSON.stringify(this.joining)));
 
 				let change = this.toLeave.length + this.toJoin.length > 0;
 
@@ -370,7 +445,7 @@ class GameTableTemplate extends GameTemplate {
 
 						for (let i = 0; i < this.toJoin.length && player_count++ < this.maxPlayers; i++) {
 							let pkey = this.toJoin[i];
-							this.addMove(`ADDPLAYER\t${pkey}`);
+							this.addMove(`ADDPLAYER\t${pkey}`);								
 						}
 
 						this.endTurn();

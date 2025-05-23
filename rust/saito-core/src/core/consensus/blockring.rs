@@ -56,27 +56,29 @@ impl BlockRing {
     }
 
     pub fn get_latest_block_hash(&self) -> SaitoHash {
-        match self.lc_pos {
-            Some(lc_pos_block_ring) => match self.ring[lc_pos_block_ring].lc_pos {
-                Some(lc_pos_block_item) => {
-                    self.ring[lc_pos_block_ring].block_hashes[lc_pos_block_item]
+        if let Some(lc_pos_block_ring) = self.lc_pos {
+            if let Some(ring_item) = self.ring.get(lc_pos_block_ring) {
+                if let Some(lc_pos_block_item) = ring_item.lc_pos {
+                    if let Some(value) = ring_item.block_hashes.get(lc_pos_block_item) {
+                        return *value;
+                    }
                 }
-                None => [0; 32],
-            },
-            None => [0; 32],
+            }
         }
+        return [0; 32];
     }
 
     pub fn get_latest_block_id(&self) -> BlockId {
-        match self.lc_pos {
-            Some(lc_pos_block_ring) => match self.ring[lc_pos_block_ring].lc_pos {
-                Some(lc_pos_block_item) => {
-                    self.ring[lc_pos_block_ring].block_ids[lc_pos_block_item]
+        if let Some(lc_pos_block_ring) = self.lc_pos {
+            if let Some(ring_item) = self.ring.get(lc_pos_block_ring) {
+                if let Some(lc_pos_block_item) = ring_item.lc_pos {
+                    if let Some(value) = ring_item.block_ids.get(lc_pos_block_item) {
+                        return *value;
+                    }
                 }
-                None => 0,
-            },
-            None => 0,
+            }
         }
+        return 0;
     }
 
     pub fn get_longest_chain_block_hash_at_block_id(&self, id: u64) -> Option<SaitoHash> {

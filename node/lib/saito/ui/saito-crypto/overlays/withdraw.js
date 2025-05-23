@@ -282,7 +282,7 @@ class Withdraw {
 	}
 
 	async fetchWithdrawFee() {
-		this_withdraw = this;
+		let this_withdraw = this;
 		let address = document.querySelector('#withdraw-input-address').value;
 
 		document.querySelector('.withdraw-info-value.fee').innerHTML = 'updating...';

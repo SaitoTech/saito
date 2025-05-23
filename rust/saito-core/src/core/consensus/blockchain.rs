@@ -1200,7 +1200,8 @@ impl Blockchain {
                 }
             }
         } else if !new_chain.is_empty() {
-            let mut result = WindingResult::Unwind(0, true, old_chain.to_vec(), WALLET_NOT_UPDATED);
+            let mut result =
+                WindingResult::Unwind(0, false, old_chain.to_vec(), WALLET_NOT_UPDATED);
             loop {
                 match result {
                     WindingResult::Wind(current_wind_index, wind_failure, wallet_status) => {
@@ -2042,11 +2043,12 @@ impl Blockchain {
         hash: SaitoHash,
     ) {
         debug!(
-            "adding ghost block : {:?}-{:?} prev_block : {:?} ts : {:?}",
+            "adding ghost block : {:?}-{:?} prev_block : {:?} ts : {:?} pre_hash : {}",
             id,
             hash.to_hex(),
             previous_block_hash.to_hex(),
-            ts
+            ts,
+            pre_hash.to_hex()
         );
         let ring_buffer_size = self.blockring.get_ring_buffer_size();
         let mut block = Block::new();

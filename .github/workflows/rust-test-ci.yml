@@ -2,7 +2,7 @@ name: Unit Test Plan
 
 on:
   push:
-    branches: [ develop, master ]
+    branches: [ master ]
   pull_request:
     branches: [ develop, master ]
 
