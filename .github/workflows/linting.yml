@@ -2,9 +2,9 @@ name: Lint
 
 on:
     push:
-        branches: [staging1, master]
+        branches: [staging1, master1]
     pull_request:
-        branches: [staging1, master]
+        branches: [staging1, master1]
 
 jobs:
     lint:

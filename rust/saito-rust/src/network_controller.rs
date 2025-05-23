@@ -955,6 +955,7 @@ mod tests {
     use tokio_tungstenite::connect_async;
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn multi_peer_perf_test() {
         // pretty_env_logger::init();
         let url = "ws://127.0.0.1:12101/wsopen";

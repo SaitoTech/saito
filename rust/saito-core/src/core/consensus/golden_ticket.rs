@@ -73,6 +73,7 @@ mod tests {
     use log::info;
 
     #[test]
+    #[serial_test::serial]
     fn golden_ticket_validate_hashing_difficulty() {
         let hash: SaitoHash = [0u8; 32];
         let mut hash2: SaitoHash = [255u8; 32];
@@ -100,6 +101,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn golden_ticket_extremes_test() {
         let keys = generate_keys();
         let wallet = Wallet::new(keys.1, keys.0);
@@ -114,6 +116,7 @@ mod tests {
         assert!(!gt.validate(256));
     }
     #[test]
+    #[serial_test::serial]
     fn gt_against_slr() {
         let buffer = hex::decode("844702489d49c7fb2334005b903580c7a48fe81121ff16ee6d1a528ad32f235e03bf1a4714cfc7ae33d3f6e860c23191ddea07bcb1bfa6c85bc124151ad8d4ce03cb14a56ddc769932baba62c22773aaf6d26d799b548c8b8f654fb92d25ce7610").unwrap();
         assert_eq!(buffer.len(), 97);
@@ -136,6 +139,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn gt_against_slr_2() {
         // pretty_env_logger::init();
 

@@ -115,6 +115,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn generate_test() {
         let keys = generate_keys();
         let wallet = Arc::new(RwLock::new(Wallet::new(keys.1, keys.0)));
@@ -142,6 +143,7 @@ mod tests {
     }
 
     #[tokio::test]
+    #[serial_test::serial]
     async fn serialize_and_deserialize_test() {
         let keys = generate_keys();
         let wallet = Arc::new(RwLock::new(Wallet::new(keys.1, keys.0)));

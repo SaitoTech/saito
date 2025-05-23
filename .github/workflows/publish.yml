@@ -26,7 +26,7 @@ jobs:
           node-version: '16.x'
           registry-url: 'https://registry.npmjs.org'
           cache: npm
-          cache-dependency-path: saito-wasm/package-lock.json
+          cache-dependency-path: rust/saito-wasm/package-lock.json
 
       - name: get latest saito-wasm version
         run: |
@@ -51,19 +51,27 @@ jobs:
           target: "wasm32-unknown-unknown"
           override: true
 
+      # - name: Build
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: build
+      #     args: --release
+      #     working-directory: ./rust
+
+      # - name: Run tests
+      #   uses: actions-rs/cargo@v1
+      #   with:
+      #     command: test
+      #     args: --release
+      #     working-directory: ./rust
+
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release
-          working-directory: ./rust
+        run: cargo build --verbose
+        working-directory: ./rust
 
       - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release
-          working-directory: ./rust
+        run: cargo test --verbose
+        working-directory: ./rust
 
       - name: Bootstrapping
         run: bash ./scripts/bootstrap_for_ci.sh
@@ -72,23 +80,23 @@ jobs:
 
       - name: Install npm packages for saito-wasm
         run: npm install
-        working-directory: saito-wasm
+        working-directory: ./rust/saito-wasm
 
       - name: Wasm Build
         run: npm run build-prod
-        working-directory: saito-wasm
+        working-directory: ./rust/saito-wasm
 
       - name: Remove gitignore files in saito-wasm
         if: ${{ env.published_saito_wasm_version != env.current_saito_wasm_version }}
         run: rm -rf pkg/web/.gitignore pkg/node/.gitignore
-        working-directory: saito-wasm
+        working-directory: ./rust/saito-wasm
 
       - name: Publish saito-wasm package
         if: ${{ env.published_saito_wasm_version != env.current_saito_wasm_version }}
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        working-directory: saito-wasm
+        working-directory: ./rust/saito-wasm
 
       - name: Upload Saito Rust Artifact
         uses: actions/upload-artifact@v4
@@ -98,13 +106,14 @@ jobs:
 
       - name: Build documentation
         run: cargo doc --no-deps
+        working-directory: ./rust
 
       - name: Copy index.html file
         run: cp .github/workflows/doc_index.template.html rust/target/doc/index.html
 
       - name: Fix permissions
         run: |
-          chmod -c -R +rX "target/doc/" | while read line; do
+          chmod -c -R +rX "rust/target/doc/" | while read line; do
             echo "::warning title=Invalid file permissions automatically fixed::$line"
           done
         working-directory: ./rust
@@ -181,62 +190,63 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout SLR
-        uses: actions/checkout@v2
-        with:
-          repository: 'SaitoTech/saito-lite-rust'
-          path: 'slr'
-          ref: 'staging'
+      # - name: Checkout SLR
+      #   uses: actions/checkout@v2
+      #   with:
+      #     repository: 'SaitoTech/saito-lite-rust'
+      #     path: 'slr'
+      #     ref: 'staging'
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: update package.json
         run: npm update saito-js
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: Copy modules.config
-        run: cp config/modules.default.js config/modules.config.js
-        working-directory: 'slr'
+        run: cp node/config/modules.default.js node/config/modules.config.js
 
       - name: npm install
         run: npm install
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: ts-node install
         run: npm install -g ts-node
 
       - name: Compile SLR
         run: npm run reset dev
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: create ssh keys
         run: echo "$CI_SSH_PRIVATE_KEY" >> CI_KEY
-        working-directory: 'slr'
+        working-directory: 'node'
         env:
           CI_SSH_PRIVATE_KEY: ${{ secrets.CI_SSH_PRIVATE_KEY }}
 
       - name: chmod key
         run: chmod 600 ./CI_KEY
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: gen key
         run: ssh-keygen -f ./CI_KEY -y > CI_KEY.pub
-        working-directory: "slr"
+        working-directory: "node"
 
       - name: print size of key
         run: ls -l CI_KEY*
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: copy blocks in prod-services into data/blocks folder
         run: rsync -avPq -e "ssh -o StrictHostKeyChecking=no -i ./CI_KEY" root@prod-services.saito.io:/opt/saito/data/blocks/ data/blocks/
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: ls blocks
         run: ls -1 data/blocks/ | wc -l
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: run issuance file generation
         run: npm run generate-issuance
-        working-directory: 'slr'
+        working-directory: 'node'
 
       - name: check for generated issuance file
         run: ls data/issuance.file
-        working-directory: 'slr'
+        working-directory: 'node'
