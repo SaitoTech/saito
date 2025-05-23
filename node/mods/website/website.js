@@ -13,6 +13,7 @@ class Website extends ModTemplate {
 		this.categories = 'Utilities Communications';
 		this.class = 'utility';
 		this.header = null;
+		this.browser_active = 0;
 		return this;
 	}
 
@@ -24,10 +25,14 @@ class Website extends ModTemplate {
 	initialize(app) {}
 
 	webServer(app, expressapp, express) {
-		expressapp.use(
-			'/',
-			express.static(`${__dirname}/../../mods/${this.dirname}/web`)
-		);
+		
+		// default mod now serving from options.conf (active_module)
+
+		// expressapp.use(
+		// 	'/',
+		// 	express.static(`${__dirname}/../../mods/${this.dirname}/web`)
+		// );
+
 		// TODO: change every reference in the site from /website/* to /* and remove this line
 		expressapp.use(
 			`/${this.dirname}/`,

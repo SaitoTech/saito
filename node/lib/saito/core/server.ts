@@ -276,6 +276,7 @@ class Server {
     public app: Saito;
     public blocks_dir: string;
     public web_dir: string;
+    public mods_dir: string;
     public server: any = {
         host: '',
         port: 0,
@@ -301,6 +302,7 @@ class Server {
 
         this.blocks_dir = path.join(__dirname, '../../../data/blocks/');
         this.web_dir = path.join(__dirname, '../../../web/');
+        this.mods_dir = path.join(__dirname, '../../../mods/');
 
         this.webserver = null;
         //this.io                         = null;
@@ -1033,12 +1035,30 @@ class Server {
         //
         this.app.modules.webServer(expressApp, express);
 
-        expressApp.get('*', (req, res) => {
-            if (!res.finished) {
-                return res.sendFile(`${this.web_dir}404.html`);
+        expressApp.get('*', (req, res, next) => {
+          const slug = req.path.substring(1).split('/')[0];
+
+          if (slug === '') {
+            const activeModule = this.app.options.active_module;
+            if (activeModule) {
+              return res.sendFile(
+                path.join(__dirname, '../../../mods', activeModule, 'web', 'index.html')
+              );
             }
-            return;
+
+            const websiteMod = this.app.modules.mods.find(m => m.slug === 'website');
+            if (websiteMod) {
+              return res.sendFile(
+                path.join(__dirname, '../../../mods', 'website', 'web', 'index.html')
+              );
+            }
+          }
+
+          // none matched → 404
+          return res.sendFile(path.join(this.web_dir, '404.html'));
         });
+
+
 
         this.initializeWebSocketServer();
 
