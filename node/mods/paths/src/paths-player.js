@@ -775,6 +775,7 @@ console.log("UNIT: " + JSON.stringify(unit));
         if (continue_fnct()) {
 	  this.playerSpendReplacementPoints(faction);
 	} else {
+	  this.replacements_overlay.hide();
 	  this.endTurn();
 	}
 	return;
@@ -851,7 +852,7 @@ console.log(JSON.stringify(rp));
       if (is_capital_besieged == true) { return 0; }
       if (rp[unit.ckey] > 0) { return 1; }
       if (rp["A"] > 0) {
-	if (unit.ckey == "ANA" || unit.ckey == "AUS" || unit.ckey == "BE" || unit,ckey == "CND" || unit.ckey == "MN" || unit.ckey == "PT" || unit.ckey == "RO" || unit.ckey == "GR" || unit.ckey == "SB") {
+	if (unit.ckey == "ANA" || unit.ckey == "AUS" || unit.ckey == "BE" || unit.ckey == "CND" || unit.ckey == "MN" || unit.ckey == "PT" || unit.ckey == "RO" || unit.ckey == "GR" || unit.ckey == "SB") {
 	  return 1;
 	}
       }
