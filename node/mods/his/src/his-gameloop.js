@@ -14932,10 +14932,9 @@ try {
           }
 
 
-          if (space.besieged != 0) {
-            space.besieged = 0;
+	  if (this.game.spaces[space].besieged != 0) {
+            this.game.spaces[space].besieged = 0;
           }
-
 
 	  this.displaySpace(space);
 	  this.displayVictoryTrack();
