@@ -272,6 +272,9 @@ class GameTemplate extends ModTemplate {
 
 		this.statistical_unit = 'game';
 
+		// Want to handle SaitoTalk through the game menu -- not the saito-header
+		this.disable_talk = true;
+
 		this.enable_observer = true;
 
 		app.connection.on('update-username-in-game', () => {
@@ -361,6 +364,10 @@ class GameTemplate extends ModTemplate {
 
 						if (this.game.player) {
 							this.app.connection.emit('relay-notify-peer', this.game.opponents, data);
+						}
+
+						if (this?.room_obj){
+							this.sendMetaMessage("CALL", this.room_obj);
 						}
 					}
 
@@ -1377,6 +1384,75 @@ class GameTemplate extends ModTemplate {
 			return;
 		}
 
+		if (txmsg.request == "CALL") {
+			document.getElementById('start-group-video-chat').classList.add('notification');
+			document.getElementById('start-group-video-chat').innerHTML = "Join call";
+
+			if (txmsg.my_key !== this.publicKey && !this?.room_obj) {
+				document.getElementById('game-social').classList.add('notification');
+
+				this.app.connection.emit("stun-receive-ingame-call", (txmsg.data));
+
+				// We should save this, even after hanging up...
+				this.room_obj = txmsg.data;
+
+				siteMessage(`${this.app.keychain.returnUsername(txmsg.my_key)} invites you to an in-game call`, 2000);
+			}
+		}
+
+
+		if (txmsg.request == 'STAKE'){
+
+			let auths = 0;
+			let { ticker, stake, sigs, ts } = txmsg.data;
+
+			console.log("STAKE: ", txmsg.data);
+
+			try {
+				let stake_val = typeof stake === "object" ? stake?.min : stake;
+
+				for (let i = 0; i < this.game.players.length; i++) {
+					let msg_to_verify = `${ts} ${ticker} ${stake_val} ${this.game.id}`;
+					if (sigs[i] !== '') {
+						if (
+							this.app.crypto.verifyMessage(
+								msg_to_verify,
+								sigs[i],
+								this.game.players[i]
+							)
+						) {
+							auths++;
+						} 
+				}
+			}
+			} catch (err) {
+				console.error('err: ' + err);
+			}
+
+			if (auths == this.game.players.length) {
+					// the game can initialize anything it needs
+					this.initializeGameStake(ticker, stake);
+			}else if (sigs[this.game.player-1] == "") {
+						this.app.connection.emit('accept-game-stake', {
+							game_mod: this,
+							ticker,
+							stake,
+							accept_callback: (input = null) => {
+								if (input != null){
+									stake[this.publicKey] = input;
+								}
+								this.proposeGameStake(ticker, stake, sigs, ts);
+							},
+							reject_callback: () => {
+								this.refuseGameStake(ticker, stake);
+							}
+						});
+
+				} 
+
+			return;
+		}
+
 		console.warn('Game Engine: unprocessed meta transaction -- ', tx, txmsg);
 	}
 
@@ -1411,6 +1487,16 @@ class GameTemplate extends ModTemplate {
 			request: 'game relay update',
 			data: newtx.toJson()
 		});
+	}
+
+	currentRound(){
+		if (this.game?.state?.round){
+			return this.game.state.round;
+		} else if (this.game?.round){
+			return this.game.round;
+		}
+
+		return 0;
 	}
 
 	visibilityChange() {

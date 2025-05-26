@@ -97,7 +97,7 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
         position: absolute;
         left: 50%;
         top: 50%;
-        border-radius: 3rem;
+        border-radius: 1rem;
         border: 1px solid var(--saito-border-color);
         transform: translate(-50%,-50%);
       }
@@ -113,7 +113,7 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
         align-items: center;
         background-color: rgba(230, 230, 230, 0.7);
         border: 1px solid var(--saito-border-color);
-        border-radius: 3rem;
+        border-radius: 1rem;
       }
 
       .game-loader-backdrop + img + .saito-loader-container{
@@ -129,7 +129,7 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
         align-items: center;
         background-color: rgba(230, 230, 230, 0.5);
         border: 1px solid var(--saito-border-color);
-        border-radius: 3rem;
+        border-radius: 1rem;
         padding-top: 2rem;
       }
 

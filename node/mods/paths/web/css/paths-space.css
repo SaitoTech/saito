@@ -24,6 +24,17 @@
 	row-gap: 1rem;
 }
 
+.space-overlay .control {
+    border-radius: unset;
+    position: relative;
+    font-size: 1.6rem;
+    justify-content: space-around;
+    height: min-content;
+    min-height: fit-content;
+    text-align: center;
+    cursor: default;
+}
+
 .space-overlay .units .army-tile {
 	position: relative;
 }

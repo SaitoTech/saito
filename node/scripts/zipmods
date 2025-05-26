@@ -20,6 +20,7 @@ for dir in "$SOURCE_DIR"/*; do
     cp -r "$dir" "$TARGET_DIR/$dirname"
 
     rm -rf "$TARGET_DIR/$dirname/license"
+    rm -rf "$TARGET_DIR/$dirname/build"
     rm -rf "$TARGET_DIR/$dirname/web"
     rm -rf "$TARGET_DIR/$dirname/.DS_Store"
 

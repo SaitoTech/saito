@@ -273,6 +273,7 @@ console.log("unit: " + u.name + " w " + u.key + " --- " + key);
     let controlling_faction = "allies";
 
     if (faction == "cp" || faction == "ge" || faction == "austria" || faction == "germany" || faction == "ah" || faction == "central") { sources = ["essen","breslau","sofia","constantinople"]; controlling_faction = "central"; }
+    if (faction == "tu" || faction == "turkey") { sources = ["constantinople"]; controlling_faction = "central"; }
     if (faction == "be" || faction == "belgium") { sources = ["london"]; }
     if (faction == "fr" || faction == "france") { sources = ["london"]; }
     if (faction == "ap" || faction == "allies") { sources = ["london"]; }

@@ -4005,7 +4005,7 @@ console.log(JSON.stringify(his_self.game.state.theological_debate));
 	//
 	let skip_keys = ["innsbruck","linz","vienna","graz","zurich","basel"];
 	for (let key in his_self.game.spaces) {
-	  s = his_self.game.spaces[key];
+	  let s = his_self.game.spaces[key];
 	  if (s.language == "german") { 
 	    if (s.religion == "protestant") {
 	      if (!skip_keys.includes(key)) {

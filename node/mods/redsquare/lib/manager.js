@@ -707,7 +707,7 @@ class TweetManager {
 		let ob = document.getElementById('intersection-observer-trigger');
 
 		if (ob) {
-			console.log('RS -- add IO for infinite scroll (3)');
+			//console.log('RS -- add IO for infinite scroll (3)');
 			this.intersectionObserver.observe(ob);
 			//Only set up intersection observer if we have more content than fits on the screen
 			//(so we don't double tap the servers)
