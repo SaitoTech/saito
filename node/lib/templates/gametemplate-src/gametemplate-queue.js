@@ -77,7 +77,7 @@ class GameQueue {
 		this.initializeDice(); // Make sure we have dice before initializing the game
 
 		// crypto support
-		if (this.game.options?.crypto) {
+		if (this.game.options?.crypto && !this.game.crypto) {
 			if (typeof this.game.options.stake == 'object') {
 				this.game.stake = this.game.options.stake;
 			} else {
@@ -331,32 +331,6 @@ class GameQueue {
 		this.commands = [];
 		this.commands.push(async (game_self, gmv) => {
 			if (gmv[0] === 'SETVAR') {
-				if (gmv[1]) {
-					if (gmv[1] == 'stake') {
-						return 1;
-					}
-				}
-				if (gmv[2]) {
-					if (gmv[2] == 'stake') {
-						return 1;
-					}
-				}
-				if (gmv[3]) {
-					if (gmv[3] == 'stake') {
-						return 1;
-					}
-				}
-				if (gmv[4]) {
-					if (gmv[4] == 'stake') {
-						return 1;
-					}
-				}
-				if (gmv[5]) {
-					if (gmv[5] == 'stake') {
-						return 1;
-					}
-				}
-
 				if (gmv[1] === 'game') {
 					if (gmv[2]) {
 						gmv[1] = gmv[2];
@@ -2750,102 +2724,7 @@ class GameQueue {
 			return 1;
 		});
 
-		//
-		// provides a way for games to enable in-game crypto
-		//
-		// if i receive this, a player in the game is proposing a crypto-game
-		// and i should respond in some capacty.
-		//
-		this.commands.push(async (game_self, gmv) => {
-			if (gmv[0] === 'STAKE') {
-				let ticker = gmv[1];
-				let stake = gmv[2];
-				let ts = parseInt(gmv[3]);
-				let sigs = JSON.parse(gmv[4]);
-				let auths = 0;
-				let first_non_verifier_idx = -1;
 
-				// avoid running "STAKE" if "READY" hasnt been processed yet
-				if (!game_self.gameBrowserActive()) {
-					return 0;
-				}
-
-				//
-				// players can update the timestamp to NOSTAKE to unequivocably reject
-				// the request to switch to a staked game.
-				//
-				if (ts == 'NOSTAKE') {
-					game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
-					return 1;
-				}
-
-				//
-				// otherwise, we check to see if all of the sigs exist and if they don't
-				// we ask the players to authorize or reject one-by-one.
-				//
-				game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
-
-				try {
-					for (let i = 0; i < game_self.game.players.length; i++) {
-						let msg_to_verify = `${ts} ${ticker} ${stake} ${game_self.game.id}`;
-						if (sigs[i] !== '') {
-							if (
-								game_self.app.crypto.verifyMessage(
-									msg_to_verify,
-									sigs[i],
-									game_self.game.players[i]
-								)
-							) {
-								auths++;
-							} else {
-								if (first_non_verifier_idx == -1) {
-									first_non_verifier_idx = i;
-								}
-							}
-						} else {
-							first_non_verifier_idx = i;
-						}
-					}
-				} catch (err) {
-					console.log('err: ' + err);
-				}
-
-				if (auths == game_self.game.players.length) {
-					game_self.updateLog(`Crypto Activated: ${stake} ${ticker}`);
-					game_self.decimal_precision = 8;
-					game_self.game.options.crypto = ticker;
-					game_self.game.options.stake = stake;
-					game_self.game.crypto = ticker;
-					game_self.game.stake = stake;
-					siteMessage(`Crypto Activated: ${stake} ${ticker}`, 2000);
-					// the game can initialize anything it needs
-					await game_self.initializeGameStake(ticker, stake);
-				} else {
-					if (game_self.game.player - 1 == first_non_verifier_idx) {
-						//
-						// auto-accept
-						//
-						game_self.app.connection.emit('accept-game-stake', {
-							game_mod: this,
-							ticker,
-							stake,
-							accept_callback: () => {
-								game_self.proposeGameStake(ticker, stake, sigs, ts);
-							},
-							reject_callback: () => {
-								game_self.refuseGameStake(ticker, stake);
-							}
-						});
-					} else {
-						this.hud.back_button = false;
-						this.updateStatus('Waiting for Others to Accept');
-					}
-					return 0;
-				}
-			}
-
-			return 1;
-		});
 	}
 }
 

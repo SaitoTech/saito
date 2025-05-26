@@ -3,7 +3,7 @@ module.exports = (app, mod, details) => {
 	//let to_identicon = app.keychain.returnIdenticon(to_publicKey);
 	//let to_username = app.keychain.returnUsername(to_publicKey);
 
-	html = `  
+	let html = `  
   <div class="game-crypto-transfer-manager-container" id="send-crypto-request-container">
     
     <h2 class="auth_title" id="auth_title">Sending Payment</h2>

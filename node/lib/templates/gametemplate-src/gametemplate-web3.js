@@ -9,47 +9,42 @@ class GameWeb3 {
 	// have any module-specific initialization work to do. it is a good idea to restart
 	// the game for instance...
 	//
-	async initializeGameStake(crypto, stake) {
-		//
-		// reset vars
-		//
-		//this.game.queue = [];
-		//this.game.deck = [];
-		delete this.game.state;
+	async initializeGameStake(ticker, stake) {
 
-		//this.halted = 0;
-		//this.gaming_active = 0;
+		this.game.options.crypto = ticker;
+		this.game.options.stake = stake;
+		this.game.crypto = ticker;
+		this.game.stake = stake;
 
-		//
-		// have we tried running our existing queue?
-		//
-		this.initialize_game_run = 0;
-
-		await this.initializeGame(this.game.id);
-
-		if (this.gameBrowserActive()) {
-			await this.render(this.app);
+		console.log(stake);
+		// Need to parse if asymmetrical
+		if (typeof stake === "object") {
+			console.log("HELLO!!!!");
+			let obj = Object.assign({}, stake);
+			delete obj.min;
+			stake = Object.values(obj).join(" / ");
 		}
 
+		this.updateLog(`Crypto Activated: ${stake} ${ticker}`);
+		siteMessage(`Crypto Activated: ${stake} ${ticker}`, 2000);
+
+		this.saveGame(this.game.id);
+
 		if (this.gameBrowserActive()) {
-			console.log('Get Logo for ' + crypto);
-			this.insertCryptoLogo(crypto);
+			console.log('Get Logo for ' + ticker);
+			this.insertCryptoLogo(ticker);
+
+			// Updates playerboxes (if used)
+			this.insertLeagueRankings();
+
+			// Re-render game-menu
+			let cm = this.app.modules.returnModule("Crypto");
+			if (cm){
+				let cmenu = cm.respondTo('game-menu', this);
+				this.menu.replaceMenuByID(cmenu);
+			}
 		}
-
-		console.log('restarting which queue 1: ');
-		console.log('restarting which queue 1: ');
-		console.log('restarting which queue 1: ');
-		console.log('restarting which queue 1: ');
-		console.log(JSON.stringify(this.game.queue));
-		// TODO REMOVE ONCE WEB3 all solid
-		//		this.restartQueue();
-		console.log('restarting which queue 2: ');
-		console.log('restarting which queue 2: ');
-		console.log('restarting which queue 2: ');
-		console.log('restarting which queue 2: ');
-		console.log(JSON.stringify(this.game.queue));
-
-		this.insertLeagueRankings();
+		
 	}
 
 	insertCryptoLogo(ticker) {
@@ -84,15 +79,10 @@ class GameWeb3 {
 	// them to accept / reject the idea.
 	//
 	async proposeGameStake(ticker = '', stake = '', sigs = [], ts = new Date().getTime()) {
+
 		//
-		// restore original pre-move state
+		// use sigs to track the confirmations
 		//
-		// this ensures if we are halfway through a move that we will
-		// return to the game in a clean state after we send the request
-		// to our opponent for shifting game modes.
-		//
-		this.game = this.game_state_pre_move;
-		this.moves = [];
 
 		while (sigs.length < this.game.players.length) {
 			sigs.push('');
@@ -100,33 +90,18 @@ class GameWeb3 {
 
 		let privateKey = await this.app.wallet.getPrivateKey();
 
+		let stake_val = typeof stake === "object" ? stake?.min : stake;
+
 		sigs[this.game.player - 1] = this.app.crypto.signMessage(
-			`${ts} ${ticker} ${stake} ${this.game.id}`,
+			`${ts} ${ticker} ${stake_val} ${this.game.id}`,
 			privateKey
 		);
 
-		//
-		// remove STAKE instruction
-		//
-		if (this.game.queue.length) {
-			let pmv = this.game.queue[this.game.queue.length - 1];
-			let pm = pmv.split('\t');
-			if (pm[0] === 'STAKE') {
-				this.game.queue.splice(this.game.queue.length - 1, 1);
-			}
-		}
-
-		this.game.turn = [`STAKE\t${ticker}\t${stake}\t${ts}\t${JSON.stringify(sigs)}`];
-		await this.sendGameMoveTransaction('game', {});
+		this.sendMetaMessage("STAKE", { ticker, stake, sigs, ts })
 	}
 
-	async depositGameStake(ticker = '', stake = '') {
-		this.game.turn = ['ACKNOWLEDGE\tOpponent considering...'];
-		await this.sendGameMoveTransaction('game', {});
-	}
 	async refuseGameStake(ticker = '', stake = '') {
-		this.game.turn = ['ACKNOWLEDGE\tCrypto Game Rejected'];
-		await this.sendGameMoveTransaction('game', {});
+		
 	}
 
 	/**

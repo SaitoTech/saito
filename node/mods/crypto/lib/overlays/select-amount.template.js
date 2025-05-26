@@ -1,5 +1,5 @@
 module.exports = (app, mod, form) => {
-	let html = `
+  let html = `
 
     <div class="game-crypto-transfer-manager-container" id="stake-crypto-request-container">
 
@@ -51,7 +51,8 @@ module.exports = (app, mod, form) => {
             <div class="stake-input-error" id="stake-amount-error"></div>
           </div>`;
 
-  if (mod.min_balance >= 0){
+  /* Poorly named variable, but just tells us if is an opengame or not*/
+  if (mod.max_match >= 0){
 
     html += `
         <div class="crypto-stake-confirm-container">
@@ -81,5 +82,5 @@ module.exports = (app, mod, form) => {
  
   `;
 
-	return html;
+  return html;
 };

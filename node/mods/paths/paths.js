@@ -5626,6 +5626,9 @@ console.log("err: " + err);
 
     let paths_self = this;
 
+    let xpos = 0;
+    let ypos = 0;
+
     //
     // add tiles
     //
@@ -5640,10 +5643,18 @@ console.log("err: " + err);
     //
     if (!paths_self.bound_gameboard_zoom) {
 
-      //$('.main .gameboard').on('mousedown', function (e) {
-      //  if (e.currentTarget.classList.contains("space")) { return; }
-      //});
+      $('.main .gameboard').on('mousedown', function (e) {
+        if (e.currentTarget.classList.contains("space")) { return; }
+        xpos = e.clientX;
+        ypos = e.clientY;
+      });
       $('.main .gameboard').on('mouseup', function (e) {
+
+	//
+	// this indicates drag
+	//
+        if (Math.abs(xpos-e.clientX) > 4) { return; }
+        if (Math.abs(ypos-e.clientY) > 4) { return; }
 
         //
         // if this is a selectable space, let people select directly
@@ -6440,6 +6451,7 @@ console.log("unit: " + u.name + " w " + u.key + " --- " + key);
     let controlling_faction = "allies";
 
     if (faction == "cp" || faction == "ge" || faction == "austria" || faction == "germany" || faction == "ah" || faction == "central") { sources = ["essen","breslau","sofia","constantinople"]; controlling_faction = "central"; }
+    if (faction == "tu" || faction == "turkey") { sources = ["constantinople"]; controlling_faction = "central"; }
     if (faction == "be" || faction == "belgium") { sources = ["london"]; }
     if (faction == "fr" || faction == "france") { sources = ["london"]; }
     if (faction == "ap" || faction == "allies") { sources = ["london"]; }
@@ -11662,6 +11674,7 @@ try {
 	  // mandated offensive tracking
 	  //
 	  let au = this.returnAttackerUnits();
+console.log("MO AU: " + JSON.stringify(au));
 	  if (this.game.state.combat.attacking_faction == "central") {
 	    if (this.game.state.mandated_offensives.allies === "AH IT") {
 
@@ -11751,7 +11764,7 @@ try {
 		if (sp.country == "belgium" || sp.country == "france" || sp.country == "germany") {
 		  for (let z = 0; z < sp.units.length; z++) {
 		    if (sp.units[z].ckey == "GE") {
-	              this.game.state.mo["allies"].push(this.game.spaces[this.game.state.combat.key].units[i].ckey);
+	              this.game.state.mo["allies"].push(au[i].ckey);
 		      z = sp.units.length+1;
 		    }
 		  }
@@ -13905,6 +13918,7 @@ console.log("UNIT: " + JSON.stringify(unit));
         if (continue_fnct()) {
 	  this.playerSpendReplacementPoints(faction);
 	} else {
+	  this.replacements_overlay.hide();
 	  this.endTurn();
 	}
 	return;
@@ -13981,7 +13995,7 @@ console.log(JSON.stringify(rp));
       if (is_capital_besieged == true) { return 0; }
       if (rp[unit.ckey] > 0) { return 1; }
       if (rp["A"] > 0) {
-	if (unit.ckey == "ANA" || unit.ckey == "AUS" || unit.ckey == "BE" || unit,ckey == "CND" || unit.ckey == "MN" || unit.ckey == "PT" || unit.ckey == "RO" || unit.ckey == "GR" || unit.ckey == "SB") {
+	if (unit.ckey == "ANA" || unit.ckey == "AUS" || unit.ckey == "BE" || unit.ckey == "CND" || unit.ckey == "MN" || unit.ckey == "PT" || unit.ckey == "RO" || unit.ckey == "GR" || unit.ckey == "SB") {
 	  return 1;
 	}
       }
@@ -16164,6 +16178,7 @@ console.log("in supply!");
 
     obj.key = key;
 
+    if (!obj.ckey)      	{ obj.key       = "XX"; }
     if (!obj.name)      	{ obj.name      = "Unknown"; }
     if (!obj.army)		{ obj.army 	= 0; }
     if (!obj.corps)		{ obj.corps 	= 0; }

@@ -28,6 +28,7 @@ class SpaceOverlay {
 		for (let z = 0; z < space.units.length; z++) { html += this.mod.returnUnitImage(space.units[z]); }
 		document.querySelector(".space-overlay .units").innerHTML = html;
 		document.querySelector(".space-overlay .status").innerHTML = "in supply";
+		document.querySelector(".space-overlay .control").innerHTML = space.control + " control";;
 		if (!this.mod.checkSupplyStatus(spacekey)) { document.querySelector(".space-overlay .status").innerHTML = "out-of-supply"; }
 
 		this.attachEvents();
