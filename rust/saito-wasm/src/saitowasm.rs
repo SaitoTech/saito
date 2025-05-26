@@ -24,11 +24,11 @@ use saito_core::core::consensus::context::Context;
 use saito_core::core::consensus::mempool::Mempool;
 use saito_core::core::consensus::peers::peer_collection::PeerCollection;
 use saito_core::core::consensus::transaction::{Transaction, TransactionType};
-use saito_core::core::consensus::wallet::{Wallet, NFT};
+use saito_core::core::consensus::wallet::{DetailedNFT, Wallet, NFT};
 use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusStats, ConsensusThread};
 use saito_core::core::defs::{
-    BlockId, Currency, PeerIndex, PrintForLog, SaitoPrivateKey, SaitoPublicKey, StatVariable,
-    Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
+    BlockId, Currency, PeerIndex, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoUTXOSetKey,
+    StatVariable, Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
 use saito_core::core::io::network::{Network, PeerDisconnectType};
 use saito_core::core::io::network_event::NetworkEvent;
@@ -361,7 +361,7 @@ pub async fn initialize(
 
     trace!("trace test");
     debug!("debug test");
-    info!("initializing saito-wasm");
+    info!("initializing saito-wasm  2");
 
     let mut enable_stats = true;
     let mut genesis_period = 100_000;
@@ -608,41 +608,42 @@ pub async fn create_bound_transaction(
 #[wasm_bindgen]
 pub async fn create_send_bound_transaction(
     amt: u64,
-    nft_id: String,
+    slip1_utxo_key: JsString,
+    slip2_utxo_key: JsString,
+    slip3_utxo_key: JsString,
     data: String,
     recipient_public_key: JsString,
 ) -> Result<WasmTransaction, JsValue> {
     let saito = SAITO.lock().await;
     let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
 
-    // Decode the NFT id hex string into a Vec<u8>
-    let nft_id_vec = hex::decode(&nft_id)
-        .map_err(|_| JsValue::from_str("Failed to decode nft_id hex string"))?;
+    let s1: SaitoUTXOSetKey =
+        string_to_hex(slip1_utxo_key).map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
+    let s2: SaitoUTXOSetKey =
+        string_to_hex(slip2_utxo_key).map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
+    let s3: SaitoUTXOSetKey =
+        string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
 
-    let serialized_data =
+    let serialized_data: Vec<u8> =
         serde_json::to_vec(&data).map_err(|_| JsValue::from_str("Failed to serialize data"))?;
     let serialized_data_u32: Vec<u32> = serialized_data
         .chunks(4)
         .map(|chunk| {
-            let mut bytes = [0u8; 4];
-            for (i, &b) in chunk.iter().enumerate() {
-                bytes[i] = b;
-            }
-            u32::from_le_bytes(bytes)
+            let mut b = [0u8; 4];
+            b[..chunk.len()].copy_from_slice(chunk);
+            u32::from_le_bytes(b)
         })
         .collect();
 
-    let key = string_to_key(recipient_public_key).or(Err(JsValue::from_str(
-        "Failed parsing public key string to key",
-    )))?;
+    let key = string_to_key(recipient_public_key)
+        .map_err(|_| JsValue::from_str("Bad recipient_public_key"))?;
 
     let tx = wallet
-        .create_send_bound_transaction(amt, nft_id_vec, serialized_data_u32, &key)
+        .create_send_bound_transaction(amt, s1, s2, s3, serialized_data_u32, &key)
         .await
-        .map_err(|_| JsValue::from_str("Failed to transfer NFT transaction"))?;
+        .map_err(|_| JsValue::from_str("create_send_bound_transaction failed"))?;
 
-    let wasm_transaction = WasmTransaction::from_transaction(tx);
-    Ok(wasm_transaction)
+    Ok(WasmTransaction::from_transaction(tx))
 }
 
 #[wasm_bindgen]
@@ -650,12 +651,36 @@ pub async fn get_nft_list() -> Result<Array, JsValue> {
     let saito = SAITO.lock().await;
     let wallet = saito.as_ref().unwrap().context.wallet_lock.read().await;
 
-    let nft_array = Array::new();
-    for nft in wallet.get_nft_list().iter() {
-        nft_array.push(&WasmNFT::from_nft(nft.clone()).into());
+    let detailed_nfts: Vec<DetailedNFT> = wallet.get_nft_list();
+
+    let js_array = Array::new_with_length(detailed_nfts.len() as u32);
+
+    //
+    // for each DetailedNFT, build a WasmNFT
+    //
+    for (id, nft) in detailed_nfts.into_iter().enumerate() {
+        let mut w = WasmNFT::new();
+
+        let id_arr = Uint8Array::from(nft.id.as_slice());
+        w.set_id(&id_arr);
+
+        let sig_arr = Uint8Array::from(nft.tx_sig.as_ref());
+        w.set_tx_sig(&sig_arr);
+
+        //
+        // Slip to WasmSlip
+        //
+        let ws1 = WasmSlip::new_from_slip(nft.slip1);
+        w.set_slip1(&ws1);
+        let ws2 = WasmSlip::new_from_slip(nft.slip2);
+        w.set_slip2(&ws2);
+        let ws3 = WasmSlip::new_from_slip(nft.slip3);
+        w.set_slip3(&ws3);
+
+        js_array.set(id as u32, w.into());
     }
 
-    Ok(nft_array)
+    Ok(js_array)
 }
 
 #[wasm_bindgen]
