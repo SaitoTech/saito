@@ -1130,7 +1130,7 @@ class RedSquare extends ModTemplate {
   //
   // returns 1 if this is a new tweet that can be displayed
   //
-  addTweet(tx, source = '', curated = 0) {
+  addTweet(tx, source = '', curated = 0 /* Unused ! */) {
     //
     // if this is a like or flag tx, it isn't anything to add to the feed so stop here
     //
@@ -1213,7 +1213,7 @@ class RedSquare extends ModTemplate {
       let t = this.returnTweet(tweet.tx.signature);
 
       if (this.debug){
-        console.log(`RS add duplicate tweet (${source}, ${curated}) to feed (${this.tweets.length}) -- `, t?.text);
+        console.log(`RS add duplicate tweet (${source}, ${tweet.curated}) to feed (${this.tweets.length}) -- `, t?.text);
       }
 
       if (!t) {
@@ -1287,7 +1287,7 @@ class RedSquare extends ModTemplate {
       }
 
       if (this.debug){
-        console.log(`RS addTweet (${source}, ${curated}) to feed (${this.tweets.length}) -- `, tweet.text);
+        console.log(`RS addTweet (${source}, ${tweet?.curated}) to feed (${this.tweets.length}) -- `, tweet.text);
       }
 
       return 1;
@@ -1307,7 +1307,7 @@ class RedSquare extends ModTemplate {
           this.tweets_sigs_hmap[tweet.tx.signature] = 1;
 
           if (this.debug){
-            console.log(`RS add child Tweet (${source}, ${curated}) to feed (${this.tweets.length}) -- `, tweet.text);
+            console.log(`RS add child Tweet (${source}, ${tweet?.curated}) to feed (${this.tweets.length}) -- `, tweet.text);
           }
 
           return 0;
@@ -1318,7 +1318,7 @@ class RedSquare extends ModTemplate {
       this.tweets_sigs_hmap[tweet.tx.signature] = 1;
 
       if (this.debug){
-        console.log(`RS add unknown child tweet (${source}, ${curated}) to feed (${this.tweets.length}) -- `, tweet.text);
+        console.log(`RS add unknown child tweet (${source}, ${tweet?.curated}) to feed (${this.tweets.length}) -- `, tweet.text);
       }
 
       return 0;
@@ -2290,7 +2290,7 @@ class RedSquare extends ModTemplate {
       this.hidden_tweets = rso?.hidden_tweets || [];
 
       if (rso?.curated == 0) {
-        this.curated = 0;
+        this.curated = false;
       }
     }
 
