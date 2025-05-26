@@ -62,9 +62,7 @@ class RedSquareMain {
         for (let i = 0; i < this.mod.tweets.length && i < 10; i++) {
           if (!this.mod.tweets[i].isRendered()) {
             if (!this.mod.curated || this.mod.tweets[i].curated) {
-              if (this.mod.tweets[i].curated) {
-                are_there_new_tweets_to_show = true;
-              }
+              are_there_new_tweets_to_show = true;
             }
           }
         }
