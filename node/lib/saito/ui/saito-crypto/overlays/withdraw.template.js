@@ -17,9 +17,6 @@ module.exports = (app, mod, publickey = "", address = "") => {
               <div>
                  Send Token
               </div>
-              <div class="nft-link" id="nft-link">
-                 <span>send or create nft</span> 
-              </div>
            </div>
         </div>
 
