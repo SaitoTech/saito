@@ -220,6 +220,7 @@ class RedSquareNavigation {
               }
             )
           );
+          console.log(optjson);
           var tree = jsonTree.create(optjson, el);
         } catch (err) {
           console.error('error creating jsonTree: ' + err);
