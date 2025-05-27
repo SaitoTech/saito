@@ -27,19 +27,14 @@ class RedSquareImage {
 			var img = new Image();
 			/*
       img.onload = function () {
-        //console.log("Image load");
         let available_width_qs = ".tweet-" + sig + " > .tweet-body .tweet-main";
         if (document.querySelector(available_width_qs)) {
           let obj = document.querySelector(available_width_qs);
           expected_width = parseInt(obj.getBoundingClientRect().width);
-          //console.log("Column Width: " + expected_width);
-        } else {
-          //console.log("QS not found");
         }
 
         let aspect_ratio = img.width / img.height;
-        //console.log("Aspect: " + aspect_ratio);
-
+        
         if (img.height >= img.width) {
           expected_height = expected_width;
         } else {
@@ -51,7 +46,6 @@ class RedSquareImage {
         if (obj) {
           obj.style.maxHeight = Math.floor(expected_height) + "px";
           obj.style.maxWidth = expected_width + "px";
-          //console.log(obj.style.maxWidth + ", " + obj.style.maxHeight);
         }
       };
       */

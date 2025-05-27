@@ -115,7 +115,7 @@ class RedSquareNavigation {
       e.preventDefault();
       e.stopImmediatePropagation();
 
-      console.log("======================", "RSNAV: click home ...")
+      console.info("RS.NAV: clicked home ...")
 
       if (window.location.hash || window.location.search) {
 

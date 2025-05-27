@@ -30,7 +30,7 @@ class RedSquareNotification {
 			if (txmsg.data?.signature) {
 				this.mod.loadTweetWithSig(txmsg.data.signature, (txs) => {
 					if (!txs) {
-						console.log('Notification for unknown tweet');
+						console.warn('RS.Notification for unknown tweet');
 						return null;
 					}
 
@@ -39,7 +39,7 @@ class RedSquareNotification {
 						if (txs.length > 0) {
 							tweet_tx = txs[0];
 						} else {
-							console.log('Notification for unknown tweet');
+							console.warn('RS.Notification for unknown tweet');
 							return null;
 						}
 					} else {
@@ -145,7 +145,7 @@ class RedSquareNotification {
 					this.user.notice = `<span class='notification-type'>${msg}</span>`;
 				}
 			} else {
-				console.log('Unknown Notification type: ', txmsg.request);
+				console.warn('RS.Notification: Unknown type -- ', txmsg.request);
 				return null;
 			}
 
@@ -211,7 +211,7 @@ class RedSquareNotification {
 						// I'm not sure we would ever run into this situation
 						// Besides wounldn't the this.tweet be the one we are looking for... why even go through the DOM dataset?
 						//
-						console.log('Notification tweet not found...');
+						console.warn('RS.Notification tweet not found...');
 
 						this.mod.loadTweetWithSig(sig, () => {
 							let tweet = this.mod.returnTweet(sig);
