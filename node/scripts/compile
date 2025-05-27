@@ -21,10 +21,16 @@ if [ ! -f "$buildJsonFile" ]; then
     mkdir -p ./config
     echo '{"build_number": "0"}' > "$buildJsonFile"
 fi
-echo "  Consolidating CSS files"
+
+echo "  Ensuring minimal config files available"
 echo ""
 
+[ ! -f ./config/options.conf ] && cp ./config/.template.options.conf options.conf
+[ ! -f ./config/modules.config.js ] && ./config/.template.modules.config.js ./config/modules.config.js
 
+
+echo "  Consolidating CSS files"
+echo ""
 
 
 for d in mods/*/ ;
