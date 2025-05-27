@@ -1,0 +1,4 @@
+#!/bin/sh
+#Create config files if they don't exist.
+[ ! -f ./config/options.conf ] && cp ./config/.template.options.conf options.conf
+[ ! -f ./config/modules.config.js ] && ./config/.template.modules.config.js ./config/modules.config.js
