@@ -121,7 +121,7 @@ class Invite {
 				}
 
 				if (this.invite_data.game_type == 'custom game'){
-					console.log(defaultOptions, txmsg.options);
+					console.debug("ARCADE invite option analysis: ", defaultOptions, txmsg.options);
 				}
 			}
 
@@ -193,7 +193,6 @@ class Invite {
 		//if this game already exists!
 		for (let i = 0; i < this.app?.options?.games?.length; i++) {
 			if (this.app.options.games[i].id == this.invite_data.game_id) {
-				console.log("Invite Constructor: ", JSON.parse(JSON.stringify(this.app.options.games[i])));
 				this.invite_data.target = this.app.options.games[i].target;
 				if (this.app.options.games[i].players){
 					this.invite_data.players = this.app.options.games[i].players;
@@ -242,7 +241,7 @@ class Invite {
 				};
 			}
 		} catch (err) {
-			console.log(err);
+			console.error(err);
 		}
 	}
 }

@@ -4,12 +4,7 @@ module.exports = (app, mod) => {
   
   let league = null;
 
-  try{
-    league = app.modules.returnFirstRespondTo("leagues-for-arcade");  
-  }catch (err){
-    console.warn("no league module installled");
-  }
-  
+  league = app.modules.returnFirstRespondTo("leagues-for-arcade");  
 
   for (let i = 0; i < mod.arcade_games.length; i++) {
     let game_mod = mod.arcade_games[i];
