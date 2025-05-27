@@ -135,9 +135,7 @@ class GameMoves {
 									this.pending.push(tx);	
 								}
 							}
-						} else {
-							//console.log("OLD MOVE in PENDING TXS:",JSON.parse(JSON.stringify(txmsg)));
-						}
+						} 
 					}
 				}
 			}
@@ -211,27 +209,19 @@ class GameMoves {
 
 
 		if (txmsg.game_id !== this.game.id) {
-//console.log("not processing as game ids differ: " + txmsg.game_id + " / " + this.game.id);
 			return 0;
 		}
 
 		if (tx_step == this.game.step.game) {
-//console.log("identified as next move -- (tx_step-1) is: " + tx_step + " which means we are 1 step ahead of game step of... " + this.game.step.game);
 			return 1;
 		}
 
 
 		if (this.game.step.players[player] !== undefined) {
 
-//console.log("p-step: " + (tx_step) + " (-1 applied)");
-//console.log("g-step: " + this.game.step.game + " ---> " + JSON.stringify(this.game.step.players));
-
 			if (tx_step == this.game.step.players[player]) {
-//console.log("... YES .. tx_step exactly 1 bigger than last player step (" + this.game.step.players[player] + ")");
 				return 1;
-			} else {
-//console.log("... NO ... received step is not +1 than last player move: --> current: " + this.game.step.players[player] + " ---> tx_step (-1 modified) " + tx_step);
-			}
+			} 
 
 			//
 			// this is our classic check, which means that the tx_step we received is NOT larger than the game step itself
@@ -244,7 +234,6 @@ class GameMoves {
 				tx_step > this.game.step.players[player] &&
 				tx_step < this.game.step.game
 			) {
-//console.log("... YES .. player-step is +2 ahead, but equals game-step");
 				return 1;
 			}
 
@@ -252,7 +241,6 @@ class GameMoves {
 				tx_step > this.game.step.players[player] &&
 				tx_step == this.game.step.game
 			) {
-//console.log("... YES .. player-step is +2 ahead, but exactly +1 game-step");
 				return 1;
 			}
 
@@ -290,7 +278,7 @@ class GameMoves {
 			this.game.initialize_game_run == 0
 		) {
 			console.info(
-				`This is next Move, but save as future move because halted (${this.halted}) or active (${this.gaming_active}) or not initialized (${this.game.initialize_game_run}): ${JSON.stringify(gametxmsg)}`
+				`GT [addNextMove] -- save as future move because halted (${this.halted}) or active (${this.gaming_active}) or not initialized (${this.game.initialize_game_run}): ${JSON.stringify(gametxmsg)}`
 			);
 
 			await this.addFutureMove(gametx);
@@ -356,7 +344,7 @@ class GameMoves {
 				this.game.queue.push(gametxmsg.turn[i]);
 			}
 
-			console.info(`Add next move (${gametxmsg.step.game}, ${this.app.keychain.returnUsername(gametx.from[0].publicKey)}): `, gametxmsg.turn);
+			console.info(`GT [addNextMove] -- (${gametxmsg.step.game}, ${this.app.keychain.returnUsername(gametx.from[0].publicKey)}): `, gametxmsg.turn);
 
 			this.saveFutureMoves(this.game.id);
 			this.saveGame(this.game.id);
@@ -384,7 +372,7 @@ class GameMoves {
 						this.observerControls.showNextMoveButton();
 						this.observerControls.updateStatus('New future move');
 					} else if (!this.gaming_active && this.archive_exhausted > 0) {
-						console.log("Added future move when game seems stuck...");
+						console.warn("GT: [addFutureMove] game seems stuck..., moving into processing future moves");
 						await this.processFutureMoves();
 					}
 				} catch (err) {
@@ -406,6 +394,7 @@ class GameMoves {
 		this.gaming_active = 0;
 
 		if (this.game.futurePlus && this.game.futurePlus[this.game.step.game]){
+			//>>>>>>>>>>>>>>>>>>>
 			console.warn("Execute meta game transaction");
 			await this.handlePeerTransaction(this.app, this.game.futurePlus[this.game.step.game]);
 			delete this.game.futurePlus[this.game.step.game];
@@ -414,13 +403,12 @@ class GameMoves {
 
 		if (this.halted == 1 || this.game.initialize_game_run == 0) {
 			console.info(
-				`Unable to process future moves now because halted (${this.halted}) or gamefeeder not initialized (${this.initialize_game_run})`
+				`GT [processFutureMoves] Unable to process (${this.game.future.length}) moves now because halted (${this.halted}) or gamefeeder not initialized (${this.initialize_game_run})`
 			);
-			console.info(`${this.game.future.length} future moves saved`);
 			return -1;
 		}
 
-		console.info(`Check ${this.game.future.length} future moves for next one...`);
+		console.info(`GT [processFutureMoves] -- Check ${this.game.future.length} moves for next one...`);
 
 		//Search all future moves for the next one
 		for (let i = 0; i < this.game.future.length; i++) {
@@ -431,7 +419,7 @@ class GameMoves {
 
 			if (this.isUnprocessedMove(ftx.from[0].publicKey, ftxmsg)) {
 				console.info(
-					`Found FTMSG (${ftxmsg.step.game}): ` + JSON.stringify(ftxmsg.turn)
+					`GT [processFutureMoves] Found FTMSG (${ftxmsg.step.game}): `, JSON.parse(JSON.stringify(ftxmsg.turn))
 				);
 
 				//This move (future[i]) is the next one, move it to the queue
@@ -440,7 +428,6 @@ class GameMoves {
 				await this.addNextMove(ftx);
 				return 1;
 			} else if (this.isFutureMove(ftx.from[0].publicKey, ftxmsg)) {
-				//console.info("Is future move, leave on future queue");
 				//This move (future[i]) is still for the future, so leave it alone
 			} else {
 				//Old move, can ignore
@@ -452,13 +439,13 @@ class GameMoves {
 		this.saveFutureMoves(this.game.id);
 
 		if (this.game.future?.length > 0) {
-			console.info(`We have ${this.game.future.length} future moves, but NOT the next one!`);
+			console.warn(`GT [processFutureMoves] We have ${this.game.future.length} future moves, but NOT the next one!`);
 			this.archive_exhausted = -1;
 		}
 
 		if (this.game.player == 0 && this.archive_exhausted <= 0){
 			//param prevents endless looping
-			console.info('Observer.... check for additional moves... after processing future moves');
+			console.info('GT [processFutureMoves] Observer.... check for additional moves... after processing future moves');
 			this.observerDownloadNextMoves(() => {
 				this.processFutureMoves();	
 			});
@@ -562,7 +549,7 @@ class GameMoves {
 
 		// Debugging
 		if (this.halted){
-			console.error("Attempting to send a game move from a halted state");
+			console.warn("GT [sendGameMove] Attempting to send a game move from a halted state");
 		}
 
 		let privateKey = await this.app.wallet.getPrivateKey();
@@ -629,9 +616,7 @@ class GameMoves {
 			}
 
 
-console.info("#");
-console.info("# sending MOVE w/ step: " + JSON.stringify(ns) + " - " + this.publicKey);
-console.info("#");
+console.info("#\n","# sending MOVE w/ step: " + JSON.stringify(ns) + " - " + this.publicKey+"\n","#\n");
 
 			//
 			// if our crypto key is out-of-date, update -- note that SAITO and CHIPS are not checked
@@ -695,7 +680,7 @@ console.info("#");
 			//await game_self.app.wallet.addTransactionToPending(newtx);
 			game_self.saveGame(game_self.game.id);
 
-			console.info('Sending Move: ', JSON.parse(JSON.stringify(mymsg)));
+			console.debug('GT: Sending Move: ', JSON.parse(JSON.stringify(mymsg)));
 
 			//
 			// send off-chain if possible - step 2 onchain to avoid relay issues with options
@@ -742,13 +727,13 @@ console.info("#");
 				queued_txmsg.step.game <= this.game.step.game &&
 				queued_txmsg.step.game <= this.game.step.players[queued_tx.from[0].publicKey]
 			) {
-				console.info('Trimming future move to download new ones:', JSON.stringify(queued_txmsg));
+				console.info('GT [observer] Trimming future move to download new ones:', JSON.parse(JSON.stringify(queued_txmsg)));
 				this.game.future.splice(i, 1);
 			}
 		}
 
 		if (!this.archive_connected){
-			console.log("Haven't established peer yet, try again after 3s");		
+			console.warn("GT [observer] Haven't established peer yet, try again after 3s");
 			setTimeout(()=>{ 
 				this.observerDownloadNextMoves(mycallback)
 			}, 3000);
@@ -756,7 +741,7 @@ console.info("#");
 		}
 
 		if (this.archive_exhausted < 0) {
-			console.log("Try archives after 10s delay");
+			console.info("GT [observer] Try archives after 10s delay");
 			setTimeout(()=>{ 
 				this.archive_exhausted = 0;
 				this.observerDownloadNextMoves(mycallback)
@@ -766,7 +751,7 @@ console.info("#");
 
 		let currentStep = String(this.game.step.game).padStart(5, '0');
 
-		console.log(`Load game moves from archive (${this.archive_exhausted}): ${this.name}_${this.game.id} from ${this.game.originator} after ${currentStep}`);
+		console.info(`GT [observer] Load game moves from archive (${this.archive_exhausted}): ${this.name}_${this.game.id} from ${this.game.originator} after ${currentStep}`);
 
 		return this.app.storage.loadTransactions(
 			{ field1: this.name, field4: this.game.id, field5: currentStep, ascending: 1, limit: 20 },
@@ -790,11 +775,11 @@ console.info("#");
 							if (!this.game.future.includes(ftx)) {
 								this.game.future.push(ftx);
 								new_moves++;
-								console.log('Archived move: ' + JSON.stringify(game_move));
+								console.debug('GT [observer] Archived move: ' + JSON.stringify(game_move));
 							}
 						}
 					} else {
-						console.warn("Non game move: ", game_move);
+						console.warn("GT [observer] Non game move: ", game_move);
 
     						let rtx = new Transaction();
 						rtx.msg.module = "Relay";
@@ -810,7 +795,7 @@ console.info("#");
 
 				}
 				
-				console.log(`Found ${new_moves} future moves in archives. Initializing? `, this.game.initializing);
+				console.info(`GT [observer] Found ${new_moves} future moves in archives. Initializing? `, this.game.initializing);
 				
 				this.saveFutureMoves(this.game.id);
 				this.saveGame(this.game.id);
@@ -830,7 +815,7 @@ console.info("#");
 				}
 
 				if (mycallback) {
-					console.log("Run callback after fetching archives...");
+					console.debug("GT [observer] Run callback after fetching archives...");
 					mycallback();
 				}
 			}

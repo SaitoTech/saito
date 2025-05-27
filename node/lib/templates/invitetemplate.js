@@ -154,9 +154,7 @@ class InviteTemplate extends ModTemplate {
           txmsg.request === "accept" ||
           txmsg.request === "close"
         ) {
-console.log("INVITE TEMPLATE: HERE 1");
           await this.notifyPeers(this.app, tx);
-console.log("INVITE TEMPLATE: HERE 2");
         }
 
         //
@@ -198,7 +196,6 @@ console.log("INVITE TEMPLATE: HERE 2");
         // acceptances
         //
         if (txmsg.request === "accept") {
-console.log("INVITE TEMPLATE: HERE 3 receive accept tx");
           await this.receiveAcceptTransaction(tx);
         }
       }

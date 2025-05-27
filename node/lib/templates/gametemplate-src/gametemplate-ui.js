@@ -31,7 +31,7 @@ let SaitoOverlay = require('./../../saito/ui/saito-overlay/saito-overlay');
 class GameUI {
 	updateControls(str, force = 0) {
 		if (!force && this.lock_interface) {
-			console.warn('Attempting to change locked controls interface with ', str);
+			console.warn('GT [updateControls] Attempting to change locked controls interface with ', str);
 			return;
 		}
 
@@ -51,7 +51,7 @@ class GameUI {
 				this.hud.updateControls(str);
 			}
 		} catch (err) {
-			console.warn('Error Updating Controls: ignoring: ' + err);
+			console.error('GT [updateControls] Error: ', err);
 		}
 	}
 
@@ -98,7 +98,7 @@ class GameUI {
 				this.cardbox.attachCardEvents();
 			}
 		} catch (err) {
-			console.warn('Error Updating Status: ignoring: ' + err);
+			console.error('GT [updateStatis] Error: ', err);
 		}
 	}
 
@@ -295,7 +295,6 @@ class GameUI {
 			this.app.browser.addElementToSelector(`<div class="animated-mask"></div>`, target);
 
 			this.shot_clock = setTimeout(() => {
-				console.log('Auto move!');
 				this.clearShotClock();
 				if (callback){
 					callback();
@@ -309,14 +308,13 @@ class GameUI {
 				document.body.addEventListener(
 					'click',
 					() => {
-						console.log('user interaction -- interrupt');
 						this.clearShotClock(false);
 					},
 					{ once: true }
 				);
 			}
 		}else{
-			console.warn("Shot clock not found!");
+			console.warn("GT [setShotClock] target not found!");
 		}
 	}
 
@@ -405,7 +403,7 @@ class GameUI {
 
 			this.updateStatusForGameOver(readable, reason !== 'cancellation' && !this.opengame);
 		} catch (err) {
-			console.warn(err);
+			console.error("GT [gameoverUserInterface] Error: ", err);
 		}
 	}
 

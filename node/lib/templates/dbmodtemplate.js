@@ -34,8 +34,6 @@ class DBModTemplate extends ModTemplate {
 
 		let txmsg = tx.returnMessage();
 
-		//console.log("HERE: " + JSON.stringify(txmsg));
-
 		// update and insert could be collapsed into one function using the syntax:
 		// INSERT OR UPDATE INTO (id, col,...) if we make sure ID is a pkey
 
@@ -79,7 +77,7 @@ class DBModTemplate extends ModTemplate {
 				// no updates on UUID
 				//
 				if (column != 'uuid' && column != 'deleted') {
-					console.log('UPDATE: ' + sql + ' --- UUID: ' + id);
+					console.info('UPDATE: ' + sql + ' --- UUID: ' + id);
 					await this.app.storage.runDatabase(sql, params, dbname);
 				}
 			}
@@ -320,9 +318,7 @@ class DBModTemplate extends ModTemplate {
 		}
 
 		if (insert == 1) {
-			console.log('INSERTING');
 			id = this.insertDatabase(values);
-			console.log('DONE INSERTING: ' + id);
 		}
 
 		for (let i = 0; i < values.length; i++) {
@@ -331,9 +327,7 @@ class DBModTemplate extends ModTemplate {
 			}
 		}
 
-		console.log('UPDATING');
 		await this.updateDatabase(values);
-		console.log('DONE UPDATING: ');
 	}
 
 	async submitValues(values) {
@@ -346,18 +340,14 @@ class DBModTemplate extends ModTemplate {
 		}
 
 		if (insert == 1) {
-			console.log('INSERTING');
 			id = this.insertDatabase(values);
-			console.log('DONE INSERTING: ' + id);
 
 			for (let i = 0; i < values.length; i++) {
 				values[i].id = id;
 			}
 		}
 
-		console.log('UPDATING');
 		await this.updateDatabase(values);
-		console.log('DONE UPDATING: ');
 	}
 
 	async deleteDatabase(values) {

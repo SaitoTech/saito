@@ -86,13 +86,10 @@ class GameGame {
 	 */
 	newGame(game_id = null) {
 
-		console.info('=====CREATING NEW GAME ID: ' + game_id);
+		console.info(`=========\nCREATING NEW GAME ID: ${game_id}\n=========`);
 		if (!game_id) {
 			game_id = this.app.crypto.hash(Math.random().toString(32)); //Returns 0.19235734589 format. We never want this to happen!
-			//game_id = this.app.crypto.hash(Math.random());
-			//console.log("new id -- " + game_id);
 		}
-		//console.trace("Creating New Game","ID = "+game_id);
 		let game = {};
 		game.id = game_id;
 		game.confirms_needed = [];
@@ -169,15 +166,13 @@ class GameGame {
 			return;
 		}
 
-		console.log("---------------------");
-		console.log("===== SAVING GAME ID: "+game_id);
-		console.log("q: " + JSON.stringify(this.game.queue));
-		console.log("---------------------");
-
-		if (this.game == undefined) {
-			console.warn('Saving Game Error: safety catch 1');
+		if (!this.game) {
+			console.error('GT: Saving Game Error: safety catch 1');
 			return;
 		}
+
+		console.info(`SAVING GAME ID: "+${game_id}`);
+		console.debug("GT [saveGame] queue: " + JSON.parse(JSON.stringify(this.game.queue)));
 
 		// make sure options file has structure to save your game
 		if (!this.app.options) {
@@ -196,11 +191,7 @@ class GameGame {
 		//console.log("saveGame version: "+this.app.crypto.hash(Math.random()));
 		if (!game_id || game_id !== this.game.id) {
 			//game_id = this.app.crypto.hash(Math.random().toString(32));
-			console.warn('ERR? Save game with wrong id');
-			console.warn(
-				'Parameter: ' + game_id,
-				'this game.id = ' + this.game.id
-			);
+			console.warn('ERR? Save game with wrong id','Parameter: ' + game_id,'this game.id = ' + this.game.id);
 			return;
 		}
 
@@ -242,7 +233,7 @@ class GameGame {
 							JSON.stringify(this.game)
 						); //create new object
 
-console.log("as saved: " + JSON.stringify(this.game.queue));
+						console.debug("GT [saveGame] queue as saved: " + JSON.parse(JSON.stringify(this.game.queue)));
 
 						this.app.storage.saveOptions();
 						return;
@@ -268,8 +259,6 @@ console.log("as saved: " + JSON.stringify(this.game.queue));
 	 * Note: "game" refers to the game object
 	 */
 	loadGame(game_id = null) {
-
-console.log("loading game: " + game_id);
 
 		//
 		// try to URL specified game
@@ -299,7 +288,7 @@ console.log("loading game: " + game_id);
 			let game_to_open = -1;
 			let timeStamp = 0;
 
-			console.log("Game engine: Look for most recent game");
+			console.info("GT: no game_id, Look for most recent game");
 
 			if (this.app.options?.games?.length > 0) {
 				for (let i = 0; i < this.app.options.games.length; i++) {
@@ -326,21 +315,21 @@ console.log("loading game: " + game_id);
 					this.game = JSON.parse(
 						JSON.stringify(this.app.options.games[i])
 					);
-					console.log('Loading game: ' + game_id);
+					console.info("GT loading game: " + game_id);
 					return this.game;
 				}
 			}
 
 			//No game to load, must create one
-			console.warn(`Load failed (${game_id} not found), so creating new game`);
-			console.info(JSON.parse(JSON.stringify(this.app.options.games)));
+			console.info(`GT: [loadGame] create new game with id ${game_id}`);
 
 			//we don't have a game with game_id stored in app.options.games
 			this.game = this.newGame(game_id);
 			this.saveGame(this.game.id);
 
+			console.debug("GT [loadGame]: ", JSON.parse(JSON.stringify(this.app.options.games)));
+			
 			return this.game;
-
 		}
 
 		return null;
@@ -367,8 +356,8 @@ console.log("loading game: " + game_id);
 		// accepted games should have all the players. If they do not, drop out
 		//
 		if (txmsg.players_needed > txmsg.players.length) {
-			console.info(
-				'ACCEPT REQUEST RECEIVED -- but not enough players in accepted transaction.... aborting'
+			console.error(
+				'GT [initializeGameFromAcceptTransaction] -- not enough players in accepted transaction.... aborting'
 			);
 			return false;
 		}
@@ -377,8 +366,8 @@ console.log("loading game: " + game_id);
 		// ignore games not containing us
 		//
 		if (!txmsg.players.includes(this.publicKey)) {
-			console.info(
-				'ACCEPT REQUEST RECEIVED -- but not for a game with us in it!'
+			console.error(
+				'GT [initializeGameFromAcceptTransaction] -- not our game!'
 			);
 			return false;
 		}
@@ -404,12 +393,12 @@ console.log("loading game: " + game_id);
 
 		if (!txmsg.options?.async_dealing){
 
-console.log("ASYNC DEALING NOT ENABLED");
+			console.info("GT: ASYNC DEALING NOT ENABLED");
 
 			//
 			// do not re-accept
 			if (this.game.step.game > 2) {
-				console.warn("ACCEPT IGNORED -- GAME IN PROGRESS");
+				console.warn("GT [initializeGameFromAcceptTransaction] -- GAME IN PROGRESS");
 				return false;
 			}
 
@@ -426,15 +415,15 @@ console.log("ASYNC DEALING NOT ENABLED");
 							txmsg.players[i]
 						)
 					) {
-						console.warn(
-							'PLAYER SIGS do not verify for all players, aborting game acceptance'
+						console.error(
+							'GT [initializeGameFromAcceptTransaction] -- PLAYER SIGS do not verify for all players'
 						);
 						this.halted = 0;
 						return false;
 					}
 				}
 			} else {
-				console.warn('Players and player_sigs different lengths!');
+				console.error('GT [initializeGameFromAcceptTransaction] -- Players and player_sigs different lengths!');
 				return false;
 			}
 
@@ -445,7 +434,7 @@ console.log("ASYNC DEALING NOT ENABLED");
 		//
 		if (this.game.over == 1) {
 			this.halted = 0;
-			console.warn("This game is over, cannot initialize from accept tx");
+			console.warn("GT [initializeGameFromAcceptTransaction] -- This game is over, cannot initialize from accept tx");
 			return false;
 		}
 
@@ -531,18 +520,14 @@ console.log("ASYNC DEALING NOT ENABLED");
 			//
 			this.game.sharekey = this.app.crypto.generateRandomNumber();
 
-			console.log('!!!!!!!!!!!!!!!!!!!!');
-			console.log('!!! GAME CREATED !!!');
-			console.log('!!!!!!!!!!!!!!!!!!!!');
+			console.log('!!!!!!!!!!!!!!!!!!!!\n','!!! GAME CREATED !!!\n','!!!!!!!!!!!!!!!!!!!!');
 			console.log('Game Id: ' + game_id);
 			console.log('My PublicKey: ' + this.publicKey);
 			console.log('My Player Number: ' + this.game.player);
 			console.log('ALL KEYS: ' + JSON.stringify(this.game.players));
 			console.log('My Share Key: ' + this.game.sharekey);
-			console.log('!!!!!!!!!!!!!!!!!!!!');
-			console.log('!!!!!!!!!!!!!!!!!!!!');
-			console.log('!!!!!!!!!!!!!!!!!!!!');
-
+			console.log('!!!!!!!!!!!!!!!!!!!!\n','!!!!!!!!!!!!!!!!!!!!\n','!!!!!!!!!!!!!!!!!!!!\n');
+			
 			this.game.players_set = 1;
 
 			this.saveGame(game_id);
@@ -615,19 +600,14 @@ console.log("ASYNC DEALING NOT ENABLED");
   call another function to push us into end game state (which requires another transaction)
   */
 	async receiveStopGameTransaction(resigning_player, txmsg) {
-		console.log('processing resignation : ' + resigning_player, txmsg);
+		console.info('GT [receiveStopGame] : ' + resigning_player, txmsg);
 		this.game.queue = [];
 		this.moves = [];
 
-		console.log('this.game = ', this.game);
 		//Prevents double processing (from on/off chain)
 		if (this.game.over > 0) {
 			return;
 		}
-
-		console.info(resigning_player, JSON.parse(JSON.stringify(txmsg)));
-		console.info(this.game.players, this.game.accepted);
-
 
 		//Cancelling a game in the arcade to which you are not a player --> unsubscribe from the game
 		if (this.game?.players) {
@@ -687,7 +667,7 @@ console.log("ASYNC DEALING NOT ENABLED");
 	  in receiveGameoverTransaction
 	  */
 	async sendGameOverTransaction(winner = [], reason = '') {
-		console.log('End Game! Winner:', winner);
+		console.info('GT: End Game! Winner:', winner);
 
 		let player_to_send = Array.isArray(winner) ? winner[0] : winner;
 		player_to_send = player_to_send || this.game.players[0];
@@ -695,7 +675,7 @@ console.log("ASYNC DEALING NOT ENABLED");
 		this.game.canProcess = true;
 
 		if (this.gameOverCallback){
-			console.log("Not sending gameover transaction because already received. Process now!");
+			console.info("GT: Not sending gameover transaction because already received. Process now!");
 			this.gameOverCallback();
 			return null;
 		}
@@ -707,6 +687,7 @@ console.log("ASYNC DEALING NOT ENABLED");
 
 		let newtx =
 			await this.app.wallet.createUnsignedTransactionWithDefaultFee();
+
 		this.game.accepted.forEach((player) => {
 			newtx.addTo(player);
 		});
@@ -732,7 +713,7 @@ console.log("ASYNC DEALING NOT ENABLED");
 		//Only one player needs to generate the transaction
 		if (player_to_send == this.publicKey) {
 
-			console.log('I send gameover tx');
+			console.info('GT: I send gameover tx');
 
 			//Send message
 			this.app.network.propagateTransaction(newtx);
@@ -771,8 +752,8 @@ console.log("ASYNC DEALING NOT ENABLED");
 		let txmsg = tx.returnMessage();
 		let { game_id, winner, reason } = txmsg;
 
-		console.info('Received Gameover Request from ' + tx.from[0].publicKey);
-		console.log(JSON.stringify(this.game.players));
+		console.info('GT: Received Gameover Request from ' + tx.from[0].publicKey, JSON.parse(JSON.stringify(this.game.players)));
+	
 		//
 		// sender must be in game to end it (removed players no problem)
 		// Make sure this is only processed once
@@ -785,8 +766,8 @@ console.log("ASYNC DEALING NOT ENABLED");
 			this.gameOverCallback = () => {
 				this.receiveGameoverTransaction(blk, tx, conf, app);
 			}
-			console.log("Received Gameover Transaction before we were ready... move into callback");
-			console.log(this.game.over, this.game.canProcess, this.game.queue);
+			console.warn("GT: Received Gameover Transaction before we were ready... move into callback");
+			console.debug(this.game.over, this.game.canProcess, this.game.queue);
 			return;
 		}
 
