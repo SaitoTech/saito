@@ -33,7 +33,7 @@ class LeagueMain {
 		}
 
 		if (this.mod.debug) {
-			console.log(JSON.parse(JSON.stringify(leagues)));
+			console.debug("League [render]: ", JSON.parse(JSON.stringify(leagues)));
 		}
 
 		let filter1 = leagues.filter((l) => l.admin == this.mod.publicKey);

@@ -11,12 +11,11 @@ class FileShareOverlay {
 		this.qs = `#file-transfer-${this.fileId}-${this.recipient}`;
 
 		app.connection.on('stun-data-channel-open', (peerId) => {
-			console.log('stun-data-channel-open');
+			console.debug('FILESHARE: stun-data-channel-open');
 			if (peerId == this.recipient && this?.active) {
 				this.onConnectionSuccess();
 			}else{
-				console.log("FILESHARE: not for fileshare!");
-				console.log(this?.active, peerId, this.recipient);
+				console.debug("FILESHARE: stun data channel not for fileshare!", this?.active, peerId, this.recipient);
 			}
 		});
 
@@ -128,7 +127,6 @@ class FileShareOverlay {
 				wrapper.classList.add("complete");
 			}
 
-			console.log("FILESHARE: Done for real!");
 			let btn = document.querySelector(this.qs + " #file-transfer-buttons");
 			if (btn){
 				btn.classList.remove("hideme");
@@ -181,8 +179,6 @@ class FileShareOverlay {
 	onConnectionSuccess(){
 		let field = document.querySelector(this.qs + " #peer-connection-status");
 		
-		console.log("FILESHARE: ", field);
-
 		if (field){
 			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
 		}

@@ -15,7 +15,6 @@ class LeagueOverlay {
 		this.leaderboards = {};
 
 		app.connection.on('league-overlay-render-request', (league_id) => {
-			//console.log('league-overlay-render-request:',league_id);
 			this.league = this.mod.returnLeague(league_id);
 			if (this.league) {
 				this.render();
@@ -278,8 +277,6 @@ class LeagueOverlay {
         </div>`,
 			'admin-widget'
 		);
-
-		console.log(JSON.parse(JSON.stringify(this.league)));
 
 		if (!this.league) {
 			return;

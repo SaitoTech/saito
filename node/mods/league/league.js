@@ -63,7 +63,6 @@ class League extends ModTemplate {
 				return;
 			}
 
-			console.log(this.styles);
 			this.attachStyleSheets();
 
 			let leaderboard = new LeagueLeaderboard(app, this, container, league);
@@ -89,15 +88,12 @@ class League extends ModTemplate {
 				testMembership: (league_id) => {
 					let leag = league_self.returnLeague(league_id);
 					if (!leag) {
-						//console.log("No league");
 						return false;
 					}
 					if (leag.rank < 0) {
-						//console.log("Not a member");
 						return false;
 					}
 					if (leag?.unverified) {
-						//console.log("Unverified");
 						return false;
 					}
 					return true;
@@ -164,7 +160,6 @@ class League extends ModTemplate {
 			}
 			//TODO: Reset the default leagues and make the hashes based on game slugs!!!!
 			this.auto_open_league_overlay_league_id = app.crypto.hash(gm.returnName());
-			console.log('ID: ' + this.auto_open_league_overlay_league_id, game);
 			app.connection.emit('league-overlay-render-request', this.auto_open_league_overlay_league_id);
 		}
 
@@ -213,7 +208,7 @@ class League extends ModTemplate {
 				this.leagues.push(superArray[i][2]);
 			}
 		} catch (err) {
-			console.warn(err);
+			console.error("League sort Error:", err);
 		}
 	}
 
@@ -266,10 +261,6 @@ class League extends ModTemplate {
 		let league_self = this;
 
 		if (service.service === 'league') {
-			if (this.debug) {
-				console.log('===  peer server up  ===');
-				console.log('Refresh local leagues: ');
-			}
 
 			let league_id = this.validateID(app.browser.returnURLParameter('league_id'));
 
@@ -277,7 +268,7 @@ class League extends ModTemplate {
 
 			if (this.browser_active) {
 				if (this.debug) {
-					console.log('Load all leagues');
+					console.debug('Load all leagues');
 				}
 				sql = `SELECT *
                FROM leagues
@@ -290,7 +281,7 @@ class League extends ModTemplate {
 					for (let i = 0; i < this.leagues.length; i++) {
 						if (this.leagues[i].game == am_name) {
 							this.fetchLeagueLeaderboard(this.leagues[i].id, () => {
-								console.log("Update league info for curent game:", this.leagues[i]);
+								console.info("Update league info for curent game:", this.leagues[i]);
 								this.app.connection.emit(
 									'league-leaderboard-loaded',
 									this.leagues[i].game,
@@ -326,7 +317,7 @@ class League extends ModTemplate {
 				}
 
 				if (this.debug) {
-					console.log('Load my leagues: ' + league_list);
+					console.debug('Load my leagues: ' + league_list);
 				}
 
 				//sql = `SELECT * FROM leagues WHERE id IN (${league_list})`;
@@ -362,7 +353,7 @@ class League extends ModTemplate {
 					// league join league
 					//
 					if (league_id) {
-						console.log('Joining league: ', league_id);
+						console.info('Joining league: ', league_id);
 						let jlo = new JoinLeagueOverlay(app, league_self, league_id);
 						jlo.render();
 					}
@@ -371,7 +362,6 @@ class League extends ModTemplate {
 					// Viewing a league/game page
 					//
 					if (league_self.auto_open_league_overlay_league_id) {
-						console.log('Redraw league overlay');
 						app.connection.emit(
 							'league-overlay-render-request',
 							this.auto_open_league_overlay_league_id
@@ -390,15 +380,13 @@ class League extends ModTemplate {
 			// fetch updated rankings
 			//
 
-			//console.log("Will update League rankings in 5sec");
 			setTimeout(() => {
 				let league_list = this.leagues.map((x) => `'${x.id}'`).join(', ');
-				//console.log(league_list);
 
 				let league = null;
 				let rank, myPlayerStats;
 				let cutoff = new Date().getTime() - 3 * 24 * 60 * 60 * 1000;
-				//console.log("Sending SQL query to update");
+
 				this.sendPeerDatabaseRequestWithFilter(
 					'League',
 					`SELECT *
@@ -412,7 +400,6 @@ class League extends ModTemplate {
 							let league_id = 0;
 
 							for (let p of res.rows) {
-								//console.log(p);
 
 								//Next League
 								if (p.league_id !== league_id) {
@@ -501,14 +488,13 @@ class League extends ModTemplate {
 			}
 
 			if (this.hasSeenTransaction(tx)) {
-				console.warn("Duplicate transaction in League");
 				return;
 			}
 
 			let txmsg = tx.returnMessage();
 
 			if (this.debug) {
-				console.log('LEAGUE onConfirmation: ' + txmsg.request);
+				console.debug('LEAGUE [onConfirmation]: ' + txmsg.request);
 			}
 
 			if (txmsg.request === 'league create') {
@@ -543,7 +529,7 @@ class League extends ModTemplate {
 				this.app.connection.emit('league-rankings-render-request');
 			}
 		} catch (err) {
-			console.log('ERROR in league onConfirmation: ' + err);
+			console.error('ERROR in league onConfirmation: ' + err);
 		}
 
 		return;
@@ -573,7 +559,7 @@ class League extends ModTemplate {
 			//
 			if (this.app.options?.leagues) {
 				if (this.debug) {
-					console.log(
+					console.debug(
 						'Locally stored leagues:',
 						JSON.parse(JSON.stringify(this.app.options.leagues))
 					);
@@ -583,7 +569,6 @@ class League extends ModTemplate {
 				for (let lid of this.app.options.leagues) {
 					let value = await this.app.storage.getLocalForageItem(`league_${lid}`);
 					if (value) {
-						//console.log(`Loaded League ${lid.substring(0,10)} from IndexedDB`);
 						await league_self.updateLeague(value);
 
 						let league = league_self.returnLeague(lid);
@@ -594,7 +579,7 @@ class League extends ModTemplate {
 						league.numPlayers = value.numPlayers;
 
 						if (league.game === league_self.app.modules.returnActiveModule()?.name) {
-							console.log(
+							console.debug(
 								'Local version of this game league: ',
 								JSON.parse(JSON.stringify(league))
 							);
@@ -602,7 +587,6 @@ class League extends ModTemplate {
 					}
 				}
 
-				console.log('All leagues loaded from IndexedDB --> refresh UI');
 				league_self.sortLeagues();
 				//Render initial UI based on what we have saved
 				league_self.app.connection.emit('leagues-render-request'); // league/ main
@@ -626,7 +610,6 @@ class League extends ModTemplate {
 			for (let league of sqlResults) {
 				await league_self.updateLeague(league);
 			}
-			console.log("Loaded leagues into memory");
 		}
 	}
 
@@ -657,8 +640,7 @@ class League extends ModTemplate {
 
 		if (this.debug) {
 			console.info('Save Leagues:');
-			console.info(JSON.stringify(this.app.options.leagues));
-			console.info(JSON.parse(JSON.stringify(this.leagues)));
+			console.debug(JSON.parse(JSON.stringify(this.app.options.leagues)), JSON.parse(JSON.stringify(this.leagues)));
 		}
 
 		this.app.storage.saveOptions();
@@ -896,14 +878,6 @@ class League extends ModTemplate {
 			$publickey: txmsg.publicKey
 		};
 
-		//if (tx.from[0].publicKey !== txmsg.publicKey){
-		//  let league = this.returnLeague(txmsg.league_id);
-		//  if (!league?.admin || league.admin !== tx.from[0].publicKey {
-		//    console.log("Ignore invalid removal request");
-		//    return;
-		//  }
-		//}
-
 		await this.app.storage.runDatabase(sql, params, 'league');
 
 		await this.removeLeaguePlayer(txmsg.league_id, txmsg.publicKey);
@@ -987,11 +961,11 @@ class League extends ModTemplate {
 				txmsg.reason?.includes('Wins:') ||
 				txmsg.reason?.includes('Scores: '))
 		 	{
-				console.log("Don't process");
+				console.info("League: don't process game over ", txmsg.reason);
 				return;
 			}
 			if (this.finished_games.includes(txmsg.game_id)){
-				console.warn("Game over already processed");
+				console.warn("League: Game over already processed");
 				return;
 			}else{
 				this.finished_games.push(txmsg.game_id);
@@ -1007,8 +981,7 @@ class League extends ModTemplate {
 		}
 
 		if (this.debug) {
-			console.log(`League updating player scores for end of ${is_gameover ? 'game' : 'round'}`);
-			console.log(publicKeys);
+			console.info(`League updating player scores for end of ${is_gameover ? 'game' : 'round'}`, publicKeys);
 		}
 		//
 		// fetch leagues
@@ -1016,11 +989,9 @@ class League extends ModTemplate {
 		let relevantLeagues = await this.getRelevantLeagues(game, txmsg?.league_id);
 
 		if (!relevantLeagues) {
-			console.log('No relevant league');
+			console.warn('League [receiveGameOver]: No relevant leagues to update');
 			return;
 		}
-
-		//if (this.debug){console.log(relevantLeagues, publicKeys);}
 
 		//
 		// update database
@@ -1044,8 +1015,8 @@ class League extends ModTemplate {
 			}
 
 			if (this.app.BROWSER) {
-				console.log("Update league rankings on game over");
-				console.log(JSON.parse(JSON.stringify(leag.players)), myScore, myRank);
+				console.info("League [receiveGameOver]: update league on game over");
+				console.debug(JSON.parse(JSON.stringify(leag.players)), myScore, myRank);
 				this.fetchLeagueLeaderboard(leag.id, () => {
 					if (myRank <= 0 && leag.rank > 0) {
 						if (is_gameover) {
@@ -1085,8 +1056,7 @@ class League extends ModTemplate {
 							}
 						}
 					}
-					console.log('LEAGUE: My previous score and rank:', myScore, myRank);
-					console.log('LEAGUE: My new score and rank: ', leag.score, leag.rank);
+					console.info('LEAGUE: My previous score and rank:', myScore, myRank, 'LEAGUE: My new score and rank: ', leag.score, leag.rank);
 				});
 			}
 		}
@@ -1106,7 +1076,7 @@ class League extends ModTemplate {
 		let txmsg = tx.returnMessage();
 
 		if (this.debug) {
-			console.log(`League processing game start of ${txmsg.game}!`);
+			console.debug(`League processing game start of ${txmsg.game}!`);
 		}
 
 		//if (this.app.BROWSER){ return; }
@@ -1117,9 +1087,7 @@ class League extends ModTemplate {
 		}
 
 		if (this.debug) {
-			console.log('League: AcceptGame');
-			console.log(`Specific league? ${txmsg?.options?.league_id ? txmsg.options.league_id : 'no'}`);
-			console.log(JSON.parse(JSON.stringify(relevantLeagues)));
+			console.debug('League [acceptGame]: ', `Specific league? ${txmsg?.options?.league_id ? txmsg.options.league_id : 'no'}`, JSON.parse(JSON.stringify(relevantLeagues)));
 		}
 
 		//
@@ -1132,13 +1100,10 @@ class League extends ModTemplate {
 			}
 		}
 
-		//if (this.debug){console.log(relevantLeagues, publicKeys);}
-
 		//
 		// and insert if needed
 		//
 		for (let leag of relevantLeagues) {
-			console.log('Process League ' + leag.id);
 			for (let publicKey of publicKeys) {
 				//Make sure players are automatically added to the Saito-leaderboards
 				if (!leag.admin) {
@@ -1199,9 +1164,6 @@ class League extends ModTemplate {
 		if (league?.players) {
 			localStats = league.players.filter((p) => players.includes(p.publicKey));
 		}
-
-		//console.log("SQL:", sqlResults);
-		//console.log("Local:", localStats);
 
 		// should we look to ts value for which is the newest reault
 		// Only matters on server nodes where we would have both
@@ -1267,7 +1229,7 @@ class League extends ModTemplate {
 
 		if (!playerStats || playerStats.length !== players.length) {
 			// skip out - not all players are league members
-			console.log('ELO player mismatch');
+			console.warn('LEAGUE [updateELO] -- player mismatch');
 			return;
 		}
 
@@ -1387,8 +1349,6 @@ class League extends ModTemplate {
 				
 			}
 
-			//console.log(tweetContent);
-
 			let now = new Date().getTime();
 
 			let obj = {
@@ -1466,7 +1426,7 @@ class League extends ModTemplate {
 				field === 'games_started'
 			)
 		) {
-			console.warn('Invalid field: ' + field);
+			console.warn('League: Invalid field: ' + field);
 			return 0;
 		}
 
@@ -1480,8 +1440,7 @@ class League extends ModTemplate {
 				if (league.players[i].publicKey === publicKey) {
 					league.players[i][field]++;
 					if (this.debug) {
-						console.log(`Incremented ${field}: in ${league.id}`);
-						console.log(JSON.parse(JSON.stringify(league.players[i])));
+						console.debug(`League [incrementPlayer] updated ${field}: in ${league.id}`, JSON.parse(JSON.stringify(league.players[i])));
 					}
 					success = true;
 				}
@@ -1518,8 +1477,7 @@ class League extends ModTemplate {
 				if (league.players[i].publicKey === playerObj.publicKey) {
 					league.players[i]['score'] = playerObj.score;
 					if (this.debug) {
-						console.log('New Score: ' + playerObj.score);
-						console.log(JSON.parse(JSON.stringify(league.players[i])));
+						console.debug('League [updatePlayerScore] -- New Score: ' + playerObj.score, JSON.parse(JSON.stringify(league.players[i])));
 					}
 				}
 			}
@@ -1604,10 +1562,6 @@ class League extends ModTemplate {
 		if (!this.returnLeague(obj.id)) {
 			let newLeague = this.validateLeague(obj);
 
-			//if (this.debug) {
-			//  console.log(`Add ${newLeague.game} League, ${newLeague.id}`);
-			//}
-
 			//
 			// dynamic data-storage
 			//
@@ -1618,9 +1572,6 @@ class League extends ModTemplate {
 			if (obj?.rank >= 0) {
 				newLeague.rank = obj.rank;
 			}
-
-			//console.log("Add New League:");
-			//console.log(JSON.parse(JSON.stringify(newLeague)));
 
 			this.leagues.push(newLeague);
 
@@ -1644,8 +1595,6 @@ class League extends ModTemplate {
 
 		Object.assign(oldLeague, obj);
 
-		//console.log("Updated League from Storage");
-		//console.log(JSON.parse(JSON.stringify(oldLeague)));
 	}
 
 	validatePlayer(obj) {
@@ -1667,7 +1616,7 @@ class League extends ModTemplate {
 		let league = this.returnLeague(league_id);
 
 		if (!league?.players) {
-			console.error('League not found');
+			console.error('League [validatePlayer] not found');
 			return;
 		}
 
@@ -1759,7 +1708,7 @@ class League extends ModTemplate {
 		let myPlayerStats = null;
 
 		if (!league) {
-			console.error('League not found');
+			console.error('League [fetchLeaderboard] not found');
 			return;
 		}
 
@@ -1888,8 +1837,6 @@ class League extends ModTemplate {
 			$ts: new Date().getTime()
 		};
 
-		//console.log("Insert player:", params);
-
 		await this.app.storage.runDatabase(sql, params, 'league');
 		return;
 	}
@@ -1926,7 +1873,7 @@ class League extends ModTemplate {
 					};
 					let results = await this.app.storage.runDatabase(sql, params, 'league');
 					if (results?.changes) {
-						console.log(`Apply Entropy to ${league.name} League: ${results.changes}`);
+						console.info(`Apply Entropy to ${league.name} League: ${results.changes}`);
 					}
 				}
 			}

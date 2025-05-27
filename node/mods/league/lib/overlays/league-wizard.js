@@ -10,7 +10,7 @@ class LeagueWizard {
 
 		this.app.connection.on('league-launch-wizard', (game_mod = {}) => {
 			if (!game_mod) {
-				console.log('No game module to launch league wizard');
+				console.warn('No game module to launch league wizard');
 				return;
 			}
 			this.game_mod = game_mod;
