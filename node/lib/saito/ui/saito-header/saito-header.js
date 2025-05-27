@@ -103,7 +103,7 @@ class SaitoHeader extends UIModTemplate {
 		// please dont rename/remove this method
 		// else we wont get updated slips
 		app.connection.on('wallet-updated', async () => {
-			console.log("$$$$ wallet-updated --> check balance of preferred crypto");
+			// console.log("$$$$ wallet-updated --> check balance of preferred crypto");
 			
 			await this.renderCrypto();
 

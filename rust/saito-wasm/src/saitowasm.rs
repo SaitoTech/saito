@@ -301,7 +301,7 @@ pub fn log(record: &Record) {
         Level::Error => console::error_4,
         Level::Warn => console::warn_4,
         Level::Info => console::info_4,
-        Level::Debug => console::log_4,
+        Level::Debug => console::debug_4,
         Level::Trace => console::debug_4,
     };
 
