@@ -11,8 +11,6 @@ class CallInterfaceFloat {
 		this.app.connection.on(
 			'show-call-interface',
 			(videoEnabled, audioEnabled) => {
-				console.log('STUN: Render Audio Interface');
-
 				this.render();
 				this.attachEvents();
 			}
@@ -46,7 +44,7 @@ class CallInterfaceFloat {
 		});
 
 		app.connection.on('stun-new-speaker', (peer) => {
-			console.log('New Speaker: ' + peer);
+			console.debug('TALK [float] New Speaker: ' + peer);
 			document.querySelectorAll('.audio-box').forEach((item) => {
 				if (item.id === `audiostream${peer}`) {
 					item.classList.add('speaker');
@@ -67,8 +65,6 @@ class CallInterfaceFloat {
 	}
 
 	render() {
-		console.log('Stun UI', this.mod.room_obj);
-
 		if (!document.getElementById('small-audio-chatbox')) {
 			this.app.browser.addElementToDom(CallInterfaceFloatTemplate());
 		} else {
@@ -80,8 +76,6 @@ class CallInterfaceFloat {
 	}
 
 	attachEvents() {
-		console.log('attaching events');
-
 		document.querySelectorAll('.disconnect-control').forEach((item) => {
 			item.onclick = () => {
 				this.app.connection.emit('stun-disconnect');
@@ -123,8 +117,6 @@ class CallInterfaceFloat {
 	}
 
 	toggleAudio() {
-		console.log('toggling audio');
-
 		this.app.connection.emit('stun-toggle-audio');
 
 		//Update UI
@@ -139,7 +131,7 @@ class CallInterfaceFloat {
 				.querySelector('.audio-control i')
 				.classList.toggle('fa-microphone');
 		} catch (err) {
-			console.warn('Stun UI error', err);
+			console.error('TALK.float [toggleAudio] Error:', err);
 		}
 	}
 
@@ -179,7 +171,6 @@ class CallInterfaceFloat {
 		};
 
 		this.timer_interval = setInterval(timer, 1000);
-		console.log('Start Call Timer');
 	}
 
 	pauseTimer() {

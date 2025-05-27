@@ -33,8 +33,6 @@ class CallSetting {
 		let previewWindow = document.getElementById('preview-video');
 		if (previewWindow){
 			this.getUserMedia(previewWindow);	
-		}else{
-			//console.error("No video element to display user media");
 		}
 		
 	}
@@ -43,15 +41,12 @@ class CallSetting {
 		if (this.audioStream) {
 			this.audioStream.getTracks().forEach((track) => {
 				track.stop();
-				console.log('stopping audio track');
 			});
 		}
 
 		if (this.videoStream) {
 			this.videoStream.getTracks().forEach((track) => {
 				track.stop();
-				console.log(track);
-				console.log('stopping video track');
 			});
 		}
 
@@ -183,7 +178,7 @@ class CallSetting {
 			this.audioStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
 			this.audioEnabled = true;
 		} catch (error) {
-			console.error('Error accessing media devices.', error);
+			console.error('TALK.callSetting: Error accessing media devices.', error);
 			salert('Error access media devices, please check your permissions');
 		}
 
@@ -192,7 +187,7 @@ class CallSetting {
 			videoElement.srcObject = this.videoStream;
 			this.videoEnabled = true;
 		} catch (error) {
-			console.warn(error);
+			console.error('TALK.callSetting: Error accessing media devices.', error);
 			this.videoStream = null;
 			this.videoEnabled = false;
 			salert('Error access camera, using audio only mode ');
