@@ -1,4 +1,4 @@
 #!/bin/sh
 #Create config files if they don't exist.
-[ ! -f ./config/options.conf ] && cp ./config/.template.options.conf options.conf
-[ ! -f ./config/modules.config.js ] && ./config/.template.modules.config.js ./config/modules.config.js
+[ ! -f ./node/config/options.conf ] && cp ./node/config/.template.options.conf ./node/config/options.conf
+[ ! -f ./node/config/modules.config.js ] && cp ./node/config/.template.modules.config.js ./node/config/modules.config.js
