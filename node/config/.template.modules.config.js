@@ -23,7 +23,6 @@ module.exports = {
                 'archive/archive.js',
                 'chess/chess.js',
                 'chat/chat.js',
-                'debug/debug.js',
                 'encrypt/encrypt.js',
                 'qrscanner/qrscanner.js',
                 'poker/poker.js',
