@@ -596,7 +596,6 @@ console.log("UNIT: " + JSON.stringify(unit));
               paths_self.addMove(`move\t${faction}\t${skey}\t${uidx}\t${key}\t${paths_self.game.player}`);
 	      j++;
             }
-            paths_self.displaySpace(skey);
           }
           paths_self.displaySpace(key);
           paths_self.endTurn();
@@ -606,7 +605,6 @@ console.log("UNIT: " + JSON.stringify(unit));
       );
       return 0;
     }
-
 
     let sourcekey = this.game.state.combat.retreat_sourcekey;
     let destinationkey = this.game.state.combat.retreat_destinationkey;
@@ -674,7 +672,6 @@ console.log("UNIT: " + JSON.stringify(unit));
 	this.unbindBackButtonFunction();
 	this.updateStatus("advancing...");
 
-
 	for (let i = 0, j = 0; j <= 2 && i < attacker_units.length; i++) {
           let x = attacker_units[i];
       	  let skey = x.spacekey;
@@ -692,7 +689,7 @@ console.log("UNIT: " + JSON.stringify(unit));
 	    if (key != paths_self.game.state.combat.key) {
 	      paths_self.addMove(`control\t${faction}\t${paths_self.game.state.combat.key}`);
 	    }
-	    paths_self.addMove(`move\t${faction}\t${skey}\t${uidx}\t${key}\t${paths_self.game.player}`);
+	    paths_self.prependMove(`move\t${faction}\t${skey}\t${uidx}\t${key}\t${paths_self.game.player}`);
 	    j++;
 	  }
           paths_self.displaySpace(skey);
@@ -1045,6 +1042,8 @@ console.log("into player handle retreat...");
       this.game.state.combat.key,
       spaces_to_retreat, 
       (spacekey) => {
+	// no retreat across sea
+	if (spacekey == "london") { return 0; }
 	if (spacekey == this.game.state.combat.key) { return 1; }; // pass through
         if (paths_self.game.spaces[spacekey].units.length > 0) {
 	  if (paths_self.returnPowerOfUnit(paths_self.game.spaces[spacekey].units[0]) != faction) { 
@@ -1601,6 +1600,11 @@ console.log(JSON.stringify(spaces_within_hops));
 	  if (paths_self.game.spaces[key].fort > 0 && paths_self.game.spaces[key].units.length == 0) {
 	    for (let z = 0; z < paths_self.game.spaces[key].neighbours.length; z++) {
 	      if (paths_self.game.spaces[key].activated_for_combat == 1) { 
+	  	for (let k in paths_self.game.state.attacks) {
+	  	  for (let z = 0; z < paths_self.game.state.attacks[key].length; z++) {
+		    if (paths_self.game.state.attacks[key][z] == key) { return 0; }
+		  }
+		}
 		if (paths_self.game.spaces[key].control != faction) { return 1; }
 	      }
 	    }
@@ -1612,8 +1616,10 @@ console.log(JSON.stringify(spaces_within_hops));
   	      for (let i = 0; i < paths_self.game.spaces[key].neighbours.length; i++) {
 	        let n = paths_self.game.spaces[key].neighbours[i];
 	        if (paths_self.game.spaces[n].oos != 1 && paths_self.game.spaces[n].activated_for_combat == 1) {
-	  	  if (paths_self.game.state.attacks[n]) {
-	  	    if (paths_self.game.state.attacks[n] == key) { return 0; }
+	  	  for (let k in paths_self.game.state.attacks) {
+	  	    for (let z = 0; z < paths_self.game.state.attacks[key].length; z++) {
+		      if (paths_self.game.state.attacks[key][z] == key) { return 0; }
+		    }
 		  }
 		  for (let z = 0; z < paths_self.game.spaces[n].units.length; z++) {
 		    if (paths_self.game.spaces[n].units[z].attacked != 1) { return 1; }
@@ -1750,6 +1756,7 @@ console.log(JSON.stringify(spaces_within_hops));
 
     let active_unit = null;
     let active_unit_moves = 0;
+    let already_entrenched = [];
 
     let paths_self = this;
     let options = this.returnSpacesWithFilter(
@@ -1852,7 +1859,8 @@ console.log(JSON.stringify(spaces_within_hops));
 	for (let z = 0; z < paths_self.game.state.entrenchments.length; z++) {
 	  if (paths_self.game.state.entrenchments[z].spacekey == key) { can_entrench_here = false; }
 	}
-	if (can_entrench_here) {
+    	if (already_entrenched.includes(key)) { can_entrench_here = false; };
+	if (can_entrench_here != false) {
           html += `<li class="option" id="entrench">entrench</li>`;
 	}
       }
@@ -1870,6 +1878,7 @@ console.log(JSON.stringify(spaces_within_hops));
 	  let lf = u.loss; if (u.damaged) { lf = u.rloss; }
 	  paths_self.addMove(`player_play_movement\t${faction}`);
 	  paths_self.addMove(`entrench\t${faction}\t${sourcekey}\t${idx}\t${lf}`);
+    	  already_entrenched.push(sourcekey);
 	  paths_self.endTurn();
 	  return;
         }
@@ -2903,6 +2912,18 @@ console.log("SPACES: " + JSON.stringify(paths_self.game.spaces[key].units));
       }
     }
 
+    if (country == "bulgaria") {
+      countries = this.returnSpacekeysByCountry("bulgaria");
+      filter_func = (spacekey) => { 
+	if (countries.includes(spacekey)) {
+	  if (this.game.spaces[spacekey].control == "central") { 
+	    if (this.checkSupplyStatus("bulgaria", spacekey)) { return 1; }
+	  }
+	}
+	return 0;
+      }
+    }
+
     if (country == "romania") {
       countries = this.returnSpacekeysByCountry("romania");
       filter_func = (spacekey) => { 
@@ -2925,18 +2946,14 @@ console.log("SPACES: " + JSON.stringify(paths_self.game.spaces[key].units));
 	}
 	return 0;
       }
-console.log("countries: " + JSON.stringify(countries));
     }
 
     if (country == "germany") {
       countries = this.returnSpacekeysByCountry("germany");
-console.log("GERMANY: " + JSON.stringify(countries));
       filter_func = (spacekey) => { 
 	if (countries.includes(spacekey)) {
 	  if (this.game.spaces[spacekey].control == "central") { 
-console.log("checking: " + spacekey);
 	    if (this.checkSupplyStatus("germany", spacekey)) { 
-console.log("in supply!");
 	      return 1; 
 	    }
 	  }

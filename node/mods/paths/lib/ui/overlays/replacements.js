@@ -55,8 +55,6 @@ class ReplacementsOverlay {
 		  `;
 		}
 
-
-
 		let obj = document.querySelector('.replacements-overlay .mainmenu .status');
 		obj.innerHTML = "Select Option:";
 
@@ -173,23 +171,30 @@ class ReplacementsOverlay {
 
 					this.hideSubMenu();
 			
+alert("we have picked: deploy!");
+
 					paths_self.playerSelectSpaceWithFilter(
               					`Destination for ${unit.name}` ,
               					(spacekey) => { 
 							if (paths_self.game.spaces[spacekey].control == faction) {
 								if (paths_self.checkSupplyStatus(unit.ckey.toLowerCase(), spacekey) == 1) {
-									return 1;
+									if (paths_self.game.spaces[spacekey].units.length < 3) {
+										return 1;
+									}
 								}
  							} return 0;
 						} ,
               					(spacekey) => {
 
-							if (spacekey == "mainmenu") {
+alert("we have picked: " + spacekey);
+
+							if (spacekey === "mainmenu") {
 								this.render();
 								return 1;
 							}
 
 					              	paths_self.updateStatus("moving...");
+alert("moving unit!: " + eu[z].key + " to " + spacekey);
               						paths_self.moveUnit(eu[z].key, eu[z].idx, spacekey);
               						paths_self.prependMove(`move\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${spacekey}\t${paths_self.game.player}`);
               						paths_self.displaySpace(eu[z].key);
