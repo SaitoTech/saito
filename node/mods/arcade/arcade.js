@@ -2048,7 +2048,7 @@ class Arcade extends ModTemplate {
 			invitation_type: gameType
 		};
 
-		console.debug("ARCADE: [makeGameInvite] gamedata: ", gamedata);
+		console.info("ARCADE: [makeGameInvite] gamedata: ", gamedata);
 
 		if (players_needed == 1) {
 			this.launchSinglePlayerGame(gamedata);

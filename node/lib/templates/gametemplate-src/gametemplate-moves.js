@@ -616,7 +616,7 @@ class GameMoves {
 			}
 
 
-console.info("#\n","# sending MOVE w/ step: " + JSON.stringify(ns) + " - " + this.publicKey+"\n","#\n");
+console.info(" #\n","# GT [sendGameMove] step: " + JSON.stringify(ns) + " - " + this.publicKey+"\n","#\n");
 
 			//
 			// if our crypto key is out-of-date, update -- note that SAITO and CHIPS are not checked

@@ -171,7 +171,7 @@ class GameGame {
 			return;
 		}
 
-		console.info(`SAVING GAME ID: "+${game_id}`);
+		console.info(`GT: SAVING GAME ID: ${game_id}`);
 		console.debug("GT [saveGame] queue: " + JSON.parse(JSON.stringify(this.game.queue)));
 
 		// make sure options file has structure to save your game
@@ -191,7 +191,7 @@ class GameGame {
 		//console.log("saveGame version: "+this.app.crypto.hash(Math.random()));
 		if (!game_id || game_id !== this.game.id) {
 			//game_id = this.app.crypto.hash(Math.random().toString(32));
-			console.warn('ERR? Save game with wrong id','Parameter: ' + game_id,'this game.id = ' + this.game.id);
+			console.warn('GT ERR? Save game with wrong id','Parameter: ' + game_id,'this game.id = ' + this.game.id);
 			return;
 		}
 
