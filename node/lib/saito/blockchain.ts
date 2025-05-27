@@ -77,23 +77,22 @@ export default class Blockchain extends SaitoBlockchain {
 		this.app.connection.on(
 			'add-block-success',
 			async ({ blockId, hash }) => {
-console.log("before onAddBlockSuccess...");
+// console.log("before onAddBlockSuccess...");
 				await this.onAddBlockSuccess(blockId, hash);
-console.log("after onAddBlockSuccess...");
+// console.log("after onAddBlockSuccess...");
 			}
 		);
 	}
 
 	public async affixCallbacks(block: Block) {
 
-console.log("============");
-console.log("IN BLOCK: " + block.id);
+// console.log("IN BLOCK: " + block.id);
 
 		let callbacks = [];
 		let callbackIndices = [];
 
 		let txs: Transaction[] = block.transactions as Transaction[];
-console.log("how many txs: " + txs.length);
+// console.log("how many txs: " + txs.length);
 		let validTxs = 0;
 		for (let z = 0; z < txs.length; z++) {
 			if (txs[z].type === TransactionType.Normal) {
@@ -132,7 +131,6 @@ console.log("how many txs: " + txs.length);
 				validTxs++;
 			}
 		}
-console.log("============");
 		this.callbacks.set(block.hash, callbacks);
 		this.callbackIndices.set(block.hash, callbackIndices);
 		this.confirmations.set(block.hash, BigInt(-1));
