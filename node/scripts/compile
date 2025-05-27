@@ -10,22 +10,23 @@ echo "  Current Timestamp: $currentTime"
 
 buildJsonFile="./config/build.json"
 
-
-echo $buildJsonFile
-
-
-
-
 if [ ! -f "$buildJsonFile" ]; then
     echo "  build.json not found, creating file..."
     mkdir -p ./config
     echo '{"build_number": "0"}' > "$buildJsonFile"
 fi
-echo "  Consolidating CSS files"
+
+echo ""
+echo "  Ensuring minimal config files available"
 echo ""
 
+[ ! -f ./config/options.conf ] && cp ./config/.template.options.conf ./config/options.conf
+[ ! -f ./config/modules.config.js ] && cp ./config/.template.modules.config.js ./config/modules.config.js
 
 
+echo ""
+echo "  Consolidating CSS files"
+echo ""
 
 for d in mods/*/ ;
 do
@@ -185,17 +186,11 @@ function reset_nonpersistent {
   echo "update users set latest_tx = -1;" | sqlite3 ./data/rewards.sq3
   fi
 
-  if [ ! -f ./config/modules.config.js ]; then
-    echo "copying modules from default list"
-    echo ""
-    cp ./config/modules.default.js ./config/modules.config.js
-  fi
-
   if [ -f ./config/options.conf ]; then
-    echo "copying options from defaults"
+    echo "creating options file"
     cp ./config/options.conf ./config/options
   else
-    cp ./config/options.conf.template ./config/options
+    cp ./config/.templates.options.conf ./config/options
   fi
 }
 
@@ -257,71 +252,7 @@ function copy_lite_mods_to_bundler_directory {
 }
 
 
-
-if [ "$1" == "init" ]; then
-
-
-  if [ -f config/modules.config.js ]; then
-
-    echo "";
-    echo "It looks like you have already installed Saito. If you are "
-    echo "trying to change the modules that are installed on your "
-    echo "machine you can edit the file: "
-    echo "";
-    echo "  config/modules.config.js";
-    echo "";
-    echo "And run the following command: ";
-    echo "";
-    echo "  > npm run compile";
-    echo "";
-    echo "Continuing with this installation will delete existing data,"
-    echo "reset your wallet and resync the blockchain. Are you sure "
-    echo "you wish to continue? (yes/no)"
-
-    while true; do
-      read -p "> " yn
-      case $yn in
-        yes* ) cp config/modules.default.js config/modules.config.js; break;;
-        no* ) exit;;
-        * ) echo 'Please answer "yes" or "no".';;
-      esac
-    done
-
-
-  elif [ -f config/modules.default.js ]; then
-
-    echo "";
-    echo "Installing and compiling Saito with default modules..."
-    echo "";
-
-  fi
-
-
-  if [ -f config/saito.io.conf ]; then
-
-    while true; do
-
-      echo ""
-      echo "You can join the Saito Network and participate in development"
-      echo "of the public chain. Or you can setup a local node for the"
-      echo "easier development and testing of applications."
-      echo "";
-      echo "Join saito.io (saito) or local install (local): ";
-      read -p "> " yn
-      case $yn in
-        saito* ) cp config/saito.io.conf config/options; break;;
-        local* ) break;;
-        * ) echo 'Please answer "saito" or "local".';;
-      esac
-    done
-
-  fi
-
-
-fi
-
-
-if [ "$1" == "nuke" ] || [ "$1" == "init" ]; then
+if [ "$1" == "nuke" ]; then
 
   echo ""
   echo ""
@@ -389,13 +320,6 @@ if [ "$1" == "recompile" ]; then
   echo ""
 
   # making sure we have some modules defined.
-
-  if [ ! -f ./config/modules.config.js ]; then
-    echo "copying modules from default list"
-    echo ""
-    cp ./config/modules.default.js ./config/modules.config.js
-  fi
-
 
 
   reset_bundler
