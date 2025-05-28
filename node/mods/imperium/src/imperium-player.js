@@ -7,6 +7,8 @@ returnPlayers(num = 0) {
 
   for (let i = 0; i < num; i++) {
 
+    let col = "";
+
     if (i == 0) { col = "color1"; }
     if (i == 1) { col = "color2"; }
     if (i == 2) { col = "color3"; }
@@ -61,7 +63,6 @@ returnPlayers(num = 0) {
     }
 
     delete factions[rf];
-
 
     players[i] = {};
     players[i].can_intervene_in_action_card = 0;

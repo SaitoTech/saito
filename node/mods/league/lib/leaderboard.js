@@ -50,14 +50,13 @@ class Leaderboard {
 		) {
 			document.querySelector(this.container + " .leaderboard-updating-msg").style.display = "block";
 			if (this.mod.debug) {
-				console.log(
+				console.debug(
 					this.league.numPlayers,
 					this.league.players.length,
 					'Query Server for leaderboard'
 				);
 			}
 			this.mod.fetchLeagueLeaderboard(this.league.id, (rows) => {
-				//console.log("Run callback on returned leaderboard");
 				if (document.querySelector(this.container + " .leaderboard-updating-msg")){
 					document.querySelector(this.container + " .leaderboard-updating-msg").style.display = "none";
 				}

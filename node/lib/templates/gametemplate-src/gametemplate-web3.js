@@ -16,10 +16,8 @@ class GameWeb3 {
 		this.game.crypto = ticker;
 		this.game.stake = stake;
 
-		console.log(stake);
 		// Need to parse if asymmetrical
 		if (typeof stake === "object") {
-			console.log("HELLO!!!!");
 			let obj = Object.assign({}, stake);
 			delete obj.min;
 			stake = Object.values(obj).join(" / ");
@@ -31,7 +29,6 @@ class GameWeb3 {
 		this.saveGame(this.game.id);
 
 		if (this.gameBrowserActive()) {
-			console.log('Get Logo for ' + ticker);
 			this.insertCryptoLogo(ticker);
 
 			// Updates playerboxes (if used)
@@ -120,7 +117,7 @@ class GameWeb3 {
 	 *
 	 */
 	async settleGameStake(winners) {
-		console.log('settleGameStake winners: ', winners);
+		console.info('GT [settleGameStake] winners: ', winners);
 
 		if (!this.game?.stake || !this.game?.crypto) {
 			return;
@@ -189,14 +186,6 @@ class GameWeb3 {
 		// if we are the sender, lets get sending and receiving addresses
 		//
 
-		console.log('-----------------------------');
-		console.log('payWinner ///');
-		console.log('sender, receiver ');
-		console.log(sender, receiver);
-		// console.log('this.game');
-		// console.log(this.game);
-		console.log('-----------------------------');
-
 		let game_self = this;
 		let sender_crypto_address = '';
 		let receiver_crypto_address = '';
@@ -227,7 +216,7 @@ class GameWeb3 {
 						[amount],
 						unique_hash,
 						function (robj) {
-							console.log('End game crypto transfer callback', robj);
+							console.debug('GT [payWinner] End game crypto transfer callback', robj);
 							game_self.app.connection.emit('saito-crypto-send-confirm', robj, unique_hash);
 						},
 						receiver
@@ -263,7 +252,7 @@ class GameWeb3 {
 			Buffer.from(sender + receiver + amount_to_send + this.game.dice + this.game.crypto, 'utf-8')
 		);
 
-		console.log(`crypto: ${sender}\t${receiver}\t${amount_to_send}\t${this.game.crypto}`);
+		console.debug(`GT [addPaymentToQueue]: ${sender}\t${receiver}\t${amount_to_send}\t${this.game.crypto}`);
 
 		this.game.queue.push(
 			`RECEIVE\t${sender}\t${receiver}\t${amount_to_send}\t${ts}\t${uh}\t${this.game.crypto}`

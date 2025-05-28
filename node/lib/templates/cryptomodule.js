@@ -111,8 +111,6 @@ class CryptoModule extends ModTemplate {
 
 		if (conf == 0) {
 
-			console.log("Am I listening? ", this.name);
-
 			if (!tx.isTo(this.publicKey) || tx.isFrom(this.publicKey)) {
 				return;
 			}
@@ -122,9 +120,6 @@ class CryptoModule extends ModTemplate {
 			if (txmsg.module !== this.name) {
 				return;
 			}
-
-			console.log('*****************');
-			console.log(txmsg);
 
 			if (txmsg.request === 'crypto payment') {
 				this.receivePaymentTransaction(tx);
@@ -147,13 +142,14 @@ class CryptoModule extends ModTemplate {
 		await newtx.sign();
 		await this.app.network.propagateTransaction(newtx);
 
-		console.log('Sent sendPaymentTransaction');
+		console.info('Crypto: sendPaymentTransaction sent!', newtx.msg);
 	}
 
 	receivePaymentTransaction(tx) {
-		console.log('receivePaymentTransaction');
-
+		
 		let txmsg = tx.returnMessage();
+
+		console.info('Crypto: receivePaymentTransaction', txmsg);
 
 		let expected_payment = false;
 
@@ -189,7 +185,7 @@ class CryptoModule extends ModTemplate {
 			this.save();
 			return { hash };
 		} else {
-			console.warn('Already saved expected payment');
+			console.warn('Crypto: Already saved expected payment');
 			return { err: 'Already saved expected payment' };
 		}
 	}
@@ -273,7 +269,7 @@ class CryptoModule extends ModTemplate {
 		try {
 			return this.address;
 		} catch (error) {
-			console.error('Error returnAddress:', error);
+			console.error('Crytpo: [returnAddress] ERROR:', error);
 		}
 	}
 

@@ -15,6 +15,7 @@ class Pandemic extends GameTemplate {
 
 		this.name = 'Epidemic';
 		this.gamename = 'Epidemic';
+		this.slug = "epidemic"
 		this.description = `Cooperative multiplayer board game in which players race to find vaccines to fend off a global <em>pandemic</em>.`;
 		this.categories = 'Games Boardgame Strategy Cooperative';
 		this.maxPlayers = 4;

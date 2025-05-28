@@ -22,7 +22,7 @@ class InviteManager {
 		this.lists = ['mine', 'open', 'active'];
 
 		if (mod?.sudo){
-			console.log("Sudo mode!");
+			console.info("ARCADE Sudo mode! Should show all games in UI");
 			this.lists = ['mine', 'open', 'active', 'private', 'close', 'over', 'offline'];
 		}
 
@@ -37,14 +37,12 @@ class InviteManager {
 		//
 		app.connection.on('arcade-invite-manager-render-request', () => {
 			if (this.mod.debug) {
-				console.log('RERENDER ARCADE INVITES: ', this.mod.games);
+				console.debug('RERENDER ARCADE INVITES: ', this.mod.games);
 			}
 			if (!this.mod.is_game_initializing) {
 				this.mod.purgeOldGames();
 				this.render();
-			} else {
-				console.log("Don't update Arcade while initializing game");
-			}
+			} 
 		});
 
 		app.connection.on('finished-loading-leagues', () => {
@@ -86,10 +84,12 @@ class InviteManager {
 				return;
 			}
 
+			console.info('arcade-continue-game-from-options');
+
 			let game_tx = mod.returnGame(id);
 
 			if (!game_tx) {
-				console.log('Creating fresh transaction');
+				console.info('ARCADE: Creating fresh transaction');
 				game_tx = await mod.createPseudoTransaction(game_mod.game);
 				mod.addGame(game_tx, 'closed');
 			} else {
@@ -99,8 +99,7 @@ class InviteManager {
 				game_tx.msg.request = 'paused';
 			}
 
-			console.log(JSON.parse(JSON.stringify(game_tx)));
-			console.log(JSON.parse(JSON.stringify(game_mod.game)));
+			console.info("ARCADE: ", JSON.parse(JSON.stringify(game_tx)), JSON.parse(JSON.stringify(game_mod.game)));
 
 			let newInvite = new Invite(app, mod, null, this.type, game_tx, mod.publicKey);
 			let join_overlay = new JoinGameOverlay(app, mod, newInvite.invite_data);
@@ -185,13 +184,24 @@ class InviteManager {
 							this.mod.publicKey
 						);
 
-						if (newInvite.invite_data.league) {
-							if (!this.mod.leagueCallback?.testMembership(newInvite.invite_data.league)) {
-								continue;
+						let gn = newInvite.invite_data.game_name;
+						let gmi = false;
+
+						for (let z = 0; z < this.app.modules.mods.length; z++) {
+							if (this.app.modules.mods[z].gamename === gn) {
+								gmi = true;
 							}
+						}	
+
+						if (gmi != false) {
+							if (newInvite.invite_data.league) {
+								if (!this.mod.leagueCallback?.testMembership(newInvite.invite_data.league)) {
+									continue;
+								}
+							}
+							newInvite.render();
+							rendered_content = true;
 						}
-						newInvite.render();
-						rendered_content = true;
 					}
 				}
 			}

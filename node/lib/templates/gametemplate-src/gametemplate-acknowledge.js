@@ -25,10 +25,6 @@ class GameAcknowledge {
 		  html = `<ul><li class="option acknowledge" id="confirmit">${this.acknowledge_text}</li></ul>`;
 		}
 
-		if (!this.game.player){
-			console.log("Game observer goes into ACKWNOLEDGE state");
-		}
-
 		//
 		// overlays, etc. may also have control display options
 		// so we loop through anything that has ".controls" as its
@@ -81,10 +77,10 @@ class GameAcknowledge {
 			this.ignore_notifications = false;
 
 		} catch (err) {
-			console.error('Error with ACKWNOLEDGE notice!: ' + err);
+			console.error('GT: Error with ACKWNOLEDGE notice!: ' + err);
 		}
 
-		console.info('Halt game for acknowledge');
+		console.info('GT: Halt game for acknowledge');
 		
 		// this should be ok
 		this.halted = 1;
@@ -153,9 +149,9 @@ class GameAcknowledge {
 		  }
 		}
 
-console.log("RESETCONFIRMSNEEDED in");
-console.log("type of indicator: " + type_of_indicator);
-console.log("array of player nums: " + JSON.stringify(array_of_player_nums));
+console.debug("RESETCONFIRMSNEEDED in");
+console.debug("type of indicator: " + type_of_indicator);
+console.debug("array of player nums: " + JSON.stringify(array_of_player_nums));
 
 		for (let i = 0; i < this.game.players.length; i++) {
 			if (type_of_indicator == 1) {
@@ -167,14 +163,14 @@ console.log("array of player nums: " + JSON.stringify(array_of_player_nums));
 					this.game.confirms_needed[i] = 0;
 				}
 			} else {
-console.log("checking: " + this.game.players[i]);
+console.debug("checking: " + this.game.players[i]);
 				if (
 					array_of_player_nums.includes(this.game.players[i])
 				) {
-console.log("confirm needed!");
+console.debug("confirm needed!");
 					this.game.confirms_needed[i] = 1;
 				} else {
-console.log("confirm not needed!");
+console.debug("confirm not needed!");
 					this.game.confirms_needed[i] = 0;
 				}
 			}

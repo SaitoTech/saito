@@ -44,7 +44,7 @@ class GameQueue {
 		// sanity load (multiplayer)
 		//
 		if (!this.game || this.game.id !== game_id) {
-			console.info('Loading game in InitializeGameQueue!');
+			console.debug('GT [initializeGameQueue]: Loading Game');
 			this.loadGame(game_id);
 		}
 
@@ -59,7 +59,7 @@ class GameQueue {
 		}
 
 		//Log the game state before we start doing anything...
-		console.info("initializeGameQueue", JSON.parse(JSON.stringify(this.game)));
+		console.debug("GT [initializeGameQueue]:", JSON.parse(JSON.stringify(this.game)));
 
 		if (this.game.status != '') {
 			this.hud.back_button = false;
@@ -123,12 +123,12 @@ class GameQueue {
 		// Start running the queue, or wait for relay to resend pending TXs
 		//
 		if (this.pending.length > 0 && this.browser_active) {
-			console.info("initializeGameQueue: don't start queue because have pending txs to resend");
+			console.info("GT [initializeGameQueue]: don't start queue because have pending txs to resend");
 			this.gaming_active = 1;
 			//The pending transactions are processed elsewhere...
 		} else {	
 			if (this.game.player == 0) {
-				console.log('Observer.... check for additional moves..., set active while loading...');
+				console.info('GT [initializeGameQueue]: Observer.... check for additional moves..., set active while loading...');
 				this.gaming_active = 1;
 				this.observerDownloadNextMoves(() => {
 					this.startQueue();
@@ -145,13 +145,12 @@ class GameQueue {
 	 *  Game moves are processed through a queue.
 	 */
 	async startQueue() {
-		console.info(`start queue: halted: (${this.halted} , gaming_active ({$this.gaming_active})`);
-		console.info('QUEUE: ('+this.game.step.game+') ' + JSON.stringify(this.game.queue));
-		console.info("CONFIRMS_NEEDED: " + JSON.stringify(this.game.confirms_needed));
+		console.info(`GT [startQueue] halted: (${this.halted}) , gaming_active (${this.gaming_active})`);
+		console.debug('GT [startQueue] QUEUE: ('+this.game.step.game+') ' + JSON.parse(JSON.stringify(this.game.queue)));
+		console.debug("GT [startQueue] CONFIRMS_NEEDED: " + JSON.stringify(this.game.confirms_needed));
 
 		if (this.game.over){
-			console.warn("Starting queue from game over state???");
-			console.trace();
+			console.trace("GT: Starting queue from game over state???");
 			return;
 		}
 
@@ -172,15 +171,10 @@ class GameQueue {
 			// Game Observer UI stuff
 			//
 			if (this.game.player == 0 && this.gameBrowserActive()) {
-				console.log('Running Queue in Observer mode. paused? ', this.observerControls.is_paused);
-				/*if (this.game.live && this.game.step.game >= this.game.live) {
-					console.log("Pause game observer");
-					this.observerControls.pause();
-					this.game.live = 0;
-				}*/
-
+				console.info('GT [observer] running Queue in Observer mode. paused? ', this.observerControls.is_paused);
+	
 				if (this.observerControls.is_paused && !this.game?.live) {
-					console.log('Observer controls halt game');
+					console.info('GT Observer controls halt game');
 					this.halted = 1;
 				}
 			}
@@ -203,10 +197,10 @@ class GameQueue {
 	 * start executing queue commands again.
 	 */
 	async restartQueue() {
-		console.info('RESTART QUEUE');
+		console.info('GT [restartQueue]');
 
 		if (this.gaming_active && !this.halted) {
-			console.warn('Queue Already active, not restarting...');
+			console.warn('GT: Queue Already active, not restarting...');
 			return;
 		}
 
@@ -238,7 +232,7 @@ class GameQueue {
 		// So the UI can "pause" the screen but allow game engine commands to execute in the background
 		// i.e. it only halts the game for UI updates
 		if (this.halted === 1) {
-			console.info('Opt out of runQueue because gameHalted');
+			console.warn('GT [runQueue]: game halted, stop');
 			this.gaming_active = 0;
 			return -1;
 		}
@@ -261,13 +255,13 @@ class GameQueue {
 				queue_length == game_self.game.queue.length &&
 				last_instruction === game_self.game.queue[queue_length - 1]
 			) {
-				console.warn('ENDLESS QUEUE LOOPING');
+				console.warn('GT [runQueue]: ENDLESS QUEUE LOOPING');
 				return -1;
 			}
 
 			let gqe = game_self.game.queue.length - 1;
 			
-			console.info(`MOVE (${game_self.game.step.game}): `, game_self.game.queue[gqe]);
+			console.info(`GT [runQueue] -- MOVE (${game_self.game.step.game}): `, game_self.game.queue[gqe]);
 
 			let gmv = game_self.game.queue[gqe].split('\t');
 
@@ -288,7 +282,7 @@ class GameQueue {
 			for (let i = 0; i < game_self.commands.length; i++) {
 				if ((await game_self.commands[i](game_self, gmv)) === 0) {
 					//Game engine requests queue processing pauses
-					console.info('GAME ENGINE waiting for move, queue: ' + JSON.stringify(game_self.game.queue));
+					console.debug('GT [runQueue] waiting for move, queue: ' + JSON.parse(JSON.stringify(game_self.game.queue)));
 					return 0;
 				}
 			}
@@ -313,7 +307,7 @@ class GameQueue {
 			await this.handleGameLoop();
 		}
 
-		console.info('GAME MOD waiting for move, queue: ' + JSON.stringify(game_self.game.queue));
+		console.debug('GT [runQueue] waiting for move, queue: ' + JSON.parse(JSON.stringify(game_self.game.queue)));
 		return 0;
 	}
 
@@ -593,10 +587,6 @@ class GameQueue {
 					players = game_self.game.players;
 				}
 
-				//console.info('ROUNDOVER : ' + players);
-				// console.info(
-				// 	JSON.parse(JSON.stringify(game_self.game.options))
-				// );
 				if (game_self.game.players[0] == game_self.publicKey) {
 					let newtx = await game_self.app.wallet.createUnsignedTransactionWithDefaultFee();
 					newtx.addTo(game_self.publicKey);
@@ -615,7 +605,6 @@ class GameQueue {
 					if (game_self.game.options?.league_id) {
 						newtx.msg.league_id = game_self.game?.options?.league_id;
 					}
-					//console.info(newtx.msg);
 
 					await newtx.sign();
 
@@ -959,14 +948,12 @@ class GameQueue {
 				} else {
 					//Otherwise we want to pause game processing
 					game_self.treat_all_moves_as_future = 1; //Prevent processing of any incoming moves (until we navigate to the game page)
-					//console.info('GAME READY, emit signal');
 					game_self.app.connection.emit('arcade-game-ready-render-request', {
 						name: game_self.name,
 						slug: game_self.returnSlug(),
 						id: game_self.game.id
 					});
 					// Move into game before processing anything else from the queue or future moves
-					console.info('Halt game because ready');
 					game_self.halted = 1;
 					return 0;
 				}
@@ -1083,16 +1070,13 @@ class GameQueue {
 
 							//Sanity check
 							if (!game_self.game.deck[deckidx - 1].cards[newcard]) {
-								console.warn('Card decryption error!');
-								console.warn(
+								console.warn('GT [RESOLVEDEAL]: Card decryption error!', 
 									'Card: ' + newcard,
 									'deck:',
 									JSON.parse(JSON.stringify(game_self.game.deck[deckidx - 1]))
 								);
 								if (game_self.app.BROWSER) {
-									//salert(
-									//	'There was a decryption error which will make the game unplayable'
-									//);
+									siteMessage('There was a decryption error which will make the game unplayable');
 								}
 							}
 						}
@@ -1130,7 +1114,7 @@ class GameQueue {
 							game_self.game.deck[deckidx - 1].crypt.length
 						) {
 							console.warn(
-								'Key-Crypt mismatch:',
+								'GT [RESOLVEDEAL] Key-Crypt mismatch:',
 								JSON.parse(JSON.stringify(game_self.game.deck[deckidx - 1]))
 							);
 						}
@@ -1192,12 +1176,6 @@ class GameQueue {
 					}
 					return 1;
 				}
-
-				// console.info(
-				// 	`Dealing ${cards} cards to ${recipient}. Deck has ${
-				// 		game_self.game.deck[deckidx - 1].crypt.length
-				// 	} cards`
-				// );
 
 				//
 				// resolvedeal checks this when
@@ -1377,7 +1355,7 @@ class GameQueue {
 							}
 						}
 					} else {
-						console.warn('ISSUEKEYS issue: deck lengths mismatch');
+						console.warn('GT [ISSUEKEYS] issue: deck lengths mismatch');
 					}
 				}
 
@@ -1420,7 +1398,7 @@ class GameQueue {
 							hashes.push(sr[2]);
 						} else {
 							console.warn(
-								'SIG DOES NOT VERIFY ' +
+								'GT [SECUREROLL] SIG DOES NOT VERIFY ' +
 									sr[2] +
 									' / ' +
 									sr[3] +
@@ -1636,7 +1614,7 @@ class GameQueue {
 							hashes.push(sr[2]);
 						} else {
 							console.warn(
-								`SIG DOES NOT VERIFY  ${sr[2]} / ${sr[3]} / ${game_self.game.players[sr[1] - 1]}`
+								`GT [SIMULTANEOUS_PICK] SIG DOES NOT VERIFY  ${sr[2]} / ${sr[3]} / ${game_self.game.players[sr[1] - 1]}`
 							);
 							return 0;
 						}
@@ -1832,9 +1810,6 @@ class GameQueue {
 					game_self.addDeck();
 				}
 
-				// console.info(
-				// 	JSON.parse(JSON.stringify(game_self.game.deck[deckidx - 1]))
-				// );
 				game_self.old_discards = game_self.game.deck[deckidx - 1].discards;
 				game_self.old_removed = game_self.game.deck[deckidx - 1].removed;
 				game_self.old_cards = {};
@@ -2027,19 +2002,13 @@ class GameQueue {
 				let deckidx = parseInt(gmv[1]);
 				let cryptLength = parseInt(gmv[2]);
 
-				//console.info(deckidx + " --- " + gmv[2]);
-
 				game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
 				for (let i = 1; i <= cryptLength; i++) {
 					//Adding one to i here so don't have to insert additional -1 term
 					let card = game_self.game.queue.pop();
-					//if (game_self.game.player != 0) {
 					game_self.game.deck[deckidx - 1].crypt[cryptLength - i] = card;
-
-					//}
 				}
-				//console.info("CARDS END: " + JSON.stringify(game_self.game.queue));
 			}
 			return 1;
 		});
@@ -2206,7 +2175,6 @@ class GameQueue {
 				// so that we can decrypt them as the keys come in.
 				//
 				if (game_self.game.pool[poolidx - 1].crypt.length == 0) {
-					//console.info("First pool resolution");
 					//
 					// update cards available to pool (master description of the deck)
 					game_self.game.pool[poolidx - 1].cards = game_self.game.deck[deckidx - 1].cards;
@@ -2237,10 +2205,7 @@ class GameQueue {
 
 					if (thiskey != null) {
 						nc = game_self.app.crypto.decodeXOR(nc, thiskey);
-					} else {
-						// nc does not require decoding
-						//console.info('Card doesn\'t need decoding');
-					}
+					} 
 
 					// store card in pool
 					game_self.game.pool[poolidx - 1].crypt[i] = nc;
@@ -2263,14 +2228,13 @@ class GameQueue {
 							game_self.game.pool[poolidx - 1].hand.push(newcard);
 						}
 						if (!game_self.game.pool[poolidx - 1].cards[newcard]) {
-							console.warn('Card decryption error!');
-							console.warn(
+							console.warn('GT [RESOLVEFLIP] Card decryption error!',
 								'Card: ' + newcard,
 								'pool:',
 								JSON.parse(JSON.stringify(game_self.game.pool[poolidx - 1]))
 							);
 							if (game_self.app.BROWSER) {
-								salert('There was a decryption error which will make the game unplayable');
+								siteMessage('There was a decryption error which will make the game unplayable');
 							}
 						}
 					}
@@ -2289,7 +2253,7 @@ class GameQueue {
 			if (gmv[0] === 'OBSERVER_CHECKPOINT') {
 				game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 				if (game_self.game.player == 0) {
-					console.log('Halt game for observer checkpoint');
+					console.info('GT: Halt game for observer checkpoint');
 					game_self.halted = 1;
 					game_self.saveGame(game_self.game.id);
 					game_self.observerControls.updateStatus('Pause for Observer Checkpoint');
@@ -2477,11 +2441,6 @@ class GameQueue {
 				let cryptokey = gmv[2];
 				let confsig = gmv[3];
 
-				// console.log('~~~~~~~~~~~~~~~~~~');
-				// console.log('RECEIVED CRYPTOKEY');
-				// console.log(playerkey + ' - ' + cryptokey + ' - ' + confsig);
-				// console.log('~~~~~~~~~~~~~~~~~~');
-
 				//
 				// if the playerkey has signed this cryptokey, update
 				//
@@ -2489,7 +2448,6 @@ class GameQueue {
 					for (let i = 0; i < game_self.game.keys.length; i++) {
 						if (game_self.game.players[i] === playerkey) {
 							game_self.game.keys[i] = cryptokey;
-							//console.log(`Update player ${i + 1}'s key`);
 						}
 					}
 				}
@@ -2507,15 +2465,11 @@ class GameQueue {
 				let playerkey = gmv[1];
 				let cryptos = JSON.parse(gmv[2]);
 
-				console.log('into available cryptos 1');
-
 				if (!this.game.cryptos) {
 					this.game.cryptos = {};
 				}
 
 				// Need to fix this... indexing on player number is bad for dynamic games...
-
-				console.log('into available cryptos 2 - assign');
 
 				this.game.cryptos[playerkey] = cryptos;
 
@@ -2525,8 +2479,6 @@ class GameQueue {
 				if (this.game.player !== playerkey){
 					this.app.wallet.saveAvailableCryptosAssociativeArray(this.game.players[playerkey-1], cryptos);	
 				}
-
-				console.log('into available cryptos 3 - clear queue');
 
 				game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
@@ -2545,11 +2497,11 @@ class GameQueue {
 
 				game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
-				console.log('PROCESSING REQUEST_AVAILABLE_CRYPTOS');
+				console.info('GT: PROCESSING REQUEST_AVAILABLE_CRYPTOS');
 
 				if (game_self.game.player == playerkey) {
 					let ac = await game_self.app.wallet.returnAvailableCryptosAssociativeArray();
-					console.log('CRYPTO INFORMATION RETRIEVED');
+					console.info('GT: CRYPTO INFORMATION RETRIEVED');
 
 					game_self.addMove(`AVAILABLE_CRYPTOS\t${playerkey}\t${JSON.stringify(ac)}`);
 
@@ -2605,7 +2557,7 @@ class GameQueue {
 
 				let my_specific_game_id = game_self.game.id;
 				game_self.saveGame(game_self.game.id);
-				console.info('Halt game to send crypto');
+				console.info('GT: Halt game to send crypto');
 				game_self.halted = 1;
 
 				let sendPaymentWrapper = async () => {
@@ -2686,7 +2638,7 @@ class GameQueue {
 				let my_specific_game_id = game_self.game.id;
 				game_self.saveGame(game_self.game.id);
 
-				console.info('Halt game to receive crypto');
+				console.info('GT: Halt game to receive crypto');
 				game_self.halted = 1;
 
 				await game_self.app.wallet.receivePayment(
