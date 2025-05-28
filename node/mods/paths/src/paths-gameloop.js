@@ -433,9 +433,15 @@ return 1; }
 		  if (this.returnPowerOfUnit(space.units[0]) != space.control) {
 
 		    let roll = this.rollDice(6);
+
+	  	    this.updateLog("#############");
+	  	    this.updateLog("### Seige ###");
+	  	    this.updateLog("#############");
+
 		    if (this.game.state.turn < 2) { roll -= 2; }
 		    if (roll > space.fort) {
 		      space.fort = -1;
+		      this.updateLog(this.returnSpaceNameForLog(space.key) + " fort destroyed (roll: " + roll + ")");
 		      this.updateStatus(this.returnSpaceNameForLog(space.key) + " fort destroyed (roll: " + roll + ")");
 
 	              //
@@ -452,6 +458,7 @@ return 1; }
 
 		    } else {
 		      this.updateStatus(this.returnSpaceNameForLog(space.key) + " fort resists siege (roll: " + roll + ")");
+		      this.updateLog(this.returnSpaceNameForLog(space.key) + " fort resists siege (roll: " + roll + ")");
 		    }
 
 		  }
@@ -1841,8 +1848,6 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 
 	  this.game.queue.splice(qe, 1);
 
-console.log("CDR 1");
-
 	  let attacker_units = this.returnAttackerUnits();
 	  let does_defender_retreat = false;
 	  let can_defender_cancel = false;
@@ -1874,8 +1879,6 @@ console.log("CDR 1");
 	    } 
 	  }        
 
-console.log("CDR 2");
-
 	  //
 	  // can we take another stepwise loss to cancel the retreat?
 	  //
@@ -1891,8 +1894,6 @@ console.log("CDR 2");
 	  if (this.game.state.withdrawal == 1) { this.game.state.combat.can_defender_cancel = false; }
 	  this.game.state.combat.can_defender_cancel = can_defender_cancel;
 
-console.log("CDR 3");
-
 	  //
 	  // no retreating from unoccupied fort
 	  //
@@ -1906,8 +1907,6 @@ console.log("CDR 3");
 	  //
 	  try { this.loss_overlay.showRetreatNotice(); } catch (err) {}
 
-console.log("CDR 4");
-
 	  //
 	  // remove all destroyed defender units
 	  //
@@ -1917,14 +1916,10 @@ console.log("CDR 4");
 	  }
 	  this.displaySpace(this.game.state.combat.key);
 
-console.log("CDR 5 - " + JSON.stringify(this.game.spaces[this.game.state.combat.key]));
-
 	  //
 	  // no need to retreat if nothing is left
 	  //
 	  if (this.game.spaces[this.game.state.combat.key].units.length <= 0) { return 1; } 
-
-console.log("CDR 6");
 
 	  //
 	  // no need to retreat if "they shall not pass"
@@ -2290,7 +2285,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  if (player_to_ignore != this.game.player) {
 	    let unit = this.cloneUnit(unitkey);
 	    unit.spacekey = spacekey;
-	    this.game.spaces[spacekey].units.push(this.cloneUnit(unitkey));
+	    this.game.spaces[spacekey].units.push(unit);
 	    if (attacked) { this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].attacked = 1; }
 	  }
 

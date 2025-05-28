@@ -3356,11 +3356,11 @@ deck['ap33'] = {
         rp : { 'BR' : 1 , 'FR' : 1 , 'RU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.event.high_seas_fleet > 1) { return 1; } return 0; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.events.high_seas_fleet > 1) { return 1; } return 0; } ,
         onEvent : function(paths_self, faction) {
-	  paths_self.game.state.event.grand_fleet = 1;
-	  if (paths_self.game.state.event.high_seas_fleet > 1) {
-	    paths_self.game.state.event.high_seas_fleet = 0;
+	  paths_self.game.state.events.grand_fleet = 1;
+	  if (paths_self.game.state.events.high_seas_fleet > 1) {
+	    paths_self.game.state.events.high_seas_fleet = 0;
 	  }
 	  return 1;
 	} ,
@@ -6412,6 +6412,8 @@ if (spacekey == "batum") {
   trace_supply = 1;
 }
 
+console.log("check supply status: " + spacekey);
+
     //
     // if we call this function generically, it means we want
     // to check the supply status of every unit on the board
@@ -6437,7 +6439,6 @@ if (spacekey == "batum") {
 	      // some units manage their own supply
 	      //
 	      if (this.game.units[u.key].checkSupplyStatus(this, key) == 1) { 
-console.log("unit: " + u.name + " w " + u.key + " --- " + key);
 		supplied = true;
 	      }
 	      if (this.checkSupplyStatus(u.ckey.toLowerCase(), key)) {
@@ -12769,7 +12770,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  if (player_to_ignore != this.game.player) {
 	    let unit = this.cloneUnit(unitkey);
 	    unit.spacekey = spacekey;
-	    this.game.spaces[spacekey].units.push(this.cloneUnit(unitkey));
+	    this.game.spaces[spacekey].units.push(unit);
 	    if (attacked) { this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].attacked = 1; }
 	  }
 
@@ -14680,6 +14681,7 @@ console.log(JSON.stringify(spaces_within_hops));
       }
     );
 
+console.log("OPTIONS: " + JSON.stringify(options));
 
     let rendered_at = options[0];
     if (paths_self.zoom_overlay.visible) {
@@ -14710,6 +14712,7 @@ console.log(JSON.stringify(spaces_within_hops));
       let units_to_attack = 0;
       for (let i = 0; i < options.length; i++) {
 	let s = options[i];
+console.log("s: " + s);
 	for (let z = 0; z < paths_self.game.spaces[options[i]].units.length; z++) {
 	  if (paths_self.game.spaces[options[i]].units[z].attacked != 1) {
             if (paths_self.game.spaces[options[i]].units[z].ckey != "GE") { non_german_units = true; }
@@ -14750,6 +14753,7 @@ console.log(JSON.stringify(spaces_within_hops));
 		  for (let z = 0; z < paths_self.game.spaces[key].neighbours.length; z++) {
 		    let n = paths_self.game.spaces[paths_self.game.spaces[key].neighbours[z]];
 		    if (n.activated_for_combat == 1) {
+console.log("N: " + JSON.stringify(n));
 		      for (let zz = 0; zz < n.units.length; zz++) {
 			if (n.units[zz].ckey != "GE") { attack_ok = true; }
 		      }
@@ -14760,6 +14764,7 @@ console.log(JSON.stringify(spaces_within_hops));
 	      }
 	    }
 	  }
+console.log("key: " + key);
 	  if (paths_self.game.spaces[key].fort > 0 && paths_self.game.spaces[key].units.length == 0) {
 	    for (let z = 0; z < paths_self.game.spaces[key].neighbours.length; z++) {
 	      if (paths_self.game.spaces[key].activated_for_combat == 1) { 
@@ -14780,8 +14785,8 @@ console.log(JSON.stringify(spaces_within_hops));
 	        let n = paths_self.game.spaces[key].neighbours[i];
 	        if (paths_self.game.spaces[n].oos != 1 && paths_self.game.spaces[n].activated_for_combat == 1) {
 	  	  for (let k in paths_self.game.state.attacks) {
-	  	    for (let z = 0; z < paths_self.game.state.attacks[key].length; z++) {
-		      if (paths_self.game.state.attacks[key][z] == key) { return 0; }
+	  	    for (let z = 0; z < paths_self.game.state.attacks[k].length; z++) {
+		      if (paths_self.game.state.attacks[k][z] == key) { return 0; }
 		    }
 		  }
 		  for (let z = 0; z < paths_self.game.spaces[n].units.length; z++) {
@@ -15882,8 +15887,8 @@ console.log("SPACES: " + JSON.stringify(paths_self.game.spaces[key].units));
         if (key == "crbox") {
   	  paths_self.reserves_overlay.pickUnitAndTriggerCallback("central", (idx) => {
 	    let unit = paths_self.game.spaces["crbox"].units[idx];
-            if (unit.type == "corps") { value -= 1; }
-            if (unit.type == "army") { value -= 4; }
+            if (unit.type === "corps") { value -= 1; }
+            if (unit.type === "army") { value -= 4; }
 	    paths_self.game.spaces[key].units[idx].moved = 1;
 	    paths_self.playerRedeployUnit(faction, card, value, key, idx);
 	  });

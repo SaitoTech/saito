@@ -1517,6 +1517,7 @@ console.log(JSON.stringify(spaces_within_hops));
       }
     );
 
+console.log("OPTIONS: " + JSON.stringify(options));
 
     let rendered_at = options[0];
     if (paths_self.zoom_overlay.visible) {
@@ -1547,6 +1548,7 @@ console.log(JSON.stringify(spaces_within_hops));
       let units_to_attack = 0;
       for (let i = 0; i < options.length; i++) {
 	let s = options[i];
+console.log("s: " + s);
 	for (let z = 0; z < paths_self.game.spaces[options[i]].units.length; z++) {
 	  if (paths_self.game.spaces[options[i]].units[z].attacked != 1) {
             if (paths_self.game.spaces[options[i]].units[z].ckey != "GE") { non_german_units = true; }
@@ -1587,6 +1589,7 @@ console.log(JSON.stringify(spaces_within_hops));
 		  for (let z = 0; z < paths_self.game.spaces[key].neighbours.length; z++) {
 		    let n = paths_self.game.spaces[paths_self.game.spaces[key].neighbours[z]];
 		    if (n.activated_for_combat == 1) {
+console.log("N: " + JSON.stringify(n));
 		      for (let zz = 0; zz < n.units.length; zz++) {
 			if (n.units[zz].ckey != "GE") { attack_ok = true; }
 		      }
@@ -1597,6 +1600,7 @@ console.log(JSON.stringify(spaces_within_hops));
 	      }
 	    }
 	  }
+console.log("key: " + key);
 	  if (paths_self.game.spaces[key].fort > 0 && paths_self.game.spaces[key].units.length == 0) {
 	    for (let z = 0; z < paths_self.game.spaces[key].neighbours.length; z++) {
 	      if (paths_self.game.spaces[key].activated_for_combat == 1) { 
@@ -1617,8 +1621,8 @@ console.log(JSON.stringify(spaces_within_hops));
 	        let n = paths_self.game.spaces[key].neighbours[i];
 	        if (paths_self.game.spaces[n].oos != 1 && paths_self.game.spaces[n].activated_for_combat == 1) {
 	  	  for (let k in paths_self.game.state.attacks) {
-	  	    for (let z = 0; z < paths_self.game.state.attacks[key].length; z++) {
-		      if (paths_self.game.state.attacks[key][z] == key) { return 0; }
+	  	    for (let z = 0; z < paths_self.game.state.attacks[k].length; z++) {
+		      if (paths_self.game.state.attacks[k][z] == key) { return 0; }
 		    }
 		  }
 		  for (let z = 0; z < paths_self.game.spaces[n].units.length; z++) {
@@ -2719,8 +2723,8 @@ console.log("SPACES: " + JSON.stringify(paths_self.game.spaces[key].units));
         if (key == "crbox") {
   	  paths_self.reserves_overlay.pickUnitAndTriggerCallback("central", (idx) => {
 	    let unit = paths_self.game.spaces["crbox"].units[idx];
-            if (unit.type == "corps") { value -= 1; }
-            if (unit.type == "army") { value -= 4; }
+            if (unit.type === "corps") { value -= 1; }
+            if (unit.type === "army") { value -= 4; }
 	    paths_self.game.spaces[key].units[idx].moved = 1;
 	    paths_self.playerRedeployUnit(faction, card, value, key, idx);
 	  });
