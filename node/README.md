@@ -84,7 +84,7 @@ This command will compile the codebase into a javascript payload which can be de
 
 There exist dozens of live [Web3 Saito applications](https://wiki.saito.io/en/applications) and modules that can be utilized and enjoyed, with no reliance on a central server.
 
-We invite new users to start with **[Saito Arcade](https://wiki.saito.io/applications/arcade)**  and **[Red Square](https://wiki.saito.io/applications/redsquare)**, since they serve as hubs and integrate many other popular applications. We'd be remissed not to recommend a team and community favorite Saito Arcade Title, [*Twilight Struggle*](https://wiki.saito.io/applications/twilight).
+We invite new users to start with **[Saito Arcade](https://wiki.saito.io/applications/arcade)**  and **[Red Square](https://wiki.saito.io/applications/redsquare)**, since they serve as hubs and integrate many other popular applications. We'd be remiss not to recommend a team and community favorite Saito Arcade Title, [*Twilight Struggle*](https://wiki.saito.io/applications/twilight).
 
 A non-comprehensive list of other P2P applications:
 
