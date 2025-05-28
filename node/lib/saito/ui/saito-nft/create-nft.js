@@ -35,15 +35,16 @@ class Nft {
     }
 
     async render() {
+        let nft_self = this;
+        this.callback.imageUploadCallback = async (file) => {
+            if (this.nft.image != "") { 
+            alert("NFT Image Editing not allowed, refresh to restart...");
+            return;
+            }
+            this.nft.image = file;
 
-    this.callback.imageUploadCallback = async (file) => {
-        if (this.nft.image != "") { 
-        alert("NFT Image Editing not allowed, refresh to restart...");
-        return;
-        }
-        this.nft.image = file;
-        this.addImage(file);
-    };
+            this.addImage(file);
+        };
 
         this.overlay.show(NftTemplate(this.app, this.mod, this));
 
@@ -52,8 +53,8 @@ class Nft {
             document.querySelector(".slip-info .metric.balance h3 .metric-amount").innerHTML = balance_str;
         }
 
-        await this.renderUtxo();
-    if (this.nft.image != "") { this.addImage(this.nft.image); }
+        //await this.renderUtxo();
+        if (this.nft.image != "") { this.addImage(this.nft.image); }
 
         this.attachEvents();
     }
@@ -86,21 +87,23 @@ class Nft {
         //     }
         // }
 
-        document.querySelector('#nfts-fee').onchange = async (e) => {
-            nft_self.nft.fee = e.target.value;      
-            nft_self.nft.deposit = document.querySelector('#nfts-deposit').value;
+        if (document.querySelector('#nfts-fee')) {
+            document.querySelector('#nfts-fee').onchange = async (e) => {
+                nft_self.nft.fee = e.target.value;      
+                nft_self.nft.deposit = document.querySelector('#nfts-deposit').value;
 
-            let amt = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.amt));
-            let deposit = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.deposit));
-            let fee = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.fee));
+                let amt = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.amt));
+                let deposit = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.deposit));
+                let fee = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.fee));
 
-            let change = amt - deposit - fee;
-            document.querySelector('#nfts-change').value = change;
+                let change = amt - deposit - fee;
+                document.querySelector('#nfts-change').value = change;
+            }
         }
 
         document.querySelector('#nfts-deposit').onchange = async (e) => {
             nft_self.nft.deposit = e.target.value;
-            nft_self.nft.fee =  document.querySelector('#nfts-fee').value;      
+            nft_self.nft.fee =  1; //document.querySelector('#nfts-fee').value;      
             
             let amt = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.amt));
             let deposit = nft_self.nft.deposit;
@@ -115,7 +118,7 @@ class Nft {
             console.log("change:", change);
 
 
-            document.querySelector('#nfts-change').value = change;
+            //document.querySelector('#nfts-change').value = change;
         }
 
         // document.querySelector('#nfts-change').onchange = async (e) => {
@@ -155,8 +158,8 @@ class Nft {
             let amount = BigInt(nft_self.nft.amt); // already in nolam
             // convert saito to nolan
             let depositAmt = this.app.wallet.convertSaitoToNolan(document.querySelector('#nfts-deposit').value);
-            let fee = this.app.wallet.convertSaitoToNolan(document.querySelector('#nfts-fee').value);
-            let change = this.app.wallet.convertSaitoToNolan(document.querySelector('#nfts-change').value);;
+            let fee = BigInt(1); //this.app.wallet.convertSaitoToNolan(document.querySelector('#nfts-fee').value);
+            let change = BigInt(1); //this.app.wallet.convertSaitoToNolan(document.querySelector('#nfts-change').value);;
 
             console.log("SUBMIT NFT: ");
             console.log(nft_self.nft);
@@ -231,19 +234,51 @@ class Nft {
                 };
             });
         }
+
     }
 
 
-    addImage(img="") {
+    addImage(data="" ) {
+
+        let fileInfo = this.parseFileInfo(data);
 
         let nft_self = this;
-        let html = `<div class="nft-image-preview">
-                      <img style="max-height: inherit; max-width: inherit; height: inherit; width: inherit" src="${img}"/>
-                      <i class="fa fa-times" onclick="alert('reload to change image')"></i>
+        let html = ``;
+        if (fileInfo.isImage) {
+            html = `<div class="nft-image-preview">
+                      <img style="max-height: inherit; max-width: inherit; height: inherit; width: inherit" src="${data}"/>
+                      <i class="fa fa-times" id="rmv-nft"></i>
                     </div>`;
+        } else {
+            html = `
+                <div class="nft-file-transfer">
+                    <div class="file-transfer-progress"></div>
+                    <i class="fa-solid fa-file-export"></i>
+                    <div class="file-name">${fileInfo.name}</div>
+                    <div class="file-size fixed-width">${(fileInfo.size)/1024} KB</div>
+                    <i class="fa fa-times" id="rmv-nft"></i>
+                </div>
+            `;
+        }
+
                                 
-        this.app.browser.addElementToSelector(html, ".create-button");
-                        
+        this.app.browser.addElementToSelector(html, ".textarea-container");
+        document.querySelector('#nft-image-upload').style.display = 'none';    
+
+        if (document.querySelector('#rmv-nft')) {
+            document.querySelector('#rmv-nft').onclick = async (e) => {
+                if (document.querySelector(".nft-image-preview")) {
+                    document.querySelector(".nft-image-preview").remove();
+                } 
+
+                if (document.querySelector(".nft-file-transfer")) {
+                    document.querySelector(".nft-file-transfer").remove();
+                }
+
+                document.querySelector('#nft-image-upload').style.display = 'block';  
+                nft_self.nft.image = "";
+            };
+        }       
     }
 
 
@@ -290,6 +325,123 @@ class Nft {
                     .filter(line => line.trim() !== '')
                     .map(line => line.split(' '));
         return utxo;
+    }
+
+
+        /**
+     * Parses a data URI header into its parts.
+     * @param {string} dataUri
+     * @returns {{ mediaType: string, params: Record<string,string>, data: string }} 
+     */
+    parseDataUri(dataUri) {
+      const [header, data] = dataUri.split(',', 2);
+      if (!header.startsWith('data:')) {
+        throw new Error('Not a valid data URI');
+      }
+      // strip leading "data:"
+      const parts = header.slice(5).split(';');
+      const mediaType = parts[0] || '';
+      const params = {};
+      for (let i = 1; i < parts.length; i++) {
+        const [key, val] = parts[i].split('=');
+        // treat bare "base64" as a boolean flag
+        params[key] = val === undefined ? '' : val;
+      }
+      return { mediaType, params, data };
+    }
+
+    /**
+     * Extracts the media type (MIME) from a data URI.
+     * @param {string} dataUri
+     * @returns {string|null}
+     */
+    extractMediaType(dataUri) {
+      try {
+        return this.parseDataUri(dataUri).mediaType || null;
+      } catch {
+        return null;
+      }
+    }
+
+    /**
+     * Extracts the file extension from a data URI’s media type.
+     * @param {string} dataUri
+     * @returns {string|null}
+     */
+    extractExtension(dataUri) {
+      const mediaType = this.extractMediaType(dataUri);
+      if (!mediaType) return null;
+      const parts = mediaType.split('/');
+      if (parts.length !== 2) return null;
+      // drop any "+suffix" (e.g. "svg+xml" → "svg")
+      return parts[1].split('+')[0].toLowerCase();
+    }
+
+    /**
+     * Extracts a filename from a data URI header or defaults to "file.<ext>".
+     * @param {string} dataUri
+     * @returns {string|null}
+     */
+    extractFileName(dataUri) {
+      try {
+        const { params } = this.parseDataUri(dataUri);
+        // look for either "name" or "filename"
+        const fname = params.name || params.filename;
+        if (fname) return fname;
+        const ext = this.extractExtension(dataUri) || 'bin';
+        return `file.${ext}`;
+      } catch {
+        return null;
+      }
+    }
+
+    /**
+     * Calculates the decoded byte-size of the file in a Base64 data URI.
+     * @param {string} dataUri
+     * @returns {number|null} size in bytes
+     */
+    getFileSizeFromDataUri(dataUri) {
+      try {
+        const base64 = this.parseDataUri(dataUri).data;
+        // count padding characters ("=" at end)
+        const paddingMatches = base64.match(/=+$/);
+        const padding = paddingMatches ? paddingMatches[0].length : 0;
+        // formula: bytes = 3/4 * length_of_base64 - padding
+        return Math.round((base64.length * 3) / 4 - padding);
+      } catch {
+        return null;
+      }
+    }
+
+    /**
+     * Checks if a data URI represents an image.
+     * @param {string} dataUri
+     * @returns {boolean}
+     */
+    isImageDataUri(dataUri) {
+      const mt = this.extractMediaType(dataUri);
+      return mt !== null && mt.startsWith('image/');
+    }
+
+    /**
+     * Bundles everything into one object.
+     * @param {string} dataUri
+     * @returns {{
+     *   mediaType: string|null,
+     *   extension: string|null,
+     *   name: string|null,
+     *   size: number|null,
+     *   isImage: boolean
+     * }}
+     */
+    parseFileInfo(dataUri) {
+      return {
+        mediaType: this.extractMediaType(dataUri),
+        extension: this.extractExtension(dataUri),
+        name: this.extractFileName(dataUri),
+        size: this.getFileSizeFromDataUri(dataUri),
+        isImage: this.isImageDataUri(dataUri),
+      };
     }
 }
 
