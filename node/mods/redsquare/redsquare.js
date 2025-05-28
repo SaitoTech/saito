@@ -134,7 +134,9 @@ class RedSquare extends ModTemplate {
           let orphan = this.orphan_edits.shift();
           this.editTweet(orphan.tweet_id, orphan.tx, orphan.source);
         }
-        console.debug(`RS.home-render-request ${orig_length - this.orphan_edits.length} orphaned edits processed!`);
+        console.debug(
+          `RS.home-render-request ${orig_length - this.orphan_edits.length} orphaned edits processed!`
+        );
       }
     });
 
@@ -409,26 +411,26 @@ class RedSquare extends ModTemplate {
     this.loadOptions();
 
     if (!app.BROWSER) {
-    //
-    // everyone loads their initial set of tweets from localhost
-    //
-    let ts = Date.now() - 14 * 24 * 60 * 60 * 1000;
-    this.app.storage.loadTransactions(
-      {
-        field1: 'RedSquare',
-        flagged: 0,
-        tx_size_less_than: 1000000,
-        limit: 400,
-        updated_later_than: ts
-      },
-      (txs) => {
-        this.processTweetsFromPeer('localhost', txs, 'redsquare.initialize');
-        if (!this.app.BROWSER) {
-          this.cacheRecentTweets();
-        }
-      },
-      'localhost'
-    );
+      //
+      // everyone loads their initial set of tweets from localhost
+      //
+      let ts = Date.now() - 14 * 24 * 60 * 60 * 1000;
+      this.app.storage.loadTransactions(
+        {
+          field1: 'RedSquare',
+          flagged: 0,
+          tx_size_less_than: 1000000,
+          limit: 400,
+          updated_later_than: ts
+        },
+        (txs) => {
+          this.processTweetsFromPeer('localhost', txs, 'redsquare.initialize');
+          if (!this.app.BROWSER) {
+            this.cacheRecentTweets();
+          }
+        },
+        'localhost'
+      );
     }
     ///////////////////////
     // SERVERS EXIT HERE //
@@ -634,7 +636,6 @@ class RedSquare extends ModTemplate {
     let txmsg = tx.returnMessage();
 
     if (conf == 0) {
-
       if (txmsg.request === 'delete tweet') {
         await this.receiveDeleteTransaction(blk, tx, conf, this.app);
         return;
@@ -754,7 +755,9 @@ class RedSquare extends ModTemplate {
             } else {
               if (created_at === 'earlier') {
                 if (this.debug) {
-                  console.debug(`RS.loadTweets-${i} (${this.peers[i].publicKey}) peer out of earlier tweets. Mark as closed`);
+                  console.debug(
+                    `RS.loadTweets-${i} (${this.peers[i].publicKey}) peer out of earlier tweets. Mark as closed`
+                  );
                 }
                 this.peers[i].tweets_earliest_ts = 0;
               }
@@ -762,7 +765,7 @@ class RedSquare extends ModTemplate {
 
             //
             // We are only verbose about the fetching on the initial load
-            // and when users click to refresh... otherwise we want the infinite 
+            // and when users click to refresh... otherwise we want the infinite
             // scroll to invisibly add tweets to our feed
             //
             if (created_at === 'later') {
@@ -809,8 +812,8 @@ class RedSquare extends ModTemplate {
   processTweetsFromPeer(peer, txs, source = '') {
     let count = 0;
 
-    if (this.debug){
-      console.debug("RS.processTweetsFromPeer: ", peer, source);
+    if (this.debug) {
+      console.debug('RS.processTweetsFromPeer: ', peer, source);
     }
 
     //
@@ -910,7 +913,9 @@ class RedSquare extends ModTemplate {
         this.notifications_earliest_ts = 0;
       }
 
-      console.info(`RS.loadNotifications: Appending ${new_notifications.length} new notification notices to the page`);
+      console.info(
+        `RS.loadNotifications: Appending ${new_notifications.length} new notification notices to the page`
+      );
 
       if (mycallback) {
         mycallback(new_notifications);
@@ -1134,15 +1139,15 @@ class RedSquare extends ModTemplate {
 
     if (txmsg.request === 'delete tweet' && this.app.BROWSER) {
       if (this.debug) {
-        console.debug("RS.addTweet -- process " + txmsg.request);
+        console.debug('RS.addTweet -- process ' + txmsg.request);
       }
       this.receiveDeleteTransaction(0, tx, 0, this.app);
       return 0;
     }
 
     if (txmsg.request === 'edit tweet') {
-    if (this.debug) {
-        console.debug("RS.addTweet -- process " + txmsg.request);
+      if (this.debug) {
+        console.debug('RS.addTweet -- process ' + txmsg.request);
       }
 
       this.editTweet(txmsg.data.tweet_id, tx, source);
@@ -1198,8 +1203,11 @@ class RedSquare extends ModTemplate {
     if (this.tweets_sigs_hmap[tweet.tx.signature]) {
       let t = this.returnTweet(tweet.tx.signature);
 
-      if (this.debug){
-        console.debug(`RS.addTweet: Duplicate! (${source}, ${tweet.curated}) to feed (${this.tweets.length}) -- `, t?.text);
+      if (this.debug) {
+        console.debug(
+          `RS.addTweet: Duplicate! (${source}, ${tweet.curated}) to feed (${this.tweets.length}) -- `,
+          t?.text
+        );
       }
 
       if (!t) {
@@ -1272,8 +1280,11 @@ class RedSquare extends ModTemplate {
         }
       }
 
-      if (this.debug){
-        console.debug(`RS.addTweet (${source}, ${tweet?.curated}) to feed (${this.tweets.length}) -- `, tweet.text);
+      if (this.debug) {
+        console.debug(
+          `RS.addTweet (${source}, ${tweet?.curated}) to feed (${this.tweets.length}) -- `,
+          tweet.text
+        );
       }
 
       return 1;
@@ -1292,8 +1303,11 @@ class RedSquare extends ModTemplate {
           this.tweets[i].addTweet(tweet);
           this.tweets_sigs_hmap[tweet.tx.signature] = 1;
 
-          if (this.debug){
-            console.debug(`RS.addTweet: child tweet (${source}, ${tweet?.curated}) to feed (${this.tweets.length}) -- `, tweet.text);
+          if (this.debug) {
+            console.debug(
+              `RS.addTweet: child tweet (${source}, ${tweet?.curated}) to feed (${this.tweets.length}) -- `,
+              tweet.text
+            );
           }
 
           return 0;
@@ -1303,8 +1317,11 @@ class RedSquare extends ModTemplate {
       this.unknown_children.push(tweet);
       this.tweets_sigs_hmap[tweet.tx.signature] = 1;
 
-      if (this.debug){
-        console.debug(`RS.addTweet: unknown child (${source}, ${tweet?.curated}) to feed (${this.tweets.length}) -- `, tweet.text);
+      if (this.debug) {
+        console.debug(
+          `RS.addTweet: unknown child (${source}, ${tweet?.curated}) to feed (${this.tweets.length}) -- `,
+          tweet.text
+        );
       }
 
       return 0;
@@ -1659,7 +1676,11 @@ class RedSquare extends ModTemplate {
         'localhost'
       );
     } else {
-      console.warn('RS.incrementRetweets: transaction received after archive load', localTx, receivedTx);
+      console.warn(
+        'RS.incrementRetweets: transaction received after archive load',
+        localTx,
+        receivedTx
+      );
     }
   }
 
@@ -1819,7 +1840,7 @@ class RedSquare extends ModTemplate {
       return;
     }
 
-    console.info("RS.receiveEdit: transaction received");
+    console.info('RS.receiveEdit: transaction received');
 
     if (this.browser_active) {
       this.editTweet(txmsg.data.tweet_id, tx, `onchain-edit-${tx.from[0].publicKey}`);
@@ -1865,7 +1886,7 @@ class RedSquare extends ModTemplate {
   // To-do: implement live updating of reply/retweet counts (currently requires a refresh)
   //
   async receiveDeleteTransaction(blk, tx, conf, app) {
-    console.info("RS.receiveDelete: transaction received");
+    console.info('RS.receiveDelete: transaction received');
 
     let txmsg = tx.returnMessage();
 
@@ -1947,7 +1968,7 @@ class RedSquare extends ModTemplate {
   }
 
   async receiveTweetTransaction(blk, tx, conf, app) {
-    console.info("RS.receiveTweet: transaction received");
+    console.info('RS.receiveTweet: transaction received');
 
     try {
       let tweet = new Tweet(app, this, tx, '.tweet-manager');
@@ -2012,7 +2033,10 @@ class RedSquare extends ModTemplate {
 
           if (tx.timestamp > other_tweet.updated_at) {
             other_tweet.tx.optional.num_retweets++;
-            console.debug('RS.receiveTweet: Increment retweets ', other_tweet.tx.optional.num_retweets);
+            console.debug(
+              'RS.receiveTweet: Increment retweets ',
+              other_tweet.tx.optional.num_retweets
+            );
             await this.app.storage.updateTransaction(
               other_tweet.tx,
               { timestamp: tx.timestamp },
@@ -2021,7 +2045,7 @@ class RedSquare extends ModTemplate {
             if (this.browser_active && other_tweet.isRendered()) {
               other_tweet.rerenderControls();
             }
-          } 
+          }
         } else {
           //
           // fetch archived copy
@@ -2073,7 +2097,10 @@ class RedSquare extends ModTemplate {
 
           if (tx.timestamp > other_tweet.updated_at) {
             other_tweet.tx.optional.num_replies++;
-            console.debug('RS.receiveTWeet: Increment replies ', other_tweet.tx.optional.num_replies);
+            console.debug(
+              'RS.receiveTWeet: Increment replies ',
+              other_tweet.tx.optional.num_replies
+            );
             if (this.browser_active && other_tweet.isRendered()) {
               other_tweet.rerenderControls();
             }
@@ -2082,7 +2109,7 @@ class RedSquare extends ModTemplate {
               { timestamp: tx.timestamp },
               'localhost'
             );
-          } 
+          }
         } else {
           //
           // ...otherwise, hit up the archive first
@@ -2386,7 +2413,7 @@ class RedSquare extends ModTemplate {
     }
 
     if (this.debug) {
-      console.debug('###\n###\m### RS.cacheRecentTweets -- ' + this.tweets.length+'\n###\n###');
+      console.debug('###\n###\m### RS.cacheRecentTweets -- ' + this.tweets.length + '\n###\n###');
     }
 
     this.cached_tweets = [];
@@ -2423,13 +2450,15 @@ class RedSquare extends ModTemplate {
     for (let z = 0; z < 4 && z < this.tweets.length; z++) {
       this.cached_tweets.push(this.tweets[z].tx.serialize_to_web(this.app));
     }
-
   }
 
   cacheRecentTweetsCurationFunction(tweet) {
     if (this.debug) {
       console.debug('RS.cacheRecentCuration: server is examining: ' + tweet.text);
-      console.debug('RS.cacheRecentCuration: moderation result is: ' + this.app.modules.moderate(tweet.tx, 'RedSquare'));
+      console.debug(
+        'RS.cacheRecentCuration: moderation result is: ' +
+          this.app.modules.moderate(tweet.tx, 'RedSquare')
+      );
     }
 
     return this.app.modules.moderate(tweet.tx, 'RedSquare');
@@ -2510,7 +2539,6 @@ class RedSquare extends ModTemplate {
           }
 
           if (typeof query_params.og_img_sig != 'undefined') {
-
             let sig = query_params.og_img_sig;
 
             redsquare_self.loadTweetWithSig(sig, (txs) => {
