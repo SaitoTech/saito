@@ -99,7 +99,7 @@ class GamePlayers {
 	// know their address, so that game moves can be broadcast to them as well
 	//
 	addFollower(address) {
-		console.log("Adding follower: " + address);
+		console.info("GT Adding follower: " + address);
 		if (address === '') {
 			return;
 		}
@@ -137,7 +137,6 @@ class GamePlayers {
 	// moves
 
 	nonPlayerTurn() {
-		//console.log("it is not my turn!");
 		this.hud.updateStatusMessage('Waiting for Opponent to Move');
 	}
 

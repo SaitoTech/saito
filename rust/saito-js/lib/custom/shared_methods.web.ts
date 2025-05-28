@@ -5,7 +5,7 @@ import CustomSharedMethods from "./custom_shared_methods";
 export default class WebSharedMethods extends CustomSharedMethods {
     connectToPeer(url: string, peer_index: bigint): void {
         try {
-            console.log("connecting to " + url + "....");
+            console.debug("connecting to " + url + "....");
             let socket = new WebSocket(url);
             socket.binaryType = "arraybuffer";
             Saito.getInstance().addNewSocket(socket, peer_index);
@@ -21,14 +21,14 @@ export default class WebSharedMethods extends CustomSharedMethods {
             socket.onopen = () => {
                 try {
                     Saito.getLibInstance().process_new_peer(peer_index, url);
-                    console.log("connected to : " + url + " with peer index : " + peer_index);
+                    console.debug("connected to : " + url + " with peer index : " + peer_index);
                 } catch (error) {
                     console.error(error);
                 }
             };
             socket.onclose = () => {
                 try {
-                    console.log("socket.onclose : " + peer_index);
+                    console.debug("socket.onclose : " + peer_index);
                     Saito.getLibInstance().process_peer_disconnection(peer_index);
                 } catch (error) {
                     console.error(error);
@@ -48,18 +48,18 @@ export default class WebSharedMethods extends CustomSharedMethods {
     }
 
     disconnectFromPeer(peerIndex: bigint): void {
-        console.log("disconnect from peer : " + peerIndex);
+        console.debug("disconnect from peer : " + peerIndex);
         Saito.getInstance().removeSocket(peerIndex);
     }
 
     fetchBlockFromPeer(url: string): Promise<Uint8Array> {
-        console.log("fetching block from url : " + url);
+        console.debug("fetching block from url : " + url);
         return fetch(url)
             .then((res: any) => {
                 return res.arrayBuffer();
             })
             .then((buffer: ArrayBuffer) => {
-                console.log("block fetched from : " + url + "with size : " + buffer.byteLength);
+                console.debug("block fetched from : " + url + "with size : " + buffer.byteLength);
                 return new Uint8Array(buffer);
             })
             .catch((err) => {
@@ -90,7 +90,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
         try {
             let data = localStorage.getItem(key);
             if (!data) {
-                console.log("item not found for key : " + key);
+                console.debug("item not found for key : " + key);
                 return new Uint8Array();
             }
             let buffer = Buffer.from(data, "base64");
@@ -120,7 +120,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
                     const dc = peerConnection.dc;
                     if (dc) {
                         if (dc.readyState === 'open') {
-                            console.log(`Sending message to STUN peer ${peerIndex} via data channel`);
+                            console.debug(`Sending message to STUN peer ${peerIndex} via data channel`);
                             try {
                                 dc.send(buffer);
                             } catch (error) {

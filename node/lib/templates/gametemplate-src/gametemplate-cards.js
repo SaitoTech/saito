@@ -33,10 +33,10 @@ class GameCards {
 					.getBoundingClientRect().width;
 				//Only needed for gameTemplate.scale, for putting game pieces on a game board
 				this.boardRatio = gameWidth / this.boardWidth;
-				console.info('BOARD RATIO:', this.boardRatio);
+				console.info('GT: BOARD RATIO:', this.boardRatio);
 			}
 		} catch (err) {
-			console.error(err);
+			console.error(`GT [calculateBoardRatio] ERROR: `, err);
 		}
 	}
 
@@ -51,7 +51,6 @@ class GameCards {
 			}
 			this.game.dice = this.app.crypto.hash(this.game.id);
 		}
-		console.info('Initialize Dice 2:' + this.game.dice);
 	}
 
 	rollDice(sides = 6, mycallback = null) {
@@ -141,7 +140,7 @@ class GameCards {
 		}
 
 		if (cardarray.length === 0) {
-			console.warn('No cards to render...');
+			console.warn('GT: No cards to render...');
 			return '';
 		}
 

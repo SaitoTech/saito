@@ -60,8 +60,6 @@ class FileReceiveOverlay {
 
 		let div = document.getElementById(this.divId);
 
-		console.log("Begin transfer", div);
-
 		let field = div?.querySelector('#transfer-speed-row');
 		if (field){
 			field.classList.remove("hideme");
@@ -100,7 +98,6 @@ class FileReceiveOverlay {
 
 	finishTransfer(blob){
 
-		console.log("Finish transfer!!!!!");
 		let div = document.getElementById(this.divId);
 
 		let field = div?.querySelector("#file-transfer-status");
@@ -225,7 +222,6 @@ class FileReceiveOverlay {
 				if (this.ready){
 					let c = await sconfirm("Close without saving the file first?");
 					if (!c){
-						console.log("Okay Don't close overlay yet");
 						return;
 					}
 				}else if (this.mod.incoming[this.fileId]?.sending){

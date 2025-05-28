@@ -137,8 +137,6 @@ class OnePlayerGameTemplate extends GameTemplate {
 						this.game = JSON.parse(
 							JSON.stringify(this.app.options.games[i])
 						);
-						console.log('Found a live game in my options');
-						//this.loadGame(game_id);
 						return 1;
 					}
 				}
@@ -181,21 +179,14 @@ class OnePlayerGameTemplate extends GameTemplate {
 			this.game.players_set = 1;
 			this.game.player = 1;
 
-			console.log('!!!!!!!!!!!!!!!!!!!!');
-			console.log('!!! SINGLE PLAYER GAME CREATED !!!');
-			console.log('!!!!!!!!!!!!!!!!!!!!');
-
+			console.log('!!!!!!!!!!!!!!!!!!!!\n', '!!! SINGLE PLAYER GAME CREATED !!!\n', '!!!!!!!!!!!!!!!!!!!!');
 			console.log('My Public Key: ' + this.publicKey);
 			console.log('My Position: ' + this.game.player);
 			console.log('ALL KEYS: ' + JSON.stringify(this.game.players));
 			console.log('saving with id: ' + game_id);
-			console.log('!!!!!!!!!!!!!!!!!!!!');
-			console.log('!!!!!!!!!!!!!!!!!!!!');
-			console.log('!!!!!!!!!!!!!!!!!!!!');
+			console.log('!!!!!!!!!!!!!!!!!!!!\n','!!!!!!!!!!!!!!!!!!!!\n','!!!!!!!!!!!!!!!!!!!!\n');
 		} else {
-			console.log('!!!!!!!!!!!!!!!!!!!!');
-			console.log('!!! CONTINUING SINGLE PLAYER GAME !!!');
-			console.log('!!!!!!!!!!!!!!!!!!!!');
+			console.log('!!!!!!!!!!!!!!!!!!!!\n', '!!! CONTINUING SINGLE PLAYER GAME !!!\n', '!!!!!!!!!!!!!!!!!!!!');
 		}
 
 		this.saveGame(game_id);
@@ -229,10 +220,13 @@ class OnePlayerGameTemplate extends GameTemplate {
 	}
 
 	async receiveStopGameTransaction(resigning_player = null, txmsg = null) {
+
+		console.info("GTO: receiveStopGame", JSON.parse(JSON.stringify(this.game.state)));
+
 		if (this.game.over > 0) {
 			if (resigning_player == this.publicKey && txmsg) {
-				console.log(
-					'Receiving quit message from Arcade, delete game from wallet'
+				console.info(
+					'GTO: Receiving quit message from Arcade, delete game from wallet'
 				);
 				this.removeGameFromOptions(this.game.id);
 			}
@@ -240,7 +234,6 @@ class OnePlayerGameTemplate extends GameTemplate {
 		}
 
 		let msg = 'cancellation';
-		console.log(JSON.parse(JSON.stringify(this.game.state)));
 		if (
 			this.game.state?.session?.wins >= 0 &&
 			this.game.state?.session?.losses >= 0
@@ -256,7 +249,7 @@ class OnePlayerGameTemplate extends GameTemplate {
 	}
 
 	receiveGameoverTransaction(blk, tx, conf, app) {
-		console.log('The game never ends when you play by yourself');
+		console.log('The game never ends when you play by yourself!');
 
 		try {
 			if (this.game.state?.session) {

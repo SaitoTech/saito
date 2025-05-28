@@ -169,6 +169,23 @@ console.log("!");
       let control = this.returnControlOfSpace(key);
 
       //
+      // to prevent desyncs we make sure all units are in the same order
+      //  
+      for (let key in space.units) {
+        if (space.units[key].length > 0) {
+          space.units[key].sort((a, b) => {
+            if (a.type < b.type) return -1;
+            if (a.type > b.type) return 1;
+            return 0;
+          });
+          for (let z = 0; z < space.units[key].length; z++) {
+            space.units[key][z].idx = z; 
+          }
+        } 
+      }   
+
+
+      //
       // units / armies
       //
       for (let i = 0; i < space.units.length; i++) {

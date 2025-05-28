@@ -62,9 +62,7 @@ class RedSquareMain {
         for (let i = 0; i < this.mod.tweets.length && i < 10; i++) {
           if (!this.mod.tweets[i].isRendered()) {
             if (!this.mod.curated || this.mod.tweets[i].curated) {
-              if (this.mod.tweets[i].curated) {
-                are_there_new_tweets_to_show = true;
-              }
+              are_there_new_tweets_to_show = true;
             }
           }
         }
@@ -171,7 +169,7 @@ class RedSquareMain {
       (message = 'loading new tweets...') => {
         // There is a tendency for these site messages to run on top of each other,
         // so log in the console too
-        console.log('RS loading-message: ' + message);
+        console.debug('RS.insert-loading-message: ' + message);
 
         siteMessage(message, 1000);
         //        this.loader.render(message);
@@ -200,9 +198,9 @@ class RedSquareMain {
 
     window.onpopstate = (event) => {
       //if (this.mod.debug){
-      console.log(
+      console.info(
         '===================',
-        'RSnavigation: ',
+        'RS.onpopstate: ',
         event?.state,
         window.location,
         '========================'
@@ -231,7 +229,7 @@ class RedSquareMain {
 
     switch (window.location.hash) {
       case '#notifications':
-        console.log('RSNAV: Render Notifications');
+        console.debug('RS.NAV: Render Notifications');
         this.renderNotifications();
         render_tweets = false;
         break;
@@ -247,7 +245,7 @@ class RedSquareMain {
     // render user profile
     //
     if (user_id) {
-      console.log('RSNAV: Render Profile');
+      console.debug('RS.NAV: Render Profile');
       render_tweets = false;
       this.renderProfile(user_id);
     }
@@ -257,9 +255,9 @@ class RedSquareMain {
     //
     let tweet_id = this.app.browser.returnURLParameter('tweet_id');
     if (tweet_id) {
-      console.log('RSNAV: Render Thread');
+      console.debug('RS.NAV: Render Thread');
       this.mod.loadTweetWithSig(tweet_id, (txs) => {
-        console.log(`RSNAV: Tweet thread load returned ${txs.length} tweets`);
+        console.debug(`RS.NAV: Tweet thread load returned ${txs.length} tweets`);
         for (let z = 0; z < txs.length; z++) {
           this.mod.addTweet(txs[z], 'url_sig');
         }
@@ -271,7 +269,7 @@ class RedSquareMain {
     }
 
     if (render_tweets) {
-      console.log('RSNAV: Render Feed');
+      console.debug('RS.NAV: Render Feed');
       this.renderHome();
     }
 
@@ -280,7 +278,7 @@ class RedSquareMain {
   }
 
   renderHome() {
-    console.log("RS: renderHome");
+    console.debug("RS.renderHome");
     this.manager.render('tweets');
     this.scrollFeed(this.scroll_depth, this.behavior);
 
@@ -323,7 +321,6 @@ class RedSquareMain {
           return;
         }
 
-        // console.log("A:", scrollableElement.scrollTop, lastScrollTop, triggered);
         is_running = true;
 
         if (st > lastScrollTop) {
@@ -345,7 +342,6 @@ class RedSquareMain {
         } // else was horizontal scroll
         lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
 
-        //console.log("B:", scrollableElement.scrollTop, lastScrollTop, triggered);
 
         if (this.manager.mode == 'tweets') {
           this.scroll_depth = scrollableElement.scrollTop;

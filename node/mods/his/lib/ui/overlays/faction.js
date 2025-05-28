@@ -288,9 +288,6 @@ console.log(remaining_keys + " = " + total_keys + " - " + controlled_keys);
 		if (p > 0) {
 		  for (let z = 0; z < his_self.game.state.players_info[p-1].captured.length; z++) {
 		    let c = his_self.game.state.players_info[p-1].captured[z];
-
-console.log("CAPTURED: " + JSON.stringify(c));
-
 		    if (c.capturing_faction == faction) {
 		      if (c.army_leader) {
 			this.app.browser.addElementToSelector(
@@ -311,7 +308,7 @@ console.log("CAPTURED: " + JSON.stringify(c));
 		//
 		// master of italy
 		//
-		master_of_italy_vp = his_self.game.state.master_of_italy[faction];
+		let master_of_italy_vp = his_self.game.state.master_of_italy[faction];
 		while (master_of_italy_vp >= 2) {
 			this.app.browser.addElementToSelector(
 				'<div class="master_of_italy_vp vp2"></div>',

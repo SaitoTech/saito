@@ -12,7 +12,6 @@ class JoinLeague {
 		this.timer = null;
 
 		this.app.connection.on('join-league-success', () => {
-			console.log('League Join success!');
 			if (this.timer) {
 				clearTimeout(this.timer);
 				this.timer = null;
@@ -30,13 +29,12 @@ class JoinLeague {
 
 		if (league == null) {
 			salert(`League not found`);
-			console.log('League id: ' + this.league_id);
+			console.debug('League [JoinLeague]: League not found' + this.league_id);
 			return;
 		}
 		this.overlay.remove();
 
 		if (league.rank >= 0) {
-			//console.log("Don't join, I am a member");
 			this.app.connection.emit(
 				'league-overlay-render-request',
 				this.league_id
@@ -85,10 +83,6 @@ class JoinLeague {
 				);
 				this.app.network.propagateTransaction(newtx);
 
-				if (this.mod.debug) {
-					console.log('Join sent! ' + league_id);
-				}
-
 				let params = {
 					publickey: this.mod.publicKey
 				};
@@ -96,7 +90,6 @@ class JoinLeague {
 				await this.mod.addLeaguePlayer(league_id, params);
 
 				this.timer = setTimeout(() => {
-					console.log('Time out');
 					this.loader.remove();
 					this.render();
 					this.timer = null;
@@ -126,7 +119,6 @@ class JoinLeague {
 				timer--;
 				countDown.innerHTML = timer;
 				if (timer === 0) {
-					console.log('Timer expired');
 					clearInterval(interval);
 					this.app.connection.emit(
 						'league-overlay-render-request',

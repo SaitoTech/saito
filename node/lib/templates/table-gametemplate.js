@@ -42,7 +42,7 @@ class GameTableTemplate extends GameTemplate {
 
 	async render(app) {
 		if (!this.game.options['open-table']) {
-			console.log('Treat table game as standard game');
+			console.info('GTT: Treat table game as standard (closed) game');
 			this.opengame = false;
 		}
 
@@ -52,7 +52,7 @@ class GameTableTemplate extends GameTemplate {
 	// Extension for table games
 	async receiveMetaMessage(tx) {
 		if (!tx.isTo(this.publicKey)) {
-			console.warn("processing a tx that isn't addressed to us...");
+			console.warn("GTT: processing a tx that isn't addressed to us...");
 		}
 
 		let txmsg = tx.returnMessage();
@@ -103,16 +103,16 @@ class GameTableTemplate extends GameTemplate {
 							2500
 						);					
 					}else{
-						console.warn("Don't add player because other players have already started next round!");
+						console.warn("GTT: Don't add player because other players have already started next round!");
 					}
 				}
-				console.log("JOIN SUCCESS:", JSON.stringify(this.toJoin), JSON.stringify(this.joining));
+				console.debug("GTT: JOIN SUCCESS:", JSON.parse(JSON.stringify(this.toJoin)), JSON.parse(JSON.stringify(this.joining)));
 			}
 			return;
 		}
 
 		if (txmsg.request == 'LEAVE') {
-			console.log('Leave request:' + txmsg.my_key);
+			console.info('GTT: Leave request:' + txmsg.my_key);
 			if (!this.toLeave.includes(txmsg.my_key)) {
 				this.toLeave.push(txmsg.my_key);
 				siteMessage(
@@ -135,7 +135,7 @@ class GameTableTemplate extends GameTemplate {
 		}
 
 		if (txmsg.request == 'SETTLEMENT') {
-			console.log(`${tx.from[0].publicKey} requested we settle at the end of the round`);
+			console.info(`GTT: ${tx.from[0].publicKey} requested we settle at the end of the round`);
 			this.settleNow = true;
 			siteMessage('Will settle at the end of the round', 1500);
 			return;
@@ -166,10 +166,10 @@ class GameTableTemplate extends GameTemplate {
 							2500
 						);					
 					}else{
-						console.warn("Still missing a confirmation...");
+						console.warn("GTT: Still missing a confirmation...");
 					}
 				}else{
-					console.warn("Don't add player because other players have already started next round!");
+					console.warn("GTT: Don't add player because other players have already started next round!");
 				}
 			}
 		}
@@ -191,11 +191,11 @@ class GameTableTemplate extends GameTemplate {
 	}
 
 	addPlayerToState(address) {
-		console.error('Did you define addPlayerToState in your game module?');
+		console.error('GTT: Did you define addPlayerToState in your game module?');
 	}
 
 	refreshPlayerboxes() {
-		console.error('Did you define refreshPlayerboxes in your game module?');
+		console.error('GTT: Did you define refreshPlayerboxes in your game module?');
 	}
 
 	async receiveStopGameTransaction(resigning_player, txmsg) {
@@ -218,7 +218,7 @@ class GameTableTemplate extends GameTemplate {
 					this.game.accepted.splice(i, 1);
 				}
 			}
-			console.log(resigning_player + ' not in ', this.game.players);
+			console.warn(`GTT: ${resigning_player} not in ${JSON.stringify(this.game.players)}`);
 			this.saveGame(this.game.id);
 
 			return;
@@ -239,24 +239,20 @@ class GameTableTemplate extends GameTemplate {
 	}
 
 	resetGameWithFewerPlayers() {
-		console.log('!!!!!!!!!!!!!!!!!!!!');
-		console.log('!!! GAME UPDATED !!!');
-		console.log('!!!!!!!!!!!!!!!!!!!!');
+		console.log('!!!!!!!!!!!!!!!!!!!!\n', '!!! GAME UPDATED !!!\n','!!!!!!!!!!!!!!!!!!!!');
 		console.log('My Public Key: ' + this.publicKey);
 		console.log('My Position: ' + this.game.player);
 		console.log('ALL PLAYERS: ' + JSON.stringify(this.game.players));
 		console.log('ALL KEYS: ' + JSON.stringify(this.game.keys));
 		console.log('saving with id: ' + this.game.id);
-		console.log('!!!!!!!!!!!!!!!!!!!!');
-		console.log('!!!!!!!!!!!!!!!!!!!!');
-		console.log('!!!!!!!!!!!!!!!!!!!!');
+		console.log('!!!!!!!!!!!!!!!!!!!!\n','!!!!!!!!!!!!!!!!!!!!\n','!!!!!!!!!!!!!!!!!!!!\n');
 
 		this.game.queue = [this.resetCommand];
 		this.game.live = true;
 		this.saveGame(this.game.id);
 
 		setTimeout(() => {
-			console.log('Re-initialize game with different players');
+			console.info('Re-initialize game with different players');
 			this.initialize_game_run = 0;
 			this.halted = 0;
 			this.refreshPlayerboxes();
@@ -332,7 +328,7 @@ class GameTableTemplate extends GameTemplate {
 					//clear out cards
 					this.cacheGame.deck = [];
 					this.cacheGame.pool = [];
-					console.log('POKERTABLE: Save game state...', this.cacheGame);
+					console.info('GTT: Save game state...', this.cacheGame);
 				}
 			}
 			return 1;
@@ -345,7 +341,7 @@ class GameTableTemplate extends GameTemplate {
 
 				game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
-				console.log('Adding ' + pkey + ' to game');
+				console.info('GTT: Adding ' + pkey + ' to game');
 
 				this.addPlayerLate(pkey); // Adds player to game
 				this.addPlayerToState(pkey);
@@ -377,7 +373,7 @@ class GameTableTemplate extends GameTemplate {
 
 				game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
-				console.log('Removing ' + pkey + ' from game');
+				console.info('GTT: Removing ' + pkey + ' from game');
 				let i = this.game.players.indexOf(pkey);
 
 				this.updateLog(
@@ -413,8 +409,7 @@ class GameTableTemplate extends GameTemplate {
 
 		this.commands.push((game_self, gmv) => {
 			if (gmv[0] === 'PLAYERS') {
-				//console.log(JSON.stringify(this.toLeave), JSON.stringify(this.toJoin));
-				console.log("PLAYERS:", JSON.stringify(this.toJoin), JSON.parse(JSON.stringify(this.joining)));
+				console.log("GTT: PLAYERS:", JSON.parse(JSON.stringify(this.toJoin)), JSON.parse(JSON.stringify(this.joining)));
 
 				let change = this.toLeave.length + this.toJoin.length > 0;
 
@@ -429,7 +424,6 @@ class GameTableTemplate extends GameTemplate {
 						}
 					}
 
-					console.log(`Player ${player_to_send} will send the moves to reset the table`);
 					//Player one handles the move
 					if (this.game.player == player_to_send) {
 						let player_count = this.game.players.length;

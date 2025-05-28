@@ -25,21 +25,16 @@ class Post {
 		this.container = container ? '.tweet-manager ' : '.saito-overlay ';
 		this.id = container ? 'tweet-overlay-embedded' : 'tweet-overlay';
 
-		console.log('Post render: ' + this.container);
-
 		if (container) {
 			if (document.getElementById(this.id)) {
-				console.log('replace');
 				this.app.browser.replaceElementById(
 					PostTemplate(this.app, this.mod, this),
 					this.id
 				);
 			} else {
-				console.log('Insert post form');
 				this.app.browser.addElementAfterSelector(PostTemplate(this.app, this.mod, this), container);
 			}
 		} else {
-			//console.log('overlay');
 			this.overlay.show(PostTemplate(this.app, this.mod, this));
 			this.overlay.blockClose();
 		}
@@ -111,7 +106,6 @@ class Post {
 		this.input.render();
 		
 		if (!this.app.browser.isMobileBrowser() || this.container == '.saito-overlay ') {
-			console.log("Focus on post");
 			this.input.focus(true);
 		}
 
@@ -123,8 +117,6 @@ class Post {
 	}
 
 	triggerClick(querySelector) {
-		//console.log(querySelector);
-		//console.log(document.querySelector(querySelector));
 		if (document.querySelector(querySelector)) {
 			document.querySelector(querySelector).click();
 		}
@@ -201,8 +193,6 @@ class Post {
 		let wallet_balance = await this.app.wallet.getBalance('SAITO');
 
 		// restrict moderation
-		console.log(text);
-		console.log('TEXT LENGTH: ' + text.length);
 		if (wallet_balance == 0 && this.app.BROWSER == 1 && text.length > 5000) {
 			this.app.browser.logMatomoEvent('RedSquare', 'Post', 'failure');
 			siteMessage('Insufficient SAITO to Enable Oversized Posts...', 3000);

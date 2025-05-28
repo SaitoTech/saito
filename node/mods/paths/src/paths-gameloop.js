@@ -2284,11 +2284,14 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  let unitkey = mv[2];
 	  let player_to_ignore = 0;
 	  if (mv[3]) { player_to_ignore = parseInt(mv[3]); }
+	  let attacked = false;
+	  if (mv[4]) { attacked = true; }
 
 	  if (player_to_ignore != this.game.player) {
 	    let unit = this.cloneUnit(unitkey);
 	    unit.spacekey = spacekey;
 	    this.game.spaces[spacekey].units.push(this.cloneUnit(unitkey));
+	    if (attacked) { this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].attacked = 1; }
 	  }
 
 	  //
@@ -2300,7 +2303,6 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
   	        if (this.game.state.combat.attacker[z].unit_sourcekey == spacekey) {
 	          this.game.state.combat.attacker.push({ key : this.game.state.combat.key , unit_sourcekey : spacekey , unit_idx : this.game.spaces[spacekey].units.length-1 });
 		  z = this.game.state.combat.attacker.length + 2;
-console.log("ADDACKERS NOW: " + JSON.stringify(this.game.state.combat.attacker));
 	        }
 	      }
 	    }

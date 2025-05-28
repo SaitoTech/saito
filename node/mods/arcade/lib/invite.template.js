@@ -1,16 +1,15 @@
 module.exports = (app, mod, invite) => {
 
 	let invite_class = (invite.target && invite.players[invite.target - 1 ] == mod.publicKey) ? " my-turn" : ""; 
+	let invite_img = `/${invite.game_slug}/img/arcade/arcade-banner-background.png`;
 
 	let html = `
-
-      <div class="saito-module saito-game${invite_class}" id="saito-game-${invite.game_id}" 
-      				style="background-image: url('/${invite.game_slug}/img/arcade/arcade-banner-background.png');">
+          <div class="saito-module saito-game${invite_class}" id="saito-game-${invite.game_id}" 
+      				style="background-image: url('${invite_img}');">
         <div class="saito-module-titlebar">
           <div class="saito-module-titlebar-title">${invite.game_name}</div>
           <div class="saito-module-titlebar-details game-type">${invite.game_type.toUpperCase()}</div>
-        </div>
-           
+        </div>           
         <div class="saito-module-holder">
           <div class="saito-game-details saito-game-identicons">
     `;

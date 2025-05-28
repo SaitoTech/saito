@@ -280,7 +280,7 @@ class Tweet {
 		//
 		if (this.mod.curated && this?.curated == -1) {
 			if (this.mod.debug){
-				console.log("Filter tweet: ", this.text);
+				console.info("RS.tweet -- curated (!) : ", this.text);
 			}
 			return -1;
 		}
@@ -542,7 +542,7 @@ class Tweet {
 			//
 			if (document.querySelector(`.tweet-${this.critical_child.tx.signature}`)) {
 				if (this.mod.debug){
-					console.log("already rendered critical child for tweet: ", this.text);
+					console.warn("RS.tweet: already rendered critical child for tweet: ", this.text);
 				}
 				return;
 			}
@@ -569,7 +569,7 @@ class Tweet {
 					try {
 						obj.innerHTML++;
 					} catch (err) {
-						console.log('err: ' + err);
+						console.error('RS.tweet ERROR: ', err);
 					}
 				}
 
@@ -847,7 +847,7 @@ class Tweet {
 						if (t) {
 							app.connection.emit('redsquare-tweet-render-request', t);
 						} else {
-							console.warn('This is going to screw up the feed');
+							console.warn('RS.tweet -- This is going to screw up the feed');
 							this.retweet.container = '.tweet-manager';
 							app.connection.emit('redsquare-tweet-render-request', this.retweet);
 						}
@@ -1009,7 +1009,7 @@ class Tweet {
 			}
 
 		} catch (err) {
-			console.log('ERROR attaching events to tweet: ' + err);
+			console.error('RS.Tweet -- ERROR attaching events to tweet: ', err);
 		}
 	}
 
@@ -1261,8 +1261,6 @@ class Tweet {
 				first_link = 'http://' + first_link;
 			}
 
-			//console.log(first_link);
-
 			if (typeof first_link == 'undefined') {
 				return this;
 			}
@@ -1276,10 +1274,8 @@ class Tweet {
 				urlParams = new URLSearchParams(link.search);
 				this.link = link.toString();
 			} catch (err) {
-				console.info(first_link + ' is not a valid url');
+				console.error(first_link + ' is not a valid url');
 			}
-
-			//console.log(this.link);
 
 			//
 			// youtube link
@@ -1325,7 +1321,6 @@ class Tweet {
 				}
 			}
 		}
-		//console.log(this.link);
 
 		return this;
 	}
@@ -1342,7 +1337,7 @@ class Tweet {
 				}
 			});
 		} catch (err) {
-			console.log(`ERROR UPDATING ${stat}: ` + err);
+			console.error(`RS.Tweet -- Stat ERROR: ` + err);
 		}
 	}
 

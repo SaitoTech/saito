@@ -16946,13 +16946,15 @@ console.log("DELETING Z: " + z);
  
 
   resetBesiegedSpaces() {
-    for (let space in this.game.spaces) {
-      if (space.besieged == 2) { space.besieged = 1; }
+    for (let key in this.game.spaces) {
+      if (this.game.spaces[key].besieged == 2) { this.game.spaces[key].besieged = 1; }
     }
   }
+
   removeBesiegedSpaces() { this.removeSieges(); }
   removeSieges() {
-    for (let space in this.game.spaces) {
+    for (let key in this.game.spaces) {
+      let space = this.game.spaces[key];
       if (space.besieged > 0) {
         this.removeSiege(space);
 	this.displaySpace(space);
@@ -39088,10 +39090,9 @@ try {
           }
 
 
-          if (space.besieged != 0) {
-            space.besieged = 0;
+	  if (this.game.spaces[space].besieged != 0) {
+            this.game.spaces[space].besieged = 0;
           }
-
 
 	  this.displaySpace(space);
 	  this.displayVictoryTrack();

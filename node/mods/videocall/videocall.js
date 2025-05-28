@@ -47,7 +47,7 @@ class Videocall extends ModTemplate {
 		//When CallLauncher is rendered or game-menu triggers it
 		app.connection.on('stun-init-call-interface', (settings) => {
 			if (this.CallInterface) {
-				console.warn('Already instatiated a video/audio call manager');
+				console.warn('TALK: Already instatiated a video/audio call manager');
 				return;
 			}
 
@@ -58,7 +58,7 @@ class Videocall extends ModTemplate {
 				this.streams.active = true;
 			}
 
-			console.log('STUN UI: ', settings);
+			console.debug('TALK [stun-init-call-interface]: UI settings ', settings);
 
 			if (settings.ui === 'large') {
 				this.CallInterface = new CallInterfaceVideo(app, this, true);
@@ -129,7 +129,7 @@ class Videocall extends ModTemplate {
 			try {
 				this.stun = app.modules.returnFirstRespondTo('peer-manager');
 			} catch (err) {
-				console.warn('Videocall unavailable without Stun module installed!');
+				console.error('SaitoTalk: Videocall unavailable without Stun module installed!');
 			}
 		}
 	}
@@ -194,7 +194,7 @@ class Videocall extends ModTemplate {
 						text: 'Kick User From Call',
 						icon: 'fa-solid fa-user-slash',
 						callback: async (app, public_key) => {
-							console.log('kicking user: ', public_key);
+							console.info('TALK: kicking user: ', public_key);
 							app.connection.emit('remove-peer-box', public_key);
 							await this.sendKickTransaction(public_key);
 							this.streams.removePeer(public_key, 'was kicked out');
@@ -211,7 +211,7 @@ class Videocall extends ModTemplate {
 							callback: function (app, public_key) {
 								if (call_self?.room_obj) {
 									salert('Already in or establishing a call');
-									console.log(call_self.room_obj);
+									console.debug("SaitoTalk: ", call_self.room_obj);
 								} else {
 									call_self.dialer.establishStunCallWithPeers([public_key]);
 								}
@@ -346,7 +346,7 @@ class Videocall extends ModTemplate {
 								if (call_self?.room_obj) {
 									if (call_self.streams?.active){
 										salert('Already in or establishing a call');
-										console.log(call_self.room_obj);
+										console.debug("SaitoTalk: ", call_self.room_obj);
 									}else {
 										app.connection.emit(
 											'stun-init-call-interface',
@@ -394,7 +394,7 @@ class Videocall extends ModTemplate {
 							callback: function (app, id) {
 								if (call_self?.room_obj) {
 									salert('Already in or establishing a call');
-									console.log(call_self.room_obj);
+									console.debug("SaitoTalk: ", call_self.room_obj);
 								} else {
 									call_self.dialer.establishStunCallWithPeers([obj.publicKey]);
 								}
@@ -484,8 +484,6 @@ class Videocall extends ModTemplate {
 
 					if (this.hasSeenTransaction(tx)) return;
 
-					console.log('New TX OnConfirmation: ', message);
-
 					if (!tx.isFrom(this.publicKey)) {
 						//Someone joined call room
 						if (message.request === 'call-list-request') {
@@ -514,7 +512,7 @@ class Videocall extends ModTemplate {
 				// and not belonging to a module
 				//
 				if (txmsg.request.includes('stun-connection')) {
-					console.log('Stun-connection', txmsg.data);
+					console.debug('TALK [HPT]: Stun-connection', txmsg.data);
 					this.dialer.receiveStunCallMessageFromPeers(tx);
 					return;
 				}
@@ -535,7 +533,7 @@ class Videocall extends ModTemplate {
 						return;
 					}
 
-					console.log('HPT: ' + txmsg.request);
+					console.debug('TALK [HPT]: ' + txmsg.request);
 
 					if (txmsg.request === 'call-list-response') {
 						this.receiveCallListResponseTransaction(this.app, tx);
@@ -554,7 +552,6 @@ class Videocall extends ModTemplate {
 
 						//Limbo Hook
 						this.app.connection.emit('videocall-add-party', from);
-						console.log('STUN: VIDEOCALL PEER JOINED');
 						this.stun.createPeerConnection(from, false);
 
 						return;
@@ -567,7 +564,6 @@ class Videocall extends ModTemplate {
 					}
 
 					if (txmsg.request === 'peer-kicked') {
-						console.log("kicked out of video call...");
 						this.app.connection.emit('stun-disconnect');
 						siteMessage(`${this.app.keychain.returnUsername(tx.from[0].publicKey)} kicked you out of the call`);
 					}
@@ -651,7 +647,7 @@ class Videocall extends ModTemplate {
 
 	async sendCallEntryTransaction() {
 		if (!this.room_obj) {
-			console.error('No room object');
+			console.error('TALK: No room object');
 			return;
 		}
 
@@ -675,7 +671,7 @@ class Videocall extends ModTemplate {
 
 		await newtx.sign();
 
-		console.log("Sending call entry: ", newtx.msg);
+		console.info("TALK: Sending call entry: ", newtx.msg);
 
 		this.app.connection.emit('relay-transaction', newtx);
 		this.app.network.propagateTransaction(newtx);
@@ -692,7 +688,7 @@ class Videocall extends ModTemplate {
 
 		//Check if we have a broken stun connection
 		if (!this.stun.hasConnection(from)) {
-			console.log("Videocall: reset stun peer connection for new join");
+			console.info("TALK: reset stun peer connection for new join");
 			this.stun.removePeerConnection(from);
 		}
 
@@ -715,7 +711,7 @@ class Videocall extends ModTemplate {
 
 
 			if (!tx.isFrom(this.publicKey)){
-				console.log('STUN: peer list request from ', from, call_list);
+				console.debug('TALK: peer list request from ', from, call_list);
 				await this.sendCallListResponseTransaction(from, call_list);
 			}
 
@@ -726,11 +722,10 @@ class Videocall extends ModTemplate {
 		let event = this.app.keychain.returnKey(txmsg.call_id, true);
 		
 		if (event){
-			console.log("EVENT!!!", event);
+			console.info("TALK EVENT!!!", event);
 			// I am in a different call
 			if (this.room_obj?.call_id){
 				siteMessage(`${this.app.keychain.returnUsername(from)} joined ${event.identifier}`);
-				console.log(event);
 			}else{
 				let c = await sconfirm(`${this.app.keychain.returnUsername(from)} ready for ${event.identifier}, join now?`);
 				if (c) {
@@ -781,7 +776,7 @@ class Videocall extends ModTemplate {
 		//
 		// Create a connection with everyone
 		//
-		console.log('STUN: My peer list: ', this.room_obj.call_peers, 'Received list: ', call_list);
+		console.debug('TALK [callListResponse]: My peer list: ', this.room_obj.call_peers, 'Received list: ', call_list);
 
 		for (let peer of call_list) {
 			this.addCallParticipant(txmsg.call_id, peer);
@@ -790,7 +785,7 @@ class Videocall extends ModTemplate {
 					this.room_obj?.call_peers.push(peer);
 				}
 
-				console.log('STUN (VIDEOCALL): peer list member, create connection with ', peer);
+				console.debug('TALK [callListResponse]: peer list member, create connection with ', peer);
 				this.stun.createPeerConnection(peer, (peerId) => {
 					this.sendCallJoinTransaction(peerId);
 				});
@@ -823,11 +818,11 @@ class Videocall extends ModTemplate {
 
 	async sendCallDisconnectTransaction() {
 		if (!this?.room_obj) {
-			console.log('No room object!');
+			console.error('TALK [callDisconnect]: No room object!');
 			return;
 		}
 
-		console.log('STUN: Send disconnect message (hang up):', this.room_obj);
+		console.info('TALK [callDisconnect] (hang up):', this.room_obj);
 
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
 
@@ -860,11 +855,11 @@ class Videocall extends ModTemplate {
 	}
 	async sendKickTransaction(peer) {
 		if (!this?.room_obj) {
-			console.log('No room object!');
+			console.error('TALK [sendKick]: No room object!');
 			return;
 		}
 
-		console.log('STUN: Send kick message:', this.room_obj);
+		console.debug('TALK: Send kick message:', this.room_obj, peer);
 
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(peer);
 
@@ -887,11 +882,9 @@ class Videocall extends ModTemplate {
 
 	async sendKickBroadcastMessageTransaction(peer_id) {
 		if (!this?.room_obj) {
-			console.log('No room object!');
+			console.error('TALK [sendKickBroadcast]: No room object!');
 			return;
 		}
-
-		console.log('Videocall: Send kick broadcast message:', this.room_obj);
 
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
 
@@ -909,6 +902,8 @@ class Videocall extends ModTemplate {
 			},
 			call_id: this.room_obj.call_id
 		};
+
+		console.debug('TALK [sendKickBroadcast]:', this.room_obj, newtx.msg);
 
 		await newtx.sign();
 
@@ -930,8 +925,8 @@ class Videocall extends ModTemplate {
 					if (!this.room_obj.call_peers.includes(peer)) {
 						this.room_obj.call_peers.push(peer);
 
-						console.log(
-							'STUN (VIDEOCALL): post hoc peer list member, attempt connection with ',
+						console.info(
+							'TALK [broadcastList]: post hoc peer list member, attempt connection with ',
 							peer
 						);
 						this.stun.createPeerConnection(peer, (peerId) => {
@@ -966,7 +961,6 @@ class Videocall extends ModTemplate {
 
 	saveCallToKeychain(){
 
-		console.log("Saving call as event in keychain");
 		let call_link = this.generateCallLink();
 		let name = "Video Call";
 
@@ -986,6 +980,8 @@ class Videocall extends ModTemplate {
 				link: call_link,
 			});
 		}
+
+		console.debug("TALK: save call to keychain", this.room_obj);
 
 		this.app.keychain.addWatchedPublicKey(this.room_obj.call_id);
 	}

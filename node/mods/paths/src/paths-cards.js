@@ -1557,11 +1557,11 @@ deck['ap33'] = {
         rp : { 'BR' : 1 , 'FR' : 1 , 'RU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.events.high_seas_fleet > 1) { return 1; } return 0; } ,
         onEvent : function(paths_self, faction) {
-	  paths_self.game.state.event.grand_fleet = 1;
-	  if (paths_self.game.state.event.high_seas_fleet > 1) {
-	    paths_self.game.state.event.high_seas_fleet = 0;
+	  paths_self.game.state.events.grand_fleet = 1;
+	  if (paths_self.game.state.events.high_seas_fleet > 1) {
+	    paths_self.game.state.events.high_seas_fleet = 0;
 	  }
 	  return 1;
 	} ,
@@ -1672,7 +1672,7 @@ deck['ap34'] = {
         
             let p1 = paths_self.returnPlayerOfFaction("allies"); 
             if (paths_self.game.player == p1) {
-              paths_self.addMove("matahari_results\t"+JSON.stringify(paths_self.game.deck[1].hand));
+              paths_self.addMove("matahari_results\t"+JSON.stringify(paths_self.game.deck[1].hand)+"\t2");
               paths_self.endTurn();
             } else {
               paths_self.updateStatus("opponent revealing hand...");
@@ -2103,6 +2103,7 @@ deck['cp33'] = {
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
 	  paths_self.game.state.events.walter_rathenau = 1;
+	  return 1;
 	}
       }
    deck['cp34'] = { 
@@ -2120,11 +2121,11 @@ deck['cp33'] = {
         onEvent : function(paths_self, faction) {
 	  paths_self.convertCountryToPower("bulgaria", "central");
 	  paths_self.game.state.events.neutral_entry = 1;
-	  paths_self.game.state.events.romania = true;
+	  paths_self.game.state.events.bulgaria = true;
 	  paths_self.addUnitToSpace("bu_corps", "sofia");
 	  paths_self.addUnitToSpace("bu_corps", "sofia");
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
-	    paths_self.playerPlaceUnitOnBoard("romania", ["bu_corps", "bu_corps", "bu_corps", "bu_corps"], () => {
+	    paths_self.playerPlaceUnitOnBoard("bulgaria", ["bu_corps", "bu_corps", "bu_corps", "bu_corps"], () => {
 	      paths_self.addMove("SETVAR\tstate\tneutral_entry\t1");
 	      paths_self.endTurn();
 	    });

@@ -49,7 +49,6 @@ class JoinGameOverlay {
 
 			let el = document.querySelector('.arcade-game-overlay');
 
-			console.log(el);
 			try {
 				let optjson = JSON.parse(
 					JSON.stringify(this.invite, (key, value) => (key == 'game_mod' ? 'game_mod' : value))
@@ -57,7 +56,7 @@ class JoinGameOverlay {
 
 				var tree = jsonTree.create(optjson, el);
 			} catch (err) {
-				console.error('error creating jsonTree: ' + err);
+				console.error('ARCADE: [joinGame] error creating jsonTree: ', err);
 			}
 		} else {
 			this.overlay.show(JoinGameOverlayTemplate(this.app, this.mod, this.invite));
@@ -115,7 +114,7 @@ class JoinGameOverlay {
 							}
 						});
 					} catch (err) {
-						console.log('ERROR checking crypto: ' + err);
+						console.error('ARCADE [joinGame] ERROR checking crypto: ', err);
 						return false;
 					}
 				} else {
