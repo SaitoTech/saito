@@ -1267,7 +1267,7 @@ impl Wallet {
             }
 
             if collected_from_unspent_slips < required_from_unspent_slips {
-                warn!("couldn't collect enough funds upto requested staking amount. requested: {:?}, collected: {:?} required_from_unspent: {:?}",
+                warn!("insufficient funds to stake block. requested: {:?}, collected: {:?} required_from_unspent: {:?}",
                     staking_amount,collected_amount,required_from_unspent_slips);
                 warn!("wallet balance : {:?}", self.available_balance);
                 return Err(Error::from(ErrorKind::NotFound));
