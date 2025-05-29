@@ -92,7 +92,7 @@ class Stun extends ModTemplate {
 			}
 		});
 
-		app.connection.on('stun-connection-timeout', async (peerId) => {
+		app.connection.on('stun-connection-timeout', async (peerId, delay) => {
 			console.warn('STUN: connection timeout', peerId);
 			let peerConnection = this.peers.get(peerId);
 			let c = null;
@@ -100,13 +100,14 @@ class Stun extends ModTemplate {
 				c = await sconfirm(`STUN: connection timed out -- ${app.keychain.returnUsername(peerId)} might not be online. Keep waiting?`);
 			}
 			if (c) {
+				delay *= 2;
 				peerConnection.timer = setTimeout(() => {
 					if (!this.hasConnectionWithPeer(peerId)){
-						app.connection.emit('stun-connection-timeout', peerId);
+						app.connection.emit('stun-connection-timeout', peerId, delay);
 					}else{
 						console.warn("Stun: peerConnection timer expired but we have a connection...");
 					}
-				}, 10000);
+				}, delay);
 			} else {
 				// Notify the module UI that we have given up connecting
 				app.connection.emit('stun-connection-close', peerId);
@@ -512,11 +513,11 @@ class Stun extends ModTemplate {
 
 		peerConnection.timer = setTimeout(() => {
 			if (!this.hasConnectionWithPeer(peerId)){
-				this.app.connection.emit('stun-connection-timeout', peerId);
+				this.app.connection.emit('stun-connection-timeout', peerId, 5000);
 			}else{
 				console.warn("Stun: peerConnection timer expired but we have a connection...");
 			}
-		}, 10000);
+		}, 5000);
 
 		// Handle ICE candidates
 		peerConnection.onicecandidate = async (event) => {
