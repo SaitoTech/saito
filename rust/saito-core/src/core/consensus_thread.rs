@@ -26,7 +26,6 @@ use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::hash;
 
-use super::consensus::mempool;
 use super::stat_thread::{BlockchainStat, MempoolStat, StatEvent, WalletStat};
 
 pub const BLOCK_PRODUCING_TIMER: u64 = Duration::from_millis(1000).as_millis() as u64;

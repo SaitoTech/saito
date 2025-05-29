@@ -1691,9 +1691,9 @@ impl Block {
                                                 //
                                                 // Prepare input slips
                                                 //
-                                                let mut input1 = slip1.clone();
+                                                let input1 = slip1.clone();
                                                 let mut input2 = slip2.clone();
-                                                let mut input3 = slip3.clone();
+                                                let input3 = slip3.clone();
 
                                                 //
                                                 // for fee accounting of payload
@@ -1703,9 +1703,9 @@ impl Block {
                                                 //
                                                 // Prepare output slips, only payload slip carries ATR amount
                                                 //
-                                                let mut output1 = slip1.clone();
+                                                let output1 = slip1.clone();
                                                 let mut output2 = slip2.clone();
-                                                let mut output3 = slip3.clone();
+                                                let output3 = slip3.clone();
 
                                                 output2.slip_type = SlipType::ATR;
                                                 output2.amount = atr_payout_for_slip - atr_fee;

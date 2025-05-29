@@ -10,11 +10,6 @@ use crate::core::io::interface_io::InterfaceIO;
 use crate::core::io::network_event::NetworkEvent;
 use crate::core::process::process_event::ProcessEvent;
 
-use super::{
-    consensus::peers::peer::Peer,
-    defs::{SaitoHash, SaitoPublicKey},
-};
-
 const STAT_FILENAME: &str = "./data/saito.stats";
 const STAT_FILE_WRITE_INTERVAL: u64 = 5_000; // in milliseconds
 
