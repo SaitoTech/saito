@@ -87,9 +87,9 @@ class Videocall extends ModTemplate {
 
 		app.connection.on('stun-connection-close', (peerId)=> {
 			if (this?.streams?.active) {
-				this.disconnect(peerId, " has no connection");	
+				this.disconnect(peerId, " has no connection");
+				salert("STUN connection failure. Try refreshing and reconnecting");
 			}
-			
 		});
 	}
 
