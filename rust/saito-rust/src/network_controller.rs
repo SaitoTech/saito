@@ -9,6 +9,7 @@ use futures::stream::{SplitSink, SplitStream};
 use futures::{SinkExt, StreamExt};
 use log::{debug, error, info, trace, warn};
 use reqwest::Client;
+use saito_core::core::stat_thread::StatEvent;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpStream;
@@ -496,7 +497,7 @@ pub async fn run_network_controller(
     sender_to_core: Sender<IoEvent>,
     configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     blockchain_lock: Arc<RwLock<Blockchain>>,
-    sender_to_stat: Sender<String>,
+    sender_to_stat: Sender<StatEvent>,
     peers_lock: Arc<RwLock<PeerCollection>>,
     sender_to_network: Sender<IoEvent>,
     timer: &Timer,
@@ -680,7 +681,7 @@ pub async fn run_network_controller(
                                     network_controller.sender_to_saito_controller.capacity(),
                                     network_controller.sender_to_saito_controller.max_capacity()
                                 );
-                                sender_to_stat.send(stat).await.unwrap();
+                                sender_to_stat.send(StatEvent::StringStat(stat)).await.unwrap();
 
                                 let stat = format!(
                                     "{} - {} - capacity : {:?} / {:?}",
@@ -689,7 +690,7 @@ pub async fn run_network_controller(
                                     sender_to_network.capacity(),
                                     sender_to_network.max_capacity()
                                 );
-                                sender_to_stat.send(stat).await.unwrap();
+                                sender_to_stat.send(StatEvent::StringStat(stat)).await.unwrap();
                             }
                         }
                     }

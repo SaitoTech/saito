@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 
 use log::info;
 use log::{debug, error};
+use saito_core::core::stat_thread::StatEvent;
 use saito_rust::run_thread::run_thread;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::RwLock;
@@ -127,7 +128,7 @@ async fn run_mining_event_processor(
     receiver_for_miner: Receiver<MiningEvent>,
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
-    sender_to_stat: Sender<String>,
+    sender_to_stat: Sender<StatEvent>,
     config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     timer: &Timer,
 ) -> JoinHandle<()> {
@@ -170,7 +171,7 @@ async fn run_consensus_event_processor(
     sender_to_network_controller: Sender<IoEvent>,
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
-    sender_to_stat: Sender<String>,
+    sender_to_stat: Sender<StatEvent>,
     timer: &Timer,
 ) -> JoinHandle<()> {
     let generate_genesis_block: bool;
@@ -234,7 +235,7 @@ async fn run_verification_threads(
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
     verification_thread_count: u16,
-    sender_to_stat: Sender<String>,
+    sender_to_stat: Sender<StatEvent>,
     timer: &Timer,
 ) -> (Vec<Sender<VerifyRequest>>, Vec<JoinHandle<()>>) {
     let mut senders = vec![];
@@ -299,7 +300,7 @@ async fn run_routing_event_processor(
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
     channel_size: usize,
-    sender_to_stat: Sender<String>,
+    sender_to_stat: Sender<StatEvent>,
     fetch_batch_size: usize,
     timer: &Timer,
 ) -> (Sender<NetworkEvent>, JoinHandle<()>) {
@@ -535,7 +536,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (sender_to_miner, receiver_for_miner) =
         tokio::sync::mpsc::channel::<MiningEvent>(channel_size);
 
-    let (sender_to_stat, receiver_for_stat) = tokio::sync::mpsc::channel::<String>(channel_size);
+    let (sender_to_stat, receiver_for_stat) = tokio::sync::mpsc::channel::<StatEvent>(channel_size);
 
     let (senders, verification_handles) = run_verification_threads(
         sender_to_consensus.clone(),

@@ -33,6 +33,9 @@ use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
+use super::consensus::peers::peer::PeerStatus;
+use super::stat_thread::{PeerStat, StatEvent};
+
 #[derive(Debug)]
 pub enum RoutingEvent {
     BlockchainUpdated(BlockHash),
@@ -60,7 +63,7 @@ pub struct RoutingStats {
 }
 
 impl RoutingStats {
-    pub fn new(sender: Sender<String>) -> Self {
+    pub fn new(sender: Sender<StatEvent>) -> Self {
         RoutingStats {
             received_transactions: StatVariable::new(
                 "routing::received_txs".to_string(),
@@ -99,7 +102,7 @@ pub struct RoutingThread {
     pub stats: RoutingStats,
     pub senders_to_verification: Vec<Sender<VerifyRequest>>,
     pub last_verification_thread_index: usize,
-    pub stat_sender: Sender<String>,
+    pub stat_sender: Sender<StatEvent>,
     pub blockchain_sync_state: BlockchainSyncState,
 }
 
@@ -964,7 +967,10 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             self.sender_to_consensus.capacity(),
             self.sender_to_consensus.max_capacity()
         );
-        self.stat_sender.send(stat).await.unwrap();
+        self.stat_sender
+            .send(StatEvent::StringStat(stat))
+            .await
+            .unwrap();
         for (index, sender) in self.senders_to_verification.iter().enumerate() {
             let stat = format!(
                 "{} - {} - capacity : {:?} / {:?}",
@@ -977,25 +983,49 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 sender.capacity(),
                 sender.max_capacity()
             );
-            self.stat_sender.send(stat).await.unwrap();
+            self.stat_sender
+                .send(StatEvent::StringStat(stat))
+                .await
+                .unwrap();
         }
 
         let stats = self.blockchain_sync_state.get_stats();
         for stat in stats {
-            self.stat_sender.send(stat).await.unwrap();
+            self.stat_sender
+                .send(StatEvent::StringStat(stat))
+                .await
+                .unwrap();
         }
 
         let peers = self.network.peer_lock.read().await;
         let mut peer_count = 0;
         let mut peers_in_handshake = 0;
+        let mut peer_stat = PeerStat::default();
 
         for (_, peer) in peers.index_to_peers.iter() {
             peer_count += 1;
+            peer_stat.peer_count += 1;
 
             if peer.challenge_for_peer.is_some() {
                 peers_in_handshake += 1;
             }
+            match peer.peer_status {
+                PeerStatus::Connected => {
+                    peer_stat.connected_peers += 1;
+                }
+                PeerStatus::Disconnected(_, _) => {
+                    peer_stat.disconnected_peers += 1;
+                }
+                PeerStatus::Connecting => {
+                    peer_stat.connecting_peers += 1;
+                }
+            }
         }
+
+        self.stat_sender
+            .send(StatEvent::PeerStat(peer_stat))
+            .await
+            .unwrap();
 
         let stat = format!(
             "{} - {} - total peers : {:?}. in handshake : {:?}",
@@ -1004,7 +1034,10 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             peer_count,
             peers_in_handshake,
         );
-        self.stat_sender.send(stat).await.unwrap();
+        self.stat_sender
+            .send(StatEvent::StringStat(stat))
+            .await
+            .unwrap();
     }
 
     fn is_ready_to_process(&self) -> bool {

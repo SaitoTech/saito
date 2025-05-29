@@ -1019,6 +1019,11 @@ class Server {
             return;
         });
 
+        expressApp.get('/stats',async (req, res) => {
+            let stat = await S.getLibInstance().get_stats();
+            res.send(stat);
+        });
+
         //
         // make root directory recursively servable
         expressApp.use(express.static(this.web_dir));
@@ -1081,6 +1086,7 @@ class Server {
             res.send(balances);
         });
     }
+
 }
 
 export default Server;

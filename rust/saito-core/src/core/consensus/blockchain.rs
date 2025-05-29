@@ -303,7 +303,7 @@ impl Blockchain {
         let mut old_chain: Vec<[u8; 32]> = Vec::new();
         let mut am_i_the_longest_chain = false;
 
-        let (shared_ancestor_found, shared_block_hash, mut new_chain) =
+        let (shared_ancestor_found, shared_block_hash, new_chain) =
             self.calculate_new_chain_for_add_block(block_hash);
 
         // and get existing current chain for comparison
