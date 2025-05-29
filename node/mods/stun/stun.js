@@ -92,15 +92,26 @@ class Stun extends ModTemplate {
 			}
 		});
 
-		app.connection.on('stun-connection-timeout', async (peerId, callback) => {
+		app.connection.on('stun-connection-timeout', async (peerId) => {
 			console.warn('STUN: connection timeout', peerId);
-			let c = await sconfirm(`STUN: connection timed out -- ${app.keychain.returnUsername(peerId)}. Keep trying?`);
+			let peerConnection = this.peers.get(peerId);
+			let c = null;
+			if (peerConnection){
+				c = await sconfirm(`STUN: connection timed out -- ${app.keychain.returnUsername(peerId)} might not be online. Keep waiting?`);
+			}
 			if (c) {
-				this.createPeerConnection(peerId, callback);
+				peerConnection.timer = setTimeout(() => {
+					if (!this.hasConnectionWithPeer(peerId)){
+						app.connection.emit('stun-connection-timeout', peerId);
+					}else{
+						console.warn("Stun: peerConnection timer expired but we have a connection...");
+					}
+				}, 10000);
 			} else {
 				// Notify the module UI that we have given up connecting
 				app.connection.emit('stun-connection-close', peerId);
 				console.error("STUN: failed connections-- ", this.noloop);
+				salert("STUN: connection interrupted. Try refreshing and reconnecting");
 			}
 		});
 	}
@@ -317,7 +328,7 @@ class Stun extends ModTemplate {
 		let peerConnection = this.peers.get(sender);
 
 		if (!peerConnection) {
-			console.warn('Receiving stun signalling messages for a non-peer connection');
+			console.warn(`Stun: Receiving signalling messages for a non-peer connection [${sender}], peers: `, this.peers.keys());
 			return;
 		}
 
@@ -440,6 +451,14 @@ class Stun extends ModTemplate {
 			let pc = this.peers.get(peerId);
 			console.debug(`STUN: ${peerId} already in stun peer list`, 'Status: ' + pc.connectionState);
 
+			//Attempt to reset tracks
+			if (pc?.senders) {
+				console.debug('STUN: Clearing media tracks for clean re-init...');
+				for (let s of pc.senders) {
+					pc.removeTrack(s);
+				}
+			}
+
 			//If not a solid connection state..., delete and try again
 			if (pc.connectionState == 'failed' || pc.connectionState == 'disconnected') {
 				console.warn('STUN: old peer has broken connection, reestablish...');
@@ -449,14 +468,6 @@ class Stun extends ModTemplate {
 
 			if (callback) {
 				callback(peerId);
-			}
-
-			//Attempt to reset tracks
-			if (pc?.senders) {
-				console.debug('STUN: Clearing media tracks for clean re-init...');
-				for (let s of pc.senders) {
-					pc.removeTrack(s);
-				}
 			}
 
 			//
@@ -500,8 +511,11 @@ class Stun extends ModTemplate {
 		const peerConnection = this.peers.get(peerId);
 
 		peerConnection.timer = setTimeout(() => {
-			console.warn('STUN Connection timeout...');
-			this.restoreConnection(peerId, 'stun-connection-timeout', callback);
+			if (!this.hasConnectionWithPeer(peerId)){
+				this.app.connection.emit('stun-connection-timeout', peerId);
+			}else{
+				console.warn("Stun: peerConnection timer expired but we have a connection...");
+			}
 		}, 10000);
 
 		// Handle ICE candidates

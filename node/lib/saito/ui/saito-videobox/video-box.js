@@ -19,7 +19,7 @@ class VideoBox {
 
                 if (public_key !== this.stream_id) return;
 
-                console.debug('Videobox.peer-toggle-audio-status', public_key, enabled);
+                //console.debug('Videobox.peer-toggle-audio-status', public_key, enabled);
 
                 let icon = document.querySelector(`#stream_${this.stream_id} #audio-indicator`);
                 if (icon) {
@@ -47,7 +47,7 @@ class VideoBox {
             ({ enabled, public_key }) => {
                 if (public_key !== this.stream_id) return;
 
-                console.debug('Videobox.peer-toggle-video-status', public_key, enabled);
+                //console.debug('Videobox.peer-toggle-video-status', public_key, enabled);
 
                 this.toggleMask(enabled)
 
@@ -115,6 +115,8 @@ class VideoBox {
         if (stream) {
             this.stream = stream;
         }
+
+        console.debug(`Videobox.render: [${this.stream_id}]`, stream);
 
         //Add Video Box
         if (!document.getElementById(`stream_${this.stream_id}`)) {
