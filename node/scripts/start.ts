@@ -60,8 +60,8 @@ async function initSaito() {
 
 	await app.init();
 
-	if (app.options.blockchain.fork_id){
-		await app.blockchain.setForkId(app.options.blockchain.fork_id);
+	if (app.options.blockchain?.fork_id){
+		await app.blockchain.setForkId(app.options.blockchain!.fork_id);
 	}
 
 	S.getInstance().start();
