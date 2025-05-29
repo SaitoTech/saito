@@ -45,7 +45,7 @@ fn get_default_reconnection_wait_time() -> Timestamp {
     10_000
 }
 fn get_default_stat_timer() -> Timestamp {
-    5_000
+    1_000
 }
 fn get_default_social_stake() -> Timestamp {
     return 0;

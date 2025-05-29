@@ -18,6 +18,8 @@ use crate::core::process::process_event::ProcessEvent;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::{generate_random_bytes, hash};
 
+use super::stat_thread::StatEvent;
+
 #[derive(Debug)]
 pub enum MiningEvent {
     LongestChainBlockAdded {
@@ -38,7 +40,7 @@ pub struct MiningThread {
     pub difficulty: u64,
     pub public_key: SaitoPublicKey,
     pub mined_golden_tickets: u64,
-    pub stat_sender: Sender<String>,
+    pub stat_sender: Sender<StatEvent>,
     pub config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     // todo : make this private and init using configs
     pub enabled: bool,
@@ -162,7 +164,10 @@ impl ProcessEvent<MiningEvent> for MiningThread {
                            self.difficulty,
                            self.miner_active,
                            self.target.to_hex());
-        self.stat_sender.send(stat).await.unwrap();
+        self.stat_sender
+            .send(StatEvent::StringStat(stat))
+            .await
+            .unwrap();
     }
 
     fn is_ready_to_process(&self) -> bool {
