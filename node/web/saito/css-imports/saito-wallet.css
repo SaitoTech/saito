@@ -716,12 +716,21 @@
 .create-nft-container,
 .send-nft-container {
     display: flex;
-    flex-direction: row;
     gap: 2rem;
     padding: 2rem;
     background: var(--background-color-main);
+    min-width: 60rem;
 }
 
+.create-nft-container {
+  flex-direction: column;
+}
+
+
+.send-nft-container {
+  flex-direction: column;
+  gap: 4rem;
+}
 
 
 .utxo-slips {
@@ -770,7 +779,7 @@
 
 .send-nft-container > .right-section {
   min-width: 50rem;
-  gap: 5rem;
+  gap: 2rem;
 }
 
 .send-nft-container > .right-section > .nft-receiver {
@@ -781,7 +790,7 @@
 
  .nft-image-preview {
   align-self: anchor-center;
-  width: 30rem;
+  height: 30rem;
   position: relative;
 
  }
@@ -839,6 +848,7 @@ textarea {
     line-height: 30rem;
     font-size: 2rem;
     border-radius: 1rem;
+    width: 55rem;
 }
 
 .utxo-div {
@@ -960,6 +970,15 @@ textarea {
   align-items: center;
   width: 100%;
   gap: 2rem;
+}
+
+.create-nft-type-dropdown {
+  width: 12rem;
+  background: none;
+  color: var(--font-color-button-primary);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 1.4rem;
 }
 
 @keyframes spin {

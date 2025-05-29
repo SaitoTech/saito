@@ -2,51 +2,47 @@ module.exports = (app, mod) => {
 let html = `
 <div class="container create-nft-container">
    
-   <!--
-   <div class="utxo-slips">
-      <div class="instructions">
-         Creating NFTs requires you to have SAITO in your wallet.
-         <p></p>
-         Once you pick a slip you will be able to specify the transaction fee you wish to pay and the "deposit" that you wish to affix to your NFT. This deposit is what keeps your NFT from -- only the user who is able to spend the UTXO you "deposit" will be able to transfer the NFT to a new address.
-      </div>
-      <div><b>Your UTXO</b></div>
-      <div id="utxo-list"></div>
-   </div>
-   -->
-   <div class="right-section">
-      <div class="slip-info">
-         <div class="metrics">
-            <div class="metric balance">
-               <h3><span class='metric-amount'>0.00</span> <span class='metric-amount'>SAITO</span></h3>
-               <p class="positive">Balance</p>
+      <div class="saito-overlay-form-header nft-title">
+         <div class="saito-overlay-form-header-title">
+            <div>
+               Create NFT
+            </div>
+            <div class="nft-link" id="nft-link">
+               <span>send nft</span> 
             </div>
          </div>
-         <!--
-            <div class="options">
-              <div class="data-nft-toggle">switch to json</div>
-            </div>
-            -->
       </div>
-      <div class="nft-creator nft-inactive">
-         <div class="inputs">
 
-            <div class="input-div" >
-               <label for="nfts-deposit">Deposit</label>
-               <input type="number" id="nfts-deposit" value="0">
+      <div class="nft-creator">
+            <div class="dropdown-cont">
+            <select class="create-nft-type-dropdown" id="create-nft-type-dropdown">
+               <option value="image">Image NFT</option>
+               <option value="file">File NFT</option>
+               <option value="text">Text NFT</option>
+            </select>
+
+            <div class="withdraw-info-cont">
+              <span class="withdraw-info-title">deposit</span> 
+              <div class="withdraw-info-value"><span class="create-nft-deposit" id="create-nft-deposit" contenteditable="true">1</span> SAITO</div>
             </div>
 
-           
-         </div>
+
+            <div class="withdraw-info-cont">
+              <span class="withdraw-info-title">network fee</span> 
+              <div class="withdraw-info-value fee">0 SAITO</div>
+            </div>
+          </div>
+
          <div class="textarea-container">
             <div class="saito-app-upload active-tab paste_event" id="nft-image-upload">
                drag-and-drop NFT file
             </div>
          </div>
       </div>
+
       <div class="create-button nft-inactive">
-         <button id="create_nft">Mint NFT</button>
+         <button id="create_nft">Create NFT</button>
       </div>
-   </div>
 </div>
 `;
 return html;

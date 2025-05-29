@@ -25,7 +25,7 @@ class Nft {
         this.nft.type    = 0;
         this.nft.image   = "";
 
-        this.callback    = {};
+           this.callback    = {};
         this.utxo = [];
 
         this.app.connection.on('saito-create-nft-render-request', () => {
@@ -48,12 +48,6 @@ class Nft {
 
         this.overlay.show(NftTemplate(this.app, this.mod, this));
 
-        let balance_str = await this.mod.getBalanceString();
-        if (document.querySelector(".slip-info .metric.balance h3 .metric-amount") != null) {
-            document.querySelector(".slip-info .metric.balance h3 .metric-amount").innerHTML = balance_str;
-        }
-
-        //await this.renderUtxo();
         if (this.nft.image != "") { this.addImage(this.nft.image); }
 
         this.attachEvents();
@@ -76,97 +70,56 @@ class Nft {
             true
         );
 
-        // document.querySelector('.data-nft-toggle').onclick = (e) => {
-        //     if (this.editing_mode === "image") {
-        //         let obj = this.createObject();
-        //         if (!obj.data) { obj.data = {}; }
-        //         e.target.style.opacity = "0.3";
-        //         document.querySelector(".textarea-container").innerHTML = `<textarea class="data-nft-textarea">${JSON.stringify(obj, null, 2)}</textarea>`;
-        //     } else {
-        //         alert("Please reload to return to image editor...");
-        //     }
-        // }
-
-        if (document.querySelector('#nfts-fee')) {
-            document.querySelector('#nfts-fee').onchange = async (e) => {
-                nft_self.nft.fee = e.target.value;      
-                nft_self.nft.deposit = document.querySelector('#nfts-deposit').value;
-
-                let amt = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.amt));
-                let deposit = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.deposit));
-                let fee = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.fee));
-
-                let change = amt - deposit - fee;
-                document.querySelector('#nfts-change').value = change;
-            }
+        if (document.getElementById("#create-nft-deposit")) {
+            const editableDiv = document.getElementById("#create-nft-deposit");
+            editableDiv.addEventListener("input", () => {
+              console.log("HTML:", editableDiv.innerHTML);
+              console.log("Text:", editableDiv.textContent);
+            });
         }
 
-        document.querySelector('#nfts-deposit').onchange = async (e) => {
-            nft_self.nft.deposit = e.target.value;
-            nft_self.nft.fee =  1; //document.querySelector('#nfts-fee').value;      
-            
-            let amt = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.amt));
-            let deposit = nft_self.nft.deposit;
-            let fee = nft_self.nft.fee;
 
-            console.log("amt:", amt);
-            console.log("deposit:", deposit);
-            console.log("fee:", fee);
-
-            let change = amt - deposit - fee;
-
-            console.log("change:", change);
-
-
-            //document.querySelector('#nfts-change').value = change;
+        if (document.querySelector('#nft-link')) {
+            document.querySelector('#nft-link').onclick = async (e) => {
+                // send nft overlay
+                nft_self.overlay.close();
+                nft_self.app.connection.emit('saito-send-nft-render-request', {});
+            };
         }
 
-        // document.querySelector('#nfts-change').onchange = async (e) => {
-        //     nft_self.nft.change = e.target.value;      
-
-        //     let amt = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.amt));
-        //     let deposit = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.deposit));
-        //     let fee = this.app.wallet.convertNolanToSaito(BigInt(nft_self.nft.fee));
-
-        //     let change = amt - deposit - fee;
-
-        //     document.querySelector('#nfts-change').value = change;
-        // }
 
         document.querySelector('#create_nft').onclick = async (e) => {
             let obj = this.createObject();
-          
-            if (this.editing_mode === "image") {
-            
-                //alert("NFT: " + JSON.stringify(obj));
-            
-            } else {
-                
-                let ta = document.querySelector(".data-nft-textarea");
-                let obj2 = JSON.parse(ta.value);
-                        
-                for (let key in obj2) {
-                    if (key != id) {
-                      obj.key = obj2.key
-                    }
-                }
 
+            let deposit = parseFloat(document.querySelector('#create-nft-deposit').innerHTML);
+
+            console.log("deposit: ", deposit);
+
+            // convert saito to nolan
+            let depositAmt = this.app.wallet.convertSaitoToNolan(deposit);
+
+
+            console.log("deposit amt nolan: ", depositAmt);
+
+            let validUtxo = await this.findValidUtxo(depositAmt);
+
+
+            console.log("valid utxo:", validUtxo);
+
+            if (Object.keys(validUtxo).length === 0) {
+                salert(`Not enough valid UTXOs in wallet. Need atleast ${deposit} SAITO.`);
+                return;
             }
 
-
-
-            let amount = BigInt(nft_self.nft.amt); // already in nolam
-            // convert saito to nolan
-            let depositAmt = this.app.wallet.convertSaitoToNolan(document.querySelector('#nfts-deposit').value);
-            let fee = BigInt(1); //this.app.wallet.convertSaitoToNolan(document.querySelector('#nfts-fee').value);
-            let change = BigInt(1); //this.app.wallet.convertSaitoToNolan(document.querySelector('#nfts-change').value);;
+            let slipAmt = BigInt(validUtxo.amt); // already in nolam
+            let fee = BigInt(0n);
+            let change = slipAmt - depositAmt;
 
             console.log("SUBMIT NFT: ");
-            console.log(nft_self.nft);
-            console.log(amount);
-            console.log(nft_self.nft.bid);
-            console.log(nft_self.nft.tid);
-            console.log(nft_self.nft.sid);
+            console.log(slipAmt);
+            console.log(validUtxo.bid);
+            console.log(validUtxo.tid);
+            console.log(validUtxo.sid);
             console.log(nft_self.nft.num);
             console.log(depositAmt);
             console.log(change);
@@ -175,11 +128,11 @@ class Nft {
             console.log(nft_self.mod.publicKey);
 
             let newtx = await nft_self.app.wallet.createBoundTransaction(
-                amount,
-                nft_self.nft.bid,
-                nft_self.nft.tid,
-                nft_self.nft.sid,
-                nft_self.nft.num,
+                slipAmt,
+                validUtxo.bid,
+                validUtxo.tid,
+                validUtxo.sid,
+                validUtxo.num,
                 depositAmt,
                 change,
                 JSON.stringify(obj),
@@ -190,9 +143,6 @@ class Nft {
             await newtx.sign();
             await nft_self.app.network.propagateTransaction(newtx);
             console.log("propagateTransaction:", newtx);
-
-
-            
             
 
             setTimeout(async function(){
@@ -211,35 +161,60 @@ class Nft {
 
         };
 
-        if (document.querySelector('.utxo-selection-button')) {
-            document.querySelectorAll('.utxo-selection-button').forEach(function(btn) {
 
-                btn.onclick = async (e) => {
-                    let utxo = nft_self.utxo[parseInt(e.target.value)-1];
-                    console.log("UTXO: " + JSON.stringify(utxo));
-
-                    let block_id = utxo[1];
-                    let tx_ordinal = utxo[2];
-                    let slip_index = utxo[3];
-                    let amount = utxo[4];
-
-                    nft_self.nft.bid = block_id;
-                    nft_self.nft.tid = tx_ordinal;
-                    nft_self.nft.sid = slip_index;
-                    nft_self.nft.amt = amount;
-
-                    document.querySelectorAll(".nft-creator").forEach((el) => { el.classList.remove("nft-inactive"); });
-                    document.querySelectorAll(".create-button").forEach((el) => { el.classList.remove("nft-inactive"); });
-
-                };
-            });
-        }
 
     }
 
 
-    addImage(data="" ) {
+     async findValidUtxo(depositAmt = 1) {
+        this.utxo = await this.fetchUtxo();
 
+        console.log("utxos:", this.utxo);
+
+        let html = ``;
+        for (let i = 0; i < this.utxo.length; i++) {
+
+            let utxo = this.utxo[i];
+            let block_id = utxo[1];
+            let tx_ordinal = utxo[2];
+            let slip_index = utxo[3];
+            let amount = BigInt(utxo[4]);
+       
+
+            if (amount >= depositAmt) {
+                return {
+                    bid: block_id, 
+                    tid: tx_ordinal, 
+                    sid: slip_index, 
+                    amt: amount
+                };
+            }
+        }
+
+        return {};
+    }
+
+
+    async fetchUtxo(){
+        let publicKey = this.mod.publicKey;        
+        let response = await fetch('/balance/' + publicKey);
+        let data = await response.text();
+
+        // slip.public_key = key[0..33].to_vec().try_into().unwrap();
+        // slip.block_id = u64::from_be_bytes(key[33..41].try_into().unwrap());
+        // slip.tx_ordinal = u64::from_be_bytes(key[41..49].try_into().unwrap());
+        // slip.slip_index = key[49];
+        // slip.amount
+
+        const parts = data.split('.snap');
+        let utxo =  parts[1].trim().split(/\n|\s{2,}/)
+                    .filter(line => line.trim() !== '')
+                    .map(line => line.split(' '));
+        return utxo;
+    }
+
+
+    addImage(data="" ) {
         let fileInfo = this.parseFileInfo(data);
 
         let nft_self = this;
@@ -261,7 +236,7 @@ class Nft {
             `;
         }
 
-                                
+                            
         this.app.browser.addElementToSelector(html, ".textarea-container");
         document.querySelector('#nft-image-upload').style.display = 'none';    
 
@@ -282,57 +257,6 @@ class Nft {
     }
 
 
-    async renderUtxo() {
-
-        this.utxo = await this.fetchUtxo();
-
-        let html = ``;
-
-        if (false && !Array.isArray(this.utxo) || !this.utxo.length) {
-            html += `
-                <div>
-                   No UTXO in available in wallet.
-                </div>
-            `;
-        } else {
-            for (let i = 0; i < this.utxo.length; i++) {
-
-                let utxo = this.utxo[i];
-                let block_id = utxo[1];
-                let tx_ordinal = utxo[2];
-                let slip_index = utxo[3];
-                let amount = this.app.wallet.convertNolanToSaito((BigInt(utxo[4])));
-
-
-                html += `<div class="utxo-div">
-                            <input type="radio" value="${i+1}" class="utxo-selection-button" name="utxo-input"> 
-                            <span>${amount} SAITO</span>
-                        </div>`;
-            }
-        }
-
-        document.querySelector('#utxo-list').innerHTML = html;
-
-    }
-
-    async fetchUtxo(){
-        let publicKey = this.mod.publicKey;        
-        let response = await fetch('/balance/' + publicKey);
-        let data = await response.text();
-
-        const parts = data.split('.snap');
-        let utxo =  parts[1].trim().split(/\n|\s{2,}/)
-                    .filter(line => line.trim() !== '')
-                    .map(line => line.split(' '));
-        return utxo;
-    }
-
-
-        /**
-     * Parses a data URI header into its parts.
-     * @param {string} dataUri
-     * @returns {{ mediaType: string, params: Record<string,string>, data: string }} 
-     */
     parseDataUri(dataUri) {
       const [header, data] = dataUri.split(',', 2);
       if (!header.startsWith('data:')) {
@@ -350,11 +274,6 @@ class Nft {
       return { mediaType, params, data };
     }
 
-    /**
-     * Extracts the media type (MIME) from a data URI.
-     * @param {string} dataUri
-     * @returns {string|null}
-     */
     extractMediaType(dataUri) {
       try {
         return this.parseDataUri(dataUri).mediaType || null;
@@ -363,11 +282,6 @@ class Nft {
       }
     }
 
-    /**
-     * Extracts the file extension from a data URI’s media type.
-     * @param {string} dataUri
-     * @returns {string|null}
-     */
     extractExtension(dataUri) {
       const mediaType = this.extractMediaType(dataUri);
       if (!mediaType) return null;
@@ -377,11 +291,6 @@ class Nft {
       return parts[1].split('+')[0].toLowerCase();
     }
 
-    /**
-     * Extracts a filename from a data URI header or defaults to "file.<ext>".
-     * @param {string} dataUri
-     * @returns {string|null}
-     */
     extractFileName(dataUri) {
       try {
         const { params } = this.parseDataUri(dataUri);
@@ -395,11 +304,6 @@ class Nft {
       }
     }
 
-    /**
-     * Calculates the decoded byte-size of the file in a Base64 data URI.
-     * @param {string} dataUri
-     * @returns {number|null} size in bytes
-     */
     getFileSizeFromDataUri(dataUri) {
       try {
         const base64 = this.parseDataUri(dataUri).data;
@@ -413,27 +317,11 @@ class Nft {
       }
     }
 
-    /**
-     * Checks if a data URI represents an image.
-     * @param {string} dataUri
-     * @returns {boolean}
-     */
     isImageDataUri(dataUri) {
       const mt = this.extractMediaType(dataUri);
       return mt !== null && mt.startsWith('image/');
     }
 
-    /**
-     * Bundles everything into one object.
-     * @param {string} dataUri
-     * @returns {{
-     *   mediaType: string|null,
-     *   extension: string|null,
-     *   name: string|null,
-     *   size: number|null,
-     *   isImage: boolean
-     * }}
-     */
     parseFileInfo(dataUri) {
       return {
         mediaType: this.extractMediaType(dataUri),

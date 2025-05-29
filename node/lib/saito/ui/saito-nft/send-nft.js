@@ -57,12 +57,14 @@ class Nft {
     attachEvents() {
        let nft_self = this;
 
+        if (document.querySelector('#nft-link')) {
+            document.querySelector('#nft-link').onclick = async (e) => {
+                // send nft overlay
+                nft_self.overlay.close();
+                nft_self.app.connection.emit('saito-create-nft-render-request', {});
+            };
+        }
 
-        // document.querySelector('#nfts-change').onchange = async (e) => {
-        //     nft_self.nft.change = e.target.value;      
-        //     let change = BigInt(nft_self.nft.amt) - BigInt(nft_self.nft.deposit) - BigInt(nft_self.nft.fee);
-        //     document.querySelector('#nfts-change').value = change.toString();
-        // }
 
         if (document.querySelector('.utxo-selection-button')) {
             document.querySelectorAll('.utxo-selection-button').forEach(function(btn) {
