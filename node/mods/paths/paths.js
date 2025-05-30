@@ -5764,17 +5764,7 @@ document.querySelector(".log").addEventListener("mouseover", (e) => {
           html += `<img class="${cardclass} cancel_x" src="/paths/img/cancel_x.png" />`;
         }
       } catch (err) {
-
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log(err);
-
+//console.log(err);
       }
     }
 
@@ -5835,14 +5825,7 @@ console.log(err);
       if (this.game.state.turn == 20) { document.querySelector(".turn-track-20").classList.add("active"); }
 
     } catch (err) {
-
-console.log("*");
-console.log("*");
-console.log("*");
-console.log("*");
-console.log("*");
-console.log(JSON.stringify(err));
-
+//console.log(JSON.stringify(err));
     }
 
   }
@@ -5897,27 +5880,13 @@ console.log(JSON.stringify(err));
       let combined_war_status = `<img src="/paths/img/warstatus_combined.png" />`;
       let current_cp_russian_vp = `<img src="/paths/img/current_cp_russian_vp.png" />`;
 
-console.log("CHECKING WAR STATUS: ");
-console.log("Allies: " + this.game.state.general_records_track.allies_war_status);
-console.log("Central: " + this.game.state.general_records_track.central_war_status);
-
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.allies_war_status}`).innerHTML += allies_war_status;
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.central_war_status}`).innerHTML += central_war_status;
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.combined_war_status}`).innerHTML += combined_war_status;
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.current_cp_russian_vp}`).innerHTML += current_cp_russian_vp;
 
     } catch (err) {
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-      console.log(err);
+      //console.log(err);
     }
 
   }
@@ -10347,9 +10316,9 @@ spaces['crbox'] = {
 
     state.general_records_track = {};
     state.general_records_track.vp = 10;
-    state.general_records_track.allies_war_status = 0;
-    state.general_records_track.central_war_status = 0;
-    state.general_records_track.combined_war_status = 0;
+    state.general_records_track.allies_war_status = 5;
+    state.general_records_track.central_war_status = 5;
+    state.general_records_track.combined_war_status = 10;
 
     state.general_records_track.ge_replacements = 0;
     state.general_records_track.ah_replacements = 0;
@@ -10728,7 +10697,7 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 
           let allies_cards_needed = (this.game.state.round >= 4)? 6 : 7;
           let central_cards_needed = (this.game.state.round >= 4)? 6 : 7;
-      
+
           if (allies_cards_needed > this.game.deck[1].crypt.length) { allies_cards_needed = this.game.deck[1].crypt.length; }
           if (central_cards_needed > this.game.deck[0].crypt.length) { central_cards_needed = this.game.deck[0].crypt.length; }
           
@@ -10791,15 +10760,12 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 	  //	
 	  let count = 0;
 	  for (let key in this.game.state.rp[faction]) { count += parseInt(this.game.state.rp[faction][key]); }
-	  if (count == 0) { 
-
-alert("no replacement points for... " + faction);
-
-return 1; }
+	  if (count == 0) { return 1; }
 
 	  if (this.returnPlayerOfFaction(faction) == this.game.player) {
 	    this.playerSpendReplacementPoints(faction);
 	  } else {
+	    this.replacements_overlay.hide();
 	    this.updateStatus(this.returnFactionName(faction) + " assigning replacement points...");
 	  }
 
@@ -12248,6 +12214,10 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 
 	  }
 
+console.log("Attacker is: " + this.game.state.combat.attacker_power);
+console.log("Defender is: " + this.game.state.combat.attacker_power);
+
+
 	  if (power == "attacker") { 
 	    player = this.returnPlayerOfFaction(this.game.state.combat.attacker_power);
 	    loss_factor = this.game.state.combat.attacker_loss_factor;
@@ -12256,6 +12226,8 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	    player = this.returnPlayerOfFaction(this.game.state.combat.defender_power);
 	    loss_factor = this.game.state.combat.defender_loss_factor;
 	  }
+
+console.log("player: " + this.game.player + " === " + player);
 
 	  if (this.game.player === player) {
 	    this.combat_overlay.hide();
@@ -12773,11 +12745,13 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  // if this is a corps and it is in a spacekey under combat, update
 	  //
           if (unitkey.indexOf("corps") > -1) {
-	    if (this.game.state.combat.attacker) {
-	      for (let z = 0; z < this.game.state.combat.attacker.length; z++) {
-  	        if (this.game.state.combat.attacker[z].unit_sourcekey == spacekey) {
-	          this.game.state.combat.attacker.push({ key : this.game.state.combat.key , unit_sourcekey : spacekey , unit_idx : this.game.spaces[spacekey].units.length-1 });
-		  z = this.game.state.combat.attacker.length + 2;
+	    if (this.game.state.combat) {
+	      if (this.game.state.combat.attacker) {
+	        for (let z = 0; z < this.game.state.combat.attacker.length; z++) {
+  	          if (this.game.state.combat.attacker[z].unit_sourcekey == spacekey) {
+	            this.game.state.combat.attacker.push({ key : this.game.state.combat.key , unit_sourcekey : spacekey , unit_idx : this.game.spaces[spacekey].units.length-1 });
+		    z = this.game.state.combat.attacker.length + 2;
+	          }
 	        }
 	      }
 	    }
@@ -13497,8 +13471,16 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
     // if options specified, respect
     //
     let continue_fnct = () => {
-      if (just_stop == 1) { paths_self.endTurn(); return 0; }
-      if (units.length == 0) { paths_self.endTurn(); return 0; }
+      if (just_stop == 1) { 
+	paths_self.replacements_overlay.hide();
+	paths_self.endTurn();
+        return 0; 
+      }
+      if (units.length == 0) {
+	paths_self.replacements_overlay.hide();
+	paths_self.endTurn(); 
+	return 0; 
+      }
       return 1;
     }
 
@@ -13927,6 +13909,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
       }
 
       if (action === "finish") {
+	this.replacements_overlay.hide();
 	this.endTurn();
 	return;
       }
@@ -14690,6 +14673,13 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	paths_self.endTurn();
       }
 
+
+      //
+      // prevent breaking the game
+      //
+      paths_self.unbindBackButtonFunction();
+
+
       //
       // select space to attack
       //
@@ -14880,6 +14870,11 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
         return 0;
       }
     );
+
+    //
+    // prevent breaking the game
+    //
+    paths_self.unbindBackButtonFunction();
 
     let rendered_at = options[0];
     paths_self.zoom_overlay.renderAtSpacekey(options[0]);

@@ -403,17 +403,7 @@ document.querySelector(".log").addEventListener("mouseover", (e) => {
           html += `<img class="${cardclass} cancel_x" src="/paths/img/cancel_x.png" />`;
         }
       } catch (err) {
-
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log(err);
-
+//console.log(err);
       }
     }
 
@@ -474,14 +464,7 @@ console.log(err);
       if (this.game.state.turn == 20) { document.querySelector(".turn-track-20").classList.add("active"); }
 
     } catch (err) {
-
-console.log("*");
-console.log("*");
-console.log("*");
-console.log("*");
-console.log("*");
-console.log(JSON.stringify(err));
-
+//console.log(JSON.stringify(err));
     }
 
   }
@@ -536,27 +519,13 @@ console.log(JSON.stringify(err));
       let combined_war_status = `<img src="/paths/img/warstatus_combined.png" />`;
       let current_cp_russian_vp = `<img src="/paths/img/current_cp_russian_vp.png" />`;
 
-console.log("CHECKING WAR STATUS: ");
-console.log("Allies: " + this.game.state.general_records_track.allies_war_status);
-console.log("Central: " + this.game.state.general_records_track.central_war_status);
-
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.allies_war_status}`).innerHTML += allies_war_status;
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.central_war_status}`).innerHTML += central_war_status;
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.combined_war_status}`).innerHTML += combined_war_status;
       document.querySelector(`.general-records-track-${this.game.state.general_records_track.current_cp_russian_vp}`).innerHTML += current_cp_russian_vp;
 
     } catch (err) {
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-console.log("X");
-      console.log(err);
+      //console.log(err);
     }
 
   }

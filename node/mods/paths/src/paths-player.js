@@ -338,8 +338,16 @@
     // if options specified, respect
     //
     let continue_fnct = () => {
-      if (just_stop == 1) { paths_self.endTurn(); return 0; }
-      if (units.length == 0) { paths_self.endTurn(); return 0; }
+      if (just_stop == 1) { 
+	paths_self.replacements_overlay.hide();
+	paths_self.endTurn();
+        return 0; 
+      }
+      if (units.length == 0) {
+	paths_self.replacements_overlay.hide();
+	paths_self.endTurn(); 
+	return 0; 
+      }
       return 1;
     }
 
@@ -768,6 +776,7 @@
       }
 
       if (action === "finish") {
+	this.replacements_overlay.hide();
 	this.endTurn();
 	return;
       }
@@ -1531,6 +1540,13 @@
 	paths_self.endTurn();
       }
 
+
+      //
+      // prevent breaking the game
+      //
+      paths_self.unbindBackButtonFunction();
+
+
       //
       // select space to attack
       //
@@ -1721,6 +1737,11 @@
         return 0;
       }
     );
+
+    //
+    // prevent breaking the game
+    //
+    paths_self.unbindBackButtonFunction();
 
     let rendered_at = options[0];
     paths_self.zoom_overlay.renderAtSpacekey(options[0]);

@@ -246,7 +246,11 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 
 		this.moves = [];
 
+console.log("showing loss overlay...");
+
 		this.overlay.show(LossTemplate());
+
+console.log("shown loss overlay...");
 
 		for (let i = 0; i < attacker_units.length; i++) {
 			let html = "";
@@ -337,6 +341,8 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 		let am_iii_the_attacker = false;
 		if (this.mod.game.player == this.mod.returnPlayerOfFaction(this.mod.game.state.combat.attacker_power)) { am_iii_the_attacker = true; }
 
+console.log("we hit here...");
+
 		//
 		// show dice rolls
 		//
@@ -368,16 +374,21 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 		  if (attacker_column_number > 9) { attacker_column_number = 9; }
 		  this.highlightFiringTable("corps", attacker_color, attacker_color_highlight, attacker_modified_roll, attacker_column_number);
 		}
+		let country_of_fort = this.mod.game.spaces[this.mod.game.state.combat.key].country;
 		if (defender_table == "army")  {
 
 	          //
     		  // forts lend their combat strength to the defense
     		  //
     		  if (this.mod.game.spaces[this.mod.game.state.combat.key].fort > 0) {
-
-HACK
-
-      		    defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    if (defender_power == "central" && ["germany", "austria", "bulgaria", "turkey"].includes(country_of_fort)) {
+		      this.mod.updateLog("Central Powers get fort bonus on defense: +" + this.mod.game.spaces[this.mod.game.state.combat.key].fort);
+      		      defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    }
+		    if (defender_power == "allies" && ["england", "france", "russia", "serbia", "greece", "montenegro", "romania"].includes(country_of_fort)) {
+		      this.mod.updateLog("Allied Powers get fort bonus on defense: +" + this.mod.game.spaces[this.mod.game.state.combat.key].fort);
+      		      defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    }
 		  }
 
 		  defender_column_number = this.mod.returnArmyColumnNumber(defender_strength);
@@ -392,7 +403,14 @@ HACK
     		  // forts lend their combat strength to the defense
     		  //
     		  if (this.mod.game.spaces[this.mod.game.state.combat.key].fort > 0) {
-      		    defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    if (defender_power == "central" && ["germany", "austria", "bulgaria", "turkey"].includes(country_of_fort)) {
+		      this.mod.updateLog("Central Powers get fort bonus on defense: +" + this.mod.game.spaces[this.mod.game.state.combat.key].fort);
+      		      defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    }
+		    if (defender_power == "allies" && ["england", "france", "russia", "serbia", "greece", "montenegro", "romania"].includes(country_of_fort)) {
+		      this.mod.updateLog("Allied Powers get fort bonus on defense: +" + this.mod.game.spaces[this.mod.game.state.combat.key].fort);
+      		      defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    }
 		  }
 
 		  defender_column_number = this.mod.returnCorpsColumnNumber(defender_strength);
@@ -451,6 +469,8 @@ HACK
 		  }
 		}
 
+console.log("pre-attach events...");
+
 		if (am_iii_the_attacker == 1 && faction == "attacker") {
 		  this.attachEvents(am_i_the_attacker, my_qs, faction);
 		}
@@ -458,6 +478,7 @@ HACK
 		  this.attachEvents(am_i_the_attacker, my_qs, faction);
 		}
 
+console.log("and done...");
 	}
 
 	highlightFiringTable(ftable="corps", color="blue", highlight_color="blue", defender_modified_roll=0, defender_column_number=0) {

@@ -46,6 +46,15 @@
         column-gap: 2rem;
 }
 
+.loss-overlay-unit-spacekey {
+    margin-top: 105%;
+    text-align: center;
+    font-weight: bolder;
+    font-size: 2rem;
+    background-color: #FFFB;
+    border-radius: 0.5rem;
+}
+
 .destroyed-unit {
     position: relative;
     display: block;

@@ -248,7 +248,7 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 
           let allies_cards_needed = (this.game.state.round >= 4)? 6 : 7;
           let central_cards_needed = (this.game.state.round >= 4)? 6 : 7;
-      
+
           if (allies_cards_needed > this.game.deck[1].crypt.length) { allies_cards_needed = this.game.deck[1].crypt.length; }
           if (central_cards_needed > this.game.deck[0].crypt.length) { central_cards_needed = this.game.deck[0].crypt.length; }
           
@@ -311,15 +311,12 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 	  //	
 	  let count = 0;
 	  for (let key in this.game.state.rp[faction]) { count += parseInt(this.game.state.rp[faction][key]); }
-	  if (count == 0) { 
-
-alert("no replacement points for... " + faction);
-
-return 1; }
+	  if (count == 0) { return 1; }
 
 	  if (this.returnPlayerOfFaction(faction) == this.game.player) {
 	    this.playerSpendReplacementPoints(faction);
 	  } else {
+	    this.replacements_overlay.hide();
 	    this.updateStatus(this.returnFactionName(faction) + " assigning replacement points...");
 	  }
 
@@ -1768,6 +1765,10 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 
 	  }
 
+console.log("Attacker is: " + this.game.state.combat.attacker_power);
+console.log("Defender is: " + this.game.state.combat.attacker_power);
+
+
 	  if (power == "attacker") { 
 	    player = this.returnPlayerOfFaction(this.game.state.combat.attacker_power);
 	    loss_factor = this.game.state.combat.attacker_loss_factor;
@@ -1776,6 +1777,8 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	    player = this.returnPlayerOfFaction(this.game.state.combat.defender_power);
 	    loss_factor = this.game.state.combat.defender_loss_factor;
 	  }
+
+console.log("player: " + this.game.player + " === " + player);
 
 	  if (this.game.player === player) {
 	    this.combat_overlay.hide();
@@ -2293,11 +2296,13 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  // if this is a corps and it is in a spacekey under combat, update
 	  //
           if (unitkey.indexOf("corps") > -1) {
-	    if (this.game.state.combat.attacker) {
-	      for (let z = 0; z < this.game.state.combat.attacker.length; z++) {
-  	        if (this.game.state.combat.attacker[z].unit_sourcekey == spacekey) {
-	          this.game.state.combat.attacker.push({ key : this.game.state.combat.key , unit_sourcekey : spacekey , unit_idx : this.game.spaces[spacekey].units.length-1 });
-		  z = this.game.state.combat.attacker.length + 2;
+	    if (this.game.state.combat) {
+	      if (this.game.state.combat.attacker) {
+	        for (let z = 0; z < this.game.state.combat.attacker.length; z++) {
+  	          if (this.game.state.combat.attacker[z].unit_sourcekey == spacekey) {
+	            this.game.state.combat.attacker.push({ key : this.game.state.combat.key , unit_sourcekey : spacekey , unit_idx : this.game.spaces[spacekey].units.length-1 });
+		    z = this.game.state.combat.attacker.length + 2;
+	          }
 	        }
 	      }
 	    }
