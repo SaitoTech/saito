@@ -38,12 +38,13 @@
 }
 
 .controls ul li {
-    background-color: unset;
-    border-top: unset;
-    height: 6rem;
+  background-color: unset;
+  border-top: unset;
+  height: 6rem;
 }
 
-.controls div.option:hover, .controls ul li:hover {
+.controls div.option:hover,
+.controls ul li:hover {
   background-color: #0005;
 }
 
@@ -147,4 +148,68 @@ span.raise_option img {
   list-style: none;
   padding: 1rem 2rem;
   cursor: pointer;
+}
+
+@media screen and (min-width: 800px) {
+  .controls {
+    position: absolute;
+    top: -50px;
+    min-width: 100%;
+    right: -100%;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: unset;
+    gap: 5px;
+    padding: 0 2rem;
+    left: unset;
+    transform: translateX(0%);
+  }
+
+  .controls div.option {
+    border: unset;
+    max-width: 20rem;
+    font-size: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    cursor: pointer;
+    flex-direction: row;
+    gap: 2rem;
+    list-style: none;
+    border-radius: 1rem;
+    background-color: unset;
+    padding: 0.5rem;
+  }
+
+  .option img {
+    width: 3.7rem;
+    height: 3.7rem;
+    display: block;
+    border-radius: 10rem;
+    padding: 5px;
+    background: #c43f3f;
+    overflow: visible;
+    box-shadow: 5px 5px 3px #0008;
+  }
+
+  .option.raise_option img {
+    height: 3rem;
+    width: 3rem;
+  }
+
+  .raise_option > span {
+    padding: 5px 0 0 0;
+    left: calc(50% + 1rem);
+  }
+
+  .controls .option.raise_option {
+    padding: 3px;
+    width: 9rem;
+  }
+
+  li#confirmit {
+    margin: 6rem 0;
+  }
 }
