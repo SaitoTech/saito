@@ -468,6 +468,10 @@ export default class Wallet extends SaitoWallet {
         }
       }
 
+
+      // add nft back to rust wallet
+      this.addNftList();
+
       this.app.connection.on('wallet-updated', async () => {
         await this.saveWallet();
       });
@@ -1220,17 +1224,53 @@ export default class Wallet extends SaitoWallet {
   }
 
   /**
-  * Update wallet’s nft list
-  * @param {Object[]} nft_list  an array of NFT objects
+  * Update app.wallet.nfts list
   */
   async saveNftList(nft_list) {
     if (!Array.isArray(nft_list)) {
       throw new Error("saveNftList expects an array of NFTs");
     }
 
-    this.app.options.wallet.nft = nft_list;
+    this.app.options.wallet.nfts = nft_list;
 
     await this.saveWallet();
 
   }
+
+  /**
+  * Update rust wallet nft struct
+  */
+  addNftList() {
+    if (!this.app.options.wallet.nfts) {
+      this.app.options.wallet.nfts = [];
+    }
+    let nfts = this.app.options.wallet.nfts;
+    if (nfts.length > 0) {
+      for (let i =0;  i < nfts.length ; i++) {
+        let nft = nfts[i];
+    
+        let slip1_utxokey = nft.slip1.utxo_key;
+        let slip2_utxokey = nft.slip2.utxo_key;
+        let slip3_utxokey = nft.slip3.utxo_key; 
+        let id = nft.id;
+        let tx_sig = nft.tx_sig;
+
+        console.log("node wallet: addding nft");
+        console.log(slip1_utxokey,
+          slip2_utxokey,
+          slip3_utxokey,
+          id,
+          tx_sig);
+
+        return this.addNft(
+          slip1_utxokey,
+          slip2_utxokey,
+          slip3_utxokey,
+          id,
+          tx_sig
+        );
+      }
+    }
+  }
+
 }

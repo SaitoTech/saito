@@ -50,7 +50,8 @@ class Nft {
 
         if (this.nft.image != "") { this.addImage(this.nft.image); }
 
-        this.attachEvents();
+        // makes sure DOM is loaded before attaching events
+        setTimeout(() => this.attachEvents(), 0);
     }
 
     createObject() {
@@ -71,6 +72,20 @@ class Nft {
     attachEvents() {
        let nft_self = this;
 
+
+        if (document.querySelector('#nft-link')) {
+            
+            console.log("nft-link found");
+
+            document.querySelector('#nft-link').onclick = async (e) => {
+                // send nft overlay
+                console.log("clicked on nft-link");
+                nft_self.nft.image = "";
+                nft_self.overlay.close();
+                nft_self.app.connection.emit('saito-send-nft-render-request', {});
+            };
+        }
+
         nft_self.app.browser.addDragAndDropFileUploadToElement(
             "nft-image-upload",
             this.callback.imageUploadCallback,
@@ -88,14 +103,6 @@ class Nft {
 
             let depositAmt = parseInt(input, 10);
             document.querySelector("#create-nft-deposit").innerHTML = depositAmt;
-        };
-
-        document.querySelector('#nft-link').onclick = async (e) => {
-            // send nft overlay
-            console.log("clicked on nft-link");
-            nft_self.nft.image = "";
-            nft_self.overlay.close();
-            nft_self.app.connection.emit('saito-send-nft-render-request', {});
         };
 
         document.querySelector('#create-nft-type-dropdown').onchange = async (e) => {

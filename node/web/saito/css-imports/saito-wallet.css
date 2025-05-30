@@ -907,6 +907,9 @@ textarea {
   width: 3rem;
 }
 
+.empty-send-nft-row .send-nft-row-item:nth-child(1) {
+  width: 12rem;
+}
 
 /*
 
