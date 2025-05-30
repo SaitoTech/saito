@@ -50,19 +50,22 @@ class Nft {
 
         await this.renderNft();
 
-        this.attachEvents();
+        // makes sure DOM is loaded before attaching events
+        setTimeout(() => this.attachEvents(), 0);
     }
 
 
     attachEvents() {
        let nft_self = this;
 
+        if (document.querySelector('#nft-link')) {
+            document.querySelector('#nft-link').onclick = async (e) => {
+                // send nft overlay
+                nft_self.overlay.close();
+                nft_self.app.connection.emit('saito-create-nft-render-request', {});
+            };
+        }
 
-        // document.querySelector('#nfts-change').onchange = async (e) => {
-        //     nft_self.nft.change = e.target.value;      
-        //     let change = BigInt(nft_self.nft.amt) - BigInt(nft_self.nft.deposit) - BigInt(nft_self.nft.fee);
-        //     document.querySelector('#nfts-change').value = change.toString();
-        // }
 
         if (document.querySelector('.utxo-selection-button')) {
             document.querySelectorAll('.utxo-selection-button').forEach(function(btn) {
@@ -160,6 +163,8 @@ class Nft {
       let saito_users = [];
       this.nft_list = await this.fetchNFT();
       
+      console.log("this.nft_list: ", this.nft_list);
+
       let   html = `<div class="utxo-div send-nft">
                   <div style="
                      display: none;
@@ -179,7 +184,7 @@ class Nft {
 
         if (false && !Array.isArray(this.nft_list) || !this.nft_list.length) {
             html += `
-                <div class="send-nft-row">
+                <div class="send-nft-row empty-send-nft-row">
                     <div class="send-nft-row-item">No NFTs in wallet.</div>
                      <div class="send-nft-row-item"></div>
                      <div class="send-nft-row-item"></div>
@@ -187,6 +192,8 @@ class Nft {
                      <div class="send-nft-row-item"></div>
                 </div>
             `;
+
+            document.querySelector(".send-nft-container .right-section").style.display = 'none';
         } else {
 
           this.nft_list.forEach((nft, i) => {
@@ -243,7 +250,7 @@ class Nft {
     }
 
     async fetchNFT(){
-        let data = this.app.options.wallet.nft;
+        let data = this.app.options.wallet.nfts;
 
         console.log("nft data:", data);
 
