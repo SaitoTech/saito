@@ -709,6 +709,10 @@
   border-bottom: 2px dashed;
 }
 
+.create-nft-deposit {
+  cursor: pointer;
+}
+
 /*
     add nft utxo overlay
 */
@@ -951,6 +955,7 @@ textarea {
   font-size: 4rem;
   grid-row: 1 / span 2;
   z-index: 1;
+  cursor: pointer;
 }
 
 .nft-file-transfer .file-name, .nft-file-transfer .file-size {
@@ -979,6 +984,11 @@ textarea {
   padding: 0.5rem;
   border-radius: 0.5rem;
   font-size: 1.4rem;
+}
+
+.create-nft-textarea {
+  height: 30rem;
+  display: none;
 }
 
 @keyframes spin {

@@ -22,8 +22,8 @@ let html = `
             </select>
 
             <div class="withdraw-info-cont">
-              <span class="withdraw-info-title">deposit</span> 
-              <div class="withdraw-info-value"><span class="create-nft-deposit" id="create-nft-deposit" contenteditable="true">1</span> SAITO</div>
+              <span class="withdraw-info-title">num of nfts</span> 
+              <div class="withdraw-info-value create-nft-deposit" id="create-nft-deposit">1</div>
             </div>
 
 
@@ -35,8 +35,10 @@ let html = `
 
          <div class="textarea-container">
             <div class="saito-app-upload active-tab paste_event" id="nft-image-upload">
-               drag-and-drop NFT file
+               drag-and-drop NFT image
             </div>
+            <textarea class="create-nft-textarea" id="create-nft-textarea">
+            </textarea>
          </div>
       </div>
 

@@ -54,10 +54,17 @@ class Nft {
     }
 
     createObject() {
-    let obj = {};
-        obj.id = `${this.mod.publicKey}${this.nft.bid}${this.nft.tid}${this.nft.sid}${this.nft.amount}${1}`;
-        if (this.nft.image) { obj.image = this.nft.image; }
-        if (this.nft.data) { obj.data = this.nft.data; }
+        let obj = {};        
+        let nftType = document.querySelector('#create-nft-type-dropdown').value;
+        console.log("nftType:", nftType);
+
+        if (nftType == 'text') {
+            let data = document.querySelector("#create-nft-textarea").value;
+            obj.data = JSON.parse(data);
+        } else {
+            obj.image = this.nft.image;
+        }
+
         return obj;
     }
 
@@ -70,48 +77,102 @@ class Nft {
             true
         );
 
-        if (document.getElementById("#create-nft-deposit")) {
-            const editableDiv = document.getElementById("#create-nft-deposit");
-            editableDiv.addEventListener("input", () => {
-              console.log("HTML:", editableDiv.innerHTML);
-              console.log("Text:", editableDiv.textContent);
-            });
-        }
+        document.querySelector('#create-nft-deposit').onclick = async (e) => {
+            let input, num;
+            do {
+              input = prompt("Number of nfts (enter whole number only)");
+              if (input === null) return null;              // user cancelled
+              input = input.trim();
+              // only allow optional +/– sign followed by digits
+            } while (!/^[+-]?\d+$/.test(input));
 
+            let depositAmt = parseInt(input, 10);
+            document.querySelector("#create-nft-deposit").innerHTML = depositAmt;
+        };
 
-        if (document.querySelector('#nft-link')) {
-            document.querySelector('#nft-link').onclick = async (e) => {
-                // send nft overlay
-                nft_self.overlay.close();
-                nft_self.app.connection.emit('saito-send-nft-render-request', {});
-            };
-        }
+        document.querySelector('#nft-link').onclick = async (e) => {
+            // send nft overlay
+            console.log("clicked on nft-link");
+            nft_self.nft.image = "";
+            nft_self.overlay.close();
+            nft_self.app.connection.emit('saito-send-nft-render-request', {});
+        };
+
+        document.querySelector('#create-nft-type-dropdown').onchange = async (e) => {
+            let element = e.target;
+            let nftType = element.value;
+
+            const data = { id: "", message: "" };
+            const textarea = document.querySelector("#create-nft-textarea");
+            textarea.value = JSON.stringify(data, null, 2);
+
+            this.nft.image = "";
+
+            if (document.querySelector(".nft-file-transfer")) {
+                document.querySelector(".nft-file-transfer").remove();
+            }
+
+            if (document.querySelector(".nft-image-preview")) {
+                document.querySelector(".nft-image-preview").remove();
+            }
+
+            if (nftType == 'text') {
+                document.querySelector("#nft-image-upload").style.display = 'none';
+                document.querySelector("#create-nft-textarea").style.display = 'block';   
+            } else if (nftType == 'image'){
+                document.querySelector("#nft-image-upload").style.display = 'block';
+                document.querySelector("#nft-image-upload").innerHTML = `drag-and-drop NFT image`;
+                document.querySelector("#create-nft-textarea").style.display = 'none';            
+            } else if (nftType == 'file') {
+                document.querySelector("#nft-image-upload").style.display = 'block';
+                document.querySelector("#nft-image-upload").innerHTML = `drag-and-drop NFT file`;
+                document.querySelector("#create-nft-textarea").style.display = 'none';
+            }
+        };
 
 
         document.querySelector('#create_nft').onclick = async (e) => {
             let obj = this.createObject();
+            console.log("obj: ", obj);
 
             let deposit = parseFloat(document.querySelector('#create-nft-deposit').innerHTML);
 
             console.log("deposit: ", deposit);
 
             // convert saito to nolan
-            let depositAmt = this.app.wallet.convertSaitoToNolan(deposit);
-
-
+            let depositAmt = BigInt(deposit);
+            let depositAmtSaito = this.app.wallet.convertNolanToSaito(depositAmt);
+            
             console.log("deposit amt nolan: ", depositAmt);
+            console.log("deposit amt saito: ", depositAmtSaito);
 
             let validUtxo = await this.findValidUtxo(depositAmt);
 
-
             console.log("valid utxo:", validUtxo);
 
+
+            let balance = await this.app.wallet.getBalance();
+            let balanceSaito = this.app.wallet.convertNolanToSaito(balance);
+            console.log("balance: ", balance);
+            console.log("balanceSaito: ", balanceSaito);
+
+            if (balanceSaito < 1) {
+                salert(`Need atleast 1 SAITO to create NFT`);
+                return;
+            }
+ 
             if (Object.keys(validUtxo).length === 0) {
-                salert(`Not enough valid UTXOs in wallet. Need atleast ${deposit} SAITO.`);
+                let minRequired = this.app.wallet.convertSaitoToNolan(1);
+                salert(`Not enough valid UTXOs in wallet. Need atleast ${this.app.wallet.convertNolanToSaito(minRequired+depositAmt)} SAITO.`);
                 return;
             }
 
-            let slipAmt = BigInt(validUtxo.amt); // already in nolam
+            if (nft_self.nft.image == "") {
+                salert(`Attach an image/file to create nft`);
+                return;
+            }
+
+            let slipAmt = BigInt(validUtxo.amt); // already in nolan
             let fee = BigInt(0n);
             let change = slipAmt - depositAmt;
 
@@ -157,6 +218,7 @@ class Nft {
                 salert("NFT created successfully!");
             }, 2000);
 
+            nft_self.nft.image = "";
             nft_self.overlay.close();
 
         };
