@@ -3867,7 +3867,25 @@ console.log("just attached options.... should be selectable..");
       }
     }
 
-    if (can_deploy == 0) {
+    //
+    // check something is there to deploy
+    //
+    let anything_to_deploy = false;
+    for (let i = 0; i < viable_capitals.length && !anything_to_deploy; i++) {
+      let sp = this.game.spaces[viable_capitals[i]];
+      for (let f of sp.units) {
+	if (this.returnControllingPower(f) === faction) {
+	  for (let z = 0; z < sp.units[f].length; z++) {
+	    if (sp.units[f][z].type == "regular" || sp.units[f][z].type == "mercenary" || sp.units[f][z].type == "cavalry") {
+	      anything_to_deploy = true;
+	      break;
+	    }
+	  }
+	}
+      }
+    }
+
+    if (can_deploy == 0 || anything_to_deploy == false) {
       this.updateStatus("Spring Deployment not possible");
       this.endTurn();
     } else {

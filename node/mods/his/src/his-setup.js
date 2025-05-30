@@ -887,7 +887,8 @@ console.log("\n\n\n\n");
 
 	  this.setAllies("protestant", "england");
 	  this.controlSpace("hapsburg", "trent");
-	  this.setAllies("hapsburg", "venice");
+	  this.setAllies("papacy", "venice");
+	  this.addRegular("papacy", "venice", 2);
 	  this.setEnemies("ottoman", "venice");
 	  this.controlSpace("ottoman", "agram");
 	  this.controlSpace("ottoman", "zara");
