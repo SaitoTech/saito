@@ -109,15 +109,12 @@ class Tweet {
 		this.unknown_children = [];
 		this.unknown_children_sigs_hmap = {};
 		this.user.notice = 'new post on ' + this.formatDate(this.created_at);
-		this.source = {};
-		if (!this.source.text && this.tx?.optional?.source?.text) { this.source.text = this.tx.optional.source.text; }
-		if (!this.source.type && this.tx?.optional?.source?.type) { this.source.type = this.tx.optional.source.type; }
-		if (!this.source.peer && this.tx?.optional?.source?.peer) { this.source.peer = this.tx.optional.source.peer; }
-		if (!this.source.text)    { this.source.text = "unknown"; }
-		if (!this.source.type)    { this.source.type = "unknown"; }
-		if (!this.source.peer)    { this.source.peer = "unknown"; }
-		if (!this.source.curated) { this.source.curated = 0; }
 
+		// Keep a running list of where/when we load this tweet (updated by addTweet)
+		// type / node / optional / ts
+		this.sources = [];
+
+		
 		//
 		// transactions can contain more specifi information for 
 		// all of the above variables. so we run a function that
@@ -243,7 +240,7 @@ class Tweet {
 		this.mod.hidden_tweets.push(this.tx.signature);
 		this.mod.saveOptions();
 
-		this.curated = 0;
+		this.curated = -1;
 
 	}
 
@@ -870,7 +867,7 @@ class Tweet {
 					post.parent_id = this.tx.signature;
 					post.thread_id = this.thread_id;
 
-					post.source = 'Reply';
+					post.type = 'Reply';
 					post.render();
 					this.app.browser.prependElementToSelector(
 						`<div id="post-tweet-preview-${this.tx.signature}" class="post-tweet-preview" data-id="${this.tx.signature}"></div>`,
@@ -910,7 +907,7 @@ class Tweet {
 
 					let post = new Post(this.app, this.mod, this);
 
-					post.source = 'Retweet';
+					post.type = 'Retweet';
 					post.render();
 
 					this.app.browser.prependElementToSelector(
@@ -1357,7 +1354,7 @@ class Tweet {
 
 	editTweet(){
         let post = new Post(this.app, this.mod, this);
-        post.source = 'Edit';
+        post.type = 'Edit';
         post.render();
 	}
 
