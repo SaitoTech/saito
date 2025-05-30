@@ -1343,6 +1343,26 @@ impl Wallet {
             })
             .collect()
     }
+
+    pub fn add_nft(
+        &mut self,
+        slip1: SaitoUTXOSetKey,
+        slip2: SaitoUTXOSetKey,
+        slip3: SaitoUTXOSetKey,
+        id: Vec<u8>,
+        tx_sig: SaitoSignature,
+    ) {
+        let nft = NFT {
+            slip1,
+            slip2,
+            slip3,
+            id,
+            tx_sig,
+        };
+        self.nfts.push(nft);
+
+        info!("wallet nfts: {:?}", self.nfts);
+    }
 }
 
 impl WalletSlip {
