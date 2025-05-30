@@ -22,6 +22,8 @@ use crate::core::io::network_event::NetworkEvent;
 use crate::core::process::process_event::ProcessEvent;
 use crate::drain;
 
+use super::stat_thread::StatEvent;
+
 #[derive(Debug)]
 pub enum VerifyRequest {
     Transaction(Transaction),
@@ -38,7 +40,7 @@ pub struct VerificationThread {
     pub processed_blocks: StatVariable,
     pub processed_msgs: StatVariable,
     pub invalid_txs: StatVariable,
-    pub stat_sender: Sender<String>,
+    pub stat_sender: Sender<StatEvent>,
 }
 
 impl VerificationThread {

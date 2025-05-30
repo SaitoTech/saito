@@ -5,6 +5,8 @@ use std::time::Duration;
 use ahash::AHashMap;
 use tokio::sync::mpsc::Sender;
 
+use super::stat_thread::StatEvent;
+
 pub type Currency = u64;
 
 /// Time in milliseconds
@@ -129,11 +131,11 @@ pub struct StatVariable {
     pub max_avg: f64,
     pub min_avg: f64,
     pub name: String,
-    pub sender: Sender<String>,
+    pub sender: Sender<StatEvent>,
 }
 
 impl StatVariable {
-    pub fn new(name: String, bin_count: usize, sender: Sender<String>) -> StatVariable {
+    pub fn new(name: String, bin_count: usize, sender: Sender<StatEvent>) -> StatVariable {
         StatVariable {
             total: 0,
             count_since_last_stat: 0,
@@ -183,7 +185,7 @@ impl StatVariable {
             self.min_avg = self.avg;
         }
         self.sender
-            .send(self.print(current_time_in_ms))
+            .send(StatEvent::StringStat(self.print(current_time_in_ms)))
             .await
             .expect("failed sending stat update");
     }

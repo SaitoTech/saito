@@ -35,11 +35,11 @@ pub fn tx_sign(c: &mut Criterion) {
             black_box(tx.sign(&private_key));
         });
     });
-    c.bench_function("verifying tx with 0 slips and empty buffer", |b| {
-        b.iter(|| {
-            black_box(tx.verify());
-        });
-    })
+    // c.bench_function("verifying tx with 0 slips and empty buffer", |b| {
+    //     b.iter(|| {
+    //         black_box(tx.verify());
+    //     });
+    // })
 }
 
 criterion_group!(tx_sign_group, tx_sign);
