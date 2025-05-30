@@ -367,14 +367,6 @@ class DevTools extends ModTemplate {
 			let slug = '';
 			let version = '1.0.0';
 
-console.log("TRYIG TO ANALYZE ZIP");
-console.log("TRYIG TO ANALYZE ZIP");
-console.log("TRYIG TO ANALYZE ZIP");
-console.log("TRYIG TO ANALYZE ZIP");
-console.log("TRYIG TO ANALYZE ZIP");
-console.log("TRYIG TO ANALYZE ZIP");
-console.log("TRYIG TO ANALYZE ZIP");
-
 			try {
 				const directory = await unzipper.Open.file(path.resolve(__dirname, zip_path));
 				let promises = directory.files.map(async (file) => {

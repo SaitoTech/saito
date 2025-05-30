@@ -19,7 +19,7 @@ class VideoBox {
 
                 if (public_key !== this.stream_id) return;
 
-                console.log('peer-toggle-audio-status', public_key, enabled);
+                //console.debug('Videobox.peer-toggle-audio-status', public_key, enabled);
 
                 let icon = document.querySelector(`#stream_${this.stream_id} #audio-indicator`);
                 if (icon) {
@@ -47,7 +47,7 @@ class VideoBox {
             ({ enabled, public_key }) => {
                 if (public_key !== this.stream_id) return;
 
-                console.log('peer-toggle-video-status', public_key, enabled);
+                //console.debug('Videobox.peer-toggle-video-status', public_key, enabled);
 
                 this.toggleMask(enabled)
 
@@ -116,6 +116,8 @@ class VideoBox {
             this.stream = stream;
         }
 
+        console.debug(`Videobox.render: [${this.stream_id}]`, stream);
+
         //Add Video Box
         if (!document.getElementById(`stream_${this.stream_id}`)) {
             this.app.browser.addElementToClass(
@@ -131,7 +133,7 @@ class VideoBox {
             const videoBoxVideo = document.querySelector(`#stream_${this.stream_id} video`);
             videoBoxVideo.addEventListener('play', (event) => {
                 this.app.connection.emit("video-box-started", this.stream_id);
-                console.log(
+                console.debug("Videobox: ",
                     this.stream_id + ' Begin Playing Video:',
                     event.currentTarget.videoWidth,
                     event.currentTarget.videoHeight
@@ -140,12 +142,12 @@ class VideoBox {
                     event.currentTarget.videoHeight >
                     event.currentTarget.videoWidth
                 ) {
-                    console.log('Portrait Video!');
+                    console.debug('Videobox: Portrait Video!');
                     event.currentTarget.parentElement.classList.add(
                         'portrait'
                     );
                 } else {
-                    console.log('Landscape Video!');
+                    console.debug('Videobox: Landscape Video!');
                     event.currentTarget.parentElement.classList.remove(
                         'portrait'
                     );
@@ -160,8 +162,6 @@ class VideoBox {
 
             if (this.stream.getVideoTracks()?.length > 0) {
                 //steam includes video, as it should
-                //console.log("steam_id", this.stream_id);
-
             } else {
                 if (this.display_wave_form) {
                     this.renderWave();
@@ -173,7 +173,6 @@ class VideoBox {
             }
 
             if (this.stream.getAudioTracks()?.length > 0) {
-                //console.log("Muted: ", this.stream.getAudioTracks()[0].muted, "Enabled: ", this.stream.getAudioTracks()[0].enabled);
                 let enabled = this.stream.getAudioTracks()[0].enabled && !this.stream.getAudioTracks()[0].muted;
                 if (this.stream_id === "presentation") {
                     enabled = true;
@@ -248,7 +247,7 @@ class VideoBox {
 
         if (!callList) {
             console.error(
-                'Call list element not found for the given key:',
+                'Videobox: Call list element not found for the given key:',
                 this.stream_id
             );
             return;
@@ -438,8 +437,8 @@ class VideoBox {
             }else {
                 elem.classList.remove('hidden');
             }  
-        } catch (error) {
-            console.log(error, "error with toggling video mask")
+        } catch (err) {
+            console.error("Videobox.toggleMask Error: ", err);
         }
       
     }

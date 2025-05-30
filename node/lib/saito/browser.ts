@@ -67,13 +67,12 @@ class Browser {
 		app.connection.on("saito-render-complete", ()=> {
 			// xclose (loading wallpaper) looks for this class on body
 			setTimeout(()=> {
-				console.log("DOM rendering complete, remove wallpaper");
 				document.querySelector("body").classList.add("xclose");
 			}, 1000);
 		});
 
 		this.app.connection.on('new-version-detected', (version) => {
-			console.log('New wallet version detected: ' + version);
+			console.info('New wallet version detected: ' + version);
 			localStorage.setItem('wallet_version', JSON.stringify(version));
 			let shouldReload = false;
 			const scripts = document.querySelectorAll('script');
@@ -290,7 +289,6 @@ class Browser {
 			this.browser_active = 1;
 
 			let theme = document.documentElement.getAttribute('data-theme') || "lite";
-			console.log("HTML provided theme: " + theme);
 
 		    if (this.app.options?.theme) {
 		      if (this.app.options.theme[active_module]){
@@ -298,7 +296,7 @@ class Browser {
 		      	this.switchTheme(theme);
 		      }
 		    }
-		    console.log("New theme: " + theme);
+
 		    this.updateThemeInHeader(theme);
 
 			const updateViewHeight = () => {
@@ -316,7 +314,7 @@ class Browser {
 			}, 200);
 		} catch (err) {
 			if (err == 'ReferenceError: document is not defined') {
-				console.log('non-browser detected: ' + err);
+				console.error('non-browser detected: ', err);
 			} else {
 				throw err;
 			}
@@ -687,7 +685,6 @@ class Browser {
 	// functionality as needed.
 	//
 	async setActiveTab(active) {
-		console.log('SET ACTIVE TAB');
 		this.active_tab = active;
 		this.app.blockchain.process_blocks = active;
 		this.app.storage.save_options = active;
@@ -711,7 +708,7 @@ class Browser {
 		    data.correctLevel=QRCode.CorrectLevel.H;
 		}
 
-		console.log(data);
+		console.debug("browser [generateQRCode]: ", data);
 
 		return new QRCode(obj, data);
 	}
@@ -763,7 +760,7 @@ class Browser {
 			elemWhere.insertAdjacentElement('afterbegin', elem);
 			elem.outerHTML = html;
 		} catch (err) {
-			console.log('ERROR 582341: error in prependElementToDom');
+			console.error('ERROR 582341: error in prependElementToDom');
 		}
 	}
 
@@ -803,7 +800,7 @@ class Browser {
 			if (obj) {
 				this.app.browser.addElementToDom(html, obj);
 			}else{
-				console.warn("id not found");
+				console.error("[addElementToId] id not found");
 			}
 		}
 	}
@@ -896,20 +893,19 @@ class Browser {
 			console.warn(
 				'no selector provided to addElementToSelector, so adding direct to DOM'
 			);
-			console.log(html);
+			console.debug(html);
 			this.app.browser.addElementToDom(html);
 		} else {
 			let container = document.querySelector(selector);
 			if (container) {
 				this.app.browser.addElementToElement(html, container);
 			} else {
-				console.info('Container not found: ' + selector);
+				console.error('Container not found: ' + selector);
 			}
 		}
 	}
 
 	addElementAfterSelector(html, selector = '') {
-		//console.log("addElementAfterSelector");
 		if (selector) {
 			let container = document.querySelector(selector);
 			if (container) {
@@ -923,7 +919,7 @@ class Browser {
 		console.warn(
 			'no selector provided/found to addElementAfterSelector, so adding direct to DOM'
 		);
-		console.log(html, selector);
+		console.debug(html, selector);
 		this.app.browser.addElementToDom(html);
 	}
 
@@ -968,7 +964,7 @@ class Browser {
 			if (container) {
 				this.app.browser.addElementToElement(html, container);
 			} else {
-				console.warn('Classname not found: ' + classname);
+				console.error('Classname not found: ' + classname);
 			}
 		}
 	}
@@ -994,12 +990,12 @@ class Browser {
 			elem.appendChild(el);
 			el.outerHTML = html;
 		} catch (err) {
-			console.log(
+			console.error(
 				'ERROR 582342: error in addElementToElement. Does ' +
 				elem +
 				' exist?'
 			);
-			console.log(html);
+			console.debug(elem, html);
 		}
 	}
 
@@ -1013,13 +1009,13 @@ class Browser {
 			}
 			el.outerHTML = html;
 		} catch (err) {
-			console.log(
+			console.error(
 				'ERROR 582346: error in addElementToElement. Does ' +
 				elem +
 				' exist? : ' +
 				err
 			);
-			console.log(html);
+			console.debug(elem, html);
 		}
 	}
 
@@ -1210,13 +1206,11 @@ class Browser {
 					[...files].forEach(function (file) {
 						const reader = new FileReader();
 						reader.addEventListener('load', (event) => {
-							console.log('handleFileDrop ////');
 							handleFileDrop(event.target.result);
 						});
 						if (read_as_array_buffer) {
 							reader.readAsArrayBuffer(file);
 						} else if(read_as_text) {
-							console.log('readAsText ////');
 							reader.readAsText(file);
 						} else {
 							reader.readAsDataURL(file);
@@ -1229,8 +1223,6 @@ class Browser {
 				dropArea.addEventListener(
 					'paste',
 					(e) => {
-						console.log('Pasting into area where we accept files');
-
 						let drag_and_drop = false;
 						const files = e.clipboardData.files;
 						[...files].forEach(function (file) {
@@ -1305,7 +1297,7 @@ class Browser {
 	}
 
 	preventDefaults(e) {
-		console.log('preventing the defaults');
+		console.debug('Browser: preventing the defaults');
 		e.preventDefault();
 		e.stopPropagation();
 	}
@@ -1317,12 +1309,12 @@ class Browser {
 		let element = document.querySelector(selector);
 
 		if (!element) {
-			console.error("browser/makeRefreshable: Element doesn't exist!");
+			console.error("Browser [makeRefreshable]: Element doesn't exist!");
 			return;
 		}
 
 		if (!mycallback){
-			console.error("no callback!");
+			console.error("Browser [makeRefreshable]: no callback!");
 			return;
 		}
 
@@ -1352,8 +1344,8 @@ class Browser {
 		dockable = false,
 		mycallback = null
 	) {
-		//console.log("make draggable: " + id_to_drag);
-		//console.log(" and move? " + id_to_move);
+		//console.debug("make draggable: " + id_to_drag);
+		//console.debug(" and move? " + id_to_move);
 
 		try {
 			const element_to_move = document.getElementById(id_to_move);
@@ -1649,7 +1641,7 @@ class Browser {
 				};
 			};
 		} catch (err) {
-			console.error('error: ' + err);
+			console.error('Browser [makeDraggable] error: ' + err);
 		}
 	}
 
@@ -1659,7 +1651,7 @@ class Browser {
 			element_to_drag.onmousedown = null;
 			element_to_drag.ontouchstart = null;
 		} catch (err) {
-			console.error(err);
+			console.error('Browser [cancelDraggable] error: ' + err);
 		}
 	}
 
@@ -1759,7 +1751,7 @@ class Browser {
 				document.querySelectorAll(`.saito-address[data-id='${key}']`)
 			).forEach((add) => (add.innerHTML = id));
 		} catch (err) {
-			console.error(err);
+			console.error('Browser [updateAddressHTML] error: ', err);
 		}
 
 		this.app.connection.emit('update-username-in-game');
@@ -1772,7 +1764,7 @@ class Browser {
 				m.push(category, action, name, value);
 			}
 		} catch (err) {
-			console.error(err);
+			console.error('Browser [logMatomoEvent] error: ', err);
 		}
 	}
 
@@ -2003,7 +1995,7 @@ class Browser {
 
 			return text;
 		} catch (err) {
-			console.log('Err in sanitizing: ' + err);
+			console.error('Browser [sanitize] error: ', err);
 			return text;
 		}
 	}
@@ -2042,7 +2034,7 @@ class Browser {
 			canvas.getContext('2d').drawImage(oImg, 0, 0, w, h);
 			new_img = canvas.toDataURL('image/jpeg', quality);
 			let imgSize = new_img.length / 1024; // in KB
-			console.log('resizing: ' + imgSize);
+			console.debug('Browser [resizeImg]: ' + imgSize);
 
 			//Prevent infinite loops by seeing if the size is still going down
 			if (imgSize > targetSize && imgSize < last_img_size) {
@@ -2058,7 +2050,7 @@ class Browser {
 		oImg.remove();
 		canvas.remove();
 
-		console.log('Resized to: ' + new_img.length / 1024);
+		console.info('Img Resized to: ' + new_img.length / 1024);
 
 		return new_img;
 	}
@@ -2123,7 +2115,6 @@ class Browser {
 							clearTimeout(mutationThrottle);
 						}
 						mutationThrottle = setTimeout(()=> {
-							//console.log("treat mutated nodes: ", mutatedNodes.length);
 							browser_self.treatElements(mutatedNodes);
 							browser_self.treatIdentifiers(mutatedNodes);
 							mutatedNodes = [];
@@ -2338,7 +2329,7 @@ class Browser {
 				try {
 					this.parentNode.removeChild(this);
 				} catch (err) {
-					console.err(err);
+					console.err("Browser [destroy] Error:", err);
 				}
 			};
 
@@ -2361,7 +2352,6 @@ class Browser {
 					node.classList.remove('saito-link');
 
 					if (node.dataset.link){
-						console.log("Attach events");
 						node.onclick = (e) => this.processLocalLink(e);	
 					}
 					
@@ -2530,7 +2520,7 @@ class Browser {
 	}
 
 	updateSoftwareVersion(receivedBuildNumber: number) {
-		console.log(
+		console.info(
 			`Received build number: ${Number(
 				receivedBuildNumber
 			)}, Current build number: ${this.app.build_number}`
@@ -2541,7 +2531,7 @@ class Browser {
 					`Saito Upgrade: Upgrading to new version ${receivedBuildNumber}`
 				)
 			) {
-				console.log(
+				console.info(
 					`New software update found: ${receivedBuildNumber}. Updating...`
 				);
 				siteMessage(
@@ -2583,8 +2573,8 @@ class Browser {
 				// maximumSignificantDigits: 4
 			});
 			return numberFormatter.format(number);
-		} catch (error) {
-			console.log(error);
+		} catch (err) {
+			console.error("Browser [formatNumber] Error: ", err);
 			return number;
 		}
 	}
@@ -2619,7 +2609,6 @@ class Browser {
               key = split[1];
             }
 
-            console.log("Key: ", key);
             if (this.app.wallet.isValidPublicKey(key)) {
             	if (!keys.includes(key)){
             		keys.push(key);
@@ -2896,20 +2885,20 @@ class Browser {
     	this.back_fn_queue.push(callback);
 
     	if (this.back_fn_queue.length == 2){
-    		console.log("HISTORY: Add back arrow");
+    		console.log("Browser.NAV: Add back arrow");
 	    	this.app.connection.emit('saito-header-replace-logo', ()=> {
 	    		window.history.back();
 	    	});
 
     	}
 
-    	console.log("HISTORY PUSHED: ", this.back_fn_queue);
+    	console.log("Browser.NAV PUSHED: ", this.back_fn_queue);
     }
 
     popBackFn(event){
     	this.back_fn_queue.pop();
 
-    	console.log("HISTORY POPPED: ", this.back_fn_queue, event);
+    	console.log("Browser.NAV POPPED: ", this.back_fn_queue, event);
 
     	if (this.back_fn_queue.length > 0) {
     		this.back_fn_queue[this.back_fn_queue.length - 1]();

@@ -19,20 +19,28 @@ class FileShareOverlay {
 			}
 		});
 
-		app.connection.on('stun-connection-timeout', (peerId) => {
+		// stun-connection-timeout --> quit waiting
+		app.connection.on('stun-connection-close', (peerId) => {
 			if (peerId == this.recipient && this?.active) {
+				console.debug("FILESHARE: stun-connection-close");
+				this.mod.stun.removePeerConnection(peerId);
 				this.onConnectionFailure();
+				this.active = false;
 			}
 		});
 
 		app.connection.on('stun-data-channel-close', (peerId) => {
 			if (peerId == this.recipient && this?.active) {
+				console.debug("FILESHARE: stun-data-channel-close");
 				this.onConnectionFailure();
 			}
 		});
+		
 		app.connection.on('stun-connection-failed', (peerId) => {
 			if (peerId == this.recipient && this?.active) {
+				console.debug("FILESHARE: stun-connection-failed");
 				this.onConnectionFailure();
+				this.active = false;
 			}
 		});
 
@@ -199,7 +207,7 @@ class FileShareOverlay {
 
 		// If this is a failure to connection rather than dropped connection after starting to send
 		//
-		if (this.mod.outgoing_files[this.fileId] && !this.mod.outgoing_files[this.fileId]?.sending) {
+		if (this.mod.outgoing_files[this.fileId]?.file && !this.mod.outgoing_files[this.fileId]?.sending) {
 			let message_field = document.querySelector(this.qs + " .teleporter-transfer-field");
 			if (message_field){
 				message_field.innerHTML = `Peer appears to be offline. <span class="saito-pseudo-link">Send them a link?</span> `;
@@ -210,7 +218,6 @@ class FileShareOverlay {
 			}
 		}
 
-		this.active = false;
 	}
 
 

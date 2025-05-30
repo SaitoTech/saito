@@ -266,7 +266,7 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 			let dskey = defender_units[i].spacekey;
 			let dd = 0; if (defender_units[i].damaged) { dd = 1; }
 			if (!defender_units[i].destroyed) {
-				html = `<div class="loss-overlay-unit" data-spacekey="${dskey}" data-key="${dkey}" data-damaged="${dd}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(defender_units[i])}<div class="loss-overlay-unit-spacekey">${this.mod.game.spaces[askey].name}</div></div>`;
+				html = `<div class="loss-overlay-unit" data-spacekey="${dskey}" data-key="${dkey}" data-damaged="${dd}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(defender_units[i])}<div class="loss-overlay-unit-spacekey">${this.mod.game.spaces[dskey].name}</div></div>`;
 			}
 			this.app.browser.addElementToSelector(html, qs_defender);
 		}
@@ -374,6 +374,9 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
     		  // forts lend their combat strength to the defense
     		  //
     		  if (this.mod.game.spaces[this.mod.game.state.combat.key].fort > 0) {
+
+HACK
+
       		    defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
 		  }
 

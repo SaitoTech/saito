@@ -184,16 +184,7 @@ class InviteManager {
 							this.mod.publicKey
 						);
 
-						let gn = newInvite.invite_data.game_name;
-						let gmi = false;
-
-						for (let z = 0; z < this.app.modules.mods.length; z++) {
-							if (this.app.modules.mods[z].gamename === gn) {
-								gmi = true;
-							}
-						}	
-
-						if (gmi != false) {
+						if (this.app.modules.returnModuleByName(newInvite.invite_data.game_name)){
 							if (newInvite.invite_data.league) {
 								if (!this.mod.leagueCallback?.testMembership(newInvite.invite_data.league)) {
 									continue;

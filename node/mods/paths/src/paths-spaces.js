@@ -216,6 +216,8 @@ if (spacekey == "batum") {
   trace_supply = 1;
 }
 
+console.log("check supply status: " + spacekey);
+
     //
     // if we call this function generically, it means we want
     // to check the supply status of every unit on the board
@@ -241,7 +243,6 @@ if (spacekey == "batum") {
 	      // some units manage their own supply
 	      //
 	      if (this.game.units[u.key].checkSupplyStatus(this, key) == 1) { 
-console.log("unit: " + u.name + " w " + u.key + " --- " + key);
 		supplied = true;
 	      }
 	      if (this.checkSupplyStatus(u.ckey.toLowerCase(), key)) {
