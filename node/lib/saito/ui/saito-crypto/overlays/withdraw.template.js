@@ -1,5 +1,4 @@
-module.exports = (app, mod, publickey = "", address = "") => {
-
+module.exports = (app, mod, publickey = '', address = '') => {
   let identicon = null;
 
   if (publickey && app.wallet.isValidPublicKey(publickey)) {
@@ -51,7 +50,7 @@ module.exports = (app, mod, publickey = "", address = "") => {
   }
 
   html += `
-                <input type="text" autocomplete="off" class="input-elem withdraw_address" ${publickey ? "disabled" : ""} value="${address}"
+                <input type="text" autocomplete="off" class="input-elem withdraw_address" ${publickey ? 'disabled' : ''} value="${address}"
                 id="withdraw-input-address" required="" placeholder="receiving address">
           <div class="withdraw-error" id="withdraw-address-error"></div>
                 </div>

@@ -1,5 +1,5 @@
 let SaitoModuleTemplate = (app, mod) => {
-	let html = `
+  let html = `
 	<div class="saito-module-overlay">
 		<div class="saito-module-header" style="background-image: url(${mod.returnBanner()});">
 			<h1 class="saito-module-titlebar">${mod.returnName()}</h1>
@@ -19,14 +19,14 @@ let SaitoModuleTemplate = (app, mod) => {
 			<div class="detail-value">${mod.description}</div>
 		</div>`;
 
-	if (mod.hasSettings()) {
-		html += `<h4>Settings</h4>
+  if (mod.hasSettings()) {
+    html += `<h4>Settings</h4>
 		<div class="saito-module-settings">
 		</div>`;
-	}
+  }
 
-	html += `</div>`;
-	return html;
+  html += `</div>`;
+  return html;
 };
 
 module.exports = SaitoModuleTemplate;

@@ -9,9 +9,7 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
 
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="description" content="${app.browser.escapeHTML(
-      app.browser.sanitize(mod.description)
-    )}" />
+    <meta name="description" content="${app.browser.escapeHTML(app.browser.sanitize(mod.description))}" />
     <meta name="keywords" content="${mod.categories}"/>
     <meta name="author" content="${og_card.creator}"/>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
@@ -149,13 +147,13 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
     <div id="game-loader-screen">`;
 
   if (include_loader) {
-    let msg = "loading game...";
+    let msg = 'loading game...';
     let welcome = mod.returnWelcome();
     html += `<div class="game-loader-backdrop" style="background-image: url(/${mod.returnSlug()}/img/arcade/arcade.jpg);"></div>`;
 
-    if (welcome){
+    if (welcome) {
       html += welcome;
-      msg = "Loading";
+      msg = 'Loading';
     }
 
     html += `<div id="saito-loader-container" class="saito-loader-container"> 

@@ -1,5 +1,5 @@
-module.exports  = () => {
-	return `<div class="saito-camera video">
+module.exports = () => {
+  return `<div class="saito-camera video">
 			  <canvas id="canvas"> </canvas>
 			  <video id="video"><div class="saito-loader"></div></video>
 		      <img id="photo-preview" alt="The screen capture will appear in this box." style="display:none;"/>

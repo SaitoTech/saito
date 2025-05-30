@@ -18,14 +18,14 @@ On startup, instantiate a Saito instance and connect to the chain via a full nod
 import { Saito } from 'saito-lib';
 
 const saito = new Saito({
-	peers: [
-		{
-			host: 'apps.saito.network',
-			port: 443,
-			protocol: 'https',
-			synctype: 'lite'
-		}
-	]
+  peers: [
+    {
+      host: 'apps.saito.network',
+      port: 443,
+      protocol: 'https',
+      synctype: 'lite'
+    }
+  ]
 });
 ```
 
@@ -35,19 +35,18 @@ You can add manually add keys to your wallet on instantiation:
 
 ```javascript
 const saito = new Saito({
-	peers: [
-		{
-			host: 'apps.saito.network',
-			port: 443,
-			protocol: 'https',
-			synctype: 'lite'
-		}
-	],
-	wallet: {
-		privatekey:
-			'5e8aaab4c1551f0145adf9dd790ae03ba2b01e3563dd1713775639ed8ab4a295',
-		publickey: 'mn2u1muJVEeJfmcKcqfXVEAFam4JQ11yYx8YzCFskkeP'
-	}
+  peers: [
+    {
+      host: 'apps.saito.network',
+      port: 443,
+      protocol: 'https',
+      synctype: 'lite'
+    }
+  ],
+  wallet: {
+    privatekey: '5e8aaab4c1551f0145adf9dd790ae03ba2b01e3563dd1713775639ed8ab4a295',
+    publickey: 'mn2u1muJVEeJfmcKcqfXVEAFam4JQ11yYx8YzCFskkeP'
+  }
 });
 ```
 
@@ -63,8 +62,8 @@ newtx.msg = Object.assign({}, { module: 'OurModule' });
 newtx = saito.wallet.signTransaction(newtx);
 
 saito.network.propagateTransactionWithCallback(newtx, () => {
-	if (this.app.BROWSER) {
-		alert('your message was propagated');
-	}
+  if (this.app.BROWSER) {
+    alert('your message was propagated');
+  }
 });
 ```

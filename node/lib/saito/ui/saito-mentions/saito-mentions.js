@@ -54,8 +54,7 @@ class SaitoMentions {
       'MozTabSize'
     ];
 
-    this.isFirefox =
-      typeof window !== 'undefined' && window['mozInnerScreenX'] != null;
+    this.isFirefox = typeof window !== 'undefined' && window['mozInnerScreenX'] != null;
   }
 
   closeMenu() {
@@ -67,98 +66,96 @@ class SaitoMentions {
   }
 
   selectItem(active) {
-    
-      let text = '';
-      if (this.inputType == 'div') {
-        text = this.ref.innerText;
-      } else {
-        text = this.ref.value;
-      }
+    let text = '';
+    if (this.inputType == 'div') {
+      text = this.ref.innerText;
+    } else {
+      text = this.ref.value;
+    }
 
-      const preMention = text.substr(0, this.triggerIdx);
-      const option = this.options[active];
-      let trigger = '';
+    const preMention = text.substr(0, this.triggerIdx);
+    const option = this.options[active];
+    let trigger = '';
 
-      if (!option){
-        console.log("Null Items, nope out");
-        this.closeMenu();
-        this.ref.focus();
-        return;
-      }
-
-      if (this.inputType == 'div') {
-        trigger = this.ref.innerText[this.triggerIdx];
-      } else {
-        trigger = this.ref.value[this.triggerIdx];
-      }
-
-      const mention = (option?.identifier) ? `${trigger}${option.identifier} ` : `${trigger}${option.publicKey} `
-
-      let selectionStart = null;
-      if (this.inputType == 'div') {
-        if (typeof window.getSelection != 'undefined') {
-          var sel = window.getSelection();
-          console.log(sel);
-          sel.modify('extend', 'backward', 'word');
-          var pos = sel.toString().length;
-          if (sel.anchorNode != undefined) sel.collapseToEnd();
-          selectionStart = pos + (mention.length - 1);
-        }
-      } else {
-        selectionStart = this.ref.selectionStart;
-      }
-      //console.log('selection:', selectionStart);
-
-      const postMention = text.substr(selectionStart);
-      const newValue = `${preMention}${mention}${postMention}`;
-
-      // console.log('${preMention}: ', preMention);
-      // console.log('${mention}: ', mention);
-      // console.log('${postMention}: ', postMention);
-      // console.log('newValue:', newValue);
-
-      // console.log('inputType:', this.inputType);
-      let caretPosition = 0;
-      if (this.inputType == 'div') {
-        this.ref.innerText = newValue;
-        caretPosition = selectionStart;
-      } else {
-        this.ref.value = newValue;
-        caretPosition = this.ref.value.length - postMention.length;
-      }
-      console.log('caretPosition:', caretPosition);
-
-      if (this.inputType != 'div') {
-        this.ref.setSelectionRange(caretPosition, caretPosition);
-      } else {
-        var range = document.createRange();
-        let char = caretPosition,
-          sel;
-        if (document.selection) {
-          sel = document.selection.createRange();
-          sel.moveStart('character', char);
-          sel.select();
-        } else {
-          sel = window.getSelection();
-
-          console.log('char:', char);
-          console.log('this.ref.lastChild.length', this.ref.lastChild.length);
-          console.log(this.ref.lastChild.length);
-
-          if (char > this.ref.lastChild.length) {
-            sel.collapse(this.ref.lastChild, this.ref.lastChild.length);
-          } else {
-            sel.collapse(this.ref.lastChild, char);
-          }
-        }
-      }
-
+    if (!option) {
+      console.log('Null Items, nope out');
       this.closeMenu();
       this.ref.focus();
+      return;
+    }
+
+    if (this.inputType == 'div') {
+      trigger = this.ref.innerText[this.triggerIdx];
+    } else {
+      trigger = this.ref.value[this.triggerIdx];
+    }
+
+    const mention = option?.identifier ? `${trigger}${option.identifier} ` : `${trigger}${option.publicKey} `;
+
+    let selectionStart = null;
+    if (this.inputType == 'div') {
+      if (typeof window.getSelection != 'undefined') {
+        var sel = window.getSelection();
+        console.log(sel);
+        sel.modify('extend', 'backward', 'word');
+        var pos = sel.toString().length;
+        if (sel.anchorNode != undefined) sel.collapseToEnd();
+        selectionStart = pos + (mention.length - 1);
+      }
+    } else {
+      selectionStart = this.ref.selectionStart;
+    }
+    //console.log('selection:', selectionStart);
+
+    const postMention = text.substr(selectionStart);
+    const newValue = `${preMention}${mention}${postMention}`;
+
+    // console.log('${preMention}: ', preMention);
+    // console.log('${mention}: ', mention);
+    // console.log('${postMention}: ', postMention);
+    // console.log('newValue:', newValue);
+
+    // console.log('inputType:', this.inputType);
+    let caretPosition = 0;
+    if (this.inputType == 'div') {
+      this.ref.innerText = newValue;
+      caretPosition = selectionStart;
+    } else {
+      this.ref.value = newValue;
+      caretPosition = this.ref.value.length - postMention.length;
+    }
+    console.log('caretPosition:', caretPosition);
+
+    if (this.inputType != 'div') {
+      this.ref.setSelectionRange(caretPosition, caretPosition);
+    } else {
+      var range = document.createRange();
+      let char = caretPosition,
+        sel;
+      if (document.selection) {
+        sel = document.selection.createRange();
+        sel.moveStart('character', char);
+        sel.select();
+      } else {
+        sel = window.getSelection();
+
+        console.log('char:', char);
+        console.log('this.ref.lastChild.length', this.ref.lastChild.length);
+        console.log(this.ref.lastChild.length);
+
+        if (char > this.ref.lastChild.length) {
+          sel.collapse(this.ref.lastChild, this.ref.lastChild.length);
+        } else {
+          sel.collapse(this.ref.lastChild, char);
+        }
+      }
+    }
+
+    this.closeMenu();
+    this.ref.focus();
   }
 
   async onInput(ev) {
-
     /*  
       This will apparently be undefined for <div>s, but the slice just
       returns the entire text.
@@ -178,9 +175,7 @@ class SaitoMentions {
     const tokens = textBeforeCaret ? textBeforeCaret.split(/\s+/) : [];
 
     let lastToken = tokens.pop();
-    const triggerIdx = textBeforeCaret.endsWith(lastToken)
-      ? textBeforeCaret.length - lastToken.length
-      : -1;
+    const triggerIdx = textBeforeCaret.endsWith(lastToken) ? textBeforeCaret.length - lastToken.length : -1;
 
     const maybeTrigger = textBeforeCaret[triggerIdx];
     const keystrokeTriggered = maybeTrigger === '@';
@@ -239,19 +234,19 @@ class SaitoMentions {
     }
   }
 
-  resolveFn(prefix){
-      let users = this.app.keychain.returnKeys(null, false);
-      if (!prefix){
-        return users;
-      }else{
-        return users.filter(user => {
-          if (user?.identifier) {
-            return user.identifier.toLowerCase().startsWith(prefix.toLowerCase())
-          } else {
-            return user.publicKey.toLowerCase().startsWith(prefix.toLowerCase())
-          }
-        });
-      }
+  resolveFn(prefix) {
+    let users = this.app.keychain.returnKeys(null, false);
+    if (!prefix) {
+      return users;
+    } else {
+      return users.filter((user) => {
+        if (user?.identifier) {
+          return user.identifier.toLowerCase().startsWith(prefix.toLowerCase());
+        } else {
+          return user.publicKey.toLowerCase().startsWith(prefix.toLowerCase());
+        }
+      });
+    }
   }
 
   renderMenu(boundPos = null, coords = null) {
@@ -271,9 +266,7 @@ class SaitoMentions {
     this.menuRef.innerHTML = '';
 
     this.options.forEach((option, idx) => {
-      this.menuRef.appendChild(
-        this.addMenuItem(option, idx)
-      );
+      this.menuRef.appendChild(this.addMenuItem(option, idx));
     });
 
     if (boundPos != null || coords != null) {
@@ -281,8 +274,7 @@ class SaitoMentions {
 
       if (this.inputType != 'div') {
         this.left = window.scrollX + coords.left + this.ref.scrollLeft;
-        this.top =
-          window.scrollY + coords.top + coords.height - this.ref.scrollTop;
+        this.top = window.scrollY + coords.top + coords.height - this.ref.scrollTop;
       } else {
         let menuStyles = getComputedStyle(this.menuRef);
         let listWidth = Number(menuStyles.width.split('px')[0]);
@@ -310,55 +302,54 @@ class SaitoMentions {
 
       this.menuRef.style.left = this.left + 'px';
       this.menuRef.style.top = this.top + 'px';
-
-    }else{
+    } else {
       // Need to check if we are using keys to scroll down
-      let selec = this.menuRef.querySelector(".menu-item.selected");
-      if (selec){
-        if (selec.getBoundingClientRect().bottom > this.menuRef.getBoundingClientRect().bottom){
+      let selec = this.menuRef.querySelector('.menu-item.selected');
+      if (selec) {
+        if (selec.getBoundingClientRect().bottom > this.menuRef.getBoundingClientRect().bottom) {
           selec.scrollIntoView(false);
         }
-        if (selec.getBoundingClientRect().top < this.menuRef.getBoundingClientRect().top){
+        if (selec.getBoundingClientRect().top < this.menuRef.getBoundingClientRect().top) {
           selec.scrollIntoView();
         }
       }
     }
   }
 
-  addMenuItem(user, idx){
-      const parentDiv = document.createElement('div');
-      parentDiv.classList.add('saito-mentions-contact');
+  addMenuItem(user, idx) {
+    const parentDiv = document.createElement('div');
+    parentDiv.classList.add('saito-mentions-contact');
 
-      // identifier 
-      if (!user?.identicon){
-        user.identicon = this.app.keychain.returnIdenticon(user.publicKey);
-      }
-      const identicon = document.createElement('img');
-      identicon.classList.add('saito-identicon');
-      identicon.setAttribute('src', user.identicon);
+    // identifier
+    if (!user?.identicon) {
+      user.identicon = this.app.keychain.returnIdenticon(user.publicKey);
+    }
+    const identicon = document.createElement('img');
+    identicon.classList.add('saito-identicon');
+    identicon.setAttribute('src', user.identicon);
 
-      parentDiv.appendChild(identicon);
+    parentDiv.appendChild(identicon);
 
-      // username div
-      const div = document.createElement('div')
-      div.setAttribute('role', 'option')
-      div.className = 'menu-item'
-      if (idx === this.active) {
-        div.classList.add('selected')
-        div.setAttribute('aria-selected', '')
-      }
+    // username div
+    const div = document.createElement('div');
+    div.setAttribute('role', 'option');
+    div.className = 'menu-item';
+    if (idx === this.active) {
+      div.classList.add('selected');
+      div.setAttribute('aria-selected', '');
+    }
 
-      if (user?.identifier) {
-        div.textContent = user.identifier
-      } else {
-        div.textContent = user.publicKey
-      }
+    if (user?.identifier) {
+      div.textContent = user.identifier;
+    } else {
+      div.textContent = user.publicKey;
+    }
 
-      parentDiv.appendChild(div);
-      parentDiv.onclick = () => {
-          this.selectItem(idx);
-        };
-      return parentDiv;
+    parentDiv.appendChild(div);
+    parentDiv.onclick = () => {
+      this.selectItem(idx);
+    };
+    return parentDiv;
   }
 
   getCaretCoordinates(element, position) {
@@ -378,8 +369,7 @@ class SaitoMentions {
     });
 
     if (this.isFirefox) {
-      if (element.scrollHeight > parseInt(computed.height))
-        style.overflowY = 'scroll';
+      if (element.scrollHeight > parseInt(computed.height)) style.overflowY = 'scroll';
     } else {
       style.overflow = 'hidden';
     }
