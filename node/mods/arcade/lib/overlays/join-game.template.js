@@ -1,7 +1,4 @@
 module.exports = (app, mod, invite) => {
-	if (mod.debug) {
-		//console.log("INVITATION DETAILS: ", invite);
-	}
 
 	let game_tx = mod.returnGame(invite.game_id);
 

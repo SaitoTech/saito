@@ -120,7 +120,6 @@ class GameArcade {
 		let crypto = '';
 
 		for (let i in options) {
-			console.log(i, options[i]);
 			if (options[i] !== '') {
 				let output_me = 1;
 				if (i == 'clock') {

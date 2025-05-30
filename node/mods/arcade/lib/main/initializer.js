@@ -22,7 +22,6 @@ class Initializer {
 		);
 
 		app.connection.on('arcade-close-game', (game_id) => {
-			console.log("arcade-close-game", game_id, this?.game_id);
 			if (game_id == this?.game_id) {
 				this.mod.is_game_initializing = false;
 				this.app.connection.emit('rerender-whole-arcade');
@@ -57,7 +56,7 @@ class Initializer {
 		//Play chime no matter what
 		try{
 			let chime = new Audio("/saito/sound/Jinja.mp3");
-			try { chime.play(); } catch (err) {}
+			chime.play();
 		}catch(err){
 			console.error(err);
 		}

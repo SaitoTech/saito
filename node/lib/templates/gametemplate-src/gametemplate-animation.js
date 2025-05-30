@@ -18,18 +18,17 @@ class GameAnimation {
 
 	async runAnimationQueue(timer = 50) {
 		if (this.animationSequence.length == 0) {
-			//console.log("Animation queue already empty");
 			return;
 		}
-		//console.log(`Sequencing ${this.animationSequence.length} Animations`);
+		console.debug(`GT: Sequencing ${this.animationSequence.length} Animations`);
 
-		console.info("Halt game for animation");
+		console.info("GT: Halt game for animation");
 		this.halted = 1;
 
 		while (this.animationSequence.length > 0) {
 			let nextStep = this.animationSequence.shift();
 			let { callback, params } = nextStep;
-			console.log("Animation: ", JSON.stringify(params));
+			console.debug("GT: Animation: ", JSON.parse(JSON.stringify(params)));
 			if (nextStep.delay) {
 				await this.timeout(nextStep.delay);
 			}
@@ -40,7 +39,7 @@ class GameAnimation {
 			if (this.animationSequence.length > 0) {
 				await this.timeout(timer);
 			} else {
-				console.log("Animation Sequence Finished");
+				console.info("GT: Animation Sequence Finished");
 				return;
 			}
 		}
@@ -53,7 +52,7 @@ class GameAnimation {
 				: target;
 
 		if (!target_obj) {
-			console.warn('Objects not found! ', target);
+			console.warn('GT: Objects not found! ', target);
 			return null;
 		}
 
@@ -177,7 +176,7 @@ class GameAnimation {
 				: destination;
 
 		if (!destination_obj) {
-			console.warn('Object not found: destination', destination);
+			console.warn('GT: Object not found: destination', destination);
 			return null;
 		}
 
@@ -186,7 +185,7 @@ class GameAnimation {
 		let destination_stats = destination_obj.getBoundingClientRect();
 
 		if (!document.getElementById(animatedObjId)){
-			console.warn("Object to animate missing!");
+			console.warn("GT: No object to animate!");
 		}
 
 		$(`#${animatedObjId}`)
@@ -218,7 +217,6 @@ class GameAnimation {
 				let item = this;
 				if (options?.insert) {
 					item = $(this).children()[0];
-					//console.log("Appending element:", item);
 					$(destination + " .copied_elem").remove();
 					document.querySelector(destination).append(item);
 				}
@@ -232,22 +230,17 @@ class GameAnimation {
 				) {
 
 					if (options?.insert) {
-						//console.log('Delete original elements');
 						$('.copied_elem').remove();
 					} else {
-						//console.log('Remove copied');
 						$('.copied_elem').removeClass('copied_elem');
 					}
 
 					if (callback) {
-						//console.log("MoveGameElement finished, running callback");
 						callback(item);
 					} else {
 						$('.animated_elem').remove();
-						//console.log("MoveGameElement finished, but no callback");
 					}
 				} else if (options?.run_all_callbacks == true) {
-					//console.log('Running callback even though more items in queue');
 					if (callback) {
 						callback(item);
 					}

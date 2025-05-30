@@ -49,11 +49,8 @@ class GameManager {
 		for (let list of this.lists) {
 			if (this.mod.games[list]) {
 				let gameList = this.mod.games[list].filter((game) => {
-					//console.log(JSON.parse(JSON.stringify(game)));
 
 					let gametxmsg = game.returnMessage();
-
-					//console.log(JSON.parse(JSON.stringify(gametxmsg)));
 
 					if (!gametxmsg) {
 						return false;
@@ -61,14 +58,11 @@ class GameManager {
 
 					let gameOptions = gametxmsg.options;
 
-					//console.log(JSON.parse(JSON.stringify(gameOptions)));
-
 					if (!gameOptions) {
 						return false;
 					}
 
 					for (let req in this.filter) {
-						//console.log(req);
 						if (
 							!gameOptions[req] ||
 							gameOptions[req] != this.filter[req]

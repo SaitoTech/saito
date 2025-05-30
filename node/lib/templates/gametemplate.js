@@ -288,7 +288,6 @@ class GameTemplate extends ModTemplate {
 					if (name.includes('@')) {
 						name = name.substring(0, name.indexOf('@'));
 					}
-					console.log(playerKey, i, name);
 					this.game.playerNames.push(name);
 				});
 				for (let i = 0; i < this.game.players.length; i++) {
@@ -297,7 +296,7 @@ class GameTemplate extends ModTemplate {
 							document.querySelectorAll(`.saito-playername[data-id='${this.game.players[i]}']`)
 						).forEach((add) => (add.innerHTML = this.game.playerNames[i]));
 					} catch (err) {
-						console.error(err);
+						console.error("GT: update-username-in-game] ERROR: ", err);
 					}
 				}
 			}
@@ -443,7 +442,7 @@ class GameTemplate extends ModTemplate {
 				}
 			}
 		} catch (err) {
-			console.log('ERROR WITH LOAD:' + JSON.stringify(err));
+			console.error('GT [initializeHTML] ERROR WITH LOAD:', err);
 		}
 
 		//
@@ -483,7 +482,7 @@ class GameTemplate extends ModTemplate {
 				{}
 			);
 		} catch (err) {
-			console.error(err);
+			console.error('GT [initializeHTML] ERROR WITH HASH:', err);
 		}
 
 		//
@@ -694,7 +693,6 @@ class GameTemplate extends ModTemplate {
 		}
 
 		if (service.service == 'archive') {
-			console.log('Archive available!!');
 			this.archive_connected = true;
 		}
 
@@ -723,7 +721,7 @@ class GameTemplate extends ModTemplate {
 			}
 
 			if (this.pending.length > 0) {
-				console.log('**** REBROADCASTING GAME MOVES ***');
+				console.info(' ****\nGT:  REBROADCASTING GAME MOVES\n ***');
 				this.gaming_active = 0;
 				while (this.pending.length > 0) {
 					let tx = this.pending.shift();
@@ -742,8 +740,7 @@ class GameTemplate extends ModTemplate {
 		let game_id = tx.signature;
 		let txmsg = tx.returnMessage();
 
-		console.log('!!!!!OBSERVER MODE!!!!!');
-		console.log(game_id, JSON.parse(JSON.stringify(txmsg)));
+		console.log(' !!!!!\n GT: OBSERVER MODE\n !!!!!\n',game_id, JSON.parse(JSON.stringify(txmsg)));
 
 		this.loadGame(game_id);
 
@@ -863,7 +860,7 @@ class GameTemplate extends ModTemplate {
 		// we grab the game with the most current timestamp (ts)
 		// since no ID is provided
 		if (!this.loadGame()) {
-			console.log('No valid game.... stop!!!!!');
+			console.error('GT [initialize] No valid game.... stop!!!!!');
 			this.initialize_game_run = 1; //Will prevent rendering of game assets
 			return;
 		}
@@ -942,13 +939,13 @@ class GameTemplate extends ModTemplate {
 						return;
 					}
 
-					console.info('Game engine received move for other game. Safety catch, loading game...');
+					console.info('GT [onConfirmation]: received move for other game. Safety catch, loading game...');
 
 					//
 					// track execution state of game we shift away from...
 					//
-					console.log(
-						"Cache the game's state: ",
+					console.debug(
+						"GT [onConfirmation] Cache the game's state: ",
 						this.halted,
 						this.gaming_active,
 						this.initialize_game_run
@@ -986,7 +983,7 @@ class GameTemplate extends ModTemplate {
 				//
 				if (!txmsg?.step?.game) {
 					//Not a game move
-					console.info(`${this.name} skipping ${JSON.stringify(txmsg)}`);
+					console.info(`GT [onConfirmation] ${this.name} skipping non-game move --`, txmsg);
 				} else if (!this.game.over) {
 					//
 					// process game move
@@ -998,13 +995,13 @@ class GameTemplate extends ModTemplate {
 						//If we have multiple moves in the future queue and are receiving moves on chain,
 						//then something has probably gone wrong
 						if (this.game.player === 0 && this.game.future.length > 3) {
-							console.log(
-								'Receive future move onConfirmation as Observer',
+							console.info(
+								'GT [onConfirmation] Observer receives future move',
 								this.gaming_active,
 								this.halted
 							);
 							if (!this.gaming_active && !this.halted) {
-								console.log('Trigger observer from onConfirmation');
+								console.info('GT [onConfirmation] Observer auto steps forward');
 								await this.observerControls.next();
 							}
 						}
@@ -1028,8 +1025,8 @@ class GameTemplate extends ModTemplate {
 				// track execution state of game we shift away from...
 				//
 				if (game_halted != null) {
-					console.log(
-						"Did we change the game's state? ",
+					console.debug(
+						"GT [onConfirmation]: Did we change the game's state? ",
 						this.halted,
 						this.gaming_active,
 						this.initialize_game_run
@@ -1056,8 +1053,7 @@ class GameTemplate extends ModTemplate {
 		try {
 			message = tx.returnMessage();
 		} catch (err) {
-			console.log('@#421341234 error');
-			console.log(JSON.stringify(tx));
+			console.error("GT HPT Error: ", err);
 			return 0;
 		}
 
@@ -1083,7 +1079,7 @@ class GameTemplate extends ModTemplate {
 
 					if (!this.doesGameExistLocally(gametxmsg.game_id)) {
 						console.info(
-							`Game does not exist locally. Not processing HPR message (${message.request}): waiting for on-chain`
+							`GT HPT Game does not exist locally. waiting for on-chain to process (${message.request}): `
 						);
 						return;
 					}
@@ -1095,7 +1091,7 @@ class GameTemplate extends ModTemplate {
 					// -- or loading the game id came up with a different game module
 					//
 					if (!this.game?.id || gametxmsg.game_id != this.game.id) {
-						console.warn('ERROR SKIPPING HPT IN GAME: ' + gametxmsg.game_id);
+						console.warn('GT HPT Receiving move for undefined or other game: ' + gametxmsg.game_id);
 						return;
 					}
 
@@ -1117,7 +1113,7 @@ class GameTemplate extends ModTemplate {
 							await this.addNextMove(gametx);
 							this.notifyMove();
 						} else {
-							console.warn('HPT: is old move ' + gametxmsg.step.game);
+							console.warn('GT HPT: is old move ' + gametxmsg.step.game);
 						}
 					} else if (message.request == 'game relay update') {
 						if (gametxmsg.request == 'gameover') {
@@ -1128,7 +1124,7 @@ class GameTemplate extends ModTemplate {
 							this.receiveMetaMessage(gametx);
 						}
 					} else {
-						console.log('Unknown request', message.request);
+						console.warn('GT HPT Unknown request', message.request);
 					}
 
 					return 1;
@@ -1222,7 +1218,7 @@ class GameTemplate extends ModTemplate {
 			clearInterval(this.clock_timers[player]); //Just in case
 		}
 
-		console.log('Start CLOCK: ', player, JSON.stringify(this.game.clock));
+		console.debug('GT Start CLOCK: ', player, JSON.parse(JSON.stringify(this.game.clock)));
 
 		if (!player) {
 			return;
@@ -1270,7 +1266,7 @@ class GameTemplate extends ModTemplate {
 		//
 		// Only process if the clock is running (avoid double taps for when we send a move and receive it back on chain)
 		//
-		console.log('Stop CLOCK: ', player, JSON.stringify(this.game.clock));
+		console.debug('GT Stop CLOCK: ', player, JSON.parse(JSON.stringify(this.game.clock)));
 
 		clearInterval(this.clock_timers[player]);
 		delete this.clock_timers[player];
@@ -1284,13 +1280,13 @@ class GameTemplate extends ModTemplate {
 			this.game.clock[player - 1].spent += this.game.time.last_sent - this.game.time.last_received;
 
 			if (this.game.options?.lightning) {
-				console.log('Lightning Mode!!!');
+				console.log('GT Clock -- Lightning Mode!!!');
 				let value = parseInt(this.game.options.lightning);
 				this.game.clock[player - 1].limit += value * 1000;
 			}
 
 			let time_left = this.game.clock[player - 1].limit - this.game.clock[player - 1].spent;
-			console.log('TIME LEFT: ', player, time_left);
+			console.debug('GT TIME LEFT: ', player, time_left);
 			this.clock.displayTime(time_left, player);
 		}
 
@@ -1312,7 +1308,7 @@ class GameTemplate extends ModTemplate {
 		this.app.browser.unlockNavigation();
 
 		// Don't process game moves while exiting!
-		console.log('Halt game to exit');
+		console.info('GT: Halt game to exit');
 		this.halted = 1;
 		this.saveGame(this.game.id);
 
@@ -1334,7 +1330,7 @@ class GameTemplate extends ModTemplate {
 	receiveMetaMessage(tx) {
 
 		if (!tx.isTo(this.publicKey)){
-			console.warn("processing a tx that isn't addressed to us...");
+			console.warn("GT: processing a tx that isn't addressed to us...");
 		}
 
 		let txmsg = tx.returnMessage();
@@ -1352,15 +1348,13 @@ class GameTemplate extends ModTemplate {
 
 		if (txmsg.request == 'SHARE') {
 			if (this.expecting_state) {
-				console.log('Player shared last game state', tx.from[0].publicKey);
-				console.log(JSON.parse(JSON.stringify(this.game)));
+				console.info('GT [Meta] Player shared last game state', tx.from[0].publicKey);
+				console.debug(JSON.parse(JSON.stringify(this.game)));
 
 				if (txmsg?.data != '') {
 					this.game = JSON.parse(txmsg.data);
-					console.log(this.game);
 					this.game.player = 0;
 					this.game.live = true;
-					console.log(this.game.step, this.game.queue);
 					this.saveGame(this.game.id);
 
 					this.app.connection.emit('arcade-game-ready-render-request', {
@@ -1406,7 +1400,7 @@ class GameTemplate extends ModTemplate {
 			let auths = 0;
 			let { ticker, stake, sigs, ts } = txmsg.data;
 
-			console.log("STAKE: ", txmsg.data);
+			console.info("GT STAKE: ", txmsg.data);
 
 			try {
 				let stake_val = typeof stake === "object" ? stake?.min : stake;
@@ -1426,7 +1420,7 @@ class GameTemplate extends ModTemplate {
 				}
 			}
 			} catch (err) {
-				console.error('err: ' + err);
+				console.error('GT Staking ERROR: ', err);
 			}
 
 			if (auths == this.game.players.length) {
@@ -1453,7 +1447,7 @@ class GameTemplate extends ModTemplate {
 			return;
 		}
 
-		console.warn('Game Engine: unprocessed meta transaction -- ', tx, txmsg);
+		console.warn('GT: unprocessed meta transaction -- ', tx, txmsg);
 	}
 
 	/*
@@ -1475,8 +1469,7 @@ class GameTemplate extends ModTemplate {
 			newtx.addTo(this.game.accepted[i]);
 		}
 
-		console.log(JSON.parse(JSON.stringify(this.game.accepted)));
-		console.log(JSON.parse(JSON.stringify(newtx.msg)));
+		console.info("GT [sendMetaMessage] to ", JSON.parse(JSON.stringify(this.game.accepted)), newtx.msg);
 
 		await newtx.sign();
 

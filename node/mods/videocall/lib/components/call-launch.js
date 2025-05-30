@@ -107,7 +107,6 @@ class CallLaunch {
 					await this.mod.createRoom();
 				}
 
-				console.log(this.mod.room_obj, "room object joining");
 				this.enterCall()
 			};
 		}
@@ -170,7 +169,6 @@ class CallLaunch {
 		if (document.querySelector(".stunx-precall-link")) {
 			document.querySelector(".stunx-precall-link").onclick = async (e) => {
 				let mode = e.currentTarget.dataset.id;
-				console.log(mode);
 				let call_link = "";
 				if (mode == "join"){
 					call_link =  this.mod.generateCallLink(this.mod.room_obj);

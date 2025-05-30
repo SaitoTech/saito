@@ -178,12 +178,6 @@ class LossOverlay {
 		let defender_units = this.mod.returnDefenderUnits();
 		this.units = defender_units;
 
-console.log("%");
-console.log("%");
-console.log("% DEBZUGGING: ");
-console.log("%" + JSON.stringify(this.units));
-console.log("%");
-
 		this.overlay.show(LossTemplate());
 		this.updateInstructions("Defender - Take Additional Hit to Cancel Retreat");
 
@@ -260,7 +254,7 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 			let askey = attacker_units[i].spacekey;
 			let ad = 0; if (attacker_units[i].damaged) { ad = 1; }
 			if (!attacker_units[i].destroyed) {
-				html = `<div class="loss-overlay-unit" data-spacekey="${askey}" data-key="${akey}" data-damaged="${ad}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(attacker_units[i])}</div>`;
+				html = `<div class="loss-overlay-unit" data-spacekey="${askey}" data-key="${akey}" data-damaged="${ad}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(attacker_units[i])}<div class="loss-overlay-unit-spacekey">${this.mod.game.spaces[askey].name}</div></div>`;
 			}
 			this.app.browser.addElementToSelector(html, qs_attacker);
 		}
@@ -272,7 +266,7 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 			let dskey = defender_units[i].spacekey;
 			let dd = 0; if (defender_units[i].damaged) { dd = 1; }
 			if (!defender_units[i].destroyed) {
-				html = `<div class="loss-overlay-unit" data-spacekey="${dskey}" data-key="${dkey}" data-damaged="${dd}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(defender_units[i])}</div>`;
+				html = `<div class="loss-overlay-unit" data-spacekey="${dskey}" data-key="${dkey}" data-damaged="${dd}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(defender_units[i])}<div class="loss-overlay-unit-spacekey">${this.mod.game.spaces[askey].name}</div></div>`;
 			}
 			this.app.browser.addElementToSelector(html, qs_defender);
 		}
@@ -540,6 +534,7 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 						if (paths_self.returnFactionOfPlayer() == "central") { corpsbox = "crbox"; }
 						let corpskey = unit.key.split('_')[0] + '_corps';
 						let corpsunit = paths_self.cloneUnit(corpskey);
+						corpsunit.attacked = 1; // we don't want to give this the op to attack
 						corpsunit.spacekey = unit.spacekey;
 if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
 
@@ -554,7 +549,7 @@ if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
 //
 // others remove and add too
 //
-						this.moves.push(`add\t${unit.spacekey}\t${corpskey}\t${this.mod.game.player}`);
+						this.moves.push(`add\t${unit.spacekey}\t${corpskey}\t${this.mod.game.player}\tattacked`);
 						this.moves.push(`remove\t${corpsbox}\t${corpskey}\t${this.mod.game.player}`);
 						let html = `<div class="loss-overlay-unit" data-spacekey="${corpsunit.spacekey}" data-key="${corpskey}" data-damaged="0" id="${this.units.length - 1}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(this.units[this.units.length - 1], false, true)}</div>`;
 						this.app.browser.addElementToSelector(html, my_qs);

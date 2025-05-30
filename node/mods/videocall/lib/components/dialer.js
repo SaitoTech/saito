@@ -43,8 +43,6 @@ class Dialer {
 		this.overlay.show(
 			DialerTemplate(this.app, this.mod, making_call),
 			() => {
-				console.log("Close dialer from exit button");
-				console.log(making_call, this.mod.room_obj);
 				if (making_call){
 					this.app.connection.emit('relay-send-message', {
 						recipient: Object.keys(this.receiver),
@@ -82,8 +80,6 @@ class Dialer {
 		let call_button = document.getElementById('startcall');
 
 		let recipient = Object.keys(this.receiver);
-
-		console.log("*** Send messages to: ", recipient);
 
 		if (video_switch && call_button) {
 			this.activateOptions();
@@ -340,7 +336,7 @@ class Dialer {
 				});
 			}
 
-			console.log(this.mod.room_obj);
+			console.debug("Talk.dialer [stun-connection-request]:", this.mod.room_obj);
 
 			break;
 
@@ -384,7 +380,6 @@ class Dialer {
 			break;
 
 		case 'stun-connection-ping':
-			console.log('Counter party available, remain on the line');
 			if (this.dialing) {
 				clearTimeout(this.dialing);
 				this.dialing = setTimeout(() => {

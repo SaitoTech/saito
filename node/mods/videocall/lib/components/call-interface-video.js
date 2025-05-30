@@ -24,7 +24,7 @@ class CallInterfaceVideo {
 		this.rendered = false;
 
 		this.app.connection.on('show-call-interface', async (videoEnabled, audioEnabled) => {
-			console.log('Render Video Call Interface', videoEnabled, audioEnabled);
+			console.info('TALK [show-call-interface]', videoEnabled, audioEnabled);
 
 			//This will render the (full-screen) component
 			if (!document.querySelector('.stun-chatbox')) {
@@ -38,7 +38,6 @@ class CallInterfaceVideo {
 			this.room_link = this.mod.generateCallLink();
 
 			if (this.full_screen) {
-				console.log("FULL SCREEN");
 				window.history.pushState({}, '', this.room_link);
 				document.title = 'Saito Talk';
 			}
@@ -130,7 +129,7 @@ class CallInterfaceVideo {
 						this.mod.layout == 'speaker' &&
 						!item.parentElement.classList.contains('expanded-video')
 					) {
-						console.log('New Speaker: ' + peer);
+						console.debug('TALK [stun-new-speaker]: ' + peer);
 						this.flipDisplay(peer);
 					}
 
@@ -198,7 +197,6 @@ class CallInterfaceVideo {
 	}
 
 	render(videoEnabled, audioEnabled) {
-		console.log('Render video interface');
 		if (!document.querySelector('#stun-chatbox')) {
 			this.app.browser.addElementToDom(
 				CallInterfaceVideoTemplate(this.mod, videoEnabled, audioEnabled)
@@ -227,7 +225,7 @@ class CallInterfaceVideo {
 			try {
 				document.querySelector('.stun-chatbox .minimizer').click();
 			} catch (err) {
-				console.error(err);
+				console.error("TALK.callInterface Error: ", err);
 			}
 		}
 
@@ -270,7 +268,7 @@ class CallInterfaceVideo {
 				useMicrophone: true,
 				members: this.mod.room_obj.call_peers,
 				callbackAfterRecord: (data) => {
-					console.log('', data);
+					console.debug('callbackAfterRecord', data);
 				}
 			});
 			if (item instanceof Array) {
@@ -315,14 +313,14 @@ class CallInterfaceVideo {
 					item.callback(this.app, this.mod.room_obj);
 				};
 			} else {
-				console.warn('Adding an action item with no callback');
+				console.warn('TALK.callInterface: Adding an action item with no callback');
 			}
 
 			if (item.event) {
 				item.event(id);
 			}
 		} else {
-			console.warn('Item not found');
+			console.warn('TALK.callInterface: Item not found');
 		}
 	}
 
@@ -467,7 +465,6 @@ class CallInterfaceVideo {
 	}
 
 	flipDisplay(stream_id) {
-		console.log('flipDisplay: ' + this.local_container);
 		let big_video = document.querySelector(`.${this.local_container} .video-box`);
 		if (!big_video) {
 			return;
@@ -502,8 +499,6 @@ class CallInterfaceVideo {
 	}
 
 	addLocalStream(localStream) {
-		console.log('Add local stream');
-
 		this.createVideoBox('local', this.local_container);
 		this.video_boxes['local'].video_box.render(localStream);
 		this.localStream = localStream;
@@ -534,7 +529,7 @@ class CallInterfaceVideo {
 				.classList.toggle('fa-microphone-slash');
 			document.querySelector('.call-controls .audio-control i').classList.toggle('fa-microphone');
 		} catch (err) {
-			console.warn('Stun UI error', err);
+			console.error('Talk.callInterface [toggleAudio] Error:', err);
 		}
 	}
 
@@ -547,7 +542,7 @@ class CallInterfaceVideo {
 			document.querySelector('.call-controls .video-control i').classList.toggle('fa-video-slash');
 			document.querySelector('.call-controls .video-control i').classList.toggle('fa-video');
 		} catch (err) {
-			console.warn('Stun UI error', err);
+			console.error('Talk.callInterface [toggleVideo] Error', err);
 		}
 	}
 
@@ -691,7 +686,6 @@ class CallInterfaceVideo {
 		Array.from(container.children).forEach((child) => {
 			child.classList.add('flex-item');
 		});
-		console.log(container, 'container');
 		this.adjustClassesAndCount(container);
 	}
 

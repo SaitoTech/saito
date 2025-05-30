@@ -21,7 +21,7 @@ class AudioBox {
 			({ enabled, public_key }) => {
 				if (public_key !== this.stream_id) return;
 
-				console.log('peer-toggle-audio-status', enabled);
+				console.debug('TALK.audioBox [peer-toggle-audio-status]', enabled);
 
 				const audio_box = document.getElementById(
 					`audiostream_${this.stream_id}`
@@ -51,7 +51,6 @@ class AudioBox {
 
 	render(stream) {
 		this.stream = stream;
-		console.log(stream, 'stream');
 
 		if (!document.getElementById(`audiostream_${this.stream_id}`)) {
 			this.app.browser.addElementToSelector(

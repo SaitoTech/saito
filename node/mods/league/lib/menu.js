@@ -16,8 +16,8 @@ class LeagueMenu {
 		selector += `#lg${this.league.id}`;
 
 		if (this.mod.debug) {
-			console.log('Rendering League on Page: ');
-			console.log(JSON.parse(JSON.stringify(this.league)));
+			console.info('Rendering League on Page: ');
+			console.debug(JSON.parse(JSON.stringify(this.league)));
 		}
 
 		if (document.querySelector(selector)) {
@@ -36,8 +36,6 @@ class LeagueMenu {
 	}
 
 	attachEvents() {
-		console.log(this.app.crypto.hash('gamedoctor'));
-
 		try {
 			document.querySelector(
 				`#lg${this.league.id} .league-join-button`

@@ -69,7 +69,7 @@ class Fileshare extends ModTemplate {
 					this.outgoing_files[fileId]?.lastEvent
 				) {
 					this.outgoing_files[fileId].overlay.onConnectionSuccess();
-					console.log('FILESHARE: resume sending after reestablishing connection...');
+					console.info('FILESHARE: resume sending after reestablishing connection...');
 					await this.sendFileChunk(fileId, this.outgoing_files[fileId].lastEvent);
 					delete this.outgoing_files[fileId].lastEvent;
 				}
@@ -90,7 +90,7 @@ class Fileshare extends ModTemplate {
 			try {
 				this.stun = app.modules.returnFirstRespondTo('peer-manager');
 			} catch (err) {
-				console.warn('No Stun available');
+				console.warn('FILESHARE: No Stun available');
 			}
 		}
 	}
@@ -176,7 +176,7 @@ class Fileshare extends ModTemplate {
 							if (!fss.stun.hasConnection(recipient)) {
 								fss.stun.createPeerConnection(recipient);
 							} else {
-								console.log('FILESHARE: emit dummy stun event');
+								console.debug('FILESHARE: emit dummy stun event');
 								fss.app.connection.emit('stun-data-channel-open', recipient);
 							}
 						}
@@ -270,7 +270,7 @@ class Fileshare extends ModTemplate {
 
 				const pkey = data.publicKey;
 
-				console.log('FILESHARE: message friend that ready to connect -- ', pkey);
+				console.info('FILESHARE: message friend that ready to connect -- ', pkey);
 
 				this.app.connection.emit('relay-send-message', {
 					recipient: pkey,
@@ -291,9 +291,6 @@ class Fileshare extends ModTemplate {
 			let txmsg = tx.returnMessage();
 
 			if (tx.isTo(this.publicKey)) {
-				//if (txmsg.request.includes("file")){
-				//	console.log(txmsg);
-				//}
 
 				if (txmsg.request == 'query file permission') {
 					const file = {
@@ -318,7 +315,7 @@ class Fileshare extends ModTemplate {
 				}
 
 				if (txmsg.request == 'grant file permission') {
-					console.log('FILESHARE: Start sending file !' + txmsg.data.id);
+					console.info('FILESHARE: Start sending file !' + txmsg.data.id);
 					this.addNavigationProtections();
 					const fs = this.outgoing_files[txmsg.data.id];
 
@@ -362,7 +359,7 @@ class Fileshare extends ModTemplate {
 				if (txmsg.request == 'request file transfer') {
 					let recipient = tx.from[0].publicKey;
 					let fileId = txmsg.data.id;
-					console.log('FILESHARE: party followed link to receive!', recipient);
+					console.info('FILESHARE: party followed link to receive!', recipient);
 
 					if (this.outgoing_files[fileId]) {
 						const file = this.outgoing_files[fileId].file;
@@ -391,14 +388,14 @@ class Fileshare extends ModTemplate {
 						this.outgoing_files[newfileid].overlay.onFile(file);
 						this.addFileUploader(file, newfileid);
 
-						console.log('FILESHARE:  Send updated file code and wait for their confirmation');
+						console.info('FILESHARE:  Send updated file code and wait for their confirmation');
 					}
 
 					return;
 				}
 
 				if (txmsg.request == 'update file transfer') {
-					console.log('FILESHARE UPDATE: ', txmsg.request, txmsg.data);
+					console.info('FILESHARE UPDATE: ', txmsg.request, txmsg.data);
 
 					if (this.incoming[txmsg.data.old_id]) {
 						this.incoming[txmsg.data.old_id].overlay.remove();
@@ -414,7 +411,7 @@ class Fileshare extends ModTemplate {
 						const blob = this.incoming[txmsg.data.meta.id];
 
 						if (!this.stun || !blob?.sending) {
-							console.warn('No stun / not ready to receive!');
+							console.warn('Fileshare: No stun / not ready to receive!');
 							return;
 						}
 
@@ -430,7 +427,7 @@ class Fileshare extends ModTemplate {
 						if (blob.receivedSize === blob.size) {
 							let finalTimeStamp = new Date().getTime();
 							let time_lapsed = this.app.browser.formatTime(finalTimeStamp - blob.initialTimeStamp);
-							console.log('FILESHARE: Finished!', `${time_lapsed.minutes}:${time_lapsed.seconds}`);
+							console.info('FILESHARE: Finished!', `${time_lapsed.minutes}:${time_lapsed.seconds}`);
 
 							blob.overlay.finishTransfer(blob);
 						}
@@ -484,11 +481,11 @@ class Fileshare extends ModTemplate {
 
 	addFileUploader(file, fileId) {
 		if (!file) {
-			console.warn('No file chosen');
+			console.warn('Fileshare: No file chosen');
 			return;
 		}
 		if (file.size === 0) {
-			console.warn('File is empty');
+			console.warn('Fileshare: File is empty');
 			return;
 		}
 
@@ -496,20 +493,20 @@ class Fileshare extends ModTemplate {
 		this.outgoing_files[fileId].size = file.size;
 		this.outgoing_files[fileId].iterator = 1;
 
-		console.log(`FILESHARE: File is ${[file.name, file.size, file.type].join(' ')}`);
+		console.info(`FILESHARE: File is ${[file.name, file.size, file.type].join(' ')}`);
 
 		this.outgoing_files[fileId].reader = new FileReader();
 
 		this.outgoing_files[fileId].reader.addEventListener('error', (error) =>
-			console.error('Error reading file:', error)
+			console.error('Fileshare read file Error:', error)
 		);
 		this.outgoing_files[fileId].reader.addEventListener('abort', (event) =>
-			console.log('File reading aborted:', event)
+			console.warn('Fileshare: File reading aborted:', event)
 		);
 
 		this.outgoing_files[fileId].reader.addEventListener('load', async (event) => {
 			if (!this.outgoing_files[fileId]?.sending) {
-				console.warn('Not in sending state! Stop reading file!');
+				console.warn('Fileshare: Not in sending state! Stop reading file!');
 				return;
 			}
 			//
@@ -553,7 +550,7 @@ class Fileshare extends ModTemplate {
 				finalTimeStamp - this.outgoing_files[fileId].initialTimeStamp
 			);
 
-			console.log('FILESHARE: Finished!', `${time_lapsed.minutes}:${time_lapsed.seconds}`);
+			console.info('FILESHARE: Finished!', `${time_lapsed.minutes}:${time_lapsed.seconds}`);
 			this.outgoing_files[fileId].overlay.finishTransfer();
 		}
 	}
@@ -582,7 +579,7 @@ class Fileshare extends ModTemplate {
 		let file = this.outgoing_files[fileId] || this.incoming[fileId];
 
 		if (!file) {
-			console.log("FILESHARE: No file selected, don't bother");
+			console.warn("FILESHARE: No file selected, don't bother");
 			return;
 		}
 
@@ -612,7 +609,7 @@ class Fileshare extends ModTemplate {
 
 	sendFileTransferRequest(fileId, file) {
 		if (!file) {
-			console.warn('No file selected!');
+			console.warn('Fileshare: No file selected!');
 			return;
 		}
 
@@ -674,7 +671,7 @@ class Fileshare extends ModTemplate {
 		if (this?.stun && this.stun.hasConnection(obj.recipient)) {
 			this.stun.sendTransaction(obj.recipient, tx);
 		} else {
-			console.warn('No stun connection to transfer file!');
+			console.warn('Fileshare: No stun connection to transfer file!');
 		}
 	}
 
@@ -698,7 +695,7 @@ class Fileshare extends ModTemplate {
 		if (this?.stun && this.stun.hasConnection(obj.sender)) {
 			this.stun.sendTransaction(obj.sender, tx);
 		} else {
-			console.warn('No stun connection to transfer file!');
+			console.warn('Fileshare: No stun connection to transfer file!');
 		}
 	}
 
@@ -716,7 +713,6 @@ class Fileshare extends ModTemplate {
 	}
 
 	visibilityChange() {
-		console.log('visibilitychange triggered');
 		for (let id in this.outgoing_files) {
 			this.interrupt(id, this.outgoing_files[id].recipient);
 		}

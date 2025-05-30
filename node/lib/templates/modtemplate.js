@@ -112,7 +112,7 @@ class ModTemplate {
 						let data = fs.readFileSync(filename, 'utf8');
 						await app.storage.executeDatabase(data, dbname);
 					} catch (err) {
-						console.error(err);
+						console.error('installModule Error: ', err);
 					}
 				}
 			}
@@ -128,7 +128,7 @@ class ModTemplate {
 				Object.getOwnPropertyNames(mixin).forEach((prop) => {
 					if (prop == 'constructor') return;
 					if (Object.getOwnPropertyNames(cls).includes(prop)) {
-						console.error('Module already includes ' + prop);
+						console.warn('Module already includes ' + prop);
 						return;
 					}
 					cls[prop] = mixin[prop];
@@ -167,11 +167,11 @@ class ModTemplate {
 		if (app.BROWSER === 1) {
 			if (this.browser_active){
 				if (app.browser.returnURLParameter('debug')){
-					console.log("Dynamically set debug flag true in " + this.name);
+					console.debug("Dynamically set debug flag true in " + this.name);
 					this.debug = true;
 				}
 				if (app.options.settings?.debug){
-					console.log("Set debug flag true from options file " + this.name);
+					console.debug("Set debug flag true from options file " + this.name);
 					this.debug = true;	
 				}
 			}
@@ -246,7 +246,7 @@ class ModTemplate {
 				this.attachStyleSheets();
 			}
 			if (this.scripts?.length > 0) {
-				console.log('attachScripts in ' + this.name, this.scripts);
+				console.debug('attachScripts in ' + this.name, this.scripts);
 				this.attachScripts();
 			}
 			if (this.postScripts?.length > 0) {
@@ -261,7 +261,6 @@ class ModTemplate {
 		}
 
 		if (this.app.browser.returnURLParameter('event')) {
-			console.log("Render", this.name);
 			let event = JSON.parse(this.app.crypto.base64ToString(this.app.browser.returnURLParameter('event')));
 			if (!this?.eventOverlay){
 				this.eventOverlay = new SaitoEvent(this.app, this, event);
@@ -656,10 +655,9 @@ class ModTemplate {
 			// here so are leaving a visible and obvious error indicator here
 			// to catch any problems.
 			//
-			console.log('!!@@!@#!#!@#!@#');
-			console.log('!!@@!@#!#!@#!@#');
-			console.log('!!@@!@#!#!@#!@#');
-			console.log(JSON.stringify(tx));
+			console.log('!!@@!@#!#!@#!@#\n!!@@!@#!#!@#!@#\n!!@@!@#!#!@#!@#\n', JSON.parse(JSON.stringify(tx)));
+			console.error("ModTemplate [HPT] ERROR: ", err);
+
 			return 0;
 		}
 
@@ -670,7 +668,7 @@ class ModTemplate {
 			let expected_request =
 				this.name.toLowerCase() + ' load ' + this.db_tables[i];
 			if (txmsg?.request === expected_request) {
-				console.log('expected_request : ' + expected_request);
+				console.trace('expected_request : ' + expected_request);
 				let select = txmsg.data?.select;
 				let dbname = txmsg.data?.dbname;
 				let tablename = txmsg.data?.tablename;
@@ -816,7 +814,6 @@ class ModTemplate {
 			console.error(modname + ' not found!');
 			return;
 		}
-		//console.log("modtemplate.sendPeerDatabaseRequestWithFilter : " + modname, sql);
 		let msg = {};
 
 		msg.request = 'rawSQL';
@@ -824,8 +821,6 @@ class ModTemplate {
 		msg.data.sql = sql;
 		msg.data.module = modname;
 		msg.data.dbname = this.app.modules.returnModule(modname).returnSlug();
-
-		console.log('SPDRWF: ' + modname);
 
 		this.sendPeerRequestWithFilter(
 			() => {
@@ -1019,11 +1014,11 @@ class ModTemplate {
 
 		return new Promise((resolve, reject) => {
 			s.addEventListener('load', () => {
-				console.log('Script loaded dynamically');
+				console.info('Script loaded dynamically');
 				resolve();
 			});
 			s.addEventListener('error', () => {
-				console.log('Error loading script');
+				console.error('Error loading script');
 				reject();
 			});
 		});
@@ -1056,7 +1051,7 @@ class ModTemplate {
 
 	removeScripts() {
 		this.scripts.forEach((script) => {
-			console.log('removing script', script);
+			console.info('removing script', script);
 			// $(`script[src*="${script}"]`).remove();
 		});
 		this.scriptsAdded = false;
@@ -1067,7 +1062,7 @@ class ModTemplate {
 
 	removeStyleSheets(app) {
 		this.stylesheets.forEach((stylesheet) => {
-			console.log('removing stylesheet ', stylesheet);
+			console.info('removing stylesheet ', stylesheet);
 			// $(`link[rel=stylesheet][href~="${stylesheet}"`).remove();
 		});
 
@@ -1087,7 +1082,7 @@ class ModTemplate {
 	}
 
 	destroy(app) {
-		console.log('destroying');
+		console.trace('destroying');
 		// this.removeMeta();
 		// this.removeStyleSheets();
 		// this.removeHTML();

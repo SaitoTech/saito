@@ -42,7 +42,6 @@ class TweetMenu {
 		Array.from(document.querySelectorAll('.tweet-menu-list-item')).forEach(
 			(item) => {
 				item.onclick = async (e) => {
-					console.log(e.currentTarget);
 					switch (e.currentTarget.getAttribute('id')) {
 						case 'delete_tweet':
 							this.tweet.deleteTweet();

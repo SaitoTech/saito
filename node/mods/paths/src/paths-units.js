@@ -60,10 +60,16 @@
   }
 
   moveUnit(sourcekey, sourceidx, destinationkey) {
+
+console.log("MOVE UNIT: ");
+console.log("source units pre: " + this.game.spaces[sourcekey].units.length);
+
     let unit = this.game.spaces[sourcekey].units[sourceidx];
     this.game.spaces[sourcekey].units[sourceidx].moved = 1;
     this.game.spaces[sourcekey].units.splice(sourceidx, 1);
     if (!this.game.spaces[destinationkey].units) { this.game.spaces[destinationkey].units = []; }
+
+console.log("source units pst: " + this.game.spaces[sourcekey].units.length);
 
     if (destinationkey == "aeubox" || destinationkey == "ceubox") {
       this.updateLog(unit.name + " eliminated.");
@@ -73,7 +79,6 @@
 
     unit.spacekey = destinationkey;
     this.game.spaces[destinationkey].units.push(unit);
-    unit.spacekey = destinationkey;
     this.displaySpace(sourcekey);
     this.displaySpace(destinationkey);
   }

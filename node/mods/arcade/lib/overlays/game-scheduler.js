@@ -14,7 +14,7 @@ class GameScheduler {
 			'arcade-launch-game-scheduler',
 			(invite_tx = {}) => {
 				this.invite_tx = invite_tx;
-				console.log(invite_tx);
+				console.info("arcade-launch-game-scheduler", invite_tx);
 				this.render();
 			}
 		);

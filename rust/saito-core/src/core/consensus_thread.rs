@@ -26,6 +26,8 @@ use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::hash;
 
+use super::stat_thread::{BlockchainStat, MempoolStat, StatEvent, WalletStat};
+
 pub const BLOCK_PRODUCING_TIMER: u64 = Duration::from_millis(1000).as_millis() as u64;
 
 #[derive(Debug)]
@@ -44,7 +46,7 @@ pub struct ConsensusStats {
 }
 
 impl ConsensusStats {
-    pub fn new(sender: Sender<String>) -> Self {
+    pub fn new(sender: Sender<StatEvent>) -> Self {
         ConsensusStats {
             blocks_fetched: StatVariable::new(
                 "consensus::blocks_fetched".to_string(),
@@ -84,7 +86,7 @@ pub struct ConsensusThread {
     pub storage: Storage,
     pub stats: ConsensusStats,
     pub txs_for_mempool: Vec<Transaction>,
-    pub stat_sender: Sender<String>,
+    pub stat_sender: Sender<StatEvent>,
     pub config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     pub produce_blocks_by_timer: bool,
     pub delete_old_blocks: bool,
@@ -653,7 +655,19 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 wallet.get_unspent_slip_count(),
                 wallet.get_available_balance()
             );
-            self.stat_sender.send(stat).await.unwrap();
+            self.stat_sender
+                .send(StatEvent::StringStat(stat))
+                .await
+                .unwrap();
+
+            let wallet_stat = WalletStat {
+                wallet_balance: wallet.get_available_balance(),
+                wallet_address: wallet.public_key.to_base58(),
+            };
+            self.stat_sender
+                .send(StatEvent::WalletStat(wallet_stat))
+                .await
+                .unwrap();
         }
         {
             let stat;
@@ -671,9 +685,21 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     blockchain.blocks.iter().filter(|(_hash, block)| { block.block_type == BlockType::Full }).count(),
                     blockchain.blocks.iter().map(|(_hash, block)| { block.transactions.len() }).sum::<usize>()
                 );
+
+                let blockchain_stat = BlockchainStat {
+                    longest_chain_length: blockchain.get_latest_block_id(),
+                    latest_block_hash: blockchain.get_latest_block_hash().to_hex(),
+                };
+                self.stat_sender
+                    .send(StatEvent::BlockchainStat(blockchain_stat))
+                    .await
+                    .unwrap();
             }
             // trace!("releasing blockchain 5");
-            self.stat_sender.send(stat).await.unwrap();
+            self.stat_sender
+                .send(StatEvent::StringStat(stat))
+                .await
+                .unwrap();
         }
         {
             let stat;
@@ -687,9 +713,20 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     mempool.blocks_queue.len(),
                     mempool.transactions.len(),
                 );
+
+                let mempool_stat = MempoolStat {
+                    mempool_size: mempool.transactions.len() as u64,
+                };
+                self.stat_sender
+                    .send(StatEvent::MempoolStat(mempool_stat))
+                    .await
+                    .unwrap();
             }
 
-            self.stat_sender.send(stat).await.unwrap();
+            self.stat_sender
+                .send(StatEvent::StringStat(stat))
+                .await
+                .unwrap();
         }
         {
             let stat = format!(
@@ -699,7 +736,10 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 self.sender_to_router.capacity(),
                 self.sender_to_router.max_capacity()
             );
-            self.stat_sender.send(stat).await.unwrap();
+            self.stat_sender
+                .send(StatEvent::StringStat(stat))
+                .await
+                .unwrap();
         }
     }
 

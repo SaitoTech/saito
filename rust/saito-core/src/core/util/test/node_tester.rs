@@ -24,7 +24,7 @@ pub mod test {
     use crate::core::process::keep_time::Timer;
     use crate::core::process::process_event::ProcessEvent;
     use crate::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
-    use crate::core::stat_thread::StatThread;
+    use crate::core::stat_thread::{StatEvent, StatThread};
     use crate::core::util::configuration::{
         get_default_issuance_writing_block_interval, BlockchainConfig, Configuration,
         ConsensusConfig, Endpoint, PeerConfig, Server,
@@ -161,7 +161,7 @@ pub mod test {
         receiver_for_consensus: Receiver<ConsensusEvent>,
         receiver_for_miner: Receiver<MiningEvent>,
         receiver_for_verification: Receiver<VerifyRequest>,
-        receiver_for_stats: Receiver<String>,
+        receiver_for_stats: Receiver<StatEvent>,
         pub timeout_in_ms: u64,
         last_run_time: Timestamp,
         pub initial_token_supply: Currency,
@@ -323,6 +323,12 @@ pub mod test {
                     stat_queue: Default::default(),
                     io_interface: Box::new(TestIOHandler {}),
                     enabled: true,
+                    current_peer_state: Default::default(),
+                    current_wallet_state: Default::default(),
+                    current_mining_state: Default::default(),
+                    current_blockchain_state: Default::default(),
+                    current_mempool_state: Default::default(),
+                    file_write_timer: 0,
                 },
                 timer: timer.clone().unwrap(),
                 receiver_for_router: receiver_in_blockchain,

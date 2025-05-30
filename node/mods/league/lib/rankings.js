@@ -11,7 +11,7 @@ class LeagueRankings {
 
 		app.connection.on('league-rankings-render-request', () => {
 			if (this.mod.debug) {
-				console.log('league-rankings-render-request');
+				console.info('league-rankings-render-request');
 			}
 			this.render();
 		});

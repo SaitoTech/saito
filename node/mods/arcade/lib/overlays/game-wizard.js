@@ -32,7 +32,7 @@ class GameWizard {
 						if (obj.skip){
 							navigateWindow(`/${game_mod.returnSlug()}/`);
 						}else{
-							console.log('Found existing game', game_mod.game);
+							console.info('arcade-launch-game-wizard found existing game', game_mod.game);
 							app.connection.emit(
 								'arcade-continue-game-from-options',
 								game_mod
@@ -46,7 +46,7 @@ class GameWizard {
 					}
 
 				} else {
-					salert('Module not found: ' + obj.game);
+					console.error('arcade-launch-game-wizard -- game module not found!', obj);
 				}
 			}
 		});
@@ -58,7 +58,7 @@ class GameWizard {
 		//  & set a callback to remove the advanced options overlay if we change our mind about creating a game
 		//
 		if (this.mod.debug) {
-			console.log(JSON.parse(JSON.stringify(this.obj)));
+			console.debug("ARCADE: render game-wizard for: ", JSON.parse(JSON.stringify(this.obj)));
 		}
 
 		this.overlay.show(GameWizardTemplate(this.game_mod, this.obj), () => {
@@ -78,7 +78,6 @@ class GameWizard {
 					'hidden';
 			}
 		} else {
-			//console.info("Advanced Options!: ", advancedOptions);
 			let accept_button = `<div id="game-wizard-advanced-return-btn" class="game-wizard-advanced-return-btn button saito-button-primary">Accept</div>`;
 			if (!advancedOptions.includes(accept_button)) {
 				advancedOptions += accept_button;
@@ -263,9 +262,9 @@ class GameWizard {
 
 
 		if (this.mod.debug) {
-			console.log(
-				'GAMEWIZARD -- reading options from HTML: ',
-				JSON.stringify(options)
+			console.debug(
+				'ARCADE game-wizard -- reading options from HTML: ',
+				JSON.parse(JSON.stringify(options))
 			);
 		}
 

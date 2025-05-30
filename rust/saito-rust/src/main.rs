@@ -41,7 +41,7 @@ use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::process::keep_time::{KeepTime, Timer};
 use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
-use saito_core::core::stat_thread::StatThread;
+use saito_core::core::stat_thread::{StatEvent, StatThread};
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::crypto::generate_keys;
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
@@ -141,7 +141,7 @@ async fn run_mining_event_processor(
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
     channel_size: usize,
-    sender_to_stat: Sender<String>,
+    sender_to_stat: Sender<StatEvent>,
     time_keeper_origin: &Timer,
 ) -> (Sender<NetworkEvent>, JoinHandle<()>) {
     let mining_event_processor = MiningThread {
@@ -188,7 +188,7 @@ async fn run_consensus_event_processor(
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
     channel_size: usize,
-    sender_to_stat: Sender<String>,
+    sender_to_stat: Sender<StatEvent>,
     time_keeper_origin: &Timer,
 ) -> (Sender<NetworkEvent>, JoinHandle<()>) {
     let consensus_event_processor = ConsensusThread {
@@ -252,7 +252,7 @@ async fn run_routing_event_processor(
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
     channel_size: usize,
-    sender_to_stat: Sender<String>,
+    sender_to_stat: Sender<StatEvent>,
     fetch_batch_size: usize,
     time_keeper_origin: &Timer,
 ) -> (Sender<NetworkEvent>, JoinHandle<()>) {
@@ -314,7 +314,7 @@ async fn run_verification_threads(
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
     verification_thread_count: u16,
-    sender_to_stat: Sender<String>,
+    sender_to_stat: Sender<StatEvent>,
     time_keeper_origin: &Timer,
 ) -> (Vec<Sender<VerifyRequest>>, Vec<JoinHandle<()>>) {
     let mut senders = vec![];
@@ -372,7 +372,7 @@ fn run_loop_thread(
     network_event_sender_to_routing_ep: Sender<NetworkEvent>,
     stat_timer_in_ms: u64,
     _thread_sleep_time_in_ms: u64,
-    sender_to_stat: Sender<String>,
+    sender_to_stat: Sender<StatEvent>,
     time_keeper_origin: &Timer,
 ) -> JoinHandle<()> {
     let time_keeper = time_keeper_origin.clone();
@@ -560,7 +560,7 @@ async fn run_node(
 
     let (sender_to_miner, receiver_for_miner) =
         tokio::sync::mpsc::channel::<MiningEvent>(channel_size);
-    let (sender_to_stat, receiver_for_stat) = tokio::sync::mpsc::channel::<String>(channel_size);
+    let (sender_to_stat, receiver_for_stat) = tokio::sync::mpsc::channel::<StatEvent>(channel_size);
 
     let (senders, verification_handles) = run_verification_threads(
         sender_to_consensus.clone(),
