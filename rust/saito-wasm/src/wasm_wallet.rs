@@ -203,8 +203,6 @@ impl WasmWallet {
         let saito = SAITO.lock().await;
         let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
 
-        info!("inside wasm_wallet.rs add_nft");
-
         let slip1: SaitoUTXOSetKey = string_to_utxoset_key(&slip1_hex)
             .map_err(|e| JsValue::from_str(&format!("slip1 parse error: {}", e)))?;
         let slip2: SaitoUTXOSetKey = string_to_utxoset_key(&slip2_hex)
