@@ -10,7 +10,9 @@ use wasm_bindgen::JsValue;
 
 use saito_core::core::consensus::slip::{Slip, SlipType};
 use saito_core::core::consensus::wallet::{Wallet, WalletSlip};
-use saito_core::core::defs::{Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoUTXOSetKey, SaitoSignature};
+use saito_core::core::defs::{
+    Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoSignature, SaitoUTXOSetKey,
+};
 use saito_core::core::io::network::Network;
 use saito_core::core::io::storage::Storage;
 
@@ -195,17 +197,11 @@ impl WasmWallet {
         slip1_hex: String,
         slip2_hex: String,
         slip3_hex: String,
-        id_hex:    String,
-        sig_hex:   String,
+        id_hex: String,
+        sig_hex: String,
     ) -> Result<(), JsValue> {
         let saito = SAITO.lock().await;
-        let mut wallet = saito
-            .as_ref()
-            .unwrap()
-            .context
-            .wallet_lock
-            .write()
-            .await;
+        let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
 
         info!("inside wasm_wallet.rs add_nft");
 
