@@ -37,10 +37,10 @@ class TweetManager {
 
 				if (posted_tweet.retweet_tx) {
 					rparent.render();
-					this.mod.addTweet(tweettx, 'post_retweet');
+					this.mod.addTweet(tweettx, {type: 'retweet', node: "user post"});
 					posted_tweet.render(true);
 				} else {
-					this.mod.addTweet(tweettx, 'post_reply');
+					this.mod.addTweet(tweettx, {type: 'reply', node: "user post"});
 					if (rparent.parent_id != '') {
 						let t = this.mod.returnTweet(rparent.parent_id);
 						if (t) {
@@ -52,7 +52,7 @@ class TweetManager {
 					rparent.forceRenderWithCriticalChild();
 				}
 			} else {
-				this.mod.addTweet(tweettx, 'post_new');
+				this.mod.addTweet(tweettx, {type: 'new tweet', node: "user post"});
 				posted_tweet.render(true);
 			}
 		});
@@ -190,9 +190,9 @@ class TweetManager {
 		}
 
 		if (new_mode == 'tweets') {
-			document.querySelector('.redsquare-feed-source').classList.remove('hidden');
+			document.querySelector('.redsquare-feed-toggle').classList.remove('hidden');
 		} else {
-			document.querySelector('.redsquare-feed-source').classList.add('hidden');
+			document.querySelector('.redsquare-feed-toggle').classList.add('hidden');
 		}
 
 		let holder = document.getElementById('tweet-thread-holder');
@@ -490,7 +490,7 @@ class TweetManager {
 					//
 					for (let z = 0; z < txs.length; z++) {
 						txs[z].decryptMessage(this.app);
-						this.mod.addTweet(txs[z], `${peer.publicKey}-profile`);
+						this.mod.addTweet(txs[z], {type: "profile", node: peer.publicKey});
 						peer.profile_ts = txs[z]?.timestamp;
 					}
 
@@ -667,7 +667,7 @@ class TweetManager {
 							post.parent_id = tweet.tx.signature;
 							post.thread_id = tweet.thread_id;
 
-							post.source = 'Reply';
+							post.type = 'Reply';
 
 							post.render(`.tweet-${tweet.tx.signature}`);
 						}
@@ -685,7 +685,7 @@ class TweetManager {
 					post.parent_id = tweet.tx.signature;
 					post.thread_id = tweet.thread_id;
 
-					post.source = 'Reply';
+					post.type = 'Reply';
 
 					post.render(`.tweet-${tweet.tx.signature}`);
 				}

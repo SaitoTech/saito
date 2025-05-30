@@ -259,7 +259,7 @@ class RedSquareMain {
       this.mod.loadTweetWithSig(tweet_id, (txs) => {
         console.debug(`RS.NAV: Tweet thread load returned ${txs.length} tweets`);
         for (let z = 0; z < txs.length; z++) {
-          this.mod.addTweet(txs[z], 'url_sig');
+          this.mod.addTweet(txs[z], {type: 'url_sig', node: "server"});
         }
         let tweet = this.mod.returnTweet(tweet_id);
         this.renderThread(tweet);
