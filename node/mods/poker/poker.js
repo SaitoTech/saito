@@ -1,7 +1,6 @@
 const GameTableTemplate = require('../../lib/templates/table-gametemplate');
 const GameBoard = require('./lib/ui/game-board/game-board');
 const Pot = require('./lib/ui/pot/pot');
-const JSON = require('json-bigint');
 const PokerStats = require('./lib/stats');
 const htmlTemplate = require('./lib/game-html.template');
 const PokerGameRulesTemplate = require('./lib/poker-game-rules.template');

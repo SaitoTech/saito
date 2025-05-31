@@ -309,7 +309,7 @@ class PokerUI {
       return;
     }
 
-    this.displayPlayerNotice(`your turn:`, this.game.player);
+    this.displayPlayerNotice(`your turn`, this.game.player);
 
     let html = '<div class="option" id="fold"><img src="/poker/img/fold_icon.svg" alt="fold"><span>fold</span></div>';
 
