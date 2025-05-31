@@ -1687,10 +1687,10 @@ deck['ap34'] = {
             let hand = JSON.parse(mv[1]);
 
             let html = "Allied Powers: ";
-            for (let z = 0; z < hand.length; z++) { html += paths_self.popup(hand[z]); }
+            for (let z = 0; z < hand.length; z++) { if (z > 0) { html += ", "; } html += paths_self.popup(hand[z]); }
             paths_self.updateLog(html);
 
-            paths_self.game.queue.push("player_play_ops\tcentral\tcp17\t");
+            paths_self.game.queue.push("player_play_ops\tcentral\tcp17\t2");
 
             return 1;
           }

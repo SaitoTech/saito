@@ -560,11 +560,13 @@ console.log("and done...");
 						let corpsunit = paths_self.cloneUnit(corpskey);
 						corpsunit.attacked = 1; // we don't want to give this the op to attack
 						corpsunit.spacekey = unit.spacekey;
-if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
 
 //
-// add new unit
+// we only replace with a corps if there is a free unit in the
+// reserve box
 //
+if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
+
 						this.units.push(corpsunit);
 						if (am_i_the_attacker) {
 						  paths_self.game.spaces[corpsunit.spacekey].units.push(corpsunit);
@@ -575,6 +577,7 @@ if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
 //
 						this.moves.push(`add\t${unit.spacekey}\t${corpskey}\t${this.mod.game.player}\tattacked`);
 						this.moves.push(`remove\t${corpsbox}\t${corpskey}\t${this.mod.game.player}`);
+						this.removeUnit(corpsbox, corpskey);
 						let html = `<div class="loss-overlay-unit" data-spacekey="${corpsunit.spacekey}" data-key="${corpskey}" data-damaged="0" id="${this.units.length - 1}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(this.units[this.units.length - 1], false, true)}</div>`;
 						this.app.browser.addElementToSelector(html, my_qs);
 }

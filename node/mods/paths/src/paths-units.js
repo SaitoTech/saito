@@ -59,6 +59,30 @@
 
   }
 
+
+  removeUnit(sourcekey, unitkey) {
+       
+    for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
+      if (this.game.spaces[spacekey].units[z].key === unitkey) {
+
+        this.game.spaces[spacekey].units.splice(z, 1);
+        z = this.game.spaces[spacekey].units.length + 2;
+                     
+        if (this.game.state.combat.attacker) {
+          for (let zz = 0; zz < this.game.state.combat.attacker.length; zz++) {
+            if (this.game.state.combat.attacker[zz].unit_sourcekey == spacekey) {
+              if (z < this.game.state.combat.attacker[zz].unit_idx) {
+                this.game.state.combat.attacker[zz].unit_idx--;
+              }
+            }
+          }
+        }
+
+      }
+    }
+
+  }
+
   moveUnit(sourcekey, sourceidx, destinationkey) {
 
 console.log("MOVE UNIT: ");
@@ -198,5 +222,75 @@ console.log("source units pst: " + this.game.spaces[sourcekey].units.length);
       }
     }
   }
+
+
+  //
+  // 1. flip damaged units on the board
+  // 2. flip damaged units in the RB
+  // 3. return eliminated units to RB
+  //
+  doReplacementPointsExistForUnit(unit=null) {
+
+    if (!unit) { return 0; }
+
+    let faction = this.returnFactionOfUnit(unit);
+    let rp = this.game.state.rp[faction];
+
+    //
+    // 17.1.3 - Belgian and Serbian Army units can be recreated only if they may
+    // legally be placed on the map [see 17.1.5] Belgian and Serbian corps can still
+    // be rebuilt in the Reserve Box, even if their countries are completely controlled
+    // by the enemy.
+    //
+    if (unit.ckey === "BE") {
+      let ptp = false; // place to place
+      if (this.game.spaces["antwerp"].control == "allies") { ptp = true; }
+      if (this.game.spaces["brussels"].control == "allies") { ptp = true; }
+      if (this.game.spaces["ostend"].control == "allies") { ptp = true; }
+      if (this.game.spaces["liege"].control == "allies") { ptp = true; }
+      if (ptp) {
+        if (rp["A"] > 0 || rp["BE"] > 0) { return 1; }
+      }
+    }
+    if (unit.ckey === "SB") {
+      let ptp = false; // place to place
+      if (this.game.spaces["belgrade"].control == "allies") { ptp = true; }
+      if (this.game.spaces["valjevo"].control == "allies") { ptp = true; }
+      if (this.game.spaces["nis"].control == "allies") { ptp = true; }
+      if (this.game.spaces["skopje"].control == "allies") { ptp = true; }
+      if (this.game.spaces["monastir"].control == "allies") { ptp = true; }
+      if (ptp) {
+        if (rp["A"] > 0 || rp["SB"] > 0) { return 1; }
+      }
+    }
+
+    //
+    // cannot spend replacement points if capital is besieged
+    //
+    let capitals = this.returnCapital(unit.ckey);
+    let is_capital_besieged = false;
+    for (let z = 0; z < capitals.length; z++) {
+      let c = this.game.spaces[capitals[z]];
+      let p = this.returnPowerOfUnit(unit);
+      if (c.control != p) { is_capital_besieged = true; }
+      if (c.units.length > 0) {
+        if (this.returnPowerOfUnit(c.units[0]) != p) {
+          is_capital_besieged = true;
+        }
+      }
+      if ((z+1) < capitals.length) { is_capital_besieged = false; }
+    }
+
+    if (is_capital_besieged == true) { return 0; }
+    if (rp[unit.ckey] > 0) { return 1; }
+    if (rp["A"] > 0) {
+      if (unit.ckey == "ANA" || unit.ckey == "AUS" || unit.ckey == "BE" || unit.ckey == "CND" || unit.ckey == "MN" || unit.ckey == "PT" || unit.ckey == "RO" || unit.ckey == "GR" || unit.ckey == "SB") {
+        return 1;
+      }
+    }
+    return 0;
+  }
+
+
 
 

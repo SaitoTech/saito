@@ -525,7 +525,7 @@ class PathsOfGlory extends GameTemplate {
     this.importUnit('be_corps', {
       ckey		:       "BE" ,
       country           :       "Belgium" ,
-      name		:	"BE Corps" ,
+      name		:	"Belgian Corps" ,
       type		:	"corps" ,
       front		:	"be_corps.png" ,
       back		:	"be_corps_back.png" ,
@@ -650,7 +650,7 @@ class PathsOfGlory extends GameTemplate {
     this.importUnit('br_corps', {
       ckey		:       "BR" ,
       country           :       "British" ,
-      name		:	"BR Corps" ,
+      name		:	"British Corps" ,
       type		:	"corps" ,
       front		:	"br_corps.png" ,
       back		:	"br_corps_back.png" ,
@@ -668,7 +668,7 @@ class PathsOfGlory extends GameTemplate {
     this.importUnit('bu_corps', {
       ckey		:       "BU" ,
       country           :       "Bulgarian" ,
-      name		:	"BU Corps" ,
+      name		:	"Bulgarian Corps" ,
       type		:	"corps" ,
       front		:	"bu_corps.png" ,
       back		:	"bu_corps_back.png" ,
@@ -704,7 +704,7 @@ class PathsOfGlory extends GameTemplate {
     this.importUnit('cnd_corps', {
       ckey		:       "CND" ,
       country           :       "Canadian" ,
-      name		:	"CND Corps" ,
+      name		:	"Canadian Corps" ,
       type		:	"corps" ,
       front		:	"cnd_corps.png" ,
       back		:	"cnd_corps_back.png" ,
@@ -722,7 +722,7 @@ class PathsOfGlory extends GameTemplate {
     this.importUnit('czl_corps', {
       ckey		:       "CZL" ,
       country           :       "Czech Legion" ,
-      name		:	"CZL Corps" ,
+      name		:	"Czech Corps" ,
       type		:	"corps" ,
       front		:	"czl_army.png" ,
       back		:	"czl_army_back.png" ,
@@ -867,7 +867,7 @@ class PathsOfGlory extends GameTemplate {
     this.importUnit('fr_corps', {
       ckey		:       "FR" ,
       country           :       "France" ,
-      name		:	"FR Corps" ,
+      name		:	"French Corps" ,
       type		:	"corps" ,
       front		:	"fr_corps.png" ,
       back		:	"fr_corps_back.png" ,
@@ -1096,7 +1096,7 @@ class PathsOfGlory extends GameTemplate {
     this.importUnit('ge_corps', {
       ckey		:       "GE" ,
       country           :       "Germany" ,
-      name		:	"GE Corps" ,
+      name		:	"German Corps" ,
       type		:	"corps" ,
       front		:	"ge_corps.png" ,
       back		:	"ge_corps_back.png" ,
@@ -1113,8 +1113,8 @@ class PathsOfGlory extends GameTemplate {
     //
     this.importUnit('gr_corps', {
       ckey		:       "GR" ,
-      country           :       "Greek Corps" ,
-      name		:	"GR Corps" ,
+      country           :       "Greece" ,
+      name		:	"Greek Corps" ,
       type		:	"corps" ,
       front		:	"gr_corps.png" ,
       back		:	"gr_corps_back.png" ,
@@ -3486,10 +3486,10 @@ deck['ap34'] = {
             let hand = JSON.parse(mv[1]);
 
             let html = "Allied Powers: ";
-            for (let z = 0; z < hand.length; z++) { html += paths_self.popup(hand[z]); }
+            for (let z = 0; z < hand.length; z++) { if (z > 0) { html += ", "; } html += paths_self.popup(hand[z]); }
             paths_self.updateLog(html);
 
-            paths_self.game.queue.push("player_play_ops\tcentral\tcp17\t");
+            paths_self.game.queue.push("player_play_ops\tcentral\tcp17\t2");
 
             return 1;
           }
@@ -10316,9 +10316,9 @@ spaces['crbox'] = {
 
     state.general_records_track = {};
     state.general_records_track.vp = 10;
-    state.general_records_track.allies_war_status = 5;
-    state.general_records_track.central_war_status = 5;
-    state.general_records_track.combined_war_status = 10;
+    state.general_records_track.allies_war_status = 0;
+    state.general_records_track.central_war_status = 0;
+    state.general_records_track.combined_war_status = 0;
 
     state.general_records_track.ge_replacements = 0;
     state.general_records_track.ah_replacements = 0;
@@ -10481,11 +10481,6 @@ console.log("MOVE: " + mv[0]);
 	  this.game.state.round = 0;	   
 
 
-console.log("##################");
-console.log("##################");
-console.log("##################");
-console.log("##################");
-console.log("##################");
 console.log("##################");
 console.log("##################");
 console.log("##################");
@@ -10871,6 +10866,8 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 
  	if (mv[0] == "siege_phase") {
 
+	  let roll = 0;
+
 	  for (let key in this.game.spaces) {
 	    let space = this.game.spaces[key];
 	    if (space.besieged == true) {
@@ -10878,11 +10875,7 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 		if (space.units.length > 0) {
 		  if (this.returnPowerOfUnit(space.units[0]) != space.control) {
 
-		    let roll = this.rollDice(6);
-
-	  	    this.updateLog("#############");
-	  	    this.updateLog("### Seige ###");
-	  	    this.updateLog("#############");
+		    roll = this.rollDice(6);
 
 		    if (this.game.state.turn < 2) { roll -= 2; }
 		    if (roll > space.fort) {
@@ -10911,6 +10904,13 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 		}
 	      }
 	    }
+	  }
+
+
+	  if (roll != 0) {
+   	    this.updateLog("#############");
+	    this.updateLog("### Seige ###");
+	    this.updateLog("#############");
 	  }
 
           this.game.queue.splice(qe, 1);
@@ -11466,6 +11466,8 @@ try {
 	  this.game.spaces[source].units.splice(unit_idx, 1);
 	  this.game.spaces[destination].units.push(unit);
 
+	  this.updateLog(this.returnFactionName(faction) + " plays " + this.popup(card));
+
 	  this.updateLog(unit.name + " redeploys to " + this.returnSpaceNameForLog(destination));
 
 	  this.displaySpace(source);
@@ -11666,7 +11668,6 @@ try {
 	  // mandated offensive tracking
 	  //
 	  let au = this.returnAttackerUnits();
-console.log("MO AU: " + JSON.stringify(au));
 	  if (this.game.state.combat.attacking_faction == "central") {
 	    if (this.game.state.mandated_offensives.allies === "AH IT") {
 
@@ -12169,7 +12170,6 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  // Wireless Intercepts
 	  //
 	  if (this.game.state.events.wireless_intercepts == 1) { this.game.state.combat.flank_attack = "attacker"; }
-
 
 	  if (this.game.state.combat.flank_attack == "attacker") {
 	    this.game.queue.push(`combat_assign_hits\tattacker`);
@@ -13093,6 +13093,8 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  let card = mv[2];
 	  let opsnum = parseInt(mv[3]);
 
+	  this.updateLog(this.returnFactionName(faction) + " plays " + this.popup(card));
+
 	  this.game.queue.splice(qe, 1);
 
 	  return 1;
@@ -13900,8 +13902,10 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 
       if (action === "overlay") {
         if (continue_fnct()) {
+console.log("WE CONTINUE!");
 	  this.playerSpendReplacementPoints(faction);
 	} else {
+console.log("WE DO NOT CONTINUE!");
 	  this.replacements_overlay.hide();
 	  this.endTurn();
 	}
@@ -13921,61 +13925,6 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
     let do_upgradeable_units_remain = false;
     let just_stop = 0;
 
-    //
-    // players can spend their replacement points to:
-    //
-    // 1. flip damaged units on the board
-    // 2. flip damaged units in the RB
-    // 3. return eliminated units to RB 
-    //
-    let do_replacement_points_exist_for_unit = (unit) => {
-
-      // 17.1.3 - Belgian and Serbian Army units can be recreated only if they may 
-      // legally be placed on the map [see 17.1.5] Belgian and Serbian corps can still 
-      // be rebuilt in the Reserve Box, even if their countries are completely controlled 
-      // by the enemy.
-      //
-      if (unit.ckey === "BE") {
-	if (this.game.spaces["antwerp"].control == "allies") { return 1; }
-	if (this.game.spaces["brussels"].control == "allies") { return 1; }
-	if (this.game.spaces["ostend"].control == "allies") { return 1; }
-	if (this.game.spaces["liege"].control == "allies") { return 1; }
-      }
-      if (unit.ckey === "SB") {
-	if (this.game.spaces["belgrade"].control == "allies") { return 1; }
-	if (this.game.spaces["valjevo"].control == "allies") { return 1; }
-	if (this.game.spaces["nis"].control == "allies") { return 1; }
-	if (this.game.spaces["skopje"].control == "allies") { return 1; }
-	if (this.game.spaces["monastir"].control == "allies") { return 1; }
-      }
-
-      //
-      // cannot spend replacement points if capital is besieged
-      //
-      let capitals = paths_self.returnCapital(unit.ckey);
-      let is_capital_besieged = false;
-      for (let z = 0; z < capitals.length; z++) {
-	let c = paths_self.game.spaces[capitals[z]];
-        let p = paths_self.returnPowerOfUnit(unit);
-	if (c.control != p) { is_capital_besieged = true; }
-	if (c.units.length > 0) {
-	  if (paths_self.returnPowerOfUnit(c.units[0]) != p) {
-	    is_capital_besieged = true;
-	  }
-	}
-	if ((z+1) < capitals.length) { is_capital_besieged = false; }
-      }
-
-      if (is_capital_besieged == true) { return 0; }
-      if (rp[unit.ckey] > 0) { return 1; }
-      if (rp["A"] > 0) {
-	if (unit.ckey == "ANA" || unit.ckey == "AUS" || unit.ckey == "BE" || unit.ckey == "CND" || unit.ckey == "MN" || unit.ckey == "PT" || unit.ckey == "RO" || unit.ckey == "GR" || unit.ckey == "SB") {
-	  return 1;
-	}
-      }
-      return 0;
-    }
-
     continue_fnct = () => {
 
 	let can_uneliminate_unit = false;
@@ -13990,7 +13939,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
         for (let key in paths_self.game.spaces) {
 	  for (let z = 0; z < paths_self.game.spaces[key].units.length; z++) {
 	    if (key == "arbox" && faction == "allies") { 
-	      if (do_replacement_points_exist_for_unit(paths_self.game.spaces[key].units[z])) {
+	      if (paths_self.doReplacementPointsExistForUnit(paths_self.game.spaces[key].units[z])) {
 	        can_deploy_unit_in_reserves = true;
 	        can_deploy_unit_in_reserves_array.push({ key : key , idx : z , name : paths_self.game.spaces[key].units[z].name });
 	        if (paths_self.game.spaces[key].units[z].damaged) {
@@ -14000,13 +13949,13 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	      }
 	    }
 	    if (key == "aeubox" && faction == "allies") { 
-	      if (do_replacement_points_exist_for_unit(paths_self.game.spaces[key].units[z])) {
+	      if (paths_self.doReplacementPointsExistForUnit(paths_self.game.spaces[key].units[z])) {
 	        can_uneliminate_unit = true;
 	        can_uneliminate_unit_array.push({ key : key , idx : z , name : paths_self.game.spaces[key].units[z].name });
 	      }
 	    }
 	    if (key == "crbox" && faction == "central") { 
-	      if (do_replacement_points_exist_for_unit(paths_self.game.spaces[key].units[z])) {
+	      if (paths_self.doReplacementPointsExistForUnit(paths_self.game.spaces[key].units[z])) {
 	        can_deploy_unit_in_reserves = true;
 	        can_deploy_unit_in_reserves_array.push({ key : key , idx : z , name : paths_self.game.spaces[key].units[z].name });
 	        if (paths_self.game.spaces[key].units[z].damaged) {
@@ -14016,13 +13965,13 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	      }
 	    }
 	    if (key == "ceubox" && faction == "central") { 
-	      if (do_replacement_points_exist_for_unit(paths_self.game.spaces[key].units[z])) {
+	      if (paths_self.doReplacementPointsExistForUnit(paths_self.game.spaces[key].units[z])) {
 	        can_uneliminate_unit = true;
 	        can_uneliminate_unit_array.push({ key : key , idx : z , name : paths_self.game.spaces[key].units[z].name });
 	      }
 	    }
 	    if (key != "ceubox" && key != "crbox" && key != "arbox" && key != "aeubox" && faction == "central") {
-	      if (do_replacement_points_exist_for_unit(paths_self.game.spaces[key].units[z])) {
+	      if (paths_self.doReplacementPointsExistForUnit(paths_self.game.spaces[key].units[z])) {
 	        if (paths_self.game.spaces[key].units[z].damaged && paths_self.returnPowerOfUnit(paths_self.game.spaces[key].units[z]) == "central") {
 		  can_repair_unit_on_board = true;
 	          can_repair_unit_on_board_array.push({ key : key , idx : z , name : paths_self.game.spaces[key].units[z].name });
@@ -14030,7 +13979,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	      }
 	    }
 	    if (key != "ceubox" && key != "crbox" && key != "arbox" && key != "aeubox" && faction == "allies") {
-	      if (do_replacement_points_exist_for_unit(paths_self.game.spaces[key].units[z])) {
+	      if (paths_self.doReplacementPointsExistForUnit(paths_self.game.spaces[key].units[z])) {
 	        if (paths_self.game.spaces[key].units[z].damaged && paths_self.returnPowerOfUnit(paths_self.game.spaces[key].units[z]) == "allies") {
 		  can_repair_unit_on_board = true;
 	          can_repair_unit_on_board_array.push({ key : key , idx : z , name : paths_self.game.spaces[key].units[z].name });
@@ -14058,6 +14007,13 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	this.game.state.replacements.can_deploy_unit_in_reserves = can_deploy_unit_in_reserves;
 	this.game.state.replacements.can_deploy_unit_in_reserves_array = can_deploy_unit_in_reserves_array;
 
+console.log("###");
+console.log("###");
+console.log("###");
+console.log("### options: " + JSON.stringify(options));
+console.log("###");
+console.log("###");
+
 	if (options.length > 1) { return 1; }
 
 	return 0;
@@ -14066,6 +14022,11 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 
     if (continue_fnct()) {
       paths_self.replacements_overlay.render();
+    } else {
+      console.log("WE DO NOT CONTINUE 3!");      
+      paths_self.replacements_overlay.hide();
+      paths_self.endTurn();
+      return 1;
     }
 
     return 1;
@@ -16350,6 +16311,30 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 
   }
 
+
+  removeUnit(sourcekey, unitkey) {
+       
+    for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
+      if (this.game.spaces[spacekey].units[z].key === unitkey) {
+
+        this.game.spaces[spacekey].units.splice(z, 1);
+        z = this.game.spaces[spacekey].units.length + 2;
+                     
+        if (this.game.state.combat.attacker) {
+          for (let zz = 0; zz < this.game.state.combat.attacker.length; zz++) {
+            if (this.game.state.combat.attacker[zz].unit_sourcekey == spacekey) {
+              if (z < this.game.state.combat.attacker[zz].unit_idx) {
+                this.game.state.combat.attacker[zz].unit_idx--;
+              }
+            }
+          }
+        }
+
+      }
+    }
+
+  }
+
   moveUnit(sourcekey, sourceidx, destinationkey) {
 
 console.log("MOVE UNIT: ");
@@ -16489,6 +16474,76 @@ console.log("source units pst: " + this.game.spaces[sourcekey].units.length);
       }
     }
   }
+
+
+  //
+  // 1. flip damaged units on the board
+  // 2. flip damaged units in the RB
+  // 3. return eliminated units to RB
+  //
+  doReplacementPointsExistForUnit(unit=null) {
+
+    if (!unit) { return 0; }
+
+    let faction = this.returnFactionOfUnit(unit);
+    let rp = this.game.state.rp[faction];
+
+    //
+    // 17.1.3 - Belgian and Serbian Army units can be recreated only if they may
+    // legally be placed on the map [see 17.1.5] Belgian and Serbian corps can still
+    // be rebuilt in the Reserve Box, even if their countries are completely controlled
+    // by the enemy.
+    //
+    if (unit.ckey === "BE") {
+      let ptp = false; // place to place
+      if (this.game.spaces["antwerp"].control == "allies") { ptp = true; }
+      if (this.game.spaces["brussels"].control == "allies") { ptp = true; }
+      if (this.game.spaces["ostend"].control == "allies") { ptp = true; }
+      if (this.game.spaces["liege"].control == "allies") { ptp = true; }
+      if (ptp) {
+        if (rp["A"] > 0 || rp["BE"] > 0) { return 1; }
+      }
+    }
+    if (unit.ckey === "SB") {
+      let ptp = false; // place to place
+      if (this.game.spaces["belgrade"].control == "allies") { ptp = true; }
+      if (this.game.spaces["valjevo"].control == "allies") { ptp = true; }
+      if (this.game.spaces["nis"].control == "allies") { ptp = true; }
+      if (this.game.spaces["skopje"].control == "allies") { ptp = true; }
+      if (this.game.spaces["monastir"].control == "allies") { ptp = true; }
+      if (ptp) {
+        if (rp["A"] > 0 || rp["SB"] > 0) { return 1; }
+      }
+    }
+
+    //
+    // cannot spend replacement points if capital is besieged
+    //
+    let capitals = this.returnCapital(unit.ckey);
+    let is_capital_besieged = false;
+    for (let z = 0; z < capitals.length; z++) {
+      let c = this.game.spaces[capitals[z]];
+      let p = this.returnPowerOfUnit(unit);
+      if (c.control != p) { is_capital_besieged = true; }
+      if (c.units.length > 0) {
+        if (this.returnPowerOfUnit(c.units[0]) != p) {
+          is_capital_besieged = true;
+        }
+      }
+      if ((z+1) < capitals.length) { is_capital_besieged = false; }
+    }
+
+    if (is_capital_besieged == true) { return 0; }
+    if (rp[unit.ckey] > 0) { return 1; }
+    if (rp["A"] > 0) {
+      if (unit.ckey == "ANA" || unit.ckey == "AUS" || unit.ckey == "BE" || unit.ckey == "CND" || unit.ckey == "MN" || unit.ckey == "PT" || unit.ckey == "RO" || unit.ckey == "GR" || unit.ckey == "SB") {
+        return 1;
+      }
+    }
+    return 0;
+  }
+
+
 
 
 

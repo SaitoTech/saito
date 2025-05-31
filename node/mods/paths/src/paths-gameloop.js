@@ -35,11 +35,6 @@ console.log("MOVE: " + mv[0]);
 console.log("##################");
 console.log("##################");
 console.log("##################");
-console.log("##################");
-console.log("##################");
-console.log("##################");
-console.log("##################");
-console.log("##################");
 console.log("====HANDS====");
 console.log(JSON.stringify(this.game.deck[0].hand));
 console.log(JSON.stringify(this.game.deck[1].hand));
@@ -422,6 +417,8 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 
  	if (mv[0] == "siege_phase") {
 
+	  let roll = 0;
+
 	  for (let key in this.game.spaces) {
 	    let space = this.game.spaces[key];
 	    if (space.besieged == true) {
@@ -429,11 +426,7 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 		if (space.units.length > 0) {
 		  if (this.returnPowerOfUnit(space.units[0]) != space.control) {
 
-		    let roll = this.rollDice(6);
-
-	  	    this.updateLog("#############");
-	  	    this.updateLog("### Seige ###");
-	  	    this.updateLog("#############");
+		    roll = this.rollDice(6);
 
 		    if (this.game.state.turn < 2) { roll -= 2; }
 		    if (roll > space.fort) {
@@ -462,6 +455,13 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 		}
 	      }
 	    }
+	  }
+
+
+	  if (roll != 0) {
+   	    this.updateLog("#############");
+	    this.updateLog("### Seige ###");
+	    this.updateLog("#############");
 	  }
 
           this.game.queue.splice(qe, 1);
@@ -1017,6 +1017,8 @@ try {
 	  this.game.spaces[source].units.splice(unit_idx, 1);
 	  this.game.spaces[destination].units.push(unit);
 
+	  this.updateLog(this.returnFactionName(faction) + " plays " + this.popup(card));
+
 	  this.updateLog(unit.name + " redeploys to " + this.returnSpaceNameForLog(destination));
 
 	  this.displaySpace(source);
@@ -1217,7 +1219,6 @@ try {
 	  // mandated offensive tracking
 	  //
 	  let au = this.returnAttackerUnits();
-console.log("MO AU: " + JSON.stringify(au));
 	  if (this.game.state.combat.attacking_faction == "central") {
 	    if (this.game.state.mandated_offensives.allies === "AH IT") {
 
@@ -1720,7 +1721,6 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  // Wireless Intercepts
 	  //
 	  if (this.game.state.events.wireless_intercepts == 1) { this.game.state.combat.flank_attack = "attacker"; }
-
 
 	  if (this.game.state.combat.flank_attack == "attacker") {
 	    this.game.queue.push(`combat_assign_hits\tattacker`);
@@ -2643,6 +2643,8 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  let faction = mv[1];
 	  let card = mv[2];
 	  let opsnum = parseInt(mv[3]);
+
+	  this.updateLog(this.returnFactionName(faction) + " plays " + this.popup(card));
 
 	  this.game.queue.splice(qe, 1);
 
