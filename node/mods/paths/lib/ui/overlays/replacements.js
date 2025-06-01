@@ -196,6 +196,9 @@ class ReplacementsOverlay {
 							if (paths_self.game.spaces[spacekey].control == faction) {
 								if (paths_self.checkSupplyStatus(unit.ckey.toLowerCase(), spacekey) == 1) {
 									if (paths_self.game.spaces[spacekey].units.length < 3) {
+
+
+
 										return 1;
 									}
 								}

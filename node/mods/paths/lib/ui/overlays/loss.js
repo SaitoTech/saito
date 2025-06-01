@@ -577,7 +577,16 @@ if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
 //
 						this.moves.push(`add\t${unit.spacekey}\t${corpskey}\t${this.mod.game.player}\tattacked`);
 						this.moves.push(`remove\t${corpsbox}\t${corpskey}\t${this.mod.game.player}`);
-						this.removeUnit(corpsbox, corpskey);
+console.log("*");
+console.log("*");
+console.log("*");
+console.log("*");
+console.log("*");
+console.log("*");
+console.log("* remove: " + corpskey + " from " + corpsbox);
+console.log("*");
+
+						this.mod.removeUnit(corpsbox, corpskey);
 						let html = `<div class="loss-overlay-unit" data-spacekey="${corpsunit.spacekey}" data-key="${corpskey}" data-damaged="0" id="${this.units.length - 1}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(this.units[this.units.length - 1], false, true)}</div>`;
 						this.app.browser.addElementToSelector(html, my_qs);
 }

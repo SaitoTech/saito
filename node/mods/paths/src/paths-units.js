@@ -60,10 +60,14 @@
   }
 
 
-  removeUnit(sourcekey, unitkey) {
+  removeUnit(spacekey, unitkey) {
+
+console.log("PRE: " + this.game.spaces[spacekey].units.length);
        
     for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
       if (this.game.spaces[spacekey].units[z].key === unitkey) {
+
+console.log("removing : " + unitkey + " from " + spacekey);
 
         this.game.spaces[spacekey].units.splice(z, 1);
         z = this.game.spaces[spacekey].units.length + 2;
@@ -80,6 +84,9 @@
 
       }
     }
+
+
+console.log("POST: " + this.game.spaces[spacekey].units.length);
 
   }
 

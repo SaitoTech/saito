@@ -1187,8 +1187,17 @@ try {
 	  let selected = JSON.parse(mv[2]);
 
 	  this.game.state.combat = {};
+	  this.game.state.combat.step = this.game.step.game; // uuid for the combat
 	  this.game.state.combat.key = key;
 	  this.game.state.combat.attacker = selected;
+	  this.game.state.combat.attacker_power = "central";
+	  this.game.state.combat.defender_power = "allies";
+	  if (this.game.spaces[this.game.state.combat.key].control == "central") {
+	    this.game.state.combat.defender_power = "central";
+	    this.game.state.combat.attacker_power = "allies";
+	  }
+	  this.game.state.combat.attacker_cp = this.returnAttackerCombatPower();
+	  this.game.state.combat.defender_cp = this.returnDefenderCombatPower();
 	  this.game.state.combat.attacking_faction = this.returnPowerOfUnit(this.game.spaces[selected[0].unit_sourcekey].units[0]);
 	  if (this.game.state.combat.attacking_faction == "central") { this.game.state.combat.defending_faction = "allies"; } else { this.game.state.combat.defending_faction = "central"; }
 	  this.game.state.combat.attacker_drm = 0;
@@ -1545,7 +1554,7 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  //
 	  if (this.game.state.events.withdrawal && faction == "attacker") {
 	    //
-	    // the defender can now only restore corps that stil
+	    // the defender can now only restore corps that still exist
             //
             for (let z = 0; z < this.game.spaces[this.game.state.combat.key].units.length; z++) {
               let u = this.game.spaces[this.game.state.combat.key].units[z];
@@ -1577,15 +1586,58 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 
           this.game.state.combat.attacker_strength = attacker_strength;
           this.game.state.combat.defender_strength = defender_strength;
+          this.game.state.combat.attacker_cp = attacker_strength;
+          this.game.state.combat.defender_cp = defender_strength;
 
 	  if (faction == "attacker") {
-            this.game.state.combat.attacker_loss_factor = this.returnAttackerLossFactor();
+            this.game.state.combat.defender_loss_factor = this.returnDefenderLossFactor();
+            try { 
+              let qs1 = `.combat_${this.game.state.combat.step}.attacker_loss_factor`;
+              let qs2 = `.combat_${this.game.state.combat.step}.defender_cp`;
+              this.game.state.combat.attacker_loss_factor = this.returnAttackerLossFactor();
+              this.game.state.combat.defender_cp = this.returnDefenderCombatPower();
+              document.querySelectorAll(qs1).forEach((el) => { 
+		setTimeout(() => { el.innerHTML = this.returnAttackerLossFactor(); }, 500);
+	      });
+              document.querySelectorAll(qs2).forEach((el) => { 
+		setTimeout(() => { el.innerHTML = this.returnDefenderCombatPower(); }, 500);
+	      });
+console.log("#");
+console.log("#");
+console.log("#");
+console.log("#");
+console.log("#");
+console.log(qs1 + " / " + qs2);
+            } catch (err) {
+console.log("error updated attacker loss factor: " + JSON.stringify(err));
+            }
           }
 
 	  if (faction == "defender") {
-	    this.game.state.combat.defender_loss_factor = this.returnDefenderLossFactor();
+	    this.game.state.combat.attacker_loss_factor = this.returnAttackerLossFactor();
+            try { 
+              let qs1 = `combat_${this.game.state.combat.step}.defender_loss_factor`;
+              let qs2 = `combat_${this.game.state.combat.step}.attacker_cp`;
+              this.game.state.combat.defender_loss_factor = this.returnDefenderLossFactor();
+              this.game.state.combat.attacker_cp = this.returnAttackerCombatPower();
+              document.querySelectorAll(qs1).forEach((el) => {
+	        setTimeout(() => { el.innerHTML = this.returnDefenderLossFactor(); }, 500);
+	      });
+              document.querySelectorAll(qs2).forEach((el) => {
+	        setTimeout(() => { el.innerHTML = this.returnAttackerCombatPower(); }, 500);
+	      });
+console.log("#");
+console.log("#");
+console.log("#");
+console.log("#");
+console.log("#");
+console.log(qs1 + " / " + qs2);
+            } catch (err) {
+console.log("error updated attacker loss factor: " + JSON.stringify(err));
+            }
 	  }
 
+	  this.game.state.combat.winner = "none";
           if (this.game.state.combat.attacker_loss_factor > this.game.state.combat.defender_loss_factor) {
             this.game.state.combat.winner = "defender";
           }
@@ -1612,8 +1664,6 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  let defender_modified_roll = 0;
 	  let attacker_power = "allies";
 	  let defender_power = "central";
-	  let attacker_combat_power = 0;
-	  let defender_combat_power = 0;
 
 	  let attacker_table = "corps";
 	  let defender_table = "corps";
@@ -1679,17 +1729,6 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  attacker_modified_roll = attacker_roll + attacker_drm;
 	  defender_modified_roll = defender_roll + defender_drm;
 
-	  if (attacker_drm > 0) {
-	    this.updateLog(`Attacker rolls: ${attacker_roll} [+${attacker_drm}]`);
-	  } else {
-	    this.updateLog(`Attacker rolls: ${attacker_roll}`);
-	  }	  
-	  if (defender_drm > 0) {
-	    this.updateLog(`Defender rolls: ${defender_roll} [+${defender_drm}]`);
-	  } else {
-	    this.updateLog(`Defender rolls: ${defender_roll}`);
-	  }	  
-
 	  if (attacker_modified_roll > 6) { attacker_modified_roll = 6; }
 	  if (defender_modified_roll > 6) { defender_modified_roll = 6; }
 	  if (attacker_modified_roll < 1) { attacker_modified_roll = 1; }
@@ -1697,10 +1736,8 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 
 	  this.game.state.combat.attacker_table = attacker_table;
 	  this.game.state.combat.defender_table = defender_table;
-	  this.game.state.combat.attacker_power = attacker_power;
-	  this.game.state.combat.defender_power = defender_power;
-	  //this.game.state.combat.attacker_drm = attacker_drm;
-	  //this.game.state.combat.defender_drm = defender_drm;
+	  this.game.state.combat.attacker_drm = attacker_drm;
+	  this.game.state.combat.defender_drm = defender_drm;
 	  this.game.state.combat.attacker_roll = attacker_roll;
 	  this.game.state.combat.defender_roll = defender_roll;
 	  this.game.state.combat.attacker_column_shift = attacker_column_shift;
@@ -1717,6 +1754,7 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	    this.game.state.combat.winner = "attacker";
 	  }
 
+
 	  //
 	  // Wireless Intercepts
 	  //
@@ -1725,11 +1763,15 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  if (this.game.state.combat.flank_attack == "attacker") {
 	    this.game.queue.push(`combat_assign_hits\tattacker`);
 	    this.game.queue.push(`combat_recalculate_loss_factor\tattacker`);
+	    this.game.state.combat.attacker_loss_factor = "?";
+	    this.game.state.combat.defender_cp = "?";
 	    this.game.queue.push(`combat_assign_hits\tdefender`);
 	  }
 	  if (this.game.state.combat.flank_attack == "defender") {
 	    this.game.queue.push(`combat_assign_hits\tdefender`);
 	    this.game.queue.push(`combat_recalculate_loss_factor\tdefender`);
+	    this.game.state.combat.defender_loss_factor = "?";
+	    this.game.state.combat.attacker_cp = "?";
 	    this.game.queue.push(`combat_assign_hits\tattacker`);
 	  }
 	  //
@@ -1738,10 +1780,29 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  if (!this.game.state.combat.flank_attack) {
 	    this.game.queue.push(`combat_assign_hits\tattacker`);
 	    this.game.queue.push(`combat_assign_hits\tdefender`);
+
 	  }
 
-	  this.game.queue.splice(qe, 1);
+	  if (attacker_drm > 0) {
+	    this.updateLog(`Attacker <span class="combat_${this.game.state.combat.step} attacker_cp">${this.game.state.combat.attacker_cp}</span>: <span class="combat_${this.game.state.combat.step} attacker_roll">${this.game.state.combat.attacker_roll}</span> [+<span class="combat_${this.game.state.combat.step} attacker_drm">${this.game.state.combat.attacker_drm}</span>] ==> <span class="combat_${this.game.state.combat.step} defender_loss_factor">${this.game.state.combat.defender_loss_factor}</span> hits`);
+	  } else {
+	    this.updateLog(`Attacker <span class="combat_${this.game.state.combat.step} attacker_cp">${this.game.state.combat.attacker_cp}</span>: <span class="combat_${this.game.state.combat.step} attacker_roll">${this.game.state.combat.attacker_roll}</span> ==> <span class="combat_${this.game.state.combat.step} defender_loss_factor">${this.game.state.combat.defender_loss_factor}</span> hits`);
+	  }	  
+	  if (this.game.state.combat.defender_drm > 0) {
+	    this.updateLog(`Defender <span class="combat_${this.game.state.combat.step} defender_cp">${this.game.state.combat.defender_cp}</span>: <span class="combat_${this.game.state.combat.step} defender_roll">${this.game.state.combat.defender_roll}</span> [+<span class="combat_${this.game.state.combat.step} defender_drm">${this.game.state.combat.defender_drm}</span>] ==> <span class="combat_${this.game.state.combat.step} attacker_loss_factor">${this.game.state.combat.attacker_loss_factor}</span> hits`);
+	  } else {
+	    this.updateLog(`Defender <span class="combat_${this.game.state.combat.step} defender_cp">${this.game.state.combat.defender_cp}</span>: <span class="combat_${this.game.state.combat.step} defender_roll">${this.game.state.combat.defender_roll}</span> ==> <span class="combat_${this.game.state.combat.step} attacker_loss_factor">${this.game.state.combat.attacker_loss_factor}</span> hits`);
+	  }
+  
+          let xhtml = `!!! Combat in ${this.returnSpaceNameForLog(this.game.state.combat.key)} !!!`;
+	  let yhtml = ``;
+	  for (let z = 0; z < new DOMParser().parseFromString(xhtml, 'text/html').body.textContent.length; z++) { yhtml += "!"; }
+	  this.updateLog(yhtml);
+	  this.updateLog(xhtml);
+	  this.updateLog(yhtml);
 
+
+	  this.game.queue.splice(qe, 1);
 	  return 1;
 
 	}
@@ -1766,23 +1827,36 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  }
 
 console.log("Attacker is: " + this.game.state.combat.attacker_power);
-console.log("Defender is: " + this.game.state.combat.attacker_power);
+console.log("Defender is: " + this.game.state.combat.defender_power);
 
 
 	  if (power == "attacker") { 
 	    player = this.returnPlayerOfFaction(this.game.state.combat.attacker_power);
 	    loss_factor = this.game.state.combat.attacker_loss_factor;
+console.log("h1 ere we are...");
 	  }
 	  if (power == "defender") {
 	    player = this.returnPlayerOfFaction(this.game.state.combat.defender_power);
 	    loss_factor = this.game.state.combat.defender_loss_factor;
+console.log("h2 ere we are...");
 	  }
 
-console.log("player: " + this.game.player + " === " + player);
+console.log("player: " + this.game.player + " === " + player + " //// " + power);
 
 	  if (this.game.player === player) {
+
 	    this.combat_overlay.hide();
+  
+    	    let html = `<ul>`;
+	    html    += `<li class="card" id="advance">show overlay</li>`;
+	    html    += `</ul>`;
+
+	    this.updateStatusWithOptions(`Assign Losses...`, html);
+	    this.attachCardboxEvents((action) => {
+	      this.loss_overlay.render(power);
+	    });
 	    this.loss_overlay.render(power);
+
 	  } else {
 	    this.combat_overlay.hide();
 	    this.loss_overlay.render(power);
@@ -2246,8 +2320,10 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  if (mv[3]) { player_to_ignore = parseInt(mv[3]); }
 
 	  if (player_to_ignore != this.game.player) {
+
 	    for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
 	      if (this.game.spaces[spacekey].units[z].key === unitkey) {
+
 		this.game.spaces[spacekey].units.splice(z, 1);
 		z = this.game.spaces[spacekey].units.length + 2;
 
@@ -2342,13 +2418,14 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
           }
 
 	  let roll = this.rollDice(6);
-	  this.updateLog("roll: " + roll + " (+"+drm_modifiers+")"); 
 
 	  if ((roll+drm_modifiers) > 3) {
 	    try { salert("Flank Attack Succeeds!"); } catch (err) {}
+	    this.updateLog("Flank Attack succeeds: " + roll + " (+"+drm_modifiers+")"); 
 	    this.game.state.combat.flank_attack = "attacker"; 
 	  } else {
 	    try { salert("Flank Attack Fails!"); } catch (err) {}
+	    this.updateLog("Flank Attack fails: " + roll + " (+"+drm_modifiers+")"); 
 	    this.game.state.combat.flank_attack = "defender"; 
 	  }
 
