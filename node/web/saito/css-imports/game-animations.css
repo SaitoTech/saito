@@ -10,12 +10,26 @@
   animation: flash2 1s 1 forwards;
 }
 
+.flash3 {
+  animation: flash_sawtooth 1.2s infinite;
+}
+
 @keyframes flash2 {
    0%, 50%, 100% {
       opacity: 0;
    }
    30%, 80% { 
       opacity: 1;
+   }
+}
+
+
+@keyframes flash_sawtooth {
+   0%, 10%, 90% {
+      opacity: 1;
+   }
+   40%, 60% { 
+      opacity: 0;
    }
 }
 
