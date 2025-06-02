@@ -59,10 +59,10 @@ class FortificationOverlay {
 		  document.querySelector(".fortification-submit-button").innerHTML = "Confirm and Join Battle";
 		}
 
-		this.attachEvents(obj);
+		this.attachEvents(mobj);
 	}
 
-	attachEvents(obj) {}
+	attachEvents(mobj) {}
 }
 
 module.exports = FortificationOverlay;
