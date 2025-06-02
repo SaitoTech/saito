@@ -49,12 +49,12 @@ class Pot {
 
 			let chip = pot === 1 ? "CHIP" : "CHIPS";
 
-			if (this.ticker === 'CHIPS') {
-				l2.innerHTML = this.game_mod.convertChipsToCrypto(pot, true);
-				l3.innerHTML = chip;
-			}else{
+			if (typeof this.game_mod.game.stake === "string") {
 				l2.innerHTML = `${pot} <span class="smaller-font">${chip}</span>`;
 				l3.innerHTML = `${this.game_mod.convertChipsToCrypto(pot, true)} <span class="smaller-font">${this.ticker}</span>`
+			}else{
+				l2.innerHTML = this.game_mod.convertChipsToCrypto(pot, true);
+				l3.innerHTML = chip;
 			}
 		} catch (err) {
 			console.error(err);

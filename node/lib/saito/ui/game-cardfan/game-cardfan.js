@@ -10,148 +10,147 @@ const GameCardfanTemplate = require('./game-cardfan.template');
  *
  */
 class GameCardfan {
-	/**
-	 * @constructor stores a reference to the Saito app
-	 * @param app - the Saito application
-	 * @param mod - the game module
-	 */
-	constructor(app, mod) {
-		this.app = app;
-		this.game_mod = mod;
-		this.container = '';
-		this.el = null;
-	}
+  /**
+   * @constructor stores a reference to the Saito app
+   * @param app - the Saito application
+   * @param mod - the game module
+   */
+  constructor(app, mod) {
+    this.app = app;
+    this.game_mod = mod;
+    this.container = '';
+    this.el = null;
+  }
 
-	/**
-	 * Adds a cardfan div to the DOM if it does not already exist and populates it with the
-	 * provided card html. If no card html is provided, card fan queries the hand in deck one
-	 * and creates an html template assuming card images are in the directory specified in mod.card_img_dir
-	 * and appropriately named (when creating the deck)
-	 */
-	render(cards_html = '') {
-		if (!this.game_mod.gameBrowserActive()) {
-			return;
-		}
-		if (!this.game_mod.game.player){
-			return;
-		}
+  /**
+   * Adds a cardfan div to the DOM if it does not already exist and populates it with the
+   * provided card html. If no card html is provided, card fan queries the hand in deck one
+   * and creates an html template assuming card images are in the directory specified in mod.card_img_dir
+   * and appropriately named (when creating the deck)
+   */
+  render(cards_html = '') {
+    if (!this.game_mod.gameBrowserActive()) {
+      return;
+    }
+    if (!this.game_mod.game.player) {
+      return;
+    }
 
-		try {
-			if (!document.getElementById('cardfan')) {
-				if (this.container) {
-					this.app.browser.addElementToSelector(GameCardfanTemplate(), this.container);
-				} else {
-					this.app.browser.addElementToDom(GameCardfanTemplate());
-				}
-				this.attachEvents();
-			}
+    try {
+      if (!document.getElementById('cardfan')) {
+        if (this.container) {
+          this.app.browser.addElementToSelector(GameCardfanTemplate(), this.container);
+        } else {
+          this.app.browser.addElementToDom(GameCardfanTemplate());
+        }
+        this.attachEvents();
+      }
 
-			this.el = document.getElementById('cardfan');
+      this.el = document.getElementById('cardfan');
 
-			if (cards_html === '') {
-				let { cards, hand } = this.game_mod.game.deck[0];
+      if (cards_html === '') {
+        let { cards, hand } = this.game_mod.game.deck[0];
 
-				let cards_in_hand = hand.map((key) => cards[key]);
-				cards_html = cards_in_hand
-					.map((card) => `<img class="card" src="${this.game_mod.card_img_dir}/${card.name}">`)
-					.join('');
-			}
+        let cards_in_hand = hand.map((key) => cards[key]);
+        cards_html = cards_in_hand
+          .map((card) => `<img class="card" src="${this.game_mod.card_img_dir}/${card.name}">`)
+          .join('');
+      }
 
-			if (cards_html) {
-				this.el.innerHTML = cards_html;
-			}
-			
-			this.el.style.display = 'block';
-		} catch (err) {}
-	}
+      if (cards_html) {
+        this.el.innerHTML = cards_html;
+      }
 
-	/**
-	 * Makes the cardFan draggable
-	 */
-	attachEvents() {
-		//if (!this.container) {
-			this.app.browser.makeDraggable('cardfan');
-		//}
-	}
+      this.el.style.display = 'block';
+    } catch (err) {}
+  }
 
-	//** Show the card fan */
-	show() {
-		try {
-			if (this.el){
-				this.el.style.display = 'block';
-			}
-		} catch (err) {
-			console.error(err);
-		}
-	}
+  /**
+   * Makes the cardFan draggable
+   */
+  attachEvents() {
+    //if (!this.container) {
+    this.app.browser.makeDraggable('cardfan');
+    //}
+  }
 
-	//** Hide the card fan */
-	hide() {
-		try {
-			if (this.el){
-				this.el.style.display = 'none';	
-			}
-		} catch (err) {
-			console.error(err);
-		}
-	}
+  //** Show the card fan */
+  show() {
+    try {
+      if (this.el) {
+        this.el.style.display = 'block';
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
-	/**
-	 * Sets a class name for the cardFan to facilitate customization of display
-	 * @param classname {string} - the class name
-	 */
-	addClass(classname) {
-		try {
-			if (this.el && !this.el.classList.contains(classname)) {
-				this.el.classList.add(classname);
-			}
-		} catch (err) {
-			console.error(err);
-		}
-	}
+  //** Hide the card fan */
+  hide() {
+    try {
+      if (this.el) {
+        this.el.style.display = 'none';
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
-	/**
-	 * Removes a class name for the cardFan to facilitate customization of display
-	 * @param classname {string} - the class name
-	 */
-	removeClass(classname) {
-		try {
-			if (this.el && this.el.classList.contains(classname)) {
-				this.el.classList.remove(classname);
-			}
-		} catch (err) {
-			console.error(err);
-		}
-	}
+  /**
+   * Sets a class name for the cardFan to facilitate customization of display
+   * @param classname {string} - the class name
+   */
+  addClass(classname) {
+    try {
+      if (this.el && !this.el.classList.contains(classname)) {
+        this.el.classList.add(classname);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
-	/**
-	 * Inserts the html for a single card into the start of the fan (left side)
-	 * @param app - the Saito application
-	 * @param mod - the game module
-	 * @param cards_html - html specification of the card to be addedf
-	 */
-	prependCard(cards_html = '') {
-		if (cards_html !== '') {
+  /**
+   * Removes a class name for the cardFan to facilitate customization of display
+   * @param classname {string} - the class name
+   */
+  removeClass(classname) {
+    try {
+      if (this.el && this.el.classList.contains(classname)) {
+        this.el.classList.remove(classname);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
-			if (this.el) {
-				this.el.innerHTML = cards_html + fan.innerHTML;
-			}
-		}
-	}
+  /**
+   * Inserts the html for a single card into the start of the fan (left side)
+   * @param app - the Saito application
+   * @param mod - the game module
+   * @param cards_html - html specification of the card to be addedf
+   */
+  prependCard(cards_html = '') {
+    if (cards_html !== '') {
+      if (this.el) {
+        this.el.innerHTML = cards_html + fan.innerHTML;
+      }
+    }
+  }
 
-	/**
-	 * Inserts the html for a single card into the end of the fan (right side)
-	 * @param app - the Saito application
-	 * @param mod - the game module
-	 * @param cards_html - html specification of the card to be addedf
-	 */
-	addCard(cards_html = '') {
-		if (cards_html !== '') {
-			if (this.el) {
-				this.el.innerHTML += cards_html;
-			}
-		}
-	}
+  /**
+   * Inserts the html for a single card into the end of the fan (right side)
+   * @param app - the Saito application
+   * @param mod - the game module
+   * @param cards_html - html specification of the card to be addedf
+   */
+  addCard(cards_html = '') {
+    if (cards_html !== '') {
+      if (this.el) {
+        this.el.innerHTML += cards_html;
+      }
+    }
+  }
 }
 
 module.exports = GameCardfan;

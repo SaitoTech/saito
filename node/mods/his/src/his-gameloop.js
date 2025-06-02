@@ -4838,6 +4838,11 @@ console.log("----------------------------");
 	  this.updateLog("Interception roll #1: " + d1);
 	  this.updateLog("Interception roll #2: " + d2);
 
+//
+// TEST HACK
+//
+//dsum = 10;
+
 	  if (dsum >= hits_on) {
 
 	    try { salert(`${this.returnFactionName(defender)} Interception Succeeds!`); } catch (err) {}
@@ -4951,7 +4956,6 @@ console.log("----------------------------");
 	  }
 
 
-
 	  let d1 = this.rollDice(6);
 	  let d2 = this.rollDice(6);
 	  let dsum = d1+d2;
@@ -4959,6 +4963,12 @@ console.log("----------------------------");
 
 	  this.updateLog("Interception roll #1: " + d1);
 	  this.updateLog("Interception roll #2: " + d2);
+
+
+//
+// TEST HACK
+//
+//dsum = 10;
 
 	  if (this.game.state.naval_intercept_bonus > 0) {
 	    this.updateLog("Naval Intercept Bonus: " + this.game.state.naval_intercept_bonus);
@@ -4986,8 +4996,11 @@ console.log("----------------------------");
 	    for (let i = this.game.queue.length-1; i >= 0; i--) {
 	      let lqe = this.game.queue[i];
 	      let lmv = lqe.split("\t");
+	      if (lmv[0] == "continue") { index_to_insert_moves = i+1; break; }
+	      if (lmv[0] == "cards_left") { index_to_insert_moves = i+1; break; }
+	      if (lmv[0] == "play") { index_to_insert_moves = i+1; break; }
 	      if (lmv[0] !== "player_evaluate_naval_interception_opportunity") {
-	        index_to_insert_moves = i;
+	        index_to_insert_moves = i+1;
 		break;
 	      } else {
 	        if (lmv[2] != spacekey) {
@@ -5002,6 +5015,9 @@ console.log("----------------------------");
 	        }
 	      }
 	    }
+
+console.log("SPLICE LOCATION: " + this.game.queue[index_to_insert_moves]);
+console.log("QUEUE NOW: " + JSON.stringify(this.game.queue));
 
 
 	    //
@@ -5035,6 +5051,8 @@ console.log("----------------------------");
 	      nb_inserted = true;
 	      his_self.game.queue.splice((index_to_insert_moves+1), 0, "naval_battle\t"+spacekey+"\t"+attacker+"\t"+defender);
 	    }
+
+console.log("POST INSERT: " + JSON.stringify(his_self.game.queue));
 
 	  } else {
 	    try { salert(`${this.returnFactionName(defender)} Naval Interception Fails!`); } catch (err) {}
@@ -5816,13 +5834,8 @@ console.log("----------------------------");
 	    for (let i = qe-1; i > 0; i--) {
 	      lmv = this.game.queue[i].split("\t");
 	      if (lmv[0] === "naval_battle" && lmv[1] == mv[1]) {
-		let id = "";
-		if (mv[4]) { id = mv[4]; }
-		//
-		// only remove if the unit moving in is my controlled/minor power
-		//
-		if (lmv[4]) { 
-		  if (this.returnControllingPower(lmv[4]) == this.returnControllingPower(mv[4])) {
+		if (lmv[3]) { 
+		  if (this.returnControllingPower(lmv[3]) == this.returnControllingPower(mv[3])) {
           	    this.game.queue.splice(qe, 1);
 		    return 1;
 	          }
@@ -6181,12 +6194,13 @@ try {
 	  //
 	  his_self.game.queue.push(`naval_battle_continue\t${mv[1]}`);
 
-	  if (defender_hits > 0) {
+	  // Janissaries can turn 0 hits into several...
+	  //if (defender_hits > 0) {
 	    his_self.game.queue.push("naval_battle_assign_hits\t"+his_self.game.state.naval_battle.attacker_faction);
-	  }
-	  if (attacker_hits > 0) {
+	  //}
+	  //if (attacker_hits > 0) {
 	    his_self.game.queue.push("naval_battle_assign_hits\t"+his_self.game.state.naval_battle.defender_faction);
-	  }
+	  //}
 
 	  let from_whom = his_self.returnArrayOfPlayersInNavalSpacekey(mv[1]);
 
@@ -6670,8 +6684,8 @@ try {
 //
 // TEST / HACK -- control hits / adjust hits here
 //
-//attacker_hits = 4;
-//defender_hits = 4;
+attacker_hits = 1;
+defender_hits = 2;
 
 	  //
 	  // we have now rolled all of the dice that we need to roll at this stage
@@ -7923,7 +7937,7 @@ try {
 console.log("field battle: ");
 console.log("attacker units remaining: " + his_self.game.state.field_battle.attacker_land_units_remaining);
 console.log("defender units remaining: " + his_self.game.state.field_battle.defender_land_units_remaining);
-
+console.log("winner: " + winner);
 
 
 	  //
@@ -8011,8 +8025,8 @@ console.log("defender units remaining: " + his_self.game.state.field_battle.defe
 	    }
 	  }
 	  for (let f in his_self.game.state.field_battle.faction_map) {
-	    if (his_self.game.state.field_battle.faction_map[f] == his_self.game.state.field_battle.attacker_faction) {
-	      if (his_self.returnFactionLandUnitsInSpace(f, space.key) > 0) { do_any_attacker_units_remain = true; break; }
+	    if (his_self.game.state.field_battle.faction_map[f] == his_self.game.state.field_battle.defender_faction) {
+	      if (his_self.returnFactionLandUnitsInSpace(f, space.key) > 0) { do_any_defender_units_remain = true; break; }
 	    }
 	  }
 
@@ -8050,6 +8064,9 @@ console.log("defender units remaining: " + his_self.game.state.field_battle.defe
 	  // depending on who wins, we handle retreats
 	  //
           if (winner === his_self.game.state.field_battle.defender_faction) {
+console.log("#");
+console.log("#");
+console.log("# 1");
 
             //
             // if the space is besieged and the attacker controls it, this was a field battle triggered by the 
@@ -8062,6 +8079,9 @@ console.log("defender units remaining: " + his_self.game.state.field_battle.defe
 	    //
             if (this.isSpaceFriendly(space.key, his_self.game.state.field_battle.attacker_faction) && space.besieged > 0 && his_self.game.state.active_faction == his_self.game.state.field_battle.attacker_faction) {
 
+console.log("#");
+console.log("#");
+console.log("# 2");
 	      //
 	      // either way, relief force should disappear when all is done...
 	      //
@@ -8102,17 +8122,30 @@ console.log("defender units remaining: " + his_self.game.state.field_battle.defe
 	      // attackers lose
 	      //
 	      if (his_self.game.state.field_battle.attacker_hits < his_self.game.state.field_battle.defender_hits) {
+
+console.log("#");
+console.log("#");
+console.log("# 3");
 		//
-		// if they murdered everyone else, no need to retreat...
+		// if they murdered everyone else, no need to retreat, otherwise...
 		//
 	  	if (do_any_defender_units_remain) {
-                  this.game.queue.push("purge_units_and_capture_leaders_if_unbesieged\t"+f+"\t"+his_self.game.state.field_battle.attacker_faction+"\t"+space.key);
+console.log("#");
+console.log("#");
+console.log("# 4");
+	  	  for (let f in his_self.game.state.field_battle.faction_map) {
+	    	    if (his_self.game.state.field_battle.faction_map[f] == his_self.game.state.field_battle.attacker_faction) {
+                      this.game.queue.push("purge_units_and_capture_leaders_if_unbesieged\t"+f+"\t"+his_self.game.state.field_battle.defender_faction+"\t"+space.key);
+		    }
+		  }
                   this.game.queue.push("post_field_battle_player_evaluate_retreat\t"+his_self.game.state.field_battle.attacker_faction+"\t"+space.key);
-		  this.game.queue.push("post_field_battle_player_evaluate_fortification\t"+his_self.game.state.field_battle.defender_faction+"\t"+his_self.returnPlayerOfFaction(his_self.game.state.field_battle.attacker_faction)+"\t"+his_self.game.state.field_battle.attacker_faction+"\t"+space.key+"\trelief_siege");
 	        }
 	      }
 
             } else {
+console.log("#");
+console.log("#");
+console.log("# 5");
 
 	      //
 	      // normal battle not relieve siege, defenders have won, so attacker must retreat to the same space from which 
@@ -8440,9 +8473,10 @@ console.log("defender units remaining: " + his_self.game.state.field_battle.defe
           
           target_faction = this.game.spaces[target_port].political;
           if (target_faction == "") { target_faction = this.game.spaces[target_port].home; }
+	  target_faction = this.returnControllingPower(target_faction);
+
           if (!factions_at_war_with_ottoman.includes(target_faction)) { factions_at_war_with_ottoman.push(target_faction); }
           let opponent_dice = 0;
-
 
 	  let squadron_in_sea_zone = 0;				// 2 dice
 	  let enemy_squadron_in_port_or_sea_zone = 0;		// 1 dice

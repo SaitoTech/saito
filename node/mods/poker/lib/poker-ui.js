@@ -144,7 +144,7 @@ class PokerUI {
 
     let stack_html = stack_html = `<div class="poker-stack-balance">${amount}</div><div class="poker-stack-units">${chips}</div>`;
 
-    if (this.game.crypto && this.game.crypto !== "CHIPS"){
+    if (typeof this.game.stake === "string"){
       // Could add a test for an option to should crypto by default (either globally or just a toggle here)
       stack_html += `<div class="crypto-hover-balance">${credit} <span class="smaller-font">${this.game.crypto}</span></div>`;
     }
@@ -351,7 +351,7 @@ class PokerUI {
           if (max_raise > this_raise) {
             html += `<div class="option raise_option" id="${this_raise + match_required}"><img src="/poker/img/raise_value_icon.svg" alt="raise">`;
             html += poker_self.formatWager(this_raise, false);
-            if (poker_self.game.stake && poker_self.game.crypto !== "CHIPS"){
+            if (typeof poker_self.game.stake == "string"){
               html += `<div class="crypto-hover-raise">${poker_self.convertChipsToCrypto(this_raise)} <span class="smaller-font"> ${poker_self.game.crypto}</span></div>`
             }
             html += "</div>";
@@ -366,7 +366,7 @@ class PokerUI {
         //Always give option for all in
         html += `<div class="option raise_option all-in" id="${max_raise + match_required}"><img src="/poker/img/raise_allin_icon.svg" alt="raise">`;
         html += poker_self.formatWager(max_raise, false);
-        if (poker_self.game.stake && poker_self.game.crypto !== "CHIPS"){
+        if (typeof poker_self.game.stake == "string"){
           html += `<div class="crypto-hover-raise">${poker_self.convertChipsToCrypto(max_raise)} <span class="smaller-font"> ${poker_self.game.crypto}</span></div>`
         }
         html += `</div>`;

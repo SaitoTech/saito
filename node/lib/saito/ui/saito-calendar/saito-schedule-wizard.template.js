@@ -1,14 +1,21 @@
-module.exports  = (app, mod, wizard) => {
+module.exports = (app, mod, wizard) => {
+  let localDateTime;
+  if (wizard.defaultDate) {
+    localDateTime = `${wizard.defaultDate.year}-${String(wizard.defaultDate.month).padStart(2, '0')}-${String(wizard.defaultDate.day).padStart(2, '0')}T12:00`;
+  } else {
+    const now = new Date();
+    localDateTime = now
+      .toLocaleString('sv-SE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+      .replace(' ', 'T');
+  }
 
-    let localDateTime;
-    if (wizard.defaultDate){
-        localDateTime = `${wizard.defaultDate.year}-${String(wizard.defaultDate.month).padStart(2, '0')}-${String(wizard.defaultDate.day).padStart(2, '0')}T12:00`;
-    }else{
-        const now = new Date();
-        localDateTime = now.toLocaleString('sv-SE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(' ', 'T');
-    }
-
-    let html = `
+  let html = `
     <div class="call-schedule-wizard-container">
                 <h4>Schedule a ${wizard.name}</h4>
                 <form id="scheduleForm">
@@ -21,20 +28,19 @@ module.exports  = (app, mod, wizard) => {
                         <option value="45 minutes">45 minutes</option>
                         <option value="60 minutes">1 hour</option>
                     </select>`;
-    if (!wizard?.title){
-        html += ` <label for="title">Title</label>
+  if (!wizard?.title) {
+    html += ` <label for="title">Title</label>
                   <input type="text" name="title" id="title" placeholder="${mod.name}" value="${mod.name}"></input>`;
-    }   
+  }
 
-    if (!wizard?.description){
-        html += `   <label for="description">Description:</label>
+  if (!wizard?.description) {
+    html += `   <label for="description">Description:</label>
                     <textarea id="description" rows="4"></textarea>`;
-    } 
-                    
-        html += `<button type="submit">Add to Calendar</button>
+  }
+
+  html += `<button type="submit">Add to Calendar</button>
                 </form>
             <div>`;
 
-    return html;
-}
-
+  return html;
+};

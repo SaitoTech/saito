@@ -582,6 +582,7 @@ console.log("\n\n\n\n");
 	  // 1532 wars and allies / diplomatic situation
 	  //
 	  this.setEnemies("hapsburg", "ottoman");
+	  this.setEnemies("france", "papacy");
 	  this.setAllies("france", "genoa");
 	  this.setAllies("hapsburg", "hungary");
 	  this.setActivatedPower("hapsburg", "hungary");
@@ -741,8 +742,12 @@ console.log("\n\n\n\n");
 	  this.game.state.already_excommunicated.push("luther-debater");
 
 	  // PROTESTANT
-	  this.addRegular("protestant", "brandenburg");	
-	  this.addRegular("protestant", "wittenberg", 2);
+this.addRegular("protestant", "magdeburg", 2);
+this.controlSpace("protestant", "breslau");
+this.addRegular("protestant", "breslau", 2);
+this.addRegular("protestant", "leipzig", 2);
+	  this.addRegular("protestant", "brandenburg", 4);	
+	  this.addRegular("protestant", "wittenberg", 0);
 	  this.addRegular("protestant", "mainz");	
 	  this.addMercenary("protestant", "mainz", 2);	
 	  this.addRegular("protestant", "augsburg", 2);	
@@ -818,7 +823,9 @@ console.log("\n\n\n\n");
           this.addNavyLeader("genoa", "genoa", "andrea-doria");
           this.addNavalSquadron("genoa", "genoa", 1);
           this.addRegular("genoa", "genoa", 2);
-	
+	  this.addRegular("france", "genoa", 1);
+ 	  this.addRegular("papacy", "florence", 2);	
+
 	  // HUNGARY
 	  this.addRegular("hungary", "prague", 1);
 
@@ -869,6 +876,10 @@ console.log("\n\n\n\n");
 	  //
 //	  this.addRegular("hapsburg", "graz", 4);
 
+this.addNavalSquadron("hapsburg", "gulflyon", 1);
+this.addNavalSquadron("hapsburg", "cagliari", 1);
+this.addNavalSquadron("hapsburg", "tyrrhenian", 1);
+
 	  this.setAllies("england", "scotland");
 	  this.setEnemies("hapsburg", "france");
 	  this.setEnemies("england", "france");
@@ -887,7 +898,8 @@ console.log("\n\n\n\n");
 
 	  this.setAllies("protestant", "england");
 	  this.controlSpace("hapsburg", "trent");
-	  this.setAllies("hapsburg", "venice");
+	  this.setAllies("papacy", "venice");
+	  this.addRegular("papacy", "venice", 2);
 	  this.setEnemies("ottoman", "venice");
 	  this.controlSpace("ottoman", "agram");
 	  this.controlSpace("ottoman", "zara");

@@ -1,8 +1,7 @@
-module.exports  = (app, event) => {
+module.exports = (app, event) => {
+  const formattedStartTime = new Date(event.startTime).toLocaleString();
 
-    const formattedStartTime = new Date(event.startTime).toLocaleString();
-    
-    let html = `
+  let html = `
     <div class="call-schedule-launch-main-container">
      <div class="saito-header-logo-wrapper" id="redsquare-link">
             <img class="saito-header-logo" alt="Logo" src="/saito/img/logo.svg" />
@@ -18,16 +17,16 @@ module.exports  = (app, event) => {
                 </div>
                 `;
 
-    if (new Date(event.startTime).getTime() > Date.now() + 5*60*1000) {
-        html += `<div id="add-to-calendar" class="saito-button-primary">Add Reminder</div>`
-    } else {
-        html += `<div id="enter-call-button" class="saito-button-primary">Join</div>`
-    }
+  if (new Date(event.startTime).getTime() > Date.now() + 5 * 60 * 1000) {
+    html += `<div id="add-to-calendar" class="saito-button-primary">Add Reminder</div>`;
+  } else {
+    html += `<div id="enter-call-button" class="saito-button-primary">Join</div>`;
+  }
 
-    html +=  `</div>
+  html += `</div>
         </div>
     <div>
     `;
 
-    return html;
-}
+  return html;
+};

@@ -1,5 +1,5 @@
 module.exports = () => {
-	return `
+  return `
         <div class="game-help-overlay">
           <div class="game-help-overlay-title"></div>
           <div class="game-help-overlay-text"></div>

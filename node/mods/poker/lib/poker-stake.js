@@ -16,7 +16,7 @@ class PokerStake {
     }
     if (this.game.options.stake) {
       console.log("Analyzing game stake....");
-      if (typeof this.game.options.stake == 'object') {
+      /*if (typeof this.game.options.stake == 'object') {
         let max = 0;
         for (let p in this.game.options.stake){
           console.log(p, this.game.options.stake[p]);
@@ -27,9 +27,9 @@ class PokerStake {
         }
         this.game.stake = max;
         this.game.staking_uneven = true;
-      } else {
+      } else {*/
         this.game.stake = this.game.options.stake;  
-      }
+      //}
     }else{
       this.game.stake = stake;
     }
@@ -62,7 +62,7 @@ class PokerStake {
   }
 
   convertChipsToCrypto(numChips, asString = true) {
-    if (this.returnTicker() == 'CHIPS') {
+    if (this.returnTicker() == 'CHIPS' || typeof this.game.stake == "object") {
       return numChips;
     }
 
@@ -94,7 +94,7 @@ class PokerStake {
       }
     }
 
-    let wager = '<span class="wager-num">' + numChips + '</span>'; //this.convertChipsToCrypto(numChips);
+    let wager = '<span class="wager-num">' + numChips + '</span>'; 
 
     if (includeTicker) {
       wager += ' <span class="wager-ticker">' + chips + '</span>';
@@ -135,6 +135,11 @@ class PokerStake {
   // adds settlement instructions to queue for processing
   //
   settleDebt() {
+    if (typeof this.game.stake == "object"){
+      console.info("Poker-stake: opt out of settleDebt function because asymmetrical betting");
+      return;
+    }
+
     for (let i = 0; i < this.game.state.debt.length; i++) {
       if (this.game.state.debt[i] > 0) {
         for (let j = 0; j < this.game.state.debt.length; j++) {
@@ -209,24 +214,26 @@ class PokerStake {
     html += `<div class="player-table">`;
     for (let i = 0; i < this.game.state.debt.length; i++){
       html += `<div>${this.app.keychain.returnUsername(this.game.players[i])}</div>`;
-      let amount = this.game.stake;
+      let amount = (typeof this.game.stake == "string") ? this.game.stake : this.game.stake[this.game.players[i]];
       let status = "has staked";
 
-      if (this.game.state.debt[i] > 0){
-        add_debt_button = true;
-        status = `owes`;
-        amount = this.convertChipsToCrypto(this.game.state.debt[i]);
-      }else if (this.game.state.debt[i] < 0){
-        status = `is owed`;
-        amount = this.convertChipsToCrypto(-this.game.state.debt[i]);
-      }else{
-        let winnings = this.game.state.player_credit[i] + this.game.state.player_pot[i] - this.game.chips;
-        if (winnings > 0){
-          status = `has won`;
-          amount = this.convertChipsToCrypto(winnings);
-        }else if (winnings  < 0){
-          status = `has lost`;
-          amount = this.convertChipsToCrypto(-winnings);
+      if (this.game.crypto == "CHIPS" || typeof this.game.stake == "string"){
+        if (this.game.state.debt[i] > 0){
+          add_debt_button = true;
+          status = `owes`;
+          amount = this.convertChipsToCrypto(this.game.state.debt[i]);
+        }else if (this.game.state.debt[i] < 0){
+          status = `is owed`;
+          amount = this.convertChipsToCrypto(-this.game.state.debt[i]);
+        }else{
+          let winnings = this.game.state.player_credit[i] + this.game.state.player_pot[i] - this.game.chips;
+          if (winnings > 0){
+            status = `has won`;
+            amount = this.convertChipsToCrypto(winnings);
+          }else if (winnings  < 0){
+            status = `has lost`;
+            amount = this.convertChipsToCrypto(-winnings);
+          }
         }
       }
       html += `<div>${status}</div><div>${amount} ${this.game.crypto}</div>`;
@@ -236,6 +243,10 @@ class PokerStake {
 
     if (add_debt_button){
       html += `<div class="saito-button-primary" id="settle-now">Settle</div>`;
+    }
+
+    if (typeof this.game.stake == "object"){
+      html += "<div>winner take all</div>";
     }
 
     html += "</div>";

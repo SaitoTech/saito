@@ -79,6 +79,21 @@
     }
 
     //
+    // any units from the deactivating power are moved to the nearest fortified
+    // friendly space, or the capital failing that...
+    //
+    // all naval units and naval leaders return to the nearest friendly-controlled
+    // home port of that minor power. If no such port exists, the naval units are
+    // eliminated with naval leaders.
+    //
+    for (let key in this.game.spaces) {
+      if (this.game.spaces[key].home == power) {
+        this.returnAllLandUnitsInSpacekeyToNearestFriendlyFortifiedSpace(key, faction);
+        this.returnAllNavalUnitsInSpacekeyToNearestFriendlyFortifiedPort(key, faction);
+      }
+    }
+
+    //
     // any home spaces help by the major power are returned to its minor ally
     // on the alliance being disabled. this is needed to ensure that Line of 
     // Communications can work properly...

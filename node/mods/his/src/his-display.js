@@ -3102,7 +3102,7 @@ try {
 try {
       let total_vp = factions_and_scores[f].vp;
       let ftile = f + "_vp_tile";
-      obj = document.getElementById(ftile);
+      let obj = document.getElementById(ftile);
       obj.style.left = x[total_vp.toString()].left + "px";
       obj.style.top = x[total_vp.toString()].top + "px";
       obj.style.display = "block";

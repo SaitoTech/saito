@@ -222,7 +222,7 @@
     this.importUnit('be_corps', {
       ckey		:       "BE" ,
       country           :       "Belgium" ,
-      name		:	"BE Corps" ,
+      name		:	"Belgian Corps" ,
       type		:	"corps" ,
       front		:	"be_corps.png" ,
       back		:	"be_corps_back.png" ,
@@ -347,7 +347,7 @@
     this.importUnit('br_corps', {
       ckey		:       "BR" ,
       country           :       "British" ,
-      name		:	"BR Corps" ,
+      name		:	"British Corps" ,
       type		:	"corps" ,
       front		:	"br_corps.png" ,
       back		:	"br_corps_back.png" ,
@@ -365,7 +365,7 @@
     this.importUnit('bu_corps', {
       ckey		:       "BU" ,
       country           :       "Bulgarian" ,
-      name		:	"BU Corps" ,
+      name		:	"Bulgarian Corps" ,
       type		:	"corps" ,
       front		:	"bu_corps.png" ,
       back		:	"bu_corps_back.png" ,
@@ -401,7 +401,7 @@
     this.importUnit('cnd_corps', {
       ckey		:       "CND" ,
       country           :       "Canadian" ,
-      name		:	"CND Corps" ,
+      name		:	"Canadian Corps" ,
       type		:	"corps" ,
       front		:	"cnd_corps.png" ,
       back		:	"cnd_corps_back.png" ,
@@ -419,7 +419,7 @@
     this.importUnit('czl_corps', {
       ckey		:       "CZL" ,
       country           :       "Czech Legion" ,
-      name		:	"CZL Corps" ,
+      name		:	"Czech Corps" ,
       type		:	"corps" ,
       front		:	"czl_army.png" ,
       back		:	"czl_army_back.png" ,
@@ -564,7 +564,7 @@
     this.importUnit('fr_corps', {
       ckey		:       "FR" ,
       country           :       "France" ,
-      name		:	"FR Corps" ,
+      name		:	"French Corps" ,
       type		:	"corps" ,
       front		:	"fr_corps.png" ,
       back		:	"fr_corps_back.png" ,
@@ -793,7 +793,7 @@
     this.importUnit('ge_corps', {
       ckey		:       "GE" ,
       country           :       "Germany" ,
-      name		:	"GE Corps" ,
+      name		:	"German Corps" ,
       type		:	"corps" ,
       front		:	"ge_corps.png" ,
       back		:	"ge_corps_back.png" ,
@@ -810,8 +810,8 @@
     //
     this.importUnit('gr_corps', {
       ckey		:       "GR" ,
-      country           :       "Greek Corps" ,
-      name		:	"GR Corps" ,
+      country           :       "Greece" ,
+      name		:	"Greek Corps" ,
       type		:	"corps" ,
       front		:	"gr_corps.png" ,
       back		:	"gr_corps_back.png" ,
