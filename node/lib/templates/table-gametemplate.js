@@ -236,8 +236,10 @@ class GameTableTemplate extends GameTemplate {
   // Todo: check that there is no remaining debt
   //
   settleGameStake(winners) {
-    if (typeof this.game.stake == "object"){
-      console.debug("GTT [settleGameStake]: use standard end game log for asymmetrical winner-take-all");
+    if (typeof this.game.stake == 'object') {
+      console.debug(
+        'GTT [settleGameStake]: use standard end game log for asymmetrical winner-take-all'
+      );
       super.settleGameStake(winners);
     }
     return;
