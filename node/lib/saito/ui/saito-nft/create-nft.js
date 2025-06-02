@@ -92,7 +92,7 @@ class Nft {
             true
         );
 
-        document.querySelector('#create-nft-deposit').onclick = async (e) => {
+        document.querySelector('#create-nft-amount').onclick = async (e) => {
             let input, num;
             do {
               input = prompt("Number of nfts (enter whole number only)");
@@ -102,7 +102,7 @@ class Nft {
             } while (!/^[+-]?\d+$/.test(input));
 
             let depositAmt = parseInt(input, 10);
-            document.querySelector("#create-nft-deposit").innerHTML = depositAmt;
+            document.querySelector("#create-nft-amount").innerHTML = depositAmt;
         };
 
         document.querySelector('#create-nft-type-dropdown').onchange = async (e) => {
@@ -142,16 +142,18 @@ class Nft {
             let obj = this.createObject();
             console.log("obj: ", obj);
 
-            let deposit = parseFloat(document.querySelector('#create-nft-deposit').innerHTML);
+            // value of nft (nolan)
+            let depositAmt = BigInt(1);
 
-            console.log("deposit: ", deposit);
+            let numNft = parseFloat(document.querySelector('#create-nft-amount').innerHTML);
+            console.log("numNft: ", numNft);
 
-            // convert saito to nolan
-            let depositAmt = BigInt(deposit);
-            let depositAmtSaito = this.app.wallet.convertNolanToSaito(depositAmt);
-            
-            console.log("deposit amt nolan: ", depositAmt);
-            console.log("deposit amt saito: ", depositAmtSaito);
+            //
+            // this value is not either nolan/saito
+            // this represents the number of nft to mint
+            //
+            let numNftAmt = 1;
+            console.log("numNft amt: ", numNftAmt);
 
             let validUtxo = await this.findValidUtxo(depositAmt);
 
@@ -169,7 +171,7 @@ class Nft {
             }
  
             if (Object.keys(validUtxo).length === 0) {
-                let minRequired = this.app.wallet.convertSaitoToNolan(1);
+                let minRequired = this.app.wallet.convertSaitoToNolan(depositAmt);
                 salert(`Not enough valid UTXOs in wallet. Need atleast ${this.app.wallet.convertNolanToSaito(minRequired+depositAmt)} SAITO.`);
                 return;
             }
@@ -188,7 +190,7 @@ class Nft {
             console.log(validUtxo.bid);
             console.log(validUtxo.tid);
             console.log(validUtxo.sid);
-            console.log(nft_self.nft.num);
+            console.log('create-nft numNftAmt:', numNftAmt);
             console.log(depositAmt);
             console.log(change);
             console.log(JSON.stringify(obj));
@@ -200,7 +202,7 @@ class Nft {
                 validUtxo.bid,
                 validUtxo.tid,
                 validUtxo.sid,
-                validUtxo.num,
+                numNftAmt,
                 depositAmt,
                 change,
                 JSON.stringify(obj),

@@ -528,7 +528,7 @@ pub async fn create_bound_transaction(
     bid: u64,
     tid: u64,
     sid: u64,
-    num: u32,
+    num: u64,
     deposit: u64,
     change: u64,
     data: String,
@@ -549,7 +549,7 @@ pub async fn create_bound_transaction(
     info!("Bid: {}", bid);
     info!("Tid: {}", tid);
     info!("Sid: {}", sid);
-    info!("Num: {}", num);
+    info!("saitowasm.rs Num: {}", num);
     info!("Deposit: {}", deposit);
     info!("Change: {}", change);
     info!("Image data JSON: {}", data);
@@ -587,6 +587,7 @@ pub async fn create_bound_transaction(
             bid,
             tid,
             sid,
+            num,
             deposit,
             serialized_data_u32,
             &key,

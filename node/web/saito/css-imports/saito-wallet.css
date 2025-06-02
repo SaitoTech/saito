@@ -720,7 +720,7 @@
 .create-nft-container,
 .send-nft-container {
     display: flex;
-    gap: 2rem;
+    gap: 3rem;
     padding: 2rem;
     background: var(--background-color-main);
     min-width: 60rem;
@@ -733,7 +733,6 @@
 
 .send-nft-container {
   flex-direction: column;
-  gap: 4rem;
 }
 
 
@@ -894,7 +893,17 @@ textarea {
   flex-direction: row;
   text-align: le;
   gap: 2rem;
-}                        
+  width: 60rem;
+  background: var(--background-color-gray-transparent-light);
+  padding: 2rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  overflow: hidden;
+}              
+
+.send-nft-row:hover {
+  background-color: #000;
+}          
 
 .send-nft-row .send-nft-row-item {
   width: 15rem;
@@ -908,7 +917,74 @@ textarea {
 }
 
 .empty-send-nft-row .send-nft-row-item:nth-child(1) {
-  width: 12rem;
+  width: 100%;
+  text-align: left;
+  font-size: 1.8rem;
+}
+
+.send-nft-row-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.send-nft-left-row {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30rem;
+}
+
+.send-nft-right-row {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: fit-content;
+}
+
+.send-nft-id, .send-nft-create-by {
+  white-space: nowrap;      
+  overflow: hidden;         
+  text-overflow: ellipsis;
+  display: inline-block;    
+}
+
+.send-nft-id {
+  width: 48rem;             
+}
+
+.send-nft-create-by {
+  width: 200px;             
+}
+
+.send-nft-details {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.send-nft-deposit {
+  width: fit-content;
+}
+
+.send-nft-row .nft-identicon {
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 0.5em;
+  align-self: center;
+}
+
+.send-nft-list {
+  max-height: 70rem;
+  overflow-y: scroll;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.send-nft-row.nft-selected {
+  background-color: var(--background-color-shim-dark);
+  border: 1px solid;
 }
 
 /*
@@ -992,6 +1068,38 @@ textarea {
 .create-nft-textarea {
   height: 30rem;
   display: none;
+}
+
+#nft-next.disabled {
+    background: none;
+    border: 1px solid var(--saito-primary);
+    cursor: not-allowed;
+}
+
+.page-navigation {
+  align-self: flex-end;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+}
+
+.page-navigation.page2 {
+  font-size: 1.8rem;
+  border-bottom: 1px dashed;
+  width: fit-content;
+  align-self: flex-start;
+  cursor: pointer;
+}
+
+.nft-receiver {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+#page2 {    
+  flex-direction: column;
+  gap: 3rem;
 }
 
 @keyframes spin {

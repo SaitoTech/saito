@@ -690,6 +690,7 @@ impl Wallet {
         nft_uuid_block_id: u64,       // block_id in input slip creating NFT
         nft_uuid_transaction_id: u64, // transaction_id in input slip creating NFT
         nft_uuid_slip_id: u64,        // slip_id in input slip creating NFT
+        nft_num: u64,                 // number of nft to create
         nft_create_deposit_amt: Currency, // AMOUNT to deposit in slip2 (output)
         nft_data: Vec<u32>,           // DATA field to attach to TX
         recipient: &SaitoPublicKey,   // receiver
@@ -698,6 +699,9 @@ impl Wallet {
         genesis_period: u64,
         nft_type: String,
     ) -> Result<Transaction, Error> {
+
+        info!("wallet.rs nft_num:", nft_num);
+
         let mut transaction = Transaction::default();
         transaction.transaction_type = TransactionType::Bound;
 

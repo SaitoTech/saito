@@ -23,7 +23,7 @@ let html = `
 
             <div class="withdraw-info-cont">
               <span class="withdraw-info-title">num of nfts</span> 
-              <div class="withdraw-info-value create-nft-deposit" id="create-nft-deposit">1</div>
+              <div class="withdraw-info-value create-nft-amount" id="create-nft-amount">1</div>
             </div>
 
 

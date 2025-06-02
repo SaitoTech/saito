@@ -1,262 +1,319 @@
-const NftTemplate = require('./send-nft.template');
+const NftTemplate  = require('./send-nft.template');
 const SaitoOverlay = require('./../saito-overlay/saito-overlay');
-const SaitoUser = require('./../saito-user/saito-user');
+const SaitoUser    = require('./../saito-user/saito-user');
 
 class Nft {
+  constructor(app, mod, container = '') {
+    this.app          = app;
+    this.mod          = mod;
+    this.overlay      = new SaitoOverlay(this.app, this.mod);
 
-    constructor(app, mod, container = '') {
-        this.app = app;
-        this.mod = mod;
-        this.overlay = new SaitoOverlay(this.app, this.mod);
+    this.nft_selected = null;
+    this.nft_list     = [];
 
-        this.editing_mode = "image"; // "data" shows textarea
+    this.app.connection.on(
+      'saito-send-nft-render-request',
+      () => { this.render(); }
+    );
+  }
 
-        this.nft = {};
-        this.nft.num     = 1;
-        this.nft.deposit = 0;
-        this.nft.change  = 0;
-        this.nft.fee     = 0;
-        this.nft.slip    = "";
-        this.nft.id      = "";
+  async render() {
+    this.overlay.show(
+      NftTemplate(this.app, this.mod)
+    );
 
-        this.nft.bid     = 0;
-        this.nft.tid     = 0;
-        this.nft.sid     = 0;
-        this.nft.amt     = 0;
-        this.nft.type    = 0;
-        this.nft.image   = "";
+    // Update balance if that element exists
+    let balance_str = await this.mod.getBalanceString();
+    const balEl = document.querySelector(
+      ".slip-info .metric.balance h3 .metric-amount"
+    );
+    if (balEl) {
+      balEl.innerHTML = balance_str;
+    }
 
-        this.callback    = {};
-        this.utxo = [];
-        this.nft_selected = 0;
-        this.nft_list = [];
+    await this.renderNft();
 
-        this.app.connection.on('saito-send-nft-render-request', () => {
-            this.render();
+    setTimeout(() => this.attachEvents(), 0);
+  }
+
+  attachEvents() {
+    const createLink = document.querySelector('#nft-link');
+    if (createLink) {
+      createLink.onclick = (e) => {
+        e.preventDefault();
+        this.overlay.close();
+        this.app.connection.emit(
+          'saito-create-nft-render-request',
+          {}
+        );
+      };
+    }
+
+    const nextBtn      = document.querySelector('#nft-next');
+    const mergeBtn     = document.querySelector('#send-nft-merge');
+    const divideBtn    = document.querySelector('#send-nft-divide');
+    const nextBtnNav   = nextBtn ? nextBtn.parentElement : null;
+    const sendNftTitle = document.querySelector("#send-nft-title");
+
+    if (nextBtn) {
+      nextBtn.classList.add('disabled');
+    }
+    if (mergeBtn) {
+      mergeBtn.style.display = 'none';
+    }
+    if (divideBtn) {
+      divideBtn.style.display = 'none';
+    }
+
+    document.querySelectorAll('.send-nft-row').forEach(row => {
+      row.onclick = (e) => {
+        document.querySelectorAll('.send-nft-row').forEach(r => {
+          r.classList.remove('nft-selected');
+          const rRadio = r.querySelector('input[type="radio"].hidden-nft-radio');
+          if (rRadio) rRadio.checked = false;
         });
+        row.classList.add('nft-selected');
 
-    }
-
-    async render() {
-
-
-        this.overlay.show(NftTemplate(this.app, this.mod, this));
-
-
-        let balance_str = await this.mod.getBalanceString();
-        if (document.querySelector(".slip-info .metric.balance h3 .metric-amount") != null) {
-            document.querySelector(".slip-info .metric.balance h3 .metric-amount").innerHTML = balance_str;
+        const hiddenRadio = row.querySelector('input[type="radio"].hidden-nft-radio');
+        if (hiddenRadio) {
+          hiddenRadio.checked = true;
+          this.nft_selected = parseInt(hiddenRadio.value);
         }
 
-        await this.renderNft();
+        if (mergeBtn)  mergeBtn.style.display = 'inline-block';
+        if (divideBtn) divideBtn.style.display = 'inline-block';
 
-        // makes sure DOM is loaded before attaching events
-        setTimeout(() => this.attachEvents(), 0);
+        if (nextBtn) nextBtn.classList.remove('disabled');
+      };
+    });
+
+    if (nextBtn) {
+      nextBtn.onclick = (e) => {
+        e.preventDefault();
+        if (nextBtn.classList.contains('disabled')) {
+          return;
+        }
+        const page1 = document.querySelector('#page1');
+        const page2 = document.querySelector('#page2');
+        if (page1 && page2) {
+          page1.style.display      = 'none';
+          page2.style.display      = 'flex';
+          nextBtnNav.style.display = 'none';
+          sendNftTitle.innerText   = 'SEND NFT';
+        }
+      };
     }
 
+    const backBtn = document.querySelector('#nft-back');
+    if (backBtn) {
+      backBtn.onclick = (e) => {
+        e.preventDefault();
 
-    attachEvents() {
-       let nft_self = this;
+        const page1 = document.querySelector('#page1');
+        const page2 = document.querySelector('#page2');
+        if (page1 && page2) {
+          page2.style.display      = 'none';
+          page1.style.display      = 'block';
+          nextBtnNav.style.display = 'flex';
+          sendNftTitle.innerText   = 'SELECT NFT';
 
-        if (document.querySelector('#nft-link')) {
-            document.querySelector('#nft-link').onclick = async (e) => {
-                // send nft overlay
-                nft_self.overlay.close();
-                nft_self.app.connection.emit('saito-create-nft-render-request', {});
-            };
+          document.querySelectorAll('.send-nft-row').forEach(r => {
+            r.classList.remove('nft-selected');
+            const rRadio = r.querySelector('input[type="radio"].hidden-nft-radio');
+            if (rRadio) rRadio.checked = false;
+          });
+          this.nft_selected = null;
+
+          if (mergeBtn)  mergeBtn.style.display = 'none';
+          if (divideBtn) divideBtn.style.display = 'none';
+
+          if (nextBtn) {
+            nextBtn.classList.add('disabled');
+          }
         }
-
-
-        if (document.querySelector('.utxo-selection-button')) {
-            document.querySelectorAll('.utxo-selection-button').forEach(function(btn) {
-
-
-
-                btn.onclick = async (e) => {
-
-                    console.log("btn clicked");
-
-                  //   nft_self.nft_selected = e.target.value;
-                  //   let utxo = nft_self.nft_list[parseInt(e.target.value)];
-                  //   console.log("UTXO: " + (utxo));
-                  //   console.log("nft_selected: ", nft_self.nft_selected);
-
-                  // let nft_id = utxo.nft_id;
-                  // let utxokey_bound = utxo.utxokey_bound;
-                  // let utxokey_normal = utxo.utxokey_normal;
-                  // let tx_sig = utxo.tx_sig;
-
-
-                    document.querySelectorAll(".nft-creator").forEach((el) => { el.classList.remove("nft-inactive"); });
-                    document.querySelectorAll(".create-button").forEach((el) => { el.classList.remove("nft-inactive"); });
-
-                };
-            });
-        }
-
-        if (document.querySelector('.create-button #send_nft')) {
-            document.querySelector('.create-button #send_nft').onclick = async (e) => {
-
-                console.log("clicked on send nft");
-                let amt = BigInt(1);
-                let obj = {image: ''};
-                let receiver = document.querySelector("#nfts-receiver").value;
-
-                let nft_item = nft_self.nft_list[nft_self.nft_selected];
-
-                console.log("nft item:", nft_item);
-
-                let slip1UtxoKey = nft_item.slip1.utxo_key;
-                let slip2UtxoKey = nft_item.slip2.utxo_key;
-                let slip3UtxoKey = nft_item.slip3.utxo_key;
-
-                let newtx = await nft_self.app.wallet.createSendBoundTransaction(
-                    amt,
-                    slip1UtxoKey,
-                    slip2UtxoKey,
-                    slip3UtxoKey,
-                    JSON.stringify(obj),
-                    receiver
-                );
-
-                 console.log("createBoundUtxoTransaction:", newtx);
-                 await newtx.sign();
-                 await nft_self.app.network.propagateTransaction(newtx);
-                 console.log("propagateTransaction:", newtx);
-
-         
-                setTimeout(async function(){
-                    let nft_list = await nft_self.app.wallet.getNftList();            
-                    console.log("Fetched NFT list: ", nft_list);
-
-                    const nftArray    = JSON.parse(nft_list); 
-                    await nft_self.app.wallet.saveNftList(nftArray);
-
-                    console.log("Updated wallet nft list: ", nft_self.app.options.wallet.nft);
-
-                    salert("NFT sent successfully!");
-                }, 2000);
-
-                nft_self.overlay.close();
-
-            };
-        }
-
+      };
     }
 
+    const sendBtn = document.querySelector('#send_nft');
+    if (sendBtn) {
+      sendBtn.onclick = async (e) => {
+        e.preventDefault();
 
-    addImage(img="") {
+        if (this.nft_selected === null) {
+          alert("Please select an NFT first.");
+          return;
+        }
 
-        let nft_self = this;
-        let html = `<div class="nft-image-preview">
-                      <img style="max-height: inherit; max-width: inherit; height: inherit; width: inherit" src="${img}"/>
-                      <i class="fa fa-times" onclick="alert('reload to change image')"></i>
-                    </div>`;
-                                
-        this.app.browser.addElementToSelector(html, ".create-button");
-                        
+        const receiverInput = document.querySelector('#nfts-receiver');
+        const receiver = receiverInput ? receiverInput.value.trim() : "";
+        if (!receiver) {
+          alert("Please enter the receiver’s public key.");
+          return;
+        }
+
+        sendBtn.classList.add('disabled');
+        sendBtn.innerText = "Submitting...";
+
+        try {
+          const nftItem = this.nft_list[this.nft_selected];
+          if (!nftItem) throw new Error("Selected NFT not found.");
+
+          const slip1Key = nftItem.slip1.utxo_key;
+          const slip2Key = nftItem.slip2.utxo_key;
+          const slip3Key = nftItem.slip3.utxo_key;
+
+          const amt     = BigInt(1);
+          const payload = JSON.stringify({ image: "" });
+          const newtx   = await this.app.wallet.createSendBoundTransaction(
+            amt,
+            slip1Key,
+            slip2Key,
+            slip3Key,
+            payload,
+            receiver
+          );
+
+          await newtx.sign();
+          await this.app.network.propagateTransaction(newtx);
+          console.log("Bound TX propagated:", newtx);
+
+          setTimeout(async () => {
+            try {
+              const rawList = await this.app.wallet.getNftList();
+              const parsed  = JSON.parse(rawList);
+              await this.app.wallet.saveNftList(parsed);
+              console.log(
+                "Updated wallet NFT list:",
+                this.app.options.wallet.nft
+              );
+              alert("NFT sent successfully!");
+            } catch (fetchErr) {
+              console.error("Error refreshing NFT list:", fetchErr);
+              alert("NFT was sent, but failed to refresh local list.");
+            }
+          }, 2000);
+
+          this.overlay.close();
+        } catch (err) {
+          console.error("Error sending NFT:", err);
+          alert("Failed to send NFT: " + err.message);
+
+          sendBtn.classList.remove('disabled');
+          sendBtn.innerText = "Send NFT";
+        }
+      };
     }
+  }
 
+  async renderNft() {
+    let this_self    = this;
+    let saito_users  = {};
+    this.nft_list    = await this.fetchNFT();
+    console.log("Loaded NFT list:", this.nft_list);
 
-    async renderNft() {
-      let this_self = this;
-      let saito_users = [];
-      this.nft_list = await this.fetchNFT();
+    // Build the NFT list container
+    let html = `
+      <div class="send-nft-list">
+    `;
+
+    if (!Array.isArray(this.nft_list) || this.nft_list.length === 0) {
+      // If no NFTs, show a message
+      html += `
+        <div class="send-nft-row empty-send-nft-row">
+          <div class="send-nft-row-item">
+            You do not have any NFTs in your wallet. 
+            If you have just created or been sent one, 
+            please wait a few minutes for the network to 
+            confirm for your wallet."
+          </div>
+        </div>
+      `;
       
-      console.log("this.nft_list: ", this.nft_list);
+      // Hide Page 2 since there’s nothing to send
+      const page2 = document.querySelector('#page2');
+      if (page2) page2.style.display = 'none';
+    } else {
+      // Otherwise, iterate over each NFT
+      let x = 0;
+      this.nft_list.forEach((nft, i) => {
+        const slip1        = nft.slip1;
+        const slip2        = nft.slip2;
+        const amount       = BigInt(slip1.amount);
+        const depositNolan = BigInt(slip2.amount);
+        const nftValue     = this.app.wallet.convertNolanToSaito(depositNolan);
+        const nftCreator   = slip1.public_key;
 
-      let   html = `<div class="utxo-div send-nft">
-                  <div style="
-                     display: none;
-                     ">
-                     <input type="radio" value="0" class="utxo-selection-button" name="utxo-input">
+        const saitoUser = new SaitoUser(
+          this.app,
+          this.mod,
+          `.saito-user-${nftCreator}-${x}`,
+          nftCreator
+        );
+        saito_users[nftCreator] = saitoUser;
+
+        // Generate an identicon for the NFT ID
+        let nftIdenticon = this_self.app.keychain.returnIdenticon(nft.id);
+
+        html += `
+            <div class="send-nft-row" nft-index="${i}">
+                <!-- Hidden radio to track selection -->
+                <input
+                  type="radio"
+                  name="hidden-nft-radio"
+                  class="hidden-nft-radio"
+                  value="${i}"
+                  style="display: none;"
+                />
+
+                <img class="nft-identicon" src="${nftIdenticon}" />
+
+                <div class="send-nft-row-right">
+                  <div class="send-nft-id">${nft.id}</div>
+
+                  <div class="send-nft-details">
+                    <div class="send-nft-left-row">
+                      <div class="send-nft-amount">
+                        <span>amount:</span>
+                        <span>${amount}</span>
+                      </div>
+                      <div class="send-nft-deposit">
+                        <span>deposit:</span>
+                        <span>${nftValue} SAITO</span>
+                      </div>
+                    </div>
+
+                    <div class="send-nft-right-row">
+                      <div class="send-nft-create-by saito-user-${nftCreator}-${x}">
+                      </div>
+                    </div>
                   </div>
-                  <div class="send-nft-row">
-                     <div class="send-nft-row-item"></div>
-                     <div class="send-nft-row-item">#</div>
-                     <div class="send-nft-row-item">nft id</div>
-                     <div class="send-nft-row-item">value</div>
-                     <div class="send-nft-row-item">minted by</div>
-                     <!--<div class="send-nft-row-item">minted at</div>-->
-                  </div>
+                </div>
+            </div>
         `;
 
-
-        if (false && !Array.isArray(this.nft_list) || !this.nft_list.length) {
-            html += `
-                <div class="send-nft-row empty-send-nft-row">
-                    <div class="send-nft-row-item">No NFTs in wallet.</div>
-                     <div class="send-nft-row-item"></div>
-                     <div class="send-nft-row-item"></div>
-                     <div class="send-nft-row-item"></div>
-                     <div class="send-nft-row-item"></div>
-                </div>
-            `;
-
-            document.querySelector(".send-nft-container .right-section").style.display = 'none';
-        } else {
-
-          this.nft_list.forEach((nft, i) => {
-
-                let slip1 = nft.slip1;
-                let slip2 = nft.slip2;
-                let slip3 = nft.slip3;
-
-                let nft_value = this.app.wallet.convertNolanToSaito(BigInt(slip1.amount));
-                let nft_creator = slip1.public_key;
-
-                let saito_user = new SaitoUser(
-                    this.app,
-                    this.mod,
-                    `.saito-user-${nft_creator}`,
-                    nft_creator,
-                );
-                saito_users[nft_creator] = saito_user;
-
-
-
-                html += `
-                <div class="send-nft-row">
-                    <div class="send-nft-row-item">
-                        <input type="radio" value="${i}" class="utxo-selection-button" name="utxo-input">
-                    </div>
-                     <div class="send-nft-row-item">1</div>
-                     <div class="send-nft-row-item">
-                        ${nft.id}
-                     </div>
-                     <div class="send-nft-row-item">${nft_value} SAITO</div>
-                     <div class="send-nft-row-item saito-user-${nft_creator}">
-                     </div>
-                    <!--
-                     <div class="send-nft-row-item">May 14, 2025 at 11:22</div>
-                    -->
-                </div>`;
-
-          });
-        }
-
-        html += `</div>`;
-
-        document.querySelector('#nft-list').innerHTML = html;
-
-        for (const [publicKey, saito_user] of Object.entries(saito_users)) {
-
-            console.log(saito_user, publicKey);
-            saito_user.render();
-            saito_user.updateUserline(publicKey);
-        }
-
-        console.log("nft_list: ", this.nft_list)
+        x++;
+      });
     }
 
-    async fetchNFT(){
-        let data = this.app.options.wallet.nfts;
+    html += `</div>`;
 
-        console.log("nft data:", data);
-
-        return data;
+    const listContainer = document.querySelector('#nft-list');
+    if (listContainer) {
+      listContainer.innerHTML = html;
     }
+
+    for (const [publicKey, saito_user] of Object.entries(saito_users)) {
+      console.log(saito_user, publicKey);
+      saito_user.render();
+      saito_user.updateUserline(publicKey);
+    }
+  }
+
+  async fetchNFT() {
+    const data = this.app.options.wallet.nfts || [];
+    console.log("fetchNFT →", data);
+    return data;
+  }
 }
 
 module.exports = Nft;
-

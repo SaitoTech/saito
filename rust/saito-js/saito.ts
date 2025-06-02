@@ -353,6 +353,8 @@ export default class Saito {
         nft_type: string, 
     ): Promise<T> {
 
+        console.log("saito.ts num: ", num);
+
         let wasmTx = await Saito.getLibInstance().create_bound_transaction(
             amt,
             bid,

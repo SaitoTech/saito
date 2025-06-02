@@ -97,7 +97,7 @@ export default class Wallet extends SaitoWallet {
       console.log(bid);
       console.log(tid);
       console.log(sid);
-      console.log(num);
+      console.log('wallet.ts num:',num);
       console.log(deposit);
       console.log(change);
       console.log(data);
