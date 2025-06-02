@@ -50,20 +50,14 @@ jobs:
           toolchain: stable
           target: "wasm32-unknown-unknown"
           override: true
+      
+      - name: Check Formatting (RUST)
+        run: cargo fmt --check --verbose
+        working-directory: ./rust
 
-      # - name: Build
-      #   uses: actions-rs/cargo@v1
-      #   with:
-      #     command: build
-      #     args: --release
-      #     working-directory: ./rust
-
-      # - name: Run tests
-      #   uses: actions-rs/cargo@v1
-      #   with:
-      #     command: test
-      #     args: --release
-      #     working-directory: ./rust
+      - name: Check Formatting (JS)
+        run: npx prettier --check ./lib
+        working-directory: ./node
 
       - name: Build
         run: cargo build --verbose
