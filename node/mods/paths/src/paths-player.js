@@ -1376,11 +1376,9 @@ console.log("###");
     html    += `</ul>`;
 
     this.bindBackButtonFunction(() => { this.playerTurn(faction); });
-
     this.updateStatusWithOptions(`${this.returnFactionName(faction)} - playing ${this.popup(card)}`, html, true);
 
     this.menu_overlay.render(this.game.player, faction, card);
-
     this.attachCardboxEvents((action) => {
 
       this.updateStatus("selected...");

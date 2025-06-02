@@ -11153,26 +11153,25 @@ console.log("allies_passed: " + this.game.state.allies_passed);
 	  if (faction === "central" && parseInt(this.game.state.central_passed) == 1) {
 	    for (let z = 0; z < this.game.deck[0].hand.length; z++) { if (this.game.deck[0].hand[z] == "pass") { this.game.deck[0].hand.splice(z, 1); } }
 	    this.game.queue.splice(qe, 1); 
-	    this.updateStatusAndListCards(`Opponent Turn`, hand);
+	    this.updateStatusAndListCards(`Opponent Turn 1`, hand);
+	    this.attachCardboxEvents((action) => {});
 	    return 1; 
 	  }
 	  if (faction === "allies" && parseInt(this.game.state.allies_passed) == 1) {
 	    for (let z = 0; z < this.game.deck[1].hand.length; z++) { if (this.game.deck[1].hand[z] == "pass") { this.game.deck[0].hand.splice(z, 1); } }
 	    this.updateStatusAndListCards(`Opponent Turn`, hand);
+	    this.attachCardboxEvents((action) => {});
 	    this.game.queue.splice(qe, 1);
 	    return 1; 
 	  }
 
 	  this.onNewRound();
 
-console.log("PLAY: " + this.game.player);
-console.log("player: " + player);
-console.log("HAND: " + JSON.stringify(hand));
-
 	  if (this.game.player == player) {
 	    this.playerTurn(faction);
 	  } else {
 	    this.updateStatusAndListCards(`Opponent Turn`, hand);
+	    this.attachCardboxEvents((action) => {});
 	  }
 	  
 	  return 0;
@@ -12038,18 +12037,20 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
               let qs2 = `.combat_${this.game.state.combat.step}.defender_cp`;
               this.game.state.combat.attacker_loss_factor = this.returnAttackerLossFactor();
               this.game.state.combat.defender_cp = this.returnDefenderCombatPower();
+
+	      //
+	      // ridiculous overkill but...
+	      //
+	      for (let z = 0; z < this.game.logs.length; z++) {
+ 		this.game.logs[z] = this.game.logs[z].replace(/<span class="combat_14 defender_cp">\?<\/span>/g, `<span class="combat_14 defender_cp">${this.game.state.combat.defender_cp}</span>`);
+ 		this.game.logs[z] = this.game.logs[z].replace(/<span class="combat_14 attacker_loss_factor">\?<\/span>/g, `<span class="combat_14 attacker_loss_factor">${this.game.state.combat.attacker_loss_factor}</span>`);
+	      }
               document.querySelectorAll(qs1).forEach((el) => { 
 		setTimeout(() => { el.innerHTML = this.returnAttackerLossFactor(); }, 500);
 	      });
               document.querySelectorAll(qs2).forEach((el) => { 
 		setTimeout(() => { el.innerHTML = this.returnDefenderCombatPower(); }, 500);
 	      });
-console.log("#");
-console.log("#");
-console.log("#");
-console.log("#");
-console.log("#");
-console.log(qs1 + " / " + qs2);
             } catch (err) {
 console.log("error updated attacker loss factor: " + JSON.stringify(err));
             }
@@ -12062,18 +12063,16 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
               let qs2 = `combat_${this.game.state.combat.step}.attacker_cp`;
               this.game.state.combat.defender_loss_factor = this.returnDefenderLossFactor();
               this.game.state.combat.attacker_cp = this.returnAttackerCombatPower();
+	      for (let z = 0; z < this.game.logs.length; z++) {
+ 		this.game.logs[z] = this.game.logs[z].replace(/<span class="combat_14 attacker_cp">\?<\/span>/g, `<span class="combat_14 attacker_cp">${this.game.state.combat.attacker_cp}</span>`);
+ 		this.game.logs[z] = this.game.logs[z].replace(/<span class="combat_14 defender_loss_factor">\?<\/span>/g, `<span class="combat_14 defender_loss_factor">${this.game.state.combat.defender_loss_factor}</span>`);
+	      }
               document.querySelectorAll(qs1).forEach((el) => {
 	        setTimeout(() => { el.innerHTML = this.returnDefenderLossFactor(); }, 500);
 	      });
               document.querySelectorAll(qs2).forEach((el) => {
 	        setTimeout(() => { el.innerHTML = this.returnAttackerCombatPower(); }, 500);
 	      });
-console.log("#");
-console.log("#");
-console.log("#");
-console.log("#");
-console.log("#");
-console.log(qs1 + " / " + qs2);
             } catch (err) {
 console.log("error updated attacker loss factor: " + JSON.stringify(err));
             }
@@ -14581,11 +14580,9 @@ console.log("###");
     html    += `</ul>`;
 
     this.bindBackButtonFunction(() => { this.playerTurn(faction); });
-
     this.updateStatusWithOptions(`${this.returnFactionName(faction)} - playing ${this.popup(card)}`, html, true);
 
     this.menu_overlay.render(this.game.player, faction, card);
-
     this.attachCardboxEvents((action) => {
 
       this.updateStatus("selected...");

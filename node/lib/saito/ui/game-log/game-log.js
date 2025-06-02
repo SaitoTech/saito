@@ -97,20 +97,6 @@ class GameLog {
 	 */
 	updateLog(log_str, force = 0) {
 		let add_this_log_message = 1;
-
-		// Dave, please let me know if this blows up the TS log...
-		// I'd rather not have to manually set force in all the other games
-		
-		/*if (log_str === this.logs_last_msg) {
-			add_this_log_message = 0;
-			if (log_str.indexOf('removes') > -1) {
-				add_this_log_message = 1;
-			}
-			if (log_str.indexOf('places') > -1) {
-				add_this_log_message = 1;
-			}
-		}*/
-
 		if (add_this_log_message == 1 || force == 1) {
 			this.logs_last_msg = log_str;
 			this.logs.unshift(log_str);
