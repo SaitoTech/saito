@@ -1,7 +1,7 @@
 let SaitoHeaderTemplate = (app, mod, headerClass) => {
-	let identicon = app.keychain.returnIdenticon(mod.publicKey);
+  let identicon = app.keychain.returnIdenticon(mod.publicKey);
 
-	let html = `
+  let html = `
    <header id="saito-header" class="${headerClass}">
         <div class="saito-header-logo-wrapper">
             <img class="saito-header-logo" alt="Logo" src="/saito/img/logo.svg" />
@@ -59,7 +59,7 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
    </header>
 
   `;
-	return html;
+  return html;
 };
 
 module.exports = SaitoHeaderTemplate;

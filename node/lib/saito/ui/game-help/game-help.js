@@ -9,95 +9,91 @@ const SaitoOverlay = require('./../saito-overlay/saito-overlay');
  */
 
 class GameHelp {
-	/**
-	 * @param app - the Saito application
-	 * @param mod - reference to the game module
-	 */
-	constructor(app, mod) {
-		this.app = app;
-		this.game_mod = mod;
-		this.overlay = new SaitoOverlay(this.app, this.game_mod);
-	}
+  /**
+   * @param app - the Saito application
+   * @param mod - reference to the game module
+   */
+  constructor(app, mod) {
+    this.app = app;
+    this.game_mod = mod;
+    this.overlay = new SaitoOverlay(this.app, this.game_mod);
+  }
 
-	hide() {
-		let gh = document.querySelector('.game-help-triangle');
-		if (gh) {
-			gh.classList.remove('game-help-visible');
-			gh.classList.add('game-help-hidden');
-		}
-	}
+  hide() {
+    let gh = document.querySelector('.game-help-triangle');
+    if (gh) {
+      gh.classList.remove('game-help-visible');
+      gh.classList.add('game-help-hidden');
+    }
+  }
 
-	renderCustomOverlay(obj = {}) {
+  renderCustomOverlay(obj = {}) {
+    this.overlay.show(WelcomeTemplate());
 
-		this.overlay.show(WelcomeTemplate());
+    if (obj.title) {
+      document.querySelector('.game-help-overlay-title').innerHTML = obj.title;
+    }
+    if (obj.text) {
+      document.querySelector('.game-help-overlay-text').innerHTML = obj.text;
+    }
+    if (obj.img) {
+      document.querySelector('.game-help-overlay').style.backgroundImage = `url(${obj.img})`;
+    }
+  }
 
-		if (obj.title) {
-			document.querySelector('.game-help-overlay-title').innerHTML = obj.title;
-		}
-		if (obj.text) {
-			document.querySelector('.game-help-overlay-text').innerHTML = obj.text;
-		}
-		if (obj.img) {
-			document.querySelector('.game-help-overlay').style.backgroundImage = `url(${obj.img})`;
-		}
+  render(targs = {}) {
+    if (targs.id) {
+      if (this.game_mod.loadGamePreference(`settlers_help_${targs.id}`)) {
+        return;
+      }
+    }
 
-	}
+    let gh = document.querySelector('.game-help-triangle');
+    if (gh) {
+      gh.classList.remove('game-help-hidden');
+      gh.classList.add('game-help-visible');
+    } else {
+      this.app.browser.addElementToDom(GameHelpTemplate(targs));
+      gh = document.querySelector('.game-help-triangle');
+    }
+    if (targs.line1) {
+      document.querySelector('.game-help-text .line1').innerHTML = targs.line1;
+    }
+    if (targs.line2) {
+      document.querySelector('.game-help-text .line2').innerHTML = targs.line2;
+    }
 
-	render(targs = {}) {
+    /* Can also override the color and font size, i guess */
 
-		if (targs.id){
-			if (this.game_mod.loadGamePreference(`settlers_help_${targs.id}`)){
-				return;
-			}
-		}
+    if (targs.fontsize) {
+      document.querySelector('.game-help-text').style.fontSize = targs.fontsize;
+    }
+    if (targs.color) {
+      document.querySelector('.game-help-triangle').style.background = targs.color;
+    }
 
-		let gh = document.querySelector('.game-help-triangle');
-		if (gh) {
-			gh.classList.remove('game-help-hidden');
-			gh.classList.add('game-help-visible');
-		} else {
-			this.app.browser.addElementToDom(GameHelpTemplate(targs));
-			gh = document.querySelector('.game-help-triangle');
-		}
-		if (targs.line1) {
-			document.querySelector('.game-help-text .line1').innerHTML = targs.line1;
-		}
-		if (targs.line2) {
-			document.querySelector('.game-help-text .line2').innerHTML = targs.line2;
-		}
+    this.attachEvents(targs);
+  }
 
-		/* Can also override the color and font size, i guess */ 
-		
-		if (targs.fontsize) {
-		  document.querySelector(".game-help-text").style.fontSize = targs.fontsize;
-	        }
-		if (targs.color) {
-		  document.querySelector(".game-help-triangle").style.background = targs.color;
-		}
+  attachEvents(targs = {}) {
+    let gh = document.querySelector('.game-help-triangle');
+    gh.onclick = (e) => {
+      this.hide();
+      this.renderCustomOverlay(targs);
 
-		this.attachEvents(targs);
-	}
+      if (targs?.callback) {
+        targs.callback();
+      }
 
-	attachEvents(targs = {}) {
-		let gh = document.querySelector('.game-help-triangle');
-		gh.onclick = (e) => {
-			this.hide();
-			this.renderCustomOverlay(targs);
-
-			if (targs?.callback){
-				targs.callback();
-			}
-
-			// Overlay events
-			if (document.querySelector(".game-help-overlay-optout")){
-				document.querySelector(".game-help-overlay-optout").onclick = (e) => {
-					this.game_mod.saveGamePreference(`settlers_help_${targs.id}`, 'noshow');
-					this.overlay.close();
-				}
-			}
-		};
-	}
-
+      // Overlay events
+      if (document.querySelector('.game-help-overlay-optout')) {
+        document.querySelector('.game-help-overlay-optout').onclick = (e) => {
+          this.game_mod.saveGamePreference(`settlers_help_${targs.id}`, 'noshow');
+          this.overlay.close();
+        };
+      }
+    };
+  }
 }
 
 module.exports = GameHelp;

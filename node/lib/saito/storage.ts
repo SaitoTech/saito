@@ -468,23 +468,19 @@ class Storage {
   }
 
   async removeAllLocalApplications() {
-
     try {
-
       if (!this.app.BROWSER) {
         return;
       }
 
       let rowsDeleted = await this.localDB.remove({
-          from: 'dyn_mods'
+        from: 'dyn_mods'
       });
 
       return rowsDeleted;
-
     } catch (err) {
       console.log('Error removeLocalApplication: ', err);
     }
-
   }
 
   async initializeApplicationDB() {

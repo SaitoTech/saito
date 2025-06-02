@@ -221,7 +221,7 @@
 
   returnLoanedUnits() {
     for (let i in this.game.spaces) {
-      space = this.game.spaces[i];
+      let space = this.game.spaces[i];
       for (let f in space.units) {
         for (let z = space.units[f].length-1;  z >= 0; z--) {
 	  let unit = space.units[f][z];
@@ -234,7 +234,7 @@
       }
     }
     for (let i in this.game.navalspaces) {
-      space = this.game.navalspaces[i];
+      let space = this.game.navalspaces[i];
       for (let f in space.units) {
         for (let z = space.units[f].length-1;  z >= 0; z--) {
 	  let unit = space.units[f][z];
@@ -477,6 +477,9 @@
 	};
       }
     }
+
+console.log("FACTIONS IS: " + JSON.stringify(factions));
+console.log("THIS.FACTIONS IS: " + JSON.stringify(this.factions));
 
     //
     // let factions calculate their VP

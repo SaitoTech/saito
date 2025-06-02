@@ -1,5 +1,5 @@
-module.exports  = (ticker, address, confirmations) => {
-	return `
+module.exports = (ticker, address, confirmations) => {
+  return `
     <div class="crypto-activation-overlay" id="crypto-activation-overlay">
       <div class="crypto-activation-title">${ticker} Activated</div>
       <div class="crypto-activation-message">

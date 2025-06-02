@@ -149,13 +149,13 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
     <div id="game-loader-screen">`;
 
   if (include_loader) {
-    let msg = "loading game...";
+    let msg = 'loading game...';
     let welcome = mod.returnWelcome();
     html += `<div class="game-loader-backdrop" style="background-image: url(/${mod.returnSlug()}/img/arcade/arcade.jpg);"></div>`;
 
-    if (welcome){
+    if (welcome) {
       html += welcome;
-      msg = "Loading";
+      msg = 'Loading';
     }
 
     html += `<div id="saito-loader-container" class="saito-loader-container"> 

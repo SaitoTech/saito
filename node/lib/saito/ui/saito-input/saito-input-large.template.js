@@ -1,7 +1,7 @@
 const SaitoInputControls = require('./saito-input-controls.template');
 
-module.exports  = (input_self, placeholder = "") => {
-	let html = `
+module.exports = (input_self, placeholder = '') => {
+  let html = `
 	<div class="saito-input saito-input-large">
 		<textarea class="post-tweet-textarea text-input" name="post-tweet-textarea" id="post-tweet-textarea" placeholder="${placeholder}" rows="7" cols="60"></textarea>
 		<div class="saito-mentions-list hidden" id="saito-mentions-list"></div>
@@ -11,5 +11,5 @@ module.exports  = (input_self, placeholder = "") => {
 	</div>
 	`;
 
-	return html;
+  return html;
 };

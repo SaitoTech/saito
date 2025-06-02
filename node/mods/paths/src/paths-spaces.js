@@ -216,8 +216,6 @@ if (spacekey == "batum") {
   trace_supply = 1;
 }
 
-console.log("check supply status: " + spacekey);
-
     //
     // if we call this function generically, it means we want
     // to check the supply status of every unit on the board

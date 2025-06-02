@@ -20,15 +20,15 @@ class AdjustStake {
 		this.match_stake = this.min_stake;
 		this.max_stake = current_balance;
 
-		// Don't allow upping the ante
-		if (obj.game_mod?.opengame) {
-			this.max_stake = Math.min(current_balance, this.match_stake);
-		}
-
 		for (let i in obj.stake) {
 			if (parseFloat(obj.stake[i]) > this.match_stake) {
 				this.match_stake = parseFloat(obj.stake[i]);
 			}
+		}
+
+		// Don't allow upping the ante
+		if (obj.game_mod?.opengame) {
+			this.max_stake = Math.min(current_balance, this.match_stake);
 		}
 
 		this.ticker = obj.ticker;

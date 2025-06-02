@@ -2,298 +2,262 @@ const saito = require('./../../../saito/saito');
 const SaitoCalendarTemplate = require('./saito-calendar.template');
 const SaitoCalendarPopup = require('./saito-calendar-popup');
 
-
 class SaitoCalendar {
-	constructor(app, mod, container = '') {
-		this.app = app;
-		this.mod = mod;
-		this.name = 'SaitoCalendar';
-		this.size = 'small';
-		this.date = new Date();
+  constructor(app, mod, container = '') {
+    this.app = app;
+    this.mod = mod;
+    this.name = 'SaitoCalendar';
+    this.size = 'small';
+    this.date = new Date();
 
-		this.container = container;
-		this.state = null;
+    this.container = container;
+    this.state = null;
 
-		this.events = [];
+    this.events = [];
 
-		//
-		// re-render when event received
-		//
-		this.app.connection.on('calendar-add-event-from-transaction', (tx) => {
-			let txmsg = {};
-			//
-			// possibly not tx
-			//
-			if (!tx) {
-				txmsg = { invite: tx };
-			} else {
-				txmsg = tx.returnMessage();
-			}
-			let invite = txmsg.invite;
-			let invite_json = JSON.stringify(invite);
-			let new_event = 1;
-			for (let i = 0; i < this.events.length; i++) {
-				if (JSON.stringify(this.events[i]) !== invite_json) {
-					new_event = 0;
-					break;
-				}
-			}
-			if (new_event) {
-				this.events.push(invite);
-			}
-			this.render();
-		});
+    //
+    // re-render when event received
+    //
+    this.app.connection.on('calendar-add-event-from-transaction', (tx) => {
+      let txmsg = {};
+      //
+      // possibly not tx
+      //
+      if (!tx) {
+        txmsg = { invite: tx };
+      } else {
+        txmsg = tx.returnMessage();
+      }
+      let invite = txmsg.invite;
+      let invite_json = JSON.stringify(invite);
+      let new_event = 1;
+      for (let i = 0; i < this.events.length; i++) {
+        if (JSON.stringify(this.events[i]) !== invite_json) {
+          new_event = 0;
+          break;
+        }
+      }
+      if (new_event) {
+        this.events.push(invite);
+      }
+      this.render();
+    });
 
+    this.app.connection.on('calendar-refresh-request', () => {
+      this.render();
+    });
+  }
 
-		this.app.connection.on('calendar-refresh-request', () => {
-			this.render();
-		});
-	}
+  render() {
+    let app = this.app;
+    let mod = this.mod;
 
+    this.events = this.app.keychain.returnKeys({ type: 'event' });
 
-	render() {
-		let app = this.app;
-		let mod = this.mod;
+    let calclass = `.saito-calendar.${this.size}`;
+    if (!document.querySelector(calclass)) {
+      app.browser.addElementToSelector(SaitoCalendarTemplate(app, mod, this.size), this.container);
+    } else {
+      app.browser.replaceElementBySelector(
+        SaitoCalendarTemplate(app, mod, this.size),
+        '.saito-calendar'
+      );
+    }
 
-		this.events = this.app.keychain.returnKeys({ type: "event" });
+    let calobj = document.querySelector(calclass);
+    calobj.innerHTML = this.returnCalendarTemplate();
 
-		let calclass = `.saito-calendar.${this.size}`;
-		if (!document.querySelector(calclass)) {
-			app.browser.addElementToSelector(
-				SaitoCalendarTemplate(app, mod, this.size),
-				this.container
-			);
-		} else {
-			app.browser.replaceElementBySelector(
-				SaitoCalendarTemplate(app, mod, this.size),
-				'.saito-calendar'
-			);
-		}
+    //
+    // render calendar
+    //
+    this.renderCalendar();
+    this.addCalendarEvents();
+    this.attachEvents();
+  }
 
-		let calobj = document.querySelector(calclass);
-		calobj.innerHTML = this.returnCalendarTemplate();
+  addCalendarEvents() {
+    //
+    // current month and year
+    //
+    let cy = this.date.getFullYear();
+    let cm = this.date.getMonth() + 1;
+    let cm_name = this.state.months[this.date.getMonth()];
 
-		//
-		// render calendar
-		//
-		this.renderCalendar();
-		this.addCalendarEvents();
-		this.attachEvents();
-	}
+    //
+    // and add events
+    //
+    for (let z = 0; z < this.events.length; z++) {
+      let invite = this.events[z];
+      if (this.events[z].invite) {
+        invite = this.events[z].invite;
+      }
 
-	addCalendarEvents() {
-		//
-		// current month and year
-		//
-		let cy = this.date.getFullYear();
-		let cm = this.date.getMonth() + 1;
-		let cm_name = this.state.months[this.date.getMonth()];
+      console.log('*************');
+      console.log(invite);
 
-		//
-		// and add events
-		//
-		for (let z = 0; z < this.events.length; z++) {
-			let invite = this.events[z];
-			if (this.events[z].invite) {
-				invite = this.events[z].invite;
-			}
+      let pd = new Date(invite.startTime);
+      let d = this.app.browser.formatDate(pd.getTime());
+      let em = d.month;
+      let ey = d.year;
+      let ed = d.day;
 
-			console.log("*************");
-			console.log(invite);
+      if (ey == cy && em == cm_name) {
+        let qs = `.saito-calendar-day-${ed}`;
+        let obj = document.querySelector(qs);
+        obj.innerHTML = `<span class="saito-calendar-day-date">${ed}</span><span> <i class="far fa-calendar-check"></i></span>`;
+      }
+    }
+  }
 
-			let pd = new Date(invite.startTime);
-			let d = this.app.browser.formatDate(pd.getTime());
-			let em = d.month;
-			let ey = d.year;
-			let ed = d.day;
+  renderCalendar() {
+    this.state = this.returnCalendarState();
+    this.state.monthDays = document.querySelector('.saito-calendar-days');
+    this.state.lastDay = new Date(this.date.getFullYear(), this.date.getMonth() + 1, 0).getDate();
 
-			if (ey == cy && em == cm_name) {
-				let qs = `.saito-calendar-day-${ed}`;
-				let obj = document.querySelector(qs);
-				obj.innerHTML = `<span class="saito-calendar-day-date">${ed}</span><span> <i class="far fa-calendar-check"></i></span>`;
-			}
-		}
-	}
+    this.state.prevLastDay = new Date(this.date.getFullYear(), this.date.getMonth(), 0).getDate();
 
-	renderCalendar() {
-		this.state = this.returnCalendarState();
-		this.state.monthDays = document.querySelector('.saito-calendar-days');
-		this.state.lastDay = new Date(
-			this.date.getFullYear(),
-			this.date.getMonth() + 1,
-			0
-		).getDate();
+    this.state.firstDayIndex = new Date(this.date.getFullYear(), this.date.getMonth(), 1).getDay();
 
-		this.state.prevLastDay = new Date(
-			this.date.getFullYear(),
-			this.date.getMonth(),
-			0
-		).getDate();
+    this.state.lastDayIndex = new Date(
+      this.date.getFullYear(),
+      this.date.getMonth() + 1,
+      0
+    ).getDay();
 
-		this.state.firstDayIndex = new Date(
-			this.date.getFullYear(),
-			this.date.getMonth(),
-			1
-		).getDay();
+    this.state.nextDays = 7 - this.state.lastDayIndex - 1;
 
-		this.state.lastDayIndex = new Date(
-			this.date.getFullYear(),
-			this.date.getMonth() + 1,
-			0
-		).getDay();
+    //
+    // and update HTML
+    //
+    document.querySelector('.saito-calendar-date .month').innerHTML =
+      this.state.months[this.date.getMonth()];
+    document.querySelector('.saito-calendar-date .year').innerHTML = this.date.getFullYear();
 
-		this.state.nextDays = 7 - this.state.lastDayIndex - 1;
+    let days = '';
+    for (let x = this.state.firstDayIndex; x > 0; x--) {
+      days += `<div class="saito-calendar-day prev-date">${this.state.prevLastDay - x + 1}</div>`;
+    }
 
-		//
-		// and update HTML
-		//
-		document.querySelector('.saito-calendar-date .month').innerHTML =
-			this.state.months[this.date.getMonth()];
-		document.querySelector('.saito-calendar-date .year').innerHTML =
-			this.date.getFullYear();
+    for (let i = 1; i <= this.state.lastDay; i++) {
+      if (i === new Date().getDate() && this.date.getMonth() === new Date().getMonth()) {
+        days += `<div class="saito-calendar-day saito-calendar-day-${i} today" data-id="${i}">${i}</span></div>`;
+      } else {
+        days += `<div class="saito-calendar-day saito-calendar-day-${i}" data-id="${i}">${i}</div>`;
+      }
+    }
 
-		let days = '';
-		for (let x = this.state.firstDayIndex; x > 0; x--) {
-			days += `<div class="saito-calendar-day prev-date">${this.state.prevLastDay - x + 1
-				}</div>`;
-		}
+    for (let j = 1; j <= this.state.nextDays; j++) {
+      days += `<div class="saito-calendar-day next-date">${j}</div>`;
+    }
+    this.state.monthDays.innerHTML = days;
+  }
 
-		for (let i = 1; i <= this.state.lastDay; i++) {
-			if (
-				i === new Date().getDate() &&
-				this.date.getMonth() === new Date().getMonth()
-			) {
-				days += `<div class="saito-calendar-day saito-calendar-day-${i} today" data-id="${i}">${i}</span></div>`;
-			} else {
-				days += `<div class="saito-calendar-day saito-calendar-day-${i}" data-id="${i}">${i}</div>`;
-			}
-		}
+  clearEvents() {
+    document.querySelectorAll('.saito-calendar-day').forEach((el) => {
+      el.onclick = (e) => {};
+    });
+    document.querySelectorAll('.saito-calendar-prev').forEach((el) => {
+      el.onclick = (e) => {};
+    });
+    document.querySelectorAll('.saito-calendar-next').forEach((el) => {
+      el.onclick = (e) => {};
+    });
+  }
 
-		for (let j = 1; j <= this.state.nextDays; j++) {
-			days += `<div class="saito-calendar-day next-date">${j}</div>`;
-		}
-		this.state.monthDays.innerHTML = days;
-	}
+  attachEvents() {
+    let app = this.app;
+    let mod = this.mod;
 
-	clearEvents() {
-		document.querySelectorAll('.saito-calendar-day').forEach((el) => {
-			el.onclick = (e) => { };
-		});
-		document.querySelectorAll('.saito-calendar-prev').forEach((el) => {
-			el.onclick = (e) => { };
-		});
-		document.querySelectorAll('.saito-calendar-next').forEach((el) => {
-			el.onclick = (e) => { };
-		});
-	}
+    document.querySelectorAll('.saito-calendar-prev').forEach((el) => {
+      el.onclick = (e) => {
+        this.clearEvents();
+        this.date.setMonth(this.date.getMonth() - 1);
+        this.renderCalendar();
+        this.addCalendarEvents();
+        this.attachEvents();
+      };
+    });
 
-	attachEvents() {
-		let app = this.app;
-		let mod = this.mod;
+    document.querySelectorAll('.saito-calendar-next').forEach((el) => {
+      el.onclick = (e) => {
+        this.clearEvents();
+        this.date.setMonth(this.date.getMonth() + 1);
+        this.renderCalendar();
+        this.addCalendarEvents();
+        this.attachEvents();
+      };
+    });
 
-		document.querySelectorAll('.saito-calendar-prev').forEach((el) => {
-			el.onclick = (e) => {
-				this.clearEvents();
-				this.date.setMonth(this.date.getMonth() - 1);
-				this.renderCalendar();
-				this.addCalendarEvents();
-				this.attachEvents();
-			};
-		});
+    document.querySelectorAll('.saito-calendar-day').forEach((el) => {
+      el.onclick = (e) => {
+        let year = this.date.getFullYear();
+        let month_as_num = this.date.getMonth() + 1;
+        let month = this.state.months[this.date.getMonth()];
+        let day = el.getAttribute('data-id');
 
-		document.querySelectorAll('.saito-calendar-next').forEach((el) => {
-			el.onclick = (e) => {
-				this.clearEvents();
-				this.date.setMonth(this.date.getMonth() + 1);
-				this.renderCalendar();
-				this.addCalendarEvents();
-				this.attachEvents();
-			};
-		});
+        const selectedDay = {
+          day,
+          month,
+          month_as_num,
+          year
+        };
 
-		document.querySelectorAll('.saito-calendar-day').forEach((el) => {
-			el.onclick = (e) => {
-				let year = this.date.getFullYear();
-				let month_as_num = this.date.getMonth() + 1;
-				let month = this.state.months[this.date.getMonth()];
-				let day = el.getAttribute('data-id');
+        console.log(selectedDay);
 
-				const selectedDay = {
-					day,
-					month,
-					month_as_num,
-					year
-				}
+        if (!day) {
+          return;
+        }
 
-				console.log(selectedDay);
+        let events_today = this.generateTodaysEvents(selectedDay);
 
-				if (!day) {
-					return;
-				}
+        let calpop = new SaitoCalendarPopup(app, mod, day, month, month_as_num, year, events_today);
+        calpop.render(day, month, year, events_today);
+      };
+    });
 
-				let events_today = this.generateTodaysEvents(selectedDay);
+    //
+    // these overwrite above event
+    //
+    document.querySelectorAll('.saito-calendar-day.next-date').forEach((el) => {
+      el.onclick = (e) => {
+        document.querySelector('.saito-calendar-next').click();
+      };
+    });
 
-				let calpop = new SaitoCalendarPopup(
-					app,
-					mod,
-					day,
-					month,
-					month_as_num,
-					year,
-					events_today
-				);
-				calpop.render(day, month, year, events_today);
+    document.querySelectorAll('.saito-calendar-day.prev-date').forEach((el) => {
+      el.onclick = (e) => {
+        document.querySelector('.saito-calendar-prev').click();
+      };
+    });
+  }
 
-			};
-		});
+  returnCalendarState() {
+    return {
+      monthDays: '',
+      lastDay: '',
+      prevLastDay: '',
+      firstDayIndex: '',
+      lastDayIndex: '',
+      nextDays: '',
+      months: [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December'
+      ]
+    };
+  }
 
-		//
-		// these overwrite above event
-		//
-		document
-			.querySelectorAll('.saito-calendar-day.next-date')
-			.forEach((el) => {
-				el.onclick = (e) => {
-					document.querySelector('.saito-calendar-next').click();
-				};
-			});
-
-		document
-			.querySelectorAll('.saito-calendar-day.prev-date')
-			.forEach((el) => {
-				el.onclick = (e) => {
-					document.querySelector('.saito-calendar-prev').click();
-				};
-			});
-	}
-
-	returnCalendarState() {
-		return {
-			monthDays: '',
-			lastDay: '',
-			prevLastDay: '',
-			firstDayIndex: '',
-			lastDayIndex: '',
-			nextDays: '',
-			months: [
-				'January',
-				'February',
-				'March',
-				'April',
-				'May',
-				'June',
-				'July',
-				'August',
-				'September',
-				'October',
-				'November',
-				'December'
-			]
-		};
-	}
-
-	returnCalendarTemplate() {
-		return `
+  returnCalendarTemplate() {
+    return `
         <div class="saito-calendar-month">
           <i class="fas fa-angle-left saito-calendar-prev"></i>
           <div class="saito-calendar-date">
@@ -316,41 +280,35 @@ class SaitoCalendar {
 
 
     `;
-	}
+  }
 
-	generateTodaysEvents(obj) {
+  generateTodaysEvents(obj) {
+    let { day, month, month_as_num, year } = obj;
+    let events_today = [];
 
-		let {day, month, month_as_num, year} = obj;
-		let events_today = [];
+    //
+    // and add events
+    //
+    for (let z = 0; z < this.events.length; z++) {
+      let invite = this.events[z];
 
-		//
-		// and add events
-		//
-		for (let z = 0; z < this.events.length; z++) {
-			let invite = this.events[z];
+      if (this.events[z].invite) {
+        invite = this.events[z].invite;
+      }
 
-			if (this.events[z].invite) {
-				invite = this.events[z].invite;
-			}
+      let d = new Date(invite.startTime);
+      let m = d.getMonth() + 1;
+      let y = d.getFullYear();
+      let fd = this.app.browser.formatDate(d.getTime());
+      let ed = fd.day;
 
-			let d = new Date(invite.startTime);
-			let m = d.getMonth() + 1;
-			let y = d.getFullYear();
-			let fd = this.app.browser.formatDate(d.getTime());
-			let ed = fd.day;
+      if (y == year && month_as_num == m && parseInt(ed) === parseInt(day)) {
+        events_today.push(this.events[z]);
+      }
+    }
 
-			if (
-				y == year &&
-				month_as_num == m &&
-				parseInt(ed) === parseInt(day)
-			) {
-				events_today.push(this.events[z]);
-			}
-		}
-
-		return events_today;
-
-	}
+    return events_today;
+  }
 }
 
 module.exports = SaitoCalendar;

@@ -12130,7 +12130,11 @@ if (space.key == "milan") {
       removeFromDeckAfterPlay : function(his_self, player) { return 0; } ,
       canEvent : function(his_self, faction) { 
 	if (faction == "papacy") { return 1; }
-	if (faction == "ottoman") { return 1; }
+	if (faction == "ottoman") {
+	  if (his_self.returnControllingPower("venice") != "venice") {
+	    return 1;
+	  }
+	}
 	return 0;
       },
       onEvent : function(his_self, faction) {

@@ -47,12 +47,14 @@ class ReplacementsOverlay {
 		let pts = document.querySelector('.replacements-overlay .points');
 		pts.innerHTML = "";
 		for (let key in paths_self.game.state.rp[faction]) {
-		  pts.innerHTML += `
-		    <div class="box">
-		      <div class="num">${paths_self.game.state.rp[faction][key]}</div>
-		      <div class="ckey">${key}</div>
-		    </div>
-		  `;
+		  if (paths_self.game.state.rp[faction][key] > 0) {
+		    pts.innerHTML += `
+		      <div class="box">
+		        <div class="num">${paths_self.game.state.rp[faction][key]}</div>
+		        <div class="ckey">${key}</div>
+		      </div>
+		    `;
+		  }
 		}
 
 		let obj = document.querySelector('.replacements-overlay .mainmenu .status');
@@ -73,6 +75,7 @@ class ReplacementsOverlay {
 				let id = e.currentTarget.id;
 				
 				if (id == "finish") {
+					this.replacements_overlay.hide();
 					paths_self.endTurn();
 					this.hide();
 					return 1;
@@ -104,7 +107,18 @@ class ReplacementsOverlay {
 		  eu = paths_self.game.state.replacements.can_repair_unit_in_reserves_array;
 		}
 		if (id == "deploy") {
+		  let units_available = {};
 		  eu = paths_self.game.state.replacements.can_deploy_unit_in_reserves_array;
+		  for (let i = eu.length-1; i >= 0; i--) {
+		    let u = paths_self.game.spaces[eu[i].key].units[eu[i].idx];
+		    if (!paths_self.doReplacementPointsExistForUnit(u)) {
+		      eu.splice(i, 1);
+		    } else {
+		      if (!units_available[eu[i].name]) { units_available[eu[i].name] = 1; } else {
+			eu.splice(i, 1);
+		      }
+		    }
+		  }
 		}
 
 		let obk = document.querySelector('.replacements-overlay .submenu .controls');	
@@ -135,7 +149,12 @@ class ReplacementsOverlay {
 						if (paths_self.game.state.rp[faction]["AP"] > 0) {
 							paths_self.game.state.rp[faction]["AP"]--;
 						} else {
-							alert("You do not seem to have enough RPs to treat that unit...");
+							if (paths_self.game.state.rp[faction]["A"] > 0) {
+								paths_self.game.state.rp[faction]["A"]--;
+							} else {
+								alert("You do not seem to have enough RPs to treat that unit...");
+								return;
+							}
 						}
 					}
 				}
@@ -170,8 +189,6 @@ class ReplacementsOverlay {
 				if (id == "deploy") {
 
 					this.hideSubMenu();
-			
-alert("we have picked: deploy!");
 
 					paths_self.playerSelectSpaceWithFilter(
               					`Destination for ${unit.name}` ,
@@ -179,6 +196,9 @@ alert("we have picked: deploy!");
 							if (paths_self.game.spaces[spacekey].control == faction) {
 								if (paths_self.checkSupplyStatus(unit.ckey.toLowerCase(), spacekey) == 1) {
 									if (paths_self.game.spaces[spacekey].units.length < 3) {
+
+
+
 										return 1;
 									}
 								}
@@ -186,15 +206,12 @@ alert("we have picked: deploy!");
 						} ,
               					(spacekey) => {
 
-alert("we have picked: " + spacekey);
-
 							if (spacekey === "mainmenu") {
 								this.render();
 								return 1;
 							}
 
 					              	paths_self.updateStatus("moving...");
-alert("moving unit!: " + eu[z].key + " to " + spacekey);
               						paths_self.moveUnit(eu[z].key, eu[z].idx, spacekey);
               						paths_self.prependMove(`move\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${spacekey}\t${paths_self.game.player}`);
               						paths_self.displaySpace(eu[z].key);

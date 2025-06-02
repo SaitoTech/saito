@@ -14,45 +14,39 @@ const UIModTemplate = require('./../../../templates/uimodtemplate');
 // to process whatever subset of transactions you need.
 //
 class SaitoSidebar extends UIModTemplate {
-	constructor(app, mod = null, container = '.saito-container') {
-		super(app, mod);
+  constructor(app, mod = null, container = '.saito-container') {
+    super(app, mod);
 
-		this.app = app;
-		this.mod = mod;
-		this.container = container;
-		this.name = 'SaitoSidebar UIComponent';
-		this.align = 'left';
+    this.app = app;
+    this.mod = mod;
+    this.container = container;
+    this.name = 'SaitoSidebar UIComponent';
+    this.align = 'left';
 
-		//
-		// now initialize, since UI components are created
-		// after all other modules have initialized, we need
-		// to run any missed functions here in the constructor
-		// in this case, initialize, as that is what processes
-		// receiveEvent, etc.
-		//
-		this.initialize(app);
-	}
+    //
+    // now initialize, since UI components are created
+    // after all other modules have initialized, we need
+    // to run any missed functions here in the constructor
+    // in this case, initialize, as that is what processes
+    // receiveEvent, etc.
+    //
+    this.initialize(app);
+  }
 
-	async render() {
-		let qs = `.saito-sidebar.${this.align}`;
+  async render() {
+    let qs = `.saito-sidebar.${this.align}`;
 
-		if (document.querySelector(qs)) {
-			this.app.browser.replaceElementBySelector(
-				SaitoSidebarTemplate(this.align),
-				qs
-			);
-		} else {
-			this.app.browser.addElementToSelector(
-				SaitoSidebarTemplate(this.align),
-				this.container
-			);
-		}
+    if (document.querySelector(qs)) {
+      this.app.browser.replaceElementBySelector(SaitoSidebarTemplate(this.align), qs);
+    } else {
+      this.app.browser.addElementToSelector(SaitoSidebarTemplate(this.align), this.container);
+    }
 
-		await super.render();
-		this.attachEvents();
-	}
+    await super.render();
+    this.attachEvents();
+  }
 
-	attachEvents() {}
+  attachEvents() {}
 }
 
 module.exports = SaitoSidebar;
