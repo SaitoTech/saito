@@ -13,10 +13,9 @@ use crate::core::process::process_event::ProcessEvent;
 const STAT_FILENAME: &str = "./data/saito.stats";
 const STAT_FILE_WRITE_INTERVAL: u64 = 5_000; // in milliseconds
 
-
 #[derive(Default, Debug, Clone, Serialize)]
-pub struct PeerStatEntry{
-pub public_key: String,
+pub struct PeerStatEntry {
+    pub public_key: String,
     pub ip_address: String,
     pub is_lite_mode: bool,
     pub connection_status: String,
