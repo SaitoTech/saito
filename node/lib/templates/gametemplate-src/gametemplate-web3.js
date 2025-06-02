@@ -115,10 +115,12 @@ class GameWeb3 {
     console.info('GT [settleGameStake] winners: ', winners);
 
     if (!this.game?.stake || !this.game?.crypto) {
+      console.debug("GT [settleGameStake] No stake: ", this.game.stake, this.game.crypto);
       return;
     }
 
     if (this.game.crypto == 'CHIPS') {
+      console.debug("GT [settleGameStake] Playing with chips: ", this.game.stake, this.game.crypto);
       return;
     }
 

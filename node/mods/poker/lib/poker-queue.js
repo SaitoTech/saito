@@ -285,11 +285,6 @@ class PokerQueue {
 								// only losers
 								//
 								if (this.game.state.player_pot[i] > 0) {
-									let amount_to_send = this.convertChipsToCrypto(this.game.state.player_pot[i]);
-
-									console.log(
-										`crypto -- ${i}->${player_left_idx}: ${this.game.players[i]}\t${this.game.players[player_left_idx]}\t${amount_to_send}\t${this.game.crypto}`
-									);
 									this.game.state.debt[i] += this.game.state.player_pot[i];
 									this.game.state.debt[player_left_idx] -= this.game.state.player_pot[i];
 								}
@@ -698,14 +693,6 @@ class PokerQueue {
 					for (let ii = 0; ii < this.game.players.length; ii++) {
 						for (let i = 0; i < winners.length; i++) {
 							if (!winners.includes(ii) && this.game.state.player_pot[ii] > 0) {
-								let amount_to_send = this.convertChipsToCrypto(
-									this.game.state.player_pot[ii] / winners.length
-								);
-								console.log(
-									`crypto -- ${ii}->${winners[i]}: ${this.game.players[ii]}\t${
-										this.game.players[winners[i]]
-									}\t${amount_to_send}\t${this.game.crypto}`
-								);
 								let share_of_winnings = this.game.state.player_pot[ii] / winners.length;
 								this.game.state.debt[ii] += share_of_winnings;
 								this.game.state.debt[winners[i]] -= share_of_winnings;
