@@ -34,7 +34,7 @@ use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
 use super::consensus::peers::peer::PeerStatus;
-use super::stat_thread::{PeerStat, StatEvent};
+use super::stat_thread::{PeerStat, PeerStatEntry, StatEvent};
 
 #[derive(Debug)]
 pub enum RoutingEvent {
@@ -1020,6 +1020,16 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     peer_stat.connecting_peers += 1;
                 }
             }
+            peer_stat.peers.push(PeerStatEntry {
+                public_key: peer.public_key.unwrap_or([0; 33]).to_base58(),
+                ip_address: peer.ip_address.clone().unwrap_or("NA".to_string()),
+                is_lite_mode: peer.block_fetch_url.is_empty(),
+                connection_status: match peer.peer_status {
+                    PeerStatus::Connected => "connected".to_string(),
+                    PeerStatus::Disconnected(_, _) => "disconnected".to_string(),
+                    PeerStatus::Connecting => "connecting".to_string(),
+                },
+            });
         }
 
         self.stat_sender
