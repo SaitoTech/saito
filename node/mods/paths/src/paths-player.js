@@ -1381,6 +1381,7 @@ console.log("###");
     this.menu_overlay.render(this.game.player, faction, card);
     this.attachCardboxEvents((action) => {
 
+      this.unbindBackButtonFunction();
       this.updateStatus("selected...");
       this.menu_overlay.hide();
 
@@ -1742,7 +1743,7 @@ console.log("###");
 
       paths_self.playerSelectSpaceWithFilter(
 
-	    `${active_unit_moves} moves for Group`,
+	    `${active_unit_moves} moves for Group (${currentkey})`,
 
 	    (destination) => {
 
@@ -1820,6 +1821,29 @@ console.log("###");
 	      //
 	      let is_one_hop_move = false;
 	      if (paths_self.game.spaces[currentkey].neighbours.includes(key2)) { is_one_hop_move = true; }
+
+
+	      //
+	      // check that this space has at least 1 connected to our faction. if it 
+	      // does not, the space is out-of-supply and we should remind the player 
+	      // to move space-by-space.
+	      //
+	      if (!is_one_hop_move) {
+	        let n = paths_self.game.spaces[key2].neighbours;
+	        let is_in_supply = false;
+	        for (let n1 = 0; n1 < n.length; n1++) {
+		  if (paths_self.game.spaces[n[n1]].control == faction) {
+		    is_in_supply = true;
+		  }
+	        }
+	        if (!is_in_supply) {
+    		  alert("Move into enemy-controlled territory one space at a time...");
+		  moveEverythingInterface(sourcekey, currentkey, mainInterface, moveInterface, unitActionInterface, continueMoveInterface, moveEverythingInterface);
+		  return;
+		}
+	      }
+
+
 
 
 	      //
@@ -2032,7 +2056,7 @@ console.log("###");
 
       paths_self.playerSelectSpaceWithFilter(
 
-	    `${active_unit_moves} moves for ${unit.name}`,
+	    `${active_unit_moves} moves for ${unit.name} (${currentkey})`,
 
 	    (destination) => {
 
@@ -2233,6 +2257,28 @@ console.log("###");
 	      //
 	      let is_one_hop_move = false;
 	      if (paths_self.game.spaces[currentkey].neighbours.includes(key2)) { is_one_hop_move = true; }
+
+
+	      //
+	      // check that this space has at least 1 connected to our faction. if it 
+	      // does not, the space is out-of-supply and we should remind the player 
+	      // to move space-by-space.
+	      //
+	      if (!is_one_hop_move) {
+	        let n = paths_self.game.spaces[key2].neighbours;
+	        let is_in_supply = false;
+	        for (let n1 = 0; n1 < n.length; n1++) {
+		  if (paths_self.game.spaces[n[n1]].control == faction) {
+		    is_in_supply = true;
+		  }
+	        }
+	        if (!is_in_supply) {
+    		  alert("Move into enemy-controlled territory one space at a time...");
+    		  continueMoveInterface(sourcekey, currentkey, idx, options, mainInterface, moveInterface, unitActionInterface, continueMoveInterface, moveEverythingInterface);
+		  return;
+		}
+	      }
+
 
 
 	      //
@@ -2728,6 +2774,7 @@ console.log("###");
     $('.option').off();
     $('.option').on('click', function () {
 
+      this.unbindBackButtonFunction();
       paths_self.updateStatus("selected...");
 
       //
