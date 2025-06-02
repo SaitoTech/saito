@@ -1,5 +1,4 @@
 module.exports = (app, mod) => {
-
   let html = `
       <div class="container send-nft-container">
          <div class="utxo-slips">
@@ -61,5 +60,4 @@ module.exports = (app, mod) => {
   `;
 
   return html;
-
-}
+};

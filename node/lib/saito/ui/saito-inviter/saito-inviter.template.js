@@ -1,5 +1,5 @@
 module.exports = (app, mod, options) => {
-	return `
+  return `
 
     <div class="saito-inviter">
 

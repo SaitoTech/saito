@@ -1,5 +1,5 @@
-module.exports  = () => {
-	return `
+module.exports = () => {
+  return `
     <div id="cardfan" class="cardfan">
     </div>
   `;

@@ -16,8 +16,8 @@ class InviteTemplate extends ModTemplate {
 
     this.relay_mod = null;
 
-    if (app.modules.returnModule("Relay")) {
-      this.relay_mod = app.modules.returnModule("Relay");
+    if (app.modules.returnModule('Relay')) {
+      this.relay_mod = app.modules.returnModule('Relay');
     }
   }
 
@@ -31,10 +31,10 @@ class InviteTemplate extends ModTemplate {
     //
     // this should only load accepted Invites
     //
-    await app.storage.loadTransactions("Invites", 50, (txs) => {
+    await app.storage.loadTransactions('Invites', 50, (txs) => {
       for (let i = 0; i < txs.length; i++) {
         txs[i].decryptMessage(app);
-        this.app.connection.emit("calendar-add-event-from-transaction", txs[i]);
+        this.app.connection.emit('calendar-add-event-from-transaction', txs[i]);
       }
     });
 
@@ -42,7 +42,7 @@ class InviteTemplate extends ModTemplate {
     // locally saved invites
     //
     for (let i = 0; i < this.invites.length; i++) {
-      this.app.connection.emit("calendar-add-event-from-transaction", this.invites[i]);
+      this.app.connection.emit('calendar-add-event-from-transaction', this.invites[i]);
     }
 
     await super.initialize(app);
@@ -75,8 +75,8 @@ class InviteTemplate extends ModTemplate {
       if (tx.to[i].publicKey !== invite.creator) {
         if (!invite.adds.includes(tx.to[i].publicKey)) {
           invite.adds.push(tx.to[i].publicKey);
-          invite.terms.push("on review");
-          invite.sigs.push("");
+          invite.terms.push('on review');
+          invite.sigs.push('');
         }
       }
     }
@@ -103,19 +103,19 @@ class InviteTemplate extends ModTemplate {
       await this.onAccept(tx);
     }
 
-    this.app.connection.emit("redsquare-menu-notification-request", { menu: "invites", num: 1 });
+    this.app.connection.emit('redsquare-menu-notification-request', { menu: 'invites', num: 1 });
   }
 
   onJoin(txarray) {
     try {
-      siteMessage("on join");
+      siteMessage('on join');
     } catch (err) {}
   }
 
   onClose(txarray) {
     for (let i = 0; i < this.invites.length; i++) {
       if (txmsg.invite_id === this.invites[i].invite_id) {
-        this.invites[i].status = "close";
+        this.invites[i].status = 'close';
         return;
       }
     }
@@ -123,7 +123,7 @@ class InviteTemplate extends ModTemplate {
 
   async onAccept(tx) {
     try {
-      siteMessage("on accept");
+      siteMessage('on accept');
     } catch (err) {}
 
     //
@@ -135,7 +135,7 @@ class InviteTemplate extends ModTemplate {
     try {
       await this.app.storage.saveTransaction(tx);
       this.updateInvite(tx);
-      this.app.connection.emit("calendar-add-event-from-transaction", tx);
+      this.app.connection.emit('calendar-add-event-from-transaction', tx);
     } catch (err) {}
   }
 
@@ -148,11 +148,11 @@ class InviteTemplate extends ModTemplate {
         // servers notify SPV clients
         //
         if (
-          (this.app.BROWSER == 0 && txmsg.request === "open") ||
-          txmsg.request === "invite" ||
-          txmsg.request === "join" ||
-          txmsg.request === "accept" ||
-          txmsg.request === "close"
+          (this.app.BROWSER == 0 && txmsg.request === 'open') ||
+          txmsg.request === 'invite' ||
+          txmsg.request === 'join' ||
+          txmsg.request === 'accept' ||
+          txmsg.request === 'close'
         ) {
           await this.notifyPeers(this.app, tx);
         }
@@ -167,35 +167,35 @@ class InviteTemplate extends ModTemplate {
         //
         // open invite
         //
-        if (txmsg.request === "open") {
+        if (txmsg.request === 'open') {
           this.receiveOpenTransaction(tx);
         }
 
         //
         // join invite
         //
-        if (txmsg.request === "join") {
+        if (txmsg.request === 'join') {
           this.receiveJoinTransaction(tx);
         }
 
         //
         // cancel invite
         //
-        if (txmsg.request === "close") {
+        if (txmsg.request === 'close') {
           this.receiveCloseTransaction(tx);
         }
 
         //
         // "sorry, already accepted"
         //
-        if (txmsg.request === "sorry") {
+        if (txmsg.request === 'sorry') {
           this.receiveSorryTransaction(tx);
         }
 
         //
         // acceptances
         //
-        if (txmsg.request === "accept") {
+        if (txmsg.request === 'accept') {
           await this.receiveAcceptTransaction(tx);
         }
       }
@@ -211,11 +211,11 @@ class InviteTemplate extends ModTemplate {
     for (let i = 0; i < this.app.options.invites.length; i++) {
       let inv = this.app.options.invites[i].msg.invite;
       if (inv.from[0] === this.publicKey) {
-        if (inv.msg && (inv.msg.request === "open" || inv.msg.request === "invite")) {
+        if (inv.msg && (inv.msg.request === 'open' || inv.msg.request === 'invite')) {
           let accept_found = 0;
           for (let z = 0; z < this.app.options.invites.length; z++) {
             let invz = this.app.options.invites[z];
-            if (invz.msg.request === "accept") {
+            if (invz.msg.request === 'accept') {
               if (invz.msg.invite_id == inv.signature) {
                 accept_found = 1;
               }
@@ -237,11 +237,11 @@ class InviteTemplate extends ModTemplate {
     for (let i = 0; i < this.app.options.invites.length; i++) {
       let inv = this.app.options.invites[i].msg.invite;
       if (inv.from[0] !== this.publicKey) {
-        if (inv.msg && (inv.msg.request === "open" || inv.msg.request === "invite")) {
+        if (inv.msg && (inv.msg.request === 'open' || inv.msg.request === 'invite')) {
           let accept_found = 0;
           for (let z = 0; z < this.app.options.invites.length; z++) {
             let invz = this.app.options.invites[z];
-            if (invz.msg.request === "accept") {
+            if (invz.msg.request === 'accept') {
               if (invz.msg.invite_id == inv.signature) {
                 accept_found = 1;
               }
@@ -263,11 +263,11 @@ class InviteTemplate extends ModTemplate {
     for (let i = 0; i < this.app.options.invites.length; i++) {
       let inv = this.app.options.invites[i].msg.invite;
       if (inv.from[0] === this.publicKey) {
-        if (inv.msg && (inv.msg.request === "open" || inv.msg.request === "invite")) {
+        if (inv.msg && (inv.msg.request === 'open' || inv.msg.request === 'invite')) {
           let accept_found = 0;
           for (let z = 0; z < this.app.options.invites.length; z++) {
             let invz = this.app.options.invites[z];
-            if (invz.msg.request === "accept") {
+            if (invz.msg.request === 'accept') {
               if (invz.msg.invite_id == inv.signature) {
                 accept_found = 1;
               }
@@ -289,11 +289,11 @@ class InviteTemplate extends ModTemplate {
     for (let i = 0; i < this.app.options.invites.length; i++) {
       let inv = this.app.options.invites[i].msg.invite;
       if (inv.from[0] !== this.publicKey) {
-        if (inv.msg && (inv.msg.request === "open" || inv.msg.request === "invite")) {
+        if (inv.msg && (inv.msg.request === 'open' || inv.msg.request === 'invite')) {
           let accept_found = 0;
           for (let z = 0; z < this.app.options.invites.length; z++) {
             let invz = this.app.options.invites[z];
-            if (invz.msg.request === "accept") {
+            if (invz.msg.request === 'accept') {
               if (invz.msg.invite_id == inv.signature) {
                 accept_found = 1;
               }
@@ -327,16 +327,16 @@ class InviteTemplate extends ModTemplate {
     // set defaults
     //
     if (!invite_obj.title) {
-      invite_obj.title = "New Invitation";
+      invite_obj.title = 'New Invitation';
     }
     if (!invite_obj.invite_id) {
-      invite_obj.invite_id = "";
+      invite_obj.invite_id = '';
     }
     if (!invite_obj.status) {
-      invite_obj.status = "open";
+      invite_obj.status = 'open';
     } // or "closed"
     if (!invite_obj.type) {
-      invite_obj.type = "event";
+      invite_obj.type = 'event';
     }
     if (!invite_obj.num) {
       invite_obj.num = 1;
@@ -354,10 +354,10 @@ class InviteTemplate extends ModTemplate {
       invite_obj.created_at = new Date().getTime();
     } // timestamp
     if (!invite_obj.public) {
-      invite_obj.public = "public";
+      invite_obj.public = 'public';
     } // or "private"
     if (!invite_obj.terms) {
-      invite_obj.terms = ["on accept"];
+      invite_obj.terms = ['on accept'];
     } // on accept -- when respondent return valid sigs
     if (!invite_obj.creator) {
       invite_obj.creator = this.publicKey;
@@ -367,18 +367,18 @@ class InviteTemplate extends ModTemplate {
     } // addressees
     if (invite_obj.num > invite_obj.adds.length) {
       if (!invite_obj.terms) {
-        invite_obj.terms = ["on review"];
+        invite_obj.terms = ['on review'];
       } // on review when public
     } else {
       if (!invite_obj.terms) {
-        invite_obj.terms = ["on accept"];
+        invite_obj.terms = ['on accept'];
       } // on accept when private
     }
     if (!invite_obj.status) {
-      invite_obj.status = "open";
+      invite_obj.status = 'open';
     } // or "closed"
     if (!invite_obj.type) {
-      invite_obj.type = "event";
+      invite_obj.type = 'event';
     }
     if (!invite_obj.num) {
       invite_obj.num = 1;
@@ -396,10 +396,10 @@ class InviteTemplate extends ModTemplate {
       invite_obj.created_at = new Date().getTime();
     } // timestamp
     if (!invite_obj.public) {
-      invite_obj.public = "public";
+      invite_obj.public = 'public';
     } // or "private"
     if (!invite_obj.terms) {
-      invite_obj.terms = ["on accept"];
+      invite_obj.terms = ['on accept'];
     } // on accept -- when respondent return valid sigs
     if (!invite_obj.creator) {
       invite_obj.creator = this.publicKey;
@@ -409,11 +409,11 @@ class InviteTemplate extends ModTemplate {
     } // addressees
     if (invite_obj.num > invite_obj.adds.length) {
       if (!invite_obj.terms) {
-        invite_obj.terms = ["on review"];
+        invite_obj.terms = ['on review'];
       } // on review when public
     } else {
       if (!invite_obj.terms) {
-        invite_obj.terms = ["on accept"];
+        invite_obj.terms = ['on accept'];
       } // on accept when private
     }
     if (!invite_obj.sigs) {
@@ -434,14 +434,18 @@ class InviteTemplate extends ModTemplate {
     // create transaction - to all participants
     //
     let added_keys = [this.publicKey];
-    let newtx = await this.app.wallet.createUnsignedTransaction(this.publicKey, BigInt(0), BigInt(0));
+    let newtx = await this.app.wallet.createUnsignedTransaction(
+      this.publicKey,
+      BigInt(0),
+      BigInt(0)
+    );
     newtx.msg = {
-      module: "Invites",
-      request: "open",
-      invite: invite_obj,
+      module: 'Invites',
+      request: 'open',
+      invite: invite_obj
     };
     for (let i = 0; i < invite_obj.adds.length; i++) {
-      if (invite_obj.adds[i] !== "public") {
+      if (invite_obj.adds[i] !== 'public') {
         if (!added_keys.includes(invite_obj.adds[i])) {
           newtx.addTo(invite_obj.adds[i]);
         }
@@ -451,21 +455,21 @@ class InviteTemplate extends ModTemplate {
     await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
 
-    let relay_mod = this.app.modules.returnModule("Relay");
+    let relay_mod = this.app.modules.returnModule('Relay');
     if (relay_mod) {
       for (let i = 0; i < invite_obj.adds.length; i++) {
-        if (invite_obj.adds[i] !== "public") {
-          this.app.connection.emit("relay-send-message", {
+        if (invite_obj.adds[i] !== 'public') {
+          this.app.connection.emit('relay-send-message', {
             recipient: [invite_obj.adds[i], this.publicKey],
             request: `${this.returnSlug()} open`,
-            data: newtx.toJson(),
+            data: newtx.toJson()
           });
         }
       }
     }
   }
 
-  signInvite(invite_obj, invite_id = "") {
+  signInvite(invite_obj, invite_id = '') {
     for (let i = 0; i < invite_obj.adds.length; i++) {
       if (invite_obj.adds[i] === this.publicKey) {
         if (this.publicKey == invite_obj.creator) {
@@ -479,7 +483,7 @@ class InviteTemplate extends ModTemplate {
         }
       }
     }
-    return "";
+    return '';
   }
 
   verifyInviteSig(invite_obj, publickey) {
@@ -520,7 +524,7 @@ class InviteTemplate extends ModTemplate {
   isNotInvalid(invite_obj) {
     for (let i = 0; i < invite_obj.adds.length; i++) {
       if (invite_obj.sigs.length > i) {
-        if (invite_obj.sigs[i] !== "") {
+        if (invite_obj.sigs[i] !== '') {
           if (this.verifyInviteSig(invite_obj, invite_obj.adds[i]) == false) {
             return false;
           }
@@ -545,7 +549,7 @@ class InviteTemplate extends ModTemplate {
 
   isAccepted(invite_obj, publickey) {
     for (let i = 0; i < invite_obj.adds.length; i++) {
-      if (invite_obj.terms[i] === "on accept") {
+      if (invite_obj.terms[i] === 'on accept') {
         if (this.verifyInviteSig(invite_obj, invite_obj.adds[i]) == true) {
           return true;
         }
@@ -557,7 +561,7 @@ class InviteTemplate extends ModTemplate {
   isPending(invite_obj, publickey) {
     for (let i = 0; i < invite_obj.adds.length; i++) {
       if (invite_obj.adds[i] === this.publicKey) {
-        if (invite_obj.terms[i] === "on accept") {
+        if (invite_obj.terms[i] === 'on accept') {
           if (this.verifyInviteSig(invite_obj, invite_obj.adds[i]) == true) {
             return false;
           }
@@ -576,7 +580,7 @@ class InviteTemplate extends ModTemplate {
     // or someone else is "on review"
     for (let i = 0; i < invite_obj.adds.length; i++) {
       if (invite_obj.adds[i] !== this.publicKey) {
-        if (invite_obj.terms[i] === "on review") {
+        if (invite_obj.terms[i] === 'on review') {
           return true;
         }
       }
@@ -592,7 +596,7 @@ class InviteTemplate extends ModTemplate {
     // if i am "on review"
     for (let i = 0; i < invite_obj.adds.length; i++) {
       if (invite_obj.adds[i] === this.publicKey) {
-        if (invite_obj.terms[i] === "on review") {
+        if (invite_obj.terms[i] === 'on review') {
           return true;
         }
       }
@@ -622,13 +626,13 @@ class InviteTemplate extends ModTemplate {
     }
 
     let obj = {};
-    obj.module = "Invites";
-    obj.request = "join";
+    obj.module = 'Invites';
+    obj.request = 'join';
     obj.invite = invite_obj;
 
     for (let i = 0; i < invite_obj.adds; i++) {
       if (invite_objs.adds[i] === this.publicKey) {
-        invite_objs.terms[i] = "on accept";
+        invite_objs.terms[i] = 'on accept';
         invite_objs.sigs[i] = this.app.wallet.signMessage(
           `${invite_id} ${invite_obj.terms[i]} ${invite_obj.adds[i]}`
         );
@@ -642,17 +646,17 @@ class InviteTemplate extends ModTemplate {
       }
     }
     newtx.msg = {
-      module: "Invites",
-      request: "join",
-      invite: invite_obj,
+      module: 'Invites',
+      request: 'join',
+      invite: invite_obj
     };
 
     await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
-    this.app.connection.emit("relay-send-message", {
-      recipient: invite_obj.adds.filter((x) => x !== "public"),
+    this.app.connection.emit('relay-send-message', {
+      recipient: invite_obj.adds.filter((x) => x !== 'public'),
       request: `${this.returnSlug()} join`,
-      data: newtx.toJson(),
+      data: newtx.toJson()
     });
   }
 
@@ -683,14 +687,18 @@ class InviteTemplate extends ModTemplate {
       invite_obj = invite_obj.msg;
     }
 
-    let newtx = await this.app.wallet.createUnsignedTransaction(invite_obj.adds[0], BigInt(0), BigInt(0));
+    let newtx = await this.app.wallet.createUnsignedTransaction(
+      invite_obj.adds[0],
+      BigInt(0),
+      BigInt(0)
+    );
     newtx.msg = {
-      module: "Invites",
-      request: "close",
-      invite: invite_obj,
+      module: 'Invites',
+      request: 'close',
+      invite: invite_obj
     };
     for (let i = 1; i < invite_obj.adds.length; i++) {
-      if (invite_obj.adds[i] !== "public") {
+      if (invite_obj.adds[i] !== 'public') {
         newtx.addTo(invite_obj.adds[i]);
       }
     }
@@ -698,10 +706,10 @@ class InviteTemplate extends ModTemplate {
     await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
 
-    this.app.connection.emit("relay-send-message", {
-      recipient: invite_obj.adds.filter((x) => x !== "public"),
+    this.app.connection.emit('relay-send-message', {
+      recipient: invite_obj.adds.filter((x) => x !== 'public'),
       request: `${this.returnSlug()} close`,
-      data: newtx.toJson(),
+      data: newtx.toJson()
     });
   }
 
@@ -726,24 +734,28 @@ class InviteTemplate extends ModTemplate {
   }
 
   async createSorryTransaction(invite_obj) {
-    let newtx = await this.app.wallet.createUnsignedTransaction(invite_obj.adds[0], BigInt(0), BigInt(0));
+    let newtx = await this.app.wallet.createUnsignedTransaction(
+      invite_obj.adds[0],
+      BigInt(0),
+      BigInt(0)
+    );
     newtx.msg = {
-      module: "Invites",
-      request: "sorry",
-      invite: invite_obj,
+      module: 'Invites',
+      request: 'sorry',
+      invite: invite_obj
     };
     for (let i = 1; i < invite_obj.adds.length; i++) {
-      if (invite_obj.adds[i] !== "public") {
+      if (invite_obj.adds[i] !== 'public') {
         newtx.addTo(invite_obj.adds[i]);
       }
     }
 
     await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
-    this.app.connection.emit("relay-send-message", {
-      recipient: invite_obj.adds.filter((x) => x !== "public"),
+    this.app.connection.emit('relay-send-message', {
+      recipient: invite_obj.adds.filter((x) => x !== 'public'),
       request: `${this.returnSlug()} sorry`,
-      data: newtx.toJson(),
+      data: newtx.toJson()
     });
   }
 
@@ -758,24 +770,24 @@ class InviteTemplate extends ModTemplate {
     for (let i = 0; i < invite_obj.adds.length; i++) {
       if (invite_obj.adds[i] === this.publicKey) {
         while (invite_obj.sigs.length <= i) {
-          invite_obj.sigs.push("");
+          invite_obj.sigs.push('');
         }
         while (invite_obj.terms.length <= i) {
-          invite_obj.terms.push("");
+          invite_obj.terms.push('');
         }
-        invite_obj.terms[i] = "on accept";
+        invite_obj.terms[i] = 'on accept';
         invite_obj.sigs[i] = this.signInvite(invite_obj, invite_obj.invite_id);
       }
     }
 
     let newtx = await this.app.wallet.createUnsignedTransaction(invite_obj.adds[0]);
     newtx.msg = {
-      module: "Invites",
-      request: "accept",
-      invite: invite_obj,
+      module: 'Invites',
+      request: 'accept',
+      invite: invite_obj
     };
     for (let i = 1; i < invite_obj.adds.length; i++) {
-      if (invite_obj.adds[i] !== "public") {
+      if (invite_obj.adds[i] !== 'public') {
         newtx.addTo(invite_obj.adds[i]);
       }
     }
@@ -783,7 +795,7 @@ class InviteTemplate extends ModTemplate {
     await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
 
-    this.app.connection.emit("relay-transaction", newtx);
+    this.app.connection.emit('relay-transaction', newtx);
   }
 
   async receiveAcceptTransaction(tx) {
@@ -822,7 +834,7 @@ class InviteTemplate extends ModTemplate {
       return;
     }
 
-    if (typeof message.data.tx != "undefined") {
+    if (typeof message.data.tx != 'undefined') {
       tx = new Transaction(undefined, message.data);
     } else {
       return;
@@ -832,23 +844,23 @@ class InviteTemplate extends ModTemplate {
       await this.notifyPeers(app, tx, message);
     }
 
-    if (message.request === this.returnSlug() + " open") {
+    if (message.request === this.returnSlug() + ' open') {
       this.receiveOpenTransaction(tx);
     }
 
-    if (message.request === this.returnSlug() + " join") {
+    if (message.request === this.returnSlug() + ' join') {
       this.receiveJoinTransaction(tx);
     }
 
-    if (message.request === this.returnSlug() + " close") {
+    if (message.request === this.returnSlug() + ' close') {
       this.receiveCloseTranaction(tx);
     }
 
-    if (message.request === this.returnSlug() + " sorry") {
+    if (message.request === this.returnSlug() + ' sorry') {
       this.receiveSorryTransaction(tx);
     }
 
-    if (message.request === this.returnSlug() + " accept") {
+    if (message.request === this.returnSlug() + ' accept') {
       await this.receiveAcceptTransaction(tx);
     }
   }
@@ -861,7 +873,7 @@ class InviteTemplate extends ModTemplate {
     }
     let peers = await app.network.getPeers();
     for (let i = 0; i < peers.length; i++) {
-      if (peers[i].synctype === "lite") {
+      if (peers[i].synctype === 'lite') {
         let request = message.request;
         let message = {};
         message.request = request;
@@ -934,7 +946,7 @@ class InviteTemplate extends ModTemplate {
 
     if (!this.options.adds.includes(publickey)) {
       this.options.adds.push(publickey);
-      this.options.terms.push("on accept");
+      this.options.terms.push('on accept');
 
       if (this.options.adds.length > this.options.num) {
         this.options.num++;
