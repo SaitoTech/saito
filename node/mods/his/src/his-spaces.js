@@ -2361,6 +2361,7 @@ console.log("RNFCP: " + faction + " --- " + spacekey);
   returnNavalNeighbours(space, transit_passes=1) {
     try { if (this.game.navalspaces[space]) { space = this.game.navalspaces[space]; } } catch (err) {}
     let neighbours = [];
+    try {
     for (let i = 0; i < space.ports.length; i++) {
       let x = space.ports[i];
       neighbours.push(x);
@@ -2369,7 +2370,9 @@ console.log("RNFCP: " + faction + " --- " + spacekey);
       let x = space.neighbours[i];
       neighbours.push(x);
     }
-
+    } catch (err) {
+      console.log(JSON.stringify(err));
+    }
     return neighbours;
   }
 

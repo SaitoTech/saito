@@ -12131,7 +12131,7 @@ if (space.key == "milan") {
       canEvent : function(his_self, faction) { 
 	if (faction == "papacy") { return 1; }
 	if (faction == "ottoman") {
-	  if (paths_self.returnControllingPower("venice") != "venice") {
+	  if (his_self.returnControllingPower("venice") != "venice") {
 	    return 1;
 	  }
 	}
