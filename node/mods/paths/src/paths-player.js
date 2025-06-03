@@ -2772,9 +2772,9 @@ console.log("###");
     this.updateStatusWithOptions(msg, html);
 
     $('.option').off();
-    $('.option').on('click', function () {
+    $('.option').on('click', () => {
 
-      this.unbindBackButtonFunction();
+      paths_self.unbindBackButtonFunction();
       paths_self.updateStatus("selected...");
 
       //
