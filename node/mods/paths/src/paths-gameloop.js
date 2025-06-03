@@ -427,6 +427,7 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 		  if (this.returnPowerOfUnit(space.units[0]) != space.control) {
 
 		    roll = this.rollDice(6);
+this.updateLog("SIEGE ROLL: " + roll);
 
 		    if (this.game.state.turn < 2) { roll -= 2; }
 		    if (roll > space.fort) {
