@@ -172,8 +172,11 @@ class SaitoHeader extends UIModTemplate {
         );
 
         document.querySelector('.saito-header-logo-wrapper').onclick = (e) => {
+          console.debug("RSaitoHeader -- click on header-logo-wrapper");
           if (callback) {
             callback(e);
+          }else{
+            console.warn("SaitoHeader: no callback attached to back button!");
           }
         };
       }
@@ -202,6 +205,8 @@ class SaitoHeader extends UIModTemplate {
   resetHeaderLogo() {
     let logo = document.querySelector('.saito-header-logo-wrapper');
     if (logo) {
+      console.debug("RSaitoHeader: reset header-logo-wrapper");
+      
       logo.innerHTML = `
 	      <img class="saito-header-logo" alt="Logo" src="/saito/img/logo.svg" />
 	    `;

@@ -117,6 +117,7 @@ class RedSquareMain {
       );
 
       this.app.connection.emit('saito-header-replace-logo', () => {
+        console.debug("RS.NAV : backbutton callback from redsquare-tweet-render-request");
         window.history.back();
       });
 
@@ -135,6 +136,7 @@ class RedSquareMain {
       );
 
       this.app.connection.emit('saito-header-replace-logo', () => {
+        console.debug("RS.NAV : backbutton callback from redsquare-notifications-render-request");
         window.history.back();
       });
 
@@ -158,6 +160,7 @@ class RedSquareMain {
       window.history.pushState({ view: 'profile', publicKey }, '', '/' + this.mod.slug + target);
 
       this.app.connection.emit('saito-header-replace-logo', () => {
+        console.debug("RS.NAV : backbutton callback from redsquare-profile-render-request");
         window.history.back();
       });
 
@@ -200,7 +203,7 @@ class RedSquareMain {
       //if (this.mod.debug){
       console.info(
         '===================',
-        'RS.onpopstate: ',
+        'RS.NAV[onpopstate]: ',
         event?.state,
         window.location,
         '========================'
