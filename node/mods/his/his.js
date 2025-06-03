@@ -3511,6 +3511,17 @@ the game engine automatically handles token denomination, merging smaller
         game_mod.marriage_overlay.render();
       }
     });
+    this.menu.addSubMenuOption("game-info", {
+      text: "New World",
+      id: "game-newworld",
+      class: "game-newworld",
+      callback: function(app, game_mod){
+	game_mod.menu.hideSubMenus();
+	let r = game_mod.game.state.round;
+	if (r > 0) { r--; }
+        game_mod.newworld_overlay.render("results", r);
+      }
+    });
 
 
 /***
@@ -12537,16 +12548,14 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	      if (his_self.isSpaceBesieged(space.key)) { return 0; }
 
+	      let controlling_faction = "";
+	      if (space.political) { controlling_faction = space.political; }
+
+
 	      //
 	      // 2P game - may be played against electorate under Hapsburg Control
 	      //
 	      if (his_self.game.players.length == 2) {
-if (space.key == "milan") {
-  console.log("#");
-  console.log("#");
-  console.log("#");
-  console.log("MILAN CSR: " + JSON.stringify(space));
-}
 		if (his_self.game.state.events.schmalkaldic_league == 1) { if (space.type == "electorate" && space.political == "hapsburg") { return 1; } }
 	        if (space.type == "key" && space.home === "independent" && (space.key == "metz" || space.language == "german" || space.language == "italian") && (space.political !== space.home && space.political !== "" && space.political)) { return 1; }
 	        return 0;
@@ -12576,6 +12585,7 @@ if (space.key == "milan") {
 
 	    function(spacekey) {
 	      his_self.updateStatus("selected");
+	      if (controlling_faction != "") { his_self.addMove("maybe_evacuate_or_capture_leaders\t"+controlling+faction+"\t"+spacekey); }
 	      his_self.addMove("city-state-rebels\t"+faction+"\t"+spacekey);
 	      his_self.endTurn();
 	    },
@@ -24941,6 +24951,7 @@ this.updateLog(`###############`);
 	  }
 
 	  if (show_overlay) {
+console.log("display custom overlay: " + card + " -- " + msg);
 	    this.displayCustomOverlay(card, msg);
 	  }
 
@@ -31154,12 +31165,6 @@ try {
 	    if (defender_modified_rolls[i] >= 5 && defender_results[i] < 5) { defender_hits++; }
 	  }
 
-
-//
-// TEST / HACK -- control hits / adjust hits here
-//
-attacker_hits = 1;
-defender_hits = 2;
 
 	  //
 	  // we have now rolled all of the dice that we need to roll at this stage
@@ -48019,7 +48024,15 @@ does_units_to_move_have_unit = true; }
       for (let i = 0; i < his_self.game.navalspaces[key].units[faction].length; i++) {
 	if (his_self.game.navalspaces[key].units[faction][i].type == "corsair") { 
 	  if (!his_self.game.state.events.ottoman_piracy_seazones.includes(key)) {
-	    targetsea = true;
+      	    for (let ii = 0; ii < his_self.game.navalspaces[key].ports.length; ii++) {
+	      let ps = his_self.game.spaces[his_self.game.navalspaces[key].ports[ii]];
+	      let controller = ps.political;
+	      if (ps.political == "") { controller = ps.home; }
+	      controller = his_self.returnControllingPower(controller);
+console.log("controller: " + controller + " -- " + key);
+	      if (controller == "hapsburg" || controller == "france" || controller == "papacy" || controller == "england") { targetsea = true; }
+      	    }
+
 	  }
 	}
       }

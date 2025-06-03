@@ -467,6 +467,7 @@ this.updateLog(`###############`);
 	  }
 
 	  if (show_overlay) {
+console.log("display custom overlay: " + card + " -- " + msg);
 	    this.displayCustomOverlay(card, msg);
 	  }
 
@@ -6680,12 +6681,6 @@ try {
 	    if (defender_modified_rolls[i] >= 5 && defender_results[i] < 5) { defender_hits++; }
 	  }
 
-
-//
-// TEST / HACK -- control hits / adjust hits here
-//
-attacker_hits = 1;
-defender_hits = 2;
 
 	  //
 	  // we have now rolled all of the dice that we need to roll at this stage
