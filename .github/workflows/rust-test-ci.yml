@@ -2,9 +2,9 @@ name: Unit Test Plan
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, prod ]
   pull_request:
-    branches: [ develop, master ]
+    branches: [ develop, master, staging ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,9 +19,12 @@ jobs:
       - uses: jetli/wasm-pack-action@v0.3.0
         with:
           version: 'v0.12.1'
-      - name: Check Formatting
+      - name: Check Formatting (RUST)
         run: cargo fmt --check --verbose
         working-directory: ./rust
+      - name: Check Formatting (JS)
+        run: npx prettier --check ./lib
+        working-directory: ./node
       - name: Build
         run: cargo build --verbose
         working-directory: ./rust
@@ -33,5 +36,8 @@ jobs:
       - name: Compile into WASM
         working-directory: ./rust/saito-wasm
         run: wasm-pack build --debug --target browser
+      - name: Compile JS code
+        run: npm install && npm run reset
+        working-directory: ./node
 #      - name: Build documentation
 #        run: cargo doc --no-deps
