@@ -83,3 +83,11 @@
 .redsquare-feed-toggle .saito-button-tab:hover{
 	background: var(--background-color-gray-transparent);
 }
+
+.tweet-manager.active-curation .tweet{
+	display: none;
+}
+
+.tweet-manager.active-curation .tweet[data-curated="1"]{
+	display: block;
+}

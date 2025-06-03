@@ -329,55 +329,6 @@ class RedSquare extends ModTemplate {
             return -1;
           }
 
-          //
-          // CURATION (browsers)
-          //
-          // we have two kinds of curation, browsers filter based on a restricted
-          // set of criteria, looking for transactions/tweets from users/friends
-          // stored on their keylist.
-          //
-          if (this.app.BROWSER) {
-            if (this.app.keychain.hasPublicKey(tx.from[0].publicKey)) {
-              return 1;
-            }
-
-            if (tx?.optional?.num_replies > 0) {
-              return 0;
-            }
-
-            if (tx?.optional?.num_likes > 10) {
-              return 0;
-            }
-
-            return -1;
-
-            //
-            // CURATION (servers)
-            //
-            // servers filter based on whether users have registered usernames and
-            // whether the tweets themselves seem to have a positive reception.
-            // these criteria are used to determine whether the tweets are passed
-            // along to users.
-            //
-          } else {
-            let is_anonymous_user = !this.app.keychain.returnIdentifierByPublicKey(
-              tx.from[0].publicKey,
-              false
-            );
-            if (is_anonymous_user) {
-              return 0;
-            }
-
-            let tweet = new Tweet(this.app, this, tx, '.tweet-manager');
-            if (tweet.num_replies > 0) {
-              return 1;
-            }
-
-            if (tweet.num_likes > 1) {
-              return 1;
-            }
-          }
-
           return 0;
         }
       };
@@ -457,7 +408,7 @@ class RedSquare extends ModTemplate {
           let txmsg = tx.returnMessage();
           if (txmsg && txmsg.module == this.name) {
             if (txmsg.request === 'create tweet') {
-              this.addTweet(tx, {type: 'pending_tx', node: 'wallet'});
+              this.addTweet(tx, { type: 'pending_tx', node: 'wallet' });
             }
           }
         }
@@ -496,7 +447,7 @@ class RedSquare extends ModTemplate {
         if (!newtx?.optional) {
           newtx.optional = {};
         }
-        this.addTweet(newtx, {type: 'server-cache', node: 'server'}, 1);
+        this.addTweet(newtx, { type: 'server-cache', node: 'server' }, 1);
       }
     }
 
@@ -633,7 +584,6 @@ class RedSquare extends ModTemplate {
   // messages arrive on-chain over the network here
   //
   async onConfirmation(blk, tx, conf) {
-
     let txmsg = tx.returnMessage();
 
     if (conf == 0) {
@@ -647,7 +597,7 @@ class RedSquare extends ModTemplate {
       }
       if (txmsg.request === 'create tweet') {
         await this.receiveTweetTransaction(blk, tx, conf, this.app);
-        if (this.addTweet(tx, {type: 'on chain', node: blk.id})) {
+        if (this.addTweet(tx, { type: 'on chain', node: blk.id })) {
           this.cacheRecentTweets();
         }
       }
@@ -832,12 +782,12 @@ class RedSquare extends ModTemplate {
       }
 
       let source = {
-        type: "archive",
-        node: peer.publicKey,
+        type: 'archive',
+        node: peer.publicKey
       };
 
-      if (peer.publicKey == this.publicKey){
-        source.node = "localhost";
+      if (peer.publicKey == this.publicKey) {
+        source.node = 'localhost';
       }
 
       let added = this.addTweet(txs[z], source);
@@ -1003,7 +953,7 @@ class RedSquare extends ModTemplate {
           if (txs.length > 0) {
             for (let z = 0; z < txs.length; z++) {
               txs[z].decryptMessage(this.app);
-              this.addTweet(txs[z], {type: 'tweet_thread', node: this.peers[i].publicKey});
+              this.addTweet(txs[z], { type: 'tweet_thread', node: this.peers[i].publicKey });
             }
           }
 
@@ -1067,7 +1017,7 @@ class RedSquare extends ModTemplate {
         if (txs.length > 0) {
           for (let z = 0; z < txs.length; z++) {
             txs[z].decryptMessage(this.app);
-            this.addTweet(txs[z], {type: 'loadTweetWithSig', node: 'localhost'});
+            this.addTweet(txs[z], { type: 'loadTweetWithSig', node: 'localhost' });
           }
           mycallback(txs);
         } else {
@@ -1079,7 +1029,10 @@ class RedSquare extends ModTemplate {
                   if (txs.length > 0) {
                     for (let z = 0; z < txs.length; z++) {
                       txs[z].decryptMessage(this.app);
-                      this.addTweet(txs[z], {type: 'loadTweetWithSig', node: this.peers[i].publicKey});
+                      this.addTweet(txs[z], {
+                        type: 'loadTweetWithSig',
+                        node: this.peers[i].publicKey
+                      });
                     }
                     mycallback(txs);
                   }
@@ -1109,16 +1062,16 @@ class RedSquare extends ModTemplate {
   //
   // returns 1 if this is a new tweet that can be displayed
   //
-  addTweet(tx, source = null, curated = 0) {
+  addTweet(tx, source = null, override_curation = 0) {
     //
     // if this is a like or flag tx, it isn't anything to add to the feed so stop here
     //
     let txmsg = tx.returnMessage();
 
-    if (source){
+    if (source) {
       source.ts = new Date().getTime();
-      if (tx.optional){
-        source.optional = Object.assign({}, tx.optional);  
+      if (tx.optional) {
+        source.optional = Object.assign({}, tx.optional);
       }
     }
 
@@ -1150,7 +1103,6 @@ class RedSquare extends ModTemplate {
       return 0;
     }
 
-
     //
     // we may be attempting to add a tweet that we already have in our hashmap, in
     // this case we want to load our existing tweet and update the stats for it that
@@ -1164,7 +1116,8 @@ class RedSquare extends ModTemplate {
       if (this.debug) {
         console.debug(
           `RS.addTweet: Duplicate! Feed length: (${this.tweets.length}) -- `,
-          t?.text, source
+          t?.text,
+          source
         );
       }
 
@@ -1232,8 +1185,7 @@ class RedSquare extends ModTemplate {
     //
     // curation: accept the curated parameter if 1, or fallback on algorithmic curation
     //
-    tweet.curated = curated || this.app.modules.moderate(tweet.tx, this.name);
-
+    tweet.curated = override_curation || this.curate(tweet);
 
     //
     // this tweet is a post
@@ -1267,7 +1219,8 @@ class RedSquare extends ModTemplate {
       if (this.debug) {
         console.debug(
           `RS.addTweet Success! Feed has (${this.tweets.length}) -- `,
-          tweet.text, source
+          tweet.text,
+          source
         );
       }
 
@@ -1290,7 +1243,8 @@ class RedSquare extends ModTemplate {
           if (this.debug) {
             console.debug(
               `RS.addTweet: child tweet success! Feed length: (${this.tweets.length}) -- `,
-              tweet.text, source
+              tweet.text,
+              source
             );
           }
 
@@ -1304,7 +1258,8 @@ class RedSquare extends ModTemplate {
       if (this.debug) {
         console.debug(
           `RS.addTweet: unknown child! Feed length: (${this.tweets.length}) -- `,
-          tweet.text, source
+          tweet.text,
+          source
         );
       }
 
@@ -1529,9 +1484,7 @@ class RedSquare extends ModTemplate {
       //
       // set as curated if liked by moderator
       //
-      if (this.app.modules.moderate(tx) == 1) {
-        liked_tweet.curated = 1;
-      }
+      liked_tweet.curated = this.curate(liked_tweet);
 
       if (!liked_tweet.tx.optional) {
         liked_tweet.tx.optional = {};
@@ -1681,9 +1634,7 @@ class RedSquare extends ModTemplate {
       //
       // set as curated if liked by moderator
       //
-      if (this.app.modules.moderate(tx) == 1) {
-        retweeted_tweet.curated = 1;
-      }
+      retweeted_tweet.curated = this.curate(retweeted_tweet);
 
       //
       // Put the updated_at timestamp in the tx, in case it isn't there (wasn't read from archive)
@@ -2666,6 +2617,78 @@ class RedSquare extends ModTemplate {
         });
     } else {
       return '';
+    }
+  }
+
+
+  // This needs to be a separate function from basic moderation, because users
+  // will want to toggle it on/off, but moderation happens at the core and blocks 
+  // even receiving transactions
+
+  curate(tweet) {
+    let tx = tweet.tx;
+
+    // MODERATE first
+    // accept black and white lists as authoritative before defaulting to tweet analysis
+    //
+
+    let moderation_score = this.app.modules.moderate(tx);
+
+    if (moderation_score == 1) {
+      return 1;
+    }
+    if (moderation_score == -1) {
+      return -1;
+    }
+
+    //
+    // CURATION (browsers)
+    //
+    // we have two kinds of curation, browsers filter based on a restricted
+    // set of criteria, looking for transactions/tweets from users/friends
+    // stored on their keylist.
+    //
+    if (this.app.BROWSER) {
+      if (this.app.keychain.hasPublicKey(tx.from[0].publicKey)) {
+        return 1;
+      }
+
+      if (tx?.optional?.num_replies > 0) {
+        return 0;
+      }
+
+      if (tx?.optional?.num_likes > 10) {
+        return 0;
+      }
+
+      return -1;
+
+      //
+      // CURATION (servers)
+      //
+      // servers filter based on whether users have registered usernames and
+      // whether the tweets themselves seem to have a positive reception.
+      // these criteria are used to determine whether the tweets are passed
+      // along to users.
+      //
+    } else {
+      let is_anonymous_user = !this.app.keychain.returnIdentifierByPublicKey(
+        tx.from[0].publicKey,
+        false
+      );
+      if (is_anonymous_user) {
+        return 0;
+      }
+
+      if (tweet.num_replies > 0) {
+        return 1;
+      }
+
+      if (tweet.num_likes > 1) {
+        return 1;
+      }
+
+      return 0;
     }
   }
 }
