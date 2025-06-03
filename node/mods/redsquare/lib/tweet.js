@@ -275,12 +275,12 @@ class Tweet {
 		//
 		// Apply curation Here !!!!
 		//
-		if (this.mod.curated && this?.curated == -1) {
+		/*if (this.mod.curated && this?.curated == -1) {
 			if (this.mod.debug){
 				console.info("RS.tweet -- curated (!) : ", this.text);
 			}
 			return -1;
-		}
+		}*/
 
 		for (let peer of this.mod.peers) {
 			if (this.tx.isFrom(peer.publicKey)){

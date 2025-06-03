@@ -191,8 +191,12 @@ class TweetManager {
 
 		if (new_mode == 'tweets') {
 			document.querySelector('.redsquare-feed-toggle').classList.remove('hidden');
+			if (this.mod.curated){
+				document.querySelector(".tweet-manager").classList.add("active-curation");
+			}
 		} else {
 			document.querySelector('.redsquare-feed-toggle').classList.add('hidden');
+			document.querySelector(".tweet-manager").classList.remove("active-curation");
 		}
 
 		let holder = document.getElementById('tweet-thread-holder');
@@ -712,12 +716,9 @@ class TweetManager {
 			document.getElementById('curated').onclick = (e) => {
 				e.currentTarget.classList.add('active');
 				document.getElementById('everything').classList.remove('active');
+				document.querySelector(".tweet-manager").classList.add("active-curation");
 				this.mod.curated = true;
 				this.mod.saveOptions();
-				this.showLoader();
-				setTimeout(() => {
-					this.render();
-				}, 10);
 			};
 		}
 		if (document.getElementById('everything')) {
@@ -725,12 +726,9 @@ class TweetManager {
 			document.getElementById('everything').onclick = (e) => {
 				e.currentTarget.classList.add('active');
 				document.getElementById('curated').classList.remove('active');
+				document.querySelector(".tweet-manager").classList.remove("active-curation");
 				this.mod.curated = false;
 				this.mod.saveOptions();
-				this.showLoader();
-				setTimeout(() => {
-					this.render();
-				}, 10);
 			};
 		}
 	}
