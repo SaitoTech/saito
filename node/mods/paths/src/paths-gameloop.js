@@ -503,10 +503,12 @@ console.log(JSON.stringify(this.game.deck[1].hand));
           	      if (power == "allies") {
 			this.updateLog(u.name + " eliminated from " + this.returnSpaceNameForLog(key) + " (out-of-supply)");
 			this.game.spaces[key].units.splice(z, 1);
+		  	this.displaySpace(key);
 		      }
           	      if (power == "central") {
 			this.updateLog(u.name + " eliminated from " + this.returnSpaceNameForLog(key) + " (out-of-supply)");
 			this.game.spaces[key].units.splice(z, 1);
+		  	this.displaySpace(key);
 		      }
 		    }
 		    if (u.corps) {
@@ -514,15 +516,18 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 			this.updateLog(u.name + " eliminated from " + this.returnSpaceNameForLog(key) + " (out-of-supply)");
             		this.game.state.eliminated["allies"].push(this.game.spaces[key].units[z]);
 			this.game.spaces[key].units.splice(z, 1);
+		  	this.displaySpace(key);
 		      }
           	      if (power == "central") {
 			this.updateLog(u.name + " eliminated from " + this.returnSpaceNameForLog(key) + " (out-of-supply)");
             		this.game.state.eliminated["central"].push(this.game.spaces[key].units[z]);
 			this.game.spaces[key].units.splice(z, 1);
+		  	this.displaySpace(key);
 		      }
 		    }
 		  }
 		  }
+
 		}
 	      }
 	    }
