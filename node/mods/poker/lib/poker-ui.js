@@ -80,7 +80,7 @@ class PokerUI {
 
   displayHand() {
     if (this.game.player == 0) {
-      this.updateStatus(`You are observing the game`, -1);
+      this.updateStatus(`you are observing the game`, -1);
       return;
     }
 
@@ -303,13 +303,13 @@ class PokerUI {
     });
 
     if (!can_call) {
-      this.updateStatus('You can only fold...');
+      this.updateStatus('you can only fold...');
       this.addMove('fold\t' + poker_self.game.player);
       this.endTurn();
       return;
     }
 
-    this.displayPlayerNotice(`your turn:`, this.game.player);
+    this.displayPlayerNotice(`your turn`, this.game.player);
 
     let html = '<div class="option" id="fold"><img src="/poker/img/fold_icon.svg" alt="fold"><span>fold</span></div>';
 
@@ -337,7 +337,7 @@ class PokerUI {
         if (match_required > 0) {
           html += `match ${poker_self.formatWager(match_required)} and  `;
         } 
-        html += `raise: `;
+        html += `raise`;
         
         poker_self.updateStatus(html);
 
