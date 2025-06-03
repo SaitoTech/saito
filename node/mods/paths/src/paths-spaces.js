@@ -3899,6 +3899,7 @@ spaces['crbox'] = {
       if (!spaces[key].fort) { spaces[key].fort = 0; }
       spaces[key].trench = 0;
       if (!spaces[key].control) { spaces[key].control = ""; }
+      if (!spaces[key].country) { spaces[key].country = ""; }
       spaces[key].activated_for_movement = 0;
       spaces[key].activated_for_combat = 0;
       if (!spaces[key].port) { spaces[key].port = 0; } // no port

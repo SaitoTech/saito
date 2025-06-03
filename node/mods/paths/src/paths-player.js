@@ -1512,6 +1512,8 @@ console.log("###");
 	"Execute Combat (Select Target): ",
 	(key) => {
 
+console.log("key: " + key);
+
 	  //
 	  // Austrian units can still attack...
 	  //
@@ -1572,6 +1574,7 @@ console.log("###");
 	  }
 	
 	  paths_self.removeSelectable();
+console.log("sending into attackI: " + key);
 	  attackInterface(key, options, [], mainInterface, attackInterface);
 	},
 	null,
@@ -1584,6 +1587,8 @@ console.log("###");
 
       let units = [];
       let original_key = key;
+
+console.log("original_key: " + original_key);
 
       let can_german_units_attack = true;
       if (paths_self.game.spaces[key].country == "russia" && paths_self.game.spaces[key].fort > 0 && paths_self.game.spaces[key].units.length > 0 && paths_self.game.state.events.oberost != 1) {
@@ -2734,7 +2739,7 @@ console.log("###");
     for (let key in this.game.spaces) {
       if (filter_func(key) == 1) {
         at_least_one_option = true;
-        html += '<li class="option .'+key+'" id="' + key + '">' + key + '</li>';
+        html += '<li class="option '+key+'" id="' + key + '">' + key + '</li>';
 
         //
         // the spaces that are selectable are clickable on the main board (whatever board shows)
@@ -2772,7 +2777,7 @@ console.log("###");
     this.updateStatusWithOptions(msg, html);
 
     $('.option').off();
-    $('.option').on('click', () => {
+    $('.option').on('click', function () {
 
       paths_self.unbindBackButtonFunction();
       paths_self.updateStatus("selected...");
