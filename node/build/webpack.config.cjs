@@ -9,6 +9,7 @@ let entrypoint = "../bundler/default/apps/lite/index.ts";
 let outputfile = "saito.js";
 if (process.argv.includes("dev")) {
   console.log("dev mode source not minified");
+  console.log("");
   minimize = false;
   devtool = "eval";
 }
