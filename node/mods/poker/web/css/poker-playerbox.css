@@ -210,6 +210,13 @@
   .game-playerbox-manager {
     gap: 2rem;
   }
+  .game-playerbox {
+    border: 0px;
+    width: 100%;
+    border-radius: 0px;
+    border-top: 1px solid white;
+    border-bottom: 1px solid white;
+  }
 }
 
 @media screen and (max-width: 600px) {

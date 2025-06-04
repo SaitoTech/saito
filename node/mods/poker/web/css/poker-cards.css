@@ -74,7 +74,9 @@
 
 @media screen and (orientation: portrait) and (max-width: 600px) {
     .cardfan {
-        top: -60px;
+	top: -80px;
+        left: calc(50% - min(15vh, 22vw));
+        transform: scale(1.5);
     }
 }
 

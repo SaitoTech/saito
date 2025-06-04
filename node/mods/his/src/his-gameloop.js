@@ -932,7 +932,7 @@ console.log("display custom overlay: " + card + " -- " + msg);
 		        this.displaySpace(spacekey);
 
 		      //
-		      // otherwise attrition + return to capital
+		      // otherwise attrition + return to nearest friendly fortified space or capital outside LOC
 		      //
 		      } else {
 
@@ -947,15 +947,13 @@ console.log("display custom overlay: " + card + " -- " + msg);
 			// calculate who is here
 			//
 		        for (let z = 0, y = 0; z < unitlen; z++) {
-		          if (this.game.spaces[spacekey].units[faction][z].reformer != true) {
+		          if (this.game.spaces[spacekey].units[faction][z].type == "regular" || this.game.spaces[spacekey].units[faction][z].type == "mercenary" || this.game.spaces[spacekey].units[faction][z].type == "cavalry") {
 		    	    if (y == 0) { number_to_destroy++; y++; } else { y = 0; }
-			    if (this.game.spaces[spacekey].units[faction][z].type != "squadron" || this.game.spaces[spacekey].units[faction][z].type != "corsair") {
-			      number_to_move++;
-			      if (this.game.spaces[spacekey].units[faction][z].type == "regular") {
-			        number_of_regulars++;
-			      } else {
-			        number_of_mercenaries++;
-			      }
+			    number_to_move++;
+			    if (this.game.spaces[spacekey].units[faction][z].type == "regular") {
+			      number_of_regulars++;
+			    } else {
+			      number_of_mercenaries++;
 			    }
 			  }
 			}
@@ -973,14 +971,13 @@ console.log("display custom overlay: " + card + " -- " + msg);
 			// attrition
 			//
 			if (number_to_destroy > 0) {
-			  this.updateLog(this.returnFactionName(faction) + " units in " + this.returnSpaceName(spacekey) + " suffer attrition");
-			}
 
-			//
-			// remove mercenaries/cavalry first
-			//
-			for (let z = unitlen-1; z >= 0 && number_to_destroy > 0 && number_of_mercenaries > 0; z--) {
-		          if (this.game.spaces[spacekey].units[faction][z].reformer != true) {
+			  this.updateLog(this.returnFactionName(faction) + " units in " + this.returnSpaceName(spacekey) + " suffer attrition (" + number_to_destroy + ")");
+
+			  //
+			  // remove mercenaries/cavalry first
+			  //
+			  for (let z = unitlen-1; z >= 0 && number_to_destroy > 0 && number_of_mercenaries > 0; z--) {
 			    if (this.game.spaces[spacekey].units[faction][z].type == "mercenary" || this.game.spaces[spacekey].units[faction][z].type == "cavalry") {
 			      number_to_destroy--;
 			      number_of_mercenaries--;
@@ -988,13 +985,11 @@ console.log("display custom overlay: " + card + " -- " + msg);
 			      unitlen--;
 			    }
 			  }
-			}
 
-			//
-			// remove regulars next
-			//
-			for (let z = unitlen-1; z >= 0 && number_to_destroy > 0 && number_of_regulars > 0; z--) {
-		          if (this.game.spaces[spacekey].units[faction][z].reformer != true) {
+			  //
+			  // remove regulars next
+			  //
+			  for (let z = unitlen-1; z >= 0 && number_to_destroy > 0 && number_of_regulars > 0; z--) {
 			    if (this.game.spaces[spacekey].units[faction][z].type == "regular") {
 			      number_to_destroy--;
 			      number_of_regulars--;
@@ -1003,39 +998,40 @@ console.log("display custom overlay: " + card + " -- " + msg);
 			    }
 			  }
 			}
-
 			//
-			// military leaders last
+			// return surviving units and leaders to nearest Friendly Fortified Space ignoring unrest
 			//
-			for (let z = 0; z < this.game.spaces[spacekey].units[faction].length; z++) {
-		          if (this.game.spaces[spacekey].units[faction][z].army_leader == true || this.game.spaces[spacekey].units[faction][z].navy_leader == true) {
-			    let leader = this.game.spaces[spacekey].units[faction][z];
-			    this.game.spaces[spacekey].units[faction].splice(z, 1);
-			    z--;
-			    unitlen--;
+                        for (let z = this.game.spaces[spacekey].units[faction].length-1; z >= 0; z--) {
 
-    			    let obj = {};
-			    obj.leader = leader;
-        		    obj.space = capitals[0];
-        		    obj.faction = faction;
-      			    this.game.state.military_leaders_removed_until_next_round.push(obj);
+			  let res2 = this.returnNearestFriendlyFortifiedSpacesTransitPassesIgnoreUnrestAndLineOfControl(faction, spacekey, 4, 1);
 
-			  }
-			}
+			  if (res2.length > 0) {
 
-                        for (let z = 0, y = 0; z < this.game.spaces[spacekey].units[faction].length && z < unitlen; z++) {
-                          if (capitals[y]) {
                             if (this.game.spaces[spacekey].units[faction][z].reformer != true && this.game.spaces[spacekey].units[faction][z].type != "squadron" && this.game.spaces[spacekey].units[faction][z].type != "corsair") {
-                              this.game.spaces[capitals[y]].units[faction].push(this.game.spaces[spacekey].units[faction][z]);
+                              this.game.spaces[res2[0].key].units[faction].push(this.game.spaces[spacekey].units[faction][z]);
                               this.game.spaces[spacekey].units[faction].splice(z, 1);
-                              z--;
-                              // we have moved one guy...
                               fluis--; fluis_idx--;
+			      this.displaySpace(res2[0].key);  
+			      this.displaySpace(spacekey);  
                             }
-                          }
-			  y++;
-			  if (!capitals[y]) { y = 0; }
+
+			  } else {
+
+                            if (capitals[y]) {
+                              if (this.game.spaces[spacekey].units[faction][z].reformer != true && this.game.spaces[spacekey].units[faction][z].type != "squadron" && this.game.spaces[spacekey].units[faction][z].type != "corsair") {
+                                this.game.spaces[capitals[y]].units[faction].push(this.game.spaces[spacekey].units[faction][z]);
+                                this.game.spaces[spacekey].units[faction].splice(z, 1);
+                                fluis--; fluis_idx--;
+		                this.displaySpace(capitals[y]);  
+			        this.displaySpace(spacekey);  
+			        y++;
+			        if (!capitals[y]) { y = 0; }
+                              }
+                            }
+			  }
+
 			  unitlen = this.game.spaces[spacekey].units[faction].length;
+
 			}
 		      }
 
@@ -13419,7 +13415,7 @@ If this is your first game, it is usually fine to skip the diplomacy phase until
 
     	        this.game.queue.push("hand_to_fhand\t1\t"+(i+1)+"\t"+this.game.state.players_info[i].factions[z]);
 
-//cardnum = 1;
+//cardnum = 2;
 //if (this.game.options.scenario == "is_testing") {
 // if (f == "france") { cardnum = 0; }
 // if (f == "papacy") { cardnum = 0; }

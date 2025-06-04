@@ -114,6 +114,11 @@ body {
 @media screen and (max-width: 900px) {
   .deal {
     gap: 5px;
+    margin: 0rem 0 0;
+  }
+  .mystuff {
+    bottom: 0px;
+    max-height: 225px;
   }
 }
 
