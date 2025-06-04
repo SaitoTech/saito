@@ -454,6 +454,7 @@
     let space = this.game.spaces[spacekey];
     let attacker_units = this.returnAttackerUnits();
 
+console.log("u: " + JSON.stringify(attacker_units));
     for (let i = 0; i < attacker_units.length; i++) {
       let unit = attacker_units[i];
       if (!unit.damaged) { can_player_advance = true; }
@@ -683,7 +684,7 @@
 	  if (!attacker_units[i].damaged) {
             paths_self.moveUnit(skey, uidx, key);
 	    // if we are moving past, we control the intermediate space
-	    if (key != paths_self.game.state.combat.key) {
+	    if (key != paths_self.game.state.combat.key && paths_self.game.spaces[paths_self.game.state.combat.key].fort <= 0) {
 	      paths_self.addMove(`control\t${faction}\t${paths_self.game.state.combat.key}`);
 	    }
 	    paths_self.addMove(`move\t${faction}\t${skey}\t${uidx}\t${key}\t${paths_self.game.player}`);
@@ -1848,9 +1849,6 @@ console.log("original_key: " + original_key);
 		}
 	      }
 
-
-
-
 	      //
 	      // code mirrored below in regular move
 	      //
@@ -1859,7 +1857,6 @@ console.log("original_key: " + original_key);
 	        paths_self.game.spaces[key2].units[paths_self.game.spaces[key2].units.length-1].moved = 1;
 	        paths_self.prependMove(`move\t${faction}\t${currentkey}\t${active_units[zz].idx}\t${key2}\t${paths_self.game.player}`);
 	      }
-              paths_self.game.spaces[key2].control = paths_self.returnPowerOfPlayer();
               paths_self.displaySpace(sourcekey);
               paths_self.displaySpace(currentkey);
               paths_self.displaySpace(key2);
@@ -2188,7 +2185,7 @@ console.log("original_key: " + original_key);
 		    } else {
 
               	      paths_self.moveUnit(currentkey, idx, key2);
-              	      paths_self.game.spaces[key2].control = paths_self.returnPowerOfPlayer();
+
 	      	      paths_self.game.spaces[key2].units[paths_self.game.spaces[key2].units.length-1].moved = 1;
 	      	      paths_self.prependMove(`move\t${faction}\t${currentkey}\t${idx}\t${key2}\t${paths_self.game.player}`);
               	      paths_self.displaySpace(sourcekey);
@@ -2290,7 +2287,6 @@ console.log("original_key: " + original_key);
 	      // code mirrored above inside besiege section
 	      //
               paths_self.moveUnit(currentkey, idx, key2);
-              paths_self.game.spaces[key2].control = paths_self.returnPowerOfPlayer();
 	      paths_self.game.spaces[key2].units[paths_self.game.spaces[key2].units.length-1].moved = 1;
 	      paths_self.prependMove(`move\t${faction}\t${currentkey}\t${idx}\t${key2}\t${paths_self.game.player}`);
               paths_self.displaySpace(sourcekey);

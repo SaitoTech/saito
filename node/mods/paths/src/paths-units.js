@@ -61,17 +61,10 @@
 
 
   removeUnit(spacekey, unitkey) {
-
-console.log("PRE: " + this.game.spaces[spacekey].units.length);
-       
     for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
       if (this.game.spaces[spacekey].units[z].key === unitkey) {
-
-console.log("removing : " + unitkey + " from " + spacekey);
-
         this.game.spaces[spacekey].units.splice(z, 1);
         z = this.game.spaces[spacekey].units.length + 2;
-                     
         if (this.game.state.combat.attacker) {
           for (let zz = 0; zz < this.game.state.combat.attacker.length; zz++) {
             if (this.game.state.combat.attacker[zz].unit_sourcekey == spacekey) {
@@ -81,13 +74,8 @@ console.log("removing : " + unitkey + " from " + spacekey);
             }
           }
         }
-
       }
     }
-
-
-console.log("POST: " + this.game.spaces[spacekey].units.length);
-
   }
 
   moveUnit(sourcekey, sourceidx, destinationkey) {
@@ -103,10 +91,8 @@ console.log("POST: " + this.game.spaces[spacekey].units.length);
       this.updateLog(unit.name + " moves from " + this.returnSpaceNameForLog(sourcekey) + " to " + this.returnSpaceNameForLog(destinationkey));
     }
 
-
     unit.spacekey = destinationkey;
     this.game.spaces[destinationkey].units.push(unit);
-
 
     //
     // put under siege as needed
@@ -128,6 +114,25 @@ console.log("POST: " + this.game.spaces[spacekey].units.length);
         }
       }
     }
+
+    //
+    // check if no longer besieged?
+    //
+    if (this.game.spaces[sourcekey].besieged == 1) {
+      if (this.game.spaces[sourcekey].units.length > 0) {
+      } else {
+        this.game.spaces[sourcekey].besieged = 0;
+        if (this.game.spaces[sourcekey].fort > 0) {
+          //
+          // control switches back to original owner of fort
+          //
+          let spc = this.returnSpaces();
+          this.game.spaces[sourcekey].control = spc[sourcekey].control;
+        }
+      }
+    }
+
+
 
     this.displaySpace(sourcekey);
     this.displaySpace(destinationkey);

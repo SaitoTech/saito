@@ -427,7 +427,6 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 		  if (this.returnPowerOfUnit(space.units[0]) != space.control) {
 
 		    roll = this.rollDice(6);
-this.updateLog("SIEGE ROLL: " + roll);
 
 		    if (this.game.state.turn < 2) { roll -= 2; }
 		    if (roll > space.fort) {
@@ -2691,9 +2690,6 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  //
 	  if (this.game.spaces[sourcekey].besieged == 1) {
 	    if (this.game.spaces[sourcekey].units.length > 0) {
-	      if (this.returnPowerOfUnit(this.game.spaces[sourcekey].units[0]) != this.game.spaces[destinationkey].control) {
-	        this.game.spaces[sourcekey].besieged = 0;
-	      }
 	    } else {
 	      this.game.spaces[sourcekey].besieged = 0;
 	      if (this.game.spaces[sourcekey].fort > 0) {

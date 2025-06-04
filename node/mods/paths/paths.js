@@ -5125,7 +5125,9 @@ deck['cp65'] = {
 
     let units = [];
     for (let z = 0; z < x.length; z++) {
-      units.push(this.game.spaces[x[z].unit_sourcekey].units[x[z].unit_idx]);   
+      if (this.game.spaces[x[z].unit_sourcekey].units.length > x[z].unit_idx) {
+        units.push(this.game.spaces[x[z].unit_sourcekey].units[x[z].unit_idx]);  
+      }
     }
     return units;
   }
@@ -10870,7 +10872,6 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 		  if (this.returnPowerOfUnit(space.units[0]) != space.control) {
 
 		    roll = this.rollDice(6);
-this.updateLog("SIEGE ROLL: " + roll);
 
 		    if (this.game.state.turn < 2) { roll -= 2; }
 		    if (roll > space.fort) {
@@ -13134,9 +13135,6 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  //
 	  if (this.game.spaces[sourcekey].besieged == 1) {
 	    if (this.game.spaces[sourcekey].units.length > 0) {
-	      if (this.returnPowerOfUnit(this.game.spaces[sourcekey].units[0]) != this.game.spaces[destinationkey].control) {
-	        this.game.spaces[sourcekey].besieged = 0;
-	      }
 	    } else {
 	      this.game.spaces[sourcekey].besieged = 0;
 	      if (this.game.spaces[sourcekey].fort > 0) {
@@ -13665,6 +13663,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
     let space = this.game.spaces[spacekey];
     let attacker_units = this.returnAttackerUnits();
 
+console.log("u: " + JSON.stringify(attacker_units));
     for (let i = 0; i < attacker_units.length; i++) {
       let unit = attacker_units[i];
       if (!unit.damaged) { can_player_advance = true; }
@@ -13894,7 +13893,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  if (!attacker_units[i].damaged) {
             paths_self.moveUnit(skey, uidx, key);
 	    // if we are moving past, we control the intermediate space
-	    if (key != paths_self.game.state.combat.key) {
+	    if (key != paths_self.game.state.combat.key && paths_self.game.spaces[paths_self.game.state.combat.key].fort <= 0) {
 	      paths_self.addMove(`control\t${faction}\t${paths_self.game.state.combat.key}`);
 	    }
 	    paths_self.addMove(`move\t${faction}\t${skey}\t${uidx}\t${key}\t${paths_self.game.player}`);
@@ -15059,9 +15058,6 @@ console.log("original_key: " + original_key);
 		}
 	      }
 
-
-
-
 	      //
 	      // code mirrored below in regular move
 	      //
@@ -15070,7 +15066,6 @@ console.log("original_key: " + original_key);
 	        paths_self.game.spaces[key2].units[paths_self.game.spaces[key2].units.length-1].moved = 1;
 	        paths_self.prependMove(`move\t${faction}\t${currentkey}\t${active_units[zz].idx}\t${key2}\t${paths_self.game.player}`);
 	      }
-              paths_self.game.spaces[key2].control = paths_self.returnPowerOfPlayer();
               paths_self.displaySpace(sourcekey);
               paths_self.displaySpace(currentkey);
               paths_self.displaySpace(key2);
@@ -15399,7 +15394,7 @@ console.log("original_key: " + original_key);
 		    } else {
 
               	      paths_self.moveUnit(currentkey, idx, key2);
-              	      paths_self.game.spaces[key2].control = paths_self.returnPowerOfPlayer();
+
 	      	      paths_self.game.spaces[key2].units[paths_self.game.spaces[key2].units.length-1].moved = 1;
 	      	      paths_self.prependMove(`move\t${faction}\t${currentkey}\t${idx}\t${key2}\t${paths_self.game.player}`);
               	      paths_self.displaySpace(sourcekey);
@@ -15501,7 +15496,6 @@ console.log("original_key: " + original_key);
 	      // code mirrored above inside besiege section
 	      //
               paths_self.moveUnit(currentkey, idx, key2);
-              paths_self.game.spaces[key2].control = paths_self.returnPowerOfPlayer();
 	      paths_self.game.spaces[key2].units[paths_self.game.spaces[key2].units.length-1].moved = 1;
 	      paths_self.prependMove(`move\t${faction}\t${currentkey}\t${idx}\t${key2}\t${paths_self.game.player}`);
               paths_self.displaySpace(sourcekey);
@@ -16439,17 +16433,10 @@ console.log("original_key: " + original_key);
 
 
   removeUnit(spacekey, unitkey) {
-
-console.log("PRE: " + this.game.spaces[spacekey].units.length);
-       
     for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
       if (this.game.spaces[spacekey].units[z].key === unitkey) {
-
-console.log("removing : " + unitkey + " from " + spacekey);
-
         this.game.spaces[spacekey].units.splice(z, 1);
         z = this.game.spaces[spacekey].units.length + 2;
-                     
         if (this.game.state.combat.attacker) {
           for (let zz = 0; zz < this.game.state.combat.attacker.length; zz++) {
             if (this.game.state.combat.attacker[zz].unit_sourcekey == spacekey) {
@@ -16459,13 +16446,8 @@ console.log("removing : " + unitkey + " from " + spacekey);
             }
           }
         }
-
       }
     }
-
-
-console.log("POST: " + this.game.spaces[spacekey].units.length);
-
   }
 
   moveUnit(sourcekey, sourceidx, destinationkey) {
@@ -16481,10 +16463,8 @@ console.log("POST: " + this.game.spaces[spacekey].units.length);
       this.updateLog(unit.name + " moves from " + this.returnSpaceNameForLog(sourcekey) + " to " + this.returnSpaceNameForLog(destinationkey));
     }
 
-
     unit.spacekey = destinationkey;
     this.game.spaces[destinationkey].units.push(unit);
-
 
     //
     // put under siege as needed
@@ -16506,6 +16486,25 @@ console.log("POST: " + this.game.spaces[spacekey].units.length);
         }
       }
     }
+
+    //
+    // check if no longer besieged?
+    //
+    if (this.game.spaces[sourcekey].besieged == 1) {
+      if (this.game.spaces[sourcekey].units.length > 0) {
+      } else {
+        this.game.spaces[sourcekey].besieged = 0;
+        if (this.game.spaces[sourcekey].fort > 0) {
+          //
+          // control switches back to original owner of fort
+          //
+          let spc = this.returnSpaces();
+          this.game.spaces[sourcekey].control = spc[sourcekey].control;
+        }
+      }
+    }
+
+
 
     this.displaySpace(sourcekey);
     this.displaySpace(destinationkey);
