@@ -1,7 +1,5 @@
 .deal .card, .cardfan .card, .hand .card {
 	width: min(15vh,17vw);
-	/*width: 15vw;
-	height: 21vw;*/
 	height: calc(1.53 * min(15vh, 17vw));
 	max-width: 150px;
 	max-height: 230px;
@@ -18,8 +16,10 @@
 }
 
 .cardfan {
-  top: max(-10rem, -14vw);
-  left: calc(50% - min(15vh,17vw));
+  /* top: max(-10rem, -14vw); */
+  /* left: calc(50% - min(15vh,17vw)); */
+  top: 0rem;
+  left: calc(50% - 27.5%);
   height: calc(1.53 * min(15vh, 17vw));
   width: min(15vh,17vw);
 }

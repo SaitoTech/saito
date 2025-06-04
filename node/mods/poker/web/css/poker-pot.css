@@ -6,13 +6,13 @@
   height: 7rem;
   overflow: hidden;
   color: #fff;
-  top: calc(50% - 180px);
+  top: calc(50% - 210px);
   z-index: 89;
   border-radius: 20rem;
   user-select: none;
   left: 50%;
   transition: opacity 0.75s;
-  transform: translateX(-50%);
+  transform: translateX(-50%) scale(0.75);
   background: url(/poker/img/simple-chip.svg);
   background-size: contain;
   background-repeat: no-repeat;
