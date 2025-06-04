@@ -699,8 +699,7 @@ impl Wallet {
         genesis_period: u64,
         nft_type: String,
     ) -> Result<Transaction, Error> {
-
-        info!("wallet.rs nft_num:", nft_num);
+        info!("wallet.rs nft_num: {:?}", nft_num);
 
         let mut transaction = Transaction::default();
         transaction.transaction_type = TransactionType::Bound;
@@ -799,7 +798,7 @@ impl Wallet {
         //
         let output_slip1 = Slip {
             public_key: self.public_key,
-            amount: nft_create_deposit_amt,
+            amount: nft_num,
             slip_type: SlipType::Bound,
             ..Default::default()
         };
@@ -850,7 +849,7 @@ impl Wallet {
         //
         let output_slip3 = Slip {
             public_key: uuid_pubkey,
-            amount: 0,
+            amount: nft_num,
             slip_type: SlipType::Bound,
             ..Default::default()
         };

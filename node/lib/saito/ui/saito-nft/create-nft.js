@@ -145,15 +145,14 @@ class Nft {
             // value of nft (nolan)
             let depositAmt = BigInt(1);
 
-            let numNft = parseFloat(document.querySelector('#create-nft-amount').innerHTML);
-            console.log("numNft: ", numNft);
+
 
             //
             // this value is not either nolan/saito
             // this represents the number of nft to mint
             //
-            let numNftAmt = 1;
-            console.log("numNft amt: ", numNftAmt);
+            let numNft = BigInt(parseInt(document.querySelector('#create-nft-amount').innerHTML));
+            console.log("numNft: ", numNft);
 
             let validUtxo = await this.findValidUtxo(depositAmt);
 
@@ -190,7 +189,7 @@ class Nft {
             console.log(validUtxo.bid);
             console.log(validUtxo.tid);
             console.log(validUtxo.sid);
-            console.log('create-nft numNftAmt:', numNftAmt);
+            console.log('create-nft numNftAmt:', numNft);
             console.log(depositAmt);
             console.log(change);
             console.log(JSON.stringify(obj));
@@ -202,7 +201,7 @@ class Nft {
                 validUtxo.bid,
                 validUtxo.tid,
                 validUtxo.sid,
-                numNftAmt,
+                numNft,
                 depositAmt,
                 change,
                 JSON.stringify(obj),

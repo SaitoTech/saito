@@ -701,12 +701,12 @@
 .nft-link {
   font-size: 1.9rem;
   text-transform: lowercase;
-  align-self: flex-end; 
   cursor: pointer;
+  border-bottom: 2px dashed;
 }
 
 .nft-link span {
-  border-bottom: 2px dashed;
+  
 }
 
 .create-nft-deposit {
@@ -759,7 +759,7 @@
 .nft-creator {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 3rem;
 }
 
 .right-section {
@@ -905,6 +905,14 @@ textarea {
   background-color: #000;
 }          
 
+.send-nft-row.empty-send-nft-row {
+  cursor: default;
+}
+
+.send-nft-row.empty-send-nft-row:hover {
+  background: var(--background-color-gray-transparent-light);
+}
+
 .send-nft-row .send-nft-row-item {
   width: 15rem;
   overflow: hidden;
@@ -985,6 +993,15 @@ textarea {
 .send-nft-row.nft-selected {
   background-color: var(--background-color-shim-dark);
   border: 1px solid;
+}
+
+.nft-title .saito-overlay-header-nav {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nft-title .send-nft-title {
+  align-self: normal;
 }
 
 /*
@@ -1077,18 +1094,19 @@ textarea {
 }
 
 .page-navigation {
-  align-self: flex-end;
   display: flex;
   flex-direction: row;
   gap: 1rem;
+  font-size: 1.9rem;
 }
 
 .page-navigation.page2 {
-  font-size: 1.8rem;
-  border-bottom: 1px dashed;
+  font-size: 1.9rem;
+  border-bottom: 2px dashed;
   width: fit-content;
-  align-self: flex-start;
   cursor: pointer;
+  text-transform: lowercase;
+  display: none;
 }
 
 .nft-receiver {
@@ -1100,6 +1118,14 @@ textarea {
 #page2 {    
   flex-direction: column;
   gap: 3rem;
+}
+
+.page-navigation.page1 {
+  align-self: flex-end;
+}
+
+#create-nft-amount {
+  cursor: pointer;
 }
 
 @keyframes spin {

@@ -51,9 +51,10 @@ class Nft {
 
     const nextBtn      = document.querySelector('#nft-next');
     const mergeBtn     = document.querySelector('#send-nft-merge');
-    const divideBtn    = document.querySelector('#send-nft-divide');
+    const splitBtn     = document.querySelector('#send-nft-split');
     const nextBtnNav   = nextBtn ? nextBtn.parentElement : null;
     const sendNftTitle = document.querySelector("#send-nft-title");
+    const page2BackBtn = document.querySelector('.page-navigation.page2');
 
     if (nextBtn) {
       nextBtn.classList.add('disabled');
@@ -61,8 +62,38 @@ class Nft {
     if (mergeBtn) {
       mergeBtn.style.display = 'none';
     }
-    if (divideBtn) {
-      divideBtn.style.display = 'none';
+    if (splitBtn) {
+      splitBtn.style.display = 'none';
+    }
+
+    // Merge button click event
+    if (mergeBtn) {
+      mergeBtn.onclick = (e) => {
+        e.preventDefault();
+        if (this.nft_selected === null) {
+          alert("Please select an NFT to merge.");
+          return;
+        }
+
+        console.log(this.nft_selected);
+        alert("merging nft");
+      };
+    }
+
+    // Split button click event
+    if (splitBtn) {
+      splitBtn.onclick = (e) => {
+        e.preventDefault();
+        if (this.nft_selected === null) {
+          alert("Please select an NFT to split.");
+          return;
+        }
+        
+        const nftItem = this.nft_list[this.nft_selected];
+        console.log(nftItem);
+        
+        alert("splitting nft");
+      };
     }
 
     document.querySelectorAll('.send-nft-row').forEach(row => {
@@ -80,8 +111,27 @@ class Nft {
           this.nft_selected = parseInt(hiddenRadio.value);
         }
 
-        if (mergeBtn)  mergeBtn.style.display = 'inline-block';
-        if (divideBtn) divideBtn.style.display = 'inline-block';
+        const nftItem = this.nft_list[this.nft_selected];
+
+        // Check how many items in this.nft_list share the same nftItem.id
+        const matchingCount = this.nft_list.filter(n => n.id === nftItem.id).length;
+        if (mergeBtn) {
+
+            console.log("matchingCount: ", matchingCount);
+
+          if (matchingCount >= 2) {
+            mergeBtn.style.display = 'inline-block';
+          } else {
+            mergeBtn.style.display = 'none';
+          }
+        }
+
+        // show split btn if "amount" of nfts > 1, else keep hidden
+        if (nftItem.slip1.amount > 1) {
+          if (splitBtn) splitBtn.style.display = 'inline-block';
+        } else {
+          if (splitBtn) splitBtn.style.display = 'none';
+        }
 
         if (nextBtn) nextBtn.classList.remove('disabled');
       };
@@ -100,6 +150,7 @@ class Nft {
           page2.style.display      = 'flex';
           nextBtnNav.style.display = 'none';
           sendNftTitle.innerText   = 'SEND NFT';
+          page2BackBtn.style.display = 'block';
         }
       };
     }
@@ -116,6 +167,7 @@ class Nft {
           page1.style.display      = 'block';
           nextBtnNav.style.display = 'flex';
           sendNftTitle.innerText   = 'SELECT NFT';
+          page2BackBtn.style.display = 'none';
 
           document.querySelectorAll('.send-nft-row').forEach(r => {
             r.classList.remove('nft-selected');
@@ -125,7 +177,7 @@ class Nft {
           this.nft_selected = null;
 
           if (mergeBtn)  mergeBtn.style.display = 'none';
-          if (divideBtn) divideBtn.style.display = 'none';
+          if (splitBtn) splitBtn.style.display = 'none';
 
           if (nextBtn) {
             nextBtn.classList.add('disabled');

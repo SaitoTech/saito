@@ -4,12 +4,19 @@ module.exports = (app, mod) => {
 
       <!-- HEADER -->
       <div class="saito-overlay-form-header nft-title">
-        <div class="saito-overlay-form-header-title">
-          <div id="send-nft-title">Select NFT</div>
-          <div class="nft-link" id="nft-link">
-            <span>create nft</span>
-          </div>
-        </div>
+        
+         <div class="saito-overlay-form-header-title">
+            <div class="saito-overlay-header-nav">
+               <div class="page-navigation page2">
+                  <div id="nft-back">← back</div>
+               </div>
+               <div id="send-nft-title">Select NFT</div>
+            </div>
+            <div class="nft-link" id="nft-link">
+               <span>create nft</span>
+            </div>
+         </div>
+
       </div>
 
       <!-- PAGE 1: NFT LIST -->
@@ -27,16 +34,12 @@ module.exports = (app, mod) => {
       <div class="page-navigation page1">
          <!-- Merge and Divide buttons are hidden by default -->
          <button id="send-nft-merge" style="display: none;">Merge</button>
-         <button id="send-nft-divide" style="display: none;">Divide</button>
-         <button id="nft-next" class="nft-next disabled">Send &rarr;</button>
+         <button id="send-nft-split" style="display: none;">Split</button>
+         <button id="nft-next" class="nft-next disabled">Add Receipient</button>
       </div>
 
       <!-- PAGE 2: RECEIVER + SEND -->
       <div id="page2" class="nft-page" style="display: none;">
-        
-         <div class="page-navigation page2">
-          <div id="nft-back">&larr; back</div>
-         </div>
 
         <div class="nft-receiver">
           <label for="nfts-receiver">Receiver</label>

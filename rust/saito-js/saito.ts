@@ -344,7 +344,7 @@ export default class Saito {
         bid: number,           
         tid: number,           
         sid: number,           
-        num: number,           
+        num: bigint,           
         deposit: bigint,
         change: bigint,        
         data: string = "",
