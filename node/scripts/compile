@@ -1,5 +1,7 @@
 #!/bin/bash
 
+npx prettier --write ./lib/ > .prettier.log 2>&1 &
+
 echo "Builing Lite Client ($1 $2)"
 echo ""
 
@@ -66,9 +68,6 @@ else
   cat ./web/saito/css-imports/xclose.css >> ./web/saito/saito.css
 fi
 
-
-
-
 echo ""
 echo "CSS complete"
 echo ""
@@ -86,7 +85,6 @@ else
   echo ""
 fi
 
-
 function post_compile {
 
   cp ./lib/saito/boot.js ./web/saito/saito2.js
@@ -98,7 +96,7 @@ function post_compile {
 
 function reset_bundler {
 
-echo "Resetting Saito to Default Modules!"
+echo "Resetting Saito Bundler"
 echo ""
 
   rm -rf ./bundler
@@ -114,8 +112,9 @@ echo ""
 
     copy_lite_mods_to_bundler_directory
 
-echo ""
-echo "Compiling Lite-Client JS..."
+    echo ""
+    echo "Compiling Lite-Client JS..."
+    echo ""
 
     rm -rf bundler/default/mods/devtools/bundler/dist
 

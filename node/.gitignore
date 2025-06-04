@@ -12,6 +12,7 @@ saitolitedocs
 .wh.ts.icloud
 
 .env
+.prettier.log
 
 cpu-profile.cpuprofile
 heap-snapshot.heapsnapshot
