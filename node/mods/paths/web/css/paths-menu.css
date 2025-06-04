@@ -5,15 +5,19 @@
 
 .card.menu_movement {
         background-image: url('/paths/img/backgrounds/menu/artillery.png');
+	background-size: cover;
 }
 .card.menu_redeployment {
         background-image: url('/paths/img/backgrounds/menu/train.jpg');
+	background-size: cover;
 }
 .card.menu_replacement {
         background-image: url('/paths/img/backgrounds/menu/recruiting.jpg');
+	background-size: cover;
 }
 .card.menu_event {
-        background-image: url('/paths/img/backgrounds/menu/planning.jpg');
+        background-image: url('/paths/img/backgrounds/menu/suez.jpg');
+	background-size: cover;
 }
 
 .saito-overlay .menu {
