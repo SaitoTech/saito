@@ -228,11 +228,18 @@ class StreamManager {
 
         stats.forEach((value, key) => {
           if (value.type == 'remote-inbound-rtp' && value.kind == 'video') {
+            let rP = value.packetsReceived || 0;
+            let rL = value.packetsLost || 0;
+
             my_stats.jitter = value.jitter * 1000 || 0;
-            my_stats.packetLoss = value.packetsLost || 0;
+            my_stats.packetLoss = rL / (rP + rL) || 0;
             my_stats.rtt = value.roundTripTime * 1000 || 0;
           }
         });
+
+        //
+        // Formula based on medium post of pseudocode of VLprojects/webrtc-issue-detector
+        //
 
         let effective_rtt = my_stats.rtt + my_stats.jitter * 2 + 10;
         if (effective_rtt < 160) {
@@ -241,6 +248,9 @@ class StreamManager {
           my_stats.rFactor = 93.2 - effective_rtt / 120 - 10;
         }
         my_stats.rFactor = my_stats.rFactor - my_stats.packetLoss * 2.5;
+
+        my_stats.rFactor = Math.max(my_stats.rFactor, 0);
+
         my_stats.mos =
           1 +
           0.035 * my_stats.rFactor +
