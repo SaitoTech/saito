@@ -1,6 +1,5 @@
 class PokerUI {
   returnPlayerRole(player) {
-    
     if (this.game.state.winners.length > 0) {
       if (this.game.state.winners.includes(player)) {
         return 'Winner!';
@@ -39,7 +38,7 @@ class PokerUI {
     }
   }
 
-  clearPlayers(){
+  clearPlayers() {
     //
     // clear displayed cards... / button / player-pots
     //
@@ -48,35 +47,37 @@ class PokerUI {
     }
   }
 
-  refreshPlayerboxes(){
-      this.playerbox.removeBoxes();
-      this.playerbox.render();
-      this.displayPlayerNotice(this?.status || "", this.game.player);
+  refreshPlayerboxes() {
+    this.playerbox.removeBoxes();
+    this.playerbox.render();
+    this.displayPlayerNotice(this?.status || '', this.game.player);
 
-      $(".game-playerbox-seat-1").appendTo(".mystuff");
-      
-      if (this.game.player == 0){
-        this.observerControls.render();
-      }else{
-        this.observerControls.remove();  
-      }
-  }
+    $('.game-playerbox-seat-1').appendTo('.mystuff');
 
-  displayButton(){
-    for (let i = 1; i <= this.game.players.length; i++) {
-      if (i == this.game.state.button_player){
-        this.playerbox.updateGraphics(`<div class="dealer-button" title="dealer button">D</div>`, i); 
-      }else{
-        this.playerbox.updateGraphics('', i); 
-      }
-
-      if (this.game.state.player_pot[i - 1] && !this.loadGamePreference("poker-hide-pot")){
-        let html = `<div class="poker-player-stake"><span class="stake-in-chips">${this.game.state.player_pot[i - 1]}</span></div>`;
-        this.playerbox.replaceGraphics(html, ".poker-player-stake", i); 
-      }
+    if (this.game.player == 0) {
+      this.observerControls.render();
+    } else {
+      this.observerControls.remove();
     }
   }
 
+  displayButton() {
+    for (let i = 1; i <= this.game.players.length; i++) {
+      if (i == this.game.state.button_player) {
+        this.playerbox.updateGraphics(
+          `<div class="dealer-button" title="dealer button">D</div>`,
+          i
+        );
+      } else {
+        this.playerbox.updateGraphics('', i);
+      }
+
+      if (this.game.state.player_pot[i - 1] && !this.loadGamePreference('poker-hide-pot')) {
+        let html = `<div class="poker-player-stake"><span class="stake-in-chips">${this.game.state.player_pot[i - 1]}</span></div>`;
+        this.playerbox.replaceGraphics(html, '.poker-player-stake', i);
+      }
+    }
+  }
 
   displayHand() {
     if (this.game.player == 0) {
@@ -113,13 +114,16 @@ class PokerUI {
       return;
     }
     if (player == this.game.player) {
-      this.playerbox.updateBody(`<div class="status" id="status"></div><div class="controls" id="controls"></div>`, player);
+      this.playerbox.updateBody(
+        `<div class="status" id="status"></div><div class="controls" id="controls"></div>`,
+        player
+      );
       this.updateStatus(msg);
     } else {
       this.playerbox.updateBody(msg, player);
     }
 
-    console.log("displayPlayerNotice:", msg);
+    console.log('displayPlayerNotice:', msg);
   }
 
   // Update the player's role and wager...
@@ -128,7 +132,7 @@ class PokerUI {
       return;
     }
 
-    if (amount === -1){
+    if (amount === -1) {
       amount = this.game.state.player_credit[player - 1];
     }
     let credit = this.convertChipsToCrypto(amount);
@@ -138,36 +142,34 @@ class PokerUI {
     //
 
     let chips = 'CHIP';
-    if (amount !== 1){
-      chips += "S";
-    } 
+    if (amount !== 1) {
+      chips += 'S';
+    }
 
-    let stack_html = stack_html = `<div class="poker-stack-balance">${amount}</div><div class="poker-stack-units">${chips}</div>`;
+    let stack_html =
+      (stack_html = `<div class="poker-stack-balance">${amount}</div><div class="poker-stack-units">${chips}</div>`);
 
-    if (typeof this.game.stake === "string"){
+    if (typeof this.game.stake === 'string' && this.game.crypto !== 'CHIPS') {
       // Could add a test for an option to should crypto by default (either globally or just a toggle here)
       stack_html += `<div class="crypto-hover-balance">${credit} <span class="smaller-font">${this.game.crypto}</span></div>`;
     }
 
     this.playerbox.updateIcons(stack_html, player);
-
   }
-
 
   //
   // We will actually increment player stack / decrement the game pot in this function!!!
   //
-  async animateWin(amount, winners){ 
-
+  async animateWin(amount, winners) {
     this.animating = true;
 
-    let step_speed = Math.min(200, 1000/amount);
+    let step_speed = Math.min(200, 1000 / amount);
 
     while (amount >= Object.keys(winners).length && this.animating) {
-  
-      for (let j in winners){
+      for (let j in winners) {
         j = parseInt(j);
-        this.moveGameElement(this.createGameElement(`<div class="poker-chip"></div>`, ".pot"),
+        this.moveGameElement(
+          this.createGameElement(`<div class="poker-chip"></div>`, '.pot'),
           `.game-playerbox-${j + 1}`,
           {
             callback: () => {
@@ -178,7 +180,8 @@ class PokerUI {
           },
           (item) => {
             $(item).remove();
-          });
+          }
+        );
         await this.timeout(step_speed);
       }
     }
@@ -187,58 +190,57 @@ class PokerUI {
       // ***TO DO: examine possibility of fractional chips
       // Randomly give the remaining chip to one player
     }
-
-
   }
 
-  async animateBet(better, amount, restartQueue = false){
-
-    if (restartQueue){
+  async animateBet(better, amount, restartQueue = false) {
+    if (restartQueue) {
       this.halted = 1;
     }
 
     let initial_pot = this.pot.render();
-    let initial_stack = this.game.state.player_credit[better-1];
+    let initial_stack = this.game.state.player_credit[better - 1];
 
-    let step_speed = Math.min(150, 550/amount);
+    let step_speed = Math.min(150, 550 / amount);
 
     let qs;
 
-    for (let i = 1; i <= amount; i++){
-
-      this.moveGameElement(this.createGameElement(`<div class="poker-chip"></div>`, `.game-playerbox-${better}`),
-        ".pot",
+    for (let i = 1; i <= amount; i++) {
+      this.moveGameElement(
+        this.createGameElement(`<div class="poker-chip"></div>`, `.game-playerbox-${better}`),
+        '.pot',
         {
           callback: () => {
             this.pot.render(++initial_pot);
             this.displayPlayerStack(better, --initial_stack);
             // player_pot is update outside the animation...
-            qs = this.playerbox.replaceGraphics(`<div class="poker-player-stake"><span class="stake-in-chips">${this.game.state.player_pot[better - 1]+i}</span></div>`, ".poker-player-stake", better); 
+            qs = this.playerbox.replaceGraphics(
+              `<div class="poker-player-stake"><span class="stake-in-chips">${this.game.state.player_pot[better - 1] + i}</span></div>`,
+              '.poker-player-stake',
+              better
+            );
             this.pot.addPulse();
           },
           run_all_callbacks: true
         },
         (item) => {
-
-          if (this.loadGamePreference("poker-hide-pot")){
-            setTimeout(()=> {
-              document.querySelector(qs).classList.add("invisible");
+          if (this.loadGamePreference('poker-hide-pot')) {
+            setTimeout(() => {
+              document.querySelector(qs).classList.add('invisible');
             }, 500);
           }
 
-          if (!restartQueue){
-            $(item).remove(); 
-          }else{
+          if (!restartQueue) {
+            $(item).remove();
+          } else {
             $('.animated_elem').remove();
             this.restartQueue();
           }
-          
-        });
+        }
+      );
       await this.timeout(step_speed);
     }
     await this.timeout(500);
   }
-
 
   /*
   This is the core Poker function
@@ -311,13 +313,15 @@ class PokerUI {
 
     this.displayPlayerNotice(`your turn`, this.game.player);
 
-    let html = '<div class="option" id="fold"><img src="/poker/img/fold_icon.svg" alt="fold"><span>fold</span></div>';
+    let html =
+      '<div class="option" id="fold"><img src="/poker/img/fold_icon.svg" alt="fold"><span>fold</span></div>';
 
     if (match_required > 0) {
       html += `<div class="option" id="call"><img src="/poker/img/call_icon.svg" alt="call"><span>call <span class="call-wager">(${this.formatWager(match_required, false)})</span></span></div>`;
     } else {
       // we don't NEED to match
-      html += '<div class="option" id="check"><img src="/poker/img/check_icon.svg" alt="check"><span>check</span></div>';
+      html +=
+        '<div class="option" id="check"><img src="/poker/img/check_icon.svg" alt="check"><span>check</span></div>';
     }
     if (can_raise) {
       html += `<div class="option" id="raise"><img src="/poker/img/raise_icon.svg" alt="raise"><span>raise</span></div>`;
@@ -336,25 +340,25 @@ class PokerUI {
         html = `<div class="option raise_option" id="0"><img src="/poker/img/cancel_raise_icon.svg" alt="cancel"></div>`;
         if (match_required > 0) {
           html += `match ${poker_self.formatWager(match_required)} and  `;
-        } 
+        }
         html += `raise`;
-        
+
         poker_self.updateStatus(html);
 
         let max_raise = Math.min(credit_remaining, smallest_stack);
 
-        html = "";
+        html = '';
 
         for (let i = 0; i < 3; i++) {
-          let this_raise = poker_self.game.state.last_raise * 2**i;
+          let this_raise = poker_self.game.state.last_raise * 2 ** i;
 
           if (max_raise > this_raise) {
             html += `<div class="option raise_option" id="${this_raise + match_required}"><img src="/poker/img/raise_value_icon.svg" alt="raise">`;
             html += poker_self.formatWager(this_raise, false);
-            if (typeof poker_self.game.stake == "string"){
-              html += `<div class="crypto-hover-raise">${poker_self.convertChipsToCrypto(this_raise)} <span class="smaller-font"> ${poker_self.game.crypto}</span></div>`
+            if (typeof poker_self.game.stake === 'string' && poker_self.game.crypto !== 'CHIPS') {
+              html += `<div class="crypto-hover-raise">${poker_self.convertChipsToCrypto(this_raise)} <span class="smaller-font"> ${poker_self.game.crypto}</span></div>`;
             }
-            html += "</div>";
+            html += '</div>';
           } else {
             break;
           }
@@ -366,27 +370,26 @@ class PokerUI {
         //Always give option for all in
         html += `<div class="option raise_option all-in" id="${max_raise + match_required}"><img src="/poker/img/raise_allin_icon.svg" alt="raise">`;
         html += poker_self.formatWager(max_raise, false);
-        if (typeof poker_self.game.stake == "string"){
-          html += `<div class="crypto-hover-raise">${poker_self.convertChipsToCrypto(max_raise)} <span class="smaller-font"> ${poker_self.game.crypto}</span></div>`
+        if (typeof poker_self.game.stake === 'string' && poker_self.game.crypto !== 'CHIPS') {
+          html += `<div class="crypto-hover-raise">${poker_self.convertChipsToCrypto(max_raise)} <span class="smaller-font"> ${poker_self.game.crypto}</span></div>`;
         }
         html += `</div>`;
-
 
         poker_self.updateControls(html);
 
         const enterRaise = async () => {
-          let c = await sprompt("How many chips would you like to raise?");
-          if (c){
+          let c = await sprompt('How many chips would you like to raise?');
+          if (c) {
             let amt = parseInt(c);
-            if (amt >= poker_self.game.state.last_raise && amt <= max_raise){
-              poker_self.addMove(`raise\t${poker_self.game.player}\t${amt+match_required}`);
+            if (amt >= poker_self.game.state.last_raise && amt <= max_raise) {
+              poker_self.addMove(`raise\t${poker_self.game.player}\t${amt + match_required}`);
               poker_self.endTurn();
-            }else{
-              await sconfirm("Invalid input");
+            } else {
+              await sconfirm('Invalid input');
               enterRaise();
             }
           }
-        }
+        };
 
         $('.option').off();
         $('.option').on('click', async function () {
@@ -394,7 +397,7 @@ class PokerUI {
 
           if (raise === '0') {
             poker_self.playerTurn();
-          } else if (raise === 'manual'){
+          } else if (raise === 'manual') {
             enterRaise();
           } else {
             poker_self.addMove(`raise\t${poker_self.game.player}\t${raise}`);
@@ -402,12 +405,12 @@ class PokerUI {
           }
         });
       } else {
-        if (choice == "fold" && !match_required){
-                let c = await sconfirm("Are you sure you want to fold?");
-                if (!c){
-                        poker_self.playerTurn();
-                        return;
-                }
+        if (choice == 'fold' && !match_required) {
+          let c = await sconfirm('Are you sure you want to fold?');
+          if (!c) {
+            poker_self.playerTurn();
+            return;
+          }
         }
         poker_self.addMove(`${choice}\t${poker_self.game.player}`);
         poker_self.endTurn();
