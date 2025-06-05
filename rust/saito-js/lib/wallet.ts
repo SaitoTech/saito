@@ -119,6 +119,7 @@ export default class Wallet extends WasmWrapper<WasmWallet> {
         throw err;
       }
     }
+
 }
 
 export class WalletSlip extends WasmWrapper<WasmWalletSlip> {

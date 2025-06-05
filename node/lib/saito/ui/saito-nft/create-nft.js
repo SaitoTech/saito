@@ -143,7 +143,7 @@ class Nft {
             console.log("obj: ", obj);
 
             // value of nft (nolan)
-            let depositAmt = BigInt(1);
+            let depositAmt = BigInt(this.app.wallet.convertSaitoToNolan(1));
 
 
 

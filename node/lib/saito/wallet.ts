@@ -1273,4 +1273,54 @@ export default class Wallet extends SaitoWallet {
     }
   }
 
+  // public async createBoundTransaction(
+  //   amt,
+  //   bid,
+  //   tid,
+  //   sid,
+  //   num,
+  //   deposit,
+  //   change,
+  //   data,
+  //   fee,
+  //   receipient_publicKey,
+  // ): Promise<Transaction> {
+
+
+  //     console.log("values going to saito.ts:");
+  //     console.log(amt);
+  //     console.log(bid);
+  //     console.log(tid);
+  //     console.log(sid);
+  //     console.log('wallet.ts num:',num);
+  //     console.log(deposit);
+  //     console.log(change);
+  //     console.log(data);
+  //     console.log(fee);
+  //     console.log(receipient_publicKey);
+
+  //     let nft_type = "Standard";
+  //     return S.getInstance().createBoundTransaction(
+  //       amt,
+  //       bid,
+  //       tid,
+  //       sid,
+  //       num,
+  //       deposit,
+  //       change,
+  //       data,
+  //       fee,
+  //       receipient_publicKey,
+  //       nft_type
+  //     );
+  // }
+
+  public async splitNft(nftId, leftCount, rightCount): Promise<Transaction> {
+    return S.getInstance().createSplitBoundTransaction(
+      nftId,
+      leftCount,
+      rightCount
+    );
+  }
+
 }

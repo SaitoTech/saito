@@ -247,10 +247,10 @@ impl Wallet {
                         //    the three slips (slip1, linked slip, slip2) for `create_send_bound()`.
                         //
                         let nft = NFT {
-                            slip1: slip1.utxoset_key,       // bound
-                            slip2: slip2.utxoset_key,       // normal
-                            slip3: slip3.utxoset_key,       // bound
-                            id: slip2.utxoset_key.to_vec(), // derive NFT id from second Bound slip’s key
+                            slip1: slip1.utxoset_key,      // bound
+                            slip2: slip2.utxoset_key,      // normal
+                            slip3: slip3.utxoset_key,      // bound
+                            id: slip3.public_key.to_vec(), // derive NFT id from second Bound slip’s key
                             tx_sig: tx.signature,
                         };
                         self.nfts.push(nft);
@@ -408,7 +408,7 @@ impl Wallet {
                             slip1: slip1.utxoset_key,
                             slip2: slip2.utxoset_key,
                             slip3: slip3.utxoset_key,
-                            id: slip2.utxoset_key.to_vec(),
+                            id: slip3.public_key.to_vec(),
                             tx_sig: tx.signature,
                         };
 
@@ -998,6 +998,92 @@ impl Wallet {
         transaction.add_to_slip(output_slip1);
         transaction.add_to_slip(output_slip2);
         transaction.add_to_slip(output_slip3);
+
+        //
+        // finalize transaction
+        //
+        let hash_for_signature: SaitoHash = hash(&transaction.serialize_for_signature());
+        transaction.hash_for_signature = Some(hash_for_signature);
+        transaction.sign(&self.private_key);
+        let tx_sig = transaction.signature.clone();
+
+        Ok(transaction)
+    }
+
+    pub fn create_split_bound_transaction(
+        &mut self,
+        nft_id: Vec<u8>,
+        left_count: u32,
+        right_count: u32,
+    ) -> Result<Transaction, Error> {
+        // Locate and remove the NFT entry
+        let pos = self
+            .nfts
+            .iter()
+            .position(|nft| nft.id == nft_id)
+            .ok_or_else(|| Error::new(ErrorKind::NotFound, "NFT not found"))?;
+        let old_nft = self.nfts.remove(pos);
+
+        // Parse the three input slips from UTXO keys
+        let input_slip1 = Slip::parse_slip_from_utxokey(&old_nft.slip1)?;
+        let input_slip2 = Slip::parse_slip_from_utxokey(&old_nft.slip2)?;
+        let input_slip3 = Slip::parse_slip_from_utxokey(&old_nft.slip3)?;
+
+        // Original amounts
+        let orig_amount = input_slip1.amount;
+        let deposit_amount = input_slip2.amount;
+
+        // Calculate deposit per unit
+        let deposit_per_unit = deposit_amount
+            .checked_div(orig_amount)
+            .ok_or_else(|| Error::new(ErrorKind::Other, "Invalid deposit split"))?;
+
+        let left_unit = left_count as u64;
+        let right_unit = right_count as u64;
+
+        let left_deposit = deposit_per_unit
+            .checked_mul(left_unit)
+            .ok_or_else(|| Error::new(ErrorKind::Other, "Left deposit overflow"))?;
+        let right_deposit = deposit_amount
+            .checked_sub(left_deposit)
+            .ok_or_else(|| Error::new(ErrorKind::Other, "Right deposit computation failed"))?;
+
+        // Build the transaction
+        let mut transaction = Transaction::default();
+        transaction.transaction_type = TransactionType::Bound;
+
+        // Add inputs
+        transaction.add_from_slip(input_slip1.clone());
+        transaction.add_from_slip(input_slip2.clone());
+        transaction.add_from_slip(input_slip3.clone());
+
+        // Create left output slips
+        let mut left_slip1 = input_slip1.clone();
+        left_slip1.amount = left_unit;
+
+        let mut left_slip2 = input_slip2.clone();
+        left_slip2.amount = left_deposit;
+
+        let mut left_slip3 = input_slip3.clone();
+        left_slip3.amount = left_unit;
+
+        // Create right output slips
+        let mut right_slip1 = input_slip1.clone();
+        right_slip1.amount = right_unit;
+
+        let mut right_slip2 = input_slip2.clone();
+        right_slip2.amount = right_deposit;
+
+        let mut right_slip3 = input_slip3.clone();
+        right_slip3.amount = right_unit;
+
+        // Add outputs
+        transaction.add_to_slip(left_slip1);
+        transaction.add_to_slip(left_slip2);
+        transaction.add_to_slip(left_slip3);
+        transaction.add_to_slip(right_slip1);
+        transaction.add_to_slip(right_slip2);
+        transaction.add_to_slip(right_slip3);
 
         //
         // finalize transaction

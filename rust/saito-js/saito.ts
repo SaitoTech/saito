@@ -401,6 +401,28 @@ export default class Saito {
     }
 
 
+    public async createSplitBoundTransaction<T extends Transaction>(
+      nftId: string,
+      leftCount: number,
+      rightCount: number
+    ): Promise<T> {
+      console.log("wallet.ts createSplitBoundTransaction:", nftId, leftCount, rightCount);
+
+      const wasmTx = await Saito.getLibInstance().create_split_bound_transaction(
+        nftId,
+        leftCount,
+        rightCount
+      );
+
+      console.log("wallet.ts wasmTx:", wasmTx);
+
+      const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
+      tx.timestamp = Date.now();
+
+      return tx;
+    }
+
+
 
     public async getPeers(): Promise<Array<Peer>> {
         let peers = await Saito.getLibInstance().get_peers();
