@@ -562,7 +562,7 @@ console.log("u: " + JSON.stringify(attacker_units));
     let defender_loss_factor = this.game.state.combat.defender_loss_factor;
     if ((attacker_loss_factor-defender_loss_factor) == 1) { spaces_to_retreat = 1; }
 
-    if (this.game.state.combat.unoccupied_fort == 1 && this.game.space[this.game.state.combat.key].fort == -1) {
+    if (this.game.state.combat.unoccupied_fort == 1 && this.game.spaces[this.game.state.combat.key].fort == -1) {
       spaces_to_retreat = 1;
       paths_self.playerSelectSpaceWithFilter(
         `Advanced into Destroyed Fort?`,
@@ -601,7 +601,6 @@ console.log("u: " + JSON.stringify(attacker_units));
       );
       return 0;
     }
-
 
     let sourcekey = this.game.state.combat.retreat_sourcekey;
     let destinationkey = this.game.state.combat.retreat_destinationkey;
@@ -669,6 +668,13 @@ console.log("u: " + JSON.stringify(attacker_units));
 	this.unbindBackButtonFunction();
 	this.updateStatus("advancing...");
 
+console.log("#");
+console.log("#");
+console.log("#");
+console.log("#");
+console.log("#");
+console.log("#");
+console.log("advance: " + JSON.stringify(attacker_units));
 
 	for (let i = 0, j = 0; j <= 2 && i < attacker_units.length; i++) {
           let x = attacker_units[i];

@@ -11,6 +11,7 @@ class ReplacementsOverlay {
 	}
 
 	hide() {
+		this.mod.updateStatus("submitting...");
 		this.visible = false;
 		this.overlay.hide();
 	}

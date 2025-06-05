@@ -1196,14 +1196,25 @@ try {
 	  this.game.state.combat.attacker = selected;
 	  this.game.state.combat.attacker_power = "central";
 	  this.game.state.combat.defender_power = "allies";
-	  if (this.game.spaces[this.game.state.combat.key].control == "central") {
-	    this.game.state.combat.defender_power = "central";
-	    this.game.state.combat.attacker_power = "allies";
+	  this.game.state.combat.attacking_faction = "central";
+	  this.game.state.combat.defending_faction = "allies";
+	  if (this.game.spaces[key].control == "central") {
+	    if (this.game.spaces[key].units.length > 0) {
+	      if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) == "central") {;
+	        this.game.state.combat.defender_power = "central";
+	        this.game.state.combat.attacker_power = "allies";
+	        this.game.state.combat.defending_faction = "central";
+	        this.game.state.combat.attacking_faction = "allies";
+	      }
+	    } else {
+	      this.game.state.combat.defender_power = "central";
+	      this.game.state.combat.attacker_power = "allies";
+	      this.game.state.combat.defending_faction = "central";
+	      this.game.state.combat.attacking_faction = "allies";
+	    }
 	  }
 	  this.game.state.combat.attacker_cp = this.returnAttackerCombatPower();
 	  this.game.state.combat.defender_cp = this.returnDefenderCombatPower();
-	  this.game.state.combat.attacking_faction = this.returnPowerOfUnit(this.game.spaces[selected[0].unit_sourcekey].units[0]);
-	  if (this.game.state.combat.attacking_faction == "central") { this.game.state.combat.defending_faction = "allies"; } else { this.game.state.combat.defending_faction = "central"; }
 	  this.game.state.combat.attacker_drm = 0;
 	  this.game.state.combat.defender_drm = 0;
 	  this.game.state.combat.unoccupied_fort = 0;
@@ -2061,7 +2072,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  //
 	  // we can advance into destroyed forts
 	  //
-	  if (this.game.state.combat.unoccupied_fort == 1 && this.game.space[this.game.state.combat.key].fort == -1) {
+	  if (this.game.state.combat.unoccupied_fort == 1 && this.game.spaces[this.game.state.combat.key].fort == -1) {
 	    let player = this.returnPlayerOfFaction(this.game.state.combat.attacker_power);
 	    if (this.game.player == player) {
 	      this.playerPlayAdvance();
