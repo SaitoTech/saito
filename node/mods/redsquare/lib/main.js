@@ -117,7 +117,7 @@ class RedSquareMain {
       );
 
       this.app.connection.emit('saito-header-replace-logo', () => {
-        console.debug("RS.NAV : backbutton callback from redsquare-tweet-render-request");
+        console.debug('RS.NAV : backbutton callback from redsquare-tweet-render-request');
         window.history.back();
       });
 
@@ -136,7 +136,7 @@ class RedSquareMain {
       );
 
       this.app.connection.emit('saito-header-replace-logo', () => {
-        console.debug("RS.NAV : backbutton callback from redsquare-notifications-render-request");
+        console.debug('RS.NAV : backbutton callback from redsquare-notifications-render-request');
         window.history.back();
       });
 
@@ -160,7 +160,7 @@ class RedSquareMain {
       window.history.pushState({ view: 'profile', publicKey }, '', '/' + this.mod.slug + target);
 
       this.app.connection.emit('saito-header-replace-logo', () => {
-        console.debug("RS.NAV : backbutton callback from redsquare-profile-render-request");
+        console.debug('RS.NAV : backbutton callback from redsquare-profile-render-request');
         window.history.back();
       });
 
@@ -262,7 +262,7 @@ class RedSquareMain {
       this.mod.loadTweetWithSig(tweet_id, (txs) => {
         console.debug(`RS.NAV: Tweet thread load returned ${txs.length} tweets`);
         for (let z = 0; z < txs.length; z++) {
-          this.mod.addTweet(txs[z], {type: 'url_sig', node: "server"});
+          this.mod.addTweet(txs[z], { type: 'url_sig', node: 'server' });
         }
         let tweet = this.mod.returnTweet(tweet_id);
         this.renderThread(tweet);
@@ -281,7 +281,7 @@ class RedSquareMain {
   }
 
   renderHome() {
-    console.debug("RS.renderHome");
+    console.debug('RS.renderHome');
     this.manager.render('tweets');
     this.scrollFeed(this.scroll_depth, this.behavior);
 
@@ -332,6 +332,8 @@ class RedSquareMain {
             document.getElementById('saito-header').style.top = `-${hh}`;
             document.getElementById('saito-header').style.height = '0';
             document.getElementById('saito-header').style.padding = '0';
+            document.querySelector('.saito-container').classList.add('scrolling');
+            document.querySelector('.saito-sidebar.left').classList.add('scrolling');
             triggered = true;
           }
 
@@ -340,11 +342,12 @@ class RedSquareMain {
           // upscroll code
           if (triggered) {
             document.getElementById('saito-header').removeAttribute('style');
+            document.querySelector('.saito-container').classList.remove('scrolling');
+            document.querySelector('.saito-sidebar.left').classList.remove('scrolling');
             triggered = false;
           }
         } // else was horizontal scroll
         lastScrollTop = st <= 0 ? 0 : st; // For Mobile or negative scrolling
-
 
         if (this.manager.mode == 'tweets') {
           this.scroll_depth = scrollableElement.scrollTop;
@@ -355,6 +358,8 @@ class RedSquareMain {
           is_running = false;
           if (scrollableElement.scrollTop < 50 && triggered) {
             document.getElementById('saito-header').removeAttribute('style');
+            document.querySelector('.saito-container').classList.remove('scrolling');
+            document.querySelector('.saito-sidebar.left').classList.remove('scrolling');
             triggered = false;
           }
         }, 75);
