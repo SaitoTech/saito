@@ -783,7 +783,7 @@ class RedSquare extends ModTemplate {
 
       let source = {
         type: 'archive',
-        node: peer.publicKey
+        node: peer.publicKey || peer
       };
 
       if (peer.publicKey == this.publicKey) {
@@ -1220,7 +1220,8 @@ class RedSquare extends ModTemplate {
         console.debug(
           `RS.addTweet Success! Feed has (${this.tweets.length}) -- `,
           tweet.text,
-          source
+          source.node,
+          `Curated: ${tweet.curated}`
         );
       }
 
@@ -2350,48 +2351,47 @@ class RedSquare extends ModTemplate {
       return;
     }
 
-    if (this.debug) {
-      console.debug('###\n###\m### RS.cacheRecentTweets -- ' + this.tweets.length + '\n###\n###');
-    }
-
     this.cached_tweets = [];
 
     for (let tweet of this.tweets) {
-      if (this.tweets.curated == 1) {
+      //
+      // Update curation (because we maybe have more named keys)
+      //
+      tweet.curated = this.curate(tweet);
+
+      if (tweet.curated == 1) {
         this.cached_tweets.push(tweet.tx.serialize_to_web(this.app));
-      } else {
-        if (this.cacheRecentTweetsCurationFunction(tweet)) {
-          this.cached_tweets.push(tweet.tx.serialize_to_web(this.app));
-        }
       }
     }
 
-    if (this.cached_tweets.length < 10 && skip_username_fetch == false) {
-      setTimeout(() => {
-        this.fetchMissingUsernames((answers) => {
-          this.cacheRecentTweets(true);
-        });
-      }, 250);
-    }
-
-    //
-    // still nothing, pull the three latest
-    //
-    for (let z = 0; z < 4 && z < this.tweets.length; z++) {
-      this.cached_tweets.push(this.tweets[z].tx.serialize_to_web(this.app));
-    }
-  }
-
-  cacheRecentTweetsCurationFunction(tweet) {
     if (this.debug) {
-      console.debug('RS.cacheRecentCuration: server is examining: ' + tweet.text);
       console.debug(
-        'RS.cacheRecentCuration: moderation result is: ' +
-          this.app.modules.moderate(tweet.tx, 'RedSquare')
+        `###\n### RS.cacheRecentTweets [${skip_username_fetch}] -- Tweets: ${this.tweets.length} Cached: ${this.cached_tweets.length} \n###`
       );
     }
 
-    return this.app.modules.moderate(tweet.tx, 'RedSquare');
+    if (this.cached_tweets.length < 10) {
+      console.debug(
+        `### RS.cacheRecentTweets Short on cached tweets... ${skip_username_fetch ? 'just take most recent... ' : 'check registry... \n###'}`
+      );
+
+      if (!skip_username_fetch) {
+        setTimeout(() => {
+          this.fetchMissingUsernames((answers) => {
+            this.cacheRecentTweets(true);
+          });
+        }, 250);
+      } else {
+        for (let z = 0; z < this.tweets.length && this.cached_tweets.length < 10; z++) {
+          if (this.tweets[z].curated == 0) {
+            this.cached_tweets.push(this.tweets[z].tx.serialize_to_web(this.app));
+          }
+        }
+        console.debug(
+          `### RS.cacheRecentTweets fell back to Cached: ${this.cached_tweets.length} \n###`
+        );
+      }
+    }
   }
 
   fetchMissingUsernames(mycallback = null) {
@@ -2410,6 +2410,8 @@ class RedSquare extends ModTemplate {
           mycallback(answer);
         }
       });
+    } else {
+      console.warn('No Registry');
     }
   }
 
@@ -2620,14 +2622,12 @@ class RedSquare extends ModTemplate {
     }
   }
 
-
   // This needs to be a separate function from basic moderation, because users
-  // will want to toggle it on/off, but moderation happens at the core and blocks 
+  // will want to toggle it on/off, but moderation happens at the core and blocks
   // even receiving transactions
 
   curate(tweet) {
     let tx = tweet.tx;
-
     // MODERATE first
     // accept black and white lists as authoritative before defaulting to tweet analysis
     //
@@ -2641,6 +2641,11 @@ class RedSquare extends ModTemplate {
       return -1;
     }
 
+    // My contacts get through
+    if (this.app.keychain.hasPublicKey(tx.from[0].publicKey)) {
+      return 1;
+    }
+
     //
     // CURATION (browsers)
     //
@@ -2649,15 +2654,11 @@ class RedSquare extends ModTemplate {
     // stored on their keylist.
     //
     if (this.app.BROWSER) {
-      if (this.app.keychain.hasPublicKey(tx.from[0].publicKey)) {
-        return 1;
-      }
-
-      if (tx?.optional?.num_replies > 0) {
+      if (tweet.num_replies > 0) {
         return 0;
       }
 
-      if (tx?.optional?.num_likes > 10) {
+      if (tweet.num_likes > 10) {
         return 0;
       }
 
@@ -2676,16 +2677,21 @@ class RedSquare extends ModTemplate {
         tx.from[0].publicKey,
         false
       );
+
+      if (!is_anonymous_user && tweet.num_replies > 0) {
+        return 1;
+      }
+
+      if (!is_anonymous_user && tweet.num_likes > 1) {
+        return 1;
+      }
+
+      if (tweet.num_replies > 0 && tweet.num_likes > 1) {
+        return 1;
+      }
+
       if (is_anonymous_user) {
-        return 0;
-      }
-
-      if (tweet.num_replies > 0) {
-        return 1;
-      }
-
-      if (tweet.num_likes > 1) {
-        return 1;
+        return -1;
       }
 
       return 0;
