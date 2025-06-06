@@ -21,13 +21,11 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
 
-#[derive(Clone, Debug, Serialize )]
+#[derive(Clone, Debug, Serialize)]
 pub enum PeerType {
     Default,
     Stun,
 }
-
-
 
 #[derive(Clone, Debug, Serialize)]
 pub enum PeerStatus {
@@ -39,14 +37,12 @@ pub enum PeerStatus {
     Connected,
 }
 
-
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct PeerStats {
     pub received_block_headers: u64,
     pub received_txs: u64,
     pub received_messages: u64,
 }
-
 
 fn vec_of_arrays_as_hex<S>(vec: &Vec<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
 where
@@ -72,7 +68,7 @@ pub struct Peer {
     // if this is None(), it means an incoming connection. else a connection which we started from the data from config file
     pub static_peer_config: Option<util::configuration::PeerConfig>,
     pub challenge_for_peer: Option<SaitoHash>,
-#[serde(serialize_with = "vec_of_arrays_as_hex")]
+    #[serde(serialize_with = "vec_of_arrays_as_hex")]
     pub key_list: Vec<SaitoPublicKey>,
     pub services: Vec<PeerService>,
     pub last_msg_at: Timestamp,
@@ -85,13 +81,12 @@ pub struct Peer {
     pub handshake_limiter: RateLimiter,
     pub message_limiter: RateLimiter,
     pub invalid_block_limiter: RateLimiter,
-   #[serde(serialize_with = "option_as_hex")]
+    #[serde(serialize_with = "option_as_hex")]
     pub public_key: Option<SaitoPublicKey>,
     pub peer_type: PeerType,
     pub ip_address: Option<String>,
     pub stats: PeerStats,
 }
-
 
 impl Peer {
     pub fn new(peer_index: PeerIndex) -> Peer {

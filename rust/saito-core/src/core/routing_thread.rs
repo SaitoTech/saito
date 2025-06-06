@@ -1000,7 +1000,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         let peers = self.network.peer_lock.read().await;
         let mut peer_count = 0;
         let mut peers_in_handshake = 0;
-       
+
         let stat = format!(
             "{} - {} - total peers : {:?}. in handshake : {:?}",
             StatVariable::format_timestamp(current_time),

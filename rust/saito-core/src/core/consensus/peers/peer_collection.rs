@@ -20,7 +20,7 @@ impl PeerCounter {
         self.counter
     }
 }
-#[derive(Debug, Clone, Default, Serialize )]
+#[derive(Debug, Clone, Default, Serialize)]
 pub struct PeerCollection {
     pub index_to_peers: HashMap<PeerIndex, Peer>,
     #[serde(skip)]
@@ -30,7 +30,6 @@ pub struct PeerCollection {
     #[serde(skip)]
     pub(crate) peer_state_writer: PeerStateWriter,
 }
-
 
 impl PeerCollection {
     pub fn find_peer_by_address(&self, address: &SaitoPublicKey) -> Option<&Peer> {
