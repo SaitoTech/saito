@@ -2158,6 +2158,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    if (u.destroyed == true) {
 	      this.game.spaces[spacekey].units.splice(i, 1);
 	    }
+	    u.damaged_this_combat = false;
 	  }
 
 	  this.displaySpace(spacekey);
@@ -2167,6 +2168,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    if (space.activated_for_combat || space.activated_for_movement) {
 	      for (let z = space.units.length-1; z >= 0 ; z--) {
 	        let u = space.units[z];
+		u.damaged_this_combat = false;
 		if (u.destroyed) { space.units.splice(z, 1); }
 	      }
 	    }

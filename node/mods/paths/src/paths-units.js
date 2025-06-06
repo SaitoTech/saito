@@ -34,25 +34,25 @@
 
     obj.key = key;
 
-    if (!obj.ckey)      	{ obj.key       = "XX"; }
-    if (!obj.name)      	{ obj.name      = "Unknown"; }
-    if (!obj.army)		{ obj.army 	= 0; }
-    if (!obj.corps)		{ obj.corps 	= 0; }
-    if (!obj.combat)		{ obj.combat 	= 5; }
-    if (!obj.loss)		{ obj.loss 	= 3; }
-    if (!obj.movement)		{ obj.movement 	= 3; }
-    if (!obj.rcombat)		{ obj.rcombat 	= 5; }
-    if (!obj.rloss)		{ obj.rloss 	= 3; }
-    if (!obj.rmovement)		{ obj.rmovement = 3; }
+    if (!obj.ckey)      		{ obj.key       = "XX"; }
+    if (!obj.name)      		{ obj.name      = "Unknown"; }
+    if (!obj.army)			{ obj.army 	= 0; }
+    if (!obj.corps)			{ obj.corps 	= 0; }
+    if (!obj.combat)			{ obj.combat 	= 5; }
+    if (!obj.loss)			{ obj.loss 	= 3; }
+    if (!obj.movement)			{ obj.movement 	= 3; }
+    if (!obj.rcombat)			{ obj.rcombat 	= 5; }
+    if (!obj.rloss)			{ obj.rloss 	= 3; }
+    if (!obj.rmovement)			{ obj.rmovement = 3; }
 
-    if (!obj.attacked)		{ obj.attacked  = 0; }
-    if (!obj.moved)		{ obj.moved     = 0; }
+    if (!obj.attacked)			{ obj.attacked  = 0; }
+    if (!obj.moved)			{ obj.moved     = 0; }
 
-    if (!obj.damaged)		{ obj.damaged = false; }
-    if (!obj.damaged_this_combat{ obj.damaged_this_combat = false; }
-    if (!obj.destroyed)		{ obj.destroyed = false; }
-    if (!obj.spacekey)  	{ obj.spacekey = ""; }
-    if (!obj.checkSupplyStatus) { obj.checkSupplyStatus = (paths_self, spacekey) => { return 0; } };
+    if (!obj.damaged)			{ obj.damaged = false; }
+    if (!obj.damaged_this_combat)	{ obj.damaged_this_combat = false; }
+    if (!obj.destroyed)			{ obj.destroyed = false; }
+    if (!obj.spacekey)  		{ obj.spacekey = ""; }
+    if (!obj.checkSupplyStatus) 	{ obj.checkSupplyStatus = (paths_self, spacekey) => { return 0; } };
 
     if (key.indexOf("army") > -1) { obj.army = 1; } else { obj.corps = 1; }
 

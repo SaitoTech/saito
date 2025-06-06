@@ -12603,6 +12603,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    if (u.destroyed == true) {
 	      this.game.spaces[spacekey].units.splice(i, 1);
 	    }
+	    u.damaged_this_combat = false;
 	  }
 
 	  this.displaySpace(spacekey);
@@ -12612,6 +12613,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    if (space.activated_for_combat || space.activated_for_movement) {
 	      for (let z = space.units.length-1; z >= 0 ; z--) {
 	        let u = space.units[z];
+		u.damaged_this_combat = false;
 		if (u.destroyed) { space.units.splice(z, 1); }
 	      }
 	    }
@@ -12740,8 +12742,10 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    if (unit) {
 	      if (unit.damaged == false) {
 		unit.damaged = true;
+	    	unit.damaged_this_combat = true;
 	      } else { 
 		unit.destroyed = true;
+	    	unit.damaged_this_combat = true;
 	      }
 	    }
 	  }
@@ -12825,7 +12829,9 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    let unit = this.cloneUnit(unitkey);
 	    unit.spacekey = spacekey;
 	    this.game.spaces[spacekey].units.push(unit);
-	    if (attacked) { this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].attacked = 1; }
+	    if (attacked) {
+	      this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].attacked = 1;
+	    }
 	  }
 
 	  //
@@ -12838,6 +12844,9 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
   	          if (this.game.state.combat.attacker[z].unit_sourcekey == spacekey) {
 	            this.game.state.combat.attacker.push({ key : this.game.state.combat.key , unit_sourcekey : spacekey , unit_idx : this.game.spaces[spacekey].units.length-1 });
 		    z = this.game.state.combat.attacker.length + 2;
+	    	    if (attacked) {
+	    	      this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].damaged_this_combat = true;
+	    	    }
 	          }
 	        }
 	      }
@@ -13806,7 +13815,7 @@ console.log("u: " + JSON.stringify(attacker_units));
                 uidx = z;
               }
             }
-            if (!attacker_units[i].damaged) {
+            if (!attacker_units[i].damaged && !attacker_units[i].damaged_this_combat) {
               paths_self.moveUnit(skey, uidx, key);
               paths_self.addMove(`move\t${faction}\t${skey}\t${uidx}\t${key}\t${paths_self.game.player}`);
 	      j++;
@@ -15719,7 +15728,10 @@ console.log("original_key: " + original_key);
 	    if (space.activated_for_combat == 1) { return 0; }
 	    for (let i = 0; i < space.units.length; i++) {
 	      if (this.returnPowerOfUnit(space.units[i]) === faction) {
-	        return 1;
+		for (let z = 0; z < space.neighbours.length; z++) {
+	          if (this.game.spaces[neighbours[z]].control != faction && this.game.spaces[neighbours[z]].fort > 0) { return 1; }
+	          if (this.game.spaces[neighbours[z]].control != faction && this.game.spaces[neighbours[z]].units.length > 0) { return 1; }
+		}
 	      }
 	    }
 	    return 0;
@@ -16423,24 +16435,25 @@ console.log("original_key: " + original_key);
 
     obj.key = key;
 
-    if (!obj.ckey)      	{ obj.key       = "XX"; }
-    if (!obj.name)      	{ obj.name      = "Unknown"; }
-    if (!obj.army)		{ obj.army 	= 0; }
-    if (!obj.corps)		{ obj.corps 	= 0; }
-    if (!obj.combat)		{ obj.combat 	= 5; }
-    if (!obj.loss)		{ obj.loss 	= 3; }
-    if (!obj.movement)		{ obj.movement 	= 3; }
-    if (!obj.rcombat)		{ obj.rcombat 	= 5; }
-    if (!obj.rloss)		{ obj.rloss 	= 3; }
-    if (!obj.rmovement)		{ obj.rmovement = 3; }
+    if (!obj.ckey)      		{ obj.key       = "XX"; }
+    if (!obj.name)      		{ obj.name      = "Unknown"; }
+    if (!obj.army)			{ obj.army 	= 0; }
+    if (!obj.corps)			{ obj.corps 	= 0; }
+    if (!obj.combat)			{ obj.combat 	= 5; }
+    if (!obj.loss)			{ obj.loss 	= 3; }
+    if (!obj.movement)			{ obj.movement 	= 3; }
+    if (!obj.rcombat)			{ obj.rcombat 	= 5; }
+    if (!obj.rloss)			{ obj.rloss 	= 3; }
+    if (!obj.rmovement)			{ obj.rmovement = 3; }
 
-    if (!obj.attacked)		{ obj.attacked  = 0; }
-    if (!obj.moved)		{ obj.moved     = 0; }
+    if (!obj.attacked)			{ obj.attacked  = 0; }
+    if (!obj.moved)			{ obj.moved     = 0; }
 
-    if (!obj.damaged)		{ obj.damaged = false; }
-    if (!obj.destroyed)		{ obj.destroyed = false; }
-    if (!obj.spacekey)  	{ obj.spacekey = ""; }
-    if (!obj.checkSupplyStatus) { obj.checkSupplyStatus = (paths_self, spacekey) => { return 0; } };
+    if (!obj.damaged)			{ obj.damaged = false; }
+    if (!obj.damaged_this_combat)	{ obj.damaged_this_combat = false; }
+    if (!obj.destroyed)			{ obj.destroyed = false; }
+    if (!obj.spacekey)  		{ obj.spacekey = ""; }
+    if (!obj.checkSupplyStatus) 	{ obj.checkSupplyStatus = (paths_self, spacekey) => { return 0; } };
 
     if (key.indexOf("army") > -1) { obj.army = 1; } else { obj.corps = 1; }
 

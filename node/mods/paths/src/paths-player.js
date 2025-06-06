@@ -586,7 +586,7 @@ console.log("u: " + JSON.stringify(attacker_units));
                 uidx = z;
               }
             }
-            if (!attacker_units[i].damaged) {
+            if (!attacker_units[i].damaged && !attacker_units[i].damaged_this_combat) {
               paths_self.moveUnit(skey, uidx, key);
               paths_self.addMove(`move\t${faction}\t${skey}\t${uidx}\t${key}\t${paths_self.game.player}`);
 	      j++;
@@ -2499,7 +2499,10 @@ console.log("original_key: " + original_key);
 	    if (space.activated_for_combat == 1) { return 0; }
 	    for (let i = 0; i < space.units.length; i++) {
 	      if (this.returnPowerOfUnit(space.units[i]) === faction) {
-	        return 1;
+		for (let z = 0; z < space.neighbours.length; z++) {
+	          if (this.game.spaces[neighbours[z]].control != faction && this.game.spaces[neighbours[z]].fort > 0) { return 1; }
+	          if (this.game.spaces[neighbours[z]].control != faction && this.game.spaces[neighbours[z]].units.length > 0) { return 1; }
+		}
 	      }
 	    }
 	    return 0;
