@@ -1,4 +1,4 @@
-use std::io::{Error, ErrorKind};
+use std::{fmt::Display, io::{Error, ErrorKind}};
 
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
@@ -10,6 +10,8 @@ pub struct PeerService {
     pub name: String,
     // TODO: add versioning info here for application services for #622
 }
+
+
 
 impl TryFrom<String> for PeerService {
     type Error = std::io::Error;

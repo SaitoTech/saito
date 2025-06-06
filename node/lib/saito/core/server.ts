@@ -1023,6 +1023,10 @@ class Server {
       let stat = await S.getLibInstance().get_stats();
       res.send(stat);
     });
+    expressApp.get('/stats/peers', async (req, res) => {
+      let stat = await S.getLibInstance().get_peer_stats();
+      res.send(stat);
+    });
 
     //
     // make root directory recursively servable

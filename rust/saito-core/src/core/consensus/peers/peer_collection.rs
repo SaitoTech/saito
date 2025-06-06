@@ -2,7 +2,9 @@ use crate::core::consensus::peers::peer::{Peer, PeerStatus};
 use crate::core::consensus::peers::peer_state_writer::PeerStateWriter;
 use crate::core::defs::{PeerIndex, PrintForLog, SaitoPublicKey, Timestamp};
 use log::{debug, info};
+use serde::Serialize;
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::time::Duration;
 
 const PEER_REMOVAL_WINDOW: Timestamp = Duration::from_secs(600).as_millis() as Timestamp;
@@ -18,13 +20,17 @@ impl PeerCounter {
         self.counter
     }
 }
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize )]
 pub struct PeerCollection {
     pub index_to_peers: HashMap<PeerIndex, Peer>,
+    #[serde(skip)]
     pub address_to_peers: HashMap<SaitoPublicKey, PeerIndex>,
+    #[serde(skip)]
     pub peer_counter: PeerCounter,
+    #[serde(skip)]
     pub(crate) peer_state_writer: PeerStateWriter,
 }
+
 
 impl PeerCollection {
     pub fn find_peer_by_address(&self, address: &SaitoPublicKey) -> Option<&Peer> {
