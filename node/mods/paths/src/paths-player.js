@@ -2500,8 +2500,8 @@ console.log("original_key: " + original_key);
 	    for (let i = 0; i < space.units.length; i++) {
 	      if (this.returnPowerOfUnit(space.units[i]) === faction) {
 		for (let z = 0; z < space.neighbours.length; z++) {
-	          if (this.game.spaces[neighbours[z]].control != faction && this.game.spaces[neighbours[z]].fort > 0) { return 1; }
-	          if (this.game.spaces[neighbours[z]].control != faction && this.game.spaces[neighbours[z]].units.length > 0) { return 1; }
+	          if (this.game.spaces[space.neighbours[z]].control != faction && this.game.spaces[space.neighbours[z]].fort > 0) { return 1; }
+	          if (this.game.spaces[space.neighbours[z]].control != faction && this.game.spaces[space.neighbours[z]].units.length > 0) { return 1; }
 		}
 	      }
 	    }
