@@ -227,7 +227,6 @@ pub fn new(
             stat_queue: Default::default(),
             io_interface: Box::new(WasmIoHandler {}),
             enabled: enable_stats,
-            current_peer_state: Default::default(),
             current_wallet_state: Default::default(),
             current_mining_state: Default::default(),
             current_blockchain_state: Default::default(),
@@ -1558,7 +1557,7 @@ pub async fn get_stats() -> Result<JsString, JsValue> {
     let saito = SAITO.lock().await;
     let stat_thread = &saito.as_ref().unwrap().stat_thread;
     let stat = WasmStats {
-        current_peer_state: stat_thread.current_peer_state.clone(),
+        // current_peer_state: stat_thread.current_peer_state.clone(),
         current_wallet_state: stat_thread.current_wallet_state.clone(),
         current_blockchain_state: stat_thread.current_blockchain_state.clone(),
         current_mempool_state: stat_thread.current_mempool_state.clone(),
@@ -1567,6 +1566,23 @@ pub async fn get_stats() -> Result<JsString, JsValue> {
 
     let str = serde_json::to_string(&stat)
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize stats: {}", e)))?;
+    Ok(str.into())
+}
+
+#[wasm_bindgen]
+pub async fn get_peer_stats() -> Result<JsString, JsValue> {
+    let saito = SAITO.lock().await;
+    let peers = &saito
+        .as_ref()
+        .unwrap()
+        .routing_thread
+        .network
+        .peer_lock
+        .read()
+        .await;
+
+    let str = serde_json::to_string(peers.deref())
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize peer stats: {}", e)))?;
     Ok(str.into())
 }
 
