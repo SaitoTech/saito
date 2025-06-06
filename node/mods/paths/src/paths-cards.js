@@ -1,8 +1,6 @@
 
   returnSpaceNameForLog() {
     return `<span class="showcard ${card}" id="${card}">${card}</span>`;
-
-
   }
 
   popup(card) {
@@ -1219,7 +1217,7 @@ deck['ap23'] = {
 	    for (let z = 0; z < hand.length; z++) { html += paths_self.popup(hand[z]); }
 	    paths_self.updateLog(html);
 
-	    paths_self.game.queue.push("player_play_ops\tallies\tap23\t");
+	    paths_self.game.queue.push("player_play_ops\tallies\tap23\t2");
 
 	    return 1;
           } 
@@ -2167,7 +2165,7 @@ deck['ap35'] = {
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
-	  paths_self.game.queue.push("player_play_ops\tallies\tap35\t");
+	  paths_self.game.queue.push("player_play_ops\tallies\tap35\t4");
 	  paths_self.game.state.events.yanks_and_tanks = 1;
 	  return 1;
 
@@ -2390,7 +2388,7 @@ deck['ap45'] = {
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
 	  paths_self.game.state.events.kerensky_offensive = 1;
-	  paths_self.game.queue.push("player_play_ops\tallies\tap45\t");
+	  paths_self.game.queue.push("player_play_ops\tallies\tap45\t3");
 	  return 1;
 	} ,
       }
@@ -2409,7 +2407,7 @@ deck['ap46'] = {
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
 	  paths_self.game.state.events.brusilov_offensive = 1;
-	  paths_self.game.queue.push("player_play_ops\tallies\tap46\t");
+	  paths_self.game.queue.push("player_play_ops\tallies\tap46\t4");
 	  return 1;
 	} ,
       }
@@ -3309,4 +3307,21 @@ deck['cp65'] = {
 
     return deck;
   }
+
+
+            
+  returnDiscardedCards(faction="") {
+    let deck_idx = 1;
+    if (faction == "allies") { deck_idx = 2; }
+    let discarded = {};
+    let all_cards = this.returnDeck();  
+    for (var i in this.game.deck[deck_idx - 1].discards) {
+      if (all_cards[i]) {
+        discarded[i] = all_cards[i];
+      }       
+    }         
+    this.game.deck[deck_idx - 1].discards = {};
+    return discarded;
+  } 
+
 

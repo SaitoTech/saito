@@ -1800,8 +1800,6 @@ console.log("INITIALIZING PATHS");
 
   returnSpaceNameForLog() {
     return `<span class="showcard ${card}" id="${card}">${card}</span>`;
-
-
   }
 
   popup(card) {
@@ -3018,7 +3016,7 @@ deck['ap23'] = {
 	    for (let z = 0; z < hand.length; z++) { html += paths_self.popup(hand[z]); }
 	    paths_self.updateLog(html);
 
-	    paths_self.game.queue.push("player_play_ops\tallies\tap23\t");
+	    paths_self.game.queue.push("player_play_ops\tallies\tap23\t2");
 
 	    return 1;
           } 
@@ -3966,7 +3964,7 @@ deck['ap35'] = {
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
-	  paths_self.game.queue.push("player_play_ops\tallies\tap35\t");
+	  paths_self.game.queue.push("player_play_ops\tallies\tap35\t4");
 	  paths_self.game.state.events.yanks_and_tanks = 1;
 	  return 1;
 
@@ -4189,7 +4187,7 @@ deck['ap45'] = {
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
 	  paths_self.game.state.events.kerensky_offensive = 1;
-	  paths_self.game.queue.push("player_play_ops\tallies\tap45\t");
+	  paths_self.game.queue.push("player_play_ops\tallies\tap45\t3");
 	  return 1;
 	} ,
       }
@@ -4208,7 +4206,7 @@ deck['ap46'] = {
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
 	  paths_self.game.state.events.brusilov_offensive = 1;
-	  paths_self.game.queue.push("player_play_ops\tallies\tap46\t");
+	  paths_self.game.queue.push("player_play_ops\tallies\tap46\t4");
 	  return 1;
 	} ,
       }
@@ -5108,6 +5106,23 @@ deck['cp65'] = {
 
     return deck;
   }
+
+
+            
+  returnDiscardedCards(faction="") {
+    let deck_idx = 1;
+    if (faction == "allies") { deck_idx = 2; }
+    let discarded = {};
+    let all_cards = this.returnDeck();  
+    for (var i in this.game.deck[deck_idx - 1].discards) {
+      if (all_cards[i]) {
+        discarded[i] = all_cards[i];
+      }       
+    }         
+    this.game.deck[deck_idx - 1].discards = {};
+    return discarded;
+  } 
+
 
 
   returnDefenderUnits() {
@@ -10589,10 +10604,12 @@ console.log(JSON.stringify(this.game.deck[1].hand));
           this.game.queue.splice(qe, 1);
 
 	  let all_cards = this.returnDeck("all"); 
+	  let redealt_allies = false;
+	  let redealt_central = false;
           this.game.queue.push("deal_strategy_cards");
 
 	  //
-	  // LIMITED WAR CARDS - allied
+	  // LIMITED WAR CARDS - allies
 	  //
   	  if (this.game.state.general_records_track.allies_war_status >= 4 && this.game.state.allies_limited_war_cards_added == false) {
 
@@ -10613,9 +10630,13 @@ console.log(JSON.stringify(this.game.deck[1].hand));
             this.game.queue.push("DECK\t2\t"+JSON.stringify(new_cards));
             this.game.queue.push("DECKBACKUP\t2");
             this.updateLog("Shuffling discarded cards back into the deck...");
+	    redealt_allies = true;
 
 	  }
 
+	  //
+	  // LIMITED WAR CARDS - central
+	  //
   	  if (this.game.state.general_records_track.central_war_status >= 4 && this.game.state.central_limited_war_cards_added == false) {
 	    this.game.state.central_limited_war_cards_added = true;
 	
@@ -10634,8 +10655,13 @@ console.log(JSON.stringify(this.game.deck[1].hand));
             this.game.queue.push("DECK\t1\t"+JSON.stringify(new_cards));
             this.game.queue.push("DECKBACKUP\t1");
             this.updateLog("Shuffling discarded cards back into the deck...");
+	    redealt_central = true;
 
 	  }
+
+	  //
+	  // TOTAL WAR CARDS -- allies
+	  //
   	  if (this.game.state.general_records_track.allies_war_status >= 11 && this.game.state.allies_total_war_cards_added == false) {
 	    this.game.state.allies_total_war_cards_added = true;
 	
@@ -10654,8 +10680,13 @@ console.log(JSON.stringify(this.game.deck[1].hand));
             this.game.queue.push("DECK\t2\t"+JSON.stringify(new_cards));
             this.game.queue.push("DECKBACKUP\t2");
             this.updateLog("Shuffling discarded cards back into the deck...");
+	    redealt_allies = true;
 
 	  }
+
+	  //
+	  // TOTAL WAR CARDS -- central
+	  //
   	  if (this.game.state.general_records_track.central_war_status >= 11 && this.game.state.central_total_war_cards_added == false) {
 	    this.game.state.central_total_war_cards_added = true;
 	
@@ -10674,6 +10705,7 @@ console.log(JSON.stringify(this.game.deck[1].hand));
             this.game.queue.push("DECK\t1\t"+JSON.stringify(new_cards));
             this.game.queue.push("DECKBACKUP\t1");
             this.updateLog("Shuffling discarded cards back into the deck...");
+	    redealt_central = true;
 
 	  }
 
@@ -10688,12 +10720,53 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 
           let allies_cards_needed = (this.game.state.round >= 4)? 6 : 7;
           let central_cards_needed = (this.game.state.round >= 4)? 6 : 7;
+	  let allies_cards_available = this.game.deck[1].crypt.length;
+	  let central_cards_available = this.game.deck[0].crypt.length;
+	  let allies_cards_post_deal = 0;
+	  let central_cards_post_deal = 0;
 
-          if (allies_cards_needed > this.game.deck[1].crypt.length) { allies_cards_needed = this.game.deck[1].crypt.length; }
-          if (central_cards_needed > this.game.deck[0].crypt.length) { central_cards_needed = this.game.deck[0].crypt.length; }
+          if (allies_cards_needed > this.game.deck[1].crypt.length) { allies_cards_post_deal = allies_cards_needed - allies_cards_available; }
+          if (central_cards_needed > this.game.deck[0].crypt.length) { central_cards_post_deal = central_cards_needed - central_cards_available; }
+
+	  //
+	  // central cards available
+	  //
+	  if (central_cards_post_deal > 0) {
+            // this resets discards = {} so that DECKBACKUP will not retain
+            let discarded_cards = this.returnDiscardedCards("central");
+            this.game.queue.push("DEAL\t1\t1\t"+central_cards_post_deal);
+            this.game.queue.push("SHUFFLE\t1");
+            this.game.queue.push("DECKRESTORE\t1");
+            this.game.queue.push("DECKENCRYPT\t1\t2");
+            this.game.queue.push("DECKENCRYPT\t1\t1");
+            this.game.queue.push("DECKXOR\t1\t2");
+            this.game.queue.push("DECKXOR\t1\t1");
+            this.game.queue.push("DECK\t1\t"+JSON.stringify(discarded_cards));
+            this.game.queue.push("DECKBACKUP\t1");
+            this.game.queue.push("DEAL\t1\t1\t"+central_cards_available);
+            this.updateLog("Shuffling Central discard pile back into deck...");
+	  } else {
+            this.game.queue.push("DEAL\t1\t1\t"+central_cards_needed);
+	  }
+
+	  if (allies_cards_post_deal > 0) {
+            // this resets discards = {} so that DECKBACKUP will not retain
+            let discarded_cards = this.returnDiscardedCards("allies");
+            this.game.queue.push("DEAL\t2\t2\t"+allies_cards_post_deal);
+            this.game.queue.push("SHUFFLE\t2");
+            this.game.queue.push("DECKRESTORE\t2");
+            this.game.queue.push("DECKENCRYPT\t2\t2");
+            this.game.queue.push("DECKENCRYPT\t2\t1");
+            this.game.queue.push("DECKXOR\t2\t2");
+            this.game.queue.push("DECKXOR\t2\t1");
+            this.game.queue.push("DECK\t2\t"+JSON.stringify(discarded_cards));
+            this.game.queue.push("DECKBACKUP\t2");
+            this.game.queue.push("DEAL\t2\t2\t"+allies_cards_available);
+            this.updateLog("Shuffling Allies discard pile back into deck...");
+	  } else {
+            this.game.queue.push("DEAL\t2\t2\t"+allies_cards_needed);
+	  }
           
-          this.game.queue.push("DEAL\t1\t1\t"+central_cards_needed);
-          this.game.queue.push("DEAL\t2\t2\t"+allies_cards_needed);
 
 	  return 1;
 
