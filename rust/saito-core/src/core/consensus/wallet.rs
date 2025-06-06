@@ -686,14 +686,10 @@ impl Wallet {
 
     pub async fn create_bound_transaction(
         &mut self,
-        nft_input_amount: Currency,   // amount in input slip creating NFT
-        nft_uuid_block_id: u64,       // block_id in input slip creating NFT
-        nft_uuid_transaction_id: u64, // transaction_id in input slip creating NFT
-        nft_uuid_slip_id: u64,        // slip_id in input slip creating NFT
-        nft_num: u64,                 // number of nft to create
+        nft_num: u64,                     // number of nft to create
         nft_create_deposit_amt: Currency, // AMOUNT to deposit in slip2 (output)
-        nft_data: Vec<u32>,           // DATA field to attach to TX
-        recipient: &SaitoPublicKey,   // receiver
+        nft_data: Vec<u32>,               // DATA field to attach to TX
+        recipient: &SaitoPublicKey,       // receiver
         network: Option<&Network>,
         latest_block_id: u64,
         genesis_period: u64,
@@ -715,14 +711,14 @@ impl Wallet {
         // by the application calling this function. this slip is expected
         // to be valid. if it is not we will error-out.
         //
-        let input_slip = Slip {
-            public_key: self.public_key,         // Wallet's own public key (creator)
-            amount: nft_input_amount,            // The amount from the provided input UTXO
-            block_id: nft_uuid_block_id,         // Block id from the NFT UUID parameters
-            slip_index: nft_uuid_slip_id as u8,  // Slip index from the NFT UUID parameters
-            tx_ordinal: nft_uuid_transaction_id, // Transaction ordinal from the NFT UUID parameters
-            ..Default::default()
-        };
+        // let input_slip = Slip {
+        //     public_key: self.public_key,         // Wallet's own public key (creator)
+        //     amount: nft_input_amount,            // The amount from the provided input UTXO
+        //     block_id: nft_uuid_block_id,         // Block id from the NFT UUID parameters
+        //     slip_index: nft_uuid_slip_id as u8,  // Slip index from the NFT UUID parameters
+        //     tx_ordinal: nft_uuid_transaction_id, // Transaction ordinal from the NFT UUID parameters
+        //     ..Default::default()
+        // };
 
         //
         // now we compute the unique UTXO key for the input slip. since every
@@ -730,7 +726,7 @@ impl Wallet {
         // assigning each NFT the UUID from the slip that is used to create it,
         // we ensure that each NFT will have an unforgeable ID.
         //
-        let utxo_key = input_slip.get_utxoset_key(); // Compute the unique UTXO key for the input slip
+        // let utxo_key = input_slip.get_utxoset_key(); // Compute the unique UTXO key for the input slip
 
         //
         // check that our wallet has this slip available. this check avoids
@@ -740,12 +736,42 @@ impl Wallet {
         // are not possible, so users cannot "re-spend" UTXO to create
         // duplicate NFTs after their initial NFTs have been created.
         //
-        if !self.unspent_slips.contains(&utxo_key) {
-            info!("UTXO Key not found: {:?}", utxo_key);
+        // if !self.unspent_slips.contains(&utxo_key) {
+        //     info!("UTXO Key not found: {:?}", utxo_key);
+        //     return Err(Error::new(
+        //         ErrorKind::NotFound,
+        //         format!("UTXO not found: {:?}", utxo_key),
+        //     ));
+        // }
+
+        //
+        // Instead of reconstructing an input slip from params, we generate
+        // enough slips to cover `nft_create_deposit_amt`. Any output from
+        // `generate_slips` will become our change slip.
+        //
+        let (mut generated_inputs, generated_outputs) = self.generate_slips(
+            nft_create_deposit_amt,
+            network,
+            latest_block_id,
+            genesis_period,
+        );
+
+        // Ensure we have at least one input slip from generate_slips to use as UUID source
+        if generated_inputs.is_empty() {
             return Err(Error::new(
-                ErrorKind::NotFound,
-                format!("UTXO not found: {:?}", utxo_key),
+                ErrorKind::Other,
+                "Failed to generate input slip for NFT",
             ));
+        }
+
+        // Use the first generated input as our `input_slip` (UUID source)
+        let input_slip = generated_inputs.remove(0);
+
+        // Any additional generated inputs remain in `generated_inputs`
+        // Now capture change slip if provided
+        let mut change_slip_opt: Option<Slip> = None;
+        if let Some(first_generated_output) = generated_outputs.into_iter().next() {
+            change_slip_opt = Some(first_generated_output);
         }
 
         //
@@ -855,53 +881,12 @@ impl Wallet {
         };
 
         //
-        // change slip
-        //
-        // we now examine the inputs (and the amount that slip2 contains
-        // to determine if we need to add additional inputs/outputs to provide
-        // more SAITO to the NFT or to capture any surplus amount as a change
-        // address.
-        //
-        let mut additional_input_slips: Vec<Slip> = Vec::new();
-        let mut change_slip_opt: Option<Slip> = None;
-
-        //
-        // too much money? we need a change address
-        //
-        if nft_input_amount > nft_create_deposit_amt {
-            let change_slip_amt = nft_input_amount - nft_create_deposit_amt;
-            change_slip_opt = Some(Slip {
-                public_key: self.public_key, // Return the change to the creator's address
-                amount: change_slip_amt,
-                slip_type: SlipType::Normal,
-                ..Default::default()
-            });
-
-        //
-        // too little money? we need extra inputs + change address
-        //
-        } else if nft_input_amount < nft_create_deposit_amt {
-            let additional_needed = nft_create_deposit_amt - nft_input_amount;
-            let (generated_inputs, generated_outputs) =
-                self.generate_slips(additional_needed, network, latest_block_id, genesis_period);
-            additional_input_slips = generated_inputs;
-            if let Some(first_generated_output) = generated_outputs.into_iter().next() {
-                change_slip_opt = Some(first_generated_output);
-            } else {
-                return Err(Error::new(
-                    ErrorKind::Other,
-                    "Failed to generate change slip via generate_slips",
-                ));
-            }
-        }
-
-        //
         // now we create the transaction...
         //
         // ... add inputs
         //
         transaction.add_from_slip(input_slip);
-        for slip in additional_input_slips {
+        for slip in generated_inputs {
             transaction.add_from_slip(slip);
         }
 

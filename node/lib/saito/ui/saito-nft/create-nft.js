@@ -145,19 +145,12 @@ class Nft {
             // value of nft (nolan)
             let depositAmt = BigInt(this.app.wallet.convertSaitoToNolan(1));
 
-
-
             //
             // this value is not either nolan/saito
             // this represents the number of nft to mint
             //
             let numNft = BigInt(parseInt(document.querySelector('#create-nft-amount').innerHTML));
             console.log("numNft: ", numNft);
-
-            let validUtxo = await this.findValidUtxo(depositAmt);
-
-            console.log("valid utxo:", validUtxo);
-
 
             let balance = await this.app.wallet.getBalance();
             let balanceSaito = this.app.wallet.convertNolanToSaito(balance);
@@ -169,41 +162,23 @@ class Nft {
                 return;
             }
  
-            if (Object.keys(validUtxo).length === 0) {
-                let minRequired = this.app.wallet.convertSaitoToNolan(depositAmt);
-                salert(`Not enough valid UTXOs in wallet. Need atleast ${this.app.wallet.convertNolanToSaito(minRequired+depositAmt)} SAITO.`);
-                return;
-            }
-
             if (nft_self.nft.image == "") {
                 salert(`Attach an image/file to create nft`);
                 return;
             }
 
-            let slipAmt = BigInt(validUtxo.amt); // already in nolan
             let fee = BigInt(0n);
-            let change = slipAmt - depositAmt;
 
             console.log("SUBMIT NFT: ");
-            console.log(slipAmt);
-            console.log(validUtxo.bid);
-            console.log(validUtxo.tid);
-            console.log(validUtxo.sid);
             console.log('create-nft numNftAmt:', numNft);
             console.log(depositAmt);
-            console.log(change);
             console.log(JSON.stringify(obj));
             console.log(fee);
             console.log(nft_self.mod.publicKey);
 
             let newtx = await nft_self.app.wallet.createBoundTransaction(
-                slipAmt,
-                validUtxo.bid,
-                validUtxo.tid,
-                validUtxo.sid,
                 numNft,
                 depositAmt,
-                change,
                 JSON.stringify(obj),
                 fee,
                 nft_self.mod.publicKey

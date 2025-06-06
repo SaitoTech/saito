@@ -339,14 +339,9 @@ export default class Saito {
         return tx;
     }
 
-    public async createBoundTransaction<T extends Transaction>(
-        amt: bigint,   
-        bid: number,           
-        tid: number,           
-        sid: number,           
+    public async createBoundTransaction<T extends Transaction>(         
         num: bigint,           
-        deposit: bigint,
-        change: bigint,        
+        deposit: bigint,        
         data: string = "",
         fee: bigint,
         recipient_public_key: string,     
@@ -356,13 +351,8 @@ export default class Saito {
         console.log("saito.ts num: ", num);
 
         let wasmTx = await Saito.getLibInstance().create_bound_transaction(
-            amt,
-            bid,
-            tid,
-            sid,
             num,
             deposit,
-            change,
             data,
             fee,
             recipient_public_key,

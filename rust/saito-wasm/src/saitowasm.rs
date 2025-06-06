@@ -524,13 +524,8 @@ pub async fn create_transaction_with_multiple_payments(
 
 #[wasm_bindgen]
 pub async fn create_bound_transaction(
-    amt: u64,
-    bid: u64,
-    tid: u64,
-    sid: u64,
     num: u64,
     deposit: u64,
-    change: u64,
     data: String,
     fee: u64,
     recipient_public_key: JsString,
@@ -545,13 +540,8 @@ pub async fn create_bound_transaction(
     let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
 
     info!("Received in saitowasm.rs:");
-    info!("Amount: {}", amt);
-    info!("Bid: {}", bid);
-    info!("Tid: {}", tid);
-    info!("Sid: {}", sid);
     info!("saitowasm.rs Num: {}", num);
     info!("Deposit: {}", deposit);
-    info!("Change: {}", change);
     info!("Image data JSON: {}", data);
     info!("fee: {}", fee);
     info!("recipient_public_key: {}", recipient_public_key);
@@ -583,10 +573,6 @@ pub async fn create_bound_transaction(
 
     let transaction = wallet
         .create_bound_transaction(
-            amt,
-            bid,
-            tid,
-            sid,
             num,
             deposit,
             serialized_data_u32,
