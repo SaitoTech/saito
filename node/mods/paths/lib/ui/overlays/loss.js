@@ -559,6 +559,7 @@ console.log("and done...");
 						let corpskey = unit.key.split('_')[0] + '_corps';
 						let corpsunit = paths_self.cloneUnit(corpskey);
 						corpsunit.attacked = 1; // we don't want to give this the op to attack
+						corpsunit.damaged_this_combat = true; // used to be an army...
 						corpsunit.spacekey = unit.spacekey;
 
 //

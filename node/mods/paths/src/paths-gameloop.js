@@ -2295,8 +2295,10 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    if (unit) {
 	      if (unit.damaged == false) {
 		unit.damaged = true;
+	    	unit.damaged_this_combat = true;
 	      } else { 
 		unit.destroyed = true;
+	    	unit.damaged_this_combat = true;
 	      }
 	    }
 	  }
@@ -2380,7 +2382,9 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    let unit = this.cloneUnit(unitkey);
 	    unit.spacekey = spacekey;
 	    this.game.spaces[spacekey].units.push(unit);
-	    if (attacked) { this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].attacked = 1; }
+	    if (attacked) {
+	      this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].attacked = 1;
+	    }
 	  }
 
 	  //
@@ -2393,6 +2397,9 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
   	          if (this.game.state.combat.attacker[z].unit_sourcekey == spacekey) {
 	            this.game.state.combat.attacker.push({ key : this.game.state.combat.key , unit_sourcekey : spacekey , unit_idx : this.game.spaces[spacekey].units.length-1 });
 		    z = this.game.state.combat.attacker.length + 2;
+	    	    if (attacked) {
+	    	      this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].damaged_this_combat = true;
+	    	    }
 	          }
 	        }
 	      }

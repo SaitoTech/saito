@@ -49,6 +49,7 @@
     if (!obj.moved)		{ obj.moved     = 0; }
 
     if (!obj.damaged)		{ obj.damaged = false; }
+    if (!obj.damaged_this_combat{ obj.damaged_this_combat = false; }
     if (!obj.destroyed)		{ obj.destroyed = false; }
     if (!obj.spacekey)  	{ obj.spacekey = ""; }
     if (!obj.checkSupplyStatus) { obj.checkSupplyStatus = (paths_self, spacekey) => { return 0; } };

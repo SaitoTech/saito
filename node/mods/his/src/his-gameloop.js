@@ -946,7 +946,8 @@ console.log("display custom overlay: " + card + " -- " + msg);
 			//
 			// calculate who is here
 			//
-		        for (let z = 0, y = 0; z < unitlen; z++) {
+			let y = 0;
+		        for (let z = 0; z < unitlen; z++) {
 		          if (this.game.spaces[spacekey].units[faction][z].type == "regular" || this.game.spaces[spacekey].units[faction][z].type == "mercenary" || this.game.spaces[spacekey].units[faction][z].type == "cavalry") {
 		    	    if (y == 0) { number_to_destroy++; y++; } else { y = 0; }
 			    number_to_move++;
@@ -1001,6 +1002,7 @@ console.log("display custom overlay: " + card + " -- " + msg);
 			//
 			// return surviving units and leaders to nearest Friendly Fortified Space ignoring unrest
 			//
+			y = 0;
                         for (let z = this.game.spaces[spacekey].units[faction].length-1; z >= 0; z--) {
 
 			  let res2 = this.returnNearestFriendlyFortifiedSpacesTransitPassesIgnoreUnrestAndLineOfControl(faction, spacekey, 4, 1);
