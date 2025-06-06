@@ -9,6 +9,7 @@ const NodeCardsArea = () => {
         <NodeCard
           key={0}
           onClose={() => {}}
+          title="Browser"
           peerStats={window.peerStats}
           stats={window.stats}
           loading={window.loading}
