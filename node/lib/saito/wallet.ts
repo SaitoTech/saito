@@ -1323,4 +1323,11 @@ export default class Wallet extends SaitoWallet {
     );
   }
 
+  public async mergeNft(nftId): Promise<Transaction> {
+    console.log("wallet.ts mergeNft: ", nftId);
+    return S.getInstance().createMergeBoundTransaction(
+      nftId
+    );
+  }
+
 }

@@ -1096,6 +1096,99 @@ impl Wallet {
         Ok(transaction)
     }
 
+    pub fn create_merge_bound_transaction(
+        &mut self,
+        nft_id: Vec<u8>,
+    ) -> Result<Transaction, Error> {
+        // 1. Find all positions of NFTs with the given id
+        let positions: Vec<usize> = self
+            .nfts
+            .iter()
+            .enumerate()
+            .filter(|(_, nft)| nft.id == nft_id)
+            .map(|(i, _)| i)
+            .collect();
+
+        // Require at least two NFTs to merge
+        if positions.len() < 2 {
+            return Err(Error::new(ErrorKind::NotFound, "Not enough NFTs to merge"));
+        }
+
+        // 2. Remove all matching NFTs from `self.nfts`, collecting them into `removed_nfts`.
+        //    Remove in descending order so earlier indices aren’t invalidated.
+        let mut idxs = positions.clone();
+        idxs.sort_unstable_by(|a, b| b.cmp(a));
+        let mut removed_nfts = Vec::new();
+        for idx in idxs {
+            removed_nfts.push(self.nfts.remove(idx));
+        }
+
+        // 3. Parse each NFT’s three input slips and accumulate total amounts
+        let mut total_amount1: u64 = 0;
+        let mut total_deposit: u64 = 0;
+        let mut total_amount3: u64 = 0;
+
+        // We’ll also store each parsed Slip so we can add them as inputs
+        let mut input_slips1: Vec<Slip> = Vec::new();
+        let mut input_slips2: Vec<Slip> = Vec::new();
+        let mut input_slips3: Vec<Slip> = Vec::new();
+
+        for nft in &removed_nfts {
+            let slip1 = Slip::parse_slip_from_utxokey(&nft.slip1)?;
+            let slip2 = Slip::parse_slip_from_utxokey(&nft.slip2)?;
+            let slip3 = Slip::parse_slip_from_utxokey(&nft.slip3)?;
+
+            total_amount1 = total_amount1
+                .checked_add(slip1.amount)
+                .ok_or_else(|| Error::new(ErrorKind::Other, "Overflow merging slip1 amounts"))?;
+            total_deposit = total_deposit
+                .checked_add(slip2.amount)
+                .ok_or_else(|| Error::new(ErrorKind::Other, "Overflow merging deposit amounts"))?;
+            total_amount3 = total_amount3
+                .checked_add(slip3.amount)
+                .ok_or_else(|| Error::new(ErrorKind::Other, "Overflow merging slip3 amounts"))?;
+
+            input_slips1.push(slip1);
+            input_slips2.push(slip2);
+            input_slips3.push(slip3);
+        }
+
+        // 4. Use the first parsed Slip as a template for each output, adjusting amounts
+        let mut merged_slip1 = input_slips1[0].clone();
+        merged_slip1.amount = total_amount1;
+
+        let mut merged_slip2 = input_slips2[0].clone();
+        merged_slip2.amount = total_deposit;
+
+        let mut merged_slip3 = input_slips3[0].clone();
+        merged_slip3.amount = total_amount3;
+
+        // 5. Build the new Bound transaction
+        let mut transaction = Transaction::default();
+        transaction.transaction_type = TransactionType::Bound;
+
+        // Add all original slips (from every NFT we removed) as inputs
+        for slip in input_slips1
+            .iter()
+            .chain(input_slips2.iter())
+            .chain(input_slips3.iter())
+        {
+            transaction.add_from_slip(slip.clone());
+        }
+
+        // Add exactly one set of merged outputs (three slips) representing the combined NFT
+        transaction.add_to_slip(merged_slip1);
+        transaction.add_to_slip(merged_slip2);
+        transaction.add_to_slip(merged_slip3);
+
+        // 6. Finalize: compute signature hash and sign
+        let hash_for_signature: SaitoHash = hash(&transaction.serialize_for_signature());
+        transaction.hash_for_signature = Some(hash_for_signature);
+        transaction.sign(&self.private_key);
+
+        Ok(transaction)
+    }
+
     //
     // Constructs a 33-byte “UUID” for an NFT based on:
     //   1. The unique coordinates of the UTXO slip used to mint the NFT

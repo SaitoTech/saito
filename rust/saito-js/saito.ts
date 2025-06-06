@@ -414,7 +414,21 @@ export default class Saito {
         rightCount
       );
 
-      console.log("wallet.ts wasmTx:", wasmTx);
+      const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
+      tx.timestamp = Date.now();
+
+      return tx;
+    }
+
+
+    public async createMergeBoundTransaction<T extends Transaction>(
+      nftId: string
+    ): Promise<T> {
+      console.log("saito.ts createMergeBoundTransaction:", nftId);
+
+      const wasmTx = await Saito.getLibInstance().create_merge_bound_transaction(
+        nftId
+      );
 
       const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
       tx.timestamp = Date.now();

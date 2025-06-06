@@ -140,17 +140,61 @@ class Nft {
   }
 
   setupMergeButton() {
-    if (!this.mergeBtn) return;
-    this.mergeBtn.onclick = e => {
-      e.preventDefault();
-      if (this.nft_selected === null) {
-        alert('Please select an NFT to merge.');
-        return;
-      }
-      console.log('Merging NFT at index:', this.nft_selected);
-      alert('merge flow not implemented yet');
-    };
-  }
+      if (!this.mergeBtn) return;
+
+      this.mergeBtn.onclick = async e => {
+        e.preventDefault();
+
+        // Ensure an NFT is selected
+        if (this.nft_selected === null) {
+          alert('Please select an NFT to merge.');
+          return;
+        }
+
+        // Grab the NFT ID from the selected entry in nft_list
+        const nftItem = this.nft_list[this.nft_selected];
+        if (!nftItem || !nftItem.id) {
+          alert('Unable to find selected NFT.');
+          return;
+        }
+        const nftId = nftItem.id;
+
+        // Prompt for confirmation
+        const confirmMerge = confirm(`Merge all nfts with id: ${nftId}?`);
+        if (!confirmMerge) {
+          return;
+        }
+
+        try {
+          // Build the merge transaction
+          const mergeTx = await this.app.wallet.mergeNft(nftId);
+
+          // Sign and broadcast
+          await mergeTx.sign();
+          await this.app.network.propagateTransaction(mergeTx);
+
+          // Wait a moment, then refresh local NFT list
+          setTimeout(async () => {
+            try {
+              const rawList = await this.app.wallet.getNftList();
+              const parsed  = JSON.parse(rawList);
+              await this.app.wallet.saveNftList(parsed);
+              alert('NFT merge completed successfully!');
+            } catch {
+              alert('NFT was merged, but failed to refresh local list.');
+            }
+          }, 2000);
+
+          // Close the overlay
+          this.overlay.close();
+
+        } catch (err) {
+          alert('Merge failed: ' + err.message);
+        }
+      };
+    }
+
+
 
   setupSplitButton() {
     if (!this.splitBtn) return;

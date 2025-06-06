@@ -675,6 +675,23 @@ pub async fn create_split_bound_transaction(
 }
 
 #[wasm_bindgen]
+pub async fn create_merge_bound_transaction(
+    nft_id_hex: String,
+) -> Result<WasmTransaction, JsValue> {
+    let saito = SAITO.lock().await;
+    let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
+
+    let id_bytes: Vec<u8> = hex::decode(&nft_id_hex)
+        .map_err(|e| JsValue::from_str(&format!("nft_id hex decode error: {}", e)))?;
+
+    let tx = wallet
+        .create_merge_bound_transaction(id_bytes)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    Ok(WasmTransaction::from_transaction(tx))
+}
+
+#[wasm_bindgen]
 pub async fn get_nft_list() -> Result<Array, JsValue> {
     let saito = SAITO.lock().await;
     let wallet = saito.as_ref().unwrap().context.wallet_lock.read().await;
