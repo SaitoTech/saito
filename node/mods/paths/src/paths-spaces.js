@@ -508,6 +508,7 @@ if (spacekey == "batum") {
 
 	let passthrough = true;
 	if (passthrough_func != null) { if (!passthrough_func(news[i])) { passthrough = false; } } 
+	if (news[i] == source.key) { passthrough = true; } // auto-exempt source 
 
 	//
 	// don't add anything that isn't passthrough, and don't process any of its
@@ -547,10 +548,94 @@ if (spacekey == "batum") {
 	    }
           }
 
-          if (hop != 1) {
+          if (hop != -1) {
 	    if (!old.includes(news[i])) {
 	      if (news[i] !== source.key) {
 	        old.push(news[i]);
+	      }
+            }
+          }
+        }
+      }
+
+      if (hop <= limit) {
+	  return addHop(newer, hop);
+      } else {
+	  return old;
+      }
+
+    }
+
+    return addHop([source.key], 0); 
+
+  }
+
+  returnSpacesAndHopsWithinHops(source, limit=0, passthrough_func=null, unit=null) {
+
+    let paths_self = this;
+
+    try { if (this.game.spaces[source]) { source = this.game.spaces[source]; } } catch (err) {}
+    if (limit == 0) { return [source.key]; }
+    let hop = 0;
+    let old = [];
+
+    let addHop = function(news, hop) {     
+
+      hop++;
+      let newer = [];
+
+      //
+      //
+      for (let i = 0; i < news.length; i++) {
+
+	let passthrough = true;
+	if (passthrough_func != null) { if (!passthrough_func(news[i])) { passthrough = false; } } 
+	if (news[i] == source.key) { passthrough = true; } // auto-exempt source 
+
+	//
+	// don't add anything that isn't passthrough, and don't process any of its
+	// neighbours since we cannot route through it.
+	//
+	if (passthrough) {
+          for (let z = 0; z < paths_self.game.spaces[news[i]].neighbours.length; z++) {
+            let n = paths_self.game.spaces[news[i]].neighbours[z];
+
+	    //
+	    // we submit unit when calculating movement, so that we can 
+	    // determine if units can move between depots etc.
+	    //
+	    let restricted_movement = false;
+	    if (unit != null) {
+	      let lim = paths_self.game.spaces[news[i]].limits;
+	      if (lim) {
+	        for (let z = 0; z < lim.length; z++) {
+		  if (lim[z][n]) {
+		    restricted_movement = true;
+		    if (lim[z][n] == unit.ckey) { restricted_movement = false; }
+		  }
+		}
+	      }
+	    }
+
+	    if (restricted_movement == false) {
+              if (!old.includes(n)) {
+                if (!news.includes(n)) {
+                  if (!newer.includes(n)) {
+                    if (n !== source.key) {
+	              newer.push(n);
+	            }
+	          }
+	        }
+	      }
+	    }
+          }
+
+          if (hop != -1) {
+	    let does_old_include_spacekey = false;
+	    for (let z = 0; z < old.length; z++) { if (old[z].spacekey == news[i]) { does_old_include_spacekey = true; } }
+	    if (!does_old_include_spacekey) {
+	      if (news[i] !== source.key) {
+	        old.push({ spacekey : news[i] , hops : hop });
 	      }
             }
           }
