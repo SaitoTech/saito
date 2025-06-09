@@ -82,6 +82,7 @@ class League extends ModTemplate {
 	}
 
 	respondTo(type, obj = null) {
+
 		if (type == 'league_membership') {
 			let league_self = this;
 			return {
@@ -99,6 +100,27 @@ class League extends ModTemplate {
 					return true;
 				}
 			};
+		}
+
+		if (type == 'redsquare-add-tweet') {
+/*****
+			let league_self = this;
+			return {
+				addTweet: (tweet, tweet_list) => {
+				  let leaderboard_tweet = null;
+				  for (let i = 0; i < tweet_list.length; i++) {
+				    if (tweet_list[i].text.indexOf("Leaderboard Update") > -1) {
+				      if (leaderboard_tweet == null) {
+					leaderboard_tweet = tweet_list[i];
+				      } else {
+alert("multiple Leaderboard Updates... do something!");
+				      }
+				    }
+				  }
+				  return 1;
+				}
+			};
+***/
 		}
 
 		if (type == 'leagues-for-arcade') {
@@ -1221,7 +1243,7 @@ class League extends ModTemplate {
 
 		if (!this.app.BROWSER) {
 			//for dev purposes
-			//shouldTweet = true;
+			shouldTweet = true;
 
 			for (let key of players) {
 				// Only care if at least one player has a registered username or money is on the line!

@@ -2285,6 +2285,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  // disable combat events that should disappear
 	  //
 	  this.game.state.events.von_hutier = 0;
+	  this.game.state.events.great_retreat_used = 0;
 
 	  if (!this.game.state.combat) { return 1; }
 
