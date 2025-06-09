@@ -7,18 +7,19 @@ module.exports = (app, mod, tweet) => {
 	text = app.browser.markupMentions(text);
 
 	let html_markers = '';
-	if (tweet.source.text) {
-		html_markers += ` data-source="${tweet.source.text}"`;
+
+	if (tweet.sources.length){
+		// put the first... 
+		let source = tweet.sources[0];
+		if (source?.type) {
+			html_markers += ` data-source-type="${source.type}"`;
+		}
+		if (source?.node) {
+			html_markers += ` data-source-node="${source.node}"`;
+		}
 	}
-	if (tweet.source.type) {
-		html_markers += ` data-source-type="${tweet.source.type}"`;
-	}
-	if (tweet.source.node) {
-		html_markers += ` data-source-node="${tweet.source.node}"`;
-	}
-	if (tweet?.curated){
-		html_markers += ` data-curated="${tweet?.curated}"`;	
-	}
+
+	html_markers += ` data-curated="${tweet.curated || 0}"`;	
 
 	if (!text && !notice && tweet.retweet_tx) {
 		notice =

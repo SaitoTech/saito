@@ -1,11 +1,11 @@
-module.exports  = (title = 'Games') => {
-	return `
+module.exports = (title = 'Games') => {
+  return `
       <div class="league-leaderboard">
         <div class="saito-table">
           <div class="saito-table-header">
             <div class="right-align">Rank</div>
             <div>Player</div>
-            <div>Score</div>
+            <div class="league-score-header">Score</div>
             <div class="right-align">${title}</div>
             <div class="right-align">Wins</div>
           </div>

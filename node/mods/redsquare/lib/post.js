@@ -17,7 +17,7 @@ class Post {
 
 		this.render_after_submit = 0;
 		this.file_event_added = false;
-		this.source = 'Post';
+		this.type = 'Post';
 	}
 
 	render(container = '') {
@@ -62,17 +62,17 @@ class Post {
 		this.input.display = 'large';
 
 		this.input.placeholder = "What's happening";
-		if (this.source == 'Retweet') {
+		if (this.type == 'Retweet') {
 			this.input.placeholder = 'optional comment';
 			this.user.notice = 'add a comment to your retweet or just click submit...';
 		}
 
-		if (this.source == 'Edit') {
+		if (this.type == 'Edit') {
 			this.input.placeholder = this.tweet.text || '';
 			this.user.notice = 'tweets are editable for a brief period after posting...';
 		}
 
-		if (this.source == 'Reply') {
+		if (this.type == 'Reply') {
 			this.input.placeholder = 'my reply...';
 			this.user.notice = 'add your comment to the tweet...';
 		}
@@ -109,7 +109,7 @@ class Post {
 			this.input.focus(true);
 		}
 
-		if (this.source == 'Edit') {
+		if (this.type == 'Edit') {
 			document.querySelector(this.container + '.post-tweet-textarea').innerHTML = this.tweet.text;
 		}
 
@@ -183,7 +183,7 @@ class Post {
 
 		let parent_id = document.querySelector(this.container + '#parent_id').value;
 		let thread_id = document.querySelector(this.container + '#thread_id').value;
-		let source = document.querySelector(this.container + '#source').value;
+		let type = document.querySelector(this.container + '#type').value;
 		let keys = [];
 		let identifiers = [];
 
@@ -202,7 +202,7 @@ class Post {
 		//
 		//don't send empty posts
 		//
-		if (post_self.images.length == 0 && text.trim().length == 0 && post_self.source != 'Retweet') {
+		if (post_self.images.length == 0 && text.trim().length == 0 && post_self.type != 'Retweet') {
 			siteMessage('Post Empty', 1000);
 			return;
 		}
@@ -239,7 +239,7 @@ class Post {
 		}
 
 		//Edit
-		if (source === 'Edit') {
+		if (type === 'Edit') {
 			data = { text: text, tweet_id: this.tweet.tx.signature };
 
 			let qs =
@@ -293,7 +293,7 @@ class Post {
 		}, 600);
 
 		//Retweets
-		if (source == 'Retweet') {
+		if (type == 'Retweet') {
 			data.signature = post_self.tweet.tx.signature;
 			//save the tweet I am retweeting or replying to to my local archive
 			this.mod.retweetTweet(this.tweet.tx.signature);
@@ -329,7 +329,7 @@ class Post {
 
 		let newtx = await post_self.mod.sendTweetTransaction(post_self.app, post_self.mod, data, keys);
 
-		if (source == 'Post') {
+		if (type == 'Post') {
 			this.app.browser.logMatomoEvent('RedSquare', 'Post', 'newTweet');
 		}
 

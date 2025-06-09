@@ -8,7 +8,7 @@ class AdjustStake {
 		this.overlay = new SaitoOverlay(app, mod);
 	}
 
-	async render(obj, current_balance) {
+	async render(obj) {
 		if (obj?.accept_callback) {
 			this.accept_callback = obj.accept_callback;
 		}
@@ -18,6 +18,9 @@ class AdjustStake {
 
 		this.min_stake = parseFloat(obj.stake.min);
 		this.match_stake = this.min_stake;
+
+		let current_balance = Number(await this.app.wallet.returnPreferredCryptoBalance());
+
 		this.max_stake = current_balance;
 
 		for (let i in obj.stake) {
@@ -102,6 +105,7 @@ class AdjustStake {
 						this.accept_callback(amount);
 					}
 					this.overlay.close();
+
 				};
 		}
 
@@ -139,6 +143,9 @@ class AdjustStake {
 		if (errorMsg) {
 			input_err.innerText = errorMsg;
 			input_err.style.display = 'block';
+
+			this.mod.validateBalance(amount, this.ticker);
+
 			return false;
 		}
 

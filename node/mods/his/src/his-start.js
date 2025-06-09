@@ -243,6 +243,17 @@ the game engine automatically handles token denomination, merging smaller
         game_mod.marriage_overlay.render();
       }
     });
+    this.menu.addSubMenuOption("game-info", {
+      text: "New World",
+      id: "game-newworld",
+      class: "game-newworld",
+      callback: function(app, game_mod){
+	game_mod.menu.hideSubMenus();
+	let r = game_mod.game.state.round;
+	if (r > 0) { r--; }
+        game_mod.newworld_overlay.render("results", r);
+      }
+    });
 
 
 /***

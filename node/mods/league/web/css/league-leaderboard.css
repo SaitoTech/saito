@@ -1,11 +1,12 @@
 .league-leaderboard .saito-table .saito-table-body .saito-table-row {
 	grid-template-columns: 4rem auto 5rem 5rem 5rem;
+	padding: 6px;
 }
 
 .league-leaderboard .saito-table .saito-table-header {
 	grid-template-columns: 4rem auto 5rem 5rem 5rem;
 	text-align: center;
-	padding: 8px;
+	padding: 6px;
 	text-transform: capitalize;
 	margin-bottom: 3px;
 }
@@ -29,6 +30,11 @@
 	border-radius: var(--saito-border-radius);
 }
 
+.league-score-header {
+	text-decoration: underline dashed;
+	cursor: help;
+}
+
 .saito-table-row.league-leaderboard-ranking {
 	border-radius: var(--border-radius-leaderboard-ranking);
 }
@@ -38,14 +44,15 @@
 }
 
 .my-leaderboard-position {
-	border: var(--border-thickness-leaderboard-position) solid var(--border-color-leaderboard-position);
+	border: var(--border-thickness-leaderboard-position) solid
+		var(--border-color-leaderboard-position);
 }
 
-.my-leaderboard-position>div:first-child {
+.my-leaderboard-position > div:first-child {
 	font-size: 0;
 }
 
-.my-leaderboard-position>div:first-child::before {
+.my-leaderboard-position > div:first-child::before {
 	content: '\22B3';
 	font-size: 1.5rem;
 }

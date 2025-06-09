@@ -31,18 +31,8 @@ class ChatPopup {
 		app.connection.on('chat-remove-fetch-button-request', (group_id) => {
 			if (this.group?.id === group_id) {
 				this.no_older_messages = true;
-				if (
-					document.querySelector(
-						'#chat-popup-' + this.group.id + ' #load-older-chats'
-					)
-				) {
-					document
-						.querySelector(
-							'#chat-popup-' +
-								this.group.id +
-								' #load-older-chats'
-						)
-						.remove();
+				if (document.querySelector('#chat-popup-' + this.group.id + ' #load-older-chats')) {
+					document.querySelector('#chat-popup-' + this.group.id + ' #load-older-chats').remove();
 				}
 			}
 		});
@@ -52,18 +42,13 @@ class ChatPopup {
 				let popup_qs = '#chat-popup-' + this.group.id;
 
 				if (document.querySelector(popup_qs + ' .chat-body')) {
-					document
-						.querySelector(popup_qs + ' .chat-body')
-						.scroll(0, 0);
+					document.querySelector(popup_qs + ' .chat-body').scroll(0, 0);
 				}
 			}
 		});
 
 		app.connection.on('stun-data-channel-open', (pkey) => {
-			let target_id = this.mod.createGroupIdFromMembers([
-				pkey,
-				this.mod.publicKey
-			]);
+			let target_id = this.mod.createGroupIdFromMembers([pkey, this.mod.publicKey]);
 			if (target_id === this.group?.id) {
 				if (this.is_rendered) {
 					this.forceRender();
@@ -72,10 +57,7 @@ class ChatPopup {
 		});
 
 		app.connection.on('stun-data-channel-close', (pkey) => {
-			let target_id = this.mod.createGroupIdFromMembers([
-				pkey,
-				this.mod.publicKey
-			]);
+			let target_id = this.mod.createGroupIdFromMembers([pkey, this.mod.publicKey]);
 			if (target_id === this.group?.id) {
 				if (this.is_rendered) {
 					this.forceRender();
@@ -98,9 +80,7 @@ class ChatPopup {
 				this.app.browser.replaceElementById(
 					`<div id="chat-group-${group.id}" class="chat-group${
 						dm ? ' saito-address' : ''
-					}" data-id="${dm ? dm_counterparty : group.name}">${
-						group.name
-					}</div>`,
+					}" data-id="${dm ? dm_counterparty : group.name}">${group.name}</div>`,
 					title
 				);
 
@@ -123,9 +103,8 @@ class ChatPopup {
 		this.app.connection.emit('chat-manager-render-request');
 	}
 
-	activate(){
-
-		if (!this.group?.id){
+	activate() {
+		if (!this.group?.id) {
 			return;
 		}
 
@@ -233,15 +212,15 @@ class ChatPopup {
 		let popups_on_page = 0;
 
 		// Use the chat manager to locate the first popup
-		let cm = document.querySelector(".chat-manager");
-		if (document.getElementById("chat-manager-overlay")){
+		let cm = document.querySelector('.chat-manager');
+		if (document.getElementById('chat-manager-overlay')) {
 			cm = null;
 		}
 		let l2r = false;
 		if (cm) {
 			let cm_stats = cm.getBoundingClientRect();
 			x_offset = cm_stats.right - 360;
-			if (cm_stats.left * 2 < window.innerWidth){
+			if (cm_stats.left * 2 < window.innerWidth) {
 				l2r = true;
 			}
 		} else {
@@ -252,11 +231,11 @@ class ChatPopup {
 		document.querySelectorAll('.chat-container').forEach((el) => {
 			popups_on_page++;
 			var rect = el.getBoundingClientRect();
-			if (l2r){
+			if (l2r) {
 				if (rect.left > x_offset) {
 					x_offset = rect.left;
 				}
-			}else{
+			} else {
 				if (rect.left < x_offset) {
 					x_offset = rect.left;
 				}
@@ -275,10 +254,7 @@ class ChatPopup {
 			//}
 
 			html += this.mod.returnChatBody(this.group.id) + '</div>';
-			this.app.browser.replaceElementBySelector(
-				html,
-				popup_qs + ' .chat-body'
-			);
+			this.app.browser.replaceElementBySelector(html, popup_qs + ' .chat-body');
 		} else {
 			if (this.container && !document.querySelector(this.container)) {
 				console.warn('Chat popup has non-existent specified container');
@@ -286,39 +262,28 @@ class ChatPopup {
 			}
 			if (this.container && document.querySelector('.chat-static')) {
 				this.app.browser.replaceElementBySelector(
-					ChatPopupTemplate(
-						this.app,
-						this.mod,
-						this.group,
-						this.container
-					),
+					ChatPopupTemplate(this.app, this.mod, this.group, this.container),
 					'.chat-static'
 				);
 			} else {
 				this.app.browser.addElementToSelectorOrDom(
-					ChatPopupTemplate(
-						this.app,
-						this.mod,
-						this.group,
-						this.container
-					),
+					ChatPopupTemplate(this.app, this.mod, this.group, this.container),
 					this.container
 				);
 			}
 
-
-			if (popups_on_page){
+			if (popups_on_page) {
 				if (l2r) {
-					x_offset += 90;						
+					x_offset += 90;
 				} else {
-					x_offset -= 90;	
+					x_offset -= 90;
 				}
 			}
-			
+
 			// Keep popup on screen
 			x_offset = Math.min(window.innerWidth - 360, x_offset);
 			x_offset = Math.max(0, x_offset);
-			
+
 			//
 			// now set left-position of popup
 			//
@@ -335,7 +300,7 @@ class ChatPopup {
 				!this.group?.member_ids
 			) {
 				let dm_counterparty;
-				for (let i = 0; i < this.group.members.length; i++){
+				for (let i = 0; i < this.group.members.length; i++) {
 					if (this.group.members[i] !== this.mod.publicKey) {
 						dm_counterparty = this.group.members[i];
 					}
@@ -363,14 +328,8 @@ class ChatPopup {
 			}
 
 			if (document.querySelector(popup_qs + ' .chat-action-menu')) {
-				document.querySelector(
-					popup_qs + ' .chat-action-menu'
-				).onclick = (e) => {
-					let chatMenu = new ChatUserMenu(
-						this.app,
-						this.mod,
-						this.group
-					);
+				document.querySelector(popup_qs + ' .chat-action-menu').onclick = (e) => {
+					let chatMenu = new ChatUserMenu(this.app, this.mod, this.group);
 					chatMenu.render();
 				};
 			}
@@ -387,22 +346,18 @@ class ChatPopup {
 		let chatBody = document.querySelector(popup_qs + ' .chat-body');
 		if (chatBody) {
 			let new_render = !this.is_rendered;
-			
+
 			//console.info('*** CHAT render: ',this.group.unread,new_render);
-			
+
 			if (this.is_scrolling) {
 				//console.info('CHAT render: keep position');
 				chatBody.scroll({ top: this.is_scrolling, left: 0 });
 				this.updateNotification(this.group.unread);
 			} else {
 				let anchor = this.group?.last_read_message
-					? document.querySelector(
-							popup_qs +
-								' .message-' +
-								this.group.last_read_message
-					  )
+					? document.querySelector(popup_qs + ' .message-' + this.group.last_read_message)
 					: null;
-				
+
 				if (anchor && new_render && this.group.unread > 2) {
 					//console.info(	'CHAT render: Scroll to anchor -- ' +this.group.last_read_message);
 					anchor.scrollIntoView(false);
@@ -410,7 +365,7 @@ class ChatPopup {
 				} else {
 					//console.info('CHAT render: scroll to bottom');
 					chatBody.scroll(0, 1000000000);
-				} 
+				}
 			}
 		}
 
@@ -427,19 +382,13 @@ class ChatPopup {
 		let popup_id = 'chat-popup-' + this.group.id;
 		let popup_qs = '#' + popup_id;
 
-		if (
-			document.querySelector(
-				popup_qs + ' .saito-notification-dot .new-message-count'
-			)
-		) {
+		if (document.querySelector(popup_qs + ' .saito-notification-dot .new-message-count')) {
 			let notification = document.querySelector(
 				popup_qs + ' .saito-notification-dot .new-message-count'
 			);
 			notification.innerText = count;
 			if (count == 0) {
-				document
-					.querySelector(popup_qs + ' .saito-notification-dot')
-					.remove();
+				document.querySelector(popup_qs + ' .saito-notification-dot').remove();
 			}
 		} else {
 			if (count == 0) {
@@ -478,122 +427,92 @@ class ChatPopup {
 		}
 
 		// add reply functionality
-		document
-			.querySelectorAll(`${popup_qs} .saito-userline-reply .chat-reply`)
-			.forEach((el) => {
-				el.addEventListener('click', (e) => {
-					let src_obj = el.parentElement.parentElement.parentElement;
+		document.querySelectorAll(`${popup_qs} .saito-userline-reply .chat-reply`).forEach((el) => {
+			el.addEventListener('click', (e) => {
+				let src_obj = el.parentElement.parentElement.parentElement;
 
-					let quote = '';
+				let quote = '';
 
-					for (let child of el.parentElement.parentElement
-						.childNodes) {
-						if (child.nodeType === 3) {
-							quote += child.textContent.replace(
-								/^\s+|\s+$/g,
-								'<br>'
-							);
-						}
-						//We may want to also pull inner text from element nodes as long as they aren't the hidden buttons
-						if (
-							child.nodeType === 1 &&
-							child.nodeName !== 'BLOCKQUOTE'
-						) {
-							quote += child.innerText.replace(
-								/^\s+|\s+$/g,
-								'<br>'
-							);
-						}
+				for (let child of el.parentElement.parentElement.childNodes) {
+					if (child.nodeType === 3) {
+						quote += child.textContent.replace(/^\s+|\s+$/g, '<br>');
 					}
-
-					if (quote.length > 30) {
-						quote = '...' + quote.slice(-30);
+					//We may want to also pull inner text from element nodes as long as they aren't the hidden buttons
+					if (child.nodeType === 1 && child.nodeName !== 'BLOCKQUOTE') {
+						quote += child.innerText.replace(/^\s+|\s+$/g, '<br>');
 					}
+				}
 
-					let quoteHTML = `<blockquote href="${el.parentElement.dataset.href}">${quote}</blockquote>`;
-					this.input.insertQuote(quoteHTML, src_obj.dataset.id);
+				if (quote.length > 30) {
+					quote = '...' + quote.slice(-30);
+				}
 
-					this.input.focus(true);
-				});
+				let quoteHTML = `<blockquote href="${el.parentElement.dataset.href}">${quote}</blockquote>`;
+				this.input.insertQuote(quoteHTML, src_obj.dataset.id);
+
+				this.input.focus(true);
 			});
+		});
 
-		document
-			.querySelectorAll(`${popup_qs} .saito-userline-reply .chat-copy`)
-			.forEach((el) => {
-				el.addEventListener('click', (e) => {
-					let icon_element = e.currentTarget.firstElementChild;
-					if (icon_element) {
+		document.querySelectorAll(`${popup_qs} .saito-userline-reply .chat-copy`).forEach((el) => {
+			el.addEventListener('click', (e) => {
+				let icon_element = e.currentTarget.firstElementChild;
+				if (icon_element) {
+					icon_element.classList.toggle('fa-copy');
+					icon_element.classList.toggle('fa-check');
+
+					setTimeout(() => {
 						icon_element.classList.toggle('fa-copy');
 						icon_element.classList.toggle('fa-check');
+					}, 800);
+				}
 
-						setTimeout(() => {
-							icon_element.classList.toggle('fa-copy');
-							icon_element.classList.toggle('fa-check');
-						}, 800);
+				let parent = el.parentElement.parentElement;
+				let text = '';
+
+				for (let child of parent.childNodes) {
+					if (child.nodeType === 3) {
+						text += child.textContent;
 					}
-
-					let parent = el.parentElement.parentElement;
-					let text = '';
-
-					for (let child of parent.childNodes) {
-						if (child.nodeType === 3) {
-							text += child.textContent;
-						}
-						//We may want to also pull inner text from element nodes as long as they aren't the hidden buttons
-						if (child.nodeType === 1) {
-							if (
-								child.classList.contains('saito-treated-link')
-							) {
-								text += child.href;
-							} else if (
-								!child.classList.contains(
-									'saito-userline-reply'
-								) &&
-								child.nodeName !== 'BLOCKQUOTE'
-							) {
-								text += child.innerText;
-							}
+					//We may want to also pull inner text from element nodes as long as they aren't the hidden buttons
+					if (child.nodeType === 1) {
+						if (child.classList.contains('saito-treated-link')) {
+							text += child.href;
+						} else if (
+							!child.classList.contains('saito-userline-reply') &&
+							child.nodeName !== 'BLOCKQUOTE'
+						) {
+							text += child.innerText;
 						}
 					}
+				}
 
-					text = text.replace(/^\s+|\s+$/g, '');
+				text = text.replace(/^\s+|\s+$/g, '');
 
-					navigator.clipboard.writeText(text);
-				});
+				navigator.clipboard.writeText(text);
 			});
+		});
 
-		document
-			.querySelectorAll(`${popup_qs} .saito-userline-reply .chat-like`)
-			.forEach((el) => {
-				el.addEventListener('click', async (event) => {
-					let parentElement = event.target.closest(
-						'.saito-userline-reply'
-					);
+		document.querySelectorAll(`${popup_qs} .saito-userline-reply .chat-like`).forEach((el) => {
+			el.addEventListener('click', async (event) => {
+				let parentElement = event.target.closest('.saito-userline-reply');
 
-					// Retrieve the 'data-id' attribute from the found parent element
-					let sig = parentElement.getAttribute('data-id');
-					let target = parentElement
-						.closest('.saito-userline')
-						.getAttribute('data-id');
-					const newtx = await this.mod.createChatLikeTransaction(
-						this.group,
-						sig,
-						target
-					);
-					if (newtx) {
-						mod.hasSeenTransaction(newtx);
-						mod.receiveChatLikeTransaction(newtx);
-					}
-				});
+				// Retrieve the 'data-id' attribute from the found parent element
+				let sig = parentElement.getAttribute('data-id');
+				let target = parentElement.closest('.saito-userline').getAttribute('data-id');
+				const newtx = await this.mod.createChatLikeTransaction(this.group, sig, target);
+				if (newtx) {
+					mod.hasSeenTransaction(newtx);
+					mod.receiveChatLikeTransaction(newtx);
+				}
 			});
+		});
 
-
-		if (chatPopup.querySelector(".fix-me.fa-unlock")){
-			chatPopup.querySelector(".fix-me.fa-unlock").onclick = (e) => {
-				this.app.connection.emit("encrypt-reset-key-exchange", e.currentTarget.dataset.id); 
-			}
+		if (chatPopup.querySelector('.fix-me.fa-unlock')) {
+			chatPopup.querySelector('.fix-me.fa-unlock').onclick = (e) => {
+				this.app.connection.emit('encrypt-reset-key-exchange', e.currentTarget.dataset.id);
+			};
 		}
-
 
 		//
 		// Click on a block quote to see original message being replied to
@@ -617,26 +536,20 @@ class ChatPopup {
 		// At top of chat body, check for older chat messages
 		//
 		if (document.querySelector(popup_qs + ' #load-older-chats')) {
-			document.querySelector(popup_qs + ' #load-older-chats').onclick =
-				async (e) => {
-					await this.mod.getOlderTransactions(
-						e.currentTarget.dataset.id
-					);
-				};
+			document.querySelector(popup_qs + ' #load-older-chats').onclick = async (e) => {
+				await this.mod.getOlderTransactions(e.currentTarget.dataset.id);
+			};
 		}
 
 		//
 		// While scrolled up, new messages below... scroll to bottom
 		//
 		if (document.querySelector(popup_qs + ' .saito-notification-dot')) {
-			document.querySelector(
-				popup_qs + ' .saito-notification-dot'
-			).onclick = (e) => {
-
+			document.querySelector(popup_qs + ' .saito-notification-dot').onclick = (e) => {
 				if (chatPopup.classList.contains('minimized')) {
 					this.restorePopup(chatPopup);
 				}
-				
+
 				document
 					.querySelector(popup_qs + ' .chat-body')
 					.lastElementChild.scrollIntoView({ behavior: 'smooth' });
@@ -651,15 +564,10 @@ class ChatPopup {
 			const pollScrollHeight = () => {
 				let lastChild = myBody.lastElementChild;
 				if (lastChild.querySelector('.saito-user .saito-userline')) {
-					lastChild =
-						myBody.lastElementChild.lastElementChild
-							.lastElementChild;
+					lastChild = myBody.lastElementChild.lastElementChild.lastElementChild;
 				}
 
-				if (
-					lastChild.getBoundingClientRect().top >
-					myBody.getBoundingClientRect().bottom
-				) {
+				if (lastChild.getBoundingClientRect().top > myBody.getBoundingClientRect().bottom) {
 					this.is_scrolling = myBody.scrollTop;
 				} else {
 					this.is_scrolling = null;
@@ -668,22 +576,17 @@ class ChatPopup {
 				}
 
 				//Check position of new messages...
-				let next_new = document.querySelector(
-					popup_qs + ' .chat-body .new-message'
-				);
+				let next_new = document.querySelector(popup_qs + ' .chat-body .new-message');
 				while (
 					next_new &&
-					next_new.getBoundingClientRect().top <
-						myBody.getBoundingClientRect().bottom
+					next_new.getBoundingClientRect().top < myBody.getBoundingClientRect().bottom
 				) {
 					//the message has scrolled into view
 					next_new.classList.remove('new-message');
 					this.group.unread = Math.max(0, this.group.unread - 1);
 					this.group.last_read_message = next_new.dataset.id;
 					this.updateNotification(this.group.unread);
-					next_new = document.querySelector(
-						popup_qs + ' .chat-body .new-message'
-					);
+					next_new = document.querySelector(popup_qs + ' .chat-body .new-message');
 				}
 				this.mod.saveChatGroup(this.group);
 			};
@@ -702,9 +605,7 @@ class ChatPopup {
 				let img = e.currentTarget;
 				let src = img.getAttribute('src');
 
-				this_self.overlay.show(
-					`<img class="chat-popup-img-enhanced" src="${src}" >`
-				);
+				this_self.overlay.show(`<img class="chat-popup-img-enhanced" src="${src}" >`);
 			};
 		});
 
@@ -719,13 +620,12 @@ class ChatPopup {
 			return;
 		}
 
-
-		if (this.app.browser.isMobileBrowser()){
-			window.history.pushState("chat", "");
+		if (this.app.browser.isMobileBrowser()) {
+			window.history.pushState('chat', '');
 			this.closeFn = window.onpopstate;
 			window.onpopstate = (e) => {
 				this.close();
-			}
+			};
 		}
 
 		if (this.group.name != this.mod.communityGroupName) {
@@ -748,17 +648,12 @@ class ChatPopup {
 			this.app.browser.makeResizeable(popup_qs, header_qs, group_id);
 		}
 
-
 		chatPopup.onmousedown = this.activate.bind(this);
 
 		//
 		// minimize
-		let chat_bubble = document.querySelector(
-			`${popup_qs} .chat-header .chat-minimizer-icon`
-		);
-		let mximize_icon = document.querySelector(
-			`${popup_qs} .chat-header .chat-maximizer-icon`
-		);
+		let chat_bubble = document.querySelector(`${popup_qs} .chat-header .chat-minimizer-icon`);
+		let mximize_icon = document.querySelector(`${popup_qs} .chat-header .chat-maximizer-icon`);
 
 		if (chat_bubble && mximize_icon /*&& !this.mod.chat_manager_overlay*/) {
 			chat_bubble.onclick = (e) => {
@@ -782,16 +677,13 @@ class ChatPopup {
 					//Undo any manual resizing
 					chatPopup.style.height = '';
 
-					if (
-						parseInt(window.getComputedStyle(chatPopup).width) > 360
-					) {
+					if (parseInt(window.getComputedStyle(chatPopup).width) > 360) {
 						chatPopup.style.width = '';
 					}
 
 					chatPopup.classList.add('minimized');
 					chatPopup.classList.remove('active');
-					chatPopup.querySelector('.resize-icon').style.display =
-						'none';
+					chatPopup.querySelector('.resize-icon').style.display = 'none';
 				}
 			};
 
@@ -819,17 +711,14 @@ class ChatPopup {
 					chatPopup.style.bottom = '';
 
 					// decide to maximize to left or right
-					if (
-						this.dimensions.left < Math.floor(window.innerWidth / 2)
-					) {
+					if (this.dimensions.left < Math.floor(window.innerWidth / 2)) {
 						chatPopup.style.right = window.innerWidth - 750 + 'px';
 					} else {
 						chatPopup.style.right = '0px';
 					}
 
 					chatPopup.classList.add('maximized');
-					chatPopup.querySelector('.resize-icon').style.display =
-						'none';
+					chatPopup.querySelector('.resize-icon').style.display = 'none';
 				}
 			};
 		}
@@ -837,18 +726,13 @@ class ChatPopup {
 		//
 		// close
 		//
-		document.querySelector(
-			`${popup_qs} .chat-header .chat-container-close`
-		).onclick = (e) => {
+		document.querySelector(`${popup_qs} .chat-header .chat-container-close`).onclick = (e) => {
 			this.close();
 		};
 
-		document.querySelector(
-			`${popup_qs} .chat-header .chat-mobile-back`
-		).onclick = (e) => {
+		document.querySelector(`${popup_qs} .chat-header .chat-mobile-back`).onclick = (e) => {
 			this.close();
 		};
-
 
 		//
 		// submit
@@ -859,18 +743,12 @@ class ChatPopup {
 				return;
 			}
 
-			let new_msg = message
-				.replaceAll('&nbsp;', ' ')
-				.replaceAll('<br>', ' ');
+			let new_msg = message.replaceAll('&nbsp;', ' ').replaceAll('<br>', ' ');
 			if (new_msg.trim() == '') {
 				return;
 			}
 
-			let newtx = await mod.createChatTransaction(
-				group_id,
-				message,
-				this.input.getMentions()
-			);
+			let newtx = await mod.createChatTransaction(group_id, message, this.input.getMentions());
 			this.input.clear();
 
 			if (newtx) {
@@ -879,9 +757,7 @@ class ChatPopup {
 
 			if (document.querySelector(popup_qs + ' .chat-body')) {
 				this.is_scrolling = null;
-				document
-					.querySelector(popup_qs + ' .chat-body')
-					.scroll(0, 1000000000);
+				document.querySelector(popup_qs + ' .chat-body').scroll(0, 1000000000);
 			}
 		};
 
@@ -889,7 +765,7 @@ class ChatPopup {
 			let imageUrl;
 
 			if (typeof result === 'string') {
-				if (!result.includes('giphy.gif')){
+				if (!result.includes('giphy.gif')) {
 					let response = await fetch(result);
 					let blob = await response.blob();
 					imageUrl = URL.createObjectURL(blob);
@@ -903,8 +779,8 @@ class ChatPopup {
 			}
 
 			let resizedImageUrl = imageUrl;
-			if (!imageUrl.includes('giphy.gif')){
-				console.log("************* Resize Image!");
+			if (!imageUrl.includes('giphy.gif')) {
+				console.log('************* Resize Image!');
 				resizedImageUrl = await app.browser.resizeImg(imageUrl); // (img, dimensions, quality)
 			}
 
@@ -919,25 +795,21 @@ class ChatPopup {
 				</div>`
 			);
 
-			document.getElementById("photo-preview-upload").onclick = async (e) => {
-
+			document.getElementById('photo-preview-upload').onclick = async (e) => {
 				this.overlay.close();
 				let msg = img.outerHTML;
 				let typed_msg = this.input.getInput();
 				await this.input.callbackOnReturn(msg);
 				this.input.setInput(typed_msg);
-			}
+			};
 
-			document.getElementById("photo-preview-upload").focus();			
-
+			document.getElementById('photo-preview-upload').focus();
 		};
 
 		//
 		// submit (button)
 		//
-		document.querySelector(
-			`${popup_qs} .chat-footer .chat-input-submit`
-		).onclick = (e) => {
+		document.querySelector(`${popup_qs} .chat-footer .chat-input-submit`).onclick = (e) => {
 			this.input.callbackOnReturn(this.input.getInput(false));
 		};
 
@@ -945,11 +817,7 @@ class ChatPopup {
 		// drag and drop images into chat window
 		//
 
-		app.browser.addDragAndDropFileUploadToElement(
-			popup_id,
-			this.input.callbackOnUpload,
-			false
-		); // false = no drag-and-drop image click
+		app.browser.addDragAndDropFileUploadToElement(popup_id, this.input.callbackOnUpload, false); // false = no drag-and-drop image click
 	}
 
 	addChatActionItem(item, id) {
@@ -959,10 +827,7 @@ class ChatPopup {
 				<i class="${item.icon}"></i>
 			</div>`;
 
-		this.app.browser.prependElementToSelector(
-			html,
-			`${popup_qs} .chat-actions`
-		);
+		this.app.browser.prependElementToSelector(html, `${popup_qs} .chat-actions`);
 	}
 
 	restorePopup(chatPopup) {
@@ -987,10 +852,9 @@ class ChatPopup {
 		}
 
 		this.dimensions = {};
-		if (chatPopup.querySelector('.resize-icon')){
-			chatPopup.querySelector('.resize-icon').style.display = 'block';	
+		if (chatPopup.querySelector('.resize-icon')) {
+			chatPopup.querySelector('.resize-icon').style.display = 'block';
 		}
-		
 	}
 
 	savePopupDimensions(chatPopup) {
@@ -1014,12 +878,14 @@ class ChatPopup {
 		}
 	}
 
-	close(){
+	close() {
 		this.manually_closed = true;
 		this.remove();
 		this.app.storage.saveOptions();
-		window.onpopstate = this.closeFn;
-		this.close_function = null;
+		if (this.closeFn) {
+			window.onpopstate = this.closeFn;
+			this.closeFn = null;
+		}
 	}
 }
 

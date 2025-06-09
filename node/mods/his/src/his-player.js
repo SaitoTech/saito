@@ -7407,7 +7407,15 @@ does_units_to_move_have_unit = true; }
       for (let i = 0; i < his_self.game.navalspaces[key].units[faction].length; i++) {
 	if (his_self.game.navalspaces[key].units[faction][i].type == "corsair") { 
 	  if (!his_self.game.state.events.ottoman_piracy_seazones.includes(key)) {
-	    targetsea = true;
+      	    for (let ii = 0; ii < his_self.game.navalspaces[key].ports.length; ii++) {
+	      let ps = his_self.game.spaces[his_self.game.navalspaces[key].ports[ii]];
+	      let controller = ps.political;
+	      if (ps.political == "") { controller = ps.home; }
+	      controller = his_self.returnControllingPower(controller);
+console.log("controller: " + controller + " -- " + key);
+	      if (controller == "hapsburg" || controller == "france" || controller == "papacy" || controller == "england") { targetsea = true; }
+      	    }
+
 	  }
 	}
       }

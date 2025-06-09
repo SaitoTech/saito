@@ -46,33 +46,10 @@ class Crypto extends ModTemplate {
 
 			await this.app.wallet.setPreferredCrypto(sobj.ticker);
 
-			let current_balance = Number(await this.app.wallet.returnPreferredCryptoBalance());
-
-			let network_fee = 0;
-
-			let crypto_mod = this.app.wallet.returnPreferredCrypto();
-			await crypto_mod.checkWithdrawalFeeForAddress('', function (res) {
-				network_fee = Number(res);
-			});
-
-			let needed_balance =
-				typeof sobj.stake == 'object' ? parseFloat(sobj.stake.min) : parseFloat(sobj.stake);
-
-			console.log(current_balance, needed_balance, network_fee);
-
-			needed_balance += network_fee;
-
 			if (typeof sobj.stake == 'object') {
-				this.adjust_overlay.render(sobj, current_balance);
+				this.adjust_overlay.render(sobj);
 			} else {
 				this.approve_overlay.render(sobj);
-			}
-
-			if (needed_balance > current_balance) {
-				this.app.connection.emit('saito-crypto-deposit-render-request', {
-					ticker: sobj.ticker,
-					amount: needed_balance - current_balance
-				});
 			}
 		});
 	}
@@ -298,6 +275,31 @@ class Crypto extends ModTemplate {
 		}
 
 		return fee;
+	}
+
+	async validateBalance(stake, ticker){
+
+			let current_balance = Number(await this.app.wallet.returnPreferredCryptoBalance());
+
+			let network_fee = 0;
+
+			let crypto_mod = this.app.wallet.returnPreferredCrypto();
+
+			await crypto_mod.checkWithdrawalFeeForAddress('', function (res) {
+				network_fee = Number(res);
+			});
+
+			let needed_balance = stake + network_fee;
+
+			if (needed_balance > current_balance){
+				this.app.connection.emit('saito-crypto-deposit-render-request', {
+					ticker,
+					amount:  needed_balance - current_balance,
+				});
+				return false;
+			}
+
+			return true;
 	}
 
 	returnCryptoOptionsHTML(values = null) {

@@ -163,13 +163,24 @@
     box-shadow: 5px 5px 3px #0008;
 }
 
+.game-playerbox-graphics .poker-player-stake {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+}
+
+.game-playerbox:hover .poker-player-stake {
+    opacity: 1;
+    visibility: visible;
+}
+
+
 .poker-player-stake.invisible {
   opacity: 0;
 }
 
-
 .poker-player-stake::after {
-	content: "BET";
+	content: "IN";
 	position: absolute;
 	top: 50%;
 	left: 1.99rem;
@@ -198,6 +209,13 @@
 @media screen and (max-width: 900px) {
   .game-playerbox-manager {
     gap: 2rem;
+  }
+  .game-playerbox {
+    border: 0px;
+    width: 100%;
+    border-radius: 0px;
+    border-top: 1px solid white;
+    border-bottom: 1px solid white;
   }
 }
 

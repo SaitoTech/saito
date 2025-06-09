@@ -108,7 +108,7 @@
 
 .league-overlay-body {
 	display: grid;
-	grid-template-columns: minmax(40rem, 2fr) minmax(33rem, 1fr);
+	grid-template-columns: minmax(40rem, 3fr) minmax(33rem, 2fr);
 	gap: 2rem;
 	height: min(45rem, calc(100vh - 160px));
 }
@@ -418,4 +418,16 @@ span.attention {
     justify-content: space-between;
     width: 100%;
     padding-right: 1rem;
+}
+
+
+.ranking-overlay {
+	max-width: 95vw;
+	width: 450px;
+	padding: 3rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	font-size: 1.8rem;
+	border: 1px solid var(--saito-border-color);
 }
