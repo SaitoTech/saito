@@ -120,7 +120,6 @@ class League extends ModTemplate {
 	async initialize(app) {
 		await super.initialize(app);
 
-
 		if (!this.app.options.leagues) {
 			this.app.options.leagues = [];
 		}
@@ -145,7 +144,7 @@ class League extends ModTemplate {
 
 		//this.pruneOldPlayers();
 
-		if (!app.BROWSER){
+		if (!app.BROWSER) {
 			return;
 		}
 
@@ -208,7 +207,7 @@ class League extends ModTemplate {
 				this.leagues.push(superArray[i][2]);
 			}
 		} catch (err) {
-			console.error("League sort Error:", err);
+			console.error('League sort Error:', err);
 		}
 	}
 
@@ -261,7 +260,6 @@ class League extends ModTemplate {
 		let league_self = this;
 
 		if (service.service === 'league') {
-
 			let league_id = this.validateID(app.browser.returnURLParameter('league_id'));
 
 			let sql;
@@ -281,7 +279,7 @@ class League extends ModTemplate {
 					for (let i = 0; i < this.leagues.length; i++) {
 						if (this.leagues[i].game == am_name) {
 							this.fetchLeagueLeaderboard(this.leagues[i].id, () => {
-								console.info("Update league info for curent game:", this.leagues[i]);
+								console.info('Update league info for curent game:', this.leagues[i]);
 								this.app.connection.emit(
 									'league-leaderboard-loaded',
 									this.leagues[i].game,
@@ -400,7 +398,6 @@ class League extends ModTemplate {
 							let league_id = 0;
 
 							for (let p of res.rows) {
-
 								//Next League
 								if (p.league_id !== league_id) {
 									league_id = p.league_id;
@@ -553,7 +550,6 @@ class League extends ModTemplate {
 	async loadLeagues() {
 		let league_self = this;
 		if (this.app.BROWSER) {
-
 			//
 			// Browsers cache data for relevant leagues
 			//
@@ -564,7 +560,6 @@ class League extends ModTemplate {
 						JSON.parse(JSON.stringify(this.app.options.leagues))
 					);
 				}
-
 
 				for (let lid of this.app.options.leagues) {
 					let value = await this.app.storage.getLocalForageItem(`league_${lid}`);
@@ -593,13 +588,11 @@ class League extends ModTemplate {
 				league_self.app.connection.emit('league-rankings-render-request'); // sidebar league list
 				league_self.app.connection.emit('finished-loading-leagues');
 
-
 				return;
 			} else {
 				this.app.options.leagues = [];
 			}
 		} else {
-
 			let sqlResults = await this.app.storage.queryDatabase(
 				`SELECT *
          FROM leagues
@@ -640,7 +633,10 @@ class League extends ModTemplate {
 
 		if (this.debug) {
 			console.info('Save Leagues:');
-			console.debug(JSON.parse(JSON.stringify(this.app.options.leagues)), JSON.parse(JSON.stringify(this.leagues)));
+			console.debug(
+				JSON.parse(JSON.stringify(this.app.options.leagues)),
+				JSON.parse(JSON.stringify(this.leagues))
+			);
 		}
 
 		this.app.storage.saveOptions();
@@ -956,18 +952,19 @@ class League extends ModTemplate {
 		//
 		// small grace period
 		//
-		if (is_gameover){
-			if(txmsg.reason == 'cancellation' ||
+		if (is_gameover) {
+			if (
+				txmsg.reason == 'cancellation' ||
 				txmsg.reason?.includes('Wins:') ||
-				txmsg.reason?.includes('Scores: '))
-		 	{
+				txmsg.reason?.includes('Scores: ')
+			) {
 				console.info("League: don't process game over ", txmsg.reason);
 				return;
 			}
-			if (this.finished_games.includes(txmsg.game_id)){
-				console.warn("League: Game over already processed");
+			if (this.finished_games.includes(txmsg.game_id)) {
+				console.warn('League: Game over already processed');
 				return;
-			}else{
+			} else {
 				this.finished_games.push(txmsg.game_id);
 			}
 		}
@@ -981,7 +978,10 @@ class League extends ModTemplate {
 		}
 
 		if (this.debug) {
-			console.info(`League updating player scores for end of ${is_gameover ? 'game' : 'round'}`, publicKeys);
+			console.info(
+				`League updating player scores for end of ${is_gameover ? 'game' : 'round'}`,
+				publicKeys
+			);
 		}
 		//
 		// fetch leagues
@@ -997,7 +997,6 @@ class League extends ModTemplate {
 		// update database
 		//
 		for (let leag of relevantLeagues) {
-
 			let myScore = leag.score;
 			let myRank = leag.rank;
 
@@ -1015,7 +1014,7 @@ class League extends ModTemplate {
 			}
 
 			if (this.app.BROWSER) {
-				console.info("League [receiveGameOver]: update league on game over");
+				console.info('League [receiveGameOver]: update league on game over');
 				console.debug(JSON.parse(JSON.stringify(leag.players)), myScore, myRank);
 				this.fetchLeagueLeaderboard(leag.id, () => {
 					if (myRank <= 0 && leag.rank > 0) {
@@ -1056,7 +1055,14 @@ class League extends ModTemplate {
 							}
 						}
 					}
-					console.info('LEAGUE: My previous score and rank:', myScore, myRank, 'LEAGUE: My new score and rank: ', leag.score, leag.rank);
+					console.info(
+						'LEAGUE: My previous score and rank:',
+						myScore,
+						myRank,
+						'LEAGUE: My new score and rank: ',
+						leag.score,
+						leag.rank
+					);
 				});
 			}
 		}
@@ -1087,7 +1093,11 @@ class League extends ModTemplate {
 		}
 
 		if (this.debug) {
-			console.debug('League [acceptGame]: ', `Specific league? ${txmsg?.options?.league_id ? txmsg.options.league_id : 'no'}`, JSON.parse(JSON.stringify(relevantLeagues)));
+			console.debug(
+				'League [acceptGame]: ',
+				`Specific league? ${txmsg?.options?.league_id ? txmsg.options.league_id : 'no'}`,
+				JSON.parse(JSON.stringify(relevantLeagues))
+			);
 		}
 
 		//
@@ -1275,7 +1285,6 @@ class League extends ModTemplate {
 				iRank: player?.rank,
 				iScore: Math.round(player.score)
 			};
-
 		}
 
 		for (let p of winner) {
@@ -1293,15 +1302,14 @@ class League extends ModTemplate {
 		}
 
 		if (shouldTweet) {
-
 			await this.fetchRankings(league.id, playerStats);
 
 			let tweetContent = `###### _${league.name} Leaderboard Update_ ######\n|`;
 
-			for (let player of playerStats){
+			for (let player of playerStats) {
 				tweetContent += ` | ${this.app.keychain.returnUsername(player.publicKey)}`;
-				if (player.publicKey == txmsg.winner || txmsg.winner.includes(player.publicKey)){
-					tweetContent += "👑";
+				if (player.publicKey == txmsg.winner || txmsg.winner.includes(player.publicKey)) {
+					tweetContent += '👑';
 				}
 			}
 
@@ -1312,14 +1320,14 @@ class League extends ModTemplate {
 			for (let player of playerStats) {
 				tweetContent += ` | ${player.rank}`;
 				let rank = playerObj[player.publicKey]?.iRank;
-				if (rank){
+				if (rank) {
 					if (player.rank < rank) {
 						tweetContent += ` (+${rank - player.rank}) ⬆️`;
-					}else if (player.rank > rank){
+					} else if (player.rank > rank) {
 						tweetContent += ` (${rank - player.rank}) ⬇️`;
 					} // else -- no change
-				}else {
-					tweetContent += " (NEW)";
+				} else {
+					tweetContent += ' (NEW)';
 				}
 			}
 
@@ -1329,24 +1337,23 @@ class League extends ModTemplate {
 				let points2 = Math.round(player.score);
 				let points1 = playerObj[player.publicKey]?.iScore;
 
-				if (points2 > points1){
-					tweetContent += ` ${points2} (+${points2-points1}) ⬆️ |`;
-				}else{
-					tweetContent += ` ${points2} (${points2-points1}) ⬇️ |`;
+				if (points2 > points1) {
+					tweetContent += ` ${points2} (+${points2 - points1}) ⬆️ |`;
+				} else {
+					tweetContent += ` ${points2} (${points2 - points1}) ⬇️ |`;
 				}
 			}
 
 			// Add stake info if any
-			if (txmsg.options?.stake){
-				if (typeof txmsg.options['stake'] === 'object'){
+			if (txmsg.options?.stake) {
+				if (typeof txmsg.options['stake'] === 'object') {
 					tweetContent += ` \n| $${txmsg.options.crypto} |`;
 					for (let player of playerStats) {
 						tweetContent += ` ${txmsg.options.stake[player.publicKey]} |`;
 					}
-				}else{
-					tweetContent += `\n\n ${txmsg.options.stake} ${txmsg.options.crypto} were staked on the game!`	
+				} else {
+					tweetContent += `\n\n ${txmsg.options.stake} ${txmsg.options.crypto} were staked on the game!`;
 				}
-				
 			}
 
 			let now = new Date().getTime();
@@ -1358,11 +1365,11 @@ class League extends ModTemplate {
 			};
 
 			if (league?.tweetID) {
-				if (now - league.tweetTS > 1000*60*60*4){
+				if (now - league.tweetTS > 1000 * 60 * 60 * 4) {
 					// Start a new thread if it has been at least 4 hours
 					delete league.tweetID;
 					delete league.tweetTS;
-				}else{
+				} else {
 					league.tweetTS = now;
 					obj.data.parent_id = league.tweetID;
 					obj.data.thread_id = league.tweetID;
@@ -1371,7 +1378,7 @@ class League extends ModTemplate {
 			}
 
 			let newtx = await this.app.wallet.createUnsignedTransaction();
-			for (let player of players){
+			for (let player of players) {
 				newtx.addTo(player);
 			}
 
@@ -1380,11 +1387,10 @@ class League extends ModTemplate {
 			await newtx.sign();
 			await this.app.network.propagateTransaction(newtx);
 
-			if (!league?.tweetID){
+			if (!league?.tweetID) {
 				league.tweetID = newtx.signature;
 				league.tweetTS = now;
 			}
-
 		}
 	}
 
@@ -1440,7 +1446,10 @@ class League extends ModTemplate {
 				if (league.players[i].publicKey === publicKey) {
 					league.players[i][field]++;
 					if (this.debug) {
-						console.debug(`League [incrementPlayer] updated ${field}: in ${league.id}`, JSON.parse(JSON.stringify(league.players[i])));
+						console.debug(
+							`League [incrementPlayer] updated ${field}: in ${league.id}`,
+							JSON.parse(JSON.stringify(league.players[i]))
+						);
 					}
 					success = true;
 				}
@@ -1477,7 +1486,10 @@ class League extends ModTemplate {
 				if (league.players[i].publicKey === playerObj.publicKey) {
 					league.players[i]['score'] = playerObj.score;
 					if (this.debug) {
-						console.debug('League [updatePlayerScore] -- New Score: ' + playerObj.score, JSON.parse(JSON.stringify(league.players[i])));
+						console.debug(
+							'League [updatePlayerScore] -- New Score: ' + playerObj.score,
+							JSON.parse(JSON.stringify(league.players[i]))
+						);
 					}
 				}
 			}
@@ -1594,7 +1606,6 @@ class League extends ModTemplate {
 		}
 
 		Object.assign(oldLeague, obj);
-
 	}
 
 	validatePlayer(obj) {
@@ -1855,8 +1866,8 @@ class League extends ModTemplate {
 
 	async entropy() {
 		let now = new Date().getTime();
-		let check_threshold = 1000 * 60 * 60 * 4; //Check several times a day to catch up...
-		let decay_threshold = 1000 * 60 * 60 * 24; //Decay 1 point per day...
+		let check_threshold = 1000 * 60 * 60 * 24; //Check several times a day to catch up...
+		let decay_threshold = 1000 * 60 * 60 * 48; //Decay 1 point per day...
 
 		//Check if we have deployed the decay function in the last day...
 		if (now - this.last_prune > check_threshold) {

@@ -110,6 +110,38 @@
 */
 
 
+/***
+ * To undo the tweet threading when some tweets are being filtered....
+ * ***/
+
+.tweet-manager.active-curation .tweet.has-reply:has(+ .tweet[data-curated="0"])::after{
+  display: none;
+}
+.tweet-manager.active-curation .tweet.has-reply:has(+ .tweet[data-curated="-1"])::after{
+  display: none;
+}
+.tweet-manager.active-curation .tweet.has-reply-disconnected:has(+ .tweet[data-curated="0"])::after{
+  display: none;
+}
+.tweet-manager.active-curation .tweet.has-reply-disconnected:has(+ .tweet[data-curated="-1"])::after{
+  display: none;
+}
+
+.tweet-manager.active-curation .tweet.has-reply:has(+ .tweet[data-curated="0"]){
+  border-bottom: var(--border-thickness-post-divider) solid var(--border-color-post-divider);
+}
+.tweet-manager.active-curation .tweet.has-reply:has(+ .tweet[data-curated="-1"]){
+  border-bottom: var(--border-thickness-post-divider) solid var(--border-color-post-divider);
+}
+.tweet-manager.active-curation .tweet.has-reply-disconnected:has(+ .tweet[data-curated="0"]){
+  border-bottom: var(--border-thickness-post-divider) solid var(--border-color-post-divider);
+}
+.tweet-manager.active-curation .tweet.has-reply-disconnected:has(+ .tweet[data-curated="-1"]){
+  border-bottom: var(--border-thickness-post-divider) solid var(--border-color-post-divider);
+}
+
+
+
 .tweet-header .saito-user .saito-identicon-box .saito-identicon {
   z-index: 51;
   position: absolute;

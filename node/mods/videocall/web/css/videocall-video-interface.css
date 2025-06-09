@@ -561,7 +561,9 @@ video#presentation {
 
 .video-call-info {
 	color: var(--saito-white);
-	text-shadow: 0px 1px 2px var(--saito-black-faded), 0px -1px 2px var(--saito-black-faded);
+	text-shadow:
+		0px 1px 2px var(--saito-black-faded),
+		0px -1px 2px var(--saito-black-faded);
 	height: 3.5rem;
 	position: absolute;
 	display: grid;
@@ -833,7 +835,6 @@ video#presentation {
 	color: var(--saito-red);
 }
 
-
 @media screen and (min-width: 2560px) {
 	.footer {
 		padding: 2rem;
@@ -877,9 +878,7 @@ video#presentation {
 	}
 }
 
-
 @media screen and (max-width: 600px) {
-
 	.control-list .icon_click_area {
 		width: 4.2rem;
 		height: 4.2rem;
@@ -892,7 +891,6 @@ video#presentation {
 	.control-list label {
 		display: none;
 	}
-
 
 	/* PiP effect */
 	.stun-chatbox .video-container-large {
@@ -926,8 +924,6 @@ video#presentation {
 		width: 2rem;
 		height: 2rem;
 	}
-
-
 }
 
 @media screen and (max-width: 395px) {
@@ -1032,7 +1028,9 @@ video#presentation {
 	font-size: 3rem;
 	padding: 0.25rem;
 	cursor: pointer;
-	text-shadow: 0px 1px 2px var(--saito-black-faded), 0px -1px 2px var(--saito-black-faded);
+	text-shadow:
+		0px 1px 2px var(--saito-black-faded),
+		0px -1px 2px var(--saito-black-faded);
 }
 
 .chat-settings-toggle-icon:hover {
@@ -1119,6 +1117,70 @@ video#presentation {
 	}
 }
 */
+
+/**  Connection meter **/
+.connection-strength {
+	width: 25px;
+	display: flex;
+	align-items: flex-end;
+	gap: 1px;
+}
+
+.connection-strength .bar {
+	width: 5px;
+	border-radius: 10px;
+	visibility: hidden;
+}
+
+.connection-strength .one-bar {
+	height: 6px;
+}
+.connection-strength .two-bar {
+	height: 12px;
+}
+.connection-strength .three-bar {
+	height: 18px;
+}
+.connection-strength .four-bar {
+	height: 24px;
+}
+
+/* Set Color */
+.connection-strength[data-strength='1'] .bar {
+	background-color: darkred;
+}
+
+.connection-strength[data-strength='2'] .bar {
+	background-color: lightsalmon;
+}
+
+.connection-strength[data-strength='3'] .bar {
+	background-color: lightgreen;
+}
+
+.connection-strength[data-strength='4'] .bar {
+	background-color: green;
+}
+
+/* Set Visibility */
+.connection-strength[data-strength='1'] .one-bar {
+	visibility: visible;
+}
+
+.connection-strength[data-strength='2'] .one-bar,
+.connection-strength[data-strength='2'] .two-bar {
+	visibility: visible;
+}
+
+.connection-strength[data-strength='3'] .one-bar,
+.connection-strength[data-strength='3'] .two-bar,
+.connection-strength[data-strength='3'] .three-bar {
+	visibility: visible;
+}
+
+.connection-strength[data-strength='4'] .bar {
+	visibility: visible;
+}
 
 @media screen and (max-width: 767px) {
 	.video-call-info i {

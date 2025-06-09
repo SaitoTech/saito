@@ -954,7 +954,7 @@ class PokerQueue {
 				this.game.state.plays_since_last_raise = 1;
 
 				// Update message before animation...
-				let raise_message = `raises ${this.formatWager(raise_portion)}`;
+				let raise_message = `bets ${this.formatWager(raise_portion)}`;
 
 				if (this.game.state.player_credit[player - 1] == raise) {
 					this.game.state.all_in = true;

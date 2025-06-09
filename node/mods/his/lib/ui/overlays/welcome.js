@@ -42,15 +42,17 @@ class WelcomeOverlay {
         	  this.overlay.zIndex = his_self.winter_overlay.overlay.zIndex + 2;
     		}
 
-		this.overlay.show(WelcomeTemplate(""));
+		let img = "";
+		if (obj.img) { img = obj.img; }
+
+		this.overlay.show(WelcomeTemplate("", img));
 		this.pushHudUnderOverlay();
 		this.overlay.pullOverlayToFront();
 
 		if (obj.title) { document.querySelector('.welcome-title').innerHTML = obj.title; }
 		if (obj.text)  { document.querySelector('.welcome-text').innerHTML  = obj.text; }
-		if (obj.img)   { document.querySelector('.welcome').style.backgroundImage = `url(${obj.img})`; }
 		if (obj.card)  { his_self.app.browser.addElementToSelector(`<div class="welcome-card">${his_self.returnCardImage(obj.card)}<div>`, '.welcome'); }
-		if (obj.styles){ 
+		if (obj.styles) { 
 		  for (let z = 0; z < obj.styles.length; z++) { 
 		    let s = obj.styles[z];
 		    document.querySelector('.welcome').style[s.key] = s.val; 

@@ -20,11 +20,11 @@ class AcceptStake {
 
 		this.overlay.show(AcceptStakeTemplate(this.app, this.mod, obj));
 		this.overlay.blockClose();
-		this.attachEvents();
+		this.attachEvents(obj);
 
 	}
 
-	attachEvents() {
+	attachEvents(obj) {
 		let this_self = this;
 		if (document.querySelector('#approve-crypto-request-container #enable_staking_yes')){
 			document.querySelector('#approve-crypto-request-container #enable_staking_yes').onclick = async(e) => {
@@ -37,10 +37,12 @@ class AcceptStake {
 					return;
 				}
 
-				if (this_self.accept_callback){
-					this_self.accept_callback();
+				if (await this.mod.validateBalance(obj.stake, obj.ticker)) {
+					if (this_self.accept_callback){
+						this_self.accept_callback();
+					}
+					this_self.overlay.close();
 				}
-				this_self.overlay.close();
 			};
 
 		}

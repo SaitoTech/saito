@@ -1227,7 +1227,7 @@
     //
     // find the nearest friendly fortified space w/ less than 4 units
     //
-    let res = this.returnNearestFriendlyFortifiedSpacesTransitPassesIgnoreUnrestAndLineOfControl(faction, spacekey, 1, space_limit, 1);
+    let res = this.returnNearestFriendlyFortifiedSpacesTransitPassesIgnoreUnrestAndLineOfControl(faction, spacekey, space_limit, 1);
 
     //
     // if we cannot find any spaces to receive them
@@ -1336,12 +1336,17 @@
     let his_self = this;
     let already_routed_through = {};
 
+console.log("faction: " + faction);
+console.log("spacekey: " + space.key);
+
     let res = this.returnNearestSpaceWithFilter(
 
       space.key,
 
       // fortified spaces
       function(spacekey) {
+
+console.log("checking spacekey: " + spacekey);
 
 	//
 	//
@@ -1368,27 +1373,29 @@
 	}
 
         //
-        // unrest is a "no"
+        // ignore unrest!
         //
-	if (his_self.game.spaces[spacekey].unrest == 1) { return 0; }
+	//if (his_self.game.spaces[spacekey].unrest == 1) { return 0; }
 
         if (his_self.isSpaceFortified(his_self.game.spaces[spacekey])) {
 	  if (his_self.isSpaceControlled(spacekey, faction)) {
+console.log("space is controlled... " + spacekey);
 	    return 1;
 	  }
 	  if (his_self.isSpaceFriendly(spacekey, faction)) {
+console.log("space is friendly... " + spacekey);
 	    return 1;
 	  }
 	}
         return 0;
       },
 
-      // route through this?
+      // route through everything unless already routed through
       function(spacekey) {
 	if (already_routed_through[spacekey] == 1) { return 0; }
         already_routed_through[spacekey] = 1;
 	if (spacekey == original_spacekey) { return 1; }
-	return 0;
+	return 1;
       }, 
 
       true , // include source

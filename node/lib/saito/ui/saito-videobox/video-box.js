@@ -239,6 +239,46 @@ class VideoBox {
     }
   }
 
+  addConnectionStrength(strength) {
+    if (this.stream_id === 'local') return;
+
+    const callList = document.querySelector(
+      `.video-call-info[data-id="${this.stream_id}"] .peer-call-list`
+    );
+
+    if (!callList) {
+      console.error('Videobox: Call list element not found for the given key:', this.stream_id);
+      return;
+    }
+
+    if (
+      !document.querySelector(
+        `.video-call-info[data-id="${this.stream_id}"] .peer-call-list .connection-strength`
+      )
+    ) {
+      let html = `<div class="connection-strength" title="connection strength">
+                    <div class="bar one-bar"></div>
+                    <div class="bar two-bar"></div>
+                    <div class="bar three-bar"></div>
+                    <div class="bar four-bar"></div>
+                    </div>`;
+      this.app.browser.addElementToDom(html, callList);
+    }
+
+    const elem = document.querySelector(
+      `.video-call-info[data-id="${this.stream_id}"] .peer-call-list .connection-strength`
+    );
+
+    if (!elem) {
+      console.error(
+        'Videobox: Connection strength element not found for the given key:',
+        this.stream_id
+      );
+    }
+
+    elem.dataset.strength = strength;
+  }
+
   attachAudioEvents() {
     if (this.animation || !this.stream) {
       return;

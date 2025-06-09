@@ -135,9 +135,9 @@ class Browser {
             if (e.data.msg == 'new_tab') {
               window.focus();
 
-              //							if (window.confirm('You have followed a Saito link, do you want to open it here?')) {
-              //								window.location = e.data.location;
-              //							}
+              //              if (window.confirm('You have followed a Saito link, do you want to open it here?')) {
+              //                window.location = e.data.location;
+              //              }
 
               setTimeout(() => {
                 window.location = '/tabs/';
@@ -147,24 +147,24 @@ class Browser {
         };
 
         /***** channel.onmessage = async (e) => {
-				  console.log("document onmessage change");
-				  if (!document[this.hidden_tab_property]) {
-					channel.postMessage({active: 1, publicKey: publicKey});
-					this.setActiveTab(1);
-				  } else {
-					//
-					// only disable if someone else active w/ same key
-					//
-					if (e.data) {
-					  if (e.data.active == 1) {
-						if (e.data.active == 1 && e.data.publicKey === publicKey) {
-						  this.setActiveTab(0);
-						  salert("Saito is already open in another tab");
-						}
-					  }
-					}
-				  }
-				};
+          console.log("document onmessage change");
+          if (!document[this.hidden_tab_property]) {
+          channel.postMessage({active: 1, publicKey: publicKey});
+          this.setActiveTab(1);
+          } else {
+          //
+          // only disable if someone else active w/ same key
+          //
+          if (e.data) {
+            if (e.data.active == 1) {
+            if (e.data.active == 1 && e.data.publicKey === publicKey) {
+              this.setActiveTab(0);
+              salert("Saito is already open in another tab");
+            }
+            }
+          }
+          }
+        };
 *****/
 
         document.addEventListener(
@@ -360,13 +360,13 @@ class Browser {
     );
 
     /*window.onpopstate = (event)=> {
-			console.log("Browser navigation: ", event?.state);
-			if (event.state){
-				this.popBackFn(event);	
-			}else{
-				//console.log(event);
-			}
-		}*/
+      console.log("Browser navigation: ", event?.state);
+      if (event.state){
+        this.popBackFn(event);  
+      }else{
+        //console.log(event);
+      }
+    }*/
 
     //hide pace-js if its still active
     setTimeout(function () {
@@ -1176,13 +1176,13 @@ class Browser {
             }
 
             /*if (!drag_and_drop) {
-			  let paste = (e.clipboardData || window.clipboardData).getData("text");
-			  const selection = window.getSelection();
-			  if (!selection.rangeCount) return;
-			  selection.deleteFromDocument();
-			  selection.getRangeAt(0).insertNode(document.createTextNode(paste));
-			  selection.collapseToEnd();
-			}*/
+        let paste = (e.clipboardData || window.clipboardData).getData("text");
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        selection.deleteFromDocument();
+        selection.getRangeAt(0).insertNode(document.createTextNode(paste));
+        selection.collapseToEnd();
+      }*/
           },
           false
         );
@@ -2692,38 +2692,6 @@ class Browser {
       root,
       cleanup
     };
-  }
-
-  pushBackFn(callback) {
-    this.back_fn_queue.push(callback);
-
-    if (this.back_fn_queue.length == 2) {
-      console.log('Browser.NAV: Add back arrow');
-      this.app.connection.emit('saito-header-replace-logo', () => {
-        window.history.back();
-      });
-    }
-
-    console.log('Browser.NAV PUSHED: ', this.back_fn_queue);
-  }
-
-  popBackFn(event) {
-    this.back_fn_queue.pop();
-
-    console.log('Browser.NAV POPPED: ', this.back_fn_queue, event);
-
-    if (this.back_fn_queue.length > 0) {
-      this.back_fn_queue[this.back_fn_queue.length - 1]();
-    }
-
-    if (this.back_fn_queue.length <= 1) {
-      this.app.connection.emit('saito-header-reset-logo');
-    }
-  }
-
-  resetBackFn(callback) {
-    this.back_fn_queue = [];
-    this.pushBackFn(callback);
   }
 }
 

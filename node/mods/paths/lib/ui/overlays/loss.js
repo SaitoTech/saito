@@ -246,11 +246,7 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 
 		this.moves = [];
 
-console.log("showing loss overlay...");
-
 		this.overlay.show(LossTemplate());
-
-console.log("shown loss overlay...");
 
 		for (let i = 0; i < attacker_units.length; i++) {
 			let html = "";
@@ -263,7 +259,6 @@ console.log("shown loss overlay...");
 			this.app.browser.addElementToSelector(html, qs_attacker);
 		}
 
-
 		for (let i = 0; i < defender_units.length; i++) {
 			let html = "";
 			let dkey = defender_units[i].key;
@@ -274,7 +269,6 @@ console.log("shown loss overlay...");
 			}
 			this.app.browser.addElementToSelector(html, qs_defender);
 		}
-
 
 		//
 		// add battle information
@@ -289,7 +283,6 @@ console.log("shown loss overlay...");
 		document.querySelector(".defender_column_shift").innerHTML = this.mod.game.state.combat.defender_column_shift;
 		document.querySelector(".attacker_damage").innerHTML = this.mod.game.state.combat.defender_loss_factor;
 		document.querySelector(".defender_damage").innerHTML = this.mod.game.state.combat.attacker_loss_factor;
-
 
 		//
 		// show terrain effects
@@ -340,8 +333,6 @@ console.log("shown loss overlay...");
 		//
 		let am_iii_the_attacker = false;
 		if (this.mod.game.player == this.mod.returnPlayerOfFaction(this.mod.game.state.combat.attacker_power)) { am_iii_the_attacker = true; }
-
-console.log("we hit here...");
 
 		//
 		// show dice rolls
@@ -559,6 +550,7 @@ console.log("and done...");
 						let corpskey = unit.key.split('_')[0] + '_corps';
 						let corpsunit = paths_self.cloneUnit(corpskey);
 						corpsunit.attacked = 1; // we don't want to give this the op to attack
+						corpsunit.damaged_this_combat = true; // used to be an army...
 						corpsunit.spacekey = unit.spacekey;
 
 //

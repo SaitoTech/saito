@@ -1,8 +1,6 @@
 
   returnSpaceNameForLog() {
     return `<span class="showcard ${card}" id="${card}">${card}</span>`;
-
-
   }
 
   popup(card) {
@@ -105,18 +103,21 @@
 
   removeCardFromGame(card) {
 
+    let all_cards = this.returnDeck();
+
     for (let key in this.game.deck[0].cards) {
       if (key === card) {
         this.game.deck[0].removed[key] = this.game.deck[0].cards[key];
-        delete this.game.deck[0].cards[key];
+        //delete this.game.deck[0].cards[key];
       }
     }
     for (let key in this.game.deck[1].cards) {
       if (key === card) {
         this.game.deck[1].removed[key] = this.game.deck[1].cards[key];
-        delete this.game.deck[1].cards[key];
+        //delete this.game.deck[1].cards[key];
       }
     }
+
 
   }
 
@@ -507,6 +508,15 @@ deck['ap14'] = {
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1 && paths_self.game.state.round == 1) { return 1; } return 0; } ,
         onEvent : function(paths_self, faction) {
+
+	  //
+	  // guns has already been removed from the deck so 
+	  // it is not dealt, this means that we need to
+	  // manually remove it so it is not re-dealt in a
+	  // later turn.
+	  //
+	  let all_cards = paths_self.returnDeck();
+	  paths_self.game.deck[0].removed["cp01"] = all_cards["cp01"]; 
 
 	  paths_self.game.state.events.guns_of_august = 1;
 	  paths_self.game.spaces['liege'].fort = -1;
@@ -1003,7 +1013,7 @@ deck['ap16'] = {
           paths_self.displayCustomOverlay({
                 text : "Romania joins the Allies" ,
                 title : "Romania joins the War!",
-                img : "/paths/img/backgrounds/entry/romania-enters-the-war.png",
+                img : "/paths/img/backgrounds/entry/romania-enters-the-war.jpg",
                 msg : "Romanian units added to board...",
                 styles : [{ key : "backgroundPosition" , val : "bottom" }],
           });
@@ -1216,10 +1226,9 @@ deck['ap23'] = {
 	    let hand = JSON.parse(mv[1]);
 
 	    let html = "Central Powers: ";
-	    for (let z = 0; z < hand.length; z++) { html += paths_self.popup(hand[z]); }
 	    paths_self.updateLog(html);
-
-	    paths_self.game.queue.push("player_play_ops\tallies\tap23\t");
+	    for (let z = 0; z < hand.length; z++) { paths_self.updateLog(" " + paths_self.popup(hand[z])); }
+	    paths_self.game.queue.push("player_play_ops\tallies\tap23\t2");
 
 	    return 1;
           } 
@@ -1398,10 +1407,14 @@ deck['ap30'] = {
 	  //
 	  paths_self.game.state.central_rounds[paths_self.game.state.central_rounds.length-1] = "sr";
 
+console.log("salonika 1");
+
 	  let p = paths_self.returnPlayerOfFaction("allies");
           let just_stop = 0;
 
 	  if (paths_self.game.player == p) {
+
+console.log("salonika 2");
 
 	    //
 	    // count max units movable
@@ -1411,7 +1424,9 @@ deck['ap30'] = {
 	    if (max_units_movable <= 0) { paths_self.endTurn(); return 0; }
 
             let loop_fnct = () => {
+console.log("salonika 3");
               if (continue_fnct()) {
+console.log("salonika 4");
         	paths_self.playerSelectUnitWithFilter(
         	  "Select Corps for Salonika?" ,
         	  filter_fnct ,
@@ -1434,12 +1449,18 @@ deck['ap30'] = {
 	    };
 
     	    let continue_fnct = () => {
+console.log("salonika 5");
   	      if (just_stop == 1) { return 0; }
+console.log("salonika 6");
 	      let count = paths_self.countUnitsWithFilter(filter_fnct);
+console.log("salonika 7 - " + count);
 	      if (count == 0) { return 0; }
+console.log("salonika 8");
 	      for (let key in paths_self.game.state.rp[faction]) {
+console.log("salonika 9");
 	        if (parseInt(paths_self.game.state.rp[faction][key]) > 0) { return 1; }
-	      } 
+	      }
+console.log("salonika 10");
 	      return 0;
 	    }
 
@@ -1490,15 +1511,22 @@ deck['ap31'] = {
 	  paths_self.game.state.events.mef_beachhead = "";
 
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction("allies")) {
+
 	    let filter_fnct = (spacekey) => {
-	      if (paths_self.game.spaces[spacekey].control == "central") { return 0; }
+	      if (paths_self.game.spaces[spacekey].control == "central" && paths_self.game.spaces[spacekey].units.length > 0) { return 0; }
 	      if (spacekey == "gallipoli") { return 1; }
 	      if (spacekey == "canakale") { return 1; }
 	      if (spacekey == "izmir") { return 1; }
 	      if (spacekey == "adana") { return 1; }
 	      return 0;
 	    }
+
 	    let count = paths_self.countUnitsWithFilter(filter_fnct);
+console.log("# WEF");
+console.log("# WEF");
+console.log("# WEF");
+console.log("# WEF");
+console.log("# WEF count: " + count);
 	    if (count == 0) {
 	      paths_self.addMove("NOTIFY\tNo viable placements for Middle-East Force");
 	      paths_self.endTurn();
@@ -1687,9 +1715,8 @@ deck['ap34'] = {
             let hand = JSON.parse(mv[1]);
 
             let html = "Allied Powers: ";
-            for (let z = 0; z < hand.length; z++) { if (z > 0) { html += ", "; } html += paths_self.popup(hand[z]); }
             paths_self.updateLog(html);
-
+            for (let z = 0; z < hand.length; z++) { paths_self.updateLog(" " + paths_self.popup(hand[z])); }
             paths_self.game.queue.push("player_play_ops\tcentral\tcp17\t2");
 
             return 1;
@@ -2019,11 +2046,11 @@ deck['cp32'] = {
 
     	    let filter_fnct = (spacekey, unit) => {
 	      if (spacekey == "aeubox") { return 0; }
-	      if (unit.army && unit.damaged == 0 && unit.ckey == "BR") { return 1; }
+	      if (unit.corps && unit.damaged == 0 && unit.ckey == "BR") { return 1; }
 	    }
     	    let filter_fnct2 = (spacekey, unit) => {
 	      if (spacekey == "aeubox") { return 0; }
-	      if (unit.army && unit.damaged == 0 && unit.ckey == "BR") { return 0; }
+	      if (unit.corps && unit.damaged == 1 && unit.ckey == "BR") { return 1; }
 	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {
@@ -2058,13 +2085,13 @@ deck['cp32'] = {
     	    html    += `<li class="card" id="vp">cede +1 VP</li>`;
     	    html    += `</ul>`; 
 
-    	    this.updateStatusWithOptions(`War in Africa!`, html);
-    	    this.attachCardboxEvents((action) => {
+    	    paths_self.updateStatusWithOptions(`War in Africa!`, html);
+    	    paths_self.attachCardboxEvents((action) => {
     
       	      if (action === "remove") {
                 paths_self.playerSelectUnitWithFilter(
-          	  "Select BR Army to Remove" ,
-        	  filter_fnct2 ,
+          	  "Select BR Corps to Remove" ,
+        	  filter_fnct ,
         	  execute_fnct ,
         	  null ,
         	  true ,
@@ -2167,7 +2194,7 @@ deck['ap35'] = {
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
-	  paths_self.game.queue.push("player_play_ops\tallies\tap35\t");
+	  paths_self.game.queue.push("player_play_ops\tallies\tap35\t4");
 	  paths_self.game.state.events.yanks_and_tanks = 1;
 	  return 1;
 
@@ -2390,7 +2417,7 @@ deck['ap45'] = {
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
 	  paths_self.game.state.events.kerensky_offensive = 1;
-	  paths_self.game.queue.push("player_play_ops\tallies\tap45\t");
+	  paths_self.game.queue.push("player_play_ops\tallies\tap45\t3");
 	  return 1;
 	} ,
       }
@@ -2409,7 +2436,7 @@ deck['ap46'] = {
         canEvent : function(paths_self, faction) { return 1; } ,
         onEvent : function(paths_self, faction) {
 	  paths_self.game.state.events.brusilov_offensive = 1;
-	  paths_self.game.queue.push("player_play_ops\tallies\tap46\t");
+	  paths_self.game.queue.push("player_play_ops\tallies\tap46\t4");
 	  return 1;
 	} ,
       }
@@ -3309,4 +3336,26 @@ deck['cp65'] = {
 
     return deck;
   }
+
+
+           
+  // 
+  // discarded but not removed... 
+  // 
+  returnDiscardedCards(faction="") {
+    let deck_idx = 1;
+    if (faction == "allies") { deck_idx = 2; }
+    let discarded = {};
+    let all_cards = this.returnDeck();  
+    for (var i in this.game.deck[deck_idx - 1].discards) {
+      if (all_cards[i]) {
+	if (!this.game.deck[deck_idx - 1].removed[i]) {
+          discarded[i] = all_cards[i];
+	}
+      }       
+    }         
+    this.game.deck[deck_idx - 1].discards = {};
+    return discarded;
+  } 
+
 

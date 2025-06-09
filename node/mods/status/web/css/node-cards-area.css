@@ -1,0 +1,28 @@
+.node-cards-area {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  margin: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-sizing: border-box;
+  flex-wrap: nowrap;
+  max-height: calc(100vh - 9rem);
+}
+
+.node-card {
+  flex: 1 1 0;
+  min-width: 350px;
+  max-width: 600px;
+  height: 100%;
+  margin: 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.node-cards-area > .node-card:first-child {
+  margin-left: 0;
+}
+.node-cards-area > .node-card:last-child {
+  margin-right: 0;
+} 

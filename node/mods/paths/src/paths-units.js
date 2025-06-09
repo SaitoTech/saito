@@ -34,24 +34,25 @@
 
     obj.key = key;
 
-    if (!obj.ckey)      	{ obj.key       = "XX"; }
-    if (!obj.name)      	{ obj.name      = "Unknown"; }
-    if (!obj.army)		{ obj.army 	= 0; }
-    if (!obj.corps)		{ obj.corps 	= 0; }
-    if (!obj.combat)		{ obj.combat 	= 5; }
-    if (!obj.loss)		{ obj.loss 	= 3; }
-    if (!obj.movement)		{ obj.movement 	= 3; }
-    if (!obj.rcombat)		{ obj.rcombat 	= 5; }
-    if (!obj.rloss)		{ obj.rloss 	= 3; }
-    if (!obj.rmovement)		{ obj.rmovement = 3; }
+    if (!obj.ckey)      		{ obj.key       = "XX"; }
+    if (!obj.name)      		{ obj.name      = "Unknown"; }
+    if (!obj.army)			{ obj.army 	= 0; }
+    if (!obj.corps)			{ obj.corps 	= 0; }
+    if (!obj.combat)			{ obj.combat 	= 5; }
+    if (!obj.loss)			{ obj.loss 	= 3; }
+    if (!obj.movement)			{ obj.movement 	= 3; }
+    if (!obj.rcombat)			{ obj.rcombat 	= 5; }
+    if (!obj.rloss)			{ obj.rloss 	= 3; }
+    if (!obj.rmovement)			{ obj.rmovement = 3; }
 
-    if (!obj.attacked)		{ obj.attacked  = 0; }
-    if (!obj.moved)		{ obj.moved     = 0; }
+    if (!obj.attacked)			{ obj.attacked  = 0; }
+    if (!obj.moved)			{ obj.moved     = 0; }
 
-    if (!obj.damaged)		{ obj.damaged = false; }
-    if (!obj.destroyed)		{ obj.destroyed = false; }
-    if (!obj.spacekey)  	{ obj.spacekey = ""; }
-    if (!obj.checkSupplyStatus) { obj.checkSupplyStatus = (paths_self, spacekey) => { return 0; } };
+    if (!obj.damaged)			{ obj.damaged = false; }
+    if (!obj.damaged_this_combat)	{ obj.damaged_this_combat = false; }
+    if (!obj.destroyed)			{ obj.destroyed = false; }
+    if (!obj.spacekey)  		{ obj.spacekey = ""; }
+    if (!obj.checkSupplyStatus) 	{ obj.checkSupplyStatus = (paths_self, spacekey) => { return 0; } };
 
     if (key.indexOf("army") > -1) { obj.army = 1; } else { obj.corps = 1; }
 
@@ -61,17 +62,10 @@
 
 
   removeUnit(spacekey, unitkey) {
-
-console.log("PRE: " + this.game.spaces[spacekey].units.length);
-       
     for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
       if (this.game.spaces[spacekey].units[z].key === unitkey) {
-
-console.log("removing : " + unitkey + " from " + spacekey);
-
         this.game.spaces[spacekey].units.splice(z, 1);
         z = this.game.spaces[spacekey].units.length + 2;
-                     
         if (this.game.state.combat.attacker) {
           for (let zz = 0; zz < this.game.state.combat.attacker.length; zz++) {
             if (this.game.state.combat.attacker[zz].unit_sourcekey == spacekey) {
@@ -81,26 +75,16 @@ console.log("removing : " + unitkey + " from " + spacekey);
             }
           }
         }
-
       }
     }
-
-
-console.log("POST: " + this.game.spaces[spacekey].units.length);
-
   }
 
   moveUnit(sourcekey, sourceidx, destinationkey) {
-
-console.log("MOVE UNIT: ");
-console.log("source units pre: " + this.game.spaces[sourcekey].units.length);
 
     let unit = this.game.spaces[sourcekey].units[sourceidx];
     this.game.spaces[sourcekey].units[sourceidx].moved = 1;
     this.game.spaces[sourcekey].units.splice(sourceidx, 1);
     if (!this.game.spaces[destinationkey].units) { this.game.spaces[destinationkey].units = []; }
-
-console.log("source units pst: " + this.game.spaces[sourcekey].units.length);
 
     if (destinationkey == "aeubox" || destinationkey == "ceubox") {
       this.updateLog(unit.name + " eliminated.");
@@ -110,6 +94,47 @@ console.log("source units pst: " + this.game.spaces[sourcekey].units.length);
 
     unit.spacekey = destinationkey;
     this.game.spaces[destinationkey].units.push(unit);
+
+    //
+    // put under siege as needed
+    //
+    if (this.game.spaces[destinationkey].units.length > 0) {
+      if (this.returnPowerOfUnit(this.game.spaces[destinationkey].units[0]) != this.game.spaces[destinationkey].control) {
+        if (this.game.spaces[destinationkey].fort > 0) {
+          this.game.spaces[destinationkey].besieged = 1;
+        } else {
+          //
+          // switch control
+          //
+          this.game.spaces[destinationkey].control = this.returnPowerOfUnit(this.game.spaces[destinationkey].units[0]);
+
+          //
+          // degrade trenches
+          //
+          if (this.game.spaces[destinationkey].trench > 0) { this.game.spaces[destinationkey].trench--; }
+        }
+      }
+    }
+
+    //
+    // check if no longer besieged?
+    //
+    if (this.game.spaces[sourcekey].besieged == 1) {
+      if (this.game.spaces[sourcekey].units.length > 0) {
+      } else {
+        this.game.spaces[sourcekey].besieged = 0;
+        if (this.game.spaces[sourcekey].fort > 0) {
+          //
+          // control switches back to original owner of fort
+          //
+          let spc = this.returnSpaces();
+          this.game.spaces[sourcekey].control = spc[sourcekey].control;
+        }
+      }
+    }
+
+
+
     this.displaySpace(sourcekey);
     this.displaySpace(destinationkey);
   }
