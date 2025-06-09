@@ -8624,16 +8624,14 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	      if (his_self.isSpaceBesieged(space.key)) { return 0; }
 
+	      let controlling_faction = "";
+	      if (space.political) { controlling_faction = space.political; }
+
+
 	      //
 	      // 2P game - may be played against electorate under Hapsburg Control
 	      //
 	      if (his_self.game.players.length == 2) {
-if (space.key == "milan") {
-  console.log("#");
-  console.log("#");
-  console.log("#");
-  console.log("MILAN CSR: " + JSON.stringify(space));
-}
 		if (his_self.game.state.events.schmalkaldic_league == 1) { if (space.type == "electorate" && space.political == "hapsburg") { return 1; } }
 	        if (space.type == "key" && space.home === "independent" && (space.key == "metz" || space.language == "german" || space.language == "italian") && (space.political !== space.home && space.political !== "" && space.political)) { return 1; }
 	        return 0;
@@ -8663,6 +8661,7 @@ if (space.key == "milan") {
 
 	    function(spacekey) {
 	      his_self.updateStatus("selected");
+	      if (controlling_faction != "") { his_self.addMove("maybe_evacuate_or_capture_leaders\t"+controlling+faction+"\t"+spacekey); }
 	      his_self.addMove("city-state-rebels\t"+faction+"\t"+spacekey);
 	      his_self.endTurn();
 	    },

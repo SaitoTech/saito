@@ -11,6 +11,7 @@ class ReplacementsOverlay {
 	}
 
 	hide() {
+		this.mod.updateStatus("submitting...");
 		this.visible = false;
 		this.overlay.hide();
 	}
@@ -75,9 +76,8 @@ class ReplacementsOverlay {
 				let id = e.currentTarget.id;
 				
 				if (id == "finish") {
-					this.replacements_overlay.hide();
-					paths_self.endTurn();
 					this.hide();
+					paths_self.endTurn();
 					return 1;
 				}
 
@@ -164,11 +164,13 @@ class ReplacementsOverlay {
         				paths_self.game.spaces[eu[z].key].units[eu[z].idx].damaged = 1;
         				if (paths_self.returnFactionOfPlayer() == "central") {
 						paths_self.moveUnit(eu[z].key, eu[z].idx, "crbox");
+						paths_self.prependMove(`repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`);
+        					paths_self.prependMove(`move\t${faction}\t${eu[z].key}\t${eu[z].idx}\tcrbox\t${paths_self.game.player}`);
         				} else {
 						paths_self.moveUnit(eu[z].key, eu[z].idx, "arbox");
+						paths_self.prependMove(`repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`);
+        					paths_self.prependMove(`move\t${faction}\t${eu[z].key}\t${eu[z].idx}\tarbox\t${paths_self.game.player}`);
         				}
-					paths_self.prependMove(`repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`);
-        				paths_self.prependMove(`move\t${faction}\t${eu[z].key}\t${eu[z].idx}\tarbox\t${paths_self.game.player}`);
         				paths_self.displaySpace(eu[z].key);
         				paths_self.displaySpace("arbox");
         				paths_self.displaySpace("crbox");

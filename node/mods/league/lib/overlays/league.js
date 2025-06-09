@@ -45,15 +45,11 @@ class LeagueOverlay {
 			);
 		}
 
-		this.overlay.show(
-			LeagueOverlayTemplate(this.app, this.mod, this.league)
-		);
+		this.overlay.show(LeagueOverlayTemplate(this.app, this.mod, this.league));
 
 		let game_mod = this.app.modules.returnModuleByName(this.league.game);
 		if (game_mod) {
-			this.overlay.setBackground(
-				game_mod.respondTo('arcade-games').image
-			);
+			this.overlay.setBackground(game_mod.respondTo('arcade-games').image);
 		}
 
 		//Show Leaderboard
@@ -74,15 +70,9 @@ class LeagueOverlay {
 
 	attachEvents() {
 		if (document.getElementById('league-overlay-create-game-button')) {
-			document.getElementById(
-				'league-overlay-create-game-button'
-			).onclick = (e) => {
+			document.getElementById('league-overlay-create-game-button').onclick = (e) => {
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent(
-					'GameWizard',
-					'LeagueOverlay',
-					this.league.game
-				);
+				this.app.browser.logMatomoEvent('GameWizard', 'LeagueOverlay', this.league.game);
 				if (this.league.admin) {
 					// private leagues get league provided
 					this.app.connection.emit('arcade-launch-game-wizard', {
@@ -93,7 +83,7 @@ class LeagueOverlay {
 					// default games skip as invites are open
 					this.app.connection.emit('arcade-launch-game-wizard', {
 						game: this.league.game,
-						skip: 1,
+						skip: 1
 					});
 				}
 			};
@@ -101,25 +91,18 @@ class LeagueOverlay {
 
 		if (document.querySelector('.join_league')) {
 			document.querySelector('.join_league').onclick = () => {
-				let jlo = new JoinLeagueOverlay(
-					this.app,
-					this.mod,
-					this.league.id
-				);
+				let jlo = new JoinLeagueOverlay(this.app, this.mod, this.league.id);
 				jlo.render();
 			};
 		}
 
 		if (document.querySelector('.backup_account')) {
 			document.querySelector('.backup_account').onclick = () => {
-				this.app.connection.emit(
-					'recovery-backup-overlay-render-request',
-					{
-						success_callback: () => {
-							this.render();
-						}
+				this.app.connection.emit('recovery-backup-overlay-render-request', {
+					success_callback: () => {
+						this.render();
 					}
-				);
+				});
 			};
 		}
 
@@ -127,26 +110,18 @@ class LeagueOverlay {
 			document.querySelector('.contact_admin').onclick = () => {
 				if (!this.email_admin) {
 					this.overlay.remove();
-					this.email_admin = new LeagueWelcome(
-						this.app,
-						this.mod,
-						this.league
-					);
+					this.email_admin = new LeagueWelcome(this.app, this.mod, this.league);
 					this.email_admin.render();
 					this.league.email_sent = true;
 				} else {
-					salert(
-						'You already messaged the league admin. Please be patient'
-					);
+					salert('You already messaged the league admin. Please be patient');
 				}
 			};
 		}
 
 		if (document.getElementById('league-chat-button')) {
 			document.getElementById('league-chat-button').onclick = () => {
-				let player_keys = this.league.players.map(
-					(obj) => obj.publicKey
-				);
+				let player_keys = this.league.players.map((obj) => obj.publicKey);
 				this.overlay.remove();
 				let league_group = {
 					name: this.league.name,
@@ -169,93 +144,56 @@ class LeagueOverlay {
 					name: 'League',
 					path: '/arcade/'
 				};
-				this.invitation_link = new InvitationLink(
-					this.app,
-					this.mod,
-					data
-				);
+				this.invitation_link = new InvitationLink(this.app, this.mod, data);
 				this.invitation_link.render();
 			};
 		}
 
 		if (!document.querySelector('.contactAdminWarning')) {
-			Array.from(document.querySelectorAll('.menu-icon')).forEach(
-				(item) => {
-					item.onclick = (e) => {
-						let nav = e.currentTarget.id;
+			Array.from(document.querySelectorAll('.menu-icon')).forEach((item) => {
+				item.onclick = (e) => {
+					let nav = e.currentTarget.id;
 
-						try {
-							document
-								.querySelector('.active-tab')
-								.classList.remove('active-tab');
-							document
-								.querySelector('.league-overlay-leaderboard')
-								.classList.remove('hidden');
-							document
-								.querySelector('.league-overlay-body')
-								.classList.remove('admin-mode');
-							Array.from(
-								document.querySelectorAll(
-									'.league-overlay-body-content > .league-overlay-content-box'
-								)
-							).forEach((div) => div.classList.add('hidden'));
+					try {
+						document.querySelector('.active-tab').classList.remove('active-tab');
+						document.querySelector('.league-overlay-leaderboard').classList.remove('hidden');
+						document.querySelector('.league-overlay-body').classList.remove('admin-mode');
+						Array.from(
+							document.querySelectorAll(
+								'.league-overlay-body-content > .league-overlay-content-box'
+							)
+						).forEach((div) => div.classList.add('hidden'));
 
-							switch (nav) {
+						switch (nav) {
 							case 'home':
-								document
-									.querySelector(
-										'.league-overlay-description'
-									)
-									.classList.remove('hidden');
+								document.querySelector('.league-overlay-description').classList.remove('hidden');
 								break;
 							case 'contact':
-								document
-									.querySelector('#admin_details')
-									.classList.remove('hidden');
+								document.querySelector('#admin_details').classList.remove('hidden');
 								if (document.querySelector('#admin_note')) {
-									document
-										.querySelector('#admin_note')
-										.classList.remove('hidden');
+									document.querySelector('#admin_note').classList.remove('hidden');
 								}
 								break;
 							case 'games':
 								document
-									.querySelector(
-										'.league-overlay-league-body-games'
-									)
+									.querySelector('.league-overlay-league-body-games')
 									.classList.remove('hidden');
 								break;
 							case 'players':
-								document
-									.querySelector('.league-overlay-body')
-									.classList.add('admin-mode');
-								document
-									.querySelector('#admin-widget')
-									.classList.remove('hidden');
-								document
-									.querySelector(
-										'.league-overlay-leaderboard'
-									)
-									.classList.add('hidden');
+								document.querySelector('.league-overlay-body').classList.add('admin-mode');
+								document.querySelector('#admin-widget').classList.remove('hidden');
+								document.querySelector('.league-overlay-leaderboard').classList.add('hidden');
 								this.loadPlayersUI();
 								break;
 							case 'rankings':
-								document
-									.querySelector(
-										'.league-overlay-leaderboard'
-									)
-									.classList.add('hidden');
-							}
-						} catch (err) {
-							console.error(
-								'dom selection in league overlay',
-								err
-							);
+								document.querySelector('.league-overlay-leaderboard').classList.add('hidden');
 						}
-						e.currentTarget.classList.add('active-tab');
-					};
-				}
-			);
+					} catch (err) {
+						console.error('dom selection in league overlay', err);
+					}
+					e.currentTarget.classList.add('active-tab');
+				};
+			});
 		}
 	}
 
@@ -288,110 +226,80 @@ class LeagueOverlay {
 			html += `<div class="saito-table-row">
         <div>${this.app.browser.returnAddressHTML(player.publicKey)}</div>
         <div class="player_score editable_field" data-id="${
-	player.publicKey
-}" contenteditable="true">${Math.round(player.score)}</div>
+					player.publicKey
+				}" contenteditable="true">${Math.round(player.score)}</div>
         <div>${Math.round(player.games_finished)}</div>
         <div>${Math.round(player.games_started)}</div>
         <div>${datetime.day} ${datetime.month} ${datetime.year}</div>
         <div class="email_field editable_field" data-id="${
-	player.publicKey
-}" contenteditable="true">${player.email}</div>
-        <div class="remove_player" data-id="${
-	player.publicKey
-}"><i class="fas fa-ban"></i></div>
+					player.publicKey
+				}" contenteditable="true">${player.email}</div>
+        <div class="remove_player" data-id="${player.publicKey}"><i class="fas fa-ban"></i></div>
       </div> `;
 		}
 
-		this.app.browser.addElementToSelector(
-			html,
-			'#admin-widget .saito-table-body'
-		);
+		this.app.browser.addElementToSelector(html, '#admin-widget .saito-table-body');
 
-		Array.from(document.querySelectorAll('.email_field')).forEach(
-			(player_contact) => {
-				player_contact.onblur = async (e) => {
+		Array.from(document.querySelectorAll('.email_field')).forEach((player_contact) => {
+			player_contact.onblur = async (e) => {
+				let newtx = await this.mod.createUpdatePlayerTransaction(
+					this.league.id,
+					e.currentTarget.dataset.id,
+					sanitize(player_contact.textContent),
+					'email'
+				);
+				this.app.network.propagateTransaction(newtx);
+
+				for (let i = 0; i < this.league.players.length; i++) {
+					if (this.league.players[i].publicKey === e.currentTarget.dataset.id) {
+						this.league.players[i].email = sanitize(player_contact.textContent);
+					}
+				}
+			};
+		});
+
+		Array.from(document.querySelectorAll('.remove_player')).forEach((player) => {
+			player.onclick = async (e) => {
+				let key = e.currentTarget.dataset.id;
+				let c = await sconfirm(
+					`Remove ${this.app.keychain.returnIdentifierByPublicKey(key, true)} from the league?`
+				);
+				if (c) {
+					let tx = await this.mod.createQuitTransaction(this.league.id, key);
+					this.app.network.propagateTransaction(tx);
+					this.mod.removeLeaguePlayer(this.league.id, key);
+					this.app.connection.emit('remove-user-from-chat-group', this.league.id, key);
+					this.loadPlayersUI();
+				}
+			};
+		});
+
+		Array.from(document.querySelectorAll('.player_score')).forEach((player) => {
+			player.onblur = async (e) => {
+				let key = e.currentTarget.dataset.id;
+				let c = await sconfirm(
+					`Change ${this.app.keychain.returnIdentifierByPublicKey(key, true)}'s score?`
+				);
+				if (c) {
+					let new_score = sanitize(player.textContent);
+					new_score = parseInt(new_score);
+
 					let newtx = await this.mod.createUpdatePlayerTransaction(
 						this.league.id,
-						e.currentTarget.dataset.id,
-						sanitize(player_contact.textContent),
-						'email'
+						key,
+						new_score,
+						'score'
 					);
 					this.app.network.propagateTransaction(newtx);
 
 					for (let i = 0; i < this.league.players.length; i++) {
-						if (
-							this.league.players[i].publicKey ===
-							e.currentTarget.dataset.id
-						) {
-							this.league.players[i].email = sanitize(
-								player_contact.textContent
-							);
+						if (this.league.players[i].publicKey === key) {
+							this.league.players[i].score = new_score;
 						}
 					}
-				};
-			}
-		);
-
-		Array.from(document.querySelectorAll('.remove_player')).forEach(
-			(player) => {
-				player.onclick = async (e) => {
-					let key = e.currentTarget.dataset.id;
-					let c = await sconfirm(
-						`Remove ${this.app.keychain.returnIdentifierByPublicKey(
-							key,
-							true
-						)} from the league?`
-					);
-					if (c) {
-						let tx = await this.mod.createQuitTransaction(
-							this.league.id,
-							key
-						);
-						this.app.network.propagateTransaction(tx);
-						this.mod.removeLeaguePlayer(this.league.id, key);
-						this.app.connection.emit(
-							'remove-user-from-chat-group',
-							this.league.id,
-							key
-						);
-						this.loadPlayersUI();
-					}
-				};
-			}
-		);
-
-		Array.from(document.querySelectorAll('.player_score')).forEach(
-			(player) => {
-				player.onblur = async (e) => {
-					let key = e.currentTarget.dataset.id;
-					let c = await sconfirm(
-						`Change ${this.app.keychain.returnIdentifierByPublicKey(
-							key,
-							true
-						)}'s score?`
-					);
-					if (c) {
-						let new_score = sanitize(player.textContent);
-						new_score = parseInt(new_score);
-
-						let newtx =
-							await this.mod.createUpdatePlayerTransaction(
-								this.league.id,
-								key,
-								new_score,
-								'score'
-							);
-						this.app.network.propagateTransaction(newtx);
-
-						for (let i = 0; i < this.league.players.length; i++) {
-							if (this.league.players[i].publicKey === key) {
-								this.league.players[i].score = new_score;
-							}
-						}
-					}
-				};
-			}
-		);
+				}
+			};
+		});
 	}
 }
 

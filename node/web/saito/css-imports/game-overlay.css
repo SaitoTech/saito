@@ -368,7 +368,9 @@ Useful declarations for game stats
   gap: 1rem;
   grid-template-columns: max-content min-content 1fr;
   margin: 0;
+  text-wrap: nowrap;
 }
+
 .saito-modal-menu-option span.option-explanation {
   font-size: 1.6rem;
   overflow: hidden;
