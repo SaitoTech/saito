@@ -1,0 +1,113 @@
+{
+  "index_to_peers": {
+    "1": {
+      "index": 1,
+      "peer_status": "Connected",
+      "block_fetch_url": "http://localhost:12101",
+      "static_peer_config": {
+        "host": "127.0.0.1",
+        "port": 12101,
+        "protocol": "http",
+        "synctype": "full"
+      },
+      "challenge_for_peer": null,
+      "key_list": [],
+      "services": [
+        { "service": "arcade", "domain": "saito", "name": "" },
+        { "service": "archive", "domain": "", "name": "" },
+        { "service": "chat", "domain": "", "name": "Saito Community Chat" },
+        { "service": "relay", "domain": "", "name": "" },
+        { "service": "redsquare", "domain": "", "name": "RedSquare Tweet Archive" },
+        { "service": "registry", "domain": "", "name": "saito" }
+      ],
+      "last_msg_at": 1749177137470,
+      "disconnected_at": 18446744073709552000,
+      "wallet_version": { "major": 0, "minor": 5, "patch": 676 },
+      "core_version": { "major": 0, "minor": 2, "patch": 11 },
+      "key_list_limiter": {
+        "limit": 100,
+        "window": 60000,
+        "request_count": 0,
+        "last_request_time": 1749177132205
+      },
+      "handshake_limiter": {
+        "limit": 100,
+        "window": 60000,
+        "request_count": 1,
+        "last_request_time": 1749177127330
+      },
+      "message_limiter": {
+        "limit": 100000,
+        "window": 1000,
+        "request_count": 1,
+        "last_request_time": 1749177137262
+      },
+      "invalid_block_limiter": {
+        "limit": 10,
+        "window": 3600000,
+        "request_count": 0,
+        "last_request_time": 1749177132205
+      },
+      "public_key": "02b02f66d03cafaf978c7e532a47b0e7da371450aba4cf767551fdb07ab7fd7b3f",
+      "peer_type": "Default",
+      "ip_address": "ws://127.0.0.1:12101/wsopen",
+      "stats": {
+        "received_block_headers": 0,
+        "received_txs": 0,
+        "received_messages": 0
+      }
+    },
+    "2": {
+      "index": 2,
+      "peer_status": "Connected",
+      "block_fetch_url": "http://localhost:12101",
+      "static_peer_config": null,
+      "challenge_for_peer": null,
+      "key_list": [],
+      "services": [
+        { "service": "arcade", "domain": "saito", "name": "" },
+        { "service": "archive", "domain": "", "name": "" },
+        { "service": "chat", "domain": "", "name": "Saito Community Chat" },
+        { "service": "relay", "domain": "", "name": "" },
+        { "service": "redsquare", "domain": "", "name": "RedSquare Tweet Archive" },
+        { "service": "registry", "domain": "", "name": "saito" }
+      ],
+      "last_msg_at": 1749177137470,
+      "disconnected_at": 18446744073709552000,
+      "wallet_version": { "major": 0, "minor": 5, "patch": 676 },
+      "core_version": { "major": 0, "minor": 2, "patch": 11 },
+      "key_list_limiter": {
+        "limit": 100,
+        "window": 60000,
+        "request_count": 0,
+        "last_request_time": 1749177132205
+      },
+      "handshake_limiter": {
+        "limit": 100,
+        "window": 60000,
+        "request_count": 0,
+        "last_request_time": 1749177127332
+      },
+      "message_limiter": {
+        "limit": 100000,
+        "window": 1000,
+        "request_count": 1,
+        "last_request_time": 1749177137262
+      },
+      "invalid_block_limiter": {
+        "limit": 10,
+        "window": 3600000,
+        "request_count": 0,
+        "last_request_time": 1749177132205
+      },
+      "public_key": "02b02f66d03cafaf978c7e532a47b0e7da371450aba4cf767551fdb07ab7fd7b3f",
+      "peer_type": "Default",
+      "ip_address": "::ffff:127.0.0.1",
+      "stats": {
+        "received_block_headers": 0,
+        "received_txs": 0,
+        "received_messages": 0
+      }
+    }
+  }
+} 

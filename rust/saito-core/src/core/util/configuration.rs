@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 
 use crate::core::defs::Currency;
 use crate::core::defs::{BlockId, Timestamp};
@@ -11,6 +11,16 @@ pub struct PeerConfig {
     pub port: u16,
     pub protocol: String,
     pub synctype: String,
+}
+
+impl Display for PeerConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{{ host: {}, port: {}, protocol: {}, synctype: {} }}",
+            self.host, self.port, self.protocol, self.synctype
+        )
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

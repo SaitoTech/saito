@@ -10728,40 +10728,6 @@ console.log(JSON.stringify(this.game.deck[1].hand));
           this.game.queue.push("deal_strategy_cards");
 
 	  //
-	  // LIMITED WAR CARDS - allies
-	  //
-  	  if (this.game.state.general_records_track.allies_war_status >= 4 && this.game.state.allies_limited_war_cards_added == false) {
-
-	    this.game.state.allies_limited_war_cards_added = true;
-	
-	    let discarded_cards = {};
-    	    for (let key in this.game.deck[1].discards) { 
-	      if (!this.game.deck[1].removed[key]) { discarded_cards[key] = all_cards[key]; } 
-	    }
-	    let new_cards = this.returnLimitedWarDeck("allies");
-	    let discarded_cards_count = 0;
-	    for (let key in discarded_cards) {
-	      discarded_cards_count++;
-	      console.log("allies reshuffle: " + key);
-	      new_cards[key] = discarded_cards[key];
-	    }
-	    console.log("ALLIES TOTAL: " + discarded_cards_count);
-
-            // shuffle in discarded cards
-            this.game.queue.push("SHUFFLE\t2");
-            this.game.queue.push("DECKRESTORE\t2");
-            this.game.queue.push("DECKENCRYPT\t2\t2");
-            this.game.queue.push("DECKENCRYPT\t2\t1");
-            this.game.queue.push("DECKXOR\t2\t2");
-            this.game.queue.push("DECKXOR\t2\t1");
-            this.game.queue.push("DECK\t2\t"+JSON.stringify(new_cards));
-            this.game.queue.push("DECKBACKUP\t2");
-            this.updateLog("Shuffling discarded cards back into the deck...");
-	    redealt_allies = true;
-
-	  }
-
-	  //
 	  // LIMITED WAR CARDS - central
 	  //
   	  if (this.game.state.general_records_track.central_war_status >= 4 && this.game.state.central_limited_war_cards_added == false) {
@@ -10795,17 +10761,24 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 	  }
 
 	  //
-	  // TOTAL WAR CARDS -- allies
+	  // LIMITED WAR CARDS - allies
 	  //
-  	  if (this.game.state.general_records_track.allies_war_status >= 11 && this.game.state.allies_total_war_cards_added == false) {
-	    this.game.state.allies_total_war_cards_added = true;
+  	  if (this.game.state.general_records_track.allies_war_status >= 4 && this.game.state.allies_limited_war_cards_added == false) {
+
+	    this.game.state.allies_limited_war_cards_added = true;
 	
 	    let discarded_cards = {};
     	    for (let key in this.game.deck[1].discards) { 
 	      if (!this.game.deck[1].removed[key]) { discarded_cards[key] = all_cards[key]; } 
 	    }
-	    let new_cards = this.returnTotalWarDeck("allies");
-	    for (let key in discarded_cards) { new_cards[key] = discarded_cards[key]; }
+	    let new_cards = this.returnLimitedWarDeck("allies");
+	    let discarded_cards_count = 0;
+	    for (let key in discarded_cards) {
+	      discarded_cards_count++;
+	      console.log("allies reshuffle: " + key);
+	      new_cards[key] = discarded_cards[key];
+	    }
+	    console.log("ALLIES TOTAL: " + discarded_cards_count);
 
             // shuffle in discarded cards
             this.game.queue.push("SHUFFLE\t2");
@@ -10845,6 +10818,34 @@ console.log(JSON.stringify(this.game.deck[1].hand));
             this.game.queue.push("DECKBACKUP\t1");
             this.updateLog("Shuffling discarded cards back into the deck...");
 	    redealt_central = true;
+
+	  }
+
+
+	  //
+	  // TOTAL WAR CARDS -- allies
+	  //
+  	  if (this.game.state.general_records_track.allies_war_status >= 11 && this.game.state.allies_total_war_cards_added == false) {
+	    this.game.state.allies_total_war_cards_added = true;
+	
+	    let discarded_cards = {};
+    	    for (let key in this.game.deck[1].discards) { 
+	      if (!this.game.deck[1].removed[key]) { discarded_cards[key] = all_cards[key]; } 
+	    }
+	    let new_cards = this.returnTotalWarDeck("allies");
+	    for (let key in discarded_cards) { new_cards[key] = discarded_cards[key]; }
+
+            // shuffle in discarded cards
+            this.game.queue.push("SHUFFLE\t2");
+            this.game.queue.push("DECKRESTORE\t2");
+            this.game.queue.push("DECKENCRYPT\t2\t2");
+            this.game.queue.push("DECKENCRYPT\t2\t1");
+            this.game.queue.push("DECKXOR\t2\t2");
+            this.game.queue.push("DECKXOR\t2\t1");
+            this.game.queue.push("DECK\t2\t"+JSON.stringify(new_cards));
+            this.game.queue.push("DECKBACKUP\t2");
+            this.updateLog("Shuffling discarded cards back into the deck...");
+	    redealt_allies = true;
 
 	  }
 
