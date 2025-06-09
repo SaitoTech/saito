@@ -61,10 +61,10 @@ const NodeCard = ({ onClose, title, peerStats, stats, loading, onOpenPeer }) => 
         ) : hasJson ? (
           <>
             {view === 'peerStats' && peerStats && (
-              <JsonViewer value={JSON.parse(peerStats)} displayDataTypes={false} displayObjectSize={false} />
+              <JsonViewer value={JSON.parse(peerStats).index_to_peers} displayDataTypes={false} displayObjectSize={false} rootName={false} defaultInspectDepth={1} />
             )}
             {view === 'stats' && stats && (
-              <JsonViewer value={JSON.parse(stats)} displayDataTypes={false} displayObjectSize={false} />
+              <JsonViewer value={JSON.parse(stats)} displayDataTypes={false} displayObjectSize={false} rootName={false} defaultInspectDepth={1} /> 
             )}
             {view === 'peers' && peers && (
               <div>
