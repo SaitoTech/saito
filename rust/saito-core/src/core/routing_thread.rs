@@ -2,6 +2,7 @@ use crate::core::consensus::block::BlockType;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::blockchain_sync_state::BlockchainSyncState;
 use crate::core::consensus::mempool::Mempool;
+use crate::core::consensus::peers::peer;
 use crate::core::consensus::peers::peer_service::PeerService;
 use crate::core::consensus::peers::peer_state_writer::{PeerStateEntry, PEER_STATE_WRITE_PERIOD};
 use crate::core::consensus::wallet::Wallet;
@@ -154,6 +155,13 @@ impl RoutingThread {
                     transaction.signature.to_hex(),
                     peer_index
                 );
+                {
+                    let mut peers = self.network.peer_lock.write().await;
+                    let mut peer = peers.find_peer_by_index_mut(peer_index).unwrap();
+                    peer.stats.received_txs += 1;
+                    peer.stats.last_received_tx_at = self.timer.get_timestamp_in_ms();
+                    peer.stats.last_received_tx = transaction.signature.to_hex();
+                }
                 self.stats.received_transactions.increment();
                 self.send_to_verification_thread(VerifyRequest::Transaction(transaction))
                     .await;
@@ -182,6 +190,13 @@ impl RoutingThread {
                     block_id,
                     hash.to_hex()
                 );
+                {
+                    let mut peers = self.network.peer_lock.write().await;
+                    let mut peer = peers.find_peer_by_index_mut(peer_index).unwrap();
+                    peer.stats.received_block_headers += 1;
+                    peer.stats.last_received_block_header_at = self.timer.get_timestamp_in_ms();
+                    peer.stats.last_received_block_header = hash.to_hex();
+                }
                 self.process_incoming_block_hash(hash, block_id, peer_index)
                     .await;
             }
@@ -752,9 +767,11 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 {
                     // TODO : move this before deserialization to avoid spending CPU time on it. moved here to just print message type
                     let mut peers = self.network.peer_lock.write().await;
-                    let peer = peers.find_peer_by_index_mut(peer_index)?;
+                    let mut peer = peers.find_peer_by_index_mut(peer_index)?;
 
                     let time: u64 = self.timer.get_timestamp_in_ms();
+                    peer.stats.received_messages += 1;
+                    peer.stats.last_received_message_at = time;
                     peer.message_limiter.increase();
                     if peer.has_message_limit_exceeded(time) {
                         info!(

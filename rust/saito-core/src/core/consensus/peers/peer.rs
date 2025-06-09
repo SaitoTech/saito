@@ -40,8 +40,22 @@ pub enum PeerStatus {
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct PeerStats {
     pub received_block_headers: u64,
+    pub last_received_block_header: String,
+    pub last_received_block_header_at: Timestamp,
     pub received_txs: u64,
+    pub last_received_tx: String,
+    pub last_received_tx_at: Timestamp,
     pub received_messages: u64,
+    pub last_received_message_at: Timestamp,
+    pub sent_messages: u64,
+    pub last_sent_message_at: Timestamp,
+    pub sent_block_headers: u64,
+    pub last_sent_block_header: String,
+    pub last_sent_block_header_at: Timestamp,
+    pub sent_txs: u64,
+    pub last_sent_tx: String,
+    pub last_sent_tx_at: Timestamp,
+    pub connected_at: Timestamp,
 }
 
 fn vec_of_arrays_as_hex<S>(vec: &Vec<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
