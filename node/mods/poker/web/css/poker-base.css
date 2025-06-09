@@ -132,3 +132,103 @@ body {
   }
   */
 }
+
+
+/*------------------ tmp housing for updates ------------------*/
+
+
+/* style.css | https://saito.io/poker/style.css?v=1749105283 */
+
+.game-playerbox-icons {
+  /* flex-direction: column; */
+  flex-direction: row;
+  gap: 1rem;
+  padding: 1rem 1rem 1rem 5rem;
+  border-radius: 3rem;
+  border: 1px solid #fff4;
+  background: url(/poker/img/simple-chip.svg);
+  background-color: rgba(0, 0, 0, 0);
+  background-repeat: repeat;
+  background-size: auto;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+
+.game-playerbox {
+  padding: 0.5rem 0 2rem 0;
+  border-radius: 1rem;
+  box-shadow: 5px 5px 3px #0008;
+  background-color: #0003;
+  max-width: 100vw;
+  width: 40rem;
+}
+
+.dealer-button {
+  position: relative;
+  padding: 2px 0 0 2px;
+  position: absolute;
+  right: 16rem;
+  top: 2.5rem;
+}
+
+.saito-user {
+  border-radius: 4rem;
+  padding: 2rem;
+}
+
+.game-playerbox-graphics {
+  background: unset;
+}
+
+.mystuff {
+  bottom: 65px;
+}
+
+.controls div.option {
+  /* max-width: 9rem; */
+  /* padding: 0 5px; */
+  padding: 14px 5px;
+  width: 100% !important;
+  box-shadow: 5px 5px 3px #0008;
+  background-color: #0003;
+  max-width: unset;
+}
+
+.controls div.option:hover, .controls ul li:hover {
+  /* background-color: #0005; */
+  background-color: #8882;
+}
+
+
+.game-playerbox-icons {
+}
+
+.game-playerbox-icons > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+.game-playerbox.active {
+  border: unset;
+}
+
+.game-playerbox-seat-1 {
+  min-width: 44rem;
+}
+
+/* saito.css | https://saito.io/saito/saito.css?v=1749105283 */
+
+.saito-identicon-box {
+  /* width: 3.5rem; */
+  /* height: 3.5rem; */
+  width: 4.5rem;
+  height: 4.5rem;
+}
+
+.status .option.raise_option {
+  padding: 2rem;
+}
