@@ -1,3 +1,5 @@
+const ChipTemplate = require('./chip.svg.template');
+
 class PokerUI {
   returnPlayerRole(player) {
     if (this.game.state.winners.length > 0) {
@@ -146,8 +148,9 @@ class PokerUI {
       chips += 'S';
     }
 
+    let chipsvg = ChipTemplate();
     let stack_html =
-      (stack_html = `<div class="poker-stack-balance">${amount}</div><div class="poker-stack-units">${chips}</div>`);
+      (stack_html = `${chipsvg}<div class="poker-stack-balance">${amount}</div><div class="poker-stack-units">${chips}</div>`);
 
     if (typeof this.game.stake === 'string' && this.game.crypto !== 'CHIPS') {
       // Could add a test for an option to should crypto by default (either globally or just a toggle here)
