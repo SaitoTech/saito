@@ -1243,7 +1243,7 @@ alert("multiple Leaderboard Updates... do something!");
 
 		if (!this.app.BROWSER) {
 			//for dev purposes
-			shouldTweet = true;
+			//shouldTweet = true;
 
 			for (let key of players) {
 				// Only care if at least one player has a registered username or money is on the line!
