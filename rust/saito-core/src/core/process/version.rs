@@ -1,5 +1,6 @@
 use crate::core::util::serialize::Serialize;
 use log::warn;
+use serde::Serialize as OtherSerialize;
 use std::cmp::Ordering;
 use std::io::{Error, ErrorKind};
 
@@ -24,7 +25,7 @@ pub fn read_pkg_version() -> Version {
     Version::new(major.unwrap(), minor.unwrap(), patch.unwrap())
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, OtherSerialize)]
 pub struct Version {
     pub major: u8,
     pub minor: u8,

@@ -14,22 +14,6 @@ const STAT_FILENAME: &str = "./data/saito.stats";
 const STAT_FILE_WRITE_INTERVAL: u64 = 5_000; // in milliseconds
 
 #[derive(Default, Debug, Clone, Serialize)]
-pub struct PeerStatEntry {
-    pub public_key: String,
-    pub ip_address: String,
-    pub is_lite_mode: bool,
-    pub connection_status: String,
-}
-#[derive(Default, Debug, Clone, Serialize)]
-pub struct PeerStat {
-    pub peer_count: u64,
-    pub connected_peers: u64,
-    pub disconnected_peers: u64,
-    pub connecting_peers: u64,
-    pub peers: Vec<PeerStatEntry>,
-}
-
-#[derive(Default, Debug, Clone, Serialize)]
 pub struct WalletStat {
     pub wallet_balance: u64,
     pub wallet_address: String,
@@ -52,7 +36,7 @@ pub struct MempoolStat {
 #[derive(Debug, Clone)]
 pub enum StatEvent {
     StringStat(String),
-    PeerStat(PeerStat),
+    // PeerStat(PeerStat),
     WalletStat(WalletStat),
     MiningStat(MiningStat),
     BlockchainStat(BlockchainStat),
@@ -63,7 +47,6 @@ pub struct StatThread {
     pub stat_queue: VecDeque<String>,
     pub io_interface: Box<dyn InterfaceIO + Send + Sync>,
     pub enabled: bool,
-    pub current_peer_state: PeerStat,
     pub current_wallet_state: WalletStat,
     pub current_mining_state: MiningStat,
     pub current_blockchain_state: BlockchainStat,
@@ -77,7 +60,6 @@ impl StatThread {
             io_interface,
             stat_queue: VecDeque::new(),
             enabled: true,
-            current_peer_state: Default::default(),
             current_wallet_state: Default::default(),
             current_mining_state: Default::default(),
             current_blockchain_state: Default::default(),
@@ -127,9 +109,9 @@ impl ProcessEvent<StatEvent> for StatThread {
             StatEvent::StringStat(stat) => {
                 self.stat_queue.push_back(stat);
             }
-            StatEvent::PeerStat(stat) => {
-                self.current_peer_state = stat;
-            }
+            // StatEvent::PeerStat(stat) => {
+            //     self.current_peer_state = stat;
+            // }
             StatEvent::WalletStat(state) => {
                 self.current_wallet_state = state;
             }

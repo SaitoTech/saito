@@ -323,7 +323,7 @@ pub mod test {
                     stat_queue: Default::default(),
                     io_interface: Box::new(TestIOHandler {}),
                     enabled: true,
-                    current_peer_state: Default::default(),
+                    // current_peer_state: Default::default(),
                     current_wallet_state: Default::default(),
                     current_mining_state: Default::default(),
                     current_blockchain_state: Default::default(),
@@ -599,10 +599,10 @@ pub mod test {
         }
         pub async fn create_block(
             &self,
-            parent_hash: SaitoHash,
-            tx_count: u32,
+            _parent_hash: SaitoHash,
+            _tx_count: u32,
             fee_amount: Currency,
-            with_gt: bool,
+            _with_gt: bool,
         ) -> Result<Block, Error> {
             todo!()
         }
