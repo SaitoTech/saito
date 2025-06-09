@@ -133,13 +133,13 @@
 }
 
 /**** Temporary for developing file transfer in chat ***/
-.nft-creator > .saito-file-transfer{
+.saito-file-transfer{
   border-radius: var(--border-radius-file-transfer);
   position: relative;
   border: 1px dashed;
   display: grid;
   align-items: center;
-  padding: 2rem;
+  padding: 1rem;
   grid-template-columns: min-content 1fr;
   grid-template-rows: 1fr 1fr;
   row-gap: 1rem;

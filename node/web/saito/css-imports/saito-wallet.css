@@ -840,10 +840,6 @@ textarea {
   resize: none;
 }
 
-.create-button {
-  text-align: right;
-}
-
 #nft-image-upload {
     border: 3px dotted;
     height: 30rem;
@@ -1088,9 +1084,9 @@ textarea {
 }
 
 #nft-next.disabled {
-    background: none;
-    border: 1px solid var(--saito-primary);
-    cursor: not-allowed;
+  background: none;
+  border: 1px solid var(--saito-primary);
+  cursor: not-allowed;
 }
 
 .page-navigation {
@@ -1098,15 +1094,6 @@ textarea {
   flex-direction: row;
   gap: 1rem;
   font-size: 1.9rem;
-}
-
-.page-navigation.page2 {
-  font-size: 1.9rem;
-  border-bottom: 2px dashed;
-  width: fit-content;
-  cursor: pointer;
-  text-transform: lowercase;
-  display: none;
 }
 
 .nft-receiver {
@@ -1126,6 +1113,34 @@ textarea {
 
 #create-nft-amount {
   cursor: pointer;
+}
+
+.page-navigation.page2 {
+    display: flex;
+    align-self: flex-end;
+    gap: 1rem;
+}
+
+.create-button {
+  display: flex;
+  align-self: flex-end;
+}
+
+.nft-creator > .saito-file-transfer{
+  border-radius: var(--border-radius-file-transfer);
+  position: relative;
+  border: 1px dashed;
+  display: grid;
+  align-items: center;
+  padding: 2rem;
+  grid-template-columns: min-content 1fr;
+  grid-template-rows: 1fr 1fr;
+  row-gap: 1rem;
+  column-gap: 2rem;
+  justify-items: flex-end;
+  overflow: hidden;
+  background-color: var(--saito-gray-mid);
+  color: var(--saito-white);
 }
 
 

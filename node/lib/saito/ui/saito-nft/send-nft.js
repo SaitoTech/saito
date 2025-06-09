@@ -105,9 +105,9 @@ class Nft {
     this.splitBtn        = document.querySelector('#send-nft-split');
     this.cancelSplitBtn  = document.querySelector('#send-nft-cancel-split');
     this.confirmSplitBtn = document.querySelector('#send-nft-confirm-split');
-    this.navContainer    = document.querySelector('.page-navigation.page1');
+    this.page1Nav    = document.querySelector('.page-navigation.page1');
+    this.page2Nav    = document.querySelector('.page-navigation.page2');
     this.sendNftTitle    = document.querySelector('#send-nft-title');
-    this.page2BackBtn    = document.querySelector('.page-navigation.page2');
     this.backBtn         = document.querySelector('#nft-back');
     this.sendBtn         = document.querySelector('#send_nft');
 
@@ -314,9 +314,9 @@ class Nft {
       if (page1 && page2) {
         page1.style.display         = 'none';
         page2.style.display         = 'flex';
-        this.navContainer.style.display = 'none';
+        this.page1Nav.style.display = 'none';
         this.sendNftTitle.innerText = 'SEND NFT';
-        this.page2BackBtn.style.display = 'block';
+        this.page2Nav.style.display = 'flex';
       }
     };
   }
@@ -327,17 +327,20 @@ class Nft {
       e.preventDefault();
       const page1 = document.querySelector('#page1');
       const page2 = document.querySelector('#page2');
+      
       if (page1 && page2) {
         page2.style.display         = 'none';
         page1.style.display         = 'block';
-        this.navContainer.style.display = 'flex';
+        this.page1Nav.style.display = 'flex';
         this.sendNftTitle.innerText = 'SELECT NFT';
-        this.page2BackBtn.style.display = 'none';
+        this.page2Nav.style.display = 'block';
+
         document.querySelectorAll('.send-nft-row').forEach(r => {
           r.classList.remove('nft-selected');
           const rRadio = r.querySelector('input[type="radio"].hidden-nft-radio');
           if (rRadio) rRadio.checked = false;
         });
+
         this.nft_selected = null;
         if (this.mergeBtn) this.mergeBtn.style.display = 'none';
         if (this.splitBtn) this.splitBtn.style.display = 'none';
@@ -404,7 +407,7 @@ class Nft {
       left: '0',
       width: '100%',
       height: '100%',
-      backgroundColor: 'rgba(0,0,0,0.75)',
+      backgroundColor: 'rgba(0,0,0,0.8)',
       display: 'flex',
       zIndex: '10'
     });
@@ -415,7 +418,7 @@ class Nft {
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
-      fontSize: '1.9rem'
+      fontSize: '2.2rem'
     });
     const bar = document.createElement('div');
     bar.classList.add('split-bar');
@@ -431,7 +434,7 @@ class Nft {
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
-      fontSize: '1.9rem'
+      fontSize: '2.2rem'
     });
     overlay.appendChild(leftDiv);
     overlay.appendChild(bar);
