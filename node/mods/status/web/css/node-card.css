@@ -4,7 +4,7 @@
   box-shadow: 0 2px 12px rgba(0,0,0,0.08);
   margin: 1rem;
   position: relative;
-  min-width: 350px;
+  min-width: 30rem;
   max-width: 600px;
   display: flex;
   flex-direction: column;
@@ -35,15 +35,13 @@
 .node-card-close {
   background: none;
   border: none;
-  font-size: 1.5rem;
-  color: #888;
+  font-size: 1.2em;
   cursor: pointer;
-  padding: 0 0.5rem;
-  border-radius: 4px;
-  transition: background 0.15s;
+  color: #222;
+  margin-left: 0.5em;
 }
 .node-card-close:hover {
-  background: #eee;
+  color: #444;
 }
 .node-card-content {
   overflow-y: auto;
@@ -51,7 +49,6 @@
 }
 .node-card-content.padded {
   padding: 1rem;
-  max-height: calc(100vh - 17rem);
 }
 .json-view {
   background: #f6f8fa;
@@ -62,4 +59,65 @@
   overflow-x: auto;
   white-space: pre-wrap;
   margin: 0;
+}
+
+/* Peer links in explore view */
+.peer-link-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.peer-link-list-item {
+  margin-bottom: 0.5rem;
+}
+.peer-link {
+  color: #222;
+  cursor: pointer;
+  text-decoration: underline;
+  margin-right: 0.5em;
+  transition: color 0.2s;
+}
+.peer-link:hover {
+  color: #444;
+}
+.peer-link-external {
+  color: #222;
+  margin-left: 0.25em;
+  text-decoration: none;
+  cursor: pointer;
+}
+.peer-link-external:hover {
+  color: #444;
+}
+
+/* Margin for tab buttons */
+.node-card-tab-btn {
+  margin-right: 0.5rem;
+}
+
+.node-card-tab-btn:last-child {
+  margin-right: 0;
+}
+
+.node-card-tab-btn {
+  background: none;
+  border: none;
+  color: #222;
+  font-weight: normal;
+  cursor: pointer;
+  font-size: 1em;
+  padding: 0.2em 0.7em;
+  border-radius: 3px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.node-card-tab-btn.active {
+  font-weight: bold;
+  background: #f2f2f2;
+  color: #111;
+}
+
+.node-card-tab-btn:hover {
+  color: #444;
+  background: #eaeaea;
 } 
