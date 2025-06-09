@@ -58,19 +58,20 @@ pub struct PeerStats {
     pub connected_at: Timestamp,
 }
 
-fn vec_of_arrays_as_hex<S>(vec: &Vec<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
+fn vec_of_arrays_as_base58<S>(vec: &Vec<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    let hex_vec: Vec<String> = vec.iter().map(|arr| hex::encode(arr)).collect();
+    let hex_vec: Vec<String> = vec.iter().map(|arr| arr.to_base58()).collect();
     serializer.collect_seq(hex_vec)
 }
-fn option_as_hex<S>(bytes: &Option<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
+fn option_as_base58<S>(bytes: &Option<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    serializer.serialize_str(&hex::encode(bytes.unwrap_or([0; 33])))
+    serializer.serialize_str(&bytes.unwrap_or([0; 33]).to_base58())
 }
+
 // TODO : since we are keeping the peers against a peer index, once a peer is reconnected, we will lose the stats from the previous connection.
 
 #[serde_with::serde_as]
@@ -82,7 +83,7 @@ pub struct Peer {
     // if this is None(), it means an incoming connection. else a connection which we started from the data from config file
     pub static_peer_config: Option<util::configuration::PeerConfig>,
     pub challenge_for_peer: Option<SaitoHash>,
-    #[serde(serialize_with = "vec_of_arrays_as_hex")]
+    #[serde(serialize_with = "vec_of_arrays_as_base58")]
     pub key_list: Vec<SaitoPublicKey>,
     pub services: Vec<PeerService>,
     pub last_msg_at: Timestamp,
@@ -95,7 +96,7 @@ pub struct Peer {
     pub handshake_limiter: RateLimiter,
     pub message_limiter: RateLimiter,
     pub invalid_block_limiter: RateLimiter,
-    #[serde(serialize_with = "option_as_hex")]
+    #[serde(serialize_with = "option_as_base58")]
     pub public_key: Option<SaitoPublicKey>,
     pub peer_type: PeerType,
     pub ip_address: Option<String>,
