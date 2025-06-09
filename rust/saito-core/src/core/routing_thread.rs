@@ -190,7 +190,7 @@ impl RoutingThread {
                     block_id,
                     hash.to_hex()
                 );
-                 {
+                {
                     let mut peers = self.network.peer_lock.write().await;
                     let mut peer = peers.find_peer_by_index_mut(peer_index).unwrap();
                     peer.stats.received_block_headers += 1;
