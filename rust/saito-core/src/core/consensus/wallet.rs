@@ -875,7 +875,7 @@ impl Wallet {
         //
         let output_slip3 = Slip {
             public_key: uuid_pubkey,
-            amount: nft_num,
+            amount: 0,
             slip_type: SlipType::Bound,
             ..Default::default()
         };
@@ -1050,7 +1050,6 @@ impl Wallet {
         left_slip2.amount = left_deposit;
 
         let mut left_slip3 = input_slip3.clone();
-        left_slip3.amount = left_unit;
 
         // Create right output slips
         let mut right_slip1 = input_slip1.clone();
@@ -1060,7 +1059,6 @@ impl Wallet {
         right_slip2.amount = right_deposit;
 
         let mut right_slip3 = input_slip3.clone();
-        right_slip3.amount = right_unit;
 
         // Add outputs
         transaction.add_to_slip(left_slip1);
@@ -1152,13 +1150,13 @@ impl Wallet {
         let mut transaction = Transaction::default();
         transaction.transaction_type = TransactionType::Bound;
 
-        // Add all original slips (from every NFT we removed) as inputs
-        for slip in input_slips1
-            .iter()
-            .chain(input_slips2.iter())
-            .chain(input_slips3.iter())
-        {
-            transaction.add_from_slip(slip.clone());
+        // Add all original slips (from every NFT we removed) as inputs,
+        // preserving the [slip1, slip2, slip3] order for each group
+        let group_count = input_slips1.len();
+        for i in 0..group_count {
+            transaction.add_from_slip(input_slips1[i].clone());
+            transaction.add_from_slip(input_slips2[i].clone());
+            transaction.add_from_slip(input_slips3[i].clone());
         }
 
         // Add exactly one set of merged outputs (three slips) representing the combined NFT
