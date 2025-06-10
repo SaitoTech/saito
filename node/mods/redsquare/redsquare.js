@@ -1199,7 +1199,7 @@ class RedSquare extends ModTemplate {
     if (!tweet.tx.optional.parent_id) {
       let insertion_index = 0;
       for (let i = 0; i < this.tweets.length; i++) {
-        if (this.tweets[i].updated_at > tweet.updated_at) {
+        if (this.tweets[i].sort_ts > tweet.sort_ts) {
           insertion_index++;
         } else {
           break;
@@ -2096,6 +2096,58 @@ class RedSquare extends ModTemplate {
             },
             'localhost'
           );
+        }
+
+        //
+        // And update the thread root, which may or may not be the same as the parent...
+        //
+        if (tweet.thread_id) {
+          other_tweet = this.returnTweet(tweet.thread_id);
+          if (other_tweet) {
+            if (!other_tweet.tx.optional) {
+              other_tweet.tx.optional = {};
+            }
+            if (!other_tweet.tx.optional.thread_ts) {
+              other_tweet.tx.optional.thread_ts = 0;
+            }
+            other_tweet.tx.optional.thread_ts = Math.max(
+              tx.timestamp,
+              other_tweet.tx.optional.thread_ts
+            );
+            await this.app.storage.updateTransaction(
+              other_tweet.tx,
+              { timestamp: tx.timestamp },
+              'localhost'
+            );
+          } else {
+            //
+            // ...otherwise, hit up the archive first
+            //
+            await this.app.storage.loadTransactions(
+              { sig: tweet.thread_id, field1: 'RedSquare' },
+              async (txs) => {
+                if (txs?.length) {
+                  let archived_tx = txs[0];
+                  if (!archived_tx.optional) {
+                    archived_tx.optional = {};
+                  }
+                  if (!archived_tx.optional.thread_ts) {
+                    archived_tx.optional.thread_ts = 0;
+                  }
+                  archived_tx.tx.optional.thread_ts = Math.max(
+                    tx.timestamp,
+                    archived_tx.tx.optional.thread_ts
+                  );
+                  await this.app.storage.updateTransaction(
+                    archived_tx,
+                    { timestamp: tx.timestamp },
+                    'localhost'
+                  );
+                }
+              },
+              'localhost'
+            );
+          }
         }
       }
 

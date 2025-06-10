@@ -150,6 +150,15 @@ class Tweet {
 			console.error('ERROR in Tweet.js (2):', err);
 		}
 
+		// For ordering the main feed...
+		this.sort_ts = this.created_at;
+		if (this.retweeted_at) {
+			this.sort_ts = Math.max(this.sort_ts, this.retweeted_at);
+		}
+		if (this.thread_ts) {
+			this.sort_ts = Math.max(this.sort_ts, this.thread_ts);
+		}
+
 		//
 		// update from latest edit (if exists)
 		//
