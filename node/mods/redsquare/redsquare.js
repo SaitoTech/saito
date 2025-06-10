@@ -1152,8 +1152,9 @@ class RedSquare extends ModTemplate {
           t.tx.optional.link_properties = tx.optional.link_properties;
           should_rerender = true;
         }
-        if (tx.updated_at > t.updated_at) {
-          t.updated_at = Math.max(t.updated_at, tx.updated_at);
+        let tx_updated_at = tx.updated_at || tx.timestamp;
+        if (tx_updated_at > t.updated_at) {
+          t.updated_at = Math.max(t.updated_at, tx_updated_at);
           should_rerender = true;
         }
 
@@ -1476,6 +1477,8 @@ class RedSquare extends ModTemplate {
   async receiveLikeTransaction(blk, tx, conf, app) {
     let txmsg = tx.returnMessage();
 
+    console.debug('Receive like transaction');
+
     let liked_tweet = this.returnTweet(txmsg.data.signature);
 
     //
@@ -1540,7 +1543,7 @@ class RedSquare extends ModTemplate {
 
             await this.app.storage.updateTransaction(
               tx,
-              { timestamp: Math.max(received_tx.timestamp, tx.updated_at) },
+              { timestamp: Math.max(received_tx.timestamp, tx.updated_at || tx.timestamp) },
               'localhost'
             );
           }
@@ -1601,12 +1604,16 @@ class RedSquare extends ModTemplate {
       localTx.optional.retweeters = [];
     }
 
-    if (receivedTx.timestamp > localTx.updated_at) {
+    let localTx_updated_at = localTx.updated_at || localTx.timestamp;
+
+    if (receivedTx.timestamp > localTx_updated_at) {
       localTx.optional.num_retweets++;
 
       if (!localTx.optional.retweeters.includes(receivedTx.from[0].publicKey)) {
         localTx.optional.retweeters.unshift(receivedTx.from[0].publicKey);
       }
+
+      localTx.optional.retweeted_at = receivedTx.timestamp;
 
       await this.app.storage.updateTransaction(
         localTx,
@@ -1632,16 +1639,13 @@ class RedSquare extends ModTemplate {
     //
 
     if (retweeted_tweet?.tx) {
+      await this.incrementRetweets(retweeted_tweet.tx, tx);
+
       //
       // set as curated if liked by moderator
       //
       retweeted_tweet.curated = this.curate(retweeted_tweet);
 
-      //
-      // Put the updated_at timestamp in the tx, in case it isn't there (wasn't read from archive)
-      //
-      retweeted_tweet.tx.updated_at = retweeted_tweet.updated_at;
-      await this.incrementRetweets(retweeted_tweet.tx, tx);
       if (this.browser_active && retweeted_tweet.isRendered()) {
         retweeted_tweet.rerenderControls(true);
       }

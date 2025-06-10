@@ -149,9 +149,9 @@ class GameQueue {
    *  Game moves are processed through a queue.
    */
   async startQueue() {
-    console.info(
-      `GT [startQueue] halted: (${this.halted}) , gaming_active (${this.gaming_active})`
-    );
+    //console.info(
+    //  `GT [startQueue] halted: (${this.halted}) , gaming_active (${this.gaming_active})`
+    //);
     console.debug(
       'GT [startQueue] QUEUE: (' +
         this.game.step.game +
@@ -211,10 +211,10 @@ class GameQueue {
    * start executing queue commands again.
    */
   async restartQueue() {
-    console.info('GT [restartQueue]');
+    //console.info('GT [restartQueue]');
 
     if (this.gaming_active && !this.halted) {
-      console.warn('GT: Queue Already active, not restarting...');
+      //console.warn('GT: Queue Already active, not restarting...');
       return;
     }
 
@@ -275,10 +275,10 @@ class GameQueue {
 
       let gqe = game_self.game.queue.length - 1;
 
-      console.info(
-        `GT [runQueue] -- MOVE (${game_self.game.step.game}): `,
-        game_self.game.queue[gqe]
-      );
+      //console.info(
+      //  `GT [runQueue] -- MOVE (${game_self.game.step.game}): `,
+      //  game_self.game.queue[gqe]
+      //);
 
       let gmv = game_self.game.queue[gqe].split('\t');
 
@@ -370,10 +370,16 @@ class GameQueue {
                 if (!game_self.game[gmv[1]][gmv[2]][gmv[3]][gmv[4]]) {
                   game_self.game[gmv[1]][gmv[2]][gmv[3]][gmv[4]] = {};
                 }
+                if (parseInt(gmv[5]) > 0) {
+                  gmv[5] = parseInt(gmv[5]);
+                }
                 game_self.game[gmv[1]][gmv[2]][gmv[3]][gmv[4]] = gmv[5];
               } else {
                 if (!game_self.game[gmv[1]][gmv[2]][gmv[3]]) {
                   game_self.game[gmv[1]][gmv[2]][gmv[3]] = {};
+                }
+                if (parseInt(gmv[4]) > 0) {
+                  gmv[4] = parseInt(gmv[4]);
                 }
                 game_self.game[gmv[1]][gmv[2]][gmv[3]] = gmv[4];
               }
@@ -381,10 +387,16 @@ class GameQueue {
               if (!game_self.game[gmv[1]][gmv[2]]) {
                 game_self.game[gmv[1]][gmv[2]] = {};
               }
+              if (parseInt(gmv[3]) > 0) {
+                gmv[3] = parseInt(gmv[3]);
+              }
               game_self.game[gmv[1]][gmv[2]] = gmv[3];
             }
           } else {
             if (gmv[2]) {
+              if (parseInt(gmv[2]) > 0) {
+                gmv[3] = parseInt(gmv[2]);
+              }
               game_self.game[gmv[1]] = gmv[2];
             }
           }
@@ -1637,7 +1649,9 @@ class GameQueue {
               hashes.push(sr[2]);
             } else {
               console.warn(
-                `GT [SIMULTANEOUS_PICK] SIG DOES NOT VERIFY  ${sr[2]} / ${sr[3]} / ${game_self.game.players[sr[1] - 1]}`
+                `GT [SIMULTANEOUS_PICK] SIG DOES NOT VERIFY  ${sr[2]} / ${sr[3]} / ${
+                  game_self.game.players[sr[1] - 1]
+                }`
               );
               return 0;
             }
@@ -1904,7 +1918,7 @@ class GameQueue {
 		      instruction is almost always a shuffle, but we can restore the deck before/after
 		      the (added deck cards) add "push" to put new cards on top of deck,
 		      otherwise defaults to bottom of deck
-	        */
+    */
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'DECKRESTORE') {
         let deckidx = 1;
@@ -2277,7 +2291,7 @@ class GameQueue {
       if (gmv[0] === 'OBSERVER_CHECKPOINT') {
         game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
         if (game_self.game.player == 0) {
-          console.info('GT: Halt game for observer checkpoint');
+          //console.info('GT: Halt game for observer checkpoint');
           game_self.halted = 1;
           game_self.saveGame(game_self.game.id);
           game_self.observerControls.updateStatus('Pause for Observer Checkpoint');
@@ -2352,8 +2366,18 @@ class GameQueue {
           return 0;
         }
         if (game_self.game.deck[deckidx - 1].xor == '') {
-          game_self.game.deck[deckidx - 1].xor = game_self.app.crypto.hash(Math.random());
+          let r = Math.random();
+          console.log('setting random to: ' + r);
+          game_self.game.deck[deckidx - 1].xor = game_self.app.crypto.hash(`${r}`);
         }
+
+        console.log('.');
+        console.log(
+          'DECKXOR set xor @ ' +
+            (deckidx - 1) +
+            ' encoding with: ' +
+            game_self.game.deck[deckidx - 1].xor
+        );
 
         for (let i = 0; i < game_self.game.deck[deckidx - 1].crypt.length; i++) {
           game_self.game.deck[deckidx - 1].crypt[i] = game_self.app.crypto.encodeXOR(
@@ -2524,11 +2548,11 @@ class GameQueue {
 
         game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
 
-        console.info('GT: PROCESSING REQUEST_AVAILABLE_CRYPTOS');
+        //console.info('GT: PROCESSING REQUEST_AVAILABLE_CRYPTOS');
 
         if (game_self.game.player == playerkey) {
           let ac = await game_self.app.wallet.returnAvailableCryptosAssociativeArray();
-          console.info('GT: CRYPTO INFORMATION RETRIEVED');
+          //console.info('GT: CRYPTO INFORMATION RETRIEVED');
 
           game_self.addMove(`AVAILABLE_CRYPTOS\t${playerkey}\t${JSON.stringify(ac)}`);
 
@@ -2584,7 +2608,7 @@ class GameQueue {
 
         let my_specific_game_id = game_self.game.id;
         game_self.saveGame(game_self.game.id);
-        console.info('GT: Halt game to send crypto');
+        //console.info('GT: Halt game to send crypto');
         game_self.halted = 1;
 
         let sendPaymentWrapper = async () => {
@@ -2665,7 +2689,7 @@ class GameQueue {
         let my_specific_game_id = game_self.game.id;
         game_self.saveGame(game_self.game.id);
 
-        console.info('GT: Halt game to receive crypto');
+        //console.info('GT: Halt game to receive crypto');
         game_self.halted = 1;
 
         await game_self.app.wallet.receivePayment(

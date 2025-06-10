@@ -790,6 +790,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         "failed deserializing msg from peer : {:?} with buffer size : {:?}. disconnecting peer",
                         peer_index, buffer_len
                     );
+                    error!("error : {:?}", message.err().unwrap());
                     self.network
                         .io_interface
                         .disconnect_from_peer(peer_index)
