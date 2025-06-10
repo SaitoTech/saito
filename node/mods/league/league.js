@@ -103,7 +103,6 @@ class League extends ModTemplate {
 		}
 
 		if (type == 'redsquare-add-tweet') {
-/*****
 			let league_self = this;
 			return {
 				addTweet: (tweet, tweet_list) => {
@@ -113,14 +112,14 @@ class League extends ModTemplate {
 				      if (leaderboard_tweet == null) {
 					leaderboard_tweet = tweet_list[i];
 				      } else {
-alert("multiple Leaderboard Updates... do something!");
+					tweet_list.splice(i, 1);
+					leaderboard_tweet.children.push(tweet);
 				      }
 				    }
 				  }
 				  return 1;
 				}
 			};
-***/
 		}
 
 		if (type == 'leagues-for-arcade') {

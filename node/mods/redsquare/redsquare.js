@@ -1230,8 +1230,8 @@ class RedSquare extends ModTemplate {
       // new tweet added, so we gives modules freedom-to-rearrange
       //
       for (let xmod of this.app.modules.respondTo('redsquare-add-tweet')) {
-        xmod.respondTo('saito-moderation-core').addTweet(tweet, this.tweets);
-      }
+        xmod.respondTo('redsquare-add-tweet').addTweet(tweet, this.tweets);
+      };
 
       return 1;
 
