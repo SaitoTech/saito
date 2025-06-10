@@ -37,13 +37,19 @@ module.exports = (app, mod, profile) => {
         </div>
   
         <div class="saito-profile-header">
-        	<div class="saito-profile-username">${profile?.name || app.keychain.returnIdentifierByPublicKey(publicKey) || 'Anonymous Account'}</div>  
+        	<div class="saito-profile-username">${
+            profile?.name ||
+            app.keychain.returnIdentifierByPublicKey(publicKey) ||
+            'Anonymous Account'
+          }</div>  
       		<div class="saito-profile-key ${profile?.mask_key ? 'hidden' : ''}">${publicKey}</div>  
         </div>  
       </div>
       
       <div class="saito-profile-description ${can_edit ? 'can-edit' : ''}">
-      	<div id="profile-description-${publicKey}" class="profile-description-${publicKey}" data-id="${publicKey}">${profile?.description || ''}</div>
+      	<div id="profile-description-${publicKey}" class="profile-description-${publicKey}" data-id="${publicKey}">${
+    profile?.description || ''
+  }</div>
       	<div class="saito-description-edit"><i class="fas fa-pen"></i></div>
 	    </div>`;
 
