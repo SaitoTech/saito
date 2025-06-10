@@ -1145,6 +1145,19 @@ textarea {
   color: var(--saito-white);
 }
 
+.split-bar >  .resize-icon.horizontal{
+  right: 0rem;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  background-color: var(--border-color-icons-resize);
+  width: 1.2rem;
+  height: 5rem;
+  z-index: 2;
+  cursor: ew-resize;
+  border-radius: 0.25rem;
+}
+
 
 @keyframes spin {
   to { -webkit-transform: rotate(360deg); }

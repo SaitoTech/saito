@@ -397,6 +397,7 @@ class Nft {
     };
   }
 
+
   showSplitOverlay(nftItem, rowElement) {
     const totalAmount = parseInt(nftItem.slip1.amount, 10);
     const overlay = document.createElement('div');
@@ -407,10 +408,11 @@ class Nft {
       left: '0',
       width: '100%',
       height: '100%',
-      backgroundColor: 'rgba(0,0,0,0.8)',
+      backgroundColor: 'rgba(0,0,0,0.85)',
       display: 'flex',
       zIndex: '10'
     });
+
     const leftDiv = document.createElement('div');
     leftDiv.classList.add('split-left');
     Object.assign(leftDiv.style, {
@@ -420,13 +422,26 @@ class Nft {
       overflow: 'hidden',
       fontSize: '2.2rem'
     });
+
     const bar = document.createElement('div');
     bar.classList.add('split-bar');
     Object.assign(bar.style, {
-      width: '6px',
+      width: '2px',
       backgroundColor: 'silver',
-      cursor: 'col-resize'
+      cursor: 'col-resize',
+      position: 'relative'
     });
+    bar.innerHTML = `<div class="resize-icon horizontal"></div>`;
+
+    const dragIcon = bar.querySelector('.resize-icon.horizontal');
+    Object.assign(dragIcon.style, {
+      position: 'absolute',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%,-50%)',
+      pointerEvents: 'none'
+    });
+
     const rightDiv = document.createElement('div');
     rightDiv.classList.add('split-right');
     Object.assign(rightDiv.style, {
@@ -436,34 +451,49 @@ class Nft {
       overflow: 'hidden',
       fontSize: '2.2rem'
     });
-    overlay.appendChild(leftDiv);
-    overlay.appendChild(bar);
-    overlay.appendChild(rightDiv);
+
+    overlay.append(leftDiv, bar, rightDiv);
     rowElement.appendChild(overlay);
-    const rowRect = rowElement.getBoundingClientRect();
+
+    // measure dimensions
+    const rowRect  = rowElement.getBoundingClientRect();
     const rowWidth = rowRect.width;
-    const barWidth = 6;
+    // make sure this matches your CSS width
+    const barWidth = parseInt(getComputedStyle(bar).width, 10);
+
+    // initial split in half
     const halfWidth = (rowWidth - barWidth) / 2;
-    leftDiv.style.width  = halfWidth + 'px';
-    rightDiv.style.width = (rowWidth - barWidth - halfWidth) + 'px';
+    leftDiv.style.width  = `${halfWidth}px`;
+    rightDiv.style.width = `${rowWidth - barWidth - halfWidth}px`;
+
     let leftCount  = Math.round((halfWidth / rowWidth) * totalAmount);
     let rightCount = totalAmount - leftCount;
-    leftDiv.innerText  = leftCount;
+    leftDiv .innerText = leftCount;
     rightDiv.innerText = rightCount;
+
+    // compute draggable bounds so that neither side can round to zero
+    const minLeftW = (0.5 / totalAmount) * rowWidth;
+    const maxLeftW = rowWidth - barWidth - minLeftW;
+
     const dragSplit = e => {
       const rect = rowElement.getBoundingClientRect();
       const x = e.clientX - rect.left;
+      // raw new left width
       let newLeftW = x - barWidth / 2;
-      if (newLeftW < 0) newLeftW = 0;
-      if (newLeftW > rect.width - barWidth) newLeftW = rect.width - barWidth;
-      leftDiv.style.width = newLeftW + 'px';
+
+      // clamp so leftCount >= 1 and rightCount >= 1
+      newLeftW = Math.max(minLeftW, Math.min(newLeftW, maxLeftW));
+
+      leftDiv.style.width  = `${newLeftW}px`;
       const newRightW = rect.width - barWidth - newLeftW;
-      rightDiv.style.width = newRightW + 'px';
+      rightDiv.style.width = `${newRightW}px`;
+
       leftCount  = Math.round((newLeftW / rect.width) * totalAmount);
       rightCount = totalAmount - leftCount;
-      leftDiv.innerText  = leftCount;
+      leftDiv .innerText = leftCount;
       rightDiv.innerText = rightCount;
     };
+
     bar.addEventListener('mousedown', () => {
       document.addEventListener('mousemove', dragSplit);
       document.addEventListener(
@@ -473,6 +503,8 @@ class Nft {
       );
     });
   }
+
+
 
   async fetchNFT() {
     const data = this.app.options.wallet.nfts || [];
