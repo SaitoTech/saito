@@ -168,8 +168,8 @@ class GameGame {
       return;
     }
 
-//    console.info(`GT: SAVING GAME ID: ${game_id}`);
-//    console.debug('GT [saveGame] queue: ' + JSON.parse(JSON.stringify(this.game.queue)));
+    //    console.info(`GT: SAVING GAME ID: ${game_id}`);
+    //    console.debug('GT [saveGame] queue: ' + JSON.parse(JSON.stringify(this.game.queue)));
 
     // make sure options file has structure to save your game
     if (!this.app.options) {
@@ -219,9 +219,9 @@ class GameGame {
 
             this.app.options.games[i] = JSON.parse(JSON.stringify(this.game)); //create new object
 
-//            console.debug(
-//              'GT [saveGame] queue as saved: ' + JSON.parse(JSON.stringify(this.game.queue))
-//            );
+            //            console.debug(
+            //              'GT [saveGame] queue as saved: ' + JSON.parse(JSON.stringify(this.game.queue))
+            //            );
 
             this.app.storage.saveOptions();
             return;

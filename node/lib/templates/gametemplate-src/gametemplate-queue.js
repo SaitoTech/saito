@@ -370,25 +370,33 @@ class GameQueue {
                 if (!game_self.game[gmv[1]][gmv[2]][gmv[3]][gmv[4]]) {
                   game_self.game[gmv[1]][gmv[2]][gmv[3]][gmv[4]] = {};
                 }
-	        if (parseInt(gmv[5]) > 0) { gmv[5] = parseInt(gmv[5]); }
+                if (parseInt(gmv[5]) > 0) {
+                  gmv[5] = parseInt(gmv[5]);
+                }
                 game_self.game[gmv[1]][gmv[2]][gmv[3]][gmv[4]] = gmv[5];
               } else {
                 if (!game_self.game[gmv[1]][gmv[2]][gmv[3]]) {
                   game_self.game[gmv[1]][gmv[2]][gmv[3]] = {};
                 }
-	        if (parseInt(gmv[4]) > 0) { gmv[4] = parseInt(gmv[4]); }
+                if (parseInt(gmv[4]) > 0) {
+                  gmv[4] = parseInt(gmv[4]);
+                }
                 game_self.game[gmv[1]][gmv[2]][gmv[3]] = gmv[4];
               }
             } else {
               if (!game_self.game[gmv[1]][gmv[2]]) {
                 game_self.game[gmv[1]][gmv[2]] = {};
               }
-	      if (parseInt(gmv[3]) > 0) { gmv[3] = parseInt(gmv[3]); }
+              if (parseInt(gmv[3]) > 0) {
+                gmv[3] = parseInt(gmv[3]);
+              }
               game_self.game[gmv[1]][gmv[2]] = gmv[3];
             }
           } else {
             if (gmv[2]) {
-	      if (parseInt(gmv[2]) > 0) { gmv[3] = parseInt(gmv[2]); }
+              if (parseInt(gmv[2]) > 0) {
+                gmv[3] = parseInt(gmv[2]);
+              }
               game_self.game[gmv[1]] = gmv[2];
             }
           }
@@ -1641,7 +1649,9 @@ class GameQueue {
               hashes.push(sr[2]);
             } else {
               console.warn(
-                `GT [SIMULTANEOUS_PICK] SIG DOES NOT VERIFY  ${sr[2]} / ${sr[3]} / ${game_self.game.players[sr[1] - 1]}`
+                `GT [SIMULTANEOUS_PICK] SIG DOES NOT VERIFY  ${sr[2]} / ${sr[3]} / ${
+                  game_self.game.players[sr[1] - 1]
+                }`
               );
               return 0;
             }
@@ -2341,7 +2351,6 @@ class GameQueue {
 
     this.commands.push(async (game_self, gmv) => {
       if (gmv[0] === 'DECKXOR') {
-
         let deckidx = parseInt(gmv[1]);
         let playerid = parseInt(gmv[2]);
 
@@ -2357,14 +2366,18 @@ class GameQueue {
           return 0;
         }
         if (game_self.game.deck[deckidx - 1].xor == '') {
-	  let r = Math.random();
-console.log("setting random to: " + r);
+          let r = Math.random();
+          console.log('setting random to: ' + r);
           game_self.game.deck[deckidx - 1].xor = game_self.app.crypto.hash(`${r}`);
         }
 
-console.log(".");
-console.log("DECKXOR set xor @ " + (deckidx-1) + " encoding with: " + game_self.game.deck[deckidx-1].xor);
-
+        console.log('.');
+        console.log(
+          'DECKXOR set xor @ ' +
+            (deckidx - 1) +
+            ' encoding with: ' +
+            game_self.game.deck[deckidx - 1].xor
+        );
 
         for (let i = 0; i < game_self.game.deck[deckidx - 1].crypt.length; i++) {
           game_self.game.deck[deckidx - 1].crypt[i] = game_self.app.crypto.encodeXOR(
