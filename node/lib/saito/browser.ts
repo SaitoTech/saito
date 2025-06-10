@@ -2358,9 +2358,9 @@ class Browser {
 
   updateSoftwareVersion(receivedBuildNumber: number) {
     console.info(
-      `Received build number: ${Number(
-        receivedBuildNumber
-      )}, Current build number: ${this.app.build_number}`
+      `Received build number: ${Number(receivedBuildNumber)}, Current build number: ${
+        this.app.build_number
+      }`
     );
     if (receivedBuildNumber > this.app.build_number) {
       if (confirm(`Saito Upgrade: Upgrading to new version ${receivedBuildNumber}`)) {

@@ -74,7 +74,9 @@ class OnePlayerGameTemplate extends GameTemplate {
           <div class="saito-table-row">
             <div class="saito-table-label">Games Played:</div>
             <div>${this.game.state.session.round + adjustment} </div>
-            <div>${this.game.state.lifetime.round + this.game.state.session.round + adjustment} </div>
+            <div>${
+              this.game.state.lifetime.round + this.game.state.session.round + adjustment
+            } </div>
           </div>
           <div class="saito-table-row">
             <div class="saito-table-label">Games Won:</div>
