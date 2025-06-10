@@ -1111,6 +1111,10 @@ textarea {
 
 #create-nft-amount {
   cursor: pointer;
+  text-transform: lowercase;
+  border-bottom: 2px dashed;
+  width: 2rem;
+  margin: auto;
 }
 
 .page-navigation.page2 {

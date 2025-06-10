@@ -17,7 +17,6 @@ let html = `
             <div class="dropdown-cont">
             <select class="create-nft-type-dropdown" id="create-nft-type-dropdown">
                <option value="image">Image NFT</option>
-               <option value="file">File NFT</option>
                <option value="text">Text NFT</option>
             </select>
 
