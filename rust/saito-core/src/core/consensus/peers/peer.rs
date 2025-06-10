@@ -9,7 +9,7 @@ use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use crate::core::msg::message::Message;
 use crate::core::process::version::Version;
 use crate::core::util;
-use crate::core::util::configuration::Configuration;
+use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, sign, verify};
 use log::{debug, info, trace, warn};
 use serde::{Serialize, Serializer};
@@ -58,19 +58,20 @@ pub struct PeerStats {
     pub connected_at: Timestamp,
 }
 
-fn vec_of_arrays_as_hex<S>(vec: &Vec<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
+fn vec_of_arrays_as_base58<S>(vec: &Vec<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    let hex_vec: Vec<String> = vec.iter().map(|arr| hex::encode(arr)).collect();
+    let hex_vec: Vec<String> = vec.iter().map(|arr| arr.to_base58()).collect();
     serializer.collect_seq(hex_vec)
 }
-fn option_as_hex<S>(bytes: &Option<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
+fn option_as_base58<S>(bytes: &Option<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    serializer.serialize_str(&hex::encode(bytes.unwrap_or([0; 33])))
+    serializer.serialize_str(&bytes.unwrap_or([0; 33]).to_base58())
 }
+
 // TODO : since we are keeping the peers against a peer index, once a peer is reconnected, we will lose the stats from the previous connection.
 
 #[serde_with::serde_as]
@@ -82,7 +83,7 @@ pub struct Peer {
     // if this is None(), it means an incoming connection. else a connection which we started from the data from config file
     pub static_peer_config: Option<util::configuration::PeerConfig>,
     pub challenge_for_peer: Option<SaitoHash>,
-    #[serde(serialize_with = "vec_of_arrays_as_hex")]
+    #[serde(serialize_with = "vec_of_arrays_as_base58")]
     pub key_list: Vec<SaitoPublicKey>,
     pub services: Vec<PeerService>,
     pub last_msg_at: Timestamp,
@@ -95,11 +96,12 @@ pub struct Peer {
     pub handshake_limiter: RateLimiter,
     pub message_limiter: RateLimiter,
     pub invalid_block_limiter: RateLimiter,
-    #[serde(serialize_with = "option_as_hex")]
+    #[serde(serialize_with = "option_as_base58")]
     pub public_key: Option<SaitoPublicKey>,
     pub peer_type: PeerType,
     pub ip_address: Option<String>,
     pub stats: PeerStats,
+    pub endpoint: Endpoint,
 }
 
 impl Peer {
@@ -124,6 +126,7 @@ impl Peer {
             peer_type: PeerType::Default,
             ip_address: None,
             stats: PeerStats::default(),
+            endpoint: Endpoint::default(),
         }
     }
 
@@ -222,9 +225,15 @@ impl Peer {
         );
         let block_fetch_url;
         let is_lite;
+        let endpoint;
         {
             let configs = configs_lock.read().await;
 
+            if let Some(config) = configs.get_server_configs() {
+                endpoint = config.endpoint.clone();
+            } else {
+                endpoint = Endpoint::default();
+            }
             is_lite = configs.is_spv_mode();
             if is_lite {
                 block_fetch_url = "".to_string();
@@ -243,6 +252,7 @@ impl Peer {
             services: io_handler.get_my_services(),
             wallet_version: wallet.wallet_version,
             core_version: wallet.core_version,
+            endpoint: endpoint.clone(),
         };
         debug!(
             "handshake challenge : {:?} generated for peer : {:?}",
@@ -310,9 +320,14 @@ impl Peer {
 
         let block_fetch_url;
         let is_lite;
+        let endpoint;
         {
             let configs = configs_lock.read().await;
-
+            if let Some(config) = configs.get_server_configs() {
+                endpoint = config.endpoint.clone();
+            } else {
+                endpoint = Endpoint::default();
+            }
             is_lite = configs.is_spv_mode();
             if is_lite {
                 block_fetch_url = "".to_string();
@@ -351,6 +366,7 @@ impl Peer {
         self.core_version = response.core_version;
         self.peer_status = PeerStatus::Connected;
         self.public_key = Some(response.public_key);
+        self.endpoint = response.endpoint.clone();
 
         debug!(
             "my version : {:?} peer version : {:?}",
@@ -377,6 +393,7 @@ impl Peer {
                 services: io_handler.get_my_services(),
                 wallet_version: wallet.wallet_version,
                 core_version: wallet.core_version,
+                endpoint: endpoint.clone(),
             };
             io_handler
                 .send_message(

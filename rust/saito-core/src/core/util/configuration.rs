@@ -2,6 +2,8 @@ use std::fmt::{Debug, Display};
 
 use crate::core::defs::Currency;
 use crate::core::defs::{BlockId, Timestamp};
+use log::error;
+use rayon::vec;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -23,12 +25,66 @@ impl Display for PeerConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Default)]
 pub struct Endpoint {
     pub host: String,
     pub port: u16,
     pub protocol: String,
 }
+
+impl crate::core::util::serialize::Serialize<Self> for Endpoint {
+    fn serialize(&self) -> Vec<u8> {
+        vec![
+            (self.host.len() as u16).to_be_bytes().to_vec(),
+            self.port.to_be_bytes().to_vec(),
+            (self.protocol.len() as u16).to_be_bytes().to_vec(),
+            self.host.as_bytes().to_vec(),
+            self.protocol.as_bytes().to_vec(),
+        ]
+        .concat()
+    }
+
+    fn deserialize(buffer: &Vec<u8>) -> Result<Self, std::io::Error> {
+        let header_len = 6; // 2 bytes for host length, 2 bytes for port, 2 bytes for protocol length
+        if buffer.len() < header_len {
+            error!("Buffer too short for Endpoint header: {}", buffer.len());
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Buffer too short for Endpoint header",
+            ));
+        }
+
+        let host_len = u16::from_be_bytes([buffer[0], buffer[1]]) as usize;
+        let port = u16::from_be_bytes([buffer[2], buffer[3]]);
+        let protocol_len = u16::from_be_bytes([buffer[4], buffer[5]]) as usize;
+
+        if buffer.len() < header_len + host_len + protocol_len {
+            error!(
+                "Buffer too short for host or protocol: {}. expected size : {}",
+                buffer.len(),
+                header_len + host_len + protocol_len
+            );
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Buffer too short for host or protocol",
+            ));
+        }
+
+        let host = String::from_utf8(buffer[header_len..header_len + host_len].to_vec())
+            .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid UTF-8"))?;
+        let protocol = String::from_utf8(
+            buffer[header_len + host_len..header_len + host_len + protocol_len].to_vec(),
+        )
+        .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid UTF-8"))?;
+
+        Ok(Endpoint {
+            host,
+            port,
+            protocol,
+        })
+    }
+}
+
 fn get_default_genesis_period() -> Timestamp {
     #[cfg(test)]
     return 10;
@@ -159,5 +215,27 @@ pub trait Configuration: Debug {
 impl ConsensusConfig {
     pub fn get_ring_buffer_length(&self) -> BlockId {
         self.genesis_period * 2
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::util::serialize::Serialize;
+
+    #[test]
+    fn test_endpoint_serialization() {
+        let endpoint = Endpoint {
+            host: "localhost".to_string(),
+            port: 8080,
+            protocol: "http".to_string(),
+        };
+        let serialized = endpoint.serialize();
+        let deserialized =
+            <Endpoint as crate::core::util::serialize::Serialize<_>>::deserialize(&serialized)
+                .unwrap();
+        assert_eq!(endpoint.host, deserialized.host);
+        assert_eq!(endpoint.port, deserialized.port);
+        assert_eq!(endpoint.protocol, deserialized.protocol);
     }
 }
