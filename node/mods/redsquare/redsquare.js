@@ -1226,13 +1226,12 @@ class RedSquare extends ModTemplate {
         );
       }
 
-
       //
-      // new tweet added, so we gives modules freedom-to-rearrange 
+      // new tweet added, so we gives modules freedom-to-rearrange
       //
       for (let xmod of this.app.modules.respondTo('redsquare-add-tweet')) {
         xmod.respondTo('saito-moderation-core').addTweet(tweet, this.tweets);
-      };
+      }
 
       return 1;
 
@@ -1263,7 +1262,7 @@ class RedSquare extends ModTemplate {
           //
           for (let xmod of this.app.modules.respondTo('redsquare-add-comment')) {
             xmod.respondTo('saito-moderation-core').addTweet(tweet, this.tweets);
-          };
+          }
 
           return 0;
         }
@@ -1282,9 +1281,6 @@ class RedSquare extends ModTemplate {
 
       return 0;
     }
-
-
-
   }
 
   //
@@ -2728,15 +2724,7 @@ class RedSquare extends ModTemplate {
     // stored on their keylist.
     //
     if (this.app.BROWSER) {
-      if (tweet.num_replies > 0) {
-        return 0;
-      }
-
-      if (tweet.num_likes > 10) {
-        return 0;
-      }
-
-      return -1;
+      return 0;
 
       //
       // CURATION (servers)
@@ -2756,11 +2744,11 @@ class RedSquare extends ModTemplate {
         return 1;
       }
 
-      if (!is_anonymous_user && tweet.num_likes > 1) {
+      if (!is_anonymous_user && tweet.num_likes > 5) {
         return 1;
       }
 
-      if (tweet.num_replies > 0 && tweet.num_likes > 1) {
+      if (tweet.num_replies > 0 && tweet.num_likes > 5) {
         return 1;
       }
 
