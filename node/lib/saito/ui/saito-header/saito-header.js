@@ -247,6 +247,7 @@ class SaitoHeader extends UIModTemplate {
     if (this.mod?.use_floating_plus) {
       if (!document.getElementById('saito-floating-menu')) {
         this.app.browser.addElementToDom(FloatingMenu());
+        this.app.browser.makeDraggable('saito-floating-menu');
         this.addFloatingMenu();
       }
     }

@@ -2857,7 +2857,7 @@ deck['ap17'] = {
           paths_self.displayCustomOverlay({
                 text : "Italy joins the Allied Powers" ,
                 title : "Italy joins the War!",
-                img : "/paths/img/backgrounds/entry/italy-enters-the-war.png",
+                img : "/paths/img/backgrounds/entry/italy-enters-the-war.jpg",
                 msg : "Italian units added to board...",
                 styles : [{ key : "backgroundPosition" , val : "bottom" }],
           });
@@ -3209,6 +3209,7 @@ console.log("salonika 1");
 
 	  let p = paths_self.returnPlayerOfFaction("allies");
           let just_stop = 0;
+          let units_moved = 0;
 
 	  if (paths_self.game.player == p) {
 
@@ -3249,17 +3250,13 @@ console.log("salonika 4");
     	    let continue_fnct = () => {
 console.log("salonika 5");
   	      if (just_stop == 1) { return 0; }
+  	      if (units_moved >= max_units_movable) { return 0; }
 console.log("salonika 6");
 	      let count = paths_self.countUnitsWithFilter(filter_fnct);
 console.log("salonika 7 - " + count);
 	      if (count == 0) { return 0; }
 console.log("salonika 8");
-	      for (let key in paths_self.game.state.rp[faction]) {
-console.log("salonika 9");
-	        if (parseInt(paths_self.game.state.rp[faction][key]) > 0) { return 1; }
-	      }
-console.log("salonika 10");
-	      return 0;
+	      return 1;
 	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {
@@ -12262,7 +12259,16 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  let faction = mv[1]; // attacker / defender
 
 	  let attacker_strength = 0;          
-	  let defender_strength = 0;          
+	  let defender_strength = 0;
+	  let attacker_table = "corps";
+	  let defender_table = "corps";
+
+
+          for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
+            let unit = this.game.spaces[this.game.state.combat.key].units[i];
+            if (unit.key.indexOf("army") > 0) { defender_table = "army"; }
+          }
+
 
 	  //
 	  // the defender assigns hits first in this case, so any corps that are
@@ -12298,8 +12304,15 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
                 attacker_strength += u.rcombat;
 	      }
 	    }
+	    if (u.key.indexOf("army") > -1) {
+	      attacker_table = "army";
+	    }
+
+
           }
 
+          this.game.state.combat.attacker_table = attacker_table;
+          this.game.state.combat.defender_table = defender_table;
           this.game.state.combat.attacker_strength = attacker_strength;
           this.game.state.combat.defender_strength = defender_strength;
           this.game.state.combat.attacker_cp = attacker_strength;
@@ -12412,14 +12425,16 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  let defender_column_shift = tshift.defense;
 
 	  if (this.game.state.combat.unoccupied_fort == 1) {
-	    attacker_table = "corps";
+	    for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
+	      if (unit.key.indexOf("army") > 0) { defender_table = "army"; }
+	    }
 	    if (this.game.spaces[this.game.state.combat.key].control == "central") { attacker_power = "central"; defender_power = "allies"; } 
 	  } else {
 	    for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
 	      let unit = this.game.spaces[this.game.state.combat.key].units[i];
 	      if (this.returnPowerOfUnit(unit) == "allies") { attacker_power = "central"; defender_power = "allies"; } 
 	      if (this.game.state.events.yanks_and_tanks == 1 && unit.ckey == "US") { defender_drm += 2; }
-	      if (unit.key.indexOf("army") > 0) { attacker_table = "army"; }
+	      if (unit.key.indexOf("army") > 0) { defender_table = "army"; }
 	    }
 	  }
 
@@ -12442,7 +12457,7 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 
 	  for (let i = 0; i < this.game.state.combat.attacker.length; i++) {
 	    let unit = this.game.spaces[this.game.state.combat.attacker[i].unit_sourcekey].units[this.game.state.combat.attacker[i].unit_idx];
-	    if (unit.key.indexOf("army") > 0) { defender_table = "army"; }	    
+	    if (unit.key.indexOf("army") > 0) { attacker_table = "army"; }	    
 	    if (this.game.state.events.yanks_and_tanks == 1 && unit.ckey == "US") { attacker_drm += 2; }
 	    unit.attacked = 1;
 	  }
@@ -12487,14 +12502,12 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  if (this.game.state.combat.flank_attack == "attacker") {
 	    this.game.queue.push(`combat_assign_hits\tattacker`);
 	    this.game.queue.push(`combat_recalculate_loss_factor\tattacker`);
-	    this.game.state.combat.attacker_loss_factor = "?";
 	    this.game.state.combat.defender_cp = "?";
 	    this.game.queue.push(`combat_assign_hits\tdefender`);
 	  }
 	  if (this.game.state.combat.flank_attack == "defender") {
 	    this.game.queue.push(`combat_assign_hits\tdefender`);
 	    this.game.queue.push(`combat_recalculate_loss_factor\tdefender`);
-	    this.game.state.combat.defender_loss_factor = "?";
 	    this.game.state.combat.attacker_cp = "?";
 	    this.game.queue.push(`combat_assign_hits\tattacker`);
 	  }
@@ -12863,6 +12876,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  // disable combat events that should disappear
 	  //
 	  this.game.state.events.von_hutier = 0;
+	  this.game.state.events.great_retreat_used = 0;
 
 	  if (!this.game.state.combat) { return 1; }
 

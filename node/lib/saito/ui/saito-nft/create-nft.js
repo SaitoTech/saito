@@ -60,7 +60,9 @@ class Nft {
 
   createObject() {
     let obj = {};
-    obj.id = `${this.mod.publicKey}${this.nft.bid}${this.nft.tid}${this.nft.sid}${this.nft.amount}${1}`;
+    obj.id = `${this.mod.publicKey}${this.nft.bid}${this.nft.tid}${this.nft.sid}${
+      this.nft.amount
+    }${1}`;
     if (this.nft.image) {
       obj.image = this.nft.image;
     }
@@ -261,7 +263,9 @@ class Nft {
         let amount = this.app.wallet.convertNolanToSaito(BigInt(utxo[4]));
 
         html += `<div class="utxo-div">
-                            <input type="radio" value="${i + 1}" class="utxo-selection-button" name="utxo-input"> 
+                            <input type="radio" value="${
+                              i + 1
+                            }" class="utxo-selection-button" name="utxo-input"> 
                             <span>${amount} SAITO</span>
                         </div>`;
       }
