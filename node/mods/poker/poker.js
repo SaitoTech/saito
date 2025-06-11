@@ -23,14 +23,14 @@ class Poker extends GameTableTemplate {
 
 		this.app = app;
 		this.name = 'Poker';
-		this.slug = "poker";
+		this.slug = 'poker';
 		this.title = 'Saito Poker';
 		this.description = `Texas Hold\'em Poker for the Saito Arcade. With five cards on the table and two in your hand, can you bet and bluff your way to victory? 
 				<br> Play with up to five other players for fun or wager integrated web3 cryptocurrencies through your handy Saito Wallets`;
 		this.categories = 'Games Cardgame Casino';
 		this.card_img_dir = '/saito/img/arcade/cards';
 		this.card_img = 'new_red';
-		this.felt = "green";
+		this.felt = 'green';
 		this.icon = 'fa-solid fa-diamond';
 
 		this.minPlayers = 2;
@@ -94,7 +94,7 @@ class Poker extends GameTableTemplate {
 		//console.log("score2: " + JSON.stringify(score2));
 		//console.log("winner: " + JSON.stringify(winner));
 
-		super.initializeGame(); 
+		super.initializeGame();
 
 		//
 		// CHIPS or CRYPTO ?
@@ -102,9 +102,8 @@ class Poker extends GameTableTemplate {
 		this.settleNow = false;
 		this.settle_every_hand = false;
 
-
-		if (this.game.player == 0){
-			if (!this.game.pool[0]){
+		if (this.game.player == 0) {
+			if (!this.game.pool[0]) {
 				this.addPool();
 			}
 		}
@@ -157,13 +156,13 @@ class Poker extends GameTableTemplate {
 				}
 
 				if (okey == 'eliminated') {
-					let str = "";
-					for (let key in oval){
-						str += this.app.keychain.returnUsername(key) + ", ";
+					let str = '';
+					for (let key in oval) {
+						str += this.app.keychain.returnUsername(key) + ', ';
 					}
 					oval = str;
 				}
-				
+
 				if (output_me == 1) {
 					ngoa[okey] = oval;
 				}
@@ -206,27 +205,25 @@ class Poker extends GameTableTemplate {
 			}
 		});
 
-
 		this.menu.addSubMenuOption('game-game', {
 			text: 'Settings',
 			id: 'game-settings',
 			class: 'game-settings',
-			callback: function(app, game_mod){
+			callback: function (app, game_mod) {
 				game_mod.loadSettings();
 			}
 		});
 
-
 		//default by device
-		this.theme = (this.app.browser.isMobileBrowser()) ? "flat" : "threed";
-		if (this.loadGamePreference('poker-theme')){
+		this.theme = this.app.browser.isMobileBrowser() ? 'flat' : 'threed';
+		if (this.loadGamePreference('poker-theme')) {
 			this.theme = this.loadGamePreference('poker-theme');
 		}
-		if (this.loadGamePreference("poker-cards")){
-			this.card_img = this.loadGamePreference("poker-cards");
+		if (this.loadGamePreference('poker-cards')) {
+			this.card_img = this.loadGamePreference('poker-cards');
 		}
-		if (this.loadGamePreference("poker-felt")){
-			this.felt = this.loadGamePreference("poker-felt");
+		if (this.loadGamePreference('poker-felt')) {
+			this.felt = this.loadGamePreference('poker-felt');
 		}
 
 		this.cardfan.container = '.mystuff';
@@ -255,7 +252,6 @@ class Poker extends GameTableTemplate {
 			document.querySelector('.game-scoreboard').style.display = 'none';
 		}
 	}
-
 
 	async receiveStopGameTransaction(resigning_player, txmsg) {
 		console.log('Poker: receiveStopGameTransaction', txmsg, resigning_player);
@@ -292,7 +288,7 @@ class Poker extends GameTableTemplate {
 
 		this.updateLog(this.game.state.player_names[loser - 1] + ' left the table');
 
-		if (!this.game.state.passed[loser - 1]){
+		if (!this.game.state.passed[loser - 1]) {
 			this.game.stats[resigning_player].folds++;
 			this.game.state.passed[loser - 1] = 1;
 			this.game.state.last_fold = loser;
@@ -308,7 +304,7 @@ class Poker extends GameTableTemplate {
 
 	endTurn(nextTarget = 0) {
 		if (this.browser_active) {
-			this.updateStatus('waiting for information from peers...');
+			this.updateStatus('submitting move to peers...');
 			$('.option').off();
 		}
 
@@ -376,18 +372,17 @@ class Poker extends GameTableTemplate {
 	}
 
 	loadSettings(container = null) {
-	    if (!container){
-
-	      this.overlay.show(`<div class="module-settings-overlay"><h2>${this.returnName()} Settings</h2></div>`);
-	      container = ".module-settings-overlay";
-	      this.overlay.setBackgroundColor("#0001");
-
-	    }
+		if (!container) {
+			this.overlay.show(
+				`<div class="module-settings-overlay"><h2>${this.returnName()} Settings</h2></div>`
+			);
+			container = '.module-settings-overlay';
+			this.overlay.setBackgroundColor('#0001');
+		}
 
 		let as = new AppSettings(this.app, this, container);
 		as.render();
 	}
-
 }
 
 Poker.importFunctions(PokerState, PokerStake, PokerQueue, PokerUI, PokerCards);
