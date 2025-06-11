@@ -58,7 +58,7 @@ class TweetMenu {
 						this.showTweetInfo();
 						break;
 					case 'hide_tweet':
-						this.hideTweet();
+						this.tweet.hideTweet();
 				}
 
 				this.overlay.close();
@@ -77,11 +77,11 @@ class TweetMenu {
 			return;
 		}
 		let info = '';
-		
+
 		console.debug(this.tweet.sources);
 
-		this.tweet.sources.forEach(s => {
-			if (s){
+		this.tweet.sources.forEach((s) => {
+			if (s) {
 				if (s?.type) {
 					info += `Type: ${s.type}\n`;
 				}
@@ -91,7 +91,7 @@ class TweetMenu {
 				if (s?.ts) {
 					info += `TS: ${s.ts}\n`;
 				}
-				info += "\n========================\n";
+				info += '\n========================\n';
 			}
 		});
 		alert(info);
