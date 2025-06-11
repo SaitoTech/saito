@@ -12540,6 +12540,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	if (p == his_self.game.player) {
 
+
 	  his_self.playerSelectSpaceWithFilter(
 
 	    "Select Occupied Territory",
@@ -12585,7 +12586,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	    function(spacekey) {
 	      his_self.updateStatus("selected");
-	      if (controlling_faction != "") { his_self.addMove("maybe_evacuate_or_capture_leaders\t"+controlling+faction+"\t"+spacekey); }
+	      let s = his_self.game.spaces[spacekey];
+	      let controlling_faction = "";
+	      if (s.political) { controlling_faction = s.political; }
+	      if (controlling_faction != "") { his_self.addMove("maybe_evacuate_or_capture_leaders\t"+controlling_faction+"\t"+spacekey); }
 	      his_self.addMove("city-state-rebels\t"+faction+"\t"+spacekey);
 	      his_self.endTurn();
 	    },
@@ -13236,7 +13240,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  let faction = "protestant";
 	  let num = mv[1];
 
-	  res = his_self.returnNearestSpaceWithFilter(
+	  let res = his_self.returnNearestSpaceWithFilter(
 	    "wittenberg",
 	    function(spacekey) {
 	      if (his_self.game.spaces[spacekey].religion == "catholic" && his_self.game.spaces[spacekey].language == "german") { return 1; }
@@ -17947,8 +17951,6 @@ console.log("DELETING Z: " + z);
 
     try { if (this.game.spaces[space]) { space = this.game.spaces[space]; } } catch (err) {}
 
-console.log("into RNTD: " + faction + " - " + space.key);
-
     let viable_destinations = [];
     let viable_navalspaces = [];
     let options = [];
@@ -18119,6 +18121,15 @@ console.log("into RNTD: " + faction + " - " + space.key);
     let space = this.game.spaces[spacekey];
     let res = this.returnNearestFactionControlledPorts(faction, spacekey);    
 
+    //
+    // do not return naval units if this is the nearest friendly fortified space
+    //
+    if (this.game.spaces[spacekey]) {
+      let cf = this.returnFactionControllingSpace(spacekey);
+      if (this.returnControllingPower(faction) == this.returnControllingPower(cf)) { return 1; }
+    }
+
+
     for (let z = space.units[faction].length-1; z >= 0; z--) {
       let u = space.units[faction][z];
 
@@ -18150,6 +18161,12 @@ console.log("into RNTD: " + faction + " - " + space.key);
     // remove siege if needed so units not "besieged" when moved
     //
     this.removeSiege(space.key);
+
+    //
+    // do not return land units if this is the nearest friendly fortified space
+    //
+    let cf = this.returnFactionControllingSpace(spacekey);
+    if (this.returnControllingPower(faction) == this.returnControllingPower(cf)) { return 1; }
 
     //
     // find the nearest friendly fortified space w/ less than 4 units
@@ -22138,8 +22155,10 @@ console.log("RNFCP: " + faction + " --- " + spacekey);
     //
     for (let key in this.game.spaces) {
       if (this.game.spaces[key].home == power) {
-        this.returnAllLandUnitsInSpacekeyToNearestFriendlyFortifiedSpace(key, faction);
-        this.returnAllNavalUnitsInSpacekeyToNearestFriendlyFortifiedPort(key, faction);
+        if (faction != power) { 
+	  this.returnAllLandUnitsInSpacekeyToNearestFriendlyFortifiedSpace(key, faction);
+          this.returnAllNavalUnitsInSpacekeyToNearestFriendlyFortifiedPort(key, faction);
+        }
       }
     }
 
@@ -46307,7 +46326,9 @@ does_units_to_move_have_unit = true; }
 
 
 
-  canPlayerNavalTransport(his_self, player, faction, ops_to_spend, ops_remaining) {
+  canPlayerNavalTransport(his_self, player, faction, ops_to_spend=0, ops_remaining=0) {
+
+console.log("ops_to_spend + " + ops_to_spend + " .. " + ops_remaining);
 
     //
     // no for protestants early-game
@@ -46324,6 +46345,8 @@ does_units_to_move_have_unit = true; }
       }
     }
     if (!have_ships_at_sea) { return false; }
+
+    if (ops_remaining < ops_to_spend) { ops_remaining = ops_to_spend; }
 
     if (ops_remaining < 2) { return 0; }
     let spaces_with_infantry = his_self.returnSpacesWithFactionInfantry(faction);

@@ -585,7 +585,8 @@
                 uidx = z;
               }
             }
-            if (!attacker_units[i].damaged && !attacker_units[i].damaged_this_combat) {
+	    let unit = paths_self.game.spaces[skey].units[z];
+            if (!unit.damaged && !unit.damaged_this_combat) {
               paths_self.moveUnit(skey, uidx, key);
               paths_self.addMove(`move\t${faction}\t${skey}\t${uidx}\t${key}\t${paths_self.game.player}`);
 	      j++;

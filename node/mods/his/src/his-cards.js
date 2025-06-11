@@ -8616,6 +8616,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	if (p == his_self.game.player) {
 
+
 	  his_self.playerSelectSpaceWithFilter(
 
 	    "Select Occupied Territory",
@@ -8661,7 +8662,10 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
 	    function(spacekey) {
 	      his_self.updateStatus("selected");
-	      if (controlling_faction != "") { his_self.addMove("maybe_evacuate_or_capture_leaders\t"+controlling+faction+"\t"+spacekey); }
+	      let s = his_self.game.spaces[spacekey];
+	      let controlling_faction = "";
+	      if (s.political) { controlling_faction = s.political; }
+	      if (controlling_faction != "") { his_self.addMove("maybe_evacuate_or_capture_leaders\t"+controlling_faction+"\t"+spacekey); }
 	      his_self.addMove("city-state-rebels\t"+faction+"\t"+spacekey);
 	      his_self.endTurn();
 	    },
@@ -9312,7 +9316,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  let faction = "protestant";
 	  let num = mv[1];
 
-	  res = his_self.returnNearestSpaceWithFilter(
+	  let res = his_self.returnNearestSpaceWithFilter(
 	    "wittenberg",
 	    function(spacekey) {
 	      if (his_self.game.spaces[spacekey].religion == "catholic" && his_self.game.spaces[spacekey].language == "german") { return 1; }

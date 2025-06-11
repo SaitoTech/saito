@@ -118,6 +118,8 @@ console.log("HERE: " + was_this_guy_besieged + " --- " + factionspace + " -- " +
 				was_this_guy_besieged = true;
 			}
 
+console.log("faction: " + faction);
+
 			if (
 				factionspace === faction ||
 				his_self.returnAllyOfMinorPower(factionspace) === faction ||
@@ -126,12 +128,17 @@ console.log("HERE: " + was_this_guy_besieged + " --- " + factionspace + " -- " +
 				can_i_kill_this_guy = true;
 			}
 
+console.log("can i kill this guy? " + can_i_kill_this_guy);
+
 			if (can_i_kill_this_guy) {
 
-				if (factionspace) { factionspace.innerHTML += ' (click to assign hit)'; }
+
+console.log("yes I can!");
+				if (factionspace) { obj.innerHTML += ' (click to assign hit)'; }
 				el.classList.add('hits-assignable-hover-effect');
 				hits_assignable++;
 
+console.log("assign hits...");
 				el.onclick = (e) => {
 
 					hits_assigned++;
