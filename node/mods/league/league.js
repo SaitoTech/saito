@@ -82,7 +82,6 @@ class League extends ModTemplate {
 	}
 
 	respondTo(type, obj = null) {
-
 		if (type == 'league_membership') {
 			let league_self = this;
 			return {
@@ -106,18 +105,29 @@ class League extends ModTemplate {
 			let league_self = this;
 			return {
 				addTweet: (tweet, tweet_list) => {
-				  let leaderboard_tweet = null;
-				  for (let i = 0; i < tweet_list.length; i++) {
-				    if (tweet_list[i].text.indexOf("Leaderboard Update") > -1) {
-				      if (leaderboard_tweet == null) {
-					leaderboard_tweet = tweet_list[i];
-				      } else {
-					tweet_list.splice(i, 1);
-					leaderboard_tweet.children.push(tweet);
-				      }
-				    }
-				  }
-				  return 1;
+					let leaderboard_tweet = null;
+					for (let i = 0; i < tweet_list.length; i++) {
+						if (tweet_list[i].text.indexOf('Leaderboard Update') > -1) {
+							if (leaderboard_tweet == null) {
+								leaderboard_tweet = tweet_list[i];
+							} else {
+								//
+								// ERROR: Splicing a for loop can cause out of bounds errors
+								//
+								tweet_list.splice(i, 1);
+
+								//
+								// WARNING: We are pushing the _same_ tweet as a child of leaderboard tweet for every other league update we find in the list, wtf???
+								//
+								leaderboard_tweet.children.push(tweet);
+								//
+								// ERROR: Of course tweets, have an internal logic where they have a parent_id / thread_id
+								// So without updating those or using the child_hash_map, any tweet functions are going to break
+								//
+							}
+						}
+					}
+					return 1;
 				}
 			};
 		}
