@@ -189,17 +189,17 @@ class Nft {
             console.log("propagateTransaction:", newtx);
             
 
-            setTimeout(async function(){
-                let nft_list = await nft_self.app.wallet.getNftList();            
-                console.log("Fetched NFT list: ", nft_list);
+            // setTimeout(async function(){
+            //     let nft_list = await nft_self.app.wallet.getNftList();            
+            //     console.log("Fetched NFT list: ", nft_list);
 
-                const nftArray    = JSON.parse(nft_list); 
-                await nft_self.app.wallet.saveNftList(nftArray);
+            //     const nftArray    = JSON.parse(nft_list); 
+            //     await nft_self.app.wallet.saveNftList(nftArray);
 
-                console.log("Updated wallet nft list: ", nft_self.app.options.wallet.nft);
+            //     console.log("Updated wallet nft list: ", nft_self.app.options.wallet.nft);
+            // }, 2000);
 
-                salert("NFT created successfully!");
-            }, 2000);
+            salert(`Create NFT tx sent: ${newtx.signature}`);
 
             nft_self.nft.image = "";
             nft_self.overlay.close();

@@ -451,10 +451,6 @@ export default class Wallet extends SaitoWallet {
         }
       }
 
-
-      // add nft back to rust wallet
-      this.addNftList();
-
       this.app.connection.on('wallet-updated', async () => {
         await this.saveWallet();
       });
@@ -466,6 +462,8 @@ export default class Wallet extends SaitoWallet {
 
     await this.saitoCrypto.initialize(this.app);
   
+    // add nft back to rust wallet
+    this.addNftList();
   }
 
   constructor(wallet: any) {
@@ -1224,43 +1222,82 @@ export default class Wallet extends SaitoWallet {
   * Update rust wallet nft struct
   */
   addNftList() {
-    if (!this.app.options.wallet.nfts) {
-      this.app.options.wallet.nfts = [];
-    }
-    let nfts = this.app.options.wallet.nfts;
-    if (nfts.length > 0) {
-      for (let i =0;  i < nfts.length ; i++) {
-        let nft = nfts[i];
-    
-        let slip1_utxokey = nft.slip1.utxo_key;
-        let slip2_utxokey = nft.slip2.utxo_key;
-        let slip3_utxokey = nft.slip3.utxo_key; 
-        let id = nft.id;
-        let tx_sig = nft.tx_sig;
+    //if (this.app.BROWSER == 1) {
+      console.log("last block id on page load:");
+      console.log(this.app.options.blockchain);
 
-        console.log("node wallet: addding nft");
-        console.log(slip1_utxokey,
-          slip2_utxokey,
-          slip3_utxokey,
-          id,
-          tx_sig);
-
-        return this.addNft(
-          slip1_utxokey,
-          slip2_utxokey,
-          slip3_utxokey,
-          id,
-          tx_sig
-        );
+      if (!this.app.options.wallet.nfts) {
+        this.app.options.wallet.nfts = [];
       }
+      let nfts = this.app.options.wallet.nfts;
+      if (nfts.length > 0) {
+        for (let i =0;  i < nfts.length ; i++) {
+          let nft = nfts[i];
+      
+          let slip1_utxokey = nft.slip1.utxo_key;
+          let slip2_utxokey = nft.slip2.utxo_key;
+          let slip3_utxokey = nft.slip3.utxo_key; 
+          let id = nft.id;
+          let tx_sig = nft.tx_sig;
+
+          console.log("node wallet: addding nft");
+          console.log(slip1_utxokey,
+            slip2_utxokey,
+            slip3_utxokey,
+            id,
+            tx_sig);
+
+          return this.addNft(
+            slip1_utxokey,
+            slip2_utxokey,
+            slip3_utxokey,
+            id,
+            tx_sig
+          );
+        }
+      }
+   // }
+  }
+
+  async updateNftList(): Promise<{ removed: any[]; added: any[] }> {
+    // Fetch the persisted NFT list
+    const rawList = await this.app.wallet.getNftList();
+    const primitive = rawList.valueOf();
+    const parsed = JSON.parse(primitive);
+
+    // Grab the current in-memory NFT list
+    const oldList: any[] = this.app.options.wallet.nfts;
+
+    // Build sets of slip2.utxo_key for comparison
+    const oldKeys = new Set(oldList.map(nft => nft.slip2.utxo_key));
+    const newKeys = new Set(parsed.map((nft: any) => nft.slip2.utxo_key));
+
+    // Determine full NFT objects that were added or removed
+    const added   = parsed.filter((nft: any) => !oldKeys.has(nft.slip2.utxo_key));
+    const removed = oldList.filter(nft => !newKeys.has(nft.slip2.utxo_key));
+
+    // Only persist & update if there’s been any change
+    if (added.length || removed.length) {
+      await this.app.wallet.saveNftList(parsed);
+      this.app.options.wallet.nfts = parsed;
     }
+
+    return { removed, added };
   }
 
 
-  public async splitNft(nftId, leftCount, rightCount): Promise<Transaction> {
+  public async splitNft(
+    slip1UtxoKey, 
+    slip2UtxoKey, 
+    slip3UtxoKey, 
+    leftCount, 
+    rightCount
+  ): Promise<Transaction> {
     return S.getInstance().createSplitBoundTransaction(
-      nftId,
-      leftCount,
+      slip1UtxoKey, 
+      slip2UtxoKey, 
+      slip3UtxoKey, 
+      leftCount, 
       rightCount
     );
   }

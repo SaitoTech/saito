@@ -45,6 +45,7 @@
   margin: 1rem 0;
   overflow-wrap: break-word;
   line-height: 3rem;
+  width: -webkit-fill-available;
 }
 
 @media screen and (max-width: 740px) {
