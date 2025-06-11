@@ -1767,6 +1767,11 @@ class Browser {
     return urlIndentifierRegexp;
   }
 
+  numberFilter(potential_link) {
+    let regex = /^\d+\.?\d*$/;
+    return regex.test(potential_link);
+  }
+
   sanitize(text, createLinks = false) {
     if (!text) {
       return '';
@@ -1828,7 +1833,13 @@ class Browser {
       /* wrap link in <a> tag */
 
       if (createLinks) {
-        text = text.replace(this.urlRegexp(), function (url) {
+        text = text.replace(this.urlRegexp(), (url) => {
+          // This is a number like 1.50 that accidentally got marked as a URL
+          if (this.numberFilter(url)) {
+            //console.warn(`BROWSER [sanitize]: ${url} is a number, not a link`);
+            return url;
+          }
+
           let url1 = url.trim();
           let url2 = url1;
           if (url2.length > 42) {
