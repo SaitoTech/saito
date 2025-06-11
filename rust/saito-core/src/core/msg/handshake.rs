@@ -1,10 +1,11 @@
 use std::io::{Error, ErrorKind};
 
-use log::{trace, warn};
+use log::{debug, info, trace, warn};
 
 use crate::core::consensus::peers::peer_service::PeerService;
 use crate::core::defs::{SaitoHash, SaitoPublicKey, SaitoSignature};
 use crate::core::process::version::Version;
+use crate::core::util::configuration::Endpoint;
 use crate::core::util::serialize::Serialize;
 
 #[derive(Debug)]
@@ -22,6 +23,7 @@ pub struct HandshakeResponse {
     pub services: Vec<PeerService>,
     pub wallet_version: Version,
     pub core_version: Version,
+    pub endpoint: Endpoint,
 }
 
 impl Serialize<Self> for HandshakeChallenge {
@@ -50,23 +52,30 @@ impl Serialize<Self> for HandshakeChallenge {
 
 impl Serialize<Self> for HandshakeResponse {
     fn serialize(&self) -> Vec<u8> {
-        [
+        let services_buffer = PeerService::serialize_services(&self.services);
+        let endpoint_buffer = self.endpoint.serialize();
+        let buffer = [
             self.core_version.serialize(),
             self.wallet_version.serialize(),
             self.public_key.to_vec(),
             self.signature.to_vec(),
             self.challenge.to_vec(),
             (self.is_lite as u8).to_be_bytes().to_vec(),
-            (self.block_fetch_url.len() as u32).to_be_bytes().to_vec(),
+            (self.block_fetch_url.len() as u16).to_be_bytes().to_vec(),
+            (services_buffer.len() as u16).to_be_bytes().to_vec(),
+            (endpoint_buffer.len() as u16).to_be_bytes().to_vec(),
             self.block_fetch_url.as_bytes().to_vec(),
-            PeerService::serialize_services(&self.services),
+            services_buffer,
+            endpoint_buffer,
         ]
-        .concat()
+        .concat();
+        info!("handshake response buffer size : {}", buffer.len());
+        buffer
     }
     fn deserialize(buffer: &Vec<u8>) -> Result<Self, Error> {
-        trace!("deserializing handshake buffer : {:?}", buffer.len());
+        debug!("deserializing handshake buffer : {:?}", buffer.len());
 
-        const MIN_LEN: usize = 142;
+        const MIN_LEN: usize = 144;
 
         if buffer.len() < MIN_LEN {
             warn!(
@@ -94,9 +103,22 @@ impl Serialize<Self> for HandshakeResponse {
             is_lite: buffer[137] != 0,
             block_fetch_url: "".to_string(),
             services: vec![],
+            endpoint: Default::default(),
         };
-        let url_length = u32::from_be_bytes(
-            buffer[138..142]
+        let url_length = u16::from_be_bytes(
+            buffer[138..140]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidInput)))?,
+        ) as usize;
+
+        let services_buffer_len = u16::from_be_bytes(
+            buffer[140..142]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidInput)))?,
+        ) as usize;
+
+        let endpoint_buffer_len = u16::from_be_bytes(
+            buffer[142..144]
                 .try_into()
                 .or(Err(Error::from(ErrorKind::InvalidInput)))?,
         ) as usize;
@@ -124,11 +146,12 @@ impl Serialize<Self> for HandshakeResponse {
             response.block_fetch_url = result.unwrap();
             trace!("block fetch url read as : {:?}", response.block_fetch_url);
         }
-
         // if we detect services, we deserialize that too
         if buffer.len() > (MIN_LEN + url_length) {
             trace!("reading peer services");
-            let service_buffer = buffer[(MIN_LEN + url_length)..].to_vec();
+            let start = MIN_LEN + url_length;
+            let end = start + services_buffer_len;
+            let service_buffer = buffer[start..end].to_vec();
 
             let services = PeerService::deserialize_services(service_buffer);
             if services.is_err() {
@@ -142,6 +165,17 @@ impl Serialize<Self> for HandshakeResponse {
             response.services = services;
         }
 
+        // if we have endpoint, we deserialize that
+        if buffer.len() > MIN_LEN + url_length + services_buffer_len {
+            trace!("reading endpoint data");
+            let start = MIN_LEN + url_length + services_buffer_len;
+            let endpoint_buffer = buffer[start..start + endpoint_buffer_len].to_vec();
+            let endpoint = <Endpoint as crate::core::util::serialize::Serialize<_>>::deserialize(
+                &endpoint_buffer,
+            )?;
+            response.endpoint = endpoint;
+        }
+
         Ok(response)
     }
 }
@@ -150,6 +184,7 @@ impl Serialize<Self> for HandshakeResponse {
 mod tests {
     use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
     use crate::core::process::version::Version;
+    use crate::core::util::configuration::Endpoint;
     use crate::core::util::serialize::Serialize;
 
     #[test]
@@ -185,9 +220,14 @@ mod tests {
                 patch: 3,
             },
             core_version: Version::new(10, 20, 30),
+            endpoint: Endpoint {
+                host: "localhost".to_string(),
+                port: 8080,
+                protocol: "http".to_string(),
+            },
         };
         let buffer = response.serialize();
-        assert_eq!(buffer.len(), 158);
+        assert_eq!(buffer.len(), 179);
         let response2 = HandshakeResponse::deserialize(&buffer).expect("deserialization failed");
         assert_eq!(response.challenge, response2.challenge);
         assert_eq!(response.public_key, response2.public_key);
@@ -196,5 +236,9 @@ mod tests {
         assert_eq!(response.signature, response2.signature);
         assert_eq!(response.wallet_version, response2.wallet_version);
         assert_eq!(response.core_version, response2.core_version);
+
+        assert_eq!(response.endpoint.host, response2.endpoint.host);
+        assert_eq!(response.endpoint.port, response2.endpoint.port);
+        assert_eq!(response.endpoint.protocol, response2.endpoint.protocol);
     }
 }
