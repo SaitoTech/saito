@@ -5,7 +5,6 @@ use crate::core::defs::{PeerIndex, PrintForLog, SaitoPublicKey, Timestamp};
 use log::{debug, info};
 use serde::Serialize;
 use std::collections::HashMap;
-use std::fmt::Display;
 use std::time::Duration;
 
 const PEER_REMOVAL_WINDOW: Timestamp = Duration::from_secs(600).as_millis() as Timestamp;

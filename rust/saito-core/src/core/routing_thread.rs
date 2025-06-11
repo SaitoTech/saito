@@ -2,7 +2,6 @@ use crate::core::consensus::block::BlockType;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::blockchain_sync_state::BlockchainSyncState;
 use crate::core::consensus::mempool::Mempool;
-use crate::core::consensus::peers::peer;
 use crate::core::consensus::peers::peer_service::PeerService;
 use crate::core::consensus::peers::peer_state_writer::{PeerStateEntry, PEER_STATE_WRITE_PERIOD};
 use crate::core::consensus::wallet::Wallet;
@@ -34,7 +33,6 @@ use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
-use super::consensus::peers::peer::PeerStatus;
 use super::stat_thread::StatEvent;
 
 #[derive(Debug)]
@@ -157,7 +155,7 @@ impl RoutingThread {
                 );
                 {
                     let mut peers = self.network.peer_lock.write().await;
-                    let mut peer = peers.find_peer_by_index_mut(peer_index).unwrap();
+                    let peer = peers.find_peer_by_index_mut(peer_index).unwrap();
                     peer.stats.received_txs += 1;
                     peer.stats.last_received_tx_at = self.timer.get_timestamp_in_ms();
                     peer.stats.last_received_tx = transaction.signature.to_hex();
@@ -192,7 +190,7 @@ impl RoutingThread {
                 );
                 {
                     let mut peers = self.network.peer_lock.write().await;
-                    let mut peer = peers.find_peer_by_index_mut(peer_index).unwrap();
+                    let peer = peers.find_peer_by_index_mut(peer_index).unwrap();
                     peer.stats.received_block_headers += 1;
                     peer.stats.last_received_block_header_at = self.timer.get_timestamp_in_ms();
                     peer.stats.last_received_block_header = hash.to_hex();
@@ -771,7 +769,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     let time: u64 = self.timer.get_timestamp_in_ms();
                     let public_key;
                     {
-                        let mut peer = peers.find_peer_by_index_mut(peer_index)?;
+                        let peer = peers.find_peer_by_index_mut(peer_index)?;
                         public_key = peer.public_key.unwrap_or([0; 33]);
                         peer.stats.received_messages += 1;
                         peer.stats.last_received_message_at = time;
@@ -1022,8 +1020,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         }
 
         let peers = self.network.peer_lock.read().await;
-        let mut peer_count = 0;
-        let mut peers_in_handshake = 0;
+        let peer_count = 0;
+        let peers_in_handshake = 0;
 
         let stat = format!(
             "{} - {} - total peers : {:?}. in handshake : {:?}",

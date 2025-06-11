@@ -1,5 +1,4 @@
 use crate::core::consensus::peers::peer_service::PeerService;
-use crate::core::consensus::peers::rate_limiter::RateLimiter;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
     PeerIndex, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp, WS_KEEP_ALIVE_PERIOD,
@@ -13,12 +12,9 @@ use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, sign, verify};
 use log::{debug, info, trace, warn};
 use serde::{Serialize, Serializer};
-use serde_with::serde_as;
 use std::cmp::Ordering;
-use std::fmt::Display;
 use std::io::{Error, ErrorKind};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::RwLock;
 
 #[derive(Clone, Debug, Serialize)]

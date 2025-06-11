@@ -1,7 +1,4 @@
-use std::{
-    fmt::Display,
-    io::{Error, ErrorKind},
-};
+use std::io::{Error, ErrorKind};
 
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
