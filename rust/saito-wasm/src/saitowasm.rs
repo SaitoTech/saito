@@ -643,18 +643,27 @@ pub async fn create_send_bound_transaction(
 
 #[wasm_bindgen]
 pub async fn create_split_bound_transaction(
-    nft_id_hex: String,
+    slip1_utxo_key: JsString,
+    slip2_utxo_key: JsString,
+    slip3_utxo_key: JsString,
     left_count: u32,
     right_count: u32,
 ) -> Result<WasmTransaction, JsValue> {
     let saito = SAITO.lock().await;
     let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
 
-    let id_bytes: Vec<u8> = hex::decode(&nft_id_hex)
-        .map_err(|e| JsValue::from_str(&format!("nft_id hex decode error: {}", e)))?;
+    //
+    // decode each hex‐string into a fixed‐length UTXO key
+    //
+    let s1: SaitoUTXOSetKey =
+        string_to_hex(slip1_utxo_key).map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
+    let s2: SaitoUTXOSetKey =
+        string_to_hex(slip2_utxo_key).map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
+    let s3: SaitoUTXOSetKey =
+        string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
 
     let tx = wallet
-        .create_split_bound_transaction(id_bytes, left_count, right_count)
+        .create_split_bound_transaction(s1, s2, s3, left_count, right_count)
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     Ok(WasmTransaction::from_transaction(tx))

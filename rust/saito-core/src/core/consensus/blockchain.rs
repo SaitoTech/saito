@@ -152,6 +152,7 @@ impl Blockchain {
         storage: &mut Storage,
         mempool: &mut Mempool,
         configs: &(dyn Configuration + Send + Sync),
+        network: Option<&Network>,
     ) -> AddBlockResult {
         if block.generate().is_err() {
             error!(
@@ -435,7 +436,13 @@ impl Blockchain {
             // );
 
             let (does_new_chain_validate, wallet_updated) = self
-                .validate(new_chain.as_slice(), old_chain.as_slice(), storage, configs)
+                .validate(
+                    new_chain.as_slice(),
+                    old_chain.as_slice(),
+                    storage,
+                    configs,
+                    network,
+                )
                 .await;
 
             // debug!(
@@ -1126,6 +1133,7 @@ impl Blockchain {
         old_chain: &[SaitoHash],
         storage: &Storage,
         configs: &(dyn Configuration + Send + Sync),
+        network: Option<&Network>,
     ) -> (bool, WalletUpdateStatus) {
         debug!(
             "validating chains. latest : {:?} new_chain_len : {:?} old_chain_len : {:?}",
@@ -1172,6 +1180,7 @@ impl Blockchain {
                                 wind_failure,
                                 storage,
                                 configs,
+                                network,
                             )
                             .await;
                     }
@@ -1190,6 +1199,7 @@ impl Blockchain {
                                 wind_failure,
                                 storage,
                                 configs,
+                                network,
                             )
                             .await;
                     }
@@ -1214,6 +1224,7 @@ impl Blockchain {
                                 wind_failure,
                                 storage,
                                 configs,
+                                network,
                             )
                             .await;
                     }
@@ -1232,6 +1243,7 @@ impl Blockchain {
                                 wind_failure,
                                 storage,
                                 configs,
+                                network,
                             )
                             .await;
                     }
@@ -1287,6 +1299,7 @@ impl Blockchain {
         wind_failure: bool,
         storage: &Storage,
         configs: &(dyn Configuration + Send + Sync),
+        network: Option<&Network>,
     ) -> WindingResult {
         // trace!(" ... blockchain.wind_chain strt: {:?}", create_timestamp());
 
@@ -1360,6 +1373,7 @@ impl Blockchain {
                     block,
                     true,
                     configs.get_consensus_config().unwrap().genesis_period,
+                    network,
                 );
             }
             let block_id = block.id;
@@ -1551,6 +1565,7 @@ impl Blockchain {
         wind_failure: bool,
         storage: &Storage,
         configs: &(dyn Configuration + Send + Sync),
+        network: Option<&Network>,
     ) -> WindingResult {
         debug!(
             "unwind_chain: current_wind_index : {:?} new_chain_len: {:?} old_chain_len: {:?} failed : {:?}",
@@ -1592,6 +1607,7 @@ impl Blockchain {
                 block,
                 false,
                 configs.get_consensus_config().unwrap().genesis_period,
+                network,
             );
         }
         wallet_updated |= self
@@ -1858,7 +1874,9 @@ impl Blockchain {
             while let Some(block) = blocks.pop_front() {
                 let peer_index = block.routed_from_peer;
                 let block_id = block.id;
-                let result = self.add_block(block, storage, &mut mempool, configs).await;
+                let result = self
+                    .add_block(block, storage, &mut mempool, configs, network)
+                    .await;
                 match result {
                     AddBlockResult::BlockAddedSuccessfully(
                         block_hash,

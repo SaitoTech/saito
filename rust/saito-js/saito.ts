@@ -390,16 +390,19 @@ export default class Saito {
         return tx;
     }
 
-
     public async createSplitBoundTransaction<T extends Transaction>(
-      nftId: string,
+      slip1UtxoKey: string,
+      slip2UtxoKey: string,
+      slip3UtxoKey: string,
       leftCount: number,
       rightCount: number
     ): Promise<T> {
-      console.log("wallet.ts createSplitBoundTransaction:", nftId, leftCount, rightCount);
+      console.log("saito.ts createSplitBoundTransaction:", slip1UtxoKey, slip2UtxoKey, slip3UtxoKey, leftCount, rightCount);
 
       const wasmTx = await Saito.getLibInstance().create_split_bound_transaction(
-        nftId,
+        slip1UtxoKey,
+        slip2UtxoKey,
+        slip3UtxoKey,
         leftCount,
         rightCount
       );
@@ -409,7 +412,6 @@ export default class Saito {
 
       return tx;
     }
-
 
     public async createMergeBoundTransaction<T extends Transaction>(
       nftId: string
