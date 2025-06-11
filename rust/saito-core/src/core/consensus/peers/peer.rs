@@ -92,10 +92,10 @@ pub struct Peer {
     pub core_version: Version,
     // NOTE: we are currently mapping 1 peer = 1 socket = 1 public key. But in the future we need to support multiple peers per public key
     // so some of these limiters might have to be handled from a different place than the peer. (Eg : Account struct?)
-    pub key_list_limiter: RateLimiter,
-    pub handshake_limiter: RateLimiter,
-    pub message_limiter: RateLimiter,
-    pub invalid_block_limiter: RateLimiter,
+    // pub key_list_limiter: RateLimiter,
+    // pub handshake_limiter: RateLimiter,
+    // pub message_limiter: RateLimiter,
+    // pub invalid_block_limiter: RateLimiter,
     #[serde(serialize_with = "option_as_base58")]
     pub public_key: Option<SaitoPublicKey>,
     pub peer_type: PeerType,
@@ -118,10 +118,10 @@ impl Peer {
             disconnected_at: Timestamp::MAX,
             wallet_version: Default::default(),
             core_version: Default::default(),
-            key_list_limiter: RateLimiter::builder(100, Duration::from_secs(60)),
-            handshake_limiter: RateLimiter::builder(100, Duration::from_secs(60)),
-            message_limiter: RateLimiter::builder(100_000, Duration::from_secs(1)),
-            invalid_block_limiter: RateLimiter::builder(10, Duration::from_secs(3600)),
+            // key_list_limiter: RateLimiter::builder(100, Duration::from_secs(60)),
+            // handshake_limiter: RateLimiter::builder(100, Duration::from_secs(60)),
+            // message_limiter: RateLimiter::builder(100_000, Duration::from_secs(1)),
+            // invalid_block_limiter: RateLimiter::builder(10, Duration::from_secs(3600)),
             public_key: None,
             peer_type: PeerType::Default,
             ip_address: None,
@@ -147,29 +147,29 @@ impl Peer {
         matches!(self.peer_type, PeerType::Stun)
     }
 
-    pub fn has_key_list_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
-        self.key_list_limiter.has_limit_exceeded(current_time)
-    }
-    pub fn has_handshake_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
-        self.handshake_limiter.has_limit_exceeded(current_time)
-    }
+    // pub fn has_key_list_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
+    //     self.key_list_limiter.has_limit_exceeded(current_time)
+    // }
+    // pub fn has_handshake_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
+    //     self.handshake_limiter.has_limit_exceeded(current_time)
+    // }
 
-    pub fn has_message_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
-        self.message_limiter.has_limit_exceeded(current_time)
-    }
+    // pub fn has_message_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
+    //     self.message_limiter.has_limit_exceeded(current_time)
+    // }
 
-    pub fn has_invalid_block_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
-        self.invalid_block_limiter.has_limit_exceeded(current_time)
-    }
-    pub fn get_limited_till(&mut self, current_time: Timestamp) -> Option<Timestamp> {
-        let result = None;
+    // pub fn has_invalid_block_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
+    //     self.invalid_block_limiter.has_limit_exceeded(current_time)
+    // }
+    // pub fn get_limited_till(&mut self, current_time: Timestamp) -> Option<Timestamp> {
+    //     let result = None;
 
-        if self.has_key_list_limit_exceeded(current_time) {
-            if self.key_list_limiter.has_limit_exceeded(current_time) {}
-        }
+    //     if self.has_key_list_limit_exceeded(current_time) {
+    //         if self.key_list_limiter.has_limit_exceeded(current_time) {}
+    //     }
 
-        result
-    }
+    //     result
+    // }
 
     pub fn get_url(&self) -> String {
         if let Some(config) = self.static_peer_config.as_ref() {
@@ -516,10 +516,10 @@ impl Peer {
             peer.index, self.index
         );
 
-        self.message_limiter = peer.message_limiter;
-        self.handshake_limiter = peer.handshake_limiter;
-        self.key_list_limiter = peer.key_list_limiter;
-        self.disconnected_at = Timestamp::MAX;
+        // self.message_limiter = peer.message_limiter;
+        // self.handshake_limiter = peer.handshake_limiter;
+        // self.key_list_limiter = peer.key_list_limiter;
+        // self.disconnected_at = Timestamp::MAX;
 
         self.static_peer_config = peer.static_peer_config;
     }

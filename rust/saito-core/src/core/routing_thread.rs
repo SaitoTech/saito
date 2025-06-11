@@ -732,12 +732,12 @@ impl RoutingThread {
                 data.push(PeerStateEntry {
                     peer_index: peer.index,
                     public_key: peer.public_key.unwrap_or([0; 33]),
-                    msg_limit_exceeded: peer.has_message_limit_exceeded(current_time),
-                    invalid_blocks_received: peer.has_invalid_block_limit_exceeded(current_time),
-                    same_depth_blocks_received: false,
-                    too_far_blocks_received: false,
-                    handshake_limit_exceeded: peer.has_handshake_limit_exceeded(current_time),
-                    keylist_limit_exceeded: peer.has_key_list_limit_exceeded(current_time),
+                    // msg_limit_exceeded: peer.has_message_limit_exceeded(current_time),
+                    // invalid_blocks_received: peer.has_invalid_block_limit_exceeded(current_time),
+                    // same_depth_blocks_received: false,
+                    // too_far_blocks_received: false,
+                    // handshake_limit_exceeded: peer.has_handshake_limit_exceeded(current_time),
+                    // keylist_limit_exceeded: peer.has_key_list_limit_exceeded(current_time),
                     limited_till: None,
                     current_time,
                     peer_address: peer.ip_address.clone().unwrap_or("NA".to_string()),
@@ -767,18 +767,24 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 {
                     // TODO : move this before deserialization to avoid spending CPU time on it. moved here to just print message type
                     let mut peers = self.network.peer_lock.write().await;
-                    let mut peer = peers.find_peer_by_index_mut(peer_index)?;
 
                     let time: u64 = self.timer.get_timestamp_in_ms();
-                    peer.stats.received_messages += 1;
-                    peer.stats.last_received_message_at = time;
-                    peer.message_limiter.increase();
-                    if peer.has_message_limit_exceeded(time) {
+                    let public_key;
+                    {
+                        let mut peer = peers.find_peer_by_index_mut(peer_index)?;
+                        public_key = peer.public_key.unwrap_or([0; 33]);
+                        peer.stats.received_messages += 1;
+                        peer.stats.last_received_message_at = time;
+                    }
+                    let control = peers.get_congestion_controls_for_index(peer_index)?;
+
+                    control.message_limiter.increase();
+                    if control.message_limiter.has_limit_exceeded(time) {
                         info!(
                             "peers exceeded for messages from peer : {:?} - {:?} - rates : {:?}",
                             peer_index,
-                            peer.public_key.unwrap_or([0; 33]).to_base58(),
-                            peer.message_limiter
+                            public_key.to_base58(),
+                            control.message_limiter
                         );
                         return None;
                     }
@@ -839,9 +845,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 debug!("block received : {:?}", block_hash.to_hex());
                 {
                     let mut peers = self.network.peer_lock.write().await;
-                    let peer = peers.find_peer_by_index_mut(peer_index)?;
                     let time = self.timer.get_timestamp_in_ms();
-                    if peer.has_invalid_block_limit_exceeded(time) {
+                    let control = peers.get_congestion_controls_for_index(peer_index)?;
+                    if control.invalid_block_limiter.has_limit_exceeded(time) {
                         info!(
                             "peers exceeded for invalid blocks from peer : {:?}. disconnecting peer...",
                             peer_index

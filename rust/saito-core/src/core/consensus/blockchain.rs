@@ -1921,9 +1921,9 @@ impl Blockchain {
                     AddBlockResult::FailedNotValid => {
                         if let Some(peer_index) = peer_index {
                             let mut peers = network.unwrap().peer_lock.write().await;
-                            if let Some(peer) = peers.find_peer_by_index_mut(peer_index) {
-                                peer.invalid_block_limiter.increase();
-                            }
+                            let control =
+                                peers.get_congestion_controls_for_index(peer_index).unwrap();
+                            control.invalid_block_limiter.increase();
                         }
                     }
                 }
