@@ -565,7 +565,7 @@ export default class Wallet extends SaitoWallet {
   /////////////////////////
 
   returnInstalledCryptos() {
-    const cryptoModules: typeof CryptoModule[] =
+    const cryptoModules: (typeof CryptoModule)[] =
       this.app.modules.returnModulesBySubType(CryptoModule);
     if (this.saitoCrypto !== null) {
       cryptoModules.push(this.saitoCrypto);
@@ -575,7 +575,7 @@ export default class Wallet extends SaitoWallet {
 
   returnActivatedCryptos() {
     const allMods = this.returnInstalledCryptos();
-    const activeMods: typeof CryptoModule[] = [];
+    const activeMods: (typeof CryptoModule)[] = [];
     for (let i = 0; i < allMods.length; i++) {
       if (allMods[i].isActivated()) {
         activeMods.push(allMods[i]);

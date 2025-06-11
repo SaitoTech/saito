@@ -19,8 +19,8 @@ module.exports = (user) => {
   return `
   <div ${uuid ? `id="${uuid}"` : ''}
   	class="saito-user ${extra_class} saito-user-${publicKey}${
-    myPublicKey == publicKey ? ' saito-user-self' : ''
-  }" 
+      myPublicKey == publicKey ? ' saito-user-self' : ''
+    }" 
   	data-id="${publicKey}" data-disable="${data_disable}">
     <div class="saito-identicon-box">
     	<img class="saito-identicon" src="${imgsrc}" data-id="${publicKey}">

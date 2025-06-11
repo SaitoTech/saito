@@ -614,9 +614,8 @@ class GameTemplate extends ModTemplate {
       // Add Recent Game Activity
       this.app.connection.on('arcade-data-loaded', () => {
         if (document.querySelector('.game-activity')) {
-          document.querySelector(
-            '.game-activity'
-          ).innerHTML = `<div class="game-page-invites"></div><div class="league-overlay-games-list"></div>`;
+          document.querySelector('.game-activity').innerHTML =
+            `<div class="game-page-invites"></div><div class="league-overlay-games-list"></div>`;
         }
         this.app.modules.respondTo('invite-manager', { filter: this.name });
         this.app.connection.emit('league-overlay-games-list', { game: this.name });

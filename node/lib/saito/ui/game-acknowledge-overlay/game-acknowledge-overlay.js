@@ -18,9 +18,8 @@ class GameAcknowledgeOverlay {
     this.overlay.show(GameAcknowledgeOverlayTemplate(msg));
     try {
       document.querySelector('.game-acknowledge-overlay').style.backgroundImage = `url(${img});`;
-      document.querySelector(
-        '.game-acknowledge-menu'
-      ).innerHTML = `<div class="game-acknowledge-notice">${msg}</div><ul><li class="textchoice acknowledge" id="acknowledge">acknowledge</li></ul>`;
+      document.querySelector('.game-acknowledge-menu').innerHTML =
+        `<div class="game-acknowledge-notice">${msg}</div><ul><li class="textchoice acknowledge" id="acknowledge">acknowledge</li></ul>`;
     } catch (err) {}
   }
 }
