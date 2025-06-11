@@ -1059,7 +1059,7 @@ deck['ap17'] = {
           paths_self.displayCustomOverlay({
                 text : "Italy joins the Allied Powers" ,
                 title : "Italy joins the War!",
-                img : "/paths/img/backgrounds/entry/italy-enters-the-war.png",
+                img : "/paths/img/backgrounds/entry/italy-enters-the-war.jpg",
                 msg : "Italian units added to board...",
                 styles : [{ key : "backgroundPosition" , val : "bottom" }],
           });
@@ -1411,6 +1411,7 @@ console.log("salonika 1");
 
 	  let p = paths_self.returnPlayerOfFaction("allies");
           let just_stop = 0;
+          let units_moved = 0;
 
 	  if (paths_self.game.player == p) {
 
@@ -1451,17 +1452,13 @@ console.log("salonika 4");
     	    let continue_fnct = () => {
 console.log("salonika 5");
   	      if (just_stop == 1) { return 0; }
+  	      if (units_moved >= max_units_movable) { return 0; }
 console.log("salonika 6");
 	      let count = paths_self.countUnitsWithFilter(filter_fnct);
 console.log("salonika 7 - " + count);
 	      if (count == 0) { return 0; }
 console.log("salonika 8");
-	      for (let key in paths_self.game.state.rp[faction]) {
-console.log("salonika 9");
-	        if (parseInt(paths_self.game.state.rp[faction][key]) > 0) { return 1; }
-	      }
-console.log("salonika 10");
-	      return 0;
+	      return 1;
 	    }
 
 	    let execute_fnct = (spacekey, unit_idx) => {

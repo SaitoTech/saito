@@ -9236,6 +9236,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
             $('.option').off();
 	    let action = $(this).attr("id");
+	    his_self.updateStatus("submitting...");
 
 	    his_self.addMove("display_new_world");
 	    if (action == "conquest-england" || action == "conquest-france" || action == "conquest-hapsburg") {

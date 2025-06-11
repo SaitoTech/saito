@@ -28,16 +28,17 @@ class Status extends ModTemplate {
 
   onPeerHandshakeComplete() {
     if (this.app.BROWSER === 1) {
-      this.render();
+      this.renderUI();
     }
   }
 
-  async render() {
+  async renderUI() {
     console.log(`${this.returnName()} render() method called.`);
 
     try {
       const stats = await S.getLibInstance().get_stats();
       const peerStats = await S.getLibInstance().get_peer_stats();
+      console.log(JSON.parse(peerStats));
       window.stats = stats;
       window.peerStats = peerStats;
       window.loading = false;

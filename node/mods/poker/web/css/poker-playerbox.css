@@ -103,11 +103,10 @@
 	filter: grayscale(100%) brightness(0.6) opacity(75%);
 }
 
-.game-playerbox.active {
+.game-playerbox.active:not(.game-playerbox-seat-1) {
 	border: 1px solid #fff;
   transform: scale(1.05);
 }
-
 
 .game-playerbox-body {
 	width: 100%;

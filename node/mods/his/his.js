@@ -13160,6 +13160,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
             $('.option').off();
 	    let action = $(this).attr("id");
+	    his_self.updateStatus("submitting...");
 
 	    his_self.addMove("display_new_world");
 	    if (action == "conquest-england" || action == "conquest-france" || action == "conquest-hapsburg") {
@@ -17943,7 +17944,10 @@ console.log("DELETING Z: " + z);
   }
 
   returnNavalTransportDestinations(faction, space, ops) {
+
     try { if (this.game.spaces[space]) { space = this.game.spaces[space]; } } catch (err) {}
+
+console.log("into RNTD: " + faction + " - " + space.key);
 
     let viable_destinations = [];
     let viable_navalspaces = [];
@@ -46305,10 +46309,14 @@ does_units_to_move_have_unit = true; }
 
   canPlayerNavalTransport(his_self, player, faction, ops_to_spend, ops_remaining) {
 
+    //
     // no for protestants early-game
+    //
     if (faction === "protestant" && his_self.game.state.events.schmalkaldic_league == 0) { return false; }
 
+    //
     // no if no ships at sea
+    //
     let have_ships_at_sea = false;
     for (let key in his_self.game.navalspaces) {
       if (his_self.game.navalspaces[key].units[faction].length > 0) {
