@@ -21,420 +21,415 @@ class SaitoHeader extends UIModTemplate {
   constructor(app, mod) {
     super(app);
 
-		//
-		// UI components as modules allows them to respond
-		// to events individually...
-		//
-		this.name = 'SaitoHeader UIComponent';
-		this.slug = 'SaitoHeader';
+    //
+    // UI components as modules allows them to respond
+    // to events individually...
+    //
+    this.name = 'SaitoHeader UIComponent';
+    this.slug = 'SaitoHeader';
 
-		this.app = app;
-		this.mod = mod;
+    this.app = app;
+    this.mod = mod;
 
-		// employ non-standard css to spacing in header
-		this.header_class = ''; // e.g. game, wide-screen, arcade
+    // employ non-standard css to spacing in header
+    this.header_class = ''; // e.g. game, wide-screen, arcade
 
-		// Header collects notifications to display a count on the hamburger icon
-		this.notifications = {};
+    // Header collects notifications to display a count on the hamburger icon
+    this.notifications = {};
 
-		// navigation for clicking on Saito logo in header
-		this.header_location = '/' + mod.returnSlug();
+    // navigation for clicking on Saito logo in header
+    this.header_location = '/' + mod.returnSlug();
 
-		// Store the mod functions for when you click icon in the menu, e.g. "RedSquare"
-		this.callbacks = {};
+    // Store the mod functions for when you click icon in the menu, e.g. "RedSquare"
+    this.callbacks = {};
 
-		this.balance_check_interval = null;
-		this.deposit_check_interval = null;
+    this.balance_check_interval = null;
+    this.deposit_check_interval = null;
 
-		this.can_update_header_msg = true;
-		this.show_msg = true;
+    this.can_update_header_msg = true;
+    this.show_msg = true;
 
-		this.loader = new SaitoLoader(this.app, this.mod, '#qrcode');
-		this.saito_backup = new SaitoBackup(app, mod);
+    this.loader = new SaitoLoader(this.app, this.mod, '#qrcode');
+    this.saito_backup = new SaitoBackup(app, mod);
 
-		console.log('Create Saito Header for ' + mod.name);
-	}
+    console.log('Create Saito Header for ' + mod.name);
+  }
 
-	async initialize(app) {
+  async initialize(app) {
+    await super.initialize(app);
 
-		await super.initialize(app);
+    // Create here because need publicKey defined
+    this.userMenu = new UserMenu(app, this.publicKey);
 
-		// Create here because need publicKey defined
-		this.userMenu = new UserMenu(app, this.publicKey);
+    // Add listeners
 
-		// Add listeners
+    app.connection.on('registry-update-identifier', (publicKey) => {
+      if (publicKey === this.publicKey) {
+        this.renderUsername();
+      }
+    });
 
-		app.connection.on('registry-update-identifier', (publicKey) => {
-			if (publicKey === this.publicKey) {
-				this.renderUsername();
-			}
-		});
+    app.connection.on('saito-header-update-message', (obj = {}) => {
+      console.log('update header obj: ', obj);
 
-		app.connection.on('saito-header-update-message', (obj = {}) => {
-			console.log('update header obj: ', obj);
+      let msg = '';
+      this.can_update_header_msg = true;
+      if ('msg' in obj) {
+        msg = obj.msg;
+        this.can_update_header_msg = false;
+      }
 
-			let msg = '';
-			this.can_update_header_msg = true;
-			if ('msg' in obj) {
-				msg = obj.msg;
-				this.can_update_header_msg = false;
-			}
+      let flash = false;
+      if ('flash' in obj) {
+        flash = obj.flash;
+      }
 
-			let flash = false;
-			if ('flash' in obj) {
-				flash = obj.flash;
-			}
+      let callback = null;
+      if ('callback' in obj) {
+        callback = obj.callback;
+      }
 
-			let callback = null;
-			if ('callback' in obj) {
-				callback = obj.callback;
-			}
+      let timeout = null;
+      if ('timeout' in obj) {
+        timeout = obj.timeout;
+      }
 
-			let timeout = null;
-			if ('timeout' in obj) {
-				timeout = obj.timeout;
-			}
+      this.updateHeaderMessage(msg, flash, callback, timeout);
+    });
 
-			this.updateHeaderMessage(msg, flash, callback, timeout);
-		});
+    // wallet-updated event is fired from rust to SLR
+    // please dont rename/remove this method
+    // else we wont get updated slips
+    app.connection.on('wallet-updated', async () => {
+      // console.log("$$$$ wallet-updated --> check balance of preferred crypto");
 
+      // check if new nft added / removed
+      const { added, removed } = await this.app.wallet.updateNftList();
 
-		// wallet-updated event is fired from rust to SLR
-		// please dont rename/remove this method
-		// else we wont get updated slips
-		app.connection.on('wallet-updated', async () => {
-			// console.log("$$$$ wallet-updated --> check balance of preferred crypto");
+      console.log('added: ', added);
+      console.log('removed: ', removed);
 
-			// check if new nft added / removed
-			const { added, removed } = await this.app.wallet.updateNftList();
+      if (added.length || removed.length) {
+        for (const nft of added) {
+          siteMessage(`NFT received in wallet`, 5000);
+        }
+        for (const nft of removed) {
+          siteMessage(`NFT sent from wallet`, 5000);
+        }
+      }
 
-			console.log("added: ", added);
-			console.log("removed: ", removed);
+      await this.renderCrypto();
 
-			if (added.length || removed.length) {
-			  for (const nft of added) {
-			    siteMessage(`NFT received in wallet`, 5000);
-			  }
-			  for (const nft of removed) {
-			    siteMessage(`NFT sent from wallet`, 5000);
-			  }
-			}
+      //await this.checkBalanceUpdate();
+    });
 
-			await this.renderCrypto();
+    app.connection.on('block-fetch-status', (count) => {
+      // trigger block sync ui here
+      //console.log("blocks currently being fetched : ", count);
+    });
 
-			//await this.checkBalanceUpdate();
-		});
+    app.connection.on('header-update-crypto', async () => {
+      if (!this.installing_crypto) {
+        //console.log("$$$$ header-update-crypto --> renderCrypto");
+        await this.renderCrypto();
+      } else {
+        console.log('dont render crypto');
+      }
+    });
 
-		app.connection.on('block-fetch-status', (count) => {
-			// trigger block sync ui here
-			//console.log("blocks currently being fetched : ", count);
-		});
+    app.connection.on('header-install-crypto', (ticker) => {
+      console.log('install crypto');
+      this.installing_crypto = ticker;
+      try {
+        document.querySelector('#qrcode').innerHTML = '';
+        document.querySelector('.balance-amount').innerHTML = '';
+        const addressContainer = document.querySelector('#profile-public-key');
+        if (addressContainer) {
+          addressContainer.dataset.add = '';
+          addressContainer.innerHTML = '<div>generating keys...</div>';
+          addressContainer.classList.add('generate-keys');
+        }
+        this.loader.show();
+        siteMessage(`Installing ${ticker} in Saito Multiwallet...`, 2000);
+      } catch (err) {
+        console.error(err);
+      }
+    });
 
-		app.connection.on('header-update-crypto', async () => {
-			if (!this.installing_crypto){
-				//console.log("$$$$ header-update-crypto --> renderCrypto");
-				await this.renderCrypto();	
-			}else{
-				console.log("dont render crypto");
-			}
-		});
-
-		app.connection.on('header-install-crypto', (ticker) => {
-				console.log("install crypto");
-				this.installing_crypto = ticker;
-				try {
-					document.querySelector('#qrcode').innerHTML = '';
-					document.querySelector(".balance-amount").innerHTML = "";
-					const addressContainer = document.querySelector('#profile-public-key');
-					if (addressContainer){
-						addressContainer.dataset.add = "";
-						addressContainer.innerHTML = '<div>generating keys...</div>';
-						addressContainer.classList.add('generate-keys');
-					}
-					this.loader.show();
-					siteMessage(`Installing ${ticker} in Saito Multiwallet...`, 2000);
-				} catch (err) {
-					console.error(err);
-				}
-		});
-
-		app.connection.on('crypto-activated', (ticker) => {
-			if (this.installing_crypto && this.installing_crypto == ticker) {
-				setTimeout(()=> {
-					this.installing_crypto = false;
-					this.app.options.wallet.backup_required = `Your wallet has added new crypto keys -- ${ticker}. 
+    app.connection.on('crypto-activated', (ticker) => {
+      if (this.installing_crypto && this.installing_crypto == ticker) {
+        setTimeout(() => {
+          this.installing_crypto = false;
+          this.app.options.wallet.backup_required = `Your wallet has added new crypto keys -- ${ticker}. 
 					Unless you backup your wallet, you may lose any deposits with those keys. 
 					Do you want help backing up your wallet?`;
 
-					this.app.connection.emit('saito-backup-render-request', {
-						msg: this.app.options.wallet.backup_required,
-						title: 'BACKUP YOUR WALLET'
-					});
+          this.app.connection.emit('saito-backup-render-request', {
+            msg: this.app.options.wallet.backup_required,
+            title: 'BACKUP YOUR WALLET'
+          });
+        }, 1500);
+      }
 
-				}, 1500);
-			}
+      console.log('$$$$ crypto-activated --> renderCrypto');
+      this.renderCrypto(true);
+    });
 
-			console.log("$$$$ crypto-activated --> renderCrypto");
-			this.renderCrypto(true);
+    //
+    // This allows us to replace the saito logo with a back arrow and a click event
+    // In the future, we may want to parameterize what we replace the logo with
+    //
+    app.connection.on('saito-header-replace-logo', (callback = null) => {
+      if (!document.querySelector('.saito-back-button')) {
+        this.app.browser.addElementToSelector(
+          `<i class="saito-back-button fa-solid fa-arrow-left"></i>`,
+          '.saito-header-logo-wrapper'
+        );
 
-		})
+        document.querySelector('.saito-header-logo-wrapper').onclick = (e) => {
+          if (callback) {
+            callback(e);
+          }
+        };
+      }
+    });
 
-		//
-		// This allows us to replace the saito logo with a back arrow and a click event
-		// In the future, we may want to parameterize what we replace the logo with
-		//
-		app.connection.on('saito-header-replace-logo', (callback = null) => {
-			if (!document.querySelector('.saito-back-button')) {
-				this.app.browser.addElementToSelector(
-					`<i class="saito-back-button fa-solid fa-arrow-left"></i>`,
-					'.saito-header-logo-wrapper'
-				);
+    app.connection.on('saito-header-change-location', (new_path) => {
+      this.header_location = new_path;
+    });
 
-				document.querySelector('.saito-header-logo-wrapper').onclick = (e) => {
-					if (callback) {
-						callback(e);
-					}
-				};
-			}
-		});
+    app.connection.on('saito-header-reset-logo', () => {
+      this.resetHeaderLogo();
+    });
 
-		app.connection.on('saito-header-change-location', (new_path) => {
-			this.header_location = new_path;
-		});
+    app.connection.on('saito-header-notification', (source_mod, unread) => {
+      this.notifications[source_mod] = unread;
 
-		app.connection.on('saito-header-reset-logo', () => {
-			this.resetHeaderLogo();
-		});
+      let total = 0;
+      for (let m in this.notifications) {
+        total += this.notifications[m];
+      }
 
-		app.connection.on('saito-header-notification', (source_mod, unread) => {
-			this.notifications[source_mod] = unread;
+      this.app.browser.addNotificationToId(total, 'saito-header-menu-toggle');
+    });
+  }
 
-			let total = 0;
-			for (let m in this.notifications) {
-				total += this.notifications[m];
-			}
-
-			this.app.browser.addNotificationToId(total, 'saito-header-menu-toggle');
-		});
-
-
-	}
-
-	resetHeaderLogo() {
-		let logo = document.querySelector('.saito-header-logo-wrapper');
-		if (logo) {
-			logo.innerHTML = `
+  resetHeaderLogo() {
+    let logo = document.querySelector('.saito-header-logo-wrapper');
+    if (logo) {
+      logo.innerHTML = `
 	      <img class="saito-header-logo" alt="Logo" src="/saito/img/logo.svg" />
 	    `;
 
-			logo.onclick = (e) => {
-				navigateWindow(this.header_location, 300);
-			};
-		}
-	}
+      logo.onclick = (e) => {
+        navigateWindow(this.header_location, 300);
+      };
+    }
+  }
 
-	async render() {
-		if (this.mod == null || !document) {
-			return;
-		}
+  async render() {
+    if (this.mod == null || !document) {
+      return;
+    }
 
-		//
-		// add basic framework to DOM if needed
-		//
-		if (!document.getElementById('saito-header')) {
-			this.app.browser.prependElementToDom(SaitoHeaderTemplate(this.app, this.mod, this.header_class));
-		} else {
-			this.app.browser.replaceElementById(
-				SaitoHeaderTemplate(this.app, this.mod, this.header_class),
-				'saito-header'
-			);
-		}
+    //
+    // add basic framework to DOM if needed
+    //
+    if (!document.getElementById('saito-header')) {
+      this.app.browser.prependElementToDom(
+        SaitoHeaderTemplate(this.app, this.mod, this.header_class)
+      );
+    } else {
+      this.app.browser.replaceElementById(
+        SaitoHeaderTemplate(this.app, this.mod, this.header_class),
+        'saito-header'
+      );
+    }
 
-		//
-		// Header Logo
-		//
-		this.resetHeaderLogo();
+    //
+    // Header Logo
+    //
+    this.resetHeaderLogo();
 
-		//
-		// Add a short cut
-		//
-		if (this.mod?.use_floating_plus) {
-			if (!document.getElementById('saito-floating-menu')) {
-				this.app.browser.addElementToDom(FloatingMenu());
-				this.addFloatingMenu();
-			}
-		}
+    //
+    // Add a short cut
+    //
+    if (this.mod?.use_floating_plus) {
+      if (!document.getElementById('saito-floating-menu')) {
+        this.app.browser.addElementToDom(FloatingMenu());
+        this.addFloatingMenu();
+      }
+    }
 
-		// 
-		// Process the respondTos for apps that install in the Hamburger menu 
-		//
-		this.addHamburgerMenu();
+    //
+    // Process the respondTos for apps that install in the Hamburger menu
+    //
+    this.addHamburgerMenu();
 
-		//
-		// render QR code and cryptos
-		//
-		//console.log("$$$$ header.Render --> renderCrypto");
-		await this.renderCrypto(true);
+    //
+    // render QR code and cryptos
+    //
+    //console.log("$$$$ header.Render --> renderCrypto");
+    await this.renderCrypto(true);
 
-		//
-		// Nothing happens here
-		//
-		await this.app.modules.renderInto('.saito-header');
+    //
+    // Nothing happens here
+    //
+    await this.app.modules.renderInto('.saito-header');
 
-		// 
-		// Insert user's name 
-		//
-		this.renderUsername();
+    //
+    // Insert user's name
+    //
+    this.renderUsername();
 
-		this.attachEvents();
-	}
+    this.attachEvents();
+  }
 
-	/*******************************************
-	 * 
-	 * Process and add floating plus menu items
-	 * 
-	********************************************/
-	addFloatingMenu() {
-		let this_header = this;
+  /*******************************************
+   *
+   * Process and add floating plus menu items
+   *
+   ********************************************/
+  addFloatingMenu() {
+    let this_header = this;
 
-		let index = 0;
-		let menu_entries = [];
+    let index = 0;
+    let menu_entries = [];
 
-		//
-		// collect menu items from respondTos
-		//
-		let mods = this.app.modules.respondTo('saito-floating-menu');
-		for (const mod of mods) {
-			let item = mod.respondTo('saito-floating-menu');
+    //
+    // collect menu items from respondTos
+    //
+    let mods = this.app.modules.respondTo('saito-floating-menu');
+    for (const mod of mods) {
+      let item = mod.respondTo('saito-floating-menu');
 
-			if (item instanceof Array) {
-				item.forEach((j) => {
-					if (!j.rank) {
-						j.rank = 100;
-					}
-					menu_entries.push(j);
-				});
-			}
-		}
+      if (item instanceof Array) {
+        item.forEach((j) => {
+          if (!j.rank) {
+            j.rank = 100;
+          }
+          menu_entries.push(j);
+        });
+      }
+    }
 
-		// Sort menu items
-		//
-		let menu_sort = function (a, b) {
-			if (a.rank < b.rank) {
-				return 1;
-			}
-			if (a.rank > b.rank) {
-				return -1;
-			}
-			return 0;
-		};
+    // Sort menu items
+    //
+    let menu_sort = function (a, b) {
+      if (a.rank < b.rank) {
+        return 1;
+      }
+      if (a.rank > b.rank) {
+        return -1;
+      }
+      return 0;
+    };
 
-		menu_entries = menu_entries.sort(menu_sort);
+    menu_entries = menu_entries.sort(menu_sort);
 
-		// Check filters and add HTML
-		//
-		for (let i = 0; i < menu_entries.length; i++) {
-			let j = menu_entries[i];
-			let show_me = true;
-			let active_mod = this.app.modules.returnActiveModule();
-			if (typeof j.disallowed_mods != 'undefined') {
-				if (j.disallowed_mods.includes(active_mod.slug)) {
-					show_me = false;
-				}
-			}
-			if (typeof j.allowed_mods != 'undefined') {
-				show_me = false;
-				if (j.allowed_mods.includes(active_mod.slug)) {
-					show_me = true;
-				}
-			}
-			if (show_me) {
-				let id = `saito_floating_menu_item_${index}`;
-				this_header.callbacks[index] = j.callback;
-				this_header.addFloatingMenuItem(j, id, index);
-				index++;
-			}
-		}
-	}
+    // Check filters and add HTML
+    //
+    for (let i = 0; i < menu_entries.length; i++) {
+      let j = menu_entries[i];
+      let show_me = true;
+      let active_mod = this.app.modules.returnActiveModule();
+      if (typeof j.disallowed_mods != 'undefined') {
+        if (j.disallowed_mods.includes(active_mod.slug)) {
+          show_me = false;
+        }
+      }
+      if (typeof j.allowed_mods != 'undefined') {
+        show_me = false;
+        if (j.allowed_mods.includes(active_mod.slug)) {
+          show_me = true;
+        }
+      }
+      if (show_me) {
+        let id = `saito_floating_menu_item_${index}`;
+        this_header.callbacks[index] = j.callback;
+        this_header.addFloatingMenuItem(j, id, index);
+        index++;
+      }
+    }
+  }
 
-	addFloatingMenuItem(item, id, index) {
-		let html = `
+  addFloatingMenuItem(item, id, index) {
+    let html = `
 		      <div id="${id}" data-id="${index}" class="saito-floating-menu-item">
 		        <i class="${item.icon}"></i>
 		      </div>
     		`;
 
-		if (item?.is_active) {
-			this.app.browser.addElementToSelector(html, '.saito-floating-item-container.main');
-		} else {
-			this.app.browser.addElementToSelector(html, '.saito-floating-item-container.alt');
-		}
-	}
+    if (item?.is_active) {
+      this.app.browser.addElementToSelector(html, '.saito-floating-item-container.main');
+    } else {
+      this.app.browser.addElementToSelector(html, '.saito-floating-item-container.alt');
+    }
+  }
 
-	/*******************************************
-	 * 
-	 * Process and add floating main menu items
-	 * 
-	********************************************/
-	addHamburgerMenu(){
-		let mods = this.app.modules.respondTo('saito-header');
+  /*******************************************
+   *
+   * Process and add floating main menu items
+   *
+   ********************************************/
+  addHamburgerMenu() {
+    let mods = this.app.modules.respondTo('saito-header');
 
-		let index = 0;
-		let menu_entries = [];
-		for (const mod1 of mods) {
-			let item = mod1.respondTo('saito-header');
-			if (item instanceof Array) {
-				item.forEach((j) => {
-					if (!j.rank) {
-						j.rank = 100;
-					}
-					menu_entries.push(j);
-				});
-			}
-		}
+    let index = 0;
+    let menu_entries = [];
+    for (const mod1 of mods) {
+      let item = mod1.respondTo('saito-header');
+      if (item instanceof Array) {
+        item.forEach((j) => {
+          if (!j.rank) {
+            j.rank = 100;
+          }
+          menu_entries.push(j);
+        });
+      }
+    }
 
-		let menu_sort = function (a, b) {
-			if (a.rank < b.rank) {
-				return -1;
-			}
-			if (a.rank > b.rank) {
-				return 1;
-			}
-			return 0;
-		};
-		menu_entries = menu_entries.sort(menu_sort);
+    let menu_sort = function (a, b) {
+      if (a.rank < b.rank) {
+        return -1;
+      }
+      if (a.rank > b.rank) {
+        return 1;
+      }
+      return 0;
+    };
+    menu_entries = menu_entries.sort(menu_sort);
 
-		for (let i = 0; i < menu_entries.length; i++) {
-			let j = menu_entries[i];
-			let show_me = true;
-			let active_mod = this.app.modules.returnActiveModule();
-			if (typeof j.disallowed_mods != 'undefined') {
-				if (j.disallowed_mods.includes(active_mod.slug)) {
-					show_me = false;
-				}
-			}
-			if (typeof j.allowed_mods != 'undefined') {
-				show_me = false;
-				if (j.allowed_mods.includes(active_mod.slug)) {
-					show_me = true;
-				}
-			}
-			if (show_me) {
-				let id = `saito_header_menu_item_${index}`;
-				this.callbacks[id] = j.callback;
-				this.addMenuItem(j, id);
-				index++;
+    for (let i = 0; i < menu_entries.length; i++) {
+      let j = menu_entries[i];
+      let show_me = true;
+      let active_mod = this.app.modules.returnActiveModule();
+      if (typeof j.disallowed_mods != 'undefined') {
+        if (j.disallowed_mods.includes(active_mod.slug)) {
+          show_me = false;
+        }
+      }
+      if (typeof j.allowed_mods != 'undefined') {
+        show_me = false;
+        if (j.allowed_mods.includes(active_mod.slug)) {
+          show_me = true;
+        }
+      }
+      if (show_me) {
+        let id = `saito_header_menu_item_${index}`;
+        this.callbacks[id] = j.callback;
+        this.addMenuItem(j, id);
+        index++;
 
-				if (j.event) {
-					j.event(id);
-				}
-			}
-		}
+        if (j.event) {
+          j.event(id);
+        }
+      }
+    }
+  }
 
-	}
-
-	addMenuItem(item, id) {
-		let html = `     
+  addMenuItem(item, id) {
+    let html = `     
       <li id="${id}" data-id="${item.text}" class="saito-header-appspace-option">
         <i class="${item.icon}"></i>
         <span>${item.text}</span>

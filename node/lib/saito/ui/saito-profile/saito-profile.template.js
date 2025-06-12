@@ -48,8 +48,8 @@ module.exports = (app, mod, profile) => {
       
       <div class="saito-profile-description ${can_edit ? 'can-edit' : ''}">
       	<div id="profile-description-${publicKey}" class="profile-description-${publicKey}" data-id="${publicKey}">${
-          profile?.description || ''
-        }</div>
+    profile?.description || ''
+  }</div>
       	<div class="saito-description-edit"><i class="fas fa-pen"></i></div>
 	    </div>`;
 

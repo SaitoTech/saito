@@ -83,14 +83,14 @@ export default class Wallet extends SaitoWallet {
     fee,
     receipient_publicKey
   ): Promise<Transaction> {
-    console.log("values going to saito.ts:");
-    console.log('wallet.ts num:',num);
+    console.log('values going to saito.ts:');
+    console.log('wallet.ts num:', num);
     console.log(deposit);
     console.log(data);
     console.log(fee);
     console.log(receipient_publicKey);
 
-    let nft_type = "Standard";
+    let nft_type = 'Standard';
     return S.getInstance().createBoundTransaction(
       num,
       deposit,
@@ -461,7 +461,7 @@ export default class Wallet extends SaitoWallet {
     }
 
     await this.saitoCrypto.initialize(this.app);
-  
+
     // add nft back to rust wallet
     this.addNftList();
   }
@@ -553,7 +553,7 @@ export default class Wallet extends SaitoWallet {
   /////////////////////////
 
   returnInstalledCryptos() {
-    const cryptoModules: (typeof CryptoModule)[] =
+    const cryptoModules: typeof CryptoModule[] =
       this.app.modules.returnModulesBySubType(CryptoModule);
     if (this.saitoCrypto !== null) {
       cryptoModules.push(this.saitoCrypto);
@@ -563,7 +563,7 @@ export default class Wallet extends SaitoWallet {
 
   returnActivatedCryptos() {
     const allMods = this.returnInstalledCryptos();
-    const activeMods: (typeof CryptoModule)[] = [];
+    const activeMods: typeof CryptoModule[] = [];
     for (let i = 0; i < allMods.length; i++) {
       if (allMods[i].isActivated()) {
         activeMods.push(allMods[i]);
@@ -1219,44 +1219,34 @@ export default class Wallet extends SaitoWallet {
   }
 
   /**
-  * Update rust wallet nft struct
-  */
+   * Update rust wallet nft struct
+   */
   addNftList() {
     //if (this.app.BROWSER == 1) {
-      console.log("last block id on page load:");
-      console.log(this.app.options.blockchain);
+    console.log('last block id on page load:');
+    console.log(this.app.options.blockchain);
 
-      if (!this.app.options.wallet.nfts) {
-        this.app.options.wallet.nfts = [];
+    if (!this.app.options.wallet.nfts) {
+      this.app.options.wallet.nfts = [];
+    }
+    let nfts = this.app.options.wallet.nfts;
+    if (nfts.length > 0) {
+      for (let i = 0; i < nfts.length; i++) {
+        let nft = nfts[i];
+
+        let slip1_utxokey = nft.slip1.utxo_key;
+        let slip2_utxokey = nft.slip2.utxo_key;
+        let slip3_utxokey = nft.slip3.utxo_key;
+        let id = nft.id;
+        let tx_sig = nft.tx_sig;
+
+        console.log('node wallet: addding nft');
+        console.log(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig);
+
+        return this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig);
       }
-      let nfts = this.app.options.wallet.nfts;
-      if (nfts.length > 0) {
-        for (let i =0;  i < nfts.length ; i++) {
-          let nft = nfts[i];
-      
-          let slip1_utxokey = nft.slip1.utxo_key;
-          let slip2_utxokey = nft.slip2.utxo_key;
-          let slip3_utxokey = nft.slip3.utxo_key; 
-          let id = nft.id;
-          let tx_sig = nft.tx_sig;
-
-          console.log("node wallet: addding nft");
-          console.log(slip1_utxokey,
-            slip2_utxokey,
-            slip3_utxokey,
-            id,
-            tx_sig);
-
-          return this.addNft(
-            slip1_utxokey,
-            slip2_utxokey,
-            slip3_utxokey,
-            id,
-            tx_sig
-          );
-        }
-      }
-   // }
+    }
+    // }
   }
 
   async updateNftList(): Promise<{ removed: any[]; added: any[] }> {
@@ -1269,12 +1259,12 @@ export default class Wallet extends SaitoWallet {
     const oldList: any[] = this.app.options.wallet.nfts;
 
     // Build sets of slip2.utxo_key for comparison
-    const oldKeys = new Set(oldList.map(nft => nft.slip2.utxo_key));
+    const oldKeys = new Set(oldList.map((nft) => nft.slip2.utxo_key));
     const newKeys = new Set(parsed.map((nft: any) => nft.slip2.utxo_key));
 
     // Determine full NFT objects that were added or removed
-    const added   = parsed.filter((nft: any) => !oldKeys.has(nft.slip2.utxo_key));
-    const removed = oldList.filter(nft => !newKeys.has(nft.slip2.utxo_key));
+    const added = parsed.filter((nft: any) => !oldKeys.has(nft.slip2.utxo_key));
+    const removed = oldList.filter((nft) => !newKeys.has(nft.slip2.utxo_key));
 
     // Only persist & update if there’s been any change
     if (added.length || removed.length) {
@@ -1285,28 +1275,24 @@ export default class Wallet extends SaitoWallet {
     return { removed, added };
   }
 
-
   public async splitNft(
-    slip1UtxoKey, 
-    slip2UtxoKey, 
-    slip3UtxoKey, 
-    leftCount, 
+    slip1UtxoKey,
+    slip2UtxoKey,
+    slip3UtxoKey,
+    leftCount,
     rightCount
   ): Promise<Transaction> {
     return S.getInstance().createSplitBoundTransaction(
-      slip1UtxoKey, 
-      slip2UtxoKey, 
-      slip3UtxoKey, 
-      leftCount, 
+      slip1UtxoKey,
+      slip2UtxoKey,
+      slip3UtxoKey,
+      leftCount,
       rightCount
     );
   }
 
   public async mergeNft(nftId): Promise<Transaction> {
-    console.log("wallet.ts mergeNft: ", nftId);
-    return S.getInstance().createMergeBoundTransaction(
-      nftId
-    );
+    console.log('wallet.ts mergeNft: ', nftId);
+    return S.getInstance().createMergeBoundTransaction(nftId);
   }
-
 }
