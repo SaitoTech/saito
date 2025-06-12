@@ -169,23 +169,7 @@ class Nft {
           // Build the merge transaction
           const mergeTx = await this.app.wallet.mergeNft(nftId);
 
-          // Sign and broadcast
-          await mergeTx.sign();
-          await this.app.network.propagateTransaction(mergeTx);
-
-          // // Wait a moment, then refresh local NFT list
-          // setTimeout(async () => {
-          //   try {
-          //     const rawList = await this.app.wallet.getNftList();
-          //     const parsed  = JSON.parse(rawList);
-          //     await this.app.wallet.saveNftList(parsed);
-          //     alert('NFT merge completed successfully!');
-          //   } catch {
-          //     alert('NFT was merged, but failed to refresh local list.');
-          //   }
-          // }, 2000);
-
-          salert(`Merge NFT tx sent: ${newtx.signature}`);
+          salert(`Merge NFT tx sent`);
 
           // Close the overlay
           this.overlay.close();
@@ -262,23 +246,9 @@ class Nft {
         rightCount
       );
     
-      await newtx.sign();
-      await nft_self.app.network.propagateTransaction(newtx);
       console.log("split tx:", newtx);
 
-        // setTimeout(async function(){
-        //     let nft_list = await nft_self.app.wallet.getNftList();            
-        //     console.log("Fetched NFT list: ", nft_list);
-
-        //     const nftArray    = JSON.parse(nft_list); 
-        //     await nft_self.app.wallet.saveNftList(nftArray);
-
-        //     console.log("Updated wallet nft list: ", nft_self.app.options.wallet.nft);
-
-        //     salert("NFT split successfully!");
-        // }, 2000);
-
-        salert(`Split NFT tx sent: ${newtx.signature}`);
+        salert(`Split NFT tx sent`);
 
         nft_self.overlay.close();
     };
@@ -390,20 +360,8 @@ class Nft {
         const newtx = await this.app.wallet.createSendBoundTransaction(
           amt, slip1Key, slip2Key, slip3Key, payload, receiver
         );
-        await newtx.sign();
-        await this.app.network.propagateTransaction(newtx);
-        // setTimeout(async () => {
-        //   try {
-        //     const rawList = await this.app.wallet.getNftList();
-        //     const parsed  = JSON.parse(rawList);
-        //     await this.app.wallet.saveNftList(parsed);
-        //     alert('NFT sent successfully!');
-        //   } catch {
-        //     alert('NFT was sent, but failed to refresh local list.');
-        //   }
-        // }, 2000);
 
-        salert(`Send NFT tx sent: ${newtx.signature}`);
+        salert(`Send NFT tx sent`);
 
         this.overlay.close();
       } catch (err) {

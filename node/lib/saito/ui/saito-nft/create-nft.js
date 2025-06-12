@@ -184,30 +184,13 @@ class Nft {
                 nft_self.mod.publicKey
             );
             console.log("createBoundTransaction:", newtx);
-            await newtx.sign();
-            await nft_self.app.network.propagateTransaction(newtx);
-            console.log("propagateTransaction:", newtx);
-            
 
-            // setTimeout(async function(){
-            //     let nft_list = await nft_self.app.wallet.getNftList();            
-            //     console.log("Fetched NFT list: ", nft_list);
-
-            //     const nftArray    = JSON.parse(nft_list); 
-            //     await nft_self.app.wallet.saveNftList(nftArray);
-
-            //     console.log("Updated wallet nft list: ", nft_self.app.options.wallet.nft);
-            // }, 2000);
-
-            salert(`Create NFT tx sent: ${newtx.signature}`);
+            salert(`Create NFT tx sent`);
 
             nft_self.nft.image = "";
             nft_self.overlay.close();
 
         };
-
-
-
     }
 
 
