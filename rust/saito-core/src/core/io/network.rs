@@ -237,17 +237,16 @@ impl Network {
         let public_key;
         let current_time = self.timer.get_timestamp_in_ms();
         {
-            let control = peers
-                .get_congestion_controls_for_index(peer_index)
-                .expect("peer should exist");
-            control.handshake_limiter.increase();
-            // peer.handshake_limiter.increase();
-            if control.handshake_limiter.has_limit_exceeded(current_time) {
-                warn!(
-                    "peer {:?} exceeded rate peers for handshake challenge",
-                    peer_index
-                );
-                return;
+            let control = peers.get_congestion_controls_for_index(peer_index);
+            if let Some(control) = control {
+                control.handshake_limiter.increase();
+                if control.handshake_limiter.has_limit_exceeded(current_time) {
+                    warn!(
+                        "peer {:?} exceeded rate peers for handshake challenge",
+                        peer_index
+                    );
+                    return;
+                }
             }
         }
         {

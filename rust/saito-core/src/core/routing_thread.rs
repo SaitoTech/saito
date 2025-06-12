@@ -774,17 +774,19 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         peer.stats.received_messages += 1;
                         peer.stats.last_received_message_at = time;
                     }
-                    let control = peers.get_congestion_controls_for_index(peer_index)?;
+                    let control = peers.get_congestion_controls_for_index(peer_index);
 
-                    control.message_limiter.increase();
-                    if control.message_limiter.has_limit_exceeded(time) {
-                        info!(
+                    if let Some(control) = control {
+                        control.message_limiter.increase();
+                        if control.message_limiter.has_limit_exceeded(time) {
+                            info!(
                             "peers exceeded for messages from peer : {:?} - {:?} - rates : {:?}",
                             peer_index,
                             public_key.to_base58(),
                             control.message_limiter
                         );
-                        return None;
+                            return None;
+                        }
                     }
                 }
                 let buffer_len = buffer.len();
@@ -844,7 +846,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 {
                     let mut peers = self.network.peer_lock.write().await;
                     let time = self.timer.get_timestamp_in_ms();
-                    let control = peers.get_congestion_controls_for_index(peer_index)?;
+                    let control = peers.get_congestion_controls_for_index(peer_index).unwrap();
                     if control.invalid_block_limiter.has_limit_exceeded(time) {
                         info!(
                             "peers exceeded for invalid blocks from peer : {:?}. disconnecting peer...",
