@@ -52,7 +52,6 @@
 	top: 1.6rem;
 }
 
-
 .redsquare-feed-toggle {
 	display: flex;
 	align-items: center;
@@ -63,7 +62,7 @@
 	display: none;
 }
 
-.redsquare-feed-toggle .saito-button-tab{
+.redsquare-feed-toggle .saito-button-tab {
 	flex: 1;
 	padding: 0.75rem;
 	cursor: pointer;
@@ -71,7 +70,7 @@
 	color: var(--saito-font-color-light);
 }
 
-.redsquare-feed-toggle .saito-button-tab.active{
+.redsquare-feed-toggle .saito-button-tab.active {
 	color: var(--saito-font-color-heavy);
 	font-weight: bold;
 }
@@ -80,15 +79,19 @@
 	border-bottom: 2px solid var(--saito-primary);
 }
 
-.redsquare-feed-toggle .saito-button-tab:hover{
+.redsquare-feed-toggle .saito-button-tab:hover {
 	background: var(--background-color-gray-transparent);
 }
 
-.tweet-manager.active-curation .tweet{
+/* filter garbage */
+.tweet-manager .tweet[data-curated='-1'] {
 	display: none;
 }
 
-.tweet-manager.active-curation .tweet[data-curated="1"]{
-	display: block;
+.tweet-manager.active-curation .tweet {
+	display: none;
 }
 
+.tweet-manager.active-curation .tweet[data-curated='1'] {
+	display: block;
+}

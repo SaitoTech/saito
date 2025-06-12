@@ -52,8 +52,6 @@ class PokerQueue {
 			}
 
 			if (mv[0] === 'newround') {
-				this.updateStatus('dealing new round...');
-
 				this.game.state.round++;
 
 				//Shift dealer, small blind, and big blind
@@ -98,6 +96,10 @@ class PokerQueue {
 						`Blinds increased to: ${this.game.state.big_blind}/${this.game.state.small_blind}`
 					);
 				}
+
+				this.updateStatus(
+					`${this.game.state.player_names[this.game.state.button_player - 1]} dealing the cards...`
+				);
 
 				this.game.state.flipped = 0;
 				this.game.state.plays_since_last_raise = 0;
@@ -383,11 +385,11 @@ class PokerQueue {
 					if (player_to_go == this.game.player) {
 						this.playerTurn();
 					} else {
-						this.displayPlayerNotice(`<div class="plog-update">active player</div>`, player_to_go);
+						this.displayPlayerNotice(`<div class="plog-update">thinking</div>`, player_to_go);
 						if (this.game.state.passed[this.game.player - 1]) {
-							this.updateStatus('waiting for next round');
+							//this.updateStatus('waiting for next round');
 						} else {
-							this.updateStatus('waiting for ' + this.game.state.player_names[player_to_go - 1]);
+							//this.updateStatus('waiting for ' + this.game.state.player_names[player_to_go - 1]);
 						}
 					}
 				}
@@ -575,47 +577,42 @@ class PokerQueue {
 						false
 					)} net)`;
 
-
 					for (let i = 0; i < this.game.state.player_pot.length; i++) {
 						// Track who wins how many chips from whom
-						if (i !== winners[0]){
+						if (i !== winners[0]) {
 							this.game.state.chip_exchange[i][winners[0]] -= this.game.state.player_pot[i];
 							this.game.state.chip_exchange[winners[0]][i] += this.game.state.player_pot[i];
 						}
 					}
-				}else{
+				} else {
 					//
 					// It is very complicated when splitting a pot...
 					//
 					let wchips = new Array(winners.length).fill(0);
 					for (let i = 0; i < this.game.state.player_pot.length; i++) {
-
-						if (!winners.includes(i)){
+						if (!winners.includes(i)) {
 							let temp_pot = Math.floor(this.game.state.player_pot[i] / winners.length);
 
-							for (let j = 0; j < winners.length; j++){
+							for (let j = 0; j < winners.length; j++) {
 								// Track who wins how many chips from whom
 								wchips[j] += temp_pot;
 								this.game.state.chip_exchange[i][winners[j]] -= temp_pot;
 								this.game.state.chip_exchange[winners[j]][i] += temp_pot;
 							}
 
-							let remainder = this.game.state.player_pot[i] - (temp_pot*winners.length);
+							let remainder = this.game.state.player_pot[i] - temp_pot * winners.length;
 							if (remainder) {
 								for (let j = 0; j < winners.length && remainder > 0; j++) {
-									if (wchips[j] < pot_size){
+									if (wchips[j] < pot_size) {
 										remainder--;
 										wchips[j]++;
 										this.game.state.chip_exchange[i][winners[j]]--;
 										this.game.state.chip_exchange[winners[j]][i]++;
 									}
 								}
-
 							}
-
 						}
 					}
-
 				}
 
 				for (let i = 0; i < winners.length; i++) {
@@ -642,9 +639,11 @@ class PokerQueue {
 					this.game.state.winners.push(winners[i] + 1);
 				}
 
-				let remainder = pot_total - (pot_size * winners.length);
-				if (remainder > 0){
-					this.updateLog(`The pot doesn't divide evenly among the winners, leaving ${remainder} for the house`);
+				let remainder = pot_total - pot_size * winners.length;
+				if (remainder > 0) {
+					this.updateLog(
+						`The pot doesn't divide evenly among the winners, leaving ${remainder} for the house`
+					);
 				}
 
 				this.displayPlayers();
@@ -708,39 +707,38 @@ class PokerQueue {
 				this.saveGame(this.game.id);
 
 				const clearBoardAndContinue = (screenshot = null) => {
-						this.playerAcknowledgeNotice(winnerStr, async () => {
-							console.log('Continuing poker...');
-							this.animating = false;
-							this.cardfan.hide();
-							this.pot.clearPot();
-							this.settleLastRound(winner_keys, 'besthand');
-							this.board.clearTable();
-							this.clearPlayers();
-							await this.timeout(800);
-							this.restartQueue();
-						});
+					this.playerAcknowledgeNotice(winnerStr, async () => {
+						console.log('Continuing poker...');
+						this.animating = false;
+						this.cardfan.hide();
+						this.pot.clearPot();
+						this.settleLastRound(winner_keys, 'besthand');
+						this.board.clearTable();
+						this.clearPlayers();
+						await this.timeout(800);
+						this.restartQueue();
+					});
 
-						this.setShotClock('.acknowledge', 9000, false, () => {
-							this.game_help.render({
-								title: 'Showdown',
-								text: `Tip: click anywhere on the screen to interrupt the 3 second countdown that keeps the game moving along`,
-								//img: '/poker/img/poker_screenshot.jpg',
-								line1: 'what',
-								line2: 'happened?',
-								fontsize : "2.1rem",
-								id: 'showdown',
-								callback: () => {
-									if (screenshot){
-										let ov = document.querySelector('.game-help-overlay');
-										if (ov) {
-											ov.prepend(screenshot);
-										}
+					this.setShotClock('.acknowledge', 9000, false, () => {
+						this.game_help.render({
+							title: 'Showdown',
+							text: `Tip: click anywhere on the screen to interrupt the 3 second countdown that keeps the game moving along`,
+							//img: '/poker/img/poker_screenshot.jpg',
+							line1: 'what',
+							line2: 'happened?',
+							fontsize: '2.1rem',
+							id: 'showdown',
+							callback: () => {
+								if (screenshot) {
+									let ov = document.querySelector('.game-help-overlay');
+									if (ov) {
+										ov.prepend(screenshot);
 									}
 								}
-							});
+							}
 						});
-
-				}
+					});
+				};
 
 				if (this.game.player) {
 					html2canvas(document.body, {
@@ -823,12 +821,12 @@ class PokerQueue {
 					this.game.state.player_credit[sbpi] -= this.game.state.small_blind;
 				}
 
-				if (!this.loadGamePreference('poker-hide-pot')) {
+				/*if (!this.loadGamePreference('poker-hide-pot')) {
 					let html = `<div class="poker-player-stake"><span class="stake-in-chips">${this.game.state.player_pot[bbpi]}</span></div>`;
 					this.playerbox.replaceGraphics(html, '.poker-player-stake', bbpi + 1);
 					html = `<div class="poker-player-stake"><span class="stake-in-chips">${this.game.state.player_pot[sbpi]}</span></div>`;
 					this.playerbox.replaceGraphics(html, '.poker-player-stake', sbpi + 1);
-				}
+				}*/
 
 				this.game.queue.push('round'); //Start
 				this.game.queue.push('announce'); //Print Hole cards to Log
@@ -869,6 +867,8 @@ class PokerQueue {
 					this.updateLog(this.game.state.player_names[player - 1] + ' goes all in to call');
 					if (this.game.player !== player) {
 						this.displayPlayerNotice(`<div class="plog-update">all in!</div>`, player);
+					} else {
+						this.updateStatus('all in!');
 					}
 				} else {
 					this.updateLog(
@@ -878,6 +878,8 @@ class PokerQueue {
 					);
 					if (this.game.player !== player) {
 						this.displayPlayerNotice(`<div class="plog-update">calls</div>`, player);
+					} else {
+						this.updateStatus('you called');
 					}
 				}
 
@@ -913,6 +915,7 @@ class PokerQueue {
 						this.displayPlayerNotice(`<div class="plog-update">folds</div>`, player);
 						this.playerbox.addClass('folded', player);
 					} else {
+						this.updateStatus('you folded');
 						this.displayHand();
 						this.ignore_notifications = true;
 					}
@@ -931,6 +934,8 @@ class PokerQueue {
 				this.updateLog(this.game.state.player_names[player - 1] + ' checks.');
 				if (this.game.player !== player && this.browser_active) {
 					this.displayPlayerNotice(`<div class="plog-update">checks</div>`, player);
+				} else {
+					this.updateStatus('you checked');
 				}
 				this.game.state.plays_since_last_raise++;
 
@@ -963,6 +968,8 @@ class PokerQueue {
 
 				if (this.game.player !== player) {
 					this.displayPlayerNotice(`<div class="plog-update">${raise_message}</div>`, player);
+				} else {
+					this.updateStatus(raise_message);
 				}
 
 				await this.animateBet(player, raise);

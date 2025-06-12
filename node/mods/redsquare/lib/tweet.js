@@ -150,6 +150,15 @@ class Tweet {
 			console.error('ERROR in Tweet.js (2):', err);
 		}
 
+		// For ordering the main feed...
+		this.sort_ts = this.created_at;
+		if (this.retweeted_at) {
+			this.sort_ts = Math.max(this.sort_ts, this.retweeted_at);
+		}
+		if (this.thread_ts) {
+			this.sort_ts = Math.max(this.sort_ts, this.thread_ts);
+		}
+
 		//
 		// update from latest edit (if exists)
 		//
@@ -1263,11 +1272,24 @@ class Tweet {
 
 		let links = this.text.match(app.browser.urlRegexp());
 
-		if (links != null && links.length > 0) {
-			//
-			// save the first link
-			//
-			let first_link = links[0].toString();
+		//
+		// save the first link
+		//
+		let first_link = null;
+
+		while (links?.length > 0) {
+			first_link = links.pop();
+
+			console.log(first_link);
+
+			if (!app.browser.numberFilter(first_link)) {
+				break;
+			} else {
+				first_link = null;
+			}
+		}
+
+		if (first_link) {
 			if (!first_link.startsWith('http')) {
 				first_link = 'http://' + first_link;
 			}

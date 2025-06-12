@@ -1,7 +1,10 @@
 module.exports = (app, mod, wizard) => {
   let localDateTime;
   if (wizard.defaultDate) {
-    localDateTime = `${wizard.defaultDate.year}-${String(wizard.defaultDate.month).padStart(2, '0')}-${String(wizard.defaultDate.day).padStart(2, '0')}T12:00`;
+    localDateTime = `${wizard.defaultDate.year}-${String(wizard.defaultDate.month).padStart(
+      2,
+      '0'
+    )}-${String(wizard.defaultDate.day).padStart(2, '0')}T12:00`;
   } else {
     const now = new Date();
     localDateTime = now

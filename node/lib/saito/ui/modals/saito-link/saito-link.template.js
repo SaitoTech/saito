@@ -19,7 +19,9 @@ module.exports = (app, link_self) => {
   if (link_self.share_to_redsquare) {
     let rs_mod = app.modules.returnModuleBySlug('redsquare');
     if (rs_mod) {
-      html += `<div id="tweet-invite-link" class="saito-modal-menu-option"><i class="${rs_mod.icon_fa}"></i><div>Tweet to ${rs_mod.returnName()}</div></div>`;
+      html += `<div id="tweet-invite-link" class="saito-modal-menu-option"><i class="${
+        rs_mod.icon_fa
+      }"></i><div>Tweet to ${rs_mod.returnName()}</div></div>`;
     }
   }
 

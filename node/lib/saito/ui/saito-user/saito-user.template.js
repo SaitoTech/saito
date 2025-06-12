@@ -18,14 +18,18 @@ module.exports = (user) => {
 
   return `
   <div ${uuid ? `id="${uuid}"` : ''}
-  	class="saito-user ${extra_class} saito-user-${publicKey}${myPublicKey == publicKey ? ' saito-user-self' : ''}" 
+  	class="saito-user ${extra_class} saito-user-${publicKey}${
+      myPublicKey == publicKey ? ' saito-user-self' : ''
+    }" 
   	data-id="${publicKey}" data-disable="${data_disable}">
     <div class="saito-identicon-box">
     	<img class="saito-identicon" src="${imgsrc}" data-id="${publicKey}">
     	${icon}
     </div>
     ${app.browser.returnAddressHTML(publicKey)}
-    <div class="saito-userline ${!userline ? 'hidden' : ''}" style="--key-color:${imgcolor};" data-id="${publicKey}">${userline}</div>
+    <div class="saito-userline ${
+      !userline ? 'hidden' : ''
+    }" style="--key-color:${imgcolor};" data-id="${publicKey}">${userline}</div>
     ${fourthelem}
   </div>
   `;

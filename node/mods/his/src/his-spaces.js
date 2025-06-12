@@ -1020,7 +1020,10 @@
   }
 
   returnNavalTransportDestinations(faction, space, ops) {
+
     try { if (this.game.spaces[space]) { space = this.game.spaces[space]; } } catch (err) {}
+
+console.log("into RNTD: " + faction + " - " + space.key);
 
     let viable_destinations = [];
     let viable_navalspaces = [];
