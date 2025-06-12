@@ -3,7 +3,6 @@ use std::fmt::{Debug, Display};
 use crate::core::defs::Currency;
 use crate::core::defs::{BlockId, Timestamp};
 use log::error;
-use rayon::vec;
 use serde::Deserialize;
 use serde::Serialize;
 

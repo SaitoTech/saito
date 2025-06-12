@@ -1,14 +1,20 @@
 use crate::core::consensus::peers::peer::{Peer, PeerStatus};
 use crate::core::consensus::peers::peer_state_writer::PeerStateWriter;
+use crate::core::consensus::peers::rate_limiter::RateLimiter;
 use crate::core::defs::{PeerIndex, PrintForLog, SaitoPublicKey, Timestamp};
 use log::{debug, info};
 use serde::Serialize;
 use std::collections::HashMap;
-use std::fmt::Display;
 use std::time::Duration;
 
 const PEER_REMOVAL_WINDOW: Timestamp = Duration::from_secs(600).as_millis() as Timestamp;
-
+// fn serialize_congestion_controls<S>(data: &HashMap<SaitoPublicKey,PeerCongestionControls>, serializer: S) -> Result<S::Ok, S::Error>
+// where
+//     S: Serializer,
+// {
+//     let hex_vec: Vec<String> = vec.iter().map(|arr| arr.to_base58()).collect();
+//     serializer.collect_seq(hex_vec)
+// }
 #[derive(Clone, Debug, Default)]
 pub struct PeerCounter {
     counter: PeerIndex,
@@ -20,11 +26,26 @@ impl PeerCounter {
         self.counter
     }
 }
+
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct PeerCongestionControls {
+    pub key_list_limiter: RateLimiter,
+    pub handshake_limiter: RateLimiter,
+    pub message_limiter: RateLimiter,
+    pub invalid_block_limiter: RateLimiter,
+}
+
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct PeerCollection {
     pub index_to_peers: HashMap<PeerIndex, Peer>,
     #[serde(skip)]
     pub address_to_peers: HashMap<SaitoPublicKey, PeerIndex>,
+    /// Stores congestion control information for each peer, mapping their public key to their respective
+    /// `PeerCongestionControls` instance. This allows tracking and managing network congestion status
+    /// and related metrics on a per-peer basis. We have to store this here instead of in `Peer` because
+    /// `Peer` is indexed using `PeerIndex`, which does not persist after a reconnection.
+    #[serde(skip)]
+    pub congestion_controls: HashMap<SaitoPublicKey, PeerCongestionControls>,
     #[serde(skip)]
     pub peer_counter: PeerCounter,
     #[serde(skip)]
@@ -42,7 +63,6 @@ impl PeerCollection {
 
         self.find_peer_by_index_mut(*result)
     }
-
     pub fn find_peer_by_index(&self, peer_index: u64) -> Option<&Peer> {
         self.index_to_peers.get(&peer_index)
     }
@@ -122,5 +142,30 @@ impl PeerCollection {
                 self.address_to_peers.remove(&public_key);
             }
         }
+    }
+
+    pub fn get_congestion_controls_by_key(
+        &mut self,
+        public_key: &SaitoPublicKey,
+    ) -> &mut PeerCongestionControls {
+        self.congestion_controls
+            .entry(public_key.clone())
+            .or_insert_with(|| PeerCongestionControls {
+                key_list_limiter: RateLimiter::new(100, Duration::from_secs(60)),
+                handshake_limiter: RateLimiter::new(100, Duration::from_secs(60)),
+                message_limiter: RateLimiter::new(100_000, Duration::from_secs(1)),
+                invalid_block_limiter: RateLimiter::new(10, Duration::from_secs(3600)),
+            })
+    }
+
+    pub fn get_congestion_controls_for_index(
+        &mut self,
+        peer_index: PeerIndex,
+    ) -> Option<&mut PeerCongestionControls> {
+        let peer = self.index_to_peers.get(&peer_index)?;
+        if let Some(public_key) = peer.get_public_key() {
+            return Some(self.get_congestion_controls_by_key(&public_key));
+        }
+        None
     }
 }
