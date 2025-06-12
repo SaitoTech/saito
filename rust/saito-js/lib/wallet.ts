@@ -99,14 +99,6 @@ export default class Wallet extends WasmWrapper<WasmWallet> {
       txSigHex: string,
     ): Promise<void> {
       try {
-
-        console.log("wallet.ts addNft:");
-        console.log(slip1UtxoKeyHex);
-        console.log(slip2UtxoKeyHex);
-        console.log(slip3UtxoKeyHex);
-        console.log(idHex);
-        console.log(txSigHex);
-
         await this.instance.add_nft(
           slip1UtxoKeyHex,
           slip2UtxoKeyHex,

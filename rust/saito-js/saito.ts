@@ -348,8 +348,6 @@ export default class Saito {
         nft_type: string, 
     ): Promise<T> {
 
-        console.log("saito.ts num: ", num);
-
         let wasmTx = await Saito.getLibInstance().create_bound_transaction(
             num,
             deposit,
@@ -358,8 +356,6 @@ export default class Saito {
             recipient_public_key,
             nft_type
         );
-
-        console.log("saito.ts tx: ", wasmTx);
 
         let tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
         tx.timestamp = new Date().getTime();
@@ -383,7 +379,6 @@ export default class Saito {
           data,
           recipientPublicKey
         );
-        console.log("WASM NFT transfer transaction:", wasmTx);
 
         const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
         tx.timestamp = Date.now();
@@ -397,8 +392,6 @@ export default class Saito {
       leftCount: number,
       rightCount: number
     ): Promise<T> {
-      console.log("saito.ts createSplitBoundTransaction:", slip1UtxoKey, slip2UtxoKey, slip3UtxoKey, leftCount, rightCount);
-
       const wasmTx = await Saito.getLibInstance().create_split_bound_transaction(
         slip1UtxoKey,
         slip2UtxoKey,
@@ -416,8 +409,6 @@ export default class Saito {
     public async createMergeBoundTransaction<T extends Transaction>(
       nftId: string
     ): Promise<T> {
-      console.log("saito.ts createMergeBoundTransaction:", nftId);
-
       const wasmTx = await Saito.getLibInstance().create_merge_bound_transaction(
         nftId
       );

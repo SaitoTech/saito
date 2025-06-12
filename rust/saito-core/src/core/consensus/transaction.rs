@@ -1254,7 +1254,7 @@ impl Transaction {
             // - slip1 is bound
             // - slip2 is normal
             // - slip3 is bound
-            // - slip3.amount = slip1.amount
+            // - slip3.amount = 0
             // - slips 4,5,6 etc are normal
             //
             if is_this_a_new_nft {
