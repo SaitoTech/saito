@@ -253,7 +253,9 @@ class GameMoves {
 
     if (this.halted == 1 || this.gaming_active == 1 || this.game.initialize_game_run == 0) {
       console.info(
-        `GT [addNextMove] -- save as future move because halted (${this.halted}) or active (${this.gaming_active}) or not initialized (${this.game.initialize_game_run}): ${JSON.stringify(gametxmsg)}`
+        `GT [addNextMove] -- save as future move because halted (${this.halted}) or active (${
+          this.gaming_active
+        }) or not initialized (${this.game.initialize_game_run}): ${JSON.stringify(gametxmsg)}`
       );
 
       await this.addFutureMove(gametx);
@@ -316,7 +318,9 @@ class GameMoves {
       }
 
       console.info(
-        `GT [addNextMove] -- (${gametxmsg.step.game}, ${this.app.keychain.returnUsername(gametx.from[0].publicKey)}): `,
+        `GT [addNextMove] -- (${gametxmsg.step.game}, ${this.app.keychain.returnUsername(
+          gametx.from[0].publicKey
+        )}): `,
         gametxmsg.turn
       );
 

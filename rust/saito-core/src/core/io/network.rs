@@ -64,12 +64,15 @@ impl Network {
         }
 
         {
-            let peers = self.peer_lock.read().await;
-            for (index, peer) in peers.index_to_peers.iter() {
+            let mut peers = self.peer_lock.write().await;
+            for (index, peer) in peers.index_to_peers.iter_mut() {
                 if peer.get_public_key().is_none() {
                     excluded_peers.push(*index);
                     continue;
                 }
+                peer.stats.sent_block_headers += 1;
+                peer.stats.last_sent_block_header_at = self.timer.get_timestamp_in_ms();
+                peer.stats.last_received_block_header = block.hash.to_hex();
             }
         }
 
@@ -84,7 +87,7 @@ impl Network {
     pub async fn propagate_transaction(&self, transaction: &Transaction) {
         // TODO : return if tx is not valid
 
-        let peers = self.peer_lock.read().await;
+        let mut peers = self.peer_lock.write().await;
         let mut wallet = self.wallet_lock.write().await;
 
         let public_key = wallet.public_key;
@@ -102,7 +105,7 @@ impl Network {
             }
         }
 
-        for (index, peer) in peers.index_to_peers.iter() {
+        for (index, peer) in peers.index_to_peers.iter_mut() {
             if peer.get_public_key().is_none() {
                 continue;
             }
@@ -110,6 +113,11 @@ impl Network {
             if transaction.is_in_path(&public_key) {
                 continue;
             }
+
+            peer.stats.sent_txs += 1;
+            peer.stats.last_sent_tx_at = self.timer.get_timestamp_in_ms();
+            peer.stats.last_sent_tx = transaction.signature.to_hex();
+
             let mut transaction = transaction.clone();
             transaction.add_hop(&wallet.private_key, &wallet.public_key, &public_key);
             let message = Message::Transaction(transaction);

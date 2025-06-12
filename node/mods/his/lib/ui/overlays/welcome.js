@@ -44,8 +44,12 @@ class WelcomeOverlay {
 
 		let img = "";
 		if (obj.img) { img = obj.img; }
+		let title = "";
+		if (obj.title) { title = obj.title; }
+		let text = "";
+		if (obj.text) { text = obj.text; }
 
-		this.overlay.show(WelcomeTemplate("", img));
+		this.overlay.show(WelcomeTemplate("", img, title, text));
 		this.pushHudUnderOverlay();
 		this.overlay.pullOverlayToFront();
 

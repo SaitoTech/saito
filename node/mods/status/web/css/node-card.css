@@ -1,7 +1,7 @@
 .node-card {
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   margin: 1rem;
   position: relative;
   min-width: 30rem;
@@ -49,6 +49,7 @@
 }
 .node-card-content.padded {
   padding: 1rem;
+  max-height: calc(100vh - 16rem);
 }
 .json-view {
   background: #f6f8fa;
@@ -120,4 +121,4 @@
 .node-card-tab-btn:hover {
   color: #444;
   background: #eaeaea;
-} 
+}

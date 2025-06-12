@@ -1,5 +1,5 @@
-import { JsonViewer } from "@textea/json-viewer";
-import React, { useState } from "react";
+import { JsonViewer } from '@textea/json-viewer';
+import React, { useState } from 'react';
 
 const NodeCard = ({ onClose, title, peerStats, stats, loading, onOpenPeer }) => {
   const [view, setView] = useState('peerStats');
@@ -19,9 +19,17 @@ const NodeCard = ({ onClose, title, peerStats, stats, loading, onOpenPeer }) => 
 
   // Helper to build peer URL
   const buildPeerUrl = (peer) => {
-    if (!peer.static_peer_config || !peer.static_peer_config.protocol || !peer.static_peer_config.host) return 'Browser';
+    if (
+      !peer.static_peer_config ||
+      !peer.static_peer_config.protocol ||
+      !peer.static_peer_config.host
+    )
+      return 'Browser';
     let url = `${peer.static_peer_config.protocol}://${peer.static_peer_config.host}`;
-    if ((peer.static_peer_config.protocol === 'https' && peer.static_peer_config.port !== 443) || (peer.static_peer_config.protocol === 'http' && peer.static_peer_config.port !== 80)) {
+    if (
+      (peer.static_peer_config.protocol === 'https' && peer.static_peer_config.port !== 443) ||
+      (peer.static_peer_config.protocol === 'http' && peer.static_peer_config.port !== 80)
+    ) {
       url += `:${peer.static_peer_config.port}`;
     }
     return url;
@@ -32,39 +40,57 @@ const NodeCard = ({ onClose, title, peerStats, stats, loading, onOpenPeer }) => 
       <div className="node-card-title">
         <span>{title}</span>
         <div>
-              <button
-                className={`node-card-tab-btn${view === 'peerStats' ? ' active' : ''}`}
-                onClick={() => setView('peerStats')}
-              >
-                Peers
-              </button>
-              <button
-                className={`node-card-tab-btn${view === 'stats' ? ' active' : ''}`}
-                onClick={() => setView('stats')}
-              >
-                Stats
-              </button>
-              <button
-                className={`node-card-tab-btn${view === 'peers' ? ' active' : ''}`}
-                onClick={() => setView('peers')}
-              >
-                Explore
-              </button>
-              <button className="node-card-close" onClick={onClose} aria-label="Close">×</button>
-            </div>
+          <button
+            className={`node-card-tab-btn${view === 'peerStats' ? ' active' : ''}`}
+            onClick={() => setView('peerStats')}
+          >
+            Peers
+          </button>
+          <button
+            className={`node-card-tab-btn${view === 'stats' ? ' active' : ''}`}
+            onClick={() => setView('stats')}
+          >
+            Stats
+          </button>
+          <button
+            className={`node-card-tab-btn${view === 'peers' ? ' active' : ''}`}
+            onClick={() => setView('peers')}
+          >
+            Explore
+          </button>
+          <button className="node-card-close" onClick={onClose} aria-label="Close">
+            ×
+          </button>
+        </div>
       </div>
       <div className="node-card-content padded">
         {/* Hidden raw JSON for debugging or future use */}
-        <div style={{ display: 'none' }} data-raw-stats={rawStats} data-raw-peer-stats={rawPeerStats}></div>
+        <div
+          style={{ display: 'none' }}
+          data-raw-stats={rawStats}
+          data-raw-peer-stats={rawPeerStats}
+        ></div>
         {loading ? (
           <div>Loading...</div>
         ) : hasJson ? (
           <>
             {view === 'peerStats' && peerStats && (
-              <JsonViewer value={JSON.parse(peerStats).index_to_peers} displayDataTypes={false} displayObjectSize={false} rootName={false} defaultInspectDepth={1} />
+              <JsonViewer
+                value={JSON.parse(peerStats).index_to_peers}
+                displayDataTypes={false}
+                displayObjectSize={false}
+                rootName={false}
+                defaultInspectDepth={1}
+              />
             )}
             {view === 'stats' && stats && (
-              <JsonViewer value={JSON.parse(stats)} displayDataTypes={false} displayObjectSize={false} rootName={false} defaultInspectDepth={1} /> 
+              <JsonViewer
+                value={JSON.parse(stats)}
+                displayDataTypes={false}
+                displayObjectSize={false}
+                rootName={false}
+                defaultInspectDepth={1}
+              />
             )}
             {view === 'peers' && peers && (
               <div>
@@ -75,7 +101,7 @@ const NodeCard = ({ onClose, title, peerStats, stats, loading, onOpenPeer }) => 
                       <li key={idx} className="peer-link-list-item">
                         <span
                           className="peer-link"
-                          onClick={e => {
+                          onClick={(e) => {
                             e.preventDefault();
                             if (onOpenPeer) onOpenPeer(peer, url);
                           }}
@@ -88,10 +114,21 @@ const NodeCard = ({ onClose, title, peerStats, stats, loading, onOpenPeer }) => 
                           rel="noopener noreferrer"
                           className="peer-link-external"
                           title="Open in new tab"
-                          onClick={e => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <svg style={{ width: '0.9em', height: '0.9em', verticalAlign: 'middle' }} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M7 13L17 3M17 3H10M17 3V10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <svg
+                            style={{ width: '0.9em', height: '0.9em', verticalAlign: 'middle' }}
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              d="M7 13L17 3M17 3H10M17 3V10"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
                           </svg>
                         </a>
                       </li>
@@ -102,14 +139,11 @@ const NodeCard = ({ onClose, title, peerStats, stats, loading, onOpenPeer }) => 
             )}
           </>
         ) : (
-          Array.from({ length: 200 }).map((_, i) => (
-            <div key={i}>Row {i + 1}</div>
-          ))
+          Array.from({ length: 200 }).map((_, i) => <div key={i}>Row {i + 1}</div>)
         )}
       </div>
     </div>
   );
 };
 
-
-export default NodeCard; 
+export default NodeCard;

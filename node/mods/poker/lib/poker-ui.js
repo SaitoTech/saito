@@ -74,10 +74,10 @@ class PokerUI {
         this.playerbox.updateGraphics('', i);
       }
 
-      if (this.game.state.player_pot[i - 1] && !this.loadGamePreference('poker-hide-pot')) {
+      /*if (this.game.state.player_pot[i - 1] && !this.loadGamePreference('poker-hide-pot')) {
         let html = `<div class="poker-player-stake"><span class="stake-in-chips">${this.game.state.player_pot[i - 1]}</span></div>`;
         this.playerbox.replaceGraphics(html, '.poker-player-stake', i);
-      }
+      }*/
     }
   }
 
@@ -216,21 +216,21 @@ class PokerUI {
             this.pot.render(++initial_pot);
             this.displayPlayerStack(better, --initial_stack);
             // player_pot is update outside the animation...
-            qs = this.playerbox.replaceGraphics(
+            /*qs = this.playerbox.replaceGraphics(
               `<div class="poker-player-stake"><span class="stake-in-chips">${this.game.state.player_pot[better - 1] + i}</span></div>`,
               '.poker-player-stake',
               better
-            );
+            );*/
             this.pot.addPulse();
           },
           run_all_callbacks: true
         },
         (item) => {
-          if (this.loadGamePreference('poker-hide-pot')) {
+          /*if (this.loadGamePreference('poker-hide-pot')) {
             setTimeout(() => {
               document.querySelector(qs).classList.add('invisible');
             }, 500);
-          }
+          }*/
 
           if (!restartQueue) {
             $(item).remove();
@@ -314,7 +314,11 @@ class PokerUI {
       return;
     }
 
-    this.displayPlayerNotice(`your turn`, this.game.player);
+    // Makes sure the controls are available and updates status
+    this.displayPlayerNotice(
+      `${this.formatWager(this.game.state.player_pot[this.game.player - 1])} in pot`,
+      this.game.player
+    );
 
     let html =
       '<div class="option" id="fold"><img src="/poker/img/fold_icon.svg" alt="fold"><span>fold</span></div>';

@@ -151,9 +151,10 @@ class GameCards {
       return html;
     } else {
       for (let i = 0; i < cardarray.length; i++) {
-        html += `<div id="${cardarray[i]}" class="card ${
-          cardarray[i]
-        }">${this.returnCardImage(cardarray[i], deckid)}</div>`;
+        html += `<div id="${cardarray[i]}" class="card ${cardarray[i]}">${this.returnCardImage(
+          cardarray[i],
+          deckid
+        )}</div>`;
       }
       return html;
     }

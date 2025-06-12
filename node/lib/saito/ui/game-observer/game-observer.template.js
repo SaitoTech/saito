@@ -23,7 +23,11 @@ module.exports = (game_mod) => {
 
   html += `</div>
         <div id="game-observer-status" class="game-observer-status">Game Step: ${step}</div>
-        <div class="game-observer-header-control">${game_mod.game?.live ? `<div id="game-observer-play-btn" class="game-observer-btn pause-state" title="Stop execution and queue all incoming game moves"><i class="fas fa-pause"></i></div>` : ''}</div>
+        <div class="game-observer-header-control">${
+          game_mod.game?.live
+            ? `<div id="game-observer-play-btn" class="game-observer-btn pause-state" title="Stop execution and queue all incoming game moves"><i class="fas fa-pause"></i></div>`
+            : ''
+        }</div>
       </div>`;
 
   if (!game_mod.game?.live) {

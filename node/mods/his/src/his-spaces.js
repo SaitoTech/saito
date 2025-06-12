@@ -1020,6 +1020,7 @@
   }
 
   returnNavalTransportDestinations(faction, space, ops) {
+
     try { if (this.game.spaces[space]) { space = this.game.spaces[space]; } } catch (err) {}
 
     let viable_destinations = [];
@@ -1192,6 +1193,15 @@
     let space = this.game.spaces[spacekey];
     let res = this.returnNearestFactionControlledPorts(faction, spacekey);    
 
+    //
+    // do not return naval units if this is the nearest friendly fortified space
+    //
+    if (this.game.spaces[spacekey]) {
+      let cf = this.returnFactionControllingSpace(spacekey);
+      if (this.returnControllingPower(faction) == this.returnControllingPower(cf)) { return 1; }
+    }
+
+
     for (let z = space.units[faction].length-1; z >= 0; z--) {
       let u = space.units[faction][z];
 
@@ -1223,6 +1233,12 @@
     // remove siege if needed so units not "besieged" when moved
     //
     this.removeSiege(space.key);
+
+    //
+    // do not return land units if this is the nearest friendly fortified space
+    //
+    let cf = this.returnFactionControllingSpace(spacekey);
+    if (this.returnControllingPower(faction) == this.returnControllingPower(cf)) { return 1; }
 
     //
     // find the nearest friendly fortified space w/ less than 4 units

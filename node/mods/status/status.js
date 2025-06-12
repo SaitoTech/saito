@@ -12,9 +12,9 @@ class Status extends ModTemplate {
   constructor(app) {
     super(app);
     this.app = app;
-    this.name = "status";
-    this.description = "Saito Status Module (React Version)";
-    this.categories = "Utilities Information";
+    this.name = 'status';
+    this.description = 'Saito Status Module (React Version)';
+    this.categories = 'Utilities Information';
     this.styles = [`/${this.name}/web/css/main.css`];
     this.scripts = [];
     this.rendered = false;
@@ -26,12 +26,19 @@ class Status extends ModTemplate {
     console.log(`${this.returnName()} Initialized (React rendering handled directly in render())`);
   }
 
-  async render() {
+  onPeerHandshakeComplete() {
+    if (this.app.BROWSER === 1) {
+      this.renderUI();
+    }
+  }
+
+  async renderUI() {
     console.log(`${this.returnName()} render() method called.`);
 
     try {
       const stats = await S.getLibInstance().get_stats();
       const peerStats = await S.getLibInstance().get_peer_stats();
+      console.log(JSON.parse(peerStats));
       window.stats = stats;
       window.peerStats = peerStats;
       window.loading = false;
@@ -50,7 +57,9 @@ class Status extends ModTemplate {
     if (rootElement) {
       try {
         if (!App) {
-          console.error(`${this.returnName()} Error: App component is undefined or null. Check require statement.`);
+          console.error(
+            `${this.returnName()} Error: App component is undefined or null. Check require statement.`
+          );
           return;
         }
         const root = createRoot(rootElement);
@@ -61,7 +70,9 @@ class Status extends ModTemplate {
         console.error(`${this.returnName()} Error rendering React component in render():`, err);
       }
     } else {
-      console.error(`${this.returnName()} Error: Could not find root element #saito-react-app for React rendering in render(). Check HTML shell.`);
+      console.error(
+        `${this.returnName()} Error: Could not find root element #saito-react-app for React rendering in render(). Check HTML shell.`
+      );
     }
   }
 
@@ -82,4 +93,4 @@ class Status extends ModTemplate {
   }
 }
 
-module.exports = Status; 
+module.exports = Status;
