@@ -1102,6 +1102,58 @@ impl Transaction {
             if let Some(hash_for_signature) = &self.hash_for_signature {
                 let sig: SaitoSignature = self.signature;
                 let public_key: SaitoPublicKey = self.from[0].public_key;
+
+                // 
+                // for bound (NFT) txs, the "owner" is in the normal slip (slip2), 
+                // not the bound slips (slip1, slip2)
+                //
+
+                //
+                // determine which input slip holds the signing key
+                //
+                let public_key: SaitoPublicKey = if self.transaction_type == TransactionType::Bound {
+                    //
+                    // if this is a CREATE-bound transaction, its first input's Normal
+                    // and outputs should have atleast one nft group: bound, normal, bound
+                    //
+                    let is_create = self.from[0].slip_type == SlipType::Normal
+                        && self.to.len() >= 3
+                        && self.to[0].slip_type == SlipType::Bound
+                        && self.to[1].slip_type == SlipType::Normal
+                        && self.to[2].slip_type == SlipType::Bound;
+
+                    if is_create {
+                        //
+                        // creation is signed by normal input
+                        //
+                        self.from[0].public_key
+                    } else {
+                        //
+                        // otherwise it's a SEND/MERGE/SPLIT-bound: 
+                        // find the first [Bound, Normal, Bound] nft group
+                        //
+                        let mut signer_public_key = self.from[0].public_key;
+                        let mut idx = 0;
+                        while idx + 2 < self.from.len() {
+                            let a = &self.from[idx];
+                            let b = &self.from[idx + 1];
+                            let c = &self.from[idx + 2];
+                            if a.slip_type == SlipType::Bound
+                                && b.slip_type == SlipType::Normal
+                                && c.slip_type == SlipType::Bound
+                            {
+                                signer_public_key = b.public_key;
+                                break;
+                            }
+                            idx += 1;
+                        }
+                        signer_public_key
+                    }
+                } else {
+                    // non-Bound txs always sign with the very first input
+                    self.from[0].public_key
+                };
+
                 if !verify_signature(hash_for_signature, &sig, &public_key) {
                     error!(
                         "tx verification failed : hash = {:?}, sig = {:?}, pub_key = {:?}",
