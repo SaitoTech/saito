@@ -66,7 +66,7 @@ class PokerUI {
   displayButton() {
     for (let i = 1; i <= this.game.players.length; i++) {
       if (i == this.game.state.button_player) {
-        this.playerbox.updateGraphics(
+        this.playerbox.updateIcons(
           `<div class="dealer-button" title="dealer button">D</div>`,
           i
         );
@@ -157,7 +157,7 @@ class PokerUI {
       stack_html += `<div class="crypto-hover-balance">${credit} <span class="smaller-font">${this.game.crypto}</span></div>`;
     }
 
-    this.playerbox.updateIcons(stack_html, player);
+    this.playerbox.updateExtras(stack_html, player);
   }
 
   //

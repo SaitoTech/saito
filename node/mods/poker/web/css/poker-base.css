@@ -139,21 +139,7 @@ body {
 
 /* style.css | https://saito.io/poker/style.css?v=1749105283 */
 
-.game-playerbox-icons {
-  /* flex-direction: column; */
-  flex-direction: row;
-  gap: 1rem;
-  padding: 0 1rem 0 5rem;
-  border-radius: 3rem;
-  border: 1px solid #fff4;
-  /*background: url(/poker/img/simple-chip.svg);*/
-  background-color: rgba(0, 0, 0, 0);
-  background-repeat: repeat;
-  background-size: auto;
-  background-size: contain;
-  background-repeat: no-repeat;
-  position: relative;
-}
+
 
 
 .game-playerbox {
@@ -168,10 +154,21 @@ body {
 .dealer-button {
   position: relative;
   padding: 2px 0 0 2px;
-  position: absolute;
-  right: 16rem;
-  top: 2.5rem;
+  border: 1px solid #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bolder;
+  cursor: default;
+  font-family: sans-serif;
+  text-shadow: none;
+  font-weight: normal;
+  background-color: #fff;
+  right: unset;
+  top: unset;
+  left: unset;
 }
+
 
 .saito-user {
   border-radius: 4rem;
@@ -231,10 +228,20 @@ body {
   height: 4.5rem;
 }
 
-.game-playerbox-head {
+/*
+.game-playerbox-extras, .game-playerbox .saito-user {
   border-radius: 1rem;
   box-shadow: 5px 5px 3px #0008;
   background-color: #0003;
+  padding: 1rem;
+}*/
+
+.game-playerbox .saito-user {
+  width: 60%;
+}
+
+.game-playerbox-extras {
+  width: 40%;
 }
 
 .plog-update, .status {
@@ -263,20 +270,22 @@ li.textchoice {
   color: #036
 }
 
-.dealer-button {
-  border: 1px solid #999;
-  position: absolute;
-  right: 16rem;
-  top: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: black;
-  padding-left: 2px;
-  font-weight: bolder;
-  cursor: default;
-  font-family: sans-serif;
-  text-shadow: none;
-  font-weight: normal;
-  background-color: #fff;
+.game-playerbox-head{
+  gap: 1rem;
+}
+
+.game-playerbox-extras {
+  /* flex-direction: column; */
+  flex-direction: row;
+  gap: 1rem;
+  padding: 0 1rem 0 5rem;
+  border-radius: 3rem;
+  border: 1px solid #fff4;
+  background: url(/poker/img/simple-chip.svg);
+  background-repeat: repeat;
+  background-size: auto;
+  background-size: contain;
+  background-repeat: no-repeat;
+  position: relative;
+  height: 4.5rem;
 }

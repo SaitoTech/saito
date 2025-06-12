@@ -49,13 +49,14 @@ class GamePlayerboxManager {
     }
 
     //
-    // poker mode => add seating
+    // poker mode => add seating and extras
     //
     if (this.mode == 2) {
       for (let i = 1; i <= this.playerboxes.length; i++) {
         let obj = document.querySelector(`.game-playerbox-${i}`);
         if (obj) {
           obj.classList.add(`game-playerbox-seat-${this.playerBox(i)}`);
+          obj.querySelector('.game-playerbox-head').innerHTML += '<div class="game-playerbox-extras"></div>';
         }
       }
     }

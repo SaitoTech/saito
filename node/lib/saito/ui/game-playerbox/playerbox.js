@@ -18,6 +18,7 @@ class GamePlayerBox {
     this.mod = mod;
     this.container = container;
     this.player_number = player_number;
+    this.header_extras_html = '<div class="game-playerbox-extras"></div>';
     this.saito_user = new SaitoUser(
       this.app,
       this.mod,
@@ -121,14 +122,29 @@ class GamePlayerBox {
   updateIcons(content) {
     if (
       document.querySelector(
-        `.game-playerbox-head-${this.player_number} .saito-user .game-playerbox-icons`
+        `.game-playerbox-head-${this.player_number} .game-playerbox-icons`
       )
     ) {
       document.querySelector(
-        `.game-playerbox-head-${this.player_number} .saito-user .game-playerbox-icons`
+        `.game-playerbox-head-${this.player_number} .game-playerbox-icons`
       ).innerHTML = content;
     }
   }
+
+  updateExtras(content) {
+    if (
+      document.querySelector(
+        `.game-playerbox-head-${this.player_number} .game-playerbox-extras`
+      )
+    ) {
+      document.querySelector(
+        `.game-playerbox-head-${this.player_number} .game-playerbox-extras`
+      ).innerHTML = content;
+    }
+  }
+
+
+
 
   updateBody(content) {
     if (document.querySelector(`.game-playerbox-body-${this.player_number}`)) {
