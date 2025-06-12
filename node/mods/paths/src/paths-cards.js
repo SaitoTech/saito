@@ -1407,15 +1407,11 @@ deck['ap30'] = {
 	  //
 	  paths_self.game.state.central_rounds[paths_self.game.state.central_rounds.length-1] = "sr";
 
-console.log("salonika 1");
-
 	  let p = paths_self.returnPlayerOfFaction("allies");
           let just_stop = 0;
           let units_moved = 0;
 
 	  if (paths_self.game.player == p) {
-
-console.log("salonika 2");
 
 	    //
 	    // count max units movable
@@ -1425,9 +1421,11 @@ console.log("salonika 2");
 	    if (max_units_movable <= 0) { paths_self.endTurn(); return 0; }
 
             let loop_fnct = () => {
-console.log("salonika 3");
+
+	      max_units_movable = 3 - paths_self.game.spaces["salonika"].units.length;
+	      if (max_units_movable <= 0) { paths_self.updateStatus("submitting"); paths_self.endTurn(); return 0; }
+
               if (continue_fnct()) {
-console.log("salonika 4");
         	paths_self.playerSelectUnitWithFilter(
         	  "Select Corps for Salonika?" ,
         	  filter_fnct ,
@@ -1450,14 +1448,10 @@ console.log("salonika 4");
 	    };
 
     	    let continue_fnct = () => {
-console.log("salonika 5");
   	      if (just_stop == 1) { return 0; }
   	      if (units_moved >= max_units_movable) { return 0; }
-console.log("salonika 6");
 	      let count = paths_self.countUnitsWithFilter(filter_fnct);
-console.log("salonika 7 - " + count);
 	      if (count == 0) { return 0; }
-console.log("salonika 8");
 	      return 1;
 	    }
 

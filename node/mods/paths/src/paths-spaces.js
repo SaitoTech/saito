@@ -280,7 +280,7 @@ if (spacekey == "batum") {
     if (faction == "ro" || faction == "romania") { sources = ["moscow","petrograd","kharkov","caucasus"]; }
     if (faction == "sb" || faction == "serbia") { 
       sources = ["moscow","petrograd","kharkov","caucasus","london"]; 
-      if (this.returnControlOfSpace("salonika") == "allies") { sources["sb"].push("salonika"); }
+      if (this.returnControlOfSpace("salonika") == "allies") { sources.push("salonika"); }
     }
     if (sources.length == 0) {
       sources = ["london"];

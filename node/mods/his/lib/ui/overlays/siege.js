@@ -224,7 +224,7 @@ class AssaultOverlay {
 
 				if (can_i_kill_this_guy) {
 					if (factionspace) {
-						factionspace.innerHTML += ' (click to assign hit)';
+						el.querySelector('.siege-desc').innerHTML += ' (click to assign hit)';
 					}
 					el.classList.add('hits-assignable-hover-effect');
 	

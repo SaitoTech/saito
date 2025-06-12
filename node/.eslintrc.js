@@ -13,7 +13,7 @@ module.exports = {
     plugins: ['@typescript-eslint'],
     rules: {
         // Basic code style rules
-        indent: ['error', 4],
+        indent: ['error', 2],
         'linebreak-style': ['error', 'unix'], // Use Unix line endings
         quotes: ['error', 'single', { allowTemplateLiterals: true }], // Use single quotes for strings
         semi: ['error', 'always'] // Require semicolons at the end of statements

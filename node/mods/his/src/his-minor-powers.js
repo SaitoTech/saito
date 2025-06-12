@@ -88,8 +88,10 @@
     //
     for (let key in this.game.spaces) {
       if (this.game.spaces[key].home == power) {
-        this.returnAllLandUnitsInSpacekeyToNearestFriendlyFortifiedSpace(key, faction);
-        this.returnAllNavalUnitsInSpacekeyToNearestFriendlyFortifiedPort(key, faction);
+        if (faction != power) { 
+	  this.returnAllLandUnitsInSpacekeyToNearestFriendlyFortifiedSpace(key, faction);
+          this.returnAllNavalUnitsInSpacekeyToNearestFriendlyFortifiedPort(key, faction);
+        }
       }
     }
 

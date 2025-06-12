@@ -5681,7 +5681,9 @@ does_units_to_move_have_unit = true; }
 
 
 
-  canPlayerNavalTransport(his_self, player, faction, ops_to_spend, ops_remaining) {
+  canPlayerNavalTransport(his_self, player, faction, ops_to_spend=0, ops_remaining=0) {
+
+console.log("ops_to_spend + " + ops_to_spend + " .. " + ops_remaining);
 
     //
     // no for protestants early-game
@@ -5698,6 +5700,8 @@ does_units_to_move_have_unit = true; }
       }
     }
     if (!have_ships_at_sea) { return false; }
+
+    if (ops_remaining < ops_to_spend) { ops_remaining = ops_to_spend; }
 
     if (ops_remaining < 2) { return 0; }
     let spaces_with_infantry = his_self.returnSpacesWithFactionInfantry(faction);
