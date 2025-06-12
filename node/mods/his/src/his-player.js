@@ -8381,7 +8381,11 @@ console.log("controller: " + controller + " -- " + key);
     return his_self.canPlayerBurnBooks(his_self, player, faction, 1);
   }
   canPlayerBurnBooks(his_self, player, faction, mary_i=0) {
-    if (faction === "papacy") { return 1; }
+    if (faction === "papacy") { 
+      if (his_self.returnNumberOfProtestantSpacesInLanguageZone() > 0) {
+        return 1;
+      }
+    }
     return 0;
   }
   async playerBurnBooksMaryI(his_self, player, faction, ops_to_spend=0, ops_remaining=0, mary_i=1) {

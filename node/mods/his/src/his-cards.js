@@ -8398,6 +8398,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 		    },
 
 	            function(second_choice) {
+		      his_self.updateStatus("submitting...");
 		      his_self.addMove("convert\t"+second_choice+"\tcatholic");
 		      his_self.addMove("convert\t"+first_choice+"\tcatholic");
 		      his_self.endTurn();
