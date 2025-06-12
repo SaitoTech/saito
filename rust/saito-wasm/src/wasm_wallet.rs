@@ -10,13 +10,36 @@ use wasm_bindgen::JsValue;
 
 use saito_core::core::consensus::slip::{Slip, SlipType};
 use saito_core::core::consensus::wallet::{Wallet, WalletSlip};
-use saito_core::core::defs::{Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey};
+use saito_core::core::defs::{
+    Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoSignature, SaitoUTXOSetKey,
+};
 use saito_core::core::io::network::Network;
 use saito_core::core::io::storage::Storage;
 
 use crate::saitowasm::{string_array_to_base58_keys, string_to_hex, SAITO};
 use crate::wasm_io_handler::WasmIoHandler;
 use crate::wasm_transaction::WasmTransaction;
+
+use hex;
+use std::convert::TryInto;
+
+/// Parse a hex string into a fixed-size UTXO set key
+fn string_to_utxoset_key(s: &str) -> Result<SaitoUTXOSetKey, String> {
+    let bytes = hex::decode(s).map_err(|e| format!("hex decode error: {}", e))?;
+    bytes
+        .as_slice()
+        .try_into()
+        .map_err(|_| "invalid utxoset key length".into())
+}
+
+/// Parse a hex string into a 64-byte signature
+fn string_to_signature(s: &str) -> Result<SaitoSignature, String> {
+    let bytes = hex::decode(s).map_err(|e| format!("hex decode error: {}", e))?;
+    bytes
+        .as_slice()
+        .try_into()
+        .map_err(|_| "invalid signature length".into())
+}
 
 #[wasm_bindgen]
 #[derive(Clone)]
@@ -166,6 +189,35 @@ impl WasmWallet {
             .routing_thread
             .set_my_key_list(key_list)
             .await;
+    }
+
+    #[wasm_bindgen]
+    pub async fn add_nft(
+        &self,
+        slip1_hex: String,
+        slip2_hex: String,
+        slip3_hex: String,
+        id_hex: String,
+        sig_hex: String,
+    ) -> Result<(), JsValue> {
+        let saito = SAITO.lock().await;
+        let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
+
+        let slip1: SaitoUTXOSetKey = string_to_utxoset_key(&slip1_hex)
+            .map_err(|e| JsValue::from_str(&format!("slip1 parse error: {}", e)))?;
+        let slip2: SaitoUTXOSetKey = string_to_utxoset_key(&slip2_hex)
+            .map_err(|e| JsValue::from_str(&format!("slip2 parse error: {}", e)))?;
+        let slip3: SaitoUTXOSetKey = string_to_utxoset_key(&slip3_hex)
+            .map_err(|e| JsValue::from_str(&format!("slip3 parse error: {}", e)))?;
+
+        let id: Vec<u8> = hex::decode(&id_hex)
+            .map_err(|e| JsValue::from_str(&format!("id hex decode error: {}", e)))?;
+        let tx_sig: SaitoSignature = string_to_signature(&sig_hex)
+            .map_err(|e| JsValue::from_str(&format!("signature parse error: {}", e)))?;
+
+        wallet.add_nft(slip1, slip2, slip3, id, tx_sig);
+
+        Ok(())
     }
 }
 

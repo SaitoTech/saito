@@ -395,58 +395,55 @@ impl Transaction {
     }
 
     //
-    // Builds an ATR rebroadcast transaction for a 3-slip NFT group:
-    // [Bound, Normal, Bound]
+    // Create a single ATR transaction by rebroadcasting
+    // and merging multiple NFT-bound groups
     //
     pub fn create_rebroadcast_bound_transaction(
         transaction_to_rebroadcast: &Transaction,
-        slip1: Slip, // first Bound slip
-        slip2: Slip, // Normal slip (amount already includes payout)
-        slip3: Slip, // second Bound slip
+        groups: Vec<(Slip, Slip, Slip)>,
     ) -> Transaction {
         let mut tx = Transaction::default();
         tx.transaction_type = TransactionType::ATR;
 
-        // if this is the FIRST time we are rebroadcasting, we copy the
-        // original transaction into the message field in serialized
-        // form. this preserves the original message and its signature
-        // in perpetuity.
-        //
-        // if this is the SECOND or subsequent rebroadcast, we do not
-        // copy the ATR tx (no need for a meta-tx) and rather just update
-        // the message field with the original transaction (which is
-        // by definition already in the previous TX message space.
+        // Preserve original data on first rebroadcast, otherwise carry forward previous ATR data
         tx.data = if transaction_to_rebroadcast.transaction_type == TransactionType::ATR {
             transaction_to_rebroadcast.data.clone()
         } else {
             transaction_to_rebroadcast.serialize_for_net()
         };
 
-        // attach the three “input” slips
-        tx.add_from_slip(slip1.clone());
-        tx.add_from_slip(slip2.clone());
-        tx.add_from_slip(slip3.clone());
-
-        //
-        // attach the three output slips
-        // same Bound slips, but payload has slip_type=ATR
-        //
-        tx.add_to_slip(slip1);
-        {
-            let mut output2 = slip2.clone();
-            output2.slip_type = SlipType::ATR;
-            tx.add_to_slip(output2);
+        // Attach all input slips from every NFT group
+        for (slip1, slip2, slip3) in &groups {
+            tx.add_from_slip(slip1.clone());
+            tx.add_from_slip(slip2.clone());
+            tx.add_from_slip(slip3.clone());
         }
-        tx.add_to_slip(slip3);
 
+        // Merge slip1 amounts, slip2 amounts, and produce a zero‐amount slip3
+        let total1: u64 = groups.iter().map(|(s1, _, _)| s1.amount).sum();
+        let total2: u64 = groups.iter().map(|(_, s2, _)| s2.amount).sum();
+
+        // Build merged output slips
+        let mut merged_slip1 = groups[0].0.clone();
+        merged_slip1.amount = total1;
+
+        let mut merged_slip2 = groups[0].1.clone();
+        merged_slip2.slip_type = SlipType::ATR;
+        merged_slip2.amount = total2;
+
+        let mut merged_slip3 = groups[0].2.clone();
+        merged_slip3.amount = 0;
+
+        // Attach merged output slips
+        tx.add_to_slip(merged_slip1);
+        tx.add_to_slip(merged_slip2);
+        tx.add_to_slip(merged_slip3);
+
+        // Compute any fees (none by default for ATR)
         tx.generate_total_fees(0, 0);
 
-        //
-        // signature is the ORIGINAL signature. this transaction
-        // will fail its signature check and then get analysed as
-        // a rebroadcast transaction because of its transaction type.
-        //
-        tx.signature = transaction_to_rebroadcast.signature;
+        // Carry over the original signature so this will be recognized as a rebroadcast
+        tx.signature = transaction_to_rebroadcast.signature.clone();
 
         tx
     }
@@ -1105,6 +1102,59 @@ impl Transaction {
             if let Some(hash_for_signature) = &self.hash_for_signature {
                 let sig: SaitoSignature = self.signature;
                 let public_key: SaitoPublicKey = self.from[0].public_key;
+
+                //
+                // for bound (NFT) txs, the "owner" is in the normal slip (slip2),
+                // not the bound slips (slip1, slip2)
+                //
+
+                //
+                // determine which input slip holds the signing key
+                //
+                let public_key: SaitoPublicKey = if self.transaction_type == TransactionType::Bound
+                {
+                    //
+                    // if this is a CREATE-bound transaction, its first input's Normal
+                    // and outputs should have atleast one nft group: bound, normal, bound
+                    //
+                    let is_create = self.from[0].slip_type == SlipType::Normal
+                        && self.to.len() >= 3
+                        && self.to[0].slip_type == SlipType::Bound
+                        && self.to[1].slip_type == SlipType::Normal
+                        && self.to[2].slip_type == SlipType::Bound;
+
+                    if is_create {
+                        //
+                        // creation is signed by normal input
+                        //
+                        self.from[0].public_key
+                    } else {
+                        //
+                        // otherwise it's a SEND/MERGE/SPLIT-bound:
+                        // find the first [Bound, Normal, Bound] nft group
+                        //
+                        let mut signer_public_key = self.from[0].public_key;
+                        let mut idx = 0;
+                        while idx + 2 < self.from.len() {
+                            let a = &self.from[idx];
+                            let b = &self.from[idx + 1];
+                            let c = &self.from[idx + 2];
+                            if a.slip_type == SlipType::Bound
+                                && b.slip_type == SlipType::Normal
+                                && c.slip_type == SlipType::Bound
+                            {
+                                signer_public_key = b.public_key;
+                                break;
+                            }
+                            idx += 1;
+                        }
+                        signer_public_key
+                    }
+                } else {
+                    // non-Bound txs always sign with the very first input
+                    self.from[0].public_key
+                };
+
                 if !verify_signature(hash_for_signature, &sig, &public_key) {
                     error!(
                         "tx verification failed : hash = {:?}, sig = {:?}, pub_key = {:?}",
@@ -1227,8 +1277,8 @@ impl Transaction {
                     || self.to[2].slip_type != SlipType::Bound
                 {
                     error!(
-                        "Create-bound transaction: slip1 or slip3 not bound slips {:?}",
-                        self.to.len()
+                        "Create-bound transaction: slip1 or slip3 not bound slips ({:?}/{:?})",
+                        self.to[0].slip_type, self.to[2].slip_type
                     );
                     return false;
                 }
@@ -1238,18 +1288,29 @@ impl Transaction {
                 //
                 if self.to[1].slip_type != SlipType::Normal {
                     error!(
-                        "Create-bound transaction: slip2 nor normal slip {:?}",
-                        self.to.len()
+                        "Create-bound transaction: slip2 not normal slip {:?}",
+                        self.to[1].slip_type
                     );
                     return false;
                 }
 
                 //
-                // slip3 = zero amount
+                // slip1.amount must be non-zero
+                //
+                if self.to[0].amount == 0 {
+                    error!(
+                        "Create-bound transaction: slip1 amount ({}) = 0",
+                        self.to[0].amount
+                    );
+                    return false;
+                }
+
+                //
+                // slip3.amount must equal to 0
                 //
                 if self.to[2].amount != 0 {
                     error!(
-                        "Create-bound transaction: output 2 (tracking slip) amount is not zero (found {}).",
+                        "Create-bound transaction: slip3 amount ({}) != 0",
                         self.to[2].amount
                     );
                     return false;
@@ -1260,7 +1321,7 @@ impl Transaction {
                 //
                 // outputs[3..] = Normal
                 //
-                for slip in self.from.iter().skip(3) {
+                for slip in self.to.iter().skip(3) {
                     if slip.slip_type != SlipType::Normal {
                         error!(
                             "Bound Transaction: created tx has unexpected non-normal slip (found {:?}).",
@@ -1272,7 +1333,7 @@ impl Transaction {
 
                 //
                 // This section ensures that the bound slip (output[2]) truly encodes
-                // the unique UTXO that was consumed to mint this NFT. We decode the 33‑byte
+                // the unique UTXO that was consumed to mint this NFT. We decode the 33-byte
                 // public_key on output[2] to extract:
                 //
                 //  - rec_block_id   – the original block_id (bytes 0..8)
@@ -1280,10 +1341,10 @@ impl Transaction {
                 //  - rec_slip_id    – the original slip_index (byte 16)
                 //
                 // We then compare these directly against the values on the slip we burned
-                // (self.from[0]). If any differ, the NFT‑UUID was forged or tampered with.
+                // (self.from[0]). If any differ, the NFT-UUID was forged or tampered with.
                 //
 
-                // Extract the 33‑byte “UUID” from the third output slip
+                // Extract the 33-byte “UUID” from the third output slip
                 let uuid_pk = self.to[2].public_key;
 
                 // 1) Decode original block_id (8 bytes, big-endian)
@@ -1303,230 +1364,232 @@ impl Transaction {
                     || rec_tx_ord != original_input.tx_ordinal
                     || rec_slip_id != original_input.slip_index
                 {
-                    error!("Create‑bound TX: NFT UUID identifiers do not match the consumed UTXO");
+                    error!("Create-bound TX: NFT UUID identifiers do not match the consumed UTXO");
                     return false;
                 }
-
-            //
-            // otherwise, this is an existing NFT which is being transferred between
-            // network addresses, in which case we have a slightly different set of
-            // checks.
-            //
-            // - at least three input slips
-            // - at least three output slips
-            // - input slip1 is bound
-            // - input slip2 is normal
-            // - input slip3 is bound
-            // - output slip1 is bound
-            // - output slip2 is normal
-            // - output slip3 is bound
-            // - input slips 4,5,6 etc are normal
-            // - output slips 4,5,6 etc are normal
-            //
-            // - input slip1 publickey matches output slip1 publickey
-            // - input slip3 publickey matches output slip3 publickey
-            // - input slip1 amount matches output slip1 amount
-            // - input slip3 amount matches output slip3 amount
-            // - slip1, slip2, slip3 are identical block_id, tx_id, and sequential slip_id
-            //
             } else {
                 //
-                // at least 3 input slips
+                // MULTI-GROUP transfer / split / merge:
+                // dynamically find each [Bound, Normal, Bound] tuple in inputs & outputs
                 //
-                if self.from.len() < 3 {
-                    error!(
-                        "Send bound transaction Invalid: fewer than 3 inputs, found {}.",
-                        self.from.len()
-                    );
-                    return false;
-                }
-                //
-                // at least 3 output slips
-                //
-                if self.to.len() < 3 {
-                    error!(
-                        "Send-bound transaction Invalid: fewer than 3 outputs, found {}.",
-                        self.to.len()
-                    );
-                    return false;
-                }
 
                 //
-                // input slip1 + slip3 = bound
+                // Collect input groups
                 //
-                if self.from[0].slip_type != SlipType::Bound
-                    || self.from[2].slip_type != SlipType::Bound
-                {
-                    error!(
-                        "Send-bound transaction: Input slip1 {:?} or slip3 not bound slips {:?}",
-                        self.from[0], self.from[2]
-                    );
-                    return false;
-                }
+                let mut input_groups = Vec::new(); // Vec<(usize, usize, usize)>
+                let mut index_in = 0;
+                while index_in < self.from.len() {
+                    if self.from[index_in].slip_type == SlipType::Bound {
+                        if index_in + 2 >= self.from.len() {
+                            error!("Send-bound TX: incomplete input group at idx {}", index_in);
+                            return false;
+                        }
+                        let input1 = &self.from[index_in + 0];
+                        let input2 = &self.from[index_in + 1];
+                        let input3 = &self.from[index_in + 2];
 
-                //
-                // input slip2 = normal
-                //
-                if self.from[1].slip_type != SlipType::Normal {
-                    error!(
-                        "Send-bound transaction: Input slip2 not normal slip {:?}",
-                        self.from[1]
-                    );
-                    return false;
-                }
+                        if input2.slip_type != SlipType::Normal
+                            || input3.slip_type != SlipType::Bound
+                        {
+                            error!(
+                                "Send-bound TX: invalid input types at idx {}: {:?}",
+                                index_in, self.from
+                            );
+                            return false;
+                        }
+                        if input1.amount == 0 {
+                            error!(
+                                "Send-bound TX: input slip1.amount = 0 at idx {:?}",
+                                self.from
+                            );
+                            return false;
+                        }
+                        if input3.amount != 0 {
+                            error!(
+                                "Send-bound TX: input slip3.amount != 0 at idx {:?}",
+                                self.from
+                            );
+                            return false;
+                        }
+                        if input1.block_id != input2.block_id || input2.block_id != input3.block_id
+                        {
+                            error!(
+                                "Send-bound TX: input group {} mismatched block_id, {:?}",
+                                index_in, self.from
+                            );
+                            return false;
+                        }
+                        if input1.tx_ordinal != input2.tx_ordinal
+                            || input2.tx_ordinal != input3.tx_ordinal
+                        {
+                            error!(
+                                "Send-bound TX: input group {} mismatched tx_ordinal, {:?}",
+                                index_in, self.from
+                            );
+                            return false;
+                        }
+                        if input2.slip_index != input1.slip_index + 1
+                            || input3.slip_index != input2.slip_index + 1
+                        {
+                            error!(
+                                "Send-bound TX: input group {} non-sequential slip_index, {:?}",
+                                index_in, self.from
+                            );
+                            return false;
+                        }
 
-                //
-                // output slip1 + slip3 = bound
-                //
-                if self.to[0].slip_type != SlipType::Bound
-                    || self.to[2].slip_type != SlipType::Bound
-                {
-                    error!(
-                        "Send-bound transaction: Output slip1 {:?} or slip3 not bound slips {:?}",
-                        self.to[0], self.to[2]
-                    );
-                    return false;
-                }
-
-                //
-                // output slip2 = normal
-                //
-                if self.to[1].slip_type != SlipType::Normal {
-                    error!(
-                        "Send-bound transaction: Output slip2 not normal slip {:?}",
-                        self.to[1]
-                    );
-                    return false;
-                }
-
-                //
-                // any additional input slips are not BoundSlips
-                //
-                // inputs[3..] = Normal
-                //
-                for slip in self.from.iter().skip(3) {
-                    if slip.slip_type != SlipType::Normal {
-                        error!(
-                            "Send-bound Transaction: created tx has unexpected non-normal slip (found {:?}).",
-                            slip
-                        );
-                        return false;
+                        input_groups.push((index_in, index_in + 1, index_in + 2));
+                        index_in += 3;
+                    } else {
+                        if self.from[index_in].slip_type != SlipType::Normal {
+                            error!(
+                                "Send-bound TX: unexpected non-normal slip in inputs at idx {}: {:?}",
+                                index_in, self.from
+                            );
+                            return false;
+                        }
+                        index_in += 1;
                     }
                 }
 
                 //
-                // any additional output slips are not BoundSlips
+                // All input groups must share the same NFT UUID (public_key of slip3)
                 //
-                // outputs[3..] = Normal
-                //
-                for slip in self.to.iter().skip(3) {
-                    if slip.slip_type != SlipType::Normal {
-                        error!(
-                            "Send-bound Transaction: created tx has unexpected non-normal slip (found {:?}).",
-                            slip
-                        );
-                        return false;
+                if input_groups.len() > 1 {
+                    let (_, _, first_i3) = input_groups[0];
+                    let expected_uuid = self.from[first_i3].public_key;
+                    for &(_, _, i3) in &input_groups[1..] {
+                        if self.from[i3].public_key != expected_uuid {
+                            error!("Send-bound TX: mismatched NFT UUID in input groups");
+                            return false;
+                        }
                     }
                 }
 
                 //
-                // input slip1 publickey matches output slip1 publickey
+                // Collect output groups
                 //
-                if self.from[0].public_key != self.to[0].public_key {
-                    error!(
-                        "Send-bound Transaction: NFT slip #1 has modified publickey. Input slip1 {:?}, 
-                        output slip1: {:?}",
-                        self.from[0],
-                        self.to[0]
-                    );
-                    return false;
+                let mut output_groups = Vec::new(); // Vec<(usize, usize, usize)>
+                let mut index_out = 0;
+                while index_out < self.to.len() {
+                    if self.to[index_out].slip_type == SlipType::Bound {
+                        if index_out + 2 >= self.to.len() {
+                            error!(
+                                "Send-bound TX: incomplete output group at idx {}, {:?}",
+                                index_out, self.to
+                            );
+                            return false;
+                        }
+                        let output1 = &self.to[index_out + 0];
+                        let output2 = &self.to[index_out + 1];
+                        let output3 = &self.to[index_out + 2];
+
+                        if output2.slip_type != SlipType::Normal
+                            || output3.slip_type != SlipType::Bound
+                        {
+                            error!(
+                                "Send-bound TX: invalid output types at idx {}: {:?}",
+                                index_out, self.to
+                            );
+                            return false;
+                        }
+                        if output1.amount == 0 {
+                            error!(
+                                "Send-bound TX: output slip1.amount = 0 at idx {:?}",
+                                self.to
+                            );
+                            return false;
+                        }
+                        if output3.amount != 0 {
+                            error!(
+                                "Send-bound TX: output slip3.amount != 0 at idx {:?}",
+                                self.to
+                            );
+                            return false;
+                        }
+
+                        output_groups.push((index_out, index_out + 1, index_out + 2));
+                        index_out += 3;
+                    } else {
+                        if self.to[index_out].slip_type != SlipType::Normal {
+                            error!(
+                                "Send-bound TX: unexpected non-normal slip in outputs at idx {}: {:?}",
+                                index_out, self.to
+                            );
+                            return false;
+                        }
+                        index_out += 1;
+                    }
                 }
 
                 //
-                // input slip3 publickey matches output slip3 publickey
+                // All output groups must share the same NFT UUID as inputs
                 //
-                if self.from[2].public_key != self.to[2].public_key {
-                    error!(
-                        "Send-bound Transaction: NFT slip #3 has modified publickey {:?}",
-                        self.from[2]
-                    );
-                    return false;
+                if output_groups.len() > 1 {
+                    let (_, _, first_output3) = output_groups[0];
+                    let expected_uuid = self.to[first_output3].public_key;
+                    for &(_, _, output3) in &output_groups[1..] {
+                        if self.to[output3].public_key != expected_uuid {
+                            error!("Send-bound TX: mismatched NFT UUID in output groups");
+                            return false;
+                        }
+                    }
                 }
 
                 //
-                // input slip1 amount matches output slip1 amount
+                // Validate one-to-one transfer (no splitting/merging)
                 //
-                if self.from[0].amount != self.to[0].amount {
-                    error!(
-                        "Send-bound Transaction: NFT slip #3 has modified amount {:?}",
-                        self.from[0]
-                    );
-                    return false;
-                }
+                if input_groups.len() == output_groups.len() {
+                    for i in 0..input_groups.len() {
+                        let (i1, _, i3) = input_groups[i];
+                        let (o1, _, o3) = output_groups[i];
 
-                //
-                // input slip3 amount matches output slip3 amount
-                //
-                if self.from[2].amount != self.to[2].amount {
-                    error!(
-                        "Send-bound Transaction: NFT slip #3 has modified amount {:?}",
-                        self.from[2]
-                    );
-                    return false;
-                }
+                        let input1 = &self.from[i1];
+                        let output1 = &self.to[o1];
+                        let input3 = &self.from[i3];
+                        let output3 = &self.to[o3];
 
-                //
-                // input slip3 is 0 amount
-                //
-                if self.from[2].amount != 0 {
-                    error!(
-                        "Send-bound Transaction: NFT slip #3 has modified amount {:?}",
-                        self.from[2]
-                    );
-                    return false;
-                }
+                        //
+                        // public_key unchanged
+                        //
+                        if input1.public_key != output1.public_key {
+                            error!(
+                                "Send-bound TX: group {} slip1 public_key modified, {:?}/{:?}",
+                                i, self.to, self.from
+                            );
+                            return false;
+                        }
 
-                //
-                // FROM slips have the same block_id, transaction_id and sequential slip_ids
-                //
-                // this is to prevent funny business of sometone trying to attach a totally
-                // separate and un-bound normal slip as if it were the appropriate one.
-                //
+                        if input3.public_key != output3.public_key {
+                            error!(
+                                "Send-bound TX: group {} slip3 public_key modified, {:?}/{:?}",
+                                i, self.to, self.from
+                            );
+                            return false;
+                        }
 
-                let block_id0 = self.from[0].block_id;
-                let block_id1 = self.from[1].block_id;
-                let block_id2 = self.from[2].block_id;
+                        //
+                        // slip1.amount unchanged
+                        //
+                        if input1.amount != output1.amount {
+                            error!(
+                                "Send-bound TX: group {} slip1.amount unchanged, {:?}/{:?}",
+                                i, self.to, self.from
+                            );
+                            return false;
+                        }
 
-                if block_id0 != block_id1 || block_id1 != block_id2 {
-                    error!(
-                        "Send-bound TX: input slips have mismatched block_id ({} / {} / {}).",
-                        block_id0, block_id1, block_id2
-                    );
-                    return false;
-                }
-
-                let tx_ordinal0 = self.from[0].tx_ordinal;
-                let tx_ordinal1 = self.from[1].tx_ordinal;
-                let tx_ordinal2 = self.from[2].tx_ordinal;
-
-                if tx_ordinal0 != tx_ordinal1 || tx_ordinal1 != tx_ordinal2 {
-                    error!(
-                        "Send-bound TX: input slips have mismatched tx_ordinal ({} / {} / {}).",
-                        tx_ordinal0, tx_ordinal1, tx_ordinal2
-                    );
-                    return false;
-                }
-
-                let slip_index0 = self.from[0].slip_index;
-                let slip_index1 = self.from[1].slip_index;
-                let slip_index2 = self.from[2].slip_index;
-
-                if slip_index1 != slip_index0 + 1 || slip_index2 != slip_index1 + 1 {
-                    error!(
-                        "Send-bound TX: input slips slip_index are not sequential ({} / {} / {}).",
-                        slip_index0, slip_index1, slip_index2
-                    );
-                    return false;
+                        //
+                        // slip3.amount unchanged
+                        //
+                        if input3.amount != output3.amount {
+                            error!(
+                                "Send-bound TX: group {} slip3.amount unchanged, {:?}/{:?}",
+                                i, self.to, self.from
+                            );
+                            return false;
+                        }
+                    }
                 }
             }
         } else {

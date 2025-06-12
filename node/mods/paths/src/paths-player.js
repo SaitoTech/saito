@@ -786,6 +786,64 @@
     let do_upgradeable_units_remain = false;
     let just_stop = 0;
 
+<<<<<<< HEAD
+    //
+    // players can spend their replacement points to:
+    //
+    // 1. flip damaged units on the board
+    // 2. flip damaged units in the RB
+    // 3. return eliminated units to RB 
+    //
+    let do_replacement_points_exist_for_unit = (unit) => {
+
+      // 17.1.3 - Belgian and Serbian Army units can be recreated only if they may 
+      // legally be placed on the map [see 17.1.5] Belgian and Serbian corps can still 
+      // be rebuilt in the Reserve Box, even if their countries are completely controlled 
+      // by the enemy.
+      //
+      if (unit.ckey === "BE") {
+	if (this.game.spaces["antwerp"].control == "allies") { return 1; }
+	if (this.game.spaces["brussels"].control == "allies") { return 1; }
+	if (this.game.spaces["ostend"].control == "allies") { return 1; }
+	if (this.game.spaces["liege"].control == "allies") { return 1; }
+      }
+      if (unit.ckey === "SB") {
+	if (this.game.spaces["belgrade"].control == "allies") { return 1; }
+	if (this.game.spaces["valjevo"].control == "allies") { return 1; }
+	if (this.game.spaces["nis"].control == "allies") { return 1; }
+	if (this.game.spaces["skopje"].control == "allies") { return 1; }
+	if (this.game.spaces["monastir"].control == "allies") { return 1; }
+      }
+
+      //
+      // cannot spend replacement points if capital is besieged
+      //
+      let capitals = paths_self.returnCapital(unit.ckey);
+      let is_capital_besieged = false;
+      for (let z = 0; z < capitals.length; z++) {
+	let c = paths_self.game.spaces[capitals[z]];
+        let p = paths_self.returnPowerOfUnit(unit);
+	if (c.control != p) { is_capital_besieged = true; }
+	if (c.units.length > 0) {
+	  if (paths_self.returnPowerOfUnit(c.units[0]) != p) {
+	    is_capital_besieged = true;
+	  }
+	}
+	if ((z+1) < capitals.length) { is_capital_besieged = false; }
+      }
+
+      if (is_capital_besieged == true) { return 0; }
+      if (rp[unit.ckey] > 0) { return 1; }
+      if (rp["A"] > 0) {
+	if (unit.ckey == "ANA" || unit.ckey == "AUS" || unit.ckey == "BE" || unit.ckey == "CND" || unit.ckey == "MN" || unit.ckey == "PT" || unit.ckey == "RO" || unit.ckey == "GR" || unit.ckey == "SB") {
+	  return 1;
+	}
+      }
+      return 0;
+    }
+
+=======
+>>>>>>> f6fac90031905b87087eda09faca3152dc734b8b
     continue_fnct = () => {
 
 	let can_uneliminate_unit = false;
@@ -1687,6 +1745,10 @@
     let active_unit = null;
     let active_unit_moves = 0;
     let active_units = [];
+<<<<<<< HEAD
+    let already_entrenched = [];
+=======
+>>>>>>> f6fac90031905b87087eda09faca3152dc734b8b
 
     let paths_self = this;
     let options = this.returnSpacesWithFilter(
@@ -1744,7 +1806,11 @@
 
       paths_self.playerSelectSpaceWithFilter(
 
+<<<<<<< HEAD
+	    `${active_unit_moves} moves for Group`,
+=======
 	    `${active_unit_moves} moves for Group (${currentkey})`,
+>>>>>>> f6fac90031905b87087eda09faca3152dc734b8b
 
 	    (destination) => {
 
@@ -1825,6 +1891,8 @@
 
 
 	      //
+<<<<<<< HEAD
+=======
 	      // check that this space has at least 1 connected to our faction. if it 
 	      // does not, the space is out-of-supply and we should remind the player 
 	      // to move space-by-space.
@@ -1845,6 +1913,7 @@
 	      }
 
 	      //
+>>>>>>> f6fac90031905b87087eda09faca3152dc734b8b
 	      // code mirrored below in regular move
 	      //
 	      for (let zz = active_units.length-1; zz >= 0; zz--) {
@@ -1852,6 +1921,10 @@
 	        paths_self.game.spaces[key2].units[paths_self.game.spaces[key2].units.length-1].moved = 1;
 	        paths_self.prependMove(`move\t${faction}\t${currentkey}\t${active_units[zz].idx}\t${key2}\t${paths_self.game.player}`);
 	      }
+<<<<<<< HEAD
+              paths_self.game.spaces[key2].control = paths_self.returnPowerOfPlayer();
+=======
+>>>>>>> f6fac90031905b87087eda09faca3152dc734b8b
               paths_self.displaySpace(sourcekey);
               paths_self.displaySpace(currentkey);
               paths_self.displaySpace(key2);
@@ -1885,7 +1958,11 @@
 	    },
 	    null ,
 	    true ,
+<<<<<<< HEAD
+	    [{ key : "skip" , value : "finish movement" }] ,
+=======
 	    [{ key : "skip" , value : "stop here" }] ,
+>>>>>>> f6fac90031905b87087eda09faca3152dc734b8b
       );
     };
 

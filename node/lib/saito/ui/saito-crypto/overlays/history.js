@@ -41,8 +41,9 @@ class MixinHistory {
       if (html != '') {
         document.querySelector('.mixin-txn-his-container .saito-table-body').innerHTML = html;
       } else {
-        document.querySelector('.mixin-txn-his-container .saito-table-body').innerHTML =
-          `<p class="mixin-no-history">No account history found for ${this.mod.ticker}</p>`;
+        document.querySelector(
+          '.mixin-txn-his-container .saito-table-body'
+        ).innerHTML = `<p class="mixin-no-history">No account history found for ${this.mod.ticker}</p>`;
 
         document.querySelectorAll('.pagination-button').forEach(function (btn, key) {
           btn.classList.add('disabled');

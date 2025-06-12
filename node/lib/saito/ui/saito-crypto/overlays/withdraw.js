@@ -86,8 +86,9 @@ class Withdraw {
       }
     }
 
-    document.querySelector('.withdraw-info-value.balance').innerHTML =
-      `${this.pc.returnBalance()} ${this.ticker}`;
+    document.querySelector(
+      '.withdraw-info-value.balance'
+    ).innerHTML = `${this.pc.returnBalance()} ${this.ticker}`;
 
     await this.fetchWithdrawFee();
 
@@ -115,10 +116,14 @@ class Withdraw {
 
     if (document.querySelector('#nft-link')) {
       document.querySelector('#nft-link').onclick = async (e) => {
-        let data = await this_withdraw.app.options.wallet.nft;
-        console.log('nft data:', data);
+        let nft_list = await this_withdraw.app.wallet.getNftList();
+        console.log('Fetched NFT list: ', nft_list);
 
-        if (!Array.isArray(data) || !data.length) {
+        const nftArray = JSON.parse(nft_list);
+        console.log('nftArray:', nftArray);
+        await this_withdraw.app.wallet.saveNftList(nftArray);
+
+        if (!Array.isArray(nftArray) || !nftArray.length) {
           // create nft overlay
           this_withdraw.app.connection.emit('saito-create-nft-render-request', {});
         } else {
@@ -167,8 +172,9 @@ class Withdraw {
         document.querySelector('.withdraw-confirm-amount').innerText = `${amount} ${this.ticker}`;
         document.querySelector('.withdraw-confirm-address').innerText = address;
 
-        document.querySelector('.withdraw-confirm-fee').innerText =
-          `(fee: ${this.fee} ${this.ticker})`;
+        document.querySelector(
+          '.withdraw-confirm-fee'
+        ).innerText = `(fee: ${this.fee} ${this.ticker})`;
 
         // Change view to confirmation screen
         document.querySelector('#withdraw-step-one').classList.toggle('hide-element');
@@ -216,8 +222,9 @@ class Withdraw {
               if (res.hash != '') {
                 setTimeout(function () {
                   if (document.querySelector('.confirm-msg')) {
-                    document.querySelector('.confirm-msg').innerHTML =
-                      `Your transaction has been broadcast <br > Please check transaction history in the sidebar menu for confirmation`;
+                    document.querySelector(
+                      '.confirm-msg'
+                    ).innerHTML = `Your transaction has been broadcast <br > Please check transaction history in the sidebar menu for confirmation`;
                     document
                       .querySelector('.confirm-msg-container .spinner')
                       .classList.remove('show');
@@ -257,8 +264,9 @@ class Withdraw {
   }
 
   showError() {
-    document.querySelector('.confirm-msg').innerHTML =
-      `Transfer request unsuccessful <br > Please try again`;
+    document.querySelector(
+      '.confirm-msg'
+    ).innerHTML = `Transfer request unsuccessful <br > Please try again`;
     document.querySelector('.confirm-msg-container .spinner').classList.remove('show');
     document.querySelector('.withdraw-msg-icon').classList.toggle('hide');
     document.querySelector('.withdraw-msg-icon').classList.remove('fa-circle-notch');

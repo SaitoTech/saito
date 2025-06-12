@@ -307,8 +307,8 @@ class StreamCapturer {
                       'captureStream' in video
                         ? video.captureStream()
                         : 'mozCaptureStream' in video
-                          ? video.mozCaptureStream() && video.mozCaptureStream(0)
-                          : null;
+                        ? video.mozCaptureStream() && video.mozCaptureStream(0)
+                        : null;
                     const rect = video.getBoundingClientRect();
                     const parentID = video.parentElement.id;
                     let existingVideoIndex = this.streamData.findIndex(
@@ -400,8 +400,8 @@ class StreamCapturer {
               'captureStream' in video
                 ? video.captureStream()
                 : 'mozCaptureStream' in video
-                  ? video.mozCaptureStream()
-                  : null;
+                ? video.mozCaptureStream()
+                : null;
 
             // processStream(stream, video);
             const rect = video.getBoundingClientRect();
@@ -440,8 +440,8 @@ class StreamCapturer {
                       'captureStream' in video
                         ? video.captureStream()
                         : 'mozCaptureStream' in video
-                          ? video.mozCaptureStream()
-                          : null;
+                        ? video.mozCaptureStream()
+                        : null;
                     // processStream(stream, video);
                     let existingVideoIndex = this.streamData.findIndex(
                       (data) => data.video.id === video.id
@@ -592,8 +592,8 @@ class StreamCapturer {
                   'captureStream' in video
                     ? video.captureStream()
                     : 'mozCaptureStream' in video
-                      ? video.mozCaptureStream() && video.mozCaptureStream(0)
-                      : null;
+                    ? video.mozCaptureStream() && video.mozCaptureStream(0)
+                    : null;
                 const rect = video.getBoundingClientRect();
                 const parentID = video.parentElement.id;
                 const saitoAddressElement = video
@@ -818,8 +818,8 @@ class StreamCapturer {
         'captureStream' in video
           ? video.captureStream()
           : 'mozCaptureStream' in video
-            ? video.mozCaptureStream()
-            : null;
+          ? video.mozCaptureStream()
+          : null;
 
       // processStream(stream, video);
       const rect = video.getBoundingClientRect();

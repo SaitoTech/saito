@@ -90,6 +90,28 @@ export default class Wallet extends WasmWrapper<WasmWallet> {
         let tx2 = tx.clone();
         await this.instance.add_to_pending(tx2.wasmTransaction);
     }
+
+    public async addNft(
+      slip1UtxoKeyHex: string,
+      slip2UtxoKeyHex: string,
+      slip3UtxoKeyHex: string,
+      idHex: string,
+      txSigHex: string,
+    ): Promise<void> {
+      try {
+        await this.instance.add_nft(
+          slip1UtxoKeyHex,
+          slip2UtxoKeyHex,
+          slip3UtxoKeyHex,
+          idHex,
+          txSigHex,
+        );
+      } catch (err) {
+        console.error("wasm add_nft failed:", err);
+        throw err;
+      }
+    }
+
 }
 
 export class WalletSlip extends WasmWrapper<WasmWalletSlip> {

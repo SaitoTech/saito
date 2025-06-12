@@ -199,140 +199,115 @@ impl Wallet {
         block: &Block,
         lc: bool,
         genesis_period: BlockId,
+        network: Option<&Network>,
     ) -> WalletUpdateStatus {
         let mut wallet_changed = WALLET_NOT_UPDATED;
         debug!("tx count : {}", block.transactions.len());
         let mut tx_index = 0;
+
         if lc {
             for tx in block.transactions.iter() {
                 //
-                // outputs
+                // Process inputs first: remove spent slips and NFT groups
+                //
+                let mut i = 0;
+                while i < tx.from.len() {
+                    let input = &tx.from[i];
+                    let is_this_an_nft = tx.is_nft(&tx.from, i);
+
+                    if is_this_an_nft {
+                        let slip1 = &tx.from[i];
+                        let slip2 = &tx.from[i + 1];
+                        let slip3 = &tx.from[i + 2];
+
+                        //
+                        // Remove the NFT group matching all three UTXO keys
+                        //
+                        if let Some(pos) = self.nfts.iter().position(|nft| {
+                            nft.slip1 == slip1.utxoset_key
+                                && nft.slip2 == slip2.utxoset_key
+                                && nft.slip3 == slip3.utxoset_key
+                        }) {
+                            self.nfts.remove(pos);
+                            debug!(
+                                "Removed sent NFT with UTXO keys: {:?}, {:?}, {:?}",
+                                slip1.utxoset_key.to_hex(),
+                                slip2.utxoset_key.to_hex(),
+                                slip3.utxoset_key.to_hex()
+                            );
+
+                            if let Some(network) = network {
+                                network
+                                    .io_interface
+                                    .send_interface_event(InterfaceEvent::WalletUpdate());
+                            }
+                        }
+                        i += 3;
+                    } else {
+                        //
+                        // Handle normal input slips
+                        //
+                        if input.public_key == self.public_key && input.amount > 0 {
+                            wallet_changed |= WALLET_UPDATED;
+                            self.delete_slip(input, None);
+                        }
+                        //
+                        // Also remove from pending if present
+                        //
+                        if self.delete_pending_transaction(tx) {
+                            wallet_changed |= WALLET_UPDATED;
+                        }
+                        i += 1;
+                    }
+                }
+
+                //
+                // Process outputs: add new NFT groups or normal slips
                 //
                 let mut i = 0;
                 while i < tx.to.len() {
                     let output = &tx.to[i];
-                    //
-                    // if the output is a bound slip, then we are expecting
-                    // the 2nd slip to be NORMAL and the 3rd slip to be another
-                    // bound slip.
-                    //
-
-                    //
-                    // is this an NFT ?
-                    //
-                    // note that we do not need to validate that the NFT meets the
-                    // criteria here as we only process blocks that pass validation
-                    // requirements. so we are just doing a superficial check to
-                    // make sure that we will not be "skipping" any normal slips
-                    // before inserting into the wallet
-                    //
                     let is_this_an_nft = tx.is_nft(&tx.to, i);
 
-                    //
-                    // NFT slips are added to a separate data-storage space, so that
-                    // they will not be affected by the normal workings of the wallet
-                    //
                     if is_this_an_nft {
                         let slip1 = &tx.to[i];
                         let slip2 = &tx.to[i + 1];
                         let slip3 = &tx.to[i + 2];
 
                         //
-                        // `nft_id` = UTXO key of the second bound slip (`slip2`)
+                        // Only add NFT if it was sent to this wallet
                         //
-                        // Use it to:
-                        // 1. Reconstruct the original UTXO via `parse_slip_from_utxokey(nft_id)`,
-                        //    since its public key packs block ID, tx ID, and slip index.
-                        // 2. Transfer the NFT by passing only `nft_id`, which lets us pull
-                        //    the three slips (slip1, linked slip, slip2) for `create_send_bound()`.
-                        //
-                        let nft = NFT {
-                            slip1: slip1.utxoset_key,       // bound
-                            slip2: slip2.utxoset_key,       // normal
-                            slip3: slip3.utxoset_key,       // bound
-                            id: slip2.utxoset_key.to_vec(), // derive NFT id from second Bound slip’s key
-                            tx_sig: tx.signature,
-                        };
-                        self.nfts.push(nft);
-
+                        if slip2.public_key == self.public_key {
+                            let nft = NFT {
+                                slip1: slip1.utxoset_key,
+                                slip2: slip2.utxoset_key,
+                                slip3: slip3.utxoset_key,
+                                id: slip3.public_key.to_vec(),
+                                tx_sig: tx.signature,
+                            };
+                            self.nfts.push(nft);
+                            if let Some(network) = network {
+                                network
+                                    .io_interface
+                                    .send_interface_event(InterfaceEvent::WalletUpdate());
+                            }
+                        }
                         i += 3;
                     } else {
                         //
-                        // normal transaction
+                        // Handle normal output slips
                         //
-                        if output.amount > 0 && output.public_key == self.public_key {
+                        if output.public_key == self.public_key && output.amount > 0 {
                             wallet_changed |= WALLET_UPDATED;
                             self.add_slip(block.id, tx_index, output, true, None);
                         }
-
                         i += 1;
                     }
                 }
 
                 //
-                // inputs
+                // Advance transaction index and prune old slips
                 //
-                let mut i = 0;
-                while i < tx.from.len() {
-                    let input = &tx.from[i];
-
-                    //
-                    // if the output is a bound slip, then we are expecting
-                    // the 2nd slip to be NORMAL and the 3rd slip to be another
-                    // bound slip.
-                    //
-                    let is_this_an_nft = tx.is_nft(&tx.from, i);
-
-                    //
-                    // NFT slips are removed from the existing NFT storage
-                    // area, as we have received new versions and need to
-                    // update our NFT storage.
-                    //
-                    if is_this_an_nft == true {
-                        if i == 0 && input.slip_type == SlipType::Bound && tx.from.len() >= 3 {
-                            let nft_id = &tx.from[2].utxoset_key;
-
-                            if let Some(pos) =
-                                self.nfts.iter().position(|nft| nft.id == nft_id.to_vec())
-                            {
-                                self.nfts.remove(pos);
-                                debug!(
-                                    "Send-bound NFT input group detected. Removed NFT with id: {:?}",
-                                    nft_id.to_hex()
-                                );
-                            }
-                        }
-
-                        i += 3;
-                    } else {
-                        //
-                        // otherwise we have a normal transaction
-                        //
-
-                        //
-                        // normal slip must be addressed to us
-                        //
-                        if input.public_key == self.public_key {
-                            //
-                            // with non-zero amount
-                            //
-                            if input.amount > 0 {
-                                wallet_changed |= WALLET_UPDATED;
-                                self.delete_slip(input, None);
-                            }
-
-                            //
-                            // also delete from pending
-                            //
-                            if self.delete_pending_transaction(tx) {
-                                wallet_changed |= WALLET_UPDATED;
-                            }
-                        }
-
-                        i += 1;
-                    }
-                }
-
                 if let TransactionType::SPV = tx.transaction_type {
                     tx_index += tx.txs_replacements as u64;
                 } else {
@@ -355,7 +330,6 @@ impl Wallet {
                 let mut i = 0;
                 while i < tx.to.len() {
                     let output = &tx.to[i];
-
                     let is_this_an_nft = tx.is_nft(&tx.to, i);
 
                     if is_this_an_nft {
@@ -370,6 +344,12 @@ impl Wallet {
                                 "Unwound NFT output group, removed id: {:?}",
                                 slip2.utxoset_key.to_hex()
                             );
+
+                            if let Some(network) = network {
+                                network
+                                    .io_interface
+                                    .send_interface_event(InterfaceEvent::WalletUpdate());
+                            }
                         }
                         i += 3;
                     } else {
@@ -390,10 +370,6 @@ impl Wallet {
                 let mut i = 0;
                 while i < tx.from.len() {
                     let input = &tx.from[i];
-
-                    //
-                    // NFT group check
-                    //
                     let is_this_an_nft = tx.is_nft(&tx.from, i);
 
                     if is_this_an_nft {
@@ -408,16 +384,21 @@ impl Wallet {
                             slip1: slip1.utxoset_key,
                             slip2: slip2.utxoset_key,
                             slip3: slip3.utxoset_key,
-                            id: slip2.utxoset_key.to_vec(),
+                            id: slip3.public_key.to_vec(),
                             tx_sig: tx.signature,
                         };
-
                         self.nfts.push(nft);
 
                         debug!(
-                            "Unwound NFT input group, re‑added id: {:?}",
+                            "Unwound NFT input group, re-added id: {:?}",
                             slip2.utxoset_key.to_hex()
                         );
+
+                        if let Some(network) = network {
+                            network
+                                .io_interface
+                                .send_interface_event(InterfaceEvent::WalletUpdate());
+                        }
 
                         i += 3;
                     } else {
@@ -444,7 +425,6 @@ impl Wallet {
         }
 
         debug!("wallet changed ? {:?}", wallet_changed);
-
         wallet_changed
     }
 
@@ -686,18 +666,17 @@ impl Wallet {
 
     pub async fn create_bound_transaction(
         &mut self,
-        nft_input_amount: Currency,   // amount in input slip creating NFT
-        nft_uuid_block_id: u64,       // block_id in input slip creating NFT
-        nft_uuid_transaction_id: u64, // transaction_id in input slip creating NFT
-        nft_uuid_slip_id: u64,        // slip_id in input slip creating NFT
+        nft_num: u64,                     // number of nft to create
         nft_create_deposit_amt: Currency, // AMOUNT to deposit in slip2 (output)
-        nft_data: Vec<u32>,           // DATA field to attach to TX
-        recipient: &SaitoPublicKey,   // receiver
+        nft_data: Vec<u32>,               // DATA field to attach to TX
+        recipient: &SaitoPublicKey,       // receiver
         network: Option<&Network>,
         latest_block_id: u64,
         genesis_period: u64,
         nft_type: String,
     ) -> Result<Transaction, Error> {
+        info!("wallet.rs nft_num: {:?}", nft_num);
+
         let mut transaction = Transaction::default();
         transaction.transaction_type = TransactionType::Bound;
 
@@ -712,14 +691,14 @@ impl Wallet {
         // by the application calling this function. this slip is expected
         // to be valid. if it is not we will error-out.
         //
-        let input_slip = Slip {
-            public_key: self.public_key,         // Wallet's own public key (creator)
-            amount: nft_input_amount,            // The amount from the provided input UTXO
-            block_id: nft_uuid_block_id,         // Block id from the NFT UUID parameters
-            slip_index: nft_uuid_slip_id as u8,  // Slip index from the NFT UUID parameters
-            tx_ordinal: nft_uuid_transaction_id, // Transaction ordinal from the NFT UUID parameters
-            ..Default::default()
-        };
+        // let input_slip = Slip {
+        //     public_key: self.public_key,         // Wallet's own public key (creator)
+        //     amount: nft_input_amount,            // The amount from the provided input UTXO
+        //     block_id: nft_uuid_block_id,         // Block id from the NFT UUID parameters
+        //     slip_index: nft_uuid_slip_id as u8,  // Slip index from the NFT UUID parameters
+        //     tx_ordinal: nft_uuid_transaction_id, // Transaction ordinal from the NFT UUID parameters
+        //     ..Default::default()
+        // };
 
         //
         // now we compute the unique UTXO key for the input slip. since every
@@ -727,7 +706,7 @@ impl Wallet {
         // assigning each NFT the UUID from the slip that is used to create it,
         // we ensure that each NFT will have an unforgeable ID.
         //
-        let utxo_key = input_slip.get_utxoset_key(); // Compute the unique UTXO key for the input slip
+        // let utxo_key = input_slip.get_utxoset_key(); // Compute the unique UTXO key for the input slip
 
         //
         // check that our wallet has this slip available. this check avoids
@@ -737,12 +716,42 @@ impl Wallet {
         // are not possible, so users cannot "re-spend" UTXO to create
         // duplicate NFTs after their initial NFTs have been created.
         //
-        if !self.unspent_slips.contains(&utxo_key) {
-            info!("UTXO Key not found: {:?}", utxo_key);
+        // if !self.unspent_slips.contains(&utxo_key) {
+        //     info!("UTXO Key not found: {:?}", utxo_key);
+        //     return Err(Error::new(
+        //         ErrorKind::NotFound,
+        //         format!("UTXO not found: {:?}", utxo_key),
+        //     ));
+        // }
+
+        //
+        // Instead of reconstructing an input slip from params, we generate
+        // enough slips to cover `nft_create_deposit_amt`. Any output from
+        // `generate_slips` will become our change slip.
+        //
+        let (mut generated_inputs, generated_outputs) = self.generate_slips(
+            nft_create_deposit_amt,
+            network,
+            latest_block_id,
+            genesis_period,
+        );
+
+        // Ensure we have at least one input slip from generate_slips to use as UUID source
+        if generated_inputs.is_empty() {
             return Err(Error::new(
-                ErrorKind::NotFound,
-                format!("UTXO not found: {:?}", utxo_key),
+                ErrorKind::Other,
+                "Failed to generate input slip for NFT",
             ));
+        }
+
+        // Use the first generated input as our `input_slip` (UUID source)
+        let input_slip = generated_inputs.remove(0);
+
+        // Any additional generated inputs remain in `generated_inputs`
+        // Now capture change slip if provided
+        let mut change_slip_opt: Option<Slip> = None;
+        if let Some(first_generated_output) = generated_outputs.into_iter().next() {
+            change_slip_opt = Some(first_generated_output);
         }
 
         //
@@ -795,7 +804,7 @@ impl Wallet {
         //
         let output_slip1 = Slip {
             public_key: self.public_key,
-            amount: nft_create_deposit_amt,
+            amount: nft_num,
             slip_type: SlipType::Bound,
             ..Default::default()
         };
@@ -852,53 +861,12 @@ impl Wallet {
         };
 
         //
-        // change slip
-        //
-        // we now examine the inputs (and the amount that slip2 contains
-        // to determine if we need to add additional inputs/outputs to provide
-        // more SAITO to the NFT or to capture any surplus amount as a change
-        // address.
-        //
-        let mut additional_input_slips: Vec<Slip> = Vec::new();
-        let mut change_slip_opt: Option<Slip> = None;
-
-        //
-        // too much money? we need a change address
-        //
-        if nft_input_amount > nft_create_deposit_amt {
-            let change_slip_amt = nft_input_amount - nft_create_deposit_amt;
-            change_slip_opt = Some(Slip {
-                public_key: self.public_key, // Return the change to the creator's address
-                amount: change_slip_amt,
-                slip_type: SlipType::Normal,
-                ..Default::default()
-            });
-
-        //
-        // too little money? we need extra inputs + change address
-        //
-        } else if nft_input_amount < nft_create_deposit_amt {
-            let additional_needed = nft_create_deposit_amt - nft_input_amount;
-            let (generated_inputs, generated_outputs) =
-                self.generate_slips(additional_needed, network, latest_block_id, genesis_period);
-            additional_input_slips = generated_inputs;
-            if let Some(first_generated_output) = generated_outputs.into_iter().next() {
-                change_slip_opt = Some(first_generated_output);
-            } else {
-                return Err(Error::new(
-                    ErrorKind::Other,
-                    "Failed to generate change slip via generate_slips",
-                ));
-            }
-        }
-
-        //
         // now we create the transaction...
         //
         // ... add inputs
         //
         transaction.add_from_slip(input_slip);
-        for slip in additional_input_slips {
+        for slip in generated_inputs {
             transaction.add_from_slip(slip);
         }
 
@@ -921,6 +889,7 @@ impl Wallet {
         //
         let hash_for_signature: SaitoHash = hash(&transaction.serialize_for_signature());
         transaction.hash_for_signature = Some(hash_for_signature);
+        transaction.generate(&self.public_key, 0, 0);
         transaction.sign(&self.private_key);
 
         //
@@ -1001,8 +970,202 @@ impl Wallet {
         //
         let hash_for_signature: SaitoHash = hash(&transaction.serialize_for_signature());
         transaction.hash_for_signature = Some(hash_for_signature);
+        transaction.generate(&self.public_key, 0, 0);
         transaction.sign(&self.private_key);
-        let tx_sig = transaction.signature.clone();
+
+        Ok(transaction)
+    }
+
+    pub fn create_split_bound_transaction(
+        &mut self,
+        slip1: SaitoUTXOSetKey,
+        slip2: SaitoUTXOSetKey,
+        slip3: SaitoUTXOSetKey,
+        left_count: u32,
+        right_count: u32,
+    ) -> Result<Transaction, Error> {
+        //
+        // Locate & remove the NFT whose three UTXO keys match exactly
+        //
+        let pos = self
+            .nfts
+            .iter()
+            .position(|nft| nft.slip1 == slip1 && nft.slip2 == slip2 && nft.slip3 == slip3)
+            .ok_or_else(|| Error::new(ErrorKind::NotFound, "NFT not found"))?;
+        let old_nft = self.nfts.remove(pos);
+
+        //
+        // Parse the three input slips from those UTXO keys
+        //
+        let input_slip1 = Slip::parse_slip_from_utxokey(&old_nft.slip1)?;
+        let input_slip2 = Slip::parse_slip_from_utxokey(&old_nft.slip2)?;
+        let input_slip3 = Slip::parse_slip_from_utxokey(&old_nft.slip3)?;
+
+        //
+        // Compute original amounts and deposit logic
+        //
+        let orig_amount = input_slip1.amount;
+        let deposit_amount = input_slip2.amount;
+        let deposit_per_unit = deposit_amount
+            .checked_div(orig_amount)
+            .ok_or_else(|| Error::new(ErrorKind::Other, "Invalid deposit split"))?;
+
+        let left_unit = left_count as u64;
+        let right_unit = right_count as u64;
+
+        let left_deposit = deposit_per_unit
+            .checked_mul(left_unit)
+            .ok_or_else(|| Error::new(ErrorKind::Other, "Left deposit overflow"))?;
+        let right_deposit = deposit_amount
+            .checked_sub(left_deposit)
+            .ok_or_else(|| Error::new(ErrorKind::Other, "Right deposit computation failed"))?;
+
+        //
+        // Build the bounded transaction
+        //
+        let mut transaction = Transaction::default();
+        transaction.transaction_type = TransactionType::Bound;
+
+        //
+        // Add input slips to the transaction
+        //
+        transaction.add_from_slip(input_slip1.clone());
+        transaction.add_from_slip(input_slip2.clone());
+        transaction.add_from_slip(input_slip3.clone());
+
+        //
+        // Create left output slips
+        //
+        let mut left_slip1 = input_slip1.clone();
+        left_slip1.amount = left_unit;
+
+        let mut left_slip2 = input_slip2.clone();
+        left_slip2.amount = left_deposit;
+
+        let left_slip3 = input_slip3.clone();
+
+        //
+        // Create right output slips
+        //
+        let mut right_slip1 = input_slip1.clone();
+        right_slip1.amount = right_unit;
+
+        let mut right_slip2 = input_slip2.clone();
+        right_slip2.amount = right_deposit;
+
+        let right_slip3 = input_slip3.clone();
+
+        //
+        // Add output slips to the transaction
+        //
+        transaction.add_to_slip(left_slip1);
+        transaction.add_to_slip(left_slip2);
+        transaction.add_to_slip(left_slip3);
+        transaction.add_to_slip(right_slip1);
+        transaction.add_to_slip(right_slip2);
+        transaction.add_to_slip(right_slip3);
+
+        //
+        // Finalize transaction: compute hash and sign
+        //
+        let hash_for_signature: SaitoHash = hash(&transaction.serialize_for_signature());
+        transaction.hash_for_signature = Some(hash_for_signature);
+        transaction.generate(&self.public_key, 0, 0);
+        transaction.sign(&self.private_key);
+
+        Ok(transaction)
+    }
+
+    pub fn create_merge_bound_transaction(
+        &mut self,
+        nft_id: Vec<u8>,
+    ) -> Result<Transaction, Error> {
+        // 1. Find all positions of NFTs with the given id
+        let positions: Vec<usize> = self
+            .nfts
+            .iter()
+            .enumerate()
+            .filter(|(_, nft)| nft.id == nft_id)
+            .map(|(i, _)| i)
+            .collect();
+
+        // Require at least two NFTs to merge
+        if positions.len() < 2 {
+            return Err(Error::new(ErrorKind::NotFound, "Not enough NFTs to merge"));
+        }
+
+        // 2. Remove all matching NFTs from `self.nfts`, collecting them into `removed_nfts`.
+        //    Remove in descending order so earlier indices aren’t invalidated.
+        let mut idxs = positions.clone();
+        idxs.sort_unstable_by(|a, b| b.cmp(a));
+        let mut removed_nfts = Vec::new();
+        for idx in idxs {
+            removed_nfts.push(self.nfts.remove(idx));
+        }
+
+        // 3. Parse each NFT’s three input slips and accumulate total amounts
+        let mut total_amount1: u64 = 0;
+        let mut total_deposit: u64 = 0;
+        let mut total_amount3: u64 = 0;
+
+        // We’ll also store each parsed Slip so we can add them as inputs
+        let mut input_slips1: Vec<Slip> = Vec::new();
+        let mut input_slips2: Vec<Slip> = Vec::new();
+        let mut input_slips3: Vec<Slip> = Vec::new();
+
+        for nft in &removed_nfts {
+            let slip1 = Slip::parse_slip_from_utxokey(&nft.slip1)?;
+            let slip2 = Slip::parse_slip_from_utxokey(&nft.slip2)?;
+            let slip3 = Slip::parse_slip_from_utxokey(&nft.slip3)?;
+
+            total_amount1 = total_amount1
+                .checked_add(slip1.amount)
+                .ok_or_else(|| Error::new(ErrorKind::Other, "Overflow merging slip1 amounts"))?;
+            total_deposit = total_deposit
+                .checked_add(slip2.amount)
+                .ok_or_else(|| Error::new(ErrorKind::Other, "Overflow merging deposit amounts"))?;
+            total_amount3 = total_amount3
+                .checked_add(slip3.amount)
+                .ok_or_else(|| Error::new(ErrorKind::Other, "Overflow merging slip3 amounts"))?;
+
+            input_slips1.push(slip1);
+            input_slips2.push(slip2);
+            input_slips3.push(slip3);
+        }
+
+        // 4. Use the first parsed Slip as a template for each output, adjusting amounts
+        let mut merged_slip1 = input_slips1[0].clone();
+        merged_slip1.amount = total_amount1;
+
+        let mut merged_slip2 = input_slips2[0].clone();
+        merged_slip2.amount = total_deposit;
+
+        let mut merged_slip3 = input_slips3[0].clone();
+        merged_slip3.amount = total_amount3;
+
+        // 5. Build the new Bound transaction
+        let mut transaction = Transaction::default();
+        transaction.transaction_type = TransactionType::Bound;
+
+        // Add all original slips (from every NFT we removed) as inputs,
+        // preserving the [slip1, slip2, slip3] order for each group
+        let group_count = input_slips1.len();
+        for i in 0..group_count {
+            transaction.add_from_slip(input_slips1[i].clone());
+            transaction.add_from_slip(input_slips2[i].clone());
+            transaction.add_from_slip(input_slips3[i].clone());
+        }
+
+        // Add exactly one set of merged outputs (three slips) representing the combined NFT
+        transaction.add_to_slip(merged_slip1);
+        transaction.add_to_slip(merged_slip2);
+        transaction.add_to_slip(merged_slip3);
+
+        // 6. Finalize: compute signature hash and sign
+        let hash_for_signature: SaitoHash = hash(&transaction.serialize_for_signature());
+        transaction.hash_for_signature = Some(hash_for_signature);
+        transaction.generate(&self.public_key, 0, 0);
+        transaction.sign(&self.private_key);
 
         Ok(transaction)
     }
@@ -1342,6 +1505,26 @@ impl Wallet {
                 }
             })
             .collect()
+    }
+
+    pub fn add_nft(
+        &mut self,
+        slip1: SaitoUTXOSetKey,
+        slip2: SaitoUTXOSetKey,
+        slip3: SaitoUTXOSetKey,
+        id: Vec<u8>,
+        tx_sig: SaitoSignature,
+    ) {
+        let nft = NFT {
+            slip1,
+            slip2,
+            slip3,
+            id,
+            tx_sig,
+        };
+        self.nfts.push(nft);
+
+        info!("wallet nfts: {:?}", self.nfts);
     }
 }
 
