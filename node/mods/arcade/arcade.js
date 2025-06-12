@@ -2048,6 +2048,14 @@ class Arcade extends ModTemplate {
 			invitation_type: gameType
 		};
 
+		// Poker Validation
+		if (options["open-table"]){
+			if (options.stake && typeof options.stake === "object"){
+				await salert("Uneven staking is not allowed in cash games");
+				options.stake = options.stake[this.publicKey].toString();
+			}
+		}
+
 		console.info("ARCADE: [makeGameInvite] gamedata: ", gamedata);
 
 		if (players_needed == 1) {

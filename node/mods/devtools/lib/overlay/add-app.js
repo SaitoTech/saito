@@ -34,11 +34,9 @@ class AddAppOverlay {
 				console.log('data:', data);
 
 				let newtx = new Transaction();
-	          	newtx.deserialize_from_web(this_self.app, data);
+		          	newtx.deserialize_from_web(this_self.app, data);
 
-	          	let msg = newtx.returnMessage();
-
-	          	console.log("uploaded tx msg: ", msg);
+		          	let msg = newtx.returnMessage();
 
 				this_self.installOverlay.bin = msg.bin;
 				this_self.installOverlay.categories = msg.categories;

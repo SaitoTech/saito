@@ -52,7 +52,6 @@ console.log("\n\n\n\n");
       let deck = this.returnMobilizationDeck("central");
       delete deck["cp01"];
       this.game.queue.push("DECK\t1\t"+JSON.stringify(deck));
-      // this.game.queue.push("DECK\t1\t"+JSON.stringify(this.returnMobilizationDeck("central")));
       this.game.queue.push("DECK\t2\t"+JSON.stringify(this.returnMobilizationDeck("allies")));
 
       //

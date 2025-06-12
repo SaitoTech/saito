@@ -259,18 +259,16 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 			this.app.browser.addElementToSelector(html, qs_attacker);
 		}
 
-
 		for (let i = 0; i < defender_units.length; i++) {
 			let html = "";
 			let dkey = defender_units[i].key;
 			let dskey = defender_units[i].spacekey;
 			let dd = 0; if (defender_units[i].damaged) { dd = 1; }
 			if (!defender_units[i].destroyed) {
-				html = `<div class="loss-overlay-unit" data-spacekey="${dskey}" data-key="${dkey}" data-damaged="${dd}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(defender_units[i])}<div class="loss-overlay-unit-spacekey">${this.mod.game.spaces[askey].name}</div></div>`;
+				html = `<div class="loss-overlay-unit" data-spacekey="${dskey}" data-key="${dkey}" data-damaged="${dd}" id="${i}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(defender_units[i])}<div class="loss-overlay-unit-spacekey">${this.mod.game.spaces[dskey].name}</div></div>`;
 			}
 			this.app.browser.addElementToSelector(html, qs_defender);
 		}
-
 
 		//
 		// add battle information
@@ -285,7 +283,6 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 		document.querySelector(".defender_column_shift").innerHTML = this.mod.game.state.combat.defender_column_shift;
 		document.querySelector(".attacker_damage").innerHTML = this.mod.game.state.combat.defender_loss_factor;
 		document.querySelector(".defender_damage").innerHTML = this.mod.game.state.combat.attacker_loss_factor;
-
 
 		//
 		// show terrain effects
@@ -368,13 +365,21 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 		  if (attacker_column_number > 9) { attacker_column_number = 9; }
 		  this.highlightFiringTable("corps", attacker_color, attacker_color_highlight, attacker_modified_roll, attacker_column_number);
 		}
+		let country_of_fort = this.mod.game.spaces[this.mod.game.state.combat.key].country;
 		if (defender_table == "army")  {
 
 	          //
     		  // forts lend their combat strength to the defense
     		  //
     		  if (this.mod.game.spaces[this.mod.game.state.combat.key].fort > 0) {
-      		    defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    if (defender_power == "central" && ["germany", "austria", "bulgaria", "turkey"].includes(country_of_fort)) {
+		      this.mod.updateLog("Central Powers get fort bonus on defense: +" + this.mod.game.spaces[this.mod.game.state.combat.key].fort);
+      		      defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    }
+		    if (defender_power == "allies" && ["england", "france", "russia", "serbia", "greece", "montenegro", "romania"].includes(country_of_fort)) {
+		      this.mod.updateLog("Allied Powers get fort bonus on defense: +" + this.mod.game.spaces[this.mod.game.state.combat.key].fort);
+      		      defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    }
 		  }
 
 		  defender_column_number = this.mod.returnArmyColumnNumber(defender_strength);
@@ -389,7 +394,14 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
     		  // forts lend their combat strength to the defense
     		  //
     		  if (this.mod.game.spaces[this.mod.game.state.combat.key].fort > 0) {
-      		    defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    if (defender_power == "central" && ["germany", "austria", "bulgaria", "turkey"].includes(country_of_fort)) {
+		      this.mod.updateLog("Central Powers get fort bonus on defense: +" + this.mod.game.spaces[this.mod.game.state.combat.key].fort);
+      		      defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    }
+		    if (defender_power == "allies" && ["england", "france", "russia", "serbia", "greece", "montenegro", "romania"].includes(country_of_fort)) {
+		      this.mod.updateLog("Allied Powers get fort bonus on defense: +" + this.mod.game.spaces[this.mod.game.state.combat.key].fort);
+      		      defender_strength += this.mod.game.spaces[this.mod.game.state.combat.key].fort; 
+		    }
 		  }
 
 		  defender_column_number = this.mod.returnCorpsColumnNumber(defender_strength);
@@ -448,6 +460,8 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 		  }
 		}
 
+console.log("pre-attach events...");
+
 		if (am_iii_the_attacker == 1 && faction == "attacker") {
 		  this.attachEvents(am_i_the_attacker, my_qs, faction);
 		}
@@ -455,6 +469,7 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 		  this.attachEvents(am_i_the_attacker, my_qs, faction);
 		}
 
+console.log("and done...");
 	}
 
 	highlightFiringTable(ftable="corps", color="blue", highlight_color="blue", defender_modified_roll=0, defender_column_number=0) {
@@ -535,12 +550,15 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 						let corpskey = unit.key.split('_')[0] + '_corps';
 						let corpsunit = paths_self.cloneUnit(corpskey);
 						corpsunit.attacked = 1; // we don't want to give this the op to attack
+						corpsunit.damaged_this_combat = true; // used to be an army...
 						corpsunit.spacekey = unit.spacekey;
-if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
 
 //
-// add new unit
+// we only replace with a corps if there is a free unit in the
+// reserve box
 //
+if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
+
 						this.units.push(corpsunit);
 						if (am_i_the_attacker) {
 						  paths_self.game.spaces[corpsunit.spacekey].units.push(corpsunit);
@@ -551,6 +569,16 @@ if (paths_self.doesSpaceHaveUnit(corpsbox, corpskey)) {
 //
 						this.moves.push(`add\t${unit.spacekey}\t${corpskey}\t${this.mod.game.player}\tattacked`);
 						this.moves.push(`remove\t${corpsbox}\t${corpskey}\t${this.mod.game.player}`);
+console.log("*");
+console.log("*");
+console.log("*");
+console.log("*");
+console.log("*");
+console.log("*");
+console.log("* remove: " + corpskey + " from " + corpsbox);
+console.log("*");
+
+						this.mod.removeUnit(corpsbox, corpskey);
 						let html = `<div class="loss-overlay-unit" data-spacekey="${corpsunit.spacekey}" data-key="${corpskey}" data-damaged="0" id="${this.units.length - 1}">${this.mod.returnUnitImageWithMouseoverOfStepwiseLoss(this.units[this.units.length - 1], false, true)}</div>`;
 						this.app.browser.addElementToSelector(html, my_qs);
 }

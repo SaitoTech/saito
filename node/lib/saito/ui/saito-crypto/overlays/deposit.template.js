@@ -1,5 +1,5 @@
-module.exports  = (app, mod, deposit_self) => {
-	let html = `
+module.exports = (app, mod, deposit_self) => {
+  let html = `
         <div class="saito-crypto-deposit-container">
            <div class="saito-crypto-header">Top up wallet</div>
            <div class="saito-crypto-wallet-state">
@@ -18,11 +18,11 @@ module.exports  = (app, mod, deposit_self) => {
 
            `;
 
-    if (deposit_self?.desired_amount){
-        html += `<div class="call-to-action">deposit ${deposit_self.desired_amount} to continue</div>`;
-    }
+  if (deposit_self?.desired_amount) {
+    html += `<div class="call-to-action">deposit ${deposit_self.desired_amount} to continue</div>`;
+  }
 
-    html +=  `
+  html += `
            <div class="network-confirmations">
                 <span class="network-confirmations-count">0</span> network confirmations
            </div>
@@ -30,5 +30,5 @@ module.exports  = (app, mod, deposit_self) => {
 
     `;
 
-	return html;
+  return html;
 };

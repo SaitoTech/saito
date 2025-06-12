@@ -35,11 +35,6 @@ console.log("MOVE: " + mv[0]);
 console.log("##################");
 console.log("##################");
 console.log("##################");
-console.log("##################");
-console.log("##################");
-console.log("##################");
-console.log("##################");
-console.log("##################");
 console.log("====HANDS====");
 console.log(JSON.stringify(this.game.deck[0].hand));
 console.log(JSON.stringify(this.game.deck[1].hand));
@@ -78,6 +73,7 @@ console.log(JSON.stringify(this.game.deck[1].hand));
           this.game.queue.push("siege_phase");
           this.game.queue.push("attrition_phase");
           this.game.queue.push("action_phase");
+          this.game.queue.push("SAVE");
           this.game.queue.push("mandated_offensive_phase");
 
 	  if (this.game.state.turn === 1) {
@@ -149,40 +145,28 @@ console.log(JSON.stringify(this.game.deck[1].hand));
           this.game.queue.splice(qe, 1);
 
 	  let all_cards = this.returnDeck("all"); 
+	  let redealt_allies = false;
+	  let redealt_central = false;
           this.game.queue.push("deal_strategy_cards");
 
 	  //
-	  // LIMITED WAR CARDS - allied
+	  // LIMITED WAR CARDS - central
 	  //
-  	  if (this.game.state.general_records_track.allies_war_status >= 4 && this.game.state.allies_limited_war_cards_added == false) {
-
-	    this.game.state.allies_limited_war_cards_added = true;
-	
-	    let discarded_cards = {};
-    	    for (let key in this.game.deck[1].discards) { discarded_cards[key] = all_cards[key]; }
-	    let new_cards = this.returnLimitedWarDeck("allies");
-	    for (let key in discarded_cards) { new_cards[key] = discarded_cards[key]; }
-
-            // shuffle in discarded cards
-            this.game.queue.push("SHUFFLE\t2");
-            this.game.queue.push("DECKRESTORE\t2");
-            this.game.queue.push("DECKENCRYPT\t2\t2");
-            this.game.queue.push("DECKENCRYPT\t2\t1");
-            this.game.queue.push("DECKXOR\t2\t2");
-            this.game.queue.push("DECKXOR\t2\t1");
-            this.game.queue.push("DECK\t2\t"+JSON.stringify(new_cards));
-            this.game.queue.push("DECKBACKUP\t2");
-            this.updateLog("Shuffling discarded cards back into the deck...");
-
-	  }
-
   	  if (this.game.state.general_records_track.central_war_status >= 4 && this.game.state.central_limited_war_cards_added == false) {
 	    this.game.state.central_limited_war_cards_added = true;
 	
 	    let discarded_cards = {};
-    	    for (let key in this.game.deck[0].discards) { discarded_cards[key] = all_cards[key]; }
+    	    for (let key in this.game.deck[0].discards) { 
+	      if (!this.game.deck[0].removed[key]) { discarded_cards[key] = all_cards[key]; } 
+	    }
 	    let new_cards = this.returnLimitedWarDeck("central");
-	    for (let key in discarded_cards) { new_cards[key] = discarded_cards[key]; }
+	    let discarded_cards_count = 0;
+	    for (let key in discarded_cards) { 
+	      discarded_cards_count++;
+	      console.log("central reshuffle: " + key);
+	      new_cards[key] = discarded_cards[key]; 
+	    }
+	    console.log("CENTRAL TOTAL: " + discarded_cards_count);
 
             // shuffle in discarded cards
             this.game.queue.push("SHUFFLE\t1");
@@ -194,15 +178,29 @@ console.log(JSON.stringify(this.game.deck[1].hand));
             this.game.queue.push("DECK\t1\t"+JSON.stringify(new_cards));
             this.game.queue.push("DECKBACKUP\t1");
             this.updateLog("Shuffling discarded cards back into the deck...");
+	    redealt_central = true;
 
 	  }
-  	  if (this.game.state.general_records_track.allies_war_status >= 11 && this.game.state.allies_total_war_cards_added == false) {
-	    this.game.state.allies_total_war_cards_added = true;
+
+	  //
+	  // LIMITED WAR CARDS - allies
+	  //
+  	  if (this.game.state.general_records_track.allies_war_status >= 4 && this.game.state.allies_limited_war_cards_added == false) {
+
+	    this.game.state.allies_limited_war_cards_added = true;
 	
 	    let discarded_cards = {};
-    	    for (let key in this.game.deck[1].discards) { discarded_cards[key] = all_cards[key]; }
-	    let new_cards = this.returnTotalWarDeck("allies");
-	    for (let key in discarded_cards) { new_cards[key] = discarded_cards[key]; }
+    	    for (let key in this.game.deck[1].discards) { 
+	      if (!this.game.deck[1].removed[key]) { discarded_cards[key] = all_cards[key]; } 
+	    }
+	    let new_cards = this.returnLimitedWarDeck("allies");
+	    let discarded_cards_count = 0;
+	    for (let key in discarded_cards) {
+	      discarded_cards_count++;
+	      console.log("allies reshuffle: " + key);
+	      new_cards[key] = discarded_cards[key];
+	    }
+	    console.log("ALLIES TOTAL: " + discarded_cards_count);
 
             // shuffle in discarded cards
             this.game.queue.push("SHUFFLE\t2");
@@ -214,13 +212,20 @@ console.log(JSON.stringify(this.game.deck[1].hand));
             this.game.queue.push("DECK\t2\t"+JSON.stringify(new_cards));
             this.game.queue.push("DECKBACKUP\t2");
             this.updateLog("Shuffling discarded cards back into the deck...");
+	    redealt_allies = true;
 
 	  }
+
+	  //
+	  // TOTAL WAR CARDS -- central
+	  //
   	  if (this.game.state.general_records_track.central_war_status >= 11 && this.game.state.central_total_war_cards_added == false) {
 	    this.game.state.central_total_war_cards_added = true;
 	
 	    let discarded_cards = {};
-    	    for (let key in this.game.deck[0].discards) { discarded_cards[key] = all_cards[key]; }
+    	    for (let key in this.game.deck[0].discards) { 
+	      if (!this.game.deck[0].removed[key]) { discarded_cards[key] = all_cards[key]; } 
+	    }
 	    let new_cards = this.returnTotalWarDeck("central");
 	    for (let key in discarded_cards) { new_cards[key] = discarded_cards[key]; }
 
@@ -234,6 +239,35 @@ console.log(JSON.stringify(this.game.deck[1].hand));
             this.game.queue.push("DECK\t1\t"+JSON.stringify(new_cards));
             this.game.queue.push("DECKBACKUP\t1");
             this.updateLog("Shuffling discarded cards back into the deck...");
+	    redealt_central = true;
+
+	  }
+
+
+	  //
+	  // TOTAL WAR CARDS -- allies
+	  //
+  	  if (this.game.state.general_records_track.allies_war_status >= 11 && this.game.state.allies_total_war_cards_added == false) {
+	    this.game.state.allies_total_war_cards_added = true;
+	
+	    let discarded_cards = {};
+    	    for (let key in this.game.deck[1].discards) { 
+	      if (!this.game.deck[1].removed[key]) { discarded_cards[key] = all_cards[key]; } 
+	    }
+	    let new_cards = this.returnTotalWarDeck("allies");
+	    for (let key in discarded_cards) { new_cards[key] = discarded_cards[key]; }
+
+            // shuffle in discarded cards
+            this.game.queue.push("SHUFFLE\t2");
+            this.game.queue.push("DECKRESTORE\t2");
+            this.game.queue.push("DECKENCRYPT\t2\t2");
+            this.game.queue.push("DECKENCRYPT\t2\t1");
+            this.game.queue.push("DECKXOR\t2\t2");
+            this.game.queue.push("DECKXOR\t2\t1");
+            this.game.queue.push("DECK\t2\t"+JSON.stringify(new_cards));
+            this.game.queue.push("DECKBACKUP\t2");
+            this.updateLog("Shuffling discarded cards back into the deck...");
+	    redealt_allies = true;
 
 	  }
 
@@ -248,12 +282,77 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 
           let allies_cards_needed = (this.game.state.round >= 4)? 6 : 7;
           let central_cards_needed = (this.game.state.round >= 4)? 6 : 7;
-      
-          if (allies_cards_needed > this.game.deck[1].crypt.length) { allies_cards_needed = this.game.deck[1].crypt.length; }
-          if (central_cards_needed > this.game.deck[0].crypt.length) { central_cards_needed = this.game.deck[0].crypt.length; }
-          
-          this.game.queue.push("DEAL\t1\t1\t"+central_cards_needed);
-          this.game.queue.push("DEAL\t2\t2\t"+allies_cards_needed);
+	  let allies_cards_available = this.game.deck[1].crypt.length;
+	  let central_cards_available = this.game.deck[0].crypt.length;
+	  let allies_cards_post_deal = 0;
+	  let central_cards_post_deal = 0;
+
+          if (allies_cards_needed > this.game.deck[1].crypt.length) { allies_cards_post_deal = allies_cards_needed - allies_cards_available; }
+          if (central_cards_needed > this.game.deck[0].crypt.length) { central_cards_post_deal = central_cards_needed - central_cards_available; }
+
+console.log("Central Cards Post Deal: " + central_cards_post_deal);
+console.log("Central Cards Available: " + central_cards_available);
+console.log("Central Cards Needed: " + central_cards_needed);
+
+console.log("Allies Cards Post Deal: " + allies_cards_post_deal);
+console.log("Allies Cards Available: " + allies_cards_available);
+console.log("Allies Cards Needed: " + allies_cards_needed);
+
+
+	  //
+	  // central cards available
+	  //
+	  if (central_cards_post_deal > 0) {
+            // this resets discards = {} so that DECKBACKUP will not retain
+            let discarded_cards = this.returnDiscardedCards("central");
+            this.game.queue.push("DEAL\t1\t1\t"+central_cards_post_deal);
+            this.game.queue.push("SHUFFLE\t1");
+            this.game.queue.push("DECKRESTORE\t1");
+            this.game.queue.push("DECKENCRYPT\t1\t2");
+            this.game.queue.push("DECKENCRYPT\t1\t1");
+            this.game.queue.push("DECKXOR\t1\t2");
+            this.game.queue.push("DECKXOR\t1\t1");
+            this.game.queue.push("DECK\t1\t"+JSON.stringify(discarded_cards));
+            this.game.queue.push("DECKBACKUP\t1");
+            if (central_cards_available > 0) { this.game.queue.push("DEAL\t1\t1\t"+central_cards_available); }
+            this.updateLog("Shuffling Central discard pile back into deck...");
+	  } else {
+            this.game.queue.push("DEAL\t1\t1\t"+central_cards_needed);
+	  }
+
+
+	  if (allies_cards_post_deal > 0) {
+
+            // this resets discards = {} so that DECKBACKUP will not retain
+            let discarded_cards = this.returnDiscardedCards("allies");
+            this.game.queue.push("DEAL\t2\t2\t"+allies_cards_post_deal);
+            this.game.queue.push("SHUFFLE\t2");
+            this.game.queue.push("DECKRESTORE\t2");
+            this.game.queue.push("DECKENCRYPT\t2\t2");
+            this.game.queue.push("DECKENCRYPT\t2\t1");
+            this.game.queue.push("DECKXOR\t2\t2");
+            this.game.queue.push("DECKXOR\t2\t1");
+            this.game.queue.push("DECK\t2\t"+JSON.stringify(discarded_cards));
+            this.game.queue.push("DECKBACKUP\t2");
+            if (allies_cards_available > 0) { this.game.queue.push("DEAL\t2\t2\t"+allies_cards_available); }
+            this.updateLog("Shuffling Allies discard pile back into deck...");
+
+	  } else {
+            this.game.queue.push("DEAL\t2\t2\t"+allies_cards_needed);
+	  }
+
+console.log("X");
+console.log("X");
+console.log("X");
+console.log("X");
+console.log("X");
+console.log("X");
+console.log("X");
+console.log("X");
+console.log("QUEUE BEFORE CONTINUING: " + JSON.stringify(this.game.queue));          
+console.log("X");
+console.log("X");
+console.log("X");
 
 	  return 1;
 
@@ -311,15 +410,12 @@ console.log(JSON.stringify(this.game.deck[1].hand));
 	  //	
 	  let count = 0;
 	  for (let key in this.game.state.rp[faction]) { count += parseInt(this.game.state.rp[faction][key]); }
-	  if (count == 0) { 
-
-alert("no replacement points for... " + faction);
-
-return 1; }
+	  if (count == 0) { return 1; }
 
 	  if (this.returnPlayerOfFaction(faction) == this.game.player) {
 	    this.playerSpendReplacementPoints(faction);
 	  } else {
+	    this.replacements_overlay.hide();
 	    this.updateStatus(this.returnFactionName(faction) + " assigning replacement points...");
 	  }
 
@@ -425,6 +521,8 @@ return 1; }
 
  	if (mv[0] == "siege_phase") {
 
+	  let roll = 0;
+
 	  for (let key in this.game.spaces) {
 	    let space = this.game.spaces[key];
 	    if (space.besieged == true) {
@@ -432,10 +530,12 @@ return 1; }
 		if (space.units.length > 0) {
 		  if (this.returnPowerOfUnit(space.units[0]) != space.control) {
 
-		    let roll = this.rollDice(6);
+		    roll = this.rollDice(6);
+
 		    if (this.game.state.turn < 2) { roll -= 2; }
 		    if (roll > space.fort) {
 		      space.fort = -1;
+		      this.updateLog(this.returnSpaceNameForLog(space.key) + " fort destroyed (roll: " + roll + ")");
 		      this.updateStatus(this.returnSpaceNameForLog(space.key) + " fort destroyed (roll: " + roll + ")");
 
 	              //
@@ -452,12 +552,20 @@ return 1; }
 
 		    } else {
 		      this.updateStatus(this.returnSpaceNameForLog(space.key) + " fort resists siege (roll: " + roll + ")");
+		      this.updateLog(this.returnSpaceNameForLog(space.key) + " fort resists siege (roll: " + roll + ")");
 		    }
 
 		  }
 		}
 	      }
 	    }
+	  }
+
+
+	  if (roll != 0) {
+   	    this.updateLog("#############");
+	    this.updateLog("### Seige ###");
+	    this.updateLog("#############");
 	  }
 
           this.game.queue.splice(qe, 1);
@@ -499,10 +607,12 @@ return 1; }
           	      if (power == "allies") {
 			this.updateLog(u.name + " eliminated from " + this.returnSpaceNameForLog(key) + " (out-of-supply)");
 			this.game.spaces[key].units.splice(z, 1);
+		  	this.displaySpace(key);
 		      }
           	      if (power == "central") {
 			this.updateLog(u.name + " eliminated from " + this.returnSpaceNameForLog(key) + " (out-of-supply)");
 			this.game.spaces[key].units.splice(z, 1);
+		  	this.displaySpace(key);
 		      }
 		    }
 		    if (u.corps) {
@@ -510,15 +620,18 @@ return 1; }
 			this.updateLog(u.name + " eliminated from " + this.returnSpaceNameForLog(key) + " (out-of-supply)");
             		this.game.state.eliminated["allies"].push(this.game.spaces[key].units[z]);
 			this.game.spaces[key].units.splice(z, 1);
+		  	this.displaySpace(key);
 		      }
           	      if (power == "central") {
 			this.updateLog(u.name + " eliminated from " + this.returnSpaceNameForLog(key) + " (out-of-supply)");
             		this.game.state.eliminated["central"].push(this.game.spaces[key].units[z]);
 			this.game.spaces[key].units.splice(z, 1);
+		  	this.displaySpace(key);
 		      }
 		    }
 		  }
 		  }
+
 		}
 	      }
 	    }
@@ -707,26 +820,25 @@ console.log("allies_passed: " + this.game.state.allies_passed);
 	  if (faction === "central" && parseInt(this.game.state.central_passed) == 1) {
 	    for (let z = 0; z < this.game.deck[0].hand.length; z++) { if (this.game.deck[0].hand[z] == "pass") { this.game.deck[0].hand.splice(z, 1); } }
 	    this.game.queue.splice(qe, 1); 
-	    this.updateStatusAndListCards(`Opponent Turn`, hand);
+	    this.updateStatusAndListCards(`Opponent Turn 1`, hand);
+	    this.attachCardboxEvents((action) => {});
 	    return 1; 
 	  }
 	  if (faction === "allies" && parseInt(this.game.state.allies_passed) == 1) {
 	    for (let z = 0; z < this.game.deck[1].hand.length; z++) { if (this.game.deck[1].hand[z] == "pass") { this.game.deck[0].hand.splice(z, 1); } }
 	    this.updateStatusAndListCards(`Opponent Turn`, hand);
+	    this.attachCardboxEvents((action) => {});
 	    this.game.queue.splice(qe, 1);
 	    return 1; 
 	  }
 
 	  this.onNewRound();
 
-console.log("PLAY: " + this.game.player);
-console.log("player: " + player);
-console.log("HAND: " + JSON.stringify(hand));
-
 	  if (this.game.player == player) {
 	    this.playerTurn(faction);
 	  } else {
 	    this.updateStatusAndListCards(`Opponent Turn`, hand);
+	    this.attachCardboxEvents((action) => {});
 	  }
 	  
 	  return 0;
@@ -788,11 +900,10 @@ console.log("HAND: " + JSON.stringify(hand));
 	  let deck = this.returnDeck();
 	  let card = mv[1];
 
+	  //
+	  // order matters -- the second removes from deck
+	  //
 	  this.removeCardFromHand(card);
-
-	  if (deck[card].removeFromDeckAfterPlay(this)) {
-	    this.removeCardFromGame(card);
-	  }
 
           this.game.queue.splice(qe, 1);
 	  return 1;
@@ -811,12 +922,13 @@ console.log("HAND: " + JSON.stringify(hand));
 	  this.updateLog(this.returnFactionName(faction) + " triggers " + this.popup(card));
 
 	  if (deck[card]) {
+	    if (deck[card].removeFromDeckAfterPlay(this)) { this.removeCardFromGame(card); }
 	    if (deck[card].canEvent(this, faction)) {
 	      return deck[card].onEvent(this, faction);
 	    }
 	  }
 
-	  this.game.queue.push(`ACKNOWLEDGE\t${this.returnFactionName(faction)} triggers ${deck[card].name}`);
+	  //this.game.queue.push(`ACKNOWLEDGE\t${this.returnFactionName(faction)} triggers ${deck[card].name}`);
 
 	  return 1;
 
@@ -1013,6 +1125,8 @@ try {
 	  this.game.spaces[source].units.splice(unit_idx, 1);
 	  this.game.spaces[destination].units.push(unit);
 
+	  this.updateLog(this.returnFactionName(faction) + " plays " + this.popup(card));
+
 	  this.updateLog(unit.name + " redeploys to " + this.returnSpaceNameForLog(destination));
 
 	  this.displaySpace(source);
@@ -1181,10 +1295,30 @@ try {
 	  let selected = JSON.parse(mv[2]);
 
 	  this.game.state.combat = {};
+	  this.game.state.combat.step = this.game.step.game; // uuid for the combat
 	  this.game.state.combat.key = key;
 	  this.game.state.combat.attacker = selected;
-	  this.game.state.combat.attacking_faction = this.returnPowerOfUnit(this.game.spaces[selected[0].unit_sourcekey].units[0]);
-	  if (this.game.state.combat.attacking_faction == "central") { this.game.state.combat.defending_faction = "allies"; } else { this.game.state.combat.defending_faction = "central"; }
+	  this.game.state.combat.attacker_power = "central";
+	  this.game.state.combat.defender_power = "allies";
+	  this.game.state.combat.attacking_faction = "central";
+	  this.game.state.combat.defending_faction = "allies";
+	  if (this.game.spaces[key].control == "central") {
+	    if (this.game.spaces[key].units.length > 0) {
+	      if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) == "central") {;
+	        this.game.state.combat.defender_power = "central";
+	        this.game.state.combat.attacker_power = "allies";
+	        this.game.state.combat.defending_faction = "central";
+	        this.game.state.combat.attacking_faction = "allies";
+	      }
+	    } else {
+	      this.game.state.combat.defender_power = "central";
+	      this.game.state.combat.attacker_power = "allies";
+	      this.game.state.combat.defending_faction = "central";
+	      this.game.state.combat.attacking_faction = "allies";
+	    }
+	  }
+	  this.game.state.combat.attacker_cp = this.returnAttackerCombatPower();
+	  this.game.state.combat.defender_cp = this.returnDefenderCombatPower();
 	  this.game.state.combat.attacker_drm = 0;
 	  this.game.state.combat.defender_drm = 0;
 	  this.game.state.combat.unoccupied_fort = 0;
@@ -1198,22 +1332,32 @@ try {
 	  //
 	  // Great Retreat allows RU units to retreat
 	  //
+	  // great_retreat_used is reset to 0 in player.playerPlayCombat
+	  //
 	  if (this.game.state.events.great_retreat == 1 && this.game.state.events.great_retreat_used != 1) {
 	    for (let z = 0; z < this.game.spaces[this.game.state.combat.key].units.length; z++) {
 	      let u = this.game.spaces[this.game.state.combat.key].units[z];
 	      if (u.ckey == "RU") {
 		this.game.queue.push("great_retreat\t"+key);
-		this.game.state.events.great_retreat_used = 1;
 		return 1;
 	      }
 	    }
 	  }
+	  //
+	  // if great retreat was actually used, we need to mark attackers as spent...
+	  //
+	  if (parseInt(this.game.state.events.great_retreat_used) > 0) {
+	    let au = this.returnAttackerUnits();
+	    for (let z = 0; z < au.length; z++) {
+	      au[z].attacked = 1;
+	    }
+	  }
+
 
 	  //
 	  // mandated offensive tracking
 	  //
 	  let au = this.returnAttackerUnits();
-console.log("MO AU: " + JSON.stringify(au));
 	  if (this.game.state.combat.attacking_faction == "central") {
 	    if (this.game.state.mandated_offensives.allies === "AH IT") {
 
@@ -1385,6 +1529,14 @@ console.log("MO AU: " + JSON.stringify(au));
 
 	if (mv[0] == "combat_play_combat_cards") {
 
+	  //
+	  // Great Retreat
+	  //
+	  if (parseInt(this.game.state.events.great_retreat_used) == 1) {
+	    this.game.queue.splice(qe, 1);
+	    return 1;
+	  }
+
 	  // The Attacker may play any number of Combat Card Events whose 
 	  // conditions are met by this Combat at the time of Step 5. In 
 	  // addition, the Attacker may elect to use any Combat Card Events
@@ -1532,7 +1684,16 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  let faction = mv[1]; // attacker / defender
 
 	  let attacker_strength = 0;          
-	  let defender_strength = 0;          
+	  let defender_strength = 0;
+	  let attacker_table = "corps";
+	  let defender_table = "corps";
+
+
+          for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
+            let unit = this.game.spaces[this.game.state.combat.key].units[i];
+            if (unit.key.indexOf("army") > 0) { defender_table = "army"; }
+          }
+
 
 	  //
 	  // the defender assigns hits first in this case, so any corps that are
@@ -1540,7 +1701,7 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  //
 	  if (this.game.state.events.withdrawal && faction == "attacker") {
 	    //
-	    // the defender can now only restore corps that stil
+	    // the defender can now only restore corps that still exist
             //
             for (let z = 0; z < this.game.spaces[this.game.state.combat.key].units.length; z++) {
               let u = this.game.spaces[this.game.state.combat.key].units[z];
@@ -1568,19 +1729,69 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
                 attacker_strength += u.rcombat;
 	      }
 	    }
+	    if (u.key.indexOf("army") > -1) {
+	      attacker_table = "army";
+	    }
+
+
           }
 
+          this.game.state.combat.attacker_table = attacker_table;
+          this.game.state.combat.defender_table = defender_table;
           this.game.state.combat.attacker_strength = attacker_strength;
           this.game.state.combat.defender_strength = defender_strength;
+          this.game.state.combat.attacker_cp = attacker_strength;
+          this.game.state.combat.defender_cp = defender_strength;
 
 	  if (faction == "attacker") {
-            this.game.state.combat.attacker_loss_factor = this.returnAttackerLossFactor();
+            this.game.state.combat.defender_loss_factor = this.returnDefenderLossFactor();
+            try { 
+              let qs1 = `.combat_${this.game.state.combat.step}.attacker_loss_factor`;
+              let qs2 = `.combat_${this.game.state.combat.step}.defender_cp`;
+              this.game.state.combat.attacker_loss_factor = this.returnAttackerLossFactor();
+              this.game.state.combat.defender_cp = this.returnDefenderCombatPower();
+
+	      //
+	      // ridiculous overkill but...
+	      //
+	      for (let z = 0; z < this.game.logs.length; z++) {
+ 		this.game.logs[z] = this.game.logs[z].replace(/<span class="combat_14 defender_cp">\?<\/span>/g, `<span class="combat_14 defender_cp">${this.game.state.combat.defender_cp}</span>`);
+ 		this.game.logs[z] = this.game.logs[z].replace(/<span class="combat_14 attacker_loss_factor">\?<\/span>/g, `<span class="combat_14 attacker_loss_factor">${this.game.state.combat.attacker_loss_factor}</span>`);
+	      }
+              document.querySelectorAll(qs1).forEach((el) => { 
+		setTimeout(() => { el.innerHTML = this.returnAttackerLossFactor(); }, 500);
+	      });
+              document.querySelectorAll(qs2).forEach((el) => { 
+		setTimeout(() => { el.innerHTML = this.returnDefenderCombatPower(); }, 500);
+	      });
+            } catch (err) {
+console.log("error updated attacker loss factor: " + JSON.stringify(err));
+            }
           }
 
 	  if (faction == "defender") {
-	    this.game.state.combat.defender_loss_factor = this.returnDefenderLossFactor();
+	    this.game.state.combat.attacker_loss_factor = this.returnAttackerLossFactor();
+            try { 
+              let qs1 = `combat_${this.game.state.combat.step}.defender_loss_factor`;
+              let qs2 = `combat_${this.game.state.combat.step}.attacker_cp`;
+              this.game.state.combat.defender_loss_factor = this.returnDefenderLossFactor();
+              this.game.state.combat.attacker_cp = this.returnAttackerCombatPower();
+	      for (let z = 0; z < this.game.logs.length; z++) {
+ 		this.game.logs[z] = this.game.logs[z].replace(/<span class="combat_14 attacker_cp">\?<\/span>/g, `<span class="combat_14 attacker_cp">${this.game.state.combat.attacker_cp}</span>`);
+ 		this.game.logs[z] = this.game.logs[z].replace(/<span class="combat_14 defender_loss_factor">\?<\/span>/g, `<span class="combat_14 defender_loss_factor">${this.game.state.combat.defender_loss_factor}</span>`);
+	      }
+              document.querySelectorAll(qs1).forEach((el) => {
+	        setTimeout(() => { el.innerHTML = this.returnDefenderLossFactor(); }, 500);
+	      });
+              document.querySelectorAll(qs2).forEach((el) => {
+	        setTimeout(() => { el.innerHTML = this.returnAttackerCombatPower(); }, 500);
+	      });
+            } catch (err) {
+console.log("error updated attacker loss factor: " + JSON.stringify(err));
+            }
 	  }
 
+	  this.game.state.combat.winner = "none";
           if (this.game.state.combat.attacker_loss_factor > this.game.state.combat.defender_loss_factor) {
             this.game.state.combat.winner = "defender";
           }
@@ -1597,6 +1808,14 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	if (mv[0] == "combat_determine_outcome") {
 
 	  //
+	  // Great Retreat
+	  //
+	  if (parseInt(this.game.state.events.great_retreat_used) == 1) {
+	    this.game.queue.splice(qe, 1);
+	    return 1;
+	  }
+
+	  //
 	  // rolls are either handled synchronously or in sequence
 	  //
 	  let attacker_drm = this.game.state.combat.attacker_drm;
@@ -1607,8 +1826,6 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  let defender_modified_roll = 0;
 	  let attacker_power = "allies";
 	  let defender_power = "central";
-	  let attacker_combat_power = 0;
-	  let defender_combat_power = 0;
 
 	  let attacker_table = "corps";
 	  let defender_table = "corps";
@@ -1633,14 +1850,16 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  let defender_column_shift = tshift.defense;
 
 	  if (this.game.state.combat.unoccupied_fort == 1) {
-	    attacker_table = "corps";
+	    for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
+	      if (unit.key.indexOf("army") > 0) { defender_table = "army"; }
+	    }
 	    if (this.game.spaces[this.game.state.combat.key].control == "central") { attacker_power = "central"; defender_power = "allies"; } 
 	  } else {
 	    for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
 	      let unit = this.game.spaces[this.game.state.combat.key].units[i];
 	      if (this.returnPowerOfUnit(unit) == "allies") { attacker_power = "central"; defender_power = "allies"; } 
 	      if (this.game.state.events.yanks_and_tanks == 1 && unit.ckey == "US") { defender_drm += 2; }
-	      if (unit.key.indexOf("army") > 0) { attacker_table = "army"; }
+	      if (unit.key.indexOf("army") > 0) { defender_table = "army"; }
 	    }
 	  }
 
@@ -1663,7 +1882,7 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 
 	  for (let i = 0; i < this.game.state.combat.attacker.length; i++) {
 	    let unit = this.game.spaces[this.game.state.combat.attacker[i].unit_sourcekey].units[this.game.state.combat.attacker[i].unit_idx];
-	    if (unit.key.indexOf("army") > 0) { defender_table = "army"; }	    
+	    if (unit.key.indexOf("army") > 0) { attacker_table = "army"; }	    
 	    if (this.game.state.events.yanks_and_tanks == 1 && unit.ckey == "US") { attacker_drm += 2; }
 	    unit.attacked = 1;
 	  }
@@ -1674,17 +1893,6 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  attacker_modified_roll = attacker_roll + attacker_drm;
 	  defender_modified_roll = defender_roll + defender_drm;
 
-	  if (attacker_drm > 0) {
-	    this.updateLog(`Attacker rolls: ${attacker_roll} [+${attacker_drm}]`);
-	  } else {
-	    this.updateLog(`Attacker rolls: ${attacker_roll}`);
-	  }	  
-	  if (defender_drm > 0) {
-	    this.updateLog(`Defender rolls: ${defender_roll} [+${defender_drm}]`);
-	  } else {
-	    this.updateLog(`Defender rolls: ${defender_roll}`);
-	  }	  
-
 	  if (attacker_modified_roll > 6) { attacker_modified_roll = 6; }
 	  if (defender_modified_roll > 6) { defender_modified_roll = 6; }
 	  if (attacker_modified_roll < 1) { attacker_modified_roll = 1; }
@@ -1692,10 +1900,8 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 
 	  this.game.state.combat.attacker_table = attacker_table;
 	  this.game.state.combat.defender_table = defender_table;
-	  this.game.state.combat.attacker_power = attacker_power;
-	  this.game.state.combat.defender_power = defender_power;
-	  //this.game.state.combat.attacker_drm = attacker_drm;
-	  //this.game.state.combat.defender_drm = defender_drm;
+	  this.game.state.combat.attacker_drm = attacker_drm;
+	  this.game.state.combat.defender_drm = defender_drm;
 	  this.game.state.combat.attacker_roll = attacker_roll;
 	  this.game.state.combat.defender_roll = defender_roll;
 	  this.game.state.combat.attacker_column_shift = attacker_column_shift;
@@ -1712,20 +1918,22 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	    this.game.state.combat.winner = "attacker";
 	  }
 
+
 	  //
 	  // Wireless Intercepts
 	  //
 	  if (this.game.state.events.wireless_intercepts == 1) { this.game.state.combat.flank_attack = "attacker"; }
 
-
 	  if (this.game.state.combat.flank_attack == "attacker") {
 	    this.game.queue.push(`combat_assign_hits\tattacker`);
 	    this.game.queue.push(`combat_recalculate_loss_factor\tattacker`);
+	    this.game.state.combat.defender_cp = "?";
 	    this.game.queue.push(`combat_assign_hits\tdefender`);
 	  }
 	  if (this.game.state.combat.flank_attack == "defender") {
 	    this.game.queue.push(`combat_assign_hits\tdefender`);
 	    this.game.queue.push(`combat_recalculate_loss_factor\tdefender`);
+	    this.game.state.combat.attacker_cp = "?";
 	    this.game.queue.push(`combat_assign_hits\tattacker`);
 	  }
 	  //
@@ -1734,10 +1942,29 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  if (!this.game.state.combat.flank_attack) {
 	    this.game.queue.push(`combat_assign_hits\tattacker`);
 	    this.game.queue.push(`combat_assign_hits\tdefender`);
+
 	  }
 
-	  this.game.queue.splice(qe, 1);
+	  if (attacker_drm > 0) {
+	    this.updateLog(`Attacker <span class="combat_${this.game.state.combat.step} attacker_cp">${this.game.state.combat.attacker_cp}</span>: <span class="combat_${this.game.state.combat.step} attacker_roll">${this.game.state.combat.attacker_roll}</span> [+<span class="combat_${this.game.state.combat.step} attacker_drm">${this.game.state.combat.attacker_drm}</span>] ==> <span class="combat_${this.game.state.combat.step} defender_loss_factor">${this.game.state.combat.defender_loss_factor}</span> hits`);
+	  } else {
+	    this.updateLog(`Attacker <span class="combat_${this.game.state.combat.step} attacker_cp">${this.game.state.combat.attacker_cp}</span>: <span class="combat_${this.game.state.combat.step} attacker_roll">${this.game.state.combat.attacker_roll}</span> ==> <span class="combat_${this.game.state.combat.step} defender_loss_factor">${this.game.state.combat.defender_loss_factor}</span> hits`);
+	  }	  
+	  if (this.game.state.combat.defender_drm > 0) {
+	    this.updateLog(`Defender <span class="combat_${this.game.state.combat.step} defender_cp">${this.game.state.combat.defender_cp}</span>: <span class="combat_${this.game.state.combat.step} defender_roll">${this.game.state.combat.defender_roll}</span> [+<span class="combat_${this.game.state.combat.step} defender_drm">${this.game.state.combat.defender_drm}</span>] ==> <span class="combat_${this.game.state.combat.step} attacker_loss_factor">${this.game.state.combat.attacker_loss_factor}</span> hits`);
+	  } else {
+	    this.updateLog(`Defender <span class="combat_${this.game.state.combat.step} defender_cp">${this.game.state.combat.defender_cp}</span>: <span class="combat_${this.game.state.combat.step} defender_roll">${this.game.state.combat.defender_roll}</span> ==> <span class="combat_${this.game.state.combat.step} attacker_loss_factor">${this.game.state.combat.attacker_loss_factor}</span> hits`);
+	  }
+  
+          let xhtml = `!!! Combat in ${this.returnSpaceNameForLog(this.game.state.combat.key)} !!!`;
+	  let yhtml = ``;
+	  for (let z = 0; z < new DOMParser().parseFromString(xhtml, 'text/html').body.textContent.length; z++) { yhtml += "!"; }
+	  this.updateLog(yhtml);
+	  this.updateLog(xhtml);
+	  this.updateLog(yhtml);
 
+
+	  this.game.queue.splice(qe, 1);
 	  return 1;
 
 	}
@@ -1771,8 +1998,19 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	  }
 
 	  if (this.game.player === player) {
+
 	    this.combat_overlay.hide();
+  
+    	    let html = `<ul>`;
+	    html    += `<li class="card" id="advance">show overlay</li>`;
+	    html    += `</ul>`;
+
+	    this.updateStatusWithOptions(`Assign Losses...`, html);
+	    this.attachCardboxEvents((action) => {
+	      this.loss_overlay.render(power);
+	    });
 	    this.loss_overlay.render(power);
+
 	  } else {
 	    this.combat_overlay.hide();
 	    this.loss_overlay.render(power);
@@ -1824,6 +2062,7 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	if (mv[0] === "great_retreat") {
 
 	  let spacekey = mv[1];
+	  this.game.queue.splice(qe, 1);
 
           let player = this.returnPlayerOfFaction("allies");
           if (this.game.player == player) {
@@ -1832,7 +2071,6 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 	    this.updateStatus("Russian evaluating retreat..."); 
           }
 
-	  this.game.queue.splice(qe, 1);
 	  return 0;
 
 	}
@@ -1841,7 +2079,13 @@ console.log(JSON.stringify(this.game.state.cc_allies_active));
 
 	  this.game.queue.splice(qe, 1);
 
-console.log("CDR 1");
+	  //
+	  // Great Retreat
+	  //
+	  if (parseInt(this.game.state.events.great_retreat_used) == 1) {
+	    return 1;
+	  }
+
 
 	  let attacker_units = this.returnAttackerUnits();
 	  let does_defender_retreat = false;
@@ -1874,8 +2118,6 @@ console.log("CDR 1");
 	    } 
 	  }        
 
-console.log("CDR 2");
-
 	  //
 	  // can we take another stepwise loss to cancel the retreat?
 	  //
@@ -1891,8 +2133,6 @@ console.log("CDR 2");
 	  if (this.game.state.withdrawal == 1) { this.game.state.combat.can_defender_cancel = false; }
 	  this.game.state.combat.can_defender_cancel = can_defender_cancel;
 
-console.log("CDR 3");
-
 	  //
 	  // no retreating from unoccupied fort
 	  //
@@ -1906,8 +2146,6 @@ console.log("CDR 3");
 	  //
 	  try { this.loss_overlay.showRetreatNotice(); } catch (err) {}
 
-console.log("CDR 4");
-
 	  //
 	  // remove all destroyed defender units
 	  //
@@ -1917,14 +2155,10 @@ console.log("CDR 4");
 	  }
 	  this.displaySpace(this.game.state.combat.key);
 
-console.log("CDR 5 - " + JSON.stringify(this.game.spaces[this.game.state.combat.key]));
-
 	  //
 	  // no need to retreat if nothing is left
 	  //
 	  if (this.game.spaces[this.game.state.combat.key].units.length <= 0) { return 1; } 
-
-console.log("CDR 6");
 
 	  //
 	  // no need to retreat if "they shall not pass"
@@ -1985,7 +2219,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  //
 	  // we can advance into destroyed forts
 	  //
-	  if (this.game.state.combat.unoccupied_fort == 1 && this.game.space[this.game.state.combat.key].fort == -1) {
+	  if (this.game.state.combat.unoccupied_fort == 1 && this.game.spaces[this.game.state.combat.key].fort == -1) {
 	    let player = this.returnPlayerOfFaction(this.game.state.combat.attacker_power);
 	    if (this.game.player == player) {
 	      this.playerPlayAdvance();
@@ -2030,6 +2264,13 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  this.game.queue.splice(qe, 1);
 
 	  //
+	  // Great Retreat
+	  //
+	  if (parseInt(this.game.state.events.great_retreat_used) == 1) {
+	    return 1;
+	  }
+
+	  //
 	  // Von Hutier 
 	  //
 	  if (this.game.state.events.von_hutier == 1) {
@@ -2060,6 +2301,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  // disable combat events that should disappear
 	  //
 	  this.game.state.events.von_hutier = 0;
+	  this.game.state.events.great_retreat_used = 0;
 
 	  if (!this.game.state.combat) { return 1; }
 
@@ -2071,6 +2313,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    if (u.destroyed == true) {
 	      this.game.spaces[spacekey].units.splice(i, 1);
 	    }
+	    u.damaged_this_combat = false;
 	  }
 
 	  this.displaySpace(spacekey);
@@ -2080,6 +2323,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    if (space.activated_for_combat || space.activated_for_movement) {
 	      for (let z = space.units.length-1; z >= 0 ; z--) {
 	        let u = space.units[z];
+		u.damaged_this_combat = false;
 		if (u.destroyed) { space.units.splice(z, 1); }
 	      }
 	    }
@@ -2208,8 +2452,10 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	    if (unit) {
 	      if (unit.damaged == false) {
 		unit.damaged = true;
+	    	unit.damaged_this_combat = true;
 	      } else { 
 		unit.destroyed = true;
+	    	unit.damaged_this_combat = true;
 	      }
 	    }
 	  }
@@ -2248,8 +2494,10 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  if (mv[3]) { player_to_ignore = parseInt(mv[3]); }
 
 	  if (player_to_ignore != this.game.player) {
+
 	    for (let z = 0; z < this.game.spaces[spacekey].units.length; z++) {
 	      if (this.game.spaces[spacekey].units[z].key === unitkey) {
+
 		this.game.spaces[spacekey].units.splice(z, 1);
 		z = this.game.spaces[spacekey].units.length + 2;
 
@@ -2290,19 +2538,26 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  if (player_to_ignore != this.game.player) {
 	    let unit = this.cloneUnit(unitkey);
 	    unit.spacekey = spacekey;
-	    this.game.spaces[spacekey].units.push(this.cloneUnit(unitkey));
-	    if (attacked) { this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].attacked = 1; }
+	    this.game.spaces[spacekey].units.push(unit);
+	    if (attacked) {
+	      this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].attacked = 1;
+	    }
 	  }
 
 	  //
 	  // if this is a corps and it is in a spacekey under combat, update
 	  //
           if (unitkey.indexOf("corps") > -1) {
-	    if (this.game.state.combat.attacker) {
-	      for (let z = 0; z < this.game.state.combat.attacker.length; z++) {
-  	        if (this.game.state.combat.attacker[z].unit_sourcekey == spacekey) {
-	          this.game.state.combat.attacker.push({ key : this.game.state.combat.key , unit_sourcekey : spacekey , unit_idx : this.game.spaces[spacekey].units.length-1 });
-		  z = this.game.state.combat.attacker.length + 2;
+	    if (this.game.state.combat) {
+	      if (this.game.state.combat.attacker) {
+	        for (let z = 0; z < this.game.state.combat.attacker.length; z++) {
+  	          if (this.game.state.combat.attacker[z].unit_sourcekey == spacekey) {
+	            this.game.state.combat.attacker.push({ key : this.game.state.combat.key , unit_sourcekey : spacekey , unit_idx : this.game.spaces[spacekey].units.length-1 });
+		    z = this.game.state.combat.attacker.length + 2;
+	    	    if (attacked) {
+	    	      this.game.spaces[spacekey].units[this.game.spaces[spacekey].units.length-1].damaged_this_combat = true;
+	    	    }
+	          }
 	        }
 	      }
 	    }
@@ -2342,13 +2597,14 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
           }
 
 	  let roll = this.rollDice(6);
-	  this.updateLog("roll: " + roll + " (+"+drm_modifiers+")"); 
 
 	  if ((roll+drm_modifiers) > 3) {
 	    try { salert("Flank Attack Succeeds!"); } catch (err) {}
+	    this.updateLog("Flank Attack succeeds: " + roll + " (+"+drm_modifiers+")"); 
 	    this.game.state.combat.flank_attack = "attacker"; 
 	  } else {
 	    try { salert("Flank Attack Fails!"); } catch (err) {}
+	    this.updateLog("Flank Attack fails: " + roll + " (+"+drm_modifiers+")"); 
 	    this.game.state.combat.flank_attack = "defender"; 
 	  }
 
@@ -2475,7 +2731,13 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  //
 	  if (idx) {
 	    if (loss_factor) {
-	      this.game.state.entrenchments.push({ spacekey : key , loss_factor : loss_factor});
+	      let already_entrenching = false;
+	      for (let i = 0; i < this.game.state.entrenchments.length; i++) {
+		if (this.game.state.entrenchments[i].spacekey == key) { already_entrenching = true; }
+	      }
+	      if (!already_entrenching) {
+	        this.game.state.entrenchments.push({ spacekey : key , loss_factor : loss_factor});
+	      }
 	    }
 	    this.game.spaces[key].units[idx].moved = 1;
 	  } else {
@@ -2503,10 +2765,10 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	      let e = this.game.state.entrenchments[i];
 	      let roll = this.rollDice(6);
 	      if (this.game.state.entrenchments[i].loss_factor >= roll) {
-	        this.updateLog("Trench Success: " + this.game.spaces[e.spacekey].name + " ("+roll+")");
+	        this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " entrenches in " + this.returnSpaceNameForLog(e.spacekey));
 	        this.addTrench(e.spacekey);
 	      } else {
-	        this.updateLog("Trench Failure: " + this.game.spaces[e.spacekey].name + " ("+roll+")");
+	        this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " fails to entrench in " + this.returnSpaceNameForLog(e.spacekey));
 	      }
 	    }
 	  }
@@ -2609,9 +2871,6 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  //
 	  if (this.game.spaces[sourcekey].besieged == 1) {
 	    if (this.game.spaces[sourcekey].units.length > 0) {
-	      if (this.returnPowerOfUnit(this.game.spaces[sourcekey].units[0]) != this.game.spaces[destinationkey].control) {
-	        this.game.spaces[sourcekey].besieged = 0;
-	      }
 	    } else {
 	      this.game.spaces[sourcekey].besieged = 0;
 	      if (this.game.spaces[sourcekey].fort > 0) {
@@ -2643,6 +2902,8 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	  let faction = mv[1];
 	  let card = mv[2];
 	  let opsnum = parseInt(mv[3]);
+
+	  this.updateLog(this.returnFactionName(faction) + " plays " + this.popup(card));
 
 	  this.game.queue.splice(qe, 1);
 

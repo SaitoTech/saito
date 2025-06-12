@@ -1,9 +1,8 @@
 module.exports = (app, mod, details) => {
+  //let to_identicon = app.keychain.returnIdenticon(to_publicKey);
+  //let to_username = app.keychain.returnUsername(to_publicKey);
 
-	//let to_identicon = app.keychain.returnIdenticon(to_publicKey);
-	//let to_username = app.keychain.returnUsername(to_publicKey);
-
-	let html = `  
+  let html = `  
   <div class="game-crypto-transfer-manager-container" id="send-crypto-request-container">
     
     <h2 class="auth_title" id="auth_title">Sending Payment</h2>
@@ -17,20 +16,19 @@ module.exports = (app, mod, details) => {
 
     <div class="counterparty-details"></div>`;
 
-	if (!details?.trusted) {
-		html += `<div class="button saito-button-primary crypto_transfer_btn" 
+  if (!details?.trusted) {
+    html += `<div class="button saito-button-primary crypto_transfer_btn" 
 	  					id="send_crypto_transfer_btn">close</div>
 	  					`;
 
-		if (mod?.game?.over == 0) {
-			html += `<div class="ignore"><input type="checkbox" id="ignore_checkbox" class="ignore_checkbox" />do not ask again</div>
+    if (mod?.game?.over == 0) {
+      html += `<div class="ignore"><input type="checkbox" id="ignore_checkbox" class="ignore_checkbox" />do not ask again</div>
 	  					`;
-		}
-	}else{
-		html += `<div class="crypto-transfer-countdown">Closing in <span>3</span>s</div>`
-	}
+    }
+  } else {
+    html += `<div class="crypto-transfer-countdown">Closing in <span>3</span>s</div>`;
+  }
 
-	html += '</div>';
-	return html;
+  html += '</div>';
+  return html;
 };
-

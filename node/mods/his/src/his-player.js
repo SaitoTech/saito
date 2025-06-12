@@ -3802,7 +3802,6 @@ return;
       if (faction == "ottoman") { his_self.theses_overlay.render("ottoman"); }
       his_self.theses_overlay.pushHudUnderOverlay();
       his_self.updateStatusWithOptions(msg, opt);
-console.log("just attached options.... should be selectable..");
 
       $(".option").off();
       $(".option").on('click', function () {
@@ -3859,20 +3858,38 @@ console.log("just attached options.... should be selectable..");
 
     for (let i = 0; i < capitals.length; i++) {
       let c = capitals[i];
-      if (this.game.spaces[c].units[faction].length > 0) {
-        if (this.game.spaces[c].unrest == 0) {
+      if (his_self.game.spaces[c].units[faction].length > 0) {
+        if (his_self.game.spaces[c].unrest == 0) {
           can_deploy = 1;
           viable_capitals.push(capitals[i]);
         }
       }
     }
 
-    if (can_deploy == 0) {
-      this.updateStatus("Spring Deployment not possible");
-      this.endTurn();
+    //
+    // check something is there to deploy
+    //
+    let anything_to_deploy = false;
+    for (let i = 0; i < viable_capitals.length && !anything_to_deploy; i++) {
+      let sp = his_self.game.spaces[viable_capitals[i]];
+      for (let f in sp.units) {
+	if (his_self.returnControllingPower(f) === faction) {
+	  for (let z = 0; z < sp.units[f].length; z++) {
+	    if (sp.units[f][z].type == "regular" || sp.units[f][z].type == "mercenary" || sp.units[f][z].type == "cavalry") {
+	      anything_to_deploy = true;
+	      break;
+	    }
+	  }
+	}
+      }
+    }
+
+    if (can_deploy == 0 || anything_to_deploy == false) {
+      his_self.updateStatus("Spring Deployment not possible");
+      his_self.endTurn();
     } else {
 
-      let msg = this.returnFactionName(faction) + " - Spring Deploy from:";     
+      let msg = his_self.returnFactionName(faction) + " - Spring Deploy from:";     
       if (faction === "ottoman") { msg = "Ottomans - Spring Deploy from?"; }
 
       let opt = "<ul>";
@@ -3889,7 +3906,7 @@ console.log("just attached options.... should be selectable..");
       his_self.spring_deployment_overlay.render(faction);
       his_self.spring_deployment_overlay.pushHudUnderOverlay();
 
-      this.updateStatusWithOptions(msg, opt);
+      his_self.updateStatusWithOptions(msg, opt);
 
       $(".option").off();
       $(".option").on('click', function () {
@@ -5302,8 +5319,6 @@ does_units_to_move_have_unit = true; }
 
   playerEvaluateFortification(attacker, faction, spacekey, post_battle=0, relief_siege=0) {
 
-console.log("Relief Siege? " + relief_siege);
-
     let his_self = this;
 
     let html = `<ul>`;
@@ -5668,10 +5683,14 @@ console.log("Relief Siege? " + relief_siege);
 
   canPlayerNavalTransport(his_self, player, faction, ops_to_spend, ops_remaining) {
 
+    //
     // no for protestants early-game
+    //
     if (faction === "protestant" && his_self.game.state.events.schmalkaldic_league == 0) { return false; }
 
+    //
     // no if no ships at sea
+    //
     let have_ships_at_sea = false;
     for (let key in his_self.game.navalspaces) {
       if (his_self.game.navalspaces[key].units[faction].length > 0) {
@@ -6793,30 +6812,19 @@ console.log("Relief Siege? " + relief_siege);
 
     if (his_self.game.state.events.foul_weather) { return 0; }
 
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-
     // no for protestants early-game
     if (faction === "protestant" && his_self.game.state.events.schmalkaldic_league == 0) { return false; }
 
     let conquerable_spaces = his_self.returnSpacesWithFactionInfantry(faction);
 
-console.log(JSON.stringify(conquerable_spaces));
-
     let assaultable_spaces = 0;
     let nonassaultable_spaces = 0;
 
     for (let i = 0; i < conquerable_spaces.length; i++) {
-console.log("cs: " + conquerable_spaces[i]);
       if (!his_self.isSpaceControlled(conquerable_spaces[i], faction)) {
         if (conquerable_spaces[i] !== "egypt" && conquerable_spaces[i] !== "persia" && conquerable_spaces[i] !== "ireland") {
-console.log("not controlled by me");
 	  if (his_self.isSpaceInLineOfControl(conquerable_spaces[i], faction)) {
-console.log("in line of control!");
             if (his_self.game.spaces[conquerable_spaces[i]].besieged == 1 || (faction == "ottoman" && his_self.game.state.events.roxelana == 1) || (faction == his_self.returnControllingPower("scotland") && his_self.game.state.events.scots_raid == 1)) {
-console.log("assaulted this turn: " + JSON.stringify(his_self.game.state.spaces_assaulted_this_turn));
 	      if (!his_self.game.state.spaces_assaulted_this_turn.includes(conquerable_spaces[i])) {
 
 	        //
@@ -6827,7 +6835,6 @@ console.log("assaulted this turn: " + JSON.stringify(his_self.game.state.spaces_
 	        let squadrons_protecting_space = his_self.returnNumberOfSquadronsProtectingSpace(conquerable_spaces[i]);
 	        if (squadrons_protecting_space == 0) { assaultable_spaces++ } else {
 
-console.log("checking if squadrons are protecting!");
 		      let attacker_squadrons_adjacent = 0;
 
 		      for (let y = 0; y < his_self.game.spaces[conquerable_spaces[i]].ports.length; y++) {
@@ -6850,8 +6857,6 @@ console.log("checking if squadrons are protecting!");
         }
       }
     }
-
-console.log("are there assaultable_spaces: " + assaultable_spaces);
 
     if (assaultable_spaces > 0 ) { return 1; }
     return 0;
@@ -7406,7 +7411,15 @@ console.log("are there assaultable_spaces: " + assaultable_spaces);
       for (let i = 0; i < his_self.game.navalspaces[key].units[faction].length; i++) {
 	if (his_self.game.navalspaces[key].units[faction][i].type == "corsair") { 
 	  if (!his_self.game.state.events.ottoman_piracy_seazones.includes(key)) {
-	    targetsea = true;
+      	    for (let ii = 0; ii < his_self.game.navalspaces[key].ports.length; ii++) {
+	      let ps = his_self.game.spaces[his_self.game.navalspaces[key].ports[ii]];
+	      let controller = ps.political;
+	      if (ps.political == "") { controller = ps.home; }
+	      controller = his_self.returnControllingPower(controller);
+console.log("controller: " + controller + " -- " + key);
+	      if (controller == "hapsburg" || controller == "france" || controller == "papacy" || controller == "england") { targetsea = true; }
+      	    }
+
 	  }
 	}
       }
@@ -7453,6 +7466,7 @@ console.log("are there assaultable_spaces: " + assaultable_spaces);
       for (let z = 0; z < ports.length; z++) {
 	let controller = his_self.game.spaces[ports[z]].political;
 	if (his_self.game.spaces[ports[z]].political == "") { controller = his_self.game.spaces[ports[z]].home; }
+	controller = his_self.returnControllingPower(controller);
         if (io.includes(controller) && controller != "ottoman") {
           html += '<li class="option" id="'+ports[z]+'">'+his_self.returnSpaceName(ports[z])+'</li>';
         }

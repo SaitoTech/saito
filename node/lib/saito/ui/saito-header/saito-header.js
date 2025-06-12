@@ -18,8 +18,8 @@ const SaitoBackup = require('../saito-backup/saito-backup');
 // Note: inherits this.publicKey from modtemplate
 //
 class SaitoHeader extends UIModTemplate {
-	constructor(app, mod) {
-		super(app);
+  constructor(app, mod) {
+    super(app);
 
 		//
 		// UI components as modules allows them to respond
@@ -441,546 +441,548 @@ class SaitoHeader extends UIModTemplate {
       </li>
     `;
 
-		if (typeof item.type != 'undefined') {
-			document.querySelector('.' + item.type + '  .saito-menu > ul').innerHTML += html;
-		} else {
-			document.querySelector(
-				'.saito-header-menu-section.appspace-menu > .saito-menu > ul'
-			).innerHTML += html;
-		}
-	}
+    if (typeof item.type != 'undefined') {
+      document.querySelector('.' + item.type + '  .saito-menu > ul').innerHTML += html;
+    } else {
+      document.querySelector(
+        '.saito-header-menu-section.appspace-menu > .saito-menu > ul'
+      ).innerHTML += html;
+    }
+  }
 
-	attachEvents() {
-		let app = this.app;
-		let mod = this.mod;
-		let this_header = this;
+  attachEvents() {
+    let app = this.app;
+    let mod = this.mod;
+    let this_header = this;
 
-		document.querySelectorAll('.saito-header-appspace-option').forEach((menu) => {
-			let id = menu.getAttribute('id');
-			let data_id = menu.getAttribute('data-id');
-			let callback = this_header.callbacks[id];
+    document.querySelectorAll('.saito-header-appspace-option').forEach((menu) => {
+      let id = menu.getAttribute('id');
+      let data_id = menu.getAttribute('data-id');
+      let callback = this_header.callbacks[id];
 
-			menu.addEventListener('click', async (e) => {
-				this.toggleMenu();
-				e.preventDefault();
-				callback(app, data_id);
-			});
-		});
+      menu.addEventListener('click', async (e) => {
+        this.toggleMenu();
+        e.preventDefault();
+        callback(app, data_id);
+      });
+    });
 
-		if (document.querySelector('#saito-header-menu-toggle')) {
-			document.querySelector('#saito-header-menu-toggle').addEventListener('click', () => {
-				this.toggleMenu();
-			});
-		}
+    if (document.querySelector('#saito-header-menu-toggle')) {
+      document.querySelector('#saito-header-menu-toggle').addEventListener('click', () => {
+        this.toggleMenu();
+      });
+    }
 
-		if (document.querySelector('.saito-header-backdrop')) {
-			document.querySelector('.saito-header-backdrop').onclick = () => {
-				this.toggleMenu();
-			};
-		}
+    if (document.querySelector('.saito-header-backdrop')) {
+      document.querySelector('.saito-header-backdrop').onclick = () => {
+        this.toggleMenu();
+      };
+    }
 
-		//
-		// default buttons
-		//
-		let username = app.keychain.returnIdentifierByPublicKey(this.publicKey, true);
-		if (username && username != this.publicKey) {
-			console.log('update 4 ////');
-			this.updateHeaderMessage(username);
-		}
+    //
+    // default buttons
+    //
+    let username = app.keychain.returnIdentifierByPublicKey(this.publicKey, true);
+    if (username && username != this.publicKey) {
+      console.log('update 4 ////');
+      this.updateHeaderMessage(username);
+    }
 
-		document.querySelector('#wallet-btn-withdraw').onclick = (e) => {
-			app.connection.emit('saito-crypto-withdraw-render-request');
-			this.hideMenu();
-		};
+    document.querySelector('#wallet-btn-withdraw').onclick = (e) => {
+      app.connection.emit('saito-crypto-withdraw-render-request');
+      this.hideMenu();
+    };
 
-		document.querySelector('#wallet-btn-history').onclick = (e) => {
-			app.connection.emit('saito-crypto-history-render-request');
-			this.hideMenu();
-		};
+    document.querySelector('#wallet-btn-history').onclick = (e) => {
+      app.connection.emit('saito-crypto-history-render-request');
+      this.hideMenu();
+    };
 
-		document.querySelector('.pubkey-containter').onclick = async (e) => {
-			let public_key = document.getElementById('profile-public-key').dataset.add;
+    document.querySelector('.pubkey-containter').onclick = async (e) => {
+      let public_key = document.getElementById('profile-public-key').dataset.add;
 
-			console.log('publicKey:', public_key);
+      console.log('publicKey:', public_key);
 
-			await navigator.clipboard.writeText(public_key);
-			let icon_element = document.querySelector('.pubkey-containter i');
-			icon_element.classList.toggle('fa-copy');
-			icon_element.classList.toggle('fa-check');
+      await navigator.clipboard.writeText(public_key);
+      let icon_element = document.querySelector('.pubkey-containter i');
+      icon_element.classList.toggle('fa-copy');
+      icon_element.classList.toggle('fa-check');
 
-			setTimeout(() => {
-				icon_element.classList.toggle('fa-copy');
-				icon_element.classList.toggle('fa-check');
-			}, 800);
-		};
+      setTimeout(() => {
+        icon_element.classList.toggle('fa-copy');
+        icon_element.classList.toggle('fa-check');
+      }, 800);
+    };
 
-		//
-		// Change preferred (displayed) crypto currency
-		//
-		document.querySelectorAll('#wallet-select-crypto').forEach((element, i) => {
-			element.onchange = async (value) => {
-				//
-				// This is a hook for appstore installing additional cryptos
-				//
-				/*if (element.value === 'add-new') {
-						let current_default = app.wallet.returnPreferredCrypto();
-						let select_box = document.querySelector(
-							'.saito-select-crypto'
-						);
-						select_box.value = current_default.name;
-						let appstore_mod = app.modules.returnModule('AppStore');
-						if (appstore_mod) {
-							let options = {
-								search: '',
-								category: 'Cryptocurrency',
-								featured: 1
-							};
-							appstore_mod.openAppstoreOverlay(options);
-						} else {
-							salert(
-								'Cannot install other cryptocurrencies without the appstore!'
-							);
-						}
-						return;
-					}*/
+    //
+    // Change preferred (displayed) crypto currency
+    //
+    document.querySelectorAll('#wallet-select-crypto').forEach((element, i) => {
+      element.onchange = async (value) => {
+        //
+        // This is a hook for appstore installing additional cryptos
+        //
+        /*if (element.value === 'add-new') {
+            let current_default = app.wallet.returnPreferredCrypto();
+            let select_box = document.querySelector(
+              '.saito-select-crypto'
+            );
+            select_box.value = current_default.name;
+            let appstore_mod = app.modules.returnModule('AppStore');
+            if (appstore_mod) {
+              let options = {
+                search: '',
+                category: 'Cryptocurrency',
+                featured: 1
+              };
+              appstore_mod.openAppstoreOverlay(options);
+            } else {
+              salert(
+                'Cannot install other cryptocurrencies without the appstore!'
+              );
+            }
+            return;
+          }*/
 
-				this.clearBalanceCheck();
-				this.clearPendingDepositsCheck();
-				await app.wallet.setPreferredCrypto(element.value);
-				console.log("Change preferred crypto, restart polls on crypto balance and pending deposits");
-				this.initiateBalanceCheck();
-				this.initiatePendingDepositsCheck();
-			};
-		});
+        this.clearBalanceCheck();
+        this.clearPendingDepositsCheck();
+        await app.wallet.setPreferredCrypto(element.value);
+        console.log(
+          'Change preferred crypto, restart polls on crypto balance and pending deposits'
+        );
+        this.initiateBalanceCheck();
+        this.initiatePendingDepositsCheck();
+      };
+    });
 
-		if (document.querySelector('.more-options') != null) {
-			document.querySelector('.more-options').onclick = (e) => {
-				app.connection.emit('settings-overlay-render-request');
-			};
-			this.hideMenu();
-		}
+    if (document.querySelector('.more-options') != null) {
+      document.querySelector('.more-options').onclick = (e) => {
+        app.connection.emit('settings-overlay-render-request');
+      };
+      this.hideMenu();
+    }
 
-		if (document.querySelector('#saito-floating-plus-btn')) {
-			document.getElementById('saito-floating-plus-btn').onclick = (e) => {
-				document.getElementById('saito-floating-menu').classList.toggle('activated');
-			};
-		}
+    if (document.querySelector('#saito-floating-plus-btn')) {
+      document.getElementById('saito-floating-plus-btn').onclick = (e) => {
+        document.getElementById('saito-floating-menu').classList.toggle('activated');
+      };
+    }
 
-		if (document.getElementById('saito-floating-menu-mask')) {
-			document.getElementById('saito-floating-menu-mask').onclick = (e) => {
-				let mask = e.currentTarget;
+    if (document.getElementById('saito-floating-menu-mask')) {
+      document.getElementById('saito-floating-menu-mask').onclick = (e) => {
+        let mask = e.currentTarget;
 
-				document.getElementById('saito-floating-menu').classList.toggle('activated');
-			};
-		}
+        document.getElementById('saito-floating-menu').classList.toggle('activated');
+      };
+    }
 
-		document.querySelectorAll('.saito-floating-menu-item').forEach((menu) => {
-			let id = menu.getAttribute('id');
-			let data_id = menu.getAttribute('data-id');
-			let callback = this_header.callbacks[data_id];
+    document.querySelectorAll('.saito-floating-menu-item').forEach((menu) => {
+      let id = menu.getAttribute('id');
+      let data_id = menu.getAttribute('data-id');
+      let callback = this_header.callbacks[data_id];
 
-			menu.onclick = (e) => {
-				e.preventDefault();
-				callback(this_header.app, data_id);
-				console.log('hi!');
-				document.getElementById('saito-floating-menu').classList.toggle('activated');
-			};
-		});
-	}
+      menu.onclick = (e) => {
+        e.preventDefault();
+        callback(this_header.app, data_id);
+        console.log('hi!');
+        document.getElementById('saito-floating-menu').classList.toggle('activated');
+      };
+    });
+  }
 
-	toggleMenu() {
-		if (
-			document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
-		) {
-			document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
-			document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
-			//document.getElementById('saito-header').style.zIndex = 15;
+  toggleMenu() {
+    if (
+      document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
+    ) {
+      document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
+      document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
+      //document.getElementById('saito-header').style.zIndex = 15;
 
-			this.clearBalanceCheck();
-			this.clearPendingDepositsCheck();
-		} else {
-			document.querySelector('.saito-header-hamburger-contents').classList.add('show-menu');
-			document.querySelector('.saito-header-backdrop').classList.add('menu-visible');
-			//document.getElementById('saito-header').style.zIndex = 20;
+      this.clearBalanceCheck();
+      this.clearPendingDepositsCheck();
+    } else {
+      document.querySelector('.saito-header-hamburger-contents').classList.add('show-menu');
+      document.querySelector('.saito-header-backdrop').classList.add('menu-visible');
+      //document.getElementById('saito-header').style.zIndex = 20;
 
-			console.log("Menu open, start polls on crypto balance and pending deposits");
-			this.initiateBalanceCheck();
-			this.initiatePendingDepositsCheck();
-		}
-	}
+      console.log('Menu open, start polls on crypto balance and pending deposits');
+      this.initiateBalanceCheck();
+      this.initiatePendingDepositsCheck();
+    }
+  }
 
-	hideMenu() {
-		if (
-			document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
-		) {
-			document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
-			document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
-			//document.getElementById('saito-header').style.zIndex = 15;
-		}
+  hideMenu() {
+    if (
+      document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
+    ) {
+      document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
+      document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
+      //document.getElementById('saito-header').style.zIndex = 15;
+    }
 
-		this.clearBalanceCheck();
-	}
+    this.clearBalanceCheck();
+  }
 
+  /****************************************************
+   *
+   * A pair of functions to update the user name field in the header
+   * and attach click functionality.
+   *
+   ***************************************************/
 
-	/****************************************************
-	 * 
-	 * A pair of functions to update the user name field in the header
-	 * and attach click functionality. 
-	 * 
-	 ***************************************************/
+  updateHeaderMessage(text = '', flash = false, callback = null, timeout = 0) {
+    let this_self = this;
 
-	updateHeaderMessage(text = '', flash = false, callback = null, timeout = 0) {
-		let this_self = this;
+    if (text == '') {
+      console.log('updateHeaderMessage->renderUsername');
+      this.renderUsername();
+    } else {
+      document.querySelector('#header-msg').innerHTML = text;
+    }
 
-		if (text == '') {
-			console.log("updateHeaderMessage->renderUsername");
-			this.renderUsername();
-		} else {
-			document.querySelector('#header-msg').innerHTML = text;
-		}
+    if (flash) {
+      document.querySelector('#header-msg').classList.add('flash');
+    } else {
+      document.querySelector('#header-msg').classList.remove('flash');
+    }
 
-		if (flash) {
-			document.querySelector('#header-msg').classList.add('flash');
-		} else {
-			document.querySelector('#header-msg').classList.remove('flash');
-		}
+    if (callback != null) {
+      let el = document.getElementById('header-msg');
 
-		if (callback != null) {
-			let el = document.getElementById('header-msg');
+      console.log('timeout: //////////', timeout);
 
-			console.log('timeout: //////////', timeout);
+      if (timeout) {
+        setTimeout(function () {
+          console.log('Clear flashing reminder from saito-header/updateHeaderMessage');
+          this_self.updateHeaderMessage();
+        }, timeout);
+      }
 
-			if (timeout) {
-				setTimeout(function () {
-					console.log('Clear flashing reminder from saito-header/updateHeaderMessage');
-					this_self.updateHeaderMessage();
-				}, timeout);
-			}
+      el.onclick = (e) => {
+        return callback();
+      };
+    }
+  }
 
-			el.onclick = (e) => {
-				return callback();
-			};
-		}
-	}
+  renderUsername() {
+    let header_self = this;
 
+    let key = this.app.keychain.returnKey(this.publicKey);
+    let username = key?.identifier ? key.identifier : '';
 
-	renderUsername() {
+    if (username == '' || username == this.publicKey) {
+      if (this.app.browser.isMobileBrowser()) {
+        username = 'Anonymous';
+      } else {
+        username = 'Anonymous Account';
+      }
+      if (key?.has_registered_username) {
+        username = 'registering...';
+      }
+    }
 
-		let header_self = this;
+    let el = document.getElementById('header-msg');
+    if (!el) {
+      return;
+    }
 
-		let key = this.app.keychain.returnKey(this.publicKey);
-		let username = key?.identifier ? key.identifier : '';
+    //Update name
+    el.innerHTML = sanitize(username);
+    el.classList.remove('flash');
 
-		if (username == '' || username == this.publicKey) {
-			if (this.app.browser.isMobileBrowser()) {
-				username = 'Anonymous';
-			} else {
-				username = 'Anonymous Account';
-			}
-			if (key?.has_registered_username) {
-				username = 'registering...';
-			}
-		}
+    //Differential behavior
+    if (username === 'Anonymous Account' || username === 'Anonymous') {
+      el.onclick = (e) => {
+        header_self.app.connection.emit('register-username-or-login', {
+          success_callback: (desired_identifier) => {
+            header_self.app.connection.emit('recovery-backup-overlay-render-request', {
+              desired_identifier
+            });
+          }
+        });
+      };
+    } else if (username == 'Registering...') {
+      el.onclick = null;
+    } else {
+      if (key?.email) {
+        //Launch profile
+        el.onclick = (e) => {
+          header_self.userMenu.render();
+        };
+      } else {
+        //Prompt email registration
+        el.onclick = (e) => {
+          header_self.app.connection.emit('saito-backup-render-request');
+        };
+      }
+    }
 
-		let el = document.getElementById('header-msg');
-		if (!el) {
-			return;
-		}
+    if (this.app.options.wallet?.backup_required) {
+      // Display the (updated) user name for a few seconds before restoring the flashing warning
+      setTimeout(() => {
+        // Make sure still neeeded!
+        if (this.app.options.wallet?.backup_required) {
+          // Backwards compatibility
+          if (this.app.options.wallet.backup_required == 1) {
+            this.app.options.wallet.backup_required = `Have you backed up your wallet recently? Saito is not responsible for the loss of keys or deposited funds`;
+          }
 
-		//Update name
-		el.innerHTML = sanitize(username);
-		el.classList.remove('flash');
+          console.log('Restore flashing reminder from saito-header');
+          this.updateHeaderMessage('wallet backup required', true, () => {
+            this.app.connection.emit('saito-backup-render-request', {
+              msg: this.app.options.wallet.backup_required,
+              title: 'BACKUP YOUR WALLET'
+            });
+          });
+        }
+      }, 4500);
+    }
+  }
 
-		//Differential behavior
-		if (username === 'Anonymous Account' || username === 'Anonymous') {
-			el.onclick = (e) => {
-				header_self.app.connection.emit('register-username-or-login', {
-					success_callback: (desired_identifier) => {
-						header_self.app.connection.emit('recovery-backup-overlay-render-request', {
-							desired_identifier
-						});
-					}
-				});
-			};
-		} else if (username == 'Registering...') {
-			el.onclick = null;
-		} else {
-			if (key?.email) {
-				//Launch profile
-				el.onclick = (e) => {
-					header_self.userMenu.render();
-				};
-			} else {
-				//Prompt email registration
-				el.onclick = (e) => {
-					header_self.app.connection.emit('saito-backup-render-request', );
-				};
-			}
-		}
+  /********************************************************
+   * ******************************************************
+   *
+   * Integrate Saito MultiWallet
+   *
+   * *******************************************************
+   * *******************************************************/
 
-		if (this.app.options.wallet?.backup_required) {
-			// Display the (updated) user name for a few seconds before restoring the flashing warning
-			setTimeout(()=> {
-				// Make sure still neeeded!
-				if (this.app.options.wallet?.backup_required) {
-					// Backwards compatibility
-					if (this.app.options.wallet.backup_required == 1){
-						this.app.options.wallet.backup_required = `Have you backed up your wallet recently? Saito is not responsible for the loss of keys or deposited funds`;
-					}
+  async renderCrypto(force = false) {
+    let available_cryptos = this.app.wallet.returnInstalledCryptos();
+    let preferred_crypto = this.app.wallet.returnPreferredCrypto();
+    let add = preferred_crypto.returnAddress();
 
-					console.log('Restore flashing reminder from saito-header');
-					this.updateHeaderMessage('wallet backup required', true, ()=>{
-						this.app.connection.emit('saito-backup-render-request', {
-							msg: this.app.options.wallet.backup_required,
-							title: 'BACKUP YOUR WALLET'
-						});
-					});
-				}
-			}, 4500);
-		}
+    const addressContainer = document.querySelector('#profile-public-key');
 
-	}
+    try {
+      if (add && addressContainer) {
+        if (addressContainer.dataset?.add != add || force) {
+          //console.log("$$$$ Rendering crypto in Saito Header");
+          if (addressContainer.classList.contains('generate-keys')) {
+            addressContainer.classList.remove('generate-keys');
+          }
 
-	/********************************************************
-	 * ******************************************************
-	 *
-	 * Integrate Saito MultiWallet
-	 *
-	 * *******************************************************
-	 * *******************************************************/
+          //Set address
+          addressContainer.dataset.add = add;
 
-	async renderCrypto(force = false) {
-		let available_cryptos = this.app.wallet.returnInstalledCryptos();
-		let preferred_crypto = this.app.wallet.returnPreferredCrypto();
-		let add = preferred_crypto.returnAddress();
+          addressContainer.innerHTML = `${add.slice(0, 8)}...${add.slice(-8)}`;
 
-		const addressContainer = document.querySelector('#profile-public-key');
+          // There is an annoying flicker when a new qr code is added because canvas resizing / img generation
+          document.querySelector('#qrcode').style.visibility = 'hidden';
+          document.querySelector('#qrcode').style.opacity = '0';
 
-		try {
-			
-			if (add && addressContainer) {
-				if (addressContainer.dataset?.add != add || force) {
-					
-					//console.log("$$$$ Rendering crypto in Saito Header");
-					if (addressContainer.classList.contains('generate-keys')) {
-						addressContainer.classList.remove('generate-keys');
-					}
+          document.querySelector('#qrcode').innerHTML = '';
+          this.app.browser.generateQRCode(add, 'qrcode');
+          setTimeout(() => {
+            document.querySelector('#qrcode').removeAttribute('style');
+          }, 100);
+        }
+      } else {
+        console.log(
+          '$$$ header or crypto not rendered yet',
+          preferred_crypto,
+          add,
+          addressContainer
+        );
+      }
 
-					//Set address
-					addressContainer.dataset.add = add;
+      document.querySelector('.wallet-select-crypto').innerHTML = '';
 
-					addressContainer.innerHTML = `${add.slice(0, 8)}...${add.slice(-8)}`;
-
-					// There is an annoying flicker when a new qr code is added because canvas resizing / img generation
-					document.querySelector('#qrcode').style.visibility = "hidden";
-					document.querySelector('#qrcode').style.opacity = "0";
-
-					document.querySelector('#qrcode').innerHTML = '';
-					this.app.browser.generateQRCode(add, 'qrcode');
-					setTimeout(()=>{
-						document.querySelector('#qrcode').removeAttribute('style');
-					}, 100);
-				}	
-			}else{
-				console.log("$$$ header or crypto not rendered yet", preferred_crypto, add, addressContainer);
-			}
-
-			document.querySelector('.wallet-select-crypto').innerHTML = '';
-
-			//
-			// add crypto options
-			//
-			let html = '';
-			for (let i = 0; i < available_cryptos.length; i++) {
-				let crypto_mod = available_cryptos[i];
-				html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
+      //
+      // add crypto options
+      //
+      let html = '';
+      for (let i = 0; i < available_cryptos.length; i++) {
+        let crypto_mod = available_cryptos[i];
+        html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
         id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${
-					crypto_mod.ticker
-				}</option>`;
-				this.app.browser.addElementToSelector(html, '.wallet-select-crypto');
-			}
-		} catch (err) {
-			console.error('Error rendering crypto selector: ' + err);
-		}
+          crypto_mod.ticker
+        }</option>`;
+        this.app.browser.addElementToSelector(html, '.wallet-select-crypto');
+      }
+    } catch (err) {
+      console.error('Error rendering crypto selector: ' + err);
+    }
 
-		//Insert crypto balance
-		try {
-			if (preferred_crypto.isActivated()) {
+    //Insert crypto balance
+    try {
+      if (preferred_crypto.isActivated()) {
+        let balance_as_string = preferred_crypto.returnBalance();
 
-				let balance_as_string = preferred_crypto.returnBalance();
-				
-				document.querySelector(".balance-amount").innerHTML = this.app.browser.returnBalanceHTML(balance_as_string);
+        document.querySelector('.balance-amount').innerHTML =
+          this.app.browser.returnBalanceHTML(balance_as_string);
 
-				// Cache so polling loop will detect changes
-				this.current_balance = Number(balance_as_string);
-			}
-		} catch (err) {
-			console.error('Error rendering crypto balance: ' + err);
-		}
-	}
+        // Cache so polling loop will detect changes
+        this.current_balance = Number(balance_as_string);
+      }
+    } catch (err) {
+      console.error('Error rendering crypto balance: ' + err);
+    }
+  }
 
+  initiateBalanceCheck() {
+    let intervalTime = 2000;
 
-	initiateBalanceCheck() {
+    let preferred_crypto = this.app.wallet.returnPreferredCrypto();
 
-		let intervalTime = 2000;
+    const executeBalanceCheck = async () => {
+      // dont poll if hamburger menu isnt visible
+      if (document.querySelector('.saito-header-backdrop.menu-visible') == null) {
+        this.clearBalanceCheck();
+        console.log(`Stopped checking ${preferred_crypto.ticker} balance`);
+        return;
+      }
 
-		let preferred_crypto = this.app.wallet.returnPreferredCrypto();
+      // Call function to check
+      await this.checkBalanceUpdate();
 
-		const executeBalanceCheck = async () => {
-			// dont poll if hamburger menu isnt visible
-			if (document.querySelector('.saito-header-backdrop.menu-visible') == null) {
-				this.clearBalanceCheck();
-				console.log(`Stopped checking ${preferred_crypto.ticker} balance`);
-				return;
-			}
+      //loop on time out
+      this.balance_check_interval = setTimeout(executeBalanceCheck, intervalTime);
 
-			// Call function to check
-			await this.checkBalanceUpdate();
+      //double wait on each loop
+      intervalTime *= 2;
+    };
 
-			//loop on time out
-			this.balance_check_interval = setTimeout(executeBalanceCheck, intervalTime);
+    executeBalanceCheck(); // Start the loop
+  }
 
-			//double wait on each loop
-			intervalTime *= 2;
-		
-		};
+  async checkBalanceUpdate() {
+    try {
+      let this_self = this;
+      let preferred_crypto = await this.app.wallet.returnPreferredCrypto();
 
-		executeBalanceCheck(); // Start the loop
-	}
+      await preferred_crypto.checkBalance();
 
-	async checkBalanceUpdate() {
-		try {
-			let this_self = this;
-			let preferred_crypto = await this.app.wallet.returnPreferredCrypto();
+      let new_balance = Number(preferred_crypto.returnBalance());
 
-			await preferred_crypto.checkBalance();
+      if (this.current_balance == null) {
+        this.current_balance = new_balance;
+      }
 
-			let new_balance = Number(preferred_crypto.returnBalance());
+      console.log(
+        preferred_crypto.ticker,
+        'new_balance > this.current_balance:',
+        new_balance,
+        this.current_balance
+      );
 
-			if (this.current_balance == null) {
-				this.current_balance = new_balance;
-			}
+      // No change!
+      if (new_balance == this.current_balance) {
+        return;
+      }
 
-			console.log(preferred_crypto.ticker, "new_balance > this.current_balance:", new_balance, this.current_balance);
-			
-			// No change!
-			if (new_balance == this.current_balance){
-				return;
-			}
+      //
 
-			//
+      if (new_balance > this.current_balance) {
+        let diff = new_balance - this.current_balance;
+        let deposit = this.app.browser.formatDecimals(diff);
+        let msg = `New ${deposit} ${preferred_crypto.ticker} deposit`;
+        siteMessage(msg, 3000);
+      } else {
+        //new withdrawal
+        let diff = this.current_balance - new_balance;
+        let deposit = this.app.browser.formatDecimals(diff);
+        let msg = `New ${deposit} ${preferred_crypto.ticker} payment`;
+        siteMessage(msg, 3000);
+      }
 
-			if (new_balance > this.current_balance) {
-				let diff = new_balance - this.current_balance;
-				let deposit = this.app.browser.formatDecimals(diff);
-				let msg = `New ${deposit} ${preferred_crypto.ticker} deposit`;
-				siteMessage(msg, 3000);
-			}else{
-				//new withdrawal
-				let diff = this.current_balance - new_balance;
-				let deposit = this.app.browser.formatDecimals(diff);
-				let msg = `New ${deposit} ${preferred_crypto.ticker} payment`;
-				siteMessage(msg, 3000);				
-			}
+      //console.log("$$$$ checkBalanceUpdate --> renderCrypto");
+      this.renderCrypto();
+    } catch (err) {
+      console.warn('Error in checkBalanceUpdate: ', err);
+    }
+  }
 
-			//console.log("$$$$ checkBalanceUpdate --> renderCrypto");
-			this.renderCrypto();
+  clearBalanceCheck() {
+    clearTimeout(this.balance_check_interval);
+  }
 
-		} catch (err) {
-			console.warn('Error in checkBalanceUpdate: ', err);
-		}
-	}
+  clearPendingDepositsCheck() {
+    clearInterval(this.deposit_check_interval);
+  }
 
-	clearBalanceCheck() {
-		clearTimeout(this.balance_check_interval);
-	}
+  initiatePendingDepositsCheck() {
+    let this_self = this;
+    let confirmations = 0;
+    let intervalTime = 5000; // Start with 5 seconds
+    let preferred_crypto = this_self.app.wallet.returnPreferredCrypto();
 
-	clearPendingDepositsCheck() {
-		clearInterval(this.deposit_check_interval);
-	}
+    const checkDeposits = async () => {
+      // dont poll if hamburger menu isnt visible
+      if (document.querySelector('.saito-header-backdrop.menu-visible') == null) {
+        this.clearPendingDepositsCheck();
+        console.log(`Stopped checking ${preferred_crypto.ticker} deposit`);
+        return;
+      }
 
-	initiatePendingDepositsCheck() {
-		let this_self = this;
-		let confirmations = 0;
-		let intervalTime = 5000; // Start with 5 seconds
-		let preferred_crypto = this_self.app.wallet.returnPreferredCrypto();
+      console.log('check pending deposits');
 
-		const checkDeposits = async () => {
-			// dont poll if hamburger menu isnt visible
-			if (document.querySelector('.saito-header-backdrop.menu-visible') == null) {
-				this.clearPendingDepositsCheck();
-				console.log(`Stopped checking ${preferred_crypto.ticker} deposit`);
-				return;
-			}
+      if (this_self.app.options.crypto != null) {
+        if (this_self.app.options.crypto[preferred_crypto.ticker]) {
+          if (this_self.app.options.crypto[preferred_crypto.ticker].confirmations) {
+            confirmations = this_self.app.options.crypto[preferred_crypto.ticker].confirmations;
+          } else {
+            let network_info = await preferred_crypto.returnNetworkInfo(preferred_crypto.asset_id);
+            if (typeof network_info.confirmations != 'undefined') {
+              confirmations = network_info.confirmations;
+              this_self.app.options.crypto[preferred_crypto.ticker].confirmations = confirmations;
+              await this_self.app.wallet.saveWallet();
+            }
+          }
+        }
+      }
 
-			console.log("check pending deposits");
+      await preferred_crypto.fetchPendingDeposits(function (res) {
+        if (res.length > 0) {
+          let pending_transfer = res[res.length - 1];
 
-			if (this_self.app.options.crypto != null) {
-				if (this_self.app.options.crypto[preferred_crypto.ticker]) {
-					if (this_self.app.options.crypto[preferred_crypto.ticker].confirmations) {
-						confirmations = this_self.app.options.crypto[preferred_crypto.ticker].confirmations;
-					} else {
-						let network_info = await preferred_crypto.returnNetworkInfo(preferred_crypto.asset_id);
-						if (typeof network_info.confirmations != 'undefined') {
-							confirmations = network_info.confirmations;
-							this_self.app.options.crypto[preferred_crypto.ticker].confirmations = confirmations;
-							await this_self.app.wallet.saveWallet();
-						}
-					}
-				}
-			}
+          console.log('pending_transfer: ', pending_transfer);
 
-			await preferred_crypto.fetchPendingDeposits(function (res) {
-				if (res.length > 0) {
-					let pending_transfer = res[res.length - 1];
+          let amount = Number(pending_transfer.amount);
 
-					console.log('pending_transfer: ', pending_transfer);
-
-					let amount = Number(pending_transfer.amount);
-
-					console.log(`${amount} ${preferred_crypto.ticker} deposit pending 
+          console.log(`${amount} ${preferred_crypto.ticker} deposit pending 
                     (${pending_transfer.confirmations}/${confirmations})`);
 
-					if (amount > 0) {
-						this_self.updateHeaderMessage(
-							`${amount} ${preferred_crypto.ticker} deposit pending 
+          if (amount > 0) {
+            this_self.updateHeaderMessage(
+              `${amount} ${preferred_crypto.ticker} deposit pending 
                         (${pending_transfer.confirmations}/${confirmations})`,
-							true,
-							function () {
-								this_self.app.connection.emit('saito-crypto-history-render-request', {});
-							}
-						);
+              true,
+              function () {
+                this_self.app.connection.emit('saito-crypto-history-render-request', {});
+              }
+            );
 
-						this_self.deposit_pending = true;
+            this_self.deposit_pending = true;
 
-						if (this_self.show_msg) {
-							siteMessage(`New ${preferred_crypto.ticker} deposit`, 3000);
-							this_self.show_msg = false;
-						}
-					} else {
-						this_self.show_msg = true;
-					}
-				} else {
-					if (this_self?.deposit_pending) {
-						this_self.deposit_pending = false;
-						//this_self.updateHeaderMessage();
-					}
+            if (this_self.show_msg) {
+              siteMessage(`New ${preferred_crypto.ticker} deposit`, 3000);
+              this_self.show_msg = false;
+            }
+          } else {
+            this_self.show_msg = true;
+          }
+        } else {
+          if (this_self?.deposit_pending) {
+            this_self.deposit_pending = false;
+            //this_self.updateHeaderMessage();
+          }
 
-					if (this_self.can_update_header_msg) {
-						//this_self.updateHeaderMessage();
-						this_self.show_msg = true;
-					}
-				}
-			});
+          if (this_self.can_update_header_msg) {
+            //this_self.updateHeaderMessage();
+            this_self.show_msg = true;
+          }
+        }
+      });
 
-			// Double the interval and schedule the next check
-			intervalTime *= 2;
-			this.deposit_check_interval = setTimeout(checkDeposits, intervalTime);
-		};
+      // Double the interval and schedule the next check
+      intervalTime *= 2;
+      this.deposit_check_interval = setTimeout(checkDeposits, intervalTime);
+    };
 
-		console.log(`Started checking ${preferred_crypto.ticker} deposit`);
-		checkDeposits();
-	}
+    console.log(`Started checking ${preferred_crypto.ticker} deposit`);
+    checkDeposits();
+  }
 }
 
 module.exports = SaitoHeader;

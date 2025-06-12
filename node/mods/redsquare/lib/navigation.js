@@ -220,10 +220,10 @@ class RedSquareNavigation {
               }
             )
           );
-          console.log(optjson);
           var tree = jsonTree.create(optjson, el);
         } catch (err) {
           console.error('error creating jsonTree: ' + err);
+          console.debug(this.mod);
         }
 
         console.log(this.mod.tweets_sigs_hmap);

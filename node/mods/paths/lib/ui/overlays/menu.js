@@ -47,10 +47,7 @@ class MenuOverlay {
 		  c = deck[card];
 		}
 
-		this.overlay.show(MenuTemplate());
-
-		this.pushHudUnderOverlay();
-
+		let menu_items = 1;
 		let html = `
 	      		<div id="ops" class="menu-option-container card menu_movement">
 	        		<div class="menu-option-title">Movement / Combat</div>
@@ -63,6 +60,7 @@ class MenuOverlay {
 	        		<div class="menu-option-title">Strategic Redeployment</div>
 	      		</div>
 			`;
+			menu_items++;
 		}
 
     		if (c.rp && paths_self.canPlayReinforcementPoints(faction)) {
@@ -71,6 +69,7 @@ class MenuOverlay {
 	        		<div class="menu-option-title">Replacement Points</div>
 	      		</div>
 			`;
+			menu_items++;
 		}
 
 		let can_event_card = false;
@@ -84,9 +83,11 @@ class MenuOverlay {
 	        			<div class="menu-option-title">Card Event</div>
 	      			</div>
 	  		`;
+			menu_items++;
 		}
 
-		this.app.browser.addElementToSelector(html, `.menu`);
+		this.overlay.show(MenuTemplate(menu_items, html));
+		this.pushHudUnderOverlay();
 		this.attachEvents();
 
 	}

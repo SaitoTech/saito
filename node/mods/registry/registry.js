@@ -206,17 +206,15 @@ class Registry extends ModTemplate {
 			return 1;
 		}
 
-		if (this.publicKey == this.registry_publickey){
-			console.log("I am the registry, check my db");
+		if (this.publicKey == this.registry_publickey) {
 			this.fetchIdentifiersFromDatabase(missing_keys, (identifiers) => {
-				console.log(">>>>>>>>>>>>>>>>>>>>");
 				for (let key in identifiers) {
 					registry_self.cached_keys[key] = identifiers[key];
 					found_keys[key] = identifiers[key];
 				}
 				mycallback(found_keys);
 			});
-		}else{
+		} else {
 			//console.log("My peer is the registry");
 			this.queryKeys(this.peers[0], missing_keys, (identifiers) => {
 				//
@@ -330,7 +328,7 @@ class Registry extends ModTemplate {
 	queryKeys(peer, keys, mycallback) {
 		if (!peer?.peerIndex) {
 			console.log('Querying Keys, but no indexed registry peer... ', peer);
-			if (mycallback){
+			if (mycallback) {
 				mycallback({});
 			}
 			return;
@@ -417,21 +415,24 @@ class Registry extends ModTemplate {
 				this.app.connection.emit('registry-update-identifier', this.publicKey);
 			}
 
-
 			// Bulk get cached keys
 			let msg = {
-				request: 'cached keys',
+				request: 'cached keys'
 			};
 
-			this.app.network.sendRequestAsTransaction('registry', msg, (keys) => {
-				for (let key in keys) {
-					if (!this.cached_keys[key] || key == this.cached_keys[key]) {
-						this.cached_keys[key] = keys[key];	
+			this.app.network.sendRequestAsTransaction(
+				'registry',
+				msg,
+				(keys) => {
+					for (let key in keys) {
+						if (!this.cached_keys[key] || key == this.cached_keys[key]) {
+							this.cached_keys[key] = keys[key];
+						}
 					}
-				}
-				this.app.connection.emit("registry-cache-loaded");
-			}, peer.peerIndex);
-
+					this.app.connection.emit('registry-cache-loaded');
+				},
+				peer.peerIndex
+			);
 		}
 	}
 
@@ -466,7 +467,7 @@ class Registry extends ModTemplate {
 
 		if (txmsg.request == 'registry') {
 			if (txmsg.data.request === 'cached keys') {
-				if (mycallback){
+				if (mycallback) {
 					mycallback(this.cached_keys);
 				}
 			}

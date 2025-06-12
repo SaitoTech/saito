@@ -1,5 +1,5 @@
-module.exports  = (app, mod, this_history) => {
-	let html = `
+module.exports = (app, mod, this_history) => {
+  let html = `
     <div class="mixin-overlay-history">
         <h5 class="transaction-header">Transaction History</h5>
         <div class="mixin-txn-his-container saito-table">
@@ -33,5 +33,5 @@ module.exports  = (app, mod, this_history) => {
     </div>
   `;
 
-	return html;
+  return html;
 };

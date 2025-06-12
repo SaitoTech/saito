@@ -14,7 +14,9 @@
 
     let units = [];
     for (let z = 0; z < x.length; z++) {
-      units.push(this.game.spaces[x[z].unit_sourcekey].units[x[z].unit_idx]);   
+      if (this.game.spaces[x[z].unit_sourcekey].units.length > x[z].unit_idx) {
+        units.push(this.game.spaces[x[z].unit_sourcekey].units[x[z].unit_idx]);  
+      }
     }
     return units;
   }

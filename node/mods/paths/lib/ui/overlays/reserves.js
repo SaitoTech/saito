@@ -1,4 +1,5 @@
 const ReservesTemplate = require('./reserves.template');
+console.log
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 class ReservesOverlay {
@@ -36,7 +37,11 @@ class ReservesOverlay {
 		document.querySelectorAll(".reserves-overlay .units .army-tile").forEach((el) => {
 			el.onclick = (e) => {
 				let id = e.currentTarget.id;
+				document.querySelectorAll(".reserves-overlay .units .army-tile").forEach((el) => {
+					el.onclick = (e) => {};
+				});
 				if (mycallback) { mycallback(id); }
+				this.hide();
 			}
 
 		});

@@ -28,6 +28,8 @@
         width: 15rem;
         position: relative;
         display: block;
+	min-width: 15rem;
+	min-height: 15rem;
 }
 
 .loss-overlay-group {
@@ -37,13 +39,22 @@
 }   
 
 .loss-overlay .units {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
-        padding: 4rem;
-        justify-items: center;
-        justify-content: space-evenly;
-        row-gap: 5rem;
-        column-gap: 2rem;
+    display: flex;
+    padding: 4rem;
+    row-gap: 5rem;
+    column-gap: 2rem;
+    width: 100%;
+    justify-content: space-around;
+    overflow-y: auto;
+}
+
+.loss-overlay-unit-spacekey {
+    margin-top: 105%;
+    text-align: center;
+    font-weight: bolder;
+    font-size: 2rem;
+    background-color: #FFFB;
+    border-radius: 0.5rem;
 }
 
 .destroyed-unit {

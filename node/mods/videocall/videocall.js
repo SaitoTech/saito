@@ -52,6 +52,7 @@ class Videocall extends ModTemplate {
 			}
 
 			if (!this.streams) {
+				console.debug("TALK: Instantiate StreamManager");
 				this.streams = new StreamManager(this.app, this, settings);
 			} else {
 				this.streams.parseSettings(settings);
@@ -86,9 +87,9 @@ class Videocall extends ModTemplate {
 
 		app.connection.on('stun-connection-close', (peerId)=> {
 			if (this?.streams?.active) {
-				this.disconnect(peerId, " has no connection");	
+				this.disconnect(peerId, " has no connection");
+				salert("STUN connection failure. Try refreshing and reconnecting");
 			}
-			
 		});
 	}
 
@@ -529,7 +530,7 @@ class Videocall extends ModTemplate {
 					}
 
 					// Only respond if this is a pertinent call
-					if (!this?.room_obj?.call_id || this.room_obj.call_id !== txmsg.call_id) {
+					if (!this?.room_obj?.call_id || this.room_obj.call_id !== txmsg.call_id /*|| !this.streams*/) {
 						return;
 					}
 
@@ -552,6 +553,7 @@ class Videocall extends ModTemplate {
 
 						//Limbo Hook
 						this.app.connection.emit('videocall-add-party', from);
+						
 						this.stun.createPeerConnection(from, false);
 
 						return;
@@ -682,6 +684,8 @@ class Videocall extends ModTemplate {
 		let txmsg = tx.returnMessage();
 
 		let from = tx.from[0].publicKey;
+
+		console.info("TALK: request call list...");
 
 		//Update calendar event
 		this.addCallParticipant(txmsg.call_id, from);

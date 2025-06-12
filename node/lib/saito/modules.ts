@@ -90,13 +90,15 @@ class Mods {
         if (mod_accepts == 1 || (mod_accepts == 0 && core_accepts != -1)) {
           callbackArray.push(this.mods[i].onConfirmation.bind(this.mods[i]));
           callbackIndexArray.push(txindex);
-        }      
+        }
       }
     }
 
     // A bit of a hack to connect the ghost SaitoCrypto (from Wallet) into processing TXs on chain (for info!)
-    if (message?.module == "Saito" && this.app.wallet?.saitoCrypto) {
-      callbackArray.push(this.app.wallet.saitoCrypto.onConfirmation.bind(this.app.wallet.saitoCrypto));
+    if (message?.module == 'Saito' && this.app.wallet?.saitoCrypto) {
+      callbackArray.push(
+        this.app.wallet.saitoCrypto.onConfirmation.bind(this.app.wallet.saitoCrypto)
+      );
       callbackIndexArray.push(txindex);
     }
   }
@@ -157,11 +159,9 @@ class Mods {
   async initialize() {
     try {
       if (this.app.BROWSER === 1) {
-
         let mods = await this.app.storage.loadLocalApplications();
 
         if (mods.length > 0) {
-
           console.log('loaded mods:', mods);
 
           self['saito-js'] = require('saito-js').default;
@@ -195,9 +195,11 @@ class Mods {
               m.handleUrlParams(urlParams);
             }
 
-	    for (let z = 0; z < this.mods.length; z++) {
-	      if (this.mods[z].name === m.name && !m.teaser) { this.mods.splice(z, 1); }
-	    }
+            for (let z = 0; z < this.mods.length; z++) {
+              if (this.mods[z].name === m.name && !m.teaser) {
+                this.mods.splice(z, 1);
+              }
+            }
             this.mods.push(m);
           }
         }
@@ -226,10 +228,9 @@ class Mods {
 
     if (this.app.options) {
       if (this.app.options.modules) {
-        for (let i = this.app.options.modules.length - 1; i >= 0 ; i--) {
+        for (let i = this.app.options.modules.length - 1; i >= 0; i--) {
           let found = 0;
           for (let z = 0; z < this.mods.length; z++) {
-            
             if (this.mods[z].name === this.app.options.modules[i].name) {
               found = 1;
 
@@ -237,7 +238,7 @@ class Mods {
               // remove any disabled / inactive modules from this.mods
               //
               if (this.app.options.modules[i].active == 0) {
-                console.log("Splice inactive module");
+                console.log('Splice inactive module');
                 this.mods.splice(z, 1);
               }
 
@@ -248,9 +249,9 @@ class Mods {
           //
           // remove cruft from options.modules if they aren't installed
           //
-          if (!found){
+          if (!found) {
             module_removed = 1;
-            console.log("Splice missing module");
+            console.log('Splice missing module');
             this.app.options.modules.splice(i, 1);
           }
         }
@@ -320,27 +321,26 @@ class Mods {
     }
 
     this.app.options.modules.sort((a, b) => {
-        if (a.active && !b.active){
-            return -1;
-        }
-        if (b.active && !a.active){
-            return 1;
-        }
+      if (a.active && !b.active) {
+        return -1;
+      }
+      if (b.active && !a.active) {
+        return 1;
+      }
 
-        if (a.name.toLowerCase() < b.name.toLowerCase()){
-            return -1;
-        }
-        if (a.name.toLowerCase() > b.name.toLowerCase()){
-            return 1;
-        }
-        return 0;
-    })
-
+      if (a.name.toLowerCase() < b.name.toLowerCase()) {
+        return -1;
+      }
+      if (a.name.toLowerCase() > b.name.toLowerCase()) {
+        return 1;
+      }
+      return 0;
+    });
 
     if (new_mods_installed > 0 || module_removed) {
-        // and save
+      // and save
 
-        this.app.storage.saveOptions();
+      this.app.storage.saveOptions();
     }
 
     const modNames = {};
@@ -537,7 +537,6 @@ class Mods {
     //
     return 0;
   }
-
 
   async render() {
     for (let icb = 0; icb < this.mods.length; icb++) {

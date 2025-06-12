@@ -1,5 +1,5 @@
 const PhotoUploaderTemplate = (app, mod) => {
-	return `
+  return `
 	<div id="photo-uploader" class="photo-uploader ">
 		Click to select or drag and drop to upload an image
 		<div class="uploader-content">

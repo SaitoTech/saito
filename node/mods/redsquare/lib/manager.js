@@ -14,6 +14,7 @@ class TweetManager {
 		this.mode = 'loading';
 		this.just_fetched_tweets = false;
 
+		this.profile_tweets = {};
 		this.profile = new SaitoProfile(app, mod, '.saito-main');
 		this.profile.tab_container = '.tweet-manager';
 		this.profile_tabs = ['posts', 'replies', /*'retweets',*/ 'likes'];
@@ -24,7 +25,10 @@ class TweetManager {
 
 		this.app.connection.on('redsquare-render-new-post', (tweettx, rparent = null) => {
 			if (!this.mode.includes('tweet')) {
-				console.info('RS.render-new-post: Ignore new post because not in the right place to insert into feed', this.mode);
+				console.info(
+					'RS.render-new-post: Ignore new post because not in the right place to insert into feed',
+					this.mode
+				);
 				return;
 			}
 
@@ -37,10 +41,10 @@ class TweetManager {
 
 				if (posted_tweet.retweet_tx) {
 					rparent.render();
-					this.mod.addTweet(tweettx, 'post_retweet');
+					this.mod.addTweet(tweettx, { type: 'retweet', node: 'user post' });
 					posted_tweet.render(true);
 				} else {
-					this.mod.addTweet(tweettx, 'post_reply');
+					this.mod.addTweet(tweettx, { type: 'reply', node: 'user post' });
 					if (rparent.parent_id != '') {
 						let t = this.mod.returnTweet(rparent.parent_id);
 						if (t) {
@@ -52,7 +56,7 @@ class TweetManager {
 					rparent.forceRenderWithCriticalChild();
 				}
 			} else {
-				this.mod.addTweet(tweettx, 'post_new');
+				this.mod.addTweet(tweettx, { type: 'new tweet', node: 'user post' });
 				posted_tweet.render(true);
 			}
 		});
@@ -190,9 +194,13 @@ class TweetManager {
 		}
 
 		if (new_mode == 'tweets') {
-			document.querySelector('.redsquare-feed-source').classList.remove('hidden');
+			document.querySelector('.redsquare-feed-toggle').classList.remove('hidden');
+			if (this.mod.curated) {
+				document.querySelector('.tweet-manager').classList.add('active-curation');
+			}
 		} else {
-			document.querySelector('.redsquare-feed-source').classList.add('hidden');
+			document.querySelector('.redsquare-feed-toggle').classList.add('hidden');
+			document.querySelector('.tweet-manager').classList.remove('active-curation');
 		}
 
 		let holder = document.getElementById('tweet-thread-holder');
@@ -200,8 +208,8 @@ class TweetManager {
 
 		if (this.mode == 'tweets' && new_mode !== 'tweets') {
 			let kids = managerElem.children;
-			if (this.debug){
-				console.debug("RS.manager: Temporarily cache RS main feed -- ", kids.length);
+			if (this.debug) {
+				console.debug('RS.manager: Temporarily cache RS main feed -- ', kids.length);
 			}
 			holder.replaceChildren(...kids);
 
@@ -210,8 +218,8 @@ class TweetManager {
 			}
 			this.thread_id = null;
 		} else {
-			if (this.debug){
-				console.debug("RS.manager: Clear feed...");
+			if (this.debug) {
+				console.debug('RS.manager: Clear feed...');
 			}
 			while (managerElem.hasChildNodes()) {
 				managerElem.firstChild.remove();
@@ -230,10 +238,9 @@ class TweetManager {
 		// tweets //
 		////////////
 		if (new_mode == 'tweets') {
-
-			if (holder){
+			if (holder) {
 				let kids = holder.children;
-				console.debug("RS.manager: Fast load cached tweets -- ", kids.length);
+				console.debug('RS.manager: Fast load cached tweets -- ', kids.length);
 				managerElem.replaceChildren(...kids);
 			}
 
@@ -409,10 +416,15 @@ class TweetManager {
 
 		//Reset Profile
 		if (publicKey != this.profile.publicKey) {
+			this.profile_tweets[this.profile.publicKey] = this.profile.menu;
 			this.profile.reset(publicKey, 'posts', this.profile_tabs);
 		}
 
 		this.loader.render();
+
+		if (this.profile_tweets[publicKey]) {
+			this.profile.menu = this.profile_tweets[publicKey];
+		}
 
 		this.profile.render();
 
@@ -490,7 +502,7 @@ class TweetManager {
 					//
 					for (let z = 0; z < txs.length; z++) {
 						txs[z].decryptMessage(this.app);
-						this.mod.addTweet(txs[z], `${peer.publicKey}-profile`);
+						//this.mod.addTweet(txs[z], {type: "profile", node: peer.publicKey});
 						peer.profile_ts = txs[z]?.timestamp;
 					}
 
@@ -667,7 +679,7 @@ class TweetManager {
 							post.parent_id = tweet.tx.signature;
 							post.thread_id = tweet.thread_id;
 
-							post.source = 'Reply';
+							post.type = 'Reply';
 
 							post.render(`.tweet-${tweet.tx.signature}`);
 						}
@@ -685,7 +697,7 @@ class TweetManager {
 					post.parent_id = tweet.tx.signature;
 					post.thread_id = tweet.thread_id;
 
-					post.source = 'Reply';
+					post.type = 'Reply';
 
 					post.render(`.tweet-${tweet.tx.signature}`);
 				}
@@ -712,12 +724,9 @@ class TweetManager {
 			document.getElementById('curated').onclick = (e) => {
 				e.currentTarget.classList.add('active');
 				document.getElementById('everything').classList.remove('active');
+				document.querySelector('.tweet-manager').classList.add('active-curation');
 				this.mod.curated = true;
 				this.mod.saveOptions();
-				this.showLoader();
-				setTimeout(() => {
-					this.render();
-				}, 10);
 			};
 		}
 		if (document.getElementById('everything')) {
@@ -725,12 +734,9 @@ class TweetManager {
 			document.getElementById('everything').onclick = (e) => {
 				e.currentTarget.classList.add('active');
 				document.getElementById('curated').classList.remove('active');
+				document.querySelector('.tweet-manager').classList.remove('active-curation');
 				this.mod.curated = false;
 				this.mod.saveOptions();
-				this.showLoader();
-				setTimeout(() => {
-					this.render();
-				}, 10);
 			};
 		}
 	}

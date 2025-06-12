@@ -41,7 +41,6 @@ class CallInterfaceVideo {
 				window.history.pushState({}, '', this.room_link);
 				document.title = 'Saito Talk';
 			}
-
 		});
 
 		this.app.connection.on('stun-update-link', () => {
@@ -91,14 +90,14 @@ class CallInterfaceVideo {
 		});
 
 		// Change arrangement of video boxes (emitted from SwitchDisplay overlay)
-		app.connection.on('stun-switch-view', (newView = "", save = false) => {
+		app.connection.on('stun-switch-view', (newView = '', save = false) => {
 			siteMessage(`Switched to ${newView} display`, 2000);
 
 			if (newView == 'presentation') {
 				newView = 'focus';
 			}
 
-			if (newView){
+			if (newView) {
 				this.mod.layout = newView;
 			}
 
@@ -160,7 +159,7 @@ class CallInterfaceVideo {
 				delete this.old_title;
 			}
 
-			app.connection.emit("interrupt-screen-recording");
+			app.connection.emit('interrupt-screen-recording');
 
 			if (this.mod.browser_active) {
 				let homeModule = this.app.options?.homeModule || this.name;
@@ -177,10 +176,21 @@ class CallInterfaceVideo {
 				if (document.querySelector('.stun-overlay-container')) {
 					document.querySelector('.stun-overlay-container').remove();
 
-					if (this.full_screen){
+					if (this.full_screen) {
 						window.history.back();
 					}
 				}
+			}
+		});
+
+		app.connection.on('videocall-connection-strength', (peer, mos) => {
+			mos = Math.floor(mos);
+			if (this.video_boxes[peer]) {
+				if (this.video_boxes[peer].connection_strength == mos) {
+					return;
+				}
+				this.video_boxes[peer].connection_strength = mos;
+				this.video_boxes[peer].video_box.addConnectionStrength(mos);
 			}
 		});
 	}
@@ -202,18 +212,17 @@ class CallInterfaceVideo {
 				CallInterfaceVideoTemplate(this.mod, videoEnabled, audioEnabled)
 			);
 
-			//stun-overlay-container make 
+			//stun-overlay-container make
 
 			this.insertActions();
 			this.attachEvents();
 		}
 
-		if (document.querySelector('.game-video-container')){
-			if (!this?.streamMirror){
-				this.streamMirror = new StreamMirror(this.app, this.mod);		
+		if (document.querySelector('.game-video-container')) {
+			if (!this?.streamMirror) {
+				this.streamMirror = new StreamMirror(this.app, this.mod);
 			}
 		}
-
 
 		if (!this.mod.browser_active) {
 			this.app.connection.emit('stun-switch-view', 'gallery');
@@ -225,7 +234,7 @@ class CallInterfaceVideo {
 			try {
 				document.querySelector('.stun-chatbox .minimizer').click();
 			} catch (err) {
-				console.error("TALK.callInterface Error: ", err);
+				console.error('TALK.callInterface Error: ', err);
 			}
 		}
 
@@ -395,7 +404,6 @@ class CallInterfaceVideo {
 		});
 
 		if (!this.mod.browser_active) {
-
 			//
 			// If you are in RedSquare/Arcade/etc, allow stun to shrink down to small box so you
 			// can still interact with the site
@@ -416,8 +424,6 @@ class CallInterfaceVideo {
 								peer_elem.querySelector('.video-box').click();
 							}
 						}*/
-
-
 					}
 					chat_box.classList.add('minimize');
 					icon.classList.remove('fa-caret-down');
@@ -471,9 +477,19 @@ class CallInterfaceVideo {
 		}
 		this.video_boxes[big_video.id].video_box.containerClass = this.remote_container;
 		this.video_boxes[big_video.id].video_box.rerender();
+		if (this.video_boxes[big_video.id].connection_strength) {
+			this.video_boxes[big_video.id].video_box.addConnectionStrength(
+				this.video_boxes[big_video.id].connection_strength
+			);
+		}
 
 		this.video_boxes[stream_id].video_box.containerClass = this.local_container;
 		this.video_boxes[stream_id].video_box.rerender();
+		if (this.video_boxes[stream_id].connection_strength) {
+			this.video_boxes[stream_id].video_box.addConnectionStrength(
+				this.video_boxes[stream_id].connection_strength
+			);
+		}
 	}
 
 	addRemoteStream(peer, remoteStream) {
@@ -505,13 +521,14 @@ class CallInterfaceVideo {
 		this.updateImages();
 
 		this.setDisplayContainers();
-		
+
 		// segmentBackground(document.querySelector('#stream_local video'), document.querySelector('#stream_local canvas'), 1);
 		// applyBlur(7);
 	}
 
 	createVideoBox(peer, container = this.remote_container) {
 		if (!this.video_boxes[peer]) {
+			console.info('TALK [createVideoBox]: ', peer);
 			const videoBox = new VideoBox(this.app, this.mod, peer, container);
 			this.video_boxes[peer] = { video_box: videoBox };
 		}
@@ -663,6 +680,11 @@ class CallInterfaceVideo {
 			} else {
 				this.video_boxes[i].video_box.containerClass = this.remote_container;
 				this.video_boxes[i].video_box.render(this.remote_streams.get(i));
+				if (this.video_boxes[i].connection_strength) {
+					this.video_boxes[i].video_box.addConnectionStrength(
+						this.video_boxes[i].connection_strength
+					);
+				}
 			}
 		}
 
