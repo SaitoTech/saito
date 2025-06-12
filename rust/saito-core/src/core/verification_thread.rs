@@ -125,11 +125,8 @@ impl VerificationThread {
                 buffer_len
             );
             let mut peers = self.peer_lock.write().await;
-            if let Some(peer) = peers.find_peer_by_index_mut(peer_index) {
-                // NOTE : this means if we cannot deserialize a block from the buffer we mark it as blacklisted.
-                peer.invalid_block_limiter.increase();
-            }
-
+            let control = peers.get_congestion_controls_for_index(peer_index).unwrap();
+            control.invalid_block_limiter.increase();
             return;
         }
 
@@ -147,10 +144,8 @@ impl VerificationThread {
                 block_hash.to_hex()
             );
             let mut peers = self.peer_lock.write().await;
-            if let Some(peer) = peers.find_peer_by_index_mut(peer_index) {
-                // NOTE : this means if we receive an invalid block, peer is blacklisted.
-                peer.invalid_block_limiter.increase();
-            }
+            let control = peers.get_congestion_controls_for_index(peer_index).unwrap();
+            control.invalid_block_limiter.increase();
             return;
         }
 
