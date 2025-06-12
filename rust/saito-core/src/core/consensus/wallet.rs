@@ -1012,7 +1012,7 @@ impl Wallet {
 
         let left_unit = left_count as u64;
         let right_unit = right_count as u64;
-        
+
         let left_deposit = deposit_per_unit
             .checked_mul(left_unit)
             .ok_or_else(|| Error::new(ErrorKind::Other, "Left deposit overflow"))?;
@@ -1072,7 +1072,7 @@ impl Wallet {
         transaction.hash_for_signature = Some(hash_for_signature);
         transaction.generate(&self.public_key, 0, 0);
         transaction.sign(&self.private_key);
-    
+
         Ok(transaction)
     }
 

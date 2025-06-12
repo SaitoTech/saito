@@ -1103,15 +1103,16 @@ impl Transaction {
                 let sig: SaitoSignature = self.signature;
                 let public_key: SaitoPublicKey = self.from[0].public_key;
 
-                // 
-                // for bound (NFT) txs, the "owner" is in the normal slip (slip2), 
+                //
+                // for bound (NFT) txs, the "owner" is in the normal slip (slip2),
                 // not the bound slips (slip1, slip2)
                 //
 
                 //
                 // determine which input slip holds the signing key
                 //
-                let public_key: SaitoPublicKey = if self.transaction_type == TransactionType::Bound {
+                let public_key: SaitoPublicKey = if self.transaction_type == TransactionType::Bound
+                {
                     //
                     // if this is a CREATE-bound transaction, its first input's Normal
                     // and outputs should have atleast one nft group: bound, normal, bound
@@ -1129,7 +1130,7 @@ impl Transaction {
                         self.from[0].public_key
                     } else {
                         //
-                        // otherwise it's a SEND/MERGE/SPLIT-bound: 
+                        // otherwise it's a SEND/MERGE/SPLIT-bound:
                         // find the first [Bound, Normal, Bound] nft group
                         //
                         let mut signer_public_key = self.from[0].public_key;
