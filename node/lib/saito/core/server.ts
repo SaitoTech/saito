@@ -331,14 +331,14 @@ class Server {
       const { pathname } = parse(request.url);
       console.log(
         'connection established : ',
-        request.headers['x-forwarded-for'] || request.socket.remoteAddress
+        request.headers['x-forwarded-for'] + ' || ' + request.socket.remoteAddress
       );
       S.getLibInstance()
         .get_next_peer_index()
         .then((peer_index: bigint) => {
           console.log(
             'adding new peer : ' +
-              (request.headers['x-forwarded-for'] || request.socket.remoteAddress) +
+              (request.headers['x-forwarded-for'] + request.socket.remoteAddress) +
               ' as ' +
               peer_index
           );

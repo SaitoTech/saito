@@ -151,10 +151,10 @@ impl PeerCollection {
         self.congestion_controls
             .entry(public_key.clone())
             .or_insert_with(|| PeerCongestionControls {
-                key_list_limiter: RateLimiter::builder(100, Duration::from_secs(60)),
-                handshake_limiter: RateLimiter::builder(100, Duration::from_secs(60)),
-                message_limiter: RateLimiter::builder(100_000, Duration::from_secs(1)),
-                invalid_block_limiter: RateLimiter::builder(10, Duration::from_secs(3600)),
+                key_list_limiter: RateLimiter::new(100, Duration::from_secs(60)),
+                handshake_limiter: RateLimiter::new(100, Duration::from_secs(60)),
+                message_limiter: RateLimiter::new(100_000, Duration::from_secs(1)),
+                invalid_block_limiter: RateLimiter::new(10, Duration::from_secs(3600)),
             })
     }
 

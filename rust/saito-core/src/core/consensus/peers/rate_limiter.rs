@@ -33,7 +33,7 @@ impl RateLimiter {
         self.request_count += 1;
     }
 
-    pub fn builder(count: u64, duration: Duration) -> Self {
+    pub fn new(count: u64, duration: Duration) -> Self {
         Self {
             limit: count,
             window: duration.as_millis() as Timestamp,
@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn default_rate_limiter_test() {
-        let rate_limiter = RateLimiter::builder(10, Duration::from_secs(1));
+        let rate_limiter = RateLimiter::new(10, Duration::from_secs(1));
 
         assert_eq!(rate_limiter.limit, 10);
         assert_eq!(rate_limiter.window, 1_000);
@@ -59,7 +59,7 @@ mod tests {
 
     #[test]
     fn set_limit_test() {
-        let mut rate_limiter = RateLimiter::builder(10, Duration::from_secs(1));
+        let mut rate_limiter = RateLimiter::new(10, Duration::from_secs(1));
         rate_limiter.set_limit(5);
 
         assert_eq!(rate_limiter.limit, 5);
@@ -67,7 +67,7 @@ mod tests {
 
     #[test]
     fn set_window_test() {
-        let mut rate_limiter = RateLimiter::builder(10, Duration::from_secs(1));
+        let mut rate_limiter = RateLimiter::new(10, Duration::from_secs(1));
         rate_limiter.set_window(120_000); // 120 seconds
 
         assert_eq!(rate_limiter.window, 120_000);
@@ -75,7 +75,7 @@ mod tests {
 
     #[test]
     fn can_make_request_within_limit_test() {
-        let mut rate_limiter = RateLimiter::builder(10, Duration::from_secs(1));
+        let mut rate_limiter = RateLimiter::new(10, Duration::from_secs(1));
         let current_time = 10_000;
         rate_limiter.increase();
         assert_eq!(rate_limiter.request_count, 1);
@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn can_make_request_exceeding_limit_test() {
-        let mut rate_limiter = RateLimiter::builder(10, Duration::from_secs(1));
+        let mut rate_limiter = RateLimiter::new(10, Duration::from_secs(1));
         let current_time = 10_000;
         for _ in 0..rate_limiter.limit {
             rate_limiter.increase();
@@ -98,7 +98,7 @@ mod tests {
 
     #[test]
     fn can_make_request_after_window_reset_test() {
-        let mut rate_limiter = RateLimiter::builder(10, Duration::from_secs(1));
+        let mut rate_limiter = RateLimiter::new(10, Duration::from_secs(1));
         let current_time = 10_000;
 
         for _ in 0..rate_limiter.limit {
@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn can_make_request_reset_on_new_time_test() {
-        let mut rate_limiter = RateLimiter::builder(10, Duration::from_secs(1));
+        let mut rate_limiter = RateLimiter::new(10, Duration::from_secs(1));
         let initial_time = 10_000;
 
         for _ in 0..rate_limiter.limit {
