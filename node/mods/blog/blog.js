@@ -16,6 +16,7 @@ class Blog extends ModTemplate {
     this.description = 'Blog Module';
     this.cache = {};
     this.txs = [];
+    this.peer = null;
 
     this.social = {
       twitter: '@SaitoOfficial',
@@ -49,22 +50,24 @@ class Blog extends ModTemplate {
   }
 
   async onPeerServiceUp(app, peer, service = {}) {
-    console.log('peer service up', service.service);
-    let self = this;
-    if (service.service === 'archive') {
-      if (this.browser_active) {
-        // Get post_id from URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const postId = urlParams.get('tx_id');
-        const author = urlParams.get('public_key');
+    if (!app.BROWSER || !this.browser_active) {
+      return;
+    }
 
-        if (postId && author) {
-          // Load specific post
-          await this.loadSinglePost(postId, author);
-        } else {
-          // Load post by author
-          this.loadPosts(this.publicKey);
-        }
+    if (service.service === 'archive') {
+      this.peer = peer;
+
+      // Get post_id from URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const postId = urlParams.get('tx_id');
+      const author = urlParams.get('public_key');
+
+      if (postId && author) {
+        // Load specific post
+        await this.loadSinglePost(postId, author);
+      } else {
+        // Load post by author
+        this.loadPosts(this.publicKey);
       }
     }
   }
@@ -157,12 +160,21 @@ class Blog extends ModTemplate {
     }
     let data = { ...txmsg.data, sig: tx.signature };
     this.cache[from].blogPosts.push(data);
+
     if (tx.isFrom(this.publicKey)) {
       this.app.connection.emit('saito-header-update-message', { msg: '' });
       siteMessage('Blog post published', 1500);
     }
 
-    this.saveBlogPostTransaction(tx);
+    //
+    // Save into archives
+    //
+    await this.app.storage.saveTransaction(tx, {}, 'localhost');
+
+    if (this.callbackAfterPost) {
+      this.callbackAfterPost();
+      delete this.callbackAfterPost;
+    }
   }
 
   async updateBlogPostTransaction(signature, title, content, tags, image, imageUrl, callback) {
@@ -228,8 +240,10 @@ class Blog extends ModTemplate {
       'localhost'
     );
 
-    this.runCallBackAfterPost();
-    return true;
+    if (this.callbackAfterPost) {
+      this.callbackAfterPost();
+      delete this.callbackAfterPost;
+    }
   }
 
   async deleteBlogPost(sig, callback) {
@@ -307,24 +321,22 @@ class Blog extends ModTemplate {
       }
     }
 
-    try {
-      let peers = await this.app.network.getPeers();
-      let peer = peers[0];
-
-      this.app.storage.loadTransactions(
-        { field1: 'Blog', field2: key },
-        (txs) => {
-          const filteredTxs = this.filterBlogPosts(txs);
-          const posts = this.convertTransactionsToPosts(filteredTxs);
-          const updatedPosts = this.updateCache(key, posts);
-          callback(updatedPosts);
-        },
-        peer
-      );
-    } catch (error) {
-      console.error('Error loading posts for user:', error);
+    if (!this.peer) {
+      siteMessage('Warning: no peers available...');
       callback(cachedPosts);
+      return;
     }
+
+    this.app.storage.loadTransactions(
+      { field1: 'Blog', field2: key },
+      (txs) => {
+        const filteredTxs = this.filterBlogPosts(txs);
+        const posts = this.convertTransactionsToPosts(filteredTxs);
+        const updatedPosts = this.updateCache(key, posts);
+        callback(updatedPosts);
+      },
+      this.peer
+    );
   }
 
   async loadAllPostsFromKeys(keys, callback = null, useCache) {
@@ -337,39 +349,37 @@ class Blog extends ModTemplate {
       }
     }
 
-    try {
-      let peers = await this.app.network.getPeers();
-      let peer = peers[0];
-      const loadPromises = keys.map(
-        (key) =>
-          new Promise((resolve) => {
-            this.app.storage.loadTransactions(
-              { field1: 'Blog', field2: key },
-              (txs) => {
-                const filteredTxs = this.filterBlogPosts(txs);
-                const posts = this.convertTransactionsToPosts(filteredTxs);
-                this.updateCache(key, posts);
-                resolve(posts);
-              },
-              peer
-            );
-          })
-      );
-
-      const postsArrays = await Promise.all(loadPromises);
-      const allPosts = postsArrays.flat().sort((a, b) => b.timestamp - a.timestamp);
-
-      // Update all posts cache
-      this.postsCache.allPosts = allPosts;
-      this.postsCache.lastAllPostsFetch = Date.now();
-
-      if (callback) callback(allPosts);
-      return allPosts;
-    } catch (error) {
-      console.error('Error loading all posts:', error);
-      if (callback) callback([]);
-      return [];
+    if (!this.peer) {
+      siteMessage('Warning: no peers available...');
+      if (callback) callback(this.postsCache.allPosts);
+      return this.postsCache.allPosts;
     }
+
+    const loadPromises = keys.map(
+      (key) =>
+        new Promise((resolve) => {
+          this.app.storage.loadTransactions(
+            { field1: 'Blog', field2: key },
+            (txs) => {
+              const filteredTxs = this.filterBlogPosts(txs);
+              const posts = this.convertTransactionsToPosts(filteredTxs);
+              this.updateCache(key, posts);
+              resolve(posts);
+            },
+            this.peer
+          );
+        })
+    );
+
+    const postsArrays = await Promise.all(loadPromises);
+    const allPosts = postsArrays.flat().sort((a, b) => b.timestamp - a.timestamp);
+
+    // Update all posts cache
+    this.postsCache.allPosts = allPosts;
+    this.postsCache.lastAllPostsFetch = Date.now();
+
+    if (callback) callback(allPosts);
+    return allPosts;
   }
 
   async loadAllBlogPosts(callback, useCache = false, limit = 20) {
@@ -382,40 +392,25 @@ class Blog extends ModTemplate {
       }
     }
 
-    try {
-      let peers = await this.app.network.getPeers();
-      let peer = peers[0];
-      this.app.storage.loadTransactions(
-        { field1: 'Blog' },
-        (txs) => {
-          console.log(txs);
-          const filteredTxs = this.filterBlogPosts(txs);
-          const posts = this.convertTransactionsToPosts(filteredTxs);
-
-          this.postsCache.allPosts = posts;
-          this.postsCache.lastAllPostsFetch = Date.now();
-
-          if (callback) callback(posts);
-        },
-        peer
-      );
-    } catch (error) {
-      console.error('Error loading all blog posts:', error);
-      // If error, return empty array through callback
-      if (callback) callback([]);
+    if (!this.peer) {
+      siteMessage('Warning: no peers available...');
+      if (callback) callback(this.postsCache.allPosts);
+      return this.postsCache.allPosts;
     }
-  }
 
-  async loadBlogPostTransactions(key, peer) {
-    let self = this;
     this.app.storage.loadTransactions(
-      { field1: 'Blog', field2: key },
-      function (txs) {
-        const filteredTxs = self.filterBlogPosts(txs);
-        const posts = self.convertTransactionsToPosts(filteredTxs);
-        self.app.connection.emit('blog-update-widget', key, posts);
+      { field1: 'Blog' },
+      (txs) => {
+        console.log(txs);
+        const filteredTxs = this.filterBlogPosts(txs);
+        const posts = this.convertTransactionsToPosts(filteredTxs);
+
+        this.postsCache.allPosts = posts;
+        this.postsCache.lastAllPostsFetch = Date.now();
+
+        if (callback) callback(posts);
       },
-      peer.peerIndex
+      this.peer
     );
   }
 
@@ -428,50 +423,43 @@ class Blog extends ModTemplate {
   }
 
   async loadSinglePost(postId, author) {
-    let peer = (await this.app.network.getPeers())[0];
-
-    // if (this.publicKey === author) {
-
-    // } else {
-    //     peer = author
-    // }
-    try {
-      let self = this;
-      this.app.storage.loadTransactions(
-        { field1: 'Blog', signature: postId },
-        function (txs) {
-          const filteredTxs = self.filterBlogPosts(txs);
-          const targetTx = filteredTxs.find((tx) => tx.signature === postId);
-          if (targetTx) {
-            let public_key = targetTx.from[0].publicKey;
-            const post = self.convertTransactionToPost(targetTx);
-
-            self.app.browser.createReactRoot(
-              BlogLayout,
-              {
-                post,
-                app: self.app,
-                mod: self,
-                publicKey: public_key,
-                topMargin: true,
-                ondelete: () => {
-                  const baseUrl = window.location.origin;
-                  window.location.href = `${baseUrl}/blog`;
-                }
-              },
-              `blog-post-detail-${Date.now()}`
-            );
-          } else {
-            console.error('Post not found');
-            self.loadPosts();
-          }
-        },
-        peer
-      );
-    } catch (error) {
-      console.error('Error loading single post:', error);
-      self.loadPosts();
+    if (!this.peer) {
+      siteMessage('Warning: no peers available...');
+      this.loadPosts();
     }
+
+    let blog_self = this;
+    this.app.storage.loadTransactions(
+      { field1: 'Blog', signature: postId },
+      function (txs) {
+        const filteredTxs = blog_self.filterBlogPosts(txs);
+        const targetTx = filteredTxs.find((tx) => tx.signature === postId);
+        if (targetTx) {
+          let public_key = targetTx.from[0].publicKey;
+          const post = blog_self.convertTransactionToPost(targetTx);
+
+          blog_self.app.browser.createReactRoot(
+            BlogLayout,
+            {
+              post,
+              app: blog_self.app,
+              mod: blog_self,
+              publicKey: public_key,
+              topMargin: true,
+              ondelete: () => {
+                const baseUrl = window.location.origin;
+                window.location.href = `${baseUrl}/blog`;
+              }
+            },
+            `blog-post-detail-${Date.now()}`
+          );
+        } else {
+          console.error('Post not found');
+          blog_self.loadPosts();
+        }
+      },
+      this.peer
+    );
   }
 
   updateCache(key, posts) {
@@ -526,38 +514,6 @@ class Blog extends ModTemplate {
       image: data.image,
       imageUrl: data.imageUrl
     };
-  }
-
-  async saveBlogPostTransaction(tx, from) {
-    try {
-      let peers = await this.app.network.getPeers();
-      let peer = peers[0];
-
-      if (!peer) {
-        return;
-      }
-      await this.app.storage.saveTransaction(
-        tx,
-        {
-          field1: 'Blog'
-        },
-        'localhost'
-      );
-
-      this.runCallBackAfterPost();
-
-      return true;
-    } catch (error) {
-      console.error('Error saving blog transaction:', error);
-      throw error;
-    }
-  }
-
-  runCallBackAfterPost() {
-    if (this.callbackAfterPost) {
-      this.callbackAfterPost();
-      this.callbackAfterPost = null;
-    }
   }
 
   webServer(app, expressapp, express) {
