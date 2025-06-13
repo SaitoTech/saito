@@ -11,7 +11,7 @@ use tokio::sync::RwLock;
 
 use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
-use crate::core::consensus::peers::peer_collection::PeerCollection;
+use crate::core::consensus::peers::peer_collection::{CongestionType, PeerCollection};
 use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
@@ -126,7 +126,7 @@ impl VerificationThread {
             );
             let mut peers = self.peer_lock.write().await;
             let control = peers.get_congestion_controls_for_index(peer_index).unwrap();
-            control.invalid_block_limiter.increase();
+            control.increase(CongestionType::InvalidBlock);
             return;
         }
 
@@ -145,7 +145,7 @@ impl VerificationThread {
             );
             let mut peers = self.peer_lock.write().await;
             let control = peers.get_congestion_controls_for_index(peer_index).unwrap();
-            control.invalid_block_limiter.increase();
+            control.increase(CongestionType::InvalidBlock);
             return;
         }
 

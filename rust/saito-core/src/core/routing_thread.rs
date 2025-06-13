@@ -2,6 +2,7 @@ use crate::core::consensus::block::BlockType;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::blockchain_sync_state::BlockchainSyncState;
 use crate::core::consensus::mempool::Mempool;
+use crate::core::consensus::peers::peer_collection::CongestionType;
 use crate::core::consensus::peers::peer_service::PeerService;
 use crate::core::consensus::peers::peer_state_writer::{PeerStateEntry, PEER_STATE_WRITE_PERIOD};
 use crate::core::consensus::wallet::Wallet;
@@ -774,17 +775,18 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         peer.stats.received_messages += 1;
                         peer.stats.last_received_message_at = time;
                     }
-                    let control = peers.get_congestion_controls_for_index(peer_index)?;
 
-                    control.message_limiter.increase();
-                    if control.message_limiter.has_limit_exceeded(time) {
-                        info!(
+                    if let Some(control) = peers.get_congestion_controls_for_index(peer_index) {
+                        control.increase(CongestionType::Message);
+                        if control.has_limit_exceeded(CongestionType::Message, time) {
+                            info!(
                             "peers exceeded for messages from peer : {:?} - {:?} - rates : {:?}",
-                            peer_index,
-                            public_key.to_base58(),
-                            control.message_limiter
-                        );
-                        return None;
+                                peer_index,
+                                public_key.to_base58(),
+                                control.controls.get(&CongestionType::Message).unwrap()
+                            );
+                            return None;
+                        }
                     }
                 }
                 let buffer_len = buffer.len();
@@ -844,18 +846,19 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 {
                     let mut peers = self.network.peer_lock.write().await;
                     let time = self.timer.get_timestamp_in_ms();
-                    let control = peers.get_congestion_controls_for_index(peer_index)?;
-                    if control.invalid_block_limiter.has_limit_exceeded(time) {
-                        info!(
+                    if let Some(control) = peers.get_congestion_controls_for_index(peer_index) {
+                        if control.has_limit_exceeded(CongestionType::InvalidBlock, time) {
+                            info!(
                             "peers exceeded for invalid blocks from peer : {:?}. disconnecting peer...",
                             peer_index
                         );
-                        self.network
-                            .io_interface
-                            .disconnect_from_peer(peer_index)
-                            .await
-                            .unwrap();
-                        return None;
+                            self.network
+                                .io_interface
+                                .disconnect_from_peer(peer_index)
+                                .await
+                                .unwrap();
+                            return None;
+                        }
                     }
                 }
 

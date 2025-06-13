@@ -1296,6 +1296,7 @@ mod tests {
         ];
         tester.set_issuance(issuance).await.unwrap();
         tester.set_staking_enabled(false).await;
+        info!("---------------- initializing the node 1st time -----------------\n\n\n\n\n");
         tester.init().await.unwrap();
         tester.wait_till_block_id(1).await.unwrap();
         tester
@@ -1336,6 +1337,8 @@ mod tests {
             .unwrap();
         }
         drop(tester);
+        info!("---------------- stopping the node 1st time -----------------");
+        info!("---------------- initializing the node 2nd time -----------------\n\n\n\n\n");
 
         let mut tester = NodeTester::new(10, Some(private_key), Some(timer));
         tester.set_staking_enabled(false).await;
@@ -1373,6 +1376,9 @@ mod tests {
                 .unwrap();
         }
         drop(tester);
+
+        info!("---------------- stopping the node 2nd time -----------------");
+        info!("---------------- initializing the node 3rd time -----------------\n\n\n\n\n");
 
         // reload the node
         info!("-------------- reloading the node -----------------\n\n\n\n\n");
@@ -1420,7 +1426,10 @@ mod tests {
 
         // create a fork starting from block 3
         {
-            info!("adding alternate block 4");
+            info!(
+                "adding alternate block 4 : {}",
+                alternate_block_4.hash.to_hex()
+            );
             tester.add_block(alternate_block_4.clone()).await;
         }
 
