@@ -30,3 +30,15 @@ body {
   font-size: 1.5rem;
   color: #333;
 } 
+
+#status-container {
+  margin-top: 10rem;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+#status-container > * {
+  
+}

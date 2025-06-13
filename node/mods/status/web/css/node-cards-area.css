@@ -10,15 +10,6 @@
   max-height: calc(100vh - 9rem);
 }
 
-.node-card {
-  flex: 1 1 0;
-  min-width: 350px;
-  max-width: 600px;
-  height: 100%;
-  margin: 0 0.5rem;
-  display: flex;
-  flex-direction: column;
-}
 
 .node-cards-area > .node-card:first-child {
   margin-left: 0;
