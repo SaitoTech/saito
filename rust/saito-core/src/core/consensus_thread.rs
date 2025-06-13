@@ -1420,7 +1420,7 @@ mod tests {
 
         // create a fork starting from block 3
         {
-            info!("adding alternate block 4");
+            info!("adding alternate block 4 : {}",alternate_block_4.hash.to_hex());
             tester.add_block(alternate_block_4.clone()).await;
         }
 
