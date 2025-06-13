@@ -167,8 +167,8 @@ class GameUI {
     // observers do not get controls
     // except we might want for meta-game functions...
     /*if (this.game.player == 0) {
-			return;
-		}*/
+      return;
+    }*/
 
     //
     // update the controls
@@ -285,7 +285,11 @@ class GameUI {
       this.beeping = null;
     }, 1000);
 
-    this.game_move_notification.play();
+    try {
+      this.game_move_notification.play();
+    } catch (err) {
+      console.error('ERROR: user not engaging with application', err);
+    }
   }
 
   setShotClock(target = '', timer = 3000, pause_on_activity = true, callback = null) {
@@ -485,7 +489,7 @@ class GameUI {
     let options = `<ul><li class="textchoice" id="confirmit">Return to ${target}</li>`;
 
     //if (allowObserver) {
-    //	options += '<li class="textchoice" id="observer">Stay and Watch</li>';
+    //  options += '<li class="textchoice" id="observer">Stay and Watch</li>';
     //}
 
     options += `</ul>`;
