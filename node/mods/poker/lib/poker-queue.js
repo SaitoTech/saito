@@ -859,7 +859,8 @@ class PokerQueue {
 				let amount_to_call = this.game.state.required_pot - this.game.state.player_pot[player - 1];
 
 				if (amount_to_call <= 0) {
-					console.error('Zero/Negative Call');
+					console.error(`Zero/Negative Call -- Player ${player}`);
+					console.debug('Game state: ', JSON.parse(JSON.stringify(this.game.state)));
 				}
 
 				if (this.game.state.player_credit[player - 1] === amount_to_call) {
