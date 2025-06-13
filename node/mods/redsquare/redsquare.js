@@ -1227,9 +1227,9 @@ class RedSquare extends ModTemplate {
       // new tweet added, so we gives modules freedom-to-rearrange
       // WARNING: we should not give modules to freedom to edit basic data structures... otherwise they aren't modules!
       //
-      //for (let xmod of this.app.modules.respondTo('redsquare-add-tweet')) {
-      //  xmod.respondTo('redsquare-add-tweet').addTweet(tweet, this.tweets);
-      //};
+      for (let xmod of this.app.modules.respondTo('redsquare-add-tweet')) {
+        xmod.respondTo('redsquare-add-tweet').addTweet(tweet, this.tweets);
+      };
 
       return 1;
 

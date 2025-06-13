@@ -1157,7 +1157,6 @@ class Tweet {
 				return 1;
 			}
 		}
-
 		return this.unknown_children_sigs_hmap[tweet_sig];
 	}
 

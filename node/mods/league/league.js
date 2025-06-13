@@ -39,10 +39,10 @@ class League extends ModTemplate {
 		this.header = null;
 
 		/* Not fully implemented
-    Only keep the last N recent games
-    You don't play a game for 30 days, you get dropped from leaderboard
-     (should prune data from SQL table or just filter from UI???)
-    */
+		    Only keep the last N recent games
+		    You don't play a game for 30 days, you get dropped from leaderboard
+		     (should prune data from SQL table or just filter from UI???)
+		*/
 		this.recent_game_cutoff = 10;
 		this.inactive_player_cutoff = 30 * 24 * 60 * 60 * 1000;
 
@@ -105,25 +105,21 @@ class League extends ModTemplate {
 			let league_self = this;
 			return {
 				addTweet: (tweet, tweet_list) => {
+if (tweet.text.indexOf('Leaderboard Update') > -1) {
+  console.log("processing update: " + tweet.text);
+}
 					let leaderboard_tweet = null;
-					for (let i = 0; i < tweet_list.length; i++) {
+					let twlen = tweet_list.length;
+					for (let i = 0; i < twlen; i++) {
 						if (tweet_list[i].text.indexOf('Leaderboard Update') > -1) {
 							if (leaderboard_tweet == null) {
 								leaderboard_tweet = tweet_list[i];
 							} else {
-								//
-								// ERROR: Splicing a for loop can cause out of bounds errors
-								//
 								tweet_list.splice(i, 1);
-
-								//
-								// WARNING: We are pushing the _same_ tweet as a child of leaderboard tweet for every other league update we find in the list, wtf???
-								//
+								twlen = tweet_list.length;
 								leaderboard_tweet.children.push(tweet);
-								//
-								// ERROR: Of course tweets, have an internal logic where they have a parent_id / thread_id
-								// So without updating those or using the child_hash_map, any tweet functions are going to break
-								//
+								leaderboard_tweet.critical_child = null;
+								leaderboard_tweet.num_replies++;
 							}
 						}
 					}
@@ -149,6 +145,7 @@ class League extends ModTemplate {
 	}
 
 	async initialize(app) {
+
 		await super.initialize(app);
 
 		if (!this.app.options.leagues) {
