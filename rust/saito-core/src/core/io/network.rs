@@ -8,7 +8,7 @@ use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
 use crate::core::consensus::peers::peer::{Peer, PeerStatus};
-use crate::core::consensus::peers::peer_collection::PeerCollection;
+use crate::core::consensus::peers::peer_collection::{CongestionType, PeerCollection};
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{BlockId, PeerIndex, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
@@ -239,8 +239,8 @@ impl Network {
         {
             let control = peers.get_congestion_controls_for_index(peer_index);
             if let Some(control) = control {
-                control.handshake_limiter.increase();
-                if control.handshake_limiter.has_limit_exceeded(current_time) {
+                control.increase(CongestionType::Handshake);
+                if control.has_limit_exceeded(CongestionType::Handshake, current_time) {
                     warn!(
                         "peer {:?} exceeded rate peers for handshake challenge",
                         peer_index
@@ -335,8 +335,8 @@ impl Network {
             let control = peers
                 .get_congestion_controls_for_index(peer_index)
                 .expect("peer should exist");
-            control.key_list_limiter.increase();
-            if control.key_list_limiter.has_limit_exceeded(current_time) {
+            control.increase(CongestionType::KeyList);
+            if control.has_limit_exceeded(CongestionType::KeyList, current_time) {
                 debug!(
                     "peer {} exceeded the rate for key list",
                     peer_index,

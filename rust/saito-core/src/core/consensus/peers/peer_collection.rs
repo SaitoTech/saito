@@ -4,6 +4,7 @@ use crate::core::consensus::peers::rate_limiter::RateLimiter;
 use crate::core::defs::{PeerIndex, PrintForLog, SaitoPublicKey, Timestamp};
 use log::{debug, info};
 use serde::Serialize;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -27,15 +28,20 @@ impl PeerCounter {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize)]
-pub struct PeerCongestionControls {
-    pub key_list_limiter: RateLimiter,
-    pub handshake_limiter: RateLimiter,
-    pub message_limiter: RateLimiter,
-    pub invalid_block_limiter: RateLimiter,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
+pub enum CongestionType {
+    KeyList,
+    Handshake,
+    Message,
+    InvalidBlock,
 }
 
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Serialize)]
+pub struct PeerCongestionControls {
+    pub controls: HashMap<CongestionType, RateLimiter>,
+}
+
+#[derive(Debug, Default, Serialize)]
 pub struct PeerCollection {
     pub index_to_peers: HashMap<PeerIndex, Peer>,
     #[serde(skip)]
@@ -45,7 +51,9 @@ pub struct PeerCollection {
     /// and related metrics on a per-peer basis. We have to store this here instead of in `Peer` because
     /// `Peer` is indexed using `PeerIndex`, which does not persist after a reconnection.
     #[serde(skip)]
-    pub congestion_controls: HashMap<SaitoPublicKey, PeerCongestionControls>,
+    pub congestion_controls_by_key: HashMap<SaitoPublicKey, PeerCongestionControls>,
+    #[serde(skip)]
+    pub congestion_controls_by_ip: HashMap<String, PeerCongestionControls>,
     #[serde(skip)]
     pub peer_counter: PeerCounter,
     #[serde(skip)]
@@ -148,14 +156,9 @@ impl PeerCollection {
         &mut self,
         public_key: &SaitoPublicKey,
     ) -> &mut PeerCongestionControls {
-        self.congestion_controls
+        self.congestion_controls_by_key
             .entry(public_key.clone())
-            .or_insert_with(|| PeerCongestionControls {
-                key_list_limiter: RateLimiter::new(100, Duration::from_secs(60)),
-                handshake_limiter: RateLimiter::new(100, Duration::from_secs(60)),
-                message_limiter: RateLimiter::new(100_000, Duration::from_secs(1)),
-                invalid_block_limiter: RateLimiter::new(10, Duration::from_secs(3600)),
-            })
+            .or_default()
     }
 
     pub fn get_congestion_controls_for_index(
@@ -167,5 +170,53 @@ impl PeerCollection {
             return Some(self.get_congestion_controls_by_key(&public_key));
         }
         None
+    }
+    pub fn get_congestion_controls_for_ip(&mut self, ip: String) -> &mut PeerCongestionControls {
+        self.congestion_controls_by_ip.entry(ip).or_default()
+    }
+}
+
+impl Default for PeerCongestionControls {
+    fn default() -> Self {
+        let key_list_limiter = RateLimiter::new(100, Duration::from_secs(60));
+        let handshake_limiter = RateLimiter::new(100, Duration::from_secs(60));
+        let message_limiter = RateLimiter::new(100_000, Duration::from_secs(1));
+        let invalid_block_limiter = RateLimiter::new(10, Duration::from_secs(3600));
+        Self {
+            controls: HashMap::from([
+                (CongestionType::KeyList, key_list_limiter),
+                (CongestionType::Handshake, handshake_limiter),
+                (CongestionType::Message, message_limiter),
+                (CongestionType::InvalidBlock, invalid_block_limiter),
+            ]),
+        }
+    }
+}
+
+impl PeerCongestionControls {
+    pub fn increase(&mut self, congestion_type: CongestionType) {
+        if let Some(rate_limiter) = self.controls.get_mut(&congestion_type) {
+            rate_limiter.increase();
+        } else {
+            debug!(
+                "No rate limiter found for congestion type: {:?}",
+                congestion_type
+            );
+        }
+    }
+    pub fn has_limit_exceeded(
+        &mut self,
+        congestion_type: CongestionType,
+        current_time: Timestamp,
+    ) -> bool {
+        if let Some(rate_limiter) = self.controls.get_mut(&congestion_type) {
+            rate_limiter.has_limit_exceeded(current_time)
+        } else {
+            debug!(
+                "No rate limiter found for congestion type: {:?}",
+                congestion_type
+            );
+            false
+        }
     }
 }
