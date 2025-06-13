@@ -1,10 +1,7 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { htmlToMarkdown, isMarkdownContent } from '../utils';
-
 
 const PostModal = ({ onClose, onSubmit, post }) => {
   const [formData, setFormData] = useState({
@@ -28,8 +25,6 @@ const PostModal = ({ onClose, onSubmit, post }) => {
     return 'rich';
   });
   const isQuillUpdate = useRef(false);
-  
-
 
   const editorRef = useRef(null);
   const quillInstance = useRef(null);
@@ -37,8 +32,6 @@ const PostModal = ({ onClose, onSubmit, post }) => {
   const [imagePreview, setImagePreview] = useState(
     post?.imageUrl || (post?.image ? `data:image/jpeg;base64,${post.image}` : null)
   );
-
-
 
   useEffect(() => {
     if (window.Quill && editorRef.current && !quillInstance.current) {
@@ -72,29 +65,29 @@ const PostModal = ({ onClose, onSubmit, post }) => {
         }
       };
 
-
       // window.Quill.register('modules/markdownShortcuts', window.MarkdownShortcuts);
       quillInstance.current = new window.Quill(editorRef.current, {
         theme: 'snow',
         modules: {
-
           // markdownShortcuts: {},
           toolbar: {
             container: [
-              [{ 'header': [1, 2, 3, 4, 5, 6, false] }],
+              [{ header: [1, 2, 3, 4, 5, 6, false] }],
               ['bold', 'italic', 'underline', 'strike'],
-              [{ 'color': [] }, { 'background': [] }],
-              [{ 'align': [] }],
-              [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-              [{ 'indent': '-1' }, { 'indent': '+1' }],
-              [{ 'script': 'sub' }, { 'script': 'super' }],
+              [{ color: [] }, { background: [] }],
+              [{ align: [] }],
+              [{ list: 'ordered' }, { list: 'bullet' }],
+              [{ indent: '-1' }, { indent: '+1' }],
+              [{ script: 'sub' }, { script: 'super' }],
               ['blockquote', 'code-block'],
               ['link', 'image'],
               ['clean']
             ],
             handlers: {
               image: async () => {
-                const selection = await sconfirm('Would you like to upload a file instead of using a URL?');
+                const selection = await sconfirm(
+                  'Would you like to upload a file instead of using a URL?'
+                );
                 if (selection) {
                   imageHandler();
                 } else {
@@ -124,7 +117,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
             matchVisual: true
           }
         },
-        placeholder: 'Write your blog content here...',
+        placeholder: 'Write your blog content here...'
       });
 
       const toolbar = quillInstance.current.getModule('toolbar');
@@ -143,7 +136,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
       quillInstance.current.on('text-change', () => {
         if (!isQuillUpdate.current) {
           const htmlContent = quillInstance.current.root.innerHTML;
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
             content: htmlContent
           }));
@@ -184,7 +177,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
       const editorElement = editorRef.current;
       if (editorElement && editorElement.style) {
         editorElement.style.display = 'block';
-        document.querySelector('.ql-toolbar').style.display = "block";
+        document.querySelector('.ql-toolbar').style.display = 'block';
         if (formData.content && !formData.content.includes('<')) {
           isQuillUpdate.current = true;
           const htmlContent = DOMPurify.sanitize(marked.parse(formData.content));
@@ -197,7 +190,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
       const editorElement = editorRef.current;
       if (editorElement && editorElement.style) {
         editorElement.style.display = 'none';
-        document.querySelector('.ql-toolbar').style.display = "none";
+        document.querySelector('.ql-toolbar').style.display = 'none';
       }
     }
   }, [editorMode]);
@@ -206,7 +199,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
     if (post) {
       const initialMode = isMarkdownContent(post.content) ? 'markdown' : 'rich';
       setEditorMode(initialMode);
-      
+
       setFormData({
         title: post.title,
         content: post.content,
@@ -214,11 +207,11 @@ const PostModal = ({ onClose, onSubmit, post }) => {
         images: [],
         imageUrl: post.imageUrl || ''
       });
-  
+
       if (quillInstance.current && post.content && initialMode === 'rich') {
         quillInstance.current.root.innerHTML = post.content;
       }
-  
+
       if (post.imageUrl) {
         setImagePreview(post.imageUrl);
       } else if (post.image) {
@@ -247,42 +240,41 @@ const PostModal = ({ onClose, onSubmit, post }) => {
   const handleEditorModeSwitch = () => {
     if (editorMode === 'rich') {
       const htmlContent = quillInstance.current.root.innerHTML;
-    
+
       let cleanHtml = htmlContent.replace(/(<p><br><\/p>)+/g, '<p><br></p>');
 
       cleanHtml = cleanHtml.replace(/<hr\s*\/?>/g, '\n---\n');
       cleanHtml = cleanHtml.replace(/<br\s*\/?>/g, '\n');
-    
-      cleanHtml = cleanHtml.replace(
-        /<table[^>]*>([\s\S]*?)<\/table>/g,
-        (match, tableContent) => {
-          const rows = tableContent.match(/<tr[^>]*>([\s\S]*?)<\/tr>/g) || [];
-          const markdownRows = rows.map(row => {
-            const cells = row.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g) || [];
-            return `|${cells.map(cell => {
+
+      cleanHtml = cleanHtml.replace(/<table[^>]*>([\s\S]*?)<\/table>/g, (match, tableContent) => {
+        const rows = tableContent.match(/<tr[^>]*>([\s\S]*?)<\/tr>/g) || [];
+        const markdownRows = rows.map((row) => {
+          const cells = row.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/g) || [];
+          return `|${cells
+            .map((cell) => {
               const content = cell.replace(/<\/?t[dh][^>]*>/g, '').trim();
               return ` ${content} `;
-            }).join('|')}|`;
-          });
-          
-          if (markdownRows.length > 0) {
-            const columnCount = (markdownRows[0].match(/\|/g) || []).length - 1;
-            const separator = `|${' --- |'.repeat(columnCount)}`;
-            markdownRows.splice(1, 0, separator);
-          }
-          
-          return '\n' + markdownRows.join('\n') + '\n';
+            })
+            .join('|')}|`;
+        });
+
+        if (markdownRows.length > 0) {
+          const columnCount = (markdownRows[0].match(/\|/g) || []).length - 1;
+          const separator = `|${' --- |'.repeat(columnCount)}`;
+          markdownRows.splice(1, 0, separator);
         }
-      );
-      
+
+        return '\n' + markdownRows.join('\n') + '\n';
+      });
+
       const markdownContent = htmlToMarkdown(cleanHtml);
-      
+
       const finalMarkdown = markdownContent
         .replace(/\n---\n/g, '\n\n---\n\n')
         .replace(/\n{3,}/g, '\n\n')
         .replace(/(\n\|[^\n]+\|)\n(?!\|)/g, '$1\n\n');
-      
-      setFormData(prev => ({
+
+      setFormData((prev) => ({
         ...prev,
         content: finalMarkdown
       }));
@@ -297,46 +289,42 @@ const PostModal = ({ onClose, onSubmit, post }) => {
 
       setEditorMode('markdown');
     }
-
   };
 
   const renderEditorModeButton = () => (
     <button
-      className='btn-publish'
+      className="btn-publish"
       style={{
         background: editorMode === 'markdown' ? '#ccc' : 'none',
         cursor: editorMode === 'markdown' ? 'not-allowed' : 'pointer'
       }}
       type="button"
       onClick={async () => {
-
         if (editorMode === 'rich') {
-          let res = await sconfirm("Are you sure you want to switch editor to markdown mode?");
-          if(res){
+          let res = await sconfirm('Are you sure you want to switch editor to markdown mode?');
+          if (res) {
             handleEditorModeSwitch();
           }
-
         }
       }}
       disabled={editorMode === 'markdown'}
     >
-      {editorMode === "rich" ? "Switch to Markdown" : "Markdown Mode"}
+      {editorMode === 'rich' ? 'Switch to Markdown' : 'Markdown Mode'}
     </button>
   );
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: value
     }));
   };
 
-
   const handleImageUrl = (url) => {
     const img = new Image();
     img.onload = () => {
       setImagePreview(url);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         imageUrl: url,
         images: []
@@ -344,9 +332,9 @@ const PostModal = ({ onClose, onSubmit, post }) => {
     };
     img.onerror = () => {
       setImagePreview(null);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        imageUrl: "",
+        imageUrl: '',
         images: []
       }));
       salert('Invalid image URL');
@@ -354,15 +342,12 @@ const PostModal = ({ onClose, onSubmit, post }) => {
     img.src = url;
   };
 
-
-
-
   const handleImageUpload = async (file) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
           images: [file]
         }));
@@ -391,7 +376,10 @@ const PostModal = ({ onClose, onSubmit, post }) => {
         });
       }
 
-      const tagsArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      const tagsArray = tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter((tag) => tag);
 
       await onSubmit({ title, content, image: base64Image, tags: tagsArray, imageUrl });
       // onClose();
@@ -458,7 +446,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
                     className="remove-image"
                     onClick={() => {
                       setImagePreview(null);
-                      setFormData(prev => ({ ...prev, images: [] }));
+                      setFormData((prev) => ({ ...prev, images: [] }));
                     }}
                   >
                     Remove
@@ -506,7 +494,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
                     className="remove-image"
                     onClick={() => {
                       setImagePreview(null);
-                      setFormData(prev => ({
+                      setFormData((prev) => ({
                         ...prev,
                         imageUrl: '',
                         images: []
@@ -521,14 +509,11 @@ const PostModal = ({ onClose, onSubmit, post }) => {
           )}
         </div>
 
-
-
         <div className="left-column-buttons">
-          <div className='filter-container'>
+          <div className="filter-container">
             <label className="filter-label">Editor Mode</label>
             {renderEditorModeButton()}
 
-     
             {/* <button
               onClick={handleSubmit}
               type="submit"
@@ -538,12 +523,9 @@ const PostModal = ({ onClose, onSubmit, post }) => {
               {isSubmitting ? 'Publishing...' : 'Publish'}
             </button> */}
 
-            <div className="action-buttons">
-
-            </div>
-
+            <div className="action-buttons"></div>
           </div>
-          <div className='filter-container'>
+          <div className="filter-container">
             <label className="filter-label">Action</label>
             {/* <button
               type="button"
@@ -564,12 +546,8 @@ const PostModal = ({ onClose, onSubmit, post }) => {
               {isSubmitting ? 'Publishing...' : 'Publish'}
             </button>
 
-            <div className="action-buttons">
-
-            </div>
-
+            <div className="action-buttons"></div>
           </div>
-
         </div>
       </div>
 
@@ -587,11 +565,10 @@ const PostModal = ({ onClose, onSubmit, post }) => {
             />
           </div>
 
-
           <div className="form-group">
             <div ref={editorRef} className="editor-content" />
-            {
-              editorMode !== 'rich' && !showPreview && <textarea
+            {editorMode !== 'rich' && !showPreview && (
+              <textarea
                 name="content"
                 value={formData.content}
                 onChange={handleChange}
@@ -599,9 +576,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
                 className="editor-content h-96 w-full p-4 border rounded"
                 required
               />
-            }
-
-
+            )}
           </div>
 
           {showPreview && (
@@ -614,7 +589,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
               />
             </div>
           )}
-          <div className='small-controls'>
+          <div className="small-controls">
             {/* <div className="filter-container">
               <label className="filter-label">Tags</label>
               <input
@@ -668,7 +643,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
                         className="remove-image"
                         onClick={() => {
                           setImagePreview(null);
-                          setFormData(prev => ({ ...prev, images: [] }));
+                          setFormData((prev) => ({ ...prev, images: [] }));
                         }}
                       >
                         Remove
@@ -731,7 +706,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
                           className="remove-image"
                           onClick={() => {
                             setImagePreview(null);
-                            setFormData(prev => ({
+                            setFormData((prev) => ({
                               ...prev,
                               imageUrl: '',
                               images: []
@@ -747,17 +722,13 @@ const PostModal = ({ onClose, onSubmit, post }) => {
               )}
             </div>
 
-            <div className='filter-container'>
-            <label className="filter-label">Current Editor Mode</label>
-            {renderEditorModeButton()}
+            <div className="filter-container">
+              <label className="filter-label">Current Editor Mode</label>
+              {renderEditorModeButton()}
 
-
-            <div className="action-buttons">
-
+              <div className="action-buttons"></div>
             </div>
-
-          </div>
-            <div className='filter-container'>
+            <div className="filter-container">
               <label className="filter-label">Action</label>
               {/* <button
                 type="button"
@@ -778,10 +749,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
                 {isSubmitting ? 'Publishing...' : 'Publish'}
               </button>
 
-              <div className="action-buttons">
-
-              </div>
-
+              <div className="action-buttons"></div>
             </div>
           </div>
         </form>
