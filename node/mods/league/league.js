@@ -1395,17 +1395,17 @@ class League extends ModTemplate {
 				data: { text: tweetContent, mentions: players }
 			};
 
-			if (league?.tweetID) {
-				if (now - league.tweetTS > 1000 * 60 * 60 * 4) {
-					// Start a new thread if it has been at least 4 hours
-					delete league.tweetID;
-					delete league.tweetTS;
-				} else {
-					league.tweetTS = now;
-					obj.data.parent_id = league.tweetID;
-					obj.data.thread_id = league.tweetID;
-					obj.data.signature = league.tweetID;
-				}
+			if (this?.tweetID) {
+				//if (now - league.tweetTS > 1000 * 60 * 60 * 4) {
+				// Start a new thread if it has been at least 4 hours
+				//	delete league.tweetID;
+				//	delete league.tweetTS;
+				//} else {
+				//	league.tweetTS = now;
+				obj.data.parent_id = this.tweetID;
+				obj.data.thread_id = this.tweetID;
+				obj.data.signature = this.tweetID;
+				//}
 			}
 
 			let newtx = await this.app.wallet.createUnsignedTransaction();
@@ -1418,9 +1418,9 @@ class League extends ModTemplate {
 			await newtx.sign();
 			await this.app.network.propagateTransaction(newtx);
 
-			if (!league?.tweetID) {
-				league.tweetID = newtx.signature;
-				league.tweetTS = now;
+			if (!this.tweetID) {
+				this.tweetID = newtx.signature;
+				//league.tweetTS = now;
 			}
 		}
 	}
