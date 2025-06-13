@@ -19,7 +19,8 @@ class Teasers extends ModTemplate {
 
     this.teasers = [
       { name : "HereIStand" , slug : "his" , img : "https://staging.saito.io/his/img/arcade/arcade.jpg" , title : "Here I Stand" , link : "https://wiki.saito.io/tech/applications/his" } 		,
-      { name : "Nintendo" , slug : "nwasm" , img : "https://staging.saito.io/nwasm/img/arcade/arcade.jpg" , title : "Nintendo" , link : "https://wiki.saito.io/tech/applications/nwasm" }	,
+      { name : "Paths" , slug : "paths" , img : "https://staging.saito.io/paths/img/arcade/arcade.jpg" , title : "Paths of Glory" , link : "https://wiki.saito.io/tech/applications/paths" } 		
+/****
       { name : "Blackjack" , slug : "blackjack" , img : "https://staging.saito.io/blackjack/img/arcade/arcade.jpg" , title : "Blackjack" , link : "https://wiki.saito.io/tech/applications/blackjack" }	,
       { name : "Chess" , slug : "chess" , img : "https://staging.saito.io/chess/img/arcade/arcade.jpg" , title : "Chess" , link : "https://wiki.saito.io/tech/applications/chess" }			,
       { name : "Hearts" , slug : "hearts" , img : "https://staging.saito.io/hearts/img/arcade/arcade.jpg" , title : "Hearts" , link : "https://wiki.saito.io/tech/applications/hearts" }			,
@@ -36,6 +37,8 @@ class Teasers extends ModTemplate {
       { name : "Twilight" , slug : "twilight" , img : "https://staging.saito.io/twilight/img/arcade/arcade.jpg" , title : "Twilight" , link : "https://wiki.saito.io/tech/applications/twilight" }		,
       { name : "Wordblocks" , slug : "wordblocks" , img : "https://staging.saito.io/wordblocks/img/arcade/arcade.jpg" , title : "Wordblocks" , link : "https://wiki.saito.io/tech/applications/wordblocks" }	,
       { name : "Wuziqi" , slug : "wuziqi" , img : "https://staging.saito.io/wuziqi/img/arcade/arcade.jpg" , title : "Wuziqi" , link : "https://wiki.saito.io/tech/applications/wuziqi" }			,
+      { name : "Nintendo" , slug : "nwasm" , img : "https://staging.saito.io/nwasm/img/arcade/arcade.jpg" , title : "Nintendo" , link : "https://wiki.saito.io/tech/applications/nwasm" }	,
+***/
     ];
 
   }
@@ -43,13 +46,6 @@ class Teasers extends ModTemplate {
 
   async initialize(app) {
 
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$");
-console.log("$ modules ");
-console.log("$");
-console.log(JSON.stringify(app.options.modules));
 
     await super.initialize(app);
 
