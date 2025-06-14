@@ -16,7 +16,7 @@ class TweetManager {
 
 		this.profile_tweets = {};
 		this.profile = new SaitoProfile(app, mod, '.saito-main');
-		this.profile.tab_container = '.tweet-manager';
+		this.profile.tab_container = '.tweet-container';
 		this.profile_tabs = ['posts', 'replies', /*'retweets',*/ 'likes'];
 		this.profile.reset(this.mod.publicKey, 'posts', this.profile_tabs);
 
@@ -32,7 +32,7 @@ class TweetManager {
 				return;
 			}
 
-			let posted_tweet = new Tweet(this.app, this.mod, tweettx, '.tweet-manager');
+			let posted_tweet = new Tweet(this.app, this.mod, tweettx, '.tweet-container');
 
 			console.debug('RS.render-new-post: ', posted_tweet);
 
@@ -139,7 +139,7 @@ class TweetManager {
 
 		this.intersectionObserver.disconnect();
 		let holder = document.getElementById('tweet-thread-holder');
-		let managerElem = document.querySelector('.tweet-manager');
+		let managerElem = document.querySelector('.tweet-container');
 
 		if (holder) {
 			while (holder.hasChildNodes()) {
@@ -182,7 +182,7 @@ class TweetManager {
 			document.querySelector('.saito-end-of-redsquare').remove();
 		}
 
-		let myqs = `.tweet-manager`;
+		let myqs = `.tweet-container`;
 
 		this.profile.remove();
 
@@ -194,13 +194,13 @@ class TweetManager {
 		}
 
 		if (new_mode == 'tweets') {
-			document.querySelector('.redsquare-feed-toggle').classList.remove('hidden');
+			//document.querySelector('.redsquare-feed-toggle').classList.remove('hidden');
 			if (this.mod.curated) {
-				document.querySelector('.tweet-manager').classList.add('active-curation');
+				document.querySelector('.tweet-container').classList.add('active-curation');
 			}
 		} else {
-			document.querySelector('.redsquare-feed-toggle').classList.add('hidden');
-			document.querySelector('.tweet-manager').classList.remove('active-curation');
+			//document.querySelector('.redsquare-feed-toggle').classList.add('hidden');
+			document.querySelector('.tweet-container').classList.remove('active-curation');
 		}
 
 		let holder = document.getElementById('tweet-thread-holder');
@@ -279,7 +279,7 @@ class TweetManager {
 
 				for (let i = 0; i < this.mod.notifications.length; i++) {
 					let notification = new Notification(this.app, this.mod, this.mod.notifications[i]);
-					notification.render('.tweet-manager');
+					notification.render('.tweet-container');
 				}
 			}
 
@@ -299,13 +299,13 @@ class TweetManager {
 
 			for (let i = 0; i < new_txs.length; i++) {
 				let notification = new Notification(this.app, this.mod, new_txs[i]);
-				notification.render('.tweet-manager');
+				notification.render('.tweet-container');
 			}
 
 			if (new_txs.length == 0) {
 				this.app.browser.addElementToSelector(
 					'<div class="saito-end-of-redsquare">no further notifications</div>',
-					'.tweet-manager'
+					'.tweet-container'
 				);
 				if (document.querySelector('#intersection-observer-trigger')) {
 					if (this.mod.debug) {
@@ -317,7 +317,7 @@ class TweetManager {
 				if (this.mod.notifications.length == 0) {
 					//Dummy "Notification" for end of history sign
 					let notification = new Notification(this.app, this.mod, null);
-					notification.render('.tweet-manager');
+					notification.render('.tweet-container');
 				}
 
 				setTimeout(() => {
@@ -382,7 +382,7 @@ class TweetManager {
 			if (!document.querySelector('.saito-end-of-redsquare')) {
 				this.app.browser.addElementToSelector(
 					`<div class="saito-end-of-redsquare">no more tweets</div>`,
-					'.tweet-manager'
+					'.tweet-container'
 				);
 			}
 			this.hideLoader();
@@ -410,7 +410,7 @@ class TweetManager {
 
 		this.render('profile');
 
-		if (!document.querySelector('.tweet-manager')) {
+		if (!document.querySelector('.tweet-container')) {
 			this.app.browser.addElementToSelector(TweetManagerTemplate(), '.saito-main');
 		}
 
@@ -724,7 +724,7 @@ class TweetManager {
 			document.getElementById('curated').onclick = (e) => {
 				e.currentTarget.classList.add('active');
 				document.getElementById('everything').classList.remove('active');
-				document.querySelector('.tweet-manager').classList.add('active-curation');
+				document.querySelector('.tweet-container').classList.add('active-curation');
 				this.mod.curated = true;
 				this.mod.saveOptions();
 			};
@@ -734,7 +734,7 @@ class TweetManager {
 			document.getElementById('everything').onclick = (e) => {
 				e.currentTarget.classList.add('active');
 				document.getElementById('curated').classList.remove('active');
-				document.querySelector('.tweet-manager').classList.remove('active-curation');
+				document.querySelector('.tweet-container').classList.remove('active-curation');
 				this.mod.curated = false;
 				this.mod.saveOptions();
 			};

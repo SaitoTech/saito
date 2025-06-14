@@ -1166,7 +1166,7 @@ class RedSquare extends ModTemplate {
     //
     // create the tweet
     //
-    let tweet = new Tweet(this.app, this, tx, '.tweet-manager');
+    let tweet = new Tweet(this.app, this, tx);
 
     //
     // This should be the first, primary source
@@ -1919,7 +1919,7 @@ class RedSquare extends ModTemplate {
     console.info('RS.receiveTweet: transaction received');
 
     try {
-      let tweet = new Tweet(app, this, tx, '.tweet-manager');
+      let tweet = new Tweet(app, this, tx);
       let other_tweet = null;
       let txmsg = tx.returnMessage();
 

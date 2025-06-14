@@ -1,0 +1,92 @@
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 10px;
+  line-height: 1.33;
+  color: #e1e8ed;
+  background-color: #15202b;
+}
+
+#saito-container {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #15202b;
+  margin-top: var(--saito-header-height);
+}
+
+.saito-sidebar {
+  width: 250px;
+  padding: 16px;
+  color: #8899a6;
+  background-color: #000;
+  padding: 20px 12px;
+  transition: all 0.3s ease;
+}
+
+.saito-sidebar.left {
+  border-right: 1px solid #38444d;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 12px;
+  background-color: #000;
+  color: #e7e9ea;
+  height: 100vh;
+  box-sizing: border-box;
+  font-family: system-ui, sans-serif;
+}
+
+.saito-sidebar.right {
+  border-left: 1px solid #38444d;
+}
+
+.saito-main {
+  flex: 1;
+  padding: 12px 24px;
+  overflow-y: auto;
+  flex-grow: 1;
+  background-color: #000;
+}
+
+.saito-sidebar.left {
+  width: 250px;
+}
+.saito-sidebar.right {
+  width: 300px;
+}
+
+@media (max-width: 1199px) {
+  .saito-sidebar.left {
+    width: 80px;
+  }
+
+  .saito-sidebar.left .redsquare-menu .item span {
+    display: none;
+  }
+
+  .saito-sidebar.right {
+    width: 200px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+
+  .saito-sidebar.left .tweet-button {
+    display: none;
+  }
+
+  .saito-sidebar.right {
+    display: none;
+  }
+
+  #saito-container {
+    max-width: 100%;
+  }
+}
+

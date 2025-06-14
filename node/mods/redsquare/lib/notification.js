@@ -160,7 +160,7 @@ class RedSquareNotification {
 			if (document.querySelector(nqs)) {
 				this.app.browser.replaceElementBySelector(html, nqs);
 			} else {
-				this.app.browser.addElementToSelector(html, '.tweet-manager');
+				this.app.browser.addElementToSelector(html, '.tweet-container');
 			}
 
 			//

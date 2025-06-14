@@ -1,0 +1,87 @@
+
+.redsquare-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.redsquare-menu .item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px;
+  font-size: 18px;
+  color: #e7e9ea;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.redsquare-menu .item:hover {
+  background-color: rgba(231, 233, 234, 0.1);
+}
+
+.redsquare-menu .item i {
+  font-size: 20px;
+  width: 24px;
+  text-align: center;
+}
+
+.redsquare-menu .item span {
+  display: inline-block;
+  margin-left: 8px;
+}
+
+.tweet-button {
+  margin-top: 30px;
+  background-color: #1d9bf0;
+  border: none;
+  border-radius: 9999px;
+  padding: 14px 0;
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  cursor: pointer;
+  width: 90%;
+  align-self: center;
+  transition: background-color 0.2s;
+}
+
+.tweet-button:hover {
+  background-color: #1a8cd8;
+}
+
+@media (max-width: 1199px) {
+
+  .redsquare-menu {
+    align-items: flex-end;
+  }
+
+  .redsquare-menu .item {
+    justify-content: flex-end;
+  }
+
+  .redsquare-menu .item i {
+    margin: 0;
+  }
+
+  .redsquare-menu .item span {
+    display: none;
+  }
+
+}
+
+@media (max-width: 768px) {
+
+  .tweet-button {
+    display: none;
+  }
+
+}
+
+

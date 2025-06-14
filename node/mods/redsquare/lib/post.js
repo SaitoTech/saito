@@ -22,7 +22,7 @@ class Post {
 
 	render(container = '') {
 
-		this.container = container ? '.tweet-manager ' : '.saito-overlay ';
+		this.container = container ? '.tweet-container ' : '.saito-overlay ';
 		this.id = container ? 'tweet-overlay-embedded' : 'tweet-overlay';
 
 		if (container) {
@@ -243,7 +243,7 @@ class Post {
 			data = { text: text, tweet_id: this.tweet.tx.signature };
 
 			let qs =
-				`.tweet-manager > .tweet-${this.tweet.tx.signature} .tweet-body .tweet-main .tweet-text`;
+				`.tweet-container > .tweet-${this.tweet.tx.signature} .tweet-body .tweet-main .tweet-text`;
 			let obj = document.querySelector(qs);
 			
 			if (obj) {

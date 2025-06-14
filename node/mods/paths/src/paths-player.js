@@ -2386,6 +2386,7 @@ return;
 	    paths_self.updateStatus("moving...");
 
 	    if (idx == "all") {
+	      active_units = [];
 	      for (let zz = 0; zz < paths_self.game.spaces[key].units.length; zz++) {
 		paths_self.game.spaces[key].units[zz].spacekey = key;
 		paths_self.game.spaces[key].units[zz].idx = zz;

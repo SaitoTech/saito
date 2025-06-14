@@ -1,78 +1,108 @@
 
-.redsquare-tweet-icon {
-	display: none;
-}
-
-.redsquare-menu {
+.invite-manager {
+  padding: 16px 12px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 20px;
 }
 
-.saito-sidebar.right, .saito-sidebar.left {
-	padding: 0.5rem 1rem;
-	margin: unset;
+.sidebar-header {
+  font-size: 18px;
+  font-weight: bold;
+  color: #e7e9ea;
+  margin-bottom: 8px;
+  text-transform: uppercase;
 }
 
-
-.redsquare-menu .saito-button-primary{
-	border: var(--border-thickness-button-primary) solid var(--border-color-button-primary);
-	box-shadow: var(--shadow-primary-button);
+.saito-module.saito-game {
+  background-size: cover;
+  background-position: center;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  transition: transform 0.2s;
 }
 
-.saito-menu > ul > li.redsquare-menu-mobile {
-	display: none;
+.saito-module.saito-game:hover {
+  transform: scale(1.02);
 }
 
-@media screen and (max-width: 1200px) {
-	.saito-sidebar.left .saito-menu > ul {
-		padding: 2.5px 0;
-	}
-
-	.saito-sidebar.left .saito-menu > ul > li{
-		padding: unset;
-		width: 5rem;
-		height: 5rem;
-		justify-content: center;
-		margin: auto;
-	}
-
-	.saito-sidebar.left .saito-menu > ul > li > i {
-		padding: unset;
-		margin: unset;
-		width: unset;
-	}
-
-	.saito-sidebar.left .saito-menu > ul > li > i + span {
-		display: none;
-	}
-
-	.redsquare-tweet-icon {
-		display: block;
-		font-size: 2.6rem;
-	}
-
-	.redsquare-menu .saito-button-primary{
-		min-width: unset;
-		height: 5.5rem;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.redsquare-menu .saito-button-primary i::before{
-		-webkit-text-stroke: var(--color-white) 2px;
-	}
-
-	.redsquare-menu .saito-button-primary span {
-		display: none;
-	}
-
-	.saito-sidebar.left .chat-manager {
-		display: none;
-	}
-
- 	.saito-menu > ul > li.redsquare-menu-mobile {
-		display: flex;
-	}
+.saito-module-titlebar {
+  background: rgba(0,0,0,0.6);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
+
+.saito-module-titlebar-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.saito-module-titlebar-details {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #ccc;
+}
+
+.saito-module-holder {
+  background-color: rgba(0,0,0,0.4);
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.saito-game-details.saito-game-identicons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.saito-identicon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #222;
+  flex-shrink: 0;
+  background-color: #000;
+}
+
+.saito-module-identicon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+@media (max-width: 768px) {
+  .invite-manager {
+    padding: 8px;
+  }
+
+  .saito-module-titlebar-title {
+    font-size: 14px;
+  }
+
+  .saito-module-holder {
+    padding: 8px;
+  }
+
+  .saito-identicon-box {
+    width: 28px;
+    height: 28px;
+  }
+}
+

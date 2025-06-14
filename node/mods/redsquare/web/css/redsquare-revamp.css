@@ -1,76 +1,10 @@
-/* redsquare-revamp.css */
 
-/* Base styles and dark theme */
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 15px;
-  line-height: 1.33;
-  color: #e1e8ed;
-  background-color: #15202b;
-}
-
-/* Container setup */
-#saito-container {
-  display: flex;
-  min-height: 100vh;
-  max-width: 1200px;
-  margin: 0 auto;
-  background-color: #15202b;
-}
-
-.saito-sidebar {
-  width: 250px;
-  padding: 16px;
-  color: #8899a6;
-}
-
-.saito-sidebar.left {
-  border-right: 1px solid #38444d;
-}
-
-.saito-sidebar.right {
-  border-left: 1px solid #38444d;
-}
-
-.saito-main {
-  flex: 1;
-  padding: 12px 24px;
-  overflow-y: auto;
-}
-
-/* Tweet container */
 .tweet-container {
+  position: relative;
   max-width: 600px;
   margin: 0 auto;
   padding: 0 12px;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 .tweet-image {
   margin-top: 8px;
@@ -79,6 +13,18 @@ html, body {
   max-width: 500px;
   display: block;
   object-fit: cover;
+}
+
+img:not([src]), 
+img[src=""], 
+img[src="about:blank"], 
+img[src]:not([complete]) {
+  display: none;
+  visibility: hidden;
+}
+
+.tweet-curation {
+  display: none;
 }
 
 .tweet-context {
@@ -128,6 +74,7 @@ html, body {
 -------------------- */
 
 .tweet {
+  position: relative;
   display: flex;
   padding: 12px 16px;
   border-bottom: 1px solid #2f3336;
@@ -135,7 +82,6 @@ html, body {
   color: #e7e9ea;
 }
 
-/* Avatar default */
 .tweet-avatar {
   width: 48px;
   height: 48px;
@@ -143,10 +89,12 @@ html, body {
   border-radius: 50%;
   background-color: #aaa;
   flex-shrink: 0;
+  z-index: 5;
 }
 
 /* Body */
 .tweet-body {
+  overflow: hidden
   flex: 1;
 }
 
@@ -223,51 +171,28 @@ html, body {
 }
 
 
-/* -------------------------------
-   TWEET REPLY: thread-reply
--------------------------------- */
-
 .tweet.thread-reply {
-  display: flex;
-  padding: 12px 16px 12px 24px;
-  border-left: 2px solid #2f3336;
-  margin-left: 20px;
+  position: relative;
 }
 
-.tweet.thread-reply .tweet-avatar {
-  width: 40px;
-  height: 40px;
-  margin-right: 10px;
-}
-
-.tweet.thread-reply .tweet-body {
-  flex: 1;
-}
-
-.tweet.thread-reply .tweet-header {
-  font-size: 14px;
-  color: #8b949e;
-}
-
-.tweet.thread-reply .tweet-text {
-  font-size: 15px;
-  line-height: 20px;
-}
-
-.tweet.thread-reply:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
+.tweet.thread-reply::before {
+  content: "";
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background-color: #888;
+  left: 36px;
+  top: -48px;            /* pulls the line upward */
+  height: 48px;          /* stretch line to connect to tweet above */
 }
 
 
-/* Responsive tweaks */
-@media (max-width: 700px) {
-  .saito-sidebar {
-    display: none;
-  }
-  #saito-container {
-    max-width: 100%;
-  }
+@media (max-width: 1199px) {
+
+
+}
+
+@media (max-width: 768px) {
   .tweet-container {
     max-width: 100%;
     padding: 0 8px;

@@ -1,25 +1,22 @@
 
 module.exports = (app, mod, tweet) => {
+
+	
 	let notice = tweet?.notice || '';
 	let text = tweet?.text || '';
+	    text = app.browser.markupMentions(text);
 
-	// replace @ key/identifer
-	text = app.browser.markupMentions(text);
-
-	let html_markers = '';
-
+	let curation_info = '';
 	if (tweet.sources.length){
-		// put the first... 
 		let source = tweet.sources[0];
 		if (source?.type) {
-			html_markers += ` data-source-type="${source.type}"`;
+			curation_info += ` data-source-type="${source.type}"`;
 		}
 		if (source?.node) {
-			html_markers += ` data-source-node="${source.node}"`;
+			curation_info += ` data-source-node="${source.node}"`;
 		}
 	}
-
-	html_markers += ` data-curated="${tweet.curated || 0}"`;	
+	curation_info += ` data-curated="${tweet.curated || 0}"`;	
 
 	if (!text && !notice && tweet.retweet_tx) {
 		notice =
@@ -60,18 +57,27 @@ module.exports = (app, mod, tweet) => {
 	`;
 
 	let html = `
-        <div class="tweet tweet-${tweet.tx.signature}" data-id="${
-	tweet.tx.signature
-}"${html_markers}>
-          <div class="tweet-html-markers">${html_markers.replace(/data-/g, "<br>")}</div>
-          <div class="tweet-notice">${notice}</div>
-          <div class="tweet-header"></div>
-          <div class="tweet-body">
-            <div class="tweet-sidebar">
-            </div>
-            <div class="tweet-main">
-              <div class="tweet-text">${app.browser.sanitize(text, true)}</div>`;
 
+	  <div class="tweet tweet-${tweet.tx.signature} data-id="${tweet.tx.signature}" ${curation_info}>
+            <div class="tweet-curation">${curation_info.replace(/data-/g, "<br>")}</div>
+            <div class="tweet-avatar"></div>
+            <div class="tweet-body">
+	      <div class="tweet-context">${notice}</div>
+              <div class="tweet-header">Lin <span>@lin_dev · 5h</span></div>
+              <div class="tweet-text">${app.browser.sanitize("The thing people forget about decentralization is that it's not just about censorship resistance. It's also about systemic robustness and designing systems that incentivize long-term cooperation among participants. When protocol-level economics break, users flee. What Saito is doing — shifting costs and incentives to the data layer — is a profound realignment of what it means to *build* something public. It's not about just running code. It's about structuring economic flows in a way that sustains the commons and punishes rent-seeking. We need more conversations like this in Web3, and fewer VC slides.", true)}</div>
+              <div class="tweet-footer">
+                <div>💬 9</div>
+                <div>🔁 12</div>
+                <div>❤️ 57</div>
+              </div>
+            </div>
+          </div>
+
+	`;
+
+	return html;
+
+/****
 	if (tweet.youtube_id != null && tweet.youtube_id != 'null') {
 		html += `<iframe class="youtube-embed" src="https://www.youtube.com/embed/${tweet.youtube_id}"></iframe>`;
 	} else {
@@ -86,6 +92,6 @@ module.exports = (app, mod, tweet) => {
           </div>
         </div>
   `;
+****/
 
-	return html;
 };

@@ -8,7 +8,7 @@ const JSON = require('json-bigint');
 const Transaction = require('../../../lib/saito/transaction').default;
 
 class Tweet {
-	constructor(app, mod, tx, container = '.tweet-manager') {
+	constructor(app, mod, tx, container = '.tweet-container') {
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
@@ -256,7 +256,7 @@ class Tweet {
 	//  This is helpful when pulling older tweets and then running through the whole list of tweets
 	//
 	isRendered() {
-		if (document.querySelector(`.tweet-manager > .tweet-${this.tx.signature}`)) {
+		if (document.querySelector(`.tweet-container > .tweet-${this.tx.signature}`)) {
 			return true;
 		}
 		return false;
@@ -302,15 +302,22 @@ class Tweet {
 	}
 
 	render(prepend = false) {
-		//
-		// Apply curation Here !!!!
-		//
-		/*if (this.mod.curated && this?.curated == -1) {
-			if (this.mod.debug){
-				console.info("RS.tweet -- curated (!) : ", this.text);
-			}
-			return -1;
-		}*/
+
+/****
+	  <div class="tweet">
+            <div class="tweet-avatar"></div>
+            <div class="tweet-body">
+              <div class="tweet-context">retweeted at ___</div>
+              <div class="tweet-header">Lin <span>@lin_dev · 5h</span></div>
+              <div class="tweet-text"></div>
+            </div>
+            <div class="tweet-footer">
+              <div>💬 9</div>
+              <div>🔁 12</div>
+              <div>❤️ 57</div>
+            </div>
+          </div>
+****/
 
 		for (let peer of this.mod.peers) {
 			if (this.tx.isFrom(peer.publicKey)) {
@@ -321,15 +328,16 @@ class Tweet {
 		//
 		// create link preview if link
 		//
+/***
 		if (this.link && !this.link_preview) {
 			this.link_preview = new Link(
 				this.app,
 				this.mod,
-				this.container + `> .tweet-${this.tx.signature} .tweet-body .tweet-main .tweet-preview`,
+				this.container + `> .tweet-${this.tx.signature} .tweet-body .tweet-text`,
 				this
 			);
 		}
-
+****/
 		//
 		// in the case of a quote-or-retweet the retweet might appear on the same page
 		// as the original tweet, so we check here and flag whether or not the element
@@ -370,8 +378,6 @@ class Tweet {
 		// then pass-through and render the sub-tweet directly.
 		//
 		if (this.retweet_tx && !this.text && !this.img_preview) {
-			// I think this code is deprecated...
-			console.warn('RedSquare code still active!!!');
 
 			this.retweet.notice =
 				'retweeted by ' +
@@ -379,7 +385,7 @@ class Tweet {
 				' ' +
 				this.formatDate(this.retweet_tx.timestamp);
 
-			this.retweet.container = '.tweet-manager';
+			this.retweet.container = '.tweet-container';
 			let t = this.mod.returnTweet(this.retweet.tx.signature);
 			if (t) {
 				t.notice = this.retweet.notice;
@@ -401,7 +407,7 @@ class Tweet {
 		//
 		// New way for retweets we don't put the new ones in the feed, just update the originals and sort them higher up
 		//
-		if (this.retweeters?.length > 0 && this.container == '.tweet-manager') {
+		if (this.retweeters?.length > 0 && this.container == '.tweet-container') {
 			this.notice = `retweeted by ${this.app.browser.returnAddressHTML(
 				this.retweeters[0]
 			)} ${this.formatDate(this.tx.optional?.retweeted_at)}`;
@@ -476,8 +482,8 @@ class Tweet {
 		// modify width of any iframe
 		//
 		if (this.youtube_id != null && this.youtube_id != 'null') {
-			let tbqs = myqs + ' .tweet-body .tweet-main';
-			let ytqs = myqs + ' .tweet-body .tweet-main .youtube-embed';
+			let tbqs = myqs + ' .tweet-body .tweet-text';
+			let ytqs = myqs + ' .tweet-body .tweet-text .youtube-embed';
 			if (document.querySelector(tbqs)) {
 				let x = document.querySelector(tbqs).getBoundingClientRect();
 				let y = document.querySelector(ytqs);
@@ -593,7 +599,7 @@ class Tweet {
 				//
 				if (this.tx.optional.num_replies == 0) {
 					let obj = document.querySelector(
-						`.tweet-${this.tx.signature} .tweet-body .tweet-main .tweet-controls .tweet-tool-comment .tweet-tool-comment-count`
+						`.tweet-${this.tx.signature} .tweet-footer.tweet-controls .tweet-tool-comment .tweet-tool-comment-count`
 					);
 					try {
 						obj.innerHTML++;
@@ -871,7 +877,7 @@ class Tweet {
 							app.connection.emit('redsquare-tweet-render-request', t);
 						} else {
 							console.warn('RS.tweet -- This is going to screw up the feed');
-							this.retweet.container = '.tweet-manager';
+							this.retweet.container = '.tweet-container';
 							app.connection.emit('redsquare-tweet-render-request', this.retweet);
 						}
 					}

@@ -3,12 +3,103 @@
 <head>
   <meta charset="UTF-8" />
   <title>RedSquare Feed</title>
+  <link rel="stylesheet" href="/redsquare/css/redsquare-sidebar.css" />
   <link rel="stylesheet" href="/redsquare/css/redsquare-revamp.css" />
+  <link rel="stylesheet" href="/saito/lib/font-awesome-6/css/all.css" type="text/css" media="screen">
+
+<!---  <link rel="stylesheet" href="/saito/css-imports/saito-menu.css" /> --->
+<!---  <link rel="stylesheet" href="/saito/saito.css" /> --->
 </head>
 <body>
   <div id="saito-container" class="saito-container">
     <div class="saito-sidebar left">
-      <!-- Navigation or user panel -->
+
+
+
+<div class="saito-sidebar left">
+      
+      <div class="saito-menu redsquare-menu">
+
+        <div id="new-tweet" class="saito-button-primary"><i class="redsquare-tweet-icon fa-solid fa-pen"></i><span>New Post</span></div>
+
+        <ul class="saito-menu-list saito-sidebar-element">
+          <li class="redsquare-menu-home redsquare-page-active">
+            <i class="fa-solid fa-house"></i>
+            <span>Home</span>
+
+          </li>
+          <li class="redsquare-menu-notifications">
+            <i class="fas fa-bell"></i>
+            <span>Notifications</span>
+          <div class="saito-notification-dot" style="display: none;"></div></li>
+          <li class="redsquare-menu-profile">
+            <i class="fas fa-user"></i>
+            <span>Profile</span>
+          </li><li class="redsquare-menu-settings">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+          </li>
+  <!---
+          <li class="redsquare-menu-contacts">
+            <i class="fas fa-user"></i>
+            <span>Contacts</span>
+          </li>
+  --->
+        <li class="redsquare-menu-mobile" id="redsquare-menu-chat">
+            <i class="fas fa-comments"></i>
+            <span>Chat</span>
+          <div class="saito-notification-dot">201</div></li></ul>
+
+      </div>
+  
+  
+  
+  
+  
+  
+  
+  <div class="chat-manager">
+    <div id="chat-manager-header" class="sidebar-header chat-manager-header">
+      <div class="chat-manager-title sidebar-title" title="Recent Chats and Secure Contacts">Chats</div>
+      <div class="close-chat-manager">
+        <img class="saito-header-logo" alt="Logo" src="/saito/img/logo.svg">
+        <i class="fa-solid fa-arrow-left"></i>
+      </div>
+      <div class="chat-manager-options"><i class="fa-solid fa-ellipsis"></i></div>
+      <div class="alternate-close-button"><i class="fa-solid fa-xmark"></i></div>
+    </div>
+    <div class="chat-manager-list hide-scrollbar saito-sidebar-element">
+    
+  <div class="saito-user" id="saito-user-f279ac91aeb304ace41f03a2c7c666d2f86348cf6960cf54bcb233500f1a817e" data-id="f279ac91aeb304ace41f03a2c7c666d2f86348cf6960cf54bcb233500f1a817e" data-disable="true">
+    <div class="saito-identicon-box">
+      <img class="saito-identicon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MjAnIGhlaWdodD0nNDIwJyBzdHlsZT0nYmFja2dyb3VuZC1jb2xvcjpyZ2JhKDI0MCwyNDAsMjQwLDEpOyc+PGcgc3R5bGU9J2ZpbGw6cmdiYSgxMzYsNDEsMTYzLDEpOyBzdHJva2U6cmdiYSgxMzYsNDEsMTYzLDEpOyBzdHJva2Utd2lkdGg6Mi4xOyc+PHJlY3QgIHg9JzE2OCcgeT0nODQnIHdpZHRoPSc4NCcgaGVpZ2h0PSc4NCcvPjxyZWN0ICB4PScxNjgnIHk9JzMzNicgd2lkdGg9Jzg0JyBoZWlnaHQ9Jzg0Jy8+PHJlY3QgIHg9Jzg0JyB5PScwJyB3aWR0aD0nODQnIGhlaWdodD0nODQnLz48cmVjdCAgeD0nMjUyJyB5PScwJyB3aWR0aD0nODQnIGhlaWdodD0nODQnLz48cmVjdCAgeD0nODQnIHk9JzMzNicgd2lkdGg9Jzg0JyBoZWlnaHQ9Jzg0Jy8+PHJlY3QgIHg9JzI1MicgeT0nMzM2JyB3aWR0aD0nODQnIGhlaWdodD0nODQnLz48cmVjdCAgeD0nMCcgeT0nMzM2JyB3aWR0aD0nODQnIGhlaWdodD0nODQnLz48cmVjdCAgeD0nMzM2JyB5PSczMzYnIHdpZHRoPSc4NCcgaGVpZ2h0PSc4NCcvPjwvZz48L3N2Zz4=" data-disable="true">
+    </div>
+    <div class="saito-address saito-address-long treated">
+    	<div class="saito-address treated" data-id="vCuSda3L8SWG6qa3veSocHtm8ntr1EV144LopukVMW9p" data-disable="true">Anon-vCuSda</div>
+    	
+    </div>
+    <div class="saito-userline">alright then</div>
+    <div class="saito-chat-notifications"></div>
+    <div class="online-status-indicator"><i class="fa-solid fa-bolt-lightning"></i></div>
+  </div>
+  <div class="saito-user" id="saito-user-9560f203d34fda3e2b959177cbe192011aba04b395991dfc37a1bd25f51bea48" data-id="9560f203d34fda3e2b959177cbe192011aba04b395991dfc37a1bd25f51bea48" data-disable="true">
+    <div class="saito-identicon-box">
+      <img class="saito-identicon" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc0MjAnIGhlaWdodD0nNDIwJyBzdHlsZT0nYmFja2dyb3VuZC1jb2xvcjpyZ2JhKDI0MCwyNDAsMjQwLDEpOyc+PGcgc3R5bGU9J2ZpbGw6cmdiYSgxNjMsNjcsNDEsMSk7IHN0cm9rZTpyZ2JhKDE2Myw2Nyw0MSwxKTsgc3Ryb2tlLXdpZHRoOjIuMTsnPjxyZWN0ICB4PScxNjgnIHk9Jzg0JyB3aWR0aD0nODQnIGhlaWdodD0nODQnLz48cmVjdCAgeD0nMTY4JyB5PScyNTInIHdpZHRoPSc4NCcgaGVpZ2h0PSc4NCcvPjxyZWN0ICB4PScxNjgnIHk9JzMzNicgd2lkdGg9Jzg0JyBoZWlnaHQ9Jzg0Jy8+PHJlY3QgIHg9Jzg0JyB5PSc4NCcgd2lkdGg9Jzg0JyBoZWlnaHQ9Jzg0Jy8+PHJlY3QgIHg9JzI1MicgeT0nODQnIHdpZHRoPSc4NCcgaGVpZ2h0PSc4NCcvPjxyZWN0ICB4PSc4NCcgeT0nMzM2JyB3aWR0aD0nODQnIGhlaWdodD0nODQnLz48cmVjdCAgeD0nMjUyJyB5PSczMzYnIHdpZHRoPSc4NCcgaGVpZ2h0PSc4NCcvPjxyZWN0ICB4PScwJyB5PSc4NCcgd2lkdGg9Jzg0JyBoZWlnaHQ9Jzg0Jy8+PHJlY3QgIHg9JzMzNicgeT0nODQnIHdpZHRoPSc4NCcgaGVpZ2h0PSc4NCcvPjxyZWN0ICB4PScwJyB5PScxNjgnIHdpZHRoPSc4NCcgaGVpZ2h0PSc4NCcvPjxyZWN0ICB4PSczMzYnIHk9JzE2OCcgd2lkdGg9Jzg0JyBoZWlnaHQ9Jzg0Jy8+PHJlY3QgIHg9JzAnIHk9JzI1Micgd2lkdGg9Jzg0JyBoZWlnaHQ9Jzg0Jy8+PHJlY3QgIHg9JzMzNicgeT0nMjUyJyB3aWR0aD0nODQnIGhlaWdodD0nODQnLz48cmVjdCAgeD0nMCcgeT0nMzM2JyB3aWR0aD0nODQnIGhlaWdodD0nODQnLz48cmVjdCAgeD0nMzM2JyB5PSczMzYnIHdpZHRoPSc4NCcgaGVpZ2h0PSc4NCcvPjwvZz48L3N2Zz4=" data-disable="true">
+    </div>
+    <div class="saito-address saito-address-long treated">
+    	<div class="saito-address treated" data-id="Saito Community Chat" data-disable="true">Saito Community Chat</div>
+    	
+    </div>
+    <div class="saito-userline">brb</div>
+    <div class="saito-chat-notifications"><div class="saito-notification-dot">201</div></div>
+    <div class="online-status-indicator"><i class="fa-solid fa-bolt-lightning"></i></div>
+  </div></div>
+  </div></div>
+
+
+
+
+
     </div>
 
     <div class="saito-main">
