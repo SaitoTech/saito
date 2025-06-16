@@ -382,7 +382,9 @@ const PostModal = ({ onClose, onSubmit, post }) => {
         .filter((tag) => tag);
 
       await onSubmit({ title, content, image: base64Image, tags: tagsArray, imageUrl });
-      // onClose();
+      {
+        onClose();
+      }
     } catch (error) {
       console.error('Error submitting post:', error);
     } finally {
@@ -391,7 +393,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
   };
 
   return (
-    <div className="layout modal-layout">
+    <div className="saito-blog-layout modal-layout">
       <div className="left-column">
         {/* <div className="filter-container">
           <label className="filter-label">Tags</label>

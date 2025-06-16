@@ -2679,31 +2679,6 @@ class Browser {
       cleanup
     };
   }
-
-  /**
-   * Renders a React component into an existing container element
-   * @param Component The React component to render
-   * @param props Props to pass to the component
-   * @param container The existing container element to render into
-   * @returns Object containing the root instance and cleanup function
-   */
-  renderReactToExistingContainer(
-    Component: React.ComponentType<any>,
-    props: Record<string, any> = {},
-    container: HTMLElement
-  ) {
-    const root = createRoot(container);
-    root.render(React.createElement(Component, props));
-
-    const cleanup = () => {
-      root.unmount();
-    };
-
-    return {
-      root,
-      cleanup
-    };
-  }
 }
 
 export default Browser;

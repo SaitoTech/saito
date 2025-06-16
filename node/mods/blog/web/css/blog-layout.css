@@ -80,7 +80,7 @@ body {
   padding-top: 3.5rem; /* to align with blog list */
   box-shadow: 1px 0 2px rgba(0, 0, 0, 0.05);
   position: sticky;
-  height: calc(100vh - var(--saito-header-height));
+  height: 100%;
 }
 
 .blog-view .left-column {
@@ -125,12 +125,13 @@ body {
   flex: 1;
   padding: 24px;
   max-width: 768px;
+  height: 100%;
   width: 100%;
   -ms-overflow-style: none;
   /* IE and Edge */
   scrollbar-width: none;
   /* Firefox */
-  overflow-y: visible;
+  overflow-y: scroll;
 }
 
 .blog-view .center-column {

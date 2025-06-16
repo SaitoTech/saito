@@ -16,7 +16,6 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [posts, setPosts] = useState([]);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [showScrollTop, setShowScrollTop] = useState(false);
   const latestPostRef = useRef(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -135,11 +134,6 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
     }
   };
 
-  const handleScroll = async () => {
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  };
-
   const filteredPosts = posts.filter((post) => {
     switch (selectedUser.publicKey) {
       case 'all':
@@ -252,9 +246,6 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
 
   const handleDeleteBlogPost = (sig) => {
     mod.deleteBlogPost(sig, () => {
-      if (document.querySelector('.saito-back-button')) {
-        document.querySelector('.saito-back-button').remove();
-      }
       handleBackClick();
     });
   };
@@ -290,18 +281,35 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
   }, [hasMore, isLoadingMore]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 300);
+    const scrollableElement = document.querySelector('.center-column');
+
+    if (!scrollableElement) {
+      return;
+    }
+
+    const handleScroll = (e) => {
+      if (document.querySelector('.scroll-button')) {
+        if (scrollableElement.scrollTop > 20) {
+          document.querySelector('.scroll-button').style.display = 'flex';
+        } else {
+          document.querySelector('.scroll-button').style.display = 'none';
+        }
+      }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    scrollableElement.addEventListener('scroll', handleScroll);
+    return () => scrollableElement.removeEventListener('scroll', handleScroll);
   }, []);
 
   const scrollToTop = () => {
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
+    const scrollableElement = document.querySelector('.center-column');
+
+    if (!scrollableElement) {
+      return;
+    }
+    scrollableElement.scroll({ top: 0, left: 0, behavior: 'smooth' });
   };
+
   const refreshPosts = () => {
     loadPosts(false);
   };
@@ -320,9 +328,6 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
           () => {
             setShowPostModal(false);
             refreshPosts();
-            if (document.querySelector('.saito-back-button')) {
-              document.querySelector('.saito-back-button').remove();
-            }
             handleBackClick();
           }
         );
@@ -341,9 +346,6 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
             siteMessage('blog post received');
             setShowPostModal(false);
             refreshPosts();
-            if (document.querySelector('.saito-back-button')) {
-              document.querySelector('.saito-back-button').remove();
-            }
           }
         );
       }
@@ -358,6 +360,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
   const handleCloseModal = () => {
     setShowPostModal(false);
     setEditingPost(null);
+    app.connection.emit('saito-header-reset-logo');
   };
 
   const handleEditClick = (post) => {
@@ -370,10 +373,8 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
     setShowPostModal(false);
     setEditingPost(null);
     setSelectedPost(null);
-    const url = new URL(window.location);
-    url.searchParams.delete('public_key');
-    url.searchParams.delete('tx_id');
-    window.history.pushState({}, '', url);
+    window.history.back();
+    app.connection.emit('saito-header-reset-logo');
     setTimeout(() => {
       refreshPosts();
     }, 1000);
@@ -412,16 +413,16 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
 
       <div className="center-column">
         {!showPostModal && (
-          <div id="saito-floating-menu" class="saito-floating-container">
+          <div id="saito-floating-menu" className="saito-floating-container">
             <div
               onClick={() => {
                 setShowPostModal(true);
                 app.connection.emit('saito-header-replace-logo', handleCloseModal);
               }}
-              class="saito-floating-plus-btn"
+              className="saito-floating-plus-btn"
               id="saito-floating-plus-btn"
             >
-              <i class="fa-solid fa-plus"></i>
+              <i className="fa-solid fa-plus"></i>
             </div>
           </div>
         )}
@@ -487,7 +488,6 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
             </div>
           </>
         )}
-        {/* {showScrollTop && ( */}
         <div
           onClick={() => {
             scrollToTop();
@@ -496,8 +496,8 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
         >
           <ArrowUp size={30} />
         </div>
-        {/* )} */}
       </div>
+
       {showPostModal && editingPost && (
         <PostModal
           post={editingPost}
