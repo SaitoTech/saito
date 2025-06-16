@@ -15,7 +15,6 @@ class Blog extends ModTemplate {
     this.slug = 'blog';
     this.description = 'Blog Module';
     this.cache = {};
-    this.txs = [];
     this.peer = null;
 
     this.social = {
@@ -62,12 +61,14 @@ class Blog extends ModTemplate {
       const postId = urlParams.get('tx_id');
       const author = urlParams.get('public_key');
 
-      if (postId && author) {
+      if (postId) {
         // Load specific post
-        await this.loadSinglePost(postId, author);
-      } else {
+        await this.loadSinglePost(postId);
+      } else if (author) {
         // Load post by author
-        this.loadPosts(this.publicKey);
+        this.loadPosts(author);
+      }else{
+        this.loadPosts();
       }
     }
   }
@@ -422,7 +423,7 @@ class Blog extends ModTemplate {
     );
   }
 
-  async loadSinglePost(postId, author) {
+  async loadSinglePost(postId) {
     if (!this.peer) {
       siteMessage('Warning: no peers available...');
       this.loadPosts();

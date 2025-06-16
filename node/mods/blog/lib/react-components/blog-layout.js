@@ -338,6 +338,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
             timestamp: Date.now()
           },
           () => {
+            siteMessage('blog post received');
             setShowPostModal(false);
             refreshPosts();
             if (document.querySelector('.saito-back-button')) {
@@ -379,22 +380,8 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
   };
 
   return (
-    <div
-      className="layout"
-      style={{
-        display: 'flex',
-        justifyContent: selectedPost ? 'center' : 'flex-start',
-        position: 'relative'
-      }}
-    >
-      <div
-        className="left-column"
-        style={{
-          display: selectedPost ? 'none' : 'block',
-          position: selectedPost ? 'absolute' : 'relative',
-          left: 0
-        }}
-      >
+    <div className={`saito-blog-layout ${selectedPost ? 'blog-view' : ''}`}>
+      <div className="left-column">
         <div className="new-post-container">
           <button
             onClick={() => {
@@ -423,13 +410,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
         </div>
       </div>
 
-      <div
-        className="center-column"
-        style={{
-          maxWidth: selectedPost ? '900px' : '100%',
-          margin: selectedPost ? '0 auto' : undefined
-        }}
-      >
+      <div className="center-column">
         {!showPostModal && (
           <div id="saito-floating-menu" class="saito-floating-container">
             <div
@@ -490,9 +471,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
               )}
 
               {!hasMore && filteredPosts.length > 0 && (
-                <div style={{ textAlign: 'center' }} className="end-message">
-                  No more posts to load
-                </div>
+                <div className="end-message">No more posts to load</div>
               )}
               {filteredPosts.length === 0 && !isLoadingMore && (
                 <NoPostsAvailable

@@ -5404,7 +5404,7 @@ var Picker = function () {
       var _this2 = this;
 
       var item = document.createElement('span');
-      item.tabIndex = '0';
+      //item.tabIndex = '0';
       item.setAttribute('role', 'button');
 
       item.classList.add('ql-picker-item');
@@ -5442,7 +5442,7 @@ var Picker = function () {
       var label = document.createElement('span');
       label.classList.add('ql-picker-label');
       label.innerHTML = _dropdown2.default;
-      label.tabIndex = '0';
+      //label.tabIndex = '0';
       label.setAttribute('role', 'button');
       label.setAttribute('aria-expanded', 'false');
       this.container.appendChild(label);
@@ -9454,6 +9454,7 @@ Toolbar.DEFAULTS = {};
 function addButton(container, format, value) {
   var input = document.createElement('button');
   input.setAttribute('type', 'button');
+  input.setAttribute('tabindex', -1);
   input.classList.add('ql-' + format);
   if (value != null) {
     input.value = value;
@@ -9488,6 +9489,7 @@ function addControls(container, groups) {
 function addSelect(container, format, values) {
   var input = document.createElement('select');
   input.classList.add('ql-' + format);
+  input.setAttribute('tabindex', '-1');
   values.forEach(function (value) {
     var option = document.createElement('option');
     if (value !== false) {
