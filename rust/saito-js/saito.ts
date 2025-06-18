@@ -339,14 +339,9 @@ export default class Saito {
         return tx;
     }
 
-    public async createBoundTransaction<T extends Transaction>(
-        amt: bigint,   
-        bid: number,           
-        tid: number,           
-        sid: number,           
-        num: number,           
-        deposit: bigint,
-        change: bigint,        
+    public async createBoundTransaction<T extends Transaction>(         
+        num: bigint,           
+        deposit: bigint,        
         data: string = "",
         fee: bigint,
         recipient_public_key: string,     
@@ -354,20 +349,13 @@ export default class Saito {
     ): Promise<T> {
 
         let wasmTx = await Saito.getLibInstance().create_bound_transaction(
-            amt,
-            bid,
-            tid,
-            sid,
             num,
             deposit,
-            change,
             data,
             fee,
             recipient_public_key,
             nft_type
         );
-
-        console.log("saito.ts tx: ", wasmTx);
 
         let tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
         tx.timestamp = new Date().getTime();
@@ -391,11 +379,44 @@ export default class Saito {
           data,
           recipientPublicKey
         );
-        console.log("WASM NFT transfer transaction:", wasmTx);
 
         const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
         tx.timestamp = Date.now();
         return tx;
+    }
+
+    public async createSplitBoundTransaction<T extends Transaction>(
+      slip1UtxoKey: string,
+      slip2UtxoKey: string,
+      slip3UtxoKey: string,
+      leftCount: number,
+      rightCount: number
+    ): Promise<T> {
+      const wasmTx = await Saito.getLibInstance().create_split_bound_transaction(
+        slip1UtxoKey,
+        slip2UtxoKey,
+        slip3UtxoKey,
+        leftCount,
+        rightCount
+      );
+
+      const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
+      tx.timestamp = Date.now();
+
+      return tx;
+    }
+
+    public async createMergeBoundTransaction<T extends Transaction>(
+      nftId: string
+    ): Promise<T> {
+      const wasmTx = await Saito.getLibInstance().create_merge_bound_transaction(
+        nftId
+      );
+
+      const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
+      tx.timestamp = Date.now();
+
+      return tx;
     }
 
 
