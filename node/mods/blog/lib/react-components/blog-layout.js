@@ -168,6 +168,8 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
     // setHasMore(true);
     // setPosts([]);
 
+    console.log('BLOG [loadPosts] selectedUser: ', selectedUser);
+
     switch (selectedUser.publicKey) {
       case 'all':
         if (useCache) {
@@ -250,10 +252,28 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
     });
   };
 
+  //
+  // Render post listing... ?
+  //
   useEffect(() => {
     loadPosts(false);
   }, [selectedUser, publicKey]);
 
+  useEffect(() => {
+    let keylist = [];
+    filteredPosts.forEach((p) => {
+      if (!keylist.includes(p.publicKey)) {
+        keylist.push(p.publicKey);
+      }
+    });
+    for (let k of keylist) {
+      app.connection.emit('profile-fetch-content-and-update-dom', k);
+    }
+  }, [posts]);
+
+  //
+  // Set up Intersection Observer
+  //
   useEffect(() => {
     const currentLoaderRef = loaderRef.current;
     if (!hasMore || isLoadingMore) return;
@@ -280,6 +300,9 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
     };
   }, [hasMore, isLoadingMore]);
 
+  //
+  // Add scroll listener
+  //
   useEffect(() => {
     const scrollableElement = document.querySelector('.center-column');
 
@@ -299,7 +322,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
 
     scrollableElement.addEventListener('scroll', handleScroll);
     return () => scrollableElement.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, []); // Only run on mount
 
   const scrollToTop = () => {
     const scrollableElement = document.querySelector('.center-column');
@@ -416,6 +439,14 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
           <div id="saito-floating-menu" className="saito-floating-container">
             <div
               onClick={() => {
+                scrollToTop();
+              }}
+              className="scroll-button"
+            >
+              <ArrowUp size={30} />
+            </div>
+            <div
+              onClick={() => {
                 setShowPostModal(true);
                 app.connection.emit('saito-header-replace-logo', handleCloseModal);
               }}
@@ -472,7 +503,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
               )}
 
               {!hasMore && filteredPosts.length > 0 && (
-                <div className="end-message">No more posts to load</div>
+                <div className="end-message">All available posts loaded</div>
               )}
               {filteredPosts.length === 0 && !isLoadingMore && (
                 <NoPostsAvailable
@@ -488,14 +519,6 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
             </div>
           </>
         )}
-        <div
-          onClick={() => {
-            scrollToTop();
-          }}
-          className="scroll-button"
-        >
-          <ArrowUp size={30} />
-        </div>
       </div>
 
       {showPostModal && editingPost && (

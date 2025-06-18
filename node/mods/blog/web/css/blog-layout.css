@@ -13,10 +13,8 @@ body {
   display: initial;
 } */
 
-.scroll-button {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
+.scroll-button,
+.saito-floating-plus-btn {
   background-color: var(--saito-primary);
   width: 6rem;
   height: 6rem;
@@ -28,6 +26,11 @@ body {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   transition: background-color 0.3s;
+}
+
+.saito-floating-container {
+  gap: 1rem;
+  display: flex;
 }
 
 .saito-user {
@@ -394,6 +397,10 @@ body {
     flex-direction: column;
     height: auto;
     gap: 1rem;
+  }
+
+  .saito-floating-plus-btn {
+    display: flex;
   }
 }
 

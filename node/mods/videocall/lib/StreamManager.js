@@ -371,6 +371,7 @@ class StreamManager {
         }
         await this.getLocalMedia();
         this.localStream.getTracks().forEach((track) => {
+          // Fails here on reconnection in 3-way call <<<<<<<<<<
           peerConnection.senders.push(peerConnection.addTrack(track, this.localStream));
         });
 

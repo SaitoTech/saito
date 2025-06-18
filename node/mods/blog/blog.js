@@ -1,6 +1,7 @@
 const { default: Transaction } = require('saito-js/lib/transaction');
-const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const ModTemplate = require('../../lib/templates/modtemplate');
+const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
+const SaitoProfile = require('./../../lib/saito/ui/saito-profile/saito-profile');
 const pageHome = require('./index');
 const React = require('react');
 const { default: BlogPost } = require('./lib/react-components/blog-post');
@@ -46,6 +47,8 @@ class Blog extends ModTemplate {
     await this.header.initialize(this.app);
     this.addComponent(this.header);
     await super.render(this.app, this);
+    // We don't render this, but want to add the hooks to get fallback blog image
+    this.profile = new SaitoProfile(this.app, this);
   }
 
   async onPeerServiceUp(app, peer, service = {}) {
@@ -67,7 +70,7 @@ class Blog extends ModTemplate {
       } else if (author) {
         // Load post by author
         this.loadPosts(author);
-      }else{
+      } else {
         this.loadPosts();
       }
     }
