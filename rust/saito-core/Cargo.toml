@@ -62,6 +62,8 @@ harness = false
 [profile.release]
 debug = true
 lto = true
+strip = true
+opt-level = "z"
 
 [[bin]]
 name = "blockr"
