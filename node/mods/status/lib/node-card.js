@@ -113,7 +113,7 @@ class NodeCard {
     };
 
     if (Object.keys(this.props.options).length > 0) {
-      summary.nodeType      = (this.props.options.browser_mode === true) ? 'lite' : 'full';
+      summary.nodeType      = nodeType;
       summary.blockHeight   = this.props.options.blockchain.last_block_id;
       summary.walletVersion = this.props.options.wallet.version;
       summary.coreVersion =  '—';
@@ -208,10 +208,10 @@ class NodeCard {
     let url = '';
    const el = document.createElement('div');
 
+    let block_fetch_url = peer.block_fetch_url;
+
     if (
-      !peer.static_peer_config ||
-      !peer.static_peer_config.protocol ||
-      !peer.static_peer_config.host
+      block_fetch_url == ""
     ) {
       url = `
         <div class="peer-link-info">
