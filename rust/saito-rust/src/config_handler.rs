@@ -23,6 +23,10 @@ pub struct NodeConfigurations {
     #[serde(default = "get_default_consensus")]
     consensus: Option<ConsensusConfig>,
     blockchain: BlockchainConfig,
+<<<<<<< HEAD
+=======
+    congestion: Option<CongestionStatsDisplay>,
+>>>>>>> origin/develop
 }
 
 impl NodeConfigurations {
@@ -78,6 +82,10 @@ impl Default for NodeConfigurations {
                 initial_loading_completed: false,
                 issuance_writing_block_interval: get_default_issuance_writing_block_interval(),
             },
+<<<<<<< HEAD
+=======
+            congestion: None,
+>>>>>>> origin/develop
         }
     }
 }
@@ -118,11 +126,24 @@ impl Configuration for NodeConfigurations {
         self.spv_mode = Some(config.is_spv_mode());
         self.lite = config.is_spv_mode();
         self.consensus = config.get_consensus_config().cloned();
+        self.congestion = config.get_congestion_data().cloned();
+        self.blockchain = config.get_blockchain_configs().clone();
     }
 
     fn get_consensus_config(&self) -> Option<&ConsensusConfig> {
         self.consensus.as_ref()
     }
+<<<<<<< HEAD
+=======
+
+    fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay> {
+        self.congestion.as_ref()
+    }
+
+    fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>) {
+        self.congestion = congestion_data;
+    }
+>>>>>>> origin/develop
 }
 
 pub struct ConfigHandler {}

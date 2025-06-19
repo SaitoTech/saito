@@ -486,6 +486,7 @@ mod tests {
             total_fees: tx.total_fees,
             total_work_for_me: tx.total_work_for_me,
             cumulative_fees: tx.cumulative_fees,
+            routed_from_peer: tx.routed_from_peer.clone(),
         }
     }
     fn combine_transactions_into_spv(mut tx1: Transaction, tx2: Transaction) -> Transaction {

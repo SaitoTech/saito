@@ -2459,6 +2459,7 @@ impl Block {
                         total_fees: 0,
                         total_work_for_me: 0,
                         cumulative_fees: 0,
+                        routed_from_peer: tx.routed_from_peer.clone(),
                     }
                 }
             })

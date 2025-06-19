@@ -334,6 +334,7 @@ async fn run_routing_event_processor(
         last_verification_thread_index: 0,
         stat_sender: sender_to_stat.clone(),
         blockchain_sync_state: BlockchainSyncState::new(fetch_batch_size),
+        congestion_check_timer: 0,
     };
 
     let (interface_sender_to_routing, interface_receiver_for_routing) =
