@@ -233,11 +233,8 @@ impl Network {
     ) {
         let mut peers = self.peer_lock.write().await;
         let public_key;
-<<<<<<< HEAD
-=======
         let current_time = self.timer.get_timestamp_in_ms();
 
->>>>>>> origin/develop
         {
             let peer = peers.index_to_peers.get_mut(&peer_index);
             if peer.is_none() {
@@ -332,11 +329,7 @@ impl Network {
         let current_time = self.timer.get_timestamp_in_ms();
         // Lock peers to write
         let mut peers = self.peer_lock.write().await;
-<<<<<<< HEAD
-        let peer = peers.index_to_peers.get_mut(&peer_index);
-=======
         peers.add_congestion_event(peer_index, CongestionType::ReceivedKeyLists, current_time);
->>>>>>> origin/develop
 
         if let Some(peer) = peer {
             // Check rate peers

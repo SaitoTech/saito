@@ -1921,17 +1921,11 @@ impl Blockchain {
                     AddBlockResult::FailedNotValid => {
                         if let Some(peer_index) = peer_index {
                             let mut peers = network.unwrap().peer_lock.write().await;
-<<<<<<< HEAD
-                            if let Some(peer) = peers.find_peer_by_index_mut(peer_index) {
-                                peer.invalid_block_limiter.increase();
-                            }
-=======
                             peers.add_congestion_event(
                                 peer_index,
                                 CongestionType::ReceivedInvalidBlocks,
                                 network.unwrap().timer.get_timestamp_in_ms(),
                             );
->>>>>>> origin/develop
                         }
                     }
                 }
