@@ -17,6 +17,7 @@ class Blog extends ModTemplate {
     this.description = 'Blog Module';
     this.cache = {};
     this.peer = null;
+    this.icon_fa = 'fa-solid fa-book-open-reader';
 
     this.social = {
       twitter: '@SaitoOfficial',
@@ -49,6 +50,23 @@ class Blog extends ModTemplate {
     await super.render(this.app, this);
     // We don't render this, but want to add the hooks to get fallback blog image
     this.profile = new SaitoProfile(this.app, this);
+  }
+
+  respondTo(type = '', obj) {
+    if (type === 'saito-header') {
+      let x = [];
+      if (!this.browser_active) {
+        x.push({
+          text: 'Blog',
+          icon: this.icon_fa,
+          rank: 105,
+          callback: function (app, id) {
+            navigateWindow('/blog');
+          }
+        });
+      }
+      return x;
+    }
   }
 
   async onPeerServiceUp(app, peer, service = {}) {

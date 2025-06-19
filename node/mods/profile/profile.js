@@ -95,6 +95,9 @@ class Profile extends ModTemplate {
 		let txmsg = tx.returnMessage();
 		if (conf == 0) {
 			if (txmsg.request === 'update profile') {
+				if (this.app.BROWSER) {
+					console.debug('Profile onConfirmation');
+				}
 				await this.receiveProfileTransaction(tx);
 			}
 		}
