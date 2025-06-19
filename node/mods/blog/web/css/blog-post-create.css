@@ -61,12 +61,13 @@
 }
 
 .ql-container.ql-snow {
-  border: 1px solid var(--saito-border-color);
-  border-radius: var(--saito-border-radius);
+  border: 1px solid var(--saito-border-color) !important;
+  border-radius: 0 0 var(--saito-border-radius) var(--saito-border-radius);
+  border-top: 0px !important;
 }
 .ql-toolbar.ql-snow {
-  border: 1px solid var(--saito-border-color);
-  border-radius: var(--saito-border-radius);
+  border: 1px solid var(--saito-border-color) !important;
+  border-radius: var(--saito-border-radius) var(--saito-border-radius) 0 0;
 }
 
 .ql-snow .ql-stroke {
@@ -97,6 +98,7 @@
   border: 1px solid var(--border-color-post-input);
   border-radius: 6px;
   background: var(--saito-background-color);
+  width: 100%;
 }
 
 .form-group input:focus,

@@ -445,7 +445,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
           <input
             type="text"
             name="imageUrl"
-            placeholder="paste image URL"
+            placeholder="image URL"
             value={formData.imageUrl}
             onChange={(e) => {
               handleChange(e);
@@ -517,7 +517,7 @@ const PostModal = ({ onClose, onSubmit, post }) => {
             />
           </div>
 
-          <div className="form-group">
+          <div>
             <div ref={editorRef} className="editor-content" />
             {editorMode !== 'rich' && !showPreview && (
               <textarea
