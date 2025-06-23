@@ -1,5 +1,4 @@
 use crate::core::consensus::peers::peer_service::PeerService;
-use crate::core::consensus::peers::rate_limiter::RateLimiter;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
     PeerIndex, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp, WS_KEEP_ALIVE_PERIOD,
@@ -13,12 +12,9 @@ use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, sign, verify};
 use log::{debug, info, trace, warn};
 use serde::{Serialize, Serializer};
-use serde_with::serde_as;
 use std::cmp::Ordering;
-use std::fmt::Display;
 use std::io::{Error, ErrorKind};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::RwLock;
 
 #[derive(Clone, Debug, Serialize)]
@@ -93,11 +89,6 @@ pub struct Peer {
     pub wallet_version: Version,
     pub core_version: Version,
     // NOTE: we are currently mapping 1 peer = 1 socket = 1 public key. But in the future we need to support multiple peers per public key
-    // so some of these limiters might have to be handled from a different place than the peer. (Eg : Account struct?)
-    pub key_list_limiter: RateLimiter,
-    pub handshake_limiter: RateLimiter,
-    pub message_limiter: RateLimiter,
-    pub invalid_block_limiter: RateLimiter,
     #[serde(serialize_with = "option_as_base58")]
     pub public_key: Option<SaitoPublicKey>,
     pub peer_type: PeerType,
@@ -120,10 +111,6 @@ impl Peer {
             disconnected_at: Timestamp::MAX,
             wallet_version: Default::default(),
             core_version: Default::default(),
-            key_list_limiter: RateLimiter::builder(100, Duration::from_secs(60)),
-            handshake_limiter: RateLimiter::builder(100, Duration::from_secs(60)),
-            message_limiter: RateLimiter::builder(100_000, Duration::from_secs(1)),
-            invalid_block_limiter: RateLimiter::builder(10, Duration::from_secs(3600)),
             public_key: None,
             peer_type: PeerType::Default,
             ip_address: None,
@@ -501,10 +488,10 @@ impl Peer {
             peer.index, self.index
         );
 
-        self.message_limiter = peer.message_limiter;
-        self.handshake_limiter = peer.handshake_limiter;
-        self.key_list_limiter = peer.key_list_limiter;
-        self.disconnected_at = Timestamp::MAX;
+        // self.message_limiter = peer.message_limiter;
+        // self.handshake_limiter = peer.handshake_limiter;
+        // self.key_list_limiter = peer.key_list_limiter;
+        // self.disconnected_at = Timestamp::MAX;
 
         self.static_peer_config = peer.static_peer_config;
     }

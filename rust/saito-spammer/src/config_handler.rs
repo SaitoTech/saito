@@ -2,6 +2,7 @@ use std::io::{Error, ErrorKind};
 
 use figment::providers::{Format, Json};
 use figment::Figment;
+use saito_core::core::consensus::peers::congestion_controller::CongestionStatsDisplay;
 use serde::Deserialize;
 
 use log::{debug, error};
@@ -131,6 +132,12 @@ impl Configuration for SpammerConfigs {
     fn get_consensus_config(&self) -> Option<&ConsensusConfig> {
         self.consensus.as_ref()
     }
+
+    fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay> {
+        None
+    }
+
+    fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>) {}
 }
 
 pub struct ConfigHandler {}

@@ -23,6 +23,7 @@ use saito_core::core::consensus::blockchain::Blockchain;
 use saito_core::core::consensus::blockchain_sync_state::BlockchainSyncState;
 use saito_core::core::consensus::context::Context;
 use saito_core::core::consensus::mempool::Mempool;
+use saito_core::core::consensus::peers::congestion_controller::CongestionStatsDisplay;
 use saito_core::core::consensus::peers::peer_collection::PeerCollection;
 use saito_core::core::consensus::transaction::{Transaction, TransactionType};
 use saito_core::core::consensus::wallet::{DetailedNFT, Wallet};
@@ -223,6 +224,7 @@ pub fn new(
                 sender_to_stat.clone(),
             ),
             stat_sender: sender_to_stat.clone(),
+            timer: timer.clone(),
         },
         stat_thread: StatThread {
             stat_queue: Default::default(),
@@ -345,7 +347,7 @@ pub fn log(record: &Record) {
 
 #[wasm_bindgen]
 pub async fn initialize(
-    json: JsString,
+    config_json: JsString,
     private_key: JsString,
     log_level_num: u8,
     hasten_multiplier: u64,
@@ -380,7 +382,7 @@ pub async fn initialize(
         let mut configs = CONFIGS.write().await;
         info!("config lock acquired");
 
-        let str: String = json.into();
+        let str: String = config_json.into();
         let config = WasmConfiguration::new_from_json(str.as_str());
 
         if config.is_err() {
@@ -1701,6 +1703,30 @@ pub async fn get_peer_stats() -> Result<JsString, JsValue> {
         .await;
 
     let str = serde_json::to_string(peers.deref())
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize peer stats: {}", e)))?;
+    Ok(str.into())
+}
+
+#[wasm_bindgen]
+pub async fn get_congestion_stats() -> Result<JsString, JsValue> {
+    let saito = SAITO.lock().await;
+    let peers = saito
+        .as_ref()
+        .unwrap()
+        .routing_thread
+        .network
+        .peer_lock
+        .read()
+        .await;
+    let stats = CongestionStatsDisplay {
+        congestion_controls_by_key: peers
+            .congestion_controls_by_key
+            .iter()
+            .map(|(key, control)| (key.to_base58(), control.clone()))
+            .collect(),
+        congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
+    };
+    let str = serde_json::to_string(&stats)
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize peer stats: {}", e)))?;
     Ok(str.into())
 }

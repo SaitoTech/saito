@@ -350,6 +350,7 @@ async fn run_verification_threads(
                 sender_to_stat.clone(),
             ),
             stat_sender: sender_to_stat.clone(),
+            timer: time_keeper_origin.clone(),
         };
 
         let thread_handle = run_verification_thread(

@@ -1172,5 +1172,21 @@ pub mod test {
         fn get_consensus_config(&self) -> Option<&ConsensusConfig> {
             Some(&self.consensus)
         }
+
+        fn get_congestion_data(
+            &self,
+        ) -> Option<&crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay>
+        {
+            todo!()
+        }
+
+        fn set_congestion_data(
+            &mut self,
+            congestion_data: Option<
+                crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay,
+            >,
+        ) {
+            todo!()
+        }
     }
 }

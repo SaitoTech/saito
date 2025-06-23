@@ -11,6 +11,7 @@ use tokio::sync::RwLock;
 
 use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
+use crate::core::consensus::peers::congestion_controller::CongestionType;
 use crate::core::consensus::peers::peer_collection::PeerCollection;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
@@ -19,6 +20,7 @@ use crate::core::defs::{
     BlockHash, BlockId, PeerIndex, PrintForLog, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
 };
 use crate::core::io::network_event::NetworkEvent;
+use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::drain;
 
@@ -41,6 +43,7 @@ pub struct VerificationThread {
     pub processed_msgs: StatVariable,
     pub invalid_txs: StatVariable,
     pub stat_sender: Sender<StatEvent>,
+    pub timer: Timer,
 }
 
 impl VerificationThread {

@@ -29,6 +29,7 @@ use crate::core::util;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::hash;
 use crate::core::verification_thread::VerifyRequest;
+use ahash::HashMap;
 use async_trait::async_trait;
 use log::{debug, error, info, trace, warn};
 use std::ops::Deref;
@@ -37,7 +38,6 @@ use std::time::Duration;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
-use super::consensus::peers::peer::PeerStatus;
 use super::stat_thread::StatEvent;
 
 #[derive(Debug)]
@@ -162,7 +162,7 @@ impl RoutingThread {
                 transaction.routed_from_peer = Some(peer_index);
                 {
                     let mut peers = self.network.peer_lock.write().await;
-                    let mut peer = peers.find_peer_by_index_mut(peer_index).unwrap();
+                    let peer = peers.find_peer_by_index_mut(peer_index).unwrap();
                     peer.stats.received_txs += 1;
                     peer.stats.last_received_tx_at = self.timer.get_timestamp_in_ms();
                     peer.stats.last_received_tx = transaction.signature.to_hex();
@@ -197,7 +197,7 @@ impl RoutingThread {
                 );
                 {
                     let mut peers = self.network.peer_lock.write().await;
-                    let mut peer = peers.find_peer_by_index_mut(peer_index).unwrap();
+                    let peer = peers.find_peer_by_index_mut(peer_index).unwrap();
                     peer.stats.received_block_headers += 1;
                     peer.stats.last_received_block_header_at = self.timer.get_timestamp_in_ms();
                     peer.stats.last_received_block_header = hash.to_hex();
@@ -737,12 +737,12 @@ impl RoutingThread {
                 data.push(PeerStateEntry {
                     peer_index: peer.index,
                     public_key: peer.public_key.unwrap_or([0; 33]),
-                    msg_limit_exceeded: peer.has_message_limit_exceeded(current_time),
-                    invalid_blocks_received: peer.has_invalid_block_limit_exceeded(current_time),
-                    same_depth_blocks_received: false,
-                    too_far_blocks_received: false,
-                    handshake_limit_exceeded: peer.has_handshake_limit_exceeded(current_time),
-                    keylist_limit_exceeded: peer.has_key_list_limit_exceeded(current_time),
+                    // msg_limit_exceeded: peer.has_message_limit_exceeded(current_time),
+                    // invalid_blocks_received: peer.has_invalid_block_limit_exceeded(current_time),
+                    // same_depth_blocks_received: false,
+                    // too_far_blocks_received: false,
+                    // handshake_limit_exceeded: peer.has_handshake_limit_exceeded(current_time),
+                    // keylist_limit_exceeded: peer.has_key_list_limit_exceeded(current_time),
                     limited_till: None,
                     current_time,
                     peer_address: peer.ip_address.clone().unwrap_or("NA".to_string()),
@@ -875,6 +875,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         debug!("network event processed");
         None
     }
+
     async fn process_timer_event(&mut self, duration: Duration) -> Option<()> {
         // trace!("processing timer event : {:?}", duration.as_micros());
 
@@ -971,6 +972,26 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
     async fn on_init(&mut self) {
         assert!(!self.senders_to_verification.is_empty());
         self.reconnection_timer = self.timer.get_timestamp_in_ms();
+
+        {
+            let configs = self.config_lock.read().await;
+            let mut peers = self.network.peer_lock.write().await;
+
+            if let Some(display) = configs.get_congestion_data() {
+                peers.congestion_controls_by_ip = display.congestion_controls_by_ip.clone();
+                peers.congestion_controls_by_key = display
+                    .congestion_controls_by_key
+                    .iter()
+                    .map(|(key, value)| {
+                        (
+                            SaitoPublicKey::from_base58(key.as_str()).unwrap(),
+                            value.clone(),
+                        )
+                    })
+                    .collect::<HashMap<SaitoPublicKey, PeerCongestionControls>>();
+            }
+        }
+
         // connect to peers
         self.network
             .initialize_static_peers(self.config_lock.clone())
@@ -1028,8 +1049,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         }
 
         let peers = self.network.peer_lock.read().await;
-        let mut peer_count = 0;
-        let mut peers_in_handshake = 0;
+        let peer_count = 0;
+        let peers_in_handshake = 0;
 
         let stat = format!(
             "{} - {} - total peers : {:?}. in handshake : {:?}",
