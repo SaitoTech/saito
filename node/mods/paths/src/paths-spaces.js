@@ -275,7 +275,7 @@ if (spacekey == "batum") {
     if (faction == "tu" || faction == "turkey") { sources.push("constantinople"); controlling_faction = "central"; }
     if (faction == "be" || faction == "belgium") { sources.push("london"); }
     if (faction == "fr" || faction == "france") { sources.push("london"); }
-    if (faction == "ap" || faction == "allies") { sources.push("london"); }
+    if (faction == "ap" || faction == "allies") { sources.push("london", "moscow", "petrograd", "kharkov", "caucasus"); }
     if (faction == "ru" || faction == "russia") { sources.push(...["moscow","petrograd","kharkov","caucasus"]); }
     if (faction == "ro" || faction == "romania") { sources.push(["moscow","petrograd","kharkov","caucasus"]); }
     if (faction == "sb" || faction == "serbia") { 

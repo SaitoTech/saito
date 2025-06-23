@@ -165,7 +165,7 @@ class LossOverlay {
 	updateInstructions(msg="") {
 		let obj = document.querySelector(".loss-overlay .help");
 		if (obj) {
-			obj.innerHTML = msg;
+			obj.innerHTML = "Combat in " + this.mod.returnSpaceName(this.mod.game.state.combat.key) + ": " + msg;
 		}
 	}
 
@@ -341,6 +341,12 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 		let attacker_color_highlight = "#b6344a";
 		let defender_color = "#dadcf2";
 		let defender_color_highlight = "#343ab6";
+		if (this.mod.game.state.combat.attacker_power == "allies") {
+		  attacker_color = defender_color;
+		  attacker_color_highlight = defender_color_highlight;
+		  defender_color = "#f2dade";
+		  defender_color_highlight = "#b6344a";
+		}
 
 		if (defender_power == "central") {
 		  let x = defender_color;

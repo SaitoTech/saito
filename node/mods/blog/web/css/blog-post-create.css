@@ -8,49 +8,11 @@
   margin-top: var(--saito-header-height);
 }
 
-.small-controls {
-  display: none;
-}
-
-.modal-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  z-index: 1000;
-}
-
-.modal-content {
-  margin: 20px;
-  padding: 20px;
-  border-radius: 8px;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.modal-header {
-  padding: 20px;
-  border-radius: 8px 8px 0 0;
-}
-
-.modal-footer {
-  padding: 20px;
-  border-radius: 0 0 8px 8px;
-  border-top: 1px solid var(--saito-border-color);
-}
-
-
 .center-column {
   flex: 1;
   padding: 2rem;
   max-width: 90rem;
   /* border-left: 1px solid var(--saito-border-color); */
-
 }
 
 .controls-container {
@@ -65,17 +27,10 @@
 }
 
 .filter-container {
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
-
-
-
-.modal-title {
-  font-size: 2.4rem;
-  margin: 0;
-}
-
-
 
 .editor-form {
   display: flex;
@@ -94,7 +49,6 @@
 
 .ql-editor {
   overflow-y: auto;
-
 }
 
 .ql-snow.ql-toolbar button {
@@ -103,16 +57,17 @@
 }
 
 .ql-editor.ql-blank::before {
-  color: var(--border-color-post-input);
+  color: var(--border-color-post-input) !important;
 }
 
 .ql-container.ql-snow {
-  border: 1px solid var(--saito-border-color);
-  border-radius: var(--saito-border-radius);
+  border: 1px solid var(--saito-border-color) !important;
+  border-radius: 0 0 var(--saito-border-radius) var(--saito-border-radius);
+  border-top: 0px !important;
 }
-.ql-toolbar.ql-snow  {
-  border: 1px solid var(--saito-border-color);
-  border-radius: var(--saito-border-radius);
+.ql-toolbar.ql-snow {
+  border: 1px solid var(--saito-border-color) !important;
+  border-radius: var(--saito-border-radius) var(--saito-border-radius) 0 0;
 }
 
 .ql-snow .ql-stroke {
@@ -122,6 +77,11 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.ql-snow .ql-formats {
+  user-focus: none;
+  -moz-user-focus: none;
 }
 
 .editor-content {
@@ -138,9 +98,8 @@
   border: 1px solid var(--border-color-post-input);
   border-radius: 6px;
   background: var(--saito-background-color);
+  width: 100%;
 }
-
-
 
 .form-group input:focus,
 .form-group textarea:focus {
@@ -168,7 +127,6 @@
   transition: all 0.3s ease;
 }
 
-
 .image-upload-area.dragging {
   border-color: #2196f3;
   background: #e3f2fd;
@@ -193,12 +151,9 @@
 }
 
 .image-preview img {
-  width: 20rem;
-  height: 100px;
-  margin-top: 2rem;
+  width: 100%;
+  height: auto;
 }
-
-
 
 .image-method-toggle {
   display: flex;
@@ -208,7 +163,6 @@
 .image-method-toggle button {
   min-width: 10rem;
   font-size: 1.2rem;
-
 }
 
 .btn-preview.active {
@@ -237,12 +191,6 @@
   background: var(--saito-primary);
 }
 
-
-.modal-footer {
-  display: flex;
-  justify-content: space-between;
-}
-
 .action-buttons {
   display: flex;
   gap: 1rem;
@@ -258,22 +206,6 @@ button:disabled {
   border-color: #444;
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
-}
-
-
-.left-column-buttons {
-  margin-top: auto;
-  /* Push buttons to bottom */
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .btn-preview {
   width: 100%;
   padding: 10px;
@@ -284,7 +216,6 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
-
 .btn-cancel,
 .btn-publish {
   flex: 1;
@@ -293,7 +224,6 @@ button:disabled {
   border-radius: 6px;
   border: none;
   margin-bottom: 1rem;
-
 }
 
 .btn-cancel {
@@ -304,14 +234,13 @@ button:disabled {
 
 .btn-publish {
   background: var(--saito-primary);
-  color: var(--saito-white)
+  color: var(--saito-white);
 }
-
 
 .btn-draft,
 .btn-publish {
   padding: 1rem;
-  border-radius: .6rem;
+  border-radius: 0.6rem;
   cursor: pointer;
   border: none;
 }
@@ -322,47 +251,21 @@ button:disabled {
   color: var(--saito-font-color);
 }
 
-
-
-
 @media (max-width: 768px) {
-
-
-  .center-column {
-    overflow: scroll;
-  }
-  .modal-container {
-    width: 95%;
-    max-height: 95vh;
-    top: 25%;
-  }
-
-  .small-controls {
-    display: block;
-  }
-
-  .small-controls .image-upload-area {
-    min-height: 0;
-    padding: 0;
-  }
-
-  .small-controls .file-input-label {
-    margin-top: 0;
-  }
-
-
   .modal-layout {
     height: 1000rem;
+    grid-template-rows: max-content 150px;
   }
 
-  .modal-title {
-    font-size: 20px;
+  .modal-layout .left-column {
+    display: flex;
+    flex-direction: row;
+    grid-row: 2;
+    padding: 2rem 1rem;
   }
 
-
-  .image-upload-area {
-    padding: 20px;
-    min-height: 150px;
+  .modal-layout .left-column .filter-container > label {
+    display: none;
   }
 
   .form-group textarea {
@@ -372,28 +275,6 @@ button:disabled {
 
 /* Mobile Breakpoint */
 @media (max-width: 480px) {
-
-  .modal-container {
-    width: 100%;
-    height: 100vh;
-    max-height: 100vh;
-    border-radius: 0;
-    top: 0;
-    transform: translate(-50%, 0);
-  }
-
-  .modal-header {
-    padding: 1rem;
-  }
-
-  .modal-title {
-    font-size: 18px;
-  }
-
-  .modal-content {
-    padding: 1rem;
-  }
-
   .form-group textarea {
     min-height: 40rem;
   }
@@ -402,14 +283,6 @@ button:disabled {
     padding: 1rem;
     min-height: 5rem;
   }
-
-  .modal-footer {
-    padding: 15px;
-    flex-direction: column;
-    gap: 10px;
-    background-color: var(--saito-background-color);
-  }
-
 
   .btn-draft,
   .btn-publish {
@@ -425,10 +298,6 @@ button:disabled {
 }
 
 @media (max-width: 320px) {
-  .modal-title {
-    font-size: 16px;
-  }
-
   .action-buttons {
     flex-direction: column;
   }

@@ -1,12 +1,12 @@
 export const samplePosts = [
   {
-      sig: "post4",
-      title: "Second ATR Cycle and Rewards",
-      author: "StackTooDeep@saito",
-      publicKey: "vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_1",
-      timestamp: Date.now() - 86400000, // 1 day ago
-      image: "https://saito.tech/wp-content/uploads/2024/10/ATR_5APY_1200x6302.png", // Featured image
-      content: `
+    sig: 'post4',
+    title: 'Second ATR Cycle and Rewards',
+    author: 'StackTooDeep@saito',
+    publicKey: 'vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_1',
+    timestamp: Date.now() - 86400000, // 1 day ago
+    image: 'https://saito.tech/wp-content/uploads/2024/10/ATR_5APY_1200x6302.png', // Featured image
+    content: `
   ![Blockchain Technology])
   
   Blockchain technology is revolutionizing the way we think about digital transactions and data storage. In this comprehensive guide, we'll explore the fundamental concepts that make blockchain unique and powerful.
@@ -28,18 +28,18 @@ export const samplePosts = [
   
   Stay tuned for more in-depth analysis of each application!
   `,
-      likes: 156,
-      comments: 23,
-      shares: 0
-    },
-    {
-      sig: "post5",
-      title: "Saito Summer 11",
-      author: "CryptoNinja@saito",
-      publicKey: "vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_2",
-      timestamp: Date.now() - 172800000, // 2 days ago
-      image: "https://saito.tech/wp-content/uploads/2024/10/his-board-scaled-2048x1325.jpg",
-      content: `
+    likes: 156,
+    comments: 23,
+    shares: 0
+  },
+  {
+    sig: 'post5',
+    title: 'Saito Summer 11',
+    author: 'CryptoNinja@saito',
+    publicKey: 'vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_2',
+    timestamp: Date.now() - 172800000, // 2 days ago
+    image: 'https://saito.tech/wp-content/uploads/2024/10/his-board-scaled-2048x1325.jpg',
+    content: `
   ![Gaming Metaverse])
   
   The gaming industry is witnessing a paradigm shift with the integration of blockchain technology. Web3 gaming is not just about playing; it's about owning your in-game assets and being part of a decentralized gaming ecosystem.
@@ -61,18 +61,18 @@ export const samplePosts = [
   
   Join us next week for an in-depth analysis of successful Web3 games!
   `,
-      likes: 234,
-      comments: 45,
-      shares: 0
-    },
-    {
-      sig: "post9",
-      title: "Don’t Trust Us; One-click P2P Encrypted Chat and Video Call on Saito",
-      author: "BlockchainBoss@saito",
-      publicKey: "vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_3",
-      timestamp: Date.now() - 259200000, // 3 days ago
-      image: "",
-      content: `
+    likes: 234,
+    comments: 45,
+    shares: 0
+  },
+  {
+    sig: 'post9',
+    title: 'Don’t Trust Us; One-click P2P Encrypted Chat and Video Call on Saito',
+    author: 'BlockchainBoss@saito',
+    publicKey: 'vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_3',
+    timestamp: Date.now() - 259200000, // 3 days ago
+    image: '',
+    content: `
   ![DeFi Farming])
   
   Yield farming continues to be one of the most popular ways to earn passive income in the DeFi space. Today, we'll explore some effective strategies that can help maximize your returns while managing risks.
@@ -99,18 +99,19 @@ export const samplePosts = [
   
   *Not financial advice. Always do your own research.*
   `,
-      likes: 189,
-      comments: 34,
-      shares: 0
-    },
-    {
-      sig: "post9",
-      title: "Don’t Trust Us; One-click P2P Encrypted Chat and Video Call on Saito. More title post content to fill up space",
-      author: "BlockchainBoss@saito",
-      publicKey: "vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_3",
-      timestamp: Date.now() - 259200000, // 3 days ago
-      image: "",
-      content: `
+    likes: 189,
+    comments: 34,
+    shares: 0
+  },
+  {
+    sig: 'post9',
+    title:
+      'Don’t Trust Us; One-click P2P Encrypted Chat and Video Call on Saito. More title post content to fill up space',
+    author: 'BlockchainBoss@saito',
+    publicKey: 'vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_3',
+    timestamp: Date.now() - 259200000, // 3 days ago
+    image: '',
+    content: `
   ![DeFi Farming])
   
   Yield farming continues to be one of the most popular ways to earn passive income in the DeFi space. Today, we'll explore some effective strategies that can help maximize your returns while managing risks.
@@ -137,18 +138,18 @@ export const samplePosts = [
   
   *Not financial advice. Always do your own research.*
   `,
-      likes: 189,
-      comments: 34,
-      shares: 0
-    },
-    {
-      sig: "post6",
-      title: "Saito Summer 13 – LCX Listing and Tech Update",
-      author: "David@saito",
-      publicKey: "vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_4",
-      timestamp: Date.now() - 345600000, // 4 days ago
-      image: "",
-      content: `
+    likes: 189,
+    comments: 34,
+    shares: 0
+  },
+  {
+    sig: 'post6',
+    title: 'Saito Summer 13 – LCX Listing and Tech Update',
+    author: 'David@saito',
+    publicKey: 'vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_4',
+    timestamp: Date.now() - 345600000, // 4 days ago
+    image: '',
+    content: `
   ![Decentralized Social])
   
   Decentralized social media platforms are emerging as alternatives to traditional centralized networks. Let's explore the technical architecture behind these platforms.
@@ -174,18 +175,18 @@ export const samplePosts = [
   
   Stay tuned for part 2 where we'll implement these components!
   `,
-      likes: 145,
-      comments: 28,
-      shares: 0
-    },
-    {
-      sig: "post7",
-      title: "Saito Fileshare – Unlimited, P2P, Encrypted",
-      author: "Richard@saito",
-      publicKey: "vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_5",
-      timestamp: Date.now() - 432000000, // 5 days ago
-      image: "https://saito.tech/wp-content/uploads/2024/07/saito-summer-banner.jpg",
-      content: `
+    likes: 145,
+    comments: 28,
+    shares: 0
+  },
+  {
+    sig: 'post7',
+    title: 'Saito Fileshare – Unlimited, P2P, Encrypted',
+    author: 'Richard@saito',
+    publicKey: 'vyMNHWAi8osp5UYmiCjVPnpqnNTWrkQbHuNScsy1gt8t_5',
+    timestamp: Date.now() - 432000000, // 5 days ago
+    image: 'https://saito.tech/wp-content/uploads/2024/07/saito-summer-banner.jpg',
+    content: `
   ![Smart Contract Security])
   
   Security is paramount when developing smart contracts. A single vulnerability can lead to substantial financial losses. Here's a comprehensive guide to securing your smart contracts.
@@ -218,9 +219,8 @@ export const samplePosts = [
   
   Remember: Security is not a feature, it's a process.
   `,
-      likes: 267,
-      comments: 56,
-      shares: 0
-    }
-
-  ]
+    likes: 267,
+    comments: 56,
+    shares: 0
+  }
+];

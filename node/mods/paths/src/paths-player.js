@@ -976,7 +976,7 @@
       this.game.state.combat.key,
       spaces_to_retreat, 
       (spacekey) => {
-  if (spacekey == this.game.state.combat.key) { return 1; }; // pass through
+	if (spacekey == this.game.state.combat.key) { return 1; };
         if (paths_self.game.spaces[spacekey].units.length > 0) {
     if (paths_self.returnPowerOfUnit(paths_self.game.spaces[spacekey].units[0]) != faction) { 
         return 0; 
@@ -1436,15 +1436,17 @@
 
     let options = this.returnSpacesWithFilter(
       (key) => {
-  if (this.game.spaces[key].units.length > 0) {
-    if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) != faction) {
-        for (let i = 0; i < this.game.spaces[key].neighbours.length; i++) {
-        let n = this.game.spaces[key].neighbours[i];
-        if (this.game.spaces[n].oos == 1) { return 0; } // cannot attack if OOS
-        if (this.game.spaces[n].activated_for_combat == 1) { return 1; }
-      }
-    }
-  }
+	if (this.game.spaces[key].units.length > 0) {
+	  if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) != faction) {
+	    let can_attack = 0;
+  	    for (let i = 0; i < this.game.spaces[key].neighbours.length; i++) {
+	      let n = this.game.spaces[key].neighbours[i];
+	      if (this.game.spaces[n].oos == 1) {} else {
+	        if (this.game.spaces[n].activated_for_combat == 1) { return 1; }
+	      }
+	    }
+	  }
+	}
         return 0;
       }
     );
@@ -1703,6 +1705,8 @@
     // prevent breaking the game
     //
     paths_self.unbindBackButtonFunction();
+
+console.log("2: " + JSON.stringify(options));
 
     let rendered_at = options[0];
     paths_self.zoom_overlay.renderAtSpacekey(options[0]);
@@ -2469,23 +2473,24 @@ return;
       }
 
       let movement_fnct = (movement_fnct) => {
-  this.playerSelectSpaceWithFilter(
-    `Select Space to Activate (${cost} ops):`,
-    (key) => {
-      if (cost < this.returnActivationCost(faction, key)) { return 0; }
-      let space = this.game.spaces[key];
-      if (space.activated_for_combat == 1) { return 0; }
-      if (space.activated_for_movement == 1) { return 0; }
-      for (let i = 0; i < space.units.length; i++) {
-        if (this.returnPowerOfUnit(space.units[i]) === faction) {
-          return 1;
-        }
-      }
-      return 0;
-    },
-    (key) => {
-      this.updateStatus("activating...");
-      this.activateSpaceForMovement(key);
+	this.playerSelectSpaceWithFilter(
+	  `Select Space to Activate (${cost} ops):`,
+	  (key) => {
+	    if (cost < this.returnActivationCost(faction, key)) { return 0; }
+	    let space = this.game.spaces[key];
+	    if (space.oos) { return 0; }
+	    if (space.activated_for_combat == 1) { return 0; }
+	    if (space.activated_for_movement == 1) { return 0; }
+	    for (let i = 0; i < space.units.length; i++) {
+	      if (this.returnPowerOfUnit(space.units[i]) === faction) {
+	        return 1;
+	      }
+	    }
+	    return 0;
+	  },
+	  (key) => {
+	    this.updateStatus("activating...");
+	    this.activateSpaceForMovement(key);
             this.displaySpace(key);
       let cost_paid = this.returnActivationCost(faction, key); 
       cost -= cost_paid;
@@ -2507,42 +2512,48 @@ return;
       }
  
       let combat_fnct = (combat_fnct) => {
-  this.playerSelectSpaceWithFilter(
-    `Select Space to Activate (${cost} ops):`,
-    (key) => {
-      let space = this.game.spaces[key];
-      if (space.activated_for_movement == 1) { return 0; }
-      if (space.activated_for_combat == 1) { return 0; }
-      for (let i = 0; i < space.units.length; i++) {
-        if (this.returnPowerOfUnit(space.units[i]) === faction) {
-    for (let z = 0; z < space.neighbours.length; z++) {
-            if (this.game.spaces[space.neighbours[z]].control != faction && this.game.spaces[space.neighbours[z]].fort > 0) { return 1; }
-            if (this.game.spaces[space.neighbours[z]].control != faction && this.game.spaces[space.neighbours[z]].units.length > 0) { return 1; }
-    }
-        }
-      }
-      return 0;
-    },
-    (key) => {
-      this.updateStatus("activating...");
-      this.activateSpaceForCombat(key);
-      let cost_paid = this.returnActivationCost(faction, key); 
-      cost -= cost_paid;
-      this.addMove(`activate_for_combat\t${faction}\t${key}`);
-      if (cost <= 0) {
-        cost = 0;
-        this.endTurn();
-      }
-      if (cost > 0) {
-        this.removeSelectable();
-        combat_fnct(combat_fnct);
-        this.playerPlayOps(faction, card, cost, 1);
-        return;
-      }
-    },
-    null,
-    true,
-  );
+	this.playerSelectSpaceWithFilter(
+	  `Select Space to Activate (${cost} ops):`,
+	  (key) => {
+	    let space = this.game.spaces[key];
+	    if (space.oos) { return 0; }
+	    if (space.activated_for_movement == 1) { return 0; }
+	    if (space.activated_for_combat == 1) { return 0; }
+	    for (let i = 0; i < space.units.length; i++) {
+	      if (this.returnPowerOfUnit(space.units[i]) === faction) {
+		for (let z = 0; z < space.neighbours.length; z++) {
+	          if (this.game.spaces[space.neighbours[z]].control != faction && this.game.spaces[space.neighbours[z]].fort > 0) { return 1; }
+	          if (this.game.spaces[space.neighbours[z]].control != faction && this.game.spaces[space.neighbours[z]].units.length > 0) { return 1; }
+	          if (this.game.spaces[space.neighbours[z]].control == faction && this.game.spaces[space.neighbours[z]].fort > 0) {
+	            if (this.game.spaces[space.neighbours[z]].units.length > 0) {
+	              if (this.returnFactionOfUnit(this.game.spaces[space.neighbours[z]].units[0]) != faction) { return 1; }
+		    }
+		  }
+		}
+	      }
+	    }
+	    return 0;
+	  },
+	  (key) => {
+	    this.updateStatus("activating...");
+	    this.activateSpaceForCombat(key);
+	    let cost_paid = this.returnActivationCost(faction, key); 
+	    cost -= cost_paid;
+	    this.addMove(`activate_for_combat\t${faction}\t${key}`);
+	    if (cost <= 0) {
+	      cost = 0;
+	      this.endTurn();
+	    }
+	    if (cost > 0) {
+	      this.removeSelectable();
+	      combat_fnct(combat_fnct);
+	      this.playerPlayOps(faction, card, cost, 1);
+	      return;
+	    }
+	  },
+	  null,
+	  true,
+	);
       }
 
       if (action === "movement") {

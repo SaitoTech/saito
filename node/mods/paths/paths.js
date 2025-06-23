@@ -6493,7 +6493,7 @@ if (spacekey == "batum") {
     if (faction == "tu" || faction == "turkey") { sources.push("constantinople"); controlling_faction = "central"; }
     if (faction == "be" || faction == "belgium") { sources.push("london"); }
     if (faction == "fr" || faction == "france") { sources.push("london"); }
-    if (faction == "ap" || faction == "allies") { sources.push("london"); }
+    if (faction == "ap" || faction == "allies") { sources.push("london", "moscow", "petrograd", "kharkov", "caucasus"); }
     if (faction == "ru" || faction == "russia") { sources.push(...["moscow","petrograd","kharkov","caucasus"]); }
     if (faction == "ro" || faction == "romania") { sources.push(["moscow","petrograd","kharkov","caucasus"]); }
     if (faction == "sb" || faction == "serbia") { 
@@ -10663,6 +10663,7 @@ console.log(JSON.stringify(this.game.deck[1].hand));
           this.game.queue.push("evaluate_mandated_offensive_phase");
           this.game.queue.push("war_status_phase");
           this.game.queue.push("siege_phase");
+
           this.game.queue.push("attrition_phase");
           this.game.queue.push("action_phase");
           this.game.queue.push("SAVE");
@@ -11227,16 +11228,22 @@ console.log("X");
 		}
 	      }
 	    } else {
+
+	      //
+	      // no units in this space
+	      //
 	      if (this.game.spaces[key].units.length == 0 && this.game.spaces[key].units.length == 0 && this.game.spaces[key].fort <= 0 &&
 	  	  key != "arbox" && 
 		  key != "crbox" && 
 		  key != "aeubox" && 
-		  key != "ceubox"
+		  key != "ceubox" &&
+		  this.game.spaces[key].country != "serbia" 
 	      ) {
 
 		let spaces = this.returnSpaces();
 		let country = spaces[key].country;		
 	        let control = this.game.spaces[key].control;
+
 
 		//
 		// if the country is active and at war
@@ -11899,6 +11906,7 @@ try {
               return 0;
             }
           );
+
           if (options.length == 0) {
       this.game.queue.splice(qe, 1);
       return 1;
@@ -11929,6 +11937,7 @@ try {
     let key = mv[1];
     let selected = JSON.parse(mv[2]);
 
+<<<<<<< HEAD
     this.game.state.combat = {};
     this.game.state.combat.step = this.game.step.game; // uuid for the combat
     this.game.state.combat.key = key;
@@ -11958,6 +11967,63 @@ try {
     this.game.state.combat.defender_drm = 0;
     this.game.state.combat.unoccupied_fort = 0;
     if (this.game.spaces[key].units.length == 0 && this.game.spaces[key].fort > 0) { this.game.state.combat.unoccupied_fort = 1; }
+=======
+	  this.game.state.combat = {};
+	  this.game.state.combat.step = this.game.step.game; // uuid for the combat
+	  this.game.state.combat.key = key;
+	  this.game.state.combat.attacker = selected;
+	  this.game.state.combat.attacker_power = "central";
+	  this.game.state.combat.attacking_faction = "central";
+	  this.game.state.combat.defender_power = "allies";
+	  this.game.state.combat.defending_faction = "allies";
+	  if (this.game.spaces[key].control == "central") {
+	    if (this.game.spaces[key].units.length > 0) {
+	      if (this.game.spaces[key].fort > 0) {
+		if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) == "allies") {;
+	          this.game.state.combat.attacker_power = "central";
+	          this.game.state.combat.attacking_faction = "central";
+	          this.game.state.combat.defender_power = "allies";
+	          this.game.state.combat.defending_faction = "allies";
+		} else {
+	          this.game.state.combat.attacker_power = "allies";
+	          this.game.state.combat.attacking_faction = "allies";
+	          this.game.state.combat.defender_power = "central";
+	          this.game.state.combat.defending_faction = "central";
+		}
+	      } else { 
+		if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) == "central") {;
+	          this.game.state.combat.attacker_power = "allies";
+	          this.game.state.combat.attacking_faction = "allies";
+	          this.game.state.combat.defender_power = "central";
+	          this.game.state.combat.defending_faction = "central";
+	        }
+	      }
+	    } else {
+	      this.game.state.combat.attacker_power = "allies";
+	      this.game.state.combat.attacking_faction = "allies";
+	      this.game.state.combat.defender_power = "central";
+	      this.game.state.combat.defending_faction = "central";
+	    }
+	  }
+	  if (this.game.spaces[key].control == "allies") {
+	    if (this.game.spaces[key].units.length > 0) {
+	      if (this.game.spaces[key].fort > 0) {
+		if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) == "central") {;
+	          this.game.state.combat.attacker_power = "allies";
+	          this.game.state.combat.attacking_faction = "allies";
+	          this.game.state.combat.defender_power = "central";
+	          this.game.state.combat.defending_faction = "central";
+		}
+	      }
+	    }
+	  }
+	  this.game.state.combat.attacker_cp = this.returnAttackerCombatPower();
+	  this.game.state.combat.defender_cp = this.returnDefenderCombatPower();
+	  this.game.state.combat.attacker_drm = 0;
+	  this.game.state.combat.defender_drm = 0;
+	  this.game.state.combat.unoccupied_fort = 0;
+	  if (this.game.spaces[key].units.length == 0 && this.game.spaces[key].fort > 0) { this.game.state.combat.unoccupied_fort = 1; }
+>>>>>>> staging
 
     //
     // update log
@@ -14555,7 +14621,11 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
       this.game.state.combat.key,
       spaces_to_retreat, 
       (spacekey) => {
+<<<<<<< HEAD
   if (spacekey == this.game.state.combat.key) { return 1; }; // pass through
+=======
+	if (spacekey == this.game.state.combat.key) { return 1; };
+>>>>>>> staging
         if (paths_self.game.spaces[spacekey].units.length > 0) {
     if (paths_self.returnPowerOfUnit(paths_self.game.spaces[spacekey].units[0]) != faction) { 
         return 0; 
@@ -15015,6 +15085,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 
     let options = this.returnSpacesWithFilter(
       (key) => {
+<<<<<<< HEAD
   if (this.game.spaces[key].units.length > 0) {
     if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) != faction) {
         for (let i = 0; i < this.game.spaces[key].neighbours.length; i++) {
@@ -15024,6 +15095,19 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
       }
     }
   }
+=======
+	if (this.game.spaces[key].units.length > 0) {
+	  if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) != faction) {
+	    let can_attack = 0;
+  	    for (let i = 0; i < this.game.spaces[key].neighbours.length; i++) {
+	      let n = this.game.spaces[key].neighbours[i];
+	      if (this.game.spaces[n].oos == 1) {} else {
+	        if (this.game.spaces[n].activated_for_combat == 1) { return 1; }
+	      }
+	    }
+	  }
+	}
+>>>>>>> staging
         return 0;
       }
     );
@@ -15282,6 +15366,8 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
     // prevent breaking the game
     //
     paths_self.unbindBackButtonFunction();
+
+console.log("2: " + JSON.stringify(options));
 
     let rendered_at = options[0];
     paths_self.zoom_overlay.renderAtSpacekey(options[0]);
@@ -16048,6 +16134,7 @@ return;
       }
 
       let movement_fnct = (movement_fnct) => {
+<<<<<<< HEAD
   this.playerSelectSpaceWithFilter(
     `Select Space to Activate (${cost} ops):`,
     (key) => {
@@ -16065,6 +16152,26 @@ return;
     (key) => {
       this.updateStatus("activating...");
       this.activateSpaceForMovement(key);
+=======
+	this.playerSelectSpaceWithFilter(
+	  `Select Space to Activate (${cost} ops):`,
+	  (key) => {
+	    if (cost < this.returnActivationCost(faction, key)) { return 0; }
+	    let space = this.game.spaces[key];
+	    if (space.oos) { return 0; }
+	    if (space.activated_for_combat == 1) { return 0; }
+	    if (space.activated_for_movement == 1) { return 0; }
+	    for (let i = 0; i < space.units.length; i++) {
+	      if (this.returnPowerOfUnit(space.units[i]) === faction) {
+	        return 1;
+	      }
+	    }
+	    return 0;
+	  },
+	  (key) => {
+	    this.updateStatus("activating...");
+	    this.activateSpaceForMovement(key);
+>>>>>>> staging
             this.displaySpace(key);
       let cost_paid = this.returnActivationCost(faction, key); 
       cost -= cost_paid;
@@ -16086,6 +16193,7 @@ return;
       }
  
       let combat_fnct = (combat_fnct) => {
+<<<<<<< HEAD
   this.playerSelectSpaceWithFilter(
     `Select Space to Activate (${cost} ops):`,
     (key) => {
@@ -16122,6 +16230,50 @@ return;
     null,
     true,
   );
+=======
+	this.playerSelectSpaceWithFilter(
+	  `Select Space to Activate (${cost} ops):`,
+	  (key) => {
+	    let space = this.game.spaces[key];
+	    if (space.oos) { return 0; }
+	    if (space.activated_for_movement == 1) { return 0; }
+	    if (space.activated_for_combat == 1) { return 0; }
+	    for (let i = 0; i < space.units.length; i++) {
+	      if (this.returnPowerOfUnit(space.units[i]) === faction) {
+		for (let z = 0; z < space.neighbours.length; z++) {
+	          if (this.game.spaces[space.neighbours[z]].control != faction && this.game.spaces[space.neighbours[z]].fort > 0) { return 1; }
+	          if (this.game.spaces[space.neighbours[z]].control != faction && this.game.spaces[space.neighbours[z]].units.length > 0) { return 1; }
+	          if (this.game.spaces[space.neighbours[z]].control == faction && this.game.spaces[space.neighbours[z]].fort > 0) {
+	            if (this.game.spaces[space.neighbours[z]].units.length > 0) {
+	              if (this.returnFactionOfUnit(this.game.spaces[space.neighbours[z]].units[0]) != faction) { return 1; }
+		    }
+		  }
+		}
+	      }
+	    }
+	    return 0;
+	  },
+	  (key) => {
+	    this.updateStatus("activating...");
+	    this.activateSpaceForCombat(key);
+	    let cost_paid = this.returnActivationCost(faction, key); 
+	    cost -= cost_paid;
+	    this.addMove(`activate_for_combat\t${faction}\t${key}`);
+	    if (cost <= 0) {
+	      cost = 0;
+	      this.endTurn();
+	    }
+	    if (cost > 0) {
+	      this.removeSelectable();
+	      combat_fnct(combat_fnct);
+	      this.playerPlayOps(faction, card, cost, 1);
+	      return;
+	    }
+	  },
+	  null,
+	  true,
+	);
+>>>>>>> staging
       }
 
       if (action === "movement") {

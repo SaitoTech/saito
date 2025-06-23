@@ -1,5 +1,5 @@
 module.exports = (app, mod, build_number, og_card) => {
-	return `
+  return `
 
   
   <!DOCTYPE html>

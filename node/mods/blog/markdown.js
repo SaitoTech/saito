@@ -1,5 +1,5 @@
 module.exports = (app, mod, build_number, og_card) => {
-    let html = `
+  let html = `
     <!DOCTYPE html>
     <html lang="en">
     
@@ -365,5 +365,5 @@ Term 2
     </body>
     </html>`;
 
-    return html;
+  return html;
 };

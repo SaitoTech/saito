@@ -71,6 +71,7 @@ console.log(JSON.stringify(this.game.deck[1].hand));
           this.game.queue.push("evaluate_mandated_offensive_phase");
           this.game.queue.push("war_status_phase");
           this.game.queue.push("siege_phase");
+
           this.game.queue.push("attrition_phase");
           this.game.queue.push("action_phase");
           this.game.queue.push("SAVE");
@@ -635,16 +636,22 @@ console.log("X");
 		}
 	      }
 	    } else {
+
+	      //
+	      // no units in this space
+	      //
 	      if (this.game.spaces[key].units.length == 0 && this.game.spaces[key].units.length == 0 && this.game.spaces[key].fort <= 0 &&
 	  	  key != "arbox" && 
 		  key != "crbox" && 
 		  key != "aeubox" && 
-		  key != "ceubox"
+		  key != "ceubox" &&
+		  this.game.spaces[key].country != "serbia" 
 	      ) {
 
 		let spaces = this.returnSpaces();
 		let country = spaces[key].country;		
 	        let control = this.game.spaces[key].control;
+
 
 		//
 		// if the country is active and at war
@@ -1307,6 +1314,7 @@ try {
               return 0;
             }
           );
+
           if (options.length == 0) {
 	    this.game.queue.splice(qe, 1);
 	    return 1;
@@ -1342,22 +1350,48 @@ try {
 	  this.game.state.combat.key = key;
 	  this.game.state.combat.attacker = selected;
 	  this.game.state.combat.attacker_power = "central";
-	  this.game.state.combat.defender_power = "allies";
 	  this.game.state.combat.attacking_faction = "central";
+	  this.game.state.combat.defender_power = "allies";
 	  this.game.state.combat.defending_faction = "allies";
 	  if (this.game.spaces[key].control == "central") {
 	    if (this.game.spaces[key].units.length > 0) {
-	      if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) == "central") {;
-	        this.game.state.combat.defender_power = "central";
-	        this.game.state.combat.attacker_power = "allies";
-	        this.game.state.combat.defending_faction = "central";
-	        this.game.state.combat.attacking_faction = "allies";
+	      if (this.game.spaces[key].fort > 0) {
+		if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) == "allies") {;
+	          this.game.state.combat.attacker_power = "central";
+	          this.game.state.combat.attacking_faction = "central";
+	          this.game.state.combat.defender_power = "allies";
+	          this.game.state.combat.defending_faction = "allies";
+		} else {
+	          this.game.state.combat.attacker_power = "allies";
+	          this.game.state.combat.attacking_faction = "allies";
+	          this.game.state.combat.defender_power = "central";
+	          this.game.state.combat.defending_faction = "central";
+		}
+	      } else { 
+		if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) == "central") {;
+	          this.game.state.combat.attacker_power = "allies";
+	          this.game.state.combat.attacking_faction = "allies";
+	          this.game.state.combat.defender_power = "central";
+	          this.game.state.combat.defending_faction = "central";
+	        }
 	      }
 	    } else {
-	      this.game.state.combat.defender_power = "central";
 	      this.game.state.combat.attacker_power = "allies";
-	      this.game.state.combat.defending_faction = "central";
 	      this.game.state.combat.attacking_faction = "allies";
+	      this.game.state.combat.defender_power = "central";
+	      this.game.state.combat.defending_faction = "central";
+	    }
+	  }
+	  if (this.game.spaces[key].control == "allies") {
+	    if (this.game.spaces[key].units.length > 0) {
+	      if (this.game.spaces[key].fort > 0) {
+		if (this.returnPowerOfUnit(this.game.spaces[key].units[0]) == "central") {;
+	          this.game.state.combat.attacker_power = "allies";
+	          this.game.state.combat.attacking_faction = "allies";
+	          this.game.state.combat.defender_power = "central";
+	          this.game.state.combat.defending_faction = "central";
+		}
+	      }
 	    }
 	  }
 	  this.game.state.combat.attacker_cp = this.returnAttackerCombatPower();
