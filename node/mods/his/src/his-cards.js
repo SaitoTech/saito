@@ -727,8 +727,6 @@
 	      let action = $(this).attr("id");
               his_self.addMove("diplomacy_card_event\tprotestant\t"+action);
               his_self.addMove("discard_diplomacy_card\tprotestant\t"+action);
-	      // protestant will be dealt another next turn - Jan 24
-	      //his_self.addMove("DEAL\t2\t"+(his_self.returnPlayerOfFaction("protestant"))+"\t1");
 	      his_self.addMove("NOTIFY\tPapacy selects "+his_self.popup(action));
 	      his_self.endTurn();
 	    });
@@ -939,6 +937,7 @@
 
       },
     }
+/*********
     deck['207'] = { 
       img : "cards/HIS-207.svg" , 
       name : "Henry Petitions for Divorce" ,
@@ -2245,6 +2244,7 @@ console.log("selected: " + spacekey);
 
       },
     }
+*****/
     for (let key in deck) {
       deck[key] = this.addEvents(deck[key]);
     }
@@ -5044,14 +5044,12 @@ console.log("ERR: " + JSON.stringify(err));
  	  if (his_self.game.player != his_self.game.state.active_player) {
 	    return {};
 	  }
-          let f = "";
+	  let f = his_self.game.state.players_info[his_self.game.player-1].factions[i];
+	  let fis = his_self.returnArrayOfFactionsInSpace(spacekey);
+	  for (let z = 0; z < fis.length; z++) { fis[z] = his_self.returnCommandingPower(fis[z]); }
           for (let i = 0; i < his_self.game.deck[0].fhand.length; i++) {
-	    let f = his_self.game.state.players_info[his_self.game.player-1].factions[i];
-	    let fis = his_self.returnArrayOfFactionsInSpace(spacekey);
-	    for (let z = 0; z < fis.length; z++) { fis[z] = his_self.returnCommandingPower(fis[z]); }
 	    if (fis.includes(f)) {
               if (his_self.game.deck[0].fhand[i].includes('028')) {
-console.log("and we have Siege Mining...");
                 f = his_self.game.state.players_info[his_self.game.player-1].factions[i];
                 return { faction : f , event : '028', html : `<li class="option" id="028">siege mining (${f})</li>` };
               }
@@ -6518,6 +6516,8 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	    $('.option').off();
 	    let action = $(this).attr("id");
 	    let refs = 0;
+
+	    his_self.updateStatus("convening colloquy...");
 
             his_self.game.queue.push("SETVAR\tstate\tskip_counter_or_acknowledge\t0");
 
@@ -11894,6 +11894,8 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
             function(spacekey) {
 
+	      his_self.updateStatus("processing...");
+
 	      let space = his_self.game.spaces[spacekey];
 	      let factions = [];
 
@@ -11924,6 +11926,8 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 
  		  $('.option').off();
 	    	  let action = $(this).attr("id");
+
+	          his_self.updateStatus("processing...");
 
 		  // we can switch if we want now
 		  if (action == "switch") { sswf_function(); return; }
