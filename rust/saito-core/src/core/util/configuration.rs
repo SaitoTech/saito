@@ -1,9 +1,9 @@
 use std::fmt::{Debug, Display};
 
+use crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay;
 use crate::core::defs::Currency;
 use crate::core::defs::{BlockId, Timestamp};
 use log::error;
-use rayon::vec;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -210,6 +210,8 @@ pub trait Configuration: Debug {
     fn is_browser(&self) -> bool;
     fn replace(&mut self, config: &dyn Configuration);
     fn get_consensus_config(&self) -> Option<&ConsensusConfig>;
+    fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay>;
+    fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>);
 }
 
 impl ConsensusConfig {

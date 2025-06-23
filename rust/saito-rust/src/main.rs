@@ -74,7 +74,7 @@ async fn run_verification_thread(
 
             event_processor.on_init().await;
             let mut queued_requests = vec![];
-            let mut requests = VecDeque::new();
+            // let mut requests = VecDeque::new();
             let mut interval =
                 tokio::time::interval(Duration::from_millis(thread_sleep_time_in_ms));
             let mut stat_interval = tokio::time::interval(Duration::from_millis(stat_timer_in_ms));
@@ -120,12 +120,12 @@ async fn run_verification_thread(
                         }
                     }
                 }
-                if !requests.is_empty() {
-                    event_processor
-                        .processed_msgs
-                        .increment_by(requests.len() as u64);
-                    event_processor.verify_txs(&mut requests).await;
-                }
+                // if !requests.is_empty() {
+                //     event_processor
+                //         .processed_msgs
+                //         .increment_by(requests.len() as u64);
+                //     event_processor.verify_txs(&mut requests).await;
+                // }
                 for request in queued_requests.drain(..) {
                     event_processor.process_event(request).await;
                 }
@@ -286,6 +286,7 @@ async fn run_routing_event_processor(
         last_verification_thread_index: 0,
         stat_sender: sender_to_stat.clone(),
         blockchain_sync_state: BlockchainSyncState::new(fetch_batch_size),
+        congestion_check_timer: 0,
     };
 
     let (interface_sender_to_routing, interface_receiver_for_routing) =
@@ -349,6 +350,7 @@ async fn run_verification_threads(
                 sender_to_stat.clone(),
             ),
             stat_sender: sender_to_stat.clone(),
+            timer: time_keeper_origin.clone(),
         };
 
         let thread_handle = run_verification_thread(

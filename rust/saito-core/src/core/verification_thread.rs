@@ -11,6 +11,7 @@ use tokio::sync::RwLock;
 
 use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
+use crate::core::consensus::peers::congestion_controller::CongestionType;
 use crate::core::consensus::peers::peer_collection::PeerCollection;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
@@ -19,6 +20,7 @@ use crate::core::defs::{
     BlockHash, BlockId, PeerIndex, PrintForLog, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
 };
 use crate::core::io::network_event::NetworkEvent;
+use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::drain;
 
@@ -27,7 +29,7 @@ use super::stat_thread::StatEvent;
 #[derive(Debug)]
 pub enum VerifyRequest {
     Transaction(Transaction),
-    Transactions(VecDeque<Transaction>),
+    // Transactions(VecDeque<Transaction>),
     Block(Vec<u8>, PeerIndex, BlockHash, BlockId),
 }
 
@@ -41,12 +43,14 @@ pub struct VerificationThread {
     pub processed_msgs: StatVariable,
     pub invalid_txs: StatVariable,
     pub stat_sender: Sender<StatEvent>,
+    pub timer: Timer,
 }
 
 impl VerificationThread {
     pub async fn verify_tx(&mut self, mut transaction: Transaction) {
         trace!("verifying tx : {:?}", transaction.signature.to_hex());
         let blockchain = self.blockchain_lock.read().await;
+        let mut peers = self.peer_lock.write().await;
         let wallet = self.wallet_lock.read().await;
         let public_key = wallet.public_key;
         transaction.generate(&public_key, 0, 0);
@@ -58,6 +62,14 @@ impl VerificationThread {
                 transaction.signature.to_hex()
             );
             self.processed_txs.increment();
+            if let Some(peer_index) = transaction.routed_from_peer {
+                peers.add_congestion_event(
+                    peer_index,
+                    CongestionType::ReceivedInvalidTransactions,
+                    self.timer.get_timestamp_in_ms(),
+                );
+            }
+
             return;
         }
 
@@ -69,46 +81,64 @@ impl VerificationThread {
             .unwrap();
         // trace!("releasing blockchain 7");
     }
-    pub async fn verify_txs(&mut self, transactions: &mut VecDeque<Transaction>) {
-        self.processed_txs.increment_by(transactions.len() as u64);
-        self.processed_msgs.increment_by(transactions.len() as u64);
-        let prev_count = transactions.len();
-        let txs: Vec<Transaction>;
-        {
-            // trace!("locking blockchain 8");
-            let blockchain = self.blockchain_lock.read().await;
+    // pub async fn verify_txs(&mut self, transactions: &mut VecDeque<Transaction>) {
+    //     self.processed_txs.increment_by(transactions.len() as u64);
+    //     self.processed_msgs.increment_by(transactions.len() as u64);
+    //     let prev_count = transactions.len();
+    //     let txs: Vec<Transaction>;
+    //     {
+    //         // trace!("locking blockchain 8");
+    //         let blockchain = self.blockchain_lock.read().await;
 
-            let public_key;
-            let wallet = self.wallet_lock.read().await;
-            public_key = wallet.public_key;
-            txs = drain!(transactions, 10)
-                .filter_map(|mut transaction| {
-                    transaction.generate(&public_key, 0, 0);
+    //         let public_key = {
+    //             let wallet = self.wallet_lock.read().await;
+    //             wallet.public_key
+    //         };
+    //         let mut peers = self.peer_lock.write().await;
 
-                    if !transaction.validate(&blockchain.utxoset, &blockchain, true) {
-                        debug!(
-                            "transaction : {:?} not valid",
-                            transaction.signature.to_hex()
-                        );
+    //         let current_time = self.timer.get_timestamp_in_ms();
+    //         txs = drain!(transactions, 10)
+    //             .filter_map(|mut transaction| {
+    //                 transaction.generate(&public_key, 0, 0);
 
-                        None
-                    } else {
-                        Some(transaction)
-                    }
-                })
-                .collect();
-        }
-        // trace!("releasing blockchain 8");
+    //                 if !transaction.validate(&blockchain.utxoset, &blockchain, true) {
+    //                     debug!(
+    //                         "transaction : {:?} not valid",
+    //                         transaction.signature.to_hex()
+    //                     );
 
-        let invalid_txs = prev_count - txs.len();
-        for transaction in txs {
-            self.sender_to_consensus
-                .send(ConsensusEvent::NewTransaction { transaction })
-                .await
-                .unwrap();
-        }
-        self.invalid_txs.increment_by(invalid_txs as u64);
-    }
+    //                     if let Some(peer_index) = transaction.routed_from_peer {
+    //                         peers.add_congestion_event(
+    //                             peer_index,
+    //                             CongestionType::ReceivedInvalidTransactions,
+    //                             current_time,
+    //                         );
+    //                     }
+
+    //                     None
+    //                 } else {
+    //                     if let Some(peer_index) = transaction.routed_from_peer {
+    //                         peers.add_congestion_event(
+    //                             peer_index,
+    //                             CongestionType::ReceivedValidTransactions,
+    //                             current_time,
+    //                         );
+    //                     }
+    //                     Some(transaction)
+    //                 }
+    //             })
+    //             .collect();
+    //     }
+
+    //     let invalid_txs = prev_count - txs.len();
+    //     for transaction in txs {
+    //         self.sender_to_consensus
+    //             .send(ConsensusEvent::NewTransaction { transaction })
+    //             .await
+    //             .unwrap();
+    //     }
+    //     self.invalid_txs.increment_by(invalid_txs as u64);
+    // }
     pub async fn verify_block(
         &mut self,
         buffer: &[u8],
@@ -125,11 +155,11 @@ impl VerificationThread {
                 buffer_len
             );
             let mut peers = self.peer_lock.write().await;
-            if let Some(peer) = peers.find_peer_by_index_mut(peer_index) {
-                // NOTE : this means if we cannot deserialize a block from the buffer we mark it as blacklisted.
-                peer.invalid_block_limiter.increase();
-            }
-
+            peers.add_congestion_event(
+                peer_index,
+                CongestionType::ReceivedInvalidBlocks,
+                self.timer.get_timestamp_in_ms(),
+            );
             return;
         }
 
@@ -147,10 +177,11 @@ impl VerificationThread {
                 block_hash.to_hex()
             );
             let mut peers = self.peer_lock.write().await;
-            if let Some(peer) = peers.find_peer_by_index_mut(peer_index) {
-                // NOTE : this means if we receive an invalid block, peer is blacklisted.
-                peer.invalid_block_limiter.increase();
-            }
+            peers.add_congestion_event(
+                peer_index,
+                CongestionType::ReceivedInvalidBlocks,
+                self.timer.get_timestamp_in_ms(),
+            );
             return;
         }
 
@@ -193,10 +224,9 @@ impl ProcessEvent<VerifyRequest> for VerificationThread {
             VerifyRequest::Block(block, peer_index, block_hash, block_id) => {
                 self.verify_block(block.as_slice(), peer_index, block_hash, block_id)
                     .await;
-            }
-            VerifyRequest::Transactions(mut txs) => {
-                self.verify_txs(&mut txs).await;
-            }
+            } // VerifyRequest::Transactions(mut txs) => {
+              //     self.verify_txs(&mut txs).await;
+              // }
         }
 
         Some(())

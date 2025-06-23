@@ -97,6 +97,21 @@ pub mod test {
         fn get_consensus_config(&self) -> Option<&ConsensusConfig> {
             self.consensus.as_ref()
         }
+
+        fn get_congestion_data(
+            &self,
+        ) -> Option<&crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay>
+        {
+            None
+        }
+
+        fn set_congestion_data(
+            &mut self,
+            congestion_data: Option<
+                crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay,
+            >,
+        ) {
+        }
     }
     impl Default for TestConfiguration {
         fn default() -> Self {
@@ -250,6 +265,7 @@ pub mod test {
                     last_verification_thread_index: 0,
                     stat_sender: sender_to_stat.clone(),
                     blockchain_sync_state: BlockchainSyncState::new(10),
+                    congestion_check_timer: 0,
                 },
                 consensus_thread: ConsensusThread {
                     mempool_lock: context.mempool_lock.clone(),
@@ -318,6 +334,7 @@ pub mod test {
                         sender_to_stat.clone(),
                     ),
                     stat_sender: sender_to_stat.clone(),
+                    timer: timer.clone().unwrap(),
                 },
                 stat_thread: StatThread {
                     stat_queue: Default::default(),

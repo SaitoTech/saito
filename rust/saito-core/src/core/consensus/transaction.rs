@@ -14,7 +14,7 @@ use crate::core::consensus::hop::{Hop, HOP_SIZE};
 use crate::core::consensus::slip::{Slip, SlipType, SLIP_SIZE};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
-    Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
+    Currency, PeerIndex, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, Timestamp, UtxoSet, UTXO_KEY_LENGTH,
 };
 use crate::core::io::network::Network;
@@ -67,6 +67,8 @@ pub struct Transaction {
     pub total_work_for_me: Currency,
     /// cumulative fees for this tx-in-block
     pub cumulative_fees: Currency,
+    #[serde(skip)]
+    pub routed_from_peer: Option<PeerIndex>,
 }
 
 impl Display for Transaction {
@@ -130,6 +132,7 @@ impl Default for Transaction {
             total_fees: 0,
             total_work_for_me: 0,
             cumulative_fees: 0,
+            routed_from_peer: None,
         }
     }
 }
@@ -443,7 +446,7 @@ impl Transaction {
         tx.generate_total_fees(0, 0);
 
         // Carry over the original signature so this will be recognized as a rebroadcast
-        tx.signature = transaction_to_rebroadcast.signature.clone();
+        tx.signature = transaction_to_rebroadcast.signature;
 
         tx
     }
@@ -1140,7 +1143,7 @@ impl Transaction {
                             let b = &self.from[idx + 1];
                             let c = &self.from[idx + 2];
                             if a.slip_type == SlipType::Bound
-                                && b.slip_type == SlipType::Normal
+                                && (b.slip_type == SlipType::Normal || b.slip_type == SlipType::ATR)
                                 && c.slip_type == SlipType::Bound
                             {
                                 signer_public_key = b.public_key;
@@ -1148,6 +1151,7 @@ impl Transaction {
                             }
                             idx += 1;
                         }
+
                         signer_public_key
                     }
                 } else {
@@ -1396,7 +1400,8 @@ impl Transaction {
                         let input2 = &self.from[index_in + 1];
                         let input3 = &self.from[index_in + 2];
 
-                        if input2.slip_type != SlipType::Normal
+                        if (input2.slip_type != SlipType::Normal
+                            && input2.slip_type != SlipType::ATR)
                             || input3.slip_type != SlipType::Bound
                         {
                             error!(
@@ -1492,7 +1497,8 @@ impl Transaction {
                         let output2 = &self.to[index_out + 1];
                         let output3 = &self.to[index_out + 2];
 
-                        if output2.slip_type != SlipType::Normal
+                        if (output2.slip_type != SlipType::Normal
+                            && output2.slip_type != SlipType::ATR)
                             || output3.slip_type != SlipType::Bound
                         {
                             error!(
@@ -1719,7 +1725,7 @@ impl Transaction {
         let c = &slips[i + 2];
         a.slip_type == SlipType::Bound
             && c.slip_type == SlipType::Bound
-            && b.slip_type != SlipType::Bound
+            && (b.slip_type == SlipType::Normal || b.slip_type == SlipType::ATR)
     }
 }
 

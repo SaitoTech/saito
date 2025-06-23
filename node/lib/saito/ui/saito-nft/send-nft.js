@@ -9,7 +9,11 @@ class Nft {
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.nft_selected = null;
     this.nft_list = [];
-    this.app.connection.on('saito-send-nft-render-request', () => this.render());
+    this.app.connection.on('saito-send-nft-render-request', () => {
+      console.log('inside send nft render request ///////////');
+      this.overlay.close();
+      this.render();
+    });
   }
 
   async render() {

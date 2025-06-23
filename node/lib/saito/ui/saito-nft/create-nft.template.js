@@ -1,6 +1,6 @@
 module.exports = (app, mod) => {
   let html = `
-<div class="container create-nft-container">
+<div class="create-nft-container">
    
       <div class="saito-overlay-form-header nft-title">
          <div class="saito-overlay-form-header-title">

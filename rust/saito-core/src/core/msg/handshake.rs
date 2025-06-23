@@ -3,7 +3,7 @@ use std::io::{Error, ErrorKind};
 use log::{debug, info, trace, warn};
 
 use crate::core::consensus::peers::peer_service::PeerService;
-use crate::core::defs::{SaitoHash, SaitoPublicKey, SaitoSignature};
+use crate::core::defs::{SaitoHash, SaitoPublicKey, SaitoSignature, Timestamp};
 use crate::core::process::version::Version;
 use crate::core::util::configuration::Endpoint;
 use crate::core::util::serialize::Serialize;
@@ -24,6 +24,7 @@ pub struct HandshakeResponse {
     pub wallet_version: Version,
     pub core_version: Version,
     pub endpoint: Endpoint,
+    pub timestamp: Timestamp,
 }
 
 impl Serialize<Self> for HandshakeChallenge {
@@ -60,6 +61,7 @@ impl Serialize<Self> for HandshakeResponse {
             self.public_key.to_vec(),
             self.signature.to_vec(),
             self.challenge.to_vec(),
+            self.timestamp.to_be_bytes().to_vec(),
             (self.is_lite as u8).to_be_bytes().to_vec(),
             (self.block_fetch_url.len() as u16).to_be_bytes().to_vec(),
             (services_buffer.len() as u16).to_be_bytes().to_vec(),
@@ -75,7 +77,7 @@ impl Serialize<Self> for HandshakeResponse {
     fn deserialize(buffer: &Vec<u8>) -> Result<Self, Error> {
         debug!("deserializing handshake buffer : {:?}", buffer.len());
 
-        const MIN_LEN: usize = 144;
+        const MIN_LEN: usize = 152;
 
         if buffer.len() < MIN_LEN {
             warn!(
@@ -100,25 +102,30 @@ impl Serialize<Self> for HandshakeResponse {
                 .to_vec()
                 .try_into()
                 .or(Err(Error::from(ErrorKind::InvalidInput)))?,
-            is_lite: buffer[137] != 0,
+            timestamp: Timestamp::from_be_bytes(
+                buffer[137..145]
+                    .try_into()
+                    .or(Err(Error::from(ErrorKind::InvalidInput)))?,
+            ),
+            is_lite: buffer[145] != 0,
             block_fetch_url: "".to_string(),
             services: vec![],
             endpoint: Default::default(),
         };
         let url_length = u16::from_be_bytes(
-            buffer[138..140]
+            buffer[146..148]
                 .try_into()
                 .or(Err(Error::from(ErrorKind::InvalidInput)))?,
         ) as usize;
 
         let services_buffer_len = u16::from_be_bytes(
-            buffer[140..142]
+            buffer[148..150]
                 .try_into()
                 .or(Err(Error::from(ErrorKind::InvalidInput)))?,
         ) as usize;
 
         let endpoint_buffer_len = u16::from_be_bytes(
-            buffer[142..144]
+            buffer[150..152]
                 .try_into()
                 .or(Err(Error::from(ErrorKind::InvalidInput)))?,
         ) as usize;
@@ -225,9 +232,10 @@ mod tests {
                 port: 8080,
                 protocol: "http".to_string(),
             },
+            timestamp: 0,
         };
         let buffer = response.serialize();
-        assert_eq!(buffer.len(), 179);
+        assert_eq!(buffer.len(), 187);
         let response2 = HandshakeResponse::deserialize(&buffer).expect("deserialization failed");
         assert_eq!(response.challenge, response2.challenge);
         assert_eq!(response.public_key, response2.public_key);

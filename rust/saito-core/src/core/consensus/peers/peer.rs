@@ -1,5 +1,4 @@
 use crate::core::consensus::peers::peer_service::PeerService;
-use crate::core::consensus::peers::rate_limiter::RateLimiter;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
     PeerIndex, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp, WS_KEEP_ALIVE_PERIOD,
@@ -13,12 +12,9 @@ use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, sign, verify};
 use log::{debug, info, trace, warn};
 use serde::{Serialize, Serializer};
-use serde_with::serde_as;
 use std::cmp::Ordering;
-use std::fmt::Display;
 use std::io::{Error, ErrorKind};
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::RwLock;
 
 #[derive(Clone, Debug, Serialize)]
@@ -87,15 +83,12 @@ pub struct Peer {
     pub key_list: Vec<SaitoPublicKey>,
     pub services: Vec<PeerService>,
     pub last_msg_at: Timestamp,
+    pub connected_at_my_time: Timestamp,
+    pub connected_at_peer_time: Timestamp,
     pub disconnected_at: Timestamp,
     pub wallet_version: Version,
     pub core_version: Version,
     // NOTE: we are currently mapping 1 peer = 1 socket = 1 public key. But in the future we need to support multiple peers per public key
-    // so some of these limiters might have to be handled from a different place than the peer. (Eg : Account struct?)
-    pub key_list_limiter: RateLimiter,
-    pub handshake_limiter: RateLimiter,
-    pub message_limiter: RateLimiter,
-    pub invalid_block_limiter: RateLimiter,
     #[serde(serialize_with = "option_as_base58")]
     pub public_key: Option<SaitoPublicKey>,
     pub peer_type: PeerType,
@@ -118,15 +111,13 @@ impl Peer {
             disconnected_at: Timestamp::MAX,
             wallet_version: Default::default(),
             core_version: Default::default(),
-            key_list_limiter: RateLimiter::builder(100, Duration::from_secs(60)),
-            handshake_limiter: RateLimiter::builder(100, Duration::from_secs(60)),
-            message_limiter: RateLimiter::builder(100_000, Duration::from_secs(1)),
-            invalid_block_limiter: RateLimiter::builder(10, Duration::from_secs(3600)),
             public_key: None,
             peer_type: PeerType::Default,
             ip_address: None,
             stats: PeerStats::default(),
             endpoint: Endpoint::default(),
+            connected_at_my_time: 0,
+            connected_at_peer_time: 0,
         }
     }
 
@@ -145,30 +136,6 @@ impl Peer {
 
     pub fn is_stun_peer(&self) -> bool {
         matches!(self.peer_type, PeerType::Stun)
-    }
-
-    pub fn has_key_list_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
-        self.key_list_limiter.has_limit_exceeded(current_time)
-    }
-    pub fn has_handshake_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
-        self.handshake_limiter.has_limit_exceeded(current_time)
-    }
-
-    pub fn has_message_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
-        self.message_limiter.has_limit_exceeded(current_time)
-    }
-
-    pub fn has_invalid_block_limit_exceeded(&mut self, current_time: Timestamp) -> bool {
-        self.invalid_block_limiter.has_limit_exceeded(current_time)
-    }
-    pub fn get_limited_till(&mut self, current_time: Timestamp) -> Option<Timestamp> {
-        let result = None;
-
-        if self.has_key_list_limit_exceeded(current_time) {
-            if self.key_list_limiter.has_limit_exceeded(current_time) {}
-        }
-
-        result
     }
 
     pub fn get_url(&self) -> String {
@@ -217,6 +184,7 @@ impl Peer {
         io_handler: &(dyn InterfaceIO + Send + Sync),
         wallet_lock: Arc<RwLock<Wallet>>,
         configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        current_time: Timestamp,
     ) -> Result<(), Error> {
         debug!(
             "handling handshake challenge : {:?} for peer : {:?}",
@@ -253,6 +221,7 @@ impl Peer {
             wallet_version: wallet.wallet_version,
             core_version: wallet.core_version,
             endpoint: endpoint.clone(),
+            timestamp: current_time,
         };
         debug!(
             "handshake challenge : {:?} generated for peer : {:?}",
@@ -367,6 +336,8 @@ impl Peer {
         self.peer_status = PeerStatus::Connected;
         self.public_key = Some(response.public_key);
         self.endpoint = response.endpoint.clone();
+        self.connected_at_peer_time = response.timestamp;
+        self.connected_at_my_time = current_time;
 
         debug!(
             "my version : {:?} peer version : {:?}",
@@ -394,6 +365,7 @@ impl Peer {
                 wallet_version: wallet.wallet_version,
                 core_version: wallet.core_version,
                 endpoint: endpoint.clone(),
+                timestamp: current_time,
             };
             io_handler
                 .send_message(
@@ -516,10 +488,10 @@ impl Peer {
             peer.index, self.index
         );
 
-        self.message_limiter = peer.message_limiter;
-        self.handshake_limiter = peer.handshake_limiter;
-        self.key_list_limiter = peer.key_list_limiter;
-        self.disconnected_at = Timestamp::MAX;
+        // self.message_limiter = peer.message_limiter;
+        // self.handshake_limiter = peer.handshake_limiter;
+        // self.key_list_limiter = peer.key_list_limiter;
+        // self.disconnected_at = Timestamp::MAX;
 
         self.static_peer_config = peer.static_peer_config;
     }

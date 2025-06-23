@@ -6,12 +6,15 @@
     "test": "./node_modules/.bin/jest",
     "start": "ts-node-dev index.ts",
     "build-prod": "cross-env WASM_BINDGEN_WEAKREF=1 npm run build-web-prod && npm run build-nodejs-prod",
+    "build-profile": "cross-env WASM_BINDGEN_WEAKREF=1 npm run build-web-profile && npm run build-nodejs-profile",
     "build": "cross-env WASM_BINDGEN_WEAKREF=1 npm run build-web && npm run build-nodejs",
     "serve": "webpack-dev-server",
-    "build-web": "wasm-pack build --target web --out-dir ./pkg/web --out-name index",
-    "build-nodejs": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index",
+    "build-web": "wasm-pack build --target web --out-dir ./pkg/web --out-name index --dev",
+    "build-nodejs": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index --dev",
     "build-web-prod": "wasm-pack build --target web --out-dir ./pkg/web --out-name index --release",
-    "build-nodejs-prod": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index --release"
+    "build-nodejs-prod": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index --release",
+    "build-web-profile": "wasm-pack build --target web --out-dir ./pkg/web --out-name index --profiling",
+    "build-nodejs-profile": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index --profiling"
   },
   "author": "",
   "license": "ISC",
