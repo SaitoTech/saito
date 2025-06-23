@@ -60,8 +60,14 @@ class Nft {
     console.log('nftType:', nftType);
 
     if (nftType == 'text') {
-      let data = document.querySelector('#create-nft-textarea').value;
-      obj.data = JSON.parse(data);
+      let text = document.querySelector('#create-nft-textarea').value;
+
+      try {
+        obj.text = JSON.parse(text);
+      } catch (e) {
+        salert('Provide a valid JSON to create NFT');
+        return false;
+      }
     } else {
       obj.image = this.nft.image;
     }
@@ -137,6 +143,9 @@ class Nft {
 
     document.querySelector('#create_nft').onclick = async (e) => {
       let obj = this.createObject();
+      if (obj == false) {
+        return;
+      }
       console.log('obj: ', obj);
 
       // value of nft (nolan)
@@ -159,9 +168,20 @@ class Nft {
         return;
       }
 
-      if (nft_self.nft.image == '') {
-        salert(`Attach an image/file to create nft`);
-        return;
+      let nftType = document.querySelector('#create-nft-type-dropdown').value;
+
+      if (nftType == 'image') {
+        if (nft_self.nft.image == '') {
+          salert(`Attach an image/file to create nft`);
+          return;
+        }
+      }
+
+      if (nftType == 'text') {
+        if (nft_self.nft.text == '') {
+          salert(`Add JSON to create nft`);
+          return;
+        }
       }
 
       let fee = BigInt(0n);

@@ -12,7 +12,7 @@ module.exports = (app, mod) => {
       }
     </style>
 
-    <div class="container send-nft-container">
+    <div class="send-nft-container">
 
       <!-- HEADER -->
       <div class="saito-overlay-form-header nft-title">

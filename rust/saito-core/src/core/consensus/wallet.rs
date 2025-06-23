@@ -273,14 +273,13 @@ impl Wallet {
                         // Only add NFT if it was sent to this wallet
                         //
                         if slip2.public_key == self.public_key {
-                            let nft = NFT {
-                                slip1: slip1.utxoset_key,
-                                slip2: slip2.utxoset_key,
-                                slip3: slip3.utxoset_key,
-                                id: slip3.public_key.to_vec(),
-                                tx_sig: tx.signature,
-                            };
-                            self.nfts.push(nft);
+                            self.add_nft(
+                                slip1.utxoset_key,
+                                slip2.utxoset_key,
+                                slip3.utxoset_key,
+                                slip3.public_key.to_vec(),
+                                tx.signature,
+                            );
 
                             wallet_changed |= WALLET_UPDATED;
                         }
@@ -368,14 +367,13 @@ impl Wallet {
                         let slip2 = &tx.from[i + 1];
                         let slip3 = &tx.from[i + 2];
 
-                        let nft = NFT {
-                            slip1: slip1.utxoset_key,
-                            slip2: slip2.utxoset_key,
-                            slip3: slip3.utxoset_key,
-                            id: slip3.public_key.to_vec(),
-                            tx_sig: tx.signature,
-                        };
-                        self.nfts.push(nft);
+                        self.add_nft(
+                            slip1.utxoset_key,
+                            slip2.utxoset_key,
+                            slip3.utxoset_key,
+                            slip3.public_key.to_vec(),
+                            tx.signature,
+                        );
 
                         debug!(
                             "Unwound NFT input group, re-added id: {:?}",
@@ -451,6 +449,23 @@ impl Wallet {
             debug!("removing old slip : {}", slip);
             self.delete_slip(&slip, None);
         }
+
+        //
+        // Prune any NFT from wallet whose:
+        // block id < latest_block_id - gensis_period
+        //
+        self.nfts.retain(|nft| {
+            let slip2 = Slip::parse_slip_from_utxokey(&nft.slip2).unwrap();
+            if slip2.block_id < block_id {
+                debug!(
+                    "removing stale NFT (from block {}) : {:?}",
+                    slip2.block_id, nft.id
+                );
+                false
+            } else {
+                true
+            }
+        });
     }
 
     pub fn add_slip(
@@ -665,8 +680,6 @@ impl Wallet {
         genesis_period: u64,
         nft_type: String,
     ) -> Result<Transaction, Error> {
-        info!("wallet.rs nft_num: {:?}", nft_num);
-
         let mut transaction = Transaction::default();
         transaction.transaction_type = TransactionType::Bound;
 
@@ -1070,7 +1083,46 @@ impl Wallet {
         &mut self,
         nft_id: Vec<u8>,
     ) -> Result<Transaction, Error> {
-        // 1. Find all positions of NFTs with the given id
+        //
+        // Scan and remove any exact duplicate NFTs with this id,
+        // leaving only one unique entry
+        //
+        {
+            let mut seen: Vec<NFT> = Vec::new();
+            let mut to_remove: Vec<usize> = Vec::new();
+
+            for (i, nft) in self.nfts.iter().enumerate() {
+                if nft.id == nft_id {
+                    //
+                    // mark this index for removal
+                    //
+                    let is_dup = seen.iter().any(|s| {
+                        s.slip1 == nft.slip1
+                            && s.slip2 == nft.slip2
+                            && s.slip3 == nft.slip3
+                            && s.id == nft.id
+                            && s.tx_sig == nft.tx_sig
+                    });
+                    if is_dup {
+                        to_remove.push(i);
+                    } else {
+                        seen.push(nft.clone());
+                    }
+                }
+            }
+
+            //
+            // remove duplicates in descending order
+            //
+            to_remove.sort_unstable_by(|a, b| b.cmp(a));
+            for idx in to_remove {
+                self.nfts.remove(idx);
+            }
+        }
+
+        //
+        // Find all positions of NFTs with the given id
+        //
         let positions: Vec<usize> = self
             .nfts
             .iter()
@@ -1079,13 +1131,16 @@ impl Wallet {
             .map(|(i, _)| i)
             .collect();
 
+        //
         // Require at least two NFTs to merge
+        //
         if positions.len() < 2 {
             return Err(Error::new(ErrorKind::NotFound, "Not enough NFTs to merge"));
         }
 
-        // 2. Remove all matching NFTs from `self.nfts`, collecting them into `removed_nfts`.
-        //    Remove in descending order so earlier indices aren’t invalidated.
+        //
+        // Remove all matching NFTs from `self.nfts`, collecting them into `removed_nfts`.
+        //
         let mut idxs = positions.clone();
         idxs.sort_unstable_by(|a, b| b.cmp(a));
         let mut removed_nfts = Vec::new();
@@ -1093,12 +1148,16 @@ impl Wallet {
             removed_nfts.push(self.nfts.remove(idx));
         }
 
-        // 3. Parse each NFT’s three input slips and accumulate total amounts
+        //
+        // Parse each NFT’s three input slips and accumulate total amounts
+        //
         let mut total_amount1: u64 = 0;
         let mut total_deposit: u64 = 0;
         let mut total_amount3: u64 = 0;
 
-        // We’ll also store each parsed Slip so we can add them as inputs
+        //
+        // Store each parsed Slip so we can add them as inputs
+        //
         let mut input_slips1: Vec<Slip> = Vec::new();
         let mut input_slips2: Vec<Slip> = Vec::new();
         let mut input_slips3: Vec<Slip> = Vec::new();
@@ -1123,7 +1182,10 @@ impl Wallet {
             input_slips3.push(slip3);
         }
 
-        // 4. Use the first parsed Slip as a template for each output, adjusting amounts
+        //
+        // Use the first parsed Slip as a template for each output,
+        // adjust amounts
+        //
         let mut merged_slip1 = input_slips1[0].clone();
         merged_slip1.amount = total_amount1;
 
@@ -1133,12 +1195,16 @@ impl Wallet {
         let mut merged_slip3 = input_slips3[0].clone();
         merged_slip3.amount = total_amount3;
 
-        // 5. Build the new Bound transaction
+        //
+        // Build the new Bound transaction
+        //
         let mut transaction = Transaction::default();
         transaction.transaction_type = TransactionType::Bound;
 
-        // Add all original slips (from every NFT we removed) as inputs,
+        //
+        // Add all original slips as inputs,
         // preserving the [slip1, slip2, slip3] order for each group
+        //
         let group_count = input_slips1.len();
         for i in 0..group_count {
             transaction.add_from_slip(input_slips1[i].clone());
@@ -1146,12 +1212,17 @@ impl Wallet {
             transaction.add_from_slip(input_slips3[i].clone());
         }
 
-        // Add exactly one set of merged outputs (three slips) representing the combined NFT
+        //
+        // Add exactly one set of merged outputs (three slips)
+        // representing the combined NFT
+        //
         transaction.add_to_slip(merged_slip1);
         transaction.add_to_slip(merged_slip2);
         transaction.add_to_slip(merged_slip3);
 
-        // 6. Finalize: compute signature hash and sign
+        //
+        // Finalize: signature hash and sign
+        //
         let hash_for_signature: SaitoHash = hash(&transaction.serialize_for_signature());
         transaction.hash_for_signature = Some(hash_for_signature);
         transaction.generate(&self.public_key, 0, 0);
@@ -1505,16 +1576,32 @@ impl Wallet {
         id: Vec<u8>,
         tx_sig: SaitoSignature,
     ) {
-        let nft = NFT {
+        //
+        // construct the NFT we’d like to insert
+        //
+        let new_nft = NFT {
             slip1,
             slip2,
             slip3,
             id,
             tx_sig,
         };
-        self.nfts.push(nft);
 
-        info!("wallet nfts: {:?}", self.nfts);
+        //
+        // only push if there is no existing NFT with all fields equal
+        //
+        let exists = self.nfts.iter().any(|nft| {
+            nft.slip1 == new_nft.slip1
+                && nft.slip2 == new_nft.slip2
+                && nft.slip3 == new_nft.slip3
+                && nft.id == new_nft.id
+                && nft.tx_sig == new_nft.tx_sig
+        });
+
+        if !exists {
+            self.nfts.push(new_nft);
+            info!("wallet nfts: {:?}", self.nfts);
+        }
     }
 }
 

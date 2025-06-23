@@ -155,6 +155,7 @@ pub fn new(
             last_verification_thread_index: 0,
             stat_sender: sender_to_stat.clone(),
             blockchain_sync_state: BlockchainSyncState::new(10),
+            congestion_check_timer: 0,
         },
         consensus_thread: ConsensusThread {
             mempool_lock: context.mempool_lock.clone(),
@@ -385,11 +386,12 @@ pub async fn initialize(
         if config.is_err() {
             error!("failed parsing configs. {:?}", config.err().unwrap());
         } else {
-            let config = config.unwrap();
+            let config: WasmConfiguration = config.unwrap();
             if config.is_browser() {
                 enable_stats = false;
             }
             info!("config : {:?}", config);
+            // info!("config congestion : {:?}", config.congestion);
             configs.replace(&config);
             genesis_period = configs.get_consensus_config().unwrap().genesis_period;
             social_stake = configs.get_consensus_config().unwrap().default_social_stake;

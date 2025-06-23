@@ -2,7 +2,10 @@ use crate::core::consensus::block::BlockType;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::blockchain_sync_state::BlockchainSyncState;
 use crate::core::consensus::mempool::Mempool;
-use crate::core::consensus::peers::peer;
+use crate::core::consensus::peers;
+use crate::core::consensus::peers::congestion_controller::{
+    CongestionStatsDisplay, CongestionType, PeerCongestionControls,
+};
 use crate::core::consensus::peers::peer_service::PeerService;
 use crate::core::consensus::peers::peer_state_writer::{PeerStateEntry, PEER_STATE_WRITE_PERIOD};
 use crate::core::consensus::wallet::Wallet;
@@ -99,6 +102,7 @@ pub struct RoutingThread {
     pub reconnection_timer: Timestamp,
     pub peer_removal_timer: Timestamp,
     pub peer_file_write_timer: Timestamp,
+    pub congestion_check_timer: Timestamp,
     pub last_emitted_block_fetch_count: BlockId,
     pub stats: RoutingStats,
     pub senders_to_verification: Vec<Sender<VerifyRequest>>,
@@ -149,12 +153,13 @@ impl RoutingThread {
                     .await;
             }
 
-            Message::Transaction(transaction) => {
+            Message::Transaction(mut transaction) => {
                 trace!(
                     "received transaction : {} from peer : {:?}",
                     transaction.signature.to_hex(),
                     peer_index
                 );
+                transaction.routed_from_peer = Some(peer_index);
                 {
                     let mut peers = self.network.peer_lock.write().await;
                     let mut peer = peers.find_peer_by_index_mut(peer_index).unwrap();
@@ -767,21 +772,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 {
                     // TODO : move this before deserialization to avoid spending CPU time on it. moved here to just print message type
                     let mut peers = self.network.peer_lock.write().await;
-                    let mut peer = peers.find_peer_by_index_mut(peer_index)?;
-
                     let time: u64 = self.timer.get_timestamp_in_ms();
-                    peer.stats.received_messages += 1;
-                    peer.stats.last_received_message_at = time;
-                    peer.message_limiter.increase();
-                    if peer.has_message_limit_exceeded(time) {
-                        info!(
-                            "peers exceeded for messages from peer : {:?} - {:?} - rates : {:?}",
-                            peer_index,
-                            peer.public_key.unwrap_or([0; 33]).to_base58(),
-                            peer.message_limiter
-                        );
-                        return None;
-                    }
+                    peers.add_congestion_event(peer_index, CongestionType::IncomingMessages, time);
                 }
                 let buffer_len = buffer.len();
                 let message = Message::deserialize(buffer);
@@ -808,6 +800,15 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 if result.is_ok() {
                     let (peer_index, ip) = result.unwrap();
                     self.handle_new_peer(peer_index, ip).await;
+                    {
+                        let mut peers = self.network.peer_lock.write().await;
+                        let time = self.timer.get_timestamp_in_ms();
+                        peers.add_congestion_event(
+                            peer_index,
+                            CongestionType::PeerConnections,
+                            time,
+                        );
+                    }
                     return Some(());
                 }
             }
@@ -837,23 +838,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 buffer,
             } => {
                 debug!("block received : {:?}", block_hash.to_hex());
-                {
-                    let mut peers = self.network.peer_lock.write().await;
-                    let peer = peers.find_peer_by_index_mut(peer_index)?;
-                    let time = self.timer.get_timestamp_in_ms();
-                    if peer.has_invalid_block_limit_exceeded(time) {
-                        info!(
-                            "peers exceeded for invalid blocks from peer : {:?}. disconnecting peer...",
-                            peer_index
-                        );
-                        self.network
-                            .io_interface
-                            .disconnect_from_peer(peer_index)
-                            .await
-                            .unwrap();
-                        return None;
-                    }
-                }
 
                 self.send_to_verification_thread(VerifyRequest::Block(
                     buffer, peer_index, block_hash, block_id,
@@ -872,6 +856,16 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 block_id,
             } => {
                 debug!("block fetch failed : {:?}", block_hash.to_hex());
+
+                {
+                    let mut peers = self.network.peer_lock.write().await;
+                    let time = self.timer.get_timestamp_in_ms();
+                    peers.add_congestion_event(
+                        peer_index,
+                        CongestionType::FailedBlockFetches,
+                        time,
+                    );
+                }
 
                 self.blockchain_sync_state
                     .mark_as_failed(block_id, block_hash, peer_index);
@@ -896,6 +890,24 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             self.network.send_pings().await;
             self.reconnection_timer = 0;
             self.fetch_next_blocks().await;
+
+            work_done = true;
+        }
+
+        const CONGESTION_CHECK_PERIOD: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
+        self.congestion_check_timer += duration_value;
+        if self.congestion_check_timer >= CONGESTION_CHECK_PERIOD {
+            let mut configs = self.config_lock.write().await;
+            let peers = self.network.peer_lock.read().await;
+            configs.set_congestion_data(Some(CongestionStatsDisplay {
+                congestion_controls_by_key: peers
+                    .congestion_controls_by_key
+                    .iter()
+                    .map(|(key, value)| (key.to_base58(), value.clone()))
+                    .collect(),
+                congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
+            }));
+            self.congestion_check_timer = 0;
             work_done = true;
         }
 
