@@ -208,11 +208,15 @@ class NodeCard {
     let url = '';
    const el = document.createElement('div');
 
+    peer.block_fetch_url = "https://test-services.saito.io:443";
     let block_fetch_url = peer.block_fetch_url;
 
     if (
       block_fetch_url == ""
     ) {
+
+      // lite node (browser)
+
       url = `
         <div class="peer-link-info">
           <div class="peer-title-container">
@@ -226,12 +230,22 @@ class NodeCard {
       el.className = 'peer-item browser';
       el.innerHTML = `<span>${url}</span>`;
     } else {
-      url = `${peer.static_peer_config.protocol}://${peer.static_peer_config.host}`;
-      if (
-        (peer.static_peer_config.protocol === 'https' && peer.static_peer_config.port !== 443) ||
-        (peer.static_peer_config.protocol === 'http'  && peer.static_peer_config.port !== 80)
-      ) {
-        url += `:${peer.static_peer_config.port}`;
+
+      if (peer.static_peer_config != null) {
+        
+        // full node
+
+        url = `${peer.static_peer_config.protocol}://${peer.static_peer_config.host}`;
+        if (
+          (peer.static_peer_config.protocol === 'https' && peer.static_peer_config.port !== 443) ||
+          (peer.static_peer_config.protocol === 'http'  && peer.static_peer_config.port !== 80)
+        ) {
+          url += `:${peer.static_peer_config.port}`;
+        }
+      } else {
+
+        // service node case
+        url = peer.block_fetch_url;
       }
 
       el.className = 'peer-item';
