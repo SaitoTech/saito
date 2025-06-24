@@ -207,8 +207,7 @@ class NodeCard {
     console.log("peer: ", peer);
     let url = '';
    const el = document.createElement('div');
-
-    peer.block_fetch_url = "https://test-services.saito.io:443";
+  
     let block_fetch_url = peer.block_fetch_url;
 
     if (
