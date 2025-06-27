@@ -5,7 +5,7 @@ use crate::core::consensus::peers::peer::{Peer, PeerStatus};
 use crate::core::consensus::peers::peer_state_writer::PeerStateWriter;
 use crate::core::defs::{PeerIndex, PrintForLog, SaitoPublicKey, Timestamp};
 use ahash::HashMap;
-use log::{debug, info};
+use log::{debug, info, trace};
 use serde::Serialize;
 use std::time::Duration;
 
@@ -179,8 +179,33 @@ impl PeerCollection {
         statuses
     }
 
+    pub fn get_congestion_status_of_ip(
+        &self,
+        ip: &str,
+        current_time: Timestamp,
+    ) -> Vec<PeerCongestionStatus> {
+        if let Some(controls) = self.congestion_controls_by_ip.get(ip) {
+            let result = controls.get_congestion_status(current_time);
+            trace!(
+                "Getting congestion status for IP : {:?} at time : {:?}. Status : {:?}",
+                ip,
+                current_time,
+                result
+            );
+            vec![result]
+        } else {
+            vec![PeerCongestionStatus::NoAction]
+        }
+    }
+
     pub fn is_peer_blacklisted(&self, peer_index: PeerIndex, current_time: Timestamp) -> bool {
         let statuses = self.get_congestion_status(peer_index, current_time);
+        trace!(
+            "Checking if peer : {:?} is blacklisted. Current time : {:?}, statuses : {:?}",
+            peer_index,
+            current_time,
+            statuses
+        );
         !statuses.is_empty()
             && statuses.iter().any(|status| {
                 matches!(

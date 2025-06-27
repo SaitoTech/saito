@@ -3,7 +3,7 @@ use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::blockchain_sync_state::BlockchainSyncState;
 use crate::core::consensus::mempool::Mempool;
 use crate::core::consensus::peers::congestion_controller::{
-    CongestionStatsDisplay, CongestionType, PeerCongestionControls,
+    CongestionStatsDisplay, CongestionType, PeerCongestionControls, PeerCongestionStatus,
 };
 use crate::core::consensus::peers::peer_service::PeerService;
 use crate::core::consensus::peers::peer_state_writer::{PeerStateEntry, PEER_STATE_WRITE_PERIOD};
@@ -30,7 +30,7 @@ use crate::core::util::crypto::hash;
 use crate::core::verification_thread::VerifyRequest;
 use ahash::HashMap;
 use async_trait::async_trait;
-use log::{debug, error, trace, warn};
+use log::{debug, error, info, trace, warn};
 use std::ops::Deref;
 use std::sync::Arc;
 use std::time::Duration;
@@ -814,10 +814,12 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 if result.is_ok() {
                     let (peer_index, ip) = result.unwrap();
                     let time = self.timer.get_timestamp_in_ms();
-
-                    {
+                    if ip.is_some() {
                         let peers = self.network.peer_lock.read().await;
-                        if peers.is_peer_blacklisted(peer_index, time) {
+                        let mut result =
+                            peers.get_congestion_status_of_ip(ip.as_ref().unwrap().as_str(), time);
+                        result.retain(|status| !matches!(*status, PeerCongestionStatus::NoAction));
+                        if !result.is_empty() {
                             warn!(
                                 "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
                                 peer_index,
@@ -827,6 +829,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         }
                     }
                     self.handle_new_peer(peer_index, ip).await;
+
                     {
                         let mut peers = self.network.peer_lock.write().await;
                         peers.add_congestion_event(

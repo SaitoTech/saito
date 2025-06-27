@@ -69,7 +69,7 @@ impl Default for PeerCongestionControls {
         );
         controls.insert(
             CongestionType::ReceivedValidTransactions,
-            RateLimiter::new(100_000, Duration::from_secs(1)),
+            RateLimiter::new(100, Duration::from_secs(1)),
         );
         controls.insert(
             CongestionType::PeerConnections,
