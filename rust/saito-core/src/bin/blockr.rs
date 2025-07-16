@@ -12,6 +12,8 @@ use tokio;
 use bs58;
 use hex;
 use base64;
+use std::fs;
+use std::path::Path;
 
 // Custom serializers for human-readable output
 fn as_base58<S>(bytes: &[u8; 33], serializer: S) -> Result<S::Ok, S::Error>
@@ -184,27 +186,39 @@ async fn main() {
     // Parse command line arguments
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
-        eprintln!("Usage: blockr <url>");
+        eprintln!("Usage: blockr <url-or-filepath>");
         process::exit(1);
     }
-    let url = &args[1];
+    let input = &args[1];
 
-    // Download the data
-    let client = Client::new();
-    let response = client.get(url).send().await;
-    let bytes = match response {
-        Ok(resp) => match resp.bytes().await {
-            Ok(b) => b,
+    let bytes: Vec<u8>;
+    if Path::new(input).exists() && Path::new(input).is_file() {
+        // Read from file
+        match fs::read(input) {
+            Ok(b) => bytes = b,
+            Err(_) => {
+                eprintln!("Failed to read file: {}", input);
+                process::exit(1);
+            }
+        }
+    } else {
+        // Download the data from URL
+        let client = Client::new();
+        let response = client.get(input).send().await;
+        bytes = match response {
+            Ok(resp) => match resp.bytes().await {
+                Ok(b) => b.to_vec(),
+                Err(_) => {
+                    eprintln!("The specified url does not appear to return Saito block data");
+                    process::exit(1);
+                }
+            },
             Err(_) => {
                 eprintln!("The specified url does not appear to return Saito block data");
                 process::exit(1);
             }
-        },
-        Err(_) => {
-            eprintln!("The specified url does not appear to return Saito block data");
-            process::exit(1);
-        }
-    };
+        };
+    }
 
     // Try to deserialize as a Saito block
     let block = Block::deserialize_from_net(&bytes);
@@ -220,7 +234,7 @@ async fn main() {
             }
         }
         Err(_) => {
-            eprintln!("The specified url does not appear to return Saito block data");
+            eprintln!("The specified input does not appear to contain Saito block data");
             process::exit(1);
         }
     }
