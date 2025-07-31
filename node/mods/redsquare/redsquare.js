@@ -1738,11 +1738,15 @@ class RedSquare extends ModTemplate {
       obj.data[key] = data[key];
     }
 
-    //let wallet_balance = await this.app.wallet.getBalance('SAITO');
+    let wallet_balance = await this.app.wallet.getBalance('SAITO');
 
-    //let amount_to_send = /*wallet_balance > 1 ? BigInt(1) :*/ BigInt(0);
+    let amount_to_send = wallet_balance > 1 ? BigInt(1) : BigInt(0);
 
-    let newtx = await redsquare_self.app.wallet.createUnsignedTransaction();
+    // >>>>>>>> SANKA HERE >>>>>>>>>>>>>>
+    let newtx = await redsquare_self.app.wallet.createUnsignedTransaction(
+      this.publicKey,
+      amount_to_send
+    );
 
     newtx.msg = obj;
 
@@ -1926,6 +1930,9 @@ class RedSquare extends ModTemplate {
     console.info('RS.receiveTweet: transaction received');
 
     try {
+      // >>>>>>>> SANKA HERE >>>>>>>>>>>>>>
+      console.info('Amount in TX: ', tx.to[0].publicKey, tx.to[0].amount);
+
       let tweet = new Tweet(app, this, tx);
       let other_tweet = null;
       let txmsg = tx.returnMessage();
@@ -2677,6 +2684,7 @@ class RedSquare extends ModTemplate {
     }
 
     if (tx.to[0].amount) {
+      // >>>>>>>> SANKA HERE >>>>>>>>>>>>>>
       console.log('Auto approve moneyed tweets: ', tx.to[0].amount);
       return 1;
     }
