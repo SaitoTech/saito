@@ -90,8 +90,9 @@ class ZoomOverlay {
 
 
         renderAtSpacekey(spacekey="") {
-
+		
                 this.visible = true;
+console.log("spacekey: " + spacekey);
 
 		let s = this.mod.game.spaces[spacekey];
 		this.renderAtCoordinates(s.top, s.left);
@@ -104,22 +105,25 @@ class ZoomOverlay {
 
 		this.render();
 		let zoomOverlay = document.querySelector(".zoom-overlay");	
+		let board = document.querySelector(".zoom-overlay .gameboard");
 
 		const zoomWidth = zoomOverlay.clientWidth;
 		const zoomHeight = zoomOverlay.clientHeight;
 
+		const boardWidth = board.offsetWidth;
+		const boardHeight = board.offsetHeight;
+
   		let scrollLeft = left - zoomWidth / 2;
   		let scrollTop = top - zoomHeight / 2;
+
+		// keep board
+		scrollLeft = Math.max(0, Math.min(scrollLeft, boardWidth - zoomWidth));
+		scrollTop = Math.max(0, Math.min(scrollTop, boardHeight - zoomHeight));
 
 		if (scrollLeft < 0) { scrollLeft = 0; }
 		if (scrollTop < 0) { scrollTop = 0; }
 
-		let board = document.querySelector(".zoom-overlay .gameboard");	
 		// funky slide
-		//board.style.transition = "transform 0.5s ease";
-		//board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
-		//board.style.top = "-" + scrollTop + "px";
-		//board.style.left = "-" + scrollLeft + "px";
 		board.style.transition = "";
 		board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
 

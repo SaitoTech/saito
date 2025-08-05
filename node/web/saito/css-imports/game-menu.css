@@ -16,7 +16,7 @@
   color: black;
 }
 
-#saito-header .game-menu{
+#saito-header .game-menu {
   position: relative;
   margin: unset;
 }
@@ -67,7 +67,7 @@
 }
 
 .game-menu-sub-options:after {
-  content: "";
+  content: '';
   position: absolute;
   width: calc(100% + 70px);
   height: calc(100% + 45px);
@@ -78,7 +78,7 @@
 }
 
 .game-menu-sub-sub-options:after {
-  content: "";
+  content: '';
   position: absolute;
   width: calc(100% + 40px);
   height: calc(100% + 25px);
@@ -87,7 +87,6 @@
   transform: translateX(-50%);
   z-index: -1;
 }
-
 
 .game-menu ul.game-menu-sub-options li {
   max-width: unset;
@@ -135,7 +134,7 @@
 }
 
 .game-menu .notification::before {
-  content: "!";
+  content: '!';
   color: var(--saito-white);
   background-color: var(--saito-primary);
   border-radius: 0.7rem;
@@ -148,10 +147,10 @@
   line-height: 20px;
 }
 
-
 .game-menu .saito-notification-dot {
   left: unset;
   right: 3rem;
+  top: 0;
 }
 
 @media screen and (orientation: landscape) and (max-height: 600px) {
@@ -269,8 +268,7 @@
   }
 }
 
-
-.disable-menu{
+.disable-menu {
   display: none;
   visibility: hidden;
 }

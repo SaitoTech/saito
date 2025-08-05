@@ -35,6 +35,7 @@ class ThemeSwitcherOverlay {
 					if (theme != null) {
 						this_self.app.browser.switchTheme(theme);
 						this_self.overlay.remove();
+						this_self.app.connection.emit('saito-header-logo-change-request', {'theme': theme});
 					}
 				});
 			});

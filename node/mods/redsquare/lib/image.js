@@ -67,15 +67,19 @@ class RedSquareImage {
 	attachEvents() {
 		let sel = '.tweet-' + this.sig + ' > .tweet-body .tweet-image .tweet-picture img';
 
-		if (document.querySelectorAll(sel)) {
+		if (document.querySelector(sel)) {
 			document.querySelectorAll(sel).forEach((image) => {
-				if (image.naturalHeight > image.height || image.naturalWidth > image.width) {
-					image.onclick = (e) => {
+				image.onclick = (e) => {
+					if (image.naturalHeight > image.height || image.naturalWidth > image.width) {
 						let image_idx = e.currentTarget.getAttribute('data-index');
 						this.overlay.render(image_idx);
-					};
-				}
+					} else {
+						console.warn('Img small, no preview');
+					}
+				};
 			});
+		} else {
+			console.warn('No image selected!!!');
 		}
 	}
 }

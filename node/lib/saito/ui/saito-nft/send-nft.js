@@ -425,7 +425,7 @@ class Nft {
       left: '50%',
       top: '50%',
       transform: 'translate(-45%, -50%)',
-      pointerEvents: 'none',
+      pointerEvents: 'none'
     });
 
     const rightDiv = document.createElement('div');

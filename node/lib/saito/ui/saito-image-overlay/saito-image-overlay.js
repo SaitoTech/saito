@@ -118,15 +118,10 @@ class SaitoImageOverlay {
       this.hideArrowRight();
     }
 
-    console.log(img);
-
     let buffer = window.innerWidth > 535 ? 30 : 0;
     let img_pos = img.getBoundingClientRect();
     let left_arrow_pos = img_pos.x - buffer;
     let right_arrow_pos = window.innerWidth - img_pos.x - img_pos.width - buffer;
-
-    console.log(img_pos, window.innerWidth, buffer);
-    console.log(left_arrow_pos, right_arrow_pos);
 
     if (document.querySelector('#saito-img-arrow-box-left')) {
       document.querySelector('#saito-img-arrow-box-left').style.left = '-' + left_arrow_pos + 'px';

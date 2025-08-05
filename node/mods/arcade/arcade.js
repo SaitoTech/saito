@@ -1915,16 +1915,20 @@ class Arcade extends ModTemplate {
 			let game_data = null;
 			let updatedSocial = Object.assign({}, arcade_self.social);
 
+			updatedSocial.url = reqBaseURL + encodeURI(arcade_self.returnSlug());
+
 			if (Object.keys(req.query).length > 0) {
 				let query_params = req.query;
 
 				let game = query_params?.game || query_params?.view_game;
 
-				if (typeof game === "string") {
+				if (typeof game === 'string') {
 					let gm = app.modules.returnModuleBySlug(game.toLowerCase());
 					if (gm) {
-						updatedSocial.title = `Play ${gm.returnName()} on 🟥 Saito`;
+						updatedSocial.title = `Play <em>${gm.returnName()}</em> on the Saito Arcade`;
 						updatedSocial.image = `${reqBaseURL + gm.returnSlug()}/img/arcade/arcade.jpg`;
+						updatedSocial.description = gm.description;
+						delete updatedSocial.url;
 					}
 				}
 
@@ -1932,7 +1936,6 @@ class Arcade extends ModTemplate {
 				game_data = arcade_self.findGame(game, id);
 			}
 
-			updatedSocial.url = reqBaseURL + encodeURI(arcade_self.returnSlug());
 			let html = arcadeHome(app, arcade_self, app.build_number, updatedSocial, game_data);
 			if (!res.finished) {
 				res.setHeader('Content-type', 'text/html');

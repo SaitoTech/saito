@@ -1,4 +1,5 @@
 const SaitoUserTemplate = require('./../../lib/saito/ui/saito-user/saito-user.template.js');
+const Link = require('./../../lib/saito/ui/saito-link/link');
 const saito = require('../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
 const ChatMain = require('./lib/appspace/main');
@@ -21,6 +22,7 @@ class Chat extends ModTemplate {
     this.description = 'Saito instant-messaging client';
     this.categories = 'Messaging Chat';
     this.groups = [];
+    this.links = {};
 
     /*
      Array of:
@@ -66,6 +68,7 @@ class Chat extends ModTemplate {
     this.audio_chime = 'Glass';
     this.auto_open_community = false;
 
+    this.online = false;
     this.black_list = [];
 
     this.app.connection.on('encrypt-key-exchange-confirm', (data) => {
@@ -101,6 +104,20 @@ class Chat extends ModTemplate {
       }
 
       this.createChatTransaction(group.id, message);
+    });
+
+    app.connection.on('saito-server-listening', () => {
+      for (let g of this.groups) {
+        for (let t of g.txs) {
+          let link = app.browser.extractFirstValidURL(t.msg);
+          if (link) {
+            t.link = link;
+            app.server.fetchOpenGraphProperties(t.link, (res) => {
+              t.link_properties = res;
+            });
+          }
+        }
+      }
     });
 
     this.postScripts = ['/saito/lib/emoji-picker/emoji-picker.js'];
@@ -227,6 +244,8 @@ class Chat extends ModTemplate {
 
   async onPeerServiceUp(app, peer, service = {}) {
     let chat_self = this;
+
+    this.online = true;
 
     if (!app.BROWSER) {
       return;
@@ -355,6 +374,16 @@ class Chat extends ModTemplate {
                 if (txs[i].timestamp > most_recent_ts) {
                   this.communityGroup.txs.push(txs[i]);
                   this.communityGroup.unread++;
+                } else {
+                  if (txs[i].link_properties) {
+                    for (let j = 0; j < this.communityGroup.txs.length; j++) {
+                      if (this.communityGroup.txs[j].signature == txs[i].signature) {
+                        this.communityGroup.txs[j].link = txs[i].link;
+                        this.communityGroup.txs[j].link_properties = txs[i].link_properties;
+                        break;
+                      }
+                    }
+                  }
                 }
               }
             } else {
@@ -427,6 +456,7 @@ class Chat extends ModTemplate {
           this.chat_manager = new ChatManager(this.app, this);
         }
         return this.chat_manager;
+        break;
 
       case 'saito-game-menu':
       case 'saito-chat-popup':
@@ -458,7 +488,7 @@ class Chat extends ModTemplate {
                   unread += group.unread;
                 }
                 chat_self.app.browser.addNotificationToId(unread, id);
-                chat_self.app.connection.emit('saito-header-notification', 'chat', unread);
+                //chat_self.app.connection.emit('saito-header-notification', 'chat', unread);
               });
 
               //Trigger my initial display
@@ -719,6 +749,7 @@ class Chat extends ModTemplate {
     if (conf == 0) {
       //Does this break chat or fix the encryption bugs...?
       if (this.app.BROWSER && !tx.isTo(this.publicKey)) {
+        console.debug("Chat: browsers don't process random messages");
         return;
       }
 
@@ -748,7 +779,7 @@ class Chat extends ModTemplate {
       // We put chat message above because we actually have some logic in
       // the "double" processing of chat messages
       if (this.hasSeenTransaction(tx) && this.app.BROWSER) {
-        console.log('***************Already processed!');
+        console.log('***************Already processed! ', txmsg.request);
         return;
       }
 
@@ -805,12 +836,10 @@ class Chat extends ModTemplate {
         return 0;
       }
 
-      //Just process the most recent 50 (if event that any)
-      //Without altering the array!
-      //mycallback(group.txs.slice(-50));
-
       if (mycallback) {
-        let txs = group.txs.filter((t) => t.timestamp > txmsg?.data?.timestamp);
+        let txs = group.txs.filter(
+          (t) => t.timestamp > txmsg?.data?.timestamp || t.link_properties
+        );
         mycallback(txs);
         return 1;
       }
@@ -822,6 +851,21 @@ class Chat extends ModTemplate {
     if (txmsg.request == 'chat group') {
       this.receiveCreateGroupTransaction(tx);
       return;
+    }
+
+    if (txmsg.request == 'chat spv update') {
+      console.log('CHAT: Receive update for group / message');
+      let group = this.returnGroup(txmsg.data.group_id);
+      if (group) {
+        for (let m of group.txs) {
+          if (m.signature === txmsg.data.new_message.signature) {
+            m.link = txmsg.data.new_message.link;
+            m.link_properties = txmsg.data.new_message.link_properties;
+            this.app.connection.emit('chat-popup-render-request', group);
+            break;
+          }
+        }
+      }
     }
 
     //
@@ -920,6 +964,30 @@ class Chat extends ModTemplate {
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
+  }
+
+  async notifyPeers(data) {
+    if (this.app.BROWSER == 1) {
+      return;
+    }
+    let peers = await this.app.network.getPeers();
+    for (let peer of peers) {
+      if (peer.synctype == 'lite' && peer?.status !== 'disconnected') {
+        //
+        // fwd data to peer
+        //
+        let message = {};
+        message.request = 'chat spv update';
+        message.data = data;
+
+        this.app.network.sendRequestAsTransaction(
+          message.request,
+          message.data,
+          null,
+          peer.peerIndex
+        );
+      }
+    }
   }
 
   //
@@ -1486,12 +1554,17 @@ class Chat extends ModTemplate {
     if (onchain) {
       if (this.app.BROWSER) {
         if (tx.isFrom(this.publicKey)) {
-          //console.log("Save My Sent Chat TX");
+          console.log('Save My Sent Chat TX : ', txmsg.group_id);
           await this.app.storage.saveTransaction(tx, {
             field3: txmsg.group_id
           });
         }
-      }
+      } /*else if (tx.isTo(this.publicKey)) {
+        console.log('Save Public Chat TX : ', txmsg.group_id);
+        await this.app.storage.saveTransaction(tx, {
+          field3: txmsg.group_id
+        });
+      }*/
     }
 
     let group = this.returnGroup(txmsg.group_id);
@@ -1664,6 +1737,19 @@ class Chat extends ModTemplate {
               console.log('Mark remaining messages as new!');
               new_message_flag = true;
             }
+
+            if (block[z].link_properties) {
+              msg += `<div class='link-preview link-${block[z].signature}'></div>`;
+              if (!this.links[block[z].signature]) {
+                this.links[block[z].signature] = new Link(
+                  this.app,
+                  this,
+                  `.link-${block[z].signature}`,
+                  block[z].link,
+                  block[z].link_properties
+                );
+              }
+            }
           }
 
           //
@@ -1693,6 +1779,12 @@ class Chat extends ModTemplate {
     this.saveChatGroup(group);
 
     return html;
+  }
+
+  renderLinks() {
+    for (let a in this.links) {
+      this.links[a].render();
+    }
   }
 
   createMessageBlocks(group) {
@@ -1743,6 +1835,11 @@ class Chat extends ModTemplate {
       last_message_sender = minimized_tx.from[0];
       last_message_ts = minimized_tx.timestamp;
       last = next;
+
+      if (minimized_tx?.link_properties) {
+        // Next message after a link starts a new block!
+        last_message_sender = '';
+      }
     }
 
     if (block.length > 0) {
@@ -1779,7 +1876,7 @@ class Chat extends ModTemplate {
     } catch (err) {}
 
     if (this.debug) {
-      // console.log('Adding Chat TX to group: ', txmsg);
+      console.debug('Adding Chat TX to group: ', txmsg);
     }
 
     let content = txmsg.message || txmsg;
@@ -1853,6 +1950,16 @@ class Chat extends ModTemplate {
     group.last_update = Math.max(group.last_update, new_message.timestamp);
 
     if (!this.app.BROWSER) {
+      let link = this.app.browser.extractFirstValidURL(content);
+      if (link && this.online) {
+        new_message.link = link;
+        this.app.server.fetchOpenGraphProperties(new_message.link, (res) => {
+          new_message.link_properties = res;
+          // send out a broadcast with an update
+          this.notifyPeers({ group_id: group.id, new_message });
+        });
+      }
+
       return 0;
     }
 
@@ -2146,6 +2253,7 @@ class Chat extends ModTemplate {
 
     let ts = new Date().getTime();
 
+    // ts of oldest message in chat group
     if (group.txs.length > 0) {
       ts = group.txs[0].timestamp;
     }
@@ -2153,11 +2261,10 @@ class Chat extends ModTemplate {
     let chat_self = this;
 
     await this.app.storage.loadTransactions(
-      { field3: group_id, limit: 25, created_earlier_than: ts },
+      { field3: group_id, limit: 50, created_earlier_than: ts },
       async (txs) => {
         console.log(`Fetched ${txs?.length} older chat messages from Archive`);
-
-        if (!txs || txs.length < 25) {
+        if (!txs || txs.length < 50) {
           this.app.connection.emit('chat-remove-fetch-button-request', group_id);
         }
 

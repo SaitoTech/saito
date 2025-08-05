@@ -9,6 +9,25 @@
         background-size: cover;
 }
 
+.loss-overlay.desert {
+        background-image: url('/paths/img/backgrounds/desert1-wwi.jpg');
+}
+.loss-overlay.forest {
+        background-image: url('/paths/img/backgrounds/forest1-wwi.png');
+}
+.loss-overlay.fort {
+        background-image: url('/paths/img/backgrounds/fort4-wwi.jpg');
+}
+.loss-overlay.mountain {
+        background-image: url('/paths/img/backgrounds/alpine4-wwi.jpg');
+}
+.loss-overlay.swamp {
+        background-image: url('/paths/img/backgrounds/swamp2-wwi.png');
+}
+.loss-overlay.fort {
+        background-image: url('/paths/img/backgrounds/swamp2-wwi.png');
+}
+
 .loss-overlay .help {
         background: #0009;
         width: 100%;
@@ -122,7 +141,7 @@
 
 .results_table {
     display: grid;
-    grid-template-columns: repeat(7, auto);
+    grid-template-columns: repeat(8, auto);
     grid-template-rows: min-content 1fr 1fr;
     font-size: 2rem;
 }

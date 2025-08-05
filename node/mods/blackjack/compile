@@ -1,0 +1,18 @@
+rm ../../web/saito/saito.js
+
+
+#
+# class constructor
+#
+cat ./src/blackjack-init.js > ./blackjack.js
+cat ./src/blackjack-cards.js >> ./blackjack.js
+cat ./src/blackjack-gameloop.js >> ./blackjack.js
+cat ./src/blackjack-display.js >> ./blackjack.js
+cat ./src/blackjack-player.js >> ./blackjack.js
+cat ./src/blackjack-state.js >> ./blackjack.js
+cat ./src/blackjack-staking.js >> ./blackjack.js
+cat ./src/blackjack-end.js >> ./blackjack.js
+
+npm run compile $1
+
+

@@ -4,7 +4,7 @@ buttons
 
 button,
 .saito-button-primary { /* controls main post buttons */
-  background: var(--saito-primary);
+  background: var(--background-color-button-primary);
   transition: 0.5s;
   background-size: 400% auto;
   padding: 1rem 1.5rem;

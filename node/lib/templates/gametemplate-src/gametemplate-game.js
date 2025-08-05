@@ -159,6 +159,7 @@ class GameGame {
   }
 
   saveGame(game_id) {
+
     if (!this.app.BROWSER) {
       return;
     }
@@ -168,10 +169,10 @@ class GameGame {
       return;
     }
 
-    //    console.info(`GT: SAVING GAME ID: ${game_id}`);
-    //    console.debug('GT [saveGame] queue: ' + JSON.parse(JSON.stringify(this.game.queue)));
+console.log("#################");
+console.log("### SAVE GAME ### triggered");
+console.log("#################");
 
-    // make sure options file has structure to save your game
     if (!this.app.options) {
       this.app.options = {};
     }
@@ -185,7 +186,6 @@ class GameGame {
       );
     }
 
-    //console.log("saveGame version: "+this.app.crypto.hash(Math.random()));
     if (!game_id || game_id !== this.game.id) {
       //game_id = this.app.crypto.hash(Math.random().toString(32));
       //console.warn(
@@ -218,11 +218,6 @@ class GameGame {
             }
 
             this.app.options.games[i] = JSON.parse(JSON.stringify(this.game)); //create new object
-
-            //            console.debug(
-            //              'GT [saveGame] queue as saved: ' + JSON.parse(JSON.stringify(this.game.queue))
-            //            );
-
             this.app.storage.saveOptions();
             return;
           }

@@ -10,7 +10,7 @@
       //
       if (!this.game.state.events.unitedfruit_removed) {
         this.game.state.events.unitedfruit_removed = 1;
-        this.removeCardFromDeckNextDeal("unitedfruit", "Fidel Evented");
+        this.removeTwilightCardFromDeckNextDeal("unitedfruit", "Fidel Evented");
         this.cancelEvent("unitedfruit");
       }
 

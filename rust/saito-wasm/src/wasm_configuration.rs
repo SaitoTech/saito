@@ -105,6 +105,10 @@ impl Configuration for WasmConfiguration {
         &self.blockchain
     }
 
+    fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+        &mut self.blockchain
+    }
+
     fn get_block_fetch_url(&self) -> String {
         if self.get_server_configs().is_none() {
             return "".to_string();
@@ -144,5 +148,14 @@ impl Configuration for WasmConfiguration {
 
     fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>) {
         self.congestion = congestion_data;
+    }
+    fn get_config_path(&self) -> String {
+        String::new()
+    }
+
+    fn set_config_path(&mut self, path: String) {}
+
+    fn save(&self) -> Result<(), std::io::Error> {
+        Ok(())
     }
 }

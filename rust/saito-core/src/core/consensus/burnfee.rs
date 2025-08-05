@@ -4,6 +4,7 @@ use log::debug;
 
 use crate::core::defs::{Currency, Timestamp};
 
+pub const BURNFEE_MULTIPLIER: f64 = 100_000_000.0;
 //
 // our target blocktime
 // #[cfg(not(test))]
@@ -58,11 +59,12 @@ impl BurnFee {
 
         // convert to float for division
         let elapsed_time_float = elapsed_time as f64;
-        let burn_fee_previous_block_as_float: f64 = burn_fee_previous_block as f64 / 100_000_000.0;
+        let burn_fee_previous_block_as_float: f64 =
+            burn_fee_previous_block as f64 / BURNFEE_MULTIPLIER;
         let work_needed_float: f64 = burn_fee_previous_block_as_float / elapsed_time_float;
 
         // convert back to nolan for rounding / safety
-        (work_needed_float * 100_000_000.0).round() as Currency
+        (work_needed_float * BURNFEE_MULTIPLIER).round() as Currency
     }
 
     /// Returns an adjusted burnfee based on the start value provided
@@ -95,13 +97,18 @@ impl BurnFee {
             return 50_000_000;
         }
 
-        let burn_fee_previous_block_as_float: f64 = burn_fee_previous_block as f64 / 100_000_000.0;
+        let burn_fee_previous_block_as_float: f64 =
+            burn_fee_previous_block as f64 / BURNFEE_MULTIPLIER;
 
         let res0 = heartbeat as f64 / timestamp_difference as f64;
         let res1 = res0.sqrt();
         let res2: f64 = burn_fee_previous_block_as_float * res1;
-        let new_burnfee: Currency = (res2 * 100_000_000.0).round() as Currency;
+        let new_burnfee: Currency = (res2 * BURNFEE_MULTIPLIER).round() as Currency;
 
+        debug!(
+            "res0 : {} res1 = {:?} res2 = {:?} timestamp_difference : {} new burnfee = {:?}",
+            res0, res1, res2, timestamp_difference, new_burnfee
+        );
         new_burnfee
     }
 }

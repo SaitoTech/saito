@@ -41,14 +41,15 @@ class GameHelp {
     }
   }
 
-  render(targs = {}, duration=0) {
-
+  render(targs = {}, duration = 0) {
     if (targs.id) {
       if (this.game_mod.loadGamePreference(`settlers_help_${targs.id}`)) {
         return;
       }
     }
-    if (duration > 0) { targs.duration = duration; }
+    if (duration > 0) {
+      targs.duration = duration;
+    }
 
     let gh = document.querySelector('.game-help-triangle');
     if (gh) {
@@ -83,7 +84,7 @@ class GameHelp {
               gh.remove();
             }, 500); // Match this to the fade-out duration
           }
-	} catch (err) {}
+        } catch (err) {}
       }, targs.duration);
     }
 

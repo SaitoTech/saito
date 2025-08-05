@@ -120,4 +120,7 @@ export default class CustomSharedMethods implements SharedMethods {
     sendNewVersionAlert(major: number, minor: number, patch: number, peerIndex: bigint): void {
         throw new Error("Method not implemented");
     }
+    sendNewChainDetectedEvent(): void {
+        throw new Error("Method not implemented.");
+    }
 }

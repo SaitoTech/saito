@@ -12,7 +12,6 @@ html[data-theme='raven'] {
   --saito-border-color: #555;
   --saito-border-color-dark: #666;
   --saito-background-color: #1c1c23;
-  --saito-background-light: #fff;
   --saito-sidebar-element-background: #0003;
   --saito-gray-transparent: #e3e3e318;
   --saito-box-shadow: 0 0 0 1px var(--saito-border-color);
@@ -80,7 +79,7 @@ html[data-theme='raven'] {
   --border-color-button-wallet-control: var(--saito-primary);
   --border-color-button-modal: var(--saito-gray-dark);
   --border-color-button-module: var(--saito-gray-dark);
-  --border-color-sidebar-menu: var(--color-tint-dark);
+  --border-color-sidebar-menu: var(--saito-border-color);
   --border-color-module-menu: none;
   --border-color-overlay-subform: var(--color-tint-dark);
   --border-color-chat-menu: ;
@@ -97,7 +96,7 @@ html[data-theme='raven'] {
   --background-color-modal-menu-oldschool: none;
   --background-color-overlay-form-header: var(--saito-background-color);
   /* Button Background Colors */
-  --background-color-button-primary: var(--saito-secondary);
+
   --background-color-button-hover-primary: none;
   --background-color-button-sidebar-chat-active: var(--color-tint-dark);
   --background-color-button-hover-modal-oldschool: var(--saito-primary);
@@ -116,9 +115,9 @@ html[data-theme='raven'] {
 
   /* Theme Specific */
   --saito-arcade-header-background: var(--saito-background-color);
-  --saito-heart-animation: url('/redsquare/images/heart-orange.png');
   --saito-background-color: #14212d;
   --saito-background-color-inverse: #d7dbdc;
   --saito-header-background: var(--saito-background-color);
-  --background-color-button-primary: #eff3f4;
+  --background-color-button-primary: var(--saito-primary);
+  --saito-background-light: var(--saito-background-color);
 }

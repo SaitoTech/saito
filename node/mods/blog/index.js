@@ -1,5 +1,5 @@
-module.exports = (app, mod, build_number, og_card) => {
-  return `
+module.exports = (app, mod, build_number, og_card, cache = '') => {
+  let html = `
 
   
   <!DOCTYPE html>
@@ -39,7 +39,7 @@ module.exports = (app, mod, build_number, og_card) => {
     <meta property="og:title" content="${app.browser.escapeHTML(og_card.title)}" />
     <meta property="og:url" content="${og_card.url}" />
     <meta property="og:description" content="${app.browser.escapeHTML(og_card.description)}"/>
-    <meta property="og:site_name" content="${app.browser.escapeHTML(og_card.title)}" />
+    <meta property="og:site_name" content="Saito" />
     <meta property="og:image" content="${og_card.image}"/>
     <meta property="og:image:url" content="${og_card.image}"/>
     <meta property="og:image:secure_url" content="${og_card.image}"/>
@@ -88,10 +88,17 @@ module.exports = (app, mod, build_number, og_card) => {
   <body>
   <script src="/blog/js/quill.js"></script>
   https://cdn.jsdelivr.net/npm/quill-markdown-shortcuts@0.0.10/dist/markdownShortcuts.min.js
-  </body>
-  <script type="text/javascript" src="/saito/saito.js?build=${build_number}" >
+  </body>`;
+
+  if (cache) {
+    html += `<script type="text/javascript">var post = '${cache}'</script>`;
+  }
+
+  html += `<script type="text/javascript" src="/saito/saito.js?build=${build_number}" >
 </script>
   </html>
   
   `;
+
+  return html;
 };

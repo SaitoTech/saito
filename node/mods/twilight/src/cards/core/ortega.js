@@ -38,7 +38,7 @@
         //To Launch the Coup
 
 
-        for (var c of neighbors) {
+        for (let c of neighbors) {
           $("#"+c).addClass("easterneurope");
         }
 

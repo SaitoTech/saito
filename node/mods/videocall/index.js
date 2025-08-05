@@ -1,5 +1,5 @@
 module.exports = (app, mod, build_number, og_card) => {
-	return `
+  return `
 
   
   <!DOCTYPE html>
@@ -37,7 +37,7 @@ module.exports = (app, mod, build_number, og_card) => {
     <meta property="og:title" content="${app.browser.escapeHTML(og_card.title)}" />
     <meta property="og:url" content="${og_card.url}" />
     <meta property="og:description" content="${app.browser.escapeHTML(og_card.description)}"/>
-    <meta property="og:site_name" content="${app.browser.escapeHTML(og_card.title)}" />
+    <meta property="og:site_name" content="Saito" />
     <meta property="og:image" content="${og_card.image}"/>
     <meta property="og:image:url" content="${og_card.image}"/>
     <meta property="og:image:secure_url" content="${og_card.image}"/>

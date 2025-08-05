@@ -1152,7 +1152,9 @@ pub mod test {
         fn get_blockchain_configs(&self) -> &BlockchainConfig {
             &self.blockchain
         }
-
+        fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+            &mut self.blockchain
+        }
         fn get_block_fetch_url(&self) -> String {
             todo!()
         }
@@ -1187,6 +1189,16 @@ pub mod test {
             >,
         ) {
             todo!()
+        }
+
+        fn get_config_path(&self) -> String {
+            String::new()
+        }
+
+        fn set_config_path(&mut self, path: String) {}
+
+        fn save(&self) -> Result<(), std::io::Error> {
+            Ok(())
         }
     }
 }

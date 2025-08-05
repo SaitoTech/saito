@@ -25,15 +25,10 @@ pub struct NodeConfigurations {
     consensus: Option<ConsensusConfig>,
     blockchain: BlockchainConfig,
     congestion: Option<CongestionStatsDisplay>,
+    #[serde(skip)]
+    config_path: String,
 }
 
-impl NodeConfigurations {
-    pub fn write_to_file(&self, config_file_path: String) -> Result<(), Error> {
-        let file = std::fs::File::create(config_file_path)?;
-        serde_json::to_writer_pretty(&file, &self)?;
-        Ok(())
-    }
-}
 impl Default for NodeConfigurations {
     fn default() -> Self {
         NodeConfigurations {
@@ -81,6 +76,7 @@ impl Default for NodeConfigurations {
                 issuance_writing_block_interval: get_default_issuance_writing_block_interval(),
             },
             congestion: None,
+            config_path: String::from("config/config.json"),
         }
     }
 }
@@ -97,7 +93,9 @@ impl Configuration for NodeConfigurations {
     fn get_blockchain_configs(&self) -> &BlockchainConfig {
         &self.blockchain
     }
-
+    fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+        &mut self.blockchain
+    }
     fn get_block_fetch_url(&self) -> String {
         let endpoint = &self.get_server_configs().unwrap().endpoint;
         endpoint.protocol.to_string()
@@ -136,6 +134,18 @@ impl Configuration for NodeConfigurations {
     fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>) {
         self.congestion = congestion_data;
     }
+    fn save(&self) -> Result<(), Error> {
+        let config_file_path = self.get_config_path();
+        let file = std::fs::File::create(config_file_path)?;
+        serde_json::to_writer_pretty(&file, &self)?;
+        Ok(())
+    }
+    fn get_config_path(&self) -> String {
+        self.config_path.clone()
+    }
+    fn set_config_path(&mut self, path: String) {
+        self.config_path = path;
+    }
 }
 
 pub struct ConfigHandler {}
@@ -153,20 +163,23 @@ impl ConfigHandler {
             if path.parent().is_some() {
                 std::fs::create_dir_all(path.parent().unwrap())?;
             }
-            let configs = NodeConfigurations::default();
-            configs.write_to_file(config_file_path.to_string())?;
+            let mut configs = NodeConfigurations::default();
+            configs.set_config_path(config_file_path.clone());
+            configs.save()?;
         }
         // TODO : add prompt with user friendly format
         let configs = Figment::new()
-            .merge(Json::file(config_file_path))
+            .merge(Json::file(config_file_path.clone()))
             .extract::<NodeConfigurations>();
 
         if configs.is_err() {
             error!("failed loading configs. {:?}", configs.err().unwrap());
             return Err(std::io::Error::from(ErrorKind::InvalidInput));
         }
+        let mut configs = configs.unwrap();
+        configs.set_config_path(config_file_path.clone());
 
-        Ok(configs.unwrap())
+        Ok(configs)
     }
 }
 

@@ -386,11 +386,6 @@
 
   checkSupplyStatus(faction="", spacekey="") {
 
-//let trace_supply = 0;
-//if (faction == "romania") {
-//  trace_supply = 1;
-//}
-
     let toggle_constantinople_port = 0;
 
     //
@@ -460,6 +455,11 @@
     this.game.spaces[spacekey].supply = {};
     this.game.spaces[spacekey].oos = 0;
 
+
+if (spacekey == "stanislau") {
+//  console.log("calculating supply for Stanislau...");
+}
+
     //
     // SN and ANA Corps are always supplied in the NE.
     //
@@ -473,15 +473,24 @@
       }
     }
 
+
+    //
+    // neutral countries with neutral units are in supply
+    //
+    // eg. greek after Salonika play
+    //
+    let country = this.game.spaces[spacekey].country;
+    if (!this.game.state.events[country]) { return 1; }
+
     let ports_added = false;
     let pending = [spacekey];
     let examined = {};
     let sources = [];
     let controlling_faction = "allies";
 
-    if (faction == "cp" || faction == "ge" || faction == "bu" || faction == "bulgaria" || faction == "austria" || faction == "germany" || faction == "ah" || faction == "central") { sources.push(...["essen","breslau","sofia","constantinople"]); controlling_faction = "central"; }
-    if (faction == "tu" || faction == "turkey") { sources.push("constantinople"); controlling_faction = "central"; }
+    if (faction == "cp" || faction == "ge" || faction == "tu" || faction == "bu" || faction == "bulgaria" || faction == "austria" || faction == "germany" || faction == "ah" || faction == "central") { sources.push(...["essen","breslau","sofia","constantinople"]); controlling_faction = "central"; }
     if (faction == "be" || faction == "belgium") { sources.push("london"); }
+    if (faction == "mef") { sources.push(...[this.game.state.events.mef_beachhead, "london"]); }
     if (faction == "fr" || faction == "france") { sources.push("london"); }
     if (faction == "ap" || faction == "allies") { sources.push("london", "moscow", "petrograd", "kharkov", "caucasus"); }
     if (faction == "ru" || faction == "russia") { sources.push(...["moscow","petrograd","kharkov","caucasus"]); }
@@ -493,11 +502,17 @@
     if (sources.length == 0) {
       sources = ["london"];
     }
+    if (country == "albania") { if (this.game.spaces["taranto"].control != "central") { sources.push("taranto"); } }
     let ports = this.returnFriendlyControlledPorts(controlling_faction);
 
     while (pending.length > 0) {
 
       let current = pending.shift();
+
+if (spacekey == "stanislau") {
+//  console.log("examining: " + current + " ---- " + controlling_faction);
+}
+
 
       //
       // if spacekey is a source we have a supply-line
@@ -518,8 +533,15 @@
       //
       for (let n in this.game.spaces[current].neighbours) {
         let s = this.game.spaces[current].neighbours[n];
+if (spacekey == "stanislau") {
+//  console.log("neighbour: " + s + " controlled by " + this.returnControlOfSpace(s));
+}
+
         if (!examined[s]) {
 	  if (this.returnControlOfSpace(s) == controlling_faction) {
+if (spacekey == "stanislau") {
+//console.log("here we are!");
+}
 	    //
 	    // only if not besieged
 	    //
@@ -536,6 +558,9 @@
 	        pending.push(s); 
 	      }
 	    } else {
+if (spacekey == "stanislau") {
+  console.log("no fort and controlled by us!");
+}
 	      pending.push(s); 
 	    }
 	  } else {
@@ -555,6 +580,13 @@
 
 
       if (ports_added == false) {
+        if (current == this.game.state.events.mef_beachhead) {
+	  if (this.game.spaces[current].control == "allies") {
+	    this.game.spaces[current].port = 1;
+	  } else {
+	    this.game.spaces[current].port = 0;
+	  }
+	}
 	if (controlling_faction == "allies" && this.game.spaces[current].port == 1 && this.game.spaces[current].control == "allies") {
  	  for (let i = 0; i < ports.length; i++) {
 	    if (this.game.spaces[ports[i]].control == "allies") {
@@ -633,7 +665,11 @@
     for (let key in countries) { total_nationalities++; }
 
     if (faction == "allies") {
-      if (this.isSpaceOnNearEastMap(key)) {
+      //
+      // TODO -- if MEF army heads north it can get out of the range where it costs 3 OPs to activate regardless of whether
+      // supply is being traced through the MEF space...
+      //
+      if (this.isSpaceOnNearEastMap(key) || key == "izmir" || key == "balikesir" || key == "gallipoli" || key == "canakale" || key == "adrianople" || key == "constantinople")  {
 
 	// 9.2.7.1 MEF Beachhead: It costs 3 OPS to activate the MEF Army for movement or combat when tracing supply through 
 	// the MEF Beachhead marker. It costs 1 OPS per corps to activate other Allied units tracing supply (at the moment of 
@@ -3046,7 +3082,7 @@ spaces['kishinev'] = {
 
 spaces['caucasus'] = {
       name: "Caucasus" ,
-    control: "allies" ,
+      control: "allies" ,
       top: 1608 ,
       left: 3947 ,
       neighbours: ["uman", "odessa", "poti", "grozny"] ,
@@ -3081,7 +3117,7 @@ spaces['odessa'] = {
 
 spaces['poti'] = {
       name: "Poti" ,
-    control: "allies" ,
+      control: "allies" ,
       top: 1871 ,
       left: 4377 ,
       neighbours: ["caucasus", "batum"] ,
@@ -3339,7 +3375,7 @@ spaces['bursa'] = {
     control: "neutral" ,
       top: 2695 ,
       left: 3470 ,
-      neighbours: ["constantinople", "eskidor"] ,
+      neighbours: ["constantinople", "eskidor", "balikesir"] ,
       terrain : "normal" ,
       vp : false ,
       country : "turkey" ,

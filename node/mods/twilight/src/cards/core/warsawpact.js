@@ -6,7 +6,7 @@
 
       // SAITO COMMUNITY
       if (!this.game.state.events.nato_added) {
-        this.addCardToDeck("nato", "Prerequisites Met");
+        this.addTwilightCardToDeck("nato", "Prerequisites Met");
       }
 
       this.game.state.events.warsawpact = 1;
@@ -33,7 +33,7 @@
             var countries_to_purge = 4;
             var options_purge = [];
 
-            for (var c of europeanCountries) {
+            for (let c of europeanCountries) {
               let divname      = '#'+c;
               
               if (twilight_self.countries[c].us > 0) { 
@@ -94,7 +94,7 @@
             var ops_to_place = 5;
             var ops_placed = {};
 
-            for (var c of europeanCountries) {
+            for (let c of europeanCountries) {
 
               ops_placed[c] = 0;
               let divname      = '#'+c;

@@ -15,13 +15,12 @@
 
       this.startClockAndSetActivePlayer(this.roles.indexOf(player));
 
-      if (i_played_the_card) {
-
+      if (this.game.player == 1) {
 
         // pick optional card
         var twilight_self = this;
 
-        let corecards = ["asia","europe","mideast","duckandcover","fiveyearplan","socgov","fidel","vietnamrevolts","blockade","koreanwar","romanianab","arabisraeli","comecon","nasser","warsawpact","degualle","naziscientist","truman","olympic","nato","indreds","marshall","indopaki","containment","cia","usjapan","suezcrisis","easteuropean","decolonization","redscare","unintervention","destalinization","nucleartestban","formosan","brushwar","camerica","seasia","armsrace","cubanmissile","nuclearsubs","quagmire","saltnegotiations","beartrap","summit","howilearned","junta","kitchendebates","missileenvy","wwby","brezhnev","portuguese","southafrican","allende","willybrandt","muslimrevolution","abmtreaty","culturalrev","flowerpower","u2","opec","lonegunman","colonial","panamacanal","campdavid","puppet","grainsales","johnpaul","deathsquads","oas","nixon","sadat","shuttle","voiceofamerica","liberation","ussuri","asknot","alliance","africa","onesmallstep","samerica","iranianhostage","ironlady","reagan","starwars","northseaoil","reformer","marine","KAL007","glasnost","ortega","terrorism","irancontra","chernobyl","debtcrisis","evilempire","aldrichames","pershing","wargames","solidarity"];
+        let corecards = ["asia","europe","mideast","duckandcover","fiveyearplan","socgov","fidel","vietnamrevolts","blockade","koreanwar","romanianab","arabisraeli","comecon","nasser","warsawpact","degualle","naziscientist","truman","olympic","nato","indreds","marshall","indopaki","containment","cia","usjapan","suezcrisis","easteuropean","decolonization","redscare","unintervention","destalinization","nucleartestban","formosan","brushwar","camerica","seasia","armsrace","cubanmissile","nuclearsubs","quagmire","saltnegotiations","beartrap","summit","howilearned","junta","kitchendebates","missileenvy","wwby","brezhnev","portuguese","southafrican","allende","willybrandt","muslimrevolution","abmtreaty","culturalrev","flowerpower","u2","opec","lonegunman","colonial","panamacanal","campdavid","puppet","grainsales","johnpaul","deathsquads","oas","nixon","sadat","shuttle","voiceofamerica","liberation","ussuri","asknot","alliance","africa","onesmallstep","samerica","iranianhostage","ironlady","reagan","starwars","northseaoil","reformer","marine","KAL007","glasnost","ortega","terrorism","irancontra","chernobyl","debtcrisis","evilempire","aldrichames","pershing","wargames","solidarity","china"];
         let cards = [];
 
         for (var i in this.game.deck[0].cards) {

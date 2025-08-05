@@ -1745,6 +1745,40 @@ class Browser {
     }
   }
 
+  extractFirstValidURL(text) {
+    let first_link = null;
+    let links = text.match(this.urlRegexp());
+
+    while (links?.length > 0) {
+      first_link = links.pop();
+
+      if (!this.numberFilter(first_link)) {
+        break;
+      } else {
+        first_link = null;
+      }
+    }
+
+    if (first_link) {
+      if (!first_link.startsWith('http')) {
+        first_link = 'http://' + first_link;
+      }
+
+      let urlParams = null;
+
+      try {
+        let link = new URL(first_link);
+        urlParams = new URLSearchParams(link.search);
+
+        return link.toString();
+      } catch (err) {
+        console.error(first_link + ' is not a valid url');
+        return;
+      }
+    }
+    return null;
+  }
+
   //
   // neither of these is quite right and the internet is full of wrong answers
   //
@@ -1761,7 +1795,7 @@ class Browser {
 
     //this should identify patterns like x.com and staging.saito.io which the others do not.
     let urlIndentifierRegexp =
-      /\b(?:https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/[\w\/.-]*)?(\?[^<\s]*)?(?![^<]*>)/gi;
+      /\b(?:https?:\/\/)?([\w-]+[\.:])+[\w-]{2,}(\/[\w\/.-]*)?(\?[^<\s]*)?(?![^<]*>)/gi;
     return urlIndentifierRegexp;
   }
 
@@ -2294,7 +2328,7 @@ class Browser {
   processLocalLink(event) {
     event.preventDefault();
 
-    let link = event.target.getAttribute('href');
+    let link = event.currentTarget.getAttribute('href');
     let processed = false;
 
     this.app.modules.getRespondTos('saito-link', { link }).forEach((modResponse) => {

@@ -6,7 +6,7 @@
     if (card == "ironlady") {
 
       // SAITO COMMUNITY
-      this.removeCardFromDeckNextDeal("socgov", "The Iron Lady evented");
+      this.removeTwilightCardFromDeckNextDeal("socgov", "The Iron Lady evented");
 
 
       this.updateLog("US gains 1 VP from The Iron Lady");

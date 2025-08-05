@@ -152,7 +152,6 @@
 
 .league-overlay-description {
 	position: relative;
-	font-size: 1.7rem;
 	line-height: 2.3rem;
 	padding: 1.5rem;
 }
@@ -418,6 +417,7 @@ span.attention {
     justify-content: space-between;
     width: 100%;
     padding-right: 1rem;
+    color: var(--saito-font-color-heavy);
 }
 
 

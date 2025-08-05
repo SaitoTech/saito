@@ -3,6 +3,7 @@ var GameTemplate = require('../../lib/templates/gametemplate');
 const JSON = require('json-bigint');
 const MidnightGameRulesTemplate = require('./lib/midnight-game-rules.template');
 const MidnightBook = require('./lib/midnight-book');
+const htmlTemplate = require('./lib/game-html.template').default;
 
 //////////////////
 // CONSTRUCTOR  //
@@ -38,13 +39,18 @@ class Midnight extends GameTemplate {
 		return MidnightGameRulesTemplate(this.app, this);
 	}
 
-	async initializeHTML(app) {
+	async render(app) {
 		if (!this.browser_active) {
 			return;
 		}
 		if (this.initialize_game_run) {
 			return;
 		}
+
+    		if (this.game_html_injected != 1) {
+      		  await this.injectGameHTML(htmlTemplate());
+    		  this.game_html_injected = 1;
+    		}
 
 		// init single player if needed
 		if (this.game.players.length == 0) {

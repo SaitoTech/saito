@@ -54,32 +54,26 @@ module.exports = (app, mod, profile) => {
       >
       
       `;
-    
 
-console.log("profile.description:  /////////////////", profile.description);
+  console.log('profile.description:  /////////////////', profile.description);
 
   if (typeof profile.description != 'undefined') {
-    html +=  
-      `
+    html += `
       	<div id="profile-description-${publicKey}" class="profile-description-${publicKey}" data-id="${publicKey}">${
           profile?.description || ''
         }</div>
       	<div class="saito-description-edit"><i class="fas fa-pen"></i></div>
 
     `;
-
-    } else {
-    
-    html +=`
+  } else {
+    html += `
         <div class="saito-description-edit">
           Add description
         </div>
       `;
   }
 
-    html +=
-    
-  `</div>
+  html += `</div>
 
 		<div class="saito-profile-controls"></div>
     <div class="saito-profile-menu"></div>

@@ -65,7 +65,7 @@
 .modtools-contact {
   align-items: center;
   display: grid;
-  grid-template-columns: minmax(150px, 4fr) minmax(100px, 2fr) minmax(50px, 1fr) minmax(150px, 4fr);
+  grid-template-columns: minmax(150px, 4fr) minmax(100px, 2fr) minmax(100px, 2fr) minmax(150px, 3fr);
   text-align: left;
   gap: 1rem;
 }

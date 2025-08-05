@@ -1,7 +1,7 @@
 
     if (card == "berlinagreement") {
 
-      this.removeCardFromDeckNextDeal("blockade", "Blockade Cancelled");
+      this.removeTwilightCardFromDeckNextDeal("blockade", "Blockade Cancelled");
 
       this.cancelEvent("blockade");
 

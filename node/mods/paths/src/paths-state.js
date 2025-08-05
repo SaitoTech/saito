@@ -8,12 +8,15 @@
     this.calculateRussianCapitulationTrack();
     this.displayActionRoundTracks();
 
+    this.game.state.cards_left["central"] = 0;
+    this.game.state.cards_left["allies"] = 0;
     this.game.state.events.wireless_intercepts = 0;
     this.game.state.events.withdrawal = 0;
     this.game.state.events.withdrawal_bonus_used = 0;
     this.game.state.events.brusilov_offensive = 0;
     this.game.state.events.backs_to_the_wall = 0;
     this.game.state.events.influence = 0;
+    this.game.state.active_card = "";
 
     this.game.state.has_player_activated_ne_space_this_turn = 0;   
 
@@ -57,6 +60,7 @@
     this.game.state.mandated_offensives = {};
     this.game.state.mandated_offensives.central = "";
     this.game.state.mandated_offensives.allies = "";
+    this.game.state.active_card = "";
 
     this.game.state.allies_passed = 0;
     this.game.state.central_passed = 0;
@@ -255,8 +259,11 @@
     state.turn = 0;
     state.skip_counter_or_acknowledge = 0; // don't skip
     state.cards_left = {};
+    state.cards_left["central"] = 0;
+    state.cards_left["allies"] = 0;
 
     state.neutral_entry = 0;
+    state.active_card = "";
 
     state.mandated_offensives = {};
     state.mandated_offensives.central = "";
@@ -353,7 +360,6 @@
     state.cc_central_played_this_round = [];
     state.cc_allies_active = [];
     state.cc_allies_played_this_round = [];
-
 
     state.central_limited_war_cards_added = false;
     state.allies_limited_war_cards_added = false;

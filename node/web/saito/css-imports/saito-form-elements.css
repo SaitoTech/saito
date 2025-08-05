@@ -293,3 +293,76 @@ input[type="password"],
 select {
   width: 99%;
 }
+
+/***************************************************
+ * the cool toggle switch element for RS - curation
+ * (hoping it is more generally applicable)
+ * *************************************************/
+.toggle-switch {
+  position: relative;
+  display: flex;
+  min-width: 250px;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--background-color-gray-transparent-light);
+  border: 1px solid var(--saito-border-color, #444);
+  overflow: hidden;
+  font-size: 0.9rem;
+  user-select: none;
+  padding: 2px;
+}
+
+.toggle-switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: calc(70% - 4px);
+  background: var(--saito-primary, #639);
+  border-radius: 999px;
+  z-index: 0;
+  transition: left 0.3s ease;
+  left: 2px; /* initial position */
+}
+
+.toggle-option {
+  min-width: auto !important;
+  width: auto !important;
+  padding: 10px 0 !important;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  z-index: 1;
+  font-weight: 500;
+  transition:
+    flex-basis 0.3s ease,
+    color 0.25s ease;
+  flex-grow: 0;
+  flex-shrink: 0;
+  flex-basis: 30%;
+}
+
+.toggle-option:hover {
+  border: 0;
+  color: transparent;
+}
+
+.toggle-switch .toggle-option.active {
+  flex-basis: 70% !important;
+  color: #fff;
+}
+
+.toggle-switch .toggle-option:not(.active) {
+  color: transparent;
+}
+
+.toggle-switch.active-left::before {
+  left: 2px;
+  width: calc(70% - 4px);
+}
+
+.toggle-switch.active-right::before {
+  left: calc(30% + 2px);
+  width: calc(70% - 4px);
+}

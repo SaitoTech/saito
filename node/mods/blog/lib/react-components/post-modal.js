@@ -3,7 +3,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { htmlToMarkdown, isMarkdownContent } from '../utils';
 
-const PostModal = ({ onClose, onSubmit, post }) => {
+const PostModal = ({ app, mod, onClose, onSubmit, post }) => {
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -344,11 +344,19 @@ const PostModal = ({ onClose, onSubmit, post }) => {
 
       let base64Image = null;
       if (images.length > 0) {
+        /*****
+         *
+         * for the love of god, why are we reading the file twice?
+         * and why are we trimming the codec???
+         *
+         *****/
+
         const reader = new FileReader();
         base64Image = await new Promise((resolve, reject) => {
-          reader.onloadend = () => {
-            const base64String = reader.result.split(',')[1];
-            resolve(base64String);
+          reader.onloadend = async () => {
+            console.info('Resize image on submit...');
+            const file_src = await app.browser.resizeImg(reader.result);
+            resolve(file_src.split(',')[1]);
           };
           reader.onerror = reject;
           reader.readAsDataURL(images[0]);

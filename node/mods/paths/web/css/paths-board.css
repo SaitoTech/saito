@@ -456,7 +456,7 @@
 
 
 .central-action-round-track {
-  position: relative;
+  position: absolute;
 }
 .central-action-round-track-1 {
   top: 130px;
@@ -502,7 +502,7 @@
 
 
 .allies-action-round-track {
-  position: relative;
+  position: absolute;
 }
 .allies-action-round-track-1 {
   top: 2819px;

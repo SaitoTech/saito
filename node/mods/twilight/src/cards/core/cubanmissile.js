@@ -8,7 +8,7 @@
 
       // SAITO COMMUNITY
       if (this.game.options.deck === "saito") {
-        this.removeCardFromDeckNextDeal("bayofpigs");
+        this.removeTwilightCardFromDeckNextDeal("bayofpigs");
         this.cancelEvent("bayofpigs");
       }
 

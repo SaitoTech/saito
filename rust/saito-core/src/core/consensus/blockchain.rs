@@ -46,10 +46,7 @@ const FORK_ID_WEIGHTS: [u64; 16] = [
     0, 10, 10, 10, 10, 10, 25, 25, 100, 300, 500, 4000, 10000, 20000, 50000, 100000,
 ];
 
-// pub const DEFAULT_SOCIAL_STAKE: Currency = 2_000_000 * NOLAN_PER_SAITO;
-// pub const DEFAULT_SOCIAL_STAKE: Currency = 0;
-
-// pub const DEFAULT_SOCIAL_STAKE_PERIOD: BlockId = 60;
+pub type NewChainDetected = bool;
 
 #[derive(Debug)]
 pub enum AddBlockResult {
@@ -57,6 +54,7 @@ pub enum AddBlockResult {
         BlockHash,
         bool, /*is in the longest chain ?*/
         WalletUpdateStatus,
+        NewChainDetected,
     ),
     BlockAlreadyExists,
     FailedButRetry(
@@ -71,6 +69,9 @@ type WindIndex = usize;
 type Failed = bool;
 type NewChain = Vec<SaitoHash>;
 type OldChain = Vec<SaitoHash>;
+
+pub const ALERT_ON_NEWER_CHAIN_LENGTH: BlockId = 50;
+pub const ALERT_ON_NEWER_CHAIN_GAP: BlockId = 20;
 
 #[derive(Debug)]
 pub enum WindingResult {
@@ -204,6 +205,15 @@ impl Blockchain {
             return AddBlockResult::FailedNotValid;
         }
 
+        if self.blockring.is_empty()
+            && self.genesis_block_hash != [0; 32]
+            && (block_hash != self.genesis_block_hash || block_id != self.genesis_block_id)
+        {
+            error!("genesis block hash is not empty, but block hash is not equal to genesis block hash. genesis block hash : {:?} block hash : {:?}", 
+                        self.genesis_block_hash.to_hex(), block_hash.to_hex());
+            return AddBlockResult::FailedButRetry(block, false, false);
+        }
+
         // sanity checks
         if self.blocks.contains_key(&block_hash) {
             error!(
@@ -323,6 +333,7 @@ impl Blockchain {
         let (shared_ancestor_found, shared_block_hash, new_chain) =
             self.calculate_new_chain_for_add_block(block_hash);
 
+        let mut new_chain_detected = false;
         // and get existing current chain for comparison
         if shared_ancestor_found {
             old_chain =
@@ -343,6 +354,7 @@ impl Blockchain {
             // at None. We use this to determine if we are a new chain instead
             // of creating a separate variable to manually track entries.
             if self.blockring.is_empty() {
+                debug!("this is the first block in the blockchain");
 
                 // no need for action as fall-through will result in proper default
                 // behavior. we have the comparison here to separate expected from
@@ -395,9 +407,14 @@ impl Blockchain {
                         }
                     }
 
-                    // new_chain.clear();
-                    // new_chain.push(block_hash);
                     am_i_the_longest_chain = false;
+
+                    if new_chain.len() >= ALERT_ON_NEWER_CHAIN_LENGTH as usize
+                        && block_id > self.get_latest_block_id() + ALERT_ON_NEWER_CHAIN_GAP
+                    {
+                        // we have found a new chain that is much recent than the current chain
+                        new_chain_detected = true;
+                    }
                 }
             }
             old_chain =
@@ -450,26 +467,9 @@ impl Blockchain {
             );
             self.blocks.get_mut(&block_hash).unwrap().in_longest_chain = true;
 
-            // debug!(
-            //     "Full block count before= {:?}",
-            //     self.blocks
-            //         .iter()
-            //         .filter(|(_, block)| matches!(block.block_type, BlockType::Full))
-            //         .count()
-            // );
-
             let (does_new_chain_validate, wallet_updated) = self
                 .validate(new_chain.as_slice(), old_chain.as_slice(), storage, configs)
                 .await;
-
-            // debug!(
-            //     "Full block count after= {:?} wallet_updated= {:?}",
-            //     self.blocks
-            //         .iter()
-            //         .filter(|(_, block)| matches!(block.block_type, BlockType::Full))
-            //         .count(),
-            //     wallet_updated
-            // );
 
             if does_new_chain_validate {
                 // crash if total supply has changed
@@ -478,7 +478,12 @@ impl Blockchain {
                 self.add_block_success(block_hash, storage, mempool, configs)
                     .await;
 
-                AddBlockResult::BlockAddedSuccessfully(block_hash, true, wallet_updated)
+                AddBlockResult::BlockAddedSuccessfully(
+                    block_hash,
+                    true,
+                    wallet_updated,
+                    new_chain_detected,
+                )
             } else {
                 warn!(
                     "new chain doesn't validate with hash : {:?}",
@@ -496,6 +501,7 @@ impl Blockchain {
                 block_hash,
                 false, /*not in longest_chain*/
                 WALLET_NOT_UPDATED,
+                new_chain_detected,
             )
         }
     }
@@ -1119,7 +1125,7 @@ impl Blockchain {
             }
             //new_bf += self.blocks.get(hash).unwrap().get_burnfee();
         }
-        trace!(
+        debug!(
             "old chain len : {:?} new chain len : {:?} old_bf : {:?} new_bf : {:?}",
             old_chain.len(),
             new_chain.len(),
@@ -1775,22 +1781,42 @@ impl Blockchain {
         delete_block_id: u64,
         storage: &Storage,
     ) -> WalletUpdateStatus {
-        info!("removing blocks from disk at id {}", delete_block_id);
+        debug!("removing blocks from disk at id {}", delete_block_id);
 
-        let mut block_hashes_copy: Vec<SaitoHash> = vec![];
+        let mut block_hashes_copy: Vec<(BlockId, SaitoHash)> = vec![];
 
         {
             let block_hashes = self.blockring.get_block_hashes_at_block_id(delete_block_id);
             for hash in block_hashes {
-                block_hashes_copy.push(hash);
+                block_hashes_copy.push((delete_block_id, hash));
+            }
+
+            let mut next_block_hashes = self
+                .blockring
+                .get_block_hashes_at_block_id(delete_block_id + 1);
+
+            if let Some(hash) = self
+                .blockring
+                .get_longest_chain_block_hash_at_block_id(delete_block_id + 1)
+            {
+                next_block_hashes.retain(|h| h != &hash);
+            }
+
+            trace!(
+                "found {} non longest chain hashes at next block id : {}",
+                next_block_hashes.len(),
+                delete_block_id + 1
+            );
+            for hash in next_block_hashes {
+                block_hashes_copy.push((delete_block_id + 1, hash));
             }
         }
 
         trace!("number of hashes to remove {}", block_hashes_copy.len());
 
         let mut wallet_update_status = WALLET_NOT_UPDATED;
-        for hash in block_hashes_copy {
-            let status = self.delete_block(delete_block_id, hash, storage).await;
+        for (id, hash) in block_hashes_copy {
+            let status = self.delete_block(id, hash, storage).await;
             wallet_update_status |= status;
         }
         wallet_update_status
@@ -1803,6 +1829,11 @@ impl Blockchain {
         delete_block_hash: SaitoHash,
         storage: &Storage,
     ) -> WalletUpdateStatus {
+        trace!(
+            "deleting block : {}-{}",
+            delete_block_id,
+            delete_block_hash.to_hex()
+        );
         let wallet_update_status;
         // ask block to delete itself / utxo-wise
         {
@@ -1902,6 +1933,7 @@ impl Blockchain {
                         block_hash,
                         in_longest_chain,
                         wallet_updated,
+                        new_chain_detected,
                     ) => {
                         let sender_to_miner = if blocks.is_empty() {
                             sender_to_miner.clone()
@@ -1942,6 +1974,7 @@ impl Blockchain {
                             block_hash,
                             in_longest_chain,
                             wallet_updated,
+                            new_chain_detected,
                         )
                         .await;
                     }
@@ -1992,6 +2025,7 @@ impl Blockchain {
         block_hash: BlockHash,
         in_longest_chain: bool,
         wallet_updated: WalletUpdateStatus,
+        new_chain_detected: bool,
     ) {
         let block = self
             .blocks
@@ -2027,6 +2061,12 @@ impl Blockchain {
 
             if !is_spv_mode {
                 network.propagate_block(block).await;
+            }
+            if is_spv_mode && new_chain_detected {
+                info!("new chain detected in spv mode. sending new chain detected event");
+                network
+                    .io_interface
+                    .send_interface_event(InterfaceEvent::NewChainDetected());
             }
         }
 
@@ -3392,7 +3432,7 @@ mod tests {
         let result = t.add_block(block2).await;
         assert!(matches!(
             result,
-            AddBlockResult::BlockAddedSuccessfully(_, _, _)
+            AddBlockResult::BlockAddedSuccessfully(_, _, _, _)
         ));
 
         {

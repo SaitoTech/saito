@@ -34,8 +34,8 @@
 	align-items: center;
 	justify-content: space-between;
 	flex-direction: column;
-	border: var(--border-thickness-medium) solid var(--border-color-general-dividers); 
-  border-radius: var(--border-radius-sharp);
+	border: var(--border-thickness-medium) solid var(--border-color-general-dividers);
+	border-radius: var(--border-radius-sharp);
 
 	/*
 	We can't control for if user resizes chat-popup, better to have visibile borders
@@ -54,7 +54,7 @@
 	width: fit-content;
 }
 
-.saito-mention:hover{
+.saito-mention:hover {
 	color: var(--saito-font-color);
 }
 
@@ -101,7 +101,7 @@
 	width: 100%;
 	height: 5rem;
 	background-color: var(--saito-background-color);
-	border-top: 1px var(--border-color-general-dividers); 
+	border-top: 1px var(--border-color-general-dividers);
 }
 
 .selection-box-tabs i {
@@ -110,17 +110,22 @@
 }
 
 .saito-box-tab {
-	font-size: 2.6rem;
+	font-size: 1.2rem;
 	color: var(--saito-primary);
 	cursor: pointer;
-	line-height: 1rem;
+	border-radius: 8px;
+	transition: background 0.2s ease;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 4rem;
+	height: 4rem;
 }
 
 .saito-box-tab:hover {
-	color: var(--saito-font-color-heavy);
-	transform: scale(1.05);
+	background-color: var(--saito-primary);
+	color: var(--saito-white);
 }
-
 
 /* override definitions from giphy.css */
 .selection-box-window .saito-gif-container {
@@ -151,22 +156,15 @@ emoji-picker {
 	display: flex;
 }
 
-.saito-input-large {
-	margin-bottom: 2rem;
-}
-
 .saito-input-large .selection-box-tabs {
 	width: 14rem;
 	border-top: unset;
 	background-color: unset;
 	align-items: flex-end;
-	margin-left: 1rem;
 	justify-content: space-between;
 }
 
-
 .at-window {
-
 	flex-direction: column;
 	justify-content: flex-start;
 }
@@ -187,24 +185,24 @@ emoji-picker {
 
 .saito-input-contact-list {
 	width: calc(100% - 2px);
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+	position: absolute;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
 	padding: 0.5rem;
-    font-size: 2rem;
-    overflow: auto;
-    flex: 1;
-    background: var(--saito-background-color); /* testing */
-    border-radius: 0.5rem;
+	font-size: 2rem;
+	overflow: auto;
+	flex: 1;
+	background: var(--saito-background-color); /* testing */
+	border-radius: 0.5rem;
 
-    /* for popping up over input field */
-    max-height: 200px;
-    bottom: 0;
+	/* for popping up over input field */
+	max-height: 200px;
+	bottom: 0;
 }
 
 .at-window .saito-input-contact-list {
-    bottom: unset;
+	bottom: unset;
 	top: 5rem;
 	max-height: calc(100% - 4.5rem);
 	position: static;
@@ -220,20 +218,13 @@ emoji-picker {
 	padding: 0.75rem;
 }
 
-.saito-input-contact:hover, .saito-input-contact:focus {
+.saito-input-contact:hover,
+.saito-input-contact:focus {
 	background-color: var(--saito-primary);
 }
 
-.no-mouse .saito-input-contact:hover{
+.no-mouse .saito-input-contact:hover {
 	background-color: revert;
-}
-
-/*** Fix Redsquare Post ***/
-
-.post-tweet-button {
-	position: absolute;
-	right: 2rem;
-	bottom: 2rem;
 }
 
 .saito-input-quote {
@@ -264,7 +255,6 @@ emoji-picker {
 	align-items: center;
 }
 
-
 .chat-footer .saito-input-quote i:hover {
 	transform: unset;
 }
@@ -274,30 +264,29 @@ emoji-picker {
 	color: var(--saito-white);
 }
 
-
 /* saito mentions list */
 .saito-mentions-list {
-  background-color: var(--saito-background-color);
-  position: absolute;
-  z-index: 104;
-  color: var(--saito-font-color);
-  max-height: 30rem;
-  border: 1px solid var(--saito-border-color);
-  overflow-y: scroll;
-  font-size: 1.6rem;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0 0.5rem 0.2rem;
-  max-width: 100%;
-  width: 36rem;
+	background-color: var(--saito-background-color);
+	position: absolute;
+	z-index: 104;
+	color: var(--saito-font-color);
+	max-height: 30rem;
+	border: 1px solid var(--saito-border-color);
+	overflow-y: scroll;
+	font-size: 1.6rem;
+	border-radius: 0.5rem;
+	padding: 0.5rem 0 0.5rem 0.2rem;
+	max-width: 100%;
+	width: 36rem;
 }
 
 .saito-mentions-list.hidden {
-  border: none;
+	border: none;
 }
 
 .saito-mentions-list.empty {
-  border: none;
-  background: none;
+	border: none;
+	background: none;
 }
 
 .saito-mentions-list .menu-item {
@@ -313,48 +302,38 @@ emoji-picker {
 }
 
 .menu-item.selected {
-  background-color: var(--saito-primary);
-  color: white;
+	background-color: var(--saito-primary);
+	color: white;
 }
 
 .menu-item:hover {
-  cursor: pointer;
+	cursor: pointer;
 }
 
 .saito-mentions-contact {
-  cursor: pointer;
-  display: flex;
-  width: 100%;
-  align-items: center;
-  height: 4rem;
-  padding: 0.75rem 0.5rem;
-  gap: 0.5rem;
+	cursor: pointer;
+	display: flex;
+	width: 100%;
+	align-items: center;
+	height: 4rem;
+	padding: 0.75rem 0.5rem;
+	gap: 0.5rem;
 }
 
 .saito-mentions-contact:hover .menu-item {
-  background-color: var(--color-base); /* #afafaf  old  testing */
-  color: var(--saito-font-color); 
+	background-color: var(--color-base); /* #afafaf  old  testing */
+	color: var(--saito-font-color);
 }
 
-
 @media only screen and (max-width: 768px) {
-	.saito-input-large {
-		margin-bottom: 0rem;
-	}
-
 	.saito-input-large .selection-box-tabs {
 		align-items: center;
 		height: 6rem;
-		width: 12rem;
+		width: 14rem;
 		margin-left: unset;
 	}
 
 	.saito-box-tab {
 		font-size: 3rem;
 	}
-	.gif-icon {
-		height: 3rem;
-		width: 3rem;
-	}
 }
-

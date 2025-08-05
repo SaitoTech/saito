@@ -13,7 +13,14 @@
   //
   cleanBoard() {
 
+    //
+    // 2P doesn't clear board appropriately, so this 
+    // sanity-check can cause errors. removing...
+    //
+    if (this.game.players.length == 2) { return; }
+
     for (let key in this.game.spaces) {
+      if (key !== "egypt" && key !== "ireland" && key !== "persia") {
       let space = this.game.spaces[key];
       for (let f in space.units) {
 	if (space.units[f].length > 0) {
@@ -26,6 +33,7 @@
 	  }
 	}
       }
+    }
     }
   }
 
@@ -4710,7 +4718,16 @@
     try { if (this.game.spaces[space]) { space = this.game.spaces[space]; } } catch (err) {}
 
     for (let key in space.units) {
-      if (space.units[key].length > 0) { return 1; }
+      if (space.units[key].length > 0) { 
+        for (let z = 0; z < space.units[key].length; z++) {
+	  let u = space.units[key][z];
+	  if (z.reformer) {
+	    // do not count
+	  } else {
+	    return 1;
+	  }
+	}
+      }
     }
 
     return 0;

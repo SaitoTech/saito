@@ -317,6 +317,7 @@ class GameCards {
 
     this.game.deck[deckidx - 1].crypt = new_cards;
     this.game.deck[deckidx - 1].keys = new_keys;
+
   }
 
   addPool() {
@@ -337,14 +338,26 @@ class GameCards {
   }
   resetDeck(newIndex = 0) {
     let old_xor = this.game.deck[newIndex]?.xor;
+    let old_add = this.game.deck[newIndex]?.to_add;
+    let old_remove = this.game.deck[newIndex]?.to_remove;
     this.game.deck[newIndex] = {};
     this.game.deck[newIndex].cards = {};
     this.game.deck[newIndex].crypt = [];
     this.game.deck[newIndex].keys = [];
     this.game.deck[newIndex].hand = [];
-    this.game.deck[newIndex].xor = old_xor || ''; 
+    this.game.deck[newIndex].xor = old_xor || '';
+    this.game.deck[newIndex].to_add = old_add || {};
+    this.game.deck[newIndex].to_remove = old_remove || {};
     this.game.deck[newIndex].discards = {};
     this.game.deck[newIndex].removed = {};
+  }
+  addCardToDeck(deckidx, key, card) {
+    while (this.game.deck.length < deckidx) { this.addDeck(); };
+    this.game.deck[deckidx - 1].to_add[key] = card;
+  }
+  removeCardFromDeck(deckidx, key) {
+    while (this.game.deck.length < deckidx) { this.addDeck(); }
+    this.game.deck[deckidx - 1].to_remove[key] = 1; // key is what matters
   }
 
   newDeck() {
@@ -353,6 +366,8 @@ class GameCards {
     deck.crypt = [];
     deck.keys = [];
     deck.hand = [];
+    deck.to_add = {};
+    deck.to_remove = {};
     deck.xor = '';
     deck.discards = {};
     deck.removed = {};

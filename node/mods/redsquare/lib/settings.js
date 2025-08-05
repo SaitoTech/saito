@@ -1,5 +1,4 @@
 const SettingsTemplate = require('./settings.template');
-const SaitoOverlay = require('../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoContacts = require('../../../lib/saito/ui/modals/saito-contacts/saito-contacts');
 
 class RedSquareSettings {
@@ -7,22 +6,27 @@ class RedSquareSettings {
     this.app = app;
     this.mod = mod;
     this.container = container;
-    this.overlay = new SaitoOverlay(app, mod);
     this.contacts = new SaitoContacts(app, mod, true);
   }
 
   render() {
-    this.overlay.show(SettingsTemplate(this.app, this.mod));
+    if (document.getElementById('redsquare-settings')) {
+      this.app.browser.replaceElementById(
+        SettingsTemplate(this.app, this.mod),
+        'redsquare-settings'
+      );
+    } else {
+      this.app.browser.addElementToSelector(SettingsTemplate(this.app, this.mod), this.container);
+    }
     this.attachEvents();
   }
 
   attachEvents() {
-
     let settings_self = this;
-    let modtools_self = this.app.modules.returnModuleBySlug("modtools");
+    let modtools_self = this.app.modules.returnModuleBySlug('modtools');
 
     if (document.getElementById('blacklisted-accounts')) {
-      if (modtools_self?.blacklisted_publickeys?.length){
+      if (modtools_self?.blacklisted_publickeys?.length) {
         document.getElementById('blacklisted-accounts').onclick = (e) => {
           this.contacts.title = 'Blacklisted Accounts';
           this.contacts.multi_button = 'Remove from Blacklist';
@@ -39,7 +43,7 @@ class RedSquareSettings {
     }
 
     if (document.getElementById('whitelisted-accounts')) {
-      if (modtools_self?.whitelisted_publickeys?.length){
+      if (modtools_self?.whitelisted_publickeys?.length) {
         document.getElementById('whitelisted-accounts').onclick = (e) => {
           this.contacts.title = 'Whitelisted Accounts';
           this.contacts.multi_button = 'Remove from Whitelist';
@@ -54,47 +58,50 @@ class RedSquareSettings {
       }
     }
 
-    if (document.getElementById('add-whitelist')){
+    if (document.getElementById('add-whitelist')) {
       document.getElementById('add-whitelist').onclick = (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          this.contacts.title = 'Saved Keys';
-          this.contacts.multi_button = 'Add to Whitelist';
-          this.contacts.callback = (keys) => {
-            for (let key of keys) {
-              this.app.connection.emit('saito-whitelist', {publicKey: key, duration: -1});
-            }
-            this.render();
-          };
-          this.contacts.render();
+        e.stopPropagation();
+        e.preventDefault();
+        this.contacts.title = 'Saved Keys';
+        this.contacts.multi_button = 'Add to Whitelist';
+        this.contacts.callback = (keys) => {
+          for (let key of keys) {
+            this.app.connection.emit('saito-whitelist', { publicKey: key, duration: -1 });
+          }
+          this.render();
         };
+        this.contacts.render();
+      };
     }
-
 
     //
     // curated / unfiltered
     //
-    let container = document.querySelector('.curation-toggle-switch');
-    let options = container.querySelectorAll('.curation-toggle-option');
+    let container = document.getElementById('curation-toggle');
+    let options = container.querySelectorAll('#curation-toggle .toggle-option');
+    let tc = document.querySelector('.tweet-container');
 
-    options.forEach(option => {
+    options.forEach((option) => {
       option.addEventListener('click', () => {
-        options.forEach(o => o.classList.remove('active'));
+        options.forEach((o) => o.classList.remove('active'));
         option.classList.add('active');
         if (option === options[1]) {
           container.classList.add('active-right');
           this.mod.curated = false;
+          if (tc) {
+            tc.classList.remove('active-curation');
+          }
           this.mod.saveOptions();
         } else {
           container.classList.remove('active-right');
           this.mod.curated = true;
+          if (tc) {
+            tc.classList.add('active-curation');
+          }
           this.mod.saveOptions();
         }
       });
     });
-
-
-
   }
 }
 

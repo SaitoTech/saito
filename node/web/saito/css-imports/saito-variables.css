@@ -63,6 +63,7 @@ font imports
   --saito-gray-lighter-transparent: #a5a5a5bb;
   --saito-gray-light: #efefef;
   --saito-gray-light-transparent: #efefef45;
+  --saito-gray-transparent: #8884;
   --saito-gray-mid: #444;
   --saito-gray-mid-transparent: #4444;
   --saito-gray-dark: #7f7f7f;
@@ -72,16 +73,22 @@ font imports
   --saito-red: #f71f3d;
   --saito-red-transparent: #f71f3d88;
   --saito-white: #fff;
+  --saito-black-heavy: #1c1c23;
+  --saito-orange: #ff721b;
+  --saito-orange-dark: #d76824;
+  --saito-orange-darker: #c26830;
+  --twitter-blue: #358ccf;
+  --saito-offwhite: #f6f6f6;
 
   --twitter-gray-light: #ccc;
   --twitter-gray-lighter: #e1e8ed;
   --twitter-gray-lightest: #f4f4f4;
-  --twitter-gray: #8899a6;
+  --twitter-gray: rgb(113 134 149);
   --twitter-gray-dark: #777;
   --twitter-gray-darker: #38444d;
   --twitter-gray-darkest: #192734;
 
-  --saito-primary: var(--saito-red);
+  --saito-primary: var(--saito-orange-dark);
   --saito-secondary: var(--saito-orange);
   --saito-primary-background: linear-gradient(
       45deg,
@@ -94,13 +101,13 @@ font imports
 
   --saito-bubble-shadow: var(--saito-black-transparent);
   --saito-bubble-background: var(--saito-gray-light);
-  --saito-border-color: var(--saito-black-light);
+  --saito-border-color: rgb(226 226 226);
   --saito-background-color: var(--saito-white);
   --saito-sidebar-element-background: var(--saito-gray-light-transparent);
   --saito-hover-background: var(--saito-black-transparent);
   --saito-font-color-dark-modal: var(--saito-gray-light);
   --saito-border-color-dark: var(--saito-gray-lighter-transparent);
-  --saito-background-light: var(--saito-gray-lightest);
+  --saito-background-light: var(--saito-offwhite);
 
   --saito-border: 1px solid #c5c5c5bb;
   --saito-border-radius: 0.5rem;
@@ -151,7 +158,7 @@ font imports
       var(--saito-primary) 100%
     )
     transparent no-repeat left top / 400% auto;
-  --saito-heart-animation: url('/redsquare/images/heart.png');
+  --saito-heart-animation: url('/redsquare/images/heart-orange.png');
   /*========== FIXED OPTIONS PRESETS ===========*/
   /*FONTS*/
   --saito-font: 'visuelt-light';
@@ -180,7 +187,7 @@ font imports
   --border-radius-sharp: 0.5rem;
   --border-radius-soft: 0.75rem;
   --border-radius-comfortable: 1.2rem;
-  --border-radius-round: 1.5rem;
+  --border-radius-round: 16px;
   --border-radius-voluptuous: 2.5rem;
   --border-radius-obscene: 5rem;
   --border-radius-top-only-soft: 0.5rem 0.5rem 0 0;
@@ -210,14 +217,13 @@ font imports
 
   /*FONTS SECTION*/
   --saito-font-color-primary: var(--saito-gray-mid);
-  --saito-font-color-secondary: var(--saito-gray-dark);
-  --saito-font-color-heavy: var(--saito-gray-darkest);
+  --saito-font-color-secondary: rgb(83, 100, 113);
+  --saito-font-color-heavy: var(--saito-black-heavy);
   --saito-font-color-inverse: var(--saito-gray-lightest);
   --saito-font-color: var(--saito-font-color-primary);
   --saito-font-color-light: var(--saito-font-color-secondary);
-  --saito-font-color-heavy: var(--saito-font-color-heavy);
 
-  --font-color-menu-hamburger: var(--saito-white);
+  --font-color-menu-hamburger: var(--saito-orange-darker);
   --font-color-chat-popup: none;
   --font-color-overlay-form-text: none;
   --font-color-modal-confirm: none;
@@ -225,7 +231,7 @@ font imports
   /*BORDER SECTION*/
   --border-radius-text-input: var(--border-radius-sharp);
   --border-radius-modal-menu: var(--border-radius-sharp);
-  --border-radius-sidebar-menu: var(--border-radius-soft);
+  --border-radius-sidebar-menu: var(--border-radius-round);
   --border-radius-identicon: var(--border-radius-sharp);
   --border-radius-identicon-square: none;
   --border-radius-profile-banner: none;
@@ -250,7 +256,7 @@ font imports
   --border-color-post-input: var(--border-color-general-dividers);
   /* COLOR */
   /* Menu and Modal Borders */
-  --border-color-sidebar-menu: none;
+  --border-color-sidebar-menu: rgb(255 129 67);
   --border-color-modal-menu: var(--saito-primary);
   --border-color-overlay-post: none;
   /* Icon and Identity Borders */
@@ -280,7 +286,7 @@ font imports
   --background-color-chat-popup-input: var(--saito-background-color);
   /* Button Background Colors */
   /* Core Button Background Colors */
-  --background-color-button-primary: var(--background-saito-effects);
+  --background-color-button-primary: var(--saito-orange);
   /* Select Button Background Colors */
   --background-color-button-hover-chat-container: var(
     --saito-primary

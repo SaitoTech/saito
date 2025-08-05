@@ -536,7 +536,6 @@ class GameTemplate extends ModTemplate {
       if (!game_id) {
         game_id = this.game.id;
       }
-      // For debugging
       try {
         let short_game_id = this.app.crypto.hash(game_id).slice(-6);
         let gid = window.location.hash.split('&')[0].substring(5);
@@ -614,9 +613,8 @@ class GameTemplate extends ModTemplate {
       // Add Recent Game Activity
       this.app.connection.on('arcade-data-loaded', () => {
         if (document.querySelector('.game-activity')) {
-          document.querySelector(
-            '.game-activity'
-          ).innerHTML = `<div class="game-page-invites"></div><div class="league-overlay-games-list"></div>`;
+          document.querySelector('.game-activity').innerHTML =
+            `<div class="game-page-invites"></div><div class="league-overlay-games-list"></div>`;
         }
         this.app.modules.respondTo('invite-manager', { filter: this.name });
         this.app.connection.emit('league-overlay-games-list', { game: this.name });
@@ -882,9 +880,6 @@ class GameTemplate extends ModTemplate {
     this.app.browser.lockNavigation(this.visibilityChange.bind(this));
   }
 
-  /*
-          Minimum default, should be overwritten by every game module
-        */
   async initializeGame() {
     if (this.game.dice == '') {
       this.initializeDice();

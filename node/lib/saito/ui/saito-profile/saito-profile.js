@@ -36,9 +36,7 @@ class SaitoProfile {
           `;
         } else {
           container.classList.remove('empty');
-          const sanitized = this.app.browser
-            .sanitize(description, true)
-            .replaceAll('\n', '<br>');
+          const sanitized = this.app.browser.sanitize(description, true).replaceAll('\n', '<br>');
           container.innerHTML = `
             <div
               id="profile-description-${publicKey}"

@@ -54,4 +54,6 @@ export default interface SharedMethods {
     loadBlockchain(blockchain: Blockchain): void;
 
     getMyServices(): PeerServiceList;
+
+    sendNewChainDetectedEvent(): void;
 }

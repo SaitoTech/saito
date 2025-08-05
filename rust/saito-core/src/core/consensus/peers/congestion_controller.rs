@@ -41,43 +41,43 @@ impl Default for PeerCongestionControls {
         let mut controls: HashMap<CongestionType, RateLimiter> = HashMap::default();
         controls.insert(
             CongestionType::ReceivedKeyLists,
-            RateLimiter::new(100, Duration::from_secs(60)),
+            RateLimiter::new(1_000_000, Duration::from_secs(60)),
         );
         controls.insert(
             CongestionType::CompletedHandshakes,
-            RateLimiter::new(100, Duration::from_secs(60)),
+            RateLimiter::new(1_000_000, Duration::from_secs(60)),
         );
         controls.insert(
             CongestionType::IncomingMessages,
-            RateLimiter::new(100_000, Duration::from_secs(1)),
+            RateLimiter::new(1_000_000, Duration::from_secs(1)),
         );
         controls.insert(
             CongestionType::ReceivedInvalidBlocks,
-            RateLimiter::new(10, Duration::from_secs(3600)),
+            RateLimiter::new(1_000_000, Duration::from_secs(3600)),
         );
         controls.insert(
             CongestionType::FailedHandshakes,
-            RateLimiter::new(100, Duration::from_secs(1)),
+            RateLimiter::new(1_000_000, Duration::from_secs(1)),
         );
         controls.insert(
             CongestionType::ReceivedValidBlocks,
-            RateLimiter::new(100_000, Duration::from_secs(1)),
+            RateLimiter::new(1_000_000, Duration::from_secs(1)),
         );
         controls.insert(
             CongestionType::ReceivedInvalidTransactions,
-            RateLimiter::new(100_000, Duration::from_secs(1)),
+            RateLimiter::new(1_000_000, Duration::from_secs(1)),
         );
         controls.insert(
             CongestionType::ReceivedValidTransactions,
-            RateLimiter::new(100_000, Duration::from_secs(1)),
+            RateLimiter::new(1_000_000, Duration::from_secs(1)),
         );
         controls.insert(
             CongestionType::PeerConnections,
-            RateLimiter::new(100, Duration::from_secs(1)),
+            RateLimiter::new(1_000_000, Duration::from_secs(1)),
         );
         controls.insert(
             CongestionType::FailedBlockFetches,
-            RateLimiter::new(100, Duration::from_secs(1)),
+            RateLimiter::new(1_000_000, Duration::from_secs(1)),
         );
         Self {
             controls: controls,

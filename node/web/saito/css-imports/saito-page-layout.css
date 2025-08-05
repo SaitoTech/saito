@@ -3,7 +3,7 @@
   height: calc(100% - var(--saito-header-height));
   display: grid;
   grid-template-columns: 25rem 62rem 30rem;
-  padding: 0 calc((100vw - var(--saito-width)) / 2);
+  padding: 0 max(1rem, calc((100vw - var(--saito-width)) / 2));
   column-gap: 2rem;
   z-index: 0;
   margin: 0;
@@ -11,14 +11,12 @@
   top: var(--saito-header-height);
   overflow-y: auto;
   overflow-x: hidden;
-
 }
 
 .saito-main {
   width: 100%;
   position: relative;
 }
-
 
 .saito-sidebar.left {
   position: sticky;
@@ -44,9 +42,10 @@
   margin: 0;
 }
 
-.saito-sidebar-element { /* side bar controls*/
+.saito-sidebar-element {
+  /* side bar controls*/
   padding: var(--border-padding-normal);
-  border-radius: var(--border-radius-sidebar-menu);
+  border-radius: var(--border-radius-round);
 }
 
 .sidebar-header {
@@ -58,18 +57,17 @@
   line-height: 24px;
 }
 
-
 .sidebar-header > div {
   width: fit-content;
   cursor: pointer;
   transition: transform 0.4s;
 }
 
-.sidebar-header > div.sidebar-title{
+.sidebar-header > div.sidebar-title {
   cursor: default;
 }
 
-
+/* This should be handled module by module...
 @media screen and (max-width: 900px) {
   .saito-container {
     padding: 0;
@@ -82,7 +80,7 @@
     max-width: 100vw;
     margin-left: 0rem !important;
     margin-right: 0rem;
-    padding: 2rem 1rem 1rem 1rem;
   }
-
 }
+
+*/

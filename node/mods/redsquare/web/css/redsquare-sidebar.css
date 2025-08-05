@@ -2,13 +2,12 @@
 	display: flex;
 	flex-direction: column;
 	gap: 20px;
-	padding-bottom: 1rem;
 }
 
 .sidebar-header {
 	font-size: 18px;
 	font-weight: bold;
-	color: var(--saito-font-color);
+	color: var(--saito-font-color-heavy);
 	margin-bottom: 8px;
 	text-transform: uppercase;
 }
@@ -28,7 +27,7 @@
 	background-position: center;
 	background-color: var(--background-color-gray-transparent-light);
 	background-blend-mode: soft-light;
-	border-radius: var(--border-radius-soft);
+	border-radius: 16px;
 	overflow: hidden;
 }
 
@@ -109,11 +108,11 @@
 	display: none;
 }
 
-@media (max-width: 1199px) {
-	.invite-manager {
-		padding: 8px;
-	}
+.redsquare-menu .item.redsquare-menu-mobile {
+	display: none;
+}
 
+@media (max-width: 1200px) {
 	.saito-module-title {
 		font-size: 14px;
 	}
@@ -122,32 +121,12 @@
 		padding: 8px;
 	}
 
-	.chat-manager-list.saito-sidebar-element {
-		padding: 0.5rem;
-		max-width: 70px;
-		min-width: 0px;
-		width: inherit;
-		padding: 0.95rem;
-	}
-
-	.chat-manager-title {
-		display: none !important;
-	}
-
-	.chat-manager-options {
-		margin-left: auto;
-		margin-right: auto;
-	}
-
-	.chat-manager-list .saito-user {
-		padding: 0px;
-	}
-
-	.chat-manager-list.saito-sidebar-element .saito-user .saito-address {
+	.saito-sidebar .chat-manager {
 		display: none;
 	}
-	.chat-manager-list.saito-sidebar-element .saito-user .saito-userline {
-		display: none;
+
+	.redsquare-menu .item.redsquare-menu-mobile {
+		display: flex;
 	}
 
 	.tweet-button > i + span {
@@ -157,73 +136,5 @@
 	.tweet-button > i {
 		display: block;
 		font-size: 2.4rem;
-	}
-}
-
-@media screen and (max-width: 660px) {
-	.chat-manager-list.saito-sidebar-element {
-		display: flex;
-		flex-direction: column;
-		min-height: 22rem;
-		max-height: 100%;
-		position: relative;
-		border: 1px solid;
-		max-width: unset;
-	}
-
-	.saito-sidebar {
-		display: flex;
-		align-items: center;
-		font-size: 22px;
-		justify-content: space-between;
-		min-height: 40px;
-		line-height: 24px;
-		padding: 0.5rem;
-		border: 1px solid;
-		background: var(--saito-gray-darkest);
-		color: var(--saito-white);
-	}
-
-	.chat-manager-overlay .close-chat-manager i {
-		width: 45px;
-		height: fit-content;
-		font-size: 30px;
-		padding: 1.5rem 0.8rem;
-		background: var(--saito-gray-darkest);
-	}
-
-	.chat-manager-options {
-		margin-right: 1rem;
-	}
-
-	.chat-manager-list.saito-sidebar-element {
-		max-width: 99vw;
-	}
-
-	.chat-manager-list.saito-sidebar-element .saito-user .saito-address {
-		display: inherit;
-	}
-
-	.chat-manager-list.saito-sidebar-element .saito-user .saito-address {
-		display: inherit;
-	}
-
-	.chat-manager-list.saito-sidebar-element .saito-user .saito-userline {
-		display: inherit;
-	}
-
-	.chat-manager-list .saito-user {
-		padding: 0rem 1rem;
-	}
-
-	.chat-manager {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-
-	.sidebar-header {
-		margin-bottom: unset;
-		height: 6rem;
 	}
 }

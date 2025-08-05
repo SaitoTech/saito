@@ -333,8 +333,8 @@ impl RoutingThread {
         );
 
         if last_shared_ancestor == 0 {
-            // if we cannot find the last shared ancestor in a long chain, we just need to sync from peer's block id
-            last_shared_ancestor = block_id;
+            // if we cannot find the last shared ancestor in a long chain, we just need to sync from peer's block id or the genesis block id if it's too far behind.
+            last_shared_ancestor = std::cmp::max(block_id, blockchain.genesis_block_id);
         }
 
         let start = blockchain
@@ -374,23 +374,23 @@ impl RoutingThread {
                     ghost.previous_block_hashes.push(block.previous_block_hash);
                     ghost.block_ids.push(block.id);
 
-                    let mut clone = block.clone();
-                    if !clone
-                        .upgrade_block_to_block_type(BlockType::Full, storage, false)
-                        .await
-                    {
-                        warn!(
-                            "couldn't upgrade block : {:?}-{:?} for ghost chain generation",
-                            clone.id,
-                            clone.hash.to_hex()
-                        );
-                    }
+                    // let mut clone = block.clone();
+                    // if !clone
+                    //     .upgrade_block_to_block_type(BlockType::Full, storage, false)
+                    //     .await
+                    // {
+                    //     warn!(
+                    //         "couldn't upgrade block : {:?}-{:?} for ghost chain generation",
+                    //         clone.id,
+                    //         clone.hash.to_hex()
+                    //     );
+                    // }
                     debug!(
-                        "pushing block : {:?} at index : {:?} with txs : {:?} has txs : {:?} pre_hash : {} prev_block_hash : {}",
-                        clone.hash.to_hex(),
+                        "pushing block : {:?} at index : {:?} has txs : {:?} pre_hash : {} prev_block_hash : {}",
+                        block.hash.to_hex(),
                         i,
-                        clone.transactions.len(),
-                        clone.has_keylist_txs(&peer_key_list),
+                        // clone.transactions.len(),
+                        block.has_keylist_txs(&peer_key_list),
                         block.pre_hash.to_hex(),
                         block.previous_block_hash.to_hex()
                     );
@@ -399,7 +399,7 @@ impl RoutingThread {
                         crate::core::util::crypto::hash(block.serialize_for_hash().as_slice())
                     );
                     // whether this block has any txs which the peer will be interested in
-                    ghost.txs.push(clone.has_keylist_txs(&peer_key_list));
+                    ghost.txs.push(block.has_keylist_txs(&peer_key_list));
                 }
             }
         }
@@ -997,6 +997,26 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 );
                 self.blockchain_sync_state.remove_entry(block_hash);
                 self.fetch_next_blocks().await;
+                {
+                    let mut configs = self.config_lock.write().await;
+                    let blockchain = self.blockchain_lock.read().await;
+                    let mut blockchain_configs = configs.get_blockchain_configs_mut();
+
+                    blockchain_configs.last_block_hash = blockchain.last_block_hash.to_hex();
+                    blockchain_configs.last_block_id = blockchain.last_block_id;
+                    blockchain_configs.last_timestamp = blockchain.last_timestamp;
+                    blockchain_configs.genesis_block_id = blockchain.genesis_block_id;
+                    blockchain_configs.genesis_timestamp = blockchain.genesis_timestamp;
+                    blockchain_configs.lowest_acceptable_timestamp =
+                        blockchain.lowest_acceptable_timestamp;
+                    blockchain_configs.lowest_acceptable_block_hash =
+                        blockchain.lowest_acceptable_block_hash.to_hex();
+                    blockchain_configs.lowest_acceptable_block_id =
+                        blockchain.lowest_acceptable_block_id;
+                    blockchain_configs.fork_id = blockchain.fork_id.unwrap_or_default().to_hex();
+
+                    configs.save();
+                }
             }
 
             RoutingEvent::BlockFetchRequest(peer_index, block_hash, block_id) => {

@@ -1,4 +1,4 @@
-use ahash::AHashMap;
+use ahash::{AHashMap, AHashSet};
 use log::{debug, error, info, trace, warn};
 use num_derive::FromPrimitive;
 use num_traits::Zero;
@@ -424,7 +424,7 @@ pub struct Block {
     #[serde(skip)]
     pub routed_from_peer: Option<PeerIndex>,
     #[serde(skip)]
-    pub transaction_map: AHashMap<SaitoPublicKey, bool>,
+    pub keys_invloved: AHashSet<SaitoPublicKey>,
     #[serde(skip)]
     pub force_loaded: bool,
     // used for checking, before pruning txs from block on downgrade
@@ -551,7 +551,7 @@ impl Block {
             slips_spent_this_block: AHashMap::new(),
             created_hashmap_of_slips_spent_this_block: false,
             routed_from_peer: None,
-            transaction_map: Default::default(),
+            keys_invloved: Default::default(),
             cv: ConsensusValues::default(),
             force_loaded: false,
             safe_to_prune_transactions: false,
@@ -3285,21 +3285,21 @@ impl Block {
     }
 
     pub fn generate_transaction_hashmap(&mut self) {
-        if !self.transaction_map.is_empty() {
+        if !self.keys_invloved.is_empty() {
             return;
         }
         for tx in self.transactions.iter() {
             for slip in tx.from.iter() {
-                self.transaction_map.insert(slip.public_key, true);
+                self.keys_invloved.insert(slip.public_key);
             }
             for slip in tx.to.iter() {
-                self.transaction_map.insert(slip.public_key, true);
+                self.keys_invloved.insert(slip.public_key);
             }
         }
     }
     pub fn has_keylist_txs(&self, keylist: &Vec<SaitoPublicKey>) -> bool {
         for key in keylist {
-            if self.transaction_map.contains_key(key) {
+            if self.keys_invloved.contains(key) {
                 return true;
             }
         }

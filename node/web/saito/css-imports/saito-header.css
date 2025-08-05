@@ -12,7 +12,10 @@
   left: 0;
   z-index: 15;
   height: var(--saito-header-height);
-  transition: top 0.33s linear, height 0.33s linear, padding 0.33s linear;
+  transition:
+    top 0.33s linear,
+    height 0.33s linear,
+    padding 0.33s linear;
 }
 
 #saito-header.wide-screen {
@@ -28,26 +31,27 @@
   padding: 0;
   padding-right: 2rem;
   /* redefining base variable in game-layout doesn't work if people push themes on games */
-  background: transparent; 
+  background: transparent;
   backdrop-filter: none;
   z-index: 90; /* to be the same as game-menu was */
 }
 
-#saito-header.game .saito-header-logo-wrapper, #saito-header.game .header-msg {
+#saito-header.game .saito-header-logo-wrapper,
+#saito-header.game .header-msg {
   display: none;
 }
 
 /* install menu */
 .saito-overlay-form {
-    width: 60rem;
-    min-width: 300px;
-    max-width: 90vw;
-    padding: 2rem;
-    background-color: var(--saito-background-color);
-    display: flex;
-    flex-direction: column;
-    gap: 3rem;
-    border-radius: 0.5rem;
+  width: 60rem;
+  min-width: 300px;
+  max-width: 90vw;
+  padding: 2rem;
+  background-color: var(--saito-background-color);
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+  border-radius: 0.5rem;
 }
 
 .saito-header-logo {
@@ -92,7 +96,9 @@
   z-index: 1;
   transform-origin: 4px 0px;
   transition: transform 0.5s cubic-bezier(0.77, 0.2, 0.05, 1);
-  background: 0.5s cubic-bezier(0.77, 0.2, 0.05, 1), opacity 0.55s ease;
+  background:
+    0.5s cubic-bezier(0.77, 0.2, 0.05, 1),
+    opacity 0.55s ease;
   margin-left: auto;
 }
 
@@ -118,7 +124,9 @@
   top: var(--saito-header-height);
   border-top: 1px solid var(--border-color-general-dividers);
   border-left: 1px solid var(--border-color-general-dividers);
-  transition: right 0.33s, width 0.33s;
+  transition:
+    right 0.33s,
+    width 0.33s;
   z-index: 21;
   width: 40rem;
   height: calc(100 * var(--saito-vh) - var(--saito-header-height) + 3px);
@@ -146,7 +154,6 @@
   border-bottom: 1px solid var(--border-color-general-dividers);
 }
 
-
 .saito-header-backdrop {
   opacity: 0;
   pointer-events: none;
@@ -173,7 +180,8 @@
   align-items: center;
 }
 
-#qrcode, .qrcode {
+#qrcode,
+.qrcode {
   width: 100%;
   max-height: 20rem;
   height: 20vh;
@@ -183,8 +191,8 @@
   justify-content: flex-end;
 }
 
-
-#qrcode img, .qrcode img {
+#qrcode img,
+.qrcode img {
   height: auto;
   max-width: 20rem;
   width: 20vh;
@@ -195,7 +203,7 @@
   visibility: inherit;
 }
 
-.balance-amount{
+.balance-amount {
   display: flex;
 }
 
@@ -252,14 +260,13 @@
   padding: 0.5rem 0 0;
 }
 
-.wallet-btn:hover>i {
+.wallet-btn:hover > i {
   transform: scale(1.25);
 }
 
 .wallet-btn i {
   transition: all 0.2s ease-in-out;
 }
-
 
 .wallet-identicon {
   width: 3.2rem;
@@ -306,7 +313,7 @@
   color: var(--saito-font-color);
 }
 
-.profile-public-key > div:first-child{
+.profile-public-key > div:first-child {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -318,21 +325,19 @@
   font-family: var(--saito-font);
 }*/
 
-
 .hamburger-container {
-  display: flex;
+  display: grid;
   align-items: center;
   gap: 1rem;
   margin-left: auto;
+  grid-template-columns: 1fr min-content;
 }
-
 
 #header-msg {
   color: var(--saito-white);
   cursor: pointer;
   font-size: 2rem;
   padding: 0 0 0 2rem;
-  max-width: 22rem;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -394,7 +399,11 @@
   border-radius: 50%;
   background-color: var(--saito-background-color); /* testing */
   transition: box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow: 1px 1px 1px var(--border-color-general-dividers-dark), -1px -1px 1px var(--border-color-general-dividers-dark), -1px 1px 1px var(--border-color-general-dividers-dark), 1px -1px 1px var(--border-color-general-dividers-dark);
+  box-shadow:
+    1px 1px 1px var(--border-color-general-dividers-dark),
+    -1px -1px 1px var(--border-color-general-dividers-dark),
+    -1px 1px 1px var(--border-color-general-dividers-dark),
+    1px -1px 1px var(--border-color-general-dividers-dark);
   border: 1px solid var(--border-color-general-dividers); /* testing */
   color: var(--saito-font-color);
   cursor: pointer;
@@ -406,7 +415,6 @@
 .saito-floating-menu-item i {
   font-size: 2rem;
 }
-
 
 .saito-floating-menu-mask {
   width: 100%;
@@ -434,7 +442,6 @@
   right: 2.5rem;
   z-index: 3;
 }
-
 
 .saito-floating-item-container {
   display: flex;
@@ -467,19 +474,19 @@
   transform: translateY(-50%);
 }
 
-
 .activated .saito-floating-item-container {
   opacity: 1;
   pointer-events: auto;
 }
 
-.saito-header-logo-wrapper{
+.saito-header-logo-wrapper {
   position: relative;
   height: 100%;
   cursor: pointer;
 }
 
-.saito-header-logo-wrapper img, .saito-header-logo-wrapper i::before{
+.saito-header-logo-wrapper img,
+.saito-header-logo-wrapper i::before {
 }
 
 .saito-back-button {
@@ -493,10 +500,10 @@
   left: 0;
   background: var(--saito-header-background);
   background-size: 100vw;
-  background-position-x: min(-2rem, calc(-(100vw - var(--saito-width)) / 2 + 0.5rem));
+  background-position-x: min(-2rem, calc(- (100vw - var(--saito-width)) / 2 + 0.5rem));
 }
 
-.saito-header-logo-wrapper:hover .saito-back-button{
+.saito-header-logo-wrapper:hover .saito-back-button {
   transform: scale(1.1);
 }
 
@@ -519,12 +526,11 @@
   flex-direction: column;
 }
 
-
 .saito-overlay-auto-backup .saito-overlay-form-subtext {
   font-size: 2rem;
   line-height: 2.8rem;
 }
- 
+
 .saito-overlay-auto-backup .saito-overlay-subform-text {
   font-size: 1.8rem;
   line-height: 2.5rem;
@@ -552,7 +558,6 @@
 .saito-overlay-backup-reminder .saito-overlay-subform-text {
   line-height: 3rem;
 }
-
 
 .hide-for-fade-in {
   opacity: 0;

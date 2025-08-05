@@ -4,7 +4,7 @@
 
 .notification-tweet {
   cursor: pointer;
-  padding-top: 1.5rem;
+  padding: 1.5rem 0rem;
   position: relative;
 }
 

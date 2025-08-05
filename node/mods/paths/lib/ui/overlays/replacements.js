@@ -126,7 +126,7 @@ class ReplacementsOverlay {
 		let obk = document.querySelector('.replacements-overlay .submenu .controls');	
 		let html = '<ul>';
 		for (let z = 0; z < eu.length; z++) {
-		  html += `<li class="option" id="${z}">${eu[z].name} - ${paths_self.game.spaces[eu[z].key].name} [${eu[z].country}]</li>`;
+		  html += `<li class="option" id="${z}">${eu[z].ckey} ${eu[z].name} - ${paths_self.game.spaces[eu[z].key].name}</li>`;
 		}
 		html += "</ul>";
 		obk.innerHTML = html;
@@ -201,14 +201,21 @@ class ReplacementsOverlay {
               					`Destination for ${unit.name}` ,
               					(spacekey) => { 
 							if (paths_self.game.spaces[spacekey].control == faction) {
+								if (paths_self.game.spaces[spacekey].besieged == 1) { return 0; }
+								if (paths_self.game.spaces[spacekey].units.length > 0) {
+									let u = paths_self.game.spaces[spacekey].units[0];
+									if (faction == paths_self.returnPowerOfUnit(u)) {
+										return 0;
+									}
+								}
 								if (paths_self.checkSupplyStatus(unit.ckey.toLowerCase(), spacekey) == 1) {
 									if (paths_self.game.spaces[spacekey].units.length < 3) {
 
          								        //
         									// is this on the near east?
         									//
-	        								if (this.isSpaceOnNearEastMap(spacekey)) {
-        								    	  if (!this.canPlayerDeployUnitIntoNearEast(faction, unit)) {
+	        								if (paths_self.isSpaceOnNearEastMap(spacekey)) {
+        								    	  if (!paths_self.canPlayerDeployUnitIntoNearEast(faction, unit)) {
 										    return 1;
 										  }
 										  return 0;
@@ -217,7 +224,8 @@ class ReplacementsOverlay {
 										return 1;
 									}
 								}
- 							} return 0;
+ 							}
+							return 0;
 						} ,
               					(spacekey) => {
 
@@ -226,7 +234,7 @@ class ReplacementsOverlay {
 								return 1;
 							}
 
- 							if (this.isSpaceOnNearEastMap(spacekey)) {
+ 							if (paths_self.isSpaceOnNearEastMap(spacekey)) {
 							  paths_self.game.state.does_movement_end_outside_near_east = 0;
 							  paths_self.game.state.does_movement_end_inside_near_east = 1;
 							  paths_self.trackDeploymentIntoNearEast(faction, unit);

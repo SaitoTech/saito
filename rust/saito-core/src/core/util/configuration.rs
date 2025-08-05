@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Display};
+use std::io::Error;
 
 use crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay;
 use crate::core::defs::Currency;
@@ -205,6 +206,7 @@ pub trait Configuration: Debug {
     fn get_server_configs(&self) -> Option<&Server>;
     fn get_peer_configs(&self) -> &Vec<PeerConfig>;
     fn get_blockchain_configs(&self) -> &BlockchainConfig;
+    fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig;
     fn get_block_fetch_url(&self) -> String;
     fn is_spv_mode(&self) -> bool;
     fn is_browser(&self) -> bool;
@@ -212,6 +214,9 @@ pub trait Configuration: Debug {
     fn get_consensus_config(&self) -> Option<&ConsensusConfig>;
     fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay>;
     fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>);
+    fn get_config_path(&self) -> String;
+    fn set_config_path(&mut self, path: String);
+    fn save(&self) -> Result<(), Error>;
 }
 
 impl ConsensusConfig {

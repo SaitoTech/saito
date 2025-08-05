@@ -141,15 +141,6 @@ class Post {
 		}
 
 		try {
-			if (document.querySelector(this.container + '#post-delete-button')) {
-				document
-					.querySelector(this.container + '#post-delete-button')
-					.addEventListener('click', (e) => {
-						this.deleteTweet();
-					});
-			}
-		} catch (err) {}
-		try {
 			document
 				.querySelector(this.container + '#post-tweet-button')
 				.addEventListener('click', (e) => {
@@ -191,7 +182,7 @@ class Post {
 		let wallet_balance = await this.app.wallet.getBalance('SAITO');
 
 		// restrict moderation
-		if (wallet_balance == 0 && this.app.BROWSER == 1 && text.length > 5000) {
+		if (wallet_balance == 0 && this.app.BROWSER && text.length > 5000) {
 			siteMessage('Insufficient SAITO to Enable Oversized Posts...', 3000);
 			return;
 		}
@@ -308,7 +299,7 @@ class Post {
 					this.tweet.retweeters.unshift(post_self.mod.publicKey);
 				}
 
-				if (this.mod?.main?.manager?.mode?.includes('tweet')) {
+				if (this.mod?.main?.mode?.includes('tweet')) {
 					this.tweet.render();
 				}
 

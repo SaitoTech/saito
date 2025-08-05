@@ -1,15 +1,19 @@
-
 .gif-icon {
   /*background-image: url('/saito/img/GIF.svg');*/
-  height: 26px;
-  width: 26px;
+  /*height: 37px;
+  width: 37px;
+  line-height: 3.6rem;*/
+}
+
+.gif-icon svg {
+  max-width: 2.8rem;
+  max-height: 2.8rem;
   fill: var(--saito-primary);
 }
 
-.gif-icon:hover {
-  fill: var(--saito-font-color-heavy);
+.gif-icon:hover svg {
+  fill: var(--saito-white);
 }
-
 
 .resize-icon {
   position: absolute;
@@ -24,7 +28,7 @@
 }
 
 .resize-icon::after {
-  content: "";
+  content: '';
   cursor: nw-resize;
   border-right: 1px solid var(--border-color-general-dividers);
   z-index: 21;
@@ -36,7 +40,7 @@
 }
 
 .resize-icon::before {
-  content: "";
+  content: '';
   cursor: nw-resize;
   z-index: 21;
   position: absolute;
@@ -46,7 +50,7 @@
   padding: 0.75rem;
 }
 
-.resize-icon.horizontal{
+.resize-icon.horizontal {
   right: 0rem;
   top: 50%;
   left: auto;
@@ -60,7 +64,7 @@
 }
 
 .resize-icon.horizontal:before {
-  content: "";
+  content: '';
   position: absolute;
   right: 7px;
   left: 15%;
@@ -76,7 +80,7 @@
 }
 
 .resize-icon.horizontal:after {
-  content: "";
+  content: '';
   position: absolute;
   right: 0px;
   top: 35%;
@@ -86,6 +90,13 @@
   z-index: 21;
   height: 0rem;
   padding: 0.3rem;
-  border-right:  2px solid var(--saito-white);
+  border-right: 2px solid var(--saito-white);
   cursor: ew-resize;
+}
+
+@media screen and (max-width: 660px) {
+  .gif-icon svg {
+    height: 2.6rem;
+    width: 2.6rem;
+  }
 }

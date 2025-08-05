@@ -9,7 +9,7 @@
       //
       if (this.game.state.events.unitedfruit_removed != 1) {
         this.game.state.events.unitedfruit_removed = 1;
-        this.removeCardFromDeckNextDeal("unitedfruit", "Liberation Theology Evented");
+        this.removeTwilightCardFromDeckNextDeal("unitedfruit", "Liberation Theology Evented");
         this.cancelEvent("unitedfruit");
       }
 

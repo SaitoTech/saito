@@ -168,7 +168,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
     // setHasMore(true);
     // setPosts([]);
 
-    console.log('BLOG [loadPosts] selectedUser: ', selectedUser);
+    console.log('BLOG [loadPosts] selectedUser: ', selectedUser, useCache);
 
     switch (selectedUser.publicKey) {
       case 'all':
@@ -180,6 +180,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
           }
         }
         mod.loadAllBlogPosts((loadedPosts) => {
+          console.debug('Finished loading posts...', loadedPosts);
           setPosts((prevPosts) => {
             const mergedPosts = mergePosts(prevPosts, loadedPosts);
             if (mergedPosts.length > 0) {
@@ -190,6 +191,7 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
           setIsLoadingMore(false);
         }, useCache);
         break;
+
       case 'contacts':
         // Get only contact keys
         const contactKeys = app.keychain.returnKeys().map((k) => k.publicKey);
@@ -491,14 +493,17 @@ const BlogLayout = ({ app, mod, publicKey, post = null }) => {
                   }}
                 />
               ))}
+              {mod.postsCache.lastAllPostsFetch == 0 && (
+                <div className="blog-initial-load-message">
+                  Scanning the blockchain for recent blog posts
+                </div>
+              )}
               {hasMore && (
                 <div ref={loaderRef} className="loading-indicator">
                   {isLoadingMore && (
-                    <>
-                      <div>
-                        <div className="saito-loader"> </div>
-                      </div>
-                    </>
+                    <div>
+                      <div className="saito-loader"> </div>
+                    </div>
                   )}
                 </div>
               )}

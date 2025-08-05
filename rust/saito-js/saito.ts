@@ -146,6 +146,9 @@ export default class Saito {
             send_new_version_alert: (major: number, minor: number, patch: number, peerIndex: bigint) => {
                 return sharedMethods.sendNewVersionAlert(major, minor, patch, peerIndex);
             },
+            send_new_chain_detected_event:() => {
+                return sharedMethods.sendNewChainDetectedEvent();
+            }
         };
         if (privateKey === "") {
             privateKey = DefaultEmptyPrivateKey;

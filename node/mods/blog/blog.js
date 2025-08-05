@@ -1,9 +1,10 @@
-const { default: Transaction } = require('saito-js/lib/transaction');
+//const { default: Transaction } = require('saito-js/lib/transaction');
 const ModTemplate = require('../../lib/templates/modtemplate');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const SaitoProfile = require('./../../lib/saito/ui/saito-profile/saito-profile');
 const pageHome = require('./index');
 const React = require('react');
+const Transaction = require('../../lib/saito/transaction').default;
 const { default: BlogPost } = require('./lib/react-components/blog-post');
 const { default: BlogLayout } = require('./lib/react-components/blog-layout');
 const markdownPage = require('./markdown.js');
@@ -15,13 +16,12 @@ class Blog extends ModTemplate {
     this.name = 'Blog';
     this.slug = 'blog';
     this.description = 'Blog Module';
-    this.cache = {};
     this.peer = null;
     this.icon_fa = 'fa-solid fa-book-open-reader';
 
     this.social = {
       twitter: '@SaitoOfficial',
-      title: '🟥 Saito Blog - Web3 logging',
+      title: '🟥 Saito Blog - Web3 Blogging',
       url: 'https://saito.io/blog',
       description: 'Peer to peer Web3 social media platform',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card.png'
@@ -50,6 +50,38 @@ class Blog extends ModTemplate {
     await super.render(this.app, this);
     // We don't render this, but want to add the hooks to get fallback blog image
     this.profile = new SaitoProfile(this.app, this);
+
+    // Get post_id from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const postId = urlParams.get('tx_id');
+    const author = urlParams.get('public_key');
+
+    if (window.post) {
+      let newtx = new Transaction();
+      newtx.deserialize_from_web(this.app, window.post);
+
+      const post = this.convertTransactionToPost(newtx);
+
+      this.app.browser.createReactRoot(
+        BlogLayout,
+        {
+          post,
+          app: this.app,
+          mod: this,
+          publicKey: post.publicKey,
+          topMargin: true,
+          ondelete: () => {
+            const baseUrl = window.location.origin;
+            window.location.href = `${baseUrl}/blog`;
+          }
+        },
+        `blog-post-detail-${Date.now()}`
+      );
+    } else if (postId) {
+      const url = new URL(window.location);
+      url.searchParams.delete('tx_id');
+      window.history.pushState({}, '', url);
+    }
   }
 
   respondTo(type = '', obj) {
@@ -174,18 +206,17 @@ class Blog extends ModTemplate {
 
     let txmsg = tx.returnMessage();
 
-    if (!this.cache[from]) {
-      this.cache[from] = {};
-    }
-    if (!this.cache[from].blogPosts) {
-      this.cache[from].blogPosts = [];
-    }
     let data = { ...txmsg.data, sig: tx.signature };
-    this.cache[from].blogPosts.push(data);
 
-    if (tx.isFrom(this.publicKey)) {
-      this.app.connection.emit('saito-header-update-message', { msg: '' });
-      siteMessage('Blog post published', 1500);
+    //this.cache[from].blogPosts.push(data);
+
+    if (this.app.BROWSER) {
+      if (tx.isFrom(this.publicKey)) {
+        this.app.connection.emit('saito-header-update-message', { msg: '' });
+        siteMessage('Blog post published', 1500);
+      }
+    } else {
+      siteMessage(`New blog post by ${this.app.keychain.returnUserName(from)}`, 3000);
     }
 
     //
@@ -330,6 +361,7 @@ class Blog extends ModTemplate {
   }
 
   async loadBlogPostForUser(key, callback, useCache, limit = 20) {
+    console.info('Blog.loadBlogPostForUser');
     // Check cache first
     const cachedPosts = this.postsCache.byUser.get(key) || [];
     const lastFetch = this.postsCache.lastFetch.get(key) || 0;
@@ -362,6 +394,7 @@ class Blog extends ModTemplate {
   }
 
   async loadAllPostsFromKeys(keys, callback = null, useCache) {
+    console.info('Blog.loadAllPostsFromKeys');
     if (useCache) {
       const isCacheValid = Date.now() - this.postsCache.lastAllPostsFetch < this.CACHE_TIMEOUT;
       if (this.postsCache.allPosts.length > 0 && isCacheValid) {
@@ -405,6 +438,7 @@ class Blog extends ModTemplate {
   }
 
   async loadAllBlogPosts(callback, useCache = false, limit = 20) {
+    console.info('Blog.loadAllBlogPosts');
     if (useCache) {
       const isCacheValid = Date.now() - this.postsCache.lastAllPostsFetch < this.CACHE_TIMEOUT;
       if (this.postsCache.allPosts.length > 0 && isCacheValid) {
@@ -437,6 +471,7 @@ class Blog extends ModTemplate {
   }
 
   async loadPosts(author = null) {
+    console.info('Blog.loadPosts -- ', author);
     this.app.browser.createReactRoot(
       BlogLayout,
       { app: this.app, mod: this, publicKey: author, topMargin: true },
@@ -445,6 +480,7 @@ class Blog extends ModTemplate {
   }
 
   async loadSinglePost(postId) {
+    console.info('Blog.loadSinglePost');
     if (!this.peer) {
       siteMessage('Warning: no peers available...');
       this.loadPosts();
@@ -457,7 +493,6 @@ class Blog extends ModTemplate {
         const filteredTxs = blog_self.filterBlogPosts(txs);
         const targetTx = filteredTxs.find((tx) => tx.signature === postId);
         if (targetTx) {
-          let public_key = targetTx.from[0].publicKey;
           const post = blog_self.convertTransactionToPost(targetTx);
 
           blog_self.app.browser.createReactRoot(
@@ -466,7 +501,7 @@ class Blog extends ModTemplate {
               post,
               app: blog_self.app,
               mod: blog_self,
-              publicKey: public_key,
+              publicKey: post.publicKey,
               topMargin: true,
               ondelete: () => {
                 const baseUrl = window.location.origin;
@@ -546,6 +581,148 @@ class Blog extends ModTemplate {
       let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
       let updatedSocial = Object.assign({}, mod_self.social);
       updatedSocial.url = reqBaseURL + encodeURI(mod_self.returnSlug());
+
+      if (Object.keys(req.query).length > 0) {
+        let query_params = req.query;
+        let user = '';
+
+        const postId = query_params?.tx_id;
+
+        if (postId) {
+          let cached_tx = '';
+
+          const targetPost = mod_self.postsCache.allPosts.find((p) => p.sig === postId);
+
+          if (targetPost) {
+            user = app.keychain.returnUsername(targetPost.publicKey);
+
+            updatedSocial.description = `'${targetPost.title}' by ${user}`;
+
+            if (targetPost?.imageUrl) {
+              updatedSocial.image = targetPost.imageUrl;
+            } else if (targetPost?.image) {
+              updatedSocial.image =
+                reqBaseURL + encodeURI(mod_self.returnSlug()) + '?og_img_sig=' + postId;
+            }
+
+            cached_tx = targetPost?.tx;
+
+            console.debug('***** serve blog page with cached post tx *****');
+            res.setHeader('Content-type', 'text/html');
+            res.charset = 'UTF-8';
+            res.send(pageHome(app, mod_self, app.build_number, updatedSocial, cached_tx));
+          } else {
+            app.storage.loadTransactions(
+              { field1: 'Blog', signature: postId },
+              function (txs) {
+                const filteredTxs = mod_self.filterBlogPosts(txs);
+                const targetTx = filteredTxs.find((tx) => tx.signature === postId);
+                let cached_tx = '';
+
+                if (targetTx) {
+                  const post = mod_self.convertTransactionToPost(targetTx);
+                  user = app.keychain.returnUsername(post.publicKey);
+
+                  updatedSocial.description = `'${post.title}' by ${user}`;
+
+                  if (post?.imageUrl) {
+                    updatedSocial.image = post.imageUrl;
+                  } else if (post?.image) {
+                    //
+                    // We create a URL for the embedded image
+                    //
+                    updatedSocial.image =
+                      reqBaseURL + encodeURI(mod_self.returnSlug()) + '?og_img_sig=' + postId;
+                  }
+
+                  cached_tx = targetTx.serialize_to_web(app);
+
+                  post.tx = cached_tx;
+                  mod_self.postsCache.allPosts.push(post);
+                }
+
+                console.debug('***** serve blog page after querying archive *****');
+                res.setHeader('Content-type', 'text/html');
+                res.charset = 'UTF-8';
+                res.send(pageHome(app, mod_self, app.build_number, updatedSocial, cached_tx));
+              },
+              'localhost'
+            );
+          }
+          // Wait for callback to complete
+          return;
+        } else if (query_params?.public_key) {
+          user = app.keychain.returnUsername(query_params.public_key);
+          updatedSocial.description = 'Blog posts by ' + user;
+        }
+
+        if (typeof query_params.og_img_sig != 'undefined') {
+          let sig = query_params.og_img_sig;
+          let img = '';
+          let img_type;
+
+          let targetPost = mod_self.postsCache.allPosts.find((p) => p.sig === sig);
+          if (targetPost) {
+            if (targetPost?.image) {
+              switch (targetPost.image.charAt(0)) {
+                case 'i':
+                  img_type = 'image/png';
+                  break;
+                case 'R':
+                  img_type = 'image/gif';
+                  break;
+                default:
+                  img_type = 'image/jpeg';
+              }
+              img = Buffer.from(targetPost.image, 'base64');
+              if (!res.finished) {
+                res.writeHead(200, {
+                  'Content-Type': img_type,
+                  'Content-Length': img.length
+                });
+                return res.end(img);
+              }
+            }
+          } else {
+            // Need to load Transaction first!
+            console.log('BLOG IMAGE REQUEST with Archive ! -- ', sig);
+            app.storage.loadTransactions(
+              { field1: 'Blog', signature: sig },
+              function (txs) {
+                const filteredTxs = mod_self.filterBlogPosts(txs);
+                const targetTx = filteredTxs.find((tx) => tx.signature === sig);
+                if (targetTx) {
+                  targetPost = mod_self.convertTransactionToPost(targetTx);
+                  mod_self.postsCache.allPosts.push(targetPost);
+                  if (targetPost?.image) {
+                    switch (targetPost.image.charAt(0)) {
+                      case 'i':
+                        img_type = 'image/png';
+                        break;
+                      case 'R':
+                        img_type = 'image/gif';
+                        break;
+                      default:
+                        img_type = 'image/jpeg';
+                    }
+                    img = Buffer.from(targetPost.image, 'base64');
+                    if (!res.finished) {
+                      res.writeHead(200, {
+                        'Content-Type': img_type,
+                        'Content-Length': img.length
+                      });
+                      return res.end(img);
+                    }
+                  }
+                }
+              },
+              'localhost'
+            );
+            return;
+          }
+        }
+      }
+
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
       res.send(pageHome(app, mod_self, app.build_number, updatedSocial));

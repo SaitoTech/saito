@@ -16,6 +16,9 @@ import PeerServiceList from 'saito-js/lib/peer_service_list';
 import Block from '../block';
 
 import fetch from 'node-fetch';
+import HTMLParser from 'node-html-parser';
+import prettify from 'html-prettify';
+
 import { toBase58 } from 'saito-js/lib/util';
 import { TransactionType } from 'saito-js/lib/transaction';
 import { BlockType } from 'saito-js/lib/block';
@@ -266,6 +269,9 @@ export class NodeSharedMethods extends CustomSharedMethods {
       return;
     }
     fs.mkdirSync(path);
+  }
+  sendNewChainDetectedEvent(): void {
+    this.app.connection.emit('new-chain-detected');
   }
 }
 
@@ -1004,14 +1010,14 @@ class Server {
       // caching in prod
       //
       /*** No longer needed as handled by nginx.
-			const caching =
-			process.env.NODE_ENV === "prod"
-			  ? "private max-age=31536000"
-			  : "private, no-cache, no-store, must-revalidate";
-				res.setHeader("Cache-Control", caching);
-				res.setHeader("expires", "-1");
-				res.setHeader("pragma", "no-cache");
-			****/
+      const caching =
+      process.env.NODE_ENV === "prod"
+        ? "private max-age=31536000"
+        : "private, no-cache, no-store, must-revalidate";
+        res.setHeader("Cache-Control", caching);
+        res.setHeader("expires", "-1");
+        res.setHeader("pragma", "no-cache");
+      ****/
 
       if (!res.finished) {
         return res.sendFile(this.web_dir + '/saito/saito.js');
@@ -1059,10 +1065,106 @@ class Server {
       console.log('web server is listening');
     });
     this.webserver = webserver;
+
+    this.app.connection.emit('saito-server-listening');
   }
 
   close() {
     this.webserver.close();
+  }
+
+  //
+  // servers can fetch open graph graphics (of links in tweets)
+  //
+  async fetchOpenGraphProperties(link, callback = null) {
+    return fetch(link, { redirect: 'follow', follow: 50 })
+      .then((res) => res.text())
+      .then((data) => {
+        let no_tags = {
+          title: '',
+          description: ''
+        };
+
+        let og_tags = {
+          'og:title': '',
+          'og:description': '',
+          'og:url': '',
+          'og:image': '',
+          'og:site_name': '' //We don't do anything with this
+        };
+
+        let tw_tags = {
+          'twitter:title': '',
+          'twitter:description': '',
+          'twitter:url': '',
+          'twitter:image': '',
+          'twitter:site': '', //We don't do anything with this
+          'twitter:card': '' //We don't do anything with this
+        };
+
+        let has_og = false;
+        let has_twitter = false;
+
+        // prettify html - unminify html if minified
+        let html = prettify(data);
+
+        //Useful to check, don't delete until perfect
+        //let testReg = /<head>.*<\/head>/gs;
+        //console.log(html.match(testReg));
+
+        // parse string html to DOM html
+        let dom = HTMLParser.parse(html);
+
+        try {
+          no_tags.title = dom.getElementsByTagName('title')[0].textContent;
+        } catch (err) {}
+
+        // fetch meta element for og tags
+        let meta_tags = dom.getElementsByTagName('meta');
+
+        // loop each meta tag and fetch required og properties
+        for (let i = 0; i < meta_tags.length; i++) {
+          let property = meta_tags[i].getAttribute('property');
+          let content = meta_tags[i].getAttribute('content');
+          // get required og properties only, discard others
+          if (property in og_tags) {
+            og_tags[property] = content;
+            has_og = true;
+          }
+          if (property in tw_tags) {
+            tw_tags[property] = content;
+            has_twitter = true;
+          }
+          if (meta_tags[i].getAttribute('name') === 'description') {
+            no_tags.description = content;
+          }
+        }
+
+        //
+        // Map twitter tags to open graph if only have twitter
+        //
+        if (has_twitter && !has_og) {
+          og_tags['og:title'] = tw_tags['twitter:title'];
+          og_tags['og:description'] = tw_tags['twitter:description'];
+          og_tags['og:url'] = tw_tags['twitter:url'];
+          og_tags['og:image'] = tw_tags['twitter:image'];
+          og_tags['og:site_name'] = tw_tags['twitter:site'];
+        }
+
+        // fallback to no tags if still blank...
+        og_tags['og:title'] = og_tags['og:title'] || no_tags['title'];
+        og_tags['og:description'] = og_tags['og:description'] || no_tags['description'];
+
+        if (callback) {
+          callback(og_tags);
+        }
+
+        return og_tags;
+      })
+      .catch((err) => {
+        console.error('browser.fetchOpenGraph Error: ', err);
+        return '';
+      });
   }
 
   provideTesterAPI(express: any) {

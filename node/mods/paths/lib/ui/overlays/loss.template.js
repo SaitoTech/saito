@@ -1,6 +1,6 @@
-module.exports = () => {
+module.exports = (terrain="") => {
 	let html = `
-    <div class="loss-overlay">
+    <div class="loss-overlay ${terrain}">
 
       <div class="help"></div>
 
@@ -19,7 +19,8 @@ module.exports = () => {
           <div class="row row-0">
             <div class="col col-0">faction</div>
             <div class="col col-1">position</div>
-            <div class="col col-2">roll</div>
+            <div class="col col-7">roll</div>
+            <div class="col col-2">mod</div>
             <div class="col col-6">fort</div>
             <div class="col col-3">bonus</div>
             <div class="col col-4">col-shift</div>
@@ -28,6 +29,7 @@ module.exports = () => {
           <div class="row row-1">
             <div class="col col-0 attacker_faction">central</div>
             <div class="col col-1">attacker</div>
+            <div class="col col-7"><div class="attacker_roll_unmodified">-</div></div>
             <div class="col col-2"><div class="dice attacker_roll">-</div></div>
             <div class="col col-6">0</div>
             <div class="col col-3 attacker_modifiers">-</div>
@@ -37,6 +39,7 @@ module.exports = () => {
           <div class="row row-2">
             <div class="col col-0 defender_faction">allies</div>
             <div class="col col-1">defender</div>
+            <div class="col col-7"><div class="defender_roll_unmodified">-</div></div>
             <div class="col col-2"><div class="dice defender_roll">-</div></div>
             <div class="col col-6">0</div>
             <div class="col col-3 defender_modifiers">-</div>

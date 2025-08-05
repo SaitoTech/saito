@@ -82,8 +82,8 @@
 	grid-template-columns: 2.4rem 1fr min-content;
 	align-items: center;
 	padding: 0 0.5rem;
-	border: var(--border-thickness-button-module) solid var(--border-color-button-module);
-	border-radius: var(--border-radius-button-module);
+	border: 1px solid var(--border-color-button-module);
+	border-radius: var(--border-radius-soft);
 	height: 4rem;
 	gap: 0.5rem;
 	width: 100%;

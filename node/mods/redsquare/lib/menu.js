@@ -10,7 +10,7 @@ class RedSquareMenu {
     this.mod = mod;
     this.overlay = new SaitoOverlay(app, mod);
     this.container = container;
-    this.settings = new RedSquareSettings(app, mod);
+    this.settings = new RedSquareSettings(app, mod, '.module-settings-overlay');
 
     app.connection.on('redsquare-clear-menu-highlighting', (active_tab = '') => {
       document.querySelectorAll('.redsquare-page-active').forEach((el) => {
@@ -59,16 +59,15 @@ class RedSquareMenu {
     //
     // adds chat toggle to left-menu
     //
-    /****
     this.app.modules.returnModulesRespondingTo('saito-chat-popup').forEach((mod) => {
       let id = `redsquare-menu-${mod.returnSlug()}`;
       const rs = mod.respondTo('saito-chat-popup')[0];
       this.app.browser.addElementToSelector(
-        `<li class="redsquare-menu-mobile" id="${id}">
+        `<li class="redsquare-menu-mobile item" id="${id}">
             <i class="${rs.icon}"></i>
             <span>${mod.returnName()}</span>
           </li>`,
-        '.saito-menu-list'
+        '.redsquare-menu'
       );
 
       if (rs.event) {
@@ -83,7 +82,6 @@ class RedSquareMenu {
         };
       }
     });
-****/
 
     this.attachEvents();
   }
@@ -151,6 +149,8 @@ class RedSquareMenu {
     //
     if (document.querySelector('.redsquare-menu-settings')) {
       document.querySelector('.redsquare-menu-settings').onclick = (e) => {
+        let overlay = new SaitoOverlay(this.app, this.mod);
+        overlay.show(`<div class="module-settings-overlay"><h2>Redsquare Settings</h2></div>`);
         this.settings.render();
       };
     }

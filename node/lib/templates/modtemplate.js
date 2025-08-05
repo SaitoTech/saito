@@ -39,6 +39,7 @@ class ModTemplate {
     this.theme_options = {
       lite: 'fa-solid fa-sun',
       raven: 'fa-solid fa-crow',
+      dark: 'fa-solid fa-moon'
     };
 
     this.processedTxs = {};
@@ -1105,6 +1106,28 @@ class ModTemplate {
     // 	socket.on('close', () => {});
     // 	socket.on('error', (err) => {});
     // });
+  }
+
+  //
+  // default logo for first time load
+  // (will be overriden once theme is selected/changed)
+  //
+  getDefaultLogo() {
+    // white - logo.svg
+    // orange - logo-orange.svg
+    // black - logo-black.svg
+    return 'logo.svg';
+  }
+
+  //
+  // mods can set custom logo for specific themes
+  //
+  getThemeLogo() {
+    return {
+      lite: 'logo.svg',
+      raven: 'logo.svg',
+      dark: 'logo.svg'
+    };
   }
 }
 

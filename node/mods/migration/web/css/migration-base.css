@@ -3,6 +3,8 @@
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	background-image: url(/saito/img/tiled-logo.svg);
+    background-color: var(--saito-background-color);
 }
 
 .mask {
@@ -23,10 +25,6 @@ input[type='text'] {
 	background: #111a;
 	color: #fff;
 	border: 1px solid #888a;
-}
-
-input[type='text']::placeholder {
-	color: var(--saito-font-color-dark-modal);
 }
 
 .withdraw-container {
@@ -58,9 +56,4 @@ input[type='text']::placeholder {
 	background-position: 99% 99%;
 	color: #fff;
 	text-decoration: none;
-}
-
-.content,
-p {
-	color: var(--saito-font-color-dark-modal);
 }

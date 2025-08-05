@@ -111,6 +111,9 @@ class MsgHandler {
             peerIndex
         );
     }
+    static send_new_chain_detected_event(){
+        return global.shared_methods.send_new_chain_detected_event();
+    }
 }
 
 // if (typeof exports === "undefined") {

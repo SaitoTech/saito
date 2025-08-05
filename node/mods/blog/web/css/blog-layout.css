@@ -167,6 +167,15 @@ body {
   min-height: min-content;
 }
 
+.blog-initial-load-message {
+  font-size: 2rem;
+  padding: 1rem;
+}
+
+.loading-indicator {
+  margin-top: 7rem;
+}
+
 .post-card {
   border-radius: 0.5rem;
   padding: 0.5rem;
@@ -316,6 +325,7 @@ body {
 .no-posts-message {
   margin-bottom: 2.4rem;
   max-width: 44rem;
+  line-height: 2.2rem;
 }
 
 .create-post-button {

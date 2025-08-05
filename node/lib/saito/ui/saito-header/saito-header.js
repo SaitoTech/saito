@@ -5,6 +5,8 @@ const UIModTemplate = require('./../../../templates/uimodtemplate');
 const UserMenu = require('../../ui/modals/user-menu/user-menu');
 const SaitoLoader = require('../saito-loader/saito-loader');
 const SaitoBackup = require('../saito-backup/saito-backup');
+const Nft = require('./../saito-nft/create-nft');
+const SendNft = require('./../saito-nft/send-nft');
 //
 // UIModTemplate
 //
@@ -51,6 +53,9 @@ class SaitoHeader extends UIModTemplate {
 
     this.loader = new SaitoLoader(this.app, this.mod, '#qrcode');
     this.saito_backup = new SaitoBackup(app, mod);
+
+    this.nft = new Nft(app, mod);
+    this.send_nft = new SendNft(app, mod);
 
     console.log('Create Saito Header for ' + mod.name);
   }
@@ -217,13 +222,29 @@ class SaitoHeader extends UIModTemplate {
 
       this.app.browser.addNotificationToId(total, 'saito-header-menu-toggle');
     });
+
+    this.app.connection.on('saito-header-logo-change-request', (obj) => {
+      this.resetHeaderLogo();
+    });
   }
 
   resetHeaderLogo() {
     let logo = document.querySelector('.saito-header-logo-wrapper');
     if (logo) {
+      // set default logo
+      let active_mod = this.app.modules.returnActiveModule();
+      let logo_svg = active_mod.getDefaultLogo();
+
+      // check if theme is set already in app.options
+      if (typeof this.app.options.theme != 'undefined') {
+        let theme = this.app.options.theme[active_mod.slug];
+
+        // fetch preferred logo against selected theme
+        logo_svg = active_mod.getThemeLogo()[theme] || 'logo.svg';
+      }
+
       logo.innerHTML = `
-	      <img class="saito-header-logo" alt="Logo" src="/saito/img/logo.svg" />
+	      <img class="saito-header-logo" alt="Logo" src="/saito/img/${logo_svg}" />
 	    `;
 
       logo.onclick = (e) => {

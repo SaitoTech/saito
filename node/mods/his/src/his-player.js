@@ -5180,6 +5180,20 @@ does_units_to_move_have_unit = true; }
     let his_self = this;
     let retreat_destination = "";
     let space_name = this.game.spaces[spacekey].name;
+    let number_of_retreaters = 0;
+
+    for (let f in this.game.spaces[spacekey].units) {
+      if (this.areAllies(f, attacker, true) || f === attacker) {
+        number_of_retreaters += this.returnFactionLandUnitsInSpace(f, spacekey);
+      }
+    }
+
+    // skip if no-one is left to retreat
+    if (number_of_retreaters == 0) {
+      his_self.endTurn();
+      return;
+    }
+
 
     let onFinishSelect = function(his_self, destination_spacekey) {
       his_self.addMove("retreat"+"\t"+loser+"\t"+spacekey+"\t"+destination_spacekey);

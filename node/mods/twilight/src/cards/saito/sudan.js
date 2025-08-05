@@ -4,7 +4,7 @@
     ////////////////////////
     if (card == "sudan") {
 
-      let target = 4;
+      let target = 3;
       let opponent = "us";
       let success = 0;
       if (player == "us") { opponent = "ussr";  }

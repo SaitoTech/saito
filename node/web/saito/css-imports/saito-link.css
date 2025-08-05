@@ -1,0 +1,55 @@
+/*
+link preview
+*/
+
+.link-preview {
+  margin: 1rem 0;
+  white-space: normal;
+}
+
+.link-img {
+  width: 100%;
+  height: 2rem;
+  border-top-left-radius: var(--border-radius-round);
+  border-top-right-radius: var(--border-radius-round);
+  border: 1px solid var(--saito-border-color);
+  border-bottom: none;
+  background-image: url(/saito/img/dreamscape.png);
+  background-size: cover;
+  background-position: bottom;
+}
+
+.link-img.has-picture {
+  height: 25rem;
+  background-position: center;
+}
+
+.link-info {
+  padding: 2rem;
+  border: 1px solid var(--saito-border-color);
+  border-radius: var(--border-radius-round);
+  border-top: none;
+  border-top-right-radius: unset;
+  border-top-left-radius: unset;
+  overflow-wrap: anywhere;
+  color: var(--saito-font-color);
+  font-size: 1.5rem;
+  background-color: var(--saito-gray-mid-transparent);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.link-title {
+  font-size: 1.8rem;
+}
+
+.link-url {
+  color: var(--saito-font-color-secondary);
+  font-style: italic;
+  font-size: 1.3rem;
+}
+
+.link-preview a {
+  white-space: normal;
+}

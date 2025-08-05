@@ -31,6 +31,7 @@ class Poker extends GameTableTemplate {
 		this.card_img_dir = '/saito/img/arcade/cards';
 		this.card_img = 'new_red';
 		this.felt = 'green';
+		this.theme = 'threed';
 		this.icon = 'fa-solid fa-diamond';
 
 		this.minPlayers = 2;
@@ -173,6 +174,7 @@ class Poker extends GameTableTemplate {
 	}
 
 	async render(app) {
+
 		if (!this.browser_active) {
 			return;
 		}
@@ -231,15 +233,11 @@ class Poker extends GameTableTemplate {
 		await super.render(app);
 
 		this.board.render();
-
 		this.playerbox.mode = 2;
 		this.refreshPlayerboxes();
-
 		this.menu.addChatMenu();
 		this.menu.render();
-
 		this.log.render();
-
 		this.displayButton();
 		this.insertCryptoLogo(this.game?.options?.crypto);
 

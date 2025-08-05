@@ -1,0 +1,125 @@
+/*-------------------- CLASSIC DARK THEME -------------------- */
+
+html[data-theme='dark'] {
+  /* ====================== OLD VARIABLES SECTION =========================== */
+  --saito-primary: #115c95;
+  --saito-primary-transparent: #e05b0888;
+  --saito-secondary: #278cd8;
+  --saito-font-color: #fff;
+  --saito-font-color-heavy: #fff;
+  --saito-font-color-light: #fff;
+  --saito-font-color-inverse: #000;
+  --saito-border-color: #555;
+  --saito-border-color-dark: #666;
+  --saito-background-color: #1c1c23;
+  --saito-sidebar-element-background: #0003;
+  --saito-gray-transparent: #e3e3e318;
+  --saito-box-shadow: 0 0 0 1px var(--saito-border-color);
+  --saito-arcade-header-background: var(--saito-background-color);
+  --saito-bubble-background: #111;
+  --saito-bubble-shadow: #000c;
+  /* ================= NEW UPDATED THEME ================== */
+  /*BASE COLOR SECTION*/
+  --saito-primary: #fd7e14;
+  /* Bright orange */
+  --saito-secondary: #ffc107;
+  /* Gray with warm tint */
+  /* MID gray  */
+  --color-base: #1c1c23;
+  /*  super dark almost black - updated to match brand book*/
+  --color-contrast: #aaa;
+  /* off-white */
+  /*TINTS COLOR SECTION*/
+  --color-tint-dark: #1c1c23;
+  /* very dark gray */
+  --color-highlight: #f71f3d;
+  /* saito-red */
+  /*SHADOW COLOR SECTION*/
+  /* almost black, transparent */
+  --saito-bubble-shadow: #000c;
+  /*MAIN BACKGROUND COLOR SECTION*/
+  /*FONTS SECTION*/
+  /*quick settings*/
+  --saito-font-color: #ddd;
+  /* normal */
+  --saito-font-color-secondary: var(--color-contrast);
+  /*  faded grey  */
+  --saito-font-color-heavy: var(--saito-white);
+  /* Bright! */
+  --font-color-inverse: var(--saito-background-color);
+  /* background colory */
+  /*Font Selection*/
+  --font-color-paper-airplane: var(--saito-font-color-secondary);
+  --font-color-emoji: var(--saito-font-color-secondary);
+  --font-color-chat-popup-likes: var(--saito-font-color);
+  --font-color-button-chat-popup-header: var(--saito-font-color);
+  --saito-gray-light: #7f7f8245;
+  --saito-gray-lighter-transparent: #1a1818bb;
+  --font-color-button-chat-container: var(--saito-font-color);
+  --font-color-button-wallet-control: var(--saito-font-color);
+  /* Menu and Header Font Colors */
+  --font-color-menu-hamburger: var(--saito-font-color-heavy);
+  /* Alerts and Status Font Colors */
+  --font-color-user-address: var(--saito-font-color-heavy);
+  --saito-background-color: var(--saito-background-color);
+  /* Exempt as system color */
+  /* Module and Overlay Font Colors */
+  --font-color-overlay-form-text: var(--saito-font-color);
+  /* BORDER RADIUS */
+  --border-radius-modal-menu: var(--border-radius-soft);
+  /* BORDER THICKNESS */
+  --border-padding-qr-code: 0;
+  --border-thickness-modal-menu: 0px;
+  --border-thickness-button-primary: var(--border-thickness-thin);
+  --border-thickness-button-hover-primary: var(--border-thickness-thin);
+  --border-thickness-qr-code: var(--border-thickness-fat); /* for contrast to be able to scan */
+  /* BORDER COLORS */
+  --border-color-general-dividers: var(--saito-border-color);
+  --border-color-general-dividers-dark: var(--saito-primary);
+  --border-color-button-wallet-control: var(--saito-primary);
+  --border-color-button-modal: var(--saito-gray-dark);
+  --border-color-button-module: var(--saito-gray-dark);
+  --border-color-sidebar-menu: var(--saito-border-color);
+  --border-color-module-menu: none;
+  --border-color-overlay-subform: var(--color-tint-dark);
+  --border-color-chat-menu: ;
+  --border-color-identicon: transparent;
+  --border-color-identicon-square: ;
+  --border-color-identicon-square-profile: var(--border-color-general-dividers);
+  --border-color-chat-popup-docked: var(--saito-primary);
+  --border-color-selection-box: var(--color-highlight);
+  --border-color-form-input-checkbox: var(--color-contrast);
+  --border-color-qr-code: var(--saito-border-color-dark); /*var(--saito-white);*/
+  /* BACKGROUNDS */
+  /* General Background Colors */
+  --background-color-sidebar-left: var(--saito-bubble-shadow-light);
+  --background-color-modal-menu-oldschool: none;
+  --background-color-overlay-form-header: var(--saito-background-color);
+  /* Button Background Colors */
+
+  --background-color-button-hover-primary: none;
+  --background-color-button-sidebar-chat-active: var(--color-tint-dark);
+  --background-color-button-hover-modal-oldschool: var(--saito-primary);
+  --background-color-button-chat-popup-send: var(--saito-background-color);
+  /* Sidebar, Headers and Notification Colors */
+  --background-color-button-hover-sidebar: var(--saito-primary);
+  /* Special UI Components */
+  --background-color-icon-close: var(--saito-gray-dark);
+  --background-color-hover-post-preview: var(--saito-background-color);
+  /* solves the dark theme hover gradient problem*/
+  /* Chat Related Colors */
+  --background-color-chat-popup-main: var(--color-tint-dark);
+  --background-color-chat-popup-header: var(--color-tint-dark);
+  --background-color-chat-popup-message-self: var(--color-tint-dark);
+  --background-color-chat-popup-message: var(--saito-background-color);
+
+  /* Theme Specific */
+  --saito-arcade-header-background: var(--saito-background-color);
+  --saito-background-color: #1c1c23;
+  --saito-background-color-inverse: #d7dbdc;
+  --saito-header-background: var(--saito-background-color);
+  --background-color-button-primary: var(--saito-primary);
+  --saito-background-light: var(--saito-background-color);
+
+  /* Fixes */
+}

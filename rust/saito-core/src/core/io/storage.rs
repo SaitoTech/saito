@@ -172,7 +172,7 @@ impl Storage {
     }
 
     pub async fn delete_block_from_disk(&self, filename: &str) -> bool {
-        info!("deleting block from disk : {:?}", filename);
+        debug!("deleting block from disk : {:?}", filename);
         self.io_interface.remove_value(filename).await.is_ok()
     }
 

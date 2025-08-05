@@ -11,7 +11,7 @@
   overflow: hidden;
   width: 13rem;
   white-space: nowrap;
-  height: 1.7rem;
+  height: 1.8rem;
 }
 
 .chat-manager .saito-userline .img-prev {
@@ -126,6 +126,10 @@
 
 .chat-popup.minimized .saito-notification-dot .new-message-count {
   display: block;
+}
+
+.chat-popup .link-preview {
+  max-width: 40rem;
 }
 
 .saito-chat-active {
@@ -386,7 +390,7 @@
   height: 100%;
   overflow: clip auto;
   background-image: url(/saito/img/tiled-logo.svg);
-  background-color: var(--saito-gray-light);
+  background-color: var(--saito-background-color);
 }
 
 .chat-body > .saito-user {
@@ -593,20 +597,15 @@
   opacity: 1; /* Opacity set to 1 on hover to make the element visible */
 }
 
-.liked {
-  color: var(--saito-primary);
-}
-
 .chat-likes {
   right: -4rem;
   bottom: 0;
   display: flex;
   width: 40px;
   font-size: 1.3rem;
-}
-
-.chat-likes i {
-  color: var(--saito-primary);
+  font-weight: bold;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .chat-likes .chat-like-number {

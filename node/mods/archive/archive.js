@@ -31,11 +31,11 @@ class Archive extends ModTemplate {
 
 		this.name = 'Archive';
 		this.slug = 'archive';
-		this.description =
-			'Supports the saving and serving of network transactions';
+		this.description = 'Supports the saving and serving of network transactions';
 		this.categories = 'Utilities Core';
 		this.class = 'utility';
 		this.localDB = null;
+		this.opt_out = ['Chat']; // Modules that handle their own automated storage
 
 		this.schema = [
 			'id',
@@ -74,9 +74,7 @@ class Archive extends ModTemplate {
 		if (this.app.BROWSER == 0) {
 			this.archive.index_blockchain = 1;
 		} else {
-			this.localDB = new JsStore.Connection(
-				new Worker('/saito/lib/jsstore/jsstore.worker.js')
-			);
+			this.localDB = new JsStore.Connection(new Worker('/saito/lib/jsstore/jsstore.worker.js'));
 		}
 	}
 
@@ -101,7 +99,7 @@ class Archive extends ModTemplate {
 					wv = 0;
 				}
 				if (wv <= 5.555) {
-					console.warn("PURGING LOCAL DB ", wv);
+					console.warn('PURGING LOCAL DB ', wv);
 					await this.localDB.dropDb();
 					await this.initInBrowserDatabase();
 				}
@@ -112,19 +110,22 @@ class Archive extends ModTemplate {
 		//
 		// Don't prune more than once a day, but otherwise on connection/spin up
 		//
-		if (!this.archive?.last_prune || (this.archive.last_prune + (24*60*60*1000) < now)){
+		if (!this.archive?.last_prune || this.archive.last_prune + 24 * 60 * 60 * 1000 < now) {
 			this.pruneArchive();
 		}
 
-		setInterval(()=> {
-			this.pruneArchive()
-		}, 24*60*60*1000 + 5000);
-
+		setInterval(
+			() => {
+				this.pruneArchive();
+			},
+			24 * 60 * 60 * 1000 + 5000
+		);
 	}
 
 	async initInBrowserDatabase() {
-
-		if (!this.app.BROWSER) { return; }
+		if (!this.app.BROWSER) {
+			return;
+		}
 
 		//
 		// Create Local DB schema
@@ -141,7 +142,7 @@ class Archive extends ModTemplate {
 				field2: { dataType: 'string', default: '' },
 				field3: { dataType: 'string', default: '' },
 				field4: { dataType: 'string', default: '' },
-				field5: { dataType: 'string', default: '' }, 
+				field5: { dataType: 'string', default: '' },
 				block_id: { dataType: 'number', default: 0 },
 				block_hash: { dataType: 'string', default: '' },
 				created_at: { dataType: 'number', default: 0 },
@@ -174,29 +175,21 @@ class Archive extends ModTemplate {
 	}
 
 	async render() {
-
 		let ct = 0;
 		let mem = 0;
 		let ts = Date.now();
 
 		this.app.browser.prependElementToDom(ArchiveSummary(this.app));
 
-		this.app.browser.replaceElementBySelector(
-			`<div class="local-archive-table"></div>`,
-			'.main'
-		);
-		this.app.browser.addElementToSelector(
-			ArchiveTemplate(this.app, null),
-			'.local-archive-table'
-		);
+		this.app.browser.replaceElementBySelector(`<div class="local-archive-table"></div>`, '.main');
+		this.app.browser.addElementToSelector(ArchiveTemplate(this.app, null), '.local-archive-table');
 
-		const cHook = document.getElementById("tx-ct");
-		const sHook = document.getElementById("db-size");
+		const cHook = document.getElementById('tx-ct');
+		const sHook = document.getElementById('db-size');
 
 		let cont = true;
-		while (cont){
-
-			let rows = await this.loadTransactions({ updated_earlier_than: ts});
+		while (cont) {
+			let rows = await this.loadTransactions({ updated_earlier_than: ts });
 
 			/*let rows = await this.localDB.select({
 				from: 'archives',
@@ -219,10 +212,9 @@ class Archive extends ModTemplate {
 
 			//0 rows returned ==> done!
 			cont = rows.length;
-			
 		}
 
-		siteMessage("Achive fully loaded!");
+		siteMessage('Achive fully loaded!');
 		this.attachEvents();
 	}
 
@@ -254,7 +246,7 @@ class Archive extends ModTemplate {
 			};
 		});
 
-		document.querySelectorAll(".delete-me").forEach(btn => {
+		document.querySelectorAll('.delete-me').forEach((btn) => {
 			btn.onclick = async (e) => {
 				let sig = e.currentTarget.dataset.id;
 
@@ -264,11 +256,11 @@ class Archive extends ModTemplate {
 
 				let res = await this.deleteTransaction(sig);
 
-				if (res){
+				if (res) {
 					row.remove();
 				}
-			}
-		})
+			};
+		});
 	}
 
 	returnServices() {
@@ -283,7 +275,6 @@ class Archive extends ModTemplate {
 	// by default we just save everything that is an application
 	//
 	async onConfirmation(blk, tx, conf) {
-
 		if (this.app.BROWSER && !tx.isTo(this.publicKey)) {
 			return;
 		}
@@ -304,10 +295,10 @@ class Archive extends ModTemplate {
 				} else {
 					// Use the storage function for standard formatting
 					let txmsg = tx.returnMessage();
-					if (txmsg?.module == "spam"){
+					if (txmsg?.module == 'spam') {
 						return;
 					}
-					this.app.storage.saveTransaction(tx, { block_id, block_hash }, "localhost");
+					this.app.storage.saveTransaction(tx, { block_id, block_hash }, 'localhost');
 				}
 			}, 10000);
 		}
@@ -394,9 +385,9 @@ class Archive extends ModTemplate {
 		newObj.tx = tx.serialize_to_web(this.app);
 		newObj.tx_size = newObj.tx.length;
 
-try {
-  //alert("saving transaction in archive mod...");
-} catch (err) {}
+		try {
+			//alert("saving transaction in archive mod...");
+		} catch (err) {}
 
 		if (this.app.BROWSER) {
 			let numRows = await this.localDB.insert({
@@ -545,30 +536,22 @@ try {
 		let timestamp_limiting_clause = '';
 
 		let order_clause = ' ORDER BY archives.id';
-		let sort = "DESC";
+		let sort = 'DESC';
 
 		//For JS-Store
 		let order_obj = { by: 'id', type: 'desc' };
 		let where_obj = {};
 
-		if (
-			obj.created_later_than ||
-			obj.hasOwnProperty('created_later_than')
-		) {
-			timestamp_limiting_clause +=
-				' AND created_at > ' + parseInt(obj.created_later_than);
+		if (obj.created_later_than || obj.hasOwnProperty('created_later_than')) {
+			timestamp_limiting_clause += ' AND created_at > ' + parseInt(obj.created_later_than);
 			where_obj = {
 				created_at: { '>': parseInt(obj.created_later_than) }
 			};
 			order_clause = ' ORDER BY archives.created_at';
 			order_obj.by = 'created_at';
 		}
-		if (
-			obj.created_earlier_than ||
-			obj.hasOwnProperty('created_earlier_than')
-		) {
-			timestamp_limiting_clause +=
-				' AND created_at < ' + parseInt(obj.created_earlier_than);
+		if (obj.created_earlier_than || obj.hasOwnProperty('created_earlier_than')) {
+			timestamp_limiting_clause += ' AND created_at < ' + parseInt(obj.created_earlier_than);
 			where_obj = {
 				created_at: { '<': parseInt(obj.created_earlier_than) }
 			};
@@ -576,35 +559,25 @@ try {
 			order_obj.by = 'created_at';
 		}
 		if (obj.tx_size_greater_than) {
-			timestamp_limiting_clause +=
-				' AND tx_size > ' + parseInt(obj.tx_size_greater_than);
+			timestamp_limiting_clause += ' AND tx_size > ' + parseInt(obj.tx_size_greater_than);
 			where_obj = {
 				tx_size: { '>': parseInt(obj.tx_size_greater_than) }
 			};
 		}
 		if (obj.tx_size_less_than) {
-			timestamp_limiting_clause +=
-				' AND tx_size < ' + parseInt(obj.tx_size_less_than);
+			timestamp_limiting_clause += ' AND tx_size < ' + parseInt(obj.tx_size_less_than);
 			where_obj = { tx_size: { '<': parseInt(obj.tx_size_less_than) } };
 		}
-		if (
-			obj.updated_later_than ||
-			obj.hasOwnProperty('updated_later_than')
-		) {
-			timestamp_limiting_clause +=
-				' AND updated_at > ' + parseInt(obj.updated_later_than);
+		if (obj.updated_later_than || obj.hasOwnProperty('updated_later_than')) {
+			timestamp_limiting_clause += ' AND updated_at > ' + parseInt(obj.updated_later_than);
 			where_obj = {
 				updated_at: { '>': parseInt(obj.updated_later_than) }
 			};
 			order_clause = ' ORDER BY archives.updated_at';
 			order_obj.by = 'updated_at';
 		}
-		if (
-			obj.updated_earlier_than ||
-			obj.hasOwnProperty('updated_earlier_than')
-		) {
-			timestamp_limiting_clause +=
-				' AND updated_at < ' + parseInt(obj.updated_earlier_than);
+		if (obj.updated_earlier_than || obj.hasOwnProperty('updated_earlier_than')) {
+			timestamp_limiting_clause += ' AND updated_at < ' + parseInt(obj.updated_earlier_than);
 			where_obj = {
 				updated_at: { '<': parseInt(obj.updated_earlier_than) }
 			};
@@ -612,14 +585,13 @@ try {
 			order_obj.by = 'updated_at';
 		}
 		if (obj.flagged) {
-			timestamp_limiting_clause +=
-				' AND flagged = ' + parseInt(obj.flagged);
+			timestamp_limiting_clause += ' AND flagged = ' + parseInt(obj.flagged);
 			where_obj = { flagged: { '=': parseInt(obj.flagged) } };
 		}
 
-		if (obj.ascending || obj.hasOwnProperty('ascending')){
-			sort = "ASC";
-			order_obj.type = "asc";
+		if (obj.ascending || obj.hasOwnProperty('ascending')) {
+			sort = 'ASC';
+			order_obj.type = 'asc';
 		}
 
 		//
@@ -646,9 +618,9 @@ try {
 		if (obj.field5 || obj.hasOwnProperty('field5')) {
 			where_obj['field5'] = { '>=': obj.field5 };
 			sql += ' archives.field5 >= $field5 AND';
-			params["$field5"] = obj.field5;
+			params['$field5'] = obj.field5;
 			order_clause = ' ORDER BY archives.field5';
-			order_obj.by = "field5";
+			order_obj.by = 'field5';
 			delete obj.field5;
 		}
 
@@ -704,12 +676,12 @@ try {
 		let where_obj = {};
 
 		let sig;
-		if (tx?.signature){
+		if (tx?.signature) {
 			sig = tx.signature;
-		}else if (typeof tx === "string"){
+		} else if (typeof tx === 'string') {
 			sig = tx;
-		}else{
-			console.error("Not a valid tx/signature");
+		} else {
+			console.error('Not a valid tx/signature');
 			return false;
 		}
 
@@ -727,15 +699,14 @@ try {
 		//
 		where_obj['sig'] = sig;
 		if (this.app.BROWSER) {
-
 			rows = await this.localDB.remove({
 				from: 'archives',
 				where: where_obj
 			});
 			if (rows) {
 				console.log('DELETED FROM localDB! ');
-			}else{
-				console.log("Record not found in localDB to delete");
+			} else {
+				console.log('Record not found in localDB to delete');
 			}
 		}
 
@@ -759,33 +730,27 @@ try {
 		let where_obj1 = {};
 
 		if (obj.created_later_than) {
-			timestamp_limiting_clause +=
-				' AND archives.created_at > ' +
-				parseInt(obj.created_later_than);
+			timestamp_limiting_clause += ' AND archives.created_at > ' + parseInt(obj.created_later_than);
 			where_obj1 = {
 				created_at: { '>': parseInt(obj.created_later_than) }
 			};
 		}
 		if (obj.created_earlier_than) {
 			timestamp_limiting_clause +=
-				' AND archives.created_at < ' +
-				parseInt(obj.created_earlier_than);
+				' AND archives.created_at < ' + parseInt(obj.created_earlier_than);
 			where_obj1 = {
 				created_at: { '<': parseInt(obj.created_earlier_than) }
 			};
 		}
 		if (obj.updated_later_than) {
-			timestamp_limiting_clause +=
-				' AND archives.updated_at > ' +
-				parseInt(obj.updated_later_than);
+			timestamp_limiting_clause += ' AND archives.updated_at > ' + parseInt(obj.updated_later_than);
 			where_obj1 = {
 				updated_at: { '>': parseInt(obj.updated_later_than) }
 			};
 		}
 		if (obj.updated_earlier_than) {
 			timestamp_limiting_clause +=
-				' AND archives.updated_at < ' +
-				parseInt(obj.updated_earlier_than);
+				' AND archives.updated_at < ' + parseInt(obj.updated_earlier_than);
 			where_obj1 = {
 				updated_at: { '<': parseInt(obj.updated_earlier_than) }
 			};
@@ -880,7 +845,6 @@ try {
 	// the future if it is abused.
 	//
 	async pruneArchive() {
-
 		console.log('$');
 		console.log('$');
 		console.log('$ PURGING ARCHIVE');
@@ -899,7 +863,7 @@ try {
 		let sql = `DELETE FROM archives WHERE owner = "" AND updated_at < $ts AND preserve = 0`;
 		let params = { $ts: ts };
 		let results = await this.app.storage.runDatabase(sql, params, 'archive');
-		if (results?.changes){
+		if (results?.changes) {
 			pruned_ct += results?.changes;
 		}
 
@@ -910,7 +874,7 @@ try {
 		sql = `DELETE FROM archives WHERE owner != "" AND updated_at < $ts AND preserve = 0`;
 		params = { $ts: ts };
 		results = await this.app.storage.runDatabase(sql, params, 'archive');
-		if (results?.changes){
+		if (results?.changes) {
 			pruned_ct += results?.changes;
 		}
 
@@ -924,7 +888,6 @@ try {
 		// preserve flag is set to 0.
 		//
 		if (this.app.BROWSER) {
-
 			ts = now - this.prune_public_ts;
 
 			where_obj = { updated_at: { '<': ts } };
@@ -938,13 +901,16 @@ try {
 
 		this.archive.last_prune = now;
 		this.save();
-
 	}
 
 	//////////////////////////
 	// listen to everything //
 	//////////////////////////
-	shouldAffixCallbackToModule() {
+	shouldAffixCallbackToModule(modname) {
+		if (this.opt_out.includes(modname)) {
+			return 0;
+		}
+
 		return 1;
 	}
 

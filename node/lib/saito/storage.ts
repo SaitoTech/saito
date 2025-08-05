@@ -175,6 +175,7 @@ class Storage {
     let data: any = {};
     data.request = 'load';
     data = Object.assign(data, obj);
+    const startTime = Date.now();
 
     //
     // We could have the archive module handle this
@@ -182,6 +183,7 @@ class Storage {
     //
     let internal_callback = (res) => {
       let txs = [];
+      const endTime = Date.now();
       if (res) {
         for (let i = 0; i < res.length; i++) {
           let tx = new Transaction();
@@ -192,6 +194,10 @@ class Storage {
           txs.push(tx);
         }
       }
+      if (peer?.publicKey) {
+        console.debug(`>>> Transction fetch elapsed time: ${endTime - startTime}ms`);
+      }
+
       return mycallback(txs);
     };
 

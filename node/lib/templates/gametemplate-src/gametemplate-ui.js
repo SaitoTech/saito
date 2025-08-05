@@ -332,7 +332,7 @@ class GameUI {
     if (remove_mask) {
       $('.animated-mask').remove();
     } else {
-      document.querySelector('.animated-mask').classList.add('flash3');
+      $('.animated-mask').addClass('flash3');
     }
   }
 

@@ -70,6 +70,11 @@
   max-height: 54px;
 }
 
+.tweet-button:hover {
+  border: none;
+  filter: brightness(0.9);
+}
+
 @media (max-width: 1199px) {
   .redsquare-menu {
     align-items: flex-end;

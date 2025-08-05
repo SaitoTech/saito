@@ -7,6 +7,7 @@ use crate::core::consensus::peers::peer_service::PeerService;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{BlockId, PeerIndex, SaitoHash, SaitoPublicKey};
 use crate::core::process::version::Version;
+use crate::core::util::configuration::Configuration;
 
 pub enum InterfaceEvent {
     PeerHandshakeComplete(PeerIndex),
@@ -18,6 +19,7 @@ pub enum InterfaceEvent {
     StunPeerConnected(PeerIndex),
     StunPeerDisconnected(PeerIndex, SaitoPublicKey),
     BlockFetchStatus(BlockId),
+    NewChainDetected(),
 }
 
 /// An interface is provided to access the IO functionalities in a platform (Rust/WASM) agnostic way
@@ -137,15 +139,5 @@ pub trait InterfaceIO: Debug {
     async fn save_wallet(&self, wallet: &mut Wallet) -> Result<(), Error>;
     async fn load_wallet(&self, wallet: &mut Wallet) -> Result<(), Error>;
 
-    // async fn save_blockchain(&self) -> Result<(), Error>;
-    // async fn load_blockchain(&self) -> Result<(), Error>;
-
     fn get_my_services(&self) -> Vec<PeerService>;
 }
-
-// impl Debug for dyn InterfaceIO {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("IoInterface").finish()
-//     }
-// }
-//

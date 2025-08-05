@@ -18,77 +18,62 @@ class Recovery extends ModTemplate {
 
 		this.keychain_hash = '';
 
-		app.connection.on(
-			'recovery-backup-overlay-render-request',
-			async (obj) => {
-				console.debug(
-					'Received recovery-backup-overlay-render-request'
-				);
-				if (obj?.success_callback) {
-					this.backup_overlay.success_callback = obj.success_callback;
-				}
-				if (obj?.desired_identifier) {
-					this.backup_overlay.desired_identifier =
-						obj.desired_identifier;
-				}
-
-				//
-				// if we already have the email/password, just send the backup
-				//
-				let key = app.keychain.returnKey(this.publicKey);
-				if (key) {
-					if (
-						key.wallet_decryption_secret &&
-						key.wallet_retrieval_hash
-					) {
-						this.app.options.wallet.backup_required = false;
-						await this.app.wallet.saveWallet();
-
-						app.connection.emit('recovery-backup-loader-overlay-render-request', '');
-						let newtx = await this.createBackupTransaction(
-							key.wallet_decryption_secret,
-							key.wallet_retrieval_hash
-						);
-						await this.app.network.propagateTransaction(newtx);
-						return;
-					}
-				}
-
-				//
-				// Otherwise, call up the modal to query them from the user
-				//
-				this.backup_overlay.render();
+		app.connection.on('recovery-backup-overlay-render-request', async (obj) => {
+			console.debug('Received recovery-backup-overlay-render-request');
+			if (obj?.success_callback) {
+				this.backup_overlay.success_callback = obj.success_callback;
 			}
-		);
+			if (obj?.desired_identifier) {
+				this.backup_overlay.desired_identifier = obj.desired_identifier;
+			}
 
+			//
+			// if we already have the email/password, just send the backup
+			//
+			let key = app.keychain.returnKey(this.publicKey);
+			if (key) {
+				if (key.wallet_decryption_secret && key.wallet_retrieval_hash) {
+					this.app.options.wallet.backup_required = false;
+					await this.app.wallet.saveWallet();
 
-		app.connection.on("encrypt-key-exchange-confirm", (data)=> {
+					app.connection.emit('recovery-backup-loader-overlay-render-request', '');
+					let newtx = await this.createBackupTransaction(
+						key.wallet_decryption_secret,
+						key.wallet_retrieval_hash
+					);
+					await this.app.network.propagateTransaction(newtx);
+					return;
+				}
+			}
 
-		    let member_array = data.members;
+			//
+			// Otherwise, call up the modal to query them from the user
+			//
+			this.backup_overlay.render();
+		});
 
-		    let msg = `Your wallet has generated new secret keys to keep correspondence with your new contact secure. 
-		    Unless you backup your wallet you may lose these keys. Do you want help backing up your wallet?`;
-		    this.app.connection.emit(
-		      'saito-backup-render-request',
-		      {msg: msg, title: 'NEW FRIEND ADDED'}
-		    );
+		app.connection.on('encrypt-key-exchange-confirm', (data) => {
+			let member_array = data.members;
 
+			let msg = `Your wallet has generated new secret keys for secure correspondence with your new contact
+					   -- ${app.keychain.returnUsername(member_array[0])}. \n
+		    		   Unless you backup your wallet you may lose these keys. Do you want help backing up your wallet?`;
+			this.app.connection.emit('saito-backup-render-request', {
+				msg: msg,
+				title: 'NEW FRIEND ADDED'
+			});
 		});
 	}
 
 	returnDecryptionSecret(email = '', pass = '') {
-		let hash1 =
-			'WHENINDISGRACEWITHFORTUNEANDMENSEYESIALLALONEBEWEEPMYOUTCASTSTATE';
-		let hash2 =
-			'ANDTROUBLEDEAFHEAVENWITHMYBOOTLESSCRIESANDLOOKUPONMYSELFANDCURSEMYFATE';
+		let hash1 = 'WHENINDISGRACEWITHFORTUNEANDMENSEYESIALLALONEBEWEEPMYOUTCASTSTATE';
+		let hash2 = 'ANDTROUBLEDEAFHEAVENWITHMYBOOTLESSCRIESANDLOOKUPONMYSELFANDCURSEMYFATE';
 		return this.app.crypto.hash(this.app.crypto.hash(email + pass) + hash1);
 	}
 
 	returnRetrievalHash(email = '', pass = '') {
-		let hash1 =
-			'WHENINDISGRACEWITHFORTUNEANDMENSEYESIALLALONEBEWEEPMYOUTCASTSTATE';
-		let hash2 =
-			'ANDTROUBLEDEAFHEAVENWITHMYBOOTLESSCRIESANDLOOKUPONMYSELFANDCURSEMYFATE';
+		let hash1 = 'WHENINDISGRACEWITHFORTUNEANDMENSEYESIALLALONEBEWEEPMYOUTCASTSTATE';
+		let hash2 = 'ANDTROUBLEDEAFHEAVENWITHMYBOOTLESSCRIESANDLOOKUPONMYSELFANDCURSEMYFATE';
 		return this.app.crypto.hash(this.app.crypto.hash(hash2 + email) + pass);
 	}
 
@@ -105,10 +90,7 @@ class Recovery extends ModTemplate {
 			let x = [];
 
 			let unknown_user =
-				this.app.keychain.returnIdentifierByPublicKey(
-					this.publicKey,
-					true
-				) === this.publicKey;
+				this.app.keychain.returnIdentifierByPublicKey(this.publicKey, true) === this.publicKey;
 
 			if (unknown_user) {
 				x.push({
@@ -116,9 +98,7 @@ class Recovery extends ModTemplate {
 					icon: 'fa fa-sign-in',
 					//allowed_mods: ["redsquare"], //Why restrict it??
 					callback: function (app) {
-						app.connection.emit(
-							'recovery-login-overlay-render-request'
-						);
+						app.connection.emit('recovery-login-overlay-render-request');
 					}
 				});
 			} else {
@@ -127,9 +107,7 @@ class Recovery extends ModTemplate {
 					icon: 'fa-sharp fa-solid fa-cloud-arrow-up',
 					rank: 130,
 					callback: function (app) {
-						app.connection.emit(
-							'recovery-backup-overlay-render-request'
-						);
+						app.connection.emit('recovery-backup-overlay-render-request');
 					}
 				});
 			}
@@ -141,7 +119,6 @@ class Recovery extends ModTemplate {
 	}
 
 	async onConfirmation(blk, tx, conf) {
-
 		if (this.app.BROWSER && !tx.isTo(this.publicKey)) {
 			return;
 		}
@@ -191,10 +168,7 @@ class Recovery extends ModTemplate {
 			request: 'recovery backup',
 			email: '',
 			hash: retrieval_hash,
-			wallet: this.app.crypto.aesEncrypt(
-				this.app.wallet.exportWallet(),
-				decryption_secret
-			)
+			wallet: this.app.crypto.aesEncrypt(this.app.wallet.exportWallet(), decryption_secret)
 		};
 
 		newtx.addTo(this.publicKey);
@@ -231,8 +205,7 @@ class Recovery extends ModTemplate {
 	// Recover //
 	/////////////
 	async createRecoverTransaction(retrieval_hash) {
-		let newtx =
-			await this.app.wallet.createUnsignedTransactionWithDefaultFee();
+		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
 		newtx.msg = {
 			module: 'Recovery',
 			request: 'recovery recover',
@@ -253,7 +226,7 @@ class Recovery extends ModTemplate {
 			return 0;
 		}
 		if (this.app.BROWSER == 1) {
-			console.warn('Browsers don\'t support backup/recovery');
+			console.warn("Browsers don't support backup/recovery");
 			return 0;
 		}
 
@@ -266,11 +239,7 @@ class Recovery extends ModTemplate {
 			$hash: hash
 		};
 
-		let results = await this.app.storage.queryDatabase(
-			sql,
-			params,
-			'recovery'
-		);
+		let results = await this.app.storage.queryDatabase(sql, params, 'recovery');
 
 		console.log('********************');
 		console.log('Restore Transaction');
@@ -287,8 +256,7 @@ class Recovery extends ModTemplate {
 	}
 
 	async backupWallet(email, password) {
-
-console.log("Recover Backup Wallet 1");
+		console.log('Recover Backup Wallet 1');
 
 		let decryption_secret = this.returnDecryptionSecret(email, password);
 		let retrieval_hash = this.returnRetrievalHash(email, password);
@@ -298,7 +266,7 @@ console.log("Recover Backup Wallet 1");
 			this.app.options.wallet.account_recovery_hash = retrieval_hash;
 		}
 
-console.log("Recover Backup Wallet 2");
+		console.log('Recover Backup Wallet 2');
 
 		//
 		// save email
@@ -310,27 +278,23 @@ console.log("Recover Backup Wallet 2");
 		});
 		this.app.keychain.saveKeys();
 
-console.log("Recover Backup Wallet 3");
+		console.log('Recover Backup Wallet 3');
 
 		//
 		// and send transaction
 		//
-		let newtx = await this.createBackupTransaction(
-			decryption_secret,
-			retrieval_hash
-		);
-console.log("Recover Backup Wallet 4");
+		let newtx = await this.createBackupTransaction(decryption_secret, retrieval_hash);
+		console.log('Recover Backup Wallet 4');
 		await this.app.network.propagateTransaction(newtx);
 
-console.log("Recover Backup Wallet 5 - about to emit mailrelay-send-email");
+		console.log('Recover Backup Wallet 5 - about to emit mailrelay-send-email');
 
-		
-            this.app.connection.emit("mailrelay-send-email", {
-			to : email ,
-			from : email ,
-			subject : "Saito Wallet - Encrypted Backup" ,
-			text : "This email contains an encrypted backup of your Saito Wallet. If you add additional keys (adding friends, installing third-party cryptos, etc.) you will need to re-backup your wallet to protect any newly-added cryptographic information",
-			ishtml : false ,
+		this.app.connection.emit('mailrelay-send-email', {
+			to: email,
+			from: email,
+			subject: 'Saito Wallet - Encrypted Backup',
+			text: 'This email contains an encrypted backup of your Saito Wallet. If you add additional keys (adding friends, installing third-party cryptos, etc.) you will need to re-backup your wallet to protect any newly-added cryptographic information',
+			ishtml: false,
 			/*attachments :
 				[{
       					filename: 'saito-wallet-backup.aes',
@@ -340,23 +304,24 @@ console.log("Recover Backup Wallet 5 - about to emit mailrelay-send-email");
 							decryption_secret
 						), 'utf-8')
     			}],*/
-			attachments : [{
-				filename: 'saito-wallet-backup.aes',
-				content: String(Buffer.from(
-					this.app.crypto.aesEncrypt(
-						this.app.wallet.exportWallet(),
-						decryption_secret
-					), 'utf-8'))
-		    	}],
-			bcc : "" ,
+			attachments: [
+				{
+					filename: 'saito-wallet-backup.aes',
+					content: String(
+						Buffer.from(
+							this.app.crypto.aesEncrypt(this.app.wallet.exportWallet(), decryption_secret),
+							'utf-8'
+						)
+					)
+				}
+			],
+			bcc: ''
 		});
 
-console.log("done emitting mailrelay-send-email... in Recovery BackupWallet")
-
+		console.log('done emitting mailrelay-send-email... in Recovery BackupWallet');
 	}
 
 	async restoreWallet(email, password) {
-
 		let decryption_secret = this.returnDecryptionSecret(email, password);
 		let retrieval_hash = this.returnRetrievalHash(email, password);
 
@@ -392,10 +357,7 @@ console.log("done emitting mailrelay-send-email... in Recovery BackupWallet")
 						//console.log(txmsg);
 
 						let encrypted_wallet = txmsg.wallet;
-						let decrypted_wallet = this.app.crypto.aesDecrypt(
-							encrypted_wallet,
-							decryption_secret
-						);
+						let decrypted_wallet = this.app.crypto.aesDecrypt(encrypted_wallet, decryption_secret);
 
 						this.app.options = JSON.parse(decrypted_wallet);
 

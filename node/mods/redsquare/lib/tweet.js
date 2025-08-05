@@ -1,7 +1,7 @@
 const saito = require('./../../../lib/saito/saito');
 const TweetTemplate = require('./tweet.template');
 const SaitoUser = require('./../../../lib/saito/ui/saito-user/saito-user');
-const Link = require('./link');
+const Link = require('./../../../lib/saito/ui/saito-link/link');
 const Image = require('./image');
 const Post = require('./post');
 const JSON = require('json-bigint');
@@ -93,7 +93,7 @@ class Tweet {
 		//
 		// is this tweet curated
 		//
-		this.curated = 0;
+		this.curated = tx.isFrom(mod.publicKey) ? 1 : 0;
 
 		//
 		// the notice shows up at the top of the tweet BEFORE the username and
@@ -118,7 +118,6 @@ class Tweet {
 		this.critical_child = null;
 		this.force_long_tweet = false;
 		this.is_long_tweet = false;
-		this.links = [];
 		this.link = null;
 		this.parent_id = '';
 		this.render_after_selector = ''; //Used to attach replies to the original tweet
@@ -167,7 +166,7 @@ class Tweet {
 		//
 		// embedded links
 		//
-		this.analyseTweetLinks(app, mod, 0);
+		this.analyseTweetLinks(0);
 
 		//
 		// retweets
@@ -247,6 +246,10 @@ class Tweet {
 	//  This is helpful when pulling older tweets and then running through the whole list of tweets
 	//
 	isRendered() {
+		if (!this.app.BROWSER) {
+			return false;
+		}
+
 		if (document.querySelector(`.tweet-container > .tweet-${this.tx.signature}`)) {
 			return true;
 		}
@@ -302,16 +305,16 @@ class Tweet {
 		//
 		// create link preview if link
 		//
-		/***
-		if (this.link && !this.link_preview) {
+		if (this.link_properties && !this.link_preview) {
 			this.link_preview = new Link(
 				this.app,
 				this.mod,
-				this.container + `> .tweet-${this.tx.signature} .tweet-body .tweet-text`,
-				this
+				this.container + `> .tweet-${this.tx.signature} .tweet-body .tweet-preview`,
+				this.link,
+				this.link_properties
 			);
 		}
-****/
+
 		//
 		// in the case of a quote-or-retweet the retweet might appear on the same page
 		// as the original tweet, so we check here and flag whether or not the element
@@ -580,7 +583,9 @@ class Tweet {
 						`.tweet-${this.tx.signature} .tweet-footer.tweet-controls .tweet-tool-comment .tweet-tool-comment-count`
 					);
 					try {
-						obj.innerHTML++;
+						if (obj) {
+							obj.innerHTML = '1';
+						}
 					} catch (err) {
 						console.error('RS.tweet ERROR: ', err);
 					}
@@ -743,13 +748,61 @@ class Tweet {
 				`.tweet-${this.tx.signature} .tweet-body .tweet-text`
 			);
 			if (tweet_text) {
-				if (!this.force_long_tweet) {
+				if (this.force_long_tweet) {
+					tweet_text.classList.add('expanded');
+				} else {
 					if (tweet_text.clientHeight < tweet_text.scrollHeight) {
 						tweet_text.classList.add('preview');
 						this.is_long_tweet = true;
 					}
-				} else {
-					tweet_text.classList.add('expanded');
+				}
+			}
+
+			if (document.querySelector(`.tweet-${this.tx.signature} .tweet-curation-controls`)) {
+				if (
+					document.querySelector(`.tweet-${this.tx.signature} .tweet-curation-controls #hide-spam`)
+				) {
+					document.querySelector(
+						`.tweet-${this.tx.signature} .tweet-curation-controls #hide-spam`
+					).onclick = (e) => {
+						e.stopPropagation();
+						this.hideTweet();
+						siteMessage('Thank you for your feedback!', 3000);
+					};
+				}
+
+				if (
+					document.querySelector(
+						`.tweet-${this.tx.signature} .tweet-curation-controls #approve-tweet`
+					)
+				) {
+					document.querySelector(
+						`.tweet-${this.tx.signature} .tweet-curation-controls #approve-tweet`
+					).onclick = (e) => {
+						e.stopPropagation();
+						this.curation_check = this.tx.optional.curation_check = false;
+						this.tx.optional.curated = 1;
+						this.mod.saveTweet(this.tx.signature);
+						this.rerenderControls(true);
+						siteMessage('Thank you for your feedback!', 3000);
+					};
+				}
+
+				if (
+					document.querySelector(
+						`.tweet-${this.tx.signature} .tweet-curation-controls #approve-user`
+					)
+				) {
+					document.querySelector(
+						`.tweet-${this.tx.signature} .tweet-curation-controls #approve-user`
+					).onclick = (e) => {
+						e.stopPropagation();
+						this.curation_check = this.tx.optional.curation_check = false;
+						this.tx.optional.curated = 1;
+						this.mod.saveTweet(this.tx.signature);
+						this.rerenderControls(true);
+						siteMessage('Thank you for your feedback!', 3000);
+					};
 				}
 			}
 
@@ -780,19 +833,24 @@ class Tweet {
 						highlightedText = document.selection.createRange().text;
 					}
 					if (highlightedText != '') {
+						console.log("highlighting text, don't open thread");
 						return;
 					}
 
 					//
-					// Expand tweet preview for long tweets
+					// Expand tweet preview for long tweets -- click once to expand, again to view thread
 					//
-					if (this.is_long_tweet && tweet_text) {
-						if (tweet_text.classList.contains('preview')) {
-							tweet_text.classList.remove('preview');
-							tweet_text.classList.add('expanded');
-							this.force_long_tweet = true;
-							return;
-						}
+					if (this.is_long_tweet && tweet_text?.classList.contains('preview')) {
+						tweet_text.classList.remove('preview');
+						tweet_text.classList.add('expanded');
+						this.force_long_tweet = true;
+						console.log('expanding long tweet');
+						return;
+					}
+
+					if (this.curation_check) {
+						console.log('curation check tweet');
+						return;
 					}
 
 					//
@@ -819,12 +877,15 @@ class Tweet {
 							parent_replies = document.querySelector(
 								`.tweet-${this.thread_id} .tweet-body .tweet-controls .tweet-tool-comment .tweet-tool-comment-count`
 							).innerHTML;
-						} catch (err) {}
+						} catch (err) {
+							console.error(err);
+						}
 
 						//
 						// full thread already exists
 						//
 						if (sigs.includes(this.tx.signature) && sigs.includes(this.thread_id)) {
+							console.log('A');
 							app.connection.emit('redsquare-tweet-render-request', this);
 
 							setTimeout(() => {
@@ -835,6 +896,7 @@ class Tweet {
 								}
 							}, 50);
 						} else {
+							console.log('B');
 							navigateWindow(`/redsquare?tweet_id=${this.thread_id}`, 300);
 						}
 					}
@@ -1010,6 +1072,15 @@ class Tweet {
 					e.currentTarget.classList.add('activated-dot-menu');
 					this.app.connection.emit('redsquare-show-tweet-options', this, more);
 				};
+			}
+
+			// Don't bubble up from misclicking outside of the like/comment space
+			if (document.querySelector(`.tweet-${this.tx.signature} .tweet-body .tweet-controls`)) {
+				document.querySelector(`.tweet-${this.tx.signature} .tweet-body .tweet-controls`).onclick =
+					(e) => {
+						e.stopPropagation();
+						e.preventDefault();
+					};
 			}
 		} catch (err) {
 			console.error('RS.Tweet -- ERROR attaching events to tweet: ', err);
@@ -1245,49 +1316,14 @@ class Tweet {
 		return false;
 	}
 
-	async analyseTweetLinks(app, mod, fetch_open_graph = 0) {
+	async analyseTweetLinks(fetch_open_graph = 0) {
 		if (!this.text) {
 			return this;
 		}
 
-		let links = this.text.match(app.browser.urlRegexp());
+		this.link = this.app.browser.extractFirstValidURL(this.text);
 
-		//
-		// save the first link
-		//
-		let first_link = null;
-
-		while (links?.length > 0) {
-			first_link = links.pop();
-
-			if (!app.browser.numberFilter(first_link)) {
-				break;
-			} else {
-				first_link = null;
-			}
-		}
-
-		if (first_link) {
-			if (!first_link.startsWith('http')) {
-				first_link = 'http://' + first_link;
-			}
-
-			if (typeof first_link == 'undefined') {
-				return this;
-			}
-
-			this.link = first_link;
-
-			let urlParams = null;
-
-			try {
-				let link = new URL(first_link);
-				urlParams = new URLSearchParams(link.search);
-				this.link = link.toString();
-			} catch (err) {
-				console.error(first_link + ' is not a valid url');
-			}
-
+		if (this.link) {
 			//
 			// youtube link
 			//
@@ -1297,8 +1333,13 @@ class Tweet {
 				if (this.link.indexOf('youtu.be') != -1) {
 					videoId = this.link.split('/');
 					videoId = videoId[videoId.length - 1];
-				} else if (urlParams) {
-					videoId = urlParams.get('v');
+				} else {
+					let url = new URL(this.link);
+					let urlParams = new URLSearchParams(url.search);
+
+					if (urlParams) {
+						videoId = urlParams.get('v');
+					}
 				}
 
 				//check for shorts
@@ -1322,13 +1363,16 @@ class Tweet {
 			//
 			// normal link
 			//
-			if (fetch_open_graph == 1) {
-				//
-				// Returns "" if a browser or error
-				//
-				let res = await mod.fetchOpenGraphProperties(app, mod, this.link);
-				if (res !== '') {
-					this.tx.optional.link_properties = res;
+			if (!this.app.BROWSER) {
+				if (fetch_open_graph == 1 || !this.tx.optional?.link_properties) {
+					//
+					// Returns "" if a browser or error
+					//
+					let res = await this.app.server.fetchOpenGraphProperties(this.link);
+					if (res !== '') {
+						this.tx.optional.link_properties = res;
+						this.mod.updateSavedTweet(this.tx.signature);
+					}
 				}
 			}
 		}
@@ -1350,20 +1394,6 @@ class Tweet {
 		} catch (err) {
 			console.error(`RS.Tweet -- Stat ERROR: ` + err);
 		}
-	}
-
-	returnTransactionsInThread(limit = 10) {
-		let txs = [];
-
-		for (let i = 0; i < this.children.length; i++) {
-			if (i >= limit) {
-				break;
-			}
-
-			txs.push(this.children[i].tx.serialize_to_web(this.app));
-		}
-
-		return txs;
 	}
 
 	editTweet() {

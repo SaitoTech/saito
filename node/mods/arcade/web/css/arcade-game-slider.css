@@ -21,7 +21,7 @@
 }
 
 .saito-sidebar .game-slider{
-	border-radius: var(--border-radius-sidebar-menu);
+	border-radius: var(--border-radius-round);
 	box-shadow: var(--box-shadow-sidebar-elements);
 }
 

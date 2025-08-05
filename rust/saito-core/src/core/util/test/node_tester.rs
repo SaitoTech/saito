@@ -77,7 +77,9 @@ pub mod test {
         fn get_blockchain_configs(&self) -> &BlockchainConfig {
             &self.blockchain
         }
-
+        fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+            &mut self.blockchain
+        }
         fn get_block_fetch_url(&self) -> String {
             "".to_string()
         }
@@ -111,6 +113,16 @@ pub mod test {
                 crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay,
             >,
         ) {
+        }
+
+        fn get_config_path(&self) -> String {
+            String::new()
+        }
+
+        fn set_config_path(&mut self, path: String) {}
+
+        fn save(&self) -> Result<(), Error> {
+            Ok(())
         }
     }
     impl Default for TestConfiguration {
@@ -155,7 +167,7 @@ pub mod test {
                 browser_mode: false,
                 consensus: Some(ConsensusConfig {
                     genesis_period: 100,
-                    heartbeat_interval: 5_000,
+                    heartbeat_interval: 150_000,
                     prune_after_blocks: 8,
                     max_staker_recursions: 3,
                     default_social_stake: 0,

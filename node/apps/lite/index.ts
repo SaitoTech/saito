@@ -110,6 +110,10 @@ class WebMethods extends WebSharedMethods {
     }
 
     ensureBlockDirExists(path: string): void { }
+
+    sendNewChainDetectedEvent(): void {
+        this.app.connection.emit('new-chain-detected');
+    }
 }
 
 async function init() {

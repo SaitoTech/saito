@@ -274,6 +274,9 @@ impl InterfaceIO for WasmIoHandler {
             InterfaceEvent::BlockFetchStatus(count) => {
                 MsgHandler::send_block_fetch_status_event(count);
             }
+            InterfaceEvent::NewChainDetected() => {
+                MsgHandler::send_new_chain_detected_event();
+            }
         }
     }
 
@@ -406,6 +409,9 @@ extern "C" {
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_block_fetch_status_event(count: BlockId);
+
+    #[wasm_bindgen(static_method_of = MsgHandler)]
+    pub fn send_new_chain_detected_event();
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn save_wallet();

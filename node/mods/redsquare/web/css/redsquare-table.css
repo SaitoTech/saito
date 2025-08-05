@@ -3,9 +3,9 @@ Saito Table
 -----------------------------------------------------------------*/
 
 .sidebar-title {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
 }
 
 .saito-table-body {
@@ -19,13 +19,14 @@ Saito Table
   position: relative;
   overflow-y: auto;
   min-height: 2rem;
+  grid-gap: 0.25rem;
 }
 
 .saito-table-row {
   display: grid;
   grid-template-columns: 1fr min-content;
   grid-gap: 0.5rem;
-  padding: 0.25rem 0.5rem 0.25rem;
+  padding: 0.5rem 0.75rem 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
   background-color: var(--saito-gray-transparent);
