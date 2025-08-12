@@ -2409,6 +2409,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "saito-tools"
+version = "0.1.0"
+dependencies = [
+ "aes",
+ "ahash",
+ "async-trait",
+ "base64 0.21.5",
+ "blake3",
+ "block-modes",
+ "bs58",
+ "byteorder",
+ "chrono",
+ "futures",
+ "hex",
+ "log",
+ "merkle",
+ "num-derive",
+ "num-traits",
+ "pretty_env_logger",
+ "primitive-types",
+ "rand",
+ "rayon",
+ "reqwest 0.12.20",
+ "secp256k1",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "tokio",
+]
+
+[[package]]
 name = "saito-wasm"
 version = "0.2.11"
 dependencies = [

@@ -63,6 +63,7 @@ harness = false
 debug = true
 lto = true
 
-[[bin]]
-name = "blockr"
-path = "src/bin/blockr.rs"
+## moved to saito-tools crate
+# [[bin]]
+# name = "blockreader"
+# path = "src/bin/blockreader.rs"
