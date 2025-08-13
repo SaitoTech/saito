@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1.37.0", features = ["full"] }
-{# add saito-core as a dependency #}
 saito-core = { path = "../saito-core" }
 secp256k1 = { version = "0.30.0", features = ["rand", "hashes", "global-context", "serde"] }
 rand = { version = "0.8.5", features = ["getrandom"] }
