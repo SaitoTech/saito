@@ -1,19 +1,19 @@
 //! blockreader: Download and decode a Saito block from a URL or file
 
-use saito_core::core::consensus::block::Block;
-use saito_core::core::consensus::transaction::{Transaction, TransactionType};
-use saito_core::core::consensus::slip::{Slip, SlipType};
-use std::env;
-use std::process;
-use reqwest::Client;
-use serde::Serialize;
-use serde_json;
-use tokio;
+use base64;
 use bs58;
 use hex;
-use base64;
+use reqwest::Client;
+use saito_core::core::consensus::block::Block;
+use saito_core::core::consensus::slip::{Slip, SlipType};
+use saito_core::core::consensus::transaction::{Transaction, TransactionType};
+use serde::Serialize;
+use serde_json;
+use std::env;
 use std::fs;
 use std::path::Path;
+use std::process;
+use tokio;
 
 // Custom serializers for human-readable output
 fn as_base58<S>(bytes: &[u8; 33], serializer: S) -> Result<S::Ok, S::Error>
@@ -176,7 +176,11 @@ impl<'a> From<&'a Block> for BlockJson<'a> {
             burnfee: block.burnfee,
             difficulty: block.difficulty,
             previous_block_unpaid: block.previous_block_unpaid,
-            transactions: block.transactions.iter().map(TransactionJson::from).collect(),
+            transactions: block
+                .transactions
+                .iter()
+                .map(TransactionJson::from)
+                .collect(),
         }
     }
 }
@@ -239,5 +243,3 @@ async fn main() {
         }
     }
 }
-
-
