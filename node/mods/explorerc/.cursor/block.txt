@@ -1,0 +1,89 @@
+{
+  "id": 109895,
+  "timestamp": 1755236732816,
+  "previous_block_hash": "e9eee8adcab39b447b851c6793c33746ad7bd185f283fd5d06ac9c6f1973b095",
+  "creator": "hkckY6DBMsnPJtzgThG4xyKGJ4DZ8H8T3NBY3vKJbQk2",
+  "merkle_root": "ee117b58adcfaea6e9473897ea5ed0ba5b96cad4b7c4b391b6fe0034c156c9aa",
+  "signature": "fb1867c16c5d76e614735c3a3bd24d4862378b44b5d0f17fbe9c44fa14569bc26de1c153583b31cd352ae457acf6ee55fc12dbbfd0cc99dae137825056083b61",
+  "graveyard": 0,
+  "treasury": 0,
+  "total_fees": 0,
+  "total_fees_new": 0,
+  "total_fees_atr": 0,
+  "total_fees_cumulative": 0,
+  "avg_total_fees": 0,
+  "avg_total_fees_new": 0,
+  "avg_total_fees_atr": 0,
+  "total_payout_routing": 0,
+  "total_payout_mining": 0,
+  "total_payout_treasury": 0,
+  "total_payout_graveyard": 0,
+  "total_payout_atr": 0,
+  "avg_payout_routing": 0,
+  "avg_payout_mining": 0,
+  "avg_payout_treasury": 0,
+  "avg_payout_graveyard": 0,
+  "avg_payout_atr": 0,
+  "avg_fee_per_byte": 0,
+  "fee_per_byte": 0,
+  "avg_nolan_rebroadcast_per_block": 905805668858,
+  "burnfee": 2283,
+  "difficulty": 21,
+  "previous_block_unpaid": 0,
+  "transactions": [
+    {
+      "timestamp": 0,
+      "transaction_type": "BlockStake",
+      "signature": "f99959410895bff6a3e04951cdb6269a43a378d3f7ef61560ea92429ff9f0874615f50305c675e17878f48400725c1fe873e11dda129f9ac9623029ce27c826f",
+      "from": [],
+      "to": [
+        {
+          "public_key": "hkckY6DBMsnPJtzgThG4xyKGJ4DZ8H8T3NBY3vKJbQk2",
+          "amount": 0,
+          "slip_type": "BlockStake",
+          "slip_index": 0,
+          "block_id": 109895,
+          "tx_ordinal": 0
+        }
+      ],
+      "total_in": 0,
+      "total_out": 0,
+      "total_fees": 0,
+      "total_work_for_me": 0,
+      "cumulative_fees": 0,
+      "txs_replacements": 1
+    },
+    {
+      "timestamp": 1755236728919,
+      "transaction_type": "Normal",
+      "signature": "d16ae1fdd72d6b29f8386540df4e36c122b9b0549fb418475925a7a30293307f31ab70bb46cf5362c738bece51437f2071b031e6806c0ba0b990892bdfdc9ea3",
+      "from": [
+        {
+          "public_key": "hkckY6DBMsnPJtzgThG4xyKGJ4DZ8H8T3NBY3vKJbQk2",
+          "amount": 0,
+          "slip_type": "Normal",
+          "slip_index": 0,
+          "block_id": 0,
+          "tx_ordinal": 0
+        }
+      ],
+      "to": [
+        {
+          "public_key": "hkckY6DBMsnPJtzgThG4xyKGJ4DZ8H8T3NBY3vKJbQk2",
+          "amount": 0,
+          "slip_type": "Normal",
+          "slip_index": 0,
+          "block_id": 109895,
+          "tx_ordinal": 1
+        }
+      ],
+      "data": "eyJtb2R1bGUiOiJzcGFtIiwicmVxdWVzdCI6InNlbmQgc3BhbSB0eCIsImRhdGEiOnsidHhfbnVtIjo0MDZ9fQ==",
+      "total_in": 0,
+      "total_out": 0,
+      "total_fees": 0,
+      "total_work_for_me": 0,
+      "cumulative_fees": 0,
+      "txs_replacements": 1
+    }
+  ]
+}

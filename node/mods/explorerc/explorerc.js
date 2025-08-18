@@ -4,23 +4,22 @@ const ExplorerHomePage = require('./index'); // Require the HTML generation func
 const JSON = require('json-bigint'); // Add require for json-bigint
 
 // Restore requires for direct rendering in render()
-const React = require('react'); 
-const { createRoot } = require('react-dom/client'); 
+const React = require('react');
+const { createRoot } = require('react-dom/client');
 const App = require('./react-components/App').default; // Require the main React component - Added .default
 
 class Explorerc extends ModTemplate {
-
   constructor(app) {
     super(app);
     this.app = app;
-    this.name = "explorerc"; // Use lowercase slug for consistency
-    this.description = "Saito Block Explorer (React Version)";
-    this.categories = "Utilities Information";
+    this.name = 'explorerc'; // Use lowercase slug for consistency
+    this.description = 'Saito Block Explorer (React Version)';
+    this.categories = 'Utilities Information';
 
     // Define the style bundle
-    this.styles = [`/${this.name}/style.css`]; 
+    this.styles = [`/${this.name}/style.css`];
     // bundle.js is NOT included here - rendering happens directly in render()
-    this.scripts = []; 
+    this.scripts = [];
 
     this.rendered = false; // Track if render has been called
 
@@ -41,11 +40,11 @@ class Explorerc extends ModTemplate {
     console.log(`${this.returnName()} render() method called.`);
     // Ensure styles are attached first by calling super.render()
     try {
-      await super.render(); 
+      await super.render();
       console.log(`${this.returnName()} super.render() completed.`);
     } catch (err) {
-        console.error(`${this.returnName()} error during super.render():`, err);
-        return; // Don't proceed if super.render fails
+      console.error(`${this.returnName()} error during super.render():`, err);
+      return; // Don't proceed if super.render fails
     }
 
     // Prevent re-rendering
@@ -65,8 +64,10 @@ class Explorerc extends ModTemplate {
         console.log(`${this.returnName()} attempting to render React component...`);
         // Verify App component is loaded
         if (!App) {
-            console.error(`${this.returnName()} Error: App component is undefined or null. Check require statement.`);
-            return;
+          console.error(
+            `${this.returnName()} Error: App component is undefined or null. Check require statement.`
+          );
+          return;
         }
         const root = createRoot(rootElement);
         root.render(<App app={this.app} mod={this} />);
@@ -76,10 +77,11 @@ class Explorerc extends ModTemplate {
         console.error(`${this.returnName()} Error rendering React component in render():`, err);
       }
     } else {
-      console.error(`${this.returnName()} Error: Could not find root element #saito-react-app for React rendering in render(). Check HTML shell.`);
+      console.error(
+        `${this.returnName()} Error: Could not find root element #saito-react-app for React rendering in render(). Check HTML shell.`
+      );
     }
   }
-
 
   //
   // WEBSERVER (SERVER)
@@ -87,7 +89,6 @@ class Explorerc extends ModTemplate {
   // It does NOT rely on a bundle.js being loaded by the shell.
   //
   webServer(app, expressapp, express) {
-
     const explorerc_self = this;
 
     // Serve Static Files from the 'web' directory (for CSS, images, etc.)
@@ -98,14 +99,14 @@ class Explorerc extends ModTemplate {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
       // Call the function from ./index.js to get the HTML
-      res.send(ExplorerHomePage(app, explorerc_self, app.build_number)); 
+      res.send(ExplorerHomePage(app, explorerc_self, app.build_number));
     });
 
-    // --- API Endpoints --- 
+    // --- API Endpoints ---
 
     // REMOVED Old /api/block?hash=<hash> endpoint
     // expressapp.get(`/${explorerc_self.name}/api/block`, async (req, res) => { ... });
-/*
+    /*
     expressapp.get(`/${explorerc_self.name}/api/blocksource`, async (req, res) => {
         const hash = req.query.hash;
         if (!hash) {
@@ -154,16 +155,20 @@ class Explorerc extends ModTemplate {
     });
 */
     // UNIFIED Endpoint: Get Full Block Data + Calculated Properties by Hash
-    expressapp.get(`/${explorerc_self.name}/api/block/:bhash`, async (req, res) => { 
+    expressapp.get(`/${explorerc_self.name}/api/block/:bhash`, async (req, res) => {
       const bhash = req.params.bhash; // Get hash from URL parameter
-      
+
       // Validate hash format
-      if (!bhash || !/^[a-f0-9]{64}$/i.test(bhash)) { 
-        return res.status(400).json({ status: "error", message: "Invalid block hash format provided." });
+      if (!bhash || !/^[a-f0-9]{64}$/i.test(bhash)) {
+        return res
+          .status(400)
+          .json({ status: 'error', message: 'Invalid block hash format provided.' });
       }
 
       try {
-        console.log(`Explorerc API: Unified /api/block/${bhash} - Calling getProcessedBlockData...`);
+        console.log(
+          `Explorerc API: Unified /api/block/${bhash} - Calling getProcessedBlockData...`
+        );
         const processedBlockData = await explorerc_self.getProcessedBlockData(app, bhash, true);
 
         if (processedBlockData) {
@@ -173,13 +178,30 @@ class Explorerc extends ModTemplate {
           res.json(processedBlockData); // Send the combined data from the helper function
         } else {
           // getProcessedBlockData handles internal errors and returns null
-          console.warn(`Explorerc API: Unified /api/block/${bhash} - getProcessedBlockData returned null. Block not found or processing failed.`);
-          res.status(404).json({ status: "error", message: "Block not found or failed to process.", bhash: bhash }); 
+          console.warn(
+            `Explorerc API: Unified /api/block/${bhash} - getProcessedBlockData returned null. Block not found or processing failed.`
+          );
+          res
+            .status(404)
+            .json({
+              status: 'error',
+              message: 'Block not found or failed to process.',
+              bhash: bhash
+            });
         }
       } catch (error) {
         // Catch unexpected errors in the endpoint handler itself
-        console.error(`Explorerc API: Unexpected error in unified /api/block/${bhash} handler:`, error);
-        res.status(500).json({ status: "error", message: "Internal server error processing block request.", bhash: bhash });
+        console.error(
+          `Explorerc API: Unexpected error in unified /api/block/${bhash} handler:`,
+          error
+        );
+        res
+          .status(500)
+          .json({
+            status: 'error',
+            message: 'Internal server error processing block request.',
+            bhash: bhash
+          });
       }
     });
 
@@ -187,7 +209,7 @@ class Explorerc extends ModTemplate {
     expressapp.get(`/${explorerc_self.name}/api/balance`, async (req, res) => {
       const pubkey = req.query.pubkey;
       if (!pubkey) {
-        return res.status(400).json({ status: "error", message: "Missing public key parameter" });
+        return res.status(400).json({ status: 'error', message: 'Missing public key parameter' });
       }
       try {
         let balance = '0';
@@ -196,72 +218,80 @@ class Explorerc extends ModTemplate {
         // Fetch balance (using app.wallet or app.blockchain - adjust as needed)
         try {
           // Example: Use wallet getBalance if available
-          if (app.wallet && typeof app.wallet.getBalance === 'function') { 
-              balance = await app.wallet.getBalance(pubkey) || '0';
+          if (app.wallet && typeof app.wallet.getBalance === 'function') {
+            balance = (await app.wallet.getBalance(pubkey)) || '0';
           } else if (app.blockchain && typeof app.blockchain.getBalance === 'function') {
-             // Fallback: Use blockchain getBalance (may need async)
-             balance = await app.blockchain.getBalance(pubkey) || '0';
+            // Fallback: Use blockchain getBalance (may need async)
+            balance = (await app.blockchain.getBalance(pubkey)) || '0';
           } else {
-              console.warn("Could not find a method to fetch balance.");
+            console.warn('Could not find a method to fetch balance.');
           }
         } catch (balanceError) {
-           console.error(`Error fetching balance for ${pubkey}:`, balanceError);
-           // Continue to fetch slips even if balance fails?
+          console.error(`Error fetching balance for ${pubkey}:`, balanceError);
+          // Continue to fetch slips even if balance fails?
         }
 
         // Fetch slips (UTXOs) - THIS IS A PLACEHOLDER
         // You'll need a real method in Saito core to get slips for a pubkey
         try {
-            if (app.blockchain && typeof app.blockchain.getSlipsForPublicKey === 'function') {
-                const rawSlips = await app.blockchain.getSlipsForPublicKey(pubkey);
-                // Format slips based on expected table structure: Block, TX, Slip, Nolan
-                // Assuming rawSlips is an array of objects like { bhash, tx_ordinal, slip_ordinal, amount, ... }
-                // and we need block ID instead of hash for the table.
-                slips = rawSlips.map(slip => {
-                    // Fetch block ID from hash (may require another async call or cached data)
-                    // const blockId = await app.blockchain.getBlockIdFromHash(slip.bhash); // Example
-                    const blockId = slip.block_id || 'N/A'; // Use block_id if available
-                    return [
-                        // Hidden first column data (e.g., internal ID or address? not needed for table)
-                        `${slip.bhash}-${slip.tx_ordinal}-${slip.slip_ordinal}`,
-                        blockId, 
-                        slip.tx_ordinal, // TX Ordinal/Index
-                        slip.slip_ordinal, // Slip Ordinal/Index
-                        slip.amount // Nolan value as string
-                    ];
-                });
-            } else {
-                 console.warn("Could not find a method to fetch slips (getSlipsForPublicKey).");
-            }
+          if (app.blockchain && typeof app.blockchain.getSlipsForPublicKey === 'function') {
+            const rawSlips = await app.blockchain.getSlipsForPublicKey(pubkey);
+            // Format slips based on expected table structure: Block, TX, Slip, Nolan
+            // Assuming rawSlips is an array of objects like { bhash, tx_ordinal, slip_ordinal, amount, ... }
+            // and we need block ID instead of hash for the table.
+            slips = rawSlips.map((slip) => {
+              // Fetch block ID from hash (may require another async call or cached data)
+              // const blockId = await app.blockchain.getBlockIdFromHash(slip.bhash); // Example
+              const blockId = slip.block_id || 'N/A'; // Use block_id if available
+              return [
+                // Hidden first column data (e.g., internal ID or address? not needed for table)
+                `${slip.bhash}-${slip.tx_ordinal}-${slip.slip_ordinal}`,
+                blockId,
+                slip.tx_ordinal, // TX Ordinal/Index
+                slip.slip_ordinal, // Slip Ordinal/Index
+                slip.amount // Nolan value as string
+              ];
+            });
+          } else {
+            console.warn('Could not find a method to fetch slips (getSlipsForPublicKey).');
+          }
         } catch (slipError) {
-            console.error(`Error fetching slips for ${pubkey}:`, slipError);
-            // Set slips to empty array on error
-            slips = []; 
+          console.error(`Error fetching slips for ${pubkey}:`, slipError);
+          // Set slips to empty array on error
+          slips = [];
         }
 
-        res.json({ 
-            status: "success", 
-            pubkey: pubkey, 
-            balance: balance.toString(), // Ensure balance is string
-            slips: slips 
+        res.json({
+          status: 'success',
+          pubkey: pubkey,
+          balance: balance.toString(), // Ensure balance is string
+          slips: slips
         });
-
       } catch (error) {
         console.error(`Error in /api/balance for ${pubkey}:`, error);
-        res.status(500).json({ status: "error", message: "Internal server error fetching balance data", pubkey: pubkey });
+        res
+          .status(500)
+          .json({
+            status: 'error',
+            message: 'Internal server error fetching balance data',
+            pubkey: pubkey
+          });
       }
     });
 
     expressapp.get(`/${explorerc_self.name}/api/balance/all`, async (req, res) => {
       // TODO: Implement logic to fetch all balances data
-      res.json({ status: "success", message: "API: All Balances endpoint not yet implemented" });
+      res.json({ status: 'success', message: 'API: All Balances endpoint not yet implemented' });
     });
 
     // Mempool Information
     expressapp.get(`/${explorerc_self.name}/api/mempool`, async (req, res) => {
       // TODO: Implement logic to fetch mempool data from app.mempool
       // Example: const mempoolTxs = app.mempool.returnTransactions();
-      res.json({ status: "success", message: "API: Mempool endpoint not yet implemented" /*, transactions: mempoolTxs */ });
+      res.json({
+        status: 'success',
+        message: 'API: Mempool endpoint not yet implemented' /*, transactions: mempoolTxs */
+      });
     });
 
     // NEW: Get Blocks by ID Range
@@ -278,17 +308,25 @@ class Explorerc extends ModTemplate {
           start_id = BigInt(start_id_str);
           end_id = BigInt(end_id_str);
         } catch (e) {
-          return res.status(400).json({ error: "Invalid block ID format. IDs must be integers." });
+          return res.status(400).json({ error: 'Invalid block ID format. IDs must be integers.' });
         }
 
         if (start_id < end_id || end_id < BigInt(0)) {
-            return res.status(400).json({ error: "Invalid block range. start_id must be >= end_id, and end_id must be >= 0." });
+          return res
+            .status(400)
+            .json({
+              error: 'Invalid block range. start_id must be >= end_id, and end_id must be >= 0.'
+            });
         }
 
         // Limit the number of blocks fetched in one request to prevent overload
         const MAX_BLOCKS_PER_REQUEST = 200; // Adjust as needed
         if (start_id - end_id + BigInt(1) > BigInt(MAX_BLOCKS_PER_REQUEST)) {
-            return res.status(400).json({ error: `Request exceeds maximum block limit (${MAX_BLOCKS_PER_REQUEST}). Please request a smaller range.` });
+          return res
+            .status(400)
+            .json({
+              error: `Request exceeds maximum block limit (${MAX_BLOCKS_PER_REQUEST}). Please request a smaller range.`
+            });
         }
 
         const blocksData = [];
@@ -296,36 +334,40 @@ class Explorerc extends ModTemplate {
 
         // Loop from the higher ID down to the lower ID
         for (let current_id = start_id; current_id >= end_id; current_id--) {
-            try {
-                // Get the hash of the block on the longest chain at this ID
-                const longest_chain_hash = await app.blockchain.getLongestChainHashAtId(current_id);
+          try {
+            // Get the hash of the block on the longest chain at this ID
+            const longest_chain_hash = await app.blockchain.getLongestChainHashAtId(current_id);
 
-                if (longest_chain_hash) {
-                    // Call the abstracted function to get processed data
-                    const processedBlock = await explorerc_self.getProcessedBlockData(app, longest_chain_hash);
+            if (longest_chain_hash) {
+              // Call the abstracted function to get processed data
+              const processedBlock = await explorerc_self.getProcessedBlockData(
+                app,
+                longest_chain_hash
+              );
 
-                    if (processedBlock) {
-                        // Add the successfully processed block data to the results
-                        blocksData.push(processedBlock);
-                    } else {
-                        // Log that processing failed for this hash/ID but continue loop
-                        console.warn(`API Blocks: Failed to process block data for hash ${longest_chain_hash} at ID ${current_id}. Skipping.`);
-                    }
-                } else {
-                     console.warn(`API Blocks: No longest chain hash found for block ID ${current_id}`);
-                }
-            } catch (err) {
-                // Catch errors specific to the loop or getLongestChainHashAtId
-                console.error(`API Blocks: Error in loop for ID ${current_id}:`, err);
+              if (processedBlock) {
+                // Add the successfully processed block data to the results
+                blocksData.push(processedBlock);
+              } else {
+                // Log that processing failed for this hash/ID but continue loop
+                console.warn(
+                  `API Blocks: Failed to process block data for hash ${longest_chain_hash} at ID ${current_id}. Skipping.`
+                );
+              }
+            } else {
+              console.warn(`API Blocks: No longest chain hash found for block ID ${current_id}`);
             }
+          } catch (err) {
+            // Catch errors specific to the loop or getLongestChainHashAtId
+            console.error(`API Blocks: Error in loop for ID ${current_id}:`, err);
+          }
         }
 
         console.log(`Returning ${blocksData.length} blocks.`);
-        res.json({ status: "success", blocks: blocksData });
-
+        res.json({ status: 'success', blocks: blocksData });
       } catch (error) {
-        console.error("Error in /api/blocks/:start_id/:end_id endpoint:", error);
-        res.status(500).json({ error: "Internal server error while fetching blocks." });
+        console.error('Error in /api/blocks/:start_id/:end_id endpoint:', error);
+        res.status(500).json({ error: 'Internal server error while fetching blocks.' });
       }
     });
 
@@ -339,26 +381,35 @@ class Explorerc extends ModTemplate {
         let latestBlockId = 'N/A';
 
         try {
-            balance = await app.wallet?.getBalance() || '0'; 
-        } catch (e) { console.error("Error getting balance:", e); balance = 'Error'; }
-        
-        try {
-             if (app.options?.server) {
-                serverEndpoint = `${app.options.server.protocol}://${app.options.server.host}:${app.options.server.port}`;
-            }
-        } catch (e) { console.error("Error getting server endpoint:", e); }
+          balance = (await app.wallet?.getBalance()) || '0';
+        } catch (e) {
+          console.error('Error getting balance:', e);
+          balance = 'Error';
+        }
 
         try {
-            mempoolTxCount = app.mempool?.returnTransactions()?.length || 0;
-        } catch (e) { console.error("Error getting mempool count:", e); }
-        
+          if (app.options?.server) {
+            serverEndpoint = `${app.options.server.protocol}://${app.options.server.host}:${app.options.server.port}`;
+          }
+        } catch (e) {
+          console.error('Error getting server endpoint:', e);
+        }
+
         try {
-            const latestIdBigInt = await app.blockchain?.getLatestBlockId();
-            latestBlockId = latestIdBigInt !== undefined ? latestIdBigInt.toString() : 'N/A';
-        } catch (e) { console.error("Error getting latest block ID:", e); }
+          mempoolTxCount = app.mempool?.returnTransactions()?.length || 0;
+        } catch (e) {
+          console.error('Error getting mempool count:', e);
+        }
+
+        try {
+          const latestIdBigInt = await app.blockchain?.getLatestBlockId();
+          latestBlockId = latestIdBigInt !== undefined ? latestIdBigInt.toString() : 'N/A';
+        } catch (e) {
+          console.error('Error getting latest block ID:', e);
+        }
 
         res.json({
-          status: "success",
+          status: 'success',
           nodeInfo: {
             publicKey: publicKey,
             balance: balance, // Saito balance (string)
@@ -367,10 +418,9 @@ class Explorerc extends ModTemplate {
             latestBlockId: latestBlockId // Latest block ID (string)
           }
         });
-
       } catch (error) {
-        console.error("Error in /api/node-info endpoint:", error);
-        res.status(500).json({ error: "Internal server error while fetching node information." });
+        console.error('Error in /api/node-info endpoint:', error);
+        res.status(500).json({ error: 'Internal server error while fetching node information.' });
       }
     });
 
@@ -378,86 +428,109 @@ class Explorerc extends ModTemplate {
     expressapp.get(`/${explorerc_self.name}/api/latest_block_id`, async (req, res) => {
       try {
         const latest_block_id = await app.blockchain.getLatestBlockId();
-        res.json({ status: "success", latest_block_id: latest_block_id.toString() }); // Send as string for BigInt compatibility
+        res.json({ status: 'success', latest_block_id: latest_block_id.toString() }); // Send as string for BigInt compatibility
       } catch (error) {
-        console.error("Error in /api/latest_block_id endpoint:", error);
-        res.status(500).json({ error: "Internal server error while fetching latest block ID." });
+        console.error('Error in /api/latest_block_id endpoint:', error);
+        res.status(500).json({ error: 'Internal server error while fetching latest block ID.' });
       }
     });
-
   }
 
   // Helper function to get processed block data, including fallback for transactions
-  async getProcessedBlockData(app, hash,loadTransactionsIfMissing=false) {
+  async getProcessedBlockData(app, hash, loadTransactionsIfMissing = false) {
     try {
       // --- Step 1: Fetch block ---
       const block = await app.blockchain.getBlock(hash);
 
-      console.log(`getProcessedBlockData: Inspecting block for hash ${hash}: ID=${block?.id}, Timestamp=${block?.timestamp}, Type=${typeof block?.timestamp}`);
+      console.log(
+        `getProcessedBlockData: Inspecting block for hash ${hash}: ID=${block?.id}, Timestamp=${block?.timestamp}, Type=${typeof block?.timestamp}`
+      );
 
       if (block && typeof block.toJson === 'function') {
-          // --- Step 2: Parse base JSON and get calculated properties ---
-          let blockJson = {};
+        // --- Step 2: Parse base JSON and get calculated properties ---
+        let blockJson = {};
+        try {
+          blockJson = JSON.parse(block.toJson());
+        } catch (jsonError) {
+          console.error(`Error parsing block JSON for hash ${hash}:`, jsonError);
+          return null; // Cannot proceed without basic JSON
+        }
+
+        const goldenTicket = !!block.hasGoldenTicket;
+        const longestChain = !!block.inLongestChain;
+        let burnFee = 0;
+        let difficulty = 0;
+        try {
+          burnFee = block.burnFee ? Number(block.burnFee) : 0;
+        } catch (e) {
+          console.error(`Error getting burnFee for block ${block.id}:`, e);
+        }
+        try {
+          difficulty = block.difficulty ? Number(block.difficulty) : 0;
+        } catch (e) {
+          console.error(`Error getting difficulty for block ${block.id}:`, e);
+        }
+
+        // Initial transaction count (might be 0 if txs aren't loaded yet)
+        let initialTxnCount = blockJson.transactions?.length || block.transactions?.length || 0;
+
+        // --- Step 3: Construct initial response data ---
+        let responseData = {
+          id: block.id,
+          hash: block.hash,
+          previousBlockHash: block.previousBlockHash,
+          creator: blockJson.creator,
+          // Prioritize timestamp from parsed JSON
+          timestamp: Number(blockJson.timestamp ?? block.timestamp),
+          transactions: blockJson.transactions || [],
+          transactionCount: initialTxnCount,
+          goldenTicket: goldenTicket,
+          longestChain: longestChain,
+          burnFee: burnFee,
+          difficulty: difficulty
+        };
+
+        // --- Step 4: Check if transactions need to be loaded from disk ---
+        if (responseData.transactions.length === 0 && loadTransactionsIfMissing) {
+          console.log(
+            `getProcessedBlockData: Tx array empty for block ${hash}, attempting loadBlockByHash...`
+          );
           try {
-               blockJson = JSON.parse(block.toJson());
-          } catch (jsonError) {
-              console.error(`Error parsing block JSON for hash ${hash}:`, jsonError);
-              return null; // Cannot proceed without basic JSON
+            const blockFromStorage = await app.storage.loadBlockByHash(hash);
+            if (
+              blockFromStorage &&
+              Array.isArray(blockFromStorage.transactions) &&
+              blockFromStorage.transactions.length > 0
+            ) {
+              console.log(
+                `getProcessedBlockData: Found ${blockFromStorage.transactions.length} transactions via loadBlockByHash for block ${hash}`
+              );
+              blockJson = JSON.parse(blockFromStorage.toJson());
+              responseData.transactions = blockJson.transactions;
+              responseData.transactionCount = blockJson.transactions.length; // Update count
+            } else {
+              console.log(
+                `getProcessedBlockData: loadBlockByHash for ${hash} did not return transactions.`
+              );
+            }
+          } catch (storageError) {
+            console.error(
+              `getProcessedBlockData: Error calling loadBlockByHash for ${hash}:`,
+              storageError
+            );
           }
+        }
 
-          const goldenTicket = !!block.hasGoldenTicket; 
-          const longestChain = !!block.inLongestChain; 
-          let burnFee = 0;
-          let difficulty = 0;
-          try { burnFee = block.burnFee ? Number(block.burnFee) : 0; } catch (e) { console.error(`Error getting burnFee for block ${block.id}:`, e); }
-          try { difficulty = block.difficulty ? Number(block.difficulty) : 0; } catch (e) { console.error(`Error getting difficulty for block ${block.id}:`, e); }
-          
-          // Initial transaction count (might be 0 if txs aren't loaded yet)
-          let initialTxnCount = blockJson.transactions?.length || block.transactions?.length || 0;
-
-          // --- Step 3: Construct initial response data ---
-          let responseData = {
-              id: block.id,
-              hash: block.hash,
-              previousBlockHash: block.previousBlockHash,
-              creator: blockJson.creator, 
-              // Prioritize timestamp from parsed JSON
-              timestamp: Number(blockJson.timestamp ?? block.timestamp), 
-              transactions: blockJson.transactions || [], 
-              transactionCount: initialTxnCount, 
-              goldenTicket: goldenTicket,
-              longestChain: longestChain,
-              burnFee: burnFee, 
-              difficulty: difficulty 
-          };
-
-          // --- Step 4: Check if transactions need to be loaded from disk ---
-          if (responseData.transactions.length === 0 && loadTransactionsIfMissing) { 
-             console.log(`getProcessedBlockData: Tx array empty for block ${hash}, attempting loadBlockByHash...`);
-             try {
-                const blockFromStorage = await app.storage.loadBlockByHash(hash);
-                if (blockFromStorage && Array.isArray(blockFromStorage.transactions) && blockFromStorage.transactions.length > 0) {
-                   console.log(`getProcessedBlockData: Found ${blockFromStorage.transactions.length} transactions via loadBlockByHash for block ${hash}`);
-                   blockJson = JSON.parse(blockFromStorage.toJson());
-                   responseData.transactions = blockJson.transactions;
-                   responseData.transactionCount = blockJson.transactions.length; // Update count
-                } else {
-                    console.log(`getProcessedBlockData: loadBlockByHash for ${hash} did not return transactions.`);
-                }
-             } catch (storageError) {
-                console.error(`getProcessedBlockData: Error calling loadBlockByHash for ${hash}:`, storageError);
-             }
-          } 
-          
-          return responseData; // Return the potentially updated data
-
+        return responseData; // Return the potentially updated data
       } else {
-           console.warn(`getProcessedBlockData: Block not found or block.toJson is not a function for hash ${hash}`);
-           return null;
+        console.warn(
+          `getProcessedBlockData: Block not found or block.toJson is not a function for hash ${hash}`
+        );
+        return null;
       }
     } catch (err) {
-        console.error(`getProcessedBlockData: Error processing block hash ${hash}:`, err);
-        return null;
+      console.error(`getProcessedBlockData: Error processing block hash ${hash}:`, err);
+      return null;
     }
   }
 
@@ -471,12 +544,12 @@ class Explorerc extends ModTemplate {
       }
       const data = await response.json();
       if (data.status !== 'success' || !data.latest_block_id) {
-          throw new Error('Failed to fetch latest block ID: ' + (data.error || 'Unknown error'));
+        throw new Error('Failed to fetch latest block ID: ' + (data.error || 'Unknown error'));
       }
       // Return as BigInt for internal use
       return BigInt(data.latest_block_id);
     } catch (error) {
-      console.error("Error fetching latest block ID via mod method:", error);
+      console.error('Error fetching latest block ID via mod method:', error);
       throw error; // Re-throw to allow caller handling
     }
   }
@@ -495,14 +568,16 @@ class Explorerc extends ModTemplate {
       const response = await fetch(fetchUrl); // Use the constructed URL
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({})); // Try to get error message
-        throw new Error(`HTTP error! status: ${response.status} - ${errorData.error || 'Failed to fetch block range'}`);
+        throw new Error(
+          `HTTP error! status: ${response.status} - ${errorData.error || 'Failed to fetch block range'}`
+        );
       }
       const data = await response.json();
       if (data.status !== 'success' || !data.blocks) {
         throw new Error('Failed to fetch blocks: ' + (data.error || 'Malformed response'));
       }
       // Convert IDs and timestamps
-      return data.blocks.map(block => ({ 
+      return data.blocks.map((block) => ({
         ...block,
         id: BigInt(block.id),
         timestamp: Number(block.timestamp),
@@ -512,9 +587,12 @@ class Explorerc extends ModTemplate {
         longestChain: Boolean(block.longestChain),
         burnFee: Number(block.burnFee || 0),
         difficulty: Number(block.difficulty || 0)
-      })); 
+      }));
     } catch (error) {
-      console.error(`Error fetching blocks from ${start_id_str} to ${end_id_str} via mod method:`, error);
+      console.error(
+        `Error fetching blocks from ${start_id_str} to ${end_id_str} via mod method:`,
+        error
+      );
       throw error; // Re-throw
     }
   }
@@ -523,27 +601,29 @@ class Explorerc extends ModTemplate {
   async fetchNodeInfo() {
     const API_BASE_PATH = `/${this.name}/api`;
     try {
-        const response = await fetch(`${API_BASE_PATH}/node-info`);
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(`HTTP error! status: ${response.status} - ${errorData.error || 'Failed to fetch node info'}`);
-        }
-        const data = await response.json();
-        if (data.status !== 'success' || !data.nodeInfo) {
-            throw new Error('Failed to fetch node info: ' + (data.error || 'Malformed response'));
-        }
-        // Return the nested nodeInfo object
-        return data.nodeInfo; 
+      const response = await fetch(`${API_BASE_PATH}/node-info`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          `HTTP error! status: ${response.status} - ${errorData.error || 'Failed to fetch node info'}`
+        );
+      }
+      const data = await response.json();
+      if (data.status !== 'success' || !data.nodeInfo) {
+        throw new Error('Failed to fetch node info: ' + (data.error || 'Malformed response'));
+      }
+      // Return the nested nodeInfo object
+      return data.nodeInfo;
     } catch (error) {
-        console.error("Error fetching node info via mod method:", error);
-        throw error; // Re-throw
+      console.error('Error fetching node info via mod method:', error);
+      throw error; // Re-throw
     }
   }
 
   //
   // ON NEW BLOCK (Client-Side during Sync/Processing)
   //
-  // This callback is run by the Saito core (even in browser) 
+  // This callback is run by the Saito core (even in browser)
   // when a new block is added to the blockchain object.
   // We can use it to emit a custom event for UI updates.
   //
@@ -554,15 +634,264 @@ class Explorerc extends ModTemplate {
     if (blk && blk.id) {
       try {
         const blockId = blk.id; // blk.id should be BigInt
-        console.log(`Explorerc: onNewBlock triggered, ID: ${blockId.toString()}. Emitting custom event.`);
+        console.log(
+          `Explorerc: onNewBlock triggered, ID: ${blockId.toString()}. Emitting custom event.`
+        );
         // Emit a custom event specifically for this module's UI
         this.app.connection.emit('explorerc-new-block-id', blockId.toString());
       } catch (err) {
-         console.error("Error in Explorerc onNewBlock:", err);
+        console.error('Error in Explorerc onNewBlock:', err);
+      }
+      try {
+        var block = JSON.parse(blk.toJson());
+        var transblock = [];
+        blk.transactions.forEach((transaction) => {
+          let tx = transaction.toJson();
+          tx.msg = transaction.returnMessage(); // .toJson() doesn't return msg field ?
+          transblock.push(tx);
+        });
+        block.transactions = transblock;
+        this.addBlockToDatabase(block, lc);
+      } catch (error) {
+        console.log(error);
       }
     }
   }
 
+  async addBlockToDatabase(blk, lc) {
+    try {
+      console.log(Date() + '[ INFO | EXPLORERC ] - block added : ' + blk.hash);
+      // Insert block data
+      let blockSql = `INSERT OR IGNORE INTO block (
+                                id,
+                                timestamp,
+                                previous_block_hash,
+                                creator,
+                                merkle_root,
+                                signature,
+                                graveyard,
+                                treasury,
+                                total_fees,
+                                total_fees_new,
+                                total_fees_atr,
+                                total_fees_cumulative,
+                                avg_total_fees,
+                                avg_total_fees_new,
+                                avg_total_fees_atr,
+                                total_payout_routing,
+                                total_payout_mining,
+                                total_payout_treasury,
+                                total_payout_graveyard,
+                                total_payout_atr,
+                                avg_payout_routing,
+                                avg_payout_mining,
+                                avg_payout_treasury,
+                                avg_payout_graveyard,
+                                avg_payout_atr,
+                                avg_fee_per_byte,
+                                fee_per_byte,
+                                avg_nolan_rebroadcast_per_block,
+                                burnfee,
+                                difficulty,
+                                previous_block_unpaid,
+                                lc
+                            )
+                             VALUES (
+                                $id,
+                                $timestamp,
+                                $previous_block_hash,
+                                $creator,
+                                $merkle_root,
+                                $signature,
+                                $graveyard,
+                                $treasury,
+                                $total_fees,
+                                $total_fees_new,
+                                $total_fees_atr,
+                                $total_fees_cumulative,
+                                $avg_total_fees,
+                                $avg_total_fees_new,
+                                $avg_total_fees_atr,
+                                $total_payout_routing,
+                                $total_payout_mining,
+                                $total_payout_treasury,
+                                $total_payout_graveyard,
+                                $total_payout_atr,
+                                $avg_payout_routing,
+                                $avg_payout_mining,
+                                $avg_payout_treasury,
+                                $avg_payout_graveyard,
+                                $avg_payout_atr,
+                                $avg_fee_per_byte,
+                                $fee_per_byte,
+                                $avg_nolan_rebroadcast_per_block,
+                                $burnfee,
+                                $difficulty,
+                                $previous_block_unpaid,
+                                $lc
+                            )`;
+      let blockParams = {
+        $id: blk.id,
+        $timestamp: blk.timestamp,
+        $previous_block_hash: blk.previous_block_hash,
+        $creator: blk.creator,
+        $merkle_root: blk.merkle_root,
+        $signature: blk.signature,
+        $graveyard: blk.graveyard,
+        $treasury: blk.treasury,
+        $total_fees: blk.total_fees,
+        $total_fees_new: blk.total_fees_new,
+        $total_fees_atr: blk.total_fees_atr,
+        $total_fees_cumulative: blk.total_fees_cumulative,
+        $avg_total_fees: blk.avg_total_fees,
+        $avg_total_fees_new: blk.avg_total_fees_new,
+        $avg_total_fees_atr: blk.avg_total_fees_atr,
+        $total_payout_routing: blk.total_payout_routing,
+        $total_payout_mining: blk.total_payout_mining,
+        $total_payout_treasury: blk.total_payout_treasury,
+        $total_payout_graveyard: blk.total_payout_graveyard,
+        $total_payout_atr: blk.total_payout_atr,
+        $avg_payout_routing: blk.avg_payout_routing,
+        $avg_payout_mining: blk.avg_payout_mining,
+        $avg_payout_treasury: blk.avg_payout_treasury,
+        $avg_payout_graveyard: blk.avg_payout_graveyard,
+        $avg_payout_atr: blk.avg_payout_atr,
+        $avg_fee_per_byte: blk.avg_fee_per_byte,
+        $fee_per_byte: blk.fee_per_byte,
+        $avg_nolan_rebroadcast_per_block: blk.avg_nolan_rebroadcast_per_block,
+        $burnfee: blk.burnfee,
+        $difficulty: blk.difficulty,
+        $previous_block_unpaid: blk.previous_block_unpaid,
+        $lc: lc
+      };
+      await this.app.storage.runDatabase(blockSql, blockParams, 'explorerc');
+
+      // Insert transaction data
+      blk.transactions.forEach(async (transaction) => {
+        let txSql = `INSERT OR IGNORE INTO tx (
+                                id,
+                                block_id,
+                                timestamp,
+                                transaction_type,
+                                signature,
+                                total_in,
+                                total_out,
+                                total_fees,
+                                total_work_for_me,
+                                cumulative_fees,
+                                txs_replacements,
+                                lc
+                            )
+                             VALUES (
+                                $id,
+                                $block_id,
+                                $timestamp,
+                                $transaction_type,
+                                $signature,
+                                $total_in,
+                                $total_out,
+                                $total_fees,
+                                $total_work_for_me,
+                                $cumulative_fees,
+                                $txs_replacements,
+                                $lc
+                            )`;
+        let txParams = {
+          $id: transaction.signature,
+          $block_id: blk.id,
+          $timestamp: transaction.timestamp,
+          $transaction_type: transaction.transaction_type,
+          $signature: transaction.signature,
+          $total_in: transaction.total_in,
+          $total_out: transaction.total_out,
+          $total_fees: transaction.total_fees,
+          $total_work_for_me: transaction.total_work_for_me,
+          $cumulative_fees: transaction.cumulative_fees,
+          $txs_replacements: transaction.txs_replacements,
+          $lc: lc
+        };
+        await this.app.storage.runDatabase(txSql, txParams, 'explorerc');
+
+        // Insert to slip data
+        transaction.to.forEach(async (toSlip) => {
+          let toSql = `INSERT OR IGNORE INTO tos (
+                                  transaction_id,
+                                  public_key,
+                                  amount,
+                                  slip_type,
+                                  slip_index,
+                                  block_id,
+                                  tx_ordinal,
+                                  lc
+                              )
+                               VALUES (
+                                  $transaction_id,
+                                  $public_key,
+                                  $amount,
+                                  $slip_type,
+                                  $slip_index,
+                                  $block_id,
+                                  $tx_ordinal,
+                                  $lc
+                              )`;
+          let toParams = {
+            $transaction_id: transaction.signature,
+            $public_key: toSlip.public_key,
+            $amount: toSlip.amount,
+            $slip_type: toSlip.slip_type,
+            $slip_index: toSlip.slip_index,
+            $block_id: blk.id,
+            $tx_ordinal: toSlip.tx_ordinal,
+            $lc: lc
+          };
+          await this.app.storage.runDatabase(toSql, toParams, 'explorerc');
+        });
+
+        // Insert from slip data
+        transaction.from.forEach(async (fromSlip) => {
+          let fromSql = `INSERT OR IGNORE INTO froms (
+                                  transaction_id,
+                                  public_key,
+                                  amount,
+                                  slip_type,
+                                  slip_index,
+                                  block_id,
+                                  tx_ordinal,
+                                  lc
+                              )
+                               VALUES (
+                                  $transaction_id,
+                                  $public_key,
+                                  $amount,
+                                  $slip_type,
+                                  $slip_index,
+                                  $block_id,
+                                  $tx_ordinal,
+                                  $lc
+                              )`;
+          let fromParams = {
+            $transaction_id: transaction.signature,
+            $public_key: fromSlip.public_key,
+            $amount: fromSlip.amount,
+            $slip_type: fromSlip.slip_type,
+            $slip_index: fromSlip.slip_index,
+            $block_id: blk.id,
+            $tx_ordinal: fromSlip.tx_ordinal,
+            $lc: lc
+          };
+          await this.app.storage.runDatabase(fromSql, fromParams, 'explorerc');
+        });
+      });
+      return;
+    } catch (err) {
+      console.error(
+        '[ ERROR | EXPLORERC ] *** ERROR ***\n' + err + '\n[ EXPLORERC ] *** END OF ERROR ***'
+      );
+    }
+  }
+  shouldAffixCallbackToModule() {
+    return 1;
+  }
 }
 
 module.exports = Explorerc;
