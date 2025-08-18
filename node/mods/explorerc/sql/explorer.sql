@@ -1,4 +1,4 @@
-CREATE TABLE block (
+CREATE TABLE blocks (
     id INTEGER PRIMARY KEY,
     timestamp INTEGER,
     previous_block_hash TEXT,
@@ -34,7 +34,7 @@ CREATE TABLE block (
 );
 
 CREATE TABLE tx (
-    id INTEGER PRIMARY KEY,
+    id TEXT PRIMARY KEY,
     block_id INTEGER,
     timestamp INTEGER,
     transaction_type TEXT,
@@ -51,7 +51,8 @@ CREATE TABLE tx (
 
 CREATE TABLE tos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    transaction_id INTEGER,
+    tx_id INTEGER,
+    tx_sig TEXT,
     public_key TEXT,
     amount INTEGER,
     slip_type TEXT,
@@ -59,12 +60,13 @@ CREATE TABLE tos (
     block_id INTEGER,
     tx_ordinal INTEGER,
     lc BOOLEAN,
-    FOREIGN KEY(transaction_id) REFERENCES tx(id)
+    FOREIGN KEY(tx_id) REFERENCES tx(id)
 );
 
 CREATE TABLE froms (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    transaction_id INTEGER,
+    tx_id INTEGER,
+    tx_sig TEXT,
     public_key TEXT,
     amount INTEGER,
     slip_type TEXT,
@@ -72,5 +74,5 @@ CREATE TABLE froms (
     block_id INTEGER,
     tx_ordinal INTEGER,
     lc BOOLEAN,
-    FOREIGN KEY(transaction_id) REFERENCES tx(id)
+    FOREIGN KEY(tx_id) REFERENCES tx(id)
 );

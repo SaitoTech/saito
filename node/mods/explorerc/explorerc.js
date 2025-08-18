@@ -662,7 +662,7 @@ class Explorerc extends ModTemplate {
     try {
       console.log(Date() + '[ INFO | EXPLORERC ] - block added : ' + blk.hash);
       // Insert block data
-      let blockSql = `INSERT OR IGNORE INTO block (
+      let blockSql = `INSERT OR IGNORE INTO blocks (
                                 id,
                                 timestamp,
                                 previous_block_hash,
@@ -764,7 +764,7 @@ class Explorerc extends ModTemplate {
         $previous_block_unpaid: blk.previous_block_unpaid,
         $lc: lc
       };
-      await this.app.storage.runDatabase(blockSql, blockParams, 'explorerc');
+      await this.app.storage.runDatabase(blockSql, blockParams, 'explorer');
 
       // Insert transaction data
       blk.transactions.forEach(async (transaction) => {
@@ -810,12 +810,13 @@ class Explorerc extends ModTemplate {
           $txs_replacements: transaction.txs_replacements,
           $lc: lc
         };
-        await this.app.storage.runDatabase(txSql, txParams, 'explorerc');
+        await this.app.storage.runDatabase(txSql, txParams, 'explorer');
 
         // Insert to slip data
         transaction.to.forEach(async (toSlip) => {
           let toSql = `INSERT OR IGNORE INTO tos (
-                                  transaction_id,
+                                  tx_id,
+                                  tx_sig,
                                   public_key,
                                   amount,
                                   slip_type,
@@ -825,7 +826,8 @@ class Explorerc extends ModTemplate {
                                   lc
                               )
                                VALUES (
-                                  $transaction_id,
+                                  $tx_id,
+                                  $tx_sig,
                                   $public_key,
                                   $amount,
                                   $slip_type,
@@ -835,7 +837,8 @@ class Explorerc extends ModTemplate {
                                   $lc
                               )`;
           let toParams = {
-            $transaction_id: transaction.signature,
+            $tx_id: transaction.signature,
+            $tx_sig: transaction.signature,
             $public_key: toSlip.public_key,
             $amount: toSlip.amount,
             $slip_type: toSlip.slip_type,
@@ -844,13 +847,14 @@ class Explorerc extends ModTemplate {
             $tx_ordinal: toSlip.tx_ordinal,
             $lc: lc
           };
-          await this.app.storage.runDatabase(toSql, toParams, 'explorerc');
+          await this.app.storage.runDatabase(toSql, toParams, 'explorer');
         });
 
         // Insert from slip data
         transaction.from.forEach(async (fromSlip) => {
           let fromSql = `INSERT OR IGNORE INTO froms (
-                                  transaction_id,
+                                  tx_id,
+                                  tx_sig,
                                   public_key,
                                   amount,
                                   slip_type,
@@ -860,7 +864,8 @@ class Explorerc extends ModTemplate {
                                   lc
                               )
                                VALUES (
-                                  $transaction_id,
+                                  $tx_id,
+                                  $tx_sig,
                                   $public_key,
                                   $amount,
                                   $slip_type,
@@ -870,7 +875,8 @@ class Explorerc extends ModTemplate {
                                   $lc
                               )`;
           let fromParams = {
-            $transaction_id: transaction.signature,
+            $tx_id: transaction.signature,
+            $tx_sig: transaction.signature,
             $public_key: fromSlip.public_key,
             $amount: fromSlip.amount,
             $slip_type: fromSlip.slip_type,
@@ -879,7 +885,7 @@ class Explorerc extends ModTemplate {
             $tx_ordinal: fromSlip.tx_ordinal,
             $lc: lc
           };
-          await this.app.storage.runDatabase(fromSql, fromParams, 'explorerc');
+          await this.app.storage.runDatabase(fromSql, fromParams, 'explorer');
         });
       });
       return;
