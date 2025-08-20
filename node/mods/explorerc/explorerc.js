@@ -4,8 +4,8 @@ const ExplorerHomePage = require('./index'); // Require the HTML generation func
 const JSON = require('json-bigint'); // Add require for json-bigint
 
 // Restore requires for direct rendering in render()
-const React = require('react');
-const { createRoot } = require('react-dom/client');
+const React = require('react'); 
+const { createRoot } = require('react-dom/client'); 
 const App = require('./react-components/App').default; // Require the main React component - Added .default
 
 class Explorerc extends ModTemplate {
@@ -17,9 +17,9 @@ class Explorerc extends ModTemplate {
     this.categories = 'Utilities Information';
 
     // Define the style bundle
-    this.styles = [`/${this.name}/style.css`];
+    this.styles = [`/${this.name}/style.css`]; 
     // bundle.js is NOT included here - rendering happens directly in render()
-    this.scripts = [];
+    this.scripts = []; 
 
     this.rendered = false; // Track if render has been called
 
@@ -40,11 +40,11 @@ class Explorerc extends ModTemplate {
     console.log(`${this.returnName()} render() method called.`);
     // Ensure styles are attached first by calling super.render()
     try {
-      await super.render();
+      await super.render(); 
       console.log(`${this.returnName()} super.render() completed.`);
     } catch (err) {
-      console.error(`${this.returnName()} error during super.render():`, err);
-      return; // Don't proceed if super.render fails
+        console.error(`${this.returnName()} error during super.render():`, err);
+        return; // Don't proceed if super.render fails
     }
 
     // Prevent re-rendering
@@ -67,7 +67,7 @@ class Explorerc extends ModTemplate {
           console.error(
             `${this.returnName()} Error: App component is undefined or null. Check require statement.`
           );
-          return;
+            return;
         }
         const root = createRoot(rootElement);
         root.render(<App app={this.app} mod={this} />);
@@ -99,14 +99,14 @@ class Explorerc extends ModTemplate {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
       // Call the function from ./index.js to get the HTML
-      res.send(ExplorerHomePage(app, explorerc_self, app.build_number));
+      res.send(ExplorerHomePage(app, explorerc_self, app.build_number)); 
     });
 
-    // --- API Endpoints ---
+    // --- API Endpoints --- 
 
     // REMOVED Old /api/block?hash=<hash> endpoint
     // expressapp.get(`/${explorerc_self.name}/api/block`, async (req, res) => { ... });
-    /*
+/*
     expressapp.get(`/${explorerc_self.name}/api/blocksource`, async (req, res) => {
         const hash = req.query.hash;
         if (!hash) {
@@ -155,11 +155,11 @@ class Explorerc extends ModTemplate {
     });
 */
     // UNIFIED Endpoint: Get Full Block Data + Calculated Properties by Hash
-    expressapp.get(`/${explorerc_self.name}/api/block/:bhash`, async (req, res) => {
+    expressapp.get(`/${explorerc_self.name}/api/block/:bhash`, async (req, res) => { 
       const bhash = req.params.bhash; // Get hash from URL parameter
-
+      
       // Validate hash format
-      if (!bhash || !/^[a-f0-9]{64}$/i.test(bhash)) {
+      if (!bhash || !/^[a-f0-9]{64}$/i.test(bhash)) { 
         return res
           .status(400)
           .json({ status: 'error', message: 'Invalid block hash format provided.' });
@@ -218,54 +218,54 @@ class Explorerc extends ModTemplate {
         // Fetch balance (using app.wallet or app.blockchain - adjust as needed)
         try {
           // Example: Use wallet getBalance if available
-          if (app.wallet && typeof app.wallet.getBalance === 'function') {
+          if (app.wallet && typeof app.wallet.getBalance === 'function') { 
             balance = (await app.wallet.getBalance(pubkey)) || '0';
           } else if (app.blockchain && typeof app.blockchain.getBalance === 'function') {
-            // Fallback: Use blockchain getBalance (may need async)
+             // Fallback: Use blockchain getBalance (may need async)
             balance = (await app.blockchain.getBalance(pubkey)) || '0';
           } else {
             console.warn('Could not find a method to fetch balance.');
           }
         } catch (balanceError) {
-          console.error(`Error fetching balance for ${pubkey}:`, balanceError);
-          // Continue to fetch slips even if balance fails?
+           console.error(`Error fetching balance for ${pubkey}:`, balanceError);
+           // Continue to fetch slips even if balance fails?
         }
 
         // Fetch slips (UTXOs) - THIS IS A PLACEHOLDER
         // You'll need a real method in Saito core to get slips for a pubkey
         try {
-          if (app.blockchain && typeof app.blockchain.getSlipsForPublicKey === 'function') {
-            const rawSlips = await app.blockchain.getSlipsForPublicKey(pubkey);
-            // Format slips based on expected table structure: Block, TX, Slip, Nolan
-            // Assuming rawSlips is an array of objects like { bhash, tx_ordinal, slip_ordinal, amount, ... }
-            // and we need block ID instead of hash for the table.
+            if (app.blockchain && typeof app.blockchain.getSlipsForPublicKey === 'function') {
+                const rawSlips = await app.blockchain.getSlipsForPublicKey(pubkey);
+                // Format slips based on expected table structure: Block, TX, Slip, Nolan
+                // Assuming rawSlips is an array of objects like { bhash, tx_ordinal, slip_ordinal, amount, ... }
+                // and we need block ID instead of hash for the table.
             slips = rawSlips.map((slip) => {
-              // Fetch block ID from hash (may require another async call or cached data)
-              // const blockId = await app.blockchain.getBlockIdFromHash(slip.bhash); // Example
-              const blockId = slip.block_id || 'N/A'; // Use block_id if available
-              return [
-                // Hidden first column data (e.g., internal ID or address? not needed for table)
-                `${slip.bhash}-${slip.tx_ordinal}-${slip.slip_ordinal}`,
-                blockId,
-                slip.tx_ordinal, // TX Ordinal/Index
-                slip.slip_ordinal, // Slip Ordinal/Index
-                slip.amount // Nolan value as string
-              ];
-            });
-          } else {
+                    // Fetch block ID from hash (may require another async call or cached data)
+                    // const blockId = await app.blockchain.getBlockIdFromHash(slip.bhash); // Example
+                    const blockId = slip.block_id || 'N/A'; // Use block_id if available
+                    return [
+                        // Hidden first column data (e.g., internal ID or address? not needed for table)
+                        `${slip.bhash}-${slip.tx_ordinal}-${slip.slip_ordinal}`,
+                        blockId, 
+                        slip.tx_ordinal, // TX Ordinal/Index
+                        slip.slip_ordinal, // Slip Ordinal/Index
+                        slip.amount // Nolan value as string
+                    ];
+                });
+            } else {
             console.warn('Could not find a method to fetch slips (getSlipsForPublicKey).');
-          }
+            }
         } catch (slipError) {
-          console.error(`Error fetching slips for ${pubkey}:`, slipError);
-          // Set slips to empty array on error
-          slips = [];
+            console.error(`Error fetching slips for ${pubkey}:`, slipError);
+            // Set slips to empty array on error
+            slips = []; 
         }
 
-        res.json({
+        res.json({ 
           status: 'success',
-          pubkey: pubkey,
-          balance: balance.toString(), // Ensure balance is string
-          slips: slips
+            pubkey: pubkey, 
+            balance: balance.toString(), // Ensure balance is string
+            slips: slips 
         });
       } catch (error) {
         console.error(`Error in /api/balance for ${pubkey}:`, error);
@@ -334,33 +334,33 @@ class Explorerc extends ModTemplate {
 
         // Loop from the higher ID down to the lower ID
         for (let current_id = start_id; current_id >= end_id; current_id--) {
-          try {
-            // Get the hash of the block on the longest chain at this ID
-            const longest_chain_hash = await app.blockchain.getLongestChainHashAtId(current_id);
+            try {
+                // Get the hash of the block on the longest chain at this ID
+                const longest_chain_hash = await app.blockchain.getLongestChainHashAtId(current_id);
 
-            if (longest_chain_hash) {
-              // Call the abstracted function to get processed data
+                if (longest_chain_hash) {
+                    // Call the abstracted function to get processed data
               const processedBlock = await explorerc_self.getProcessedBlockData(
                 app,
                 longest_chain_hash
               );
 
-              if (processedBlock) {
-                // Add the successfully processed block data to the results
-                blocksData.push(processedBlock);
-              } else {
-                // Log that processing failed for this hash/ID but continue loop
+                    if (processedBlock) {
+                        // Add the successfully processed block data to the results
+                        blocksData.push(processedBlock);
+                    } else {
+                        // Log that processing failed for this hash/ID but continue loop
                 console.warn(
                   `API Blocks: Failed to process block data for hash ${longest_chain_hash} at ID ${current_id}. Skipping.`
                 );
-              }
-            } else {
-              console.warn(`API Blocks: No longest chain hash found for block ID ${current_id}`);
+                    }
+                } else {
+                     console.warn(`API Blocks: No longest chain hash found for block ID ${current_id}`);
+                }
+            } catch (err) {
+                // Catch errors specific to the loop or getLongestChainHashAtId
+                console.error(`API Blocks: Error in loop for ID ${current_id}:`, err);
             }
-          } catch (err) {
-            // Catch errors specific to the loop or getLongestChainHashAtId
-            console.error(`API Blocks: Error in loop for ID ${current_id}:`, err);
-          }
         }
 
         console.log(`Returning ${blocksData.length} blocks.`);
@@ -386,24 +386,24 @@ class Explorerc extends ModTemplate {
           console.error('Error getting balance:', e);
           balance = 'Error';
         }
-
+        
         try {
-          if (app.options?.server) {
-            serverEndpoint = `${app.options.server.protocol}://${app.options.server.host}:${app.options.server.port}`;
-          }
+             if (app.options?.server) {
+                serverEndpoint = `${app.options.server.protocol}://${app.options.server.host}:${app.options.server.port}`;
+            }
         } catch (e) {
           console.error('Error getting server endpoint:', e);
         }
 
         try {
-          mempoolTxCount = app.mempool?.returnTransactions()?.length || 0;
+            mempoolTxCount = app.mempool?.returnTransactions()?.length || 0;
         } catch (e) {
           console.error('Error getting mempool count:', e);
         }
-
+        
         try {
-          const latestIdBigInt = await app.blockchain?.getLatestBlockId();
-          latestBlockId = latestIdBigInt !== undefined ? latestIdBigInt.toString() : 'N/A';
+            const latestIdBigInt = await app.blockchain?.getLatestBlockId();
+            latestBlockId = latestIdBigInt !== undefined ? latestIdBigInt.toString() : 'N/A';
         } catch (e) {
           console.error('Error getting latest block ID:', e);
         }
@@ -447,19 +447,19 @@ class Explorerc extends ModTemplate {
       );
 
       if (block && typeof block.toJson === 'function') {
-        // --- Step 2: Parse base JSON and get calculated properties ---
-        let blockJson = {};
-        try {
-          blockJson = JSON.parse(block.toJson());
-        } catch (jsonError) {
-          console.error(`Error parsing block JSON for hash ${hash}:`, jsonError);
-          return null; // Cannot proceed without basic JSON
-        }
+          // --- Step 2: Parse base JSON and get calculated properties ---
+          let blockJson = {};
+          try {
+               blockJson = JSON.parse(block.toJson());
+          } catch (jsonError) {
+              console.error(`Error parsing block JSON for hash ${hash}:`, jsonError);
+              return null; // Cannot proceed without basic JSON
+          }
 
-        const goldenTicket = !!block.hasGoldenTicket;
-        const longestChain = !!block.inLongestChain;
-        let burnFee = 0;
-        let difficulty = 0;
+          const goldenTicket = !!block.hasGoldenTicket; 
+          const longestChain = !!block.inLongestChain; 
+          let burnFee = 0;
+          let difficulty = 0;
         try {
           burnFee = block.burnFee ? Number(block.burnFee) : 0;
         } catch (e) {
@@ -470,33 +470,33 @@ class Explorerc extends ModTemplate {
         } catch (e) {
           console.error(`Error getting difficulty for block ${block.id}:`, e);
         }
+          
+          // Initial transaction count (might be 0 if txs aren't loaded yet)
+          let initialTxnCount = blockJson.transactions?.length || block.transactions?.length || 0;
 
-        // Initial transaction count (might be 0 if txs aren't loaded yet)
-        let initialTxnCount = blockJson.transactions?.length || block.transactions?.length || 0;
+          // --- Step 3: Construct initial response data ---
+          let responseData = {
+              id: block.id,
+              hash: block.hash,
+              previousBlockHash: block.previousBlockHash,
+              creator: blockJson.creator, 
+              // Prioritize timestamp from parsed JSON
+              timestamp: Number(blockJson.timestamp ?? block.timestamp), 
+              transactions: blockJson.transactions || [], 
+              transactionCount: initialTxnCount, 
+              goldenTicket: goldenTicket,
+              longestChain: longestChain,
+              burnFee: burnFee, 
+              difficulty: difficulty 
+          };
 
-        // --- Step 3: Construct initial response data ---
-        let responseData = {
-          id: block.id,
-          hash: block.hash,
-          previousBlockHash: block.previousBlockHash,
-          creator: blockJson.creator,
-          // Prioritize timestamp from parsed JSON
-          timestamp: Number(blockJson.timestamp ?? block.timestamp),
-          transactions: blockJson.transactions || [],
-          transactionCount: initialTxnCount,
-          goldenTicket: goldenTicket,
-          longestChain: longestChain,
-          burnFee: burnFee,
-          difficulty: difficulty
-        };
-
-        // --- Step 4: Check if transactions need to be loaded from disk ---
-        if (responseData.transactions.length === 0 && loadTransactionsIfMissing) {
+          // --- Step 4: Check if transactions need to be loaded from disk ---
+          if (responseData.transactions.length === 0 && loadTransactionsIfMissing) { 
           console.log(
             `getProcessedBlockData: Tx array empty for block ${hash}, attempting loadBlockByHash...`
           );
-          try {
-            const blockFromStorage = await app.storage.loadBlockByHash(hash);
+             try {
+                const blockFromStorage = await app.storage.loadBlockByHash(hash);
             if (
               blockFromStorage &&
               Array.isArray(blockFromStorage.transactions) &&
@@ -505,32 +505,32 @@ class Explorerc extends ModTemplate {
               console.log(
                 `getProcessedBlockData: Found ${blockFromStorage.transactions.length} transactions via loadBlockByHash for block ${hash}`
               );
-              blockJson = JSON.parse(blockFromStorage.toJson());
-              responseData.transactions = blockJson.transactions;
-              responseData.transactionCount = blockJson.transactions.length; // Update count
-            } else {
+                   blockJson = JSON.parse(blockFromStorage.toJson());
+                   responseData.transactions = blockJson.transactions;
+                   responseData.transactionCount = blockJson.transactions.length; // Update count
+                } else {
               console.log(
                 `getProcessedBlockData: loadBlockByHash for ${hash} did not return transactions.`
               );
-            }
-          } catch (storageError) {
+                }
+             } catch (storageError) {
             console.error(
               `getProcessedBlockData: Error calling loadBlockByHash for ${hash}:`,
               storageError
             );
-          }
-        }
-
-        return responseData; // Return the potentially updated data
+             }
+          } 
+          
+          return responseData; // Return the potentially updated data
       } else {
         console.warn(
           `getProcessedBlockData: Block not found or block.toJson is not a function for hash ${hash}`
         );
-        return null;
+           return null;
       }
     } catch (err) {
-      console.error(`getProcessedBlockData: Error processing block hash ${hash}:`, err);
-      return null;
+        console.error(`getProcessedBlockData: Error processing block hash ${hash}:`, err);
+        return null;
     }
   }
 
@@ -544,7 +544,7 @@ class Explorerc extends ModTemplate {
       }
       const data = await response.json();
       if (data.status !== 'success' || !data.latest_block_id) {
-        throw new Error('Failed to fetch latest block ID: ' + (data.error || 'Unknown error'));
+          throw new Error('Failed to fetch latest block ID: ' + (data.error || 'Unknown error'));
       }
       // Return as BigInt for internal use
       return BigInt(data.latest_block_id);
@@ -587,7 +587,7 @@ class Explorerc extends ModTemplate {
         longestChain: Boolean(block.longestChain),
         burnFee: Number(block.burnFee || 0),
         difficulty: Number(block.difficulty || 0)
-      }));
+      })); 
     } catch (error) {
       console.error(
         `Error fetching blocks from ${start_id_str} to ${end_id_str} via mod method:`,
@@ -601,29 +601,29 @@ class Explorerc extends ModTemplate {
   async fetchNodeInfo() {
     const API_BASE_PATH = `/${this.name}/api`;
     try {
-      const response = await fetch(`${API_BASE_PATH}/node-info`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        const response = await fetch(`${API_BASE_PATH}/node-info`);
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
         throw new Error(
           `HTTP error! status: ${response.status} - ${errorData.error || 'Failed to fetch node info'}`
         );
-      }
-      const data = await response.json();
-      if (data.status !== 'success' || !data.nodeInfo) {
-        throw new Error('Failed to fetch node info: ' + (data.error || 'Malformed response'));
-      }
-      // Return the nested nodeInfo object
-      return data.nodeInfo;
+        }
+        const data = await response.json();
+        if (data.status !== 'success' || !data.nodeInfo) {
+            throw new Error('Failed to fetch node info: ' + (data.error || 'Malformed response'));
+        }
+        // Return the nested nodeInfo object
+        return data.nodeInfo; 
     } catch (error) {
       console.error('Error fetching node info via mod method:', error);
-      throw error; // Re-throw
+        throw error; // Re-throw
     }
   }
 
   //
   // ON NEW BLOCK (Client-Side during Sync/Processing)
   //
-  // This callback is run by the Saito core (even in browser)
+  // This callback is run by the Saito core (even in browser) 
   // when a new block is added to the blockchain object.
   // We can use it to emit a custom event for UI updates.
   //
@@ -769,11 +769,10 @@ class Explorerc extends ModTemplate {
       // Insert transaction data
       blk.transactions.forEach(async (transaction) => {
         let txSql = `INSERT OR IGNORE INTO tx (
-                                id,
+                                signature,
                                 block_id,
                                 timestamp,
                                 transaction_type,
-                                signature,
                                 total_in,
                                 total_out,
                                 total_fees,
@@ -783,11 +782,10 @@ class Explorerc extends ModTemplate {
                                 lc
                             )
                              VALUES (
-                                $id,
+                                $signature,
                                 $block_id,
                                 $timestamp,
                                 $transaction_type,
-                                $signature,
                                 $total_in,
                                 $total_out,
                                 $total_fees,
@@ -797,11 +795,10 @@ class Explorerc extends ModTemplate {
                                 $lc
                             )`;
         let txParams = {
-          $id: transaction.signature,
+          $signature: transaction.signature,
           $block_id: blk.id,
           $timestamp: transaction.timestamp,
           $transaction_type: transaction.transaction_type,
-          $signature: transaction.signature,
           $total_in: transaction.total_in,
           $total_out: transaction.total_out,
           $total_fees: transaction.total_fees,
@@ -815,7 +812,7 @@ class Explorerc extends ModTemplate {
         // Insert to slip data
         transaction.to.forEach(async (toSlip) => {
           let toSql = `INSERT OR IGNORE INTO tos (
-                                  tx_id,
+                                  utxo_key,
                                   tx_sig,
                                   public_key,
                                   amount,
@@ -826,7 +823,7 @@ class Explorerc extends ModTemplate {
                                   lc
                               )
                                VALUES (
-                                  $tx_id,
+                                  $utxo_key,
                                   $tx_sig,
                                   $public_key,
                                   $amount,
@@ -837,14 +834,14 @@ class Explorerc extends ModTemplate {
                                   $lc
                               )`;
           let toParams = {
-            $tx_id: transaction.signature,
+            $utxo_key: toSlip.utxoKey || '',
             $tx_sig: transaction.signature,
-            $public_key: toSlip.public_key,
+            $public_key: toSlip.public_key || toSlip.publicKey,
             $amount: toSlip.amount,
-            $slip_type: toSlip.slip_type,
-            $slip_index: toSlip.slip_index,
+            $slip_type: toSlip.slip_type || toSlip.type,
+            $slip_index: toSlip.slip_index || toSlip.index,
             $block_id: blk.id,
-            $tx_ordinal: toSlip.tx_ordinal,
+            $tx_ordinal: toSlip.tx_ordinal || toSlip.txOrdinal,
             $lc: lc
           };
           await this.app.storage.runDatabase(toSql, toParams, 'explorer');
@@ -853,7 +850,7 @@ class Explorerc extends ModTemplate {
         // Insert from slip data
         transaction.from.forEach(async (fromSlip) => {
           let fromSql = `INSERT OR IGNORE INTO froms (
-                                  tx_id,
+                                  utxo_key,
                                   tx_sig,
                                   public_key,
                                   amount,
@@ -864,7 +861,7 @@ class Explorerc extends ModTemplate {
                                   lc
                               )
                                VALUES (
-                                  $tx_id,
+                                  $utxo_key,
                                   $tx_sig,
                                   $public_key,
                                   $amount,
@@ -875,14 +872,14 @@ class Explorerc extends ModTemplate {
                                   $lc
                               )`;
           let fromParams = {
-            $tx_id: transaction.signature,
+            $utxo_key: fromSlip.utxoKey || '',
             $tx_sig: transaction.signature,
-            $public_key: fromSlip.public_key,
+            $public_key: fromSlip.public_key || fromSlip.publicKey,
             $amount: fromSlip.amount,
-            $slip_type: fromSlip.slip_type,
-            $slip_index: fromSlip.slip_index,
+            $slip_type: fromSlip.slip_type || fromSlip.type,
+            $slip_index: fromSlip.slip_index || fromSlip.index,
             $block_id: blk.id,
-            $tx_ordinal: fromSlip.tx_ordinal,
+            $tx_ordinal: fromSlip.tx_ordinal || fromSlip.txOrdinal,
             $lc: lc
           };
           await this.app.storage.runDatabase(fromSql, fromParams, 'explorer');

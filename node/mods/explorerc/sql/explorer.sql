@@ -34,11 +34,10 @@ CREATE TABLE blocks (
 );
 
 CREATE TABLE tx (
-    id TEXT PRIMARY KEY,
+    signature TEXT PRIMARY KEY,
     block_id INTEGER,
     timestamp INTEGER,
     transaction_type TEXT,
-    signature TEXT,
     total_in INTEGER,
     total_out INTEGER,
     total_fees INTEGER,
@@ -50,8 +49,7 @@ CREATE TABLE tx (
 );
 
 CREATE TABLE tos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tx_id INTEGER,
+    utxo_key TEXT PRIMARY KEY,
     tx_sig TEXT,
     public_key TEXT,
     amount INTEGER,
@@ -60,12 +58,11 @@ CREATE TABLE tos (
     block_id INTEGER,
     tx_ordinal INTEGER,
     lc BOOLEAN,
-    FOREIGN KEY(tx_id) REFERENCES tx(id)
+    FOREIGN KEY(tx_sig) REFERENCES tx(signature)
 );
 
 CREATE TABLE froms (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    tx_id INTEGER,
+    utxo_key TEXT PRIMARY KEY,
     tx_sig TEXT,
     public_key TEXT,
     amount INTEGER,
@@ -74,5 +71,5 @@ CREATE TABLE froms (
     block_id INTEGER,
     tx_ordinal INTEGER,
     lc BOOLEAN,
-    FOREIGN KEY(tx_id) REFERENCES tx(id)
+    FOREIGN KEY(tx_sig) REFERENCES tx(signature)
 );
