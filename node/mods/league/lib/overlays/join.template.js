@@ -1,4 +1,4 @@
-module.exports  = (app, mod, league) => {
+module.exports = (app, mod, league) => {
 	let game = league.game.toLowerCase();
 
 	let name = app.keychain.returnIdentifierByPublicKey(mod.publicKey, true);
@@ -37,8 +37,8 @@ module.exports  = (app, mod, league) => {
 				<p>Note: Make sure you get in touch with the league admin, so you can get some games scheduled</p>
 			</div>
 	  	  	<div class="league-join-controls">
-	  	  		<div class="saito-overlay-form-alt-opt" style="text-decoration:unset;">Redirecting to League View in <span id="countdown">5</span>s...</div>
-				<div id="gonow" class="saito-overlay-form-alt-opt">Redirect now</div>
+	  	  		<div>Redirecting to League View in <span id="countdown">5</span>s...</div>
+				<div id="gonow" class="saito-button-primary fat">Redirect now</div>
 			</div>
 	    </div>
 	   `
@@ -52,7 +52,7 @@ module.exports  = (app, mod, league) => {
 				<p>Click below to join this ${league.game} league as <span class="address">"${name}"</span>. If you already have an account, please login before joining.</p>
 			</div>
 	  	  	<div class="league-join-controls">
-				<div class="saito-overlay-form-alt-opt">or login to account</div>
+				<div id="login" class="saito-anchor">or login to account</div>
 	        	<button type="button" class="saito-button-primary fat" id="league-join-btn" data-id="${league.id}">JOIN LEAGUE</button>    
 	      	</div>
 	    </div>

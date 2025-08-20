@@ -18,20 +18,14 @@ class ChatManagerMenu {
 
 		this.chatList = new ChatList(app, mod);
 		this.chatList.callback = (gid) => {
-			let chatMenu = new ChatUserMenu(
-				this.app,
-				this.mod,
-				this.mod.returnGroup(gid)
-			);
+			let chatMenu = new ChatUserMenu(this.app, this.mod, this.mod.returnGroup(gid));
 			chatMenu.render();
 		};
 	}
 
 	async render() {
 		if (!this.container) {
-			this.overlay.show(
-				`<div class="module-settings-overlay"><h2>Chat Settings</h2></div>`
-			);
+			this.overlay.show(`<div class="module-settings-overlay"><h2>Chat Settings</h2></div>`);
 			this.container = '.module-settings-overlay';
 		}
 
@@ -41,29 +35,24 @@ class ChatManagerMenu {
 				'.saito-module-settings'
 			);
 		} else {
-			this.app.browser.addElementToSelector(
-				chatMenuTemplate(this.app, this.mod),
-				this.container
-			);
+			this.app.browser.addElementToSelector(chatMenuTemplate(this.app, this.mod), this.container);
 		}
 
 		this.attachEvents();
 	}
 
 	attachEvents() {
-
 		if (document.getElementById('add-publickey')) {
 			document.getElementById('add-publickey').onclick = async (e) => {
 				let add = await sprompt('Enter Address of Contact to Add:');
-                                if (add != '' && this.app.wallet.isValidPublicKey(add)) {
-					salert(`Adding ${add} as Contact`);
-					this.app.keychain.addKey(add);
-	                                this.app.connection.emit(
-        	                                'encrypt-key-exchange',
-                	                        add
-                        	        );
-				} else {
-					salert("Not a Network Address / Public Key");
+				if (add) {
+					if (this.app.wallet.isValidPublicKey(add)) {
+						salert(`Adding ${add} as Contact`);
+						this.app.keychain.addKey(add);
+						this.app.connection.emit('encrypt-key-exchange', add);
+					} else {
+						salert('Not a Network Address / Public Key');
+					}
 				}
 			};
 		}
@@ -86,20 +75,20 @@ class ChatManagerMenu {
 		if (document.getElementById('create-group')) {
 			document.getElementById('create-group').onclick = async (e) => {
 				this.contactList.multi_select = true;
-				this.contactList.title = "Invite Contacts";
-				
+				this.contactList.title = 'Invite Contacts';
+
 				this.contactList.callback = (person) => {
 					person.push(this.mod.publicKey);
 					this.mod.sendCreateGroupTransaction(name, person);
 				};
 
 				let name = await sprompt('Choose a name for the group');
-				if (name){
+				if (name) {
 					let myKeys = this.app.keychain.returnKeys();
-					if (myKeys.length > 0){
-						this.contactList.render();		
-					}else{
-						this.mod.sendCreateGroupTransaction(name);		
+					if (myKeys.length > 0) {
+						this.contactList.render();
+					} else {
+						this.mod.sendCreateGroupTransaction(name);
 					}
 					this.overlay.close();
 				}
@@ -142,28 +131,24 @@ class ChatManagerMenu {
 				});
 		}*/
 
-		const f1 = document.getElementById("sensitivity-fieldset");
-		const f2 = document.getElementById("chime-fieldset");
+		const f1 = document.getElementById('sensitivity-fieldset');
+		const f2 = document.getElementById('chime-fieldset');
 
 		if (document.getElementById('audio-notifications') && f1 && f2) {
-			document
-				.getElementById('audio-notifications')
-				.addEventListener('change', (e) => {
-					if (e.currentTarget.checked) {
-						f1.style.display = "grid";
-						f2.style.display = "grid";
-					} else {
-						this.mod.audio_notifications = "";
-						f1.style.display = "none";
-						f2.style.display = "none";
-						this.mod.saveOptions();
-					}
-				});
+			document.getElementById('audio-notifications').addEventListener('change', (e) => {
+				if (e.currentTarget.checked) {
+					f1.style.display = 'grid';
+					f2.style.display = 'grid';
+				} else {
+					this.mod.audio_notifications = '';
+					f1.style.display = 'none';
+					f2.style.display = 'none';
+					this.mod.saveOptions();
+				}
+			});
 		}
 
-		Array.from(
-			document.querySelectorAll(`input[name='chime-threshold']`)
-		).forEach((radio) => {
+		Array.from(document.querySelectorAll(`input[name='chime-threshold']`)).forEach((radio) => {
 			radio.addEventListener('change', (e) => {
 				if (e.currentTarget.value !== this.mod.audio_notifications) {
 					this.mod.audio_notifications = e.currentTarget.value;
@@ -172,9 +157,7 @@ class ChatManagerMenu {
 			});
 		});
 
-		Array.from(
-			document.querySelectorAll(`input[name='chat-chime']`)
-		).forEach((radio) => {
+		Array.from(document.querySelectorAll(`input[name='chat-chime']`)).forEach((radio) => {
 			radio.addEventListener('change', (e) => {
 				if (e.currentTarget.value !== this.mod.audio_chime) {
 					this.mod.audio_chime = e.currentTarget.value;
@@ -184,62 +167,53 @@ class ChatManagerMenu {
 			});
 		});
 
-
 		if (document.getElementById('auto-open')) {
-			document
-				.getElementById('auto-open')
-				.addEventListener('change', (e) => {
-					if (e.currentTarget.checked) {
-						this.mod.auto_open_community = true;
-					} else {
-						this.mod.auto_open_community = false;
-					}
-					this.mod.saveOptions();
-				});
+			document.getElementById('auto-open').addEventListener('change', (e) => {
+				if (e.currentTarget.checked) {
+					this.mod.auto_open_community = true;
+				} else {
+					this.mod.auto_open_community = false;
+				}
+				this.mod.saveOptions();
+			});
 		}
 
 		if (document.getElementById('chat-link')) {
-			document
-				.getElementById('chat-link')
-				.addEventListener('click', (e) => {
-					let link =
-						window.location.origin +
-						'/chat?chat_id=' +
-						this.mod.publicKey;
-					navigator.clipboard.writeText(link);
-					siteMessage('Link Copied', 2000);
-				});
+			document.getElementById('chat-link').addEventListener('click', (e) => {
+				let link = window.location.origin + '/chat?chat_id=' + this.mod.publicKey;
+				navigator.clipboard.writeText(link);
+				siteMessage('Link Copied', 2000);
+			});
 		}
 
-	    if (document.getElementById("blocked-accounts")){
-	      document.getElementById("blocked-accounts").onclick = (e) => {
-	        this.contactList.title = "Blocked Accounts";
-	        this.contactList.multi_button = "Unblock Selected Accounts";
-	        this.contactList.callback = (keys) => {
-	          for (let key of keys){
-	            for (let i = this.mod.black_list.length; i >= 0; i--){
-	              if (this.mod.black_list[i] == key){
-	                this.mod.black_list.splice(i, 1);
-	                break;
-	              }
-	            }
-	          }
-	          this.mod.saveOptions();
-	          this.render();
-	        }
+		if (document.getElementById('blocked-accounts')) {
+			document.getElementById('blocked-accounts').onclick = (e) => {
+				this.contactList.title = 'Blocked Accounts';
+				this.contactList.multi_button = 'Unblock Selected Accounts';
+				this.contactList.callback = (keys) => {
+					for (let key of keys) {
+						for (let i = this.mod.black_list.length; i >= 0; i--) {
+							if (this.mod.black_list[i] == key) {
+								this.mod.black_list.splice(i, 1);
+								break;
+							}
+						}
+					}
+					this.mod.saveOptions();
+					this.render();
+				};
 
-	        this.contactList.render(this.mod.black_list);
-	      }
-	    }
+				this.contactList.render(this.mod.black_list);
+			};
+		}
 
-	    document.querySelectorAll(".sound-preview").forEach(sound => {
-	    	sound.onclick = (e) => {
-	    		let chime = e.currentTarget.dataset.id;
-   				let preview = new Audio(`/saito/sound/${chime}.mp3`);
-   				preview.play();
-	    	};
-	    })
-
+		document.querySelectorAll('.sound-preview').forEach((sound) => {
+			sound.onclick = (e) => {
+				let chime = e.currentTarget.dataset.id;
+				let preview = new Audio(`/saito/sound/${chime}.mp3`);
+				preview.play();
+			};
+		});
 	}
 }
 

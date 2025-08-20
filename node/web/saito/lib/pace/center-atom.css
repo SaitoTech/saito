@@ -1,5 +1,5 @@
 :root {
-	--pace-color: #f71f3d; /*var(--saito-primary);*/
+	--pace-color: #e8001e;
 }
 
 .pace.pace-erase {
@@ -23,6 +23,9 @@
 	left: 0;
 	right: 0;
 	bottom: 0;
+
+	background: var(--dreamscape);
+	border-radius: 50%;
 }
 
 .pace .pace-progress {
@@ -40,7 +43,7 @@
 
 .pace .pace-progress:before {
 	content: '';
-	background: var(--pace-color);
+	/*background: var(--pace-color);*/
 	opacity: 33%;
 	border-radius: 50%;
 	width: 4.5rem;
@@ -80,16 +83,16 @@
 
 .pace .pace-activity {
 	border-radius: 50%;
-	border: 5px solid var(--pace-color);
+	border: 5px solid transparent;
 	content: ' ';
 	display: block;
 	position: absolute;
 	top: 0;
 	left: 0;
-	height: 115px;
-	width: 115px;
+	height: 110px;
+	width: 110px;
 	box-sizing: content-box !important;
-	background-color: var(--pace-color);
+	background-color: transparent;
 	background-image: url(/saito/img/saito-loader.svg);
 	background-repeat: no-repeat;
 	background-size: contain;
@@ -101,11 +104,18 @@
 	animation: pace-theme-center-atom-spin 4s linear infinite;
 }
 
-.pace.pace-inactive .pace-activity {
+.pace.pace-inactive {
 	-webkit-animation: pace-theme-grow-atom 2s ease-in-out forwards;
 	-moz-animation: pace-theme-grow-atom 2s ease-in-out forwards;
 	-o-animation: pace-theme-grow-atom 2s ease-in-out forwards;
 	animation: pace-theme-grow-atom 2s ease-in-out forwards;
+}
+
+.pace.pace-inactive .pace-activity {
+	-webkit-animation: unset;
+	-moz-animation: unset;
+	-o-animation: unset;
+	animation: unset;
 }
 
 /*.pace .pace-activity:after {

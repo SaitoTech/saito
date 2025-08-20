@@ -14,7 +14,7 @@ module.exports = (app, publicKey) => {
         <div class="saito-userline">${publicKey}</div>
       </div>
      </div>
-     <div class="saito-modal-content">
+     <div class="saito-modal-content saito-menu-select-heavy">
      </div>
    </div>
   

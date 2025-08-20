@@ -9,11 +9,7 @@ class Login {
 		this.mod = mod;
 
 		this.modal_overlay = new SaitoOverlay(this.app, this.mod);
-		this.loader = new SaitoLoader(
-			this.app,
-			this.mod,
-			'#login-template .saito-overlay-form'
-		);
+		this.loader = new SaitoLoader(this.app, this.mod, '#login-template .saito-overlay-form');
 
 		app.connection.on('recovery-login-overlay-render-request', () => {
 			console.debug('Received recovery-login-overlay-render-request');
@@ -39,23 +35,17 @@ class Login {
 
 	attachEvents() {
 		document.querySelector('.saito-overlay-login-submit').onclick = (e) => {
-			let email = document.querySelector(
-				'.saito-overlay-form-email'
-			).value;
-			let password = document.querySelector(
-				'.saito-overlay-form-password'
-			).value;
+			let email = document.querySelector('.saito-overlay-form-email').value;
+			let password = document.querySelector('.saito-overlay-form-password').value;
 
 			//document.querySelector(".saito-overlay-form-text").remove();
 			document.querySelector('.saito-overlay-form-email').remove();
 			document.querySelector('.saito-overlay-form-password').remove();
-			document.querySelector('.saito-overlay-form-submitline').remove();
+			document.querySelector('.saito-button-row').remove();
 
 			this.loader.render();
 
-			document.querySelector(
-				'#login-template .saito-overlay-form-text'
-			).innerHTML =
+			document.querySelector('#login-template .saito-overlay-form-text').innerHTML =
 				'<center>Fetching Encrypted Wallet from Network...</center>';
 			this.mod.restoreWallet(email, password);
 		};
@@ -79,9 +69,7 @@ class Login {
 	failure() {
 		try {
 			this.render();
-			document.querySelector(
-				'#login-template .saito-overlay-form-text'
-			).innerHTML =
+			document.querySelector('#login-template .saito-overlay-form-text').innerHTML =
 				'<center>Failed: Incorrect Email or Password?</center>';
 			this.attachEvents();
 		} catch (err) {

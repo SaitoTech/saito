@@ -51,10 +51,12 @@
 .sidebar-header {
   display: flex;
   align-items: center;
-  font-size: 22px;
+  font-size: 2rem;
   justify-content: space-between;
   min-height: 40px;
-  line-height: 24px;
+  color: var(--saito-font-color-heavy);
+  text-transform: uppercase;
+  font-family: var(--saito-font-medium);
 }
 
 .sidebar-header > div {

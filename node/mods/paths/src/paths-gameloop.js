@@ -603,6 +603,8 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	  if (this.game.player == player) {
 
+	    this.displayBoard();
+
 	    let hold = "";
 	    let num = 0;
 
@@ -647,6 +649,7 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	    });
 
 	  } else {
+	    this.displayBoard();
 	    this.updateStatus("Opponent deciding on card discard...");
 	  }
 
@@ -818,29 +821,54 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	    this.game.queue.push("play\tcentral");
 	  }
 
-      //
-      // TESTING
-      //
-      // if you want to hardcode the hands of the players, you can set
-      // them manually here. Be sure that all of the cards have been
-      // dealt ento the DECK during the setup phase though.
-      //
-      if (this.game.options.deck === "is_testing") {
-	//
-	// ALLIES
-	//
-        if (this.game.player == 2) {
-	  if (!this.game.deck[1].hand.includes("ap29")) {
-            this.game.deck[1].hand.push(...["ap29"]);
+if (this.game.state.round == 0) {
+	  if (this.game.player == 1) {
+            this.game_help.render({
+              title : "Central Powers Opening" ,
+              text : "Play GUNS OF AUGUST for the event, and attack Sedan in a FLANK ATTACK" ,
+              img : "/paths/img/backgrounds/help/tutorial_units.png" ,
+              color: "#d2242a" ,
+              line1 : "learn",
+              line2 : "to play?",
+              fontsize : "2.1rem" ,
+            });
+	  } else {
+            this.game_help.render({
+              title : "Allied Powers Opening" ,
+              text : "Bring Reinforcements into Play and try to play War Status cards (?) for the event. Once you have 4 war status points, you enter Mid-War with more cards..." ,
+              img : "/paths/img/backgrounds/help/tutorial_units.png" ,
+              color: "#d2242a" ,
+              line1 : "learn",
+              line2 : "to play?",
+              fontsize : "2.1rem" ,
+            });
 	  }
-	//
-	// CENTrAL
-	//
-        } else {
-//          this.game.deck[0].hand.push(...[""]);
-        }
-        this.displayBoard();
-      }
+} 
+
+
+          //
+          // TESTING
+          //
+          // if you want to hardcode the hands of the players, you can set
+          // them manually here. Be sure that all of the cards have been
+          // dealt ento the DECK during the setup phase though.
+          //
+          if (this.game.options.deck === "is_testing") {
+	    //
+	    // ALLIES
+	    //
+            if (this.game.player == 2) {
+	      if (!this.game.deck[1].hand.includes("ap29")) {
+                this.game.deck[1].hand.push(...["ap29"]);
+	      }
+	    //
+	    // CENTRAL
+	    //
+            } else {
+              //this.game.deck[0].hand.push(...[""]);
+            }
+            this.displayBoard();
+          }
 
 
 	  return 1;
@@ -2260,15 +2288,19 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    let original_spaces = this.returnSpaces();
 	    if (this.game.spaces[this.game.state.combat.key].control == original_spaces[this.game.state.combat.key].control) {
 	      if (!this.game.spaces[this.game.state.combat.key].besieged) {
-	        if (this.returnPowerOfUnit(s.units[0]) == defender_power) {
- 	          if (s.units.length > 0) {
-	  	    if (defender_power == "central") {
-                      this.updateLog("Central Powers get fort bonus on defense: +" + s.fort);
-		    } else {
-                      this.updateLog("Allied Powers get fort bonus on defense: +" + s.fort);
+		if (s.units.length > 0) {
+	          if (this.returnPowerOfUnit(s.units[0]) == defender_power) {
+ 	            if (s.units.length > 0) {
+	  	      if (defender_power == "central") {
+                        this.updateLog("Central Powers get fort bonus on defense: +" + s.fort);
+		      } else {
+                        this.updateLog("Allied Powers get fort bonus on defense: +" + s.fort);
+		      }
 		    }
 	          }
-	        }
+	        } else {
+		  // just skip
+		}
 	      }
 	    }
           }

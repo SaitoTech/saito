@@ -112,6 +112,7 @@ class GameGame {
     game.options = {};
     game.options.ver = 1;
     game.invite_sig = '';
+    game.recent_moves_cache = []; // recent moves (FIFO for sharing)
     game.future = []; // future moves (arrive while we take action)
     game.lock_interface = 0;
 

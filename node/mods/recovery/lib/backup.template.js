@@ -1,21 +1,18 @@
-module.exports  = (identifier, newIdentifier) => {
+module.exports = (identifier, newIdentifier) => {
 	let txt = 'your Saito account';
 	if (identifier) {
 		if (identifier.indexOf('@saito') == -1) {
-			txt =
-				'<span style=\'color:var(--saito-secondary);\'>' +
-				identifier +
-				'@saito</span>';
+			txt = "<span style='color:var(--saito-secondary);'>" + identifier + '@saito</span>';
 		} else {
 			txt =
-				'<span class=\'pending_registration\' style=\'color:var(--saito-secondary);\'>' +
+				"<span class='pending_registration' style='color:var(--saito-secondary);'>" +
 				identifier +
 				'</span>';
 		}
 	}
 	let intro = '';
 	if (newIdentifier) {
-		intro = `<h6>Name Registration Submitted!</h6> `;
+		intro = `Name Registration Submitted!`;
 	}
 	return `
     <form id="backup-template" class="saito-overlay-auto-backup">
@@ -44,7 +41,7 @@ module.exports  = (identifier, newIdentifier) => {
 	      		</div>
       		</div>
 
-          <button type="submit" class="saito-button-primary fat saito-overlay-form-submit" id="saito-overlay-submit">Encrypt & Backup</button>
+          <button type="submit" class="saito-button-primary saito-overlay-form-submit" id="saito-overlay-submit">Encrypt & Backup</button>
 	      </div>
       </div>
     </form>

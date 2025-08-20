@@ -117,8 +117,9 @@ h2+p {
 }
 
 #landing {
-    background-color: #f71f3d;
+    background: var(--dreamscape);
     color: white;
+    background-blend-mode: exclusion;
 }
 
 #consensus {
@@ -283,9 +284,13 @@ h2+p {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: var(--saito-red);
     z-index: -1;
     border-radius: 7px;
+    backdrop-filter: blur(30px) contrast(110%) brightness(110%);
+  }
+
+  .feature-card p {
+    text-shadow: 0 0 5px #0008;
   }
 
 .feature-card h1 {

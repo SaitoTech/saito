@@ -75,7 +75,7 @@ module.exports = (app, mod, profile) => {
 
   html += `</div>
 
-		<div class="saito-profile-controls"></div>
+		<div class="saito-profile-controls saito-menu-select-subtle"></div>
     <div class="saito-profile-menu"></div>
     <div id="saito-profile-loader"></div>
   `;

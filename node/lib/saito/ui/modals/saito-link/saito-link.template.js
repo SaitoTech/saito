@@ -5,7 +5,7 @@ module.exports = (app, link_self) => {
   let html = `
       <div class="saito-modal saito-modal-share-link">
          <div class="saito-modal-title">Share Options</div>
-         <div class="saito-modal-content">
+         <div class="saito-modal-content saito-menu-select-heavy">
            <div id="copy-invite-link" class="saito-modal-menu-option"><i class="fas fa-link"></i><div>Copy ${game} Link</div></div>`;
 
   // Check if Chat / RedSquare installed

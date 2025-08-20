@@ -150,7 +150,7 @@ class LeagueOverlay {
 		}
 
 		if (!document.querySelector('.contactAdminWarning')) {
-			Array.from(document.querySelectorAll('.menu-icon')).forEach((item) => {
+			Array.from(document.querySelectorAll('.league-page-tab')).forEach((item) => {
 				item.onclick = (e) => {
 					let nav = e.currentTarget.id;
 

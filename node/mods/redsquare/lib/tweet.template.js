@@ -1,7 +1,8 @@
 module.exports = (app, mod, tweet, thread_parent = false) => {
 	let notice = tweet?.notice || '';
-	let text = tweet?.text || '';
-	text = app.browser.markupMentions(text);
+
+	// Extract hypertext-y mentions!
+	let text = app.browser.markupMentions(tweet?.text || '');
 
 	let identicon_src = app.keychain.returnIdenticon(tweet.tx.from[0].publicKey);
 	let identicon_color = app.keychain.returnIdenticonColor(tweet.tx.from[0].publicKey);
@@ -74,7 +75,7 @@ module.exports = (app, mod, tweet, thread_parent = false) => {
 	      <div class="tweet-context">${notice}</div>
 	      <div class="tweet-curation">${curation_info.replace(/data-/g, '<br>').substring(5)}</div>
         <div class="tweet-header"></div>
-        <div class="tweet-text">${app.browser.sanitize(tweet.text, true)}</div>
+        <div class="tweet-text">${app.browser.sanitize(text, true)}</div>
 	      <div class="tweet-image"></div>
 	      <div class="tweet-retweet"></div>
 	      <div class="tweet-preview"></div>

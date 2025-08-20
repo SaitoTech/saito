@@ -27,9 +27,11 @@ class CryptoSelectAmount {
 
 		this.overlay.show(CryptoSelectAmountTemplate(this.app, this.mod, this));
 		this.overlay.blockClose('#enable_staking_yes');
-		document
-			.querySelector(`#stake-crypto-request-container .withdraw-img-${this.ticker}`)
-			.classList.remove('hide-element');
+		if (document.querySelector(`#stake-crypto-request-container .withdraw-img-${this.ticker}`)) {
+			document
+				.querySelector(`#stake-crypto-request-container .withdraw-img-${this.ticker}`)
+				.classList.remove('hide-element');
+		}
 		this.attachEvents();
 	}
 

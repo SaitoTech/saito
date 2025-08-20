@@ -17,11 +17,9 @@
 
 .league-leaderboard .saito-table-header {
 	text-align: center;
-	text-transform: capitalize;
-	margin-bottom: 3px;
+	border-bottom: 1px solid var(--border-color-general-dividers);
 	position: sticky;
 	top: 0px;
-	background: var(--saito-gray-light);
 	z-index: 3;
 }
 
@@ -43,7 +41,7 @@
 }
 
 .saito-table-row.league-leaderboard-ranking {
-	border-radius: var(--border-radius-leaderboard-ranking);
+	border-radius: var(--border-radius-soft);
 	background: none;
 }
 
@@ -52,8 +50,7 @@
 }
 
 .my-leaderboard-position {
-	border: var(--border-thickness-thin) solid
-		var(--border-color-leaderboard-position);
+	border: var(--border-thickness-thin) solid var(--border-color-leaderboard-position);
 }
 
 .my-leaderboard-position > div:first-child {

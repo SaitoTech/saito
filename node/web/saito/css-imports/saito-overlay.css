@@ -18,13 +18,13 @@
   /*min-height: 10%; Why? */
   max-height: calc(100 * var(--saito-vh));
   max-width: 100vw;
-  border-radius: var(--border-radius-modal-menu);
+  border-radius: var(--border-radius-overlay);
   background-color: var(--saito-background-color); /* Dont know why had to be added manually*/
 }
 
 .saito-overlay > div:last-child {
   box-shadow: var(--shadow-standard);
-  border-radius: var(--border-radius-modal-menu);
+  border-radius: var(--border-radius-overlay);
 }
 
 .center-overlay {
@@ -108,14 +108,14 @@
   background-color: var(--saito-background-color);
   display: flex;
   flex-direction: column;
-  gap: 3rem;
-  border-radius: 0.5rem;
+  gap: 2rem;
+  border-radius: var(--border-radius-overlay);
 }
 
 .saito-overlay-form-header {
   height: 6rem;
-  background: var(--saito-gray-mid-transparent);
-  color: var(--saito-font-color);
+  background: var(--saito-highlight-heavy);
+  color: var(--saito-font-color-heavy);
   width: 100%;
   border-radius: 0.5rem;
 }
@@ -169,15 +169,6 @@
   font-size: 2.3rem;
 }
 
-.saito-overlay-form > button[type='button'],
-.saito-overlay-form-submitline > button[type='button'] {
-  height: 7rem;
-  font-size: 2.1rem;
-  width: 20rem;
-  margin: 0;
-  align-self: flex-end;
-}
-
 .saito-overlay-subform {
   display: grid;
   grid-template-columns: min-content 1fr;
@@ -197,25 +188,6 @@
   font-size: 2rem;
   flex-grow: 1;
   line-height: 3rem;
-}
-
-.saito-overlay-form-alt-opt {
-  margin-left: 2rem;
-  font-size: 1.8rem;
-  width: min-content;
-  white-space: nowrap;
-  cursor: pointer;
-  flex-grow: 1;
-  text-decoration: underline dashed 1px;
-}
-
-.saito-overlay-form-submitline {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-  flex-grow: 1;
-  align-items: center;
-  gap: 1rem;
 }
 
 .saito-overlay-form textarea,
@@ -259,17 +231,6 @@
 
   .saito-overlay-subform-inputs {
     grid-column: span 2;
-  }
-
-  /* **********************************************
-    Previously: @media screen and (max-width: 768px) 
-    *********************************************** */
-  .saito-overlay-form-submitline {
-    flex-direction: column;
-  }
-  .saito-overlay-form > button[type='button'],
-  .saito-overlay-form-submitline > button[type='button'] {
-    width: 100%;
   }
 
   .module-settings-overlay {

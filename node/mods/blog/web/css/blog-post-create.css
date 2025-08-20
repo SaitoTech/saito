@@ -57,7 +57,7 @@
 }
 
 .ql-editor.ql-blank::before {
-  color: var(--border-color-post-input) !important;
+  color: var(--border-color-general-dividers) !important;
 }
 
 .ql-container.ql-snow {
@@ -95,7 +95,7 @@
 .form-group input,
 .form-group textarea {
   padding: 12px;
-  border: 1px solid var(--border-color-post-input);
+  border: 1px solid var(--border-color-general-dividers);
   border-radius: 6px;
   background: var(--saito-background-color);
   width: 100%;

@@ -1,15 +1,7 @@
-.invite-manager {
-	display: flex;
-	flex-direction: column;
-	gap: 20px;
-}
-
 .sidebar-header {
-	font-size: 18px;
-	font-weight: bold;
-	color: var(--saito-font-color-heavy);
 	margin-bottom: 8px;
-	text-transform: uppercase;
+	font-family: inherit;
+	font-weight: bold;
 }
 
 .saito-module.saito-game {
@@ -25,7 +17,7 @@
 	align-items: center;
 	background-size: cover;
 	background-position: center;
-	background-color: var(--saito-gray-mid-transparent);
+	background-color: var(--saito-gray-transparent);
 	background-blend-mode: soft-light;
 	border-radius: 16px;
 	overflow: hidden;

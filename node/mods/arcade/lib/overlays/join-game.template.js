@@ -1,5 +1,4 @@
 module.exports = (app, mod, invite) => {
-
 	let game_tx = mod.returnGame(invite.game_id);
 
 	//Uncreated games
@@ -9,12 +8,11 @@ module.exports = (app, mod, invite) => {
 	//		: "open invitation";
 	//If created //
 
-	if (invite.players.length >= invite.players_needed){
+	if (invite.players.length >= invite.players_needed) {
 		desc = 'active game';
 	}
 
 	// broken initialization???
-
 
 	if (invite.time_finished) {
 		desc = 'finished game';
@@ -23,7 +21,7 @@ module.exports = (app, mod, invite) => {
 	let html = `
   <div class="arcade-game-overlay">
   <div class="arcade-game-overlay-header">
-	  <div class="arcade-game-overlay-header-image" style="background-image: url('${ invite.game_mod.respondTo('arcade-games').image}')">
+	  <div class="arcade-game-overlay-header-image" style="background-image: url('${invite.game_mod.respondTo('arcade-games').image}')">
 	  </div>
 	  <div class="arcade-game-overlay-header-title-box">
 		  <div class="arcade-game-overlay-header-title-box-title">${invite.game_name}</div>
@@ -68,10 +66,10 @@ module.exports = (app, mod, invite) => {
 	        <div class="arcade-game-playerbox saito-table-row`;
 
 		//if (mod.publicKey === invite.originator) {
-		//	html += ` available_slot">  
-	   //   			<div class="saito-identicon-box empty-slot"><i class="fa-solid fa-link"></i>`;
+		//	html += ` available_slot">
+		//   			<div class="saito-identicon-box empty-slot"><i class="fa-solid fa-link"></i>`;
 		//} else {
-			html += `">  
+		html += `">  
 	      			<div class="saito-identicon-box empty-slot">`;
 		//}
 
@@ -90,9 +88,7 @@ module.exports = (app, mod, invite) => {
 			  <div class="saito-table-body arcade-overlay-game-options">
 	`;
 
-	html += formatOptions(
-		invite.game_mod.returnShortGameOptionsArray(invite.options)
-	);
+	html += formatOptions(invite.game_mod.returnShortGameOptionsArray(invite.options));
 	if (invite.time_finished) {
 		let datetime = app.browser.formatDate(invite.time_finished);
 		html += addTimeStamp('finished at', datetime);
@@ -105,8 +101,8 @@ module.exports = (app, mod, invite) => {
               <div class="arcade-game-options-key">game moves</div>
 							<div class="arcade-game-options-value">${invite.step}</div>
 					</div>`;
-		if (invite?.game_status){
-				html += `<div class="saito-table-row">
+		if (invite?.game_status) {
+			html += `<div class="saito-table-row">
               <div class="arcade-game-options-key">status</div>
 							<div class="arcade-game-options-value">${invite.game_status}</div>
 					</div>`;
@@ -127,7 +123,6 @@ module.exports = (app, mod, invite) => {
 	  </div>
 	  <div class="arcade-game-controls">`;
 
-
 	if (!invite.time_finished) {
 		// Still ongoing
 
@@ -135,45 +130,44 @@ module.exports = (app, mod, invite) => {
 			// Game has enough players (should be active)
 			if (invite.players.includes(mod.publicKey)) {
 				// I can continue or quit my games
-				html += `<div id="arcade-game-controls-continue-game" class="saito-button saito-button-primary">continue game</div>`;
+				html += `<div id="arcade-game-controls-continue-game" class="fat saito-button-primary">continue game</div>`;
 				if (invite.players.length > 1) {
-					html += `<div id="arcade-game-controls-forfeit-game" class="saito-button saito-button-secondary">forfeit game</div>`;
+					html += `<div id="arcade-game-controls-forfeit-game" class="fat saito-button-secondary">forfeit game</div>`;
 				}
-				html += `<div id="arcade-game-controls-close-game" class="saito-button saito-button-secondary">cancel game</div>`;
-			} else if (invite.empty_slots){
-				html += `<div id="arcade-game-controls-watch-game" class="saito-button saito-button-primary">join table</div>`;
-			}else if (invite.game_mod.enable_observer) {
+				html += `<div id="arcade-game-controls-close-game" class="fat saito-button-secondary">cancel game</div>`;
+			} else if (invite.empty_slots) {
+				html += `<div id="arcade-game-controls-watch-game" class="fat saito-button-primary">join table</div>`;
+			} else if (invite.game_mod.enable_observer) {
 				//Observer mode -- ongoing
-				html += `<div id="arcade-game-controls-watch-game" class="saito-button saito-button-primary">watch game</div>`;
-				if (invite.game_mod.doesGameExistLocally(invite.game_id)){
-					html += `<div id="arcade-game-controls-clear-game" class="saito-button saito-button-secondary">clear</div>`;
+				html += `<div id="arcade-game-controls-watch-game" class="fat saito-button-primary">watch game</div>`;
+				if (invite.game_mod.doesGameExistLocally(invite.game_id)) {
+					html += `<div id="arcade-game-controls-clear-game" class="fat saito-button-secondary">clear</div>`;
 				}
 			}
 		} else {
 			if (invite.players.includes(mod.publicKey)) {
 				if (mod.publicKey === invite.originator) {
-					html += `<div id="arcade-game-controls-invite-join" class="saito-button saito-button-primary"><i class="fa-solid fa-link"></i>share</div>`;
-					html += `<div id="arcade-game-controls-cancel-join" class="saito-button saito-button-secondary">cancel invite</div>`;
+					html += `<div id="arcade-game-controls-invite-join" class="fat saito-button-primary"><i class="fa-solid fa-link"></i>share</div>`;
+					html += `<div id="arcade-game-controls-cancel-join" class="fat saito-button-secondary">cancel invite</div>`;
 				} else {
-					html += `<div id="arcade-game-controls-cancel-join" class="saito-button saito-button-secondary">leave invite</div>`;
+					html += `<div id="arcade-game-controls-cancel-join" class="fat saito-button-secondary">leave invite</div>`;
 				}
 			} else if (invite.empty_slots > 0) {
-				html += `<div id="arcade-game-controls-join-game" class="saito-button saito-button-primary">join game</div>`;
+				html += `<div id="arcade-game-controls-join-game" class="fat saito-button-primary">join game</div>`;
 			} else if (invite.desired_opponent_publickeys.includes(mod.publicKey)) {
-				html += `<div id="arcade-game-controls-join-game" class="saito-button saito-button-primary">join game</div>
-								<div id="arcade-game-controls-cancel-join" class="saito-button saito-button-secondary">decline invite</div>`;
+				html += `<div id="arcade-game-controls-join-game" class="fat saito-button-primary">join game</div>
+								<div id="arcade-game-controls-cancel-join" class="fat saito-button-secondary">decline invite</div>`;
 			}
 		}
 	} else {
 		// Game is finished
 
 		if (invite.game_mod.doesGameExistLocally(invite.game_id)) {
-			html += `<div id="arcade-game-controls-continue-game" class="saito-button saito-button-primary">view game</div>`;
+			html += `<div id="arcade-game-controls-continue-game" class="fat saito-button-primary">view game</div>`;
 		} else if (invite.game_mod.enable_observer && invite?.step > 0) {
 			//Observer mode -- finished
-			html += `<div id="arcade-game-controls-review-game" class="saito-button saito-button-primary">review game</div>`;
+			html += `<div id="arcade-game-controls-review-game" class="fat saito-button-primary">review game</div>`;
 		}
-
 	}
 
 	html += `
@@ -190,10 +184,7 @@ const formatOptions = (sgoa) => {
 
 	for (let i in sgoa) {
 		html += `<div class="saito-table-row">
-                <div class="arcade-game-options-key">${i.replace(
-					/_/g,
-					' '
-				)}</div>`;
+                <div class="arcade-game-options-key">${i.replace(/_/g, ' ')}</div>`;
 		if (sgoa[i] !== null) {
 			html += `<div class="arcade-game-options-value">${sgoa[i]}</div>`;
 		}

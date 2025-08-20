@@ -1,4 +1,4 @@
-module.exports  = (app, mod, keys) => {
+module.exports = (app, mod, keys) => {
   let html = `
       <div class="stun-appspace"> 
         <div class="stun-appspace-content">
@@ -10,25 +10,24 @@ module.exports  = (app, mod, keys) => {
 
           <div class="stunx-appspace-actions">`;
 
-
   let mode = null;
   if (mod.room_obj) {
     html += `<div class="saito-button-primary stunx-appspace-launch-call-btn" id="createRoom" data-id="${mod.room_obj?.call_id}">Join Meeting</div>`;
-    mode = "join";
+    mode = 'join';
   } else if (keys.length > 0) {
-      html += `<div class="saito-button-primary stunx-appspace-launch-call-btn" id="joinScheduleRoom">Join / Start Meeting</div>`;
-      mode = "select";
-  }else{
-      html += `<div class="saito-button-primary stunx-appspace-launch-call-btn" id="createRoom">Start Meeting</div>`;
-      mode = "create";
-      html += `<div class="stunx-precall-link" data-id="${mode}"><i class="fas fa-link"></i></div>`;
+    html += `<div class="saito-button-primary stunx-appspace-launch-call-btn" id="joinScheduleRoom">Join / Start Meeting</div>`;
+    mode = 'select';
+  } else {
+    html += `<div class="saito-button-primary stunx-appspace-launch-call-btn" id="createRoom">Start Meeting</div>`;
+    mode = 'create';
+    html += `<div class="stunx-precall-link" data-id="${mode}"><i class="fas fa-link"></i></div>`;
   }
 
   html += `</div>
         
           <div class="stun-appspace-footer">
-            <div id="stunx-call-settings" class="stunx-call-settings"><i class="fa-solid fa-gears"></i><span>media settings</span></div>
-            <div id="createScheduleRoom" class="stun-schedule-call"><i class="fas fa-calendar"></i><span>schedule call</span></div>
+            <div id="stunx-call-settings" class="stunx-call-settings saito-anchor"><i class="fa-solid fa-gears"></i><span>media settings</span></div>
+            <div id="createScheduleRoom" class="stun-schedule-call saito-anchor"><i class="fas fa-calendar"></i><span>schedule call</span></div>
         </div>
       
       </div>

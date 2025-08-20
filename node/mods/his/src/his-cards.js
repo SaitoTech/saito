@@ -9514,6 +9514,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
     deck['081'] = { 
       img : "cards/HIS-081.svg" , 
       name : "Indulgence Vendor" ,
+      warn : ["protestant"] ,
       ops : 3 ,
       turn : 1 ,
       type : "normal" ,

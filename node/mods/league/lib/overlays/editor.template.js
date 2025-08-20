@@ -8,13 +8,9 @@ module.exports = (app, mod, league) => {
      <div class="box welcome" contenteditable="true">${league.welcome}</div>`;
 	}
 
-	html += `<div class="label">${
-		league.admin ? 'League' : 'Game'
-	} Description</div>
-     <div class="box description" contenteditable="true">${
-	league.description
-}</div>
-     <button type="button" class="submit_btn saito-button saito-button-primary">Update</button>
+	html += `<div class="label">${league.admin ? 'League' : 'Game'} Description</div>
+     <div class="box description" contenteditable="true">${league.description}</div>
+     <button type="button" class="submit_btn fat saito-button-primary">Update</button>
      </div>`;
 
 	return html;

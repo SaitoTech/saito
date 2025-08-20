@@ -7,11 +7,7 @@ class RegisterUsername {
 		this.app = app;
 		this.mod = mod;
 		this.overlay = new SaitoOverlay(this.app, this.mod);
-		this.loader = new SaitoLoader(
-			this.app,
-			this.mod,
-			'.saito-overlay-form'
-		);
+		this.loader = new SaitoLoader(this.app, this.mod, '.saito-overlay-form');
 		this.callback = null;
 	}
 
@@ -23,7 +19,7 @@ class RegisterUsername {
 	attachEvents() {
 		document.querySelector('.saito-overlay-form-input').select();
 
-		document.querySelector('.saito-overlay-form-alt-opt').onclick = (e) => {
+		document.getElementById('login').onclick = (e) => {
 			this.overlay.remove();
 			this.app.connection.emit('recovery-login-overlay-render-request');
 			return;
@@ -31,32 +27,22 @@ class RegisterUsername {
 
 		document.querySelector('.saito-overlay-form-submit').onclick = (e) => {
 			e.preventDefault();
-			var identifier = document.querySelector(
-				'.saito-overlay-form-input'
-			).value;
+			var identifier = document.querySelector('.saito-overlay-form-input').value;
 			if (identifier) {
 				if (identifier.indexOf('@') > -1) {
-					identifier = identifier.substring(
-						0,
-						identifier.indexOf('@')
-					);
+					identifier = identifier.substring(0, identifier.indexOf('@'));
 				}
 
 				try {
-					document.querySelector(
-						'.saito-overlay-form-header-title'
-					).innerHTML = 'Registering name...';
+					document.querySelector('.saito-overlay-form-header-title').innerHTML =
+						'Registering name...';
 					document
 						.querySelector('.saito-overlay-form-header-title')
 						.classList.add('saito-cached-loader', 'loading');
 
 					document.querySelector('.saito-overlay-form-text').remove();
-					document.querySelector(
-						'.saito-overlay-form-input'
-					).style.visibility = 'hidden';
-					document
-						.querySelector('.saito-overlay-form-submitline')
-						.remove();
+					document.querySelector('.saito-overlay-form-input').style.visibility = 'hidden';
+					document.querySelector('.saito-button-row').remove();
 				} catch (err) {
 					console.log(err);
 				}
@@ -78,38 +64,22 @@ class RegisterUsername {
 					data,
 					async (results) => {
 						if (results.length > 0) {
-							salert(
-								'Identifier already in use. Please select another'
-							);
+							salert('Identifier already in use. Please select another');
 							this.render();
 							return;
 						} else {
-							console.log(
-								'REGISTRY: name available, try to register'
-							);
+							console.log('REGISTRY: name available, try to register');
 							try {
-								let register_success =
-									await this.mod.tryRegisterIdentifier(
-										identifier,
-										domain
-									);
+								let register_success = await this.mod.tryRegisterIdentifier(identifier, domain);
 								if (register_success) {
-									console.log(
-										'REGISTRY: tx to register successfully sent'
-									);
+									console.log('REGISTRY: tx to register successfully sent');
 									//
 									// mark wallet that we have registered username
 									//
-									this.app.keychain.addKey(
-										this.mod.publicKey,
-										{ has_registered_username: true }
-									);
+									this.app.keychain.addKey(this.mod.publicKey, { has_registered_username: true });
 
 									// Change Saito-header / Settings page
-									this.app.connection.emit(
-										'registry-update-identifier',
-										this.mod.publicKey
-									);
+									this.app.connection.emit('registry-update-identifier', this.mod.publicKey);
 
 									//Fake responsiveness
 									setTimeout(() => {
@@ -119,19 +89,12 @@ class RegisterUsername {
 										}
 									}, 2000);
 								} else {
-									salert(
-										'Error 411413: Error Registering Username'
-									);
+									salert('Error 411413: Error Registering Username');
 									this.render();
 								}
 							} catch (err) {
-								if (
-									err.message ==
-									'Alphanumeric Characters only'
-								) {
-									salert(
-										'Error: Alphanumeric Characters only'
-									);
+								if (err.message == 'Alphanumeric Characters only') {
+									salert('Error: Alphanumeric Characters only');
 								} else {
 									salert('Error: Error Registering Username');
 								}

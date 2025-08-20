@@ -9,7 +9,7 @@
 .game-overlay-menu ul li {
   width: 100%;
   line-height: 3.5em;
-  border-top: 1px solid var(--saito-gray-lighter);
+  border-top: 1px solid var(--saito-gray-light);
   cursor: pointer;
   text-align: -webkit-match-parent;
   display: list-item;
@@ -137,7 +137,7 @@
   width: min(800px, 95vw);
   overflow-y: auto;
   border-radius: 2%;
-  border: 2px solid var(--saito-gray);
+  border: 2px solid var(--saito-border-color-dark);
   cursor: grab;
 }
 
@@ -388,6 +388,8 @@ Useful declarations for game stats
 
 .debug_overlay button {
   margin: auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
 }
 
 @media screen and (max-width: 600px) {

@@ -34,7 +34,7 @@
 	width: 30rem;
 	max-width: 50vw;
 	overflow: visible;
-	border-right: var(--border-thickness-general-dividers) solid var(--saito-border-color);
+	border-right: var(--border-thickness) solid var(--saito-border-color);
 	padding: 1rem;
 }
 
@@ -71,7 +71,7 @@
 }
 
 .text-input {
-	border-radius: var(--border-radius-text-input);
+	border-radius: var(--border-radius-sharp);
 	box-shadow: 0 0 1px var(--saito-primary);
 }
 

@@ -32,7 +32,6 @@
 	height: min(600px, 80vh);
 }
 
-
 .stun-button-row {
 	display: flex;
 	flex-direction: row;
@@ -46,7 +45,8 @@
 	padding: 1.5rem;
 }
 
-.stun-appspace-content, .videocall-media-settings {
+.stun-appspace-content,
+.videocall-media-settings {
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
@@ -58,13 +58,12 @@
 	border-radius: var(--saito-border-radius);
 }
 
-
-.stunx-splash-image{
+.stunx-splash-image {
 	width: 300px;
 	height: 200px;
 	background-image: url(/videocall/img/splash.jpg);
 	background-size: cover;
-	border-radius: var(--saito-border-radius);	
+	border-radius: var(--saito-border-radius);
 }
 
 .stun-appspace-footer {
@@ -72,21 +71,13 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	color: var(--color-contrast);
 }
 
 .stun-appspace-footer > div {
 	display: flex;
 	align-items: center;
-	gap: 2rem;
-	cursor: pointer;
+	gap: 1rem;
 }
-
-.stun-appspace-footer > div:hover{
-	color: var(--saito-font-color);
-}
-
-
 
 .my-stun-container-info {
 	display: none;
@@ -102,7 +93,7 @@
 	align-items: center;
 	width: 100%;
 	gap: 2rem;
-	margin-bottom:1rem;
+	margin-bottom: 1rem;
 }
 
 .stunx-precall-link {
@@ -112,7 +103,7 @@
 }
 
 .stunx-precall-link:hover {
-color: var(--saito-font-color);	
+	color: var(--saito-font-color);
 }
 
 .stunx-appspace-launch-call-btn {
@@ -204,15 +195,15 @@ color: var(--saito-font-color);
 	transition: 0.4s;
 }
 
-input:checked+.slider {
+input:checked + .slider {
 	background-color: var(--saito-primary);
 }
 
-input:focus+.slider {
+input:focus + .slider {
 	box-shadow: 0 0 1px var(--saito-primary);
 }
 
-input:checked+.slider:before {
+input:checked + .slider:before {
 	-webkit-transform: translateX(26px);
 	-ms-transform: translateX(26px);
 	transform: translateX(26px);
@@ -240,8 +231,6 @@ input:checked+.slider:before {
 	width: 100% !important;
 }
 
-
-
 .stun-phone-notice {
 	font-style: italic;
 }
@@ -257,7 +246,6 @@ input:checked+.slider:before {
 }
 
 /*  responsive */
-
 
 @media screen and (max-width: 900px) {
 	.stun-appspace-content {

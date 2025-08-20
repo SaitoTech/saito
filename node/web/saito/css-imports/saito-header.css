@@ -273,6 +273,7 @@
   justify-content: space-around;
   width: 100%;
   background: inherit;
+  color: var(--saito-font-color);
 }
 
 .wallet-balance {
@@ -295,7 +296,6 @@
 
 .profile-public-key {
   width: fit-content;
-  color: var(--saito-font-color);
 }
 
 .profile-public-key > div:first-child {
@@ -303,12 +303,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/*.profile-public-key.generate-keys {
-  width: fit-content;
-  max-width: 100%;
-  font-family: var(--saito-font);
-}*/
 
 .hamburger-container {
   display: grid;
@@ -489,19 +483,6 @@
 
 .saito-header-logo-wrapper:hover .saito-back-button {
   transform: scale(1.1);
-}
-
-.saito-backup-container .saito-backup-auto {
-  padding: 1.5rem 1.5rem;
-  text-decoration: none;
-}
-
-.saito-overlay-auto-backup .saito-overlay-form {
-  gap: 0rem;
-}
-
-.saito-overlay-auto-backup .saito-overlay-subform {
-  gap: 2rem;
 }
 
 .saito-overlay-auto-backup .saito-overlay-subform {

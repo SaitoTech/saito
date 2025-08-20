@@ -1,8 +1,8 @@
 .saito-file-transfer-overlay {
-	width: min(45rem, 100vw);
-	min-height: 45rem;
+  width: min(45rem, 100vw);
+  min-height: 45rem;
   max-height: 90vh;
-	padding: 3rem;
+  padding: 3rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -11,10 +11,10 @@
   max-height: calc(100 * var(--saito-vh));
   max-width: 100vw;
   box-shadow: var(--box-shadow-sidebar-elements);
-  border-radius: var(--border-radius-modal-menu);
+  border-radius: var(--border-radius-overlay);
   overflow: hidden;
   background-color: var(--saito-background-color);
-  border: var(--border-thickness-thin) solid var(--border-color-general-dividers); 
+  border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
   position: fixed;
   /*left: 50%;
   top: 50%;
@@ -24,7 +24,7 @@
   z-index: 50;
 }
 
-#cancel-transfer{
+#cancel-transfer {
   visibility: hidden;
 }
 
@@ -62,7 +62,7 @@
   transform: unset;
 }
 
-.saito-file-transfer-overlay.minimize h1, 
+.saito-file-transfer-overlay.minimize h1,
 .saito-file-transfer-overlay.minimize > div {
   display: none;
 }
@@ -84,23 +84,23 @@
 }
 
 .teleporter-status-item {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 0 0.5rem;
-	margin: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+  margin: 0.5rem;
   min-height: 3rem;
 }
 
-.teleporter-status{
+.teleporter-status {
   font-size: 1.8rem; /* slightly bigger than default */
 }
 
-.teleporter-status .fa-check{
+.teleporter-status .fa-check {
   color: var(--saito-green);
 }
 
-.teleporter-status .fa-xmark{
+.teleporter-status .fa-xmark {
   color: var(--saito-red);
   font-size: 2.8rem;
 }
@@ -109,30 +109,14 @@
   font-family: monospace;
 }
 
-
-.saito-button-primary#download-transfer{
+.saito-button-primary#download-transfer {
   display: flex;
   justify-content: center;
   gap: 1rem;
 }
 
-
-.saito-pseudo-link {
-  font-style: italic;
-  color: var(--saito-primary);
-  cursor: pointer;
-}
-
-.saito-pseudo-link:hover{
-  color: var(--saito-font-color);
-}
-
-.contact .saito-pseudo-link{
-  float: right;
-}
-
 /**** Temporary for developing file transfer in chat ***/
-.saito-file-transfer{
+.saito-file-transfer {
   border-radius: var(--border-radius-soft);
   position: relative;
   border: 1px dashed;
@@ -145,7 +129,7 @@
   column-gap: 2rem;
   justify-items: flex-end;
   overflow: hidden;
-  background-color: var(--saito-gray-mid);
+  background-color: var(--saito-gray);
   color: var(--saito-white);
 }
 
@@ -157,7 +141,7 @@
   grid-template-rows: unset;
 }
 
-.file-transfer-progress{
+.file-transfer-progress {
   position: absolute;
   left: 1px;
   top: 1px;
@@ -166,7 +150,7 @@
   background-color: var(--saito-primary);
 }
 
-.saito-file-transfer.received .file-transfer-progress{
+.saito-file-transfer.received .file-transfer-progress {
   background-color: var(--saito-secondary);
 }
 
@@ -176,7 +160,8 @@
   z-index: 1;
 }
 
-.saito-file-transfer .file-name, .saito-file-transfer .file-size {
+.saito-file-transfer .file-name,
+.saito-file-transfer .file-size {
   z-index: 1;
 }
 
@@ -186,20 +171,7 @@
   font-weight: bold;
 }
 
-.file-button-row{
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  gap: 2rem;
-}
-
-.file-button-row button, .file-button-row .saito-button-secondary, .file-button-row .saito-button-primary {
-  min-width: unset;
-  flex: 1;
-}
-
-.hideme, .saito-button-primary.hideme#download-transfer {
+.hideme,
+.saito-button-primary.hideme#download-transfer {
   display: none;
 }

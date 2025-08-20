@@ -22,7 +22,7 @@
   min-width: 100%;
   vertical-align: bottom;
   max-height: var(--multi-max-height);
-  border-radius: var(--border-radius-sidebar-menu);
+  border-radius: var(--border-radius-round);
 }
 
 .saito-img-flex.single-img > * {

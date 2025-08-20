@@ -87,9 +87,13 @@
       let original_spaces = this.returnSpaces();
       if (this.game.spaces[this.game.state.combat.key].control == original_spaces[this.game.state.combat.key].control) {
         if (!this.game.spaces[this.game.state.combat.key].besieged) {
-          if (this.returnPowerOfUnit(s.units[0]) == this.game.state.combat.defender_power) {
+	  if (s.units.length > 0) {
+            if (this.returnPowerOfUnit(s.units[0]) == this.game.state.combat.defender_power) {
+              cp += this.game.spaces[this.game.state.combat.key].fort;
+            }
+          } else {
             cp += this.game.spaces[this.game.state.combat.key].fort;
-          }
+	  }
         }
       }
     }

@@ -11,7 +11,7 @@ Saito Table
   position: relative;
   border-radius: 0.1rem;
   max-height: 100%;
-  height: auto;
+  height: fit-content;
   position: relative;
   overflow-y: auto;
   min-height: 2rem;
@@ -22,18 +22,11 @@ Saito Table
   grid-template-columns: 1fr min-content;
   grid-gap: 0.5rem;
   padding: 0.6rem 1rem 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: var(--saito-gray-transparent);
+  background: var(--saito-highlight);
 }
 
 .saito-table-row:hover {
-  background: var(--saito-primary);
-  color: var(--saito-primary-text);
-}
-
-.saito-table-row:hover .saito-address {
-  color: var(--saito-primary-text);
+  background: var(--saito-highlight-heavy);
 }
 
 .saito-table-rank {
@@ -51,5 +44,7 @@ Saito Table
   padding: 0.6rem 1rem 0.5rem;
   width: 100%;
   text-align: center;
+  text-transform: capitalize;
   color: var(--saito-font-color-heavy);
+  background: var(--saito-highlight-heavy);
 }

@@ -2,7 +2,7 @@ const FileShareOverlayTemplate = require('./fileshare-overlay.template');
 const SaitoUser = require('./../../../lib/saito/ui/saito-user/saito-user');
 
 class FileShareOverlay {
-	constructor(app, mod, fileId, recipient = "") {
+	constructor(app, mod, fileId, recipient = '') {
 		this.app = app;
 		this.mod = mod;
 		this.fileId = fileId;
@@ -14,15 +14,20 @@ class FileShareOverlay {
 			console.debug('FILESHARE: stun-data-channel-open');
 			if (peerId == this.recipient && this?.active) {
 				this.onConnectionSuccess();
-			}else{
-				console.debug("FILESHARE: stun data channel not for fileshare!", this?.active, peerId, this.recipient);
+			} else {
+				console.debug(
+					'FILESHARE: stun data channel not for fileshare!',
+					this?.active,
+					peerId,
+					this.recipient
+				);
 			}
 		});
 
 		// stun-connection-timeout --> quit waiting
 		app.connection.on('stun-connection-close', (peerId) => {
 			if (peerId == this.recipient && this?.active) {
-				console.debug("FILESHARE: stun-connection-close");
+				console.debug('FILESHARE: stun-connection-close');
 				this.mod.stun.removePeerConnection(peerId);
 				this.onConnectionFailure();
 				this.active = false;
@@ -31,28 +36,26 @@ class FileShareOverlay {
 
 		app.connection.on('stun-data-channel-close', (peerId) => {
 			if (peerId == this.recipient && this?.active) {
-				console.debug("FILESHARE: stun-data-channel-close");
+				console.debug('FILESHARE: stun-data-channel-close');
 				this.onConnectionFailure();
 			}
 		});
-		
+
 		app.connection.on('stun-connection-failed', (peerId) => {
 			if (peerId == this.recipient && this?.active) {
-				console.debug("FILESHARE: stun-connection-failed");
+				console.debug('FILESHARE: stun-connection-failed');
 				this.onConnectionFailure();
 				this.active = false;
 			}
 		});
-
 	}
 
-	render(needs_file = true){
-
+	render(needs_file = true) {
 		this.active = true;
 
 		this.app.browser.addElementToDom(FileShareOverlayTemplate(this));
 
-		if (this.recipient){
+		if (this.recipient) {
 			this.senderUI = new SaitoUser(this.app, this.mod, `${this.qs} .contact`, this.recipient);
 			this.senderUI.render();
 			if (this.mod.stun.hasConnection(this.recipient)) {
@@ -60,12 +63,11 @@ class FileShareOverlay {
 			}
 		}
 
-
 		this.attachEvents(needs_file);
 	}
 
-	remove(){
-		if (document.querySelector(this.qs)){
+	remove() {
+		if (document.querySelector(this.qs)) {
 			document.querySelector(this.qs).remove();
 		}
 		this.mod.reset(this.fileId, this.recipient);
@@ -73,17 +75,16 @@ class FileShareOverlay {
 		this.fileId = null;
 	}
 
-	addRecipient(recipient){
+	addRecipient(recipient) {
 		this.recipient = recipient;
 		this.senderUI = new SaitoUser(this.app, this.mod, `${this.qs} .contact`, this.recipient);
 		this.senderUI.render();
 		if (this.mod.stun.hasConnection(this.recipient)) {
 			this.onConnectionSuccess();
 		}
-
 	}
 
-	updateFileData(file){
+	updateFileData(file) {
 		let html = `<div class="saito-file-transfer" id="saito-file-transfer-${this.fileId}">
 					<div class="file-transfer-progress"></div>
 					<i class="fa-solid fa-file-export"></i>
@@ -91,16 +92,14 @@ class FileShareOverlay {
 					<div class="file-size fixed-width">${this.mod.calcSize(file.size)}</div>
 					</div>`;
 
-
 		this.app.browser.addElementToSelector(html, `${this.qs} .teleporter-file-data`);
 	}
 
-	beginTransfer(){
-
+	beginTransfer() {
 		let field = document.querySelector(this.qs + ' #transfer-speed-row');
-		if (field){
-			field.classList.remove("hideme");
-		}	
+		if (field) {
+			field.classList.remove('hideme');
+		}
 
 		/*let html = `<div class="saito-file-transfer received">
 					<div class="file-transfer-progress"></div>
@@ -109,41 +108,38 @@ class FileShareOverlay {
 					</div>`;
 		this.app.browser.addElementToSelector(html, `${this.qs} .teleporter-file-data`);
 		*/
-
 	}
 
-	renderStats(stats){
-		if (!this.throttle_me){
-			let field = document.querySelector(this.qs + " #file-transfer-status");
-			if (field){
+	renderStats(stats) {
+		if (!this.throttle_me) {
+			let field = document.querySelector(this.qs + ' #file-transfer-status');
+			if (field) {
 				field.innerHTML = `<span class="fixed-width">${stats.speed}</span>`;
 			}
 			this.throttle_me = true;
-			setTimeout(()=>{
+			setTimeout(() => {
 				this.throttle_me = false;
-			}, 500);			
+			}, 500);
 		}
 	}
 
-	updateRStats(percentage){
-		
-		if (percentage >= 100){
+	updateRStats(percentage) {
+		if (percentage >= 100) {
 			percentage = 100;
 
-			let wrapper = document.querySelector(this.qs + " .saito-file-transfer");
+			let wrapper = document.querySelector(this.qs + ' .saito-file-transfer');
 			if (wrapper) {
-				wrapper.classList.add("complete");
+				wrapper.classList.add('complete');
 			}
 
-			let btn = document.querySelector(this.qs + " #file-transfer-buttons");
-			if (btn){
-				btn.classList.remove("hideme");
+			let btn = document.querySelector(this.qs + ' #file-transfer-buttons');
+			if (btn) {
+				btn.classList.remove('hideme');
 			}
-
 		}
 
-		let progress_bar = document.querySelector(this.qs + " .file-transfer-progress");
-		if (progress_bar){
+		let progress_bar = document.querySelector(this.qs + ' .file-transfer-progress');
+		if (progress_bar) {
 			progress_bar.style.width = `${percentage}%`;
 		}
 
@@ -151,166 +147,155 @@ class FileShareOverlay {
 		if (field){
 			field.innerHTML = `${percentage}%`;
 		}*/
-	
 	}
 
-	finishTransfer(){
-
+	finishTransfer() {
 		this.active = false;
-		let field = document.querySelector(this.qs + " #file-transfer-status");
-		if (field){
+		let field = document.querySelector(this.qs + ' #file-transfer-status');
+		if (field) {
 			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
 		}
-
 	}
 
-
-
-	onPeerAccept(){
-		let field = document.querySelector(this.qs + " #peer-accept-status");
-		if (field){
+	onPeerAccept() {
+		let field = document.querySelector(this.qs + ' #peer-accept-status');
+		if (field) {
 			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
 		}
-
 	}
 
-	onPeerReject(){
-		let field = document.querySelector(this.qs + " #peer-accept-status");
-		if (field){
+	onPeerReject() {
+		let field = document.querySelector(this.qs + ' #peer-accept-status');
+		if (field) {
 			field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
 		}
 
 		this.active = false;
 	}
 
+	onConnectionSuccess() {
+		let field = document.querySelector(this.qs + ' #peer-connection-status');
 
-	onConnectionSuccess(){
-		let field = document.querySelector(this.qs + " #peer-connection-status");
-		
-		if (field){
+		if (field) {
 			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
 		}
 
-		let message_field = document.querySelector(this.qs + " .teleporter-transfer-field");
-		if (message_field){
+		let message_field = document.querySelector(this.qs + ' .teleporter-transfer-field');
+		if (message_field) {
 			message_field.innerHTML = '';
 			message_field.onclick = null;
 		}
-
 	}
 
-	onConnectionFailure(){
-		let field = document.querySelector(this.qs + " #peer-connection-status");
-		if (field){
+	onConnectionFailure() {
+		let field = document.querySelector(this.qs + ' #peer-connection-status');
+		if (field) {
 			field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
 		}
 
 		// If this is a failure to connection rather than dropped connection after starting to send
 		//
-		if (this.mod.outgoing_files[this.fileId]?.file && !this.mod.outgoing_files[this.fileId]?.sending) {
-			let message_field = document.querySelector(this.qs + " .teleporter-transfer-field");
-			if (message_field){
-				message_field.innerHTML = `Peer appears to be offline. <span class="saito-pseudo-link">Send them a link?</span> `;
+		if (
+			this.mod.outgoing_files[this.fileId]?.file &&
+			!this.mod.outgoing_files[this.fileId]?.sending
+		) {
+			let message_field = document.querySelector(this.qs + ' .teleporter-transfer-field');
+			if (message_field) {
+				message_field.innerHTML = `Peer appears to be offline. <span class="saito-anchor">Send them a link?</span> `;
 
 				message_field.onclick = (e) => {
 					this.mod.copyShareLink(this.fileId);
-				}
+				};
 			}
 		}
-
 	}
 
-
-	onFile(file = null){
-		let field = document.querySelector(this.qs + " #file-selection-status");
-		if (!field){
+	onFile(file = null) {
+		let field = document.querySelector(this.qs + ' #file-selection-status');
+		if (!field) {
 			return;
 		}
-		if (!file || !file.size){
+		if (!file || !file.size) {
 			field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
-
-		}else{
+		} else {
 			field.innerHTML = `<i class="fa-solid fa-check"></i>`;
-			let hidden_form = document.querySelector(this.qs + " .saito-file-uploader.needs-file");
-			if (hidden_form){
+			let hidden_form = document.querySelector(this.qs + ' .saito-file-uploader.needs-file');
+			if (hidden_form) {
 				hidden_form.onclick = null;
-				hidden_form.classList.remove("needs-file");
+				hidden_form.classList.remove('needs-file');
 			}
 		}
 	}
 
-	onCancel(){
-		let field = document.querySelector(this.qs + " #file-transfer-status");
-		if (field){
+	onCancel() {
+		let field = document.querySelector(this.qs + ' #file-transfer-status');
+		if (field) {
 			field.innerHTML = `<i class="fa-solid fa-xmark"></i>`;
 		}
 
 		this.active = false;
 	}
 
-	attachEvents(needs_file){
-		this.app.browser.makeDraggable(`file-transfer-${this.fileId}-${this.recipient}`, "", true);
+	attachEvents(needs_file) {
+		this.app.browser.makeDraggable(`file-transfer-${this.fileId}-${this.recipient}`, '', true);
 
-		if (needs_file){
+		if (needs_file) {
 			let input = document.querySelector(this.qs + ` #hidden_file_element_uploader_overlay`);
 			if (input) {
 				input.addEventListener('change', (e) => {
 					this.mod.addFileUploader(input.files[0], this.fileId);
-					if (!this.recipient){
+					if (!this.recipient) {
 						let handle = document.querySelector(this.qs + ' .contact');
-						if (handle){
-							handle.innerHTML = `<span class="saito-pseudo-link">Copy file share link</span>`;
+						if (handle) {
+							handle.innerHTML = `<span class="saito-anchor">Copy file share link</span>`;
 							handle.onclick = (e) => {
 								this.mod.copyShareLink(this.fileId);
-							}
+							};
 						}
 					}
 					this.onFile(input.files[0]);
 				});
-				
+
 				input.click();
 
-				let hidden_form = document.querySelector(this.qs + " .saito-file-uploader.needs-file");
-				if (hidden_form){
+				let hidden_form = document.querySelector(this.qs + ' .saito-file-uploader.needs-file');
+				if (hidden_form) {
 					hidden_form.onclick = () => {
 						input.click();
-					}
+					};
 				}
-
 			}
 		}
 
-		let close = document.querySelector(this.qs + " .icon-button#close");
-		if (close){
+		let close = document.querySelector(this.qs + ' .icon-button#close');
+		if (close) {
 			close.onclick = async (e) => {
-
 				if (this?.active && this?.fileId) {
-					let c = await sconfirm("Are you sure you want to cancel?");
+					let c = await sconfirm('Are you sure you want to cancel?');
 					if (!c) {
 						return;
 					}
 					this.mod.interrupt(this.fileId, this.recipient);
 				}
 				this.remove();
-			}
+			};
 		}
 
-		let resize = document.querySelector(this.qs + " .icon-button#resize");
-		if (resize){
+		let resize = document.querySelector(this.qs + ' .icon-button#resize');
+		if (resize) {
 			resize.onclick = (e) => {
 				let overlay = document.querySelector(this.qs);
-				overlay.classList.toggle("minimize");
-				overlay.removeAttribute("style");
-			}
+				overlay.classList.toggle('minimize');
+				overlay.removeAttribute('style');
+			};
 		}
 
-		let alt_close = document.querySelector(this.qs + " #download-transfer");
-		if (alt_close){
+		let alt_close = document.querySelector(this.qs + ' #download-transfer');
+		if (alt_close) {
 			alt_close.onclick = (e) => {
 				this.remove();
-			}
+			};
 		}
-
 	}
 }
 

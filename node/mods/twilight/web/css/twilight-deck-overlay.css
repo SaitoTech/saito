@@ -3,7 +3,7 @@
 	max-height: 90vh;
 	min-height: 90vh;
 	overflow-y: auto;
-    border-radius: var(--border-radius-modal-menu);
+	border-radius: var(--border-radius-overlay);
 }
 
 .deck-overlay h1 {

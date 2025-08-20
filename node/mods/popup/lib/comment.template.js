@@ -9,7 +9,7 @@ module.exports = (lesson) => {
 
   <tbody><tr class="lesson_sentence">
         <td class="lesson_sentence_player">
-            <img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/text/rec-1404805557826-text-1.mp3',this);">
+            <img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/text/rec-1404805557826-text-1.mp3',this);">
           </td>
     <td class="lesson_sentence_speaker">
       <span id="adso_5" onclick="onWordClick()" onmousedown="adso_mousedown('5')" onmouseup="adso_mouseup('5')" onmouseover="tip(event,'A','Jia3','甲','甲','','5')" onmouseout="htip()">甲</span>    </td>
@@ -25,7 +25,7 @@ module.exports = (lesson) => {
 
   <tr class="lesson_sentence">
         <td class="lesson_sentence_player">
-            <img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/text/rec-1404805557826-text-2.mp3',this);">
+            <img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/text/rec-1404805557826-text-2.mp3',this);">
           </td>
     <td class="lesson_sentence_speaker">
       <span id="adso_5" onclick="onWordClick()" onmousedown="adso_mousedown('5')" onmouseup="adso_mouseup('5')" onmouseover="tip(event,'B','Yi3','乙','乙','','5')" onmouseout="htip()">乙</span>    </td>
@@ -41,7 +41,7 @@ module.exports = (lesson) => {
 
   <tr class="lesson_sentence">
         <td class="lesson_sentence_player">
-            <img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/text/rec-1404805557826-text-3.mp3',this);">
+            <img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/text/rec-1404805557826-text-3.mp3',this);">
           </td>
     <td class="lesson_sentence_speaker">
       <span id="adso_5" onclick="onWordClick()" onmousedown="adso_mousedown('5')" onmouseup="adso_mouseup('5')" onmouseover="tip(event,'A','Jia3','甲','甲','','5')" onmouseout="htip()">甲</span>    </td>
@@ -57,7 +57,7 @@ module.exports = (lesson) => {
 
   <tr class="lesson_sentence">
         <td class="lesson_sentence_player">
-            <img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/text/rec-1404805557826-text-4.mp3',this);">
+            <img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/text/rec-1404805557826-text-4.mp3',this);">
           </td>
     <td class="lesson_sentence_speaker">
       <span id="adso_5" onclick="onWordClick()" onmousedown="adso_mousedown('5')" onmouseup="adso_mouseup('5')" onmouseover="tip(event,'B','Yi3','乙','乙','','5')" onmouseout="htip()">乙</span>    </td>
@@ -77,7 +77,7 @@ module.exports = (lesson) => {
        <div class="lesson-vocabulary">
 <table class="lesson_word">
     <tbody><tr class="lesson_word_row even">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-12.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-12.mp3',this);"></td>
         <td class="lesson_word_field1">头</td>
     <td class="lesson_word_field2">頭</td>
     <td class="lesson_word_field3">tóu</td>
@@ -85,7 +85,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">noun</td>
   </tr>
     <tr class="lesson_word_row odd">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-13.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-13.mp3',this);"></td>
         <td class="lesson_word_field1">腿</td>
     <td class="lesson_word_field2">腿</td>
     <td class="lesson_word_field3">tuǐ</td>
@@ -93,7 +93,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">noun</td>
   </tr>
     <tr class="lesson_word_row even">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-14.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-14.mp3',this);"></td>
         <td class="lesson_word_field1">胳膊</td>
     <td class="lesson_word_field2">胳膊</td>
     <td class="lesson_word_field3">gēbo</td>
@@ -101,7 +101,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">noun</td>
   </tr>
     <tr class="lesson_word_row odd">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-15.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-15.mp3',this);"></td>
         <td class="lesson_word_field1">肚子</td>
     <td class="lesson_word_field2">肚子</td>
     <td class="lesson_word_field3">dùzi</td>
@@ -109,7 +109,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">noun</td>
   </tr>
     <tr class="lesson_word_row even">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-16.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-16.mp3',this);"></td>
         <td class="lesson_word_field1">膝盖</td>
     <td class="lesson_word_field2">膝蓋</td>
     <td class="lesson_word_field3">xīgài</td>
@@ -117,7 +117,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">noun</td>
   </tr>
     <tr class="lesson_word_row odd">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-17.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-17.mp3',this);"></td>
         <td class="lesson_word_field1">疼</td>
     <td class="lesson_word_field2">疼</td>
     <td class="lesson_word_field3">téng</td>
@@ -125,7 +125,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">adjective</td>
   </tr>
     <tr class="lesson_word_row even">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-18.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-18.mp3',this);"></td>
         <td class="lesson_word_field1">青</td>
     <td class="lesson_word_field2">青</td>
     <td class="lesson_word_field3">qīng</td>
@@ -133,7 +133,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">adjective</td>
   </tr>
     <tr class="lesson_word_row odd">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-19.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-19.mp3',this);"></td>
         <td class="lesson_word_field1">麻</td>
     <td class="lesson_word_field2">麻</td>
     <td class="lesson_word_field3">má</td>
@@ -141,7 +141,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">adjective</td>
   </tr>
     <tr class="lesson_word_row even">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-20.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-20.mp3',this);"></td>
         <td class="lesson_word_field1">摔</td>
     <td class="lesson_word_field2">摔</td>
     <td class="lesson_word_field3">shuāi</td>
@@ -149,7 +149,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">verb</td>
   </tr>
     <tr class="lesson_word_row odd">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-21.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-21.mp3',this);"></td>
         <td class="lesson_word_field1">哪儿</td>
     <td class="lesson_word_field2">哪兒</td>
     <td class="lesson_word_field3">nǎr</td>
@@ -157,7 +157,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">question</td>
   </tr>
     <tr class="lesson_word_row even">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-22.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404805557826-vocab-22.mp3',this);"></td>
         <td class="lesson_word_field1">昨天</td>
     <td class="lesson_word_field2">昨天</td>
     <td class="lesson_word_field3">zuótiān</td>
@@ -165,7 +165,7 @@ module.exports = (lesson) => {
     <td class="lesson_word_field5">noun</td>
   </tr>
     <tr class="lesson_word_row odd">
-        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('http://popupchinese.com/data/1377/mp3/vocab/rec-1404809032897-vocab-24.mp3',this);"></td>
+        <td class="lesson_word_player"><img src="/img/buttons/play_button.gif" onclick="playWordAudio('https://popupchinese.com/data/1377/mp3/vocab/rec-1404809032897-vocab-24.mp3',this);"></td>
         <td class="lesson_word_field1">锤子</td>
     <td class="lesson_word_field2">錘子</td>
     <td class="lesson_word_field3">chuízi</td>
@@ -194,7 +194,7 @@ Lesson Vocabulary Goes Here
 
 <img id="podcast_photo" src="/data/1449/image.jpg" class="podcast_photo">
  <audio controls="" style="margin-top:5px">
-  <source src="http://popupchinese.com/data/1449/audio.mp3" type="audio/mpeg">
+  <source src="https://popupchinese.com/data/1449/audio.mp3" type="audio/mpeg">
   Your browser does not support the audio element.
 </audio> 
  

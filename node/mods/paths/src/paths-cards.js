@@ -1865,6 +1865,7 @@ deck['ap34'] = {
         onEvent : function(paths_self, faction) {
           paths_self.addUnitToSpace("sn_corps", "libya");
 	  paths_self.game.state.events.libyan_revolt = 1;
+	  paths_self.displaySpace("libya");
           return 1;
         } ,
       }

@@ -164,7 +164,7 @@ class CreateNft {
       // console.log('balanceSaito: ', balanceSaito);
 
       if (balanceSaito < 1) {
-        salert(`Need atleast 1 SAITO to create NFT`);
+        salert(`Need at least 1 SAITO to create NFT`);
         return;
       }
 

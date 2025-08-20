@@ -5,7 +5,7 @@
 	width: min(750px, 90vw);
 	min-height: 50vh;
 	padding: 1rem 0;
-    border-radius: var(--border-radius-modal-menu);
+	border-radius: var(--border-radius-overlay);
 	column-gap: 2rem;
 	padding: 2rem;
 	align-items: center;
@@ -30,36 +30,42 @@
 .indopaki-war {
 	background-size: cover;
 	background-position-y: top;
-	background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+	background-image:
+		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
 		url(/twilight/img/backgrounds/indopaki-bg.jpg);
 }
 .koreanwar-war {
 	background-size: cover;
 	background-position-y: top;
-	background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+	background-image:
+		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
 		url(/twilight/img/backgrounds/koreanwar-bg.jpg);
 }
 .arabisraeli-war {
 	background-size: cover;
 	background-position-y: top;
-	background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+	background-image:
+		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
 		url(/twilight/img/backgrounds/arabisraeli-bg.jpg);
 }
 .sudan-war {
 	background-size: cover;
 	background-position-y: top;
-	background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+	background-image:
+		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
 		url(/twilight/img/backgrounds/sudan-bg.jpg);
 }
 .brushwar-war {
 	background-size: cover;
 	background-position-y: top;
-	background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+	background-image:
+		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
 		url(/twilight/img/backgrounds/brushwar-alternate.jpg);
 }
 .iraniraq-war {
 	background-size: cover;
 	background-position-y: top;
-	background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+	background-image:
+		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
 		url(/twilight/img/backgrounds/iraniraq-bg.jpg);
 }

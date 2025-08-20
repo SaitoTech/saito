@@ -27,7 +27,7 @@
 .game-acknowledge-overlay .game-acknowledge-menu ul li {
   width: 100%;
   line-height: 3.5rem;
-  border-top: 1px solid var(--saito-gray-lighter);
+  border-top: 1px solid var(--saito-gray-light);
   cursor: pointer;
   border-color: #555;
   text-decoration: none;

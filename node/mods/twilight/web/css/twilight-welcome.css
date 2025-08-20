@@ -1,30 +1,30 @@
 .welcome {
 	min-width: 80vw;
 	min-height: 80vh;
-  border-radius: var(--border-radius-modal-menu);
+	border-radius: var(--border-radius-overlay);
 	overflow: hidden;
 	background-size: cover;
 	background-position: center;
-  -webkit-user-select: none; /* Safari */
+	-webkit-user-select: none; /* Safari */
 	-moz-user-select: none; /* Firefox */
 	-ms-user-select: none; /* Internet Explorer/Edge */
 	user-select: none; /* Standard syntax */
 }
 
 .welcome-card {
-    	position: relative;
-    	display: block;
-    	right: 2rem;
-    	width: 30vw;
-    	transform: rotate(5deg);
-    	top: 0px;
-    	float: right;
-    	margin-top: 8vh;
+	position: relative;
+	display: block;
+	right: 2rem;
+	width: 30vw;
+	transform: rotate(5deg);
+	top: 0px;
+	float: right;
+	margin-top: 8vh;
 }
 
 .welcome-title {
 	top: 0px;
-        max-width:50%;
+	max-width: 50%;
 	color: white;
 	line-height: 5rem;
 	font-size: 3.5rem;
@@ -40,7 +40,7 @@
 .welcome-text {
 	bottom: 0px;
 	color: white;
-        max-width:50%;
+	max-width: 50%;
 	line-height: 5rem;
 	font-size: 2.7rem;
 	position: absolute;
@@ -50,10 +50,8 @@
 	background: #0009;
 }
 
-
 @media screen and (max-width: 900px) {
-  .welcome-card { 
-    display:none;
-  }
+	.welcome-card {
+		display: none;
+	}
 }
-

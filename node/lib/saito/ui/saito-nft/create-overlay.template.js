@@ -53,7 +53,7 @@ module.exports = (app, mod) => {
          </div>
       </div>
 
-      <div class="create-button nft-inactive">
+      <div class="saito-button-row">
          <button id="create_nft">Create NFT</button>
       </div>
 </div>

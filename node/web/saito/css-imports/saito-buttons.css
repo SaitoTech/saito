@@ -12,11 +12,11 @@ button,
   transition: 0.2s;
   letter-spacing: 1px;
   font-size: 1.8rem;
-  font-weight: bold;
   border-radius: var(--border-radius-soft);
   cursor: pointer;
   border: var(--border-thickness-thin) solid var(--saito-primary);
   text-transform: capitalize;
+  padding: 0 1rem;
   margin: 0.5rem;
 
   /*box-shadow: var(--shadow-standard);*/
@@ -80,34 +80,44 @@ button.small,
   font-size: 1.4rem;
   min-width: 4rem;
 }
+
 button.fat,
-saito-button-primary.fat,
+.saito-button-primary.fat,
 .saito-button-secondary.fat,
-saito-button-gradient.fat {
+.saito-button-gradient.fat {
   height: 7rem;
   font-size: 2rem;
-  min-width: 30rem;
 }
 
+/*******************************
+ Arrange multiple buttons 
+ *******************************/
 .saito-button-row {
   display: flex;
-  max-width: 100%;
+  flex-direction: row;
+  justify-content: flex-end;
   align-items: center;
-  justify-content: space-evenly;
-  gap: 1rem;
-  margin: 0 1rem;
+  width: 100%;
+  gap: 2rem;
+  margin-top: 1rem;
 }
 
-@media (max-width: 600px) {
-  .saito-button-secondary {
-    min-width: 10rem;
-  }
+.saito-button-row .saito-anchor {
+  margin-left: 1rem;
+  margin-right: auto;
+}
 
-  button,
-  .saito-button-primary {
-    /* controls main post buttons */
-    min-width: 12rem;
-  }
+.saito-button-row button,
+.saito-button-row .saito-button-secondary,
+.saito-button-row .saito-button-primary {
+  margin: 0;
+}
+
+.saito-button-row.auto-size button,
+.saito-button-row.auto-size .saito-button-secondary,
+.saito-button-row.auto-size .saito-button-primary {
+  min-width: unset;
+  flex: 1;
 }
 
 /*******************************
@@ -116,6 +126,12 @@ saito-button-gradient.fat {
 .saito-anchor {
   cursor: pointer;
   transition: color 0.1s;
+  /* text-decoration: underline dashed 1px; */
+}
+
+.saito-anchor span,
+span.saito-anchor {
+  border-bottom: 1px dotted;
 }
 
 .saito-anchor.clicked {
@@ -132,8 +148,8 @@ saito-button-gradient.fat {
   transition: all 0.2s;
 }
 
-.saito-menu-select-subtle > div:hover,
-.saito-menu-select-subtle > li:hover {
+.saito-menu-select-subtle > div:not(.disabled-option):hover,
+.saito-menu-select-subtle > li:not(.disabled-option):hover {
   background-color: var(--saito-highlight-heavy);
   color: var(--saito-font-color-heavy);
 }
@@ -144,8 +160,36 @@ saito-button-gradient.fat {
   transition: all 0.2s;
 }
 
-.saito-menu-select-heavy > div:hover,
-.saito-menu-select-heavy > li:hover {
+.saito-menu-select-heavy > div:not(.disabled-option):hover,
+.saito-menu-select-heavy > li:not(.disabled-option):hover {
   background-color: var(--saito-primary);
   color: var(--saito-primary-text);
+}
+
+.saito-menu-select-heavy > .disabled-option,
+.saito-menu-select-subtle > .disabled-option {
+  color: var(--saito-gray);
+  cursor: default;
+}
+
+/*********************************/
+
+@media (max-width: 600px) {
+  .saito-button-secondary {
+    min-width: 10rem;
+  }
+
+  button,
+  .saito-button-primary {
+    /* controls main post buttons */
+    min-width: 12rem;
+  }
+
+  .saito-button-row {
+    flex-direction: column;
+  }
+  .saito-overlay-form > button[type='button'],
+  .saito-button-row > button[type='button'] {
+    width: 100%;
+  }
 }

@@ -2068,7 +2068,7 @@ class Browser {
         let html = `<div id="saito-alert-shim">
                       <div id="saito-alert-box">
                         <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
-                        <div id="saito-alert-buttons">
+                        <div class="saito-button-row">
                           <button id="alert-ok">OK</button>
                         </div>
                       </div>
@@ -2104,7 +2104,7 @@ class Browser {
           let html = `<div id="saito-alert-shim">
                         <div id="saito-alert-box">
                           <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
-                          <div id="saito-alert-buttons">
+                          <div class="saito-button-row">
                             <button class='saito-button-secondary' id="alert-cancel">Cancel</button>
                             <button id="alert-ok">OK</button>
                           </div>
@@ -2147,9 +2147,9 @@ class Browser {
                         <div id="saito-alert-box">
                           <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
                           <div class="alert-prompt"><input type="text" id="promptval" class="promptval" placeholder="${suggestion}" /></div>
-                          <div id="alert-buttons">
+                          <div class="saito-button-row">
                             <button class='saito-button-secondary' id="alert-cancel">Cancel</button>
-                            <button id="alert-ok">OK</button>
+                            <button id="alert-ok" class="saito-button-primary">OK</button>
                           </div>
                         </div>
                       </div>`;

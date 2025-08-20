@@ -1,5 +1,5 @@
-module.exports  = () => {
-	return `
+module.exports = () => {
+  return `
 <form id="login-template">
             <div class="saito-overlay-form">
               <div class="saito-overlay-form-header">
@@ -8,8 +8,8 @@ module.exports  = () => {
               <div class="saito-overlay-form-text">Provide your email address and password. We will fetch your wallet and decrypt it for this browser.</div>
               <input type="text" id="saito-overlay-form-input" class="saito-overlay-form-input saito-overlay-form-email" placeholder="address@domain.com" value="" />
               <input type="text" id="saito-overlay-form-input" class="saito-overlay-form-input saito-overlay-form-password saito-password" placeholder="password" value="" />
-	      <div class="saito-overlay-form-submitline">
-		<div></div>
+        <div class="saito-button-row">
+    <div></div>
                 <button type="button" class="saito-button-primary fat saito-overlay-form-submit saito-overlay-login-submit" id="saito-overlay-submit">Download & Decrypt</button>
               </div>
             </div>

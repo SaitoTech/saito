@@ -13452,6 +13452,7 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
     deck['081'] = { 
       img : "cards/HIS-081.svg" , 
       name : "Indulgence Vendor" ,
+      warn : ["protestant"] ,
       ops : 3 ,
       turn : 1 ,
       type : "normal" ,
@@ -17015,25 +17016,62 @@ console.log("DELETING Z: " + z);
     //
     if (this.game.players.length == 2) { return; }
 
+
+
+    //
+    // remove stranded players
+    //
     for (let key in this.game.spaces) {
       if (key !== "egypt" && key !== "ireland" && key !== "persia") {
-      let space = this.game.spaces[key];
-      for (let f in space.units) {
-	if (space.units[f].length > 0) {
-	  if (!this.isSpaceFriendly(space, f)) {
-	    for (let z = space.units[f].length-1; z >= 0; z--) {
-	      if (!space.units[f][z].reformer && !space.units[f][z].navy_leader) {
-	        if (f == "protestant" && !this.game.state.events.schmalkaldic_league) {
-		} else {
-		  space.units[f].splice(z, 1);
-		}
+        let space = this.game.spaces[key];
+        for (let f in space.units) {
+	  if (space.units[f].length > 0) {
+	    if (!this.isSpaceFriendly(space, f)) {
+	      for (let z = space.units[f].length-1; z >= 0; z--) {
+	        if (!space.units[f][z].reformer && !space.units[f][z].navy_leader) {
+	          if (f == "protestant" && !this.game.state.events.schmalkaldic_league) {
+		  } else {
+		    space.units[f].splice(z, 1);
+		  }
+	        }
 	      }
 	    }
 	  }
-	}
+        }
       }
     }
+
+    //
+    // remove captured leaders
+    //
+    for (let z = 0; z < this.game.state.players_info.length; z++) {
+      for (let zz = 0; zz < this.game.state.players_info[z].captured.length; zz++) {
+	let u = this.game.state.players_info[z].captured[zz];
+        if (c.key == captured_leader) {
+          let s = his_self.returnSpaceOfPersonage(c.owner, c.key); 
+          if (s != "") {
+            let idx = his_self.returnIndexOfPersonageInSpace(c.owner, c.key, s);
+            if (idx > -1) {
+              his_self.game.spaces[s].units[c.owner].splice(idx, 1);
+            }
+          }
+        }
+      }
     }
+
+  }
+
+ 
+  moveFactionUnitsInSpaceToCapitalIfPossible(faction, spacekey) {
+
+    let space = this.game.spaces[spacekey];
+    let cap = this.returnControlledCapitals(faction);
+    let cap_idx = 0;
+    
+    //
+    // do not control capital? remove
+
+
   }
 
  
@@ -37799,12 +37837,12 @@ console.log("WE SHOULD RESHUFFLE...");
 	      // Auld Alliance is 
 	      //
 	      if (faction == "france") {
-                let faction_hand_idx = this.returnFactionHandIdx(this.game.player, faction);
-    		for (let i = 0; i < this.game.deck[0].fhand[faction_hand_idx].length; i++) {
-      		  if (this.game.deck[0].fhand[faction_hand_idx][i] == "069") {
+                //let faction_hand_idx = this.returnFactionHandIdx(this.game.player, faction);
+    		//for (let i = 0; i < this.game.deck[0].fhand[faction_hand_idx].length; i++) {
+      		//  if (this.game.deck[0].fhand[faction_hand_idx][i] == "069") {
             	    html += `<li class="option showcard" id="069">Auld Alliance</li>`;
-		  }
-		}
+		//  }
+		//}
 	      }
 
               html += `<li class="option" id="no">do not intervene</li>`;
@@ -37844,12 +37882,12 @@ console.log("WE SHOULD RESHUFFLE...");
                     function(spacekey) {
 		      his_self.updateStatus("fortifying...");
 		      his_self.addMove("discard\t"+faction+"\t"+"069");
+                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
+                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
+                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
 	              his_self.addMove("unexpected_war\t"+faction+"\t"+enemy);
 		      his_self.addMove("set_allies\t"+faction+"\t"+natural_ally);
 		      his_self.addMove("declare_war\t"+faction+"\t"+enemy);
-                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
-                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
-                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
                       his_self.endTurn();
                     }
                   );
@@ -43618,6 +43656,8 @@ console.log("MENU: " + JSON.stringify(menu));
                 this.updateStatusWithOptions(msg, html);
                 this.attachCardboxEvents(async (uc) => {      
 
+		  this.updateStatus("selected...");
+
 	          let ops_to_spend = parseInt(uc);
 	          let ops_remaining = ops - ops_to_spend;
  
@@ -43785,6 +43825,8 @@ console.log("MENU: " + JSON.stringify(menu));
 
           this.updateStatusWithOptions(msg, html);
           this.attachCardboxEvents(async (uc) => {      
+
+	    this.updateStatus("selected...");
 
 	    let ops_to_spend = parseInt(uc);
 	    let ops_remaining = ops - ops_to_spend;

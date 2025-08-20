@@ -16,6 +16,10 @@ const PathsRules = require('./lib/core/rules.template');
 const PathsOptions = require('./lib/core/advanced-options.template');
 const PathsSingularOption = require('./lib/core/options.template');
 
+const GameHelp = require('./lib/ui/game-help/game-help');
+const TutorialTemplate = require('./lib/ui/overlays/tutorials/tutorial.template');
+
+
 const htmlTemplate = require('./lib/core/game-html.template').default;
 const JSON = require('json-bigint');
 
@@ -56,6 +60,7 @@ class PathsOfGlory extends GameTemplate {
     this.welcome_overlay = new WelcomeOverlay(this.app, this); 
     this.menu_overlay = new MenuOverlay(this.app, this); 
     this.space_overlay = new SpaceOverlay(this.app, this); 
+    this.game_help = new GameHelp(this.app, this);
 
     //
     // this sets the ratio used for determining

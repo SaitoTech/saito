@@ -82,6 +82,9 @@
 
   moveUnit(sourcekey, sourceidx, destinationkey) {
 
+console.log("Move Unit: " + sourcekey + " / " + sourceidx + " / " + destinationkey);
+console.log("SOURCE: " + JSON.stringify(this.game.spaces[sourcekey].units));
+
     let unit = this.game.spaces[sourcekey].units[sourceidx];
     this.game.spaces[sourcekey].units[sourceidx].moved = 1;
     this.game.spaces[sourcekey].units.splice(sourceidx, 1);

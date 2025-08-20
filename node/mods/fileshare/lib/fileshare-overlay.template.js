@@ -1,4 +1,4 @@
-module.exports  = (fso) => {
+module.exports = (fso) => {
 	let html = `
 	<div id='file-transfer-${fso.fileId}-${fso.recipient}' class='saito-file-transfer-overlay'>
 		<div class="pseudo-overlay-controls">
@@ -28,7 +28,7 @@ module.exports  = (fso) => {
 		</div>
 		<div class="teleporter-file-data"></div>
 		<div class="teleporter-transfer-field"></div>
-		<div id="file-transfer-buttons" class="file-button-row hideme">
+		<div id="file-transfer-buttons" class="saito-button-row hideme">
 			<button type="button" class="saito-button-secondary" id="cancel-transfer">Cancel</button>
 			<div class="saito-button-primary" id="download-transfer"><i class="fa-solid fa-check-to-slot"></i>Close</div>
 		</div>

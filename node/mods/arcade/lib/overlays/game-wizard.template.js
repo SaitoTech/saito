@@ -55,19 +55,8 @@ module.exports = (game_mod, invite_obj = {}) => {
              </select>
     `;*/
 
-		html += `<button type="button" id="game-invite-btn" class="saito-button saito-button-primary game-invite-btn" data-type="single">Play</button>`;
+		html += `<button type="button" id="game-invite-btn" class="fat saito-button-primary game-invite-btn" data-type="single">Play</button>`;
 	} else {
-		/*html += `<select name="invite_type">
-              <option value="open" selected default>public invite</option>
-              <option value="private">private invite</option>
-             </select>
-    `;
-
-    html += `
-              <button type="button" id="game-invite-btn" class="saito-button saito-button-primary">Create Game</button>
-         `;
-
-    */
 		html += `
           <div class="saito-multi-select_btn saito-select">
            <div class="saito-multi-select_btn_options saito-slct">

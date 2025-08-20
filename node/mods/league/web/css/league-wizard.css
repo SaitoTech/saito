@@ -158,11 +158,6 @@ textarea {
 	outline: none;
 }
 
-/*.saito-select::after {
-	background: var(--background-color-button-mod-arcade);
-	border-left: 1px solid var(--saito-primary);
-}*/
-
 .league-wizard-game-controls .settings > div:first-of-type {
 	position: relative;
 	display: flex;
@@ -190,7 +185,7 @@ textarea {
 	right: 0;
 	padding: 0 1em;
 	color: var(--saito-white);
-	background: var(--background-color-button-mod-arcade);
+	background: var(--saito-primary);
 	cursor: pointer;
 	pointer-events: none;
 	-webkit-transition: 0.25s all ease;

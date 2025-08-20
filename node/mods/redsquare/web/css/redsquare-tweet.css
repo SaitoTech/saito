@@ -16,14 +16,22 @@
 
 .tweet-text {
   padding: 0.5rem 0;
-  line-height: 2.2rem;
-  max-height: 17.7rem;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  max-height: 19rem;
   max-width: 100%;
+
   margin-bottom: 1rem;
+
   transition: all 0.2s linear;
   overflow: hidden;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+/* prevent scroll bars */
+.tweet-text p {
+  overflow: visible;
 }
 
 .tweet-text .saito-mention.saito-address.treated {
@@ -192,7 +200,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   height: auto;
-  border-radius: var(--border-radius-sidebar-menu);
+  border-radius: var(--border-radius-round);
 }
 
 @media screen and (max-width: 1200px) {

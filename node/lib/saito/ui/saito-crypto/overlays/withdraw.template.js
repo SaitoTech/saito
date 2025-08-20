@@ -68,8 +68,8 @@ module.exports = (app, mod, publickey = '', address = '') => {
           </div>
 
 
-          <div class="saito-overlay-form-submitline form-submit-container">
-            <button type="submit" class="saito-button-secondary" id="reset-form">Clear</button> 
+          <div class="saito-button-row form-submit-container">
+            <button type="submit" class="saito-button-secondary" id="reset-form">Clear</button>
             <button type="submit" class="withdraw-submit saito-button-primary saito-overlay-form-submit" id="saito-overlay-submit">Send</button>
           </div>
 
@@ -86,7 +86,7 @@ module.exports = (app, mod, publickey = '', address = '') => {
             </div>
           </div>
 
-          <div class="saito-overlay-form-submitline confirm-submit">
+          <div class="saito-button-row confirm-submit">
             <button type="submit" class="saito-button-secondary" id="withdraw-cancel">Cancel</button> 
             <button type="submit" class="saito-button-primary" id="withdraw-confirm">Confirm</button>
           </div>

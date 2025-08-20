@@ -3,14 +3,12 @@
 /*********************/
 
 :root {
-  --border-radius-modal-menu: var(--border-radius-round);
-
+	--border-radius-overlay: var(--border-radius-round);
 }
 
 .saito-overlay {
-  background: transparent;
+	background: transparent;
 }
-
 
 .cancel_x {
 	opacity: 0.5;
@@ -28,7 +26,6 @@
 .card {
 	position: relative;
 }
-
 
 .transparent-card-overlay {
 	width: 85vw;
@@ -58,7 +55,7 @@
 }
 
 .ts-overlay {
-  border-radius: var(--border-radius-modal-menu);
+	border-radius: var(--border-radius-overlay);
 	border: 5px solid blue;
 	border-right: 5px solid red;
 	border-bottom: 5px solid red;
@@ -444,7 +441,9 @@ body {
 	width: 33%;
 	min-width: 250px;
 	max-width: 600px;
-	box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+	box-shadow:
+		0 4px 8px 0 rgba(0, 0, 0, 0.2),
+		0 6px 20px 0 rgba(0, 0, 0, 0.19);
 	animation-name: animatetop;
 	animation-duration: 0.4s;
 	background: #4e4e4e;
@@ -521,7 +520,9 @@ body {
 	position: absolute;
 	background-image: url('/twilight/img/VPs.svg');
 	background-size: cover;
-	transition: top 2s, left 2s;
+	transition:
+		top 2s,
+		left 2s;
 }
 
 .space_race_us {

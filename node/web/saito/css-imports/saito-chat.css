@@ -4,6 +4,7 @@
   position: relative;
   display: grid;
   grid-template-rows: 40px 1fr;
+  user-select: none;
 }
 
 .chat-manager .saito-userline {
@@ -148,7 +149,7 @@
 
 /* Chat teaser indicating said chat is open in a popup */
 .saito-chat-active {
-  background-color: var(--saito-gray-mid-transparent);
+  background-color: var(--saito-gray-transparent);
   color: var(--saito-font-color-secondary);
 }
 
@@ -603,9 +604,7 @@
   border-top: 1px solid var(--saito-border-color);
   border-bottom-left-radius: inherit;
   border-bottom-right-radius: inherit;
-  background: var(
-    --saito-background-color
-  ); /* Can't use intended variable --background-color-button-chat-popup-send NOT SURE WHY*/
+  background: var(--saito-background-color);
   position: relative;
 }
 
@@ -740,7 +739,7 @@
   width: 300px;
   border: var(--border-thickness-thin) solid var(--saito-border-color);
   box-shadow: var(--box-shadow-sidebar-elements);
-  border-radius: var(--border-radius-sidebar-menu);
+  border-radius: var(--border-radius-round);
   height: fit-content;
   overflow: hidden;
 }

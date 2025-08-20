@@ -7825,11 +7825,19 @@ async playerTurnHeadlineSelected(card, player) {
     }
 
     if (this.game.state.events.brezhnev == 1 && player === "ussr") {
-      if (updatelog == 1) { this.updateLog("USSR gets Brezhnev bonus +1");  }
+      if (this.game.log.length > 0) {
+	if (this.game.log[0] === "USSR gets Brezhnev bonus +1") { updatelog = 0; }
+      }
+      if (updatelog == 1) { 
+	this.updateLog("USSR gets Brezhnev bonus +1");
+      }
       ops++;
     }
 
     if (this.game.state.events.containment == 1 && player === "us") {
+      if (this.game.log.length > 0) {
+	if (this.game.log[0] === "US gets Containment bonus +1") { updatelog = 0; }
+      }
       if (updatelog == 1) { this.updateLog("US gets Containment bonus +1");  }
       ops++;
     }
@@ -7842,6 +7850,10 @@ async playerTurnHeadlineSelected(card, player) {
     }
 
     if (this.game.state.events.redscare_player1 >= 1 && player === "ussr") {
+      if (this.game.log.length > 0) {
+	if (this.game.log[0] === "USSR is affected by Red Purge") { updatelog = 0; }
+	if (this.game.log[0] === "USSR is really affected by Red Purge") { updatelog = 0; }
+      }
       if (updatelog == 1) {
         if (this.game.state.events.redscare_player1 == 1) {
           this.updateLog("USSR is affected by Red Purge");
@@ -7853,6 +7865,10 @@ async playerTurnHeadlineSelected(card, player) {
     }
 
     if (this.game.state.events.redscare_player2 >= 1 && player === "us") {
+      if (this.game.log.length > 0) {
+	if (this.game.log[0] === "US is affected by Red Scare") { updatelog = 0; }
+	if (this.game.log[0] === "US is really affected by Red Scare") { updatelog = 0; }
+      }
       if (updatelog == 1) {
         if (this.game.state.events.redscare_player2 == 1) {
           this.updateLog("US is affected by Red Scare");

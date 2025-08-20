@@ -1,11 +1,12 @@
 .statistics-overlay {
 	min-width: 80vw;
 	min-height: auto;
-	background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+	background-image:
+		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
 		url(https://cdn.discordapp.com/attachments/515671512209031192/1108345749378449418/hist_211-post_war.jpg);
 	background-position: center;
 	background-size: cover;
-    border-radius: var(--border-radius-modal-menu);
+	border-radius: var(--border-radius-overlay);
 	font-size: 2.2rem;
 	padding: 2rem;
 }

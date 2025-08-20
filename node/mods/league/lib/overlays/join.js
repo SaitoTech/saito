@@ -35,26 +35,15 @@ class JoinLeague {
 		this.overlay.remove();
 
 		if (league.rank >= 0) {
-			this.app.connection.emit(
-				'league-overlay-render-request',
-				this.league_id
-			);
+			this.app.connection.emit('league-overlay-render-request', this.league_id);
 			return;
 		}
 
 		this.game_mod = this.app.modules.returnModuleByName(league.game);
-		this.overlay.show(
-			JoinLeagueTemplate(this.app, this.mod, league),
-			() => {
-				this.app.connection.emit(
-					'league-overlay-render-request',
-					this.league_id
-				);
-			}
-		);
-		this.overlay.setBackground(
-			this.game_mod.respondTo('arcade-games').image
-		);
+		this.overlay.show(JoinLeagueTemplate(this.app, this.mod, league), () => {
+			this.app.connection.emit('league-overlay-render-request', this.league_id);
+		});
+		this.overlay.setBackground(this.game_mod.respondTo('arcade-games').image);
 
 		this.attachEvents();
 	}
@@ -78,9 +67,7 @@ class JoinLeague {
 				document.querySelector('.league-join-info').remove();
 				this.loader.render();
 
-				let newtx = await this.mod.createJoinTransaction(
-					league_id /*, user_email*/
-				);
+				let newtx = await this.mod.createJoinTransaction(league_id /*, user_email*/);
 				this.app.network.propagateTransaction(newtx);
 
 				let params = {
@@ -96,20 +83,13 @@ class JoinLeague {
 				}, 2000);
 			};
 
-			document.querySelector('.saito-overlay-form-alt-opt').onclick = (
-				e
-			) => {
-				this.app.connection.emit(
-					'recovery-login-overlay-render-request'
-				);
+			document.querySelector('#login').onclick = (e) => {
+				this.app.connection.emit('recovery-login-overlay-render-request');
 				return;
 			};
 		} else {
 			document.querySelector('#gonow').onclick = (e) => {
-				this.app.connection.emit(
-					'league-overlay-render-request',
-					this.league_id
-				);
+				this.app.connection.emit('league-overlay-render-request', this.league_id);
 				this.overlay.remove();
 			};
 
@@ -120,10 +100,7 @@ class JoinLeague {
 				countDown.innerHTML = timer;
 				if (timer === 0) {
 					clearInterval(interval);
-					this.app.connection.emit(
-						'league-overlay-render-request',
-						this.league_id
-					);
+					this.app.connection.emit('league-overlay-render-request', this.league_id);
 					this.overlay.remove();
 				}
 			}, 1000);

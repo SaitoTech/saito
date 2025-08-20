@@ -2,8 +2,6 @@
 
 html[data-theme='raven'] {
   /* ====================== OLD VARIABLES SECTION =========================== */
-  --saito-font-color-light: #fff;
-  --saito-font-color-inverse: #000;
   --saito-border-color: #555;
   --saito-border-color-dark: #666;
   --saito-background-color: #1c1c23;
@@ -24,12 +22,12 @@ html[data-theme='raven'] {
   --color-highlight: #f71f3d;
   /*MAIN BACKGROUND COLOR SECTION*/
   /*FONTS SECTION*/
-  /*quick settings*/
   --saito-font-color: #ddd;
-  /* normal */
+  --saito-font-color-inverse: var(--saito-black-heavy);
   --saito-font-color-secondary: var(--color-contrast);
-  /*  faded grey  */
   --saito-font-color-heavy: var(--saito-white);
+  --saito-font-color-light: #fff;
+
   --saito-highlight: #ccc1;
   --saito-highlight-heavy: #7775;
 
@@ -41,7 +39,6 @@ html[data-theme='raven'] {
   --font-color-emoji: var(--saito-font-color-secondary);
   --font-color-chat-popup-likes: var(--saito-font-color);
   --font-color-button-chat-popup-header: var(--saito-font-color);
-  --saito-gray-light: #7f7f8245;
   --saito-gray-lighter-transparent: #1a1818bb;
   --font-color-button-chat-container: var(--saito-font-color);
   --font-color-button-wallet-control: var(--saito-font-color);
@@ -50,10 +47,7 @@ html[data-theme='raven'] {
   /* Alerts and Status Font Colors */
   --font-color-user-address: var(--saito-font-color-heavy);
   /* Exempt as system color */
-  /* BORDER RADIUS */
-  --border-radius-modal-menu: var(--border-radius-soft);
   /* BORDER THICKNESS */
-  --border-padding-qr-code: 0;
   --border-thickness-qr-code: var(--border-thickness-fat); /* for contrast to be able to scan */
   /* BORDER COLORS */
   --border-color-general-dividers: var(--saito-border-color);
@@ -61,12 +55,7 @@ html[data-theme='raven'] {
   --border-color-button-wallet-control: var(--saito-primary);
   --border-color-button-modal: var(--saito-gray-dark);
   --border-color-button-module: var(--saito-gray-dark);
-  --border-color-sidebar-menu: var(--saito-border-color);
-  --border-color-module-menu: none;
   --border-color-overlay-subform: var(--color-tint-dark);
-  --border-color-chat-menu: ;
-  --border-color-identicon: transparent;
-  --border-color-identicon-square: ;
   --border-color-identicon-square-profile: var(--border-color-general-dividers);
   --border-color-chat-popup-docked: var(--saito-primary);
   --border-color-selection-box: var(--color-highlight);
@@ -76,18 +65,6 @@ html[data-theme='raven'] {
   /* General Background Colors */
   --background-color-modal-menu-oldschool: none;
   --background-color-overlay-form-header: var(--saito-background-color);
-  /* Button Background Colors */
-  --background-color-button-hover-primary: none;
-  --background-color-button-sidebar-chat-active: var(--color-tint-dark);
-  --background-color-button-hover-modal-oldschool: var(--saito-primary);
-  --background-color-button-chat-popup-send: var(--saito-background-color);
-  /* Sidebar, Headers and Notification Colors */
-  --background-color-button-hover-sidebar: var(--saito-primary);
-  /* Chat Related Colors */
-  --background-color-chat-popup-main: var(--color-tint-dark);
-  --background-color-chat-popup-header: var(--color-tint-dark);
-  --background-color-chat-popup-message-self: var(--color-tint-dark);
-  --background-color-chat-popup-message: var(--saito-background-color);
 
   /* Theme Specific */
   --saito-arcade-header-background: var(--saito-background-color);

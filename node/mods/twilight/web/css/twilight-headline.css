@@ -5,8 +5,9 @@
 	justify-items: center;
 	background-size: cover;
 	background-position-y: top;
-	border-radius: var(--border-radius-modal-menu);
-	background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+	border-radius: var(--border-radius-overlay);
+	background-image:
+		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
 		url(/twilight/img/backgrounds/headline-bg.png);
 	overflow: hidden;
 	display: flex;

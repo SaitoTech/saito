@@ -20,13 +20,11 @@
 	display: none;
 }
 
-.saito-sidebar .game-slider{
+.saito-sidebar .game-slider {
+	border: 1px solid var(--border-color-sidebar-menu);
 	border-radius: var(--border-radius-round);
 	box-shadow: var(--box-shadow-sidebar-elements);
-}
-
-.carousel, .slides, .slide, .slide img {
-	border-radius: inherit;
+	overflow: hidden;
 }
 
 .carousel {

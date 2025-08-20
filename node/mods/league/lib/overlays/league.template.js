@@ -1,22 +1,17 @@
-module.exports  = (app, mod, league) => {
+module.exports = (app, mod, league) => {
 	let game_mod = app.modules.returnModuleByName(league.game);
 	let img = '',
 		key_words = '',
 		game_name = '';
 	if (game_mod) {
 		img = game_mod.respondTo('arcade-games').image;
-		key_words = game_mod.categories
-			.replace('Games ', '')
-			.split(' ')
-			.reverse()
-			.join(' ');
+		key_words = game_mod.categories.replace('Games ', '').split(' ').reverse().join(' ');
 		game_name = game_mod.returnName();
 	}
 	let key = app.keychain.returnKey(mod.publicKey);
 
 	let isMember = league.rank >= 0;
-	let newPlayer =
-		league.admin && !key.email && league.admin !== mod.publicKey;
+	let newPlayer = league.admin && !key.email && league.admin !== mod.publicKey;
 
 	let html = `
         <div class="league-overlay">
@@ -24,38 +19,38 @@ module.exports  = (app, mod, league) => {
                 <div class="league-overlay-header-image" style="background-image: url('${img}')"></div>
                 <div class="league-overlay-header-title-box">
                     <div class="league-overlay-header-title-box-title ${
-	league.name.length > 15 ? 'oversize-load' : ''
-}">${league.name}</div>
+											league.name.length > 15 ? 'oversize-load' : ''
+										}">${league.name}</div>
                     <div class="league-overlay-header-title-box-desc">${
-	league.admin ? `${game_name} league` : key_words
-}</div>
+											league.admin ? `${game_name} league` : key_words
+										}</div>
                 </div>
                 <div class="league-overlay-controls">
-                    <div id="home" class="menu-icon active-tab"><i class="fas fa-house"></i><div class="menu-text">Home</div></div>
-                    <div id="games" class="menu-icon"><i class="fas fa-history"></i><div class="menu-text">Activity</div></div>
-                    <div id="rankings" class="menu-icon mobile-only"><i class="fa-solid fa-list-ol"></i><div class="menu-text">Rankings</div></div>`;
+                    <div id="home" class="league-page-tab active-tab"><i class="fas fa-house"></i><div class="menu-text">Home</div></div>
+                    <div id="games" class="league-page-tab"><i class="fas fa-history"></i><div class="menu-text">Activity</div></div>
+                    <div id="rankings" class="league-page-tab mobile-only"><i class="fa-solid fa-list-ol"></i><div class="menu-text">Rankings</div></div>`;
 
 	if (league.admin) {
 		html +=
 			league.admin === mod.publicKey
-				? `<div id="players" class="menu-icon"><i class="fas fa-users-cog"></i><div class="menu-text">Manage</div></div>`
-				: `<div id="contact" class="menu-icon"><i class="fas fa-comment-alt"></i><div class="menu-text">Contact</div></div>`;
+				? `<div id="players" class="league-page-tab"><i class="fas fa-users-cog"></i><div class="menu-text">Manage</div></div>`
+				: `<div id="contact" class="league-page-tab"><i class="fas fa-comment-alt"></i><div class="menu-text">Contact</div></div>`;
 	}
 
 	html += `   </div>
             </div>
             <div class="league-overlay-body">
                 <div class="league-overlay-body-content">
-                    <div class="league-overlay-description league-overlay-content-box ${(newPlayer || league.unverified) && isMember ? 'hidden'	: ''}">`
-    html +=  league.description;
-    if (!league?.admin && game_mod.publisher_message) {
+                    <div class="league-overlay-description league-overlay-content-box ${(newPlayer || league.unverified) && isMember ? 'hidden' : ''}">`;
+	html += league.description;
+	if (!league?.admin && game_mod.publisher_message) {
 		html += `<div id="arcade-game-publisher-message" class="arcade-game-publisher-message">
       				<span>NOTE: </span>
       				${game_mod.publisher_message}
       			</div>`;
 	}
 
-    html +=         `</div>
+	html += `</div>
                     <div class="league-overlay-league-body-games league-overlay-content-box hidden">
                         <div class="league-overlay-games-list league_recent_games"></div>
                     </div>`;
@@ -68,19 +63,17 @@ module.exports  = (app, mod, league) => {
 				league.admin
 			}" data-id="${league.admin}">
                         <div class="saito-identicon-box"><img class="saito-identicon" src="${app.keychain.returnIdenticon(
-		league.admin
-	)}" data-id="${league.admin}"></div>
+													league.admin
+												)}" data-id="${league.admin}"></div>
                         ${app.browser.returnAddressHTML(league.admin)}
                         <div id="admin_contact" class="saito-userline" data-id="${
-	league.admin
-}">${league.contact}</div>
+													league.admin
+												}">${league.contact}</div>
                         ${
-	newPlayer ||
-							league.unverified ||
-							(league.admin && !isMember)
-		? `<button id="league-chat-button" class="saito-user-fourth-elem-large">League Chat</button>`
-		: ''
-}
+													newPlayer || league.unverified || (league.admin && !isMember)
+														? `<button id="league-chat-button" class="saito-user-fourth-elem-large">League Chat</button>`
+														: ''
+												}
                     </div>`;
 
 			if (newPlayer || league.unverified || !isMember) {
@@ -106,12 +99,9 @@ module.exports  = (app, mod, league) => {
 		}
 	}
 
-	html += `<div class="league-overlay-controls`;
+	html += `<div class="saito-button-row`;
 
-	let extra_class =
-		newPlayer || league.unverified || (league.admin && !isMember)
-			? ' hidden'
-			: '';
+	let extra_class = newPlayer || league.unverified || (league.admin && !isMember) ? ' hidden' : '';
 
 	if (league.admin && league.admin == mod.publicKey) {
 		extra_class = '';
@@ -120,21 +110,25 @@ module.exports  = (app, mod, league) => {
 	html += extra_class + `">`;
 
 	if (league.admin == mod.publicKey) {
-		html += `<button id="league-invite-button" class="saito-button saito-button-primary">invite link</button>`;
+		html += `<button id="league-invite-button" class="fat saito-button-primary">invite link</button>`;
 	}
 	if (league.admin) {
-		html += `<button id="league-chat-button" class="saito-button saito-button-primary">league chat</button>`;
+		html += `<button id="league-chat-button" class="fat saito-button-primary">league chat</button>`;
 	}
 
 	html += `<button id="league-overlay-create-game-button" 
-					class="saito-button saito-button-primary${league.admin && !isMember ? ' hidden' : ''}">`;
-	if (game_mod.maxPlayers === 1 && !game_mod.returnSingularGameOption() && !game_mod.returnAdvancedOptions()){
-		html += "play game";
-	}else{
-		html += "create game";
+					class="fat saito-button-primary${league.admin && !isMember ? ' hidden' : ''}">`;
+	if (
+		game_mod.maxPlayers === 1 &&
+		!game_mod.returnSingularGameOption() &&
+		!game_mod.returnAdvancedOptions()
+	) {
+		html += 'play game';
+	} else {
+		html += 'create game';
 	}
 
-	html +=`</button>
+	html += `</button>
              </div>
 
             </div>

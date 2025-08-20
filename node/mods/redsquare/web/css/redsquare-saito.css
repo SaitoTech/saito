@@ -1,5 +1,5 @@
 html[data-theme='lite'] {
-  --saito-header-color: var(--saito-primary);
+  --saito-header-color: var(--saito-red);
   --saito-header-background: var(--saito-background-color);
 }
 
@@ -41,17 +41,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2rem;
-}
-
-.saito-modal {
-  color: var(--saito-font-color);
-  background: var(--saito-background-color);
-}
-
-.saito-modal-menu-option:not(.disabled-option):hover,
-.saito-modal .saito-contact:hover {
-  color: var(--saito-background-color);
-  background: var(--saito-font-color);
 }
 
 .chat-manager-list.saito-sidebar-element {

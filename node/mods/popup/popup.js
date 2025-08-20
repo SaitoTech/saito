@@ -35,8 +35,7 @@ class Popup extends ModTemplate {
 			twitter_title: 'Popup Chinese',
 			twitter_url: 'https://popupchinese.com/',
 			twitter_description: 'Popup Chinese - Learn Chinese',
-			twitter_image:
-				'https://saito.tech/wp-content/uploads/2022/04/saito_card_horizontal.png',
+			twitter_image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card_horizontal.png',
 			og_title: 'Popup Chinese',
 			og_url: 'https://popupchinese.com',
 			og_type: 'website',
@@ -160,6 +159,8 @@ class Popup extends ModTemplate {
 	////////////
 	async render() {
 
+		if (!this.app.options.popup) { this.load(); }
+
 		//
 		// create and render components
 		//
@@ -230,6 +231,8 @@ class Popup extends ModTemplate {
 			//
 			saito_app = app;
 			saito_mod = this;
+
+		 	if (!this.app.options.popup) { this.load(); }
 
 			save_display_mode = function (
 				mode = ""
@@ -556,6 +559,8 @@ class Popup extends ModTemplate {
 	}
 
 	updatePreference(field1, value1) {
+
+	 	if (!this.app.options.popup) { this.load(); }
 
 		if (field1 == "display") {
 			if (value1 == "simplified") { this.app.options.popup.display.simplified = 1; }
@@ -997,7 +1002,7 @@ async saveAnswer(obj) {
 	}
 
 
-
+/*
 
         webServer(app, expressapp, express) {
 
@@ -1027,7 +1032,7 @@ async saveAnswer(obj) {
     		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
 	}
 
-
+*/
 }
 
 module.exports = Popup;

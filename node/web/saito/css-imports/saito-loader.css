@@ -90,8 +90,6 @@
 
 .game-loader-spinner {
   margin: auto;
-  border: 16px solid var(--saito-gray-lighter); /* ?? */
-  border-top: 16px solid var(--saito-red);
   border: 16px solid var(--saito-primary);
   border-top: 16px solid var(--saito-white);
 

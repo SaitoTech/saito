@@ -3,7 +3,7 @@ module.exports = (lesson, word, popup_self) => {
     let as = "";
     let play_button_visible = "visibility:hidden";
     if (word.audio_source) { as = word.audio_source; play_button_visible = ""; }
-    if (as != "") { as = `http://popupchinese.com/data/${lesson.id}/mp3/vocab/${as}`; }
+    if (as != "") { as = `https://popupchinese.com/data/${lesson.id}/mp3/vocab/${as}`; }
 
     let df1 = "";
     let df2 = "";

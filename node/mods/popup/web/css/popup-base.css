@@ -36,3 +36,10 @@
 .odd {
 	background-color: #f7f7f7;
 }
+
+.testimonial {
+	border-radius: 1rem;
+	padding: 2rem;
+	margin: 1rem;
+	background-color: #efefef;
+}

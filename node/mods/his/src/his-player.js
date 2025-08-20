@@ -2652,6 +2652,8 @@ console.log("MENU: " + JSON.stringify(menu));
                 this.updateStatusWithOptions(msg, html);
                 this.attachCardboxEvents(async (uc) => {      
 
+		  this.updateStatus("selected...");
+
 	          let ops_to_spend = parseInt(uc);
 	          let ops_remaining = ops - ops_to_spend;
  
@@ -2819,6 +2821,8 @@ console.log("MENU: " + JSON.stringify(menu));
 
           this.updateStatusWithOptions(msg, html);
           this.attachCardboxEvents(async (uc) => {      
+
+	    this.updateStatus("selected...");
 
 	    let ops_to_spend = parseInt(uc);
 	    let ops_remaining = ops - ops_to_spend;

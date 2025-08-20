@@ -1,7 +1,7 @@
 module.exports = (app, contacts, keylist = null) => {
   let html = `<div id="saito-contacts-modal" class="saito-modal contacts">
                 <div class="saito-modal-title">${contacts.title}</div>
-                <div class="saito-modal-content saito-contacts-list">
+                <div class="saito-modal-content saito-menu-select-heavy">
               `;
 
   const userTemplate = (public_key, shared) => {

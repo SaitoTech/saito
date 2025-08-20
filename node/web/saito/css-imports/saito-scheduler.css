@@ -5,17 +5,8 @@
   padding: 3rem;
 }
 
-.saito-scheduler-button {
-  margin-top: 2rem;
-  margin-left: 0rem;
-}
-
-.saito-select-btn {
-  width: 100%;
-}
-
-
-input#schedule-datetime-input, .saito-scheduler-natural-time {
+input#schedule-datetime-input,
+.saito-scheduler-natural-time {
   width: 100%;
   border: none;
   border-bottom: 1px solid var(--border-color-general-dividers);
@@ -24,19 +15,13 @@ input#schedule-datetime-input, .saito-scheduler-natural-time {
   line-height: 3rem;
 }
 
-
-
 /*  Responsive */
 
-
 @media screen and (max-width: 503px) {
-  .saito-scheduler { 
+  .saito-scheduler {
     min-width: auto;
   }
 }
 
-
-
 @media screen and (max-width: 396px) {
-
 }

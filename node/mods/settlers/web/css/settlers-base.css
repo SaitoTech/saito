@@ -539,43 +539,9 @@ dt {
 	height: 4rem;
 }
 
-/*
-.p1-lite .saito-identicon-box {
-	border-color: var(--p1-color-lite);
-}
-
-.p2-lite .saito-identicon-box {
-	border-color: var(--p2-color-lite);
-}
-
-.p3-lite .saito-identicon-box {
-	border-color: var(--p3-color-lite);
-}
-
-.p4-lite .saito-identicon-box {
-	border-color: var(--p4-color-lite);
-}
-*/
-
 .saito-userline {
 	width: 100%;
 }
-
-/*.player-box.c1 .saito-userline, .player-box.c1 .saito-address{
-  background-color: var(--p1-color);
-}
-
-.player-box.c2 .saito-userline, .player-box.c2 .saito-address{
-  background-color: var(--p2-color);
-}
-
-.player-box.c3 .saito-userline, .player-box.c3 .saito-address{
-  background-color: var(--p3-color);
-}
-
-.player-box.c4 .saito-userline, .player-box.c4 .saito-address{
-  background-color: var(--p4-color);
-}*/
 
 .player-box.c1 .saito-identicon-box {
 	border: 5px solid var(--p1-color);
@@ -795,28 +761,6 @@ input[type='checkbox'] {
 .highlight {
 	font-size: 1.1em;
 	font-weight: bold;
-}
-
-.horizontal_list {
-	display: flex;
-	flex-wrap: wrap;
-	border-top: 1px solid var(--saito-gray-lighter);
-}
-
-.horizontal_list .option .icon,
-.bank .option .icon {
-	margin: 0 0.25em;
-	width: 2em;
-	vertical-align: middle;
-}
-
-ul.horizontal_list li.iconoption {
-	margin: 0;
-	width: 20%;
-	height: 3em;
-	border: unset;
-	background: unset;
-	min-width: 20%;
 }
 
 .status-message {

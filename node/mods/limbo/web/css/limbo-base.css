@@ -157,7 +157,7 @@
 	max-height: 80vh;
 	padding: 1rem;
 	border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
-	border-radius: var(--border-radius-modal-menu);
+	border-radius: var(--border-radius-overlay);
 
 	background-color: var(--saito-background-color);
 	background-image: url(/saito/img/tiled-logo.svg);

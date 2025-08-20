@@ -592,7 +592,7 @@ class Tweet {
 				//
 				if (this.tx.optional.num_replies == 0) {
 					let obj = document.querySelector(
-						`.tweet-${this.tx.signature} .tweet-footer.tweet-controls .tweet-tool-comment .tweet-tool-comment-count`
+						`.tweet-${this.tx.signature} .tweet-controls .tweet-tool-comment .tweet-tool-comment-count`
 					);
 					try {
 						if (obj) {
@@ -929,7 +929,7 @@ class Tweet {
 							app.connection.emit('redsquare-tweet-render-request', t);
 						} else {
 							console.warn('RS.tweet -- This is going to screw up the feed');
-							this.retweet.container = '.tweet-container';
+							//this.retweet.container = '.tweet-container';
 							app.connection.emit('redsquare-tweet-render-request', this.retweet);
 						}
 					}

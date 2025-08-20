@@ -16,6 +16,10 @@ const PathsRules = require('./lib/core/rules.template');
 const PathsOptions = require('./lib/core/advanced-options.template');
 const PathsSingularOption = require('./lib/core/options.template');
 
+const GameHelp = require('./lib/ui/game-help/game-help');
+const TutorialTemplate = require('./lib/ui/overlays/tutorials/tutorial.template');
+
+
 const htmlTemplate = require('./lib/core/game-html.template').default;
 const JSON = require('json-bigint');
 
@@ -56,6 +60,7 @@ class PathsOfGlory extends GameTemplate {
     this.welcome_overlay = new WelcomeOverlay(this.app, this); 
     this.menu_overlay = new MenuOverlay(this.app, this); 
     this.space_overlay = new SpaceOverlay(this.app, this); 
+    this.game_help = new GameHelp(this.app, this);
 
     //
     // this sets the ratio used for determining
@@ -1309,7 +1314,7 @@ class PathsOfGlory extends GameTemplate {
       ckey		:       "POL" ,
       country           :       "Poland" ,
       name		:	"Polish Corps" ,
-      type		:	"army" ,
+      type		:	"corps" ,
       front		:	"pol_corps.png" ,
       back		:	"pol_corps_back.png" ,
       combat		:	2 ,
@@ -1327,7 +1332,7 @@ class PathsOfGlory extends GameTemplate {
       ckey		:       "PT" ,
       country           :       "Portuguese" ,
       name		:	"Portuguese Corps" ,
-      type		:	"army" ,
+      type		:	"corps" ,
       front		:	"pt_corps.png" ,
       back		:	"pt_corps_back.png" ,
       combat		:	1 ,
@@ -1345,7 +1350,7 @@ class PathsOfGlory extends GameTemplate {
       ckey		:       "RO" ,
       country           :       "Romania" ,
       name		:	"Romanian Corps" ,
-      type		:	"army" ,
+      type		:	"corps" ,
       front		:	"ro_corps.png" ,
       back		:	"ro_corps_back.png" ,
       combat		:	1 ,
@@ -3682,6 +3687,7 @@ deck['ap34'] = {
         onEvent : function(paths_self, faction) {
           paths_self.addUnitToSpace("sn_corps", "libya");
 	  paths_self.game.state.events.libyan_revolt = 1;
+	  paths_self.displaySpace("libya");
           return 1;
         } ,
       }
@@ -5406,9 +5412,13 @@ deck['cp65'] = {
       let original_spaces = this.returnSpaces();
       if (this.game.spaces[this.game.state.combat.key].control == original_spaces[this.game.state.combat.key].control) {
         if (!this.game.spaces[this.game.state.combat.key].besieged) {
-          if (this.returnPowerOfUnit(s.units[0]) == this.game.state.combat.defender_power) {
+	  if (s.units.length > 0) {
+            if (this.returnPowerOfUnit(s.units[0]) == this.game.state.combat.defender_power) {
+              cp += this.game.spaces[this.game.state.combat.key].fort;
+            }
+          } else {
             cp += this.game.spaces[this.game.state.combat.key].fort;
-          }
+	  }
         }
       }
     }
@@ -11670,6 +11680,8 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	  if (this.game.player == player) {
 
+	    this.displayBoard();
+
 	    let hold = "";
 	    let num = 0;
 
@@ -11714,6 +11726,7 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	    });
 
 	  } else {
+	    this.displayBoard();
 	    this.updateStatus("Opponent deciding on card discard...");
 	  }
 
@@ -11885,29 +11898,54 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 	    this.game.queue.push("play\tcentral");
 	  }
 
-      //
-      // TESTING
-      //
-      // if you want to hardcode the hands of the players, you can set
-      // them manually here. Be sure that all of the cards have been
-      // dealt ento the DECK during the setup phase though.
-      //
-      if (this.game.options.deck === "is_testing") {
-	//
-	// ALLIES
-	//
-        if (this.game.player == 2) {
-	  if (!this.game.deck[1].hand.includes("ap29")) {
-            this.game.deck[1].hand.push(...["ap29"]);
+if (this.game.state.round == 0) {
+	  if (this.game.player == 1) {
+            this.game_help.render({
+              title : "Central Powers Opening" ,
+              text : "Play GUNS OF AUGUST for the event, and attack Sedan in a FLANK ATTACK" ,
+              img : "/paths/img/backgrounds/help/tutorial_units.png" ,
+              color: "#d2242a" ,
+              line1 : "learn",
+              line2 : "to play?",
+              fontsize : "2.1rem" ,
+            });
+	  } else {
+            this.game_help.render({
+              title : "Allied Powers Opening" ,
+              text : "Bring Reinforcements into Play and try to play War Status cards (?) for the event. Once you have 4 war status points, you enter Mid-War with more cards..." ,
+              img : "/paths/img/backgrounds/help/tutorial_units.png" ,
+              color: "#d2242a" ,
+              line1 : "learn",
+              line2 : "to play?",
+              fontsize : "2.1rem" ,
+            });
 	  }
-	//
-	// CENTrAL
-	//
-        } else {
-//          this.game.deck[0].hand.push(...[""]);
-        }
-        this.displayBoard();
-      }
+} 
+
+
+          //
+          // TESTING
+          //
+          // if you want to hardcode the hands of the players, you can set
+          // them manually here. Be sure that all of the cards have been
+          // dealt ento the DECK during the setup phase though.
+          //
+          if (this.game.options.deck === "is_testing") {
+	    //
+	    // ALLIES
+	    //
+            if (this.game.player == 2) {
+	      if (!this.game.deck[1].hand.includes("ap29")) {
+                this.game.deck[1].hand.push(...["ap29"]);
+	      }
+	    //
+	    // CENTRAL
+	    //
+            } else {
+              //this.game.deck[0].hand.push(...[""]);
+            }
+            this.displayBoard();
+          }
 
 
 	  return 1;
@@ -13327,15 +13365,19 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	    let original_spaces = this.returnSpaces();
 	    if (this.game.spaces[this.game.state.combat.key].control == original_spaces[this.game.state.combat.key].control) {
 	      if (!this.game.spaces[this.game.state.combat.key].besieged) {
-	        if (this.returnPowerOfUnit(s.units[0]) == defender_power) {
- 	          if (s.units.length > 0) {
-	  	    if (defender_power == "central") {
-                      this.updateLog("Central Powers get fort bonus on defense: +" + s.fort);
-		    } else {
-                      this.updateLog("Allied Powers get fort bonus on defense: +" + s.fort);
+		if (s.units.length > 0) {
+	          if (this.returnPowerOfUnit(s.units[0]) == defender_power) {
+ 	            if (s.units.length > 0) {
+	  	      if (defender_power == "central") {
+                        this.updateLog("Central Powers get fort bonus on defense: +" + s.fort);
+		      } else {
+                        this.updateLog("Allied Powers get fort bonus on defense: +" + s.fort);
+		      }
 		    }
 	          }
-	        }
+	        } else {
+		  // just skip
+		}
 	      }
 	    }
           }
@@ -15770,6 +15812,8 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
     //
     this.removeSelectable();
 
+    this.game_help.hide();
+
     //
     // pass is pass!
     //
@@ -15888,6 +15932,8 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	      }
 	    }
 	  }
+	} else {
+	  if (this.game.spaces[key].fort > 0 && this.game.spaces[key].control != faction) { return 1; }
 	}
         return 0;
       }
@@ -15928,6 +15974,16 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
             if (paths_self.game.spaces[options[i]].units[z].ckey != "GE") { non_german_units = true; }
 	    units_to_attack++;
 	  }
+	}
+      }
+
+      //
+      // even if no enemies, we can still attack forts
+      //
+      if (units_to_attack == 0) {
+        for (let i = 0; i < options.length; i++) {
+	  let s = options[i];
+	  if (s.fort > 0) { units_to_attack = 1; }
 	}
       }
 
@@ -16278,6 +16334,11 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	      if (paths_self.game.spaces[key2].fort > 1 && paths_self.game.spaces[key2].control != paths_self.returnFactionOfPlayer()) { 
 		let num_corps = 0;
 		let num_armies = 0;
+		// count stuff already there...
+		for (let zz = 0; zz < paths_self.game.spaces[key2].units.length; zz++) {
+		  if (paths_self.game.spaces[key2].units[zz].corps) { num_corps++; }
+		  if (paths_self.game.spaces[key2].units[zz].army) { num_armies++; }
+		}
 		for (let zz = 0; zz < active_units.length; zz++) {
 		  if (active_units.army) { num_armies++; }
 		  if (active_units.corps) { num_corps++; }
@@ -16290,6 +16351,7 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	        if (paths_self.game.spaces[key2].units[0].army == true) {
 		  if (paths_self.returnPowerOfUnit(paths_self.game.spaces[key2].units[0]) == paths_self.returnFactionOfPlayer()) {
 		    can_group_move_into_fort = true;
+		    return 0;
 		  }
 		}
 	      }
@@ -16598,31 +16660,30 @@ this.updateLog("Defender Power handling retreat: " + this.game.state.combat.defe
 	      }
 
 	      //
+	      // prevent cross-Bulgarian moves 
+	      //
+	      if ((currentkey == "gallipoli" || currentkey == "adrianople") && destination == "monastir") {
+		if (paths_self.game.state.events.bulgaria != 1) { return 0; }
+	      }
+
+	      //
 	      // - Near East Restrictions
 	      //
     	      if (paths_self.game.state.does_movement_start_inside_near_east == 1) {
-console.log(destination);
-console.log("movement starts in NE");
 		if (unit.ne != 1) { return 0; }
-console.log("movement starts in NE");
 	        if (!paths_self.isSpaceOnNearEastMap(destination)) {
 		  if (!paths_self.canPlayerMoveUnitIntoNearEast(faction, unit)) {
-console.log("movement starts in NE");
 		    return 0;
-		  }
+	          }
 	        }
 	      }
     	      if (paths_self.game.state.does_movement_start_outside_near_east == 1) {
-console.log(destination);
-console.log("movement starts out NE");
 	        if (paths_self.isSpaceOnNearEastMap(destination)) {
 		  if (!paths_self.canPlayerMoveUnitIntoNearEast(faction, unit)) {
-console.log("movement starts out NE");
 		    return 0;
 		  }
 	        }
 	      }
-
 
 	      //
 	      // you cannot move into neutral countries
@@ -16690,6 +16751,12 @@ console.log("movement starts out NE");
 		// count units available
 		//
 		let count = 0;
+
+		//
+		// start with anyone already there
+		//
+		count += paths_self.game.spaces[key2].units.length;
+	
 		for (let z = 0; z < spaces_within_hops.length; z++) {
 		  let skey = spaces_within_hops[z].spacekey;
 		  let shop = spaces_within_hops[z].hops;
@@ -16708,13 +16775,13 @@ console.log("movement starts out NE");
 		    }
 		  }
 		}
+
 	        for (let z = 0; z < paths_self.game.spaces[key2].units.length; z++) {
 		  let u = paths_self.game.spaces[key2].units[z];
 		  if (paths_self.returnPowerOfUnit(u) == paths_self.returnPowerOfPlayer()) {
 		    if (u.army) { count++; }
 		  }
 		}
-
 
 	        if (count == 0) {
 		  salert("Besieging a Fort Requires an Army: pick again");
@@ -16725,7 +16792,6 @@ console.log("movement starts out NE");
 		  }
 		  return;
 		}
-
 
 		let spaces_in_distance = paths_self.returnSpacesWithinHops(key2, 4, () => { return 1; });
 
@@ -16882,7 +16948,6 @@ console.log("movement starts out NE");
 
 		return;
 
-
 	      }
 
 	      //
@@ -16932,7 +16997,6 @@ console.log("movement starts out NE");
 		}
 	      }
 
-
 	      //
 	      // NEAR EAST tracking
 	      //
@@ -16954,21 +17018,21 @@ console.log("movement starts out NE");
 	        if (paths_self.game.spaces[sourcekey].units[z].moved != 1) { mint = true; }
 	      }
 
-	              //
-          	      // check if no longer besieged?
-          	      //
-     		      if (paths_self.game.spaces[currentkey].fort > 0) {
-     		        if (paths_self.game.spaces[currentkey].units.length > 0) {
-      		        } else {
-      		          paths_self.game.spaces[currentkey].besieged = 0;
-      		            //
-      		            // control switches back to original owner of fort
-      		            //
-      		            let spc = paths_self.returnSpaces();
-      		            paths_self.game.spaces[currentkey].control = spc[currentkey].control;
-			    paths_self.displaySpace(currentkey);
-      		        }
-      		      }
+	      //
+              // check if no longer besieged?
+              //
+     	      if (paths_self.game.spaces[currentkey].fort > 0) {
+     	        if (paths_self.game.spaces[currentkey].units.length > 0) {
+      	        } else {
+      	          paths_self.game.spaces[currentkey].besieged = 0;
+      	          //
+      	          // control switches back to original owner of fort
+      	          //
+      	          let spc = paths_self.returnSpaces();
+      	          paths_self.game.spaces[currentkey].control = spc[currentkey].control;
+	          paths_self.displaySpace(currentkey);
+      	        }
+      	      }
 
 	      //
 	      // continue
@@ -17082,7 +17146,9 @@ console.log("movement starts out NE");
       if (space.activated_for_combat == 1) { return 0; }
       if (space.activated_for_movement == 1) { return 0; }
       for (let i = 0; i < space.units.length; i++) {
-        return 1;
+        if (space.units[i].key !== "mn_corps") {
+          return 1;
+	}
       }
       return 0;
     });
@@ -18112,6 +18178,9 @@ console.log("movement starts out NE");
   }
 
   moveUnit(sourcekey, sourceidx, destinationkey) {
+
+console.log("Move Unit: " + sourcekey + " / " + sourceidx + " / " + destinationkey);
+console.log("SOURCE: " + JSON.stringify(this.game.spaces[sourcekey].units));
 
     let unit = this.game.spaces[sourcekey].units[sourceidx];
     this.game.spaces[sourcekey].units[sourceidx].moved = 1;

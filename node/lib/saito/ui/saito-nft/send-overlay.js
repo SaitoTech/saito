@@ -509,7 +509,6 @@ class SendNft {
       justifyContent: 'center',
       overflow: 'hidden',
       fontSize: '1.4rem'
-      //      textShadow: '1px 1px 1px var(--saito-gray-lighter-transparent)'
     });
 
     const bar = document.createElement('div');
@@ -539,7 +538,6 @@ class SendNft {
       justifyContent: 'center',
       overflow: 'hidden',
       fontSize: '1.4rem'
-      //      textShadow: '1px 1px 1px var(--saito-gray-lighter-transparent)'
     });
 
     overlay.append(leftDiv, bar, rightDiv);

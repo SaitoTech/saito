@@ -40,7 +40,7 @@ link preview
   overflow-wrap: anywhere;
   color: var(--saito-font-color);
   font-size: 1.5rem;
-  background-color: var(--saito-gray-mid-transparent);
+  background-color: var(--saito-gray-transparent);
   display: flex;
   flex-direction: column;
   gap: 0.8rem;

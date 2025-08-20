@@ -13096,12 +13096,12 @@ console.log("WE SHOULD RESHUFFLE...");
                     function(spacekey) {
 		      his_self.updateStatus("fortifying...");
 		      his_self.addMove("discard\t"+faction+"\t"+"069");
+                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
+                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
+                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
 	              his_self.addMove("unexpected_war\t"+faction+"\t"+enemy);
 		      his_self.addMove("set_allies\t"+faction+"\t"+natural_ally);
 		      his_self.addMove("declare_war\t"+faction+"\t"+enemy);
-                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
-                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
-                      his_self.addMove("build\tland\tfrance\t"+"regular"+"\t"+spacekey);
                       his_self.endTurn();
                     }
                   );

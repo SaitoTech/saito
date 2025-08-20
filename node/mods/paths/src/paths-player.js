@@ -1397,6 +1397,8 @@
     //
     this.removeSelectable();
 
+    this.game_help.hide();
+
     //
     // pass is pass!
     //
@@ -1515,6 +1517,8 @@
 	      }
 	    }
 	  }
+	} else {
+	  if (this.game.spaces[key].fort > 0 && this.game.spaces[key].control != faction) { return 1; }
 	}
         return 0;
       }
@@ -1555,6 +1559,16 @@
             if (paths_self.game.spaces[options[i]].units[z].ckey != "GE") { non_german_units = true; }
 	    units_to_attack++;
 	  }
+	}
+      }
+
+      //
+      // even if no enemies, we can still attack forts
+      //
+      if (units_to_attack == 0) {
+        for (let i = 0; i < options.length; i++) {
+	  let s = options[i];
+	  if (s.fort > 0) { units_to_attack = 1; }
 	}
       }
 
@@ -1905,6 +1919,11 @@
 	      if (paths_self.game.spaces[key2].fort > 1 && paths_self.game.spaces[key2].control != paths_self.returnFactionOfPlayer()) { 
 		let num_corps = 0;
 		let num_armies = 0;
+		// count stuff already there...
+		for (let zz = 0; zz < paths_self.game.spaces[key2].units.length; zz++) {
+		  if (paths_self.game.spaces[key2].units[zz].corps) { num_corps++; }
+		  if (paths_self.game.spaces[key2].units[zz].army) { num_armies++; }
+		}
 		for (let zz = 0; zz < active_units.length; zz++) {
 		  if (active_units.army) { num_armies++; }
 		  if (active_units.corps) { num_corps++; }
@@ -1917,6 +1936,7 @@
 	        if (paths_self.game.spaces[key2].units[0].army == true) {
 		  if (paths_self.returnPowerOfUnit(paths_self.game.spaces[key2].units[0]) == paths_self.returnFactionOfPlayer()) {
 		    can_group_move_into_fort = true;
+		    return 0;
 		  }
 		}
 	      }
@@ -2225,31 +2245,30 @@
 	      }
 
 	      //
+	      // prevent cross-Bulgarian moves 
+	      //
+	      if ((currentkey == "gallipoli" || currentkey == "adrianople") && destination == "monastir") {
+		if (paths_self.game.state.events.bulgaria != 1) { return 0; }
+	      }
+
+	      //
 	      // - Near East Restrictions
 	      //
     	      if (paths_self.game.state.does_movement_start_inside_near_east == 1) {
-console.log(destination);
-console.log("movement starts in NE");
 		if (unit.ne != 1) { return 0; }
-console.log("movement starts in NE");
 	        if (!paths_self.isSpaceOnNearEastMap(destination)) {
 		  if (!paths_self.canPlayerMoveUnitIntoNearEast(faction, unit)) {
-console.log("movement starts in NE");
 		    return 0;
-		  }
+	          }
 	        }
 	      }
     	      if (paths_self.game.state.does_movement_start_outside_near_east == 1) {
-console.log(destination);
-console.log("movement starts out NE");
 	        if (paths_self.isSpaceOnNearEastMap(destination)) {
 		  if (!paths_self.canPlayerMoveUnitIntoNearEast(faction, unit)) {
-console.log("movement starts out NE");
 		    return 0;
 		  }
 	        }
 	      }
-
 
 	      //
 	      // you cannot move into neutral countries
@@ -2317,6 +2336,12 @@ console.log("movement starts out NE");
 		// count units available
 		//
 		let count = 0;
+
+		//
+		// start with anyone already there
+		//
+		count += paths_self.game.spaces[key2].units.length;
+	
 		for (let z = 0; z < spaces_within_hops.length; z++) {
 		  let skey = spaces_within_hops[z].spacekey;
 		  let shop = spaces_within_hops[z].hops;
@@ -2335,13 +2360,13 @@ console.log("movement starts out NE");
 		    }
 		  }
 		}
+
 	        for (let z = 0; z < paths_self.game.spaces[key2].units.length; z++) {
 		  let u = paths_self.game.spaces[key2].units[z];
 		  if (paths_self.returnPowerOfUnit(u) == paths_self.returnPowerOfPlayer()) {
 		    if (u.army) { count++; }
 		  }
 		}
-
 
 	        if (count == 0) {
 		  salert("Besieging a Fort Requires an Army: pick again");
@@ -2352,7 +2377,6 @@ console.log("movement starts out NE");
 		  }
 		  return;
 		}
-
 
 		let spaces_in_distance = paths_self.returnSpacesWithinHops(key2, 4, () => { return 1; });
 
@@ -2509,7 +2533,6 @@ console.log("movement starts out NE");
 
 		return;
 
-
 	      }
 
 	      //
@@ -2559,7 +2582,6 @@ console.log("movement starts out NE");
 		}
 	      }
 
-
 	      //
 	      // NEAR EAST tracking
 	      //
@@ -2581,21 +2603,21 @@ console.log("movement starts out NE");
 	        if (paths_self.game.spaces[sourcekey].units[z].moved != 1) { mint = true; }
 	      }
 
-	              //
-          	      // check if no longer besieged?
-          	      //
-     		      if (paths_self.game.spaces[currentkey].fort > 0) {
-     		        if (paths_self.game.spaces[currentkey].units.length > 0) {
-      		        } else {
-      		          paths_self.game.spaces[currentkey].besieged = 0;
-      		            //
-      		            // control switches back to original owner of fort
-      		            //
-      		            let spc = paths_self.returnSpaces();
-      		            paths_self.game.spaces[currentkey].control = spc[currentkey].control;
-			    paths_self.displaySpace(currentkey);
-      		        }
-      		      }
+	      //
+              // check if no longer besieged?
+              //
+     	      if (paths_self.game.spaces[currentkey].fort > 0) {
+     	        if (paths_self.game.spaces[currentkey].units.length > 0) {
+      	        } else {
+      	          paths_self.game.spaces[currentkey].besieged = 0;
+      	          //
+      	          // control switches back to original owner of fort
+      	          //
+      	          let spc = paths_self.returnSpaces();
+      	          paths_self.game.spaces[currentkey].control = spc[currentkey].control;
+	          paths_self.displaySpace(currentkey);
+      	        }
+      	      }
 
 	      //
 	      // continue
@@ -2709,7 +2731,9 @@ console.log("movement starts out NE");
       if (space.activated_for_combat == 1) { return 0; }
       if (space.activated_for_movement == 1) { return 0; }
       for (let i = 0; i < space.units.length; i++) {
-        return 1;
+        if (space.units[i].key !== "mn_corps") {
+          return 1;
+	}
       }
       return 0;
     });

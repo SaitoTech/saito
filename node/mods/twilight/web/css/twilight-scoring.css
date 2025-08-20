@@ -7,7 +7,7 @@
   height: 100px;
 }
 
-.display_card{
+.display_card {
   width: 240px;
   height: 100px;
   position: absolute;
@@ -17,13 +17,13 @@
   /* Doesn't scale well embedded on the board */
   /*border: 1px solid black;*/
   border-radius: 15px;
-  filter: drop-shadow(0 0 3px black);  
+  filter: drop-shadow(0 0 3px black);
   overflow: hidden;
 }
 
 .display_vp {
   font-size: 4em;
-  color: #DFD;
+  color: #dfd;
   text-shadow: 0px 0px 4px #222;
   display: flex;
   width: 100%;
@@ -32,7 +32,7 @@
   align-items: center;
 }
 
-/* Position hover spaces on board */ 
+/* Position hover spaces on board */
 .scoring_card#europe {
   top: 60px;
   left: 1090px;
@@ -106,7 +106,7 @@
   width: min(750px, 90vw);
   min-height: 50vh;
   padding: 1rem 0;
-  border-radius: var(--border-radius-modal-menu);
+  border-radius: var(--border-radius-overlay);
   column-gap: 2rem;
   padding: 2rem;
   align-items: center;
@@ -142,43 +142,50 @@
 .asia-scoring {
   background-size: cover;
   background-position-y: bottom;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
     url(/twilight/img/backgrounds/asia-scoring-bg.png);
 }
 .europe-scoring {
   background-size: cover;
   background-position-y: bottom;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
     url(/twilight/img/backgrounds/europe-scoring-bg.png);
 }
 .mideast-scoring {
   background-size: cover;
   background-position-y: bottom;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
     url(/twilight/img/backgrounds/mideast-scoring-bg.png);
 }
 .seasia-scoring {
   background-size: cover;
   background-position-y: bottom;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
     url(/twilight/img/backgrounds/seasia-scoring-bg.png);
 }
 .africa-scoring {
   background-size: cover;
   background-position-y: bottom;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
     url(/twilight/img/backgrounds/africa-scoring-bg.png);
 }
 .samerica-scoring {
   background-size: cover;
   background-position-y: bottom;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
     url(/twilight/img/backgrounds/southamerica-scoring-bg.png);
 }
 .camerica-scoring {
   background-size: cover;
   background-position-y: bottom;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
     url(/twilight/img/backgrounds/centralamerica-scoring-bg.png);
 }
 .scoring-box {

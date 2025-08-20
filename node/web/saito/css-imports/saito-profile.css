@@ -14,13 +14,13 @@
   justify-content: flex-start;
 }
 
-.saito-profile-menu>div {
+.saito-profile-menu > div {
   cursor: pointer;
   padding: 1rem;
   text-transform: capitalize;
 }
 
-.saito-profile-menu>div:hover {
+.saito-profile-menu > div:hover {
   color: var(--saito-primary);
   background-color: var(--background-color-button-sidebar);
   border-radius: var(--border-radius-soft);
@@ -39,7 +39,6 @@
   background-image: url(/saito/img/profile-banner.jpg);
   background-size: cover;
   background-position: center;
-  border-radius: var(--border-radius-profile-banner);
   position: relative;
 }
 
@@ -64,13 +63,13 @@
 .limbo-floating-overlay .saito-profile-header-row .saito-identicon-box .saito-overlaid-icon {
   left: 50%;
   width: 6rem;
-  height: 6rem;  
+  height: 6rem;
 }
 
 .saito-banner-edit {
   margin-left: 0;
-  right: .5rem;
-  bottom: .5rem;
+  right: 0.5rem;
+  bottom: 0.5rem;
   position: absolute;
   text-shadow: 1px 1px 4px var(--saito-black);
   cursor: pointer;
@@ -166,11 +165,11 @@
   margin: 0;
 }
 
-.saito-profile .saito-modal-menu-option>div {
+.saito-profile .saito-modal-menu-option > div {
   font-size: 1.8rem;
 }
 
-.saito-profile .saito-modal-menu-option>i {
+.saito-profile .saito-modal-menu-option > i {
   justify-self: center;
   margin: 0;
 }
@@ -194,7 +193,7 @@
   .saito-profile-menu {
     justify-content: space-between;
   }
-  .saito-profile-menu>div {
+  .saito-profile-menu > div {
     margin-right: unset;
   }
 }

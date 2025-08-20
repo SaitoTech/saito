@@ -1,4 +1,3 @@
-const Activate = require('./overlays/activate');
 const Deposit = require('./overlays/deposit');
 const Withdraw = require('./overlays/withdraw');
 const History = require('./overlays/history');
@@ -13,12 +12,6 @@ class SaitoCrypto {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-
-    /*
-			Activate was the original warning message overlay
-			It has been supplanted by : saito-backup-render-request
-		*/
-    //this.activate_overlay = new Activate(app, mod);
 
     //'saito-crypto-deposit-render-request'
     this.deposit_overlay = new Deposit(app, mod);

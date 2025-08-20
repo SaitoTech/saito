@@ -270,7 +270,7 @@ class GameTableTemplate extends GameTemplate {
   exitConfirmationTemplate() {
     return `<div class="saito-modal saito-modal-menu game-exit-menu" id="saito-exit-menu">
      				<div class="saito-modal-title">Exit Game / Leave Table</div>
-     				<div class="saito-modal-content">
+     				<div class="saito-modal-content saito-menu-select-heavy">
      					<div class="saito-modal-menu-option" id="stay">
      						<i class="fa-solid fa-play"></i>
      						<div class="option-keyword">Continue playing</div>

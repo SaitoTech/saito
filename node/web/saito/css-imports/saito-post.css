@@ -1,6 +1,6 @@
 .tweet-overlay {
   background: var(--saito-background-color);
-  padding: var(--border-padding-ultra-wide);
+  padding: var(--border-padding-wide);
   max-height: 95vh;
   max-width: 98vw;
   width: 600px;
@@ -104,7 +104,7 @@
 }
 
 .post-tweet-textarea:focus {
-  background: var(--saito-gray-light);
+  background: var(--saito-highlight);
   box-shadow: inset 0 0 0 1px var(--saito-primary);
 }
 
@@ -173,15 +173,13 @@
   line-height: 2.5rem;
   font-size: 1.8rem;
   position: absolute;
+  max-width: 35%;
   bottom: 2rem;
+  right: 2rem;
   padding: 15px 35px;
   border-radius: 999px;
   font-weight: bold;
   z-index: 1; /* So button is clickable above the saito-input-large */
-}
-
-.post-tweet-button {
-  right: 2rem;
 }
 
 @media screen and (max-width: 600px) {
@@ -197,9 +195,7 @@
     margin: 0;
   }
 
-  .tweet-overlay .post-tweet-button {
-    min-width: 10rem;
-    max-width: 35%;
+  .post-tweet-button {
     bottom: 2.4rem;
     padding: 15px 25px;
   }

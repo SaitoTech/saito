@@ -19,25 +19,62 @@
     //
     if (this.game.players.length == 2) { return; }
 
+
+
+    //
+    // remove stranded players
+    //
     for (let key in this.game.spaces) {
       if (key !== "egypt" && key !== "ireland" && key !== "persia") {
-      let space = this.game.spaces[key];
-      for (let f in space.units) {
-	if (space.units[f].length > 0) {
-	  if (!this.isSpaceFriendly(space, f)) {
-	    for (let z = space.units[f].length-1; z >= 0; z--) {
-	      if (!space.units[f][z].reformer && !space.units[f][z].navy_leader) {
-	        if (f == "protestant" && !this.game.state.events.schmalkaldic_league) {
-		} else {
-		  space.units[f].splice(z, 1);
-		}
+        let space = this.game.spaces[key];
+        for (let f in space.units) {
+	  if (space.units[f].length > 0) {
+	    if (!this.isSpaceFriendly(space, f)) {
+	      for (let z = space.units[f].length-1; z >= 0; z--) {
+	        if (!space.units[f][z].reformer && !space.units[f][z].navy_leader) {
+	          if (f == "protestant" && !this.game.state.events.schmalkaldic_league) {
+		  } else {
+		    space.units[f].splice(z, 1);
+		  }
+	        }
 	      }
 	    }
 	  }
-	}
+        }
       }
     }
+
+    //
+    // remove captured leaders
+    //
+    for (let z = 0; z < this.game.state.players_info.length; z++) {
+      for (let zz = 0; zz < this.game.state.players_info[z].captured.length; zz++) {
+	let u = this.game.state.players_info[z].captured[zz];
+        if (c.key == captured_leader) {
+          let s = his_self.returnSpaceOfPersonage(c.owner, c.key); 
+          if (s != "") {
+            let idx = his_self.returnIndexOfPersonageInSpace(c.owner, c.key, s);
+            if (idx > -1) {
+              his_self.game.spaces[s].units[c.owner].splice(idx, 1);
+            }
+          }
+        }
+      }
     }
+
+  }
+
+ 
+  moveFactionUnitsInSpaceToCapitalIfPossible(faction, spacekey) {
+
+    let space = this.game.spaces[spacekey];
+    let cap = this.returnControlledCapitals(faction);
+    let cap_idx = 0;
+    
+    //
+    // do not control capital? remove
+
+
   }
 
  

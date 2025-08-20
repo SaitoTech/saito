@@ -15,9 +15,9 @@ module.exports = (lesson, popup_self) => {
 
 	let html = `
      <div class="lesson-sidebar">
-       <img id="podcast_photo" src="http://popupchinese.com/data/${lesson.id}/image.jpg" class="podcast_photo">
+       <img id="podcast_photo" src="https://popupchinese.com/data/${lesson.id}/image.jpg" class="podcast_photo">
        <audio controls="" style="margin-top:5px">
-         <source src="http://popupchinese.com/data/${lesson.id}/audio.mp3" type="audio/mpeg">
+         <source src="https://popupchinese.com/data/${lesson.id}/audio.mp3" type="audio/mpeg">
          Your browser does not support the audio element.
        </audio> 
      </div>

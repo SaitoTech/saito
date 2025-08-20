@@ -111,7 +111,7 @@ video {
 
 .close-scanner {
 	z-index: 1000;
-	border: 3px solid var(--saito-primary);
+	border: 3px solid transparent;
 	width: 6rem;
 	height: 6rem;
 	border-radius: 50%;
@@ -119,16 +119,14 @@ video {
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	color: var(--saito-primary);
+	background-color: var(--saito-primary);
 	font-size: 4rem;
 	cursor: pointer;
-	background-color: var(--saito-gray);
 }
 
 .close-scanner:hover {
 	border: 3px solid var(--saito-white);
 	color: var(--saito-white);
-	background-color: var(--saito-primary);
 }
 
 @keyframes scanning {

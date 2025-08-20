@@ -25,18 +25,6 @@
   box-shadow: var(--color-shadow-original);
 }
 
-#saito-alert-buttons,
-#alert-buttons {
-  display: flex;
-  flex-direction: row;
-  gap: 1rem;
-  margin-left: auto;
-}
-
-#saito-alert-buttons button {
-  min-width: 20rem;
-}
-
 .saito-alert-message {
   font-family: 'visuelt-light', 'Microsoft Yahei', 'Hiragino Sans GB';
   font-size: 2rem;
@@ -47,15 +35,4 @@
   overflow-wrap: break-word;
   line-height: 3rem;
   width: -webkit-fill-available;
-}
-
-@media screen and (max-width: 740px) {
-  #saito-alert-buttons,
-  #alert-buttons {
-    flex-direction: column;
-  }
-  #saito-alert-buttons button,
-  #alert-buttons button {
-    width: 100%;
-  }
 }
