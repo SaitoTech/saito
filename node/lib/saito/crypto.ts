@@ -297,4 +297,61 @@ export default class Crypto {
   isBase58(t: string) {
     return /^[A-HJ-NP-Za-km-z1-9]*$/.test(t);
   }
+
+  /* 
+
+  const secp256k1 = require('secp256k1')
+  const bip39 = require('bip39');
+  
+  //Restoring these functions ... 
+  
+  generateSeedFromPrivateKey = function (existingPrivateKey: String) {
+    // Create a seed that will deterministically generate your key first
+
+    let seed = Buffer.from(existingPrivateKey, 'hex');
+
+    // Generate mnemonic from this seed
+
+    const mnemonic = bip39.entropyToMnemonic(seed);
+
+    return {
+      mnemonic: mnemonic,
+
+      seed: seed
+    };
+  };
+
+  getPrivateKeyFromSeed = function (mnemonic: string) {
+    try {
+      // Validate the mnemonic
+
+      if (!bip39.validateMnemonic(mnemonic)) {
+        throw new Error('Invalid mnemonic');
+      }
+
+      // Convert mnemonic back to entropy
+
+      // This will give us back our original private key since we used it as entropy
+
+      const entropy = bip39.mnemonicToEntropy(mnemonic);
+
+      // Convert to Buffer/hex string as needed
+
+      const privateKey = entropy;
+
+      // Verify if this is a valid secp256k1 private key
+
+      if (!secp256k1.privateKeyVerify(Buffer.from(privateKey, 'hex'))) {
+        throw new Error('Generated private key is not valid for secp256k1');
+      }
+
+      return privateKey;
+    } catch (error) {
+      console.error('Error getting private key from seed:', error);
+
+      throw error;
+    }
+  };
+
+*/
 }
