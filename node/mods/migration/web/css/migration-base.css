@@ -1,59 +1,46 @@
-.content {
-	height: 100%;
-	display: flex;
-	justify-content: center;
-	align-items: center;
+.main {
 	background-image: url(/saito/img/tiled-logo.svg);
-    background-color: var(--saito-background-color);
-}
-
-.mask {
-	border-radius: 1rem;
-	border: 1px solid var(--saito-border-color);
-	padding: 7rem;
-	background: linear-gradient(135deg, #0008, #0000);
-	max-width: 800px;
-}
-
-input[type='text'] {
-	width: 100%;
-	font-size: 2.5rem;
-	padding: 0.5rem;
-	margin-top: 1rem;
-	text-align: center;
-	border-radius: 0.5rem;
-	background: #111a;
-	color: #fff;
-	border: 1px solid #888a;
+	background-color: var(--saito-background-color);
+	position: fixed;
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .withdraw-container {
 	display: flex;
 	flex-direction: column;
 	max-width: 800px;
+	max-height: 90vh;
 	gap: 1rem;
 	margin: 1rem;
-}
-
-.withdraw-title {
-	margin-top: 1rem;
-	margin-bottom: 1rem;
-	font-size: 2.8rem;
+	justify-content: center;
+	align-items: center;
+	border-radius: 1rem;
+	border: 1px solid var(--saito-border-color);
+	padding: 7rem;
+	background: linear-gradient(135deg, #0008, #0000);
 }
 
 .withdraw-intro {
 	font-size: 2rem;
 	line-height: 2.5rem;
 	margin-top: 2rem;
-	margin-bottom: 1rem;
 }
 
-.withdraw-button {
-	margin-top: 2rem;
+.withdraw-form-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 1.5rem;
+	width: 100%;
+	margin: 2rem;
 }
 
-.withdraw-button:hover {
-	background-position: 99% 99%;
-	color: #fff;
-	text-decoration: none;
+input[type='text'] {
+	width: 100%;
+	padding: 0.5rem;
+	border-radius: 0.5rem;
+	border: 1px solid #888a;
 }

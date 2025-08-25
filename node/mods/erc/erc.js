@@ -8,7 +8,7 @@ class ERC extends ModTemplate {
 		this.appname = 'ERC';
 		this.name = 'ERC';
 		this.slug = 'erc';
-		this.ticker = 'SAITO2';
+		this.ticker = 'ERC-SAITO';
 		this.description =
 			'Adds support for Mixin-powered ERC20-wrapped Saito transfers on the Saito Network';
 		this.categories = 'Utility Cryptocurrency Finance';
