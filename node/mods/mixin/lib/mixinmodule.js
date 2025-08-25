@@ -71,7 +71,9 @@ class MixinModule extends CryptoModule {
 				if (rv) {
 					super.activate();
 				} else {
-					salert('Having problem generating key for ' + ' ' + this.ticker);
+					if (this.app.BROWSER) {
+						salert('Having problem generating key for ' + ' ' + this.ticker);
+					}
 					await this.app.wallet.setPreferredCrypto('SAITO');
 				}
 			});
@@ -80,7 +82,9 @@ class MixinModule extends CryptoModule {
 				this.app.connection.emit('header-install-crypto', this.ticker);
 				let rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
 				if (!rv) {
-					salert('Having problem generating key for ' + ' ' + this.ticker);
+					if (this.app.BROWSER) {
+						salert('Having problem generating key for ' + ' ' + this.ticker);
+					}
 					await this.app.wallet.setPreferredCrypto('SAITO');
 				}
 			}
