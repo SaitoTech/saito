@@ -59,12 +59,15 @@ class MixinModule extends CryptoModule {
 		if (this.mixin.account_created == 0) {
 			this.app.connection.emit('header-install-crypto', this.ticker);
 			await this.mixin.createAccount(async (res) => {
-				if (Object.keys(res).length > 0) {
+				if (Object.keys(res).length > 1) {
 					await this.mixin.createDepositAddress(this.asset_id);
 					super.activate();
 				} else {
 					salert('Having problem generating key for ' + ' ' + this.ticker);
 					await this.app.wallet.setPreferredCrypto('SAITO');
+					if (res.err) {
+						console.error(res.err);
+					}
 				}
 			});
 		} else {
@@ -449,7 +452,6 @@ class MixinModule extends CryptoModule {
 	async returnAddressFromPublicKey(publicKey) {
 		this_self = this;
 		try {
-
 			//check if key exists in keychain
 			let address = await super.returnAddressFromPublicKey(publicKey);
 
@@ -468,11 +470,17 @@ class MixinModule extends CryptoModule {
 					// this.address + '|' + this.mixin.mixin.user_id + '|' + 'mixin';
 					if (res.length > 0) {
 						for (let i = 0; i < res.length; i++) {
-							console.log(res[i].asset_id, ' - ', this_self.asset_id, ' - ', res[i].asset_id == this_self.asset_id);
+							console.log(
+								res[i].asset_id,
+								' - ',
+								this_self.asset_id,
+								' - ',
+								res[i].asset_id == this_self.asset_id
+							);
 							if (res[i].asset_id == this_self.asset_id) {
 								let address = res[i].address;
-								if (res[i]?.user_id){
-									address += "|" + res[i].user_id + "|mixin";
+								if (res[i]?.user_id) {
+									address += '|' + res[i].user_id + '|mixin';
 								}
 								// save address to keychain if publickey exists in keychain
 								this_self.app.keychain.addCryptoAddress(publicKey, this_self.ticker, address);
@@ -506,8 +514,7 @@ class MixinModule extends CryptoModule {
 	}
 
 	validateAddress(address) {
-
-		if (address.includes("|")){
+		if (address.includes('|')) {
 			let r = address.split('|');
 			address = r[0];
 		}
