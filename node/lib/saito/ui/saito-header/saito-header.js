@@ -845,7 +845,9 @@ class SaitoHeader extends UIModTemplate {
       intervalTime *= 2;
     };
 
-    executeBalanceCheck(); // Start the loop
+    if (preferred_crypto.address) {
+      executeBalanceCheck(); // Start the loop
+    }
   }
 
   async checkBalanceUpdate() {

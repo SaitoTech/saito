@@ -10,13 +10,13 @@
  To understand how your module can integrate cryptocurrencies, the API is handled
  in lib/saito/wallet.ts
 
-	Minimum extension functionality: 
-	-- checkBalance
-	-- returnPrivateKey
-	-- sendPayment
-	-- receivePayment
-	-- returnHistory
-	-- checkWithdrawalFeeForAddress
+  Minimum extension functionality: 
+  -- checkBalance
+  -- returnPrivateKey
+  -- sendPayment
+  -- receivePayment
+  -- returnHistory
+  -- checkWithdrawalFeeForAddress
 
 **********************************************************************************/
 const ModTemplate = require('./modtemplate');

@@ -41,13 +41,13 @@ const getUuid = require('uuid-by-string');
 const WAValidator = require('multicoin-address-validator');
 
 class MixinModule extends CryptoModule {
-	constructor(app, ticker, mixin_mod, asset_id) {
+	constructor(app, mixin_mod, ticker, asset_id, chain_id) {
 		super(app, ticker);
 
 		this.mixin = mixin_mod;
 
 		this.asset_id = asset_id;
-		this.chain_id = '';
+		this.chain_id = chain_id;
 
 		this.balance_timestamp_last_fetched = 0;
 		this.minimum_delay_between_balance_queries = 4000;
@@ -59,21 +59,30 @@ class MixinModule extends CryptoModule {
 		if (this.mixin.account_created == 0) {
 			this.app.connection.emit('header-install-crypto', this.ticker);
 			await this.mixin.createAccount(async (res) => {
+				let rv = false;
+				if (res.err) {
+					console.error(res.err);
+				}
+
 				if (Object.keys(res).length > 1) {
-					await this.mixin.createDepositAddress(this.asset_id);
+					rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
+				}
+
+				if (rv) {
 					super.activate();
 				} else {
 					salert('Having problem generating key for ' + ' ' + this.ticker);
 					await this.app.wallet.setPreferredCrypto('SAITO');
-					if (res.err) {
-						console.error(res.err);
-					}
 				}
 			});
 		} else {
 			if (!this.address) {
 				this.app.connection.emit('header-install-crypto', this.ticker);
-				await this.mixin.createDepositAddress(this.asset_id);
+				let rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
+				if (!rv) {
+					salert('Having problem generating key for ' + ' ' + this.ticker);
+					await this.app.wallet.setPreferredCrypto('SAITO');
+				}
 			}
 
 			super.activate();
@@ -86,6 +95,10 @@ class MixinModule extends CryptoModule {
 	 * @return {Number}
 	 */
 	async checkBalance() {
+		if (!this.address) {
+			console.info("Don't query for crypto if we don't even have an address");
+			return;
+		}
 		let now = new Date().getTime();
 		if (now - this.balance_timestamp_last_fetched > this.minimum_delay_between_balance_queries) {
 			console.log('MixinModule Query balance for ' + this.ticker);

@@ -136,9 +136,10 @@ class Mixin extends ModTemplate {
       //
       let crypto_module = new MixinModule(
         this.app,
-        rtModules[i].ticker,
         mixin_self,
-        rtModules[i].asset_id
+        rtModules[i].ticker,
+        rtModules[i].asset_id,
+        rtModules[i].chain_id
       );
 
       //
@@ -368,8 +369,7 @@ class Mixin extends ModTemplate {
     }
   }
 
-  async createDepositAddress(asset_id) {
-    let mixin_self = this;
+  async createDepositAddress(asset_id, chain_id) {
     try {
       let user = MixinApi({
         keystore: {
@@ -380,10 +380,7 @@ class Mixin extends ModTemplate {
         }
       });
 
-      let address = await user.safe.createDeposit(asset_id);
-
-      console.log('adress //');
-      console.log(address);
+      let address = await user.safe.createDeposit(chain_id);
 
       if (typeof address[0].destination != 'undefined') {
         for (let i = 0; i < this.crypto_mods.length; i++) {
@@ -396,15 +393,19 @@ class Mixin extends ModTemplate {
               user_id: this.mixin.user_id,
               asset_id: asset_id,
               address: address[0].destination,
-              publickey: mixin_self.publicKey
+              publickey: this.publicKey
             });
           }
         }
+      } else {
+        throw new Error('Deposit Address undefined!');
       }
     } catch (err) {
       console.error('ERROR: Mixin error create deposit address: ' + err);
       return false;
     }
+
+    return true;
   }
 
   async fetchAsset(asset_id) {
