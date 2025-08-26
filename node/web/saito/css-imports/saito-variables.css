@@ -96,7 +96,7 @@ font imports
     )
     transparent no-repeat left top / 400% auto;
 
-  --saito-secondary: var(--saito-red-dark);
+  --saito-secondary: var(--saito-yellow-light);
   --saito-secondary-text: var(--saito-white);
 
   --saito-arcade-overlay-background: #212022;
@@ -110,9 +110,9 @@ font imports
   --background-color-shim-normal: #0008;
   --background-color-shim-dark: #000b;
 
-  --saito-border-color: var(--saito-gray-light);
+  --saito-border-color-light: var(--saito-gray-light);
+  --saito-border-color: var(--saito-black-light);
   --saito-border-color-dark: var(--saito-gray-dark);
-  --saito-border: 1px solid #c5c5c5bb;
   --saito-border-radius: 0.5rem;
 
   --saito-box-shadow:
