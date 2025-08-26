@@ -36,10 +36,6 @@ class EGLDModule extends CryptoModule {
   async initialize(app) {
     try {
       await super.initialize(app);
-
-      await this.getAddress();
-
-      await this.setupNetwork();
     } catch (error) {
       console.error('Error initialize:', error);
     }
@@ -53,9 +49,7 @@ class EGLDModule extends CryptoModule {
 
       await this.setupNetwork();
 
-      if (!this.options?.mnemonic_text) {
-        await this.getAddress();
-      }
+      await this.getAddress();
 
       await this.updateAccount();
 
@@ -65,28 +59,32 @@ class EGLDModule extends CryptoModule {
     }
   }
 
-  async getAddress(mnemonic_text = null) {
+  async getAddress() {
     try {
       let mnemonic = null;
 
-      // Load from my wallet if none provided
-      if (!mnemonic_text) {
-        mnemonic_text = this.options?.mnemonic_text;
-      }
+      let mnemonic_text =
+        this.options?.mnemonic_text ||
+        this.app.crypto.generateSeedFromPrivateKey(await this.app.wallet.returnPrivateKey());
 
-      //
+      let save_me = false;
+
       if (mnemonic_text) {
         mnemonic = Mnemonic.fromString(mnemonic_text);
       } else {
         // Generate Ed25519 key pair
         mnemonic = Mnemonic.generate();
+        save_me = true;
       }
 
       this.secretKey = mnemonic.deriveKey(0);
       const publicKey = this.secretKey.generatePublicKey();
       this.address_obj = publicKey.toAddress();
 
-      this.options.mnemonic_text = mnemonic.text;
+      if (save_me) {
+        this.options.mnemonic_text = mnemonic.text;
+      }
+
       this.options.address = this.address = this.address_obj.toBech32();
     } catch (error) {
       console.error('Error creating EGLD address:', error);

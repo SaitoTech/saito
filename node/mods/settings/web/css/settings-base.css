@@ -38,10 +38,11 @@
 	grid-template-columns: 10rem max-content;
 	grid-template-rows: repeat(3, 1fr);
 	grid-column-gap: 1.5rem;
-	grid-row-gap: 1.5rem;
+	grid-row-gap: 0.75rem;
 	padding: 1rem;
 	max-width: 100%;
 	overflow: auto;
+	align-items: center;
 }
 
 .settings-appspace-user-details > div {

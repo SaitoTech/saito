@@ -3,6 +3,8 @@ import Saito from 'saito-js/saito';
 import node_cryptojs from 'node-cryptojs-aes';
 import crypto from 'crypto-browserify';
 import * as Base58 from 'base-58';
+import secp256k1 from 'secp256k1';
+const bip39 = require('bip39');
 
 const CryptoJS = node_cryptojs.CryptoJS;
 const JsonFormatter = node_cryptojs.JsonFormatter;
@@ -298,49 +300,29 @@ export default class Crypto {
     return /^[A-HJ-NP-Za-km-z1-9]*$/.test(t);
   }
 
-  /* 
+  //Restoring these functions ...
 
-  const secp256k1 = require('secp256k1')
-  const bip39 = require('bip39');
-  
-  //Restoring these functions ... 
-  
-  generateSeedFromPrivateKey = function (existingPrivateKey: String) {
+  generateSeedFromPrivateKey(existingPrivateKey: String) {
     // Create a seed that will deterministically generate your key first
-
     let seed = Buffer.from(existingPrivateKey, 'hex');
 
     // Generate mnemonic from this seed
-
     const mnemonic = bip39.entropyToMnemonic(seed);
 
-    return {
-      mnemonic: mnemonic,
+    return mnemonic;
+  }
 
-      seed: seed
-    };
-  };
-
-  getPrivateKeyFromSeed = function (mnemonic: string) {
+  getPrivateKeyFromSeed(mnemonic: string) {
     try {
       // Validate the mnemonic
-
       if (!bip39.validateMnemonic(mnemonic)) {
         throw new Error('Invalid mnemonic');
       }
 
       // Convert mnemonic back to entropy
-
-      // This will give us back our original private key since we used it as entropy
-
-      const entropy = bip39.mnemonicToEntropy(mnemonic);
-
-      // Convert to Buffer/hex string as needed
-
-      const privateKey = entropy;
+      const privateKey = bip39.mnemonicToEntropy(mnemonic);
 
       // Verify if this is a valid secp256k1 private key
-
       if (!secp256k1.privateKeyVerify(Buffer.from(privateKey, 'hex'))) {
         throw new Error('Generated private key is not valid for secp256k1');
       }
@@ -348,10 +330,7 @@ export default class Crypto {
       return privateKey;
     } catch (error) {
       console.error('Error getting private key from seed:', error);
-
-      throw error;
+      return null;
     }
-  };
-
-*/
+  }
 }

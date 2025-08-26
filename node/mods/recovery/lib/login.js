@@ -49,6 +49,13 @@ class Login {
 				'<center>Fetching Encrypted Wallet from Network...</center>';
 			this.mod.restoreWallet(email, password);
 		};
+
+		if (document.getElementById('input-private-key')) {
+			document.getElementById('input-private-key').onclick = () => {
+				this.hide();
+				this.app.connection.emit('recovery-private-key-render-request');
+			};
+		}
 	}
 
 	async success() {

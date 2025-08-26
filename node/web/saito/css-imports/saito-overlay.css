@@ -203,6 +203,11 @@
   border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
 }
 
+.saito-overlay-form textarea {
+  font-size: 2.2rem;
+  height: 13rem;
+}
+
 .module-settings-overlay {
   min-width: min(800px, 95vw);
   min-height: min(400px, 90vh);

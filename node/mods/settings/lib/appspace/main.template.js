@@ -52,11 +52,11 @@ module.exports = (app, mod, main) => {
 
     <div class="settings-appspace-header">
       <div class="settings-actions-container">
-        <div class="saito-button-secondary small" id="restore-privatekey-btn">Import Key</div>
-        <div class="saito-button-secondary small" id="restore-account-btn">Restore Wallet</div>
-        <div class="saito-button-secondary small" id="backup-account-btn">Backup Wallet</div>
-        <div class="saito-button-secondary small" id="nuke-account-btn">Nuke Account</div>
-        <div class="saito-button-secondary small" id="clear-storage-btn">Clear Local Cache</div>
+        <div class="saito-button-secondary small" id="restore-privatekey-btn" title="Restore account from private key or seed phrase">Import Key</div>
+        <div class="saito-button-secondary small" id="restore-account-btn" title="Restore account by uploading json-file of wallet">Restore Wallet</div>
+        <div class="saito-button-secondary small" id="backup-account-btn" title="Download json-file copy of wallet">Backup Wallet</div>
+        <div class="saito-button-secondary small" id="nuke-account-btn" title="Wipe local storage and reload site with new key pair">Nuke Account</div>
+        <div class="saito-button-secondary small" id="clear-storage-btn" title="Removes local data storage, but keeps wallet intact">Clear Local Cache</div>
       </div>
     </div>
 
@@ -74,9 +74,9 @@ module.exports = (app, mod, main) => {
             </div>
       
             <div>Private Key:</div>
-            <div class="pubkey-grid" data-id="${main.privateKey}">
-              <div class="saito-password">${main.privateKey}</div>
-              <i class="fas fa-copy" id="copy-private-key"></i>
+            <div class="settings-actions-container">
+              <div id="show-phrase" class="saito-button-secondary small">view seed phrase</div>
+              <div id="copy-private-key" class="saito-button-secondary small">copy private key</div>
             </div>
 
             <div>Default Fee:</div>
