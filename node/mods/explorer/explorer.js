@@ -225,7 +225,7 @@ class ExplorerCore extends ModTemplate {
 		return '<body> \
         \
         <div id="saito-header" class="header header-home"> \
-        <img class="saito-header-logo" src="/saito/img/logo.svg"> \
+        <img class="saito-header-logo" src=""> \
     </div>';
 	}
 

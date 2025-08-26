@@ -56,7 +56,7 @@
   min-height: 40px;
   color: var(--saito-font-color-heavy);
   text-transform: uppercase;
-  font-family: var(--saito-font-medium);
+  font-family: var(--saito-font);
 }
 
 .sidebar-header > div {

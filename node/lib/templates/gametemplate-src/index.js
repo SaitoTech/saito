@@ -135,7 +135,6 @@ module.exports = (app, mod, build_number, og_card, include_loader = true) => {
 
       .saito-loader-container h1{
         font-size: min(4.5rem, 12vw);
-        font-weight: bold;
         margin-bottom: unset
       }
     </style>
