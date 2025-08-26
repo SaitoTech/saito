@@ -822,18 +822,39 @@ impl Wallet {
         //
 
         //
-        // Output [0] - slip 1
+        // Output [0] - slip1
         //
-        // since we are creating the NFT, we set ourselves as the publickey of the
-        // first output slip, since this will also be the publickey that is in the
-        // input slip that we are spending to create the NFT.
+        // our firt slip is "bound" NFT slip that will be unspendable unless
+        // moved together with the slip2. since slip3 contains the publickey of the
+        // original UTXO that was spent to create the transaction, this slip re-uses
+        // the publickey data-field to store the other necessary information.
+        //
+        //   - "nft_id" consists:
+        //
+        //       • 8 bytes of nft block_id,
+        //       • 8 bytes of nft transaction_id,
+        //       • 1 byte of nft slip_id (totaling 17 bytes)
+        //       • 16 bytes padded by remainder of recipient's public key
+        //
+        // Whenever the NFT is send between addresses
+        // this field is recreated using the two non-normal bound slips that
+        // encode the UTXO that was used to create the NFT originally.
+        //
+        // accordingly, we merge these fields into a new "publickey"
+        //
+
+        let slip1_pubkey = Wallet::create_nft_uuid(&input_slip, &nft_type);
+
+        //
+        // and create the slip with this "artificially-created" publickey
         //
         let output_slip1 = Slip {
-            public_key: self.public_key,
-            amount: nft_num,
+            public_key: slip1_pubkey,
+            amount: 0,
             slip_type: SlipType::Bound,
             ..Default::default()
         };
+
 
         //
         // Output [1] - slip2
@@ -852,36 +873,15 @@ impl Wallet {
         };
 
         //
-        // Output [2] - slip3
+        // Output [0] - slip 3
         //
-        // our third slip is another "bound" NFT slip that will be unspendable unless
-        // moved together with the slip2. since slip1 contains the publickey of the
-        // original UTXO that was spent to create the transaction, this slip re-uses
-        // the publickey data-field to store the other necessary information.
-        //
-        //   - "nft_uuid_data" consists:
-        //
-        //       • 8 bytes of nft_uuid_block_id,
-        //       • 8 bytes of nft_uuid_transaction_id,
-        //       • 1 byte of nft_uuid_slip_id (totaling 17 bytes)
-        //       • 16 bytes padded by remainder of recipient's public key
-        //
-        // the transaction includes a copy of the NFT UUID at the head of the
-        // transaction MSG field. Whenever the NFT is send between addresses
-        // this field is recreated using the two non-normal bound slips that
-        // encode the UTXO that was used to create the NFT originally.
-        //
-        // accordingly, we merge these fields into a new "publickey"
-        //
-
-        let uuid_pubkey = Wallet::create_nft_uuid(&input_slip, &nft_type);
-
-        //
-        // and create the slip with this "artificially-created" publickey
+        // since we are creating the NFT, we set ourselves as the publickey of the
+        // third output slip, since this will also be the publickey that is in the
+        // input slip that we are spending to create the NFT.
         //
         let output_slip3 = Slip {
-            public_key: uuid_pubkey,
-            amount: 0,
+            public_key: self.public_key,
+            amount: nft_num,
             slip_type: SlipType::Bound,
             ..Default::default()
         };
@@ -1035,7 +1035,7 @@ impl Wallet {
         //
         // Compute original amounts and deposit logic
         //
-        let orig_amount = input_slip1.amount;
+        let orig_amount = input_slip3.amount;
         let deposit_amount = input_slip2.amount;
         let deposit_per_unit = deposit_amount
             .checked_div(orig_amount)
