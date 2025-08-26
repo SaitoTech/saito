@@ -363,6 +363,7 @@ class MixinModule extends CryptoModule {
 			console.log('mixin tx history:', d);
 
 			let html = '';
+			let balance = this.balance;
 			if (d.length > 0) {
 				for (let i = d.length - 1; i >= 0; i--) {
 					let row = d[i];
