@@ -157,8 +157,13 @@ class MigrationMain {
 
 		if (document.getElementById('automatic')) {
 			document.getElementById('automatic').onclick = async () => {
-				this.mod.sendMigrationPingTransaction();
-				siteMessage('Checking with migration bot...', 2500);
+				let ercMod = this.app.wallet.returnCryptoModuleByTicker(this.mod.wrapped_saito_ticker);
+				if (ercMod) {
+					await ercMod.activate();
+
+					this.mod.sendMigrationPingTransaction({ mixin_address: ercMod.formatAddress() });
+					siteMessage('Checking with migration bot...', 2500);
+				}
 			};
 		}
 	}

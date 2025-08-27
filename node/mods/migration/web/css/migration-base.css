@@ -44,3 +44,8 @@ input[type='text'] {
 	border-radius: 0.5rem;
 	border: 1px solid #888a;
 }
+
+.saito-overlay-form-content {
+	font-size: 1.8rem;
+	line-height: 2.2rem;
+}

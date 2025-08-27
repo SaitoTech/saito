@@ -18,6 +18,10 @@ class Migration extends ModTemplate {
 
 		this.main = null;
 		this.header = null;
+		this.overlay = new SaitoOverlay(this.app, this, false);
+
+		this.key_cache = {};
+		this.wrapped_saito_ticker = 'ERC-SAITO';
 
 		this.local_dev = true;
 		//
@@ -37,7 +41,7 @@ class Migration extends ModTemplate {
 			}
 
 			setTimeout(async () => {
-				let cmod = this.app.wallet.returnCryptoModuleByTicker('ERC-SAITO');
+				let cmod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
 				if (cmod) {
 					await cmod.activate();
 					this.can_auto = true;
@@ -85,6 +89,9 @@ class Migration extends ModTemplate {
 
 				if (txmsg.request === 'save migration data') {
 					await this.receiveStoreMigrationTransaction(blk, tx, conf);
+				}
+
+				if (txmsg.request === 'crypto payment') {
 				}
 			}
 		} catch (err) {
@@ -182,7 +189,16 @@ class Migration extends ModTemplate {
 	}
 
 	async receiveMigrationPingTransaction(app, tx, peer, mycallback) {
-		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(tx.from[0].publicKey);
+		if (!tx) {
+			return;
+		}
+
+		let txmsg = tx.returnMessage();
+		let saitozen = tx.from[0].publicKey;
+
+		this.key_cache[txmsg.mixin_address] = saitozen;
+
+		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(saitozen);
 
 		let error = null;
 		// Check balance
@@ -190,7 +206,7 @@ class Migration extends ModTemplate {
 		let min_deposit = 1000;
 		let max_deposit = await this.app.wallet.getBalance('SAITO');
 
-		let ercMod = this.app.wallet.returnCryptoModuleByTicker('ERC-SAITO');
+		let ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
 
 		if (!ercMod) {
 			error = "Migration node doesn't have ERC20 Saito installed";
@@ -199,7 +215,7 @@ class Migration extends ModTemplate {
 		await ercMod.activate();
 
 		if (Number(max_deposit) < 1000) {
-			error = 'Migration node is low on on-chain $SAITO';
+			//error = 'Migration node is low on on-chain $SAITO';
 		}
 
 		newtx.msg = {
@@ -225,7 +241,7 @@ class Migration extends ModTemplate {
 			console.log('****************', txmsg);
 
 			if (txmsg.data.error) {
-				salert('Unable to Migrate now: <br>' + txmsg.data.error);
+				salert('Unable to migrate now: <br>' + txmsg.data.error);
 				return;
 			}
 
@@ -240,14 +256,78 @@ class Migration extends ModTemplate {
 			if (this.confirmed) {
 				app.connection.emit('saito-crypto-deposit-render-request', {
 					title: 'ERC20 wrapped $SAITO',
-					ticker: 'ERC-SAITO',
+					ticker: this.wrapped_saito_ticker,
 					migration: true,
 					callback: () => {
-						siteMessage('submitted!');
+						this.checkForLocalDeposit(txmsg.data.mixin_address);
 					}
 				});
 			}
 		}
+	}
+
+	checkForLocalDeposit(receiving_address) {
+		this.overlay.show(`
+						        <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit-container">
+						            <div class="saito-overlay-form-header">
+						                <div class="saito-overlay-form-header-title">Transfering</div>
+						            </div>
+						            <div class="saito-overlay-form-content">
+						            	<div class="game-loader-spinner"></div>
+						            </div>
+
+						        <div class="saito-button-row hideme">
+						           <button type="button" class="saito-button-primary" id='submit'>Convert</button> 
+						        </div>
+
+						        </div>`);
+
+		let ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+		let balance = Number(ercMod.returnBalance());
+		let interval = setInterval(() => {
+			ercMod.checkBalance();
+			let new_balance = Number(ercMod.returnBalance());
+			if (new_balance > balance || this.local_dev) {
+				clearInterval(interval);
+				if (document.querySelector('.saito-overlay-form-content')) {
+					document.querySelector('.saito-overlay-form-content').innerHTML =
+						`Deposited ERC20 $SAITO successfully associated with your Saito account (${this.publicKey.slice(0, 8)}...${this.publicKey.slice(-8)}), click next to convert to on chain Saito`;
+				}
+
+				if (document.querySelector('.hideme')) {
+					document.querySelector('.hideme').classList.remove('hideme');
+				}
+
+				if (document.getElementById('submit')) {
+					document.getElementById('submit').onclick = () => {
+						this.overlay.remove();
+						let sender = ercMod.formatAddress();
+
+						console.log(receiving_address);
+
+						let unique_hash = this.app.crypto.hash(
+							Buffer.from(sender + receiving_address + new_balance + 'ERC-SAITO', 'utf-8')
+						);
+
+						this.app.wallet.sendPayment(
+							this.wrapped_saito_ticker,
+							[ercMod.formatAddress()],
+							[receiving_address],
+							[new_balance],
+							unique_hash,
+							function (robj) {
+								document.querySelector('.withdraw-title').innerHTML = 'Converting saito';
+								document.querySelector('.withdraw-intro').innerHTML =
+									'This may take a few minutes, please be patient';
+								document.querySelector('.withdraw-form-fields').remove();
+								document.querySelector('.withdraw-outtro').remove();
+							},
+							this.migration_publickey
+						);
+					};
+				}
+			}
+		}, 5000);
 	}
 }
 
