@@ -136,7 +136,6 @@ class SaitoHeader extends UIModTemplate {
 
     app.connection.on('header-update-crypto', async () => {
       if (!this.installing_crypto) {
-        //console.log("$$$$ header-update-crypto --> renderCrypto");
         await this.renderCrypto();
       } else {
         console.log('dont render crypto');
@@ -548,6 +547,7 @@ class SaitoHeader extends UIModTemplate {
 
         this.clearBalanceCheck();
         this.clearPendingDepositsCheck();
+        //>>>>>>>>>>>>>>>>>>>
         await app.wallet.setPreferredCrypto(element.value);
         console.log(
           'Change preferred crypto, restart polls on crypto balance and pending deposits'

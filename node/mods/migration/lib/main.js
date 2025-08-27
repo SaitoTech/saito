@@ -154,6 +154,13 @@ class MigrationMain {
 			document.querySelector('#erc20').style.display = 'none';
 			document.querySelector('.withdraw-button').style.display = 'none';
 		};
+
+		if (document.getElementById('automatic')) {
+			document.getElementById('automatic').onclick = async () => {
+				this.mod.sendMigrationPingTransaction();
+				siteMessage('Checking with migration bot...', 2500);
+			};
+		}
 	}
 }
 

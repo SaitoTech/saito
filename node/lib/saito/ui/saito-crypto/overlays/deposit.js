@@ -8,26 +8,22 @@ class Deposit {
     this.overlay = new SaitoOverlay(app, mod, false);
 
     app.connection.on('saito-crypto-deposit-render-request', async (obj) => {
-      // Fallback in case specifying a different crypto
-      if (obj?.ticker) {
-        await app.wallet.setPreferredCrypto(obj.ticker);
-      }
+      // Cache these to fill in the overlay
+      this.title = obj.title || 'Top up wallet';
+      this.ticker = obj.ticker || this.app.wallet.returnPreferredCryptoTicker();
 
-      if (obj?.amount) {
-        this.desired_amount = obj.amount;
-      } else {
-        delete this.desired_amount;
-      }
+      this.address = obj.address || this.app.wallet.returnCryptoAddressByTicker(this.ticker);
+
+      this.desired_amount = obj.amount || null;
+      this.migration = obj.migration || false;
+
+      this.callback = obj.callback || null;
 
       this.render();
     });
   }
 
   async render() {
-    // Cache these to fill in the overlay
-    this.ticker = this.app.wallet.returnPreferredCryptoTicker();
-    this.address = this.app.wallet.returnPreferredCryptoAddress();
-
     this.overlay.show(DepositTemplate(this.app, this.mod, this));
     this.renderCrypto();
     this.attachEvents();
@@ -44,15 +40,28 @@ class Deposit {
         icon_element.classList.toggle('fa-check');
       }, 800);
     };
+
+    if (document.getElementById('submit')) {
+      document.getElementById('submit').onclick = () => {
+        this.overlay.remove();
+        if (this.callback) {
+          this.callback();
+        }
+      };
+    }
   }
 
   async renderCrypto() {
     try {
-      let cryptomod = this.app.wallet.returnPreferredCrypto();
-      let balance = await this.app.wallet.returnPreferredCryptoBalance();
+      let cryptomod = this.app.wallet.returnCryptoModuleByTicker(this.ticker);
 
-      document.querySelector(`#saito-deposit-form .balance-amount`).innerHTML =
-        this.app.browser.returnBalanceHTML(balance);
+      if (document.querySelector(`#saito-deposit-form .balance-amount`)) {
+        await cryptomod.checkBalance();
+        let balance = cryptomod.returnBalance();
+
+        document.querySelector(`#saito-deposit-form .balance-amount`).innerHTML =
+          this.app.browser.returnBalanceHTML(balance);
+      }
 
       if (cryptomod?.confirmations) {
         document.querySelector('.network-confirmations-count').innerHTML = cryptomod.confirmations;

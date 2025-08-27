@@ -65,7 +65,7 @@ class EGLDModule extends CryptoModule {
 
       let mnemonic_text =
         this.options?.mnemonic_text ||
-        this.app.crypto.generateSeedFromPrivateKey(await this.app.wallet.returnPrivateKey());
+        this.app.crypto.generateSeedFromPrivateKey(await this.app.wallet.getPrivateKey());
 
       let save_me = false;
 

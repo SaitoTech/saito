@@ -502,13 +502,17 @@ export default class Wallet extends SaitoWallet {
   // WEB3 CRYPTO MODULES //
   /////////////////////////
 
-  returnInstalledCryptos() {
+  returnInstalledCryptos(filter = true) {
     const cryptoModules: (typeof CryptoModule)[] =
       this.app.modules.returnModulesBySubType(CryptoModule);
     if (this.saitoCrypto !== null) {
       cryptoModules.push(this.saitoCrypto);
     }
-    return cryptoModules;
+    if (filter) {
+      return cryptoModules.filter((m) => !m.hide_me);
+    } else {
+      return cryptoModules;
+    }
   }
 
   returnActivatedCryptos() {
@@ -523,13 +527,14 @@ export default class Wallet extends SaitoWallet {
   }
 
   returnCryptoModuleByTicker(ticker) {
-    const mods = this.returnInstalledCryptos();
+    const mods = this.returnInstalledCryptos(false);
     for (let i = 0; i < mods.length; i++) {
       // be case insensitive, just in case
       if (mods[i].ticker.toUpperCase() === ticker.toUpperCase()) {
         return mods[i];
       }
     }
+
     throw 'Module Not Found: ' + ticker;
   }
 

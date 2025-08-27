@@ -38,7 +38,6 @@ class Mixin extends ModTemplate {
     // All the stuff we save in our wallet
     //
     this.mixin = {};
-    this.mixin.app_id = '';
     this.mixin.user_id = '';
     this.mixin.session_id = '';
     this.mixin.full_name = '';
@@ -48,6 +47,8 @@ class Mixin extends ModTemplate {
     this.mixin.pin_token_base64 = '';
     this.mixin.pin = '';
 
+    this.mixin_peer = null;
+
     this.bot = null;
 
     this.account_created = 0;
@@ -56,25 +57,33 @@ class Mixin extends ModTemplate {
   }
 
   returnServices() {
-    let services = [];
-    if (this.app.BROWSER == 0) {
-      services.push(new PeerService(null, 'mixin'));
+    this.services = [];
+    if (this.bot) {
+      this.services.push(new PeerService(null, 'mixin'));
     }
-    return services;
+    return this.services;
   }
 
   async initialize(app) {
     await super.initialize(app);
     await this.load();
 
-    /*if (!this.app.BROWSER && !this.account_created) {
-      await this.createMixinUserAccount(this.publicKey, (res) => {
-        if (typeof res == 'object' && Object.keys(res).length > 1) {
-          this.mixin = res;
-          this.account_created = 1;
+    if (!app.BROWSER) {
+      if (!this.bot) {
+        // get mixin env
+        let m = this.getEnv();
+        if (m) {
+          const keystore = {
+            app_id: m.app_id,
+            session_id: m.session_id,
+            server_public_key: m.server_public_key,
+            session_private_key: m.session_private_key
+          };
+
+          this.bot = MixinApi({ keystore });
         }
-      });
-    }*/
+      }
+    }
 
     await this.loadCryptos();
     this.save();
@@ -154,6 +163,11 @@ class Mixin extends ModTemplate {
         crypto_module.returnBalance = rtModules[i].returnBalance;
       }
 
+      if (rtModules[i].name !== rtModules[i].ticker) {
+        console.warn('Installing a ghost crypto module: ', rtModules[i].name, rtModules[i].ticker);
+        crypto_module.hide_me = true;
+      }
+
       await crypto_module.installModule(mixin_self.app);
       this.crypto_mods.push(crypto_module);
       this.app.modules.mods.push(crypto_module);
@@ -177,6 +191,8 @@ class Mixin extends ModTemplate {
     }
 
     if (service.service === 'mixin' && !this.account_created) {
+      this.mixin_peer = peer;
+
       // We should never execute this code...
       // but just in case
       let c = this.app.wallet.returnPreferredCrypto();
@@ -189,18 +205,27 @@ class Mixin extends ModTemplate {
 
   async createAccount(callback = null) {
     if (this.account_created == 0) {
-      await this.sendCreateAccountTransaction(callback);
+      if (this.mixin_peer) {
+        console.log('Request remote node to create Mixin User Account', this.mixin_peer.publicKey);
+        await this.sendCreateAccountTransaction(callback);
+      } else {
+        console.log('==> Create Mixin User Account on Same Node as API Keys');
+        await this.createMixinUserAccount(this.publicKey, (res) => {
+          if (typeof res == 'object' && Object.keys(res).length > 1) {
+            this.mixin = res;
+            this.account_created = 1;
+            this.save();
+            if (callback) {
+              callback(res);
+            }
+          }
+        });
+      }
     }
   }
 
   async sendCreateAccountTransaction(callback = null) {
     let mixin_self = this;
-    let peers = await this.app.network.getPeers();
-    // we cannot create an account if the network is down
-    if (peers.length == 0) {
-      console.warn('No peers');
-      return;
-    }
 
     let data = {};
     mixin_self.app.network.sendRequestAsTransaction(
@@ -218,7 +243,7 @@ class Mixin extends ModTemplate {
           return callback(res);
         }
       },
-      peers[0].peerIndex
+      this.mixin_peer
     );
   }
 
@@ -236,27 +261,6 @@ class Mixin extends ModTemplate {
 
   async createMixinUserAccount(pkey, callback) {
     try {
-      //
-      // Create bot/client if necessary
-      //
-      if (!this.bot) {
-        // get mixin env
-        let m = this.getEnv();
-        if (!m) {
-          console.error('===========\nMIXIN ENV variable missing.');
-          return callback({ err: 'MIXIN ENV variable missing.' });
-        }
-
-        const keystore = {
-          app_id: m.app_id,
-          session_id: m.session_id,
-          server_public_key: m.server_public_key,
-          session_private_key: m.session_private_key
-        };
-
-        this.bot = MixinApi({ keystore });
-      }
-
       const { seed: sessionSeed, publicKey: sessionPublicKey } = getED25519KeyPair();
       const session_private_key = sessionSeed.toString('hex');
       //console.log('user session_private_key', session_private_key);
@@ -818,19 +822,13 @@ class Mixin extends ModTemplate {
   }
 
   async sendSaveUserTransaction(params = {}) {
-    let peers = await this.app.network.getPeers();
-    if (peers.length == 0) {
-      console.warn('No peers');
-      return;
-    }
-
     await this.app.network.sendRequestAsTransaction(
       'mixin save user',
       params,
       function (res) {
         console.log('Callback for sendSaveUserTransaction request: ', res);
       },
-      peers[0].peerIndex
+      this.mixin_peer
     );
   }
 
@@ -872,12 +870,6 @@ class Mixin extends ModTemplate {
   }
 
   async sendFetchUserTransaction(params = {}, callback) {
-    let peers = await this.app.network.getPeers();
-    if (peers.length == 0) {
-      console.warn('No peers');
-      return;
-    }
-
     let data = params;
     return this.app.network.sendRequestAsTransaction(
       'mixin fetch user',
@@ -886,7 +878,7 @@ class Mixin extends ModTemplate {
         console.log('Callback for sendFetchUserTransaction request: ', res);
         return callback(res);
       },
-      peers[0].peerIndex
+      this.mixin_peer
     );
   }
 
@@ -909,19 +901,13 @@ class Mixin extends ModTemplate {
 
   // Get MixinAddress -> returnAddressFromPublicKey
   async sendFetchUserByPublicKeyTransaction(params = {}, callback) {
-    let peers = await this.app.network.getPeers();
-    if (peers.length == 0) {
-      console.warn('No peers');
-      return;
-    }
-
     console.log('params: ', params);
 
     return await this.app.network.sendRequestAsTransaction(
       'mixin fetch user by publickey',
       params,
       callback,
-      peers[0].peerIndex
+      this.mixin_peer
     );
   }
 
@@ -945,12 +931,6 @@ class Mixin extends ModTemplate {
 
   //Return History
   async sendFetchAddressByUserIdTransaction(params = {}, callback) {
-    let peers = await this.app.network.getPeers();
-    if (peers.length == 0) {
-      console.warn('No peers');
-      return;
-    }
-
     let data = params;
     await this.app.network.sendRequestAsTransaction(
       'mixin fetch address by user id',
@@ -958,7 +938,7 @@ class Mixin extends ModTemplate {
       function (res) {
         return callback(res);
       },
-      peers[0].peerIndex
+      this.mixin_peer
     );
   }
 

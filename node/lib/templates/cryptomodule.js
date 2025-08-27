@@ -296,6 +296,10 @@ class CryptoModule extends ModTemplate {
         if (this.options?.address && !this?.address) {
           this.address = this.options.address;
         }
+
+        if (this.options.confirmations) {
+          this.confirmations = this.options.confirmations;
+        }
       }
     }
   }
