@@ -57,23 +57,21 @@ class MixinModule extends CryptoModule {
 
 	async activate() {
 		if (this.mixin.account_created == 0) {
-			this.app.connection.emit('header-install-crypto', this.ticker);
 			console.log('Create mixin account');
-			await this.mixin.createAccount(async (res) => {
+			await this.mixin.createAccount((res) => {
 				if (res.err || Object.keys(res).length < 1) {
 					if (this.app.BROWSER) {
 						salert('Having problem generating key for ' + ' ' + this.ticker);
 					}
-					await this.app.wallet.setPreferredCrypto('SAITO');
-					console.error(res?.err);
+					this.app.wallet.setPreferredCrypto('SAITO');
+					console.error(res);
 					return null;
 				}
 
-				await this.activate();
+				this.activate();
 			});
 		} else {
 			if (!this.address) {
-				this.app.connection.emit('header-install-crypto', this.ticker);
 				let rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
 				if (!rv) {
 					if (this.app.BROWSER) {

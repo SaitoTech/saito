@@ -64,17 +64,19 @@ class Migration extends ModTemplate {
 			}
 		}
 
-		setTimeout(async () => {
-			this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+		if (this.browser_active || this.migration_publickey === this.publicKey) {
+			setTimeout(async () => {
+				this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
 
-			if (this.ercMod) {
-				await this.ercMod.activate();
+				if (this.ercMod) {
+					await this.ercMod.activate();
 
-				if (this.relay_available && this.browser_active) {
-					this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
+					if (this.relay_available && this.browser_active) {
+						this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
+					}
 				}
-			}
-		}, 1000);
+			}, 1000);
+		}
 	}
 
 	returnServices() {

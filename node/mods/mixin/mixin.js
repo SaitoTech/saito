@@ -103,7 +103,11 @@ class Mixin extends ModTemplate {
     // we receive requests to create accounts here
     //
     if (message.request === 'mixin create account') {
-      await this.receiveCreateAccountTransaction(app, tx, peer, mycallback);
+      if (this.bot) {
+        await this.receiveCreateAccountTransaction(app, tx, peer, mycallback);
+      } else {
+        console.error('Cannot process Mixin account request for peer');
+      }
     }
 
     //
@@ -224,11 +228,11 @@ class Mixin extends ModTemplate {
     }
   }
 
-  async sendCreateAccountTransaction(callback = null) {
+  sendCreateAccountTransaction(callback = null) {
     let mixin_self = this;
 
     let data = {};
-    mixin_self.app.network.sendRequestAsTransaction(
+    return mixin_self.app.network.sendRequestAsTransaction(
       'mixin create account',
       data,
       function (res) {
@@ -243,23 +247,19 @@ class Mixin extends ModTemplate {
           return callback(res);
         }
       },
-      this.mixin_peer
+      mixin_self.mixin_peer?.peerIndex
     );
   }
 
   receiveCreateAccountTransaction(app, tx, peer, callback) {
     let pkey = tx.from[0].publicKey;
 
-    if (!callback) {
-      callback = () => {};
-    }
-
-    if (app.BROWSER == 0) {
-      this.createMixinUserAccount(pkey, callback);
-    }
+    return this.createMixinUserAccount(pkey, callback);
   }
 
   async createMixinUserAccount(pkey, callback) {
+    const rtn_obj = {};
+
     try {
       const { seed: sessionSeed, publicKey: sessionPublicKey } = getED25519KeyPair();
       const session_private_key = sessionSeed.toString('hex');
@@ -300,7 +300,7 @@ class Mixin extends ModTemplate {
 
       console.log('safe account ///', account.user_id, account.has_safe);
 
-      return callback({
+      Object.assign(rtn_obj, {
         user_id: account.user_id,
         full_name: account.full_name,
         session_id: account.session_id,
@@ -311,7 +311,13 @@ class Mixin extends ModTemplate {
       });
     } catch (err) {
       console.error('Mixin Create Account Error', err);
-      callback({ err: 'Mixin create account error' });
+      Object.assign(rtn_obj, { err: 'Mixin create account error' });
+    }
+
+    if (callback) {
+      return callback(rtn_obj);
+    } else {
+      return rtn_obj;
     }
   }
 
@@ -828,7 +834,7 @@ class Mixin extends ModTemplate {
       function (res) {
         console.log('Callback for sendSaveUserTransaction request: ', res);
       },
-      this.mixin_peer
+      this.mixin_peer?.peerIndex
     );
   }
 
@@ -878,7 +884,7 @@ class Mixin extends ModTemplate {
         console.log('Callback for sendFetchUserTransaction request: ', res);
         return callback(res);
       },
-      this.mixin_peer
+      this.mixin_peer?.peerIndex
     );
   }
 
@@ -907,7 +913,7 @@ class Mixin extends ModTemplate {
       'mixin fetch user by publickey',
       params,
       callback,
-      this.mixin_peer
+      this.mixin_peer?.peerIndex
     );
   }
 
@@ -938,7 +944,7 @@ class Mixin extends ModTemplate {
       function (res) {
         return callback(res);
       },
-      this.mixin_peer
+      this.mixin_peer?.peerIndex
     );
   }
 

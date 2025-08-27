@@ -548,6 +548,8 @@ class SaitoHeader extends UIModTemplate {
         this.clearBalanceCheck();
         this.clearPendingDepositsCheck();
         //>>>>>>>>>>>>>>>>>>>
+        this.app.connection.emit('header-install-crypto', element.value);
+
         await app.wallet.setPreferredCrypto(element.value);
         console.log(
           'Change preferred crypto, restart polls on crypto balance and pending deposits'
