@@ -72,7 +72,6 @@ class MixinModule extends CryptoModule {
 				await this.activate();
 			});
 		} else {
-			console.log(`Address for ${this.ticker}: ${this.address}`);
 			if (!this.address) {
 				this.app.connection.emit('header-install-crypto', this.ticker);
 				let rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
@@ -81,6 +80,8 @@ class MixinModule extends CryptoModule {
 						salert('Having problem generating key for ' + ' ' + this.ticker);
 					}
 					await this.app.wallet.setPreferredCrypto('SAITO');
+				} else {
+					console.log(`Address for ${this.ticker}: ${this.address}`);
 				}
 			}
 

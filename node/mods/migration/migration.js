@@ -23,11 +23,16 @@ class Migration extends ModTemplate {
 		this.key_cache = {};
 		this.wrapped_saito_ticker = 'ERC-SAITO';
 
+		this.relay_available = false;
+		this.can_auto = false;
+
 		this.local_dev = false;
+
 		//
 		// TODO -- CHANGE THIS
 		//
-		this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
+		this.migration_publickey = '';
+		this.migration_mixin_address = '';
 
 		app.connection.on('saito-crypto-receive-confirm', (txmsg) => {
 			const { amount, from } = txmsg;
@@ -57,16 +62,19 @@ class Migration extends ModTemplate {
 			if (this.local_dev) {
 				this.migration_publickey = this.publicKey;
 			}
-
-			setTimeout(async () => {
-				let cmod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
-				if (cmod) {
-					await cmod.activate();
-					this.can_auto = true;
-					console.log(cmod.formatAddress());
-				}
-			}, 2000);
 		}
+
+		setTimeout(async () => {
+			this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+
+			if (this.ercMod) {
+				await this.ercMod.activate();
+
+				if (this.relay_available && this.browser_active) {
+					this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
+				}
+			}
+		}, 1000);
 	}
 
 	returnServices() {
@@ -81,6 +89,15 @@ class Migration extends ModTemplate {
 		// Update migration service node address
 		if (service.service == 'migration') {
 			this.migration_publickey = peer.publicKey;
+		}
+
+		if (service.service == 'relay') {
+			if (this.browser_active) {
+				this.relay_available = true;
+				if (this.ercMod) {
+					this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
+				}
+			}
 		}
 	}
 
@@ -177,7 +194,7 @@ class Migration extends ModTemplate {
 		if (tx?.isTo(this.publicKey)) {
 			let txmsg = tx.returnMessage();
 
-			if (txmsg.request == 'migration check') {
+			if (txmsg.request == 'migration check' && this.publicKey == this.migration_publickey) {
 				await this.receiveMigrationPingTransaction(app, tx, peer, mycallback);
 			}
 
@@ -188,6 +205,10 @@ class Migration extends ModTemplate {
 	}
 
 	async sendMigrationPingTransaction(data) {
+		if (!this.migration_publickey) {
+			return;
+		}
+
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
 			this.migration_publickey
 		);
@@ -221,13 +242,11 @@ class Migration extends ModTemplate {
 		let min_deposit = 1000;
 		let max_deposit = await this.app.wallet.getBalance('SAITO');
 
-		let ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
-
-		if (!ercMod) {
+		if (!this.ercMod) {
 			error = "Migration node doesn't have ERC20 Saito installed";
 		}
 
-		await ercMod.activate();
+		await this.ercMod.activate();
 
 		if (Number(max_deposit) < 1000) {
 			//error = 'Migration node is low on on-chain $SAITO';
@@ -239,7 +258,7 @@ class Migration extends ModTemplate {
 			data: {
 				min_deposit,
 				max_deposit,
-				mixin_address: ercMod.formatAddress(),
+				mixin_address: this.ercMod.formatAddress(),
 				error
 			}
 		};
@@ -253,43 +272,30 @@ class Migration extends ModTemplate {
 		if (app.BROWSER) {
 			let txmsg = tx.returnMessage();
 
-			console.log('****************', txmsg);
-
 			if (txmsg.data.error) {
-				salert('Unable to migrate now: <br>' + txmsg.data.error);
+				console.error(txmsg.data.error);
 				return;
 			}
 
 			// Maybe the migration server changes the deposit address...
+			this.migration_mixin_address = txmsg.data.mixin_address;
 
-			if (!this.confirmed) {
-				this.confirmed = await sconfirm(
-					'This automated feature is under development, do <em>not</em> close your browser while the process is underway'
-				);
-			}
+			this.can_auto = true;
 
-			if (this.confirmed) {
-				// We are already sitting on some ERC20 wrapped SAITO
-				let ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
-				this.balance = Number(ercMod.returnBalance());
+			// We are already sitting on some ERC20 wrapped SAITO
+			this.balance = Number(this.ercMod.returnBalance());
 
-				app.connection.emit('saito-crypto-deposit-render-request', {
-					title: 'ERC20 wrapped $SAITO',
-					ticker: this.wrapped_saito_ticker,
-					migration: true,
-					callback: () => {
-						this.checkForLocalDeposit(txmsg.data.mixin_address);
-					}
-				});
-			}
+			this.main.render();
+
+			siteMessage('Migration bot available...', 2000);
 		}
 	}
 
-	checkForLocalDeposit(receiving_address) {
+	checkForLocalDeposit() {
 		this.overlay.show(`
 						        <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit-container">
 						            <div class="saito-overlay-form-header">
-						                <div class="saito-overlay-form-header-title">Transfering</div>
+						                <div class="saito-overlay-form-header-title">Transfering...</div>
 						            </div>
 						            <div class="saito-overlay-form-content">
 						            	<div class="game-loader-spinner"></div>
@@ -301,16 +307,19 @@ class Migration extends ModTemplate {
 
 						        </div>`);
 
-		let ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+		const mod_self = this;
 
 		let interval = setInterval(() => {
-			ercMod.checkBalance();
-			let new_balance = Number(ercMod.returnBalance());
+			this.ercMod.checkBalance();
+			let new_balance = Number(this.ercMod.returnBalance());
 			if (new_balance > this.balance || this.local_dev) {
 				clearInterval(interval);
+				if (document.querySelector('.saito-overlay-form-header-title')) {
+					document.querySelector('.saito-overlay-form-header-title').innerHTML = 'Deposited';
+				}
 				if (document.querySelector('.saito-overlay-form-content')) {
-					let html = `<div>${new_balance} ERC20 $SAITO successfully deposited, and associatied with Saito account: `;
-					html += `${this.publicKey.slice(0, 8)}...${this.publicKey.slice(-8)} </div>`;
+					let html = `<div>Deposited ${new_balance} ERC20 $SAITO into </div>`;
+					html += `<div class=""> ${this.publicKey.slice(0, 8)}...${this.publicKey.slice(-8)} </div>`;
 					html += `<div>Click next to convert to on chain Saito</div>`;
 					document.querySelector('.saito-overlay-form-content').innerHTML = html;
 				}
@@ -320,24 +329,29 @@ class Migration extends ModTemplate {
 				}
 
 				if (document.getElementById('submit')) {
-					document.getElementById('submit').onclick = () => {
-						this.overlay.remove();
-						let sender = ercMod.formatAddress();
+					document.getElementById('submit').onclick = (e) => {
+						if (document.querySelector('.saito-overlay-form-header-title')) {
+							document.querySelector('.saito-overlay-form-header-title').innerHTML =
+								'Converting...';
+						}
+
+						e.currentTarget.remove();
+						let sender = this.ercMod.formatAddress();
 
 						let amount = new_balance.toFixed(8);
-						console.log(receiving_address);
 
 						let unique_hash = this.app.crypto.hash(
-							Buffer.from(sender + receiving_address + amount + 'ERC-SAITO', 'utf-8')
+							Buffer.from(sender + this.migration_mixin_address + amount + 'ERC-SAITO', 'utf-8')
 						);
 
 						this.app.wallet.sendPayment(
 							this.wrapped_saito_ticker,
-							[ercMod.formatAddress()],
-							[receiving_address],
+							[this.ercMod.formatAddress()],
+							[this.migration_mixin_address],
 							[amount],
 							unique_hash,
 							function (robj) {
+								mod_self.overlay.remove();
 								if (robj?.err) {
 									salert('Migration Error: <br> ' + robj.err);
 									return;
