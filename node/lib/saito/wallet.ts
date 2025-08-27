@@ -731,7 +731,7 @@ export default class Wallet extends SaitoWallet {
     console.error('sendPayment ERROR: ', rtnObj);
 
     if (mycallback) {
-      mycallback({ rtnObj });
+      mycallback(rtnObj);
     }
   }
 

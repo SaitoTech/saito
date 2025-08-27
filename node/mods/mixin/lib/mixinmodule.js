@@ -119,70 +119,66 @@ class MixinModule extends CryptoModule {
 	 * @return {Number}
 	 */
 	async sendPayment(amount = '', recipient = '', unique_hash = '') {
-		try {
-			let r = recipient.split('|');
+		let r = recipient.split('|');
 
-			let internal_transfer = false;
-			let destination = recipient;
+		let internal_transfer = false;
+		let destination = recipient;
 
-			let res = {};
+		let res = {};
 
-			console.log('send sendPayment');
-			console.log('Recipient: ' + recipient);
+		console.log('send sendPayment');
+		console.log('Recipient: ' + recipient);
 
-			// if address has |mixin| concat
-			if (r.length >= 2) {
-				if (r[2] === 'mixin') {
-					console.log('Send to Mixin address');
-					internal_transfer = true;
-					destination = r[1];
-				}
+		// if address has |mixin| concat
+		if (r.length >= 2) {
+			if (r[2] === 'mixin') {
+				console.log('Send to Mixin address');
+				internal_transfer = true;
+				destination = r[1];
 			}
+		}
 
-			// check if address exists in local db
-			if (internal_transfer == false) {
-				await this.mixin.sendFetchUserTransaction(
-					{
-						address: recipient
-					},
-					function (res) {
-						console.log('Cross network callback complete');
-						if (res?.user_id) {
-							internal_transfer = true;
-							destination = res.user_id;
-						}
+		// check if address exists in local db
+		if (internal_transfer == false) {
+			await this.mixin.sendFetchUserTransaction(
+				{
+					address: recipient
+				},
+				function (res) {
+					console.log('Cross network callback complete');
+					if (res?.user_id) {
+						internal_transfer = true;
+						destination = res.user_id;
 					}
-				);
-			}
+				}
+			);
+		}
 
-			console.log('Initiate mixin transfer, internally? ', internal_transfer);
+		console.log('Initiate mixin transfer, internally? ', internal_transfer);
 
-			// internal mixin transfer
-			if (internal_transfer) {
-				res = await this.mixin.sendInNetworkTransferRequest(
-					this.asset_id,
-					destination,
-					amount,
-					unique_hash
-				);
-			} else {
-				// address is external, send external withdrawl request
-				res = await this.mixin.sendExternalNetworkTransferRequest(
-					this.asset_id,
-					destination,
-					amount,
-					unique_hash
-				);
-			}
+		// internal mixin transfer
+		if (internal_transfer) {
+			res = await this.mixin.sendInNetworkTransferRequest(
+				this.asset_id,
+				destination,
+				amount,
+				unique_hash
+			);
+		} else {
+			// address is external, send external withdrawl request
+			res = await this.mixin.sendExternalNetworkTransferRequest(
+				this.asset_id,
+				destination,
+				amount,
+				unique_hash
+			);
+		}
 
-			if (res.status == 200) {
-				return unique_hash;
-			} else {
-				console.error(res.message);
-				return '';
-			}
-		} catch (err) {
-			console.log('send payment err: ', err);
+		if (res.status == 200) {
+			return unique_hash;
+		} else {
+			throw new Error('MixinModule: ' + res.message);
+			return '';
 		}
 	}
 

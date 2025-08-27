@@ -160,7 +160,6 @@ class MigrationMain {
 				let ercMod = this.app.wallet.returnCryptoModuleByTicker(this.mod.wrapped_saito_ticker);
 				if (ercMod) {
 					await ercMod.activate();
-
 					this.mod.sendMigrationPingTransaction({ mixin_address: ercMod.formatAddress() });
 					siteMessage('Checking with migration bot...', 2500);
 				}

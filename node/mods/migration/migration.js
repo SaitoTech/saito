@@ -23,11 +23,29 @@ class Migration extends ModTemplate {
 		this.key_cache = {};
 		this.wrapped_saito_ticker = 'ERC-SAITO';
 
-		this.local_dev = true;
+		this.local_dev = false;
 		//
 		// TODO -- CHANGE THIS
 		//
 		this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
+
+		app.connection.on('saito-crypto-receive-confirm', (txmsg) => {
+			const { amount, from } = txmsg;
+			if (txmsg.module !== this.wrapped_saito_ticker) {
+				console.error('Processing a crypto transfer tx for non-Saito!!');
+				return;
+			}
+
+			let saitozen_key = this.key_cache[from];
+
+			if (!saitozen_key) {
+				console.error('Process a crypto transfer from an unknown sender!!!');
+				return;
+			}
+
+			let sm = app.wallet.returnCryptoModuleByTicker('SAITO');
+			sm.sendPayment(amount, saitozen_key, txmsg.hash + 1);
+		});
 
 		return this;
 	}
@@ -89,9 +107,6 @@ class Migration extends ModTemplate {
 
 				if (txmsg.request === 'save migration data') {
 					await this.receiveStoreMigrationTransaction(blk, tx, conf);
-				}
-
-				if (txmsg.request === 'crypto payment') {
 				}
 			}
 		} catch (err) {
@@ -254,6 +269,10 @@ class Migration extends ModTemplate {
 			}
 
 			if (this.confirmed) {
+				// We are already sitting on some ERC20 wrapped SAITO
+				let ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+				this.balance = Number(ercMod.returnBalance());
+
 				app.connection.emit('saito-crypto-deposit-render-request', {
 					title: 'ERC20 wrapped $SAITO',
 					ticker: this.wrapped_saito_ticker,
@@ -283,15 +302,17 @@ class Migration extends ModTemplate {
 						        </div>`);
 
 		let ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
-		let balance = Number(ercMod.returnBalance());
+
 		let interval = setInterval(() => {
 			ercMod.checkBalance();
 			let new_balance = Number(ercMod.returnBalance());
-			if (new_balance > balance || this.local_dev) {
+			if (new_balance > this.balance || this.local_dev) {
 				clearInterval(interval);
 				if (document.querySelector('.saito-overlay-form-content')) {
-					document.querySelector('.saito-overlay-form-content').innerHTML =
-						`Deposited ERC20 $SAITO successfully associated with your Saito account (${this.publicKey.slice(0, 8)}...${this.publicKey.slice(-8)}), click next to convert to on chain Saito`;
+					let html = `<div>${new_balance} ERC20 $SAITO successfully deposited, and associatied with Saito account: `;
+					html += `${this.publicKey.slice(0, 8)}...${this.publicKey.slice(-8)} </div>`;
+					html += `<div>Click next to convert to on chain Saito</div>`;
+					document.querySelector('.saito-overlay-form-content').innerHTML = html;
 				}
 
 				if (document.querySelector('.hideme')) {
@@ -303,19 +324,25 @@ class Migration extends ModTemplate {
 						this.overlay.remove();
 						let sender = ercMod.formatAddress();
 
+						let amount = new_balance.toFixed(8);
 						console.log(receiving_address);
 
 						let unique_hash = this.app.crypto.hash(
-							Buffer.from(sender + receiving_address + new_balance + 'ERC-SAITO', 'utf-8')
+							Buffer.from(sender + receiving_address + amount + 'ERC-SAITO', 'utf-8')
 						);
 
 						this.app.wallet.sendPayment(
 							this.wrapped_saito_ticker,
 							[ercMod.formatAddress()],
 							[receiving_address],
-							[new_balance],
+							[amount],
 							unique_hash,
 							function (robj) {
+								if (robj?.err) {
+									salert('Migration Error: <br> ' + robj.err);
+									return;
+								}
+
 								document.querySelector('.withdraw-title').innerHTML = 'Converting saito';
 								document.querySelector('.withdraw-intro').innerHTML =
 									'This may take a few minutes, please be patient';

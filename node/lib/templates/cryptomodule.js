@@ -104,11 +104,6 @@ class CryptoModule extends ModTemplate {
   }
 
   async onConfirmation(blk, tx, conf) {
-    if (!this.app.BROWSER) {
-      // no need to process on a server, purely browserland user friendly parsing
-      return;
-    }
-
     if (conf == 0) {
       if (!tx.isTo(this.publicKey) || tx.isFrom(this.publicKey)) {
         return;
@@ -141,7 +136,7 @@ class CryptoModule extends ModTemplate {
     await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
 
-    console.info('Crypto: sendPaymentTransaction sent!', newtx.msg);
+    console.info(`Crypto: sendPaymentTransaction sent to ${publicKey}!`, newtx.msg);
   }
 
   receivePaymentTransaction(tx) {
@@ -162,7 +157,7 @@ class CryptoModule extends ModTemplate {
       }
     }
 
-    if (expected_payment) {
+    if (expected_payment || !this.app.BROWSER) {
       this.app.connection.emit('saito-crypto-receive-confirm', txmsg);
     } else {
       siteMessage(
