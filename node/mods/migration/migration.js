@@ -31,7 +31,7 @@ class Migration extends ModTemplate {
 		//
 		// TODO -- CHANGE THIS
 		//
-		this.migration_publickey = '';
+		this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
 		this.migration_mixin_address = '';
 
 		app.connection.on('saito-crypto-receive-confirm', (txmsg) => {
@@ -250,8 +250,8 @@ class Migration extends ModTemplate {
 
 		await this.ercMod.activate();
 
-		if (Number(max_deposit) < 1000) {
-			//error = 'Migration node is low on on-chain $SAITO';
+		if (Number(max_deposit) < 1000 && !this.local_dev) {
+			error = 'Migration node is low on on-chain $SAITO';
 		}
 
 		newtx.msg = {
