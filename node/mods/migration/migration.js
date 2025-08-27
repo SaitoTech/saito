@@ -211,6 +211,8 @@ class Migration extends ModTemplate {
 			return;
 		}
 
+		console.log('Checking for availability of Migration Bot...');
+
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
 			this.migration_publickey
 		);
@@ -273,6 +275,8 @@ class Migration extends ModTemplate {
 	async receiveMigrationResponseTransaction(app, tx, peer, mycallback) {
 		if (app.BROWSER) {
 			let txmsg = tx.returnMessage();
+
+			console.log('Migration Bot responded!', txmsg);
 
 			if (txmsg.data.error) {
 				console.error(txmsg.data.error);
