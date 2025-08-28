@@ -34,6 +34,22 @@ class Migration extends ModTemplate {
 		this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
 		this.migration_mixin_address = '';
 
+		this.messages = [
+			'This is taking a while',
+			'Hang in there',
+			'Boy, Ethereum is slow',
+			'It will come through eventually',
+			'Sorry for the delay'
+		];
+		this.gifs = [
+			'https://media4.giphy.com/media/mlvseq9yvZhba/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
+			'https://media3.giphy.com/media/nR4L10XlJcSeQ/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
+			'https://media2.giphy.com/media/5i7umUqAOYYEw/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
+			'https://media4.giphy.com/media/ND6xkVPaj8tHO/giphy.gif?cid=2dedbeb5zv19d51h53z7kixbzxbyecof4okksa5gllpv0pxr&ep=v1_gifs_search&rid=giphy.gif&ct=g',
+			'https://media2.giphy.com/media/a34HjLEsKchWM/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
+			'https://media1.giphy.com/media/YBsd8wdchmxqg/giphy.gif?cid=2dedbeb5zv19d51h53z7kixbzxbyecof4okksa5gllpv0pxr&ep=v1_gifs_search&rid=giphy.gif&ct=g'
+		];
+
 		app.connection.on('saito-crypto-receive-confirm', (txmsg) => {
 			const { amount, from } = txmsg;
 
@@ -338,16 +354,18 @@ class Migration extends ModTemplate {
 			document.querySelector('.withdraw-outtro').remove();
 		};
 
+		let ct = 0;
 		let interval = setInterval(() => {
+			ct++;
 			this.ercMod.checkBalance();
 			let new_balance = Number(this.ercMod.returnBalance());
 
 			if (this.local_dev) {
-				new_balance = 100 * Math.random();
-				new_balance = Number(new_balance.toFixed(8));
+				//new_balance = 100 * Math.random();
+				//new_balance = Number(new_balance.toFixed(8));
 			}
 
-			if (new_balance > this.balance || this.local_dev) {
+			if (new_balance > this.balance) {
 				clearInterval(interval);
 				if (document.querySelector('.saito-overlay-form-header-title')) {
 					document.querySelector('.saito-overlay-form-header-title').innerHTML = 'Deposited';
@@ -403,6 +421,10 @@ class Migration extends ModTemplate {
 						);
 					};
 				}
+			} else if (ct % 2 == 0 && ct > 3) {
+				let html = `<div>${this.messages[Math.floor(this.messages.length * Math.random())]}</div>`;
+				html += `<img class="img-prev" src="${this.gifs[Math.floor(this.gifs.length * Math.random())]}"/>`;
+				document.querySelector('.saito-overlay-form-content').innerHTML = html;
 			}
 		}, 5000);
 	}
