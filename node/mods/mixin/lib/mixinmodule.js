@@ -68,7 +68,7 @@ class MixinModule extends CryptoModule {
 					return null;
 				}
 
-				this.activate();
+				return this.activate();
 			});
 		} else {
 			if (!this.address) {
@@ -83,7 +83,7 @@ class MixinModule extends CryptoModule {
 				}
 			}
 
-			super.activate();
+			await super.activate();
 		}
 	}
 

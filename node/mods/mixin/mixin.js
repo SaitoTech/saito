@@ -220,7 +220,7 @@ class Mixin extends ModTemplate {
             this.account_created = 1;
             this.save();
             if (callback) {
-              callback(res);
+              return callback(res);
             }
           }
         });

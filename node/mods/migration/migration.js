@@ -36,6 +36,7 @@ class Migration extends ModTemplate {
 
 		app.connection.on('saito-crypto-receive-confirm', (txmsg) => {
 			const { amount, from } = txmsg;
+
 			if (txmsg.module !== this.wrapped_saito_ticker) {
 				console.error('Processing a crypto transfer tx for non-Saito!!');
 				return;
@@ -61,19 +62,26 @@ class Migration extends ModTemplate {
 		if (!this.app.BROWSER) {
 			if (this.local_dev) {
 				this.migration_publickey = this.publicKey;
+				console.log('---> I am the migration bot!!!!');
 			}
 		}
 
 		if (this.browser_active || this.migration_publickey === this.publicKey) {
 			setTimeout(async () => {
-				this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+				try {
+					this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
 
-				if (this.ercMod) {
-					await this.ercMod.activate();
+					if (this.ercMod) {
+						await this.ercMod.activate();
 
-					if (this.relay_available && this.browser_active) {
-						this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
+						console.log('My address: ', this.ercMod.formatAddress());
+
+						if (this.relay_available && this.browser_active) {
+							this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
+						}
 					}
+				} catch (err) {
+					console.error(err);
 				}
 			}, 1000);
 		}
@@ -82,6 +90,7 @@ class Migration extends ModTemplate {
 	returnServices() {
 		let services = [];
 		if (this.publicKey == this.migration_publickey) {
+			console.log('---> I provide migration services!!!!');
 			services.push(new PeerService(null, 'migration'));
 		}
 		return services;
@@ -90,6 +99,7 @@ class Migration extends ModTemplate {
 	async onPeerServiceUp(app, peer, service = {}) {
 		// Update migration service node address
 		if (service.service == 'migration') {
+			console.log('---> update public key of Migration bot for local testing!!!!');
 			this.migration_publickey = peer.publicKey;
 		}
 
@@ -211,8 +221,6 @@ class Migration extends ModTemplate {
 			return;
 		}
 
-		console.log('Checking for availability of Migration Bot...');
-
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
 			this.migration_publickey
 		);
@@ -236,7 +244,7 @@ class Migration extends ModTemplate {
 		let txmsg = tx.returnMessage();
 		let saitozen = tx.from[0].publicKey;
 
-		this.key_cache[txmsg.mixin_address] = saitozen;
+		this.key_cache[txmsg.data.mixin_address] = saitozen;
 
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(saitozen);
 
@@ -245,12 +253,14 @@ class Migration extends ModTemplate {
 
 		let min_deposit = 1000;
 		let max_deposit = await this.app.wallet.getBalance('SAITO');
+		let mixin_address = '';
 
 		if (!this.ercMod) {
 			error = "Migration node doesn't have ERC20 Saito installed";
+		} else {
+			await this.ercMod.activate();
+			mixin_address = this.ercMod.formatAddress();
 		}
-
-		await this.ercMod.activate();
 
 		if (Number(max_deposit) < 1000 && !this.local_dev) {
 			error = 'Migration node is low on on-chain $SAITO';
@@ -262,7 +272,7 @@ class Migration extends ModTemplate {
 			data: {
 				min_deposit,
 				max_deposit,
-				mixin_address: this.ercMod.formatAddress(),
+				mixin_address,
 				error
 			}
 		};
@@ -275,8 +285,6 @@ class Migration extends ModTemplate {
 	async receiveMigrationResponseTransaction(app, tx, peer, mycallback) {
 		if (app.BROWSER) {
 			let txmsg = tx.returnMessage();
-
-			console.log('Migration Bot responded!', txmsg);
 
 			if (txmsg.data.error) {
 				console.error(txmsg.data.error);
@@ -304,6 +312,7 @@ class Migration extends ModTemplate {
 						                <div class="saito-overlay-form-header-title">Transfering...</div>
 						            </div>
 						            <div class="saito-overlay-form-content">
+						            	<div>This may take a few minutes to confirm, please be patient</div>
 						            	<div class="game-loader-spinner"></div>
 						            </div>
 
@@ -314,10 +323,30 @@ class Migration extends ModTemplate {
 						        </div>`);
 
 		const mod_self = this;
+		this.overlay.blockClose();
+
+		const sendCallback = (robj) => {
+			mod_self.overlay.remove();
+			if (robj?.err) {
+				salert('Migration Error: <br> ' + robj.err);
+				return;
+			}
+
+			document.querySelector('.withdraw-title').innerHTML = 'Converting saito';
+			document.querySelector('.withdraw-intro').innerHTML = 'Check your wallet in the side bar ->';
+			document.querySelector('.withdraw-form-fields').remove();
+			document.querySelector('.withdraw-outtro').remove();
+		};
 
 		let interval = setInterval(() => {
 			this.ercMod.checkBalance();
 			let new_balance = Number(this.ercMod.returnBalance());
+
+			if (this.local_dev) {
+				new_balance = 100 * Math.random();
+				new_balance = Number(new_balance.toFixed(8));
+			}
+
 			if (new_balance > this.balance || this.local_dev) {
 				clearInterval(interval);
 				if (document.querySelector('.saito-overlay-form-header-title')) {
@@ -350,25 +379,26 @@ class Migration extends ModTemplate {
 							Buffer.from(sender + this.migration_mixin_address + amount + 'ERC-SAITO', 'utf-8')
 						);
 
+						if (this.local_dev) {
+							//Fake payment
+							this.ercMod.sendPaymentTransaction(
+								this.migration_publickey,
+								this.ercMod.formatAddress(),
+								this.migration_mixin_address,
+								amount,
+								unique_hash
+							);
+							sendCallback({});
+							return;
+						}
+
 						this.app.wallet.sendPayment(
 							this.wrapped_saito_ticker,
 							[this.ercMod.formatAddress()],
 							[this.migration_mixin_address],
 							[amount],
 							unique_hash,
-							function (robj) {
-								mod_self.overlay.remove();
-								if (robj?.err) {
-									salert('Migration Error: <br> ' + robj.err);
-									return;
-								}
-
-								document.querySelector('.withdraw-title').innerHTML = 'Converting saito';
-								document.querySelector('.withdraw-intro').innerHTML =
-									'This may take a few minutes, please be patient';
-								document.querySelector('.withdraw-form-fields').remove();
-								document.querySelector('.withdraw-outtro').remove();
-							},
+							sendCallback,
 							this.migration_publickey
 						);
 					};
