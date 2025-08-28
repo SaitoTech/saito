@@ -46,7 +46,6 @@
     "buffer-xor": "^2.0.2",
     "cors": "^2.8.5",
     "cropperjs": "^1.6.2",
-    "crypto": "^1.0.1",
     "crypto-browserify": "^3.12.0",
     "decimal.js": "^10.5.0",
     "dompurify": "^2.3.5",
