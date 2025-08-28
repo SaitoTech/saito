@@ -420,7 +420,6 @@ class SettingsAppspace {
 
 			// File Encryption Event Handlers
 			this.attachFileEncryptionEvents();
-
 		} catch (err) {
 			console.log('Error in Settings Appspace: ', err);
 		}
@@ -468,7 +467,7 @@ class SettingsAppspace {
 
 				// Get recipient public key
 				const recipientPublicKey = publicKeyInput.value.trim();
-				
+
 				if (!recipientPublicKey) {
 					this.showEncryptionMessage('Please enter a recipient public key', 'error');
 					return;
@@ -518,7 +517,7 @@ class SettingsAppspace {
 			const fileBuffer = await this.fileToBuffer(file);
 
 			// Encrypt the file
-			const encryptedBuffer = await this.app.wallet.encryptWithPublicKey(fileBuffer, recipientPublicKey);
+			const encryptedBuffer = this.app.crypto.encryptWithPublicKey(fileBuffer, recipientPublicKey);
 
 			// Create encrypted filename
 			const encryptedFilename = file.name + '.saito.enc';
@@ -526,8 +525,10 @@ class SettingsAppspace {
 			// Download encrypted file
 			this.downloadBuffer(encryptedBuffer, encryptedFilename);
 
-			this.showEncryptionMessage(`File encrypted successfully as "${encryptedFilename}"`, 'success');
-
+			this.showEncryptionMessage(
+				`File encrypted successfully as "${encryptedFilename}"`,
+				'success'
+			);
 		} catch (error) {
 			console.error('File encryption error:', error);
 			this.showEncryptionMessage(`Encryption failed: ${error.message}`, 'error');
@@ -544,8 +545,10 @@ class SettingsAppspace {
 			// Read encrypted file as buffer
 			const encryptedBuffer = await this.fileToBuffer(encryptedFile);
 
+			const privateKey = await this.app.wallet.getPrivateKey();
+
 			// Decrypt the file
-			const decryptedBuffer = await this.app.wallet.decryptWithPrivateKey(encryptedBuffer);
+			const decryptedBuffer = this.app.crypto.decryptWithPrivateKey(encryptedBuffer, privateKey);
 
 			// Create decrypted filename (remove .saito.enc extension)
 			let decryptedFilename = encryptedFile.name;
@@ -556,11 +559,16 @@ class SettingsAppspace {
 			// Download decrypted file
 			this.downloadBuffer(decryptedBuffer, decryptedFilename);
 
-			this.showEncryptionMessage(`File decrypted successfully as "${decryptedFilename}"`, 'success');
-
+			this.showEncryptionMessage(
+				`File decrypted successfully as "${decryptedFilename}"`,
+				'success'
+			);
 		} catch (error) {
 			console.error('File decryption error:', error);
-			this.showEncryptionMessage(`Decryption failed: ${error.message}. This file may not be encrypted for your key.`, 'error');
+			this.showEncryptionMessage(
+				`Decryption failed: ${error.message}. This file may not be encrypted for your key.`,
+				'error'
+			);
 		}
 	}
 

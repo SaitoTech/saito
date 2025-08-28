@@ -999,6 +999,7 @@ class Mixin extends ModTemplate {
   async load() {
     if (this.app?.options?.mixin) {
       this.mixin = this.app.options.mixin;
+
       console.log('MIXIN OPTIONS: ' + JSON.stringify(this.app.options.mixin));
       if (this.mixin.user_id) {
         this.account_created = 1;
