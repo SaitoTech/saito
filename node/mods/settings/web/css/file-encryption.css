@@ -1,0 +1,163 @@
+/* File Encryption Styles */
+.settings-appspace-encryption-container {
+  margin-bottom: 2rem;
+}
+
+.settings-appspace-encryption {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--saito-cyber-black-light);
+  border-radius: 8px;
+  background: var(--saito-cyber-black-darker);
+}
+
+.encryption-section, .decryption-section {
+  padding: 1rem;
+  border-radius: 6px;
+  background: var(--saito-cyber-black);
+}
+
+.encryption-input-group {
+  margin-bottom: 1rem;
+}
+
+.encryption-input-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--saito-cyber-white);
+}
+
+.encryption-public-key-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--saito-cyber-black-light);
+  border-radius: 4px;
+  background: var(--saito-cyber-black-darker);
+  color: var(--saito-cyber-white);
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.encryption-public-key-input:focus {
+  outline: none;
+  border-color: var(--saito-cyber-blue);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.encryption-file-section {
+  margin-bottom: 1rem;
+}
+
+.selected-file-info {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: var(--saito-cyber-black-light);
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.selected-file-info span {
+  display: block;
+}
+
+#selected-file-name {
+  font-weight: 500;
+  color: var(--saito-cyber-white);
+}
+
+#selected-file-size {
+  color: var(--saito-cyber-white-light);
+  font-size: 0.8rem;
+}
+
+.encryption-note, .decryption-note {
+  font-size: 0.85rem;
+  color: var(--saito-cyber-white-light);
+  line-height: 1.4;
+  margin-top: 0.75rem;
+}
+
+#select-file-encrypt, #select-file-decrypt {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#select-file-encrypt:hover, #select-file-decrypt:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.encryption-progress {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--saito-cyber-black-light);
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.encryption-success {
+  color: var(--saito-success-green);
+}
+
+.encryption-error {
+  color: var(--saito-error-red);
+}
+
+/* Responsive design for mobile */
+@media (max-width: 768px) {
+  .settings-appspace-encryption {
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+  
+  .encryption-section, .decryption-section {
+    padding: 0.75rem;
+  }
+  
+  .encryption-public-key-input {
+    font-size: 0.8rem;
+    padding: 0.6rem;
+  }
+}
+
+/* File input styling */
+.file-input {
+  position: absolute;
+  left: -9999px;
+  opacity: 0;
+}
+
+/* Button styling consistency */
+#select-file-encrypt {
+  background: var(--saito-cyber-blue);
+  color: var(--saito-cyber-white);
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+#select-file-decrypt {
+  background: var(--saito-cyber-black-light);
+  color: var(--saito-cyber-white);
+  border: 1px solid var(--saito-cyber-black-lighter);
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+#select-file-encrypt:hover {
+  background: var(--saito-cyber-blue-dark);
+}
+
+#select-file-decrypt:hover {
+  background: var(--saito-cyber-black-lighter);
+  border-color: var(--saito-cyber-blue);
+}

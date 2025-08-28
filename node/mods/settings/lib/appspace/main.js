@@ -417,6 +417,10 @@ class SettingsAppspace {
 			document.getElementById('restore-privatekey-btn').onclick = async (e) => {
 				this.app.connection.emit('recovery-private-key-render-request');
 			};
+
+			// File Encryption Event Handlers
+			this.attachFileEncryptionEvents();
+
 		} catch (err) {
 			console.log('Error in Settings Appspace: ', err);
 		}
@@ -425,6 +429,211 @@ class SettingsAppspace {
 			document.querySelector('#settings-add-app').onclick = () => {
 				app.connection.emit('saito-app-app-render-request');
 			};
+		}
+	}
+
+	/**
+	 * Attaches event handlers for file encryption and decryption functionality
+	 */
+	attachFileEncryptionEvents() {
+		// Button to select file for encryption
+		const selectFileEncryptBtn = document.getElementById('select-file-encrypt');
+		const fileEncryptInput = document.getElementById('file-encrypt-input');
+		const selectedFileInfo = document.getElementById('selected-file-info');
+		const selectedFileName = document.getElementById('selected-file-name');
+		const selectedFileSize = document.getElementById('selected-file-size');
+
+		// Button to select file for decryption
+		const selectFileDecryptBtn = document.getElementById('select-file-decrypt');
+		const fileDecryptInput = document.getElementById('file-decrypt-input');
+
+		// Public key input for encryption
+		const publicKeyInput = document.getElementById('encryption-public-key');
+
+		if (selectFileEncryptBtn && fileEncryptInput) {
+			// Trigger file selection for encryption
+			selectFileEncryptBtn.onclick = () => {
+				fileEncryptInput.click();
+			};
+
+			// Handle file selection for encryption
+			fileEncryptInput.onchange = async (event) => {
+				const file = event.target.files[0];
+				if (!file) return;
+
+				// Show file info
+				selectedFileName.textContent = file.name;
+				selectedFileSize.textContent = this.formatFileSize(file.size);
+				selectedFileInfo.style.display = 'block';
+
+				// Get recipient public key
+				const recipientPublicKey = publicKeyInput.value.trim();
+				
+				if (!recipientPublicKey) {
+					this.showEncryptionMessage('Please enter a recipient public key', 'error');
+					return;
+				}
+
+				if (!this.app.wallet.isValidPublicKey(recipientPublicKey)) {
+					this.showEncryptionMessage('Invalid public key format', 'error');
+					return;
+				}
+
+				// Encrypt the file
+				await this.encryptFile(file, recipientPublicKey);
+			};
+		}
+
+		if (selectFileDecryptBtn && fileDecryptInput) {
+			// Trigger file selection for decryption
+			selectFileDecryptBtn.onclick = () => {
+				fileDecryptInput.click();
+			};
+
+			// Handle file selection for decryption
+			fileDecryptInput.onchange = async (event) => {
+				const file = event.target.files[0];
+				if (!file) return;
+
+				// Check if file has .saito.enc extension
+				if (!file.name.endsWith('.saito.enc')) {
+					this.showEncryptionMessage('Please select a .saito.enc file', 'error');
+					return;
+				}
+
+				// Decrypt the file
+				await this.decryptFile(file);
+			};
+		}
+	}
+
+	/**
+	 * Encrypts a file with the specified public key
+	 */
+	async encryptFile(file, recipientPublicKey) {
+		try {
+			this.showEncryptionMessage('Encrypting file...', 'progress');
+
+			// Read file as buffer
+			const fileBuffer = await this.fileToBuffer(file);
+
+			// Encrypt the file
+			const encryptedBuffer = await this.app.wallet.encryptWithPublicKey(fileBuffer, recipientPublicKey);
+
+			// Create encrypted filename
+			const encryptedFilename = file.name + '.saito.enc';
+
+			// Download encrypted file
+			this.downloadBuffer(encryptedBuffer, encryptedFilename);
+
+			this.showEncryptionMessage(`File encrypted successfully as "${encryptedFilename}"`, 'success');
+
+		} catch (error) {
+			console.error('File encryption error:', error);
+			this.showEncryptionMessage(`Encryption failed: ${error.message}`, 'error');
+		}
+	}
+
+	/**
+	 * Decrypts a .saito.enc file with the user's private key
+	 */
+	async decryptFile(encryptedFile) {
+		try {
+			this.showEncryptionMessage('Decrypting file...', 'progress');
+
+			// Read encrypted file as buffer
+			const encryptedBuffer = await this.fileToBuffer(encryptedFile);
+
+			// Decrypt the file
+			const decryptedBuffer = await this.app.wallet.decryptWithPrivateKey(encryptedBuffer);
+
+			// Create decrypted filename (remove .saito.enc extension)
+			let decryptedFilename = encryptedFile.name;
+			if (decryptedFilename.endsWith('.saito.enc')) {
+				decryptedFilename = decryptedFilename.slice(0, -10); // Remove '.saito.enc'
+			}
+
+			// Download decrypted file
+			this.downloadBuffer(decryptedBuffer, decryptedFilename);
+
+			this.showEncryptionMessage(`File decrypted successfully as "${decryptedFilename}"`, 'success');
+
+		} catch (error) {
+			console.error('File decryption error:', error);
+			this.showEncryptionMessage(`Decryption failed: ${error.message}. This file may not be encrypted for your key.`, 'error');
+		}
+	}
+
+	/**
+	 * Converts a File object to a Buffer
+	 */
+	async fileToBuffer(file) {
+		return new Promise((resolve, reject) => {
+			const reader = new FileReader();
+			reader.onload = () => {
+				resolve(Buffer.from(reader.result));
+			};
+			reader.onerror = () => {
+				reject(new Error('Failed to read file'));
+			};
+			reader.readAsArrayBuffer(file);
+		});
+	}
+
+	/**
+	 * Downloads a buffer as a file
+	 */
+	downloadBuffer(buffer, filename) {
+		const blob = new Blob([buffer]);
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+	}
+
+	/**
+	 * Formats file size for display
+	 */
+	formatFileSize(bytes) {
+		if (bytes === 0) return '0 Bytes';
+		const k = 1024;
+		const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+	}
+
+	/**
+	 * Shows encryption/decryption status messages
+	 */
+	showEncryptionMessage(message, type = 'progress') {
+		// Remove existing progress messages
+		const existingProgress = document.querySelector('.encryption-progress');
+		if (existingProgress) {
+			existingProgress.remove();
+		}
+
+		// Create new progress message
+		const progressDiv = document.createElement('div');
+		progressDiv.className = `encryption-progress encryption-${type}`;
+		progressDiv.textContent = message;
+
+		// Insert after encryption section
+		const encryptionSection = document.querySelector('.encryption-section');
+		if (encryptionSection) {
+			encryptionSection.appendChild(progressDiv);
+		}
+
+		// Auto-remove success/error messages after 5 seconds
+		if (type === 'success' || type === 'error') {
+			setTimeout(() => {
+				if (progressDiv.parentNode) {
+					progressDiv.remove();
+				}
+			}, 5000);
 		}
 	}
 }

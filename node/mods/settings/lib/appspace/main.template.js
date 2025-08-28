@@ -92,6 +92,44 @@ module.exports = (app, mod, main) => {
           </div>
         </div>
       </div>
+
+      <div class="settings-appspace-encryption-container">
+        <h6>File Encryption</h6>
+        <div class="settings-appspace-encryption">
+          <div class="encryption-section">
+            <div class="encryption-input-group">
+              <label for="encryption-public-key">Recipient Public Key:</label>
+              <input type="text" 
+                     id="encryption-public-key" 
+                     class="encryption-public-key-input" 
+                     placeholder="Enter public key or leave default for yourself"
+                     value="${publicKey}"
+              />
+            </div>
+            <div class="encryption-file-section">
+              <div class="saito-button-primary" id="select-file-encrypt">
+                <i class="fas fa-file-upload"></i> Select File to Encrypt
+              </div>
+              <div id="selected-file-info" class="selected-file-info" style="display: none;">
+                <span id="selected-file-name"></span>
+                <span id="selected-file-size"></span>
+              </div>
+            </div>
+            <div class="encryption-note">
+              Select any file to encrypt it with the specified public key. The encrypted file will be saved with a .saito.enc extension.
+            </div>
+          </div>
+          
+          <div class="decryption-section">
+            <div class="saito-button-secondary" id="select-file-decrypt">
+              <i class="fas fa-file-download"></i> Select .saito.enc File to Decrypt
+            </div>
+            <div class="decryption-note">
+              Select a .saito.enc file to decrypt it with your private key. The decrypted file will be downloaded automatically.
+            </div>
+          </div>
+        </div>
+      </div>
       
       <div class="settings-appspace-modules-container">
           <div class="settings-installed-mod-header">
@@ -140,6 +178,8 @@ module.exports = (app, mod, main) => {
     </div>
   </div>
   <input id="file-input" class="file-input" type="file" name="name" style="display:none;" />
+  <input id="file-encrypt-input" class="file-input" type="file" name="encrypt-file" style="display:none;" />
+  <input id="file-decrypt-input" class="file-input" type="file" name="decrypt-file" accept=".saito.enc" style="display:none;" />
 
   `;
 
