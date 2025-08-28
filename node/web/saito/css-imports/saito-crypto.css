@@ -1,8 +1,10 @@
 .saito-crypto-deposit-container {
-  width: min(40rem, 90vw);
+  max-width: min(40rem, 90vw);
   display: flex;
   flex-direction: column;
   gap: 2rem;
+  min-height: 45rem;
+  justify-content: space-between;
 }
 
 .saito-crypto-wallet-state {

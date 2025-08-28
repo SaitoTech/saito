@@ -19,6 +19,7 @@ module.exports = (mod) => {
 					<input type="text" id="erc20" placeholder="ethereum/bsc address" />
 					<input type="text" id="publickey" placeholder="saito address" value="${mod.publicKey}" title="this is your saito publickey"/>
 					<div class="saito-button-row">
+						<div id="automatic" class="saito-anchor ${mod.can_auto ? '' : 'hideme'}"><span>automated migration</span></div>
 						<button id="withdraw-button" class="saito-button-primary">submit</button>
 					</div>
 				</div>

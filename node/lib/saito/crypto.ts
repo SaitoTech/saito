@@ -1,4 +1,3 @@
-import { randomBytes } from 'crypto';
 import Saito from 'saito-js/saito';
 import node_cryptojs from 'node-cryptojs-aes';
 import crypto from 'crypto-browserify';
@@ -117,7 +116,7 @@ export default class Crypto {
    * @returns {string} private key
    */
   generateRandomNumber() {
-    const randomNumber = randomBytes(32);
+    const randomNumber = crypto.randomBytes(32);
     return randomNumber.toString('hex');
   }
 
@@ -333,4 +332,9 @@ export default class Crypto {
       return null;
     }
   }
+
+  /* Stubs for useful asymetrical encryption */
+  encryptByPublic(message: string, publicKey: string) {}
+
+  decryptByPrivate(encoded_msg: Buffer, privateKey: string) {}
 }

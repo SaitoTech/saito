@@ -7,7 +7,12 @@ class MigrationMain {
 	}
 
 	async render() {
-		this.app.browser.addElementToDom(MigrationMainTemplate(this.mod));
+		if (document.querySelector('.main')) {
+			this.app.browser.replaceElementBySelector(MigrationMainTemplate(this.mod), '.main');
+		} else {
+			this.app.browser.addElementToDom(MigrationMainTemplate(this.mod));
+		}
+
 		this.attachEvents();
 	}
 
@@ -154,6 +159,27 @@ class MigrationMain {
 			document.querySelector('#erc20').style.display = 'none';
 			document.querySelector('.withdraw-button').style.display = 'none';
 		};
+
+		if (document.getElementById('automatic')) {
+			document.getElementById('automatic').onclick = async () => {
+				if (!this.confirmed) {
+					this.confirmed = await sconfirm(
+						'This automated feature is under development, do <em>not</em> close your browser while the process is underway'
+					);
+				}
+
+				if (this.confirmed) {
+					this.app.connection.emit('saito-crypto-deposit-render-request', {
+						title: 'ERC20 wrapped $SAITO',
+						ticker: this.mod.wrapped_saito_ticker,
+						migration: true,
+						callback: () => {
+							this.mod.checkForLocalDeposit();
+						}
+					});
+				}
+			};
+		}
 	}
 }
 

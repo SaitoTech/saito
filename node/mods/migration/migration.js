@@ -18,8 +18,115 @@ class Migration extends ModTemplate {
 
 		this.main = null;
 		this.header = null;
+		this.overlay = new SaitoOverlay(this.app, this, false);
+
+		this.key_cache = {};
+		this.wrapped_saito_ticker = 'ERC-SAITO';
+
+		this.relay_available = false;
+		this.can_auto = false;
+
+		this.local_dev = false;
+
+		//
+		// TODO -- CHANGE THIS
+		//
+		this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
+		this.migration_mixin_address = '';
+
+		this.messages = [
+			'This is taking a while',
+			'Hang in there',
+			'Boy, Ethereum is slow',
+			'It will come through eventually',
+			'Sorry for the delay'
+		];
+		this.gifs = [
+			'https://media4.giphy.com/media/mlvseq9yvZhba/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
+			'https://media3.giphy.com/media/nR4L10XlJcSeQ/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
+			'https://media2.giphy.com/media/5i7umUqAOYYEw/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
+			'https://media4.giphy.com/media/ND6xkVPaj8tHO/giphy.gif?cid=2dedbeb5zv19d51h53z7kixbzxbyecof4okksa5gllpv0pxr&ep=v1_gifs_search&rid=giphy.gif&ct=g',
+			'https://media2.giphy.com/media/a34HjLEsKchWM/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
+			'https://media1.giphy.com/media/YBsd8wdchmxqg/giphy.gif?cid=2dedbeb5zv19d51h53z7kixbzxbyecof4okksa5gllpv0pxr&ep=v1_gifs_search&rid=giphy.gif&ct=g'
+		];
+
+		app.connection.on('saito-crypto-receive-confirm', (txmsg) => {
+			const { amount, from } = txmsg;
+
+			if (txmsg.module !== this.wrapped_saito_ticker) {
+				console.error('Processing a crypto transfer tx for non-Saito!!');
+				return;
+			}
+
+			let saitozen_key = this.key_cache[from];
+
+			if (!saitozen_key) {
+				console.error('Process a crypto transfer from an unknown sender!!!');
+				return;
+			}
+
+			let sm = app.wallet.returnCryptoModuleByTicker('SAITO');
+			sm.sendPayment(amount, saitozen_key, txmsg.hash + 1);
+		});
 
 		return this;
+	}
+
+	async initialize(app) {
+		await super.initialize(app);
+
+		if (!this.app.BROWSER) {
+			if (this.local_dev) {
+				this.migration_publickey = this.publicKey;
+				console.log('---> I am the migration bot!!!!');
+			}
+		}
+
+		if (this.browser_active || this.migration_publickey === this.publicKey) {
+			setTimeout(async () => {
+				try {
+					this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+
+					if (this.ercMod) {
+						await this.ercMod.activate();
+
+						console.log('My address: ', this.ercMod.formatAddress());
+
+						if (this.relay_available && this.browser_active) {
+							this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
+						}
+					}
+				} catch (err) {
+					console.error(err);
+				}
+			}, 1000);
+		}
+	}
+
+	returnServices() {
+		let services = [];
+		if (this.publicKey == this.migration_publickey) {
+			console.log('---> I provide migration services!!!!');
+			services.push(new PeerService(null, 'migration'));
+		}
+		return services;
+	}
+
+	async onPeerServiceUp(app, peer, service = {}) {
+		// Update migration service node address
+		if (service.service == 'migration') {
+			console.log('---> update public key of Migration bot for local testing!!!!');
+			this.migration_publickey = peer.publicKey;
+		}
+
+		if (service.service == 'relay') {
+			if (this.browser_active) {
+				this.relay_available = true;
+				if (this.ercMod) {
+					this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
+				}
+			}
+		}
 	}
 
 	async render() {
@@ -109,6 +216,217 @@ class Migration extends ModTemplate {
 		} catch (err) {
 			console.log('ERROR in saving migration data to db: ' + err);
 		}
+	}
+
+	async handlePeerTransaction(app, tx = null, peer, mycallback) {
+		if (tx?.isTo(this.publicKey)) {
+			let txmsg = tx.returnMessage();
+
+			if (txmsg.request == 'migration check' && this.publicKey == this.migration_publickey) {
+				await this.receiveMigrationPingTransaction(app, tx, peer, mycallback);
+			}
+
+			if (txmsg.request == 'migration accept') {
+				await this.receiveMigrationResponseTransaction(app, tx, peer, mycallback);
+			}
+		}
+	}
+
+	async sendMigrationPingTransaction(data) {
+		if (!this.migration_publickey) {
+			return;
+		}
+
+		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+			this.migration_publickey
+		);
+
+		newtx.msg = {
+			module: 'Migration',
+			request: 'migration check',
+			data
+		};
+
+		await newtx.sign();
+
+		this.app.connection.emit('relay-transaction', newtx);
+	}
+
+	async receiveMigrationPingTransaction(app, tx, peer, mycallback) {
+		if (!tx) {
+			return;
+		}
+
+		let txmsg = tx.returnMessage();
+		let saitozen = tx.from[0].publicKey;
+
+		this.key_cache[txmsg.data.mixin_address] = saitozen;
+
+		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(saitozen);
+
+		let error = null;
+		// Check balance
+
+		let min_deposit = 1000;
+		let max_deposit = await this.app.wallet.getBalance('SAITO');
+		let mixin_address = '';
+
+		if (!this.ercMod) {
+			error = "Migration node doesn't have ERC20 Saito installed";
+		} else {
+			await this.ercMod.activate();
+			mixin_address = this.ercMod.formatAddress();
+		}
+
+		if (Number(max_deposit) < 1000 && !this.local_dev) {
+			error = 'Migration node is low on on-chain $SAITO';
+		}
+
+		newtx.msg = {
+			module: 'Migration',
+			request: 'migration accept',
+			data: {
+				min_deposit,
+				max_deposit,
+				mixin_address,
+				error
+			}
+		};
+
+		await newtx.sign();
+
+		this.app.connection.emit('relay-transaction', newtx);
+	}
+
+	async receiveMigrationResponseTransaction(app, tx, peer, mycallback) {
+		if (app.BROWSER) {
+			let txmsg = tx.returnMessage();
+
+			if (txmsg.data.error) {
+				console.error(txmsg.data.error);
+				return;
+			}
+
+			// Maybe the migration server changes the deposit address...
+			this.migration_mixin_address = txmsg.data.mixin_address;
+
+			this.can_auto = true;
+
+			// We are already sitting on some ERC20 wrapped SAITO
+			this.balance = Number(this.ercMod.returnBalance());
+
+			this.main.render();
+
+			siteMessage('Migration bot available...', 2000);
+		}
+	}
+
+	checkForLocalDeposit() {
+		this.overlay.show(`
+						        <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit-container">
+						            <div class="saito-overlay-form-header">
+						                <div class="saito-overlay-form-header-title">Transfering...</div>
+						            </div>
+						            <div class="saito-overlay-form-content">
+						            	<div>This may take a few minutes to confirm, please be patient</div>
+						            	<div class="game-loader-spinner"></div>
+						            </div>
+
+						        <div class="saito-button-row hideme">
+						           <button type="button" class="saito-button-primary" id='submit'>Convert</button> 
+						        </div>
+
+						        </div>`);
+
+		const mod_self = this;
+		this.overlay.blockClose();
+
+		const sendCallback = (robj) => {
+			mod_self.overlay.remove();
+			if (robj?.err) {
+				salert('Migration Error: <br> ' + robj.err);
+				return;
+			}
+
+			document.querySelector('.withdraw-title').innerHTML = 'Converting saito';
+			document.querySelector('.withdraw-intro').innerHTML = 'Check your wallet in the side bar ->';
+			document.querySelector('.withdraw-form-fields').remove();
+			document.querySelector('.withdraw-outtro').remove();
+		};
+
+		let ct = 0;
+		let interval = setInterval(() => {
+			ct++;
+			this.ercMod.checkBalance();
+			let new_balance = Number(this.ercMod.returnBalance());
+
+			if (this.local_dev) {
+				//new_balance = 100 * Math.random();
+				//new_balance = Number(new_balance.toFixed(8));
+			}
+
+			if (new_balance > this.balance) {
+				clearInterval(interval);
+				if (document.querySelector('.saito-overlay-form-header-title')) {
+					document.querySelector('.saito-overlay-form-header-title').innerHTML = 'Deposited';
+				}
+				if (document.querySelector('.saito-overlay-form-content')) {
+					let html = `<div>Deposited ${new_balance} ERC20 $SAITO into </div>`;
+					html += `<div class=""> ${this.publicKey.slice(0, 8)}...${this.publicKey.slice(-8)} </div>`;
+					html += `<div>Click next to convert to on chain Saito</div>`;
+					document.querySelector('.saito-overlay-form-content').innerHTML = html;
+				}
+
+				if (document.querySelector('.hideme')) {
+					document.querySelector('.hideme').classList.remove('hideme');
+				}
+
+				if (document.getElementById('submit')) {
+					document.getElementById('submit').onclick = (e) => {
+						if (document.querySelector('.saito-overlay-form-header-title')) {
+							document.querySelector('.saito-overlay-form-header-title').innerHTML =
+								'Converting...';
+						}
+
+						e.currentTarget.remove();
+						let sender = this.ercMod.formatAddress();
+
+						let amount = new_balance.toFixed(8);
+
+						let unique_hash = this.app.crypto.hash(
+							Buffer.from(sender + this.migration_mixin_address + amount + 'ERC-SAITO', 'utf-8')
+						);
+
+						if (this.local_dev) {
+							//Fake payment
+							this.ercMod.sendPaymentTransaction(
+								this.migration_publickey,
+								this.ercMod.formatAddress(),
+								this.migration_mixin_address,
+								amount,
+								unique_hash
+							);
+							sendCallback({});
+							return;
+						}
+
+						this.app.wallet.sendPayment(
+							this.wrapped_saito_ticker,
+							[this.ercMod.formatAddress()],
+							[this.migration_mixin_address],
+							[amount],
+							unique_hash,
+							sendCallback,
+							this.migration_publickey
+						);
+					};
+				}
+			} else if (ct % 2 == 0 && ct > 3) {
+				let html = `<div>${this.messages[Math.floor(this.messages.length * Math.random())]}</div>`;
+				html += `<img class="img-prev" src="${this.gifs[Math.floor(this.gifs.length * Math.random())]}"/>`;
+				document.querySelector('.saito-overlay-form-content').innerHTML = html;
+			}
+		}, 5000);
 	}
 }
 

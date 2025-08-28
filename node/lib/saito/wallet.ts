@@ -164,12 +164,10 @@ export default class Wallet extends SaitoWallet {
           hash: unique_hash
         };
 
-        console.log('newtx created: ', newtx);
-
         await this.app.wallet.signAndEncryptTransaction(newtx);
         await this.app.network.propagateTransaction(newtx);
 
-        console.log('newtx propogated: ', newtx);
+        console.log('--> Saito payment tx! ', newtx);
 
         return newtx.signature;
       }
@@ -504,13 +502,17 @@ export default class Wallet extends SaitoWallet {
   // WEB3 CRYPTO MODULES //
   /////////////////////////
 
-  returnInstalledCryptos() {
+  returnInstalledCryptos(filter = true) {
     const cryptoModules: (typeof CryptoModule)[] =
       this.app.modules.returnModulesBySubType(CryptoModule);
     if (this.saitoCrypto !== null) {
       cryptoModules.push(this.saitoCrypto);
     }
-    return cryptoModules;
+    if (filter) {
+      return cryptoModules.filter((m) => !m.hide_me);
+    } else {
+      return cryptoModules;
+    }
   }
 
   returnActivatedCryptos() {
@@ -525,13 +527,14 @@ export default class Wallet extends SaitoWallet {
   }
 
   returnCryptoModuleByTicker(ticker) {
-    const mods = this.returnInstalledCryptos();
+    const mods = this.returnInstalledCryptos(false);
     for (let i = 0; i < mods.length; i++) {
       // be case insensitive, just in case
       if (mods[i].ticker.toUpperCase() === ticker.toUpperCase()) {
         return mods[i];
       }
     }
+
     throw 'Module Not Found: ' + ticker;
   }
 
@@ -675,51 +678,55 @@ export default class Wallet extends SaitoWallet {
 
     if (!this.doesPreferredCryptoTransactionExist(unique_hash)) {
       console.log('preferred crypto transaction does not already exist');
-      const cryptomod = this.returnCryptoModuleByTicker(ticker);
-      for (let i = 0; i < senders.length; i++) {
-        //
-        // DEBUGGING - sender is address to which we send the crypto
-        //       - not our own publickey
-        //
+      try {
+        const cryptomod = this.returnCryptoModuleByTicker(ticker);
+        for (let i = 0; i < senders.length; i++) {
+          //
+          // DEBUGGING - sender is address to which we send the crypto
+          //       - not our own publickey
+          //
 
-        if (senders[i] === cryptomod.formatAddress()) {
-          // Need to save before we await, otherwise there is a race condition
-          await this.savePreferredCryptoTransaction(unique_hash);
-          try {
-            const hash = await cryptomod.sendPayment(amounts[i], receivers[i], unique_hash);
-            //
-            // hash is "" if unsuccessful, trace_id if successful
-            //
-            if (hash === '') {
-              this.deletePreferredCryptoTransaction(unique_hash);
-            }
-
-            if (saito_public_key) {
-              if (ticker !== 'SAITO') {
-                await cryptomod.sendPaymentTransaction(
-                  saito_public_key,
-                  senders[i],
-                  receivers[i],
-                  amounts[i],
-                  unique_hash
-                );
+          if (senders[i] === cryptomod.formatAddress()) {
+            // Need to save before we await, otherwise there is a race condition
+            await this.savePreferredCryptoTransaction(unique_hash);
+            try {
+              const hash = await cryptomod.sendPayment(amounts[i], receivers[i], unique_hash);
+              //
+              // hash is "" if unsuccessful, trace_id if successful
+              //
+              if (hash === '') {
+                this.deletePreferredCryptoTransaction(unique_hash);
               }
-            }
 
-            if (mycallback) {
-              mycallback({ hash: hash });
+              if (saito_public_key) {
+                if (ticker !== 'SAITO') {
+                  await cryptomod.sendPaymentTransaction(
+                    saito_public_key,
+                    senders[i],
+                    receivers[i],
+                    amounts[i],
+                    unique_hash
+                  );
+                }
+              }
+
+              if (mycallback) {
+                mycallback({ hash: hash });
+              }
+              return;
+            } catch (err) {
+              // it failed, delete the transaction
+              this.deletePreferredCryptoTransaction(unique_hash);
+              rtnObj = { err };
             }
-            return;
-          } catch (err) {
-            // it failed, delete the transaction
-            this.deletePreferredCryptoTransaction(unique_hash);
-            rtnObj = { err };
+          } else {
+            console.log(cryptomod.name);
+            console.log(senders[i], cryptomod.formatAddress());
+            rtnObj = { err: 'wrong address' };
           }
-        } else {
-          console.log(cryptomod.name);
-          console.log(senders[i], cryptomod.formatAddress());
-          rtnObj = { err: 'wrong address' };
         }
+      } catch (err) {
+        rtnObj = { err };
       }
     } else {
       rtnObj = { err: 'already sent' };
@@ -728,7 +735,7 @@ export default class Wallet extends SaitoWallet {
     console.error('sendPayment ERROR: ', rtnObj);
 
     if (mycallback) {
-      mycallback({ rtnObj });
+      mycallback(rtnObj);
     }
   }
 
@@ -759,9 +766,10 @@ export default class Wallet extends SaitoWallet {
     }
 
     if (!this.doesPreferredCryptoTransactionExist(unique_hash)) {
-      const cryptomod = this.returnCryptoModuleByTicker(ticker);
-      await this.savePreferredCryptoTransaction(unique_hash);
       try {
+        const cryptomod = this.returnCryptoModuleByTicker(ticker);
+        await this.savePreferredCryptoTransaction(unique_hash);
+
         let amounts_to_send: bigint[] = [];
         let to_addresses = [];
         for (let i = 0; i < senders.length; i++) {
@@ -822,15 +830,18 @@ export default class Wallet extends SaitoWallet {
       return;
     }
 
-    const cryptomod = this.returnCryptoModuleByTicker(ticker);
+    try {
+      const cryptomod = this.returnCryptoModuleByTicker(ticker);
+      // make sure activated but not necessarily our preferred crypto... (why?)
+      await cryptomod.onIsActivated();
 
-    // make sure activated but not necessarily our preferred crypto... (why?)
-    await cryptomod.onIsActivated();
+      await cryptomod.saveInboundPayment(unique_hash);
 
-    await cryptomod.saveInboundPayment(unique_hash);
-
-    if (mycallback) {
-      mycallback();
+      if (mycallback) {
+        mycallback();
+      }
+    } catch (err) {
+      mycallback({ err });
     }
   }
 
