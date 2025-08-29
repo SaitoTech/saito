@@ -274,8 +274,6 @@ class Migration extends ModTemplate {
 			max_deposit = 100000 * Math.floor(max_deposit / 100000);
 		}
 
-		max_deposit = 50;
-
 		let mixin_address = '';
 
 		if (!this.ercMod) {
