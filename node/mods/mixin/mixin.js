@@ -273,9 +273,8 @@ class Mixin extends ModTemplate {
     const rtn_obj = {};
 
     let db_results = await this.retrieveMixinAccountData(pkey);
-
     if (db_results.length > 0) {
-      rtn_obj.res = db_results.account_hash;
+      rtn_obj.res = db_results[0].account_hash;
       rtn_obj.restored = true;
     } else {
       try {

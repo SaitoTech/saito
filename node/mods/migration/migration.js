@@ -105,9 +105,11 @@ class Migration extends ModTemplate {
 
 	returnServices() {
 		let services = [];
-		if (this.publicKey == this.migration_publickey) {
-			console.log('---> I provide migration services!!!!');
-			services.push(new PeerService(null, 'migration'));
+		if (!this.app.BROWSER) {
+			if (this.publicKey == this.migration_publickey) {
+				console.log('---> I provide migration services!!!!');
+				services.push(new PeerService(null, 'migration'));
+			}
 		}
 		return services;
 	}
