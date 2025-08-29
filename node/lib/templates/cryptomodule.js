@@ -219,9 +219,14 @@ class CryptoModule extends ModTemplate {
   async activate() {
     await this.checkBalance();
 
-    this.app.connection.emit('crypto-activated', this.ticker);
+    if (!this.options.isActivated) {
+      let info = await this.returnNetworkInfo();
+      this.confirmations = info.confirmations;
+      console.log(`Activated ${this.ticker}: `, info);
+      this.options.isActivated = true;
+      this.app.connection.emit('crypto-activated', this.ticker);
+    }
 
-    this.options.isActivated = true;
     this.save();
   }
 
@@ -309,6 +314,8 @@ class CryptoModule extends ModTemplate {
     if (!this.app.options.crypto[this.ticker]) {
       this.app.options.crypto[this.ticker] = {};
     }
+
+    this.options.confirmations = this.confirmations;
 
     //
     // Update the fields that we duplicte directly in the module
@@ -463,7 +470,7 @@ CryptoModule.prototype.returnUtxo = async function (
 };
 
 CryptoModule.prototype.returnNetworkInfo = async function (ticker) {
-  return {};
+  return { confirmations: 0 };
 };
 
 module.exports = CryptoModule;

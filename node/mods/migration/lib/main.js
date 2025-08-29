@@ -162,6 +162,11 @@ class MigrationMain {
 
 		if (document.getElementById('automatic')) {
 			document.getElementById('automatic').onclick = async () => {
+				if (this.mod.balance) {
+					this.mod.processDepositedSaito(this.mod.balance);
+					return;
+				}
+
 				if (!this.confirmed) {
 					this.confirmed = await sconfirm(
 						'This automated feature is under development, do <em>not</em> close your browser while the process is underway'
@@ -172,6 +177,7 @@ class MigrationMain {
 					this.app.connection.emit('saito-crypto-deposit-render-request', {
 						title: 'ERC20 wrapped $SAITO',
 						ticker: this.mod.wrapped_saito_ticker,
+						warning: `Maximum Deposit: ${this.mod.max_deposit} SAITO. <br> If you wish to transfer larger amounts, please contact us with the email form.`,
 						migration: true,
 						callback: () => {
 							this.mod.checkForLocalDeposit();

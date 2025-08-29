@@ -16,7 +16,7 @@ class Deposit {
 
       this.desired_amount = obj.amount || null;
       this.migration = obj.migration || false;
-
+      this.warning = obj.warning || null;
       this.callback = obj.callback || null;
 
       this.render();

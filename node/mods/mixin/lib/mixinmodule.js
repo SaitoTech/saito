@@ -99,11 +99,11 @@ class MixinModule extends CryptoModule {
 		}
 		let now = new Date().getTime();
 		if (now - this.balance_timestamp_last_fetched > this.minimum_delay_between_balance_queries) {
-			console.log('MixinModule Query balance for ' + this.ticker);
-
 			this.balance_timestamp_last_fetched = now;
 
-			await this.mixin.fetchSafeUtxoBalance(this.asset_id);
+			let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
+
+			console.log('MixinModule Query balance for ' + this.ticker + `: ${balance}`);
 		} else {
 			console.log('MixinModule warning: too soon to query balance updates');
 		}

@@ -24,6 +24,8 @@ module.exports = (app, mod, deposit_self) => {
 
   if (deposit_self?.desired_amount) {
     html += `<div class="call-to-action">deposit ${deposit_self.desired_amount} to continue</div>`;
+  } else if (deposit_self?.warning) {
+    html += `<div class="call-to-action">${deposit_self.warning}</div>`;
   }
 
   html += `

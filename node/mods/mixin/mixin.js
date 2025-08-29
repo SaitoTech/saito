@@ -86,7 +86,6 @@ class Mixin extends ModTemplate {
     }
 
     await this.loadCryptos();
-    this.save();
   }
 
   canRenderInto(qs) {
@@ -182,10 +181,6 @@ class Mixin extends ModTemplate {
           await this.fetchSafeUtxoBalance();
         }
       }
-
-      //if (!this.app.BROWSER) {
-      //  crypto_module.activate();
-      //}
     }
   }
 
@@ -418,11 +413,15 @@ class Mixin extends ModTemplate {
 
       for (let i = 0; i < this.crypto_mods.length; i++) {
         if (this.crypto_mods[i].asset_id === asset_id) {
-          this.crypto_mods[i].balance = utxo;
-          //  removing save here for debugging purposes -- June 21, '24
-          //this.crypto_mods[i].save();
+          if (this.crypto_mods[i].balance != utxo) {
+            console.debug(`Updated ${this.crypto_mods[i].ticker} balance!`);
+            this.crypto_mods[i].balance = utxo;
+            this.crypto_mods[i].save();
+          }
         }
       }
+
+      return utxo;
     } catch (err) {
       console.error('ERROR: Mixin error fetch safe utxo: ' + err);
       return false;
@@ -495,6 +494,7 @@ class Mixin extends ModTemplate {
       });
 
       let asset = await user.network.fetchAsset(asset_id);
+
       return asset;
     } catch (err) {
       console.error('ERROR: Mixin error check network fee: ' + err);
@@ -998,8 +998,8 @@ class Mixin extends ModTemplate {
 
   async load() {
     if (this.app?.options?.mixin) {
+      console.log('MIXIN USER ACCOUNT RESTORED');
       this.mixin = this.app.options.mixin;
-      console.log('MIXIN OPTIONS: ' + JSON.stringify(this.app.options.mixin));
       if (this.mixin.user_id) {
         this.account_created = 1;
 
