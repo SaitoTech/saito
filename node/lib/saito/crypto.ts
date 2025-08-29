@@ -333,8 +333,133 @@ export default class Crypto {
     }
   }
 
-  /* Stubs for useful asymetrical encryption */
-  encryptByPublic(message: string, publicKey: string) {}
+  //////////////////////////////////////
+  // ECIES ENCRYPTION/DECRYPTION FUNCTIONS //
+  // AI generated -- Daniel edited
+  //////////////////////////////////////
 
-  decryptByPrivate(encoded_msg: Buffer, privateKey: string) {}
+  /**
+   * Encrypts binary data using ECIES (Elliptic Curve Integrated Encryption Scheme)
+   * with a Saito public key. This allows encrypting files or any binary data.
+   *
+   * @param {string} str - plain text to encrypt
+   * @param {string} recipientPublicKey - The Saito public key (base58) to encrypt for
+   * @returns {Promise<Buffer>} The encrypted data as a buffer
+   * @throws {Error} If encryption fails or invalid public key
+
+    Hint --  data = Buffer.from(str, 'utf8');
+   */
+  encryptWithPublicKey(data: Buffer, recipientPublicKey: string): Buffer {
+    try {
+      // Convert base58 public key to hex format for secp256k1
+      const publicKeyHex = this.fromBase58(recipientPublicKey);
+      const publicKeyBuffer = Buffer.from(publicKeyHex, 'hex');
+
+      // Generate ephemeral key pair
+      let ephemeralPrivateKey: Buffer;
+      let ephemeralPublicKey: Buffer;
+
+      do {
+        ephemeralPrivateKey = crypto.randomBytes(32);
+      } while (!secp256k1.privateKeyVerify(ephemeralPrivateKey));
+
+      ephemeralPublicKey = Buffer.from(secp256k1.publicKeyCreate(ephemeralPrivateKey, false));
+
+      // Compute shared secret using ECDH
+      const sharedPoint = Buffer.from(
+        secp256k1.publicKeyTweakMul(publicKeyBuffer, ephemeralPrivateKey)
+      );
+
+      // Derive encryption key from shared secret (using x-coordinate)
+      const sharedSecret = sharedPoint.slice(1, 33); // Extract x-coordinate (32 bytes)
+
+      // Encrypt the data using AES with the shared secret
+      const encryptedData = this.aesEncrypt(data.toString('base64'), sharedSecret);
+
+      // Create the final encrypted package: ephemeral public key + encrypted data
+      const ephemeralPublicKeyCompressed = Buffer.from(
+        secp256k1.publicKeyConvert(ephemeralPublicKey, true)
+      );
+      const encryptedBuffer = Buffer.from(encryptedData, 'utf8');
+
+      // Package: [33 bytes ephemeral pubkey] + [encrypted data]
+      const result = Buffer.concat([ephemeralPublicKeyCompressed, encryptedBuffer]);
+
+      return result;
+    } catch (error) {
+      console.error('Error encrypting with public key:', error);
+      throw new Error(`Encryption failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Decrypts binary data using ECIES with this wallet's private key.
+   *
+   * @param {Buffer} encryptedData - The encrypted data buffer (ephemeral pubkey + encrypted data)
+   * @param {string} privateKeyHex - our base58 encoded private key provided by the wallet via the module
+   * @returns {string} The decrypted data as a readable string (or stringified JSON object)
+   * @throws {Error} If decryption fails or invalid data format
+   *
+   * HINT -- returnValue.toString('utf8') --> readable text
+   */
+  decryptWithPrivateKey(encryptedData: Buffer, privateKeyHex: string): Buffer {
+    try {
+      if (encryptedData.length < 33) {
+        throw new Error('Invalid encrypted data format: too short');
+      }
+
+      // Extract ephemeral public key (first 33 bytes) and encrypted payload
+      const ephemeralPublicKey = encryptedData.slice(0, 33);
+      const encryptedPayload = encryptedData.slice(33);
+
+      // Get our private key
+      const privateKeyBuffer = Buffer.from(privateKeyHex, 'hex');
+
+      // Verify the ephemeral public key is valid
+      if (!secp256k1.publicKeyVerify(ephemeralPublicKey)) {
+        throw new Error('Invalid ephemeral public key in encrypted data');
+      }
+
+      // Convert ephemeral public key to uncompressed format for ECDH
+      const ephemeralPublicKeyUncompressed = Buffer.from(
+        secp256k1.publicKeyConvert(ephemeralPublicKey, false)
+      );
+
+      // Compute shared secret using ECDH
+      const sharedPoint = Buffer.from(
+        secp256k1.publicKeyTweakMul(ephemeralPublicKeyUncompressed, privateKeyBuffer)
+      );
+
+      // Derive decryption key from shared secret (using x-coordinate)
+      const sharedSecret = sharedPoint.slice(1, 33); // Extract x-coordinate (32 bytes)
+
+      // Decrypt the data using AES
+      const encryptedString = encryptedPayload.toString('utf8');
+      const decryptedBase64 = this.aesDecrypt(encryptedString, sharedSecret);
+
+      if (!decryptedBase64) {
+        throw new Error('Failed to decrypt data - invalid shared secret or corrupted data');
+      }
+
+      // Convert back from base64 to binary
+      const decryptedData = Buffer.from(decryptedBase64, 'base64');
+
+      return decryptedData;
+    } catch (error) {
+      console.error('Error decrypting with private key:', error);
+    }
+  }
+
+  ////////////////////////
+  // Encryption Example!
+  ////////////////////////
+  /*
+  let a = this.app.crypto.encryptWithPublicKey(
+    Buffer.from(JSON.stringify(this.mixin), 'utf8'),
+    this.publicKey
+  );
+  a = a.toString('base64');
+  a = Buffer.from(a, 'base64');
+  let b = this.app.crypto.decryptWithPrivateKey(a, await this.app.wallet.getPrivateKey());
+  */
 }
