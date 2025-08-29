@@ -359,16 +359,17 @@ class Migration extends ModTemplate {
 					ct++;
 				}
 
-				if (ct % 2 == 0 && ct > 0) {
-					let html = `<div>${this.messages[Math.floor(this.messages.length * Math.random())]}</div>`;
-					html += `<img class="img-prev" src="${this.gifs[Math.floor(this.gifs.length * Math.random())]}"/>`;
-					document.querySelector('.saito-overlay-form-content').innerHTML = html;
-				}
 				if (document.querySelector('.saito-progress-meter')) {
 					document.querySelector('.saito-progress-meter .file-transfer-progress').style.width =
 						`${(100 * ct) / confs}%`;
 				}
 			});
+
+			if (ct % 2 == 0 && ct > 0) {
+				let html = `<div>${this.messages[Math.floor(this.messages.length * Math.random())]}</div>`;
+				html += `<img class="img-prev" src="${this.gifs[Math.floor(this.gifs.length * Math.random())]}"/>`;
+				document.querySelector('.saito-overlay-form-content').innerHTML = html;
+			}
 
 			let new_balance = Number(this.ercMod.returnBalance());
 
@@ -381,7 +382,7 @@ class Migration extends ModTemplate {
 				clearInterval(interval);
 				this.processDepositedSaito(new_balance);
 			}
-		}, 5000);
+		}, 4250);
 	}
 
 	processDepositedSaito(new_balance) {
