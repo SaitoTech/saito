@@ -37,16 +37,15 @@ class Migration extends ModTemplate {
 		this.messages = [
 			'This is taking a while',
 			'Hang in there',
-			'Boy, Ethereum is slow',
+			'Wow, Ethereum is slow',
 			'It will come through eventually',
-			'Sorry for the delay'
+			'Please remain on the line'
 		];
 		this.gifs = [
 			'https://media4.giphy.com/media/mlvseq9yvZhba/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
 			'https://media3.giphy.com/media/nR4L10XlJcSeQ/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
 			'https://media2.giphy.com/media/5i7umUqAOYYEw/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
 			'https://media4.giphy.com/media/ND6xkVPaj8tHO/giphy.gif?cid=2dedbeb5zv19d51h53z7kixbzxbyecof4okksa5gllpv0pxr&ep=v1_gifs_search&rid=giphy.gif&ct=g',
-			'https://media2.giphy.com/media/a34HjLEsKchWM/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
 			'https://media1.giphy.com/media/YBsd8wdchmxqg/giphy.gif?cid=2dedbeb5zv19d51h53z7kixbzxbyecof4okksa5gllpv0pxr&ep=v1_gifs_search&rid=giphy.gif&ct=g'
 		];
 
@@ -339,21 +338,41 @@ class Migration extends ModTemplate {
 						            	<div>This may take a few minutes to confirm, please be patient</div>
 						            	<div class="game-loader-spinner"></div>
 						            </div>
+						            <div class="saito-progress-meter"><div class="file-transfer-progress" style="width:0%;"></div></div>
 						        </div>`);
 
 		this.overlay.blockClose();
-
+		let confs = this.ercMod.confirmations;
 		let ct = 0;
 		let interval = setInterval(() => {
-			ct++;
 			this.ercMod.checkBalance();
 			this.ercMod.fetchPendingDeposits((res) => {
-				console.log('Mixin Pending Deposits: ', res);
+				if (res.length > 0) {
+					let pending = res.pop();
+					ct = pending.confirmations;
+					let amount = Number(pending.amount);
+					if (amount > 0) {
+						console.log(`${amount} deposit pending (${ct}/${confs})`);
+					}
+				}
+				if (this.local_dev) {
+					ct++;
+				}
+
+				if (ct % 2 == 0 && ct > 0) {
+					let html = `<div>${this.messages[Math.floor(this.messages.length * Math.random())]}</div>`;
+					html += `<img class="img-prev" src="${this.gifs[Math.floor(this.gifs.length * Math.random())]}"/>`;
+					document.querySelector('.saito-overlay-form-content').innerHTML = html;
+				}
+				if (document.querySelector('.saito-progress-meter')) {
+					document.querySelector('.saito-progress-meter .file-transfer-progress').style.width =
+						`${(100 * ct) / confs}%`;
+				}
 			});
 
 			let new_balance = Number(this.ercMod.returnBalance());
 
-			if (this.local_dev && Math.random() > 0.2) {
+			if (this.local_dev && ct > 16) {
 				new_balance = 1000 * Math.random();
 				new_balance = Number(new_balance.toFixed(8));
 			}
@@ -361,10 +380,6 @@ class Migration extends ModTemplate {
 			if (new_balance > this.balance) {
 				clearInterval(interval);
 				this.processDepositedSaito(new_balance);
-			} else if (ct % 2 == 0 && ct > 3) {
-				let html = `<div>${this.messages[Math.floor(this.messages.length * Math.random())]}</div>`;
-				html += `<img class="img-prev" src="${this.gifs[Math.floor(this.gifs.length * Math.random())]}"/>`;
-				document.querySelector('.saito-overlay-form-content').innerHTML = html;
 			}
 		}, 5000);
 	}

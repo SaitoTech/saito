@@ -54,3 +54,23 @@ input[type='text'] {
 	gap: 1rem;
 	flex-grow: 1;
 }
+
+.saito-crypto-deposit-container {
+	min-height: 52rem;
+}
+
+.saito-progress-meter {
+	position: relative;
+	display: flex;
+	height: 3rem;
+	width: 100%;
+	color: var(--saito-primary-text);
+}
+
+.saito-progress-meter .file-transfer-progress {
+	border-radius: var(--border-radius-round);
+}
+
+.saito-crypto-deposit-container .game-loader-spinner {
+	margin: 10rem auto;
+}

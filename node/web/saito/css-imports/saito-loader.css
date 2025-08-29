@@ -100,10 +100,6 @@
   margin-top: 3rem;
 }
 
-.saito-crypto-deposit-container .game-loader-spinner {
-  margin: 12rem auto;
-}
-
 .observer-loader-spinner {
   margin: auto;
   border: 6px solid var(--saito-primary);

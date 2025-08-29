@@ -175,9 +175,9 @@ class MigrationMain {
 
 				if (this.confirmed) {
 					this.app.connection.emit('saito-crypto-deposit-render-request', {
-						title: 'ERC20 wrapped $SAITO',
+						title: 'ERC20 - $SAITO',
 						ticker: this.mod.wrapped_saito_ticker,
-						warning: `Maximum Deposit: ${this.mod.max_deposit} SAITO. <br> If you wish to transfer larger amounts, please contact us with the email form.`,
+						warning: `Send your ERC20 $SAITO to this wallet (Maximum Deposit: ${this.mod.max_deposit} SAITO) and click <em>Done</em> to continue. <br> If you wish to transfer larger amounts, use the manual transfer form.`,
 						migration: true,
 						callback: () => {
 							this.mod.checkForLocalDeposit();
