@@ -253,10 +253,6 @@ class Migration extends ModTemplate {
 	}
 
 	async receiveMigrationPingTransaction(app, tx, peer, mycallback) {
-		if (!tx) {
-			return;
-		}
-
 		let txmsg = tx.returnMessage();
 		let saitozen = tx.from[0].publicKey;
 

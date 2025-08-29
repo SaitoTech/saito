@@ -224,9 +224,9 @@ class CryptoModule extends ModTemplate {
       this.confirmations = info.confirmations;
       console.log(`Activated ${this.ticker}: `, info);
       this.options.isActivated = true;
-      this.app.connection.emit('crypto-activated', this.ticker);
     }
 
+    this.app.connection.emit('crypto-activated', this.ticker);
     this.save();
   }
 
