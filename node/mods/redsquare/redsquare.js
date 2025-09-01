@@ -176,6 +176,7 @@ class RedSquare extends ModTemplate {
           text: 'RedSquare',
           icon: 'fa-solid fa-square',
           rank: 20,
+          type: 'navigation',
           callback: function (app, id) {
             navigateWindow('/redsquare');
           },
@@ -192,6 +193,7 @@ class RedSquare extends ModTemplate {
             text: 'RedSquare Home',
             icon: 'fa-solid fa-house',
             rank: 21,
+            type: 'appspace',
             callback: function (app, id) {
               document.querySelector('.redsquare-menu-home').click();
             }
@@ -200,6 +202,7 @@ class RedSquare extends ModTemplate {
             text: 'Notifications',
             icon: 'fas fa-bell',
             rank: 23,
+            type: 'appspace',
             callback: function (app, id) {
               document.querySelector('.redsquare-menu-notifications').click();
             },
@@ -214,6 +217,7 @@ class RedSquare extends ModTemplate {
             text: 'Profile',
             icon: 'fas fa-user',
             rank: 26,
+            type: 'appspace',
             callback: function (app, id) {
               document.querySelector('.redsquare-menu-profile').click();
             }

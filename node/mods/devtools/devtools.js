@@ -81,6 +81,7 @@ class DevTools extends ModTemplate {
 			// 	x.push({
 			// 		text: 'Add app',
 			// 		icon: 'fa-solid fa-plus',
+			//		type: 'quicklaunch',
 			// 		callback: function (app, id) {
 			// 			this_self.addAppOverlay.render();
 			// 		}
@@ -213,13 +214,12 @@ class DevTools extends ModTemplate {
 					false,
 					false
 				);
-			
-				if (document.getElementById("install")){
-					document.getElementById("install").onclick = (e) => {
-						this.app.connection.emit('saito-app-app-render-request');
-					}
-				}
 
+				if (document.getElementById('install')) {
+					document.getElementById('install').onclick = (e) => {
+						this.app.connection.emit('saito-app-app-render-request');
+					};
+				}
 			}
 		} catch (err) {
 			console.error('Error: ', err);
@@ -274,7 +274,7 @@ class DevTools extends ModTemplate {
 
 				//console.log("Loaded DYN_MOD_WEB:", DYN_MOD_WEB);
 
-/********************************************************
+				/********************************************************
 /**** WHEN DEBUGGING, EDIT THIS TO HAVE A COPY SAVED ****
 /********************************************************
 				execSync(`cp ./build/dyn_mod.js /Users/david/dyn_mod.js`, (error, stdout, stderr) => {
@@ -370,7 +370,6 @@ class DevTools extends ModTemplate {
 			try {
 				const directory = await unzipper.Open.file(path.resolve(__dirname, zip_path));
 				let promises = directory.files.map(async (file) => {
-
 					console.log('file: ', file);
 					// return;
 

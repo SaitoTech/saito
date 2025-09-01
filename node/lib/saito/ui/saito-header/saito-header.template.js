@@ -12,7 +12,7 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
            <div class="saito-header-backdrop"></div>
            <div class="saito-header-hamburger-contents">
                <!-------- wallet start --------->
-               <div class="saito-header-profile header-wallet">
+               <div class="saito-header-profile">
                    <div class="wallet-infoo">
                        <div id="qrcode"></div>
                        <div class="wallet-balance">
@@ -24,22 +24,31 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                             </div>
                            <select class="wallet-select-crypto" id="wallet-select-crypto"></select>
                        </div>
+                       
                        <div class="pubkey-containter">
                            <div class="profile-public-key generate-keys" id="profile-public-key"><div>generating keys...</div></div>
                            <i class="fas fa-copy"></i>
                        </div>
+                       <div class="pubkey-mobile-wrapper">
+                           <i id="toggle-qr" class="fa-solid fa-qrcode"></i>
+                       </div>
                    </div>
                    <div class="wallet-btn-container">
-                       <div class="wallet-btn" id="wallet-btn-withdraw" data-assetid="" data-ticker="" data-balance="0"
-                           data-sender="">
+                       <div class="wallet-btn" id="wallet-btn-withdraw">
                            <i class="fa fa-arrow-up"></i>
                            <span>SEND</span>
                        </div>
-                       <div class="wallet-btn wallet-btn-history" id="wallet-btn-history" data-asset-id="" data-ticker="">
+                       <div class="wallet-btn" id="wallet-btn-details">
+                           <i class="fa-solid fa-wallet"></i>
+                           <span>Wallet</span>
+                           <i class="hideme fa-solid fa-list"></i>
+                           <span class="hideme">Apps</span>
+                       </div>
+                       <!--div class="wallet-btn" id="wallet-btn-history">
                            <i class="fa-regular fa-clock"></i>
                            <span>History</span>
-                       </div>
-                       <div class="wallet-btn more-options">
+                       </div-->
+                       <div class="wallet-btn" id="wallet-btn-settings">
                            <i class="fas fa-cog"></i>
                            <span class="option-more">ACCOUNT</span>
                        </div>
@@ -47,13 +56,27 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
 
                </div>
                <!-------- wallet end ----------->
-               <div class="saito-header-menu-section appspace-menu">
-                 <div class="saito-menu">
-                   <ul class="saito-menu-select-heavy">
-                   </ul>
-                 </div>
+               <div class="saito-header-menu-section ">
+                   <div class="appspace-menu saito-menu empty">
+                        <ul class="saito-menu-select-heavy"></ul>
+                   </div>
+                   <hr>
+                   <div class="quicklaunch-menu saito-menu empty">
+                        <ul class="saito-menu-select-heavy"></ul>
+                   </div>
+                   <hr>
+                   <div class="navigation-menu saito-menu empty">
+                        <ul class="saito-menu-select-heavy"></ul>
+                   </div>
+                   <hr>
+                   <div class="utilities-menu saito-menu">
+                        <ul class="saito-menu-select-heavy"></ul>
+                   </div>
                </div>
-      
+               <div class="header-wallet">
+                   <div class="saito-header-wallet-menu saito-menu-select-subtle">
+                   </div>
+               </div>
            </div>
        </div>
    </header>

@@ -574,6 +574,7 @@ class Arcade extends ModTemplate {
 					text: 'Arcade',
 					icon: 'fa-solid fa-building-columns',
 					rank: 15,
+					type: 'navigation',
 					callback: function (app, id) {
 						navigateWindow('/arcade');
 					}
@@ -584,20 +585,7 @@ class Arcade extends ModTemplate {
 				text: 'Games',
 				icon: this.icon || 'fas fa-gamepad',
 				rank: 10,
-				callback: function (app, id) {
-					app.connection.emit('arcade-launch-game-selector', {});
-				}
-			});
-			return x;
-		}
-		if (type === 'saito-floating-menu') {
-			let x = [];
-
-			x.push({
-				text: 'Games',
-				icon: this.icon || 'fas fa-gamepad',
-				is_active: this.browser_active,
-				rank: 25,
+				type: 'quicklaunch',
 				callback: function (app, id) {
 					app.connection.emit('arcade-launch-game-selector', {});
 				}

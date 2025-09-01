@@ -125,6 +125,15 @@
   right: 0;
 }
 
+.saito-header-hamburger-contents.show-wallet .wallet-infoo {
+  height: 0;
+  margin: 0;
+}
+
+.saito-header-hamburger-contents.show-wallet .saito-header-menu-section {
+  display: none;
+}
+
 .saito-header-backdrop {
   opacity: 0;
   pointer-events: none;
@@ -144,19 +153,18 @@
   pointer-events: auto;
 }
 
-.header-wallet {
+.saito-header-profile {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
   align-items: center;
   background: inherit;
+  transition: all 2s;
 }
 
 #qrcode,
 .qrcode {
   width: 100%;
   max-height: 20rem;
-  height: 20vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -209,6 +217,7 @@
   color: var(--saito-font-color-inverse);
   border-radius: var(--border-radius-soft);
   padding: 0.75rem;
+  margin: 0.5rem 0;
   width: 95%;
   text-transform: uppercase;
 }
@@ -232,7 +241,7 @@
 .wallet-identicon {
   width: 3.2rem;
   height: 3.2rem;
-  margin: auto 1rem auto 0;
+  margin: auto 1rem 0 0;
 }
 
 .pubkey-containter {
@@ -247,20 +256,40 @@
   font-size: 1.6rem;
 }
 
+.pubkey-mobile-wrapper {
+  display: none;
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+}
+
+.pubkey-mobile-wrapper i {
+  font-size: 3.2rem;
+  padding: 0.4rem;
+}
+
 .pubkey-containter:hover i {
   transform: scale(1.1);
 }
 
+.pubkey-mobile-wrapper > i:hover {
+  transform: scale(1.1);
+}
+
 .wallet-infoo {
-  padding-top: 1.5rem;
   display: flex;
+  position: relative;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
   justify-content: space-around;
   width: 100%;
   background: inherit;
+  height: min(50vh, 273px);
+  overflow: hidden;
   color: var(--saito-font-color);
+  margin: 1.5rem 0;
+  transition: all 0.8s;
 }
 
 .wallet-balance {
@@ -289,6 +318,16 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.header-wallet {
+  overflow: hidden;
+  height: 0;
+  transition: all 2s;
+}
+
+.saito-header-hamburger-contents.show-wallet .header-wallet {
+  height: fit-content;
 }
 
 .hamburger-container {
@@ -516,6 +555,48 @@
   transition: opacity 4s;
 }
 
+/*   Crypto Menu */
+.saito-header-wallet-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.saito-crypto-details {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  grid-template-rows: 2fr 1fr;
+  row-gap: 0.5rem;
+  column-gap: 1rem;
+  height: 6rem;
+  padding: 0.5rem 1rem;
+}
+
+.saito-crypto-details.unactive {
+  filter: grayscale(100%) opacity(75%);
+}
+
+.crypto-logo-container {
+  grid-column-start: 1;
+  grid-column-end: span 1;
+  grid-row: span 2;
+  position: relative;
+}
+
+.crypto-logo {
+  height: 100%;
+  width: 100%;
+}
+
+.header-crypto-balance {
+  font: var(--saito-font-medium);
+  color: var(--saito-font-color-heavy);
+}
+
+.header-crypto-value {
+  color: var(--saito-font-color-light);
+}
+
 @media screen and (max-width: 620px) {
   .saito-header-hamburger-contents {
     width: 100vw;
@@ -533,6 +614,35 @@
     font-size: 30px;
   }
   .saito-floating-plus-btn {
+    display: flex;
+  }
+
+  .wallet-infoo {
+    margin-top: 0.5rem;
+    height: 85px;
+    gap: 0;
+  }
+
+  #qrcode,
+  .qrcode {
+    height: 0;
+    visibility: hidden;
+    overflow: hidden;
+  }
+
+  .show-qr .wallet-infoo {
+    margin-top: 1.5rem;
+    height: 235px;
+    gap: 1rem;
+  }
+
+  .show-qr #qrcode,
+  .show-qr .qrcode {
+    height: auto;
+    visibility: visible;
+  }
+
+  .pubkey-mobile-wrapper {
     display: flex;
   }
 }

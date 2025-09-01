@@ -67,7 +67,7 @@ class QRScanner extends ModTemplate {
 	respondTo(type = '') {
 		let qr_self = this;
 		if (type === 'saito-header') {
-			return [
+			/*return [
 				{
 					text: 'Scan',
 					icon: 'fas fa-expand',
@@ -76,7 +76,7 @@ class QRScanner extends ModTemplate {
 						app.connection.emit('scanner-start-scanner', {});
 					}
 				}
-			];
+			];*/
 		}
 
 		return super.respondTo(type);
@@ -84,11 +84,9 @@ class QRScanner extends ModTemplate {
 
 	attachEvents(app) {
 		let scanner_self = this;
-		document
-			.querySelector('.launch-scanner')
-			.addEventListener('click', function (e) {
-				scanner_self.startScanner();
-			});
+		document.querySelector('.launch-scanner').addEventListener('click', function (e) {
+			scanner_self.startScanner();
+		});
 	}
 
 	startQRDecoderInitializationLoop() {
@@ -128,10 +126,7 @@ class QRScanner extends ModTemplate {
 		};
 
 		let scanner_self = this;
-		scanner_self.start(
-			document.getElementById('qr-video'),
-			document.getElementById('qr-canvas')
-		);
+		scanner_self.start(document.getElementById('qr-video'), document.getElementById('qr-canvas'));
 	}
 
 	//
@@ -159,10 +154,7 @@ class QRScanner extends ModTemplate {
 
 		let scanner_self = this;
 
-		scanner_self.start(
-			document.getElementById('qr-video'),
-			document.getElementById('qr-canvas')
-		);
+		scanner_self.start(document.getElementById('qr-video'), document.getElementById('qr-canvas'));
 	}
 
 	returnScannerHTML() {
@@ -191,9 +183,7 @@ class QRScanner extends ModTemplate {
 		};
 
 		try {
-			let stream = await navigator.mediaDevices.getUserMedia(
-				this.constraints
-			);
+			let stream = await navigator.mediaDevices.getUserMedia(this.constraints);
 			this.handleSuccess(stream);
 		} catch (err) {
 			this.handleError(err);
@@ -222,21 +212,10 @@ class QRScanner extends ModTemplate {
 			try {
 				this.canvas.width = this.video.videoWidth;
 				this.canvas.height = this.video.videoHeight;
-				this.canvas_context.drawImage(
-					this.video,
-					0,
-					0,
-					this.canvas.width,
-					this.canvas.height
-				);
+				this.canvas_context.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
 				if (this.canvas.width == 0) return;
 
-				var imgData = this.canvas_context.getImageData(
-					0,
-					0,
-					this.canvas.width,
-					this.canvas.height
-				);
+				var imgData = this.canvas_context.getImageData(0, 0, this.canvas.width, this.canvas.height);
 
 				if (imgData.data) {
 					this.decoder.postMessage(imgData);
@@ -328,10 +307,7 @@ class QRScanner extends ModTemplate {
 
 				let obj = {};
 				obj.address = msg;
-				this.app.connection.emit(
-					'saito-crypto-withdraw-render-request',
-					obj
-				);
+				this.app.connection.emit('saito-crypto-withdraw-render-request', obj);
 
 				return;
 			}
@@ -344,12 +320,7 @@ class QRScanner extends ModTemplate {
 		var reader = new FileReader();
 		reader.onload = ((file) => {
 			return (e) => {
-				this.canvas_context.clearRect(
-					0,
-					0,
-					this.canvas.width,
-					this.canvas.height
-				);
+				this.canvas_context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 				// port to new quirc system
 			};
 		})(f);

@@ -95,6 +95,7 @@ class Blog extends ModTemplate {
           text: 'Blog',
           icon: this.icon_fa,
           rank: 105,
+          type: 'navigation',
           callback: function (app, id) {
             navigateWindow('/blog');
           }

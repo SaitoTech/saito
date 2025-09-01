@@ -201,6 +201,9 @@ class Mixin extends ModTemplate {
         }
       }
 
+      let info = await crypto_module.returnNetworkInfo();
+      crypto_module.price_usd = info.price_usd;
+
       await crypto_module.installModule(mixin_self.app);
       this.crypto_mods.push(crypto_module);
       this.app.modules.mods.push(crypto_module);

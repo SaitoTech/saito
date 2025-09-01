@@ -205,6 +205,7 @@ class Limbo extends ModTemplate {
 				x.push({
 					text: 'Swarmcast',
 					icon: this.icon_fa,
+					type: 'navigation',
 					callback: function (app, id) {
 						navigateWindow('/' + mod_self.returnSlug());
 					}

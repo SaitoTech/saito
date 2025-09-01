@@ -506,6 +506,21 @@ export default class Wallet extends SaitoWallet {
     if (this.saitoCrypto !== null) {
       cryptoModules.push(this.saitoCrypto);
     }
+
+    cryptoModules.sort((a, b) => {
+      if (!a.isActivated() && b.isActivated()) {
+        return 1;
+      }
+      if (a.ticker == this.preferred_crypto) {
+        return -1;
+      }
+      if (b.ticker == this.preferred_crypto) {
+        return 1;
+      }
+
+      return Number(b.returnBalance()) - Number(a.returnBalance());
+    });
+
     if (filter) {
       return cryptoModules.filter((m) => !m.hide_me);
     } else {

@@ -98,7 +98,7 @@ class Recovery extends ModTemplate {
 				x.push({
 					text: 'Login',
 					icon: 'fa fa-sign-in',
-					//allowed_mods: ["redsquare"], //Why restrict it??
+					type: 'utilities',
 					callback: function (app) {
 						app.connection.emit('recovery-login-overlay-render-request');
 					}
@@ -108,6 +108,7 @@ class Recovery extends ModTemplate {
 					text: 'Backup',
 					icon: 'fa-sharp fa-solid fa-cloud-arrow-up',
 					rank: 130,
+					type: 'utilities',
 					callback: function (app) {
 						app.connection.emit('recovery-backup-overlay-render-request');
 					}

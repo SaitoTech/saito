@@ -460,7 +460,6 @@ class Chat extends ModTemplate {
 
       case 'saito-game-menu':
       case 'saito-chat-popup':
-      case 'saito-floating-menu':
         // Need to make sure this is created so we can listen for requests to open chat popups
         if (this.chat_manager == null) {
           this.chat_manager = new ChatManager(this.app, this);
@@ -520,6 +519,7 @@ class Chat extends ModTemplate {
             {
               text: 'Chat',
               icon: 'fas fa-comments',
+              type: 'quicklaunch',
               callback: function (app, id) {
                 // console.log('Render Chat manager overlay');
                 chat_self.chat_manager_overlay.render();
@@ -547,6 +547,7 @@ class Chat extends ModTemplate {
             {
               text: 'Chat',
               icon: 'fas fa-comments',
+              type: 'navigation',
               callback: function (app, id) {
                 navigateWindow('/chat');
               }

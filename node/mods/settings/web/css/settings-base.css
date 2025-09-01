@@ -3,8 +3,7 @@
 	flex-direction: column;
 	row-gap: 3rem;
 	width: min(95vw, 100rem);
-	height: 80vh;
-	max-height: 80vh;
+	height: min(800px, 95vh);
 	overflow: auto;
 	background: var(--saito-background-color);
 	color: var(--saito-font-color);
@@ -68,7 +67,7 @@
 	display: grid;
 	grid-gap: 1.5rem;
 	grid-template-columns: repeat(5, 1fr);
-	margin: 1rem;
+	margin: 1rem auto;
 	width: calc(100% - 2rem);
 }
 
@@ -193,24 +192,40 @@ label.treated {
 @media only screen and (max-width: 650px) {
 	.settings-appspace {
 		padding: 1rem;
+		padding-top: 2rem;
+		height: 99vh;
+		width: 99vw;
 	}
 	.settings-appspace-modules {
 		grid-template-columns: repeat(3, 1fr);
 	}
 	.settings-appspace-user-details {
-		grid-template-columns: 8rem 1fr;
+		grid-template-columns: 9rem 1fr;
 	}
 	.settings-actions-container {
 		gap: 0.6rem;
 		margin-right: 0.5rem;
+		flex-wrap: wrap;
+		justify-content: flex-end;
 	}
+
+	.settings-appspace-user-details .settings-actions-container {
+		flex-wrap: nowrap;
+	}
+
 	.settings-actions-container .saito-button-secondary {
 		padding: 0.4rem 0.3rem;
+		display: block;
+		white-space: nowrap;
+		max-height: 3.5rem;
+		text-overflow: ellipsis;
+		overflow: hidden;
 	}
 }
 
 @media only screen and (max-width: 500px) {
 	.settings-appspace-modules {
 		grid-template-columns: repeat(2, 1fr);
+		grid-gap: 0.5rem;
 	}
 }
