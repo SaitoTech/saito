@@ -491,6 +491,28 @@ class Mixin extends ModTemplate {
     }
   }
 
+  /***
+   *  Returns a chronological Array of Objects with the format
+   *
+   * snapshot_id: "6049b6c2-3f9e-3627-b671-c81f4f6a88fa"
+   * user_id: "95b8a0a4-1032-33e7-9154-5f48ebe00a14"
+   * opponent_id: "dac46e33-fdd2-3453-b77a-73ffadba1ff1"
+   * transaction_hash: "1db6dc53df33bfc7dd38afa86eb83454b5b71bc178da653431ddc9af025a7487"
+   * asset_id: "43d61dcd-e413-450d-80b8-101d5e903357"
+   * kernel_asset_id: "8dd50817c082cdcdd6f167514928767a4b52426997bd6d4930eca101c5ff8a27"
+   * amount: "0.005"
+   * memo: "746573742d6d656d6f"
+   * request_id: "bfb05bb6-03e5-4b5c-a7ab-2ad5a4ed56a7"
+   * created_at: "2025-08-25T03:23:17.657426Z"
+   * level: 11
+   * type: "snapshot"
+   * inscription_hash: "INSCRIPTION-HASH"
+   * deposit: { "deposit_hash": "DEPOSIT-HASH", "deposit_index": 1,
+          "sender": "SOME-STRING", "destination": "DEPOSIT-DESTINATION", "tag": "DEPOSIT-TAG" }
+   * withdrawal: { "withdrawal_hash": "WITHDRAWAL-HASH", "receiver": "SOME-STRING"  }
+   *
+   */
+
   async fetchSafeSnapshots(asset_id, limit = 500, callback = null) {
     try {
       let user = MixinApi({
