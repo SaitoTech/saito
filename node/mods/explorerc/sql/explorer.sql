@@ -1,4 +1,4 @@
-CREATE TABLE blocks (
+CREATE TABLE IF NOT EXISTS blocks (
     id INTEGER PRIMARY KEY,
     timestamp INTEGER,
     previous_block_hash TEXT,
@@ -33,13 +33,13 @@ CREATE TABLE blocks (
     lc BOOLEAN
 );
 
-CREATE TABLE tx (
+CREATE TABLE IF NOT EXISTS txs (
     signature TEXT PRIMARY KEY,
     block_id INTEGER,
     timestamp INTEGER,
     transaction_type TEXT,
-    total_in INTEGER,
-    total_out INTEGER,
+    total_in BIGINT,
+    total_out BIGINT,
     total_fees INTEGER,
     total_work_for_me INTEGER,
     cumulative_fees INTEGER,
@@ -48,11 +48,11 @@ CREATE TABLE tx (
     FOREIGN KEY(block_id) REFERENCES block(id)
 );
 
-CREATE TABLE tos (
+CREATE TABLE IF NOT EXISTS tos (
     utxo_key TEXT PRIMARY KEY,
     tx_sig TEXT,
     public_key TEXT,
-    amount INTEGER,
+    amount BIGINT,
     slip_type TEXT,
     slip_index INTEGER,
     block_id INTEGER,
@@ -61,11 +61,11 @@ CREATE TABLE tos (
     FOREIGN KEY(tx_sig) REFERENCES tx(signature)
 );
 
-CREATE TABLE froms (
+CREATE TABLE IF NOT EXISTS froms (
     utxo_key TEXT PRIMARY KEY,
     tx_sig TEXT,
     public_key TEXT,
-    amount INTEGER,
+    amount BIGINT,
     slip_type TEXT,
     slip_index INTEGER,
     block_id INTEGER,
@@ -73,3 +73,16 @@ CREATE TABLE froms (
     lc BOOLEAN,
     FOREIGN KEY(tx_sig) REFERENCES tx(signature)
 );
+
+CREATE TABLE IF NOT EXISTS ledger (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    block_id INTEGER,
+    tx_sig TEXT,
+    timestamp INTEGER,
+    from_key TEXT,
+    to_key TEXT,
+    amount BIGINT
+);
+
+CREATE INDEX IF NOT EXISTS from_idx ON ledger (from_key);
+CREATE INDEX IF NOT EXISTS to_idx ON ledger (to_key);
