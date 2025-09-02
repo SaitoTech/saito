@@ -637,7 +637,13 @@ class Explorerc extends ModTemplate {
         var transblock = [];
         blk.transactions.forEach((transaction) => {
           let tx = transaction.toJson();
-          tx.msg = transaction.returnMessage(); // .toJson() doesn't return msg field ?
+          /////////////////////////////////////
+          // toJson() deletes some fields...
+          ////////////////////////////////////
+          tx.msg = transaction.returnMessage();
+          tx.work_available_to_me = transaction.work_available_to_me;
+          tx.work_available_to_creator = transaction.work_available_to_creator;
+          tx.work_cumulative = transaction.work_cumulative;
           transblock.push(tx);
         });
         block.transactions = transblock;
@@ -648,6 +654,10 @@ class Explorerc extends ModTemplate {
     }
   }
 
+  async onConfirmation(blk, tx, conf) {
+    console.log('On Confirmation:', tx);
+  }
+
   async addBlockToDatabase(blk, lc) {
     try {
       console.info(Date() + '[ INFO | EXPLORERC ] - block added : ' + blk.hash);
@@ -655,6 +665,8 @@ class Explorerc extends ModTemplate {
       let blockSql = `INSERT OR IGNORE INTO blocks (
                                 id,
                                 timestamp,
+                                type,
+                                hash,
                                 previous_block_hash,
                                 creator,
                                 merkle_root,
@@ -689,6 +701,8 @@ class Explorerc extends ModTemplate {
                              VALUES (
                                 $id,
                                 $timestamp,
+                                $type,
+                                $hash,
                                 $previous_block_hash,
                                 $creator,
                                 $merkle_root,
@@ -723,6 +737,8 @@ class Explorerc extends ModTemplate {
       let blockParams = {
         $id: blk.id,
         $timestamp: blk.timestamp,
+        $type: blk.type.toString(),
+        $hash: blk.hash,
         $previous_block_hash: blk.previous_block_hash,
         $creator: blk.creator,
         $graveyard: blk.graveyard,
@@ -763,6 +779,7 @@ class Explorerc extends ModTemplate {
       // Insert transaction data
       ///////////////////////////////
       blk.transactions.forEach(async (transaction) => {
+        //console.log('Adding block ', transaction);
         let total_in = BigInt(0); // from
         let total_out = BigInt(0); // to
 
@@ -880,8 +897,9 @@ class Explorerc extends ModTemplate {
                                 total_in,
                                 total_out,
                                 total_fees,
-                                total_work_for_me,
-                                cumulative_fees,
+                                work_available_to_creator,
+                                work_available_to_me,
+                                work_cumulative,
                                 txs_replacements,
                                 lc
                             )
@@ -893,8 +911,9 @@ class Explorerc extends ModTemplate {
                                 $total_in,
                                 $total_out,
                                 $total_fees,
-                                $total_work_for_me,
-                                $cumulative_fees,
+                                $work_available_to_creator,
+                                $work_available_to_me,
+                                $work_cumulative,
                                 $txs_replacements,
                                 $lc
                             )`;
@@ -906,12 +925,11 @@ class Explorerc extends ModTemplate {
           $total_in: Number(total_in),
           $total_out: Number(total_out),
           $total_fees: Number(transaction.total_fees),
+          $work_available_to_creator: Number(transaction.work_available_to_creator),
+          $work_available_to_me: Number(transaction.work_available_to_me),
+          $work_cumulative: Number(transaction.work_cumulative),
           $txs_replacements: transaction.txs_replacements,
-          $lc: lc,
-          /****** Undefined !!!! ******/
-          $total_work_for_me: transaction.total_work_for_me,
-          $cumulative_fees: transaction.cumulative_fees
-          /***************************/
+          $lc: lc
         };
 
         if (ledger) {

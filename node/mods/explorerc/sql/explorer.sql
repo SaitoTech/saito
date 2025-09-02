@@ -1,6 +1,8 @@
 CREATE TABLE IF NOT EXISTS blocks (
     id INTEGER PRIMARY KEY,
     timestamp INTEGER,
+    type TEXT,
+    hash TEXT,
     previous_block_hash TEXT,
     creator TEXT,
     merkle_root TEXT,
@@ -41,8 +43,9 @@ CREATE TABLE IF NOT EXISTS txs (
     total_in BIGINT,
     total_out BIGINT,
     total_fees INTEGER,
-    total_work_for_me INTEGER,
-    cumulative_fees INTEGER,
+    work_available_to_creator INTEGER,
+    work_available_to_me INTEGER,
+    work_cumulative INTEGER,
     txs_replacements INTEGER,
     lc BOOLEAN,
     FOREIGN KEY(block_id) REFERENCES block(id)
