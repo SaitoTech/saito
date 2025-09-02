@@ -43,7 +43,7 @@ module.exports = (app, mod, publickey = '', address = '') => {
 
           <div class="input-elements-container">
             <div class="saito-overlay-form-input">
-              <div class="withdraw-input-cont" id="withdraw-address-cont">`;
+              <div class="withdraw-input-cont ${identicon ? 'fixed-user' : ''}" id="withdraw-address-cont">`;
 
   if (identicon != null) {
     html += `   <div class="withdraw-identicon-container"><img class="saito-identicon" src="${identicon}"></div>`;

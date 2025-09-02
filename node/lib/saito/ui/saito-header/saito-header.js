@@ -801,7 +801,11 @@ class SaitoHeader extends UIModTemplate {
       //
       let options_html = '';
       let menu_html = '';
-      const ercMod = this.app.wallet.returnCryptoModuleByTicker('ERC-SAITO');
+      let ercMod = null;
+
+      try {
+        ercMod = this.app.wallet.returnCryptoModuleByTicker('ERC-SAITO');
+      } catch (err) {}
 
       for (let i = 0; i < available_cryptos.length; i++) {
         let crypto_mod = available_cryptos[i];

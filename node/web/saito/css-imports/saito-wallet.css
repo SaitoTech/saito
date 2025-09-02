@@ -416,6 +416,10 @@
   align-items: center;
 }
 
+.withdraw-input-cont.fixed-user {
+  grid-template-columns: min-content 1fr;
+}
+
 .saito-overlay-form-input input {
   border: none;
   outline: none;
@@ -1149,7 +1153,6 @@ nft cards
 }
 
 .nft-card-info-title {
-
 }
 
 .nft-identicon {
@@ -1232,20 +1235,20 @@ nft cards
   height: 4rem;
 }
 
-.nft-details-header .nft-card-info-amount, 
+.nft-details-header .nft-card-info-amount,
 .nft-details-header .nft-card-info-deposit {
   /*font-weight: bold;*/
 }
 
 .nft-details-header,
 .nft-details-actions {
-    border: 1px solid var(--twitter-gray-light);
-    border-radius: var(--border-radius-soft);
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    background: var(--saito-background-color);
+  border: 1px solid var(--twitter-gray-light);
+  border-radius: var(--border-radius-soft);
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  background: var(--saito-background-color);
 }
 
 .nft-details-actions {
@@ -1258,38 +1261,38 @@ nft cards
   height: 4rem;
 }
 
- .nft-details-actions h4 {
+.nft-details-actions h4 {
   font-size: 2.2rem;
   margin: 0rem;
- }
+}
 
-  .nft-details-actions h4 i {
-    font-size: 1.8rem;
-  }
+.nft-details-actions h4 i {
+  font-size: 1.8rem;
+}
 
- .nft-details-section-header, 
- .nft-details-send, .nft-details-assetstore {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    position: relative;
- } 
+.nft-details-section-header,
+.nft-details-send,
+.nft-details-assetstore {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+}
 
 .nft-details-actions .nft-card-details {
-    border: 1px solid var(--saito-gray-transparent);
+  border: 1px solid var(--saito-gray-transparent);
   padding: 1rem;
- }
-
+}
 
 .nft-details-container .nft-card-text {
   overflow-x: hidden;
   overflow-y: scroll;
-  white-space: pre-wrap;   /* respects line breaks AND allows wrapping */
-  word-break: break-word;  /* breaks long strings */
+  white-space: pre-wrap; /* respects line breaks AND allows wrapping */
+  word-break: break-word; /* breaks long strings */
 }
 
 .nft-details-section {
-   display: flex;
+  display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
@@ -1300,12 +1303,12 @@ nft cards
   flex-direction: row;
   gap: 1rem;
   font-weight: bold;
- }
+}
 
- .nft-details-section-title {
+.nft-details-section-title {
   font-size: 1.3rem;
   letter-spacing: 0.1rem;
- }
+}
 
 .nft-details-row {
   display: flex;
@@ -1318,16 +1321,16 @@ nft cards
 }
 
 .nft-details-id-cont {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-    overflow: hidden;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  overflow: hidden;
 }
 
 .nft-details-id {
   word-wrap: break-word;
-  white-space: pre-wrap;   /* respects line breaks AND allows wrapping */
-  word-break: break-word;  /* breaks long strings like utxo_key */
+  white-space: pre-wrap; /* respects line breaks AND allows wrapping */
+  word-break: break-word; /* breaks long strings like utxo_key */
 }
 
 #nft-details-split-bar {
@@ -1343,7 +1346,6 @@ nft cards
 }
 
 .nft-details-assetstore {
-
 }
 
 #nft-merge-split,
