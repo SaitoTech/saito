@@ -97,7 +97,9 @@ export default class Wallet extends SaitoWallet {
     let storedFee = this.app.options.wallet.default_fee;
     this.default_fee = !storedFee ? BigInt(0) : BigInt(storedFee);
 
+    ////////////////////////////////////////////////////////
     // add ghost crypto module so Saito interface available
+    ////////////////////////////////////////////////////////
     class SaitoCrypto extends CryptoModule {
       constructor(app, publicKey) {
         super(app, 'SAITO');
@@ -107,6 +109,10 @@ export default class Wallet extends SaitoWallet {
         this.address = publicKey;
 
         this.options.isActivated = true;
+
+        app.connection.on('wallet-updated', () => {
+          this.checkBalanceUpdate();
+        });
       }
 
       returnLogo() {
@@ -148,6 +154,12 @@ export default class Wallet extends SaitoWallet {
       async sendPayment(amount: string, to_address: string, unique_hash: string = '') {
         let nolan_amount = this.app.wallet.convertSaitoToNolan(amount);
 
+        if (!this.pending_balance) {
+          this.pending_balance = await this.checkBalance();
+        }
+
+        this.pending_balance = Number(this.pending_balance) - Number(amount);
+
         let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
           to_address,
           nolan_amount
@@ -163,9 +175,10 @@ export default class Wallet extends SaitoWallet {
         };
 
         await this.app.wallet.signAndEncryptTransaction(newtx);
+
         await this.app.network.propagateTransaction(newtx);
 
-        console.log('--> Saito payment tx! ', newtx);
+        console.log('Expecting new balance of: ', this.pending_balance);
 
         return newtx.signature;
       }
@@ -247,11 +260,25 @@ export default class Wallet extends SaitoWallet {
       async checkBalance() {
         let x = await this.app.wallet.getBalance();
         this.balance = this.app.wallet.convertNolanToSaito(x);
+        return this.balance;
       }
 
       //typically async
       validateAddress(address) {
         return this.app.wallet.isValidPublicKey(address);
+      }
+
+      async checkBalanceUpdate() {
+        await this.checkBalance();
+
+        if (this.pending_balance) {
+          if (this.pending_balance == this.balance) {
+            delete this.pending_balance;
+            console.log('Pending transferred cleared!');
+          }
+        }
+
+        this.app.connection.emit('header-update-crypto');
       }
     }
 
@@ -400,7 +427,6 @@ export default class Wallet extends SaitoWallet {
 
       this.app.connection.on('wallet-updated', async () => {
         await this.saveWallet();
-        console.log('Wallet update -- ', this.app.options.wallet.slips);
       });
 
       this.app.connection.on('keychain-updated', () => {
@@ -676,8 +702,6 @@ export default class Wallet extends SaitoWallet {
     mycallback: ((response: { err?: string; hash?: string; rtnObj?: any }) => void) | null = null,
     saito_public_key = null
   ) {
-    console.log('wallet sendPayment 1');
-
     if (senders.length !== 1 || receivers.length !== 1 || amounts.length !== 1) {
       // We have no code which exercises multiple senders/receivers so can't implement it yet.
       console.error('sendPayment ERROR: Only supports one transaction');
@@ -714,6 +738,9 @@ export default class Wallet extends SaitoWallet {
 
               if (saito_public_key) {
                 if (ticker !== 'SAITO') {
+                  //
+                  // duplicate the "crypto payment" for non-native off chain transactions
+                  //
                   await cryptomod.sendPaymentTransaction(
                     saito_public_key,
                     senders[i],

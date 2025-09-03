@@ -305,8 +305,6 @@ class Withdraw {
       let amount_avl = Number(this.pc.returnBalance());
       this.fee = Number(this.fee);
 
-      console.log(amount, amount_avl);
-
       if (amount <= 0) {
         error_msg = 'Error: Amount should be greater than 0';
       } else if (amount > amount_avl) {

@@ -106,7 +106,7 @@ class CryptoModule extends ModTemplate {
 
   async onConfirmation(blk, tx, conf) {
     if (conf == 0) {
-      if (!tx.isTo(this.publicKey) || tx.isFrom(this.publicKey)) {
+      if (!tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
         return;
       }
 
@@ -145,29 +145,42 @@ class CryptoModule extends ModTemplate {
 
     console.info('Crypto: receivePaymentTransaction', txmsg);
 
-    let expected_payment = false;
+    if (!tx.isFrom(this.publicKey)) {
+      let expected_payment = false;
 
-    if (this.options?.transfers_inbound) {
-      for (let i = 0; i < this.options.transfers_inbound.length; i++) {
-        if (this.options.transfers_inbound[i] == txmsg.hash) {
-          expected_payment = true;
-          this.options.transfers_inbound.splice(i, 1);
-          this.save();
-          break;
+      if (this.options?.transfers_inbound) {
+        for (let i = 0; i < this.options.transfers_inbound.length; i++) {
+          if (this.options.transfers_inbound[i] == txmsg.hash) {
+            expected_payment = true;
+            this.options.transfers_inbound.splice(i, 1);
+            this.save();
+            break;
+          }
         }
       }
+
+      if (expected_payment || !this.app.BROWSER) {
+        //
+        // This event:
+        // 1) updates the in-game receive payment overlay
+        // 2) tells the migration bot that the user's deposit is complete
+        //
+        this.app.connection.emit('saito-crypto-receive-confirm', txmsg);
+      } else {
+        siteMessage(
+          `${txmsg.amount} ${this.ticker} inbound from ${this.app.keychain.returnUsername(
+            tx.from[0].publicKey
+          )}`,
+          3000
+        );
+      }
+    } else {
+      //
+      // I sent the payment!
+      //
     }
 
-    if (expected_payment || !this.app.BROWSER) {
-      this.app.connection.emit('saito-crypto-receive-confirm', txmsg);
-    } else {
-      siteMessage(
-        `${txmsg.amount} ${this.ticker} inbound from ${this.app.keychain.returnUsername(
-          tx.from[0].publicKey
-        )}`,
-        3000
-      );
-    }
+    setTimeout(this.checkBalanceUpdate.bind(this), 2000);
   }
 
   saveInboundPayment(hash) {
@@ -258,6 +271,32 @@ class CryptoModule extends ModTemplate {
    */
   returnBalance() {
     return this.balance;
+  }
+
+  async checkBalanceUpdate() {
+    console.log('$$$$ checkBalanceUpdate');
+
+    let original_balance = Number(this.balance);
+
+    await this.checkBalance();
+
+    let new_balance = Number(this.returnBalance());
+
+    let diff = new_balance - original_balance;
+
+    if (diff == 0) {
+      return;
+    }
+
+    if (diff > 0) {
+      let msg = `New ${this.app.browser.formatDecimals(diff)} ${this.ticker} deposit`;
+      siteMessage(msg, 3000);
+    } else {
+      let msg = `New ${this.app.browser.formatDecimals(-diff)} ${this.ticker} payment`;
+      siteMessage(msg, 3000);
+    }
+
+    this.app.connection.emit('header-update-crypto');
   }
 
   /**

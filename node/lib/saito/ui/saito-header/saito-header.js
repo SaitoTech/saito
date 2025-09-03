@@ -123,10 +123,6 @@ class SaitoHeader extends UIModTemplate {
       if (document.querySelector('.send-nft-container')) {
         this.app.connection.emit('saito-list-nft-render-request', {});
       }
-
-      await this.renderCrypto();
-
-      //await this.checkBalanceUpdate();
     });
 
     app.connection.on('block-fetch-status', (count) => {
@@ -828,12 +824,17 @@ class SaitoHeader extends UIModTemplate {
               (0.97 * Number(crypto_mod.returnBalance) * Number(crypto_mod.price_usd)) /
               saito_denom;
           }
-        }
-
-        if (value_in_saito) {
-          menu_html += `<div class="header-crypto-value">≈ ${value_in_saito} $SAITO</div>`;
+          if (value_in_saito) {
+            menu_html += `<div class="header-crypto-value">≈ ${value_in_saito} $SAITO</div>`;
+          } else {
+            menu_html += '<div></div>';
+          }
         } else {
-          menu_html += '<div></div>';
+          if (crypto_mod.pending_balance) {
+            menu_html += `<div class="header-crypto-pending">${crypto_mod.pending_balance} pending </div>`;
+          } else {
+            menu_html += '<div></div>';
+          }
         }
 
         menu_html += `</div>`;
@@ -852,13 +853,16 @@ class SaitoHeader extends UIModTemplate {
     //Insert crypto balance
     try {
       if (preferred_crypto.isActivated()) {
-        let balance_as_string = preferred_crypto.returnBalance();
-
-        document.querySelector('.balance-amount').innerHTML =
-          this.app.browser.returnBalanceHTML(balance_as_string);
-
-        // Cache so polling loop will detect changes
-        this.current_balance = Number(balance_as_string);
+        let balance_as_string = '';
+        let b_elm = document.querySelector('.balance-amount');
+        if (preferred_crypto?.pending_balance) {
+          b_elm.classList.add('pending');
+          balance_as_string = preferred_crypto.pending_balance;
+        } else {
+          b_elm.classList.remove('pending');
+          balance_as_string = preferred_crypto.returnBalance();
+        }
+        b_elm.innerHTML = this.app.browser.returnBalanceHTML(balance_as_string);
       }
     } catch (err) {
       console.error('Error rendering crypto balance: ' + err);
@@ -879,7 +883,7 @@ class SaitoHeader extends UIModTemplate {
       }
 
       // Call function to check
-      await this.checkBalanceUpdate();
+      await preferred_crypto.checkBalanceUpdate();
 
       //loop on time out
       this.balance_check_interval = setTimeout(executeBalanceCheck, intervalTime);
@@ -890,53 +894,6 @@ class SaitoHeader extends UIModTemplate {
 
     if (preferred_crypto.address) {
       executeBalanceCheck(); // Start the loop
-    }
-  }
-
-  async checkBalanceUpdate() {
-    try {
-      let this_self = this;
-      let preferred_crypto = await this.app.wallet.returnPreferredCrypto();
-
-      await preferred_crypto.checkBalance();
-
-      let new_balance = Number(preferred_crypto.returnBalance());
-
-      if (this.current_balance == null) {
-        this.current_balance = new_balance;
-      }
-
-      console.log(
-        preferred_crypto.ticker,
-        'new_balance > this.current_balance:',
-        new_balance,
-        this.current_balance
-      );
-
-      // No change!
-      if (new_balance == this.current_balance) {
-        return;
-      }
-
-      //
-
-      if (new_balance > this.current_balance) {
-        let diff = new_balance - this.current_balance;
-        let deposit = this.app.browser.formatDecimals(diff);
-        let msg = `New ${deposit} ${preferred_crypto.ticker} deposit`;
-        siteMessage(msg, 3000);
-      } else {
-        //new withdrawal
-        let diff = this.current_balance - new_balance;
-        let deposit = this.app.browser.formatDecimals(diff);
-        let msg = `New ${deposit} ${preferred_crypto.ticker} payment`;
-        siteMessage(msg, 3000);
-      }
-
-      //console.log("$$$$ checkBalanceUpdate --> renderCrypto");
-      this.renderCrypto();
-    } catch (err) {
-      console.warn('Error in checkBalanceUpdate: ', err);
     }
   }
 

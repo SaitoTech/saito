@@ -104,10 +104,16 @@ class MixinModule extends CryptoModule {
 
 			let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
 
-			console.log('MixinModule Query balance for ' + this.ticker + `: ${balance}`);
-		} else {
-			console.log('MixinModule warning: too soon to query balance updates');
+			if (balance !== false) {
+				if (this.balance != balance) {
+					console.debug(`Updated ${this.crypto_mods[i].ticker} balance!`);
+					this.balance = balance;
+					this.save();
+				}
+			}
 		}
+
+		return this.balance;
 	}
 
 	/**

@@ -187,6 +187,11 @@
   display: flex;
 }
 
+.balance-amount.pending {
+  color: var(--saito-font-color-light);
+  animation: fade-animation 1.5s infinite ease-in-out;
+}
+
 .balance-amount.flash {
   animation: fade-animation 1.5s infinite ease-in-out;
 }

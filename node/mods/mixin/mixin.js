@@ -471,19 +471,6 @@ class Mixin extends ModTemplate {
         asset: asset_id
       });
 
-      // console.log("utxo ///");
-      // console.log(utxo);
-
-      for (let i = 0; i < this.crypto_mods.length; i++) {
-        if (this.crypto_mods[i].asset_id === asset_id) {
-          if (this.crypto_mods[i].balance != utxo) {
-            console.debug(`Updated ${this.crypto_mods[i].ticker} balance!`);
-            this.crypto_mods[i].balance = utxo;
-            this.crypto_mods[i].save();
-          }
-        }
-      }
-
       return utxo;
     } catch (err) {
       console.error('ERROR: Mixin error fetch safe utxo: ' + err);
