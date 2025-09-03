@@ -150,7 +150,7 @@ class EGLDModule extends CryptoModule {
     }
   }
 
-  async returnHistory(callback = null) {
+  async checkHistory(callback = null) {
     try {
       const address = Address.newFromBech32(this.address);
       const transactions = await this.apiNetworkProvider.doGetGeneric(
@@ -208,7 +208,7 @@ class EGLDModule extends CryptoModule {
 
       return callback(html);
     } catch (error) {
-      console.error('Error returnHistory:', error);
+      console.error('Error checkHistory:', error);
     }
   }
 

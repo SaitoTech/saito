@@ -110,8 +110,19 @@ export default class Wallet extends SaitoWallet {
 
         this.options.isActivated = true;
 
-        app.connection.on('wallet-updated', () => {
+        app.connection.on('wallet-updated', async () => {
           this.checkBalanceUpdate();
+
+          if (Number(this.balance) > 0 && this.history?.length == 0) {
+            for (let slip of this.app.options.wallet.slips) {
+              if (!slip.spent) {
+                this.history.push({
+                  amount: Number(slip.amount),
+                  type: 'deposit'
+                });
+              }
+            }
+          }
         });
       }
 
@@ -138,17 +149,40 @@ export default class Wallet extends SaitoWallet {
         }
       }
 
-      async returnHistory(callback: ((html: string) => void) | null = null) {
-        let html = `
-                <a target="_blank" href="/explorer" class="saito-history-msg">
-                    View SAITO history on block explorer 
-                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                </a>`;
+      //
+      // Build a ledger of payments in real time
+      //
+      savePaymentTransaction(tx) {
+        let txmsg = tx.returnMessage();
 
-        if (callback) {
-          return callback(html);
+        const obj = {
+          counter_party: { publicKey: '' },
+          timestamp: tx.timestamp,
+          amount: 0,
+          type: ''
+        };
+
+        // I am the sender and this is a "send"
+        if (tx.isFrom(this.publicKey)) {
+          obj.counter_party.publicKey = txmsg.to;
+          obj.type = 'send';
+          obj.amount = -txmsg.amount;
+        } else {
+          // I am the receiver and this a "receive"
+          obj.counter_party.publicKey = txmsg.from;
+          obj.type = 'receive';
+          obj.amount = txmsg.amount;
         }
-        return html;
+
+        this.history.push(obj);
+        this.history_update_ts = obj.timestamp + 1;
+      }
+
+      //
+      // Pull a ledger of payments from an archive (explorerc)
+      //
+      async checkHistory(callback) {
+        // Do a query on explorerc -- ledger when available
       }
 
       async sendPayment(amount: string, to_address: string, unique_hash: string = '') {
@@ -427,6 +461,7 @@ export default class Wallet extends SaitoWallet {
 
       this.app.connection.on('wallet-updated', async () => {
         await this.saveWallet();
+        //console.debug('wallet-updated', this.app.options.wallet.slips);
       });
 
       this.app.connection.on('keychain-updated', () => {

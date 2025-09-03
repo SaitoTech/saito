@@ -15,7 +15,7 @@
   -- returnPrivateKey
   -- sendPayment
   -- receivePayment
-  -- returnHistory
+  -- checkHistory
   -- checkWithdrawalFeeForAddress
 
 **********************************************************************************/
@@ -56,6 +56,12 @@ class CryptoModule extends ModTemplate {
     this.address = '';
 
     //
+    // cached in memory / localForage -- list of standardized objects detailing transaction history
+    //
+    this.history = null;
+    this.history_update_ts = 0;
+
+    //
     // info stored in options file, you can safely add items as necessary
     //
     this.options = {};
@@ -73,7 +79,7 @@ class CryptoModule extends ModTemplate {
     // We save the state of our crypto wallet local storage (options file)
     //
     console.log('Initializing ' + this.ticker);
-    this.load();
+    await this.load();
 
     if (this.ticker === this.app.wallet.returnPreferredCryptoTicker()) {
       await this.activate();
@@ -140,6 +146,11 @@ class CryptoModule extends ModTemplate {
     console.info(`Crypto: sendPaymentTransaction sent to ${publicKey}!`, newtx.msg);
   }
 
+  //
+  // Only implemented for $SAITO
+  //
+  savePaymentTransaction(tx) {}
+
   receivePaymentTransaction(tx) {
     let txmsg = tx.returnMessage();
 
@@ -179,6 +190,8 @@ class CryptoModule extends ModTemplate {
       // I sent the payment!
       //
     }
+
+    this.savePaymentTransaction(tx);
 
     setTimeout(this.checkBalanceUpdate.bind(this), 2000);
   }
@@ -232,6 +245,7 @@ class CryptoModule extends ModTemplate {
    */
   async activate() {
     await this.checkBalance();
+    await this.checkHistory();
 
     if (!this.options.isActivated) {
       let info = await this.returnNetworkInfo();
@@ -316,10 +330,14 @@ class CryptoModule extends ModTemplate {
     return this.returnAddress();
   }
 
+  returnHistory() {
+    return this.history;
+  }
+
   /**
    * load state of this module from local storage
    */
-  load() {
+  async load() {
     //
     // info stored in options file
     //
@@ -341,6 +359,16 @@ class CryptoModule extends ModTemplate {
           this.confirmations = this.options.confirmations;
         }
       }
+    }
+
+    this.history = await this.app.storage.getLocalForageItem(`${this.ticker}_history`);
+    if (this.history) {
+      this.history = JSON.parse(this.history);
+      if (this.history.length > 0) {
+        this.history_update_ts = this.history[this.history.length - 1].timestamp;
+      }
+    } else {
+      this.history = [];
     }
   }
 
@@ -376,6 +404,10 @@ class CryptoModule extends ModTemplate {
     this.app.options.crypto[this.ticker] = this.options;
 
     this.app.storage.saveOptions();
+
+    if (this.history.length > 0) {
+      this.app.storage.setLocalForageItem(`${this.ticker}_history`, JSON.stringify(this.history));
+    }
   }
 
   async returnAddressFromPublicKey(publicKey) {
@@ -453,15 +485,11 @@ CryptoModule.prototype.receivePayment = function (
 /**
  * Abstract method
  * @abstract
- * @param {Number} records - how many records per page
  * @param {function} callback - function to call when the data is being fetched/sorted
  * @return {object} payment history data
  */
-//
-// NOTE, asset_id is a MIXIN module information type and should not be a base crypto-mod fnct
-//
-CryptoModule.prototype.returnHistory = function (asset_id = '', records = 20, callback = null) {
-  throw new Error('returnHistory must be implemented by subclass!');
+CryptoModule.prototype.checkHistory = function (callback = null) {
+  throw new Error('checkHistory must be implemented by subclass!');
 };
 
 CryptoModule.prototype.checkWithdrawalFeeForAddress = function (recipient = '', mycallback = null) {

@@ -354,68 +354,120 @@ class MixinModule extends CryptoModule {
 	 * @abstract
 	 * @return {Function} Callback function
 	 */
-	async returnHistory(callback = null) {
+	async checkHistory(callback = null) {
 		let this_self = this;
-		let d = await this.mixin.fetchSafeSnapshots(this.asset_id, 1000, async function (d) {
-			console.log('mixin tx history:', d);
 
-			let html = '';
-			let balance = this.balance;
-			if (d.length > 0) {
-				for (let i = d.length - 1; i >= 0; i--) {
-					let row = d[i];
-					let created_at = row.created_at.slice(0, 19).replace('T', ' ');
+		let d = await this.mixin.fetchSafeSnapshots(
+			this.asset_id,
+			this.history_update_ts,
+			async function (d) {
+				console.log('mixin tx history:', d);
 
-					//Parse it as UTC time
-					let datetime = new Date(created_at + 'Z');
-					let amount = Number(row.amount);
-					let type = amount > 0 ? 'Deposit' : 'Withdraw';
+				for (let snap of d) {
+					let amount = Number(snap.amount);
 
-					if (i < d.length - 1) {
-						if (Number(d[i + 1].amount) > 0) {
-							balance = balance - Math.abs(Number(d[i + 1].amount));
-						} else {
-							balance = balance + Math.abs(Number(d[i + 1].amount));
+					const obj = {
+						counter_party: { address: snap.opponent_id },
+						timestamp: new Date(snap.created_at).getTime(),
+						amount
+					};
+
+					if (snap.deposit) {
+						obj.type = 'deposit';
+						obj.counter_party.address = snap.deposit.sender;
+					} else if (snap.withdrawal) {
+						obj.type = 'withdraw';
+						obj.counter_party.address = snap.withdrawal.receiver;
+					} else if (amount > 0) {
+						obj.type = 'receive';
+					} else {
+						obj.type = 'send';
+					}
+
+					//
+					// Check for associated Saito public key
+					//
+					if (snap?.opponent_id) {
+						const user = await this_self.mixin.sendFetchAddressByUserIdTransaction(
+							this_self.asset_id,
+							snap.opponent_id
+						);
+						if (user.publickey) {
+							obj.counter_party.publicKey = user.publickey;
 						}
 					}
 
-					let balance_as_float = parseFloat(balance);
+					this_self.history.push(obj);
+					this_self.history_update_ts = obj.timestamp + 1;
+				}
 
-					let opponnent = typeof d[i].opponent_id != 'undefined' ? d[i].opponent_id : null;
+				console.log('Formatted history: ', this_self.history);
+			}
+		);
+	}
 
-					let sender_html = '';
-					if (opponnent != null && opponnent != '') {
-						// Showing details for internal mixin transaction details
+	/*
 
-						let user_data = null;
-						if (opponnent in tmp_user_data) {
-							user_data = tmp_user_data[opponnent];
-						} else {
-							user_data = await this_self.getAddressByUserId(opponnent, this_self.asset_id);
-							tmp_user_data[opponnent] = user_data;
+			async function (d) {
+				console.log('mixin tx history:', d);
+
+				let html = '';
+				let balance = this.balance;
+				if (d.length > 0) {
+					for (let i = d.length - 1; i >= 0; i--) {
+						let row = d[i];
+						let created_at = row.created_at.slice(0, 19).replace('T', ' ');
+
+						//Parse it as UTC time
+						let datetime = new Date(created_at + 'Z');
+						let amount = Number(row.amount);
+						let type = amount > 0 ? 'Deposit' : 'Withdraw';
+
+						if (i < d.length - 1) {
+							if (Number(d[i + 1].amount) > 0) {
+								balance = balance - Math.abs(Number(d[i + 1].amount));
+							} else {
+								balance = balance + Math.abs(Number(d[i + 1].amount));
+							}
 						}
 
-						if (user_data != null) {
-							let public_key = user_data.publickey;
-							let address = user_data.address;
+						let balance_as_float = parseFloat(balance);
 
-							let identicon = null;
-							if (public_key in tmp_identicon) {
-								identicon = tmp_identicon[public_key];
+						let opponnent = typeof d[i].opponent_id != 'undefined' ? d[i].opponent_id : null;
+
+						let sender_html = '';
+						if (opponnent != null && opponnent != '') {
+							// Showing details for internal mixin transaction details
+
+							let user_data = null;
+							if (opponnent in tmp_user_data) {
+								user_data = tmp_user_data[opponnent];
 							} else {
-								identicon = this_self.app.keychain.returnIdenticon(public_key);
-								tmp_identicon[public_key] = identicon;
+								user_data = await this_self.getAddressByUserId(opponnent, this_self.asset_id);
+								tmp_user_data[opponnent] = user_data;
 							}
 
-							let username = null;
-							if (public_key in tmp_identifer) {
-								username = tmp_identifer[public_key];
-							} else {
-								username = this_self.app.keychain.returnIdentifierByPublicKey(public_key, true);
-								tmp_identifer[public_key] = username;
-							}
+							if (user_data != null) {
+								let public_key = user_data.publickey;
+								let address = user_data.address;
 
-							sender_html = `<div class="saito-identicon-container">
+								let identicon = null;
+								if (public_key in tmp_identicon) {
+									identicon = tmp_identicon[public_key];
+								} else {
+									identicon = this_self.app.keychain.returnIdenticon(public_key);
+									tmp_identicon[public_key] = identicon;
+								}
+
+								let username = null;
+								if (public_key in tmp_identifer) {
+									username = tmp_identifer[public_key];
+								} else {
+									username = this_self.app.keychain.returnIdentifierByPublicKey(public_key, true);
+									tmp_identifer[public_key] = username;
+								}
+
+								sender_html = `<div class="saito-identicon-container">
 						        <img class="saito-identicon" src="${identicon}">  
 						        <div class="history-address-container">
 						          <div class="history-to-publickey">${username}</div>
@@ -433,32 +485,33 @@ class MixinModule extends CryptoModule {
 											}
 						        </div>
 						      </div>`;
-						}
-					} else {
-						// Mixin sdk throwing error when fetching tx details.
-						// Temproraily redirecting users to mixin explorer for
-						// external transaction details
-						let trans_hash = d[i].transaction_hash;
-						sender_html = `<a class="history-tx-link" href="https://viewblock.io/mixin/tx/${trans_hash}"
+							}
+						} else {
+							// Mixin sdk throwing error when fetching tx details.
+							// Temproraily redirecting users to mixin explorer for
+							// external transaction details
+							let trans_hash = d[i].transaction_hash;
+							sender_html = `<a class="history-tx-link" href="https://viewblock.io/mixin/tx/${trans_hash}"
        							target="_blank">
        								<div class="history-tx-id">${trans_hash}</div>
        								<i class="fa-solid fa-arrow-up-right-from-square"></i>
        							</a>`;
-					}
+						}
 
-					html += `<div class='saito-table-row'>
+						html += `<div class='saito-table-row'>
                     <div class='mixin-his-created-at'>${created_at}</div>
                     <div>${type}</div>
                     <div class='${type.toLowerCase()}'>${amount} ${this_self.mod.ticker}</div>
                     <div>${nf.format(balance_as_float).toString()} ${this_self.mod.ticker}</div>
                     <div>${sender_html}</div>
                   </div>`;
+					}
 				}
+
+				return callback(html);
 			}
 
-			return callback(html);
-		});
-	}
+*/
 
 	async returnUtxo(state = 'unspent', limit = 500, order = 'DESC', callback = null) {
 		return await this.mixin.fetchUtxo(state, limit, order, callback);
@@ -509,23 +562,6 @@ class MixinModule extends CryptoModule {
 			console.error('Error getMixinAddress: ', err);
 			return null;
 		}
-	}
-
-	// Return history
-	async getAddressByUserId(user_id, asset_id) {
-		let address = null;
-		await this.mixin.sendFetchAddressByUserIdTransaction(
-			{
-				user_id: user_id,
-				asset_id: asset_id
-			},
-			function (res) {
-				if (res.length > 0) {
-					address = res[0];
-				}
-			}
-		);
-		return address;
 	}
 
 	validateAddress(address) {

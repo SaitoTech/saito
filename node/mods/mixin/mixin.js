@@ -150,7 +150,7 @@ class Mixin extends ModTemplate {
     // returnHistory
     //
     if (message.request === 'mixin fetch address by user id') {
-      await this.receiveFetchAddressByUserIdTransaction(app, tx, peer, mycallback);
+      return await this.receiveFetchAddressByUserIdTransaction(app, tx, peer, mycallback);
     }
 
     if (message.request === 'mixin backup') {
@@ -500,7 +500,7 @@ class Mixin extends ModTemplate {
    *
    */
 
-  async fetchSafeSnapshots(asset_id, limit = 500, callback = null) {
+  async fetchSafeSnapshots(asset_id, created_at = 0, callback = null) {
     try {
       let user = MixinApi({
         keystore: {
@@ -513,7 +513,7 @@ class Mixin extends ModTemplate {
 
       let snapshots = await user.safe.fetchSafeSnapshots({
         asset: asset_id,
-        limit: limit
+        created_at
       });
 
       if (callback) {
@@ -1029,13 +1029,15 @@ class Mixin extends ModTemplate {
   }
 
   //Return History
-  async sendFetchAddressByUserIdTransaction(params = {}, callback) {
-    let data = params;
-    await this.app.network.sendRequestAsTransaction(
+  async sendFetchAddressByUserIdTransaction(asset_id, user_id) {
+    return await this.app.network.sendRequestAsTransaction(
       'mixin fetch address by user id',
-      data,
+      { asset_id, user_id },
       function (res) {
-        return callback(res);
+        if (res.length > 0) {
+          return res[0];
+        }
+        return null;
       },
       this.mixin_peer?.peerIndex
     );
