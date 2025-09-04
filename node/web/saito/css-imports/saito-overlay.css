@@ -129,7 +129,6 @@
 }
 
 .saito-overlay-form-header-title {
-  position: absolute;
   height: 6rem;
   color: inherit;
   width: calc(100% - 3.2rem);

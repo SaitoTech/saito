@@ -97,6 +97,17 @@ class Settings extends ModTemplate {
 						callback: function (app, id) {
 							settings_self.renderInto('.theme-selector');
 						}
+					},
+					{
+						text: 'Reload',
+						icon: 'fa-solid fa-seedling',
+						rank: 130,
+						type: 'utilities',
+						callback: async function (app, id) {
+							siteMessage('Reimporting your account...');
+							await app.wallet.onUpgrade('import');
+							reloadWindow(150);
+						}
 					}
 				];
 			}

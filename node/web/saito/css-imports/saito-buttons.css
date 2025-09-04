@@ -60,6 +60,16 @@ button:focus,
   /* pointer-events: none; <-- will block cursor */
 }
 
+.saito-button-secondary.disabled,
+.saito-button-secondary[disabled] {
+  background: var(---saito-background-color);
+  /* Use a grayscale color rather than primary to distinguish from secondary buttons*/
+  color: var(--saito-font-color-light);
+  border: var(--border-thickness-thin) solid var(--saito-font-color-light);
+  cursor: not-allowed;
+  /* pointer-events: none; <-- will block cursor */
+}
+
 button:hover,
 .saito-button-primary:hover {
   /*filter: contrast(1.5) drop-shadow(0px 0px 2px var(--saito-font-color));*/

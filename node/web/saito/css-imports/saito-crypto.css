@@ -21,3 +21,151 @@
   padding: 1rem;
   margin: auto;
 }
+
+/*  Detail Overlay */
+
+.crypto-details-overlay {
+  width: 600px;
+  max-width: 100vw;
+  min-height: 700px;
+  max-height: calc(100vh - var(--saito-header-height));
+  padding: 2rem;
+  background-color: var(--saito-background-color);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.crypto-details-overlay .saito-overlay-form-header {
+  padding: 0 1rem;
+}
+
+.flex-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.mobile-only460 {
+  display: none;
+}
+
+.wallet-details {
+  display: grid;
+  grid-template-columns: 25rem 1fr;
+  column-gap: 2rem;
+}
+
+.wallet-details h6 {
+  grid-column: span 2;
+}
+
+.deposit-address {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  align-items: center;
+}
+
+.pubkey-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: center;
+  font-size: 1.8rem;
+  cursor: pointer;
+}
+
+.wallet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem;
+}
+
+.wallet-actions .label {
+  margin-top: 0.5rem;
+}
+
+.crypto-details-overlay .balance-amount-whole,
+.crypto-details-overlay .balance-amount-separator {
+  font-size: 2.5rem;
+}
+
+.saito-button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: auto;
+}
+
+.saito-button-grid .saito-button-primary,
+.saito-button-grid .saito-button-secondary {
+  min-width: unset;
+}
+
+.transaction-history {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.transaction-history .saito-table-header,
+.transaction-history .saito-table-row {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.transaction-history-table {
+  flex-grow: 1;
+}
+
+@media screen and (max-width: 600px) {
+  .wallet-details {
+    grid-template-columns: min-content 1fr;
+    column-gap: 0;
+  }
+
+  .saito-button-grid {
+    grid-template-columns: unset;
+    max-width: 200px;
+    gap: 0;
+  }
+
+  .wallet-actions {
+    min-width: 210px;
+    margin-left: auto;
+  }
+}
+
+@media screen and (max-width: 460px) {
+  .crypto-details-overlay {
+    gap: 1rem;
+  }
+
+  .wallet-details {
+    grid-template-columns: 1fr;
+  }
+
+  h6 {
+    display: none;
+  }
+
+  .wallet-actions {
+    margin-left: unset;
+    display: grid;
+    grid-template-areas: 'A C' 'B C';
+  }
+
+  .saito-button-grid {
+    grid-area: C;
+  }
+
+  .deposit-address .pubkey-container {
+    display: none;
+  }
+
+  .mobile-only460 {
+    display: flex;
+  }
+}

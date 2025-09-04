@@ -106,7 +106,7 @@ class MixinModule extends CryptoModule {
 
 			if (balance !== false) {
 				if (this.balance != balance) {
-					console.debug(`Updated ${this.crypto_mods[i].ticker} balance!`);
+					console.debug(`Updated ${this.ticker} balance!`);
 					this.balance = balance;
 					this.save();
 				}

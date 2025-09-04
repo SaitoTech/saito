@@ -303,16 +303,16 @@ export default class Wallet extends SaitoWallet {
       }
 
       async checkBalanceUpdate() {
+        let balance = this.balance;
         await this.checkBalance();
 
-        if (this.pending_balance) {
+        if (this.pending_balance || balance !== this.balance) {
           if (this.pending_balance == this.balance) {
             delete this.pending_balance;
             console.log('Pending transferred cleared!');
           }
+          this.app.connection.emit('header-update-crypto');
         }
-
-        this.app.connection.emit('header-update-crypto');
       }
     }
 
@@ -461,7 +461,7 @@ export default class Wallet extends SaitoWallet {
 
       this.app.connection.on('wallet-updated', async () => {
         await this.saveWallet();
-        //console.debug('wallet-updated', this.app.options.wallet.slips);
+        console.debug('wallet-updated', this.app.options.wallet.slips);
       });
 
       this.app.connection.on('keychain-updated', () => {

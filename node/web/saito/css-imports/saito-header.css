@@ -185,6 +185,7 @@
 
 .balance-amount {
   display: flex;
+  align-items: baseline;
 }
 
 .balance-amount.pending {
@@ -210,8 +211,6 @@
 
 .balance-amount-decimal {
   font-size: 2rem;
-  align-self: end;
-  margin-bottom: 0.4rem;
 }
 
 .wallet-btn-container {
@@ -246,7 +245,8 @@
 .wallet-identicon {
   width: 3.2rem;
   height: 3.2rem;
-  margin: auto 1rem 0 0;
+  margin: auto 0;
+  margin-right: 0.5rem;
 }
 
 .pubkey-containter {
@@ -582,10 +582,15 @@
 }
 
 .crypto-logo-container {
+  position: relative;
+  max-width: 5rem;
+  max-height: 5rem;
+}
+
+.saito-crypto-details .crypto-logo-container {
   grid-column-start: 1;
   grid-column-end: span 1;
   grid-row: span 2;
-  position: relative;
 }
 
 .crypto-logo {
@@ -596,6 +601,7 @@
 .header-crypto-balance {
   font: var(--saito-font-medium);
   color: var(--saito-font-color-heavy);
+  align-self: flex-end;
 }
 
 .header-crypto-value {
@@ -628,8 +634,7 @@
     gap: 0;
   }
 
-  #qrcode,
-  .qrcode {
+  #qrcode {
     height: 0;
     visibility: hidden;
     overflow: hidden;

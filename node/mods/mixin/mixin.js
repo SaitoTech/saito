@@ -102,7 +102,7 @@ class Mixin extends ModTemplate {
     //
     if (message.request === 'mixin create account') {
       if (this.bot) {
-        await this.receiveCreateAccountTransaction(app, tx, peer, mycallback);
+        return await this.receiveCreateAccountTransaction(app, tx, peer, mycallback);
       } else {
         console.error('Cannot process Mixin account request for peer');
       }
@@ -129,21 +129,21 @@ class Mixin extends ModTemplate {
     // Save user info when we create a deposit address (for a particular ticker)
     //
     if (message.request === 'mixin save user') {
-      await this.receiveSaveUserTransaction(app, tx, peer, mycallback);
+      return await this.receiveSaveUserTransaction(app, tx, peer, mycallback);
     }
 
     //
     // sendPayment, returnWithdrawalFeeForAddress
     //
     if (message.request === 'mixin fetch user') {
-      await this.receiveFetchUserTransaction(app, tx, peer, mycallback);
+      return await this.receiveFetchUserTransaction(app, tx, peer, mycallback);
     }
 
     //
     // getMixinAddress
     //
     if (message.request === 'mixin fetch user by publickey') {
-      await this.receiveFetchUserByPublickeyTransaction(app, tx, peer, mycallback);
+      return await this.receiveFetchUserByPublickeyTransaction(app, tx, peer, mycallback);
     }
 
     //
@@ -154,7 +154,7 @@ class Mixin extends ModTemplate {
     }
 
     if (message.request === 'mixin backup') {
-      await this.saveMixinAccountData(message.data.account_hash, peer.publicKey);
+      return await this.saveMixinAccountData(message.data.account_hash, peer.publicKey);
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);

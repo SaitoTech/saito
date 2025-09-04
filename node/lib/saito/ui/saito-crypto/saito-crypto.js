@@ -3,6 +3,7 @@ const Withdraw = require('./overlays/withdraw');
 const History = require('./overlays/history');
 const Send = require('./overlays/send');
 const Receive = require('./overlays/receive');
+const Details = require('./overlays/details');
 
 /*
 	This is a container for all the independent overlays for sending (withdrawing), 
@@ -27,6 +28,8 @@ class SaitoCrypto {
 
     //'saito-crypto-receive-render-request'
     this.receive_overlay = new Receive(app, mod);
+
+    this.details_overlay = new Details(app, mod);
   }
 }
 
