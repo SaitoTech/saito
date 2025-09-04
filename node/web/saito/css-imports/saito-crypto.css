@@ -46,10 +46,6 @@
   justify-content: flex-start;
 }
 
-.mobile-only460 {
-  display: none;
-}
-
 .wallet-details {
   display: grid;
   grid-template-columns: 25rem 1fr;
@@ -77,11 +73,23 @@
   cursor: pointer;
 }
 
+.pubkey-container:hover i {
+  transform: scale(1.1);
+}
+
+.mobile-only460 {
+  display: none;
+}
+
 .wallet-actions {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   padding: 1rem;
+}
+
+.main-balance {
+  position: relative;
 }
 
 .wallet-actions .label {
@@ -109,6 +117,8 @@
   display: flex;
   flex-direction: column;
   flex-grow: 1;
+  position: relative;
+  padding: 0.5rem 0;
 }
 
 .transaction-history .saito-table-header,
@@ -118,6 +128,44 @@
 
 .transaction-history-table {
   flex-grow: 1;
+}
+
+.refresh {
+  position: absolute;
+  right: 1rem;
+  font-size: 2rem;
+  padding: 1rem;
+  cursor: pointer;
+  top: 0;
+}
+
+.main-balance .refresh {
+  top: 0.7rem;
+}
+
+.refresh:hover {
+  color: var(--saito-primary);
+}
+
+.refreshing {
+  animation: spin 1s infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  50% {
+    transform: rotate(180deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.refreshed {
+  visibility: hidden;
 }
 
 @media screen and (max-width: 600px) {

@@ -882,6 +882,12 @@ class SaitoHeader extends UIModTemplate {
         );
       };
     });
+
+    if (document.querySelector('.balance-amount')) {
+      document.querySelector('.balance-amount').onclick = (e) => {
+        this.app.connection.emit('saito-crypto-details-render-request', preferred_crypto.ticker);
+      };
+    }
   }
 
   initiateBalanceCheck() {

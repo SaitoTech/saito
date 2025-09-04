@@ -37,21 +37,48 @@ class Details {
       }, 100);
     }
 
-    await this.mod.returnHistory(async (html) => {
-      if (html != '') {
-        document.querySelector('.mixin-txn-his-container .saito-table-body').innerHTML = html;
-      } else {
-        document.querySelector('.mixin-txn-his-container .saito-table-body').innerHTML =
-          `<p class="mixin-no-history">No account history found for ${this.mod.ticker}</p>`;
-
-        document.querySelectorAll('.pagination-button').forEach(function (btn, key) {
-          btn.classList.add('disabled');
-        });
-      }
-    });
+    this.formatHistory();
 
     this.loader.remove();
     this.attachEvents();
+  }
+
+  formatHistory() {
+    if (this.mod.history.length > 0) {
+      console.log('Formatting HISTORY: ', this.mod.history);
+
+      let history_html = '';
+      let running_balance = Number(this.mod.returnBalance());
+
+      // Go backwards in time
+      for (let i = this.mod.history.length - 1; i >= 0; i--) {
+        let h = this.mod.history[i];
+        let ts = new Date(h.timestamp);
+        let inner_html = `<div class="crypto-timestamp">${ts.toLocaleTimeString()}</div>
+                          <div class="crypto-type">${h.type}</div>
+                          <div class="crypto-amount">${h.amount}</div>
+                          <div class="crypto-amount">${running_balance}</div>`;
+
+        if (h.counter_party?.publicKey) {
+          inner_html += this.app.browser.returnAddressHTML(h.counter_party.publicKey);
+        } else if (h.counter_party?.address) {
+          inner_html += `<div class="crypto-address">${h.counter_party.address}</div>`;
+        } else {
+          inner_html += '<div></div>';
+        }
+
+        history_html += `<div class="saito-table-row">${inner_html}</div>`;
+
+        running_balance -= Number(h.amount);
+      }
+
+      document.querySelector('.transaction-history-table .saito-table-body').innerHTML =
+        history_html;
+    } else {
+      /*document.querySelectorAll('.pagination-button').forEach(function (btn, key) {
+        btn.classList.add('disabled');
+      });*/
+    }
   }
 
   attachEvents() {
@@ -87,6 +114,39 @@ class Details {
       };
     }
 
+    if (document.getElementById('check-balance')) {
+      document.getElementById('check-balance').onclick = async (e) => {
+        e.currentTarget.classList.add('refreshing');
+        let balance = await this.mod.checkBalanceUpdate();
+        this.render();
+        setTimeout(() => {
+          document.getElementById('check-balance').classList.add('refreshed');
+          setTimeout(() => {
+            document.getElementById('check-balance').classList.remove('refreshed');
+          }, 5000);
+        }, 5);
+      };
+    }
+
+    if (document.getElementById('check-history')) {
+      document.getElementById('check-history').onclick = (e) => {
+        e.currentTarget.classList.add('refreshing');
+        this.mod.checkHistory(() => {
+          this.render();
+          setTimeout(() => {
+            document.getElementById('check-history').classList.add('refreshed');
+            setTimeout(() => {
+              document.getElementById('check-history').classList.remove('refreshed');
+            }, 5000);
+          }, 5);
+        });
+      };
+    }
+
+    /////////////////////////
+    /// Pagination events....
+    /////////////////////////
+    /*
     const paginationNumbers = document.getElementById('pagination-numbers');
     const listItems = document.querySelectorAll('.mixin-txn-his-container .saito-table-row');
     const nextButton = document.getElementById('next-button');
@@ -192,9 +252,7 @@ class Details {
       }
     });
 
-    if (this.mod.ticker == 'SAITO') {
-      document.querySelector('.pagination-container').style.display = 'none';
-    }
+    */
   }
 }
 

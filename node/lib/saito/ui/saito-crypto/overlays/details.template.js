@@ -9,7 +9,7 @@ module.exports = (app, mod) => {
             ${
               mod.address
                 ? `<div class="mobile-only460 pubkey-container">
-                             <div class="profile-public-key" id="profile-public-key" data-add="${mod.address}">${mod.address.slice(0, 8)}...${mod.address.slice(-8)}</div>
+                             <div class="profile-public-key" id="profile-public-key" data-add="${mod.address}">${mod.address.slice(0, 6)}...${mod.address.slice(-6)}</div>
                              <i class="fas fa-copy"></i>
                           </div>
             `
@@ -32,9 +32,10 @@ module.exports = (app, mod) => {
             </div>
              
            <div class="wallet-actions">
-               <div>
+               <div class="main-balance">
                  <div class="label">${mod?.pending_balance ? 'Available ' : ''}Balance:</div>
                  <div class="balance-amount">${app.browser.returnBalanceHTML(mod.returnBalance())}</div>
+                 <i id="check-balance" class="fa-solid fa-arrows-rotate refresh"></i>
                </div>`;
     if (mod.ticker == 'SAITO') {
       if (mod.pending_balance) {
@@ -74,6 +75,7 @@ module.exports = (app, mod) => {
   html += `</div>
 
         <div class="transaction-history">
+          <i id="check-history" class="fa-solid fa-arrows-rotate refresh"></i>
           <h6>Transaction History</h6>
           <div class="transaction-history-table saito-table">
               <div class="saito-table-header">
@@ -86,12 +88,10 @@ module.exports = (app, mod) => {
               <div class="saito-table-body"></div>
               <div id="saito-details-loader"></div>
           </div>
-          <nav class="pagination-container">
-            <div class="pagination-button" id="prev-button" aria-label="Previous page" title="Previous page">&lt;</div>
-
+          <nav class="pagination-container disabled">
+            <div class="pagination-button disabled" id="prev-button" aria-label="Previous page" title="Previous page">&lt;</div>
             <div id="pagination-numbers"></div>
-
-            <div class="pagination-button" id="next-button" aria-label="Next page" title="Next page">&gt;</div>
+            <div class="pagination-button disabled" id="next-button" aria-label="Next page" title="Next page">&gt;</div>
           </nav>
         </div>
     </div>

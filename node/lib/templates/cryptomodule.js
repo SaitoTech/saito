@@ -361,14 +361,20 @@ class CryptoModule extends ModTemplate {
       }
     }
 
-    this.history = await this.app.storage.getLocalForageItem(`${this.ticker}_history`);
-    if (this.history) {
-      this.history = JSON.parse(this.history);
-      if (this.history.length > 0) {
-        this.history_update_ts = this.history[this.history.length - 1].timestamp;
+    if (this.address) {
+      this.history = await this.app.storage.getLocalForageItem(
+        `${this.ticker}_${this.address}_history`
+      );
+      if (this.history) {
+        this.history = JSON.parse(this.history);
+        if (this.history.length > 0) {
+          this.history_update_ts = this.history[this.history.length - 1].timestamp;
+
+          console.log('Crypto History!', this.history);
+        }
+      } else {
+        this.history = [];
       }
-    } else {
-      this.history = [];
     }
   }
 
@@ -406,7 +412,10 @@ class CryptoModule extends ModTemplate {
     this.app.storage.saveOptions();
 
     if (this.history.length > 0) {
-      this.app.storage.setLocalForageItem(`${this.ticker}_history`, JSON.stringify(this.history));
+      this.app.storage.setLocalForageItem(
+        `${this.ticker}_${this.address}_history`,
+        JSON.stringify(this.history)
+      );
     }
   }
 

@@ -117,7 +117,11 @@ export default class Wallet extends SaitoWallet {
             for (let slip of this.app.options.wallet.slips) {
               if (!slip.spent) {
                 this.history.push({
-                  amount: Number(slip.amount),
+                  //
+                  // It would be nice if slips had timestamps, or if I could get the slip with the tx
+                  //
+                  timestamp: this.app.options.blockchain.lowest_acceptable_timestamp,
+                  amount: Number(this.app.wallet.convertNolanToSaito(BigInt(slip.amount))),
                   type: 'deposit'
                 });
               }
