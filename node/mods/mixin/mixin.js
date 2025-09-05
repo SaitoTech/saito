@@ -1093,7 +1093,7 @@ class Mixin extends ModTemplate {
 
   async load() {
     if (this.app?.options?.mixin) {
-      console.log('MIXIN USER ACCOUNT RESTORED');
+      console.log('USING SAVED MIXIN USER ACCOUNT');
       this.mixin = this.app.options.mixin;
       if (this.mixin.user_id) {
         this.account_created = 1;

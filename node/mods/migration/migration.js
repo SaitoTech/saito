@@ -25,6 +25,7 @@ class Migration extends ModTemplate {
 
 		this.relay_available = false;
 		this.can_auto = false;
+		this.ercMod = null;
 
 		this.local_dev = true;
 
@@ -79,26 +80,25 @@ class Migration extends ModTemplate {
 				this.migration_publickey = this.publicKey;
 				console.log('---> I am the migration bot!!!!');
 			}
+			return;
 		}
 
-		if (this.browser_active || this.migration_publickey === this.publicKey) {
+		if (this.browser_active) {
 			setTimeout(async () => {
 				try {
 					this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
 
 					if (this.ercMod) {
 						await this.ercMod.activate();
-
 						console.log('My address: ', this.ercMod.formatAddress());
-
-						if (this.relay_available && this.browser_active) {
+						if (this.relay_available) {
 							this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
 						}
 					}
 				} catch (err) {
 					console.error(err);
 				}
-			}, 1000);
+			}, 3000);
 		}
 	}
 
@@ -156,7 +156,9 @@ class Migration extends ModTemplate {
 				}
 
 				if (txmsg.request == 'migration check' && this.publicKey == this.migration_publickey) {
-					await this.receiveMigrationPingTransaction(tx);
+					if (this.ercMod !== false) {
+						await this.receiveMigrationPingTransaction(tx);
+					}
 				}
 			}
 		} catch (err) {
@@ -258,6 +260,18 @@ class Migration extends ModTemplate {
 	async receiveMigrationPingTransaction(tx) {
 		let txmsg = tx.returnMessage();
 		let saitozen = tx.from[0].publicKey;
+
+		if (!this.ercMod) {
+			try {
+				this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+				console.log('My address: ', this.ercMod.formatAddress());
+				await this.ercMod.activate();
+			} catch (err) {
+				this.ercMod = false;
+				console.error(err);
+				return;
+			}
+		}
 
 		this.key_cache[txmsg.data.mixin_address] = saitozen;
 

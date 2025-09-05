@@ -75,14 +75,6 @@
   font-size: 13px;
 }
 
-.add-cont {
-  display: flex;
-  justify-content: space-between;
-}
-
-.add-item-cont {
-}
-
 .add-input-box {
   width: 100%;
 }
@@ -167,52 +159,6 @@
   margin-bottom: 30px;
 }
 
-.add-cont {
-  display: flex;
-  justify-content: space-between;
-}
-
-.amount-cont {
-  display: flex;
-  justify-content: space-between;
-  gap: 2rem;
-}
-
-#mixin-warning-note {
-  font-size: 1.7rem;
-  color: #4a4848;
-  margin-bottom: 1.5rem;
-}
-
-.mixin-txn-his-container {
-  margin-top: 1rem;
-}
-
-.mixin-txn-his-container .saito-table-body {
-  height: auto;
-  margin-top: 1rem;
-  overflow-x: hidden;
-}
-
-.mixin-txn-his-container .saito-table-row {
-  cursor: default;
-}
-
-.amount-item-amount {
-  flex-grow: 1;
-}
-
-.mixin-txn-his-container .saito-table-header {
-  grid-template-columns: 16rem 16rem 15rem 15rem 15rem;
-  text-align: center;
-}
-
-.mixin-txn-his-container .saito-table-row {
-  grid-template-columns: 16rem 16rem 14rem 16rem 35rem;
-  text-align: center;
-  align-items: center;
-}
-
 .history-tx-link {
   display: flex;
   flex-direction: row;
@@ -230,50 +176,11 @@
   text-overflow: ellipsis;
 }
 
-.saito-identicon-container {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 1rem;
-}
-
-.mixin-items-container {
-  margin-top: 3rem;
-}
-
-/*changed*/
-.mixin-items-container .saito-table-header,
-.mixin-txn-his-container .saito-table-header {
-  padding: 1rem 0rem;
-  border-radius: var(--border-radius-sharp);
-  text-align: center;
-  background: var(--saito-dreamscape);
-  color: var(--saito-font-color);
-}
-
-.mixin-items-container .saito-table-header {
-  grid-template-columns: 14rem 14rem;
-}
-
-.mixin-items-container .saito-table-body {
-  height: auto;
-}
-
-.mixin-items-container .saito-table-row {
-  grid-template-columns: 13rem 13rem 13rem 13rem 13rem;
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.mixin-items-container .saito-table-row,
-.mixin-txn-his-container .saito-table-row {
-  margin-bottom: 1rem;
+.hidden {
+  display: none /*!important*/;
 }
 
 /* pagination */
-.hidden {
-  display: none;
-}
 
 .pagination-container {
   display: flex;
@@ -327,29 +234,6 @@
 
 .pagination-container.disabled .pagination-button:hover {
   transform: scale(1);
-}
-
-.deposit {
-  color: #00ae00;
-}
-
-.withdraw {
-  color: #e34927;
-}
-
-.withdraw.invalid,
-.deposit.invalid {
-  color: #cab202;
-}
-
-#mixin-balance-container .mixin-item {
-  width: calc(100% * (1 / 4));
-}
-
-.mixin-balances_deposit,
-.mixin-balances_withdraw,
-.mixin-balance-history {
-  color: var(--saito-primary);
 }
 
 /* Unfinished changes */
@@ -1387,7 +1271,8 @@ nft cards
   }
 
   /* NFT */
-  .send-nft-container, .create-nft-container {
+  .send-nft-container,
+  .create-nft-container {
     width: 95vw;
     min-width: auto;
     padding: 1rem;
@@ -1425,7 +1310,7 @@ nft cards
     min-width: auto;
     align-items: center;
     max-height: 80vh;
-     overflow-y: scroll; 
+    overflow-y: scroll;
     flex-wrap: nowrap;
   }
 
@@ -1436,7 +1321,7 @@ nft cards
     overflow-y: scroll;
   }
 
-  .nft-details-info, 
+  .nft-details-info,
   .nft-details-data {
     width: 100%;
   }

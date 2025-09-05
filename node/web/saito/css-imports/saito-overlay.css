@@ -248,4 +248,10 @@
   .module-settings-overlay {
     padding: 1rem;
   }
+
+  .bottom-mobile-overlay.center-overlay {
+    top: unset;
+    bottom: 0;
+    transform: translateX(-50%);
+  }
 }

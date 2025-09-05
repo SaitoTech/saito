@@ -150,6 +150,28 @@ class EGLDModule extends CryptoModule {
     }
   }
 
+  /**
+   * epoch: 1846
+   * fee: "50000000000000"
+   * function: "transfer"
+   * gasLimit: 50000
+   * gasPrice: 1000000000
+   * gasUsed: 50000
+   * miniBlockHash: "2ed16b9169ee4ebeecc574dbff7dd2fd1ebf2d5cbb52249b13adf29d03c506cd"
+   * nonce: 34
+   * receiver: "erd12fqc02q7rs7gnwwkdzqau38j4zgz4wnq2der5z88rxez26ccvlqqr95vls"
+   * receiverShard: 0
+   * round: 26589487
+   * sender: "erd1u7pqwrpe9840gaaepll4prvm97y0f7rga29kvn4ndte83hsj43qq6d3c24"
+   * senderShard: 0
+   * signature: "e3bb58305a351448b64ce22087609eb3e876bdfa5ffca6c3af5732fc2870badb5aa89bc074fd44e3211fdc8bb818fcc2ae8e2e56185e73c158b683d6bdbba801"
+   * status: "success"
+   * timestamp: 1755654522
+   * txHash: "eb90cf107c2952abe10dfa7ceab8bfcdb05087197a60a8fd83e0e17d03e0f192"
+   * value: "750000000000000000"
+   *
+   */
+
   async checkHistory(callback = null) {
     try {
       const address = Address.newFromBech32(this.address);
@@ -157,10 +179,70 @@ class EGLDModule extends CryptoModule {
         `accounts/${address.toBech32()}/transactions`
       );
 
-      await this.updateAccount();
+      const keys = this.app.keychain.returnKeys();
 
-      let balance = BigInt(this.account.balance); // Start with the latest balance
       console.log('return history: ', transactions);
+      let timestamp;
+
+      if (transactions.length > 0) {
+        // Make sure in ascending order
+        transactions.sort((a, b) => a.timestamp - b.timestamp);
+        for (let t of transactions) {
+          timestamp = t.timestamp * 1000;
+          if (timestamp < this.history_update_ts) {
+            continue;
+          }
+
+          let amount = this.convertAtomicToEgld(BigInt(t.value));
+          let fee = this.convertAtomicToEgld(BigInt(t.fee));
+
+          const obj = {
+            counter_party: {},
+            timestamp,
+            amount: Number(amount),
+            fee: Number(fee),
+            trans_hash: txHash
+          };
+
+          if (t.sender === this.address) {
+            // I am the sender
+            obj.counter_party.address = t.receiver;
+            obj.type = 'send';
+            obj.amount = -obj.amount;
+          } else {
+            // I am the receiver
+            obj.counter_party.address = t.sender;
+            obj.type = 'receive';
+          }
+
+          if (t.status !== 'success') {
+            obj.status = t.status;
+          }
+
+          // look for egld address in my saito keychain
+          for (let k of keys) {
+            if (
+              k.crypto_addresses &&
+              k.crypto_addresses[this.ticker] == obj.counter_party.address
+            ) {
+              obj.counter_party.publicKey = k.publicKey;
+              break;
+            }
+          }
+
+          this.history.push(obj);
+        }
+        this.history_update_ts = timestamp + 1;
+        this.save();
+      }
+
+      if (callback) {
+        callback(transactions);
+        return;
+      }
+
+      /*await this.updateAccount();
+      let balance = BigInt(this.account.balance); // Start with the latest balance
 
       let html = '';
       if (transactions.length > 0) {
@@ -204,11 +286,13 @@ class EGLDModule extends CryptoModule {
                         <div>${sender_html}</div>
                     </div>`;
         }
-      }
-
-      return callback(html);
+      }*/
     } catch (error) {
       console.error('Error checkHistory:', error);
+    }
+
+    if (callback) {
+      callback([]);
     }
   }
 

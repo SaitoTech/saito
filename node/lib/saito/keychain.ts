@@ -442,14 +442,13 @@ class Keychain {
       return;
     }
 
-    // Is a contact and not myself
-    if (!this.hasPublicKey(publicKey) || publicKey == this.publicKey) {
+    // Is an address that needs caching
+    if (ticker == 'SAITO' || address == publicKey || publicKey == this.publicKey) {
       return;
     }
 
-    // Is an address that needs caching
-    if (ticker == 'SAITO' || address == publicKey) {
-      return;
+    if (!this.hasPublicKey(publicKey)) {
+      this.addKey(publicKey);
     }
 
     let friend = this.returnKey(publicKey, true);

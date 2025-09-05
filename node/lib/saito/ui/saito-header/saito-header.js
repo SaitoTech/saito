@@ -797,11 +797,11 @@ class SaitoHeader extends UIModTemplate {
       //
       let options_html = '';
       let menu_html = '';
-      let ercMod = null;
+      //let ercMod = null;
 
-      try {
-        ercMod = this.app.wallet.returnCryptoModuleByTicker('ERC-SAITO');
-      } catch (err) {}
+      //try {
+      //  ercMod = this.app.wallet.returnCryptoModuleByTicker('ERC-SAITO');
+      //} catch (err) {}
 
       for (let i = 0; i < available_cryptos.length; i++) {
         let crypto_mod = available_cryptos[i];
@@ -816,12 +816,12 @@ class SaitoHeader extends UIModTemplate {
         menu_html += `<div class="header-crypto-balance">${this.app.browser.formatDecimals(crypto_mod.returnBalance())} ${crypto_mod.ticker}</div>`;
 
         //price_usd
-        if (crypto_mod.ticker !== 'SAITO') {
+        /*if (crypto_mod.ticker !== 'SAITO') {
           let saito_numerator = Number(crypto_mod?.price_usd);
           let saito_denom = Number(ercMod?.price_usd);
 
           if (saito_numerator && saito_denom) {
-            let multiplier = (0.97 * saito_numerator) / saito_denom;
+            let multiplier = (0.92 * saito_numerator) / saito_denom;
             crypto_mod.exchange_rate = multiplier;
             value_in_saito = Number(crypto_mod.returnBalance) * multiplier;
 
@@ -834,13 +834,13 @@ class SaitoHeader extends UIModTemplate {
           } else {
             menu_html += '<div></div>';
           }
+        } else {*/
+        if (crypto_mod.pending_balance) {
+          menu_html += `<div class="header-crypto-pending">${crypto_mod.pending_balance} pending </div>`;
         } else {
-          if (crypto_mod.pending_balance) {
-            menu_html += `<div class="header-crypto-pending">${crypto_mod.pending_balance} pending </div>`;
-          } else {
-            menu_html += '<div></div>';
-          }
+          menu_html += '<div></div>';
         }
+        //}
 
         menu_html += `</div>`;
 

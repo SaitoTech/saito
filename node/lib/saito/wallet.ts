@@ -163,6 +163,7 @@ export default class Wallet extends SaitoWallet {
           counter_party: { publicKey: '' },
           timestamp: tx.timestamp,
           amount: 0,
+          trans_hash: tx.signature,
           type: ''
         };
 
@@ -180,6 +181,8 @@ export default class Wallet extends SaitoWallet {
 
         this.history.push(obj);
         this.history_update_ts = obj.timestamp + 1;
+
+        this.save();
       }
 
       //
@@ -187,6 +190,9 @@ export default class Wallet extends SaitoWallet {
       //
       async checkHistory(callback) {
         // Do a query on explorerc -- ledger when available
+        if (callback) {
+          setTimeout(callback, 3000);
+        }
       }
 
       async sendPayment(amount: string, to_address: string, unique_hash: string = '') {

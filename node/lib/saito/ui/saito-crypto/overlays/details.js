@@ -1,4 +1,5 @@
 const DetailsTemplate = require('./details.template');
+const SaitoTokenOverlay = require('./saito-acquisition.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoLoader = require('./../../saito-loader/saito-loader');
 
@@ -7,6 +8,7 @@ class Details {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
+    this.overlay.class = 'saito-overlay bottom-mobile-overlay';
     this.loader = new SaitoLoader(this.app, this.mod, '#saito-details-loader');
 
     app.connection.on('saito-crypto-details-render-request', (ticker) => {
@@ -22,19 +24,23 @@ class Details {
     });
   }
 
-  async render() {
+  render(qrcode_html = '') {
     this.overlay.show(DetailsTemplate(this.app, this.mod));
 
     // Insert deposit QR code
     if (document.getElementById('qrcode2')) {
-      document.querySelector('#qrcode2').style.visibility = 'hidden';
-      document.querySelector('#qrcode2').style.opacity = '0';
+      if (qrcode_html) {
+        document.querySelector('#qrcode2').innerHTML = qrcode_html;
+      } else {
+        document.querySelector('#qrcode2').style.visibility = 'hidden';
+        document.querySelector('#qrcode2').style.opacity = '0';
 
-      document.querySelector('#qrcode2').innerHTML = '';
-      this.app.browser.generateQRCode(this.mod.address, 'qrcode2');
-      setTimeout(() => {
-        document.querySelector('#qrcode2').removeAttribute('style');
-      }, 100);
+        document.querySelector('#qrcode2').innerHTML = '';
+        this.app.browser.generateQRCode(this.mod.address, 'qrcode2');
+        setTimeout(() => {
+          document.querySelector('#qrcode2').removeAttribute('style');
+        }, 100);
+      }
     }
 
     this.formatHistory();
@@ -67,13 +73,15 @@ class Details {
           inner_html += '<div></div>';
         }
 
-        history_html += `<div class="saito-table-row">${inner_html}</div>`;
+        history_html += inner_html;
 
         running_balance -= Number(h.amount);
       }
 
-      document.querySelector('.transaction-history-table .saito-table-body').innerHTML =
-        history_html;
+      this.app.browser.addElementToSelector(
+        history_html,
+        '.transaction-history-table.saitox-table'
+      );
     } else {
       /*document.querySelectorAll('.pagination-button').forEach(function (btn, key) {
         btn.classList.add('disabled');
@@ -114,15 +122,24 @@ class Details {
       };
     }
 
+    if (document.getElementById('get-saito')) {
+      document.getElementById('get-saito').onclick = (e) => {
+        let overlay = new SaitoOverlay(this.app, this.mod);
+        overlay.show(SaitoTokenOverlay());
+      };
+    }
+
     if (document.getElementById('check-balance')) {
       document.getElementById('check-balance').onclick = async (e) => {
         e.currentTarget.classList.add('refreshing');
         let balance = await this.mod.checkBalanceUpdate();
-        this.render();
+        this.render(document.querySelector('#qrcode2')?.innerHTML);
         setTimeout(() => {
           document.getElementById('check-balance').classList.add('refreshed');
           setTimeout(() => {
-            document.getElementById('check-balance').classList.remove('refreshed');
+            if (document.getElementById('check-balance')) {
+              document.getElementById('check-balance').classList.remove('refreshed');
+            }
           }, 5000);
         }, 5);
       };
@@ -132,11 +149,13 @@ class Details {
       document.getElementById('check-history').onclick = (e) => {
         e.currentTarget.classList.add('refreshing');
         this.mod.checkHistory(() => {
-          this.render();
+          this.render(document.querySelector('#qrcode2')?.innerHTML);
           setTimeout(() => {
             document.getElementById('check-history').classList.add('refreshed');
             setTimeout(() => {
-              document.getElementById('check-history').classList.remove('refreshed');
+              if (document.getElementById('check-history')) {
+                document.getElementById('check-history').classList.remove('refreshed');
+              }
             }, 5000);
           }, 5);
         });

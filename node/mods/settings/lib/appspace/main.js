@@ -364,9 +364,7 @@ class SettingsAppspace {
 				);
 				if (confirmation) {
 					await app.wallet.onUpgrade('nuke');
-					if (this.app.browser.browser_active == 1) {
-						reloadWindow(300);
-					}
+					reloadWindow(150);
 				}
 			};
 

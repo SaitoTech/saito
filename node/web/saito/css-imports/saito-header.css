@@ -174,7 +174,7 @@
 #qrcode img,
 .qrcode img {
   height: auto;
-  max-width: 20rem;
+  max-width: 18rem;
   width: 20vh;
   border: var(--border-thickness-medium) solid var(--saito-primary);
   padding: var(--border-padding-normal);
@@ -601,6 +601,7 @@
 .header-crypto-balance {
   font: var(--saito-font-medium);
   color: var(--saito-font-color-heavy);
+  font-size: 19px;
   align-self: flex-end;
 }
 
@@ -642,7 +643,7 @@
 
   .show-qr .wallet-infoo {
     margin-top: 1.5rem;
-    height: 235px;
+    height: 260px;
     gap: 1rem;
   }
 

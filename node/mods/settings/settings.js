@@ -98,15 +98,28 @@ class Settings extends ModTemplate {
 							settings_self.renderInto('.theme-selector');
 						}
 					},
-					{
-						text: 'Reload',
-						icon: 'fa-solid fa-seedling',
+					/*{
+						text: 'Sync Chain',
+						icon: 'fa-solid fa-link',
 						rank: 130,
 						type: 'utilities',
 						callback: async function (app, id) {
 							siteMessage('Reimporting your account...');
-							await app.wallet.onUpgrade('import');
+							await app.wallet.onUpgrade('upgrade');
 							reloadWindow(150);
+						}
+					}*/
+					{
+						text: 'Nuke',
+						icon: 'fa-solid fa-radiation',
+						rank: 130,
+						type: 'utilities',
+						callback: async function (app, id) {
+							let c = await sconfirm('This will wipe out your wallet and delete your data....');
+							if (c) {
+								await app.wallet.onUpgrade('nuke');
+								reloadWindow(150);
+							}
 						}
 					}
 				];

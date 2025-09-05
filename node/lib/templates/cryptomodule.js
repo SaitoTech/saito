@@ -123,7 +123,12 @@ class CryptoModule extends ModTemplate {
       }
 
       if (txmsg.request === 'crypto payment') {
-        this.receivePaymentTransaction(tx);
+        if (this.app.BROWSER) {
+          this.receivePaymentTransaction(tx);
+        } else {
+          // tells the migration bot that the user's deposit is complete
+          this.app.connection.emit('saito-crypto-receive-confirm', txmsg);
+        }
       }
     }
   }
@@ -157,6 +162,8 @@ class CryptoModule extends ModTemplate {
     console.info('Crypto: receivePaymentTransaction', txmsg);
 
     if (!tx.isFrom(this.publicKey)) {
+      this.app.keychain.addCryptoAddress(tx.from[0].publicKey, this.ticker, txmsg.from);
+
       let expected_payment = false;
 
       if (this.options?.transfers_inbound) {
@@ -170,12 +177,10 @@ class CryptoModule extends ModTemplate {
         }
       }
 
-      if (expected_payment || !this.app.BROWSER) {
-        //
-        // This event:
-        // 1) updates the in-game receive payment overlay
-        // 2) tells the migration bot that the user's deposit is complete
-        //
+      //
+      // updates the in-game receive payment overlay or just display a siteMessage
+      //
+      if (expected_payment) {
         this.app.connection.emit('saito-crypto-receive-confirm', txmsg);
       } else {
         siteMessage(
@@ -189,6 +194,7 @@ class CryptoModule extends ModTemplate {
       //
       // I sent the payment!
       //
+      this.app.keychain.addCryptoAddress(tx.to[0].publicKey, this.ticker, txmsg.to);
     }
 
     this.savePaymentTransaction(tx);

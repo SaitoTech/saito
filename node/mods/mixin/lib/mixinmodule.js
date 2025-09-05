@@ -369,7 +369,8 @@ class MixinModule extends CryptoModule {
 					const obj = {
 						counter_party: { address: snap.opponent_id },
 						timestamp: new Date(snap.created_at).getTime(),
-						amount
+						amount,
+						trans_hash: transaction_hash
 					};
 
 					if (snap.deposit) {
@@ -401,6 +402,7 @@ class MixinModule extends CryptoModule {
 					this_self.history_update_ts = obj.timestamp + 1;
 				}
 
+				this_self.save();
 				console.log('Formatted history: ', this_self.history);
 
 				if (callback) {
@@ -409,113 +411,6 @@ class MixinModule extends CryptoModule {
 			}
 		);
 	}
-
-	/*
-
-			async function (d) {
-				console.log('mixin tx history:', d);
-
-				let html = '';
-				let balance = this.balance;
-				if (d.length > 0) {
-					for (let i = d.length - 1; i >= 0; i--) {
-						let row = d[i];
-						let created_at = row.created_at.slice(0, 19).replace('T', ' ');
-
-						//Parse it as UTC time
-						let datetime = new Date(created_at + 'Z');
-						let amount = Number(row.amount);
-						let type = amount > 0 ? 'Deposit' : 'Withdraw';
-
-						if (i < d.length - 1) {
-							if (Number(d[i + 1].amount) > 0) {
-								balance = balance - Math.abs(Number(d[i + 1].amount));
-							} else {
-								balance = balance + Math.abs(Number(d[i + 1].amount));
-							}
-						}
-
-						let balance_as_float = parseFloat(balance);
-
-						let opponnent = typeof d[i].opponent_id != 'undefined' ? d[i].opponent_id : null;
-
-						let sender_html = '';
-						if (opponnent != null && opponnent != '') {
-							// Showing details for internal mixin transaction details
-
-							let user_data = null;
-							if (opponnent in tmp_user_data) {
-								user_data = tmp_user_data[opponnent];
-							} else {
-								user_data = await this_self.getAddressByUserId(opponnent, this_self.asset_id);
-								tmp_user_data[opponnent] = user_data;
-							}
-
-							if (user_data != null) {
-								let public_key = user_data.publickey;
-								let address = user_data.address;
-
-								let identicon = null;
-								if (public_key in tmp_identicon) {
-									identicon = tmp_identicon[public_key];
-								} else {
-									identicon = this_self.app.keychain.returnIdenticon(public_key);
-									tmp_identicon[public_key] = identicon;
-								}
-
-								let username = null;
-								if (public_key in tmp_identifer) {
-									username = tmp_identifer[public_key];
-								} else {
-									username = this_self.app.keychain.returnIdentifierByPublicKey(public_key, true);
-									tmp_identifer[public_key] = username;
-								}
-
-								sender_html = `<div class="saito-identicon-container">
-						        <img class="saito-identicon" src="${identicon}">  
-						        <div class="history-address-container">
-						          <div class="history-to-publickey">${username}</div>
-						          ${
-												address != ''
-													? `
-						          	 <div class="history-to-address-container">
-									  <div class="history-to-address">${address}</div>
-									  <i class="history-copy-address fas fa-copy"
-									  data-address="${address}">
-									  </i>
-									</div>
-						          `
-													: ``
-											}
-						        </div>
-						      </div>`;
-							}
-						} else {
-							// Mixin sdk throwing error when fetching tx details.
-							// Temproraily redirecting users to mixin explorer for
-							// external transaction details
-							let trans_hash = d[i].transaction_hash;
-							sender_html = `<a class="history-tx-link" href="https://viewblock.io/mixin/tx/${trans_hash}"
-       							target="_blank">
-       								<div class="history-tx-id">${trans_hash}</div>
-       								<i class="fa-solid fa-arrow-up-right-from-square"></i>
-       							</a>`;
-						}
-
-						html += `<div class='saito-table-row'>
-                    <div class='mixin-his-created-at'>${created_at}</div>
-                    <div>${type}</div>
-                    <div class='${type.toLowerCase()}'>${amount} ${this_self.mod.ticker}</div>
-                    <div>${nf.format(balance_as_float).toString()} ${this_self.mod.ticker}</div>
-                    <div>${sender_html}</div>
-                  </div>`;
-					}
-				}
-
-				return callback(html);
-			}
-
-*/
 
 	async returnUtxo(state = 'unspent', limit = 500, order = 'DESC', callback = null) {
 		return await this.mixin.fetchUtxo(state, limit, order, callback);

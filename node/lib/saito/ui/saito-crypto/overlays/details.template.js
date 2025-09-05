@@ -53,17 +53,17 @@ module.exports = (app, mod) => {
       `;
     } else {
       let menu_html = '';
-
+      /*
       if (mod.exchange_rate && balance) {
         menu_html = `
               <div class="label">Value:</div>
               <div class="header-crypto-value">≈ ${app.browser.formatDecimals(balance * mod.exchange_rate)} $SAITO</div></div>`;
-      }
+      }*/
 
       html += `
           <div>${menu_html}</div>
           <div class="saito-button-grid">
-            ${balance > 0 ? `<button class="saito-button-secondary" id="convert-saito">convert</button>` : '<div></div>'}
+            ${/*balance > 0 ? `<button class="saito-button-secondary" id="convert-saito">convert</button>` : */ '<div></div>'}
             <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
           </div>
         `;
@@ -77,16 +77,12 @@ module.exports = (app, mod) => {
         <div class="transaction-history">
           <i id="check-history" class="fa-solid fa-arrows-rotate refresh"></i>
           <h6>Transaction History</h6>
-          <div class="transaction-history-table saito-table">
-              <div class="saito-table-header">
-                  <div>Time</div>
-                   <div>Type</div>
-                   <div>Amount</div>
-                   <div>Balance</div>
-                   <div>To/From</div>
-              </div>
-              <div class="saito-table-body"></div>
-              <div id="saito-details-loader"></div>
+          <div class="transaction-history-table saitox-table">
+              <div class="saitox-header-item">Time</div>
+              <div class="saitox-header-item">Type</div>
+              <div class="saitox-header-item">Amount</div>
+              <div class="saitox-header-item">Balance</div>
+              <div class="saitox-header-item">To/From</div>
           </div>
           <nav class="pagination-container disabled">
             <div class="pagination-button disabled" id="prev-button" aria-label="Previous page" title="Previous page">&lt;</div>
