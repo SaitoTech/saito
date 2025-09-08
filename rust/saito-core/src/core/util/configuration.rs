@@ -2,8 +2,8 @@ use std::fmt::{Debug, Display};
 use std::io::Error;
 
 use crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay;
-use crate::core::defs::Currency;
 use crate::core::defs::{BlockId, Timestamp};
+use crate::core::defs::{Currency, RECOLLECT_EVERY_TX};
 use log::error;
 use serde::Deserialize;
 use serde::Serialize;
@@ -172,6 +172,12 @@ pub struct BlockchainConfig {
 pub fn get_default_issuance_writing_block_interval() -> BlockId {
     10
 }
+pub fn get_default_block_confirmation_limit() -> BlockId {
+    5
+}
+pub fn get_default_recollect_mode() -> u8 {
+    RECOLLECT_EVERY_TX
+}
 
 #[derive(Deserialize, Debug, Clone, Serialize)]
 pub struct ConsensusConfig {
@@ -180,13 +186,17 @@ pub struct ConsensusConfig {
     #[serde(default = "get_default_heartbeat_period_ms")]
     pub heartbeat_interval: Timestamp,
     #[serde(default = "get_default_prune_after_blocks")]
-    pub prune_after_blocks: u64,
+    pub prune_after_blocks: BlockId,
     #[serde(default = "get_default_max_staker_recursions")]
     pub max_staker_recursions: BlockId,
     #[serde(default = "get_default_social_stake")]
     pub default_social_stake: Currency,
     #[serde(default = "get_default_social_stake_period")]
     pub default_social_stake_period: BlockId,
+    #[serde(default = "get_default_block_confirmation_limit")]
+    pub block_confirmation_limit: BlockId,
+    #[serde(default = "get_default_recollect_mode")]
+    pub recollect_discarded_txs_mode: u8,
 }
 
 impl Default for ConsensusConfig {
@@ -198,6 +208,8 @@ impl Default for ConsensusConfig {
             max_staker_recursions: 3,
             default_social_stake: get_default_social_stake(),
             default_social_stake_period: get_default_social_stake_period(),
+            block_confirmation_limit: 5,
+            recollect_discarded_txs_mode: get_default_recollect_mode(),
         }
     }
 }

@@ -476,6 +476,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let genesis_period;
     let social_stake;
     let social_stake_period;
+    let prune_after_blocks;
+    let block_confirmation_limit;
     {
         let configs = configs_lock.read().await;
 
@@ -493,6 +495,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .get_consensus_config()
             .unwrap()
             .default_social_stake_period;
+        prune_after_blocks = configs.get_consensus_config().unwrap().prune_after_blocks;
+        block_confirmation_limit = configs
+            .get_consensus_config()
+            .unwrap()
+            .block_confirmation_limit;
     }
 
     let timer = Timer {
@@ -525,6 +532,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         genesis_period,
         social_stake,
         social_stake_period,
+        prune_after_blocks,
+        block_confirmation_limit,
     );
 
     let peers_lock = Arc::new(RwLock::new(PeerCollection::default()));

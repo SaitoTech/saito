@@ -10,22 +10,15 @@ class Backup {
 		this.desired_identifier = '';
 
 		this.modal_overlay = new SaitoOverlay(this.app, this.mod);
-		this.loader = new SaitoLoader(
-			this.app,
-			this.mod,
-			'#backup-template #saito-overlay-loader'
-		);
+		this.loader = new SaitoLoader(this.app, this.mod, '#backup-template #saito-overlay-loader');
 
-		app.connection.on('recovery-backup-loader-overlay-render-request',
-			async (msg) => {
+		app.connection.on('recovery-backup-loader-overlay-render-request', async (msg) => {
+			app.options.wallet.backup_required = msg;
+			app.wallet.saveWallet();
 
-				app.options.wallet.backup_required = msg;
-				app.wallet.saveWallet();
-
-				this.render();
-				await this.showLoaderOverlay(msg);
-			}
-		);
+			this.render();
+			await this.showLoaderOverlay(msg);
+		});
 	}
 
 	render() {
@@ -38,7 +31,7 @@ class Backup {
 		this.modal_overlay.show(BackupTemplate(identifier, newIdentifier));
 		this.modal_overlay.callback_on_close = () => {
 			this_self.callBackFunction();
-		}
+		};
 
 		this.attachEvents();
 	}
@@ -57,16 +50,10 @@ class Backup {
 	attachEvents() {
 		let this_self = this;
 
-		document.querySelector(
-			'#backup-template .saito-overlay-form-submit'
-		).onclick = async (e) => {
+		document.querySelector('#backup-template .saito-overlay-form-submit').onclick = async (e) => {
 			e.preventDefault();
-			let email = document.querySelector(
-				'#backup-template .saito-overlay-form-email'
-			).value;
-			let password = document.querySelector(
-				'#backup-template .saito-overlay-form-password'
-			).value;
+			let email = document.querySelector('#backup-template .saito-overlay-form-email').value;
+			let password = document.querySelector('#backup-template .saito-overlay-form-password').value;
 
 			if (!email || !password) {
 				salert('No email or password provided!');
@@ -84,8 +71,8 @@ class Backup {
 	async success() {
 		let this_self = this;
 		siteMessage('wallet backup successful', 10000);
-		
-		setTimeout(async function(){
+
+		setTimeout(async function () {
 			this_self.app.options.wallet.backup_required = false;
 			await this_self.app.wallet.saveWallet();
 			await this_self.close();
@@ -96,36 +83,29 @@ class Backup {
 		}, 3000);
 	}
 
-	callBackFunction(){
+	callBackFunction() {
 		let this_self = this;
 		if (this.app.options.wallet?.backup_required) {
-			this_self.app.connection.emit(
-				'saito-header-update-message',
-				{
-					msg: 'wallet backup needed',
-					flash: true,
-					callback: function() {
-						this_self.app.connection.emit(
-							'recovery-backup-overlay-render-request'
-						);
-					}
+			this_self.app.connection.emit('saito-header-update-message', {
+				msg: 'wallet backup needed',
+				flash: true,
+				callback: function () {
+					this_self.app.connection.emit('recovery-backup-overlay-render-request');
 				}
-			);
+			});
 		} else {
-			this.app.connection.emit('saito-header-update-message', {});	
+			this.app.connection.emit('saito-header-update-message', {});
 		}
 	}
 
-	async showLoaderOverlay(msg = null){
+	async showLoaderOverlay(msg = null) {
 		this.app.options.wallet.backup_required = false;
 		await this.app.wallet.saveWallet();
 
-		document.querySelector('#saito-overlay-form-header-title').innerHTML = 
-		`Enabling Account Recovery`;
+		document.querySelector('#saito-overlay-form-header-title').innerHTML =
+			`Enabling Account Recovery`;
 
-		let div = document.querySelector(
-			'#backup-template .saito-overlay-subform'
-		);
+		let div = document.querySelector('#backup-template .saito-overlay-subform');
 		if (div) {
 			if (msg == null) {
 				msg = `
@@ -150,9 +130,7 @@ class Backup {
 
 		this.loader.render();
 
-		let button = document.querySelector(
-			'#backup-template .saito-overlay-form-submit'
-		);
+		let button = document.querySelector('#backup-template .saito-overlay-form-submit');
 		if (button) {
 			button.innerHTML = 'Uploading...';
 			button.onclick = null;

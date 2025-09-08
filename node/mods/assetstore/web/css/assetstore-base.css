@@ -7,16 +7,17 @@
 }
 
 .assetstore-table {
-	display: flex;
-	flex-direction: horizontal;
-	flex-wrap: wrap;
-	width: 100%;
-	height: max-content;
-	min-height: 600px;
-	row-gap: 1rem;
-	column-gap: 1rem;
-	justify-items: center;
-	align-content: start;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    width: 100%;
+    height: max-content;
+    min-height: 600px;
+    row-gap: 2rem;
+    /* column-gap: 3rem; */
+    justify-items: center;
+    align-content: start;
+}
 }
 
 .assetstore-nft {
@@ -26,3 +27,40 @@
 }
 
 
+
+.list-nft-container {
+  display: flex;
+  gap: 2rem;
+  padding: 2rem;
+  background: var(--background-color-main);
+  min-width: 60rem;
+}
+
+.list-nft-container {
+  flex-direction: column;
+  min-width: 60rem;
+  min-height: 70vh;
+}
+
+
+.list-nft-container > .right-section {
+  min-width: 50rem;
+  gap: 2rem;
+}
+
+.list-nft-container > .right-section > .nft-receiver {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.list-nft-container .instructions {
+  display: none;
+}
+
+
+.assetstore-table-list {
+    display: flex;
+    gap: 2rem;
+    flex-direction: row;
+}

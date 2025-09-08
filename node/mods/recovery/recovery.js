@@ -1,5 +1,6 @@
 const saito = require('../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
+const KeyEntry = require('./lib/keyentry');
 const SaitoLogin = require('./lib/login');
 const SaitoBackup = require('./lib/backup');
 const Transaction = require('../../lib/saito/transaction').default;
@@ -15,6 +16,7 @@ class Recovery extends ModTemplate {
 		this.class = 'utility';
 		this.backup_overlay = new SaitoBackup(app, this);
 		this.login_overlay = new SaitoLogin(app, this);
+		this.key_overlay = new KeyEntry(app, this);
 
 		this.keychain_hash = '';
 
@@ -96,7 +98,7 @@ class Recovery extends ModTemplate {
 				x.push({
 					text: 'Login',
 					icon: 'fa fa-sign-in',
-					//allowed_mods: ["redsquare"], //Why restrict it??
+					type: 'utilities',
 					callback: function (app) {
 						app.connection.emit('recovery-login-overlay-render-request');
 					}
@@ -106,6 +108,7 @@ class Recovery extends ModTemplate {
 					text: 'Backup',
 					icon: 'fa-sharp fa-solid fa-cloud-arrow-up',
 					rank: 130,
+					type: 'utilities',
 					callback: function (app) {
 						app.connection.emit('recovery-backup-overlay-render-request');
 					}

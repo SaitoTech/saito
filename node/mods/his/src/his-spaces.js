@@ -19,8 +19,6 @@
     //
     if (this.game.players.length == 2) { return; }
 
-
-
     //
     // remove stranded players
     //
@@ -49,13 +47,13 @@
     //
     for (let z = 0; z < this.game.state.players_info.length; z++) {
       for (let zz = 0; zz < this.game.state.players_info[z].captured.length; zz++) {
-	let u = this.game.state.players_info[z].captured[zz];
-        if (c.key == captured_leader) {
-          let s = his_self.returnSpaceOfPersonage(c.owner, c.key); 
+	let c = this.game.state.players_info[z].captured[zz];
+        if (c.key && c.owner) {
+          let s = this.returnSpaceOfPersonage(c.owner, c.key); 
           if (s != "") {
-            let idx = his_self.returnIndexOfPersonageInSpace(c.owner, c.key, s);
+            let idx = this.returnIndexOfPersonageInSpace(c.owner, c.key, s);
             if (idx > -1) {
-              his_self.game.spaces[s].units[c.owner].splice(idx, 1);
+              this.game.spaces[s].units[c.owner].splice(idx, 1);
             }
           }
         }
@@ -3256,7 +3254,6 @@
       home: "scotland",
       political: "scotland",
       religion: "catholic",
-      ports: ["irish"],
       neighbours: ["glasgow","edinburgh"],
       language: "english",
       type: "fortress"

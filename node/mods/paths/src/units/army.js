@@ -159,7 +159,7 @@
       rcombat		:	0 ,
       rloss		:	1 ,
       rmovement		:	3 ,
-      checkSupplyStatus :	(paths_self, spacekey) => { return 1; }
+      checkSupplyStatus :	(paths_self, spacekey) => { return 1; } ,
     });
 
     //
@@ -178,6 +178,7 @@
       rcombat		:	1 ,
       rloss		:	2 ,
       rmovement		:	2 ,
+      priority		:	1 ,
     });
 
     //
@@ -196,6 +197,7 @@
       rcombat		:	2 ,
       rloss		:	1 ,
       rmovement		:	4 ,
+      priority		:	1 ,
     });
 
     //
@@ -250,6 +252,7 @@
       rcombat		:	4 ,
       rloss		:	3 ,
       rmovement		:	3 ,
+      priority		:	4 ,
     });
 
     //
@@ -268,6 +271,7 @@
       rcombat		:	2 ,
       rloss		:	1 ,
       rmovement		:	4 ,
+      priority		:	3 ,
     });
 
 
@@ -394,6 +398,7 @@
       rloss		:	2 ,
       rmovement		:	3 ,
       ne		:	1 ,
+      priority		:	2 ,
     });
 
     //
@@ -412,6 +417,7 @@
       rcombat		:	2 ,
       rloss		:	1 ,
       rmovement		:	4 ,
+      priority		:	1 ,
     });
 
     //
@@ -929,6 +935,7 @@
       rloss		:	2 ,
       rmovement		:	3 ,
       ne		:	1 ,
+      priority		:	2 ,
     });
 
     //
@@ -967,6 +974,7 @@
       rloss		:	3 ,
       rmovement		:	3 ,
       ne		:	1 ,
+      priority		:	1 ,
     });
 
     //
@@ -986,6 +994,7 @@
       rloss		:	3 ,
       rmovement		:	3 ,
       ne		:	1 ,
+      priority		:	1 ,
     });
 
     //
@@ -1328,6 +1337,7 @@
       rmovement		:	1 ,
       checkSupplyStatus :	(paths_self, spacekey) => { return 1; },
       ne		:	1 ,
+      priority		:	1 ,
     });
 
     //
@@ -1417,6 +1427,7 @@
       rloss		:	2 ,
       rmovement		:	2 ,
       ne		:	1 ,
+      priority		:	1 ,
     });
 
 

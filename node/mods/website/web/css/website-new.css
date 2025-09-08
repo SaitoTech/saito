@@ -277,6 +277,17 @@ h2+p {
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
+.feature-card {
+    background: #ffffff4d; /* Fallback */
+}
+
+@supports (backdrop-filter: blur(1px)) {
+    .feature-card {
+        backdrop-filter: blur(30px) contrast(110%) brightness(110%);
+        background: #ffffff00; /* Less opacity when blur works */
+    }
+}
+
 .feature-card::before {
     content: '';
     position: absolute;
@@ -286,7 +297,7 @@ h2+p {
     height: 100%;
     z-index: -1;
     border-radius: 7px;
-    backdrop-filter: blur(30px) contrast(110%) brightness(110%);
+    background: #ffffff00;
   }
 
   .feature-card p {

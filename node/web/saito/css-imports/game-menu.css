@@ -16,6 +16,11 @@
   color: black;
 }
 
+
+.menu-option-container {
+  border: unset;
+}
+
 #saito-header .game-menu {
   position: relative;
   margin: unset;

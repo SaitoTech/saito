@@ -5012,11 +5012,6 @@ console.log("ERR: " + JSON.stringify(err));
 
 	  if (defender_land_units_remaining >= attacker_land_units_remaining) {
 
-console.log("$$$$$$$");
-console.log("$$$$$$$");
-console.log("$$$$$$$ removing rest of assault");
-console.log("$$$$$$$");
-
 	    //
 	    // remove rest of assault
 	    //
@@ -5379,11 +5374,11 @@ console.log("$$$$$$$");
 	  //
 	  for (let i = his_self.game.queue.length-1; i > 0; i--) {
 	    let lqe = his_self.game.queue[i];
-	    if (lqe.indexOf("cards_left") != 0 && lqe.indexOf("continue") != 0 && lqe.indexOf("play") != 0 && lqe.indexOf("counter_or_acknowledge") != 0 && lqe.indexOf("RESOLVE") != 0 && lqe.indexOf("HALTED") != 0) {
+	    if (lqe.indexOf("cards_left") != 0 && lqe.indexOf("discard") != 0 && lqe.indexOf("continue") != 0 && lqe.indexOf("play") != 0 && lqe.indexOf("counter_or_acknowledge") != 0 && lqe.indexOf("RESOLVE") != 0 && lqe.indexOf("HALTED") != 0) {
 	      his_self.game.queue.splice(i, 1);
 	    } else {
 	      // only stop if at "continue" or "play"
-	      if (lqe.indexOf("cards_left") == 0 || lqe.indexOf("counter_or_acknowledge") == 0 || lqe.indexOf("RESOLVE") == 0 || lqe.indexOf("HALTED") == 0)  {
+	      if (lqe.indexOf("cards_left") == 0 || lqe.indexOf("counter_or_acknowledge") == 0 || lqe.indexOf("discard") == 0 || lqe.indexOf("RESOLVE") == 0 || lqe.indexOf("HALTED") == 0)  {
 	      } else {
 		if (is_move_over_pass) {
 	          if (lqe.indexOf("continue") == 0) {
@@ -12885,8 +12880,13 @@ console.log("POST_GOUT_QUEUE: " + JSON.stringify(his_self.game.queue));
 	  // cancel the excommunication and fall through
 	  for (let z = his_self.game.queue.length-1; z >= 1; z--) {
 	    let lmv = his_self.game.queue[z].split("\t");
-	    if (lmv[0] != "continue" && lmv[0] != "cards_left" && lmv[0] != "play" && lmv[0] != "discard") {
-              his_self.game.queue.splice(z, 1);
+	    if (lmv[0] == "continue" || lmv[0] == "cards_left" || lmv[0] == "play" || lmv[0] == "discard" || lmv[0] == "SAVE") {
+	      return 1;
+	    } else {
+	      if (lmv[0] != "ACKNOWLEDGE" && lmv[0] != "RESOLVE" && lmv[0] != "counter_or_acknowledge" && lmv[0] != "HALTED") {
+                his_self.game.queue.splice(z, 1);
+	      } else {
+	      }
 	    }
 	  } 
 	  return 1;

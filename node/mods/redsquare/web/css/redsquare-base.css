@@ -117,21 +117,14 @@
 .tweet-retweet {
 	margin-top: 8px;
 	padding: 4px;
-	border: 1px solid var(--twitter-gray-darker);
+	border: 1px solid var(--saito-border-color);
 	border-radius: var(--border-radius-round);
-	background-color: var(--twitter-gray-darkest);
-}
-
-.tweet-retweet .tweet-header {
-	color: #fff;
-	font-weight: 700;
-	margin-bottom: 6px;
+	background-color: var(--saito-highlight);
 }
 
 .tweet-retweet .tweet-text {
 	font-size: 14px;
 	line-height: 18px;
-	color: var(--twitter-gray-lighter);
 	margin-bottom: 0;
 }
 

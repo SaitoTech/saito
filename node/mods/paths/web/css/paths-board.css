@@ -563,6 +563,10 @@
   background-image: url('/paths/img/tiles/mandoffensive_cp.png');
   background-size: cover;
 }
+.central-mandated-offensive-track.complete {
+  background-image: url('/paths/img/tiles/mandoffensive_cp_done.png');
+  background-size: cover;
+}
 .central-mandated-offensive-track-1 {
   top: 136px;
   left: 2088px;
@@ -590,6 +594,10 @@
 }
 .allies-mandated-offensive-track.active {
   background-image: url('/paths/img/tiles/mandoffensive_ap.png');
+  background-size: cover;
+}
+.allies-mandated-offensive-track.complete {
+  background-image: url('/paths/img/tiles/mandoffensive_ap_done.png');
   background-size: cover;
 }
 .allies-mandated-offensive-track-1 {

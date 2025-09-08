@@ -27,7 +27,7 @@ use crate::core::util::crypto::{hash, sign, verify_signature};
 use crate::iterate;
 
 pub const BLOCK_HEADER_SIZE: usize = 389;
-
+pub const MAX_CONFIRMATIONS: BlockId = 6;
 //
 // ConsensusValues is an object that is generated that contains all of the
 // variables that a block SHOULD contain given its position in the chain
@@ -431,13 +431,15 @@ pub struct Block {
     pub safe_to_prune_transactions: bool,
     /// this block has a checkpoint. therefore we cannot reorg past this block.
     pub has_checkpoint: bool,
+    #[serde(skip)]
+    pub confirmations: BlockId,
 }
 
 impl Display for Block {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(
             f,
-            "Block {{ id: {}, timestamp: {}, previous_block_hash: {:?}, creator: {:?}, merkle_root: {:?}, signature: {:?}, graveyard: {}, treasury: {}, total_fees: {}, total_fees_new: {}, total_fees_atr: {}, avg_total_fees: {}, avg_total_fees_new: {}, avg_total_fees_atr: {}, total_payout_routing: {}, total_payout_mining: {}, total_payout_treasury: {}, total_payout_graveyard: {}, total_payout_atr: {}, avg_payout_routing: {}, avg_payout_mining: {}, avg_payout_treasury: {}, avg_payout_graveyard: {}, avg_payout_atr: {}, avg_fee_per_byte: {}, fee_per_byte: {}, avg_nolan_rebroadcast_per_block: {}, burnfee: {}, difficulty: {}, previous_block_unpaid: {}, hash: {:?}, total_work: {}, in_longest_chain: {}, has_golden_ticket: {}, has_issuance_transaction: {}, issuance_transaction_index: {}, has_fee_transaction: {}, has_staking_transaction: {}, golden_ticket_index: {}, fee_transaction_index: {}, total_rebroadcast_slips: {}, total_rebroadcast_nolan: {}, rebroadcast_hash: {}, block_type: {:?}, cv: {}, routed_from_peer: {:?} ",
+            "Block {{ id: {}, timestamp: {}, previous_block_hash: {:?}, creator: {:?}, merkle_root: {:?}, signature: {:?}, graveyard: {}, treasury: {}, total_fees: {}, total_fees_new: {}, total_fees_atr: {}, avg_total_fees: {}, avg_total_fees_new: {}, avg_total_fees_atr: {}, total_payout_routing: {}, total_payout_mining: {}, total_payout_treasury: {}, total_payout_graveyard: {}, total_payout_atr: {}, avg_payout_routing: {}, avg_payout_mining: {}, avg_payout_treasury: {}, avg_payout_graveyard: {}, avg_payout_atr: {}, avg_fee_per_byte: {}, fee_per_byte: {}, avg_nolan_rebroadcast_per_block: {}, burnfee: {}, difficulty: {}, previous_block_unpaid: {}, hash: {:?}, total_work: {}, in_longest_chain: {}, has_golden_ticket: {}, has_issuance_transaction: {}, issuance_transaction_index: {}, has_fee_transaction: {}, has_staking_transaction: {}, golden_ticket_index: {}, fee_transaction_index: {}, total_rebroadcast_slips: {}, total_rebroadcast_nolan: {}, rebroadcast_hash: {}, block_type: {:?}, cv: {}, routed_from_peer: {:?} confirmations: {:?}",
             self.id,
             self.timestamp,
             self.previous_block_hash.to_hex(),
@@ -484,6 +486,7 @@ impl Display for Block {
             self.block_type,
             self.cv,
             self.routed_from_peer,
+            self.confirmations,
         ).unwrap();
         // writeln!(f, " transactions : ").unwrap();
         // for (index, tx) in self.transactions.iter().enumerate() {
@@ -556,6 +559,7 @@ impl Block {
             force_loaded: false,
             safe_to_prune_transactions: false,
             has_checkpoint: false,
+            confirmations: 0,
         }
     }
 

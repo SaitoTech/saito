@@ -70,22 +70,27 @@ export default class Blockchain extends SaitoBlockchain {
   async initialize() {
     this.app.connection.on('add-block-success', async ({ blockId, hash }) => {
       // console.log("before onAddBlockSuccess...");
-      await this.onAddBlockSuccess(blockId, hash);
+      // await this.onAddBlockSuccess(blockId, hash);
       // console.log("after onAddBlockSuccess...");
     });
+    // this.app.connection.on('on-chain-reorg',async ()=>{
+    //   await this.onChainReorganization(block_id, block_hash, lc, pos);
+    // });
   }
 
   public async affixCallbacks(block: Block) {
-    // console.log("IN BLOCK: " + block.id);
-
+    if (this.callbacks.has(block.hash)) {
+      return;
+    }
     let callbacks = [];
     let callbackIndices = [];
 
     let txs: Transaction[] = block.transactions as Transaction[];
-    // console.log("how many txs: " + txs.length);
+
     let validTxs = 0;
+    let names = [];
     for (let z = 0; z < txs.length; z++) {
-      if (txs[z].type === TransactionType.Normal) {
+      if (txs[z].type === TransactionType.Normal || txs[z].type === TransactionType.Bound) {
         let txmsg2 = txs[z].returnMessage();
 
         const str_txmsg2 = JSON.stringify(txmsg2);
@@ -93,20 +98,17 @@ export default class Blockchain extends SaitoBlockchain {
         const prefixLength = 500,
           suffixLength = 500;
         const maxStrLength = prefixLength + ellipsis.length + suffixLength;
-        /*
-		  console.log(
-          "examining tx:",
-          str_txmsg2.length > maxStrLength ?
-              str_txmsg2.slice(0, prefixLength)
-                + ellipsis + str_txmsg2.slice(-suffixLength)
-            : str_txmsg2
-        );
-        */
 
         //console.log("processing tx!");
         await txs[z].decryptMessage(this.app);
         const txmsg = txs[z].returnMessage();
         this.app.modules.affixCallbacks(txs[z], z, txmsg, callbacks, callbackIndices);
+
+        // DELETE THIS AFTER SANKA DEBUGS CROSS NODE FORKS
+        if (txmsg.module) {
+          names.push(txmsg.module);
+        }
+
         console.assert(
           callbacks.length === callbackIndices.length,
           'callback lengths are not matching after block : ' + block.hash
@@ -114,9 +116,14 @@ export default class Blockchain extends SaitoBlockchain {
         validTxs++;
       }
     }
+
+    // DELETE THIS AFTER SANKA DEBUGS CROSS NODE FORKS
+    console.log(
+      `### how many txs: ${txs.length}${validTxs ? `, Normal: ${validTxs} - [${names.join(' ')}]` : ''}`
+    );
+
     this.callbacks.set(block.hash, callbacks);
     this.callbackIndices.set(block.hash, callbackIndices);
-    this.confirmations.set(block.hash, BigInt(-1));
 
     await this.instance.set_safe_to_prune_transaction(block.id);
   }
@@ -153,5 +160,8 @@ export default class Blockchain extends SaitoBlockchain {
   public async getLastBlockHash() {
     let hash = await this.instance.get_last_block_hash();
     return hash;
+  }
+  async onChainReorganization(block_id: bigint, block_hash: string, longest_chain: boolean) {
+    this.app.modules.onChainReorganization(block_id, block_hash, longest_chain);
   }
 }

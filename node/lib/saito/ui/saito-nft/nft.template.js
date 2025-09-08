@@ -4,7 +4,7 @@ module.exports = (app, mod, self) => {
 
   let html = `
 
-      <div class="nft-card" nft-index="${self.idx}">
+      <div class="nft-card" id="nft-card-${self.idx}" nft-index="${self.idx}">
             <input
               type="radio"
               name="hidden-nft-radio"

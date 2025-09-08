@@ -163,6 +163,12 @@ a {
 	cursor: pointer;
 }
 
+.saito-header-logo {
+	background-color: #fff;
+	mask: url('/saito/img/logo.svg') no-repeat center;
+	mask-size: contain;
+}
+
 .txbox {
 	grid-column-start: 1;
 	grid-column-end: span 5;

@@ -29,8 +29,8 @@ class ETH extends ModTemplate {
 		if (type == 'crypto-logo') {
 			if (obj?.ticker == this.ticker) {
 				return {
-					img: `/eth/img/logo.png`,
-				}
+					img: `/eth/img/logo2.png`
+				};
 			}
 		}
 

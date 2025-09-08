@@ -42,7 +42,7 @@
 /* saito header menu */
 
 .saito-header-menu-section {
-  padding: 1.5rem 0;
+  padding: /*0.5rem*/ 1rem;
 }
 
 .saito-header-menu-section .saito-menu > ul {
@@ -50,6 +50,16 @@
   grid-template-columns: 1fr 1fr 1fr;
   grid-gap: 1rem;
 }
+
+.empty + hr {
+  display: none;
+}
+
+.saito-header-menu-section hr {
+  margin: 1.5rem;
+  border-style: dashed;
+}
+
 .saito-header-menu-section .saito-menu > ul > li {
   display: flex;
   text-align: center;
@@ -57,7 +67,7 @@
 .saito-header-menu-section .saito-menu > ul > li > i {
   padding: 0;
   width: unset !important;
-  font-size: 2.75rem !important;
+  font-size: 2.75rem;
   margin-bottom: 0.75rem;
 }
 .saito-header-menu-section .saito-menu > ul > li > i + span {
@@ -73,10 +83,6 @@
   margin: 0;
 }
 
-.appspace-menu .saito-menu {
-  padding: 0 1rem;
-}
-
 .saito-menu > ul > li > i + span,
 .saito-menu > ul > li > i + span + span {
   margin-left: 3.8rem;
@@ -90,4 +96,19 @@
 
 .saito-menu li:hover i::before {
   -webkit-text-stroke-color: var(--saito-primary-text);
+}
+
+@media screen and (max-width: 620px) {
+  .saito-header-menu-section .saito-menu > ul {
+    grid-gap: 0.5rem;
+  }
+
+  .saito-header-menu-section .saito-menu > ul > li {
+    padding: 0.5rem;
+  }
+
+  .saito-header-menu-section .saito-menu > ul > li > i {
+    font-size: 2.25rem;
+    margin-bottom: 0.25rem;
+  }
 }

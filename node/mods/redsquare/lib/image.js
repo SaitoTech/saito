@@ -12,7 +12,7 @@ class RedSquareImage {
 	}
 
 	render() {
-		let element = this.container + ' > .tweet-picture';
+		let element = this.container + ' > .tweet-image ';
 		let template = RedSquareImageTemplate(this.app, this.mod, this.images);
 		let sig = this.sig;
 
@@ -41,7 +41,7 @@ class RedSquareImage {
           expected_height = expected_width / aspect_ratio;
         }
 
-        let qs = ".tweet-" + sig + " > .tweet-body  .tweet-image .tweet-picture .image-" + i;
+        let qs = ".tweet-" + sig + " > .tweet-body  .tweet-image .image-" + i;
         let obj = document.querySelector(qs);
         if (obj) {
           obj.style.maxHeight = Math.floor(expected_height) + "px";
@@ -65,7 +65,7 @@ class RedSquareImage {
 	}
 
 	attachEvents() {
-		let sel = '.tweet-' + this.sig + ' > .tweet-body .tweet-image .tweet-picture img';
+		let sel = '.tweet-' + this.sig + ' > .tweet-body .tweet-image img';
 
 		if (document.querySelector(sel)) {
 			document.querySelectorAll(sel).forEach((image) => {

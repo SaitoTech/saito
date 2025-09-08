@@ -24,10 +24,7 @@ class Website extends ModTemplate {
 	initialize(app) {}
 
 	webServer(app, expressapp, express) {
-		expressapp.use(
-			'/',
-			express.static(`${__dirname}/../../mods/${this.dirname}/web`)
-		);
+		expressapp.use('/', express.static(`${__dirname}/../../mods/${this.dirname}/web`));
 		// TODO: change every reference in the site from /website/* to /* and remove this line
 		expressapp.use(
 			`/${this.dirname}/`,

@@ -1,8 +1,8 @@
 module.exports = (app, mod, tx) => {
-	let txmsg = tx.returnMessage();
+  let txmsg = tx.returnMessage();
 
-	return `
-        <div class="tweet tweet-notification notification-item-${tx.signature}" data-id="${tx.signature}">
+  return `
+        <div class="tweet tweet-notification notification-item-${tx.signature}" data-id="${tx.signature}" data-curated="${mod.curate(tx)}">
           <div class="tweet-notice"></div>
           <div class="tweet-header"></div>
           <div class="tweet-body">

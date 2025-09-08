@@ -51,7 +51,6 @@
 	text-align: center;
 	font-size: 3rem;
 	margin: min(10rem, 16vh) auto min(5rem, 8vh);
-	font-weight: bold;
 }
 
 .arcade-game-initializer-success-button {

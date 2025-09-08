@@ -15,6 +15,112 @@
   }
 
 
+  returnReserveBoxDeploymentOptions(spacekey, unit_idx=0) {
+
+    let viable_sources = [];
+    let fellow_nationalities = [];
+
+    if (this.game.spaces[spacekey].units.length <= unit_idx) { return viable_sources; }
+
+    let unit = this.game.spaces[spacekey].units[unit_idx]; 
+    
+    if (
+      (this.game.spaces["paris"].besieged != 0 || this.game.spaces["paris"].control == "central") &&
+      unit.corps && spacekey == "arbox"
+    ) { return []; }
+    if (
+      (this.game.spaces["vienna"].besieged != 0 || this.game.spaces["vienna"].control == "allies") &&
+      (this.game.spaces["budapest"].besieged != 0 || this.game.spaces["budapest"].control == "allies") &&
+      unit.corps && spacekey == "vrbox"
+    ) { return []; }
+
+    let allied = ["FR", "RU", "BR", "BE", "IT", "US", "ANA", "AUS", "BEF", "CAU", "CND", "CZL", "GR", "MEF", "MN", "NE", "OA", "POL", "PT" , "RO", "SB"];
+    let central = ["GE", "AH", "TU", "BG", "AOI", "BU", "SN" , "YLD"];
+
+    if (unit.ckey == "GE") { fellow_nationalities = ["GE"]; }
+    if (unit.ckey == "AH") { fellow_nationalities = ["AH"]; }
+    if (unit.ckey == "TU") { fellow_nationalities = ["TU"]; }
+    if (unit.ckey == "BG") { fellow_nationalities = ["BG"]; }
+    if (unit.ckey == "AOI") { fellow_nationalities = ["AOI"]; }
+    if (unit.ckey == "BU") { fellow_nationalities = ["BU"]; }
+    if (unit.ckey == "SN") { fellow_nationalities = ["SN"]; }
+    if (unit.ckey == "YLD") { fellow_nationalities = ["YLD"]; }
+
+    if (unit.ckey == "FR") { fellow_nationalities = ["FR"]; }
+    if (unit.ckey == "RU") { fellow_nationalities = ["RU"]; }
+    if (unit.ckey == "BR") { fellow_nationalities = ["BR", "CND", "AUS"]; }
+    if (unit.ckey == "IT") { fellow_nationalities = ["IT"]; }
+    if (unit.ckey == "US") { fellow_nationalities = ["US"]; }
+    if (unit.ckey == "ANA") { fellow_nationalities = ["ANA"]; }
+    if (unit.ckey == "AUS") { fellow_nationalities = ["AUS"]; }
+    if (unit.ckey == "BEF") { fellow_nationalities = ["BEF"]; }
+    if (unit.ckey == "CAU") { fellow_nationalities = ["CAU"]; }
+    if (unit.ckey == "CND") { fellow_nationalities = ["BR", "CND", "AUS"]; }
+    if (unit.ckey == "CZL") { fellow_nationalities = ["CZL"]; }
+    if (unit.ckey == "GR") { fellow_nationalities = ["GR"]; }
+    if (unit.ckey == "MEF") { fellow_nationalities = ["MEF"]; }
+    if (unit.ckey == "MN") { fellow_nationalities = ["MN"]; }
+    if (unit.ckey == "NE") { fellow_nationalities = ["NE"]; }
+    if (unit.ckey == "OA") { fellow_nationalities = ["OA"]; }
+    if (unit.ckey == "POL") { fellow_nationalities = ["POL"]; }
+    if (unit.ckey == "PT") { fellow_nationalities = ["PT"]; }
+    if (unit.ckey == "RD") { fellow_nationalities = ["RD"]; }
+    if (unit.ckey == "SB") { fellow_nationalities = ["SB"]; }
+
+    for (let key in this.game.spaces) {
+      for (let z = 0; z < this.game.spaces[key].units.length; z++) {
+	if (fellow_nationalities.includes(this.game.spaces[key].units[z].ckey)) { 
+	  if (this.game.spaces[key].units.length < 3) {
+	    viable_sources.push(key);
+	  }
+	}
+      }
+    }
+
+    if (unit.ckey == "SB") {
+      if (this.game.spaces["salonika"].control == "allies") { viable_sources.push("salonika"); }
+    }
+    if (unit.ckey == "US" && unit.corps) {
+      for (let key in this.game.spaces) {
+	if (this.game.spaces[key].country == "france") {
+	  if (this.game.spaces[key].control == "allies") {
+	    if (this.game.spaces[key].units.length < 3) {
+	      viable_sources.push(key);
+	    }
+	  }
+	}
+      }
+    }
+
+    if (allied.includes(unit.ckey)) {
+      if (unit.corps) {
+        if (this.game.spaces["london"].control == "allies") { viable_sources.push("london"); }
+        if (this.game.spaces["paris"].control == "allies") { viable_sources.push("paris"); }
+        if (this.game.spaces["belgrade"].control == "allies") { viable_sources.push("belgrade"); }
+        if (this.game.spaces["moscow"].control == "allies") { viable_sources.push("moscow"); }
+        if (this.game.spaces["caucasus"].control == "allies") { viable_sources.push("caucasus"); }
+        if (this.game.spaces["kharkov"].control == "allies") { viable_sources.push("kharkkov"); }
+        if (this.game.spaces["petrograd"].control == "allies") { viable_sources.push("petrograd"); }
+        if (this.game.state.events.italy) { if (this.game.spaces["rome"].control == "allies") { viable_sources.push("rome"); } }
+        if (this.game.state.events.romania) { if (this.game.spaces["bucharest"].control == "allies") { viable_sources.push("bucharest"); } }
+      }
+    }
+
+    if (central.includes(unit.ckey)) {
+      if (unit.corps) {
+        if (this.game.spaces["berlin"].control == "central") { viable_sources.push("berlin"); }
+        if (this.game.spaces["essen"].control == "central") { viable_sources.push("essen"); }
+        if (this.game.spaces["breslau"].control == "central") { viable_sources.push("breslau"); }
+        if (this.game.spaces["vienna"].control == "central") { viable_sources.push("vienna"); }
+        if (this.game.spaces["budapest"].control == "central") { viable_sources.push("budapest"); }
+        if (this.game.spaces["constantinople"].control == "central") { viable_sources.push("constantinople"); }
+      }
+    }
+
+    return viable_sources;
+
+  }
+
 
   importUnit(key, obj) {
 
@@ -45,6 +151,7 @@
     if (!obj.rloss)			{ obj.rloss 	= 3; }
     if (!obj.rmovement)			{ obj.rmovement = 3; }
     if (!obj.ne)			{ obj.ne        = 0; }
+    if (!obj.priority)			{ obj.priority  = 0; }
 
     if (!obj.attacked)			{ obj.attacked  = 0; }
     if (!obj.moved)			{ obj.moved     = 0; }
@@ -82,10 +189,22 @@
 
   moveUnit(sourcekey, sourceidx, destinationkey) {
 
-console.log("Move Unit: " + sourcekey + " / " + sourceidx + " / " + destinationkey);
-console.log("SOURCE: " + JSON.stringify(this.game.spaces[sourcekey].units));
 
     let unit = this.game.spaces[sourcekey].units[sourceidx];
+    let eliminate_rather_than_move = false;
+
+    //
+    // some units eliminated not moved 
+    //
+    if (
+      unit.key == "bef_army" ||
+      unit.key == "bef_corps" 
+    ) {
+      if (destinationkey == "aeubox") {
+	eliminate_rather_than_move = true;
+      }
+    }
+
     this.game.spaces[sourcekey].units[sourceidx].moved = 1;
     this.game.spaces[sourcekey].units.splice(sourceidx, 1);
     if (!this.game.spaces[destinationkey].units) { this.game.spaces[destinationkey].units = []; }
@@ -93,11 +212,27 @@ console.log("SOURCE: " + JSON.stringify(this.game.spaces[sourcekey].units));
     if (destinationkey == "aeubox" || destinationkey == "ceubox") {
       this.updateLog(unit.name + " eliminated.");
     } else {
-      this.updateLog(unit.name + " moves from " + this.returnSpaceNameForLog(sourcekey) + " to " + this.returnSpaceNameForLog(destinationkey));
+      if (eliminate_rather_than_move) {
+        this.updateLog(unit.name + " eliminated.");
+      } else {
+	this.updateLog(unit.name + " moves from " + this.returnSpaceNameForLog(sourcekey) + " to " + this.returnSpaceNameForLog(destinationkey));
+      }
     }
 
+    //
+    // eliminate or move
+    //
     unit.spacekey = destinationkey;
-    this.game.spaces[destinationkey].units.push(unit);
+    let faction = this.returnFactionOfUnit(unit);
+    if (eliminate_rather_than_move) {
+      if (faction) {
+        if (this.game.state.eliminated[faction]) {
+          this.game.state.eliminated[faction].push(unit);
+        }
+      }
+    } else {
+      this.game.spaces[destinationkey].units.push(unit);
+    }
 
     //
     // put under siege as needed
@@ -237,12 +372,13 @@ console.log("SOURCE: " + JSON.stringify(this.game.spaces[sourcekey].units));
     return JSON.parse(JSON.stringify(this.game.units[unitkey]));
   }
 
-  addUnitToSpace(unitkey, spacekey) {
+  addUnitToSpace(unitkey, spacekey, full_strength=true) {
     let unit = this.cloneUnit(unitkey);
     if (!this.isSpaceOnNearEastMap(spacekey)) {
       if (spacekey !== "arbox" && spacekey !== "crbox" && spacekey !== "aeubox" && spacekey !== "ceubox") { unit.ne = 0; }
     }
     unit.spacekey = spacekey;
+    if (full_strength != true) { unit.damaged = 1; }
     this.game.spaces[spacekey].units.push(unit);
   }
 

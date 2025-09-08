@@ -230,6 +230,7 @@ class Videocall extends ModTemplate {
 					{
 						text: 'Saito Talk',
 						icon: this.icon,
+						type: 'quicklaunch',
 						callback: function (app, id) {
 							call_self.renderInto('.saito-overlay');
 						}

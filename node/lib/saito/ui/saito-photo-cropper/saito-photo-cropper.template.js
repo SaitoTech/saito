@@ -1,5 +1,5 @@
 const SaitoPhotoCropperTemplate = (app, mod, image) => {
-	return `
+  return `
 		<div class='cropper-overlay'>
 			<div class="photo-cropper"> 
 				<img id="imageToCrop" src="${image}">

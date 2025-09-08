@@ -1,6 +1,5 @@
 // @ts-nocheck
 import screenfull, { element } from 'screenfull';
-import { getDiffieHellman } from 'crypto';
 import React from 'react';
 import { createRoot } from 'react-dom';
 let marked = require('marked');

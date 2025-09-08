@@ -329,7 +329,7 @@
     return ports;
   }
 
-  returnSpacesConnectedToSpaceForStrategicRedeployment(faction, spacekey) {
+  returnSpacesConnectedToSpaceForStrategicRedeployment(faction, spacekey, unit=null) {
 
     let spaces = [];
     let pending = [spacekey];
@@ -373,6 +373,27 @@
               pending.push(s);
             }
           }
+        }
+      }
+    }
+
+    //
+    // if original spacekey is a port, we can add all other ports in supply (but not pass through them)
+    //
+    // only corps can move by sea in this fashion
+    //
+    if (unit != null) {
+      if (unit.army != 1 && unit.ckey != "RU") {
+        if (this.game.spaces[spacekey].port != 0) {
+          for (let key in this.game.spaces) {
+  	    if (this.game.spaces[key].port == this.game.spaces[spacekey].port) {
+	      if (this.game.spaces[key].control == faction) {
+	        if (spacekey != key && !spaces.includes(key)) {
+	          spaces.push(key);
+	        }
+	      }
+	    }
+	  }
         }
       }
     }
@@ -533,15 +554,8 @@ if (spacekey == "stanislau") {
       //
       for (let n in this.game.spaces[current].neighbours) {
         let s = this.game.spaces[current].neighbours[n];
-if (spacekey == "stanislau") {
-//  console.log("neighbour: " + s + " controlled by " + this.returnControlOfSpace(s));
-}
-
         if (!examined[s]) {
 	  if (this.returnControlOfSpace(s) == controlling_faction) {
-if (spacekey == "stanislau") {
-//console.log("here we are!");
-}
 	    //
 	    // only if not besieged
 	    //
@@ -567,7 +581,19 @@ if (spacekey == "stanislau") {
 		// we can still trace supply through besieged spaces with our units
 		//
 		if (this.returnPowerOfUnit(this.game.spaces[s].units[0]) == controlling_faction) {
-	    	  pending.push(s); 
+
+		  //
+		  // but must have adequate units to besiege
+		  //
+		  let units_num = 0;
+		  for (let z = 0; z < this.game.spaces[s].units.length; z++) {
+		    if (this.game.spaces[s].units[z].army) { units_num += 1000; } else { units_num++; }
+		  }
+
+		  if (units_num >= this.game.spaces[s].fort) {
+	    	    pending.push(s); 
+		  }
+
 		}
 	      }
 	    }
@@ -4266,6 +4292,7 @@ spaces['crbox'] = {
       spaces[key].units = [];
       if (!spaces[key].fort) { spaces[key].fort = 0; }
       spaces[key].trench = 0;
+      spaces[key].trench_roll_modifier = 0;
       if (!spaces[key].control) { spaces[key].control = ""; }
       if (!spaces[key].country) { spaces[key].country = ""; }
       spaces[key].activated_for_movement = 0;

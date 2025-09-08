@@ -1052,6 +1052,13 @@ class Server {
     //
     this.app.modules.webServer(expressApp, express);
 
+    expressApp.get('/', (req, res) => {
+      if (!res.finished) {
+        return res.sendFile(`${this.web_dir}index_default.html`);
+      }
+      return;
+    });
+
     expressApp.get('*', (req, res) => {
       if (!res.finished) {
         return res.sendFile(`${this.web_dir}404.html`);

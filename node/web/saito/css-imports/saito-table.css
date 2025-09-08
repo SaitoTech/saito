@@ -48,3 +48,46 @@ Saito Table
   color: var(--saito-font-color-heavy);
   background: var(--saito-highlight-heavy);
 }
+
+.saitox-table {
+  display: grid;
+  grid-template-rows: repeat(auto-fill, minmax(3rem, 1fr));
+  grid-template-columns: repeat(2, minmax(6rem, max-content)) repeat(3, minmax(max-content, 1fr));
+
+  font-size: 1.5rem;
+  width: 100%;
+  position: relative;
+  border-radius: var(--border-radius-sharp);
+  max-height: 100%;
+  height: fit-content;
+  position: relative;
+  overflow-y: auto;
+  min-height: 2rem;
+}
+
+.saitox-table > div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Right Justify */
+  padding: 0 0.5rem;
+  border-bottom: 1px solid var(--saito-border-color-light);
+}
+
+.saitox-header-item {
+  text-align: center;
+  text-transform: capitalize;
+  color: var(--saito-font-color-heavy);
+  background: var(--saito-highlight-heavy);
+  font-family: var(--saito-font-medium);
+}
+
+.saitox-table-break {
+  grid-column: span 5;
+  width: 100%;
+  justify-content: flex-start !important;
+  font-style: italic;
+}
+
+.crypto-timestamp {
+  font-family: var(--saito-font-monospace);
+}

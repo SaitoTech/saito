@@ -131,6 +131,7 @@ class NavalBattleOverlay {
 		document.querySelectorAll(qs2).forEach((el) => {
 			let unit_type = el.getAttribute('data-unit-type');
 			let unit_owner = el.getAttribute('data-faction');
+			if (unit_owner.indexOf(" / ")) { unit_owner = unit_owner.split(" / ")[0]; }
 			if (unit_type == "corsair") { undestroyed_corsairs++; }
 			if (unit_type == "squadron") { undestroyed_squadrons++; }
 		});
@@ -141,10 +142,11 @@ try {
 			let unit_type = el.getAttribute('data-unit-type');
 			let unit_owner = el.getAttribute('data-faction');
 			let factionspace = unit_owner;
+			if (unit_owner.indexOf(" / ")) { unit_owner = unit_owner.split(" / ")[0]; }
 			let can_i_kill_this_guy = false;
 
 			if (
-				his_self.returnControllingPower(factionspace) === his_self.returnControllingPower(faction) &&
+				(his_self.returnControllingPower(factionspace) === his_self.returnControllingPower(faction) || his_self.returnControllingPower(unit_owner) == his_self.returnControllingPower(faction)) &&
 				his_self.game.player === his_self.returnPlayerCommandingFaction(his_self.returnControllingPower(faction))
 			) {
 				can_i_kill_this_guy = true;
@@ -161,7 +163,7 @@ try {
 				el.classList.add('hits-assignable-hover-effect');
 
 				hits_assignable++;
-				if (unit_type === 'squadron') {
+				if (unit_type != "corsair") {
 					hits_assignable++;
 				}
 
@@ -169,11 +171,16 @@ try {
 
 					let hits_left = hits_to_assign - hits_assigned;
 
+console.log("hits left: " + hits_left);
+console.log("hits to assign: " + hits_to_assign);
+console.log("hits assigned: " + hits_assigned);
+
 					//
 					// loser needs to assign the last hit
 					//
 					if (undestroyed_corsairs == 0 && undestroyed_squadrons > 0 && did_i_lose_and_need_to_assign_last_hit == true) {
 						if (hits_left == 1) {
+console.log("loser must assign last hit: hits_left increased to 2");
 							hits_left = 2;
 						}
 					}
@@ -203,10 +210,11 @@ try {
 
 					let unit_type = el.getAttribute('data-unit-type');
 					let faction = el.getAttribute('data-faction');
+					if (faction.indexOf(" / ") > 0) { faction = faction.split(" / ")[0]; }
 					let spacekey = res.spacekey;
 
 					hits_assigned++;
-					if (unit_type === 'squadron') {
+					if (unit_type !== "corsair") {
 						hits_assigned++;
 					}
 					hits_left = hits_to_assign - hits_assigned;
@@ -244,9 +252,9 @@ try {
 					//
 					if (
 						hits_left == 0 ||
-						hits_assigned == hits_to_assign ||
+						hits_assigned >= hits_to_assign ||
 						hits_assigned >= hits_assignable ||
-						(undestroyed_corsairs == 0 && hits_left == 1 && hits_assignable % 2 == 0)
+						(undestroyed_corsairs == 0 && hits_left <= 1)
 					) {
 						document
 							.querySelectorAll('.hits-assignable')
@@ -259,6 +267,7 @@ try {
 						this.mod.endTurn();
 						return;
 					}
+
 				};
 			}
 } catch (err) {

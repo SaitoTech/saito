@@ -25,13 +25,18 @@ impl Context {
         genesis_period: BlockId,
         social_stake: Currency,
         social_stake_period: BlockId,
+        prune_after_blocks: BlockId,
+        block_confirmation_limit: BlockId,
     ) -> Context {
+        // TODO :  most of the params can be read from config param. need to refactor without making new() async
         Context {
             blockchain_lock: Arc::new(RwLock::new(Blockchain::new(
                 wallet_lock.clone(),
                 genesis_period,
                 social_stake,
                 social_stake_period,
+                prune_after_blocks,
+                block_confirmation_limit,
             ))),
             mempool_lock: Arc::new(RwLock::new(Mempool::new(wallet_lock.clone()))),
             wallet_lock,

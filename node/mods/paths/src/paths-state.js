@@ -29,9 +29,11 @@
       if (this.game.spaces[key].activated_for_combat || this.game.spaces[key].activated_for_movement) {
         redisplay = true;
       }
+      if (this.game.spaces[key].trench_roll_modifier < 0) { this.game.spaces[key].trench_roll_modifier++; redisplay = true; }
       this.game.spaces[key].activated_for_combat = 0;
       this.game.spaces[key].activated_for_movement = 0;
       for (let z = 0; z < this.game.spaces[key].units.length; z++) {
+	this.game.spaces[key].units[z].redeployed = 0;
 	this.game.spaces[key].units[z].moved = 0;
 	this.game.spaces[key].units[z].attacked = 0;
       }
@@ -42,6 +44,14 @@
 
   // the turn is the "round" (rounds have turns)
   onNewTurn() {
+
+    //
+    // the limits go away, so mark th eevents
+    //
+    if (this.game.state.central_limited_war_cards_added == true) {
+      this.game.state.events.race_to_the_sea = 1;
+      this.game.state.events.oberost = 1;
+    }
 
     this.game.state.has_british_corps_deployed_into_ne = 0;
     this.game.state.has_central_corps_deployed_into_ne = 0;
@@ -121,6 +131,30 @@
     this.game.state.events.mine_attack = 0;
     this.game.state.events.influenza = 0;
 
+  }
+
+  evaluateMandatoryOffensives() {
+
+    this.game.state.central_fulfills_mo = false;
+    this.game.state.allies_fulfills_mo = false;
+
+    if (this.game.state.mandated_offensives.central == "") { central_fulfills = true; }
+    if (this.game.state.mandated_offensives.allies == "") { allies_fulfills = true; }
+      
+    for (let z = 0; z < this.game.state.mo["central"].length; z++) {
+      if (this.game.state.mo["central"][z] == this.game.state.mandated_offensives.central) {
+        this.game.state.central_fulfills_mo = true;
+      }
+    } 
+    
+    for (let z = 0; z < this.game.state.mo["allies"].length; z++) {
+      if (this.game.state.mo["allies"][z] == this.game.state.mandated_offensives.allies) {
+        this.game.state.allies_fulfills_mo = true;
+      }
+    }
+    
+    this.displayMandatedOffensiveTracks();
+      
   }
 
   removeOverstackedUnits() {
@@ -220,14 +254,6 @@
     vp = central_controlled_vp_spaces - expected_central_vp_spaces + 10;
 
     if (this.game.state.events.rape_of_belgium) { results.events.push("Rape of Belgium (-1)"); vp--; }
-/**** unsure what this is
-    if (this.game.state.events.belgium) { 
-      if (this.game.state.turn >= 5) { vp--; }
-      if (this.game.state.turn >= 9) { vp--; }
-      if (this.game.state.turn >= 13) { vp--; }
-      if (this.game.state.turn >= 17) { vp--; }
-    }
-****/
     if (this.game.state.events.reichstag_truce) { vp++; results.events.push("Reichstag Truce (+1)"); }
     if (this.game.state.events.lusitania) { vp--; results.events.push("Lusitania (-1)"); }
     if (this.game.state.events.war_in_africa_vp) { vp++; results.events.push("War in Africa (+1)"); }
@@ -235,6 +261,7 @@
     if (this.game.state.events.fall_of_the_tsar_romania_bonus) { vp++; results.events.push("Fall of the Tsar (Romania Bonus) (+1)");  }
     if (this.game.state.events.fourteen_points) { vp--; results.events.push("Fourteen Points (-1)"); }
     if (this.game.state.events.convoy) { vp--; results.events.push("Convoy (-1)");  }
+    if (this.game.state.events.italian_nonentry > 0) { vp += this.game.state.events.italian_nonentry; }
     if (this.game.state.events.zimmerman_telegram) { vp--; results.events.push("Zimmerman Telegram (-1)"); }
     if (this.game.state.events.blockade > 1) { vp -= (this.game.state.events.blockade-1); results.events.push("Blockade (-"+(this.game.state.events.blockade-1)+")"); }
 

@@ -20,9 +20,7 @@
   line-height: 2rem;
   max-height: 19rem;
   max-width: 100%;
-
   margin-bottom: 1rem;
-
   transition: all 0.2s linear;
   overflow: hidden;
   white-space: pre-wrap;
@@ -32,6 +30,11 @@
 /* prevent scroll bars */
 .tweet-text p {
   overflow: visible;
+}
+
+/* prevent line-break */
+.tweet-text p a {
+  display: inline;
 }
 
 .tweet-text .saito-mention.saito-address.treated {
@@ -203,12 +206,6 @@
   border-radius: var(--border-radius-round);
 }
 
-@media screen and (max-width: 1200px) {
-  .tweet-picture {
-    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-  }
-}
-
 /*
   overrides
 */
@@ -224,7 +221,7 @@
 }
 
 .tweet-retweet .tweet-header .saito-user .saito-address {
-  color: var(--twitter-gray-light);
+  color: var(--saito-font-color);
 }
 
 .tweet-header .saito-user .saito-userline {
@@ -289,7 +286,9 @@ RS notifications
 
 */
 
-.tweet-notification {
+.tweet-notification,
+.tweet-container.active-curation .tweet-notification[data-curated='1'],
+.tweet-container.active-curation .tweet-notification[data-curated='0'] {
   display: flex;
   flex-direction: column;
   position: relative;

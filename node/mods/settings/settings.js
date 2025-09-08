@@ -11,18 +11,14 @@ class Settings extends ModTemplate {
 		this.name = 'Settings';
 		this.appname = 'Settings';
 		this.slug = 'settings';
-		this.description =
-			'Convenient Email plugin for managing Saito account settings';
+		this.description = 'Convenient Email plugin for managing Saito account settings';
 		this.class = 'utility';
 		this.utilities = 'Core Utilities';
 		this.link = '/email?module=settings';
 		this.icon = 'fas fa-cog';
 		this.description = 'User settings module.';
 		this.categories = 'Admin Users';
-		this.styles = [
-			'/settings/style.css',
-			'/saito/lib/jsonTree/jsonTree.css'
-		];
+		this.styles = ['/settings/style.css', '/saito/lib/jsonTree/jsonTree.css'];
 		this.main = null;
 
 		return this;
@@ -38,14 +34,9 @@ class Settings extends ModTemplate {
 		this.app.connection.on('registry-update-identifier', (publickey) => {
 			if (publickey === this.publicKey) {
 				if (document.getElementById('register-identifier-btn')) {
-					let username = app.keychain.returnIdentifierByPublicKey(
-						this.publicKey
-					);
-					document.getElementById(
-						'register-identifier-btn'
-					).innerHTML = username;
-					document.getElementById('register-identifier-btn').onclick =
-						null;
+					let username = app.keychain.returnIdentifierByPublicKey(this.publicKey);
+					document.getElementById('register-identifier-btn').innerHTML = username;
+					document.getElementById('register-identifier-btn').onclick = null;
 				}
 			}
 		});
@@ -62,7 +53,7 @@ class Settings extends ModTemplate {
 			}, 50);
 		});
 
-		if (!app.options.settings){
+		if (!app.options.settings) {
 			app.options.settings = { debug: false };
 		}
 	}
@@ -80,9 +71,7 @@ class Settings extends ModTemplate {
 		if (qs == '.theme-selector') {
 			if (!this.renderIntos[qs]) {
 				this.renderIntos[qs] = [];
-				this.renderIntos[qs].push(
-					new SettingsThemeSwitcherOverlay(this.app, this, '')
-				);
+				this.renderIntos[qs].push(new SettingsThemeSwitcherOverlay(this.app, this, ''));
 			}
 			this.renderIntos[qs].forEach((comp) => {
 				comp.render();
@@ -97,35 +86,39 @@ class Settings extends ModTemplate {
 		let settings_self = this;
 
 		if (type === 'saito-header') {
-			if (this.app.modules.returnActiveModule()){
+			if (this.app.modules.returnActiveModule()) {
 				this.attachStyleSheets();
 				return [
 					{
 						text: 'Theme',
-						icon: "saito-theme-icon fa-solid fa-moon",
+						icon: 'saito-theme-icon fa-solid fa-moon',
 						rank: 120,
+						type: 'utilities',
 						callback: function (app, id) {
 							settings_self.renderInto('.theme-selector');
 						}
 					},
+					/*{
+						text: 'Sync Chain',
+						icon: 'fa-solid fa-link',
+						rank: 130,
+						type: 'utilities',
+						callback: async function (app, id) {
+							siteMessage('Reimporting your account...');
+							await app.wallet.onUpgrade('upgrade');
+							reloadWindow(150);
+						}
+					}*/
 					{
 						text: 'Nuke',
 						icon: 'fa-solid fa-radiation',
 						rank: 130,
+						type: 'utilities',
 						callback: async function (app, id) {
-							let confirmation = await sconfirm(
-								'This will reset/nuke your account, do you wish to proceed?'
-							);
-
-							if (confirmation) {
+							let c = await sconfirm('This will wipe out your wallet and delete your data....');
+							if (c) {
 								await app.wallet.onUpgrade('nuke');
-								if (app.modules.returnActiveModule().respondTo("arcade-games")){
-									app.browser.unlockNavigation();
-									navigateWindow("/arcade", 300);
-								}else{
-									reloadWindow(300);	
-								}
-								
+								reloadWindow(150);
 							}
 						}
 					}
@@ -135,15 +128,14 @@ class Settings extends ModTemplate {
 		return null;
 	}
 
-  hasSettings() {
-    return true;
-  }
+	hasSettings() {
+		return true;
+	}
 
-  loadSettings(container) {
-    let as = new AppSettings(this.app, this, container);
-    as.render();
-  }
-
+	loadSettings(container) {
+		let as = new AppSettings(this.app, this, container);
+		as.render();
+	}
 }
 
 module.exports = Settings;

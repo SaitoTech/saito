@@ -75,8 +75,8 @@ class Fileshare extends ModTemplate {
 				}
 			}
 
-			for (let fileId in this.incoming){
-				if (this.incoming[fileId].sender === peerId && this.incoming[fileId].sending){
+			for (let fileId in this.incoming) {
+				if (this.incoming[fileId].sender === peerId && this.incoming[fileId].sending) {
 					this.incoming[fileId].overlay.onConnectionSuccess();
 				}
 			}
@@ -209,6 +209,7 @@ class Fileshare extends ModTemplate {
 				x.push({
 					text: 'File Transfer',
 					icon: `fa-solid fa-laptop-file`,
+					type: 'quicklaunch',
 					callback: function (app, id) {
 						fss.sendFile();
 					}
@@ -291,7 +292,6 @@ class Fileshare extends ModTemplate {
 			let txmsg = tx.returnMessage();
 
 			if (tx.isTo(this.publicKey)) {
-
 				if (txmsg.request == 'query file permission') {
 					const file = {
 						name: txmsg.data.name,
@@ -759,10 +759,10 @@ class Fileshare extends ModTemplate {
 		let base64obj = this.app.crypto.stringToBase64(JSON.stringify(data_obj));
 
 		let data = {
-			name: "File",
-			path: "/fileshare",
+			name: 'File',
+			path: '/fileshare',
 			file: base64obj
-		}
+		};
 
 		let file_invitation_link = new InvitationLink(this.app, this, data);
 
@@ -770,7 +770,6 @@ class Fileshare extends ModTemplate {
 		file_invitation_link.share_to_redsquare = false;
 
 		file_invitation_link.render(true);
-
 
 		/*let url1 = window.location.origin + '/fileshare/';
 

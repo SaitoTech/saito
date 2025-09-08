@@ -1290,6 +1290,25 @@ if (this.game.state.scenario != "is_testing") {
   //
   restoreMilitaryLeaders() {
 
+    //
+    // naval leaders are put onto their own faction sheets -- Doria and the Turks
+    //
+    for (let i = 0; i < this.game.state.players_info.length; i++) {
+      for (let ii = this.game.state.players_info[i].captured.length-1; ii >= 0; ii--) {
+        let u = this.game.state.players_info[i].captured[ii];
+	if (!u.army_leader) {
+	  if (u.navy_leader) {
+	    let s = "genoa";
+	    let leader = u;
+	    let faction = leader.owner;
+	    this.restoreMilitaryLeader(leader, s, faction);
+	    this.game.state.players_info[i].captured.splice(ii, 1);
+	  }
+	}
+      }
+    }
+
+
     for (let i = 0; i < this.game.state.military_leaders_removed_until_next_round.length; i++) {
       let obj = this.game.state.military_leaders_removed_until_next_round[i];
       if (obj.leader) {
@@ -1330,7 +1349,9 @@ if (this.game.state.scenario != "is_testing") {
 	  if (leader.navy_leader == true) {
             if (this.isSpaceControlled("algiers", "ottoman")) { s = "algiers"; } else {
               if (this.isSpaceControlled("oran", "ottoman")) { s = "oran"; } else {
-                if (this.isSpaceControlled("oran", "ottoman")) { s = "tripoli"; };
+                if (this.isSpaceControlled("tripoli", "ottoman")) { s = "tripoli"; } else {
+                  if (this.isSpaceControlled("istanbul", "ottoman")) { s = "istanbul"; };
+                }
               }
             }
           }
@@ -1338,7 +1359,6 @@ if (this.game.state.scenario != "is_testing") {
 
 	if (leader) {
 	  if (faction) {
-
 	    if (s == "") {
 	      let capitals = this.returnCapitals(faction);
               for (let z = 0; z < capitals.length; z++) {

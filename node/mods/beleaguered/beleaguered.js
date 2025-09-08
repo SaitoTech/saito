@@ -24,23 +24,10 @@ class Beleaguered extends OnePlayerGameTemplate {
 
 		this.app = app;
 		this.status = 'Beta';
-		this.stacks = [
-			'l1',
-			'm1',
-			'r1',
-			'l2',
-			'm2',
-			'r2',
-			'l3',
-			'm3',
-			'r3',
-			'l4',
-			'm4',
-			'r4'
-		];
+		this.stacks = ['l1', 'm1', 'r1', 'l2', 'm2', 'r2', 'l3', 'm3', 'r3', 'l4', 'm4', 'r4'];
 
-		this.social.creator = "Pawel Pawlak";
-		this.social.twitter = "@PawelPawlak14";
+		this.social.creator = 'Pawel Pawlak';
+		this.social.twitter = '@PawelPawlak14';
 	}
 
 	returnGameRulesHTML() {
@@ -128,11 +115,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 		this.menu.render();
 
 		//Check screen dimensions
-		let dynamic_card_size = Math.min(
-			120,
-			window.innerWidth / 5,
-			window.innerHeight * 0.14
-		);
+		let dynamic_card_size = Math.min(120, window.innerWidth / 5, window.innerHeight * 0.14);
 
 		this.cardStacks = {};
 		for (let slot of this.stacks) {
@@ -141,6 +124,14 @@ class Beleaguered extends OnePlayerGameTemplate {
 		}
 
 		this.setUpStacks();
+
+		document.addEventListener('keydown', (e) => {
+			if (e.ctrlKey && e.key === 'z') {
+				if (this.moves?.length) {
+					this.undoMove();
+				}
+			}
+		});
 	}
 
 	setUpStacks() {
@@ -210,20 +201,17 @@ class Beleaguered extends OnePlayerGameTemplate {
 				////////////////////////
 				// Move Card!
 				///////////////////////
-				game_self.cardStacks[slot].applyFilter(
-					canPlaceCard,
-					async (target_card_stack) => {
-						game_self.prependMove(
-							`move\t${game_self.selected}\t${activated_card_stack.name}\t${target_card_stack.name}`
-						);
+				game_self.cardStacks[slot].applyFilter(canPlaceCard, async (target_card_stack) => {
+					game_self.prependMove(
+						`move\t${game_self.selected}\t${activated_card_stack.name}\t${target_card_stack.name}`
+					);
 
-						await game_self.moveCard(
-							game_self.selected,
-							activated_card_stack.name,
-							target_card_stack.name
-						);
-					}
-				);
+					await game_self.moveCard(
+						game_self.selected,
+						activated_card_stack.name,
+						target_card_stack.name
+					);
+				});
 			}
 
 			//Clicking on the same stack will unselect the card
@@ -249,10 +237,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 			let number = parseInt(card.slice(1));
 
 			if (stack.name[0] == 'm') {
-				if (
-					moving_card_suit === suit &&
-					number + 1 === moving_card_number
-				) {
+				if (moving_card_suit === suit && number + 1 === moving_card_number) {
 					return true;
 				}
 			} else {
@@ -292,10 +277,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 			let success = 0;
 			$('.gameboard').removeClass('selected_state');
 			for (let slot of this.stacks) {
-				success += this.cardStacks[slot].applyFilter(
-					canMoveCard,
-					selectCard
-				);
+				success += this.cardStacks[slot].applyFilter(canMoveCard, selectCard);
 			}
 
 			if (!success) {
@@ -327,9 +309,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 		this.removeEvents();
 
 		this.moveGameElement(
-			this.copyGameElement(
-				this.cardStacks[source_stack].getTopCardElement().children[0]
-			),
+			this.copyGameElement(this.cardStacks[source_stack].getTopCardElement().children[0]),
 			this.cardStacks[target_stack].getTopCardElement(),
 			{
 				resize: 1
@@ -350,10 +330,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 			this.cardStacks[i].render();
 		}
 
-		if (
-			!('board' in this.game) ||
-			Object.keys(this.game.board).length != this.stacks.length
-		) {
+		if (!('board' in this.game) || Object.keys(this.game.board).length != this.stacks.length) {
 			this.game.board = {};
 			for (let slot of this.stacks) {
 				this.game.board[slot] = [];
@@ -372,17 +349,11 @@ class Beleaguered extends OnePlayerGameTemplate {
 
 			for (let j = 0; j < 6; j++) {
 				for (let i = 1; i <= 4; i++) {
-					let card =
-						this.game.deck[0].cards[
-							this.game.deck[0].hand[indexCt++]
-						];
+					let card = this.game.deck[0].cards[this.game.deck[0].hand[indexCt++]];
 					this.game.board[`l${i}`].push(card);
 					await this.timeout(75);
 					this.cardStacks[`l${i}`].push(card);
-					card =
-						this.game.deck[0].cards[
-							this.game.deck[0].hand[indexCt++]
-						];
+					card = this.game.deck[0].cards[this.game.deck[0].hand[indexCt++]];
 					this.game.board[`r${i}`].push(card);
 					await this.timeout(75);
 					this.cardStacks[`r${i}`].push(card);
@@ -435,9 +406,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 				this.game.state.session.wins++;
 				this.game.queue.push('round');
 				this.game.queue.push(
-					`ROUNDOVER\t${JSON.stringify([
-						this.publicKey
-					])}\t${JSON.stringify([])}`
+					`ROUNDOVER\t${JSON.stringify([this.publicKey])}\t${JSON.stringify([])}`
 				);
 			}
 
@@ -446,9 +415,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 				this.game.state.session.losses++;
 				this.game.queue.push('round');
 				this.game.queue.push(
-					`ROUNDOVER\t${JSON.stringify([])}\t${JSON.stringify([
-						this.publicKey
-					])}`
+					`ROUNDOVER\t${JSON.stringify([])}\t${JSON.stringify([this.publicKey])}`
 				);
 			}
 
@@ -575,9 +542,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 		}
 
 		if (source_stack) {
-			this.prependMove(
-				`move\t${target_card}\t${source_stack}\t${target_stack}`
-			);
+			this.prependMove(`move\t${target_card}\t${source_stack}\t${target_stack}`);
 			//this.animationSpeed = 500;
 
 			//Update Internal Game Logic
@@ -588,10 +553,7 @@ class Beleaguered extends OnePlayerGameTemplate {
 			this.animating_autoplay = true;
 
 			this.moveGameElement(
-				this.copyGameElement(
-					this.cardStacks[source_stack].getTopCardElement()
-						.children[0]
-				),
+				this.copyGameElement(this.cardStacks[source_stack].getTopCardElement().children[0]),
 				`#cardstack_${target_stack}`,
 				{
 					resize: 1,

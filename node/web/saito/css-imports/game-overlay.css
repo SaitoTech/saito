@@ -1,3 +1,7 @@
+.saito-overlay , .saito-overlay > div:last-child, .saito-overlay > form {
+  border: none !important;
+}
+
 .game-overlay-menu {
   padding: 10px;
   background-color: whitesmoke;

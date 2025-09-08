@@ -166,10 +166,12 @@ class ReplacementsOverlay {
         				paths_self.game.spaces[eu[z].key].units[eu[z].idx].damaged = 1;
         				if (paths_self.returnFactionOfPlayer() == "central") {
 						paths_self.moveUnit(eu[z].key, eu[z].idx, "crbox");
+						paths_self.prependMove(`NOTIFY\t${paths_self.returnFactionName(faction)} uneliminates ${unit.name}`);
 						paths_self.prependMove(`repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`);
         					paths_self.prependMove(`move\t${faction}\t${eu[z].key}\t${eu[z].idx}\tcrbox\t${paths_self.game.player}`);
         				} else {
 						paths_self.moveUnit(eu[z].key, eu[z].idx, "arbox");
+						paths_self.prependMove(`NOTIFY\t${paths_self.returnFactionName(faction)} uneliminates ${unit.name}`);
 						paths_self.prependMove(`repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`);
         					paths_self.prependMove(`move\t${faction}\t${eu[z].key}\t${eu[z].idx}\tarbox\t${paths_self.game.player}`);
         				}
@@ -180,12 +182,14 @@ class ReplacementsOverlay {
 				}
 				if (id == "repair_reserves") {
           				paths_self.game.spaces[eu[z].key].units[eu[z].idx].damaged = 0;
+					paths_self.prependMove(`NOTIFY\t${paths_self.returnFactionName(faction)} repairs ${unit.name} (reserves)`);
 				        paths_self.prependMove(`repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`);
           				paths_self.displaySpace(eu[z].key);
 					paths_self.playerSpendReplacementPoints(paths_self.returnFactionOfPlayer());
 				}
 				if (id == "repair_board") {
           				paths_self.game.spaces[eu[z].key].units[eu[z].idx].damaged = 0;
+					paths_self.prependMove(`NOTIFY\t${paths_self.returnFactionName(faction)} repairs ${unit.name} (${paths_self.returnSpaceNameForLog(eu[z].key)})`);
 				        paths_self.prependMove(`repair\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${paths_self.game.player}`);
           				paths_self.displaySpace(eu[z].key);
 					paths_self.playerSpendReplacementPoints(paths_self.returnFactionOfPlayer());
@@ -198,16 +202,67 @@ class ReplacementsOverlay {
 					paths_self.game.state.does_movement_start_inside_near_east = 0;
 
 					paths_self.playerSelectSpaceWithFilter(
+
               					`Destination for ${unit.name}` ,
+
               					(spacekey) => { 
+
 							if (paths_self.game.spaces[spacekey].control == faction) {
+
+								if (spacekey == "belgrade" && unit.ckey == "SB") {
+									if (paths_self.game.spaces["nis"].control == "central") { return 0; }
+								}
+
 								if (paths_self.game.spaces[spacekey].besieged == 1) { return 0; }
+
 								if (paths_self.game.spaces[spacekey].units.length > 0) {
-									let u = paths_self.game.spaces[spacekey].units[0];
-									if (faction == paths_self.returnPowerOfUnit(u)) {
+
+									for (let z = 0; z < paths_self.game.spaces[spacekey].units.length; z++) {
+									  let u = paths_self.game.spaces[spacekey].units[z];
+
+									  if (faction != paths_self.returnPowerOfUnit(u)) {
 										return 0;
+									  }
+
+									  if (u.ckey == unit.ckey) { return 1; }
+
+
 									}
 								}
+
+								//
+								// Serbs at Salonika
+								//
+								if (spacekey == "salonika") {
+									if (unit.ckey == "SB" && (paths_self.game.state.events.salonika || paths_self.game.state.events.greek_neutral_entry)) {
+										return 1;
+									}
+								}
+
+								//
+								// Belgian
+								//
+								if (unit.ckey == "BE") {
+									if (spacekey == "brussels") { return 1; }
+									if (spacekey == "ostend") { return 1; }
+									if (spacekey == "antwerp") { 
+										if (paths_self.checkSupplyStatus(unit.ckey.toLowerCase(), spacekey) == 1) {
+											return 1;
+										}
+									}
+									if (spacekey == "calais") {
+										if (
+											paths_self.game.spaces["brussels"].control == "central" &&
+											paths_self.game.spaces["ostend"].control == "central" &&
+											(paths_self.game.spaces["antwerp"].control == "central" || 
+											!paths_self.checkSupplyStatus(unit.ckey.toLowerCase(), "antwerp"))
+										) {
+											return 1;
+										}
+									}
+								}
+
+
 								if (paths_self.checkSupplyStatus(unit.ckey.toLowerCase(), spacekey) == 1) {
 									if (paths_self.game.spaces[spacekey].units.length < 3) {
 
@@ -246,6 +301,7 @@ class ReplacementsOverlay {
 
 					              	paths_self.updateStatus("moving...");
               						paths_self.moveUnit(eu[z].key, eu[z].idx, spacekey);
+							paths_self.prependMove(`NOTIFY\t${paths_self.returnFactionName(faction)} deploys ${unit.name} to ${paths_self.returnSpaceNameForLog(eu[z].key)}`);
               						paths_self.prependMove(`move\t${faction}\t${eu[z].key}\t${eu[z].idx}\t${spacekey}\t${paths_self.game.player}`);
               						paths_self.displaySpace(eu[z].key);
               						paths_self.displaySpace(spacekey);

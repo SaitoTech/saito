@@ -14,7 +14,6 @@
 /* Twitter copy overrides */
 #tweet-overlay {
   border-radius: var(--border-radius-round);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.2);
   padding: 24px;
   animation: fadeIn 0.2s ease-in-out;
   position: fixed;

@@ -21,7 +21,7 @@ class Arcade extends ModTemplate {
 		//
 		// DEBUGGING MODE
 		//
-		this.debug = false;
+		this.debug = true;
 
 		this.name = 'Arcade';
 		this.slug = 'arcade';
@@ -574,6 +574,7 @@ class Arcade extends ModTemplate {
 					text: 'Arcade',
 					icon: 'fa-solid fa-building-columns',
 					rank: 15,
+					type: 'navigation',
 					callback: function (app, id) {
 						navigateWindow('/arcade');
 					}
@@ -584,20 +585,7 @@ class Arcade extends ModTemplate {
 				text: 'Games',
 				icon: this.icon || 'fas fa-gamepad',
 				rank: 10,
-				callback: function (app, id) {
-					app.connection.emit('arcade-launch-game-selector', {});
-				}
-			});
-			return x;
-		}
-		if (type === 'saito-floating-menu') {
-			let x = [];
-
-			x.push({
-				text: 'Games',
-				icon: this.icon || 'fas fa-gamepad',
-				is_active: this.browser_active,
-				rank: 25,
+				type: 'quicklaunch',
 				callback: function (app, id) {
 					app.connection.emit('arcade-launch-game-selector', {});
 				}
@@ -628,6 +616,7 @@ class Arcade extends ModTemplate {
 	////////////////////////////////////////////////////
 
 	async onConfirmation(blk, tx, conf) {
+    // console.log('arcade.onConfirmation', blk.id);
 		let txmsg = tx.returnMessage();
 		let arcade_self = this.app.modules.returnModule('Arcade');
 

@@ -355,6 +355,8 @@ mod tests {
             1000,
             0,
             60,
+            6,
+            6,
         )));
         let mut blockchain = blockchain_lock.write().await;
 

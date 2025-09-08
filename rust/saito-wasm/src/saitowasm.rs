@@ -73,7 +73,7 @@ pub struct SaitoWasm {
 
 lazy_static! {
     pub static ref SAITO: Mutex<Option<SaitoWasm>> =
-        Mutex::new(Some(new(1, true, 100_000, 0, 60, false)));
+        Mutex::new(Some(new(1, true, 100_000, 0, 60, false, 6, 6)));
     static ref CONFIGS: Arc<RwLock<dyn Configuration + Send + Sync>> =
         Arc::new(RwLock::new(WasmConfiguration::new()));
     static ref PRIVATE_KEY: Mutex<String> = Mutex::new("".to_string());
@@ -86,6 +86,8 @@ pub fn new(
     social_stake: Currency,
     social_stake_period: BlockId,
     delete_old_blocks: bool,
+    prune_after_blocks: BlockId,
+    block_confirmation_limit: BlockId,
 ) -> SaitoWasm {
     info!("creating new saito wasm instance");
     console_error_panic_hook::set_once();
@@ -111,6 +113,8 @@ pub fn new(
             genesis_period,
             social_stake,
             social_stake_period,
+            prune_after_blocks,
+            block_confirmation_limit,
         ))),
         mempool_lock: Arc::new(RwLock::new(Mempool::new(wallet.clone()))),
         wallet_lock: wallet.clone(),
@@ -377,6 +381,8 @@ pub async fn initialize(
     let mut genesis_period = 100_000;
     let mut social_stake = 0;
     let mut social_stake_period = 60;
+    let mut prune_after_blocks = 6;
+    let mut block_confirmation_limit = 6;
     {
         info!("setting configs...");
         let mut configs = CONFIGS.write().await;
@@ -401,6 +407,11 @@ pub async fn initialize(
                 .get_consensus_config()
                 .unwrap()
                 .default_social_stake_period;
+            prune_after_blocks = configs.get_consensus_config().unwrap().prune_after_blocks;
+            block_confirmation_limit = configs
+                .get_consensus_config()
+                .unwrap()
+                .block_confirmation_limit;
         }
     }
 
@@ -415,6 +426,8 @@ pub async fn initialize(
         social_stake,
         social_stake_period,
         delete_old_blocks,
+        prune_after_blocks,
+        block_confirmation_limit,
     ));
 
     let private_key: SaitoPrivateKey = string_to_hex(private_key).or(Err(JsValue::from(

@@ -136,7 +136,7 @@
         rp : { 'A' : 1 , 'BR' : 2 , 'FR' : 2 , 'IT' : 1 , 'RU' : 3 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.allies_reinforcements_br > 0) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.allies_reinforcements_br > 0) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tallies_reinforcements_br\t"+paths_self.game.state.round);
@@ -174,7 +174,7 @@
         rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 1 , 'RU' : 2 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.allies_reinforcements_ru > 0) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.allies_reinforcements_ru > 0) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tallies_reinforcements_ru\t"+paths_self.game.state.round);
@@ -263,7 +263,7 @@ console.log(JSON.stringify(attacker_units));
         rp : { 'BR' : 1 , 'FR' : 1 , 'RU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 0; } ,
-        canEvent : function(paths_self, faction) { return 1; } ,
+        canEvent : function(paths_self, faction) { if (faction == "attacker") { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 	  paths_self.game.state.events.withdrawal = 1;
 	  paths_self.game.state.combat.withdrawal = 1; 
@@ -321,7 +321,7 @@ console.log(JSON.stringify(attacker_units));
         rp : { 'BR' : 1 , 'FR' : 1 , 'RU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.allies_reinforcements_ru > 0) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.allies_reinforcements_ru > 0) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tallies_reinforcements_ru\t"+paths_self.game.state.round);
@@ -358,7 +358,7 @@ console.log(JSON.stringify(attacker_units));
         rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 1 , 'RU' : 2 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.allies_reinforcements_fr > 0) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.allies_reinforcements_fr > 0) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tallies_reinforcements_fr\t"+paths_self.game.state.round);
@@ -378,7 +378,7 @@ console.log(JSON.stringify(attacker_units));
         rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 1 , 'RU' : 2 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.allies_reinforcements_ru > 0) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.allies_reinforcements_ru > 0) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tallies_reinforcements_ru\t"+paths_self.game.state.round);
@@ -398,7 +398,7 @@ console.log(JSON.stringify(attacker_units));
         rp : { 'BR' : 1 , 'FR' : 1 , 'IT' : 1 , 'RU' : 2 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.events.entrench == 1) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.events.entrench == 1) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 
 	  paths_self.game.state.events.entrench = 1;
@@ -482,7 +482,7 @@ deck['ap14'] = {
         rp : { 'A' : 1 , 'BR' : 2 , 'FR' : 2 , 'IT' : 1 , 'RU' : 3 } ,       
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.allies_reinforcements_br > 0) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.allies_reinforcements_br > 0) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tallies_reinforcements_br\t"+paths_self.game.state.round);
@@ -738,7 +738,7 @@ deck['ap14'] = {
         rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.events.entrench == 1) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.events.entrench == 1) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) { 
 
 	  paths_self.game.state.events.entrench = 1;
@@ -804,7 +804,7 @@ deck['ap14'] = {
         rp : { 'AH' : 1 , 'GE' : 2 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.central_reinforcements_ge > 0) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.central_reinforcements_ge > 0) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tcentral_reinforcements_ge\t"+paths_self.game.state.round);
@@ -895,7 +895,7 @@ deck['ap14'] = {
         rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.central_reinforcements_ge > 0) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.central_reinforcements_ge > 0) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tcentral_reinforcements_ge\t"+paths_self.game.state.round);
@@ -937,7 +937,7 @@ deck['ap14'] = {
         rp : { 'AH' : 2 , 'BU' : 1 , 'GE' : 3 , 'TU' : 1 } ,        
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
-        canEvent : function(paths_self, faction) { if (paths_self.game.state.central_reinforcements_ah > 0) { return 0; } return 1; } ,
+        canEvent : function(paths_self, faction) { if (paths_self.game.state.turn == 1) { return 0; } if (paths_self.game.state.central_reinforcements_ah > 0) { return 0; } return 1; } ,
         onEvent : function(paths_self, faction) {
 	  if (paths_self.game.player == paths_self.returnPlayerOfFaction(faction)) {
 	    paths_self.addMove("SETVAR\tstate\tcentral_reinforcements_ah\t"+paths_self.game.state.round);
@@ -1049,10 +1049,10 @@ deck['ap17'] = {
 
 	  paths_self.addUnitToSpace("it_corps", "turin");
 
-	  paths_self.addUnitToSpace("it_army01", "verona");
-	  paths_self.addUnitToSpace("it_army04", "asiago");
-	  paths_self.addUnitToSpace("it_army03", "maggiore");
-	  paths_self.addUnitToSpace("it_army02", "udine");
+	  paths_self.addUnitToSpace("it_army01", "verona", false);
+	  paths_self.addUnitToSpace("it_army04", "asiago", false);
+	  paths_self.addUnitToSpace("it_army03", "maggiore", false);
+	  paths_self.addUnitToSpace("it_army02", "udine", false);
 	  paths_self.addUnitToSpace("it_corps", "rome");
 	  paths_self.addUnitToSpace("it_corps", "taranto");
 
@@ -1324,7 +1324,7 @@ deck['ap28'] = {
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { return 1; } ,
-        onEvent : function(paths_self, faction) { paths_self.game.state.events.landships = 1; return 1; } ,
+        onEvent : function(paths_self, faction) { paths_self.game.queue.push("player_play_ops\tallies\tap28\t4"); paths_self.game.state.events.landships = 1; return 1; } ,
       }
 
 deck['ap29'] = { 
@@ -1758,7 +1758,7 @@ deck['ap34'] = {
           for (let i = 0; i < attacker_units.length; i++) {
             if (attacker_units[i].ckey == "GE") { return 1; }
           }   
-          return 1;
+          return 0;
 	} ,
         onEvent : function(paths_self, faction) {
           let attacker_units = paths_self.returnAttackerUnits();
@@ -1958,6 +1958,7 @@ console.log("execution available!");
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { if (paths_self.game.state.russian_capitulation_track == 3) { return 1; } return 0; } ,
         onEvent : function(paths_self, faction) {
+ 	  paths_self.game.queue.push("player_play_ops\tcentral\tcp28\t4");
 	  paths_self.game.state.events.tsar_takes_command = 1;
 	  return 1;
 	} ,
@@ -2587,7 +2588,8 @@ deck['ap54'] = {
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { if (paths_self.game.state.us_commitment_track == 2) { return 1; } return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; 
+        onEvent : function(paths_self, faction) { 
+ 	  paths_self.game.queue.push("player_play_ops\tallies\tap54\t4");
 	  paths_self.game.state.events.zimmerman_telegram = 1;
 	  paths_self.game.state.events.usa = 1;
 	  paths_self.game.state.us_commitment_track = 3;
@@ -2608,6 +2610,7 @@ deck['ap55'] = {
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { if (paths_self.game.state.events.zimmerman_telegram == 1) { return 1; } return 0; } ,
         onEvent : function(paths_self, faction) {
+ 	  paths_self.game.queue.push("player_play_ops\tallies\tap55\t5");
 	  paths_self.game.state.events.over_there = 1;
 	  paths_self.game.state.us_commitment_track = 4;
 	  paths_self.displayUSCommitmentTrack();
@@ -3265,6 +3268,7 @@ deck['cp52'] = {
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { if (paths_self.game.state.events.fall_of_the_tsar == 1 && paths_self.game.state.events.bolshevik_revolution != 1) { return 1; } return 0; } ,
         onEvent : function(paths_self, faction) { 
+ 	  paths_self.game.queue.push("player_play_ops\tcentral\tcp52\t5");
 	  paths_self.game.state.events.fall_of_the_tsar = 1;
 	  if (!paths_self.game.state.events.romania) {
 	    paths_self.game.state.events.fall_of_the_tsar_romania_bonus = 1;
@@ -3283,7 +3287,10 @@ deck['cp53'] = {
         type : "normal" ,
         removeFromDeckAfterPlay : function(paths_self, faction) { return 1; } ,
         canEvent : function(paths_self, faction) { return 0; } ,
-        onEvent : function(paths_self, faction) { return 1; } ,
+        onEvent : function(paths_self, faction) { 
+ 	  paths_self.game.queue.push("player_play_ops\tcentral\tcp53\t5");
+	  return 1;
+	} ,
       }
 
 deck['cp54'] = { 

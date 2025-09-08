@@ -54,6 +54,11 @@ pub const STAT_BIN_COUNT: usize = 3;
 pub const PEER_RECONNECT_WAIT_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
 pub const WS_KEEP_ALIVE_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
 
+pub const RECOLLECT_NOTHING: u8 = 0;
+pub const RECOLLECT_TXS_WITH_FEES: u8 = 1;
+pub const RECOLLECT_EVERY_TX: u8 = 2;
+pub type TxRecollectionMode = u8;
+
 /// NOTE : Lock ordering is decided from how frequent the usage is for that resource. Please make sure to follow the order given below to avoid deadlocks
 /// network controller
 /// sockets

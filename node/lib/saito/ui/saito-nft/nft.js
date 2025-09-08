@@ -1,4 +1,5 @@
 const NftTemplate = require('./nft.template');
+const SendOverlay = require('./send-overlay');
 const SaitoOverlay = require('./../saito-overlay/saito-overlay');
 
 class Nft {
@@ -13,6 +14,7 @@ class Nft {
     //
     this.tx = tx;
     this.id = null;
+    this.tx_sig = null;
     this.slip1 = null;
     this.slip2 = null;
     this.slip3 = null;
@@ -24,12 +26,16 @@ class Nft {
     this.deposit = BigInt(0); // nolans
     this.image = '';
     this.text = '';
+    this.items = []; // multiple nfts of same id saved here
 
     //
     // UI helpers
     //
     this.idx = null;
     this.has_local_tx = false;
+    this.nft_list = [];
+    this.render_type = null;
+    this.send_overlay = new SendOverlay(this.app, this.mod);
   }
 
   async render() {
@@ -39,8 +45,7 @@ class Nft {
     // If there are multiple items for same id, render them all.
     if (Array.isArray(this.items) && this.items.length > 1) {
       for (const item of this.items) {
-        // Create a view-model whose prototype is the instance,
-        // so nft.template.js can access all class methods.
+        // VM inherits methods from the instance so template can call class methods
         const vm = Object.create(this);
         Object.assign(vm, {
           id: item.id,
@@ -65,18 +70,61 @@ class Nft {
       );
     }
 
-    this.attachEvents();
+    // ensure DOM is in place
+    setTimeout(async () => await this.attachEvents(), 0);
+  }
+
+  async attachEvents() {
+    // Multiple cards
+    if (Array.isArray(this.items) && this.items.length > 1) {
+      for (const item of this.items) {
+        const el = document.querySelector(`#nft-card-${item.idx}`);
+        if (!el) continue;
+
+        // Avoid stacking listeners when re-rendering
+        el.onclick = null;
+        el.onclick = () => {
+          const nft = Object.create(this);
+          Object.assign(nft, {
+            id: item.id,
+            slip1: item.slip1,
+            slip2: item.slip2,
+            slip3: item.slip3,
+            amount: item.amount,
+            deposit: item.deposit,
+            idx: item.idx
+          });
+
+          console.log('send overlay inside nft.js:', this.send_overlay);
+
+          this.send_overlay.render(nft);
+          // vm.overlay.show(NftDetailsTemplate(vm.app, vm.mod, vm));
+          // setTimeout(() => vm.setupNftDetailsEvents(), 0);
+        };
+      }
+      return;
+    }
+
+    // Single card (backward compatible)
+    const el = document.querySelector(`#nft-card-${this.idx}`);
+    if (el) {
+      el.onclick = () => {
+        this.send_overlay.render(this);
+        //this.overlay.show(NftDetailsTemplate(this.app, this.mod, this));
+      };
+    }
   }
 
   async createFromId(id) {
     this.id = id;
     if (!this.id) return;
 
-    // Optional (informational): how many wallet entries share this.id
+    // Optional: count how many wallet entries share this.id
     const walletNfts = this.app?.options?.wallet?.nfts || [];
     const sameIdCount = walletNfts.filter((n) => n?.id === this.id).length;
+    // (sameIdCount available if you want to use it)
 
-    //  Try local archive
+    // Try local archive
     await this.app.storage.loadTransactions(
       { field4: this.id },
       (txs) => {
@@ -103,8 +151,7 @@ class Nft {
       }
     }
 
-    // At this point we may or may not have a tx; either way we can populate slips
-    // for ALL entries in wallet with this.id (and/or the tx_sig if we have it).
+    // Populate slips for all entries with this.id (and tx_sig if we have it).
     this.getSlips(this.id, this.tx_sig ?? null);
   }
 
@@ -128,21 +175,23 @@ class Nft {
     // Collect slips for all matches (by id and/or tx_sig)
     const hasWallet =
       Array.isArray(this.app?.options?.wallet?.nfts) && this.app.options.wallet.nfts.length > 0;
-    if (hasWallet) this.getSlips(this.id, this.tx_sig);
+    if (hasWallet) {
+      this.getSlips(this.id, this.tx_sig);
+    }
   }
 
   getSlips(id = null, tx_sig = null) {
     const nfts = this.app?.options?.wallet?.nfts || [];
     if (!Array.isArray(nfts) || nfts.length === 0) return;
 
-    // Filter all candidates by id OR tx_sig
+    // Filter candidates by id OR tx_sig
     const candidates = nfts.filter(
       (n) => (id != null && n?.id === id) || (tx_sig != null && n?.tx_sig === tx_sig)
     );
 
     if (candidates.length === 0) return;
 
-    // Build items for each candidate; dedupe by slip1.utxo_key to be safe
+    // Build items for each candidate; dedupe by any available utxo_key
     const seen = new Set();
     this.items = [];
 
@@ -159,14 +208,28 @@ class Nft {
       if (!key || seen.has(key)) continue;
       seen.add(key);
 
+      let amt = BigInt(0);
+      try {
+        if (s1?.amount != null && s1.amount !== '') amt = BigInt(s1.amount);
+      } catch (e) {
+        /* ignore parse errors; default 0 */
+      }
+
+      let dep = BigInt(0);
+      try {
+        if (s2?.amount != null && s2.amount !== '') dep = BigInt(s2.amount);
+      } catch (e) {
+        /* ignore parse errors; default 0 */
+      }
+
       const item = {
         id: c?.id ?? null,
         tx_sig: c?.tx_sig ?? null,
         slip1: s1,
         slip2: s2,
         slip3: s3,
-        amount: s1?.amount != null && s1.amount !== '' ? BigInt(s1.amount) : BigInt(0),
-        deposit: s2?.amount != null && s2.amount !== '' ? BigInt(s2.amount) : BigInt(0),
+        amount: amt,
+        deposit: dep,
         idx: s1?.utxo_key ?? null // prefer slip1.utxo_key as the card key
       };
 
@@ -175,7 +238,7 @@ class Nft {
 
     if (this.items.length === 0) return;
 
-    // Preserve backward compatibility by populating fields from the first item
+    // Populate top-level fields from the first item for backward-compat
     const p = this.items[0];
     this.id = p.id;
     this.slip1 = p.slip1;
@@ -190,10 +253,22 @@ class Nft {
     return this.app.wallet.convertNolanToSaito(deposit);
   }
 
-  attachEvents() {
-    let nft_self = this;
-    if (document.querySelectorAll('.nft-card')) {
+  // Returns the NFT item object instead of an index
+  getNftItem(slip1_utxokey) {
+    if (!slip1_utxokey) return null;
+    return this.nft_list.find((nft) => nft?.slip1?.utxo_key === slip1_utxokey) || null;
+  }
+
+  // If you still want the index variant, keep this:
+  getNftIndex(slip1_utxokey) {
+    return this.nft_list.findIndex((nft) => nft?.slip1?.utxo_key === slip1_utxokey);
+  }
+
+  returnId() {
+    if (this.tx.to.length < 3) {
+      return '';
     }
+    return this.tx.to[0].publicKey + this.tx.to[2].publicKey;
   }
 }
 

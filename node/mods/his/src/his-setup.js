@@ -452,10 +452,8 @@ console.log("\n\n\n\n");
 
 	  // PROTESTANT
 	  this.addRegular("protestant", "brandenburg");	
-// TESTING HACK
-//	  this.addRegular("protestant", "wittenberg", 2);
+	  this.addRegular("protestant", "wittenberg", 2);
 	  this.addRegular("protestant", "mainz");	
-	  this.addMercenary("protestant", "mainz", 2);	
 	  this.addRegular("protestant", "augsburg", 2);	
 
           this.addReformer("protestant", "wittenberg", "luther-reformer");
@@ -589,14 +587,16 @@ console.log("\n\n\n\n");
 	  this.setEnemies("hapsburg", "ottoman");
 	  this.setEnemies("france", "papacy");
 	  this.setAllies("france", "genoa");
+	  this.setAllies("hapsburg", "genoa");
 	  this.setAllies("hapsburg", "hungary");
+	  this.setAllies("hapsburg", "papacy");
 	  this.setActivatedPower("hapsburg", "hungary");
 
 	  // OTTOMAN
-          this.addArmyLeader("ottoman", "istanbul", "suleiman");
-          this.addArmyLeader("ottoman", "istanbul", "ibrahim-pasha");
-          this.addRegular("ottoman", "istanbul", 5);
-          this.addCavalry("ottoman", "istanbul", 1);
+          this.addArmyLeader("ottoman", "pressburg", "suleiman");
+          this.addArmyLeader("ottoman", "pressburg", "ibrahim-pasha");
+          this.addRegular("ottoman", "pressburg", 12);
+          this.addCavalry("ottoman", "pressburg", 2);
           this.addNavalSquadron("ottoman", "istanbul", 1);
           this.addRegular("ottoman", "edirne");
           this.addRegular("ottoman", "salonika", 1);
@@ -633,16 +633,13 @@ console.log("\n\n\n\n");
           this.addNavalSquadron("hapsburg", "naples", 1);
           this.addRegular("hapsburg", "besancon", 1);
           this.addRegular("hapsburg", "brussels", 1);
+          this.addRegular("hapsburg", "vienna", 10);
+          this.addMercenary("hapsburg", "vienna", 4);
+	  this.addArmyLeader("hapsburg", "vienna", "charles-v");
 	  this.addArmyLeader("hapsburg", "vienna", "ferdinand");
-          //this.addRegular("hapsburg", "vienna", 4);
-          this.addMercenary("hapsburg", "vienna", 2);
 
-	  this.addRegular("hapsburg", "antwerp", 6);
-	  this.addArmyLeader("hapsburg", "antwerp", "charles-v");
-
-	  this.addArmyLeader("hapsburg", "palma", "duke-of-alva");
-	  this.addArmyLeader("hapsburg", "palma", "charles-v");
-          this.addMercenary("hapsburg", "palma", 4);
+	  this.addRegular("papacy", "linz");
+	  this.addRegular("hungary", "linz");
 
           this.addRegular("hapsburg", "antwerp", 3);
           this.controlSpace("hapsburg", "prague");

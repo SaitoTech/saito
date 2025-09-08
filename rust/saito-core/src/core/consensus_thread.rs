@@ -512,6 +512,15 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     .unwrap()
                     .default_social_stake_period
             );
+            {
+                let consensus = configs.get_consensus_config().unwrap();
+                assert!(
+                    consensus.prune_after_blocks >= consensus.block_confirmation_limit,
+                    "block prune limit : {:?} should be larger than confirmation limit : {:?} to support chain reorganizations",
+                    consensus.prune_after_blocks,
+                    consensus.block_confirmation_limit
+                );
+            }
             let mut blockchain = self.blockchain_lock.write().await;
             let blockchain_configs = configs.get_blockchain_configs();
             info!(

@@ -9,6 +9,10 @@
   z-index: 100;
 }
 
+.saito-overlay-backdrop ~ .saito-overlay-backdrop {
+  background-color: var(--background-color-shim-light);
+}
+
 .saito-overlay {
   position: fixed;
   display: inline-block;
@@ -22,9 +26,11 @@
   background-color: var(--saito-background-color); /* Dont know why had to be added manually*/
 }
 
-.saito-overlay > div:last-child {
+.saito-overlay > div:last-child,
+.saito-overlay > form {
   box-shadow: var(--shadow-standard);
   border-radius: var(--border-radius-overlay);
+  border: var(--border-thickness) solid var(--border-color-general-dividers);
 }
 
 .center-overlay {
@@ -101,15 +107,17 @@
 }
 
 .saito-overlay-form {
-  width: 60rem;
-  min-width: 300px;
-  max-width: 90vw;
+  width: min(60rem, 95vw);
   padding: 2rem;
   background-color: var(--saito-background-color);
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  border-radius: var(--border-radius-overlay);
+}
+
+.saito-overlay-form .token-dropdown {
+  color: var(--saito-font-color);
+  background: var(--saito-background-color);
 }
 
 .saito-overlay-form-header {
@@ -121,7 +129,6 @@
 }
 
 .saito-overlay-form-header-title {
-  position: absolute;
   height: 6rem;
   color: inherit;
   width: calc(100% - 3.2rem);
@@ -195,6 +202,11 @@
   border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
 }
 
+.saito-overlay-form textarea {
+  font-size: 2.2rem;
+  height: 13rem;
+}
+
 .module-settings-overlay {
   min-width: min(800px, 95vw);
   min-height: min(400px, 90vh);
@@ -235,5 +247,11 @@
 
   .module-settings-overlay {
     padding: 1rem;
+  }
+
+  .bottom-mobile-overlay.center-overlay {
+    top: unset;
+    bottom: 0;
+    transform: translateX(-50%);
   }
 }

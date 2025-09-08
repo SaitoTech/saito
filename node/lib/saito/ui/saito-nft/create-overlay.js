@@ -83,7 +83,7 @@ class CreateNft {
         // send nft overlay
         nft_self.nft.image = '';
         nft_self.overlay.close();
-        nft_self.app.connection.emit('saito-send-nft-render-request', {});
+        nft_self.app.connection.emit('saito-list-nft-render-request', {});
       };
     }
 

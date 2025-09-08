@@ -495,6 +495,8 @@ async fn run_node(
     let genesis_period;
     let social_stake;
     let social_stake_period;
+    let prune_after_blocks;
+    let block_confirmation_limit;
     {
         let configs = configs_lock.read().await;
 
@@ -513,6 +515,11 @@ async fn run_node(
             .get_consensus_config()
             .unwrap()
             .default_social_stake_period;
+        prune_after_blocks = configs.get_consensus_config().unwrap().prune_after_blocks;
+        block_confirmation_limit = configs
+            .get_consensus_config()
+            .unwrap()
+            .block_confirmation_limit;
         assert_ne!(fetch_batch_size, 0);
     }
 
@@ -550,6 +557,8 @@ async fn run_node(
         genesis_period,
         social_stake,
         social_stake_period,
+        prune_after_blocks,
+        block_confirmation_limit,
     );
 
     let peers_lock = Arc::new(RwLock::new(PeerCollection::default()));
@@ -694,27 +703,20 @@ pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
         let (sender, _receiver) = tokio::sync::mpsc::channel::<IoEvent>(100);
         Wallet::load(&mut wallet, &(RustIOHandler::new(sender, 1))).await;
     }
+    let consensus = configs_clone
+        .read()
+        .await
+        .get_consensus_config()
+        .unwrap()
+        .clone();
     let context = Context::new(
         configs_clone.clone(),
         wallet,
-        configs_clone
-            .read()
-            .await
-            .get_consensus_config()
-            .unwrap()
-            .genesis_period,
-        configs_clone
-            .read()
-            .await
-            .get_consensus_config()
-            .unwrap()
-            .default_social_stake,
-        configs_clone
-            .read()
-            .await
-            .get_consensus_config()
-            .unwrap()
-            .default_social_stake_period,
+        consensus.genesis_period,
+        consensus.default_social_stake,
+        consensus.default_social_stake_period,
+        consensus.prune_after_blocks,
+        consensus.block_confirmation_limit,
     );
 
     let (sender_to_network_controller, _receiver_in_network_controller) =

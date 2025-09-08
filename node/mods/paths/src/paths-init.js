@@ -191,36 +191,35 @@ class PathsOfGlory extends GameTemplate {
         game_mod.vp_overlay.render();
       }
     });
-/***
-    this.menu.addSubMenuOption("game-game", {
-      text : "Replacements",
-      id : "game-replacements",
-      class : "game-replacements",
-      callback : function(app, game_mod) {
-	game_mod.playerSpendReplacementPoints(game_mod.returnFactionOfPlayer());
-      }
-    });
-***/
-
-/****
     this.menu.addMenuOption("game-info", "Info");
     this.menu.addSubMenuOption("game-info", {
-      text : "Control",
-      id : "game-control",
-      class : "game-control",
-      callback: function(app,game_mod){
-	for (let key in game_mod.game.spaces) {
-	  if (game_mod.game.spaces[key].control == "central") {
-	    this.addHighlightToSpacekey(key, "central");
-	  }
-	  if (game_mod.game.spaces[key].control == "allies") {
-	    this.addHighlightToSpacekey(key, "allies");
-	  }
-	  document.querySelector("body").onclick = () => { document.querySelector("body").onclick = () => {}; this.removeHighlights(); }
-	}
+      text : "Movement",
+      id : "game-info-movement",
+      class : "game-info-movement",
+      callback : function(app, game_mod) {
+        game_mod.menu.hideSubMenus();
+	alert("movement help");
       }
     });
-****/
+    this.menu.addSubMenuOption("game-info", {
+      text : "Combat",
+      id : "game-info-combat",
+      class : "game-info-combat",
+      callback : function(app, game_mod) {
+        game_mod.menu.hideSubMenus();
+	alert("combat help");
+      }
+    });
+    this.menu.addSubMenuOption("game-info", {
+      text : "Terrain",
+      id : "game-info-terrain",
+      class : "game-info-terrain",
+      callback : function(app, game_mod) {
+        game_mod.menu.hideSubMenus();
+	alert("terrain help");
+      }
+    });
+
 
     this.menu.addChatMenu();
     this.menu.render();

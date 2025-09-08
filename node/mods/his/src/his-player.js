@@ -1848,10 +1848,10 @@ if (relief_siege == 1) {
         let tf = available_units[i].faction;
         let tu = space.units[available_units[i].faction][available_units[i].unit_idx];
 	if (is_this_unit_moving) {
-          html += `<li class="option" style="font-weight:bold" id="${i}">* ${tu.name} - ${his_self.returnFactionName(tf)} *</li>`;
+          html += `<li class="option" style="font-weight:bold" id="${tf}-${i}">* ${tu.name} - ${his_self.returnFactionName(tf)} *</li>`;
 	  moved_units.push({ faction : available_units[i].faction , idx : available_units[i].unit_idx , type : available_units[i].type });
 	} else {
-          html += `<li class="option" style="" id="${i}">${tu.name} - ${his_self.returnFactionName(tf)}</li>`;
+          html += `<li class="option" style="" id="${tf}-${i}">${tu.name} - ${his_self.returnFactionName(tf)}</li>`;
 	  unmoved_units.push({ faction : available_units[i].faction , idx : available_units[i].unit_idx , type : available_units[i].type });
         }
       }
@@ -2589,10 +2589,16 @@ console.log("MENU: " + JSON.stringify(menu));
       	      let html = `<ul>`;
               html += `<li class="option" id="commit">commit Loyola (2 OPs)</li>`;
               if (ops > 2) { html += `<li class="option" id="donot">do not commit (3 OPs)</li>`; }
+              html += `<li class="option" id="back">return to menu</li>`;
 	      html += '</ul>';
 
 	      his_self.updateStatusWithOptions(msg, html);
       	      his_self.attachCardboxEvents(async (moar_user_choice) => {      
+
+	        if (moar_user_choice === "back") {
+		  his_self.playerPlayOps(card, faction, ops, limit);
+		  return;
+		}
 
 	        if (moar_user_choice === "commit") {
                   ops -= 2;
@@ -2761,10 +2767,16 @@ console.log("MENU: " + JSON.stringify(menu));
       	    let html = `<ul>`;
             html += `<li class="option" id="commit">commit Loyola (2 OPs)</li>`;
             if (ops > 2) { html += `<li class="option" id="donot">do not commit (3 OPs)</li>`; }
+            html += `<li class="option" id="back">return to menu</li>`;
 	    html += '</ul>';
 
 	    his_self.updateStatusWithOptions(msg, html);
       	    his_self.attachCardboxEvents(async (moar_user_choice) => {      
+
+	      if (moar_user_choice === "back") {
+	        his_self.playerPlayOps(card, faction, ops, limit);
+		return;
+	      }
 
 	      if (moar_user_choice === "commit") {
                 ops -= 2;
@@ -6486,7 +6498,7 @@ does_units_to_move_have_unit = true; }
   }
   playerBuyMercenary(his_self, player, faction, ops_to_spend, ops_remaining) {
 
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
+    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
 
     //
     // ui for building multiple units
@@ -6784,7 +6796,8 @@ does_units_to_move_have_unit = true; }
         if (space.besieged != 0) { return 0; }
 	if (his_self.game.state.events.foreign_recruits == faction && space.political == faction) { return 1; }
         if (space.owner === faction) { return 1; }
-        if (space.home === faction) { return 1; }
+        if (space.home === faction && (space.political != "" && space.political != faction)) { return 0; }
+        if (space.home === faction ) { return 1; }
         if (his_self.isSpaceControlled(space, faction) && his_self.game.state.events.foreign_recruits == faction) { return 1; }
 	return 0;
       },
@@ -7514,7 +7527,7 @@ does_units_to_move_have_unit = true; }
     //state.events.ottoman_piracy_attempts = 0;
     //state.events.ottoman_piracy_seazones = [];
 
-    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
+    his_self.bindBackButtonFunction(() => { his_self.displayBoard(); his_self.moves = []; his_self.addMove("discard\t"+his_self.returnControllingPower(faction)+"\t"+his_self.game.player_last_card); his_self.playerPlayOps("", his_self.returnControllingPower(faction), ops_remaining+ops_to_spend, ""); });
 
     let msg = "Select Sea for Piracy: ";
     let html = '<ul>';

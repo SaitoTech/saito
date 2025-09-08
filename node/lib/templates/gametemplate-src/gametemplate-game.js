@@ -169,9 +169,7 @@ class GameGame {
       return;
     }
 
-    console.log('#################');
-    console.log('### SAVE GAME ### triggered');
-    console.log('#################');
+    console.debug('--- SAVE GAME --- ');
 
     if (!this.app.options) {
       this.app.options = {};

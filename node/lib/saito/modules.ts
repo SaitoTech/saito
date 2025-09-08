@@ -65,8 +65,6 @@ class Mods {
   }
 
   affixCallbacks(tx, txindex, message, callbackArray, callbackIndexArray) {
-    //console.log('IN MODULE.TS AFFIX CALLBACKS: ');
-
     let core_accepts = 0;
 
     //
@@ -79,7 +77,6 @@ class Mods {
     core_accepts = this.moderateCore(tx);
 
     for (let i = 0; i < this.mods.length; i++) {
-      // if (!!message && message.module != undefined) {
       if (this.mods[i].shouldAffixCallbackToModule(message?.module || '', tx) == 1) {
         //
         // module-level moderation can OVERRIDE the core moderation which
@@ -663,9 +660,10 @@ class Mods {
     return;
   }
 
-  onChainReorganization(block_id, block_hash, lc, pos) {
+  onChainReorganization(block_id, block_hash, lc) {
+    // console.log('### Reorganization ### ' + block_id + ' - ' + block_hash);
     for (let imp = 0; imp < this.mods.length; imp++) {
-      this.mods[imp].onChainReorganization(block_id, block_hash, lc, pos);
+      this.mods[imp].onChainReorganization(block_id, block_hash, lc);
     }
     return null;
   }

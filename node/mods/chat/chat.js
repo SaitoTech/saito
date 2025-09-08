@@ -460,7 +460,6 @@ class Chat extends ModTemplate {
 
       case 'saito-game-menu':
       case 'saito-chat-popup':
-      case 'saito-floating-menu':
         // Need to make sure this is created so we can listen for requests to open chat popups
         if (this.chat_manager == null) {
           this.chat_manager = new ChatManager(this.app, this);
@@ -520,6 +519,7 @@ class Chat extends ModTemplate {
             {
               text: 'Chat',
               icon: 'fas fa-comments',
+              type: 'quicklaunch',
               callback: function (app, id) {
                 // console.log('Render Chat manager overlay');
                 chat_self.chat_manager_overlay.render();
@@ -547,6 +547,7 @@ class Chat extends ModTemplate {
             {
               text: 'Chat',
               icon: 'fas fa-comments',
+              type: 'navigation',
               callback: function (app, id) {
                 navigateWindow('/chat');
               }
@@ -773,7 +774,7 @@ class Chat extends ModTemplate {
       }
 
       if (txmsg.request == 'chat message') {
-        await this.receiveChatTransaction(tx, 1);
+        await this.receiveChatTransaction(tx, blk);
       }
 
       // We put chat message above because we actually have some logic in
@@ -1515,7 +1516,7 @@ class Chat extends ModTemplate {
    * Everyone receives the chat message (via the Relay)
    * So we make sure here it is actually for us (otherwise will be encrypted gobbledygook)
    */
-  async receiveChatTransaction(tx, onchain = 0) {
+  async receiveChatTransaction(tx, blk = false) {
     if (this.inTransitImageMsgSig == tx.signature) {
       this.inTransitImageMsgSig = null;
     }
@@ -1536,7 +1537,7 @@ class Chat extends ModTemplate {
     }
 
     if (this.debug) {
-      console.log('Receive Chat Transaction: ', onchain);
+      console.log('Receive Chat Transaction: ', blk);
       // console.log(JSON.parse(JSON.stringify(tx)));
       //console.log(JSON.parse(JSON.stringify(txmsg)));
     }
@@ -1551,13 +1552,18 @@ class Chat extends ModTemplate {
     // and only trigger if you were the sender
     // (should less the duplication effect)
     //
-    if (onchain) {
+    if (blk) {
       if (this.app.BROWSER) {
         if (tx.isFrom(this.publicKey)) {
           console.log('Save My Sent Chat TX : ', txmsg.group_id);
-          await this.app.storage.saveTransaction(tx, {
-            field3: txmsg.group_id
-          });
+          await this.app.storage.saveTransaction(
+            tx,
+            {
+              field3: txmsg.group_id
+            },
+            null,
+            blk
+          );
         }
       } /*else if (tx.isTo(this.publicKey)) {
         console.log('Save Public Chat TX : ', txmsg.group_id);

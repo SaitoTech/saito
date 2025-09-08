@@ -176,6 +176,7 @@ class RedSquare extends ModTemplate {
           text: 'RedSquare',
           icon: 'fa-solid fa-square',
           rank: 20,
+          type: 'navigation',
           callback: function (app, id) {
             navigateWindow('/redsquare');
           },
@@ -192,6 +193,7 @@ class RedSquare extends ModTemplate {
             text: 'RedSquare Home',
             icon: 'fa-solid fa-house',
             rank: 21,
+            type: 'appspace',
             callback: function (app, id) {
               document.querySelector('.redsquare-menu-home').click();
             }
@@ -200,6 +202,7 @@ class RedSquare extends ModTemplate {
             text: 'Notifications',
             icon: 'fas fa-bell',
             rank: 23,
+            type: 'appspace',
             callback: function (app, id) {
               document.querySelector('.redsquare-menu-notifications').click();
             },
@@ -214,6 +217,7 @@ class RedSquare extends ModTemplate {
             text: 'Profile',
             icon: 'fas fa-user',
             rank: 26,
+            type: 'appspace',
             callback: function (app, id) {
               document.querySelector('.redsquare-menu-profile').click();
             }
@@ -561,7 +565,7 @@ class RedSquare extends ModTemplate {
     // Only set interval on new peers, (so we aren't setting multiple on network instability)
     if (this.browser_active) {
       this.loadTweets(
-        'later',
+        'earlier',
         (tx_count) => {
           this.app.connection.emit('redsquare-home-postcache-render-request', tx_count);
         },
@@ -1810,7 +1814,7 @@ class RedSquare extends ModTemplate {
     let tweet_ts = tweet_tx.updated_at || tweet_tx.optional.updated_at || tweet_tx.timestamp;
 
     if (ts > tweet_ts) {
-      console.debug(`RS.updateTweetStat: increment ${stat}`);
+      //console.debug(`RS.updateTweetStat: increment ${stat}`);
       tweet_tx.optional[stat]++;
       await this.app.storage.updateTransaction(tweet_tx, obj, 'localhost');
     } else {
@@ -1874,7 +1878,7 @@ class RedSquare extends ModTemplate {
     //
     // I'm not sure we really want to save these like this... but it may work out for profile views...
     //
-    await this.app.storage.saveTransaction(tx, { field1: 'RedSquareLike' }, 'localhost');
+    await this.app.storage.saveTransaction(tx, { field1: 'RedSquareLike' }, 'localhost', blk);
 
     return;
   }
@@ -2225,7 +2229,7 @@ class RedSquare extends ModTemplate {
 
     //Save the transaction with command to delete
     if (!app.BROWSER) {
-      await this.app.storage.saveTransaction(tx, { field1: 'RedSquare' }, 'localhost');
+      await this.app.storage.saveTransaction(tx, { field1: 'RedSquare' }, 'localhost', blk);
     }
   }
 
@@ -2248,7 +2252,7 @@ class RedSquare extends ModTemplate {
       //
       tweet = await tweet.analyseTweetLinks(1);
 
-      this.saveTweet(tweet, 1);
+      this.saveTweet(tweet, 1, blk);
 
       //
       // Includes retweeted tweet
@@ -2434,7 +2438,7 @@ class RedSquare extends ModTemplate {
     return;
   }
 
-  saveTweet(tweet, preserve = 1) {
+  saveTweet(tweet, preserve = 1, blk = null) {
     if (!tweet) {
       console.warn('RS.saveTweet: no tweet!');
       return;
@@ -2480,7 +2484,7 @@ class RedSquare extends ModTemplate {
         if (txs?.length > 0) {
           this.app.storage.updateTransaction(tweet.tx, opt, 'localhost');
         } else {
-          this.app.storage.saveTransaction(tweet.tx, opt, 'localhost');
+          this.app.storage.saveTransaction(tweet.tx, opt, 'localhost', blk);
         }
       },
       'localhost'

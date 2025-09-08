@@ -94,7 +94,7 @@ class Storage {
   //    ---> peers receive via Archive module
   //    ---> peers fetch from DB, return via callback or return TX
   //
-  async saveTransaction(tx: Transaction, obj = {}, peer = null) {
+  async saveTransaction(tx: Transaction, obj = {}, peer = null, blk = null) {
     try {
       const txmsg = tx.returnMessage();
       const message = 'archive';
@@ -120,6 +120,11 @@ class Storage {
       }
       if (!data.field3) {
         data.field3 = tx.to[0].publicKey;
+      }
+
+      if (blk) {
+        data.block_hash = blk.hash;
+        data.block_id = Number(blk.id);
       }
 
       this.app.connection.emit('saito-save-transaction', tx);

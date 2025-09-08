@@ -13,6 +13,9 @@
   margin: 2.5px;
   flex-grow: 1;
   max-height: var(--multi-max-height);
+  border-radius: var(--border-radius-round);
+  overflow: hidden;
+  border: 1px solid transparent;
 }
 
 .saito-img-flex > * > img {
@@ -22,7 +25,6 @@
   min-width: 100%;
   vertical-align: bottom;
   max-height: var(--multi-max-height);
-  border-radius: var(--border-radius-round);
 }
 
 .saito-img-flex.single-img > * {

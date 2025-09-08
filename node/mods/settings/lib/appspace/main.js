@@ -15,6 +15,8 @@ class SettingsAppspace {
 
 	async render() {
 		this.privateKey = await this.app.wallet.getPrivateKey();
+		this.seed_phrase = this.app.crypto.generateSeedFromPrivateKey(this.privateKey);
+
 		this.overlay.show(SettingsAppspaceTemplate(this.app, this.mod, this));
 
 		/**
@@ -110,9 +112,10 @@ class SettingsAppspace {
 	}
 
 	renderCryptoGameSettings() {
+		let html = ``;
+
 		if (this.app.options.gameprefs != null) {
 			let gameprefs = this.app.options.gameprefs;
-			let html = ``;
 			for (var key in gameprefs) {
 				if (key.includes('inbound_trusted') || key.includes('outbound_trusted')) {
 					let option_name = key.split('_');
@@ -125,6 +128,8 @@ class SettingsAppspace {
 			          </div>`;
 				}
 			}
+		}
+		if (html) {
 			document.querySelector('#settings-appspace-crypto-transfer').innerHTML = html;
 		} else {
 			// hide container from settings overlay
@@ -333,61 +338,22 @@ class SettingsAppspace {
 				};
 			}
 
-			if (document.getElementById('backup-seed-btn')) {
-				document.getElementById('backup-seed-btn').onclick = async (e) => {
-					try {
-						const seed = await app.options.wallet.seed.mnemonic;
+			if (document.getElementById('show-phrase')) {
+				document.getElementById('show-phrase').onclick = async (e) => {
+					const egldMnemonic = app?.options?.crypto?.EGLD?.mnemonic_text || '';
+
+					if (egldMnemonic && egldMnemonic !== this.seed_phrase) {
 						await sconfirm(
-							"You are about to backup your seed phrase, please note that this is only a backup for your keys and cryptos, it doesn't include other data"
+							'Warning: Your EGLD wallet is using a different seed phrase. ' +
+								'Backing up only the Saito seed does NOT back up your EGLD keys. '
 						);
-
-						const egldMnemonic = app?.options?.crypto?.EGLD?.mnemonic_text || '';
-						if (egldMnemonic && egldMnemonic !== seed) {
-							salert(
-								'Warning: Your EGLD wallet is using a different seed phrase. ' +
-									'Backing up only the Saito seed does NOT back up your EGLD keys. '
-							);
-						}
-
-						if (seed) {
-							setTimeout(async () => {
-								let confirmBackup = await sconfirm(`${seed}`);
-							}, 500);
-						}
-					} catch (err) {
-						salert('Error generating seed phrase: ' + err.message);
-						console.error('Error in backup seed:', err);
 					}
-				};
-			}
 
-			if (document.getElementById('import-seed-btn')) {
-				document.getElementById('import-seed-btn').onclick = async (e) => {
-					try {
-						let mnemonic = await sprompt('Enter your seed phrase:');
-						if (mnemonic) {
-							if (mnemonic.trim().split(/\s+/g).length == 24) {
-								const privateKey = this.app.crypto.getPrivateKeyFromSeed(mnemonic);
-								let result = await app.wallet.onUpgrade('import', privateKey);
-								console.log(privateKey, 'private key from seed');
-								if (result === true) {
-									let c = await sconfirm('Success! Confirm to reload');
-									if (c) {
-										reloadWindow(300);
-									}
-								} else {
-									let err = result;
-									salert('Something went wrong: ' + err.name);
-								}
-							} else {
-								salert('Error importing seed phrase: ' + 'Invalid seed phrase');
-							}
-						} else {
-							salert('Error importing seed phrase: ' + 'No seed phrase found');
-						}
-					} catch (err) {
-						salert('Error importing seed phrase: ' + err.message);
-						console.error('Error in import seed:', err);
+					let confirmBackup = await sconfirm(
+						`<h4>Copy to clip board?</h4> <br> ${this.seed_phrase}`
+					);
+					if (confirmBackup) {
+						navigator.clipboard.writeText(this.seed_phrase);
 					}
 				};
 			}
@@ -398,9 +364,7 @@ class SettingsAppspace {
 				);
 				if (confirmation) {
 					await app.wallet.onUpgrade('nuke');
-					if (this.app.browser.browser_active == 1) {
-						reloadWindow(300);
-					}
+					reloadWindow(150);
 				}
 			};
 
@@ -444,29 +408,12 @@ class SettingsAppspace {
 				};
 			});
 
+			document.getElementById('copy-private-key').onclick = () => {
+				navigator.clipboard.writeText(this.privateKey);
+			};
+
 			document.getElementById('restore-privatekey-btn').onclick = async (e) => {
-				let privatekey = '';
-				let publicKey = '';
-
-				try {
-					privatekey = await sprompt('Enter Private Key:');
-					if (privatekey != '') {
-						let result = await app.wallet.onUpgrade('import', privatekey);
-
-						if (result === true) {
-							let c = await sconfirm('Success! Confirm to reload');
-							if (c) {
-								reloadWindow(300);
-							}
-						} else {
-							let err = result;
-							salert('Something went wrong: ' + err.name);
-						}
-					}
-				} catch (e) {
-					salert('Restore Private Key ERROR: ' + e);
-					console.log('Restore Private Key ERROR: ' + e);
-				}
+				this.app.connection.emit('recovery-private-key-render-request');
 			};
 		} catch (err) {
 			console.log('Error in Settings Appspace: ', err);

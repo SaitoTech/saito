@@ -45,10 +45,6 @@
 	background: none;
 }
 
-.saito-table-row.league-leaderboard-ranking:hover {
-	background: var(--saito-primary);
-}
-
 .my-leaderboard-position {
 	border: var(--border-thickness-thin) solid var(--border-color-leaderboard-position);
 }
@@ -72,4 +68,5 @@
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
+	user-select: none;
 }

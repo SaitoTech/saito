@@ -484,7 +484,7 @@ class Tweet {
 			this.img_preview.render();
 		}
 		if (this.retweet) {
-			console.log('Rendering Quote-Tweet', this.retweet.show_controls);
+			//console.log('Rendering Quote-Tweet', this.retweet.show_controls);
 			this.retweet.render();
 		}
 		if (this.link_preview != null) {

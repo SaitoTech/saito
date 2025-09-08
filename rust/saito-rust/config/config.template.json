@@ -30,7 +30,9 @@
     "prune_after_blocks": 8,
     "max_staker_recursions": 3,
     "default_social_stake": 1000,
-    "default_social_stake_period": 60
+    "default_social_stake_period": 60,
+    "block_confirmation_limit": 5,
+    "recollect_discarded_txs_mode": 2
   },
   "blockchain": {
     "last_block_hash": "",

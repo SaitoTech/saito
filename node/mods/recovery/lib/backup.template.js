@@ -15,8 +15,7 @@ module.exports = (identifier, newIdentifier) => {
 		intro = `Name Registration Submitted!`;
 	}
 	return `
-    <form id="backup-template" class="saito-overlay-auto-backup">
-      <div class="saito-overlay-form">
+    <form id="backup-template" class="saito-overlay-auto-backup saito-overlay-form">
         <div class="saito-overlay-form-header">
           <div class="saito-overlay-form-header-title" id="saito-overlay-form-header-title">EASY ACCOUNT RECOVERY</div>
         </div>
@@ -43,7 +42,6 @@ module.exports = (identifier, newIdentifier) => {
 
           <button type="submit" class="saito-button-primary saito-overlay-form-submit" id="saito-overlay-submit">Encrypt & Backup</button>
 	      </div>
-      </div>
     </form>
   `;
 };

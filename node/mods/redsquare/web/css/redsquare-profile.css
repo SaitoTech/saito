@@ -1,61 +1,25 @@
 .saito-profile {
 	display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    max-width: 600px;
-    border: 1px solid var(--saito-border-color);
-    border-top: none;
+	flex-direction: column;
+	gap: 0.5rem;
+	max-width: 600px;
+	border: 1px solid var(--saito-border-color);
+	border-top: none;
 }
 
 .saito-profile > .saito-profile-controls {
 	display: none;
 }
 
-.saito-profile-header  {
-	justify-content: space-between;
-}
-
-.saito-profile-menu>div {
-    padding: 1rem 1rem;
-    height: -webkit-fill-available;
-}
-
-.saito-profile-menu {
-	min-height: unset;
-    gap: 2rem
-}
-
-.saito-profile-description.can-edit.empty {
-	border: unset;
-	display: block;
-	min-height: unset;
-	margin: unset;
-	padding: unset;
-}
-
-
-.saito-profile-description.can-edit.empty 
-.saito-description-edit {
+.saito-profile-description.can-edit.empty .saito-description-edit {
 	border-bottom: 1px dashed;
 	width: fit-content;
 	margin-left: 1rem;
 	color: var(--border-color-button-module);
-    font-size: 1.6rem;
+	font-weight: bold;
 }
 
-.saito-profile-description.can-edit {
-	border: unset;
-}
-
-.saito-profile-description.can-edit .saito-description-edit {	
-    padding: 0.4rem 0rem;
-}
-
-.saito-profile-description p {
-    font-size: 1.55rem;
+.saito-profile-description.can-edit .saito-profile-description p {
+	font-size: 1.5rem;
 	padding-right: 1.5rem;
-}
-
-.update-description-overlay #saito-overlay-submit {
-    line-height: 0.5rem;
 }

@@ -70,7 +70,7 @@ h5,
 h6 {
   font-weight: normal;
   margin-bottom: 1rem;
-  font-family: var(--saito-font-medium);
+  font-family: var(--saito-font);
   line-height: 1.2em; /* make sure relative to the different sizes! */
   cursor: default; /* We don't want the text cursor on headers */
 }

@@ -13,7 +13,8 @@ class Solitrio extends OnePlayerGameTemplate {
 		this.name = 'Solitrio';
 		this.slug = 'solitrio';
 		this.game_length = 5; //Estimated number of minutes to complete a game
-		this.description = 'Once you\'ve started playing Solitrio, how can you go back to old-fashioned Solitaire? This one-player card game is the perfect way to pass a flight from Hong Kong to pretty much anywhere. Arrange the cards on the table from 2-10 ordered by suite. Harder than it looks and wildly addictive.';
+		this.description =
+			"Once you've started playing Solitrio, how can you go back to old-fashioned Solitaire? This one-player card game is the perfect way to pass a flight from Hong Kong to pretty much anywhere. Arrange the cards on the table from 2-10 ordered by suite. Harder than it looks and wildly addictive.";
 		this.categories = 'Games Cardgame One-player';
 		this.animationSpeed = 500;
 		this.card_img_dir = '/saito/img/arcade/cards';
@@ -25,20 +26,18 @@ class Solitrio extends OnePlayerGameTemplate {
 		return SolitrioGameRulesTemplate(this.app, this);
 	}
 
+	hasSettings() {
+		return true;
+	}
 
-	  hasSettings() {
-	    return true;
-	  }
-
-	  loadSettings(container = null) {
-	    if (!container){
-	      this.overlay.show(`<div class="module-settings-overlay"><h2>Solitrio Settings</h2></div>`);
-	      container = ".module-settings-overlay";
-	    }
-	    let as = new SolitrioGameOptions(this.app, this, container);
-	    as.render();
-	  }
-
+	loadSettings(container = null) {
+		if (!container) {
+			this.overlay.show(`<div class="module-settings-overlay"><h2>Solitrio Settings</h2></div>`);
+			container = '.module-settings-overlay';
+		}
+		let as = new SolitrioGameOptions(this.app, this, container);
+		as.render();
+	}
 
 	initializeGame(game_id) {
 		console.log('SET WITH GAMEID: ' + game_id);
@@ -50,10 +49,7 @@ class Solitrio extends OnePlayerGameTemplate {
 			this.game.queue.push('round');
 			this.game.queue.push('READY');
 		} else {
-			this.game.state = Object.assign(
-				this.returnState(),
-				this.game.state
-			);
+			this.game.state = Object.assign(this.returnState(), this.game.state);
 			if (this.game.state.game_started) {
 				this.game.queue = ['play'];
 			}
@@ -130,11 +126,10 @@ class Solitrio extends OnePlayerGameTemplate {
 			text: 'Settings',
 			id: 'game-settings',
 			class: 'game-settings',
-			callback: function(app, game_mod){
+			callback: function (app, game_mod) {
 				game_mod.loadSettings();
 			}
 		});
-
 
 		this.menu.addSubMenuOption('game-game', {
 			text: 'How to Play',
@@ -159,10 +154,17 @@ class Solitrio extends OnePlayerGameTemplate {
 		this.menu.addChatMenu();
 		this.menu.render();
 
-		this.app.connection.on("solitrio-update-settings", ()=> {
+		this.app.connection.on('solitrio-update-settings', () => {
 			this.attachEventsToBoard();
 		});
 
+		document.addEventListener('keydown', (e) => {
+			if (e.ctrlKey && e.key === 'z') {
+				if (this.moves?.length) {
+					this.undoMove();
+				}
+			}
+		});
 	}
 
 	returnState() {
@@ -184,14 +186,17 @@ class Solitrio extends OnePlayerGameTemplate {
 		} else if (!this.hasAvailableMoves()) {
 			if (this.game.state.recycles_remaining == 0) {
 				this.prependMove('lose');
-				this.overlay.show(this.returnStatsHTML('Game over', 1), async ()=> {
+				this.overlay.show(this.returnStatsHTML('Game over', 1), async () => {
 					await this.clearTable();
 					this.endTurn();
 				});
-				$(".stats-menu-controls").html(`<button id="undo" class="option saito-button-primary">Go back</button><button id="quit" class="option saito-button-primary">Start Next Game</button>`);
+				$('.stats-menu-controls').html(
+					`<button id="undo" class="option saito-button-primary">Go back</button><button id="quit" class="option saito-button-primary">Start Next Game</button>`
+				);
 				this.attachHUDEvents();
-				$(".stats-menu-controls .saito-button-primary").on("click", () => { this.overlay.hide(); });
-
+				$('.stats-menu-controls .saito-button-primary').on('click', () => {
+					this.overlay.hide();
+				});
 			} else {
 				this.shuffleFlash();
 				$('#hint').css('display', 'none');
@@ -201,7 +206,7 @@ class Solitrio extends OnePlayerGameTemplate {
 
 	attachEventsToBoard() {
 		let play_mode = this.loadGamePreference('solitrio-play-mode') || 'auto';
-		
+
 		if (play_mode == 'auto') {
 			this.attachEventsToBoardAutomatic();
 		} else {
@@ -248,7 +253,6 @@ class Solitrio extends OnePlayerGameTemplate {
 						}
 					},
 					() => {
-
 						$('.animated_elem').remove();
 
 						//Redraw whole board
@@ -256,7 +260,7 @@ class Solitrio extends OnePlayerGameTemplate {
 						//	let divname = '#' + i;
 						//	$(divname).html(solitrio_self.returnCardImageHTML(solitrio_self.game.board[i]));
 						//}
-						
+
 						/*$('#' + card).html(
 							solitrio_self.returnCardImageHTML(
 								solitrio_self.game.board[card]
@@ -318,9 +322,7 @@ class Solitrio extends OnePlayerGameTemplate {
 						solitrio_self.prependMove(`move\t${selected}\t${card}`);
 						//solitrio_self.endTurn();
 
-						let x = JSON.stringify(
-							solitrio_self.game.board[selected]
-						);
+						let x = JSON.stringify(solitrio_self.game.board[selected]);
 						let y = JSON.stringify(solitrio_self.game.board[card]);
 
 						solitrio_self.game.board[selected] = JSON.parse(y);
@@ -330,15 +332,9 @@ class Solitrio extends OnePlayerGameTemplate {
 						solitrio_self.untoggleCard(selected);
 
 						$('#' + selected).html(
-							solitrio_self.returnCardImageHTML(
-								solitrio_self.game.board[selected]
-							)
+							solitrio_self.returnCardImageHTML(solitrio_self.game.board[selected])
 						);
-						$('#' + card).html(
-							solitrio_self.returnCardImageHTML(
-								solitrio_self.game.board[card]
-							)
-						);
+						$('#' + card).html(solitrio_self.returnCardImageHTML(solitrio_self.game.board[card]));
 						$('#' + selected).toggleClass('empty');
 						$('#' + card).toggleClass('empty');
 						$('#rowbox').removeClass('selected');
@@ -352,23 +348,14 @@ class Solitrio extends OnePlayerGameTemplate {
 						let smartTip;
 						let predecessor = solitrio_self.getPredecessor(card);
 						if (predecessor) {
-							let cardValue =
-								parseInt(
-									solitrio_self.returnCardNumber(predecessor)
-								) + 1;
+							let cardValue = parseInt(solitrio_self.returnCardNumber(predecessor)) + 1;
 							if (cardValue < 11)
 								smartTip =
 									'Hint: Try a ' +
 									cardValue +
 									' of ' +
-									solitrio_self.cardSuitHTML(
-										solitrio_self.returnCardSuite(
-											predecessor
-										)
-									);
-							else
-								smartTip =
-									'Unfortunately, no card can go there';
+									solitrio_self.cardSuitHTML(solitrio_self.returnCardSuite(predecessor));
+							else smartTip = 'Unfortunately, no card can go there';
 						} else {
 							smartTip = 'Hint: Try a 2 of any suit';
 						}
@@ -392,59 +379,35 @@ class Solitrio extends OnePlayerGameTemplate {
 			.css('background', '#FFF6')
 			.delay(300)
 			.queue(function () {
-				$(this)
-					.css('color', '#FFF')
-					.css('background', '#0004')
-					.dequeue();
+				$(this).css('color', '#FFF').css('background', '#0004').dequeue();
 			})
 			.delay(300)
 			.queue(function () {
-				$(this)
-					.css('color', '#000')
-					.css('background', '#FFF6')
-					.dequeue();
+				$(this).css('color', '#000').css('background', '#FFF6').dequeue();
 			})
 			.delay(300)
 			.queue(function () {
-				$(this)
-					.css('color', '#FFF')
-					.css('background', '#0004')
-					.dequeue();
+				$(this).css('color', '#FFF').css('background', '#0004').dequeue();
 			})
 			.delay(300)
 			.queue(function () {
-				$(this)
-					.css('color', '#000')
-					.css('background', '#FFF6')
-					.dequeue();
+				$(this).css('color', '#000').css('background', '#FFF6').dequeue();
 			})
 			.delay(300)
 			.queue(function () {
-				$(this)
-					.css('color', '#FFF')
-					.css('background', '#0004')
-					.dequeue();
+				$(this).css('color', '#FFF').css('background', '#0004').dequeue();
 			})
 			.delay(300)
 			.queue(function () {
-				$(this)
-					.css('color', '#000')
-					.css('background', '#FFF6')
-					.dequeue();
+				$(this).css('color', '#000').css('background', '#FFF6').dequeue();
 			})
 			.delay(300)
 			.queue(function () {
-				$(this)
-					.css('color', '#FFF')
-					.css('background', '#0004')
-					.dequeue();
+				$(this).css('color', '#FFF').css('background', '#0004').dequeue();
 			})
 			.delay(300)
 			.queue(function () {
-				$(this)
-					.css('color', '#000')
-					.css('background', '#FFF6')
-					.dequeue();
+				$(this).css('color', '#000').css('background', '#FFF6').dequeue();
 			})
 			.delay(300)
 			.queue(function () {
@@ -481,15 +444,9 @@ class Solitrio extends OnePlayerGameTemplate {
 		let predecessor = this.getPredecessor(slot);
 
 		if (predecessor) {
-			let predecessorValueNum = parseInt(
-				this.returnCardNumber(predecessor)
-			);
+			let predecessorValueNum = parseInt(this.returnCardNumber(predecessor));
 			let predecessorSuit = this.returnCardSuite(predecessor);
-			if (
-				cardValue == predecessorValueNum + 1 &&
-				cardSuit === predecessorSuit
-			)
-				return true;
+			if (cardValue == predecessorValueNum + 1 && cardSuit === predecessorSuit) return true;
 		} else {
 			//No predecessor, i.e. first position in row
 			if (cardValue === '2') return true;
@@ -560,8 +517,7 @@ class Solitrio extends OnePlayerGameTemplate {
 		for (let i = 1; i <= 4; i++)
 			for (let j = 1; j <= 10; j++) {
 				let position = `row${i}_slot${j}`;
-				this.game.board[position] =
-					this.game.deck[0].cards[this.game.deck[0].hand[indexCt++]];
+				this.game.board[position] = this.game.deck[0].cards[this.game.deck[0].hand[indexCt++]];
 			}
 	}
 
@@ -598,14 +554,20 @@ class Solitrio extends OnePlayerGameTemplate {
 			if (mv[0] === 'win') {
 				this.game.state.session.round++;
 				this.game.state.session.wins++;
-				this.overlay.show(this.returnStatsHTML('Congratulations!'), ()=> {
+				this.overlay.show(this.returnStatsHTML('Congratulations!'), () => {
 					this.newRound();
-					this.game.queue.push(`ROUNDOVER\t${JSON.stringify([this.publicKey])}\troundover\t${JSON.stringify([])}`);
+					this.game.queue.push(
+						`ROUNDOVER\t${JSON.stringify([this.publicKey])}\troundover\t${JSON.stringify([])}`
+					);
 					this.restartQueue();
 				});
 
-				$(".stats-menu-controls").html(`<button id="quit" class="option saito-button-primary">Start Next Game</button>`);
-				$(".stats-menu-controls .saito-button-primary").on("click", () => { this.overlay.close(); });
+				$('.stats-menu-controls').html(
+					`<button id="quit" class="option saito-button-primary">Start Next Game</button>`
+				);
+				$('.stats-menu-controls .saito-button-primary').on('click', () => {
+					this.overlay.close();
+				});
 				return 0;
 			}
 
@@ -614,9 +576,7 @@ class Solitrio extends OnePlayerGameTemplate {
 				this.game.state.session.losses++;
 				this.newRound();
 				this.game.queue.push(
-					`ROUNDOVER\t${JSON.stringify(
-						[]
-					)}\troundover\t${JSON.stringify([this.publicKey])}`
+					`ROUNDOVER\t${JSON.stringify([])}\troundover\t${JSON.stringify([this.publicKey])}`
 				);
 			}
 
@@ -691,9 +651,7 @@ class Solitrio extends OnePlayerGameTemplate {
 		this.game.board[selected] = JSON.parse(y);
 		this.game.board[card] = JSON.parse(x);
 
-		$('#' + selected).html(
-			this.returnCardImageHTML(this.game.board[selected])
-		);
+		$('#' + selected).html(this.returnCardImageHTML(this.game.board[selected]));
 		$('#' + card).html(this.returnCardImageHTML(this.game.board[card]));
 		$('#' + selected).toggleClass('empty');
 		$('#' + card).toggleClass('empty');
@@ -717,13 +675,11 @@ class Solitrio extends OnePlayerGameTemplate {
 				this.untoggleCard(i);
 				if (this.game.board[i][0] == 'E') {
 					$(divname).addClass('empty');
-					$(divname).html(
-						`<img src="${this.card_img_dir}/red_back.png" />`
-					);
+					$(divname).html(`<img src="${this.card_img_dir}/red_back.png" />`);
 					$(divname)
 						.children()
-						.fadeOut(10 * timeInterval, function(){
-							$(this).addClass("copied_elem");
+						.fadeOut(10 * timeInterval, function () {
+							$(this).addClass('copied_elem');
 						});
 				}
 			}
@@ -741,7 +697,6 @@ class Solitrio extends OnePlayerGameTemplate {
 no status atm, but this is to update the hud
 */
 	displayUserInterface() {
-
 		let html =
 			'<span>Arrange the cards from 2 to 10, one suit per row by moving cards into empty spaces. </span>';
 		let option = `<ul><li class="option"`;
@@ -768,7 +723,7 @@ no status atm, but this is to update the hud
 		this.attachHUDEvents();
 	}
 
-	attachHUDEvents(){
+	attachHUDEvents() {
 		let solitrio_self = this;
 
 		$('.option').off();
@@ -802,7 +757,6 @@ no status atm, but this is to update the hud
 				return;
 			}
 		});
-
 	}
 
 	returnCardImageHTML(name) {
@@ -923,8 +877,7 @@ no status atm, but this is to update the hud
 		for (let slot of emptySlots) {
 			let predecessor = this.getPredecessor(slot);
 			if (predecessor) {
-				let cardValue =
-					parseInt(this.returnCardNumber(predecessor)) + 1;
+				let cardValue = parseInt(this.returnCardNumber(predecessor)) + 1;
 				if (cardValue < 11) {
 					targets.push(this.returnCardSuite(predecessor) + cardValue);
 				}
@@ -948,16 +901,16 @@ no status atm, but this is to update the hud
 
 	cardSuitHTML(suit) {
 		switch (suit) {
-		case 'D':
-			return '&diams;';
-		case 'H':
-			return '&hearts;';
-		case 'S':
-			return '&spades;';
-		case 'C':
-			return '&clubs;';
-		default:
-			return '';
+			case 'D':
+				return '&diams;';
+			case 'H':
+				return '&hearts;';
+			case 'S':
+				return '&spades;';
+			case 'C':
+				return '&clubs;';
+			default:
+				return '';
 		}
 	}
 

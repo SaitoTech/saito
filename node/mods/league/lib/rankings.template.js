@@ -10,7 +10,7 @@ module.exports = () => {
 				</div>
 	        </h5>
 	        <div class="saito-table saito-sidebar-element">
-		      <div class="saito-table-body"></div>
+		      <div class="saito-table-body saito-menu-select-heavy"></div>
 		    </div>
 	      </div>
     `;

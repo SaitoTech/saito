@@ -7,9 +7,7 @@ module.exports = (app, mod, publickey = '', address = '') => {
 
   let html = `
   
-  <form class="withdrawal-form" id="withdrawal-form" action="/" method="POST">
-
-    <div class="saito-overlay-form" id="saito-withdraw-overlay">
+  <form class="saito-overlay-form" id="withdrawal-form" action="/" method="POST">
 
         <div class="saito-overlay-form-header nft-title">
            <div class="saito-overlay-form-header-title">
@@ -45,22 +43,25 @@ module.exports = (app, mod, publickey = '', address = '') => {
 
           <div class="input-elements-container">
             <div class="saito-overlay-form-input">
-              <div class="withdraw-input-cont" id="withdraw-address-cont">`;
+              <div class="withdraw-input-cont ${identicon ? 'fixed-user' : ''}" id="withdraw-address-cont">`;
 
   if (identicon != null) {
     html += `   <div class="withdraw-identicon-container"><img class="saito-identicon" src="${identicon}"></div>`;
   }
   html += `
                 <input type="text" autocomplete="off" class="withdraw_address" ${publickey ? 'disabled' : ''} value="${address}" id="withdraw-input-address" required="" placeholder="receiving address">
+                <div class="withdraw-options-cont" id="address-book">
+                  <i class="fa-solid fa-users"></i>
+                </div>
                 <div class="withdraw-error" id="withdraw-address-error"></div>
               </div>
-            </div>
-          
-            <div class="saito-overlay-form-input">
+            </div>`;
+
+  html += `<div class="saito-overlay-form-input">
               <div class="withdraw-input-cont" id="withdraw-amount-cont">
                 <input type="number" autocomplete="off" min="0" max="9999999999.99999999" step="0.00000001" class="withdraw-input-amount" id="withdraw-input-amount" value="" required="" placeholder="amount to send">
-                <div class="withdraw-options-cont">
-                  <span id="withdraw-max-btn">MAX</span>
+                <div class="withdraw-options-cont" id="withdraw-max-btn">
+                  <span>MAX</span>
                 </div>
                 <div class="withdraw-error" id="withdraw-amount-error"></div>
               </div>
@@ -91,8 +92,6 @@ module.exports = (app, mod, publickey = '', address = '') => {
             <button type="submit" class="saito-button-primary" id="withdraw-confirm">Confirm</button>
           </div>
         </div>
-
-    </div>
 
 
   </form>

@@ -41,13 +41,13 @@ const getUuid = require('uuid-by-string');
 const WAValidator = require('multicoin-address-validator');
 
 class MixinModule extends CryptoModule {
-	constructor(app, ticker, mixin_mod, asset_id) {
+	constructor(app, mixin_mod, ticker, asset_id, chain_id) {
 		super(app, ticker);
 
 		this.mixin = mixin_mod;
 
 		this.asset_id = asset_id;
-		this.chain_id = '';
+		this.chain_id = chain_id;
 
 		this.balance_timestamp_last_fetched = 0;
 		this.minimum_delay_between_balance_queries = 4000;
@@ -57,23 +57,34 @@ class MixinModule extends CryptoModule {
 
 	async activate() {
 		if (this.mixin.account_created == 0) {
-			this.app.connection.emit('header-install-crypto', this.ticker);
-			await this.mixin.createAccount(async (res) => {
-				if (Object.keys(res).length > 0) {
-					await this.mixin.createDepositAddress(this.asset_id);
-					super.activate();
-				} else {
-					salert('Having problem generating key for ' + ' ' + this.ticker);
-					await this.app.wallet.setPreferredCrypto('SAITO');
+			console.log('Create mixin account');
+			await this.mixin.createAccount((res) => {
+				if (res.err || Object.keys(res).length < 1) {
+					if (this.app.BROWSER) {
+						salert('Having problem generating key for ' + ' ' + this.ticker);
+					}
+					this.app.wallet.setPreferredCrypto('SAITO');
+					return null;
 				}
+
+				return this.activate();
 			});
 		} else {
 			if (!this.address) {
-				this.app.connection.emit('header-install-crypto', this.ticker);
-				await this.mixin.createDepositAddress(this.asset_id);
+				console.log(`create deposit address for ${this.ticker}`);
+
+				let rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
+				if (!rv) {
+					if (this.app.BROWSER) {
+						salert('Having problem generating key for ' + ' ' + this.ticker);
+					}
+					await this.app.wallet.setPreferredCrypto('SAITO');
+				} else {
+					console.log(`Address for ${this.ticker}: ${this.address}`);
+				}
 			}
 
-			super.activate();
+			await super.activate();
 		}
 	}
 
@@ -83,16 +94,26 @@ class MixinModule extends CryptoModule {
 	 * @return {Number}
 	 */
 	async checkBalance() {
+		if (!this.address) {
+			console.info("Don't query for crypto if we don't even have an address");
+			return;
+		}
 		let now = new Date().getTime();
 		if (now - this.balance_timestamp_last_fetched > this.minimum_delay_between_balance_queries) {
-			console.log('MixinModule Query balance for ' + this.ticker);
-
 			this.balance_timestamp_last_fetched = now;
 
-			await this.mixin.fetchSafeUtxoBalance(this.asset_id);
-		} else {
-			console.log('MixinModule warning: too soon to query balance updates');
+			let balance = await this.mixin.fetchSafeUtxoBalance(this.asset_id);
+
+			if (balance !== false) {
+				if (this.balance != balance) {
+					console.debug(`Updated ${this.ticker} balance!`);
+					this.balance = balance;
+					this.save();
+				}
+			}
 		}
+
+		return this.balance;
 	}
 
 	/**
@@ -104,70 +125,66 @@ class MixinModule extends CryptoModule {
 	 * @return {Number}
 	 */
 	async sendPayment(amount = '', recipient = '', unique_hash = '') {
-		try {
-			let r = recipient.split('|');
+		let r = recipient.split('|');
 
-			let internal_transfer = false;
-			let destination = recipient;
+		let internal_transfer = false;
+		let destination = recipient;
 
-			let res = {};
+		let res = {};
 
-			console.log('send sendPayment');
-			console.log('Recipient: ' + recipient);
+		console.log('send sendPayment');
+		console.log('Recipient: ' + recipient);
 
-			// if address has |mixin| concat
-			if (r.length >= 2) {
-				if (r[2] === 'mixin') {
-					console.log('Send to Mixin address');
-					internal_transfer = true;
-					destination = r[1];
-				}
+		// if address has |mixin| concat
+		if (r.length >= 2) {
+			if (r[2] === 'mixin') {
+				console.log('Send to Mixin address');
+				internal_transfer = true;
+				destination = r[1];
 			}
+		}
 
-			// check if address exists in local db
-			if (internal_transfer == false) {
-				await this.mixin.sendFetchUserTransaction(
-					{
-						address: recipient
-					},
-					function (res) {
-						console.log('Cross network callback complete');
-						if (res?.user_id) {
-							internal_transfer = true;
-							destination = res.user_id;
-						}
+		// check if address exists in local db
+		if (internal_transfer == false) {
+			await this.mixin.sendFetchUserTransaction(
+				{
+					address: recipient
+				},
+				function (res) {
+					console.log('Cross network callback complete');
+					if (res?.user_id) {
+						internal_transfer = true;
+						destination = res.user_id;
 					}
-				);
-			}
+				}
+			);
+		}
 
-			console.log('Initiate mixin transfer, internally? ', internal_transfer);
+		console.log('Initiate mixin transfer, internally? ', internal_transfer);
 
-			// internal mixin transfer
-			if (internal_transfer) {
-				res = await this.mixin.sendInNetworkTransferRequest(
-					this.asset_id,
-					destination,
-					amount,
-					unique_hash
-				);
-			} else {
-				// address is external, send external withdrawl request
-				res = await this.mixin.sendExternalNetworkTransferRequest(
-					this.asset_id,
-					destination,
-					amount,
-					unique_hash
-				);
-			}
+		// internal mixin transfer
+		if (internal_transfer) {
+			res = await this.mixin.sendInNetworkTransferRequest(
+				this.asset_id,
+				destination,
+				amount,
+				unique_hash
+			);
+		} else {
+			// address is external, send external withdrawl request
+			res = await this.mixin.sendExternalNetworkTransferRequest(
+				this.asset_id,
+				destination,
+				amount,
+				unique_hash
+			);
+		}
 
-			if (res.status == 200) {
-				return unique_hash;
-			} else {
-				console.error(res.message);
-				return '';
-			}
-		} catch (err) {
-			console.log('send payment err: ', err);
+		if (res.status == 200) {
+			return unique_hash;
+		} else {
+			throw new Error('MixinModule: ' + res.message);
+			return '';
 		}
 	}
 
@@ -337,109 +354,62 @@ class MixinModule extends CryptoModule {
 	 * @abstract
 	 * @return {Function} Callback function
 	 */
-	async returnHistory(callback = null) {
+	async checkHistory(callback = null) {
 		let this_self = this;
-		let d = await this.mixin.fetchSafeSnapshots(this.asset_id, 1000, async function (d) {
-			console.log('mixin tx history:', d);
 
-			let html = '';
-			if (d.length > 0) {
-				for (let i = d.length - 1; i >= 0; i--) {
-					let row = d[i];
-					let created_at = row.created_at.slice(0, 19).replace('T', ' ');
+		let d = await this.mixin.fetchSafeSnapshots(
+			this.asset_id,
+			this.history_update_ts,
+			async function (d) {
+				console.log('mixin tx history:', d);
 
-					//Parse it as UTC time
-					let datetime = new Date(created_at + 'Z');
-					let amount = Number(row.amount);
-					let type = amount > 0 ? 'Deposit' : 'Withdraw';
+				for (let snap of d) {
+					let amount = Number(snap.amount);
 
-					if (i < d.length - 1) {
-						if (Number(d[i + 1].amount) > 0) {
-							balance = balance - Math.abs(Number(d[i + 1].amount));
-						} else {
-							balance = balance + Math.abs(Number(d[i + 1].amount));
-						}
-					}
+					const obj = {
+						counter_party: { address: snap.opponent_id },
+						timestamp: new Date(snap.created_at).getTime(),
+						amount,
+						trans_hash: transaction_hash
+					};
 
-					let balance_as_float = parseFloat(balance);
-
-					let opponnent = typeof d[i].opponent_id != 'undefined' ? d[i].opponent_id : null;
-
-					let sender_html = '';
-					if (opponnent != null && opponnent != '') {
-						// Showing details for internal mixin transaction details
-
-						let user_data = null;
-						if (opponnent in tmp_user_data) {
-							user_data = tmp_user_data[opponnent];
-						} else {
-							user_data = await this_self.getAddressByUserId(opponnent, this_self.asset_id);
-							tmp_user_data[opponnent] = user_data;
-						}
-
-						if (user_data != null) {
-							let public_key = user_data.publickey;
-							let address = user_data.address;
-
-							let identicon = null;
-							if (public_key in tmp_identicon) {
-								identicon = tmp_identicon[public_key];
-							} else {
-								identicon = this_self.app.keychain.returnIdenticon(public_key);
-								tmp_identicon[public_key] = identicon;
-							}
-
-							let username = null;
-							if (public_key in tmp_identifer) {
-								username = tmp_identifer[public_key];
-							} else {
-								username = this_self.app.keychain.returnIdentifierByPublicKey(public_key, true);
-								tmp_identifer[public_key] = username;
-							}
-
-							sender_html = `<div class="saito-identicon-container">
-						        <img class="saito-identicon" src="${identicon}">  
-						        <div class="history-address-container">
-						          <div class="history-to-publickey">${username}</div>
-						          ${
-												address != ''
-													? `
-						          	 <div class="history-to-address-container">
-									  <div class="history-to-address">${address}</div>
-									  <i class="history-copy-address fas fa-copy"
-									  data-address="${address}">
-									  </i>
-									</div>
-						          `
-													: ``
-											}
-						        </div>
-						      </div>`;
-						}
+					if (snap.deposit) {
+						obj.type = 'deposit';
+						obj.counter_party.address = snap.deposit.sender;
+					} else if (snap.withdrawal) {
+						obj.type = 'withdraw';
+						obj.counter_party.address = snap.withdrawal.receiver;
+					} else if (amount > 0) {
+						obj.type = 'receive';
 					} else {
-						// Mixin sdk throwing error when fetching tx details.
-						// Temproraily redirecting users to mixin explorer for
-						// external transaction details
-						let trans_hash = d[i].transaction_hash;
-						sender_html = `<a class="history-tx-link" href="https://viewblock.io/mixin/tx/${trans_hash}"
-       							target="_blank">
-       								<div class="history-tx-id">${trans_hash}</div>
-       								<i class="fa-solid fa-arrow-up-right-from-square"></i>
-       							</a>`;
+						obj.type = 'send';
 					}
 
-					html += `<div class='saito-table-row'>
-                    <div class='mixin-his-created-at'>${created_at}</div>
-                    <div>${type}</div>
-                    <div class='${type.toLowerCase()}'>${amount} ${this_self.mod.ticker}</div>
-                    <div>${nf.format(balance_as_float).toString()} ${this_self.mod.ticker}</div>
-                    <div>${sender_html}</div>
-                  </div>`;
+					//
+					// Check for associated Saito public key
+					//
+					if (snap?.opponent_id) {
+						const user = await this_self.mixin.sendFetchAddressByUserIdTransaction(
+							this_self.asset_id,
+							snap.opponent_id
+						);
+						if (user.publickey) {
+							obj.counter_party.publicKey = user.publickey;
+						}
+					}
+
+					this_self.history.push(obj);
+					this_self.history_update_ts = obj.timestamp + 1;
+				}
+
+				this_self.save();
+				console.log('Formatted history: ', this_self.history);
+
+				if (callback) {
+					callback(d);
 				}
 			}
-
-			return callback(html);
-		});
+		);
 	}
 
 	async returnUtxo(state = 'unspent', limit = 500, order = 'DESC', callback = null) {
@@ -449,7 +419,6 @@ class MixinModule extends CryptoModule {
 	async returnAddressFromPublicKey(publicKey) {
 		this_self = this;
 		try {
-
 			//check if key exists in keychain
 			let address = await super.returnAddressFromPublicKey(publicKey);
 
@@ -468,11 +437,17 @@ class MixinModule extends CryptoModule {
 					// this.address + '|' + this.mixin.mixin.user_id + '|' + 'mixin';
 					if (res.length > 0) {
 						for (let i = 0; i < res.length; i++) {
-							console.log(res[i].asset_id, ' - ', this_self.asset_id, ' - ', res[i].asset_id == this_self.asset_id);
+							console.log(
+								res[i].asset_id,
+								' - ',
+								this_self.asset_id,
+								' - ',
+								res[i].asset_id == this_self.asset_id
+							);
 							if (res[i].asset_id == this_self.asset_id) {
 								let address = res[i].address;
-								if (res[i]?.user_id){
-									address += "|" + res[i].user_id + "|mixin";
+								if (res[i]?.user_id) {
+									address += '|' + res[i].user_id + '|mixin';
 								}
 								// save address to keychain if publickey exists in keychain
 								this_self.app.keychain.addCryptoAddress(publicKey, this_self.ticker, address);
@@ -488,26 +463,8 @@ class MixinModule extends CryptoModule {
 		}
 	}
 
-	// Return history
-	async getAddressByUserId(user_id, asset_id) {
-		let address = null;
-		await this.mixin.sendFetchAddressByUserIdTransaction(
-			{
-				user_id: user_id,
-				asset_id: asset_id
-			},
-			function (res) {
-				if (res.length > 0) {
-					address = res[0];
-				}
-			}
-		);
-		return address;
-	}
-
 	validateAddress(address) {
-
-		if (address.includes("|")){
+		if (address.includes('|')) {
 			let r = address.split('|');
 			address = r[0];
 		}

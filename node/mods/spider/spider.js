@@ -42,7 +42,6 @@ class Spider extends OnePlayerGameTemplate {
 		return SpiderGameRulesTemplate(this.app, this);
 	}
 
-
 	initializeGame(game_id) {
 		console.log('SET WITH GAMEID: ' + game_id);
 
@@ -102,7 +101,7 @@ class Spider extends OnePlayerGameTemplate {
 			text: 'Settings',
 			id: 'game-settings',
 			class: 'game-settings',
-			callback: function(app, game_mod){
+			callback: function (app, game_mod) {
 				game_mod.loadSettings();
 			}
 		});
@@ -129,7 +128,7 @@ class Spider extends OnePlayerGameTemplate {
 
 		this.menu.addChatMenu();
 		this.menu.render();
-		
+
 		this.updateScore(0);
 
 		this.cardStacks = [];
@@ -139,13 +138,20 @@ class Spider extends OnePlayerGameTemplate {
 			//Copy Board state from memory if it exists
 			//
 			if (this.game.state.board[i]) {
-				console.log(
-					'Load Last Board:',
-					JSON.parse(JSON.stringify(this.game.state.board[i]))
-				);
+				console.log('Load Last Board:', JSON.parse(JSON.stringify(this.game.state.board[i])));
 				this.cardStacks[i].cards = this.game.state.board[i];
 			}
 		}
+
+		document.addEventListener('keydown', (e) => {
+			if (e.ctrlKey && e.key === 'z') {
+				if (this.moves?.length) {
+					this.removeEvents();
+					this.updateScore();
+					this.undoMove();
+				}
+			}
+		});
 	}
 
 	newRound() {
@@ -154,9 +160,7 @@ class Spider extends OnePlayerGameTemplate {
 		this.game.queue.push('play');
 		this.game.queue.push('DEAL\t1\t1\t54');
 		this.game.queue.push('SHUFFLE\t1\t1');
-		this.game.queue.push(
-			'DECK\t1\t' + JSON.stringify(this.returnDeck(this.difficulty))
-		);
+		this.game.queue.push('DECK\t1\t' + JSON.stringify(this.returnDeck(this.difficulty)));
 
 		//Clear board -
 		this.game.state.board = [];
@@ -179,9 +183,7 @@ class Spider extends OnePlayerGameTemplate {
 
 	updateScore(change = -1) {
 		this.game.state.score += change;
-		this.scoreboard.update(
-			`<div class="score">Score: ${this.game.state.score}</div>`
-		);
+		this.scoreboard.update(`<div class="score">Score: ${this.game.state.score}</div>`);
 		if (this.game.state.score <= 0) {
 			this.displayModal('You Lose!', 'Too many moves');
 			this.prependMove('lose');
@@ -200,7 +202,7 @@ class Spider extends OnePlayerGameTemplate {
 	attachEventsToBoard() {
 		let spider_self = this;
 
-		if (!this.browser_active){
+		if (!this.browser_active) {
 			return;
 		}
 
@@ -240,10 +242,7 @@ class Spider extends OnePlayerGameTemplate {
 					spider_self.prependMove('draw');
 					spider_self.endTurn();
 				} else {
-					spider_self.displayWarning(
-						'Invalid Move',
-						'You cannot deal with open slots!'
-					);
+					spider_self.displayWarning('Invalid Move', 'You cannot deal with open slots!');
 				}
 			} else {
 				spider_self.prependMove('lose');
@@ -259,11 +258,7 @@ class Spider extends OnePlayerGameTemplate {
 					false
 				);
 			} else {
-				this.cardStacks[i].applyFilter(
-					this.canSelectStack.bind(this),
-					this.pickUpStack,
-					false
-				);
+				this.cardStacks[i].applyFilter(this.canSelectStack.bind(this), this.pickUpStack, false);
 			}
 		}
 
@@ -289,8 +284,7 @@ class Spider extends OnePlayerGameTemplate {
 
 				const helper = document.getElementById('helper');
 
-				let divname =
-					'#cardstack_' + next_hint.source + '_' + next_hint.index;
+				let divname = '#cardstack_' + next_hint.source + '_' + next_hint.index;
 
 				let first_in_stack = document.querySelector(divname);
 				let offset = parseInt(first_in_stack.style.top);
@@ -306,11 +300,7 @@ class Spider extends OnePlayerGameTemplate {
 				let as = `${this.animationSpeed / 1000}s`;
 				helper.style.transition = `left ${as}, top ${as}, width ${as}, height ${as}`;
 
-				for (
-					let i = next_hint.index;
-					i < this.cardStacks[next_hint.source].getCardCount();
-					i++
-				) {
+				for (let i = next_hint.index; i < this.cardStacks[next_hint.source].getCardCount(); i++) {
 					divname = '#cardstack_' + next_hint.source + '_' + i;
 					let elem = document.querySelector(divname);
 					elem.style.top = `${parseInt(elem.style.top) - offset}px`;
@@ -350,10 +340,7 @@ class Spider extends OnePlayerGameTemplate {
 			let stack_index = this.cardStacks[i].getCardCount() - 1;
 			for (let j = stack_index - 1; j >= 0; j--) {
 				let next_card = this.cardStacks[i].cards[j];
-				if (
-					parseInt(next_card.substring(1)) == ++value &&
-					next_card[0] == suit
-				) {
+				if (parseInt(next_card.substring(1)) == ++value && next_card[0] == suit) {
 					stack_index--;
 				} else {
 					break;
@@ -361,9 +348,7 @@ class Spider extends OnePlayerGameTemplate {
 			}
 
 			//Requery value
-			value =
-				parseInt(this.cardStacks[i].cards[stack_index].substring(1)) +
-				1;
+			value = parseInt(this.cardStacks[i].cards[stack_index].substring(1)) + 1;
 
 			// stack_index will be the depth of the maximum selectable substack from this stack
 			// now we see if and where we can place it
@@ -372,10 +357,7 @@ class Spider extends OnePlayerGameTemplate {
 					continue;
 				}
 				let bottom_card = this.cardStacks[j].getTopCardValue();
-				if (
-					!bottom_card ||
-					parseInt(bottom_card.substring(1)) == value
-				) {
+				if (!bottom_card || parseInt(bottom_card.substring(1)) == value) {
 					this.hints.push({
 						source: i,
 						target: j,
@@ -445,8 +427,7 @@ class Spider extends OnePlayerGameTemplate {
 
 			for (let i = 0; i < 10; i++) {
 				if (spider_self.cardStacks[i].getCardCount() > 0) {
-					let bottom_card =
-						spider_self.cardStacks[i].getTopCardValue();
+					let bottom_card = spider_self.cardStacks[i].getTopCardValue();
 
 					let value1 = parseInt(bottom_card.slice(1));
 					let value2 = parseInt(card.slice(1));
@@ -505,8 +486,7 @@ class Spider extends OnePlayerGameTemplate {
 				if (spider_self.cardStacks[i].getCardCount() == 0) {
 					spider_self.possible_moves.push(i);
 				} else {
-					let bottom_card =
-						spider_self.cardStacks[i].getTopCardValue();
+					let bottom_card = spider_self.cardStacks[i].getTopCardValue();
 
 					let value1 = parseInt(bottom_card.slice(1));
 					let value2 = parseInt(card.slice(1));
@@ -523,9 +503,7 @@ class Spider extends OnePlayerGameTemplate {
 				let value2 = parseInt(card.slice(1));
 
 				if (value1 == value2 + 1) {
-					spider_self.possible_moves.push(
-						parseInt(activated_card_stack.name)
-					);
+					spider_self.possible_moves.push(parseInt(activated_card_stack.name));
 				}
 			}
 
@@ -541,18 +519,10 @@ class Spider extends OnePlayerGameTemplate {
 					let a_card = spider_self.cardStacks[a].getTopCardValue();
 					let b_card = spider_self.cardStacks[b].getTopCardValue();
 
-					if (
-						b_card &&
-						b_card[0] === card[0] &&
-						(!a_card || a_card[0] !== card[0])
-					) {
+					if (b_card && b_card[0] === card[0] && (!a_card || a_card[0] !== card[0])) {
 						return 1;
 					}
-					if (
-						a_card &&
-						a_card[0] === card[0] &&
-						(!b_card || b_card[0] !== card[0])
-					) {
+					if (a_card && a_card[0] === card[0] && (!b_card || b_card[0] !== card[0])) {
 						return -1;
 					}
 
@@ -627,19 +597,14 @@ class Spider extends OnePlayerGameTemplate {
 			this.cardStacks[target].getTopCardElement(),
 			{
 				callback: () => {
-					let stack_to_move =
-						this.cardStacks[source].cards.splice(index);
+					let stack_to_move = this.cardStacks[source].cards.splice(index);
 					//drop the first card we already added
 					stack_to_move.shift();
 					//Concat the rest of the stack
 					for (let card of stack_to_move) {
 						this.cardStacks[target].cards.push(card);
 					}
-					this.commitMove(
-						source + '_' + index,
-						target,
-						stack_to_move.length + 1
-					);
+					this.commitMove(source + '_' + index, target, stack_to_move.length + 1);
 				}
 			},
 			() => {
@@ -690,12 +655,9 @@ class Spider extends OnePlayerGameTemplate {
 		let offsetY =
 			event.clientY -
 			Math.round(
-				event.currentTarget.getBoundingClientRect().y -
-					parseInt(event.currentTarget.style.top)
+				event.currentTarget.getBoundingClientRect().y - parseInt(event.currentTarget.style.top)
 			);
-		let offsetX =
-			event.clientX -
-			Math.round(event.currentTarget.getBoundingClientRect().x);
+		let offsetX = event.clientX - Math.round(event.currentTarget.getBoundingClientRect().x);
 
 		let xposition = event.clientX - offsetX + 5;
 		let yposition = event.clientY - offsetY + 5;
@@ -719,8 +681,7 @@ class Spider extends OnePlayerGameTemplate {
 			//$("#helper").append($(divname));
 		}
 
-		spider_self.selected_stack =
-			activated_card_stack.cards.splice(card_index);
+		spider_self.selected_stack = activated_card_stack.cards.splice(card_index);
 
 		for (let i = 0; i < 10; i++) {
 			////////////////////////
@@ -730,8 +691,7 @@ class Spider extends OnePlayerGameTemplate {
 				spider_self.canPlaceStack.bind(spider_self),
 				async (target_card_stack) => {
 					window.cancelAnimationFrame(af);
-					let num_of_cards_to_move =
-						spider_self.selected_stack.length;
+					let num_of_cards_to_move = spider_self.selected_stack.length;
 					let top_card_to_move = `${activated_card_stack.name}_${card_index}`;
 
 					spider_self.placeStack(target_card_stack);
@@ -742,10 +702,7 @@ class Spider extends OnePlayerGameTemplate {
 					);
 					if (!spider_self.checkStack(target_card_stack.name)) {
 						spider_self.calculateHints();
-						setTimeout(
-							spider_self.attachEventsToBoard.bind(spider_self),
-							20
-						);
+						setTimeout(spider_self.attachEventsToBoard.bind(spider_self), 20);
 					}
 				}
 			);
@@ -787,11 +744,9 @@ class Spider extends OnePlayerGameTemplate {
 				//Save "decoded" card to game state
 				this.cardStacks[stackNum].push(realCard, false);
 
-				let card_to_reveal =
-					this.cardStacks[stackNum].getTopCardElement();
+				let card_to_reveal = this.cardStacks[stackNum].getTopCardElement();
 				if (card_to_reveal) {
-					card_to_reveal.innerHTML =
-						this.returnCardImageHTML(realCard);
+					card_to_reveal.innerHTML = this.returnCardImageHTML(realCard);
 					await this.timeout(30);
 					card_to_reveal.classList.remove('facedown');
 					card_to_reveal.classList.add('faceup');
@@ -894,9 +849,7 @@ class Spider extends OnePlayerGameTemplate {
 
 			this.prependMove(`complete\t${stackNum}\t${suit}`);
 
-			$('.completed_stack_box').append(
-				`<div id="cs${numComplete}" class="completed_stack"></div>`
-			);
+			$('.completed_stack_box').append(`<div id="cs${numComplete}" class="completed_stack"></div>`);
 
 			let depth = this.cardStacks[stackNum].getCardCount();
 
@@ -904,9 +857,7 @@ class Spider extends OnePlayerGameTemplate {
 				this.animationSequence.unshift({
 					callback: this.moveGameElement,
 					params: [
-						this.copyGameElement(
-							`#cardstack_${stackNum}_${depth + i}`
-						),
+						this.copyGameElement(`#cardstack_${stackNum}_${depth + i}`),
 						`#cs${numComplete}`,
 						{ resize: 1, insert: 1 }
 					]
@@ -958,13 +909,7 @@ class Spider extends OnePlayerGameTemplate {
 	}
 
 	isFaceDown(card) {
-		if (
-			card[0] == 'S' ||
-			card[0] == 'C' ||
-			card[0] == 'H' ||
-			card[0] == 'D'
-		)
-			return false;
+		if (card[0] == 'S' || card[0] == 'C' || card[0] == 'H' || card[0] == 'D') return false;
 		else return true;
 	}
 
@@ -993,9 +938,7 @@ class Spider extends OnePlayerGameTemplate {
 				this.newRound();
 				if (final_score > 0) {
 					this.game.queue.push(
-						`ROUNDOVER\t${JSON.stringify(
-							[]
-						)}\t${final_score}\t${JSON.stringify([this.publicKey])}`
+						`ROUNDOVER\t${JSON.stringify([])}\t${final_score}\t${JSON.stringify([this.publicKey])}`
 					);
 				}
 
@@ -1012,9 +955,7 @@ class Spider extends OnePlayerGameTemplate {
 				this.overlay.show(this.returnStatsHTML('Winner!'), () => {
 					this.newRound();
 					this.game.queue.push(
-						`ROUNDOVER\t${JSON.stringify([
-							this.publicKey
-						])}\t${final_score}\t${JSON.stringify([])}`
+						`ROUNDOVER\t${JSON.stringify([this.publicKey])}\t${final_score}\t${JSON.stringify([])}`
 					);
 					$('.completed_card').remove();
 					this.restartQueue();
@@ -1064,9 +1005,7 @@ class Spider extends OnePlayerGameTemplate {
 									`<img class="cardBack" src="/spider/img/cards/red_back.png"/>`,
 									'.draw-pile'
 								),
-								`#cardstack_${indexCt}_${
-									this.cardStacks[indexCt].getCardCount() - 1
-								}`,
+								`#cardstack_${indexCt}_${this.cardStacks[indexCt].getCardCount() - 1}`,
 								{ resize: 1, insert: 1 }
 							]
 						});
@@ -1177,11 +1116,10 @@ class Spider extends OnePlayerGameTemplate {
 	}
 
 	async changeDifficulty(dif) {
+		let old_dif = this.loadGamePreference('spider-difficulty');
+		this.saveGamePreference('spider-difficulty', dif);
 
-		let old_dif = this.loadGamePreference("spider-difficulty");
-		this.saveGamePreference("spider-difficulty", dif);
-
-		if (!this.browser_active){
+		if (!this.browser_active) {
 			return;
 		}
 
@@ -1194,7 +1132,7 @@ class Spider extends OnePlayerGameTemplate {
 		}
 
 		if (this.game.deck.length && dif !== old_dif) {
-			let c = await sconfirm("Abandon this game?");
+			let c = await sconfirm('Abandon this game?');
 			if (c) {
 				this.game.queue.push('lose');
 				this.endTurn();
@@ -1220,8 +1158,7 @@ class Spider extends OnePlayerGameTemplate {
 		let dp = document.querySelector('.draw-pile');
 		if (dp) {
 			if (this.game.state.draws_remaining > 0) {
-				dp.style.backgroundImage =
-					'url(/spider/img/cards/red_back.png)';
+				dp.style.backgroundImage = 'url(/spider/img/cards/red_back.png)';
 				html = `<div>${this.game.state.draws_remaining}</div><div>Deal${
 					this.game.state.draws_remaining > 1 ? 's' : ''
 				}</div>`;
@@ -1267,10 +1204,7 @@ class Spider extends OnePlayerGameTemplate {
 	}
 
 	returnCardImageHTML(name) {
-		if (
-			this.invisible_scaffolding &&
-			this.invisible_scaffolding.includes(name)
-		) {
+		if (this.invisible_scaffolding && this.invisible_scaffolding.includes(name)) {
 			return '';
 		}
 
@@ -1322,26 +1256,25 @@ class Spider extends OnePlayerGameTemplate {
 			pre_images[idx].onload = () => {
 				this.preloadImageArray(imageArray, idx + 1);
 			};
-			pre_images[idx].src =
-				'/spider/img/cards/' + imageArray[idx] + '.png';
+			pre_images[idx].src = '/spider/img/cards/' + imageArray[idx] + '.png';
 		}
 	}
 
-	  hasSettings() {
-	    return true;
-	  }
-
+	hasSettings() {
+		return true;
+	}
 
 	loadSettings(container = null) {
-	    if (!container){
-	      this.overlay.show(`<div class="module-settings-overlay"><h2>Spider Solitaire Settings</h2></div>`);
-	      container = ".module-settings-overlay";
-	    }
+		if (!container) {
+			this.overlay.show(
+				`<div class="module-settings-overlay"><h2>Spider Solitaire Settings</h2></div>`
+			);
+			container = '.module-settings-overlay';
+		}
 
 		let as = new AppSettings(this.app, this, container);
 		as.render();
 	}
-
 }
 
 module.exports = Spider;

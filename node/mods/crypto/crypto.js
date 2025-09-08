@@ -288,7 +288,7 @@ class Crypto extends ModTemplate {
 			network_fee = Number(res);
 		});
 
-		let needed_balance = stake + network_fee;
+		let needed_balance = Number(stake) + network_fee;
 
 		if (needed_balance > current_balance) {
 			this.app.connection.emit('saito-crypto-deposit-render-request', {

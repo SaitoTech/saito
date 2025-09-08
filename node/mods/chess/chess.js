@@ -25,12 +25,12 @@ class Chessgame extends GameTemplate {
 		this.minPlayers = 2;
 		this.maxPlayers = 2;
 
+		this.title = 'Saito Chess';
 
-		this.title = "Saito Chess";
-		
-		this.styles.push("/chess/chessboard.css");
+		this.styles.push('/chess/chessboard.css');
 
-		this.description = '"Minutes to learn, a lifetime to master" <br><br> Chess is the king of games and original application on the Saito Network. ';
+		this.description =
+			'"Minutes to learn, a lifetime to master" <br><br> Chess is the king of games and original application on the Saito Network. ';
 		this.categories = 'Games Boardgame Classic';
 
 		this.confirm_moves = 1;
@@ -39,8 +39,8 @@ class Chessgame extends GameTemplate {
 
 		this.insert_rankings = true;
 
-		this.clock.container = "#clock_";
-		
+		this.clock.container = '#clock_';
+
 		this.roles = ['observer', 'white', 'black'];
 		this.app = app;
 	}
@@ -60,7 +60,6 @@ class Chessgame extends GameTemplate {
 		//this.sizer.attachEvents('#board');
 		//this.app.browser.makeDraggable('#board');
 
-
 		await super.render(app);
 
 		//
@@ -75,9 +74,7 @@ class Chessgame extends GameTemplate {
 					id: 'game-draw',
 					class: 'game-draw',
 					callback: async function (app, game_mod) {
-						let c = await sconfirm(
-							'Offer to end the game in a draw?'
-						);
+						let c = await sconfirm('Offer to end the game in a draw?');
 						if (c) {
 							game_mod.game.draw_offered = -1; //Offer already sent
 							var data = { draw: 'offer' };
@@ -94,9 +91,7 @@ class Chessgame extends GameTemplate {
 					id: 'game-draw',
 					class: 'game-draw',
 					callback: async function (app, game_mod) {
-						let c = await sconfirm(
-							'Accept offer to end the game in a draw?'
-						);
+						let c = await sconfirm('Accept offer to end the game in a draw?');
 						if (c) {
 							game_mod.game.draw_offered = -1; //Offer already sent
 							var data = { draw: 'accept' };
@@ -115,7 +110,7 @@ class Chessgame extends GameTemplate {
 					let c = await sconfirm('Do you really want to resign?');
 					if (c) {
 						game_mod.game.turn = [`resignation\t${game_mod.game.player}`];
-						game_mod.sendGameMoveTransaction("game", {});
+						game_mod.sendGameMoveTransaction('game', {});
 						//await game_mod.sendStopGameTransaction('resignation');
 						return;
 					}
@@ -143,30 +138,26 @@ class Chessgame extends GameTemplate {
 		this.playerbox.hostVideo();
 
 		for (let i = 1; i <= 2; i++) {
-			
 			this.playerbox.updateIcons(
-				`<div class="tool-item item-detail turn-shape ${this.roles[
-					i
-				].toLowerCase()}"></div>`,
+				`<div class="tool-item item-detail turn-shape ${this.roles[i].toLowerCase()}"></div>`,
 				i
 			);
 
-			let newhtml = "";
-			if (this.game.player == i){
+			let newhtml = '';
+			if (this.game.player == i) {
 				newhtml += `<div></div>`;
-			}else{
-				newhtml += `<div class="last_move" id="last_${i}"></div>`;;
+			} else {
+				newhtml += `<div class="last_move" id="last_${i}"></div>`;
 			}
 
-			if (this.useClock){
+			if (this.useClock) {
 				newhtml += `<div class="player_clock" id="clock_${i}"></div>`;
 			}
 			newhtml += `<div class="trophies" id="trophies_${i}"></div>`;
-			if (this.game.player == i){
+			if (this.game.player == i) {
 				newhtml += `<div class="status" id="status"></div>`;
 			}
 			this.playerbox.updateBody(newhtml, i);
-
 		}
 
 		if (this.game.player == 1) {
@@ -175,12 +166,12 @@ class Chessgame extends GameTemplate {
 
 		if (this.useClock == 1) {
 			this.clock.render();
-			for (let i = 0; i < this.game.clock.length; i++){
-				this.clock.displayTime(this.game.clock[i].limit - this.game.clock[i].spent, i+1);
+			for (let i = 0; i < this.game.clock.length; i++) {
+				this.clock.displayTime(this.game.clock[i].limit - this.game.clock[i].spent, i + 1);
 			}
 		}
 
-		this.playerbox.setActive(this.game.target);	
+		this.playerbox.setActive(this.game.target);
 
 		window.onresize = () => this.board.resize();
 	}
@@ -208,14 +199,14 @@ class Chessgame extends GameTemplate {
 			this.game.position = this.engine.fen();
 		}
 
-		if (!this.game.state){
-			this.game.state = { last: "" };
+		if (!this.game.state) {
+			this.game.state = { last: '' };
 		}
 
 		console.log(this.game.position, this.game.state);
 
 		if (!this.gameBrowserActive()) {
-			console.log("nope out");
+			console.log('nope out');
 			return;
 		}
 
@@ -223,11 +214,10 @@ class Chessgame extends GameTemplate {
 			this.confirm_moves = 0;
 		}
 
-		if (!this.board){
+		if (!this.board) {
 			this.board = new chessboard('board', {
 				pieceTheme: '/chess/img/pieces/{piece}.png'
 			});
-			
 		}
 
 		if (this.game.over) {
@@ -239,7 +229,7 @@ class Chessgame extends GameTemplate {
 		//
 		//game.target is initialized to 1, which is white (switched above if "player 1" wanted to be black)
 		//
-		console.log("Target/Player", this.game.target, this.game.player);
+		console.log('Target/Player', this.game.target, this.game.player);
 		if (this.game.target == this.game.player) {
 			this.setPlayerActive();
 		}
@@ -258,26 +248,24 @@ class Chessgame extends GameTemplate {
 	// handleGame //
 	////////////////
 	async handleGameLoop() {
-
-		console.log("######## HANDLE GAME LOOP CHESS ###########");
-		console.log('QUEUE IN CHESS: ' + JSON.stringify(this.game.queue));
+		console.debug('QUEUE IN CHESS: ' + JSON.stringify(this.game.queue));
 
 		let msg = {};
 		if (this.game.queue.length > 0) {
 			let mv = this.game.queue.pop();
 
-			if (mv == "checkmate"){
+			if (mv == 'checkmate') {
 				var winnerColor = this.engine.turn() === 'b' ? 'white' : 'black';
 				let winner = this.roles.indexOf(winnerColor);
-				this.sendGameOverTransaction(this.game.players[winner-1], "checkmate");
+				this.sendGameOverTransaction(this.game.players[winner - 1], 'checkmate');
 				return 0;
 			}
 
-			if (mv.includes("resignation")){
-				let cmd = mv.split("\t");
+			if (mv.includes('resignation')) {
+				let cmd = mv.split('\t');
 				let loser = cmd.pop();
-				let winner = 2-loser;
-				this.sendGameOverTransaction(this.game.players[winner], "resignation");
+				let winner = 2 - loser;
+				this.sendGameOverTransaction(this.game.players[winner], 'resignation');
 				return 0;
 			}
 
@@ -287,19 +275,16 @@ class Chessgame extends GameTemplate {
 			this.startClock();
 			return;
 		}
-		
-
 
 		if (this.game?.position) {
 			console.log(this.game.position);
 			this.engine.load(this.game.position);
 
-			if (this.engine.in_check()){
+			if (this.engine.in_check()) {
 				this.playerbox.setInactive();
-				this.playerbox.addClass("in_check", this.game.target);
+				this.playerbox.addClass('in_check', this.game.target);
 			}
 		}
-
 
 		if (msg.extra == undefined) {
 			console.log('NO MESSAGE DEFINED!');
@@ -362,29 +347,28 @@ class Chessgame extends GameTemplate {
 			return 0;
 		}
 
-		if (this.engine.in_check()){
+		if (this.engine.in_check()) {
 			this.playerbox.setInactive();
-			this.playerbox.addClass("in_check", this.game.target);
-		}else{
-			this.playerbox.setActive(this.game.target);	
-			$(".in_check").removeClass("in_check");
+			this.playerbox.addClass('in_check', this.game.target);
+		} else {
+			this.playerbox.setActive(this.game.target);
+			$('.in_check').removeClass('in_check');
 		}
-		
+
 		if (msg.extra.target == this.game.player) {
 			this.setPlayerActive();
-		}else{
+		} else {
 			//I announce that I am in checkmate to end the game
 			if (this.engine.in_checkmate() === true) {
-				this.game.turn = ["checkmate"];
+				this.game.turn = ['checkmate'];
 
-				this.sendGameMoveTransaction("game", {});
+				this.sendGameMoveTransaction('game', {});
 
 				//this.sendStopGameTransaction('checkmate');
 				return 0;
-			}else{
+			} else {
 				this.startClock();
 			}
-
 		}
 
 		this.saveGame(this.game.id);
@@ -394,18 +378,12 @@ class Chessgame extends GameTemplate {
 
 	switchColors() {
 		// observer skips
-		if (
-			this.game.player === 0 ||
-			!this.game.players.includes(this.publicKey)
-		) {
+		if (this.game.player === 0 || !this.game.players.includes(this.publicKey)) {
 			return 1;
 		}
 
 		//Game engine automatically randomizes player order, so we are good to go
-		if (
-			!this.game.options.player1 ||
-			this.game.options.player1 == 'random'
-		) {
+		if (!this.game.options.player1 || this.game.options.player1 == 'random') {
 			return 1;
 		}
 
@@ -447,31 +425,28 @@ class Chessgame extends GameTemplate {
 		extra.target = this.returnNextPlayer(this.game.player);
 		extra.data = JSON.stringify(data);
 
-		let data_to_send = this.app.crypto.stringToBase64(
-			JSON.stringify(extra)
-		);
+		let data_to_send = this.app.crypto.stringToBase64(JSON.stringify(extra));
 		this.game.turn = [data_to_send];
 		this.moves = [];
 		this.sendGameMoveTransaction('game', extra);
 	}
-
 
 	updatePlayers(target = this.game.target, move = this.game.state.last) {
 		if (this.game.player == 0 || !this.gameBrowserActive()) {
 			return;
 		}
 
-		for (let i = 1; i < 3; i++){
+		for (let i = 1; i < 3; i++) {
 			let captured = this.returnCapturedHTML(this.returnCaptured(this.engine.fen()), i);
-			if (document.querySelector(`#trophies_${i}`)){
+			if (document.querySelector(`#trophies_${i}`)) {
 				document.querySelector(`#trophies_${i}`).innerHTML = captured;
 			}
 		}
-		
+
 		this.game.state.last = move;
 		if (target == this.game.player) {
-			if (document.querySelector(".last_move")){
-				document.querySelector(".last_move").innerHTML = this.game.state.last;
+			if (document.querySelector('.last_move')) {
+				document.querySelector('.last_move').innerHTML = this.game.state.last;
 			}
 		}
 
@@ -488,7 +463,7 @@ class Chessgame extends GameTemplate {
 	updateBoard(position) {
 		this.engine.load(position);
 
-		if (this.gameBrowserActive()) { 
+		if (this.gameBrowserActive()) {
 			this.board.position(position, true);
 		}
 	}
@@ -616,8 +591,7 @@ class Chessgame extends GameTemplate {
 		});
 
 		// legal move - make it
-		this_chess.game.move += `${this_chess.pieces(move.piece)} - ${move.san
-			}`;
+		this_chess.game.move += `${this_chess.pieces(move.piece)} - ${move.san}`;
 
 		var data = {};
 		data.position = this.engine.fen();
@@ -628,13 +602,7 @@ class Chessgame extends GameTemplate {
 
 	checkPromotion(source, target, color) {
 		let html = ['q', 'r', 'b', 'n']
-			.map(
-				(n) =>
-					`<div class="action piece" id="${n}">${this.piecehtml(
-						n,
-						color
-					)}</div>`
-			)
+			.map((n) => `<div class="action piece" id="${n}">${this.piecehtml(n, color)}</div>`)
 			.join('');
 
 		html = `<div class="popup-confirm-menu promotion-choices">
@@ -647,9 +615,7 @@ class Chessgame extends GameTemplate {
 		let top = $(`#board`).offset().top;
 
 		if (this.slot) {
-			left =
-				$(`.square-${this.slot}`).offset().left +
-				$(`.square-${this.slot}`).width();
+			left = $(`.square-${this.slot}`).offset().left + $(`.square-${this.slot}`).width();
 			if (left + 100 > window.innerWidth) {
 				left = $(`.square-${this.slot}`).offset().left - 150;
 			}
@@ -665,10 +631,7 @@ class Chessgame extends GameTemplate {
 			left: left
 		});
 		if ($('.popup-confirm-menu').height() + top > window.innerHeight) {
-			$('.popup-confirm-menu').css(
-				'top',
-				window.innerHeight - $('.popup-confirm-menu').height()
-			);
+			$('.popup-confirm-menu').css('top', window.innerHeight - $('.popup-confirm-menu').height());
 		}
 
 		$('.action').off();
@@ -712,9 +675,7 @@ class Chessgame extends GameTemplate {
 
 	removeGreySquares() {
 		let grey_squares = document.querySelectorAll('#board .square-55d63');
-		Array.from(grey_squares).forEach(
-			(square) => (square.style.background = '')
-		);
+		Array.from(grey_squares).forEach((square) => (square.style.background = ''));
 	}
 
 	greySquare(square) {
@@ -734,7 +695,6 @@ class Chessgame extends GameTemplate {
 			//Don't want to accidentally trigger a Send Move
 			return;
 		}
-
 	}
 
 	confirmPlacement(callback) {
@@ -755,9 +715,7 @@ class Chessgame extends GameTemplate {
 		let top = $(`#board`).offset().top;
 
 		if (this.slot) {
-			left =
-				$(`.square-${this.slot}`).offset().left +
-				1.5 * $(`.square-${this.slot}`).width();
+			left = $(`.square-${this.slot}`).offset().left + 1.5 * $(`.square-${this.slot}`).width();
 			if (left + 100 > window.innerWidth) {
 				left = $(`.square-${this.slot}`).offset().left - 150;
 			}
@@ -773,10 +731,7 @@ class Chessgame extends GameTemplate {
 			left: left
 		});
 		if ($('.popup-confirm-menu').height() + top > window.innerHeight) {
-			$('.popup-confirm-menu').css(
-				'top',
-				window.innerHeight - $('.popup-confirm-menu').height()
-			);
+			$('.popup-confirm-menu').css('top', window.innerHeight - $('.popup-confirm-menu').height());
 		}
 
 		$('.action').off();
@@ -834,40 +789,8 @@ class Chessgame extends GameTemplate {
 
 	returnCaptured(afen) {
 		afen = afen.split(' ')[0];
-		let WH = [
-			'Q',
-			'R',
-			'R',
-			'B',
-			'B',
-			'N',
-			'N',
-			'P',
-			'P',
-			'P',
-			'P',
-			'P',
-			'P',
-			'P',
-			'P'
-		];
-		let BL = [
-			'q',
-			'r',
-			'r',
-			'b',
-			'b',
-			'n',
-			'n',
-			'p',
-			'p',
-			'p',
-			'p',
-			'p',
-			'p',
-			'p',
-			'p'
-		];
+		let WH = ['Q', 'R', 'R', 'B', 'B', 'N', 'N', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'];
+		let BL = ['q', 'r', 'r', 'b', 'b', 'n', 'n', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'];
 		for (var i = 0; i < afen.length; i++) {
 			if (WH.indexOf(afen[i]) >= 0) {
 				WH.splice(WH.indexOf(afen[i]), 1);
@@ -922,7 +845,6 @@ class Chessgame extends GameTemplate {
 		}
 		return ngoa;
 	}
-
 }
 
 module.exports = Chessgame;

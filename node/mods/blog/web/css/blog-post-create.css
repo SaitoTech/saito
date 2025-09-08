@@ -53,6 +53,7 @@
 
 .ql-snow.ql-toolbar button {
   min-width: 0 !important;
+  min-height: unset;
   color: var(--saito-font-color);
 }
 

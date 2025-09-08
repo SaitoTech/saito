@@ -24,6 +24,7 @@ class SaitoOverlay {
     this.callback_on_close = null;
     this.class = 'saito-overlay';
     this.zIndex = 100;
+    this.visible = false;
     //flag to not add the backdrop
     this.nonBlocking = false;
   }
@@ -103,6 +104,8 @@ class SaitoOverlay {
     if (!document.getElementById(qs)) {
       this.app.browser.addElementToDom(SaitoOverlayTemplate(this));
     }
+
+    this.visible = true;
   }
 
   /**
@@ -208,6 +211,7 @@ class SaitoOverlay {
   }
 
   hide() {
+    this.visible = false;
     let elsq = `#saito-overlay${this.ordinal}`;
     let bdelsq = `#saito-overlay-backdrop${this.ordinal}`;
 
@@ -222,6 +226,7 @@ class SaitoOverlay {
   }
 
   remove() {
+    this.visible = false;
     try {
       let overlay_el = document.querySelector(`#saito-overlay${this.ordinal}`);
       if (overlay_el != null) {

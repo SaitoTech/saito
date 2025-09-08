@@ -10,13 +10,13 @@
  To understand how your module can integrate cryptocurrencies, the API is handled
  in lib/saito/wallet.ts
 
-	Minimum extension functionality: 
-	-- checkBalance
-	-- returnPrivateKey
-	-- sendPayment
-	-- receivePayment
-	-- returnHistory
-	-- checkWithdrawalFeeForAddress
+  Minimum extension functionality: 
+  -- checkBalance
+  -- returnPrivateKey
+  -- sendPayment
+  -- receivePayment
+  -- checkHistory
+  -- checkWithdrawalFeeForAddress
 
 **********************************************************************************/
 const ModTemplate = require('./modtemplate');
@@ -56,6 +56,12 @@ class CryptoModule extends ModTemplate {
     this.address = '';
 
     //
+    // cached in memory / localForage -- list of standardized objects detailing transaction history
+    //
+    this.history = null;
+    this.history_update_ts = 0;
+
+    //
     // info stored in options file, you can safely add items as necessary
     //
     this.options = {};
@@ -72,7 +78,8 @@ class CryptoModule extends ModTemplate {
     //
     // We save the state of our crypto wallet local storage (options file)
     //
-    this.load();
+    console.log('Initializing ' + this.ticker);
+    await this.load();
 
     if (this.ticker === this.app.wallet.returnPreferredCryptoTicker()) {
       await this.activate();
@@ -104,13 +111,8 @@ class CryptoModule extends ModTemplate {
   }
 
   async onConfirmation(blk, tx, conf) {
-    if (!this.app.BROWSER) {
-      // no need to process on a server, purely browserland user friendly parsing
-      return;
-    }
-
     if (conf == 0) {
-      if (!tx.isTo(this.publicKey) || tx.isFrom(this.publicKey)) {
+      if (!tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
         return;
       }
 
@@ -121,7 +123,12 @@ class CryptoModule extends ModTemplate {
       }
 
       if (txmsg.request === 'crypto payment') {
-        this.receivePaymentTransaction(tx);
+        if (this.app.BROWSER) {
+          this.receivePaymentTransaction(tx);
+        } else {
+          // tells the migration bot that the user's deposit is complete
+          this.app.connection.emit('saito-crypto-receive-confirm', txmsg);
+        }
       }
     }
   }
@@ -141,37 +148,58 @@ class CryptoModule extends ModTemplate {
     await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
 
-    console.info('Crypto: sendPaymentTransaction sent!', newtx.msg);
+    console.info(`Crypto: sendPaymentTransaction sent to ${publicKey}!`, newtx.msg);
   }
+
+  //
+  // Only implemented for $SAITO
+  //
+  savePaymentTransaction(tx) {}
 
   receivePaymentTransaction(tx) {
     let txmsg = tx.returnMessage();
 
     console.info('Crypto: receivePaymentTransaction', txmsg);
 
-    let expected_payment = false;
+    if (!tx.isFrom(this.publicKey)) {
+      this.app.keychain.addCryptoAddress(tx.from[0].publicKey, this.ticker, txmsg.from);
 
-    if (this.options?.transfers_inbound) {
-      for (let i = 0; i < this.options.transfers_inbound.length; i++) {
-        if (this.options.transfers_inbound[i] == txmsg.hash) {
-          expected_payment = true;
-          this.options.transfers_inbound.splice(i, 1);
-          this.save();
-          break;
+      let expected_payment = false;
+
+      if (this.options?.transfers_inbound) {
+        for (let i = 0; i < this.options.transfers_inbound.length; i++) {
+          if (this.options.transfers_inbound[i] == txmsg.hash) {
+            expected_payment = true;
+            this.options.transfers_inbound.splice(i, 1);
+            this.save();
+            break;
+          }
         }
       }
+
+      //
+      // updates the in-game receive payment overlay or just display a siteMessage
+      //
+      if (expected_payment) {
+        this.app.connection.emit('saito-crypto-receive-confirm', txmsg);
+      } else {
+        siteMessage(
+          `${txmsg.amount} ${this.ticker} inbound from ${this.app.keychain.returnUsername(
+            tx.from[0].publicKey
+          )}`,
+          3000
+        );
+      }
+    } else {
+      //
+      // I sent the payment!
+      //
+      this.app.keychain.addCryptoAddress(tx.to[0].publicKey, this.ticker, txmsg.to);
     }
 
-    if (expected_payment) {
-      this.app.connection.emit('saito-crypto-receive-confirm', txmsg);
-    } else {
-      siteMessage(
-        `${txmsg.amount} ${this.ticker} inbound from ${this.app.keychain.returnUsername(
-          tx.from[0].publicKey
-        )}`,
-        3000
-      );
-    }
+    this.savePaymentTransaction(tx);
+
+    setTimeout(this.checkBalanceUpdate.bind(this), 2000);
   }
 
   saveInboundPayment(hash) {
@@ -223,10 +251,16 @@ class CryptoModule extends ModTemplate {
    */
   async activate() {
     await this.checkBalance();
+    await this.checkHistory();
+
+    if (!this.options.isActivated) {
+      let info = await this.returnNetworkInfo();
+      this.confirmations = info.confirmations;
+      console.log(`Activated ${this.ticker}: `, info);
+      this.options.isActivated = true;
+    }
 
     this.app.connection.emit('crypto-activated', this.ticker);
-
-    this.options.isActivated = true;
     this.save();
   }
 
@@ -259,6 +293,32 @@ class CryptoModule extends ModTemplate {
     return this.balance;
   }
 
+  async checkBalanceUpdate() {
+    console.log('$$$$ checkBalanceUpdate');
+
+    let original_balance = Number(this.balance);
+
+    await this.checkBalance();
+
+    let new_balance = Number(this.returnBalance());
+
+    let diff = new_balance - original_balance;
+
+    if (diff == 0) {
+      return;
+    }
+
+    if (diff > 0) {
+      let msg = `New ${this.app.browser.formatDecimals(diff)} ${this.ticker} deposit`;
+      siteMessage(msg, 3000);
+    } else {
+      let msg = `New ${this.app.browser.formatDecimals(-diff)} ${this.ticker} payment`;
+      siteMessage(msg, 3000);
+    }
+
+    this.app.connection.emit('header-update-crypto');
+  }
+
   /**
    * Abstract method which should get pubkey/address
    * @abstract
@@ -276,10 +336,14 @@ class CryptoModule extends ModTemplate {
     return this.returnAddress();
   }
 
+  returnHistory() {
+    return this.history;
+  }
+
   /**
    * load state of this module from local storage
    */
-  load() {
+  async load() {
     //
     // info stored in options file
     //
@@ -296,6 +360,26 @@ class CryptoModule extends ModTemplate {
         if (this.options?.address && !this?.address) {
           this.address = this.options.address;
         }
+
+        if (this.options.confirmations) {
+          this.confirmations = this.options.confirmations;
+        }
+      }
+    }
+
+    if (this.address) {
+      this.history = await this.app.storage.getLocalForageItem(
+        `${this.ticker}_${this.address}_history`
+      );
+      if (this.history) {
+        this.history = JSON.parse(this.history);
+        if (this.history.length > 0) {
+          this.history_update_ts = this.history[this.history.length - 1].timestamp;
+
+          console.log('Crypto History!', this.history);
+        }
+      } else {
+        this.history = [];
       }
     }
   }
@@ -310,6 +394,8 @@ class CryptoModule extends ModTemplate {
     if (!this.app.options.crypto[this.ticker]) {
       this.app.options.crypto[this.ticker] = {};
     }
+
+    this.options.confirmations = this.confirmations;
 
     //
     // Update the fields that we duplicte directly in the module
@@ -330,6 +416,13 @@ class CryptoModule extends ModTemplate {
     this.app.options.crypto[this.ticker] = this.options;
 
     this.app.storage.saveOptions();
+
+    if (this.history.length > 0) {
+      this.app.storage.setLocalForageItem(
+        `${this.ticker}_${this.address}_history`,
+        JSON.stringify(this.history)
+      );
+    }
   }
 
   async returnAddressFromPublicKey(publicKey) {
@@ -407,15 +500,11 @@ CryptoModule.prototype.receivePayment = function (
 /**
  * Abstract method
  * @abstract
- * @param {Number} records - how many records per page
  * @param {function} callback - function to call when the data is being fetched/sorted
  * @return {object} payment history data
  */
-//
-// NOTE, asset_id is a MIXIN module information type and should not be a base crypto-mod fnct
-//
-CryptoModule.prototype.returnHistory = function (asset_id = '', records = 20, callback = null) {
-  throw new Error('returnHistory must be implemented by subclass!');
+CryptoModule.prototype.checkHistory = function (callback = null) {
+  throw new Error('checkHistory must be implemented by subclass!');
 };
 
 CryptoModule.prototype.checkWithdrawalFeeForAddress = function (recipient = '', mycallback = null) {
@@ -464,7 +553,7 @@ CryptoModule.prototype.returnUtxo = async function (
 };
 
 CryptoModule.prototype.returnNetworkInfo = async function (ticker) {
-  return {};
+  return { confirmations: 0 };
 };
 
 module.exports = CryptoModule;

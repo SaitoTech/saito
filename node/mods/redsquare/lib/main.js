@@ -259,6 +259,8 @@ class RedSquareMain {
   }
 
   render() {
+    let time = Date.now();
+
     if (!document.querySelector('.saito-container')) {
       this.app.browser.addElementToDom(RedSquareMainTemplate(this.mod));
     }
@@ -363,6 +365,7 @@ class RedSquareMain {
         this.enableObserver();
       }
       this.mode = new_mode;
+      console.debug(`RS.render: ${Date.now() - time}ms elapsed in rendering main feed`);
       return;
     }
 
@@ -372,7 +375,7 @@ class RedSquareMain {
     // backup tweets into hidden div before nevigating away from main thread
     // (this is to speed up navigation by keeping downloaded images in the browser)
     //
-    if (this.mod === 'tweets') {
+    if (this.mode === 'tweets') {
       holderElem.replaceChildren(...mainElem.children);
     }
 
@@ -417,6 +420,9 @@ class RedSquareMain {
       this.mod.resetNotifications();
       this.moreNotifications();
       //this.enableObserver();
+
+      console.debug(`RS.render: ${Date.now() - time}ms elapsed in rendering notifications`);
+
       return;
     }
 
@@ -477,6 +483,8 @@ class RedSquareMain {
         this.hideLoader();
       });
     }
+
+    console.debug(`RS.render: ${Date.now() - time}ms elapsed in rendering`);
   }
 
   moreNotifications() {
@@ -737,7 +745,6 @@ class RedSquareMain {
     // show our tweet
     //
     if (!tweet.parent_id) {
-      console.debug('I am the parent tweet!');
       tweet.renderWithChildren(true, true);
     } else {
       let root_tweet = this.mod.returnTweet(thread_id);

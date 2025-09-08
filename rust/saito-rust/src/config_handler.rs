@@ -2,9 +2,10 @@ use figment::providers::{Format, Json};
 use figment::Figment;
 use log::{debug, error, info};
 use saito_core::core::consensus::peers::congestion_controller::CongestionStatsDisplay;
+use saito_core::core::defs::RECOLLECT_NOTHING;
 use saito_core::core::util::configuration::{
-    get_default_issuance_writing_block_interval, BlockchainConfig, Configuration, ConsensusConfig,
-    Endpoint, PeerConfig, Server,
+    get_default_issuance_writing_block_interval, get_default_recollect_mode, BlockchainConfig,
+    Configuration, ConsensusConfig, Endpoint, PeerConfig, Server,
 };
 use serde::{Deserialize, Serialize};
 use std::io::{Error, ErrorKind};
@@ -58,6 +59,8 @@ impl Default for NodeConfigurations {
                 max_staker_recursions: 3,
                 default_social_stake: 0,
                 default_social_stake_period: 60,
+                block_confirmation_limit: 6,
+                recollect_discarded_txs_mode: get_default_recollect_mode(),
             }),
             blockchain: BlockchainConfig {
                 last_block_hash: "0000000000000000000000000000000000000000000000000000000000000000"

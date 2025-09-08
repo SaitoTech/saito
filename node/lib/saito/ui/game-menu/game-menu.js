@@ -145,26 +145,26 @@ class GameMenu {
               btn.onclick = async (e) => {
                 e.stopPropagation();
 
-		let newtx = await game_mod.app.wallet.createUnsignedTransactionWithDefaultFee();
-		let recipients = [];
-    		game_mod.game.accepted.forEach((player) => {
-		   if (player != game_mod.publicKey) {
-     		     newtx.addTo(player);
-		     recipients.push(player);
-		   }
-    	        });
-    		newtx.msg = {
-      		  request: 'game relay recent moves' ,
-      		  module: game_mod.name ,
-      		  game_id: game_mod.game.id ,
-      		  timestamp: new Date().getTime()
-    		};
-    
-      		game_mod.app.connection.emit('relay-send-message', {
-      		  request: 'game relay recent moves',
-	          recipient: recipients,
-      		  data: newtx.toJson()
-      		});
+                let newtx = await game_mod.app.wallet.createUnsignedTransactionWithDefaultFee();
+                let recipients = [];
+                game_mod.game.accepted.forEach((player) => {
+                  if (player != game_mod.publicKey) {
+                    newtx.addTo(player);
+                    recipients.push(player);
+                  }
+                });
+                newtx.msg = {
+                  request: 'game relay recent moves',
+                  module: game_mod.name,
+                  game_id: game_mod.game.id,
+                  timestamp: new Date().getTime()
+                };
+
+                game_mod.app.connection.emit('relay-send-message', {
+                  request: 'game relay recent moves',
+                  recipient: recipients,
+                  data: newtx.toJson()
+                });
 
                 btn.onclick = null;
                 btn.classList.add('disabled');

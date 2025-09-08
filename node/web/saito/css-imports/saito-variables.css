@@ -63,8 +63,8 @@ font imports
 
   --saito-green: #3df71f;
 
-  --saito-gray-light: #e9e9e9;
-  --saito-gray: #444;
+  --saito-gray-light: #a1a1a1;
+  --saito-gray: #555;
   --saito-gray-transparent: #4444;
   --saito-gray-dark: #3d3d3d; /*#7f7f7f;*/
 
@@ -72,7 +72,7 @@ font imports
   --saito-red: #f71f3d;
   --saito-red-dark: #e8001e;
   --saito-orange: #ff8235;
-  --saito-orange-dark: #ff8235;
+  --saito-orange-dark: #e57631;
   --saito-magenta: #f7009b;
   --saito-pink: #e98eaf;
   --saito-yellow-light: #e9ce93;
@@ -81,16 +81,12 @@ font imports
     linear-gradient(40deg, #f7009b 15%, #f71f3d 25%, #f71f3d 65%, #e98eaf 75%, #0000),
     linear-gradient(180deg, #e9ce93, #f71f3d);
 
-  --twitter-gray: rgb(113 134 149); /* tweet-controls, reply ---, tweet-context */
-  --twitter-gray-dark: #777;
-  --twitter-gray-darker: #38444d; /* border of embedded re-tweet */
-  --twitter-gray-darkest: #192734; /* background of embedded re-tweet */
+  --twitter-gray: #718695; /* tweet-controls, reply ---, tweet-context */
   --twitter-gray-light: #ccc; /* address of embedded re-tweets */
   --twitter-gray-lighter: #e1e8ed; /* text of embedded re-tweets */
-  --twitter-gray-lightest: #f4f4f4;
 
   --saito-primary: var(--saito-orange);
-  --saito-primary-dark: var(--saito-red);
+  --saito-primary-dark: var(--saito-orange-dark);
   --saito-primary-text: var(--saito-white);
   --saito-primary-background: linear-gradient(
       45deg,
@@ -100,7 +96,7 @@ font imports
     )
     transparent no-repeat left top / 400% auto;
 
-  --saito-secondary: var(--saito-orange);
+  --saito-secondary: var(--saito-yellow-light);
   --saito-secondary-text: var(--saito-white);
 
   --saito-arcade-overlay-background: #212022;
@@ -110,13 +106,13 @@ font imports
   --saito-highlight-heavy: #4445;
 
   /* Background Shim Colors */
-  --background-color-shim-light: #0003;
+  --background-color-shim-light: #0006;
   --background-color-shim-normal: #0008;
   --background-color-shim-dark: #000b;
 
-  --saito-border-color: var(--saito-gray-light);
+  --saito-border-color-light: var(--saito-gray-light);
+  --saito-border-color: var(--saito-black-light);
   --saito-border-color-dark: var(--saito-gray-dark);
-  --saito-border: 1px solid #c5c5c5bb;
   --saito-border-radius: 0.5rem;
 
   --saito-box-shadow:
@@ -161,11 +157,13 @@ font imports
   --game-theme-font: var(--saito-font);
 
   --saito-font-color: var(--saito-font-color-primary);
-  --saito-font-color-primary: var(--saito-gray);
-  --saito-font-color-secondary: rgb(83, 100, 113);
+  --saito-font-color-primary: var(--saito-gray-dark);
+  --saito-font-color-secondary: var(--saito-gray); /*rgb(83, 100, 113);*/
   --saito-font-color-heavy: var(--saito-black-heavy);
   --saito-font-color-light: var(--saito-font-color-secondary);
-  --saito-font-color-inverse: var(--saito-gray-light);
+  --saito-font-color-inverse: #e6e6e6;
+
+  --color-contrast: var(--saito-black-light);
 
   /* Border Radius */
   --border-radius-sharp: 0.5rem;
@@ -192,6 +190,7 @@ font imports
   --border-radius-identicon: var(--border-radius-sharp);
 
   --border-color-sidebar-menu: var(--saito-secondary);
+  --border-color-chat-popup-docked: var(--saito-primary);
 
   --border-color-button-module: var(--saito-gray-dark);
 

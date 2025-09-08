@@ -25,10 +25,13 @@
     let x = 0;
     for (let i = 0; i < this.game.spaces[this.game.state.combat.key].units.length; i++) {
       let unit = this.game.spaces[this.game.state.combat.key].units[i];
-      if (unit.damaged) {
-        x += unit.rcombat;
-      } else {
-        x += unit.combat;
+      // units that have retreated this turn do not add their combat
+      if (!unit.moved) {
+        if (unit.damaged) {
+          x += unit.rcombat;
+        } else {
+          x += unit.combat;
+        }
       }
     }
     return x;
@@ -233,7 +236,7 @@
     if (space.terrain == "mountain") { is_geography_suitable = false; }
     if (space.terrain == "swamp")    { is_geography_suitable = false; }
     if (space.trench > 0)            { is_geography_suitable = false; }
-    if (space.fort > 0)              { is_geography_suitable = false; }
+    if (space.fort > 0)              { if (space.units.length == 0) { is_geography_suitable = false; } }
     if (attacker_spaces.length > 1)         { are_attacks_from_two_spaces = true; }
 
     if (is_geography_suitable == true && is_one_army_attacking == true && are_attacks_from_two_spaces == true) {

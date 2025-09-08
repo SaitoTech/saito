@@ -16,5 +16,5 @@ module.exports = (app, mod, images) => {
 		}
 	}
 
-	return `<div class="tweet-picture"><div class="saito-img-flex ${images.length == 1 ? 'single-img' : ''}" style="--image-height:${tweet_picture_height};--multi-max-height:${multi_max_height}">${imgs}</div></div>`;
+	return `<div class="saito-img-flex ${images.length == 1 ? 'single-img' : ''}" style="--image-height:${tweet_picture_height};--multi-max-height:${multi_max_height}">${imgs}</div>`;
 };

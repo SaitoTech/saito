@@ -13,7 +13,7 @@ pub mod test {
     use crate::core::consensus_thread::{ConsensusEvent, ConsensusStats, ConsensusThread};
     use crate::core::defs::{
         BlockId, Currency, ForkId, PrintForLog, SaitoHash, SaitoPrivateKey, StatVariable,
-        STAT_BIN_COUNT,
+        RECOLLECT_EVERY_TX, RECOLLECT_NOTHING, STAT_BIN_COUNT,
     };
     use crate::core::defs::{SaitoPublicKey, Timestamp};
     use crate::core::io::network::Network;
@@ -26,8 +26,8 @@ pub mod test {
     use crate::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
     use crate::core::stat_thread::{StatEvent, StatThread};
     use crate::core::util::configuration::{
-        get_default_issuance_writing_block_interval, BlockchainConfig, Configuration,
-        ConsensusConfig, Endpoint, PeerConfig, Server,
+        get_default_issuance_writing_block_interval, get_default_recollect_mode, BlockchainConfig,
+        Configuration, ConsensusConfig, Endpoint, PeerConfig, Server,
     };
     use crate::core::util::crypto::{generate_keypair_from_private_key, generate_keys};
     use crate::core::util::test::test_io_handler::test::TestIOHandler;
@@ -172,6 +172,8 @@ pub mod test {
                     max_staker_recursions: 3,
                     default_social_stake: 0,
                     default_social_stake_period: 60,
+                    block_confirmation_limit: 6,
+                    recollect_discarded_txs_mode: get_default_recollect_mode(),
                 }),
             }
         }
@@ -228,6 +230,8 @@ pub mod test {
                     genesis_period,
                     0,
                     60,
+                    6,
+                    6,
                 ))),
                 mempool_lock: Arc::new(RwLock::new(Mempool::new(wallet.clone()))),
                 wallet_lock: wallet.clone(),
