@@ -1,5 +1,6 @@
 const WithdrawTemplate = require('./withdraw.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
+const SaitoContacts = require('./../../modals/saito-contacts/saito-contacts');
 
 class Withdraw {
   constructor(app, mod, container = '') {
@@ -7,6 +8,7 @@ class Withdraw {
     this.mod = mod;
     this.container = container;
     this.overlay = new SaitoOverlay(this.app, this.mod);
+    this.contacts = new SaitoContacts(app, mod);
 
     this.ticker = '';
     this.pc = null; // pointer at the crypto module
@@ -99,6 +101,11 @@ class Withdraw {
 
       await this.app.wallet.setPreferredCrypto(element.value);
       this.fee = null;
+
+      if (this.publicKey) {
+        this.render();
+        return;
+      }
 
       document.querySelector('#withdraw-input-address').value = '';
       document.querySelector('#withdraw-input-amount').value = '';
@@ -257,6 +264,26 @@ class Withdraw {
               balance_as_float - this_withdraw.fee;
             this_withdraw.validateAmountInput();
           }
+        };
+      }
+
+      if (document.getElementById('address-book')) {
+        document.getElementById('address-book').onclick = (e) => {
+          this.contacts.title = `Contacts with ${this.ticker}`;
+          this.contacts.callback = (key) => {
+            this.publicKey = key;
+            this.render();
+          };
+
+          let contactsWithCrypto = this.app.keychain.returnKeys();
+
+          if (this.ticker !== 'SAITO') {
+            contactsWithCrypto = contactsWithCrypto.filter(
+              (k) => k?.crypto_addresses && k.crypto_addresses[this.ticker]
+            );
+          }
+
+          this.contacts.render(contactsWithCrypto);
         };
       }
     }

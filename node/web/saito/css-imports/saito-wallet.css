@@ -341,11 +341,11 @@
 }
 
 .withdraw-options-cont,
-.withdraw-input-cont i {
+.withdraw-input-cont > i {
   cursor: pointer;
-  margin: 1rem;
+  padding: 1rem;
   margin-left: 0.5rem;
-  font-size: 2.5rem;
+  font-size: 2rem;
 }
 
 .withdraw-options-cont {
@@ -354,8 +354,20 @@
   justify-content: center;
 }
 
+.withdraw-options-cont:hover {
+  font-weight: bold;
+}
+
+.withdraw-options-cont:hover i {
+  transform: scale(1.15);
+}
+
 .withdraw-options-cont span {
   font-size: 1.6rem;
+}
+
+.withdraw-input-cont.fixed-user .withdraw-options-cont {
+  display: none;
 }
 
 .saito-overlay-form-submit,
