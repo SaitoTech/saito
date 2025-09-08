@@ -112,21 +112,6 @@ export default class Wallet extends SaitoWallet {
 
         app.connection.on('wallet-updated', async () => {
           this.checkBalanceUpdate();
-
-          if (Number(this.balance) > 0 && this.history?.length == 0) {
-            for (let slip of this.app.options.wallet.slips) {
-              if (!slip.spent) {
-                this.history.push({
-                  //
-                  // It would be nice if slips had timestamps, or if I could get the slip with the tx
-                  //
-                  timestamp: this.app.options.blockchain.lowest_acceptable_timestamp,
-                  amount: Number(this.app.wallet.convertNolanToSaito(BigInt(slip.amount))),
-                  type: 'deposit'
-                });
-              }
-            }
-          }
         });
       }
 
@@ -189,10 +174,55 @@ export default class Wallet extends SaitoWallet {
       // Pull a ledger of payments from an archive (explorerc)
       //
       async checkHistory(callback) {
-        // Do a query on explorerc -- ledger when available
-        if (callback) {
-          setTimeout(callback, 3000);
-        }
+        // Parse return results from Memento
+        const mycallback = (rows) => {
+          let timestamp = 0;
+          for (let r of rows) {
+            timestamp = r.timestamp;
+            if (timestamp > this.history_update_ts) {
+              let amount = this.app.wallet.convertNolanToSaito(BigInt(r.amount));
+              const obj = {
+                counter_party: { address: '', publicKey: '' },
+                timestamp,
+                amount,
+                type: '',
+                trans_hash: r.tx_sig
+              };
+
+              if (r.from_key == this.publicKey) {
+                obj.counter_party.address = obj.counter_party.publicKey = r.to_key;
+                obj.type = 'send';
+                obj.amount = -obj.amount;
+              } else {
+                // I am the receiver
+                obj.counter_party.address = obj.counter_party.publicKey = r.from_key;
+                obj.type = 'receive';
+              }
+
+              this.history.push(obj);
+            } else {
+              console.warn('Repeated/old transaction: ', r);
+            }
+          }
+
+          this.history_update_ts = Math.max(this.history_update_ts, timestamp) + 1;
+
+          this.save();
+
+          if (callback) {
+            callback(this.history);
+          }
+        };
+
+        // Request data from SQL database in Memento
+        this.app.network.sendRequestAsTransaction(
+          'memento',
+          {
+            publicKey: this.publicKey,
+            offset: this.history_update_ts
+          },
+          mycallback
+        );
       }
 
       async sendPayment(amount: string, to_address: string, unique_hash: string = '') {

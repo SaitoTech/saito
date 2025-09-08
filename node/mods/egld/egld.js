@@ -182,7 +182,7 @@ class EGLDModule extends CryptoModule {
       const keys = this.app.keychain.returnKeys();
 
       console.log('return history: ', transactions);
-      let timestamp;
+      let timestamp = 0;
 
       if (transactions.length > 0) {
         // Make sure in ascending order
@@ -232,7 +232,7 @@ class EGLDModule extends CryptoModule {
 
           this.history.push(obj);
         }
-        this.history_update_ts = timestamp + 1;
+        this.history_update_ts = Math.max(this.history_update_ts, timestamp) + 1;
         this.save();
       }
 

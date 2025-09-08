@@ -406,7 +406,7 @@ class MixinModule extends CryptoModule {
 				console.log('Formatted history: ', this_self.history);
 
 				if (callback) {
-					callback(d);
+					callback(this_self.history);
 				}
 			}
 		);

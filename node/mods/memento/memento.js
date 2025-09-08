@@ -45,9 +45,24 @@ class Memento extends ModTemplate {
     }
   }
 
-  async onConfirmation(blk, tx, conf) {
-    console.log('On Confirmation:', tx);
+  async handlePeerTransaction(app, tx = null, peer, mycallback) {
+    if (tx == null) {
+      return 0;
+    }
+    let message = tx.returnMessage();
+
+    if (message.request == 'memento') {
+      let results = await this.fetchDataForPeer(message.data);
+
+      if (mycallback) {
+        return mycallback(results);
+      }
+    }
+
+    return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
+
+  //async onConfirmation(blk, tx, conf) {}
 
   async addBlockToDatabase(blk, lc) {
     try {
@@ -369,6 +384,32 @@ class Memento extends ModTemplate {
       );
     }
   }
+
+  /****
+   * Search params
+   *
+   * publicKey:
+   * offset: minimum ts
+   *
+   */
+  async fetchDataForPeer(params) {
+    let sql =
+      'SELECT * FROM ledger WHERE timestamp > $timestamp AND (from_key = $from_key OR to_key = $to_key) ORDER BY timestamp ASC';
+    let sql_params = {
+      $timestamp: params.offset || 0,
+      $from_key: params.publicKey,
+      $to_key: params.publicKey
+    };
+
+    try {
+      let sqlResults = await this.app.storage.queryDatabase(sql, sql_params, 'memento');
+      return sqlResults;
+    } catch (err) {
+      console.error(err);
+      return [];
+    }
+  }
+
   shouldAffixCallbackToModule() {
     return 1;
   }
