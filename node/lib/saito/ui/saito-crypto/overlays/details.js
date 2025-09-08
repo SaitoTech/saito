@@ -53,6 +53,8 @@ class Details {
     if (this.mod.history.length > 0) {
       console.log('Formatting HISTORY: ', this.mod.history);
 
+      let day = new Date().toDateString();
+
       let history_html = '';
       let running_balance = Number(this.mod.returnBalance());
 
@@ -60,7 +62,13 @@ class Details {
       for (let i = this.mod.history.length - 1; i >= 0; i--) {
         let h = this.mod.history[i];
         let ts = new Date(h.timestamp);
-        let inner_html = `<div class="crypto-timestamp">${ts.toLocaleTimeString()}</div>
+        let inner_html = '';
+        if (ts.toDateString() !== day) {
+          day = ts.toDateString();
+          inner_html += `<div class="saitox-table-break">${day}</div>`;
+        }
+
+        inner_html += `<div class="crypto-timestamp">${ts.toLocaleTimeString()}</div>
                           <div class="crypto-type">${h.type}</div>
                           <div class="crypto-amount">${h.amount}</div>
                           <div class="crypto-amount">${running_balance}</div>`;

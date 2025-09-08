@@ -256,4 +256,13 @@
   .mobile-only460 {
     display: flex;
   }
+
+  .saitox-table.transaction-history-table {
+    grid-template-columns: 10rem 0px 1fr 0px 1fr;
+  }
+
+  .saitox-table.transaction-history-table > div {
+    padding: 0;
+    overflow: hidden;
+  }
 }

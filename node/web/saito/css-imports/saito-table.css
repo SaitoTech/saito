@@ -81,6 +81,13 @@ Saito Table
   font-family: var(--saito-font-medium);
 }
 
+.saitox-table-break {
+  grid-column: span 5;
+  width: 100%;
+  justify-content: flex-start !important;
+  font-style: italic;
+}
+
 .crypto-timestamp {
   font-family: var(--saito-font-monospace);
 }

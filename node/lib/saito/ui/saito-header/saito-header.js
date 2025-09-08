@@ -438,16 +438,16 @@ class SaitoHeader extends UIModTemplate {
       </li>
     `;
 
-    if (typeof item.type != 'undefined') {
-      let menu = document.querySelector(`.saito-header-menu-section .${item.type}-menu > ul`);
-      if (menu) {
-        menu.innerHTML += html;
-        menu.parentElement.classList.remove('empty');
-      }
-    } else {
+    let keyword = item.type;
+    if (!keyword) {
       console.warn('Unclassified responder to saito-header!');
-      console.log(item);
-      document.querySelector('.saito-header-menu-section .appspace-menu > ul').innerHTML += html;
+      keyword = 'appspace';
+    }
+
+    let menu = document.querySelector(`.saito-header-menu-section .${keyword}-menu > ul`);
+    if (menu) {
+      menu.innerHTML += html;
+      menu.parentElement.classList.remove('empty');
     }
   }
 
