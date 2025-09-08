@@ -511,9 +511,14 @@ class Mixin extends ModTemplate {
         }
       });
 
+      let offset = new Date(created_at).toISOString();
+      offset = offset.substring(offset.length - 1);
+      offset = offset + '000000Z';
+
       let snapshots = await user.safe.fetchSafeSnapshots({
         asset: asset_id,
-        created_at
+        limit: 100,
+        offset
       });
 
       if (callback) {
