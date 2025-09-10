@@ -97,29 +97,6 @@ class SaitoHeader extends UIModTemplate {
       this.updateHeaderMessage(msg, flash, callback, timeout);
     });
 
-    // wallet-updated event is fired from rust to SLR
-    // please dont rename/remove this method
-    // else we wont get updated slips
-    app.connection.on('wallet-updated', async () => {
-      // console.log("$$$$ wallet-updated --> check balance of preferred crypto");
-
-      // check if new nft added / removed
-      const { updated, rebroadcast, persisted } = await this.app.wallet.updateNftList();
-
-      // console.log('updated: ', updated);
-      // console.log('rebroadcast: ', rebroadcast);
-      // console.log('persisted: ', persisted);
-
-      if (persisted) {
-        siteMessage(`NFT updated in wallet`, 3000);
-      }
-
-      // re-render send-nft overlay if its open
-      if (document.querySelector('.nft-list-container')) {
-        this.app.connection.emit('saito-nft-list-render-request', {});
-      }
-    });
-
     app.connection.on('block-fetch-status', (count) => {
       // trigger block sync ui here
       //console.log("blocks currently being fetched : ", count);
@@ -503,7 +480,7 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.getElementById('wallet-btn-nft')) {
       document.getElementById('wallet-btn-nft').onclick = (e) => {
-        this.app.connection.emit('saito-nft-list-render-request', {});
+        this.app.connection.emit('saito-nft-list-render-request');
       };
     }
 

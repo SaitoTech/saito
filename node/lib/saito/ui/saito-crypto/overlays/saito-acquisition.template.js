@@ -1,7 +1,7 @@
 module.exports = () => {
   return `
         <div class="get-saito-overlay">
-        <div class="saito-overlay-form-header flex-header">
+        <div class="saito-overlay-form-header">
             <div class="saito-overlay-form-header-title">Get $Saito</div>
         </div>
         <div>The Saito Network has 7bb SAITO tokens and a zero-inflation policy. Because Saito is a non-inflationary token, the only way to get tokens is to purchase them from other holders or run network servers and earn them in exchange for routing transaction fees into the network. This makes Saito tokenomics fundamentally different than proof-of-work and proof-of-stake mechanisms that require token inflation to pay for network services and use issuance and lock-up games to debase holders.</div>

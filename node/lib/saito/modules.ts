@@ -357,6 +357,7 @@ class Mods {
     //
     if (this.app.BROWSER == 1) {
       for (let i = 0; i < this.uimods.length; i++) {
+        console.log('Adding UI Mod: ', this.uimods[i].name);
         this.mods.push(this.uimods[i]);
       }
     }

@@ -17,6 +17,20 @@ class ListNft {
     this.app.connection.on('saito-nft-list-render-request', () => {
       this.render();
     });
+
+    app.connection.on('wallet-updated', async () => {
+      // check if new nft added / removed
+      const { updated, rebroadcast, persisted } = await this.app.wallet.updateNftList();
+
+      if (persisted) {
+        siteMessage(`NFT updated in wallet`, 3000);
+      }
+
+      // re-render send-nft overlay if its open
+      if (this.overlay.visible && (updated.length > 0 || persisted)) {
+        this.render();
+      }
+    });
   }
 
   async render() {

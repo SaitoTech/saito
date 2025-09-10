@@ -3,7 +3,7 @@ module.exports = (app, mod) => {
 
   let html = `
     <div class="crypto-details-overlay">
-        <div class="saito-overlay-form-header flex-header">
+        <div class="saito-overlay-form-header">
             <div class="crypto-logo-container"><img class="crypto-logo" src="/${mod.ticker.toLowerCase()}/img/logo.png"></div>
             <div class="saito-overlay-form-header-title">${mod.name}</div>
             ${

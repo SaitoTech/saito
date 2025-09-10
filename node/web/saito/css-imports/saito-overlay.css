@@ -126,12 +126,14 @@
   color: var(--saito-font-color-heavy);
   width: 100%;
   border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .saito-overlay-form-header-title {
   height: 6rem;
   color: inherit;
-  width: calc(100% - 3.2rem);
   padding: 1.6rem;
   font-size: 2.5rem;
   text-transform: uppercase;

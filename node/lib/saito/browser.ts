@@ -284,7 +284,8 @@ class Browser {
       //
       this.saito_crypto = new SaitoCrypto(this.app, this.app.modules.returnActiveModule());
 
-      this.saito_nft = new SaitoNFT(this.app, this.app.modules.returnActiveModule());
+      this.saito_nft = new SaitoNFT(this.app);
+      this.saito_nft.initialize(this.app);
 
       //
       // check if we are already open in another tab -

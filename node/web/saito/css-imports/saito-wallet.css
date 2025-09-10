@@ -496,13 +496,22 @@
   display: none;
 }
 
-.nft-title .saito-overlay-form-header-title {
-  display: flex;
-  justify-content: space-between;
-}
-
 .create-nft-deposit {
   cursor: pointer;
+}
+
+.create-nft-btn {
+  margin-left: auto;
+  padding: 1.2rem;
+  display: flex;
+  font-size: 3rem;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.create-nft-btn:hover {
+  transform: scale(1.1);
 }
 
 /*
@@ -720,15 +729,6 @@ textarea {
   max-width: 75rem;
   min-width: 71rem;
   flex-wrap: wrap;
-}
-
-.nft-title .saito-overlay-header-nav {
-  display: flex;
-  gap: 1.5rem;
-}
-
-.nft-title .send-nft-title {
-  align-self: normal;
 }
 
 #send-nft-wait-msg {

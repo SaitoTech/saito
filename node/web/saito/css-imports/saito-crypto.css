@@ -40,12 +40,6 @@
   padding: 0 1rem;
 }
 
-.flex-header {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
 .wallet-details {
   display: grid;
   grid-template-columns: 25rem 1fr;
@@ -260,6 +254,7 @@
 
   .mobile-only460 {
     display: flex;
+    margin-left: auto;
   }
 
   .saitox-table.transaction-history-table {

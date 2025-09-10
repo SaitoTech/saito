@@ -9,7 +9,7 @@ module.exports = (app, mod, publickey = '', address = '') => {
   
   <form class="saito-overlay-form" id="withdrawal-form" action="/" method="POST">
 
-        <div class="saito-overlay-form-header nft-title">
+        <div class="saito-overlay-form-header">
            <div class="saito-overlay-form-header-title">
               <div>
                  Send Token
