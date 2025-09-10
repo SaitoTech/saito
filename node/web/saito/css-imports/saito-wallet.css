@@ -459,7 +459,6 @@
 }
 
 .withdraw-info-cont .withdraw-info-title {
-  max-width: 11rem;
   display: block;
 }
 
@@ -524,16 +523,13 @@
   flex-direction: column;
   gap: 2rem;
   padding: 2rem;
-  background: var(--background-color-main);
   min-width: 60rem;
   min-height: 70vh;
 }
 
-.utxo-slips {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  min-width: 50rem;
+.create-nft-container {
+  min-height: 65vh;
+  justify-content: space-between;
 }
 
 .user-slips {
@@ -827,19 +823,8 @@ textarea {
   align-self: flex-end;
 }
 
-/*
-#create-nft-amount {
-  cursor: pointer;
-  text-transform: lowercase;
-  border-bottom: 2px dashed;
-  width: 2rem;
-  margin: auto;
-}
-
-*/
-
-#create-nft-amount {
-  max-width: 6rem;
+.create-nft-amount {
+  max-width: 8rem;
   text-align: center;
   border: 1px solid var(--saito-font-color);
   padding: 0.3rem 0rem;
@@ -1221,14 +1206,6 @@ nft cards
 
   #nft-image-upload {
     width: auto;
-  }
-
-  .nft-creator.utxo-slips {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    width: auto;
-    min-width: auto;
   }
 
   .send-nft-list {

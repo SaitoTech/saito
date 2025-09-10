@@ -41,30 +41,24 @@ class ListNft {
 
   async renderNftList() {
     this.nft_list = await this.fetchNFT();
-    this.sendMsg = document.querySelector('#send-nft-wait-msg');
 
-    let html = '<div class="send-nft-list">';
+    let html = '';
 
     if (!Array.isArray(this.nft_list) || this.nft_list.length === 0) {
-      // if nft-list is empty
-
-      this.sendMsg.style.display = 'none';
-
-      html += `
+      html = `
         <div class="instructions">
             You do not have any NFTs in your wallet. 
             If you have just created or been sent one, please wait a few minutes 
             for the network to confirm for your wallet.
         </div>
       `;
+
       const page2 = document.querySelector('#page2');
       if (page2) page2.style.display = 'none';
     } else {
       // if nft-list contains nft
-      this.sendMsg.style.display = 'block';
+      html = '<div class="send-nft-list"></div>';
     }
-
-    html += '</div>';
 
     const container = document.querySelector('#nft-list');
     if (container) container.innerHTML = html;

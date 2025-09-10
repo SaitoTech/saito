@@ -28,7 +28,14 @@ class SaitoNFT extends UIModTemplate {
    * We can monitor all incoming txs on lite-blocks to see if they are nfts
    *
    */
-  async onConfirmation(blk, tx, conf) {}
+  async onConfirmation(blk, tx, conf) {
+    let txmsg = tx.returnMessage();
+
+    if (txmsg.module == 'NFT') {
+      console.log('UI Component SaitoNFT sees a NFT-marked transaction!!!');
+      console.log(txmsg);
+    }
+  }
 }
 
 module.exports = SaitoNFT;

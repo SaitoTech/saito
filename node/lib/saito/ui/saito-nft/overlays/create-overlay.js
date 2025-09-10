@@ -7,48 +7,14 @@ class CreateNft {
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
 
-    this.editing_mode = 'image'; // "data" shows textarea
-
-    this.nft = {};
-    this.nft.num = 1;
-    this.nft.deposit = 0;
-    this.nft.change = 0;
-    this.nft.fee = 0;
-    this.nft.slip = '';
-    this.nft.id = '';
-
-    this.nft.bid = 0;
-    this.nft.tid = 0;
-    this.nft.sid = 0;
-    this.nft.amt = 0;
-    this.nft.type = 0;
-    this.nft.image = '';
-
-    this.callback = {};
-    this.utxo = [];
-
     this.app.connection.on('saito-nft-create-render-request', () => {
+      this.image = null;
       this.render();
     });
   }
 
-  async render() {
-    let nft_self = this;
-    this.callback.imageUploadCallback = async (file) => {
-      if (this.nft.image != '') {
-        alert('NFT Image Editing not allowed, refresh to restart...');
-        return;
-      }
-      this.nft.image = file;
-
-      this.addImage(file);
-    };
-
+  render() {
     this.overlay.show(CreateNftTemplate(this.app, this.mod, this));
-
-    if (this.nft.image != '') {
-      this.addImage(this.nft.image);
-    }
 
     // makes sure DOM is loaded before attaching events
     setTimeout(() => this.attachEvents(), 0);
@@ -69,18 +35,29 @@ class CreateNft {
         return false;
       }
     } else {
-      obj.image = this.nft.image;
+      if (this.image == '') {
+        salert(`Attach an image/file to create nft`);
+        return false;
+      }
+
+      obj.image = this.image;
     }
 
     return obj;
   }
 
   attachEvents() {
-    let nft_self = this;
-
-    nft_self.app.browser.addDragAndDropFileUploadToElement(
+    this.app.browser.addDragAndDropFileUploadToElement(
       'nft-image-upload',
-      this.callback.imageUploadCallback,
+      async (file) => {
+        if (this.image) {
+          salert('NFT Image Editing not allowed, refresh to restart...');
+          return;
+        }
+        this.image = file;
+
+        this.addImage(file);
+      },
       true
     );
 
@@ -108,7 +85,7 @@ class CreateNft {
       const textarea = document.querySelector('#create-nft-textarea');
       textarea.value = JSON.stringify(data, null, 2);
 
-      this.nft.image = '';
+      this.image = '';
 
       if (document.querySelector('.nft-file-transfer')) {
         document.querySelector('.nft-file-transfer').remove();
@@ -139,55 +116,50 @@ class CreateNft {
       }
       //      console.log('obj: ', obj);
 
-      // value of nft (nolan)
-      let depositAmt = BigInt(this.app.wallet.convertSaitoToNolan(1));
-
       //
       // this value is not either nolan/saito
       // this represents the number of nft to mint
       //
-      let numNft = BigInt(parseInt(document.querySelector('#create-nft-amount').value));
-      //      console.log('numNft: ', numNft);
+      let numNft = parseInt(document.querySelector('#create-nft-amount').value);
+
+      if (numNft < 1) {
+        salert('Need to create at least one NFT');
+        return;
+      } else if (numNft > 100000000) {
+        salert('Cannot mint more than 100,000,000 NFTs');
+        return;
+      }
 
       let balance = await this.app.wallet.getBalance();
-      let balanceSaito = this.app.wallet.convertNolanToSaito(balance);
-      // console.log('balance: ', balance);
-      // console.log('balanceSaito: ', balanceSaito);
 
-      if (balanceSaito < 1) {
+      // value of nft (nolan)
+      let depositAmt = parseInt(document.querySelector('#create-nft-deposit').value);
+      depositAmt = BigInt(this.app.wallet.convertSaitoToNolan(depositAmt));
+
+      if (balance < depositAmt) {
+        salert('Insufficient funds!');
+        return;
+      }
+
+      if (depositAmt < BigInt(1)) {
         salert(`Need at least 1 SAITO to create NFT`);
         return;
       }
 
-      let nftType = document.querySelector('#create-nft-type-dropdown').value;
-
-      if (nftType == 'image') {
-        if (nft_self.nft.image == '') {
-          salert(`Attach an image/file to create nft`);
-          return;
-        }
-      }
-
-      if (nftType == 'text') {
-        if (nft_self.nft.text == '') {
-          salert(`Add JSON to create nft`);
-          return;
-        }
-      }
-
       let fee = BigInt(0n);
+
       let tx_msg = {
         data: obj,
         module: 'NFT',
         request: 'create nft'
       };
 
-      let newtx = await nft_self.app.wallet.createBoundTransaction(
-        numNft,
+      let newtx = await this.app.wallet.createBoundTransaction(
+        BigInt(numNft),
         depositAmt,
         tx_msg,
         fee,
-        nft_self.mod.publicKey
+        this.mod.publicKey
       );
 
       await newtx.sign();
@@ -197,55 +169,13 @@ class CreateNft {
 
       salert(`Create NFT tx sent`);
 
-      nft_self.nft.image = '';
-      nft_self.overlay.close();
+      this.overlay.close();
     };
-  }
-
-  async findValidUtxo(depositAmt = 1) {
-    this.utxo = await this.fetchUtxo();
-
-    //    console.log('utxos:', this.utxo);
-
-    let html = ``;
-    for (let i = 0; i < this.utxo.length; i++) {
-      let utxo = this.utxo[i];
-      let block_id = utxo[1];
-      let tx_ordinal = utxo[2];
-      let slip_index = utxo[3];
-      let amount = BigInt(utxo[4]);
-
-      if (amount >= depositAmt) {
-        return {
-          bid: block_id,
-          tid: tx_ordinal,
-          sid: slip_index,
-          amt: amount
-        };
-      }
-    }
-
-    return {};
-  }
-
-  async fetchUtxo() {
-    let publicKey = this.mod.publicKey;
-    let response = await fetch('/balance/' + publicKey);
-    let data = await response.text();
-
-    const parts = data.split('.snap');
-    let utxo = parts[1]
-      .trim()
-      .split(/\n|\s{2,}/)
-      .filter((line) => line.trim() !== '')
-      .map((line) => line.split(' '));
-    return utxo;
   }
 
   addImage(data = '') {
     let fileInfo = this.parseFileInfo(data);
 
-    let nft_self = this;
     let html = ``;
     if (fileInfo.isImage) {
       html = `<div class="nft-image-preview">
@@ -278,10 +208,12 @@ class CreateNft {
         }
 
         document.querySelector('#nft-image-upload').style.display = 'block';
-        nft_self.nft.image = '';
+        this.image = '';
       };
     }
   }
+
+  // Utilities for processing a file...
 
   parseDataUri(dataUri) {
     const [header, data] = dataUri.split(',', 2);
