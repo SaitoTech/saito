@@ -48,6 +48,10 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                            <i class="fa-regular fa-clock"></i>
                            <span>History</span>
                        </div-->
+                       <div class="wallet-btn" id="wallet-btn-nft">
+                           <i class="fa-solid fa-shapes"></i>
+                           <span>NFTs</span>
+                       </div>
                        <div class="wallet-btn" id="wallet-btn-settings">
                            <i class="fas fa-cog"></i>
                            <span class="option-more">ACCOUNT</span>
