@@ -506,6 +506,12 @@ class SaitoHeader extends UIModTemplate {
       };
     }
 
+    if (document.getElementById('wallet-btn-nft')) {
+      document.getElementById('wallet-btn-nft').onclick = (e) => {
+        this.app.connection.emit('saito-list-nft-render-request', {});
+      };
+    }
+
     if (document.querySelector('.pubkey-mobile-wrapper')) {
       document.querySelector('.pubkey-mobile-wrapper').onclick = (e) => {
         document.querySelector('.saito-header-hamburger-contents').classList.toggle('show-qr');
@@ -808,6 +814,13 @@ class SaitoHeader extends UIModTemplate {
       //  ercMod = this.app.wallet.returnCryptoModuleByTicker('ERC-SAITO');
       //} catch (err) {}
 
+      //Hard code NFTs at top of list
+      //`<a href="https://www.flaticon.com/free-icons/nft" title="nft icons">Nft icons created by juicy_fish - Flaticon</a>`
+      menu_html += `<div class="saito-crypto-details active" data-ticker="NFT"> 
+        <div class="crypto-logo-container" title="Nft icon created by juicy_fish -- Flaticon.com"><img class="crypto-logo" src="/saito/img/nft.png"></div>
+        <div class="header-crypto-balance">Collectibles</div></div>
+      `;
+
       for (let i = 0; i < available_cryptos.length; i++) {
         let crypto_mod = available_cryptos[i];
 
@@ -886,10 +899,14 @@ class SaitoHeader extends UIModTemplate {
     // Attach Crypto events....
     Array.from(document.querySelectorAll('.saito-crypto-details')).forEach((c) => {
       c.onclick = (e) => {
-        this.app.connection.emit(
-          'saito-crypto-details-render-request',
-          e.currentTarget.dataset.ticker
-        );
+        if (e.currentTarget.dataset.ticker === 'nft') {
+          this.app.connection.emit('saito-list-nft-render-request', {});
+        } else {
+          this.app.connection.emit(
+            'saito-crypto-details-render-request',
+            e.currentTarget.dataset.ticker
+          );
+        }
       };
     });
 
