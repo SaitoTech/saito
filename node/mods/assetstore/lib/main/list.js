@@ -4,7 +4,7 @@ const Nft = require('./list-nft-extended'); // use the subclass here
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const SaitoUser = require('./../../../../lib/saito/ui/saito-user/saito-user');
 
-class ListAssetstoreNft {
+class ListAssetStoreNft {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
@@ -14,7 +14,7 @@ class ListAssetstoreNft {
     this.nft_cards = [];
 
     this.app.connection.on('assetstore-close-list-overlay-request', async () => {
-       this.overlay.close();
+      this.overlay.close();
     });
   }
 
@@ -109,7 +109,6 @@ class ListAssetstoreNft {
     const data = this.app.options.wallet.nfts || [];
     return data;
   }
-
 }
 
-module.exports = ListAssetstoreNft;
+module.exports = ListAssetStoreNft;

@@ -617,6 +617,27 @@ class AssetStore extends ModTemplate {
 		mycallback(results);
 		return 1;
 	}
+
+	webServer(app, expressapp, express) {
+		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+		let this_self = this;
+
+		expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
+			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
+
+			let updatedSocial = Object.assign({}, this_self.social);
+
+			let html = AssetStoreHome(app, this_self, app.build_number, updatedSocial);
+			if (!res.finished) {
+				res.setHeader('Content-type', 'text/html');
+				res.charset = 'UTF-8';
+				return res.send(html);
+			}
+			return;
+		});
+
+		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
+	}
 }
 
 module.exports = AssetStore;

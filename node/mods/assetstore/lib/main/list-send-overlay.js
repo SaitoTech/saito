@@ -19,13 +19,12 @@ class ListSendOverlay extends BaseSend {
     if (header) header.textContent = 'LIST ON ASSETSTORE🧾';
     if (this.receiver_input) {
       // this.receiver_input.style.display = 'none';
-      this.receiver_input.placeholder = 'Assetstore public key';
+      this.receiver_input.placeholder = 'AssetStore public key';
     }
 
     // override Send button behavior
     if (this.sendBtn) {
-
-      this.sendBtn.innerText = "List"
+      this.sendBtn.innerText = 'List';
       this.sendBtn.classList.remove('disabled');
       this.sendBtn.removeAttribute('disabled');
 
@@ -45,19 +44,19 @@ class ListSendOverlay extends BaseSend {
         this.sendBtn.innerText = 'Submitting...';
 
         //try {
-          const listTx = await this.mod.createListAssetTransaction(this.nft, receiver);
-          await this.app.network.propagateTransaction(listTx);
+        const listTx = await this.mod.createListAssetTransaction(this.nft, receiver);
+        await this.app.network.propagateTransaction(listTx);
 
-          this.overlay.close();
-          this.app.connection.emit('assetstore-close-list-overlay-request');
+        this.overlay.close();
+        this.app.connection.emit('assetstore-close-list-overlay-request');
 
-          salert('Listing submitted. Awaiting network confirmation.');
+        salert('Listing submitted. Awaiting network confirmation.');
         // } catch (err) {
         //   salert('Failed to list: ' + (err?.message || err));
         // } finally {
-          this.sendBtn.classList.remove('disabled');
-          this.sendBtn.removeAttribute('disabled');
-          this.sendBtn.innerText = prev;
+        this.sendBtn.classList.remove('disabled');
+        this.sendBtn.removeAttribute('disabled');
+        this.sendBtn.innerText = prev;
         //}
       };
     }

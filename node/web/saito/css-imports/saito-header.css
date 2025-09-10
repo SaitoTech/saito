@@ -215,7 +215,7 @@
 
 .wallet-btn-container {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(3rem, 1fr));
   grid-column-gap: 3.3rem;
   background: var(--saito-font-color);
   color: var(--saito-font-color-inverse);

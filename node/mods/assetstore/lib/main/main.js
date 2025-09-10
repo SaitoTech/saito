@@ -32,6 +32,11 @@ class AssetStoreMain {
 
 		if (!document.querySelector('.saito-container')) {
 			this.app.browser.addElementToDom(AssetStoreMainTemplate(this.app, this.mod, this));
+		} else {
+			this.app.browser.replaceElementBySelector(
+				AssetStoreMainTemplate(this.app, this.mod, this),
+				'.saito-container'
+			);
 		}
 
 		await this.buildAuctionList();

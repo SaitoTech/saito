@@ -1,9 +1,8 @@
-module.exports = (app, mod, build_number="") => {
-
+module.exports = (app, mod, build_number = '', og_card) => {
   let html = `
   
   <!DOCTYPE html>
-  <html lang="en" data-theme="assetstore">
+  <html lang="en" data-theme="raven">
   
   <head>
 
@@ -51,7 +50,7 @@ module.exports = (app, mod, build_number="") => {
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
 
-    <title>Saito NFT Store</title>
+    <title>Saito Asset Exchange</title>
   
     <style type="text/css">
     body::before {
