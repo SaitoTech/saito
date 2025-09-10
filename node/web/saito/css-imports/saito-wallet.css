@@ -1107,7 +1107,7 @@ nft cards
 
 .nft-details-section-header,
 .nft-details-send,
-.nft-details-assetstore {
+.nft-details-agora {
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -1180,7 +1180,7 @@ nft cards
   margin: 0;
 }
 
-.nft-details-assetstore {
+.nft-details-agora {
 }
 
 #nft-merge-split,

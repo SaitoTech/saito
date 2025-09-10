@@ -28,7 +28,7 @@ class AuctionSendOverlay extends BaseSend {
     this.receiver_input = this._overlayRoot.querySelector('#nft-receiver-address');
 
     const header = this._overlayRoot?.querySelector('.nft-details-send h4');
-    if (header) header.textContent = 'DELIST FROM ASSETSTORE 🧾';
+    if (header) header.textContent = 'DELIST FROM agora 🧾';
 
     if (this.receiver_input) {
       if (this._syncBtnListener) {
@@ -80,11 +80,11 @@ class AuctionSendOverlay extends BaseSend {
       this.sendBtn.classList.remove('disabled');
       this.sendBtn.removeAttribute('disabled');
       this.sendBtn.innerText = 'Delist';
-      this.sendBtn.onclick = async (e) => { 
-        e?.preventDefault?.(); 
-        //salert("Delisting your asset from assetstore");
+      this.sendBtn.onclick = async (e) => {
+        e?.preventDefault?.();
+        //salert("Delisting your asset from agora");
 
-        console.log("delist nft: ", this_self.nft);
+        console.log('delist nft: ', this_self.nft);
 
         const delistTx = await this_self.mod.createDelistAssetTransaction(this_self.nft);
         await this.app.network.propagateTransaction(delistTx);
@@ -100,9 +100,9 @@ class AuctionSendOverlay extends BaseSend {
       this.buyBtn = root.querySelector('#buy_nft') || root.querySelector('.nft-details-buy button');
     }
     if (this.buyBtn) {
-      this.buyBtn.onclick = (e) => { 
+      this.buyBtn.onclick = (e) => {
         e?.preventDefault?.();
-        salert("Buying feature coming soon....")
+        salert('Buying feature coming soon....');
       };
     }
   }
