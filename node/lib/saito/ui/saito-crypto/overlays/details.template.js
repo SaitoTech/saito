@@ -57,7 +57,7 @@ module.exports = (app, mod) => {
       if (mod.exchange_rate && balance) {
         menu_html = `
               <div class="label">Value:</div>
-              <div class="header-crypto-value">≈ ${app.browser.formatDecimals(balance * mod.exchange_rate)} $SAITO</div></div>`;
+              <div class="header-crypto-value">≈ ${app.browser.formatDecimals(balance * mod.exchange_rate)} SAITO</div></div>`;
       }*/
 
       html += `

@@ -177,37 +177,41 @@ export default class Wallet extends SaitoWallet {
         // Parse return results from Memento
         const mycallback = (rows) => {
           let timestamp = 0;
-          for (let r of rows) {
-            timestamp = r.timestamp;
-            if (timestamp > this.history_update_ts) {
-              let amount = this.app.wallet.convertNolanToSaito(BigInt(r.amount));
-              const obj = {
-                counter_party: { address: '', publicKey: '' },
-                timestamp,
-                amount,
-                type: '',
-                trans_hash: r.tx_sig
-              };
+          if (rows) {
+            for (let r of rows) {
+              timestamp = r.timestamp;
+              if (timestamp > this.history_update_ts) {
+                let amount = this.app.wallet.convertNolanToSaito(BigInt(r.amount));
+                const obj = {
+                  counter_party: { address: '', publicKey: '' },
+                  timestamp,
+                  amount,
+                  type: '',
+                  trans_hash: r.tx_sig
+                };
 
-              if (r.from_key == this.publicKey) {
-                obj.counter_party.address = obj.counter_party.publicKey = r.to_key;
-                obj.type = 'send';
-                obj.amount = -obj.amount;
+                if (r.from_key == this.publicKey) {
+                  obj.counter_party.address = obj.counter_party.publicKey = r.to_key;
+                  obj.type = 'send';
+                  obj.amount = -obj.amount;
+                } else {
+                  // I am the receiver
+                  obj.counter_party.address = obj.counter_party.publicKey = r.from_key;
+                  obj.type = 'receive';
+                }
+
+                this.history.push(obj);
               } else {
-                // I am the receiver
-                obj.counter_party.address = obj.counter_party.publicKey = r.from_key;
-                obj.type = 'receive';
+                console.warn('Repeated/old transaction: ', r);
               }
-
-              this.history.push(obj);
-            } else {
-              console.warn('Repeated/old transaction: ', r);
             }
+
+            this.history_update_ts = Math.max(this.history_update_ts, timestamp) + 1;
+
+            this.save();
+          } else {
+            console.warn('Invalid return data from UTXO Archive [Memento]', rows);
           }
-
-          this.history_update_ts = Math.max(this.history_update_ts, timestamp) + 1;
-
-          this.save();
 
           if (callback) {
             callback(this.history);

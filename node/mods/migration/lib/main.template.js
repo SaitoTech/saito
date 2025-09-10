@@ -8,7 +8,7 @@ module.exports = (mod) => {
 				</div>
 
 				<div class="withdraw-intro">
-					To withdraw ERC20/BEP20 wrapped $SAITO tokens to the on-chain network, please provide an
+					To convert ERC20/BEP20 wrapped SAITO tokens to the on-chain network, please provide an
 					email address and on-chain Saito address.
 					<br /><br />
 					We will email the address provided with instructions on completing the token transfer.

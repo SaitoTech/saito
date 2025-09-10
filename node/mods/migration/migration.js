@@ -410,16 +410,16 @@ class Migration extends ModTemplate {
 	            <div class="saito-overlay-form-content">`;
 
 		if (this.balance) {
-			html += `<div>${this.balance} ERC20 $SAITO pending conversion into </div>`;
+			html += `<div>${this.balance} ERC20 SAITO pending conversion into </div>`;
 		} else {
-			html += `<div>Deposited ${new_balance} ERC20 $SAITO into </div>`;
+			html += `<div>Deposited ${new_balance} ERC20 SAITO into </div>`;
 		}
 		html += `<div class=""> ${this.publicKey.slice(0, 8)}...${this.publicKey.slice(-8)} </div>`;
 
 		if (new_balance > this.max_deposit) {
-			html += `<div>Click to convert the maximum of ${this.max_deposit} into on chain $SAITO</div>`;
+			html += `<div>Click to convert the maximum of ${this.max_deposit} into on chain SAITO</div>`;
 		} else {
-			html += `<div>Click next to convert to on chain $SAITO</div>`;
+			html += `<div>Click next to convert to on chain SAITO</div>`;
 		}
 
 		html += `</div>

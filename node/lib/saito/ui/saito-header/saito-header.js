@@ -816,7 +816,7 @@ class SaitoHeader extends UIModTemplate {
             value_in_saito = Number(crypto_mod.returnBalance) * multiplier;
 
             if (value_in_saito) {
-              menu_html += `<div class="header-crypto-value">≈ ${this.app.browser.formatDecimals(value_in_saito)} $SAITO</div>`;
+              menu_html += `<div class="header-crypto-value">≈ ${this.app.browser.formatDecimals(value_in_saito)} SAITO</div>`;
             } else {
               menu_html += '<div></div>';
               //menu_html += `<div class="header-crypto-value">( 1 $${crypto_mod.ticker} ≈ ${this.app.browser.formatDecimals(multiplier)} $SAITO )</div>`;
