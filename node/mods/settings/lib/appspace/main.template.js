@@ -75,8 +75,8 @@ module.exports = (app, mod, main) => {
       
             <div>Private Key:</div>
             <div class="settings-actions-container">
-              <div id="show-phrase" class="saito-button-secondary small">view seed phrase</div>
-              <div id="copy-private-key" class="saito-button-secondary small">copy private key</div>
+              <div id="show-phrase" class="saito-button-secondary small">view seed phrase <i class="fa-solid fa-eye"></i></div>
+              <div id="copy-private-key" class="saito-button-secondary small">copy private key <i class="fas fa-copy"></i></div>
             </div>
 
             <div>Default Fee:</div>

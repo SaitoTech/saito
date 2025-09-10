@@ -29,7 +29,8 @@
 	padding: 0.8rem 0.7rem;
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	justify-content: space-evenly;
+	gap: 0.5rem;
 }
 
 .settings-appspace-user-details {
@@ -86,7 +87,7 @@
 
 .pubkey-grid {
 	display: grid;
-	grid-template-columns: minmax(10rem, 1fr) min-content;
+	grid-template-columns: minmax(10rem, 1fr) 20px;
 	width: 100%;
 	align-items: center;
 	font-family: monospace;
