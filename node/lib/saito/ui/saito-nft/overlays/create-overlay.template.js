@@ -7,9 +7,6 @@ module.exports = (app, mod) => {
             <div>
                Create NFT
             </div>
-            <div class="nft-link" id="nft-link">
-               <span>send nft</span> 
-            </div>
          </div>
       </div>
 

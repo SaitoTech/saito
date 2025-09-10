@@ -9,6 +9,7 @@ const linkifyHtml = require('markdown-linkify');
 const emoji = require('node-emoji');
 const UserMenu = require('./ui/modals/user-menu/user-menu');
 const SaitoCrypto = require('./ui/saito-crypto/saito-crypto');
+const SaitoNFT = require('./ui/saito-nft/saito-nft');
 const debounce = require('lodash/debounce');
 const SaitoMentions = require('./ui/saito-mentions/saito-mentions');
 
@@ -282,6 +283,8 @@ class Browser {
       // crypto overlays, add so events will listen
       //
       this.saito_crypto = new SaitoCrypto(this.app, this.app.modules.returnActiveModule());
+
+      this.saito_nft = new SaitoNFT(this.app, this.app.modules.returnActiveModule());
 
       //
       // check if we are already open in another tab -

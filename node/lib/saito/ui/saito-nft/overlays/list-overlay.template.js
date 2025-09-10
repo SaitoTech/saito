@@ -1,13 +1,5 @@
 module.exports = (app, mod) => {
   let html = `
-    <style>
-      /* Optional: ensure the overlay’s text is easy to read */
-      .split-overlay div {
-        font-size: 1rem;
-        font-weight: bold;
-      }
-    </style>
-
     <div class="nft-list-container">
 
       <!-- HEADER -->
@@ -16,9 +8,7 @@ module.exports = (app, mod) => {
             <div class="saito-overlay-header-nav">
                <div id="send-nft-title">YOUR NFTs</div>
             </div>
-            <div class="nft-link" id="nft-link">
-               <span>create nft</span>
-            </div>
+            <div id="create-nft" class="create-nft-btn"><i class="fa-solid fa-plus"></i></div>
          </div>
       </div>
 

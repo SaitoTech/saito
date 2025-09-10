@@ -158,7 +158,7 @@ class SendNft {
         salert('Send NFT tx sent');
         this.overlay.close();
         if (document.querySelector('.nft-list-container')) {
-          this.app.connection.emit('saito-list-nft-render-request', {});
+          this.app.connection.emit('saito-nft-list-render-request', {});
         }
       } catch (err) {
         salert('Failed to send NFT: ' + (err?.message || err));
@@ -211,7 +211,7 @@ class SendNft {
         salert('Merge NFT tx sent');
         this.overlay.close();
         if (document.querySelector('.nft-list-container')) {
-          this.app.connection.emit('saito-list-nft-render-request', {});
+          this.app.connection.emit('saito-nft-list-render-request', {});
         }
       } catch (err) {
         salert('Merge failed: ' + (err?.message || err));
@@ -329,7 +329,7 @@ class SendNft {
         salert('Split NFT tx sent');
         this.overlay.close();
         if (document.querySelector('.nft-list-container')) {
-          this.app.connection.emit('saito-list-nft-render-request', {});
+          this.app.connection.emit('saito-nft-list-render-request', {});
         }
       } catch (err) {
         salert('Split failed: ' + (err?.message || err));
@@ -353,7 +353,6 @@ class SendNft {
     }
 
     const overlay = document.createElement('div');
-    overlay.classList.add('split-overlay');
     Object.assign(overlay.style, {
       position: 'relative',
       width: '100%',

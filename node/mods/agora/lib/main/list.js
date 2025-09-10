@@ -96,9 +96,7 @@ class ListAgoraNft {
     }
   }
 
-  attachEvents() {
-    this.sendNftTitle = document.querySelector('#send-nft-title');
-  }
+  attachEvents() {}
 
   getNftIndexFromUtxoKey(slip1_utxokey) {
     return this.nft_list.findIndex((nft) => nft.slip1.utxo_key === slip1_utxokey);

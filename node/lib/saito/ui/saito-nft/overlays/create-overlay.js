@@ -1,5 +1,5 @@
 const CreateNftTemplate = require('./create-overlay.template');
-const SaitoOverlay = require('./../saito-overlay/saito-overlay');
+const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 
 class CreateNft {
   constructor(app, mod, container = '') {
@@ -27,7 +27,7 @@ class CreateNft {
     this.callback = {};
     this.utxo = [];
 
-    this.app.connection.on('saito-create-nft-render-request', () => {
+    this.app.connection.on('saito-nft-create-render-request', () => {
       this.render();
     });
   }
@@ -77,15 +77,6 @@ class CreateNft {
 
   attachEvents() {
     let nft_self = this;
-
-    if (document.querySelector('#nft-link')) {
-      document.querySelector('#nft-link').onclick = async (e) => {
-        // send nft overlay
-        nft_self.nft.image = '';
-        nft_self.overlay.close();
-        nft_self.app.connection.emit('saito-list-nft-render-request', {});
-      };
-    }
 
     nft_self.app.browser.addDragAndDropFileUploadToElement(
       'nft-image-upload',

@@ -122,27 +122,6 @@ class Withdraw {
       }, 500);
     };
 
-    if (document.querySelector('#nft-link')) {
-      document.querySelector('#nft-link').onclick = async (e) => {
-        let nft_list = await this_withdraw.app.wallet.getNftList();
-        //console.log('Fetched NFT list: ', nft_list);
-
-        const nftArray = JSON.parse(nft_list);
-        //console.log('nftArray:', nftArray);
-        await this_withdraw.app.wallet.saveNftList(nftArray);
-
-        if (!Array.isArray(nftArray) || !nftArray.length) {
-          // create nft overlay
-          this_withdraw.app.connection.emit('saito-create-nft-render-request', {});
-        } else {
-          // send nft overlay
-          this_withdraw.app.connection.emit('saito-list-nft-render-request', {});
-        }
-
-        this_withdraw.overlay.close();
-      };
-    }
-
     if (document.querySelector('#withdraw-input-address')) {
       document.querySelector('#withdraw-input-address').onblur = async (e) => {
         this.validateAddressInput();

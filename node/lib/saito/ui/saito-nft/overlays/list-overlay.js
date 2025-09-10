@@ -1,18 +1,20 @@
 const ListNftTemplate = require('./list-overlay.template');
-const Nft = require('./nft');
-const SaitoOverlay = require('./../saito-overlay/saito-overlay');
-const SaitoUser = require('./../saito-user/saito-user');
+const Nft = require('./../nft');
+const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
+const SaitoUser = require('./../../saito-user/saito-user');
 
 class ListNft {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
+
     this.nft_selected = null;
+
     this.nft_list = [];
     this.nft_cards = [];
-    this.app.connection.on('saito-list-nft-render-request', () => {
-      this.overlay.close();
+
+    this.app.connection.on('saito-nft-list-render-request', () => {
       this.render();
     });
   }
@@ -99,18 +101,12 @@ class ListNft {
   }
 
   attachEvents() {
-    this.createLink = document.querySelector('#nft-link');
-    this.sendNftTitle = document.querySelector('#send-nft-title');
-    this.setupCreateLink();
-  }
-
-  setupCreateLink() {
-    if (!this.createLink) return;
-    this.createLink.onclick = (e) => {
-      e.preventDefault();
-      this.overlay.close();
-      this.app.connection.emit('saito-create-nft-render-request', {});
-    };
+    let newNftButton = document.getElementById('create-nft');
+    if (newNftButton) {
+      newNftButton.onclick = (e) => {
+        this.app.connection.emit('saito-nft-create-render-request', {});
+      };
+    }
   }
 
   getNftIndexFromUtxoKey(slip1_utxokey) {

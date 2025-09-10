@@ -5,8 +5,6 @@ const UIModTemplate = require('./../../../templates/uimodtemplate');
 const UserMenu = require('../../ui/modals/user-menu/user-menu');
 const SaitoLoader = require('../saito-loader/saito-loader');
 const SaitoBackup = require('../saito-backup/saito-backup');
-const CreateNft = require('./../saito-nft/create-overlay');
-const ListNftOverlay = require('./../saito-nft/list-overlay');
 //
 // UIModTemplate
 //
@@ -53,9 +51,6 @@ class SaitoHeader extends UIModTemplate {
 
     this.loader = new SaitoLoader(this.app, this.mod, '#qrcode');
     this.saito_backup = new SaitoBackup(app, mod);
-
-    this.create_nft = new CreateNft(app, mod);
-    this.send_nft = new ListNftOverlay(app, mod);
 
     console.log('Create Saito Header for ' + mod.name);
   }
@@ -121,7 +116,7 @@ class SaitoHeader extends UIModTemplate {
 
       // re-render send-nft overlay if its open
       if (document.querySelector('.nft-list-container')) {
-        this.app.connection.emit('saito-list-nft-render-request', {});
+        this.app.connection.emit('saito-nft-list-render-request', {});
       }
     });
 
@@ -508,7 +503,7 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.getElementById('wallet-btn-nft')) {
       document.getElementById('wallet-btn-nft').onclick = (e) => {
-        this.app.connection.emit('saito-list-nft-render-request', {});
+        this.app.connection.emit('saito-nft-list-render-request', {});
       };
     }
 
@@ -900,7 +895,7 @@ class SaitoHeader extends UIModTemplate {
     Array.from(document.querySelectorAll('.saito-crypto-details')).forEach((c) => {
       c.onclick = (e) => {
         if (e.currentTarget.dataset.ticker === 'nft') {
-          this.app.connection.emit('saito-list-nft-render-request', {});
+          this.app.connection.emit('saito-nft-list-render-request', {});
         } else {
           this.app.connection.emit(
             'saito-crypto-details-render-request',
