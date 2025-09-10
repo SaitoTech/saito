@@ -27,35 +27,6 @@
   background-color: green;
 }
 
-.list-nft-container {
-  display: flex;
-  gap: 2rem;
-  padding: 2rem;
-  background: var(--background-color-main);
-  min-width: 60rem;
-}
-
-.list-nft-container {
-  flex-direction: column;
-  min-width: 60rem;
-  min-height: 70vh;
-}
-
-.list-nft-container > .right-section {
-  min-width: 50rem;
-  gap: 2rem;
-}
-
-.list-nft-container > .right-section > .nft-receiver {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.list-nft-container .instructions {
-  display: none;
-}
-
 .assetstore-table-list {
   display: flex;
   gap: 2rem;

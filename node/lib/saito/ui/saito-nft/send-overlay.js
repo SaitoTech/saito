@@ -157,7 +157,7 @@ class SendNft {
 
         salert('Send NFT tx sent');
         this.overlay.close();
-        if (document.querySelector('.send-nft-container')) {
+        if (document.querySelector('.nft-list-container')) {
           this.app.connection.emit('saito-list-nft-render-request', {});
         }
       } catch (err) {
@@ -210,7 +210,7 @@ class SendNft {
 
         salert('Merge NFT tx sent');
         this.overlay.close();
-        if (document.querySelector('.send-nft-container')) {
+        if (document.querySelector('.nft-list-container')) {
           this.app.connection.emit('saito-list-nft-render-request', {});
         }
       } catch (err) {
@@ -328,7 +328,7 @@ class SendNft {
         console.log('split tx:', newtx);
         salert('Split NFT tx sent');
         this.overlay.close();
-        if (document.querySelector('.send-nft-container')) {
+        if (document.querySelector('.nft-list-container')) {
           this.app.connection.emit('saito-list-nft-render-request', {});
         }
       } catch (err) {

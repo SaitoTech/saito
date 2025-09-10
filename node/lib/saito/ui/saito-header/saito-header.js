@@ -120,7 +120,7 @@ class SaitoHeader extends UIModTemplate {
       }
 
       // re-render send-nft overlay if its open
-      if (document.querySelector('.send-nft-container')) {
+      if (document.querySelector('.nft-list-container')) {
         this.app.connection.emit('saito-list-nft-render-request', {});
       }
     });

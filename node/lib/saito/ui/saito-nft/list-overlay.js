@@ -35,12 +35,10 @@ class ListNft {
       this.sendMsg.style.display = 'none';
 
       html += `
-        <div class="send-nft-row empty-send-nft-row">
-          <div class="send-nft-row-item">
+        <div class="instructions">
             You do not have any NFTs in your wallet. 
             If you have just created or been sent one, please wait a few minutes 
             for the network to confirm for your wallet.
-          </div>
         </div>
       `;
       const page2 = document.querySelector('#page2');

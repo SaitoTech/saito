@@ -1,10 +1,6 @@
 module.exports = (app, mod) => {
   let html = `
     <style>
-      /* Make each row a positioned container so the split‐overlay can sit on top */
-      .send-nft-row {
-        position: relative;
-      }
       /* Optional: ensure the overlay’s text is easy to read */
       .split-overlay div {
         font-size: 1rem;
@@ -12,7 +8,7 @@ module.exports = (app, mod) => {
       }
     </style>
 
-    <div class="send-nft-container">
+    <div class="nft-list-container">
 
       <!-- HEADER -->
       <div class="saito-overlay-form-header nft-title">
