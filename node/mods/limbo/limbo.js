@@ -1437,7 +1437,7 @@ class Limbo extends ModTemplate {
 	}
 
 	onConfirmation(blk, tx, conf) {
-		if (tx == null) {
+		if (tx == null || conf != 0) {
 			return;
 		}
 

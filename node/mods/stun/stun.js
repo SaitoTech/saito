@@ -273,7 +273,7 @@ class Stun extends ModTemplate {
 
 		let message = tx.returnMessage();
 
-		if (conf === 0) {
+		if (conf == 0) {
 			if (message.module === 'Stun') {
 				if (this.app.BROWSER === 1) {
 					if (this.hasSeenTransaction(tx)) return;

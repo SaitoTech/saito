@@ -474,7 +474,7 @@ class Videocall extends ModTemplate {
 
 		let message = tx.returnMessage();
 
-		if (conf === 0) {
+		if (conf == 0) {
 			if (message.module === 'Videocall') {
 				if (this.app.BROWSER === 1) {
 					let from = tx.from[0].publicKey;

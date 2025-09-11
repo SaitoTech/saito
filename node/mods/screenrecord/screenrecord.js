@@ -1,10 +1,9 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
 const StreamCapturer = require('../../lib/saito/ui/stream-capturer/stream-capturer');
 const screenrecordWizard = require('./lib/screenrecord-wizard');
-const ScreenRecordControls = require('./lib/screenrecord-lite-controls')
+const ScreenRecordControls = require('./lib/screenrecord-lite-controls');
 const lamejs = require('lamejs');
 const VideoBox = require('../../lib/saito/ui/saito-videobox/video-box');
-
 
 class Record extends ModTemplate {
 	constructor(app) {
@@ -41,15 +40,13 @@ class Record extends ModTemplate {
 			}
 		});
 
-		this.app.connection.on("interrupt-screen-recording", async ()=>{
-
+		this.app.connection.on('interrupt-screen-recording', async () => {
 			// Don't stop until the game ends...
 			if (this.type === 'game') return;
 
 			if (this?.mediaRecorder) {
 				await this.stopRecording();
 			}
-
 		});
 	}
 
@@ -128,21 +125,21 @@ class Record extends ModTemplate {
 				startStreamingGame: async (options) => {
 					let stream;
 					try {
-						let { includeCamera, container } = options
+						let { includeCamera, container } = options;
 						this.gameStreamCapturer = new StreamCapturer(this.app, this, this.logo);
-						this.gameStreamCapturer.view_window = container
+						this.gameStreamCapturer.view_window = container;
 						stream = await this.gameStreamCapturer.captureGameStream(includeCamera);
 						stream;
 
-						this.is_streaming_game = true
-						return stream
+						this.is_streaming_game = true;
+						return stream;
 					} catch (error) {
 						console.log('error streaming video call', error);
 					}
 				},
 
 				stopStreamingGame: async () => {
-					this.is_streaming_game = false
+					this.is_streaming_game = false;
 					if (this.gameStreamCapturer) {
 						this.gameStreamCapturer.stopCaptureGameStream();
 						this.gameStreamCapturer = null;
@@ -153,11 +150,10 @@ class Record extends ModTemplate {
 
 				isCapturingStream: () => {
 					if (this.gameStreamCapturer) {
-						return this.gameStreamCapturer.is_capturing_stream
+						return this.gameStreamCapturer.is_capturing_stream;
 					} else {
-						return false
+						return false;
 					}
-
 				}
 			};
 		}
@@ -165,7 +161,7 @@ class Record extends ModTemplate {
 		if (type === 'game-menu') {
 			this.attachStyleSheets();
 			if (!obj.recordOptions) return;
-			if(obj.recordOptions.active === false){
+			if (obj.recordOptions.active === false) {
 				return;
 			}
 			let menu = {
@@ -203,9 +199,9 @@ class Record extends ModTemplate {
 		// 	let audioEnabled = true;
 		// 	let videoIcon = this.videoBox ? "fas fa-video" : "fas fa-video-slash";
 		// 	let audioIcon =  audioEnabled ? "fas fa-microphone" : 'fas fa-microphone-slash';
-		
+
 		// 	const streams = this.app.modules.getRespondTos('media-request');
-		
+
 		// 	let x = [
 		// 		{
 		// 			text: `Video control`,
@@ -227,12 +223,12 @@ class Record extends ModTemplate {
 		// 			icon: audioIcon,
 		// 			callback: (app, id, combined_stream) => {
 		// 				const iconElement = document.querySelector(`#dream_controls_menu_item_${id} i`);
-		// 				let audioEnabled;	
+		// 				let audioEnabled;
 		// 				if(this.gameStreamCapturer.localStream){
 		// 					audioEnabled = true
 		// 				}else {
 		// 					audioEnabled = false
-		// 				}		
+		// 				}
 		// 				if (audioEnabled) {
 		// 					iconElement.classList.replace('fa-microphone', 'fa-microphone-slash');
 		// 					this.gameStreamCapturer.stopLocalAudio()
@@ -244,14 +240,14 @@ class Record extends ModTemplate {
 		// 			style: ""
 		// 		}
 		// 	];
-		
+
 		// 	// Hide icons if videocall streams exist
 		// 	if (streams.length > 0) {
 		// 		x.forEach(control => {
 		// 			control.style = 'hidden-control';
 		// 		});
 		// 	}
-		
+
 		// 	return x;
 		// }
 	}
@@ -296,7 +292,7 @@ class Record extends ModTemplate {
 
 		let message = tx.returnMessage();
 		console.log(message.module, 'screenrecord');
-		if (conf === 0) {
+		if (conf == 0) {
 			if (message.module === 'screenrecord') {
 				console.log('received information');
 				if (this.app.BROWSER === 1) {
@@ -339,23 +335,23 @@ class Record extends ModTemplate {
 	async getOrCreateVideoBox(stream) {
 		if (!this.videoBox) {
 			const streams = this.app.modules.getRespondTos('media-request');
-			if(streams.length > 0) return;
-			
+			if (streams.length > 0) return;
+
 			this.localStream = await navigator.mediaDevices.getUserMedia({
 				video: true
 			});
-			let stream_id = `stream_${this.publicKey}`
+			let stream_id = `stream_${this.publicKey}`;
 			this.videoBox = new VideoBox(this.app, this, this.publicKey);
-			this.videoBox.render(this.localStream)
+			this.videoBox.render(this.localStream);
 			let videoElement = document.querySelector('.video-box-container-large');
 			if (videoElement) {
 				videoElement.style.position = 'absolute';
 				videoElement.style.top = '100px';
 				videoElement.style.width = '350px';
 				videoElement.style.height = '350px';
-				videoElement.style.resize = "both"
-				videoElement.style.overflow= "auto";
-				videoElement.classList.add('game-video-box')
+				videoElement.style.resize = 'both';
+				videoElement.style.overflow = 'auto';
+				videoElement.classList.add('game-video-box');
 				this.app.browser.makeDraggable(stream_id);
 			}
 		}
@@ -363,32 +359,28 @@ class Record extends ModTemplate {
 	}
 
 	removeVideoBox(forceRemove = false) {
-
 		if (!forceRemove) {
 			if (this.is_recording_game || this.is_streaming_game) {
-				return
+				return;
 			}
 			if (this.videoBox) {
-				this.localStream.getTracks().forEach(track => {
-					track.stop()
-				})
-				this.localStream = null
+				this.localStream.getTracks().forEach((track) => {
+					track.stop();
+				});
+				this.localStream = null;
 				this.videoBox.remove();
 				this.videoBox = null;
 			}
 		} else {
 			if (this.videoBox) {
-				this.localStream.getTracks().forEach(track => {
-					track.stop()
-				})
-				this.localStream = null
+				this.localStream.getTracks().forEach((track) => {
+					track.stop();
+				});
+				this.localStream = null;
 				this.videoBox.remove();
 				this.videoBox = null;
 			}
-
 		}
-
-
 	}
 
 	async initializeMediaRecorder(existingChunks, stream) {
@@ -431,7 +423,7 @@ class Record extends ModTemplate {
 
 	async startRecording(options) {
 		let { container, members, callbackAfterRecord, type, includeCamera } = options;
-		console.log(options, "options")
+		console.log(options, 'options');
 
 		// initialize variables
 		this.type = type;
@@ -442,7 +434,7 @@ class Record extends ModTemplate {
 			this.recorderVideoCallStreamCapture.view_window = '.video-container-large';
 			let stream = this.recorderVideoCallStreamCapture.captureVideoCallStreams(includeCamera);
 			this.initializeMediaRecorder(this.chunks, stream);
-		} else if (type === "game") {
+		} else if (type === 'game') {
 			let stream;
 			this.gameRecordCapturer = new StreamCapturer(this.app, this, this.logo);
 			this.gameRecordCapturer.view_window = container;
@@ -451,8 +443,8 @@ class Record extends ModTemplate {
 			this.initializeMediaRecorder(this.chunks, stream);
 
 			// show controls
-			this.screenrecordControls = new ScreenRecordControls(this.app, this)
-			this.screenrecordControls.render()
+			this.screenrecordControls = new ScreenRecordControls(this.app, this);
+			this.screenrecordControls.render();
 			let recordButton = document.getElementById('record-stream');
 			if (recordButton) {
 				recordButton.textContent = 'Stop recording';
@@ -517,11 +509,11 @@ class Record extends ModTemplate {
 			this.recorderVideoCallStreamCapture = null;
 		}
 
-		console.log(this.gameStreamCapturer, "gameStreamCapturer")
+		console.log(this.gameStreamCapturer, 'gameStreamCapturer');
 		if (this.gameRecordCapturer) {
-			this.is_recording_game = false
-			this.gameRecordCapturer.stopCaptureGameStream()
-			this.gameRecordCapturer = null
+			this.is_recording_game = false;
+			this.gameRecordCapturer.stopCaptureGameStream();
+			this.gameRecordCapturer = null;
 		}
 
 		if (this.screenrecordControls) {
@@ -574,8 +566,6 @@ class Record extends ModTemplate {
 
 		this.mediaRecorder = null;
 		this.members = [];
-
-
 	}
 
 	async sendStartRecordingTransaction(keys) {
