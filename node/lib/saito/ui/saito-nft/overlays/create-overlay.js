@@ -165,9 +165,7 @@ class CreateNft {
       await newtx.sign();
       await this.app.network.propagateTransaction(newtx);
 
-      console.log('createBoundTransaction:', newtx);
-
-      salert(`Create NFT tx sent`);
+      siteMessage('Minting NFT...', 3000);
 
       this.overlay.close();
     };

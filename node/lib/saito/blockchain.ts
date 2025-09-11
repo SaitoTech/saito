@@ -147,7 +147,10 @@ export default class Blockchain extends SaitoBlockchain {
                 nft_id = nft.id;
               }
             });
+            console.log('onNewBlock: I receive an NFT!!!!', nft_id, nft_list);
+            console.log(transaction.returnMessage());
 
+            // Browser stores the contents of the nft locally...
             this_self.app.storage.saveTransaction(transaction, { field4: nft_id }, 'localhost');
           }
         }

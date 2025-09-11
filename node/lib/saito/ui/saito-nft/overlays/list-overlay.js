@@ -28,6 +28,7 @@ class ListNft {
 
       // re-render send-nft overlay if its open
       if (this.overlay.visible && (updated.length > 0 || persisted)) {
+        console.log('NFT changes in wallet-updated!');
         this.render();
       }
     });

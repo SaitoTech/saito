@@ -29,11 +29,13 @@ class SaitoNFT extends UIModTemplate {
    *
    */
   async onConfirmation(blk, tx, conf) {
-    let txmsg = tx.returnMessage();
+    if (Number(conf) == 0) {
+      let txmsg = tx.returnMessage();
 
-    if (txmsg.module == 'NFT') {
-      console.log('UI Component SaitoNFT sees a NFT-marked transaction!!!');
-      console.log(txmsg);
+      if (txmsg.module == 'NFT') {
+        console.log(`UI Component SaitoNFT sees a NFT-marked transaction in Block ${blk.id}!!!`);
+        console.log(txmsg);
+      }
     }
   }
 }

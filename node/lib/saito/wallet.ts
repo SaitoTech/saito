@@ -1471,11 +1471,10 @@ export default class Wallet extends SaitoWallet {
     fee,
     receipient_publicKey
   ): Promise<Transaction> {
-    console.log('values going to saito.ts:');
-    console.log(deposit);
-    console.log(tx_msg);
-    console.log(fee);
-    console.log(receipient_publicKey);
+    console.log(
+      `createBoundTransaction [nft] -- deposit: ${deposit}, fee: ${fee}, qty: ${num}, owner: ${receipient_publicKey}, contents: `,
+      tx_msg
+    );
 
     let nft_type = 'Standard';
     return S.getInstance().createBoundTransaction(
