@@ -1,6 +1,6 @@
 module.exports = (app, mod, nft) => {
   const identicon = app.keychain.returnIdenticon(nft.id);
-  const depositSaito = nft.getDepositInSaito(nft.deposit);
+  const depositSaito = app.wallet.convertNolanToSaito(nft.deposit);
   let owner = app.keychain.returnUsername(nft.slip1.public_key);
 
   console.log('owner:', owner);
@@ -10,14 +10,6 @@ module.exports = (app, mod, nft) => {
 
      
       <div class="nft-details-data" nft-index="${nft.idx}">
-
-        <input
-          type="radio"
-          name="hidden-nft-radio"
-          class="hidden-nft-radio"
-          value="${nft.idx}"
-          style="display: none;"
-        />
 
         <div class="nft-card-img ${nft.text != '' ? `text` : ``}" style="background-image: url('${nft.image || '/saito/img/dreamscape.png'}');">
 

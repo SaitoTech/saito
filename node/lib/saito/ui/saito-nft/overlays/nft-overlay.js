@@ -1,7 +1,7 @@
-const sendOverlayTemplate = require('./send-overlay.template');
-const SaitoOverlay = require('./../saito-overlay/saito-overlay');
+const NftOverlayTemplate = require('./nft-overlay.template');
+const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 
-class SendNft {
+class NftDetailsOverlay {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
@@ -11,18 +11,18 @@ class SendNft {
     // UI helpers
     //
     this.nft = null;
-    this.idx = null;
     this.nft_list = [];
+
+    app.connection.on('saito-nft-details-render-request', (nft) => {
+      this.nft = nft;
+      this.nft_list = this.app?.options?.wallet?.nfts || [];
+      this.render();
+    });
   }
 
-  async render(nft) {
-    this.nft = nft;
-    this.nft_list = this.app?.options?.wallet?.nfts || [];
-
-    this.overlay.show(sendOverlayTemplate(this.app, this.mod, nft));
-
-    // ensure DOM is in place
-    setTimeout(async () => await this.attachEvents(), 0);
+  render() {
+    this.overlay.show(NftOverlayTemplate(this.app, this.mod, this.nft));
+    this.attachEvents();
   }
 
   async attachEvents() {
@@ -449,4 +449,4 @@ class SendNft {
   }
 }
 
-module.exports = SendNft;
+module.exports = NftDetailsOverlay;

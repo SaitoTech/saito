@@ -1,5 +1,6 @@
 const NftCreate = require('./overlays/create-overlay');
 const NftDisplay = require('./overlays/list-overlay');
+const NftDetails = require('./overlays/nft-overlay');
 const UIModTemplate = require('./../../../templates/uimodtemplate');
 
 /*
@@ -17,6 +18,9 @@ class SaitoNFT extends UIModTemplate {
 
     //'saito-nft-list-render-request'
     this.display = new NftDisplay(app, this);
+
+    //'saito-nft-details-render-request'
+    this.details = new NftDetails(app, this);
   }
 
   shouldAffixCallbackToModule() {
