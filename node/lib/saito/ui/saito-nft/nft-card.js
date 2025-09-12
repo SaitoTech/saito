@@ -1,37 +1,36 @@
-const NftCardTemplate = require('./nft-card.template');
+const NftTemplate = require('./nft-card.template');
 
 class NftCard {
-  constructor(app, mod, container = '', tx = null) {
+  constructor(app, mod, container = '', tx = null, data = null) {
     this.app = app;
     this.mod = mod;
     this.container = container;
 
     //
+    // nft details
+    //
+    this.id = data?.id;
+    this.tx_sig = data?.tx_sig;
+    this.slip1 = data?.slip1;
+    this.slip2 = data?.slip2;
+    this.slip3 = data?.slip3;
+
+    //
     // tx details
     //
     this.tx = tx;
-    this.id = null;
-    this.tx_sig = null;
-    this.slip1 = null;
-    this.slip2 = null;
-    this.slip3 = null;
 
-    //
-    // nft details
-    //
     this.amount = BigInt(0); // nolans
     this.deposit = BigInt(0); // nolans
     this.image = '';
     this.text = '';
-    this.items = []; // multiple nfts of same id saved here
 
     //
     // UI helpers
     //
-    this.idx = null;
-    this.has_local_tx = false;
-    this.nft_list = [];
-    this.render_type = null;
+    this.uuid = null;
+
+    this.reconstruct();
   }
 
   async render() {
@@ -40,67 +39,34 @@ class NftCard {
       return;
     }
 
-    // If there are multiple items for same id, render them all.
-    if (Array.isArray(this.items) && this.items.length > 1) {
-      for (const item of this.items) {
-        // VM inherits methods from the instance so template can call class methods
-        const vm = Object.create(this);
-        Object.assign(vm, {
-          id: item.id,
-          slip1: item.slip1,
-          slip2: item.slip2,
-          slip3: item.slip3,
-          amount: item.amount,
-          deposit: item.deposit,
-          idx: item.idx
-        });
+    // Single record (backward-compatible behavior)
+    this.app.browser.prependElementToSelector(
+      NftTemplate(this.app, this.mod, this),
+      this.container
+    );
 
-        this.app.browser.prependElementToSelector(
-          NftTemplate(this.app, this.mod, vm),
-          this.container
-        );
-      }
-    } else {
-      // Single record (backward-compatible behavior)
-      this.app.browser.prependElementToSelector(
-        NftTemplate(this.app, this.mod, this),
-        this.container
-      );
-    }
+    this.insertNftDetails();
 
     // Ensure DOM is in place
     setTimeout(() => this.attachEvents(), 0);
   }
 
-  async attachEvents() {
-    // Multiple cards
-    if (Array.isArray(this.items) && this.items.length > 1) {
-      for (const item of this.items) {
-        const el = document.querySelector(`#nft-card-${item.idx}`);
-        if (!el) continue;
-
-        // Avoid stacking listeners when re-rendering
-        el.onclick = null;
-        el.onclick = () => {
-          const nft = Object.create(this);
-          Object.assign(nft, {
-            id: item.id,
-            slip1: item.slip1,
-            slip2: item.slip2,
-            slip3: item.slip3,
-            amount: item.amount,
-            deposit: item.deposit,
-            idx: item.idx
-          });
-
-          this.app.connection.emit('saito-nft-details-render-request', nft);
-        };
+  insertNftDetails() {
+    let elm = document.querySelector(`#nft-card-${this.uuid} .nft-card-img`);
+    if (elm) {
+      if (this.text) {
+        elm.innerHTML = `<div class="nft-card-text">${this.text}</div>`;
       }
-      return;
+      if (this.image) {
+        elm.style.backgroundImage = `url("${this.image}")`;
+      }
+    } else {
+      console.log('Element not rendered');
     }
+  }
 
-    // Single card (backward compatible)
-    const el = document.querySelector(`#nft-card-${this.idx}`);
+  async attachEvents() {
+    const el = document.querySelector(`#nft-card-${this.uuid}`);
     if (el) {
       el.onclick = () => {
         this.app.connection.emit('saito-nft-details-render-request', this);
@@ -108,128 +74,66 @@ class NftCard {
     }
   }
 
-  async createFromId(id) {
-    this.id = id;
-    if (!this.id) return;
-
-    // Try local archive
-    await this.app.storage.loadTransactions(
-      { field4: this.id },
-      (txs) => {
-        if (Array.isArray(txs) && txs.length > 0) {
-          // ✅ only extract image/text
-          this.setImageTextFromTx(txs[0]);
-        }
-      },
-      'localhost'
-    );
-
-    // Try remote if not found locally
-    if (!this.has_local_tx) {
-      const peers = await this.mod.app.network.getPeers();
-      const peer = peers?.[0] ?? null;
-      if (peer) {
-        await this.app.storage.loadTransactions(
-          { field4: this.id },
-          (txs) => {
-            if (Array.isArray(txs) && txs.length > 0) {
-              // ✅ only extract image/text
-              this.setImageTextFromTx(txs[0]);
-            }
-          },
-          peer
-        );
-      }
+  reconstruct() {
+    if (!this.tx && !this.id) {
+      console.error('Insufficient data to make an nft!');
+      return;
     }
 
-    console.log('nft.createFromId() id: ', this.id);
+    if (this.tx && this.id) {
+      // already set
+      return;
+    }
 
-    // Populate slips for all entries with this.id
-    this.getSlipsFromWallet(this.id, this.tx_sig ?? null);
-  }
+    if (this.tx) {
+      this.tx_sig = this.tx?.signature;
+      this.id = this.mod.computeNftIdFromTx(tx);
 
-  createFromTx(tx) {
-    this.has_local_tx = true;
-    this.tx = tx;
-    this.tx_sig = this.tx?.signature ?? this.tx_sig ?? null;
+      this.slip1 = tx?.to[0] ?? null;
+      this.slip2 = tx?.to[1] ?? null;
+      this.slip3 = tx?.to[2] ?? null;
 
-    // ✅ use the new method here
-    this.setImageTextFromTx(tx);
+      // ✅ use the new method here
+      this.setImageTextFromTx();
+    } else {
+      // Try local archive
+      console.log('Getting tx from archive...');
+      this.app.storage.loadTransactions(
+        { field4: this.id },
+        (txs) => {
+          if (txs?.length > 0) {
+            this.tx = txs[0];
+            console.log('Success!');
+            // ✅ only extract image/text
+            this.setImageTextFromTx();
+            this.insertNftDetails();
+          }
+        },
+        'localhost'
+      );
+    }
 
-    // Build items directly from the provided tx
-    this.getSlipsFromTx(tx);
-  }
+    if (this.slip1?.amount) {
+      this.amount = BigInt(this.slip1.amount);
+    }
 
-  /**
-   * Wallet-backed slip resolution (used by createFromId).
-   * Reads from app.options.wallet.nfts.
-   */
-  getSlipsFromWallet(id = null, tx_sig = null) {
-    const nfts = this.app?.options?.wallet?.nfts || [];
-    if (!Array.isArray(nfts) || nfts.length === 0) return;
-
-    const candidates = nfts.filter(
-      (n) => (id != null && n?.id === id) || (tx_sig != null && n?.tx_sig === tx_sig)
-    );
-    if (candidates.length === 0) return;
-
-    // keep helpers meaningful
-    this.nft_list = candidates;
-
-    const records = candidates.map((c) => ({
-      id: c?.id ?? null,
-      tx_sig: c?.tx_sig ?? null,
-      slip1: c?.slip1 ?? null,
-      slip2: c?.slip2 ?? null,
-      slip3: c?.slip3 ?? null
-    }));
-
-    console.log('nft.createFromId() records: ', records);
-
-    buildItemsFromRecords(this, records);
-  }
-
-  /**
-   * TX-backed slip resolution (used by createFromTx).
-   * Derives nft_id and slips entirely from the provided tx, without needing wallet entries.
-   */
-  getSlipsFromTx(tx = this.tx) {
-    if (!tx) return;
-
-    this.tx = tx;
-    this.tx_sig = tx?.signature ?? this.tx_sig ?? null;
-
-    const msg = tx?.returnMessage ? tx.returnMessage() : {};
-    const data = msg?.data ?? {};
-
-    const slip1 = tx?.to[0] ?? null;
-    const slip2 = tx?.to[1] ?? null;
-    const slip3 = tx?.to[2] ?? null;
-
-    // Derive id if not already set
-    this.id = this.id ?? computeNftIdFromTx(tx);
-
-    const records = [
-      {
-        id: this.id ?? null,
-        tx_sig: this.tx_sig ?? null,
-        slip1,
-        slip2,
-        slip3
-      }
-    ];
-
-    buildItemsFromRecords(this, records);
+    if (this.slip2?.amount) {
+      this.deposit = BigInt(this.slip2.amount);
+    }
+    this.uuid = this.slip1?.utxo_key;
   }
 
   /**
    * Extracts NFT image/text data from a transaction
    * and assigns it to this.image / this.text.
    */
-  setImageTextFromTx(tx) {
-    if (!tx) return;
+  setImageTextFromTx() {
+    if (!this.tx) {
+      console.warn('No tx!');
+      return;
+    }
 
-    const tx_msg = typeof tx?.returnMessage === 'function' ? tx.returnMessage() : {};
+    const tx_msg = this.tx.returnMessage();
     const data = tx_msg?.data ?? {};
 
     if (typeof data.image !== 'undefined') {

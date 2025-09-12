@@ -11,17 +11,8 @@ module.exports = (app, mod, self) => {
 
   let html = `
 
-      <div class="nft-card" id="nft-card-${self.idx}" nft-index="${self.idx}">
-      <div class="nft-card-img ${self.text != '' ? `text` : ``}" style="background-image: url('${self.image || '/saito/img/dreamscape.png'}');">
-
-   `;
-
-  if (self.text != '') {
-    html += `<div class="nft-card-text">${self.text}</div>`;
-  }
-
-  html += `      
-         </div>
+      <div class="nft-card" id="nft-card-${self.uuid}">
+      <div class="nft-card-img"></div>
 
          <div class="nft-card-info">
             <div class="nft-card-details">

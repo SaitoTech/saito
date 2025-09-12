@@ -1,5 +1,5 @@
 const ListNftTemplate = require('./list-overlay.template');
-const Nft = require('./../nft');
+const Nft = require('./../nft-card');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoUser = require('./../../saito-user/saito-user');
 
@@ -66,13 +66,8 @@ class ListNft {
 
       for (const rec of nft_list) {
         try {
-          const comp = new Nft(this.app, this.mod, '.send-nft-list');
-
-          // Populate all matches (comp.items will be filled for same-id duplicates)
-          await comp.createFromId(rec.id);
-
-          // Render: comp will render 1 or many cards depending on comp.items
-          await comp.render();
+          const comp = new Nft(this.app, this.mod, '.send-nft-list', null, rec);
+          comp.render();
         } catch (e) {
           console.error('NFT failed to init/render id:', e);
           console.error(rec);
