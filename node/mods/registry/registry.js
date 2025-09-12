@@ -15,7 +15,8 @@ class Registry extends ModTemplate {
 		//
 		// master DNS publickey for this module
 		//
-		this.registry_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
+		//this.registry_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
+		this.registry_publickey = 'sFQuGQ6teVaHs6AAtBBWeDwtGMCGCPNyhTJqYDXCvvVK';
 
 		//
 		// peers

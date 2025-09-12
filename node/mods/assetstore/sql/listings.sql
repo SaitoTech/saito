@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS records (
+CREATE TABLE IF NOT EXISTS listings (
   id INTEGER DEFAULT '',
   nft_id TEXT DEFAULT '',
   nft_tx TEXT DEFAULT '',

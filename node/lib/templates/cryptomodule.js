@@ -372,7 +372,7 @@ class CryptoModule extends ModTemplate {
       );
       if (this.history) {
         this.history = JSON.parse(this.history);
-        if (this.history.length > 0) {
+        if (this.history?.length) {
           this.history_update_ts = this.history[this.history.length - 1].timestamp;
 
           console.log('Crypto History!', this.history);
@@ -416,7 +416,7 @@ class CryptoModule extends ModTemplate {
 
     this.app.storage.saveOptions();
 
-    if (this.history.length > 0) {
+    if (this.history?.length) {
       this.app.storage.setLocalForageItem(
         `${this.ticker}_${this.address}_history`,
         JSON.stringify(this.history)

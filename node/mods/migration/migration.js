@@ -32,7 +32,8 @@ class Migration extends ModTemplate {
 		//
 		// TODO -- CHANGE THIS
 		//
-		this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
+		//this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
+		this.migration_publickey = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
 		this.migration_mixin_address = '';
 
 		this.messages = [
@@ -149,20 +150,16 @@ class Migration extends ModTemplate {
 		let txmsg = tx.returnMessage();
 		try {
 			if (conf == 0) {
-				console.log('Migration onConfirmation: ' + txmsg.request);
-
 				if (txmsg.request === 'save migration data') {
 					await this.receiveStoreMigrationTransaction(blk, tx, conf);
 				}
 
 				if (txmsg.request == 'migration check' && this.publicKey == this.migration_publickey) {
-					if (this.ercMod !== false) {
-						await this.receiveMigrationPingTransaction(tx);
-					}
+					this.receiveMigrationPingTransaction(tx);
 				}
 			}
 		} catch (err) {
-			console.log('ERROR in ' + this.name + ' onConfirmation: ' + err);
+			console.error('ERROR in ' + this.name + ' onConfirmation: ' + err);
 		}
 	}
 
@@ -221,7 +218,7 @@ class Migration extends ModTemplate {
 			};
 			await this.app.storage.runDatabase(sql, params, 'migration');
 		} catch (err) {
-			console.log('ERROR in saving migration data to db: ' + err);
+			console.error('ERROR in saving migration data to db: ' + err);
 		}
 	}
 
@@ -282,13 +279,11 @@ class Migration extends ModTemplate {
 
 		let min_deposit = 0;
 		let max_deposit = await this.app.wallet.getBalance('SAITO');
+		max_deposit = Number(this.app.wallet.convertNolanToSaito(max_deposit));
 
 		// Max of 500k at a time
 		if (max_deposit > 500000) {
 			max_deposit = 500000;
-		} else {
-			// Or round down to the nearest 100k unit
-			max_deposit = 100000 * Math.floor(max_deposit / 100000);
 		}
 
 		let mixin_address = '';
@@ -300,7 +295,7 @@ class Migration extends ModTemplate {
 			mixin_address = this.ercMod.formatAddress();
 		}
 
-		if (Number(max_deposit) < 1000 && !this.local_dev) {
+		if (max_deposit < 1000 && !this.local_dev) {
 			error = 'Insufficient balance in the Migration bot';
 		}
 
@@ -434,16 +429,20 @@ class Migration extends ModTemplate {
 		const mod_self = this;
 
 		const sendCallback = (robj) => {
-			mod_self.overlay.remove();
 			if (robj?.err) {
 				salert('Migration Error: <br> ' + robj.err);
 				return;
 			}
 
-			document.querySelector('.withdraw-title').innerHTML = 'Converting saito';
-			document.querySelector('.withdraw-intro').innerHTML = 'Check your wallet in the side bar ->';
-			document.querySelector('.withdraw-form-fields').remove();
-			document.querySelector('.withdraw-outtro').remove();
+			try {
+				mod_self.overlay.remove();
+				document.querySelector('.withdraw-title').innerHTML = 'Converting saito';
+				document.querySelector('.withdraw-intro').innerHTML =
+					'Check your wallet in the side bar ->';
+				document.querySelector('.withdraw-form-fields').remove();
+			} catch (err) {
+				console.warn('UI errors...', err);
+			}
 		};
 
 		if (document.getElementById('submit')) {

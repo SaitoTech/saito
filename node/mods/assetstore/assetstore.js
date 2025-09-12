@@ -38,12 +38,9 @@ class AssetStore extends ModTemplate {
 
 		this.nfts = {};
 		this.auction_list = [];
+		this.purchaseFee = 0;
 
 		this.styles = ['/assetstore/style.css'];
-
-		this.assetStoreKeys = [];
-
-		this.affix_callbacks_to = [];
 
 		this.social = {
 			twitter: '@SaitoOfficial',
@@ -66,7 +63,7 @@ class AssetStore extends ModTemplate {
 		await super.initialize(app);
 
 		//
-		// compile list of assetstore games (which don't exist yet)
+		// compile list of assetstore games
 		//
 		app.modules.returnModulesRespondingTo('assetstore-games').forEach((game_mod) => {
 			this.assetstore_games.push(game_mod);
@@ -75,54 +72,22 @@ class AssetStore extends ModTemplate {
 			//
 			this.affix_callbacks_to.push(game_mod.name);
 		});
-	}
 
-	shouldAffixCallbackToModule(modname, tx = null) {
-		if (modname == 'AssetStore') {
-			return 1;
+		if (!app.options.assetstore) {
+			app.options.assetstore = {};
 		}
-
-		//
-		// NFT transaction / Bound transaction type
-		//
-		if (tx?.type == 8) {
-			return 1;
-		}
-
-		//
-		// Maybe already deprecated??
-		//
-		for (let i = 0; i < this.affix_callbacks_to.length; i++) {
-			if (this.affix_callbacks_to[i] == modname) {
-				return 1;
-			}
-		}
-
-		return 0;
-	}
-
-	returnServices() {
-		let services = [];
-
-		if (this.app.BROWSER == 0) {
-			services.push(new PeerService(null, 'AssetStore', this.publicKey));
-		}
-		return services;
 	}
 
 	async onPeerServiceUp(app, peer, service = {}) {
-		if (service.service === 'AssetStore') {
-			//
-			// Remember which stores are available on the network
-			//
-			this.assetStoreKeys.push(peer);
+		console.log('onPeerServiceUp: ', service.service);
 
-			//
-			// Ask for a list of assets to acquire
-			//
+		if (service.service === 'relay') {
 			this.app.network.sendRequestAsTransaction(
 				'assetstore retreive records',
-				{},
+				{
+					module: 'AssetStore',
+					request: 'assetstore retreive records'
+				},
 				(records) => {
 					console.log('onPeerServiceUp records: ', records);
 					this.auction_list = records;
@@ -165,7 +130,6 @@ class AssetStore extends ModTemplate {
 					text: 'Store',
 					icon: 'fa-solid fa-cart-shopping',
 					rank: 15,
-					type: 'navigation',
 					callback: function (app, id) {
 						navigateWindow('/assetstore');
 					}
@@ -187,53 +151,56 @@ class AssetStore extends ModTemplate {
 		// return;
 		// }
 
+		//
+		// sanity check
+		//
 		if (this.hasSeenTransaction(tx)) {
 			return;
 		}
 
 		let txmsg = tx.returnMessage();
+		let assetstore_self = this.app.modules.returnModule('AssetStore');
 
+		//
+		// Bound Transactions (monitor NFT transfers)
+		//
 		if (tx.type == 8) {
-			// Bound
-			// if from slips less than 3 then its create not send nft tx
-			if (tx.from.length < 3) return;
-
-			let to_publicKey = tx.to[1].publicKey;
-			let from_publicKey = tx.from[1].publicKey;
-
-			// nft is sent to assestore (list)
-			if (tx.isTo(to_publicKey)) {
-				console.log('(');
-				console.log('(');
-				console.log('( AssetStore Receives Bound TX for ITSELF!');
-				console.log('(');
-				console.log('(');
-				let nft = new SaitoNft(this.app, this);
-				nft.createFromTx(tx);
-				let nft_id = nft.returnId();
-
-				let seller = from_publicKey;
-				let res = await this.setActive(seller, nft_id);
-				this.app.connection.emit('assetstore-update-auction-list-request');
+			//
+			// ignore "create nft" txs with < 3 from slips
+			//
+			if (tx.from.length < 3) {
+				return;
 			}
 
-			// assestore is sending nft (delist)
-			if (from_publicKey == this.publicKey) {
-				console.log('(');
-				console.log('(');
-				console.log('( AssetStore Sends NFT');
-				console.log('(');
-				console.log('(');
+			//
+			// monitor nfts sent to me
+			//
+			// these are mostly likely the embedded NFTs that we are sent on listing
+			// and that we have broadcast ourselves to transfer control to the Asset
+			// Store. we monitor them in order to update the status of the auction
+			// so that the listing is live.
+			//
+			if (tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
+				//
+				// update the listing
+				//
+				let seller = tx.from[1].publicKey;
+				let nft_sig = tx.signature;
+				await this.updateListing(seller, nft_sig, 2);
 
-				let nft = new SaitoNft(this.app, this);
-				nft.createFromTx(tx);
-				let nft_id = nft.returnId();
+				//
+				// and save the transaction
+				//
+				this.addTransaction(tx, blk, nft_sig, seller, this.publicKey, 1);
+			}
 
-				// console.log("created NFT from tx...", nft);
-
-				let seller = to_publicKey;
-				let res = await this.setInactive(seller, nft_id);
-				this.app.connection.emit('assetstore-update-auction-list-request');
+			//
+			// if we are sending the NFT to someone else
+			//
+			if (!tx.isTo(this.publicKey) && tx.isFrom(this.publicKey)) {
+				//
+				// do nothing for now...
+				//
 			}
 		}
 
@@ -250,6 +217,10 @@ class AssetStore extends ModTemplate {
 					if (txmsg.request === 'create_delist_asset_transaction') {
 						await this.receiveDelistAssetTransaction(tx, blk);
 					}
+
+					if (txmsg.request === 'create_purchase_asset_transaction') {
+						await this.receivePurchaseAssetTransaction(tx, blk);
+					}
 				}
 			}
 		} catch (err) {
@@ -261,26 +232,15 @@ class AssetStore extends ModTemplate {
 	// HANDLE PEER TRANSACTION //
 	/////////////////////////////
 	//
-	async handlePeerTransaction(app, newtx = null, peer, mycallback = null) {
-		if (!newtx || this.app.BROWSER) {
-			return 0;
-		}
-
-		let txmsg = newtx.returnMessage();
+	async handlePeerTransaction(app, tx = null, peer, mycallback = null) {
+		if (tx == null) return 0;
+		const txmsg = tx.returnMessage();
 
 		if (txmsg?.request === 'assetstore retreive records') {
 			return this.receiveRetreiveRecordsTransaction(mycallback);
 		}
 
-		//if (message.request === 'assetstore invite list') {
-		//	// Process stuff on server side, then...
-		//	if (mycallback) {
-		//		mycallback(txs);
-		//		return 1;
-		//	}
-		//}
-
-		return super.handlePeerTransaction(app, newtx, peer, mycallback);
+		return super.handlePeerTransaction(app, tx, peer, mycallback);
 	}
 
 	/////////////////
@@ -338,50 +298,31 @@ class AssetStore extends ModTemplate {
 
 	async receiveListAssetTransaction(tx, blk = null) {
 		try {
+			//
+			// unpack the transaction
+			//
 			let txmsg = tx.returnMessage();
-
 			let nfttx = new Transaction();
 			nfttx.deserialize_from_web(this.app, txmsg.tx);
-
 			let nft = new SaitoNft(this.app, this);
 			nft.createFromTx(nfttx);
 
-			let seller = tx.from[0].publicKey;
-			let lc = 1;
-			let nft_id = nft.returnId();
-			let nft_tx = txmsg.tx;
-			let nft_sig = nfttx.signature;
-			let bsh = blk.hash;
-			let bid = blk.id;
-			let tid = tx.signature;
-
-			console.log('seller: ' + seller);
-			console.log('nft_id: ' + nft_id);
-			//console.log("nft_tx: " + nfttx);
-			console.log('lc: ' + lc);
-			console.log('bsh: ' + bsh);
-			console.log('bid: ' + bid);
-			console.log('tid: ' + tid);
-
 			//
-			// insert the NFT into our platform
+			// add the auction listing
 			//
-			await this.addRecord(seller, nft_id, nft_tx, nft_sig, lc, bsh, bid, tid);
+			await this.addListing(nft, tx, nfttx, blk);
 
 			//
 			// and broadcast the embedded tx
 			//
 			this.app.network.propagateTransaction(nfttx);
-		} catch (err) {
-			console.error(err);
-		}
+		} catch (err) {}
 	}
 
 	///////////////////
 	// Delist Assets //
 	///////////////////
 	//
-	// client / browser
 	async createDelistAssetTransaction(nft) {
 		const newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
 
@@ -425,7 +366,6 @@ class AssetStore extends ModTemplate {
 				console.warn('Delist: record not found / not active / wrong seller');
 				return;
 			}
-
 			console.log('this.app.options.wallet: ', this.app.options.wallet);
 
 			// check if nft held by assetstore wallet
@@ -481,37 +421,241 @@ class AssetStore extends ModTemplate {
 		}
 	}
 
+	///////////////////
+	// Retreive records //
+	///////////////////
+	//
+	async sendRetreiveRecordsTransaction(peer, mycallback) {
+		let this_self = this;
+		let msg = {
+			module: 'AssetStore',
+			request: 'assetstore retreive records'
+		};
+
+		this.app.network.sendRequestAsTransaction(
+			'assetstore retreive records',
+			msg,
+			function (records) {
+				this_self.auction_list = records;
+				if (mycallback != null) {
+					return mycallback(records);
+				}
+			},
+			peer.peerIndex
+		);
+	}
+
+	async receiveRetreiveRecordsTransaction(mycallback = null) {
+		if (mycallback == null) {
+			console.warn('No callback');
+			return 0;
+		}
+		if (this.app.BROWSER == 1) {
+			console.warn("Browsers don't support backup/recovery");
+			return 0;
+		}
+
+		let sql = 'SELECT * FROM records WHERE active = 1';
+		let params = {};
+
+		let results = await this.app.storage.queryDatabase(sql, params, 'assetstore');
+
+		if (mycallback) {
+			mycallback(results);
+			return 1;
+		} else {
+			console.warn('No callback to process assestore records');
+		}
+
+		return 0;
+	}
+
+	///////////////////
+	// Retreive records //
+	///////////////////
+	//
+	async createPurchaseAssetTransaction(nft, opts = {}) {
+		// nft: { id, slip1, slip2, slip3, amount, seller? }
+		// opts: { price, fee }
+
+		console.log('purchase nft: ', nft);
+
+		const price = BigInt(opts?.price ?? 0);
+		const fee = BigInt(opts?.fee ?? 0);
+		if (price <= 0n) {
+			throw new Error('price must be > 0');
+		}
+		if (fee < 0n) {
+			throw new Error('fee must be >= 0');
+		}
+
+		const total = price + fee;
+
+		const seller = nft?.seller || opts?.seller;
+		if (!seller) {
+			throw new Error('seller public key is required');
+		}
+
+		console.log('createPurchaseAssetTransaction 1///');
+
+		// create inner tx from buyer
+		let nolan_amount = this.app.wallet.convertSaitoToNolan(total);
+
+		console.log('nolan amount : ////////', nolan_amount);
+		console.log('createPurchaseAssetTransaction 2///');
+		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(seller, nolan_amount);
+
+		newtx.msg = {
+			module: this.name,
+			request: 'crypto payment',
+			amount,
+			from: this.publicKey,
+			to: seller
+		};
+
+		newtx.packData();
+		await newtx.sign();
+
+		console.log('createPurchaseAssetTransaction 3///');
+
+		// create tx to send to server
+		let paytx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
+		const txmsg = {
+			module: 'AssetStore',
+			request: 'purchase_asset_transaction',
+			nft_id: nft.id,
+			seller,
+			price: String(price), // keeping as string to avoid JSON bigint issues
+			fee: String(fee),
+
+			tx: newtx.serialize_to_web(this.app)
+		};
+
+		if (nft.image) txmsg.image = nft.image;
+		if (nft.text) txmsg.text = nft.text;
+
+		paytx.msg = txmsg;
+		paytx.packData();
+		await paytx.sign();
+
+		return paytx;
+	}
+
+	async receivePurchaseAssetTransaction(tx, blk = null) {
+		try {
+			if (this.app.BROWSER) return;
+
+			const txmsg = tx.returnMessage();
+
+			let buytx = new Transaction();
+			buytx.deserialize_from_web(this.app, txtxmsg.tx);
+
+			const buyer = tx.from?.[0]?.publicKey || tx.returnSender();
+			const nft_id = txmsg.nft_id;
+			const seller = txmsg.seller;
+			const price = BigInt(txmsg.price ?? 0);
+			const fee = BigInt(txmsg.fee ?? 0);
+			if (!nft_id || !seller) {
+				console.warn('Purchase: missing nft_id/seller');
+				return;
+			}
+			if (price <= 0n || fee < 0n) {
+				console.warn('Purchase: invalid price/fee');
+				return;
+			}
+
+			// Verify record exists & active & belongs to seller
+			const rows = await this.app.storage.queryDatabase(
+				'SELECT * FROM records WHERE nft_id = $nft_id AND seller = $seller AND active = 1 LIMIT 1',
+				{ $nft_id: nft_id, $seller: seller },
+				'assetstore'
+			);
+			if (!rows || rows.length === 0) {
+				console.warn('Purchase: record not found / not active / wrong seller');
+				return;
+			}
+
+			// Verify module currently controls the NFT (like your delist)
+			const raw = await this.app.wallet.getNftList();
+			const list = Array.isArray(raw)
+				? raw
+				: typeof raw === 'string'
+					? JSON.parse(raw || '[]')
+					: [];
+			const nft_owned = (list || []).find((n) => n.id === nft_id);
+			if (!nft_owned) {
+				console.warn('Purchase: module wallet does not hold the NFT right now');
+				return;
+			}
+
+			// Verify if payment done to AssetStore
+			const total = price + fee;
+			const paidToMe = this.amountToMe(tx);
+			if (paidToMe < total) {
+				console.warn(`Purchase: insufficient payment to module. got=${paidToMe} need=${total}`);
+				return;
+			}
+
+			// Create NFT transfer to buyer (bound send)
+			const slip1key = nft_owned.slip1?.utxo_key;
+			const slip2key = nft_owned.slip2?.utxo_key;
+			const slip3key = nft_owned.slip3?.utxo_key;
+			const amount = BigInt(nft_owned.slip2?.amount ?? 0);
+			if (!slip1key || !slip2key || !slip3key) {
+				console.warn('Purchase: missing slip keys for owned NFT');
+				return;
+			}
+			if (amount <= 0n) {
+				console.warn('Purchase: NFT amount is zero/invalid');
+				return;
+			}
+
+			let obj = {};
+			if (msg.image) obj.image = msg.image;
+			if (msg.text) obj.text = msg.text;
+
+			const txMsg = {
+				data: obj,
+				module: 'AssetStore',
+				request: 'send nft'
+			};
+
+			const nftMsg = {
+				data: txMsg,
+				module: 'AssetStore',
+				request: 'send nft',
+				context: 'purchase',
+				nft_id,
+				buyer,
+				seller
+			};
+
+			const nftTx = await this.app.wallet.createSendBoundTransaction(
+				amount,
+				slip1key,
+				slip2key,
+				slip3key,
+				buyer,
+				nftMsg
+			);
+			await nftTx.sign();
+
+			// 6) Broadcast both, prefer NFT first (so seller is paid when transfer is on the way)
+			this.app.network.propagateTransaction(nftTx);
+			this.app.network.propagateTransaction(paySellerTx);
+
+			// 7) DB: mark inactive/sold (optimistic); UI update
+			await this.setInactive(seller, nft_id);
+			this.app.connection.emit('assetstore-update-auction-list-request');
+		} catch (err) {
+			console.error('receivePurchaseAssetTransaction error:', err);
+		}
+	}
+
 	//
 	// purges invites unaccepted
 	//
 	purgeAssets() {}
-
-	//
-	// SQL Database Management
-	//
-	async setActive(seller = '', nft_id = '') {
-		let sql = `UPDATE records SET active = 1 WHERE seller = $seller AND nft_id = $nft_id`;
-		let params = {
-			$seller: seller,
-			$nft_id: nft_id
-		};
-		let res = await this.app.storage.runDatabase(sql, params, 'assetstore');
-
-		console.log('setActive res: ', res);
-		return res?.changes;
-	}
-
-	async setInactive(seller = '', nft_id = '') {
-		console.log('inside setInactive ///');
-
-		let sql = `UPDATE records SET active = 0 WHERE seller = $seller AND nft_id = $nft_id`;
-		let params = {
-			$seller: seller,
-			$nft_id: nft_id
-		};
-		let res = await this.app.storage.runDatabase(sql, params, 'assetstore');
-		return res?.changes;
-	}
 
 	async onChainReorganization(bid, bsh, lc) {
 		var sql = 'UPDATE records SET lc = $lc WHERE bid = $bid AND bsh = $bsh';
@@ -523,66 +667,185 @@ class AssetStore extends ModTemplate {
 	//
 	// SQL Database Management
 	//
-	async addRecord(
-		seller = '',
-		nft_id = '',
-		nft_tx = '',
-		nft_sig = '',
-		lc = 1,
-		bsh = '',
-		bid = 0,
-		tid = 0
-	) {
-		// prevent empty nft_id, we have UNIQUE('') in table will cause it to be ignored
-		if (!nft_id || (typeof nft_id === 'string' && nft_id.trim() === '')) {
-			console.warn('addRecord: empty nft_id — not inserting');
-			return 0;
+	async addListing(nft = null, tx = null, nft_tx = null, blk = null) {
+		//
+		// sanity check
+		//
+		if (nft == null || tx == null || nft_tx == null || blk == null) {
+			return;
 		}
 
-		console.log('seller: ' + seller);
-		console.log('nft_id: ' + nft_id);
-		//console.log("nft_tx: " + nft_tx);
-		console.log('nft_sig: ' + nft_sig);
-		console.log('lc: ' + lc);
-		console.log('bsh: ' + bsh);
-		console.log('bid: ' + bid);
-		console.log('tid: ' + tid);
-
-		const lcNum = typeof lc === 'bigint' ? Number(lc) : Number(lc) || 0;
-		const bidNum = typeof bid === 'bigint' ? Number(bid) : Number(bid) || 0; // handles `3n`
-		const tidStr = String(tid);
+		let lc = 1;
+		let nft_id = nft.returnId();
+		let nft_sig = nfttx.signature;
+		let bsh = blk.hash;
+		let bid = blk.id;
+		let tid = tx.id;
+		let seller = tx.from[0].publicKey;
+		let receiver = tx.to[0].publicKey;
+		let tx_json = tx.serialize_to_web(this.app);
 
 		//
-		// insert if nft_id unique, else update existing row
+		// andother sanity check
 		//
-		const sql = `
-	    INSERT INTO records (
-	      seller, nft_id, nft_tx, lc, bsh, bid, tid
-	    ) VALUES (
-	      $seller, $nft_id, $nft_tx, $lc, $bsh, $bid, $tid
-	    )
-	    ON CONFLICT(nft_id) DO UPDATE SET
-	      seller = excluded.seller,
-	      nft_tx = excluded.nft_tx,
-	      lc     = excluded.lc,
-	      bsh    = excluded.bsh,
-	      bid    = excluded.bid,
-	      tid    = excluded.tid;
-	  `;
+		if (!nft_id || (typeof nft_id === 'string' && nft_id.trim() === '')) {
+			console.warn('addListing: empty nft_id — not adding listing');
+			return 0;
+		}
+		if (tx != null) {
+			//
+			// NFT transaction / Bound transaction type
+			//
+			if (tx.type == 8) {
+				return 1;
+			}
+		}
+		return 0;
 
+		//
+		// create listing record
+		//
+		//
+		// CREATE TABLE IF NOT EXISTS listings (
+		//  id INTEGER DEFAULT '',
+		//  nft_sig TEXT DEFAULT '',		// sig of the tx that listed the NFT for sale
+		//  nft_id TEXT DEFAULT '',		// slip1 + slip3
+		//  seller TEXT DEFAULT '',
+		//  status INTEGER DEFAULT 0 , 		// 0 = unlisted
+		//			// 1 = listed, waiting for NFT transfer
+		//			// 2 = listed and active
+		//			// 3 = payment received, transfer not completed
+		//			// 4 = payment received, transfer completed
+		//  PRIMARY KEY(id ASC)
+		// );
+		const sql = `INSERT INTO listings (nft_sig, nft_id, seller, status) VALUES ($nft_sig, $nft_id, $seller, $status) RETURNING id`;
 		const params = {
-			$seller: seller,
+			$nft_sig: nft_sig,
 			$nft_id: nft_id,
-			$nft_tx: nft_tx,
-			$lc: lcNum,
-			$bsh: bsh,
-			$bid: bidNum,
-			$tid: tidStr
+			$seller: seller,
+			$status: 0
 		};
 
+		//
+		// execute and get LISTING_ID back
+		//
 		const res = await this.app.storage.runDatabase(sql, params, 'assetstore');
-		console.log('addRecord changes:', res);
-		return res?.changes ?? 0;
+		const listing_id = res[0].id;
+
+		//
+		// save listing transaction
+		//
+		//
+		// CREATE TABLE IF NOT EXISTS transactions (
+		//  id INTEGER DEFAULT '' ,
+		//  listing_id INTEGER DEFAULT 0 ,
+		//  tx TEXT DEFAULT '' ,
+		//  tx_sig TEXT DEFAULT '' ,
+		//  sender TEXT DEFAULT '',
+		//  type INTEGER DEFAULT 0 ,		// 0 = listing transaction
+		//					// 1 = NFT transfer
+		//					// 2 = inbound payment for NFT
+		//					// 3 = outbound payment for sale
+		//  lc INTEGER DEFAULT 0,
+		//  bsh TEXT DEFAULT '' ,
+		//  bid INTEGER DEFAULT 0,
+		//  tid TEXT DEFAULT '' ,
+		//  PRIMARY KEY(id ASC)
+		// );
+		//
+		const sql2 = `INSERT INTO transactions (listing_id, tx, tx_sig, sender, receiver, tx_type, lc, bsh, bid, tid) VALUES ($listing_id, $tx, $tx_sig, $sender, $receiver, $tx_type, $lc, $bsh, $bid, $tid)`;
+		const params2 = {
+			$listing_id: listing_id,
+			$tx: tx_json,
+			$tx_sig: tx_sig,
+			$sender: seller,
+			$receiver: receiver,
+			$tx_type: 0,
+			$lc: 1,
+			$bsh: bsh,
+			$bid: bid,
+			$tid: tid
+		};
+
+		//
+		// and save a copy of the transaction
+		//
+		const res2 = await this.app.storage.runDatabase(sql2, params2, 'assetstore');
+
+		return;
+	}
+
+	async updateListing(seller = '', nft_sig = '', status = 0) {
+		//
+		// update listing
+		//
+		const sql = `UPDATE listings SET status = $status WHERE nft_sig = $nft_sig AND seller = $seller`;
+		let params = {
+			$seller: seller,
+			$status: status,
+			$nft_sig: nft_sig
+		};
+		const res = await this.app.storage.runDatabase(sql, params, 'assetstore');
+		return;
+	}
+
+	async addTransaction(
+		tx = null,
+		blk = null,
+		nft_sig = '',
+		sender = '',
+		receiver = '',
+		tx_type = 0
+	) {
+		if (tx == null || nft_sig == '') {
+			return;
+		}
+
+		let bsh = '';
+		let bid = 0;
+		let tid = 0;
+		let lc = 1;
+
+		if (blk != null) {
+			bsh = blk.hash;
+			bid = blk.id;
+			tid = tx.id;
+		}
+		let listing_id = 0;
+		let tx_json = tx.serialize_to_web(this.app);
+		let tx_sig = tx.signature;
+
+		//
+		// fetch listing id
+		//
+		let sql = `SELECT id FROM listings WHERE nft_sig = $nft_sig`;
+		let params = {
+			$nft_sig: nft_sig
+		};
+		let rows = await this.app.storage.queryDatabase(sql, params, 'assetstore');
+		if (rows.length > 0) {
+			listing_id = rows[0].id;
+		}
+
+		//
+		// insert transaction
+		//
+		let sql2 = `INSERT INTO transactions (listing_id, tx, tx_sig, sender, receiver, tx_type, lc, bsh, bid, tid) VALUES ($listing_id, $tx, $tx_sig, $sender, $receiver, $tx_type, $lc, $bsh, $bid, $tid)`;
+		let params2 = {
+			$listing_id: listing_id,
+			$tx: tx_json,
+			$tx_sig: tx_sig,
+			$sender: seller,
+			$receiver: receiver,
+			$tx_type: tx_type,
+			$lc: lc,
+			$bsh: bsh,
+			$bid: bid,
+			$tid: tid
+		};
+		await this.app.storage.runDatabase(sql2, params2, 'assetstore');
+
+		return;
 	}
 
 	async sendRetreiveRecordsTransaction(mycallback = null) {
@@ -601,21 +864,6 @@ class AssetStore extends ModTemplate {
 				p.peerIndex
 			);
 		}
-	}
-
-	async receiveRetreiveRecordsTransaction(mycallback = null) {
-		if (!mycallback) {
-			console.warn('No callback');
-			return 0;
-		}
-
-		let sql = 'SELECT * FROM records WHERE active = 1';
-		let params = {};
-
-		let results = await this.app.storage.queryDatabase(sql, params, 'assetstore');
-
-		mycallback(results);
-		return 1;
 	}
 
 	webServer(app, expressapp, express) {

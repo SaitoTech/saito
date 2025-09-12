@@ -61,6 +61,7 @@ class AssetStoreMain {
 			for (let i = 0; i < this.mod.auction_list.length; i++) {
 				let record = this.mod.auction_list[i];
 
+
 				let nfttx = new Transaction();
 				nfttx.deserialize_from_web(this.app, record.nft_tx);
 
@@ -68,6 +69,7 @@ class AssetStoreMain {
 
 				const nft = new Nft(this.app, this.mod, '.assetstore-table-list');
 				await nft.createFromTx(nfttx);
+				nft.seller = record.seller;
 				await nft.render();
 
 				this.auction_nfts.push(nft);
