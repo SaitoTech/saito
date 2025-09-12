@@ -14,7 +14,12 @@ class NftDetailsOverlay {
 
     app.connection.on('saito-nft-details-render-request', (nft) => {
       this.nft = nft;
+      this.owner = nft.slip1.public_key;
       this.render();
+    });
+
+    app.connection.on('saito-nft-details-close-request', () => {
+      this.overlay.close();
     });
   }
 
@@ -35,7 +40,7 @@ class NftDetailsOverlay {
     //////////////////////////////
     // Do we show split or not?
     //////////////////////////////
-    if (this.nft.amount > 1) {
+    if (this.nft.amount > 1 && this.mod.publicKey == this.owner) {
       splitBtn.style.display = 'flex';
       splitBar = document.querySelector('#nft-details-split-bar');
     } else {
@@ -45,7 +50,7 @@ class NftDetailsOverlay {
     /////////////////////////////
     // Do we show merge or not
     /////////////////////////////
-    if (this.getSameIdCount() > 1) {
+    if (this.getSameIdCount() > 1 && this.mod.publicKey == this.owner) {
       mergeBtn.style.display = 'flex';
     } else {
       mergeBtn.style.display = 'none';
@@ -67,80 +72,84 @@ class NftDetailsOverlay {
       actionBar.dataset.show = 'merge';
     };
 
-    Array.from(document.querySelectorAll('.cancel-action')).forEach(
-      (el) =>
-        (el.onclick = (e) => {
-          actionBar.dataset.show = 'none';
-        })
-    );
+    setTimeout(() => {
+      Array.from(document.querySelectorAll('.cancel-action')).forEach(
+        (el) =>
+          (el.onclick = (e) => {
+            actionBar.dataset.show = 'none';
+          })
+      );
+    }, 1000);
 
     //////////////////////
     /// Send NFT
     //////////////////////
-    document.getElementById('confirm_send').onclick = async (e) => {
-      e.preventDefault();
+    if (document.getElementById('confirm_send')) {
+      document.getElementById('confirm_send').onclick = async (e) => {
+        e.preventDefault();
 
-      // validate receiver's public_key
-      const receiver = receiver_input ? receiver_input.value.trim() : '';
+        // validate receiver's public_key
+        const receiver = receiver_input ? receiver_input.value.trim() : '';
 
-      if (!this.app.wallet.isValidPublicKey(receiver)) {
-        salert('Receiver’s public key is not valid');
-        return;
-      }
-
-      try {
-        const slip1Key = this.nft?.slip1?.utxo_key;
-        const slip2Key = this.nft?.slip2?.utxo_key;
-        const slip3Key = this.nft?.slip3?.utxo_key;
-        if (!slip1Key || !slip2Key || !slip3Key) {
-          throw new Error('Missing required UTXO keys for NFT.');
+        if (!this.app.wallet.isValidPublicKey(receiver)) {
+          salert('Receiver’s public key is not valid');
+          return;
         }
 
-        const amt = BigInt(1);
+        try {
+          const slip1Key = this.nft?.slip1?.utxo_key;
+          const slip2Key = this.nft?.slip2?.utxo_key;
+          const slip3Key = this.nft?.slip3?.utxo_key;
+          if (!slip1Key || !slip2Key || !slip3Key) {
+            throw new Error('Missing required UTXO keys for NFT.');
+          }
 
-        const obj = {};
-        if (this.nft.image) obj.image = this.nft.image;
-        if (this.nft.text) obj.text = this.nft.text;
+          const amt = BigInt(1);
 
-        const tx_msg = {
-          data: obj,
-          module: 'NFT',
-          request: 'send nft'
-        };
+          const obj = {};
+          if (this.nft.image) obj.image = this.nft.image;
+          if (this.nft.text) obj.text = this.nft.text;
 
-        let newtx = await this.app.wallet.createSendBoundTransaction(
-          amt,
-          slip1Key,
-          slip2Key,
-          slip3Key,
-          receiver,
-          tx_msg
-        );
+          const tx_msg = {
+            data: obj,
+            module: 'NFT',
+            request: 'send nft'
+          };
 
-        await newtx.sign();
-        await this.app.network.propagateTransaction(newtx);
+          let newtx = await this.app.wallet.createSendBoundTransaction(
+            amt,
+            slip1Key,
+            slip2Key,
+            slip3Key,
+            receiver,
+            tx_msg
+          );
 
-        console.log('Create nft tx: ', newtx);
+          await newtx.sign();
+          await this.app.network.propagateTransaction(newtx);
 
-        siteMessage('NFT sent to ' + receiver);
+          console.log('Create nft tx: ', newtx);
 
-        this.overlay.close();
+          siteMessage('NFT sent to ' + receiver);
 
-        if (document.querySelector('.nft-list-container')) {
-          this.app.connection.emit('saito-nft-list-render-request');
+          this.overlay.close();
+
+          if (document.querySelector('.nft-list-container')) {
+            this.app.connection.emit('saito-nft-list-render-request');
+          }
+        } catch (err) {
+          console.error(err);
+          salert('Failed to send NFT: ');
         }
-      } catch (err) {
-        console.error(err);
-        salert('Failed to send NFT: ');
-      }
-    };
+      };
+    }
 
     //////////////////////
     // Dynamic split
     //////////////////////
     if (splitBar) {
       confirmSplit.onclick = async (e) => {
-        if (confirmSplit.classList.has('disabled')) {
+        if (confirmSplit.classList.contains('disabled')) {
           return;
         }
         e.preventDefault();

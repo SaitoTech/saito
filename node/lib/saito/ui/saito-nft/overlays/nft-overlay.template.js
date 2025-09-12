@@ -57,7 +57,7 @@ module.exports = (app, mod, nft) => {
             <button id="cancel" class='saito-button-secondary cancel-action'>Cancel</button>  
             <button id="confirm_send" class="saito-button-primary disabled">Send</button>
           </div>
-         </div>
+        </div>
         
         <!-- SPLIT -->
         <div class="nft-details-action" id="nft-details-split">

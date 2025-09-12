@@ -1,4 +1,4 @@
-const BaseSend = require('./../../../../lib/saito/ui/saito-nft/send-overlay');
+const BaseSend = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
 
 class AuctionSendOverlay extends BaseSend {
   async render(nft) {
@@ -54,7 +54,7 @@ class AuctionSendOverlay extends BaseSend {
 
     const buy = sendSection.cloneNode(true);
 
-    buy.querySelectorAll('[id]').forEach(el => {
+    buy.querySelectorAll('[id]').forEach((el) => {
       if (el.id !== 'send_nft') el.removeAttribute('id');
     });
 
@@ -129,7 +129,11 @@ class AuctionSendOverlay extends BaseSend {
             throw new Error('Module missing createPurchaseAssetTransaction');
           }
 
-          const purchaseTx = await this.mod.createPurchaseAssetTransaction(this.nft, { price, fee, seller });
+          const purchaseTx = await this.mod.createPurchaseAssetTransaction(this.nft, {
+            price,
+            fee,
+            seller
+          });
           await this.app.network.propagateTransaction(purchaseTx);
 
           this.overlay?.close?.();
@@ -147,15 +151,14 @@ class AuctionSendOverlay extends BaseSend {
     this.applySellerToggle();
   }
 
-
   // Show/hide Buy vs Delist based on seller === my pubkey
   applySellerToggle() {
     const root = this._overlayRoot || document;
-    const buySection  = root.querySelector('.nft-details-buy');
+    const buySection = root.querySelector('.nft-details-buy');
     const sendSection = root.querySelector('.nft-details-send');
 
     const showBuy = () => {
-      if (buySection)  buySection.style.display  = '';
+      if (buySection) buySection.style.display = '';
       if (this.buyBtn) this.buyBtn.style.display = '';
       if (sendSection) sendSection.style.display = 'none';
       if (this.sendBtn) this.sendBtn.style.display = 'none';
@@ -163,13 +166,12 @@ class AuctionSendOverlay extends BaseSend {
     const showDelist = () => {
       if (sendSection) sendSection.style.display = '';
       if (this.sendBtn) this.sendBtn.style.display = '';
-      if (buySection)  buySection.style.display  = 'none';
+      if (buySection) buySection.style.display = 'none';
       if (this.buyBtn) this.buyBtn.style.display = 'none';
     };
 
-
-    console.log("toggle delist: ", this.mod.publicKey);
-    console.log("toggle delist: ", this);
+    console.log('toggle delist: ', this.mod.publicKey);
+    console.log('toggle delist: ', this);
 
     if (this.nft.seller == this.mod.publicKey) {
       showDelist();
@@ -180,21 +182,25 @@ class AuctionSendOverlay extends BaseSend {
 
   createBuyData() {
     const root = this._overlayRoot || document;
-    const priceAttr  = root?.dataset?.price ?? root?.dataset?.priceAtoms ?? root?.dataset?.amountAtoms;
-    const feeAttr    = root?.dataset?.fee ?? root?.dataset?.feeAtoms;
+    const priceAttr =
+      root?.dataset?.price ?? root?.dataset?.priceAtoms ?? root?.dataset?.amountAtoms;
+    const feeAttr = root?.dataset?.fee ?? root?.dataset?.feeAtoms;
     const sellerAttr = root?.dataset?.seller;
 
     // Prefer data-amount attribute for atom price; fallback to text
     const priceNode = root.querySelector('[data-amount]') || root.querySelector('.nft-price');
-    const priceText = priceNode ? (priceNode.getAttribute?.('data-amount') || priceNode.textContent) : 1;
+    const priceText = priceNode
+      ? priceNode.getAttribute?.('data-amount') || priceNode.textContent
+      : 1;
 
-    const nftPrice = this.nft?.priceAtoms ?? this.nft?.price ?? this.nft?.buy_now ?? this.nft?.buyNowPrice ?? null;
+    const nftPrice =
+      this.nft?.priceAtoms ?? this.nft?.price ?? this.nft?.buy_now ?? this.nft?.buyNowPrice ?? null;
 
     const seller = sellerAttr || this.nft?.seller || this.nft?.owner || this.nft?.slip1?.public_key;
     if (!seller) throw new Error('Missing seller public key');
 
     const price = this.toBigInt(priceAttr ?? nftPrice ?? 0) || this.toBigInt(priceText ?? 0);
-    const fee   = this.toBigInt(feeAttr ?? this.mod?.purchaseFee ?? 0);
+    const fee = this.toBigInt(feeAttr ?? this.mod?.purchaseFee ?? 0);
 
     if (price <= 0n) throw new Error('Invalid or missing price');
 

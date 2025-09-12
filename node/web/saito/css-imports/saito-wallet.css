@@ -1018,7 +1018,8 @@ nft cards
 }
 
 .nft-details-container {
-  min-width: 75vw;
+  width: 750px;
+  max-width: 95vw;
   min-height: 80vh;
   padding: 1rem;
   gap: 1rem;

@@ -5,7 +5,6 @@ const ModTemplate = require('../../lib/templates/modtemplate');
 const AssetStoreMain = require('./lib/main/main');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const AssetStoreHome = require('./index');
-const SaitoNft = require('./../../lib/saito/ui/saito-nft/nft');
 
 //
 // This application provides an auction clearing platform for NFT sales on Saito.
@@ -42,6 +41,8 @@ class AssetStore extends ModTemplate {
 
 		this.styles = ['/assetstore/style.css'];
 
+		this.storePublicKey = null;
+
 		this.social = {
 			twitter: '@SaitoOfficial',
 			title: '🟥 Saito AssetStore',
@@ -72,16 +73,23 @@ class AssetStore extends ModTemplate {
 			//
 			this.affix_callbacks_to.push(game_mod.name);
 		});
+	}
 
-		if (!app.options.assetstore) {
-			app.options.assetstore = {};
+	returnServices() {
+		let services = [];
+
+		if (this.app.BROWSER == 0) {
+			services.push(new PeerService(null, 'AssetStore', this.publicKey));
 		}
+		return services;
 	}
 
 	async onPeerServiceUp(app, peer, service = {}) {
 		console.log('onPeerServiceUp: ', service.service);
 
-		if (service.service === 'relay') {
+		if (service.service === 'AssetStore') {
+			this.storePublicKey = peer.publicKey;
+
 			this.app.network.sendRequestAsTransaction(
 				'assetstore retreive records',
 				{
@@ -158,9 +166,6 @@ class AssetStore extends ModTemplate {
 			return;
 		}
 
-		let txmsg = tx.returnMessage();
-		let assetstore_self = this.app.modules.returnModule('AssetStore');
-
 		//
 		// Bound Transactions (monitor NFT transfers)
 		//
@@ -206,6 +211,10 @@ class AssetStore extends ModTemplate {
 
 		try {
 			if (conf == 0) {
+				let txmsg = tx.returnMessage();
+
+				console.log(txMsg);
+
 				if (txmsg.module === 'AssetStore') {
 					//
 					// public & private invites processed the same way
@@ -304,13 +313,11 @@ class AssetStore extends ModTemplate {
 			let txmsg = tx.returnMessage();
 			let nfttx = new Transaction();
 			nfttx.deserialize_from_web(this.app, txmsg.tx);
-			let nft = new SaitoNft(this.app, this);
-			nft.createFromTx(nfttx);
 
 			//
 			// add the auction listing
 			//
-			await this.addListing(nft, tx, nfttx, blk);
+			await this.addListing(tx, nfttx, blk);
 
 			//
 			// and broadcast the embedded tx
@@ -667,16 +674,16 @@ class AssetStore extends ModTemplate {
 	//
 	// SQL Database Management
 	//
-	async addListing(nft = null, tx = null, nft_tx = null, blk = null) {
+	async addListing(tx = null, nft_tx = null, blk = null) {
 		//
 		// sanity check
 		//
-		if (nft == null || tx == null || nft_tx == null || blk == null) {
+		if (tx == null || nft_tx == null || blk == null) {
 			return;
 		}
 
 		let lc = 1;
-		let nft_id = nft.returnId();
+		let nft_id = this.computeNftIdFromTx(nft_tx);
 		let nft_sig = nfttx.signature;
 		let bsh = blk.hash;
 		let bid = blk.id;
@@ -864,6 +871,93 @@ class AssetStore extends ModTemplate {
 				p.peerIndex
 			);
 		}
+	}
+
+	// Derive an NFT id from a tx
+	computeNftIdFromTx(tx) {
+		if (!tx) return null;
+
+		// Prefer outputs; fall back to inputs
+		const s3 = (tx?.to && tx.to[2]) || (tx?.from && tx.from[2]);
+		if (!s3 || !s3.publicKey) return null;
+
+		let pk = s3.publicKey;
+		let bytes = null;
+
+		// Normalize to Uint8Array
+		if (pk instanceof Uint8Array || (typeof Buffer !== 'undefined' && pk instanceof Buffer)) {
+			bytes = new Uint8Array(pk);
+		} else if (typeof pk === 'string') {
+			if (/^[0-9a-fA-F]{66}$/.test(pk)) {
+				// Hex (33 bytes = 66 hex chars)
+				bytes = this.hexToBytes(pk);
+			} else {
+				// Assume Base58 (Saito-style pubkey encoding)
+				bytes = this.base58ToBytes(pk);
+			}
+		} else if (pk && typeof pk === 'object' && pk.data) {
+			bytes = new Uint8Array(pk.data);
+		}
+
+		if (!bytes) return null;
+
+		// Some encoders may prepend a 0x00; tolerate 34→33
+		if (bytes.length === 34 && bytes[0] === 0) bytes = bytes.slice(1);
+		if (bytes.length !== 33) return null;
+
+		// Return as hex string
+		return Array.from(bytes)
+			.map((b) => b.toString(16).padStart(2, '0'))
+			.join('');
+	}
+
+	/* Helpers */
+
+	hexToBytes(hex) {
+		const clean = hex.startsWith('0x') ? hex.slice(2) : hex;
+		const out = new Uint8Array(clean.length / 2);
+		for (let i = 0; i < out.length; i++) {
+			out[i] = parseInt(clean.substr(i * 2, 2), 16);
+		}
+		return out;
+	}
+
+	base58ToBytes(str) {
+		// Bitcoin Base58 alphabet
+		const B58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+		const B58_MAP = (() => {
+			const m = new Map();
+			for (let i = 0; i < B58_ALPHABET.length; i++) m.set(B58_ALPHABET[i], i);
+			return m;
+		})();
+
+		// Count leading zeros
+		let zeros = 0;
+		while (zeros < str.length && str[zeros] === '1') zeros++;
+
+		// Base58 decode to a big integer in bytes (base256)
+		const bytes = [];
+		for (let i = zeros; i < str.length; i++) {
+			const val = B58_MAP.get(str[i]);
+			if (val == null) throw new Error('Invalid Base58 character');
+			let carry = val;
+			for (let j = 0; j < bytes.length; j++) {
+				const x = bytes[j] * 58 + carry;
+				bytes[j] = x & 0xff;
+				carry = x >> 8;
+			}
+			while (carry > 0) {
+				bytes.push(carry & 0xff);
+				carry >>= 8;
+			}
+		}
+
+		// Add leading zeros
+		for (let k = 0; k < zeros; k++) bytes.push(0);
+
+		// Output is little-endian; reverse to big-endian
+		bytes.reverse();
+		return new Uint8Array(bytes);
 	}
 
 	webServer(app, expressapp, express) {

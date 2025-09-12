@@ -1,7 +1,7 @@
 const NftTemplate = require('./nft-card.template');
 
 class NftCard {
-  constructor(app, mod, container = '', tx = null, data = null) {
+  constructor(app, mod, container = '', tx = null, data = null, callback = null) {
     this.app = app;
     this.mod = mod;
     this.container = container;
@@ -29,6 +29,8 @@ class NftCard {
     // UI helpers
     //
     this.uuid = null;
+
+    this.callback = callback;
 
     this.reconstruct();
   }
@@ -69,7 +71,11 @@ class NftCard {
     const el = document.querySelector(`#nft-card-${this.uuid}`);
     if (el) {
       el.onclick = () => {
-        this.app.connection.emit('saito-nft-details-render-request', this);
+        if (this.callback) {
+          this.callback(this);
+        } else {
+          this.app.connection.emit('saito-nft-details-render-request', this);
+        }
       };
     }
   }

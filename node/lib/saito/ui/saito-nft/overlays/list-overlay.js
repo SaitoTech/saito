@@ -9,7 +9,10 @@ class ListNft {
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
 
-    this.app.connection.on('saito-nft-list-render-request', (list) => {
+    this.app.connection.on('saito-nft-list-render-request', (list, callback = null) => {
+      console.log(list, callback);
+
+      this.callback = callback;
       this.render(list);
     });
 
@@ -66,7 +69,7 @@ class ListNft {
 
       for (const rec of nft_list) {
         try {
-          const comp = new Nft(this.app, this.mod, '.send-nft-list', null, rec);
+          const comp = new Nft(this.app, this.mod, '.send-nft-list', null, rec, this.callback);
           comp.render();
         } catch (e) {
           console.error('NFT failed to init/render id:', e);
@@ -80,7 +83,7 @@ class ListNft {
     let newNftButton = document.getElementById('create-nft');
     if (newNftButton) {
       newNftButton.onclick = (e) => {
-        this.app.connection.emit('saito-nft-create-render-request', {});
+        this.app.connection.emit('saito-nft-create-render-request');
       };
     }
   }
