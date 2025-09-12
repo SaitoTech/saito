@@ -16,10 +16,10 @@ class ListSendOverlay extends BaseSend {
 
     // tweak header + placeholder
     const header = this._overlayRoot?.querySelector('.nft-details-send h4');
-    if (header) header.textContent = 'LIST ON agora🧾';
+    if (header) header.textContent = 'LIST ON ASSETSTORE🧾';
     if (this.receiver_input) {
       // this.receiver_input.style.display = 'none';
-      this.receiver_input.placeholder = 'Agora public key';
+      this.receiver_input.placeholder = 'AssetStore public key';
     }
 
     // override Send button behavior
@@ -48,7 +48,7 @@ class ListSendOverlay extends BaseSend {
         await this.app.network.propagateTransaction(listTx);
 
         this.overlay.close();
-        this.app.connection.emit('agora-close-list-overlay-request');
+        this.app.connection.emit('assetstore-close-list-overlay-request');
 
         salert('Listing submitted. Awaiting network confirmation.');
         // } catch (err) {

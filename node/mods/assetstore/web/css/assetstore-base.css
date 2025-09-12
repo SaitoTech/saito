@@ -1,5 +1,5 @@
 :root {
-  --saito-agora-width: 1500px;
+  --saito-assetstore-width: 1500px;
 }
 
 .saito-container {
@@ -7,7 +7,7 @@
   grid-template-columns: 25rem auto;
 }
 
-.agora-table {
+.assetstore-table {
   display: flex;
   flex-direction: column;
   flex-wrap: wrap;
@@ -21,19 +21,19 @@
   padding-top: 1rem;
 }
 
-.agora-nft {
+.assetstore-nft {
   height: 200px;
   width: 200px;
   background-color: green;
 }
 
-.agora-table-list {
+.assetstore-table-list {
   display: flex;
   gap: 2rem;
   flex-direction: row;
 }
 
-#agora-empty {
+#assetstore-empty {
   display: block;
   padding-top: 10rem;
   text-align: center;
@@ -41,15 +41,15 @@
   font-size: 2rem;
 }
 
-#agora-empty span {
+#assetstore-empty span {
   font-size: 3rem;
 }
 
-#agora-title {
+#assetstore-title {
   font-size: 2rem;
   padding-top: 0.5rem;
 }
 
-#agora-table-title {
+#assetstore-table-title {
   font-size: 1.8rem;
 }

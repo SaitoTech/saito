@@ -2,9 +2,9 @@ const PeerService = require('saito-js/lib/peer_service').default;
 const Transaction = require('../../lib/saito/transaction').default;
 const saito = require('./../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
-const AgoraMain = require('./lib/main/main');
+const AssetStoreMain = require('./lib/main/main');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
-const AgoraHome = require('./index');
+const AssetStoreHome = require('./index');
 const SaitoNft = require('./../../lib/saito/ui/saito-nft/nft');
 
 //
@@ -23,14 +23,14 @@ const SaitoNft = require('./../../lib/saito/ui/saito-nft/nft');
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 //
-class Agora extends ModTemplate {
+class AssetStore extends ModTemplate {
 	constructor(app) {
 		super(app);
 
 		this.debug = false;
 
-		this.name = 'Agora';
-		this.slug = 'agora';
+		this.name = 'AssetStore';
+		this.slug = 'assetstore';
 		this.description =
 			'NFT Interface for creating and joining games coded for the Saito Open Source Game Engine.';
 		this.categories = 'Utility Ecommerce NFTs';
@@ -39,18 +39,18 @@ class Agora extends ModTemplate {
 		this.nfts = {};
 		this.auction_list = [];
 
-		this.styles = ['/agora/style.css'];
+		this.styles = ['/assetstore/style.css'];
 
-		this.agoraKeys = [];
+		this.assetStoreKeys = [];
 
 		this.affix_callbacks_to = [];
 
 		this.social = {
 			twitter: '@SaitoOfficial',
-			title: '🟥 Saito Agora',
-			url: 'https://saito.io/agora/',
+			title: '🟥 Saito AssetStore',
+			url: 'https://saito.io/assetstore/',
 			description: 'Buy or Sell Saito NFTs and other On-Chain Assets',
-			image: 'https://saito.tech/wp-content/uploads/2023/11/agora-300x300.png'
+			image: 'https://saito.tech/wp-content/uploads/2023/11/assetstore-300x300.png'
 		};
 	}
 
@@ -66,10 +66,10 @@ class Agora extends ModTemplate {
 		await super.initialize(app);
 
 		//
-		// compile list of agora games (which don't exist yet)
+		// compile list of assetstore games (which don't exist yet)
 		//
-		app.modules.returnModulesRespondingTo('agora-games').forEach((game_mod) => {
-			this.agora_games.push(game_mod);
+		app.modules.returnModulesRespondingTo('assetstore-games').forEach((game_mod) => {
+			this.assetstore_games.push(game_mod);
 			//
 			// and listen to their transactions
 			//
@@ -78,7 +78,7 @@ class Agora extends ModTemplate {
 	}
 
 	shouldAffixCallbackToModule(modname, tx = null) {
-		if (modname == 'Agora') {
+		if (modname == 'AssetStore') {
 			return 1;
 		}
 
@@ -105,28 +105,28 @@ class Agora extends ModTemplate {
 		let services = [];
 
 		if (this.app.BROWSER == 0) {
-			services.push(new PeerService(null, 'Agora', this.publicKey));
+			services.push(new PeerService(null, 'AssetStore', this.publicKey));
 		}
 		return services;
 	}
 
 	async onPeerServiceUp(app, peer, service = {}) {
-		if (service.service === 'Agora') {
+		if (service.service === 'AssetStore') {
 			//
 			// Remember which stores are available on the network
 			//
-			this.agoraKeys.push(peer);
+			this.assetStoreKeys.push(peer);
 
 			//
 			// Ask for a list of assets to acquire
 			//
 			this.app.network.sendRequestAsTransaction(
-				'agora retreive records',
+				'assetstore retreive records',
 				{},
 				(records) => {
 					console.log('onPeerServiceUp records: ', records);
 					this.auction_list = records;
-					this.app.connection.emit('agora-render-auction-list-request');
+					this.app.connection.emit('assetstore-render-auction-list-request');
 				},
 				peer.peerIndex
 			);
@@ -145,7 +145,7 @@ class Agora extends ModTemplate {
 		}
 
 		if (this.main == null) {
-			this.main = new AgoraMain(this.app, this);
+			this.main = new AssetStoreMain(this.app, this);
 			this.header = new SaitoHeader(this.app, this);
 			await this.header.initialize(this.app);
 			this.header.header_class = 'arcade';
@@ -167,7 +167,7 @@ class Agora extends ModTemplate {
 					rank: 15,
 					type: 'navigation',
 					callback: function (app, id) {
-						navigateWindow('/agora');
+						navigateWindow('/assetstore');
 					}
 				});
 			}
@@ -205,7 +205,7 @@ class Agora extends ModTemplate {
 			if (tx.isTo(to_publicKey)) {
 				console.log('(');
 				console.log('(');
-				console.log('( Agora Receives Bound TX for ITSELF!');
+				console.log('( AssetStore Receives Bound TX for ITSELF!');
 				console.log('(');
 				console.log('(');
 				let nft = new SaitoNft(this.app, this);
@@ -214,14 +214,14 @@ class Agora extends ModTemplate {
 
 				let seller = from_publicKey;
 				let res = await this.setActive(seller, nft_id);
-				this.app.connection.emit('agora-update-auction-list-request');
+				this.app.connection.emit('assetstore-update-auction-list-request');
 			}
 
 			// assestore is sending nft (delist)
 			if (from_publicKey == this.publicKey) {
 				console.log('(');
 				console.log('(');
-				console.log('( Agora Sends NFT');
+				console.log('( AssetStore Sends NFT');
 				console.log('(');
 				console.log('(');
 
@@ -233,13 +233,13 @@ class Agora extends ModTemplate {
 
 				let seller = to_publicKey;
 				let res = await this.setInactive(seller, nft_id);
-				this.app.connection.emit('agora-update-auction-list-request');
+				this.app.connection.emit('assetstore-update-auction-list-request');
 			}
 		}
 
 		try {
 			if (conf == 0) {
-				if (txmsg.module === 'Agora') {
+				if (txmsg.module === 'AssetStore') {
 					//
 					// public & private invites processed the same way
 					//
@@ -253,7 +253,7 @@ class Agora extends ModTemplate {
 				}
 			}
 		} catch (err) {
-			console.error('ERROR in agora onconfirmation block: ', err);
+			console.error('ERROR in assetstore onconfirmation block: ', err);
 		}
 	}
 
@@ -268,11 +268,11 @@ class Agora extends ModTemplate {
 
 		let txmsg = newtx.returnMessage();
 
-		if (txmsg?.request === 'agora retreive records') {
+		if (txmsg?.request === 'assetstore retreive records') {
 			return this.receiveRetreiveRecordsTransaction(mycallback);
 		}
 
-		//if (message.request === 'agora invite list') {
+		//if (message.request === 'assetstore invite list') {
 		//	// Process stuff on server side, then...
 		//	if (mycallback) {
 		//		mycallback(txs);
@@ -297,7 +297,7 @@ class Agora extends ModTemplate {
 
 		const tx_msg = {
 			data: obj,
-			module: 'Agora',
+			module: 'AssetStore',
 			request: 'send nft'
 		};
 
@@ -323,7 +323,7 @@ class Agora extends ModTemplate {
 		//
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
 		newtx.msg = {
-			module: 'Agora',
+			module: 'AssetStore',
 			request: 'create_list_asset_transaction',
 			tx: nfttx.serialize_to_web(this.app)
 		};
@@ -386,7 +386,7 @@ class Agora extends ModTemplate {
 		const newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
 
 		const obj = {
-			module: 'Agora',
+			module: 'AssetStore',
 			request: 'create_delist_asset_transaction',
 			nft_id: nft.id,
 			seller: this.publicKey
@@ -419,7 +419,7 @@ class Agora extends ModTemplate {
 			const rows = await this.app.storage.queryDatabase(
 				'SELECT * FROM records WHERE nft_id = $nft_id AND seller = $seller AND active = 1 LIMIT 1',
 				{ $nft_id: nft_id, $seller: seller },
-				'agora'
+				'assetstore'
 			);
 			if (!rows || rows.length === 0) {
 				console.warn('Delist: record not found / not active / wrong seller');
@@ -428,7 +428,7 @@ class Agora extends ModTemplate {
 
 			console.log('this.app.options.wallet: ', this.app.options.wallet);
 
-			// check if nft held by agora wallet
+			// check if nft held by assetstore wallet
 			const raw = await this.app.wallet.getNftList();
 
 			console.log('getNftList: ', raw);
@@ -458,7 +458,7 @@ class Agora extends ModTemplate {
 
 			const txMsg = {
 				data: obj,
-				module: 'Agora',
+				module: 'AssetStore',
 				request: 'send nft'
 			};
 
@@ -475,7 +475,7 @@ class Agora extends ModTemplate {
 			console.log('delist send bound tx: ', nfttx);
 
 			this.app.network.propagateTransaction(nfttx);
-			// this.app.connection.emit('agora-update-auction-list-request');
+			// this.app.connection.emit('assetstore-update-auction-list-request');
 		} catch (err) {
 			console.error('receiveDelistAssetTransaction error:', err);
 		}
@@ -495,7 +495,7 @@ class Agora extends ModTemplate {
 			$seller: seller,
 			$nft_id: nft_id
 		};
-		let res = await this.app.storage.runDatabase(sql, params, 'agora');
+		let res = await this.app.storage.runDatabase(sql, params, 'assetstore');
 
 		console.log('setActive res: ', res);
 		return res?.changes;
@@ -509,7 +509,7 @@ class Agora extends ModTemplate {
 			$seller: seller,
 			$nft_id: nft_id
 		};
-		let res = await this.app.storage.runDatabase(sql, params, 'agora');
+		let res = await this.app.storage.runDatabase(sql, params, 'assetstore');
 		return res?.changes;
 	}
 
@@ -580,7 +580,7 @@ class Agora extends ModTemplate {
 			$tid: tidStr
 		};
 
-		const res = await this.app.storage.runDatabase(sql, params, 'agora');
+		const res = await this.app.storage.runDatabase(sql, params, 'assetstore');
 		console.log('addRecord changes:', res);
 		return res?.changes ?? 0;
 	}
@@ -588,9 +588,9 @@ class Agora extends ModTemplate {
 	async sendRetreiveRecordsTransaction(mycallback = null) {
 		let this_self = this;
 
-		for (let p of this.agoraKeys) {
+		for (let p of this.assetStoreKeys) {
 			this.app.network.sendRequestAsTransaction(
-				'agora retreive records',
+				'assetstore retreive records',
 				{},
 				function (records) {
 					this_self.auction_list = records;
@@ -612,7 +612,7 @@ class Agora extends ModTemplate {
 		let sql = 'SELECT * FROM records WHERE active = 1';
 		let params = {};
 
-		let results = await this.app.storage.queryDatabase(sql, params, 'agora');
+		let results = await this.app.storage.queryDatabase(sql, params, 'assetstore');
 
 		mycallback(results);
 		return 1;
@@ -627,7 +627,7 @@ class Agora extends ModTemplate {
 
 			let updatedSocial = Object.assign({}, this_self.social);
 
-			let html = AgoraHome(app, this_self, app.build_number, updatedSocial);
+			let html = AssetStoreHome(app, this_self, app.build_number, updatedSocial);
 			if (!res.finished) {
 				res.setHeader('Content-type', 'text/html');
 				res.charset = 'UTF-8';
@@ -640,4 +640,4 @@ class Agora extends ModTemplate {
 	}
 }
 
-module.exports = Agora;
+module.exports = AssetStore;

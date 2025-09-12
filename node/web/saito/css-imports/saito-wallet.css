@@ -1096,7 +1096,8 @@ nft cards
 }
 
 .nft-details-section-header,
-.nft-details-agora {
+.nft-details-send,
+.nft-details-assetstore {
   display: flex;
   flex-direction: column;
   gap: 1rem;
