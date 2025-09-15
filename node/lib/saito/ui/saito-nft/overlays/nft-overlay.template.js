@@ -26,7 +26,7 @@ module.exports = (app, mod, nft) => {
         <div class="nft-details-section left-justify">
           <div class="nft-details-section-title">OWNER</div>
           <div class="nft-details-section-content">
-            <div class="nft-details-value">${nft.slip1.public_key}</div>
+            <div class="nft-details-value">${nft.seller || nft.slip1.public_key}</div>
           </div>
         </div>
 

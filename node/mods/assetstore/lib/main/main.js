@@ -59,7 +59,13 @@ class AssetStoreMain {
 				let nfttx = new Transaction();
 				nfttx.deserialize_from_web(this.app, record.nft);
 
-				const nft = new Nft(this.app, this.mod, '.assetstore-table-list', nfttx, null);
+				const nft = new Nft(this.app, this.mod, '.assetstore-table-list', nfttx, null, (nft1) => {
+					console.log('Click on available NFT in Auction House');
+					// Render the overlay
+					this.app.connection.emit('saito-nft-details-render-request', nft1);
+					// edit the html
+					this.convertSendToBuy(nft1);
+				});
 
 				nft.seller = record.seller;
 
@@ -78,7 +84,7 @@ class AssetStoreMain {
 			list_asset_btn.onclick = async (e) => {
 				console.log('Click to generate my nft list!');
 				this.app.connection.emit('saito-nft-list-render-request', null, (nft) => {
-					console.log('Click on listed NFT in Auction House');
+					console.log('Click on my NFT to list in Auction House');
 					// Render the overlay
 					this.app.connection.emit('saito-nft-details-render-request', nft);
 					// edit the html
@@ -192,6 +198,8 @@ class AssetStoreMain {
 			};
 		}
 	}
+
+	convertSendToBuy(nft) {}
 }
 
 module.exports = AssetStoreMain;

@@ -8,4 +8,3 @@ CREATE TABLE IF NOT EXISTS listings (
   active INTEGER DEFAULT 0 ,
   min_price INTEGER DEFAULT 0
 );
-

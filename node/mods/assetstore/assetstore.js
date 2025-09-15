@@ -330,10 +330,10 @@ class AssetStore extends ModTemplate {
 
 		const record = {
 			id: this.auction_list.length,
-			nft_id: txmsg.data.nft_id,
-			nft_tx_sig: txmsg.data.tx_sig,
+			nft_id: txmsg.data.nft_id, // NFT ID
+			nft_tx_sig: txmsg.data.tx_sig, // sig of tx that created the nft... needs to be passed to ui components
 			tx_sig: nfttx.signature, // signature of the transaction giving the nft to the store
-			nft: txmsg.data.nft,
+			nft: txmsg.data.nft, // serialized nft ownership transfer transaction
 			seller: tx.from[0].publicKey,
 			active: 0,
 			min_price: txmsg.data.min_price

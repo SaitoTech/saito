@@ -1,6 +1,6 @@
 const BaseSend = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
 
-class AuctionSendOverlay extends BaseSend {
+class AuctionSendOverlay /*extends BaseSend*/ {
   async render(nft) {
     await super.render(nft);
 
