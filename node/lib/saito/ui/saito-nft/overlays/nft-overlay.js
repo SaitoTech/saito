@@ -97,33 +97,7 @@ class NftDetailsOverlay {
         }
 
         try {
-          const slip1Key = this.nft?.slip1?.utxo_key;
-          const slip2Key = this.nft?.slip2?.utxo_key;
-          const slip3Key = this.nft?.slip3?.utxo_key;
-          if (!slip1Key || !slip2Key || !slip3Key) {
-            throw new Error('Missing required UTXO keys for NFT.');
-          }
-
-          const amt = BigInt(1);
-
-          const obj = {};
-          if (this.nft.image) obj.image = this.nft.image;
-          if (this.nft.text) obj.text = this.nft.text;
-
-          const tx_msg = {
-            data: obj,
-            module: 'NFT',
-            request: 'send nft'
-          };
-
-          let newtx = await this.app.wallet.createSendNftTransaction(
-            amt,
-            slip1Key,
-            slip2Key,
-            slip3Key,
-            receiver,
-            tx_msg
-          );
+          let newtx = await this.app.wallet.createSendNftTransaction(this.nft, receiver);
 
           await newtx.sign();
           await this.app.network.propagateTransaction(newtx);
@@ -158,35 +132,11 @@ class NftDetailsOverlay {
         let leftCount = parseInt(document.querySelector('#split-left').value);
         let rightCount = totalAmount - leftCount;
 
-        //const leftCount = parseInt(splitBar.querySelector('#split-left')?.innerText || '0', 10);
-        //const rightCount = parseInt(splitBar.querySelector('#split-right')?.innerText || '0', 10);
-
-        const slip1UtxoKey = this.nft.slip1?.utxo_key;
-        const slip2UtxoKey = this.nft.slip2?.utxo_key;
-        const slip3UtxoKey = this.nft.slip3?.utxo_key;
-        if (!slip1UtxoKey || !slip2UtxoKey || !slip3UtxoKey) {
-          salert('Missing required UTXO keys for NFT.');
-          return;
-        }
-
-        const obj = {};
-        if (this.nft.image) obj.image = this.nft.image;
-        if (this.nft.text) obj.text = this.nft.text;
-
-        const tx_msg = {
-          data: obj,
-          module: 'NFT',
-          request: 'split nft'
-        };
-
         try {
           let newtx = await this.app.wallet.createSplitNftTrnsaction(
-            slip1UtxoKey,
-            slip2UtxoKey,
-            slip3UtxoKey,
+            this.nft,
             leftCount,
-            rightCount,
-            tx_msg
+            rightCount
           );
 
           await newtx.sign();
@@ -211,13 +161,7 @@ class NftDetailsOverlay {
       e.preventDefault();
 
       try {
-        const obj = {};
-        if (this.nft.image) obj.image = this.nft.image;
-        if (this.nft.text) obj.text = this.nft.text;
-
-        const tx_msg = { data: obj, module: 'NFT', request: 'merge nft' };
-
-        let newtx = await this.app.wallet.createMergeNftTransaction(this.nft.id, tx_msg);
+        let newtx = await this.app.wallet.createMergeNftTransaction(this.nft.id);
 
         await newtx.sign();
         await this.app.network.propagateTransaction(newtx);

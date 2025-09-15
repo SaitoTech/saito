@@ -11,15 +11,9 @@ class AssetStoreMain {
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
-		this.auction_nfts = [];
 
 		this.app.connection.on('assetstore-render-auction-list-request', async () => {
 			await this.render();
-		});
-
-		this.app.connection.on('assetstore-update-auction-list-request', () => {
-			console.log('inside  assetstore-update-auction-list-request /////////////////');
-			this.updateAuctionList();
 		});
 
 		this.app.connection.on('assetstore-build-auction-list-request', async () => {
@@ -63,27 +57,18 @@ class AssetStoreMain {
 				let record = this.mod.auction_list[i];
 
 				let nfttx = new Transaction();
-				nfttx.deserialize_from_web(this.app, record.nft_tx);
-
-				//				console.log("buildAuctionList nfttx: ", nfttx);
+				nfttx.deserialize_from_web(this.app, record.nft);
 
 				const nft = new Nft(this.app, this.mod, '.assetstore-table-list', nfttx, null);
-				nft.seller = record.seller;
-				await nft.render();
 
-				this.auction_nfts.push(nft);
+				nft.seller = record.seller;
+
+				await nft.render();
 			}
 		} else {
 			empty_msg.style.display = 'block';
 			title.style.display = 'none';
 		}
-	}
-
-	updateAuctionList() {
-		this.mod.sendRetreiveRecordsTransaction((records) => {
-			console.log('updateAuctionList records: ', records);
-			this.app.connection.emit('assetstore-build-auction-list-request');
-		});
 	}
 
 	attachEvents() {
@@ -108,7 +93,7 @@ class AssetStoreMain {
 			let new_html = `
 			<div class="nft-details-action" id="nft-details-send">
           		<div class="nft-receiver">
-            		<input type="text" placeholder="Recipient public key" id="nft-receiver-address" value="${this.mod.storePublicKey}" />
+            		<input type="text" placeholder="Recipient public key" id="nft-receiver-address" value="${this.mod.assetStore.publicKey}" />
           		</div>
           		<div class="nft-buy-price" style="margin-top: 8px;">
           		<input type="text" placeholder="Buy price (SAITO)" id="nft-buy-price" autocomplete="off" inputmode="decimal" pattern="^[0-9]+(\.[0-9]{1,8})?$" 
@@ -193,14 +178,14 @@ class AssetStoreMain {
 				}
 
 				try {
-					const listTx = await this.mod.createListAssetTransaction(nft, receiver);
+					const listTx = await this.mod.createListAssetTransaction(nft, receiver, buyPriceNum);
 
 					await this.app.network.propagateTransaction(listTx);
 
 					// Close the overylay remotely
 					this.app.connection.emit('saito-nft-details-close-request');
 
-					siteMessage('NFT sent to auction house');
+					siteMessage('NFT sent to auction house', 3000);
 				} catch (err) {
 					salert('Failed to list: ' + (err?.message || err));
 				}

@@ -35,7 +35,7 @@ class CreateNft {
         return false;
       }
     } else {
-      if (this.image == '') {
+      if (!this.image) {
         salert(`Attach an image/file to create nft`);
         return false;
       }

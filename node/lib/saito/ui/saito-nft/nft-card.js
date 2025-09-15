@@ -22,6 +22,7 @@ class NftCard {
 
     this.amount = BigInt(0); // nolans
     this.deposit = BigInt(0); // nolans
+
     this.image = '';
     this.text = '';
 
@@ -93,11 +94,11 @@ class NftCard {
 
     if (this.tx) {
       this.tx_sig = this.tx?.signature;
-      this.id = this.mod.computeNftIdFromTx(tx);
+      this.id = this.mod.computeNftIdFromTx(this.tx);
 
-      this.slip1 = tx?.to[0] ?? null;
-      this.slip2 = tx?.to[1] ?? null;
-      this.slip3 = tx?.to[2] ?? null;
+      this.slip1 = this.tx?.to[0] ?? null;
+      this.slip2 = this.tx?.to[1] ?? null;
+      this.slip3 = this.tx?.to[2] ?? null;
 
       // ✅ use the new method here
       this.setImageTextFromTx();
@@ -140,17 +141,17 @@ class NftCard {
     }
 
     const tx_msg = this.tx.returnMessage();
-    const data = tx_msg?.data ?? {};
+    this.data = tx_msg?.data ?? {};
 
-    if (typeof data.image !== 'undefined') {
-      this.image = data.image;
+    if (typeof this.data.image !== 'undefined') {
+      this.image = this.data.image;
     }
 
-    if (typeof data.text !== 'undefined') {
+    if (typeof this.data.text !== 'undefined') {
       this.text =
-        typeof data.text === 'object' && data.text !== null
-          ? JSON.stringify(data.text, null, 2)
-          : String(data.text);
+        typeof this.data.text === 'object' && this.data.text !== null
+          ? JSON.stringify(this.data.text, null, 2)
+          : String(this.data.text);
     }
   }
 }

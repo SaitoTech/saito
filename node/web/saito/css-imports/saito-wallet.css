@@ -662,7 +662,8 @@ textarea {
 }
 
 .nft-list {
-  min-width: 80rem;
+  width: min(80rem, 95vw);
+  max-width: 100%;
 }
 
 .utxo-div.send-nft {

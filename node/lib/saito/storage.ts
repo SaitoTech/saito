@@ -403,7 +403,7 @@ class Storage {
       //update indexedDB (which is needed for privateKey wallet recovery)
       this.saveOptionsToForage();
     } catch (err) {
-      console.error(err);
+      console.trace(err);
       for (let i = 0; i < localStorage.length; i++) {
         let item = localStorage.getItem(localStorage.key(i));
         let parsed_item = '';
