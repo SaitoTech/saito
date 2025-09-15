@@ -260,11 +260,33 @@ class StorageCore extends Storage {
     //   return this.app.options;
     // }
     if (fs.existsSync(`${this.config_dir}/options`)) {
-      let optionsfile = null;
+      let optionsfile = '';
       // open options file
       try {
-        optionsfile = fs.readFileSync(`${this.config_dir}/options`, this.file_encoding_load);
-        this.app.options = Object.assign(this.app.options, JSON.parse(optionsfile.toString()));
+        optionsfile = fs
+          .readFileSync(`${this.config_dir}/options`, this.file_encoding_load)
+          .toString();
+
+        if (this.app.crypto.isAesEncrypted(optionsfile)) {
+          if (typeof process.env.SAITO_PASS != 'undefined') {
+            let secret =
+              'BYTHEPRICKINGOFMYTHUMBSSOMETHINGWICKEDTHISWAYCOMES' + process.env.SAITO_PASS;
+            secret = this.app.crypto.toBase58(this.app.crypto.stringToHex(secret));
+            try {
+              optionsfile = this.app.crypto.aesDecrypt(optionsfile, secret);
+            } catch (err) {
+              throw new Error('Invalid Password!');
+            }
+          } else {
+            throw new Error('Password needed!');
+          }
+        }
+
+        if (!optionsfile) {
+          throw new Error('Options file empty!');
+        }
+
+        this.app.options = Object.assign(this.app.options, JSON.parse(optionsfile));
 
         // this.convertOptionsBigInt(this.app.options);
 
@@ -363,6 +385,14 @@ class StorageCore extends Storage {
     }
 
     try {
+      if (typeof process.env.SAITO_PASS != 'undefined') {
+        let secret = this.app.crypto.toBase58(
+          this.app.crypto.stringToHex(
+            'BYTHEPRICKINGOFMYTHUMBSSOMETHINGWICKEDTHISWAYCOMES' + process.env.SAITO_PASS
+          )
+        );
+        new_wallet_json = this.app.crypto.aesEncrypt(new_wallet_json, secret);
+      }
       fs.writeFileSync(`${this.config_dir}/options`, new_wallet_json, null);
 
       //Update hash
