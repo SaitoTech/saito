@@ -1322,13 +1322,13 @@ export default class Wallet extends SaitoWallet {
       for (let i = 0; i < nfts.length; i++) {
         let nft = nfts[i];
 
-        let slip1_utxo_key = nft.slip1.utxo_key;
+        let slip1_utxokey = nft.slip1.utxo_key;
         let slip2_utxokey = nft.slip2.utxo_key;
         let slip3_utxokey = nft.slip3.utxo_key;
         let id = nft.id;
         let tx_sig = nft.tx_sig;
 
-        this.addNft(slip1_utxo_key, slip2_utxokey, slip3_utxokey, id, tx_sig);
+        this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig);
       }
     }
   }
@@ -1479,6 +1479,12 @@ export default class Wallet extends SaitoWallet {
     fee,
     receipient_publicKey
   ): Promise<Transaction> {
+    console.log('values going to saito.ts:');
+    console.log(deposit);
+    console.log(tx_msg);
+    console.log(fee);
+    console.log(receipient_publicKey);
+
     let nft_type = 'Standard';
     return S.getInstance().createBoundTransaction(
       num,
@@ -1491,73 +1497,50 @@ export default class Wallet extends SaitoWallet {
   }
 
   public async createSendBoundTransaction(
-    amount,
-    slip1_utxo_key,
-    slip2_utxo_key,
-    slip3_utxo_key,
+    amt,
+    slip1UtxoKey,
+    slip2UtxoKey,
+    slip3UtxoKey,
     receipient_publicKey,
-    nft_id,
-    fetch_txmsg = true,
-    require_txmsg = true,
-    txmsg: any = null
-  ) {
-    //
-    // fetch tx_msg from already existing NFT transactions:
-    // 1. Find tx_msg in local archive first
-    // 2. else ask peers to fetch it
-    //
-    if (fetch_txmsg) {
-      const nfttx = await new Promise<any | null>((resolve) => {
-        this.app.storage.loadNFTTransactions(nft_id, (txs: any[]) => {
-          console.log('fetching nft transaction callback: ', txs);
-          resolve(txs && txs.length > 0 ? txs[0] : null);
-        });
-      });
-
-      if (nfttx && typeof nfttx.returnMessage === 'function') {
-        txmsg = nfttx.returnMessage();
-      }
-    }
-    console.log('txmsg: ', txmsg);
-    //
-    // if txmsg is required and we cant find txmsg then dont send tx
-    //
-    if (require_txmsg && (txmsg == '' || txmsg == null)) {
-      return null;
-    }
-
-    //
-    // send tx
-    //
-    return S.getInstance().createSendBoundTransaction(
-      amount,
-      slip1_utxo_key,
-      slip2_utxo_key,
-      slip3_utxo_key,
-      receipient_publicKey,
-      txmsg
-    );
-  }
-
-  public async splitNft(
-    slip1_utxo_key,
-    slip2_utxo_key,
-    slip3_utxo_key,
-    left_count,
-    right_count,
     tx_msg
-  ): Promise<Transaction> {
-    return S.getInstance().createSplitBoundTransaction(
-      slip1_utxo_key,
-      slip2_utxo_key,
-      slip3_utxo_key,
-      left_count,
-      right_count,
+  ) {
+    console.log('values going to saito.ts:');
+    console.log(amt);
+    console.log(slip1UtxoKey);
+    console.log(slip2UtxoKey);
+    console.log(slip3UtxoKey);
+    console.log(receipient_publicKey);
+
+    return S.getInstance().createSendBoundTransaction(
+      amt,
+      slip1UtxoKey,
+      slip2UtxoKey,
+      slip3UtxoKey,
+      receipient_publicKey,
       tx_msg
     );
   }
 
-  public async mergeNft(nft_id, tx_msg): Promise<Transaction> {
-    return S.getInstance().createMergeBoundTransaction(nft_id, tx_msg);
+  public async splitNft(
+    slip1UtxoKey,
+    slip2UtxoKey,
+    slip3UtxoKey,
+    leftCount,
+    rightCount,
+    tx_msg
+  ): Promise<Transaction> {
+    return S.getInstance().createSplitBoundTransaction(
+      slip1UtxoKey,
+      slip2UtxoKey,
+      slip3UtxoKey,
+      leftCount,
+      rightCount,
+      tx_msg
+    );
+  }
+
+  public async mergeNft(nftId, tx_msg): Promise<Transaction> {
+    console.log('wallet.ts mergeNft: ', nftId);
+    return S.getInstance().createMergeBoundTransaction(nftId, tx_msg);
   }
 }

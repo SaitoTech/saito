@@ -652,56 +652,6 @@ class Storage {
 
     const filePath = path.join(__dirname, 'config/build.json');
   }
-
-  async loadNFTTransactions(nft_id, callback) {
-    //
-    // load NFT transaction from local archive first
-    //
-    let nfttx = await new Promise((resolve) => {
-      this.app.storage.loadTransactions(
-        { field4: nft_id },
-        (txs) => {
-          if (Array.isArray(txs) && txs.length > 0) {
-            callback?.(txs);
-            resolve(txs);
-            return;
-          }
-          resolve(null);
-        },
-        'localhost'
-      );
-    });
-
-    if (nfttx) return nfttx;
-
-    //
-    // load NFT transaction from remote peers
-    // if local not found
-    //
-    const peers = await this.app.network.getPeers();
-    const peer = peers?.[0] ?? null;
-    if (peer) {
-      nfttx = await new Promise((resolve) => {
-        this.app.storage.loadTransactions(
-          { field4: nft_id },
-          (txs) => {
-            if (Array.isArray(txs) && txs.length > 0) {
-              callback?.(txs);
-              resolve(txs);
-              return;
-            }
-            resolve(null);
-          },
-          peer
-        );
-      });
-
-      if (nfttx) return nfttx;
-    }
-
-    callback?.(null);
-    return null;
-  }
 }
 
 export default Storage;
