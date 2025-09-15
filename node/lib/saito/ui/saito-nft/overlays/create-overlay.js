@@ -154,7 +154,7 @@ class CreateNft {
         request: 'create nft'
       };
 
-      let newtx = await this.app.wallet.createBoundTransaction(
+      let newtx = await this.app.wallet.createMintNftTransaction(
         BigInt(numNft),
         depositAmt,
         tx_msg,

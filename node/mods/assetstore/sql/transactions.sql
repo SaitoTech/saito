@@ -5,10 +5,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   tx_sig TEXT DEFAULT '' ,
   sender TEXT DEFAULT '',
   recipient TEXT DEFAULT '',
-  tx_type INTEGER DEFAULT 0 ,		// 0 = listing transaction
-					// 1 = NFT transfer
-					// 2 = inbound payment for NFT
-					// 3 = outbound payment for sale
+  tx_type INTEGER DEFAULT 0 ,
   lc INTEGER DEFAULT 0,
   bsh TEXT DEFAULT '' ,
   bid INTEGER DEFAULT 0,
@@ -16,4 +13,10 @@ CREATE TABLE IF NOT EXISTS transactions (
   UNIQUE (tx_sig) ,
   PRIMARY KEY(id ASC)
 );
+/* tx_type: 
+// 0 = listing transaction
+// 1 = NFT transfer
+// 2 = inbound payment for NFT
+// 3 = outbound payment for sale
+*/
 

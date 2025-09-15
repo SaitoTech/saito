@@ -1472,7 +1472,12 @@ export default class Wallet extends SaitoWallet {
     return { updated, rebroadcast, persisted };
   }
 
-  public async createBoundTransaction(
+  /**
+   *
+   *  Create an NFT
+   *
+   */
+  public async createMintNftTransaction(
     num,
     deposit,
     tx_msg,
@@ -1480,7 +1485,7 @@ export default class Wallet extends SaitoWallet {
     receipient_publicKey
   ): Promise<Transaction> {
     console.log(
-      `createBoundTransaction [nft] -- deposit: ${deposit}, fee: ${fee}, qty: ${num}, owner: ${receipient_publicKey}, contents: `,
+      `Mint NFT -- deposit: ${deposit}, fee: ${fee}, qty: ${num}, owner: ${receipient_publicKey}, contents: `,
       tx_msg
     );
 
@@ -1495,7 +1500,13 @@ export default class Wallet extends SaitoWallet {
     );
   }
 
-  public async createSendBoundTransaction(
+  /**
+   *
+   *  Send an NFT
+   *
+   *
+   */
+  public async createSendNftTransaction(
     amt,
     slip1UtxoKey,
     slip2UtxoKey,
@@ -1503,13 +1514,6 @@ export default class Wallet extends SaitoWallet {
     receipient_publicKey,
     tx_msg
   ) {
-    console.log('values going to saito.ts:');
-    console.log(amt);
-    console.log(slip1UtxoKey);
-    console.log(slip2UtxoKey);
-    console.log(slip3UtxoKey);
-    console.log(receipient_publicKey);
-
     return S.getInstance().createSendBoundTransaction(
       amt,
       slip1UtxoKey,
@@ -1520,7 +1524,12 @@ export default class Wallet extends SaitoWallet {
     );
   }
 
-  public async splitNft(
+  /**
+   *
+   *  Split an NFT
+   *
+   */
+  public async createSplitNftTransaction(
     slip1UtxoKey,
     slip2UtxoKey,
     slip3UtxoKey,
@@ -1538,7 +1547,12 @@ export default class Wallet extends SaitoWallet {
     );
   }
 
-  public async mergeNft(nftId, tx_msg): Promise<Transaction> {
+  /**
+   *
+   *  Merge an NFT
+   *
+   */
+  public async createMergeNftTransaction(nftId, tx_msg): Promise<Transaction> {
     console.log('wallet.ts mergeNft: ', nftId);
     return S.getInstance().createMergeBoundTransaction(nftId, tx_msg);
   }

@@ -275,7 +275,7 @@ class AssetStore extends ModTemplate {
 		let slip2Key = nft.slip2.utxo_key;
 		let slip3Key = nft.slip3.utxo_key;
 
-		let nfttx = await this.app.wallet.createSendBoundTransaction(
+		let nfttx = await this.app.wallet.createSendNftTransaction(
 			amount,
 			slip1Key,
 			slip2Key,
@@ -409,7 +409,7 @@ class AssetStore extends ModTemplate {
 				request: 'send nft'
 			};
 
-			const nfttx = await this.app.wallet.createSendBoundTransaction(
+			const nfttx = await this.app.wallet.createSendNftTransaction(
 				amount,
 				slip1key,
 				slip2key,
@@ -637,7 +637,7 @@ class AssetStore extends ModTemplate {
 				seller
 			};
 
-			const nftTx = await this.app.wallet.createSendBoundTransaction(
+			const nftTx = await this.app.wallet.createSendNftTransaction(
 				amount,
 				slip1key,
 				slip2key,

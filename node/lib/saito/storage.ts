@@ -406,7 +406,13 @@ class Storage {
       console.error(err);
       for (let i = 0; i < localStorage.length; i++) {
         let item = localStorage.getItem(localStorage.key(i));
-        console.log(localStorage.key(i), item.length, item, JSON.parse(item));
+        let parsed_item = '';
+        try {
+          parsed_item = JSON.parse(item);
+        } catch (err) {
+          // Not everything is json... we don't care
+        }
+        console.log(localStorage.key(i), item.length, item, parsed_item);
       }
     }
   }
