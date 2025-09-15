@@ -151,11 +151,6 @@ function reset_nonpersistent {
 
   # we explicitly don't delete registry/balance databases
   rm -f ./data/devtools.sq3
-  rm -f ./data/arcade.sq3
-  rm -f ./data/records.sq3
-  rm -f ./data/timeclock.sq3
-  rm -f ./data/earlybirds.sq3
-  rm -f ./data/escrow.sq3
   rm -f ./data/log.txt
   rm -f ./data/*.sq3-journal
   find ./data/blocks/ -name '*.sai' | xargs rm -r
@@ -165,6 +160,7 @@ function reset_nonpersistent {
   rm -f ./data/tmp/*.sai
   rm -f ./data/tmp/*.zip
   rm -f ./config/options
+  rm -f ./data/peer_state.txt
 
   rm -rf ./mods/devtools/mods
   mkdir ./mods/devtools/mods
@@ -173,7 +169,6 @@ function reset_nonpersistent {
   #
   # rm -rf ./mods/devtools/bundler/dist/
 
-  rm -f ./mods/registry/web/addresses.txt
   rm -f ./mods/devtools/mods/*
   rm -rf ./mods/devtools/bundler/mods/*
   rm -rf ./mods/devtools/bundler/dist/*
@@ -200,13 +195,16 @@ function reset_persistent {
   mkdir -p ./data/backup
   cp -v ./data/*.sq3 ./data/backup/
 
-#  rm -f ./data/post.sq3
-#  rm -f ./data/arcade.sq3
-#  rm -f ./data/archive.sq3
+  #rm -f ./data/archive.sq3
+  rm -f ./data/memento.sq3
+  #rm -f ./data/warehouse.sq3
+  #rm -f ./data/warehousex.sq3
+  rm -f ./data/assetstore.sq3
   rm -f ./data/registry.sq3
   rm -f ./data/league.sq3
-  rm -f ./data/tutorial.sq3
   rm -f ./web/client.options
+  rm -f ./data/blocks/*
+
   mkdir -p data/blocks
 
 }

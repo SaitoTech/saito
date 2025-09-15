@@ -32396,6 +32396,31 @@ try {
 	  return 1;
 	}
 
+	if (mv[0] === "destroy_faction_mercs_in_spacekey") {
+
+	  let faction = mv[1];
+	  let spacekey = mv[2];
+	  let space = null;
+
+          this.game.queue.splice(qe, 1);
+
+	  try { if (this.game.spaces[spacekey]) { space = this.game.spaces[spacekey]; } } catch (err) {}
+	  try { if (this.game.navalspaces[spacekey]) { space = this.game.navalspaces[spacekey]; } } catch (err) {}
+
+	  for (let f in space.units) {
+ 	    if (this.returnControllingPower(f) === this.returnControllingPower(faction)) {
+	      for (let z = 0; z < space.units[f].length; z++) {
+		if (u.type === "mercenary") {
+		  space.units[f].splice(z, 1);
+		  z--;
+		}
+	      }
+	    }
+	  }
+
+	  return 1;
+
+	}
 
 	if (mv[0] === "destroy_faction_units_in_spacekey") {
 

@@ -144,7 +144,7 @@ export default class Wallet extends SaitoWallet {
       savePaymentTransaction(tx) {
         let txmsg = tx.returnMessage();
 
-        if (txmsg.module !== 'SAITO' || txmsg.amount == 0) {
+        if (txmsg.module !== 'Saito' || txmsg.amount == 0) {
           console.log('Invalid Payment Transaction to save...', txmsg);
           return;
         }

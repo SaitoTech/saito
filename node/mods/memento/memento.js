@@ -372,7 +372,9 @@ class Memento extends ModTemplate {
               $amount: payee.amount
             };
 
-            await this.app.storage.runDatabase(ledgerSql, ledgerParams, 'memento');
+            if (payee.amount > 0) {
+              await this.app.storage.runDatabase(ledgerSql, ledgerParams, 'memento');
+            }
           }
         }
       });
