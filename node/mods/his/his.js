@@ -2556,9 +2556,6 @@ console.log("\n\n\n\n");
           this.addRegular("hapsburg", "vienna", 4);
           this.addRegular("hapsburg", "antwerp", 1);
 
-	  this.game.state.players_info[0].captured.push(JSON.parse(JSON.stringify(this.army["ferdinand"])));
-
-
 	  // ENGLAND
           this.addArmyLeader("england", "london", "henry-viii");
           this.addArmyLeader("england", "london", "charles-brandon");
@@ -2601,7 +2598,7 @@ console.log("\n\n\n\n");
 	
 	  // HUNGARY
           this.addRegular("hungary", "belgrade", 1);
-          this.addRegular("hungary", "buda", 1);
+          this.addRegular("hungary", "buda", 5);
           this.addRegular("hungary", "prague", 1);
 
 	  // SCOTLAND
@@ -24619,7 +24616,7 @@ if (this.game.state.scenario != "is_testing") {
     let ottoman_controlled_hungarian_home_spaces = 0;
     let hungarian_regulars_remaining_on_map = 0;
     for (let key in this.game.spaces) {
-      if (this.game.spaces[key].home == "hungary") {
+      if (this.game.spaces[key].home == "hungary" && this.game.spaces[key].political == "ottoman") {
         ottoman_controlled_hungarian_home_spaces++;
       }
       for (let z = 0; z < this.game.spaces[key].units["hungary"].length; z++) {
@@ -48656,6 +48653,8 @@ does_units_to_move_have_unit = true; }
 
       $('.option').off();
       $('.option').on('click', function () {
+	
+	his_self.updateStatus("going out pirating...");
 
         let target_port = $(this).attr("id");
         his_self.unbindBackButtonFunction();

@@ -475,7 +475,7 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 		//
 		this.hits_already_assigned = 1;
 
-		if (unit.destroyed) { alert("destroyed"); }
+		//if (unit.destroyed) { alert("destroyed"); }
 
 		let didx = idx;
 		let unit_idx = didx;
@@ -493,7 +493,7 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 		  paths_self.game.state.events.withdrawal_bonus_used = 1;
 		}
 
-		if (unit.damaged) {
+		if (unit.damaged && !unit.destroyed) {
 
 			this.moves.push(`damage\t${unit_spacekey}\t${unit_key}\t1\t${paths_self.game.player}`);
 			this.loss_factor -= unit.rloss;
@@ -535,7 +535,6 @@ console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 					//
 					// replace our specified element
 					//
-console.log("MY_QS: " + my_qs);
 					if (el != null) {
 						let container = document.querySelector(my_qs);
 						el = container.querySelector('.loss-overlay-unit:last-child');
@@ -610,6 +609,13 @@ console.log("MY_QS: " + my_qs);
 				}
 				this.mod.updateStatus("processing..."); // prevent re-rendering from options
 				this.mod.endTurn();
+
+    				this.displaySpace(this.mod.game.state.combat.key);
+    				this.displaySpace("aeubox");
+    				this.displaySpace("arbox");
+    				this.displaySpace("ceubox");
+    				this.displaySpace("crbox");
+
 		} else {
 
 		  	//

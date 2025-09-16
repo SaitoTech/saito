@@ -51,7 +51,7 @@
   grid-gap: 1rem;
 }
 
-.empty + hr {
+.empty-menu-section + hr {
   display: none;
 }
 

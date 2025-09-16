@@ -419,7 +419,7 @@ class SaitoHeader extends UIModTemplate {
     let menu = document.querySelector(`.saito-header-menu-section .${keyword}-menu > ul`);
     if (menu) {
       menu.innerHTML += html;
-      menu.parentElement.classList.remove('empty');
+      menu.parentElement.classList.remove('empty-menu-section');
     }
   }
 

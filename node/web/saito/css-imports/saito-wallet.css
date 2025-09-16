@@ -524,7 +524,6 @@
   gap: 2rem;
   padding: 2rem;
   min-width: 60rem;
-  min-height: 70vh;
 }
 
 .create-nft-container {
@@ -568,6 +567,11 @@
   height: 5rem;
 }
 
+.nft-list {
+  min-height: 24rem;
+  user-select: none;
+}
+
 .nft-list-container > .right-section {
   min-width: 50rem;
   gap: 2rem;
@@ -580,7 +584,7 @@
 }
 
 .nft-image-preview {
-  align-self: anchor-center;
+  align-self: center;
   height: 30rem;
   position: relative;
 }
@@ -661,11 +665,6 @@ textarea {
   text-align: left;
 }
 
-.nft-list {
-  width: min(80rem, 95vw);
-  max-width: 100%;
-}
-
 .utxo-div.send-nft {
   display: flex;
   flex-direction: column;
@@ -718,14 +717,15 @@ textarea {
 }
 
 .send-nft-list {
-  max-height: 70rem;
+  max-height: min(76rem, 85vh);
   overflow-y: scroll;
   display: flex;
   flex-direction: row;
   gap: 2rem;
-  max-width: 75rem;
-  min-width: 71rem;
   flex-wrap: wrap;
+  width: max-content;
+  max-width: 94rem; /* fits 4 nfts wide */
+  /* 4: 94rem, 3: 70rem */
 }
 
 #send-nft-wait-msg {
@@ -862,7 +862,7 @@ textarea {
   display: flex;
   align-items: center;
   z-index: 10;
-  padding: 1rem 0;
+  padding: 0;
   height: 4.5rem;
   border: 1px solid var(--saito-border-color-dark);
 }
@@ -877,7 +877,14 @@ textarea {
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
+}
+
+input.split-half {
+  padding: 0;
+  height: 100%;
+  border-radius: unset;
+  text-align: center;
 }
 
 .split-bar > .resize-icon.horizontal {
@@ -1184,6 +1191,13 @@ nft cards
   }
 }
 
+@media screen and (max-width: 1000px) {
+  .send-nft-list {
+    max-width: 70rem;
+    /*max-width: 100%;*/
+  }
+}
+
 @media screen and (max-width: 768px) {
   .mixin-items-container .saito-table-header {
     grid-template-columns: 8rem 8rem;
@@ -1213,20 +1227,13 @@ nft cards
     padding: 1rem;
   }
 
-  #nft-image-upload {
-    width: auto;
+  .send-nft-list {
+    width: unset;
+    justify-content: center;
   }
 
-  .send-nft-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
+  #nft-image-upload {
     width: auto;
-    min-width: auto;
-    align-items: center;
-    max-height: 80vh;
-    overflow-y: scroll;
-    flex-wrap: nowrap;
   }
 
   .nft-details-container {

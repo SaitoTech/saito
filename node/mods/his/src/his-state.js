@@ -2135,7 +2135,7 @@ if (this.game.state.scenario != "is_testing") {
     let ottoman_controlled_hungarian_home_spaces = 0;
     let hungarian_regulars_remaining_on_map = 0;
     for (let key in this.game.spaces) {
-      if (this.game.spaces[key].home == "hungary") {
+      if (this.game.spaces[key].home == "hungary" && this.game.spaces[key].political == "ottoman") {
         ottoman_controlled_hungarian_home_spaces++;
       }
       for (let z = 0; z < this.game.spaces[key].units["hungary"].length; z++) {

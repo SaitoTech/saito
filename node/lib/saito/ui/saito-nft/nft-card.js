@@ -26,6 +26,8 @@ class NftCard {
     this.image = '';
     this.text = '';
 
+    this.load_failed = false;
+
     //
     // UI helpers
     //
@@ -57,7 +59,7 @@ class NftCard {
   /**
    *  Lazy load images and render when available
    */
-  insertNftDetails(show_loading = true) {
+  insertNftDetails() {
     let elm = document.querySelector(`#nft-card-${this.uuid} .nft-card-img`);
     if (elm) {
       if (this.text) {
@@ -70,10 +72,10 @@ class NftCard {
         return;
       }
 
-      if (show_loading) {
-        elm.innerHTML = `<img class="spinner" src="/saito/img/spinner.svg">`;
-      } else {
+      if (this.load_failed) {
         elm.innerHTML = `<i class="fa-solid fa-heart-crack"></i>`;
+      } else {
+        elm.innerHTML = `<img class="spinner" src="/saito/img/spinner.svg">`;
       }
     } else {
       console.log('Element not rendered');
@@ -107,6 +109,7 @@ class NftCard {
     }
 
     if (this.tx && this.id) {
+      console.log('Huzzah have a perfectly good nft!');
       // already set
       return;
     }
@@ -129,7 +132,7 @@ class NftCard {
       this.app.storage.loadTransactions(
         { field4: this.id },
 
-        (txs) => {
+        async (txs) => {
           if (txs?.length > 0) {
             this.tx = txs[0];
             this.extractNFTData();
@@ -138,6 +141,8 @@ class NftCard {
             //
             // Try remote host (which **IS NOT** CURRENTLY INDEXING NFT TXS)
             //
+            let peer = await this.app.network.getPeers();
+
             this.app.storage.loadTransactions(
               { field4: this.id },
               (txs) => {
@@ -145,11 +150,16 @@ class NftCard {
                   this.tx = txs[0];
                   this.extractNFTData();
                   this.insertNftDetails();
+                  //
+                  // And save locally!
+                  //
+                  this.app.storage.saveTransaction(this.tx, { field4: this.id }, 'localhost');
                 } else {
-                  this.insertNftDetails(false);
+                  this.load_failed = true;
+                  this.insertNftDetails();
                 }
               },
-              null
+              peer?.length ? peer[0] : null
             );
           }
         },

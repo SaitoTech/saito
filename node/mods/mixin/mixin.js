@@ -950,7 +950,7 @@ class Mixin extends ModTemplate {
       $updated_at: updated_at
     };
 
-    let result = await this.app.storage.runDatabase(sql, params, 'Mixin');
+    let result = await this.app.storage.runDatabase(sql, params, 'mixin');
     console.log(result);
   }
 
@@ -961,7 +961,7 @@ class Mixin extends ModTemplate {
       $account_hash: data
     };
 
-    let result = await this.app.storage.runDatabase(sql, params, 'Mixin');
+    let result = await this.app.storage.runDatabase(sql, params, 'mixin');
     console.log(result);
     return result;
   }
@@ -970,7 +970,7 @@ class Mixin extends ModTemplate {
     let sql = `SELECT * FROM mixin_accounts WHERE publickey = $publickey`;
     let params = { $publickey: pkey };
 
-    let result = await this.app.storage.queryDatabase(sql, params, 'Mixin');
+    let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
 
     return result;
   }
@@ -997,7 +997,7 @@ class Mixin extends ModTemplate {
       $address: address
     };
 
-    let result = await this.app.storage.queryDatabase(sql, params, 'Mixin');
+    let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
     if (result.length > 0) {
       return callback(result[0]);
     }
@@ -1027,7 +1027,7 @@ class Mixin extends ModTemplate {
       $publicKey: publicKey,
       $asset_id: asset_id
     };
-    let result = await this.app.storage.queryDatabase(sql, params, 'Mixin');
+    let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
     if (result.length > 0) {
       return callback(result);
     }
@@ -1065,7 +1065,7 @@ class Mixin extends ModTemplate {
       $user_id: user_id,
       $asset_id: asset_id
     };
-    let result = await this.app.storage.queryDatabase(sql, params, 'Mixin');
+    let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
     console.log('result:', result);
     if (result.length > 0) {
       return callback(result);

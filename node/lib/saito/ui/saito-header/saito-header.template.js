@@ -61,15 +61,15 @@ let SaitoHeaderTemplate = (app, mod, headerClass) => {
                </div>
                <!-------- wallet end ----------->
                <div class="saito-header-menu-section ">
-                   <div class="appspace-menu saito-menu empty">
+                   <div class="appspace-menu saito-menu empty-menu-section">
                         <ul class="saito-menu-select-heavy"></ul>
                    </div>
                    <hr>
-                   <div class="quicklaunch-menu saito-menu empty">
+                   <div class="quicklaunch-menu saito-menu empty-menu-section">
                         <ul class="saito-menu-select-heavy"></ul>
                    </div>
                    <hr>
-                   <div class="navigation-menu saito-menu empty">
+                   <div class="navigation-menu saito-menu empty-menu-section">
                         <ul class="saito-menu-select-heavy"></ul>
                    </div>
                    <hr>

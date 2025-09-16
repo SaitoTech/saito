@@ -9,11 +9,12 @@ class ListNft {
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
 
-    this.app.connection.on('saito-nft-list-render-request', (list, callback = null) => {
-      console.log(list, callback);
+    this.nft_list = null;
+    this.card_list = [];
 
+    this.app.connection.on('saito-nft-list-render-request', (callback = null) => {
       this.callback = callback;
-      this.render(list);
+      this.render();
     });
 
     app.connection.on('wallet-updated', async () => {
@@ -27,24 +28,29 @@ class ListNft {
       // re-render send-nft overlay if its open
       if (this.overlay.visible && (updated.length > 0 || persisted)) {
         console.log('NFT changes in wallet-updated!');
+        console.log('UPDATE:', updated);
+        console.log('REBROADCAST:', rebroadcast);
+        console.log('PERSISTED:', persisted);
+
         this.render();
       }
     });
   }
 
-  async render(list = null) {
+  async render() {
     this.overlay.show(ListNftTemplate(this.app, this.mod));
 
-    if (!list) {
-      list = await this.fetchNFT();
-    }
+    //
+    // would be nice to just dynamically update...
+    //
+    this.nft_list = await this.fetchNFT();
 
-    await this.renderNftList(list);
+    await this.renderNftList();
 
     this.attachEvents();
   }
 
-  async renderNftList(nft_list) {
+  async renderNftList() {
     const container = document.querySelector('#nft-list');
 
     if (!container) {
@@ -52,7 +58,7 @@ class ListNft {
       return;
     }
 
-    if (!nft_list?.length) {
+    if (!this.nft_list?.length > 0) {
       let html = `
         <div class="instructions">
             You do not have any NFTs in your wallet. 
@@ -63,18 +69,29 @@ class ListNft {
       container.innerHTML = html;
       return;
     } else {
+      let newArray = [];
+      for (const rec of this.nft_list) {
+        let already_rendered = false;
+        for (let i = 0; i < this.card_list.length; i++) {
+          if (rec.id == this.card_list[i].id && rec.tx_sig == this.card_list[i].tx_sig) {
+            newArray.push(this.card_list[i]);
+            already_rendered = true;
+            break;
+          }
+        }
+        if (!already_rendered) {
+          newArray.push(new Nft(this.app, this.mod, '.send-nft-list', null, rec, this.callback));
+        }
+      }
+
+      this.card_list = newArray;
+
       // if nft-list contains nft
       let html = '<div class="send-nft-list"></div>';
       container.innerHTML = html;
 
-      for (const rec of nft_list) {
-        try {
-          const comp = new Nft(this.app, this.mod, '.send-nft-list', null, rec, this.callback);
-          comp.render();
-        } catch (e) {
-          console.error('NFT failed to init/render id:', e);
-          console.error(rec);
-        }
+      for (const card of this.card_list) {
+        card.render();
       }
     }
   }
@@ -93,7 +110,6 @@ class ListNft {
 
     const data = this.app.options.wallet.nfts || [];
 
-    //console.log('SEND-WALLET: nfts - ', data);
     return data;
   }
 }

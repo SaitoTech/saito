@@ -212,9 +212,6 @@ console.log("\n\n\n\n");
           this.addRegular("hapsburg", "vienna", 4);
           this.addRegular("hapsburg", "antwerp", 1);
 
-	  this.game.state.players_info[0].captured.push(JSON.parse(JSON.stringify(this.army["ferdinand"])));
-
-
 	  // ENGLAND
           this.addArmyLeader("england", "london", "henry-viii");
           this.addArmyLeader("england", "london", "charles-brandon");
@@ -257,7 +254,7 @@ console.log("\n\n\n\n");
 	
 	  // HUNGARY
           this.addRegular("hungary", "belgrade", 1);
-          this.addRegular("hungary", "buda", 1);
+          this.addRegular("hungary", "buda", 5);
           this.addRegular("hungary", "prague", 1);
 
 	  // SCOTLAND

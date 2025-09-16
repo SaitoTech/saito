@@ -7601,6 +7601,8 @@ does_units_to_move_have_unit = true; }
 
       $('.option').off();
       $('.option').on('click', function () {
+	
+	his_self.updateStatus("going out pirating...");
 
         let target_port = $(this).attr("id");
         his_self.unbindBackButtonFunction();

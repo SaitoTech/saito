@@ -33,6 +33,7 @@ class NftDetailsOverlay {
     const actionBar = document.querySelector('.nft-details-actions');
     const mergeBtn = document.querySelector('#action-buttons #merge');
     const splitBtn = document.querySelector('#action-buttons #split');
+    const confirmSend = document.getElementById('confirm_send');
     const receiver_input = document.querySelector('#nft-receiver-address');
     const confirmSplit = document.getElementById('send-nft-confirm-split');
     let splitBar = null;
@@ -84,8 +85,18 @@ class NftDetailsOverlay {
     //////////////////////
     /// Send NFT
     //////////////////////
-    if (document.getElementById('confirm_send')) {
-      document.getElementById('confirm_send').onclick = async (e) => {
+    if (receiver_input) {
+      receiver_input.oninput = (e) => {
+        if (this.app.wallet.isValidPublicKey(receiver_input.value.trim())) {
+          confirmSend.classList.remove('disabled');
+        } else {
+          confirmSend.classList.add('disabled');
+        }
+      };
+    }
+
+    if (confirmSend) {
+      confirmSend.onclick = async (e) => {
         e.preventDefault();
 
         // validate receiver's public_key
@@ -104,7 +115,7 @@ class NftDetailsOverlay {
 
           console.log('Create nft tx: ', newtx);
 
-          siteMessage('NFT sent to ' + receiver);
+          siteMessage('NFT sent to ' + receiver, 3000);
 
           this.overlay.close();
 
@@ -146,7 +157,7 @@ class NftDetailsOverlay {
           siteMessage('Split NFT tx sent', 2000);
           this.overlay.close();
           if (document.querySelector('.nft-list-container')) {
-            this.app.connection.emit('saito-nft-list-render-request', {});
+            this.app.connection.emit('saito-nft-list-render-request');
           }
         } catch (err) {
           salert('Split failed: ' + (err?.message || err));
@@ -176,7 +187,7 @@ class NftDetailsOverlay {
         siteMessage('Merge NFT tx sent', 2000);
         this.overlay.close();
         if (document.querySelector('.nft-list-container')) {
-          this.app.connection.emit('saito-nft-list-render-request', {});
+          this.app.connection.emit('saito-nft-list-render-request');
         }
       } catch (err) {
         salert('Merge failed: ' + (err?.message || err));

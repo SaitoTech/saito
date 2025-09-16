@@ -18867,7 +18867,6 @@ console.log("num is 0...");
 
   moveUnit(sourcekey, sourceidx, destinationkey) {
 
-
     let unit = this.game.spaces[sourcekey].units[sourceidx];
     let eliminate_rather_than_move = false;
 
@@ -18949,6 +18948,7 @@ console.log("num is 0...");
         }
       }
     }
+
   }
 
   returnUnitImage(unit, just_link=false) {
