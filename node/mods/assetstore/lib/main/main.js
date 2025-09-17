@@ -16,6 +16,10 @@ class AssetStoreMain {
 			await this.render();
 		});
 
+		this.app.connection.on('assetstore-update-auction-list-request', async () => {
+			await this.mod.updateAuctionList();
+		});
+
 		this.app.connection.on('assetstore-build-auction-list-request', async () => {
 			console.log('inside  assetstore-buildAuctionList-auction-list-request /////////////////');
 			await this.buildAuctionList();

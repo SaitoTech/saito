@@ -75,13 +75,6 @@ class AssetStore extends ModTemplate {
 			//
 			this.affix_callbacks_to.push(game_mod.name);
 		});
-
-		if (!this.app.BROWSER) {
-			let sql = 'SELECT * FROM listings WHERE active = 1';
-			let params = {};
-
-			this.auction_list = await this.app.storage.queryDatabase(sql, params, 'assetstore');
-		}
 	}
 
 	returnServices() {
@@ -162,6 +155,7 @@ class AssetStore extends ModTemplate {
 	////////////////////////////////////////////////////
 	//
 	async onConfirmation(blk, tx, conf) {
+
 		//
 		// sanity check
 		//
@@ -169,6 +163,8 @@ class AssetStore extends ModTemplate {
 			return;
 		}
 
+		console.log("inside onConfirmation ///");
+		console.log(tx);
 		//
 		// Bound Transactions (monitor NFT transfers)
 		//
@@ -254,10 +250,14 @@ class AssetStore extends ModTemplate {
 				// do nothing for now...
 				//
 			}
+
+			console.log("tx.type == 8 b");
+			this.app.connection.emit('assetstore-update-auction-list-request');
 		}
 
 		try {
 			if (conf == 0) {
+			
 				let txmsg = tx.returnMessage();
 
 				console.log('Agora: onConfirmation: ', txmsg.module, txmsg.request);
@@ -281,9 +281,7 @@ class AssetStore extends ModTemplate {
 						await this.receivePurchaseAssetTransaction(tx, blk);
 					}
 
-					if (this.app.BROWSER) {
-						this.updateAuctionList();
-					}
+					this.app.connection.emit('assetstore-update-auction-list-request');
 				}
 			}
 		} catch (err) {
@@ -308,6 +306,7 @@ class AssetStore extends ModTemplate {
 	}
 
 	updateAuctionList() {
+		console.log("inside updateAuctionList ///")
 		this.sendQueryAssetsTransaction((records) => {
 			console.log('updateAuctionList records: ', records);
 			this.auction_list = records;
@@ -407,20 +406,22 @@ console.log("RECEIVE LIST ASSET TRANSACTION 5");
 		//
 		// save local in-memory reference
 		//
-		const record = {
-			id: listing_id ,
-			nft_id: nft_id ,
-			nfttx_sig: nfttx_sig ,
-			tx_sig: tx_sig ,
-			seller: tx.from[0].publicKey,
-			active: 0,
-			reserve_price: txmsg.data.reserve_price
-		};
-		this.auction_list.push(record);
+		// const record = {
+		// 	id: listing_id ,
+		// 	nft_id: nft_id ,
+		// 	nft: nfttx_sig ,
+		// 	tx_sig: tx_sig ,
+		// 	seller: tx.from[0].publicKey,
+		// 	active: 0,
+		// 	reserve_price: txmsg.data.reserve_price
+		// };
+		// this.auction_list.push(record);
 
 		//
 		// and broadcast the embedded NFT tx to transfer it to the NFT Store
 		//
+
+	console.log("rebroadcasting nft tx: ", nfttx);
 		this.app.network.propagateTransaction(nfttx);
 
 	}
@@ -614,12 +615,22 @@ console.log("RECEIVE DELIST ASSET TRANSACTION 6");
 			return 0;
 		}
 
-		if (mycallback) {
-			mycallback(this.auction_list);
-			return 1;
-		} else {
-			console.warn('No callback to process assestore records');
-		}
+		let sql = `SELECT l.*, t.*
+					FROM listings AS l
+					JOIN transactions AS t
+					  ON t.listing_id = l.id
+					WHERE l.status = 1;`;
+		let params = {};
+		let listing = await this.app.storage.queryDatabase(sql, params, 'assetstore');
+		
+		console.log("asset query: ", listing);
+
+		// if (mycallback) {
+		// 	mycallback(this.auction_list);
+		// 	return 1;
+		// } else {
+		// 	console.warn('No callback to process assestore records');
+		// }
 
 		return 0;
 	}
