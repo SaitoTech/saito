@@ -1,4 +1,4 @@
-const ModTemplate = require('./../../lib/templates/modtemplate');
+const ModTemplate = require('../../lib/templates/modtemplate.js');
 const MigrationMain = require('./lib/main');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
