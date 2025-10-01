@@ -4,7 +4,7 @@ const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoUser = require('./../../saito-user/saito-user');
 
 class ListNft {
-  constructor(app, mod) {
+  constructor(app, mod, attach_events=true) {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
@@ -14,47 +14,35 @@ class ListNft {
 
     this.callback = null;
 
-    this.app.connection.on('saito-nft-list-render-request', (callback = null) => {
-      this.callback = callback;
-
-      console.log('is list callback provided? ', this.callback);
-      this.render();
-    });
-
-    this.app.connection.on('saito-nft-list-close-request', () => {
-      this.overlay.close();
-    });
-
-    app.connection.on('wallet-updated', async () => {
-      // check if new nft added / removed
-      const { updated, rebroadcast, persisted } = await this.app.wallet.updateNftList();
-
-      if (persisted) {
-        siteMessage(`NFT updated in wallet`, 3000);
-      }
-
-      // re-render send-nft overlay if its open
-      if (this.overlay.visible && (updated.length > 0 || persisted)) {
-        console.log('NFT changes in wallet-updated!');
-        console.log('UPDATE:', updated);
-        console.log('REBROADCAST:', rebroadcast);
-        console.log('PERSISTED:', persisted);
-
+    if (attach_events) {
+      this.app.connection.on('saito-nft-list-render-request', (callback = null) => {
+        this.callback = callback;
         this.render();
-      }
-    });
+      });
+
+      this.app.connection.on('saito-nft-list-close-request', () => {
+        this.overlay.close();
+      });
+
+      app.connection.on('wallet-updated', async () => {
+        const { updated, rebroadcast, persisted } = await this.app.wallet.updateNftList();
+
+        if (persisted) {
+          siteMessage(`NFT updated in wallet`, 3000);
+        }
+
+        // re-render send-nft overlay if its open
+        if (this.overlay.visible && (updated.length > 0 || persisted)) {
+          this.render();
+        }
+      });
+    }
   }
 
   async render() {
     this.overlay.show(ListNftTemplate(this.app, this.mod));
-
-    //
-    // would be nice to just dynamically update...
-    //
     this.nft_list = await this.fetchNFT();
-
     await this.renderNftList();
-
     this.attachEvents();
   }
 

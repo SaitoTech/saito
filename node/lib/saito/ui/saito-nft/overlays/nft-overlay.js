@@ -2,7 +2,9 @@ const NftOverlayTemplate = require('./nft-overlay.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 
 class NftDetailsOverlay {
-  constructor(app, mod) {
+
+  constructor(app, mod, attach_events=true) {
+
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
@@ -12,20 +14,21 @@ class NftDetailsOverlay {
     //
     this.nft = null;
 
-    app.connection.on('saito-nft-details-render-request', (nft) => {
-      this.nft = nft;
-      this.owner = nft.slip1.public_key;
-      this.render();
-    });
+    if (attach_events == true) {
+      app.connection.on('saito-nft-details-render-request', (nft) => {
+        this.nft = nft;
+        this.owner = nft.slip1.public_key;
+        this.render();
+      });
 
-    app.connection.on('saito-nft-details-close-request', () => {
-      this.overlay.close();
-    });
+      app.connection.on('saito-nft-details-close-request', () => {
+        this.overlay.close();
+      });
+    }
   }
 
   render() {
     this.overlay.show(NftOverlayTemplate(this.app, this.mod, this.nft));
-
     this.attachEvents();
   }
 

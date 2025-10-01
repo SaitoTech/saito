@@ -1,5 +1,5 @@
 module.exports = (app, mod, this_self) => {
-  let html = `
+  return `
     <div class="saito-container" id="saito-container">
 
       <div class="saito-sidebar left">
@@ -11,16 +11,8 @@ module.exports = (app, mod, this_self) => {
         <div class="assetstore-table">
           <div id="assetstore-table-title">Assets for sale</div>
           <div class="assetstore-table-list"></div>
-  `;
-
-  html += `
         </div>
       </div>
-
-
     </div>
-
   `;
-
-  return html;
 };
