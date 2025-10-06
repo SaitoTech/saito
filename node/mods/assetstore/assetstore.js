@@ -5,7 +5,7 @@ const ModTemplate = require('../../lib/templates/modtemplate');
 const AssetStoreMain = require('./lib/main/main');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const AssetStoreHome = require('./index');
-const SaitoNft = require('./../../lib/saito/ui/saito-nft/saito-nft');
+const AssetStoreNft = require('./lib/overlays/assetstore-nft');
 
 //
 // This application provides an auction clearing platform for NFT sales on Saito.
@@ -206,7 +206,11 @@ class AssetStore extends ModTemplate {
 					let nft_sig = tx.signature;
 					let delisting_nfttx_sig = "";
 
-					let nft = new SaitoNft(this.app, this, tx, null);
+console.log("CREATING NFT OBJECT IN SERVER");
+
+					let nft = new AssetStoreNft(this.app, this, tx, null);
+
+console.log("DONE CREATING NFT OBJECT IN SERVER");
 
 					//
 					// create delisting tx and update our database 
@@ -214,10 +218,12 @@ class AssetStore extends ModTemplate {
 					let delisting_nfttx = await this.createDelistAssetTransaction(nft, seller, nft_sig);
 					delisting_nfttx_sig = delisting_nfttx.signature;
 
+console.log("delisting 1");
 					//
 					// add delisting info to listing
 					//
 					await this.updateListingStatus(nft_sig, 1, delisting_nfttx_sig);
+console.log("delisting 2");
 
 					//
 					// and save the transaction
@@ -225,15 +231,23 @@ class AssetStore extends ModTemplate {
 					this.addTransaction(0, nft_sig, 1, tx); // 0 ==> look-up listing_id
 									        // 1 ==> inbound nft transfer
 
+console.log("delisting 3");
+
 					//
 					// and propagate the delisting tx
 					//
 					this.app.network.propagateTransaction(delisting_nfttx);
 
+console.log("%%% NFT %%%");
+console.log("%%% NFT %%%");
+console.log("%%% NFT %%%");
+
 					//
 					// add the listing!
 					//
 					this.updateListings();
+
+console.log("finished updating listings");
 
 				} else {
 
@@ -382,7 +396,7 @@ class AssetStore extends ModTemplate {
 		//
 		// create the NFT
 		//
-		let nft = new SaitoNft(this.app, this.mod, nfttx);
+		let nft = new AssetStoreNft(this.app, this.mod, nfttx);
 
 		//
 		// the listing information
@@ -862,7 +876,7 @@ console.log(JSON.stringify(nlistings));
 
 	    console.log("NFT owned: ", nft_owned);
 
-	    let nft = new SaitoNft(this.app, this,  null, nft_owned);
+	    let nft = new AssetStoreNft(this.app, this,  null, nft_owned);
 
 	    console.log("Nft class: ", nft);
 	    console.log("buyer: ", buyer);
