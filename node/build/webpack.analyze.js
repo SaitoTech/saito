@@ -5,7 +5,10 @@ const common = require('./webpack.config.js');
 
 module.exports = merge(common, {
   plugins: [
-    new BundleAnalyzerPlugin()
-  ],
+    new BundleAnalyzerPlugin({
+      analyzerMode: 'static',   // or 'static' to emit an HTML file
+      openAnalyzer: true,
+      defaultSizes: 'parsed'    // try 'gzip' or 'stat' too)
+  })],
   mode: 'production'
 });

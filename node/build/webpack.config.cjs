@@ -1,12 +1,13 @@
 const path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
+const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 
 const webpack = require("webpack");
 
 let minimize = true;
 let devtool = undefined;
 let entrypoint = "../bundler/default/apps/lite/index.ts";
-let outputfile = "saito.js";
+let outputfile = "re-test-saito.js";
 if (process.argv.includes("dev")) {
   console.log("dev mode source not minified");
   minimize = false;
@@ -259,6 +260,11 @@ webpack(
       new webpack.ProvidePlugin({
         process: "process/browser",
       }),
+      new BundleAnalyzerPlugin({
+        analyzerMode: 'server',   // or 'static' to emit an HTML file
+        openAnalyzer: true,
+        defaultSizes: 'parsed'    // try 'gzip' or 'stat' too
+      })
     ],
  
     mode: "production",
