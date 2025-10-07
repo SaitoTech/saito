@@ -71,18 +71,21 @@ class SaitoNft {
             return callback();
           }
         } else {
+
           //
-          // Try remote host (which **IS NOT** CURRENTLY INDEXING NFT TXS)
+          // try remote host (which **IS NOT** CURRENTLY INDEXING NFT TXS)
           //
           let peer = await this.app.network.getPeers();
 
           this.app.storage.loadTransactions(
+
             { field4: this.id },
             (txs) => {
               if (txs?.length > 0) {
                 this.tx = txs[0];
 
                 this.buildNFTData();
+
                 //
                 // save remotely fetched nft tx to local
                 //
