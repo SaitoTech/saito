@@ -1,4 +1,4 @@
-const NftDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/saito-nft');
+const SaitoNFT = require('./../../../../lib/saito/ui/saito-nft/saito-nft');
 
 class AssetStoreNft extends SaitoNFT {
 
