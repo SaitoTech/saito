@@ -2,9 +2,9 @@ const SaitoNFT = require('./../../../../lib/saito/ui/saito-nft/saito-nft');
 
 class AssetStoreNft extends SaitoNFT {
 
-  constructor(app, mod) {
+  constructor(app, mod, tx = null, data = null) {
 
-    super(app, mod, false);
+    super(app, mod, tx = null, data = null);
 
   }
 
