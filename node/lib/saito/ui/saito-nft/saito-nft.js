@@ -1,5 +1,6 @@
 class SaitoNft {
   constructor(app, mod, tx = null, data = null) {
+
     this.app = app;
     this.mod = mod;
 
@@ -113,7 +114,7 @@ class SaitoNft {
   buildNFTData() {
     let this_self = this;
     if (!this.tx && !this.id) {
-      console.error('Insufficient data to make an nft!');
+      console.error('SaitoNFT object missing this.tx or this.id in buildNFTData - ERROR');
       return;
     }
 
