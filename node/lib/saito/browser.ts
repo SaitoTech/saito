@@ -2429,7 +2429,7 @@ class Browser {
   }
 
   getDecimalSeparator() {
-    let locale = window.navigator?.language ? window.navigator?.language : 'en-US';
+    let locale = window?.navigator?.language ? window.navigator.language : 'en-US';
     const numberWithDecimalSeparator = 1.1;
     return Intl.NumberFormat(locale)
       .formatToParts(numberWithDecimalSeparator)
@@ -2449,7 +2449,7 @@ class Browser {
 
   formatNumberToLocale(number) {
     try {
-      const locale = window.navigator?.language ? window.navigator?.language : 'en-US';
+      const locale = window?.navigator?.language ? window.navigator.language : 'en-US';
       const numberFormatter = new Intl.NumberFormat(locale, {
         minimumFractionDigits: 1,
         // maximumFractionDigits: 4,
@@ -2619,7 +2619,7 @@ class Browser {
       maximumFractionDigits
     };
 
-    let locale = window.navigator?.language || 'en-US';
+    let locale = window?.navigator.language || 'en-US';
     let nf = new Intl.NumberFormat(locale, options);
 
     return nf.format(balance_as_float).toString();
