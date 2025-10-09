@@ -136,6 +136,7 @@ class Migration extends ModTemplate {
 		}
 
 		if (service.service == 'relay') {
+			console.log('MIGRATION: Relay is available!');
 			if (this.browser_active) {
 				this.relay_available = true;
 				if (this.ercMod) {
@@ -164,12 +165,15 @@ class Migration extends ModTemplate {
 
 		let txmsg = tx.returnMessage();
 		try {
+			console.log('MIGRATION: ', conf, txmsg.module, txmsg.request);
+
 			if (Number(conf) == 0) {
 				if (txmsg.request === 'save migration data') {
 					await this.receiveStoreMigrationTransaction(blk, tx, conf);
 				}
 
 				if (txmsg.request == 'migration check' && this.publicKey == this.migration_publickey) {
+					console.log('MIGRATION: Receiving Ping');
 					this.receiveMigrationPingTransaction(tx);
 				}
 			}
@@ -326,6 +330,8 @@ class Migration extends ModTemplate {
 		};
 
 		await newtx.sign();
+
+		console.log('MIGRATION: Relay response to user: ', newtx.msg);
 
 		this.app.connection.emit('relay-transaction', newtx);
 	}
