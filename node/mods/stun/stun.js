@@ -298,7 +298,7 @@ class Stun extends ModTemplate {
 			if (message.module === 'Stun') {
 				if (this.app.BROWSER === 1) {
 					if (tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
-						if (this.hasSeenTransaction(tx)) return;
+						if (this.hasSeenTransaction(tx, Number(blk.id))) return;
 						await this.handleSignalingMessage(tx.from[0].publicKey, message.request, message);
 					}
 

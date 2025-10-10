@@ -25,6 +25,10 @@ This alows for a header with a header with title to be added without extra CSS
   color: var(--saito-font-color-heavy);
 }
 
+.saito-modal-content {
+  overflow: auto;
+}
+
 .saito-contact {
   display: flex;
   align-items: center;

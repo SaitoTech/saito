@@ -67,8 +67,8 @@ class SendNftOverlay extends NftDetailsOverlay {
                                 }
       });
 
-      let sendBtn = document.getElementById('confirm_list');
-      sendBtn.onclick = async (e) => {
+      let send_btn = document.getElementById('confirm_list');
+      send_btn.onclick = async (e) => {
 
         e.preventDefault();
 
@@ -79,25 +79,25 @@ class SendNftOverlay extends NftDetailsOverlay {
           return;
         }
 
-        let buyPriceStr = (input?.value || '').trim();
+        let buy_price_str = (input?.value || '').trim();
 
-        if (!buyPriceStr) {
+        if (!buy_price_str) {
           salert('Please enter a Buy price (SAITO).');
           return;
         }
 
-        if (!/^\d+(\.\d+)?$/.test(buyPriceStr)) {
+        if (!/^\d+(\.\d+)?$/.test(buy_price_str)) {
           salert('Buy price must be a decimal number.');
           return;
         }
 
-        let buyPriceNum = Number(buyPriceStr);
-        if (!Number.isFinite(buyPriceNum)) {
+        let buy_price_num = Number(buy_price_str);
+        if (!Number.isFinite(buy_price_num)) {
           salert('Invalid Buy price.');
           return;
         }
 
-        if (buyPriceNum < MIN || buyPriceNum > MAX) {
+        if (buy_price_num < MIN || buy_price_num > MAX) {
           salert(`Buy price must be between ${MIN} and ${MAX} SAITO.`);
           return;
         }
@@ -107,8 +107,13 @@ class SendNftOverlay extends NftDetailsOverlay {
 	  // appear responsive...
 	  this.overlay.close();
 
-          let newtx = await this.mod.createListAssetTransaction(this.nft, receiver, buyPriceNum);
+          let newtx = await this.mod.createListAssetTransaction(this.nft, receiver, buy_price_num);
           await this.app.network.propagateTransaction(newtx);
+
+
+	  this.mod.addListing
+	  await this.app.storage.saveTransaction(newtx, { field4: newtx.signature }, 'localhost', null);
+
 
           siteMessage('NFT listing transaction broadcast...', 3000);
         } catch (err) {

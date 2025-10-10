@@ -780,7 +780,7 @@ class Chat extends ModTemplate {
 
       // We put chat message above because we actually have some logic in
       // the "double" processing of chat messages
-      if (this.hasSeenTransaction(tx) && this.app.BROWSER) {
+      if (this.hasSeenTransaction(tx, Number(blk.id)) && this.app.BROWSER) {
         console.log('***************Already processed! ', txmsg.request);
         return;
       }

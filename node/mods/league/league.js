@@ -527,7 +527,7 @@ class League extends ModTemplate {
 				return;
 			}
 
-			if (this.hasSeenTransaction(tx)) {
+			if (this.hasSeenTransaction(tx, Number(blk.id))) {
 				return;
 			}
 

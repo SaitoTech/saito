@@ -1444,7 +1444,7 @@ class Limbo extends ModTemplate {
 		let message = tx.returnMessage();
 
 		if (message.module === this.name) {
-			if (this.hasSeenTransaction(tx)) return;
+			if (this.hasSeenTransaction(tx, Number(blk.id))) return;
 
 			console.log('ON CONFIRMATION: ', message);
 

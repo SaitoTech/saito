@@ -122,7 +122,7 @@ class CryptoModule extends ModTemplate {
         return;
       }
 
-      if (this.hasSeenTransaction(tx)) {
+      if (this.hasSeenTransaction(tx, Number(blk.id))) {
         console.error('We are double processing a payment transaction!!!!');
         return;
       }

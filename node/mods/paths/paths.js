@@ -704,7 +704,7 @@ class PathsOfGlory extends GameTemplate {
     //
     this.importUnit('cau_army', {
       ckey		:       "CAU" ,
-      country           :       "Caucasus" ,
+      country           :       "Russia" ,
       name		:	"CAU Army" ,
       type		:	"army" ,
       front		:	"cau_army.png" ,
@@ -6792,6 +6792,7 @@ console.log("Error with Eliminated Unit Box: " + JSON.stringify(err));
     let pending = [spacekey];
     let examined = {};
 
+
     while (pending.length > 0) {
 
       let current = pending.shift();
@@ -6816,9 +6817,21 @@ console.log("Error with Eliminated Unit Box: " + JSON.stringify(err));
       if (loop == 1) {
 
 	//
-	// this is a possible destination!
+	// this is a possible destination! but Russian units can only move 1 unit to the near east
 	//
-        spaces.push(current);
+	if (unit.ckey == "RU") {
+	  if (this.game.spaces[current].country == "russia") {
+            spaces.push(current);
+	  } else {
+    	    if (this.isSpaceOnNearEastMap(current)) {
+	      if (this.canPlayerMoveUnitIntoNearEast("allies", unit)) {
+                spaces.push(current);
+	      }
+	    }
+	  }
+	} else {
+          spaces.push(current);
+	}
 
         //
         // add neighbours to pending if...
@@ -10198,7 +10211,7 @@ spaces['beersheba'] = {
 
 spaces['aqaba'] = {
       name: "Aqaba" ,
-    control: "neutral" ,
+      control: "neutral" ,
       fort : 1 ,
       top: 3077 ,
       left: 4016 ,
@@ -10212,7 +10225,7 @@ spaces['aqaba'] = {
 
 spaces['arabia'] = {
       name: "Arabia" ,
-    control: "neutral" ,
+      control: "neutral" ,
       top: 2990 ,
       left: 4321 ,
       neighbours: ["medina", "aqaba", "jerusalem", "amman"] ,
@@ -10223,7 +10236,7 @@ spaces['arabia'] = {
 
 spaces['medina'] = {
       name: "Medina" ,
-    control: "neutral" ,
+      control: "neutral" ,
       top: 3155 ,
       left: 4167 ,
       neighbours: [ "aqaba", "arabia"] ,
@@ -10540,7 +10553,7 @@ spaces['plevna'] = {
 //
 spaces['bucharest'] = {
       name: "Bucharest" ,
-    control: "neutral" ,
+      control: "neutral" ,
       top: 2065 ,
       left: 3145 ,
       neighbours: ["plevna","varna","galatz","caracal","ploesti"] ,
@@ -11966,6 +11979,21 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	  let units_to_eliminate = [];
 
+	  let spaces = this.returnSpaces();
+	  for (let key in spaces) {
+	    if (this.game.state.events.turkey) { if (spaces[key].country == "turkey") { spaces[key].control = "central"; } }
+	    if (this.game.state.events.romania) { if (spaces[key].country == "romania") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.bulgaria) { if (spaces[key].country == "bulgaria") { spaces[key].control = "central"; } }
+	    if (this.game.state.events.greece) { if (spaces[key].country == "greece") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.albania) { if (spaces[key].country == "albania") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.turkey) { if (spaces[key].country == "persia") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.turkey) { if (spaces[key].country == "kuwait") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.turkey) { if (spaces[key].country == "egypt") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.italy) { if (spaces[key].country == "italy") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.turkey && key == "kermanshah") { spaces[key].country = "central"; }
+	  }
+
+
 	  //
 	  // look unit-by-unit for units that are out-of-supply
 	  //
@@ -11983,24 +12011,13 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	      let ckey = this.game.spaces[key].units[0].ckey.toLowerCase();
 
-if (key == "belfort") {
-console.log("evaluating supply status for belfort...");
-}
-
 	      if (power == "central" || power == "allies") {
 
 		if (!this.checkSupplyStatus(ckey, key)) {
 
-if (key == "belfort") {
-console.log("belfort is not in supply...");
-}
-
 		  let anyone_in_supply = false;
 		  for (let z = 0; z < this.game.spaces[key].units.length; z++) {
 		    if (this.game.units[this.game.spaces[key].units[z].key].checkSupplyStatus(this, key)) {
-if (key == "belfort") {
-console.log("belfort has a unit in supply????!!!");
-}
 		      anyone_in_supply = true;
 		    };
 		  }
@@ -12057,7 +12074,6 @@ console.log("belfort has a unit in supply????!!!");
 		  this.game.spaces[key].country != "serbia" 
 	      ) {
 
-		let spaces = this.returnSpaces();
 		let country = spaces[key].country;		
 	        let control = this.game.spaces[key].control;
 
@@ -12838,6 +12854,11 @@ try {
 	  this.game.spaces[source].units.splice(unit_idx, 1);
 	  unit.spacekey = destination;
 	  this.game.spaces[destination].units.push(unit);
+
+	  if (this.game.spaces[destination].country != "russia" && unit.country === "Russia") {
+	    this.game.state.has_russian_corps_moved_into_ne = 1;
+	  }
+
 
 	  this.updateLog(unit.name + " redeploys to " + this.returnSpaceNameForLog(destination));
 
@@ -14604,12 +14625,24 @@ console.log("pushing back attacker corps!");
 	      let e = this.game.state.entrenchments[i];
 	      if (e.finished != 1) {
 	        let roll = this.rollDice(6);
-		if (this.game.spaces[e.spacekey].trench_roll_modifier < 0) { roll -= 1; }
+	        let roll_modified = false;
+		if (this.game.spaces[e.spacekey].trench_roll_modifier < 0) {
+		  roll -= 1;
+		  roll_modified = true;
+		}
 	        if (this.game.state.entrenchments[i].loss_factor >= roll) {
-	          this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " entrenches in " + this.returnSpaceNameForLog(e.spacekey) + " ("+roll+")");
+		  if (roll_modified) {
+	            this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " entrenches in " + this.returnSpaceNameForLog(e.spacekey) + " ("+(roll+1)+" - 1)");
+		  } else {
+	            this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " entrenches in " + this.returnSpaceNameForLog(e.spacekey) + " ("+roll+")");
+		  }
 	          this.addTrench(e.spacekey);
 	        } else {
-	          this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " fails to entrench in " + this.returnSpaceNameForLog(e.spacekey) + " ("+roll+")");
+		  if (roll_modified) {
+	            this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " fails to entrench in " + this.returnSpaceNameForLog(e.spacekey) + " ("+(roll+1)+" - 1)");
+		  } else {
+	            this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " fails to entrench in " + this.returnSpaceNameForLog(e.spacekey) + " ("+roll+")");
+		  }
 		  for (let i = 0; i < this.game.spaces[e.spacekey].units.length; i++) {
 		    let ckey = this.game.spaces[e.spacekey].units[i].ckey;
 		    if (ckey == "GE" || ckey == "IT" || ckey == "BR" || ckey == "FR") {
@@ -18373,7 +18406,7 @@ console.log("num is 0...");
     let unit = paths_self.game.spaces[spacekey].units[unit_idx];
     let controlling_faction = paths_self.returnFactionOfPlayer();
 
-    let destinations = paths_self.returnSpacesConnectedToSpaceForStrategicRedeployment(faction, spacekey, unit.army);
+    let destinations = paths_self.returnSpacesConnectedToSpaceForStrategicRedeployment(faction, spacekey, unit);
 
     this.playerSelectSpaceWithFilter(
 

@@ -22,6 +22,7 @@ class EGLDModule extends CryptoModule {
     this.proxyNetworkProvider = null;
     this.networkConfig = null;
 
+    this.slug = "egld";
     this.account = null;
     this.address_obj = null;
     this.secretKey = null;

@@ -1571,7 +1571,6 @@ export default class Wallet extends SaitoWallet {
   public async onNewBoundTransaction(tx: Transaction, save = true) {
     try {
       if (tx.isTo(this.app.wallet.publicKey)) {
-
         let nft_list = this.app.options.wallet.nfts || [];
         let nft_id = '';
         nft_list.forEach(function (nft) {
@@ -1580,24 +1579,23 @@ export default class Wallet extends SaitoWallet {
           }
         });
 
-	console.log("");
-	console.log("");
-	console.log("");
-	console.log("");
-	console.log("");
-	console.log("");
-	console.log("");
+        console.log('');
+        console.log('');
+        console.log('');
+        console.log('');
+        console.log('');
+        console.log('');
+        console.log('');
         console.log('onNewBoundTransaction: saving to archive', nft_id, nft_list);
-	console.log("");
-	console.log("");
-	console.log("");
-	console.log("");
-	console.log("");
-	console.log("");
+        console.log('');
+        console.log('');
+        console.log('');
+        console.log('');
+        console.log('');
+        console.log('');
 
-	tx.packData();
+        tx.packData();
         this.app.storage.saveTransaction(tx, { field4: nft_id }, 'localhost');
-
       }
     } catch (err) {
       console.error('Error while saving NFT tx to archive in wallet.ts: ', err);

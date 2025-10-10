@@ -37,7 +37,7 @@ class RedSquareSettings {
             this.render();
           };
 
-          this.contacts.render(this.mod.blacklisted_publickeys);
+          this.contacts.render(modtools_self.blacklisted_publickeys);
         };
       }
     }

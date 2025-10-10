@@ -335,6 +335,7 @@
     let pending = [spacekey];
     let examined = {};
 
+
     while (pending.length > 0) {
 
       let current = pending.shift();
@@ -359,9 +360,21 @@
       if (loop == 1) {
 
 	//
-	// this is a possible destination!
+	// this is a possible destination! but Russian units can only move 1 unit to the near east
 	//
-        spaces.push(current);
+	if (unit.ckey == "RU") {
+	  if (this.game.spaces[current].country == "russia") {
+            spaces.push(current);
+	  } else {
+    	    if (this.isSpaceOnNearEastMap(current)) {
+	      if (this.canPlayerMoveUnitIntoNearEast("allies", unit)) {
+                spaces.push(current);
+	      }
+	    }
+	  }
+	} else {
+          spaces.push(current);
+	}
 
         //
         // add neighbours to pending if...
@@ -3741,7 +3754,7 @@ spaces['beersheba'] = {
 
 spaces['aqaba'] = {
       name: "Aqaba" ,
-    control: "neutral" ,
+      control: "neutral" ,
       fort : 1 ,
       top: 3077 ,
       left: 4016 ,
@@ -3755,7 +3768,7 @@ spaces['aqaba'] = {
 
 spaces['arabia'] = {
       name: "Arabia" ,
-    control: "neutral" ,
+      control: "neutral" ,
       top: 2990 ,
       left: 4321 ,
       neighbours: ["medina", "aqaba", "jerusalem", "amman"] ,
@@ -3766,7 +3779,7 @@ spaces['arabia'] = {
 
 spaces['medina'] = {
       name: "Medina" ,
-    control: "neutral" ,
+      control: "neutral" ,
       top: 3155 ,
       left: 4167 ,
       neighbours: [ "aqaba", "arabia"] ,
@@ -4083,7 +4096,7 @@ spaces['plevna'] = {
 //
 spaces['bucharest'] = {
       name: "Bucharest" ,
-    control: "neutral" ,
+      control: "neutral" ,
       top: 2065 ,
       left: 3145 ,
       neighbours: ["plevna","varna","galatz","caracal","ploesti"] ,

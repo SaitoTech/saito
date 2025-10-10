@@ -1,5 +1,5 @@
-const NftOverlayTemplate = require('./nft-overlay.template');
-const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
+let NftOverlayTemplate = require('./nft-overlay.template');
+let SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 
 class NftDetailsOverlay {
   constructor(app, mod, attach_events = true) {
@@ -31,12 +31,12 @@ class NftDetailsOverlay {
   }
 
   async attachEvents() {
-    const actionBar = document.querySelector('.nft-details-actions');
-    const mergeBtn = document.querySelector('#action-buttons #merge');
-    const splitBtn = document.querySelector('#action-buttons #split');
-    const confirmSend = document.getElementById('confirm_send');
-    const receiver_input = document.querySelector('#nft-receiver-address');
-    const confirmSplit = document.getElementById('send-nft-confirm-split');
+    let actionBar = document.querySelector('.nft-details-actions');
+    let mergeBtn = document.querySelector('#action-buttons #merge');
+    let splitBtn = document.querySelector('#action-buttons #split');
+    let confirmSend = document.getElementById('confirm_send');
+    let receiver_input = document.querySelector('#nft-receiver-address');
+    let confirmSplit = document.getElementById('send-nft-confirm-split');
     let splitBar = null;
 
     //////////////////////////////
@@ -101,7 +101,7 @@ class NftDetailsOverlay {
         e.preventDefault();
 
         // validate receiver's public_key
-        const receiver = receiver_input ? receiver_input.value.trim() : '';
+        let receiver = receiver_input ? receiver_input.value.trim() : '';
 
         if (!this.app.wallet.isValidPublicKey(receiver)) {
           salert('Receiver’s public key is not valid');
@@ -197,7 +197,7 @@ class NftDetailsOverlay {
   }
 
   getSameIdCount() {
-    const nft_list = this.app?.options?.wallet?.nfts || [];
+    let nft_list = this.app?.options?.wallet?.nfts || [];
 
     return nft_list.filter((nft) => nft?.id === this.nft.id).length;
   }
@@ -213,13 +213,13 @@ class NftDetailsOverlay {
       return;
     }
 
-    const overlay = document.createElement('div');
+    let overlay = document.createElement('div');
     overlay.classList.add('fancy-slider-bar');
 
     let leftCount = Math.round(totalAmount / 2);
     let rightCount = totalAmount - leftCount;
 
-    const leftDiv = document.createElement('input');
+    let leftDiv = document.createElement('input');
     leftDiv.id = 'split-left';
     leftDiv.classList.add('split-half');
     leftDiv.inputmode = 'numeric';
@@ -233,11 +233,11 @@ class NftDetailsOverlay {
 
     leftDiv.onblur = (e) => {
       leftCount = Math.min(totalAmount - 1, Math.max(parseInt(leftDiv.value), 1));
-      const rect = rowElement.getBoundingClientRect();
+      let rect = rowElement.getBoundingClientRect();
       let newLeftW = rowWidth * (leftCount / totalAmount);
       newLeftW = Math.max(minLeftW, Math.min(newLeftW, maxLeftW));
       leftDiv.style.width = `${newLeftW}px`;
-      const newRightW = rect.width - barWidth - newLeftW;
+      let newRightW = rect.width - barWidth - newLeftW;
       rightDiv.style.width = `${newRightW}px`;
       rightCount = totalAmount - leftCount;
       leftDiv.value = leftCount;
@@ -245,11 +245,11 @@ class NftDetailsOverlay {
       confirmSplit.classList.remove('disabled');
     };
 
-    const bar = document.createElement('div');
+    let bar = document.createElement('div');
     bar.classList.add('split-bar');
     bar.innerHTML = `<div class="resize-icon horizontal"></div>`;
 
-    const dragIcon = bar.querySelector('.resize-icon.horizontal');
+    let dragIcon = bar.querySelector('.resize-icon.horizontal');
     Object.assign(dragIcon.style, {
       position: 'absolute',
       left: '50%',
@@ -257,36 +257,36 @@ class NftDetailsOverlay {
       transform: 'translate(-45%, -50%)'
     });
 
-    const rightDiv = document.createElement('div');
+    let rightDiv = document.createElement('div');
     rightDiv.id = 'split-right';
     rightDiv.classList.add('split-half');
 
     overlay.append(leftDiv, bar, rightDiv);
     rowElement.appendChild(overlay);
 
-    const rowRect = rowElement.getBoundingClientRect();
+    let rowRect = rowElement.getBoundingClientRect();
 
-    const rowWidth = rowRect.width || 0;
-    const barWidth = parseInt(getComputedStyle(bar).width) || 5;
+    let rowWidth = rowRect.width || 0;
+    let barWidth = parseInt(getComputedStyle(bar).width) || 5;
 
-    const halfWidth = Math.max(0, (rowWidth - barWidth) / 2);
+    let halfWidth = Math.max(0, (rowWidth - barWidth) / 2);
     leftDiv.style.width = `${halfWidth}px`;
     rightDiv.style.width = `${Math.max(0, rowWidth - barWidth - halfWidth)}px`;
 
     rightDiv.innerText = rightCount;
 
-    const minLeftW = Math.max(20, rowWidth / (2 * totalAmount));
-    const maxLeftW = rowWidth - barWidth - minLeftW;
+    let minLeftW = Math.max(20, rowWidth / (2 * totalAmount));
+    let maxLeftW = rowWidth - barWidth - minLeftW;
 
-    const dragSplit = (e) => {
-      const rect = rowElement.getBoundingClientRect();
-      const x = e.clientX - rect.left;
+    let dragSplit = (e) => {
+      let rect = rowElement.getBoundingClientRect();
+      let x = e.clientX - rect.left;
       let newLeftW = x - barWidth / 2;
 
       newLeftW = Math.max(minLeftW, Math.min(newLeftW, maxLeftW));
 
       leftDiv.style.width = `${newLeftW}px`;
-      const newRightW = rect.width - barWidth - newLeftW;
+      let newRightW = rect.width - barWidth - newLeftW;
       rightDiv.style.width = `${newRightW}px`;
 
       leftCount = Math.min(

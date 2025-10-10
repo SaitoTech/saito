@@ -1,5 +1,5 @@
-const ListNft = require('../../../../lib/saito/ui/saito-nft/overlays/list-overlay');
-const SendNft = require('./send-nft');
+let ListNft = require('../../../../lib/saito/ui/saito-nft/overlays/list-overlay');
+let SendNft = require('./send-nft');
 
 class ListNftsOverlay extends ListNft {
 
@@ -11,7 +11,7 @@ class ListNftsOverlay extends ListNft {
 
     app.connection.on('wallet-updated', async () => {
 
-        const { updated, rebroadcast, persisted } = await this.app.wallet.updateNftList();
+        let { updated, rebroadcast, persisted } = await this.app.wallet.updateNftList();
 
         if (persisted) {
           siteMessage(`NFT updated in wallet`, 3000);

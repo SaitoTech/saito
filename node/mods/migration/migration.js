@@ -528,9 +528,6 @@ class Migration extends ModTemplate {
 				let sender = this.ercMod.formatAddress();
 
 				let amount = Math.min(new_balance, this.max_deposit).toFixed(8);
-				if (this.local_dev) {
-					amount = Math.max(new_balance, this.max_deposit + 5).toFixed(8);
-				}
 
 				let unique_hash = this.app.crypto.hash(
 					Buffer.from(sender + this.migration_mixin_address + amount + 'ERC-SAITO', 'utf-8')
@@ -563,8 +560,6 @@ class Migration extends ModTemplate {
 	}
 
 	async notifyTeam(txmsg, result, msg) {
-		if (this.local_dev) return;
-
 		let mailrelay_mod = this.app.modules.returnModule('MailRelay');
 		if (!mailrelay_mod) {
 			console.error('MailRelay not installed on Migration Bot');

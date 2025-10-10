@@ -41,7 +41,7 @@ module.exports = (app, mod) => {
 		html += `
 			<fieldset id="whitelisted-accounts" class="saito-grid settings-link">
 		                <i class="fa-regular fa-face-smile-beam"></i>
-        		        <label>Whitelisted Accounts (${app.options.modtools.whitelist.length})</label>
+        		        <label>Manage Whitelisted Accounts (${app.options.modtools.whitelist.length})</label>
                 		<div id="add-whitelist" class="saito-grid-extra-button saito-button-secondary">Add</div>
                		</fieldset>
 			`;

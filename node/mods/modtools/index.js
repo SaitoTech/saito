@@ -1,11 +1,10 @@
 module.exports = (app, mod) => {
-
   let blacklist = mod.blacklist;
   let whitelist = mod.whitelist;
   let node_publicKey = mod.publicKey;
   let time_now = Date.now();
 
-	let html = `
+  let html = `
   <!DOCTYPE html>
   <html>
     <head>
@@ -49,31 +48,31 @@ module.exports = (app, mod) => {
       <div class="modtools-container-header">
         <div class="modtools-container-title">Blacklisted</div>
     `;
-      if (blacklist.length > 0) {
-        html += `<div class="saito-button-primary" id="unblacklist">Remove</div>`
+  if (blacklist.length > 0) {
+    html += `<div class="saito-button-primary" id="unblacklist">Remove</div>`;
+  }
+  html += '</div>';
+
+  if (blacklist.length > 0) {
+    for (let i = 0; i < blacklist.length; i++) {
+      var added = new Date(blacklist[i].created_at);
+      let dateString = added.toUTCString();
+
+      let expString = 'forever';
+      if (blacklist[i].duration > 0) {
+        let timeleft = blacklist[i].created_at + blacklist[i].duration - time_now;
+        if (timeleft < 0) {
+          expString = 'expired';
+        } else {
+          let duration = app.browser.formatTime(timeleft);
+          expString = `${duration.hours}H : ${duration.minutes}M : ${duration.seconds}S`;
+        }
       }
-      html += "</div>";
 
-      if (blacklist.length > 0) {
-        for(let i=0; i<blacklist.length; i++) {
-            var added = new Date(blacklist[i].created_at);
-            let dateString = added.toUTCString();
+      let publicKey = blacklist[i].publicKey;
+      let identicon = app.keychain.returnIdenticon(publicKey);
 
-            let expString = "forever";
-            if (blacklist[i].duration > 0) {
-              let timeleft = blacklist[i].created_at + blacklist[i].duration - time_now;
-              if (timeleft < 0){
-                expString = "expired";
-              }else{
-                let duration = app.browser.formatTime(timeleft);
-                expString = `${duration.hours}H : ${duration.minutes}M : ${duration.seconds}S`;
-              }
-            }
-
-            let publicKey = blacklist[i].publicKey;
-            let identicon = app.keychain.returnIdenticon(publicKey);
-
-            html += `
+      html += `
                 <div class="modtools-contact">
                     <div class="modtools-contact-details">
                       <div class="saito-identicon-box">
@@ -85,50 +84,49 @@ module.exports = (app, mod) => {
                     <div class="modtools-contact-date">${expString}</div>
                     <div class="saito-address treated" data-id="${blacklist[i].moderator}">${app.keychain.returnIdentifierByPublicKey(blacklist[i].moderator, true)}</div>
                 </div>
-               `; 
-        }
-      } else {
-        html += `
+               `;
+    }
+  } else {
+    html += `
           <div>No contacts in blacklist</div>
         `;
-      }
+  }
 
-    html +=`
+  html += `
         </div>
     `;
 
-
-    html +=  `
+  html += `
         <div class="modtools-container">
           <div class="modtools-container-header">
             <div class="modtools-container-title">Whitelisted</div>
       `;
-      if (whitelist.length > 0) {
-        html += `<div class="saito-button-primary" id="unwhitelist">Remove</div>`
+  if (whitelist.length > 0) {
+    html += `<div class="saito-button-primary" id="unwhitelist">Remove</div>`;
+  }
+  html += `<div class="saito-button-primary" id="whitelist">Add</div></div>`;
+
+  if (whitelist.length > 0) {
+    for (let i = 0; i < whitelist.length; i++) {
+      var added = new Date(whitelist[i].created_at);
+      let dateString = added.toUTCString();
+
+      let expString = 'forever';
+      if (whitelist[i].duration > 0) {
+        let timeleft = whitelist[i].created_at + whitelist[i].duration - time_now;
+
+        if (timeleft < 0) {
+          expString = 'expired';
+        } else {
+          let duration = app.browser.formatTime(timeleft);
+          expString = `${duration.hours}H : ${duration.minutes}M : ${duration.seconds}S`;
+        }
       }
-      html += `<div class="saito-button-primary" id="whitelist">Add</div></div>`;
 
-      if (whitelist.length > 0) {
-        for(let i=0; i<whitelist.length; i++) {
-            var added = new Date(whitelist[i].created_at);
-            let dateString = added.toUTCString();
+      let publicKey = whitelist[i].publicKey;
+      let identicon = app.keychain.returnIdenticon(publicKey);
 
-            let expString = "forever";
-            if (whitelist[i].duration > 0) {
-              let timeleft = whitelist[i].created_at + whitelist[i].duration - time_now;
-
-              if (timeleft < 0){
-                expString = "expired";
-              }else{
-                let duration = app.browser.formatTime(timeleft);
-                expString = `${duration.hours}H : ${duration.minutes}M : ${duration.seconds}S`;
-              }
-            }
-            
-            let publicKey = whitelist[i].publicKey;
-            let identicon = app.keychain.returnIdenticon(publicKey);
-
-            html += `
+      html += `
                 <div class="modtools-contact">
                     <div class="modtools-contact-details">
                       <div class="saito-identicon-box">
@@ -140,24 +138,22 @@ module.exports = (app, mod) => {
                     <div class="modtools-contact-date">${expString}</div>
                     <div class="saito-address treated" data-id="${whitelist[i].moderator}">${app.keychain.returnIdentifierByPublicKey(whitelist[i].moderator, true)}</div>
                   </div>
-               `; 
-
-        }
-      } else {
-        html += `
+               `;
+    }
+  } else {
+    html += `
           <div>No contacts in whitelist</div>
         `;
-      }
+  }
 
-
-    html +=`
+  html += `
         
         </div>
         <div id="options-space"></div>    
         </div>
     `;
 
-/*
+  /*
     html +=  `
         <div class="modtools-container">
           <div class="modtools-container-title">App Permissions</div>
@@ -190,21 +186,20 @@ module.exports = (app, mod) => {
     </div>`;
 */
 
-let public_options = Object.assign({}, app.options);
-delete public_options.wallet;
-    
-let opt_str = JSON.stringify(
-          public_options,
-          (key, value) =>
-            typeof value === 'bigint' ? value.toString() : value // return everything else unchanged
-          );
-html += `
+  let public_options = Object.assign({}, app.options);
+  delete public_options.wallet;
+
+  let opt_str = JSON.stringify(
+    public_options,
+    (key, value) => (typeof value === 'bigint' ? value.toString() : value) // return everything else unchanged
+  );
+  html += `
 </body>
 
   <script type="text/javascript">
     var options = \'${opt_str}\';
     var blacklist = [];
-    var whitelist = [];`
+    var whitelist = [];`;
 
   for (let b of blacklist) {
     html += ` blacklist.push(\`${b.publicKey}\`);`;
@@ -217,5 +212,5 @@ html += `
 <script type="text/javascript" src="/saito/saito.js?build=${app.build_number}"></script>
 </html>`;
 
-	return html;
+  return html;
 };

@@ -179,7 +179,7 @@ fieldset.saito-grid .note {
 .saito-grid-extra-button {
   position: absolute;
   right: 1rem;
-  bottom: 1rem;
+  bottom: 0.25rem;
   min-height: min(70%, 40px);
   max-width: 50%;
 }

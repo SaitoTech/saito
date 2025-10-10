@@ -386,7 +386,7 @@
     //
     this.importUnit('cau_army', {
       ckey		:       "CAU" ,
-      country           :       "Caucasus" ,
+      country           :       "Russia" ,
       name		:	"CAU Army" ,
       type		:	"army" ,
       front		:	"cau_army.png" ,

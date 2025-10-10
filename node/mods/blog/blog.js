@@ -225,7 +225,7 @@ class Blog extends ModTemplate {
         this.app.connection.emit('saito-header-update-message', { msg: '' });
         siteMessage('Blog post published', 1500);
       } else {
-        siteMessage(`New blog post by ${this.app.keychain.returnUserName(from)}`, 3000);
+        siteMessage(`New blog post by ${this.app.keychain.returnUsername(from)}`, 3000);
       }
     }
 

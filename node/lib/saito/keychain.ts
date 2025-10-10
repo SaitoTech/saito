@@ -555,7 +555,6 @@ class Keychain {
     }
   }
 
-
   returnUsername(publicKey: string = '', max = 12): string {
     const name = this.returnIdentifierByPublicKey(publicKey, true);
     if (name != publicKey && name != '') {
@@ -569,7 +568,6 @@ class Keychain {
     }
     return publicKey;
   }
-
 
   returnWatchedPublicKeys() {
     const x = [];

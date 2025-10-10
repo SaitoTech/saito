@@ -3555,7 +3555,7 @@ console.log("num is 0...");
     let unit = paths_self.game.spaces[spacekey].units[unit_idx];
     let controlling_faction = paths_self.returnFactionOfPlayer();
 
-    let destinations = paths_self.returnSpacesConnectedToSpaceForStrategicRedeployment(faction, spacekey, unit.army);
+    let destinations = paths_self.returnSpacesConnectedToSpaceForStrategicRedeployment(faction, spacekey, unit);
 
     this.playerSelectSpaceWithFilter(
 

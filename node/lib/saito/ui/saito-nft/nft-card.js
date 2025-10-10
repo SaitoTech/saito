@@ -2,9 +2,7 @@ const SaitoNftCardTemplate = require('./nft-card.template');
 const SaitoNft = require('./saito-nft');
 
 class SaitoNftCard {
-
   constructor(app, mod, container = '', tx = null, data = null, callback = null) {
-
     this.app = app;
     this.mod = mod;
     this.container = container;
@@ -18,7 +16,6 @@ class SaitoNftCard {
   }
 
   async render() {
-
     let this_self = this;
     if (!document.querySelector(this.container)) {
       console.warn('nft card -- missing container');
@@ -36,9 +33,9 @@ class SaitoNftCard {
 
     //
     // render can be writing a NEW NFT Card or attempting to re-render
-    // an existing one. 
+    // an existing one.
     //
-    let my_qs = this.container + " .nfttxsig" + this.nft.tx_sig;
+    let my_qs = this.container + ' .nfttxsig' + this.nft.tx_sig;
 
     if (document.querySelector(my_qs)) {
       this.app.browser.replaceElementBySelector(
@@ -62,17 +59,15 @@ class SaitoNftCard {
     } else {
       if (this.nft?.tx) {
         this.insertNftDetails();
+      } else {
       }
     }
 
     // Ensure DOM is in place
     setTimeout(() => this.attachEvents(), 0);
-
   }
 
-
   async attachEvents() {
-
     const el = document.querySelector(`.nfttxsig${this.nft.tx_sig}`);
     if (el) {
       el.onclick = () => {
@@ -84,7 +79,6 @@ class SaitoNftCard {
       };
     }
   }
-
 
   insertNftDetails() {
     if (this.app.BROWSER != 1) {

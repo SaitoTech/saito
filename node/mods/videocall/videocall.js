@@ -484,7 +484,7 @@ class Videocall extends ModTemplate {
 				if (this.app.BROWSER === 1) {
 					let from = tx.from[0].publicKey;
 
-					if (this.hasSeenTransaction(tx)) return;
+					if ((this.hasSeenTransaction(tx), Number(blk.id))) return;
 
 					if (!this.have_joined_room || tx.timestamp < this.have_joined_room) {
 						console.log('STUN/TX Ignore (on chain) txs from before I joined the call');

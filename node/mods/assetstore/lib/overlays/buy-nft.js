@@ -36,8 +36,8 @@ class BuyNftOverlay extends NftDetailsOverlay {
     `;
     this.app.browser.replaceElementById(html, 'nft-details-send');
 
-    let sendBtnLabel = mount.getElementById('send');
-    if (sendBtnLabel) { sendBtnLabel.textContent = 'Buy'; }
+    let send_btn_label = mount.getElementById('send');
+    if (send_btn_label) { send_btn_label.textContent = 'Buy'; }
 
     let cancel = mount.getElementById('cancel');
     if (cancel) {
@@ -75,15 +75,15 @@ class BuyNftOverlay extends NftDetailsOverlay {
   showBuy() {
 
     let root = this._overlayRoot || document;
-    let buySection    = root.querySelector('.nft-details-buy');
-    let delistSection = root.querySelector('.nft-details-send');
-    let headerSendBtn = root.getElementById 
+    let buy_section    = root.querySelector('.nft-details-buy');
+    let delist_section = root.querySelector('.nft-details-send');
+    let header_send_btn = root.getElementById 
       ? root.getElementById('send') 
       : document.getElementById('send');
 
-    if (buySection)    { buySection.style.display = ''; }
-    if (delistSection) { delistSection.style.display = 'none'; }
-    if (headerSendBtn) { headerSendBtn.textContent = 'Buy'; }
+    if (buy_section)    { buy_section.style.display = ''; }
+    if (delist_section) { delist_section.style.display = 'none'; }
+    if (header_send_btn) { header_send_btn.textContent = 'Buy'; }
 
   }
 

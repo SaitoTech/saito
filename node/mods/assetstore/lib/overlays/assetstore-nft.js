@@ -1,32 +1,23 @@
-const SaitoNFT = require('./../../../../lib/saito/ui/saito-nft/saito-nft');
-const Transaction = require('./../../../../lib/saito/transaction').default;
+let SaitoNFT = require('./../../../../lib/saito/ui/saito-nft/saito-nft');
+let Transaction = require('./../../../../lib/saito/transaction').default;
 
 class AssetStoreNft extends SaitoNFT {
 
   constructor(app, mod, tx = null, data = null, callback = null, nft_card = null) {
     super(app, mod, tx, data, callback);
     this.card = nft_card;
+    if (tx != null) { this.tx_fetched = true; }
   }
-
 
   async fetchTransaction(callback = null) {
 
-    if (!this.id) {
-      console.error('Unable to fetch NFT transaction (no nft id found)');
-      if (callback) {
-        this.tx_fetched = false;
-        return callback();
-      }
-    }
-
-    if (this.tx && this.txmsg && (this.image || this.text)) {
-      //
-      // Avoiding fetchTransaction (tx, txmsg, img/txt already set);
-      //
-      if (callback) {
-        this.tx_fetched = false;
-        return callback();
-      }
+    //
+    // skip if we already have the transaction
+    //
+    if (this.tx) {
+      this.tx_fetched = true;
+      if (callback) { callback(this.nft); }
+      return;
     }
 
     //
@@ -72,15 +63,12 @@ class AssetStoreNft extends SaitoNFT {
 	    }
 	  } else {
 	    this.tx_fetched = false;
-	    console.log("could not log tx for: " + this.tx_sig);
  	  }
         },
         this.mod.assetStore.peerIndex
       );
 
-    } else {
-
-    }      
+    }
 
   }
 

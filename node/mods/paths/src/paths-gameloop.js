@@ -757,6 +757,21 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	  let units_to_eliminate = [];
 
+	  let spaces = this.returnSpaces();
+	  for (let key in spaces) {
+	    if (this.game.state.events.turkey) { if (spaces[key].country == "turkey") { spaces[key].control = "central"; } }
+	    if (this.game.state.events.romania) { if (spaces[key].country == "romania") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.bulgaria) { if (spaces[key].country == "bulgaria") { spaces[key].control = "central"; } }
+	    if (this.game.state.events.greece) { if (spaces[key].country == "greece") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.albania) { if (spaces[key].country == "albania") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.turkey) { if (spaces[key].country == "persia") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.turkey) { if (spaces[key].country == "kuwait") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.turkey) { if (spaces[key].country == "egypt") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.italy) { if (spaces[key].country == "italy") { spaces[key].control = "allies"; } }
+	    if (this.game.state.events.turkey && key == "kermanshah") { spaces[key].country = "central"; }
+	  }
+
+
 	  //
 	  // look unit-by-unit for units that are out-of-supply
 	  //
@@ -774,24 +789,13 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 
 	      let ckey = this.game.spaces[key].units[0].ckey.toLowerCase();
 
-if (key == "belfort") {
-console.log("evaluating supply status for belfort...");
-}
-
 	      if (power == "central" || power == "allies") {
 
 		if (!this.checkSupplyStatus(ckey, key)) {
 
-if (key == "belfort") {
-console.log("belfort is not in supply...");
-}
-
 		  let anyone_in_supply = false;
 		  for (let z = 0; z < this.game.spaces[key].units.length; z++) {
 		    if (this.game.units[this.game.spaces[key].units[z].key].checkSupplyStatus(this, key)) {
-if (key == "belfort") {
-console.log("belfort has a unit in supply????!!!");
-}
 		      anyone_in_supply = true;
 		    };
 		  }
@@ -848,7 +852,6 @@ console.log("belfort has a unit in supply????!!!");
 		  this.game.spaces[key].country != "serbia" 
 	      ) {
 
-		let spaces = this.returnSpaces();
 		let country = spaces[key].country;		
 	        let control = this.game.spaces[key].control;
 
@@ -1629,6 +1632,11 @@ try {
 	  this.game.spaces[source].units.splice(unit_idx, 1);
 	  unit.spacekey = destination;
 	  this.game.spaces[destination].units.push(unit);
+
+	  if (this.game.spaces[destination].country != "russia" && unit.country === "Russia") {
+	    this.game.state.has_russian_corps_moved_into_ne = 1;
+	  }
+
 
 	  this.updateLog(unit.name + " redeploys to " + this.returnSpaceNameForLog(destination));
 
@@ -3395,12 +3403,24 @@ console.log("pushing back attacker corps!");
 	      let e = this.game.state.entrenchments[i];
 	      if (e.finished != 1) {
 	        let roll = this.rollDice(6);
-		if (this.game.spaces[e.spacekey].trench_roll_modifier < 0) { roll -= 1; }
+	        let roll_modified = false;
+		if (this.game.spaces[e.spacekey].trench_roll_modifier < 0) {
+		  roll -= 1;
+		  roll_modified = true;
+		}
 	        if (this.game.state.entrenchments[i].loss_factor >= roll) {
-	          this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " entrenches in " + this.returnSpaceNameForLog(e.spacekey) + " ("+roll+")");
+		  if (roll_modified) {
+	            this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " entrenches in " + this.returnSpaceNameForLog(e.spacekey) + " ("+(roll+1)+" - 1)");
+		  } else {
+	            this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " entrenches in " + this.returnSpaceNameForLog(e.spacekey) + " ("+roll+")");
+		  }
 	          this.addTrench(e.spacekey);
 	        } else {
-	          this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " fails to entrench in " + this.returnSpaceNameForLog(e.spacekey) + " ("+roll+")");
+		  if (roll_modified) {
+	            this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " fails to entrench in " + this.returnSpaceNameForLog(e.spacekey) + " ("+(roll+1)+" - 1)");
+		  } else {
+	            this.updateLog(this.returnFactionName(this.game.spaces[e.spacekey].control) + " fails to entrench in " + this.returnSpaceNameForLog(e.spacekey) + " ("+roll+")");
+		  }
 		  for (let i = 0; i < this.game.spaces[e.spacekey].units.length; i++) {
 		    let ckey = this.game.spaces[e.spacekey].units[i].ckey;
 		    if (ckey == "GE" || ckey == "IT" || ckey == "BR" || ckey == "FR") {
