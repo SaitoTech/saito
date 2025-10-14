@@ -53,3 +53,13 @@
 #assetstore-table-title {
   font-size: 1.8rem;
 }
+
+
+#deposit-container {
+  background: var(--saito-background-color);
+  display: flex;
+  height: 40rem;
+  width: 60rem;
+  justify-content: space-between; 
+  padding: 1.5rem;
+}
