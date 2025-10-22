@@ -305,17 +305,30 @@ function copy_lite_mods_to_bundler_directory {
   for modpath in "${ARRAY_OF_MODS[@]}"; do
     # Get the directory containing the module file
     moddir=$(dirname "$modpath")
-    #echo "DEBUG: Mod directory: $moddir" >&2
-    modname=$(basename "$moddir")
-   # echo "DEBUG: Mod name: $modname" >&2
     
     echo "installing mod for lite-client bundling: $modpath";
     
     # Handle both mods/* and ../usermods/* paths
+    if [[ $modpath == ../* ]]; then
+      # For paths like ../usermods/richardp/settlers/settlers.js
+      # Extract the relative path after ../usermods/
+      relative_path="${moddir#../usermods/}"
       source_dir="./mods/$moddir"
-      target_dir="bundler/default/"
-      #echo "DEBUG: Copying $source_dir to $target_dir" >&2
+      target_dir="bundler/default/mods/$relative_path"
+      mkdir -p "$(dirname "$target_dir")"
+      echo "pwd: $(pwd)"
+      echo "source_dir: $source_dir"
+      echo "target_dir: $target_dir"
       cp -rf "$source_dir" "$target_dir"
+    else
+      # For paths like poker/poker.js (relative to mods/)
+      # Copy from ./mods/poker to bundler/default/mods/poker
+      source_dir="./mods/$moddir"
+      modname=$(basename "$moddir")
+      target_dir="bundler/default/mods/$modname"
+      mkdir -p "bundler/default/mods"
+      cp -rf "$source_dir" "$target_dir"
+    fi
   done
 
   rm -f ./bundler/default/mods/devtools/mods/*
