@@ -200,7 +200,7 @@ impl VerificationThread {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl ProcessEvent<VerifyRequest> for VerificationThread {
     async fn process_network_event(&mut self, _event: NetworkEvent) -> Option<()> {
         unreachable!();

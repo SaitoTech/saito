@@ -16,7 +16,7 @@ use crate::wasm_peer_service::{WasmPeerService, WasmPeerServiceList};
 
 pub struct WasmIoHandler {}
 
-#[async_trait]
+#[async_trait(?Send)]
 impl InterfaceIO for WasmIoHandler {
     async fn send_message(&self, peer_index: u64, buffer: &[u8]) -> Result<(), Error> {
         // trace!("WasmIoHandler::send_message : {:?}", peer_index);
@@ -135,6 +135,25 @@ impl InterfaceIO for WasmIoHandler {
 
         let result = result.unwrap();
         let v = result.to_vec();
+        drop(result);
+        Ok(v)
+    }
+    async fn read_values(&self, keys: &[String]) -> Result<Vec<Vec<u8>>, Error> {
+        let result = MsgHandler::read_values(keys.to_vec()).await;
+        if result.is_err() {
+            error!("couldn't read value for keys: {:?}", keys);
+            return Err(Error::from(ErrorKind::Other));
+        }
+
+        let result = result.unwrap();
+        let arr = js_sys::Array::from(&result);
+        let mut v = Vec::with_capacity(arr.length() as usize);
+        for i in 0..arr.length() {
+            let e = arr.get(i);
+            v.push(Uint8Array::new(&e).to_vec());
+        }
+        // let result:Vec<Uint8Array> = arr.try_into().unwrap();
+        // let v = result.to_vec().iter().map(|v| v.to_vec()).collect();
         drop(result);
         Ok(v)
     }
@@ -370,6 +389,12 @@ extern "C" {
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
     pub fn read_value(key: String) -> Result<Uint8Array, js_sys::Error>;
+
+    // #[wasm_bindgen(static_method_of = MsgHandler, catch)]
+    // pub async fn read_values(keys: Vec<String>) -> Result<Vec<Uint8Array>, js_sys::Error>;
+
+    #[wasm_bindgen(static_method_of = MsgHandler, catch)]
+    pub async fn read_values(keys: Vec<String>) -> Result<JsValue,js_sys::Error>;
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
     pub fn load_block_file_list() -> Result<Array, js_sys::Error>;

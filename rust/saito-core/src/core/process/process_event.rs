@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use crate::core::io::network_event::NetworkEvent;
 
 /// Event Processing trait for the controllers. Handles both events from actions and timer
-#[async_trait]
+#[async_trait(?Send)]
 pub trait ProcessEvent<T>
 where
     T: Send,

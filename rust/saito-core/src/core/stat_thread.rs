@@ -69,7 +69,7 @@ impl StatThread {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl ProcessEvent<StatEvent> for StatThread {
     async fn process_network_event(&mut self, _event: NetworkEvent) -> Option<()> {
         None

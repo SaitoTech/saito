@@ -766,7 +766,7 @@ impl RoutingThread {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl ProcessEvent<RoutingEvent> for RoutingThread {
     async fn process_network_event(&mut self, event: NetworkEvent) -> Option<()> {
         match event {
@@ -956,7 +956,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
     async fn process_event(&mut self, event: RoutingEvent) -> Option<()> {
         match event {
             RoutingEvent::BlockchainUpdated(block_hash) => {
-                trace!(
+                debug!(
                     "received blockchain update event : {:?}",
                     block_hash.to_hex()
                 );
@@ -980,7 +980,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         blockchain.lowest_acceptable_block_id;
                     blockchain_configs.fork_id = blockchain.fork_id.unwrap_or_default().to_hex();
 
-                    configs.save();
+                    configs.save().unwrap();
                 }
             }
 

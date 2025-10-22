@@ -19,6 +19,8 @@ export default interface SharedMethods {
 
     readValue(key: string): Uint8Array;
 
+    readValues(keys: string[]): Promise<Uint8Array[]>;
+
     loadBlockFileList(): Array<string>;
 
     isExistingFile(key: string): boolean;

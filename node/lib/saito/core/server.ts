@@ -22,6 +22,7 @@ import prettify from 'html-prettify';
 import { toBase58 } from 'saito-js/lib/util';
 import { TransactionType } from 'saito-js/lib/transaction';
 import { BlockType } from 'saito-js/lib/block';
+import { promises } from 'fs-extra';
 
 const JSON = require('json-bigint');
 
@@ -131,6 +132,24 @@ export class NodeSharedMethods extends CustomSharedMethods {
     } catch (error) {
       console.error(error);
       return new Uint8Array();
+    }
+  }
+
+  readValues(keys: string[]): Promise<Uint8Array[]> {
+    try {
+      // console.log('readValues');
+      return Promise.all(keys.map(key => {
+        // console.log('readValue from', key);
+        return promises.readFile(key).then(buffer => {
+          // console.log('file read from', key);
+          return Uint8Array.from(buffer);
+        });
+      }));
+
+      // return fs.readFileSync(key);
+    } catch (error) {
+      console.error(error);
+      return new Promise(()=>new Uint8Array());
     }
   }
 

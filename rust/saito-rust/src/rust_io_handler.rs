@@ -56,7 +56,7 @@ impl Debug for RustIOHandler {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl InterfaceIO for RustIOHandler {
     async fn send_message(&self, peer_index: u64, buffer: &[u8]) -> Result<(), Error> {
         // TODO : refactor to combine event and the future

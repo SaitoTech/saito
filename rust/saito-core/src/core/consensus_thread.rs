@@ -355,7 +355,7 @@ impl ConsensusThread {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl ProcessEvent<ConsensusEvent> for ConsensusThread {
     async fn process_network_event(&mut self, _event: NetworkEvent) -> Option<()> {
         unreachable!();
@@ -652,6 +652,11 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                             difficulty: latest_block.difficulty,
                             block_id: latest_block.id,
                         })
+                        .await
+                        .unwrap();
+                    debug!("11111");
+                    self.sender_to_router
+                        .send(RoutingEvent::BlockchainUpdated(latest_block.hash))
                         .await
                         .unwrap();
                 }

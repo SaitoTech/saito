@@ -83,7 +83,7 @@ impl MiningThread {
     }
 }
 
-#[async_trait]
+#[async_trait(?Send)]
 impl ProcessEvent<MiningEvent> for MiningThread {
     async fn process_network_event(&mut self, _event: NetworkEvent) -> Option<()> {
         unreachable!();

@@ -70,6 +70,9 @@ export default class Saito {
             read_value: (key: string) => {
                 return sharedMethods.readValue(key);
             },
+            read_values:(keys: string[]) => {
+                return sharedMethods.readValues(keys);
+            },
             load_block_file_list: () => {
                 return sharedMethods.loadBlockFileList();
             },
@@ -342,13 +345,13 @@ export default class Saito {
         return tx;
     }
 
-    public async createBoundTransaction<T extends Transaction>(         
-        num: bigint,           
-        deposit: bigint,        
+    public async createBoundTransaction<T extends Transaction>(
+        num: bigint,
+        deposit: bigint,
         tx_msg: any,
         fee: bigint,
-        recipient_public_key: string,     
-        nft_type: string, 
+        recipient_public_key: string,
+        nft_type: string,
     ): Promise<T> {
 
         let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
@@ -421,9 +424,9 @@ export default class Saito {
 
     public async createMergeBoundTransaction<T extends Transaction>(
       nftId: string,
-      tx_msg: any,  
+      tx_msg: any,
     ): Promise<T> {
-      
+
         let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
 
         const wasmTx = await Saito.getLibInstance().create_merge_bound_transaction(

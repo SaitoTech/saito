@@ -22,7 +22,7 @@ pub enum InterfaceEvent {
 }
 
 /// An interface is provided to access the IO functionalities in a platform (Rust/WASM) agnostic way
-#[async_trait]
+#[async_trait(?Send)]
 pub trait InterfaceIO: Debug {
     async fn send_message(&self, peer_index: u64, buffer: &[u8]) -> Result<(), Error>;
 
@@ -117,6 +117,7 @@ pub trait InterfaceIO: Debug {
     ///
     /// ```
     async fn read_value(&self, key: &str) -> Result<Vec<u8>, Error>;
+    async fn read_values(&self, keys: &[String]) -> Result<Vec<Vec<u8>>, Error>;
 
     /// Loads the block path list from the persistent storage
     async fn load_block_file_list(&self) -> Result<Vec<String>, Error>;

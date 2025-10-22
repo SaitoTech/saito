@@ -119,21 +119,28 @@ impl Storage {
         debug!("loading  {:?} blocks from disk", file_names.len());
 
         let mut mempool = mempool_lock.write().await;
-        for file_name in file_names.iter() {
-            let file_name = file_name.clone();
-            let result = self
-                .io_interface
-                .read_value((self.io_interface.get_block_dir() + file_name.as_str()).as_str())
-                .await;
-            if result.is_err() {
-                error!(
-                    "failed loading block from disk : {:?}",
+
+        let paths:Vec<String> = file_names.iter().map(|file_name|(self.io_interface.get_block_dir() + file_name.as_str()).to_string()).collect();
+        let result = self
+            .io_interface
+            .read_values(&paths)
+            .await;
+        if result.is_err() {
+            info!("paths : {:?}", paths);
+            error!(
+                    "failed loading blocks from disk : {:?}",
                     result.err().unwrap()
                 );
-                return;
-            }
-            debug!("file : {:?} loaded", file_name);
-            let buffer: Vec<u8> = result.unwrap();
+            return;
+        }
+        let files = result.unwrap();
+
+        for buffer in files {
+            // let file_name = file_name.clone();
+
+
+            // debug!("file : {:?} loaded", file_name);
+            // let buffer: Vec<u8> = result.unwrap();
             let buffer_len = buffer.len();
             let result = Block::deserialize_from_net(&buffer);
             if result.is_err() {

@@ -31,6 +31,10 @@ class MsgHandler {
         return global.shared_methods.read_value(key);
     }
 
+    static async read_values(keys){
+        return global.shared_methods.read_values(keys);
+    }
+
     static load_block_file_list() {
         return global.shared_methods.load_block_file_list();
     }

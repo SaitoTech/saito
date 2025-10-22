@@ -23,7 +23,7 @@ pub mod test {
         }
     }
 
-    #[async_trait]
+    #[async_trait(?Send)]
     impl InterfaceIO for TestIOHandler {
         async fn send_message(&self, _peer_index: u64, _buffer: &[u8]) -> Result<(), Error> {
             // TODO : implement a way to check sent messages
