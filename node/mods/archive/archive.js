@@ -115,10 +115,13 @@ class Archive extends ModTemplate {
 				}
 			}
 
-			setTimeout(() => {
+			/*
+			This is done, presumably...
+				setTimeout(() => {
 				console.log('######### START CONVERSIONS ##############');
 				convertToFS();
 			}, 30000);
+			*/
 		}
 
 		let now = new Date().getTime();

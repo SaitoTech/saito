@@ -17,6 +17,14 @@ export default class Network {
   }
 
   public async propagateTransaction(tx: Transaction) {
+    /*
+      Ideally, we would add the tx to the pending list, and if the other instance successfully sends it
+      remove it from pending...
+    */
+    if (this.app.BROWSER && this.app.browser.hibernate) {
+      console.warn('Hibernating lite node will not send transactions');
+      return false;
+    }
     return S.getInstance().propagateTransaction(tx);
   }
 

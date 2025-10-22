@@ -54,6 +54,19 @@ class Recovery extends ModTemplate {
 		});
 	}
 
+	async initialize(app) {
+		await super.initialize(app);
+
+		/// Clean up detritus in the wallet
+		if (this.app.options.wallet) {
+			delete this.app.options.wallet.account_recovery_hash;
+			delete this.app.options.wallet.account_recovery_secret;
+			delete this.app.options.wallet.backup_required_msg;
+
+			this.app.storage.saveOptions();
+		}
+	}
+
 	returnDecryptionSecret(email = '', pass = '') {
 		let hash1 = 'WHENINDISGRACEWITHFORTUNEANDMENSEYESIALLALONEBEWEEPMYOUTCASTSTATE';
 		let hash2 = 'ANDTROUBLEDEAFHEAVENWITHMYBOOTLESSCRIESANDLOOKUPONMYSELFANDCURSEMYFATE';

@@ -10,6 +10,7 @@ const emoji = require('node-emoji');
 const UserMenu = require('./ui/modals/user-menu/user-menu');
 const SaitoCrypto = require('./ui/saito-crypto/saito-crypto');
 const SaitoNFTOverlayManager = require('./ui/saito-nft/nft-overlay-manager');
+const SaitoScreenSaver = require('./ui/saito-screensaver/saito-screensaver');
 const debounce = require('lodash/debounce');
 const SaitoMentions = require('./ui/saito-mentions/saito-mentions');
 
@@ -160,27 +161,6 @@ class Browser {
           }
         };
 
-        /***** channel.onmessage = async (e) => {
-          console.log("document onmessage change");
-          if (!document[this.hidden_tab_property]) {
-          channel.postMessage({active: 1, publicKey: publicKey});
-          this.setActiveTab(1);
-          } else {
-          //
-          // only disable if someone else active w/ same key
-          //
-          if (e.data) {
-            if (e.data.active == 1) {
-            if (e.data.active == 1 && e.data.publicKey === publicKey) {
-              this.setActiveTab(0);
-              salert("Saito is already open in another tab");
-            }
-            }
-          }
-          }
-        };
-*****/
-
         document.addEventListener(
           this.tab_event_name,
           () => {
@@ -283,6 +263,12 @@ class Browser {
       // crypto overlays, add so events will listen
       //
       this.saito_crypto = new SaitoCrypto(this.app, this.app.modules.returnActiveModule());
+      this.screen_saver = new SaitoScreenSaver(this.app);
+      this.screen_saver.initialize(this.app);
+      //
+      // Browsers default to a hibernate state
+      //
+      this.hibernate = true; // this opts out of sending transactions until we know we are the commanding pki
 
       this.saito_nft_manager = new SaitoNFTOverlayManager(this.app);
       this.saito_nft_manager.initialize(this.app);
@@ -292,7 +278,6 @@ class Browser {
       // gracefully return out after warning user.
       //
       this.checkForMultipleWindows();
-      //this.isFirstVisit();
 
       //if ('serviceWorker' in navigator) {
       //    await navigator.serviceWorker
@@ -315,13 +300,16 @@ class Browser {
 
       this.updateThemeInHeader(theme);
 
+      //
+      // Mobile window height correction
+      //
       const updateViewHeight = () => {
         let vh = window.innerHeight / 100;
         document.documentElement.style.setProperty('--saito-vh', `${vh}px`);
-        //siteMessage(`Update: ${vh}px`);
       };
 
       window.addEventListener('resize', debounce(updateViewHeight, 200));
+
       setTimeout(() => {
         updateViewHeight();
       }, 200);
@@ -665,16 +653,10 @@ class Browser {
   }
 
   //
-  // toggle active tab and disable / enable core blockchain
-  // functionality as needed.
+  // toggle active tab
   //
   async setActiveTab(active) {
     this.active_tab = active;
-    this.app.blockchain.process_blocks = active;
-    this.app.storage.save_options = active;
-    for (let peer of await this.app.network.getPeers()) {
-      peer.handle_peer_requests = active;
-    }
   }
 
   //////////////////////////////////

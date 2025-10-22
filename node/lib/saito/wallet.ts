@@ -1064,6 +1064,8 @@ export default class Wallet extends SaitoWallet {
   // for backup purposes
   //
   exportWallet() {
+    this.app.options.wallet.ts = Date.now();
+
     let newObj = JSON.parse(JSON.stringify(this.app.options));
 
     delete newObj.games;
@@ -1080,8 +1082,6 @@ export default class Wallet extends SaitoWallet {
         let publicKey = await this.getPublicKey();
 
         delete this.app.options.wallet.backup_required;
-
-        await this.saveWallet();
         this.app.connection.emit('saito-header-update-message');
 
         //let content = JSON.stringify(this.app.options);
@@ -1095,6 +1095,8 @@ export default class Wallet extends SaitoWallet {
         document.body.appendChild(pom);
         pom.click();
         pom.remove();
+
+        await this.saveWallet();
       }
     } catch (err) {
       console.log('Error backing-up wallet: ' + err);

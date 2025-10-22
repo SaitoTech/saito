@@ -111,6 +111,11 @@ class Relay extends ModTemplate {
   }
 
   async sendRelayTransaction(tx) {
+    if (this.app.BROWSER && this.app.browser.hibernate) {
+      console.warn("Don't relay transactions in hibernation state");
+      return false;
+    }
+
     let need_server = true;
     if (this.stun) {
       need_server = false;
