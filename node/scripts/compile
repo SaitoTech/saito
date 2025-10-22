@@ -34,7 +34,7 @@ function get_lite_module_paths {
   declare -a MODULE_PATHS
   
   input="./config/modules.config.js"
-  echo "DEBUG: Reading from $input" >&2
+  #echo "DEBUG: Reading from $input" >&2
   while IFS= read -r line
   do
     if [[ $line == *"lite:"* ]]; then
@@ -44,46 +44,49 @@ function get_lite_module_paths {
     fi
     
     if [[ $PMOD == 1 ]]; then
-      echo "DEBUG: Read line while PMOD=1: $line" >&2
+      #echo "DEBUG: Read line while PMOD=1: $line" >&2
       # Check for end of array - look for standalone ] or ],
       if [[ $line =~ ^[[:space:]]*\] ]]; then
-        echo "DEBUG: Found end of lite section" >&2
+        #echo "DEBUG: Found end of lite section" >&2
         break
       fi
       
       # Skip commented lines (lines where // appears before any quotes)
       trimmed_line=$(echo "$line" | sed 's/^[[:space:]]*//')
       if [[ $trimmed_line == "//"* ]]; then
-        echo "DEBUG: Skipping commented line: $line" >&2
+        #echo "DEBUG: Skipping commented line: $line" >&2
         continue
       fi
       
       # Extract the module path from the line
-      echo "DEBUG: Processing line: $line" >&2
+  #    echo "DEBUG: Processing line: $line" >&2
       # Extract content between quotes: 'path' or "path"
       MODULE_PATH=$(echo "$line" | sed -n "s/.*['\"]\\([^'\"]*\\)['\"].*/\\1/p")
-      echo "DEBUG: Extracted path: '$MODULE_PATH'" >&2
+  #    echo "DEBUG: Extracted path: '$MODULE_PATH'" >&2
       if [[ -n "$MODULE_PATH" ]] && [[ "$MODULE_PATH" != *"["* ]] && [[ "$MODULE_PATH" != *"{"* ]]; then
-        echo "DEBUG: Found module path: $MODULE_PATH" >&2
+   #     echo "DEBUG: Found module path: $MODULE_PATH" >&2
         MODULE_PATHS+=("$MODULE_PATH")
       else
         echo "DEBUG: Rejected path: '$MODULE_PATH'" >&2
+         echo "--"
       fi
     fi
   done < "$input"
   
-  echo "DEBUG: Total modules found: ${#MODULE_PATHS[@]}" >&2
+# echo "DEBUG: Total modules found: ${#MODULE_PATHS[@]}" >&2
   echo "${MODULE_PATHS[@]}"
 }
 
 LITE_MODULES=($(get_lite_module_paths))
 
-echo "DEBUG: Processing ${#LITE_MODULES[@]} modules" >&2
+#echo "DEBUG: Processing ${#LITE_MODULES[@]} modules" >&2
 
 for modpath in "${LITE_MODULES[@]}"; do
   # Get the directory containing the module
-  moddir=$(dirname "$modpath")
-  echo "DEBUG: Processing module path: $modpath -> directory: $moddir" >&2
+  moddir=$(echo "$modpath" | sed 's/\/[^/]*$//')
+  moddir="./mods/$moddir"
+
+  #echo "DEBUG: Processing module path: $modpath -> directory: $moddir" >&2
   
   if [ -d "$moddir"/web/css ]; then
     if [ "$1" == "dev" ] || [ "$2" == "dev" ]; then
@@ -300,23 +303,19 @@ function copy_lite_mods_to_bundler_directory {
   #printf '%s\n' "${ARRAY_OF_MODS[@]}"
 
   for modpath in "${ARRAY_OF_MODS[@]}"; do
-    # Get the directory containing the module
+    # Get the directory containing the module file
     moddir=$(dirname "$modpath")
+    #echo "DEBUG: Mod directory: $moddir" >&2
     modname=$(basename "$moddir")
+   # echo "DEBUG: Mod name: $modname" >&2
     
     echo "installing mod for lite-client bundling: $modpath";
     
     # Handle both mods/* and ../usermods/* paths
-    if [[ $moddir == ../* ]]; then
-      # For paths like ../usermods/richardp/settlers, copy to bundler preserving structure
-      target_dir="bundler/default/$moddir"
-      mkdir -p "$(dirname "$target_dir")"
-      cp -rf "$moddir" "$target_dir"
-    else
-      # For paths like mods/poker, copy to bundler/default/mods/
-      mkdir -p "bundler/default/mods"
-      cp -rf "$moddir" "bundler/default/mods/$modname"
-    fi
+      source_dir="./mods/$moddir"
+      target_dir="bundler/default/"
+      #echo "DEBUG: Copying $source_dir to $target_dir" >&2
+      cp -rf "$source_dir" "$target_dir"
   done
 
   rm -f ./bundler/default/mods/devtools/mods/*
