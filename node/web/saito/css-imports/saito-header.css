@@ -216,11 +216,9 @@
 .wallet-btn-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(3rem, 1fr));
-  grid-column-gap: 1.3rem;
   background: var(--saito-font-color);
   color: var(--saito-font-color-inverse);
   border-radius: var(--saito-border-radius);
-  padding: 0.75rem;
   margin: 0.5rem 0;
   width: 95%;
   text-transform: uppercase;
@@ -233,13 +231,13 @@
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem;
+  padding: 1.5rem;
   border-radius: inherit;
 }
 
 .wallet-btn:hover {
   color: var(--saito-font-color);
-  background: var(--saito-font-color-inverse);
+  background: var(--saito-primary);
 }
 
 .wallet-identicon {

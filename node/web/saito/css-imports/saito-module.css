@@ -22,7 +22,7 @@
   align-items: center;
   background-size: cover;
   background-position: center;
-  background-color: color-mix(in srgb, var(--saito-grey-700) 27%, transparent);
+  background-color: color-mix(in srgb, var(--saito-gray-700) 27%, transparent);
   background-blend-mode: soft-light;
   border-radius: var(--saito-border-radius);
   overflow: hidden;

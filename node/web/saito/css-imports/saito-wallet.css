@@ -1050,7 +1050,7 @@ nft cards
 
 .nft-details-header,
 .nft-details-actions {
-  border: 1px solid var(--twitter-gray-light);
+  border: 1px solid var(--saito-gray-200);
   border-radius: var(--saito-border-radius);
   padding: 1.5rem;
   gap: 1.5rem;
@@ -1116,7 +1116,7 @@ nft cards
 }
 
 .nft-details-actions .nft-card-details {
-  border: 1px solid color-mix(in srgb, var(--saito-grey-700) 27%, transparent);
+  border: 1px solid color-mix(in srgb, var(--saito-gray-700) 27%, transparent);
   padding: 1rem;
 }
 
