@@ -21,5 +21,4 @@ html[data-theme='dark'] {
   --border-color-general-dividers: var(--saito-border-color);
   --border-color-general-dividers-dark: var(--saito-primary);
 
-  --border-color-sidebar-menu: var(--saito-border-color);
 }

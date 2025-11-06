@@ -270,7 +270,7 @@
   display: flex;
   position: relative;
   padding: 0 0.5rem;
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   border: 1px solid var(--saito-border-color);
 }
 
@@ -738,7 +738,7 @@ textarea {
 */
 
 .nft-file-transfer {
-  border-radius: var(--border-radius-file-transfer);
+  border-radius: var(--saito-border-radius);
   position: relative;
   border: 1px dashed;
   display: grid;
@@ -829,7 +829,7 @@ textarea {
   text-align: center;
   border: 1px solid var(--saito-font-color);
   padding: 0.3rem 0rem;
-  border-radius: var(--border-radius-sharp);
+  border-radius: var(--saito-border-radius);
 }
 
 .page-navigation.page2 {
@@ -839,7 +839,7 @@ textarea {
 }
 
 .nft-creator > .saito-file-transfer {
-  border-radius: var(--border-radius-file-transfer);
+  border-radius: var(--saito-border-radius);
   position: relative;
   border: 1px dashed;
   display: grid;
@@ -904,7 +904,7 @@ nft cards
   display: flex;
   flex-direction: column;
   border: 1px solid var(--saito-border-color);
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   overflow: hidden;
   padding: 1rem;
   background-color: var(--saito-background-color);
@@ -926,7 +926,7 @@ nft cards
   background-size: cover;
   background-repeat: no-repeat;
   background-image: url('/saito/img/dreamscape.png');
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   position: relative;
   overflow: hidden;
   border-bottom-left-radius: unset;
@@ -1043,7 +1043,7 @@ nft cards
 
 .nft-details-data > .nft-card-img {
   background-size: contain;
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   background-position: 50% 50%;
 }
 
@@ -1056,7 +1056,7 @@ nft cards
 .nft-details-header,
 .nft-details-actions {
   border: 1px solid var(--twitter-gray-light);
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   padding: 1.5rem;
   gap: 1.5rem;
 }

@@ -37,7 +37,7 @@
 	overflow-wrap: break-word;
 	opacity: 0.8;
 	background: #000a;
-	border-radius: var(--border-radius-sidebar-game-module);
+	border-radius: var(--saito-border-radius);
 }
 
 .saito-module-titlebar > div {

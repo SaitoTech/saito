@@ -40,7 +40,7 @@
 
 .chat-manager .saito-user {
   padding: 0.75rem 0.5rem;
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   overflow: hidden;
   min-height: 4.5rem;
   cursor: pointer;
@@ -187,7 +187,7 @@
   min-height: 20rem;
   height: 50rem;
   width: 36rem;
-  border-radius: var(--border-radius-comfortable);
+  border-radius: var(--saito-border-radius);
   z-index: 20;
   /* making z-index greater than overlay so that users
      can chat or send each other their crypto address without
@@ -540,7 +540,7 @@
   bottom: 1; /* bumped it down a notch, and closer to the element */
   z-index: 9;
   background: var(--saito-background-color);
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   border: var(--border-thickness-thin) solid var(--saito-border-color);
   font-size: 1.1rem; /* made this way smaller, but this way access immediately below the line works better */
   opacity: 0; /* Initial opacity set to 0 for invisibility */
@@ -743,7 +743,7 @@
   width: 300px;
   border: var(--border-thickness-thin) solid var(--saito-border-color);
   box-shadow: var(--box-shadow-sidebar-elements);
-  border-radius: var(--border-radius-round);
+  border-radius: var(--saito-border-radius);
   height: fit-content;
   overflow: hidden;
 }

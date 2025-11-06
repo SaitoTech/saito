@@ -91,7 +91,7 @@
 .arcade-central-panel .arcade-game-selector-game {
 	box-shadow: var(--shadow-standard);
 	height: min(250px, calc((100vw - 34.5rem) / 4));
-	border-radius: var(--border-radius-voluptuous);
+	border-radius: var(--saito-border-radius);
 }
 
 .arcade-central-panel .arcade-game-selector-game-title {

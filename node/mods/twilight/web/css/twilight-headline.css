@@ -5,7 +5,7 @@
 	justify-items: center;
 	background-size: cover;
 	background-position-y: top;
-	border-radius: var(--border-radius-overlay);
+	border-radius: var(--saito-border-radius);
 	background-image:
 		linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)),
 		url(/twilight/img/backgrounds/headline-bg.png);

@@ -12,7 +12,7 @@ button,
   transition: 0.2s;
   letter-spacing: 1px;
   font-size: 1.8rem;
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   cursor: pointer;
   border: var(--border-thickness-thin) solid var(--saito-primary);
   text-transform: capitalize;

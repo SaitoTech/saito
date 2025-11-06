@@ -9,7 +9,7 @@
 	color: var(--saito-font-color);
 	padding: 2rem;
 	border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
-	border-radius: var(--border-radius-overlay);
+	border-radius: var(--saito-border-radius);
 	box-shadow: var(--shadow-standard);
 }
 
@@ -78,7 +78,7 @@
 	align-items: center;
 	padding: 0 0.5rem;
 	border: 1px solid var(--border-color-button-module);
-	border-radius: var(--border-radius-soft);
+	border-radius: var(--saito-border-radius);
 	height: 4rem;
 	gap: 0.5rem;
 	width: 100%;

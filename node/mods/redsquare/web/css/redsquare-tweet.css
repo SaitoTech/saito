@@ -204,7 +204,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   height: auto;
-  border-radius: var(--border-radius-round);
+  border-radius: var(--saito-border-radius);
 }
 
 /*
@@ -290,7 +290,7 @@
 }
 
 .tweet .saito-treated-link[data-link='local_link'] .link-container {
-  border-radius: var(--border-radius-round);
+  border-radius: var(--saito-border-radius);
   overflow: hidden;
 }
 

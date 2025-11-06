@@ -4,7 +4,7 @@
 }
 
 .saito-calendar {
-  border-radius: 0.5rem;
+  border-radius: var(--saito-border-radius);
   width: 100%;
   display: grid;
   grid-template-rows: min-content min-content min-content;
@@ -164,7 +164,7 @@
 .saito-calendar-days div:hover {
   background-color: var(--saito-primary);
   color: var(--saito-background-color);
-  border-radius: var(--border-radius-sharp);
+  border-radius: var(--saito-border-radius);
 }
 
 .prev-date {
@@ -178,5 +178,5 @@
 .today {
   background-color: var(--saito-primary);
   color: var(--saito-background-color);
-  border-radius: var(--border-radius-sharp);
+  border-radius: var(--saito-border-radius);
 }

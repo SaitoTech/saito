@@ -10,8 +10,8 @@ link preview
 .link-img {
   width: 100%;
   max-height: 2rem;
-  border-top-left-radius: var(--border-radius-round);
-  border-top-right-radius: var(--border-radius-round);
+  border-top-left-radius: var(--saito-border-radius);
+  border-top-right-radius: var(--saito-border-radius);
   border: 1px solid var(--saito-border-color);
   border-bottom: none;
   overflow: hidden;
@@ -33,7 +33,7 @@ link preview
 .link-info {
   padding: 2rem;
   border: 1px solid var(--saito-border-color);
-  border-radius: var(--border-radius-round);
+  border-radius: var(--saito-border-radius);
   border-top: none;
   border-top-right-radius: unset;
   border-top-left-radius: unset;

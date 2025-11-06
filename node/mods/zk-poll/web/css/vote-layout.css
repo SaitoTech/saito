@@ -100,7 +100,7 @@
 
 .card {
   /* background: white; */
-  border-radius: var(--border-radius);
+  border-radius: var(--saito-border-radius);
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   margin-bottom: 16px;
   border: 1px solid var(--saito-border-color);

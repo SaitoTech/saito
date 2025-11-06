@@ -150,7 +150,7 @@
 	position: relative;
 	left: 50%;
 	transform: translateX(-50%);
-	border-radius: var(--border-radius-soft);
+	border-radius: var(--saito-border-radius);
 }
 
 #admin_details {

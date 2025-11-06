@@ -22,7 +22,7 @@
 .saito-profile-menu > div:hover {
   color: var(--saito-primary);
   background-color: var(--background-color-button-sidebar);
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
 }
 
 .saito-profile-menu .active {

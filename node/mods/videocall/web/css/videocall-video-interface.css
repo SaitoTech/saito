@@ -100,7 +100,7 @@
 	gap: 0;
 	grid-template-columns: minmax(0px, 1fr);
 	grid-template-rows: minmax(0px, 1fr);
-	border-radius: var(--border-radius-round);
+	border-radius: var(--saito-border-radius);
 }
 
 .minimize .stun-chatbox .video-container-large.split-view .side-videos {
@@ -898,7 +898,7 @@ video#presentation {
 		gap: 0;
 		grid-template-columns: minmax(0px, 1fr);
 		grid-template-rows: minmax(0px, 1fr);
-		border-radius: var(--border-radius-round);
+		border-radius: var(--saito-border-radius);
 	}
 	.stun-chatbox .video-container-large.split-view .side-videos {
 		position: absolute;

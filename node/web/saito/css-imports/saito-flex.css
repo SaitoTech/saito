@@ -13,7 +13,7 @@
   margin: 2.5px;
   flex-grow: 1;
   max-height: var(--multi-max-height);
-  border-radius: var(--border-radius-round);
+  border-radius: var(--saito-border-radius);
   overflow: hidden;
   border: 1px solid transparent;
 }

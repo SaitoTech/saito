@@ -119,7 +119,7 @@
 	margin-top: 8px;
 	padding: 4px;
 	border: 1px solid var(--saito-border-color);
-	border-radius: var(--border-radius-round);
+	border-radius: var(--saito-border-radius);
 	background-color: var(--saito-highlight);
 }
 

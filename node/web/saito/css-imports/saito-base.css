@@ -266,7 +266,7 @@ Scrollbars
   bottom: min(5rem, 10vh);
   left: min(5rem, 5vw);
   z-index: 200;
-  border-radius: var(--border-radius-sharp);
+  border-radius: var(--saito-border-radius);
   user-select: none;
   cursor: default;
 }
