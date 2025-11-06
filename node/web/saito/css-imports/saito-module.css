@@ -135,7 +135,7 @@
   margin: 1rem;
   padding: 2rem;
   border-radius: 0.5rem;
-  border: var(--border-thickness-thin) solid var(--border-color-general-dividers-dark); /* testing */
+  border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
 }
 
 .saito-module-overlay > h4 {

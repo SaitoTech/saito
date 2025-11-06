@@ -1,7 +1,3 @@
-:root {
-  --calendar-width: 25rem;
-  --calendar-minwidth: 10rem;
-}
 
 .saito-calendar {
   border-radius: var(--saito-border-radius);

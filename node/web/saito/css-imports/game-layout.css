@@ -181,7 +181,6 @@ div.h3 {
   overflow: auto;
   position: relative;
   height: 100vh;
-  font-family: var(--game-theme-font);
   scroll-behavior: smooth;
   padding-left: min(16rem, calc(25rem - 9vw));
 }

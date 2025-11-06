@@ -154,8 +154,6 @@ font imports
   --font-size-medium: 1.5rem;
   --font-size-tiny: 1.3rem;
 
-  --game-theme-font: var(--saito-font);
-
   --saito-font-color: var(--saito-font-color-primary);
   --saito-font-color-primary: var(--saito-gray-dark);
   --saito-font-color-secondary: var(--saito-gray); /*rgb(83, 100, 113);*/
