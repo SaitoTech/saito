@@ -544,12 +544,6 @@
   justify-content: space-between;
 }
 
-.nft-creator {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
 .right-section {
   display: flex;
   flex-direction: column;
@@ -809,7 +803,8 @@ textarea {
   display: none;
 }
 
-.nft-receiver {
+
+.nft-creator , .nft-receiver {
   display: flex;
   flex-direction: column;
   gap: 2rem;
