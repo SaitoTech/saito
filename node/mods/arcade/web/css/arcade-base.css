@@ -213,7 +213,7 @@
 	font-family: FontAwesome;
 	content: '';
 	font-size: 4rem;
-	color: var(--border-color-general-dividers-dark);
+	color: var(--border-color-general-dividers);
 	position: absolute;
 	bottom: 0;
 	left: 0;
@@ -240,7 +240,7 @@
 	font-family: FontAwesome;
 	content: '';
 	font-size: 4rem;
-	color: var(--border-color-general-dividers-dark);
+	color: var(--border-color-general-dividers);
 	position: absolute;
 	top: 0;
 	left: 0;

@@ -408,11 +408,6 @@
   border-radius: 50%;
   background-color: var(--saito-background-color); /* testing */
   transition: box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-  box-shadow:
-    1px 1px 1px var(--border-color-general-dividers-dark),
-    -1px -1px 1px var(--border-color-general-dividers-dark),
-    -1px 1px 1px var(--border-color-general-dividers-dark),
-    1px -1px 1px var(--border-color-general-dividers-dark);
   border: 1px solid var(--border-color-general-dividers); /* testing */
   color: var(--saito-font-color);
   cursor: pointer;

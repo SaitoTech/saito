@@ -44,7 +44,7 @@ body {
 }
 
 .chat-manager-list.saito-sidebar-element {
-  border: 1px solid var(--border-color-sidebar-menu);
+  border: 1px solid var(--saito-border-color);
   background: var(--saito-background-color);
 }
 

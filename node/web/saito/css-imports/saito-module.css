@@ -105,7 +105,7 @@
   overflow: auto;
   background: var(--saito-background-color);
   border-radius: var(--saito-border-radius);
-  border: var(--border-thickness-thin) solid var(--border-color-general-dividers-dark);
+  border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
   padding: 2rem;
   user-select: none;
 }

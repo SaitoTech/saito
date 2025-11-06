@@ -19,6 +19,5 @@ html[data-theme='dark'] {
   /* BORDER COLORS */
   --saito-border-color: var(--saito-border-color-dark);
   --border-color-general-dividers: var(--saito-border-color);
-  --border-color-general-dividers-dark: var(--saito-primary);
 
 }

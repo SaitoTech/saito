@@ -176,12 +176,9 @@ font imports
   --border-thickness-thick: 3px;
   --border-thickness-fat: 5px;
   --border-thickness: var(--border-thickness-thin);
-  --border-color-chat-popup-docked: var(--saito-primary);
-  --border-color-button-module: var(--saito-gray-dark);
 
   /* General Dividers and Borders */
   --border-color-general-dividers: var(--saito-gray-dark);
-  --border-color-general-dividers-dark: var(--saito-gray);
 
   /* Shadow */
   --box-shadow-sidebar-elements: var(--shadow-standard);

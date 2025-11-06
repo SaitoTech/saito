@@ -51,7 +51,7 @@
 }
 
 .my-leaderboard-position {
-	border: var(--border-thickness-thin) solid var(--border-color-leaderboard-position);
+	border: var(--border-thickness-thin) solid var(--saito-border-color);
 }
 
 .my-leaderboard-position > div:first-child {
@@ -65,7 +65,7 @@
 
 .league-rankings .saito-table {
 	padding: 1rem;
-	border: 1px solid var(--border-color-sidebar-menu);
+	border: 1px solid var(--saito-border-color);
 	background: var(--saito-background-color);
 }
 
