@@ -723,7 +723,7 @@ textarea {
 }
 
 #send-nft-wait-msg {
-  color: var(--saito-gray-dark);
+  color: var(--saito-gray-750);
 }
 
 /*
@@ -1116,7 +1116,7 @@ nft cards
 }
 
 .nft-details-actions .nft-card-details {
-  border: 1px solid var(--saito-gray-transparent);
+  border: 1px solid color-mix(in srgb, var(--saito-grey-700) 27%, transparent);
   padding: 1rem;
 }
 

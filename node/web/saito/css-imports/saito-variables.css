@@ -53,20 +53,36 @@ font imports
 }
 
 :root {
-  --saito-white: #fff;
 
+
+  --saito-white: #fff;
+  --saito-gray-050: #f2f2f2;
+  --saito-gray-100: #e4e4e4;
+  --saito-gray-150: #d7d7d7;
+  --saito-gray-200: #c9c9c9;
+  --saito-gray-250: #bcbcbc;
+  --saito-gray-300: #aeaeae;
+  --saito-gray-350: #a1a1a1;
+  --saito-gray-400: #939393;
+  --saito-gray-450: #868686;
+  --saito-gray-500: #787878;
+  --saito-gray-550: #6b6b6b;
+  --saito-gray-600: #5d5d5d;
+  --saito-gray-650: #505050;
+  --saito-gray-700: #424242;
+  --saito-gray-750: #353535;
+  --saito-gray-800: #272727;
+  --saito-gray-850: #1a1a1a;
+  --saito-gray-900: #0c0c0c;
+  --saito-gray-950: #000000;
   --saito-black: #000;
-  --saito-black-heavy: #1c1c23;
-  --saito-black-light: #c5c5c5bb;
 
   --saito-green: #3df71f;
 
-  --saito-gray-light: #a1a1a1;
   --saito-gray: #555;
-  --saito-gray-transparent: #4444;
-  --saito-gray-dark: #3d3d3d; /*#7f7f7f;*/
 
   /* Saito Brand Effects */
+
   --saito-red: #f71f3d;
   --saito-red-dark: #e8001e;
   --saito-orange: #ff8235;
@@ -74,6 +90,7 @@ font imports
   --saito-magenta: #f7009b;
   --saito-pink: #e98eaf;
   --saito-yellow-light: #e9ce93;
+
   --dreamscape:
     linear-gradient(125deg, #e8001e 30%, #0001 55%, #ff8235 80%),
     linear-gradient(40deg, #f7009b 15%, #f71f3d 25%, #f71f3d 65%, #e98eaf 75%, #0000),
@@ -97,7 +114,6 @@ font imports
   --saito-secondary: var(--saito-yellow-light);
   --saito-secondary-text: var(--saito-white);
 
-  --saito-arcade-overlay-background: #212022;
   --saito-background-color: #fff9f9;
 
   --saito-highlight: #6662;
@@ -108,9 +124,9 @@ font imports
   --background-color-shim-normal: color-mix(in srgb, var(--saito-black) 50%, transparent);
   --background-color-shim-dark: color-mix(in srgb, var(--saito-black) 70%, transparent);
 
-  --saito-border-color-light: var(--saito-gray-light);
-  --saito-border-color: var(--saito-black-light);
-  --saito-border-color-dark: var(--saito-gray-dark);
+  --saito-border-color-light: var(--saito-gray-850);
+  --saito-border-color: color-mix(in srgb, var(--saito-grey-200) 73%, transparent);
+  --saito-border-color-dark: var(--saito-gray-750);
   --saito-border-radius: 0.5rem;
 
   --saito-box-shadow:
@@ -130,7 +146,7 @@ font imports
   --color-shadow-original:
     0px 12px 17px 2px #00000024, 0px 5px 22px 4px #0000001f, 0px 7px 8px -4px #00000033;
   --style-shadow-form-box: 1px 1px 5px var(--border-color-general-dividers);
-  --shadow-shape-flat: 0 0 3px var(--saito-gray-dark);
+  --shadow-shape-flat: 0 0 3px var(--saito-gray-750);
   --shadow-standard: 0px 2px 4px color-mix(in srgb, var(--saito-black) 50%, transparent);
 
 
@@ -155,13 +171,11 @@ font imports
   --font-size-tiny: 1.3rem;
 
   --saito-font-color: var(--saito-font-color-primary);
-  --saito-font-color-primary: var(--saito-gray-dark);
+  --saito-font-color-primary: var(--saito-gray-750);
   --saito-font-color-secondary: var(--saito-gray); /*rgb(83, 100, 113);*/
   --saito-font-color-heavy: var(--saito-black-heavy);
   --saito-font-color-light: var(--saito-font-color-secondary);
   --saito-font-color-inverse: #e6e6e6;
-
-  --color-contrast: var(--saito-black-light);
 
   /* Border Padding */
   --border-padding-normal: 0.5rem;
@@ -176,7 +190,7 @@ font imports
   --border-thickness: var(--border-thickness-thin);
 
   /* General Dividers and Borders */
-  --border-color-general-dividers: var(--saito-gray-dark);
+  --border-color-general-dividers: var(--saito-gray-750);
 
   /* Shadow */
   --box-shadow-sidebar-elements: var(--shadow-standard);

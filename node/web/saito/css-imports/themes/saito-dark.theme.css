@@ -10,7 +10,7 @@ html[data-theme='dark'] {
   --saito-font-color-heavy: var(--saito-white);
   --saito-font-color-light: #aaa;
   --saito-font-color-secondary: var(--twitter-gray);
-  --saito-font-color-inverse: var(--saito-black-heavy);
+  --saito-font-color-inverse: var(--saito-gray-850);
 
   /*TINTS COLOR SECTION*/
   --saito-highlight: #ccc1;
