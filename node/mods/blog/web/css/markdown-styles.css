@@ -49,12 +49,12 @@
   }
   
   .markdown-preview th {
-    background-color: var(--saito-background-color-alt);
+    background-color: var(--saito-background-color);
     font-weight: bold;
   }
   
   .markdown-preview tr:nth-child(even) {
-    background-color: var(--saito-background-color-light);
+    background-color: var(--saito-background-color);
   }
   
   /* Lists */
@@ -88,7 +88,7 @@
   
   /* Code blocks */
   .markdown-preview pre {
-    background: var(--saito-background-color-alt);
+    background: var(--saito-background-color);
     padding: 1em;
     border-radius: 4px;
     overflow-x: auto;
@@ -98,7 +98,7 @@
   .markdown-preview code {
     font-family: monospace;
     padding: 0.2em 0.4em;
-    background: var(--saito-background-color-alt);
+    background: var(--saito-background-color);
     border-radius: 3px;
     font-size: 0.9em;
   }

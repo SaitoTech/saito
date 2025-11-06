@@ -57,7 +57,7 @@ module.exports = (app, mod, build_number, og_card) => {
         }
 
         pre {
-          background: var(--saito-background-color-alt);
+          background: var(--saito-background-color);
           padding: 1rem;
           border-radius: 6px;
           overflow-x: auto;
@@ -78,7 +78,7 @@ module.exports = (app, mod, build_number, og_card) => {
           margin: 1rem 0;
           padding: 1rem;
           border-left: 4px solid var(--saito-primary);
-          background: var(--saito-background-color-alt);
+          background: var(--saito-background-color);
         }
 
         hr {

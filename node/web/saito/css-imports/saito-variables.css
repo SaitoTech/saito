@@ -54,10 +54,8 @@ font imports
 
 :root {
   --saito-white: #fff;
-  --saito-offwhite: #fff9f9;
 
   --saito-black: #000;
-  --saito-black-transparent: #0006;
   --saito-black-heavy: #1c1c23;
   --saito-black-light: #c5c5c5bb;
 
@@ -100,15 +98,15 @@ font imports
   --saito-secondary-text: var(--saito-white);
 
   --saito-arcade-overlay-background: #212022;
-  --saito-background-color: var(--saito-offwhite);
+  --saito-background-color: #fff9f9;
 
   --saito-highlight: #6662;
   --saito-highlight-heavy: #4445;
 
   /* Background Shim Colors */
-  --background-color-shim-light: #0006;
-  --background-color-shim-normal: #0008;
-  --background-color-shim-dark: #000b;
+  --background-color-shim-light: color-mix(in srgb, var(--saito-black) 40%, transparent);
+  --background-color-shim-normal: color-mix(in srgb, var(--saito-black) 50%, transparent);
+  --background-color-shim-dark: color-mix(in srgb, var(--saito-black) 70%, transparent);
 
   --saito-border-color-light: var(--saito-gray-light);
   --saito-border-color: var(--saito-black-light);
@@ -133,7 +131,9 @@ font imports
     0px 12px 17px 2px #00000024, 0px 5px 22px 4px #0000001f, 0px 7px 8px -4px #00000033;
   --style-shadow-form-box: 1px 1px 5px var(--border-color-general-dividers);
   --shadow-shape-flat: 0 0 3px var(--saito-gray-dark);
-  --shadow-standard: 0px 2px 4px var(--saito-black-transparent);
+  --shadow-standard: 0px 2px 4px color-mix(in srgb, var(--saito-black) 50%, transparent);
+
+
   --shadow-chat-user: -4px 0px 2px -2px;
   --shadow-chat-user-self: 4px 0px 2px -2px;
   --text-shadow-normal: 1px 1px 3px;
