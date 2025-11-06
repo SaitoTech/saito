@@ -197,7 +197,7 @@ span.saito-anchor {
 
 .saito-menu-select-heavy > .disabled-option,
 .saito-menu-select-subtle > .disabled-option {
-  color: var(--saito-gray);
+  color: var(--saito-gray-600);
   cursor: default;
 }
 

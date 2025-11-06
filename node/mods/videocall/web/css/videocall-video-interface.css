@@ -562,8 +562,8 @@ video#presentation {
 .video-call-info {
 	color: var(--saito-white);
 	text-shadow:
-		0px 1px 2px var(--saito-black-heavy),
-		0px -1px 2px var(--saito-black-heavy);
+		0px 1px 2px var(--saito-gray-850),
+		0px -1px 2px var(--saito-gray-850);
 	height: 3.5rem;
 	position: absolute;
 	display: grid;
@@ -1029,8 +1029,8 @@ video#presentation {
 	padding: 0.25rem;
 	cursor: pointer;
 	text-shadow:
-		0px 1px 2px var(--saito-black-heavy),
-		0px -1px 2px var(--saito-black-heavy);
+		0px 1px 2px var(--saito-gray-850),
+		0px -1px 2px var(--saito-gray-850);
 }
 
 .chat-settings-toggle-icon:hover {

@@ -17,7 +17,7 @@
 	align-items: center;
 	background-size: cover;
 	background-position: center;
-	background-color: var(--saito-gray-transparent);
+	background-color: color-mix(in srgb, var(--saito-grey-700) 27%, transparent);
 	background-blend-mode: soft-light;
 	border-radius: 16px;
 	overflow: hidden;

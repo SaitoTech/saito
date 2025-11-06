@@ -54,7 +54,6 @@ font imports
 
 :root {
 
-
   --saito-white: #fff;
   --saito-gray-050: #f2f2f2;
   --saito-gray-100: #e4e4e4;
@@ -77,14 +76,9 @@ font imports
   --saito-gray-950: #000000;
   --saito-black: #000;
 
-  --saito-green: #3df71f;
-
-  --saito-gray: #555;
-
-  /* Saito Brand Effects */
-
   --saito-red: #f71f3d;
   --saito-red-dark: #e8001e;
+  --saito-green: #3df71f;
   --saito-orange: #ff8235;
   --saito-orange-dark: #e57631;
   --saito-magenta: #f7009b;
@@ -172,7 +166,7 @@ font imports
 
   --saito-font-color: var(--saito-font-color-primary);
   --saito-font-color-primary: var(--saito-gray-750);
-  --saito-font-color-secondary: var(--saito-gray); /*rgb(83, 100, 113);*/
+  --saito-font-color-secondary: var(--saito-gray-600);
   --saito-font-color-heavy: var(--saito-black-heavy);
   --saito-font-color-light: var(--saito-font-color-secondary);
   --saito-font-color-inverse: #e6e6e6;

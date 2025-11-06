@@ -12,7 +12,7 @@
 	max-height: 95vh;
 	overflow-y: auto;
 	overflow-x: hidden;
-	background: var(--saito-arcade-overlay-background);
+	background: var(--saito-gray-850);
 	user-select: none;
 	color: var(--saito-white);
 }
@@ -102,8 +102,8 @@
 	padding: 2rem;
 	border-radius: inherit;
 	color: var(--saito-white);
-	background: var(--saito-arcade-overlay-background);
-	border: 1px solid var(--saito-arcade-overlay-background);
+	background: var(--saito-gray-850);
+	border: 1px solid var(--saito-gray-850);
 	user-select: none;
 }
 
@@ -175,7 +175,7 @@
 
 .overlay-input {
 	color: var(--saito-white);
-	background: var(--saito-arcade-overlay-background);
+	background: var(--saito-gray-850);
 }
 
 .arcade-wizard-game-controls .settings > div.overlay-input {
@@ -189,7 +189,7 @@
 	outline: none;
 	border: none;
 	color: var(--saito-white);
-	background: var(--saito-arcade-overlay-background);
+	background: var(--saito-gray-850);
 }
 
 .arcade-wizard-game-controls .settings {
@@ -271,7 +271,7 @@
 }
 
 .saito-multi-select_btn_options button {
-	background: var(--saito-arcade-overlay-background);
+	background: var(--saito-gray-850);
 	margin: 0rem;
 	padding: 0rem;
 	width: 100%;

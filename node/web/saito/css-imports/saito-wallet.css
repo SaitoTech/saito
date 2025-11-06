@@ -744,7 +744,7 @@ textarea {
   column-gap: 2rem;
   justify-items: flex-end;
   overflow: hidden;
-  background-color: var(--saito-gray);
+  background-color: var(--saito-gray-600);
   color: var(--saito-white);
 }
 
@@ -846,7 +846,7 @@ textarea {
   column-gap: 2rem;
   justify-items: flex-end;
   overflow: hidden;
-  background-color: var(--saito-gray);
+  background-color: var(--saito-gray-600);
   color: var(--saito-white);
 }
 
