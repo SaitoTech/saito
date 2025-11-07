@@ -102,7 +102,7 @@
 	display: flex;
 	align-items: center;
 	font-size: 13px;
-	color: var(--twitter-gray);
+	color: #718695;
 	margin-bottom: 6px;
 	gap: 6px;
 }

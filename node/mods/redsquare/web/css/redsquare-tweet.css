@@ -11,7 +11,7 @@
   top: 5.5rem;
   left: 3.9rem;
   z-index: 3;
-  border-left: 2px dashed var(--twitter-gray);
+  border-left: 2px dashed #718695;
 }
 
 .tweet-text {
@@ -75,7 +75,7 @@
   justify-content: space-between;
 
   font-size: 14px;
-  color: var(--twitter-gray);
+  color: #718695;
   padding-bottom: unset;
   margin-bottom: unset;
 
