@@ -119,9 +119,6 @@ font imports
   --saito-border-color-dark: var(--saito-gray-750);
   --saito-border-radius: 0.5rem;
 
-  --saito-box-shadow:
-    0px 12px 17px 2px hsla(0, 0%, 0%, 0.14), 0px 5px 22px 4px hsla(0, 0%, 0%, 0.12),
-    0px 7px 8px -4px hsla(0, 0%, 0%, 0.2);
 
   --saito-heart-animation: url('/redsquare/images/heart-orange.png');
 
@@ -133,8 +130,9 @@ font imports
   --saito-header-background: var(--dreamscape);
 
   /* Shadow Presets */
-  --color-shadow-original:
-    0px 12px 17px 2px #00000024, 0px 5px 22px 4px #0000001f, 0px 7px 8px -4px #00000033;
+  --saito-box-shadow:
+    0px 12px 17px 2px hsla(0, 0%, 0%, 0.14), 0px 5px 22px 4px hsla(0, 0%, 0%, 0.12),
+    0px 7px 8px -4px hsla(0, 0%, 0%, 0.2);
   --style-shadow-form-box: 1px 1px 5px var(--border-color-general-dividers);
   --shadow-shape-flat: 0 0 3px var(--saito-gray-750);
   --shadow-standard: 0px 2px 4px color-mix(in srgb, var(--saito-black) 50%, transparent);

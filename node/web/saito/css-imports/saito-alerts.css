@@ -22,7 +22,7 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  box-shadow: var(--color-shadow-original);
+  box-shadow: var(--saito-box-shadow);
 }
 
 .saito-alert-message {
