@@ -23,7 +23,7 @@
 .saito-sidebar .game-slider {
 	border: 1px solid var(--saito-border-color);
 	border-radius: var(--saito-border-radius);
-	box-shadow: var(--box-shadow-sidebar-elements);
+	box-shadow: var(--saito-box-shadow);
 	overflow: hidden;
 }
 

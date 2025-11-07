@@ -10,7 +10,7 @@
   /* pseudo overlay */
   max-height: calc(100 * var(--saito-vh));
   max-width: 100vw;
-  box-shadow: var(--box-shadow-sidebar-elements);
+  box-shadow: var(--saito-box-shadow);
   border-radius: var(--saito-border-radius);
   overflow: hidden;
   background-color: var(--saito-background-color);

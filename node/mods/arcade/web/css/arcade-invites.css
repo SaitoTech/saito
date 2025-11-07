@@ -69,7 +69,7 @@
 	border-radius: 100%;
 	color: var(--saito-primary);
 	background-color: var(--saito-turquoise);
-	box-shadow: var(--shadow-standard);
+	box-shadow: var(--saito-box-shadow);
 }
 
 .my-turn .player-turn i {

@@ -28,7 +28,7 @@
 
 .saito-overlay > div:last-child,
 .saito-overlay > form {
-  box-shadow: var(--shadow-standard);
+  box-shadow: var(--saito-box-shadow);
   border-radius: var(--saito-border-radius);
   border: var(--border-thickness) solid var(--border-color-general-dividers);
 }
@@ -39,14 +39,6 @@
   transform: translate(-50%, -50%);
   margin: 0 auto;
 }
-
-.saito-overlay > div,
-.saito-overlay > form {
-  /* This is much too broad and adds all kinds of issues in a variety of places.
-    box-shadow: var(--saito-box-shadow); */
-}
-
-/* Clickable container for close icon */
 
 .saito-overlay-closebox {
   position: absolute;

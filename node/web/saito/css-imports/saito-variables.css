@@ -114,11 +114,6 @@ font imports
   --background-color-shim-normal: color-mix(in srgb, var(--saito-black) 50%, transparent);
   --background-color-shim-dark: color-mix(in srgb, var(--saito-black) 70%, transparent);
 
-  --saito-border-color-light: var(--saito-gray-850);
-  --saito-border-color: color-mix(in srgb, var(--saito-gray-200) 73%, transparent);
-  --saito-border-color-dark: var(--saito-gray-750);
-  --saito-border-radius: 0.5rem;
-
 
   --saito-heart-animation: url('/redsquare/images/heart-orange.png');
 
@@ -129,18 +124,15 @@ font imports
   --saito-header-color: var(--saito-primary-text);
   --saito-header-background: var(--dreamscape);
 
-  /* Shadow Presets */
+  /* Box Shadows */
+  --saito-box-shadow-low:
+    0px 1px 2px color-mix(in srgb, var(--saito-black) 30%, transparent);
   --saito-box-shadow:
-    0px 12px 17px 2px hsla(0, 0%, 0%, 0.14), 0px 5px 22px 4px hsla(0, 0%, 0%, 0.12),
+    0px 2px 4px color-mix(in srgb, var(--saito-black) 50%, transparent);
+  --saito-box-shadow-high:
+    0px 12px 17px 2px hsla(0, 0%, 0%, 0.14),
+    0px 5px 22px 4px hsla(0, 0%, 0%, 0.12),
     0px 7px 8px -4px hsla(0, 0%, 0%, 0.2);
-  --style-shadow-form-box: 1px 1px 5px var(--border-color-general-dividers);
-  --shadow-shape-flat: 0 0 3px var(--saito-gray-750);
-  --shadow-standard: 0px 2px 4px color-mix(in srgb, var(--saito-black) 50%, transparent);
-
-
-  --shadow-chat-user: -4px 0px 2px -2px;
-  --shadow-chat-user-self: 4px 0px 2px -2px;
-  --text-shadow-normal: 1px 1px 3px;
 
   /* Fonts */
   --saito-font: 'visuelt-light';
@@ -166,21 +158,20 @@ font imports
   --saito-font-color-inverse: #e6e6e6;
 
   /* Border Padding */
+  --saito-border-color-light: var(--saito-gray-850);
+  --saito-border-color: color-mix(in srgb, var(--saito-gray-200) 73%, transparent);
+  --saito-border-color-dark: var(--saito-gray-750);
+  --saito-border-radius: 0.5rem;
+
   --border-padding-normal: 0.5rem;
   --border-padding-wide: 1rem;
 
   /* Borders */
-
   --border-thickness-thin: 1px;
   --border-thickness-medium: 2px;
   --border-thickness-thick: 3px;
   --border-thickness-fat: 5px;
   --border-thickness: var(--border-thickness-thin);
-
-  /* General Dividers and Borders */
   --border-color-general-dividers: var(--saito-gray-750);
 
-  /* Shadow */
-  --box-shadow-sidebar-elements: var(--shadow-standard);
-  --text-shadow-progress-bar: var(--text-shadow-normal) var(--saito-black);
 }

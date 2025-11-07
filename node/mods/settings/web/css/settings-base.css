@@ -10,7 +10,7 @@
 	padding: 2rem;
 	border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
 	border-radius: var(--saito-border-radius);
-	box-shadow: var(--shadow-standard);
+	box-shadow: var(--saito-box-shadow);
 }
 
 .settings-actions-container {

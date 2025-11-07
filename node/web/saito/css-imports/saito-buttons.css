@@ -5,7 +5,6 @@ buttons -- Primary & Secondary -- difference is color pattern
 button,
 .saito-button-primary,
 .saito-button-secondary {
-  /* Center all buttons by default*/
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -18,13 +17,7 @@ button,
   text-transform: capitalize;
   padding: 0 1rem;
   margin: 0.5rem;
-
-  /* If we want to wrap, let's indivudally unset it */
   white-space: nowrap;
-
-  /*box-shadow: var(--shadow-standard);*/
-
-  /* Not sure about min-width */
   min-width: 18rem;
   min-height: 4.5rem;
   max-width: 100%;
@@ -34,11 +27,6 @@ button,
 .saito-button-primary {
   background: var(--saito-primary);
   color: var(--saito-primary-text);
-
-  /* Deprecated for button-shimmer
-  background-size: 400% auto;
-  background-position: 1% 1%;
-  */
 }
 
 .saito-button-secondary {
@@ -52,35 +40,28 @@ button:focus,
   outline: none;
 }
 
-/* Disabled -- indicate main choice unavailable */
 .saito-button-primary.disabled,
 .saito-button-primary[disabled] {
   background: var(---saito-background-color);
-  /* Use a grayscale color rather than primary to distinguish from secondary buttons*/
   color: var(--saito-font-color-primary);
   border: var(--border-thickness-thin) solid var(--saito-font-color-primary);
   cursor: not-allowed;
-  /* pointer-events: none; <-- will block cursor */
 }
 
 .saito-button-secondary.disabled,
 .saito-button-secondary[disabled] {
   background: var(---saito-background-color);
-  /* Use a grayscale color rather than primary to distinguish from secondary buttons*/
   color: var(--saito-font-color-light);
   border: var(--border-thickness-thin) solid var(--saito-font-color-light);
   cursor: not-allowed;
-  /* pointer-events: none; <-- will block cursor */
 }
 
 button:hover,
 .saito-button-primary:hover {
-  /*filter: contrast(1.5) drop-shadow(0px 0px 2px var(--saito-font-color));*/
   background: var(--saito-primary-dark);
 }
 
 .saito-button-secondary:hover {
-  /* found in the settings, top wallet control buttons --AND also for loading new posts  */
   background: var(--saito-primary);
   color: var(--saito-primary-text);
 }
@@ -100,7 +81,6 @@ button.small,
 }
 
 .saito-button-secondary.small:hover {
-  /* found in the settings, top wallet control buttons --AND also for loading new posts  */
   background: var(--saito-highlight-heavy);
   color: unset;
 }
@@ -154,7 +134,6 @@ button i {
 .saito-anchor {
   cursor: pointer;
   transition: color 0.1s;
-  /* text-decoration: underline dashed 1px; */
 }
 
 .saito-anchor span,
@@ -200,8 +179,6 @@ span.saito-anchor {
   color: var(--saito-gray-600);
   cursor: default;
 }
-
-/*********************************/
 
 @media (max-width: 600px) {
   .saito-button-secondary {
