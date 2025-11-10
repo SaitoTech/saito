@@ -198,6 +198,7 @@ class RedSquareMenu {
             JSON.stringify(this.mod, (key, value) => {
               if (key == 'app') return 'app';
               if (key == 'mod') return 'mod';
+              if (key == 'parent_tweet') return '<-';
               return typeof value === 'bigint' ? value.toString() : value; // return everything else unchanged
             })
           );

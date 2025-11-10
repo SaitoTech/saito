@@ -373,6 +373,9 @@ class Archive extends ModTemplate {
 				//
 				let txs = await this.loadTransactions(req.data);
 
+				console.debug(
+					`\n===>\n Complete remote archive load for ${JSON.stringify(req.data)}, time elapsed = ${Date.now() - ts1}ms`
+				);
 				if (mycallback) {
 					mycallback(txs);
 					return 1;
