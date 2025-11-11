@@ -9,6 +9,7 @@ class AssetstoreSaitoPurchaseOverlay {
     this.mod = mod;
     this.container = container;
     this.purchase_overlay = new SaitoOverlay(app, mod, false, true);
+    this.callback = null;
 
     //
     // init
@@ -111,6 +112,8 @@ class AssetstoreSaitoPurchaseOverlay {
         //
         converted_amount = 1;
 
+        console.log("calling requestPaymentAddressFromServer ///");
+
         self.requestPaymentAddressFromServer(converted_amount, ticker);
 
         //
@@ -135,6 +138,8 @@ class AssetstoreSaitoPurchaseOverlay {
   //
   async requestPaymentAddressFromServer(converted_amount, ticker) {
     let self = this;
+
+    console.log("inside requestPaymentAddressFromServer ///");
 
     //
     // build request payload
@@ -332,8 +337,12 @@ class AssetstoreSaitoPurchaseOverlay {
 
   updateSaitoIssued(data = {}) {
     this.purchase_overlay.remove();
-
     salert('Transation to issue SAITO sent. Please wait for network confirmation...');
+
+    console.log(this.callback);
+    if (this.callback != null) {
+      return this.callback;
+    }
   }
 
   reset() {

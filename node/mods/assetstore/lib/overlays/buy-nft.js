@@ -1,5 +1,5 @@
 let NftDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
-let SaitoPurchaseOverlay = require('./saito-purchase');
+let SaitoPurchaseOverlay = require('./../../../../lib/saito/ui/saito-purchase/saito-purchase');
 let AssetStoreBuyNFTTemplate = require('./buy-nft.template');
 
 
@@ -11,7 +11,7 @@ class BuyNftOverlay extends NftDetailsOverlay {
   }
 
   async render() {
-
+    let self = this;
     if (this.nft.tx) {
 console.log("trying to build NFT data...");
       try {
@@ -104,9 +104,20 @@ console.log("trying to build NFT data...");
             //
             // on first render, just show loader
             //
-            self.purchase_saito.reset(); // reset previous selecte options
-            self.purchase_saito.nft = self.nft;
+
+
+            self.purchase_saito.reset(); // reset previously used values
+            self.purchase_saito.saito_amount = self.nft.getBuyPriceSaito(); 
             self.purchase_saito.render();
+
+            // run when payment confirmed
+            let callback = async () => {
+              console.log("running saito purchase callback");
+              let newtx = await self.mod.createPurchaseAssetTransaction(self.nft);
+              self.overlay?.hide?.();
+              siteMessage('Purchase submitted. Waiting for network confirmation...', 3000);
+            }
+            self.purchase_saito.callback = callback; 
 
         } catch (err) {
           console.log(err);

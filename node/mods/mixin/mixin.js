@@ -217,7 +217,10 @@ class Mixin extends ModTemplate {
     }
 
     if (message.request === 'mixin request payment address') {
+      console.log("inside mixin request payment address");
       await this.createAccount(); // skips if created
+
+      console.log("this.account_created: ", this.account_created);
       if (!this.account_created) {
         return mycallback({});
       }
@@ -2147,7 +2150,8 @@ class Mixin extends ModTemplate {
             newtx.msg = {
               request: 'saito purchase',
               from: this.publicKey,
-              to: recipient
+              to: recipient,
+              request_id: r.request_id
             };
 
             newtx.packData();
@@ -2189,6 +2193,36 @@ class Mixin extends ModTemplate {
           results.push({ id: r.id, ok: changed, status: changed ? 'issuing' : 'pending' });
 
           //
+          // propogate purchase request tx
+          //
+          const rows = await this.app.storage.queryDatabase(
+            `SELECT
+                tx
+              FROM mixin_payment_requests
+              WHERE request_id = $request_id
+              ORDER BY created_at ASC;
+            `,
+            {
+              $request_id: r.request_id
+            },
+            'mixin'
+          );
+
+          console.log("Fetched payment req tx: ", rows);
+
+          if (!rows || rows.length === 0) {
+            console.log('payments poll no pending rows');
+            return;
+          }
+
+          let payment_req_tx = rows[0].tx;
+          let newtx = new Transaction();
+          newtx.deserialize_from_web(this.app, payment_req_tx);
+
+          console.log("tx to propagate: ", newtx);
+          this.app.network.propagateTransaction(newtx);
+
+          //
           // notify UI that issuance has begun (no address lookup)
           //
           try {
@@ -2199,10 +2233,10 @@ class Mixin extends ModTemplate {
               issued_amount:    issued_amount_text,
             };
 
-            const uiAck = await this.createSaitoIssuedRequest(notifyItem);
-            console.log(`[${i}] createSaitoIssuedRequest ack:`, uiAck);
+            const uiAck = await this.createSaitoIssuedUIRequest(notifyItem);
+            console.log(`[${i}] createSaitoIssuedUIRequest ack:`, uiAck);
           } catch (e) {
-            console.error(`[${i}] createSaitoIssuedRequest error:`, e);
+            console.error(`[${i}] createSaitoIssuedUIRequest error:`, e);
           }
         }
 
@@ -2333,8 +2367,8 @@ class Mixin extends ModTemplate {
             //
             // send rquesto to notify UI
             //
-            const res = await this.createDepositConfirmedRequest(item);
-            console.log('deposit poll createDepositConfirmedRequest ack:', res);
+            const res = await this.createDepositConfirmedUIRequest(item);
+            console.log('deposit poll createDepositConfirmedUIRequest ack:', res);
 
 
             return;
@@ -2531,7 +2565,7 @@ class Mixin extends ModTemplate {
   //
   // notify UI that pending depsoit is confirmed against payment request
   //
-  async createDepositConfirmedRequest(item = {}) {
+  async createDepositConfirmedUIRequest(item = {}) {
     const payload = {
         request_id:       item.request_id ?? null,
         address_id:       item.address_id ?? null,
@@ -2558,7 +2592,7 @@ class Mixin extends ModTemplate {
   //
   // notify UI that SAITO issuance has started for a receipt
   //
-  async createSaitoIssuedRequest(item = {}) {
+  async createSaitoIssuedUIRequest(item = {}) {
     const payload = {
       request_id:       item.request_id ?? null,
       address_id:       item.address_id ?? null,
@@ -2567,7 +2601,7 @@ class Mixin extends ModTemplate {
       ts:               Date.now(),
     };
 
-    console.log('createSaitoIssuedRequest:', payload);
+    console.log('createSaitoIssuedUIRequest:', payload);
 
     return await new Promise((resolve) => {
       this.app.network.sendRequestAsTransaction(
