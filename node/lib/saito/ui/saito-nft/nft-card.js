@@ -3,7 +3,6 @@ const SaitoNft = require('./saito-nft');
 
 class SaitoNftCard {
   constructor(app, mod, container = '', tx = null, data = null, callback = null) {
-
     this.app = app;
     this.mod = mod;
     this.container = container;
@@ -16,7 +15,6 @@ class SaitoNftCard {
   }
 
   async render() {
-
     let this_self = this;
     if (!document.querySelector(this.container)) {
       return;

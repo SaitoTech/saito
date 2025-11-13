@@ -40,13 +40,16 @@ class NftDetailsOverlay {
     let receiver_input = document.querySelector('#nft-receiver-address');
     let confirmSplit = document.getElementById('send-nft-confirm-split');
     let splitBar = null;
+    let confirmRemove = document.getElementById('confirm_remove');
 
     /////////////////////////////////
-    // Do we show Enable / Disable? 
+    // Do we show Enable / Disable?
     //////////////////////////////////
     let can_enable = false;
     let can_disable = false;
-    if (this.nft.css || this.nft.js) { can_enable = true; }
+    if (this.nft.css || this.nft.js) {
+      can_enable = true;
+    }
     if (this.app.options?.permissions?.nfts) {
       if (this.app.options.permissions.nfts.includes(this.nft.tx_sig)) {
         can_enable = false;
@@ -63,7 +66,6 @@ class NftDetailsOverlay {
     } else {
       disableBtn.style.display = 'none';
     }
-
 
     //////////////////////////////
     // Do we show split or not?
@@ -87,6 +89,10 @@ class NftDetailsOverlay {
     ////////////////////////////////////
     // launch / hide action panel
     /////////////////////////////////////
+    document.querySelector('#action-buttons #remove').onclick = (e) => {
+      actionBar.dataset.show = 'remove';
+    };
+
     document.querySelector('#action-buttons #send').onclick = (e) => {
       //alert("send clicked... udpating actionBar...");
       actionBar.dataset.show = 'send';
@@ -103,24 +109,34 @@ class NftDetailsOverlay {
     };
 
     enableBtn.onclick = (e) => {
-      if (!this.app.options.permissions) { this.app.options.permissions = {}; }
-      if (!this.app.options.permissions.nfts) { this.app.options.permissions.nfts = []; }
+      if (!this.app.options.permissions) {
+        this.app.options.permissions = {};
+      }
+      if (!this.app.options.permissions.nfts) {
+        this.app.options.permissions.nfts = [];
+      }
       if (!this.app.options.permissions.nfts.includes(this.nft.tx_sig)) {
-	this.app.options.permissions.nfts.push(this.nft.tx_sig);
-	salert("NFT Activated for Next Reload");
-	this.app.storage.saveOptions();
-      } 
+        this.app.options.permissions.nfts.push(this.nft.tx_sig);
+        salert('NFT Activated for Next Reload');
+        this.app.storage.saveOptions();
+      }
       this.render();
     };
 
     disableBtn.onclick = (e) => {
-      if (!this.app.options.permissions) { this.app.options.permissions = {}; }
-      if (!this.app.options.permissions.nfts) { this.app.options.permissions.nfts = []; }
+      if (!this.app.options.permissions) {
+        this.app.options.permissions = {};
+      }
+      if (!this.app.options.permissions.nfts) {
+        this.app.options.permissions.nfts = [];
+      }
       if (this.app.options.permissions.nfts.includes(this.nft.tx_sig)) {
-	this.app.options.permissions.nfts = this.app.options.permissions.nfts.filter(item => item !== this.nft.tx_sig);
-	salert("NFT Disabled for Next Reload");
-	this.app.storage.saveOptions();
-      } 
+        this.app.options.permissions.nfts = this.app.options.permissions.nfts.filter(
+          (item) => item !== this.nft.tx_sig
+        );
+        salert('NFT Disabled for Next Reload');
+        this.app.storage.saveOptions();
+      }
       this.render();
     };
 
@@ -132,6 +148,33 @@ class NftDetailsOverlay {
           })
       );
     }, 1000);
+
+    //////////////////////
+    /// remove NFT
+    //////////////////////
+    if (confirmRemove) {
+      confirmRemove.onclick = async (e) => {
+        e.preventDefault();
+
+        try {
+          let newtx = await this.app.wallet.createRemoveNftTransaction(this.nft);
+
+          await newtx.sign();
+          await this.app.network.propagateTransaction(newtx);
+
+          siteMessage('Transaction sent to remove NFT', 3000);
+
+          this.overlay.close();
+
+          if (document.querySelector('.nft-list-container')) {
+            this.app.connection.emit('saito-nft-list-render-request');
+          }
+        } catch (err) {
+          console.error(err);
+          salert('Failed to remove NFT: ');
+        }
+      };
+    }
 
     //////////////////////
     /// Send NFT

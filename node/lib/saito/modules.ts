@@ -163,14 +163,13 @@ class Mods {
   async initialize() {
     try {
       if (this.app.BROWSER === 1) {
-
-//        console.log('#');
-//        console.log('#');
-//        console.log('#');
-//        console.log('#');
-//        console.log('# MY NFTS...');
-//        const raw = await this.app.wallet.getNftList();
-//        console.log(JSON.stringify(raw));
+        //        console.log('#');
+        //        console.log('#');
+        //        console.log('#');
+        //        console.log('#');
+        //        console.log('# MY NFTS...');
+        //        const raw = await this.app.wallet.getNftList();
+        //        console.log(JSON.stringify(raw));
 
         let mods = await this.app.storage.loadLocalApplications();
 

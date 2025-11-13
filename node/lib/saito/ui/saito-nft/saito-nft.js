@@ -84,8 +84,9 @@ class SaitoNft {
             return callback();
           }
         } else {
-
-	  if (localhost_only) { return null; }
+          if (localhost_only) {
+            return null;
+          }
 
           //
           // try remote host (ours IS **NOT** CURRENTLY INDEXING NFT TXS)
@@ -172,7 +173,6 @@ class SaitoNft {
   // Extracts NFT image/text, tx_sig, txmsg data from a transaction
   //
   extractNFTData() {
-
     if (!this.tx) {
       return;
     }
@@ -206,10 +206,10 @@ class SaitoNft {
     }
 
     if (typeof this.data !== 'undefined' && processed == false) {
-       this.json = (typeof this.data === 'object') ? JSON.stringify(this.data, null, 2) : String(this.data);
-       processed = true;
+      this.json =
+        typeof this.data === 'object' ? JSON.stringify(this.data, null, 2) : String(this.data);
+      processed = true;
     }
-
   }
 
   extractSlipObject(slip) {

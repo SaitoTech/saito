@@ -44,11 +44,23 @@ module.exports = (app, mod, nft) => {
         <div class="nft-card-img" style="background-image: url('${nft?.image || '/saito/img/dreamscape.png'}');">
       `;
 
-       let processed = false;
-       if (processed == false && nft.js) { html += `<div class="nft-card-text">${nft.js}</div>`; processed = true; };
-       if (processed == false && nft.json) { html += `<div class="nft-card-text">${nft.json}</div>`; processed = true; };
-       if (processed == false && nft.css) { html += `<div class="nft-card-text">${nft.css}</div>`; processed = true; };
-       if (processed == false && nft.text) { html += `<div class="nft-card-text">${nft.text}</div>`; processed = true; };
+  let processed = false;
+  if (processed == false && nft.js) {
+    html += `<div class="nft-card-text">${nft.js}</div>`;
+    processed = true;
+  }
+  if (processed == false && nft.json) {
+    html += `<div class="nft-card-text">${nft.json}</div>`;
+    processed = true;
+  }
+  if (processed == false && nft.css) {
+    html += `<div class="nft-card-text">${nft.css}</div>`;
+    processed = true;
+  }
+  if (processed == false && nft.text) {
+    html += `<div class="nft-card-text">${nft.text}</div>`;
+    processed = true;
+  }
 
   html += `
         </div>
@@ -89,6 +101,16 @@ module.exports = (app, mod, nft) => {
             </div>
           </div>
         </div>
+
+        <!-- REMOVE -->
+        <div class="nft-details-action" id="nft-details-remove">
+          <p>This will destroy your NFT and return any SAITO deposit to your wallet.</p>
+          <div class="saito-button-row auto-fit">
+            <button id="cancel" class='saito-button-secondary cancel-action'>Cancel</button>  
+            <button id="confirm_remove" class="saito-button-primary">Yes, destroy</button>
+          </div>
+        </div>
+
       </div>
 
       <div id="action-buttons" class="saito-button-row auto-fit">
@@ -97,6 +119,7 @@ module.exports = (app, mod, nft) => {
         <button id="merge" class="saito-button-secondary">Merge</button>
         <button id="split" class="saito-button-secondary">Split</button>
         <button id="send" class="saito-button-primary">Send</button>
+        <button id="remove" class="saito-button-primary">Redeem</button>
       </div>
     </div>
 `;

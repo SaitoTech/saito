@@ -77,7 +77,6 @@ export default class Wallet extends SaitoWallet {
   }
 
   async initialize() {
-
     let privateKey = await this.getPrivateKey();
     let publicKey = await this.getPublicKey();
 
@@ -546,7 +545,6 @@ export default class Wallet extends SaitoWallet {
     // add nfts back to rust wallet
     //
     await this.addNftList();
-
   }
 
   constructor(wallet: any) {
@@ -1358,7 +1356,6 @@ export default class Wallet extends SaitoWallet {
     rebroadcast: any[];
     persisted: boolean;
   }> {
-
     //
     //  fetch on-chain
     //
@@ -1580,57 +1577,66 @@ export default class Wallet extends SaitoWallet {
     return S.getInstance().createMergeBoundTransaction(nft.id, nft.txmsg);
   }
 
+  /**
+   *
+   * Remove an NFT
+   *
+   *
+   */
+  public async createRemoveNftTransaction(nft) {
+    return S.getInstance().createRemoveBoundTransaction(
+      nft.slip1.utxo_key,
+      nft.slip2.utxo_key,
+      nft.slip3.utxo_key
+    );
+  }
+
   //
   // we can't run this on init, so we call it from modules.ts so that
   // the modules exist by the time we want the NFTs to be able to interact
   // with them...
   //
   public async loadNFTs() {
+    try {
+      if (this.app.options.wallet.nfts) {
+        for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
+          let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
 
-try {
-    if (this.app.options.wallet.nfts) {
-    for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
+          //
+          // we only load "enabled" NFTS
+          //
+          if (this.app.options?.permissions?.nfts) {
+            if (this.app.options.permissions.nfts.includes(nft_sig)) {
+              this.app.storage.loadTransactions(
+                { sig: nft_sig },
+                async (txs) => {
+                  for (let zz = 0; zz < txs.length; zz++) {
+                    let txmsg = txs[zz].returnMessage();
 
-      let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
-
-      //
-      // we only load "enabled" NFTS
-      //
-      if (this.app.options?.permissions?.nfts) {
-        if (this.app.options.permissions.nfts.includes(nft_sig)) {
-
-          this.app.storage.loadTransactions(
-            { sig: nft_sig }, 
-            async (txs) => {
-	      for (let zz = 0; zz < txs.length; zz++) {
-	        let txmsg = txs[zz].returnMessage();
-
-	        if (txmsg.data?.image) {
-	        }
-	        if (txmsg.data?.js) {
-		  eval(txmsg.data.js);
-	        }
-	        if (txmsg.data?.css) {
-		  const style = document.createElement('style');
-		  style.textContent = txmsg.data.css;
-		  document.head.appendChild(style);
-	        }
-	      }
-	    },
-            'localhost'
-          );
+                    if (txmsg.data?.image) {
+                    }
+                    if (txmsg.data?.js) {
+                      eval(txmsg.data.js);
+                    }
+                    if (txmsg.data?.css) {
+                      const style = document.createElement('style');
+                      style.textContent = txmsg.data.css;
+                      document.head.appendChild(style);
+                    }
+                  }
+                },
+                'localhost'
+              );
+            }
+          }
         }
       }
+    } catch (err) {
+      console.log('Error: load nfts');
     }
-    }
-} catch (err) {
-  console.log("Error: load nfts");
-}
-
   }
 
   public async onNewBoundTransaction(tx: Transaction, save = true) {
-
     console.log('> ');
     console.log('> ');
     console.log('> onNewBoundTransaction...');

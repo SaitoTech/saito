@@ -100,7 +100,8 @@ class GameQueue {
       // If the game is available for betting...
       if (
         this.game.crypto ||
-        (this.can_bet) || (this.game.players.length > 1 && !this.game.options?.async_dealing)
+        this.can_bet ||
+        (this.game.players.length > 1 && !this.game.options?.async_dealing)
       ) {
         //
         // Add some commands to have players share what is available

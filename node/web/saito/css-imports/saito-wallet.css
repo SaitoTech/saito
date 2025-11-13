@@ -1105,6 +1105,11 @@ nft cards
   display: flex;
 }
 
+.nft-details-actions[data-show="remove"] #nft-details-remove { 
+  display: block; 
+}
+
+
 .nft-details-section-header,
 .nft-details-send,
 .nft-details-assetstore {
