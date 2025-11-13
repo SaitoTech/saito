@@ -400,6 +400,22 @@ class Migration extends ModTemplate {
 	}
 
 	checkForLocalDeposit() {
+		// Verify ercMod is initialized before proceeding
+		if (!this.ercMod) {
+			try {
+				this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+			} catch (err) {
+				console.error('ERC module not available:', err);
+				salert('Unable to check deposit status. Please ensure ERC-SAITO module is installed.');
+				return;
+			}
+		}
+
+		if (!this.ercMod.address) {
+			salert('Deposit address not available. Please try again.');
+			return;
+		}
+
 		this.overlay.show(`
 						        <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit-container">
 						            <div class="saito-overlay-form-header">
@@ -414,7 +430,7 @@ class Migration extends ModTemplate {
 						        </div>`);
 
 		this.overlay.blockClose();
-		let confs = this.ercMod.confirmations;
+		let confs = this.ercMod.confirmations || 100;
 		let ct = 0;
 		let interval = setInterval(() => {
 			this.ercMod.checkBalance();

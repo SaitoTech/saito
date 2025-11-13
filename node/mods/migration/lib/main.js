@@ -162,16 +162,39 @@ class MigrationMain {
 				}
 
 				this.app.connection.emit('recovery-backup-overlay-render-request', {
-					success_callback: () => {
-						this.app.connection.emit('saito-crypto-deposit-render-request', {
-							title: 'My Deposit Address',
-							ticker: this.mod.wrapped_saito_ticker,
-							warning: `<div>Reminder: send only ERC-20 SAITO</div><div>Max Deposit: ${this.mod.max_deposit}</div><div>Click <em>'Done'</em> to check on deposit.</div>`,
-							migration: true,
-							callback: () => {
-								this.mod.checkForLocalDeposit();
+					success_callback: async () => {
+						// Ensure ERC module is initialized and activated before showing deposit address
+						try {
+							if (!this.mod.ercMod) {
+								this.mod.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.mod.wrapped_saito_ticker);
 							}
-						});
+
+							if (this.mod.ercMod) {
+								await this.mod.ercMod.activate();
+								const address = this.mod.ercMod.formatAddress();
+
+								if (!address) {
+									salert('Unable to generate deposit address. Please try again.');
+									return;
+								}
+
+								this.app.connection.emit('saito-crypto-deposit-render-request', {
+									title: 'My Deposit Address',
+									ticker: this.mod.wrapped_saito_ticker,
+									address: address,
+									warning: `<div>Reminder: send only ERC-20 SAITO</div><div>Max Deposit: ${this.mod.max_deposit}</div><div>Click <em>'Done'</em> to check on deposit.</div>`,
+									migration: true,
+									callback: () => {
+										this.mod.checkForLocalDeposit();
+									}
+								});
+							} else {
+								salert('ERC-SAITO module not found. Please ensure it is installed.');
+							}
+						} catch (err) {
+							console.error('Error initializing ERC module:', err);
+							salert('Error initializing deposit address. Please try again.');
+						}
 					}
 				});
 
