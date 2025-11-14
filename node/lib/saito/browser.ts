@@ -13,14 +13,12 @@ const SaitoNFTOverlayManager = require('./ui/saito-nft/nft-overlay-manager');
 const debounce = require('lodash/debounce');
 const SaitoMentions = require('./ui/saito-mentions/saito-mentions');
 
-
 //
 // references for modules
 //
 const SaitoOverlay = require('./ui/saito-overlay/saito-overlay');
 const SaitoUser = require('./ui/saito-user/saito-user');
 const SaitoNFT = require('./ui/saito-nft/saito-nft');
-
 
 class Browser {
   public app: any;
@@ -37,7 +35,6 @@ class Browser {
   public identifiers_added_to_dom: any;
 
   constructor(app) {
-
     this.app = app || {};
 
     //
@@ -2073,11 +2070,6 @@ class Browser {
       };
 
       window.salert = function (message) {
-        if (document.getElementById('saito-alert')) {
-          return;
-        }
-        let wrapper = document.createElement('div');
-        wrapper.id = 'saito-alert';
         let html = `<div id="saito-alert-shim">
                       <div id="saito-alert-box">
                         <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
@@ -2086,11 +2078,16 @@ class Browser {
                         </div>
                       </div>
                     </div>`;
-        wrapper.innerHTML = html;
-        document.body.appendChild(wrapper);
-        //        setTimeout(() => {
-        //          document.querySelector("#saito-alert-box").style.top = "0";
-        //        }, 100);
+
+        if (document.getElementById('saito-alert')) {
+          browser_self.app.browser.replaceElementById(html, 'saito-alert');
+        } else {
+          let wrapper = document.createElement('div');
+          wrapper.id = 'saito-alert';
+          wrapper.innerHTML = html;
+          document.body.appendChild(wrapper);
+        }
+
         document.querySelector('#alert-ok').focus();
         document.querySelector('#saito-alert-shim').addEventListener('keyup', function (event) {
           if (event.keyCode === 13) {
@@ -2101,7 +2098,7 @@ class Browser {
         document.querySelector('#alert-ok').addEventListener(
           'click',
           function () {
-            wrapper.remove();
+            document.getElementById('saito-alert').remove();
           },
           false
         );
@@ -2109,6 +2106,7 @@ class Browser {
 
       window.sconfirm = function (message) {
         if (document.getElementById('saito-alert')) {
+          console.warn('Suppressing subsequent sconfirm...');
           return;
         }
         return new Promise((resolve, reject) => {
@@ -2151,6 +2149,7 @@ class Browser {
 
       window.sprompt = function (message, suggestion = '') {
         if (document.getElementById('saito-alert')) {
+          console.warn('Suppressing subsequent sprompt...');
           return;
         }
         return new Promise((resolve, reject) => {
