@@ -502,7 +502,26 @@ class Arcade extends ModTemplate {
 	// while the application is loaded.
 	//
 	async render() {
-		if (window.location.pathname.includes(this.returnSlug())) {
+		//
+		// Game specific landing page hosted by Arcade
+		//
+		if (
+			window.location.pathname.includes('game') &&
+			!window.location.pathname.includes(this.returnSlug())
+		) {
+			let path = window.location.pathname.split('/');
+			let game_name = path.pop();
+			let game_mod = this.app.modules.returnModuleBySlug(game_name);
+			if (game_mod) {
+				game_mod.game = null;
+				game_mod.attachEvents();
+			}
+
+			this.browser_active = 0;
+		} else {
+			//
+			// Normal Arcade view
+			//
 			if (this.main == null) {
 				this.main = new ArcadeMain(this.app, this);
 				this.header = new SaitoHeader(this.app, this);
@@ -520,16 +539,6 @@ class Arcade extends ModTemplate {
 			}
 
 			await super.render();
-		} else {
-			let path = window.location.pathname.split('/');
-			let game_name = path.pop();
-			let game_mod = this.app.modules.returnModuleBySlug(game_name);
-			if (game_mod) {
-				game_mod.game = null;
-				game_mod.attachEvents();
-			}
-
-			this.browser_active = 0;
 		}
 	}
 
@@ -1989,11 +1998,14 @@ class Arcade extends ModTemplate {
 		return false;
 	}
 
-	webServer(app, expressapp, express) {
-		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
-		let arcade_self = this;
+	webServer(app, expressapp, express, alternative_slug = null) {
+		const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
+		const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+		const arcade_self = this;
 
-		expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
+		expressapp.use(uri, express.static(webdir));
+
+		expressapp.get(uri, async function (req, res) {
 			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
 			let game_data = null;
 			let updatedSocial = Object.assign({}, arcade_self.social);
@@ -2053,8 +2065,6 @@ class Arcade extends ModTemplate {
 				return;
 			}
 		});
-
-		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
 	}
 
 	showShareLink(game_sig, show = true) {

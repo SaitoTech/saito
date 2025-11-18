@@ -41,6 +41,7 @@ module.exports = async (app, mod, build_number) => {
 
    <script type="text/javascript">
     var need_to_set_key = ${!app.options.admin?.length};
+    var active_module = '${mod.returnSlug()}';
    </script>
    <script type="text/javascript" src="/saito/saito.js?build=${build_number}"></script>
   </html>`;

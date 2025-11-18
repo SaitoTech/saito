@@ -1052,6 +1052,7 @@ class Server {
     //
     this.app.modules.webServer(expressApp, express);
 
+    // Default for base directory (can be overridden by a module)
     expressApp.get('/', (req, res) => {
       if (!res.finished) {
         return res.sendFile(`${this.web_dir}index_default.html`);

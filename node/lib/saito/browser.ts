@@ -245,23 +245,20 @@ class Browser {
       //
       if (typeof window == 'undefined') {
         return;
-      } else {
       }
+
       const current_url = window.location.toString();
       const myurl = new URL(current_url);
       this.host = myurl.host;
       this.port = myurl.port;
       this.protocol = myurl.protocol;
-      const myurlpath = myurl.pathname.split('/');
-      let active_module = myurlpath[1] ? myurlpath[1].toLowerCase() : '';
-      if (active_module == '') {
-        active_module = 'website';
-      }
+      this.urlParams = new URLSearchParams(window.location.search);
+
+      const active_module = this.determineActiveModule();
 
       //
       // query strings
       //
-      this.urlParams = new URLSearchParams(window.location.search);
       const entries = this.urlParams.entries();
       for (const pair of entries) {
         //
@@ -279,17 +276,11 @@ class Browser {
       //
       // tell that module it is active
       //
+      console.log('Browser.ts -- active module is ' + active_module);
       for (let i = 0; i < this.app.modules.mods.length; i++) {
         if (this.app.modules.mods[i].isSlug(active_module)) {
-          this.app.modules.mods[i].browser_active = 1;
-          this.app.modules.mods[i].alerts = 0;
-
-          //
-          // if urlParams exist, hand them to the module
-          //
-          const urlParams = new URLSearchParams(location.search);
-
-          this.app.modules.mods[i].handleUrlParams(urlParams);
+          console.log('Activating ' + this.app.modules.mods[i].returnName());
+          this.app.modules.mods[i].activateModule();
           break;
         }
       }
@@ -404,6 +395,18 @@ class Browser {
     }*/
   }
 
+  determineActiveModule() {
+    const current_url = window.location.toString();
+    const myurl = new URL(current_url);
+    const myurlpath = myurl.pathname.split('/');
+
+    if (myurlpath[1]) {
+      return myurlpath[1].toLowerCase();
+    }
+
+    return window?.active_module || 'website';
+  }
+
   extractIdentifiers(text = '') {
     let identifiers = [];
 
@@ -513,7 +516,10 @@ class Browser {
 
   returnURLParameter(name) {
     try {
-      this.urlParams = new URLSearchParams(window.location.search);
+      if (!this.urlParams) {
+        this.urlParams = new URLSearchParams(window.location.search);
+      }
+
       const entries = this.urlParams.entries();
       for (const pair of entries) {
         if (pair[0] == name) {

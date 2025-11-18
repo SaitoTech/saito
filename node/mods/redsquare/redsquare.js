@@ -2702,11 +2702,14 @@ class RedSquare extends ModTemplate {
   ///////////////
   // webserver //
   ///////////////
-  webServer(app, expressapp, express) {
-    let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
-    let redsquare_self = this;
+  webServer(app, expressapp, express, alternative_slug = null) {
+    const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+    const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
+    const redsquare_self = this;
 
-    expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
+    expressapp.use(uri, express.static(webdir));
+
+    expressapp.get(uri, async function (req, res) {
       let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
 
       try {
@@ -2842,8 +2845,6 @@ class RedSquare extends ModTemplate {
       }
       return;
     });
-
-    expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
   }
 
   // This needs to be a separate function from basic moderation, because users

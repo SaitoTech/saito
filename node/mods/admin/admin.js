@@ -422,9 +422,10 @@ class Admin extends ModTemplate {
     }
   }
 
-  webServer(app, expressapp, express) {
-    let webdir = `${__dirname}/web`;
-    let admin_self = this;
+  webServer(app, expressapp, express, alternative_slug = null) {
+    const webdir = `${__dirname}/web`;
+    const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
+    const admin_self = this;
 
     const serverFn = async (req, res) => {
       let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
@@ -437,9 +438,8 @@ class Admin extends ModTemplate {
       return;
     };
 
-    expressapp.get('/', serverFn);
-    expressapp.get('/' + encodeURI('admin'), serverFn);
-    expressapp.use('/' + encodeURI('admin'), express.static(webdir));
+    expressapp.get(uri, serverFn);
+    expressapp.use(uri, express.static(webdir));
   }
 }
 

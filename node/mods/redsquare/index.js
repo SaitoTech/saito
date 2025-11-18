@@ -78,6 +78,7 @@ module.exports = (app, mod, build_number, og_card, recent_tweets = []) => {
 `;
 
   html += `<script type="text/javascript">
+  var active_module = '${mod.returnSlug()}';
   if (!tweets) { 
     var tweets = [];
   }\n`;
