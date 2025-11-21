@@ -13,7 +13,7 @@ pub mod test {
     use crate::core::consensus_thread::{ConsensusEvent, ConsensusStats, ConsensusThread};
     use crate::core::defs::{
         BlockHash, BlockId, Currency, ForkId, PrintForLog, SaitoHash, SaitoPrivateKey,
-        StatVariable, RECOLLECT_EVERY_TX, RECOLLECT_NOTHING, STAT_BIN_COUNT,
+        StatVariable, RECOLLECT_NOTHING, STAT_BIN_COUNT,
     };
     use crate::core::defs::{SaitoPublicKey, Timestamp};
     use crate::core::io::network::Network;
@@ -25,6 +25,7 @@ pub mod test {
     use crate::core::process::process_event::ProcessEvent;
     use crate::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
     use crate::core::stat_thread::{StatEvent, StatThread};
+    use crate::core::util::config_manager::{BLOCKCHAIN_CONFIG_PATH, CONGESTION_CONFIG_PATH};
     use crate::core::util::configuration::{
         get_default_issuance_writing_block_interval, get_default_recollect_mode, BlockchainConfig,
         Configuration, ConsensusConfig, Endpoint, PeerConfig, Server, WalletConfig,
@@ -59,7 +60,8 @@ pub mod test {
     pub struct TestConfiguration {
         server: Option<Server>,
         peers: Vec<PeerConfig>,
-        blockchain: BlockchainConfig,
+        #[serde(skip)]
+        blockchain: Option<BlockchainConfig>,
         spv_mode: bool,
         browser_mode: bool,
         #[serde(default = "get_default_consensus")]
@@ -74,11 +76,11 @@ pub mod test {
             &self.peers
         }
 
-        fn get_blockchain_configs(&self) -> &BlockchainConfig {
-            &self.blockchain
+        fn get_blockchain_configs(&self) -> Option<&BlockchainConfig> {
+            self.blockchain.as_ref()
         }
-        fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
-            &mut self.blockchain
+        fn get_blockchain_configs_mut(&mut self) -> Option<&mut BlockchainConfig> {
+            self.blockchain.as_mut()
         }
         fn get_block_fetch_url(&self) -> String {
             "".to_string()
@@ -119,6 +121,10 @@ pub mod test {
         ) {
         }
 
+        fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
+            self.blockchain = config;
+        }
+
         fn get_config_path(&self) -> String {
             String::new()
         }
@@ -157,25 +163,7 @@ pub mod test {
                     block_fetch_batch_size: 0,
                 }),
                 peers: vec![],
-                blockchain: BlockchainConfig {
-                    last_block_hash:
-                        "0000000000000000000000000000000000000000000000000000000000000000"
-                            .to_string(),
-                    last_block_id: 0,
-                    last_timestamp: 0,
-                    genesis_block_id: 0,
-                    genesis_timestamp: 0,
-                    lowest_acceptable_timestamp: 0,
-                    lowest_acceptable_block_hash:
-                        "0000000000000000000000000000000000000000000000000000000000000000"
-                            .to_string(),
-                    lowest_acceptable_block_id: 0,
-                    fork_id: "0000000000000000000000000000000000000000000000000000000000000000"
-                        .to_string(),
-                    initial_loading_completed: false,
-                    issuance_writing_block_interval: get_default_issuance_writing_block_interval(),
-                    confirmations: vec![],
-                },
+                blockchain: Some(BlockchainConfig::default()),
                 spv_mode: false,
                 browser_mode: false,
                 consensus: Some(ConsensusConfig {
@@ -650,6 +638,12 @@ pub mod test {
         pub async fn delete_data() -> Result<(), Error> {
             tokio::fs::create_dir_all("./data").await?;
             tokio::fs::remove_dir_all("./data/").await?;
+            Self::delete_configs().await?;
+            Ok(())
+        }
+        pub async fn delete_configs() -> Result<(), Error> {
+            tokio::fs::create_dir_all("./config").await?;
+            tokio::fs::remove_dir_all("./config").await?;
             Ok(())
         }
         pub async fn create_block(

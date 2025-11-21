@@ -322,17 +322,6 @@ class StorageCore extends Storage {
           "peers": [],
           "spv_mode": false,
           "browser_mode": false,
-          "blockchain":{
-            "last_block_hash":"0000000000000000000000000000000000000000000000000000000000000000",
-            "last_block_id":0,
-            "last_timestamp":0,
-            "genesis_block_id":0,
-            "genesis_timestamp":0,
-            "lowest_acceptable_timestamp":0,
-            "lowest_acceptable_block_hash":"0000000000000000000000000000000000000000000000000000000000000000",
-            "lowest_acceptable_block_id":0,
-            "fork_id":"0000000000000000000000000000000000000000000000000000000000000000"
-          },
           "wallet": {
           }
         }

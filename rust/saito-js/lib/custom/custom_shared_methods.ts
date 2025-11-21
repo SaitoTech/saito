@@ -73,7 +73,7 @@ export default class CustomSharedMethods implements SharedMethods {
         }
     }
 
-    ensureBlockDirExists(path: string): void {
+    ensureDirExists(path: string): void {
         throw new Error("Method not implemented");
     }
 

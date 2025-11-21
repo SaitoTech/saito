@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use ahash::HashMap;
 use async_trait::async_trait;
-use log::{debug, info, trace};
+use log::{debug, error, info, trace, warn};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
@@ -25,6 +25,7 @@ use crate::core::mining_thread::MiningEvent;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::routing_thread::RoutingEvent;
+use crate::core::util::config_manager::ConfigManager;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::hash;
 
@@ -328,6 +329,12 @@ impl ConsensusThread {
                     None,
                 )
                 .await;
+        } else {
+            warn!(
+                "genesis block not produced. blockchain block count : {}, genesis block id : {}",
+                blockchain.blocks.len(),
+                blockchain.genesis_block_id
+            );
         }
 
         self.generate_genesis_block = false;
@@ -508,8 +515,9 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
             option_env!("CARGO_PKG_VERSION").unwrap_or("unknown")
         );
 
+        let mut configs = self.config_lock.write().await;
+        let mut blockchain = self.blockchain_lock.write().await;
         {
-            let configs = self.config_lock.read().await;
             info!(
                 "genesis_period : {:?}",
                 configs.get_consensus_config().unwrap().genesis_period
@@ -534,8 +542,20 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     consensus.block_confirmation_limit
                 );
             }
-            let mut blockchain = self.blockchain_lock.write().await;
-            let blockchain_configs = configs.get_blockchain_configs();
+            let blockchain_configs =
+                ConfigManager::read_blockchain_configs(self.network.io_interface.deref())
+                    .await
+                    .map(|config| Some(config))
+                    .unwrap_or_else(|e| {
+                        error!(
+                            "Error reading blockchain config: {}. Loading with default values",
+                            e
+                        );
+                        Some(Default::default())
+                    });
+            configs.set_blockchain_configs(blockchain_configs);
+
+            let blockchain_configs = configs.get_blockchain_configs().unwrap();
             info!(
                 "loading blockchain state from configs : {:?}",
                 blockchain_configs
@@ -555,8 +575,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 Some(SaitoHash::from_hex(blockchain_configs.fork_id.as_str()).unwrap_or([0; 32]));
         }
 
-        let mut configs = self.config_lock.write().await;
-        let mut blockchain = self.blockchain_lock.write().await;
         if !configs.is_browser() {
             let mut list = self
                 .storage
@@ -640,6 +658,7 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
             }
             configs
                 .get_blockchain_configs_mut()
+                .expect("blockchain config should exist here")
                 .initial_loading_completed = true;
             info!(
                 "{:?} total blocks in blockchain. Timestamp : {:?}, elapsed_time : {:?}",

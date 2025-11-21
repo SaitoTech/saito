@@ -89,7 +89,7 @@ impl Storage {
 
         match self
             .io_interface
-            .ensure_block_directory_exists(block_dir_path.as_str())
+            .ensure_directory_exists(block_dir_path.as_str())
         {
             Ok(()) => debug!("Block directory created"),
             Err(err) => {

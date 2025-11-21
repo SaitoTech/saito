@@ -68,7 +68,6 @@ async fn run_verification_thread(
             info!("verification thread started");
             // let mut work_done;
             let mut stat_timer = Instant::now();
-            let batch_size = 10000;
 
             event_processor.on_init().await;
             let mut queued_requests = vec![];
@@ -712,6 +711,7 @@ async fn run_node(
 
 pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
     info!("running saito controllers");
+    let start_time = Instant::now();
     let public_key: SaitoPublicKey =
         hex::decode("03145c7e7644ab277482ba8801a515b8f1b62bcd7e4834a33258f438cd7e223849")
             .unwrap()
@@ -813,6 +813,7 @@ pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
     }
     let mut file = file.unwrap();
 
+    let mut sum = 0;
     let slip_type = "Normal";
     let mut aggregated_value = 0;
     let mut total_written_lines = 0;
@@ -821,6 +822,7 @@ pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
             // PROJECT_PUBLIC_KEY.to_string()
             aggregated_value += value;
         } else {
+            sum += value;
             total_written_lines += 1;
             let key_base58 = key.to_base58();
 
@@ -832,6 +834,7 @@ pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
 
     // add remaining value
     if aggregated_value > 0 {
+        sum += aggregated_value;
         total_written_lines += 1;
         file.write_all(
             format!(
@@ -850,7 +853,15 @@ pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
         .await
         .expect("failed flushing issuance file data");
 
-    info!("total written lines : {:?}", total_written_lines);
+    let end_time = Instant::now();
+    let spent_time = end_time.duration_since(start_time);
+
+    info!(
+        "total written lines : {:?} sum : {:?} spent_time : {:?}",
+        total_written_lines,
+        sum,
+        spent_time.as_secs()
+    );
 }
 
 #[tokio::main(flavor = "multi_thread")]

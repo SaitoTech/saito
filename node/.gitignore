@@ -56,6 +56,7 @@ data/checkpoints/*
 data/issuance/issuance
 data/issuance/*.issuance
 data/issuance/archive
+data/state
 
 bundler
 bundler/*

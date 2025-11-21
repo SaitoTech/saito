@@ -127,7 +127,7 @@ pub trait InterfaceIO: Debug {
     fn get_block_dir(&self) -> String;
     fn get_checkpoint_dir(&self) -> String;
 
-    fn ensure_block_directory_exists(&self, block_dir: &str) -> Result<(), Error>;
+    fn ensure_directory_exists(&self, block_dir: &str) -> Result<(), Error>;
 
     async fn process_api_call(&self, buffer: Vec<u8>, msg_index: u32, peer_index: PeerIndex);
     async fn process_api_success(&self, buffer: Vec<u8>, msg_index: u32, peer_index: PeerIndex);

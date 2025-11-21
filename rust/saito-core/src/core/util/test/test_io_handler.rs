@@ -5,7 +5,7 @@ pub mod test {
     use std::path::Path;
 
     use async_trait::async_trait;
-    use log::{debug, info};
+    use log::{debug, info, trace};
     use tokio::fs::File;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
@@ -66,7 +66,7 @@ pub mod test {
         }
 
         async fn write_value(&self, key: &str, value: &[u8]) -> Result<(), Error> {
-            debug!("writing value to disk : {:?}", key);
+            trace!("writing value to disk : {:?}", key);
             let filename = key;
             let path = Path::new(filename);
             if path.parent().is_some() {
@@ -150,7 +150,7 @@ pub mod test {
             "data/checkpoints/".to_string()
         }
 
-        fn ensure_block_directory_exists(&self, block_dir_path: &str) -> std::io::Result<()> {
+        fn ensure_directory_exists(&self, block_dir_path: &str) -> std::io::Result<()> {
             if !Path::new(&block_dir_path).exists() {
                 fs::create_dir_all(block_dir_path.to_string())?;
             }

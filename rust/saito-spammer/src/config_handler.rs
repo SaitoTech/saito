@@ -7,8 +7,7 @@ use serde::Deserialize;
 
 use log::{debug, error};
 use saito_core::core::util::configuration::{
-    get_default_issuance_writing_block_interval, BlockchainConfig, Configuration, ConsensusConfig,
-    Endpoint, PeerConfig, Server, WalletConfig,
+    BlockchainConfig, Configuration, ConsensusConfig, Endpoint, PeerConfig, Server, WalletConfig,
 };
 
 #[derive(Deserialize, Debug, Clone)]
@@ -33,7 +32,7 @@ pub struct SpammerConfigs {
     lite: bool,
     #[serde(default = "get_default_consensus")]
     consensus: Option<ConsensusConfig>,
-    blockchain: BlockchainConfig,
+    blockchain: Option<BlockchainConfig>,
     wallet: Option<WalletConfig>,
 }
 
@@ -68,23 +67,7 @@ impl SpammerConfigs {
             },
             lite: false,
             consensus: Some(ConsensusConfig::default()),
-            blockchain: BlockchainConfig {
-                last_block_hash: "0000000000000000000000000000000000000000000000000000000000000000"
-                    .to_string(),
-                last_block_id: 0,
-                last_timestamp: 0,
-                genesis_block_id: 0,
-                genesis_timestamp: 0,
-                lowest_acceptable_timestamp: 0,
-                lowest_acceptable_block_hash:
-                    "0000000000000000000000000000000000000000000000000000000000000000".to_string(),
-                lowest_acceptable_block_id: 0,
-                fork_id: "0000000000000000000000000000000000000000000000000000000000000000"
-                    .to_string(),
-                initial_loading_completed: false,
-                issuance_writing_block_interval: get_default_issuance_writing_block_interval(),
-                confirmations: vec![],
-            },
+            blockchain: None,
             wallet: Default::default(),
         }
     }
@@ -103,11 +86,11 @@ impl Configuration for SpammerConfigs {
         &self.peers
     }
 
-    fn get_blockchain_configs(&self) -> &BlockchainConfig {
-        &self.blockchain
+    fn get_blockchain_configs(&self) -> std::option::Option<&BlockchainConfig> {
+        self.blockchain.as_ref()
     }
-    fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
-        &mut self.blockchain
+    fn get_blockchain_configs_mut(&mut self) -> std::option::Option<&mut BlockchainConfig> {
+        self.blockchain.as_mut()
     }
     fn get_block_fetch_url(&self) -> String {
         let endpoint = &self.get_server_configs().unwrap().endpoint;
@@ -147,6 +130,10 @@ impl Configuration for SpammerConfigs {
     }
 
     fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>) {}
+
+    fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
+        self.blockchain = config;
+    }
 
     fn get_config_path(&self) -> String {
         String::new()

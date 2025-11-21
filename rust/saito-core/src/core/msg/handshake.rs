@@ -198,7 +198,6 @@ impl Serialize<Self> for HandshakeResponse {
 
 #[cfg(test)]
 mod tests {
-    use rayon::result;
 
     use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
     use crate::core::process::version::Version;

@@ -185,8 +185,8 @@ impl InterfaceIO for WasmIoHandler {
         "data/checkpoints/".to_string()
     }
 
-    fn ensure_block_directory_exists(&self, block_dir_path: &str) -> Result<(), std::io::Error> {
-        let result = MsgHandler::ensure_block_directory_exists(block_dir_path.to_string());
+    fn ensure_directory_exists(&self, block_dir_path: &str) -> Result<(), std::io::Error> {
+        let result = MsgHandler::ensure_directory_exists(block_dir_path.to_string());
         if result.is_err() {
             error!("{:?}", result.err().unwrap());
             return Err(Error::from(ErrorKind::Other));
@@ -366,7 +366,7 @@ extern "C" {
     pub fn flush_data(key: String);
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
-    pub fn ensure_block_directory_exists(path: String) -> Result<(), js_sys::Error>;
+    pub fn ensure_directory_exists(path: String) -> Result<(), js_sys::Error>;
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
     pub fn read_value(key: String) -> Result<Uint8Array, js_sys::Error>;

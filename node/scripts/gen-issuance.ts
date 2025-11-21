@@ -27,7 +27,9 @@ async function genIssuance() {
 
     await app.storage.initialize();
     let privateKey = app.options.wallet?.privateKey || '';
-    let logLevel = parseLogLevel('debug');
+    let logLevelArg = getCommandLineArg('l') || getCommandLineArg('loglevel');
+    let envLogLevel = process.env.SAITO_LOG_LEVEL;
+    let logLevel = parseLogLevel(logLevelArg || envLogLevel || 'info');
 
     await initS(
         app.options,

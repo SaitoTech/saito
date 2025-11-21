@@ -264,7 +264,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
     );
   }
 
-  ensureBlockDirExists(path: string): void {
+  ensureDirExists(path: string): void {
     if (fs.existsSync(path)) {
       return;
     }
