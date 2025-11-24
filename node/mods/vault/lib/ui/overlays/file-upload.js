@@ -47,9 +47,11 @@ class FileUpload {
       //
       // nft-binding buttons
       //
-      document.querySelector('.private-nft').onclick = async (e) => {
-        this.overlay.hide();
-        this.list_nfts_overlay.render();
+      if (document.querySelector('.private-nft')) {
+        document.querySelector('.private-nft').onclick = async (e) => {
+          this.overlay.hide();
+          this.list_nfts_overlay.render();
+        }
       }
       document.querySelector('.public-nft').onclick = async (e) => {
 
@@ -64,7 +66,7 @@ class FileUpload {
           try { 
             siteMessage('Transferring File to Archive...', 3000);
             document.querySelector('.spinner-helper').style.display = "block";
-            document.querySelector('.private-nft').style.display = "none";
+//            document.querySelector('.private-nft').style.display = "none";
             document.querySelector('.public-nft').style.display = "none";
 	    this.file_info_overlay.sig = newtx.signature;
 	    await this.app.network.sendRequestAsTransaction(

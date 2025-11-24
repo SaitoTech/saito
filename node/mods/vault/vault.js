@@ -210,131 +210,145 @@ console.log("ERROR: " + err);
 	}
 
 
-	async createVaultAddFileTransaction() {
+  async createVaultAddFileTransaction() {
 
-	  let newtx = await this.app.wallet.createUnsignedTransaction();
+    let newtx = await this.app.wallet.createUnsignedTransaction();
 
-	  let scripting_mod = this.app.modules.returnModule("Scripting");
-	  if (!scripting_mod) { return null; }
+    let scripting_mod = this.app.modules.returnModule("Scripting");
+    if (!scripting_mod) { return null; }
 
-	  //
-	  // build CHECKOWN script
-	  //
-	  // NOTE: you need to decide which UTXO proves ownership
-	  // e.g. the UTXO key for a specific NFT or deposit slip.
-	  //
+    //
+    // for CHECKOWNNFT we bind the file to an NFT
+    // the script only needs the nftid (witness is only needed at access time)
+    //
+    let nftid = prompt("NFT ID (nftid):");
+    if (!nftid) {
+      alert("Missing NFT ID");
+      return null;
+    }
 
-    let utxokey = prompt("utxokey:");
+    let access_script_obj = {
+      op: "CHECKOWNNFT",
+      nftid,
+    };
 
-	  let access_script_obj = {
-	    op: "CHECKOWN",
-	    utxokey,
-	  };
+    let access_script = JSON.stringify(access_script_obj);
+    let access_hash   = scripting_mod.hash(access_script);
 
-	  //
-	  // serialize and hash via Scripting
-	  //
-	  let access_script = JSON.stringify(access_script_obj);
-	  let access_hash   = scripting_mod.hash(access_script);
+    let msg = {
+      request       : "vault add file",
+      access_script : access_script,
+      access_hash   : access_hash,
+      data          : { file : this.file , name : this.filename },
+    };
 
-	  let msg = {
-	    request       : "vault add file",
-	    access_script : access_script,
-	    access_hash   : access_hash,
-	    data          : { file : this.file , name : this.filename },
-	  };
+    newtx.msg = msg;
+    await newtx.sign();
 
-	  newtx.msg = msg;
-	  await newtx.sign();
-
-	  return newtx;
-	}
+    return newtx;
+  }
 
 
-	async sendAccessFileRequest(mycallback) {
+  async sendAccessFileRequest(mycallback) {
 
-	  let scripting_mod = this.app.modules.returnModule("Scripting");
-	  if (!scripting_mod) { return null; }
+    let scripting_mod = this.app.modules.returnModule("Scripting");
+    if (!scripting_mod) { return null; }
 
-	  //
-	  // Same CHECKOWN script as used when storing
-	  //
-    let utxokey = prompt("utxokey:");
+    //
+    // script: CHECKOWNNFT + nftid
+    // witness: three utxokeys proving ownership
+    //
+    let nftid = prompt("NFT ID (nftid):");
+    let utxokey1 = prompt("NFT utxokey1:");
+    let utxokey2 = prompt("NFT utxokey2:");
+    let utxokey3 = prompt("NFT utxokey3:");
 
-	  let access_script_obj = {
-	    op: "CHECKOWN",
-	    utxokey,
-	  };
+    if (!nftid || !utxokey1 || !utxokey2 || !utxokey3) {
+      alert("Missing nftid or one of the utxokeys");
+      return null;
+    }
 
-	  let access_script   = JSON.stringify(access_script_obj);
-	  let access_witness  = JSON.stringify({});   // CHECKOWN has no witness fields
-	  let access_hash     = scripting_mod.hash(access_script);
+    let access_script_obj = {
+      op: "CHECKOWNNFT",
+      nftid,
+    };
 
-	  let data = {
-	    request        : "vault access file",
-	    access_witness : access_witness,
-	    access_script  : access_script,
-	    access_hash    : access_hash,
-	    data           : { file_id : this.file_id },
-	  };
+    let access_script = JSON.stringify(access_script_obj);
 
-	  console.log("data: ", data);
+    let access_witness_obj = {
+      utxokey1,
+      utxokey2,
+      utxokey3,
+    };
+    let access_witness = JSON.stringify(access_witness_obj);
 
-	  if (this.peer) {
-	    this.app.network.sendRequestAsTransaction(
-	      "vault access file",
-	      data,
-	      (res) => { 
+    let access_hash = scripting_mod.hash(access_script);
 
-	      	console.log("callback vault access request: ", res);
+    let data = {
+      request        : "vault access file",
+      access_witness : access_witness,
+      access_script  : access_script,
+      access_hash    : access_hash,
+      data           : { file_id : this.file_id },
+    };
 
-      		let txs = res.txs;
-	      		if (txs.length > 0) {
-	          for (let i = 0; i < txs.length; i++) {
+    console.log("vault access data: ", data);
 
-						  let tx = new Transaction();
-						  tx.deserialize_from_web(this.app, txs[i]);
-				                  txmsg = tx.returnMessage();
+    if (this.peer) {
+      this.app.network.sendRequestAsTransaction(
+        "vault access file",
+        data,
+        (res) => { 
 
-						  try {
-						    let filename = txmsg.data.name;
-						    if (!filename) {
-						      filename = prompt("Enter filename to save:") || "vault.bin";  
-						    }
+          console.log("callback vault access request: ", res);
 
-						    const parts = txmsg.data.file.split(',');
-						    const header = parts[0];
-						    const base64Data = parts[1];
-						    const mime = header.match(/data:(.*);base64/)[1];
-						    const binary = atob(base64Data);
-						    const len = binary.length;
-						    const bytes = new Uint8Array(len);
-						    for (let i = 0; i < len; i++) {
-						      bytes[i] = binary.charCodeAt(i);
-						    }
-						    const blob = new Blob([bytes], { type: mime });
-						    const url = URL.createObjectURL(blob);
-						    const a = document.createElement("a");
-						    a.href = url;
-						    a.download = filename || "download";
-						    a.click();
-						    URL.revokeObjectURL(url);
-						  } catch (err) {
-						    console.log("ERROR: " + JSON.stringify(err));
-						  }
+          let txs = res.txs;
+          if (txs.length > 0) {
+            for (let i = 0; i < txs.length; i++) {
 
-						  this.overlay.close();
+              let tx = new Transaction();
+              tx.deserialize_from_web(this.app, txs[i]);
+              txmsg = tx.returnMessage();
 
-						}
-					}
+              try {
+                let filename = txmsg.data.name;
+                if (!filename) {
+                  filename = prompt("Enter filename to save:") || "vault.bin";  
+                }
 
-	      },
-	      this.peer.peerIndex,
-	      true
-	    );
-	    siteMessage("Transferring File to Archive...", 3000);
-	  }
-	}
+                const parts = txmsg.data.file.split(',');
+                const header = parts[0];
+                const base64Data = parts[1];
+                const mime = header.match(/data:(.*);base64/)[1];
+                const binary = atob(base64Data);
+                const len = binary.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                  bytes[i] = binary.charCodeAt(i);
+                }
+                const blob = new Blob([bytes], { type: mime });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = filename || "download";
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch (err) {
+                console.log("ERROR: " + JSON.stringify(err));
+              }
+
+              this.overlay.close();
+
+            }
+          }
+
+        },
+        this.peer.peerIndex,
+        true
+      );
+      siteMessage("Transferring File to Archive...", 3000);
+    }
+  }
 
 
 	async createAccessKeyNFT() {
