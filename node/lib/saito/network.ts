@@ -28,9 +28,21 @@ export default class Network {
     return S.getInstance().getPeer(index);
   }
 
-  public async sendRequest(message: string, data: any = '', callback: null, peer: Peer = null) {
+  public async sendRequest(
+    message: string,
+    data: any = '',
+    callback: null,
+    peer: Peer = null,
+    signature_required = false
+  ) {
     let buffer = Buffer.from(JSON.stringify(data), 'utf-8');
-    return S.getInstance().sendRequest(message, data, callback, peer ? peer.peerIndex : undefined);
+    return S.getInstance().sendRequest(
+      message,
+      data,
+      callback,
+      peer ? peer.peerIndex : undefined,
+      signature_required
+    );
   }
 
   /**
@@ -52,9 +64,10 @@ export default class Network {
     message: string,
     data: any = '',
     callback?: any,
-    peerIndex?: bigint
+    peerIndex?: bigint,
+    signature_required?: boolean
   ) {
-    return S.getInstance().sendRequest(message, data, callback, peerIndex);
+    return S.getInstance().sendRequest(message, data, callback, peerIndex, signature_required);
   }
 
   public close() {}

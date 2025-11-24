@@ -9,7 +9,9 @@ use wasm_bindgen::JsValue;
 
 use crate::saitowasm::{string_to_key, SAITO};
 use saito_core::core::consensus::blockchain::{Blockchain, BlockchainObserver};
-use saito_core::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash};
+use saito_core::core::defs::{
+    BlockHash, BlockId, PrintForLog, SaitoHash, SaitoUTXOSetKey, UTXO_KEY_LENGTH,
+};
 
 struct JsBlockchainObserver;
 
@@ -205,5 +207,40 @@ impl WasmBlockchain {
         // Register a lightweight observer that will call the thread-local functions
         let mut blockchain = self.blockchain_lock.write().await;
         blockchain.register_observer(Box::new(JsBlockchainObserver));
+    }
+
+    pub async fn is_slip_spendable(&self, utxokey_hex: JsString) -> bool {
+        let hex_str = utxokey_hex.as_string().unwrap_or_default();
+
+        //
+        // Decode plain hex string into bytes
+        //
+        let bytes = match hex::decode(&hex_str) {
+            Ok(b) => b,
+            Err(e) => {
+                log::warn!("is_slip_spendable: failed to decode hex: {:?}", e);
+                return false;
+            }
+        };
+
+        //
+        // Check exact UTXO key length
+        //
+        if bytes.len() != UTXO_KEY_LENGTH {
+            log::warn!(
+                "is_slip_spendable: invalid utxo key length: {}, expected {}",
+                bytes.len(),
+                UTXO_KEY_LENGTH
+            );
+            return false;
+        }
+
+        // Convert Vec<u8> [u8; 59]
+        let mut key: SaitoUTXOSetKey = [0; UTXO_KEY_LENGTH];
+        key.copy_from_slice(&bytes);
+
+        // Call blockchain.is_slip_unlocked
+        let blockchain = self.blockchain_lock.read().await;
+        blockchain.is_slip_unlocked(&key)
     }
 }

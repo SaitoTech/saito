@@ -48,6 +48,7 @@ panic = "unwind"
 default = ["saito-core/with-rayon"]
 
 [profile.release]
-debug = true
-lto = true
-
+lto = "thin"
+codegen-units = 1
+opt-level = 3
+panic = "abort"

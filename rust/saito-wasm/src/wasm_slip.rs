@@ -81,6 +81,34 @@ impl WasmSlip {
         key.into()
     }
 
+    #[wasm_bindgen(js_name = parse_slip_from_utxokey)]
+    pub fn parse_slip_from_utxokey(key_hex: JsString) -> Option<WasmSlip> {
+        //
+        // convert hex string from JS into SaitoUTXOSetKey
+        //
+        let key: SaitoUTXOSetKey = match string_to_hex(key_hex) {
+            Ok(k) => k,
+            Err(e) => {
+                warn!("parse_slip_from_utxokey: invalid utxo key hex: {:?}", e);
+                return None;
+            }
+        };
+
+        //
+        // call the core function Slip::parse_slip_from_utxokey
+        //
+        match Slip::parse_slip_from_utxokey(&key) {
+            Ok(slip) => Some(WasmSlip { slip }),
+            Err(e) => {
+                warn!(
+                    "parse_slip_from_utxokey: core parse_slip_from_utxokey failed: {:?}",
+                    e
+                );
+                None
+            }
+        }
+    }
+
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmSlip {
         WasmSlip {

@@ -1242,6 +1242,71 @@ impl Wallet {
     }
 
     //
+    // remove NFT and refund its slip2 deposit to current holder
+    //
+    pub async fn create_remove_bound_transaction(
+        &mut self,
+        slip1: SaitoUTXOSetKey,
+        slip2: SaitoUTXOSetKey,
+        slip3: SaitoUTXOSetKey,
+    ) -> Result<Transaction, Error> {
+        //
+        // locate & remove the NFT whose three UTXO keys match exactly
+        //
+        let pos = self
+            .nfts
+            .iter()
+            .position(|nft| nft.slip1 == slip1 && nft.slip2 == slip2 && nft.slip3 == slip3)
+            .ok_or_else(|| Error::new(ErrorKind::NotFound, "NFT not found"))?;
+
+        let old_nft = self.nfts.remove(pos);
+
+        //
+        // parse slip2 from its UTXO key
+        //
+        let mut input_slip2 = Slip::parse_slip_from_utxokey(&old_nft.slip2)
+            .map_err(|_| Error::new(ErrorKind::Other, "failed to parse slip2 from utxokey"))?;
+
+        //
+        // ensure correct type for spending; slip2 is a normal spendable slip
+        //
+        input_slip2.slip_type = SlipType::Normal;
+
+        //
+        // compute original deposit amount
+        //
+        let deposit_amount = input_slip2.amount;
+        if deposit_amount == 0 {
+            return Err(Error::new(ErrorKind::InvalidInput, "slip2 has zero amount"));
+        }
+
+        //
+        // build bound transaction
+        //
+        let mut transaction = Transaction::default();
+        transaction.transaction_type = TransactionType::Bound;
+
+        //
+        // add input slip to the transaction
+        //
+        transaction.add_from_slip(input_slip2.clone());
+
+        //
+        // create output slip (refund to current holder = input_slip2.public_key)
+        //
+        let mut out_slip = input_slip2.clone();
+        out_slip.amount = deposit_amount;
+        out_slip.slip_type = SlipType::Normal;
+
+        //
+        // add output slip
+        //
+        transaction.add_to_slip(out_slip);
+
+        Ok(transaction)
+    }
+
+    //
     // Constructs a 33-byte “UUID” for an NFT based on:
     //   1. The unique coordinates of the UTXO slip used to mint the NFT
     //      (block ID, transaction ordinal, slip index)

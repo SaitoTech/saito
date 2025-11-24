@@ -35,7 +35,10 @@ console_error_panic_hook = "=0.1.7"
 wasm-opt = ['-Oz']
 
 [profile.release]
-lto = true
+lto = "thin"
+codegen-units = 1
+opt-level = 3
+panic = "abort"
 
 [features]
 default = []

@@ -189,4 +189,13 @@ export default class Transaction extends WasmWrapper<WasmTransaction> {
         tx.unpackData();
         return tx;
     }
+
+    public generateHashForSignature(): void {
+        this.instance.generate_hash_for_signature();
+    }
+
+    public getHashForSignature(): Uint8Array {
+        const bytes = this.instance.get_hash_for_signature();
+        return new Uint8Array(bytes);
+    }
 }

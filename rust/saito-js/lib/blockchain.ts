@@ -229,6 +229,10 @@ export default class Blockchain extends WasmWrapper<WasmBlockchain> {
     return this.instance.get_latest_block_id();
   }
 
+  public async getLastBlockTimestamp() {
+    return this.instance.get_last_timestamp();
+  }
+
   public async getLongestChainHashAtId(blockId: bigint) {
     return this.instance.get_longest_chain_hash_at_id(blockId);
   }
@@ -247,5 +251,9 @@ export default class Blockchain extends WasmWrapper<WasmBlockchain> {
 
   public async setSafeToPruneTransaction(blockId: bigint) {
     return this.instance.set_safe_to_prune_transaction(blockId);
+  }
+
+  public async isSlipSpendable(utxoKey: string): Promise<boolean> {
+    return this.instance.is_slip_spendable(utxoKey);
   }
 }

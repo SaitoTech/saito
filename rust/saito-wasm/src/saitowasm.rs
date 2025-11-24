@@ -753,6 +753,47 @@ pub async fn create_merge_bound_transaction(
 }
 
 #[wasm_bindgen]
+pub async fn create_remove_bound_transaction(
+    slip1_utxo_key: JsString,
+    slip2_utxo_key: JsString,
+    slip3_utxo_key: JsString,
+) -> Result<WasmTransaction, JsValue> {
+    //
+    // get SAITO instance
+    //
+    let mut saito_guard = SAITO.lock().await;
+    let saito = saito_guard
+        .as_mut()
+        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+    //
+    // parse UTXO set keys
+    //
+    let s1: SaitoUTXOSetKey =
+        string_to_hex(slip1_utxo_key).map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
+    let s2: SaitoUTXOSetKey =
+        string_to_hex(slip2_utxo_key).map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
+    let s3: SaitoUTXOSetKey =
+        string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
+
+    //
+    // build the remove-bound transaction via wallet
+    //
+    let tx = {
+        let mut wallet = saito.context.wallet_lock.write().await;
+        wallet
+            .create_remove_bound_transaction(s1, s2, s3)
+            .await
+            .map_err(|_| JsValue::from_str("create_remove_bound_transaction failed"))?
+    };
+
+    //
+    // return the merged transaction back to JavaScript
+    //
+    Ok(WasmTransaction::from_transaction(tx))
+}
+
+#[wasm_bindgen]
 pub async fn get_nft_list() -> Result<Array, JsValue> {
     let saito = SAITO.lock().await;
     let wallet = saito.as_ref().unwrap().context.wallet_lock.read().await;

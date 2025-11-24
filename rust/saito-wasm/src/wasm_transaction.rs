@@ -159,6 +159,26 @@ impl WasmTransaction {
         let tx = WasmTransaction::from_transaction(tx.unwrap());
         Ok(tx)
     }
+
+    pub fn generate_hash_for_signature(&mut self) {
+        self.tx.generate_hash_for_signature();
+    }
+
+    pub fn get_hash_for_signature(&self) -> Uint8Array {
+        //
+        // If hash_for_signature is Some([u8; 32]), copy it into a Uint8Array
+        //
+        if let Some(h) = &self.tx.hash_for_signature {
+            let arr = Uint8Array::new_with_length(h.len() as u32);
+            arr.copy_from(h);
+            arr
+        } else {
+            //
+            // return empty array if hash_for_signature not set
+            //
+            Uint8Array::new_with_length(0)
+        }
+    }
 }
 
 impl WasmTransaction {

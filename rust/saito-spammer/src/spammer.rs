@@ -85,7 +85,7 @@ impl Spammer {
             loop {
                 {
                     let peers = peer_lock.read().await;
-                    if let Some((index, peer)) = peers.index_to_peers.iter().next() {
+                    if let Some((_, peer)) = peers.index_to_peers.iter().next() {
                         if let PeerStatus::Connected = peer.peer_status {
                             // info!("peer count : {}", peers.index_to_peers.len());
                             // info!("peer status : {:?}", peer.peer_status);
@@ -145,7 +145,7 @@ impl Spammer {
                 // }
                 {
                     let peers = self.tx_generator.peer_lock.read().await;
-                    if let Some((index, peer)) = peers.index_to_peers.iter().next() {
+                    if let Some((_, peer)) = peers.index_to_peers.iter().next() {
                         if let PeerStatus::Connected = peer.peer_status {
                             // info!("peer count : {}", peers.index_to_peers.len());
                             // info!("peer status : {:?}", peer.peer_status);

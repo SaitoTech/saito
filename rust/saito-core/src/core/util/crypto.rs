@@ -1,14 +1,21 @@
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature};
 use blake3::Hasher;
 use block_modes::BlockMode;
+use lazy_static::lazy_static;
 pub use merkle::MerkleTree;
 use rand::{thread_rng, Rng, SeedableRng};
-use secp256k1::ecdsa;
+use secp256k1::{ecdsa, Secp256k1};
 pub use secp256k1::{Message, PublicKey, SecretKey, SECP256K1};
 
 // type Aes128Cbc = Cbc<Aes128, Pkcs7>;
 
 pub const PARALLEL_HASH_BYTE_THRESHOLD: usize = 128_000;
+
+lazy_static! {
+    pub static ref SECP256K1_SIGN: Secp256k1<secp256k1::All> = Secp256k1::new();
+    pub static ref SECP256K1_VERIFY: Secp256k1<secp256k1::VerifyOnly> =
+        Secp256k1::verification_only();
+}
 
 // pub fn encrypt_with_password(msg: &[u8], password: &[u8]) -> Vec<u8> {
 //     let hash = hash(password);
@@ -38,10 +45,10 @@ pub const PARALLEL_HASH_BYTE_THRESHOLD: usize = 128_000;
 
 pub fn generate_keys() -> (SaitoPublicKey, SaitoPrivateKey) {
     let (mut secret_key, mut public_key) =
-        SECP256K1.generate_keypair(&mut secp256k1::rand::thread_rng());
+        SECP256K1_SIGN.generate_keypair(&mut secp256k1::rand::thread_rng());
     while public_key.serialize().to_base58().len() != 44 {
         // sometimes secp256k1 address is too big to store in 44 base-58 digits
-        let keypair_tuple = SECP256K1.generate_keypair(&mut secp256k1::rand::thread_rng());
+        let keypair_tuple = SECP256K1_SIGN.generate_keypair(&mut secp256k1::rand::thread_rng());
         secret_key = keypair_tuple.0;
         public_key = keypair_tuple.1;
     }
@@ -55,7 +62,7 @@ pub fn generate_keys() -> (SaitoPublicKey, SaitoPrivateKey) {
 /// Create and return a keypair with  the given hex u8 array as the private key
 pub fn generate_keypair_from_private_key(slice: &[u8]) -> (SaitoPublicKey, SaitoPrivateKey) {
     let secret_key = SecretKey::from_slice(slice).unwrap();
-    let public_key = PublicKey::from_secret_key(SECP256K1, &secret_key);
+    let public_key = PublicKey::from_secret_key(&SECP256K1_SIGN, &secret_key);
     let mut secret_bytes = [0u8; 32];
     for i in 0..32 {
         secret_bytes[i] = secret_key[i];
@@ -69,8 +76,9 @@ pub fn sign_blob<'a>(vbytes: &'a mut Vec<u8>, private_key: &SaitoPrivateKey) -> 
     vbytes
 }
 #[cfg(test)]
-lazy_static::lazy_static! {
-    pub static ref TEST_RNG: tokio::sync::Mutex<rand::rngs::StdRng>  = tokio::sync::Mutex::new(create_test_rng());
+lazy_static! {
+    pub static ref TEST_RNG: tokio::sync::Mutex<rand::rngs::StdRng> =
+        tokio::sync::Mutex::new(create_test_rng());
 }
 
 fn create_test_rng() -> rand::rngs::StdRng {
@@ -123,7 +131,7 @@ pub fn sign(message_bytes: &[u8], private_key: &SaitoPrivateKey) -> SaitoSignatu
     let hash = hash(message_bytes);
     let msg = Message::from_slice(&hash).unwrap();
     let secret = SecretKey::from_slice(private_key).unwrap();
-    let sig = SECP256K1.sign_ecdsa(&msg, &secret);
+    let sig = SECP256K1_SIGN.sign_ecdsa(&msg, &secret);
     sig.serialize_compact()
 }
 
@@ -137,16 +145,29 @@ pub fn verify_signature(
     sig: &SaitoSignature,
     public_key: &SaitoPublicKey,
 ) -> bool {
-    let m = Message::from_slice(hash);
-    let p = PublicKey::from_slice(public_key);
-    let s = ecdsa::Signature::from_compact(sig);
-    if m.is_err() || p.is_err() || s.is_err() {
-        false
-    } else {
-        SECP256K1
-            .verify_ecdsa(&m.unwrap(), &s.unwrap(), &p.unwrap())
-            .is_ok()
+    match (
+        Message::from_slice(hash),
+        PublicKey::from_slice(public_key),
+        ecdsa::Signature::from_compact(sig),
+    ) {
+        (Ok(m), Ok(p), Ok(s)) => SECP256K1_VERIFY.verify_ecdsa(&m, &s, &p).is_ok(),
+        _ => false,
     }
+}
+
+use rayon::prelude::*;
+
+pub fn verify_many(hashes: &[[u8; 32]], sigs: &[SaitoSignature], pks: &[PublicKey]) -> Vec<bool> {
+    hashes
+        .par_iter()
+        .zip(sigs)
+        .zip(pks)
+        .map(|((h, s), p)| {
+            let m = Message::from_slice(h).unwrap();
+            let sig = ecdsa::Signature::from_compact(s).unwrap();
+            SECP256K1_VERIFY.verify_ecdsa(&m, &sig, p).is_ok()
+        })
+        .collect()
 }
 
 pub fn is_valid_public_key(key: &SaitoPublicKey) -> bool {

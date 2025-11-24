@@ -102,6 +102,16 @@ export default class Slip extends WasmWrapper<WasmSlip> {
         return this.instance.utxo_key;
     }
 
+    public static fromUtxoKey(utxoKey: string): Slip | null {
+        const wasmSlip: WasmSlip | undefined = Slip.Type.parse_slip_from_utxokey(utxoKey);
+
+        if (!wasmSlip) {
+            return null;
+        }
+
+        return new Slip(wasmSlip);
+    }
+
     public toJson(): {
         blockId: bigint;
         utxoKey: string;

@@ -3269,11 +3269,20 @@ impl Block {
             "validating transactions ... count : {:?}",
             self.transactions.len()
         );
+        let mut transactions_valid = self
+            .transactions
+            .par_iter()
+            .all(|tx: &Transaction| -> bool {
+                tx.validate(utxoset, blockchain, validate_against_utxo)
+            });
+        if !transactions_valid {
+            error!("ERROR 579128: Invalid transactions found when validating txs, block validation failed");
+            return false;
+        }
         let mut new_slips_map = std::collections::HashMap::new();
-        let transactions_valid = self.transactions.iter().all(|tx: &Transaction| -> bool {
-            let valid_tx = tx.validate(utxoset, blockchain, validate_against_utxo);
+        transactions_valid &= self.transactions.iter().all(|tx: &Transaction| -> bool {
             // validate double-spend inputs
-            if valid_tx && tx.transaction_type != TransactionType::Fee {
+            if tx.transaction_type != TransactionType::Fee {
                 for input in tx.from.iter() {
                     if input.amount == 0 || input.slip_type == SlipType::Bound {
                         continue;

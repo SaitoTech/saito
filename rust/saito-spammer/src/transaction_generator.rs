@@ -145,7 +145,7 @@ impl TransactionGenerator {
                     return;
                 }
 
-                if let Some((index, peer)) = peers.index_to_peers.iter().next() {
+                if let Some((_, peer)) = peers.index_to_peers.iter().next() {
                     if let PeerStatus::Connected = peer.peer_status {
                         to_public_key = peer.get_public_key().unwrap();
                     } else {
@@ -364,7 +364,7 @@ impl TransactionGenerator {
         {
             let peers = self.peer_lock.read().await;
 
-            if let Some((index, peer)) = peers.index_to_peers.iter().next() {
+            if let Some((_, peer)) = peers.index_to_peers.iter().next() {
                 // if let PeerStatus::Connected = peer.peer_status {
                 info!("peer count : {}", peers.index_to_peers.len());
                 info!("peer status : {:?}", peer.peer_status);

@@ -1912,6 +1912,11 @@ impl Blockchain {
                 .get_longest_chain_block_hash_at_block_id(latest_block_id - genesis_period);
             has_genesis_period_of_blocks = result.is_some();
         }
+        trace!(
+            "has_genesis_block : {}, has_genesis_period_of_blocks : {}",
+            has_genesis_block,
+            has_genesis_period_of_blocks
+        );
         has_genesis_block || has_genesis_period_of_blocks
     }
 
