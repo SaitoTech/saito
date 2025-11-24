@@ -101,31 +101,83 @@ class Vault extends ModTemplate {
     		}
     
     		if (txmsg.request === 'vault access file') {
+    			console.log("inside txmsg.request = vault access");
 
-			try {
+			    try {
 
-				let archive_mod = app.modules.returnModule("Archive");
-				archive_mod.access_hash = 1; // ownership restricted
+			    	 console.log('1');
 
-				let data 		= {};
-				data.owner 		= txmsg.data.access_hash;
-				data.access_hash 	= txmsg.data.access_hash;
-				data.access_script 	= txmsg.data.access_script;
-				data.access_witness 	= txmsg.data.access_witness;
-				data.sig		= txmsg.data.data.file_id;
-				data.request_tx		= tx;
+			      //
+			      // run CHECKOWN / CHECKOWNNFT script
+			      //
+			      let scripting_mod = app.modules.returnModule("Scripting");
+			      if (!scripting_mod) {
+			        mycallback({ status : "err" , err : "scripting_module_missing" });
+			        return 0;
+			      }
 
-				this.app.storage.loadTransactions(data, async (txs) => {
-					mycallback({ status : "success" , err : "" , txs : txs });
-				}, 'localhost', 0); // 0 => "as string" / unreconstructed
+			      console.log('2');
+
+			      //
+			      // evaluate(hash, script, witness, vars, tx, blk)
+			      // tx => the request transaction, so CHECKOWN sees tx/from/signature
+			      //
+
+			      console.log("CHECKOWN: ");
+			      console.log("access_hash: ",txmsg.data.access_hash);
+			      console.log("access_script: ",txmsg.data.access_script);
+			      console.log("access_witness: ",txmsg.data.access_witness);
+			      let ok = await scripting_mod.evaluate(
+			        txmsg.data.access_hash || "",
+			        txmsg.data.access_script || "",
+			        txmsg.data.access_witness || "",
+			        {},        //
+			        tx,        //
+			        null       //
+			      );
+
+			       console.log('3');
+
+			      console.log("ok: ", ok);
+
+			      if (!ok) {
+			        mycallback({ status : "err" , err : "access_denied_script_failed" });
+			        return 0;
+			      }
+
+			      //
+			      // If script passes, proceed to Archive
+			      //
+			      let archive_mod = app.modules.returnModule("Archive");
+			      archive_mod.access_hash = 1; // ownership restricted
 
 
-			} catch (err) {
-				mycallback({ status : "err" , err : JSON.stringify(err) });
-			}
+			       console.log('4');
 
+			      let data               = {};
+			      data.owner             = txmsg.data.access_hash;
+			      data.access_hash       = txmsg.data.access_hash;
+			      data.access_script     = txmsg.data.access_script;
+			      data.access_witness    = txmsg.data.access_witness;
+			      data.sig               = txmsg.data.data.file_id;
+			      data.request_tx        = tx;
 
-		}
+			      this.app.storage.loadTransactions(
+			        data,
+			        async (txs) => {
+			          mycallback({ status : "success" , err : "" , txs : txs });
+			        },
+			        "localhost",
+			        0
+			      );
+
+			       console.log('5');
+
+			    } catch (err) {
+			      mycallback({ status : "err" , err : JSON.stringify(err) });
+			    }
+
+			  }
 
     		if (txmsg.request === 'vault add file') {
 
@@ -139,7 +191,7 @@ class Vault extends ModTemplate {
 				let peer_txmsg = peer_tx.returnMessage();
 				let access_hash = peer_txmsg.access_hash || "";
 
-console.log("peer TXMSG: " + JSON.stringify(peer_txmsg));
+//console.log("peer TXMSG: " + JSON.stringify(peer_txmsg));
 console.log("peer SIG: " + peer_tx.signature);
 console.log("peer FROM: " + peer_tx.from[0].publicKey);
 
@@ -160,96 +212,130 @@ console.log("ERROR: " + err);
 
 	async createVaultAddFileTransaction() {
 
-          let newtx = await this.app.wallet.createUnsignedTransaction();
+	  let newtx = await this.app.wallet.createUnsignedTransaction();
 
 	  let scripting_mod = this.app.modules.returnModule("Scripting");
 	  if (!scripting_mod) { return null; }
 
-	  let access_script = `{"op":"CHECKHASH","hash":"ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f"}`; // "hello"
-	  let access_hash = scripting_mod.hash(access_script);
+	  //
+	  // build CHECKOWN script
+	  //
+	  // NOTE: you need to decide which UTXO proves ownership
+	  // e.g. the UTXO key for a specific NFT or deposit slip.
+	  //
 
-      	  let msg = {
-		request : "vault add file" ,
-        	access_script : access_script ,
-        	access_hash : access_hash ,
-        	data : { file : this.file , name : this.filename } ,
-          };
+    let utxokey = prompt("utxokey:");
 
-          newtx.msg = msg;
-          await newtx.sign();
+	  let access_script_obj = {
+	    op: "CHECKOWN",
+	    utxokey,
+	  };
 
-    	  return newtx;
+	  //
+	  // serialize and hash via Scripting
+	  //
+	  let access_script = JSON.stringify(access_script_obj);
+	  let access_hash   = scripting_mod.hash(access_script);
 
+	  let msg = {
+	    request       : "vault add file",
+	    access_script : access_script,
+	    access_hash   : access_hash,
+	    data          : { file : this.file , name : this.filename },
+	  };
+
+	  newtx.msg = msg;
+	  await newtx.sign();
+
+	  return newtx;
 	}
+
 
 	async sendAccessFileRequest(mycallback) {
 
 	  let scripting_mod = this.app.modules.returnModule("Scripting");
 	  if (!scripting_mod) { return null; }
 
-	  let access_script = `{"op":"CHECKHASH","hash":"ea8f163db38682925e4491c5e58d4bb3506ef8c14eb78a86e908c5624a67200f"}`; // "hello"
-	  let access_witness = `{"input":"hello"}`;
-	  let access_hash = scripting_mod.hash(access_script);
+	  //
+	  // Same CHECKOWN script as used when storing
+	  //
+    let utxokey = prompt("utxokey:");
 
-          let data = {
-                request : "vault access file" ,
-                access_witness : access_witness ,
-                access_script : access_script ,
-                access_hash : access_hash ,
-                data : { file_id : this.file_id } ,
-          }
+	  let access_script_obj = {
+	    op: "CHECKOWN",
+	    utxokey,
+	  };
 
-      	  if (this.peer) {
-            this.app.network.sendRequestAsTransaction(
-              'vault access file' ,
-              data ,
-              (res) => {
+	  let access_script   = JSON.stringify(access_script_obj);
+	  let access_witness  = JSON.stringify({});   // CHECKOWN has no witness fields
+	  let access_hash     = scripting_mod.hash(access_script);
 
-	        let txs = res.txs;
+	  let data = {
+	    request        : "vault access file",
+	    access_witness : access_witness,
+	    access_script  : access_script,
+	    access_hash    : access_hash,
+	    data           : { file_id : this.file_id },
+	  };
 
-                for (let i = 0; i < txs.length; i++) {
+	  console.log("data: ", data);
 
-		  let tx = new Transaction();
-		  tx.deserialize_from_web(this.app, txs[i]);
-                  txmsg = tx.returnMessage();
+	  if (this.peer) {
+	    this.app.network.sendRequestAsTransaction(
+	      "vault access file",
+	      data,
+	      (res) => { 
 
-		  try {
-		    let filename = txmsg.data.name;
-		    if (!filename) {
-		      filename = prompt("Enter filename to save:") || "vault.bin";  
-		    }
+	      	console.log("callback vault access request: ", res);
 
-		    const parts = txmsg.data.file.split(',');
-		    const header = parts[0];
-		    const base64Data = parts[1];
-		    const mime = header.match(/data:(.*);base64/)[1];
-		    const binary = atob(base64Data);
-		    const len = binary.length;
-		    const bytes = new Uint8Array(len);
-		    for (let i = 0; i < len; i++) {
-		      bytes[i] = binary.charCodeAt(i);
-		    }
-		    const blob = new Blob([bytes], { type: mime });
-		    const url = URL.createObjectURL(blob);
-		    const a = document.createElement("a");
-		    a.href = url;
-		    a.download = filename || "download";
-		    a.click();
-		    URL.revokeObjectURL(url);
-		  } catch (err) {
-		    console.log("ERROR: " + JSON.stringify(err));
-		  }
+      		let txs = res.txs;
+	      		if (txs.length > 0) {
+	          for (let i = 0; i < txs.length; i++) {
 
-		  this.overlay.close();
+						  let tx = new Transaction();
+						  tx.deserialize_from_web(this.app, txs[i]);
+				                  txmsg = tx.returnMessage();
 
-		}
+						  try {
+						    let filename = txmsg.data.name;
+						    if (!filename) {
+						      filename = prompt("Enter filename to save:") || "vault.bin";  
+						    }
+
+						    const parts = txmsg.data.file.split(',');
+						    const header = parts[0];
+						    const base64Data = parts[1];
+						    const mime = header.match(/data:(.*);base64/)[1];
+						    const binary = atob(base64Data);
+						    const len = binary.length;
+						    const bytes = new Uint8Array(len);
+						    for (let i = 0; i < len; i++) {
+						      bytes[i] = binary.charCodeAt(i);
+						    }
+						    const blob = new Blob([bytes], { type: mime });
+						    const url = URL.createObjectURL(blob);
+						    const a = document.createElement("a");
+						    a.href = url;
+						    a.download = filename || "download";
+						    a.click();
+						    URL.revokeObjectURL(url);
+						  } catch (err) {
+						    console.log("ERROR: " + JSON.stringify(err));
+						  }
+
+						  this.overlay.close();
+
+						}
+					}
+
 	      },
-              this.peer.peerIndex
-            );
-            siteMessage('Transferring File to Archive...', 3000);
+	      this.peer.peerIndex,
+	      true
+	    );
+	    siteMessage("Transferring File to Archive...", 3000);
 	  }
-
 	}
+
 
 	async createAccessKeyNFT() {
 

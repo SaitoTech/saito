@@ -142,7 +142,9 @@ canonicalize(x) {
   	//
   	async evaluate(hash="", script="", witness = "", vars = {}, tx = null, blk = null) {
 
+
 console.log("into evaluate... 1");
+console.log("tx _eval:", tx);
 
 		let counter = {};
 		counter.node = 0;
@@ -204,6 +206,7 @@ console.log("witness: " + JSON.stringify(witness));
 
 async _eval(script, witness, vars, counter, tx, blk) {
 
+console.log("tx _eval:", tx);
   //
   // Safety checks
   //
@@ -267,6 +270,11 @@ async _eval(script, witness, vars, counter, tx, blk) {
   }
 
   try {
+    console.log("going to execute:");
+    console.log("script: ", script);
+    console.log("witness: ", witness);
+    console.log("vars: ", vars);
+    console.log("tx: ", tx);
     return await opcode.execute(this.app, script, witness, vars, tx, blk);
   } catch (err) {
     console.error(`Error executing opcode '${op}':`, err);
