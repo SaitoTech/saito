@@ -32,6 +32,7 @@ pub enum Message {
     KeyListUpdate(Vec<SaitoPublicKey>),
     GenesisBlockRequest(),
     GenesisBlockHeader(BlockHash, BlockId),
+    ForcedDisconnection(String),
 }
 
 impl Message {
@@ -71,6 +72,7 @@ impl Message {
             Message::GenesisBlockHeader(block_hash, block_id) => {
                 [block_hash.as_slice(), block_id.to_be_bytes().as_slice()].concat()
             }
+            Message::ForcedDisconnection(message) => message.as_bytes().to_vec(),
             _ => {
                 error!("unhandled type : {:?}", message_type);
                 vec![]
@@ -84,7 +86,8 @@ impl Message {
             warn!("empty buffer is not valid for message deserialization",);
             return Err(Error::from(ErrorKind::InvalidData));
         }
-        let message_type: u8 = u8::from_be_bytes(buffer[0..1].try_into().unwrap());
+        let message_type: u8 =
+            u8::from_be_bytes(buffer[0..1].try_into().or(Err(ErrorKind::InvalidData))?);
         let buffer = buffer[1..].to_vec();
 
         match message_type {
@@ -117,8 +120,16 @@ impl Message {
                     );
                     return Err(Error::from(ErrorKind::InvalidData));
                 }
-                let block_hash = buffer[0..32].to_vec().try_into().unwrap();
-                let block_id = u64::from_be_bytes(buffer[32..40].to_vec().try_into().unwrap());
+                let block_hash = buffer[0..32]
+                    .to_vec()
+                    .try_into()
+                    .or(Err(ErrorKind::InvalidData))?;
+                let block_id = u64::from_be_bytes(
+                    buffer[32..40]
+                        .to_vec()
+                        .try_into()
+                        .or(Err(ErrorKind::InvalidData))?,
+                );
                 Ok(Message::BlockHeaderHash(block_hash, block_id))
             }
             7 => Ok(Message::Ping()),
@@ -129,7 +140,7 @@ impl Message {
                     warn!("couldn't parse peer service from buffer");
                     return Err(Error::from(ErrorKind::InvalidData));
                 }
-                let services = services.unwrap();
+                let services = services?;
                 Ok(Message::Services(services))
             }
             10 => Ok(Message::GhostChain(GhostChainSync::deserialize(buffer))),
@@ -142,10 +153,17 @@ impl Message {
                     );
                     return Err(Error::from(ErrorKind::InvalidData));
                 }
-                let block_id = u64::from_be_bytes(buffer[0..8].try_into().unwrap());
-                let block_hash = buffer[8..40].to_vec().try_into().unwrap();
-                let fork_id = buffer[40..72].to_vec().try_into().unwrap();
-                return Ok(Message::GhostChainRequest(block_id, block_hash, fork_id));
+                let block_id =
+                    u64::from_be_bytes(buffer[0..8].try_into().or(Err(ErrorKind::InvalidData))?);
+                let block_hash = buffer[8..40]
+                    .to_vec()
+                    .try_into()
+                    .or(Err(ErrorKind::InvalidData))?;
+                let fork_id = buffer[40..72]
+                    .to_vec()
+                    .try_into()
+                    .or(Err(ErrorKind::InvalidData))?;
+                Ok(Message::GhostChainRequest(block_id, block_hash, fork_id))
             }
             12 => {
                 if buffer.len() < 4 {
@@ -196,8 +214,10 @@ impl Message {
                 let slice = buffer.as_slice();
 
                 for i in 0..key_count {
-                    let key: SaitoPublicKey =
-                        slice[i * 33..(i + 1) * 33].to_vec().try_into().unwrap();
+                    let key: SaitoPublicKey = slice[i * 33..(i + 1) * 33]
+                        .to_vec()
+                        .try_into()
+                        .or(Err(ErrorKind::InvalidData))?;
 
                     keylist.push(key);
                 }
@@ -214,9 +234,21 @@ impl Message {
                     );
                     return Err(Error::from(ErrorKind::InvalidData));
                 }
-                let block_hash = buffer[0..32].to_vec().try_into().unwrap();
-                let block_id = u64::from_be_bytes(buffer[32..40].to_vec().try_into().unwrap());
+                let block_hash = buffer[0..32]
+                    .to_vec()
+                    .try_into()
+                    .or(Err(ErrorKind::InvalidData))?;
+                let block_id = u64::from_be_bytes(
+                    buffer[32..40]
+                        .to_vec()
+                        .try_into()
+                        .or(Err(ErrorKind::InvalidData))?,
+                );
                 Ok(Message::GenesisBlockHeader(block_hash, block_id))
+            }
+            19 => {
+                let str = String::from_utf8(buffer.to_vec()).or(Err(ErrorKind::InvalidData))?;
+                Ok(Message::ForcedDisconnection(str))
             }
             _ => {
                 warn!("message type : {:?} not valid", message_type);
@@ -244,6 +276,7 @@ impl Message {
             Message::Pong() => 16,
             Message::GenesisBlockRequest() => 17,
             Message::GenesisBlockHeader(_, _) => 18,
+            Message::ForcedDisconnection(_) => 19,
         }
     }
 }

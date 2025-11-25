@@ -64,8 +64,8 @@ export default class Saito {
             flush_data: (key: string) => {
                 return sharedMethods.flushData(key);
             },
-            ensure_block_directory_exists: (path: string) => {
-                return sharedMethods.ensureBlockDirExists(path);
+            ensure_directory_exists: (path: string) => {
+                return sharedMethods.ensureDirExists(path);
             },
             read_value: (key: string) => {
                 return sharedMethods.readValue(key);
@@ -342,13 +342,13 @@ export default class Saito {
         return tx;
     }
 
-    public async createBoundTransaction<T extends Transaction>(         
-        num: bigint,           
-        deposit: bigint,        
+    public async createBoundTransaction<T extends Transaction>(
+        num: bigint,
+        deposit: bigint,
         tx_msg: any,
         fee: bigint,
-        recipient_public_key: string,     
-        nft_type: string, 
+        recipient_public_key: string,
+        nft_type: string,
     ): Promise<T> {
 
         let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
@@ -421,9 +421,9 @@ export default class Saito {
 
     public async createMergeBoundTransaction<T extends Transaction>(
       nftId: string,
-      tx_msg: any,  
+      tx_msg: any,
     ): Promise<T> {
-      
+
         let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
 
         const wasmTx = await Saito.getLibInstance().create_merge_bound_transaction(
@@ -436,6 +436,23 @@ export default class Saito {
 
         return tx;
     }
+
+    public async createRemoveBoundTransaction<T extends Transaction>(
+      slip1UtxoKey: string,
+      slip2UtxoKey: string,
+      slip3UtxoKey: string,
+    ): Promise<T> {
+      const wasmTx = await Saito.getLibInstance().create_remove_bound_transaction(
+        slip1UtxoKey,
+        slip2UtxoKey,
+        slip3UtxoKey,
+      );
+
+      const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
+      tx.timestamp = Date.now();
+      return tx;
+    }
+
 
     public async getPeers(): Promise<Array<Peer>> {
         let peers = await Saito.getLibInstance().get_peers();

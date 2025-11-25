@@ -264,9 +264,9 @@ impl InterfaceIO for RustIOHandler {
         CHECKPOINT_DIR_PATH.to_string()
     }
 
-    fn ensure_block_directory_exists(&self, block_dir_path: &str) -> Result<(), Error> {
+    fn ensure_directory_exists(&self, block_dir_path: &str) -> Result<(), Error> {
         if !Path::new(&block_dir_path).exists() {
-            fs::create_dir_all(BLOCKS_DIR_PATH.to_string())?;
+            fs::create_dir_all(block_dir_path.to_string())?;
         }
         Ok(())
     }

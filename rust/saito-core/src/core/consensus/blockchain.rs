@@ -2,6 +2,7 @@ use std::cmp::max;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::io::Error;
+use std::ops::Sub;
 use std::sync::Arc;
 
 use ahash::{AHashMap, HashMap};
@@ -308,7 +309,10 @@ impl Blockchain {
                     "hash is empty for parent of block : {:?}",
                     block.hash.to_hex()
                 );
-            } else if configs.get_blockchain_configs().initial_loading_completed
+            } else if configs
+                .get_blockchain_configs()
+                .expect("blockchain config should exist here")
+                .initial_loading_completed
                 || self.checkpoint_found
             {
                 let previous_block_fetched = iterate!(mempool.blocks_queue, 100)
@@ -331,9 +335,9 @@ impl Blockchain {
 
                             AddBlockResult::FailedButRetry(block, true, false)
                         } else {
-                            info!("block : {:?}-{:?} is too distant with the current latest block : id={:?}. so need to fetch the whole blockchain from the peer to make sure this is not an attack",
-                            block.id,block.hash.to_hex(),self.get_latest_block_id());
-                            AddBlockResult::FailedButRetry(block, false, true)
+                            info!("block : {:?}-{:?} is too distant with the current latest block : id={:?}. so need to fetch the whole blockchain from the peer to make sure this is not an attack. discarding the block",
+                                block.id,block.hash.to_hex(),self.get_latest_block_id());
+                            AddBlockResult::FailedButRetry(block, false, false)
                         }
                     } else {
                         debug!(
@@ -714,6 +718,7 @@ impl Blockchain {
 
                 let writing_interval = configs
                     .get_blockchain_configs()
+                    .expect("blockchain config should exist here")
                     .issuance_writing_block_interval;
 
                 if writing_interval > 0
@@ -775,7 +780,10 @@ impl Blockchain {
         let mut confirmations = vec![];
         let mut block_depth: BlockId = 0;
         const MAX_BLOCK_DEPTH: BlockId = 100;
-        let stored_confirmations = &configs.get_blockchain_configs().confirmations;
+        let stored_confirmations = &configs
+            .get_blockchain_configs()
+            .expect("blockchain config should exist here")
+            .confirmations;
         let min_block_id = stored_confirmations
             .iter()
             .map(|(id, _, _)| *id)
@@ -847,8 +855,16 @@ impl Blockchain {
         }
 
         let mut confs: Vec<BlockId> = Vec::with_capacity(self.block_confirmation_limit as usize);
-        let mut config_confs = configs.get_blockchain_configs_mut().confirmations.clone();
-        configs.get_blockchain_configs_mut().confirmations.clear();
+        let mut config_confs = configs
+            .get_blockchain_configs_mut()
+            .expect("blockchain config should exist here")
+            .confirmations
+            .clone();
+        configs
+            .get_blockchain_configs_mut()
+            .expect("blockchain config should exist here")
+            .confirmations
+            .clear();
         while let Some((block_id, block_hash, required_confirmation_count)) = confirmations.pop() {
             {
                 let block = self.get_block_mut(&block_hash).unwrap();
@@ -857,11 +873,11 @@ impl Blockchain {
                 }
                 block.confirmations += required_confirmation_count;
 
-                configs.get_blockchain_configs_mut().confirmations.push((
-                    block.id,
-                    block.hash,
-                    block.confirmations,
-                ));
+                configs
+                    .get_blockchain_configs_mut()
+                    .expect("blockchain config should exist here")
+                    .confirmations
+                    .push((block.id, block.hash, block.confirmations));
             }
 
             self.notify_on_confirmation(block_id, &block_hash, &confs);
@@ -869,7 +885,10 @@ impl Blockchain {
         }
 
         // add any leftover confirmations back into the vec
-        let entries_in_config = &mut configs.get_blockchain_configs_mut().confirmations;
+        let entries_in_config = &mut configs
+            .get_blockchain_configs_mut()
+            .expect("blockchain config should exist here")
+            .confirmations;
         config_confs.sort_by(|a, b| a.0.cmp(&b.0));
         while let Some((id, hash, confirmation_count)) = config_confs.pop() {
             if entries_in_config
@@ -946,7 +965,7 @@ impl Blockchain {
 
         storage
             .io_interface
-            .ensure_block_directory_exists("./data/issuance/archive");
+            .ensure_directory_exists("./data/issuance/archive");
 
         storage
             .io_interface
@@ -1136,10 +1155,9 @@ impl Blockchain {
         );
         for (index, weight) in FORK_ID_WEIGHTS.iter().enumerate() {
             if block_id < *weight {
-                trace!(
+                debug!(
                     "my_block_id : {:?} is less than weight : {:?}. returning 0",
-                    block_id,
-                    weight
+                    block_id, weight
                 );
                 return Some(0);
             }
@@ -1592,29 +1610,38 @@ impl Blockchain {
 
         let mut does_block_validate = self.validate_total_supply(configs).await;
 
-        let block = self.blocks.get(block_hash).unwrap();
+        let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+        let validate_against_utxo = self.has_total_supply_loaded(genesis_period);
+        // We must avoid holding a mutable borrow of the block while also
+        // mutably borrowing the blockchain (self) to validate. To satisfy
+        // Rust's borrow checker, temporarily remove the block from the map,
+        // validate it, and re-insert afterward.
+        let mut block = self.blocks.remove(block_hash).unwrap();
         if block.has_checkpoint {
             info!("block has checkpoint. cannot wind over this block");
+            // Re-insert before returning to keep state consistent
+            self.blocks.insert(*block_hash, block);
             return WindingResult::FinishWithFailure;
         }
-        {
-            debug!("winding hash validates: {:?}", block_hash.to_hex());
-            let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
-            let validate_against_utxo = self.has_total_supply_loaded(genesis_period);
 
-            does_block_validate &= block
-                .validate(self, &self.utxoset, configs, storage, validate_against_utxo)
-                .await;
+        debug!("winding hash validates: {:?}", block_hash.to_hex());
 
-            if !does_block_validate {
-                debug!("latest_block_id = {:?}", self.get_latest_block_id());
-                debug!("genesis_block_id = {:?}", self.genesis_block_id);
-                debug!(
-                    "genesis_period = {:?}",
-                    configs.get_consensus_config().unwrap().genesis_period
-                );
-            }
+        does_block_validate &= block
+            .validate(self, configs, storage, validate_against_utxo)
+            .await;
+
+        if !does_block_validate {
+            debug!("latest_block_id = {:?}", self.get_latest_block_id());
+            debug!("genesis_block_id = {:?}", self.genesis_block_id);
+            debug!(
+                "genesis_period = {:?}",
+                configs.get_consensus_config().unwrap().genesis_period
+            );
         }
+
+        // Put the block back into the map before proceeding
+        self.blocks.insert(*block_hash, block);
+        let block = self.blocks.get(block_hash).unwrap();
 
         let mut wallet_updated = WALLET_NOT_UPDATED;
 
@@ -1904,6 +1931,9 @@ impl Blockchain {
             .blockring
             .get_longest_chain_block_hash_at_block_id(1)
             .is_some();
+        if has_genesis_block {
+            return true;
+        }
         let latest_block_id = self.get_latest_block_id();
         let mut has_genesis_period_of_blocks = false;
         if latest_block_id > genesis_period {
@@ -1912,7 +1942,8 @@ impl Blockchain {
                 .get_longest_chain_block_hash_at_block_id(latest_block_id - genesis_period);
             has_genesis_period_of_blocks = result.is_some();
         }
-        has_genesis_block || has_genesis_period_of_blocks
+
+        has_genesis_period_of_blocks
     }
 
     // when new_chain and old_chain are generated the block_hashes are pushed
@@ -2113,7 +2144,8 @@ impl Blockchain {
         // so we check that our block is the head of the longest-chain and only
         // update the genesis period when that is the case.
         let latest_block_id = self.get_latest_block_id();
-        let block_limit = configs.get_consensus_config().unwrap().genesis_period * 2 + 1;
+        let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+        let block_limit = genesis_period * 2 + 1;
         debug!(
             "latest block id : {:?} block limit : {:?}. upgrading genesis_period. : {:?} current genesis_block_id : {:?}",
             latest_block_id,
@@ -2121,16 +2153,16 @@ impl Blockchain {
             latest_block_id >= block_limit,
             self.genesis_block_id
         );
+        self.genesis_block_id = max(
+            latest_block_id.saturating_sub(configs.get_consensus_config().unwrap().genesis_period),
+            1,
+        );
+        debug!("genesis block id set as : {:?}", self.genesis_block_id);
         if latest_block_id >= block_limit {
             // prune blocks
             let purge_bid =
                 latest_block_id - (configs.get_consensus_config().unwrap().genesis_period * 2);
-            self.genesis_block_id =
-                latest_block_id - configs.get_consensus_config().unwrap().genesis_period;
-            // self.genesis_block_hash = self
-            //     .blockring
-            //     .get_longest_chain_block_hash_at_block_id(self.genesis_block_id)
-            //     .unwrap();
+
             debug!("genesis block id set as : {:?}", self.genesis_block_id);
 
             // in either case, we are OK to throw out everything below the
@@ -2139,9 +2171,6 @@ impl Blockchain {
             if purge_bid > 0 {
                 return self.delete_blocks(purge_bid, storage).await;
             }
-        } else if self.genesis_block_id == 0 {
-            self.genesis_block_id = 1;
-            debug!("genesis block id set as : {:?}", self.genesis_block_id);
         }
 
         WALLET_NOT_UPDATED
@@ -2471,12 +2500,18 @@ impl Blockchain {
         fetch_prev_block: bool,
         fetch_blockchain: bool,
     ) {
-        debug!("adding block : {:?} back to mempool so it can be processed again after the previous block : {:?} is added",
+        debug!("adding block : {}-{:?} back to mempool so it can be processed again after the previous block : {:?} is added",
+                                    block.id,
                                     block.hash.to_hex(),
                                     block.previous_block_hash.to_hex());
 
         if let Some(sender) = sender_to_router.as_ref() {
             if fetch_blockchain {
+                info!(
+                    "need to fetch the blockchain. block : {}-{} failed to be added to the chain",
+                    block.id,
+                    block.hash.to_hex()
+                );
                 sender
                     .send(RoutingEvent::BlockchainRequest(
                         block.routed_from_peer.unwrap(),
@@ -2484,6 +2519,7 @@ impl Blockchain {
                     .await
                     .expect("sending blockchain request failed");
             } else if fetch_prev_block {
+                debug!("need to fetch the previous block. failed to add the block : {}-{} to the chain", block.id, block.hash.to_hex());
                 sender
                     .send(RoutingEvent::BlockFetchRequest(
                         block.routed_from_peer.unwrap_or(0),
@@ -2948,7 +2984,7 @@ mod tests {
     use ahash::HashMap;
     use log::{debug, error, info};
     use std::fs;
-    use std::ops::{Deref, DerefMut};
+    use std::ops::DerefMut;
     use std::sync::Arc;
 
     use tokio::sync::RwLock;
@@ -3009,6 +3045,7 @@ mod tests {
     #[tokio::test]
     #[serial_test::serial]
     async fn initialize_blockchain_test() {
+        // pretty_env_logger::init();
         let mut t = TestManager::default();
 
         // create first block, with 100 VIP txs with 1_000_000_000 NOLAN each
@@ -4313,6 +4350,7 @@ mod tests {
     #[tokio::test]
     #[serial_test::serial]
     async fn ghost_chain_content_test() {
+        // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
         let mut tester = NodeTester::default();
         tester

@@ -96,6 +96,10 @@ pub struct Peer {
     pub ip_address: Option<String>,
     pub stats: PeerStats,
     pub endpoint: Endpoint,
+    /// peer requested blockchain from us
+    pub requested_blockchain_from_us: bool,
+    /// we requested blockchain from the peer
+    pub requested_blockchain_from_peer: bool,
 }
 
 impl Peer {
@@ -120,6 +124,8 @@ impl Peer {
             connected_at_my_time: 0,
             connected_at_peer_time: 0,
             last_msg_received_at: 0,
+            requested_blockchain_from_us: false,
+            requested_blockchain_from_peer: false,
         }
     }
 
@@ -468,6 +474,8 @@ impl Peer {
     pub fn mark_as_disconnected(&mut self, disconnected_at: Timestamp) {
         self.challenge_for_peer = None;
         self.services = vec![];
+        self.requested_blockchain_from_us = false;
+        self.requested_blockchain_from_peer = false;
         info!(
             "marking peer : {:?} as disconnected. at : {:?}",
             self.index, disconnected_at
@@ -506,6 +514,8 @@ impl Peer {
         if self.static_peer_config.is_none() {
             self.static_peer_config = peer.static_peer_config;
         }
+        self.requested_blockchain_from_us = false;
+        self.requested_blockchain_from_peer = false;
 
         peer.static_peer_config = None;
     }

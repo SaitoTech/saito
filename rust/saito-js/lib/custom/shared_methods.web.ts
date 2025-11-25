@@ -93,8 +93,15 @@ export default class WebSharedMethods extends CustomSharedMethods {
                 console.debug("item not found for key : " + key);
                 return new Uint8Array();
             }
-            let buffer = Buffer.from(data, "base64");
-            return new Uint8Array(buffer);
+            try{
+              let buffer = Buffer.from(data, "utf-8");
+              return new Uint8Array(buffer);
+            }catch(e){
+              // TODO : remove these lines after running for a while in prod
+              let buffer = Buffer.from(data, "base64");
+              return new Uint8Array(buffer);
+            }
+
         } catch (error) {
             console.error(error);
         }
@@ -170,7 +177,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
     writeValue(key: string, value: Uint8Array): void {
         try {
-            localStorage.setItem(key, Buffer.from(value).toString("base64"));
+            localStorage.setItem(key, Buffer.from(value).toString("utf-8"));
         } catch (error) {
             console.error(error);
         }

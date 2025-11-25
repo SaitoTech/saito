@@ -6,4 +6,5 @@ data/saito.stats
 data/issuance/issuance
 data/issuance.file
 data/issuance/archive/*
+data/
 saito.log

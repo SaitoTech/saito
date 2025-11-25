@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::io::{Error, ErrorKind};
 use std::sync::Arc;
 
@@ -37,6 +38,8 @@ pub struct Network {
     pub wallet_lock: Arc<RwLock<Wallet>>,
     pub config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     pub timer: Timer,
+    /// Stores messages that needs to be sent to peers to not block other operations when in single threaded mode
+    pub send_message_buffer: VecDeque<(Vec<u8>, PeerIndex)>,
 }
 
 impl Network {
@@ -53,6 +56,7 @@ impl Network {
             wallet_lock,
             config_lock,
             timer,
+            send_message_buffer: VecDeque::with_capacity(10_000),
         }
     }
     pub async fn propagate_block(&self, block: &Block) {
@@ -122,10 +126,11 @@ impl Network {
             let mut transaction = transaction.clone();
             transaction.add_hop(&wallet.private_key, &wallet.public_key, &public_key);
             let message = Message::Transaction(transaction);
-            self.io_interface
+            _ = self
+                .io_interface
                 .send_message(*index, message.serialize().as_slice())
                 .await
-                .unwrap();
+                .inspect_err(|e| error!("{}", e));
         }
     }
 
@@ -402,12 +407,28 @@ impl Network {
         let configs = self.config_lock.read().await;
         // trace!("locking blockchain 1");
         let blockchain = blockchain_lock.read().await;
+        {
+            let mut peers = self.peer_lock.write().await;
+            if let Some(peer) = peers.find_peer_by_index_mut(peer_index) {
+                if peer.requested_blockchain_from_peer {
+                    info!("we already requested blockchain from peer : {}. so not requesting again until a reconnection",peer_index);
+                    return;
+                }
+                peer.requested_blockchain_from_peer = true;
+            } else {
+                warn!(
+                    "Cannot request blockchain from non existent peer : {}",
+                    peer_index
+                );
+            }
+        }
+
         let buffer: Vec<u8>;
-        debug!(
+        info!(
             "requesting blockchain from peer : {:?} latest_block_id : {:?}, last_block_id : {:?}",
             peer_index,
             blockchain.get_latest_block_id(),
-            blockchain.last_block_id
+            blockchain.last_block_id,
         );
 
         if configs.is_spv_mode() {
@@ -502,22 +523,29 @@ impl Network {
         drop(configs);
         // trace!("releasing blockchain 1");
 
-        self.io_interface
+        _ = self
+            .io_interface
             .send_message(peer_index, buffer.as_slice())
             .await
-            .unwrap();
+            .inspect_err(|e| error!("error sending message to peer : {}, {:?}", peer_index, e));
         trace!("blockchain request sent to peer : {:?}", peer_index);
     }
 
     pub async fn request_genesis_block_from_peer(&self, peer_index: PeerIndex) {
         info!("requesting genesis block from peer : {:?}", peer_index);
-        self.io_interface
+        _ = self
+            .io_interface
             .send_message(
                 peer_index,
                 Message::GenesisBlockRequest().serialize().as_slice(),
             )
             .await
-            .unwrap();
+            .inspect_err(|e| {
+                error!(
+                    "error sending genesis block request to peer : {:?}. {}",
+                    peer_index, e
+                )
+            });
     }
 
     pub async fn process_incoming_block_hash(
@@ -567,6 +595,16 @@ impl Network {
             let wallet = self.wallet_lock.read().await;
 
             if let Some(peer) = peers.index_to_peers.get(&peer_index) {
+                if let PeerStatus::Connected = peer.peer_status {
+                } else {
+                    warn!(
+                        "Not connected to the peer : {}. So not fetching the block : {}-{}",
+                        peer_index,
+                        block_id,
+                        block_hash.to_hex()
+                    );
+                    return None;
+                }
                 if wallet.wallet_version > peer.wallet_version
                     && peer.wallet_version != Version::new(0, 0, 0)
                 {
@@ -747,13 +785,70 @@ impl Network {
                 && *new_peer_index != peer_index)
             });
     }
+
+    pub async fn disconnect_from_peer(
+        &self,
+        peer_index: PeerIndex,
+        message: &str,
+    ) -> Result<(), Error> {
+        _ = self
+            .io_interface
+            .send_message(
+                peer_index,
+                Message::ForcedDisconnection(message.to_string())
+                    .serialize()
+                    .as_ref(),
+            )
+            .await
+            .inspect_err(|err| {
+                error!(
+                    "failed sending disconnection message to peer : {}. {}",
+                    peer_index, err
+                )
+            });
+        self.io_interface
+            .disconnect_from_peer(peer_index)
+            .await
+            .inspect_err(|err| error!("failed disconnecting from peer : {}. {}", peer_index, err))
+    }
+    pub async fn queue_to_send(&mut self, buffer: Vec<u8>, peer_index: PeerIndex) {
+        self.send_message_buffer.push_back((buffer, peer_index));
+    }
+    pub async fn send_messages_in_buffer(&mut self) -> Result<(), Error> {
+        const MESSAGES_PER_RUN: u64 = 100;
+        let mut message_count: u64 = 0;
+
+        // TODO : check if using drain() instead of pop() here would be efficient
+        while let Some((buffer, peer_index)) = self.send_message_buffer.pop_front() {
+            _ = self
+                .io_interface
+                .send_message(peer_index, &buffer)
+                .await
+                .inspect_err(|e| {
+                    error!(
+                        "failed sending buffered message to peer : {}. {}",
+                        peer_index, e
+                    )
+                });
+            message_count += 1;
+            if message_count >= MESSAGES_PER_RUN {
+                break;
+            }
+        }
+
+        // if self.send_message_buffer.is_empty() {
+        //     self.send_message_buffer.shrink_to(10_000);
+        // }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::core::util::{configuration::PeerConfig, test::test_manager};
-    use rand::Rng;
+    // use super::*;
+    // use crate::core::util::{configuration::PeerConfig, test::test_manager};
+    // use rand::Rng;
 
     // #[serial_test::serial]
     // #[tokio::test]

@@ -23,8 +23,8 @@ class MsgHandler {
         return global.shared_methods.flush_data(key);
     }
 
-    static ensure_block_directory_exists(path) {
-        return global.shared_methods.ensure_block_directory_exists(path);
+    static ensure_directory_exists(path) {
+        return global.shared_methods.ensure_directory_exists(path);
     }
 
     static read_value(key) {

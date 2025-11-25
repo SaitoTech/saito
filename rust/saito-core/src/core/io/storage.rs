@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use ahash::AHashMap;
 use bs58;
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use tokio::sync::RwLock;
 
 use crate::core::consensus::block::{Block, BlockType};
@@ -89,7 +89,7 @@ impl Storage {
 
         match self
             .io_interface
-            .ensure_block_directory_exists(block_dir_path.as_str())
+            .ensure_directory_exists(block_dir_path.as_str())
         {
             Ok(()) => debug!("Block directory created"),
             Err(err) => {
@@ -318,7 +318,7 @@ impl Storage {
         let file_path = self.io_interface.get_checkpoint_dir()
             + format!("{}-{}.chk", block_id, block_hash.to_hex()).as_str();
         if !self.io_interface.is_existing_file(&file_path).await {
-            debug!("no checkpoint file : {} exists for block", file_path,);
+            trace!("no checkpoint file : {} exists for block", file_path,);
             return None;
         }
         if let Ok(result) = self.io_interface.read_value(file_path.as_str()).await {

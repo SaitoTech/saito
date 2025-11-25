@@ -30,12 +30,16 @@ serde_json = { version = "=1.0.120" }
 num-derive = { version = "=0.4.2" }
 num-traits = { version = "=0.2.19" }
 console_error_panic_hook = "=0.1.7"
+rayon = "=1.10.0"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ['-Oz']
 
 [profile.release]
-lto = true
+lto = "thin"
+codegen-units = 1
+opt-level = 3
+panic = "abort"
 
 [features]
 default = []

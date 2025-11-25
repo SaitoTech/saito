@@ -63,8 +63,8 @@ jobs:
       #        run: mkdir data/blocks
       #        working-directory: 'slr'
 
-      - name: copy blocks in prod-services into data/blocks folder
-        run: rsync -avPq -e "ssh -o StrictHostKeyChecking=no -i ./CI_KEY" root@prod-services.saito.io:/opt/saito/data/blocks/ data/blocks/
+      - name: copy blocks in staging into data/blocks folder
+        run: rsync -avPq -e "ssh -o StrictHostKeyChecking=no -i ./CI_KEY" root@staging.saito.io:/opt/saito/data/blocks/ data/blocks/
         working-directory: 'node'
 
       - name: ls blocks

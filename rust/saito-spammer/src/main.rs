@@ -336,6 +336,7 @@ async fn run_routing_event_processor(
         congestion_check_timer: 0,
         received_ghost_chain: None,
         waiting_for_genesis_block: false,
+        message_sending_timer: 0,
     };
 
     let (interface_sender_to_routing, interface_receiver_for_routing) =

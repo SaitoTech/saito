@@ -55,7 +55,13 @@ impl BlockchainSyncState {
     /// Builds the list of blocks to be fetched from each peer. Blocks fetched are in order if in the same fork,
     /// or at the same level for multiple forks to make sure the blocks fetched can be processed most efficiently
     pub(crate) fn build_peer_block_picture(&mut self, blockchain: &Blockchain) {
-        // trace!("building peer block picture");
+        trace!(
+            "building peer block picture. total : {}",
+            self.received_block_picture
+                .iter()
+                .map(|x| x.1.len())
+                .sum::<usize>()
+        );
         // for every block picture received from a peer, we sort and create a list of sequential hashes to fetch from peers
         for (peer_index, received_picture_from_peer) in self.received_block_picture.iter_mut() {
             // need to sort before sequencing
@@ -114,10 +120,11 @@ impl BlockchainSyncState {
                 }
             }
             if counter > 0 {
-                trace!(
-                    "{:?} blocks selected (total : {:?}) for peer : {:?}",
+                debug!(
+                    "{:?} blocks selected (total : {:?}/{:?}) for peer : {:?}",
                     counter,
                     blocks_to_fetch_from_peer.len(),
+                    received_picture_from_peer.len(),
                     peer_index
                 );
             }
@@ -136,7 +143,7 @@ impl BlockchainSyncState {
     pub fn get_blocks_to_fetch_per_peer(
         &mut self,
     ) -> HashMap<PeerIndex, Vec<(SaitoHash, BlockId)>> {
-        // trace!("getting block to be fetched per each peer",);
+        trace!("getting block to be fetched per each peer",);
         let mut selected_blocks_per_peer: HashMap<PeerIndex, Vec<(SaitoHash, BlockId)>> =
             Default::default();
 
@@ -178,7 +185,7 @@ impl BlockchainSyncState {
             let mut allowed_quota = self.batch_size - fetching_count;
 
             for block_data in deq.iter_mut() {
-                // we peers concurrent fetches to this amount
+                // we limit concurrent fetches to this amount
                 if allowed_quota == 0 {
                     // we have reached allowed concurrent fetches quota.
                     break;
@@ -229,7 +236,7 @@ impl BlockchainSyncState {
                 }
             }
 
-            trace!(
+            debug!(
                 "peer : {:?} to be fetched {:?} blocks. first : {:?} last : {:?} fetching : {:?} failed : {:?} queued : {:?}",
                 peer_index,
                 deq.len(),
@@ -332,7 +339,7 @@ impl BlockchainSyncState {
         peer_index: PeerIndex,
         peer_lock: Arc<RwLock<PeerCollection>>,
     ) {
-        trace!(
+        debug!(
             "add entry : {:?} - {:?} from {:?}",
             block_hash.to_hex(),
             block_id,

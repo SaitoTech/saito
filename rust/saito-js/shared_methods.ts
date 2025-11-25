@@ -15,7 +15,7 @@ export default interface SharedMethods {
 
     flushData(key: string): void;
 
-    ensureBlockDirExists(path: string): void;
+    ensureDirExists(path: string): void;
 
     readValue(key: string): Uint8Array;
 
