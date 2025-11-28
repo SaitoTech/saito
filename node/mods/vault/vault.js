@@ -105,8 +105,6 @@ class Vault extends ModTemplate {
 
 			    try {
 
-			    	 console.log('1');
-
 			      //
 			      // run CHECKOWN / CHECKOWNNFT script
 			      //
@@ -116,13 +114,10 @@ class Vault extends ModTemplate {
 			        return 0;
 			      }
 
-			      console.log('2');
-
 			      //
 			      // evaluate(hash, script, witness, vars, tx, blk)
 			      // tx => the request transaction, so CHECKOWN sees tx/from/signature
 			      //
-
 			      console.log("CHECKOWN: ");
 			      console.log("access_hash: ",txmsg.data.access_hash);
 			      console.log("access_script: ",txmsg.data.access_script);
@@ -136,10 +131,6 @@ class Vault extends ModTemplate {
 			        null       //
 			      );
 
-			       console.log('3');
-
-			      console.log("ok: ", ok);
-
 			      if (!ok) {
 			        mycallback({ status : "err" , err : "access_denied_script_failed" });
 			        return 0;
@@ -150,9 +141,6 @@ class Vault extends ModTemplate {
 			      //
 			      let archive_mod = app.modules.returnModule("Archive");
 			      archive_mod.access_hash = 1; // ownership restricted
-
-
-			       console.log('4');
 
 			      let data               = {};
 			      data.owner             = txmsg.data.access_hash;
@@ -216,7 +204,8 @@ console.log("ERROR: " + err);
 	}
 
 
-	async createVaultAddFileTransaction(nftid) {
+	async createVaultAddFileTransaction(nftid=null) {
+
 	  let newtx = await this.app.wallet.createUnsignedTransaction();
 
 	  let scripting_mod = this.app.modules.returnModule("Scripting");

@@ -8657,7 +8657,7 @@ try {
 	      opponent_dice++;
             }
           }
-          if (target_space.key == "africa" || target_space.key == "aegean") {
+          if (target_space.key == "adriatic" || target_space.key == "ionian") {
             let x = his_self.returnFactionControllingSpace("corfu");
             if (target_faction == x || factions_at_war_with_ottoman.includes(x)) {
 	      anti_piracy_faction.push("corfu");
@@ -8666,7 +8666,7 @@ try {
 	      opponent_dice++;
 	    }
           }
-          if (target_space.key == "adriatic" || target_space.key == "ionian") {
+          if (target_space.key == "africa" || target_space.key == "aegean") {
             let x = his_self.returnFactionControllingSpace("candia");
             if (target_faction == x || factions_at_war_with_ottoman.includes(x)) {
 	      anti_piracy_faction.push("candia");

@@ -91,7 +91,6 @@ class SaitoNft {
       return;
     }
 
-    console.log('SaitoNFT - triggering load of transaction from archive...');
 
     await this.app.storage.loadTransactions(
       { field4: this.id },
@@ -409,6 +408,16 @@ class SaitoNft {
       ? this.app.wallet.convertNolanToSaito(this.price)
       : this.app.wallet.convertNolanToSaito(this.deposit);
   }
+
+
+  //
+  // if NFT Access Key, fetch from Vault
+  //
+  async fetch() {
+    return null;
+  }
+
+
 }
 
 module.exports = SaitoNft;

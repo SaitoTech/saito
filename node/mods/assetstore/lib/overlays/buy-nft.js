@@ -57,17 +57,18 @@ console.log("trying to build NFT data...");
     //
     // BUY
     //
-    let send_btn_label = mount.getElementById('send');
-    if (send_btn_label) {
-      send_btn_label.textContent = 'Buy'; 
+    let send_btn = mount.getElementById('send');
+    if (send_btn) {
+      send_btn.textContent = 'Buy'; 
       send_btn.onclick = async (e) => {
+	siteMessage("Submitting Order: please be patient...", 5000);
         e.preventDefault();
         send_btn.disabled = true;
         try {
           let newtx = await this.mod.createPurchaseAssetTransaction(this.nft);
           await this.app.network.propagateTransaction(newtx);
           this.overlay?.hide?.();
-          siteMessage('Purchase submitted. Waiting for network confirmation...', 3000);
+          siteMessage('Purchase Submitted. waiting for confirmation...', 3000);
         } catch (err) {
           siteMessage('Error submitting bid: ' + err);
           send_btn.disabled = false;
@@ -82,11 +83,11 @@ console.log("trying to build NFT data...");
 
       let purchase_btn = document.createElement('button');
       purchase_btn.id = 'send_other_crypto';
-      purchase_btn.className = send_btn_label.className || 'saito-button-secondary';
+      purchase_btn.className = send_btn.className || 'saito-button-secondary';
       purchase_btn.textContent = 'Buy with other crypto';
       purchase_btn.type = 'button';
       purchase_btn.setAttribute('aria-label', 'Buy with other crypto');
-      send_btn_label.insertAdjacentElement('afterend', purchase_btn);
+      send_btn.insertAdjacentElement('afterend', purchase_btn);
 
       purchase_btn.addEventListener('click', async (e) => {
         e.preventDefault();

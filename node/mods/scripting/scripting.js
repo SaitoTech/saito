@@ -67,6 +67,33 @@ class Scripting extends ModTemplate {
 
 
 
+        ///////////////////////////////// 
+        // inter-module communications //
+        /////////////////////////////////
+        respondTo(type = '', obj) {
+          let this_mod = this; 
+
+          if (type === 'saito-create-nft') {
+            return {
+              title : "Scripting NFT" ,
+              class : ["scripting-nft-mod"] ,
+	      text : "Access Script" ,
+              createObject : async (script) => {
+                let obj = {};
+                obj.module = "Scripting";
+                obj.access_hash = this_mod.app.crypto.hash(this_mod.canonicalize(script));
+                return obj;
+              } ,
+            };  
+          }
+                
+          return super.respondTo(type, obj);
+                
+        }
+                
+
+
+
 
   	//
   	// Canonicalize

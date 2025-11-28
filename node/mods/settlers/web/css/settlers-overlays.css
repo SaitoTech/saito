@@ -71,7 +71,8 @@
 }
 
 .wood {
-	background-image: url(/settlers/img/cards/wood.png);
+	/* background-image: url(/settlers/img/cards/wood.png); */
+	background-image: url(/settlers/img/cards/wood7.png);
 	background-size: contain;
 	background-repeat: no-repeat;
 }

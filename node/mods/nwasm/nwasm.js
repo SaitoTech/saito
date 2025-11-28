@@ -333,29 +333,25 @@ class Nwasm extends OnePlayerGameTemplate {
         	  	for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
           	  		let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
           	  		let nft_type = this.app.wallet.extractNftType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
-		    		if (nft_type != "") {
-
-console.log("...");
-console.log("...");
-console.log("...");
-console.log("...");
-console.log("...");
-console.log("NFT TYPE: " + nft_type);
-console.log("NFT SIG: " + nft_sig);
-
+		    		if (nft_type === "nwasm-nft-mod") {
 					this.app.storage.loadTransactions({ sig: nft_sig }, (txs) => {
-console.log("loaded transactions..");
-console.log("loaded transactions..");
-console.log("loaded transactions..");
-console.log("loaded transactions..");
 						if (txs.length < 1) { return; }
 						let tx = txs[0];
-console.log("tx is first");
 						let item = this.createItem(tx);
-console.log("create item");
 						this.addItemToLibrary(item, 'localhost');
 
 					}, 'localhost');
+		    		}
+		    		if (nft_type === "vault-nft-key") {
+					let item = {};
+                        		item.module = "NWASM";
+ 			                item.title = "Unknown NFT-Protected ROM";
+                        		item.host = "";
+                        		item.access_script = "";
+                        		item.access_hash = "";
+                        		item.access_witness = "";
+                        		item.sig = tx.signature;
+					this.addItemToLibrary(item, 'localhost');
 		    		}
 	        	}
 		}

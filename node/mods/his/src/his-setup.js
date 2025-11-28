@@ -546,6 +546,7 @@ console.log("\n\n\n\n");
           this.controlSpace("independent", "milan");
           this.controlSpace("independent", "tunis");	
           this.controlSpace("independent", "malta", 1);
+	  this.game.state.events.knights_of_st_john = "rhodes";
           this.addRegular("independent", "malta", 1);
           this.addRegular("independent", "metz", 1);
           this.addRegular("independent", "milan", 1);
@@ -553,7 +554,7 @@ console.log("\n\n\n\n");
 
 	  // ALLIANCES
 	  this.setEnemies("ottoman", "hapsburg");
-	  this.setEnemies("hapsburg", "protestant");
+	  //this.setEnemies("hapsburg", "protestant");
 	  this.setEnemies("papacy", "protestant");
 	  this.setAllies("hapsburg", "hungary");
 

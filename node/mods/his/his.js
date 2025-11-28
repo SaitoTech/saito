@@ -2890,6 +2890,7 @@ console.log("\n\n\n\n");
           this.controlSpace("independent", "milan");
           this.controlSpace("independent", "tunis");	
           this.controlSpace("independent", "malta", 1);
+	  this.game.state.events.knights_of_st_john = "rhodes";
           this.addRegular("independent", "malta", 1);
           this.addRegular("independent", "metz", 1);
           this.addRegular("independent", "milan", 1);
@@ -2897,7 +2898,7 @@ console.log("\n\n\n\n");
 
 	  // ALLIANCES
 	  this.setEnemies("ottoman", "hapsburg");
-	  this.setEnemies("hapsburg", "protestant");
+	  //this.setEnemies("hapsburg", "protestant");
 	  this.setEnemies("papacy", "protestant");
 	  this.setAllies("hapsburg", "hungary");
 
@@ -3733,7 +3734,7 @@ if (this.game.players.length > 2) {
     });
 ****/
     this.menu.addSubMenuOption("game-info", {
-      text : "Religion",
+      text : "Religious",
       id : "game-religious-conflict",
       class : "game-religious-conflict",
       callback : function(app, game_mod) {
@@ -3741,6 +3742,7 @@ if (this.game.players.length > 2) {
         game_mod.religious_overlay.render();
       }
     });
+/****
     this.menu.addSubMenuOption("game-info", {
       text : "Debaters",
       id : "game-debaters",
@@ -3750,6 +3752,7 @@ if (this.game.players.length > 2) {
         game_mod.displayDebaters();
       }
     });
+****/
     this.menu.addSubMenuOption("game-info", {
       text : "Explorers",
       id : "game-explorers",
@@ -33468,7 +33471,7 @@ try {
 	      opponent_dice++;
             }
           }
-          if (target_space.key == "africa" || target_space.key == "aegean") {
+          if (target_space.key == "adriatic" || target_space.key == "ionian") {
             let x = his_self.returnFactionControllingSpace("corfu");
             if (target_faction == x || factions_at_war_with_ottoman.includes(x)) {
 	      anti_piracy_faction.push("corfu");
@@ -33477,7 +33480,7 @@ try {
 	      opponent_dice++;
 	    }
           }
-          if (target_space.key == "adriatic" || target_space.key == "ionian") {
+          if (target_space.key == "africa" || target_space.key == "aegean") {
             let x = his_self.returnFactionControllingSpace("candia");
             if (target_faction == x || factions_at_war_with_ottoman.includes(x)) {
 	      anti_piracy_faction.push("candia");
@@ -52473,16 +52476,13 @@ does_units_to_move_have_unit = true; }
 	//
 	try {
 	  let reformer = x[0] + "-reformer";
-console.log("reformer: " + reformer);
-console.log("faction: " + this.debaters[debater].faction);
           let s = this.returnSpaceOfPersonage(this.debaters[debater].faction, reformer);
-console.log("reformer space: " + JSON.stringify(s));
 	  if (s) { this.removeReformer(this.debaters[debater].faction, reformer); }
 	  // re-display space
 	  this.displaySpace(s);
 	} catch (err) {
 	  // reformer does not exist
-console.log("ERROR: " + JSON.stringify(err));
+	  console.log("ERROR: " + JSON.stringify(err));
 	}
       }
     }
@@ -52729,9 +52729,9 @@ console.log("ERROR: " + JSON.stringify(err));
     }
     if (faction == "hapsburg") {
       available_units['regular']['1'] = 12;    
-      available_units['regular']['2'] = 6;    
+      available_units['regular']['2'] = 7;
       available_units['regular']['3'] = 0;    
-      available_units['regular']['4'] = 3;    
+      available_units['regular']['4'] = 4;
       available_units['regular']['5'] = 0;    
       available_units['regular']['6'] = 1;    
       available_units['squadron']['1'] = 6;    

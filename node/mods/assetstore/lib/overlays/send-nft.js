@@ -125,7 +125,6 @@ class SendNftOverlay extends NftDetailsOverlay {
           let newtx = await this.mod.createListAssetTransaction(opt);
           await this.app.network.propagateTransaction(newtx);
 
-	  this.mod.addListing
 	  await this.app.storage.saveTransaction(newtx, { field4: newtx.signature }, 'localhost', null);
 
           siteMessage('NFT listing transaction broadcast...', 3000);
