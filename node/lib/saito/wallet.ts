@@ -1536,7 +1536,6 @@ export default class Wallet extends SaitoWallet {
    *
    */
   public async createSendNftTransaction(nft, receipient_publicKey) {
-
     await nft.fetchTransaction();
 
     return S.getInstance().createSendBoundTransaction(
