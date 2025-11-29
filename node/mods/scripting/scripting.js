@@ -40,8 +40,6 @@ class Scripting extends ModTemplate {
 
 	initialize(app) {
 
-		this.header = new SaitoHeader(this.app, this);
-
 		//
 		// initialize our opcodes
 		//
@@ -58,6 +56,8 @@ class Scripting extends ModTemplate {
 	}
 
 	render() {
+
+		this.header = new SaitoHeader(this.app, this);
 
 		this.header.render();
 		this.main.render();

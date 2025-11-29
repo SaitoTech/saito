@@ -1,7 +1,7 @@
-let ListNft = require('./../../../../../lib/saito/ui/saito-nft/overlays/list-overlay');
+let ListNFT = require('./../../../../../lib/saito/ui/saito-nft/overlays/list-overlay');
 let NFTInfo = require('./nft-info');
 
-class ListNftsOverlay extends ListNft {
+class ListNFTsOverlay extends ListNFT {
 
   constructor(app, mod) {
 
@@ -11,7 +11,7 @@ class ListNftsOverlay extends ListNft {
 
     app.connection.on('wallet-updated', async () => {
 
-        let { updated, rebroadcast, persisted } = await this.app.wallet.updateNftList();
+        let { updated, rebroadcast, persisted } = await this.app.wallet.updateNFTList();
 
         if (persisted && this.app.BROWSER) {
           siteMessage(`NFT updated in wallet`, 3000);
@@ -44,4 +44,4 @@ class ListNftsOverlay extends ListNft {
 
 }
 
-module.exports = ListNftsOverlay;
+module.exports = ListNFTsOverlay;

@@ -1,9 +1,9 @@
-let SaitoNftCard = require('./../../../../lib/saito/ui/saito-nft/nft-card');
-let AssetStoreNftCardTemplate = require('./assetstore-nft-card.template');
-let AssetStoreNft = require('./assetstore-nft');
+let SaitoNFTCard = require('./../../../../lib/saito/ui/saito-nft/saito-nft-card');
+let AssetStoreNFTCardTemplate = require('./assetstore-nft-card.template');
+let AssetStoreNFT = require('./assetstore-nft');
 
 
-class AssetStoreNftCard extends SaitoNftCard {
+class AssetStoreNFTCard extends SaitoNFTCard {
 
 
   constructor(app, mod, container = '', tx = null, data = null, mycallback = null) {
@@ -12,7 +12,7 @@ class AssetStoreNftCard extends SaitoNftCard {
     this.tx = tx;
     this.title = "";
     this.description = "";
-    this.nft = new AssetStoreNft(app, mod, tx, data, mycallback, this); // last argument is the card that is rendered
+    this.nft = new AssetStoreNFT(app, mod, tx, data, mycallback, this); // last argument is the card that is rendered
     this.nft.buildNFTData();
 
   }
@@ -46,12 +46,12 @@ class AssetStoreNftCard extends SaitoNftCard {
 
     if (document.querySelector(my_qs)) {
       this.app.browser.replaceElementBySelector(
-        AssetStoreNftCardTemplate(this.app, this.mod, this.nft),
+        AssetStoreNFTCardTemplate(this.app, this.mod, this.nft),
         my_qs
       );
     } else {
       this.app.browser.prependElementToSelector(
-        AssetStoreNftCardTemplate(this.app, this.mod, this.nft),
+        AssetStoreNFTCardTemplate(this.app, this.mod, this.nft),
         this.container
       );
     }
@@ -61,11 +61,11 @@ class AssetStoreNftCard extends SaitoNftCard {
     //
     if (!this.nft.tx_fetched) {
       this.nft.fetchTransaction(function () {
-        this_self.insertNftDetails();
+        this_self.insertNFTDetails();
       });
     } else {
       if (this.nft?.tx) {
-        this.insertNftDetails();
+        this.insertNFTDetails();
       } else {
       }
     }
@@ -76,7 +76,7 @@ class AssetStoreNftCard extends SaitoNftCard {
   }
 
 
-  insertNftDetails() {
+  insertNFTDetails() {
 
     if (this.app.BROWSER != 1) {
       return 0;
@@ -120,5 +120,5 @@ class AssetStoreNftCard extends SaitoNftCard {
 
 }
 
-module.exports = AssetStoreNftCard;
+module.exports = AssetStoreNFTCard;
 

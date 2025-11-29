@@ -1,5 +1,5 @@
 const VaultMainTemplate = require('./main.template.js');
-//const ListNftsOverlay = require('./overlays/list-nfts.js');
+//const ListNFTsOverlay = require('./overlays/list-nfts.js');
 const AccessFileOverlay = require('./overlays/access-file.js');
 const FileUploadOverlay = require('./overlays/file-upload.js');
 
@@ -12,7 +12,7 @@ class VaultMain {
     this.mod = mod;
     this.container = container;
 
-    //this.list_nfts_overlay = new ListNftsOverlay(this.app, this.mod);
+    //this.list_nfts_overlay = new ListNFTsOverlay(this.app, this.mod);
     this.access_file_overlay = new AccessFileOverlay(this.app, this.mod);
     this.file_upload_overlay = new FileUploadOverlay(this.app, this.mod);
 

@@ -168,7 +168,7 @@ class Mods {
         //        console.log('#');
         //        console.log('#');
         //        console.log('# MY NFTS...');
-        //        const raw = await this.app.wallet.getNftList();
+        //        const raw = await this.app.wallet.getNFTList();
         //        console.log(JSON.stringify(raw));
 
         let dyn_mods = await this.app.storage.loadLocalApplications();

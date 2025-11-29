@@ -1,12 +1,12 @@
 const JSON = require('json-bigint');
 const AssetStoreMainTemplate = require('./main.template');
 const Transaction = require('../../../../lib/saito/transaction').default;
-const AssetStoreNftCard = require('./../overlays/assetstore-nft-card');
+const AssetStoreNFTCard = require('./../overlays/assetstore-nft-card');
 
-const ListNftsOverlay = require('./../overlays/list-nfts');
-const SendNftOverlay = require('./../overlays/send-nft');
-const BuyNftOverlay = require('./../overlays/buy-nft');
-const DelistNftOverlay = require('./../overlays/delist-nft');
+const ListNFTsOverlay = require('./../overlays/list-nfts');
+const SendNFTOverlay = require('./../overlays/send-nft');
+const BuyNFTOverlay = require('./../overlays/buy-nft');
+const DelistNFTOverlay = require('./../overlays/delist-nft');
 
 class AssetStoreMain {
 
@@ -16,10 +16,10 @@ class AssetStoreMain {
 		this.mod = mod;
 		this.container = container;
 
-		this.list_nfts_overlay = new ListNftsOverlay(this.app, this.mod);
-		this.send_nft_overlay = new SendNftOverlay(this.app, this.mod);
-		this.buy_nft_overlay = new BuyNftOverlay(this.app, this.mod);
-		this.delist_nft_overlay = new DelistNftOverlay(this.app, this.mod);
+		this.list_nfts_overlay = new ListNFTsOverlay(this.app, this.mod);
+		this.send_nft_overlay = new SendNFTOverlay(this.app, this.mod);
+		this.buy_nft_overlay = new BuyNFTOverlay(this.app, this.mod);
+		this.delist_nft_overlay = new DelistNFTOverlay(this.app, this.mod);
 
 		this.app.connection.on('assetstore-render', async () => {
 			await this.render();
@@ -89,7 +89,7 @@ console.log("into renderListings in assetstore...");
 
 console.log("creating AssetStore NFT Card");
 
-				let nft_card = new AssetStoreNftCard(this.app, this.mod, '.assetstore-table-list', nfttx, record, async (nft1) => {
+				let nft_card = new AssetStoreNFTCard(this.app, this.mod, '.assetstore-table-list', nfttx, record, async (nft1) => {
 					let seller_publicKey = nft1?.seller || '';
 					if (seller_publicKey === this.mod.publicKey) {
 					  	this.delist_nft_overlay.nft = nft1;

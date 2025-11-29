@@ -6,7 +6,7 @@ const AssetStoreMain = require('./lib/main/main');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const SaitoNFT = require('./../../lib/saito/ui/saito-nft/saito-nft');
 const AssetStoreHome = require('./index');
-const AssetStoreNft = require('./lib/overlays/assetstore-nft');
+const AssetStoreNFT = require('./lib/overlays/assetstore-nft');
 
 //
 // This application provides an auction clearing platform for NFT sales on Saito.
@@ -216,7 +216,7 @@ class AssetStore extends ModTemplate {
 					let nft_sig = tx.signature;
 					let delisting_nfttx_sig = '';
 
-					let nft = new AssetStoreNft(this.app, this, tx, null);
+					let nft = new AssetStoreNFT(this.app, this, tx, null);
 
 					//
 					// create delisting tx and update our database
@@ -406,7 +406,7 @@ console.log("FORCE DELIST ASSET: " + this.publicKey);
 
 		// create the NFT transaction
 		//
-		let nfttx = await this.app.wallet.createSendNftTransaction(nft, receiver, 'AssetStore');
+		let nfttx = await this.app.wallet.createSendNFTTransaction(nft, receiver, 'AssetStore');
 		await nfttx.sign();
 
 		//
@@ -459,7 +459,7 @@ console.log("FORCE DELIST ASSET: " + this.publicKey);
 		//
 		// create the NFT
 		//
-		let nft = new AssetStoreNft(this.app, this, nfttx);
+		let nft = new AssetStoreNFT(this.app, this, nfttx);
 
 		//
 		// the listing information
@@ -536,7 +536,7 @@ console.log("FORCE DELIST ASSET: " + this.publicKey);
 		//
 		// create the NFT transaction
 		//
-		let nfttx = await this.app.wallet.createSendNftTransaction(nft, receiver, 'AssetStore');
+		let nfttx = await this.app.wallet.createSendNFTTransaction(nft, receiver, 'AssetStore');
 		await nfttx.sign();
 
 		//
@@ -663,7 +663,7 @@ console.log("txmsg of this nft is: " + JSON.stringify(nfttx_msg));
 					// create the return transfer
 					//
 console.log("about se send nft to: " + seller);
-					let delist_nfttx = await this.app.wallet.createSendNftTransaction(nft, seller);
+					let delist_nfttx = await this.app.wallet.createSendNFTTransaction(nft, seller);
 
 console.log("after we have created this tx...");
 
@@ -684,7 +684,7 @@ console.log("#########");
 
 
                 //      
-                let nfttx = await this.app.wallet.createSendNftTransaction(nft, receiver, 'AssetStore');
+                let nfttx = await this.app.wallet.createSendNFTTransaction(nft, receiver, 'AssetStore');
                 await nfttx.sign();
 
 
@@ -739,7 +739,7 @@ console.log("about to create assetstore options object...");
 console.log("created assetstore object...");
 				//this.app.connection.emit('assetstore-render');
 			} else {
-				let raw = await this.app.wallet.getNftList();
+				let raw = await this.app.wallet.getNFTList();
 				console.log('Server nfts (after delist tx 2): ', raw);
 			}
 
@@ -1102,7 +1102,7 @@ console.log("created assetstore object...");
 
 			let nft_id = listing.nft_id;
 			let owned_nft = null;
-			let raw = await this.app.wallet.getNftList();
+			let raw = await this.app.wallet.getNFTList();
 
 			let list = typeof raw === 'string' ? JSON.parse(raw) : raw;
 			let nft_owned = (list || []).find((n) => n.id === nft_id && n?.tx_sig === nfttx_sig);
@@ -1132,12 +1132,12 @@ console.log("created assetstore object...");
 				return;
 			}
 
-			let nft = new AssetStoreNft(this.app, this, null, nft_owned);
+			let nft = new AssetStoreNFT(this.app, this, null, nft_owned);
 
 			//
 			// transfer NFT to buyer
 			//
-			let nft_tx = await this.app.wallet.createSendNftTransaction(nft, buyer);
+			let nft_tx = await this.app.wallet.createSendNFTTransaction(nft, buyer);
 
 			//
 			// if nft_tx.msg is null, that means we haven't actually put the NFT into the

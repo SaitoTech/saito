@@ -322,7 +322,7 @@ class Nwasm extends OnePlayerGameTemplate {
 	        if (this.app.options.wallet.nfts) {
         	  	for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
           	  		let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
-          	  		let nft_type = this.app.wallet.extractNftType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
+          	  		let nft_type = this.app.wallet.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
 		    		if (nft_type === "nwasm-nft-mod") {
 					this.app.storage.loadTransactions({ sig: nft_sig }, (txs) => {
 						if (txs.length < 1) { return; }

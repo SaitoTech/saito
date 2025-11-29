@@ -8,7 +8,6 @@ module.exports = (app, mod) => {
 
       <div class="nft-page">
         <div class="nft-list" id="nft-list">
-          <!-- SimpleNftList.renderNftList() will fill this -->
         </div>
       </div>
 

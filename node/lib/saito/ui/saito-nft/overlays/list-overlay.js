@@ -1,13 +1,18 @@
-const ListNftTemplate = require('./list-overlay.template');
-const NftCard = require('./../nft-card');
+const ListNFTTemplate = require('./list-overlay.template');
+const NFTCard = require('./../saito-nft-card');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoUser = require('./../../saito-user/saito-user');
+const CreateNFT = require('./create-overlay');
 
-class ListNft {
+class ListNFT {
+
   constructor(app, mod, attach_events = true) {
+
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
+
+    this.create_nft_overlay = new CreateNFT(this.app, this.mod);
 
     this.nft_list = null;
     this.card_list = [];
@@ -25,7 +30,7 @@ class ListNft {
       });
 
       app.connection.on('wallet-updated', async () => {
-        const { updated, rebroadcast, persisted } = await this.app.wallet.updateNftList();
+        const { updated, rebroadcast, persisted } = await this.app.wallet.updateNFTList();
 
         if (persisted) {
           siteMessage(`NFT updated in wallet`, 3000);
@@ -42,17 +47,17 @@ class ListNft {
   }
 
   async render() {
-    this.overlay.show(ListNftTemplate(this.app, this.mod));
+    this.overlay.show(ListNFTTemplate(this.app, this.mod));
     this.nft_list = await this.fetchNFT();
-    await this.renderNftList();
-    this.attachEvents();
+    await this.renderNFTList();
+    setTimeout(() => { this.attachEvents(); }, 25);
   }
 
-  async renderNftList() {
+  async renderNFTList() {
     const container = document.querySelector('#nft-list');
 
     if (!container) {
-      console.warn('Missing Nft-list container!');
+      console.warn('Missing NFT-list container!');
       return;
     }
 
@@ -76,11 +81,11 @@ class ListNft {
             newArray.push(this.card_list[i]);
             already_rendered = true;
             break;
-          }
+     	     }
         }
         if (!already_rendered) {
           newArray.push(
-            new NftCard(this.app, this.mod, '.send-nft-list', null, rec, this.callback)
+            new NFTCard(this.app, this.mod, '.send-nft-list', null, rec, this.callback)
           );
         }
       }
@@ -98,21 +103,20 @@ class ListNft {
   }
 
   attachEvents() {
-    let newNftButton = document.getElementById('create-nft');
-    if (newNftButton) {
-      newNftButton.onclick = (e) => {
-        this.app.connection.emit('saito-nft-create-render-request');
+    let newNFTButton = document.getElementById('create-nft');
+    if (newNFTButton) {
+      newNFTButton.onclick = (e) => {
+        this.overlay.hide();
+	this.create_nft_overlay.render();
       };
     }
   }
 
   async fetchNFT() {
-    await this.app.wallet.updateNftList();
-
+    await this.app.wallet.updateNFTList();
     const data = this.app.options.wallet.nfts || [];
-
     return data;
   }
 }
 
-module.exports = ListNft;
+module.exports = ListNFT;

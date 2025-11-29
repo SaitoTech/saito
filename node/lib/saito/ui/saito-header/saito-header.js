@@ -5,6 +5,7 @@ const SaitoOverlay = require('./../saito-overlay/saito-overlay');
 const SaitoLoader = require('./../saito-loader/saito-loader');
 const UserMenu = require('./../modals/user-menu/user-menu');
 const SaitoBackup = require('./../modals/saito-backup/saito-backup');
+const ListNFT = require('./../saito-nft/overlays/list-overlay');
 
 //
 // UIModTemplate
@@ -20,6 +21,7 @@ const SaitoBackup = require('./../modals/saito-backup/saito-backup');
 //
 class SaitoHeader extends UIModTemplate {
   constructor(app, mod) {
+
     super(app);
 
     //
@@ -53,10 +55,14 @@ class SaitoHeader extends UIModTemplate {
     this.loader = new SaitoLoader(this.app, this.mod, '#qrcode');
     this.saito_backup = new SaitoBackup(app, mod);
 
+    // listens for events
+    this.list_nft_overlay = new ListNFT(app, mod);
+
     console.log('Create Saito Header for ' + mod.name);
   }
 
   async initialize(app) {
+
     await super.initialize(app);
 
     // here because we need publicKey defined
@@ -213,6 +219,7 @@ class SaitoHeader extends UIModTemplate {
   }
 
   async render() {
+
     if (this.mod == null || !document) {
       return;
     }
@@ -447,6 +454,7 @@ class SaitoHeader extends UIModTemplate {
   }
 
   attachEvents() {
+
     let app = this.app;
     let mod = this.mod;
     let this_header = this;
@@ -470,7 +478,6 @@ class SaitoHeader extends UIModTemplate {
     //
     // default buttons
     //
-
     if (document.getElementById('wallet-btn-withdraw')) {
       document.getElementById('wallet-btn-withdraw').onclick = (e) => {
         app.connection.emit('saito-crypto-withdraw-render-request');

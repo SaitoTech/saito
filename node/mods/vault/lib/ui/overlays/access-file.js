@@ -1,6 +1,6 @@
 const AccessFileTemplate = require('./access-file.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const LoadNfts = require('./load-nfts');
+const LoadNFTs = require('./load-nfts');
 
 class AccessFile {
 
@@ -10,7 +10,7 @@ class AccessFile {
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.file = null;
     this.submit_button_active = false;
-    this.load_nfts = new LoadNfts(this.app, this.mod);
+    this.load_nfts = new LoadNFTs(this.app, this.mod);
   }
 
   render() {

@@ -9,7 +9,6 @@ const linkifyHtml = require('markdown-linkify');
 const emoji = require('node-emoji');
 const UserMenu = require('./ui/modals/user-menu/user-menu');
 const SaitoCrypto = require('./ui/saito-crypto/saito-crypto');
-const SaitoNFTOverlayManager = require('./ui/saito-nft/nft-overlay-manager');
 const debounce = require('lodash/debounce');
 const SaitoMentions = require('./ui/saito-mentions/saito-mentions');
 
@@ -283,15 +282,11 @@ class Browser {
       //
       this.saito_crypto = new SaitoCrypto(this.app, this.app.modules.returnActiveModule());
 
-      this.saito_nft_manager = new SaitoNFTOverlayManager(this.app);
-      this.saito_nft_manager.initialize(this.app);
-
       //
       // check if we are already open in another tab -
       // gracefully return out after warning user.
       //
       this.checkForMultipleWindows();
-      //this.isFirstVisit();
 
       //if ('serviceWorker' in navigator) {
       //    await navigator.serviceWorker

@@ -1,4 +1,4 @@
-class SaitoNft {
+class SaitoNFT {
   constructor(app, mod, tx = null, data = null, card = null) {
     this.app = app;
     this.mod = mod;
@@ -27,7 +27,7 @@ class SaitoNft {
     //      this.slip2 = this.tx.to[1].publicKey;
     //      this.slip3 = this.tx.to[2].publicKey;
     //      this.tx_sig = tx.signature;
-    //      this.id = this.computeNftIdFromTx(this.tx);
+    //      this.id = this.computeNFTIdFromTx(this.tx);
     //    }
     //} catch (err) {
     //  console.log("error trying to auto-fill NFT data from TX...");
@@ -181,7 +181,7 @@ class SaitoNft {
     }
 
     if (!this.id) {
-      this.id = this.computeNftIdFromTx(this.tx);
+      this.id = this.computeNFTIdFromTx(this.tx);
     }
   }
 
@@ -197,7 +197,7 @@ class SaitoNft {
 
     this.tx_sig = this.tx?.signature;
     this.txmsg = this.tx.returnMessage();
-    this.id = this.computeNftIdFromTx(this.tx);
+    this.id = this.computeNFTIdFromTx(this.tx);
 
     this.data = this.txmsg?.data ?? {};
 
@@ -264,7 +264,7 @@ class SaitoNft {
   //
 
   // Derive an NFT id from a tx
-  computeNftIdFromTx(tx) {
+  computeNFTIdFromTx(tx) {
     if (!tx) {
       return null;
     }
@@ -410,4 +410,4 @@ class SaitoNft {
 
 }
 
-module.exports = SaitoNft;
+module.exports = SaitoNFT;

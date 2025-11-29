@@ -65,7 +65,7 @@ export default class Wallet extends SaitoWallet {
     return S.getInstance().createTransactionWithMultiplePayments(keys, amounts, fee);
   }
 
-  public async getNftList(): Promise<String> {
+  public async getNFTList(): Promise<String> {
     return S.getInstance().getNftList();
   }
 
@@ -544,7 +544,7 @@ export default class Wallet extends SaitoWallet {
     //
     // add nfts back to rust wallet
     //
-    await this.addNftList();
+    await this.addNFTList();
   }
 
   constructor(wallet: any) {
@@ -1317,9 +1317,9 @@ export default class Wallet extends SaitoWallet {
    * Update wallet’s nft list
    * @param {Object[]} nft_list  an array of NFT objects
    */
-  async saveNftList(nft_list) {
+  async saveNFTList(nft_list) {
     if (!Array.isArray(nft_list)) {
-      throw new Error('saveNftList expects an array of NFTs');
+      throw new Error('saveNFTList expects an array of NFTs');
     }
 
     this.app.options.wallet.nfts = nft_list;
@@ -1330,7 +1330,7 @@ export default class Wallet extends SaitoWallet {
   /**
    * Update rust wallet nft struct
    */
-  async addNftList() {
+  async addNFTList() {
     if (!this.app.options.wallet.nfts) {
       this.app.options.wallet.nfts = [];
     }
@@ -1346,12 +1346,17 @@ export default class Wallet extends SaitoWallet {
         let id = nft.id;
         let tx_sig = nft.tx_sig;
 
+	//
+	// Nft is improper, but requires rationalization elsewhere
+	//
         this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig);
       }
     }
   }
 
-  async updateNftList(): Promise<{
+
+
+  async updateNFTList(): Promise<{
     updated: any[];
     rebroadcast: any[];
     persisted: boolean;
@@ -1359,7 +1364,7 @@ export default class Wallet extends SaitoWallet {
     //
     //  fetch on-chain
     //
-    const raw = await this.app.wallet.getNftList();
+    const raw = await this.app.wallet.getNFTList();
     const nfts: Array<{
       id: string;
       slip1: any;
@@ -1490,10 +1495,10 @@ export default class Wallet extends SaitoWallet {
     const hasChanges = updated.length;
     let persisted = false;
     this.app.options.wallet.nfts = nfts;
-    await this.app.wallet.saveNftList(nfts);
+    await this.app.wallet.saveNFTList(nfts);
 
     if (hasChanges > 0) {
-      // re-attach the same intents object in case saveNftList mutates options internally
+      // re-attach the same intents object in case saveNFTList mutates options internally
       this.app.options.wallet.nftMergeIntents = intents;
       persisted = true;
     }
@@ -1511,7 +1516,7 @@ export default class Wallet extends SaitoWallet {
    *  Create an NFT
    *
    */
-  public async createMintNftTransaction(
+  public async createMintNFTTransaction(
     num,
     deposit,
     tx_msg,
@@ -1535,7 +1540,7 @@ export default class Wallet extends SaitoWallet {
    *
    *
    */
-  public async createSendNftTransaction(nft, receipient_publicKey) {
+  public async createSendNFTTransaction(nft, receipient_publicKey) {
     await nft.fetchTransaction();
 
     return S.getInstance().createSendBoundTransaction(
@@ -1553,7 +1558,7 @@ export default class Wallet extends SaitoWallet {
    *  Split an NFT
    *
    */
-  public async createSplitNftTransaction(nft, leftCount, rightCount): Promise<Transaction> {
+  public async createSplitNFTTransaction(nft, leftCount, rightCount): Promise<Transaction> {
     await nft.fetchTransaction();
 
     return S.getInstance().createSplitBoundTransaction(
@@ -1571,7 +1576,7 @@ export default class Wallet extends SaitoWallet {
    *  Merge an NFT
    *
    */
-  public async createMergeNftTransaction(nft): Promise<Transaction> {
+  public async createMergeNFTTransaction(nft): Promise<Transaction> {
     await nft.fetchTransaction();
 
     return S.getInstance().createMergeBoundTransaction(nft.id, nft.txmsg);
@@ -1590,7 +1595,7 @@ export default class Wallet extends SaitoWallet {
           let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
           console.log('Extracting NFT type...');
           console.log(this.app.options.wallet.nfts[z].slip3?.utxo_key);
-          let nft_type = this.extractNftType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
+          let nft_type = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
           console.log(nft_type);
 
           //
@@ -1656,7 +1661,7 @@ export default class Wallet extends SaitoWallet {
     }
   }
 
-  public extractNftType(hex = '') {
+  public extractNFTType(hex = '') {
     //console.log('a 1');
     if (!hex || hex.length < 66 || !/^[0-9a-fA-F]+$/.test(hex)) {
       return '';

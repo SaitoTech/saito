@@ -1,8 +1,8 @@
-const LoadNftsTemplate = require('./load-nfts.template');
-const SaitoNft = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
+const LoadNFTsTemplate = require('./load-nfts.template');
+const SaitoNFT = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
-class LoadNfts {
+class LoadNFTs {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
@@ -13,34 +13,34 @@ class LoadNfts {
   }
 
   async render() {
-    this.overlay.show(LoadNftsTemplate(this.app, this.mod));
+    this.overlay.show(LoadNFTsTemplate(this.app, this.mod));
 
     //
     // load nfts from wallet
     //
-    this.nft_list = await this.fetchNftList();
+    this.nft_list = await this.fetchNFTList();
 
     //
     // render into #nft-list
     //
-    await this.renderNftList();
+    await this.renderNFTList();
   }
 
-  async fetchNftList() {
+  async fetchNFTList() {
     //
     // make sure wallet cache is fresh
     //
-    await this.app.wallet.updateNftList();
+    await this.app.wallet.updateNFTList();
 
     let data = this.app.options.wallet?.nfts || [];
     return data;
   }
 
-  async renderNftList() {
+  async renderNFTList() {
     let container = document.querySelector('#nft-list');
 
     if (!container) {
-      console.warn('LoadNfts: missing #nft-list container');
+      console.warn('LoadNFTs: missing #nft-list container');
       return;
     }
 
@@ -71,14 +71,14 @@ class LoadNfts {
       //
       // create saito-nft object
       //
-      let nft = new SaitoNft(this.app, this.mod, null, rec, null);
+      let nft = new SaitoNFT(this.app, this.mod, null, rec, null);
 
       console.log('nft:', nft);
 
       //
       // determine nft type
       //
-      let nft_type = this.app.wallet.extractNftType(rec.slip3.utxo_key);
+      let nft_type = this.app.wallet.extractNFTType(rec.slip3.utxo_key);
 
       console.log('-------------------------------------');
       console.log('nft type is: ', nft_type);
@@ -169,7 +169,7 @@ class LoadNfts {
         let idx = parseInt(idx_str, 10);
 
         if (Number.isNaN(idx) || !this.vault_nfts[idx]) {
-          console.warn('LoadNfts: vault_nft entry not found for index', idx_str);
+          console.warn('LoadNFTs: vault_nft entry not found for index', idx_str);
           return;
         }
 
@@ -184,4 +184,4 @@ class LoadNfts {
   }
 }
 
-module.exports = LoadNfts;
+module.exports = LoadNFTs;

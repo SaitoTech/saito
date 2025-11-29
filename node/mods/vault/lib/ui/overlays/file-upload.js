@@ -1,4 +1,4 @@
-const ListNftsOverlay = require('./list-nfts.js');
+const ListNFTsOverlay = require('./list-nfts.js');
 const FileInfoOverlay = require('./file-info.js');
 const FileUploadTemplate = require('./file-upload.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
@@ -10,7 +10,7 @@ class FileUpload {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
-    this.list_nfts_overlay = new ListNftsOverlay(this.app, this.mod);
+    this.list_nfts_overlay = new ListNFTsOverlay(this.app, this.mod);
     this.file_info_overlay = new FileInfoOverlay(this.app, this.mod);
     this.submit_button_active = false;
 
@@ -69,7 +69,7 @@ class FileUpload {
         //
         // Prepare NFT tx (not signed, not propagated)
         //
-        let numNft = 1;
+        let numNFT = 1;
         let depositAmt = BigInt(this_self.app.wallet.convertSaitoToNolan(1));
         let fee = BigInt(0n);
         let nft_type = 'vault';
@@ -92,8 +92,8 @@ class FileUpload {
         let owner_publicKey = this_self.app.wallet.publicKey;
         console.log("owner_publicKey: ", owner_publicKey);
 
-        let nft_tx = await this_self.app.wallet.createMintNftTransaction(
-          BigInt(numNft),
+        let nft_tx = await this_self.app.wallet.createMintNFTTransaction(
+          BigInt(numNFT),
           depositAmt,
           tx_msg,
           fee,

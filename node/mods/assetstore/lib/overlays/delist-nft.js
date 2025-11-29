@@ -1,7 +1,7 @@
 let Transaction = require('./../../../../lib/saito/transaction').default;
-let NftDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
+let NFTDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
 
-class DelistNftOverlay extends NftDetailsOverlay {
+class DelistNFTOverlay extends NFTDetailsOverlay {
   constructor(app, mod) {
     super(app, mod, false);
   }
@@ -115,4 +115,4 @@ class DelistNftOverlay extends NftDetailsOverlay {
 }
 
 
-module.exports = DelistNftOverlay;
+module.exports = DelistNFTOverlay;

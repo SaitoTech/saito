@@ -1,7 +1,7 @@
-const CreateNftTemplate = require('./create-overlay.template');
+const CreateNFTTemplate = require('./create-overlay.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 
-class CreateNft {
+class CreateNFT {
   constructor(app, mod, container = '') {
     this.app = app;
     this.mod = mod;
@@ -9,7 +9,6 @@ class CreateNft {
     this.nft_type = null;
     this.module_provided_nfts = [];
     this.file = null;
-
     this.app.connection.on('saito-nft-create-render-request', () => {
       this.image = null;
       this.render();
@@ -17,9 +16,10 @@ class CreateNft {
   }
 
   render() {
+
     this.module_provided_nfts = [];
 
-    this.overlay.show(CreateNftTemplate(this.app, this.mod, this));
+    this.overlay.show(CreateNFTTemplate(this.app, this.mod, this));
 
     for (const nft_mod of this.app.modules.respondTo('saito-create-nft', this.mod)) {
       let obj = nft_mod.respondTo('saito-create-nft', this.mod);
@@ -244,12 +244,12 @@ class CreateNft {
       // this value is not either nolan/saito
       // this represents the number of nft to mint
       //
-      let numNft = parseInt(document.querySelector('#create-nft-amount').value);
+      let numNFT = parseInt(document.querySelector('#create-nft-amount').value);
 
-      if (numNft < 1) {
+      if (numNFT < 1) {
         salert('Need to create at least one NFT');
         return;
-      } else if (numNft > 100000000) {
+      } else if (numNFT > 100000000) {
         salert('Cannot mint more than 100,000,000 NFTs');
         return;
       }
@@ -276,8 +276,8 @@ class CreateNft {
         data: obj
       };
 
-      let newtx = await this.app.wallet.createMintNftTransaction(
-        BigInt(numNft),
+      let newtx = await this.app.wallet.createMintNFTTransaction(
+        BigInt(numNFT),
         depositAmt,
         tx_msg,
         fee,
@@ -415,4 +415,4 @@ class CreateNft {
   }
 }
 
-module.exports = CreateNft;
+module.exports = CreateNFT;

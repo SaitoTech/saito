@@ -32,7 +32,6 @@ class Vault extends ModTemplate {
 
 	initialize(app) {
 
-		this.header = new SaitoHeader(this.app, this);
 		this.main = new VaultMain(this.app, this, ".saito-container");
 
 		this.load();
@@ -41,6 +40,7 @@ class Vault extends ModTemplate {
 
 	render() {
 
+		this.header = new SaitoHeader(this.app, this);
 		this.header.render();
 		this.main.render();
 
@@ -260,7 +260,7 @@ console.log("ERROR: " + err);
     		let file_id   = null;
 
     		//
-    		// if called from UI (LoadNfts click) use provided values
+    		// if called from UI (LoadNFTs click) use provided values
     		//
     		if (vault_data) {
       			console.log("VAULT: using values from vault_data");

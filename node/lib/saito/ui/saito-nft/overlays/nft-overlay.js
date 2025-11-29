@@ -1,7 +1,7 @@
-let NftOverlayTemplate = require('./nft-overlay.template');
+let NFTOverlayTemplate = require('./nft-overlay.template');
 let SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 
-class NftDetailsOverlay {
+class NFTDetailsOverlay {
   constructor(app, mod, attach_events = true) {
     this.app = app;
     this.mod = mod;
@@ -26,7 +26,7 @@ class NftDetailsOverlay {
   }
 
   render() {
-    this.overlay.show(NftOverlayTemplate(this.app, this.mod, this.nft));
+    this.overlay.show(NFTOverlayTemplate(this.app, this.mod, this.nft));
     this.attachEvents();
   }
 
@@ -170,7 +170,7 @@ class NftDetailsOverlay {
         }
 
         try {
-          let newtx = await this.app.wallet.createSendNftTransaction(this.nft, receiver);
+          let newtx = await this.app.wallet.createSendNFTTransaction(this.nft, receiver);
 
           await newtx.sign();
           await this.app.network.propagateTransaction(newtx);
@@ -206,7 +206,7 @@ class NftDetailsOverlay {
         let rightCount = totalAmount - leftCount;
 
         try {
-          let newtx = await this.app.wallet.createSplitNftTransaction(
+          let newtx = await this.app.wallet.createSplitNFTTransaction(
             this.nft,
             leftCount,
             rightCount
@@ -234,7 +234,7 @@ class NftDetailsOverlay {
       e.preventDefault();
 
       try {
-        let newtx = await this.app.wallet.createMergeNftTransaction(this.nft);
+        let newtx = await this.app.wallet.createMergeNFTTransaction(this.nft);
 
         await newtx.sign();
         await this.app.network.propagateTransaction(newtx);
@@ -374,4 +374,4 @@ class NftDetailsOverlay {
   }
 }
 
-module.exports = NftDetailsOverlay;
+module.exports = NFTDetailsOverlay;

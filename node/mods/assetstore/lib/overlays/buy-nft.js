@@ -1,9 +1,9 @@
-let NftDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
+let NFTDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
 let SaitoPurchaseOverlay = require('./saito-purchase');
 let AssetStoreBuyNFTTemplate = require('./buy-nft.template');
 
 
-class BuyNftOverlay extends NftDetailsOverlay {
+class BuyNFTOverlay extends NFTDetailsOverlay {
   constructor(app, mod) {
     super(app, mod, false);
     this.purchase_saito = new SaitoPurchaseOverlay(app, mod);
@@ -15,7 +15,7 @@ class BuyNftOverlay extends NftDetailsOverlay {
     if (this.nft.tx) {
 console.log("trying to build NFT data...");
       try {
-        this.nft.buildNftData();
+        this.nft.buildNFTData();
       } catch (err) {}
     }
 
@@ -148,4 +148,4 @@ console.log("trying to build NFT data...");
   }
 }
 
-module.exports = BuyNftOverlay;
+module.exports = BuyNFTOverlay;

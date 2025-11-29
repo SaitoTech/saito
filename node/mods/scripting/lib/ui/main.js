@@ -3,7 +3,7 @@ const SignMessageOverlay = require('./overlays/sign_message.js');
 const GenerateHashOverlay = require('./overlays/generate_hash.js');
 const VerifySignatureOverlay = require('./overlays/verify_signature.js');
 const AdvancedScriptOverlay = require('./overlays/advanced_script.js');
-const ListNftsOverlay = require('./overlays/list-nfts');
+const ListNFTsOverlay = require('./overlays/list-nfts');
 
 class ScriptoriumMain {
 
@@ -15,7 +15,7 @@ class ScriptoriumMain {
     this.generate_hash_overlay = new GenerateHashOverlay(this.app, this.mod);
     this.verify_signature_overlay = new VerifySignatureOverlay(this.app, this.mod);
     this.advanced_script_overlay = new AdvancedScriptOverlay(this.app, this.mod);
-    this.list_nfts_overlay = new ListNftsOverlay(this.app, this.mod);
+    this.list_nfts_overlay = new ListNFTsOverlay(this.app, this.mod);
 
     this.is_script_ok = 0;
     this.is_witness_ok = 0;
