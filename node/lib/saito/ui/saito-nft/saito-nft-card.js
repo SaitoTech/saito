@@ -1,12 +1,12 @@
-const SaitoNftCardTemplate = require('./nft-card.template');
-const SaitoNft = require('./saito-nft');
+const SaitoNFTCardTemplate = require('./saito-nft-card.template');
+const SaitoNFT = require('./saito-nft');
 
-class SaitoNftCard {
+class SaitoNFTCard {
   constructor(app, mod, container = '', tx = null, data = null, callback = null) {
     this.app = app;
     this.mod = mod;
     this.container = container;
-    this.nft = new SaitoNft(app, mod, tx, data);
+    this.nft = new SaitoNFT(app, mod, tx, data);
 
     //
     // UI helpers
@@ -37,12 +37,12 @@ class SaitoNftCard {
 
     if (document.querySelector(my_qs)) {
       this.app.browser.replaceElementBySelector(
-        SaitoNftCardTemplate(this.app, this.mod, this.nft),
+        SaitoNFTCardTemplate(this.app, this.mod, this.nft),
         my_qs
       );
     } else {
       this.app.browser.prependElementToSelector(
-        SaitoNftCardTemplate(this.app, this.mod, this.nft),
+        SaitoNFTCardTemplate(this.app, this.mod, this.nft),
         this.container
       );
     }
@@ -52,11 +52,11 @@ class SaitoNftCard {
     //
     if (!this.nft.tx_fetched) {
       this.nft.fetchTransaction(function () {
-        this_self.insertNftDetails();
+        this_self.insertNFTDetails();
       });
     } else {
       if (this.nft?.tx) {
-        this.insertNftDetails();
+        this.insertNFTDetails();
       }
     }
 
@@ -77,7 +77,7 @@ class SaitoNftCard {
     }
   }
 
-  insertNftDetails() {
+  insertNFTDetails() {
     if (this.app.BROWSER != 1) {
       return 0;
     }
@@ -117,4 +117,4 @@ class SaitoNftCard {
   }
 }
 
-module.exports = SaitoNftCard;
+module.exports = SaitoNFTCard;

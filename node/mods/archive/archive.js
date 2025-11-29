@@ -844,7 +844,7 @@ class Archive extends ModTemplate {
 	// - server operator can delete any transactions anytime
 	// - server operator respectfully avoid deleting transactions with preserve=1
 	//
-	async deleteTransaction(tx) {
+	async deleteTransaction(tx, obj = {}) {
 
 		let sql = '';
 		let params = {};
@@ -863,10 +863,90 @@ class Archive extends ModTemplate {
 		}
 
 		//
-		// SEARCH BASED ON CRITERIA PROVIDED
+		// FIRST: SELECT the transaction to check its owner field
 		//
-		//newObj.signature = obj?.signature || obj?.sig || tx?.signature || "";
+		let select_sql = `SELECT sig, owner FROM archives WHERE archives.sig = $sig`;
+		let select_params = { $sig: sig };
+		let existing_rows = await this.app.storage.queryDatabase(select_sql, select_params, 'archive');
 
+		// Also check browser localDB if needed
+		if (this.app.BROWSER && (!existing_rows || existing_rows.length === 0)) {
+			existing_rows = await this.localDB.select({
+				from: 'archives',
+				where: { sig: sig },
+				limit: 1
+			});
+		}
+
+		// Check if transaction exists
+		if (!existing_rows || existing_rows.length === 0) {
+			console.log('Transaction not found in archive, cannot delete');
+			return false;
+		}
+
+		let existing_row = existing_rows[0];
+
+		//
+		// SECOND: Check if owner is specified and verify ownership
+		//
+		if (existing_row.owner && existing_row.owner !== '') {
+			//
+			// Owner is specified, need to verify access
+			//
+			console.log('*****************');
+			console.log('DELETE ACCESS HASH CHECK');
+			console.log('*****************');
+			console.log('Transaction owner:', existing_row.owner);
+	
+			// Check if access credentials are provided
+			if (!obj.access_script || !obj.access_witness) {
+				console.log('DELETE DENIED: No access_script or access_witness provided');
+				return false;
+			}
+
+			// Check if access_hash matches the owner
+			if (!obj.access_hash || obj.access_hash !== existing_row.owner) {
+				console.log('DELETE DENIED: access_hash does not match owner');
+				return false;
+			}
+
+			// Evaluate the script using the Scripting module
+			let can_delete = false;
+			let scripting_mod = this.app.modules.returnModule('Scripting');
+			if (scripting_mod) {
+				let request_tx = obj.request_tx || tx || null;
+				let eval_result = await scripting_mod.evaluate(
+					obj.access_hash,
+					obj.access_script,
+					obj.access_witness,
+					{},
+					request_tx,
+					null
+				);
+	
+				if (eval_result) {
+					can_delete = true;
+					console.log('DELETE ACCESS GRANTED: Script evaluation passed');
+				} else {
+					console.log('DELETE DENIED: Script evaluation failed');
+				}
+			} else {
+				console.log('DELETE DENIED: Scripting module not available');
+			}
+	
+			if (!can_delete) {
+				return false;
+			}
+		} else {
+			//
+			// No owner specified, proceed with deletion (existing behavior)
+			//
+			console.log('No owner specified for transaction, proceeding with deletion');
+		}
+	
+		//
+		// THIRD: Proceed with deletion if ownership verified or no owner
+		//
 		sql = `DELETE FROM archives WHERE archives.sig = $sig`;
 		params = { $sig: sig };
 		await this.app.storage.runDatabase(sql, params, 'archive');
@@ -904,6 +984,7 @@ class Archive extends ModTemplate {
 
 		return true;
 	}
+
 
 	////////////
 	// delete //
@@ -1103,7 +1184,6 @@ class Archive extends ModTemplate {
 			params = { $ts: now - this.prune_public_ts };
 			sql = `SELECT sig FROM archives WHERE updated_at < $ts AND preserve = 0 AND tx = ''`;
 			let rows = await this.app.storage.queryDatabase(sql, params, 'archive');
-			console.log(`Manually deleting ${rows.length} large transactions`);
 			for (let r of rows) {
 				await this.deleteTransaction(r.sig);
 			}

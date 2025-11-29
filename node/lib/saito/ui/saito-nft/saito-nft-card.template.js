@@ -1,4 +1,5 @@
 module.exports = (app, mod, nft) => {
+
   let identicon = '';
   if (nft.id == null || nft.id == '') {
     console.warn('NFT id not found: ', nft);

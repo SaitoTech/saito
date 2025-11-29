@@ -408,22 +408,6 @@ class SaitoNft {
       : this.app.wallet.convertNolanToSaito(this.deposit);
   }
 
-  //
-  // if NFT Access Key, fetch from Vault
-  //
-  async fetch(mycallback=null) {
-
-    if (mycallback == null) { return; }
-
-    for (const nft_mod of this.app.modules.respondTo('saito-load-nft', this.mod)) {
-      let obj = nft_mod.respondTo('saito-load-nft', this.mod);
-      if (obj.fetch) {
-	obj.fetch(this, mycallback);
-	return;
-      }
-    }
-
-  }
 }
 
 module.exports = SaitoNft;
