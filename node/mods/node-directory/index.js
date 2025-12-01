@@ -26,7 +26,7 @@ module.exports = (app, mod) => {
             </select>
           </label>
           <button id="nd-refresh-all">Refresh All Nodes</button>
-          <button id="nd-find-best">Find Best Node for App</button>
+          <button id="nd-find-best">Find Best Node for Service</button>
         </section>
 
         <section class="nd-summary" id="nd-summary"></section>
@@ -45,11 +45,12 @@ module.exports = (app, mod) => {
                 <th>Type</th>
                 <th>Services</th>
                 <th>Last RTT (ms)</th>
+                <th>Last Seen</th>
               </tr>
             </thead>
             <tbody id="nd-peer-rows">
               <tr>
-                <td colspan="6" class="nd-empty">Loading peers…</td>
+                <td colspan="7" class="nd-empty">Loading peers…</td>
               </tr>
             </tbody>
           </table>

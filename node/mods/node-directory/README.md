@@ -3,7 +3,7 @@
 **Purpose**
 
 - **Node discovery**: list all peers currently known to the local Saito node and the services they advertise.
-- **App host discovery**: for a given app slug, find all nodes that host that app (based on `PeerService` entries).
+- **Service host discovery**: for a given service, find all nodes that host that service (based on `PeerService` entries).
 - **Nearest-node routing**: choose the best hosting node for an app by measuring round-trip time (RTT) from the browser.
 
 ---
@@ -39,7 +39,7 @@
 
 - The NodeDirectory module:
   - `getAllNodes()` – returns all peers and their services.
-  - `getNodesForApp(slug)` – filters `getAllNodes()` by `service === 'app:<slug>'`.
+  - `getNodesForApp(slug)` – filters `getAllNodes()` by `service === 'app:<slug>'` or `service === '<slug>'`.
   - `getBestNodeForApp(slug)` – for each hosting node, sends a lightweight ping transaction and measures RTT (in ms), then returns the fastest node.
 
 RTT is measured **from the browser** using `sendTransactionWithCallback` and a simple request/response pair:
@@ -59,10 +59,10 @@ const dir = app.modules.returnModule('node-directory');
 // all known peers
 const nodes = await dir.getAllNodes();
 
-// peers that host a specific app (by slug)
+// peers that host a specific service
 const hosts = await dir.getNodesForApp('arcade');
 
-// nearest node hosting the app, based on measured RTT
+// nearest node hosting the service, based on measured RTT
 const best = await dir.getBestNodeForApp('arcade');
 if (best) {
   console.log('Best host for arcade:', best.peerIndex.toString(), best.lastRttMs);
@@ -77,9 +77,9 @@ Use `best.peerIndex` as the target peer index for `app.network.sendTransactionWi
 
 - The module serves a simple dashboard at `/node-directory`:
   - **Controls**:
-    - App slug input (`arcade`, `redsquare`, etc.).
-    - “Refresh All Nodes” button – reloads the table from `getAllNodes()`.
-    - “Find Best Node for App” – calls `getBestNodeForApp(slug)` and displays the result.
+    - Service dropdown (populated from available services like `arcade`, `redsquare`, `relay`, etc.).
+    - "Refresh All Nodes" button – reloads the table from `getAllNodes()`.
+    - "Find Best Node for Service" – calls `getBestNodeForApp(slug)` and displays the result.
   - **Known Peers table**:
     - Peer index, public key, status.
     - All advertised services (`service`, `name`, `domain`).

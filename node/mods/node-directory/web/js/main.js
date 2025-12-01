@@ -8,9 +8,12 @@ let isFetching = false;
 async function fetchPeers() {
   const res = await fetch('/node-directory/api/peers');
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const errorText = await res.text().catch(() => res.statusText);
+    throw new Error(`HTTP ${res.status}: ${errorText}`);
   }
-  return await res.json();
+  const data = await res.json();
+  console.log('[NodeDirectory UI] API response:', Array.isArray(data) ? `${data.length} nodes` : 'non-array response', data);
+  return data;
 }
 
 async function fetchBestNode(slug) {
@@ -45,6 +48,64 @@ function formatDataAge(timestamp) {
   }
 }
 
+function formatLastSeen(timestamp) {
+  if (!timestamp) return '<span class="nd-empty">n/a</span>';
+  
+  const now = Date.now();
+  const ageMs = now - timestamp;
+  const ageSec = Math.floor(ageMs / 1000);
+  const ageMin = Math.floor(ageSec / 60);
+  const ageHour = Math.floor(ageMin / 60);
+  const days = Math.floor(ageHour / 24);
+  
+  // Format as relative time
+  let relativeTime;
+  if (ageSec < 60) {
+    relativeTime = `${ageSec}s ago`;
+  } else if (ageMin < 60) {
+    relativeTime = `${ageMin}m ago`;
+  } else if (ageHour < 24) {
+    relativeTime = `${ageHour}h ago`;
+  } else if (days < 7) {
+    relativeTime = `${days}d ago`;
+  } else {
+    // For older entries, show date
+    const date = new Date(timestamp);
+    relativeTime = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  
+  return `<span title="${new Date(timestamp).toLocaleString()}">${relativeTime}</span>`;
+}
+
+function formatLastSeen(timestamp) {
+  if (!timestamp) return '<span class="nd-empty">n/a</span>';
+  
+  const now = Date.now();
+  const ageMs = now - timestamp;
+  const ageSec = Math.floor(ageMs / 1000);
+  const ageMin = Math.floor(ageSec / 60);
+  const ageHour = Math.floor(ageMin / 60);
+  const days = Math.floor(ageHour / 24);
+  
+  // Format as relative time
+  let relativeTime;
+  if (ageSec < 60) {
+    relativeTime = `${ageSec}s ago`;
+  } else if (ageMin < 60) {
+    relativeTime = `${ageMin}m ago`;
+  } else if (ageHour < 24) {
+    relativeTime = `${ageHour}h ago`;
+  } else if (days < 7) {
+    relativeTime = `${days}d ago`;
+  } else {
+    // For older entries, show date
+    const date = new Date(timestamp);
+    relativeTime = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  
+  return `<span title="${new Date(timestamp).toLocaleString()}">${relativeTime}</span>`;
+}
+
 function updateDataAgeIndicator() {
   const indicator = document.getElementById('nd-data-age');
   if (indicator) {
@@ -59,23 +120,23 @@ function updateDataAgeIndicator() {
   }
 }
 
-function renderSummary(bestNode, appSlug) {
+function renderSummary(bestNode, serviceName) {
   const summaryEl = document.getElementById('nd-summary');
   if (!summaryEl) return;
 
-  if (!appSlug) {
+  if (!serviceName) {
     summaryEl.innerHTML =
-      'Enter an app slug (e.g. <code>arcade</code>) and click "Find Best Node for App".';
+      'Select a service from the dropdown and click "Find Best Node for Service".';
     return;
   }
 
   if (!bestNode) {
-    summaryEl.innerHTML = `No hosting nodes found for app slug <code>${appSlug}</code>.`;
+    summaryEl.innerHTML = `No hosting nodes found for service <code>${serviceName}</code>.`;
     return;
   }
 
   summaryEl.innerHTML = `
-    Best node for <span class="nd-summary-highlight">${appSlug}</span>:
+    Best node for <span class="nd-summary-highlight">${serviceName}</span>:
     <br/>
     <strong>Peer Index:</strong> ${bestNode.peerIndex.toString()} &nbsp;|&nbsp;
     <strong>Status:</strong> ${bestNode.status}
@@ -87,14 +148,22 @@ function renderSummary(bestNode, appSlug) {
 
 function updateServiceDropdown(nodes) {
   const select = document.getElementById('nd-app-slug');
-  if (!select) return;
+  if (!select) {
+    console.warn('[NodeDirectory UI] Service dropdown element not found');
+    return;
+  }
+
+  if (!nodes || !Array.isArray(nodes)) {
+    console.warn('[NodeDirectory UI] Invalid nodes data for dropdown:', nodes);
+    return;
+  }
 
   // Extract unique services from all nodes
   const servicesSet = new Set();
   nodes.forEach(node => {
-    if (node.services && Array.isArray(node.services)) {
+    if (node && node.services && Array.isArray(node.services)) {
       node.services.forEach(service => {
-        if (service.service) {
+        if (service && service.service && typeof service.service === 'string') {
           servicesSet.add(service.service);
         }
       });
@@ -103,6 +172,8 @@ function updateServiceDropdown(nodes) {
 
   // Convert to sorted array
   const services = Array.from(servicesSet).sort();
+  
+  console.log('[NodeDirectory UI] Found', services.length, 'unique services:', services);
 
   // Clear existing options (except the first "Select..." option)
   select.innerHTML = '<option value="">Select a service...</option>';
@@ -118,6 +189,10 @@ function updateServiceDropdown(nodes) {
     
     select.appendChild(option);
   });
+  
+  if (services.length === 0) {
+    console.warn('[NodeDirectory UI] No services found in nodes - dropdown will be empty');
+  }
 }
 
 function renderPeersTable(nodes) {
@@ -130,7 +205,7 @@ function renderPeersTable(nodes) {
   if (!nodes || !nodes.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="6" class="nd-empty">No peers currently known.</td>
+        <td colspan="7" class="nd-empty">No peers currently known.</td>
       </tr>
     `;
     return;
@@ -169,14 +244,28 @@ function renderPeersTable(nodes) {
         ? `<strong>${n.hostname}</strong><br/><code class="nd-public-key-small">${n.publicKey}</code>`
         : `<code>${n.publicKey}</code>`;
 
+      // Handle peerIndex - can be BigInt, number, null, or undefined
+      let peerIndexDisplay = 'n/a';
+      if (n.peerIndex !== null && n.peerIndex !== undefined) {
+        try {
+          peerIndexDisplay = n.peerIndex.toString();
+        } catch (e) {
+          peerIndexDisplay = String(n.peerIndex);
+        }
+      }
+
+      // Format last seen timestamp
+      const lastSeen = formatLastSeen(n.lastSeenAt);
+
       return `
         <tr>
-          <td>${n.peerIndex.toString()}</td>
+          <td>${peerIndexDisplay}</td>
           <td>${publicKeyDisplay}</td>
           <td>${n.status}</td>
           <td>${typeLabel}</td>
           <td>${servicesHtml}</td>
           <td>${rtt}</td>
+          <td>${lastSeen}</td>
         </tr>
       `;
     })
@@ -222,11 +311,18 @@ async function refreshAllNodes(showLoading = false) {
     // Fetch peers (which will include cached RTT values)
     const nodes = await fetchPeers();
     
+    console.log('[NodeDirectory UI] Fetched', nodes?.length || 0, 'nodes');
+    
     // Only update if fetch succeeded
     cachedNodes = nodes;
     lastFetchTime = Date.now();
     renderPeersTable(nodes);
     updateDataAgeIndicator();
+    
+    // Log if no nodes found
+    if (!nodes || nodes.length === 0) {
+      console.warn('[NodeDirectory UI] No nodes returned from API');
+    }
   } catch (err) {
     console.error('NodeDirectory UI: failed to load nodes', err);
     
@@ -245,7 +341,7 @@ async function refreshAllNodes(showLoading = false) {
       if (tbody) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="6" class="nd-empty">Error loading peers. See console for details.</td>
+            <td colspan="6" class="nd-empty">Error loading peers: ${err.message}. See console for details.</td>
           </tr>
         `;
       }
@@ -272,10 +368,13 @@ async function findBestNodeForApp() {
   const slug = service.startsWith('app:') ? service.substring(4) : service;
   const displayName = slug;
 
+  console.log('[NodeDirectory UI] Finding best node for service:', service, 'slug:', slug);
+
   renderSummary(null, displayName);
 
   try {
     const best = await fetchBestNode(slug);
+    console.log('[NodeDirectory UI] Best node result:', best);
     renderSummary(best, displayName);
 
     // Refresh the table to show updated RTT for the best node

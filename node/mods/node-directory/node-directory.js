@@ -1,14 +1,16 @@
 const ModTemplate = require('./../../lib/templates/modtemplate');
 const PeerService = require('saito-js/lib/peer_service').default;
 const nodeDirectoryIndex = require('./index');
+const fs = require('fs');
+const path = require('path');
 
 /**
  * NodeDirectory
  *
  * First-class app that:
  *  - lists all known peers / their services
- *  - finds nodes that host a given app (via PeerService)
- *  - picks the "closest" node (RTT) that hosts a given app
+ *  - finds nodes that host a given service (via PeerService)
+ *  - picks the "closest" node (RTT) that hosts a given service
  */
 class NodeDirectory extends ModTemplate {
   constructor(app) {
@@ -39,6 +41,9 @@ class NodeDirectory extends ModTemplate {
 
   async initialize(app) {
     await super.initialize(app);
+    
+    // Load discovered nodes from storage
+    await this.loadDiscoveredNodes();
     
     // Start periodic RTT measurement
     // Note: Server-side measures server-to-peer RTT, browser-side measures browser-to-peer RTT
@@ -285,22 +290,33 @@ class NodeDirectory extends ModTemplate {
           peerType: 'local',
           services: myServicesNormalized,
           lastRttMs: this._rttCache[myPublicKey]?.rtt,
-          lastSeenAt: this._rttCache[myPublicKey]?.timestamp
+          lastSeenAt: Date.now() // Local node is always "now"
         });
       } catch (e) {
         console.debug('NodeDirectory: unable to get local node info', e);
       }
     }
 
-    // Process remote peers
+    // Process remote peers (filtering out clients)
+    let clientsFiltered = 0;
     for (let i = 0; i < peers.length; i++) {
       const p = peers[i];
       if (!p) continue;
+
+      // Skip clients
+      if (this._isClient(p)) {
+        clientsFiltered++;
+        continue;
+      }
 
       const node = this._processPeer(p, i);
       if (node) {
         nodes.push(node);
       }
+    }
+    
+    if (clientsFiltered > 0) {
+      console.log(`[NodeDirectory] Filtered out ${clientsFiltered} client(s) (lite/browser), showing only nodes`);
     }
 
     // Add discovered nodes if requested
@@ -311,7 +327,9 @@ class NodeDirectory extends ModTemplate {
           nodes.push({
             ...nodeInfo,
             peerType: 'discovered',
-            status: nodeInfo.status || 'unknown'
+            status: nodeInfo.status || 'unknown',
+            lastSeenAt: nodeInfo.lastSeenAt,
+            firstSeenAt: nodeInfo.firstSeenAt || nodeInfo.discoveredAt
           });
         }
       }
@@ -321,9 +339,34 @@ class NodeDirectory extends ModTemplate {
   }
 
   /**
+   * Check if a peer is a client (lite/browser) rather than a node
+   */
+  _isClient(p) {
+    // Check synctype - lite clients have synctype === 'lite'
+    if (p.synctype === 'lite') {
+      return true;
+    }
+    
+    // Also check if synctype is missing/undefined and peer has no block_fetch_url (indicates lite client)
+    // This is a fallback check
+    if (!p.synctype || p.synctype === 'none') {
+      // If peer has no services or very few, might be a client
+      // But we'll be conservative and only filter if synctype is explicitly 'lite'
+      return false;
+    }
+    
+    return false;
+  }
+
+  /**
    * Process a single peer into a node object
    */
   _processPeer(p, i) {
+    // Skip clients - only process actual nodes
+    if (this._isClient(p)) {
+      return null;
+    }
+
     const staticConfigValue = p.static_peer_config;
     const staticConfigType = typeof staticConfigValue;
     const staticConfigKeys = staticConfigValue && typeof staticConfigValue === 'object' 
@@ -346,6 +389,9 @@ class NodeDirectory extends ModTemplate {
     const isStaticPeer = this._isStaticPeer(p, staticConfigValue, staticConfigType);
     const hostname = this.getHostnameForPublicKey(p.publicKey);
 
+    // For directly connected peers, lastSeenAt is when they were last seen (now if connected)
+    const lastSeenAt = p.status === 'connected' ? Date.now() : (cachedRtt?.timestamp || Date.now());
+
     return {
       peerIndex: p.peerIndex,
       publicKey: p.publicKey,
@@ -354,7 +400,7 @@ class NodeDirectory extends ModTemplate {
       peerType: isStaticPeer ? 'static' : 'connected', // Direct peers are 'connected', not 'discovered'
       services,
       lastRttMs: cachedRtt?.rtt,
-      lastSeenAt: cachedRtt?.timestamp
+      lastSeenAt: lastSeenAt
     };
   }
 
@@ -471,15 +517,39 @@ class NodeDirectory extends ModTemplate {
 
   async getNodesForApp(slug = '') {
     if (!slug) return [];
+    
+    // Normalize slug (trim whitespace, lowercase for comparison)
+    slug = slug.trim().toLowerCase();
+    
     // Check both "app:<slug>" convention and direct "<slug>" match
     const targetService1 = `app:${slug}`;
     const targetService2 = slug;
 
     const nodes = await this.getAllNodes();
-    return nodes.filter((n) => {
+    
+    console.log(`[NodeDirectory] getNodesForApp("${slug}") - searching ${nodes.length} nodes`);
+    console.log(`[NodeDirectory] Looking for services matching: "${targetService1}" or "${targetService2}"`);
+    
+    const matching = nodes.filter((n) => {
       if (!n.services || !Array.isArray(n.services)) return false;
-      return n.services.some((s) => s.service === targetService1 || s.service === targetService2);
+      
+      const hasMatch = n.services.some((s) => {
+        if (!s || !s.service) return false;
+        const serviceName = String(s.service).toLowerCase().trim();
+        return serviceName === targetService1 || serviceName === targetService2;
+      });
+      
+      if (hasMatch) {
+        console.log(`[NodeDirectory] Found matching node: ${n.publicKey?.substring(0, 16)}... with services:`, 
+          n.services.map(s => s.service));
+      }
+      
+      return hasMatch;
     });
+    
+    console.log(`[NodeDirectory] getNodesForApp("${slug}") - found ${matching.length} matching nodes`);
+    
+    return matching;
   }
 
   async measureRttToPeer(peerIndex) {
@@ -656,7 +726,8 @@ class NodeDirectory extends ModTemplate {
       const results = await Promise.all(discoveryPromises);
       let discoveredCount = 0;
 
-      // Aggregate discovered nodes
+      // Aggregate discovered nodes (filtering out clients)
+      let discoveredClientsFiltered = 0;
       for (const nodeList of results) {
         for (const nodeInfo of nodeList) {
           if (!nodeInfo.publicKey) continue;
@@ -673,10 +744,19 @@ class NodeDirectory extends ModTemplate {
           const alreadyKnown = peers.some(p => p && p.publicKey === nodeInfo.publicKey);
           if (alreadyKnown) continue;
 
+          // Skip clients - only store actual nodes
+          // Check if synctype indicates it's a client (lite)
+          if (nodeInfo.synctype === 'lite' || nodeInfo.synctype === 'none') {
+            discoveredClientsFiltered++;
+            continue;
+          }
+
           // Store/update discovered node
           const existing = this._discoveredNodes.get(nodeInfo.publicKey);
-          if (!existing || existing.lastSeenAt < Date.now() - 60000) {
-            // Update if new or older than 1 minute
+          const now = Date.now();
+          
+          if (!existing) {
+            // New node discovered
             this._discoveredNodes.set(nodeInfo.publicKey, {
               peerIndex: null, // No direct peer index
               publicKey: nodeInfo.publicKey,
@@ -684,19 +764,130 @@ class NodeDirectory extends ModTemplate {
               status: 'discovered',
               peerType: 'discovered',
               services: nodeInfo.services || [],
-              lastSeenAt: Date.now(),
-              discoveredAt: existing?.discoveredAt || Date.now()
+              lastSeenAt: now,
+              discoveredAt: now,
+              firstSeenAt: now
             });
             discoveredCount++;
+          } else {
+            // Update existing node - update lastSeenAt and services if changed
+            existing.lastSeenAt = now;
+            if (nodeInfo.services && nodeInfo.services.length > 0) {
+              existing.services = nodeInfo.services;
+            }
+            if (nodeInfo.hostname && !existing.hostname) {
+              existing.hostname = nodeInfo.hostname;
+            }
+            // Keep firstSeenAt from original discovery
+            if (!existing.firstSeenAt) {
+              existing.firstSeenAt = existing.discoveredAt || now;
+            }
           }
         }
       }
+      
+      if (discoveredClientsFiltered > 0) {
+        console.log(`[NodeDirectory] Filtered out ${discoveredClientsFiltered} discovered client(s), showing only nodes`);
+      }
 
       console.log(`[NodeDirectory] Discovery complete: found ${discoveredCount} new nodes, total discovered: ${this._discoveredNodes.size}`);
+      
+      // Save discovered nodes to storage after discovery
+      if (discoveredCount > 0 || this._discoveredNodes.size > 0) {
+        await this.saveDiscoveredNodes();
+      }
     } catch (e) {
       console.error('[NodeDirectory] Error during network discovery:', e);
     } finally {
       this._discoveryInProgress = false;
+    }
+  }
+
+  /**
+   * Get storage path for discovered nodes
+   */
+  _getStoragePath() {
+    if (this.app.BROWSER) {
+      return null; // Browser uses localForage
+    }
+    // Server-side: save to data directory
+    const dataDir = this.app.storage?.data_dir || path.join(__dirname, '../../../data');
+    return path.join(dataDir, 'node-directory-discovered-nodes.json');
+  }
+
+  /**
+   * Load discovered nodes from storage
+   */
+  async loadDiscoveredNodes() {
+    try {
+      let loadedNodes = null;
+
+      if (this.app.BROWSER) {
+        // Browser: load from localForage
+        const stored = await this.app.storage.getLocalForageItem('node-directory-discovered-nodes');
+        if (stored) {
+          loadedNodes = typeof stored === 'string' ? JSON.parse(stored) : stored;
+        }
+      } else {
+        // Server: load from JSON file
+        const storagePath = this._getStoragePath();
+        if (storagePath && fs.existsSync(storagePath)) {
+          const fileData = fs.readFileSync(storagePath, 'utf8');
+          loadedNodes = JSON.parse(fileData);
+        }
+      }
+
+      if (loadedNodes && Array.isArray(loadedNodes)) {
+        // Restore discovered nodes to Map
+        for (const node of loadedNodes) {
+          if (node.publicKey) {
+            this._discoveredNodes.set(node.publicKey, {
+              peerIndex: null,
+              publicKey: node.publicKey,
+              hostname: node.hostname || null,
+              status: node.status || 'discovered',
+              peerType: 'discovered',
+              services: node.services || [],
+              lastSeenAt: node.lastSeenAt || Date.now(),
+              discoveredAt: node.discoveredAt || Date.now(),
+              firstSeenAt: node.firstSeenAt || node.discoveredAt || Date.now()
+            });
+          }
+        }
+        console.log(`[NodeDirectory] Loaded ${loadedNodes.length} discovered nodes from storage`);
+      }
+    } catch (e) {
+      console.error('[NodeDirectory] Error loading discovered nodes from storage:', e);
+    }
+  }
+
+  /**
+   * Save discovered nodes to storage
+   */
+  async saveDiscoveredNodes() {
+    try {
+      // Convert Map to array for storage
+      const nodesArray = Array.from(this._discoveredNodes.values());
+
+      if (this.app.BROWSER) {
+        // Browser: save to localForage
+        await this.app.storage.setLocalForageItem('node-directory-discovered-nodes', nodesArray);
+      } else {
+        // Server: save to JSON file
+        const storagePath = this._getStoragePath();
+        if (storagePath) {
+          // Ensure directory exists
+          const dir = path.dirname(storagePath);
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+          fs.writeFileSync(storagePath, JSON.stringify(nodesArray, null, 2), 'utf8');
+        }
+      }
+      
+      console.log(`[NodeDirectory] Saved ${nodesArray.length} discovered nodes to storage`);
+    } catch (e) {
+      console.error('[NodeDirectory] Error saving discovered nodes to storage:', e);
     }
   }
 
@@ -756,7 +947,7 @@ class NodeDirectory extends ModTemplate {
     if (txmsg.request === 'node-directory:get-peer-list') {
       if (typeof mycallback === 'function' && !this.app.BROWSER) {
         // Return our peer list (excluding discovered nodes to avoid loops)
-        const nodes = await this.getAllNodesDirect(); // Get only directly connected peers
+        const nodes = await this.getAllNodesDirect(); // Get only directly connected peers (clients already filtered)
         mycallback({
           module: this.name,
           request: 'node-directory:peer-list-response',
@@ -765,7 +956,8 @@ class NodeDirectory extends ModTemplate {
             hostname: n.hostname,
             status: n.status,
             peerType: n.peerType,
-            services: n.services
+            services: n.services,
+            synctype: 'full' // Mark as full node (clients already filtered out)
           }))
         });
       }
@@ -797,11 +989,18 @@ class NodeDirectory extends ModTemplate {
     expressApp.get(`/${encodeURI(slug)}/api/best-node/:slug`, async (req, res) => {
       try {
         const slug = req.params.slug;
+        console.log(`[NodeDirectory] API: /api/best-node/${slug} requested`);
         const best = await this.getBestNodeForApp(slug);
-        res.json(best);
+        if (!best) {
+          console.log(`[NodeDirectory] API: No best node found for slug "${slug}"`);
+          res.status(404).json({ error: 'no_hosting_nodes_found', slug });
+        } else {
+          console.log(`[NodeDirectory] API: Best node found: ${best.publicKey?.substring(0, 16)}...`);
+          res.json(best);
+        }
       } catch (err) {
         console.error('node-directory /api/best-node error', err);
-        res.status(500).json({ error: 'failed_to_find_best_node' });
+        res.status(500).json({ error: 'failed_to_find_best_node', message: err.message });
       }
     });
 
