@@ -4,7 +4,6 @@
   flex-direction: column;
   width: 420px;
   max-width: 90vw;
-  background: #fff;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 10px 40px rgba(0,0,0,0.25);
@@ -13,8 +12,7 @@
 /* HEADER */
 .saito-nft-overlay.header {
   padding: 14px 18px;
-  background: #fafafa;
-  border-bottom: 1px solid #e5e5e5;
+  border-bottom: 1px solid #aaa4;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -26,20 +24,18 @@
   gap: 10px;
 }
 
-.saito-nft-identicon {
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
-  background: linear-gradient(135deg, #6a4bf4, #b37afb);
+.saito-nft-header-left .saito-identicon-box {
+  height: 4.5rem;
+  width: 4.5rem;
 }
 
 .saito-nft-header-title {
-  font-size: 15px;
+  font-size: 2.2rem;
   font-weight: 600;
 }
 
 .saito-nft-header-sub {
-  font-size: 12px;
+  font-size: 1.6rem;
   color: #666;
 }
 
@@ -66,14 +62,10 @@
   top: 0;
   width: 100%;
   height: 100%;
-  background: #fff;
-
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-
   padding: 20px;
-
   transition: transform 0.35s ease;
 }
 
@@ -106,8 +98,14 @@
   width: 100%;
   border-radius: 10px;
   margin-bottom: 20px;
+  height: 26rem;
+  background-size: cover;
 }
 
+.saito-nft-header-text {
+  width: max-content;
+  max-width: 100%;
+}
 .saito-nft-title {
   font-size: 18px;
   font-weight: 600;
@@ -120,7 +118,6 @@
   line-height: 1.4;
 }
 
-/* FOOTER BUTTONS */
 .saito-nft-panel-footer {
   display: flex;
   justify-content: space-between;
@@ -134,17 +131,11 @@
   border: none;
   cursor: pointer;
   font-weight: 600;
-  background: #eaeaea;
 }
 
 .saito-nft-back-btn {
-  background: #e3e3e3;
 }
 
-.saito-nft-confirm-btn {
-  background: #4c70ff;
-  color: #fff;
-}
 
 /* FORM ELEMENTS */
 .saito-nft-input-label {

@@ -3,6 +3,7 @@ const NFTCard = require('./../saito-nft-card');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoUser = require('./../../saito-user/saito-user');
 const CreateNFT = require('./create-overlay');
+const NFTOverlay = require('./nft-overlay');
 
 class ListNFT {
 
@@ -13,6 +14,7 @@ class ListNFT {
     this.overlay = new SaitoOverlay(this.app, this.mod);
 
     this.create_nft_overlay = new CreateNFT(this.app, this.mod);
+    this.nft_overlay = new NFTOverlay(this.app, this.mod);
 
     this.nft_list = null;
     this.card_list = [];
@@ -51,6 +53,11 @@ class ListNFT {
     this.nft_list = await this.fetchNFT();
     await this.renderNFTList();
     setTimeout(() => { this.attachEvents(); }, 25);
+  }
+
+  async renderNFTOverlay(nft) {
+     this.nft_overlay.nft = nft;
+     this.nft_overlay.render();
   }
 
   async renderNFTList() {
@@ -97,6 +104,9 @@ class ListNFT {
       container.innerHTML = html;
 
       for (const card of this.card_list) {
+	card.callback = (nft) => {
+	  this.renderNFTOverlay(nft);
+	};
         await card.render();
       }
     }

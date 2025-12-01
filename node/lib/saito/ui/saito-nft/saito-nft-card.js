@@ -1,8 +1,12 @@
 const SaitoNFTCardTemplate = require('./saito-nft-card.template');
 const SaitoNFT = require('./saito-nft');
+const SaitoNFTDetails = require('./overlays/nft-overlay');
+
 
 class SaitoNFTCard {
+
   constructor(app, mod, container = '', tx = null, data = null, callback = null) {
+
     this.app = app;
     this.mod = mod;
     this.container = container;
@@ -15,10 +19,13 @@ class SaitoNFTCard {
   }
 
   async render() {
+
     let this_self = this;
+console.log("rendering nft card 1...");
     if (!document.querySelector(this.container)) {
       return;
     }
+console.log("rendering nft card 2...");
 
     //
     // if nft.slip1 is not there we cant render nft-card
@@ -65,6 +72,7 @@ class SaitoNFTCard {
   }
 
   async attachEvents() {
+
     const el = document.querySelector(`.nfttxsig${this.nft.tx_sig}`);
     if (el) {
       el.onclick = () => {
