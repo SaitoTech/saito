@@ -20,8 +20,10 @@ module.exports = (app, mod) => {
       <main class="nd-main">
         <section class="nd-controls">
           <label>
-            App slug:
-            <input id="nd-app-slug" type="text" placeholder="e.g. arcade" />
+            Service:
+            <select id="nd-app-slug">
+              <option value="">Select a service...</option>
+            </select>
           </label>
           <button id="nd-refresh-all">Refresh All Nodes</button>
           <button id="nd-find-best">Find Best Node for App</button>

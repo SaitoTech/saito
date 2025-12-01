@@ -541,6 +541,27 @@ class NodeDirectory extends ModTemplate {
         continue;
       }
       
+      // Skip RTT measurement for discovered nodes without peerIndex (can't measure directly)
+      // Use cached RTT if available, otherwise skip
+      if (!node.peerIndex || node.peerIndex === null) {
+        const cachedRtt = this._rttCache[node.publicKey];
+        if (cachedRtt) {
+          measured.push({
+            ...node,
+            lastRttMs: cachedRtt.rtt,
+            lastSeenAt: cachedRtt.timestamp
+          });
+        } else {
+          // No cached RTT and no peerIndex - can't measure, but include with undefined RTT
+          measured.push({
+            ...node,
+            lastRttMs: undefined,
+            lastSeenAt: Date.now()
+          });
+        }
+        continue;
+      }
+      
       try {
         const rtt = await this.measureRttToPeer(node.peerIndex);
         const timestamp = Date.now();
@@ -557,7 +578,16 @@ class NodeDirectory extends ModTemplate {
           lastSeenAt: timestamp
         });
       } catch (e) {
-        // ignore
+        // If RTT measurement fails, use cached RTT if available
+        const cachedRtt = this._rttCache[node.publicKey];
+        if (cachedRtt) {
+          measured.push({
+            ...node,
+            lastRttMs: cachedRtt.rtt,
+            lastSeenAt: cachedRtt.timestamp
+          });
+        }
+        // Otherwise skip this node
       }
     }
 

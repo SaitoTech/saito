@@ -85,9 +85,47 @@ function renderSummary(bestNode, appSlug) {
   `;
 }
 
+function updateServiceDropdown(nodes) {
+  const select = document.getElementById('nd-app-slug');
+  if (!select) return;
+
+  // Extract unique services from all nodes
+  const servicesSet = new Set();
+  nodes.forEach(node => {
+    if (node.services && Array.isArray(node.services)) {
+      node.services.forEach(service => {
+        if (service.service) {
+          servicesSet.add(service.service);
+        }
+      });
+    }
+  });
+
+  // Convert to sorted array
+  const services = Array.from(servicesSet).sort();
+
+  // Clear existing options (except the first "Select..." option)
+  select.innerHTML = '<option value="">Select a service...</option>';
+
+  // Add service options
+  services.forEach(service => {
+    const option = document.createElement('option');
+    option.value = service;
+    
+    // Extract display name: if service is "app:arcade", show "arcade", otherwise show full service name
+    const displayName = service.startsWith('app:') ? service.substring(4) : service;
+    option.textContent = displayName;
+    
+    select.appendChild(option);
+  });
+}
+
 function renderPeersTable(nodes) {
   const tbody = document.getElementById('nd-peer-rows');
   if (!tbody) return;
+
+  // Update service dropdown whenever we render the table
+  updateServiceDropdown(nodes);
 
   if (!nodes || !nodes.length) {
     tbody.innerHTML = `
@@ -219,18 +257,26 @@ async function refreshAllNodes(showLoading = false) {
 }
 
 async function findBestNodeForApp() {
-  const input = document.getElementById('nd-app-slug');
-  const slug = (input?.value || '').trim();
+  const select = document.getElementById('nd-app-slug');
+  const service = (select?.value || '').trim();
 
-  renderSummary(null, slug);
-
-  if (!slug) {
+  if (!service) {
+    const summaryEl = document.getElementById('nd-summary');
+    if (summaryEl) {
+      summaryEl.innerHTML = 'Please select a service from the dropdown.';
+    }
     return;
   }
 
+  // Extract slug from service: if service is "app:arcade", use "arcade", otherwise use the service name
+  const slug = service.startsWith('app:') ? service.substring(4) : service;
+  const displayName = slug;
+
+  renderSummary(null, displayName);
+
   try {
     const best = await fetchBestNode(slug);
-    renderSummary(best, slug);
+    renderSummary(best, displayName);
 
     // Refresh the table to show updated RTT for the best node
     // Use cached data if available, otherwise fetch fresh
@@ -251,6 +297,7 @@ async function findBestNodeForApp() {
 document.addEventListener('DOMContentLoaded', () => {
   const refreshBtn = document.getElementById('nd-refresh-all');
   const bestBtn = document.getElementById('nd-find-best');
+  const serviceSelect = document.getElementById('nd-app-slug');
 
   if (refreshBtn) {
     refreshBtn.addEventListener('click', () => {
@@ -261,6 +308,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (bestBtn) {
     bestBtn.addEventListener('click', () => {
       findBestNodeForApp();
+    });
+  }
+
+  // Allow Enter key on dropdown to trigger "Find Best Node"
+  if (serviceSelect) {
+    serviceSelect.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        findBestNodeForApp();
+      }
     });
   }
 
