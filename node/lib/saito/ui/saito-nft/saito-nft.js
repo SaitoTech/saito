@@ -14,7 +14,7 @@ class SaitoNFT {
 
     this.title = "";
     this.creator = "";
-    if (this.slip1.public_key) { this.creator = this.slip1.public_key; }
+    if (this.slip1?.public_key) { this.creator = this.slip1.public_key; }
 
     //
     // tx details
@@ -173,6 +173,8 @@ class SaitoNFT {
       this.slip1 ??= this.extractSlipObject(this.tx?.to?.[0] ?? null);
       this.slip2 ??= this.extractSlipObject(this.tx?.to[1] ?? null);
       this.slip3 ??= this.extractSlipObject(this.tx?.to[2] ?? null);
+
+      if (this.slip1?.public_key) { this.creator = this.slip1.public_key; }
     }
 
     if (this.slip1?.amount) {
