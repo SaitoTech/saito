@@ -12,6 +12,10 @@ class SaitoNFT {
     this.slip2 = data?.slip2;
     this.slip3 = data?.slip3;
 
+    this.title = "";
+    this.creator = "";
+    if (this.slip1.public_key) { this.creator = this.slip1.public_key; }
+
     //
     // tx details
     //
