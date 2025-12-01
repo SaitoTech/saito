@@ -6,6 +6,7 @@ class AssetStoreNFT extends SaitoNFT {
   constructor(app, mod, tx = null, data = null, callback = null, nft_card = null) {
     super(app, mod, tx, data, callback);
     this.card = nft_card;
+    this.callback = callback;
     if (tx != null) { this.tx_fetched = true; }
   }
 

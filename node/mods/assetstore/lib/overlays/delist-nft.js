@@ -10,31 +10,25 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
 
     await super.render();
 
-    let root  = this.overlay?.el || document;
+    if (document.querySelector(".saito-nft-footer-btn.send")) {
+      document.querySelector(".saito-nft-footer-btn.send").innerHTML = "Remove Listing";
+    }
 
-    let panel = root.getElementById('nft-details-send');
-    if (!panel) { return; }
+    document.querySelector(".saito-nft-footer-btn.enable").style.display = "none";
+    document.querySelector(".saito-nft-footer-btn.split").style.display = "none";
+    document.querySelector(".saito-nft-footer-btn.merge").style.display = "none";
+    document.querySelector(".saito-nft-footer-btn.disable").style.display = "none";
 
-    panel.innerHTML = `
-      <div class="nft-details-delist" style="display:none">
-        <div class="nft-buy-row">
-          <div class="nft-details-confirm-msg">
-            Are you sure you want to delist this from the Store and transfer the item back to your wallet?
-          </div>
-        </div>
-        <div class="saito-button-row auto-fit">
-          <button id="cancel2" class="saito-button-secondary cancel-action">Close</button>
-          <button id="confirm_delist" class="saito-button-primary">Delist</button>
-        </div>
-      </div>
-    `;
+    setTimeout(() => { this.attachMyEvents(); }, 25);
 
-    let header_send_btn = root.getElementById('send');
-    if (header_send_btn) header_send_btn.textContent = 'Delist';
+  }
 
-    let delist = root.getElementById('confirm_delist');
-    if (delist) {
-      delist.onclick = async (e) => {
+  async attachMyEvents() {
+
+    let delist_btn = document.querySelector(".saito-nft-footer-btn.send");
+    if (delist_btn) {
+
+      delist_btn.onclick = async (e) => {
         e.preventDefault();
         try {
 
@@ -98,20 +92,8 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
       };
     }
 
-    this.showDelist();
   }
 
-  showDelist() {
-
-    let root = this.overlay?.el || document;
-    let buy_section    = root.querySelector('.nft-details-buy');
-    let delist_section = root.querySelector('.nft-details-delist');
-    let header_send_btn = root.getElementById('send');
-
-    if (buy_section)    	{ buy_section.style.display = 'none'; }
-    if (delist_section) 	{ delist_section.style.display = ''; }
-    if (header_send_btn)	{ header_send_btn.textContent = 'Delist'; }
-  }
 }
 
 

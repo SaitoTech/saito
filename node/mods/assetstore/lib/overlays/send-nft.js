@@ -20,7 +20,7 @@ class SendNFTOverlay extends NFTDetailsOverlay {
     document.querySelector(".saito-nft-footer-btn.split").style.display = "none";   
     document.querySelector(".saito-nft-footer-btn.merge").style.display = "none";   
     document.querySelector(".saito-nft-footer-btn.disable").style.display = "none";   
-                           
+
     let html = `
       <div class="assetstore-nft-listing-inputs">
         <div class="assetstore-nft-listing-inputs-receiver" style="display:none">
@@ -34,7 +34,6 @@ class SendNFTOverlay extends NFTDetailsOverlay {
     `;
 
     document.querySelector(".saito-nft-description").innerHTML = html;
-
     setTimeout(() => { this.attachMyEvents(); }, 25);
 
   }
@@ -88,7 +87,7 @@ class SendNFTOverlay extends NFTDetailsOverlay {
 
         let receiver = (document.getElementById('nft-receiver-address').value || '').trim();
         let title = (document.querySelector('.saito-nft-header-title').innerHTML || '').trim();
-        let description = (document.querySelector('.saito-nft-description').innerHTML || '').trim();
+        let description = (document.querySelector('#nft-buy-description').innerHTML || '').trim();
 
         if (!this.app.wallet.isValidPublicKey(receiver)) {
           salert('Node public key is not valid');

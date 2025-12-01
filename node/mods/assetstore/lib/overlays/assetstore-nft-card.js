@@ -14,6 +14,7 @@ class AssetStoreNFTCard extends SaitoNFTCard {
     this.description = "";
     this.nft = new AssetStoreNFT(app, mod, tx, data, mycallback, this); // last argument is the card that is rendered
     this.nft.buildNFTData();
+    this.callback = mycallback;
 
   }
 
@@ -108,7 +109,9 @@ class AssetStoreNFTCard extends SaitoNFTCard {
     const el = document.querySelector(`.nfttxsig${this.nft.tx_sig}`);
     if (el) {
       el.onclick = () => {
+alert("clicked on card!");
         if (this.callback) {
+alert("running our callback!");
           this.callback(this.nft);
         } else {
 //          this.app.connection.emit('saito-nft-details-render-request', this.nft);

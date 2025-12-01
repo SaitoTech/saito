@@ -3,6 +3,13 @@ module.exports = (app, mod, nft) => {
   let identicon = app.keychain.returnIdenticon(nft.id);
   let deposit = nft.getDeposit();
 
+console.log("^");
+console.log("^");
+console.log("^");
+console.log("^");
+console.log("^");
+console.log("description--->" + nft.description + "<---");
+
   let title = "Vintage Saito NFT";
   let saitoItems = [
     "Vintage Collectible",
@@ -68,10 +75,7 @@ module.exports = (app, mod, nft) => {
 
   html += `
 
-          <p class="saito-nft-description">
-            This is a sample description of an NFT. You can write anything here:
-            metadata, instructions, lore, item context, etc.
-          </p>
+          <div class="saito-nft-description">${nft.description}</div>
         </div>
 
         <div class="saito-nft-panel-footer">

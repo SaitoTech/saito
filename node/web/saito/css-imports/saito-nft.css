@@ -37,7 +37,7 @@
 
 .saito-nft-header-sub {
   font-size: 1.7rem;
-  color: var(--saito-gray-750);;
+  color: var(--saito-font-color);
 }
 
 .saito-nft-header-btn {
@@ -135,7 +135,7 @@
 }
 .saito-nft-description {
   font-size: 14px;
-  color: #444;
+  color: var(--saito-font-color);
   line-height: 1.4;
   max-width: 100%;
   max-height: 20vh;
@@ -193,7 +193,7 @@
   -webkit-line-clamp: 10;
   overflow: hidden;
   white-space: pre;
-  color: #3ea63e;
+  color: var(--saito-font-color);
   background: var(--saito-black);
   height: 100%;
   font-size: 1.75rem;

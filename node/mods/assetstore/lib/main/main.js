@@ -62,8 +62,6 @@ class AssetStoreMain {
 
 	async renderListings() {
 
-console.log("into renderListings in assetstore...");
-
 		if (document.querySelector('.assetstore-table-list')) {
 			document.querySelector('.assetstore-table-list').innerHTML = ``;
 		}
@@ -87,8 +85,6 @@ console.log("into renderListings in assetstore...");
 				} else {
 				}
 
-console.log("creating AssetStore NFT Card");
-
 				let nft_card = new AssetStoreNFTCard(this.app, this.mod, '.assetstore-table-list', nfttx, record, async (nft1) => {
 					let seller_publicKey = nft1?.seller || '';
 					if (seller_publicKey === this.mod.publicKey) {
@@ -100,8 +96,6 @@ console.log("creating AssetStore NFT Card");
 					}
 				});
 
-console.log("creating AssetStore NFT Card 1");
-
 				//
 				// no transaction, we need the sig so fetch will work
 				//
@@ -112,15 +106,11 @@ console.log("creating AssetStore NFT Card 1");
 					}
 				}
 
-console.log("setting title and description: " + record.title);
-console.log("setting title and description: " + record.description);
-
 				if (record.title) { nft_card.title = record.title; }
 				if (record.description) { nft_card.description = record.description; }
 
 				await nft_card.nft.setPrice(record?.reserve_price);
 				await nft_card.nft.setSeller(record?.seller);
-
 				await nft_card.render();
 
 			}
