@@ -1,6 +1,39 @@
 module.exports = (app, mod, nft) => {
+
   let identicon = app.keychain.returnIdenticon(nft.id);
   let deposit = nft.getDeposit();
+
+  let title = "Vintage Saito NFT";
+  let saitoItems = [
+    "Vintage Collectible",
+    "Classic Saito NFT",
+    "Genesis Collectable",
+    "Saito Heritage Item",
+    "Unique Item",
+    "Historical Saito Mint",
+    "Provenance Edition",
+    "Founders Edition",
+    "NFT Collectable",
+    "Unique Item",
+    "Saito Legacy",
+    "Rare Saito Artifact",
+    "Limited Saito Release",
+    "Archival Series",
+    "Original Chain Relic",
+    "Timeless Collectable",
+    "Retro Blockchain Piece",
+    "Immutable Classic",
+    "Chain Memory Artifact",
+    "Saito Vault Item",
+    "Eternal Collectable"
+  ];
+  title = saitoItems[Math.floor(Math.random() * saitoItems.length)];
+
+  let text = "";
+  if (nft.text) { text = nft.text; }
+  if (nft.css) { text = nft.css; }
+  if (nft.json ) { text = nft.json; }
+  if (nft.js ) { text = nft.js; }
 
   let html = `
 
@@ -12,8 +45,8 @@ module.exports = (app, mod, nft) => {
           <img class="saito-identicon" src="${identicon}" data-disable="true" />
         </div>
         <div class="saito-nft-header-text">
-          <div class="saito-nft-header-title">Hex Conquistador – Tile #17</div>
-          <div class="saito-nft-header-sub">by xM2v…7jRGs</div>
+          <div class="saito-nft-header-title">${nft.title || title}</div>
+          <div class="saito-nft-header-sub">by ${nft.creator}</div>
         </div>
       </div>
 
@@ -25,8 +58,16 @@ module.exports = (app, mod, nft) => {
     <div class="saito-nft-overlay panels">
 
       <div class="saito-nft-panel saito-nft-panel-view active">
-        <div class="saito-nft-panel-body">
-          <div class="saito-nft-image" style="background-image:url('${nft?.image || '/saito/img/dreamscape.png'}')" ></div>
+        <div class="saito-nft-panel-body">`;
+
+  if (text == "") {
+    html += `<div class="saito-nft-image" style="background-image:url('${nft?.image || '/saito/img/dreamscape.png'}')" ></div>`;
+  } else {
+    html += `<div class="saito-nft-image" style="background-image:url('${nft?.image || '/saito/img/dreamscape.png'}')" ><div class="saito-nft-text">${text}</div></div>`;
+  }
+
+  html += `
+
           <p class="saito-nft-description">
             This is a sample description of an NFT. You can write anything here:
             metadata, instructions, lore, item context, etc.
