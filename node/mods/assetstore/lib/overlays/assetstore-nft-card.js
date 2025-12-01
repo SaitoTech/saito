@@ -109,9 +109,7 @@ class AssetStoreNFTCard extends SaitoNFTCard {
     const el = document.querySelector(`.nfttxsig${this.nft.tx_sig}`);
     if (el) {
       el.onclick = () => {
-alert("clicked on card!");
         if (this.callback) {
-alert("running our callback!");
           this.callback(this.nft);
         } else {
 //          this.app.connection.emit('saito-nft-details-render-request', this.nft);
