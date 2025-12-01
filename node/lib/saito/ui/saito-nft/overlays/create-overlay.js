@@ -16,7 +16,6 @@ class CreateNFT {
   }
 
   render() {
-
     this.module_provided_nfts = [];
 
     this.overlay.show(CreateNFTTemplate(this.app, this.mod, this));

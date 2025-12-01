@@ -3,7 +3,6 @@ let SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 
 class NFTOverlay {
   constructor(app, mod, attach_events = true) {
-
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
@@ -32,12 +31,14 @@ class NFTOverlay {
   }
 
   async attachEvents() {
-
+    let this_self = this;
     let send_button = document.querySelector('.saito-nft-footer-btn.send');
     let enable_button = document.querySelector('.saito-nft-footer-btn.enable');
     let disable_button = document.querySelector('.saito-nft-footer-btn.disable');
     let split_button = document.querySelector('.saito-nft-footer-btn.split');
     let merge_button = document.querySelector('.saito-nft-footer-btn.merge');
+
+    let confirm_send_btn = document.querySelector('.saito-nft-confirm-btn');
 
     ///////////////////////
     // Enable / Disable? //
@@ -78,7 +79,7 @@ class NFTOverlay {
       can_split = true;
     }
     if (this.getSameIdCount() > 1 && this.mod.publicKey == this.owner) {
-      can_merge = true; 
+      can_merge = true;
     }
 
     if (can_split) {
@@ -92,24 +93,61 @@ class NFTOverlay {
       merge_button.style.display = 'none';
     }
 
+    if (confirm_send_btn) {
+      confirm_send_btn.onclick = async (e) => {
+        e.preventDefault();
+        let receiver_input = document.querySelector('#nft-receiver-address');
+
+        // validate receiver's public_key
+        let receiver = receiver_input ? receiver_input.value.trim() : '';
+
+        console.log('receiver:', receiver);
+        console.log('is valid:', this_self.app.wallet.isValidPublicKey(receiver));
+
+        if (!this_self.app.wallet.isValidPublicKey(receiver)) {
+          salert('Receiver’s public key is not valid');
+          return;
+        }
+
+        try {
+          let newtx = await this_self.app.wallet.createSendNFTTransaction(this_self.nft, receiver);
+
+          await newtx.sign();
+          await this_self.app.network.propagateTransaction(newtx);
+
+          console.log('Create nft tx: ', newtx);
+
+          siteMessage('NFT sent to ' + receiver, 3000);
+
+          this_self.overlay.close();
+
+          if (document.querySelector('.nft-list-container')) {
+            this_self.app.connection.emit('saito-nft-list-render-request');
+          }
+        } catch (err) {
+          console.error(err);
+          salert('Failed to send NFT: ');
+        }
+      };
+    }
 
     /////////////////////////
     // button click events //
     /////////////////////////
     send_button.onclick = (e) => {
-      document.querySelector(".saito-nft-overlay.panels").classList.add("saito-nft-mode-send");
+      document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-send');
     };
 
     split_button.onclick = (e) => {
-      alert("split!");
-      document.querySelector(".saito-nft-overlay.panels").classList.add("saito-nft-mode-split");
-//      actionBar.dataset.show = 'split';
-//      this.showSplitOverlay(splitBar, confirmSplit);
+      alert('split!');
+      document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-split');
+      //      actionBar.dataset.show = 'split';
+      //      this.showSplitOverlay(splitBar, confirmSplit);
     };
 
     merge_button.onclick = (e) => {
-      alert("merge!");
-      document.querySelector(".saito-nft-overlay.panels").classList.add("saito-nft-mode-merge");
+      alert('merge!');
+      document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-merge');
       //actionBar.dataset.show = 'merge';
     };
 
@@ -144,15 +182,12 @@ class NFTOverlay {
       }
       this.render();
     };
-
   }
 
   getSameIdCount() {
     let nft_list = this.app?.options?.wallet?.nfts || [];
     return nft_list.filter((nft) => nft?.id === this.nft.id).length;
   }
-
-
 }
 
 module.exports = NFTOverlay;

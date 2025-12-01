@@ -1346,15 +1346,13 @@ export default class Wallet extends SaitoWallet {
         let id = nft.id;
         let tx_sig = nft.tx_sig;
 
-	//
-	// Nft is improper, but requires rationalization elsewhere
-	//
+        //
+        // Nft is improper, but requires rationalization elsewhere
+        //
         this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig);
       }
     }
   }
-
-
 
   async updateNFTList(): Promise<{
     updated: any[];

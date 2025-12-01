@@ -407,7 +407,6 @@ class SaitoNFT {
       ? this.app.wallet.convertNolanToSaito(this.price)
       : this.app.wallet.convertNolanToSaito(this.deposit);
   }
-
 }
 
 module.exports = SaitoNFT;
