@@ -22,14 +22,13 @@ module.exports = (app, mod, nft) => {
 
     <div class="saito-nft-overlay panels">
       <div class="saito-nft-panel saito-nft-panel-view active">
+
         <div class="saito-nft-panel-body">
 	  <div class="saito-nft-image" style="background-image: url('${nft?.image || '/saito/img/dreamscape.png'}');"></div>
-          <h2 class="saito-nft-title">Hex Conquistador – Tile #17</h2>
           <p class="saito-nft-description">
             This is a sample description of an NFT. You can write anything here:
             metadata, instructions, lore, item context, etc.
           </p>
-
         </div>
 
         <div class="saito-nft-panel-footer">
