@@ -129,11 +129,7 @@ module.exports = (app, mod, nft) => {
           </p>
 
           <div class="saito-nft-split-container">
-            <input id="saito-nft-split-left" class="saito-nft-split-half saito-nft-split-leftval" type="text" inputmode="numeric" value="1" />
-            <div class="saito-nft-split-bar">
-              <div class="saito-nft-split-grip"></div>
-            </div>
-            <div id="saito-nft-split-right" class="saito-nft-split-half saito-nft-split-rightval">1</div>
+             <div id="nft-details-split-bar"></div>
           </div>
         </div>
 
