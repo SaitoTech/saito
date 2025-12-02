@@ -44,10 +44,14 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 18px;
+  font-size: 36px;
   opacity: 0.6;
 }
 .saito-nft-header-btn:hover { opacity: 1; }
+.saito-nft-header-btn.rotate {
+  transform: rotate(90deg);
+  transform-origin: center;
+}
 
 /* PANELS WRAPPER */
 .saito-nft-overlay.panels {
@@ -59,7 +63,6 @@
   overflow-x: hidden;
 }
 
-/* INDIVIDUAL PANEL BASE */
 .saito-nft-panel {
   position: absolute;
   top: 0;
@@ -72,13 +75,13 @@
   transition: transform 0.35s ease;
 }
 
-/* VIEW PANEL (left) */
 .saito-nft-panel-view {
   transform: translateX(0);
 }
 
 /* SEND PANEL (right) */
 .saito-nft-panel-send ,
+.saito-nft-panel-info ,
 .saito-nft-panel-split ,
 .saito-nft-panel-merge ,
 .saito-nft-panel-enable ,
@@ -87,16 +90,28 @@
   transform: translateX(100%);
 }
 
-/* When JS adds .saito-nft-mode-send to the container */
-.saito-nft-overlay.panels.saito-nft-mode-send .saito-nft-panel-view {
+.saito-nft-overlay.panels.saito-nft-mode-send .saito-nft-panel-view , 
+.saito-nft-overlay.panels.saito-nft-mode-merge .saito-nft-panel-view , 
+.saito-nft-overlay.panels.saito-nft-mode-split .saito-nft-panel-view , 
+.saito-nft-overlay.panels.saito-nft-mode-info .saito-nft-panel-view 
+{
   transform: translateX(-100%);
 }
 
-.saito-nft-overlay.panels.saito-nft-mode-send .saito-nft-panel-send {
+.saito-nft-overlay.panels.saito-nft-mode-send .saito-nft-panel-send , 
+.saito-nft-overlay.panels.saito-nft-mode-merge .saito-nft-panel-send , 
+.saito-nft-overlay.panels.saito-nft-mode-split .saito-nft-panel-send , 
+.saito-nft-overlay.panels.saito-nft-mode-info .saito-nft-panel-info
+{
   transform: translateX(0);
 }
 
 .saito-nft-panel-view {
+    display: grid;
+    grid-template-rows: 1fr min-content;
+}
+
+.saito-nft-panel-info {
     display: grid;
     grid-template-rows: 1fr min-content;
 }

@@ -32,9 +32,12 @@ class NFTOverlay {
 
   async attachEvents() {
     let this_self = this;
+
+    let info_button = document.querySelector('.saito-nft-header-btn');
     let send_button = document.querySelector('.saito-nft-footer-btn.send');
     let enable_button = document.querySelector('.saito-nft-footer-btn.enable');
     let disable_button = document.querySelector('.saito-nft-footer-btn.disable');
+    let delete_button = document.querySelector('.saito-nft-footer-btn.delete');
     let split_button = document.querySelector('.saito-nft-footer-btn.split');
     let merge_button = document.querySelector('.saito-nft-footer-btn.merge');
 
@@ -138,6 +141,19 @@ class NFTOverlay {
       document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-send');
     };
 
+    info_button.onclick = (e) => {
+      if (document.querySelector(".saito-nft-overlay.panels.saito-nft-mode-info")) {
+        document.querySelector('.saito-nft-overlay.panels').classList.remove('saito-nft-mode-info');
+      } else {
+        document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-info');
+      }
+      if (document.querySelector('.saito-nft-header-btn.rotate')) {
+        document.querySelector('.saito-nft-header-btn').classList.remove('rotate');
+      } else {
+        document.querySelector('.saito-nft-header-btn').classList.add('rotate');
+      }
+    };
+
     split_button.onclick = (e) => {
       alert('split!');
       document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-split');
@@ -182,6 +198,10 @@ class NFTOverlay {
       }
       this.render();
     };
+
+    delete_button.onclick = (e) => {
+
+    }
   }
 
   getSameIdCount() {

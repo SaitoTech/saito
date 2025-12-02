@@ -102,6 +102,16 @@ console.log("description--->" + nft.description + "<---");
         </div>
       </div>
 
+      <div class="saito-nft-panel saito-nft-panel-info">
+        <div class="saito-nft-panel-body">
+          <h2 class="saito-nft-mode-title">NFT Information</h2>
+        </div>
+        <div class="saito-nft-panel-footer">
+          <button class="saito-nft-footer-btn saito-nft-delete-btn">Delete</button>
+        </div>
+      </div>
+
+
       <div class="saito-nft-panel saito-nft-panel-split">
         <div class="saito-nft-panel-body">
           <h2 class="saito-nft-mode-title">Split NFT</h2>
