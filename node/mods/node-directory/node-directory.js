@@ -27,6 +27,8 @@ class NodeDirectory extends ModTemplate {
     this._discoveryInProgress = false; // Flag to prevent concurrent discovery operations
     this._lastDiscoveryTime = 0; // Timestamp of last discovery operation
     this._discoveryInterval = null; // Interval timer for periodic discovery
+    this._lastAnnouncementTime = 0; // Timestamp of last announcement transaction
+    this._announcementInterval = null; // Interval timer for periodic announcements
   }
 
   returnServices() {
@@ -44,9 +46,15 @@ class NodeDirectory extends ModTemplate {
     // Start periodic RTT measurement
     // Note: Server-side measures server-to-peer RTT, browser-side measures browser-to-peer RTT
     this.startPeriodicRttMeasurement();
-    // Start periodic network discovery (server-side only)
+    // Start periodic node announcements (server-side only)
     if (!this.app.BROWSER) {
-      this.startPeriodicDiscovery(60000); // Discover every 60 seconds
+      this.startPeriodicAnnouncements(300000); // Announce every 5 minutes
+      // Also announce immediately on startup
+      setTimeout(() => {
+        this.broadcastNodeAnnouncement().catch(err => {
+          console.error('[NodeDirectory] Error broadcasting initial announcement:', err);
+        });
+      }, 10000); // Wait 10 seconds for network to be ready
     }
   }
 
@@ -1003,6 +1011,91 @@ class NodeDirectory extends ModTemplate {
     }
   }
   /**
+   * Broadcast node announcement transaction
+   * Announces this node's status, services, and location to the network
+   */
+  async broadcastNodeAnnouncement() {
+    if (this.app.BROWSER) {
+      return; // Browser clients don't announce
+    }
+    try {
+      const myPublicKey = await this.app.wallet.getPublicKey();
+      const myServices = this.app.network.getServices() || [];
+      const myHostname = this.getHostnameForPublicKey(myPublicKey);
+      // Hostname is mandatory - skip announcement if not available
+      if (!myHostname) {
+        console.warn('[NodeDirectory] Cannot broadcast announcement: hostname not found for public key', myPublicKey.substring(0, 16) + '...');
+        return;
+      }
+      // Get connection URL
+      const connectionUrl = `https://${myHostname}`;
+      // Normalize services
+      const servicesNormalized = myServices.map((s) => {
+        const instance = s.instance || s;
+        return {
+          service: String(instance.service || ''),
+          name: String(instance.name || ''),
+          domain: String(instance.domain || '')
+        };
+      });
+      // Create announcement transaction
+      const tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(myPublicKey);
+      // Add all connected peers as recipients for broadcast
+      const peers = await this.app.network.getPeers();
+      const connectedPeers = peers.filter(p => p && p.status === 'connected' && p.publicKey);
+      for (const peer of connectedPeers) {
+        tx.addTo(peer.publicKey);
+      }
+      // If no connected peers, add ourselves to ensure transaction is valid
+      if (connectedPeers.length === 0) {
+        tx.addTo(myPublicKey);
+      }
+      tx.msg = {
+        module: this.name,
+        request: 'node-announcement',
+        data: {
+          publicKey: myPublicKey,
+          hostname: myHostname,
+          connectionUrl: connectionUrl,
+          services: servicesNormalized,
+          timestamp: Date.now(),
+          synctype: 'full' // Mark as full node
+        }
+      };
+      await tx.sign();
+      await this.app.network.propagateTransaction(tx);
+      this._lastAnnouncementTime = Date.now();
+      console.log(`[NodeDirectory] Broadcasted node announcement: hostname=${myHostname || 'none'}, services=${servicesNormalized.length}`);
+    } catch (err) {
+      console.error('[NodeDirectory] Error broadcasting node announcement:', err);
+    }
+  }
+  /**
+   * Start periodic node announcements
+   */
+  startPeriodicAnnouncements(intervalMs = 300000) {
+    if (this._announcementInterval) {
+      clearInterval(this._announcementInterval);
+    }
+    // Announce periodically
+    this._announcementInterval = setInterval(() => {
+      this.broadcastNodeAnnouncement().catch(err => {
+        console.error('[NodeDirectory] Error in periodic announcement:', err);
+      });
+    }, intervalMs);
+    console.log(`[NodeDirectory] Started periodic node announcements (every ${intervalMs}ms)`);
+  }
+  /**
+   * Stop periodic node announcements
+   */
+  stopPeriodicAnnouncements() {
+    if (this._announcementInterval) {
+      clearInterval(this._announcementInterval);
+      this._announcementInterval = null;
+      console.log('[NodeDirectory] Stopped periodic node announcements');
+    }
+  }
+  /**
    * Start periodic network discovery
    */
   startPeriodicDiscovery(intervalMs = 60000) {
@@ -1027,6 +1120,90 @@ class NodeDirectory extends ModTemplate {
       clearInterval(this._discoveryInterval);
       this._discoveryInterval = null;
       console.log('[NodeDirectory] Stopped periodic network discovery');
+    }
+  }
+  /**
+   * Listen for node announcement transactions on the blockchain
+   */
+  async onConfirmation(blk, tx, conf) {
+    if (Number(conf) !== 0) {
+      return; // Only process first confirmation
+    }
+    try {
+      const txmsg = tx.returnMessage();
+      if (!txmsg || txmsg.module !== this.name) {
+        return;
+      }
+      if (txmsg.request === 'node-announcement' && txmsg.data) {
+        const announcement = txmsg.data;
+        const publicKey = announcement.publicKey;
+        if (!publicKey) {
+          return;
+        }
+        // Hostname is mandatory - skip announcements without hostname
+        if (!announcement.hostname) {
+          console.debug(`[NodeDirectory] Skipping announcement without hostname from ${publicKey.substring(0, 16)}...`);
+          return;
+        }
+        // Skip our own announcements
+        try {
+          const myPublicKey = await this.app.wallet.getPublicKey();
+          if (publicKey === myPublicKey) {
+            return;
+          }
+        } catch (e) {
+          // ignore
+        }
+        // Skip if already in direct peers
+        const peers = await this.app.network.getPeers();
+        const alreadyDirectPeer = peers.some(p => p && p.publicKey === publicKey);
+        if (alreadyDirectPeer) {
+          return; // We already know about direct peers
+        }
+        // Skip clients
+        if (announcement.synctype === 'lite' || announcement.synctype === 'none') {
+          return;
+        }
+        // Store/update discovered node from announcement
+        const existing = this._discoveredNodes.get(publicKey);
+        const now = Date.now();
+        if (!existing) {
+          // New node discovered via announcement
+          this._discoveredNodes.set(publicKey, {
+            peerIndex: null,
+            publicKey: publicKey,
+            hostname: announcement.hostname, // Mandatory, already validated above
+            connectionUrl: announcement.connectionUrl || null,
+            status: 'discovered',
+            peerType: 'discovered',
+            services: announcement.services || [],
+            lastSeenAt: now,
+            discoveredAt: now,
+            firstSeenAt: now
+          });
+          console.log(`[NodeDirectory] Discovered node via announcement: ${publicKey.substring(0, 16)}..., hostname=${announcement.hostname || 'none'}, services=${announcement.services?.length || 0}`);
+          // Save to storage
+          await this.saveDiscoveredNodes();
+        } else {
+          // Update existing node - update lastSeenAt and services
+          existing.lastSeenAt = now;
+          if (announcement.services && announcement.services.length > 0) {
+            existing.services = announcement.services;
+          }
+          if (announcement.hostname && !existing.hostname) {
+            existing.hostname = announcement.hostname;
+          }
+          if (announcement.connectionUrl && !existing.connectionUrl) {
+            existing.connectionUrl = announcement.connectionUrl;
+          }
+          // Keep firstSeenAt from original discovery
+          if (!existing.firstSeenAt) {
+            existing.firstSeenAt = existing.discoveredAt || now;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[NodeDirectory] Error processing node announcement:', err);
     }
   }
   async handlePeerTransaction(app, tx = null, peer, mycallback) {
@@ -1268,6 +1445,59 @@ class NodeDirectory extends ModTemplate {
       }
     });
     // Debug API: inspect Registry cache
+    // Debug API: check local node's hostname status
+    expressApp.get(`/${encodeURI(slug)}/api/debug/my-hostname`, async (req, res) => {
+      try {
+        const myPublicKey = await this.app.wallet.getPublicKey();
+        const myHostname = this.getHostnameForPublicKey(myPublicKey);
+        const registryMod = this.app.modules.returnModule('Registry');
+        let registryInfo = null;
+        if (registryMod) {
+          registryInfo = {
+            moduleFound: true,
+            cachedKeysSize: registryMod.cached_keys ? Object.keys(registryMod.cached_keys).length : 0,
+            myKeyInCache: registryMod.cached_keys && registryMod.cached_keys[myPublicKey] ? registryMod.cached_keys[myPublicKey] : null,
+            hasRespondTo: typeof registryMod.respondTo === 'function'
+          };
+          // Try respondTo method
+          if (registryMod.respondTo) {
+            const registry = registryMod.respondTo('saito-return-key');
+            if (registry && registry.returnKey) {
+              const result = registry.returnKey(myPublicKey);
+              registryInfo.respondToResult = result;
+            }
+          }
+        } else {
+          registryInfo = { moduleFound: false };
+        }
+        // Check keychain
+        let keychainInfo = null;
+        if (this.app.keychain && this.app.keychain.returnIdentifierByPublicKey) {
+          const keychainIdentifier = this.app.keychain.returnIdentifierByPublicKey(myPublicKey, true);
+          keychainInfo = {
+            hasMethod: true,
+            identifier: keychainIdentifier,
+            isDifferentFromKey: keychainIdentifier !== myPublicKey
+          };
+        } else {
+          keychainInfo = { hasMethod: false };
+        }
+        res.json({
+          publicKey: myPublicKey,
+          hostname: myHostname,
+          hasHostname: !!myHostname,
+          canAnnounce: !!myHostname,
+          registry: registryInfo,
+          keychain: keychainInfo,
+          message: myHostname 
+            ? `Node has hostname: ${myHostname}. Can broadcast announcements.`
+            : `Node does NOT have a hostname. Must register in Registry module before broadcasting announcements.`
+        });
+      } catch (err) {
+        console.error('node-directory /api/debug/my-hostname error', err);
+        res.status(500).json({ error: 'failed_to_check_hostname', message: err.message });
+      }
+    });
     expressApp.get(`/${encodeURI(slug)}/api/debug/registry`, async (req, res) => {
       try {
         const registryMod = this.app.modules.returnModule('Registry');
