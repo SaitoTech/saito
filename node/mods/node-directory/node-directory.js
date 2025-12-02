@@ -82,10 +82,16 @@ class NodeDirectory extends ModTemplate {
     if (this._rttMeasurementInterval) {
       return; // Already running
     }
-    // Measure immediately, then every 30 seconds
-    this.measureRttForAllPeers();
+    // Delay initial measurement to ensure network is ready
+    setTimeout(() => {
+      this.measureRttForAllPeers().catch(err => {
+        console.error('[NodeDirectory] Error in initial RTT measurement:', err);
+      });
+    }, 5000); // Wait 5 seconds after initialization
     this._rttMeasurementInterval = setInterval(() => {
-      this.measureRttForAllPeers();
+      this.measureRttForAllPeers().catch(err => {
+        console.error('[NodeDirectory] Error in periodic RTT measurement:', err);
+      });
     }, 30000); // 30 seconds
   }
 
@@ -480,39 +486,44 @@ class NodeDirectory extends ModTemplate {
   }
 
   async getAllNodes() {
-    if (!this.app?.network || !this.app.network.getPeers) {
-      console.warn('NodeDirectory: app.network.getPeers not available');
+    try {
+      if (!this.app?.network || !this.app.network.getPeers) {
+        console.warn('NodeDirectory: app.network.getPeers not available');
+        return [];
+      }
+      const peers = await this.app.network.getPeers();
+
+      console.log('[NodeDirectory] Processing', peers.length, 'direct peers from getPeers()');
+
+      // Process direct peers
+      const nodes = await this._processPeers(peers, true); // true = include discovered nodes
+
+      const discoveredNodes = nodes.filter(n => n.peerType === 'discovered');
+      const connectedNodes = nodes.filter(n => n.peerType === 'connected');
+      console.log('[NodeDirectory] Processed peers summary:', {
+        total: nodes.length,
+        direct: peers.length,
+        networkDiscovered: this._discoveredNodes.size,
+        static: nodes.filter(n => n.peerType === 'static').length,
+        connected: connectedNodes.length,
+        discovered: discoveredNodes.length,
+        local: nodes.filter(n => n.peerType === 'local').length
+      });
+
+      // Trigger fetching identifiers in background (non-blocking)
+      let myPublicKey = null;
+      try {
+        myPublicKey = await this.app.wallet.getPublicKey();
+      } catch (e) {
+        // ignore
+      }
+      this.fetchIdentifiersForPeers(peers, myPublicKey);
+      this._peerCache = nodes;
+      return nodes;
+    } catch (err) {
+      console.error('[NodeDirectory] Error in getAllNodes():', err);
       return [];
     }
-    const peers = await this.app.network.getPeers();
-
-    console.log('[NodeDirectory] Processing', peers.length, 'direct peers from getPeers()');
-
-    // Process direct peers
-    const nodes = await this._processPeers(peers, true); // true = include discovered nodes
-
-    const discoveredNodes = nodes.filter(n => n.peerType === 'discovered');
-    const connectedNodes = nodes.filter(n => n.peerType === 'connected');
-    console.log('[NodeDirectory] Processed peers summary:', {
-      total: nodes.length,
-      direct: peers.length,
-      networkDiscovered: this._discoveredNodes.size,
-      static: nodes.filter(n => n.peerType === 'static').length,
-      connected: connectedNodes.length,
-      discovered: discoveredNodes.length,
-      local: nodes.filter(n => n.peerType === 'local').length
-    });
-
-    // Trigger fetching identifiers in background (non-blocking)
-    let myPublicKey = null;
-    try {
-      myPublicKey = await this.app.wallet.getPublicKey();
-    } catch (e) {
-      // ignore
-    }
-    this.fetchIdentifiersForPeers(peers, myPublicKey);
-    this._peerCache = nodes;
-    return nodes;
   }
 
   async getNodesForApp(slug = '') {
