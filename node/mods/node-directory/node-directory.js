@@ -84,6 +84,67 @@ class NodeDirectory extends ModTemplate {
   }
 
   /**
+   * Return the hostname configured for this node in app.options
+   * 
+   * Expected structure in options (example):
+   * 
+   * {
+   *   "nodeDirectory": {
+   *     "hostname": "mynode.example.com",
+   *     "location": "Amsterdam, NL"
+   *   }
+   * }
+   */
+  _getConfiguredHostname() {
+    try {
+      const opts =
+        this.app?.options?.nodeDirectory ||
+        this.app?.options?.['node-directory'] ||
+        this.app?.options?.nodedirectory ||
+        null;
+      if (opts && typeof opts.hostname === 'string') {
+        const trimmed = opts.hostname.trim();
+        if (trimmed.length > 0) {
+          return trimmed;
+        }
+      }
+    } catch (e) {
+      console.error('[NodeDirectory] Error reading configured hostname from options:', e);
+    }
+    return null;
+  }
+
+  /**
+   * Return the (optional) location configured for this node in app.options
+   * 
+   * Example:
+   * {
+   *   "nodeDirectory": {
+   *     "hostname": "mynode.example.com",
+   *     "location": "Amsterdam, NL"
+   *   }
+   * }
+   */
+  _getConfiguredLocation() {
+    try {
+      const opts =
+        this.app?.options?.nodeDirectory ||
+        this.app?.options?.['node-directory'] ||
+        this.app?.options?.nodedirectory ||
+        null;
+      if (opts && typeof opts.location === 'string') {
+        const trimmed = opts.location.trim();
+        if (trimmed.length > 0) {
+          return trimmed;
+        }
+      }
+    } catch (e) {
+      console.error('[NodeDirectory] Error reading configured location from options:', e);
+    }
+    return null;
+  }
+
+  /**
    * Start periodic RTT measurement (every 30 seconds)
    */
   startPeriodicRttMeasurement() {
@@ -130,6 +191,24 @@ class NodeDirectory extends ModTemplate {
       return null;
     }
     try {
+      // Prefer local NodeDirectory config hostname for our own node
+      try {
+        let myPublicKey = null;
+        if (this.app.wallet?.getPublicKeySync) {
+          myPublicKey = this.app.wallet.getPublicKeySync();
+        } else if (this.app.wallet?.returnPublicKey) {
+          myPublicKey = this.app.wallet.returnPublicKey();
+        }
+        if (myPublicKey && publicKey === myPublicKey) {
+          const cfgHostname = this._getConfiguredHostname();
+          if (cfgHostname) {
+            return cfgHostname;
+          }
+        }
+      } catch (e) {
+        // ignore and fall back to Registry / keychain
+      }
+
       // Method 1: Try Registry module's cached_keys via respondTo
       const registryMod = this.app.modules.returnModule('Registry');
       if (registryMod && registryMod.respondTo) {
@@ -1021,10 +1100,15 @@ class NodeDirectory extends ModTemplate {
     try {
       const myPublicKey = await this.app.wallet.getPublicKey();
       const myServices = this.app.network.getServices() || [];
-      const myHostname = this.getHostnameForPublicKey(myPublicKey);
-      // Hostname is mandatory - skip announcement if not available
+      // Prefer explicit NodeDirectory config for hostname instead of Registry
+      const myHostname = this._getConfiguredHostname();
+      const myLocation = this._getConfiguredLocation();
+      // Hostname is mandatory - skip announcement if not available in config
       if (!myHostname) {
-        console.warn('[NodeDirectory] Cannot broadcast announcement: hostname not found for public key', myPublicKey.substring(0, 16) + '...');
+        console.warn(
+          '[NodeDirectory] Cannot broadcast announcement: hostname not configured in app.options.nodeDirectory.hostname for public key',
+          myPublicKey.substring(0, 16) + '...'
+        );
         return;
       }
       // Get connection URL
@@ -1057,6 +1141,7 @@ class NodeDirectory extends ModTemplate {
           publicKey: myPublicKey,
           hostname: myHostname,
           connectionUrl: connectionUrl,
+          location: myLocation || null,
           services: servicesNormalized,
           timestamp: Date.now(),
           synctype: 'full' // Mark as full node
@@ -1174,6 +1259,7 @@ class NodeDirectory extends ModTemplate {
             publicKey: publicKey,
             hostname: announcement.hostname, // Mandatory, already validated above
             connectionUrl: announcement.connectionUrl || null,
+            location: announcement.location || null,
             status: 'discovered',
             peerType: 'discovered',
             services: announcement.services || [],
@@ -1195,6 +1281,9 @@ class NodeDirectory extends ModTemplate {
           }
           if (announcement.connectionUrl && !existing.connectionUrl) {
             existing.connectionUrl = announcement.connectionUrl;
+          }
+          if (announcement.location && !existing.location) {
+            existing.location = announcement.location;
           }
           // Keep firstSeenAt from original discovery
           if (!existing.firstSeenAt) {
