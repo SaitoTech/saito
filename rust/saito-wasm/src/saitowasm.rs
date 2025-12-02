@@ -758,6 +758,7 @@ pub async fn create_remove_bound_transaction(
     slip1_utxo_key: JsString,
     slip2_utxo_key: JsString,
     slip3_utxo_key: JsString,
+    tx_msg: Uint8Array, // ADD THIS
 ) -> Result<WasmTransaction, JsValue> {
     //
     // get SAITO instance
@@ -778,12 +779,17 @@ pub async fn create_remove_bound_transaction(
         string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
 
     //
+    // convert the `data` string into raw UTF-8 bytes (Vec<u8>)
+    //
+    let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+    //
     // build the remove-bound transaction via wallet
     //
     let tx = {
         let mut wallet = saito.context.wallet_lock.write().await;
         wallet
-            .create_remove_bound_transaction(s1, s2, s3)
+            .create_remove_bound_transaction(s1, s2, s3, serialized_msg)
             .await
             .map_err(|_| JsValue::from_str("create_remove_bound_transaction failed"))?
     };
