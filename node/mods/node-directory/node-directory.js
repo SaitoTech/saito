@@ -226,12 +226,17 @@ class NodeDirectory extends ModTemplate {
    * Get only directly connected peers (used for peer list responses to avoid loops)
    */
   async getAllNodesDirect() {
-    if (!this.app?.network || !this.app.network.getPeers) {
-      console.warn('NodeDirectory: app.network.getPeers not available');
+    try {
+      if (!this.app?.network || !this.app.network.getPeers) {
+        console.warn('NodeDirectory: app.network.getPeers not available');
+        return [];
+      }
+      const peers = await this.app.network.getPeers();
+      return await this._processPeers(peers, false); // false = don't include discovered nodes
+    } catch (err) {
+      console.error('[NodeDirectory] Error in getAllNodesDirect():', err);
       return [];
     }
-    const peers = await this.app.network.getPeers();
-    return await this._processPeers(peers, false); // false = don't include discovered nodes
   }
 
   /**
@@ -378,11 +383,11 @@ class NodeDirectory extends ModTemplate {
 
     // Try to get connection URL from static_peer_config if available
     let connectionUrl = null;
-    if (isStaticPeer && staticConfig) {
+    if (isStaticPeer && staticConfigValue) {
       try {
-        const protocol = staticConfig.protocol === 'https' ? 'https' : 'http';
-        const port = staticConfig.port;
-        const host = staticConfig.host || (staticConfig.instance?.host);
+        const protocol = staticConfigValue.protocol === 'https' ? 'https' : 'http';
+        const port = staticConfigValue.port;
+        const host = staticConfigValue.host || (staticConfigValue.instance?.host);
         if (host) {
           // Only include port if it's not the default
           if ((protocol === 'https' && port !== 443) || (protocol === 'http' && port !== 80)) {
@@ -1045,26 +1050,36 @@ class NodeDirectory extends ModTemplate {
     if (txmsg.request === 'node-directory:get-peer-list') {
       if (typeof mycallback === 'function' && !this.app.BROWSER) {
         console.log(`[NodeDirectory] Received peer list request from peerIndex=${peer?.peerIndex}, publicKey=${peer?.publicKey?.substring(0, 16) || 'unknown'}...`);
-        // Return our peer list (excluding discovered nodes to avoid loops)
-        const nodes = await this.getAllNodesDirect(); // Get only directly connected peers (clients already filtered)
-        console.log(`[NodeDirectory] Returning ${nodes.length} node(s) to requesting peer`);
-        nodes.forEach((n, idx) => {
-          console.log(`[NodeDirectory]   Node ${idx + 1} to return: publicKey=${n.publicKey?.substring(0, 16)}..., hostname=${n.hostname || 'none'}, status=${n.status}, peerType=${n.peerType}, services=${n.services?.length || 0}`);
-        });
-        const response = {
-          module: this.name,
-          request: 'node-directory:peer-list-response',
-          nodes: nodes.map(n => ({
-            publicKey: n.publicKey,
-            hostname: n.hostname,
-            status: n.status,
-            peerType: n.peerType,
-            services: n.services,
-            synctype: 'full' // Mark as full node (clients already filtered out)
-          }))
-        };
-        console.log(`[NodeDirectory] Sending response with ${response.nodes.length} node(s)`);
-        mycallback(response);
+        try {
+          // Return our peer list (excluding discovered nodes to avoid loops)
+          const nodes = await this.getAllNodesDirect(); // Get only directly connected peers (clients already filtered)
+          console.log(`[NodeDirectory] Returning ${nodes.length} node(s) to requesting peer`);
+          nodes.forEach((n, idx) => {
+            console.log(`[NodeDirectory]   Node ${idx + 1} to return: publicKey=${n.publicKey?.substring(0, 16)}..., hostname=${n.hostname || 'none'}, status=${n.status}, peerType=${n.peerType}, services=${n.services?.length || 0}`);
+          });
+          const response = {
+            module: this.name,
+            request: 'node-directory:peer-list-response',
+            nodes: nodes.map(n => ({
+              publicKey: n.publicKey,
+              hostname: n.hostname,
+              status: n.status,
+              peerType: n.peerType,
+              services: n.services,
+              synctype: 'full' // Mark as full node (clients already filtered out)
+            }))
+          };
+          console.log(`[NodeDirectory] Sending response with ${response.nodes.length} node(s)`);
+          mycallback(response);
+        } catch (err) {
+          console.error(`[NodeDirectory] Error handling peer list request:`, err);
+          // Send empty response on error
+          mycallback({
+            module: this.name,
+            request: 'node-directory:peer-list-response',
+            nodes: []
+          });
+        }
       } else {
         console.log(`[NodeDirectory] Ignoring peer list request: browser=${this.app.BROWSER}, hasCallback=${typeof mycallback === 'function'}`);
       }
