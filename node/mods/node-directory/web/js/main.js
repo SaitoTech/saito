@@ -29,13 +29,13 @@ async function fetchBestNode(slug) {
 
 function formatDataAge(timestamp) {
   if (!timestamp) return 'never';
-  
+
   const now = Date.now();
   const ageMs = now - timestamp;
   const ageSec = Math.floor(ageMs / 1000);
   const ageMin = Math.floor(ageSec / 60);
   const ageHour = Math.floor(ageMin / 60);
-  
+
   if (ageSec < 60) {
     return `${ageSec}s ago`;
   } else if (ageMin < 60) {
@@ -50,43 +50,14 @@ function formatDataAge(timestamp) {
 
 function formatLastSeen(timestamp) {
   if (!timestamp) return '<span class="nd-empty">n/a</span>';
-  
-  const now = Date.now();
-  const ageMs = now - timestamp;
-  const ageSec = Math.floor(ageMs / 1000);
-  const ageMin = Math.floor(ageSec / 60);
-  const ageHour = Math.floor(ageMin / 60);
-  const days = Math.floor(ageHour / 24);
-  
-  // Format as relative time
-  let relativeTime;
-  if (ageSec < 60) {
-    relativeTime = `${ageSec}s ago`;
-  } else if (ageMin < 60) {
-    relativeTime = `${ageMin}m ago`;
-  } else if (ageHour < 24) {
-    relativeTime = `${ageHour}h ago`;
-  } else if (days < 7) {
-    relativeTime = `${days}d ago`;
-  } else {
-    // For older entries, show date
-    const date = new Date(timestamp);
-    relativeTime = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  }
-  
-  return `<span title="${new Date(timestamp).toLocaleString()}">${relativeTime}</span>`;
-}
 
-function formatLastSeen(timestamp) {
-  if (!timestamp) return '<span class="nd-empty">n/a</span>';
-  
   const now = Date.now();
   const ageMs = now - timestamp;
   const ageSec = Math.floor(ageMs / 1000);
   const ageMin = Math.floor(ageSec / 60);
   const ageHour = Math.floor(ageMin / 60);
   const days = Math.floor(ageHour / 24);
-  
+
   // Format as relative time
   let relativeTime;
   if (ageSec < 60) {
@@ -102,7 +73,7 @@ function formatLastSeen(timestamp) {
     const date = new Date(timestamp);
     relativeTime = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   }
-  
+
   return `<span title="${new Date(timestamp).toLocaleString()}">${relativeTime}</span>`;
 }
 
@@ -135,14 +106,41 @@ function renderSummary(bestNode, serviceName) {
     return;
   }
 
+  // Prioritize hostname/URL - this is what users actually need
+  let connectionInfo = '';
+  if (bestNode.connectionUrl) {
+    connectionInfo = `
+      <div style="margin: 0.5rem 0;">
+        <strong>Connect to:</strong> <a href="${bestNode.connectionUrl}" target="_blank" style="color: #0070f3; text-decoration: none;"><code style="background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 3px;">${bestNode.connectionUrl}</code></a>
+        ${bestNode.hostname && bestNode.hostname !== bestNode.connectionUrl.replace(/^https?:\/\//, '') ? ` <span style="color: #666;">(${bestNode.hostname})</span>` : ''}
+      </div>
+    `;
+  } else if (bestNode.hostname) {
+    connectionInfo = `
+      <div style="margin: 0.5rem 0;">
+        <strong>Hostname:</strong> <code style="background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 3px;">${bestNode.hostname}</code>
+        <br/><small style="color: #999;">Note: No connection URL available. Hostname may need to be registered in Registry.</small>
+      </div>
+    `;
+  } else {
+    connectionInfo = `
+      <div style="margin: 0.5rem 0; padding: 0.5rem; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 3px;">
+        <strong>⚠️ No hostname available</strong>
+        <br/><small>This node's public key is not registered in the Registry. Without a hostname, you cannot connect to this node directly.</small>
+        <br/><small><strong>Public Key:</strong> <code>${bestNode.publicKey}</code></small>
+      </div>
+    `;
+  }
+
   summaryEl.innerHTML = `
     Best node for <span class="nd-summary-highlight">${serviceName}</span>:
     <br/>
-    <strong>Peer Index:</strong> ${bestNode.peerIndex.toString()} &nbsp;|&nbsp;
-    <strong>Status:</strong> ${bestNode.status}
-    ${bestNode.lastRttMs !== undefined ? `&nbsp;|&nbsp;<strong>RTT:</strong> ${bestNode.lastRttMs} ms` : ''}
-    <br/>
-    <strong>Public Key:</strong> <code>${bestNode.publicKey}</code>
+    ${connectionInfo}
+    <div style="margin-top: 0.5rem; font-size: 0.9em; color: #666;">
+      <strong>Peer Index:</strong> ${bestNode.peerIndex.toString()} &nbsp;|&nbsp;
+      <strong>Status:</strong> ${bestNode.status}
+      ${bestNode.lastRttMs !== undefined ? `&nbsp;|&nbsp;<strong>RTT:</strong> ${bestNode.lastRttMs} ms` : ''}
+    </div>
   `;
 }
 
@@ -172,7 +170,7 @@ function updateServiceDropdown(nodes) {
 
   // Convert to sorted array
   const services = Array.from(servicesSet).sort();
-  
+
   console.log('[NodeDirectory UI] Found', services.length, 'unique services:', services);
 
   // Clear existing options (except the first "Select..." option)
@@ -182,14 +180,14 @@ function updateServiceDropdown(nodes) {
   services.forEach(service => {
     const option = document.createElement('option');
     option.value = service;
-    
+
     // Extract display name: if service is "app:arcade", show "arcade", otherwise show full service name
     const displayName = service.startsWith('app:') ? service.substring(4) : service;
     option.textContent = displayName;
-    
+
     select.appendChild(option);
   });
-  
+
   if (services.length === 0) {
     console.warn('[NodeDirectory UI] No services found in nodes - dropdown will be empty');
   }
@@ -290,7 +288,7 @@ async function refreshAllNodes(showLoading = false) {
   }
 
   const tbody = document.getElementById('nd-peer-rows');
-  
+
   // Only show loading if explicitly requested (manual refresh) or if we have no cached data
   if (showLoading || !cachedNodes) {
     if (tbody) {
@@ -303,29 +301,29 @@ async function refreshAllNodes(showLoading = false) {
   }
 
   isFetching = true;
-  
+
   try {
     // Trigger RTT measurement in background (non-blocking)
     triggerRttMeasurement();
-    
+
     // Fetch peers (which will include cached RTT values)
     const nodes = await fetchPeers();
-    
+
     console.log('[NodeDirectory UI] Fetched', nodes?.length || 0, 'nodes');
-    
+
     // Only update if fetch succeeded
     cachedNodes = nodes;
     lastFetchTime = Date.now();
     renderPeersTable(nodes);
     updateDataAgeIndicator();
-    
+
     // Log if no nodes found
     if (!nodes || nodes.length === 0) {
       console.warn('[NodeDirectory UI] No nodes returned from API');
     }
   } catch (err) {
     console.error('NodeDirectory UI: failed to load nodes', err);
-    
+
     // If we have cached data, keep showing it and just update the indicator
     if (cachedNodes) {
       console.log('NodeDirectory: Using cached data due to fetch error');
