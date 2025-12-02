@@ -99,8 +99,8 @@
 }
 
 .saito-nft-overlay.panels.saito-nft-mode-send .saito-nft-panel-send , 
-.saito-nft-overlay.panels.saito-nft-mode-merge .saito-nft-panel-send , 
-.saito-nft-overlay.panels.saito-nft-mode-split .saito-nft-panel-send , 
+.saito-nft-overlay.panels.saito-nft-mode-merge .saito-nft-panel-merge , 
+.saito-nft-overlay.panels.saito-nft-mode-split .saito-nft-panel-split , 
 .saito-nft-overlay.panels.saito-nft-mode-info .saito-nft-panel-info
 {
   transform: translateX(0);
@@ -215,3 +215,39 @@
 }
 
 
+.fancy-slider-bar {
+  position: relative;
+  width: 100%;
+  background-color: var(--saito-background-color);
+  display: flex;
+  align-items: center;
+  z-index: 10;
+  padding: 0;
+  height: 4.5rem;
+  border: 1px solid var(--saito-border-color-dark);
+}
+
+.split-bar {
+  width: 5px;
+  position: relative;
+}
+
+.split-half {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 1.6rem;
+}
+
+input.split-half {
+  padding: 0;
+  height: 100%;
+  border-radius: unset;
+  text-align: center;
+}
+
+.split-bar > .resize-icon.horizontal {
+  background-color: var(--saito-primary);
+  height: 5rem;
+}

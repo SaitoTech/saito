@@ -234,17 +234,16 @@ class CreateNFT {
     };
 
     document.querySelector('#create_nft').onclick = async (e) => {
-
-console.log("create nft 1");
+      console.log('create nft 1');
 
       let obj = await this.createObject();
       if (obj == false) {
         return;
       }
 
-console.log(JSON.stringify(obj));
+      console.log(JSON.stringify(obj));
 
-console.log("create nft 2");
+      console.log('create nft 2');
 
       //
       // this value is not either nolan/saito
@@ -261,7 +260,7 @@ console.log("create nft 2");
       }
 
       let balance = await this.app.wallet.getBalance();
-console.log("create nft 1");
+      console.log('create nft 1');
 
       // value of nft (nolan)
       let depositAmt = parseInt(document.querySelector('#create-nft-deposit').value);
@@ -276,7 +275,7 @@ console.log("create nft 1");
         salert(`Need at least 1 SAITO to create NFT`);
         return;
       }
-console.log("create nft 1");
+      console.log('create nft 1');
 
       let fee = BigInt(0n);
 
@@ -284,7 +283,7 @@ console.log("create nft 1");
         data: obj
       };
 
-console.log("create nft 3");
+      console.log('create nft 3');
 
       let publickey = await this.app.wallet.getPublicKey();
       let newtx = await this.app.wallet.createMintNFTTransaction(
@@ -292,19 +291,19 @@ console.log("create nft 3");
         depositAmt,
         tx_msg,
         fee,
-        publickey ,
+        publickey,
         this.nft_type
       );
 
-console.log("create nft 1");
+      console.log('create nft 1');
       await newtx.sign();
-console.log("create nft 1");
+      console.log('create nft 1');
       await this.app.network.propagateTransaction(newtx);
-console.log("create nft 1");
+      console.log('create nft 1');
 
       siteMessage('Minting NFT...', 3000);
 
-console.log("create nft 1");
+      console.log('create nft 1');
       this.overlay.close();
     };
   }
