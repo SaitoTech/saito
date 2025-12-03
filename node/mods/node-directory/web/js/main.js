@@ -251,7 +251,7 @@ function renderPeersTable(nodes) {
 
       // Display hostname if available, otherwise show public key
       const publicKeyDisplay = n.hostname 
-        ? `<strong><a href="https://${n.hostname}" target="_blank" rel="noopener noreferrer">${n.hostname}</a></strong><br/><code class="nd-public-key-small">${n.publicKey}</code>`
+        ? `<strong><a href="https://${n.hostname}/explorer" target="_blank" rel="noopener noreferrer">${n.hostname}</a></strong><br/><code class="nd-public-key-small">${n.publicKey}</code>`
         : `<code>${n.publicKey}</code>`;
 
       // Format last seen timestamp
