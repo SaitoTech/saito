@@ -175,23 +175,18 @@ class NodeDirectory extends ModTemplate {
   }
 
   /**
-   * Look up hostname for a public key using the Registry module or keychain
+   * Look up hostname for a public key
    * 
-   * NOTE: Registry is a DNS-like service that requires explicit registration.
-   * Just being a peer doesn't mean a key is registered in the Registry.
-   * Keys must be registered via the Registry module's registration process.
-   * 
-   * If a key isn't found, it likely means:
-   * 1. The key hasn't been registered in the Registry
-   * 2. The Registry cache hasn't been populated yet
-   * 3. The Registry module isn't enabled or configured
+   * For the local node: returns hostname from NodeDirectory config (app.options.nodeDirectory.hostname)
+   * For static peers: hostname comes from static_peer_config.host (handled in _processPeer)
+   * For other peers: returns null (hostname must come from node announcements or static config)
    */
   getHostnameForPublicKey(publicKey) {
     if (!publicKey) {
       return null;
     }
     try {
-      // Prefer local NodeDirectory config hostname for our own node
+      // For local node, use configured hostname
       try {
         let myPublicKey = null;
         if (this.app.wallet?.getPublicKeySync) {
@@ -206,108 +201,18 @@ class NodeDirectory extends ModTemplate {
           }
         }
       } catch (e) {
-        // ignore and fall back to Registry / keychain
+        // ignore
       }
-
-      // Method 1: Try Registry module's cached_keys via respondTo
-      const registryMod = this.app.modules.returnModule('Registry');
-      if (registryMod && registryMod.respondTo) {
-        const registry = registryMod.respondTo('saito-return-key');
-        if (registry && registry.returnKey) {
-          const result = registry.returnKey(publicKey);
-          if (result && result.identifier && result.identifier !== publicKey) {
-            // Only return if identifier is different from public key (actual DNS name)
-            console.log('[NodeDirectory] Found hostname via Registry:', result.identifier, 'for', publicKey.substring(0, 10));
-            return result.identifier;
-          }
-        }
-      }
-
-      // Method 2: Check Registry's cached_keys directly (if accessible)
-      if (registryMod && registryMod.cached_keys) {
-        if (registryMod.cached_keys[publicKey]) {
-          const identifier = registryMod.cached_keys[publicKey];
-          if (identifier && identifier !== publicKey) {
-            // Only return if identifier is different from public key (actual DNS name)
-            console.log('[NodeDirectory] Found hostname via cached_keys:', identifier, 'for', publicKey.substring(0, 8));
-            return identifier;
-          }
-        }
-      }
-
-      // Method 3: Try keychain directly (used by Registry internally)
-      // NOTE: keychain.returnIdentifierByPublicKey returns the public key itself if no identifier found
-      // So we need to check if it's different from the public key
-      if (this.app.keychain && this.app.keychain.returnIdentifierByPublicKey) {
-        const identifier = this.app.keychain.returnIdentifierByPublicKey(publicKey, true);
-        if (identifier && identifier !== publicKey) {
-          // Only return if identifier is different from public key (actual DNS name)
-          console.log('[NodeDirectory] Found hostname via keychain:', identifier, 'for', publicKey.substring(0, 8));
-          return identifier;
-        }
-      }
-      console.debug('[NodeDirectory] No hostname found for', publicKey.substring(0, 8) + '...');
+      // For other peers, hostname must come from static peer config or node announcements
+      // This method is called from _processPeer which already handles static peer hostnames
+      // So we just return null here for non-local peers
+      return null;
     } catch (e) {
       console.error('[NodeDirectory] Error looking up hostname for', publicKey.substring(0, 8) + '...', ':', e);
     }
     return null;
   }
 
-  /**
-   * Trigger fetching identifiers for all peers to populate Registry cache
-   */
-  async fetchIdentifiersForPeers(peers, localPublicKey = null) {
-    try {
-      const registryMod = this.app.modules.returnModule('Registry');
-      // Debug: Check what's currently in Registry cache
-      if (registryMod && registryMod.cached_keys) {
-        const cacheSize = Object.keys(registryMod.cached_keys).length;
-        console.log('[NodeDirectory] Registry cached_keys size:', cacheSize);
-        if (cacheSize > 0) {
-          console.log('[NodeDirectory] Registry cached_keys sample:', 
-            Object.keys(registryMod.cached_keys).slice(0, 5).map(k => 
-              `${k.substring(0, 8)}:${registryMod.cached_keys[k]}`
-            ).join(', '));
-        }
-      }
-      if (registryMod && registryMod.fetchManyIdentifiers) {
-        const publicKeys = peers
-          .filter(p => p && p.publicKey)
-          .map(p => p.publicKey);
-        // Include local node's public key if provided
-        if (localPublicKey && !publicKeys.includes(localPublicKey)) {
-          publicKeys.push(localPublicKey);
-        }
-        if (publicKeys.length > 0) {
-          console.log('[NodeDirectory] Fetching identifiers for', publicKeys.length, 'peers');
-          console.log('[NodeDirectory] Public keys to fetch:', publicKeys.map(k => k.substring(0, 8)).join(', '));
-          registryMod.fetchManyIdentifiers(publicKeys, (identifiers) => {
-            const foundCount = Object.keys(identifiers).length;
-            console.log('[NodeDirectory] Fetched identifiers result:', foundCount, 'found out of', publicKeys.length);
-            if (foundCount > 0) {
-              console.log('[NodeDirectory] Found identifiers:', 
-                Object.keys(identifiers).map(k => `${k.substring(0, 8)}:${identifiers[k]}`).join(', '));
-            } else {
-              console.warn('[NodeDirectory] No identifiers found. Keys may not be registered in Registry.');
-              console.warn('[NodeDirectory] Note: Registry is a DNS-like service - keys must be explicitly registered.');
-            }
-            // Check Registry cache again after fetch
-            if (registryMod.cached_keys) {
-              const newCacheSize = Object.keys(registryMod.cached_keys).length;
-              console.log('[NodeDirectory] Registry cached_keys size after fetch:', newCacheSize);
-            }
-          });
-        }
-      } else {
-        console.warn('[NodeDirectory] Registry module or fetchManyIdentifiers not available');
-        if (!registryMod) {
-          console.warn('[NodeDirectory] Registry module not found - is it enabled in modules.config.js?');
-        }
-      }
-    } catch (e) {
-      console.error('[NodeDirectory] Error fetching identifiers:', e);
-    }
-  }
 
   /**
    * Get only directly connected peers (used for peer list responses to avoid loops)
@@ -359,10 +264,12 @@ class NodeDirectory extends ModTemplate {
           };
         });
         const myHostname = this.getHostnameForPublicKey(myPublicKey);
+        const configuredHostname = this._getConfiguredHostname();
+        console.log(`[NodeDirectory] Local node: publicKey=${myPublicKey?.substring(0, 16)}..., configuredHostname=${configuredHostname}, resolvedHostname=${myHostname}`);
         nodes.push({
           peerIndex: BigInt(0),
           publicKey: myPublicKey,
-          hostname: myHostname,
+          hostname: myHostname || configuredHostname, // Fallback to direct config lookup
           status: 'local',
           peerType: 'local',
           services: myServicesNormalized,
@@ -444,11 +351,43 @@ class NodeDirectory extends ModTemplate {
       return null;
     }
 
-    const staticConfigValue = p.static_peer_config;
-    const staticConfigType = typeof staticConfigValue;
-    const staticConfigKeys = staticConfigValue && typeof staticConfigValue === 'object' 
-      ? Object.keys(staticConfigValue) 
-      : [];
+    // Get local public key for comparison
+    let myPublicKey = null;
+    try {
+      if (this.app.wallet?.getPublicKeySync) {
+        myPublicKey = this.app.wallet.getPublicKeySync();
+      } else if (this.app.wallet?.returnPublicKey) {
+        myPublicKey = this.app.wallet.returnPublicKey();
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // static_peer_config is not exposed through WASM bindings
+    // Read from app.options.peers - 1st peer has index 1, so use peerIndex - 1 as array index
+    let staticConfigValue = null;
+    let staticConfigType = 'undefined';
+    let staticConfigKeys = [];
+    
+    if (this.app.options && this.app.options.peers && Array.isArray(this.app.options.peers)) {
+      try {
+        const peerIndexNum = p.peerIndex ? Number(p.peerIndex) : null;
+        if (peerIndexNum !== null && peerIndexNum > 0) {
+          const configIndex = peerIndexNum - 1; // 1st peer (index 1) -> array index 0
+          if (configIndex >= 0 && configIndex < this.app.options.peers.length) {
+            const peerConfig = this.app.options.peers[configIndex];
+            if (peerConfig && peerConfig.host) {
+              staticConfigValue = peerConfig;
+              staticConfigType = typeof staticConfigValue;
+              staticConfigKeys = Object.keys(staticConfigValue);
+              console.log(`[NodeDirectory] Found static peer config from app.options.peers[${configIndex}] for peerIndex=${peerIndexNum}, host=${peerConfig.host}`);
+            }
+          }
+        }
+      } catch (e) {
+        console.debug('[NodeDirectory] Error reading from app.options.peers:', e);
+      }
+    }
     let services = [];
     try {
       const rawServices = p.services || [];
@@ -463,7 +402,48 @@ class NodeDirectory extends ModTemplate {
 
     const cachedRtt = this._rttCache[p.publicKey];
     const isStaticPeer = this._isStaticPeer(p, staticConfigValue, staticConfigType);
-    const hostname = this.getHostnameForPublicKey(p.publicKey);
+    
+    // Debug: Log peer info
+    console.log(`[NodeDirectory] Processing peer ${i}: publicKey=${p.publicKey?.substring(0, 16)}..., isStaticPeer=${isStaticPeer}, hasStaticConfig=${!!staticConfigValue}, staticConfigType=${staticConfigType}`);
+    
+    // For static peers, prioritize the host field from static_peer_config as the hostname
+    // This is the authoritative source for static peers configured in options.peers
+    let hostname = null;
+    if (isStaticPeer && staticConfigValue) {
+      // Try multiple ways to get the host from static config
+      let staticHost = null;
+      if (typeof staticConfigValue === 'object') {
+        staticHost = staticConfigValue.host 
+          || staticConfigValue.instance?.host
+          || (staticConfigValue.instance && staticConfigValue.instance.host);
+        // Also check if it's nested differently
+        if (!staticHost && staticConfigValue.instance && typeof staticConfigValue.instance === 'object') {
+          staticHost = staticConfigValue.instance.host;
+        }
+      }
+      if (staticHost) {
+        hostname = String(staticHost).trim();
+        if (hostname) {
+          console.log(`[NodeDirectory] Found static peer hostname: ${hostname} for ${p.publicKey?.substring(0, 16)}...`);
+        }
+      } else {
+        console.log(`[NodeDirectory] Static peer detected but no host found. staticConfigValue type: ${typeof staticConfigValue}, keys: ${staticConfigKeys.join(', ')}`);
+        if (staticConfigValue && typeof staticConfigValue === 'object') {
+          console.log(`[NodeDirectory] staticConfigValue contents:`, JSON.stringify(staticConfigValue, null, 2));
+        }
+      }
+    }
+    // For local node, get hostname from config
+    if (!hostname && myPublicKey && p.publicKey === myPublicKey) {
+      hostname = this._getConfiguredHostname();
+      if (hostname) {
+        console.log(`[NodeDirectory] Found local node hostname from config: ${hostname}`);
+      }
+    }
+    // Fallback to getHostnameForPublicKey for other peers
+    if (!hostname) {
+      hostname = this.getHostnameForPublicKey(p.publicKey);
+    }
 
     // For directly connected peers, lastSeenAt is when they were last seen (now if connected)
     const lastSeenAt = p.status === 'connected' ? Date.now() : (cachedRtt?.timestamp || Date.now());
@@ -511,6 +491,8 @@ class NodeDirectory extends ModTemplate {
    */
   _isStaticPeer(p, staticConfig, staticConfigType) {
     let isStaticPeer = false;
+    
+    console.log(`[NodeDirectory] _isStaticPeer check: publicKey=${p.publicKey?.substring(0, 16)}..., staticConfig=${!!staticConfig}, staticConfigType=${staticConfigType}`);
 
     // Method 1: Check static_peer_config directly
     if (staticConfig) {
@@ -609,7 +591,6 @@ class NodeDirectory extends ModTemplate {
       } catch (e) {
         // ignore
       }
-      this.fetchIdentifiersForPeers(peers, myPublicKey);
       this._peerCache = nodes;
       return nodes;
     } catch (err) {
@@ -1533,89 +1514,25 @@ class NodeDirectory extends ModTemplate {
         res.status(500).json({ error: 'failed_to_search_peer', message: err.message });
       }
     });
-    // Debug API: inspect Registry cache
     // Debug API: check local node's hostname status
     expressApp.get(`/${encodeURI(slug)}/api/debug/my-hostname`, async (req, res) => {
       try {
         const myPublicKey = await this.app.wallet.getPublicKey();
         const myHostname = this.getHostnameForPublicKey(myPublicKey);
-        const registryMod = this.app.modules.returnModule('Registry');
-        let registryInfo = null;
-        if (registryMod) {
-          registryInfo = {
-            moduleFound: true,
-            cachedKeysSize: registryMod.cached_keys ? Object.keys(registryMod.cached_keys).length : 0,
-            myKeyInCache: registryMod.cached_keys && registryMod.cached_keys[myPublicKey] ? registryMod.cached_keys[myPublicKey] : null,
-            hasRespondTo: typeof registryMod.respondTo === 'function'
-          };
-          // Try respondTo method
-          if (registryMod.respondTo) {
-            const registry = registryMod.respondTo('saito-return-key');
-            if (registry && registry.returnKey) {
-              const result = registry.returnKey(myPublicKey);
-              registryInfo.respondToResult = result;
-            }
-          }
-        } else {
-          registryInfo = { moduleFound: false };
-        }
-        // Check keychain
-        let keychainInfo = null;
-        if (this.app.keychain && this.app.keychain.returnIdentifierByPublicKey) {
-          const keychainIdentifier = this.app.keychain.returnIdentifierByPublicKey(myPublicKey, true);
-          keychainInfo = {
-            hasMethod: true,
-            identifier: keychainIdentifier,
-            isDifferentFromKey: keychainIdentifier !== myPublicKey
-          };
-        } else {
-          keychainInfo = { hasMethod: false };
-        }
+        const configuredHostname = this._getConfiguredHostname();
         res.json({
           publicKey: myPublicKey,
           hostname: myHostname,
+          configuredHostname: configuredHostname,
           hasHostname: !!myHostname,
           canAnnounce: !!myHostname,
-          registry: registryInfo,
-          keychain: keychainInfo,
           message: myHostname 
             ? `Node has hostname: ${myHostname}. Can broadcast announcements.`
-            : `Node does NOT have a hostname. Must register in Registry module before broadcasting announcements.`
+            : `Node does NOT have a hostname. Configure app.options.nodeDirectory.hostname in config/options to enable announcements.`
         });
       } catch (err) {
         console.error('node-directory /api/debug/my-hostname error', err);
         res.status(500).json({ error: 'failed_to_check_hostname', message: err.message });
-      }
-    });
-    expressApp.get(`/${encodeURI(slug)}/api/debug/registry`, async (req, res) => {
-      try {
-        const registryMod = this.app.modules.returnModule('Registry');
-        const debugInfo = {
-          registryModuleFound: !!registryMod,
-          cachedKeysSize: 0,
-          cachedKeys: {},
-          sampleKeys: []
-        };
-        if (registryMod) {
-          if (registryMod.cached_keys) {
-            debugInfo.cachedKeysSize = Object.keys(registryMod.cached_keys).length;
-            debugInfo.cachedKeys = registryMod.cached_keys;
-            debugInfo.sampleKeys = Object.keys(registryMod.cached_keys).slice(0, 10).map(k => ({
-              publicKey: k.substring(0, 16) + '...',
-              identifier: registryMod.cached_keys[k]
-            }));
-          }
-          if (registryMod.respondTo) {
-            const registry = registryMod.respondTo('saito-return-key');
-            if (registry && registry.returnKeys) {
-              debugInfo.registryKeys = registry.returnKeys();
-            }
-          }
-        }
-        res.json(debugInfo);
-      } catch (err) {
-        console.error('node-directory /api/debug/registry error', err);
-        res.status(500).json({ error: 'failed_to_inspect_registry', message: err.message });
       }
     });
     expressApp.use(`/${encodeURI(slug)}`, express.static(webDir));

@@ -158,9 +158,8 @@ To make your node discoverable (and routable) via `node-directory`, you need to:
 
      This endpoint returns:
      - Your public key
-     - The resolved hostname (from NodeDirectory config and/or Registry/keychain)
+     - The resolved hostname (from NodeDirectory config)
      - Whether the node is allowed to announce
-     - Some Registry/keychain diagnostic info
 
 ---
 

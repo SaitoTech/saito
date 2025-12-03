@@ -297,6 +297,13 @@
 }
 
 /* Hostname display */
+.nd-table a {
+  color: #0066cc;
+  text-decoration: none;
+}
+.nd-table a:hover {
+  text-decoration: underline;
+}
 .nd-public-key-small {
   font-size: 0.75em;
   color: #666;

@@ -119,14 +119,14 @@ function renderSummary(bestNode, serviceName) {
     connectionInfo = `
       <div style="margin: 0.5rem 0;">
         <strong>Hostname:</strong> <code style="background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 3px;">${bestNode.hostname}</code>
-        <br/><small style="color: #999;">Note: No connection URL available. Hostname may need to be registered in Registry.</small>
+        <br/><small style="color: #999;">Note: No connection URL available.</small>
       </div>
     `;
   } else {
     connectionInfo = `
       <div style="margin: 0.5rem 0; padding: 0.5rem; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 3px;">
         <strong>⚠️ No hostname available</strong>
-        <br/><small>This node's public key is not registered in the Registry. Without a hostname, you cannot connect to this node directly.</small>
+        <br/><small>This node does not have a hostname configured. Without a hostname, you cannot connect to this node directly.</small>
         <br/><small><strong>Public Key:</strong> <code>${bestNode.publicKey}</code></small>
       </div>
     `;
@@ -238,7 +238,7 @@ function renderPeersTable(nodes) {
 
       // Display hostname if available, otherwise show public key
       const publicKeyDisplay = n.hostname 
-        ? `<strong>${n.hostname}</strong><br/><code class="nd-public-key-small">${n.publicKey}</code>`
+        ? `<strong><a href="https://${n.hostname}" target="_blank" rel="noopener noreferrer">${n.hostname}</a></strong><br/><code class="nd-public-key-small">${n.publicKey}</code>`
         : `<code>${n.publicKey}</code>`;
 
       // Format last seen timestamp
