@@ -145,6 +145,39 @@ class NodeDirectory extends ModTemplate {
   }
 
   /**
+   * Check if a service has a web frontend by checking if the module has a /web directory
+   * @param {string} serviceName - Service name (e.g., "chat", "arcade", or "app:chat")
+   * @returns {boolean} - True if the module has a /web directory
+   */
+  _hasWebFrontend(serviceName) {
+    try {
+      // Remove "app:" prefix if present
+      const moduleSlug = serviceName.startsWith('app:') 
+        ? serviceName.substring(4) 
+        : serviceName;
+      
+      // Get the module by slug
+      const mod = this.app?.modules?.returnModuleBySlug(moduleSlug);
+      if (!mod) {
+        return false;
+      }
+      
+      // Check if the module has a /web directory
+      const fs = this.app?.storage?.returnFileSystem();
+      if (!fs) {
+        return false;
+      }
+      
+      // Construct web directory path: mods/<dirname>/web
+      const webdir = `${__dirname}/../../mods/${mod.dirname}/web`;
+      return fs.existsSync(webdir);
+    } catch (e) {
+      // Silently fail - if we can't check, assume no web frontend
+      return false;
+    }
+  }
+
+  /**
    * Start periodic RTT measurement (every 30 seconds)
    */
   startPeriodicRttMeasurement() {
@@ -266,13 +299,18 @@ class NodeDirectory extends ModTemplate {
         const myHostname = this.getHostnameForPublicKey(myPublicKey);
         const configuredHostname = this._getConfiguredHostname();
         console.log(`[NodeDirectory] Local node: publicKey=${myPublicKey?.substring(0, 16)}..., configuredHostname=${configuredHostname}, resolvedHostname=${myHostname}`);
+        // Add hasWebFrontend to each service
+        const myServicesWithWeb = myServicesNormalized.map((s) => ({
+          ...s,
+          hasWebFrontend: this._hasWebFrontend(s.service)
+        }));
         nodes.push({
           peerIndex: BigInt(0),
           publicKey: myPublicKey,
           hostname: myHostname || configuredHostname, // Fallback to direct config lookup
           status: 'local',
           peerType: 'local',
-          services: myServicesNormalized,
+          services: myServicesWithWeb,
           lastRttMs: this._rttCache[myPublicKey]?.rtt,
           lastSeenAt: Date.now() // Local node is always "now"
         });
@@ -391,11 +429,30 @@ class NodeDirectory extends ModTemplate {
     let services = [];
     try {
       const rawServices = p.services || [];
-      services = rawServices.map((s) => ({
-        service: s.service,
-        name: s.name,
-        domain: s.domain
-      }));
+      // Check if we have announcement data for this peer (which includes hasWebFrontend from the peer's perspective)
+      const discoveredNode = this._discoveredNodes.get(p.publicKey);
+      const announcementServices = discoveredNode?.services || [];
+      
+      services = rawServices.map((s) => {
+        const serviceName = s.service || '';
+        // Try to find matching service in announcement data (which has hasWebFrontend from the peer)
+        const announcementService = announcementServices.find(
+          as => as.service === serviceName || 
+                (serviceName.startsWith('app:') && as.service === serviceName.substring(4)) ||
+                (!serviceName.startsWith('app:') && as.service === `app:${serviceName}`)
+        );
+        // Use hasWebFrontend from announcement if available, otherwise check locally
+        const hasWebFrontend = announcementService?.hasWebFrontend !== undefined
+          ? announcementService.hasWebFrontend
+          : this._hasWebFrontend(serviceName);
+        
+        return {
+          service: serviceName,
+          name: s.name,
+          domain: s.domain,
+          hasWebFrontend: hasWebFrontend
+        };
+      });
     } catch (e) {
       console.debug('NodeDirectory: unable to read services for peer', e);
     }
@@ -473,6 +530,7 @@ class NodeDirectory extends ModTemplate {
       // Assume HTTPS for hostnames (most common)
       connectionUrl = `https://${hostname}`;
     }
+    
     return {
       peerIndex: p.peerIndex,
       publicKey: p.publicKey,
@@ -1094,13 +1152,15 @@ class NodeDirectory extends ModTemplate {
       }
       // Get connection URL
       const connectionUrl = `https://${myHostname}`;
-      // Normalize services
+      // Normalize services and add hasWebFrontend flag
       const servicesNormalized = myServices.map((s) => {
         const instance = s.instance || s;
+        const serviceName = String(instance.service || '');
         return {
-          service: String(instance.service || ''),
+          service: serviceName,
           name: String(instance.name || ''),
-          domain: String(instance.domain || '')
+          domain: String(instance.domain || ''),
+          hasWebFrontend: this._hasWebFrontend(serviceName)
         };
       });
       // Create announcement transaction

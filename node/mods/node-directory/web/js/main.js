@@ -215,10 +215,23 @@ function renderPeersTable(nodes) {
           ? `<ul class="nd-services-list">
               ${n.services
                 .map(
-                  (s) =>
-                    `<li><code>${s.service}</code>${
+                  (s) => {
+                    // Extract service name (remove "app:" prefix if present)
+                    const serviceName = s.service.startsWith('app:') 
+                      ? s.service.substring(4) 
+                      : s.service;
+                    // Check if this service has a web frontend (from hasWebFrontend flag)
+                    const hasWebFrontend = s.hasWebFrontend === true;
+                    const shouldBeLink = hasWebFrontend && n.hostname;
+                    let serviceLink = serviceName;
+                    if (shouldBeLink) {
+                      // Use default path /<serviceName>
+                      serviceLink = `<a href="https://${n.hostname}/${serviceName}" target="_blank" rel="noopener noreferrer">${serviceName}</a>`;
+                    }
+                    return `<li><code>${serviceLink}</code>${
                       s.name ? ` – ${s.name}` : ''
-                    }${s.domain ? ` (${s.domain})` : ''}</li>`
+                    }${s.domain ? ` (${s.domain})` : ''}</li>`;
+                  }
                 )
                 .join('')}
             </ul>`
