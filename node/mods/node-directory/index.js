@@ -59,9 +59,10 @@ module.exports = (app, mod) => {
 
       <footer class="nd-footer">
         <small>
-          Nodes come from <code>app.network.getPeers()</code> (direct peers) and network discovery
-          (querying connected peers for their peer lists). Services come from <code>PeerService</code>
-          advertisements. RTT is measured server-side using <code>NodeDirectory</code>.
+          Nodes come from <code>app.network.getPeers()</code> (direct peers) and on-chain
+          node-announcement transactions. </br>Services come from <code>PeerService</code>
+          advertisements. </br>Server RTT is measured by <code>NodeDirectory</code>; User RTT is
+          measured from your browser to each node.
         </small>
       </footer>
     </div>
