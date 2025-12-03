@@ -17,17 +17,6 @@ async function fetchPeers() {
   return data;
 }
 
-async function fetchBestNode(slug) {
-  const res = await fetch(`/node-directory/api/best-node/${encodeURIComponent(slug)}`);
-  if (!res.ok) {
-    if (res.status === 404) {
-      return null; // no hosting nodes found
-    }
-    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-  }
-  return await res.json();
-}
-
 function formatDataAge(timestamp) {
   if (!timestamp) return 'never';
 
@@ -117,10 +106,11 @@ function renderSummary(bestNode, serviceName) {
       </div>
     `;
   } else if (bestNode.hostname) {
+    // Fallback: construct explorer URL from hostname
+    const explorerUrl = `https://${bestNode.hostname}/explorer`;
     connectionInfo = `
       <div style="margin: 0.5rem 0;">
-        <strong>Hostname:</strong> <code style="background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 3px;">${bestNode.hostname}</code>
-        <br/><small style="color: #999;">Note: No connection URL available.</small>
+        <strong>Connect to:</strong> <a href="${explorerUrl}" target="_blank" style="color: #0070f3; text-decoration: none;"><code style="background: #f5f5f5; padding: 0.2em 0.4em; border-radius: 3px;">${explorerUrl}</code></a>
       </div>
     `;
   } else {
@@ -139,7 +129,17 @@ function renderSummary(bestNode, serviceName) {
     ${connectionInfo}
     <div style="margin-top: 0.5rem; font-size: 0.9em; color: #666;">
       <strong>Status:</strong> ${bestNode.status}
-      ${bestNode.lastRttMs !== undefined ? `&nbsp;|&nbsp;<strong>RTT:</strong> ${bestNode.lastRttMs} ms` : ''}
+      ${(() => {
+        // Prefer User RTT if available, and also show Server RTT if known
+        let parts = [];
+        if (bestNode.hostname && browserRttCache && browserRttCache[bestNode.hostname]) {
+          parts.push(`<strong>User RTT:</strong> ${browserRttCache[bestNode.hostname].rtt} ms`);
+        }
+        if (bestNode.lastRttMs !== undefined) {
+          parts.push(`<strong>Server RTT:</strong> ${bestNode.lastRttMs} ms`);
+        }
+        return parts.length ? `&nbsp;|&nbsp;${parts.join(' &nbsp;|&nbsp; ')}` : '';
+      })()}
     </div>
   `;
 }
@@ -480,8 +480,53 @@ async function findBestNodeForApp() {
   renderSummary(null, displayName);
 
   try {
-    const best = await fetchBestNode(slug);
-    console.log('[NodeDirectory UI] Best node result:', best);
+    // Ensure we have up-to-date node list
+    if (!cachedNodes) {
+      await refreshAllNodes(true);
+    }
+
+    const nodes = cachedNodes || [];
+
+    // Ensure we have fresh browser RTT measurements before choosing
+    await measureBrowserRttForAllNodes(nodes);
+
+    // Filter nodes that host the requested service
+    const target1 = `app:${slug}`.toLowerCase();
+    const target2 = slug.toLowerCase();
+
+    const hostingNodes = nodes.filter((n) => {
+      if (!n || !n.services || !Array.isArray(n.services)) return false;
+      return n.services.some((s) => {
+        if (!s || !s.service) return false;
+        const svc = String(s.service).toLowerCase().trim();
+        return svc === target1 || svc === target2;
+      });
+    });
+
+    // Among hosting nodes, pick the one with the lowest User RTT (browser RTT)
+    let best = null;
+    let bestUserRtt = Number.POSITIVE_INFINITY;
+
+    hostingNodes.forEach((n) => {
+      if (!n.hostname) return;
+      const cached = browserRttCache[n.hostname];
+      if (!cached || typeof cached.rtt !== 'number') return;
+      if (cached.rtt < bestUserRtt) {
+        bestUserRtt = cached.rtt;
+        best = n;
+      }
+    });
+
+    if (!best) {
+      console.log('[NodeDirectory UI] No hosting nodes with measured User RTT yet for', slug);
+      const summaryEl = document.getElementById('nd-summary');
+      if (summaryEl) {
+        summaryEl.innerHTML = `No user RTT available to base a decision on for service <code>${displayName}</code>. Wait a few seconds for RTT measurements, then try again.`;
+      }
+      return;
+    }
+
+    console.log('[NodeDirectory UI] Best node result (by User RTT):', best, 'RTT=', bestUserRtt);
     renderSummary(best, displayName);
 
     // Refresh the table to show updated RTT for the best node

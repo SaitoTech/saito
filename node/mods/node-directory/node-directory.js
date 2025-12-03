@@ -1410,24 +1410,6 @@ class NodeDirectory extends ModTemplate {
         res.status(500).json({ error: 'failed_to_list_peers' });
       }
     });
-    // JSON API: find best node for app
-    expressApp.get(`/${encodeURI(slug)}/api/best-node/:slug`, async (req, res) => {
-      try {
-        const slug = req.params.slug;
-        console.log(`[NodeDirectory] API: /api/best-node/${slug} requested`);
-        const best = await this.getBestNodeForApp(slug);
-        if (!best) {
-          console.log(`[NodeDirectory] API: No best node found for slug "${slug}"`);
-          res.status(404).json({ error: 'no_hosting_nodes_found', slug });
-        } else {
-          console.log(`[NodeDirectory] API: Best node found: ${best.publicKey?.substring(0, 16)}...`);
-          res.json(best);
-        }
-      } catch (err) {
-        console.error('node-directory /api/best-node error', err);
-        res.status(500).json({ error: 'failed_to_find_best_node', message: err.message });
-      }
-    });
     // JSON API: trigger RTT measurement for all peers
     expressApp.post(`/${encodeURI(slug)}/api/measure-rtt`, async (req, res) => {
       try {
