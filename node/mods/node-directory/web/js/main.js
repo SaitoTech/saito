@@ -4,6 +4,7 @@
 let cachedNodes = null;
 let lastFetchTime = null;
 let isFetching = false;
+let browserRttCache = {}; // Cache RTT measurements from browser: { hostname: { rtt: number, timestamp: number } }
 
 async function fetchPeers() {
   const res = await fetch('/node-directory/api/peers');
@@ -237,10 +238,15 @@ function renderPeersTable(nodes) {
             </ul>`
           : '<span class="nd-empty">none</span>';
 
-      const rtt =
-        typeof n.lastRttMs === 'number'
-          ? `${n.lastRttMs}`
-          : '<span class="nd-empty">n/a</span>';
+      // Server RTT (from server-side measurement)
+      const serverRtt = typeof n.lastRttMs === 'number'
+        ? `${n.lastRttMs}`
+        : '<span class="nd-empty">n/a</span>';
+      
+      // User RTT (from browser-side measurement)
+      const userRtt = n.hostname && browserRttCache[n.hostname]
+        ? `${browserRttCache[n.hostname].rtt}`
+        : '<span class="nd-empty">n/a</span>';
 
       const peerType = n.peerType || 'unknown';
       const typeLabel = peerType === 'static' ? '<span class="nd-type-static">static</span>' :
@@ -263,7 +269,8 @@ function renderPeersTable(nodes) {
           <td>${n.status}</td>
           <td>${typeLabel}</td>
           <td>${servicesHtml}</td>
-          <td>${rtt}</td>
+          <td>${serverRtt}</td>
+          <td>${userRtt}</td>
           <td>${lastSeen}</td>
         </tr>
       `;
@@ -273,12 +280,110 @@ function renderPeersTable(nodes) {
   tbody.innerHTML = rows;
 }
 
-async function triggerRttMeasurement() {
-  try {
-    await fetch('/node-directory/api/measure-rtt', { method: 'POST' });
-  } catch (err) {
-    // Silently fail - RTT measurement is best-effort
-    console.debug('NodeDirectory: RTT measurement trigger failed', err);
+/**
+ * Measure RTT from browser to a specific host
+ * Uses Image loading technique to measure latency without CORS issues
+ * @param {string} hostname - The hostname to measure RTT to
+ * @returns {Promise<number|null>} - RTT in milliseconds, or null if measurement failed
+ */
+async function measureBrowserRtt(hostname) {
+  if (!hostname) return null;
+  
+  return new Promise((resolve) => {
+    // Use a small image or favicon request to measure RTT
+    // This works even with CORS restrictions since we're just measuring timing
+    const img = new Image();
+    const startTime = performance.now();
+    
+    // Try to load a small resource (favicon or a small image)
+    // Add a cache-busting parameter to ensure fresh request
+    const url = `https://${hostname}/favicon.ico?t=${Date.now()}`;
+    
+    img.onload = () => {
+      const endTime = performance.now();
+      const rtt = Math.round(endTime - startTime);
+      
+      // Cache the result
+      browserRttCache[hostname] = {
+        rtt: rtt,
+        timestamp: Date.now()
+      };
+      
+      resolve(rtt);
+    };
+    
+    img.onerror = () => {
+      // If favicon fails, try measuring via fetch to explorer (may fail due to CORS but timing still works)
+      const fetchStart = performance.now();
+      fetch(`https://${hostname}/explorer`, {
+        method: 'GET',
+        mode: 'no-cors',
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
+      .then(() => {
+        const fetchEnd = performance.now();
+        const rtt = Math.round(fetchEnd - fetchStart);
+        
+        browserRttCache[hostname] = {
+          rtt: rtt,
+          timestamp: Date.now()
+        };
+        
+        resolve(rtt);
+      })
+      .catch(() => {
+        // If both methods fail, we can't measure RTT
+        console.debug(`[NodeDirectory] Failed to measure RTT to ${hostname}`);
+        resolve(null);
+      });
+    };
+    
+    // Start the image load
+    img.src = url;
+    
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      if (!browserRttCache[hostname]) {
+        resolve(null);
+      }
+    }, 10000);
+  });
+}
+
+/**
+ * Measure RTT from browser to all nodes with hostnames
+ * @param {Array} nodes - Array of node objects
+ */
+async function measureBrowserRttForAllNodes(nodes) {
+  if (!nodes || !Array.isArray(nodes)) return;
+  
+  // Filter nodes that have hostnames and haven't been measured recently (within last 30 seconds)
+  const now = Date.now();
+  const nodesToMeasure = nodes.filter(n => {
+    if (!n.hostname) return false;
+    const cached = browserRttCache[n.hostname];
+    if (cached && (now - cached.timestamp) < 30000) {
+      return false; // Skip if measured within last 30 seconds
+    }
+    return true;
+  });
+  
+  console.log(`[NodeDirectory] Measuring browser RTT to ${nodesToMeasure.length} node(s)`);
+  
+  // Measure RTT to all nodes in parallel (but limit concurrency to avoid overwhelming the browser)
+  const batchSize = 5;
+  for (let i = 0; i < nodesToMeasure.length; i += batchSize) {
+    const batch = nodesToMeasure.slice(i, i + batchSize);
+    await Promise.allSettled(
+      batch.map(node => measureBrowserRtt(node.hostname))
+    );
+    // Small delay between batches to avoid overwhelming the browser
+    if (i + batchSize < nodesToMeasure.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   }
 }
 
@@ -295,7 +400,7 @@ async function refreshAllNodes(showLoading = false) {
     if (tbody) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="6" class="nd-empty">Loading peers…</td>
+          <td colspan="7" class="nd-empty">Loading peers…</td>
         </tr>
       `;
     }
@@ -305,7 +410,10 @@ async function refreshAllNodes(showLoading = false) {
 
   try {
     // Trigger RTT measurement in background (non-blocking)
-    triggerRttMeasurement();
+    // Trigger browser-side RTT measurement
+    measureBrowserRttForAllNodes(cachedNodes).then(() => {
+      renderPeersTable(cachedNodes);
+    });
 
     // Fetch peers (which will include cached RTT values)
     const nodes = await fetchPeers();

@@ -43,13 +43,14 @@ module.exports = (app, mod) => {
                 <th>Status</th>
                 <th>Type</th>
                 <th>Services</th>
-                <th>Last RTT (ms)</th>
+                <th>Server RTT (ms)</th>
+                <th>User RTT (ms)</th>
                 <th>Last Seen</th>
               </tr>
             </thead>
             <tbody id="nd-peer-rows">
               <tr>
-                <td colspan="6" class="nd-empty">Loading peers…</td>
+                <td colspan="7" class="nd-empty">Loading peers…</td>
               </tr>
             </tbody>
           </table>
