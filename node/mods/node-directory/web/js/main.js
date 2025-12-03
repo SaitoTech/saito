@@ -137,7 +137,6 @@ function renderSummary(bestNode, serviceName) {
     <br/>
     ${connectionInfo}
     <div style="margin-top: 0.5rem; font-size: 0.9em; color: #666;">
-      <strong>Peer Index:</strong> ${bestNode.peerIndex.toString()} &nbsp;|&nbsp;
       <strong>Status:</strong> ${bestNode.status}
       ${bestNode.lastRttMs !== undefined ? `&nbsp;|&nbsp;<strong>RTT:</strong> ${bestNode.lastRttMs} ms` : ''}
     </div>
@@ -242,22 +241,11 @@ function renderPeersTable(nodes) {
         ? `<strong>${n.hostname}</strong><br/><code class="nd-public-key-small">${n.publicKey}</code>`
         : `<code>${n.publicKey}</code>`;
 
-      // Handle peerIndex - can be BigInt, number, null, or undefined
-      let peerIndexDisplay = 'n/a';
-      if (n.peerIndex !== null && n.peerIndex !== undefined) {
-        try {
-          peerIndexDisplay = n.peerIndex.toString();
-        } catch (e) {
-          peerIndexDisplay = String(n.peerIndex);
-        }
-      }
-
       // Format last seen timestamp
       const lastSeen = formatLastSeen(n.lastSeenAt);
 
       return `
         <tr>
-          <td>${peerIndexDisplay}</td>
           <td>${publicKeyDisplay}</td>
           <td>${n.status}</td>
           <td>${typeLabel}</td>
