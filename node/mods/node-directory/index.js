@@ -25,8 +25,8 @@ module.exports = (app, mod) => {
               <option value="">Select a service...</option>
             </select>
           </label>
-          <button id="nd-refresh-all">Refresh All Nodes</button>
           <button id="nd-find-best">Find Best Node for Service</button>
+          <button id="nd-refresh-all">Refresh All Nodes</button>
         </section>
 
         <section class="nd-summary" id="nd-summary"></section>
