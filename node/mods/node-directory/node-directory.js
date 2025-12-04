@@ -304,6 +304,7 @@ class NodeDirectory extends ModTemplate {
           ...s,
           hasWebFrontend: this._hasWebFrontend(s.service)
         }));
+        const myLocation = this._getConfiguredLocation();
         nodes.push({
           peerIndex: BigInt(0),
           publicKey: myPublicKey,
@@ -311,6 +312,7 @@ class NodeDirectory extends ModTemplate {
           status: 'local',
           peerType: 'local',
           services: myServicesWithWeb,
+          location: myLocation || null,
           lastRttMs: this._rttCache[myPublicKey]?.rtt,
           lastSeenAt: Date.now() // Local node is always "now"
         });
@@ -531,6 +533,13 @@ class NodeDirectory extends ModTemplate {
       connectionUrl = `https://${hostname}`;
     }
     
+    // Get location from discovered nodes if available (for directly connected peers that also sent announcements)
+    let location = null;
+    const discoveredNode = this._discoveredNodes.get(p.publicKey);
+    if (discoveredNode && discoveredNode.location) {
+      location = discoveredNode.location;
+    }
+    
     return {
       peerIndex: p.peerIndex,
       publicKey: p.publicKey,
@@ -539,6 +548,7 @@ class NodeDirectory extends ModTemplate {
       status: p.status,
       peerType: isStaticPeer ? 'static' : 'connected', // Direct peers are 'connected', not 'discovered'
       services,
+      location: location,
       lastRttMs: cachedRtt?.rtt,
       lastSeenAt: lastSeenAt
     };
