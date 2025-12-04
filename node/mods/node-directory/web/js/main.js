@@ -211,32 +211,32 @@ function renderPeersTable(nodes) {
 
   const rows = nodes
     .map((n) => {
-      const servicesHtml =
-        n.services && n.services.length
-          ? `<ul class="nd-services-list">
-              ${n.services
-                .map(
-                  (s) => {
-                    // Extract service name (remove "app:" prefix if present)
-                    const serviceName = s.service.startsWith('app:') 
-                      ? s.service.substring(4) 
-                      : s.service;
-                    // Check if this service has a web frontend (from hasWebFrontend flag)
-                    const hasWebFrontend = s.hasWebFrontend === true;
-                    const shouldBeLink = hasWebFrontend && n.hostname;
-                    let serviceLink = serviceName;
-                    if (shouldBeLink) {
-                      // Use default path /<serviceName>
-                      serviceLink = `<a href="https://${n.hostname}/${serviceName}" target="_blank" rel="noopener noreferrer">${serviceName}</a>`;
-                    }
-                    return `<li><code>${serviceLink}</code>${
-                      s.name ? ` – ${s.name}` : ''
-                    }${s.domain ? ` (${s.domain})` : ''}</li>`;
-                  }
-                )
-                .join('')}
-            </ul>`
-          : '<span class="nd-empty">none</span>';
+      // Filter to only show services with web frontends
+      const webServices = n.services && n.services.length
+        ? n.services.filter(s => s.hasWebFrontend === true)
+        : [];
+      
+      const servicesHtml = webServices.length
+        ? `<ul class="nd-services-list">
+            ${webServices
+              .map(
+                (s) => {
+                  // Extract service name (remove "app:" prefix if present)
+                  const serviceName = s.service.startsWith('app:') 
+                    ? s.service.substring(4) 
+                    : s.service;
+                  // All services here have web frontends, so create link if hostname exists
+                  const serviceLink = n.hostname
+                    ? `<a href="https://${n.hostname}/${serviceName}" target="_blank" rel="noopener noreferrer">${serviceName}</a>`
+                    : serviceName;
+                  return `<li><code>${serviceLink}</code>${
+                    s.name ? ` – ${s.name}` : ''
+                  }${s.domain ? ` (${s.domain})` : ''}</li>`;
+                }
+              )
+              .join('')}
+          </ul>`
+        : '<span class="nd-empty">none</span>';
 
       // Server RTT (from server-side measurement)
       const serverRtt = typeof n.lastRttMs === 'number'
