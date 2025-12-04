@@ -271,10 +271,10 @@ function renderPeersTable(nodes) {
       return `
         <tr>
           <td>${publicKeyDisplay}</td>
+          <td>${location}</td>
           <td>${n.status}</td>
           <td>${typeLabel}</td>
           <td>${servicesHtml}</td>
-          <td>${location}</td>
           <td>${serverRtt}</td>
           <td>${userRtt}</td>
           <td>${lastSeen}</td>
