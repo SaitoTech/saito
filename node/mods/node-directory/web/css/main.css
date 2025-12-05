@@ -1,0 +1,327 @@
+.nd-header {
+  padding: 1.5rem 2rem 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.nd-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.6rem;
+}
+
+.nd-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.nd-main {
+  padding: 1rem 2rem 2rem;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.nd-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.nd-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nd-controls input[type='text'],
+.nd-controls select {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  min-width: 180px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.nd-controls select {
+  cursor: pointer;
+}
+
+.nd-controls button {
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #0070f3;
+  background: #0070f3;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.nd-controls button:hover {
+  background: #005ad1;
+}
+
+.nd-summary {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.nd-summary .nd-summary-highlight {
+  font-weight: 600;
+}
+
+.nd-table-section h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.nd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.nd-table thead {
+  background: #fafafa;
+}
+
+.nd-table th,
+.nd-table td {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #e0e0e0;
+  vertical-align: top;
+}
+
+.nd-table td code {
+  font-size: 0.8rem;
+}
+
+.nd-empty {
+  text-align: center;
+  color: #777;
+}
+
+.nd-services-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nd-services-list li {
+  margin-bottom: 0.15rem;
+}
+
+.nd-footer {
+  padding: 0.75rem 2rem 1.25rem;
+  border-top: 1px solid #e0e0e0;
+  font-size: 0.8rem;
+  color: #777;
+}
+
+@media (max-width: 768px) {
+  .nd-main,
+  .nd-header,
+  .nd-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .nd-table {
+    font-size: 0.78rem;
+  }
+}
+
+.nd-header {
+  padding: 1.5rem 2rem 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.nd-header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.6rem;
+}
+
+.nd-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.nd-main {
+  padding: 1rem 2rem 2rem;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.nd-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.nd-controls label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nd-controls input[type='text'],
+.nd-controls select {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  min-width: 180px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.nd-controls select {
+  cursor: pointer;
+}
+
+.nd-controls button {
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid #0070f3;
+  background: #0070f3;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.nd-controls button:hover {
+  background: #005ad1;
+}
+
+.nd-summary {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.nd-summary .nd-summary-highlight {
+  font-weight: 600;
+}
+
+.nd-table-section h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.nd-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.nd-table thead {
+  background: #fafafa;
+}
+
+.nd-table th,
+.nd-table td {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #e0e0e0;
+  vertical-align: top;
+}
+
+.nd-table td code {
+  font-size: 0.8rem;
+}
+
+.nd-empty {
+  text-align: center;
+  color: #777;
+}
+
+.nd-services-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nd-services-list li {
+  margin-bottom: 0.15rem;
+}
+
+.nd-footer {
+  padding: 0.75rem 2rem 1.25rem;
+  border-top: 1px solid #e0e0e0;
+  font-size: 0.8rem;
+  color: #777;
+}
+
+@media (max-width: 768px) {
+  .nd-main,
+  .nd-header,
+  .nd-footer {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .nd-table {
+    font-size: 0.78rem;
+  }
+}
+
+/* Peer type badges */
+.nd-type-static,
+.nd-type-discovered,
+.nd-type-local,
+.nd-type-connected {
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  border-radius: 3px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.nd-type-static {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.nd-type-discovered {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.nd-type-connected {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.nd-type-local {
+  background-color: #e8f5e9;
+  color: #388e3c;
+}
+
+/* Hostname display */
+.nd-table a {
+  color: #0066cc;
+  text-decoration: none;
+}
+.nd-table a:hover {
+  text-decoration: underline;
+}
+.nd-public-key-small {
+  font-size: 0.75em;
+  color: #666;
+  font-weight: normal;
+}
+
+/* Data age indicator */
+.nd-data-age {
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}
+
+.nd-data-age-stale {
+  color: #999;
+}
+
+.nd-data-age-error {
+  color: #d32f2f;
+}
+
