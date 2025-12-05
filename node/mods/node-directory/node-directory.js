@@ -85,26 +85,36 @@ class NodeDirectory extends ModTemplate {
   /**
    * Return the hostname configured for this node in app.options
    * 
+   * Reads from server.endpoint.host (must not be localhost/127.0.0.1/0.0.0.0 or private IP ranges).
+   * 
    * Expected structure in options (example):
    * 
    * {
-   *   "nodeDirectory": {
-   *     "hostname": "mynode.example.com",
-   *     "location": "Amsterdam, NL"
+   *   "server": {
+   *     "endpoint": {
+   *       "host": "mynode.example.com",
+   *       "port": 443,
+   *       "protocol": "https"
+   *     }
    *   }
    * }
    */
   _getConfiguredHostname() {
     try {
-      const opts =
-        this.app?.options?.nodeDirectory ||
-        this.app?.options?.['node-directory'] ||
-        this.app?.options?.nodedirectory ||
-        null;
-      if (opts && typeof opts.hostname === 'string') {
-        const trimmed = opts.hostname.trim();
-        if (trimmed.length > 0) {
-          return trimmed;
+      // Read from server.endpoint.host (must not be localhost/127.0.0.1/0.0.0.0)
+      const serverEndpoint = this.app?.options?.server?.endpoint;
+      if (serverEndpoint && typeof serverEndpoint.host === 'string') {
+        const host = serverEndpoint.host.trim();
+        // Only use if it's a real hostname (not localhost bindings)
+        if (host.length > 0 && 
+            host !== '127.0.0.1' && 
+            host !== 'localhost' && 
+            host !== '0.0.0.0' &&
+            !host.startsWith('127.') &&
+            !host.startsWith('192.168.') &&
+            !host.startsWith('10.') &&
+            !host.match(/^172\.(1[6-9]|2[0-9]|3[01])\./)) { // Exclude private IP ranges
+          return host;
         }
       }
     } catch (e) {
@@ -113,35 +123,6 @@ class NodeDirectory extends ModTemplate {
     return null;
   }
 
-  /**
-   * Return the (optional) location configured for this node in app.options
-   * 
-   * Example:
-   * {
-   *   "nodeDirectory": {
-   *     "hostname": "mynode.example.com",
-   *     "location": "Amsterdam, NL"
-   *   }
-   * }
-   */
-  _getConfiguredLocation() {
-    try {
-      const opts =
-        this.app?.options?.nodeDirectory ||
-        this.app?.options?.['node-directory'] ||
-        this.app?.options?.nodedirectory ||
-        null;
-      if (opts && typeof opts.location === 'string') {
-        const trimmed = opts.location.trim();
-        if (trimmed.length > 0) {
-          return trimmed;
-        }
-      }
-    } catch (e) {
-      console.error('[NodeDirectory] Error reading configured location from options:', e);
-    }
-    return null;
-  }
 
   /**
    * Check if a service has a web frontend by checking if the module has a /web directory
@@ -209,7 +190,7 @@ class NodeDirectory extends ModTemplate {
   /**
    * Look up hostname for a public key
    * 
-   * For the local node: returns hostname from NodeDirectory config (app.options.nodeDirectory.hostname)
+   * For the local node: returns hostname from server.endpoint.host
    * For static peers: hostname comes from static_peer_config.host (handled in _processPeer)
    * For other peers: returns null (hostname must come from node announcements or static config)
    */
@@ -303,7 +284,6 @@ class NodeDirectory extends ModTemplate {
           ...s,
           hasWebFrontend: this._hasWebFrontend(s.service)
         }));
-        const myLocation = this._getConfiguredLocation();
         nodes.push({
           peerIndex: BigInt(0),
           publicKey: myPublicKey,
@@ -311,7 +291,7 @@ class NodeDirectory extends ModTemplate {
           status: 'local',
           peerType: 'local',
           services: myServicesWithWeb,
-          location: myLocation || null,
+          location: null,
           lastRttMs: this._rttCache[myPublicKey]?.rtt,
           lastSeenAt: Date.now() // Local node is always "now"
         });
@@ -910,13 +890,12 @@ class NodeDirectory extends ModTemplate {
     try {
       const myPublicKey = await this.app.wallet.getPublicKey();
       const myServices = this.app.network.getServices() || [];
-      // Prefer explicit NodeDirectory config for hostname instead of Registry
+      // Read hostname from server.endpoint.host
       const myHostname = this._getConfiguredHostname();
-      const myLocation = this._getConfiguredLocation();
       // Hostname is mandatory - skip announcement if not available in config
       if (!myHostname) {
         console.warn(
-          '[NodeDirectory] Cannot broadcast announcement: hostname not configured in app.options.nodeDirectory.hostname for public key',
+          '[NodeDirectory] Cannot broadcast announcement: hostname not configured. Set app.options.server.endpoint.host to a public hostname (must not be localhost/127.0.0.1/0.0.0.0) for public key',
           myPublicKey.substring(0, 16) + '...'
         );
         return;
@@ -953,7 +932,7 @@ class NodeDirectory extends ModTemplate {
           publicKey: myPublicKey,
           hostname: myHostname,
           connectionUrl: connectionUrl,
-          location: myLocation || null,
+          location: null,
           services: servicesNormalized,
           timestamp: Date.now(),
           synctype: 'full' // Mark as full node
@@ -1253,15 +1232,17 @@ class NodeDirectory extends ModTemplate {
         const myPublicKey = await this.app.wallet.getPublicKey();
         const myHostname = this.getHostnameForPublicKey(myPublicKey);
         const configuredHostname = this._getConfiguredHostname();
+        const serverEndpointHost = this.app?.options?.server?.endpoint?.host || null;
         res.json({
           publicKey: myPublicKey,
           hostname: myHostname,
           configuredHostname: configuredHostname,
+          serverEndpointHost: serverEndpointHost,
           hasHostname: !!myHostname,
           canAnnounce: !!myHostname,
           message: myHostname 
             ? `Node has hostname: ${myHostname}. Can broadcast announcements.`
-            : `Node does NOT have a hostname. Configure app.options.nodeDirectory.hostname in config/options to enable announcements.`
+            : `Node does NOT have a hostname. Configure app.options.server.endpoint.host to a public hostname (must not be localhost/127.0.0.1/0.0.0.0) in config/options to enable announcements.`
         });
       } catch (err) {
         console.error('node-directory /api/debug/my-hostname error', err);

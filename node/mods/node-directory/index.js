@@ -40,7 +40,6 @@ module.exports = (app, mod) => {
             <thead>
               <tr>
                 <th>Hostname / Public Key</th>
-                <th>Location</th>
                 <th>Status</th>
                 <th>Type</th>
                 <th>Services</th>
@@ -51,7 +50,7 @@ module.exports = (app, mod) => {
             </thead>
             <tbody id="nd-peer-rows">
               <tr>
-                <td colspan="8" class="nd-empty">Loading peers…</td>
+                <td colspan="7" class="nd-empty">Loading peers…</td>
               </tr>
             </tbody>
           </table>

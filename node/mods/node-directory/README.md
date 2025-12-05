@@ -97,30 +97,27 @@ To make your node discoverable (and routable) via `node-directory`, you need to:
    - Ensure `node-directory` is listed as an enabled module in your node’s module configuration (e.g. `modules.config.js` or equivalent).
    - Restart your node so the module is loaded.
 
-2. **Configure a hostname (required) and location (optional)**
+2. **Configure a hostname (required)**
 
-   In your node’s `app.options` (typically persisted as `config/options` on disk), add a `nodeDirectory` block with at least a `hostname`:
+   NodeDirectory reads the hostname from `server.endpoint.host` in your node's configuration (typically persisted as `config/options` on disk).
 
    ```json
    {
-     "nodeDirectory": {
-       "hostname": "mynode.example.com",
-       "location": "Amsterdam, NL"
+     "server": {
+       "endpoint": {
+         "host": "mynode.example.com",
+         "port": 443,
+         "protocol": "https"
+       }
      }
    }
    ```
 
    - **`hostname` (required)**:
-     - Must be a DNS name (FQDN) that other users can put into their browser to reach your node (e.g. `usw1.saito.foo`, `nlsaito.net`).
+     - Must be a DNS name (FQDN) that other users can put into their browser to reach your node (e.g. `usw1.saito.foo`, `use1.saito.foo`).
      - NodeDirectory **will not** broadcast announcements or list your node as connectable if this is missing or empty.
-   - **`location` (optional)**:
-     - Free‑form human‑readable text describing where the node is (city/region/datacenter).
-     - If set, it is included in the node’s on-chain announcement and stored with discovered node info.
-
-   Internally, NodeDirectory reads:
-
-   - `app.options.nodeDirectory.hostname` / `location` (preferred)
-   - or `app.options['node-directory']` / `app.options.nodedirectory` if used instead.
+     - Private IP addresses (`127.0.0.1`, `localhost`, `0.0.0.0`, `192.168.x.x`, `10.x.x.x`, `172.16-31.x.x`) are automatically excluded.
+     - If `server.endpoint.host` is set to a private IP or localhost, NodeDirectory will not use it and announcements will be disabled.
 
 3. **Let NodeDirectory announce your node**
 
@@ -134,7 +131,7 @@ To make your node discoverable (and routable) via `node-directory`, you need to:
      - `services`: the list of `PeerService`s this node advertises (apps like `arcade`, `redsquare`, `relay`, etc.)
    - This transaction is propagated to peers and, once confirmed, other nodes running NodeDirectory will:
      - Record your node as a **discovered full node** (not a client).
-     - Update its `lastSeenAt`, services, location, and `hasWebFrontend` flags from subsequent announcements.
+     - Update its `lastSeenAt`, services, and `hasWebFrontend` flags from subsequent announcements.
      - Services with `hasWebFrontend: true` are automatically detected by checking if the module has a `/web` directory.
 
 4. **Advertise services from your apps**
@@ -167,7 +164,7 @@ To make your node discoverable (and routable) via `node-directory`, you need to:
      - `http://<your-node-host>/node-directory`
 
      and confirm that:
-     - Your node appears in the table with your configured **hostname** (and optional **location** if the UI surfaces it).
+     - Your node appears in the table with your configured **hostname**.
      - It lists the expected services (e.g. `arcade`, `relay`, `redsquare`).
 
    - Use the debug JSON API to inspect your node’s hostname status:
@@ -190,7 +187,6 @@ To make your node discoverable (and routable) via `node-directory`, you need to:
     - "Refresh All Nodes" button – reloads the table from `getAllNodes()`.
   - **Known Peers table**:
     - **Hostname / Public Key**: Clickable hostname links to `https://<hostname>/explorer`, or public key if no hostname.
-    - **Location**: Geographic location (if configured).
     - **Status**: Connection status (local, connected, disconnected, etc.).
     - **Type**: Peer type (local, static, connected, discovered).
     - **Services**: Only services with web frontends are shown. Each service is a clickable link to `https://<hostname>/<service>`.

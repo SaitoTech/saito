@@ -203,7 +203,7 @@ function renderPeersTable(nodes) {
   if (!nodes || !nodes.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="8" class="nd-empty">No peers currently known.</td>
+        <td colspan="7" class="nd-empty">No peers currently known.</td>
       </tr>
     `;
     return;
@@ -260,18 +260,12 @@ function renderPeersTable(nodes) {
         ? `<strong><a href="https://${n.hostname}/explorer" target="_blank" rel="noopener noreferrer">${n.hostname}</a></strong><br/><code class="nd-public-key-small">${n.publicKey}</code>`
         : `<code>${n.publicKey}</code>`;
 
-      // Format location
-      const location = n.location 
-        ? `<span>${n.location}</span>`
-        : '<span class="nd-empty">n/a</span>';
-
       // Format last seen timestamp
       const lastSeen = formatLastSeen(n.lastSeenAt);
 
       return `
         <tr>
           <td>${publicKeyDisplay}</td>
-          <td>${location}</td>
           <td>${n.status}</td>
           <td>${typeLabel}</td>
           <td>${servicesHtml}</td>
@@ -406,7 +400,7 @@ async function refreshAllNodes(showLoading = false) {
     if (tbody) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8" class="nd-empty">Loading peers…</td>
+          <td colspan="7" class="nd-empty">Loading peers…</td>
         </tr>
       `;
     }
@@ -454,7 +448,7 @@ async function refreshAllNodes(showLoading = false) {
       if (tbody) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="8" class="nd-empty">Error loading peers: ${err.message}. See console for details.</td>
+            <td colspan="7" class="nd-empty">Error loading peers: ${err.message}. See console for details.</td>
           </tr>
         `;
       }
