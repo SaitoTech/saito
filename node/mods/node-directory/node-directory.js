@@ -202,10 +202,9 @@ class NodeDirectory extends ModTemplate {
       // For local node, use configured hostname
       try {
         let myPublicKey = null;
-        if (this.app.wallet?.getPublicKeySync) {
-          myPublicKey = this.app.wallet.getPublicKeySync();
-        } else if (this.app.wallet?.returnPublicKey) {
-          myPublicKey = this.app.wallet.returnPublicKey();
+        // Use direct property (set during wallet initialization at wallet.ts:93)
+        if (this.app.wallet?.publicKey) {
+          myPublicKey = this.app.wallet.publicKey;
         }
         if (myPublicKey && publicKey === myPublicKey) {
           const cfgHostname = this._getConfiguredHostname();
@@ -255,10 +254,10 @@ class NodeDirectory extends ModTemplate {
       // Try async getPublicKey first
       myPublicKey = await this.app.wallet.getPublicKey();
     } catch (e) {
-      // If async fails, try sync (if available)
+      // If async fails, try direct property (set during wallet initialization)
       try {
-        if (this.app.wallet.getPublicKeySync) {
-          myPublicKey = this.app.wallet.getPublicKeySync();
+        if (this.app.wallet?.publicKey) {
+          myPublicKey = this.app.wallet.publicKey;
         }
       } catch (e2) {
         // ignore
@@ -373,10 +372,9 @@ class NodeDirectory extends ModTemplate {
     // Get local public key for comparison
     let myPublicKey = null;
     try {
-      if (this.app.wallet?.getPublicKeySync) {
-        myPublicKey = this.app.wallet.getPublicKeySync();
-      } else if (this.app.wallet?.returnPublicKey) {
-        myPublicKey = this.app.wallet.returnPublicKey();
+      // Use direct property (set during wallet initialization at wallet.ts:93)
+      if (this.app.wallet?.publicKey) {
+        myPublicKey = this.app.wallet.publicKey;
       }
     } catch (e) {
       // ignore

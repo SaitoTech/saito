@@ -173,7 +173,7 @@ To make your node discoverable (and routable) via `node-directory`, you need to:
 
      This endpoint returns:
      - Your public key
-     - The resolved hostname (from NodeDirectory config)
+     - The resolved hostname (from server.endpoint.host)
      - Whether the node is allowed to announce
 
 ---
