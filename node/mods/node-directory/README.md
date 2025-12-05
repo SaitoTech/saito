@@ -4,26 +4,39 @@
 
 - **Node discovery**: list all peers currently known to the local Saito node and the services they advertise.
 - **Service host discovery**: for a given service, find all nodes that host that service (based on `PeerService` entries).
-- **Nearest-node routing**: choose the best hosting node for an app by measuring round-trip time (RTT) from the browser.
+- **Nearest-node routing**: choose the best hosting node for a service by measuring round-trip time (RTT) from the user's browser.
 
 ---
 
 ### How it works
 
-- The module wraps `app.network.getPeers()` (which uses the `saito-js` WASM bindings) and normalizes each peer to:
+- The module discovers nodes from two sources:
+  1. **Directly connected peers** via `app.network.getPeers()` (which uses the `saito-js` WASM bindings)
+  2. **On-chain node-announcement transactions** - nodes broadcast their status, services, hostname, and location as transactions
+
+- Each node is normalized to:
 
   ```ts
   {
-    peerIndex: bigint;
+    peerIndex: bigint | null;
     publicKey: string;
+    hostname: string | null;
+    connectionUrl: string | null;
+    location: string | null;
     status: string;
-    services: { service: string; name: string; domain: string }[];
-    lastRttMs?: number;
+    peerType: 'local' | 'static' | 'connected' | 'discovered';
+    services: { 
+      service: string; 
+      name: string; 
+      domain: string;
+      hasWebFrontend: boolean;
+    }[];
+    lastRttMs?: number;  // Server-measured RTT
     lastSeenAt?: number;
   }
   ```
 
-- Apps that want to be discoverable as “hosts” advertise themselves via `PeerService`:
+- Apps that want to be discoverable as "hosts" advertise themselves via `PeerService`:
 
   ```js
   const PeerService = require('saito-js/lib/peer_service').default;
@@ -37,15 +50,17 @@
   }
   ```
 
+- Services with web frontends are automatically detected by checking if the module has a `/web` directory. Only services with web frontends are displayed in the UI.
+
 - The NodeDirectory module:
-  - `getAllNodes()` – returns all peers and their services.
+  - `getAllNodes()` – returns all peers (direct + discovered) and their services.
   - `getNodesForApp(slug)` – filters `getAllNodes()` by `service === 'app:<slug>'` or `service === '<slug>'`.
-  - `getBestNodeForApp(slug)` – for each hosting node, sends a lightweight ping transaction and measures RTT (in ms), then returns the fastest node.
+  - `getBestNodeForApp(slug)` – returns the node with the lowest server-measured RTT (for directly connected peers only).
 
-RTT is measured **from the browser** using `sendTransactionWithCallback` and a simple request/response pair:
+**RTT Measurement:**
 
-- Request: `tx.msg = { module: 'node-directory', request: 'node-directory:ping', sentAt: Date.now() }`.
-- Server handler replies with `node-directory:pong`, and the browser computes `Date.now() - sentAt`.
+- **Server RTT**: Measured server-to-peer using `sendTransactionWithCallback` with `node-directory:ping`/`node-directory:pong` transactions.
+- **User RTT**: Measured from the user's browser to each node's hostname using HTTP requests (image loading technique). This is what the UI uses for "Find Best Node" selection.
 
 ---
 
@@ -56,20 +71,21 @@ Once the module is enabled and loaded:
 ```js
 const dir = app.modules.returnModule('node-directory');
 
-// all known peers
+// all known peers (direct + discovered)
 const nodes = await dir.getAllNodes();
 
 // peers that host a specific service
 const hosts = await dir.getNodesForApp('arcade');
 
-// nearest node hosting the service, based on measured RTT
+// nearest node hosting the service, based on server-measured RTT
+// Note: This only works for directly connected peers (those with peerIndex)
 const best = await dir.getBestNodeForApp('arcade');
 if (best) {
-  console.log('Best host for arcade:', best.peerIndex.toString(), best.lastRttMs);
+  console.log('Best host for arcade:', best.peerIndex?.toString(), 'Server RTT:', best.lastRttMs, 'ms');
 }
 ```
 
-Use `best.peerIndex` as the target peer index for `app.network.sendTransactionWithCallback`, `sendRequest`, etc., or `best.domain` if your app exposes an HTTP/WebSocket endpoint there.
+**Note**: The web UI's "Find Best Node" feature uses browser-measured RTT (User RTT) instead of the server API, as it provides a better user experience by measuring latency from the user's actual location.
 
 ---
 
@@ -118,7 +134,8 @@ To make your node discoverable (and routable) via `node-directory`, you need to:
      - `services`: the list of `PeerService`s this node advertises (apps like `arcade`, `redsquare`, `relay`, etc.)
    - This transaction is propagated to peers and, once confirmed, other nodes running NodeDirectory will:
      - Record your node as a **discovered full node** (not a client).
-     - Update its `lastSeenAt`, services, and location from subsequent announcements.
+     - Update its `lastSeenAt`, services, location, and `hasWebFrontend` flags from subsequent announcements.
+     - Services with `hasWebFrontend: true` are automatically detected by checking if the module has a `/web` directory.
 
 4. **Advertise services from your apps**
 
@@ -139,8 +156,9 @@ To make your node discoverable (and routable) via `node-directory`, you need to:
    NodeDirectory will then:
 
    - Discover those services via `app.network.getPeers()` (for directly connected peers).
-   - Include them in the `node-announcement` it sends.
-   - Use them when answering “best node for service” queries.
+   - Automatically detect which services have web frontends by checking for `/web` directories.
+   - Include them (with `hasWebFrontend` flags) in the `node-announcement` it sends.
+   - Use them when answering "best node for service" queries.
 
 5. **Verify that your node is being advertised**
 
@@ -165,15 +183,24 @@ To make your node discoverable (and routable) via `node-directory`, you need to:
 
 ### Web UI: `/node-directory`
 
-- The module serves a simple dashboard at `/node-directory`:
+- The module serves a dashboard at `/node-directory`:
   - **Controls**:
-    - Service dropdown (populated from available services like `arcade`, `redsquare`, `relay`, etc.).
+    - Service dropdown (populated from available services with web frontends like `arcade`, `redsquare`, `chat`, `node-directory`, etc.).
+    - "Find Best Node for Service" button – selects the node with the lowest User RTT (browser-measured).
     - "Refresh All Nodes" button – reloads the table from `getAllNodes()`.
-    - "Find Best Node for Service" – calls `getBestNodeForApp(slug)` and displays the result.
   - **Known Peers table**:
-    - Peer index, public key, status.
-    - All advertised services (`service`, `name`, `domain`).
-    - Last measured RTT (ms), when available.
+    - **Hostname / Public Key**: Clickable hostname links to `https://<hostname>/explorer`, or public key if no hostname.
+    - **Location**: Geographic location (if configured).
+    - **Status**: Connection status (local, connected, disconnected, etc.).
+    - **Type**: Peer type (local, static, connected, discovered).
+    - **Services**: Only services with web frontends are shown. Each service is a clickable link to `https://<hostname>/<service>`.
+    - **Server RTT (ms)**: Round-trip time measured server-to-peer.
+    - **User RTT (ms)**: Round-trip time measured from your browser to the node.
+    - **Last Seen**: When the node was last seen (for discovered nodes) or connection status (for direct peers).
+
+**Best Node Selection:**
+- The "Find Best Node for Service" feature uses **User RTT** (browser-measured) to select the fastest node from your location.
+- If no User RTT measurements are available yet, it will show an error message asking you to wait a few seconds.
 
 To use it:
 

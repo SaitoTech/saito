@@ -23,10 +23,9 @@ class NodeDirectory extends ModTemplate {
     this._peerCache = [];
     this._rttCache = {}; // Cache RTT measurements by publicKey
     this._rttMeasurementInterval = null; // Interval timer for periodic RTT measurement
-    this._discoveredNodes = new Map(); // Map<publicKey, nodeInfo> for nodes discovered via network queries
-    this._discoveryInProgress = false; // Flag to prevent concurrent discovery operations
-    this._lastDiscoveryTime = 0; // Timestamp of last discovery operation
-    this._discoveryInterval = null; // Interval timer for periodic discovery
+    this._discoveredNodes = new Map(); // Map<publicKey, nodeInfo> for nodes discovered via node-announcement transactions
+    this._lastAnnouncementTime = 0; // Timestamp of last announcement transaction
+    this._announcementInterval = null; // Interval timer for periodic announcements
     this._lastAnnouncementTime = 0; // Timestamp of last announcement transaction
     this._announcementInterval = null; // Interval timer for periodic announcements
   }
@@ -814,244 +813,6 @@ class NodeDirectory extends ModTemplate {
   }
 
   /**
-   * Discover nodes by querying connected peers for their peer lists
-   */
-  async discoverNodesFromNetwork() {
-    if (this._discoveryInProgress) {
-      console.log('[NodeDirectory] Discovery already in progress, skipping...');
-      return;
-    }
-    if (this.app.BROWSER) {
-      // Browser clients don't discover nodes
-      return;
-    }
-
-    this._discoveryInProgress = true;
-    this._lastDiscoveryTime = Date.now();
-    try {
-      const peers = await this.app.network.getPeers();
-      const connectedPeers = peers.filter(p => p && p.status === 'connected');
-
-      console.log(`[NodeDirectory] ===== STARTING NETWORK DISCOVERY =====`);
-      console.log(`[NodeDirectory] Querying ${connectedPeers.length} connected peer(s) for their peer lists`);
-
-      // Log which peers we're querying
-      for (let i = 0; i < connectedPeers.length; i++) {
-        const peer = connectedPeers[i];
-        const hostname = this.getHostnameForPublicKey(peer.publicKey);
-        console.log(`[NodeDirectory]   Peer ${i + 1}/${connectedPeers.length}: peerIndex=${peer.peerIndex}, publicKey=${peer.publicKey?.substring(0, 16)}..., hostname=${hostname || 'none'}, status=${peer.status}`);
-      }
-
-      // Track target public key for debugging
-      const TARGET_PUBKEY = 'rrjB7pA7xjFMJhCxJsfUhYew2pfYuRDNh96X135d5Ysh'; // nlsaito.net
-      console.log(`[NodeDirectory] Looking for target node: ${TARGET_PUBKEY.substring(0, 16)}...`);
-
-      const discoveryPromises = connectedPeers.map(async (peer, peerIdx) => {
-        const peerKey = peer.publicKey?.substring(0, 16) || 'unknown';
-        console.log(`[NodeDirectory] [Peer ${peerIdx + 1}] Sending peer list request to peerIndex=${peer.peerIndex}, publicKey=${peerKey}...`);
-
-        try {
-          return new Promise((resolve) => {
-            let responseReceived = false;
-            let timeoutId = null;
-
-            const callback = (response) => {
-              if (responseReceived) {
-                console.log(`[NodeDirectory] [Peer ${peerIdx + 1}] Duplicate callback received, ignoring`);
-                return;
-              }
-              responseReceived = true;
-              if (timeoutId) clearTimeout(timeoutId);
-
-              console.log(`[NodeDirectory] [Peer ${peerIdx + 1}] Response received from peerIndex=${peer.peerIndex}:`, {
-                hasResponse: !!response,
-                hasNodes: !!(response && response.nodes),
-                nodeCount: response && response.nodes ? response.nodes.length : 0,
-                responseKeys: response ? Object.keys(response) : []
-              });
-              if (response && response.nodes && Array.isArray(response.nodes)) {
-                console.log(`[NodeDirectory] [Peer ${peerIdx + 1}] Received ${response.nodes.length} node(s) from peer`);
-
-                // Check if target node is in this response
-                const targetInResponse = response.nodes.some(n => n.publicKey === TARGET_PUBKEY);
-                if (targetInResponse) {
-                  console.log(`[NodeDirectory] [Peer ${peerIdx + 1}] *** TARGET NODE FOUND IN RESPONSE! ***`);
-                  const targetNode = response.nodes.find(n => n.publicKey === TARGET_PUBKEY);
-                  console.log(`[NodeDirectory] [Peer ${peerIdx + 1}] Target node details:`, JSON.stringify(targetNode, null, 2));
-                }
-
-                // Log all nodes in response
-                response.nodes.forEach((node, idx) => {
-                  console.log(`[NodeDirectory] [Peer ${peerIdx + 1}]   Node ${idx + 1}: publicKey=${node.publicKey?.substring(0, 16)}..., hostname=${node.hostname || 'none'}, synctype=${node.synctype || 'unknown'}, services=${node.services?.length || 0}`);
-                });
-                resolve(response.nodes);
-              } else {
-                console.log(`[NodeDirectory] [Peer ${peerIdx + 1}] Invalid response format:`, response);
-                resolve([]);
-              }
-            };
-            this.app.network.sendRequestAsTransaction(
-              'node-directory:get-peer-list',
-              {},
-              callback,
-              peer.peerIndex
-            );
-            // Timeout after 5 seconds
-            timeoutId = setTimeout(() => {
-              if (!responseReceived) {
-                responseReceived = true;
-                console.log(`[NodeDirectory] [Peer ${peerIdx + 1}] TIMEOUT: No response from peerIndex=${peer.peerIndex} after 5 seconds`);
-                resolve([]);
-              }
-            }, 5000);
-          });
-        } catch (e) {
-          console.error(`[NodeDirectory] [Peer ${peerIdx + 1}] Exception querying peer ${peerKey}...:`, e);
-          return [];
-        }
-      });
-      const results = await Promise.all(discoveryPromises);
-      console.log(`[NodeDirectory] All peer queries complete. Received ${results.length} response(s)`);
-
-      let discoveredCount = 0;
-      let totalNodesReceived = 0;
-
-      // Aggregate discovered nodes (filtering out clients)
-      let discoveredClientsFiltered = 0;
-      let skippedOwnNode = 0;
-      let skippedAlreadyKnown = 0;
-      let skippedNoPublicKey = 0;
-
-      let myPublicKey = null;
-      try {
-        myPublicKey = await this.app.wallet.getPublicKey();
-        console.log(`[NodeDirectory] My public key: ${myPublicKey?.substring(0, 16)}...`);
-      } catch (e) {
-        console.warn(`[NodeDirectory] Could not get my public key:`, e);
-      }
-
-      for (let listIdx = 0; listIdx < results.length; listIdx++) {
-        const nodeList = results[listIdx];
-        totalNodesReceived += nodeList.length;
-        console.log(`[NodeDirectory] Processing node list ${listIdx + 1}/${results.length} with ${nodeList.length} node(s)`);
-
-        for (const nodeInfo of nodeList) {
-          if (!nodeInfo.publicKey) {
-            skippedNoPublicKey++;
-            console.log(`[NodeDirectory]   Skipping node: no publicKey`, nodeInfo);
-            continue;
-          }
-
-          // Skip our own node
-          if (myPublicKey && nodeInfo.publicKey === myPublicKey) {
-            skippedOwnNode++;
-            console.log(`[NodeDirectory]   Skipping node ${nodeInfo.publicKey.substring(0, 16)}...: own node`);
-            continue;
-          }
-
-          // Skip if already in direct peers
-          const alreadyKnown = peers.some(p => p && p.publicKey === nodeInfo.publicKey);
-          if (alreadyKnown) {
-            skippedAlreadyKnown++;
-            console.log(`[NodeDirectory]   Skipping node ${nodeInfo.publicKey.substring(0, 16)}...: already in direct peers`);
-            continue;
-          }
-
-          // Skip clients - only store actual nodes
-          // Check if synctype indicates it's a client (lite)
-          if (nodeInfo.synctype === 'lite' || nodeInfo.synctype === 'none') {
-            discoveredClientsFiltered++;
-            console.log(`[NodeDirectory]   Skipping node ${nodeInfo.publicKey.substring(0, 16)}...: client (synctype=${nodeInfo.synctype})`);
-            continue;
-          }
-
-          // Check if this is the target node
-          if (nodeInfo.publicKey === TARGET_PUBKEY) {
-            console.log(`[NodeDirectory]   *** PROCESSING TARGET NODE ***`);
-            console.log(`[NodeDirectory]   Target node info:`, JSON.stringify(nodeInfo, null, 2));
-          }
-          // Store/update discovered node
-          const existing = this._discoveredNodes.get(nodeInfo.publicKey);
-          const now = Date.now();
-
-          if (!existing) {
-            // New node discovered
-            // Try to construct connection URL from hostname
-            let connectionUrl = null;
-
-            if (nodeInfo.hostname) {
-              connectionUrl = `https://${nodeInfo.hostname}`;
-            }
-
-            const newNode = {
-              peerIndex: null, // No direct peer index
-              publicKey: nodeInfo.publicKey,
-              hostname: nodeInfo.hostname || null,
-              connectionUrl: connectionUrl,
-              status: 'discovered',
-              peerType: 'discovered',
-              services: nodeInfo.services || [],
-              lastSeenAt: now,
-              discoveredAt: now,
-              firstSeenAt: now
-            };
-            this._discoveredNodes.set(nodeInfo.publicKey, newNode);
-            discoveredCount++;
-            if (nodeInfo.publicKey === TARGET_PUBKEY) {
-              console.log(`[NodeDirectory]   *** TARGET NODE STORED SUCCESSFULLY ***`);
-              console.log(`[NodeDirectory]   Stored node:`, JSON.stringify(newNode, null, 2));
-            } else {
-              console.log(`[NodeDirectory]   Stored new node: ${nodeInfo.publicKey.substring(0, 16)}..., hostname=${nodeInfo.hostname || 'none'}, services=${nodeInfo.services?.length || 0}`);
-            }
-          } else {
-            // Update existing node - update lastSeenAt and services if changed
-            existing.lastSeenAt = now;
-            if (nodeInfo.services && nodeInfo.services.length > 0) {
-              existing.services = nodeInfo.services;
-            }
-            if (nodeInfo.hostname && !existing.hostname) {
-              existing.hostname = nodeInfo.hostname;
-            }
-            // Keep firstSeenAt from original discovery
-            if (!existing.firstSeenAt) {
-              existing.firstSeenAt = existing.discoveredAt || now;
-            }
-            if (nodeInfo.publicKey === TARGET_PUBKEY) {
-              console.log(`[NodeDirectory]   *** TARGET NODE UPDATED ***`);
-              console.log(`[NodeDirectory]   Updated node:`, JSON.stringify(existing, null, 2));
-            }
-          }
-        }
-      }
-      console.log(`[NodeDirectory] ===== DISCOVERY SUMMARY =====`);
-      console.log(`[NodeDirectory] Total nodes received: ${totalNodesReceived}`);
-      console.log(`[NodeDirectory] Filtered out: ${discoveredClientsFiltered} client(s), ${skippedOwnNode} own node(s), ${skippedAlreadyKnown} already known, ${skippedNoPublicKey} no publicKey`);
-      console.log(`[NodeDirectory] New nodes discovered: ${discoveredCount}`);
-      console.log(`[NodeDirectory] Total discovered nodes: ${this._discoveredNodes.size}`);
-      // Check if target node is in discovered nodes
-      const targetDiscovered = this._discoveredNodes.get(TARGET_PUBKEY);
-      if (targetDiscovered) {
-        console.log(`[NodeDirectory] *** TARGET NODE IS IN DISCOVERED NODES MAP ***`);
-        console.log(`[NodeDirectory] Target node in map:`, JSON.stringify(targetDiscovered, null, 2));
-      } else {
-        console.log(`[NodeDirectory] *** TARGET NODE NOT FOUND IN DISCOVERED NODES MAP ***`);
-        console.log(`[NodeDirectory] Current discovered nodes:`, Array.from(this._discoveredNodes.keys()).map(k => k.substring(0, 16) + '...'));
-      }
-      if (discoveredClientsFiltered > 0) {
-        console.log(`[NodeDirectory] Filtered out ${discoveredClientsFiltered} discovered client(s), showing only nodes`);
-      }
-      console.log(`[NodeDirectory] Discovery complete: found ${discoveredCount} new nodes, total discovered: ${this._discoveredNodes.size}`);
-      // Save discovered nodes to storage after discovery
-      if (discoveredCount > 0 || this._discoveredNodes.size > 0) {
-        await this.saveDiscoveredNodes();
-      }
-    } catch (e) {
-      console.error('[NodeDirectory] Error during network discovery:', e);
-    } finally {
-      this._discoveryInProgress = false;
-    }
-  }
-  /**
    * Get storage path for discovered nodes
    */
   _getStoragePath() {
@@ -1232,33 +993,6 @@ class NodeDirectory extends ModTemplate {
     }
   }
   /**
-   * Start periodic network discovery
-   */
-  startPeriodicDiscovery(intervalMs = 60000) {
-    if (this._discoveryInterval) {
-      clearInterval(this._discoveryInterval);
-    }
-    // Initial discovery after 5 seconds
-    setTimeout(() => {
-      this.discoverNodesFromNetwork();
-    }, 5000);
-    // Then periodic discovery
-    this._discoveryInterval = setInterval(() => {
-      this.discoverNodesFromNetwork();
-    }, intervalMs);
-    console.log(`[NodeDirectory] Started periodic network discovery (every ${intervalMs}ms)`);
-  }
-  /**
-   * Stop periodic network discovery
-   */
-  stopPeriodicDiscovery() {
-    if (this._discoveryInterval) {
-      clearInterval(this._discoveryInterval);
-      this._discoveryInterval = null;
-      console.log('[NodeDirectory] Stopped periodic network discovery');
-    }
-  }
-  /**
    * Listen for node announcement transactions on the blockchain
    */
   async onConfirmation(blk, tx, conf) {
@@ -1363,45 +1097,6 @@ class NodeDirectory extends ModTemplate {
       }
       return;
     }
-    // Handle peer list discovery requests
-    if (txmsg.request === 'node-directory:get-peer-list') {
-      if (typeof mycallback === 'function' && !this.app.BROWSER) {
-        console.log(`[NodeDirectory] Received peer list request from peerIndex=${peer?.peerIndex}, publicKey=${peer?.publicKey?.substring(0, 16) || 'unknown'}...`);
-        try {
-          // Return our peer list (excluding discovered nodes to avoid loops)
-          const nodes = await this.getAllNodesDirect(); // Get only directly connected peers (clients already filtered)
-          console.log(`[NodeDirectory] Returning ${nodes.length} node(s) to requesting peer`);
-          nodes.forEach((n, idx) => {
-            console.log(`[NodeDirectory]   Node ${idx + 1} to return: publicKey=${n.publicKey?.substring(0, 16)}..., hostname=${n.hostname || 'none'}, status=${n.status}, peerType=${n.peerType}, services=${n.services?.length || 0}`);
-          });
-          const response = {
-            module: this.name,
-            request: 'node-directory:peer-list-response',
-            nodes: nodes.map(n => ({
-              publicKey: n.publicKey,
-              hostname: n.hostname,
-              status: n.status,
-              peerType: n.peerType,
-              services: n.services,
-              synctype: 'full' // Mark as full node (clients already filtered out)
-            }))
-          };
-          console.log(`[NodeDirectory] Sending response with ${response.nodes.length} node(s)`);
-          mycallback(response);
-        } catch (err) {
-          console.error(`[NodeDirectory] Error handling peer list request:`, err);
-          // Send empty response on error
-          mycallback({
-            module: this.name,
-            request: 'node-directory:peer-list-response',
-            nodes: []
-          });
-        }
-      } else {
-        console.log(`[NodeDirectory] Ignoring peer list request: browser=${this.app.BROWSER}, hasCallback=${typeof mycallback === 'function'}`);
-      }
-      return;
-    }
   }
   webServer(app, expressApp, express) {
     const slug = this.returnSlug();
@@ -1428,20 +1123,6 @@ class NodeDirectory extends ModTemplate {
       } catch (err) {
         console.error('node-directory /api/measure-rtt error', err);
         res.status(500).json({ error: 'failed_to_measure_rtt' });
-      }
-    });
-    // JSON API: trigger network discovery
-    expressApp.post(`/${encodeURI(slug)}/api/discover-nodes`, async (req, res) => {
-      try {
-        await this.discoverNodesFromNetwork();
-        res.json({ 
-          success: true, 
-          discoveredCount: this._discoveredNodes.size,
-          lastDiscoveryTime: this._lastDiscoveryTime
-        });
-      } catch (err) {
-        console.error('node-directory /api/discover-nodes error', err);
-        res.status(500).json({ error: 'failed_to_discover_nodes', message: err.message });
       }
     });
     // Debug API: inspect raw peer objects
