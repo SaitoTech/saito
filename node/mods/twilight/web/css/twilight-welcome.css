@@ -1,7 +1,7 @@
 .welcome {
 	min-width: 80vw;
 	min-height: 80vh;
-	border-radius: var(--border-radius-overlay);
+	border-radius: var(--saito-border-radius);
 	overflow: hidden;
 	background-size: cover;
 	background-position: center;

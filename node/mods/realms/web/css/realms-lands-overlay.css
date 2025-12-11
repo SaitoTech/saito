@@ -1,0 +1,85 @@
+
+.lands-overlay {
+  position: relative;
+  top: 0;
+  left: 0;
+  min-height: 90vh;
+  min-width: 90vw;
+  width: 90vw;
+  height: 90vh;
+  z-index: 5000;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  overflow-y: auto;
+  row-gap: 1rem;
+  column-gap: 1rem;
+}
+
+.lands-overlay::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: url('/realms/img/backgrounds/overlays/land_overlay2.png') center center / cover no-repeat;
+    opacity: 1;
+    z-index: -1;
+}
+
+.lands-overlay .card {
+  position: relative;
+  width: auto;
+  height: 40vh;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.lands-overlay .card:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+  z-index: 10;
+}
+
+.lands-overlay .card:active {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+}
+
+.lands-overlay .card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: inherit;
+}
+
+.lands-overlay .card {
+  opacity: 0;
+  transform: scale(0.9);
+  animation: fadeInCard 0.3s ease forwards;
+}
+
+@keyframes fadeInCard {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.lands-overlay .close-overlay {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  color: white;
+  font-size: 1.8rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.lands-overlay .close-overlay:hover {
+  opacity: 0.6;
+}
+

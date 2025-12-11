@@ -860,6 +860,15 @@ class ModTemplate {
     });
   }
 
+  activateModule() {
+    if (!this.app.BROWSER) {
+      console.error('Attempting to set browser_active on a non-browser node!');
+      return;
+    }
+    this.browser_active = 1;
+    this.alerts = 0;
+  }
+
   isSlug(slug) {
     return slug == this.returnSlug();
   }
@@ -886,8 +895,6 @@ class ModTemplate {
       return this.link;
     }
   }
-
-  handleUrlParams(urlParams) {}
 
   showAlert() {
     this.alerts++;

@@ -2,7 +2,7 @@
   border-bottom: none;
 }
 
-.tweet.has-reply:not(.highlight-tweet)::after,
+.tweet.has-reply::after,
 .tweet.has-reply-disconnected:not(.highlight-tweet)::after {
   content: '';
   position: absolute;
@@ -11,7 +11,64 @@
   top: 5.5rem;
   left: 3.9rem;
   z-index: 3;
-  border-left: 2px dashed var(--twitter-gray);
+  border-left: 2px dashed #718695;
+}
+
+.tweet.highlight-tweet {
+  background-color: var(--saito-highlight);
+}
+
+.tweet.highlight-tweet:hover {
+  background-color: var(--saito-highlight-heavy);
+}
+
+/* Parallel Replies */
+.tweet.highlight-tweet:has(+ .is-reply) {
+  border-bottom-width: 2px;
+}
+
+.tweet:not(.is-reply):has(+ .is-reply):after {
+  content: '';
+  position: absolute;
+  width: 2rem;
+  height: calc(100% - 3rem);
+  top: 3rem;
+  left: 3.9rem;
+  z-index: 3;
+  border-left: 2px dotted #718695;
+}
+
+.tweet.is-reply {
+  padding: 1.2rem;
+  margin-left: 4rem;
+}
+
+.tweet.is-reply::before {
+  content: '';
+  position: absolute;
+  width: 2rem;
+  height: 3.25rem;
+  top: -0.25rem;
+  left: -1px;
+  z-index: 3;
+  border-left: 2px dotted #718695;
+  border-bottom: 2px dotted #718695;
+}
+
+.tweet.is-reply:has(+ .is-reply)::after {
+  content: '';
+  position: absolute;
+  width: 2rem;
+  height: calc(100% - 3rem);
+  left: -1px;
+  top: 3rem;
+  z-index: 3;
+  border-left: 2px dotted #718695;
+}
+
+.tweet.is-reply .tweet-avatar {
+  width: 4rem;
+  height: 4rem;
 }
 
 .tweet-text {
@@ -75,7 +132,7 @@
   justify-content: space-between;
 
   font-size: 14px;
-  color: var(--twitter-gray);
+  color: #718695;
   padding-bottom: unset;
   margin-bottom: unset;
 
@@ -204,7 +261,7 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   height: auto;
-  border-radius: var(--border-radius-round);
+  border-radius: var(--saito-border-radius);
 }
 
 /*
@@ -290,7 +347,7 @@
 }
 
 .tweet .saito-treated-link[data-link='local_link'] .link-container {
-  border-radius: var(--border-radius-round);
+  border-radius: var(--saito-border-radius);
   overflow: hidden;
 }
 

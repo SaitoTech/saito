@@ -17,7 +17,7 @@
 	align-items: center;
 	background-size: cover;
 	background-position: center;
-	background-color: var(--saito-gray-transparent);
+	background-color: color-mix(in srgb, var(--saito-grey-700) 27%, transparent);
 	background-blend-mode: soft-light;
 	border-radius: 16px;
 	overflow: hidden;
@@ -37,7 +37,7 @@
 	overflow-wrap: break-word;
 	opacity: 0.8;
 	background: #000a;
-	border-radius: var(--border-radius-sidebar-game-module);
+	border-radius: var(--saito-border-radius);
 }
 
 .saito-module-titlebar > div {

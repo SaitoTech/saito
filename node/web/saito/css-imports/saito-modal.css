@@ -12,7 +12,7 @@ This alows for a header with a header with title to be added without extra CSS
   grid-template-rows: min-content 1fr min-content; /* last item optional */
   max-height: 95vh;
   border: var(--border-thickness-thick) solid var(--border-color-general-dividers);
-  border-radius: var(--border-radius-overlay);
+  border-radius: var(--saito-border-radius);
   background-image: url(/saito/img/tiled-logo.svg);
 }
 
@@ -34,7 +34,7 @@ This alows for a header with a header with title to be added without extra CSS
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   padding: 0.5rem;
   margin-top: 0.5rem;
 }
@@ -103,7 +103,7 @@ This alows for a header with a header with title to be added without extra CSS
   grid-template-columns: 4rem 1fr;
   cursor: pointer;
   position: relative;
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   margin-top: 0.25rem;
 }
 
@@ -355,6 +355,6 @@ This alows for a header with a header with title to be added without extra CSS
   width: 24vh;
   border: var(--border-thickness-medium) solid var(--saito-primary);
   padding: var(--border-padding-normal);
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   background: var(--saito-background-color);
 }

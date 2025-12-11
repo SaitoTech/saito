@@ -45,7 +45,7 @@ class EGLDModule extends CryptoModule {
   async activate() {
     try {
       if (!this.isActivated()) {
-        this.app.connection.emit('header-install-crypto', this.ticker);
+        this.app.connection.emit('saito-header-install-crypto', this.ticker);
       }
 
       await this.setupNetwork();

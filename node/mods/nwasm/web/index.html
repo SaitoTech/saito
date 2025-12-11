@@ -48,18 +48,7 @@
 
     <div id="maindiv" class="container text-center">
 
-	<div class="nwasm-instructions">
-
-The Saito Nintendo 64 emulator provides a user-friendly in-browser way to archive and play the N64 games you own. Game files are encrypted so only you can decrypt them and archived in your private transaction store.
-
-	  <p></p>
-
-We welcome use of this module from those with legal access to their own ROMS. We are getting legal advice on the viability of integrating a lending-library providing community members with legal access to online game rentals.
-
-	  <p></p>
-
-
-	</div>
+	<div class="nwasm-library" id="nwasm-library"></div>
 
         <div id="topPanel" style="display: none;">
 
@@ -174,11 +163,7 @@ We welcome use of this module from those with legal access to their own ROMS. We
                 <button class="btn btn-primary mt-2 mb-2" onclick="myApp.zoomOut()">Zoom Out</button>
                 <button class="btn btn-primary mt-2 mb-2" onclick="myApp.zoomIn()">Zoom In</button>
                 <button class="btn btn-primary mt-2 mb-2" onclick="myApp.fullscreen()" >Full Screen</button>
-                
-
             </div>
-
-
 
             <div style="display:none; margin-top:40px;" rv-if="data.beforeEmulatorStarted">
                 <div id="dropArea" style="width: 150px; height: 150px; border: gray 1px solid;margin-left: auto;

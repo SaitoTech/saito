@@ -106,7 +106,7 @@
   width: min(750px, 90vw);
   min-height: 50vh;
   padding: 1rem 0;
-  border-radius: var(--border-radius-overlay);
+  border-radius: var(--saito-border-radius);
   column-gap: 2rem;
   padding: 2rem;
   align-items: center;

@@ -9,9 +9,15 @@ const linkifyHtml = require('markdown-linkify');
 const emoji = require('node-emoji');
 const UserMenu = require('./ui/modals/user-menu/user-menu');
 const SaitoCrypto = require('./ui/saito-crypto/saito-crypto');
-const SaitoNFTOverlayManager = require('./ui/saito-nft/nft-overlay-manager');
 const debounce = require('lodash/debounce');
 const SaitoMentions = require('./ui/saito-mentions/saito-mentions');
+
+//
+// references for modules
+//
+const SaitoOverlay = require('./ui/saito-overlay/saito-overlay');
+const SaitoUser = require('./ui/saito-user/saito-user');
+const SaitoNFT = require('./ui/saito-nft/saito-nft');
 
 class Browser {
   public app: any;
@@ -30,10 +36,17 @@ class Browser {
   constructor(app) {
     this.app = app || {};
 
+    //
+    // components -- reference
+    //
+    this.components = {};
+    this.components.SaitoOverlay = SaitoOverlay;
+    this.components.SaitoUser = SaitoUser;
+    this.components.SaitoNFT = SaitoNFT;
+
     this.browser_active = 0;
     this.multiple_windows_active = 0;
     this.drag_callback = null;
-    this.urlParams = {};
     this.host = '';
     this.port = '';
     this.protocol = '';
@@ -230,51 +243,36 @@ class Browser {
       //
       if (typeof window == 'undefined') {
         return;
-      } else {
       }
+
       const current_url = window.location.toString();
       const myurl = new URL(current_url);
       this.host = myurl.host;
       this.port = myurl.port;
       this.protocol = myurl.protocol;
-      const myurlpath = myurl.pathname.split('/');
-      let active_module = myurlpath[1] ? myurlpath[1].toLowerCase() : '';
-      if (active_module == '') {
-        active_module = 'website';
-      }
+
+      const active_module = this.determineActiveModule();
 
       //
       // query strings
       //
-      this.urlParams = new URLSearchParams(window.location.search);
-      const entries = this.urlParams.entries();
-      for (const pair of entries) {
-        //
-        // if crypto is provided switch over
-        //
-        if (pair[0] === 'crypto') {
-          if (!(await this.app.wallet.setPreferredCrypto(pair[1]))) {
-            salert(
-              `Your compile does not contain a ${pair[1].toUpperCase()} module. Visit the AppStore or contact us about getting one built!`
-            );
-          }
+      let c_param = this.returnURLParameter('crypto');
+      if (c_param) {
+        if (!(await this.app.wallet.setPreferredCrypto(c_param))) {
+          salert(
+            `Your compile does not contain a ${c_param.toUpperCase()} module. Visit the AppStore or contact us about getting one built!`
+          );
         }
       }
 
       //
       // tell that module it is active
       //
+      console.log('Browser.ts -- active module is ' + active_module);
       for (let i = 0; i < this.app.modules.mods.length; i++) {
         if (this.app.modules.mods[i].isSlug(active_module)) {
-          this.app.modules.mods[i].browser_active = 1;
-          this.app.modules.mods[i].alerts = 0;
-
-          //
-          // if urlParams exist, hand them to the module
-          //
-          const urlParams = new URLSearchParams(location.search);
-
-          this.app.modules.mods[i].handleUrlParams(urlParams);
+          console.log('Activating ' + this.app.modules.mods[i].returnName());
+          this.app.modules.mods[i].activateModule();
           break;
         }
       }
@@ -284,15 +282,11 @@ class Browser {
       //
       this.saito_crypto = new SaitoCrypto(this.app, this.app.modules.returnActiveModule());
 
-      this.saito_nft_manager = new SaitoNFTOverlayManager(this.app);
-      this.saito_nft_manager.initialize(this.app);
-
       //
       // check if we are already open in another tab -
       // gracefully return out after warning user.
       //
       this.checkForMultipleWindows();
-      //this.isFirstVisit();
 
       //if ('serviceWorker' in navigator) {
       //    await navigator.serviceWorker
@@ -387,6 +381,18 @@ class Browser {
         //console.log(event);
       }
     }*/
+  }
+
+  determineActiveModule() {
+    const current_url = window.location.toString();
+    const myurl = new URL(current_url);
+    const myurlpath = myurl.pathname.split('/');
+
+    if (myurlpath[1]) {
+      return myurlpath[1].toLowerCase();
+    }
+
+    return window?.active_module || 'website';
   }
 
   extractIdentifiers(text = '') {
@@ -498,8 +504,12 @@ class Browser {
 
   returnURLParameter(name) {
     try {
-      this.urlParams = new URLSearchParams(window.location.search);
-      const entries = this.urlParams.entries();
+      //
+      // Always fetch a new urlParamse (because some apps do fancy things with the window history)
+      //
+      const urlParams = new URLSearchParams(window.location.search);
+
+      const entries = urlParams.entries();
       for (const pair of entries) {
         if (pair[0] == name) {
           return pair[1] || pair[0];
@@ -1145,7 +1155,7 @@ class Browser {
           [...files].forEach(function (file) {
             const reader = new FileReader();
             reader.addEventListener('load', (event) => {
-              handleFileDrop(event.target.result);
+              handleFileDrop(event.target.result, false, file);
             });
             if (read_as_array_buffer) {
               reader.readAsArrayBuffer(file);
@@ -1206,7 +1216,7 @@ class Browser {
             [...files].forEach(function (file) {
               const reader = new FileReader();
               reader.addEventListener('load', (event) => {
-                handleFileDrop(event.target.result);
+                handleFileDrop(event.target.result, false, file);
               });
               if (read_as_array_buffer) {
                 reader.readAsArrayBuffer(file);
@@ -1235,7 +1245,6 @@ class Browser {
   }
 
   preventDefaults(e) {
-    console.debug('Browser: preventing the defaults');
     e.preventDefault();
     e.stopPropagation();
   }
@@ -2055,11 +2064,6 @@ class Browser {
       };
 
       window.salert = function (message) {
-        if (document.getElementById('saito-alert')) {
-          return;
-        }
-        let wrapper = document.createElement('div');
-        wrapper.id = 'saito-alert';
         let html = `<div id="saito-alert-shim">
                       <div id="saito-alert-box">
                         <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
@@ -2068,11 +2072,16 @@ class Browser {
                         </div>
                       </div>
                     </div>`;
-        wrapper.innerHTML = html;
-        document.body.appendChild(wrapper);
-        //        setTimeout(() => {
-        //          document.querySelector("#saito-alert-box").style.top = "0";
-        //        }, 100);
+
+        if (document.getElementById('saito-alert')) {
+          browser_self.app.browser.replaceElementById(html, 'saito-alert');
+        } else {
+          let wrapper = document.createElement('div');
+          wrapper.id = 'saito-alert';
+          wrapper.innerHTML = html;
+          document.body.appendChild(wrapper);
+        }
+
         document.querySelector('#alert-ok').focus();
         document.querySelector('#saito-alert-shim').addEventListener('keyup', function (event) {
           if (event.keyCode === 13) {
@@ -2083,7 +2092,7 @@ class Browser {
         document.querySelector('#alert-ok').addEventListener(
           'click',
           function () {
-            wrapper.remove();
+            document.getElementById('saito-alert').remove();
           },
           false
         );
@@ -2091,6 +2100,7 @@ class Browser {
 
       window.sconfirm = function (message) {
         if (document.getElementById('saito-alert')) {
+          console.warn('Suppressing subsequent sconfirm...');
           return;
         }
         return new Promise((resolve, reject) => {
@@ -2133,6 +2143,7 @@ class Browser {
 
       window.sprompt = function (message, suggestion = '') {
         if (document.getElementById('saito-alert')) {
+          console.warn('Suppressing subsequent sprompt...');
           return;
         }
         return new Promise((resolve, reject) => {

@@ -57,7 +57,7 @@ Saito Table
   font-size: 1.5rem;
   width: 100%;
   position: relative;
-  border-radius: var(--border-radius-sharp);
+  border-radius: var(--saito-border-radius);
   max-height: 100%;
   height: fit-content;
   position: relative;

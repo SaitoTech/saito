@@ -10,13 +10,13 @@
   border-radius: var(--saito-border-radius, 6px); /* Slightly smaller radius */
   margin-bottom: 0.8rem; /* Reduced space between cards */
   padding: 0.8rem; /* Reduced inner padding */
-  box-shadow: var(--saito-box-shadow-small, 0 2px 5px rgba(0, 0, 0, 0.05));
+  box-shadow: var(--saito-box-shadow-low);
   transition: box-shadow 0.3s ease;
-  overflow: hidden; /* Ensure child margins don't collapse outside */
+  overflow: hidden;
 }
 
 .block-card:hover {
-  box-shadow: var(--saito-box-shadow-medium, 0 4px 10px rgba(0, 0, 0, 0.08));
+  box-shadow: var(--saito-box-shadow);
 }
 
 .block-card-header {

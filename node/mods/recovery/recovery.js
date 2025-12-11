@@ -38,12 +38,12 @@ class Recovery extends ModTemplate {
 			if (key) {
 				if (key.email && key.wallet_decryption_secret && key.wallet_retrieval_hash) {
 					siteMessage('backing up wallet...', 10000);
-					this.backupWallet({
+					await this.backupWallet({
 						email: key.email,
 						decryption_secret: key.wallet_decryption_secret,
 						retrieval_hash: key.wallet_retrieval_hash
 					});
-					delete this.app.options.wallet.backup_required;
+
 					this.app.wallet.saveWallet();
 					this.app.connection.emit('saito-header-update-message');
 					return;
@@ -234,6 +234,16 @@ class Recovery extends ModTemplate {
 			return;
 		}
 
+		let email_text = `This email contains an encrypted backup of your Saito Wallet for 
+				${this.publicKey.substring(0, 6)}...${this.publicKey.slice(-6)}. 
+				The system should automatically update your backup (and email you again) if you 
+				add additional keys (adding friends, installing third-party cryptos, etc.). However, 
+				we strongly advise you to regularly back up your account to protect your data`;
+
+		if (this.app.options.wallet.backup_required) {
+			email_text += `\n\nAutomatically triggered by: ${this.app.options.wallet.backup_required}`;
+		}
+
 		if (password) {
 			//
 			// Generate passcode and retreival hash
@@ -269,11 +279,11 @@ class Recovery extends ModTemplate {
 			to: email,
 			from: 'Saito Backup <no-reply@saito.tech>',
 			subject: 'Saito Wallet - Encrypted Backup',
-			text: 'This email contains an encrypted backup of your Saito Wallet. If you add additional keys (adding friends, installing third-party cryptos, etc.) you will need to re-backup your wallet to protect any newly-added cryptographic information',
+			text: email_text,
 			ishtml: false,
 			attachments: [
 				{
-					filename: 'saito-wallet-backup.aes',
+					filename: `saito-wallet-${this.publicKey}.aes`,
 					content: String(Buffer.from(newtx.msg.wallet, 'utf-8'))
 				}
 			]

@@ -8,7 +8,7 @@ class Card {
 	}
 
 	render() {
-		let myqs = this.container + ` .card.${cardname}`;
+		let myqs = this.container + ` .card.${this.card.key}`;
 		if (document.querySelector(myqs)) {
 			this.app.browser.replaceElementBySelector(CardTemplate(), myqs);
 		} else {

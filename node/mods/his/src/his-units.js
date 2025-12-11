@@ -410,16 +410,13 @@
 	//
 	try {
 	  let reformer = x[0] + "-reformer";
-console.log("reformer: " + reformer);
-console.log("faction: " + this.debaters[debater].faction);
           let s = this.returnSpaceOfPersonage(this.debaters[debater].faction, reformer);
-console.log("reformer space: " + JSON.stringify(s));
 	  if (s) { this.removeReformer(this.debaters[debater].faction, reformer); }
 	  // re-display space
 	  this.displaySpace(s);
 	} catch (err) {
 	  // reformer does not exist
-console.log("ERROR: " + JSON.stringify(err));
+	  console.log("ERROR: " + JSON.stringify(err));
 	}
       }
     }
@@ -666,9 +663,9 @@ console.log("ERROR: " + JSON.stringify(err));
     }
     if (faction == "hapsburg") {
       available_units['regular']['1'] = 12;    
-      available_units['regular']['2'] = 6;    
+      available_units['regular']['2'] = 7;
       available_units['regular']['3'] = 0;    
-      available_units['regular']['4'] = 3;    
+      available_units['regular']['4'] = 4;
       available_units['regular']['5'] = 0;    
       available_units['regular']['6'] = 1;    
       available_units['squadron']['1'] = 6;    

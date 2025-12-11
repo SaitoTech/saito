@@ -794,6 +794,11 @@ class Registry extends ModTemplate {
 
 			if (!has_peer) {
 				console.log('REGISTRY: Not a peer with the central DNS');
+				//
+				// Run callback to prevent us from spamming this node
+				// with repeated requests of the same damn keys
+				//
+				mycallback(found_keys);
 			}
 
 			//No peer found...

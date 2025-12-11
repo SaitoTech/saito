@@ -16,9 +16,13 @@ class UIModTemplate extends ModTemplate {
     //
     // ui components are always visible by definition
     //
-    if (this.browser_active == 0) {
-      this.browser_active = 1;
-    }
+    // NOTE: UI mods are added after regular and dynamic modules,
+    // so when modules.ts searches for the first browser_active module to
+    // determine the active module, it should not return a UI module,
+    // but there are not other safeguards...
+    //
+    this.browser_active = 1;
+
     if (this.name == '') {
       this.name = 'UI Component';
     }

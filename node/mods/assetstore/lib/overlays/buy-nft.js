@@ -1,9 +1,9 @@
-let NftDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
+let NFTDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
 let SaitoPurchaseOverlay = require('./saito-purchase');
-let AssetStoreBuyNFTTemplate = require('./buy-nft.template');
 
 
-class BuyNftOverlay extends NftDetailsOverlay {
+class BuyNFTOverlay extends NFTDetailsOverlay {
+
   constructor(app, mod) {
     super(app, mod, false);
     this.purchase_saito = new SaitoPurchaseOverlay(app, mod);
@@ -13,116 +13,84 @@ class BuyNftOverlay extends NftDetailsOverlay {
   async render() {
 
     if (this.nft.tx) {
-console.log("trying to build NFT data...");
+	console.log("trying to build NFT data...");
       try {
-        this.nft.buildNftData();
+        this.nft.buildNFTData();
       } catch (err) {}
     }
 
+    await super.render();
 
-    this.overlay.show(AssetStoreBuyNFTTemplate(this.app, this.mod, this.nft));
-
-    let root = this._overlayRoot || document;
-    let mount = root.getElementById ? root : document;
-
-    let container = mount.getElementById('nft-details-send');
-    if (!container) { return; }
+    document.querySelector(".saito-nft-footer-btn.send").style.display = "none";
+    document.querySelector(".saito-nft-footer-btn.enable").style.display = "none";
+    document.querySelector(".saito-nft-footer-btn.split").style.display = "none";
+    document.querySelector(".saito-nft-footer-btn.merge").style.display = "none";
+    document.querySelector(".saito-nft-footer-btn.disable").style.display = "none";
 
     let priceRaw = await this.nft.getBuyPriceSaito?.();
     let price = typeof priceRaw === 'bigint' ? priceRaw.toString() : (priceRaw ?? '');
 
-    container.innerHTML = `
-        <div class="nft-details-buy" style="">
-          <div class="nft-buy-row">
-            <div class="nft-details-confirm-msg">
-              Confirm buy this asset for <span id="nft-buy-price"></span> SAITO?
-            </div>
-          </div>
-          <div class="saito-button-row auto-fit">
-            <button id="cancel" class="saito-button-secondary cancel-action">Close</button>
-            <button id="confirm_buy" class="saito-button-primary">Buy Now</button>
-          </div>
-        </div>
+    let html = `
+      <div class="assetstore-nft-listing-inputs">
+        Buy listing for <span id="nft-buy-price">${price}</span> SAITO?
+      </div>
     `;
 
-    let priceNode = mount.getElementById('nft-buy-price');
-    if (priceNode) priceNode.textContent = `${price}`;
+    if (document.querySelector(".saito-nft-description")) {
+      document.querySelector(".saito-nft-description").innerHTML = html;
+    }
+    setTimeout(() => { this.attachMyEvents(); }, 25);
+
+  }
+
+  async attachMyEvents() {
+
+    let buy_with_saito_btn = document.querySelector(".saito-nft-footer-btn.enable");
+    let buy_with_other_btn = document.querySelector(".saito-nft-footer-btn.disable");
+
+    buy_with_saito_btn.innerHTML = "Buy with Saito";
+    buy_with_saito_btn.style.display = "block";
+    buy_with_other_btn.innerHTML = "More Options";
+    buy_with_other_btn.style.display = "block";
 
     //
-    // CANCEL
+    // BUY WITH SAITO
     //
-    let cancel = mount.getElementById('cancel');
-    if (cancel) { cancel.onclick = () => { this.overlay?.close?.(); }; }
-
-    //
-    // BUY
-    //
-    let send_btn_label = mount.getElementById('send');
-    if (send_btn_label) {
-
-      send_btn_label.textContent = 'Buy'; 
-      //send_btn_label.onclick = (e) => {
-//alert("buy button clicked!");
-      //}
-
-      let buyBtn = mount.getElementById('confirm_buy');
-      if (buyBtn) {
-        buyBtn.onclick = async (e) => {
-          e.preventDefault();
-          buyBtn.disabled = true;
-          try {
-            let newtx = await this.mod.createPurchaseAssetTransaction(this.nft);
-            await this.app.network.propagateTransaction(newtx);
-            this.overlay?.hide?.();
-            siteMessage('Purchase submitted. Waiting for network confirmation...', 3000);
-          } catch (err) {
-            salert('Failed to buy: ' + err);
-            buyBtn.disabled = false;
-          }
-        };
-      }
+    if (buy_with_saito_btn) {
+      buy_with_saito_btn.onclick = async (e) => {
+	siteMessage("Submitting Order: please be patient...", 5000);
+        e.preventDefault();
+        buy_with_saito_btn.onclick = (e) => {};
+        try {
+          let newtx = await this.mod.createPurchaseAssetTransaction(this.nft);
+          await this.app.network.propagateTransaction(newtx);
+          this.overlay?.hide?.();
+          siteMessage('Purchase Submitted. waiting for confirmation...', 3000);
+        } catch (err) {
+          siteMessage('Error submitting bid: ' + err);
+          send_btn.disabled = false;
+        }
+      };
     }
 
     //
-    // BUY OTHER CRYPTO
+    // BUY WITH OTHER CRYPTO
     //
-    if (!mount.getElementById('send_other_crypto')) {
+    if (but_with_other_btn) {
 
-      let purchase_btn = document.createElement('button');
-      purchase_btn.id = 'send_other_crypto';
-      purchase_btn.className = send_btn_label.className || 'saito-button-secondary';
-      purchase_btn.textContent = 'Buy with other crypto';
-      purchase_btn.type = 'button';
-      purchase_btn.setAttribute('aria-label', 'Buy with other crypto');
-      send_btn_label.insertAdjacentElement('afterend', purchase_btn);
-
-      purchase_btn.addEventListener('click', async (e) => {
+      buy_with_other_btn.onclick = async (e) => {
         e.preventDefault();
+        buy_with_other_btn.onclick = (e) => {};
         try {
-            purchase_btn.disabled = true;
-          
-            //
-            // on first render, just show loader
-            //
-            self.purchase_saito.reset(); // reset previous selecte options
-            self.purchase_saito.nft = self.nft;
-            self.purchase_saito.render();
-
+            this.purchase_saito.reset(); // reset previous selecte options
+            this.purchase_saito.nft = this.nft;
+            this.purchase_saito.render();
         } catch (err) {
           console.log(err);
           salert('Could not create purchase saito address: ' + err);
-        } finally {
-          purchase_btn.disabled = false;
         }
-
-      });
-
+      };
     }
-
-    this.showBuy();
-  }
-
-  attachEvents() {
 
   }
 
@@ -137,22 +105,6 @@ console.log("trying to build NFT data...");
     return deposit[0];
   }
 
-  showBuy() {
-    let root = this._overlayRoot || document;
-    let buySection = root.querySelector('.nft-details-buy');
-    let delistSection = root.querySelector('.nft-details-delist');
-    let sendSection = root.querySelector('.nft-details-send-section');
-
-    if (buySection) 	{ buySection.style.display = ''; }
-    if (delistSection) 	{ delistSection.style.display = 'none'; }
-    if (sendSection) 	{ sendSection.style.display = 'none'; }
-
-    let headerBtn = root.getElementById
-      ? root.getElementById('send')
-      : document.getElementById('send');
-    if (headerBtn) { headerBtn.textContent = 'Buy'; }
-
-  }
 }
 
-module.exports = BuyNftOverlay;
+module.exports = BuyNFTOverlay;

@@ -93,6 +93,11 @@
     let factions  = JSON.parse(JSON.stringify(this.factions));
     let factions2 = JSON.parse(JSON.stringify(this.factions));
 
+    if (num == 1) {
+
+
+    }
+
     // < 6 player games
     if (num == 2) {
       for (let key in factions) {

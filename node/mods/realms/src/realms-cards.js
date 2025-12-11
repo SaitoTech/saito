@@ -4,10 +4,6 @@
     	  let c = null;
     	  if (!c && this.game.deck[0]) { c = this.game.deck[0].cards[card]; }
     	  if (!c && this.game.deck[1]) { c = this.game.deck[1].cards[card]; }
-    	  if (!c && this.debaters) {
-      	    c = this.debaters[card];
-      	    if (c) { return `<span class="showcard ${card}" id="${card}">${c.name}</span>`; }
-    	  }
     	  if (!c) {
       	    let x = this.returnDeck(true);
       	    if (x[card]) { c = x[card]; }
@@ -30,16 +26,10 @@
 
 			let card = deck[cardname];
 
-console.log("card image: " + cardname);
-
-			if (card.type === "land" && this.game.state.players_info[this.game.player-1].land_played == true) { can_cast = false; }
-console.log("card image: " + cardname);
+			if (card.type === "land" && this.game.state.players_info[this.game.player-1].land_played == 1) { can_cast = false; }
 			if (card.type === "creature" && !this.canPlayerCastSpell(cardname)) { can_cast = false; }
-console.log("card image: " + cardname);
 			if (card.type === "sorcery" && !this.canPlayerCastSpell(cardname)) { can_cast = false; }
-console.log("card image: " + cardname);
 			if (card.type === "instant" && !this.canPlayerCastSpell(cardname)) { can_cast = false; }
-console.log("card image: " + cardname);
 
 			if (!can_cast) {
 	  			return `<img class="cancel_x" src="/realms/img/cards/${deck[cardname].img}" />`;
@@ -103,7 +93,7 @@ console.log("card image: " + cardname);
                         };
                 }
 
-		
+console.log("importing: " + c.key);		
                 game_self.deck[c.key] = c;
 
         }
@@ -1839,16 +1829,14 @@ deck['0175'] = {
         img : "0175_white_land.png" ,
 }
 
-		if (color != "") {
-			for (let card in deck) {
-				if (deck[card].color !== color) {
-					delete deck[card];
-				}
-			}
-		}
-
-		return deck;
+	for (let card in deck) {
+		if (!deck[card].canEvent) { deck[card].canEvent = () => {}; }
+		if (!deck[card].onEvent) { deck[card].onEvent = () => {}; }
+		if (color != "") { if (deck[card].color !== color) { delete deck[card]; } }
 	}
+	
+		return deck;
+}
 
 
 	returnWhiteDeck() { return this.returnDeck("white"); }

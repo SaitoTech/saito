@@ -13,7 +13,7 @@
 
 /* Twitter copy overrides */
 #tweet-overlay {
-  border-radius: var(--border-radius-round);
+  border-radius: var(--saito-border-radius);
   padding: 24px;
   animation: fadeIn 0.2s ease-in-out forwards;
   position: fixed;

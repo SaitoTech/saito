@@ -161,7 +161,8 @@ class MigrationMain {
 					return;
 				}
 
-				this.app.connection.emit('recovery-backup-overlay-render-request', {
+				this.app.connection.emit('saito-backup-render-request', {
+					msg: 'Backup your wallet before initiating automated ERC-20 to mainnet token migration',
 					success_callback: () => {
 						this.app.connection.emit('saito-crypto-deposit-render-request', {
 							title: 'My Deposit Address',

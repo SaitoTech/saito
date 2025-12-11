@@ -418,7 +418,8 @@ class Arcade extends ModTemplate {
 				if (arcade_self.app.browser.returnURLParameter('game_id')) {
 					this.loadGameInviteById(
 						arcade_self.app.browser.returnURLParameter('game_id'),
-						arcade_self.app.browser.returnURLParameter('game')
+						arcade_self.app.browser.returnURLParameter('game'),
+						arcade_self.app.browser.returnURLParameter('invite')
 					);
 
 					// Overwrite link-url with baseline url
@@ -462,14 +463,16 @@ class Arcade extends ModTemplate {
 		}
 	}
 
-	loadGameInviteById(game_id_short, gameName) {
+	loadGameInviteById(game_id_short, gameName, is_invite = false) {
 		let game = this.returnGameFromHash(game_id_short);
 
 		if (!game || game.msg.request == 'cancel' || game.msg.request == 'closed') {
-			salert('Sorry, the game is no longer available');
-			if (gameName) {
-				let gm = this.app.modules.returnModule(gameName);
-				this.app.connection.emit('arcade-launch-game-wizard', { game: gm.returnName() });
+			if (is_invite) {
+				salert('Sorry, the game is no longer available');
+				if (gameName) {
+					let gm = this.app.modules.returnModule(gameName);
+					this.app.connection.emit('arcade-launch-game-wizard', { game: gm.returnName() });
+				}
 			}
 			return;
 		}
@@ -499,7 +502,26 @@ class Arcade extends ModTemplate {
 	// while the application is loaded.
 	//
 	async render() {
-		if (window.location.pathname.includes(this.returnSlug())) {
+		//
+		// Game specific landing page hosted by Arcade
+		//
+		if (
+			window.location.pathname.includes('game') &&
+			!window.location.pathname.includes(this.returnSlug())
+		) {
+			let path = window.location.pathname.split('/');
+			let game_name = path.pop();
+			let game_mod = this.app.modules.returnModuleBySlug(game_name);
+			if (game_mod) {
+				game_mod.game = null;
+				game_mod.attachEvents();
+			}
+
+			this.browser_active = 0;
+		} else {
+			//
+			// Normal Arcade view
+			//
 			if (this.main == null) {
 				this.main = new ArcadeMain(this.app, this);
 				this.header = new SaitoHeader(this.app, this);
@@ -517,16 +539,6 @@ class Arcade extends ModTemplate {
 			}
 
 			await super.render();
-		} else {
-			let path = window.location.pathname.split('/');
-			let game_name = path.pop();
-			let game_mod = this.app.modules.returnModuleBySlug(game_name);
-			if (game_mod) {
-				game_mod.game = null;
-				game_mod.attachEvents();
-			}
-
-			this.browser_active = 0;
 		}
 	}
 
@@ -662,7 +674,11 @@ class Arcade extends ModTemplate {
 			if (urlParams.has('game_id') && urlParams.has('game')) {
 				return {
 					processLink: (link) => {
-						this.loadGameInviteById(urlParams.get('game_id'), urlParams.get('game'));
+						this.loadGameInviteById(
+							urlParams.get('game_id'),
+							urlParams.get('game'),
+							urlParams.has('invite')
+						);
 					}
 				};
 			}
@@ -1982,11 +1998,14 @@ class Arcade extends ModTemplate {
 		return false;
 	}
 
-	webServer(app, expressapp, express) {
-		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
-		let arcade_self = this;
+	webServer(app, expressapp, express, alternative_slug = null) {
+		const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
+		const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+		const arcade_self = this;
 
-		expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
+		expressapp.use(uri, express.static(webdir));
+
+		expressapp.get(uri, async function (req, res) {
 			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
 			let game_data = null;
 			let updatedSocial = Object.assign({}, arcade_self.social);
@@ -2010,6 +2029,8 @@ class Arcade extends ModTemplate {
 
 				let id = query_params?.game_id;
 				game_data = arcade_self.findGame(game, id);
+
+				console.log('WEBSERVER ARCADE GAME DATA --- ', game_data);
 			}
 
 			let html = arcadeHome(app, arcade_self, app.build_number, updatedSocial, game_data);
@@ -2044,35 +2065,42 @@ class Arcade extends ModTemplate {
 				return;
 			}
 		});
-
-		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
 	}
 
 	showShareLink(game_sig, show = true) {
 		let data = {};
-		let accepted_game = null;
+		let accepted_game_tx = null;
+		let accepted_game_msg = null;
 
 		//Add more information about the game
 		for (let key in this.games) {
 			let x = this.games[key].find((g) => g.signature === game_sig);
 			if (x) {
-				accepted_game = x;
+				accepted_game_tx = x;
 			}
 		}
 
-		if (accepted_game) {
-			data.game = accepted_game.msg.game;
+		if (accepted_game_tx) {
+			accepted_game_msg = accepted_game_tx.msg;
+
+			data.game = accepted_game_msg.game;
 			data.game_id = this.app.crypto.hash(game_sig).slice(-6);
 			data.path = '/arcade/';
-			if (accepted_game.msg?.options?.crypto) {
-				data.crypto = accepted_game.msg.options.crypto;
+			data.invite = 1;
+			if (accepted_game_msg?.options?.crypto) {
+				data.crypto = accepted_game_msg.options.crypto;
+			}
+
+			// This is not a meaningful safety catch... the sharelink button is only available for available games...
+			if (accepted_game_msg.players_needed > 1) {
+				let game_invitation_link = new GameInvitationLink(this.app, this, data);
+				game_invitation_link.render(show);
+			} else {
+				console.error('no players needed');
 			}
 		} else {
-			return;
+			console.error('Game not available');
 		}
-
-		let game_invitation_link = new GameInvitationLink(this.app, this, data);
-		game_invitation_link.render(show);
 	}
 
 	async makeGameInvite(options, gameType = 'open', invite_obj = {}) {

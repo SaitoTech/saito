@@ -453,7 +453,7 @@ if (this.game.players.length > 2) {
     });
 ****/
     this.menu.addSubMenuOption("game-info", {
-      text : "Religion",
+      text : "Religious",
       id : "game-religious-conflict",
       class : "game-religious-conflict",
       callback : function(app, game_mod) {
@@ -461,6 +461,7 @@ if (this.game.players.length > 2) {
         game_mod.religious_overlay.render();
       }
     });
+/****
     this.menu.addSubMenuOption("game-info", {
       text : "Debaters",
       id : "game-debaters",
@@ -470,6 +471,7 @@ if (this.game.players.length > 2) {
         game_mod.displayDebaters();
       }
     });
+****/
     this.menu.addSubMenuOption("game-info", {
       text : "Explorers",
       id : "game-explorers",

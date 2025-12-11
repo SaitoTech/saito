@@ -1,11 +1,12 @@
 let SaitoNFT = require('./../../../../lib/saito/ui/saito-nft/saito-nft');
 let Transaction = require('./../../../../lib/saito/transaction').default;
 
-class AssetStoreNft extends SaitoNFT {
+class AssetStoreNFT extends SaitoNFT {
 
   constructor(app, mod, tx = null, data = null, callback = null, nft_card = null) {
     super(app, mod, tx, data, callback);
     this.card = nft_card;
+    this.callback = callback;
     if (tx != null) { this.tx_fetched = true; }
   }
 
@@ -77,5 +78,5 @@ class AssetStoreNft extends SaitoNFT {
 
 }
 
-module.exports = AssetStoreNft;
+module.exports = AssetStoreNFT;
 
