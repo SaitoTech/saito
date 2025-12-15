@@ -23,6 +23,7 @@ class AssetstoreSaitoPurchaseOverlay {
     this.description = '';
     this.exchange_rate = '';
     this.deposit_confirmed = false;
+    this.available_cryptos = [];
 
     this.addr_obj = {}; // { id, ticker, address, asset_id, chain_id, created_at, reserved_until, reserved_by }
     this.req_obj = {}; // { id, reserved_until, remaining_minutes, expected_amount }
@@ -46,6 +47,13 @@ class AssetstoreSaitoPurchaseOverlay {
     console.log('render saito-purchase');
     let self = this;
     this.purchase_overlay.remove();
+
+    if (!this.available_cryptos.length > 0) {
+      //
+      // fetch crypto list available at server
+      //
+      await this.loadAvailableCryptos();
+    }
 
     if (!this.crypto_selected) {
       //
@@ -90,21 +98,25 @@ class AssetstoreSaitoPurchaseOverlay {
         let saito_rate = 0.005; // SAITO USD value
         let conversion_rate = 0;
 
-        switch (ticker) {
-          case 'btc':
-            conversion_rate = 0.000001;
-            break;
-          case 'eth':
-            conversion_rate = 0.00002;
-            break;
-          case 'trx':
-            conversion_rate = 0.5;
-            break;
-          default:
-            conversion_rate = 1.0;
-        }
+        //
+        // TODO: calculate conversion rate with dynamic values
+        //
 
-        let converted_amount = (this.saito_amount * saito_rate) / conversion_rate;
+        // switch (ticker) {
+        //   case 'btc':
+        //     conversion_rate = 0.000001;
+        //     break;
+        //   case 'eth':
+        //     conversion_rate = 0.00002;
+        //     break;
+        //   case 'trx':
+        //     conversion_rate = 0.5;
+        //     break;
+        //   default:
+        //     conversion_rate = 1.0;
+        // }
+
+        // let converted_amount = (this.saito_amount * saito_rate) / conversion_rate;
 
         //
         // hardcoded to 1 TRX for testing
@@ -128,6 +140,31 @@ class AssetstoreSaitoPurchaseOverlay {
         salert('Sending purchase request again to extend timer...');
       };
     }
+  }
+
+  //
+  // fetch tickers from server and cache locally
+  //
+  async loadAvailableCryptos() {
+    let self = this;
+    console.log('loadAvailableCryptos -> request');
+
+    let ack = await new Promise((resolve) => {
+      self.app.network.sendRequestAsTransaction('mixin fetch crypto mods', {}, (res) =>
+        resolve(res)
+      );
+    });
+
+    console.log('loadAvailableCryptos response:', ack);
+
+    if (Array.isArray(ack) && ack.length > 0) {
+      this.available_cryptos = ack.map((t) => (t || '').toUpperCase());
+      console.log('available_cryptos:', this.available_cryptos);
+      return { ok: true, tickers: this.available_cryptos };
+    }
+
+    console.warn('no cryptos returned');
+    return { ok: false, err: 'empty_list' };
   }
 
   //

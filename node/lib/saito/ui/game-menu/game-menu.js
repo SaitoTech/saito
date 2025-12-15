@@ -43,6 +43,8 @@ class GameMenu {
   render() {
     let menu_self = this;
 
+    console.log('rendering menu... ' + this.initialized);
+
     if (this.initialized == 0) {
       // *************************************************
       this.addMenuOption('game-share', 'Share');
@@ -228,7 +230,11 @@ class GameMenu {
     if (document.getElementById('game-menu')) {
       this.app.browser.replaceElementById(GameMenuTemplate(html), 'game-menu');
     } else {
-      this.app.browser.prependElementToSelector(GameMenuTemplate(html), this.container);
+      if (document.querySelector(this.container)) {
+        this.app.browser.prependElementToSelector(GameMenuTemplate(html), this.container);
+      } else {
+        this.app.browser.addElementToDom(GameMenuTemplate(html));
+      }
     }
 
     this.attachEvents();

@@ -65,7 +65,7 @@ export default class Wallet extends SaitoWallet {
     return S.getInstance().createTransactionWithMultiplePayments(keys, amounts, fee);
   }
 
-  public async getNftList(): Promise<String> {
+  public async getNFTList(): Promise<String> {
     return S.getInstance().getNftList();
   }
 
@@ -382,7 +382,7 @@ export default class Wallet extends SaitoWallet {
             delete this.pending_balance;
             console.log('Pending transferred cleared!');
           }
-          this.app.connection.emit('header-update-crypto');
+          this.app.connection.emit('saito-header-update-crypto');
         }
       }
     }
@@ -541,8 +541,10 @@ export default class Wallet extends SaitoWallet {
 
     await this.saitoCrypto.initialize(this.app);
 
-    // add nft back to rust wallet
-    await this.addNftList();
+    //
+    // add nfts back to rust wallet
+    //
+    await this.addNFTList();
   }
 
   constructor(wallet: any) {
@@ -697,7 +699,7 @@ export default class Wallet extends SaitoWallet {
       await c_mod.activate();
       await this.saveWallet();
       // if UI is enabled, will re-render the qr code, ticker, and balance in the hamburger menu
-      this.app.connection.emit('header-update-crypto');
+      this.app.connection.emit('saito-header-update-crypto');
       return 1;
     } catch (err) {
       console.error(err);
@@ -1066,7 +1068,7 @@ export default class Wallet extends SaitoWallet {
 
     delete newObj.games;
 
-    return JSON.stringify(newObj);
+    return JSON.stringify(newObj, null, 2);
   }
 
   /**
@@ -1315,9 +1317,9 @@ export default class Wallet extends SaitoWallet {
    * Update wallet’s nft list
    * @param {Object[]} nft_list  an array of NFT objects
    */
-  async saveNftList(nft_list) {
+  async saveNFTList(nft_list) {
     if (!Array.isArray(nft_list)) {
-      throw new Error('saveNftList expects an array of NFTs');
+      throw new Error('saveNFTList expects an array of NFTs');
     }
 
     this.app.options.wallet.nfts = nft_list;
@@ -1328,7 +1330,7 @@ export default class Wallet extends SaitoWallet {
   /**
    * Update rust wallet nft struct
    */
-  async addNftList() {
+  async addNFTList() {
     if (!this.app.options.wallet.nfts) {
       this.app.options.wallet.nfts = [];
     }
@@ -1344,18 +1346,23 @@ export default class Wallet extends SaitoWallet {
         let id = nft.id;
         let tx_sig = nft.tx_sig;
 
+        //
+        // Nft is improper, but requires rationalization elsewhere
+        //
         this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig);
       }
     }
   }
 
-  async updateNftList(): Promise<{
+  async updateNFTList(): Promise<{
     updated: any[];
     rebroadcast: any[];
     persisted: boolean;
   }> {
+    //
     //  fetch on-chain
-    const raw = await this.app.wallet.getNftList();
+    //
+    const raw = await this.app.wallet.getNFTList();
     const nfts: Array<{
       id: string;
       slip1: any;
@@ -1364,15 +1371,21 @@ export default class Wallet extends SaitoWallet {
       tx_sig: string;
     }> = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
+    //
     // snapshot local
+    //
     const local = (this.app.options.wallet.nfts as typeof nfts) ?? [];
 
+    //
     // ensure intents bag exists and keep a stable ref
+    //
     const intents: Record<string, number> = (this.app.options.wallet.nftMergeIntents ||=
       {} as Record<string, number>);
     let intentsMutated = false;
 
+    //
     //  helpers
+    //
     const groupByKey = (arr: typeof nfts) => {
       const g: Record<string, typeof nfts> = Object.create(null);
       for (const it of arr) {
@@ -1425,15 +1438,21 @@ export default class Wallet extends SaitoWallet {
     };
 
     //  build maps
+    //
+    //
     const L = groupByKey(local);
     const C = groupByKey(nfts);
     const keys = new Set([...Object.keys(L), ...Object.keys(C)]);
 
+    //
     //  types
+    //
     const updated: any[] = [];
     const rebroadcast: any[] = [];
 
+    //
     //  classify
+    //
     for (const k of keys) {
       const l = L[k] ?? [];
       const c = C[k] ?? [];
@@ -1468,14 +1487,16 @@ export default class Wallet extends SaitoWallet {
       }
     }
 
+    //
     //  persist
+    //
     const hasChanges = updated.length;
     let persisted = false;
     this.app.options.wallet.nfts = nfts;
-    await this.app.wallet.saveNftList(nfts);
+    await this.app.wallet.saveNFTList(nfts);
 
     if (hasChanges > 0) {
-      // re-attach the same intents object in case saveNftList mutates options internally
+      // re-attach the same intents object in case saveNFTList mutates options internally
       this.app.options.wallet.nftMergeIntents = intents;
       persisted = true;
     }
@@ -1493,14 +1514,14 @@ export default class Wallet extends SaitoWallet {
    *  Create an NFT
    *
    */
-  public async createMintNftTransaction(
+  public async createMintNFTTransaction(
     num,
     deposit,
     tx_msg,
     fee,
-    receipient_publicKey
+    receipient_publicKey,
+    nft_type
   ): Promise<Transaction> {
-    let nft_type = 'Standard';
     return S.getInstance().createBoundTransaction(
       num,
       deposit,
@@ -1517,7 +1538,7 @@ export default class Wallet extends SaitoWallet {
    *
    *
    */
-  public async createSendNftTransaction(nft, receipient_publicKey) {
+  public async createSendNFTTransaction(nft, receipient_publicKey) {
     await nft.fetchTransaction();
 
     return S.getInstance().createSendBoundTransaction(
@@ -1535,7 +1556,7 @@ export default class Wallet extends SaitoWallet {
    *  Split an NFT
    *
    */
-  public async createSplitNftTransaction(nft, leftCount, rightCount): Promise<Transaction> {
+  public async createSplitNFTTransaction(nft, leftCount, rightCount): Promise<Transaction> {
     await nft.fetchTransaction();
 
     return S.getInstance().createSplitBoundTransaction(
@@ -1553,17 +1574,89 @@ export default class Wallet extends SaitoWallet {
    *  Merge an NFT
    *
    */
-  public async createMergeNftTransaction(nft): Promise<Transaction> {
+  public async createMergeNFTTransaction(nft): Promise<Transaction> {
     await nft.fetchTransaction();
 
     return S.getInstance().createMergeBoundTransaction(nft.id, nft.txmsg);
   }
 
+  /**
+   *
+   *  Remove an NFT
+   *
+   *
+   */
+  public async createRemoveNFTTransaction(nft) {
+    return S.getInstance().createRemoveBoundTransaction(
+      nft.slip1.utxo_key,
+      nft.slip2.utxo_key,
+      nft.slip3.utxo_key
+    );
+  }
+
+  //
+  // we can't run this on init, so we call it from modules.ts so that
+  // the modules exist by the time we want the NFTs to be able to interact
+  // with them...
+  //
+  public async loadNFTs() {
+    console.log('LOAD NFTs');
+    try {
+      if (this.app.options.wallet.nfts) {
+        for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
+          let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
+          console.log('Extracting NFT type...');
+          console.log(this.app.options.wallet.nfts[z].slip3?.utxo_key);
+          let nft_type = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
+          console.log(nft_type);
+
+          //
+          // we only load "enabled" NFTS
+          //
+          if (this.app.options?.permissions?.nfts) {
+            if (this.app.options.permissions.nfts.includes(nft_sig)) {
+              this.app.storage.loadTransactions(
+                { sig: nft_sig },
+                async (txs) => {
+                  for (let zz = 0; zz < txs.length; zz++) {
+                    let txmsg = txs[zz].returnMessage();
+
+                    if (txmsg.data?.image) {
+                    }
+                    if (txmsg.data?.js) {
+                      try {
+                        let fn = new Function(`return (async () => { ${txmsg.data.js} })()`);
+                        await fn.call(this);
+                      } catch (err) {
+                        console.error(
+                          `NFT module execution failed [${txmsg.sig || 'unknown'}]:`,
+                          err
+                        );
+                      }
+                    }
+                    if (txmsg.data?.css) {
+                      const style = document.createElement('style');
+                      style.textContent = txmsg.data.css;
+                      document.head.appendChild(style);
+                    }
+                  }
+                },
+                'localhost'
+              );
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.log('Error: load nfts');
+    }
+  }
+
   public async onNewBoundTransaction(tx: Transaction, save = true) {
     try {
-      console.log('in wallet onNewBoundTransaction...');
-
+      console.log('saving new nft...');
       if (tx.isTo(this.app.wallet.publicKey)) {
+        console.log('yeah, it is for me!');
         let nft_list = this.app.options.wallet.nfts || [];
         let nft_id = '';
         nft_list.forEach(function (nft) {
@@ -1571,29 +1664,34 @@ export default class Wallet extends SaitoWallet {
             nft_id = nft.id;
           }
         });
-
-        console.log('');
-        console.log('');
-        console.log('');
-        console.log('');
-        console.log('');
-        console.log('');
-        console.log('');
-        console.log('onNewBoundTransaction: saving to archive for only 1 week', nft_id, nft_list);
-        console.log('');
-        console.log('');
-        console.log('');
-        console.log('');
-        console.log('');
-        console.log('');
-
         tx.packData();
-
+        console.log('saving transaction: ' + nft_id);
         this.app.storage.saveTransaction(tx, { field4: nft_id, preserve: 1 }, 'localhost');
       }
     } catch (err) {
       console.error('Error while saving NFT tx to archive in wallet.ts: ', err);
     }
-    console.log('done in wallet onNewBoundTransaction...');
+  }
+
+  public extractNFTType(hex = '') {
+    //console.log('a 1');
+    if (!hex || hex.length < 66 || !/^[0-9a-fA-F]+$/.test(hex)) {
+      return '';
+    }
+    hex = hex.slice(0, 66);
+    //console.log('a 2');
+    const bytes = new Uint8Array(hex.match(/.{2}/g).map((b) => parseInt(b, 16)));
+    //console.log('a 3');
+    if (bytes.length !== 33) {
+      return '';
+    }
+    //console.log('a 4');
+    const typeBytes = bytes.slice(17); // bytes[17..33)
+    //console.log('a 5');
+    const decoder = new TextDecoder();
+    //console.log('a 6');
+    const text = decoder.decode(typeBytes).replace(/\x00+$/, '');
+    //console.log('a 7');
+    return text;
   }
 }

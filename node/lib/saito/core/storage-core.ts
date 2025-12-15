@@ -382,6 +382,9 @@ class StorageCore extends Storage {
           )
         );
         new_wallet_json = this.app.crypto.aesEncrypt(new_wallet_json, secret);
+      } else {
+        // Pretty print if not encrypted
+        new_wallet_json = JSON.stringify(JSON.parse(new_wallet_json), null, 4);
       }
 
       fs.writeFileSync(`${this.config_dir}/options`, new_wallet_json, null);

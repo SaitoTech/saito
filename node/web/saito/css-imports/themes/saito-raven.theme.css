@@ -3,6 +3,7 @@
 html[data-theme='raven'] {
   /*BASE COLOR SECTION*/
   --saito-background-color: #14212d;
+  --saito-background-color-inverse:  #e3e7eb;
   --saito-header-background: var(--saito-background-color);
 
   --saito-primary: #358ccf;
@@ -13,8 +14,8 @@ html[data-theme='raven'] {
   --saito-font-color: #ddd;
   --saito-font-color-heavy: var(--saito-white);
   --saito-font-color-light: #aaa;
-  --saito-font-color-secondary: var(--twitter-gray);
-  --saito-font-color-inverse: var(--saito-black-heavy);
+  --saito-font-color-secondary: var(--saito-gray-500);
+  --saito-font-color-inverse: var(--saito-gray-850);
 
   /*TINTS COLOR SECTION*/
   --saito-highlight: #ccc1;
@@ -23,5 +24,4 @@ html[data-theme='raven'] {
   /* BORDER COLORS */
   --saito-border-color: var(--saito-border-color-dark);
   --border-color-general-dividers: var(--saito-border-color);
-  --border-color-general-dividers-dark: var(--saito-primary);
 }

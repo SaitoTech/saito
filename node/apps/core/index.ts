@@ -104,7 +104,6 @@ class Saito {
       //
       await hash_loader(this);
 
-      // NOV 29, changes to wallet, does it have app on init?
       console.log('initializing wallet....');
       await this.wallet.initialize();
       console.log('initializing keychain....');

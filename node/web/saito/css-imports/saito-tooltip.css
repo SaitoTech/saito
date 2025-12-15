@@ -15,7 +15,7 @@
   position: fixed;
   background: var(--saito-white);
   padding: 1rem;
-  box-shadow: (--color-shadow-original); /* testing */
+  box-shadow: (--saito-box-shadow);
   z-index: 2;
   color: var(--saito-font-color-heavy);
   font-weight: 400;

@@ -1249,6 +1249,7 @@ impl Wallet {
         slip1: SaitoUTXOSetKey,
         slip2: SaitoUTXOSetKey,
         slip3: SaitoUTXOSetKey,
+        tx_msg: Vec<u8>,
     ) -> Result<Transaction, Error> {
         //
         // locate & remove the NFT whose three UTXO keys match exactly
@@ -1302,6 +1303,7 @@ impl Wallet {
         // add output slip
         //
         transaction.add_to_slip(out_slip);
+        transaction.data = tx_msg;
 
         Ok(transaction)
     }

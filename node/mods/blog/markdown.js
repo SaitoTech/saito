@@ -16,22 +16,7 @@ module.exports = (app, mod, build_number, og_card) => {
   
       <title>Markdown Guide - Saito Blog</title>
 
-          <style>
-      body {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.markdown-preview {
-  width: 100%;
-  max-width: 800px;
-  padding: 2rem;
-  margin: 0 auto;
-}
+      <style>
 
         section {
           margin: 2rem 0;
@@ -39,94 +24,23 @@ module.exports = (app, mod, build_number, og_card) => {
           border: 1px solid var(--saito-border-color);
           border-radius: 8px;
           background: var(--saito-background-color);
-        }
-
-        h1 {
-          margin-bottom: 3rem;
-          padding-bottom: 1rem;
-        }
-
-        h2 {
-          color: var(--saito-primary);
-          margin-bottom: 1.5rem;
-        }
-
-        h3 {
-          margin-top: 2rem;
-          margin-bottom: 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
         }
 
         pre {
           background: var(--saito-background-color-alt);
-          padding: 1rem;
-          border-radius: 6px;
-          overflow-x: auto;
-          border: 1px solid var(--saito-border-color);
-          margin: 1rem 0;
-        }
-
-        code {
-          font-family: monospace;
-        }
-
-        table {
-          width: 100%;
-          margin: 1rem 0;
-        }
-
-        blockquote {
-          margin: 1rem 0;
-          padding: 1rem;
-          border-left: 4px solid var(--saito-primary);
-          background: var(--saito-background-color-alt);
-        }
-
-        hr {
-          margin: 2rem 0;
-          border: 0;
-          border-top: 1px solid var(--saito-border-color);
-        }
-
-        .example-output {
-          margin: 1rem 0;
-          padding: 1rem;
-          border-left: 4px solid var(--saito-primary);
-          background: var(--saito-background-color-light);
-        }
-
-        dl {
-          margin: 1rem 0;
-        }
-
-        dt {
-          font-weight: bold;
-          margin-top: 1rem;
-        }
-
-        dd {
-          margin-left: 2rem;
-          margin-top: 0.5rem;
-        }
-
-        @media (max-width: 850px) {
-          body {
-            padding: 1rem;
-          }
-
-          .markdown-preview {
-            padding: 1rem;
-          }
-
-          section {
-            padding: 1rem;
-            margin: 1rem 0;
-          }
+  padding: 1em;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 1em 0;
         }
       </style>
     </head>
     
     <body>
-      <div class="markdown-preview">
+      <div class="richtext-context">
         <h1>Markdown Formatting Guide</h1>
         
         <section>

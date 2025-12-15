@@ -82,13 +82,12 @@ module.exports = (app, mod, build_number, og_card, game) => {
   
   <body></body>`;
 
-  if (game) {
-    html += `
+  html += `
     <script type="text/javascript">
-    var game = ${game.serialize_to_web(app)};
+      var active_module = '${mod.returnSlug()}';
+      ${game ? `var game = '${game.serialize_to_web(app)}';` : ''}
     </script>
-    `;
-  }
+  `;
 
   html += `<script type="text/javascript" src="/saito/saito.js?build=${build_number}" >
 </script>

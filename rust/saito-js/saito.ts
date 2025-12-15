@@ -441,11 +441,16 @@ export default class Saito {
       slip1UtxoKey: string,
       slip2UtxoKey: string,
       slip3UtxoKey: string,
+      tx_msg: any,        // ADD THIS
     ): Promise<T> {
+
+      let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
+
       const wasmTx = await Saito.getLibInstance().create_remove_bound_transaction(
         slip1UtxoKey,
         slip2UtxoKey,
         slip3UtxoKey,
+        new Uint8Array(tx_msg_arr),   // SEND IT TO WASM
       );
 
       const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;

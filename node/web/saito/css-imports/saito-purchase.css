@@ -107,8 +107,7 @@
 }
 
 .instructions {
-  color: var(--saito-primary);
-  font-weight: bolder;
+  font-weight: normal;
   text-align: center;
   line-height: 1.4;
 }

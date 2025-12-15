@@ -27,7 +27,7 @@
 	position: relative;
 	cursor: pointer;
 	overflow: hidden;
-	border-radius: var(--border-radius-comfortable);
+	border-radius: var(--saito-border-radius);
 }
 
 .arcade-game-selector-footer {

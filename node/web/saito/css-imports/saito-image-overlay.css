@@ -15,7 +15,7 @@
 .saito-img-icon {
   font-size: 3rem;
   color: var(--saito-white);
-  background: var(--saito-gray);
+  background: var(--saito-gray-600);
   padding: 1.5rem;
   border-radius: 50%;
   cursor: pointer;

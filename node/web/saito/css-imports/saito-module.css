@@ -22,9 +22,9 @@
   align-items: center;
   background-size: cover;
   background-position: center;
-  background-color: var(--saito-gray-transparent);
+  background-color: color-mix(in srgb, var(--saito-gray-700) 27%, transparent);
   background-blend-mode: soft-light;
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
   overflow: hidden;
 }
 
@@ -39,7 +39,7 @@
   overflow-wrap: break-word;
   opacity: 0.8;
   background: #000a;
-  border-radius: var(--border-radius-soft);
+  border-radius: var(--saito-border-radius);
 }
 
 .saito-module-titlebar > div {
@@ -104,8 +104,8 @@
   max-height: 70vh;
   overflow: auto;
   background: var(--saito-background-color);
-  border-radius: var(--border-radius-soft);
-  border: var(--border-thickness-thin) solid var(--border-color-general-dividers-dark);
+  border-radius: var(--saito-border-radius);
+  border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
   padding: 2rem;
   user-select: none;
 }
@@ -135,7 +135,7 @@
   margin: 1rem;
   padding: 2rem;
   border-radius: 0.5rem;
-  border: var(--border-thickness-thin) solid var(--border-color-general-dividers-dark); /* testing */
+  border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
 }
 
 .saito-module-overlay > h4 {

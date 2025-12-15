@@ -150,7 +150,7 @@
 	position: relative;
 	left: 50%;
 	transform: translateX(-50%);
-	border-radius: var(--border-radius-soft);
+	border-radius: var(--saito-border-radius);
 }
 
 #admin_details {
@@ -230,8 +230,7 @@ span.attention {
 	font-size: 30px;
 	font-weight: 900;
 	color: var(--saito-red);
-	text-shadow: var(--shadow-shape-flat) var(--saito-white);
-	/* testing */
+	text-shadow: 0 0 3px var(--saito-white);
 }
 
 .league_recent_game div {

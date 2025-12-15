@@ -1,0 +1,164 @@
+
+.spinner-helper {
+  text-align: center;
+  min-width: 450px;
+  font-size: 3rem;
+  line-height: 8rem;
+  display: none;
+}
+
+.key_level_info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  padding: 10px 0;
+  background: #0008;
+  opacity: 0.9;
+}
+
+.key_level_info:hover {
+  opacity: 1;
+  background: #0006;
+}
+
+.key_level_info h5 {
+  margin-bottom: 0.5rem;
+}
+
+.crystal_key {
+  position: relative;
+  background-image: url('/vault/img/crystal_key.png');
+  background-size: cover;
+  width: 450px !important;
+}
+.jade_key {
+  position: relative;
+  background-image: url('/vault/img/jade_key.png');
+  background-size: cover;
+  width: 450px !important;
+}
+.copper_key {
+  background-image: url('/vault/img/copper_key.png');
+  background-size: cover;
+  width: 450px !important;
+}
+
+.vault-rotating-word {
+  transition: opacity 0.4s ease-in-out;
+  display: inline-block;
+  min-width: 130px;
+  text-align: left;
+  color: var(--saito-primary-text);
+  font-weight: bolder;
+}
+
+.vault-rotating-word.fade-out {
+  opacity: 0;
+}
+
+body {
+  background: radial-gradient(ellipse at top, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0)) no-repeat, #0f1c2c;
+  background-position: center -120px;
+  background-size: 100% 100%;
+  min-height: 100vh;
+}
+
+#saito-header {
+  background: transparent;
+}
+
+#saito-container {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.saito-vault {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 0 20px;
+}
+
+.saito-vault-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 80px);
+  width: 100%;
+  max-width: 920px;
+}
+
+#saito-container .vault-hero {
+  text-align: center;
+  max-width: 80%;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 20px;
+  padding-top: 18vh;
+}
+
+#saito-container .vault-hero h1 {
+  font-size: 8rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  letter-spacing: 0.4px;
+}
+
+#saito-container .vault-hero h2 {
+  font-size: 3rem;
+  font-weight: 300;
+  line-height: 1.55;
+  color: #d6d6d6;
+  margin-bottom: 2.3rem;
+}
+
+#saito-container .vault-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+#saito-container .vault-btn.primary {
+  background: var(--saito-primary);
+  color: var(--saito-primary-text);
+  border: none;
+  padding: 2rem 4rem;
+  font-size: 2.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+#saito-container .vault-btn.primary:hover {
+  transform: translateY(-2px);
+  opacity: 0.95;
+}
+
+#saito-container .vault-btn.primary:active {
+  transform: translateY(0);
+  opacity: 0.85;
+}
+
+#saito-container .vault-access-link {
+  margin-top: auto;
+  text-align: center;
+  font-size: 1.9rem;
+  padding-bottom: 60px;
+}
+
+#saito-container .vault-access-textlink {
+  cursor: pointer;
+  color: var(--saito-primary-text);
+  border-bottom: 1px dashed var(--saito-primary-text);
+  display: inline;
+}
+#saito-container .vault-access-link {
+  opacity: 0.8;
+}
+
+#saito-container .vault-access-link:hover {
+  opacity: 1;
+}
+

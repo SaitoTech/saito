@@ -89,9 +89,9 @@
  *****************************************/
 
 .arcade-central-panel .arcade-game-selector-game {
-	box-shadow: var(--shadow-standard);
+	box-shadow: var(--saito-box-shadow);
 	height: min(250px, calc((100vw - 34.5rem) / 4));
-	border-radius: var(--border-radius-voluptuous);
+	border-radius: var(--saito-border-radius);
 }
 
 .arcade-central-panel .arcade-game-selector-game-title {
@@ -100,7 +100,6 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: 0 1.5rem;
-	border-radius: 0.5rem 0.5rem 0 0;
 }
 
 .arcade-central-panel .arcade-game-selector-game-title span {
@@ -213,7 +212,7 @@
 	font-family: FontAwesome;
 	content: '';
 	font-size: 4rem;
-	color: var(--border-color-general-dividers-dark);
+	color: var(--border-color-general-dividers);
 	position: absolute;
 	bottom: 0;
 	left: 0;
@@ -240,7 +239,7 @@
 	font-family: FontAwesome;
 	content: '';
 	font-size: 4rem;
-	color: var(--border-color-general-dividers-dark);
+	color: var(--border-color-general-dividers);
 	position: absolute;
 	top: 0;
 	left: 0;

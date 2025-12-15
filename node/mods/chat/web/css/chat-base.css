@@ -71,7 +71,7 @@
 }
 
 .text-input {
-	border-radius: var(--border-radius-sharp);
+	border-radius: var(--saito-border-radius);
 	box-shadow: 0 0 1px var(--saito-primary);
 }
 

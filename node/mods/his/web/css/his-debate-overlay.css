@@ -88,39 +88,39 @@
 }
 
 .protestant_debaters {
-	left: 68px;
-	top: 295px;
-	position: absolute;
-	width: 240px;
-	height: 140px;
+	left: 65px;
+    	top: 267px;
+    	position: absolute;
+    	width: 240px;
+    	height: 164px;
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
 }
 .calvinist_debaters {
 	left: 305px;
-	top: 295px;
+	top: 267px;
 	position: absolute;
 	width: 240px;
-	height: 140px;
+	height: 164px;
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
 }
 .anglican_debaters {
 	left: 542px;
-	top: 295px;
+	top: 267px;
 	position: absolute;
 	width: 240px;
-	height: 140px;
+	height: 164px;
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
 }
 .papal_debaters {
-	left: 195px;
-	top: 120px;
+        left: 70px;
+        top: 100px;
 	position: absolute;
 	border: 1px solid black;
-	width: 490px;
-	height: 140px;
+	width: 708px;
+    	height: 164px;
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
 }

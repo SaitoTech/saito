@@ -5,6 +5,7 @@ const SaitoOverlay = require('./../saito-overlay/saito-overlay');
 const SaitoLoader = require('./../saito-loader/saito-loader');
 const UserMenu = require('./../modals/user-menu/user-menu');
 const SaitoBackup = require('./../modals/saito-backup/saito-backup');
+const ListNFT = require('./../saito-nft/overlays/list-overlay');
 
 //
 // UIModTemplate
@@ -52,6 +53,9 @@ class SaitoHeader extends UIModTemplate {
 
     this.loader = new SaitoLoader(this.app, this.mod, '#qrcode');
     this.saito_backup = new SaitoBackup(app, mod);
+
+    // listens for events
+    this.list_nft_overlay = new ListNFT(app, mod);
 
     console.log('Create Saito Header for ' + mod.name);
   }
@@ -109,7 +113,7 @@ class SaitoHeader extends UIModTemplate {
       // trigger block sync ui here
     });
 
-    app.connection.on('header-update-crypto', async () => {
+    app.connection.on('saito-header-update-crypto', async () => {
       if (!this.installing_crypto) {
         await this.renderCrypto();
       } else {
@@ -117,7 +121,7 @@ class SaitoHeader extends UIModTemplate {
       }
     });
 
-    app.connection.on('header-install-crypto', (ticker) => {
+    app.connection.on('saito-header-install-crypto', (ticker) => {
       console.log('install crypto');
       this.installing_crypto = ticker;
       try {
@@ -136,22 +140,17 @@ class SaitoHeader extends UIModTemplate {
       }
     });
 
-    app.connection.on('crypto-activated', (ticker) => {
+    app.connection.on('saito-crypto-activated', (ticker) => {
       if (this.installing_crypto && this.installing_crypto == ticker) {
         setTimeout(() => {
           this.installing_crypto = false;
-          this.app.options.wallet.backup_required = `Your wallet has added new crypto keys -- ${ticker}. 
-          Unless you backup your wallet, you may lose any deposits with those keys. 
-          Do you want help backing up your wallet?`;
-
           this.app.connection.emit('saito-backup-render-request', {
-            msg: this.app.options.wallet.backup_required,
-            title: 'BACKUP YOUR WALLET'
+            msg: `Your wallet has added new crypto keys for ${ticker}. Unless you backup your wallet, you may lose any deposits with those keys.`
           });
         }, 1500);
       }
 
-      console.log('$$$$ crypto-activated --> renderCrypto');
+      console.log('$$$$ saito-crypto-activated --> renderCrypto');
       this.renderCrypto(true);
     });
 
@@ -176,6 +175,10 @@ class SaitoHeader extends UIModTemplate {
 
     app.connection.on('saito-header-change-location', (new_path) => {
       this.header_location = new_path;
+    });
+
+    app.connection.on('saito-header-render', () => {
+      this.render();
     });
 
     app.connection.on('saito-header-reset-logo', () => {
@@ -466,7 +469,6 @@ class SaitoHeader extends UIModTemplate {
     //
     // default buttons
     //
-
     if (document.getElementById('wallet-btn-withdraw')) {
       document.getElementById('wallet-btn-withdraw').onclick = (e) => {
         app.connection.emit('saito-crypto-withdraw-render-request');
@@ -535,7 +537,7 @@ class SaitoHeader extends UIModTemplate {
           !this.app.options.crypto[e.target.value] ||
           !this.app.options.crypto[e.target.value].address
         ) {
-          this.app.connection.emit('header-install-crypto', e.target.value);
+          this.app.connection.emit('saito-header-install-crypto', e.target.value);
         }
 
         await app.wallet.setPreferredCrypto(e.target.value);

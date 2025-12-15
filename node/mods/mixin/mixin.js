@@ -49,6 +49,11 @@ class Mixin extends ModTemplate {
     this.class = 'utility';
 
     //
+    // reference for dynamic modules
+    //
+    this.MixinModule = MixinModule;
+
+    //
     // wallets will contain
     //
     this.mixin = {};
@@ -136,12 +141,11 @@ class Mixin extends ModTemplate {
 
           this.bot = MixinApi({ keystore });
 
-
           //
           //
           //
-          this.checkUnpaidPaymentRequests();
-          this.monitiorPaymentsPoll();
+          //this.checkUnpaidPaymentRequests();
+          //this.monitorPaymentsPoll();
         }
       }
     }
@@ -242,6 +246,17 @@ class Mixin extends ModTemplate {
         console.log("insdie handlePeerTransaction mixin saito send confirmed")
         this.app.connection.emit('saito-purchase-saito-issued', message);
       }
+    }
+
+    if (message.request === 'mixin fetch crypto mods') {
+      let list = [];
+      if (Array.isArray(this.crypto_mods) && this.crypto_mods.length > 0) {
+        list = this.crypto_mods
+          .map((m) => (m && m.ticker ? m.ticker : ''))
+          .filter(Boolean)
+          .map((t) => t.toUpperCase());
+      }
+      return mycallback ? mycallback(list) : list;
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
@@ -1174,6 +1189,9 @@ class Mixin extends ModTemplate {
 
     let result = await this.app.storage.runDatabase(sql, params, 'mixin');
     console.log(result);
+    if (callback) {
+      return callback(result);
+    }
   }
 
   async backupMixinAccount(data, pkey, delete_first = false) {
@@ -2034,7 +2052,7 @@ class Mixin extends ModTemplate {
   // send request to notify UI
   // runs every 2 minutes
   //
-  async monitiorPaymentsPoll() {
+  async monitorPaymentsPoll() {
     const run = async () => {
       try {
         //
@@ -2614,3 +2632,4 @@ class Mixin extends ModTemplate {
 }
 
 module.exports = Mixin;
+

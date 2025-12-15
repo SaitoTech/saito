@@ -30,48 +30,54 @@ class Profile extends ModTemplate {
 			console.info('profile-fetch-content-and-update-dom --- ' + key);
 
 			//
-			// If not cached, check archives
+			// If not cached, check if my friend... archives
 			//
 			if (!this.cache[key]) {
-				this.cache[key] = {};
-
-				console.debug('PROFILE: Need to cache -- ', key);
-
 				if (this.app.keychain.isWatched(key)) {
 					let returned_key = this.app.keychain.returnKey(key);
 
 					if (returned_key?.profile) {
 						this.cache[key] = await this.fetchProfileFromArchive(returned_key);
-						console.debug('PROFILE: async fetches for watched key finished', key, this.cache[key]);
-						this.app.connection.emit('profile-update-dom', key, this.cache[key]);
+						console.debug(
+							'PROFILE: cache from local Archive of my watched key',
+							key,
+							this.cache[key]
+						);
 					}
-				} else {
-					this.app.storage.loadTransactions(
-						{ field1: 'Profile', field2: key },
-						async (txs) => {
-							let data_found = {};
-							if (txs?.length > 0) {
-								//Go reverse order for oldest first
-								for (let i = txs.length - 1; i >= 0; i--) {
-									let txmsg = txs[i].returnMessage();
-									//console.log("Remote Archive Profile TX: ", txmsg);
-									Object.assign(data_found, txmsg.data);
-								}
-
-								console.debug(key, this.cache[key], data_found);
-								Object.assign(this.cache[key], data_found);
-								this.app.connection.emit('profile-update-dom', key, this.cache[key]);
-							} else {
-								console.debug('No profile txs for: ' + key);
-							}
-						},
-						null
-					);
-					return;
 				}
 			}
 
-			this.app.connection.emit('profile-update-dom', key, this.cache[key]);
+			if (this.cache[key]) {
+				this.app.connection.emit('profile-update-dom', key, this.cache[key]);
+				return;
+			}
+
+			this.cache[key] = {};
+
+			//
+			// fallback to remote storage
+			//
+
+			this.app.storage.loadTransactions(
+				{ field1: 'Profile', field2: key },
+				async (txs) => {
+					let data_found = {};
+					if (txs?.length > 0) {
+						//Go reverse order for oldest first
+						for (let i = txs.length - 1; i >= 0; i--) {
+							let txmsg = txs[i].returnMessage();
+							Object.assign(data_found, txmsg.data);
+						}
+
+						console.debug('PROFILE: cache from remote archive', key, this.cache[key], data_found);
+						Object.assign(this.cache[key], data_found);
+						this.app.connection.emit('profile-update-dom', key, this.cache[key]);
+					} else {
+						console.debug('No profile txs for: ' + key);
+					}
+				},
+				null
+			);
 		});
 
 		app.connection.on('profile-edit-banner', (profile_key) => {
@@ -122,7 +128,7 @@ class Profile extends ModTemplate {
 				//
 				//Check remote archives
 				//
-				await app.storage.loadTransactions(
+				app.storage.loadTransactions(
 					{ field1: 'Profile', field2: key.publicKey },
 					async (txs) => {
 						let txs_found = {};

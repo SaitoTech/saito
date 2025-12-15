@@ -128,7 +128,7 @@ class Vote extends ModTemplate {
                                 endDate: data.endDate,
                                 status: data.status || "active",
                                 votes: data.votes || null,
-                                created: tx.updated_at,
+                                created: tx.timestamp,
                                 publicKey: tx.from[0].publicKey,
                                 finalTally: data.finalTally || []
 
@@ -173,7 +173,7 @@ class Vote extends ModTemplate {
                                 endDate: data.endDate,
                                 status: data.status || "active",
                                 votes: data.votes || null,
-                               created: tx.updated_at,
+                               created: tx.timestamp,
                                 publicKey: tx.from[0].publicKey,
                                 finalTally: data.finalTally || []
                             });

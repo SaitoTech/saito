@@ -1,4 +1,4 @@
-module.exports = (app, mod, tweet, thread_parent = false) => {
+module.exports = (app, mod, tweet) => {
 	let notice = tweet?.notice || '';
 
 	// Extract hypertext-y mentions!
@@ -27,11 +27,6 @@ module.exports = (app, mod, tweet, thread_parent = false) => {
 
 	if (!text && !notice && tweet.retweet_tx) {
 		notice = 'retweeted by ' + app.browser.returnAddressHTML(tweet.tx.from[0].publicKey);
-	}
-
-	let is_thread_parent = '';
-	if (thread_parent) {
-		is_thread_parent = 'thread-parent';
 	}
 
 	let is_liked_css = mod.liked_tweets.includes(tweet.tx.signature) ? 'liked' : '';
@@ -69,7 +64,7 @@ module.exports = (app, mod, tweet, thread_parent = false) => {
 
 	let html = `
 
-	  <div class="tweet tweet-${tweet.tx.signature} ${is_thread_parent}" data-id="${tweet.tx.signature}" ${curation_info}>
+	  <div class="tweet tweet-${tweet.tx.signature} ${tweet.reply_class}" data-id="${tweet.tx.signature}" ${curation_info}>
       <img class="tweet-avatar saito-add-user-menu" src="${identicon_src}" data-id="${tweet.tx.from[0].publicKey}" />
       <div class="tweet-body">
 	      <div class="tweet-context">${notice}</div>

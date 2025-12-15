@@ -303,6 +303,7 @@ class Settlers extends GameTemplate {
 
 
 	async render(app) {
+
 		if (!this.browser_active) {
 			return;
 		}

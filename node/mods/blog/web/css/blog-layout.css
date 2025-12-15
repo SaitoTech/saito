@@ -9,10 +9,6 @@ body {
   scroll-behavior: smooth;
 }
 
-/* .html::-webkit-scrollbar body::-webkit-scrollbar {
-  display: initial;
-} */
-
 .scroll-button,
 .saito-floating-plus-btn {
   background-color: var(--saito-primary);
@@ -26,11 +22,6 @@ body {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   z-index: 1000;
   transition: background-color 0.3s;
-}
-
-.saito-floating-container {
-  gap: 1rem;
-  display: flex;
 }
 
 .saito-user {

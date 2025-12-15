@@ -11,7 +11,7 @@ class Saveload extends ModTemplate {
 		this.description = 'Save and load games - useful for bughunting';
 		this.categories = 'Utility Entertainment';
 	}
-/*****
+	/*****
 	respondTo(type = '') {
 		if (type == 'game-menu') {
 			return {
@@ -45,6 +45,9 @@ class Saveload extends ModTemplate {
 *****/
 
 	initialize(app) {
+		///
+		/// WARNING -- active_module is not a property of browser
+		///
 		if (this.app.browser.active_module === 'load') {
 			let game_id = this.app.browser.returnURLParameter('game_id');
 			if (game_id != '') {
@@ -59,17 +62,9 @@ class Saveload extends ModTemplate {
 							game_obj.timestamp = new Date().getTime();
 							this.app.options.games[i] = game_obj;
 							this.app.storage.saveOptions();
-							for (
-								let z = 0;
-								z < this.app.modules.mods.length;
-								z++
-							) {
-								if (
-									this.app.modules.mods[z].name ===
-									game_obj.module
-								) {
-									let game_slug =
-										this.app.modules.mods[z].returnSlug();
+							for (let z = 0; z < this.app.modules.mods.length; z++) {
+								if (this.app.modules.mods[z].name === game_obj.module) {
+									let game_slug = this.app.modules.mods[z].returnSlug();
 									navigateWindow('/' + game_slug);
 								}
 							}

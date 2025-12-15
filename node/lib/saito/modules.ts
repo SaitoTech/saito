@@ -10,6 +10,8 @@ import { fromBase58 } from 'saito-js/lib/util';
 //import { DYN_MOD_WEB,DYN_MOD_NODE } from '../dyn_mod';
 import SaitoBlock from 'saito-js/lib/block';
 
+const ModTemplate = require('./../templates/modtemplate');
+
 class Mods {
   public app: Saito;
   public mods: any;
@@ -163,26 +165,28 @@ class Mods {
   async initialize() {
     try {
       if (this.app.BROWSER === 1) {
-        console.log('#');
-        console.log('#');
-        console.log('#');
-        console.log('#');
-        console.log('MY NFTS...');
-        const raw = await this.app.wallet.getNftList();
-        console.log(JSON.stringify(raw));
+        //        console.log('#');
+        //        console.log('#');
+        //        console.log('#');
+        //        console.log('#');
+        //        console.log('# MY NFTS...');
+        //        const raw = await this.app.wallet.getNFTList();
+        //        console.log(JSON.stringify(raw));
 
-        let mods = await this.app.storage.loadLocalApplications();
+        let dyn_mods = await this.app.storage.loadLocalApplications();
 
-        if (mods.length > 0) {
-          console.log('loaded mods:', mods);
+        if (dyn_mods.length > 0) {
+          console.log('loaded mods:', dyn_mods);
 
           self['saito-js'] = require('saito-js').default;
           self['saito-js/lib/slip'] = require('saito-js/lib/slip').default;
           self['saito-js/lib/transaction'] = require('saito-js/lib/transaction').default;
           self['saito-js/lib/block'] = require('saito-js/lib/block').default;
 
-          for (let i = 0; i < mods.length; i++) {
-            let mod_binary = mods[i]['binary'];
+          const active_module = this.app.browser.determineActiveModule();
+
+          for (let i = 0; i < dyn_mods.length; i++) {
+            let mod_binary = dyn_mods[i]['binary'];
             let moduleCode = this.app.crypto.base64ToString(mod_binary);
 
             console.log('moduleCode:', moduleCode);
@@ -191,23 +195,15 @@ class Mods {
             console.log('mod : ', typeof mod);
             // @ts-ignore
             let m = new window.Dyn(this.app);
-            const current_url = window.location.toString();
-            const myurl = new URL(current_url);
-            const myurlpath = myurl.pathname.split('/');
 
-            let active_module = myurlpath[1] ? myurlpath[1].toLowerCase() : '';
-            if (active_module == '') {
-              active_module = 'website';
-            }
             if (m.isSlug(active_module)) {
-              m.browser_active = true;
-              m.alerts = 0;
-              const urlParams = new URLSearchParams(location.search);
-
-              m.handleUrlParams(urlParams);
+              m.activateModule();
             }
 
-            for (let z = 0; z < this.mods.length; z++) {
+            //
+            // Allow the dynamic module to override a preinstalled one of the same name
+            //
+            for (let z = this.mods.length - 1; z >= 0; z--) {
               if (this.mods[z].name === m.name && !m.teaser) {
                 this.mods.splice(z, 1);
               }
@@ -448,6 +444,12 @@ class Mods {
     this.is_initialized = true;
 
     //
+    // we load the NFTs from the wallet now, since they have modules to
+    // interact with...
+    //
+    this.app.wallet.loadNFTs();
+
+    //
     // .. and setup active module
     //
     if (this.app.BROWSER && this.app.browser.multiple_windows_active == 0) {
@@ -549,6 +551,7 @@ class Mods {
   async render() {
     for (let icb = 0; icb < this.mods.length; icb++) {
       if (this.mods[icb].browser_active == 1) {
+        console.log('modules.ts -- render active module -- ' + this.mods[icb].returnName());
         await this.mods[icb].render(this.app, this.mods[icb]);
       }
     }
@@ -782,8 +785,13 @@ class Mods {
   }
 
   webServer(expressapp = null, express = null) {
+    let base_module = this.app.options?.defaultModule || 'website';
     for (let i = 0; i < this.mods.length; i++) {
       this.mods[i].webServer(this.app, expressapp, express);
+
+      if (this.mods[i].returnSlug() == base_module) {
+        this.mods[i].webServer(this.app, expressapp, express, '/');
+      }
     }
     return null;
   }
@@ -817,6 +825,24 @@ class Mods {
 
       mod.onWebSocketServer(wss);
     }
+  }
+
+  createAndAddTemplateModule(name, overrides = {}) {
+    if (!name) {
+      return null;
+    }
+    if (this.mods.find((m) => m && m.name === name)) {
+      return null;
+    }
+    const mod = new ModTemplate(this.app);
+    for (let key of Object.keys(overrides)) {
+      mod[key] = overrides[key];
+    }
+    mod.name = name;
+    mod.initialize(this.app);
+    this.mods.push(mod);
+    console.log('pushed onto stack!');
+    return mod;
   }
 }
 

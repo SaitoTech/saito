@@ -45,7 +45,7 @@
 .saito-sidebar-element {
   /* side bar controls*/
   padding: var(--border-padding-normal);
-  border-radius: var(--border-radius-round);
+  border-radius: var(--saito-border-radius);
 }
 
 .sidebar-header {

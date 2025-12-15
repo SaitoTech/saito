@@ -761,7 +761,13 @@ class Videocall extends ModTemplate {
 			this.app.connection.emit('stun-update-link');
 
 			if (!tx.isFrom(this.publicKey)) {
-				await this.sendCallListResponseTransaction(from, call_list);
+				setTimeout(
+					() => {
+						console.log('Send response');
+						this.sendCallListResponseTransaction(from, call_list);
+					},
+					250 + Math.max(0, tx.timestamp - Date.now())
+				);
 			}
 
 			return;

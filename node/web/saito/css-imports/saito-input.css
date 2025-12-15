@@ -35,7 +35,7 @@
 	justify-content: space-between;
 	flex-direction: column;
 	border: var(--border-thickness-medium) solid var(--border-color-general-dividers);
-	border-radius: var(--border-radius-sharp);
+	border-radius: var(--saito-border-radius);
 
 	/*
 	We can't control for if user resizes chat-popup, better to have visibile borders

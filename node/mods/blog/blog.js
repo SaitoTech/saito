@@ -560,7 +560,7 @@ class Blog extends ModTemplate {
         title: data.title || 'Untitled',
         content: data.content,
         image: data.image,
-        timestamp: tx.updated_at || data.timestamp,
+        timestamp: tx.timestamp || data.timestamp,
         sig: tx.signature,
         publicKey: tx.from[0].publicKey,
         imageUrl: data.imageUrl
@@ -575,7 +575,7 @@ class Blog extends ModTemplate {
     return {
       title: data.title || 'Untitled',
       content: data.content,
-      timestamp: tx.updated_at || data.timestamp,
+      timestamp: tx.timestamp || data.timestamp,
       sig: tx.signature,
       publicKey: tx.from[0].publicKey,
       image: data.image,

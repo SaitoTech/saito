@@ -2,16 +2,12 @@
 
 	canPlayerPlayCard() {
 
-		let mana = this.returnAvailableMana();
-
-console.log(JSON.stringify(mana));
+		let mana = this.returnAvailableMana(this.game.player);
 
 		let p = this.game.state.players_info[this.game.player-1];
 		for (let z = 0; z < p.cards.length; z++) {
-
-console.log("Examining: " + p.cards[z].key);
-			let card = deck[p.cards[z].key];
-			if (card.type == "land" && this.game.state.players_info[this.game.player-1].land_played == false) { return 1; }
+			let card = this.deck[p.cards[z].key];
+			if (card.type == "land" && this.game.state.players_info[this.game.player-1].land_played == 0) { return 1; }
 			if (this.canPlayerCastSpell(p.cards[z].key, mana)) { return 1; }
 		}
 
@@ -19,9 +15,22 @@ console.log("Examining: " + p.cards[z].key);
 
 	}
 
-	returnAvailableMana() {
+	playerTriggerEvent(cardkey="") {
+		alert("Triggering Event");
+	}
 
-		let p = this.game.state.players_info[this.game.player-1];
+	playerStartAttack(cardkey="") {
+		this.cardbox.hide();
+		this.attack_overlay.render(this.game.player, { key : cardkey });
+	}
+
+
+	returnAvailableMana(player=0, include_tapped=false) {
+
+		if (player == 0) { player = this.game.player; }
+
+		let p = this.game.state.players_info[player-1];
+		let deck = this.returnDeck();
 
 		let red_mana = 0;
 		let blue_mana = 0;
@@ -33,7 +42,7 @@ console.log("Examining: " + p.cards[z].key);
 
 		for (let z = 0; z < p.cards.length; z++) {
 			let card = deck[p.cards[z].key];
-			if (p.cards[z].untapped == true) {
+			if (p.cards[z].tapped == false || include_tapped == true) {
 				if (card.type == "land" && card.color == "black") { black_mana++; }
 				if (card.type == "land" && card.color == "red") { red_mana++; }
 				if (card.type == "land" && card.color == "green") { green_mana++; }
@@ -70,12 +79,13 @@ console.log("Examining: " + p.cards[z].key);
 		//
 		// lands req 
 		//
-		if (card.type == "land" && this.game.state.players_info[this.game.player-1].land_played == false) { return 1; }
+		if (card.type == "land" && this.game.state.players_info[this.game.player-1].land_played == 0) { return 1; }
 
 		//
 		// calculate how much mana is available
 		//
-		if (!mana.total) { mana = this.returnAvailableMana(); }
+		if (!mana.total) { mana = this.returnAvailableMana(this.game.player); }
+
 
 		//
 		// card casting cost
@@ -135,7 +145,6 @@ console.log("Examining: " + p.cards[z].key);
 			);	
 		}
 
-
 		//
 		// show my hand
 		//
@@ -160,6 +169,7 @@ console.log("Examining: " + p.cards[z].key);
 				if (card.type == "creature") {
 					this.deploy(realms_self.game.player, cardname);
 					this.addMove(`deploy\tcreature\t${realms_self.game.player}\t${cardname}\t${realms_self.game.player}`);
+					this.addMove(`spend\t${realms_self.game.player}\tcreature\t${JSON.stringify(card.cost)}`);
 					this.addMove(`counter_or_acknowledge\t${realms_self.returnPlayerUsername(this.game.player)} casts ${this.popup(cardname)}\tdeploy_creature\t${card}`);
 					this.addMove("RESETCONFIRMSNEEDED\tall");
 					this.addMove(`discard\t${realms_self.game.player}\t${cardname}`);
@@ -168,6 +178,7 @@ console.log("Examining: " + p.cards[z].key);
 				if (card.type == "artifact") {
 					this.deploy(realms_self.game.player, cardname);
 					this.addMove(`deploy\tartifact\t${realms_self.game.player}\t${cardname}\t${realms_self.game.player}`);
+					this.addMove(`spend\t${realms_self.game.player}\tcreature\t${JSON.stringify(card.cost)}`);
 					this.addMove(`counter_or_acknowledge\t${realms_self.returnPlayerUsername(this.game.player)} casts ${this.popup(cardname)}\tdeploy_artifact\t${card}`);
 					this.addMove("RESETCONFIRMSNEEDED\tall");
 					this.addMove(`discard\t${realms_self.game.player}\t${cardname}`);
@@ -176,6 +187,7 @@ console.log("Examining: " + p.cards[z].key);
 				if (card.type == "sorcery") {
 					this.deploy(realms_self.game.player, cardname);
 					this.addMove(`deploy\tsorcery\t${realms_self.game.player}\t${cardname}\t${realms_self.game.player}`);
+					this.addMove(`spend\t${realms_self.game.player}\tcreature\t${JSON.stringify(card.cost)}`);
 					this.addMove(`counter_or_acknowledge\t${realms_self.returnPlayerUsername(this.game.player)} casts ${this.popup(cardname)}\tdeploy_sorcery\t${card}`);
 					this.addMove("RESETCONFIRMSNEEDED\tall");
 					this.addMove(`discard\t${realms_self.game.player}\t${cardname}`);

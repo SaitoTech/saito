@@ -77,7 +77,7 @@
 }
 
 .editable-content {
-	border: 1px solid var(--saito-gray);
+	border: 1px solid var(--saito-gray-600);
 	background-color: whitesmoke;
 	color: black;
 	padding: 0.25em;

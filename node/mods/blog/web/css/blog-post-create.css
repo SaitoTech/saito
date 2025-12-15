@@ -47,10 +47,6 @@
   font-size: 16px;
 }
 
-.ql-editor {
-  overflow-y: auto;
-}
-
 .ql-snow.ql-toolbar button {
   min-width: 0 !important;
   min-height: unset;

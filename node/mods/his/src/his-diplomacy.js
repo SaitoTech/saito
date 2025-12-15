@@ -970,7 +970,9 @@
 
         let action2 = $(this).attr("id");
         if (action2 !== target_faction) {
-            
+
+	  let faction_capitals = his_self.returnCapitals(faction);            
+
           $('.option').off();
           $('.option').on('click', function () {
             let action3 = $(this).attr("id");
@@ -979,9 +981,28 @@
       	    his_self.playerSelectSpaceWithFilter(
         	"Yield which Space?",
          	function(space) {
-         	   if (space.political === faction || (space.home == faction && space.political == "")) {
-	 	     return 1;
-	 	   }
+
+		   //
+		   // you cannot yield your capital
+		   //
+		   if (faction_capitals.includes(space.key)) { return 0; }
+
+		   //
+		   // spaces that belong to minor powers can only be traded to allies
+		   //
+  		   if (this.isAlliedMinorPower(space.home, target_faction)) {
+
+		     return 1;
+		   } else {
+
+		     //
+		     // other spaces need to be controlled by the party giving it away
+		     //
+         	     if (space.political === faction || (space.home == faction && space.political == "")) {
+	 	       return 1;
+	 	     }
+
+		   }
 	 	   return 0;
          	},
           	function(spacekey) {
@@ -1045,7 +1066,7 @@
   }
 
   async playerApproveDivorce(his_self, faction, mycallback) {
-    mycallback([`advance_henry_viii_marital_status`,`SETVAR\tstate\thenry_viii_pope_approves_divorce_round\t${his_self.game.state.round}`,`SETVAR\tstate\thenry_viii_pope_approves_divorce\t1`, `NOTIFY\tThe Papacy accedes to Henry VIII's request for a divorce.`]);
+    mycallback([`unset_allies\tpapacy\thapsburg`, `advance_henry_viii_marital_status`,`SETVAR\tstate\thenry_viii_pope_approves_divorce_round\t${his_self.game.state.round}`,`SETVAR\tstate\thenry_viii_pope_approves_divorce\t1`, `NOTIFY\tThe Papacy accedes to Henry VIII's request for a divorce.`]);
     return 0;
   }
 

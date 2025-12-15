@@ -99,7 +99,7 @@
 .stunx-precall-link {
 	font-size: 2rem;
 	cursor: pointer;
-	color: var(--color-contrast);
+	color: var(--saito-gray-200);
 }
 
 .stunx-precall-link:hover {

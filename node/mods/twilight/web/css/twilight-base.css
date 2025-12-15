@@ -2,10 +2,6 @@
 /*** MOD DEFAULTS ****/
 /*********************/
 
-:root {
-	--border-radius-overlay: var(--border-radius-round);
-}
-
 .saito-overlay {
 	background: transparent;
 }
@@ -55,7 +51,7 @@
 }
 
 .ts-overlay {
-	border-radius: var(--border-radius-overlay);
+	border-radius: var(--saito-border-radius);
 	border: 5px solid blue;
 	border-right: 5px solid red;
 	border-bottom: 5px solid red;

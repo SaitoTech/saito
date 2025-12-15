@@ -29,7 +29,7 @@ class BuySaito extends ModTemplate {
 		super(app);
 
 		this.name = 'BuySaito';
-		this.slug = 'buysaito';
+		this.slug = 'buy';
 
 		this.description = 'Testnet BuySaito for Testing and Application Development';
 		this.categories = 'Utility Ecommerce NFTs';

@@ -49,6 +49,74 @@
 	    }
 
 	    //
+	    // "tap"
+	    //
+	    if (mv[0] == "tap") {
+
+	      this.game.queue.splice(qe, 1);
+	
+	      let player = parseInt(mv[1]);
+	      let key = mv[2];
+	      let p = this.game.state.players_info[player-1];
+
+	      for (let z = 0; z < p.cards.length; z++) {
+		if (p.cards[z].key === key) {
+		  p.cards[z].tapped = 1;
+		}
+	      }
+
+	      return 1;
+	    }
+
+	    //
+	    // "spend"
+	    //
+	    // spends mana automatically if the player has the proper colours, or kicks up 
+	    // an overlay that lets them manually select which cards to use to pay the 
+	    // associated costs.
+	    //
+	    if (mv[0] == "spend") {
+
+	      this.game.queue.splice(qe, 1);
+
+	      let player = parseInt(mv[1]);
+	      let type = mv[2];
+	      let cost = JSON.parse(mv[3]);
+
+	      if (this.game.player == player) {
+	        this.board.lands_overlay.renderAndPayCost(cost);
+	      }
+
+	      return 0;
+	    }
+
+
+	    //
+	    // attack
+	    //
+	    // a set of selected creatures attacks another player
+	    //
+	    if (mv[0] == "attack") {
+
+	      this.game.queue.splice(qe, 1);
+
+	      let attacker = parseInt(mv[1]);
+	      let selected = JSON.parse(mv[2]);
+
+	      if (this.game.player == attacker) {
+	        this.attack_overlay.render(selected);
+	      } else {
+	        this.attack_overlay.renderAndAssignDefenders(selected);
+	      }
+
+	      alert("creatures attack...");
+
+	      return 1;
+
+	    }
+
+
+	    //
 	    // this "deploys" cards into the battleground, such
 	    // as adding mana into play. the 4th argument allows us
 	    // to specify that a player should ignore the instruction
@@ -70,6 +138,7 @@
 
 		if (type == "land") {
 		  this.deploy(player, cardkey);
+		  this.board.refreshPlayerMana(player);
 		}
 			
 		if (type == "creature") {
@@ -96,6 +165,10 @@
 
 	      let player = parseInt(mv[1]);
 	      this.onNewTurn(player);
+
+	      this.board.refreshPlayerMana(player);
+	      this.board.render();
+
               this.game.queue.splice(qe, 1);
 	      return 1;
 
@@ -106,6 +179,7 @@
 	      let player = parseInt(mv[1]);
 
    	      if (this.game.player == player) {
+		this.board.render();
 		this.playerTurn();
 	      } else {
 	        this.updateStatusAndListCards("Opponent Turn", this.game.deck[this.game.player-1].hand);
@@ -424,10 +498,6 @@
               realms_self.cardbox.show(action2);
               return;
             }
-            if (realms_self.debaters[action2]) {
-              realms_self.cardbox.show(action2);
-              return;
-            }
             if (realms_self.game.deck[0].cards[action2]) {
               realms_self.cardbox.show(action2);
               return;
@@ -443,9 +513,6 @@
 
             let action2 = $(this).attr("id");
             if (deck[action2]) {
-              realms_self.cardbox.hide(action2);
-            }
-            if (realms_self.debaters[action2]) {
               realms_self.cardbox.hide(action2);
             }
             if (realms_self.game.deck[0].cards[action2]) {

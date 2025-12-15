@@ -6,7 +6,7 @@ Saito Identicon
   width: 3.5rem;
   height: 3.5rem;
   border: var(--border-thickness-thin) solid var(--saito-background-color);
-  border-radius: var(--border-radius-identicon);
+  border-radius: var(--saito-border-radius);
   background: var(--saito-background-color);
 }
 
@@ -14,7 +14,7 @@ Saito Identicon
   width: 3.5rem;
   height: 3.5rem;
   border: var(--border-thickness-thin) solid var(--saito-background-color);
-  border-radius: var(--border-radius-identicon);
+  border-radius: var(--saito-border-radius);
   cursor: pointer; /* app.browser tries to turn all .saito-identicon into clickable target */
 }
 
@@ -132,6 +132,6 @@ Saito User
 .wallet-selection .saito-user {
   padding: 1rem;
   border: 1px solid var(--saito-border-color-light);
-  border-radius: var(--border-radius-round);
+  border-radius: var(--saito-border-radius);
   width: unset;
 }

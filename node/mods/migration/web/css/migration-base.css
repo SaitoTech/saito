@@ -76,7 +76,7 @@ input[type='text'] {
 	color: var(--saito-primary-text);
 	background: var(--saito-highlight);
 	border: 1px solid var(--saito-border-color);
-	border-radius: var(--border-radius-round);
+	border-radius: var(--saito-border-radius);
 	overflow: hidden;
 }
 
@@ -97,7 +97,7 @@ input[type='text'] {
 .user-id-check {
 	padding: 1rem;
 	border: 1px solid;
-	border-radius: var(--border-radius-soft);
+	border-radius: var(--saito-border-radius);
 }
 
 .confirmation-block {
