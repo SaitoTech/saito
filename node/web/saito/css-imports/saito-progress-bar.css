@@ -9,7 +9,7 @@
 	background-size: 400% auto;
 	position: absolute;
     /*z-index: 999;  z-index governed by redsquare-progress-banner */
-    border-radius: var(--border-radius-soft);
+    border-radius: var(--saito-border-radius);
     border: var(--border-thickness-thin) solid var(--saito-background-color);
 	top: 0.75rem;
 }

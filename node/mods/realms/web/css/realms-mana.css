@@ -1,0 +1,45 @@
+
+.mana-pie {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: scale(2);
+}
+
+.mana-pie .mana {
+  stroke: none;
+  opacity: 0.9;
+}
+
+.mana.red   { fill: #e44; }
+.mana.green { fill: #4c4; }
+.mana.blue  { fill: #48f; }
+.mana.white { fill: #fff; }
+.mana.black { fill: #222; }
+
+.mana-total {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  font-weight: bold;
+  font-size: 3rem;
+  color: #fff;
+  text-shadow: 0 0 3px rgba(0,0,0,0.6);
+}
+
+.mana-total .tapped , .mana-total .untapped {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.mana-total .tapped.pop , .mana-total .untapped.pop {
+  animation: manaPop 0.5s ease-out;
+}
+
+@keyframes manaPop {
+  0%   { transform: scale(1); }
+  75%  { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}

@@ -45,6 +45,16 @@ class UploadRomOverlay {
 					mod.active_rom = file;
 
 					let a = Buffer.from(file, 'binary').toString('base64');
+console.log("!!!!!!!!");
+console.log("!!!!!!!!");
+console.log("!!!!!!!!");
+console.log("!!!!!!!!");
+console.log("!!!!!!!!");
+console.log("!!!!!!!!");
+console.log("!!!!!!!!");
+console.log("!!!!!!!!");
+console.log("!!!!!!!!");
+console.log(a);
 					let ab = mod.convertBase64ToByteArray(a);
 
 					//

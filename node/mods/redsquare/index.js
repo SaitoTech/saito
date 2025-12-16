@@ -78,14 +78,15 @@ module.exports = (app, mod, build_number, og_card, recent_tweets = []) => {
 `;
 
   html += `<script type="text/javascript">
+  var active_module = '${mod.returnSlug()}';
   if (!tweets) { 
     var tweets = [];
-  }`;
+  }\n`;
 
   for (let tweet of recent_tweets) {
-    html += ` tweets.push(\`${tweet}\`);`;
+    html += ` tweets.push(\`${tweet}\`);\n`;
   }
-  html += `</script>
+  html += `\n /*${recent_tweets.length} cached tweets from server*/ </script>
 
 
 <script type="text/javascript" src="/saito/saito.js?build=${build_number}"></script>

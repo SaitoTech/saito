@@ -3,36 +3,35 @@ module.exports = (obj) => {
 
 	html += `
 			<div class="module-config-header">
+				<div id="show-modules" class="arrow-toggle">&#x25B6;</div>
 				<h3>Modules</h3>
-				<button id='modconfig-button'>Save Changes</button>
+				<button id='modconfig-button' disabled>Save Changes</button>
 			</div>
-			<div class="mod-config-table">
-				<div class="table-header">Module</div>
-				<div class="table-header">Lite</div>
-				<div class="table-header">Core</div>
-				<div class="table-header">Module</div>
-				<div class="table-header">Lite</div>
-				<div class="table-header">Core</div>
-				<div class="table-header hide2">Module</div>
-				<div class="table-header hide2">Lite</div>
-				<div class="table-header hide2">Core</div>
-				<div class="table-header hide1">Module</div>
-				<div class="table-header hide1">Lite</div>
-				<div class="table-header hide1">Core</div>
+			<div class="mod-config-table minimize">
 	`;
 
 	let lite_mods = obj.module_config.lite.join(' ');
 	let core_mods = obj.module_config.core.join(' ');
 
 	for (let m of obj.available_modules) {
-		html += `<div>${m}</div>
-				<input type="checkbox" name="${m}-lite" ${lite_mods.includes(m + '/' + m) ? 'checked' : ''}/>
-				<input type="checkbox" name="${m}-core" ${core_mods.includes(m + '/' + m) ? 'checked' : ''}/>
+		html += `
+			<input type="checkbox" name="${m}" ${lite_mods.includes(m + '/' + m) || core_mods.includes(m + '/' + m) ? 'checked' : ''}/>
+			<label for="${m}">${m}</label>
 		`;
 	}
 
 	html += '</div>';
 
 	html += '</div>';
+
+	html += `<hr>
+			 <div class="module-config-header"> 
+			 	<div id="show-options" class="arrow-toggle">&#x25B6;</div>
+			 	<h3>Options</h3>
+			 	<button id="node-options-button" disabled>Save Changes</button>
+			 </div>
+			 <div id='node-options' class='node-options minimize'></div>
+	`;
+
 	return html;
 };

@@ -84,7 +84,7 @@ class CryptoModule extends ModTemplate {
     if (this.ticker === this.app.wallet.returnPreferredCryptoTicker()) {
       await this.activate();
       // if UI is enabled, will re-render the qr code, ticker, and balance in the hamburger menu
-      this.app.connection.emit('header-update-crypto');
+      this.app.connection.emit('saito-header-update-crypto');
     }
   }
 
@@ -279,7 +279,7 @@ class CryptoModule extends ModTemplate {
       this.options.isActivated = true;
     }
 
-    this.app.connection.emit('crypto-activated', this.ticker);
+    this.app.connection.emit('saito-crypto-activated', this.ticker);
     this.save();
   }
 
@@ -293,7 +293,7 @@ class CryptoModule extends ModTemplate {
       if (this.isActivated()) {
         resolve();
       } else {
-        this.app.connection.on('crypto-activated', (ticker) => {
+        this.app.connection.on('saito-crypto-activated', (ticker) => {
           if (ticker === this.ticker) {
             resolve();
           }
@@ -335,7 +335,7 @@ class CryptoModule extends ModTemplate {
       siteMessage(msg, 3000);
     }
 
-    this.app.connection.emit('header-update-crypto');
+    this.app.connection.emit('saito-header-update-crypto');
   }
 
   /**

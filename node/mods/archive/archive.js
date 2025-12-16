@@ -37,7 +37,21 @@ class Archive extends ModTemplate {
 		this.localDB = null;
 		this.opt_out = ['Chat', 'RedSquare', 'Blog']; // Modules that handle their own automated storage
 
-		this.local_dev = false;
+		//
+		// if this is set to 1, this archive node will respect ownership
+		// specifications provided in the form of access_hash scripts. an
+		// example of an application that needs this is the Vault, which
+		// manually sets it on init.
+		//
+		// any read / write / delete requests must pass the access hash
+		//
+		// if access_hash is 0, the archive node will return all content
+		// on request like a normal archive node, not respect ownership
+		// limitations like a private archive node that wants to limit
+		// usage of privately-uploaded data.
+		//
+		this.access_hash = 0;
+		//this.access_hash = 1; // don't serve txs with access_hash restrictions
 
 		this.schema = [
 			'id',
@@ -116,14 +130,6 @@ class Archive extends ModTemplate {
 					console.info('Created directory for archive to store large transactions');
 				}
 			}
-
-			/*
-			This is done, presumably...
-						setTimeout(() => {
-				console.log('######### START CONVERSIONS ##############');
-				convertToFS();
-			}, 30000);
-			*/
 		}
 
 		let now = new Date().getTime();
@@ -133,30 +139,6 @@ class Archive extends ModTemplate {
 		if (!this.archive?.last_prune || this.archive.last_prune + 24 * 60 * 60 * 1000 < now) {
 			this.pruneArchive();
 		}
-
-		const convertToFS = async () => {
-			let sql = `SELECT tx, updated_at FROM archives WHERE tx != '' AND tx_size > $tx_size LIMIT 100`;
-
-			let rows = await this.app.storage.queryDatabase(sql, { $tx_size: 50000 }, 'archive');
-
-			for (let z = 0; z < rows.length; z++) {
-				if (!rows[z]?.tx) {
-					console.warn('storage.loadTransactions Error: Undefined tx', res[i]);
-					continue;
-				}
-				let tx = new Transaction();
-				tx.deserialize_from_web(this.app, rows[z].tx);
-				await this.updateTransaction(tx, { updated_at: rows[z].updated_at });
-			}
-
-			if (rows.length) {
-				setTimeout(convertToFS, 3000);
-			} else {
-				console.log(
-					'######################## \n \n Finished !!!!!!!!!!! \n \n ###########################'
-				);
-			}
-		};
 
 		setInterval(
 			() => {
@@ -415,7 +397,7 @@ class Archive extends ModTemplate {
 
 		newObj.publicKey = obj?.publicKey || tx.from[0].publicKey;
 		newObj.owner = obj?.owner || '';
-		newObj.sig = obj?.signature || tx.signature;
+		newObj.sig = obj?.signature || tx.signature || obj?.sig;
 		//Field1-3 are set by default in app.storage
 		newObj.field1 = obj?.field1 || '';
 		newObj.field2 = obj?.field2 || '';
@@ -428,12 +410,15 @@ class Archive extends ModTemplate {
 		newObj.preserve = obj?.preserve || 0;
 		newObj.created_at = obj?.created_at || tx.timestamp;
 		newObj.updated_at = obj?.updated_at || tx.timestamp;
+
+		// For consistency, also need to store this on saveTransaction
+		if (!tx.optional) {
+			tx.optional = {};
+		}
+		tx.optional.updated_at = newObj.updated_at;
+
 		newObj.tx = tx.serialize_to_web(this.app);
 		newObj.tx_size = newObj.tx.length;
-
-		try {
-			//alert("saving transaction in archive mod...");
-		} catch (err) {}
 
 		if (this.app.BROWSER) {
 			let numRows = await this.localDB.insert({
@@ -442,7 +427,12 @@ class Archive extends ModTemplate {
 			});
 
 			if (numRows) {
-				//console.log("Local Archive index successfully inserted: ", JSON.parse(JSON.stringify(newObj)));
+				console.log(
+					'Local Archive index successfully inserted: ',
+					JSON.parse(JSON.stringify(newObj))
+				);
+			} else {
+				console.log('Local Archive index not inserted...');
 			}
 		} else {
 			//
@@ -527,31 +517,54 @@ class Archive extends ModTemplate {
 		//
 		let newObj = {};
 
-		newObj.signature = obj?.signature || obj?.sig || tx?.signature || '';
+		//
+		// signature is the search criteria for the update, but we allow some flexibility
+		// (though maybe we shouldn't)
+		//
+		let tx_to_update = obj?.signature || obj?.sig || tx?.signature || '';
+
+		// fallback in case we didn't provide a timestamp (though should be handled by storage.ts)
+		if (!obj.updated_at) {
+			obj.updated_at = new Date().getTime();
+		}
+
+		// Store the updated_at in the tx.optional
+		if (!tx.optional) {
+			tx.optional = {};
+		}
+		tx.optional.updated_at = obj.updated_at;
+
 		newObj.tx = tx.serialize_to_web(this.app);
 		newObj.tx_size = newObj.tx.length;
-		newObj.updated_at = obj?.timestamp || tx?.updated_at || new Date().getTime();
 
-		if (!newObj.signature) {
-			console.warn('No tx signature for archive update:', tx);
+		if (!tx_to_update) {
+			console.error('No tx signature for archive update:', tx);
+			return 0;
 		}
 
 		//
 		// update index
 		//
-		let sql = `UPDATE archives SET updated_at = $updated_at, tx = $tx, tx_size = $tx_size`;
+		let sql = `UPDATE archives SET tx = $tx, tx_size = $tx_size`;
 
 		let params = {
-			$updated_at: newObj.updated_at,
 			$tx: newObj.tx,
 			$tx_size: newObj.tx_size,
-			$sig: newObj.signature
+			$sig: tx_to_update
 		};
 
+		//
+		// Will set updated_at and any other search meta data fields...
+		//
 		for (let key in obj) {
-			if (this.schema.includes(key)) {
-				sql += `, ${key} = $${key}`;
-				params[`$${key}`] = obj[key];
+			if (key != 'tx') {
+				if (this.schema.includes(key)) {
+					// Server DB -- SQL
+					sql += `, ${key} = $${key}`;
+					params[`$${key}`] = obj[key];
+					// Browser DB -- JsStore
+					newObj[key] = obj[key];
+				}
 			}
 		}
 
@@ -560,21 +573,18 @@ class Archive extends ModTemplate {
 		if (this.app.BROWSER) {
 			let results = await this.localDB.update({
 				in: 'archives',
-				set: {
-					updated_at: newObj.updated_at,
-					tx: newObj.tx,
-					tx_size: newObj.tx_size
-				},
+				set: newObj,
 				where: {
-					sig: newObj.signature
+					sig: tx_to_update
 				}
 			});
 		} else {
+			//console.log(sql, params, tx.optional);
+
 			if (newObj.tx_size > 50000) {
-				//console.log('Update large tx: ', newObj.tx_size);
 				const fs = this.app?.storage?.returnFileSystem();
 				if (fs) {
-					const filename = `${__dirname}/../../data/archive/${newObj.signature}`;
+					const filename = `${__dirname}/../../data/archive/${tx_to_update}`;
 					fs.writeFileSync(filename, newObj.tx);
 					params['$tx'] = '';
 				}
@@ -604,6 +614,7 @@ class Archive extends ModTemplate {
 
 		let order_clause = ' ORDER BY archives.id';
 		let sort = 'DESC';
+		let request_tx = obj.request_tx || null;
 
 		//For JS-Store
 		let order_obj = { by: 'id', type: 'desc' };
@@ -679,11 +690,17 @@ class Archive extends ModTemplate {
 
 		let params = { $limit: limit };
 
-		let sql = `SELECT tx, sig, updated_at FROM archives WHERE`;
+		///////////////////////////////////////////////////////////////////
+		// Try getting everything for convenience, but monitor performance
+		// Orig: tx, sig, updated_at, owner
+		//////////////////////////////////////////////
+		let sql = `SELECT * FROM archives WHERE`;
 
+		//
 		// Hardcode field5 as a flexible search term --
 		// arcade would prefer a general numeric field that is sortable
 		// but Redsquare doesn't
+		//
 		if (obj.field5 || obj.hasOwnProperty('field5')) {
 			if (obj.field5_sort) {
 				where_obj['field5'] = { '>=': obj.field5 };
@@ -707,9 +724,8 @@ class Archive extends ModTemplate {
 		sql = sql.substring(0, sql.length - 4);
 
 		//
-		// Should we be ordering by time stamp instead of id?
+		// should we be ordering by timestamp instead of id?
 		//
-
 		sql += timestamp_limiting_clause + order_clause + ` ${sort} LIMIT $limit`;
 
 		//
@@ -720,6 +736,7 @@ class Archive extends ModTemplate {
 		let rows = await this.app.storage.queryDatabase(sql, params, 'archive');
 
 		if (this.app.BROWSER && !rows?.length) {
+			//console.log('archive checkpoint');
 			rows = await this.localDB.select({
 				from: 'archives',
 				where: where_obj,
@@ -737,11 +754,6 @@ class Archive extends ModTemplate {
 						let filename = `${__dirname}/../../data/archive/${r.sig}`;
 						if (fs.existsSync(filename)) {
 							r.tx = fs.readFileSync(filename, { encoding: 'UTF-8' });
-						} else {
-							if (this.local_dev) {
-								console.warn('Clean up local DB...');
-								this.deleteTransaction(r.sig);
-							}
 						}
 					}
 				}
@@ -760,6 +772,69 @@ class Archive extends ModTemplate {
 			}
 		}
 
+		//
+		// before we return the content, we potential parse any content that
+		// is protected by an access_hash that is not solved by an affixed
+		// access_script and access_witness.
+		//
+		if (this.access_hash == 1) {
+			console.log('*****************');
+			console.log('ACCESS HASH CHECK');
+			console.log('*****************');
+			let altered_rows = [];
+
+			for (let r of rows) {
+				//
+				// there is some sort of cryptographically-enforced access limitation
+				// placed on this record, such as a request that requires ownership of
+				// a specific network item in order to access.
+				//
+				if (r.owner) {
+					//
+					//
+					//
+					if (!obj.access_script || !obj.access_witness) {
+						//
+						// no script / witness remove row
+						//
+					} else {
+						//
+						// otherwise evaluate...
+						//
+						if (obj.access_hash === r.owner) {
+							//let peers = await this.app.network.getPeers();
+							//for (let peer of peers) {
+							//	console.log('PEER: ' + JSON.stringify(peer));
+							//}
+
+							let include_row = false;
+							let scripting_mod = this.app.modules.returnModule('Scripting');
+							if (scripting_mod) {
+								if (
+									scripting_mod.evaluate(
+										obj.access_hash,
+										obj.access_script,
+										obj.access_witness,
+										{},
+										request_tx,
+										null
+									)
+								) {
+									include_row = true;
+								}
+							}
+							if (include_row) {
+								altered_rows.push(r);
+							}
+						}
+					}
+				}
+			}
+
+			rows = altered_rows;
+			console.log('ROWS RETURNING: ' + JSON.stringify(rows));
+		}
+
 		return rows;
 	}
 
@@ -773,7 +848,7 @@ class Archive extends ModTemplate {
 	// - server operator can delete any transactions anytime
 	// - server operator respectfully avoid deleting transactions with preserve=1
 	//
-	async deleteTransaction(tx) {
+	async deleteTransaction(tx, obj = {}) {
 		let sql = '';
 		let params = {};
 		let rows = [];
@@ -791,10 +866,90 @@ class Archive extends ModTemplate {
 		}
 
 		//
-		// SEARCH BASED ON CRITERIA PROVIDED
+		// FIRST: SELECT the transaction to check its owner field
 		//
-		//newObj.signature = obj?.signature || obj?.sig || tx?.signature || "";
+		let select_sql = `SELECT sig, owner FROM archives WHERE archives.sig = $sig`;
+		let select_params = { $sig: sig };
+		let existing_rows = await this.app.storage.queryDatabase(select_sql, select_params, 'archive');
 
+		// Also check browser localDB if needed
+		if (this.app.BROWSER && (!existing_rows || existing_rows.length === 0)) {
+			existing_rows = await this.localDB.select({
+				from: 'archives',
+				where: { sig: sig },
+				limit: 1
+			});
+		}
+
+		// Check if transaction exists
+		if (!existing_rows || existing_rows.length === 0) {
+			console.log('Transaction not found in archive, cannot delete');
+			return false;
+		}
+
+		let existing_row = existing_rows[0];
+
+		//
+		// SECOND: Check if owner is specified and verify ownership
+		//
+		if (existing_row.owner && existing_row.owner !== '') {
+			//
+			// Owner is specified, need to verify access
+			//
+			console.log('*****************');
+			console.log('DELETE ACCESS HASH CHECK');
+			console.log('*****************');
+			console.log('Transaction owner:', existing_row.owner);
+
+			// Check if access credentials are provided
+			if (!obj.access_script || !obj.access_witness) {
+				console.log('DELETE DENIED: No access_script or access_witness provided');
+				return false;
+			}
+
+			// Check if access_hash matches the owner
+			if (!obj.access_hash || obj.access_hash !== existing_row.owner) {
+				console.log('DELETE DENIED: access_hash does not match owner');
+				return false;
+			}
+
+			// Evaluate the script using the Scripting module
+			let can_delete = false;
+			let scripting_mod = this.app.modules.returnModule('Scripting');
+			if (scripting_mod) {
+				let request_tx = obj.request_tx || tx || null;
+				let eval_result = await scripting_mod.evaluate(
+					obj.access_hash,
+					obj.access_script,
+					obj.access_witness,
+					{},
+					request_tx,
+					null
+				);
+
+				if (eval_result) {
+					can_delete = true;
+					console.log('DELETE ACCESS GRANTED: Script evaluation passed');
+				} else {
+					console.log('DELETE DENIED: Script evaluation failed');
+				}
+			} else {
+				console.log('DELETE DENIED: Scripting module not available');
+			}
+
+			if (!can_delete) {
+				return false;
+			}
+		} else {
+			//
+			// No owner specified, proceed with deletion (existing behavior)
+			//
+			console.log('No owner specified for transaction, proceeding with deletion');
+		}
+
+		//
+		// THIRD: Proceed with deletion if ownership verified or no owner
+		//
 		sql = `DELETE FROM archives WHERE archives.sig = $sig`;
 		params = { $sig: sig };
 		await this.app.storage.runDatabase(sql, params, 'archive');
@@ -881,10 +1036,6 @@ class Archive extends ModTemplate {
 		//
 		// SEARCH BASED ON CRITERIA PROVIDED
 		//
-
-		/*
-      This is set up as an OR condition, can provide multiple fields to delete any partial match
-    		*/
 		let sql = `DELETE FROM archives WHERE `;
 		let sql_substring = '';
 		let params = {};
@@ -1035,7 +1186,6 @@ class Archive extends ModTemplate {
 			params = { $ts: now - this.prune_public_ts };
 			sql = `SELECT sig FROM archives WHERE updated_at < $ts AND preserve = 0 AND tx = ''`;
 			let rows = await this.app.storage.queryDatabase(sql, params, 'archive');
-			console.log(`Manually deleting ${rows.length} large transactions`);
 			for (let r of rows) {
 				await this.deleteTransaction(r.sig);
 			}

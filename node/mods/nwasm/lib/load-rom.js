@@ -2,6 +2,7 @@ const LoadRomOverlayTemplate = require('./load-rom.template');
 const SaitoOverlay = require('./../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 class UploadRomOverlay {
+
 	constructor(app, mod = null, container = '') {
 		this.app = app;
 		this.mod = mod;
@@ -10,6 +11,7 @@ class UploadRomOverlay {
 	}
 
 	render() {
+
 		let app = this.app;
 		let mod = this.mod;
 

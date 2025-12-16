@@ -17,7 +17,7 @@ class Details {
       this.render();
     });
 
-    app.connection.on('crypto-activated', (ticker) => {
+    app.connection.on('saito-crypto-activated', (ticker) => {
       if (ticker == this.ticker && this.overlay.visible) {
         this.render();
       }

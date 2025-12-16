@@ -1,0 +1,37 @@
+
+.vault-file-info {
+  padding: 2.5rem;
+  font-size: 2rem;
+  line-height: 4rem;
+  min-width: max-content;
+}
+
+.vault-sig-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) 20px;
+}
+
+.vault-sig-grid div {
+  border: 1px solid var(--saito-gray-700);
+  background: #0005;
+  padding: 0.5rem 1rem 0.5rem 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80vw;
+  min-width: 450px;
+  border-radius: var(--saito-border-radius);
+}
+
+#vault-copy-sig {
+  opacity: 0.9;
+  padding: 1.25rem;
+  margin-left: 0.5rem;
+}
+#vault-copy-sig:hover {
+  opacity: 1;
+  tranform: scale(1.1);
+}
+
+
+

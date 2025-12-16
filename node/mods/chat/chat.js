@@ -1556,7 +1556,7 @@ class Chat extends ModTemplate {
       if (this.app.BROWSER) {
         if (tx.isFrom(this.publicKey)) {
           console.log('Save My Sent Chat TX : ', txmsg.group_id);
-          await this.app.storage.saveTransaction(
+          this.app.storage.saveTransaction(
             tx,
             {
               field3: txmsg.group_id

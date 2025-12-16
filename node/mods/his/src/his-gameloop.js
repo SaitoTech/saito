@@ -1864,22 +1864,27 @@ if (this.game.options.scenario != "is_testing") {
 	}
 	if (mv[0] === "explore") {
 	  let faction = mv[1];
+	  let skip_overlays = false;
+	  if (mv[2]) { skip_overlays = true; }
     	  this.game.queue.splice(qe, 1);
 	  this.game.state.explorations.push({
 	    faction : faction,
 	    resolved :  0 ,
 	    round :   this.game.state.round,
 	  });
-	  let msg = this.returnFactionName(faction) + " launches an expedition";
-	  this.updateLog(msg);
-	  if (this.game.player == this.returnPlayerCommandingFaction(faction)) {
-	    this.game.queue.push("ACKNOWLEDGE\t"+msg);
-	    this.game.queue.push("display_custom_overlay\texplore\t"+msg);
-          } else {
-	    this.displayHudPopup("explore",msg); // true = as hud popup
+	  if (skip_overlays == false) {
+	    let msg = this.returnFactionName(faction) + " launches an expedition";
+	    this.updateLog(msg);
+	    if (this.game.player == this.returnPlayerCommandingFaction(faction)) {
+	      this.game.queue.push("ACKNOWLEDGE\t"+msg);
+	      this.game.queue.push("display_custom_overlay\texplore\t"+msg);
+            } else {
+	      this.displayHudPopup("explore",msg); // true = as hud popup
+	    }
 	  }
+
 	  this.game.state.may_explore[faction] = 0;
-	  this.displayExploration();
+	  try { if (skip_overlays == false) { this.displayExploration(); } } catch (err) {}
 	  return 1;
 	}
         if (mv[0] === "award_exploration_bonus") {
@@ -2568,6 +2573,8 @@ if (his_self.game.player == his_self.returnPlayerCommandingFaction(faction)) {
 
 	if (mv[0] === "conquer") {
 	  let faction = mv[1];
+	  let skip_overlays = false;
+	  if (mv[2]) { skip_overlays = true; }
     	  this.game.queue.splice(qe, 1);
 	  this.game.state.conquests.push({
 	    faction : faction,
@@ -2575,15 +2582,19 @@ if (his_self.game.player == his_self.returnPlayerCommandingFaction(faction)) {
 	    round :   this.game.state.round,
 	  });
 	  let msg = this.returnFactionName(faction) + " launches a conquest";
-	  this.updateLog(msg);
-	  if (this.game.player == this.returnPlayerCommandingFaction(faction)) {
-	    this.game.queue.push("ACKNOWLEDGE\t"+msg);
-	    this.game.queue.push("display_custom_overlay\tconquest\t"+msg);
-	  } else {
-	    this.displayHudPopup("conquest",msg); // true = as hud popup
+	  if (skip_overlays == false) {
+	    this.updateLog(msg);
+	    if (this.game.player == this.returnPlayerCommandingFaction(faction)) {
+	      this.game.queue.push("ACKNOWLEDGE\t"+msg);
+	      this.game.queue.push("display_custom_overlay\tconquest\t"+msg);
+	    } else {
+	      this.displayHudPopup("conquest",msg); // true = as hud popup
+	    }
 	  }
           this.game.state.may_conquer[faction] = 0;
-	  this.displayConquest();
+	  try {
+	    if (skip_overlays == false) { this.displayConquest(); }
+	  } catch (err) {}
 	  return 1;
 	}
 
@@ -8646,7 +8657,7 @@ try {
 	      opponent_dice++;
             }
           }
-          if (target_space.key == "africa" || target_space.key == "aegean") {
+          if (target_space.key == "adriatic" || target_space.key == "ionian") {
             let x = his_self.returnFactionControllingSpace("corfu");
             if (target_faction == x || factions_at_war_with_ottoman.includes(x)) {
 	      anti_piracy_faction.push("corfu");
@@ -8655,7 +8666,7 @@ try {
 	      opponent_dice++;
 	    }
           }
-          if (target_space.key == "adriatic" || target_space.key == "ionian") {
+          if (target_space.key == "africa" || target_space.key == "aegean") {
             let x = his_self.returnFactionControllingSpace("candia");
             if (target_faction == x || factions_at_war_with_ottoman.includes(x)) {
 	      anti_piracy_faction.push("candia");

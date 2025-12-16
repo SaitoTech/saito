@@ -2,7 +2,7 @@ const SaitoPurchaseTemplate = require('./saito-purchase.template');
 const SaitoPurchaseEmptyTemplate = require('./saito-purchase-empty.template');
 const SaitoPurchaseCryptoTemplate = require('./saito-purchase-select-crypto.template');
 const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const ListNftsOverlay = require('./../overlays/list-nfts');
+const ListNFTsOverlay = require('./../overlays/list-nfts');
 
 class AssetstoreSaitoPurchaseOverlay {
   constructor(app, mod, container = 'body') {

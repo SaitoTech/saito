@@ -42,8 +42,14 @@ class ReligiousOverlay {
 		//
 		for (let i = 0; i < his_self.game.state.debaters.length; i++) {
 			let d = his_self.game.state.debaters[i];
-			console.log(JSON.stringify(d));
-			let dtile = `<img class="rdebater_tile" id="${i}" src="/his/img/tiles/debaters/${d.img}" />`;
+		        let committed = "";
+                        if (his_self.game.state.debaters[i].committed == 1) {
+                                committed = ' debater-commited';
+                        }
+			let dtile = `
+                        	<div class="debaters-tile debaters-tile${i} ${committed}" data-key="${this.mod.game.state.debaters[i].key}" data-id="${this.mod.game.state.debaters[i].img}" style="background-image:url('/his/img/tiles/debaters/${this.mod.game.state.debaters[i].img}')"></div>
+			`;
+
 			if (d.owner === 'papacy') {
 				his_self.app.browser.addElementToSelector(
 					dtile,
@@ -77,7 +83,22 @@ class ReligiousOverlay {
 		this.attachEvents();
 	}
 
-	attachEvents() {}
+	attachEvents() {
+
+                for (let i = 0; i < this.mod.game.state.debaters.length; i++) {
+                        let tile_f ='/his/img/tiles/debaters/' + this.mod.game.state.debaters[i].img;
+                        let tile_b = tile_f.replace('.svg', '_back.svg');
+                        let divsq = `.debaters-tile${i}`;
+                        $(divsq)
+                                .mouseover(function () {
+                                        $(this).css('background-image', `url('${tile_b}')`);
+                                })
+                                .mouseout(function () {
+                                        $(this).css('background-image', `url('${tile_f}')`);
+                                });
+                }
+
+	}
 
 	returnReligiousConflictChart() {
 		let chart = {};

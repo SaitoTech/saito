@@ -9,7 +9,7 @@
   border-radius: var(--saito-border-radius, 8px);
   margin-bottom: 1.5rem;
   padding: 1rem;
-  box-shadow: var(--saito-box-shadow-small, 0 2px 5px rgba(0, 0, 0, 0.05));
+  box-shadow: var(--saito-box-shadow-small);
   overflow: hidden;
 }
 

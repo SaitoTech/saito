@@ -1,6 +1,7 @@
 const DevCardOverlayTemplate = require('./dev-card.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 
+
 class DevCardOverlay {
 	constructor(app, mod) {
 		this.app = app;
@@ -11,6 +12,9 @@ class DevCardOverlay {
 	render() {
 		this.overlay.show(DevCardOverlayTemplate(this.app, this.mod, this));
 		this.attachEvents();
+
+console.log("DEV CARDS: " + JSON.stringify(this.mod.deck));
+
 	}
 
 	attachEvents() {

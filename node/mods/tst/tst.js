@@ -37,7 +37,7 @@ class TST extends CryptoModule {
 				this.balance = (100*Math.random()).toFixed(8);
 			}
 
-			this.app.connection.emit('header-install-crypto', this.ticker);
+			this.app.connection.emit('saito-header-install-crypto', this.ticker);
 			this.save();
 		}
 		

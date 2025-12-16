@@ -3,9 +3,14 @@
 
 		let p = this.game.state.players_info[player_num-1];
 
-		for (let z = 0; z < p.cards.length; z++) {
-			p.cards[z].tapped = false;
-		}
+		p.land_played = 0;
+		p.combat_started = 0;
+		p.combat_finished = 0;
+
+		for (let z = 0; z < p.cards.length; z++) { p.cards[z].tapped = 0; }
+
+		this.board.refreshPlayerMana(player_num);
+		this.board.render();
 
 	}
 
@@ -19,6 +24,8 @@
 				health: 20,
 				mana: 0, 
 				land_played: 0, 
+				combat_started: 0, 
+				combat_finished: 0, 
 				cards: [],
 				graveyard: [],
 			};
@@ -51,7 +58,7 @@
 
 	  let obj = {
 	    key    	: cardname ,
-	    tapped 	: true ,
+	    tapped 	: 1 ,
             affixed 	: [] ,
 	  }
 

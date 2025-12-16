@@ -46,7 +46,7 @@
 	border: 1px solid var(--saito-border-color);
 	box-shadow: -1px -1px #000;
 	background-color: var(--background-color-shim-light);
-	border-radius: var(--border-radius-identicon);
+	border-radius: var(--saito-border-radius);
 }
 
 /*
@@ -69,7 +69,7 @@
 	border-radius: 100%;
 	color: var(--saito-primary);
 	background-color: var(--saito-turquoise);
-	box-shadow: var(--shadow-standard);
+	box-shadow: var(--saito-box-shadow);
 }
 
 .my-turn .player-turn i {

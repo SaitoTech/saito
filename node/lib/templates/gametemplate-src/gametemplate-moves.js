@@ -341,28 +341,12 @@ class GameMoves {
         this.game.recent_moves_cache.push([]);
       }
 
-      console.log('#');
-      console.log('#');
-      console.log('#');
-      console.log('# cache recent move!');
-      console.log('#');
-      console.log('#');
-      console.log('#');
-
       //
       // keep 3 moves per player
       //
       let idx = 0;
       for (let z = 0; z < this.game.players.length; z++) {
-        console.log('player is: ' + this.game.players[z]);
         if (gametx.to[0].publicKey == this.game.players[z]) {
-          console.log('#');
-          console.log('#');
-          console.log('#');
-          console.log('# found player');
-          console.log('#');
-          console.log('#');
-          console.log('#');
           idx = z;
           break;
         }

@@ -147,11 +147,11 @@ class League extends ModTemplate {
 									//console.log(`LEAGUE [${game_name}]: Want to show tweet`);
 									tweet.rethread = false;
 								} else if (this.watch_list[l.id] == 'none') {
-									console.log(`LEAGUE [${game_name}]: Want to hide tweet`);
+									//console.log(`LEAGUE [${game_name}]: Want to hide tweet`);
 									// no thread_id --> do not display
 									tweet.thread_id = null;
 								} else {
-									console.log(`LEAGUE [${game_name}]: Want to thread tweet`);
+									//console.log(`LEAGUE [${game_name}]: Want to thread tweet`);
 								}
 								return tweet;
 							}
@@ -582,6 +582,7 @@ class League extends ModTemplate {
 			} else if (txmsg.request === 'roundover') {
 				await this.receiveRoundoverTransaction(txmsg);
 			} else if (txmsg.request === 'accept') {
+				console.log('League processing game accept');
 				await this.receiveAcceptTransaction(blk, tx, conf);
 			} else if (txmsg.request === 'launch singleplayer') {
 				await this.receiveLaunchSinglePlayerTransaction(blk, tx, conf);
@@ -643,6 +644,12 @@ class League extends ModTemplate {
 						league.players = value.players;
 						league.rank = value.rank;
 						league.numPlayers = value.numPlayers;
+
+						if (league.rank > 0) {
+							if (this.watch_list[lid]) {
+								this.watch_list[lid] = 'some';
+							}
+						}
 
 						if (league.game === league_self.app.modules.returnActiveModule()?.name) {
 							console.debug(
@@ -714,9 +721,7 @@ class League extends ModTemplate {
 		// Settings / Watchlist
 		this.app.options.league.watch_list = {};
 		for (let l in this.watch_list) {
-			if (this.watch_list[l] != 'some') {
-				this.app.options.league.watch_list[l] = this.watch_list[l];
-			}
+			this.app.options.league.watch_list[l] = this.watch_list[l];
 		}
 
 		if (this.debug) {
@@ -1169,9 +1174,9 @@ class League extends ModTemplate {
 	async receiveAcceptTransaction(blk, tx, conf) {
 		let txmsg = tx.returnMessage();
 
-		if (this.debug) {
-			console.debug(`League processing game start of ${txmsg.game}!`);
-		}
+		//if (this.debug) {
+		console.debug(`League processing game start of ${txmsg.game}!`);
+		//}
 
 		//if (this.app.BROWSER){ return; }
 
@@ -1312,6 +1317,10 @@ class League extends ModTemplate {
 		//
 		if (!this.app.BROWSER && txmsg.request == 'gameover') {
 			shouldTweet = true;
+		}
+
+		if (txmsg.reason == 'forfeit') {
+			shouldTweet = false;
 		}
 
 		let playerStats = await this.getPlayersFromLeague(league.id, players);
@@ -1653,7 +1662,7 @@ class League extends ModTemplate {
 
 			this.leagues.push(newLeague);
 			if (newLeague.ranking_algorithm == 'ELO') {
-				this.watch_list[newLeague.id] = 'some';
+				this.watch_list[newLeague.id] = 'none';
 			}
 
 			await this.leagueInsert(newLeague);
@@ -1667,6 +1676,7 @@ class League extends ModTemplate {
 		if (!obj.id) {
 			return;
 		}
+
 		let oldLeague = this.returnLeague(obj.id);
 
 		if (!oldLeague) {
@@ -1713,6 +1723,13 @@ class League extends ModTemplate {
 			if (!league?.rank || league.rank <= 0) {
 				league.rank = 0;
 				league.numPlayers = league.players.length;
+				// Newly joined...
+				if (league.ranking_algorithm == 'ELO') {
+					if (this.watch_list[league.id] == 'none') {
+						this.watch_list[league.id] = 'some';
+						console.info('Automatically add league to watch list on joining for the first time');
+					}
+				}
 			}
 
 			if (league.admin && league.admin !== this.publicKey) {

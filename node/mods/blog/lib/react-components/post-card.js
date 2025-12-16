@@ -2,7 +2,6 @@ import React from 'react';
 import { getImageUrl } from '../utils';
 
 const PostCard = ({ app, mod, post, index, onClick, selectedUser }) => {
-  const isMultiline = post.title.length > 50;
   let source = mod.returnImage();
   let haveImg = true;
   if (post.image) {
@@ -15,30 +14,28 @@ const PostCard = ({ app, mod, post, index, onClick, selectedUser }) => {
   let date = app.browser.formatDate(post.timestamp);
   return (
     <div key={index} onClick={onClick} className="post-card">
-      <div className="post-card-content">
-        <div className="post-card-image">
-          {' '}
-          <img
-            src={source}
-            alt="Post preview"
-            className={`preview-image ${haveImg ? '' : `profile-image-${post.publicKey}`}`}
-          />
-        </div>
-        <div className="post-card-main">
-          <h4 className="post-card-title">{post.title}</h4>
-          {selectedUser.username && (
-            <div className="post-card-meta">
-              <div className="saito-user single-line">
-                {' '}
-                Published by{' '}
-                <span style={{ color: 'var(--saito-primary)' }}>
-                  {app.keychain.returnUsername(post.publicKey)}
-                </span>{' '}
-                on {date.month} {date.day}, {date.year}{' '}
-              </div>
-            </div>
-          )}
-        </div>
+      <div className="post-card-image">
+        {' '}
+        <img
+          src={source}
+          alt="Post preview"
+          className={`preview-image ${haveImg ? '' : `profile-image-${post.publicKey}`}`}
+        />
+      </div>
+      <div className="post-card-main">
+        <div className="post-card-title">{post.title}</div>
+        {selectedUser.username && (
+          <div className="byline">
+            Published by
+            <span className="blog-author" data-publickey={post.publicKey}>
+              {app.keychain.returnUsername(post.publicKey)}
+            </span>
+            on {date.month} {date.day}, {date.year}
+          </div>
+        )}
+        {post.content && (
+          <div className="blog-preview">{mod.extractBlogSummary(post.content, 100)}</div>
+        )}
       </div>
     </div>
   );

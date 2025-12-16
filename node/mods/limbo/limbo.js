@@ -1858,9 +1858,10 @@ class Limbo extends ModTemplate {
 		as.render();
 	}
 
-	webServer(app, expressapp, express) {
-		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
-		let mod_self = this;
+	webServer(app, expressapp, express, alternative_slug = null) {
+		const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
+		const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+		const mod_self = this;
 
 		const serverFn = async (req, res) => {
 			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
@@ -1895,9 +1896,11 @@ class Limbo extends ModTemplate {
 			return;
 		};
 
-		expressapp.get('/' + encodeURI(this.returnSlug()), serverFn);
-		expressapp.get('/' + encodeURI('limbo'), serverFn);
+		expressapp.get(uri, serverFn);
+		expressapp.use(uri, express.static(webdir));
 
+		// Hard code support to original name
+		expressapp.get('/' + encodeURI('limbo'), serverFn);
 		expressapp.post('/' + encodeURI('limbo'), async function (req, res) {
 			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
 
@@ -1905,8 +1908,6 @@ class Limbo extends ModTemplate {
 				mod_self.sendFailSafe(req.query.action, req.query.key);
 			}
 		});
-
-		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
 	}
 }
 

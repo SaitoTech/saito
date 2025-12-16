@@ -23,13 +23,11 @@ class Website extends ModTemplate {
 	}
 	initialize(app) {}
 
-	webServer(app, expressapp, express) {
-		expressapp.use('/', express.static(`${__dirname}/../../mods/${this.dirname}/web`));
-		// TODO: change every reference in the site from /website/* to /* and remove this line
-		expressapp.use(
-			`/${this.dirname}/`,
-			express.static(`${__dirname}/../../mods/${this.dirname}/web`)
-		);
+	webServer(app, expressapp, express, alternative_slug = null) {
+		const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
+		const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+
+		expressapp.use(uri, express.static(webdir));
 	}
 }
 module.exports = Website;

@@ -157,8 +157,7 @@
 	max-height: 80vh;
 	padding: 1rem;
 	border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
-	border-radius: var(--border-radius-overlay);
-
+	border-radius: var(--saito-border-radius);
 	background-color: var(--saito-background-color);
 	background-image: url(/saito/img/tiled-logo.svg);
 	display: flex;
@@ -362,7 +361,7 @@ video#local.noflip {
 	border-radius: 0.5rem;
 	border: 1px solid;
 	background-color: var(--saito-background-color);
-	color: var(--color-contrast);
+	color: var(--saito-gray-200);
 }
 
 .dream-wizard h1 {
@@ -579,7 +578,7 @@ video#local.noflip {
 	border-radius: 0.5rem;
 	border: 1px solid;
 	background-color: var(--saito-background-color);
-	color: var(--color-contrast);
+	color: var(--saito-gray-200);
 	display: flex;
 	flex-direction: column;
 	gap: 2rem;

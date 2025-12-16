@@ -15,7 +15,7 @@
   display: block;
 }
 
-.controls .game-cardgrid .card::after {
+.controls .game-cardgrid .card:has(.cancel_x)::after {
   content: "";
   position: absolute;
   top: 0;

@@ -385,22 +385,29 @@ class GameTemplate extends ModTemplate {
   }
 
   async render(app) {
-    await super.render(app);
-    app.connection.emit('set-relay-status-to-busy', {});
+    try {
+      await super.render(app);
+      app.connection.emit('set-relay-status-to-busy', {});
 
-    await this.header.render();
-    this.initializeHTML(app);
-    this.game_move_notification = new Audio('/saito/sound/Belligerent.mp3');
+      if (this.header) {
+        await this.header.render();
+      }
 
-    if (this.game.crypto) {
-      this.insertCryptoLogo(this.game.crypto);
-    }
+      this.initializeHTML(app);
+      this.game_move_notification = new Audio('/saito/sound/Belligerent.mp3');
 
-    //
-    // try to fetch games moves if we have finished init
-    //
-    if (this.game.step.game > 2) {
-      this.fetchRecentMoves();
+      if (this.game.crypto) {
+        this.insertCryptoLogo(this.game.crypto);
+      }
+
+      //
+      // try to fetch games moves if we have finished init
+      //
+      if (this.game.step.game > 2) {
+        this.fetchRecentMoves();
+      }
+    } catch (err) {
+      console.error(err);
     }
   }
 
@@ -1691,20 +1698,22 @@ class GameTemplate extends ModTemplate {
     let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
     let mod_self = this;
 
-    expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
-      let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
+    if (this.default_html) {
+      expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
+        let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
 
-      mod_self.social.url = reqBaseURL + encodeURI(mod_self.returnSlug());
-      mod_self.social.image = `${reqBaseURL + mod_self.returnSlug()}/img/arcade/arcade.jpg`;
+        mod_self.social.url = reqBaseURL + encodeURI(mod_self.returnSlug());
+        mod_self.social.image = `${reqBaseURL + mod_self.returnSlug()}/img/arcade/arcade.jpg`;
 
-      let html = HomePage(app, mod_self, app.build_number, mod_self.social);
-      if (!res.finished) {
-        res.setHeader('Content-type', 'text/html');
-        res.charset = 'UTF-8';
-        return res.send(html);
-      }
-      return;
-    });
+        let html = HomePage(app, mod_self, app.build_number, mod_self.social);
+        if (!res.finished) {
+          res.setHeader('Content-type', 'text/html');
+          res.charset = 'UTF-8';
+          return res.send(html);
+        }
+        return;
+      });
+    }
 
     expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
   }

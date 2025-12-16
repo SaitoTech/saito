@@ -107,21 +107,11 @@ class Migration extends ModTemplate {
 		}
 
 		if (this.browser_active) {
-			setTimeout(async () => {
-				try {
-					this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
-
-					if (this.ercMod) {
-						await this.ercMod.activate();
-						console.log('My address: ', this.ercMod.formatAddress());
-						if (this.relay_available) {
-							this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
-						}
-					}
-				} catch (err) {
-					console.error(err);
-				}
-			}, 3000);
+			try {
+				this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+			} catch (err) {
+				salert('Automated Migration requires Mixin and ERC modules to be installed!');
+			}
 		}
 	}
 
@@ -138,18 +128,38 @@ class Migration extends ModTemplate {
 
 	async onPeerServiceUp(app, peer, service = {}) {
 		// Update migration service node address
-		if (service.service == 'migration') {
-			console.warn('---> update public key of Migration bot for local testing!!!!');
-			this.migration_publickey = peer.publicKey;
-		}
+		if (this.browser_active) {
+			if (service.service == 'migration') {
+				console.warn('---> update public key of Migration bot for local testing!!!!');
+				this.migration_publickey = peer.publicKey;
+			}
 
-		if (service.service == 'relay') {
-			if (this.browser_active) {
+			if (service.service == 'relay') {
 				this.relay_available = true;
-				if (this.ercMod) {
-					this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
-				}
-				siteMessage('checking if automated migration available...', 1000);
+			}
+
+			//
+			// Make sure Mixin is online in case we need to create an account
+			//
+			if (service.service === 'mixin') {
+				setTimeout(async () => {
+					try {
+						if (this.ercMod) {
+							await this.ercMod.activate();
+
+							if (this.relay_available && this.ercMod?.address) {
+								console.log('My address: ', this.ercMod.formatAddress());
+								this.sendMigrationPingTransaction({ mixin_address: this.ercMod.formatAddress() });
+								siteMessage('checking if automated migration available...', 2000);
+								return;
+							}
+						}
+					} catch (err) {
+						console.error(err);
+					}
+					console.log('Hello...');
+					salert('Unable to initialize deposit address for automated migration');
+				}, 1000);
 			}
 		}
 	}

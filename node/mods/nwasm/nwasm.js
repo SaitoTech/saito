@@ -4,12 +4,12 @@ const PeerService = require('saito-js/lib/peer_service').default;
 const NwasmGameOptionsTemplate = require('./lib/nwasm-game-options.template');
 const UploadRom = require('./lib/upload-rom');
 const ControlsOverlay = require('./lib/controls');
-const NwasmLibrary = require('./lib/libraries');
+const NwasmUI = require('./lib/ui/main');
 const SaveGameOverlay = require('./lib/save-games');
 const JSON = require('json-bigint');
 const xorInplace = require('buffer-xor/inplace');
 const Transaction = require('../../lib/saito/transaction').default;
-
+const SaitoNFT = require('../../lib/saito/ui/saito-nft/saito-nft');
 
 //
 // NWasm Library
@@ -43,7 +43,7 @@ class Nwasm extends OnePlayerGameTemplate {
 		this.categories = 'Games Videogame Classic';
 
 		this.uploader = null;
-		this.ui = new NwasmLibrary(this.app, this);
+		this.ui = new NwasmUI(this.app, this);
 		this.library = {};
 
 		//
@@ -55,10 +55,7 @@ class Nwasm extends OnePlayerGameTemplate {
 		//      id              : "id" ,
 		//      title           : "title" ,
 		//      description     : "description" ,
-		//      num             : 1 ,                           // total in collection
-		//      available       : 1 ,                           // total available (not in use)
 		//      key             : "" ,                          // random key that encrypts content
-		//      checkout        : [] ,
 		//      sig             : "sig"                         // sig of transaction with content
 		//   }
 		// ]         
@@ -79,7 +76,9 @@ class Nwasm extends OnePlayerGameTemplate {
 
 		this.uploaded_rom = false;
 
-		return this;
+		// opt out of index.js
+		this.default_html = 0;
+
 	}
 
 
@@ -96,6 +95,34 @@ class Nwasm extends OnePlayerGameTemplate {
         }      
 
 
+        /////////////////////////////////
+        // inter-module communications //
+        /////////////////////////////////
+        respondTo(type = '', obj) {
+          let this_mod = this;
+
+          if (type === 'saito-create-nft') {
+            return {
+              title : "N64 ROM" ,
+              class : ["nwasm-nft-mod"] ,
+	      createObject : async (modfile) => {
+		let name = prompt("What is the name of this N64 ROM?");
+		let obj = {};
+		obj.module = "Nwasm";
+		obj.name = name;
+		obj.file = modfile;
+		try { alert("Uploading ROM, please be patient..."); } catch (err) {}
+		return obj;
+	      } ,
+            };
+          }
+
+	  return super.respondTo(type, obj);
+
+        }
+
+
+
         //
         // when we connect to a peer that supports the "Nwasm" service, we contact
         // them with a request for information on any library that they have in case
@@ -106,32 +133,17 @@ class Nwasm extends OnePlayerGameTemplate {
                 //
                 // remote peer runs a library
                 //
-                if (service.service === 'nwasm') {
- 
-                	//
-                        // we want to know what content is indexed for collection with specified name
-                        //
-                        let message = {};
-                        message.request = 'nwasm collection';
-                        message.data = {};
-
-                        //
-                        // add it to our library
-                        //
-                        app.network.sendRequestAsTransaction(
-                        	message.request,
-                                message.data,
-                                (res) => {
-                                	if (res.length > 0) {
-                                        	library_self.library[peer.publicKey] = res;
-                                        }
-                                },
-                                peer.peerIndex
-                        );
+                if (service.service === 'vault') {
+			let vault_mod = app.modules.returnModule("Vault");
+			if (vault_mod) {
+				vault_mod.peer = peer;
+				vault_mod.peer_connected = true;
+			}
                 }
         }
 
         isItemInLibrary(item, peer = 'localhost') {
+
                 if (peer === 'localhost') {
                         peer = this.publicKey;
                 }
@@ -150,23 +162,60 @@ class Nwasm extends OnePlayerGameTemplate {
                                 }
                         }
                 }
+
                 return false;
         }
 
 	
 
 
-        addItemToLibrary(tx, secret_key="", peer = 'localhost') {
+	createItem(tx = null, secret_key = "") {
+
+		if (tx == null) { return null; }
+
+		let txmsg = tx.returnMessage();
+                  
+		let item = {};
+
+		//
+		// NFT
+		//
+		if (tx.type == 8) {
+                	item.module = "Nwasm";
+                        item.title = txmsg.data?.title || "";
+                        item.id = this.app.crypto.hash(item.title);
+                        item.key = "";
+                        item.sig = tx.signature;
+		}
+                      
+		//          
+		// Normal          
+		//          
+		if (tx.type == 0) {
+			item.module = "Nwasm";
+			item.id = txmsg.id;
+			item.title = txmsg.title;
+			item.key = secret_key;
+			item.sig = tx.signature;
+		}
+		
+		return item;
+
+	}
+
+
+        addItemToLibrary(item, peer = 'localhost') {
 
                 if (peer === 'localhost') {
                         peer = this.publicKey;
                 }
 
-		let txmsg = tx.returnMessage();
 		let does_item_exist_in_collection = false;
-
 		if (!this.library[peer]) { this.library[peer] = []; }
 
+		//
+		// preventing unwitting duplication
+		//
                 for (
                         let i = 0;
                         i < this.library[peer].length;
@@ -181,143 +230,23 @@ class Nwasm extends OnePlayerGameTemplate {
                 }
 
 		//
-		// preventing unwitting duplication
-		//
-                if (does_item_exist_in_collection) {
-                	try {
-                        	let c = confirm('Your library already contains a copy of this item. Is this a new copy?');
-                                if (!c) { alert('refusing to add duplicate item!'); return; }
-				does_item_exist_in_collection = false;
-                        } catch (err) {}
-                }
-
-		//
 		// and push into library
 		//
                 if (!does_item_exist_in_collection) {
-
 			if (!this.library[peer]) { this.library[peer] = []; }
-                        this.library[peer].push({
-				
-				module		:	this.name ,
-				id		:	txmsg.id ,
-				title		:	txmsg.title ,
-				key		:	secret_key ,
-				owner		:	peer ,
-				num		:	1 ,
-				available	:	1 ,
-				checkout	:	[] ,
-				sig		:	tx.signature ,	
-			});
+                        this.library[peer].push(item);
 			this.save();
-                }
+                } else {
+			if (!this.library[peer]) { this.library[peer] = []; }
+			for (let z = 0; z < this.library[peer].length; z++) {
+				if (this.library[peer][z].sig == item.sig) {
+					this.library[peer][z] = item;
+				}
+			}
+		}
 
         }
 
-
-	checkout(borrower, sig, mycallback) {
-
-		//
-		// cannot checkout if library has no reference
-		//
-		if (!this.library[this.publicKey]) { return; }
-
-		//
-		// find item
-		//
-		let idx = -1;
-		for (
-			let i = 0;
-			i < this.library[this.publicKey].length;
-			i++
-		) {
-			if (this.library[this.publicKey][i].sig === sig) {
-				idx = i;
-				break;
-			}
-		}
-
-		//
-		// if item exists
-		//
-		if (idx != -1) {
-
-			//
-			// grab item
-			//
-			let item = this.library[this.publicKey][idx];
-
-			//
-			// is it checked out ?
-			//
-			let is_already_borrowed = 0;
-			let is_already_borrowed_idx = -1;
-			for (let i = 0; i < item.checkout.length; i++) {
-				if (item.checkout[i].publickey === borrower) {
-					item.checkout[i].timestamp = new Date().getTime();
-					is_already_borrowed_idx = i;
-				}
-			}
-
-			//
-			// the one condition we permit re-borrowing is if this user is the
-			// one who has borrowed the item previously and has it in their
-			// possession. in that case they have simply rebooted their
-			// machine or browser, and we do not want to have policies that 
-			// prevent them continuing.
-			//
-			// this "unsets" the loan so that it can be reset with the passing
-			// through of control to the !is_already_borrowed sanity check.
-			//
-			if (is_already_borrowed) {
-				for (let i = 0; i < item.checkout.length; i++) {
-					if (item.checkout[i].publickey === borrower) {
-						item.checkout.splice(i, 1);
-						// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! //
-						// be careful that item.available //
-						// is not removed below for legal //
-						// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! //
-						item.available++;
-						this.save();
-						is_already_borrowed = 0;
-					}
-				}
-			}
-
-			//
-			// now we can permit the checkout
-			//
-			if (!is_already_borrowed) {
-
-				if (item.available < 1) {
-					alert("item not available: " + item.available);
-					return;
-				}
-				if (item.checkout.length > item.num) {
-					alert("item not available - checked out: " + item.available);
-					return;
-				}
-				//
-				// record the checkout
-				//
-				item.checkout.push({
-					publickey: borrower,
-					ts: new Date().getTime()
-				});
-				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! //
-				// be careful that item.available //
-				// is not removed above for legal //
-				// as allows sanity check         //
-				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!! //
-				item.available--;
-				this.save();
-
-				alert('ABOUT TO CHECKOUT!');
-
-				this.app.storage.loadTransactions({ sig: sig }, mycallback);
-			}
-		}
-	}
 
 
         //
@@ -356,10 +285,6 @@ class Nwasm extends OnePlayerGameTemplate {
 
 
 
-
-
-
-
 	//
 	// when this game initializes it begins to monitor the console log. this is 
 	// used to provide feedback into the Saito module when the game has loaded 
@@ -369,28 +294,11 @@ class Nwasm extends OnePlayerGameTemplate {
 
 		await super.initialize(app);
 
+		//
+		// non-browsers don't monitor the log
+		//
 		if (app.BROWSER == 0) {
 			return;
-		}
-
-		//
-		// uncheckout personal items
-		//
-		if (!this.library[this.publicKey]) { this.library[this.publicKey] = []; }
-		for (let i = 0; i < this.library[this.publicKey].length; i++) {
-		  let item = this.library[this.publicKey][i];
-		  if (item.checkout.length > 0) {
-		    for (let z = 0; z < item.checkout.length; z++) {
-		      let borrower = item.checkout[z];
-		      if (borrower.publickey === this.publicKey) {
-			//
-			// we borrowed from ourselves, so auto-return on refresh/reload
-			//
-			item.available++;
-			item.checkout.splice(z, 1);
-		      }
-		    }
-		  }
 		}
 
 		//
@@ -409,6 +317,45 @@ class Nwasm extends OnePlayerGameTemplate {
 				};
 			}
 		}
+
+
+		//
+		// Monitor NFTs for additional 
+		//
+	        if (this.app.options.wallet.nfts) {
+        	  	for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
+          	  		let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
+          	  		let nft_type = this.app.wallet.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
+		    		if (nft_type === "nwasm-nft-mod") {
+					this.app.storage.loadTransactions({ sig: nft_sig }, async (txs) => {
+						if (txs.length < 1) { return; }
+						let tx = txs[0];
+						let item = this.createItem(tx);
+						this.addItemToLibrary(item, 'localhost');
+						await this.ui.render();
+
+					}, 'localhost');
+		    		}
+		    		if (nft_type === "vault") {
+					this.app.storage.loadTransactions({ sig: nft_sig }, async (txs) => {
+						if (txs.length < 1) { return; }
+						let tx = txs[0];
+						let item = {};
+                        			item.module = "NWASM";
+ 			                	item.title = "Unknown NFT-Protected ROM";
+                        			item.sig = nft_sig;
+                        			item.id = nft_sig;
+                        			item.tx = tx.serialize_to_web(this.app);
+                        			item.vault = 1;
+						this.addItemToLibrary(item, 'localhost');
+						await this.ui.render();
+					}, 'localhost');
+		    		}
+	        	}
+		}
+          
+
+
 	}
 
 
@@ -418,6 +365,7 @@ class Nwasm extends OnePlayerGameTemplate {
 	// UI and Rendering //
 	//////////////////////
 	async render(app) {
+
 		let game_mod = this;
 		if (!this.browser_active) {
 			return;
@@ -473,10 +421,11 @@ class Nwasm extends OnePlayerGameTemplate {
 				}
 			}
 		});
+
 		this.menu.addChatMenu();
 		this.menu.render();
-
 		await this.ui.render();
+
 	}
 
 
@@ -484,6 +433,7 @@ class Nwasm extends OnePlayerGameTemplate {
 	// Game Engine Support //
 	/////////////////////////
 	initializeGame(game_id) {
+
 		let nwasm_self = this;
 
 		if (!this.game.state) {
@@ -601,7 +551,7 @@ class Nwasm extends OnePlayerGameTemplate {
 			field1: this.name,
 			field2: this.publicKey,
 			field3: this.active_rom_name
-		});
+		}, 'localhost');
 
 		if (iobj) {
 			iobj.innerHTML = 'saving reference to local file';
@@ -610,9 +560,81 @@ class Nwasm extends OnePlayerGameTemplate {
 		//
 		// add this to our library
 		//
-		this.addItemToLibrary(newtx, secret_key);
+		let item = this.createItem(newtx, secret_key);
+		this.addItemToLibrary(item);
 
 	}
+
+	//
+	// loads the ROM file from a local archive or -- if it is remotely-hosted --
+	// through the remote archive
+	//
+	loadRomFile(sig, mycallback) {
+
+		if (!this.library[this.publicKey]) { return; }
+
+		//
+		//
+		//
+		let fetch_fnct = null;
+
+		let item = null;
+		let idx = 0;
+		for (
+			let i = 0;
+			i < this.library[this.publicKey].length;
+			i++
+		) {
+			if (this.library[this.publicKey][i].sig === sig) {
+				if (this.library[this.publicKey][i].vault) {
+					idx = i;
+					item = this.library[this.publicKey][i];
+				}
+			}
+		}
+
+
+		if (item?.vault) {
+			let vault_mod = this.app.modules.returnModule("Vault");
+			let tx = new Transaction();
+			tx.deserialize_from_web(this.app, item.tx);
+			let txmsg = tx.returnMessage();
+			let nft = new SaitoNFT(this.app, this, tx);
+
+ 			let vault_data = {};
+			vault_data.nft_id = nft.id;
+			vault_data.slip1_utxokey = nft.slip1?.utxo_key;
+			vault_data.slip2_utxokey = nft.slip2?.utxo_key;
+			vault_data.slip3_utxokey = nft.slip3?.utxo_key;
+			vault_data.file_id = txmsg.data?.file_id;     
+			vault_mod.sendAccessFileRequest(vault_data, (base64) => {
+				if (!base64) { console.log("ERROR: cannot load from Vault"); return; }
+				let tx = this.packRom(base64, item);
+				mycallback([tx]);
+			});
+
+			//
+			// mycallback expects to be sent [txs] with length = 1
+			//
+			// but we are fetching the file through an NFT-provided fetch function
+			// which means we get the actual base64 module/rom rather than the 
+			// transaction specifically, since the module handles the tx-level
+			// abstraction.
+			//
+			// thus we "pack" the result that fetch_fnct pushes into its callback
+			// into a transaction before we push that transaction into an array
+			// and redirect it to our above callback.
+			//
+			return;
+		}
+
+		//
+		// default from my transaction archive
+		//
+		this.app.storage.loadTransactions({ sig: sig }, mycallback, 'localhost');
+
+	}
+
 
 	async deleteRoms() {
 
@@ -655,7 +677,6 @@ class Nwasm extends OnePlayerGameTemplate {
 	initializeRom(bytearray) {
 		this.active_game_saves = [];
 		myApp.initializeRom(bytearray);
-		this.ui.hide();
 	}
 
 	returnAdvancedOptions() {
@@ -671,6 +692,7 @@ class Nwasm extends OnePlayerGameTemplate {
 	// execution into an infinite loop.
 	//
 	async processNwasmLog(logline = '', log) {
+
 		let x = logline;
 		let nwasm_self = this;
 
@@ -774,49 +796,55 @@ class Nwasm extends OnePlayerGameTemplate {
 	//////////////////
 	// transactions //
 	//////////////////
-	loadRomFile(tx) {
+	extractRom(tx) {
 	
-		alert('in load ROM file... 1');
-
 		let txmsg = tx.returnMessage();
 		let secret_key = "";
-
 		for (let peer in this.library) {
 		  for (let i = 0; i < this.library[peer].length; i++) {
 		    let item = this.library[peer][i];
-		    console.log("ID: " + txmsg.id);
 		    if (txmsg.id == item.id) {
-		      console.log("KEY: " + item.key);
-		      secret_key = item.key;
+		      if (item.key) { secret_key = item.key; }
 		    }
 		  }
 		}
 
-		alert('in load ROM file... 2');
-
-		//console.log(txmsg.data);
-
-		let ab = this.convertBase64ToByteArray(this.xorBase64(txmsg.data, secret_key));
-
-console.log("after convert base 64 to byte array...");
-
-		alert('in load ROM file... 3');
+		let base64 = txmsg.data;
+		if (txmsg.data.file) { base64 = txmsg.data.file; }
+		let rbase64 = base64.split("base64,")[1] ?? base64;
+		let ab = "";
+		if (secret_key != "") { 
+			ab = this.convertBase64ToByteArray(this.xorBase64(rbase64, secret_key));
+		} else {
+			ab = this.convertBase64ToByteArray(rbase64);
+		}
 
 		//
 		// prevents us saving the file, this is an already uploaded rom
 		//
 		this.uploaded_rom = true;
 		this.active_game_saves = [];
-
-console.log("before start playing...");
-
 		this.startPlaying();
 
 		//
 		// initialize ROM gets the ROM the APP and the MOD
 		//
-console.log("before initialize ROM...");
 		myApp.initializeRom(ab, this.app, this);
+	}
+	//
+	// id and key needs to be the same, rom is base64 inside data.file
+	//
+	packRom(base64, item) {
+
+		let tx = new Transaction();
+		tx.msg = {
+			id : item.id , 
+			key : item.key , 
+			data : { file : base64 }
+		}
+
+		return tx;
+
 	}
 
 	loadSaveGame(sig) {
@@ -837,7 +865,7 @@ console.log("before initialize ROM...");
 
 		this.app.storage.loadTransactions(
 			{ field1: 'Nwasm' + this.active_rom_sig, limit: 1 },
-			function (txs) {
+			(txs) => {
 				try {
 					if (txs.length <= 0) {
 						alert('No Saved Games Available');
@@ -958,27 +986,6 @@ console.log("before initialize ROM...");
                 this.nwasm = {};
 		this.nwasm.library = {};
                 this.save();
-	}
-
-	webServer(app, expressapp, express){
-		// opt out of index.js
-		// revert to web directory
-		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
-		let fs = app?.storage?.returnFileSystem();
-
-		if (fs != null) {
-			if (fs.existsSync(webdir)) {
-				expressapp.use(
-					'/' + encodeURI(this.returnSlug()),
-					express.static(webdir)
-				);
-			} else if (this.default_html) {
-				expressapp.use(
-					'/' + encodeURI(this.returnSlug()),
-					express.static(__dirname + '/../../lib/templates/html')
-				);
-			}
-		}
 	}
 
 }

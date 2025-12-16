@@ -29,6 +29,7 @@
   background: #111;
   position: relative;
   transition: transform 0.2s ease;
+  overflow: hidden;
 }
 
 .card-container:hover {
@@ -60,5 +61,20 @@
   line-height: 20px;
 }
 
+.can_event {
+  outline: 1px solid green;
+  outline-offset: 2px;
+  box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+  transition: 0.12s ease-in-out;
+  cursor: pointer;
+}
 
+.can_attack {
+  outline: 1px dashed red;
+  outline-offset: 2px;
+  box-shadow: 0 0 8px rgba(255, 0, 0, 0.6);
+  transition: 0.12s ease-in-out;
+  cursor: pointer;
+  transform: scale(1.03);
+}
 

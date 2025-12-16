@@ -1,4 +1,4 @@
-class SaitoNft {
+class SaitoNFT {
   constructor(app, mod, tx = null, data = null, card = null) {
     this.app = app;
     this.mod = mod;
@@ -12,6 +12,13 @@ class SaitoNft {
     this.slip2 = data?.slip2;
     this.slip3 = data?.slip3;
 
+    this.title = '';
+    this.description = '';
+    this.creator = '';
+    if (this.slip1?.public_key) {
+      this.creator = this.slip1.public_key;
+    }
+
     //
     // tx details
     //
@@ -24,6 +31,10 @@ class SaitoNft {
     this.deposit = BigInt(0); // nolans
     this.image = '';
     this.text = '';
+    this.json = '';
+    this.js = '';
+    this.css = '';
+    this.nft_type = '';
 
     this.load_failed = false;
 
@@ -48,12 +59,16 @@ class SaitoNft {
       this.deposit = BigInt(this.slip2.amount);
     }
 
+    if (this.slip3?.utxo_key) {
+      this.nft_type = this.app.wallet.extractNFTType(this.slip3.utxo_key);
+    }
+
     if (tx != null) {
       this.buildNFTData();
     }
   }
 
-  async fetchTransaction(callback = null) {
+  async fetchTransaction(callback = null, localhost_only = false) {
     if (!this.id) {
       console.error('0.5 Unable to fetch NFT transaction (no nft id found)');
       if (callback) {
@@ -62,11 +77,15 @@ class SaitoNft {
       }
     }
 
-    if (this.tx && this.txmsg && (this.image || this.text)) {
+    if (this.tx && this.txmsg && (this.image || this.text || this.js || this.css || this.json)) {
       if (callback) {
         this.tx_fetched = false;
         return callback();
       }
+    }
+
+    if (this.tx != null) {
+      return;
     }
 
     await this.app.storage.loadTransactions(
@@ -81,8 +100,12 @@ class SaitoNft {
             return callback();
           }
         } else {
+          if (localhost_only) {
+            return null;
+          }
+
           //
-          // try remote host (which **IS NOT** CURRENTLY INDEXING NFT TXS)
+          // try remote host (ours IS **NOT** CURRENTLY INDEXING NFT TXS)
           //
           let peer = await this.app.network.getPeers();
 
@@ -91,12 +114,11 @@ class SaitoNft {
             (txs) => {
               if (txs?.length > 0) {
                 this.tx = txs[0];
-
                 this.buildNFTData();
 
                 //
                 // save remotely fetched nft tx to local
-                //
+                ////////////////////////////////////////////////
                 ////////  See note in wallet.ts ////////////////
                 ////////////////////////////////////////////////
                 this.app.storage.saveTransaction(
@@ -128,7 +150,7 @@ class SaitoNft {
     let this_self = this;
 
     if (!this.tx) {
-      console.error('SaitoNFT object missing this.tx so cannot buildNFTData - ERROR');
+      console.log('SaitoNFT has not yet loaded this.tx... skipping analysis for now');
       return;
     }
 
@@ -144,6 +166,10 @@ class SaitoNft {
       this.slip1 ??= this.extractSlipObject(this.tx?.to?.[0] ?? null);
       this.slip2 ??= this.extractSlipObject(this.tx?.to[1] ?? null);
       this.slip3 ??= this.extractSlipObject(this.tx?.to[2] ?? null);
+
+      if (this.slip1?.public_key) {
+        this.creator = this.slip1.public_key;
+      }
     }
 
     if (this.slip1?.amount) {
@@ -151,14 +177,12 @@ class SaitoNft {
       this.uuid = this.slip1?.utxo_key;
     }
 
-    console.log('slip2 amount: ' + this.slip2.amount);
     if (this.slip2?.amount) {
-      console.log('setting deposit!');
       this.deposit = BigInt(this.slip2.amount);
     }
 
     if (!this.id) {
-      this.id = this.computeNftIdFromTx(this.tx);
+      this.id = this.computeNFTIdFromTx(this.tx);
     }
   }
 
@@ -170,21 +194,63 @@ class SaitoNft {
       return;
     }
 
+    let processed = false;
+    let has_image = false;
+    let has_css = false;
+    let has_js = false;
+    let has_text = false;
+
     this.tx_sig = this.tx?.signature;
     this.txmsg = this.tx.returnMessage();
-    this.id = this.computeNftIdFromTx(this.tx);
-
+    this.id = this.computeNFTIdFromTx(this.tx);
     this.data = this.txmsg?.data ?? {};
 
     if (typeof this.data.image !== 'undefined') {
       this.image = this.data.image;
+      has_image = true;
+      processed = true;
+    }
+
+    if (typeof this.txmsg.description !== 'undefined') {
+      this.description = this.txmsg.description;
+    }
+
+    if (typeof this.txmsg.title !== 'undefined') {
+      this.title = this.txmsg.title;
+    }
+
+    if (typeof this.data.css !== 'undefined') {
+      has_css = true;
+      this.css = this.data.css;
+      processed = true;
+    }
+
+    if (typeof this.data.js !== 'undefined') {
+      has_js = true;
+      this.js = this.data.js;
+      processed = true;
     }
 
     if (typeof this.data.text !== 'undefined') {
-      this.text =
-        typeof this.data.text === 'object' && this.data.text !== null
-          ? JSON.stringify(this.data.text, null, 2)
-          : String(this.data.text);
+      has_text = true;
+      this.text = this.data.text;
+      processed = true;
+    }
+
+    if (Object.keys(this.data).length > 1) {
+      if (has_image) {
+        if (Object.keys(this.data).length > 2) {
+          this.json = JSON.stringify(this.data, null, 2);
+        }
+      } else {
+        this.json = JSON.stringify(this.data, null, 2);
+      }
+    }
+
+    if (typeof this.data !== 'undefined' && processed == false) {
+      this.json =
+        typeof this.data === 'object' ? JSON.stringify(this.data, null, 2) : String(this.data);
+      processed = true;
     }
   }
 
@@ -224,7 +290,7 @@ class SaitoNft {
   //
 
   // Derive an NFT id from a tx
-  computeNftIdFromTx(tx) {
+  computeNFTIdFromTx(tx) {
     if (!tx) {
       return null;
     }
@@ -367,6 +433,34 @@ class SaitoNft {
       ? this.app.wallet.convertNolanToSaito(this.price)
       : this.app.wallet.convertNolanToSaito(this.deposit);
   }
+
+  returnAllSlips() {
+    let nft_list = this.app.options.wallet.nfts;
+    let all_slips = [];
+    for (let z = 0; z < nft_list.length; z++) {
+      let n = nft_list[z];
+      if (n.id == this.id) {
+        all_slips.push(n);
+      }
+    }
+    return all_slips;
+  }
+
+
+  returnType() {
+    if (this.nft_type) { return this.nft_type; } 
+    if (this.slip3?.utxo_key) {
+      return this.app.wallet.extractNFTType(this.slip3.utxo_key);
+    }
+    const properties = ['image', 'text', 'json', 'js', 'css'];
+    for (const prop of properties) {
+      const value = this[prop];
+      if (value && (typeof value !== 'string' || value.trim() !== '')) {
+        return prop;
+      }
+    }
+    return null;
+  }
 }
 
-module.exports = SaitoNft;
+module.exports = SaitoNFT;

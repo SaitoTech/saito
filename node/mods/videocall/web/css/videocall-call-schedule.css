@@ -31,7 +31,7 @@ input[type="datetime-local"] {
     border-radius: 0.5rem;
     border: 1px solid var(--saito-border-color);
     background-color: var(--saito-background-color);
-    color: var(--color-contrast);
+    color: var(--saito-gray-200);
     box-sizing: border-box;
 }
 
@@ -78,7 +78,7 @@ input[type="datetime-local"] {
     padding: 2rem 3rem;
     border-radius: 0.5rem;
     background-color: var(--saito-background-color);
-    color: var(--color-contrast);
+    color: var(--saito-gray-200);
     box-sizing: border-box;
 }
 

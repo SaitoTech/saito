@@ -147,7 +147,7 @@ class HereIStand extends GameTemplate {
     //
     //
     // players
-    this.minPlayers 	 = 2;
+    this.minPlayers 	 = 1;
     this.maxPlayers 	 = 6;
 
   }
@@ -2557,6 +2557,10 @@ console.log("\n\n\n\n");
           this.addRegular("hapsburg", "vienna", 4);
           this.addRegular("hapsburg", "antwerp", 1);
 
+    	  this.game.queue.push("explore\thapsburg\t1"); // skip overlay in init
+    	  this.game.queue.push("conquer\thapsburg\t1"); // skip overlay in init
+
+
 	  // ENGLAND
           this.addArmyLeader("england", "london", "henry-viii");
           this.addArmyLeader("england", "london", "charles-brandon");
@@ -2886,6 +2890,7 @@ console.log("\n\n\n\n");
           this.controlSpace("independent", "milan");
           this.controlSpace("independent", "tunis");	
           this.controlSpace("independent", "malta", 1);
+	  this.game.state.events.knights_of_st_john = "rhodes";
           this.addRegular("independent", "malta", 1);
           this.addRegular("independent", "metz", 1);
           this.addRegular("independent", "milan", 1);
@@ -2893,7 +2898,7 @@ console.log("\n\n\n\n");
 
 	  // ALLIANCES
 	  this.setEnemies("ottoman", "hapsburg");
-	  this.setEnemies("hapsburg", "protestant");
+	  //this.setEnemies("hapsburg", "protestant");
 	  this.setEnemies("papacy", "protestant");
 	  this.setAllies("hapsburg", "hungary");
 
@@ -3729,7 +3734,7 @@ if (this.game.players.length > 2) {
     });
 ****/
     this.menu.addSubMenuOption("game-info", {
-      text : "Religion",
+      text : "Religious",
       id : "game-religious-conflict",
       class : "game-religious-conflict",
       callback : function(app, game_mod) {
@@ -3737,6 +3742,7 @@ if (this.game.players.length > 2) {
         game_mod.religious_overlay.render();
       }
     });
+/****
     this.menu.addSubMenuOption("game-info", {
       text : "Debaters",
       id : "game-debaters",
@@ -3746,6 +3752,7 @@ if (this.game.players.length > 2) {
         game_mod.displayDebaters();
       }
     });
+****/
     this.menu.addSubMenuOption("game-info", {
       text : "Explorers",
       id : "game-explorers",
@@ -26671,22 +26678,27 @@ if (this.game.options.scenario != "is_testing") {
 	}
 	if (mv[0] === "explore") {
 	  let faction = mv[1];
+	  let skip_overlays = false;
+	  if (mv[2]) { skip_overlays = true; }
     	  this.game.queue.splice(qe, 1);
 	  this.game.state.explorations.push({
 	    faction : faction,
 	    resolved :  0 ,
 	    round :   this.game.state.round,
 	  });
-	  let msg = this.returnFactionName(faction) + " launches an expedition";
-	  this.updateLog(msg);
-	  if (this.game.player == this.returnPlayerCommandingFaction(faction)) {
-	    this.game.queue.push("ACKNOWLEDGE\t"+msg);
-	    this.game.queue.push("display_custom_overlay\texplore\t"+msg);
-          } else {
-	    this.displayHudPopup("explore",msg); // true = as hud popup
+	  if (skip_overlays == false) {
+	    let msg = this.returnFactionName(faction) + " launches an expedition";
+	    this.updateLog(msg);
+	    if (this.game.player == this.returnPlayerCommandingFaction(faction)) {
+	      this.game.queue.push("ACKNOWLEDGE\t"+msg);
+	      this.game.queue.push("display_custom_overlay\texplore\t"+msg);
+            } else {
+	      this.displayHudPopup("explore",msg); // true = as hud popup
+	    }
 	  }
+
 	  this.game.state.may_explore[faction] = 0;
-	  this.displayExploration();
+	  try { if (skip_overlays == false) { this.displayExploration(); } } catch (err) {}
 	  return 1;
 	}
         if (mv[0] === "award_exploration_bonus") {
@@ -27375,6 +27387,8 @@ if (his_self.game.player == his_self.returnPlayerCommandingFaction(faction)) {
 
 	if (mv[0] === "conquer") {
 	  let faction = mv[1];
+	  let skip_overlays = false;
+	  if (mv[2]) { skip_overlays = true; }
     	  this.game.queue.splice(qe, 1);
 	  this.game.state.conquests.push({
 	    faction : faction,
@@ -27382,15 +27396,19 @@ if (his_self.game.player == his_self.returnPlayerCommandingFaction(faction)) {
 	    round :   this.game.state.round,
 	  });
 	  let msg = this.returnFactionName(faction) + " launches a conquest";
-	  this.updateLog(msg);
-	  if (this.game.player == this.returnPlayerCommandingFaction(faction)) {
-	    this.game.queue.push("ACKNOWLEDGE\t"+msg);
-	    this.game.queue.push("display_custom_overlay\tconquest\t"+msg);
-	  } else {
-	    this.displayHudPopup("conquest",msg); // true = as hud popup
+	  if (skip_overlays == false) {
+	    this.updateLog(msg);
+	    if (this.game.player == this.returnPlayerCommandingFaction(faction)) {
+	      this.game.queue.push("ACKNOWLEDGE\t"+msg);
+	      this.game.queue.push("display_custom_overlay\tconquest\t"+msg);
+	    } else {
+	      this.displayHudPopup("conquest",msg); // true = as hud popup
+	    }
 	  }
           this.game.state.may_conquer[faction] = 0;
-	  this.displayConquest();
+	  try {
+	    if (skip_overlays == false) { this.displayConquest(); }
+	  } catch (err) {}
 	  return 1;
 	}
 
@@ -33453,7 +33471,7 @@ try {
 	      opponent_dice++;
             }
           }
-          if (target_space.key == "africa" || target_space.key == "aegean") {
+          if (target_space.key == "adriatic" || target_space.key == "ionian") {
             let x = his_self.returnFactionControllingSpace("corfu");
             if (target_faction == x || factions_at_war_with_ottoman.includes(x)) {
 	      anti_piracy_faction.push("corfu");
@@ -33462,7 +33480,7 @@ try {
 	      opponent_dice++;
 	    }
           }
-          if (target_space.key == "adriatic" || target_space.key == "ionian") {
+          if (target_space.key == "africa" || target_space.key == "aegean") {
             let x = his_self.returnFactionControllingSpace("candia");
             if (target_faction == x || factions_at_war_with_ottoman.includes(x)) {
 	      anti_piracy_faction.push("candia");
@@ -41230,6 +41248,11 @@ try {
     var players = [];
     let factions  = JSON.parse(JSON.stringify(this.factions));
     let factions2 = JSON.parse(JSON.stringify(this.factions));
+
+    if (num == 1) {
+
+
+    }
 
     // < 6 player games
     if (num == 2) {
@@ -51504,7 +51527,9 @@ does_units_to_move_have_unit = true; }
 
         let action2 = $(this).attr("id");
         if (action2 !== target_faction) {
-            
+
+	  let faction_capitals = his_self.returnCapitals(faction);            
+
           $('.option').off();
           $('.option').on('click', function () {
             let action3 = $(this).attr("id");
@@ -51513,9 +51538,28 @@ does_units_to_move_have_unit = true; }
       	    his_self.playerSelectSpaceWithFilter(
         	"Yield which Space?",
          	function(space) {
-         	   if (space.political === faction || (space.home == faction && space.political == "")) {
-	 	     return 1;
-	 	   }
+
+		   //
+		   // you cannot yield your capital
+		   //
+		   if (faction_capitals.includes(space.key)) { return 0; }
+
+		   //
+		   // spaces that belong to minor powers can only be traded to allies
+		   //
+  		   if (this.isAlliedMinorPower(space.home, target_faction)) {
+
+		     return 1;
+		   } else {
+
+		     //
+		     // other spaces need to be controlled by the party giving it away
+		     //
+         	     if (space.political === faction || (space.home == faction && space.political == "")) {
+	 	       return 1;
+	 	     }
+
+		   }
 	 	   return 0;
          	},
           	function(spacekey) {
@@ -51579,7 +51623,7 @@ does_units_to_move_have_unit = true; }
   }
 
   async playerApproveDivorce(his_self, faction, mycallback) {
-    mycallback([`advance_henry_viii_marital_status`,`SETVAR\tstate\thenry_viii_pope_approves_divorce_round\t${his_self.game.state.round}`,`SETVAR\tstate\thenry_viii_pope_approves_divorce\t1`, `NOTIFY\tThe Papacy accedes to Henry VIII's request for a divorce.`]);
+    mycallback([`unset_allies\tpapacy\thapsburg`, `advance_henry_viii_marital_status`,`SETVAR\tstate\thenry_viii_pope_approves_divorce_round\t${his_self.game.state.round}`,`SETVAR\tstate\thenry_viii_pope_approves_divorce\t1`, `NOTIFY\tThe Papacy accedes to Henry VIII's request for a divorce.`]);
     return 0;
   }
 
@@ -52437,16 +52481,13 @@ does_units_to_move_have_unit = true; }
 	//
 	try {
 	  let reformer = x[0] + "-reformer";
-console.log("reformer: " + reformer);
-console.log("faction: " + this.debaters[debater].faction);
           let s = this.returnSpaceOfPersonage(this.debaters[debater].faction, reformer);
-console.log("reformer space: " + JSON.stringify(s));
 	  if (s) { this.removeReformer(this.debaters[debater].faction, reformer); }
 	  // re-display space
 	  this.displaySpace(s);
 	} catch (err) {
 	  // reformer does not exist
-console.log("ERROR: " + JSON.stringify(err));
+	  console.log("ERROR: " + JSON.stringify(err));
 	}
       }
     }
@@ -52693,9 +52734,9 @@ console.log("ERROR: " + JSON.stringify(err));
     }
     if (faction == "hapsburg") {
       available_units['regular']['1'] = 12;    
-      available_units['regular']['2'] = 6;    
+      available_units['regular']['2'] = 7;
       available_units['regular']['3'] = 0;    
-      available_units['regular']['4'] = 3;    
+      available_units['regular']['4'] = 4;
       available_units['regular']['5'] = 0;    
       available_units['regular']['6'] = 1;    
       available_units['squadron']['1'] = 6;    

@@ -34,6 +34,7 @@
  *  New Tweets Button (top of feed)
  ****************************/
 .redsquare-load-new-tweets-container {
+	display: none;
 	position: sticky;
 	height: 0;
 	top: 1rem;
@@ -47,6 +48,10 @@
 	padding-bottom: 1rem;
 	width: 50%;
 	margin: 0 25%;
+}
+
+.saito-main[data-view='tweets'] .redsquare-load-new-tweets-container {
+	display: block;
 }
 
 /*****************************
@@ -102,7 +107,7 @@
 	display: flex;
 	align-items: center;
 	font-size: 13px;
-	color: var(--twitter-gray);
+	color: #718695;
 	margin-bottom: 6px;
 	gap: 6px;
 }
@@ -119,7 +124,7 @@
 	margin-top: 8px;
 	padding: 4px;
 	border: 1px solid var(--saito-border-color);
-	border-radius: var(--border-radius-round);
+	border-radius: var(--saito-border-radius);
 	background-color: var(--saito-highlight);
 }
 
@@ -135,6 +140,10 @@
 
 .tweet-container > .tweet:hover {
 	background-color: var(--saito-highlight);
+}
+
+.tweet-container.thread-view > .tweet:hover {
+	background-color: var(--saito-highlight-heavy);
 }
 
 /* -------------------
@@ -193,7 +202,6 @@
 
 /* -------------------------------
    TWEET DETAIL PAGE: thread-parent
--------------------------------- */
 
 .tweet.thread-parent {
 	display: flex;
@@ -232,6 +240,7 @@
 	margin-top: 12px;
 	margin-bottom: 12px;
 }
+-------------------------------- */
 
 @media (max-width: 600px) {
 	.tweet-container {

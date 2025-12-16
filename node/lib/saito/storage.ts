@@ -138,6 +138,7 @@ class Storage {
       if (peer != null) {
         return await this.app.network.sendRequestAsTransaction(message, data, null, peer.peerIndex);
       } else {
+        // This await doesn't seem to ever resolve sometimes...
         return await this.app.network.sendRequestAsTransaction(message, data);
       }
     } catch (error) {
@@ -148,12 +149,29 @@ class Storage {
     return { err: 'Save Transaction failed' };
   }
 
-  async updateTransaction(tx: Transaction, obj = {}, peer = null) {
+  /**
+   *
+   * Update the DB entry of a transaction, in order to:
+   * -- change its meta data (search fields)
+   * -- update optional information embedded in the tx
+   *
+   * updateTransaction will automatically change the timestamp of the update to now(),
+   * but you can override this by setting preserve_ts to 1 or providing your desired new timestamp
+   * as "updated_at" in the obj
+   *
+   */
+  async updateTransaction(tx: Transaction, obj = {}, peer = null, preserve_ts = 0) {
     const message = 'archive';
     let data: any = {};
     data.request = 'update';
     data.optional = tx.optional;
     data.serial_transaction = tx.serialize_to_web(this.app);
+
+    if (!(obj as any)['updated_at']) {
+      if (preserve_ts) {
+        (obj as any)['updated_at'] = tx.optional.updated_at || tx.timestamp;
+      }
+    }
 
     data = Object.assign(data, obj);
 
@@ -172,14 +190,24 @@ class Storage {
     return { err: 'Save Transaction failed' };
   }
 
-  // You might need to await this function for the internal callbacks to work...
-  async loadTransactions(obj = {}, mycallback, peer = null) {
+  /**
+   *
+   * @param obj : search criteria corresponding to archive fields
+   * @param mycallback : function to run on the returned data
+   * @param peer : "localhost", null, or Peer to load transactions from
+   * @param deserialize: flag to run the deserialize function and return the transactions as transactions (default)
+   *
+   * Note: You might need to await this function for the internal callbacks to work...
+   */
+  async loadTransactions(obj = {}, mycallback, peer = null, deserialize = 1) {
     let storage_self = this;
 
     const message = 'archive';
     let data: any = {};
     data.request = 'load';
+
     data = Object.assign(data, obj);
+
     const startTime = Date.now();
 
     //
@@ -191,22 +219,24 @@ class Storage {
       const endTime = Date.now();
       if (res) {
         for (let i = 0; i < res.length; i++) {
-          if (!res[i]?.tx) {
-            console.warn('storage.loadTransactions Error: Undefined tx', res[i]);
-            continue;
+          if (res[i]?.tx) {
+            if (deserialize) {
+              let tx = new Transaction();
+              tx.deserialize_from_web(storage_self.app, res[i].tx);
+              if (!tx.optional.updated_at) {
+                // Backward compatibility
+                tx.optional.updated_at = res[i].updated_at;
+              }
+              txs.push(tx);
+            } else {
+              txs.push(res[i].tx);
+            }
           }
-          let tx = new Transaction();
-          tx.deserialize_from_web(storage_self.app, res[i].tx);
-
-          tx['updated_at'] = res[i].updated_at;
-
-          txs.push(tx);
         }
       }
       if (peer?.publicKey) {
         console.debug(`>>> Transction fetch elapsed time: ${endTime - startTime}ms`);
       }
-
       return mycallback(txs);
     };
 
@@ -220,7 +250,6 @@ class Storage {
     }
 
     if (peer != null) {
-      //peer.sendRequestAsTransaction(message, data, function (res) {
       this.app.network.sendRequestAsTransaction(
         message,
         data,

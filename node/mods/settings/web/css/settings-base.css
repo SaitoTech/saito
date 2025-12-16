@@ -9,8 +9,8 @@
 	color: var(--saito-font-color);
 	padding: 2rem;
 	border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
-	border-radius: var(--border-radius-overlay);
-	box-shadow: var(--shadow-standard);
+	border-radius: var(--saito-border-radius);
+	box-shadow: var(--saito-box-shadow);
 }
 
 .settings-actions-container {
@@ -77,8 +77,8 @@
 	grid-template-columns: 2.4rem 1fr min-content;
 	align-items: center;
 	padding: 0 0.5rem;
-	border: 1px solid var(--border-color-button-module);
-	border-radius: var(--border-radius-soft);
+	border: 1px solid var(--saito-border-color);
+	border-radius: var(--saito-border-radius);
 	height: 4rem;
 	gap: 0.5rem;
 	width: 100%;

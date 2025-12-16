@@ -17,6 +17,9 @@ class SaitoMania extends OnePlayerGameTemplate {
 		this.request_no_interrupts = true; // don't popup chat
 		this.app = app;
 		this.statistical_unit = 'game';
+
+		//Opt out of fancy index.js
+		this.default_html = 0;
 	}
 
 	// Create an exp league by default
@@ -45,9 +48,7 @@ class SaitoMania extends OnePlayerGameTemplate {
 			};
 
 			if (this.loadGamePreference(this.name + '_stats')) {
-				this.game.state.lifetime = this.loadGamePreference(
-					this.name + '_stats'
-				);
+				this.game.state.lifetime = this.loadGamePreference(this.name + '_stats');
 			}
 		}
 
@@ -130,40 +131,14 @@ class SaitoMania extends OnePlayerGameTemplate {
 			console.log('Game over, final score:' + score);
 			this.game.state.scores.push(score);
 			this.game.state.lifetime.round++;
-			this.game.state.lifetime.high_score = Math.max(
-				score,
-				this.game.state.lifetime.high_score
-			);
+			this.game.state.lifetime.high_score = Math.max(score, this.game.state.lifetime.high_score);
 			this.addMove(
-				`ROUNDOVER\t${JSON.stringify([
-					this.publicKey
-				])}\t${score}\t${JSON.stringify([])}`
+				`ROUNDOVER\t${JSON.stringify([this.publicKey])}\t${score}\t${JSON.stringify([])}`
 			);
 			this.endTurn();
 			return 1;
 		}
 		return 0;
-	}
-
-	webServer(app, expressapp, express){
-		//Opt out of fancy index.js
-		// revert to basic modtemplate code
-		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
-		let fs = app?.storage?.returnFileSystem();
-
-		if (fs != null) {
-			if (fs.existsSync(webdir)) {
-				expressapp.use(
-					'/' + encodeURI(this.returnSlug()),
-					express.static(webdir)
-				);
-			} else if (this.default_html) {
-				expressapp.use(
-					'/' + encodeURI(this.returnSlug()),
-					express.static(__dirname + '/../../lib/templates/html')
-				);
-			}
-		}
 	}
 }
 

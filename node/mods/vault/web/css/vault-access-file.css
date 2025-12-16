@@ -1,0 +1,54 @@
+
+.vault-file-access {
+  width: 55rem !important;
+  margin-top: 1rem;
+}
+
+
+.vault-nft-item {
+  width: 22rem;
+  border: 1px solid #e2e2e2;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.vault-nft-img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.5rem;
+  align-self: center;
+  object-fit: cover;
+}
+
+/* bottom row: truncated text + button */
+.vault-nft-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.vault-nft-hash {
+    width: 90%;
+  flex: 1;
+  font-size: 1.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Download button */
+.vault-nft-download-btn {
+  border: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}

@@ -112,6 +112,8 @@ class Tweet {
 		this.user.notice = 'new post on ' + this.formatDate();
 		this.tree_size = 1;
 
+		this.reply_class = '';
+
 		// Keep a running list of where/when we load this tweet (updated by addTweet)
 		// type / node / optional / ts
 		this.sources = [];
@@ -242,6 +244,31 @@ class Tweet {
 		return false;
 	}
 
+	/**
+	 * A simple, recursive test to see if we have the entire tweet thread/tree in memory
+	 */
+	isLoaded() {
+		if (this.loaded) {
+			return true;
+		}
+
+		if (this.num_replies > this.children.length) {
+			return false;
+		} else if (this.num_replies < this.children.length) {
+			this.num_replies = this.children.length;
+		}
+
+		this.loaded = true;
+
+		for (let i = 0; i < this.children.length; i++) {
+			if (!this.children[i].isLoaded()) {
+				this.loaded = false;
+			}
+		}
+
+		return this.loaded;
+	}
+
 	hideTweet() {
 		//remove from archive
 		this.app.storage.deleteTransaction(this.tx, null, 'localhost');
@@ -290,11 +317,12 @@ class Tweet {
 		let myqs = this.container + `> .tweet-${this.tx.signature}`;
 		let obj = document.querySelector(myqs);
 		if (obj) {
-			obj.classList.remove('has-reply');
+			obj.classList.remove(this.reply_class);
 		}
+		this.reply_class = '';
 	}
 
-	render(prepend = false, thread_parent = false) {
+	render(prepend = false) {
 		for (let peer of this.mod.peers) {
 			if (this.tx.isFrom(peer.publicKey)) {
 				this.force_long_tweet = true;
@@ -325,29 +353,12 @@ class Tweet {
 		//
 		let myqs = this.container + `> .tweet-${this.tx.signature}`;
 
-		let has_reply = false;
-		let has_reply_disconnected = false;
-
 		//
-		// we might be re-rendering when critical child is on screen, so check if the
-		// class exists and flag if so. the class indicates that a critical child exists
-		// and by flagging it we will be able to re-add the class to the re-rendered
-		// tweet and preserve the CSS so the visual connector between the tweets does not
-		// disappear.
+		// if prepend = true, remove existing element
 		//
-		let obj = document.querySelector(myqs);
-		if (obj) {
-			if (obj.classList.contains('has-reply')) {
-				has_reply = true;
-			}
-			if (obj.classList.contains('has-reply-disconnected')) {
-				has_reply_disconnected = true;
-			}
-
-			//
-			// if prepend = true, remove existing element
-			//
-			if (prepend) {
+		if (prepend) {
+			let obj = document.querySelector(myqs);
+			if (obj) {
 				obj.remove();
 			}
 		}
@@ -358,6 +369,8 @@ class Tweet {
 		// then pass-through and render the sub-tweet directly.
 		//
 		if (this.retweet_tx && !this.text && !this.img_preview) {
+			this.reply_class = '';
+
 			this.retweet.notice =
 				'retweeted by ' +
 				this.app.browser.returnAddressHTML(this.tx.from[0].publicKey) +
@@ -423,41 +436,22 @@ class Tweet {
 		}
 
 		if (document.querySelector(myqs)) {
-			this.app.browser.replaceElementBySelector(
-				TweetTemplate(this.app, this.mod, this, thread_parent),
-				myqs
-			);
+			this.app.browser.replaceElementBySelector(TweetTemplate(this.app, this.mod, this), myqs);
 		} else if (prepend) {
 			this.app.browser.prependElementToSelector(
-				TweetTemplate(this.app, this.mod, this, thread_parent),
+				TweetTemplate(this.app, this.mod, this),
 				this.container
 			);
 		} else if (this.render_after_selector) {
 			this.app.browser.addElementAfterSelector(
-				TweetTemplate(this.app, this.mod, this, thread_parent),
+				TweetTemplate(this.app, this.mod, this),
 				this.render_after_selector
 			);
 		} else {
 			this.app.browser.addElementToSelector(
-				TweetTemplate(this.app, this.mod, this, thread_parent),
+				TweetTemplate(this.app, this.mod, this),
 				this.container
 			);
-		}
-
-		//
-		// has-reply and has-reply-disconnected
-		//
-		if (has_reply) {
-			let obj = document.querySelector(myqs);
-			if (obj) {
-				obj.classList.add('has-reply');
-			}
-		}
-		if (has_reply_disconnected) {
-			let obj = document.querySelector(myqs);
-			if (obj) {
-				obj.classList.add('has-reply-disconnected');
-			}
 		}
 
 		//
@@ -483,8 +477,9 @@ class Tweet {
 		if (this.img_preview != null) {
 			this.img_preview.render();
 		}
+
+		// Render Quote tweet
 		if (this.retweet) {
-			//console.log('Rendering Quote-Tweet', this.retweet.show_controls);
 			this.retweet.render();
 		}
 		if (this.link_preview != null) {
@@ -508,6 +503,8 @@ class Tweet {
 			return;
 		}
 
+		//console.log('Update Tweet stats...');
+
 		this.setKeys(this.tx.optional);
 
 		if (complete_rerender) {
@@ -527,21 +524,23 @@ class Tweet {
 	}
 
 	forceRenderWithCriticalChild() {
-		let rtn_value = this.render();
-
-		if (rtn_value !== -1 && this.critical_child) {
-			this.critical_child.render_after_selector = '.tweet-' + this.tx.signature;
-			if (this.critical_child.render() !== -1) {
-				let myqs = this.container + ` .tweet-${this.tx.signature}`;
-				let obj = document.querySelector(myqs);
-				if (obj) {
-					if (this.critical_child.parent_id == this.tx.signature) {
-						obj.classList.add('has-reply');
-					} else {
-						obj.classList.add('has-reply-disconnected');
-					}
-				}
+		if (this.critical_child) {
+			if (this.critical_child.parent_id == this.tx.signature) {
+				this.reply_class = 'has-reply';
+			} else {
+				this.reply_class = 'has-reply-disconnected';
 			}
+
+			this.render();
+
+			this.critical_child.render_after_selector = '.tweet-' + this.tx.signature;
+			this.critical_child.reply_class = '';
+
+			if (this.critical_child.render() == -1) {
+				this.removeReply();
+			}
+		} else {
+			this.render();
 		}
 
 		this.attachEvents();
@@ -550,43 +549,27 @@ class Tweet {
 	//
 	// for rendering the tweet on the main page
 	//
-	renderWithCriticalChild(thread_parent = false) {
-		let does_tweet_already_exist_on_page = false;
-		if (document.querySelector(`.tweet-${this.tx.signature}`)) {
-			does_tweet_already_exist_on_page = true;
-		}
-
-		//
-		// first we render the tweet
-		//
-		let rtn_value = -1;
-		if (!does_tweet_already_exist_on_page) {
-			rtn_value = this.render(false, thread_parent);
+	renderWithCriticalChild() {
+		if (this.isRendered()) {
+			return;
 		}
 
 		//
 		// then we render any critical children
 		//
-		if (this.critical_child && does_tweet_already_exist_on_page == false && rtn_value !== -1) {
-			//
-			// exit if child already on page
-			//
-			if (document.querySelector(`.tweet-${this.critical_child.tx.signature}`)) {
-				return;
+		if (this.critical_child && !this.critical_child.isRendered()) {
+			if (this.critical_child.parent_id == this.tx.signature) {
+				this.reply_class = 'has-reply';
+			} else {
+				this.reply_class = 'has-reply-disconnected';
 			}
 
-			this.critical_child.render_after_selector = '.tweet-' + this.tx.signature;
-			if (this.critical_child.render(false, false) > 0) {
-				let myqs = this.container + ` .tweet-${this.tx.signature}`;
-				let obj = document.querySelector(myqs);
-				if (obj) {
-					if (this.critical_child.parent_id == this.tx.signature) {
-						obj.classList.add('has-reply');
-					} else {
-						obj.classList.add('has-reply-disconnected');
-					}
-				}
+			this.render();
 
+			this.critical_child.render_after_selector = '.tweet-' + this.tx.signature;
+			this.critical_child.reply_class = '';
+
+			if (this.critical_child.render() > 0) {
 				//
 				// if no replies are listed, but we are showing a reply... show least one to avoid confusion
 				//
@@ -603,16 +586,24 @@ class Tweet {
 					}
 				}
 			}
+		} else {
+			this.render();
 		}
 
 		this.attachEvents();
 	}
 
-	renderWithChildren(thread_parent = false) {
+	renderWithChildren(recurse = true) {
+		console.debug('renderWithChildren');
+
+		if (this.children.length == 1 && recurse) {
+			this.reply_class = 'has-reply';
+		}
+
 		//
 		// first render the tweet
 		//
-		this.render(false, thread_parent);
+		this.render();
 
 		//
 		// then render its children
@@ -620,20 +611,10 @@ class Tweet {
 		// it's clear we need to figure out tweet threading....
 		//
 		if (this.children.length > 0) {
-			let myqs = this.container + ` .tweet-${this.tx.signature}`;
-			let obj = document.querySelector(myqs);
-			if (obj) {
-				obj.classList.add('has-reply');
-			}
-
 			//
 			// Breadth -- Show all replies at one level
 			//
-			if (this.children.length > 1) {
-				if (obj) {
-					obj.classList.remove('has-reply');
-				}
-
+			if (this.children.length > 1 || !recurse) {
 				for (let i = 0; i < this.children.length; i++) {
 					this.children[i].container = this.container;
 					this.children[i].render_after_selector = `.tweet-${this.tx.signature}`;
@@ -645,7 +626,7 @@ class Tweet {
 				//
 				this.children[0].container = this.container;
 				this.children[0].render_after_selector = `.tweet-${this.tx.signature}`;
-				this.children[0].renderWithChildren(false, false);
+				this.children[0].renderWithChildren();
 			}
 		}
 
@@ -663,71 +644,59 @@ class Tweet {
 	}
 
 	renderChild() {
+		this.reply_class = 'is-reply';
+
 		if (this.render() == -1) {
 			this.renderNullTweet();
-		}
-		let myqs = this.container + ` .tweet-${this.tx.signature}`;
-		let obj = document.querySelector(myqs);
-		if (obj) {
-			obj.classList.add('is-reply');
 		}
 	}
 
 	//
-	// render this tweet with its children, but leading to a specific tweet.
+	// This function renders the tweet thread from `this` to tweet, but selecting the child
+	// at each step which is part of the thread (as expressed in the array sigs)
 	//
-	renderWithChildrenWithTweet(tweet, sigs = [], thread_parent = false) {
-		//
-		// sigs will have list of signatures that form
-		// a direct chain between parent and child that
-		// we want to show.
-		//
-		if (sigs.length == 0) {
-			//
-			// this tweet = child tweet we want to show
-			//
-			sigs = this.mod.returnThreadSigs(this.tx.signature, tweet.tx.signature);
+	renderWithChildrenWithTweet(tweet, sigs = []) {
+		if (!tweet) {
+			console.warn('no tweet!');
+			return -1;
 		}
 
 		//
 		// render this tweet
 		//
 		if (sigs.includes(this.tx.signature)) {
-			//
-			// parent tweet is "thread-parent"
-			//
-			this.render(false, thread_parent);
-		}
+			this.force_long_tweet = true;
 
-		//
-		// then render children
-		//
-		if (this.children.length > 0) {
-			let myqs = this.container + ` .tweet-${this.tx.signature}`;
-			let obj = document.querySelector(myqs);
-			if (obj) {
-				obj.classList.add('has-reply');
-			}
+			// We have reached the target tweet, so now show all of it's immediate children...
+			if (this.tx.signature == tweet.tx.signature) {
+				this.renderWithChildren();
+			} else {
+				if (this.children.length) {
+					this.reply_class = 'has-reply';
+				}
 
-			for (let i = 0; i < this.children.length; i++) {
-				this.children[i].container = this.container;
-				this.children[i].render_after_selector = `.tweet-${this.tx.signature}`;
-				if (this.tx.signature == tweet.tx.signature) {
-					if (this.children.length > 1) {
-						if (obj) {
-							obj.classList.remove('has-reply');
+				this.render();
+
+				//
+				// then render children
+				//
+				if (this.children.length > 0) {
+					for (let i = 0; i < this.children.length; i++) {
+						this.children[i].container = this.container;
+						this.children[i].render_after_selector = `.tweet-${this.tx.signature}`;
+
+						if (sigs.includes(this.children[i].tx.signature)) {
+							this.children[i].renderWithChildrenWithTweet(tweet, sigs);
 						}
-						this.children[i].renderChild();
-					} else {
-						this.children[i].renderWithChildren();
 					}
-				} else {
-					this.children[i].renderWithChildrenWithTweet(tweet, sigs, false);
 				}
 			}
-		}
 
-		this.attachEvents();
+			this.attachEvents();
+		} else {
+			console.warn('this tweet not in the thread sigs....');
+			console.log(sigs);
+		}
 	}
 
 	attachEvents() {
@@ -763,7 +732,7 @@ class Tweet {
 				if (this.force_long_tweet) {
 					tweet_text.classList.add('expanded');
 				} else {
-					if (tweet_text.clientHeight < tweet_text.scrollHeight) {
+					if (tweet_text.clientHeight < tweet_text.scrollHeight - 1) {
 						tweet_text.classList.add('preview');
 						this.is_long_tweet = true;
 					}
@@ -824,14 +793,6 @@ class Tweet {
 			if (!this_tweet.dataset.hasClickEvent) {
 				this_tweet.dataset.hasClickEvent = true;
 
-				Array.from(this_tweet.querySelectorAll('a')).forEach((link) => {
-					link.onclick = (e) => {
-						e.stopPropagation();
-						// We allow the link to redirect us (in a new tab) without
-						// targeting the general tweet click event
-					};
-				});
-
 				this_tweet.onclick = (e) => {
 					//
 					// if we have selected text, then we are trying to copy and paste and
@@ -869,46 +830,17 @@ class Tweet {
 					// if we are asking to see a tweet, WE SHOULD load from parent if exists
 					//
 					if (e.target.tagName != 'IMG') {
-						//
-						// if there is a connection between us and the parent, we have all of the
-						// tweets needed to display and we can emit the event that triggers the
-						// redisplay directly, and then load and append any children as needed.
-						//
-						let sigs = this.mod.returnThreadSigs(this.thread_id, this.tx.signature);
-						if (sigs.length > 0) {
-							sigs.push(this.tx.signature);
+						if (!this.thread_sigs) {
+							this.thread_sigs = this.mod.returnThreadSigs(this.tx.signature);
 						}
-
-						/*
-						// if we have just replied, the count on the page will be higher than
-						// the count in the tweet itself, so we want to catch this edge-case
-						// by checking the number of replies before reload and keeping them
-						//
-						let parent_replies = null;
-						try {
-							parent_replies = document.querySelector(
-								`.tweet-${this.tx.signature} .tweet-body .tweet-controls .tweet-tool-comment .tweet-tool-comment-count`
-							).innerHTML;
-						} catch (err) {
-							console.error(err);
-							console.log(
-								`.tweet-${this.tx.signature} .tweet-body .tweet-controls .tweet-tool-comment .tweet-tool-comment-count`
-							);
-						}*/
-
 						//
 						// full thread already exists
 						//
-						if (sigs.includes(this.tx.signature) && sigs.includes(this.thread_id)) {
+						if (
+							this.thread_sigs.includes(this.tx.signature) &&
+							this.thread_sigs.includes(this.thread_id)
+						) {
 							app.connection.emit('redsquare-tweet-render-request', this);
-
-							/*setTimeout(() => {
-								if (parent_replies) {
-									document.querySelector(
-										`.tweet-${this.parent_id} .tweet-body .tweet-controls .tweet-tool-comment .tweet-tool-comment-count`
-									).innerHTML = parent_replies;
-								}
-							}, 50);*/
 						} else {
 							navigateWindow(`/redsquare?tweet_id=${this.thread_id}`, 300);
 						}
@@ -917,7 +849,7 @@ class Tweet {
 			}
 
 			////////////////////////////////////////////////
-			// view preview  -- click on the retweeted post
+			// view preview  -- click on the embedded post in a quote-tweet
 			////////////////////////////////////////////////
 			document.querySelectorAll(`.tweet-${this.tx.signature} .tweet`).forEach((item) => {
 				item.addEventListener('click', (e) => {
@@ -1386,10 +1318,7 @@ class Tweet {
 		try {
 			let qs = `.tweet-${this.tx.signature} .tweet-body .tweet-controls .tweet-tool-${stat} .tweet-tool-${stat}-count`;
 			Array.from(document.querySelectorAll(qs)).forEach((obj) => {
-				let existing = parseInt(obj.innerHTML) || 0;
-				if (newCount > existing) {
-					obj.innerHTML = newCount;
-				}
+				obj.innerHTML = newCount;
 			});
 		} catch (err) {
 			console.error(`RS.Tweet -- Stat ERROR: ` + err);

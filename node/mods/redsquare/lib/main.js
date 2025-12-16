@@ -343,6 +343,10 @@ class RedSquareMain {
       }
     }
 
+    try {
+      document.querySelector('.saito-main').dataset.view = new_mode;
+    } catch (err) {}
+
     //
     // return to / display main feed
     //
@@ -365,7 +369,10 @@ class RedSquareMain {
         this.enableObserver();
       }
       this.mode = new_mode;
-      console.debug(`RS.render: ${Date.now() - time}ms elapsed in rendering main feed`);
+
+      if (this.mod.debug) {
+        console.debug(`RS.render: ${Date.now() - time}ms elapsed in rendering main feed`);
+      }
       return;
     }
 
@@ -431,18 +438,17 @@ class RedSquareMain {
     //
     if (new_mode === 'tweet') {
       mainElem.classList.add('thread-view');
-
       let tweet = this.mod.returnTweet(tweet_id);
       if (tweet) {
         this.renderTweet(tweet);
       } else {
         this.showLoader();
-        this.mod.loadTweetWithSig(tweet_id, (txs) => {
+
+        console.debug('Resort to callback for tweet thread...');
+        ///>>>>>>> We should load the whole thread here...
+        this.mod.loadTweetThread(tweet_id, (txs) => {
           this.hideLoader();
           console.debug(`RS.NAV: Tweet thread load returned ${txs.length} tweets`);
-          for (let z = 0; z < txs.length; z++) {
-            this.mod.addTweet(txs[z], { type: 'url_sig', node: 'server' });
-          }
           let tweet = this.mod.returnTweet(tweet_id);
           this.renderTweet(tweet);
         });
@@ -463,6 +469,10 @@ class RedSquareMain {
       if (user_id != this.profile.publicKey) {
         this.profile_tweets[this.profile.publicKey] = this.profile.menu;
         this.profile.reset(user_id, 'posts', this.profile_tabs);
+
+        for (let peer of this.mod.peers) {
+          peer.profile_ts = new Date().getTime();
+        }
       }
 
       this.loader.show();
@@ -472,10 +482,6 @@ class RedSquareMain {
       }
 
       this.profile.render();
-
-      for (let peer of this.mod.peers) {
-        peer.profile_ts = new Date().getTime();
-      }
 
       this.loadProfile();
     }
@@ -520,7 +526,7 @@ class RedSquareMain {
   insertOlderTweets(tx_count, peer = null) {
     console.debug(
       'Infinite Scroll callback: ',
-      peer.publicKey,
+      peer.publicKey.substring(0, 10),
       tx_count,
       this.numActivePeers,
       this.mod.tweets_earliest_ts
@@ -550,28 +556,13 @@ class RedSquareMain {
   // fetch profile tweets as needed
   //
   async loadProfile() {
-    if (this.mod.publicKey == this.profile.publicKey) {
+    const profile_id = this.profile.publicKey;
+
+    if (this.mod.publicKey == profile_id) {
+      console.debug('RS.Profile -- use list of liked tweets');
       // Find likes...
       // I already have a list of tweets I liked available
       this.loadProfileLikes(this.mod.liked_tweets, 'localhost');
-    } else {
-      await this.app.storage.loadTransactions(
-        { field1: 'RedSquareLike', field2: this.profile.publicKey },
-        (txs) => {
-          let liked_tweets = [];
-          for (tx of txs) {
-            let txmsg = tx.returnMessage();
-
-            let sig = txmsg?.data?.signature;
-            if (sig && !liked_tweets.includes(sig)) {
-              liked_tweets.push(sig);
-            }
-          }
-
-          this.loadProfileLikes(liked_tweets, null);
-        },
-        null
-      );
     }
 
     let np = this.mod.peers.length;
@@ -580,10 +571,31 @@ class RedSquareMain {
     } else {
       this.showLoader();
     }
-    const profile_id = this.profile.publicKey;
 
     for (let peer of this.mod.peers) {
-      await this.app.storage.loadTransactions(
+      if (this.mod.publicKey !== profile_id && peer.peer !== 'localhost') {
+        console.debug('RS.Profile -- query peer for likes ', peer.publicKey.substring(0, 10));
+        this.app.storage.loadTransactions(
+          { field1: 'RedSquareLike', field2: profile_id, limit: 100 },
+          (txs) => {
+            let liked_tweets = [];
+            for (tx of txs) {
+              let txmsg = tx.returnMessage();
+
+              let sig = txmsg?.data?.signature;
+              if (sig && !liked_tweets.includes(sig)) {
+                liked_tweets.push(sig);
+              }
+            }
+
+            this.loadProfileLikes(liked_tweets, peer);
+          },
+          peer
+        );
+      }
+
+      console.debug('RS.Profile -- query peer for tweets: ', peer.publicKey.substring(0, 10));
+      this.app.storage.loadTransactions(
         {
           field1: 'RedSquare',
           field2: profile_id,
@@ -592,17 +604,9 @@ class RedSquareMain {
         },
         (txs) => {
           this.hideLoader();
+
           // Sort txs into posts/replies/retweets...
           this.filterProfileTweets(txs, profile_id);
-
-          if (this.mode !== 'profile' || profile_id !== this.profile.publicKey) {
-            console.warn(
-              `Navigated away from profile before peer (${peer?.publicKey}) returned results...`
-            );
-            return;
-          }
-
-          this.profile.render();
 
           //
           // Don't use processTweetsFromPeer(peer, txs)
@@ -613,6 +617,18 @@ class RedSquareMain {
             //this.mod.addTweet(txs[z], {type: "profile", node: peer.publicKey});
             peer.profile_ts = txs[z]?.timestamp;
           }
+
+          if (this.mode !== 'profile' || profile_id !== this.profile.publicKey) {
+            console.warn(
+              `Navigated away from profile before peer (${peer?.publicKey}) returned results...`
+            );
+            return;
+          }
+
+          console.debug(
+            `RS.Profile -- rendering profile with results (${txs.length}) from peer (${peer.publicKey.substring(0, 10)})`
+          );
+          this.profile.render();
 
           if (txs.length == 100) {
             this.enableObserver();
@@ -641,42 +657,31 @@ class RedSquareMain {
       return;
     }
 
-    let likes_to_load = list_of_liked_tweet_sigs.length;
-
     for (let sig of list_of_liked_tweet_sigs) {
       //
       // We may already have the liked tweet in memory
       //
       let old_tweet = this.mod.returnTweet(sig);
       if (old_tweet) {
-        likes_to_load--;
         this.insertTweetIntoList(old_tweet, this.profile.menu.likes);
-        if (likes_to_load == 0) {
-          this.app.connection.emit(
-            'update-profile-stats',
-            'likes',
-            list_of_liked_tweet_sigs.length
-          );
-        }
+        this.app.connection.emit('update-profile-stats', 'likes', list_of_liked_tweet_sigs.length);
       } else {
         //
         // Otherwise, we gotta hit up the archive
         //
+        console.log('RS.Profile -- pull liked tweet from archive...');
         this.app.storage.loadTransactions(
           { field1: 'RedSquare', sig },
           (txs) => {
-            likes_to_load--;
             for (let z = 0; z < txs.length; z++) {
               let tweet = new Tweet(this.app, this.mod, txs[z]);
               this.insertTweetIntoList(tweet, this.profile.menu.likes);
             }
-            if (likes_to_load == 0) {
-              this.app.connection.emit(
-                'update-profile-stats',
-                'likes',
-                list_of_liked_tweet_sigs.length
-              );
-            }
+            this.app.connection.emit(
+              'update-profile-stats',
+              'likes',
+              list_of_liked_tweet_sigs.length
+            );
           },
           peer
         );
@@ -705,8 +710,6 @@ class RedSquareMain {
     const profile_lists =
       user_id === this.profile.publicKey ? this.profile.menu : this.profile_tweets[user_id];
 
-    console.log(user_id, this.profile.publicKey, profile_lists);
-
     for (let z = 0; z < txs.length; z++) {
       let tweet = new Tweet(this.app, this.mod, txs[z]);
       if (tweet?.noerrors) {
@@ -722,6 +725,18 @@ class RedSquareMain {
         }
       }
     }
+
+    let str = '';
+    for (let key in profile_lists) {
+      str += `${key}: ${profile_lists[key].length}, `;
+    }
+
+    console.debug(
+      'RS.Profile -- ',
+      user_id.substring(0, 10),
+      this.profile.publicKey.substring(0, 10),
+      str
+    );
   }
 
   //
@@ -735,13 +750,15 @@ class RedSquareMain {
     tweet.curated = 1;
     tweet.force_long_tweet = true;
 
-    console.debug(
-      'RS.renderTweet --',
-      tweet.tx.signature,
-      tweet.parent_id,
-      tweet.thread_id,
-      this.thread_id
-    );
+    if (this.mod.debug) {
+      console.debug(
+        'RS.renderTweet --',
+        tweet.tx.signature,
+        tweet.parent_id,
+        tweet.thread_id,
+        this.thread_id
+      );
+    }
     //
     // get thread id
     //
@@ -752,34 +769,9 @@ class RedSquareMain {
     //
     document.querySelector('.tweet-container').innerHTML = '';
 
-    //
-    // show our tweet
-    //
-    if (!tweet.parent_id) {
-      tweet.renderWithChildren(true, true);
-    } else {
-      let root_tweet = this.mod.returnTweet(thread_id);
-      if (root_tweet) {
-        root_tweet.renderWithChildrenWithTweet(tweet, [], true);
-      }
-    }
-
-    //
-    // Mark which tweet in thread we are focused on
-    //
-    if (document.querySelector('.highlight-tweet')) {
-      document.querySelector('.highlight-tweet').classList.remove('highlight-tweet');
-    }
-
     const markHighlightedTweet = () => {
       if (document.querySelector(`.tweet-${tweet.tx.signature}`)) {
         document.querySelector(`.tweet-${tweet.tx.signature}`).classList.add('highlight-tweet');
-        if (!this.app.browser.isMobileBrowser()) {
-          let post = new Post(this.app, this.mod, tweet);
-          post.type = 'Reply';
-
-          post.render(`.tweet-${tweet.tx.signature}`);
-        }
 
         if (this.mod.curated) {
           Array.from(document.querySelectorAll('.tweet-container > .tweet')).forEach((t) => {
@@ -803,18 +795,30 @@ class RedSquareMain {
       }
     };
 
-    if (!this.thread_id || thread_id !== this.thread_id) {
+    this.thread_id = thread_id;
+
+    if (!tweet.thread_sigs) {
+      tweet.thread_sigs = this.mod.returnThreadSigs(tweet.tx.signature);
+    }
+
+    //
+    // show our tweet
+    //
+    let root_tweet = this.mod.returnTweet(thread_id);
+
+    if (!root_tweet?.isLoaded()) {
       this.showLoader();
 
-      console.log('RS.Load thread...');
+      siteMessage('Querying full thread...', 2000);
+      console.log('RS.Load thread... in 500ms');
+
       //
       // We set a timeout so that loading by url gives the peer connections a second to get established before requesting the full thread
       // We should investigate why sendRequestAsTransaction() has a disconnect between the returned results and what the callback sees
       // when we perform this request synchronously
       // loadTransactions() -> [storage] network.sendRequestAsTransaction -> archive -- hits an error in [storage] internal_callback
       //
-      setTimeout(this.mod.loadTweetThread.bind(this.mod), 250, thread_id, () => {
-        this.thread_id = thread_id;
+      setTimeout(this.mod.loadTweetThread.bind(this.mod), 500, thread_id, () => {
         console.log('RS...callback -- ', thread_id);
         //
         // This will catch you navigating back to the main feed before the callback completes
@@ -823,17 +827,20 @@ class RedSquareMain {
           let root_tweet = this.mod.returnTweet(thread_id);
 
           if (root_tweet) {
-            root_tweet.renderWithChildrenWithTweet(tweet, [], true);
+            root_tweet.renderWithChildrenWithTweet(tweet, tweet.thread_sigs);
           } else {
             console.warn('Root tweet not found...');
           }
 
           markHighlightedTweet();
+        } else {
+          console.info('RS.load thread returned... opt out of rendering');
         }
 
         this.hideLoader();
       });
     } else {
+      root_tweet.renderWithChildrenWithTweet(tweet, tweet.thread_sigs);
       markHighlightedTweet();
     }
   }

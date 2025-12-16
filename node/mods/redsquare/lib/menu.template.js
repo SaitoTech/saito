@@ -23,6 +23,15 @@ module.exports = (app, mod) => {
         	  </li>
 	  `;
 	}
+	if (mod.debug) {
+		html += ` 
+		<li class="item redsquare-menu-help">
+        	    <i class="fa-solid fa-question"></i>
+        	    <span>Debug</span>
+        	  </li>
+
+		`;
+	}
 
 	html += `
           </ul>

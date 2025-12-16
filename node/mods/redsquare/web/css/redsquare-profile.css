@@ -15,7 +15,7 @@
 	border-bottom: 1px dashed;
 	width: fit-content;
 	margin-left: 1rem;
-	color: var(--border-color-button-module);
+	color: var(--saito-border-color);
 	font-weight: bold;
 }
 

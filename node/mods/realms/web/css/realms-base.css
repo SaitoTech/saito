@@ -11,6 +11,11 @@
 	width: calc(55vh * 0.72);
 }
 
+.game-cardbox {
+    top: 7.5vh;
+    width: calc(75vh * 0.730);
+}
+
 body {
 	font-family: arial, helvetica, sans-serif;
 	font-size: 13px;

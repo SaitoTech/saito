@@ -16,27 +16,32 @@ module.exports = async (app, mod, build_number) => {
     <meta name="apple-mobile-web-app-capable" content="no" />
       
     <link rel="stylesheet" type="text/css" href="/admin/admin.css?v=${build_number}" />
-
+    <link rel="stylesheet" type="text/css" href='/saito/lib/jsonTree/jsonTree.css'/>
     <title>Saito Dashboard</title>
   
   </head>
   
   <body>
-    <h1 id = "page-header">Congratulations!</h1>
+    <h1 id = "page-header">${app.options?.admin?.length ? 'Logging in to Admin Dashboard' : 'Congratulations'}!</h1>
 
-    <p>If you are reading this, your node is working!</p>
+    <div class="node-info">
+      <h3>Node Info</h3>
+      <div id="node-publickey" data-publickey="${mod.publicKey}">Public Key: ${mod.publicKey}</div>
+    </div>
 
-    <p>This webpage is being served by the /mods/admin module. It provides a quick way to configure your server, but requires javascript and SSL to work properly.</p>
+    <div class="dev-welcome">
+      <p>If you are reading this, your node is working!</p>
+      <p>This webpage is being served by the admin module [mods/admin]. It provides a quick way to configure your server.</p>
+      <p>For manual setup instructions, please see our install instructions in the <a target='_blank' href="https://wiki.saito.io">Saito Wiki</a>.</p>
+      <p class='more-info'></p>
+    </div>
 
-    <p>For manual setup instructions, please see our install instructions in the <a target='_blank' href="https://wiki.saito.io">Saito Wiki</a>.</p>
 
-    <hr>
-    <h2>Node Info</h2>
-    <div id="node-publickey" data-publickey="${mod.publicKey}">Public Key: ${mod.publicKey}</p>
    </body>
 
    <script type="text/javascript">
     var need_to_set_key = ${!app.options.admin?.length};
+    var active_module = '${mod.returnSlug()}';
    </script>
    <script type="text/javascript" src="/saito/saito.js?build=${build_number}"></script>
   </html>`;

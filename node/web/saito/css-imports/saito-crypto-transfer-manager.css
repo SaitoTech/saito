@@ -2,7 +2,7 @@
   max-width: 95vw;
   align-items: center;
   color: var(--saito-white);
-  background: var(--saito-arcade-overlay-background);
+  background: var(--saito-background-color);
   border-radius: 1rem;
   display: flex;
   flex-direction: column;

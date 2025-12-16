@@ -4,6 +4,16 @@ import DOMPurify from 'dompurify';
 import { htmlToMarkdown, isMarkdownContent } from '../utils';
 
 const PostModal = ({ app, mod, onSubmit, post }) => {
+  //////////////
+  // Refs
+  /////////////
+  const isQuillUpdate = useRef(false);
+  const editorRef = useRef(null);
+  const quillInstance = useRef(null);
+
+  ///////////////
+  // States
+  ///////////////
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -15,8 +25,8 @@ const PostModal = ({ app, mod, onSubmit, post }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [imageUrl, setImageUrl] = useState('');
+
   const [editorMode, setEditorMode] = useState(() => {
     console.log("Editing post, checking it's inherent mode...", post);
     if (post?.content) {
@@ -24,15 +34,14 @@ const PostModal = ({ app, mod, onSubmit, post }) => {
     }
     return 'rich';
   });
-  const isQuillUpdate = useRef(false);
-
-  const editorRef = useRef(null);
-  const quillInstance = useRef(null);
 
   const [imagePreview, setImagePreview] = useState(
     post?.imageUrl || (post?.image ? `data:image/jpeg;base64,${post.image}` : null)
   );
 
+  ////////////////
+  // Effects
+  ////////////////
   useEffect(() => {
     if (window.Quill && editorRef.current && !quillInstance.current) {
       const imageHandler = () => {
@@ -462,11 +471,7 @@ const PostModal = ({ app, mod, onSubmit, post }) => {
         <div className="filter-container">
           <label className="filter-label">Editor Mode</label>
           <button
-            className="btn-publish"
-            style={{
-              background: editorMode === 'markdown' ? '#ccc' : 'none',
-              cursor: editorMode === 'markdown' ? 'not-allowed' : 'pointer'
-            }}
+            className="saito-button-secondary"
             type="button"
             onClick={async () => {
               if (editorMode === 'rich') {
@@ -476,11 +481,12 @@ const PostModal = ({ app, mod, onSubmit, post }) => {
                 if (res) {
                   handleEditorModeSwitch();
                 }
+              } else {
+                mod.showMarkdownHelp();
               }
             }}
-            disabled={editorMode === 'markdown'}
           >
-            {editorMode === 'rich' ? 'Switch to Markdown' : 'Markdown Mode'}
+            {editorMode === 'rich' ? 'Switch to Markdown' : 'Markdown Help'}
           </button>
         </div>
         <div className="filter-container">
@@ -519,7 +525,7 @@ const PostModal = ({ app, mod, onSubmit, post }) => {
             />
           </div>
 
-          <div>
+          <div className="form-group">
             <div ref={editorRef} className="editor-content" />
             {editorMode !== 'rich' && !showPreview && (
               <textarea

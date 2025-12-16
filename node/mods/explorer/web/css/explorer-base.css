@@ -72,7 +72,7 @@ h4, h5 {
 	overflow: auto;
 	width: 99%;
 	max-height: calc(100vh - 19rem);
-	box-shadow: var(--box-shadow-sidebar-elements);
+	box-shadow: var(--saito-box-shadow);
 }
 
 input[type='text'], input[type='number'] {
@@ -123,7 +123,7 @@ a.button {
 	grid-gap: 10px;
 	max-width: 850px;
 	margin: 1em 0;
-	box-shadow: var(--box-shadow-sidebar-elements);
+	box-shadow: var(--saito-box-shadow);
 	padding: 1rem;
 	border-radius: 0.5rem;
 }
@@ -215,7 +215,7 @@ a {
 	overflow: hidden;
 	padding: 1px 2px 1rem;
 	width: fit-content;
-	box-shadow: var(--box-shadow-sidebar-elements);
+	box-shadow: var(--saito-box-shadow);
 }
 
 .explorer-balance-data:nth-child(3n+2), .explorer-balance-data:nth-child(3n) {
@@ -372,7 +372,7 @@ input.button {
     right: 0;
     background-color: var(--saito-white);
     min-width: 200px;
-    box-shadow: var(--box-shadow-sidebar-elements);
+    box-shadow: var(--saito-box-shadow);
     border-radius: 0.5rem;
     z-index: 1;
 }
