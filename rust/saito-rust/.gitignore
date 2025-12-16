@@ -8,3 +8,5 @@ data/issuance.file
 data/issuance/archive/*
 data/
 saito.log
+logs/
+data/*.tar.gz

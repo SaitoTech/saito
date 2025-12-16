@@ -60,7 +60,6 @@ class ListNFT {
   }
 
   async renderNFTList() {
-
     const container = document.querySelector('#nft-list');
 
     if (!container) {
@@ -82,7 +81,7 @@ class ListNFT {
       let newArray = [];
       for (const rec of this.nft_list) {
         let already_rendered = false;
-console.log("examining: " + rec.id);
+        console.log('examining: ' + rec.id);
         for (let i = 0; i < newArray.length; i++) {
           if (rec.id == newArray[i].nft.id) {
             newArray[i].callback = this.callback;
@@ -91,7 +90,7 @@ console.log("examining: " + rec.id);
           }
         }
         if (!already_rendered) {
-console.log("adding! " + rec.id);
+          console.log('adding! ' + rec.id);
           newArray.push(
             new NFTCard(this.app, this.mod, '.send-nft-list', null, rec, this.callback)
           );

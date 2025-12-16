@@ -2089,7 +2089,6 @@ class Browser {
         return result;
       };
 
-
       window.salert = function (message) {
         if (document.getElementById('saito-alert')) {
           return;
@@ -2124,9 +2123,6 @@ class Browser {
           false
         );
       };
-
-
-
 
       window.sconfirm = function (message) {
         if (document.getElementById('saito-alert')) {
@@ -2257,9 +2253,6 @@ class Browser {
           body: JSON.stringify(content)
         });
       };
-
-
-
 
       HTMLElement.prototype.destroy = function destroy() {
         try {
