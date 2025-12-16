@@ -1,5 +1,4 @@
 module.exports = (app, mod, nft_overlay) => {
-
   let nft = nft_overlay.nft;
   let can_merge = nft_overlay.can_merge;
   let can_split = nft_overlay.can_split;
@@ -117,35 +116,35 @@ module.exports = (app, mod, nft_overlay) => {
 
 	  <div class="saito-nft-table saito-table">
 `;
-	  if (can_merge) {
-            html += `<button class="saito-nft-footer-btn merge">Merge</button>`;
-	  }
-	  if (can_split) {
-	    for (let z = 0; z < nft_overlay.all_slips.length; z++) {
-              html += `
-                <div class="nft-details-split-utxo utxo-${z+1}" id="utxo_${z+1}">
-                  <div class="utxo-idx">${z+1}</div>
+  if (can_merge) {
+    html += `<button class="saito-nft-footer-btn merge">Merge</button>`;
+  }
+  if (can_split) {
+    for (let z = 0; z < nft_overlay.all_slips.length; z++) {
+      html += `
+                <div class="nft-details-split-utxo utxo-${z + 1}" id="utxo_${z + 1}">
+                  <div class="utxo-idx">${z + 1}</div>
                   <div class="utxo-amount">${nft_overlay.all_slips[z].slip1.amount}</div>
                   <div class="utxo-deposit">${nft_overlay.all_slips[z].slip2.amount}</div>
-                  <div class="utxo-split-btn" id="${z+1}">[ split ]</div>
+                  <div class="utxo-split-btn" id="${z + 1}">[ split ]</div>
                 </div>
               `;
-	    }
-	  }
+    }
+  }
 
-html += `
+  html += `
 	  </div>
 `;
-	if (can_split) {
-	  html += `
+  if (can_split) {
+    html += `
             <div class="saito-nft-split-container">
               <div id="nft-details-split-bar">
                 <!-- JS will insert the slider here -->
               </div>
             </div>
 	  `;
-	}
-html += `
+  }
+  html += `
         </div>
           <div class="saito-nft-split-utxo">
 	  </div>

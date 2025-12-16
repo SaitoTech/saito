@@ -446,9 +446,10 @@ class SaitoNFT {
     return all_slips;
   }
 
-
   returnType() {
-    if (this.nft_type) { return this.nft_type; } 
+    if (this.nft_type) {
+      return this.nft_type;
+    }
     if (this.slip3?.utxo_key) {
       return this.app.wallet.extractNFTType(this.slip3.utxo_key);
     }
