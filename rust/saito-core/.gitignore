@@ -1,5 +1,6 @@
 /target
 Cargo.lock
 data/blocks/*
-data/
+data/*
 /temp_test_directory/*
+logs/

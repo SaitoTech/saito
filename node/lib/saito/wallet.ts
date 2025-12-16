@@ -1590,7 +1590,8 @@ export default class Wallet extends SaitoWallet {
     return S.getInstance().createRemoveBoundTransaction(
       nft.slip1.utxo_key,
       nft.slip2.utxo_key,
-      nft.slip3.utxo_key
+      nft.slip3.utxo_key,
+      nft.txmsg
     );
   }
 

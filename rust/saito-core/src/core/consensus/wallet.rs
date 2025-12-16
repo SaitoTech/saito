@@ -110,7 +110,7 @@ pub struct Wallet {
 
 impl Wallet {
     pub fn new(private_key: SaitoPrivateKey, public_key: SaitoPublicKey) -> Wallet {
-        info!("generating new wallet...");
+        trace!("generating new wallet...");
         // let (public_key, private_key) = generate_keys();
 
         Wallet {
