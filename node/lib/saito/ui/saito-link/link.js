@@ -1,5 +1,8 @@
 const SaitoLinkTemplate = require('./link.template');
 
+/**
+ *  Class to pretty print a link (in Chat or RedSquare)
+ */
 class SaitoLink {
   constructor(app, mod, container = '', url = '', link_properties = null) {
     this.app = app;
@@ -20,13 +23,19 @@ class SaitoLink {
         this.show_photo = true;
       }
       if (this.link_properties['og:url'] && this.link_properties['og:url'] != 'undefined') {
-        this.url = this.link_properties['og:url'];
+        this.display_url = this.link_properties['og:url'];
       }
       if (this.link_properties['og:title']) {
         this.title = this.link_properties['og:title'];
       }
+      if (this.link_properties['saito:title']) {
+        this.title = this.link_properties['saito:title'];
+      }
       if (this.link_properties['og:description']) {
         this.description = this.link_properties['og:description'];
+      }
+      if (this.link_properties['saito:description']) {
+        this.description = this.link_properties['saito:description'];
       }
     }
   }

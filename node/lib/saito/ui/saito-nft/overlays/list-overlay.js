@@ -10,7 +10,6 @@ class ListNFT {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
-
     this.create_nft_overlay = new CreateNFT(this.app, this.mod);
     this.nft_overlay = new NFTOverlay(this.app, this.mod);
 
@@ -61,6 +60,7 @@ class ListNFT {
   }
 
   async renderNFTList() {
+
     const container = document.querySelector('#nft-list');
 
     if (!container) {
@@ -82,15 +82,16 @@ class ListNFT {
       let newArray = [];
       for (const rec of this.nft_list) {
         let already_rendered = false;
-        for (let i = 0; i < this.card_list.length; i++) {
-          if (rec.id == this.card_list[i].nft.id && rec.tx_sig == this.card_list[i].nft.tx_sig) {
-            this.card_list[i].callback = this.callback;
-            newArray.push(this.card_list[i]);
+console.log("examining: " + rec.id);
+        for (let i = 0; i < newArray.length; i++) {
+          if (rec.id == newArray[i].nft.id) {
+            newArray[i].callback = this.callback;
             already_rendered = true;
             break;
           }
         }
         if (!already_rendered) {
+console.log("adding! " + rec.id);
           newArray.push(
             new NFTCard(this.app, this.mod, '.send-nft-list', null, rec, this.callback)
           );
@@ -116,7 +117,7 @@ class ListNFT {
     let newNFTButton = document.getElementById('create-nft');
     if (newNFTButton) {
       newNFTButton.onclick = (e) => {
-        this.overlay.hide();
+        this.overlay.close();
         this.create_nft_overlay.render();
       };
     }

@@ -6,6 +6,13 @@ html[data-theme='dark'] {
   --saito-background-color-inverse: #e2e2e6;
   --saito-header-background: var(--saito-background-color);
 
+  --saito-surface-color: rgba(255, 255, 255, 0.04);
+  --saito-surface-text: var(--saito-font-color);
+  --saito-surface-hover: rgba(255, 255, 255, 0.07);
+  --saito-surface-selected: rgba(255, 255, 255, 0.12);
+  --saito-surface-inverse: var(--saito-background-color-inverse);
+  --saito-surface-inverse-text: var(--saito-font-color-inverse);
+
   /*FONTS SECTION*/
   --saito-font-color: #ddd;
   --saito-font-color-heavy: var(--saito-white);

@@ -1,6 +1,6 @@
 import React from 'react';
-import { copyPostLinkToClipboard, getImageUrl, parseMarkdown } from '../utils';
-import { Pencil, Trash2 } from 'lucide-react';
+import { copyPostLinkToClipboard, getImageUrl } from '../utils';
+import { Upload, Pencil, Trash2 } from 'lucide-react';
 
 const BlogPost = ({ app, mod, post, publicKey, onEditClick, onDeleteClick }) => {
   let source = '';
@@ -15,29 +15,42 @@ const BlogPost = ({ app, mod, post, publicKey, onEditClick, onDeleteClick }) => 
     <div className="post-view">
       <article className="post-content">
         <div className="post-content-body">
-          {post.publicKey === mod.publicKey && (
-            <div className="post-actions">
-              <div className="action-button">
-                <Pencil
-                  onClick={() => {
-                    onEditClick(post);
-                  }}
-                  size={20}
-                />
-              </div>
-              <div className="action-button">
-                <Trash2
-                  size={20}
-                  onClick={async () => {
-                    let confirm = await sconfirm('Are you are sure you want to delete?');
-                    if (confirm) {
-                      onDeleteClick(post.sig);
-                    }
-                  }}
-                />
-              </div>
+          <div className="post-actions">
+            {post.publicKey === mod.publicKey && (
+              <>
+                <div className="action-button">
+                  <Pencil
+                    onClick={() => {
+                      onEditClick(post);
+                    }}
+                    size={20}
+                  />
+                </div>
+                <div className="action-button">
+                  <Trash2
+                    size={20}
+                    onClick={async () => {
+                      let confirm = await sconfirm('Are you are sure you want to delete?');
+                      if (confirm) {
+                        onDeleteClick(post.sig);
+                      }
+                    }}
+                  />
+                </div>
+              </>
+            )}
+            <div className="action-button">
+              <Upload
+                size={20}
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location).then(() => {
+                    siteMessage('Link copied to clipboard.', 2000);
+                  });
+                }}
+              />
             </div>
-          )}
+          </div>
+
           <header className="post-header">
             <h4 className="post-title">{post.title}</h4>
 
@@ -57,7 +70,7 @@ const BlogPost = ({ app, mod, post, publicKey, onEditClick, onDeleteClick }) => 
           <div
             className="post-body richtext-content"
             dangerouslySetInnerHTML={{
-              __html: parseMarkdown(post.content)
+              __html: app.browser.sanitize(post.content, true)
             }}
           />
         </div>

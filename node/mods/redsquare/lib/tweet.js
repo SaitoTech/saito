@@ -732,7 +732,7 @@ class Tweet {
 				if (this.force_long_tweet) {
 					tweet_text.classList.add('expanded');
 				} else {
-					if (tweet_text.clientHeight < tweet_text.scrollHeight) {
+					if (tweet_text.clientHeight < tweet_text.scrollHeight - 1) {
 						tweet_text.classList.add('preview');
 						this.is_long_tweet = true;
 					}
@@ -792,14 +792,6 @@ class Tweet {
 			/////////////////
 			if (!this_tweet.dataset.hasClickEvent) {
 				this_tweet.dataset.hasClickEvent = true;
-
-				Array.from(this_tweet.querySelectorAll('a')).forEach((link) => {
-					link.onclick = (e) => {
-						e.stopPropagation();
-						// We allow the link to redirect us (in a new tab) without
-						// targeting the general tweet click event
-					};
-				});
 
 				this_tweet.onclick = (e) => {
 					//

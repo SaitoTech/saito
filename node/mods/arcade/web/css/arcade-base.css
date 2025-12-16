@@ -70,7 +70,8 @@
 .arcade-sidebar .saito-announcement {
 	margin-bottom: 1rem;
 	line-height: 1.25em;
-	background: var(--saito-highlight);
+	background: var(--saito-surface-color);
+	color: var(--saito-surface-text);
 	padding: 1rem;
 }
 

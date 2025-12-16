@@ -1,4 +1,8 @@
-module.exports = (app, mod, nft) => {
+module.exports = (app, mod, nft_overlay) => {
+
+  let nft = nft_overlay.nft;
+  let can_merge = nft_overlay.can_merge;
+  let can_split = nft_overlay.can_split;
   let identicon = app.keychain.returnIdenticon(nft.id);
   let deposit = nft.getDeposit();
 
@@ -70,7 +74,6 @@ module.exports = (app, mod, nft) => {
     </div>
 
     <div class="saito-nft-overlay panels">
-
       <div class="saito-nft-panel saito-nft-panel-view active">
         <div class="saito-nft-panel-body">`;
 
@@ -88,14 +91,10 @@ module.exports = (app, mod, nft) => {
 
   html += `
         </div>
-
         <div class="saito-nft-panel-footer">
           <button class="saito-nft-footer-btn enable">Enable</button>
           <button class="saito-nft-footer-btn disable">Disable</button>
-          <button class="saito-nft-footer-btn split">Split</button>
-          <button class="saito-nft-footer-btn merge">Merge</button>
           <button class="saito-nft-footer-btn send">Transfer</button>
-          <button class="saito-nft-footer-btn delete">Delete</button>
         </div>
       </div>
 
@@ -115,48 +114,44 @@ module.exports = (app, mod, nft) => {
       <div class="saito-nft-panel saito-nft-panel-info">
         <div class="saito-nft-panel-body">
           <h2 class="saito-nft-mode-title">NFT Information</h2>
+
+	  <div class="saito-nft-table saito-table">
+`;
+	  if (can_merge) {
+            html += `<button class="saito-nft-footer-btn merge">Merge</button>`;
+	  }
+	  if (can_split) {
+	    for (let z = 0; z < nft_overlay.all_slips.length; z++) {
+              html += `
+                <div class="nft-details-split-utxo utxo-${z+1}" id="utxo_${z+1}">
+                  <div class="utxo-idx">${z+1}</div>
+                  <div class="utxo-amount">${nft_overlay.all_slips[z].slip1.amount}</div>
+                  <div class="utxo-deposit">${nft_overlay.all_slips[z].slip2.amount}</div>
+                  <div class="utxo-split-btn" id="${z+1}">[ split ]</div>
+                </div>
+              `;
+	    }
+	  }
+
+html += `
+	  </div>
+`;
+	if (can_split) {
+	  html += `
+            <div class="saito-nft-split-container">
+              <div id="nft-details-split-bar">
+                <!-- JS will insert the slider here -->
+              </div>
+            </div>
+	  `;
+	}
+html += `
         </div>
+          <div class="saito-nft-split-utxo">
+	  </div>
+
         <div class="saito-nft-panel-footer">
           <button class="saito-nft-footer-btn saito-nft-delete-btn">Delete</button>
-        </div>
-      </div>
-
-      <!-- UPDATED: Add data-skip-split -->
-      <div class="saito-nft-panel saito-nft-panel-split" data-skip-split="true">
-        <div class="saito-nft-panel-body">
-          <h2 class="saito-nft-mode-title">Split NFT</h2>
-          <p class="saito-nft-mode-desc">
-            Adjust the slider to allocate units between the original NFT and the newly created split.
-          </p>
-
-          <div class="saito-nft-split-container">
-            <div id="nft-details-split-bar">
-              <!-- JS will insert the slider here -->
-            </div>
-          </div>
-
-        </div>
-
-        <div class="saito-nft-panel-footer">
-          <button class="saito-nft-footer-btn saito-nft-back-btn">Back</button>
-          <button class="saito-nft-footer-btn saito-nft-confirm-btn saito-nft-confirm-split">Confirm</button>
-        </div>
-      </div>
-
-      <div class="saito-nft-panel saito-nft-panel-merge" data-skip-merge="true">
-        <div class="saito-nft-panel-body">
-          <h2 class="saito-nft-mode-title">Merge NFT</h2>
-          <p class="saito-nft-mode-desc">
-            If you own multiple NFTs of the same type, you can combine them into a single, larger NFT.
-          </p>
-        </div>
-
-        <div class="saito-nft-panel-footer">
-          <button class="saito-nft-footer-btn saito-nft-back-btn">Back</button>
-
-          <button id="saito-nft-confirm-merge" class="saito-nft-footer-btn saito-nft-confirm-btn">
-            Confirm
-          </button>
         </div>
       </div>
 

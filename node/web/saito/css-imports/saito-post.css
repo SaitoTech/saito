@@ -102,7 +102,7 @@
 }
 
 .post-tweet-textarea:focus {
-  background: var(--saito-highlight);
+  background: var(--saito-surface-hover);
   box-shadow: inset 0 0 0 1px var(--saito-primary);
 }
 

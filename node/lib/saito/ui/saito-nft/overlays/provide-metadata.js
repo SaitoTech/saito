@@ -52,7 +52,7 @@ class ProvideMetaDataOverlay {
     if (confirm_btn) {
       confirm_btn.onclick = async (e) => {
         siteMessage('Broadcasting NFT Transaction...', 3000);
-        this.overlay.hide();
+        this.overlay.close();
         this.nfttx.packData();
         await this.nfttx.sign();
         await this.app.network.propagateTransaction(this.nfttx);

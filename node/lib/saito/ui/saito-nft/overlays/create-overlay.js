@@ -205,19 +205,19 @@ class CreateNFT {
         this_self.help_overlay.show(`
           <div class="create-nft-help-overlay">
             <div class="create-nft-help-text">
-		SAITO NFTs can contain text or images or transactions. When you 
-		transfer these NFTs to other members on the network, they get 
-		access to the data contained within the transaction. When you 
-		create an NFT, the first thing we ask is what data you want 
-		inside it.
-		<p></p>
-		The cost of creating an NFT is a "deposit" of SAITO that 
-		circulates with the NFT and ensures the network can track and
-		transfer it.
+    SAITO NFTs can contain text or images or transactions. When you 
+    transfer these NFTs to other members on the network, they get 
+    access to the data contained within the transaction. When you 
+    create an NFT, the first thing we ask is what data you want 
+    inside it.
+    <p></p>
+    The cost of creating an NFT is a "deposit" of SAITO that 
+    circulates with the NFT and ensures the network can track and
+    transfer it.
                 <p></p>
                 We recommend all NFTs are created with a 1 SAITO deposit. This 
-		is not a network fee — the owner of the NFT can destroy the NFT
-		and recover the SAITO at any time.
+    is not a network fee — the owner of the NFT can destroy the NFT
+    and recover the SAITO at any time.
             </div>
 
             <div class="create-nft-deposit-container">
@@ -315,12 +315,10 @@ class CreateNFT {
       }
       if (this.nft_type === 'image') {
         document.querySelector('#nft-image-upload').style.display = 'flex';
-        document.querySelector('#nft-image-upload').innerHTML = `drag-and-drop NFT image`;
         document.querySelector('#create-nft-textarea').style.display = 'none';
       }
       if (this.nft_type === 'file') {
         document.querySelector('#nft-image-upload').style.display = 'flex';
-        document.querySelector('#nft-image-upload').innerHTML = `drag-and-drop NFT file`;
         document.querySelector('#create-nft-textarea').style.display = 'none';
       }
 
@@ -336,7 +334,6 @@ class CreateNFT {
 
             if (obj.createObject) {
               document.querySelector('#nft-image-upload').style.display = 'block';
-              document.querySelector('#nft-image-upload').innerHTML = `drag-and-drop ROM file`;
               document.querySelector('#create-nft-textarea').style.display = 'none';
             }
           }
@@ -345,10 +342,14 @@ class CreateNFT {
     };
 
     document.querySelector('#create_nft').onclick = async (e) => {
+      console.log('create nft 1');
+
       let obj = await this.createObject();
       if (obj == false) {
         return;
       }
+
+      console.log('create nft 2');
 
       //
       // this value is not either nolan/saito
@@ -385,6 +386,8 @@ class CreateNFT {
         data: obj
       };
 
+      console.log('create nft 3');
+
       this.overlay.close();
 
       siteMessage('Minting NFT...', 3000);
@@ -399,16 +402,9 @@ class CreateNFT {
         this.nft_type
       );
 
+      console.log('create nft 4');
       this.provide_metadata_overlay.render(newtx);
-
-      /*****
-
-      await newtx.sign();
-      await this.app.network.propagateTransaction(newtx);
-
-      siteMessage('Broadcasting NFT Transaction...', 3000);
-      this.reset();
-*****/
+      console.log('create nft 5');
     };
   }
 

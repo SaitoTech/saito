@@ -138,6 +138,7 @@ class Storage {
       if (peer != null) {
         return await this.app.network.sendRequestAsTransaction(message, data, null, peer.peerIndex);
       } else {
+        // This await doesn't seem to ever resolve sometimes...
         return await this.app.network.sendRequestAsTransaction(message, data);
       }
     } catch (error) {

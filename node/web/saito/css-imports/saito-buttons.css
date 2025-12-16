@@ -81,7 +81,7 @@ button.small,
 }
 
 .saito-button-secondary.small:hover {
-  background: var(--saito-highlight-heavy);
+  background: var(--saito-surface-selected);
   color: unset;
 }
 
@@ -158,7 +158,7 @@ span.saito-anchor {
 
 .saito-menu-select-subtle > div:not(.disabled-option):hover,
 .saito-menu-select-subtle > li:not(.disabled-option):hover {
-  background-color: var(--saito-highlight-heavy);
+  background-color: var(--saito-surface-selected);
   color: var(--saito-font-color-heavy);
 }
 

@@ -50,7 +50,7 @@ link preview
   font-size: 1.8rem;
 }
 
-.link-url {
+.link-display_url {
   color: var(--saito-font-color-secondary);
   font-style: italic;
   font-size: 1.3rem;

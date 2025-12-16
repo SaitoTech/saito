@@ -1101,7 +1101,9 @@ class Server {
           'og:description': '',
           'og:url': '',
           'og:image': '',
-          'og:site_name': '' //We don't do anything with this
+          'og:site_name': '', //We don't do anything with this
+          'saito:description': '',
+          'saito:title': ''
         };
 
         let tw_tags = {

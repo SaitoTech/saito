@@ -75,6 +75,7 @@
   padding: 0.5rem 0;
   font-size: 1.5rem;
   line-height: 2rem;
+  min-height: 2rem;
   max-height: 19rem;
   max-width: 100%;
   margin-bottom: 1rem;
@@ -336,10 +337,6 @@
 
 .tweet-text a {
   display: inherit;
-}
-
-.tweet .saito-treated-link[data-link='local_link'] .link-info {
-  display: none;
 }
 
 .tweet .saito-treated-link[data-link='local_link'] .link-img.has-picture {

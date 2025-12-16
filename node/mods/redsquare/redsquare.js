@@ -11,6 +11,7 @@ const Post = require('./lib/post');
 const Transaction = require('../../lib/saito/transaction').default;
 const PeerService = require('saito-js/lib/peer_service').default;
 const SaitoOverlay = require('./../../lib/saito/ui/saito-overlay/saito-overlay');
+const SaitoPost = require('./../../lib/saito/ui/saito-post/saito-post');
 const AppSettings = require('./lib/settings');
 
 ////////////////////////////////////////////
@@ -65,6 +66,8 @@ class RedSquare extends ModTemplate {
     this.special_threads_hmap = {};
     this.unknown_children = [];
     this.orphan_edits = [];
+
+    this.blogs = [];
 
     this.peers = [];
     this.keylist = {};
@@ -310,6 +313,16 @@ class RedSquare extends ModTemplate {
       };
     }
 
+    if (type === 'post-content') {
+      return {
+        icon: this_mod.icon_fa,
+        text: 'Continue with post to RedSquare',
+        callback: async (content, image) => {
+          this_mod.app.connection.emit('continue-with-redsquare');
+        }
+      };
+    }
+
     //
     // curation / moderation functions
     //
@@ -395,6 +408,24 @@ class RedSquare extends ModTemplate {
         pr
       );
 
+      ///
+      // We just want the metadata from the archive, lol
+      ///
+      let archive_mod = this.app.modules.returnModule('Archive');
+      if (archive_mod) {
+        archive_mod.loadTransactionsWithCallback({ field1: 'Blog', limit: 50 }, (res) => {
+          for (let i = 0; i < res.length; i++) {
+            this.blogs.push({
+              ts: res[i].updated_at,
+              publicKey: res[i].field2,
+              tx_id: res[i].sig
+            });
+          }
+
+          this.addBlogPseudoTweets();
+        });
+      }
+
       return;
     }
 
@@ -445,6 +476,9 @@ class RedSquare extends ModTemplate {
     if (!this.app.BROWSER || !this.browser_active) {
       return;
     }
+
+    // Create here so only in browser_active browsers...
+    this.sPost = new SaitoPost(this.app, this);
 
     if (window?.tweets?.length) {
       for (let z = 0; z < window.tweets.length; z++) {
@@ -587,6 +621,7 @@ class RedSquare extends ModTemplate {
   // network functions //
   ///////////////////////
   async handlePeerTransaction(app, tx = null, peer, mycallback) {
+
     if (tx == null) {
       return 0;
     }
@@ -719,6 +754,8 @@ class RedSquare extends ModTemplate {
               // I guess it is possible *not* to hit the full 10 even after pulling 50 txs...
               //
               mycallback(txs);
+
+              this.addBlogPseudoTweets();
             },
             this.peers[0]
           );
@@ -2607,6 +2644,14 @@ class RedSquare extends ModTemplate {
       this.saveTweet(tweet);
     }
     this.saveOptions();
+  }
+
+  addBlogPseudoTweets() {
+    for (let b of this.blogs) {
+      if (b.ts > this.tweets_earliest_ts && !this.tweets_sigs_hmap[b.tx_id]) {
+        // "Add Tweet"
+      }
+    }
   }
 
   cacheRecentTweets(force_caching = false) {

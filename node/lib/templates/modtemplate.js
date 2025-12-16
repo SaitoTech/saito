@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const HomePage = require('./index');
 const SaitoEvent = require('./../saito/ui/saito-calendar/saito-calendar-event-link');
 
 const JSON = require('json-bigint');
@@ -47,12 +48,11 @@ class ModTemplate {
 
     this.parameters = {};
 
-    // A module which wishes to be rendered in the client can include it's own
-    // web directory which will automatically be served by the Saito Core's
-    // server. However, if the author prefers, Core can also simple serve the
-    // default index.html found in /lib/templates/html, which can then be
-    // manipulated via initializeHTML.
-    this.default_html = 0;
+    // A module which wishes to be rendered in the client can either define
+    // it's own webServer function or simply include it's own web directory
+    // which will automatically be served by the Saito Core's server.
+    // If neither exist, it will default to a blank page distinct from the 404 not found
+    this.default_html = 1;
 
     // browser active will be set by Saito Client if the module name matches
     // the current path. e.g. when the user is at /chat, chat.js which has
@@ -464,15 +464,25 @@ class ModTemplate {
     let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
     let fs = app?.storage?.returnFileSystem();
 
-    if (fs != null) {
-      if (fs.existsSync(webdir)) {
-        expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
-      } else if (this.default_html) {
-        expressapp.use(
-          '/' + encodeURI(this.returnSlug()),
-          express.static(__dirname + '/../../lib/templates/html')
-        );
-      }
+    if (fs?.existsSync(webdir)) {
+      expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
+    } else if (this.default_html) {
+      // We don't have a static web directory to serve, but we can generate a basic blank html page
+
+      const mod_self = this;
+
+      expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
+        let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
+
+        let html = HomePage(app, mod_self, app.build_number);
+
+        if (!res.finished) {
+          res.setHeader('Content-type', 'text/html');
+          res.charset = 'UTF-8';
+          return res.send(html);
+        }
+        return;
+      });
     }
   }
 

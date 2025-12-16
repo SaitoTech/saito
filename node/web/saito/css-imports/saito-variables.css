@@ -53,7 +53,6 @@ font imports
 }
 
 :root {
-
   --saito-white: #fff;
   --saito-gray-050: #f2f2f2;
   --saito-gray-100: #e4e4e4;
@@ -107,6 +106,14 @@ font imports
   --saito-background-color: #fff9f9;
   --saito-background-color-inverse: #4e4e4e;
 
+  /* panels, tables that sit above the background */
+  --saito-surface-color: rgba(102, 102, 102, 0.125); 
+  --saito-surface-text: var(--saito-font-color);
+  --saito-surface-hover: rgba(102, 102, 102, 0.20); 
+  --saito-surface-selected: rgba(68, 68, 68, 0.33);
+  --saito-surface-inverse: rgba(255, 255, 255, 0.85);
+  --saito-surface-inverse-text: rgba(0, 0, 0, 0.85);
+
   --saito-highlight: #6662;
   --saito-highlight-heavy: #4445;
 
@@ -114,7 +121,6 @@ font imports
   --background-color-shim-light: color-mix(in srgb, var(--saito-black) 40%, transparent);
   --background-color-shim-normal: color-mix(in srgb, var(--saito-black) 50%, transparent);
   --background-color-shim-dark: color-mix(in srgb, var(--saito-black) 70%, transparent);
-
 
   --saito-heart-animation: url('/redsquare/images/heart-orange.png');
 
@@ -126,13 +132,10 @@ font imports
   --saito-header-background: var(--dreamscape);
 
   /* Box Shadows */
-  --saito-box-shadow-low:
-    0px 1px 2px color-mix(in srgb, var(--saito-black) 30%, transparent);
-  --saito-box-shadow:
-    0px 2px 4px color-mix(in srgb, var(--saito-black) 50%, transparent);
+  --saito-box-shadow-low: 0px 1px 2px color-mix(in srgb, var(--saito-black) 30%, transparent);
+  --saito-box-shadow: 0px 2px 4px color-mix(in srgb, var(--saito-black) 50%, transparent);
   --saito-box-shadow-high:
-    0px 12px 17px 2px hsla(0, 0%, 0%, 0.14),
-    0px 5px 22px 4px hsla(0, 0%, 0%, 0.12),
+    0px 12px 17px 2px hsla(0, 0%, 0%, 0.14), 0px 5px 22px 4px hsla(0, 0%, 0%, 0.12),
     0px 7px 8px -4px hsla(0, 0%, 0%, 0.2);
 
   /* Fonts */
@@ -164,8 +167,8 @@ font imports
   --saito-border-color-dark: var(--saito-gray-750);
   --saito-border-radius: 0.5rem;
 
-  --border-padding-normal: 0.5rem;
-  --border-padding-wide: 1rem;
+  --border-padding-normal: 1rem;
+  --border-padding-wide: 2rem;
 
   /* Borders */
   --border-thickness-thin: 1px;
@@ -174,5 +177,4 @@ font imports
   --border-thickness-fat: 5px;
   --border-thickness: var(--border-thickness-thin);
   --border-color-general-dividers: var(--saito-gray-750);
-
 }

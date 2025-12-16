@@ -388,7 +388,6 @@ class Archive extends ModTemplate {
 	// save //
 	//////////
 	async saveTransaction(tx, obj = {}) {
-
 		let newObj = {};
 
 		//
@@ -428,9 +427,12 @@ class Archive extends ModTemplate {
 			});
 
 			if (numRows) {
-				console.log("Local Archive index successfully inserted: ", JSON.parse(JSON.stringify(newObj)));
+				console.log(
+					'Local Archive index successfully inserted: ',
+					JSON.parse(JSON.stringify(newObj))
+				);
 			} else {
-				console.log("Local Archive index not inserted...");
+				console.log('Local Archive index not inserted...');
 			}
 		} else {
 			//
@@ -607,7 +609,6 @@ class Archive extends ModTemplate {
 	}
 
 	async loadTransactions(obj = {}) {
-
 		let limit = 10;
 		let timestamp_limiting_clause = '';
 
@@ -689,7 +690,11 @@ class Archive extends ModTemplate {
 
 		let params = { $limit: limit };
 
-		let sql = `SELECT tx, sig, updated_at, owner FROM archives WHERE`;
+		///////////////////////////////////////////////////////////////////
+		// Try getting everything for convenience, but monitor performance
+		// Orig: tx, sig, updated_at, owner
+		//////////////////////////////////////////////
+		let sql = `SELECT * FROM archives WHERE`;
 
 		//
 		// Hardcode field5 as a flexible search term --
@@ -779,7 +784,6 @@ class Archive extends ModTemplate {
 			let altered_rows = [];
 
 			for (let r of rows) {
-
 				//
 				// there is some sort of cryptographically-enforced access limitation
 				// placed on this record, such as a request that requires ownership of
@@ -845,7 +849,6 @@ class Archive extends ModTemplate {
 	// - server operator respectfully avoid deleting transactions with preserve=1
 	//
 	async deleteTransaction(tx, obj = {}) {
-
 		let sql = '';
 		let params = {};
 		let rows = [];
@@ -897,7 +900,7 @@ class Archive extends ModTemplate {
 			console.log('DELETE ACCESS HASH CHECK');
 			console.log('*****************');
 			console.log('Transaction owner:', existing_row.owner);
-	
+
 			// Check if access credentials are provided
 			if (!obj.access_script || !obj.access_witness) {
 				console.log('DELETE DENIED: No access_script or access_witness provided');
@@ -923,7 +926,7 @@ class Archive extends ModTemplate {
 					request_tx,
 					null
 				);
-	
+
 				if (eval_result) {
 					can_delete = true;
 					console.log('DELETE ACCESS GRANTED: Script evaluation passed');
@@ -933,7 +936,7 @@ class Archive extends ModTemplate {
 			} else {
 				console.log('DELETE DENIED: Scripting module not available');
 			}
-	
+
 			if (!can_delete) {
 				return false;
 			}
@@ -943,7 +946,7 @@ class Archive extends ModTemplate {
 			//
 			console.log('No owner specified for transaction, proceeding with deletion');
 		}
-	
+
 		//
 		// THIRD: Proceed with deletion if ownership verified or no owner
 		//
@@ -984,7 +987,6 @@ class Archive extends ModTemplate {
 
 		return true;
 	}
-
 
 	////////////
 	// delete //

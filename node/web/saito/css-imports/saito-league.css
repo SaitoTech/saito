@@ -326,7 +326,7 @@ span.attention {
 
 .league-settings .clickable-element:hover {
 	color: var(--saito-font-color-light);
-	background: var(--saito-highlight);
+	background: var(--saito-surface-hover);
 }
 
 @media screen and (max-width: 900px) {

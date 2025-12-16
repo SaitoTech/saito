@@ -1,19 +1,15 @@
 module.exports = () => {
-
 	return `
 
-	    <div id="tutorial03-main" class="saito-container">
+	    <div id="tutorial03-main">
 
 	      <h2>Click to Send Transaction</h2>
 
-	      <input type="button" class="tutorial03-button" value="Click Me!" />
+	      <button class="tutorial03-button">Click me!</button>
 
-	      <br />
+	      <div class="tutorial03-received-transactions"></div>
 
-	      <div class="tutorial03-received-transactions">
-	      </div>
-
-      	    </div>
+      	</div>
      
   	`;
 };

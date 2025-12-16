@@ -76,7 +76,9 @@ class Nwasm extends OnePlayerGameTemplate {
 
 		this.uploaded_rom = false;
 
-		return this;
+		// opt out of index.js
+		this.default_html = 0;
+
 	}
 
 
@@ -180,7 +182,7 @@ class Nwasm extends OnePlayerGameTemplate {
 		//
 		if (tx.type == 8) {
                 	item.module = "Nwasm";
-                        item.title = txmsg.data?.name || "";
+                        item.title = txmsg.data?.title || "";
                         item.id = this.app.crypto.hash(item.title);
                         item.key = "";
                         item.sig = tx.signature;
@@ -984,27 +986,6 @@ class Nwasm extends OnePlayerGameTemplate {
                 this.nwasm = {};
 		this.nwasm.library = {};
                 this.save();
-	}
-
-	webServer(app, expressapp, express){
-		// opt out of index.js
-		// revert to web directory
-		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
-		let fs = app?.storage?.returnFileSystem();
-
-		if (fs != null) {
-			if (fs.existsSync(webdir)) {
-				expressapp.use(
-					'/' + encodeURI(this.returnSlug()),
-					express.static(webdir)
-				);
-			} else if (this.default_html) {
-				expressapp.use(
-					'/' + encodeURI(this.returnSlug()),
-					express.static(__dirname + '/../../lib/templates/html')
-				);
-			}
-		}
 	}
 
 }

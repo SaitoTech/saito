@@ -1,14 +1,13 @@
 module.exports = () => {
-
 	return `
 
-	    <div id="tutorial02-main" class="saito-container">
+	    <div id="tutorial02-main">
 
 	      <h2>Click to Send Transaction</h2>
 
-	      <input type="button" class="tutorial02-button" value="Click Me!" />
+	      <button class="tutorial02-button">Click me!</button>
 
-      	    </div>
+      	</div>
      
   	`;
 };

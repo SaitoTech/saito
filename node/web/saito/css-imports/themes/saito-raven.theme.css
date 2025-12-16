@@ -6,6 +6,13 @@ html[data-theme='raven'] {
   --saito-background-color-inverse:  #e3e7eb;
   --saito-header-background: var(--saito-background-color);
 
+  --saito-surface-color: rgba(255, 255, 255, 0.03);
+  --saito-surface-text: var(--saito-font-color);
+  --saito-surface-hover: rgba(255, 255, 255, 0.06);
+  --saito-surface-selected: rgba(255, 255, 255, 0.12);
+  --saito-surface-inverse: var(--saito-background-color-inverse);
+  --saito-surface-inverse-text: var(--saito-font-color-inverse);
+
   --saito-primary: #358ccf;
   --saito-primary-dark: #3071a6;
   --saito-secondary: #c535cf;

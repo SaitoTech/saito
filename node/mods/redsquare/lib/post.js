@@ -164,24 +164,12 @@ class Post {
 		let newtx = await this.mod.sendDeleteTransaction(this.app, this.mod, data, keys);
 	}
 
-	async postTweet() {
+	async postTweet(check_length = true) {
 		let post_self = this;
 		let text = this.input.getInput(false);
 
-
 		let keys = [];
 		let identifiers = [];
-
-		//
-		// sanity check
-		//
-		let wallet_balance = await this.app.wallet.getBalance('SAITO');
-
-		// restrict moderation
-		if (wallet_balance == 0 && this.app.BROWSER && text.length > 5000) {
-			siteMessage('Insufficient SAITO to Enable Oversized Posts...', 3000);
-			return;
-		}
 
 		//
 		//don't send empty posts
@@ -189,6 +177,33 @@ class Post {
 		if (this.images.length == 0 && text.trim().length == 0 && this.type != 'Retweet') {
 			siteMessage('Post Empty', 1000);
 			return;
+		}
+
+		if (check_length && text.length > 500) {
+			//
+			// sanity check
+			//
+			let wallet_balance = await this.app.wallet.getBalance('SAITO');
+
+			// restrict moderation
+			if (Number(wallet_balance) == 0) {
+				siteMessage('Insufficient SAITO to Enable Oversized Posts...', 3000);
+				return;
+			}
+
+			if (text.length > 1500) {
+				let alternates = this.app.modules.returnModulesRespondingTo('post-content');
+				if (alternates.length > 1) {
+					let image = this.images.length ? this.images[0] : null;
+					this.app.connection.emit('choose-post-location', text, image, alternates);
+					this.app.connection.on('continue-with-redsquare', () => {
+						this.app.connection.removeAllListeners('continue-with-redsquare');
+						this.postTweet(false);
+					});
+					this.overlay.hide();
+					return;
+				}
+			}
 		}
 
 		//
@@ -245,17 +260,15 @@ class Post {
 			data['images'] = post_self.images;
 		}
 
-		if (this.type == "Reply") {
-
+		if (this.type == 'Reply') {
 			this.tweet.num_replies++;
 
 			this.mod.replyTweet(this.tweet);
 
 			data = Object.assign(data, {
 				parent_id: this.tweet.tx.signature,
-				thread_id: this.tweet.thread_id,
+				thread_id: this.tweet.thread_id
 			});
-
 		}
 
 		//

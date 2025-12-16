@@ -35,7 +35,7 @@
 .editor-form {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  height: 100%;
 }
 
 .editor-content {
@@ -73,16 +73,16 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  margin-bottom: 2rem;
+}
+
+.form-group:nth-child(2) {
+  flex: 1;
 }
 
 .ql-snow .ql-formats {
   user-focus: none;
   -moz-user-focus: none;
-}
-
-.editor-content {
-  height: 70rem;
 }
 
 .form-group label {

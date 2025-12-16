@@ -460,6 +460,7 @@
 
 .withdraw-info-cont .withdraw-info-title {
   display: block;
+  margin-bottom: 2px;
 }
 
 #withdraw-step-one {
@@ -633,15 +634,18 @@ textarea {
   text-align: center;
   border: 3px dotted;
   height: 100%;
-  width: 55rem;
   font-size: 2rem;
   border-radius: 1rem;
   width: 100%;
   margin-left: auto;
   margin-right: auto;
   border-radius: 1rem;
-  min-width: 55rem;
   min-height: 30rem;
+  cursor: pointer;
+}
+
+#nft-image-upload i {
+  font-size: 16rem;
 }
 
 .utxo-div {
@@ -812,8 +816,8 @@ textarea {
   display: none;
 }
 
-
-.nft-creator , .nft-receiver {
+.nft-creator,
+.nft-receiver {
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -1242,16 +1246,11 @@ nft cards
   .create-nft-container {
     width: 95vw;
     min-width: auto;
-    padding: 1rem;
   }
 
   .send-nft-list {
     width: unset;
     justify-content: center;
-  }
-
-  #nft-image-upload {
-    width: auto;
   }
 
   .nft-details-container {

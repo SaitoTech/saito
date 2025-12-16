@@ -16,6 +16,12 @@ if [ ! -f "$buildJsonFile" ]; then
     echo '{"build_number": "0"}' > "$buildJsonFile"
 fi
 
+# make sure blocks directory exists
+mkdir -p ./data/blocks
+
+# make sure state directory exists
+mkdir -p ./data/state
+
 echo ""
 echo "  Ensuring minimal config files available"
 echo ""
@@ -105,7 +111,6 @@ echo ""
   if [ ! -d "./bundler" ]; then
 
     mkdir -p bundler/default/mods
-    mkdir -p data/blocks
     cp -rf ./lib bundler/default/lib
     rm -f bundler/default/lib/saito/*.spec.js
     rm -f bundler/default/lib/saito/core/*.spec.js
@@ -140,9 +145,7 @@ echo "Compiling Lite-Client JS..."
 
 function reset_nonpersistent {
 
-  mkdir -p data/blocks
-
-  # ensure deleted
+ # ensure deleted
   rm -f ./web/saito/saito.js
 
   # backup dbs before deleting anything
@@ -176,6 +179,8 @@ function reset_nonpersistent {
   rm -f ./mods/devtools/bundler/*.json
   rm -f ./logs/*
 
+  rm -f ./data/state/*
+
   #let the system know that users pre-existed a reset.
   if [ -f ./data/rewards.sq3 ]; then
   echo "update users set latest_tx = -1;" | sqlite3 ./data/rewards.sq3
@@ -205,8 +210,6 @@ function reset_persistent {
   rm -f ./data/league.sq3
   rm -f ./web/client.options
   rm -f ./data/blocks/*
-
-  mkdir -p data/blocks
 
 }
 

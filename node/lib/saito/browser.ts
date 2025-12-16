@@ -69,6 +69,7 @@ class Browser {
     this.title_interval = null;
     this.terminationEvent = 'unload';
     this.back_fn_queue = [];
+    this.modal_queue = [];
   }
 
   async initialize(app) {
@@ -381,6 +382,11 @@ class Browser {
         //console.log(event);
       }
     }*/
+
+    marked.setOptions({
+      breaks: true,
+      gfm: true
+    });
   }
 
   determineActiveModule() {
@@ -750,6 +756,18 @@ class Browser {
       elem.outerHTML = html;
     } catch (err) {
       console.error('ERROR 582341: error in prependElementToDom');
+    }
+  }
+
+  replaceElementContentById(html, id = null) {
+    if (id == null) {
+      console.warn('no id provided to replaceElementContentById, so adding direct to DOM');
+      this.app.browser.addElementToDom(html);
+    } else {
+      let obj = document.getElementById(id);
+      if (obj) {
+        obj.innerHTML = html;
+      }
     }
   }
 
@@ -2025,6 +2043,14 @@ class Browser {
     return text;
   }
 
+  resolveModal() {
+    if (this.modal_queue.length > 0) {
+      console.log('Showing saved salert...');
+      let next_modal = this.modal_queue.shift();
+      salert(next_modal);
+    }
+  }
+
   attachWindowFunctions() {
     if (typeof window !== 'undefined') {
       let browser_self = this;
@@ -2063,7 +2089,13 @@ class Browser {
         return result;
       };
 
+
       window.salert = function (message) {
+        if (document.getElementById('saito-alert')) {
+          return;
+        }
+        let wrapper = document.createElement('div');
+        wrapper.id = 'saito-alert';
         let html = `<div id="saito-alert-shim">
                       <div id="saito-alert-box">
                         <div class="saito-alert-message">${browser_self.sanitize(message)}</div>
@@ -2072,16 +2104,11 @@ class Browser {
                         </div>
                       </div>
                     </div>`;
-
-        if (document.getElementById('saito-alert')) {
-          browser_self.app.browser.replaceElementById(html, 'saito-alert');
-        } else {
-          let wrapper = document.createElement('div');
-          wrapper.id = 'saito-alert';
-          wrapper.innerHTML = html;
-          document.body.appendChild(wrapper);
-        }
-
+        wrapper.innerHTML = html;
+        document.body.appendChild(wrapper);
+        //        setTimeout(() => {
+        //          document.querySelector("#saito-alert-box").style.top = "0";
+        //        }, 100);
         document.querySelector('#alert-ok').focus();
         document.querySelector('#saito-alert-shim').addEventListener('keyup', function (event) {
           if (event.keyCode === 13) {
@@ -2092,15 +2119,17 @@ class Browser {
         document.querySelector('#alert-ok').addEventListener(
           'click',
           function () {
-            document.getElementById('saito-alert').remove();
+            wrapper.remove();
           },
           false
         );
       };
 
+
+
+
       window.sconfirm = function (message) {
         if (document.getElementById('saito-alert')) {
-          console.warn('Suppressing subsequent sconfirm...');
           return;
         }
         return new Promise((resolve, reject) => {
@@ -2143,7 +2172,6 @@ class Browser {
 
       window.sprompt = function (message, suggestion = '') {
         if (document.getElementById('saito-alert')) {
-          console.warn('Suppressing subsequent sprompt...');
           return;
         }
         return new Promise((resolve, reject) => {
@@ -2230,6 +2258,9 @@ class Browser {
         });
       };
 
+
+
+
       HTMLElement.prototype.destroy = function destroy() {
         try {
           this.parentNode.removeChild(this);
@@ -2256,7 +2287,10 @@ class Browser {
           node.classList.remove('saito-link');
 
           if (node.dataset.link) {
-            node.onclick = (e) => this.processLocalLink(e);
+            node.addEventListener('click', (e) => {
+              this.processLocalLink(e);
+              e.stopPropagation();
+            });
           }
         }
       }

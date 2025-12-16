@@ -1698,20 +1698,22 @@ class GameTemplate extends ModTemplate {
     let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
     let mod_self = this;
 
-    expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
-      let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
+    if (this.default_html) {
+      expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
+        let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
 
-      mod_self.social.url = reqBaseURL + encodeURI(mod_self.returnSlug());
-      mod_self.social.image = `${reqBaseURL + mod_self.returnSlug()}/img/arcade/arcade.jpg`;
+        mod_self.social.url = reqBaseURL + encodeURI(mod_self.returnSlug());
+        mod_self.social.image = `${reqBaseURL + mod_self.returnSlug()}/img/arcade/arcade.jpg`;
 
-      let html = HomePage(app, mod_self, app.build_number, mod_self.social);
-      if (!res.finished) {
-        res.setHeader('Content-type', 'text/html');
-        res.charset = 'UTF-8';
-        return res.send(html);
-      }
-      return;
-    });
+        let html = HomePage(app, mod_self, app.build_number, mod_self.social);
+        if (!res.finished) {
+          res.setHeader('Content-type', 'text/html');
+          res.charset = 'UTF-8';
+          return res.send(html);
+        }
+        return;
+      });
+    }
 
     expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
   }

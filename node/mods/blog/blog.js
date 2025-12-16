@@ -2,12 +2,15 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const SaitoProfile = require('./../../lib/saito/ui/saito-profile/saito-profile');
+const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
+const BlogTemplate = require('./lib/blog.template');
 const pageHome = require('./index');
 const React = require('react');
 const Transaction = require('../../lib/saito/transaction').default;
 const { default: BlogPost } = require('./lib/react-components/blog-post');
 const { default: BlogLayout } = require('./lib/react-components/blog-layout');
 const markdownPage = require('./markdown.js');
+const markdownTemplate = require('./lib/markdown-help.template');
 
 class Blog extends ModTemplate {
   constructor(app) {
@@ -32,6 +35,7 @@ class Blog extends ModTemplate {
     this.callBackAfterDelete = null;
 
     this.styles = ['/saito/saito.css', '/blog/style.css'];
+    this.scripts = ['/blog/js/quill.js'];
 
     this.postsCache = {
       byUser: new Map(),
@@ -40,6 +44,10 @@ class Blog extends ModTemplate {
       lastAllPostsFetch: 0,
       deletedPosts: new Set()
     };
+
+    this.react = null;
+
+    this.overlay = new SaitoOverlay(app, this);
 
     this.CACHE_TIMEOUT = 10000;
   }
@@ -63,7 +71,12 @@ class Blog extends ModTemplate {
 
       const post = this.convertTransactionToPost(newtx);
 
-      this.app.browser.createReactRoot(
+      if (this.react?.cleanup) {
+        console.log('Blog.Render -- remove previous React Root');
+        this.react.cleanup();
+      }
+
+      this.react = this.app.browser.createReactRoot(
         BlogLayout,
         {
           post,
@@ -80,11 +93,24 @@ class Blog extends ModTemplate {
       );
 
       this.blog_rendered = true;
+      this.attachEvents();
     } else if (postId) {
       const url = new URL(window.location);
       url.searchParams.delete('tx_id');
       window.history.pushState({}, '', url);
     }
+  }
+
+  attachEvents() {
+    setTimeout(() => {
+      Array.from(document.querySelectorAll('.byline .blog-author')).forEach((elm) => {
+        elm.onclick = (e) => {
+          e.stopImmediatePropagation();
+          let pk = e.currentTarget.getAttribute('data-publickey');
+          console.log('Click on: ', pk);
+        };
+      });
+    }, 250);
   }
 
   respondTo(type = '', obj) {
@@ -103,17 +129,49 @@ class Blog extends ModTemplate {
       }
       return x;
     }
+
+    if (type === 'saito-link') {
+      const urlParams = new URL(obj?.link).searchParams;
+      if (urlParams.has('tx_id')) {
+        this.attachStyleSheets();
+        return {
+          processLink: (link) => {
+            console.log('Process local link: ', obj.link);
+            this.loadSinglePost(urlParams.get('tx_id'));
+          }
+        };
+      }
+    }
+
+    if (type === 'post-content') {
+      let blog_self = this;
+      return {
+        icon: blog_self.icon_fa,
+        text: 'Post through the Blog module',
+        callback: async (content, image) => {
+          let title = await sprompt('Add a title to your post');
+          await blog_self.createBlogPostTransaction({
+            title,
+            content,
+            image,
+            tags: [],
+            timestamp: Date.now(),
+            imageUrl: ''
+          });
+        }
+      };
+    }
   }
 
   async onPeerServiceUp(app, peer, service = {}) {
-    if (!app.BROWSER || !this.browser_active) {
+    if (!app.BROWSER) {
       return;
     }
 
     if (service.service === 'archive') {
       this.peer = peer;
 
-      if (this.blog_rendered) {
+      if (this.blog_rendered || !this.browser_active) {
         // We already have the target blog because it came in the index.js
         // We don't need to loadTransactions and create a duplicate react root
         return;
@@ -126,7 +184,7 @@ class Blog extends ModTemplate {
 
       if (postId) {
         // Load specific post
-        await this.loadSinglePost(postId);
+        this.loadSinglePost(postId);
       } else if (author) {
         // Load post by author
         this.loadPosts(author);
@@ -482,18 +540,25 @@ class Blog extends ModTemplate {
 
   async loadPosts(author = null) {
     console.info('Blog.loadPosts -- ', author);
-    this.app.browser.createReactRoot(
+    if (this.react?.cleanup) {
+      console.info('Blog.loadPosts -- remove previous react root');
+      this.react.cleanup();
+    }
+
+    this.react = this.app.browser.createReactRoot(
       BlogLayout,
       { app: this.app, mod: this, publicKey: author, topMargin: true },
       `blog-layout-${Date.now()}`
     );
+    this.attachEvents();
   }
 
-  async loadSinglePost(postId) {
+  loadSinglePost(postId) {
     console.info('Blog.loadSinglePost');
     if (!this.peer) {
       siteMessage('Warning: no peers available...');
       this.loadPosts();
+      return;
     }
 
     let blog_self = this;
@@ -505,21 +570,33 @@ class Blog extends ModTemplate {
         if (targetTx) {
           const post = blog_self.convertTransactionToPost(targetTx);
 
-          blog_self.app.browser.createReactRoot(
-            BlogLayout,
-            {
-              post,
-              app: blog_self.app,
-              mod: blog_self,
-              publicKey: post.publicKey,
-              topMargin: true,
-              ondelete: () => {
-                const baseUrl = window.location.origin;
-                window.location.href = `${baseUrl}/blog`;
-              }
-            },
-            `blog-post-detail-${Date.now()}`
-          );
+          if (blog_self.browser_active) {
+            console.log('Blog active...');
+            if (blog_self.react?.cleanup) {
+              console.info('Blog.loadSinglePost -- remove previous react root');
+              blog_self.react.cleanup();
+            }
+
+            blog_self.react = blog_self.app.browser.createReactRoot(
+              BlogLayout,
+              {
+                post,
+                app: blog_self.app,
+                mod: blog_self,
+                publicKey: post.publicKey,
+                topMargin: true,
+                ondelete: () => {
+                  const baseUrl = window.location.origin;
+                  window.location.href = `${baseUrl}/blog`;
+                }
+              },
+              `blog-post-detail-${Date.now()}`
+            );
+            this.attachEvents();
+          } else {
+            console.log('Loading blog post outside of blog...');
+            blog_self.overlay.show(BlogTemplate(blog_self.app, blog_self.mod, post));
+          }
         } else {
           console.error('Post not found');
           blog_self.loadPosts();
@@ -583,6 +660,32 @@ class Blog extends ModTemplate {
     };
   }
 
+  showMarkdownHelp() {
+    this.overlay.show(markdownTemplate());
+  }
+
+  extractBlogSummary(text, length = 300) {
+    // Extract preview of first n-hundred characters...
+    let contentPreview = this.app.browser
+      .stripHtml(text)
+      .substring(0, length)
+      .replace(/#+/g, '#')
+      .split(/\s/);
+    contentPreview.pop();
+    let in_title = false;
+    for (let i = 0; i < contentPreview.length; i++) {
+      if (contentPreview[i] == '#') {
+        in_title = true;
+        contentPreview[i] = '<<';
+      }
+      if (in_title && !contentPreview[i]) {
+        contentPreview[i] = '>> ';
+        in_title = false;
+      }
+    }
+    return contentPreview.join(' ') + '...';
+  }
+
   webServer(app, expressapp, express) {
     let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
     let mod_self = this;
@@ -606,7 +709,9 @@ class Blog extends ModTemplate {
           if (targetPost) {
             user = app.keychain.returnUsername(targetPost.publicKey);
 
-            updatedSocial.description = `'${targetPost.title}' by ${user}`;
+            updatedSocial.title = `'${targetPost.title}' by ${user}`;
+
+            updatedSocial.description = this.extractBlogSummary(targetPost.content);
 
             if (targetPost?.imageUrl) {
               updatedSocial.image = targetPost.imageUrl;

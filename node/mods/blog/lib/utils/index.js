@@ -1,15 +1,3 @@
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
-
-marked.setOptions({
-  breaks: true,
-  gfm: true
-});
-
-export const parseMarkdown = (content) => {
-  return DOMPurify.sanitize(marked.parse(content));
-};
-
 export const getImageUrl = (base64String) => {
   if (!base64String) return null;
   if (base64String.startsWith('data:image/')) return base64String;
