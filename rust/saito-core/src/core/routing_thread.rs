@@ -1238,34 +1238,32 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         const CONGESTION_CHECK_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
         self.congestion_check_timer += duration_value;
         if self.congestion_check_timer >= CONGESTION_CHECK_PERIOD {
-            let mut configs = self.config_lock.write().await;
-            if configs.is_browser() {
-                self.congestion_check_timer = 0;
-                return None;
-            }
             self.manage_congested_peers().await;
-            let peers = self.network.peer_lock.read().await;
-            let congestion_data = CongestionStatsDisplay {
-                congestion_controls_by_key: peers
-                    .congestion_controls_by_key
-                    .iter()
-                    .map(|(key, value)| (key.to_base58(), value.clone()))
-                    .collect(),
-                congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
-            };
-            drop(peers);
-            ConfigManager::write_congestion_data(
-                &congestion_data,
-                self.network.io_interface.deref(),
-            )
-            .await
-            .unwrap_or_else(|e| {
-                error!("failed to write congestion data : {:?}", e);
-            });
+            let mut configs = self.config_lock.write().await;
+            if !configs.is_browser() {
+                let peers = self.network.peer_lock.read().await;
+                let congestion_data = CongestionStatsDisplay {
+                    congestion_controls_by_key: peers
+                        .congestion_controls_by_key
+                        .iter()
+                        .map(|(key, value)| (key.to_base58(), value.clone()))
+                        .collect(),
+                    congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
+                };
+                drop(peers);
+                ConfigManager::write_congestion_data(
+                    &congestion_data,
+                    self.network.io_interface.deref(),
+                )
+                .await
+                .unwrap_or_else(|e| {
+                    error!("failed to write congestion data : {:?}", e);
+                });
 
-            configs.set_congestion_data(Some(congestion_data));
-            self.congestion_check_timer = 0;
-            work_done = true;
+                configs.set_congestion_data(Some(congestion_data));
+                self.congestion_check_timer = 0;
+                work_done = true;
+            }
         }
 
         const PEER_REMOVAL_TIMER_PERIOD: Timestamp =
