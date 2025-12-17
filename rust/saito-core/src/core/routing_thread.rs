@@ -1235,12 +1235,15 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             work_done = true;
         }
 
-        const CONGESTION_CHECK_PERIOD: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
+        const CONGESTION_CHECK_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
         self.congestion_check_timer += duration_value;
         if self.congestion_check_timer >= CONGESTION_CHECK_PERIOD {
-            self.manage_congested_peers().await;
-
             let mut configs = self.config_lock.write().await;
+            if configs.is_browser(){
+                self.congestion_check_timer = 0;
+                return None;
+            }
+            self.manage_congested_peers().await;
             let peers = self.network.peer_lock.read().await;
             let congestion_data = CongestionStatsDisplay {
                 congestion_controls_by_key: peers
