@@ -1239,7 +1239,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         self.congestion_check_timer += duration_value;
         if self.congestion_check_timer >= CONGESTION_CHECK_PERIOD {
             let mut configs = self.config_lock.write().await;
-            if configs.is_browser(){
+            if configs.is_browser() {
                 self.congestion_check_timer = 0;
                 return None;
             }
