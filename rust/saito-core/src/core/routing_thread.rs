@@ -60,6 +60,12 @@ pub struct RoutingStats {
     pub total_incoming_messages: StatVariable,
 }
 
+pub struct BlockchainSendResults {
+    pub start_id: BlockId,
+    pub end_id: BlockId,
+    pub peer_idx: PeerIndex,
+}
+
 impl RoutingStats {
     pub fn new(sender: Sender<StatEvent>) -> Self {
         RoutingStats {
@@ -107,6 +113,7 @@ pub struct RoutingThread {
     /// we emit an event and store the received chain until the user handles the event. TODO : handle this functionality after JS functions are implemented.
     pub received_ghost_chain: Option<(GhostChainSync, PeerIndex)>,
     pub waiting_for_genesis_block: bool,
+    pub blockchain_send_results: Vec<BlockchainSendResults>,
 }
 
 impl RoutingThread {
@@ -739,28 +746,39 @@ impl RoutingThread {
             last_shared_ancestor,
             blockchain.blockring.get_latest_block_id()
         );
-        for i in last_shared_ancestor..(blockchain.blockring.get_latest_block_id() + 1) {
-            if let Some(block_hash) = blockchain
-                .blockring
-                .get_longest_chain_block_hash_at_block_id(i)
-            {
-                trace!(
-                    "sending (queueing) block header hash: {:?}-{:?} to peer : {:?}",
-                    i,
-                    block_hash.to_hex(),
-                    peer_index
-                );
-                let buffer = Message::BlockHeaderHash(block_hash, i).serialize();
-                // _ = self.network.queue_to_send(buffer, peer_index).await;
-                _ = self
-                    .network
-                    .io_interface
-                    .send_message(peer_index, &buffer)
-                    .await;
-            } else {
-                continue;
-            }
+        if !self
+            .blockchain_send_results
+            .iter()
+            .any(|r| r.peer_idx == peer_index)
+        {
+            self.blockchain_send_results.push(BlockchainSendResults {
+                start_id: last_shared_ancestor,
+                end_id: blockchain.blockring.get_latest_block_id() + 1,
+                peer_idx: peer_index,
+            });
         }
+        // for i in last_shared_ancestor..(blockchain.blockring.get_latest_block_id() + 1) {
+        //     if let Some(block_hash) = blockchain
+        //         .blockring
+        //         .get_longest_chain_block_hash_at_block_id(i)
+        //     {
+        //         trace!(
+        //             "sending (queueing) block header hash: {:?}-{:?} to peer : {:?}",
+        //             i,
+        //             block_hash.to_hex(),
+        //             peer_index
+        //         );
+        //         let buffer = Message::BlockHeaderHash(block_hash, i).serialize();
+        //         // _ = self.network.queue_to_send(buffer, peer_index).await;
+        //         _ = self
+        //             .network
+        //             .io_interface
+        //             .send_message(peer_index, &buffer)
+        //             .await;
+        //     } else {
+        //         continue;
+        //     }
+        // }
         info!("queued block headers for peer : {}", peer_index);
         Ok(())
     }
@@ -1027,6 +1045,33 @@ impl RoutingThread {
                 .inspect_err(|e| error!("{:?}", e));
         }
     }
+
+    async fn send_block_headers(&mut self) {
+        if self.blockchain_send_results.is_empty() {
+            return;
+        }
+        let blockchain = self.blockchain_lock.read().await;
+        for entry in self.blockchain_send_results.iter_mut() {
+            let start = entry.start_id;
+            let end = std::cmp::min(entry.end_id, entry.start_id + 100); // sending max 100 block headers at a time to avoid congestion
+            entry.start_id = end + 1;
+            for block_id in start..=end {
+                if let Some(block_hash) = blockchain
+                    .blockring
+                    .get_longest_chain_block_hash_at_block_id(block_id)
+                {
+                    let buffer = Message::BlockHeaderHash(block_hash, block_id).serialize();
+                    _ = self
+                        .network
+                        .io_interface
+                        .send_message(entry.peer_idx, &buffer)
+                        .await;
+                }
+            }
+        }
+        self.blockchain_send_results
+            .retain(|entry| entry.start_id <= entry.end_id);
+    }
 }
 
 #[async_trait]
@@ -1186,36 +1231,39 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
             self.message_sending_timer = 0;
             _ = self.network.send_messages_in_buffer().await;
+            self.send_block_headers().await;
+            work_done = true;
         }
 
-        const CONGESTION_CHECK_PERIOD: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
+        const CONGESTION_CHECK_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
         self.congestion_check_timer += duration_value;
         if self.congestion_check_timer >= CONGESTION_CHECK_PERIOD {
             self.manage_congested_peers().await;
-
             let mut configs = self.config_lock.write().await;
-            let peers = self.network.peer_lock.read().await;
-            let congestion_data = CongestionStatsDisplay {
-                congestion_controls_by_key: peers
-                    .congestion_controls_by_key
-                    .iter()
-                    .map(|(key, value)| (key.to_base58(), value.clone()))
-                    .collect(),
-                congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
-            };
-            drop(peers);
-            ConfigManager::write_congestion_data(
-                &congestion_data,
-                self.network.io_interface.deref(),
-            )
-            .await
-            .unwrap_or_else(|e| {
-                error!("failed to write congestion data : {:?}", e);
-            });
+            if !configs.is_browser() {
+                let peers = self.network.peer_lock.read().await;
+                let congestion_data = CongestionStatsDisplay {
+                    congestion_controls_by_key: peers
+                        .congestion_controls_by_key
+                        .iter()
+                        .map(|(key, value)| (key.to_base58(), value.clone()))
+                        .collect(),
+                    congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
+                };
+                drop(peers);
+                ConfigManager::write_congestion_data(
+                    &congestion_data,
+                    self.network.io_interface.deref(),
+                )
+                .await
+                .unwrap_or_else(|e| {
+                    error!("failed to write congestion data : {:?}", e);
+                });
 
-            configs.set_congestion_data(Some(congestion_data));
-            self.congestion_check_timer = 0;
-            work_done = true;
+                configs.set_congestion_data(Some(congestion_data));
+                self.congestion_check_timer = 0;
+                work_done = true;
+            }
         }
 
         const PEER_REMOVAL_TIMER_PERIOD: Timestamp =
