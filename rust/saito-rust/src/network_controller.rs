@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::net::SocketAddr;
+use std::os::unix::fs::PermissionsExt;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,8 +12,8 @@ use log::{debug, error, info, trace, warn};
 use reqwest::Client;
 use saito_core::core::stat_thread::StatEvent;
 use tokio::fs::File;
-use tokio::io::AsyncReadExt;
-use tokio::net::TcpStream;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::{TcpStream, UnixListener};
 use tokio::select;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::{Mutex, RwLock};
@@ -501,7 +502,7 @@ pub async fn run_network_controller(
     peers_lock: Arc<RwLock<PeerCollection>>,
     sender_to_network: Sender<IoEvent>,
     timer: &Timer,
-) -> (JoinHandle<()>, JoinHandle<()>) {
+) -> (JoinHandle<()>, JoinHandle<()>, JoinHandle<()>) {
     info!("running network handler");
 
     let host;
@@ -546,6 +547,7 @@ pub async fn run_network_controller(
         public_key,
         peers_lock,
     );
+    let local_handler = run_local_listener(sender_clone.clone());
 
     let time_keeper = timer.clone();
 
@@ -698,7 +700,7 @@ pub async fn run_network_controller(
             }
         })
         .unwrap();
-    (server_handle, controller_handle)
+    (server_handle, controller_handle, local_handler)
 }
 
 pub enum PeerSender {
@@ -943,6 +945,41 @@ fn run_websocket_server(
             warp::serve(routes).run(address).await;
         })
         .unwrap()
+}
+pub const LOCAL_LISTENER_SOCKET_PATH: &str = "/tmp/saito_local_socket";
+fn run_local_listener(sender_clone: Sender<IoEvent>) -> JoinHandle<()> {
+    if std::path::Path::new(LOCAL_LISTENER_SOCKET_PATH).exists() {
+        std::fs::remove_file(LOCAL_LISTENER_SOCKET_PATH).unwrap();
+    }
+
+    let listener = UnixListener::bind(LOCAL_LISTENER_SOCKET_PATH).unwrap();
+    let mut permissions = std::fs::metadata(LOCAL_LISTENER_SOCKET_PATH)
+        .unwrap()
+        .permissions();
+    permissions.set_mode(0o600);
+    fs::set_permissions(LOCAL_LISTENER_SOCKET_PATH, permissions).unwrap();
+
+    println!(
+        "Local socket server running on {:?}",
+        LOCAL_LISTENER_SOCKET_PATH
+    );
+
+    tokio::spawn(async move {
+        loop {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            loop {
+                let mut buf = [0u8; 1_000_000];
+                match socket.read(&mut buf).await {
+                    Ok(n) if n > 0 => {
+                        let msg = String::from_utf8_lossy(&buf[..n]);
+                        println!("Received msg of length : {} : {}", n, msg);
+                        let _ = socket.write_all(b"Message received!").await;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    })
 }
 
 #[cfg(test)]

@@ -1,4 +1,4 @@
 [workspace]
 
-members = ["saito-core", "saito-wasm", "saito-rust", "saito-spammer"]
+members = ["saito-core", "saito-wasm", "saito-rust", "saito-spammer", "saito-console"]
 resolver = "2"

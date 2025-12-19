@@ -713,7 +713,7 @@ async fn run_node(
         &time_keeper,
     );
 
-    let (server_handle, controller_handle) = run_network_controller(
+    let (server_handle, controller_handle, local_listener_handle) = run_network_controller(
         receiver_in_network_controller,
         event_sender_to_loop.clone(),
         configs_lock.clone(),
@@ -732,6 +732,7 @@ async fn run_node(
         loop_handle,
         server_handle,
         controller_handle,
+        local_listener_handle,
         stat_handle,
         futures::future::join_all(verification_handles)
     );

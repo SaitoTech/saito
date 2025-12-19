@@ -2372,6 +2372,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
+name = "saito-console"
+version = "0.1.0"
+dependencies = [
+ "saito-core",
+ "saito-rust",
+ "tokio",
+]
+
+[[package]]
 name = "saito-core"
 version = "0.2.11"
 dependencies = [
