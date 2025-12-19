@@ -1,28 +1,32 @@
-
-
 .saito-container {
-    display: flex;
-    flex-direction: column;
-    margin-top: 100px;
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  padding: min(100px, 10vh) 3rem;
+  align-items: center;
+  gap: 2rem;
 }
 
-.saito-container p {
-    font-size: 1.8rem;
-    font-style: italic;
-    padding-top: 1rem;
-    padding-bottom: 2rem;
+.purchase-saito-prompt {
+  font-size: 1.8rem;
+  font-style: italic;
+  padding-top: 1rem;
+  padding-bottom: 2rem;
 }
 
-.saito-container button {
-    max-width: 400px;
-    width: 400px;
-    margin-left: auto;
-    margin-right: auto;
+.purchase-saito-amount {
+  border: none;
+  width: max-content;
+  height: 100%;
+  font-size: 2.2rem;
+  color: inherit;
+  text-align: right;
+  background: var(--saito-background-color);
 }
 
-.buysaito-spinner {
-    display: none;
+.buysaito-button {
+  width: 400px;
 }
 
-
+.footer-note {
+  margin-top: auto;
+}

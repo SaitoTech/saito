@@ -1,14 +1,15 @@
 const SaitoPurchaseTemplate = require('./saito-purchase.template');
 const SaitoPurchaseLoaderTemplate = require('./saito-purchase-loader.template');
 const SaitoPurchaseCryptoTemplate = require('./saito-purchase-select-crypto.template');
-const SaitoOverlay = require('./../saito-overlay/saito-overlay');
 
-class AssetstoreSaitoPurchaseOverlay {
-  constructor(app, mod, container = 'body') {
+const SaitoOverlay = require('./../../../lib/saito/ui/saito-overlay/saito-overlay');
+
+class SaitoPurchaseOverlay {
+  constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.container = container;
-    this.purchase_overlay = new SaitoOverlay(app, mod, false, true);
+
+    this.overlay = new SaitoOverlay(app, mod, false, true);
 
     //
     // init
@@ -46,7 +47,7 @@ class AssetstoreSaitoPurchaseOverlay {
   async render() {
     console.log('render saito-purchase');
     let self = this;
-    this.purchase_overlay.remove();
+    this.overlay.remove();
 
     if (!this.available_cryptos.length > 0) {
       //
@@ -59,29 +60,25 @@ class AssetstoreSaitoPurchaseOverlay {
       //
       // 1. user selects crypto
       //
-      this.purchase_overlay.show(SaitoPurchaseCryptoTemplate(this.app, this.mod, this));
+      this.overlay.show(SaitoPurchaseCryptoTemplate(this.app, this.mod, this));
     } else {
       if (!this.address) {
         //
         // 2. show loading screen after selecting crypto ticker
         //
-        this.purchase_overlay.show(
-          SaitoPurchaseLoaderTemplate(this.app, this.mod, this, this.ui_msg)
-        );
+        this.overlay.show(SaitoPurchaseLoaderTemplate(this.app, this.mod, this, this.ui_msg));
       } else {
         //
         // 3. Show address screen when deposit address is created/fetched
         //
         if (!this.deposit_confirmed) {
-          this.purchase_overlay.show(SaitoPurchaseTemplate(this.app, this.mod, this));
+          this.overlay.show(SaitoPurchaseTemplate(this.app, this.mod, this));
           this.app.browser.generateQRCode(this.address, 'pqrcode');
         } else {
           //
           // 4. Show loading screen when payment, deposited by user, is confirmed
           //
-          this.purchase_overlay.show(
-            SaitoPurchaseLoaderTemplate(this.app, this.mod, this, this.ui_msg)
-          );
+          this.overlay.show(SaitoPurchaseLoaderTemplate(this.app, this.mod, this, this.ui_msg));
         }
       }
     }
@@ -150,9 +147,7 @@ class AssetstoreSaitoPurchaseOverlay {
     console.log('loadAvailableCryptos -> request');
 
     let ack = await new Promise((resolve) => {
-      self.app.network.sendRequestAsTransaction('mixin fetch crypto mods', {}, (res) =>
-        resolve(res)
-      );
+      self.app.network.sendRequest('mixin fetch crypto mods', {}, (res) => resolve(res));
     });
 
     console.log('loadAvailableCryptos response:', ack);
@@ -211,7 +206,7 @@ class AssetstoreSaitoPurchaseOverlay {
       if (!res || res.ok !== true || !res.address) {
         let msg = res && res.err ? res.err : 'Unable to create purchase address';
         salert(msg);
-        self.purchase_overlay.remove();
+        self.overlay.remove();
         return { ok: false, err: msg };
       }
 
@@ -278,7 +273,7 @@ class AssetstoreSaitoPurchaseOverlay {
     } catch (e) {
       console.error('reserve payment callback error:', e);
       salert('error');
-      self.purchase_overlay.remove();
+      self.overlay.remove();
       return { ok: false, err: 'exception' };
     }
   }
@@ -362,13 +357,13 @@ class AssetstoreSaitoPurchaseOverlay {
   }
 
   updatePendingDepositConfirmed(data = {}) {
-    this.purchase_overlay.remove();
+    this.overlay.remove();
 
     salert('Your deposit is confirmed. Sending SAITO to your wallet...');
   }
 
   updateSaitoIssued(data = {}) {
-    this.purchase_overlay.remove();
+    this.overlay.remove();
 
     salert('Transation to issue SAITO sent. Please wait for network confirmation...');
   }
@@ -405,4 +400,4 @@ class AssetstoreSaitoPurchaseOverlay {
   }
 }
 
-module.exports = AssetstoreSaitoPurchaseOverlay;
+module.exports = SaitoPurchaseOverlay;
