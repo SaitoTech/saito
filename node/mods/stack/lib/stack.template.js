@@ -8,33 +8,29 @@ module.exports = (app, mod) => {
           </div>
           <div class="stack-cta-image-back">
             <div class="stack-cta-image-back-content">
-              <h3>Below the surface</h3>
-              <p>What looks like a simple publishing tool runs on a peer-to-peer network. Storage, access, and reader support work differently here — by design.</p>
+              <h3>Monetize Your Content</h3>
+              <p>Set up subscriptions, distribute access keys, and build your community on the decentralized web.</p>
               <ul class="stack-features-list">
-                <li>where are my posts saved</li>
-                <li>how do I make subscriptions?</li>
-                <li>how do readers pay me</li>
-                <li>how can I customize without a server</li>
+                <li><i class="fa-solid fa-check"></i> Subscription management</li>
+                <li><i class="fa-solid fa-check"></i> NFT access keys</li>
+                <li><i class="fa-solid fa-check"></i> Creator monetization</li>
+                <li><i class="fa-solid fa-check"></i> Full ownership</li>
               </ul>
-              <div class="stack-learn-more-link">
-                <a href="#" class="stack-learn-more-btn" id="stack-learn-more-back-btn">
-                  Learn how Saito Stack works <i class="fa-solid fa-arrow-right"></i>
-                </a>
-              </div>
             </div>
           </div>
         </div>
         <div class="stack-cta-content">
-          <h2 class="stack-cta-title">Publish without Publishers</h2>
+          <h2 class="stack-cta-title">Publish. Monetize. Own.</h2>
           <p class="stack-cta-description">
-            Create a subscription-based blog, use NFTs to limit access, and build your own audience on your own terms.
+            Create your own subscription-based blog, distribute NFTs for access,
+            and build your community on Saito.
           </p>
           <div class="stack-cta-buttons">
             <button class="stack-btn-primary" id="stack-create-post-btn">
-              <i class="fa-solid fa-pen"></i> Start Writing
+              <i class="fa-solid fa-plus"></i> Create Post
             </button>
             <button class="stack-btn-secondary" id="stack-get-started-btn">
-              Browse Posts
+              Learn More
             </button>
           </div>
         </div>

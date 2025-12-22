@@ -41,7 +41,7 @@ class StackMain {
       if (createBtn) {
         createBtn.onclick = (e) => {
           e.preventDefault();
-          this.mod.create_post_ui.render();
+          this.handleStartWriting();
         };
       }
 
@@ -63,6 +63,47 @@ class StackMain {
       }
     } catch (err) {
       console.error('StackMain attachEvents error:', err);
+    }
+  }
+
+  /**
+   * Handle "Start Writing" button click
+   * Checks for existing posts/drafts and shows welcome overlay if needed
+   */
+  handleStartWriting() {
+    // Check session flag to prevent immediate re-showing
+    const overlayShown = sessionStorage.getItem('stack-welcome-overlay-shown');
+    
+    // Load stack state
+    this.mod.load();
+    const stackState = this.mod.app.options.stack || {};
+    const posts = stackState.posts || [];
+    
+    // Check if we have posts and overlay hasn't been shown this session
+    if (posts.length > 0 && !overlayShown) {
+      // Render editor first (empty surface)
+      this.mod.create_post_ui.render();
+      
+      // Check for active draft
+      let hasDraft = false;
+      try {
+        const draft = localStorage.getItem('stack-post-draft');
+        hasDraft = draft && draft.trim().length > 0;
+      } catch (err) {
+        // Ignore
+      }
+      
+      // Show welcome overlay
+      setTimeout(() => {
+        if (!this.mod.welcomeBackOverlay) {
+          const WelcomeBackOverlay = require('./overlay/welcome-back');
+          this.mod.welcomeBackOverlay = new WelcomeBackOverlay(this.app, this.mod);
+        }
+        this.mod.welcomeBackOverlay.render(posts, hasDraft);
+      }, 100);
+    } else {
+      // No posts or overlay already shown - proceed directly to editor
+      this.mod.create_post_ui.render();
     }
   }
 }
