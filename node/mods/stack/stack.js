@@ -5,7 +5,9 @@ const Transaction = require('../../lib/saito/transaction').default;
 const JSON = require('json-bigint');
 const path = require('path');
 const HomePage = require('./index');
-const StackTemplate = require('./lib/stack.template');
+const StackMain = require('./lib/ui/main');
+const ExploreOverlay = require('./lib/ui/overlay/explore');
+const CreatePost = require('./lib/ui/create-post');
 
 //
 // Stack - Permissioned Blogging Platform
@@ -45,7 +47,13 @@ class Stack extends ModTemplate {
     };
 
     this.overlay = new SaitoOverlay(app, this);
+    this.exploreOverlay = new ExploreOverlay(app, this);
+    this.main = new StackMain(app, this, '.saito-container');
+    this.create_post_ui = new CreatePost(app, this, '.saito-container');
     this.header = null;
+
+    // Callback for after post creation
+    this.callbackAfterPost = null;
 
     this.styles = ['/saito/saito.css', '/stack/style.css'];
     this.scripts = [];
@@ -75,58 +83,9 @@ class Stack extends ModTemplate {
 
     await super.render(this.app, this);
 
-    // Render the splash page
-    this.renderSplashPage();
+    // Render the main component (splash page)
+    this.main.render();
 
-  }
-
-  renderSplashPage() {
-    const html = StackTemplate(this.app, this);
-    
-    const container = document.querySelector('.saito-container');
-    if (container) {
-      container.classList.add('stack-splash-container');
-      this.app.browser.replaceElementBySelector(html, '.saito-container');
-      
-      setTimeout(() => {
-        this.attachSplashEvents();
-      }, 50);
-    }
-  }
-
-  attachSplashEvents() {
-    const createBtn = document.querySelector('#stack-create-post-btn');
-    if (createBtn) {
-      createBtn.onclick = (e) => {
-        e.preventDefault();
-        console.log('Create Post clicked (placeholder)');
-      };
-    }
-
-    const getStartedBtn = document.querySelector('#stack-get-started-btn');
-    if (getStartedBtn) {
-      getStartedBtn.onclick = (e) => {
-        e.preventDefault();
-        console.log('Get Started clicked (placeholder)');
-      };
-    }
-
-    const exploreBtn = document.querySelector('#stack-explore-btn');
-    if (exploreBtn) {
-      exploreBtn.onclick = (e) => {
-        e.preventDefault();
-        console.log('Explore Available Posts clicked (placeholder)');
-        this.showExplorePostsOverlay();
-      };
-    }
-
-    const toggleSidebarBtn = document.querySelector('#stack-subscriptions-toggle');
-    if (toggleSidebarBtn) {
-      toggleSidebarBtn.onclick = (e) => {
-        e.preventDefault();
-        this.toggleSubscriptionsSidebar();
-      };
-    }
   }
 
   toggleSubscriptionsSidebar() {
@@ -167,16 +126,166 @@ class Stack extends ModTemplate {
   // Transaction Handling  //
   ////////////////////////////
   async onConfirmation(blk, tx, conf) {
-
-    if (!tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
-      return;
-    }
-
     const txmsg = tx.returnMessage();
+    
     if (txmsg.module !== this.name) {
       return;
     }
 
+    if (Number(conf) == 0) {
+      if (txmsg.request === 'create stack post request') {
+        console.log('Stack onConfirmation: createStackPost');
+        await this.receiveStackPostTransaction(tx, blk);
+      }
+      // Add other request types here as needed (update, delete, etc.)
+    }
+  }
+
+  ////////////////////////////
+  // Create Stack Post Transaction
+  ////////////////////////////
+  /**
+   * Creates a new stack post transaction and propagates it to the network.
+   * 
+   * @param {Object} post - The post data object
+   * @param {string} post.title - The title of the post (required)
+   * @param {string} post.content - The content/body of the post in Markdown format (required)
+   * @param {string} post.image - Base64 encoded image data (optional)
+   * @param {string} post.imageUrl - URL to an external image (optional)
+   * @param {Array<string>} post.tags - Array of tag strings (optional, defaults to empty array)
+   * @param {number} post.timestamp - Unix timestamp in milliseconds (optional, defaults to Date.now())
+   * @param {string} post.subscriptionTier - Subscription tier: 'free' or 'paid' (optional, defaults to 'free')
+   * @param {string} post.excerpt - Short excerpt/summary of the post (optional)
+   * @param {Function} callback - Optional callback function to execute after post is confirmed
+   * 
+   * @returns {Promise<Transaction>} The signed transaction object
+   * 
+   * Transaction message (tx.msg) structure:
+   * {
+   *   module: 'Stack',
+   *   request: 'create stack post request',
+   *   data: {
+   *     type: 'stack_post',
+   *     title: string,           // Post title
+   *     content: string,         // Markdown content
+   *     image: string,           // Base64 image data (optional)
+   *     images: array,           // JSON of (Base64 image data (optional))
+   *     imageUrl: string,        // External image URL (optional)
+   *     tags: Array<string>,     // Array of tags
+   *     timestamp: number,       // Unix timestamp
+   *     subscriptionTier: string, // 'free' or 'paid'
+   *     excerpt: string          // Post excerpt (optional)
+   *   }
+   * }
+   */
+  async createStackPostTransaction(
+    post = {
+      title: '',
+      content: '',
+      image: '',
+      images: [] ,
+      imageUrl: '',
+      tags: [],
+      timestamp: Date.now(),
+      subscriptionTier: 'free',
+      excerpt: ''
+    },
+    callback
+  ) {
+    try {
+      // Create new transaction
+      let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
+
+      // Validate and sanitize the post data
+      const data = {
+        type: 'stack_post',
+        title: post.title || 'Untitled',
+        content: typeof post.content === 'string' ? post.content : JSON.stringify(post.content),
+        tags: Array.isArray(post.tags) ? post.tags : [],
+        image: post.image || '',
+        imageUrl: post.imageUrl || '',
+        timestamp: post.timestamp || Date.now(),
+        subscriptionTier: post.subscriptionTier || 'free',
+        excerpt: post.excerpt || ''
+      };
+
+      // Set the transaction message
+      newtx.msg = {
+        module: this.name,
+        request: 'create stack post request',
+        data: data
+      };
+
+      await newtx.sign();
+
+      await this.app.network.propagateTransaction(newtx);
+      if (callback) {
+        this.callbackAfterPost = callback;
+      }
+
+      return newtx;
+    } catch (error) {
+      console.error('Error creating stack post transaction:', error);
+      this.app.connection.emit('saito-header-update-message', {
+        msg: 'Error creating stack post',
+        timeout: 2000
+      });
+      throw error;
+    }
+  }
+
+  ////////////////////////////
+  // Receive Stack Post Transaction
+  ////////////////////////////
+  /**
+   * Handles receiving and processing a stack post transaction.
+   * Called automatically when a stack post transaction is confirmed on the network.
+   * 
+   * @param {Transaction} tx - The confirmed transaction
+   * @param {Block} blk - The block containing the transaction
+   */
+  async receiveStackPostTransaction(tx, blk) {
+    let from = tx?.from[0]?.publicKey;
+    if (!from) {
+      console.error('Stack: Invalid TX');
+      return;
+    }
+
+    let txmsg = tx.returnMessage();
+
+    let post = { 
+      ...txmsg.data, 
+      sig: tx.signature, 
+      publicKey: tx.from[0].publicKey 
+    };
+
+    // Add to cache
+    this.postsCache.allPosts.push(post);
+    
+    // Also cache by author
+    if (!this.postsCache.byAuthor.has(from)) {
+      this.postsCache.byAuthor.set(from, []);
+    }
+    this.postsCache.byAuthor.get(from).push(post);
+
+    if (this.app.BROWSER) {
+      if (tx.isFrom(this.publicKey)) {
+        this.app.connection.emit('saito-header-update-message', { msg: '' });
+        siteMessage('Stack post published', 1500);
+      } else {
+        siteMessage(`New stack post by ${this.app.keychain.returnUsername(from)}`, 3000);
+      }
+    }
+
+    //
+    // Save into archives
+    //
+    await this.app.storage.saveTransaction(tx, { preserve: 1 }, 'localhost', blk);
+
+    if (this.callbackAfterPost) {
+      this.callbackAfterPost();
+      delete this.callbackAfterPost;
+    }
   }
 
   ////////////////////////////
