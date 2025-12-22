@@ -1,0 +1,693 @@
+/* ============================================
+   CREATE POST PAGE
+   ============================================ */
+
+/* Override container for create post page */
+.saito-container:has(.stack-create-post-page),
+.saito-container.stack-create-post-container {
+  grid-template-columns: 1fr !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+}
+
+.saito-container.stack-create-post-container .saito-sidebar {
+  display: none !important;
+}
+
+.stack-create-post-page {
+  min-height: 100vh;
+  padding-top: var(--saito-header-height, 60px);
+  background: var(--saito-background-color);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Align to top, allow natural growth */
+  position: relative;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  /* Page owns scrolling - no internal scroll containers */
+  overflow: visible;
+}
+
+.stack-create-post-page .stack-create-post-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* No flex: 1 - allow natural growth, page scrolls */
+  min-height: 0;
+}
+
+/* Bounded Writing Column - scoped to create-post page only */
+.stack-create-post-page .stack-document-column {
+  width: 100%;
+  max-width: 950px; /* Increased from 720px for comfortable line length with 2rem text */
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative; /* Required for absolute positioning of publish trigger */
+  padding: 2rem 3rem;
+  /* Minimum height to reach bottom of viewport - full sheet of paper */
+  min-height: calc(100vh - var(--saito-header-height, 60px) - 4rem); /* Account for header and container padding */
+  /* NO flex: 1 - allow natural growth, page scrolls */
+  /* NO overflow - page owns scrolling */
+  overflow: visible;
+  /* Theme-agnostic background: subtle variation using color-mix */
+  background: color-mix(in srgb, var(--saito-background-color) 97%, var(--saito-font-color) 3%);
+  /* Inset shadows create depth - "sunk" effect that works in light and dark themes */
+  box-shadow: 
+    inset 0 0 0 1px color-mix(in srgb, var(--saito-font-color) 8%, transparent 92%),
+    inset 0 4px 16px color-mix(in srgb, var(--saito-font-color) 4%, transparent 96%),
+    inset 0 2px 4px color-mix(in srgb, var(--saito-font-color) 6%, transparent 94%),
+    0 2px 4px rgba(0, 0, 0, 0.02);
+  border-radius: 0;
+  /* Backdrop filter for additional separation (graceful fallback) */
+  backdrop-filter: brightness(0.97);
+  -webkit-backdrop-filter: brightness(0.97);
+}
+
+/* Editor Header - Draft State */
+.stack-create-post-page .stack-editor-header {
+  width: 100%;
+  max-width: 950px; /* Match document column width */
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 0.5rem;
+  padding: 0 3rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.stack-create-post-page .stack-draft-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.6rem;
+  line-height: 1.4;
+  color: var(--saito-font-color);
+  opacity: 0.85;
+  transition: all 0.2s ease;
+  font-weight: 400;
+  cursor: pointer;
+  user-select: none;
+  padding-right: 1rem; /* Align with right corner of paper with 1rem padding */
+}
+
+.stack-create-post-page .stack-draft-state:hover {
+  opacity: 1;
+  color: var(--saito-primary);
+}
+
+.stack-create-post-page .stack-draft-state.stack-admin-active {
+  opacity: 0.9;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-draft-state.stack-admin-active:hover {
+  opacity: 1;
+  color: var(--saito-primary);
+}
+
+.stack-create-post-page .stack-draft-state.stack-admin-published {
+  opacity: 0.9;
+  color: var(--saito-primary);
+}
+
+.stack-create-post-page .stack-draft-state.stack-admin-published:hover {
+  opacity: 1;
+}
+
+.stack-create-post-page .stack-draft-state.saving {
+  opacity: 0.9;
+}
+
+.stack-create-post-page .stack-draft-state.saved {
+  opacity: 0.8;
+}
+
+.stack-create-post-page .stack-draft-state-text {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.stack-create-post-page .stack-post-title-field {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.stack-create-post-page .stack-post-title-input {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  font-size: 2.4rem;
+  line-height: 1.3;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--saito-font-color);
+  font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  outline: none;
+  transition: opacity 0.2s ease;
+  text-align: left;
+  display: block;
+  letter-spacing: -0.01em;
+}
+
+.stack-create-post-page .stack-post-title-input::placeholder {
+  color: var(--saito-font-color);
+  opacity: 0.5;
+  font-weight: 400;
+}
+
+.stack-create-post-page .stack-post-title-input:focus {
+  opacity: 1;
+}
+
+.stack-create-post-page .stack-post-body-field {
+  width: 100%;
+  margin-bottom: 4rem;
+  padding: 0;
+  margin-left: 0;
+  margin-right: 0;
+  /* REMOVED: max-height and overflow - page owns scrolling */
+  /* NO internal scrolling - document grows naturally */
+  overflow: visible;
+}
+
+/* Block Editor - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor {
+  width: 100%;
+  min-height: 50vh;
+  padding: 0;
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.65;
+  border: none;
+  background: transparent;
+  color: var(--saito-font-color);
+  font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  outline: none;
+  cursor: text;
+  text-align: left;
+  position: relative;
+  /* NO overflow - page owns scrolling */
+  overflow: visible;
+  font-weight: 400;
+}
+
+/* Placeholder for empty editor - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor.stack-editor-empty > p:first-child:empty:before {
+  content: attr(data-placeholder);
+  color: var(--saito-font-color);
+  opacity: 0.5;
+  pointer-events: none;
+  font-weight: 400;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.stack-create-post-page .stack-post-body-editor:focus {
+  outline: none;
+}
+
+/* Block elements - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > p,
+.stack-create-post-page .stack-post-body-editor > h1,
+.stack-create-post-page .stack-post-body-editor > h2,
+.stack-create-post-page .stack-post-body-editor > h3,
+.stack-create-post-page .stack-post-body-editor > h4,
+.stack-create-post-page .stack-post-body-editor > h5,
+.stack-create-post-page .stack-post-body-editor > h6,
+.stack-create-post-page .stack-post-body-editor > figure,
+.stack-create-post-page .stack-post-body-editor > div[data-block-type="rawhtml"] {
+  margin: 0;
+  margin-bottom: 1.2rem;
+  padding: 0;
+  outline: none;
+  color: var(--saito-font-color);
+}
+
+/* First child blocks - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > p:first-child,
+.stack-create-post-page .stack-post-body-editor > h1:first-child,
+.stack-create-post-page .stack-post-body-editor > h2:first-child,
+.stack-create-post-page .stack-post-body-editor > h3:first-child,
+.stack-create-post-page .stack-post-body-editor > h4:first-child,
+.stack-create-post-page .stack-post-body-editor > h5:first-child,
+.stack-create-post-page .stack-post-body-editor > h6:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  margin-bottom: 1.2rem;
+}
+
+/* Subtle block insertion affordance on hover between blocks */
+.stack-post-body-editor > p:hover::after,
+.stack-post-body-editor > h1:hover::after,
+.stack-post-body-editor > h2:hover::after,
+.stack-post-body-editor > h3:hover::after,
+.stack-post-body-editor > h4:hover::after,
+.stack-post-body-editor > h5:hover::after,
+.stack-post-body-editor > h6:hover::after {
+  content: '';
+  position: absolute;
+  left: -1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--saito-primary);
+  opacity: 0.2;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.stack-post-body-editor > p:hover::after,
+.stack-post-body-editor > h1:hover::after,
+.stack-post-body-editor > h2:hover::after,
+.stack-post-body-editor > h3:hover::after,
+.stack-post-body-editor > h4:hover::after,
+.stack-post-body-editor > h5:hover::after,
+.stack-post-body-editor > h6:hover::after {
+  opacity: 0.3;
+}
+
+/* Last child blocks - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > p:last-child,
+.stack-create-post-page .stack-post-body-editor > h1:last-child,
+.stack-create-post-page .stack-post-body-editor > h2:last-child,
+.stack-create-post-page .stack-post-body-editor > h3:last-child,
+.stack-create-post-page .stack-post-body-editor > h4:last-child,
+.stack-create-post-page .stack-post-body-editor > h5:last-child,
+.stack-create-post-page .stack-post-body-editor > h6:last-child {
+  margin-bottom: 0;
+}
+
+/* Document End Indicator - hidden for create-post page */
+.stack-create-post-page .stack-document-end {
+  display: none;
+}
+
+/* Editor Footer - hidden for create-post page */
+.stack-create-post-page .stack-editor-footer {
+  display: none;
+}
+
+/* Body text - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > p {
+  font-size: 2rem;
+  line-height: 1.65;
+  color: var(--saito-font-color);
+  font-weight: 400;
+}
+
+/* Heading styles - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > h1 {
+  font-size: 2.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-post-body-editor > h2 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-post-body-editor > h3 {
+  font-size: 2.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 1.25rem 0 0.75rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-post-body-editor > h4 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-post-body-editor > h5 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.5rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-post-body-editor > h6 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-post-body-editor > figure {
+  margin: 1.5rem 0;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.stack-post-body-editor > figure img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+}
+
+.stack-post-body-editor > figure figcaption {
+  margin-top: 0.5rem;
+  font-size: 1.2rem;
+  color: var(--saito-font-color-light);
+  font-style: italic;
+  display: none; /* Hidden by default */
+}
+
+.stack-post-body-editor > figure.stack-image-selected {
+  outline: 2px solid var(--saito-primary);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.stack-post-body-editor > figure.stack-image-selected figcaption {
+  display: block; /* Show caption when selected */
+}
+
+/* Insertion indicator */
+.stack-insertion-indicator {
+  height: 2px;
+  background: var(--saito-primary);
+  margin: 0.5rem 0;
+  position: relative;
+  opacity: 0.8;
+}
+
+.stack-insertion-indicator::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--saito-primary);
+  border-radius: 50%;
+}
+
+.stack-post-body-editor > div[data-block-type="rawhtml"] {
+  margin: 1rem 0;
+}
+
+/* Legacy textarea styles (for backwards compatibility) */
+.stack-post-body-input {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  padding: 1.5rem;
+  font-size: 1.8rem;
+  line-height: 1.9;
+  border: none;
+  background: transparent;
+  color: var(--saito-font-color-heavy, var(--saito-font-color));
+  font-family: var(--saito-font-monospace, 'Courier New', monospace);
+  resize: none;
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.stack-post-body-input::placeholder {
+  color: var(--saito-font-color-light);
+  opacity: 0.5;
+  font-style: italic;
+}
+
+/* Sidebar */
+.stack-create-post-sidebar {
+  width: 320px;
+  min-width: 320px;
+  border-right: 1px solid var(--saito-border-color);
+  background: var(--saito-background-color);
+  padding: 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-height: calc(100vh - var(--saito-header-height, 60px));
+}
+
+.stack-sidebar-section {
+  background: var(--saito-background-color);
+  border: 1px solid var(--saito-border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.stack-sidebar-actions {
+  margin-top: auto;
+}
+
+.stack-sidebar-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--saito-font-color-heavy, var(--saito-font-color));
+}
+
+.stack-btn-full-width {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.stack-btn-full-width:last-child {
+  margin-bottom: 0;
+}
+
+/* Image Upload Area */
+.stack-image-upload-area {
+  border: 2px dashed var(--saito-border-color);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--saito-background-color);
+  position: relative;
+}
+
+.stack-image-upload-area:hover {
+  border-color: var(--saito-primary);
+  background: var(--saito-background-color);
+}
+
+.stack-image-upload-area.stack-upload-dragover {
+  border-color: var(--saito-primary);
+  background: rgba(var(--saito-primary-rgb, 74, 144, 226), 0.1);
+  transform: scale(1.02);
+}
+
+.stack-image-upload-content {
+  pointer-events: none;
+}
+
+.stack-upload-icon {
+  font-size: 3rem;
+  color: var(--saito-font-color-light);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.stack-upload-text {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--saito-font-color);
+  margin: 0 0 0.5rem 0;
+}
+
+.stack-upload-subtext {
+  font-size: 1.1rem;
+  color: var(--saito-font-color);
+  margin: 0;
+  opacity: 0.8;
+}
+
+.stack-image-upload-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Uploaded Images */
+.stack-uploaded-images {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stack-uploaded-image-item {
+  position: relative;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--saito-background-color);
+}
+
+.stack-uploaded-image-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 200px;
+  object-fit: cover;
+}
+
+.stack-remove-image-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 1.6rem; /* 16px minimum - button icon text */
+}
+
+.stack-remove-image-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.stack-image-name {
+  display: block;
+  padding: 0.5rem;
+  font-size: 1.6rem;
+  color: var(--saito-font-color);
+  text-align: center;
+  word-break: break-all;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+/* Medium screens - slightly narrower for comfortable reading */
+@media (max-width: 1200px) and (min-width: 769px) {
+  .stack-create-post-page .stack-document-column {
+    max-width: 850px;
+    padding: 2rem 2.5rem;
+  }
+
+  .stack-create-post-page .stack-editor-header {
+    max-width: 850px;
+    padding: 0 2.5rem;
+  }
+
+  .stack-create-post-page .stack-draft-state {
+    padding-right: 1rem; /* Maintain 1rem padding on medium screens */
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .stack-create-post-page {
+    min-height: 100vh;
+    /* Page scrolls on mobile too */
+    overflow: visible;
+  }
+
+  .stack-create-post-container {
+    padding: 3rem 1.5rem 2rem 1.5rem;
+  }
+
+  .stack-document-column {
+    max-width: 100%;
+    min-height: calc(100vh - var(--saito-header-height, 60px) - 6rem); /* Account for mobile padding */
+    /* NO overflow on mobile - page scrolls */
+    overflow: visible;
+  }
+
+  .stack-post-body-field {
+    /* NO overflow on mobile - page scrolls */
+    overflow: visible;
+  }
+
+  .stack-editor-header {
+    max-width: 100%;
+    margin-bottom: 1.5rem;
+    padding: 0 1.5rem; /* Match mobile document column padding */
+  }
+
+  .stack-create-post-page .stack-draft-state {
+    padding-right: 1rem; /* Maintain 1rem padding on mobile */
+  }
+
+  .stack-post-title-field {
+    margin-bottom: 2rem;
+  }
+
+  .stack-post-title-input {
+    font-size: 3.5rem;
+    line-height: 1.2;
+  }
+
+  .stack-post-body-field {
+    margin-bottom: 3rem;
+  }
+
+  .stack-post-body-editor {
+    font-size: 1.8rem;
+    line-height: 1.65;
+    min-height: 50vh;
+  }
+
+  .stack-document-end {
+    margin-top: 3rem;
+    margin-bottom: 2rem;
+  }
+
+  .stack-editor-footer {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+  }
+
+  .stack-post-body-editor > p {
+    font-size: 1.8rem;
+    line-height: 1.65;
+  }
+
+  .stack-post-body-editor > h1 {
+    font-size: 2.5rem;
+  }
+
+  .stack-post-body-editor > h2 {
+    font-size: 2rem;
+  }
+
+  .stack-post-body-editor > h3 {
+    font-size: 1.75rem;
+  }
+}
+

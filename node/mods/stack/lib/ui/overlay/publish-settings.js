@@ -40,14 +40,59 @@ class PublishSettingsOverlay {
       });
     }
 
-    // Access level radio buttons
-    const accessRadios = document.querySelectorAll('.stack-publish-access-radio');
-    accessRadios.forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        const level = e.target.value;
-        // Map 'subscribers' to 'nft' for backward compatibility
-        const mappedLevel = level === 'subscribers' ? 'nft' : level;
+    // Access level checkbox cards (only one can be active)
+    const accessCards = document.querySelectorAll('.stack-publish-access-card');
+    const accessCheckboxes = document.querySelectorAll('.stack-publish-access-checkbox');
+    
+    accessCards.forEach(card => {
+      card.addEventListener('click', (e) => {
+        // Don't trigger if clicking directly on the checkbox
+        if (e.target.type === 'checkbox') return;
+        
+        const checkbox = card.querySelector('.stack-publish-access-checkbox');
+        const accessValue = card.getAttribute('data-access');
+        
+        // Uncheck all others
+        accessCheckboxes.forEach(cb => {
+          if (cb !== checkbox) {
+            cb.checked = false;
+            cb.closest('.stack-publish-access-card')?.classList.remove('stack-publish-access-card-active');
+          }
+        });
+        
+        // Toggle this one
+        checkbox.checked = true;
+        card.classList.add('stack-publish-access-card-active');
+        
+        // Map 'subscribers' to 'nft' for internal storage
+        const mappedLevel = accessValue === 'subscribers' ? 'nft' : accessValue;
         this.setAccessLevel(mappedLevel);
+      });
+    });
+
+    // Checkbox change handlers (for direct checkbox clicks)
+    accessCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const card = checkbox.closest('.stack-publish-access-card');
+        const accessValue = card?.getAttribute('data-access');
+        
+        if (checkbox.checked) {
+          // Uncheck all others
+          accessCheckboxes.forEach(cb => {
+            if (cb !== checkbox) {
+              cb.checked = false;
+              cb.closest('.stack-publish-access-card')?.classList.remove('stack-publish-access-card-active');
+            }
+          });
+          card?.classList.add('stack-publish-access-card-active');
+          
+          // Map 'subscribers' to 'nft' for internal storage
+          const mappedLevel = accessValue === 'subscribers' ? 'nft' : accessValue;
+          this.setAccessLevel(mappedLevel);
+        } else {
+          // Prevent unchecking - at least one must be selected
+          checkbox.checked = true;
+        }
       });
     });
 
@@ -60,7 +105,7 @@ class PublishSettingsOverlay {
       });
     }
 
-    // Primary action button (Publish/Update)
+    // Primary action button (Publish)
     const primaryBtn = document.querySelector('#stack-publish-primary-btn');
     if (primaryBtn) {
       primaryBtn.addEventListener('click', (e) => {
@@ -103,16 +148,20 @@ class PublishSettingsOverlay {
     const internalLevel = level === 'subscribers' ? 'nft' : level;
     this.postState.accessLevel = internalLevel;
     
-    // Update radio button states
-    const accessRadios = document.querySelectorAll('.stack-publish-access-radio');
-    accessRadios.forEach(radio => {
-      const radioValue = radio.value;
-      // Map 'nft' to 'subscribers' for display
-      const displayValue = internalLevel === 'nft' ? 'subscribers' : internalLevel;
-      if (radioValue === displayValue) {
-        radio.checked = true;
+    // Update checkbox card states
+    const accessCards = document.querySelectorAll('.stack-publish-access-card');
+    const displayValue = internalLevel === 'nft' ? 'subscribers' : internalLevel;
+    
+    accessCards.forEach(card => {
+      const cardValue = card.getAttribute('data-access');
+      const checkbox = card.querySelector('.stack-publish-access-checkbox');
+      
+      if (cardValue === displayValue) {
+        checkbox.checked = true;
+        card.classList.add('stack-publish-access-card-active');
       } else {
-        radio.checked = false;
+        checkbox.checked = false;
+        card.classList.remove('stack-publish-access-card-active');
       }
     });
   }

@@ -1,0 +1,181 @@
+/* ============================================
+   POST TEASER COMPONENT (Reusable)
+   ============================================ */
+
+.stack-post-teaser {
+  background: var(--saito-background-color);
+  border: 1px solid var(--saito-border-color);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: row; /* Horizontal layout for better scanning */
+  align-items: stretch;
+  min-height: 180px; /* Ensure consistent height even without image */
+}
+
+.stack-post-teaser:hover {
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  border-color: var(--saito-primary);
+  /* Subtle hover - no transform */
+}
+
+/* Post Teaser Image - Constrained, never dominates */
+.stack-post-teaser-image {
+  position: relative;
+  width: 240px; /* Fixed width, not full */
+  min-width: 240px;
+  flex-shrink: 0;
+  aspect-ratio: 4 / 3; /* Slightly taller than 16:9 */
+  overflow: hidden;
+  background: var(--saito-background-color);
+}
+
+.stack-post-teaser-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* No placeholder - only show if image exists or access indicator needed */
+.stack-post-teaser-image-placeholder {
+  width: 240px;
+  min-width: 240px;
+  flex-shrink: 0;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  color: var(--saito-font-color-light);
+  font-size: 2rem;
+  opacity: 0.4;
+}
+
+.stack-post-teaser-access-indicator {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-size: 1.4rem; /* 14px minimum - indicator text */
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Post Teaser Content */
+.stack-post-teaser-content {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0; /* Allow text to wrap */
+}
+
+.stack-post-teaser-author {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.stack-post-teaser-author .saito-identicon-box {
+  flex-shrink: 0;
+}
+
+.stack-post-teaser-author .saito-address {
+  font-size: 1.6rem; /* 16px minimum */
+  font-weight: 500;
+  color: var(--saito-font-color);
+  line-height: 1.4;
+}
+
+.stack-post-teaser-title {
+  font-size: 1.5rem; /* Larger, more scannable */
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: var(--saito-font-color);
+  line-height: 1.4;
+}
+
+.stack-post-teaser-excerpt {
+  font-size: 1.8rem; /* 18px - readable body text */
+  line-height: 1.6;
+  color: var(--saito-font-color); /* Better contrast */
+  margin: 0;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Remove read button - entire teaser is clickable */
+.stack-post-teaser-read-btn {
+  display: none; /* Hide button, teaser itself is clickable */
+}
+
+/* Post Tier Badge */
+.stack-post-tier-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 1.4rem; /* 14px minimum - badge text */
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.stack-post-tier-badge.stack-tier-free {
+  background: rgba(46, 125, 50, 0.9);
+  color: white;
+}
+
+.stack-post-tier-badge.stack-tier-paid {
+  background: rgba(230, 81, 0, 0.9);
+  color: white;
+}
+
+/* ============================================
+   RESPONSIVE - MOBILE
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* Teasers stack vertically on mobile */
+  .stack-post-teaser {
+    flex-direction: column; /* Stack image on top */
+  }
+
+  .stack-post-teaser-image {
+    width: 100%;
+    min-width: 100%;
+    aspect-ratio: 16 / 9; /* Wider on mobile */
+  }
+
+  .stack-post-teaser-image-placeholder {
+    width: 100%;
+    min-width: 100%;
+    aspect-ratio: 16 / 9;
+  }
+
+  .stack-post-teaser-content {
+    padding: 1.5rem;
+  }
+
+  .stack-post-teaser-title {
+    font-size: 1.25rem;
+  }
+
+  .stack-post-teaser-excerpt {
+    font-size: 1.6rem; /* 16px minimum */
+  }
+}
+

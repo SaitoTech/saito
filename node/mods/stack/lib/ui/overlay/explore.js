@@ -22,89 +22,65 @@ class ExploreOverlay {
   }
 
   async loadPosts() {
+    // Load posts from:
+    // 1. Default whitelisted feed (Saito Official)
+    // 2. Identities the user follows
+    // 3. Access NFTs the user holds
+    // 4. If URL includes a public key, show only posts from that key
+    
     // Placeholder - will implement actual post loading later
-    // For now, return empty array or sample data
+    // For now, ensure we always have content (no empty state)
     this.posts = [];
     
-    // Sample data for testing (remove when implementing real loading)
-    // this.posts = [
-    //   {
-    //     id: '1',
-    //     title: 'Welcome to Stack',
-    //     author: 'Saito Team',
-    //     excerpt: 'Learn how to create and monetize your content on the decentralized web.',
-    //     date: { month: 'Dec', day: '21' },
-    //     tier: 'free',
-    //     image: null
-    //   }
-    // ];
+    // TODO: Load from Saito Official feed by default
+    // TODO: Load from followed identities
+    // TODO: Load from access NFTs
+    // TODO: Filter by public key if present in URL
+    
+    // Explore always shows content - there is no empty state
   }
 
   attachEvents() {
     try {
-      // Filter buttons
-      const filterBtns = document.querySelectorAll('.stack-explore-filter-btn');
-      filterBtns.forEach(btn => {
-        btn.onclick = (e) => {
+      // Subscription/Identity list items
+      const subscriptionItems = document.querySelectorAll('.stack-explore-subscription-item');
+      subscriptionItems.forEach(item => {
+        item.onclick = (e) => {
           e.preventDefault();
-          // Remove active class from all buttons
-          filterBtns.forEach(b => b.classList.remove('active'));
-          // Add active class to clicked button
-          btn.classList.add('active');
-          const filter = btn.getAttribute('data-filter');
-          console.log('Filter clicked:', filter);
-          // Will implement filtering later
+          // Remove active class from all items
+          subscriptionItems.forEach(i => i.classList.remove('active'));
+          // Add active class to clicked item
+          item.classList.add('active');
+          const filter = item.getAttribute('data-filter');
+          console.log('Subscription filter clicked:', filter);
+          // Will implement filtering by identity/subscription later
         };
       });
 
-      // Search input
-      const searchInput = document.querySelector('#stack-explore-search-input');
-      if (searchInput) {
-        let searchTimeout;
-        searchInput.oninput = (e) => {
-          clearTimeout(searchTimeout);
-          searchTimeout = setTimeout(() => {
-            const query = e.target.value;
-            console.log('Search query:', query);
-            // Will implement search later
-          }, 300);
-        };
-      }
-
-      // Read More buttons
-      const readMoreBtns = document.querySelectorAll('.stack-explore-read-more-btn');
-      readMoreBtns.forEach(btn => {
-        btn.onclick = (e) => {
-          e.preventDefault();
-          const card = btn.closest('.stack-explore-post-card');
-          const postId = card?.getAttribute('data-post-id');
-          console.log('Read more clicked for post:', postId);
-          // Will implement post viewing later
-        };
-      });
-
-      // Create Post button (in empty state)
-      const createPostBtn = document.querySelector('#stack-explore-create-post-btn');
-      if (createPostBtn) {
-        createPostBtn.onclick = (e) => {
-          e.preventDefault();
-          this.overlay.hide();
-          if (this.mod.create_post_ui) {
-            this.mod.create_post_ui.render();
-          }
-        };
-      }
-
-      // Post card clicks
-      const postCards = document.querySelectorAll('.stack-explore-post-card');
-      postCards.forEach(card => {
-        card.onclick = (e) => {
-          // Don't trigger if clicking on the read more button
-          if (e.target.closest('.stack-explore-read-more-btn')) {
+      // Post teaser clicks (using standardized teaser component)
+      const teasers = document.querySelectorAll('.stack-post-teaser');
+      teasers.forEach(teaser => {
+        const postId = teaser.getAttribute('data-post-id');
+        const publicKey = teaser.getAttribute('data-public-key');
+        
+        // Read button click handler
+        const readBtn = teaser.querySelector('.stack-post-teaser-read-btn');
+        if (readBtn) {
+          readBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Read button clicked for post:', postId);
+            // Will implement post viewing later
+          };
+        }
+        
+        // Entire teaser click handler
+        teaser.onclick = (e) => {
+          // Don't trigger if clicking on the read button (it has its own handler)
+          if (e.target.closest('.stack-post-teaser-read-btn')) {
             return;
           }
-          const postId = card.getAttribute('data-post-id');
-          console.log('Post card clicked:', postId);
+          console.log('Post teaser clicked:', { postId, publicKey });
           // Will implement post viewing later
         };
       });
