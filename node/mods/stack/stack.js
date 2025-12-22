@@ -66,6 +66,9 @@ class Stack extends ModTemplate {
   async initialize(app) {
     await super.initialize(app);
     this.publicKey = await this.app.wallet.getPublicKey();
+    
+    // Load persistent local UX state
+    this.load();
   }
 
   ////////////////////////////
@@ -256,7 +259,9 @@ class Stack extends ModTemplate {
     let post = { 
       ...txmsg.data, 
       sig: tx.signature, 
-      publicKey: tx.from[0].publicKey 
+      publicKey: tx.from[0].publicKey,
+      timestamp: txmsg.data.timestamp || tx.timestamp,
+      lastEdited: txmsg.data.timestamp || tx.timestamp
     };
 
     // Add to cache
@@ -267,6 +272,26 @@ class Stack extends ModTemplate {
       this.postsCache.byAuthor.set(from, []);
     }
     this.postsCache.byAuthor.get(from).push(post);
+
+    // Save to app.options.stack.posts for local UX state (only for user's own posts)
+    if (tx.isFrom(this.publicKey)) {
+      this.load();
+      if (!this.app.options.stack.posts) {
+        this.app.options.stack.posts = [];
+      }
+      
+      // Check if post already exists (update) or add new
+      const existingIndex = this.app.options.stack.posts.findIndex(p => p.sig === post.sig);
+      if (existingIndex >= 0) {
+        // Update existing post
+        this.app.options.stack.posts[existingIndex] = post;
+      } else {
+        // Add new post
+        this.app.options.stack.posts.push(post);
+      }
+      
+      this.save();
+    }
 
     if (this.app.BROWSER) {
       if (tx.isFrom(this.publicKey)) {
@@ -286,6 +311,38 @@ class Stack extends ModTemplate {
       this.callbackAfterPost();
       delete this.callbackAfterPost;
     }
+  }
+
+  ////////////////////////////
+  // Local State Management //
+  ////////////////////////////
+  /**
+   * Load persistent local UX state from app.options
+   * Initializes app.options.stack if it doesn't exist
+   * This is CLIENT-SIDE STATE ONLY - not authoritative
+   */
+  load() {
+    if (!this.app.options.stack) {
+      this.app.options.stack = {};
+    }
+    if (!this.app.options.stack.posts) {
+      this.app.options.stack.posts = [];
+    }
+    // Add other default state properties here as needed
+    
+    return this.app.options.stack;
+  }
+
+  /**
+   * Save persistent local UX state to app.options
+   * Persists app.options.stack using app.storage.saveOptions()
+   * This is CLIENT-SIDE STATE ONLY - not authoritative
+   */
+  save() {
+    if (!this.app.options.stack) {
+      this.app.options.stack = {};
+    }
+    this.app.storage.saveOptions();
   }
 
   ////////////////////////////
