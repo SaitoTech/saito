@@ -1,0 +1,468 @@
+/* ============================================
+   EXPLORE OVERLAY - Desktop-first, library-like
+   ============================================ */
+
+/* Explore Overlay Container */
+.stack-explore-overlay {
+  max-width: 1600px; /* Wider for comfortable scanning */
+  width: 90vw;
+  height: 85vh;
+  max-height: 85vh;
+  background: var(--saito-background-color);
+  border-radius: 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Sidebar */
+.stack-explore-sidebar {
+  width: 320px; /* Wider for comfortable identity display */
+  min-width: 320px;
+  border-right: 1px solid var(--saito-border-color);
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  display: flex;
+  flex-direction: column;
+  /* No overflow - overlay handles scroll */
+}
+
+.stack-explore-sidebar-header {
+  padding: 2.5rem 2rem;
+  border-bottom: 1px solid var(--saito-border-color);
+  background: var(--saito-primary);
+  color: var(--saito-font-color-inverse);
+}
+
+.stack-explore-sidebar-header h2 {
+  font-size: 2rem; /* Larger, more prominent */
+  font-weight: 600;
+  margin: 0;
+  color: var(--saito-font-color-inverse);
+  line-height: 1.3;
+}
+
+.stack-explore-sidebar-content {
+  flex: 1;
+  /* No overflow-y - overlay handles scroll */
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.stack-explore-filter-section h3 {
+  font-size: 1.6rem; /* 16px minimum */
+  font-weight: 600;
+  text-transform: none; /* Remove uppercase for readability */
+  letter-spacing: 0;
+  color: var(--saito-font-color); /* Better contrast */
+  margin: 0 0 1.25rem 0;
+  line-height: 1.4;
+}
+
+/* Subscriptions List - Full-width rows, not buttons */
+.stack-explore-subscriptions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.stack-explore-subscription-item {
+  width: 100%;
+  padding: 1rem 1.25rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--saito-border-color);
+  color: var(--saito-font-color);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  font-size: 1.8rem; /* 18px - readable body text */
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.stack-explore-subscription-item:last-child {
+  border-bottom: none;
+}
+
+.stack-explore-subscription-item:hover {
+  background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-background-color) 92%);
+}
+
+.stack-explore-subscription-item.active {
+  background: var(--saito-primary);
+  color: var(--saito-font-color-inverse);
+  font-weight: 500;
+}
+
+.stack-explore-subscription-item.active i {
+  color: var(--saito-font-color-inverse);
+}
+
+/* Legacy button styles - kept for compatibility but not used */
+.stack-explore-filter-btn {
+  width: 100%;
+  padding: 1rem 1.25rem; /* More generous padding */
+  margin-bottom: 0.75rem;
+  background: transparent;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 8px;
+  color: var(--saito-font-color);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  font-size: 1.8rem; /* 18px - readable body text */
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.stack-explore-filter-btn:hover {
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  border-color: var(--saito-primary);
+}
+
+.stack-explore-filter-btn.active {
+  background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background-color) 88%);
+  color: var(--saito-font-color);
+  border-color: var(--saito-primary);
+  font-weight: 500;
+}
+
+.stack-explore-search-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 8px;
+  background: var(--saito-background-color);
+  color: var(--saito-font-color);
+  font-size: 1.6rem; /* 16px minimum - input text */
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.stack-explore-search-input:focus {
+  border-color: var(--saito-primary);
+}
+
+/* Main Content Area */
+.stack-explore-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* No overflow - overlay handles scroll */
+  padding: 2.5rem 3rem; /* More generous padding */
+  overflow-y: auto; /* Main content scrolls, not nested */
+}
+
+.stack-explore-main-header {
+  margin-bottom: 2.5rem;
+  flex-shrink: 0; /* Header stays fixed while content scrolls */
+}
+
+.stack-explore-main-header h2 {
+  font-size: 2.25rem; /* Slightly smaller but still prominent */
+  font-weight: 600;
+  margin: 0;
+  color: var(--saito-font-color);
+  line-height: 1.3;
+}
+
+.stack-explore-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.stack-explore-header h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-explore-subtitle {
+  font-size: 1.8rem;
+  color: var(--saito-font-color-light);
+  margin: 0;
+}
+
+.stack-explore-content {
+  flex: 1;
+  /* No overflow-y - parent handles scroll */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Posts Grid - Vertical stacking for library-like feel */
+.stack-explore-posts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 0;
+  max-width: 900px; /* Constrain width for comfortable reading */
+}
+
+
+/* ============================================
+   LEGACY EXPLORE CLASSES (Compatibility)
+   ============================================ */
+
+.stack-explore-post-card {
+  background: var(--saito-background-color);
+  border: 1px solid var(--saito-border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.stack-explore-post-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-color: var(--saito-primary);
+}
+
+.stack-explore-post-image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--saito-background-color);
+}
+
+.stack-explore-post-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.stack-explore-post-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-primary-dark, #4a90e2) 100%);
+  color: white;
+  font-size: 3rem;
+  opacity: 0.3;
+}
+
+.stack-explore-post-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.stack-explore-post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 1.4rem; /* 14px minimum - metadata text */
+  color: var(--saito-font-color-light);
+}
+
+.stack-explore-post-author {
+  font-weight: 600;
+  color: var(--saito-primary);
+}
+
+.stack-explore-post-date {
+  color: var(--saito-font-color-light);
+}
+
+.stack-explore-post-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--saito-font-color);
+  line-height: 1.3;
+}
+
+.stack-explore-post-excerpt {
+  font-size: 1.6rem; /* 16px minimum - excerpt text */
+  line-height: 1.6;
+  color: var(--saito-font-color-light);
+  margin: 0 0 1rem 0;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stack-explore-read-more-btn {
+  background: transparent;
+  border: 1px solid var(--saito-border-color);
+  color: var(--saito-primary);
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 1.6rem; /* 16px minimum - button text */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.stack-explore-read-more-btn:hover {
+  background: var(--saito-primary);
+  color: white;
+  border-color: var(--saito-primary);
+  transform: translateX(4px);
+}
+
+/* Empty State - Centered, informative */
+.stack-explore-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.stack-explore-empty-message {
+  font-size: 1.8rem; /* 18px - readable body text */
+  line-height: 1.6;
+  color: var(--saito-font-color);
+  margin: 0 0 1.5rem 0;
+  max-width: 500px;
+}
+
+.stack-explore-empty-link {
+  margin: 0;
+}
+
+.stack-explore-empty-link a {
+  font-size: 1.6rem; /* 16px minimum - link text */
+  color: var(--saito-primary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.stack-explore-empty-link a:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+/* Legacy empty state - kept for compatibility */
+.stack-explore-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--saito-font-color);
+}
+
+.stack-explore-empty-icon {
+  font-size: 4rem;
+  color: var(--saito-font-color-light);
+  margin-bottom: 1.5rem;
+  opacity: 0.5;
+}
+
+.stack-explore-empty h3 {
+  font-size: 1.8rem;
+  margin: 0 0 1rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-explore-empty p {
+  font-size: 1.8rem;
+  color: var(--saito-font-color-light);
+  margin: 0 0 2rem 0;
+}
+
+/* ============================================
+   RESPONSIVE - MOBILE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .stack-explore-overlay {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0; /* Full screen, no rounded corners */
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .stack-explore-sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--saito-border-color);
+    /* No max-height - let it flow naturally */
+    flex-shrink: 0;
+  }
+
+  .stack-explore-sidebar-header {
+    padding: 1.5rem;
+  }
+
+  .stack-explore-sidebar-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .stack-explore-sidebar-content {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .stack-explore-filter-section h3 {
+    font-size: 1.6rem; /* 16px minimum - readable on mobile */
+    margin-bottom: 1rem;
+  }
+
+  .stack-explore-subscription-item {
+    padding: 1.125rem 1.25rem; /* Generous touch targets */
+    font-size: 1.8rem; /* 18px - readable */
+  }
+
+  .stack-explore-filter-btn {
+    padding: 1.125rem 1.25rem; /* Generous touch targets */
+    font-size: 1.8rem; /* 18px - readable */
+    margin-bottom: 0.625rem;
+  }
+
+  .stack-explore-main {
+    padding: 1.5rem;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto; /* Main content scrolls */
+  }
+
+  .stack-explore-main-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .stack-explore-main-header h2 {
+    font-size: 1.75rem;
+  }
+
+
+  .stack-explore-posts-grid {
+    max-width: 100%;
+  }
+}
+

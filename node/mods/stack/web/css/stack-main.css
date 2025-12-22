@@ -112,12 +112,14 @@
 
 .stack-cta-image-back {
   transform: rotateY(180deg);
-  background: var(--saito-background-color-inverse);
+  background: var(--saito-background-color);
   border: 1px solid var(--saito-border-color);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
+  /* Remove heavy shadow - cleaner explanation panel */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .stack-cta-image-flip:hover .stack-cta-image-front {
@@ -153,33 +155,33 @@
 }
 
 .stack-cta-image-back-content {
-  text-align: center;
-  color: var(--saito-font-color-inverse);
+  text-align: left; /* Left-align for explanation panel feel */
+  color: var(--saito-font-color);
   transform: rotateY(0deg);
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start; /* Start from top, not centered */
   padding: 2.5rem;
   /* Do NOT set base font-size - each role has explicit rem size */
   font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
 }
 
 .stack-cta-image-back-content h3 {
-  font-size: 1.7rem; /* Explicit rem - card title */
-  margin: 0 0 1.2rem 0;
-  color: var(--saito-primary);
+  font-size: 2.4rem; /* 24px - clear section title */
+  margin: 0 0 1.5rem 0;
+  color: var(--saito-font-color);
   font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
 .stack-cta-image-back-content p {
-  font-size: 1.1rem; /* Explicit rem - body paragraph */
-  line-height: 1.5;
-  margin: 0 0 1.5rem 0;
-  color: var(--saito-font-color-inverse);
+  font-size: 1.6rem; /* 16px minimum - readable body text */
+  line-height: 1.6;
+  margin: 0 0 2rem 0;
+  color: var(--saito-font-color);
   opacity: 1;
   font-weight: 400;
 }
@@ -187,29 +189,36 @@
 .stack-features-list {
   list-style: none;
   padding: 0;
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 2rem 0;
   text-align: left;
 }
 
 .stack-features-list li {
-  padding: 0.5rem 0;
-  font-size: 0.98rem; /* Explicit rem - question list items */
-  color: var(--saito-font-color-inverse);
+  padding: 0.75rem 0;
+  font-size: 1.6rem; /* 16px minimum - readable list items */
+  color: var(--saito-font-color);
   opacity: 1;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.6;
+  border-bottom: 1px solid var(--saito-border-color);
+}
+
+.stack-features-list li:last-child {
+  border-bottom: none;
 }
 
 .stack-learn-more-link {
   margin-top: auto;
-  text-align: center;
+  text-align: left; /* Left-align for explanation panel */
+  padding-top: 1rem;
 }
 
 .stack-learn-more-btn {
   color: var(--saito-primary);
-  text-decoration: none;
-  font-size: 1rem; /* Explicit rem - link/CTA */
-  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  font-size: 1.6rem; /* 16px minimum - readable link */
+  font-weight: 500;
   display: inline-flex;
   align-items: center;
   gap: 0.5em;
@@ -217,34 +226,34 @@
 }
 
 .stack-learn-more-btn:hover {
-  opacity: 0.8;
-  transform: translateX(4px);
+  color: var(--saito-primary-dark, var(--saito-primary));
+  text-decoration-thickness: 2px;
 }
 
 .stack-learn-more-btn i {
-  font-size: 0.85em;
+  font-size: 1.4rem; /* 14px minimum - icon size */
 }
 
-/* Large screens - slightly increase explicit rem sizes */
+/* Large screens - maintain readability */
 @media (min-width: 1400px) {
   .stack-cta-image-back-content {
     padding: 3rem;
   }
 
   .stack-cta-image-back-content h3 {
-    font-size: 1.85rem; /* Slightly larger on big screens */
+    font-size: 2.6rem; /* 26px - clear hierarchy */
   }
 
   .stack-cta-image-back-content p {
-    font-size: 1.15rem;
+    font-size: 1.7rem; /* 17px - comfortable reading */
   }
 
   .stack-features-list li {
-    font-size: 1.05rem;
+    font-size: 1.7rem; /* 17px - comfortable reading */
   }
 
   .stack-learn-more-btn {
-    font-size: 1.05rem;
+    font-size: 1.7rem; /* 17px - comfortable reading */
   }
 }
 
@@ -259,27 +268,27 @@
   }
 
   .stack-cta-image-back-content h3 {
-    font-size: 1.5rem; /* Explicit rem - mobile */
-    margin: 0 0 1rem 0;
+    font-size: 2.2rem; /* 22px - clear hierarchy on mobile */
+    margin: 0 0 1.25rem 0;
   }
 
   .stack-cta-image-back-content p {
-    font-size: 1rem; /* Explicit rem - mobile */
-    line-height: 1.5;
-    margin: 0 0 1.2rem 0;
+    font-size: 1.6rem; /* 16px minimum - readable on mobile */
+    line-height: 1.6;
+    margin: 0 0 1.75rem 0;
   }
 
   .stack-features-list {
-    margin: 0 0 1.2rem 0;
+    margin: 0 0 1.75rem 0;
   }
 
   .stack-features-list li {
-    padding: 0.4rem 0;
-    font-size: 0.95rem; /* Explicit rem - mobile */
+    padding: 0.625rem 0;
+    font-size: 1.6rem; /* 16px minimum - readable on mobile */
   }
 
   .stack-learn-more-btn {
-    font-size: 0.95rem; /* Explicit rem - mobile */
+    font-size: 1.6rem; /* 16px minimum - readable on mobile */
   }
 }
 
@@ -351,7 +360,7 @@
 }
 
 .stack-subtitle {
-  font-size: 1.2em;
+  font-size: 1.9rem; /* 19px - explicit rem for consistency */
   color: var(--saito-font-color);
   margin-top: 10px;
 }
@@ -418,7 +427,7 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  font-size: 0.9em;
+  font-size: 1.4rem; /* 14px minimum - metadata text */
   color: var(--saito-font-color-light);
 }
 
@@ -434,7 +443,7 @@
 .stack-tier-badge {
   padding: 4px 8px;
   border-radius: 4px;
-  font-size: 0.8em;
+  font-size: 1.4rem; /* 14px minimum - badge text */
   font-weight: bold;
 }
 
@@ -449,13 +458,13 @@
 }
 
 .stack-post-title {
-  font-size: 1.8em;
+  font-size: 2.9rem; /* 29px - explicit rem for consistency */
   margin: 0 0 10px 0;
   color: var(--saito-font-color);
 }
 
 .stack-post-excerpt {
-  font-size: 1.1em;
+  font-size: 1.8rem; /* 18px - explicit rem for consistency */
   color: var(--saito-font-color-light);
   margin-bottom: 15px;
   font-style: italic;
@@ -479,7 +488,7 @@
   color: white;
   padding: 4px 10px;
   border-radius: 12px;
-  font-size: 0.85em;
+  font-size: 1.4rem; /* 14px minimum - tag text */
 }
 
 .stack-post-actions {
@@ -611,14 +620,14 @@
 }
 
 .stack-subscription-tier {
-  font-size: 0.9em;
+  font-size: 1.4rem; /* 14px minimum - tier text */
   color: var(--saito-font-color-light);
 }
 
 .stack-subscribe-btn,
 .stack-unsubscribe-btn {
   padding: 6px 12px;
-  font-size: 0.9em;
+  font-size: 1.6rem; /* 16px minimum - button text */
 }
 
 /* Loading State */
@@ -626,7 +635,7 @@
   text-align: center;
   padding: 40px;
   color: var(--saito-font-color-light);
-  font-size: 1.1em;
+  font-size: 1.8rem; /* 18px - explicit rem for consistency */
 }
 
 /* Responsive */
@@ -644,698 +653,6 @@
   }
 }
 
-/* ============================================
-   CREATE POST PAGE
-   ============================================ */
-
-/* Override container for create post page */
-.saito-container:has(.stack-create-post-page),
-.saito-container.stack-create-post-container {
-  grid-template-columns: 1fr !important;
-  padding: 0 !important;
-  max-width: 100% !important;
-}
-
-.saito-container.stack-create-post-container .saito-sidebar {
-  display: none !important;
-}
-
-.stack-create-post-page {
-  min-height: 100vh;
-  padding-top: var(--saito-header-height, 60px);
-  background: var(--saito-background-color);
-  display: flex;
-  justify-content: center;
-  align-items: flex-start; /* Align to top, allow natural growth */
-  position: relative;
-  padding-left: 2rem;
-  padding-right: 2rem;
-  /* Page owns scrolling - no internal scroll containers */
-  overflow: visible;
-}
-
-.stack-create-post-page .stack-create-post-container {
-  width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 2rem 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* No flex: 1 - allow natural growth, page scrolls */
-  min-height: 0;
-}
-
-/* Bounded Writing Column - scoped to create-post page only */
-.stack-create-post-page .stack-document-column {
-  width: 100%;
-  max-width: 950px; /* Increased from 720px for comfortable line length with 2rem text */
-  margin-left: auto;
-  margin-right: auto;
-  display: flex;
-  flex-direction: column;
-  position: relative; /* Required for absolute positioning of publish trigger */
-  padding: 2rem 3rem;
-  /* Minimum height to reach bottom of viewport - full sheet of paper */
-  min-height: calc(100vh - var(--saito-header-height, 60px) - 4rem); /* Account for header and container padding */
-  /* NO flex: 1 - allow natural growth, page scrolls */
-  /* NO overflow - page owns scrolling */
-  overflow: visible;
-  /* Theme-agnostic background: subtle variation using color-mix */
-  background: color-mix(in srgb, var(--saito-background-color) 97%, var(--saito-font-color) 3%);
-  /* Inset shadows create depth - "sunk" effect that works in light and dark themes */
-  box-shadow: 
-    inset 0 0 0 1px color-mix(in srgb, var(--saito-font-color) 8%, transparent 92%),
-    inset 0 4px 16px color-mix(in srgb, var(--saito-font-color) 4%, transparent 96%),
-    inset 0 2px 4px color-mix(in srgb, var(--saito-font-color) 6%, transparent 94%),
-    0 2px 4px rgba(0, 0, 0, 0.02);
-  border-radius: 0;
-  /* Backdrop filter for additional separation (graceful fallback) */
-  backdrop-filter: brightness(0.97);
-  -webkit-backdrop-filter: brightness(0.97);
-}
-
-/* Editor Header - Draft State */
-.stack-create-post-page .stack-editor-header {
-  width: 100%;
-  max-width: 950px; /* Match document column width */
-  margin-left: auto;
-  margin-right: auto;
-  margin-bottom: 0.5rem;
-  padding: 0 3rem;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-.stack-create-post-page .stack-draft-state {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.6rem;
-  line-height: 1.4;
-  color: var(--saito-font-color);
-  opacity: 0.85;
-  transition: all 0.2s ease;
-  font-weight: 400;
-  cursor: pointer;
-  user-select: none;
-  padding-right: 1rem; /* Align with right corner of paper with 1rem padding */
-}
-
-.stack-create-post-page .stack-draft-state:hover {
-  opacity: 1;
-  color: var(--saito-primary);
-}
-
-.stack-create-post-page .stack-draft-state.stack-admin-active {
-  opacity: 0.9;
-  color: var(--saito-font-color);
-}
-
-.stack-create-post-page .stack-draft-state.stack-admin-active:hover {
-  opacity: 1;
-  color: var(--saito-primary);
-}
-
-.stack-create-post-page .stack-draft-state.stack-admin-published {
-  opacity: 0.9;
-  color: var(--saito-primary);
-}
-
-.stack-create-post-page .stack-draft-state.stack-admin-published:hover {
-  opacity: 1;
-}
-
-.stack-create-post-page .stack-draft-state.saving {
-  opacity: 0.9;
-}
-
-.stack-create-post-page .stack-draft-state.saved {
-  opacity: 0.8;
-}
-
-.stack-create-post-page .stack-draft-state-text {
-  font-weight: 400;
-  letter-spacing: 0.02em;
-}
-
-.stack-create-post-page .stack-post-title-field {
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  margin-bottom: 2rem;
-  position: relative;
-}
-
-.stack-create-post-page .stack-post-title-input {
-  width: 100%;
-  padding: 0;
-  margin: 0;
-  font-size: 2.4rem;
-  line-height: 1.3;
-  font-weight: 600;
-  border: none;
-  background: transparent;
-  color: var(--saito-font-color);
-  font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
-  outline: none;
-  transition: opacity 0.2s ease;
-  text-align: left;
-  display: block;
-  letter-spacing: -0.01em;
-}
-
-.stack-create-post-page .stack-post-title-input::placeholder {
-  color: var(--saito-font-color);
-  opacity: 0.5;
-  font-weight: 400;
-}
-
-.stack-create-post-page .stack-post-title-input:focus {
-  opacity: 1;
-}
-
-/* Publish Trigger Button - REMOVED (replaced by Admin clickable element) */
-
-.stack-create-post-page .stack-post-body-field {
-  width: 100%;
-  margin-bottom: 4rem;
-  padding: 0;
-  margin-left: 0;
-  margin-right: 0;
-  /* REMOVED: max-height and overflow - page owns scrolling */
-  /* NO internal scrolling - document grows naturally */
-  overflow: visible;
-}
-
-/* Block Editor - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor {
-  width: 100%;
-  min-height: 50vh;
-  padding: 0;
-  margin: 0;
-  font-size: 2rem;
-  line-height: 1.65;
-  border: none;
-  background: transparent;
-  color: var(--saito-font-color);
-  font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
-  outline: none;
-  cursor: text;
-  text-align: left;
-  position: relative;
-  /* NO overflow - page owns scrolling */
-  overflow: visible;
-  font-weight: 400;
-}
-
-/* Placeholder for empty editor - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor.stack-editor-empty > p:first-child:empty:before {
-  content: attr(data-placeholder);
-  color: var(--saito-font-color);
-  opacity: 0.5;
-  pointer-events: none;
-  font-weight: 400;
-  position: absolute;
-  left: 0;
-  top: 0;
-}
-
-.stack-create-post-page .stack-post-body-editor:focus {
-  outline: none;
-}
-
-/* Block elements - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > p,
-.stack-create-post-page .stack-post-body-editor > h1,
-.stack-create-post-page .stack-post-body-editor > h2,
-.stack-create-post-page .stack-post-body-editor > h3,
-.stack-create-post-page .stack-post-body-editor > h4,
-.stack-create-post-page .stack-post-body-editor > h5,
-.stack-create-post-page .stack-post-body-editor > h6,
-.stack-create-post-page .stack-post-body-editor > figure,
-.stack-create-post-page .stack-post-body-editor > div[data-block-type="rawhtml"] {
-  margin: 0;
-  margin-bottom: 1.2rem;
-  padding: 0;
-  outline: none;
-  color: var(--saito-font-color);
-}
-
-/* First child blocks - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > p:first-child,
-.stack-create-post-page .stack-post-body-editor > h1:first-child,
-.stack-create-post-page .stack-post-body-editor > h2:first-child,
-.stack-create-post-page .stack-post-body-editor > h3:first-child,
-.stack-create-post-page .stack-post-body-editor > h4:first-child,
-.stack-create-post-page .stack-post-body-editor > h5:first-child,
-.stack-create-post-page .stack-post-body-editor > h6:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  margin-bottom: 1.2rem;
-}
-
-/* Subtle block insertion affordance on hover between blocks */
-.stack-post-body-editor > p:hover::after,
-.stack-post-body-editor > h1:hover::after,
-.stack-post-body-editor > h2:hover::after,
-.stack-post-body-editor > h3:hover::after,
-.stack-post-body-editor > h4:hover::after,
-.stack-post-body-editor > h5:hover::after,
-.stack-post-body-editor > h6:hover::after {
-  content: '';
-  position: absolute;
-  left: -1.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--saito-primary);
-  opacity: 0.2;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
-}
-
-.stack-post-body-editor > p:hover::after,
-.stack-post-body-editor > h1:hover::after,
-.stack-post-body-editor > h2:hover::after,
-.stack-post-body-editor > h3:hover::after,
-.stack-post-body-editor > h4:hover::after,
-.stack-post-body-editor > h5:hover::after,
-.stack-post-body-editor > h6:hover::after {
-  opacity: 0.3;
-}
-
-/* Last child blocks - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > p:last-child,
-.stack-create-post-page .stack-post-body-editor > h1:last-child,
-.stack-create-post-page .stack-post-body-editor > h2:last-child,
-.stack-create-post-page .stack-post-body-editor > h3:last-child,
-.stack-create-post-page .stack-post-body-editor > h4:last-child,
-.stack-create-post-page .stack-post-body-editor > h5:last-child,
-.stack-create-post-page .stack-post-body-editor > h6:last-child {
-  margin-bottom: 0;
-}
-
-/* Document End Indicator - hidden for create-post page */
-.stack-create-post-page .stack-document-end {
-  display: none;
-}
-
-/* Editor Footer - hidden for create-post page */
-.stack-create-post-page .stack-editor-footer {
-  display: none;
-}
-
-/* Body text - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > p {
-  font-size: 2rem;
-  line-height: 1.65;
-  color: var(--saito-font-color);
-  font-weight: 400;
-}
-
-/* Heading styles - scoped to create-post page only */
-.stack-create-post-page .stack-post-body-editor > h1 {
-  font-size: 2.8rem;
-  font-weight: 600;
-  line-height: 1.3;
-  margin: 1.5rem 0 1rem 0;
-  color: var(--saito-font-color);
-}
-
-.stack-create-post-page .stack-post-body-editor > h2 {
-  font-size: 2.5rem;
-  font-weight: 600;
-  line-height: 1.35;
-  margin: 1.5rem 0 1rem 0;
-  color: var(--saito-font-color);
-}
-
-.stack-create-post-page .stack-post-body-editor > h3 {
-  font-size: 2.2rem;
-  font-weight: 600;
-  line-height: 1.4;
-  margin: 1.25rem 0 0.75rem 0;
-  color: var(--saito-font-color);
-}
-
-.stack-create-post-page .stack-post-body-editor > h4 {
-  font-size: 2rem;
-  font-weight: 600;
-  margin: 1rem 0 0.5rem 0;
-  color: var(--saito-font-color);
-}
-
-.stack-create-post-page .stack-post-body-editor > h5 {
-  font-size: 1.75rem;
-  font-weight: 600;
-  margin: 0.75rem 0 0.5rem 0;
-  color: var(--saito-font-color);
-}
-
-.stack-create-post-page .stack-post-body-editor > h6 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0.5rem 0;
-  color: var(--saito-font-color);
-}
-
-.stack-post-body-editor > figure {
-  margin: 1.5rem 0;
-  text-align: center;
-  position: relative;
-  cursor: pointer;
-}
-
-.stack-post-body-editor > figure img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-  display: block;
-  margin: 0 auto;
-}
-
-.stack-post-body-editor > figure figcaption {
-  margin-top: 0.5rem;
-  font-size: 1.2rem;
-  color: var(--saito-font-color-light);
-  font-style: italic;
-  display: none; /* Hidden by default */
-}
-
-.stack-post-body-editor > figure.stack-image-selected {
-  outline: 2px solid var(--saito-primary);
-  outline-offset: 4px;
-  border-radius: 8px;
-}
-
-.stack-post-body-editor > figure.stack-image-selected figcaption {
-  display: block; /* Show caption when selected */
-}
-
-/* Insertion indicator */
-.stack-insertion-indicator {
-  height: 2px;
-  background: var(--saito-primary);
-  margin: 0.5rem 0;
-  position: relative;
-  opacity: 0.8;
-}
-
-.stack-insertion-indicator::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: -4px;
-  width: 8px;
-  height: 8px;
-  background: var(--saito-primary);
-  border-radius: 50%;
-}
-
-.stack-post-body-editor > div[data-block-type="rawhtml"] {
-  margin: 1rem 0;
-}
-
-/* Legacy textarea styles (for backwards compatibility) */
-.stack-post-body-input {
-  width: 100%;
-  height: 100%;
-  min-height: 500px;
-  padding: 1.5rem;
-  font-size: 1.8rem;
-  line-height: 1.9;
-  border: none;
-  background: transparent;
-  color: var(--saito-font-color-heavy, var(--saito-font-color));
-  font-family: var(--saito-font-monospace, 'Courier New', monospace);
-  resize: none;
-  outline: none;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.stack-post-body-input::placeholder {
-  color: var(--saito-font-color-light);
-  opacity: 0.5;
-  font-style: italic;
-}
-
-/* Sidebar */
-.stack-create-post-sidebar {
-  width: 320px;
-  min-width: 320px;
-  border-right: 1px solid var(--saito-border-color);
-  background: var(--saito-background-color);
-  padding: 2rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  max-height: calc(100vh - var(--saito-header-height, 60px));
-}
-
-.stack-sidebar-section {
-  background: var(--saito-background-color);
-  border: 1px solid var(--saito-border-color);
-  border-radius: 12px;
-  padding: 1.5rem;
-}
-
-.stack-sidebar-actions {
-  margin-top: auto;
-}
-
-.stack-sidebar-section h3 {
-  margin: 0 0 1rem 0;
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: var(--saito-font-color-heavy, var(--saito-font-color));
-}
-
-.stack-btn-full-width {
-  width: 100%;
-  margin-bottom: 0.75rem;
-}
-
-.stack-btn-full-width:last-child {
-  margin-bottom: 0;
-}
-
-/* Image Upload Area */
-.stack-image-upload-area {
-  border: 2px dashed var(--saito-border-color);
-  border-radius: 12px;
-  padding: 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: var(--saito-background-color);
-  position: relative;
-}
-
-.stack-image-upload-area:hover {
-  border-color: var(--saito-primary);
-  background: var(--saito-background-color);
-}
-
-.stack-image-upload-area.stack-upload-dragover {
-  border-color: var(--saito-primary);
-  background: rgba(var(--saito-primary-rgb, 74, 144, 226), 0.1);
-  transform: scale(1.02);
-}
-
-.stack-image-upload-content {
-  pointer-events: none;
-}
-
-.stack-upload-icon {
-  font-size: 3rem;
-  color: var(--saito-font-color-light);
-  margin-bottom: 1rem;
-  display: block;
-}
-
-.stack-upload-text {
-  font-size: 1.5rem;
-  font-weight: 500;
-  color: var(--saito-font-color);
-  margin: 0 0 0.5rem 0;
-}
-
-.stack-upload-subtext {
-  font-size: 1.1rem;
-  color: var(--saito-font-color);
-  margin: 0;
-  opacity: 0.8;
-}
-
-.stack-image-upload-input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-/* Uploaded Images */
-.stack-uploaded-images {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.stack-uploaded-image-item {
-  position: relative;
-  border: 1px solid var(--saito-border-color);
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--saito-background-color);
-}
-
-.stack-uploaded-image-item img {
-  width: 100%;
-  height: auto;
-  display: block;
-  max-height: 200px;
-  object-fit: cover;
-}
-
-.stack-remove-image-btn {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
-}
-
-.stack-remove-image-btn:hover {
-  background: rgba(255, 0, 0, 0.8);
-  transform: scale(1.1);
-}
-
-.stack-image-name {
-  display: block;
-  padding: 0.5rem;
-  font-size: 1.1rem;
-  color: var(--saito-font-color);
-  text-align: center;
-  word-break: break-all;
-}
-
-/* Responsive for create post page */
-/* Medium screens - slightly narrower for comfortable reading */
-@media (max-width: 1200px) and (min-width: 769px) {
-  .stack-create-post-page .stack-document-column {
-    max-width: 850px;
-    padding: 2rem 2.5rem;
-  }
-
-  .stack-create-post-page .stack-editor-header {
-    max-width: 850px;
-    padding: 0 2.5rem;
-  }
-
-  .stack-create-post-page .stack-draft-state {
-    padding-right: 1rem; /* Maintain 1rem padding on medium screens */
-  }
-}
-
-/* Responsive styles moved to mobile section below */
-
-@media (max-width: 768px) {
-  .stack-create-post-page {
-    min-height: 100vh;
-    /* Page scrolls on mobile too */
-    overflow: visible;
-  }
-
-  .stack-create-post-container {
-    padding: 3rem 1.5rem 2rem 1.5rem;
-  }
-
-  .stack-document-column {
-    max-width: 100%;
-    min-height: calc(100vh - var(--saito-header-height, 60px) - 6rem); /* Account for mobile padding */
-    /* NO overflow on mobile - page scrolls */
-    overflow: visible;
-  }
-
-  .stack-post-body-field {
-    /* NO overflow on mobile - page scrolls */
-    overflow: visible;
-  }
-
-  .stack-editor-header {
-    max-width: 100%;
-    margin-bottom: 1.5rem;
-    padding: 0 1.5rem; /* Match mobile document column padding */
-  }
-
-  .stack-create-post-page .stack-draft-state {
-    padding-right: 1rem; /* Maintain 1rem padding on mobile */
-  }
-
-  .stack-post-title-field {
-    margin-bottom: 2rem;
-  }
-
-  .stack-post-title-input {
-    font-size: 3.5rem;
-    line-height: 1.2;
-  }
-
-  .stack-post-body-field {
-    margin-bottom: 3rem;
-  }
-
-  .stack-post-body-editor {
-    font-size: 1.8rem;
-    line-height: 1.65;
-    min-height: 50vh;
-  }
-
-  .stack-document-end {
-    margin-top: 3rem;
-    margin-bottom: 2rem;
-  }
-
-  .stack-editor-footer {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-  }
-
-  .stack-post-body-editor > p {
-    font-size: 1.8rem;
-    line-height: 1.65;
-  }
-
-  .stack-post-body-editor > h1 {
-    font-size: 2.5rem;
-  }
-
-  .stack-post-body-editor > h2 {
-    font-size: 2rem;
-  }
-
-  .stack-post-body-editor > h3 {
-    font-size: 1.75rem;
-  }
-}
 
 /* ============================================
    PUBLISH SETTINGS OVERLAY
@@ -1395,7 +712,7 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 1.1rem;
+  font-size: 1.8rem;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -1489,7 +806,7 @@
 }
 
 .stack-welcome-post-date {
-  font-size: 0.85rem;
+  font-size: 1.4rem; /* 14px minimum - date text */
   color: var(--saito-font-color);
   opacity: 0.6;
 }
@@ -1511,7 +828,7 @@
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.95rem;
+  font-size: 1.6rem; /* 16px minimum - button text */
   font-weight: 500;
 }
 
@@ -1525,350 +842,4 @@
    EXPLORE OVERLAY
    ============================================ */
 
-.stack-explore-overlay {
-  max-width: 1400px;
-  width: 95vw;
-  height: 90vh;
-  max-height: 90vh;
-  background: var(--saito-background-color);
-  border-radius: 16px;
-  padding: 0;
-  display: flex;
-  flex-direction: row;
-  overflow: hidden;
-  box-shadow: 
-    0 20px 60px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(0, 0, 0, 0.1),
-    0 8px 16px rgba(0, 0, 0, 0.2);
-}
-
-.stack-explore-sidebar {
-  width: 280px;
-  min-width: 280px;
-  border-right: 1px solid var(--saito-border-color);
-  background: var(--saito-surface-color);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.stack-explore-sidebar-header {
-  padding: 2rem 1.5rem;
-  border-bottom: 1px solid var(--saito-border-color);
-}
-
-.stack-explore-sidebar-header h2 {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin: 0;
-  color: var(--saito-font-color);
-}
-
-.stack-explore-sidebar-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.stack-explore-filter-section h3,
-.stack-explore-search-section h3 {
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--saito-font-color-light);
-  margin: 0 0 1rem 0;
-}
-
-.stack-explore-filter-btn {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  margin-bottom: 0.5rem;
-  background: transparent;
-  border: 1px solid var(--saito-border-color);
-  border-radius: 8px;
-  color: var(--saito-font-color);
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1.5rem;
-}
-
-.stack-explore-filter-btn:hover {
-  background: var(--saito-surface-hover);
-  border-color: var(--saito-primary);
-}
-
-.stack-explore-filter-btn.active {
-  background: var(--saito-primary);
-  color: var(--saito-primary-text);
-  border-color: var(--saito-primary);
-}
-
-.stack-explore-search-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--saito-border-color);
-  border-radius: 8px;
-  background: var(--saito-background-color);
-  color: var(--saito-font-color);
-  font-size: 0.95rem;
-  outline: none;
-  transition: border-color 0.2s ease;
-}
-
-.stack-explore-search-input:focus {
-  border-color: var(--saito-primary);
-}
-
-.stack-explore-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 2rem;
-}
-
-.stack-explore-main-header {
-  margin-bottom: 2rem;
-}
-
-.stack-explore-main-header h2 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem 0;
-  color: var(--saito-font-color);
-}
-
-.stack-explore-header {
-  margin-bottom: 2rem;
-  text-align: center;
-}
-
-.stack-explore-header h2 {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem 0;
-  color: var(--saito-font-color);
-}
-
-.stack-explore-subtitle {
-  font-size: 1.1rem;
-  color: var(--saito-font-color-light);
-  margin: 0;
-}
-
-.stack-explore-content {
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-  min-height: 0;
-}
-
-/* Posts Grid */
-.stack-explore-posts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
-  padding: 1rem 0;
-}
-
-.stack-explore-post-card {
-  background: var(--saito-background-color);
-  border: 1px solid var(--saito-border-color);
-  border-radius: 12px;
-  overflow: hidden;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  flex-direction: column;
-}
-
-.stack-explore-post-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  border-color: var(--saito-primary);
-}
-
-.stack-explore-post-image {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--saito-background-color);
-}
-
-.stack-explore-post-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.stack-explore-post-image-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-primary-dark, #4a90e2) 100%);
-  color: white;
-  font-size: 3rem;
-  opacity: 0.3;
-}
-
-.stack-post-tier-badge {
-  position: absolute;
-  top: 0.75rem;
-  right: 0.75rem;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.stack-post-tier-badge.stack-tier-free {
-  background: rgba(46, 125, 50, 0.9);
-  color: white;
-}
-
-.stack-post-tier-badge.stack-tier-paid {
-  background: rgba(230, 81, 0, 0.9);
-  color: white;
-}
-
-.stack-explore-post-content {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.stack-explore-post-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.75rem;
-  font-size: 0.85rem;
-  color: var(--saito-font-color-light);
-}
-
-.stack-explore-post-author {
-  font-weight: 600;
-  color: var(--saito-primary);
-}
-
-.stack-explore-post-date {
-  color: var(--saito-font-color-light);
-}
-
-.stack-explore-post-title {
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin: 0 0 0.75rem 0;
-  color: var(--saito-font-color);
-  line-height: 1.3;
-}
-
-.stack-explore-post-excerpt {
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--saito-font-color-light);
-  margin: 0 0 1rem 0;
-  flex: 1;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.stack-explore-read-more-btn {
-  background: transparent;
-  border: 1px solid var(--saito-border-color);
-  color: var(--saito-primary);
-  padding: 0.75rem 1.25rem;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  align-self: flex-start;
-  margin-top: auto;
-}
-
-.stack-explore-read-more-btn:hover {
-  background: var(--saito-primary);
-  color: white;
-  border-color: var(--saito-primary);
-  transform: translateX(4px);
-}
-
-/* Empty State */
-.stack-explore-empty {
-  text-align: center;
-  padding: 4rem 2rem;
-  color: var(--saito-font-color);
-}
-
-.stack-explore-empty-icon {
-  font-size: 4rem;
-  color: var(--saito-font-color-light);
-  margin-bottom: 1.5rem;
-  opacity: 0.5;
-}
-
-.stack-explore-empty h3 {
-  font-size: 1.8rem;
-  margin: 0 0 1rem 0;
-  color: var(--saito-font-color);
-}
-
-.stack-explore-empty p {
-  font-size: 1.1rem;
-  color: var(--saito-font-color-light);
-  margin: 0 0 2rem 0;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .stack-explore-overlay {
-    width: 95vw;
-    height: 95vh;
-    max-height: 95vh;
-    flex-direction: column;
-    padding: 0;
-  }
-
-  .stack-explore-sidebar {
-    width: 100%;
-    min-width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--saito-border-color);
-    max-height: 200px;
-  }
-
-  .stack-explore-main {
-    padding: 1.5rem;
-  }
-
-  .stack-explore-main-header h2 {
-    font-size: 2rem;
-  }
-
-  .stack-explore-posts-grid {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-}
 

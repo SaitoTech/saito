@@ -1,3 +1,8 @@
+/**
+ * Publish Settings Overlay Template
+ * 
+ * Complete rewrite - three-card layout for the moment of publishing.
+ */
 module.exports = (app, mod, postState = {}) => {
   const title = document.querySelector('#stack-post-title-input')?.value || 'Untitled';
   const editor = document.querySelector('#stack-post-body-editor');
@@ -26,100 +31,110 @@ module.exports = (app, mod, postState = {}) => {
     });
   };
 
-  const actionButtonText = isPublished ? 'Update' : 'Publish';
+  // Map internal 'nft' to display 'subscribers'
+  const displayAccessLevel = accessLevel === 'nft' ? 'subscribers' : accessLevel;
+  const isPublic = displayAccessLevel === 'public';
+  const isSubscribers = displayAccessLevel === 'subscribers';
+  const isCustom = displayAccessLevel === 'custom';
 
   return `
-    <div class="stack-publish-settings-overlay">
-      <div class="stack-publish-settings-content">
-        <!-- Header -->
-        <div class="stack-publish-settings-header">
-          <h2 class="stack-publish-settings-title">Publishing Options</h2>
-          <p class="stack-publish-settings-subtitle">Control how this post is shared</p>
-        </div>
-
-        <!-- Status Box -->
-        <div class="stack-publish-status-box">
-          <div class="stack-publish-status-header">Draft — Private</div>
-          <div class="stack-publish-status-body">
-            This post is currently saved only on your device. It will not be visible to anyone until you publish it.
+    <div class="stack-publish-overlay">
+      <div class="stack-publish-content">
+        <!-- Three Equal-Height Cards -->
+        <div class="stack-publish-cards">
+          
+          <!-- CARD 1: STATUS + PRIMARY ACTION -->
+          <div class="stack-publish-card stack-publish-card-status">
+            <h3 class="stack-publish-card-title">Draft (Local)</h3>
+            <button id="stack-publish-primary-btn" class="stack-publish-primary-action-btn">
+              Publish Post
+            </button>
+            <p class="stack-publish-card-description">
+              This post is currently saved only on your device. It is not visible to anyone else until you publish it.
+            </p>
+            <p class="stack-publish-card-hint">
+              You can update or unpublish later.
+            </p>
           </div>
-        </div>
 
-        <!-- Access Control -->
-        <div class="stack-publish-section">
-          <h3 class="stack-publish-section-title">Who can read this post?</h3>
-          <div class="stack-publish-access-options">
-            <label class="stack-publish-access-option">
-              <input 
-                type="radio" 
-                name="stack-publish-access" 
-                value="public" 
-                ${accessLevel === 'public' ? 'checked' : ''}
-                class="stack-publish-access-radio"
-              />
-              <div class="stack-publish-access-option-content">
-                <div class="stack-publish-access-option-label">Public</div>
-                <div class="stack-publish-access-option-help">Anyone with the link can read this post.</div>
+          <!-- CARD 2: ACCESS CONTROL -->
+          <div class="stack-publish-card stack-publish-card-access">
+            <h3 class="stack-publish-card-title">Who can read this post?</h3>
+            <div class="stack-publish-access-cards">
+              <label class="stack-publish-access-card ${isPublic ? 'stack-publish-access-card-active' : ''}" data-access="public">
+                <input 
+                  type="checkbox" 
+                  name="stack-publish-access" 
+                  value="public" 
+                  ${isPublic ? 'checked' : ''}
+                  class="stack-publish-access-checkbox"
+                />
+                <div class="stack-publish-access-card-content">
+                  <div class="stack-publish-access-card-label">Public</div>
+                  <div class="stack-publish-access-card-description">Anyone with the link can read this post.</div>
+                </div>
+              </label>
+
+              <label class="stack-publish-access-card ${isSubscribers ? 'stack-publish-access-card-active' : ''}" data-access="subscribers">
+                <input 
+                  type="checkbox" 
+                  name="stack-publish-access" 
+                  value="subscribers" 
+                  ${isSubscribers ? 'checked' : ''}
+                  class="stack-publish-access-checkbox"
+                />
+                <div class="stack-publish-access-card-content">
+                  <div class="stack-publish-access-card-label">Subscribers</div>
+                  <div class="stack-publish-access-card-description">Only people who own a subscription NFT you created.</div>
+                </div>
+              </label>
+
+              <label class="stack-publish-access-card ${isCustom ? 'stack-publish-access-card-active' : ''}" data-access="custom">
+                <input 
+                  type="checkbox" 
+                  name="stack-publish-access" 
+                  value="custom" 
+                  ${isCustom ? 'checked' : ''}
+                  class="stack-publish-access-checkbox"
+                />
+                <div class="stack-publish-access-card-content">
+                  <div class="stack-publish-access-card-label">Custom</div>
+                  <div class="stack-publish-access-card-description">Use a custom access rule. (Advanced)</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- CARD 3: METADATA (READ-ONLY) -->
+          <div class="stack-publish-card stack-publish-card-metadata">
+            <h3 class="stack-publish-card-title">Metadata</h3>
+            <div class="stack-publish-metadata-list">
+              <div class="stack-publish-metadata-row">
+                <span class="stack-publish-metadata-label">Status</span>
+                <span class="stack-publish-metadata-value">${isPublished ? 'Published' : 'Draft'}</span>
               </div>
-            </label>
-
-            <label class="stack-publish-access-option">
-              <input 
-                type="radio" 
-                name="stack-publish-access" 
-                value="subscribers" 
-                ${accessLevel === 'subscribers' || accessLevel === 'nft' ? 'checked' : ''}
-                class="stack-publish-access-radio"
-              />
-              <div class="stack-publish-access-option-content">
-                <div class="stack-publish-access-option-label">Subscribers</div>
-                <div class="stack-publish-access-option-help">Only people who own a subscription NFT you created.</div>
+              <div class="stack-publish-metadata-row">
+                <span class="stack-publish-metadata-label">Created</span>
+                <span class="stack-publish-metadata-value">${formatDate(createdDate)}</span>
               </div>
-            </label>
-
-            <label class="stack-publish-access-option">
-              <input 
-                type="radio" 
-                name="stack-publish-access" 
-                value="custom" 
-                ${accessLevel === 'custom' ? 'checked' : ''}
-                class="stack-publish-access-radio"
-              />
-              <div class="stack-publish-access-option-content">
-                <div class="stack-publish-access-option-label">Custom</div>
-                <div class="stack-publish-access-option-help">Use a custom access rule (advanced).</div>
+              <div class="stack-publish-metadata-row">
+                <span class="stack-publish-metadata-label">Last updated</span>
+                <span class="stack-publish-metadata-value">${formatDate(updatedDate)}</span>
               </div>
-            </label>
+              <div class="stack-publish-metadata-row">
+                <span class="stack-publish-metadata-label">Size</span>
+                <span class="stack-publish-metadata-value">${contentSizeKB} KB</span>
+              </div>
+            </div>
           </div>
+
         </div>
 
-        <!-- Metadata -->
-        <div class="stack-publish-metadata">
-          <div class="stack-publish-metadata-item">
-            <span class="stack-publish-metadata-label">Status:</span>
-            <span class="stack-publish-metadata-value">${isPublished ? 'Published' : 'Draft'}</span>
-          </div>
-          <div class="stack-publish-metadata-item">
-            <span class="stack-publish-metadata-label">Created:</span>
-            <span class="stack-publish-metadata-value">${formatDate(createdDate)}</span>
-          </div>
-          <div class="stack-publish-metadata-item">
-            <span class="stack-publish-metadata-label">Last updated:</span>
-            <span class="stack-publish-metadata-value">${formatDate(updatedDate)}</span>
-          </div>
-          <div class="stack-publish-metadata-item">
-            <span class="stack-publish-metadata-label">Size:</span>
-            <span class="stack-publish-metadata-value">${contentSizeKB} KB</span>
-          </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="stack-publish-actions">
+        <!-- Bottom Actions -->
+        <div class="stack-publish-bottom-actions">
+          <div class="stack-publish-bottom-actions-spacer"></div>
           <button id="stack-publish-delete-draft-btn" class="stack-publish-delete-btn">
             Delete Draft
-          </button>
-          <button id="stack-publish-primary-btn" class="stack-publish-primary-btn">
-            ${actionButtonText}
           </button>
         </div>
       </div>
