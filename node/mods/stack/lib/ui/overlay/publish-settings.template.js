@@ -4,159 +4,125 @@ module.exports = (app, mod, postState = {}) => {
   const { serializeDocumentToMarkdown } = require('../../post-document');
   const content = editor ? serializeDocumentToMarkdown(mod.create_post_ui.document) : '';
   
-  // Get first paragraph for mini snapshot
-  const firstParagraph = content.split('\n\n')[0] || content.substring(0, 150);
-  const snapshotText = firstParagraph.length > 150 ? firstParagraph.substring(0, 150) + '...' : firstParagraph;
-
   const isPublished = postState.published || false;
   const accessLevel = postState.accessLevel || 'public';
-  const description = postState.description || '';
-  const imageUrl = postState.image ? `data:image/png;base64,${postState.image}` : (postState.imageUrl || '');
+  
+  // Calculate content size
+  const contentSize = new Blob([content]).size;
+  const contentSizeKB = (contentSize / 1024).toFixed(1);
+  
+  // Get timestamps
+  const now = new Date();
+  const createdDate = postState.createdAt ? new Date(postState.createdAt) : now;
+  const updatedDate = postState.updatedAt ? new Date(postState.updatedAt) : now;
+  
+  const formatDate = (date) => {
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  // Pre-publish mode: simple explanation and minimal actions
-  if (!isPublished) {
-    return `
-      <div class="stack-publish-settings-overlay">
-        <div class="stack-publish-settings-content">
-          <div class="stack-publish-settings-header">
-            <h2>About Publishing</h2>
-          </div>
+  const actionButtonText = isPublished ? 'Update' : 'Publish';
 
-          <div class="stack-publish-section">
-            <div class="stack-publish-info-box">
-              <h3 class="stack-publish-info-title">This post is private and local</h3>
-              <p class="stack-publish-info-text">
-                Your draft is saved locally on your device. It is not visible to anyone else and will not be shared until you publish it.
-              </p>
-            </div>
-          </div>
-
-          <div class="stack-publish-section">
-            <h3 class="stack-publish-section-title">What publishing will do</h3>
-            <ul class="stack-publish-info-list">
-              <li>Make your post visible to others on the network</li>
-              <li>Create a permanent record on the blockchain</li>
-              <li>Allow you to set access controls and monetization</li>
-            </ul>
-          </div>
-
-          <div class="stack-publish-section">
-            <h3 class="stack-publish-section-title">What will NOT change</h3>
-            <ul class="stack-publish-info-list">
-              <li>Your local draft will remain editable</li>
-              <li>You can update or unpublish at any time</li>
-              <li>Your writing process stays the same</li>
-            </ul>
-          </div>
-
-          <div class="stack-publish-actions">
-            <button id="stack-publish-delete-draft-btn" class="stack-publish-delete-btn">
-              <i class="fa-solid fa-trash"></i> Delete Draft
-            </button>
-            <button id="stack-publish-close-btn" class="stack-publish-close-btn">
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  // Post-publish mode: full settings
   return `
     <div class="stack-publish-settings-overlay">
       <div class="stack-publish-settings-content">
+        <!-- Header -->
         <div class="stack-publish-settings-header">
-          <h2>Edit Publication</h2>
+          <h2 class="stack-publish-settings-title">Publishing Options</h2>
+          <p class="stack-publish-settings-subtitle">Control how this post is shared</p>
         </div>
 
-        <!-- Mini Snapshot -->
-        <div class="stack-publish-snapshot">
-          <h3 class="stack-publish-snapshot-title">${app.browser.escapeHTML(title)}</h3>
-          <p class="stack-publish-snapshot-text">${app.browser.escapeHTML(snapshotText)}</p>
-          <a href="#" id="stack-publish-preview-link" class="stack-publish-preview-link">View Preview →</a>
-        </div>
-
-        <!-- Access Controls -->
-        <div class="stack-publish-section">
-          <h3 class="stack-publish-section-title">Access</h3>
-          <div class="stack-publish-access-controls">
-            <button class="stack-publish-access-btn ${accessLevel === 'public' ? 'active' : ''}" data-access="public">
-              <i class="fa-solid fa-globe"></i> Public
-            </button>
-            <button class="stack-publish-access-btn ${accessLevel === 'nft' ? 'active' : ''}" data-access="nft">
-              <i class="fa-solid fa-image"></i> NFT Holders
-            </button>
-            <button class="stack-publish-access-btn ${accessLevel === 'custom' ? 'active' : ''}" data-access="custom">
-              <i class="fa-solid fa-gear"></i> Custom
-            </button>
+        <!-- Status Box -->
+        <div class="stack-publish-status-box">
+          <div class="stack-publish-status-header">Draft — Private</div>
+          <div class="stack-publish-status-body">
+            This post is currently saved only on your device. It will not be visible to anyone until you publish it.
           </div>
-          <div class="stack-publish-custom-section" style="display: ${accessLevel === 'custom' ? 'block' : 'none'}; margin-top: 1rem;">
-            <p class="stack-publish-helper-text">Custom access controls coming soon</p>
+        </div>
+
+        <!-- Access Control -->
+        <div class="stack-publish-section">
+          <h3 class="stack-publish-section-title">Who can read this post?</h3>
+          <div class="stack-publish-access-options">
+            <label class="stack-publish-access-option">
+              <input 
+                type="radio" 
+                name="stack-publish-access" 
+                value="public" 
+                ${accessLevel === 'public' ? 'checked' : ''}
+                class="stack-publish-access-radio"
+              />
+              <div class="stack-publish-access-option-content">
+                <div class="stack-publish-access-option-label">Public</div>
+                <div class="stack-publish-access-option-help">Anyone with the link can read this post.</div>
+              </div>
+            </label>
+
+            <label class="stack-publish-access-option">
+              <input 
+                type="radio" 
+                name="stack-publish-access" 
+                value="subscribers" 
+                ${accessLevel === 'subscribers' || accessLevel === 'nft' ? 'checked' : ''}
+                class="stack-publish-access-radio"
+              />
+              <div class="stack-publish-access-option-content">
+                <div class="stack-publish-access-option-label">Subscribers</div>
+                <div class="stack-publish-access-option-help">Only people who own a subscription NFT you created.</div>
+              </div>
+            </label>
+
+            <label class="stack-publish-access-option">
+              <input 
+                type="radio" 
+                name="stack-publish-access" 
+                value="custom" 
+                ${accessLevel === 'custom' ? 'checked' : ''}
+                class="stack-publish-access-radio"
+              />
+              <div class="stack-publish-access-option-content">
+                <div class="stack-publish-access-option-label">Custom</div>
+                <div class="stack-publish-access-option-help">Use a custom access rule (advanced).</div>
+              </div>
+            </label>
           </div>
         </div>
 
         <!-- Metadata -->
-        <div class="stack-publish-section">
-          <h3 class="stack-publish-section-title">Metadata</h3>
-          
-          <div class="stack-publish-field">
-            <label for="stack-publish-description">Description</label>
-            <textarea 
-              id="stack-publish-description" 
-              class="stack-publish-textarea"
-              placeholder="Brief description of your post..."
-              rows="3"
-            >${app.browser.escapeHTML(description)}</textarea>
+        <div class="stack-publish-metadata">
+          <div class="stack-publish-metadata-item">
+            <span class="stack-publish-metadata-label">Status:</span>
+            <span class="stack-publish-metadata-value">${isPublished ? 'Published' : 'Draft'}</span>
           </div>
-
-          <div class="stack-publish-field">
-            <label>Title Image</label>
-            <div class="stack-publish-image-upload">
-              ${imageUrl ? `
-                <img id="stack-publish-image-preview" src="${imageUrl}" alt="Title image" class="stack-publish-image-preview" />
-              ` : `
-                <img id="stack-publish-image-preview" src="" alt="" class="stack-publish-image-preview" style="display: none;" />
-              `}
-              <input type="file" id="stack-publish-image-input" accept="image/*" style="display: none;" />
-              <button type="button" id="stack-publish-image-upload-btn" class="stack-publish-image-btn">
-                <i class="fa-solid fa-upload"></i> ${imageUrl ? 'Change Image' : 'Upload Image'}
-              </button>
-            </div>
+          <div class="stack-publish-metadata-item">
+            <span class="stack-publish-metadata-label">Created:</span>
+            <span class="stack-publish-metadata-value">${formatDate(createdDate)}</span>
+          </div>
+          <div class="stack-publish-metadata-item">
+            <span class="stack-publish-metadata-label">Last updated:</span>
+            <span class="stack-publish-metadata-value">${formatDate(updatedDate)}</span>
+          </div>
+          <div class="stack-publish-metadata-item">
+            <span class="stack-publish-metadata-label">Size:</span>
+            <span class="stack-publish-metadata-value">${contentSizeKB} KB</span>
           </div>
         </div>
 
-        <!-- Advanced Section (Collapsed) -->
-        <div class="stack-publish-section">
-          <button id="stack-publish-advanced-toggle" class="stack-publish-advanced-toggle">
-            <span>Advanced</span>
-            <i class="fa-solid fa-chevron-down"></i>
-          </button>
-          <div class="stack-publish-advanced-section">
-            <div class="stack-publish-field">
-              <label for="stack-publish-custom-css">Custom CSS</label>
-              <textarea 
-                id="stack-publish-custom-css" 
-                class="stack-publish-textarea stack-publish-css-input"
-                placeholder="Custom CSS for this post..."
-                rows="5"
-              >${app.browser.escapeHTML(postState.customCSS || '')}</textarea>
-            </div>
-            <button id="stack-publish-unpublish-btn" class="stack-publish-unpublish-btn">
-              <i class="fa-solid fa-ban"></i> Unpublish
-            </button>
-          </div>
-        </div>
-
-        <!-- Primary Action -->
+        <!-- Actions -->
         <div class="stack-publish-actions">
+          <button id="stack-publish-delete-draft-btn" class="stack-publish-delete-btn">
+            Delete Draft
+          </button>
           <button id="stack-publish-primary-btn" class="stack-publish-primary-btn">
-            <i class="fa-solid fa-check"></i>
-            Update
+            ${actionButtonText}
           </button>
         </div>
       </div>
     </div>
   `;
 };
-
