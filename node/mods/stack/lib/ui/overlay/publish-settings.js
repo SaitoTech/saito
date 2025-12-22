@@ -32,25 +32,7 @@ class PublishSettingsOverlay {
   }
 
   attachEvents() {
-    // Pre-publish mode: Delete draft button
-    const deleteDraftBtn = document.querySelector('#stack-publish-delete-draft-btn');
-    if (deleteDraftBtn) {
-      deleteDraftBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.handleDeleteDraft();
-      });
-    }
-
-    // Pre-publish mode: Close button
-    const closeBtn = document.querySelector('#stack-publish-close-btn');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.overlay.hide();
-      });
-    }
-
-    // Close overlay (general close button)
+    // Close overlay (click outside or close button)
     const overlayCloseBtn = document.querySelector('.saito-overlay-close');
     if (overlayCloseBtn) {
       overlayCloseBtn.addEventListener('click', () => {
@@ -58,66 +40,23 @@ class PublishSettingsOverlay {
       });
     }
 
-    // Post-publish mode: Access level selection
-    const accessButtons = document.querySelectorAll('.stack-publish-access-btn');
-    accessButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const level = btn.getAttribute('data-access');
-        this.setAccessLevel(level);
+    // Access level radio buttons
+    const accessRadios = document.querySelectorAll('.stack-publish-access-radio');
+    accessRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const level = e.target.value;
+        // Map 'subscribers' to 'nft' for backward compatibility
+        const mappedLevel = level === 'subscribers' ? 'nft' : level;
+        this.setAccessLevel(mappedLevel);
       });
     });
 
-    // Description input
-    const descriptionInput = document.querySelector('#stack-publish-description');
-    if (descriptionInput) {
-      descriptionInput.addEventListener('input', (e) => {
-        this.postState.description = e.target.value;
-      });
-    }
-
-    // Title image upload
-    const imageInput = document.querySelector('#stack-publish-image-input');
-    if (imageInput) {
-      imageInput.addEventListener('change', (e) => {
-        this.handleImageUpload(e);
-      });
-    }
-
-    const imageUploadBtn = document.querySelector('#stack-publish-image-upload-btn');
-    if (imageUploadBtn) {
-      imageUploadBtn.addEventListener('click', (e) => {
+    // Delete draft button
+    const deleteDraftBtn = document.querySelector('#stack-publish-delete-draft-btn');
+    if (deleteDraftBtn) {
+      deleteDraftBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        imageInput?.click();
-      });
-    }
-
-    // Advanced section toggle
-    const advancedToggle = document.querySelector('#stack-publish-advanced-toggle');
-    if (advancedToggle) {
-      advancedToggle.addEventListener('click', (e) => {
-        e.preventDefault();
-        const section = document.querySelector('.stack-publish-advanced-section');
-        if (section) {
-          section.classList.toggle('stack-publish-advanced-open');
-        }
-      });
-    }
-
-    // Custom CSS input
-    const customCSSInput = document.querySelector('#stack-publish-custom-css');
-    if (customCSSInput) {
-      customCSSInput.addEventListener('input', (e) => {
-        this.postState.customCSS = e.target.value;
-      });
-    }
-
-    // Unpublish button
-    const unpublishBtn = document.querySelector('#stack-publish-unpublish-btn');
-    if (unpublishBtn) {
-      unpublishBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.handleUnpublish();
+        this.handleDeleteDraft();
       });
     }
 
@@ -127,15 +66,6 @@ class PublishSettingsOverlay {
       primaryBtn.addEventListener('click', (e) => {
         e.preventDefault();
         this.handlePublish();
-      });
-    }
-
-    // View Preview link (post-publish mode only)
-    const previewLink = document.querySelector('#stack-publish-preview-link');
-    if (previewLink) {
-      previewLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.handleViewPreview();
       });
     }
   }
@@ -169,25 +99,22 @@ class PublishSettingsOverlay {
   }
 
   setAccessLevel(level) {
-    this.postState.accessLevel = level;
+    // Map 'subscribers' to 'nft' for internal storage (backward compatibility)
+    const internalLevel = level === 'subscribers' ? 'nft' : level;
+    this.postState.accessLevel = internalLevel;
     
-    // Update button states
-    const accessButtons = document.querySelectorAll('.stack-publish-access-btn');
-    accessButtons.forEach(btn => {
-      if (btn.getAttribute('data-access') === level) {
-        btn.classList.add('active');
+    // Update radio button states
+    const accessRadios = document.querySelectorAll('.stack-publish-access-radio');
+    accessRadios.forEach(radio => {
+      const radioValue = radio.value;
+      // Map 'nft' to 'subscribers' for display
+      const displayValue = internalLevel === 'nft' ? 'subscribers' : internalLevel;
+      if (radioValue === displayValue) {
+        radio.checked = true;
       } else {
-        btn.classList.remove('active');
+        radio.checked = false;
       }
     });
-
-    // Show/hide custom section
-    const customSection = document.querySelector('.stack-publish-custom-section');
-    if (level === 'custom') {
-      if (customSection) customSection.style.display = 'block';
-    } else {
-      if (customSection) customSection.style.display = 'none';
-    }
   }
 
   async handleImageUpload(e) {
