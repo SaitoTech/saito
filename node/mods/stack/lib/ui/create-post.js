@@ -81,11 +81,32 @@ class CreatePost {
     this.updatePublishTriggerVisibility();
     this.updatePublishTriggerState();
     
-    // Auto-focus body editor on load - cursor at placeholder position
+    // Auto-focus title input on load if no content exists
     setTimeout(() => {
+      const titleInput = document.querySelector('#stack-post-title-input');
       const editor = document.querySelector('#stack-post-body-editor');
-      if (editor) {
-        // Find first editable block (should be the empty paragraph)
+      
+      // Check if there's any existing content
+      const hasTitle = titleInput && titleInput.value.trim().length > 0;
+      const hasBodyContent = this.document.blocks.some(block => {
+        if (block.type === 'paragraph' || block.type === 'heading') {
+          const text = (block.text || '').replace(/\u200B/g, '').trim();
+          return text.length > 0;
+        }
+        if (block.type === 'image') {
+          return true;
+        }
+        if (block.type === 'rawhtml') {
+          return (block.html || '').trim().length > 0;
+        }
+        return false;
+      });
+      
+      // If no content exists, focus title input
+      if (!hasTitle && !hasBodyContent && titleInput) {
+        titleInput.focus();
+      } else if (editor && hasBodyContent) {
+        // If body has content, focus body editor
         const firstBlock = editor.querySelector('[contenteditable="true"]');
         if (firstBlock) {
           const range = document.createRange();
@@ -97,7 +118,7 @@ class CreatePost {
             firstBlock.appendChild(textNode);
           }
           
-          // Place cursor at the start of the text node (where placeholder appears)
+          // Place cursor at the start of the text node
           if (firstBlock.firstChild && firstBlock.firstChild.nodeType === Node.TEXT_NODE) {
             range.setStart(firstBlock.firstChild, 0);
             range.setEnd(firstBlock.firstChild, 0);

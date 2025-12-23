@@ -1,5 +1,7 @@
 const ExploreTemplate = require('./explore.template');
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const ViewPost = require('../view-post');
+const SaitoUser = require('../../../../../lib/saito/ui/saito-user/saito-user');
 
 class ExploreOverlay {
   constructor(app, mod) {
@@ -18,7 +20,77 @@ class ExploreOverlay {
     
     setTimeout(() => {
       this.attachEvents();
+      this.updateHelpNoteVisibility();
     }, 25);
+  }
+
+  updateHelpNoteVisibility() {
+    // Count subscription items
+    const subscriptionItems = document.querySelectorAll('.stack-explore-subscription-item');
+    const helpNote = document.querySelector('.stack-explore-help-note');
+    
+    if (helpNote && subscriptionItems.length > 2) {
+      // Hide help note if more than 2 subscriptions
+      helpNote.classList.add('hide-help');
+    } else if (helpNote) {
+      // Show help note if 2 or fewer subscriptions
+      helpNote.classList.remove('hide-help');
+    }
+  }
+
+  updateAuthorHeader() {
+    const authorHeader = document.querySelector('#stack-explore-author-header');
+    if (!authorHeader) return;
+
+    // Clear existing content
+    authorHeader.innerHTML = '';
+
+    // Find the currently active subscription item
+    const activeItem = document.querySelector('.stack-explore-subscription-item.active');
+    if (!activeItem) return;
+
+    const filter = activeItem.getAttribute('data-filter');
+    const itemText = activeItem.querySelector('span')?.textContent || '';
+
+    let publicKey = '';
+    let description = '';
+
+    // Handle different subscription types
+    if (filter === 'all' || itemText === 'Saito Official') {
+      // For Saito Official, use a default public key or special handling
+      // In a real implementation, this would use the actual Saito Official public key
+      publicKey = this.mod.publicKey || ''; // Placeholder - would be actual Saito Official key
+      description = 'Posts by this author';
+      
+      if (!publicKey) {
+        // If no key available, hide the header
+        return;
+      }
+    } else if (filter === 'my-posts') {
+      // For "My Posts", show the current user's identity
+      publicKey = this.app.wallet?.returnPublicKey() || this.mod.publicKey || '';
+      description = 'Your posts';
+      
+      if (!publicKey) {
+        // If no user key available, hide the header
+        return;
+      }
+    } else {
+      // For other subscriptions, would use the subscription's public key
+      // For now, hide if not a recognized filter
+      return;
+    }
+
+    // Use SaitoUser component to render identity
+    const saitoUser = new SaitoUser(
+      this.app,
+      this.mod,
+      '#stack-explore-author-header',
+      publicKey,
+      description, // Use notice parameter for description
+      '' // fourthelem
+    );
+    saitoUser.render();
   }
 
   async loadPosts() {
@@ -42,6 +114,9 @@ class ExploreOverlay {
 
   attachEvents() {
     try {
+      // Update author header on initial load
+      this.updateAuthorHeader();
+      
       // Subscription/Identity list items
       const subscriptionItems = document.querySelectorAll('.stack-explore-subscription-item');
       subscriptionItems.forEach(item => {
@@ -53,6 +128,8 @@ class ExploreOverlay {
           item.classList.add('active');
           const filter = item.getAttribute('data-filter');
           console.log('Subscription filter clicked:', filter);
+          // Update author header based on selection
+          this.updateAuthorHeader();
           // Will implement filtering by identity/subscription later
         };
       });
@@ -80,8 +157,64 @@ class ExploreOverlay {
           if (e.target.closest('.stack-post-teaser-read-btn')) {
             return;
           }
-          console.log('Post teaser clicked:', { postId, publicKey });
-          // Will implement post viewing later
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Close the explore overlay
+          this.overlay.hide();
+          
+          // Smooth transition to ViewPost
+          const container = document.querySelector('.saito-container');
+          if (!container) return;
+          
+          // Reset scroll position immediately (before any transition)
+          window.scrollTo({ top: 0, behavior: 'instant' });
+          if (container.scrollTop !== undefined) {
+            container.scrollTop = 0;
+          }
+          
+          // Store current opacity if already set
+          const currentOpacity = container.style.opacity || '1';
+          
+          // Fade out existing content
+          container.style.transition = 'opacity 200ms ease-out';
+          container.style.opacity = '0';
+          
+          // After fade out, replace content and fade in
+          setTimeout(() => {
+            // Clear container
+            container.innerHTML = '';
+            
+            // Create and render ViewPost
+            const viewPost = new ViewPost(this.app, this.mod, '.saito-container', null);
+            viewPost.render();
+            
+            // Fade in new content using requestAnimationFrame for smooth transition
+            requestAnimationFrame(() => {
+              container.style.transition = 'opacity 200ms ease-in';
+              container.style.opacity = '0';
+              
+              // Trigger reflow, then fade in
+              void container.offsetHeight;
+              
+              requestAnimationFrame(() => {
+                container.style.opacity = '1';
+                
+                // Reset scroll position after content is visible
+                setTimeout(() => {
+                  window.scrollTo({ top: 0, behavior: 'instant' });
+                  if (container.scrollTop !== undefined) {
+                    container.scrollTop = 0;
+                  }
+                  // Clean up inline styles after transition completes
+                  setTimeout(() => {
+                    container.style.transition = '';
+                    container.style.opacity = '';
+                  }, 200);
+                }, 50);
+              });
+            });
+          }, 200);
         };
       });
     } catch (err) {

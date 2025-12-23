@@ -55,7 +55,16 @@ class Stack extends ModTemplate {
     // Callback for after post creation
     this.callbackAfterPost = null;
 
-    this.styles = ['/saito/saito.css', '/stack/style.css'];
+    this.styles = [
+      '/saito/saito.css', 
+      '/stack/style.css',
+      '/stack/stack-main.css',
+      '/stack/stack-publish-overlay.css',
+      '/stack/stack-explore.css',
+      '/stack/stack-post-teaser.css',
+      '/stack/stack-create-post.css',
+      '/stack/stack-view-post.css'
+    ];
     this.scripts = [];
 
   }

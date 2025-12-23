@@ -14,7 +14,7 @@ module.exports = (app, mod) => {
               type="text" 
               id="stack-post-title-input" 
               class="stack-post-title-input" 
-              placeholder="Untitled"
+              placeholder="Untitled Post"
             />
           </div>
           
