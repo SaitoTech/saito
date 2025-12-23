@@ -22,9 +22,7 @@ class SaitoPurchaseOverlay {
     this.saito_amount = 0;
     this.title = '';
     this.description = '';
-    this.exchange_rate = '';
     this.deposit_confirmed = false;
-    this.available_cryptos = [];
 
     this.addr_obj = {}; // { id, ticker, address, asset_id, chain_id, created_at, reserved_until, reserved_by }
     this.req_obj = {}; // { id, reserved_until, remaining_minutes, expected_amount }
@@ -35,6 +33,8 @@ class SaitoPurchaseOverlay {
 
     this.ui_msg = '';
 
+    this.available_currencies = [];
+
     app.connection.on('saito-purchase-pending-deposit-confirmed', async (data) => {
       this.updatePendingDepositConfirmed(data);
     });
@@ -42,19 +42,45 @@ class SaitoPurchaseOverlay {
     app.connection.on('saito-purchase-saito-issued', async (data) => {
       this.updateSaitoIssued(data);
     });
+
+    app.connection.on('saito-purchase-launch', (amount, tx = null) => {
+      this.reset();
+      this.amount = Number(amount);
+
+      // Render immediately if we already have the data
+      if (this.available_currencies?.length) {
+        this.render();
+        return;
+      }
+
+      // More complicated but smoother transition while fetching info
+      this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
+      setTimeout(async () => {
+        if (!tx) {
+          this.tx = await this.mod.createBuySaitoTransaction();
+        }
+
+        await this.loadAvailableCryptos();
+        if (this.available_currencies?.length) {
+          for (let c of this.available_currencies) {
+            if (c.ticker == 'ERC-SAITO') {
+              this.mod.erc_saito = c;
+            }
+          }
+          setTimeout(() => {
+            this.render();
+          }, 2000);
+        } else {
+          this.overlay.remove();
+        }
+      }, 50);
+    });
   }
 
   async render() {
     console.log('render saito-purchase');
     let self = this;
     this.overlay.remove();
-
-    if (!this.available_cryptos.length > 0) {
-      //
-      // fetch crypto list available at server
-      //
-      await this.loadAvailableCryptos();
-    }
 
     if (!this.crypto_selected) {
       //
@@ -66,7 +92,7 @@ class SaitoPurchaseOverlay {
         //
         // 2. show loading screen after selecting crypto ticker
         //
-        this.overlay.show(SaitoPurchaseLoaderTemplate(this.app, this.mod, this, this.ui_msg));
+        this.overlay.show(SaitoPurchaseLoaderTemplate(this.ui_msg));
       } else {
         //
         // 3. Show address screen when deposit address is created/fetched
@@ -87,47 +113,18 @@ class SaitoPurchaseOverlay {
   }
 
   attachEvents() {
-    let self = this;
-
     document.querySelectorAll('.purchase-crypto-item').forEach((el) => {
       el.onclick = (e) => {
-        let ticker = e.currentTarget.id;
-        let saito_rate = 0.005; // SAITO USD value
-        let conversion_rate = 0;
-
-        //
-        // TODO: calculate conversion rate with dynamic values
-        //
-
-        // switch (ticker) {
-        //   case 'btc':
-        //     conversion_rate = 0.000001;
-        //     break;
-        //   case 'eth':
-        //     conversion_rate = 0.00002;
-        //     break;
-        //   case 'trx':
-        //     conversion_rate = 0.5;
-        //     break;
-        //   default:
-        //     conversion_rate = 1.0;
-        // }
-
-        // let converted_amount = (this.saito_amount * saito_rate) / conversion_rate;
-
-        //
-        // hardcoded to 1 TRX for testing
-        //
-        converted_amount = 1;
-
-        self.requestPaymentAddressFromServer(converted_amount, ticker);
-
-        //
-        // re-render self to show spinning loader
-        //
-        self.crypto_selected = true;
-        self.ui_msg = 'Requesting Payment Instructions';
-        self.render();
+        for (let i = 0; i < this.available_currencies.length; i++) {
+          if (this.available_currencies[i].ticker == e.currentTarget.id)
+            this.crypto_selected = this.available_currencies[i];
+        }
+        if (!this.crypto_selected) {
+          salert('Error reading crypto selection');
+          return;
+        }
+        this.overlay.show(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
+        this.requestPaymentAddressFromServer();
       };
     });
 
@@ -143,41 +140,62 @@ class SaitoPurchaseOverlay {
   // fetch tickers from server and cache locally
   //
   async loadAvailableCryptos() {
-    let self = this;
     console.log('loadAvailableCryptos -> request');
 
-    let ack = await new Promise((resolve) => {
-      self.app.network.sendRequest('mixin fetch crypto mods', {}, (res) => resolve(res));
-    });
-
-    console.log('loadAvailableCryptos response:', ack);
-
-    if (Array.isArray(ack) && ack.length > 0) {
-      this.available_cryptos = ack.map((t) => (t || '').toUpperCase());
-      console.log('available_cryptos:', this.available_cryptos);
-      return { ok: true, tickers: this.available_cryptos };
+    if (!this.mod.mixin_peer) {
+      console.warn('No mixin peer available to handle purchases');
+      salert('No mixin peer available to handle purchases');
+      return 0;
     }
 
-    console.warn('no cryptos returned');
-    return { ok: false, err: 'empty_list' };
+    if (this.available_currencies?.length == 0) {
+      await this.app.network.sendRequestAsTransaction(
+        'mixin available cryptos',
+        null,
+        (res) => {
+          console.log('Callback in loadAvailableCryptos: ', res);
+
+          if (res?.err) {
+            this.available_currencies = null;
+            console.warn('Peer request error: ', res.err);
+            return null;
+          }
+
+          if (this.mod.acceptable_currencies === '*') {
+            this.available_currencies = res;
+          } else {
+            for (let i = 0; i < res.length; i++) {
+              if (this.mod.acceptable_currencies.includes(res[i].ticker)) {
+                this.available_currencies.push(res[i]);
+              }
+            }
+          }
+        },
+        this.mod.mixin_peer.peerIndex
+      );
+    }
+
+    return this.available_currencies;
   }
 
   //
   // reserve address -> poll pending deposit -> fetch receipts
   //
-  async requestPaymentAddressFromServer(converted_amount, ticker) {
+  async requestPaymentAddressFromServer() {
     let self = this;
+
+    let converted_amount = this.mod.convertToSaito(this.amount, this.crypto_selected.price_usd);
 
     //
     // build request payload
     //
     let data = {
-      publickey: self.mod.publicKey,
+      publickey: this.mod.publicKey,
       expected_amount: converted_amount, // ticker amount
-      issue_amount: self.saito_amount, // saito amount
+      issue_amount: this.amount, // saito amount
       minutes: 30,
-      ticker,
-      tx: self.tx.serialize_to_web(self.app)
+      ticker: this.crypto_selected.ticker,
+      tx: this.tx.serialize_to_web(self.app)
     };
     console.log('Request data:', data);
 
@@ -216,7 +234,6 @@ class SaitoPurchaseOverlay {
       self.addr_obj = res.address; // { id, ticker, address, asset_id, chain_id, ... }
       self.req_obj = res.request; // { id, reserved_until, remaining_minutes, expected_amount }
       self.pool = res.pool; // { ticker, total, limit }
-      self.exchange_rate = '0.003 SAITO / USDC';
 
       //
       // assign values
@@ -349,13 +366,6 @@ class SaitoPurchaseOverlay {
     console.log('[countdown] interval started (1s)');
   }
 
-  stopCountDownIterval() {
-    if (this.countdown_interval) {
-      clearInterval(this.countdown_interval);
-      this.countdown_interval = null;
-    }
-  }
-
   updatePendingDepositConfirmed(data = {}) {
     this.overlay.remove();
 
@@ -380,7 +390,6 @@ class SaitoPurchaseOverlay {
     this.saito_amount = 0;
     this.title = '';
     this.description = '';
-    this.exchange_rate = '';
     this.addr_obj = {};
     this.req_obj = {};
     this.pool = {};
@@ -392,11 +401,6 @@ class SaitoPurchaseOverlay {
       clearInterval(this.countdown_interval);
       this.countdown_interval = null;
     }
-
-    //
-    // clear any intervals
-    //
-    this.stopCountDownIterval();
   }
 }
 

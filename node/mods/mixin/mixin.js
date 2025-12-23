@@ -87,7 +87,7 @@ class Mixin extends ModTemplate {
     this.send_payments_polling_loop = null;
     this.send_payments_polling_loop_active = null;
     this.send_payments_polling_timer = null;
-  
+
     this.pending_deposits = [];
     this.monitor_unpaid_requests_loop = null;
     this.monitor_deposits_polling_loop_iteration = 0;
@@ -221,11 +221,12 @@ class Mixin extends ModTemplate {
     }
 
     if (message.request === 'mixin request payment address') {
-      await this.createAccount(); // skips if created
       if (!this.account_created) {
-        return mycallback({});
+        mycallback({ err: 'No mixin account' });
+      } else {
+        this.receiveRequestPaymentAddressTransaction(app, tx, peer, mycallback);
       }
-      return await this.receiveRequestPaymentAddressTransaction(app, tx, peer, mycallback);
+      return 1;
     }
 
     if (message.request === 'mixin pending deposit confirmed') {
@@ -233,7 +234,7 @@ class Mixin extends ModTemplate {
         //
         // emit event for UI to update
         //
-        console.log("insdie handlePeerTransaction mixin pending deposit confirmed")
+        console.log('insdie handlePeerTransaction mixin pending deposit confirmed');
         this.app.connection.emit('saito-purchase-pending-deposit-confirmed', message);
       }
     }
@@ -243,20 +244,27 @@ class Mixin extends ModTemplate {
         //
         // emit event for UI to update
         //
-        console.log("insdie handlePeerTransaction mixin saito send confirmed")
+        console.log('insdie handlePeerTransaction mixin saito send confirmed');
         this.app.connection.emit('saito-purchase-saito-issued', message);
       }
     }
 
-    if (message.request === 'mixin fetch crypto mods') {
+    if (message.request === 'mixin available cryptos') {
+      await this.createAccount(); // skips if created
+
       let list = [];
-      if (Array.isArray(this.crypto_mods) && this.crypto_mods.length > 0) {
-        list = this.crypto_mods
-          .map((m) => (m && m.ticker ? m.ticker : ''))
-          .filter(Boolean)
-          .map((t) => t.toUpperCase());
+
+      for (let cm of this.crypto_mods) {
+        list.push({
+          ticker: cm.ticker,
+          price_usd: cm.price_usd,
+          last_update: cm.last_update
+        });
       }
-      return mycallback ? mycallback(list) : list;
+      console.log(list);
+      mycallback(list);
+
+      return 1;
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
@@ -304,6 +312,7 @@ class Mixin extends ModTemplate {
 
       let info = await crypto_module.returnNetworkInfo();
       crypto_module.price_usd = info.price_usd;
+      crypto_module.last_update = Date.now();
 
       await crypto_module.installModule(mixin_self.app);
       this.crypto_mods.push(crypto_module);
@@ -1345,7 +1354,7 @@ class Mixin extends ModTemplate {
       let res = { ok: false, err: '', address: null, request: null, pool: null };
 
       //
-      // validate request_tx
+      // validation...
       //
       if (!request_tx) {
         res.err = 'missing_request_tx';
@@ -1355,10 +1364,6 @@ class Mixin extends ModTemplate {
         res.err = 'invalid_request_tx';
         return callback ? callback(res) : res;
       }
-
-      //
-      // validate peer
-      //
       if (!peer) {
         res.err = 'missing_peer';
         return callback ? callback(res) : res;
@@ -1621,10 +1626,13 @@ class Mixin extends ModTemplate {
         ? Number(number_of_existing_addresses[0].count)
         : 0;
 
-        console.log("total: ", total);
-        console.log("maximum_reservable_payment_addresses: ", this.maximum_reservable_payment_addresses);
+      console.log('total: ', total);
+      console.log(
+        'maximum_reservable_payment_addresses: ',
+        this.maximum_reservable_payment_addresses
+      );
 
-        console.log(total > this.maximum_reservable_payment_addresses);
+      console.log(total > this.maximum_reservable_payment_addresses);
       if (total > this.maximum_reservable_payment_addresses) {
         return null;
       }
@@ -1730,7 +1738,7 @@ class Mixin extends ModTemplate {
         reserved_until: null,
         remaining_minutes: 0,
         expected_amount: expected_amount != null ? String(expected_amount) : null,
-        issue_amount: issue_amount != null ? String(issue_amount) : null,
+        issue_amount: issue_amount != null ? String(issue_amount) : null
       };
 
       console.log('createMixinPaymentRequest 1 ////');
@@ -1738,8 +1746,15 @@ class Mixin extends ModTemplate {
       //
       // validate required inputs
       //
-      if (!buyer_publickey || !asset_id || !chain_id || !address || !address_id 
-          || !issue_amount || !expected_amount) {
+      if (
+        !buyer_publickey ||
+        !asset_id ||
+        !chain_id ||
+        !address ||
+        !address_id ||
+        !issue_amount ||
+        !expected_amount
+      ) {
         res.err = 'missing_params';
         return res;
       }
@@ -1881,18 +1896,18 @@ class Mixin extends ModTemplate {
       //
       // extract data
       //
-      const asset_id        = data.asset_id;
-      const address         = data.address;
+      const asset_id = data.asset_id;
+      const address = data.address;
       const expected_amount = parseFloat(data.expected_amount || '0');
-      const reserved_until  = +data.reserved_until || 0; 
+      const reserved_until = +data.reserved_until || 0;
 
-      const ticker          = (data.ticker || '').toUpperCase();
+      const ticker = (data.ticker || '').toUpperCase();
 
       console.log('pending recv parsed payload:', {
         asset_id,
         address,
         expected_amount,
-        ticker,
+        ticker
       });
 
       //
@@ -1963,7 +1978,7 @@ class Mixin extends ModTemplate {
                   ticker,
                   address,
                   total_amount: String(total),
-                  rows,
+                  rows
                 });
               }
 
@@ -1977,7 +1992,7 @@ class Mixin extends ModTemplate {
                 ticker,
                 address,
                 total_amount: String(total),
-                rows,
+                rows
               });
             } catch (e) {
               console.error('pending check parse error:', e);
@@ -2027,7 +2042,7 @@ class Mixin extends ModTemplate {
         $address_id: data.address_id,
         $recipient_pubkey: data.recipient_pubkey,
         $issued_amount: (data.issued_amount ?? '').toString(),
-        $status: data.status,                  // pending|issuing|succeeded|failed|cancelled
+        $status: data.status, // pending|issuing|succeeded|failed|cancelled
         $reason: data.reason ?? '',
         $tx: data.tx ?? '',
         $created_at: created_at,
@@ -2042,11 +2057,10 @@ class Mixin extends ModTemplate {
     }
   }
 
-
   //
-  // poll DB for pending receipts 
-  // check balance 
-  // issue SAITO 
+  // poll DB for pending receipts
+  // check balance
+  // issue SAITO
   // mark payment request as paid
   // mark receipt as 'issuing'
   // send request to notify UI
@@ -2110,7 +2124,9 @@ class Mixin extends ModTemplate {
           }
 
           let issued_amt_num = 0;
-          try { issued_amt_num = parseFloat(issued_amount_text); } catch (_) {}
+          try {
+            issued_amt_num = parseFloat(issued_amount_text);
+          } catch (_) {}
           if (!Number.isFinite(issued_amt_num) || issued_amt_num <= 0) {
             console.log(`[${i}] invalid issued_amount: ${issued_amount_text}`);
             results.push({ id: r.id, ok: false, err: 'invalid_issued_amount' });
@@ -2132,8 +2148,12 @@ class Mixin extends ModTemplate {
           //
           console.log(`[${i}] checking server balance...`);
           const server_balance_saito = this.app.wallet.returnBalance('SAITO');
-          const server_balance_nolan = BigInt(this.app.wallet.convertSaitoToNolan(server_balance_saito));
-          const nolan_amount_required = BigInt(this.app.wallet.convertSaitoToNolan(issued_amount_text));
+          const server_balance_nolan = BigInt(
+            this.app.wallet.convertSaitoToNolan(server_balance_saito)
+          );
+          const nolan_amount_required = BigInt(
+            this.app.wallet.convertSaitoToNolan(issued_amount_text)
+          );
           console.log(
             `[${i}] balance_saito=${server_balance_saito} balance_nolan=${server_balance_nolan.toString()} need=${nolan_amount_required.toString()}`
           );
@@ -2185,7 +2205,6 @@ class Mixin extends ModTemplate {
             continue;
           }
 
-
           //
           // update receipt status = 'issuing'
           //
@@ -2211,10 +2230,10 @@ class Mixin extends ModTemplate {
           //
           try {
             const notifyItem = {
-              request_id:       r.request_id ?? null,
-              address_id:       r.address_id ?? null,
+              request_id: r.request_id ?? null,
+              address_id: r.address_id ?? null,
               recipient_pubkey: r.recipient_pubkey ?? '',
-              issued_amount:    issued_amount_text,
+              issued_amount: issued_amount_text
             };
 
             const uiAck = await this.createSaitoIssuedRequest(notifyItem);
@@ -2240,7 +2259,6 @@ class Mixin extends ModTemplate {
       this.monitor_payments_poll_loop = null;
     }
 
-
     //
     // run every 30s (adjust for prod)
     //
@@ -2248,8 +2266,6 @@ class Mixin extends ModTemplate {
       run().catch((e) => console.error('payments poll run error:', e));
     }, 0.5 * 60_000);
   }
-
-
 
   //
   // poll each item of this.pending_deposit
@@ -2267,17 +2283,26 @@ class Mixin extends ModTemplate {
 
       const poll = async () => {
         try {
-          console.log('deposit poll start', `${item.request_id || item.address}|${item.asset_id}`, 'it=', iteration);
+          console.log(
+            'deposit poll start',
+            `${item.request_id || item.address}|${item.asset_id}`,
+            'it=',
+            iteration
+          );
 
           const res = await this.checkForDeposits({
-            asset_id:        item.asset_id,
-            address:         item.address,
+            asset_id: item.asset_id,
+            address: item.address,
             expected_amount: item.expected_amount,
-            reserved_until:  item.reserved_until,
-            ticker:          item.ticker,
+            reserved_until: item.reserved_until,
+            ticker: item.ticker
           });
 
-          console.log('deposit poll result', `${item.request_id || item.address}|${item.asset_id}`, res);
+          console.log(
+            'deposit poll result',
+            `${item.request_id || item.address}|${item.asset_id}`,
+            res
+          );
 
           if (!res || res.ok !== true) {
             console.log('deposit poll stop (check_error)');
@@ -2291,14 +2316,14 @@ class Mixin extends ModTemplate {
             try {
               const now = Date.now();
               const receiptData = {
-                request_id:       item.request_id,
-                address_id:       item.address_id,
+                request_id: item.request_id,
+                address_id: item.address_id,
                 recipient_pubkey: item.recipient_pubkey,
-                issued_amount:    String(item.issue_amount ?? ''),
-                status:           'pending',
-                tx:               item.tx,
-                created_at:       now,
-                updated_at:       now,
+                issued_amount: String(item.issue_amount ?? ''),
+                status: 'pending',
+                tx: item.tx,
+                created_at: now,
+                updated_at: now
               };
 
               const ack = await this.savePaymentReceipt(receiptData);
@@ -2313,10 +2338,8 @@ class Mixin extends ModTemplate {
                   (i.address === item.address && i.asset_id === item.asset_id)
               );
               if (index > -1) {
-              
                 console.log('deposit poll: removing confirmed item at index', index);
                 this.pending_deposits.splice(index, 1);
-              
 
                 //
                 // mark payment request as 'paid' using request_id
@@ -2333,12 +2356,12 @@ class Mixin extends ModTemplate {
                     { $req_id: item.request_id, $now: Date.now() },
                     'mixin'
                   );
-                  console.log(`[${i}] request ${r.request_id} -> paid (changes=${nowPaid?.changes || 0})`);
+                  console.log(
+                    `[${i}] request ${r.request_id} -> paid (changes=${nowPaid?.changes || 0})`
+                  );
                 } catch (e) {
                   console.error(`[${i}] request paid update error:`, e);
                 }
-
-
               } else {
                 console.log('deposit poll: confirmed item not found in queue');
               }
@@ -2354,7 +2377,6 @@ class Mixin extends ModTemplate {
             const res = await this.createDepositConfirmedRequest(item);
             console.log('deposit poll createDepositConfirmedRequest ack:', res);
 
-
             return;
           }
 
@@ -2367,7 +2389,11 @@ class Mixin extends ModTemplate {
           iteration++;
           setTimeout(poll, nextDelay);
         } catch (e) {
-          console.error('deposit poll exception', `${item.request_id || item.address}|${item.asset_id}`, e);
+          console.error(
+            'deposit poll exception',
+            `${item.request_id || item.address}|${item.asset_id}`,
+            e
+          );
           console.log('deposit poll stop (exception)');
           return;
         }
@@ -2377,10 +2403,9 @@ class Mixin extends ModTemplate {
     }
   }
 
-
   //
-  // fetch unpaid requests 
-  // build polling data in this.pendin_deposits 
+  // fetch unpaid requests
+  // build polling data in this.pendin_deposits
   // start polling
   //
   async checkUnpaidPaymentRequests() {
@@ -2416,8 +2441,14 @@ class Mixin extends ModTemplate {
       //
       // unique address_ids
       //
-      let addrIds = Array.from(new Set(reqRows.map(r => r.address_id).filter(v => Number.isFinite(+v))));
-      console.log('checkUnpaidPaymentRequests unique address_ids:', addrIds.length, addrIds.slice(0, 10));
+      let addrIds = Array.from(
+        new Set(reqRows.map((r) => r.address_id).filter((v) => Number.isFinite(+v)))
+      );
+      console.log(
+        'checkUnpaidPaymentRequests unique address_ids:',
+        addrIds.length,
+        addrIds.slice(0, 10)
+      );
       if (addrIds.length === 0) {
         console.log('checkUnpaidPaymentRequests no address_ids present — exit run');
         return;
@@ -2432,8 +2463,15 @@ class Mixin extends ModTemplate {
         binds[key] = id;
         return key;
       });
-      console.log('checkUnpaidPaymentRequests addr placeholders:', placeholders.length, placeholders.slice(0, 10));
-      console.log('checkUnpaidPaymentRequests addr binds sample:', Object.fromEntries(Object.entries(binds).slice(0, 5)));
+      console.log(
+        'checkUnpaidPaymentRequests addr placeholders:',
+        placeholders.length,
+        placeholders.slice(0, 10)
+      );
+      console.log(
+        'checkUnpaidPaymentRequests addr binds sample:',
+        Object.fromEntries(Object.entries(binds).slice(0, 5))
+      );
 
       let addr_rows = await this.app.storage.queryDatabase(
         `
@@ -2465,29 +2503,38 @@ class Mixin extends ModTemplate {
       for (let r of reqRows) {
         let a = addr_b_id.get(r.address_id);
         if (!a) {
-          console.log('checkUnpaidPaymentRequests skip request_id=', r.request_id, '— address_id not found:', r.address_id);
+          console.log(
+            'checkUnpaidPaymentRequests skip request_id=',
+            r.request_id,
+            '— address_id not found:',
+            r.address_id
+          );
           continue;
         }
 
-        let expected_amount_num = Number.isFinite(+r.expected_amount_text) ? +r.expected_amount_text : 0;
+        let expected_amount_num = Number.isFinite(+r.expected_amount_text)
+          ? +r.expected_amount_text
+          : 0;
         let issue_amount_num = Number.isFinite(+r.issue_amount_text) ? +r.issue_amount_text : 0;
 
-
         this.pending_deposits.push({
-          request_id:       r.request_id,
-          address_id:       r.address_id,
+          request_id: r.request_id,
+          address_id: r.address_id,
           recipient_pubkey: r.recipient_pubkey || '',
-          asset_id:         a.asset_id,
-          address:          a.address,
-          expected_amount:  expected_amount_num,
-          issue_amount:  issue_amount_num,
-          reserved_until:   a.reserved_until || 0,
-          ticker:           (a.ticker || '').toUpperCase(),
-          tx:               r.tx,
+          asset_id: a.asset_id,
+          address: a.address,
+          expected_amount: expected_amount_num,
+          issue_amount: issue_amount_num,
+          reserved_until: a.reserved_until || 0,
+          ticker: (a.ticker || '').toUpperCase(),
+          tx: r.tx
         });
       }
 
-      console.log('checkUnpaidPaymentRequests pending_deposits built:', this.pending_deposits.length);
+      console.log(
+        'checkUnpaidPaymentRequests pending_deposits built:',
+        this.pending_deposits.length
+      );
 
       if (this.pending_deposits.length === 0) {
         console.log('checkUnpaidPaymentRequests nothing to poll — exit run');
@@ -2497,7 +2544,9 @@ class Mixin extends ModTemplate {
       //
       // start polling
       //
-      console.log('checkUnpaidPaymentRequests starting monitorDepositsPollingLoop for current batch…');
+      console.log(
+        'checkUnpaidPaymentRequests starting monitorDepositsPollingLoop for current batch…'
+      );
       this.monitorDepositsPollingLoop();
     };
 
@@ -2513,14 +2562,21 @@ class Mixin extends ModTemplate {
     //
     // delay sequence in minutes (1,1,1,1,10,10,20 per your example)
     //
-    const delays = [1, 1, 1, 1, 10, 10, 20].map(m => m * 60_000);
+    const delays = [1, 1, 1, 1, 10, 10, 20].map((m) => m * 60_000);
     let index = 0;
 
     //
     // runs once per delay, stops after last
     //
     const tick = async () => {
-      console.log('checkUnpaidPaymentRequests tick fired (index=', index, '/', delays.length, ') @', new Date().toISOString());
+      console.log(
+        'checkUnpaidPaymentRequests tick fired (index=',
+        index,
+        '/',
+        delays.length,
+        ') @',
+        new Date().toISOString()
+      );
       try {
         await run();
       } catch (e) {
@@ -2545,30 +2601,27 @@ class Mixin extends ModTemplate {
     this.monitor_unpaid_requests_loop = setTimeout(tick, firstWait);
   }
 
-
   //
   // notify UI that pending depsoit is confirmed against payment request
   //
   async createDepositConfirmedRequest(item = {}) {
     const payload = {
-        request_id:       item.request_id ?? null,
-        address_id:       item.address_id ?? null,
-        address:          item.address ?? '',
-        asset_id:         item.asset_id ?? '',
-        ticker:           item.ticker ?? '',
-        recipient_pubkey: item.recipient_pubkey ?? '',
-        expected_amount:  item.expected_amount ?? '',
-        tx:               item.tx ?? '',
-        ts:               Date.now(),
+      request_id: item.request_id ?? null,
+      address_id: item.address_id ?? null,
+      address: item.address ?? '',
+      asset_id: item.asset_id ?? '',
+      ticker: item.ticker ?? '',
+      recipient_pubkey: item.recipient_pubkey ?? '',
+      expected_amount: item.expected_amount ?? '',
+      tx: item.tx ?? '',
+      ts: Date.now()
     };
 
     console.log('createMixinPaymentRequest: ', payload);
 
     return await new Promise((resolve) => {
-      this.app.network.sendRequestAsTransaction(
-        'mixin pending deposit confirmed',  
-        payload,                
-        (ack) => resolve(ack || { ok: false, err: 'no_response' })
+      this.app.network.sendRequestAsTransaction('mixin pending deposit confirmed', payload, (ack) =>
+        resolve(ack || { ok: false, err: 'no_response' })
       );
     });
   }
@@ -2578,26 +2631,21 @@ class Mixin extends ModTemplate {
   //
   async createSaitoIssuedRequest(item = {}) {
     const payload = {
-      request_id:       item.request_id ?? null,
-      address_id:       item.address_id ?? null,
+      request_id: item.request_id ?? null,
+      address_id: item.address_id ?? null,
       recipient_pubkey: item.recipient_pubkey ?? '',
-      issued_amount:    item.issued_amount ?? '',
-      ts:               Date.now(),
+      issued_amount: item.issued_amount ?? '',
+      ts: Date.now()
     };
 
     console.log('createSaitoIssuedRequest:', payload);
 
     return await new Promise((resolve) => {
-      this.app.network.sendRequestAsTransaction(
-        'mixin saito issued',
-        payload,
-        (ack) => resolve(ack || { ok: false, err: 'no_response' })
+      this.app.network.sendRequestAsTransaction('mixin saito issued', payload, (ack) =>
+        resolve(ack || { ok: false, err: 'no_response' })
       );
     });
   }
-
-
-
 
   async load() {
     if (this.app?.options?.mixin) {
@@ -2628,8 +2676,6 @@ class Mixin extends ModTemplate {
     this.app.options.mixin_legacy = this.mixin;
     this.app.storage.saveOptions();
   }
-
 }
 
 module.exports = Mixin;
-

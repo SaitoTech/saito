@@ -1,12 +1,9 @@
 module.exports = (app, mod, self) => {
-  let cryptos_list = self.available_cryptos
-    .map((ticker) => {
-      let id = (ticker || '').toLowerCase();
-      let val = id;
-      let lbl = (ticker || '').toUpperCase();
+  let cryptos_list = self.available_currencies
+    .map((currency) => {
+      let lbl = (currency.ticker || '').toUpperCase();
       return `
-        <div class="purchase-crypto-item" id="${id}">
-          <input type="radio" name="purchase-crypto" class="purchase-crypto" value="${val}">
+        <div class="purchase-crypto-item" id="${lbl}">
           <div>${lbl}</div>
         </div>
       `;

@@ -1,3 +1,8 @@
+/*  Just for the main page, 
+    overlay css put in ==> 
+    css-imports/saito-purchase.css 
+*/
+
 .saito-container {
   display: flex;
   flex-direction: column;

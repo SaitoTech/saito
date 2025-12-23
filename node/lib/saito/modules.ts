@@ -157,7 +157,7 @@ class Mods {
         // callback is defined in apps/lite/index.ts
         // it runs sendApiSuccess() with the response object
         //
-        mycallback({});
+        mycallback({ err: 'no response' });
       }
     }
   }

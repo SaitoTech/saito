@@ -35,7 +35,22 @@ class BuySaito extends ModTemplate {
 			image: 'https://saito.tech/wp-content/uploads/2023/11/buysaito-300x300.png'
 		};
 
+		this.erc_saito = null;
+		this.mixin_peer = null;
+
+		/////////////////////////////////////////////
+		// * = Accept all installed crypto modules
+		// or provide an array of acceptable TICKER
+		this.acceptable_currencies = '*';
+
 		this.purchase_overlay = new SaitoPurchaseOverlay(app, this);
+	}
+
+	async onPeerServiceUp(app, peer, service = {}) {
+		if (service.service === 'mixin') {
+			console.info('BuySaito: Mixin API available!');
+			this.mixin_peer = peer;
+		}
 	}
 
 	async render() {
@@ -61,16 +76,10 @@ class BuySaito extends ModTemplate {
 	attachEvents() {
 		let btn = document.getElementById('buysaito-button');
 		if (btn) {
-			btn.onclick = async (e) => {
-				let amount = document.getElementById('purchase-saito-amount').value;
-
-				console.log('Saito Amount to Quote...');
-
-				let tx = await this.createBuySaitoTransaction();
-				this.purchase_overlay.reset(); // reset previously used values
-				this.purchase_overlay.tx = tx;
-				this.purchase_overlay.saito_amount = amount;
-				this.purchase_overlay.render();
+			btn.onclick = (e) => {
+				const amount = document.getElementById('purchase-saito-amount').value;
+				console.log('Saito Amount to Quote...', amount);
+				this.app.connection.emit('saito-purchase-launch', amount, null);
 			};
 		}
 	}
@@ -158,6 +167,12 @@ class BuySaito extends ModTemplate {
 		newtx.packData();
 		await newtx.sign();
 		this.app.network.propagateTransaction(newtx);
+	}
+
+	convertToSaito(amount, usd_price) {
+		let saito_price = this.erc_saito ? 1.05 * Number(this.erc_saito.price_usd) : 1;
+
+		return (amount * saito_price) / Number(usd_price);
 	}
 
 	webServer(app, expressapp, express) {
