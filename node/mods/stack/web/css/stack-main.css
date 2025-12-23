@@ -1,5 +1,10 @@
 /* Stack Styles */
 
+/* Smooth container transitions for ViewPost */
+.saito-container {
+  transition: opacity 200ms ease;
+}
+
 /* Override Saito default 3-column layout for splash page - only when stack-splash class exists */
 .saito-container:has(.stack-splash),
 .saito-container.stack-splash-container {

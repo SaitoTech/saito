@@ -33,9 +33,10 @@
 
 .stack-explore-sidebar-header {
   padding: 2.5rem 2rem;
-  border-bottom: 1px solid var(--saito-border-color);
+  border-bottom: 2px solid var(--saito-border-color);
   background: var(--saito-primary);
   color: var(--saito-font-color-inverse);
+  margin-bottom: 0;
 }
 
 .stack-explore-sidebar-header h2 {
@@ -49,63 +50,127 @@
 .stack-explore-sidebar-content {
   flex: 1;
   /* No overflow-y - overlay handles scroll */
-  padding: 2rem;
+  padding: 0;
+  padding-bottom: 0; /* Explicitly remove bottom padding */
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 0;
+  position: relative;
+  min-height: 0; /* Allow flex shrinking */
 }
 
-.stack-explore-filter-section h3 {
-  font-size: 1.6rem; /* 16px minimum */
-  font-weight: 600;
-  text-transform: none; /* Remove uppercase for readability */
-  letter-spacing: 0;
-  color: var(--saito-font-color); /* Better contrast */
-  margin: 0 0 1.25rem 0;
-  line-height: 1.4;
-}
+/* Filter section removed - subscriptions list flows directly */
 
-/* Subscriptions List - Full-width rows, not buttons */
+/* Subscriptions List - Flat navigation rows, not buttons */
 .stack-explore-subscriptions-list {
   display: flex;
   flex-direction: column;
   gap: 0;
+  width: 100%;
+  margin: 0;
+  padding: 0; /* No padding - items begin immediately below header */
 }
 
 .stack-explore-subscription-item {
   width: 100%;
-  padding: 1rem 1.25rem;
+  min-height: 4.4rem; /* Consistent row height */
+  padding: 1.2rem 2rem;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--saito-border-color);
   color: var(--saito-font-color);
   text-align: left;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease;
   display: flex;
   align-items: center;
-  gap: 0.875rem;
-  font-size: 1.8rem; /* 18px - readable body text */
+  gap: 1rem;
+  font-size: inherit; /* Use inherited font-size from body */
   line-height: 1.5;
   font-weight: 400;
+  user-select: none;
 }
 
 .stack-explore-subscription-item:last-child {
   border-bottom: none;
 }
 
-.stack-explore-subscription-item:hover {
-  background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-background-color) 92%);
+/* Inactive state - muted icon */
+.stack-explore-subscription-item i {
+  color: var(--saito-font-color);
+  opacity: 0.6;
+  font-size: 1.4rem; /* 14px minimum */
+  width: 1.6rem; /* Fixed width for alignment */
+  text-align: center;
+  flex-shrink: 0;
 }
 
+.stack-explore-subscription-item span {
+  flex: 1;
+  font-size: inherit;
+}
+
+/* Hover state - desktop only, uses primary color */
+@media (hover: hover) {
+  .stack-explore-subscription-item:hover {
+    background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background-color) 88%);
+    border-left: 3px solid var(--saito-primary);
+    padding-left: calc(2rem - 3px); /* Adjust padding to account for border */
+  }
+  
+  .stack-explore-subscription-item:not(.active):hover i {
+    color: var(--saito-primary);
+    opacity: 1;
+  }
+  
+  .stack-explore-subscription-item.active:hover {
+    background: color-mix(in srgb, var(--saito-primary) 15%, var(--saito-background-color) 85%);
+  }
+}
+
+/* Active state - subtle indication, NO left border by default */
 .stack-explore-subscription-item.active {
-  background: var(--saito-primary);
-  color: var(--saito-font-color-inverse);
+  background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-background-color) 92%);
+  color: var(--saito-font-color);
   font-weight: 500;
+  /* No left border by default - only on hover */
 }
 
 .stack-explore-subscription-item.active i {
-  color: var(--saito-font-color-inverse);
+  color: var(--saito-font-color);
+  opacity: 0.9;
+}
+
+.stack-explore-subscription-item.active span {
+  color: var(--saito-font-color);
+}
+
+/* Contextual Help Note - Bottom of left panel */
+.stack-explore-help-note {
+  margin-top: auto;
+  padding: 1.5rem 2rem 1.5rem 2rem; /* Top and bottom padding, horizontal padding */
+  border-top: 1px solid var(--saito-border-color);
+  background: color-mix(in srgb, var(--saito-background-color) 98%, var(--saito-font-color) 2%);
+  opacity: 0.7;
+}
+
+.stack-explore-help-note p {
+  margin: 0;
+  padding: 0;
+  font-size: 1.4rem; /* 14px minimum - readable but subtle */
+  line-height: 1.5;
+  color: var(--saito-font-color-secondary, var(--saito-font-color-light));
+  font-weight: 400;
+}
+
+/* Hide help note when subscription list has more than 2 items */
+.stack-explore-subscriptions-list:has(.stack-explore-subscription-item:nth-child(3)) ~ .stack-explore-help-note {
+  display: none;
+}
+
+/* Fallback: hide if more than 2 items (for browsers without :has support) */
+.stack-explore-help-note.hide-help {
+  display: none;
 }
 
 /* Legacy button styles - kept for compatibility but not used */
@@ -166,17 +231,34 @@
   overflow-y: auto; /* Main content scrolls, not nested */
 }
 
-.stack-explore-main-header {
+/* Author Identity Header - Context-aware publisher display using SaitoUser */
+.stack-explore-author-header {
   margin-bottom: 2.5rem;
-  flex-shrink: 0; /* Header stays fixed while content scrolls */
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--saito-border-color);
+  flex-shrink: 0;
 }
 
-.stack-explore-main-header h2 {
-  font-size: 2.25rem; /* Slightly smaller but still prominent */
-  font-weight: 600;
-  margin: 0;
+/* Style SaitoUser component within author header */
+.stack-explore-author-header .saito-user {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.stack-explore-author-header .saito-userline {
+  font-size: 1.6rem; /* 16px minimum */
   color: var(--saito-font-color);
-  line-height: 1.3;
+  opacity: 0.7;
+  line-height: 1.4;
+  margin-top: 0.5rem;
+  margin-left: calc(3.2rem + 1rem); /* Align with identicon + gap */
+}
+
+/* Hide author header when empty */
+.stack-explore-author-header:empty {
+  display: none;
 }
 
 .stack-explore-header {
@@ -425,18 +507,34 @@
   }
 
   .stack-explore-sidebar-content {
-    padding: 1.5rem;
-    gap: 1.5rem;
-  }
-
-  .stack-explore-filter-section h3 {
-    font-size: 1.6rem; /* 16px minimum - readable on mobile */
-    margin-bottom: 1rem;
+    padding: 0;
+    gap: 0;
   }
 
   .stack-explore-subscription-item {
-    padding: 1.125rem 1.25rem; /* Generous touch targets */
-    font-size: 1.8rem; /* 18px - readable */
+    min-height: 4.8rem; /* Larger touch targets on mobile */
+    padding: 1.4rem 1.5rem;
+    font-size: inherit;
+  }
+
+  .stack-explore-subscription-item.active {
+    /* No left border by default on mobile either */
+  }
+  
+  /* Mobile hover - add left border on hover for both active and inactive */
+  @media (hover: hover) {
+    .stack-explore-subscription-item:hover {
+      border-left: 3px solid var(--saito-primary);
+      padding-left: calc(1.5rem - 3px); /* Adjust for border on mobile */
+    }
+  }
+
+  .stack-explore-help-note {
+    padding: 1.5rem; /* Consistent padding on all sides for mobile */
+  }
+
+  .stack-explore-help-note p {
+    font-size: 1.4rem; /* 14px minimum - readable on mobile */
   }
 
   .stack-explore-filter-btn {
@@ -452,12 +550,14 @@
     overflow-y: auto; /* Main content scrolls */
   }
 
-  .stack-explore-main-header {
-    margin-bottom: 1.5rem;
+  .stack-explore-author-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
   }
 
-  .stack-explore-main-header h2 {
-    font-size: 1.75rem;
+  .stack-explore-author-header .saito-userline {
+    font-size: 1.4rem; /* 14px minimum on mobile */
+    margin-left: calc(3.2rem + 1rem); /* Align with identicon + gap */
   }
 
 
