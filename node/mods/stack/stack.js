@@ -46,6 +46,12 @@ class Stack extends ModTemplate {
       lastFetch: 0
     };
 
+    // Transaction loading middleware
+    // Track peers offering Stack service
+    this.peers = {};
+    // In-memory cache for fetched transactions, keyed by signature
+    this.transactionCache = {};
+
     this.overlay = new SaitoOverlay(app, this);
     this.exploreOverlay = new ExploreOverlay(app, this);
     this.main = new StackMain(app, this, '.saito-container');
@@ -78,6 +84,15 @@ class Stack extends ModTemplate {
     
     // Load persistent local UX state
     this.load();
+    
+    // DEVELOPMENT ONLY: Create demo blog posts for testing
+    // TODO: Remove this function call and generateDemoStackTransactions() when ready for production
+    if (this.app.BROWSER) {
+      // Don't await - let it run in background
+      this.generateDemoStackTransactions().catch(err => {
+        console.debug('Stack: Error generating demo posts:', err);
+      });
+    }
   }
 
   ////////////////////////////
@@ -110,6 +125,47 @@ class Stack extends ModTemplate {
     console.log('Show explore posts overlay (placeholder)');
   }
 
+
+  ////////////////////////////
+  // Service Declaration    //
+  ////////////////////////////
+  /**
+   * Declares Stack service to peers, following RedSquare pattern.
+   * Allows peers to advertise Stack capability.
+   */
+  returnServices() {
+    let services = [];
+    if (!this.app.BROWSER || this.offerService) {
+      services.push(
+        this.app.network.createPeerService(null, 'stack', 'Stack Post Archive')
+      );
+    }
+    return services;
+  }
+
+  ////////////////////////////
+  // Peer Management       //
+  ////////////////////////////
+  /**
+   * Called when a peer connects with Stack service capability.
+   * Tracks peers that advertise Stack service for future use.
+   * 
+   * @param {Object} app - Saito application instance
+   * @param {Object} peer - Peer object
+   * @param {Object} service - Service object with service name
+   */
+  async onPeerServiceUp(app, peer, service = {}) {
+    // Only track peers offering Stack service
+    if (service.service === 'stack') {
+      const peerKey = peer?.publicKey || 'unknown';
+      this.peers[peerKey] = {
+        peer: peer,
+        publicKey: peerKey,
+        connected: true
+      };
+      console.log(`Stack: Peer ${peerKey} connected with Stack service`);
+    }
+  }
 
   ////////////////////////////
   // Inter-module Communication //
@@ -355,6 +411,346 @@ class Stack extends ModTemplate {
   }
 
   ////////////////////////////
+  // Peer Service Handling //
+  ////////////////////////////
+  /**
+   * Handles incoming Stack service requests from peers.
+   * Serves cached posts to requesting peers.
+   * Follows RedSquare pattern for service request handling.
+   * 
+   * @param {Object} app - Saito application instance
+   * @param {Transaction} tx - Request transaction from peer
+   * @param {Object} peer - Peer object making the request
+   * @param {Function} mycallback - Callback to send response
+   * @returns {number} 1 if handled, 0 if not handled
+   */
+  async handlePeerTransaction(app, tx = null, peer, mycallback) {
+    if (tx == null || !mycallback) {
+      return 0;
+    }
+
+    const txmsg = tx.returnMessage();
+    if (!txmsg || !txmsg.request) {
+      return 0;
+    }
+
+    // Handle request for a single post by signature
+    if (txmsg.request === 'load stack post') {
+      const signature = txmsg.data?.signature;
+      
+      if (!signature || typeof signature !== 'string') {
+        // Invalid request - respond with empty array
+        mycallback([]);
+        return 1;
+      }
+
+      // Check local cache first
+      if (this.transactionCache[signature]) {
+        const cachedTx = this.transactionCache[signature];
+        // Serialize transaction for network transmission
+        const serialized = cachedTx.serialize_to_web(app);
+        mycallback([serialized]);
+        return 1;
+      }
+
+      // Not in cache - try local archive as fallback
+      // This allows servers to serve posts they've recently loaded
+      this.app.storage.loadTransactions(
+        { field1: 'Stack', signature: signature },
+        (txs) => {
+          if (Array.isArray(txs) && txs.length > 0) {
+            const foundTx = txs.find(t => t.signature === signature);
+            if (foundTx) {
+              // Cache it for future requests
+              this.transactionCache[signature] = foundTx;
+              const serialized = foundTx.serialize_to_web(app);
+              mycallback([serialized]);
+              return;
+            }
+          }
+          // Not found - respond with empty array (normal, not an error)
+          mycallback([]);
+        },
+        'localhost'
+      );
+
+      return 1;
+    }
+
+    // Handle receiving a post transaction from a peer
+    // This happens when a peer sends us a post they have cached
+    if (txmsg.request === 'stack post transaction') {
+      const serializedTx = txmsg.data?.transaction;
+      
+      if (!serializedTx) {
+        return 0; // Not a valid Stack post transaction
+      }
+
+      try {
+        // Deserialize and validate the transaction
+        const receivedTx = new Transaction();
+        receivedTx.deserialize_from_web(app, serializedTx);
+        
+        // Basic validation - ensure it's a Stack post
+        const receivedMsg = receivedTx.returnMessage();
+        if (receivedMsg.module !== 'Stack' || receivedMsg.data?.type !== 'stack_post') {
+          return 0; // Not a Stack post, don't handle
+        }
+
+        // Cache the received transaction
+        const sig = receivedTx.signature;
+        if (sig) {
+          this.transactionCache[sig] = receivedTx;
+          console.debug(`Stack: Cached post ${sig} received from peer`);
+        }
+
+        // Do NOT re-broadcast automatically
+        // Do NOT render - this is middleware only
+        return 1;
+      } catch (error) {
+        // Invalid transaction - silently ignore (normal)
+        console.debug(`Stack: Failed to deserialize peer transaction`, error);
+        return 0;
+      }
+    }
+
+    // Not a Stack service request
+    return 0;
+  }
+
+  ////////////////////////////
+  // Transaction Loading   //
+  ////////////////////////////
+  /**
+   * Loads a single transaction by signature.
+   * Checks cache first, then queries peers, then falls back to archive.
+   * Supports both callback and Promise/await usage.
+   * 
+   * @param {string} signature - Transaction signature to load
+   * @param {Object} options - Optional parameters. Can include `peer` (object or "localhost")
+   * @param {Function} callback - Optional callback function(tx)
+   * @returns {Transaction|null} Transaction object if no callback, null if not found
+   */
+  async loadPost(signature, options = {}, callback = null) {
+    // Extract peer from options if provided
+    const peer = options?.peer || null;
+
+    // Validate signature
+    if (!signature || typeof signature !== 'string') {
+      if (callback) {
+        callback(null);
+        return;
+      }
+      return null;
+    }
+
+    // Step 1: Check cache first
+    if (this.transactionCache[signature]) {
+      const cachedTx = this.transactionCache[signature];
+      if (callback) {
+        callback(cachedTx);
+        return;
+      }
+      return cachedTx;
+    }
+
+    // Step 2: If peer is provided, use it directly (skip localhost check and peer queries)
+    if (peer) {
+      // Determine peer string for loadTransactions
+      // Can be "localhost" string or a peer object (we'll use its identifier)
+      let peerString = peer;
+      if (typeof peer === 'object' && peer !== null) {
+        // If it's a peer object, extract identifier (publicKey, address, or use object itself)
+        // loadTransactions may accept the object directly, but we'll try to get a string identifier
+        peerString = peer.publicKey || peer.address || peer;
+      }
+
+      return new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          { field1: 'Stack', signature: signature },
+          (txs) => {
+            let tx = null;
+
+            // Find matching transaction
+            if (Array.isArray(txs) && txs.length > 0) {
+              tx = txs.find(t => t.signature === signature);
+            }
+
+            // Cache if found
+            if (tx) {
+              this.transactionCache[signature] = tx;
+            }
+
+            // Handle callback or Promise
+            if (callback) {
+              callback(tx);
+              resolve(tx);
+            } else {
+              resolve(tx);
+            }
+          },
+          peerString // Use provided peer (can be "localhost" or peer identifier)
+        );
+      });
+    }
+
+    // Step 3: Check localhost archive (if no peer specified)
+    // This checks our own local archive before making network requests
+    const localTx = await new Promise((resolve) => {
+      this.app.storage.loadTransactions(
+        { field1: 'Stack', signature: signature },
+        (txs) => {
+          let tx = null;
+
+          // Find matching transaction
+          if (Array.isArray(txs) && txs.length > 0) {
+            tx = txs.find(t => t.signature === signature);
+          }
+
+          // Cache if found
+          if (tx) {
+            this.transactionCache[signature] = tx;
+          }
+
+          resolve(tx);
+        },
+        'localhost' // Specify localhost as peer to check local archive
+      );
+    });
+
+    // If found in local archive, return it
+    if (localTx) {
+      if (callback) {
+        callback(localTx);
+        return;
+      }
+      return localTx;
+    }
+
+    // Step 4: Query connected Stack peers (if localhost didn't have it)
+    // Simple sequential query - try first available peer
+    // No racing, no retries, no timeouts (as per requirements)
+    const peerKeys = Object.keys(this.peers);
+    if (peerKeys.length > 0) {
+      const firstPeerKey = peerKeys[0];
+      const peerObj = this.peers[firstPeerKey]?.peer;
+      
+      if (peerObj && peerObj.peerIndex !== undefined) {
+        try {
+          const peerTx = await new Promise((resolve) => {
+            // Query peer for the post
+            this.app.network.sendRequestAsTransaction(
+              'load stack post',
+              { signature: signature },
+              (response) => {
+                // Response is array of serialized transactions
+                if (Array.isArray(response) && response.length > 0) {
+                  try {
+                    const tx = new Transaction();
+                    tx.deserialize_from_web(this.app, response[0]);
+                    
+                    // Validate it's the transaction we requested
+                    if (tx.signature === signature) {
+                      // Cache it
+                      this.transactionCache[signature] = tx;
+                      resolve(tx);
+                      return;
+                    }
+                  } catch (error) {
+                    console.debug(`Stack.loadPost: Failed to deserialize peer response`, error);
+                  }
+                }
+                // Peer didn't have it or returned invalid data - resolve null
+                resolve(null);
+              },
+              peerObj.peerIndex
+            );
+          });
+
+          // If peer returned valid transaction, return it
+          if (peerTx) {
+            if (callback) {
+              callback(peerTx);
+              return;
+            }
+            return peerTx;
+          }
+          // If peer returned null, return null (no further fallback)
+        } catch (error) {
+          // Peer query failed - silently return null (normal)
+          console.debug(`Stack.loadPost: Peer query failed`, error);
+        }
+      }
+    }
+
+    // Not found in cache, localhost, or peers - return null
+    if (callback) {
+      callback(null);
+      return;
+    }
+    return null;
+  }
+
+  /**
+   * Loads multiple transactions by their signatures.
+   * Iterates through keys starting at index, preserving order.
+   * Skips null results (missing transactions are normal).
+   * Supports both callback and Promise/await usage.
+   * 
+   * @param {Array<string>} keys - Array of transaction signatures
+   * @param {number} index - Starting index in keys array (default: 0)
+   * @param {Object} options - Optional parameters (reserved for future use)
+   * @param {Function} callback - Optional callback function(array)
+   * @returns {Array<Transaction>} Array of Transaction objects (no nulls)
+   */
+  async loadPosts(keys, index = 0, options = {}, callback = null) {
+    // Validate inputs
+    if (!Array.isArray(keys) || keys.length === 0) {
+      if (callback) {
+        callback([]);
+        return;
+      }
+      return [];
+    }
+
+    // Ensure index is valid
+    if (index < 0) index = 0;
+    if (index >= keys.length) {
+      if (callback) {
+        callback([]);
+        return;
+      }
+      return [];
+    }
+
+    // Collect results, preserving order
+    const results = [];
+    const signaturesToLoad = keys.slice(index);
+
+    // Load each transaction sequentially to preserve order
+    for (const signature of signaturesToLoad) {
+      try {
+        const tx = await this.loadPost(signature, options);
+        if (tx) {
+          results.push(tx);
+        }
+        // Skip nulls silently - missing transactions are normal
+      } catch (error) {
+        // Silently skip errors - permission failures are normal
+        console.debug(`Stack.loadPosts: Failed to load ${signature}`, error);
+      }
+    }
+
+    // Handle callback or return
+    if (callback) {
+      callback(results);
+      return results;
+    }
+
+    return results;
+  }
+
+  ////////////////////////////
   // Web Server            //
   ////////////////////////////
   webServer(app, expressapp, express, alternative_slug = null) {
@@ -376,6 +772,316 @@ class Stack extends ModTemplate {
     // Serve static files (CSS, JS, images, etc.)
     // Use path.resolve to ensure absolute path for Express static middleware
     expressapp.use(uri, express.static(webdir));
+  }
+
+  ////////////////////////////
+  // DEVELOPMENT ONLY: Demo Transactions
+  ////////////////////////////
+  /**
+   * Generates synthetic blog post transactions for development/testing.
+   * These transactions exist only in memory and are not persisted to disk.
+   * 
+   * TODO: Remove this function and its call in initialize() when ready for production.
+   * 
+   * This function:
+   * - Creates 3 Transaction objects with realistic blog content
+   * - Inserts them into transactionCache and postsCache
+   * - Makes them discoverable by loadPost/loadPosts
+   */
+  async generateDemoStackTransactions() {
+    if (!this.publicKey) {
+      console.debug('Stack: Cannot generate demo posts without publicKey');
+      return;
+    }
+
+    const demoPosts = [
+      {
+        title: 'On Shared Dreaming',
+        subtitle: 'Exploring the architecture of collective consciousness',
+        text: `# On Shared Dreaming
+
+The idea of shared dreaming has haunted human imagination for as long as we have told stories. What happens when we build worlds together, not just in our minds, but in spaces we can enter together? The question touches on something fundamental about how we construct reality and trust one another within it.
+
+## The Architecture of Collective Consciousness
+
+When we dream alone, the rules are simple: everything we encounter is a product of our own mind. The physics, the logic, the people—all of it exists because we believe it does. But what if someone else could enter that space? What if the dream had to accommodate not just one consciousness, but two, or many?
+
+The first challenge is coordination. In a private dream, you can change the rules on a whim. A door that was locked can suddenly be open because you willed it. But in a shared space, such changes require consensus, or at least acknowledgment. The shared dream becomes a negotiation, a collaborative construction where each participant brings their own expectations and limitations.
+
+This negotiation is not just about what is possible, but about what is real. In your own dream, you know—or at least believe—that everything you see is a projection. But when another person enters, their presence introduces a fundamental uncertainty: are they real, or are they another projection? The question of authenticity becomes central, and trust becomes the currency of the shared space.
+
+## Trust and Coordination Inside a Dream
+
+Trust in a shared dream operates differently than trust in waking life. In the physical world, we have external referents—we can touch, measure, verify. But in a dream, verification is circular. If I ask you to prove you're real, and you respond, how do I know your response isn't just my mind creating what I expect to hear?
+
+The answer, perhaps, is that trust in a shared dream is not about verification, but about surrender. To enter someone else's dream is to accept, at least provisionally, that their reality is as valid as your own. It is to agree to play by rules you did not create, to see things you did not imagine, to experience perspectives that are genuinely other.
+
+This surrender is not passive. It requires active participation in the construction of the shared space. You must contribute your own elements, your own rules, your own understanding. The dream becomes a collaborative work, constantly being rewritten by all participants.
+
+## The Difference Between Private and Collective Experience
+
+A private dream is a monologue. A shared dream is a dialogue, or perhaps a polyphonic composition where multiple voices speak simultaneously, sometimes in harmony, sometimes in tension.
+
+In a private dream, you are both the author and the audience. You know the plot because you wrote it, even if you don't remember writing it. But in a shared dream, you are only one of the authors, and you are constantly surprised by what the others create. The experience becomes genuinely collaborative, genuinely unpredictable.
+
+This unpredictability is both the risk and the reward. In a private dream, you can control everything, but you can also be trapped by your own limitations. In a shared dream, you lose control, but you gain access to perspectives and possibilities you could never have imagined alone.
+
+## The Boundaries of Shared Space
+
+The question of boundaries becomes crucial. Where does one person's dream end and another's begin? If we are truly sharing a space, then the boundaries must be permeable, or perhaps non-existent. But if there are no boundaries, how do we maintain our individual identity? How do we know where we end and the other begins?
+
+Perhaps the answer is that in a truly shared dream, identity itself becomes fluid. You are not just yourself, but also part of the collective construction. Your thoughts influence the space, and the space influences your thoughts. The distinction between self and other, between internal and external, begins to blur.
+
+This blurring is not necessarily a loss. It can be an expansion, a way of experiencing consciousness that transcends individual boundaries. But it also requires a kind of courage—the willingness to let go of the certainty that comes with being the sole author of your reality.
+
+## The Ethics of Shared Dreaming
+
+If we can truly share dreams, then we must consider the ethics of such sharing. What are the responsibilities of the dream architect? What are the rights of the dream participant? Can someone be harmed in a shared dream? Can they be healed?
+
+These questions are not just theoretical. They touch on fundamental issues of consent, agency, and the nature of experience itself. If a shared dream feels real, does that make it real? And if it is real, what obligations do we have to those who share it with us?
+
+The answer may be that shared dreaming, like any form of shared experience, requires mutual respect and care. We must enter each other's spaces with intention, with awareness of the power we have to shape the experience, and with respect for the autonomy of others.
+
+## Conclusion: The Promise of Shared Spaces
+
+Shared dreaming, whether literal or metaphorical, represents a profound possibility: that we can construct realities together, that we can experience consciousness not just individually but collectively. This possibility challenges our assumptions about the boundaries of self and other, about what is real and what is imagined.
+
+In the end, perhaps the question is not whether shared dreaming is possible, but whether we are willing to take the risk of entering spaces we did not create, of trusting others with the architecture of our experience, of surrendering control in exchange for the possibility of genuine collaboration.
+
+The shared dream, then, becomes a metaphor for all forms of collective construction—for art, for community, for the ways we build worlds together in waking life. And in that sense, we are all already shared dreamers, architects of spaces we enter together, constantly negotiating the rules, the boundaries, and the meaning of what we create.`,
+        imageUrl: '/saito/img/dreamscape.png',
+        timestamp: Date.now() - 86400000 * 3, // 3 days ago
+        url: window.location.href + '#post/shared-dreaming'
+      },
+      {
+        title: 'Getting Started with Saito Stack',
+        subtitle: 'Learn how to create your first post, set up subscriptions, and build your audience on the decentralized web.',
+        text: `# Getting Started with Saito Stack
+
+Welcome to Saito Stack, a permissioned blogging platform built on the decentralized Saito network. This guide will help you create your first post and understand the core concepts.
+
+## Creating Your First Post
+
+To create a post, click the "Start Writing" button in the main interface. You'll be taken to the editor where you can:
+
+- Write your content using Markdown
+- Add a feature image
+- Set a title and subtitle
+- Configure subscription tiers
+
+## Understanding Subscriptions
+
+Saito Stack supports both free and paid subscriptions. You can:
+
+- Offer free content to build your audience
+- Create premium content behind a paywall
+- Manage subscriber access and permissions
+
+## Building Your Audience
+
+The Explore feature lets readers discover your content. Make sure to:
+
+- Write engaging titles and subtitles
+- Use clear, readable formatting
+- Add compelling feature images
+- Publish regularly to keep readers engaged
+
+## Next Steps
+
+Once you've published your first post, you can:
+
+- Share it with your network
+- Build on existing posts (fork functionality)
+- Engage with your readers
+- Monetize your content through subscriptions
+
+Happy writing!`,
+        imageUrl: '/saito/img/dreamscape.png',
+        timestamp: Date.now() - 86400000 * 2, // 2 days ago
+        url: window.location.href + '#post/demo-getting-started'
+      },
+      {
+        title: 'Understanding Peer-to-Peer Publishing',
+        subtitle: 'Unlike traditional blogging platforms, Saito Stack runs on a peer-to-peer network.',
+        text: `# Understanding Peer-to-Peer Publishing
+
+Unlike traditional blogging platforms, Saito Stack runs on a peer-to-peer network. Your posts are stored across the network, giving you true ownership and control over your content.
+
+## The Decentralized Advantage
+
+Traditional platforms store your content on centralized servers. This means:
+
+- You don't own your content
+- Platforms can censor or remove posts
+- You're dependent on a single service
+- Your data is vulnerable to breaches
+
+With Saito Stack, your content is:
+
+- Stored across the network
+- Truly owned by you
+- Resistant to censorship
+- Accessible from any peer
+
+## How It Works
+
+When you publish a post:
+
+1. Your transaction is created and signed
+2. It's propagated across the Saito network
+3. Peers cache and serve your content
+4. Readers can access it from any peer
+
+## Network Resilience
+
+The peer-to-peer architecture means:
+
+- No single point of failure
+- Content remains available even if some peers go offline
+- Fast access through local caching
+- True decentralization
+
+## Your Content, Your Control
+
+With Saito Stack, you maintain full control over your content. No platform can:
+
+- Delete your posts
+- Modify your content
+- Restrict your access
+- Take ownership of your work
+
+This is the future of publishing.`,
+        imageUrl: '/saito/img/dreamscape.png',
+        timestamp: Date.now() - 86400000 * 5, // 5 days ago
+        url: window.location.href + '#post/demo-peer-to-peer'
+      },
+      {
+        title: 'Advanced Monetization Strategies',
+        subtitle: 'This premium content explores advanced techniques for monetizing your writing through NFT subscriptions.',
+        text: `# Advanced Monetization Strategies
+
+This premium content explores advanced techniques for monetizing your writing through NFT subscriptions, custom access rules, and building sustainable revenue streams.
+
+## Subscription Tiers
+
+Saito Stack supports multiple subscription models:
+
+### Free Tier
+- Build your audience
+- Establish credibility
+- Create a content library
+- Attract subscribers
+
+### Paid Tier
+- Generate revenue
+- Offer exclusive content
+- Reward loyal readers
+- Build a sustainable business
+
+## Setting Up Subscriptions
+
+To monetize your content:
+
+1. Define your subscription tiers
+2. Set pricing for each tier
+3. Create premium content
+4. Market to your audience
+
+## Access Control
+
+Control who can access your content:
+
+- Free posts: Available to everyone
+- Subscriber-only: Requires active subscription
+- Premium: Higher-tier subscribers only
+- Custom: Define your own access rules
+
+## Building Revenue
+
+Successful monetization requires:
+
+- Consistent, high-quality content
+- Clear value proposition
+- Engaged community
+- Strategic pricing
+
+## Best Practices
+
+- Start with free content to build trust
+- Gradually introduce paid tiers
+- Offer exclusive benefits to subscribers
+- Engage with your community regularly
+
+Remember: The best monetization strategy is one that provides genuine value to your readers.`,
+        imageUrl: '/saito/img/dreamscape.png',
+        timestamp: Date.now() - 86400000 * 7, // 7 days ago
+        url: window.location.href + '#post/demo-monetization'
+      }
+    ];
+
+    // Create and cache each demo transaction
+    // Use for...of loop to properly handle async operations
+    for (let index = 0; index < demoPosts.length; index++) {
+      const postData = demoPosts[index];
+      try {
+        // Create a new transaction
+        const tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
+        
+        // Set transaction message with blog post data
+        tx.msg = {
+          module: this.name,
+          request: 'create stack post request',
+          data: {
+            type: 'stack_post',
+            title: postData.title,
+            subtitle: postData.subtitle || '',
+            text: postData.text, // Use 'text' field for body content
+            content: postData.text, // Also set content for compatibility
+            image: '',
+            imageUrl: postData.imageUrl || '',
+            images: [],
+            url: postData.url || '',
+            tags: [],
+            timestamp: postData.timestamp || Date.now(),
+            subscriptionTier: 'free',
+            excerpt: postData.subtitle || ''
+          }
+        };
+
+        // Sign the transaction
+        await tx.sign();
+
+        // Add to transactionCache (keyed by signature)
+        const signature = tx.signature;
+        if (signature) {
+          this.transactionCache[signature] = tx;
+        }
+
+        // Add to postsCache (for Explorer discovery)
+        const from = tx.from && tx.from.length > 0 ? tx.from[0].publicKey : this.publicKey;
+        const txmsg = tx.returnMessage();
+        const post = {
+          ...txmsg.data,
+          sig: signature,
+          publicKey: from,
+          timestamp: txmsg.data.timestamp || tx.timestamp,
+          lastEdited: txmsg.data.timestamp || tx.timestamp
+        };
+
+        // Add to allPosts
+        this.postsCache.allPosts.push(post);
+
+        // Add to byAuthor cache
+        if (!this.postsCache.byAuthor.has(from)) {
+          this.postsCache.byAuthor.set(from, []);
+        }
+        this.postsCache.byAuthor.get(from).push(post);
+
+        console.debug(`Stack: Generated demo post "${postData.title}" (${signature.substring(0, 16)}...)`);
+      } catch (error) {
+        console.error(`Stack: Failed to generate demo post ${index + 1}:`, error);
+      }
+    }
   }
 }
 

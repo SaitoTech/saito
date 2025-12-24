@@ -69,7 +69,7 @@ module.exports = (app, mod, post) => {
   }
   
   return `
-    <article class="stack-post-teaser" data-post-id="${postId}" data-public-key="${publicKey}">
+    <article class="stack-post-teaser" data-tx-signature="${postId}" data-post-id="${postId}" data-public-key="${publicKey}">
       <div class="stack-post-teaser-image">
         <img src="${app.browser.escapeHTML(displayImage)}" alt="${app.browser.escapeHTML(title)}" />
       </div>
