@@ -14,24 +14,20 @@ class SaitoPurchaseOverlay {
     //
     // init
     //
-    this.address = '';
-    this.ticker = '';
     this.amount = 0;
     this.crypto_selected = false;
     this.tx = null;
-    this.saito_amount = 0;
-    this.title = '';
     this.description = '';
     this.deposit_confirmed = false;
 
     this.addr_obj = {}; // { id, ticker, address, asset_id, chain_id, created_at, reserved_until, reserved_by }
     this.req_obj = {}; // { id, reserved_until, remaining_minutes, expected_amount }
-    this.pool = {}; // { ticker, total, limit }
 
     this.countdown_interval = null;
     this.pending_interval = null;
 
     this.ui_msg = '';
+    this.erc_saito = null;
 
     this.available_currencies = [];
 
@@ -43,9 +39,10 @@ class SaitoPurchaseOverlay {
       this.updateSaitoIssued(data);
     });
 
-    app.connection.on('saito-purchase-launch', (amount, tx = null) => {
+    app.connection.on('saito-purchase-launch', (amount, tx = null, description = '') => {
       this.reset();
       this.amount = Number(amount);
+      this.description = description || `Purchase ${app.browser.formatDecimals(amount)} SAITO`;
 
       // Render immediately if we already have the data
       if (this.available_currencies?.length) {
@@ -64,7 +61,7 @@ class SaitoPurchaseOverlay {
         if (this.available_currencies?.length) {
           for (let c of this.available_currencies) {
             if (c.ticker == 'ERC-SAITO') {
-              this.mod.erc_saito = c;
+              this.erc_saito = c;
             }
           }
           setTimeout(() => {
@@ -88,7 +85,7 @@ class SaitoPurchaseOverlay {
       //
       this.overlay.show(SaitoPurchaseCryptoTemplate(this.app, this.mod, this));
     } else {
-      if (!this.address) {
+      if (!this.addr_obj) {
         //
         // 2. show loading screen after selecting crypto ticker
         //
@@ -99,7 +96,7 @@ class SaitoPurchaseOverlay {
         //
         if (!this.deposit_confirmed) {
           this.overlay.show(SaitoPurchaseTemplate(this.app, this.mod, this));
-          this.app.browser.generateQRCode(this.address, 'pqrcode');
+          this.app.browser.generateQRCode(this.addr_obj.address, 'pqrcode');
         } else {
           //
           // 4. Show loading screen when payment, deposited by user, is confirmed
@@ -123,10 +120,24 @@ class SaitoPurchaseOverlay {
           salert('Error reading crypto selection');
           return;
         }
+        this.expected_deposit = this.convertToSaito(this.amount);
         this.overlay.show(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
         this.requestPaymentAddressFromServer();
       };
     });
+
+    if (document.querySelector('.payment-box .pubkey-containter')) {
+      document.querySelector('.payment-box .pubkey-containter').onclick = (e) => {
+        navigator.clipboard.writeText(this.addr_obj.address);
+        let icon_element = document.querySelector('.payment-box .pubkey-containter i');
+        icon_element.classList.toggle('fa-copy');
+        icon_element.classList.toggle('fa-check');
+        setTimeout(() => {
+          icon_element.classList.toggle('fa-copy');
+          icon_element.classList.toggle('fa-check');
+        }, 800);
+      };
+    }
 
     let extend_timer = document.querySelector('.extend-timer');
     if (extend_timer) {
@@ -178,24 +189,42 @@ class SaitoPurchaseOverlay {
     return this.available_currencies;
   }
 
+  convertToSaito(amount, ticker = null) {
+    let saito_price = this.erc_saito ? 1.05 * Number(this.erc_saito.price_usd) : 1;
+    let usd_price = 0;
+
+    if (this.crypto_selected) {
+      usd_price = Number(this.crypto_selected.price_usd);
+    }
+    if (ticker) {
+      for (let c of this.available_currencies) {
+        if (c.ticker == ticker) {
+          usd_price = Number(c.price_usd);
+        }
+      }
+    }
+
+    if (usd_price == 0) {
+      console.warn('No ticker selected for conversion!');
+    }
+
+    return (amount * saito_price) / usd_price;
+  }
+
   //
   // reserve address -> poll pending deposit -> fetch receipts
   //
   async requestPaymentAddressFromServer() {
-    let self = this;
-
-    let converted_amount = this.mod.convertToSaito(this.amount, this.crypto_selected.price_usd);
-
     //
     // build request payload
     //
     let data = {
       publickey: this.mod.publicKey,
-      expected_amount: converted_amount, // ticker amount
+      expected_amount: this.expected_deposit, // deposit amount
       issue_amount: this.amount, // saito amount
       minutes: 30,
       ticker: this.crypto_selected.ticker,
-      tx: this.tx.serialize_to_web(self.app)
+      tx: this.tx.serialize_to_web(this.app)
     };
     console.log('Request data:', data);
 
@@ -203,95 +232,48 @@ class SaitoPurchaseOverlay {
     // reserve address
     //
     let res = await new Promise((resolve) => {
-      self.app.network.sendRequestAsTransaction('mixin request payment address', data, (r) =>
+      this.app.network.sendRequestAsTransaction('mixin request payment address', data, (r) =>
         resolve(r || { ok: false, err: 'no_response' })
       );
     });
 
     try {
-      console.log('            ');
-      console.log('/////////////////////////////////////');
-      console.log('/////////////////////////////////////');
+      console.log('\n/////////////////////////////////////');
       console.log('RESERVE ADDRESS RESPONSE');
       console.log(res);
-      console.log('/////////////////////////////////////');
-      console.log('/////////////////////////////////////');
-      console.log('            ');
+      console.log('/////////////////////////////////////\n');
 
       //
       // reserve address - failure handling
       //
-      if (!res || res.ok !== true || !res.address) {
-        let msg = res && res.err ? res.err : 'Unable to create purchase address';
+      if (!res?.address) {
+        let msg = res?.err || 'Unable to create purchase address';
         salert(msg);
-        self.overlay.remove();
-        return { ok: false, err: msg };
+        this.overlay.remove();
+        return;
       }
 
       //
       // reserve address success — extract info
       //
-      self.addr_obj = res.address; // { id, ticker, address, asset_id, chain_id, ... }
-      self.req_obj = res.request; // { id, reserved_until, remaining_minutes, expected_amount }
-      self.pool = res.pool; // { ticker, total, limit }
-
-      //
-      // assign values
-      //
-      self.ticker = (self.addr_obj.ticker || ticker || '').toUpperCase();
-      self.address = self.addr_obj.address;
-      self.title = 'Purchase on Saito Store';
-      self.description = '';
+      this.addr_obj = res.address; // { id, ticker, address, asset_id, chain_id, ... }
+      this.req_obj = res.request; // { id, reserved_until, remaining_minutes, expected_amount }
 
       //
       // update UI
       //
-      self.render();
+      this.render();
       //siteMessage('Deposit request fetched', 1000);
 
       //
       // start countdown
       //
-      if (self.req_obj && Number.isFinite(+self.req_obj.reserved_until)) {
-        self.startReservationCountdown(+self.req_obj.reserved_until);
+      if (this.req_obj && Number.isFinite(+this.req_obj.reserved_until)) {
+        this.startReservationCountdown(+this.req_obj.reserved_until);
       }
-
-      //
-      // poll pending deposit (returns status only)
-      //
-      //let pollStatus = await self.pollPendingDeposits();
-
-      //
-      // if confirmed, save receipt and then fetch receipts
-      //
-      // if (pollStatus && pollStatus.ok && pollStatus.status === 'confirmed') {
-      //   let ack = await self.updatePaymentReceipt({
-      //     status: 'pending'
-      //   });
-
-      //   if (ack && ack.ok) {
-      //     let receipts = await self.fetchPaymentReceipts({
-      //       recipient_pubkey: self.mod.publicKey,
-      //       limit: 200
-      //     });
-      //     console.log('Payment receipts after poll:', receipts);
-      //   }
-
-      //   //
-      //   // return ack
-      //   //
-      //   return ack || { ok: false, err: 'no_ack' };
-      // }
-
-      //
-      // return poll result (expired / cancelled / other)
-      //
-      //return pollStatus;
     } catch (e) {
       console.error('reserve payment callback error:', e);
-      salert('error');
-      self.overlay.remove();
-      return { ok: false, err: 'exception' };
+      this.overlay.remove();
     }
   }
 
@@ -382,17 +364,12 @@ class SaitoPurchaseOverlay {
     //
     // reset values (incase we want to reuse the overlay)
     //
-    this.address = '';
-    this.ticker = '';
     this.amount = 0;
     this.crypto_selected = false;
     this.tx = null;
-    this.saito_amount = 0;
-    this.title = '';
     this.description = '';
     this.addr_obj = {};
     this.req_obj = {};
-    this.pool = {};
 
     //
     // reset countdown timer

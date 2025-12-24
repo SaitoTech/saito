@@ -35,7 +35,6 @@ class BuySaito extends ModTemplate {
 			image: 'https://saito.tech/wp-content/uploads/2023/11/buysaito-300x300.png'
 		};
 
-		this.erc_saito = null;
 		this.mixin_peer = null;
 
 		/////////////////////////////////////////////
@@ -79,7 +78,7 @@ class BuySaito extends ModTemplate {
 			btn.onclick = (e) => {
 				const amount = document.getElementById('purchase-saito-amount').value;
 				console.log('Saito Amount to Quote...', amount);
-				this.app.connection.emit('saito-purchase-launch', amount, null);
+				this.app.connection.emit('saito-purchase-launch', amount);
 			};
 		}
 	}
@@ -167,12 +166,6 @@ class BuySaito extends ModTemplate {
 		newtx.packData();
 		await newtx.sign();
 		this.app.network.propagateTransaction(newtx);
-	}
-
-	convertToSaito(amount, usd_price) {
-		let saito_price = this.erc_saito ? 1.05 * Number(this.erc_saito.price_usd) : 1;
-
-		return (amount * saito_price) / Number(usd_price);
 	}
 
 	webServer(app, expressapp, express) {

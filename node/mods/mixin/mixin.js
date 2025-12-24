@@ -1351,7 +1351,7 @@ class Mixin extends ModTemplate {
       //
       // response object (for user)
       //
-      let res = { ok: false, err: '', address: null, request: null, pool: null };
+      let res = { address: null, request: null };
 
       //
       // validation...
@@ -1440,14 +1440,16 @@ class Mixin extends ModTemplate {
       // exit if unsuccessful
       //
       if (!addr || !addr.address || !addr.id) {
-        res.err = 'address_pool_unavailable';
+        res.err = 'address_unavailable';
         res.data = { asset_id, chain_id };
         return callback ? callback(res) : res;
       }
 
+      res.address = addr;
+
       //
       // we now save the details of this payment request, including the reserved address (unpaid row)
-      //
+      /*
       let request = await this.createMixinPaymentRequest({
         buyer_publickey,
         asset_id,
@@ -1471,37 +1473,32 @@ class Mixin extends ModTemplate {
       // which will result in a failure to fulfill payment, because of a missing entry from our DB.
       //
       if (!request || request.ok === false) {
-        res.err = request && request.error ? request.error : 'reservation_failed';
+        res.err = request?.error || 'reservation_failed - createMixinPaymentRequest';
         res.data = request || null;
         return callback ? callback(res) : res;
       }
+      */
 
       //
       // start polling for pending deposits
       //
 
-      this.checkUnpaidPaymentRequests();
+      //this.checkUnpaidPaymentRequests();
 
       //
       // success payload
       //
-      res.ok = true;
-      res.err = '';
-      res.address = addr;
-      res.request = {
+      /*res.request = {
         id: request.id,
         reserved_until: request.reserved_until,
         remaining_minutes: request.remaining_minutes,
         expected_amount: request.expected_amount,
         issue_amount: request.issue_amount
-      };
-      res.pool = {
-        ticker: ticker
-      };
+      };*/
 
       return callback ? callback(res) : res;
     } catch (e) {
-      console.log('SERVER ERROR: ' + JSON.stringify(e));
+      console.error('SERVER ERROR: ', e);
 
       //
       // unexpected failure
@@ -1722,25 +1719,24 @@ class Mixin extends ModTemplate {
     tx,
     issue_amount
   }) {
-    try {
-      //
-      // init return object
-      //
-      let res = {
-        ok: false,
-        err: '',
-        request_row_id: null,
-        address: address || null,
-        address_id: address_id || null,
-        ticker: ticker || null,
-        asset_id: asset_id || null,
-        chain_id: chain_id || null,
-        reserved_until: null,
-        remaining_minutes: 0,
-        expected_amount: expected_amount != null ? String(expected_amount) : null,
-        issue_amount: issue_amount != null ? String(issue_amount) : null
-      };
+    //
+    // init return object
+    //
+    const res = {
+      //err: '',
+      request_row_id: null,
+      address: address || null,
+      address_id: address_id || null,
+      ticker: ticker || null,
+      asset_id: asset_id || null,
+      chain_id: chain_id || null,
+      reserved_until: null,
+      remaining_minutes: 0,
+      expected_amount: expected_amount != null ? String(expected_amount) : null,
+      issue_amount: issue_amount != null ? String(issue_amount) : null
+    };
 
+    try {
       console.log('createMixinPaymentRequest 1 ////');
 
       //
@@ -1844,7 +1840,7 @@ class Mixin extends ModTemplate {
       let request_row_id = last && last[0] ? last[0].id : null;
       if (!request_row_id) {
         res.err = 'no_request_id';
-        return res;
+        return { res };
       }
 
       console.log('before compute remaining minutes...');
@@ -1860,8 +1856,6 @@ class Mixin extends ModTemplate {
       //
       // success payload
       //
-      res.ok = true;
-      res.err = '';
       res.id = request_row_id;
       res.address = address;
       res.address_id = address_id;
@@ -1875,24 +1869,21 @@ class Mixin extends ModTemplate {
 
       return res;
     } catch (e) {
-      //
-      // unexpected failure
-      //
       console.error('createMixinPaymentRequest error:', e);
-      let res = { ok: false, err: 'reservation_failed', row: null };
+      res.err = 'reservation_failed - try/catch';
       return res;
     }
   }
 
   async checkForDeposits(data = {}) {
-    try {
-      //
-      // validate input
-      //
-      if (!data || typeof data !== 'object') {
-        return { ok: false, err: 'invalid_request' };
-      }
+    //
+    // validate input
+    //
+    if (!data || typeof data !== 'object') {
+      return { err: 'invalid_request' };
+    }
 
+    try {
       //
       // extract data
       //
