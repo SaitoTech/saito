@@ -58,7 +58,7 @@
 .stack-view-post-feature-image {
   width: 100%;
   margin-top: 0; /* No top margin - padding-top on parent handles spacing from header */
-  margin-bottom: 4rem; /* Generous spacing below image to title */
+  margin-bottom: 2.5rem; /* Spacing below image to title */
   border-radius: 8px;
   overflow: hidden;
 }
@@ -358,7 +358,7 @@
   }
 
   .stack-view-post-feature-image {
-    margin-bottom: 3rem; /* Slightly less on mobile */
+    margin-bottom: 2.5rem; /* Consistent spacing on mobile */
   }
 
   .stack-view-post-feature-image img {

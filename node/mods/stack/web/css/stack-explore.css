@@ -239,22 +239,8 @@
   flex-shrink: 0;
 }
 
-/* Style SaitoUser component within author header */
-.stack-explore-author-header .saito-user {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-}
-
-.stack-explore-author-header .saito-userline {
-  font-size: 1.6rem; /* 16px minimum */
-  color: var(--saito-font-color);
-  opacity: 0.7;
-  line-height: 1.4;
-  margin-top: 0.5rem;
-  margin-left: calc(3.2rem + 1rem); /* Align with identicon + gap */
-}
+/* Do NOT override SaitoUser CSS - use default Saito.css styling */
+/* Only container-level styling is allowed */
 
 /* Hide author header when empty */
 .stack-explore-author-header:empty {
@@ -555,10 +541,7 @@
     padding-bottom: 1.5rem;
   }
 
-  .stack-explore-author-header .saito-userline {
-    font-size: 1.4rem; /* 14px minimum on mobile */
-    margin-left: calc(3.2rem + 1rem); /* Align with identicon + gap */
-  }
+  /* Removed SaitoUser CSS override - use default Saito.css styling */
 
 
   .stack-explore-posts-grid {

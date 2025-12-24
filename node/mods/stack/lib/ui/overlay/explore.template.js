@@ -1,6 +1,6 @@
-const PostTeaserTemplate = require('../post-teaser.template');
+const PostTeaser = require('../post-teaser');
 
-module.exports = (app, mod, posts = []) => {
+module.exports = (app, mod, posts = [], isLoading = false) => {
   return `
     <div class="stack-explore-overlay">
       <div class="stack-explore-sidebar">
@@ -33,33 +33,31 @@ module.exports = (app, mod, posts = []) => {
         </div>
 
         <div class="stack-explore-content">
-          <div class="stack-explore-posts-grid">
-            ${posts.length > 0 ? posts.map(post => PostTeaserTemplate(app, mod, post)).join('') : ''}
-            
-            <!-- Hardcoded sample posts for visual testing -->
-            ${PostTeaserTemplate(app, mod, {
-              title: 'Getting Started with Saito Stack',
-              subtitle: 'Learn how to create your first post, set up subscriptions, and build your audience on the decentralized web.',
-              imageUrl: 'https://via.placeholder.com/400x300/4a90e2/ffffff?text=Sample+Post+1',
-              timestamp: Date.now() - 86400000 * 2, // 2 days ago
-              id: 'sample-1'
-            })}
-            
-            ${PostTeaserTemplate(app, mod, {
-              title: 'Understanding Peer-to-Peer Publishing',
-              summary: 'Unlike traditional blogging platforms, Saito Stack runs on a peer-to-peer network. Your posts are stored across the network, giving you true ownership and control over your content.',
-              imageUrl: '/saito/img/dreamscape.png',
-              timestamp: Date.now() - 86400000 * 5, // 5 days ago
-              id: 'sample-2'
-            })}
-            
-            ${PostTeaserTemplate(app, mod, {
-              title: 'Advanced Monetization Strategies',
-              subtitle: 'This premium content explores advanced techniques for monetizing your writing through NFT subscriptions, custom access rules, and building sustainable revenue streams.',
-              imageUrl: 'https://via.placeholder.com/400x300/2e7d32/ffffff?text=Premium+Content',
-              timestamp: Date.now() - 86400000 * 7, // 7 days ago
-              id: 'sample-3'
-            })}
+          <div class="stack-explore-posts-grid" id="stack-explore-posts-grid">
+            ${isLoading ? `
+              <!-- Loading state -->
+              <div class="stack-explore-loading" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 4rem 2rem;">
+                <div style="text-align: center;">
+                  <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
+                  <p style="color: var(--saito-font-color-light); font-size: 1.6rem;">Loading posts...</p>
+                </div>
+              </div>
+            ` : posts.length > 0 ? `
+              <!-- Populated state - render real posts using PostTeaser UI component -->
+              ${posts.map(transaction => {
+                const teaser = new PostTeaser(app, mod, '', transaction);
+                return teaser.render(); // Returns HTML string for template
+              }).join('')}
+            ` : `
+              <!-- Empty state -->
+              <div class="stack-explore-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 4rem 2rem; text-align: center;">
+                <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
+                <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">No posts available</h3>
+                <p style="font-size: 1.6rem; color: var(--saito-font-color-light); margin: 0; max-width: 500px; line-height: 1.6;">
+                  No posts are visible at this time. This may be because no posts have been published yet, or you may need to subscribe to see content from this creator.
+                </p>
+              </div>
+            `}
           </div>
         </div>
       </div>

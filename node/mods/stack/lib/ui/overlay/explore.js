@@ -2,6 +2,7 @@ const ExploreTemplate = require('./explore.template');
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
 const ViewPost = require('../view-post');
 const SaitoUser = require('../../../../../lib/saito/ui/saito-user/saito-user');
+const PostTeaser = require('../post-teaser');
 
 class ExploreOverlay {
   constructor(app, mod) {
@@ -9,18 +10,23 @@ class ExploreOverlay {
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.posts = [];
+    this.isLoading = false;
+    this.currentFilter = 'all';
   }
 
   async render() {
-    // Load posts (placeholder - will implement actual loading later)
-    await this.loadPosts();
+    // Show loading state initially
+    this.isLoading = true;
+    this.posts = [];
     
-    const html = ExploreTemplate(this.app, this.mod, this.posts);
+    const html = ExploreTemplate(this.app, this.mod, this.posts, this.isLoading);
     this.overlay.show(html);
     
     setTimeout(() => {
       this.attachEvents();
       this.updateHelpNoteVisibility();
+      // Load posts after attaching events
+      this.loadPostsForFilter(this.currentFilter);
     }, 25);
   }
 
@@ -93,23 +99,235 @@ class ExploreOverlay {
     saitoUser.render();
   }
 
-  async loadPosts() {
-    // Load posts from:
-    // 1. Default whitelisted feed (Saito Official)
-    // 2. Identities the user follows
-    // 3. Access NFTs the user holds
-    // 4. If URL includes a public key, show only posts from that key
-    
-    // Placeholder - will implement actual post loading later
-    // For now, ensure we always have content (no empty state)
+  /**
+   * Gets post signatures for the given filter.
+   * Extracts signatures from the module's postsCache.
+   * Returns empty array if no posts available.
+   */
+  getKeysForFilter(filter) {
+    if (!this.mod.postsCache) {
+      return [];
+    }
+
+    if (filter === 'my-posts') {
+      // Get current user's public key
+      const userPublicKey = this.app.wallet?.returnPublicKey() || this.mod.publicKey || '';
+      if (!userPublicKey) {
+        return [];
+      }
+      
+      // Get posts by this author from cache
+      const authorPosts = this.mod.postsCache.byAuthor?.get(userPublicKey) || [];
+      return authorPosts.map(post => post.sig).filter(sig => sig);
+    } else if (filter === 'all') {
+      // Get all posts from cache
+      const allPosts = this.mod.postsCache.allPosts || [];
+      return allPosts.map(post => post.sig).filter(sig => sig);
+    }
+
+    return [];
+  }
+
+  /**
+   * Loads posts for the given filter using Stack middleware.
+   * Shows loading state, then populated or empty state.
+   */
+  async loadPostsForFilter(filter) {
+    this.currentFilter = filter;
+    this.isLoading = true;
     this.posts = [];
     
-    // TODO: Load from Saito Official feed by default
-    // TODO: Load from followed identities
-    // TODO: Load from access NFTs
-    // TODO: Filter by public key if present in URL
+    // Update UI to show loading state
+    this.updatePostsGrid();
     
-    // Explore always shows content - there is no empty state
+    // Get post signatures for this filter
+    const signatures = this.getKeysForFilter(filter);
+    
+    if (signatures.length === 0) {
+      // No signatures available - show empty state
+      this.isLoading = false;
+      this.updatePostsGrid();
+      return;
+    }
+    
+    // Load posts using Stack middleware
+    // This will check cache → peers → archive
+    this.mod.loadPosts(signatures, 0, {}, (loadedPosts) => {
+      // Callback receives array of Transaction objects (or empty array)
+      this.posts = loadedPosts || [];
+      this.isLoading = false;
+      this.updatePostsGrid();
+    });
+  }
+
+  /**
+   * Updates the posts grid with current state (loading, empty, or populated).
+   */
+  updatePostsGrid() {
+    const grid = document.querySelector('#stack-explore-posts-grid');
+    if (!grid) return;
+
+    if (this.isLoading) {
+      // Show loading spinner
+      grid.innerHTML = `
+        <div class="stack-explore-loading" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 4rem 2rem;">
+          <div style="text-align: center;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
+            <p style="color: var(--saito-font-color-light); font-size: 1.6rem;">Loading posts...</p>
+          </div>
+        </div>
+      `;
+    } else if (this.posts.length > 0) {
+      // Show populated posts - use PostTeaser UI component
+      const teaserHtml = this.posts.map(transaction => {
+        const teaser = new PostTeaser(this.app, this.mod, '', transaction);
+        return teaser.render(); // Returns HTML string for batch rendering
+      }).join('');
+      
+      grid.innerHTML = teaserHtml;
+      // Re-attach click handlers for new posts
+      this.attachPostClickHandlers();
+    } else {
+      // Show empty state
+      grid.innerHTML = `
+        <div class="stack-explore-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 4rem 2rem; text-align: center;">
+          <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
+          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">No posts available</h3>
+          <p style="font-size: 1.6rem; color: var(--saito-font-color-light); margin: 0; max-width: 500px; line-height: 1.6;">
+            No posts are visible at this time. This may be because no posts have been published yet, or you may need to subscribe to see content from this creator.
+          </p>
+        </div>
+      `;
+    }
+  }
+
+  /**
+   * Attaches click handlers to post teasers.
+   * Each teaser should load ViewPost with its transaction.
+   * Resolves transactions from cache using signature.
+   */
+  attachPostClickHandlers() {
+    const teasers = document.querySelectorAll('.stack-post-teaser');
+    teasers.forEach(teaser => {
+      // Get transaction signature from DOM (preferred) or fallback to post-id
+      const txSignature = teaser.getAttribute('data-tx-signature') || teaser.getAttribute('data-post-id');
+      if (!txSignature) return;
+
+      // Remove existing click handlers to avoid duplicates
+      const newTeaser = teaser.cloneNode(true);
+      teaser.parentNode.replaceChild(newTeaser, teaser);
+
+      // Attach click handler
+      newTeaser.onclick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Close the explore overlay
+        this.overlay.hide();
+        
+        // Resolve transaction from cache
+        // First try this.posts (already loaded)
+        let tx = this.posts.find(p => p.signature === txSignature) || null;
+        
+        // If not found, try Stack module cache
+        if (!tx && this.mod.transactionCache && this.mod.transactionCache[txSignature]) {
+          tx = this.mod.transactionCache[txSignature];
+        }
+        
+        // If still not found, try loading via middleware (cache → localhost → peers)
+        if (!tx && this.mod.loadPost) {
+          try {
+            tx = await this.mod.loadPost(txSignature, {}, null);
+          } catch (error) {
+            console.debug('Stack: Failed to load transaction:', error);
+          }
+        }
+        
+        // Load ViewPost with transaction (or show error if not found)
+        this.loadViewPost(tx, txSignature);
+      };
+    });
+  }
+
+  /**
+   * Loads ViewPost into the main saito-container.
+   * Handles missing transactions gracefully with error message.
+   * 
+   * @param {Transaction|null} tx - The transaction to render, or null if not found
+   * @param {string} txSignature - The transaction signature (for error messages)
+   */
+  loadViewPost(tx = null, txSignature = null) {
+    const container = document.querySelector('.saito-container');
+    if (!container) return;
+
+    // Reset scroll position immediately
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (container.scrollTop !== undefined) {
+      container.scrollTop = 0;
+    }
+
+    // Store current opacity if already set
+    const currentOpacity = container.style.opacity || '1';
+
+    // Fade out existing content
+    container.style.transition = 'opacity 200ms ease-out';
+    container.style.opacity = '0';
+
+    // After fade out, replace content and fade in
+    setTimeout(() => {
+      // Clear container
+      container.innerHTML = '';
+
+      // If transaction is missing, show error message
+      if (!tx) {
+        const errorHtml = `
+          <div class="stack-view-post-error" style="padding: 4rem 2rem; text-align: center; max-width: 600px; margin: 0 auto;">
+            <i class="fa-solid fa-exclamation-circle" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
+            <h2 style="font-size: 2.4rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1.5rem 0;">Post Not Available</h2>
+            <p style="font-size: 1.8rem; color: var(--saito-font-color-light); margin: 0; line-height: 1.6;">
+              This post could not be loaded or is no longer available.
+            </p>
+            ${txSignature ? `
+              <p style="font-size: 1.4rem; color: var(--saito-font-color-light); margin: 1.5rem 0 0 0; opacity: 0.7; font-family: monospace; word-break: break-all;">
+                ${txSignature.substring(0, 32)}...
+              </p>
+            ` : ''}
+          </div>
+        `;
+        container.innerHTML = errorHtml;
+      } else {
+        // Create and render ViewPost with the transaction
+        // ViewPost renders solely from the provided Transaction
+        const viewPost = new ViewPost(this.app, this.mod, '.saito-container', tx);
+        viewPost.render(tx);
+      }
+
+      // Fade in new content
+      requestAnimationFrame(() => {
+        container.style.transition = 'opacity 200ms ease-in';
+        container.style.opacity = '0';
+
+        // Trigger reflow, then fade in
+        void container.offsetHeight;
+
+        requestAnimationFrame(() => {
+          container.style.opacity = '1';
+
+          // Reset scroll position after content is visible
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            if (container.scrollTop !== undefined) {
+              container.scrollTop = 0;
+            }
+            // Clean up inline styles after transition completes
+            setTimeout(() => {
+              container.style.transition = '';
+              container.style.opacity = '';
+            }, 200);
+          }, 50);
+        });
+      });
+    }, 200);
   }
 
   attachEvents() {
@@ -127,96 +345,16 @@ class ExploreOverlay {
           // Add active class to clicked item
           item.classList.add('active');
           const filter = item.getAttribute('data-filter');
-          console.log('Subscription filter clicked:', filter);
           // Update author header based on selection
           this.updateAuthorHeader();
-          // Will implement filtering by identity/subscription later
+          // Load posts for the selected filter
+          this.loadPostsForFilter(filter);
         };
       });
 
-      // Post teaser clicks (using standardized teaser component)
-      const teasers = document.querySelectorAll('.stack-post-teaser');
-      teasers.forEach(teaser => {
-        const postId = teaser.getAttribute('data-post-id');
-        const publicKey = teaser.getAttribute('data-public-key');
-        
-        // Read button click handler
-        const readBtn = teaser.querySelector('.stack-post-teaser-read-btn');
-        if (readBtn) {
-          readBtn.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Read button clicked for post:', postId);
-            // Will implement post viewing later
-          };
-        }
-        
-        // Entire teaser click handler
-        teaser.onclick = (e) => {
-          // Don't trigger if clicking on the read button (it has its own handler)
-          if (e.target.closest('.stack-post-teaser-read-btn')) {
-            return;
-          }
-          e.preventDefault();
-          e.stopPropagation();
-          
-          // Close the explore overlay
-          this.overlay.hide();
-          
-          // Smooth transition to ViewPost
-          const container = document.querySelector('.saito-container');
-          if (!container) return;
-          
-          // Reset scroll position immediately (before any transition)
-          window.scrollTo({ top: 0, behavior: 'instant' });
-          if (container.scrollTop !== undefined) {
-            container.scrollTop = 0;
-          }
-          
-          // Store current opacity if already set
-          const currentOpacity = container.style.opacity || '1';
-          
-          // Fade out existing content
-          container.style.transition = 'opacity 200ms ease-out';
-          container.style.opacity = '0';
-          
-          // After fade out, replace content and fade in
-          setTimeout(() => {
-            // Clear container
-            container.innerHTML = '';
-            
-            // Create and render ViewPost
-            const viewPost = new ViewPost(this.app, this.mod, '.saito-container', null);
-            viewPost.render();
-            
-            // Fade in new content using requestAnimationFrame for smooth transition
-            requestAnimationFrame(() => {
-              container.style.transition = 'opacity 200ms ease-in';
-              container.style.opacity = '0';
-              
-              // Trigger reflow, then fade in
-              void container.offsetHeight;
-              
-              requestAnimationFrame(() => {
-                container.style.opacity = '1';
-                
-                // Reset scroll position after content is visible
-                setTimeout(() => {
-                  window.scrollTo({ top: 0, behavior: 'instant' });
-                  if (container.scrollTop !== undefined) {
-                    container.scrollTop = 0;
-                  }
-                  // Clean up inline styles after transition completes
-                  setTimeout(() => {
-                    container.style.transition = '';
-                    container.style.opacity = '';
-                  }, 200);
-                }, 50);
-              });
-            });
-          }, 200);
-        };
-      });
+      // Post teaser clicks are now handled by attachPostClickHandlers()
+      // This is called after posts are loaded
+      this.attachPostClickHandlers();
     } catch (err) {
       console.error('Explore overlay attachEvents error:', err);
     }
