@@ -519,7 +519,9 @@ class CreatePost {
     
     // DOM-AUTHORITATIVE: Get focused block element (DOM node only)
     let focusedBlock = this.getFocusedBlock();
-    if (!focusedBlock) return;
+    if (!focusedBlock) {
+      throw new Error('Enter pressed in invalid editor state: no focused block (cursor outside block element)');
+    }
 
     // Postcondition enforcement: track structural mutations
     let didMutateStructure = false;
@@ -568,7 +570,9 @@ class CreatePost {
     // If blockType changes during normalization, this offset becomes INVALID and must be discarded.
     // Normalization ignores cursor position and uses the entire line.
     const selection = window.getSelection();
-    if (!selection.rangeCount) return;
+    if (!selection.rangeCount) {
+      throw new Error('Enter pressed in invalid editor state: no selection (selection lost after DOM mutation)');
+    }
     const originalCursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
     const originalBlockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
     const originalBlockType = blockType; // Track original block type to detect normalization
@@ -980,10 +984,11 @@ class CreatePost {
       return;
     }
 
-    // For other block types (image, rawhtml), return early
+    // For other block types (image, rawhtml), Enter is invalid
     // Note: e.preventDefault() was already called at function start, so default behavior is prevented
+    // Silent Enter failures are forbidden - invalid states must throw, not return silently
     if (blockType !== 'paragraph') {
-      return;
+      throw new Error(`Enter pressed in invalid editor state: block type '${blockType}' is not editable`);
     }
 
     // ========================================================================
