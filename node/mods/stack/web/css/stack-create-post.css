@@ -32,7 +32,7 @@
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 2rem 0;
+  padding: 1.5rem 0 2rem 0; /* Reduced top padding to align title with status */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -40,12 +40,40 @@
   min-height: 0;
 }
 
+/* Content wrapper for document column and sidebar */
+.stack-create-post-page .stack-editor-content-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative; /* For absolute positioning of sidebar */
+  padding: 0;
+}
+
+/* Right-hand gradient for sidebar zoning (desktop only) */
+.stack-create-post-page .stack-editor-content-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 300px; /* Extend beyond sidebar for fade effect */
+  height: 100%;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(0, 0, 0, 0.015) 20%,
+    rgba(0, 0, 0, 0.02) 40%,
+    rgba(0, 0, 0, 0.015) 60%,
+    transparent 100%
+  );
+  z-index: 0;
+}
+
 /* Bounded Writing Column - scoped to create-post page only */
 .stack-create-post-page .stack-document-column {
-  width: 100%;
+  width: 720px; /* Explicit readable width - defines page centerline */
   max-width: 720px; /* Optimal reading width (680-740px range) */
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto; /* Center the writing column independently */
   display: flex;
   flex-direction: column;
   position: relative; /* Required for absolute positioning of publish trigger */
@@ -55,12 +83,13 @@
   overflow: visible;
   /* Clean, minimal background - no shadows or effects */
   background: transparent;
+  z-index: 1; /* Above gradient */
 }
 
 /* Editor Header - Draft State */
 .stack-create-post-page .stack-editor-header {
   width: 100%;
-  max-width: 720px; /* Match document column width */
+  max-width: 1200px; /* Match content wrapper width */
   margin-left: auto;
   margin-right: auto;
   margin-bottom: 1rem;
@@ -68,6 +97,103 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
+}
+
+/* Editor Sidebar */
+.stack-create-post-page .stack-editor-sidebar {
+  width: 240px;
+  padding: 1.5rem;
+  background: var(--saito-background-color);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  font-size: 1.4rem;
+  line-height: 1.5;
+  color: var(--saito-font-color);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: absolute;
+  top: 0;
+  right: 0; /* Align right edge with wrapper's right edge (matches header boundary) */
+  /* Ensure sidebar scrolls with page, not independently */
+  overflow: visible;
+  z-index: 1; /* Above gradient */
+}
+
+/* Editor Status */
+.stack-create-post-page .stack-editor-status {
+  display: block;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  color: var(--saito-font-color);
+  opacity: 0.8;
+  font-weight: 400;
+  white-space: nowrap; /* Ensure "Status: Draft" stays on one line */
+}
+
+.stack-create-post-page .stack-editor-status-label {
+  display: inline;
+  font-weight: 600; /* Emphasize "Status" label - bold, not underlined */
+}
+
+.stack-create-post-page .stack-editor-status-value {
+  display: inline;
+  font-weight: 500;
+  transition: opacity 200ms ease;
+}
+
+.stack-create-post-page .stack-editor-status-value.saving {
+  font-style: italic;
+}
+
+/* Publish/Update Button */
+.stack-create-post-page .stack-editor-publish-btn {
+  width: 100%;
+  padding: 1rem 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--saito-primary-text);
+  background: var(--saito-primary);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  font-family: inherit;
+}
+
+.stack-create-post-page .stack-editor-publish-btn:hover {
+  opacity: 0.9;
+}
+
+.stack-create-post-page .stack-editor-publish-btn:active {
+  opacity: 0.8;
+}
+
+/* Help Section */
+.stack-create-post-page .stack-editor-help {
+  display: block;
+}
+
+.stack-create-post-page .stack-editor-help-link {
+  font-size: 1.4rem;
+  color: var(--saito-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.stack-create-post-page .stack-editor-help-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.stack-create-post-page .stack-editor-help-text {
+  display: inline;
+  font-size: 1.4rem;
+  line-height: 1.5;
+  color: var(--saito-font-color);
+  opacity: 0.7;
+  margin: 0;
 }
 
 .stack-create-post-page .stack-draft-state {
@@ -125,7 +251,7 @@
 .stack-create-post-page .stack-post-title-field {
   width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 1.5rem 0 0 0; /* Align top with sidebar status (1.5rem matches sidebar padding) */
   margin-bottom: 3rem; /* Clear separation from body */
   position: relative;
 }
@@ -164,10 +290,8 @@
   padding: 0;
   margin-left: 0;
   margin-right: 0;
-  /* Editor container is scrollable for auto-scroll behavior */
-  overflow-y: auto;
-  overflow-x: hidden;
-  max-height: calc(100vh - var(--saito-header-height, 60px) - 18rem); /* Account for header, padding, title field */
+  /* Page owns scrolling - no nested scroll containers */
+  overflow: visible;
 }
 
 /* Block Editor - scoped to create-post page only */
@@ -224,6 +348,20 @@
   padding: 0;
   outline: none;
   color: var(--saito-font-color);
+}
+
+/* Code blocks - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > pre[data-block-type="code"] {
+  background: var(--saito-background-color-inverse);
+  color: var(--saito-font-color-inverse);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  border-left: 4px solid var(--saito-primary);
+  border-radius: 6px;
+  overflow-x: auto;
 }
 
 /* I3: Visual list markers rendered via CSS, not textContent */
@@ -604,23 +742,41 @@
 
 /* Medium screens - maintain readable width */
 @media (max-width: 1200px) and (min-width: 769px) {
+  .stack-create-post-page .stack-editor-content-wrapper::after {
+    display: none; /* Hide gradient on smaller screens */
+  }
+
+  .stack-create-post-page .stack-editor-content-wrapper {
+    max-width: 100%;
+    gap: 2rem;
+  }
+
   .stack-create-post-page .stack-document-column {
     max-width: 720px; /* Maintain optimal reading width */
     padding: 0;
   }
 
   .stack-create-post-page .stack-editor-header {
-    max-width: 720px;
+    max-width: 1200px;
     padding: 0;
   }
 
   .stack-create-post-page .stack-draft-state {
     padding-right: 0;
   }
+
+  .stack-create-post-page .stack-editor-sidebar {
+    width: 200px;
+    right: 0; /* Maintain alignment with wrapper right edge */
+  }
 }
 
 /* Mobile */
 @media (max-width: 768px) {
+  .stack-create-post-page .stack-editor-content-wrapper::after {
+    display: none; /* Hide gradient on mobile */
+  }
+
   .stack-create-post-page {
     min-height: 100vh;
     padding-top: calc(var(--saito-header-height, 60px) + 3rem); /* Slightly less top spacing on mobile */
@@ -634,6 +790,14 @@
     padding: 0;
   }
 
+  .stack-create-post-page .stack-editor-sidebar {
+    position: relative;
+    width: 100%;
+    left: auto;
+    right: auto;
+    margin-bottom: 2rem;
+  }
+
   .stack-document-column {
     max-width: 100%; /* Full width on mobile */
     min-height: calc(100vh - var(--saito-header-height, 60px) - 6rem);
@@ -642,10 +806,8 @@
   }
 
   .stack-post-body-field {
-    /* Editor container is scrollable on mobile too */
-    overflow-y: auto;
-    overflow-x: hidden;
-    max-height: calc(100vh - var(--saito-header-height, 60px) - 16rem); /* Account for mobile spacing */
+    /* Page owns scrolling - no nested scroll containers */
+    overflow: visible;
   }
 
   .stack-editor-header {

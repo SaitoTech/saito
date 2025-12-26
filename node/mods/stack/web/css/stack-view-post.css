@@ -266,12 +266,16 @@
 }
 
 .stack-view-post-content pre {
-  background: var(--saito-background-color-secondary, var(--saito-background-color));
-  padding: 1.5rem;
-  border-radius: 8px;
+  background: var(--saito-background-color-inverse);
+  color: var(--saito-font-color-inverse);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  border-left: 4px solid var(--saito-primary);
+  border-radius: 6px;
   overflow-x: auto;
-  margin: 2rem 0;
-  line-height: 1.6;
 }
 
 .stack-view-post-content pre code {
