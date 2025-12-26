@@ -16,7 +16,7 @@
 
 .stack-create-post-page {
   min-height: 100vh;
-  padding-top: var(--saito-header-height, 60px);
+  padding-top: calc(var(--saito-header-height, 60px) + 4rem); /* Calm top spacing */
   background: var(--saito-background-color);
   display: flex;
   justify-content: center;
@@ -43,40 +43,28 @@
 /* Bounded Writing Column - scoped to create-post page only */
 .stack-create-post-page .stack-document-column {
   width: 100%;
-  max-width: 950px; /* Increased from 720px for comfortable line length with 2rem text */
+  max-width: 720px; /* Optimal reading width (680-740px range) */
   margin-left: auto;
   margin-right: auto;
   display: flex;
   flex-direction: column;
   position: relative; /* Required for absolute positioning of publish trigger */
-  padding: 2rem 3rem;
-  /* Minimum height to reach bottom of viewport - full sheet of paper */
-  min-height: calc(100vh - var(--saito-header-height, 60px) - 4rem); /* Account for header and container padding */
+  padding: 0; /* Remove padding - let title/body handle their own spacing */
   /* NO flex: 1 - allow natural growth, page scrolls */
   /* NO overflow - page owns scrolling */
   overflow: visible;
-  /* Theme-agnostic background: subtle variation using color-mix */
-  background: color-mix(in srgb, var(--saito-background-color) 97%, var(--saito-font-color) 3%);
-  /* Inset shadows create depth - "sunk" effect that works in light and dark themes */
-  box-shadow: 
-    inset 0 0 0 1px color-mix(in srgb, var(--saito-font-color) 8%, transparent 92%),
-    inset 0 4px 16px color-mix(in srgb, var(--saito-font-color) 4%, transparent 96%),
-    inset 0 2px 4px color-mix(in srgb, var(--saito-font-color) 6%, transparent 94%),
-    0 2px 4px rgba(0, 0, 0, 0.02);
-  border-radius: 0;
-  /* Backdrop filter for additional separation (graceful fallback) */
-  backdrop-filter: brightness(0.97);
-  -webkit-backdrop-filter: brightness(0.97);
+  /* Clean, minimal background - no shadows or effects */
+  background: transparent;
 }
 
 /* Editor Header - Draft State */
 .stack-create-post-page .stack-editor-header {
   width: 100%;
-  max-width: 950px; /* Match document column width */
+  max-width: 720px; /* Match document column width */
   margin-left: auto;
   margin-right: auto;
-  margin-bottom: 0.5rem;
-  padding: 0 3rem;
+  margin-bottom: 1rem;
+  padding: 0;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -94,7 +82,7 @@
   font-weight: 400;
   cursor: pointer;
   user-select: none;
-  padding-right: 1rem; /* Align with right corner of paper with 1rem padding */
+  padding-right: 0; /* No padding needed with clean layout */
 }
 
 .stack-create-post-page .stack-draft-state:hover {
@@ -138,7 +126,7 @@
   width: 100%;
   margin: 0;
   padding: 0;
-  margin-bottom: 2rem;
+  margin-bottom: 3rem; /* Clear separation from body */
   position: relative;
 }
 
@@ -146,9 +134,9 @@
   width: 100%;
   padding: 0;
   margin: 0;
-  font-size: 2.4rem;
-  line-height: 1.3;
-  font-weight: 600;
+  font-size: 3.6rem; /* Larger, more prominent */
+  line-height: 1.2;
+  font-weight: 700; /* Heavier weight */
   border: none;
   background: transparent;
   color: var(--saito-font-color);
@@ -157,13 +145,13 @@
   transition: opacity 0.2s ease;
   text-align: left;
   display: block;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em; /* Tighter letter spacing for large text */
 }
 
 .stack-create-post-page .stack-post-title-input::placeholder {
   color: var(--saito-font-color);
-  opacity: 0.5;
-  font-weight: 400;
+  opacity: 0.4; /* More visible, intentional placeholder */
+  font-weight: 500; /* Slightly heavier for visibility */
 }
 
 .stack-create-post-page .stack-post-title-input:focus {
@@ -176,9 +164,10 @@
   padding: 0;
   margin-left: 0;
   margin-right: 0;
-  /* REMOVED: max-height and overflow - page owns scrolling */
-  /* NO internal scrolling - document grows naturally */
-  overflow: visible;
+  /* Editor container is scrollable for auto-scroll behavior */
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(100vh - var(--saito-header-height, 60px) - 18rem); /* Account for header, padding, title field */
 }
 
 /* Block Editor - scoped to create-post page only */
@@ -188,7 +177,7 @@
   padding: 0;
   margin: 0;
   font-size: 2rem;
-  line-height: 1.65;
+  line-height: 1.7; /* Improved line-height for better readability */
   border: none;
   background: transparent;
   color: var(--saito-font-color);
@@ -200,6 +189,8 @@
   /* NO overflow - page owns scrolling */
   overflow: visible;
   font-weight: 400;
+  /* Calm top spacing - first line feels like start of writing */
+  padding-top: 0.5rem;
 }
 
 /* Placeholder for empty editor - scoped to create-post page only */
@@ -229,7 +220,7 @@
 .stack-create-post-page .stack-post-body-editor > figure,
 .stack-create-post-page .stack-post-body-editor > div[data-block-type="rawhtml"] {
   margin: 0;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.8rem; /* Improved paragraph spacing - visually distinct */
   padding: 0;
   outline: none;
   color: var(--saito-font-color);
@@ -245,7 +236,7 @@
 .stack-create-post-page .stack-post-body-editor > h6:first-child {
   margin-top: 0;
   padding-top: 0;
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.8rem; /* Consistent spacing */
 }
 
 /* Subtle block insertion affordance on hover between blocks */
@@ -304,7 +295,7 @@
 /* Body text - scoped to create-post page only */
 .stack-create-post-page .stack-post-body-editor > p {
   font-size: 2rem;
-  line-height: 1.65;
+  line-height: 1.7; /* Improved line-height for better readability */
   color: var(--saito-font-color);
   font-weight: 400;
 }
@@ -593,20 +584,20 @@
    RESPONSIVE
    ============================================ */
 
-/* Medium screens - slightly narrower for comfortable reading */
+/* Medium screens - maintain readable width */
 @media (max-width: 1200px) and (min-width: 769px) {
   .stack-create-post-page .stack-document-column {
-    max-width: 850px;
-    padding: 2rem 2.5rem;
+    max-width: 720px; /* Maintain optimal reading width */
+    padding: 0;
   }
 
   .stack-create-post-page .stack-editor-header {
-    max-width: 850px;
-    padding: 0 2.5rem;
+    max-width: 720px;
+    padding: 0;
   }
 
   .stack-create-post-page .stack-draft-state {
-    padding-right: 1rem; /* Maintain 1rem padding on medium screens */
+    padding-right: 0;
   }
 }
 
@@ -614,42 +605,47 @@
 @media (max-width: 768px) {
   .stack-create-post-page {
     min-height: 100vh;
+    padding-top: calc(var(--saito-header-height, 60px) + 3rem); /* Slightly less top spacing on mobile */
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
     /* Page scrolls on mobile too */
     overflow: visible;
   }
 
   .stack-create-post-container {
-    padding: 3rem 1.5rem 2rem 1.5rem;
+    padding: 0;
   }
 
   .stack-document-column {
-    max-width: 100%;
-    min-height: calc(100vh - var(--saito-header-height, 60px) - 6rem); /* Account for mobile padding */
+    max-width: 100%; /* Full width on mobile */
+    min-height: calc(100vh - var(--saito-header-height, 60px) - 6rem);
     /* NO overflow on mobile - page scrolls */
     overflow: visible;
   }
 
   .stack-post-body-field {
-    /* NO overflow on mobile - page scrolls */
-    overflow: visible;
+    /* Editor container is scrollable on mobile too */
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100vh - var(--saito-header-height, 60px) - 16rem); /* Account for mobile spacing */
   }
 
   .stack-editor-header {
     max-width: 100%;
     margin-bottom: 1.5rem;
-    padding: 0 1.5rem; /* Match mobile document column padding */
+    padding: 0;
   }
 
   .stack-create-post-page .stack-draft-state {
-    padding-right: 1rem; /* Maintain 1rem padding on mobile */
+    padding-right: 0;
   }
 
   .stack-post-title-field {
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem; /* Clear separation on mobile */
   }
 
   .stack-post-title-input {
-    font-size: 3.5rem;
+    font-size: 2.8rem; /* Slightly smaller on mobile but still prominent */
     line-height: 1.2;
   }
 
@@ -659,7 +655,7 @@
 
   .stack-post-body-editor {
     font-size: 1.8rem;
-    line-height: 1.65;
+    line-height: 1.7; /* Improved line-height */
     min-height: 50vh;
   }
 
@@ -675,7 +671,8 @@
 
   .stack-post-body-editor > p {
     font-size: 1.8rem;
-    line-height: 1.65;
+    line-height: 1.7; /* Improved line-height */
+    margin-bottom: 1.8rem; /* Consistent paragraph spacing */
   }
 
   .stack-post-body-editor > h1 {
