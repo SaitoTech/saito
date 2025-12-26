@@ -393,6 +393,8 @@ class CreatePost {
 
   /**
    * Get the currently focused block element
+   * B1: Block identity is a type system - ONLY editable leaf nodes may have data-block-id
+   * Returns only elements with data-block-id (blocks), never structural containers like <ul>
    */
   getFocusedBlock() {
     const selection = window.getSelection();
@@ -410,6 +412,8 @@ class CreatePost {
 
   /**
    * Get block count from DOM (replaces this.document.blocks.length)
+   * B1: Block identity - counts ONLY elements with data-block-id (true blocks)
+   * Structural containers like <ul> are never counted
    */
   getBlockCount() {
     const editor = document.querySelector('#stack-post-body-editor');
@@ -418,12 +422,9 @@ class CreatePost {
   }
 
   /**
-   * Get block index from DOM element
+   * A2: data-block-index removed - order is derived from DOM position only
+   * B4: Adjacency logic must be DOM-safe - never rely on cached indices
    */
-  getBlockIndex(blockElement) {
-    const index = blockElement.getAttribute('data-block-index');
-    return index !== null ? parseInt(index, 10) : -1;
-  }
 
   /**
    * Get text offset from selection within a block
@@ -520,6 +521,9 @@ class CreatePost {
     let focusedBlock = this.getFocusedBlock();
     if (!focusedBlock) return;
 
+    // Postcondition enforcement: track structural mutations
+    let didMutateStructure = false;
+
     // ========================================================================
     // BLOCK TYPE INFERENCE RULES (NON-NEGOTIABLE)
     // ========================================================================
@@ -576,6 +580,8 @@ class CreatePost {
     // ========================================================================
     // PHASE 2: BLOCK NORMALIZATION
     // ========================================================================
+    // B2: Normalization vs Completion separation
+    // Normalization: Detects intent only. MUST NOT read Selection/Range, place cursor, or decide grouping.
     // Convert block types (paragraph → heading, paragraph → list) based on
     // markdown markers. This phase normalizes structure but does NOT create
     // sibling blocks. Normalization updates focusedBlock and blockType in place.
@@ -636,57 +642,37 @@ class CreatePost {
 
       // Check for markdown list creation: "* " or "- " at start of paragraph
       // Normalization is PURELY STRUCTURAL - no Selection/Range reading allowed
-      // PRECONDITION: Block's visible content (after removing ZWSP) must consist ONLY of the trigger
+      // PRECONDITION: Block's visible content (after removing ZWSP) must START WITH the trigger
+      // Note: List normalization was previously restricted to trigger-only blocks (like headers were),
+      // but now allows text after the trigger to match header normalization behavior.
       const listBlockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
       const listTrimmedText = listBlockText.trimStart();
       
       if (listTrimmedText.startsWith('* ') || listTrimmedText.startsWith('- ')) {
+        // Invariant 7: Normalization ONLY detects list intent, does NOT create structure.
+        // Convert paragraph to <li> only. <ul> creation and grouping happen in Enter completion.
         const listLeadingWhitespace = listBlockText.length - listTrimmedText.length;
-        const listTriggerLength = listLeadingWhitespace + 2;
+        const listMarkerEndOffset = listLeadingWhitespace + 2;
+        const itemText = listBlockText.substring(listMarkerEndOffset);
         
-        if (listBlockText.length === listTriggerLength) {
-            // All preconditions met: normalize paragraph to list
-            // Normalization is purely structural - cursor position is irrelevant
-            // Remove markdown marker and use ENTIRE remaining line as list item text
+        // A1: Persist marker explicitly - C2: No clever inference
+        const marker = listTrimmedText.startsWith('* ') ? '* ' : '- ';
         
-        // Calculate where the list marker ends in the full text
-            const listMarkerEndOffset = listLeadingWhitespace + 2; // "* " or "- " is 2 chars
-            
-            // Extract list item text: all text after marker (ignore cursor position)
-            const itemText = listBlockText.substring(listMarkerEndOffset);
-        
-        // Create <ul> element
-        const ulElement = document.createElement('ul');
-        const ulId = generateBlockId(this.getBlockCount());
-        ulElement.setAttribute('data-block-id', ulId);
-        ulElement.setAttribute('data-block-type', 'list');
-        // Preserve block index from original paragraph
-    const blockIndex = this.getBlockIndex(focusedBlock);
-        if (blockIndex >= 0) {
-          ulElement.setAttribute('data-block-index', blockIndex.toString());
-        }
-        
-        // Create first <li> element
+        // Convert paragraph to <li> (this is converting current block, not creating siblings)
         const liElement = document.createElement('li');
-        const liId = generateBlockId(this.getBlockCount() + 1);
+        const liId = generateBlockId(this.getBlockCount());
         liElement.setAttribute('data-block-id', liId);
         liElement.setAttribute('data-block-type', 'list-item');
+        liElement.setAttribute('data-list-marker', marker);
         liElement.contentEditable = 'true';
         liElement.textContent = itemText;
         
-        // Append <li> to <ul>
-        ulElement.appendChild(liElement);
+        // Replace paragraph with <li> (no <ul> wrapper yet)
+        focusedBlock.parentNode.replaceChild(liElement, focusedBlock);
         
-        // Replace paragraph with <ul>
-        focusedBlock.parentNode.replaceChild(ulElement, focusedBlock);
-        
-        // Update focusedBlock and blockType for later Enter completion logic
-        // Note: focusedBlock now points to <ul>, but Enter completion needs the <li>
-        // We'll handle this in the Enter completion logic by finding the active <li>
+        // Update focusedBlock and blockType for Enter completion
         focusedBlock = liElement;
         blockType = 'list-item';
-        
-        }
       }
     }
 
@@ -745,108 +731,78 @@ class CreatePost {
     // ILLEGAL: Offset logic is illegal here. Cursor offset logic exists ONLY in paragraph splitting.
     // Using getTextOffsetInBlock() or originalCursorOffset here is a structural violation.
     // 
-    // Enter completion for list items (handles both converted and existing list items)
-    // This runs after conversion if blockType was set to 'list-item'
+    // L1: Only <li> elements are blocks. Enter completion for list items.
+    // Invariant 8: Enter completion is the ONLY place where <ul> is created and <li> is appended.
     if (blockType === 'list-item' && focusedBlock.tagName === 'LI') {
+      // Invariant 8: Ensure <li> is wrapped in <ul> (may not be if just normalized)
+      let ulElement = focusedBlock.parentNode;
+      if (ulElement.tagName !== 'UL') {
+        // <li> is not in <ul> yet - create <ul> and wrap it
+        // B4: Adjacency logic must be DOM-safe - skip non-element nodes, never scan more than one block
+        const editor = ulElement;
+        let prevBlock = focusedBlock.previousSibling;
+        while (prevBlock && prevBlock.nodeType === Node.ELEMENT_NODE && !prevBlock.hasAttribute('data-block-id')) {
+          prevBlock = prevBlock.previousSibling;
+        }
+        
+        if (prevBlock && prevBlock.tagName === 'LI' && prevBlock.getAttribute('data-block-type') === 'list-item') {
+          // B4: Adjacency-based grouping - immediately previous block is <li>
+          ulElement = prevBlock.parentNode;
+          ulElement.appendChild(focusedBlock);
+        } else {
+          // B1: Create new <ul> (no data-block-id or data-block-type) - structural container only
+          ulElement = document.createElement('ul');
+          editor.insertBefore(ulElement, focusedBlock);
+          ulElement.appendChild(focusedBlock);
+        }
+      }
+      
       const listItemText = (focusedBlock.textContent || '').replace(/\u200B/g, '').trim();
       const isEmpty = listItemText.length === 0;
       
       if (isEmpty) {
-        // EXIT LIST: Convert empty <li> to paragraph and create new paragraph below <ul>
-        // e.preventDefault() already called at function start
-        
+        // L3: Empty list item exits the list - remove empty <li> and create paragraph below
         const ulElement = focusedBlock.parentNode;
         const editor = ulElement.parentNode;
+        const ulNextSibling = ulElement.nextSibling;
+        const willRemoveUl = ulElement.children.length === 1;
         
-        // Create new paragraph to replace the <ul>
-        const newParagraph = document.createElement('p');
-        const newParagraphId = generateBlockId(this.getBlockCount());
-        newParagraph.setAttribute('data-block-id', newParagraphId);
-        newParagraph.setAttribute('data-block-type', 'paragraph');
-        const blockIndex = this.getBlockIndex(ulElement);
-        newParagraph.setAttribute('data-block-index', blockIndex.toString());
-        newParagraph.contentEditable = 'true';
+        // Remove the empty <li>
+        ulElement.removeChild(focusedBlock);
         
-        // Replace <ul> with paragraph
-        ulElement.parentNode.replaceChild(newParagraph, ulElement);
-        
-        // Create another paragraph below for typing
-        // ILLEGAL: Enter completion MUST create a new block. If no block is created here, this is a bug.
-        const nextParagraph = document.createElement('p');
-        const nextParagraphId = generateBlockId(this.getBlockCount());
-        nextParagraph.setAttribute('data-block-id', nextParagraphId);
-        nextParagraph.setAttribute('data-block-type', 'paragraph');
-        nextParagraph.setAttribute('data-block-index', (blockIndex + 1).toString());
-        nextParagraph.contentEditable = 'true';
-        // ILLEGAL: Blocks MUST have a text node. ENTER completion must ensure new blocks contain a caret anchor.
-        // Empty block: ensure caret anchor exists for stable cursor placement
-        const caretAnchor = document.createTextNode('\u200B');
-        nextParagraph.appendChild(caretAnchor);
-        
-        // Insert after the first paragraph
-        if (newParagraph.nextSibling) {
-          editor.insertBefore(nextParagraph, newParagraph.nextSibling);
-        } else {
-          editor.appendChild(nextParagraph);
+        // If <ul> is now empty, remove it
+        if (willRemoveUl) {
+          ulElement.parentNode.removeChild(ulElement);
         }
         
-        // Update placeholder visibility
-        this.updatePlaceholderVisibility();
-        
-        // Enter completion is the sole authority for cursor placement.
-        // ILLEGAL: Cursor placement MUST ONLY occur in Enter completion. If placed elsewhere, this is a bug.
-        // Cursor placement is deterministic: always at offset 0 of the text node.
-        // ENTER completion ensures the editor is in a stable state with exactly one active block
-        // and a valid collapsed selection inside that block.
-        // ILLEGAL: Selection recovery is forbidden. Selection is captured once, cursor is placed deterministically.
-        const newRange = document.createRange();
-        const newSelection = window.getSelection();
-        newRange.setStart(caretAnchor, 0);
-        newRange.setEnd(caretAnchor, 0);
-        newSelection.removeAllRanges();
-        newSelection.addRange(newRange);
-        nextParagraph.focus();
-        this.autoScrollToCaret();
-      return;
-      } else {
-        // EXIT LIST: Heading/List/Blockquote Enter exits the block and does NOT split text.
-        // Leave current list item unchanged, create new paragraph below.
-        // NO cursor offset logic - this is unconditional block exit.
-        // e.preventDefault() already called at function start
-        
-        const ulElement = focusedBlock.parentNode;
-        const editor = ulElement.parentNode;
-        
-        // Create new paragraph below the list
-        // ILLEGAL: Enter completion MUST create a new block. If no block is created here, this is a bug.
+        // Create new paragraph below
         const newBlockElement = document.createElement('p');
         const newBlockId = generateBlockId(this.getBlockCount());
         newBlockElement.setAttribute('data-block-id', newBlockId);
         newBlockElement.setAttribute('data-block-type', 'paragraph');
-        const blockIndex = this.getBlockIndex(ulElement);
-        newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
         newBlockElement.contentEditable = 'true';
-        // ILLEGAL: Blocks MUST have a text node. ENTER completion must ensure new blocks contain a caret anchor.
-        // Empty block: ensure caret anchor exists for stable cursor placement
         const caretAnchor = document.createTextNode('\u200B');
         newBlockElement.appendChild(caretAnchor);
         
-        // Insert after the list
-        if (ulElement.nextSibling) {
-          editor.insertBefore(newBlockElement, ulElement.nextSibling);
+        // Insert after the list (or where list was if removed)
+        if (willRemoveUl) {
+          // <ul> was removed - insert where it was
+          if (ulNextSibling) {
+            editor.insertBefore(newBlockElement, ulNextSibling);
         } else {
-          editor.appendChild(newBlockElement);
+            editor.appendChild(newBlockElement);
+          }
+        } else {
+          // <ul> still exists - insert after it
+          if (ulElement.nextSibling) {
+            editor.insertBefore(newBlockElement, ulElement.nextSibling);
+          } else {
+            editor.appendChild(newBlockElement);
+          }
         }
         
-        // Update placeholder visibility
         this.updatePlaceholderVisibility();
         
-        // Enter completion is the sole authority for cursor placement.
-        // ILLEGAL: Cursor placement MUST ONLY occur in Enter completion. If placed elsewhere, this is a bug.
-        // Cursor placement is deterministic: always at offset 0 of the text node.
-        // ENTER completion ensures the editor is in a stable state with exactly one active block
-        // and a valid collapsed selection inside that block.
-        // ILLEGAL: Selection recovery is forbidden. Selection is captured once, cursor is placed deterministically.
         const newRange = document.createRange();
         const newSelection = window.getSelection();
         newRange.setStart(caretAnchor, 0);
@@ -855,6 +811,43 @@ class CreatePost {
         newSelection.addRange(newRange);
         newBlockElement.focus();
         this.autoScrollToCaret();
+        didMutateStructure = true;
+      return;
+      } else {
+        // L4: Non-empty list item continues the list - create new <li> with same marker
+        const ulElement = focusedBlock.parentNode;
+        const editor = ulElement.parentNode;
+        
+        // A1: Read marker from stored data, NOT from textContent - C2: No clever inference
+        const marker = focusedBlock.getAttribute('data-list-marker') || '- ';
+        
+        // Create new <li> element
+        const newLiElement = document.createElement('li');
+        const newLiId = generateBlockId(this.getBlockCount());
+        newLiElement.setAttribute('data-block-id', newLiId);
+        newLiElement.setAttribute('data-block-type', 'list-item');
+        newLiElement.setAttribute('data-list-marker', marker);
+        newLiElement.contentEditable = 'true';
+        
+        // I2: <li>.textContent MUST NEVER include the marker - marker is in data-list-marker only
+        // I3: Visual markers rendered via CSS, not textContent
+        const caretAnchor = document.createTextNode('\u200B');
+        newLiElement.appendChild(caretAnchor);
+        
+        // Append to existing <ul>
+        ulElement.appendChild(newLiElement);
+        
+        this.updatePlaceholderVisibility();
+        
+        const newRange = document.createRange();
+        const newSelection = window.getSelection();
+        newRange.setStart(caretAnchor, 0);
+        newRange.setEnd(caretAnchor, 0);
+        newSelection.removeAllRanges();
+        newSelection.addRange(newRange);
+        newLiElement.focus();
+        this.autoScrollToCaret();
+        didMutateStructure = true;
         return;
       }
     }
@@ -892,8 +885,6 @@ class CreatePost {
       const newBlockId = generateBlockId(this.getBlockCount());
       newBlockElement.setAttribute('data-block-id', newBlockId);
       newBlockElement.setAttribute('data-block-type', 'paragraph');
-    const blockIndex = this.getBlockIndex(focusedBlock);
-      newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
       newBlockElement.contentEditable = 'true';
       // ILLEGAL: Blocks MUST have a text node. ENTER completion must ensure new blocks contain a caret anchor.
       // Empty block: ensure caret anchor exists for stable cursor placement
@@ -924,6 +915,7 @@ class CreatePost {
       newSelection.addRange(newRange);
       newBlockElement.focus();
       this.autoScrollToCaret();
+      didMutateStructure = true;
       return;
     }
 
@@ -954,8 +946,6 @@ class CreatePost {
       
       const newBlockId = generateBlockId(this.getBlockCount());
       newBlockElement.setAttribute('data-block-id', newBlockId);
-      const blockIndex = this.getBlockIndex(focusedBlock);
-      newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
       newBlockElement.contentEditable = 'true';
       // ILLEGAL: Blocks MUST have a text node. ENTER completion must ensure new blocks contain a caret anchor.
       // Empty block: ensure caret anchor exists for stable cursor placement
@@ -986,6 +976,7 @@ class CreatePost {
       newSelection.addRange(newRange);
       newBlockElement.focus();
       this.autoScrollToCaret();
+      didMutateStructure = true;
       return;
     }
 
@@ -1041,8 +1032,6 @@ class CreatePost {
     const newBlockId = generateBlockId(this.getBlockCount());
     newBlockElement.setAttribute('data-block-id', newBlockId);
     newBlockElement.setAttribute('data-block-type', 'paragraph');
-    const blockIndex = this.getBlockIndex(focusedBlock);
-    newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
     newBlockElement.contentEditable = 'true';
     // ILLEGAL: Blocks MUST have a text node. textContent creates one. If missing, this is a bug.
     // ENTER completion must ensure new blocks contain a caret anchor for stable cursor placement.
@@ -1060,6 +1049,7 @@ class CreatePost {
     } else {
       editor.appendChild(newBlockElement);
     }
+    didMutateStructure = true;
 
     // Update placeholder visibility
     this.updatePlaceholderVisibility();
@@ -1082,6 +1072,11 @@ class CreatePost {
     newSelection.addRange(newRange);
     newBlockElement.focus();
     this.autoScrollToCaret();
+    
+    // Postcondition enforcement: every Enter must result in exactly one structural mutation
+    if (!didMutateStructure) {
+      throw new Error('Enter key violated postcondition: no structural mutation occurred');
+    }
   }
 
   /**
@@ -1104,16 +1099,16 @@ class CreatePost {
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
 
-    const blockIndex = this.getBlockIndex(focusedBlock);
-
     // Don't allow caret to enter image blocks - move to previous block
     if (blockType === 'image') {
       e.preventDefault();
       
-      // Move caret to previous block if it exists
-      if (blockIndex > 0) {
+      // A2: Order derived from DOM position, not cached index
         const editor = focusedBlock.parentNode;
         const allBlocks = Array.from(editor.querySelectorAll('[data-block-id]'));
+      const blockIndex = allBlocks.indexOf(focusedBlock);
+      // Move caret to previous block if it exists
+      if (blockIndex > 0) {
         const prevBlockEl = allBlocks[blockIndex - 1];
         if (prevBlockEl) {
           setTimeout(() => {
@@ -1206,10 +1201,12 @@ class CreatePost {
         }
         
     // Handle deletion when caret is at start of paragraph
-    if (blockType === 'paragraph' && blockIndex > 0) {
-      if (isAtStart) {
+    // A2: Order derived from DOM position, not cached index
+    if (blockType === 'paragraph' && isAtStart) {
         const editor = focusedBlock.parentNode;
         const allBlocks = Array.from(editor.querySelectorAll('[data-block-id]'));
+      const blockIndex = allBlocks.indexOf(focusedBlock);
+      if (blockIndex > 0) {
         const prevBlockEl = allBlocks[blockIndex - 1];
         
         // If previous block is an image, delete it from DOM
@@ -1237,12 +1234,10 @@ class CreatePost {
           return;
         }
         
-        // If previous block is also a paragraph, merge them in DOM
-        if (previousBlock && previousBlock.type === 'paragraph') {
+        // A3: DOM-authoritative - check previous block from DOM, not legacy model
+        if (prevBlockEl && prevBlockEl.getAttribute('data-block-type') === 'paragraph') {
           e.preventDefault();
           
-          const prevBlockEl = document.querySelector(`[data-block-id="${previousBlock.id}"]`);
-          if (prevBlockEl) {
             const prevText = (prevBlockEl.textContent || '').replace(/\u200B/g, '');
             const currText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
             
@@ -1266,7 +1261,6 @@ class CreatePost {
               newSelection.removeAllRanges();
               newSelection.addRange(newRange);
             prevBlockEl.focus();
-            }
           return;
         }
       }
@@ -1295,7 +1289,6 @@ class CreatePost {
     const focusedBlock = this.getFocusedBlock();
     if (!focusedBlock) return;
 
-    const blockIndex = this.getBlockIndex(focusedBlock);
     const blockType = focusedBlock.getAttribute('data-block-type');
 
     // If cursor is at the end of a paragraph block
@@ -1309,6 +1302,8 @@ class CreatePost {
 
         const editor = focusedBlock.parentNode;
         const allBlocks = Array.from(editor.querySelectorAll('[data-block-id]'));
+        // A2: Order derived from DOM position, not cached index
+        const blockIndex = allBlocks.indexOf(focusedBlock);
       const nextBlockIndex = blockIndex + 1;
         if (nextBlockIndex >= allBlocks.length) {
         return;
@@ -1338,8 +1333,8 @@ class CreatePost {
             newSelection.addRange(newRange);
           focusedBlock.focus();
         return;
-      } else if (nextBlock.type === 'paragraph' || nextBlock.type === 'heading') {
-          // Merge next block into current in DOM
+      } else if (nextBlockType === 'paragraph' || nextBlockType === 'heading') {
+        // A3: DOM-authoritative - merge next block into current in DOM
           const currText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
           const nextText = (nextBlockEl.textContent || '').replace(/\u200B/g, '');
           
@@ -1618,9 +1613,8 @@ class CreatePost {
       if (clientY >= rect.top && clientY <= rect.bottom) {
         const blockType = block.getAttribute('data-block-type');
         
-        // Get document model index from data-block-index attribute (more reliable than loop index)
-        const docIndex = block.getAttribute('data-block-index');
-        const blockIndex = docIndex !== null ? parseInt(docIndex, 10) : i;
+        // A2: Order derived from DOM position (loop index), not cached index
+        const blockIndex = i;
         
         // For paragraph blocks, check if we're over a line break area
         if (blockType === 'paragraph') {
@@ -1629,7 +1623,7 @@ class CreatePost {
             return {
               position: 'split',
               element: block,
-              index: blockIndex, // Use document model index
+              index: blockIndex,
               splitBlock: splitPoint
             };
           }
@@ -1653,9 +1647,8 @@ class CreatePost {
         
         // If mouse is between current block bottom and next block top
         if (clientY > rect.bottom && clientY < nextRect.top) {
-          // Get document model index for the current block
-          const docIndex = block.getAttribute('data-block-index');
-          const blockIndex = docIndex !== null ? parseInt(docIndex, 10) : i;
+          // A2: Order derived from DOM position (loop index)
+          const blockIndex = i;
           
           // Insert after the current block (in the gap)
           return { position: 'after', element: block, index: blockIndex + 1, splitBlock: null };
@@ -1663,10 +1656,10 @@ class CreatePost {
       }
     }
 
-    // After last block - use document model length
+    // After last block - use DOM position
     const lastBlock = blocks[blocks.length - 1];
-    const lastDocIndex = lastBlock ? (parseInt(lastBlock.getAttribute('data-block-index'), 10) || blocks.length - 1) : blocks.length - 1;
-    return { position: 'after', element: lastBlock, index: lastDocIndex + 1, splitBlock: null };
+    const lastIndex = blocks.length - 1;
+    return { position: 'after', element: lastBlock, index: lastIndex + 1, splitBlock: null };
   }
 
   /**
@@ -1992,10 +1985,8 @@ class CreatePost {
       // Cursor position (no drop position provided)
       const focusedBlock = this.getFocusedBlock();
       if (focusedBlock) {
-        const blockIndex = this.getBlockIndex(focusedBlock);
-        if (blockIndex >= 0) {
-          insertIndex = blockIndex + 1;
-        }
+        // A2: Order derived from DOM position, not cached index
+        insertIndex = this.getBlockCount();
       }
     }
 
@@ -2026,7 +2017,6 @@ class CreatePost {
           const afterBlockId = generateBlockId(this.getBlockCount());
           afterBlockEl.setAttribute('data-block-id', afterBlockId);
           afterBlockEl.setAttribute('data-block-type', 'paragraph');
-          afterBlockEl.setAttribute('data-block-index', insertIndex.toString());
           afterBlockEl.contentEditable = 'true';
           afterBlockEl.textContent = splitInfo.afterText.trim();
           
@@ -2046,7 +2036,6 @@ class CreatePost {
     const imageBlockId = generateBlockId(this.getBlockCount());
     imageElement.setAttribute('data-block-id', imageBlockId);
     imageElement.setAttribute('data-block-type', 'image');
-    imageElement.setAttribute('data-block-index', insertIndex.toString());
     imageElement.className = 'stack-image-block';
     imageElement.contentEditable = false;
 
@@ -2064,7 +2053,6 @@ class CreatePost {
     const newParagraphId = generateBlockId(this.getBlockCount() + 1);
     newParagraphElement.setAttribute('data-block-id', newParagraphId);
     newParagraphElement.setAttribute('data-block-type', 'paragraph');
-    newParagraphElement.setAttribute('data-block-index', (insertIndex + 1).toString());
     newParagraphElement.contentEditable = 'true';
     newParagraphElement.textContent = '';
     newParagraphElement.appendChild(document.createTextNode('\u200B'));
@@ -2214,7 +2202,6 @@ class CreatePost {
         const newParagraphId = generateBlockId(0);
         newParagraphEl.setAttribute('data-block-id', newParagraphId);
         newParagraphEl.setAttribute('data-block-type', 'paragraph');
-        newParagraphEl.setAttribute('data-block-index', '0');
         newParagraphEl.contentEditable = 'true';
         newParagraphEl.textContent = '';
         newParagraphEl.appendChild(document.createTextNode('\u200B'));
@@ -2375,7 +2362,6 @@ class CreatePost {
       const newParagraphId = generateBlockId(this.getBlockCount());
       newParagraphEl.setAttribute('data-block-id', newParagraphId);
       newParagraphEl.setAttribute('data-block-type', 'paragraph');
-      newParagraphEl.setAttribute('data-block-index', '0');
       newParagraphEl.contentEditable = 'true';
       newParagraphEl.textContent = '';
       newParagraphEl.appendChild(document.createTextNode('\u200B'));

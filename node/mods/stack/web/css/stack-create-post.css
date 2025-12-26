@@ -226,6 +226,24 @@
   color: var(--saito-font-color);
 }
 
+/* I3: Visual list markers rendered via CSS, not textContent */
+.stack-create-post-page .stack-post-body-editor > ul {
+  list-style-type: disc;
+  padding-left: 1.2em;
+  margin: 0;
+  margin-bottom: 1.8rem;
+}
+
+.stack-create-post-page .stack-post-body-editor > ul > li {
+  margin: 0;
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.stack-create-post-page .stack-post-body-editor > ul > li:last-child {
+  margin-bottom: 0;
+}
+
 /* First child blocks - scoped to create-post page only */
 .stack-create-post-page .stack-post-body-editor > p:first-child,
 .stack-create-post-page .stack-post-body-editor > h1:first-child,
