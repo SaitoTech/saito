@@ -95,21 +95,8 @@ class CreatePost {
     const editor = document.querySelector('#stack-post-body-editor');
     if (!editor) return;
 
-    // Load from draft if available
-    const draftKey = 'stack-post-draft';
-    let markdown = '';
-    
-    try {
-      const savedDraft = localStorage.getItem(draftKey);
-      if (savedDraft) {
-        markdown = savedDraft;
-      }
-    } catch (err) {
-      console.error('Error loading draft:', err);
-    }
-
-    // Parse markdown → temporary document (only for initial render)
-    const tempDocument = markdown ? parseMarkdownToDocument(markdown) : { blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }] };
+    // Create empty document
+    const tempDocument = { blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }] };
     
     // Render document to editor (one-time conversion from markdown to DOM)
     renderDocument(tempDocument, editor, {
@@ -296,17 +283,13 @@ class CreatePost {
     this.updateSaveState('saving');
 
     this.serializeTimeout = setTimeout(() => {
-      const markdown = this.serializeDOMToMarkdown();
-      this.saveDraft(markdown);
-      // Update state to "saved" after save completes
-      this.updateSaveState('saved');
-      // Return to "draft" after a brief moment
+      // Update state back to "draft" after serialization
       if (this.saveStateTimeout) {
         clearTimeout(this.saveStateTimeout);
       }
       this.saveStateTimeout = setTimeout(() => {
         this.updateSaveState('draft');
-      }, 2000);
+      }, 0);
     }, this.DEBOUNCE_MS);
   }
 
@@ -315,26 +298,27 @@ class CreatePost {
    */
   updateSaveState(state) {
     this.saveState = state;
-    const stateElement = document.querySelector('#stack-draft-state');
-    const stateText = document.querySelector('.stack-draft-state-text');
-    
-    if (stateElement && stateText) {
-      // Remove all state classes
-      stateElement.classList.remove('saving', 'saved');
-      
-      // Add current state class
-      if (state !== 'draft') {
-        stateElement.classList.add(state);
-      }
-      
-      // Update text
-      const stateLabels = {
-        'draft': 'Draft',
-        'saving': 'Saving…',
-        'saved': 'Saved'
-      };
-      stateText.textContent = stateLabels[state] || 'Draft';
+    this.updateStatusDisplay();
+  }
+
+  /**
+   * Update status display in sidebar
+   * Shows "Saving…" when saving, otherwise shows "Draft" or "Published" based on isPublished
+   */
+  updateStatusDisplay() {
+    const statusValueElement = document.querySelector('#stack-editor-status-value');
+    if (!statusValueElement) return;
+
+    let statusText;
+    if (this.saveState === 'saving') {
+      statusText = 'Saving…';
+      statusValueElement.classList.add('saving');
+    } else {
+      statusText = this.isPublished ? 'Published' : 'Draft';
+      statusValueElement.classList.remove('saving');
     }
+
+    statusValueElement.textContent = statusText;
   }
 
   /**
@@ -379,17 +363,6 @@ class CreatePost {
     }
   }
 
-  /**
-   * Save draft to localStorage
-   */
-  saveDraft(markdown) {
-    try {
-      const draftKey = 'stack-post-draft';
-      localStorage.setItem(draftKey, markdown);
-    } catch (err) {
-      console.error('Error saving draft:', err);
-    }
-  }
 
   /**
    * Get the currently focused block element
@@ -1154,15 +1127,52 @@ class CreatePost {
       // Since e.preventDefault() was called, we must manually insert the newline
       if (currentSelection.rangeCount > 0) {
         const range = currentSelection.getRangeAt(0);
-        const textNode = range.startContainer;
-        if (textNode.nodeType === Node.TEXT_NODE) {
+        const container = range.startContainer;
+        if (container.nodeType === Node.TEXT_NODE && container.parentNode === focusedBlock) {
+          // Cursor is in a text node directly inside PRE: insert newline directly
           const offset = range.startOffset;
-          const text = textNode.textContent;
-          textNode.textContent = text.substring(0, offset) + '\n' + text.substring(offset);
+          const text = container.textContent;
+          container.textContent = text.substring(0, offset) + '\n' + text.substring(offset);
           // Place cursor after the newline
           const newRange = document.createRange();
-          newRange.setStart(textNode, offset + 1);
-          newRange.setEnd(textNode, offset + 1);
+          newRange.setStart(container, offset + 1);
+          newRange.setEnd(container, offset + 1);
+          currentSelection.removeAllRanges();
+          currentSelection.addRange(newRange);
+        } else {
+          // Cursor is in PRE element or not in a direct text node:
+          // Calculate text offset and insert newline into text content
+          let insertOffset = 0;
+          const walker = document.createTreeWalker(
+            focusedBlock,
+            NodeFilter.SHOW_TEXT,
+            null
+          );
+          let node = walker.nextNode();
+          while (node) {
+            if (node === range.startContainer) {
+              insertOffset += range.startOffset;
+              break;
+            }
+            insertOffset += node.textContent.replace(/\u200B/g, '').length;
+            node = walker.nextNode();
+          }
+          
+          // Get all text content and insert newline
+          const codeText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+          const newText = codeText.substring(0, insertOffset) + '\n' + codeText.substring(insertOffset);
+          
+          // Replace all child nodes with a single text node containing the updated text
+          while (focusedBlock.firstChild) {
+            focusedBlock.removeChild(focusedBlock.firstChild);
+          }
+          const newTextNode = document.createTextNode(newText);
+          focusedBlock.appendChild(newTextNode);
+          
+          // Place cursor after the inserted newline
+          const newRange = document.createRange();
+          newRange.setStart(newTextNode, insertOffset + 1);
+          newRange.setEnd(newTextNode, insertOffset + 1);
           currentSelection.removeAllRanges();
           currentSelection.addRange(newRange);
         }
@@ -2418,6 +2428,11 @@ class CreatePost {
       adminElement.classList.remove('stack-admin-published');
       adminElement.setAttribute('title', 'Publish settings');
     }
+
+    // Update status display to reflect published state (unless currently saving)
+    if (this.saveState !== 'saving') {
+      this.updateStatusDisplay();
+    }
   }
 
   /**
@@ -2666,6 +2681,16 @@ class CreatePost {
         adminElement.style.pointerEvents = 'auto';
         adminElement.style.cursor = 'pointer';
       }
+
+      // Publish button in sidebar - opens publish settings overlay
+      const publishBtn = document.querySelector('#stack-editor-publish-btn');
+      if (publishBtn) {
+        publishBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.handlePublishTriggerClick();
+        });
+      }
       
       // Title input - update next step button on change
       const titleInput = document.querySelector('#stack-post-title-input');
@@ -2750,11 +2775,6 @@ class CreatePost {
           this.handleDrop(e);
         });
 
-        // Handle blur to ensure document is saved
-        editor.addEventListener('blur', () => {
-          const markdown = this.serializeDOMToMarkdown();
-          this.saveDraft(markdown);
-        });
 
         // Handle clicks on image blocks to show/hide caption
         editor.addEventListener('click', (e) => {
