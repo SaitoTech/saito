@@ -206,6 +206,100 @@ class CreatePost {
   }
 
   /**
+   * Sync document state FROM DOM (DOM is authoritative).
+   * Reads all blocks from the editor DOM and updates this.document to match.
+   * This must be called BEFORE any code reads from this.document to ensure state is current.
+   */
+  syncDocumentFromDOM() {
+    const editor = document.querySelector('#stack-post-body-editor');
+    if (!editor) return;
+
+    // Read all blocks from DOM
+    const blockElements = editor.querySelectorAll('[data-block-id]');
+    const newBlocks = [];
+
+    blockElements.forEach((blockEl) => {
+      const blockId = blockEl.getAttribute('data-block-id');
+      const blockType = blockEl.getAttribute('data-block-type');
+      
+      // Find existing block to preserve ID and other properties
+      const existingBlock = this.document.blocks.find(b => b.id === blockId);
+      
+      let block = existingBlock ? { ...existingBlock } : null;
+
+      switch (blockType) {
+        case 'paragraph':
+        case 'list-item':
+        case 'blockquote':
+          // Treat list-item and blockquote as paragraph variants
+          const paragraphText = (blockEl.textContent || '').replace(/\u200B/g, '');
+          if (!block) {
+            block = {
+              type: 'paragraph',
+              id: blockId || generateBlockId(newBlocks.length),
+              text: paragraphText
+            };
+          } else {
+            block.text = paragraphText;
+          }
+          break;
+
+        case 'heading':
+          const level = parseInt(blockEl.tagName.charAt(1)) || 1;
+          const headingText = (blockEl.textContent || '').replace(/\u200B/g, '');
+          if (!block) {
+            block = {
+              type: 'heading',
+              id: blockId || generateBlockId(newBlocks.length),
+              level: level,
+              text: headingText
+            };
+          } else {
+            block.text = headingText;
+            block.level = level;
+          }
+          break;
+
+        case 'image':
+          const img = blockEl.querySelector('img');
+          const captionEl = blockEl.querySelector('.stack-image-caption');
+          if (!block) {
+            block = {
+              type: 'image',
+              id: blockId || generateBlockId(newBlocks.length),
+              src: img ? img.src : '',
+              caption: captionEl ? captionEl.textContent : ''
+            };
+          } else {
+            if (img) block.src = img.src;
+            if (captionEl) block.caption = captionEl.textContent;
+          }
+          break;
+
+        case 'rawhtml':
+          const htmlContent = blockEl.innerHTML || '';
+          if (!block) {
+            block = {
+              type: 'rawhtml',
+              id: blockId || generateBlockId(newBlocks.length),
+              html: htmlContent
+            };
+          } else {
+            block.html = htmlContent;
+          }
+          break;
+      }
+
+      if (block) {
+        newBlocks.push(block);
+      }
+    });
+
+    // Update document to match DOM
+    this.document.blocks = newBlocks;
+  }
+
+  /**
    * Schedule debounced serialization
    */
   scheduleSerialization() {
@@ -331,6 +425,13 @@ class CreatePost {
    */
   getTextOffsetInBlock(blockElement, selection) {
     const range = selection.getRangeAt(0);
+    return this.getTextOffsetFromRange(blockElement, range);
+  }
+
+  /**
+   * Get text offset from a range within a block
+   */
+  getTextOffsetFromRange(blockElement, range) {
     let offset = 0;
     
     // Walk through text nodes in the block
@@ -357,75 +458,281 @@ class CreatePost {
 
   /**
    * Handle Enter key - split paragraph block
+   * If text is selected, delete selection and insert newline
+   * If in a block-formatted line and line is empty, exit the block
    */
   handleEnterKey(e) {
     const focusedBlock = this.getFocusedBlock();
     if (!focusedBlock) return;
 
     const blockType = focusedBlock.getAttribute('data-block-type');
+
+    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
+    // This ensures we read the current text the user sees, not stale JS state
+    this.syncDocumentFromDOM();
+
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    const blockIndex = this.getBlockIndex(focusedBlock);
+    const block = this.document.blocks[blockIndex];
+
+    if (!block) return;
+
+    // Check if we're in a block-formatted line (list-item, blockquote, heading) and line is empty
+    const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '').trim();
+    const isBlockFormatted = blockType === 'list-item' || blockType === 'blockquote' || blockType === 'heading';
+    const isEmpty = blockText.length === 0;
+
+    if (isBlockFormatted && isEmpty) {
+      // EXIT BLOCK: Remove formatting and create normal paragraph
+      e.preventDefault();
+
+      // Convert current block to paragraph IN PLACE
+      focusedBlock.setAttribute('data-block-type', 'paragraph');
+      focusedBlock.classList.remove('stack-list-item', 'stack-blockquote');
+      focusedBlock.textContent = '';
+      const textNode = document.createTextNode('\u200B');
+      focusedBlock.appendChild(textNode);
+
+      // Create new paragraph block in DOM
+      const editor = focusedBlock.parentNode;
+      const newBlockElement = document.createElement('p');
+      const newBlockId = generateBlockId(this.document.blocks.length);
+      newBlockElement.setAttribute('data-block-id', newBlockId);
+      newBlockElement.setAttribute('data-block-type', 'paragraph');
+      newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
+      newBlockElement.contentEditable = 'true';
+      newBlockElement.textContent = '';
+      const newTextNode = document.createTextNode('\u200B');
+      newBlockElement.appendChild(newTextNode);
+      
+      // Insert after current block
+      if (focusedBlock.nextSibling) {
+        editor.insertBefore(newBlockElement, focusedBlock.nextSibling);
+      } else {
+        editor.appendChild(newBlockElement);
+      }
+
+      // Sync document state from DOM
+      this.syncDocumentFromDOM();
+
+      // Update placeholder visibility
+      this.updatePlaceholderVisibility();
+
+      // Focus the new paragraph synchronously
+      const newRange = document.createRange();
+      const newSelection = window.getSelection();
+      if (newBlockElement.firstChild && newBlockElement.firstChild.nodeType === Node.TEXT_NODE) {
+        newRange.setStart(newBlockElement.firstChild, 0);
+        newRange.setEnd(newBlockElement.firstChild, 0);
+      } else {
+        newRange.setStart(newBlockElement, 0);
+        newRange.setEnd(newBlockElement, 0);
+      }
+      newSelection.removeAllRanges();
+      newSelection.addRange(newRange);
+      newBlockElement.focus();
+      this.autoScrollToCaret();
+      return;
+    }
+
+    // Handle Enter for headings, lists, and blockquotes that have text
+    // (Empty blocks are handled above - they exit the block format)
+    if (blockType === 'heading' || blockType === 'list-item' || blockType === 'blockquote') {
+      // Split the block at cursor position
+      e.preventDefault();
+      
+      const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
+      const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+      const beforeText = currentText.substring(0, cursorOffset);
+      const afterText = currentText.substring(cursorOffset);
+      
+      // Update current block text in DOM
+      focusedBlock.textContent = beforeText;
+      
+      // Create new block in DOM
+      const editor = focusedBlock.parentNode;
+      let newBlockElement;
+      
+      if (blockType === 'list-item') {
+        // For list items, create a new list item (continue the list)
+        newBlockElement = document.createElement('p');
+        newBlockElement.setAttribute('data-block-type', 'list-item');
+        newBlockElement.classList.add('stack-list-item');
+      } else {
+        // For headings and blockquotes, create a paragraph (exit the format)
+        newBlockElement = document.createElement('p');
+        newBlockElement.setAttribute('data-block-type', 'paragraph');
+      }
+      
+      const newBlockId = generateBlockId(this.document.blocks.length);
+      newBlockElement.setAttribute('data-block-id', newBlockId);
+      newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
+      newBlockElement.contentEditable = 'true';
+      newBlockElement.textContent = afterText;
+      
+      // Insert after current block
+      if (focusedBlock.nextSibling) {
+        editor.insertBefore(newBlockElement, focusedBlock.nextSibling);
+      } else {
+        editor.appendChild(newBlockElement);
+      }
+      
+      // Sync document state from DOM
+      this.syncDocumentFromDOM();
+      
+      // Update placeholder visibility
+      this.updatePlaceholderVisibility();
+      
+      // Focus the new block synchronously
+      const newRange = document.createRange();
+      const newSelection = window.getSelection();
+      const textNode = newBlockElement.firstChild;
+      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+        newRange.setStart(textNode, 0);
+        newRange.setEnd(textNode, 0);
+      } else {
+        newRange.setStart(newBlockElement, 0);
+        newRange.setEnd(newBlockElement, 0);
+      }
+      newSelection.removeAllRanges();
+      newSelection.addRange(newRange);
+      newBlockElement.focus();
+      this.autoScrollToCaret();
+      return;
+    }
+
+    // For other block types (image, rawhtml), allow default behavior
     if (blockType !== 'paragraph') {
-      // For non-paragraph blocks, allow default behavior
       return;
     }
 
     e.preventDefault();
 
-    const selection = window.getSelection();
-    if (!selection.rangeCount) return;
+    if (block.type !== 'paragraph') return;
 
-    const blockIndex = this.getBlockIndex(focusedBlock);
-    const block = this.document.blocks[blockIndex];
+    // Check if there's an active selection (not collapsed)
+    const hasSelection = !range.collapsed;
 
-    if (!block || block.type !== 'paragraph') return;
+    if (hasSelection) {
+      // DELETE selected text and INSERT newline at cursor position
+      // The visible selection is authoritative - delete it completely
+      
+      // Get the start position of the selection (where cursor will be after deletion)
+      // Create a collapsed range at the selection start to calculate offset
+      const startRange = document.createRange();
+      startRange.setStart(range.startContainer, range.startOffset);
+      startRange.setEnd(range.startContainer, range.startOffset);
+      const selectionStart = this.getTextOffsetFromRange(focusedBlock, startRange);
 
-    // Get cursor position within the block
+      // Delete the selected content from DOM
+      range.deleteContents();
+
+      // Sync document state from DOM after deletion
+      this.syncDocumentFromDOM();
+
+      // Read current text from DOM after deletion
+      const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+      const beforeText = currentText.substring(0, selectionStart);
+      const afterText = currentText.substring(selectionStart);
+
+      // Update current block text in DOM
+      focusedBlock.textContent = beforeText;
+
+      // Create new paragraph block in DOM
+      const editor = focusedBlock.parentNode;
+      const newBlockElement = document.createElement('p');
+      const newBlockId = generateBlockId(this.document.blocks.length);
+      newBlockElement.setAttribute('data-block-id', newBlockId);
+      newBlockElement.setAttribute('data-block-type', 'paragraph');
+      newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
+      newBlockElement.contentEditable = 'true';
+      newBlockElement.textContent = afterText;
+      
+      // Insert after current block
+      if (focusedBlock.nextSibling) {
+        editor.insertBefore(newBlockElement, focusedBlock.nextSibling);
+      } else {
+        editor.appendChild(newBlockElement);
+      }
+
+      // Sync document state from DOM
+      this.syncDocumentFromDOM();
+
+      // Update placeholder visibility
+      this.updatePlaceholderVisibility();
+
+      // Focus the new block synchronously
+      const newRange = document.createRange();
+      const newSelection = window.getSelection();
+      const textNode = newBlockElement.firstChild;
+      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+        newRange.setStart(textNode, 0);
+        newRange.setEnd(textNode, 0);
+      } else {
+        newRange.setStart(newBlockElement, 0);
+        newRange.setEnd(newBlockElement, 0);
+      }
+      newSelection.removeAllRanges();
+      newSelection.addRange(newRange);
+      newBlockElement.focus();
+      this.autoScrollToCaret();
+    } else {
+      // No selection - split at cursor
     const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
-    const currentText = (block.text || '').replace(/\u200B/g, '');
+      const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
     const beforeText = currentText.substring(0, cursorOffset);
     const afterText = currentText.substring(cursorOffset);
 
-    // Update current block
-    block.text = beforeText;
+      // Update current block text in DOM
+      focusedBlock.textContent = beforeText;
 
-    // Create new paragraph block
-    const newBlock = {
-      type: 'paragraph',
-      id: generateBlockId(this.document.blocks.length),
-      text: afterText
-    };
+      // Create new paragraph block in DOM
+      const editor = focusedBlock.parentNode;
+      const newBlockElement = document.createElement('p');
+      const newBlockId = generateBlockId(this.document.blocks.length);
+      newBlockElement.setAttribute('data-block-id', newBlockId);
+      newBlockElement.setAttribute('data-block-type', 'paragraph');
+      newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
+      newBlockElement.contentEditable = 'true';
+      newBlockElement.textContent = afterText;
+      
+      // Insert after current block
+      if (focusedBlock.nextSibling) {
+        editor.insertBefore(newBlockElement, focusedBlock.nextSibling);
+      } else {
+        editor.appendChild(newBlockElement);
+      }
 
-    // Insert new block after current block
-    this.document.blocks.splice(blockIndex + 1, 0, newBlock);
-
-    // Re-render document
-    this.renderDocument();
+      // Sync document state from DOM
+      this.syncDocumentFromDOM();
 
     // Update placeholder visibility
     this.updatePlaceholderVisibility();
 
-    // Focus the new block
-    setTimeout(() => {
-      const newBlockElement = document.querySelector(`[data-block-id="${newBlock.id}"]`);
-      if (newBlockElement) {
-        const range = document.createRange();
-        const selection = window.getSelection();
-        // Find first text node in new block
+      // Focus the new block synchronously
+      const newRange = document.createRange();
+      const newSelection = window.getSelection();
         const textNode = newBlockElement.firstChild;
         if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-          range.setStart(textNode, 0);
-          range.setEnd(textNode, 0);
+        newRange.setStart(textNode, 0);
+        newRange.setEnd(textNode, 0);
         } else {
-          range.setStart(newBlockElement, 0);
-          range.setEnd(newBlockElement, 0);
-        }
-        selection.removeAllRanges();
-        selection.addRange(range);
+        newRange.setStart(newBlockElement, 0);
+        newRange.setEnd(newBlockElement, 0);
       }
-    }, 0);
+      newSelection.removeAllRanges();
+      newSelection.addRange(newRange);
+      newBlockElement.focus();
+      this.autoScrollToCaret();
+    }
   }
 
   /**
    * Handle Backspace key - merge with previous block if at start, or delete image if adjacent
+   * DOM is authoritative: sync from DOM FIRST
    */
   handleBackspaceKey(e) {
     // Check if an image is selected first
@@ -435,6 +742,9 @@ class CreatePost {
       this.deleteSelectedImage(selectedImage);
       return;
     }
+
+    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
+    this.syncDocumentFromDOM();
 
     const focusedBlock = this.getFocusedBlock();
     if (!focusedBlock) return;
@@ -476,92 +786,139 @@ class CreatePost {
       return;
     }
 
-    // Handle deletion when caret is at start of paragraph
-    if (blockType === 'paragraph' && blockIndex > 0) {
+    // Handle removal of block formatting when cursor is at start of block-formatted line
       const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
       const isAtStart = cursorOffset === 0;
 
+    if (isAtStart && (blockType === 'list-item' || blockType === 'blockquote' || blockType === 'heading')) {
+      // REMOVE BLOCK FORMATTING: Convert back to paragraph IN PLACE
+      e.preventDefault();
+
+      const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+
+      // Convert in place
+      if (blockType === 'heading') {
+        // Replace heading with paragraph
+        const newParagraph = document.createElement('p');
+        Array.from(focusedBlock.attributes).forEach(attr => {
+          if (attr.name !== 'data-block-type' && attr.name !== 'class') {
+            newParagraph.setAttribute(attr.name, attr.value);
+          }
+        });
+        newParagraph.setAttribute('data-block-type', 'paragraph');
+        newParagraph.contentEditable = 'true';
+        newParagraph.textContent = blockText || '\u200B';
+        focusedBlock.parentNode.replaceChild(newParagraph, focusedBlock);
+        
+        // Sync and restore cursor synchronously
+        this.syncDocumentFromDOM();
+        const newRange = document.createRange();
+        const newSelection = window.getSelection();
+        const textNode = newParagraph.firstChild;
+        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+          newRange.setStart(textNode, 0);
+          newRange.setEnd(textNode, 0);
+        } else {
+          newRange.setStart(newParagraph, 0);
+          newRange.setEnd(newParagraph, 0);
+        }
+        newSelection.removeAllRanges();
+        newSelection.addRange(newRange);
+        newParagraph.focus();
+      } else {
+        // Convert list-item/blockquote in place
+        focusedBlock.setAttribute('data-block-type', 'paragraph');
+        focusedBlock.classList.remove('stack-list-item', 'stack-blockquote');
+        if (blockText.length === 0) {
+          focusedBlock.textContent = '';
+          focusedBlock.appendChild(document.createTextNode('\u200B'));
+        }
+        
+        // Sync and restore cursor synchronously
+        this.syncDocumentFromDOM();
+        const newRange = document.createRange();
+        const newSelection = window.getSelection();
+        const textNode = focusedBlock.firstChild;
+        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+          newRange.setStart(textNode, 0);
+          newRange.setEnd(textNode, 0);
+        } else {
+          newRange.setStart(focusedBlock, 0);
+          newRange.setEnd(focusedBlock, 0);
+        }
+        newSelection.removeAllRanges();
+        newSelection.addRange(newRange);
+        focusedBlock.focus();
+      }
+      
+      this.updatePlaceholderVisibility();
+      return;
+    }
+
+    // Handle deletion when caret is at start of paragraph
+    if (blockType === 'paragraph' && blockIndex > 0) {
       if (isAtStart) {
         const previousBlock = this.document.blocks[blockIndex - 1];
         
-        // If previous block is an image, delete it
+        // If previous block is an image, delete it from DOM
         if (previousBlock && previousBlock.type === 'image') {
           e.preventDefault();
           
-          // Remove the image block
-          this.document.blocks.splice(blockIndex - 1, 1);
-          
-          // Re-render document
-          this.renderDocument();
-          
-          // Focus the current paragraph
-          setTimeout(() => {
-            const currentBlockEl = document.querySelector(`[data-block-id="${this.document.blocks[blockIndex - 1].id}"]`);
-            if (currentBlockEl) {
+          const prevBlockEl = document.querySelector(`[data-block-id="${previousBlock.id}"]`);
+          if (prevBlockEl) {
+            prevBlockEl.remove();
+            this.syncDocumentFromDOM();
+            this.updatePlaceholderVisibility();
+            
+            // Focus current block synchronously
               const newRange = document.createRange();
               const newSelection = window.getSelection();
-              if (currentBlockEl.firstChild && currentBlockEl.firstChild.nodeType === Node.TEXT_NODE) {
-                newRange.setStart(currentBlockEl.firstChild, 0);
-                newRange.setEnd(currentBlockEl.firstChild, 0);
+            const textNode = focusedBlock.firstChild;
+            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+              newRange.setStart(textNode, 0);
+              newRange.setEnd(textNode, 0);
               } else {
-                newRange.setStart(currentBlockEl, 0);
-                newRange.setEnd(currentBlockEl, 0);
+              newRange.setStart(focusedBlock, 0);
+              newRange.setEnd(focusedBlock, 0);
               }
               newSelection.removeAllRanges();
               newSelection.addRange(newRange);
-              currentBlockEl.focus();
-            }
-          }, 0);
-          
-          // Serialize and save
-          const markdown = serializeDocumentToMarkdown(this.document);
-          this.saveDraft(markdown);
-          this.updatePlaceholderVisibility();
+            focusedBlock.focus();
+          }
           return;
         }
         
-        // If previous block is also a paragraph, merge them
+        // If previous block is also a paragraph, merge them in DOM
         if (previousBlock && previousBlock.type === 'paragraph') {
           e.preventDefault();
           
-          const currentBlock = this.document.blocks[blockIndex];
-          // Merge text (remove zero-width spaces)
-          const prevText = (previousBlock.text || '').replace(/\u200B/g, '');
-          const currText = (currentBlock.text || '').replace(/\u200B/g, '');
-          previousBlock.text = prevText + currText;
-          
-          // Remove current block
-          this.document.blocks.splice(blockIndex, 1);
-          
-          // Re-render document
-          this.renderDocument();
-          
-          // Update placeholder visibility
+          const prevBlockEl = document.querySelector(`[data-block-id="${previousBlock.id}"]`);
+          if (prevBlockEl) {
+            const prevText = (prevBlockEl.textContent || '').replace(/\u200B/g, '');
+            const currText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+            
+            // Merge in DOM
+            prevBlockEl.textContent = prevText + currText;
+            focusedBlock.remove();
+            
+            // Sync and restore cursor synchronously
+            this.syncDocumentFromDOM();
           this.updatePlaceholderVisibility();
           
-          // Serialize and save
-          const markdown = serializeDocumentToMarkdown(this.document);
-          this.saveDraft(markdown);
-          
-          // Focus the merged paragraph
-          setTimeout(() => {
-            const mergedBlockEl = document.querySelector(`[data-block-id="${previousBlock.id}"]`);
-            if (mergedBlockEl) {
               const newRange = document.createRange();
               const newSelection = window.getSelection();
-              const textLength = prevText.length;
-              if (mergedBlockEl.firstChild && mergedBlockEl.firstChild.nodeType === Node.TEXT_NODE) {
-                newRange.setStart(mergedBlockEl.firstChild, textLength);
-                newRange.setEnd(mergedBlockEl.firstChild, textLength);
+            const textNode = prevBlockEl.firstChild;
+            if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+              newRange.setStart(textNode, prevText.length);
+              newRange.setEnd(textNode, prevText.length);
               } else {
-                newRange.setStart(mergedBlockEl, 0);
-                newRange.setEnd(mergedBlockEl, 0);
+              newRange.setStart(prevBlockEl, 0);
+              newRange.setEnd(prevBlockEl, 0);
               }
               newSelection.removeAllRanges();
               newSelection.addRange(newRange);
-              mergedBlockEl.focus();
+            prevBlockEl.focus();
             }
-          }, 0);
           return;
         }
       }
@@ -572,6 +929,7 @@ class CreatePost {
 
   /**
    * Handle Delete key - merge with next block if at end, or delete image if adjacent
+   * DOM is authoritative: sync from DOM FIRST
    */
   handleDeleteKey(e) {
     // Check if an image is selected first
@@ -581,6 +939,9 @@ class CreatePost {
       this.deleteSelectedImage(selectedImage);
       return;
     }
+
+    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
+    this.syncDocumentFromDOM();
 
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
@@ -593,91 +954,293 @@ class CreatePost {
     const currentBlock = this.document.blocks[blockIndex];
 
     // If cursor is at the end of a paragraph block
-    if (currentBlock && currentBlock.type === 'paragraph' && range.startOffset === (currentBlock.text || '').replace(/\u200B/g, '').length && range.collapsed) {
-      e.preventDefault(); // Prevent default browser delete behavior
+    if (currentBlock && currentBlock.type === 'paragraph' && range.collapsed) {
+      const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
+      const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+      const isAtEnd = cursorOffset >= blockText.length;
+      
+      if (isAtEnd) {
+        e.preventDefault();
 
       const nextBlockIndex = blockIndex + 1;
       if (nextBlockIndex >= this.document.blocks.length) {
-        // Last block, allow default behavior (e.g., deleting trailing spaces)
         return;
       }
 
       const nextBlock = this.document.blocks[nextBlockIndex];
       if (!nextBlock) return;
 
+        const nextBlockEl = document.querySelector(`[data-block-id="${nextBlock.id}"]`);
+        if (!nextBlockEl) return;
+
       if (nextBlock.type === 'image' || nextBlock.type === 'rawhtml') {
-        // Delete the next image/rawhtml block
-        this.document.blocks.splice(nextBlockIndex, 1);
-        this.renderDocument();
+          // Delete the next block from DOM
+          nextBlockEl.remove();
+          this.syncDocumentFromDOM();
         this.updatePlaceholderVisibility();
 
-        // Keep cursor at the end of the current block
-        setTimeout(() => {
-          const newFocusedElement = document.querySelector(`[data-block-id="${currentBlock.id}"]`);
-          if (newFocusedElement) {
+          // Keep cursor at the end of the current block synchronously
             const newRange = document.createRange();
             const newSelection = window.getSelection();
-            const textNode = newFocusedElement.firstChild;
+          const textNode = focusedBlock.firstChild;
             if (textNode && textNode.nodeType === Node.TEXT_NODE) {
               newRange.setStart(textNode, textNode.textContent.length);
               newRange.setEnd(textNode, textNode.textContent.length);
             } else {
-              newRange.setStart(newFocusedElement, 0);
-              newRange.setEnd(newFocusedElement, 0);
+            newRange.setStart(focusedBlock, 0);
+            newRange.setEnd(focusedBlock, 0);
             }
             newSelection.removeAllRanges();
             newSelection.addRange(newRange);
-          }
-        }, 0);
-        this.saveDraft(serializeDocumentToMarkdown(this.document));
+          focusedBlock.focus();
         return;
       } else if (nextBlock.type === 'paragraph' || nextBlock.type === 'heading') {
-        // Merge next paragraph/heading into current paragraph
-        const currText = (currentBlock.text || '').replace(/\u200B/g, '');
-        const nextText = (nextBlock.text || '').replace(/\u200B/g, '');
-        currentBlock.text = currText + nextText;
-        this.document.blocks.splice(nextBlockIndex, 1);
-        this.renderDocument();
+          // Merge next block into current in DOM
+          const currText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+          const nextText = (nextBlockEl.textContent || '').replace(/\u200B/g, '');
+          
+          focusedBlock.textContent = currText + nextText;
+          nextBlockEl.remove();
+          
+          this.syncDocumentFromDOM();
         this.updatePlaceholderVisibility();
 
-        // Keep cursor at the merge point in the current block
-        setTimeout(() => {
-          const mergedBlockElement = document.querySelector(`[data-block-id="${currentBlock.id}"]`);
-          if (mergedBlockElement) {
+          // Keep cursor at the merge point synchronously
             const newRange = document.createRange();
             const newSelection = window.getSelection();
-            const textNode = mergedBlockElement.firstChild;
+          const textNode = focusedBlock.firstChild;
             if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-              const offset = Math.min(currText.length, textNode.textContent.length);
-              newRange.setStart(textNode, offset);
-              newRange.setEnd(textNode, offset);
+            newRange.setStart(textNode, currText.length);
+            newRange.setEnd(textNode, currText.length);
             } else {
-              newRange.setStart(mergedBlockElement, 0);
-              newRange.setEnd(mergedBlockElement, 0);
+            newRange.setStart(focusedBlock, 0);
+            newRange.setEnd(focusedBlock, 0);
             }
             newSelection.removeAllRanges();
             newSelection.addRange(newRange);
-          }
-        }, 0);
-        this.saveDraft(serializeDocumentToMarkdown(this.document));
+          focusedBlock.focus();
         return;
+        }
       }
     } else if (focusedBlock.getAttribute('data-block-type') === 'image') {
-      // If an image block is somehow focused, delete it
+      // If an image block is somehow focused, delete it from DOM
       e.preventDefault();
-      this.document.blocks.splice(blockIndex, 1);
-      this.renderDocument();
+      focusedBlock.remove();
+      this.syncDocumentFromDOM();
       this.updatePlaceholderVisibility();
-      this.saveDraft(serializeDocumentToMarkdown(this.document));
       return;
     }
     // Allow default browser behavior for other cases
   }
 
   /**
+   * Check for auto-conversion triggers when marker characters or space are typed
+   * Operates on the active line only, after text insertion
+   */
+  checkAutoConversion(e) {
+    // Only check on text insertion (not deletion, formatting, etc.)
+    if (e.inputType !== 'insertText' && e.inputType !== 'insertCompositionText') {
+      return false;
+    }
+
+    const insertedChar = e.data || '';
+    
+    // Check if inserted character is a marker OR space (for fallback)
+    const isMarker = insertedChar === '#' || insertedChar === '*' || insertedChar === '-' || insertedChar === '>';
+    const isSpace = insertedChar === ' ';
+    
+    if (!isMarker && !isSpace) {
+      return false;
+    }
+
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return false;
+
+    const focusedBlock = this.getFocusedBlock();
+    if (!focusedBlock) return false;
+
+    // Only convert paragraph blocks
+    const blockType = focusedBlock.getAttribute('data-block-type');
+    if (blockType !== 'paragraph') return false;
+
+    // Get block text (ignoring zero-width chars)
+    const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+    
+    // Check if marker is at TRUE start of block (after trimming leading whitespace)
+    const trimmedText = blockText.trimStart();
+    const leadingWhitespace = blockText.length - trimmedText.length;
+    
+    // Check for conversion markers at the start
+    let conversionType = null;
+    let markerLength = 0;
+    let remainingText = '';
+
+    // Check for markers (must be at true start)
+    // Conversion occurs ONLY when marker + space is present
+    // Priority: check longer patterns first (## before #)
+    if (trimmedText.startsWith('##')) {
+      // H2: convert only when ## + space is present
+      if (trimmedText.startsWith('## ')) {
+        // Already has space, convert
+        conversionType = 'heading2';
+        markerLength = 3; // "## "
+        remainingText = trimmedText.substring(3);
+      } else if (isSpace && trimmedText === '##') {
+        // User just typed space after ##
+        conversionType = 'heading2';
+        markerLength = 3; // "## "
+        remainingText = '';
+      }
+    } else if (trimmedText.startsWith('#')) {
+      // H1: convert only when # + space is present
+      if (trimmedText.startsWith('# ')) {
+        // Already has space, convert
+        conversionType = 'heading1';
+        markerLength = 2; // "# "
+        remainingText = trimmedText.substring(2);
+      } else if (isSpace && trimmedText === '#') {
+        // User just typed space after #
+        conversionType = 'heading1';
+        markerLength = 2; // "# "
+        remainingText = '';
+      }
+    } else if (trimmedText.startsWith('*')) {
+      // List: convert only when * + space is present
+      if (trimmedText.startsWith('* ')) {
+        // Already has space, convert
+        conversionType = 'list';
+        markerLength = 2; // "* "
+        remainingText = trimmedText.substring(2);
+      } else if (isSpace && trimmedText === '*') {
+        // User just typed space after *
+        conversionType = 'list';
+        markerLength = 2; // "* "
+        remainingText = '';
+      }
+    } else if (trimmedText.startsWith('-')) {
+      // List: convert only when - + space is present
+      if (trimmedText.startsWith('- ')) {
+        // Already has space, convert
+        conversionType = 'list';
+        markerLength = 2; // "- "
+        remainingText = trimmedText.substring(2);
+      } else if (isSpace && trimmedText === '-') {
+        // User just typed space after -
+        conversionType = 'list';
+        markerLength = 2; // "- "
+        remainingText = '';
+      }
+    } else if (trimmedText.startsWith('>')) {
+      // Blockquote: convert only when > + space is present
+      if (trimmedText.startsWith('> ')) {
+        // Already has space, convert
+        conversionType = 'blockquote';
+        markerLength = 2; // "> "
+        remainingText = trimmedText.substring(2);
+      } else if (isSpace && trimmedText === '>') {
+        // User just typed space after >
+        conversionType = 'blockquote';
+        markerLength = 2; // "> "
+        remainingText = '';
+      }
+    }
+
+    if (!conversionType) return false;
+
+    // Convert block IN PLACE where possible
+    if (conversionType === 'heading1' || conversionType === 'heading2') {
+      const level = conversionType === 'heading1' ? 1 : 2;
+      
+      // Replace with heading element
+      const newHeading = document.createElement(`h${level}`);
+      Array.from(focusedBlock.attributes).forEach(attr => {
+        if (attr.name !== 'data-block-type') {
+          newHeading.setAttribute(attr.name, attr.value);
+        }
+      });
+      newHeading.setAttribute('data-block-type', 'heading');
+      newHeading.contentEditable = 'true';
+      newHeading.textContent = (leadingWhitespace > 0 ? ' '.repeat(leadingWhitespace) : '') + remainingText;
+      
+      focusedBlock.parentNode.replaceChild(newHeading, focusedBlock);
+      
+      // Sync document state
+      this.syncDocumentFromDOM();
+      
+      // Place cursor synchronously at end of remaining text
+      const newRange = document.createRange();
+      const newSelection = window.getSelection();
+      const textNode = newHeading.firstChild;
+      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+        const cursorPos = Math.min(leadingWhitespace + remainingText.length, textNode.textContent.length);
+        newRange.setStart(textNode, cursorPos);
+        newRange.setEnd(textNode, cursorPos);
+      } else {
+        newRange.setStart(newHeading, 0);
+        newRange.setEnd(newHeading, 0);
+      }
+      newSelection.removeAllRanges();
+      newSelection.addRange(newRange);
+      newHeading.focus();
+      
+      return true;
+    } else if (conversionType === 'list' || conversionType === 'blockquote') {
+      // Convert in place by changing attributes
+      if (conversionType === 'list') {
+        focusedBlock.setAttribute('data-block-type', 'list-item');
+        focusedBlock.classList.add('stack-list-item');
+      } else {
+        focusedBlock.setAttribute('data-block-type', 'blockquote');
+        focusedBlock.classList.add('stack-blockquote');
+      }
+      
+      // Update text content (remove marker)
+      focusedBlock.textContent = (leadingWhitespace > 0 ? ' '.repeat(leadingWhitespace) : '') + remainingText;
+      
+      // Sync document state
+      this.syncDocumentFromDOM();
+      
+      // Place cursor synchronously at end of remaining text
+      const newRange = document.createRange();
+      const newSelection = window.getSelection();
+      const textNode = focusedBlock.firstChild;
+      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+        const cursorPos = Math.min(leadingWhitespace + remainingText.length, textNode.textContent.length);
+        newRange.setStart(textNode, cursorPos);
+        newRange.setEnd(textNode, cursorPos);
+      } else {
+        newRange.setStart(focusedBlock, 0);
+        newRange.setEnd(focusedBlock, 0);
+      }
+      newSelection.removeAllRanges();
+      newSelection.addRange(newRange);
+      focusedBlock.focus();
+      
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Handle input events - update document model
+   * DOM is authoritative: always read from DOM to update state
    */
   handleEditorInput(e) {
+    // Check for auto-conversion BEFORE syncing (conversion modifies DOM directly)
+    if (this.checkAutoConversion(e)) {
+      // Conversion happened, sync and return early
+      this.syncDocumentFromDOM();
+      this.scheduleSerialization();
+      this.updatePlaceholderVisibility();
+      this.updateNextStepButton();
+      return;
+    }
+
+    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
+    // This ensures any pending edits are captured before we process the input
+    this.syncDocumentFromDOM();
+
     const focusedBlock = this.getFocusedBlock();
     if (!focusedBlock) return;
 
@@ -688,8 +1251,8 @@ class CreatePost {
 
     if (!block) return;
 
-    // Update block text based on type
-    if (blockType === 'paragraph' || blockType === 'heading') {
+    // Update block text based on type (read from DOM)
+    if (blockType === 'paragraph' || blockType === 'heading' || blockType === 'list-item' || blockType === 'blockquote') {
       let newText = focusedBlock.textContent || '';
       // Remove zero-width space if present
       newText = newText.replace(/\u200B/g, '');
@@ -705,6 +1268,71 @@ class CreatePost {
     
     // Update next step button state
     this.updateNextStepButton();
+
+    // Auto-scroll to keep caret visible
+    this.autoScrollToCaret();
+  }
+
+  /**
+   * Auto-scroll editor container to keep caret visible
+   * Only scrolls when caret is near or past viewport edges
+   */
+  autoScrollToCaret() {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+    
+    // Don't scroll if selection spans multiple lines
+    if (!range.collapsed) {
+      // Check if selection spans multiple blocks
+      const startBlock = range.startContainer.nodeType === Node.TEXT_NODE 
+        ? range.startContainer.parentElement.closest('[data-block-id]')
+        : range.startContainer.closest('[data-block-id]');
+      const endBlock = range.endContainer.nodeType === Node.TEXT_NODE
+        ? range.endContainer.parentElement.closest('[data-block-id]')
+        : range.endContainer.closest('[data-block-id]');
+      
+      if (startBlock !== endBlock) {
+        return; // Multi-block selection, don't auto-scroll
+      }
+    }
+
+    // Get caret position
+    const caretRect = range.getBoundingClientRect();
+    
+    // Get editor container (scrollable wrapper)
+    const editor = document.querySelector('#stack-post-body-editor');
+    if (!editor) return;
+    
+    const container = editor.closest('.stack-post-body-field');
+    if (!container) return;
+    
+    const containerRect = container.getBoundingClientRect();
+    
+    // Calculate distances from caret to container edges
+    const caretTop = caretRect.top;
+    const caretBottom = caretRect.bottom;
+    const containerTop = containerRect.top;
+    const containerBottom = containerRect.bottom;
+    
+    const threshold = 48; // ~48px threshold
+    
+    // Check if caret is near or past bottom edge
+    if (caretBottom >= containerBottom - threshold) {
+      // Scroll down incrementally - just enough to bring caret into comfortable view
+      const scrollDelta = caretBottom - (containerBottom - threshold);
+      // Add a bit more to keep caret comfortably visible
+      container.scrollTop += scrollDelta + threshold;
+    }
+    // Check if caret is above container top
+    else if (caretTop < containerTop) {
+      // Scroll up incrementally - just enough to bring caret into view
+      const scrollDelta = containerTop - caretTop;
+      // Add a bit more to keep caret comfortably visible
+      container.scrollTop -= scrollDelta + threshold;
+    }
+    // Caret is comfortably visible, no scrolling needed
   }
 
   /**
@@ -722,11 +1350,17 @@ class CreatePost {
       e.preventDefault();
       const file = imageItem.getAsFile();
       await this.insertImageAtCursor(file);
+      // Sync after image insertion
+      this.syncDocumentFromDOM();
+      // Auto-scroll after paste
+      setTimeout(() => {
+        this.autoScrollToCaret();
+      }, 0);
       return;
     }
 
     // Handle text paste - let default behavior happen, then process
-    // We'll handle this in the input event
+    // Auto-scroll will be handled by input event
   }
 
   /**
@@ -791,6 +1425,9 @@ class CreatePost {
   async handleDrop(e) {
     e.preventDefault();
     e.stopPropagation();
+
+    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
+    this.syncDocumentFromDOM();
 
     this.removeInsertionIndicators();
     this.isDragging = false;
@@ -1172,6 +1809,9 @@ class CreatePost {
   async insertImageAtCursor(file, dropPosition = null) {
     if (!file || !file.type.startsWith('image/')) return;
 
+    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
+    this.syncDocumentFromDOM();
+
     // Read file as data URL
     const dataUrl = await new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -1237,24 +1877,36 @@ class CreatePost {
       insertIndex = this.document.blocks.length;
     }
 
-    // If we need to split a block, do it first
+    // Get editor reference
+    const editor = document.querySelector('#stack-post-body-editor');
+    if (!editor) return;
+
+    // If we need to split a block, do it first in DOM
     if (needsBlockSplit && splitInfo && blockToSplitIndex >= 0 && blockToSplitIndex < this.document.blocks.length) {
       const blockToSplit = this.document.blocks[blockToSplitIndex];
       if (blockToSplit && blockToSplit.type === 'paragraph') {
+        const blockToSplitEl = document.querySelector(`[data-block-id="${blockToSplit.id}"]`);
+        if (blockToSplitEl) {
         // Update the original block with text before the split
-        blockToSplit.text = splitInfo.beforeText.trim();
-        
-        // Create a new paragraph block with text after the split
-        const afterBlock = {
-          type: 'paragraph',
-          id: generateBlockId(this.document.blocks.length),
-          text: splitInfo.afterText.trim()
-        };
-        
-        // Insert the after-block at insertIndex (which is already blockToSplitIndex + 1)
-        // This places it right after the original block (which is now split)
-        this.document.blocks.splice(insertIndex, 0, afterBlock);
+          blockToSplitEl.textContent = splitInfo.beforeText.trim();
+          
+          // Create a new paragraph block with text after the split in DOM
+          const afterBlockEl = document.createElement('p');
+          const afterBlockId = generateBlockId(this.document.blocks.length);
+          afterBlockEl.setAttribute('data-block-id', afterBlockId);
+          afterBlockEl.setAttribute('data-block-type', 'paragraph');
+          afterBlockEl.setAttribute('data-block-index', insertIndex.toString());
+          afterBlockEl.contentEditable = 'true';
+          afterBlockEl.textContent = splitInfo.afterText.trim();
+          
+          // Insert after the split block
+          if (blockToSplitEl.nextSibling) {
+            editor.insertBefore(afterBlockEl, blockToSplitEl.nextSibling);
+          } else {
+            editor.appendChild(afterBlockEl);
+          }
         // insertIndex remains correct for the image (after the new after-block)
+        }
       }
     }
 
@@ -1266,47 +1918,63 @@ class CreatePost {
       caption: file.name || '' // Optional caption, hidden by default
     };
 
-    // Insert image block
-    this.document.blocks.splice(insertIndex, 0, imageBlock);
+    // Create image element in DOM
+    const imageElement = document.createElement('figure');
+    imageElement.setAttribute('data-block-id', imageBlock.id);
+    imageElement.setAttribute('data-block-type', 'image');
+    imageElement.setAttribute('data-block-index', insertIndex.toString());
+    imageElement.className = 'stack-image-block';
+    imageElement.contentEditable = false;
 
-    // Create new paragraph block after image for cursor
-    const newParagraphBlock = {
-      type: 'paragraph',
-      id: generateBlockId(this.document.blocks.length + 1),
-      text: ''
-    };
-    this.document.blocks.splice(insertIndex + 1, 0, newParagraphBlock);
+    const img = document.createElement('img');
+    img.src = imageDataUrl;
+    img.alt = imageBlock.caption || '';
+    img.style.maxWidth = '100%';
+    img.style.height = 'auto';
+    img.style.display = 'block';
+    img.style.margin = '0 auto';
+    imageElement.appendChild(img);
 
-    // Re-render document
-    this.renderDocument();
+    // Create new paragraph element in DOM
+    const newParagraphElement = document.createElement('p');
+    const newParagraphId = generateBlockId(this.document.blocks.length + 1);
+    newParagraphElement.setAttribute('data-block-id', newParagraphId);
+    newParagraphElement.setAttribute('data-block-type', 'paragraph');
+    newParagraphElement.setAttribute('data-block-index', (insertIndex + 1).toString());
+    newParagraphElement.contentEditable = 'true';
+    newParagraphElement.textContent = '';
+    newParagraphElement.appendChild(document.createTextNode('\u200B'));
 
-    // Update placeholder visibility
-    this.updatePlaceholderVisibility();
-
-    // Focus the new paragraph block
-    setTimeout(() => {
-      const newBlockElement = document.querySelector(`[data-block-id="${newParagraphBlock.id}"]`);
-      if (newBlockElement) {
-        const range = document.createRange();
-        const selection = window.getSelection();
-        if (newBlockElement.firstChild) {
-          range.setStart(newBlockElement.firstChild, 0);
-          range.setEnd(newBlockElement.firstChild, 0);
+    // Insert into DOM
+    if (insertIndex >= editor.children.length) {
+      editor.appendChild(imageElement);
+      editor.appendChild(newParagraphElement);
         } else {
-          range.setStart(newBlockElement, 0);
-          range.setEnd(newBlockElement, 0);
+      const insertBefore = editor.children[insertIndex];
+      editor.insertBefore(imageElement, insertBefore);
+      editor.insertBefore(newParagraphElement, imageElement.nextSibling);
         }
-        selection.removeAllRanges();
-        selection.addRange(range);
-      }
-    }, 0);
 
-    // Serialize and save draft
-    const markdown = serializeDocumentToMarkdown(this.document);
-    this.saveDraft(markdown);
+    // Sync document state from DOM
+    this.syncDocumentFromDOM();
 
     // Update placeholder visibility
     this.updatePlaceholderVisibility();
+
+    // Focus the new paragraph synchronously
+    const newRange = document.createRange();
+    const newSelection = window.getSelection();
+    const textNode = newParagraphElement.firstChild;
+    if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+      newRange.setStart(textNode, 0);
+      newRange.setEnd(textNode, 0);
+    } else {
+      newRange.setStart(newParagraphElement, 0);
+      newRange.setEnd(newParagraphElement, 0);
+    }
+    newSelection.removeAllRanges();
+    newSelection.addRange(newRange);
+    newParagraphElement.focus();
   }
 
   /**
@@ -1407,16 +2075,23 @@ class CreatePost {
     if (!targetBlock) {
       targetBlock = editor.querySelector('[contenteditable="true"]');
       
-      // If still no block, ensure we have at least one paragraph
+      // If still no block, ensure we have at least one paragraph in DOM
       if (!targetBlock && this.document.blocks.length === 0) {
         const { generateBlockId } = require('../post-document');
-        this.document.blocks.push({
-          type: 'paragraph',
-          id: generateBlockId(0),
-          text: ''
-        });
-        this.renderDocument();
-        targetBlock = editor.querySelector('[contenteditable="true"]');
+        const newParagraphEl = document.createElement('p');
+        const newParagraphId = generateBlockId(0);
+        newParagraphEl.setAttribute('data-block-id', newParagraphId);
+        newParagraphEl.setAttribute('data-block-type', 'paragraph');
+        newParagraphEl.setAttribute('data-block-index', '0');
+        newParagraphEl.contentEditable = 'true';
+        newParagraphEl.textContent = '';
+        newParagraphEl.appendChild(document.createTextNode('\u200B'));
+        editor.appendChild(newParagraphEl);
+        
+        // Sync document state from DOM
+        this.syncDocumentFromDOM();
+        
+        targetBlock = newParagraphEl;
       }
     }
 
@@ -1539,49 +2214,61 @@ class CreatePost {
     const blockId = imageElement.getAttribute('data-block-id');
     if (!blockId) return;
 
-    const blockIndex = this.document.blocks.findIndex(block => block.id === blockId);
-    if (blockIndex < 0) return;
+    // Find target element BEFORE removing (to move caret to)
+    const editor = document.querySelector('#stack-post-body-editor');
+    if (!editor) return;
 
-    // Remove the image block from the document
-    this.document.blocks.splice(blockIndex, 1);
-
-    // Re-render the document
-    this.renderDocument();
-    this.updatePlaceholderVisibility();
-
-    // Move caret to an adjacent paragraph
-    setTimeout(() => {
-      let targetBlock = null;
-      
-      // Try to find a paragraph block after the deleted image
-      if (blockIndex < this.document.blocks.length) {
-        targetBlock = this.document.blocks[blockIndex];
-      }
+    let targetElement = null;
+    
+    // Try to find a paragraph block after the image
+    const nextSibling = imageElement.nextSibling;
+    if (nextSibling && nextSibling.hasAttribute && nextSibling.hasAttribute('contenteditable')) {
+      targetElement = nextSibling;
+    }
+    
       // If no block after, try the one before
-      if (!targetBlock && blockIndex > 0) {
-        targetBlock = this.document.blocks[blockIndex - 1];
+    if (!targetElement) {
+      const prevSibling = imageElement.previousSibling;
+      if (prevSibling && prevSibling.hasAttribute && prevSibling.hasAttribute('contenteditable')) {
+        targetElement = prevSibling;
       }
-      // If still no block, create a new empty paragraph
-      if (!targetBlock) {
-        const { generateBlockId } = require('../post-document');
-        targetBlock = {
-          type: 'paragraph',
-          id: generateBlockId(this.document.blocks.length),
-          text: ''
-        };
-        this.document.blocks.push(targetBlock);
-        this.renderDocument();
-      }
+    }
 
-      // Focus the target block
-      if (targetBlock) {
-        const targetElement = document.querySelector(`[data-block-id="${targetBlock.id}"]`);
+    // Remove the image block from DOM
+    imageElement.remove();
+
+    // Sync document state from DOM
+    this.syncDocumentFromDOM();
+
+    // Update placeholder visibility
+    this.updatePlaceholderVisibility();
+    
+    // If still no block, create a new empty paragraph in DOM
+    if (!targetElement) {
+        const { generateBlockId } = require('../post-document');
+      const newParagraphEl = document.createElement('p');
+      const newParagraphId = generateBlockId(this.document.blocks.length);
+      newParagraphEl.setAttribute('data-block-id', newParagraphId);
+      newParagraphEl.setAttribute('data-block-type', 'paragraph');
+      newParagraphEl.setAttribute('data-block-index', '0');
+      newParagraphEl.contentEditable = 'true';
+      newParagraphEl.textContent = '';
+      newParagraphEl.appendChild(document.createTextNode('\u200B'));
+      editor.appendChild(newParagraphEl);
+      targetElement = newParagraphEl;
+      
+      // Sync after creating new block
+      this.syncDocumentFromDOM();
+    }
+
+    // Focus the target block synchronously
         if (targetElement && targetElement.hasAttribute('contenteditable')) {
           const range = document.createRange();
           const selection = window.getSelection();
           
           // Place cursor at the end of the block if it's a paragraph/heading
-          if (targetBlock.type === 'paragraph' || targetBlock.type === 'heading') {
+      const blockType = targetElement.getAttribute('data-block-type');
+      if (blockType === 'paragraph' || blockType === 'heading') {
             const textNode = targetElement.firstChild;
             if (textNode && textNode.nodeType === Node.TEXT_NODE) {
               const textLength = textNode.textContent.replace(/\u200B/g, '').length;
@@ -1600,13 +2287,6 @@ class CreatePost {
           selection.addRange(range);
           targetElement.focus();
         }
-      }
-    }, 0);
-
-    // Serialize and save draft
-    const { serializeDocumentToMarkdown } = require('../post-document');
-    const markdown = serializeDocumentToMarkdown(this.document);
-    this.saveDraft(markdown);
   }
 
   attachEvents() {
