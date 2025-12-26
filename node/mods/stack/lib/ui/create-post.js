@@ -403,6 +403,13 @@ class CreatePost {
     let node = selection.anchorNode;
     while (node && node !== document) {
       if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute('data-block-id')) {
+        // Code blocks require special handling: <pre> elements with data-block-id must be
+        // treated as blocks even when selection is inside nested <code> or other elements
+        // The browser may create nested structure (e.g., <pre><code>text</code></pre>),
+        // but we must always resolve to the <pre> element that has data-block-id
+        if (node.tagName === 'PRE' && node.getAttribute('data-block-type') === 'code') {
+          return node;
+        }
         return node;
       }
       node = node.parentNode;
@@ -525,6 +532,9 @@ class CreatePost {
 
     // Postcondition enforcement: track structural mutations
     let didMutateStructure = false;
+    
+    // Option 2: Store trailing text from code block normalization for completion phase
+    let codeBlockTrailingText = null;
 
     // ========================================================================
     // BLOCK TYPE INFERENCE RULES (NON-NEGOTIABLE)
@@ -677,6 +687,72 @@ class CreatePost {
         // Update focusedBlock and blockType for Enter completion
         focusedBlock = liElement;
         blockType = 'list-item';
+      }
+
+      // Check for markdown blockquote creation: "> " at start of paragraph
+      // Normalization is PURELY STRUCTURAL - no Selection/Range reading allowed
+      // PRECONDITION: Block's visible content (after removing ZWSP) must START WITH the trigger
+      const blockquoteBlockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+      const blockquoteTrimmedText = blockquoteBlockText.trimStart();
+      
+      if (blockquoteTrimmedText.startsWith('> ')) {
+        // Normalization ONLY detects blockquote intent, does NOT create siblings
+        const blockquoteLeadingWhitespace = blockquoteBlockText.length - blockquoteTrimmedText.length;
+        const blockquoteMarkerEndOffset = blockquoteLeadingWhitespace + 2;
+        const blockquoteText = blockquoteBlockText.substring(blockquoteMarkerEndOffset);
+        
+        // Convert paragraph to blockquote (this is converting current block, not creating siblings)
+        const blockquoteElement = document.createElement('blockquote');
+        const blockquoteId = generateBlockId(this.getBlockCount());
+        blockquoteElement.setAttribute('data-block-id', blockquoteId);
+        blockquoteElement.setAttribute('data-block-type', 'blockquote');
+        blockquoteElement.contentEditable = 'true';
+        blockquoteElement.textContent = blockquoteText;
+        
+        // Replace paragraph with blockquote
+        focusedBlock.parentNode.replaceChild(blockquoteElement, focusedBlock);
+        
+        // Update focusedBlock and blockType for Enter completion
+        focusedBlock = blockquoteElement;
+        blockType = 'blockquote';
+      }
+
+      // Check for markdown code block creation: "```" at line start (Option 2: supports trailing text)
+      // Normalization is PURELY STRUCTURAL - no Selection/Range reading allowed
+      // PRECONDITION: After trimming leading whitespace, text must begin with exactly "```"
+      // The backticks must be the first non-whitespace characters (line start intent)
+      // Normalization is intentionally strict to prevent over-triggering in paste/mid-line scenarios
+      const codeBlockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+      const trimmedStart = codeBlockText.trimStart();
+      
+      if (trimmedStart.startsWith('```')) {
+        // Verify trailing text (if any) is on the same line (no newlines between backticks and text)
+        const afterBackticks = trimmedStart.substring(3);
+        const hasNewlineInTrailing = afterBackticks.includes('\n');
+        
+        // Only normalize if backticks are at line start and trailing text (if any) is on same line
+        if (!hasNewlineInTrailing) {
+          // Option 2: Capture trailing text after the three backticks for completion phase
+          // The opening backticks are removed; trailing text (if any) is stored for insertion
+          const trailingText = afterBackticks.trim() || null;
+          codeBlockTrailingText = trailingText; // Store null if empty, not empty string
+          
+          // Normalization ONLY detects code block intent, does NOT create siblings
+          // Convert paragraph to code block (this is converting current block, not creating siblings)
+          const codeElement = document.createElement('pre');
+          const codeId = generateBlockId(this.getBlockCount());
+          codeElement.setAttribute('data-block-id', codeId);
+          codeElement.setAttribute('data-block-type', 'code');
+          codeElement.contentEditable = 'true';
+          codeElement.textContent = ''; // Start with empty code block (canonical structure)
+          
+          // Replace paragraph with code block
+          focusedBlock.parentNode.replaceChild(codeElement, focusedBlock);
+          
+          // Update focusedBlock and blockType for Enter completion
+          focusedBlock = codeElement;
+          blockType = 'code';
+        }
       }
     }
 
@@ -857,19 +933,62 @@ class CreatePost {
     }
 
     // ========================================================================
+    // EMPTY BLOCKQUOTE EXIT: Remove blockquote and create paragraph in its place
+    // ========================================================================
+    // Enter on empty blockquote: Remove the blockquote, create paragraph in its place.
+    // NO cursor offset logic - this is unconditional block replacement.
+    // 
+    // ILLEGAL: Offset logic is illegal here. Cursor offset logic exists ONLY in paragraph splitting.
+    const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '').trim();
+    const isEmpty = blockText.length === 0;
+
+    if (blockType === 'blockquote' && isEmpty) {
+      // Remove blockquote and create paragraph in its place
+      // e.preventDefault() already called at function start
+      // NO cursor offset logic - this is unconditional block replacement
+      // ILLEGAL: Offset logic is illegal here
+      
+      const editor = focusedBlock.parentNode;
+      const newBlockElement = document.createElement('p');
+      const newBlockId = generateBlockId(this.getBlockCount());
+      newBlockElement.setAttribute('data-block-id', newBlockId);
+      newBlockElement.setAttribute('data-block-type', 'paragraph');
+      newBlockElement.contentEditable = 'true';
+      // ILLEGAL: Blocks MUST have a text node. ENTER completion must ensure new blocks contain a caret anchor.
+      const caretAnchor = document.createTextNode('\u200B');
+      newBlockElement.appendChild(caretAnchor);
+      
+      // Replace blockquote with paragraph
+      editor.replaceChild(newBlockElement, focusedBlock);
+      
+      this.updatePlaceholderVisibility();
+      
+      // Enter completion is the sole authority for cursor placement.
+      const newRange = document.createRange();
+      const newSelection = window.getSelection();
+      newRange.setStart(caretAnchor, 0);
+      newRange.setEnd(caretAnchor, 0);
+      newSelection.removeAllRanges();
+      newSelection.addRange(newRange);
+      newBlockElement.focus();
+      this.autoScrollToCaret();
+      didMutateStructure = true;
+      return;
+    }
+
+    // ========================================================================
     // EMPTY BLOCK EXIT: Exit block when empty (no text splitting)
     // ========================================================================
-    // Heading/List/Blockquote Enter exits the block and does NOT split text.
+    // Heading/List Enter exits the block and does NOT split text.
     // When the block is empty, convert it to paragraph and create new paragraph below.
     // NO cursor offset logic - this is unconditional block exit.
     // 
     // ILLEGAL: Offset logic is illegal here. Cursor offset logic exists ONLY in paragraph splitting.
     // Using getTextOffsetInBlock() or originalCursorOffset here is a structural violation.
-    const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '').trim();
-    const isBlockFormatted = blockType === 'list-item' || blockType === 'blockquote' || blockType === 'heading';
-    const isEmpty = blockText.length === 0;
+    const isBlockFormatted = blockType === 'list-item' || blockType === 'heading';
+    const isEmptyFormatted = blockText.length === 0;
 
-    if (isBlockFormatted && isEmpty) {
+    if (isBlockFormatted && isEmptyFormatted) {
       // EXIT BLOCK: Remove formatting and create normal paragraph
       // e.preventDefault() already called at function start
       // NO cursor offset logic - this is unconditional block exit
@@ -920,6 +1039,135 @@ class CreatePost {
       newBlockElement.focus();
       this.autoScrollToCaret();
       didMutateStructure = true;
+      return;
+    }
+
+    // ========================================================================
+    // CODE BLOCK ENTER: Insert newline or exit block
+    // ========================================================================
+    // Enter inside code block either inserts a newline (didMutateStructure = false allowed)
+    // or exits the block if user types "```" on an empty line.
+    // Code blocks use cursor position to detect exit trigger, but do NOT split text.
+    if (blockType === 'code') {
+      // Option 2: If code block was just normalized with trailing text, insert it as first line
+      if (codeBlockTrailingText !== null) {
+        // Insert trailing text as the first line inside the code block
+        // Canonical structure: code block content always begins on its own line
+        const textNode = document.createTextNode(codeBlockTrailingText);
+        focusedBlock.appendChild(textNode);
+        
+        // Place cursor immediately after the inserted text
+        const newRange = document.createRange();
+        const newSelection = window.getSelection();
+        newRange.setStart(textNode, textNode.textContent.length);
+        newRange.setEnd(textNode, textNode.textContent.length);
+        newSelection.removeAllRanges();
+        newSelection.addRange(newRange);
+        focusedBlock.focus();
+        this.autoScrollToCaret();
+        
+        // Clear the trailing text (one-time insertion)
+        codeBlockTrailingText = null;
+        didMutateStructure = true;
+        return;
+      }
+      // Check if current line is exactly "```" - if so, exit code block
+      const codeText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+      const currentSelection = window.getSelection();
+      if (currentSelection.rangeCount > 0) {
+        const range = currentSelection.getRangeAt(0);
+        // Calculate cursor offset directly from range (not using getTextOffsetInBlock helper)
+        let cursorOffset = 0;
+        const walker = document.createTreeWalker(
+          focusedBlock,
+          NodeFilter.SHOW_TEXT,
+          null
+        );
+        let textNode = walker.nextNode();
+        while (textNode) {
+          if (textNode === range.startContainer) {
+            cursorOffset += range.startOffset;
+            break;
+          }
+          const textLength = textNode.textContent.replace(/\u200B/g, '').length;
+          cursorOffset += textLength;
+          textNode = walker.nextNode();
+        }
+        
+        // Find the current line by looking backwards for newline
+        let lineStart = 0;
+        for (let i = cursorOffset - 1; i >= 0; i--) {
+          if (codeText[i] === '\n') {
+            lineStart = i + 1;
+            break;
+          }
+        }
+        
+        // Find the end of the current line
+        let lineEnd = codeText.length;
+        for (let i = cursorOffset; i < codeText.length; i++) {
+          if (codeText[i] === '\n') {
+            lineEnd = i;
+            break;
+          }
+        }
+        
+        // Get current line and check if it's exactly "```"
+        const currentLine = codeText.substring(lineStart, lineEnd).trim();
+        
+        if (currentLine === '```') {
+          // Exit code block: create paragraph below
+      const editor = focusedBlock.parentNode;
+          const newBlockElement = document.createElement('p');
+          const newBlockId = generateBlockId(this.getBlockCount());
+          newBlockElement.setAttribute('data-block-id', newBlockId);
+          newBlockElement.setAttribute('data-block-type', 'paragraph');
+          newBlockElement.contentEditable = 'true';
+          const caretAnchor = document.createTextNode('\u200B');
+          newBlockElement.appendChild(caretAnchor);
+          
+          // Insert after code block
+          if (focusedBlock.nextSibling) {
+            editor.insertBefore(newBlockElement, focusedBlock.nextSibling);
+      } else {
+            editor.appendChild(newBlockElement);
+          }
+          
+          this.updatePlaceholderVisibility();
+          
+          const newRange = document.createRange();
+          const newSelection = window.getSelection();
+          newRange.setStart(caretAnchor, 0);
+          newRange.setEnd(caretAnchor, 0);
+          newSelection.removeAllRanges();
+          newSelection.addRange(newRange);
+          newBlockElement.focus();
+          this.autoScrollToCaret();
+          didMutateStructure = true;
+          return;
+        }
+      }
+      
+      // Not exiting: manually insert newline into code block
+      // didMutateStructure = false is explicitly allowed for code block newlines
+      // This is the ONLY case where didMutateStructure = false is allowed
+      // Since e.preventDefault() was called, we must manually insert the newline
+      if (currentSelection.rangeCount > 0) {
+        const range = currentSelection.getRangeAt(0);
+        const textNode = range.startContainer;
+        if (textNode.nodeType === Node.TEXT_NODE) {
+          const offset = range.startOffset;
+          const text = textNode.textContent;
+          textNode.textContent = text.substring(0, offset) + '\n' + text.substring(offset);
+          // Place cursor after the newline
+          const newRange = document.createRange();
+          newRange.setStart(textNode, offset + 1);
+          newRange.setEnd(textNode, offset + 1);
+          currentSelection.removeAllRanges();
+          currentSelection.addRange(newRange);
+        }
+      }
+      // didMutateStructure remains false - this is the whitelisted exception
       return;
     }
 
@@ -1079,7 +1327,9 @@ class CreatePost {
     this.autoScrollToCaret();
     
     // Postcondition enforcement: every Enter must result in exactly one structural mutation
-    if (!didMutateStructure) {
+    // EXCEPTION: Code blocks allow didMutateStructure = false when Enter inserts a newline
+    // This is the ONLY whitelisted exception to the postcondition
+    if (!didMutateStructure && blockType !== 'code') {
       throw new Error('Enter key violated postcondition: no structural mutation occurred');
     }
   }
