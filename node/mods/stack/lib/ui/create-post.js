@@ -1,12 +1,57 @@
 const CreatePostTemplate = require('./create-post.template');
 const { parseMarkdownToDocument, serializeDocumentToMarkdown, renderDocument, generateBlockId } = require('../post-document');
 
+/**
+ * ============================================================================
+ * EDITOR STRUCTURAL INVARIANTS
+ * ============================================================================
+ * 
+ * These invariants define the core semantics of the editor and must be
+ * maintained by all code paths. Violations cause race conditions, stale state,
+ * and unpredictable behavior.
+ * 
+ * 1. DOM IS SINGLE SOURCE OF TRUTH
+ *    - During editing, the DOM is authoritative
+ *    - JavaScript state is DERIVED from DOM, never authoritative
+ *    - No parallel document/block model exists during live editing
+ * 
+ * 2. STRUCTURAL CHANGES ARE ENTER-AUTHORITATIVE
+ *    - Structural block changes (headings, lists, blockquotes) occur ONLY on
+ *      Enter keydown events
+ *    - input events may change text content but MUST NOT change block structure
+ *    - This ensures deterministic behavior and prevents race conditions
+ * 
+ * 3. SELECTION/RANGE ARE VOLATILE
+ *    - Selection and Range objects become stale after any DOM mutation
+ *    - They must be re-read immediately before use, never cached across
+ *      DOM changes
+ *    - Early capture and reuse causes incorrect cursor positions
+ * 
+ * 4. NORMALIZATION VS COMPLETION
+ *    - Normalization (block type conversion) never creates sibling blocks
+ *    - Normalization updates focusedBlock and blockType in place
+ *    - Enter completion always creates sibling blocks (new paragraphs/list items)
+ *    - These are separate phases that must not be conflated
+ * 
+ * 5. ENTER COMPLETION IS MANDATORY
+ *    - Every Enter keypress must result in exactly one structural change
+ *    - Normalization must NOT return early or consume the Enter action
+ *    - Enter completion logic always runs after normalization
+ *    - Early returns after normalization are forbidden
+ * 
+ * 6. NO STRUCTURAL CONVERSION OUTSIDE handleEnterKey()
+ *    - checkAutoConversion() is a no-op (structural conversion removed)
+ *    - All structural conversion happens in handleEnterKey() only
+ *    - This prevents race conditions and empty blocks during typing
+ * 
+ * ============================================================================
+ */
+
 class CreatePost {
   constructor(app, mod, container = "") {
     this.app = app;
     this.mod = mod;
     this.container = container;
-    this.document = { blocks: [] };
     this.serializeTimeout = null;
     this.DEBOUNCE_MS = 300; // Debounce delay for serialization
     this.saveState = 'draft'; // 'draft', 'saving', 'saved'
@@ -43,7 +88,8 @@ class CreatePost {
   }
 
   /**
-   * Initialize document model from draft or create empty document
+   * Initialize document from draft or create empty document
+   * Uses temporary document model only for initial markdown → DOM conversion
    */
   initializeDocument() {
     const editor = document.querySelector('#stack-post-body-editor');
@@ -62,11 +108,13 @@ class CreatePost {
       console.error('Error loading draft:', err);
     }
 
-    // Parse markdown → document (or create empty document)
-    this.document = markdown ? parseMarkdownToDocument(markdown) : { blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }] };
+    // Parse markdown → temporary document (only for initial render)
+    const tempDocument = markdown ? parseMarkdownToDocument(markdown) : { blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }] };
     
-    // Render document to editor
-    this.renderDocument();
+    // Render document to editor (one-time conversion from markdown to DOM)
+    renderDocument(tempDocument, editor, {
+      contentEditable: true
+    });
     
     // Ensure placeholder is shown if editor is empty
     this.updatePlaceholderVisibility();
@@ -86,18 +134,19 @@ class CreatePost {
       const titleInput = document.querySelector('#stack-post-title-input');
       const editor = document.querySelector('#stack-post-body-editor');
       
-      // Check if there's any existing content
+      // Check if there's any existing content (read from DOM)
       const hasTitle = titleInput && titleInput.value.trim().length > 0;
-      const hasBodyContent = this.document.blocks.some(block => {
-        if (block.type === 'paragraph' || block.type === 'heading') {
-          const text = (block.text || '').replace(/\u200B/g, '').trim();
+      const hasBodyContent = editor && Array.from(editor.querySelectorAll('[data-block-id]')).some(blockEl => {
+        const blockType = blockEl.getAttribute('data-block-type');
+        if (blockType === 'paragraph' || blockType === 'heading' || blockType === 'list-item' || blockType === 'blockquote') {
+          const text = (blockEl.textContent || '').replace(/\u200B/g, '').trim();
           return text.length > 0;
         }
-        if (block.type === 'image') {
+        if (blockType === 'image') {
           return true;
         }
-        if (block.type === 'rawhtml') {
-          return (block.html || '').trim().length > 0;
+        if (blockType === 'rawhtml') {
+          return (blockEl.innerHTML || '').trim().length > 0;
         }
         return false;
       });
@@ -137,54 +186,94 @@ class CreatePost {
   }
 
   /**
-   * Render document to editor surface
+   * Serialize DOM directly to markdown
+   * DOM is the single source of truth during editing
    */
-  renderDocument() {
+  serializeDOMToMarkdown() {
     const editor = document.querySelector('#stack-post-body-editor');
-    if (!editor) return;
+    if (!editor) return '';
 
-    renderDocument(this.document, editor, {
-      contentEditable: true,
-      onBlockUpdate: (blockId, newText) => {
-        this.updateBlockText(blockId, newText);
+    const markdownLines = [];
+    const blockElements = Array.from(editor.querySelectorAll('[data-block-id]'));
+
+    for (let i = 0; i < blockElements.length; i++) {
+      const blockEl = blockElements[i];
+      const blockType = blockEl.getAttribute('data-block-type');
+
+      // Add blank line between blocks (except before first block)
+      if (i > 0) {
+        markdownLines.push('');
       }
-    });
 
-    // Update placeholder visibility
-    this.updatePlaceholderVisibility();
+      switch (blockType) {
+        case 'heading':
+          const level = parseInt(blockEl.tagName.charAt(1)) || 1;
+          const headingText = (blockEl.textContent || '').replace(/\u200B/g, '').trim();
+          const headingPrefix = '#'.repeat(level);
+          markdownLines.push(`${headingPrefix} ${headingText}`);
+          break;
 
-    // Update next step button state
-    this.updateNextStepButton();
-    
-    // Update publish trigger visibility
-    this.updatePublishTriggerVisibility();
+        case 'image':
+          const img = blockEl.querySelector('img');
+          const captionEl = blockEl.querySelector('.stack-image-caption');
+          const alt = captionEl ? captionEl.textContent : '';
+          const src = img ? img.src : '';
+          markdownLines.push(`![${alt}](${src})`);
+          break;
 
-    // Serialize and save draft
-    const markdown = serializeDocumentToMarkdown(this.document);
-    this.saveDraft(markdown);
+        case 'rawhtml':
+          const htmlContent = blockEl.innerHTML || '';
+          markdownLines.push(htmlContent);
+          break;
+
+        case 'paragraph':
+        case 'list-item':
+        case 'blockquote':
+        default:
+          // Paragraph, list-item, and blockquote are plain text
+          const text = (blockEl.textContent || '').replace(/\u200B/g, '').trim();
+          if (text) {
+            markdownLines.push(text);
+          }
+          break;
+      }
+    }
+
+    return markdownLines.join('\n');
   }
 
   /**
    * Check if editor has meaningful content and update placeholder visibility
+   * Reads directly from DOM (single source of truth)
    */
   updatePlaceholderVisibility() {
     const editor = document.querySelector('#stack-post-body-editor');
     if (!editor) return;
 
-    // Check if there's any meaningful content
-    const hasContent = this.document.blocks.some(block => {
-      if (block.type === 'paragraph' || block.type === 'heading') {
-        const text = (block.text || '').replace(/\u200B/g, '').trim();
-        return text.length > 0;
+    // Check if there's any meaningful content (read from DOM)
+    const blockElements = editor.querySelectorAll('[data-block-id]');
+    let hasContent = false;
+
+    for (const blockEl of blockElements) {
+      const blockType = blockEl.getAttribute('data-block-type');
+      
+      if (blockType === 'paragraph' || blockType === 'heading' || blockType === 'list-item' || blockType === 'blockquote') {
+        const text = (blockEl.textContent || '').replace(/\u200B/g, '').trim();
+        if (text.length > 0) {
+          hasContent = true;
+          break;
+        }
+      } else if (blockType === 'image') {
+        hasContent = true; // Images count as content
+        break;
+      } else if (blockType === 'rawhtml') {
+        const html = (blockEl.innerHTML || '').trim();
+        if (html.length > 0) {
+          hasContent = true;
+          break;
+        }
       }
-      if (block.type === 'image') {
-        return true; // Images count as content
-      }
-      if (block.type === 'rawhtml') {
-        return (block.html || '').trim().length > 0;
-      }
-      return false;
-    });
+    }
 
     // Toggle placeholder class
     if (hasContent) {
@@ -195,112 +284,8 @@ class CreatePost {
   }
 
   /**
-   * Update block text in document model
-   */
-  updateBlockText(blockId, newText) {
-    const block = this.document.blocks.find(b => b.id === blockId);
-    if (block && (block.type === 'paragraph' || block.type === 'heading')) {
-      block.text = newText;
-      this.scheduleSerialization();
-    }
-  }
-
-  /**
-   * Sync document state FROM DOM (DOM is authoritative).
-   * Reads all blocks from the editor DOM and updates this.document to match.
-   * This must be called BEFORE any code reads from this.document to ensure state is current.
-   */
-  syncDocumentFromDOM() {
-    const editor = document.querySelector('#stack-post-body-editor');
-    if (!editor) return;
-
-    // Read all blocks from DOM
-    const blockElements = editor.querySelectorAll('[data-block-id]');
-    const newBlocks = [];
-
-    blockElements.forEach((blockEl) => {
-      const blockId = blockEl.getAttribute('data-block-id');
-      const blockType = blockEl.getAttribute('data-block-type');
-      
-      // Find existing block to preserve ID and other properties
-      const existingBlock = this.document.blocks.find(b => b.id === blockId);
-      
-      let block = existingBlock ? { ...existingBlock } : null;
-
-      switch (blockType) {
-        case 'paragraph':
-        case 'list-item':
-        case 'blockquote':
-          // Treat list-item and blockquote as paragraph variants
-          const paragraphText = (blockEl.textContent || '').replace(/\u200B/g, '');
-          if (!block) {
-            block = {
-              type: 'paragraph',
-              id: blockId || generateBlockId(newBlocks.length),
-              text: paragraphText
-            };
-          } else {
-            block.text = paragraphText;
-          }
-          break;
-
-        case 'heading':
-          const level = parseInt(blockEl.tagName.charAt(1)) || 1;
-          const headingText = (blockEl.textContent || '').replace(/\u200B/g, '');
-          if (!block) {
-            block = {
-              type: 'heading',
-              id: blockId || generateBlockId(newBlocks.length),
-              level: level,
-              text: headingText
-            };
-          } else {
-            block.text = headingText;
-            block.level = level;
-          }
-          break;
-
-        case 'image':
-          const img = blockEl.querySelector('img');
-          const captionEl = blockEl.querySelector('.stack-image-caption');
-          if (!block) {
-            block = {
-              type: 'image',
-              id: blockId || generateBlockId(newBlocks.length),
-              src: img ? img.src : '',
-              caption: captionEl ? captionEl.textContent : ''
-            };
-          } else {
-            if (img) block.src = img.src;
-            if (captionEl) block.caption = captionEl.textContent;
-          }
-          break;
-
-        case 'rawhtml':
-          const htmlContent = blockEl.innerHTML || '';
-          if (!block) {
-            block = {
-              type: 'rawhtml',
-              id: blockId || generateBlockId(newBlocks.length),
-              html: htmlContent
-            };
-          } else {
-            block.html = htmlContent;
-          }
-          break;
-      }
-
-      if (block) {
-        newBlocks.push(block);
-      }
-    });
-
-    // Update document to match DOM
-    this.document.blocks = newBlocks;
-  }
-
-  /**
    * Schedule debounced serialization
+   * Serializes directly from DOM (single source of truth)
    */
   scheduleSerialization() {
     if (this.serializeTimeout) {
@@ -311,7 +296,7 @@ class CreatePost {
     this.updateSaveState('saving');
 
     this.serializeTimeout = setTimeout(() => {
-      const markdown = serializeDocumentToMarkdown(this.document);
+      const markdown = this.serializeDOMToMarkdown();
       this.saveDraft(markdown);
       // Update state to "saved" after save completes
       this.updateSaveState('saved');
@@ -360,19 +345,30 @@ class CreatePost {
     if (!nextStepBtn) return;
 
     const title = document.querySelector('#stack-post-title-input')?.value || '';
-    const hasContent = this.document.blocks.some(block => {
-      if (block.type === 'paragraph' || block.type === 'heading') {
-        const text = (block.text || '').replace(/\u200B/g, '').trim();
-        return text.length > 0;
+    const editor = document.querySelector('#stack-post-body-editor');
+    let hasContent = false;
+    if (editor) {
+      const blockElements = editor.querySelectorAll('[data-block-id]');
+      for (const blockEl of blockElements) {
+        const blockType = blockEl.getAttribute('data-block-type');
+        if (blockType === 'paragraph' || blockType === 'heading' || blockType === 'list-item' || blockType === 'blockquote') {
+          const text = (blockEl.textContent || '').replace(/\u200B/g, '').trim();
+          if (text.length > 0) {
+            hasContent = true;
+            break;
+          }
+        } else if (blockType === 'image') {
+          hasContent = true;
+          break;
+        } else if (blockType === 'rawhtml') {
+          const html = (blockEl.innerHTML || '').trim();
+          if (html.length > 0) {
+            hasContent = true;
+            break;
+          }
+        }
       }
-      if (block.type === 'image') {
-        return true;
-      }
-      if (block.type === 'rawhtml') {
-        return (block.html || '').trim().length > 0;
-      }
-      return false;
-    });
+    }
 
     const hasTitle = title.trim().length > 0;
 
@@ -410,6 +406,15 @@ class CreatePost {
       node = node.parentNode;
     }
     return null;
+  }
+
+  /**
+   * Get block count from DOM (replaces this.document.blocks.length)
+   */
+  getBlockCount() {
+    const editor = document.querySelector('#stack-post-body-editor');
+    if (!editor) return 0;
+    return editor.querySelectorAll('[data-block-id]').length;
   }
 
   /**
@@ -460,25 +465,326 @@ class CreatePost {
    * Handle Enter key - split paragraph block
    * If text is selected, delete selection and insert newline
    * If in a block-formatted line and line is empty, exit the block
+   * 
+   * DOM-AUTHORITATIVE INVARIANT:
+   * - This function operates ONLY on DOM elements (focusedBlock, DOM nodes)
+   * - NO document/block object model exists or should be referenced
+   * - The ONLY allowed state variables are:
+   *   * focusedBlock (DOM Element node)
+   *   * blockType (string from DOM attribute or tagName)
+   *   * selection / range (Selection API objects)
+   * - Variables like `block`, `block.text`, `block.type` must NEVER be introduced
+   * - All block information must come from DOM inspection (attributes, textContent, tagName)
    */
   handleEnterKey(e) {
-    const focusedBlock = this.getFocusedBlock();
+    // ========================================================================
+    // PHASE 1: INTENT CAPTURE
+    // ========================================================================
+    // Capture current editor state and user intent before any mutations.
+    // This phase is read-only and establishes the context for all subsequent phases.
+    
+    // DOM-AUTHORITATIVE: Get focused block element (DOM node only)
+    let focusedBlock = this.getFocusedBlock();
     if (!focusedBlock) return;
 
-    const blockType = focusedBlock.getAttribute('data-block-type');
+    // DOM-AUTHORITATIVE: Get block type from DOM attribute (string only)
+    let blockType = focusedBlock.getAttribute('data-block-type');
 
-    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
-    // This ensures we read the current text the user sees, not stale JS state
-    this.syncDocumentFromDOM();
+    // Selection is volatile and must be re-read after DOM changes.
+    // We do NOT capture selection/range here - they are re-read immediately before each use.
+    // INVARIANT: Selection/Range become stale after DOM mutations and must be re-read.
 
+    // ========================================================================
+    // PHASE 2: BLOCK NORMALIZATION
+    // ========================================================================
+    // Convert block types (paragraph → heading, paragraph → list) based on
+    // markdown markers. This phase normalizes structure but does NOT create
+    // sibling blocks. Normalization updates focusedBlock and blockType in place.
+    // 
+    // INVARIANT: Normalization never creates siblings, never returns early.
+    // INVARIANT: Enter completion always runs after normalization.
+
+    // Check for markdown heading conversion: "# ", "## ", "### " at start of paragraph
+    // Conversion normalizes block type only; Enter completion happens later in the function
+    if (blockType === 'paragraph') {
+      const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+      const trimmedText = blockText.trimStart();
+      
+      // Check if text starts with heading markers
+      let headingLevel = null;
+      if (trimmedText.startsWith('### ')) {
+        headingLevel = 3;
+      } else if (trimmedText.startsWith('## ')) {
+        headingLevel = 2;
+      } else if (trimmedText.startsWith('# ')) {
+        headingLevel = 1;
+      }
+      
+      if (headingLevel) {
+        // Capture cursor position BEFORE conversion (relative to full block text)
+        // Re-read selection immediately before use (selection is volatile)
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
+        
+        // Calculate where the heading marker ends in the full text
+        const leadingWhitespace = blockText.length - trimmedText.length;
+        const markerEndOffset = leadingWhitespace + headingLevel + 1; // +1 for space after #
+        
+        // Extract heading text: text after marker, up to cursor position
+        let headingText = '';
+        if (cursorOffset >= markerEndOffset) {
+          // Cursor is after the marker - extract text after marker, up to cursor
+          headingText = blockText.substring(markerEndOffset, cursorOffset);
+        }
+        // If cursor is within or before marker, headingText remains empty
+        
+        // Create new heading element
+        const newHeading = document.createElement(`h${headingLevel}`);
+        
+        // Copy all attributes except data-block-type
+        Array.from(focusedBlock.attributes).forEach(attr => {
+          if (attr.name !== 'data-block-type') {
+            newHeading.setAttribute(attr.name, attr.value);
+          }
+        });
+        newHeading.setAttribute('data-block-type', 'heading');
+        newHeading.contentEditable = 'true';
+        newHeading.textContent = headingText;
+        
+        // Replace paragraph with heading
+        focusedBlock.parentNode.replaceChild(newHeading, focusedBlock);
+        
+        // Update focusedBlock and blockType for later Enter completion logic
+        focusedBlock = newHeading;
+        blockType = 'heading';
+        
+        // Place cursor at end of heading text so Enter completion can create new paragraph below
+        const newRange = document.createRange();
+        const newSelection = window.getSelection();
+        const textNode = newHeading.firstChild;
+        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+          const textLength = textNode.textContent.length;
+          newRange.setStart(textNode, textLength);
+          newRange.setEnd(textNode, textLength);
+        } else {
+          // Empty heading - create zero-width space for cursor
+          const emptyTextNode = document.createTextNode('\u200B');
+          newHeading.appendChild(emptyTextNode);
+          newRange.setStart(emptyTextNode, 0);
+          newRange.setEnd(emptyTextNode, 0);
+        }
+        newSelection.removeAllRanges();
+        newSelection.addRange(newRange);
+        newHeading.focus();
+        
+        // INVARIANT: We do NOT return here - early returns after normalization are forbidden.
+        // Enter completion logic below must always run to create the next block.
+      }
+
+      // Check for markdown list creation: "* " or "- " at start of paragraph
+      // Conversion normalizes block type only; Enter completion happens later in the function
+      if (trimmedText.startsWith('* ') || trimmedText.startsWith('- ')) {
+        // Capture cursor position BEFORE conversion (relative to full block text)
+        // Re-read selection immediately before use (selection is volatile)
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
-
-    const range = selection.getRangeAt(0);
+        const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
+        
+        // Calculate where the list marker ends in the full text
+        const leadingWhitespace = blockText.length - trimmedText.length;
+        const markerEndOffset = leadingWhitespace + 2; // "* " or "- " is 2 chars
+        
+        // Extract list item text: text after marker, up to cursor position
+        let itemText = '';
+        if (cursorOffset >= markerEndOffset) {
+          // Cursor is after the marker - extract text after marker, up to cursor
+          itemText = blockText.substring(markerEndOffset, cursorOffset);
+        }
+        // If cursor is within or before marker, itemText remains empty
+        
+        // Create <ul> element
+        const ulElement = document.createElement('ul');
+        const ulId = generateBlockId(this.getBlockCount());
+        ulElement.setAttribute('data-block-id', ulId);
+        ulElement.setAttribute('data-block-type', 'list');
+        // Preserve block index from original paragraph
     const blockIndex = this.getBlockIndex(focusedBlock);
-    const block = this.document.blocks[blockIndex];
+        if (blockIndex >= 0) {
+          ulElement.setAttribute('data-block-index', blockIndex.toString());
+        }
+        
+        // Create first <li> element
+        const liElement = document.createElement('li');
+        const liId = generateBlockId(this.getBlockCount() + 1);
+        liElement.setAttribute('data-block-id', liId);
+        liElement.setAttribute('data-block-type', 'list-item');
+        liElement.contentEditable = 'true';
+        liElement.textContent = itemText;
+        
+        // Append <li> to <ul>
+        ulElement.appendChild(liElement);
+        
+        // Replace paragraph with <ul>
+        focusedBlock.parentNode.replaceChild(ulElement, focusedBlock);
+        
+        // Update focusedBlock and blockType for later Enter completion logic
+        // Note: focusedBlock now points to <ul>, but Enter completion needs the <li>
+        // We'll handle this in the Enter completion logic by finding the active <li>
+        focusedBlock = liElement;
+        blockType = 'list-item';
+        
+        // Place cursor at end of list item text so Enter completion can create new list item below
+        const newRange = document.createRange();
+        const newSelection = window.getSelection();
+        const textNode = liElement.firstChild;
+        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+          const textLength = textNode.textContent.length;
+          newRange.setStart(textNode, textLength);
+          newRange.setEnd(textNode, textLength);
+        } else {
+          // Empty list item - create zero-width space for cursor
+          const emptyTextNode = document.createTextNode('\u200B');
+          liElement.appendChild(emptyTextNode);
+          newRange.setStart(emptyTextNode, 0);
+          newRange.setEnd(emptyTextNode, 0);
+        }
+        newSelection.removeAllRanges();
+        newSelection.addRange(newRange);
+        liElement.focus();
+        
+        // INVARIANT: We do NOT return here - early returns after normalization are forbidden.
+        // Enter completion logic below must always run to create the next block.
+      }
+    }
 
-    if (!block) return;
+    // ========================================================================
+    // PHASE 3: ENTER COMPLETION
+    // ========================================================================
+    // Create the next block (sibling) based on current block type and state.
+    // This phase always runs after normalization (if any occurred).
+    // 
+    // INVARIANT: Every Enter keypress results in exactly one structural change.
+    // INVARIANT: Enter completion always creates sibling blocks.
+    // NOTE: Early returns ARE allowed in this phase (after completion is done),
+    //       but NOT in normalization phase (which must always proceed to completion).
+
+    // Enter completion for list items (handles both converted and existing list items)
+    // This runs after conversion if blockType was set to 'list-item'
+    if (blockType === 'list-item' && focusedBlock.tagName === 'LI') {
+      const listItemText = (focusedBlock.textContent || '').replace(/\u200B/g, '').trim();
+      const isEmpty = listItemText.length === 0;
+      
+      if (isEmpty) {
+        // EXIT LIST: Convert empty <li> to paragraph and create new paragraph below <ul>
+        e.preventDefault();
+        
+        const ulElement = focusedBlock.parentNode;
+        const editor = ulElement.parentNode;
+        
+        // Create new paragraph to replace the <ul>
+        const newParagraph = document.createElement('p');
+        const newParagraphId = generateBlockId(this.getBlockCount());
+        newParagraph.setAttribute('data-block-id', newParagraphId);
+        newParagraph.setAttribute('data-block-type', 'paragraph');
+        const blockIndex = this.getBlockIndex(ulElement);
+        newParagraph.setAttribute('data-block-index', blockIndex.toString());
+        newParagraph.contentEditable = 'true';
+        newParagraph.textContent = '';
+        const textNode = document.createTextNode('\u200B');
+        newParagraph.appendChild(textNode);
+        
+        // Replace <ul> with paragraph
+        ulElement.parentNode.replaceChild(newParagraph, ulElement);
+        
+        // Create another paragraph below for typing
+        const nextParagraph = document.createElement('p');
+        const nextParagraphId = generateBlockId(this.getBlockCount());
+        nextParagraph.setAttribute('data-block-id', nextParagraphId);
+        nextParagraph.setAttribute('data-block-type', 'paragraph');
+        nextParagraph.setAttribute('data-block-index', (blockIndex + 1).toString());
+        nextParagraph.contentEditable = 'true';
+        nextParagraph.textContent = '';
+        const nextTextNode = document.createTextNode('\u200B');
+        nextParagraph.appendChild(nextTextNode);
+        
+        // Insert after the first paragraph
+        if (newParagraph.nextSibling) {
+          editor.insertBefore(nextParagraph, newParagraph.nextSibling);
+        } else {
+          editor.appendChild(nextParagraph);
+        }
+        
+        // Update placeholder visibility
+        this.updatePlaceholderVisibility();
+        
+        // Focus the new paragraph
+        const newRange = document.createRange();
+        const newSelection = window.getSelection();
+        if (nextParagraph.firstChild && nextParagraph.firstChild.nodeType === Node.TEXT_NODE) {
+          newRange.setStart(nextParagraph.firstChild, 0);
+          newRange.setEnd(nextParagraph.firstChild, 0);
+        } else {
+          newRange.setStart(nextParagraph, 0);
+          newRange.setEnd(nextParagraph, 0);
+        }
+        newSelection.removeAllRanges();
+        newSelection.addRange(newRange);
+        nextParagraph.focus();
+        this.autoScrollToCaret();
+      return;
+      } else {
+        // CONTINUE LIST: Create new empty <li> below current <li>
+        e.preventDefault();
+        
+        const ulElement = focusedBlock.parentNode;
+        // Re-read selection immediately before use (selection is volatile after DOM mutations)
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+    const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
+        const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+    const beforeText = currentText.substring(0, cursorOffset);
+    const afterText = currentText.substring(cursorOffset);
+
+        // Update current <li> with text before cursor
+        focusedBlock.textContent = beforeText;
+        
+        // Create new <li> element
+        const newLi = document.createElement('li');
+        const newLiId = generateBlockId(this.getBlockCount());
+        newLi.setAttribute('data-block-id', newLiId);
+        newLi.setAttribute('data-block-type', 'list-item');
+        newLi.contentEditable = 'true';
+        newLi.textContent = afterText;
+        
+        // Insert new <li> after current <li>
+        if (focusedBlock.nextSibling) {
+          ulElement.insertBefore(newLi, focusedBlock.nextSibling);
+        } else {
+          ulElement.appendChild(newLi);
+        }
+        
+        // Update placeholder visibility
+        this.updatePlaceholderVisibility();
+        
+        // Focus the new <li>
+        const newRange = document.createRange();
+        const newSelection = window.getSelection();
+        const textNode = newLi.firstChild;
+        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+          newRange.setStart(textNode, 0);
+          newRange.setEnd(textNode, 0);
+        } else {
+          newRange.setStart(newLi, 0);
+          newRange.setEnd(newLi, 0);
+        }
+        newSelection.removeAllRanges();
+        newSelection.addRange(newRange);
+        newLi.focus();
+        this.autoScrollToCaret();
+        return;
+      }
+    }
 
     // Check if we're in a block-formatted line (list-item, blockquote, heading) and line is empty
     const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '').trim();
@@ -487,7 +793,7 @@ class CreatePost {
 
     if (isBlockFormatted && isEmpty) {
       // EXIT BLOCK: Remove formatting and create normal paragraph
-      e.preventDefault();
+    e.preventDefault();
 
       // Convert current block to paragraph IN PLACE
       focusedBlock.setAttribute('data-block-type', 'paragraph');
@@ -499,9 +805,10 @@ class CreatePost {
       // Create new paragraph block in DOM
       const editor = focusedBlock.parentNode;
       const newBlockElement = document.createElement('p');
-      const newBlockId = generateBlockId(this.document.blocks.length);
+      const newBlockId = generateBlockId(this.getBlockCount());
       newBlockElement.setAttribute('data-block-id', newBlockId);
       newBlockElement.setAttribute('data-block-type', 'paragraph');
+    const blockIndex = this.getBlockIndex(focusedBlock);
       newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
       newBlockElement.contentEditable = 'true';
       newBlockElement.textContent = '';
@@ -515,11 +822,8 @@ class CreatePost {
         editor.appendChild(newBlockElement);
       }
 
-      // Sync document state from DOM
-      this.syncDocumentFromDOM();
-
-      // Update placeholder visibility
-      this.updatePlaceholderVisibility();
+    // Update placeholder visibility
+    this.updatePlaceholderVisibility();
 
       // Focus the new paragraph synchronously
       const newRange = document.createRange();
@@ -538,17 +842,23 @@ class CreatePost {
       return;
     }
 
-    // Handle Enter for headings, lists, and blockquotes that have text
+    // Centralized Enter completion for headings and blockquotes that have text
+    // (List items are handled above with special logic for continuing/exiting lists)
     // (Empty blocks are handled above - they exit the block format)
-    if (blockType === 'heading' || blockType === 'list-item' || blockType === 'blockquote') {
+    // This ensures Enter always creates the next block after conversion
+    if (blockType === 'heading' || blockType === 'blockquote') {
       // Split the block at cursor position
       e.preventDefault();
       
+      // Re-read selection immediately before use (selection is volatile after DOM mutations)
+      // INVARIANT: Selection must be re-read after any DOM mutation in normalization phase
+        const selection = window.getSelection();
+      if (!selection.rangeCount) return;
       const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
       const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
-      const beforeText = currentText.substring(0, cursorOffset);
-      const afterText = currentText.substring(cursorOffset);
-      
+    const beforeText = currentText.substring(0, cursorOffset);
+    const afterText = currentText.substring(cursorOffset);
+
       // Update current block text in DOM
       focusedBlock.textContent = beforeText;
       
@@ -567,8 +877,10 @@ class CreatePost {
         newBlockElement.setAttribute('data-block-type', 'paragraph');
       }
       
-      const newBlockId = generateBlockId(this.document.blocks.length);
+      const newBlockId = generateBlockId(this.getBlockCount());
       newBlockElement.setAttribute('data-block-id', newBlockId);
+      // DOM-AUTHORITATIVE: Get block index from DOM element
+      const blockIndex = this.getBlockIndex(focusedBlock);
       newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
       newBlockElement.contentEditable = 'true';
       newBlockElement.textContent = afterText;
@@ -579,135 +891,6 @@ class CreatePost {
       } else {
         editor.appendChild(newBlockElement);
       }
-      
-      // Sync document state from DOM
-      this.syncDocumentFromDOM();
-      
-      // Update placeholder visibility
-      this.updatePlaceholderVisibility();
-      
-      // Focus the new block synchronously
-      const newRange = document.createRange();
-      const newSelection = window.getSelection();
-      const textNode = newBlockElement.firstChild;
-      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-        newRange.setStart(textNode, 0);
-        newRange.setEnd(textNode, 0);
-      } else {
-        newRange.setStart(newBlockElement, 0);
-        newRange.setEnd(newBlockElement, 0);
-      }
-      newSelection.removeAllRanges();
-      newSelection.addRange(newRange);
-      newBlockElement.focus();
-      this.autoScrollToCaret();
-      return;
-    }
-
-    // For other block types (image, rawhtml), allow default behavior
-    if (blockType !== 'paragraph') {
-      return;
-    }
-
-    e.preventDefault();
-
-    if (block.type !== 'paragraph') return;
-
-    // Check if there's an active selection (not collapsed)
-    const hasSelection = !range.collapsed;
-
-    if (hasSelection) {
-      // DELETE selected text and INSERT newline at cursor position
-      // The visible selection is authoritative - delete it completely
-      
-      // Get the start position of the selection (where cursor will be after deletion)
-      // Create a collapsed range at the selection start to calculate offset
-      const startRange = document.createRange();
-      startRange.setStart(range.startContainer, range.startOffset);
-      startRange.setEnd(range.startContainer, range.startOffset);
-      const selectionStart = this.getTextOffsetFromRange(focusedBlock, startRange);
-
-      // Delete the selected content from DOM
-      range.deleteContents();
-
-      // Sync document state from DOM after deletion
-      this.syncDocumentFromDOM();
-
-      // Read current text from DOM after deletion
-      const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
-      const beforeText = currentText.substring(0, selectionStart);
-      const afterText = currentText.substring(selectionStart);
-
-      // Update current block text in DOM
-      focusedBlock.textContent = beforeText;
-
-      // Create new paragraph block in DOM
-      const editor = focusedBlock.parentNode;
-      const newBlockElement = document.createElement('p');
-      const newBlockId = generateBlockId(this.document.blocks.length);
-      newBlockElement.setAttribute('data-block-id', newBlockId);
-      newBlockElement.setAttribute('data-block-type', 'paragraph');
-      newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
-      newBlockElement.contentEditable = 'true';
-      newBlockElement.textContent = afterText;
-      
-      // Insert after current block
-      if (focusedBlock.nextSibling) {
-        editor.insertBefore(newBlockElement, focusedBlock.nextSibling);
-      } else {
-        editor.appendChild(newBlockElement);
-      }
-
-      // Sync document state from DOM
-      this.syncDocumentFromDOM();
-
-      // Update placeholder visibility
-      this.updatePlaceholderVisibility();
-
-      // Focus the new block synchronously
-      const newRange = document.createRange();
-      const newSelection = window.getSelection();
-      const textNode = newBlockElement.firstChild;
-      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-        newRange.setStart(textNode, 0);
-        newRange.setEnd(textNode, 0);
-      } else {
-        newRange.setStart(newBlockElement, 0);
-        newRange.setEnd(newBlockElement, 0);
-      }
-      newSelection.removeAllRanges();
-      newSelection.addRange(newRange);
-      newBlockElement.focus();
-      this.autoScrollToCaret();
-    } else {
-      // No selection - split at cursor
-    const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
-      const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
-    const beforeText = currentText.substring(0, cursorOffset);
-    const afterText = currentText.substring(cursorOffset);
-
-      // Update current block text in DOM
-      focusedBlock.textContent = beforeText;
-
-      // Create new paragraph block in DOM
-      const editor = focusedBlock.parentNode;
-      const newBlockElement = document.createElement('p');
-      const newBlockId = generateBlockId(this.document.blocks.length);
-      newBlockElement.setAttribute('data-block-id', newBlockId);
-      newBlockElement.setAttribute('data-block-type', 'paragraph');
-      newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
-      newBlockElement.contentEditable = 'true';
-      newBlockElement.textContent = afterText;
-      
-      // Insert after current block
-      if (focusedBlock.nextSibling) {
-        editor.insertBefore(newBlockElement, focusedBlock.nextSibling);
-      } else {
-        editor.appendChild(newBlockElement);
-      }
-
-      // Sync document state from DOM
-      this.syncDocumentFromDOM();
 
     // Update placeholder visibility
     this.updatePlaceholderVisibility();
@@ -727,7 +910,119 @@ class CreatePost {
       newSelection.addRange(newRange);
       newBlockElement.focus();
       this.autoScrollToCaret();
+      return;
     }
+
+    // For other block types (image, rawhtml), allow default behavior
+    if (blockType !== 'paragraph') {
+      return;
+    }
+
+    // MANDATORY FALLBACK: This is the mandatory fallback for normal paragraph splitting.
+    // If this code does not run, Enter is broken.
+    // This ensures that EVERY Enter keypress in a paragraph results in exactly one structural action.
+    // Paragraph splitting is text-based to avoid Selection API edge cases (range.startContainer may not be a text node).
+    e.preventDefault();
+
+    // Re-read selection immediately before use (selection is volatile after DOM mutations)
+    // INVARIANT: Selection must be re-read after any DOM mutation in normalization phase
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+
+    // Read the full textContent of the paragraph (this is reliable regardless of DOM structure)
+    const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+    
+    // Calculate cursor offset using a robust method that works even if range.startContainer is not a text node
+    let cursorOffset = 0;
+    if (!range.collapsed) {
+      // Selection case: calculate offset from selection start
+      const startRange = document.createRange();
+      startRange.setStart(focusedBlock, 0);
+      startRange.setEnd(range.startContainer, range.startOffset);
+      // Get text content up to selection start - this gives us the offset
+      const textBeforeSelection = startRange.toString().replace(/\u200B/g, '');
+      cursorOffset = textBeforeSelection.length;
+    } else {
+      // Cursor case: calculate offset from cursor position
+      const cursorRange = document.createRange();
+      cursorRange.setStart(focusedBlock, 0);
+      cursorRange.setEnd(range.startContainer, range.startOffset);
+      // Get text content up to cursor - this gives us the offset
+      const textBeforeCursor = cursorRange.toString().replace(/\u200B/g, '');
+      cursorOffset = textBeforeCursor.length;
+    }
+    
+    // Ensure cursor offset is within bounds
+    if (cursorOffset < 0) cursorOffset = 0;
+    if (cursorOffset > currentText.length) cursorOffset = currentText.length;
+    
+    // Split text into before and after cursor
+    const beforeText = currentText.substring(0, cursorOffset);
+    const afterText = currentText.substring(cursorOffset);
+
+    // Update current block text in DOM (text-based, not DOM node manipulation)
+    focusedBlock.textContent = beforeText;
+
+    // Create new paragraph block in DOM
+    const editor = focusedBlock.parentNode;
+    const newBlockElement = document.createElement('p');
+    const newBlockId = generateBlockId(this.getBlockCount());
+    newBlockElement.setAttribute('data-block-id', newBlockId);
+    newBlockElement.setAttribute('data-block-type', 'paragraph');
+    const blockIndex = this.getBlockIndex(focusedBlock);
+    newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
+    newBlockElement.contentEditable = 'true';
+    newBlockElement.textContent = afterText;
+    
+    // Insert after current block
+    if (focusedBlock.nextSibling) {
+      editor.insertBefore(newBlockElement, focusedBlock.nextSibling);
+    } else {
+      editor.appendChild(newBlockElement);
+    }
+
+    // Update placeholder visibility
+    this.updatePlaceholderVisibility();
+
+    // ========================================================================
+    // PHASE 4: CURSOR PLACEMENT
+    // ========================================================================
+    // Place cursor in the newly created block. Selection must be re-read here
+    // because DOM mutations occurred in previous phases.
+    // 
+    // INVARIANT: Selection is re-read immediately before cursor placement.
+    // INVARIANT: Cursor is placed synchronously, not via setTimeout.
+
+    // Focus the new block synchronously - place cursor at start of new paragraph
+    const newRange = document.createRange();
+    const newSelection = window.getSelection();
+    // Create a text node if the new paragraph is empty, otherwise use existing text node
+    if (afterText.length === 0) {
+      // Empty paragraph - create zero-width space for cursor
+      const textNode = document.createTextNode('\u200B');
+      newBlockElement.appendChild(textNode);
+      newRange.setStart(textNode, 0);
+      newRange.setEnd(textNode, 0);
+    } else {
+      // Non-empty paragraph - find or create first text node
+      let textNode = newBlockElement.firstChild;
+      while (textNode && textNode.nodeType !== Node.TEXT_NODE) {
+        textNode = textNode.nextSibling;
+      }
+      if (textNode) {
+        newRange.setStart(textNode, 0);
+        newRange.setEnd(textNode, 0);
+      } else {
+        // Fallback: set range at start of element
+        newRange.setStart(newBlockElement, 0);
+        newRange.setEnd(newBlockElement, 0);
+      }
+    }
+    newSelection.removeAllRanges();
+    newSelection.addRange(newRange);
+    newBlockElement.focus();
+    this.autoScrollToCaret();
   }
 
   /**
@@ -742,9 +1037,6 @@ class CreatePost {
       this.deleteSelectedImage(selectedImage);
       return;
     }
-
-    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
-    this.syncDocumentFromDOM();
 
     const focusedBlock = this.getFocusedBlock();
     if (!focusedBlock) return;
@@ -761,10 +1053,11 @@ class CreatePost {
       
       // Move caret to previous block if it exists
       if (blockIndex > 0) {
-        const previousBlock = this.document.blocks[blockIndex - 1];
-        if (previousBlock) {
+        const editor = focusedBlock.parentNode;
+        const allBlocks = Array.from(editor.querySelectorAll('[data-block-id]'));
+        const prevBlockEl = allBlocks[blockIndex - 1];
+        if (prevBlockEl) {
           setTimeout(() => {
-            const prevBlockEl = document.querySelector(`[data-block-id="${previousBlock.id}"]`);
             if (prevBlockEl && prevBlockEl.hasAttribute('contenteditable')) {
               const newRange = document.createRange();
               const newSelection = window.getSelection();
@@ -792,8 +1085,8 @@ class CreatePost {
 
     if (isAtStart && (blockType === 'list-item' || blockType === 'blockquote' || blockType === 'heading')) {
       // REMOVE BLOCK FORMATTING: Convert back to paragraph IN PLACE
-      e.preventDefault();
-
+          e.preventDefault();
+          
       const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
 
       // Convert in place
@@ -810,20 +1103,19 @@ class CreatePost {
         newParagraph.textContent = blockText || '\u200B';
         focusedBlock.parentNode.replaceChild(newParagraph, focusedBlock);
         
-        // Sync and restore cursor synchronously
-        this.syncDocumentFromDOM();
-        const newRange = document.createRange();
-        const newSelection = window.getSelection();
+        // Restore cursor synchronously
+              const newRange = document.createRange();
+              const newSelection = window.getSelection();
         const textNode = newParagraph.firstChild;
         if (textNode && textNode.nodeType === Node.TEXT_NODE) {
           newRange.setStart(textNode, 0);
           newRange.setEnd(textNode, 0);
-        } else {
+              } else {
           newRange.setStart(newParagraph, 0);
           newRange.setEnd(newParagraph, 0);
-        }
-        newSelection.removeAllRanges();
-        newSelection.addRange(newRange);
+              }
+              newSelection.removeAllRanges();
+              newSelection.addRange(newRange);
         newParagraph.focus();
       } else {
         // Convert list-item/blockquote in place
@@ -834,8 +1126,7 @@ class CreatePost {
           focusedBlock.appendChild(document.createTextNode('\u200B'));
         }
         
-        // Sync and restore cursor synchronously
-        this.syncDocumentFromDOM();
+        // Restore cursor synchronously
         const newRange = document.createRange();
         const newSelection = window.getSelection();
         const textNode = focusedBlock.firstChild;
@@ -851,23 +1142,22 @@ class CreatePost {
         focusedBlock.focus();
       }
       
-      this.updatePlaceholderVisibility();
-      return;
-    }
-
+          this.updatePlaceholderVisibility();
+          return;
+        }
+        
     // Handle deletion when caret is at start of paragraph
     if (blockType === 'paragraph' && blockIndex > 0) {
       if (isAtStart) {
-        const previousBlock = this.document.blocks[blockIndex - 1];
+        const editor = focusedBlock.parentNode;
+        const allBlocks = Array.from(editor.querySelectorAll('[data-block-id]'));
+        const prevBlockEl = allBlocks[blockIndex - 1];
         
         // If previous block is an image, delete it from DOM
-        if (previousBlock && previousBlock.type === 'image') {
+        if (prevBlockEl && prevBlockEl.getAttribute('data-block-type') === 'image') {
           e.preventDefault();
-          
-          const prevBlockEl = document.querySelector(`[data-block-id="${previousBlock.id}"]`);
           if (prevBlockEl) {
             prevBlockEl.remove();
-            this.syncDocumentFromDOM();
             this.updatePlaceholderVisibility();
             
             // Focus current block synchronously
@@ -901,8 +1191,7 @@ class CreatePost {
             prevBlockEl.textContent = prevText + currText;
             focusedBlock.remove();
             
-            // Sync and restore cursor synchronously
-            this.syncDocumentFromDOM();
+            // Restore cursor synchronously
           this.updatePlaceholderVisibility();
           
               const newRange = document.createRange();
@@ -940,9 +1229,6 @@ class CreatePost {
       return;
     }
 
-    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
-    this.syncDocumentFromDOM();
-
     const selection = window.getSelection();
     if (!selection.rangeCount) return;
 
@@ -951,10 +1237,10 @@ class CreatePost {
     if (!focusedBlock) return;
 
     const blockIndex = this.getBlockIndex(focusedBlock);
-    const currentBlock = this.document.blocks[blockIndex];
+    const blockType = focusedBlock.getAttribute('data-block-type');
 
     // If cursor is at the end of a paragraph block
-    if (currentBlock && currentBlock.type === 'paragraph' && range.collapsed) {
+    if (blockType === 'paragraph' && range.collapsed) {
       const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
       const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
       const isAtEnd = cursorOffset >= blockText.length;
@@ -962,21 +1248,20 @@ class CreatePost {
       if (isAtEnd) {
         e.preventDefault();
 
+        const editor = focusedBlock.parentNode;
+        const allBlocks = Array.from(editor.querySelectorAll('[data-block-id]'));
       const nextBlockIndex = blockIndex + 1;
-      if (nextBlockIndex >= this.document.blocks.length) {
+        if (nextBlockIndex >= allBlocks.length) {
         return;
       }
 
-      const nextBlock = this.document.blocks[nextBlockIndex];
-      if (!nextBlock) return;
-
-        const nextBlockEl = document.querySelector(`[data-block-id="${nextBlock.id}"]`);
+        const nextBlockEl = allBlocks[nextBlockIndex];
         if (!nextBlockEl) return;
 
-      if (nextBlock.type === 'image' || nextBlock.type === 'rawhtml') {
+        const nextBlockType = nextBlockEl.getAttribute('data-block-type');
+        if (nextBlockType === 'image' || nextBlockType === 'rawhtml') {
           // Delete the next block from DOM
           nextBlockEl.remove();
-          this.syncDocumentFromDOM();
         this.updatePlaceholderVisibility();
 
           // Keep cursor at the end of the current block synchronously
@@ -1001,8 +1286,6 @@ class CreatePost {
           
           focusedBlock.textContent = currText + nextText;
           nextBlockEl.remove();
-          
-          this.syncDocumentFromDOM();
         this.updatePlaceholderVisibility();
 
           // Keep cursor at the merge point synchronously
@@ -1026,7 +1309,6 @@ class CreatePost {
       // If an image block is somehow focused, delete it from DOM
       e.preventDefault();
       focusedBlock.remove();
-      this.syncDocumentFromDOM();
       this.updatePlaceholderVisibility();
       return;
     }
@@ -1034,191 +1316,15 @@ class CreatePost {
   }
 
   /**
-   * Check for auto-conversion triggers when marker characters or space are typed
-   * Operates on the active line only, after text insertion
+   * Structural conversion is Enter-authoritative to ensure deterministic behavior.
+   * No structural conversion occurs during input events to avoid race conditions,
+   * empty blocks, stale selection, and cursor jumps.
+   * 
+   * All structural conversion (headings, lists, blockquotes) is handled in handleEnterKey() only.
    */
   checkAutoConversion(e) {
-    // Only check on text insertion (not deletion, formatting, etc.)
-    if (e.inputType !== 'insertText' && e.inputType !== 'insertCompositionText') {
-      return false;
-    }
-
-    const insertedChar = e.data || '';
-    
-    // Check if inserted character is a marker OR space (for fallback)
-    const isMarker = insertedChar === '#' || insertedChar === '*' || insertedChar === '-' || insertedChar === '>';
-    const isSpace = insertedChar === ' ';
-    
-    if (!isMarker && !isSpace) {
-      return false;
-    }
-
-    const selection = window.getSelection();
-    if (!selection.rangeCount) return false;
-
-    const focusedBlock = this.getFocusedBlock();
-    if (!focusedBlock) return false;
-
-    // Only convert paragraph blocks
-    const blockType = focusedBlock.getAttribute('data-block-type');
-    if (blockType !== 'paragraph') return false;
-
-    // Get block text (ignoring zero-width chars)
-    const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
-    
-    // Check if marker is at TRUE start of block (after trimming leading whitespace)
-    const trimmedText = blockText.trimStart();
-    const leadingWhitespace = blockText.length - trimmedText.length;
-    
-    // Check for conversion markers at the start
-    let conversionType = null;
-    let markerLength = 0;
-    let remainingText = '';
-
-    // Check for markers (must be at true start)
-    // Conversion occurs ONLY when marker + space is present
-    // Priority: check longer patterns first (## before #)
-    if (trimmedText.startsWith('##')) {
-      // H2: convert only when ## + space is present
-      if (trimmedText.startsWith('## ')) {
-        // Already has space, convert
-        conversionType = 'heading2';
-        markerLength = 3; // "## "
-        remainingText = trimmedText.substring(3);
-      } else if (isSpace && trimmedText === '##') {
-        // User just typed space after ##
-        conversionType = 'heading2';
-        markerLength = 3; // "## "
-        remainingText = '';
-      }
-    } else if (trimmedText.startsWith('#')) {
-      // H1: convert only when # + space is present
-      if (trimmedText.startsWith('# ')) {
-        // Already has space, convert
-        conversionType = 'heading1';
-        markerLength = 2; // "# "
-        remainingText = trimmedText.substring(2);
-      } else if (isSpace && trimmedText === '#') {
-        // User just typed space after #
-        conversionType = 'heading1';
-        markerLength = 2; // "# "
-        remainingText = '';
-      }
-    } else if (trimmedText.startsWith('*')) {
-      // List: convert only when * + space is present
-      if (trimmedText.startsWith('* ')) {
-        // Already has space, convert
-        conversionType = 'list';
-        markerLength = 2; // "* "
-        remainingText = trimmedText.substring(2);
-      } else if (isSpace && trimmedText === '*') {
-        // User just typed space after *
-        conversionType = 'list';
-        markerLength = 2; // "* "
-        remainingText = '';
-      }
-    } else if (trimmedText.startsWith('-')) {
-      // List: convert only when - + space is present
-      if (trimmedText.startsWith('- ')) {
-        // Already has space, convert
-        conversionType = 'list';
-        markerLength = 2; // "- "
-        remainingText = trimmedText.substring(2);
-      } else if (isSpace && trimmedText === '-') {
-        // User just typed space after -
-        conversionType = 'list';
-        markerLength = 2; // "- "
-        remainingText = '';
-      }
-    } else if (trimmedText.startsWith('>')) {
-      // Blockquote: convert only when > + space is present
-      if (trimmedText.startsWith('> ')) {
-        // Already has space, convert
-        conversionType = 'blockquote';
-        markerLength = 2; // "> "
-        remainingText = trimmedText.substring(2);
-      } else if (isSpace && trimmedText === '>') {
-        // User just typed space after >
-        conversionType = 'blockquote';
-        markerLength = 2; // "> "
-        remainingText = '';
-      }
-    }
-
-    if (!conversionType) return false;
-
-    // Convert block IN PLACE where possible
-    if (conversionType === 'heading1' || conversionType === 'heading2') {
-      const level = conversionType === 'heading1' ? 1 : 2;
-      
-      // Replace with heading element
-      const newHeading = document.createElement(`h${level}`);
-      Array.from(focusedBlock.attributes).forEach(attr => {
-        if (attr.name !== 'data-block-type') {
-          newHeading.setAttribute(attr.name, attr.value);
-        }
-      });
-      newHeading.setAttribute('data-block-type', 'heading');
-      newHeading.contentEditable = 'true';
-      newHeading.textContent = (leadingWhitespace > 0 ? ' '.repeat(leadingWhitespace) : '') + remainingText;
-      
-      focusedBlock.parentNode.replaceChild(newHeading, focusedBlock);
-      
-      // Sync document state
-      this.syncDocumentFromDOM();
-      
-      // Place cursor synchronously at end of remaining text
-      const newRange = document.createRange();
-      const newSelection = window.getSelection();
-      const textNode = newHeading.firstChild;
-      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-        const cursorPos = Math.min(leadingWhitespace + remainingText.length, textNode.textContent.length);
-        newRange.setStart(textNode, cursorPos);
-        newRange.setEnd(textNode, cursorPos);
-      } else {
-        newRange.setStart(newHeading, 0);
-        newRange.setEnd(newHeading, 0);
-      }
-      newSelection.removeAllRanges();
-      newSelection.addRange(newRange);
-      newHeading.focus();
-      
-      return true;
-    } else if (conversionType === 'list' || conversionType === 'blockquote') {
-      // Convert in place by changing attributes
-      if (conversionType === 'list') {
-        focusedBlock.setAttribute('data-block-type', 'list-item');
-        focusedBlock.classList.add('stack-list-item');
-      } else {
-        focusedBlock.setAttribute('data-block-type', 'blockquote');
-        focusedBlock.classList.add('stack-blockquote');
-      }
-      
-      // Update text content (remove marker)
-      focusedBlock.textContent = (leadingWhitespace > 0 ? ' '.repeat(leadingWhitespace) : '') + remainingText;
-      
-      // Sync document state
-      this.syncDocumentFromDOM();
-      
-      // Place cursor synchronously at end of remaining text
-      const newRange = document.createRange();
-      const newSelection = window.getSelection();
-      const textNode = focusedBlock.firstChild;
-      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-        const cursorPos = Math.min(leadingWhitespace + remainingText.length, textNode.textContent.length);
-        newRange.setStart(textNode, cursorPos);
-        newRange.setEnd(textNode, cursorPos);
-      } else {
-        newRange.setStart(focusedBlock, 0);
-        newRange.setEnd(focusedBlock, 0);
-      }
-      newSelection.removeAllRanges();
-      newSelection.addRange(newRange);
-      focusedBlock.focus();
-      
-      return true;
-    }
-
+    // Structural conversion is handled on Enter only.
+    // This function is kept as a placeholder for potential future non-structural conversions.
     return false;
   }
 
@@ -1227,41 +1333,14 @@ class CreatePost {
    * DOM is authoritative: always read from DOM to update state
    */
   handleEditorInput(e) {
-    // Check for auto-conversion BEFORE syncing (conversion modifies DOM directly)
-    if (this.checkAutoConversion(e)) {
-      // Conversion happened, sync and return early
-      this.syncDocumentFromDOM();
-      this.scheduleSerialization();
-      this.updatePlaceholderVisibility();
-      this.updateNextStepButton();
-      return;
-    }
-
-    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
-    // This ensures any pending edits are captured before we process the input
-    this.syncDocumentFromDOM();
+    // Structural conversion is Enter-authoritative - no conversion during input events
+    // checkAutoConversion() is now a no-op; all conversion happens in handleEnterKey()
 
     const focusedBlock = this.getFocusedBlock();
     if (!focusedBlock) return;
 
-    const blockId = focusedBlock.getAttribute('data-block-id');
-    const blockType = focusedBlock.getAttribute('data-block-type');
-    const blockIndex = this.getBlockIndex(focusedBlock);
-    const block = this.document.blocks[blockIndex];
-
-    if (!block) return;
-
-    // Update block text based on type (read from DOM)
-    if (blockType === 'paragraph' || blockType === 'heading' || blockType === 'list-item' || blockType === 'blockquote') {
-      let newText = focusedBlock.textContent || '';
-      // Remove zero-width space if present
-      newText = newText.replace(/\u200B/g, '');
-      block.text = newText;
+    // Schedule serialization (reads from DOM)
       this.scheduleSerialization();
-    } else if (blockType === 'rawhtml') {
-      block.html = focusedBlock.innerHTML || '';
-      this.scheduleSerialization();
-    }
 
     // Update placeholder visibility immediately when user types
     this.updatePlaceholderVisibility();
@@ -1350,8 +1429,6 @@ class CreatePost {
       e.preventDefault();
       const file = imageItem.getAsFile();
       await this.insertImageAtCursor(file);
-      // Sync after image insertion
-      this.syncDocumentFromDOM();
       // Auto-scroll after paste
       setTimeout(() => {
         this.autoScrollToCaret();
@@ -1425,9 +1502,6 @@ class CreatePost {
   async handleDrop(e) {
     e.preventDefault();
     e.stopPropagation();
-
-    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
-    this.syncDocumentFromDOM();
 
     this.removeInsertionIndicators();
     this.isDragging = false;
@@ -1809,9 +1883,6 @@ class CreatePost {
   async insertImageAtCursor(file, dropPosition = null) {
     if (!file || !file.type.startsWith('image/')) return;
 
-    // CRITICAL: Sync document state FROM DOM first (DOM is authoritative)
-    this.syncDocumentFromDOM();
-
     // Read file as data URL
     const dataUrl = await new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -1869,30 +1940,31 @@ class CreatePost {
       }
     }
 
-    // Validate insertIndex - clamp to valid range
-    if (insertIndex < 0) {
-      insertIndex = this.document.blocks.length;
-    } else if (insertIndex > this.document.blocks.length) {
-      // If index is beyond document length, clamp to end
-      insertIndex = this.document.blocks.length;
-    }
-
     // Get editor reference
     const editor = document.querySelector('#stack-post-body-editor');
     if (!editor) return;
 
+    // Validate insertIndex - clamp to valid range
+    const blockCount = this.getBlockCount();
+    if (insertIndex < 0) {
+      insertIndex = blockCount;
+    } else if (insertIndex > blockCount) {
+      // If index is beyond document length, clamp to end
+      insertIndex = blockCount;
+    }
+
     // If we need to split a block, do it first in DOM
-    if (needsBlockSplit && splitInfo && blockToSplitIndex >= 0 && blockToSplitIndex < this.document.blocks.length) {
-      const blockToSplit = this.document.blocks[blockToSplitIndex];
-      if (blockToSplit && blockToSplit.type === 'paragraph') {
-        const blockToSplitEl = document.querySelector(`[data-block-id="${blockToSplit.id}"]`);
+    if (needsBlockSplit && splitInfo && blockToSplitIndex >= 0 && blockToSplitIndex < blockCount) {
+      const allBlocks = Array.from(editor.querySelectorAll('[data-block-id]'));
+      const blockToSplitEl = allBlocks[blockToSplitIndex];
+      if (blockToSplitEl && blockToSplitEl.getAttribute('data-block-type') === 'paragraph') {
         if (blockToSplitEl) {
         // Update the original block with text before the split
           blockToSplitEl.textContent = splitInfo.beforeText.trim();
           
           // Create a new paragraph block with text after the split in DOM
           const afterBlockEl = document.createElement('p');
-          const afterBlockId = generateBlockId(this.document.blocks.length);
+          const afterBlockId = generateBlockId(this.getBlockCount());
           afterBlockEl.setAttribute('data-block-id', afterBlockId);
           afterBlockEl.setAttribute('data-block-type', 'paragraph');
           afterBlockEl.setAttribute('data-block-index', insertIndex.toString());
@@ -1910,17 +1982,10 @@ class CreatePost {
       }
     }
 
-    // Create image block
-    const imageBlock = {
-      type: 'image',
-      id: generateBlockId(this.document.blocks.length),
-      src: imageDataUrl, // Use data URL for immediate display
-      caption: file.name || '' // Optional caption, hidden by default
-    };
-
     // Create image element in DOM
     const imageElement = document.createElement('figure');
-    imageElement.setAttribute('data-block-id', imageBlock.id);
+    const imageBlockId = generateBlockId(this.getBlockCount());
+    imageElement.setAttribute('data-block-id', imageBlockId);
     imageElement.setAttribute('data-block-type', 'image');
     imageElement.setAttribute('data-block-index', insertIndex.toString());
     imageElement.className = 'stack-image-block';
@@ -1928,7 +1993,7 @@ class CreatePost {
 
     const img = document.createElement('img');
     img.src = imageDataUrl;
-    img.alt = imageBlock.caption || '';
+    img.alt = file.name || '';
     img.style.maxWidth = '100%';
     img.style.height = 'auto';
     img.style.display = 'block';
@@ -1937,7 +2002,7 @@ class CreatePost {
 
     // Create new paragraph element in DOM
     const newParagraphElement = document.createElement('p');
-    const newParagraphId = generateBlockId(this.document.blocks.length + 1);
+    const newParagraphId = generateBlockId(this.getBlockCount() + 1);
     newParagraphElement.setAttribute('data-block-id', newParagraphId);
     newParagraphElement.setAttribute('data-block-type', 'paragraph');
     newParagraphElement.setAttribute('data-block-index', (insertIndex + 1).toString());
@@ -1955,9 +2020,6 @@ class CreatePost {
       editor.insertBefore(newParagraphElement, imageElement.nextSibling);
         }
 
-    // Sync document state from DOM
-    this.syncDocumentFromDOM();
-
     // Update placeholder visibility
     this.updatePlaceholderVisibility();
 
@@ -1968,7 +2030,7 @@ class CreatePost {
     if (textNode && textNode.nodeType === Node.TEXT_NODE) {
       newRange.setStart(textNode, 0);
       newRange.setEnd(textNode, 0);
-    } else {
+        } else {
       newRange.setStart(newParagraphElement, 0);
       newRange.setEnd(newParagraphElement, 0);
     }
@@ -2007,20 +2069,31 @@ class CreatePost {
     const adminElement = document.querySelector('#stack-draft-state');
     if (!adminElement) return;
 
-    // Check if there's meaningful content
-    const hasContent = this.document.blocks.some(block => {
-      if (block.type === 'paragraph' || block.type === 'heading') {
-        const text = (block.text || '').replace(/\u200B/g, '').trim();
-        return text.length > 0;
+    // Check if there's meaningful content (read from DOM)
+    const editor = document.querySelector('#stack-post-body-editor');
+    let hasContent = false;
+    if (editor) {
+      const blockElements = editor.querySelectorAll('[data-block-id]');
+      for (const blockEl of blockElements) {
+        const blockType = blockEl.getAttribute('data-block-type');
+        if (blockType === 'paragraph' || blockType === 'heading' || blockType === 'list-item' || blockType === 'blockquote') {
+          const text = (blockEl.textContent || '').replace(/\u200B/g, '').trim();
+          if (text.length > 0) {
+            hasContent = true;
+            break;
+          }
+        } else if (blockType === 'image') {
+          hasContent = true;
+          break;
+        } else if (blockType === 'rawhtml') {
+          const html = (blockEl.innerHTML || '').trim();
+          if (html.length > 0) {
+            hasContent = true;
+            break;
+          }
+        }
       }
-      if (block.type === 'image') {
-        return true;
-      }
-      if (block.type === 'rawhtml') {
-        return (block.html || '').trim().length > 0;
-      }
-      return false;
-    });
+    }
 
     if (hasContent) {
       adminElement.classList.add('stack-admin-active');
@@ -2076,7 +2149,7 @@ class CreatePost {
       targetBlock = editor.querySelector('[contenteditable="true"]');
       
       // If still no block, ensure we have at least one paragraph in DOM
-      if (!targetBlock && this.document.blocks.length === 0) {
+      if (!targetBlock && this.getBlockCount() === 0) {
         const { generateBlockId } = require('../post-document');
         const newParagraphEl = document.createElement('p');
         const newParagraphId = generateBlockId(0);
@@ -2087,9 +2160,6 @@ class CreatePost {
         newParagraphEl.textContent = '';
         newParagraphEl.appendChild(document.createTextNode('\u200B'));
         editor.appendChild(newParagraphEl);
-        
-        // Sync document state from DOM
-        this.syncDocumentFromDOM();
         
         targetBlock = newParagraphEl;
       }
@@ -2183,8 +2253,7 @@ class CreatePost {
     // Get current post data
     const title = document.querySelector('#stack-post-title-input')?.value || '';
     const editor = document.querySelector('#stack-post-body-editor');
-    const { serializeDocumentToMarkdown } = require('../post-document');
-    const content = editor ? serializeDocumentToMarkdown(this.document) : '';
+    const content = editor ? this.serializeDOMToMarkdown() : '';
 
     // Get cover image if exists
     const coverImageImg = document.querySelector('#stack-cover-image-img');
@@ -2237,9 +2306,6 @@ class CreatePost {
     // Remove the image block from DOM
     imageElement.remove();
 
-    // Sync document state from DOM
-    this.syncDocumentFromDOM();
-
     // Update placeholder visibility
     this.updatePlaceholderVisibility();
     
@@ -2247,7 +2313,7 @@ class CreatePost {
     if (!targetElement) {
         const { generateBlockId } = require('../post-document');
       const newParagraphEl = document.createElement('p');
-      const newParagraphId = generateBlockId(this.document.blocks.length);
+      const newParagraphId = generateBlockId(this.getBlockCount());
       newParagraphEl.setAttribute('data-block-id', newParagraphId);
       newParagraphEl.setAttribute('data-block-type', 'paragraph');
       newParagraphEl.setAttribute('data-block-index', '0');
@@ -2256,9 +2322,6 @@ class CreatePost {
       newParagraphEl.appendChild(document.createTextNode('\u200B'));
       editor.appendChild(newParagraphEl);
       targetElement = newParagraphEl;
-      
-      // Sync after creating new block
-      this.syncDocumentFromDOM();
     }
 
     // Focus the target block synchronously
@@ -2389,7 +2452,7 @@ class CreatePost {
 
         // Handle blur to ensure document is saved
         editor.addEventListener('blur', () => {
-          const markdown = serializeDocumentToMarkdown(this.document);
+          const markdown = this.serializeDOMToMarkdown();
           this.saveDraft(markdown);
         });
 
@@ -2414,7 +2477,7 @@ class CreatePost {
     
     // Get markdown from document model (source of truth)
     // Serialize document to ensure we have the latest version
-    const content = serializeDocumentToMarkdown(this.document);
+    const content = this.serializeDOMToMarkdown();
     
     if (!title.trim()) {
       alert('Please enter a title for your post');
