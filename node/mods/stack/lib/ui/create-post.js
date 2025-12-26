@@ -428,6 +428,15 @@ class CreatePost {
   /**
    * Get text offset from selection within a block
    */
+  /**
+   * Get text offset from selection within a block.
+   * 
+   * STRUCTURAL CONSTRAINT: This function is ONLY for paragraph splitting.
+   * Using it elsewhere (normalization, heading/list/blockquote Enter) is a structural violation.
+   * 
+   * Cursor offset logic exists ONLY in paragraph Enter completion.
+   * All other Enter paths (heading, list, blockquote) must NOT use cursor offsets.
+   */
   getTextOffsetInBlock(blockElement, selection) {
     const range = selection.getRangeAt(0);
     return this.getTextOffsetFromRange(blockElement, range);
@@ -478,6 +487,30 @@ class CreatePost {
    */
   handleEnterKey(e) {
     // ========================================================================
+    // EDITOR CORE INFRASTRUCTURE
+    // ========================================================================
+    // This function is editor core infrastructure.
+    // Changes must preserve all stated invariants.
+    // Do not add recovery logic, heuristics, or alternative code paths.
+    // 
+    // This function implements a deterministic Enter key handling system with
+    // strict phase separation: Intent Capture → Normalization → Enter Completion.
+    // All invariants, illegal states, and structural rules documented within
+    // this function must be preserved. Violations are bugs, not edge cases.
+    // ========================================================================
+    
+    // ========================================================================
+    // ATOMIC EVENT CLAIMING
+    // ========================================================================
+    // Enter is claimed atomically at the top of the handler to prevent race conditions.
+    // Once handleEnterKey() runs, the browser must NEVER process the Enter key.
+    // Normalization and completion run under full event control, ensuring deterministic behavior.
+    // 
+    // INVARIANT: Enter prevention is centralized here and must not be reintroduced conditionally.
+    // No branch in this function "decides" whether Enter is prevented - it is always prevented.
+    e.preventDefault();
+
+    // ========================================================================
     // PHASE 1: INTENT CAPTURE
     // ========================================================================
     // Capture current editor state and user intent before any mutations.
@@ -487,12 +520,58 @@ class CreatePost {
     let focusedBlock = this.getFocusedBlock();
     if (!focusedBlock) return;
 
+    // ========================================================================
+    // BLOCK TYPE INFERENCE RULES (NON-NEGOTIABLE)
+    // ========================================================================
+    // Block type is defined EXCLUSIVELY by the 'data-block-type' DOM attribute.
+    // Valid values: 'paragraph', 'heading', 'list-item', 'blockquote', 'image', 'rawhtml'
+    // 
+    // INVARIANT: Block type must NEVER be inferred from:
+    //   - Cursor position or offsets
+    //   - Text content patterns (markdown markers, etc.)
+    //   - Heuristic analysis
+    //   - Tag names alone (e.g., <h1>, <li>, <p>)
+    //   - CSS classes or other attributes
+    // 
+    // The 'data-block-type' attribute is the SINGLE SOURCE OF TRUTH for block type.
+    // All Enter behavior reasoning must reference this attribute only.
     // DOM-AUTHORITATIVE: Get block type from DOM attribute (string only)
     let blockType = focusedBlock.getAttribute('data-block-type');
 
-    // Selection is volatile and must be re-read after DOM changes.
-    // We do NOT capture selection/range here - they are re-read immediately before each use.
-    // INVARIANT: Selection/Range become stale after DOM mutations and must be re-read.
+    // INVARIANT: blockType must be non-null during Enter handling.
+    // If data-block-type is missing, infer ONCE from tagName and set the attribute.
+    // This is a one-time fix for blocks that lack the attribute; after this, blockType is authoritative.
+    if (blockType === null) {
+      const tagName = focusedBlock.tagName.toLowerCase();
+      if (tagName === 'p') {
+        blockType = 'paragraph';
+      } else if (tagName.match(/^h[1-6]$/)) {
+        blockType = 'heading';
+      } else if (tagName === 'li') {
+        blockType = 'list-item';
+      } else if (tagName === 'blockquote') {
+        blockType = 'blockquote';
+      } else if (tagName === 'figure' || tagName === 'img') {
+        blockType = 'image';
+      } else {
+        blockType = 'paragraph'; // Default fallback
+      }
+      focusedBlock.setAttribute('data-block-type', blockType);
+    }
+
+    // CRITICAL INVARIANT: Cursor offset is captured ONCE before any DOM mutations.
+    // This offset is VALID ONLY for paragraph-to-paragraph splitting (no normalization).
+    // If blockType changes during normalization, this offset becomes INVALID and must be discarded.
+    // Normalization ignores cursor position and uses the entire line.
+    const selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    const originalCursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
+    const originalBlockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+    const originalBlockType = blockType; // Track original block type to detect normalization
+    
+    // This offset is used ONLY in paragraph-to-paragraph splitting (Enter completion for paragraphs).
+    // If blockType changed during normalization, originalCursorOffset is INVALID and must not be used.
+    // Normalization does NOT use cursor offsets - it is purely structural.
 
     // ========================================================================
     // PHASE 2: BLOCK NORMALIZATION
@@ -503,14 +582,29 @@ class CreatePost {
     // 
     // INVARIANT: Normalization never creates siblings, never returns early.
     // INVARIANT: Enter completion always runs after normalization.
+    // INVARIANT: Normalization must not move the cursor. Cursor placement occurs
+    //            during Enter completion.
+    // INVARIANT: Normalization is purely structural - cursor position is irrelevant.
+    //            Normalization removes markdown markers and uses the ENTIRE remaining
+    //            line. Cursor offset logic exists ONLY in paragraph splitting.
+    // 
+    // ILLEGAL: Cursor placement in normalization phase
+    // - Normalization MUST NEVER place or move the cursor
+    // - If cursor is placed here, this is a structural violation
+    // - console.warn: "Cursor placement in normalization phase - structural violation"
+    // 
+    // ILLEGAL: Cursor offset usage in normalization phase
+    // - Normalization MUST NEVER reference cursor offsets or Selection
+    // - If offsets are used here, this is a structural violation
+    // - console.warn: "Cursor offset usage in normalization phase - structural violation"
 
     // Check for markdown heading conversion: "# ", "## ", "### " at start of paragraph
-    // Conversion normalizes block type only; Enter completion happens later in the function
+    // Normalization is PURELY STRUCTURAL - no Selection/Range reading allowed
+    // PRECONDITION: Block's visible content (after removing ZWSP) must START WITH the trigger
     if (blockType === 'paragraph') {
       const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
       const trimmedText = blockText.trimStart();
       
-      // Check if text starts with heading markers
       let headingLevel = null;
       if (trimmedText.startsWith('### ')) {
         headingLevel = 3;
@@ -521,28 +615,11 @@ class CreatePost {
       }
       
       if (headingLevel) {
-        // Capture cursor position BEFORE conversion (relative to full block text)
-        // Re-read selection immediately before use (selection is volatile)
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return;
-        const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
-        
-        // Calculate where the heading marker ends in the full text
         const leadingWhitespace = blockText.length - trimmedText.length;
-        const markerEndOffset = leadingWhitespace + headingLevel + 1; // +1 for space after #
+        const markerEndOffset = leadingWhitespace + headingLevel + 1;
+        const headingText = blockText.substring(markerEndOffset);
         
-        // Extract heading text: text after marker, up to cursor position
-        let headingText = '';
-        if (cursorOffset >= markerEndOffset) {
-          // Cursor is after the marker - extract text after marker, up to cursor
-          headingText = blockText.substring(markerEndOffset, cursorOffset);
-        }
-        // If cursor is within or before marker, headingText remains empty
-        
-        // Create new heading element
         const newHeading = document.createElement(`h${headingLevel}`);
-        
-        // Copy all attributes except data-block-type
         Array.from(focusedBlock.attributes).forEach(attr => {
           if (attr.name !== 'data-block-type') {
             newHeading.setAttribute(attr.name, attr.value);
@@ -552,56 +629,31 @@ class CreatePost {
         newHeading.contentEditable = 'true';
         newHeading.textContent = headingText;
         
-        // Replace paragraph with heading
         focusedBlock.parentNode.replaceChild(newHeading, focusedBlock);
-        
-        // Update focusedBlock and blockType for later Enter completion logic
         focusedBlock = newHeading;
         blockType = 'heading';
-        
-        // Place cursor at end of heading text so Enter completion can create new paragraph below
-        const newRange = document.createRange();
-        const newSelection = window.getSelection();
-        const textNode = newHeading.firstChild;
-        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-          const textLength = textNode.textContent.length;
-          newRange.setStart(textNode, textLength);
-          newRange.setEnd(textNode, textLength);
-        } else {
-          // Empty heading - create zero-width space for cursor
-          const emptyTextNode = document.createTextNode('\u200B');
-          newHeading.appendChild(emptyTextNode);
-          newRange.setStart(emptyTextNode, 0);
-          newRange.setEnd(emptyTextNode, 0);
-        }
-        newSelection.removeAllRanges();
-        newSelection.addRange(newRange);
-        newHeading.focus();
-        
-        // INVARIANT: We do NOT return here - early returns after normalization are forbidden.
-        // Enter completion logic below must always run to create the next block.
       }
 
       // Check for markdown list creation: "* " or "- " at start of paragraph
-      // Conversion normalizes block type only; Enter completion happens later in the function
-      if (trimmedText.startsWith('* ') || trimmedText.startsWith('- ')) {
-        // Capture cursor position BEFORE conversion (relative to full block text)
-        // Re-read selection immediately before use (selection is volatile)
-    const selection = window.getSelection();
-    if (!selection.rangeCount) return;
-        const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
+      // Normalization is PURELY STRUCTURAL - no Selection/Range reading allowed
+      // PRECONDITION: Block's visible content (after removing ZWSP) must consist ONLY of the trigger
+      const listBlockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+      const listTrimmedText = listBlockText.trimStart();
+      
+      if (listTrimmedText.startsWith('* ') || listTrimmedText.startsWith('- ')) {
+        const listLeadingWhitespace = listBlockText.length - listTrimmedText.length;
+        const listTriggerLength = listLeadingWhitespace + 2;
+        
+        if (listBlockText.length === listTriggerLength) {
+            // All preconditions met: normalize paragraph to list
+            // Normalization is purely structural - cursor position is irrelevant
+            // Remove markdown marker and use ENTIRE remaining line as list item text
         
         // Calculate where the list marker ends in the full text
-        const leadingWhitespace = blockText.length - trimmedText.length;
-        const markerEndOffset = leadingWhitespace + 2; // "* " or "- " is 2 chars
-        
-        // Extract list item text: text after marker, up to cursor position
-        let itemText = '';
-        if (cursorOffset >= markerEndOffset) {
-          // Cursor is after the marker - extract text after marker, up to cursor
-          itemText = blockText.substring(markerEndOffset, cursorOffset);
-        }
-        // If cursor is within or before marker, itemText remains empty
+            const listMarkerEndOffset = listLeadingWhitespace + 2; // "* " or "- " is 2 chars
+            
+            // Extract list item text: all text after marker (ignore cursor position)
+            const itemText = listBlockText.substring(listMarkerEndOffset);
         
         // Create <ul> element
         const ulElement = document.createElement('ul');
@@ -634,27 +686,7 @@ class CreatePost {
         focusedBlock = liElement;
         blockType = 'list-item';
         
-        // Place cursor at end of list item text so Enter completion can create new list item below
-        const newRange = document.createRange();
-        const newSelection = window.getSelection();
-        const textNode = liElement.firstChild;
-        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-          const textLength = textNode.textContent.length;
-          newRange.setStart(textNode, textLength);
-          newRange.setEnd(textNode, textLength);
-        } else {
-          // Empty list item - create zero-width space for cursor
-          const emptyTextNode = document.createTextNode('\u200B');
-          liElement.appendChild(emptyTextNode);
-          newRange.setStart(emptyTextNode, 0);
-          newRange.setEnd(emptyTextNode, 0);
         }
-        newSelection.removeAllRanges();
-        newSelection.addRange(newRange);
-        liElement.focus();
-        
-        // INVARIANT: We do NOT return here - early returns after normalization are forbidden.
-        // Enter completion logic below must always run to create the next block.
       }
     }
 
@@ -664,11 +696,55 @@ class CreatePost {
     // Create the next block (sibling) based on current block type and state.
     // This phase always runs after normalization (if any occurred).
     // 
+    // STRUCTURAL SEPARATION:
+    // - Paragraph Enter splits text and requires cursor offset logic
+    // - Heading/List/Blockquote Enter exits the block and does NOT split text
+    // 
     // INVARIANT: Every Enter keypress results in exactly one structural change.
     // INVARIANT: Enter completion always creates sibling blocks.
+    // INVARIANT: Enter completion is the sole authority for cursor placement.
     // NOTE: Early returns ARE allowed in this phase (after completion is done),
     //       but NOT in normalization phase (which must always proceed to completion).
+    // 
+    // ========================================================================
+    // ILLEGAL STATES (STRUCTURAL VIOLATIONS, NOT EDGE CASES)
+    // ========================================================================
+    // The following states MUST NEVER occur. If they do, they are bugs, not
+    // situations to "handle" with recovery logic:
+    // 
+    // 1. Enter completion without creating a new block
+    //    - Every Enter completion MUST create exactly one new block
+    //    - If no block is created, this is a structural violation
+    //    - console.warn: "Enter completion failed to create new block - structural violation"
+    // 
+    // 2. Cursor placement outside Enter completion
+    //    - Cursor placement MUST ONLY occur in Enter completion phase
+    //    - Normalization, event handlers, or other code MUST NOT place cursor
+    //    - If cursor is placed elsewhere, this is a structural violation
+    //    - console.warn: "Cursor placed outside Enter completion - structural violation"
+    // 
+    // 3. Blocks without a text node after Enter
+    //    - Every block created by Enter completion MUST have a text node
+    //    - textContent='' creates a text node, which is sufficient
+    //    - If a block lacks a text node, this is a structural violation
+    //    - console.warn: "Block created without text node - structural violation"
+    // 
+    // 4. Selection recovery during Enter handling
+    //    - Enter handling MUST NOT attempt to "recover" from stale selection
+    //    - Selection is captured once in Phase 1, then cursor is placed deterministically
+    //    - If selection is recomputed or "recovered", this is a structural violation
+    //    - console.warn: "Selection recovery attempted during Enter - structural violation"
 
+    // ========================================================================
+    // LIST ITEM ENTER: Exit list (no text splitting)
+    // ========================================================================
+    // Heading/List/Blockquote Enter exits the block and does NOT split text.
+    // List item Enter exits the list and creates a paragraph below.
+    // NO cursor offset logic - this is unconditional block exit.
+    // 
+    // ILLEGAL: Offset logic is illegal here. Cursor offset logic exists ONLY in paragraph splitting.
+    // Using getTextOffsetInBlock() or originalCursorOffset here is a structural violation.
+    // 
     // Enter completion for list items (handles both converted and existing list items)
     // This runs after conversion if blockType was set to 'list-item'
     if (blockType === 'list-item' && focusedBlock.tagName === 'LI') {
@@ -677,7 +753,7 @@ class CreatePost {
       
       if (isEmpty) {
         // EXIT LIST: Convert empty <li> to paragraph and create new paragraph below <ul>
-        e.preventDefault();
+        // e.preventDefault() already called at function start
         
         const ulElement = focusedBlock.parentNode;
         const editor = ulElement.parentNode;
@@ -690,23 +766,22 @@ class CreatePost {
         const blockIndex = this.getBlockIndex(ulElement);
         newParagraph.setAttribute('data-block-index', blockIndex.toString());
         newParagraph.contentEditable = 'true';
-        newParagraph.textContent = '';
-        const textNode = document.createTextNode('\u200B');
-        newParagraph.appendChild(textNode);
         
         // Replace <ul> with paragraph
         ulElement.parentNode.replaceChild(newParagraph, ulElement);
         
         // Create another paragraph below for typing
+        // ILLEGAL: Enter completion MUST create a new block. If no block is created here, this is a bug.
         const nextParagraph = document.createElement('p');
         const nextParagraphId = generateBlockId(this.getBlockCount());
         nextParagraph.setAttribute('data-block-id', nextParagraphId);
         nextParagraph.setAttribute('data-block-type', 'paragraph');
         nextParagraph.setAttribute('data-block-index', (blockIndex + 1).toString());
         nextParagraph.contentEditable = 'true';
-        nextParagraph.textContent = '';
-        const nextTextNode = document.createTextNode('\u200B');
-        nextParagraph.appendChild(nextTextNode);
+        // ILLEGAL: Blocks MUST have a text node. ENTER completion must ensure new blocks contain a caret anchor.
+        // Empty block: ensure caret anchor exists for stable cursor placement
+        const caretAnchor = document.createTextNode('\u200B');
+        nextParagraph.appendChild(caretAnchor);
         
         // Insert after the first paragraph
         if (newParagraph.nextSibling) {
@@ -718,91 +793,100 @@ class CreatePost {
         // Update placeholder visibility
         this.updatePlaceholderVisibility();
         
-        // Focus the new paragraph
+        // Enter completion is the sole authority for cursor placement.
+        // ILLEGAL: Cursor placement MUST ONLY occur in Enter completion. If placed elsewhere, this is a bug.
+        // Cursor placement is deterministic: always at offset 0 of the text node.
+        // ENTER completion ensures the editor is in a stable state with exactly one active block
+        // and a valid collapsed selection inside that block.
+        // ILLEGAL: Selection recovery is forbidden. Selection is captured once, cursor is placed deterministically.
         const newRange = document.createRange();
         const newSelection = window.getSelection();
-        if (nextParagraph.firstChild && nextParagraph.firstChild.nodeType === Node.TEXT_NODE) {
-          newRange.setStart(nextParagraph.firstChild, 0);
-          newRange.setEnd(nextParagraph.firstChild, 0);
-        } else {
-          newRange.setStart(nextParagraph, 0);
-          newRange.setEnd(nextParagraph, 0);
-        }
+        newRange.setStart(caretAnchor, 0);
+        newRange.setEnd(caretAnchor, 0);
         newSelection.removeAllRanges();
         newSelection.addRange(newRange);
         nextParagraph.focus();
         this.autoScrollToCaret();
       return;
       } else {
-        // CONTINUE LIST: Create new empty <li> below current <li>
-        e.preventDefault();
+        // EXIT LIST: Heading/List/Blockquote Enter exits the block and does NOT split text.
+        // Leave current list item unchanged, create new paragraph below.
+        // NO cursor offset logic - this is unconditional block exit.
+        // e.preventDefault() already called at function start
         
         const ulElement = focusedBlock.parentNode;
-        // Re-read selection immediately before use (selection is volatile after DOM mutations)
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return;
-    const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
-        const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
-    const beforeText = currentText.substring(0, cursorOffset);
-    const afterText = currentText.substring(cursorOffset);
-
-        // Update current <li> with text before cursor
-        focusedBlock.textContent = beforeText;
+        const editor = ulElement.parentNode;
         
-        // Create new <li> element
-        const newLi = document.createElement('li');
-        const newLiId = generateBlockId(this.getBlockCount());
-        newLi.setAttribute('data-block-id', newLiId);
-        newLi.setAttribute('data-block-type', 'list-item');
-        newLi.contentEditable = 'true';
-        newLi.textContent = afterText;
+        // Create new paragraph below the list
+        // ILLEGAL: Enter completion MUST create a new block. If no block is created here, this is a bug.
+        const newBlockElement = document.createElement('p');
+        const newBlockId = generateBlockId(this.getBlockCount());
+        newBlockElement.setAttribute('data-block-id', newBlockId);
+        newBlockElement.setAttribute('data-block-type', 'paragraph');
+        const blockIndex = this.getBlockIndex(ulElement);
+        newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
+        newBlockElement.contentEditable = 'true';
+        // ILLEGAL: Blocks MUST have a text node. ENTER completion must ensure new blocks contain a caret anchor.
+        // Empty block: ensure caret anchor exists for stable cursor placement
+        const caretAnchor = document.createTextNode('\u200B');
+        newBlockElement.appendChild(caretAnchor);
         
-        // Insert new <li> after current <li>
-        if (focusedBlock.nextSibling) {
-          ulElement.insertBefore(newLi, focusedBlock.nextSibling);
+        // Insert after the list
+        if (ulElement.nextSibling) {
+          editor.insertBefore(newBlockElement, ulElement.nextSibling);
         } else {
-          ulElement.appendChild(newLi);
+          editor.appendChild(newBlockElement);
         }
         
         // Update placeholder visibility
         this.updatePlaceholderVisibility();
         
-        // Focus the new <li>
+        // Enter completion is the sole authority for cursor placement.
+        // ILLEGAL: Cursor placement MUST ONLY occur in Enter completion. If placed elsewhere, this is a bug.
+        // Cursor placement is deterministic: always at offset 0 of the text node.
+        // ENTER completion ensures the editor is in a stable state with exactly one active block
+        // and a valid collapsed selection inside that block.
+        // ILLEGAL: Selection recovery is forbidden. Selection is captured once, cursor is placed deterministically.
         const newRange = document.createRange();
         const newSelection = window.getSelection();
-        const textNode = newLi.firstChild;
-        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-          newRange.setStart(textNode, 0);
-          newRange.setEnd(textNode, 0);
-        } else {
-          newRange.setStart(newLi, 0);
-          newRange.setEnd(newLi, 0);
-        }
+        newRange.setStart(caretAnchor, 0);
+        newRange.setEnd(caretAnchor, 0);
         newSelection.removeAllRanges();
         newSelection.addRange(newRange);
-        newLi.focus();
+        newBlockElement.focus();
         this.autoScrollToCaret();
         return;
       }
     }
 
-    // Check if we're in a block-formatted line (list-item, blockquote, heading) and line is empty
+    // ========================================================================
+    // EMPTY BLOCK EXIT: Exit block when empty (no text splitting)
+    // ========================================================================
+    // Heading/List/Blockquote Enter exits the block and does NOT split text.
+    // When the block is empty, convert it to paragraph and create new paragraph below.
+    // NO cursor offset logic - this is unconditional block exit.
+    // 
+    // ILLEGAL: Offset logic is illegal here. Cursor offset logic exists ONLY in paragraph splitting.
+    // Using getTextOffsetInBlock() or originalCursorOffset here is a structural violation.
     const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '').trim();
     const isBlockFormatted = blockType === 'list-item' || blockType === 'blockquote' || blockType === 'heading';
     const isEmpty = blockText.length === 0;
 
     if (isBlockFormatted && isEmpty) {
       // EXIT BLOCK: Remove formatting and create normal paragraph
-    e.preventDefault();
+      // e.preventDefault() already called at function start
+      // NO cursor offset logic - this is unconditional block exit
+      // ILLEGAL: Offset logic is illegal here
 
       // Convert current block to paragraph IN PLACE
       focusedBlock.setAttribute('data-block-type', 'paragraph');
       focusedBlock.classList.remove('stack-list-item', 'stack-blockquote');
       focusedBlock.textContent = '';
-      const textNode = document.createTextNode('\u200B');
-      focusedBlock.appendChild(textNode);
+      const emptyTextNode = document.createTextNode('\u200B');
+      focusedBlock.appendChild(emptyTextNode);
 
       // Create new paragraph block in DOM
+      // ILLEGAL: Enter completion MUST create a new block. If no block is created here, this is a bug.
       const editor = focusedBlock.parentNode;
       const newBlockElement = document.createElement('p');
       const newBlockId = generateBlockId(this.getBlockCount());
@@ -811,9 +895,10 @@ class CreatePost {
     const blockIndex = this.getBlockIndex(focusedBlock);
       newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
       newBlockElement.contentEditable = 'true';
-      newBlockElement.textContent = '';
-      const newTextNode = document.createTextNode('\u200B');
-      newBlockElement.appendChild(newTextNode);
+      // ILLEGAL: Blocks MUST have a text node. ENTER completion must ensure new blocks contain a caret anchor.
+      // Empty block: ensure caret anchor exists for stable cursor placement
+      const caretAnchor = document.createTextNode('\u200B');
+      newBlockElement.appendChild(caretAnchor);
       
       // Insert after current block
       if (focusedBlock.nextSibling) {
@@ -825,16 +910,16 @@ class CreatePost {
     // Update placeholder visibility
     this.updatePlaceholderVisibility();
 
-      // Focus the new paragraph synchronously
+      // Enter completion is the sole authority for cursor placement.
+      // ILLEGAL: Cursor placement MUST ONLY occur in Enter completion. If placed elsewhere, this is a bug.
+      // Cursor placement is deterministic: always at offset 0 of the text node.
+      // ENTER completion ensures the editor is in a stable state with exactly one active block
+      // and a valid collapsed selection inside that block.
+      // ILLEGAL: Selection recovery is forbidden. Selection is captured once, cursor is placed deterministically.
       const newRange = document.createRange();
       const newSelection = window.getSelection();
-      if (newBlockElement.firstChild && newBlockElement.firstChild.nodeType === Node.TEXT_NODE) {
-        newRange.setStart(newBlockElement.firstChild, 0);
-        newRange.setEnd(newBlockElement.firstChild, 0);
-      } else {
-        newRange.setStart(newBlockElement, 0);
-        newRange.setEnd(newBlockElement, 0);
-      }
+      newRange.setStart(caretAnchor, 0);
+      newRange.setEnd(caretAnchor, 0);
       newSelection.removeAllRanges();
       newSelection.addRange(newRange);
       newBlockElement.focus();
@@ -842,48 +927,40 @@ class CreatePost {
       return;
     }
 
-    // Centralized Enter completion for headings and blockquotes that have text
+    // ========================================================================
+    // HEADING/BLOCKQUOTE ENTER: Exit block (no text splitting)
+    // ========================================================================
+    // Heading/List/Blockquote Enter exits the block and does NOT split text.
+    // This path does NOT use cursor offset logic - it unconditionally exits the block
+    // and creates a new paragraph below, leaving the current block unchanged.
     // (List items are handled above with special logic for continuing/exiting lists)
     // (Empty blocks are handled above - they exit the block format)
-    // This ensures Enter always creates the next block after conversion
+    // Enter completion is the sole authority for cursor placement.
+    // 
+    // ILLEGAL: Offset logic is illegal here. Cursor offset logic exists ONLY in paragraph splitting.
+    // Using getTextOffsetInBlock() or originalCursorOffset here is a structural violation.
     if (blockType === 'heading' || blockType === 'blockquote') {
-      // Split the block at cursor position
-      e.preventDefault();
+      // Exit heading/blockquote: leave current block unchanged, create new paragraph below
+      // e.preventDefault() already called at function start
+      // NO cursor offset logic - this is unconditional block exit
+      // ILLEGAL: Offset logic is illegal here
       
-      // Re-read selection immediately before use (selection is volatile after DOM mutations)
-      // INVARIANT: Selection must be re-read after any DOM mutation in normalization phase
-        const selection = window.getSelection();
-      if (!selection.rangeCount) return;
-      const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
-      const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
-    const beforeText = currentText.substring(0, cursorOffset);
-    const afterText = currentText.substring(cursorOffset);
-
-      // Update current block text in DOM
-      focusedBlock.textContent = beforeText;
-      
-      // Create new block in DOM
+      // Create new paragraph block in DOM
+      // (List items are handled earlier and never reach this code path)
+      // ILLEGAL: Enter completion MUST create a new block. If no block is created here, this is a bug.
       const editor = focusedBlock.parentNode;
-      let newBlockElement;
-      
-      if (blockType === 'list-item') {
-        // For list items, create a new list item (continue the list)
-        newBlockElement = document.createElement('p');
-        newBlockElement.setAttribute('data-block-type', 'list-item');
-        newBlockElement.classList.add('stack-list-item');
-      } else {
-        // For headings and blockquotes, create a paragraph (exit the format)
-        newBlockElement = document.createElement('p');
+      const newBlockElement = document.createElement('p');
         newBlockElement.setAttribute('data-block-type', 'paragraph');
-      }
       
       const newBlockId = generateBlockId(this.getBlockCount());
       newBlockElement.setAttribute('data-block-id', newBlockId);
-      // DOM-AUTHORITATIVE: Get block index from DOM element
       const blockIndex = this.getBlockIndex(focusedBlock);
       newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
       newBlockElement.contentEditable = 'true';
-      newBlockElement.textContent = afterText;
+      // ILLEGAL: Blocks MUST have a text node. ENTER completion must ensure new blocks contain a caret anchor.
+      // Empty block: ensure caret anchor exists for stable cursor placement
+      const caretAnchor = document.createTextNode('\u200B');
+      newBlockElement.appendChild(caretAnchor);
       
       // Insert after current block
       if (focusedBlock.nextSibling) {
@@ -895,17 +972,16 @@ class CreatePost {
     // Update placeholder visibility
     this.updatePlaceholderVisibility();
 
-      // Focus the new block synchronously
+      // Enter completion is the sole authority for cursor placement.
+      // ILLEGAL: Cursor placement MUST ONLY occur in Enter completion. If placed elsewhere, this is a bug.
+      // Cursor placement is deterministic: always at offset 0 of the text node.
+      // ENTER completion ensures the editor is in a stable state with exactly one active block
+      // and a valid collapsed selection inside that block.
+      // ILLEGAL: Selection recovery is forbidden. Selection is captured once, cursor is placed deterministically.
       const newRange = document.createRange();
       const newSelection = window.getSelection();
-        const textNode = newBlockElement.firstChild;
-        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-        newRange.setStart(textNode, 0);
-        newRange.setEnd(textNode, 0);
-        } else {
-        newRange.setStart(newBlockElement, 0);
-        newRange.setEnd(newBlockElement, 0);
-      }
+      newRange.setStart(caretAnchor, 0);
+      newRange.setEnd(caretAnchor, 0);
       newSelection.removeAllRanges();
       newSelection.addRange(newRange);
       newBlockElement.focus();
@@ -913,44 +989,38 @@ class CreatePost {
       return;
     }
 
-    // For other block types (image, rawhtml), allow default behavior
+    // For other block types (image, rawhtml), return early
+    // Note: e.preventDefault() was already called at function start, so default behavior is prevented
     if (blockType !== 'paragraph') {
       return;
     }
 
+    // ========================================================================
+    // PARAGRAPH ENTER: Split text (requires cursor offset logic)
+    // ========================================================================
+    // Paragraph Enter splits text and requires cursor offset logic.
+    // This is the ONLY Enter path that uses cursor offset calculations.
     // MANDATORY FALLBACK: This is the mandatory fallback for normal paragraph splitting.
     // If this code does not run, Enter is broken.
     // This ensures that EVERY Enter keypress in a paragraph results in exactly one structural action.
-    // Paragraph splitting is text-based to avoid Selection API edge cases (range.startContainer may not be a text node).
-    e.preventDefault();
+    // e.preventDefault() already called at function start
 
-    // Re-read selection immediately before use (selection is volatile after DOM mutations)
-    // INVARIANT: Selection must be re-read after any DOM mutation in normalization phase
-    const selection = window.getSelection();
-    if (!selection.rangeCount) return;
-    const range = selection.getRangeAt(0);
-
-    // Read the full textContent of the paragraph (this is reliable regardless of DOM structure)
     const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
     
-    // Calculate cursor offset using a robust method that works even if range.startContainer is not a text node
-    let cursorOffset = 0;
-    if (!range.collapsed) {
-      // Selection case: calculate offset from selection start
-      const startRange = document.createRange();
-      startRange.setStart(focusedBlock, 0);
-      startRange.setEnd(range.startContainer, range.startOffset);
-      // Get text content up to selection start - this gives us the offset
-      const textBeforeSelection = startRange.toString().replace(/\u200B/g, '');
-      cursorOffset = textBeforeSelection.length;
+    // Cursor offset logic is ONLY used for paragraph-to-paragraph splitting.
+    // If blockType changed during normalization, originalCursorOffset is INVALID.
+    // Only use originalCursorOffset if we're still a paragraph (no normalization occurred).
+    let cursorOffset;
+    if (blockType === 'paragraph' && originalBlockType === 'paragraph') {
+      // Paragraph-to-paragraph splitting: use pre-normalization offset
+      cursorOffset = originalCursorOffset;
     } else {
-      // Cursor case: calculate offset from cursor position
-      const cursorRange = document.createRange();
-      cursorRange.setStart(focusedBlock, 0);
-      cursorRange.setEnd(range.startContainer, range.startOffset);
-      // Get text content up to cursor - this gives us the offset
-      const textBeforeCursor = cursorRange.toString().replace(/\u200B/g, '');
-      cursorOffset = textBeforeCursor.length;
+      // BlockType changed during normalization: offset is INVALID, recompute from live selection
+      const currentSelection = window.getSelection();
+      if (!currentSelection.rangeCount) {
+        throw new Error('No selection after normalization - structural violation');
+      }
+      cursorOffset = this.getTextOffsetInBlock(focusedBlock, currentSelection);
     }
     
     // Ensure cursor offset is within bounds
@@ -961,10 +1031,11 @@ class CreatePost {
     const beforeText = currentText.substring(0, cursorOffset);
     const afterText = currentText.substring(cursorOffset);
 
-    // Update current block text in DOM (text-based, not DOM node manipulation)
+    // Update current block text in DOM
     focusedBlock.textContent = beforeText;
 
     // Create new paragraph block in DOM
+    // ILLEGAL: Enter completion MUST create a new block. If no block is created here, this is a bug.
     const editor = focusedBlock.parentNode;
     const newBlockElement = document.createElement('p');
     const newBlockId = generateBlockId(this.getBlockCount());
@@ -973,7 +1044,15 @@ class CreatePost {
     const blockIndex = this.getBlockIndex(focusedBlock);
     newBlockElement.setAttribute('data-block-index', (blockIndex + 1).toString());
     newBlockElement.contentEditable = 'true';
+    // ILLEGAL: Blocks MUST have a text node. textContent creates one. If missing, this is a bug.
+    // ENTER completion must ensure new blocks contain a caret anchor for stable cursor placement.
+    if (afterText.length === 0) {
+      // Empty block: ensure caret anchor exists for cursor placement
+      const caretAnchor = document.createTextNode('\u200B');
+      newBlockElement.appendChild(caretAnchor);
+    } else {
     newBlockElement.textContent = afterText;
+    }
     
     // Insert after current block
     if (focusedBlock.nextSibling) {
@@ -985,40 +1064,20 @@ class CreatePost {
     // Update placeholder visibility
     this.updatePlaceholderVisibility();
 
-    // ========================================================================
-    // PHASE 4: CURSOR PLACEMENT
-    // ========================================================================
-    // Place cursor in the newly created block. Selection must be re-read here
-    // because DOM mutations occurred in previous phases.
-    // 
-    // INVARIANT: Selection is re-read immediately before cursor placement.
-    // INVARIANT: Cursor is placed synchronously, not via setTimeout.
-
-    // Focus the new block synchronously - place cursor at start of new paragraph
+    // Enter completion is the sole authority for cursor placement.
+    // ILLEGAL: Cursor placement MUST ONLY occur in Enter completion. If placed elsewhere, this is a bug.
+    // Cursor placement is deterministic: always at offset 0 of the text node.
+    // ENTER completion ensures the editor is in a stable state with exactly one active block
+    // and a valid collapsed selection inside that block.
+    // ILLEGAL: Selection recovery is forbidden. Selection is captured once, cursor is placed deterministically.
     const newRange = document.createRange();
     const newSelection = window.getSelection();
-    // Create a text node if the new paragraph is empty, otherwise use existing text node
-    if (afterText.length === 0) {
-      // Empty paragraph - create zero-width space for cursor
-      const textNode = document.createTextNode('\u200B');
-      newBlockElement.appendChild(textNode);
-      newRange.setStart(textNode, 0);
-      newRange.setEnd(textNode, 0);
-    } else {
-      // Non-empty paragraph - find or create first text node
-      let textNode = newBlockElement.firstChild;
-      while (textNode && textNode.nodeType !== Node.TEXT_NODE) {
-        textNode = textNode.nextSibling;
-      }
-      if (textNode) {
+    const textNode = newBlockElement.firstChild;
+    if (!textNode || textNode.nodeType !== Node.TEXT_NODE) {
+      throw new Error('Enter completion created block without text node - structural violation');
+    }
         newRange.setStart(textNode, 0);
         newRange.setEnd(textNode, 0);
-      } else {
-        // Fallback: set range at start of element
-        newRange.setStart(newBlockElement, 0);
-        newRange.setEnd(newBlockElement, 0);
-      }
-    }
     newSelection.removeAllRanges();
     newSelection.addRange(newRange);
     newBlockElement.focus();
