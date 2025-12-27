@@ -51,11 +51,16 @@ class Stack extends ModTemplate {
     this.peers = {};
     // In-memory cache for fetched transactions, keyed by signature
     this.transactionCache = {};
+    
+    // In-memory draft state (single source of truth)
+    // Ordered by last-modified DESC (most recent first)
+    this.drafts = [];
 
     this.overlay = new SaitoOverlay(app, this);
     this.exploreOverlay = new ExploreOverlay(app, this);
     this.main = new StackMain(app, this, '.saito-container');
     this.create_post_ui = new CreatePost(app, this, '.saito-container');
+    this.chooseDraftOverlay = null; // Lazy-loaded when needed
     this.header = null;
 
     // Callback for after post creation
@@ -66,6 +71,7 @@ class Stack extends ModTemplate {
       '/stack/style.css',
       '/stack/stack-main.css',
       '/stack/stack-publish-overlay.css',
+      '/stack/stack-choose-draft-overlay.css',
       '/stack/stack-explore.css',
       '/stack/stack-post-teaser.css',
       '/stack/stack-create-post.css',
@@ -109,6 +115,11 @@ class Stack extends ModTemplate {
     this.addComponent(this.header);
 
     await super.render(this.app, this);
+
+    // Discover local drafts (non-blocking, in-memory state)
+    this.discoverDrafts().catch(err => {
+      console.error('Stack: Error discovering drafts:', err);
+    });
 
     // Render the main component (splash page)
     this.main.render();
@@ -196,14 +207,21 @@ class Stack extends ModTemplate {
   async onConfirmation(blk, tx, conf) {
     const txmsg = tx.returnMessage();
     
+    // Check if transaction is relevant to Stack module
     if (txmsg.module !== this.name) {
       return;
     }
 
+    // Only process initial confirmations (conf == 0)
     if (Number(conf) == 0) {
       if (txmsg.request === 'create stack post request') {
         console.log('Stack onConfirmation: createStackPost');
         await this.receiveStackPostTransaction(tx, blk);
+        
+        // Clean up pending drafts after successful confirmation (only for user's own posts)
+        if (tx.isFrom(this.publicKey)) {
+          await this.cleanupPendingDrafts();
+        }
       }
       // Add other request types here as needed (update, delete, etc.)
     }
@@ -362,19 +380,62 @@ class Stack extends ModTemplate {
       if (tx.isFrom(this.publicKey)) {
         this.app.connection.emit('saito-header-update-message', { msg: '' });
         siteMessage('Stack post published', 1500);
+        
+        // Browser-only confirmation alert for testing
+        if (this.browser_active) {
+          alert("Your blog post has been received from the network.");
+        }
       } else {
         siteMessage(`New stack post by ${this.app.keychain.returnUsername(from)}`, 3000);
       }
     }
 
     //
-    // Save into archives
+    // Save confirmed post transaction to local archive with field4 = "stack:post"
     //
-    await this.app.storage.saveTransaction(tx, { preserve: 1 }, 'localhost', blk);
+    await this.app.storage.saveTransaction(tx, { field4: 'stack:post', preserve: 1 }, 'localhost', blk);
 
     if (this.callbackAfterPost) {
       this.callbackAfterPost();
       delete this.callbackAfterPost;
+    }
+  }
+
+  /**
+   * Clean up pending drafts after a post is confirmed
+   * Deletes all transactions with field4 = "stack:pending" owned by this user from localhost archive
+   */
+  async cleanupPendingDrafts() {
+    try {
+      return new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          {
+            field1: 'Stack',
+            field2: this.publicKey, // Only clean up this user's pending drafts
+            field4: 'stack:pending'
+          },
+          async (txs) => {
+            if (!txs || txs.length === 0) {
+              resolve();
+              return;
+            }
+
+            // Delete all pending draft transactions
+            for (const pendingTx of txs) {
+              try {
+                await this.app.storage.deleteTransaction(pendingTx, null, 'localhost');
+              } catch (error) {
+                console.error('Error deleting pending draft:', error);
+              }
+            }
+
+            resolve();
+          },
+          'localhost'
+        );
+      });
+    } catch (error) {
+      console.error('Error cleaning up pending drafts:', error);
     }
   }
 
@@ -408,6 +469,152 @@ class Stack extends ModTemplate {
       this.app.options.stack = {};
     }
     this.app.storage.saveOptions();
+  }
+
+  ////////////////////////////
+  // Draft & Publish State  //
+  ////////////////////////////
+  /**
+   * Check if the user has ever published a blog post
+   * Uses postsCache.byAuthor to determine if user's publicKey appears as a publisher
+   * @returns {boolean} True if user has published at least one post
+   */
+  hasPublished() {
+    if (!this.publicKey) {
+      return false;
+    }
+    return this.postsCache.byAuthor.has(this.publicKey) && 
+           this.postsCache.byAuthor.get(this.publicKey).length > 0;
+  }
+
+  /**
+   * Discover all local draft transactions from the archive
+   * Stores pruned representation in-memory (this.drafts)
+   * Ordered by last-modified DESC (most recent first)
+   * Non-blocking, can be called on render/activation
+   */
+  async discoverDrafts() {
+    if (!this.app.storage) {
+      return;
+    }
+
+    return new Promise((resolve) => {
+      this.app.storage.loadTransactions(
+        { field1: 'Stack', field4: 'stack:draft' },
+        (txs) => {
+          if (!txs || txs.length === 0) {
+            this.drafts = [];
+            resolve();
+            return;
+          }
+
+          // Extract pruned draft representation
+          const draftList = txs.map(tx => {
+            let title = 'Untitled draft';
+            let lastModified = tx.timestamp || 0;
+
+            try {
+              const msg = tx.returnMessage();
+              if (msg && msg.data) {
+                title = msg.data.title || title;
+                // Use optional.updated_at if available, otherwise timestamp
+                lastModified = tx.optional?.updated_at || tx.timestamp || 0;
+              }
+            } catch (err) {
+              // If transaction can't be parsed, use defaults
+              console.warn('Stack: Error parsing draft transaction:', err);
+            }
+
+            return {
+              id: tx.signature || tx.hash || null, // Transaction identifier
+              title: title,
+              lastModified: lastModified
+            };
+          });
+
+          // Sort by lastModified DESC (most recent first)
+          draftList.sort((a, b) => b.lastModified - a.lastModified);
+
+          this.drafts = draftList;
+          resolve();
+        },
+        'localhost'
+      );
+    });
+  }
+
+  /**
+   * Get the list of drafts (read-only)
+   * @returns {Array} Array of draft objects with {id, title, lastModified}, ordered by recency
+   */
+  getDrafts() {
+    return this.drafts.slice(); // Return a copy to prevent mutation
+  }
+
+  /**
+   * Refresh draft list from archive
+   * Call this after draft save/delete/publish operations
+   */
+  async refreshDrafts() {
+    await this.discoverDrafts();
+  }
+
+  /**
+   * Delete a draft transaction by ID (signature or hash)
+   * Updates both local archive and in-memory draft list
+   * @param {string} draftId - Transaction signature or hash
+   * @returns {Promise<boolean>} True if draft was deleted, false otherwise
+   */
+  async deleteDraft(draftId) {
+    if (!draftId) {
+      return false;
+    }
+
+    try {
+      // Load the draft transaction to delete
+      const tx = await this.loadDraftTransactionById(draftId);
+      if (!tx) {
+        console.warn('Stack: Draft transaction not found for deletion:', draftId);
+        return false;
+      }
+
+      // Delete from archive
+      await this.app.storage.deleteTransaction(tx, null, 'localhost');
+
+      // Refresh in-memory draft list
+      await this.refreshDrafts();
+
+      return true;
+    } catch (error) {
+      console.error('Stack: Error deleting draft:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Load a draft transaction by ID (signature or hash)
+   * Internal helper for draft operations
+   */
+  async loadDraftTransactionById(draftId) {
+    return new Promise((resolve) => {
+      this.app.storage.loadTransactions(
+        { field1: 'Stack', field4: 'stack:draft' },
+        (txs) => {
+          if (!txs || txs.length === 0) {
+            resolve(null);
+            return;
+          }
+
+          // Find transaction by signature or hash
+          const tx = txs.find(t => 
+            t.signature === draftId || t.hash === draftId
+          );
+
+          resolve(tx || null);
+        },
+        'localhost'
+      );
+    });
   }
 
   ////////////////////////////

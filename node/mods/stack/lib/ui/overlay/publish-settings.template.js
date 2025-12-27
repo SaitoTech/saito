@@ -5,12 +5,17 @@
  */
 module.exports = (app, mod, postState = {}) => {
   const title = document.querySelector('#stack-post-title-input')?.value || 'Untitled';
-  const editor = document.querySelector('#stack-post-body-editor');
-  const { serializeDocumentToMarkdown } = require('../../post-document');
-  const content = editor ? serializeDocumentToMarkdown(mod.create_post_ui.document) : '';
   
-  const isPublished = postState.published || false;
+  // Check if post is published (from postState or create_post_ui.isPublished)
+  const isPublished = postState.published || (mod.create_post_ui && mod.create_post_ui.isPublished) || false;
   const accessLevel = postState.accessLevel || 'public';
+  
+  // Get content for size calculation (using DOM-based serialization if available)
+  const editor = document.querySelector('#stack-post-body-editor');
+  let content = '';
+  if (editor && mod.create_post_ui && mod.create_post_ui.serializeDOMToMarkdown) {
+    content = mod.create_post_ui.serializeDOMToMarkdown();
+  }
   
   // Calculate content size
   const contentSize = new Blob([content]).size;
@@ -45,15 +50,12 @@ module.exports = (app, mod, postState = {}) => {
           
           <!-- CARD 1: STATUS + PRIMARY ACTION -->
           <div class="stack-publish-card stack-publish-card-status">
-            <h3 class="stack-publish-card-title">Draft (Local)</h3>
             <button id="stack-publish-primary-btn" class="stack-publish-primary-action-btn">
-              Publish Post
+              ${isPublished ? 'Update' : 'Publish'}
             </button>
-            <p class="stack-publish-card-description">
-              This post is currently saved only on your device. It is not visible to anyone else until you publish it.
-            </p>
-            <p class="stack-publish-card-hint">
-              You can update or unpublish later.
+            <p class="stack-publish-draft-explanation">
+              This draft is saved only on your device.<br>
+              Publish to broadcast it to the network.
             </p>
           </div>
 

@@ -2,12 +2,41 @@
    CREATE POST PAGE
    ============================================ */
 
-/* Override container for create post page */
+/* ARCHITECTURAL CHANGE: Delegate scrolling to body/html for create-post page */
+/* Override base Saito body rules to enable normal document scrolling */
+body:has(.stack-create-post-page) {
+  position: static !important; /* Remove fixed positioning */
+  overflow-y: auto !important; /* Enable vertical scrolling */
+  overflow-x: hidden !important;
+  height: auto !important; /* Allow body to grow with content */
+  min-height: 100vh !important; /* Ensure at least viewport height */
+}
+
+html:has(.stack-create-post-page) {
+  overflow-y: auto !important; /* Enable scrolling on html as well */
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100vh !important;
+}
+
+/* Remove scroll responsibility from container - let it grow naturally */
 .saito-container:has(.stack-create-post-page),
 .saito-container.stack-create-post-container {
   grid-template-columns: 1fr !important;
   padding: 0 !important;
   max-width: 100% !important;
+  width: 100vw !important;
+  /* Position below header in normal document flow */
+  position: relative !important; /* Use relative positioning instead of absolute */
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  /* Container grows naturally with content - no height constraints */
+  height: auto !important;
+  min-height: 0 !important;
+  /* Remove scroll container behavior - body/html owns scrolling */
+  overflow: visible !important;
 }
 
 .saito-container.stack-create-post-container .saito-sidebar {
@@ -15,8 +44,10 @@
 }
 
 .stack-create-post-page {
-  min-height: 100vh;
-  padding-top: calc(var(--saito-header-height, 60px) + 4rem); /* Calm top spacing */
+  /* Remove min-height: 100vh - allow natural growth, don't force viewport height */
+  /* Top padding accounts for fixed header + spacing */
+  padding-top: calc(var(--saito-header-height, 60px) + 4rem);
+  padding-bottom: 4rem; /* Bottom padding for comfortable scrolling */
   background: var(--saito-background-color);
   display: flex;
   justify-content: center;
@@ -24,8 +55,20 @@
   position: relative;
   padding-left: 2rem;
   padding-right: 2rem;
-  /* Page owns scrolling - no internal scroll containers */
+  /* Body/html owns scrolling - no internal scroll containers */
   overflow: visible;
+  /* Ensure page can grow naturally with content */
+  height: auto;
+  
+  /* Mount-only transition: fade + micro-translate */
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+.stack-create-post-page.stack-create-post-page-mounted {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .stack-create-post-page .stack-create-post-container {
@@ -56,7 +99,8 @@
   top: 0;
   right: 0;
   width: 300px; /* Extend beyond sidebar for fade effect */
-  height: 100%;
+  min-height: 100%; /* Use min-height to allow gradient to grow with content */
+  height: auto; /* Allow gradient to extend with page content */
   pointer-events: none;
   background: linear-gradient(
     to right,
@@ -778,11 +822,11 @@
   }
 
   .stack-create-post-page {
-    min-height: 100vh;
+    /* Remove min-height: 100vh on mobile - allow natural growth */
     padding-top: calc(var(--saito-header-height, 60px) + 3rem); /* Slightly less top spacing on mobile */
     padding-left: 1.5rem;
     padding-right: 1.5rem;
-    /* Page scrolls on mobile too */
+    /* Body/html owns scrolling on mobile too */
     overflow: visible;
   }
 
@@ -800,7 +844,8 @@
 
   .stack-document-column {
     max-width: 100%; /* Full width on mobile */
-    min-height: calc(100vh - var(--saito-header-height, 60px) - 6rem);
+    /* Remove fixed min-height - allow natural content growth */
+    min-height: 0;
     /* NO overflow on mobile - page scrolls */
     overflow: visible;
   }

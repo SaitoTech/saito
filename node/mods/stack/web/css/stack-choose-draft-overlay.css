@@ -1,0 +1,288 @@
+/* ============================================
+   CHOOSE DRAFT OVERLAY - TWO-PANE CHOOSER
+   ============================================ */
+
+/* Overlay Container */
+.stack-choose-draft-overlay {
+  max-width: 900px;
+  width: min(900px, 90vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--saito-background-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .stack-choose-draft-overlay {
+    max-width: 100vw;
+    width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* Content Container */
+.stack-choose-draft-content {
+  padding: 3rem 3rem 2rem 3rem; /* Reduced bottom padding */
+}
+
+@media (max-width: 768px) {
+  .stack-choose-draft-content {
+    padding: 2rem 1.5rem 1.5rem 1.5rem; /* Reduced bottom padding on mobile */
+  }
+}
+
+/* Title / Headline */
+.stack-choose-draft-title {
+  font-size: 2.8rem; /* 28px - closer to 3rem target */
+  font-weight: 600;
+  color: var(--saito-font-color);
+  margin: 0 0 2.5rem 0;
+  padding: 0;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .stack-choose-draft-title {
+    font-size: 2.4rem; /* 24px on mobile - still above minimum */
+    margin-bottom: 2rem;
+  }
+}
+
+/* Two-Pane Layout */
+.stack-choose-draft-panes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: stretch; /* Ensure equal height */
+}
+
+@media (max-width: 768px) {
+  .stack-choose-draft-panes {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* Individual Pane - Equal Width and Height */
+.stack-choose-draft-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 400px; /* Ensure both panels have same minimum height */
+}
+
+/* LEFT PANE: Drafts List */
+.stack-choose-draft-pane-drafts {
+  min-width: 0; /* Allow text truncation */
+  background: var(--saito-background-color-inverse);
+  color: var(--saito-font-color-inverse);
+  border: 1px solid var(--saito-border-color);
+  border-radius: 12px;
+  box-shadow: var(--saito-box-shadow-high); /* Stronger shadow for separation */
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.stack-choose-draft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  flex: 1; /* Fill available height */
+  padding: 1rem;
+  min-height: 0; /* Allow scrolling when content exceeds */
+  /* Inner list container with subtle differentiation */
+  background: rgba(255, 255, 255, 0.03); /* Subtle background differentiation */
+  border-radius: 8px;
+}
+
+/* Scrollbar styling for draft list */
+.stack-choose-draft-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.stack-choose-draft-list::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.stack-choose-draft-list::-webkit-scrollbar-thumb {
+  background: var(--saito-border-color);
+  border-radius: 4px;
+  opacity: 0.5;
+}
+
+.stack-choose-draft-list::-webkit-scrollbar-thumb:hover {
+  opacity: 0.8;
+}
+
+/* Draft Row */
+.stack-choose-draft-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 1.75rem; /* Generous padding */
+  background: rgba(255, 255, 255, 0.05); /* Subtle background on inverse */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+  position: relative;
+  min-height: 6.5rem; /* 65px - comfortable clickable height */
+}
+
+.stack-choose-draft-row:hover {
+  background: rgba(255, 255, 255, 0.12); /* Clear hover state */
+  border-color: var(--saito-primary);
+  transform: translateY(-1px); /* Subtle lift on hover */
+}
+
+.stack-choose-draft-row-content {
+  flex: 1;
+  min-width: 0; /* Allow text truncation */
+}
+
+.stack-choose-draft-row-title {
+  font-size: 1.8rem; /* 18px - increased for better readability */
+  font-weight: 500;
+  color: var(--saito-font-color-inverse);
+  margin-bottom: 0.5rem;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .stack-choose-draft-row-title {
+    font-size: 1.7rem; /* 17px on mobile */
+  }
+}
+
+.stack-choose-draft-row-meta {
+  font-size: 1.4rem; /* 14px - increased for better readability */
+  color: var(--saito-font-color-inverse);
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+/* Delete Icon (not a button) */
+.stack-choose-draft-delete-icon {
+  margin-left: 1rem;
+  padding: 0.5rem;
+  opacity: 0.4;
+  transition: opacity 150ms ease, color 150ms ease;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: var(--saito-font-color-inverse);
+}
+
+.stack-choose-draft-row:hover .stack-choose-draft-delete-icon {
+  opacity: 0.7;
+}
+
+.stack-choose-draft-delete-icon:hover {
+  opacity: 1;
+  color: var(--saito-red, #dc3545);
+}
+
+.stack-choose-draft-delete-icon i {
+  font-size: 1.5rem; /* 15px - slightly larger for better visibility */
+}
+
+/* RIGHT PANE: Start New */
+.stack-choose-draft-pane-new {
+  display: flex;
+  align-items: stretch; /* Fill full height */
+  justify-content: stretch;
+}
+
+.stack-choose-draft-new-card {
+  width: 100%;
+  min-height: 100%; /* Fill pane height to match left panel */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--saito-background-color-inverse);
+  color: var(--saito-font-color-inverse);
+  border: 1px solid var(--saito-border-color);
+  border-radius: 12px;
+  box-shadow: var(--saito-box-shadow-high); /* Stronger shadow matching left panel */
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.stack-choose-draft-new-card:hover {
+  background: var(--saito-background-color-inverse);
+  border-color: var(--saito-primary);
+  box-shadow: var(--saito-box-shadow-high);
+  transform: translateY(-2px); /* Subtle lift on hover for active feel */
+}
+
+.stack-choose-draft-new-icon {
+  font-size: 4.6rem; /* 46px - large and dominant, close to 48px target */
+  font-weight: 300;
+  color: var(--saito-primary);
+  line-height: 1;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stack-choose-draft-new-title {
+  font-size: 2rem; /* 20px - increased for better presence */
+  font-weight: 500;
+  color: var(--saito-font-color-inverse);
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+}
+
+.stack-choose-draft-new-subtitle {
+  font-size: 1.5rem; /* 15px - increased for better readability */
+  color: var(--saito-font-color-inverse);
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+@media (max-width: 768px) {
+  .stack-choose-draft-pane {
+    min-height: 300px; /* Reduced minimum on mobile */
+  }
+
+  .stack-choose-draft-pane-drafts {
+    padding: 1.25rem;
+  }
+
+  .stack-choose-draft-list {
+    padding: 0.75rem;
+  }
+
+  .stack-choose-draft-row {
+    min-height: 6rem; /* 60px on mobile */
+    padding: 1.25rem 1.5rem;
+  }
+
+  .stack-choose-draft-new-card {
+    min-height: 100%; /* Still fill pane height */
+    padding: 2rem 1.5rem;
+  }
+  
+  .stack-choose-draft-new-icon {
+    font-size: 4rem; /* 40px on mobile - still large */
+    margin-bottom: 1rem;
+  }
+  
+  .stack-choose-draft-new-title {
+    font-size: 1.8rem; /* 18px on mobile */
+  }
+  
+  .stack-choose-draft-new-subtitle {
+    font-size: 1.4rem; /* 14px on mobile */
+  }
+}

@@ -117,6 +117,16 @@
   margin: 1rem 0 0 0;
 }
 
+/* Draft Explanation Text - below publish button */
+.stack-publish-draft-explanation {
+  font-size: 1.4rem; /* 14px - smaller font */
+  line-height: 1.5;
+  color: var(--saito-font-color);
+  opacity: 0.7; /* Subdued color */
+  margin: 0;
+  text-align: center;
+}
+
 /* ============================================
    CARD 1: STATUS + PRIMARY ACTION
    ============================================ */
@@ -132,7 +142,7 @@
   padding: 1.625rem 2rem; /* Increased from 1.5rem - taller for more prominence */
   border: none;
   background: var(--saito-primary);
-  color: var(--saito-font-color-inverse);
+  color: var(--saito-primary-text, var(--saito-font-color-inverse));
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -141,7 +151,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 0 1.5rem 0; /* Positioned at top, below title */
+  margin: 0 0 1.5rem 0; /* Positioned at top */
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15); /* Enhanced shadow for more prominence */
 }
 
@@ -342,7 +352,7 @@
 
 /* Delete Draft Button - Secondary, destructive, bottom-right */
 .stack-publish-delete-btn {
-  padding: 0.75rem 1.25rem; /* Smaller than Publish - less vertical padding */
+  padding: 0.875rem 1.5rem; /* Increased padding */
   border: 1px solid var(--saito-red, #dc3545);
   background: transparent;
   color: var(--saito-red, #dc3545);
@@ -350,28 +360,27 @@
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 1.6rem; /* 16px minimum - readable but secondary */
-  font-weight: 500;
+  font-weight: 600; /* Increased from 500 for better legibility */
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.8; /* Softer red until hover */
 }
 
 @media (min-width: 769px) {
   .stack-publish-delete-btn {
-    padding: 0.875rem 1.5rem;
+    padding: 1rem 1.75rem; /* More padding on desktop */
   }
 }
 
 @media (max-width: 768px) {
   .stack-publish-delete-btn {
-    padding: 1rem 1.5rem; /* Comfortable touch target but smaller than Publish */
+    padding: 1rem 1.5rem; /* Comfortable touch target */
     font-size: 1.6rem; /* 16px - readable */
   }
 }
 
 .stack-publish-delete-btn:hover {
-  opacity: 1;
-  background: var(--saito-red, #dc3545);
-  color: var(--saito-font-color-inverse);
+  border-color: var(--saito-red, #dc3545);
+  color: var(--saito-red, #dc3545);
+  background: rgba(220, 53, 69, 0.1); /* Subtle background on hover, no aggressive red */
 }
