@@ -52,14 +52,45 @@ class CreatePost {
     this.app = app;
     this.mod = mod;
     this.container = container;
+    
+    // ========================================================================
+    // CONFIGURABLE SAVE THRESHOLDS
+    // ========================================================================
+    // Resolve save thresholds from module config or use defaults
+    // Module can optionally set: mod.save_after_inactivity, mod.save_after_bytes, mod.save_after_editing
+    const DEFAULT_SAVE_AFTER_INACTIVITY = 1500; // ms
+    const DEFAULT_SAVE_AFTER_BYTES = 300; // characters
+    const DEFAULT_SAVE_AFTER_EDITING = 30000; // ms (30 seconds)
+    
+    this.save_after_inactivity = (typeof mod.save_after_inactivity === 'number') 
+      ? mod.save_after_inactivity 
+      : DEFAULT_SAVE_AFTER_INACTIVITY;
+    this.save_after_bytes = (typeof mod.save_after_bytes === 'number') 
+      ? mod.save_after_bytes 
+      : DEFAULT_SAVE_AFTER_BYTES;
+    this.save_after_editing = (typeof mod.save_after_editing === 'number') 
+      ? mod.save_after_editing 
+      : DEFAULT_SAVE_AFTER_EDITING;
+    
+    // Save state tracking
     this.serializeTimeout = null;
-    this.DEBOUNCE_MS = 300; // Debounce delay for serialization
+    this.inactivityTimeout = null;
+    this.editingTimer = null;
+    this.editingStartTime = null;
+    this.lastSaveContent = null; // Track content at last save
+    this.lastTrackedContent = null; // Track content from last scheduleSerialization call (for incremental tracking)
+    this.changedBytes = 0; // Track total bytes changed since last save
+    this.isSaving = false; // Track if save is in-flight
+    this.queuedSave = false; // Track if save is queued (editor became dirty during save)
+    this.isComposing = false; // Track IME composition state
+    
     this.saveState = 'draft'; // 'draft', 'saving', 'saved'
     this.saveStateTimeout = null;
     this.storedDropRange = null; // Store Range for drop position (legacy)
     this.storedInsertionPoint = null; // Store insertion point that matches visual indicator (single source of truth)
     this.isDragging = false; // Track drag state
     this.isPublished = false; // Track if post is published
+    this.draftTransaction = null; // Track current draft transaction (unsigned, saved to localhost)
   }
 
   render(container = "") {
@@ -83,6 +114,15 @@ class CreatePost {
       containerEl.classList.add('stack-create-post-container');
     }
 
+    // Trigger mount transition on next animation frame
+    // This allows the initial state (opacity: 0) to render first
+    requestAnimationFrame(() => {
+      const pageEl = document.querySelector('.stack-create-post-page');
+      if (pageEl) {
+        pageEl.classList.add('stack-create-post-page-mounted');
+      }
+    });
+
     this.attachEvents();
     this.initializeDocument();
   }
@@ -90,18 +130,52 @@ class CreatePost {
   /**
    * Initialize document from draft or create empty document
    * Uses temporary document model only for initial markdown → DOM conversion
+   * 
+   * Flow logic:
+   * 1. If user hasn't published → load most recent draft (or empty), no overlay
+   * 2. If user has published AND has drafts → show overlay (draft loaded behind it)
+   * 3. If user has published BUT no drafts → new document, no overlay
    */
-  initializeDocument() {
+  async initializeDocument() {
     const editor = document.querySelector('#stack-post-body-editor');
     if (!editor) return;
 
-    // Create empty document
-    const tempDocument = { blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }] };
+    // Ask stack.js for state (no archive queries in create-post.js)
+    const hasPublished = this.mod.hasPublished && this.mod.hasPublished();
+    
+    // Ensure drafts are discovered (non-blocking if already done)
+    if (this.mod.discoverDrafts) {
+      await this.mod.discoverDrafts();
+    }
+    
+    const drafts = this.mod.getDrafts && this.mod.getDrafts();
+    const draftCount = drafts ? drafts.length : 0;
+
+    // Flow decision based on stack.js state
+    if (!hasPublished) {
+      // First-time writer: load most recent draft (or empty), no overlay
+      await this.loadMostRecentDraft();
+    } else if (draftCount > 0) {
+      // Experienced user with drafts: load most recent draft behind overlay, then show overlay
+      await this.loadMostRecentDraft();
+      this.showDraftChooserOverlay();
+    } else {
+      // Experienced user but no drafts: start with empty document, no overlay
+      // (loadMostRecentDraft will handle empty state)
+      await this.loadMostRecentDraft();
+    }
+
+    // If draft was loaded, it will have populated the editor
+    // Otherwise, create empty document
+    const editorContent = editor.querySelectorAll('[data-block-id]');
+    if (editorContent.length === 0) {
+      const tempDocument = { blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }] };
     
     // Render document to editor (one-time conversion from markdown to DOM)
     renderDocument(tempDocument, editor, {
       contentEditable: true
     });
+    }
     
     // Ensure placeholder is shown if editor is empty
     this.updatePlaceholderVisibility();
@@ -158,17 +232,30 @@ class CreatePost {
           if (firstBlock.firstChild && firstBlock.firstChild.nodeType === Node.TEXT_NODE) {
             range.setStart(firstBlock.firstChild, 0);
             range.setEnd(firstBlock.firstChild, 0);
-          } else {
-            range.setStart(firstBlock, 0);
-            range.setEnd(firstBlock, 0);
-          }
+            range.collapse(true);
           selection.removeAllRanges();
           selection.addRange(range);
-          firstBlock.focus();
-        } else {
-          editor.focus();
+          }
         }
       }
+    }, 50);
+  }
+
+  /**
+   * Show the draft chooser overlay
+   * Only called when user has published and has drafts
+   * Editor should already be rendered with most recent draft behind the overlay
+   */
+  showDraftChooserOverlay() {
+    // Lazy-load overlay if needed
+    if (!this.mod.chooseDraftOverlay) {
+      const ChooseDraftOverlay = require('./overlay/choose-draft');
+      this.mod.chooseDraftOverlay = new ChooseDraftOverlay(this.app, this.mod);
+    }
+
+    // Small delay to ensure editor is fully rendered behind overlay
+    setTimeout(() => {
+      this.mod.chooseDraftOverlay.render();
     }, 100);
   }
 
@@ -271,18 +358,122 @@ class CreatePost {
   }
 
   /**
-   * Schedule debounced serialization
+   * Schedule debounced serialization with configurable thresholds
    * Serializes directly from DOM (single source of truth)
+   * 
+   * Save triggers when ANY of:
+   * 1) User stops editing for save_after_inactivity ms
+   * 2) Total changed characters >= save_after_bytes
+   * 3) Continuous editing time >= save_after_editing ms
+   * 
+   * Additional rules:
+   * - Only ONE save may be in-flight at a time
+   * - If editor becomes dirty during save, queue ONE follow-up save
+   * - Do NOT save during IME composition
+   * - Do NOT save during publish flow
    */
   scheduleSerialization() {
-    if (this.serializeTimeout) {
-      clearTimeout(this.serializeTimeout);
+    // Skip if published, composing, or during publish flow
+    if (this.isPublished || this.isComposing) {
+      return;
     }
 
-    // Update state to "saving"
+    // Get current content to track changes
+    const currentContent = this.serializeDOMToMarkdown();
+    const title = document.querySelector('#stack-post-title-input')?.value || '';
+    const fullContent = title + currentContent;
+    
+    // Calculate bytes changed since last save (incremental tracking)
+    if (this.lastTrackedContent !== null) {
+      // Track incremental change from last call to scheduleSerialization
+      const lastLength = this.lastTrackedContent.length;
+      const currentLength = fullContent.length;
+      const delta = Math.abs(currentLength - lastLength);
+      this.changedBytes += delta;
+    } else if (this.lastSaveContent !== null) {
+      // First call after a save - compare to last saved content
+      const lastLength = this.lastSaveContent.length;
+      const currentLength = fullContent.length;
+      const delta = Math.abs(currentLength - lastLength);
+      this.changedBytes = delta;
+    } else {
+      // First time ever - don't count initial content as "changed"
+      this.changedBytes = 0;
+    }
+    
+    // Update tracked content for next comparison
+    this.lastTrackedContent = fullContent;
+    
+    // Start editing timer if not already started
+    if (this.editingStartTime === null) {
+      this.editingStartTime = Date.now();
+    }
+    
+    // Check if we should save immediately (bytes threshold)
+    if (this.changedBytes >= this.save_after_bytes) {
+      this.triggerSave();
+      return;
+    }
+    
+    // Check if we should save due to continuous editing time
+    if (this.editingStartTime !== null) {
+      const editingDuration = Date.now() - this.editingStartTime;
+      if (editingDuration >= this.save_after_editing) {
+        this.triggerSave();
+        return;
+      }
+    }
+    
+    // Clear existing inactivity timeout
+    if (this.inactivityTimeout) {
+      clearTimeout(this.inactivityTimeout);
+    }
+    
+    // Schedule save after inactivity period
+    this.inactivityTimeout = setTimeout(() => {
+      this.triggerSave();
+    }, this.save_after_inactivity);
+  }
+  
+  /**
+   * Trigger save operation
+   * Ensures only one save in-flight, queues follow-up if needed
+   */
+  async triggerSave() {
+    // If save is already in progress, queue a follow-up
+    if (this.isSaving) {
+      this.queuedSave = true;
+      return;
+    }
+    
+    // Mark as saving
+    this.isSaving = true;
     this.updateSaveState('saving');
-
-    this.serializeTimeout = setTimeout(() => {
+    
+    // Clear all timers
+    if (this.inactivityTimeout) {
+      clearTimeout(this.inactivityTimeout);
+      this.inactivityTimeout = null;
+    }
+    if (this.serializeTimeout) {
+      clearTimeout(this.serializeTimeout);
+      this.serializeTimeout = null;
+    }
+    
+    try {
+      // Save draft to localhost archive
+      await this.saveDraftTransaction();
+      
+      // Update last saved content
+      const currentContent = this.serializeDOMToMarkdown();
+      const title = document.querySelector('#stack-post-title-input')?.value || '';
+      this.lastSaveContent = title + currentContent;
+      this.lastTrackedContent = this.lastSaveContent; // Reset tracked content to saved content
+      
+      // Reset change tracking
+      this.changedBytes = 0;
+      this.editingStartTime = null;
+      
       // Update state back to "draft" after serialization
       if (this.saveStateTimeout) {
         clearTimeout(this.saveStateTimeout);
@@ -290,7 +481,241 @@ class CreatePost {
       this.saveStateTimeout = setTimeout(() => {
         this.updateSaveState('draft');
       }, 0);
-    }, this.DEBOUNCE_MS);
+      
+      // Check if a save was queued while we were saving
+      if (this.queuedSave) {
+        this.queuedSave = false;
+        // Schedule another save if content changed during save
+        this.scheduleSerialization();
+      }
+    } catch (error) {
+      console.error('Error saving draft:', error);
+      // Update state back to "draft" on error
+      this.updateSaveState('draft');
+    } finally {
+      this.isSaving = false;
+    }
+  }
+
+  /**
+   * Load the most recent draft from localhost archive
+   * Queries for field4 = "stack:draft", sorts by updated_at DESC, loads the first result
+   */
+  async loadMostRecentDraft() {
+    try {
+      return new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          {
+            field1: 'Stack',
+            field4: 'stack:draft',
+            limit: 100 // Load up to 100 drafts to sort
+          },
+          (txs) => {
+            if (!txs || txs.length === 0) {
+              resolve(null);
+              return;
+            }
+
+            // Sort by updated_at DESC (most recent first)
+            // Use tx.optional.updated_at if available, fallback to tx.timestamp
+            txs.sort((a, b) => {
+              const aTime = a.optional?.updated_at || a.timestamp || 0;
+              const bTime = b.optional?.updated_at || b.timestamp || 0;
+              return bTime - aTime; // DESC order
+            });
+
+            // Get the most recent draft (first in sorted array)
+            const mostRecentDraft = txs[0];
+            if (!mostRecentDraft) {
+              resolve(null);
+              return;
+            }
+
+            // Load the draft
+            this.loadDraftTransaction(mostRecentDraft);
+
+            resolve(mostRecentDraft);
+          },
+          'localhost' // Query localhost archive only
+        );
+      });
+    } catch (error) {
+      console.error('Error loading draft:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Load a draft by ID (signature or hash)
+   * Queries for the specific draft transaction and loads it into the editor
+   */
+  async loadDraftById(draftId) {
+    try {
+      return new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          {
+            field1: 'Stack',
+            field4: 'stack:draft',
+            limit: 100 // Load up to 100 drafts to search
+          },
+          (txs) => {
+            if (!txs || txs.length === 0) {
+              resolve(null);
+              return;
+            }
+
+            // Find transaction by signature or hash
+            const draft = txs.find(t => 
+              t.signature === draftId || t.hash === draftId
+            );
+
+            if (!draft) {
+              resolve(null);
+              return;
+            }
+
+            // Load the draft
+            this.loadDraftTransaction(draft);
+
+            resolve(draft);
+          },
+          'localhost' // Query localhost archive only
+        );
+      });
+    } catch (error) {
+      console.error('Error loading draft by ID:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Internal helper to load a draft transaction into the editor
+   * Populates title and content from the transaction
+   */
+  loadDraftTransaction(tx) {
+    // Extract data from transaction
+    const msg = tx.returnMessage();
+    const data = msg?.data || {};
+
+    const title = data.title || '';
+    const content = data.content || '';
+
+    // Populate title input
+    const titleInput = document.querySelector('#stack-post-title-input');
+    if (titleInput) {
+      titleInput.value = title;
+    }
+
+    // Populate body editor
+    const editor = document.querySelector('#stack-post-body-editor');
+    if (editor) {
+      if (content.trim()) {
+        // Parse markdown content to document structure
+        const tempDocument = parseMarkdownToDocument(content);
+        
+        // Render document to editor
+        renderDocument(tempDocument, editor, {
+          contentEditable: true
+        });
+      } else {
+        // Empty content - render empty document
+        const tempDocument = { blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }] };
+        renderDocument(tempDocument, editor, {
+          contentEditable: true
+        });
+      }
+    }
+
+    // Store reference to draft transaction for future updates
+    this.draftTransaction = tx;
+
+    // Update UI state
+    this.updatePlaceholderVisibility();
+    this.updatePublishTriggerVisibility();
+    this.updatePublishTriggerState();
+    this.updateSaveState('draft');
+  }
+
+  /**
+   * Save or update draft transaction to localhost archive
+   * Drafts are unsigned transactions saved with field4 = "stack:draft"
+   */
+  async saveDraftTransaction() {
+    // Skip if published (published posts should not be saved as drafts)
+    if (this.isPublished) {
+      return;
+    }
+
+    try {
+      const title = document.querySelector('#stack-post-title-input')?.value || '';
+      const content = this.serializeDOMToMarkdown();
+
+      // Skip if both title and content are empty
+      if (!title.trim() && !content.trim()) {
+        return;
+      }
+
+      // Get current draft transaction or create new one
+      let tx = this.draftTransaction;
+
+      if (!tx) {
+        // Create new unsigned transaction
+        tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.mod.publicKey);
+        
+        // Set transaction message structure matching Stack post format
+        const data = {
+          type: 'stack_post',
+          title: title.trim() || '',
+          content: content.trim() || '',
+          tags: [],
+          image: '',
+          imageUrl: '',
+          timestamp: Date.now(),
+          subscriptionTier: 'free',
+          excerpt: ''
+        };
+
+        tx.msg = {
+          module: 'Stack',
+          request: 'create stack post request',
+          data: data
+        };
+
+        // Save new draft transaction (field1 is auto-populated from tx.msg.module)
+        await this.app.storage.saveTransaction(tx, {
+          field4: 'stack:draft'
+        }, 'localhost');
+
+        // Store reference for future updates
+        this.draftTransaction = tx;
+      } else {
+        // Update existing draft transaction
+        const data = {
+          type: 'stack_post',
+          title: title.trim() || '',
+          content: content.trim() || '',
+          tags: [],
+          image: '',
+          imageUrl: '',
+          timestamp: tx.msg?.data?.timestamp || Date.now(),
+          subscriptionTier: 'free',
+          excerpt: ''
+        };
+
+        tx.msg = {
+          module: 'Stack',
+          request: 'create stack post request',
+          data: data
+        };
+
+        // Update existing draft transaction (field1 is auto-populated from tx.msg.module)
+        await this.app.storage.updateTransaction(tx, {
+          field4: 'stack:draft'
+        }, 'localhost');
+      }
+    } catch (error) {
+      console.error('Error saving draft transaction:', error);
+    }
   }
 
   /**
@@ -1345,6 +1770,119 @@ class CreatePost {
   }
 
   /**
+   * Handle SHIFT+ENTER key - insert soft newline
+   * Editor is the SOLE authority over structural mutations, including soft newlines.
+   * SHIFT+ENTER inserts a newline that the editor tracks internally.
+   */
+  handleShiftEnterKey(e) {
+    // Prevent browser default behavior - editor controls all newline insertion
+    e.preventDefault();
+
+    const focusedBlock = this.getFocusedBlock();
+    if (!focusedBlock) {
+      return;
+    }
+
+    const blockType = focusedBlock.getAttribute('data-block-type');
+    const selection = window.getSelection();
+    if (!selection.rangeCount) {
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+
+    // For code blocks, SHIFT+ENTER behaves the same as ENTER (insert newline)
+    if (blockType === 'code') {
+      // Use the same logic as ENTER in code blocks - insert newline character
+      const container = range.startContainer;
+      if (container.nodeType === Node.TEXT_NODE && container.parentNode === focusedBlock) {
+        // Cursor is in a text node directly inside PRE: insert newline directly
+        const offset = range.startOffset;
+        const text = container.textContent;
+        container.textContent = text.substring(0, offset) + '\n' + text.substring(offset);
+        // Place cursor after the newline
+        const newRange = document.createRange();
+        newRange.setStart(container, offset + 1);
+        newRange.setEnd(container, offset + 1);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      } else {
+        // Cursor is in PRE element or not in a direct text node:
+        // Calculate text offset and insert newline into text content
+        let insertOffset = 0;
+        const walker = document.createTreeWalker(
+          focusedBlock,
+          NodeFilter.SHOW_TEXT,
+          null
+        );
+        let node = walker.nextNode();
+        while (node) {
+          if (node === range.startContainer) {
+            insertOffset += range.startOffset;
+            break;
+          }
+          insertOffset += node.textContent.replace(/\u200B/g, '').length;
+          node = walker.nextNode();
+        }
+        
+        // Get all text content and insert newline
+        const codeText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+        const newText = codeText.substring(0, insertOffset) + '\n' + codeText.substring(insertOffset);
+        
+        // Replace all child nodes with a single text node containing the updated text
+        while (focusedBlock.firstChild) {
+          focusedBlock.removeChild(focusedBlock.firstChild);
+        }
+        const newTextNode = document.createTextNode(newText);
+        focusedBlock.appendChild(newTextNode);
+        
+        // Place cursor after the inserted newline
+        const newRange = document.createRange();
+        newRange.setStart(newTextNode, insertOffset + 1);
+        newRange.setEnd(newTextNode, insertOffset + 1);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      }
+      return;
+    }
+
+    // For paragraphs and other text blocks, insert <br> element for soft newline
+    // This creates a line break within the same block (editor-tracked)
+    if (blockType === 'paragraph' || blockType === 'list-item' || blockType === 'blockquote') {
+      // Delete any selected content first
+      if (!range.collapsed) {
+        range.deleteContents();
+      }
+
+      // Insert <br> element at cursor position
+      const br = document.createElement('br');
+      range.insertNode(br);
+      
+      // Move cursor after the <br>
+      range.setStartAfter(br);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      // Normalize adjacent text nodes if needed
+      if (br.nextSibling && br.nextSibling.nodeType === Node.TEXT_NODE && br.previousSibling && br.previousSibling.nodeType === Node.TEXT_NODE) {
+        // Both sides are text nodes - this is fine, no normalization needed
+      } else if (br.nextSibling && br.nextSibling.nodeType === Node.TEXT_NODE) {
+        focusedBlock.normalize();
+      }
+
+      // Schedule serialization to update editor state
+      this.scheduleSerialization();
+      this.updatePlaceholderVisibility();
+      
+      return;
+    }
+
+    // For other block types (heading, image, rawhtml), SHIFT+ENTER does nothing
+    // (or could beep/feedback, but silently ignoring is acceptable)
+  }
+
+  /**
    * Handle Backspace key - merge with previous block if at start, or delete image if adjacent
    * DOM is authoritative: sync from DOM FIRST
    */
@@ -1659,6 +2197,7 @@ class CreatePost {
     if (!focusedBlock) return;
 
     // Schedule serialization (reads from DOM)
+    // This respects IME composition state and save thresholds
       this.scheduleSerialization();
 
     // Update placeholder visibility immediately when user types
@@ -2250,8 +2789,47 @@ class CreatePost {
       // Cursor position (no drop position provided)
       const focusedBlock = this.getFocusedBlock();
       if (focusedBlock) {
-        // A2: Order derived from DOM position, not cached index
+        // Get all blocks in DOM order (A2: Order derived from DOM position)
+        const editor = document.querySelector('#stack-post-body-editor');
+        if (editor) {
+          const allBlocks = Array.from(editor.querySelectorAll('[data-block-id]'));
+          const blockIndex = allBlocks.indexOf(focusedBlock);
+          
+          if (blockIndex >= 0) {
+            // Get cursor position within the block to determine insertion point
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
+              
+              // If cursor is at the start of the block (offset 0), insert before it
+              // This allows images to be inserted at index 0 (first element)
+              if (cursorOffset === 0) {
+                insertIndex = blockIndex; // Insert before current block
+              } else {
+                // If cursor is at end or middle, insert after the block
+                insertIndex = blockIndex + 1;
+              }
+            } else {
+              // No selection, default to after the block
+              insertIndex = blockIndex + 1;
+            }
+          } else {
+            // Block not found, insert at end
+            insertIndex = allBlocks.length;
+          }
+        } else {
+          // No editor, should not happen but default to 0
+          insertIndex = 0;
+        }
+      } else {
+        // No focused block, insert at end
+        const editor = document.querySelector('#stack-post-body-editor');
+        if (editor) {
         insertIndex = this.getBlockCount();
+        } else {
+          insertIndex = 0;
+        }
       }
     }
 
@@ -2322,14 +2900,57 @@ class CreatePost {
     newParagraphElement.textContent = '';
     newParagraphElement.appendChild(document.createTextNode('\u200B'));
 
-    // Insert into DOM
-    if (insertIndex >= editor.children.length) {
+    // Insert into DOM at the correct position
+    // Images are always direct children of the editor, not nested
+    // Get all blocks to find the correct insertion point relative to editor's direct children
+    const allBlocks = Array.from(editor.querySelectorAll('[data-block-id]'));
+    
+    if (insertIndex <= 0) {
+      // Insert at the beginning (index 0) - insert as first child
+      if (editor.firstChild) {
+        editor.insertBefore(imageElement, editor.firstChild);
+      } else {
+        editor.appendChild(imageElement);
+      }
+      // Insert paragraph after the image
+      if (imageElement.nextSibling) {
+        editor.insertBefore(newParagraphElement, imageElement.nextSibling);
+      } else {
+        editor.appendChild(newParagraphElement);
+      }
+    } else if (insertIndex >= allBlocks.length) {
+      // Insert at the end
       editor.appendChild(imageElement);
       editor.appendChild(newParagraphElement);
         } else {
-      const insertBefore = editor.children[insertIndex];
-      editor.insertBefore(imageElement, insertBefore);
+      // Insert at the specified index - find the block at that index and insert before it (or its parent)
+      const targetBlock = allBlocks[insertIndex];
+      if (targetBlock) {
+        // Find the direct child of editor to insert before
+        // If targetBlock is nested (like <li> in <ul>), insert before its parent container
+        let insertBeforeElement = targetBlock;
+        while (insertBeforeElement && insertBeforeElement.parentNode !== editor) {
+          insertBeforeElement = insertBeforeElement.parentNode;
+        }
+        
+        if (insertBeforeElement && insertBeforeElement.parentNode === editor) {
+          editor.insertBefore(imageElement, insertBeforeElement);
+          // Insert paragraph after the image
+          if (imageElement.nextSibling) {
       editor.insertBefore(newParagraphElement, imageElement.nextSibling);
+          } else {
+            editor.appendChild(newParagraphElement);
+          }
+        } else {
+          // Fallback: append to end
+          editor.appendChild(imageElement);
+          editor.appendChild(newParagraphElement);
+        }
+      } else {
+        // Fallback: append to end
+        editor.appendChild(imageElement);
+        editor.appendChild(newParagraphElement);
+      }
         }
 
     // Update placeholder visibility
@@ -2698,6 +3319,8 @@ class CreatePost {
         titleInput.addEventListener('input', () => {
           this.updateNextStepButton();
           this.updatePublishTriggerVisibility();
+          // Schedule save when title changes
+          this.scheduleSerialization();
         });
         
         // Handle Enter and Tab to move to body editor
@@ -2743,6 +3366,8 @@ class CreatePost {
         editor.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             this.handleEnterKey(e);
+          } else if (e.key === 'Enter' && e.shiftKey) {
+            this.handleShiftEnterKey(e);
           } else if (e.key === 'Backspace') {
             this.handleBackspaceKey(e);
           } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
@@ -2755,6 +3380,17 @@ class CreatePost {
         // Handle input events
         editor.addEventListener('input', (e) => {
           this.handleEditorInput(e);
+        });
+        
+        // Handle IME composition events to prevent saving during composition
+        editor.addEventListener('compositionstart', () => {
+          this.isComposing = true;
+        });
+        
+        editor.addEventListener('compositionend', () => {
+          this.isComposing = false;
+          // Schedule save after composition ends
+          this.scheduleSerialization();
         });
 
         // Handle paste events
@@ -2793,56 +3429,42 @@ class CreatePost {
   }
 
   async handlePublish() {
-    const title = document.querySelector('#stack-post-title-input')?.value || '';
+    // Clear any pending saves during publish flow
+    if (this.inactivityTimeout) {
+      clearTimeout(this.inactivityTimeout);
+      this.inactivityTimeout = null;
+    }
+    if (this.serializeTimeout) {
+      clearTimeout(this.serializeTimeout);
+      this.serializeTimeout = null;
+    }
+    this.queuedSave = false;
     
-    // Get markdown from document model (source of truth)
-    // Serialize document to ensure we have the latest version
-    const content = this.serializeDOMToMarkdown();
+    // Read FRESHEST editor-approved content (no cache reliance)
+    const titleInput = document.querySelector('#stack-post-title-input');
+    const title = titleInput ? titleInput.value.trim() : '';
+    const content = this.serializeDOMToMarkdown().trim();
     
-    if (!title.trim()) {
+    // Debug: Log content to help diagnose issues
+    if (!content) {
+      const editor = document.querySelector('#stack-post-body-editor');
+      if (editor) {
+        console.log('Editor element found, blocks:', editor.querySelectorAll('[data-block-id]').length);
+        console.log('Editor textContent length:', editor.textContent ? editor.textContent.length : 0);
+      }
+    }
+    
+    if (!title) {
       alert('Please enter a title for your post');
       return;
     }
 
-    if (!content.trim()) {
+    if (!content) {
       alert('Please enter content for your post');
       return;
     }
 
     try {
-      // Get uploaded images
-      const uploadedImages = document.querySelectorAll('.stack-uploaded-image-item img');
-      let image = '';
-      let imageUrl = '';
-      
-      // Use the first uploaded image if available
-      if (uploadedImages.length > 0) {
-        const firstImage = uploadedImages[0];
-        const imageSrc = firstImage.getAttribute('src');
-        if (imageSrc && imageSrc.startsWith('data:')) {
-          // Extract base64 data (remove data:image/...;base64, prefix)
-          image = imageSrc.split(',')[1] || '';
-        } else if (imageSrc) {
-          imageUrl = imageSrc;
-        }
-      }
-
-      // Create excerpt from content (first 200 characters)
-      const excerpt = content.substring(0, 200).replace(/\n/g, ' ').trim();
-      const excerptWithEllipsis = excerpt.length < content.length ? excerpt + '...' : excerpt;
-
-      // Prepare post data matching blog module structure
-      const postData = {
-        title: title.trim(),
-        content: content.trim(),
-        image: image,
-        imageUrl: imageUrl,
-        tags: [], // Can be extended later
-        timestamp: Date.now(),
-        subscriptionTier: 'free', // Default to free, can be extended later
-        excerpt: excerptWithEllipsis
-      };
-
       // Show loading message
       if (this.app.connection) {
         this.app.connection.emit('saito-header-update-message', {
@@ -2851,18 +3473,73 @@ class CreatePost {
         });
       }
 
-      // Create and propagate the transaction
-      await this.mod.createStackPostTransaction(postData, () => {
-        // Callback after post is confirmed
-        if (this.app.connection) {
-          this.app.connection.emit('saito-header-update-message', { msg: '' });
+      // Get uploaded images
+      const uploadedImages = document.querySelectorAll('.stack-uploaded-image-item img');
+      let image = '';
+      let imageUrl = '';
+      
+      if (uploadedImages.length > 0) {
+        const firstImage = uploadedImages[0];
+        const imageSrc = firstImage.getAttribute('src');
+        if (imageSrc && imageSrc.startsWith('data:')) {
+          image = imageSrc.split(',')[1] || '';
+        } else if (imageSrc) {
+          imageUrl = imageSrc;
         }
-        
-        // Return to splash page
-        if (this.mod.main) {
-          this.mod.main.render();
-        }
-      });
+      }
+
+      // Create excerpt from content
+      const excerpt = content.substring(0, 200).replace(/\n/g, ' ').trim();
+      const excerptWithEllipsis = excerpt.length < content.length ? excerpt + '...' : excerpt;
+
+      // BUILD A NEW TRANSACTION from fresh editor state (no stale objects)
+      const newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.mod.publicKey);
+      
+      const data = {
+        type: 'stack_post',
+        title: title,
+        content: content,
+        tags: [],
+        image: image,
+        imageUrl: imageUrl,
+        timestamp: Date.now(),
+        subscriptionTier: 'free',
+        excerpt: excerptWithEllipsis
+      };
+
+      newtx.msg = {
+        module: 'Stack',
+        request: 'create stack post request',
+        data: data
+      };
+
+      // SIGN the transaction
+      await newtx.sign();
+
+      // Update the local draft entry to "stack:pending" (if draft exists)
+      if (this.draftTransaction) {
+        await this.app.storage.updateTransaction(this.draftTransaction, {
+          field4: 'stack:pending'
+        }, 'localhost');
+      }
+
+      // Propagate the signed transaction to the network
+      await this.app.network.propagateTransaction(newtx);
+
+      // Set published state
+      this.isPublished = true;
+      this.updatePublishTriggerState();
+
+      // Clear draft transaction reference (post is now pending/processing)
+      this.draftTransaction = null;
+
+      // Update status
+      if (this.app.connection) {
+        this.app.connection.emit('saito-header-update-message', {
+          msg: 'Post published',
+          timeout: 2000
+        });
+      }
 
     } catch (error) {
       console.error('Error publishing post:', error);

@@ -117,29 +117,71 @@ class PublishSettingsOverlay {
 
   handleDeleteDraft() {
     if (confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
-      // Clear the draft from localStorage
-      try {
-        localStorage.removeItem('stack-post-draft');
-      } catch (err) {
-        console.error('Error deleting draft:', err);
+      // Delete the draft transaction from the archive
+      if (this.mod.create_post_ui && this.mod.create_post_ui.draftTransaction) {
+        this.app.storage.deleteTransaction(this.mod.create_post_ui.draftTransaction, null, 'localhost')
+          .then(() => {
+            this.mod.create_post_ui.draftTransaction = null; // Clear reference
+            
+            // Clear the editor
+            const editor = document.querySelector('#stack-post-body-editor');
+            if (editor && this.mod.create_post_ui) {
+              const { parseMarkdownToDocument, renderDocument } = require('../../post-document');
+              const emptyDocument = parseMarkdownToDocument('');
+              renderDocument(emptyDocument, editor, { contentEditable: true });
+              this.mod.create_post_ui.updatePlaceholderVisibility();
+              this.mod.create_post_ui.updatePublishTriggerVisibility();
+            }
+            
+            // Clear title
+            const titleInput = document.querySelector('#stack-post-title-input');
+            if (titleInput) {
+              titleInput.value = '';
+            }
+            
+            // Hide overlay and navigate back to front page
+            this.overlay.hide();
+            
+            // Navigate back to front page (main splash page)
+            if (this.mod.main) {
+              setTimeout(() => {
+                this.mod.main.render();
+              }, 100); // Small delay for smooth transition
+            }
+            
+            siteMessage('Draft deleted', 1500);
+          })
+          .catch(error => {
+            console.error('Error deleting draft transaction:', error);
+            alert('Failed to delete draft. Please try again.');
+          });
+      } else {
+        // If no draftTransaction, just clear editor and navigate back
+        const editor = document.querySelector('#stack-post-body-editor');
+        if (editor && this.mod.create_post_ui) {
+          const { parseMarkdownToDocument, renderDocument } = require('../../post-document');
+          const emptyDocument = parseMarkdownToDocument('');
+          renderDocument(emptyDocument, editor, { contentEditable: true });
+          this.mod.create_post_ui.updatePlaceholderVisibility();
+          this.mod.create_post_ui.updatePublishTriggerVisibility();
+        }
+        
+        const titleInput = document.querySelector('#stack-post-title-input');
+        if (titleInput) {
+          titleInput.value = '';
+        }
+        
+        this.overlay.hide();
+        
+        // Navigate back to front page
+        if (this.mod.main) {
+          setTimeout(() => {
+            this.mod.main.render();
+          }, 100);
+        }
+        
+        siteMessage('Draft deleted', 1500);
       }
-
-      // Clear the editor
-      if (this.mod.create_post_ui) {
-        this.mod.create_post_ui.document = { blocks: [{ type: 'paragraph', id: require('../../post-document').generateBlockId(0), text: '' }] };
-        this.mod.create_post_ui.renderDocument();
-        this.mod.create_post_ui.updatePlaceholderVisibility();
-        this.mod.create_post_ui.updatePublishTriggerVisibility();
-      }
-
-      // Clear title
-      const titleInput = document.querySelector('#stack-post-title-input');
-      if (titleInput) {
-        titleInput.value = '';
-      }
-
-      this.overlay.hide();
-      siteMessage('Draft deleted', 1500);
     }
   }
 
@@ -216,9 +258,8 @@ class PublishSettingsOverlay {
 
   async handlePublish() {
     const title = document.querySelector('#stack-post-title-input')?.value || '';
-    const editor = document.querySelector('#stack-post-body-editor');
-    const { serializeDocumentToMarkdown } = require('../../post-document');
-    const content = editor ? serializeDocumentToMarkdown(this.mod.create_post_ui.document) : '';
+    // Use DOM-based serialization (DOM is single source of truth)
+    const content = this.mod.create_post_ui ? this.mod.create_post_ui.serializeDOMToMarkdown() : '';
 
     if (!title.trim()) {
       alert('Please enter a title for your post');
