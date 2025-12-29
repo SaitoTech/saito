@@ -14,9 +14,9 @@ html[data-theme='dark'] {
   --saito-surface-inverse-text: var(--saito-font-color-inverse);
 
   /*FONTS SECTION*/
-  --saito-font-color: #ddd;
-  --saito-font-color-heavy: var(--saito-white);
-  --saito-font-color-light: #aaa;
+  --saito-font-color: var(--saito-gray-150);
+  --saito-font-color-heavy: var(--saito-gray-050);
+  --saito-font-color-light: var(--saito-gray-300);
   --saito-font-color-secondary: var(--saito-gray-500);
   --saito-font-color-inverse: var(--saito-gray-850);
 
@@ -26,6 +26,5 @@ html[data-theme='dark'] {
 
   /* BORDER COLORS */
   --saito-border-color: var(--saito-border-color-dark);
-  --border-color-general-dividers: var(--saito-border-color);
-
+  --border-color-general-dividers: var(--saito-gray-550);
 }

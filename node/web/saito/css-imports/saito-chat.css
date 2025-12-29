@@ -305,7 +305,7 @@
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0px 1px 3px -1px; /* added some depth to the header here. Across all themes, but I feel it is necessary. */
+  box-shadow: 0px 2px 2px -2px; /* added some depth to the header here. Across all themes, but I feel it is necessary. */
 }
 
 .chat-header-info i {
