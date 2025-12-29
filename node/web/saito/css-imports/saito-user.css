@@ -95,6 +95,7 @@ Saito User
   width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: inherit;
 }
 
 .saito-user .saito-datetime {

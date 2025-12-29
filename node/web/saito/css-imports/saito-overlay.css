@@ -26,10 +26,25 @@
   background-color: var(--saito-background-color); /* Dont know why had to be added manually*/
 }
 
-.saito-overlay-medium {
-  width: 600px;
-  height: 400px;
+.saito-overlay-size {
+  width: min(600px, 95vw);
+  min-height: min(400px, 80vh);
+  max-height: 80vh;
   padding: 2rem;
+}
+
+.saito-overlay-size.wide {
+  width: min(900px, 100vw);
+  padding: 2.5rem;
+}
+
+.saito-overlay-size.tall {
+  min-height: min(600px, 100vh);
+  max-height: 100vh;
+}
+
+.saito-overlay-size.narrow {
+  width: min(400px, 90vw);
 }
 
 .saito-overlay > div:last-child,

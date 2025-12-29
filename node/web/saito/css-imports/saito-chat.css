@@ -44,7 +44,13 @@
   overflow: hidden;
   min-height: 4.5rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+
+.chat-manager .chat-group-name {
+  transition: inherit;
 }
 
 .chat-manager .saito-user:hover {

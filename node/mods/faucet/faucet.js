@@ -90,7 +90,7 @@ class Faucet extends ModTemplate {
 
 	template() {
 		return `      
-		<div class='faucet saito-overlay-medium'>
+		<div class='faucet saito-overlay-size'>
         		<h2>SAITO Faucet</h2>
         	        <p>click on the button to receive 100 SAITO from the testnet faucet</p>
 		        <button class="saito-primary faucet-button" id="faucet-button" >Request Testnet SAITO</button>

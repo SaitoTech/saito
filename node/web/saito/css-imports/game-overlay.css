@@ -1,4 +1,6 @@
-.saito-overlay , .saito-overlay > div:last-child, .saito-overlay > form {
+.saito-overlay,
+.saito-overlay > div:last-child,
+.saito-overlay > form {
   border: none !important;
 }
 
@@ -99,10 +101,8 @@
 
 .rules-overlay {
   background-color: var(--saito-background-color);
-  width: min(800px, 90vw);
-  max-width: 100%;
   padding: 4rem;
-  max-height: 90vh;
+
   /* No scrollbars */
   overflow-y: auto;
   -ms-overflow-style: none; /* IE and Edge */
@@ -121,7 +121,8 @@
 
 .rules-overlay p {
   margin: 1rem 0;
-  line-height: 1.5em;
+  line-height: 1.9rem;
+  font-size: 1.6rem;
 }
 
 .rules-overlay em {
