@@ -2,7 +2,7 @@ name: publish
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, hotfix/v0.2.175 ]
 
 permissions:
   id-token: write  # Required for OIDC

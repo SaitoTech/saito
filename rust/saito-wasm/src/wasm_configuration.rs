@@ -18,7 +18,6 @@ fn get_default_consensus() -> Option<ConsensusConfig> {
 pub struct WasmConfiguration {
     server: Option<Server>,
     peers: Vec<PeerConfig>,
-    #[serde(skip)]
     blockchain: Option<BlockchainConfig>,
     spv_mode: bool,
     browser_mode: bool,
