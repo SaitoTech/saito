@@ -4,6 +4,7 @@
   font-size: 2rem;
   line-height: 4rem;
   min-width: max-content;
+  user-select: none;
 }
 
 .vault-sig-grid {

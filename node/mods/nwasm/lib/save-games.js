@@ -11,12 +11,18 @@ class SaveGamesOverlay {
 		this.overlay = new SaitoOverlay(this.app, this.mod);
 	}
 
-	render() {
+	async render() {
 		let app = this.app;
 		let mod = this.mod;
 
+		// Reload saves from storage when overlay opens
+		await this.reloadSaves();
+
 		this.overlay.show(SaveGamesTemplate(app, mod));
-		document.getElementById('nwasm-saved-games').innerHTML = '';
+		let container = document.getElementById('nwasm-saved-games');
+		if (container) {
+			container.innerHTML = '';
+		}
 
 		for (let i = 0; i < mod.active_game_saves.length; i++) {
 			let s = mod.active_game_saves[i];
@@ -76,7 +82,7 @@ class SaveGamesOverlay {
 
 			let html = `
         <div id="save_game_${i}" data-id="${s.signature}" class="nwasm-saved-games-item">
-          <div class="nwasm-saved-games-screenshot"><img src="${stxmsg.screenshot}" /><div class="nwasn_time_elapsed">${time_elapsed}</div></div>
+          <div class="nwasm-saved-games-screenshot"><img src="${stxmsg.screenshot}" /><div class="nwasm_time_elapsed">${time_elapsed}</div></div>
         </div>
       `;
 			if (!document.getElementById(`save_game_${i}`)) {
@@ -84,6 +90,33 @@ class SaveGamesOverlay {
 			}
 		}
 		this.attachEvents();
+	}
+
+	async reloadSaves() {
+		if (!this.mod.active_rom_sig) {
+			return;
+		}
+		
+		let sgo_self = this;
+		this.mod.active_game_saves = [];
+		
+		return new Promise((resolve) => {
+			this.app.storage.loadTransactions(
+				{ field1: 'Nwasm' + this.mod.active_rom_sig, limit: 10 },
+				(txs) => {
+					try {
+						for (let z = 0; z < txs.length; z++) {
+							let newtx = txs[z];
+							sgo_self.mod.active_game_saves.push(newtx);
+						}
+					} catch (err) {
+						console.log('error reloading Nwasm saves...: ' + err);
+					}
+					resolve();
+				},
+				'localhost'
+			);
+		});
 	}
 
 	attachEvents() {
@@ -95,6 +128,7 @@ class SaveGamesOverlay {
 		for (let i = 0; i < mod.active_game_saves.length; i++) {
 			let s = mod.active_game_saves[i];
 			let obj = document.getElementById(`save_game_${i}`);
+			if (obj) {
 			obj.onclick = (e) => {
 				sgo.overlay.hide();
 				sgo.overlay.remove();
@@ -102,6 +136,7 @@ class SaveGamesOverlay {
 				mod.loadSaveGame(sig);
 				sgo.overlay.hide();
 			};
+			}
 		}
 	}
 }

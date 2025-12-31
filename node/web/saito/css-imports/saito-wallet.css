@@ -645,7 +645,13 @@ textarea {
 }
 
 #nft-image-upload i {
-  font-size: 16rem;
+  font-size: 3.5rem;
+  color: var(--saito-surface-selected);
+}
+
+.nft-upload-text {
+  margin-left: 1rem;
+  font-size: 1.6rem;
 }
 
 .utxo-div {
@@ -938,6 +944,7 @@ nft cards
   top: 18px;
   line-height: 4rem;
   padding: 0 1rem;
+  overflow: hidden;
 }
 
 .nft-card-img {

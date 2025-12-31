@@ -1,0 +1,514 @@
+/* Stack Styles */
+
+/* Override Saito default 3-column layout for splash page - only when stack-splash class exists */
+.saito-container:has(.stack-splash),
+.saito-container.stack-splash-container {
+  grid-template-columns: 1fr !important;
+  padding: 0 !important;
+  position: relative !important;
+  top: 0 !important;
+  height: auto !important;
+  overflow: visible !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  column-gap: 0 !important;
+}
+
+/* Hide sidebars when splash page is present */
+.saito-container:has(.stack-splash) .saito-sidebar,
+.saito-container.stack-splash-container .saito-sidebar {
+  display: none !important;
+}
+
+/* Splash page layout */
+.stack-splash {
+  min-height: calc(100vh - var(--saito-header-height, 60px));
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  width: 100%;
+}
+
+/* Subscriptions toggle button */
+.stack-subscriptions-toggle {
+  position: fixed;
+  top: calc(var(--saito-header-height, 60px) + 1rem);
+  left: 1rem;
+  z-index: 100;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: var(--saito-background-color);
+  border: 1px solid var(--saito-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--saito-font-color);
+}
+
+.stack-subscriptions-toggle:hover {
+  background: var(--saito-primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+/* CTA Section - centered vertically on desktop */
+.stack-cta-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .stack-cta-section {
+    flex-direction: column;
+    gap: 2rem;
+    padding: 1.5rem;
+    min-height: auto;
+  }
+}
+
+/* CTA Image */
+.stack-cta-image {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 500px;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.stack-cta-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.stack-cta-image-placeholder {
+  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-primary-dark, #4a90e2) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 3rem;
+}
+
+.stack-cta-image-placeholder::before {
+  content: "📝";
+  font-size: 8rem;
+  opacity: 0.3;
+}
+
+@media (max-width: 768px) {
+  .stack-cta-image {
+    max-width: 100%;
+    max-height: 300px;
+  }
+}
+
+/* CTA Content */
+.stack-cta-content {
+  flex: 1;
+  max-width: 600px;
+}
+
+.stack-cta-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  margin: 0 0 1.5rem 0;
+  color: var(--saito-font-color);
+  line-height: 1.2;
+}
+
+.stack-cta-description {
+  font-size: 1.25rem;
+  line-height: 1.6;
+  color: var(--saito-font-color-light);
+  margin: 0 0 2.5rem 0;
+}
+
+.stack-cta-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .stack-cta-title {
+    font-size: 2.5rem;
+  }
+  
+  .stack-cta-description {
+    font-size: 1.1rem;
+  }
+  
+  .stack-cta-buttons {
+    flex-direction: column;
+  }
+  
+  .stack-cta-buttons button {
+    width: 100%;
+  }
+}
+
+/* Explore link - positioned at bottom */
+.stack-explore-link {
+  flex: 0 0 auto;
+  padding: 2rem;
+  text-align: center;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stack-explore-link span {
+  color: var(--saito-font-color-light);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stack-explore-btn {
+  background: transparent;
+  border: 2px solid var(--saito-border-color);
+  color: var(--saito-font-color);
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stack-explore-btn:hover {
+  border-color: var(--saito-primary);
+  color: var(--saito-primary);
+  transform: translateY(-2px);
+}
+
+@media (min-width: 769px) {
+  .stack-explore-link {
+    padding-bottom: 3rem;
+  }
+}
+
+.stack-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.stack-header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--saito-border-color);
+}
+
+.stack-header h1 {
+  font-size: 2.5em;
+  margin: 0;
+  color: var(--saito-primary);
+}
+
+.stack-subtitle {
+  font-size: 1.2em;
+  color: var(--saito-font-color);
+  margin-top: 10px;
+}
+
+.stack-content {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 30px;
+}
+
+.stack-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.stack-sidebar-section {
+  background: var(--saito-background-color);
+  border: 1px solid var(--saito-border-color);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.stack-sidebar-section h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 1.2em;
+  color: var(--saito-primary);
+}
+
+.stack-publications-list,
+.stack-subscriptions-list {
+  margin-bottom: 15px;
+}
+
+.stack-main {
+  min-height: 500px;
+}
+
+.stack-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.stack-post {
+  background: var(--saito-background-color);
+  border: 1px solid var(--saito-border-color);
+  border-radius: 8px;
+  padding: 25px;
+  transition: box-shadow 0.3s ease;
+}
+
+.stack-post:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stack-post-header {
+  margin-bottom: 15px;
+}
+
+.stack-post-meta {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 0.9em;
+  color: var(--saito-font-color-light);
+}
+
+.stack-post-author {
+  font-weight: bold;
+  color: var(--saito-primary);
+}
+
+.stack-post-date {
+  color: var(--saito-font-color-light);
+}
+
+.stack-tier-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.stack-tier-free {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.stack-tier-paid {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.stack-post-title {
+  font-size: 1.8em;
+  margin: 0 0 10px 0;
+  color: var(--saito-font-color);
+}
+
+.stack-post-excerpt {
+  font-size: 1.1em;
+  color: var(--saito-font-color-light);
+  margin-bottom: 15px;
+  font-style: italic;
+}
+
+.stack-post-body {
+  color: var(--saito-font-color);
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.stack-post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.stack-tag {
+  background: var(--saito-primary);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85em;
+}
+
+.stack-post-actions {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--saito-border-color);
+}
+
+/* Buttons */
+.stack-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stack-btn-primary {
+  background: var(--saito-primary);
+  color: white;
+}
+
+.stack-btn-primary:hover {
+  background: var(--saito-primary-dark);
+  transform: translateY(-2px);
+}
+
+.stack-btn-secondary {
+  background: var(--saito-background-color);
+  color: var(--saito-font-color);
+  border: 1px solid var(--saito-border-color);
+}
+
+.stack-btn-secondary:hover {
+  background: var(--saito-border-color);
+}
+
+.stack-btn-link {
+  background: none;
+  color: var(--saito-primary);
+  text-decoration: underline;
+  padding: 5px 10px;
+}
+
+.stack-btn-link:hover {
+  color: var(--saito-primary-dark);
+}
+
+/* Create Post Form */
+.stack-create-post {
+  background: var(--saito-background-color);
+  border: 1px solid var(--saito-border-color);
+  border-radius: 8px;
+  padding: 30px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.stack-create-post h2 {
+  margin-top: 0;
+  color: var(--saito-primary);
+}
+
+.stack-form-group {
+  margin-bottom: 20px;
+}
+
+.stack-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+  color: var(--saito-font-color);
+}
+
+.stack-form-group input,
+.stack-form-group textarea,
+.stack-form-group select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 6px;
+  font-size: 1em;
+  font-family: inherit;
+  background: var(--saito-background-color);
+  color: var(--saito-font-color);
+}
+
+.stack-form-group textarea {
+  resize: vertical;
+  min-height: 150px;
+}
+
+.stack-form-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 25px;
+}
+
+/* Subscription Items */
+.stack-subscription-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 6px;
+  margin-bottom: 10px;
+  background: var(--saito-background-color);
+}
+
+.stack-subscription-info {
+  flex: 1;
+}
+
+.stack-subscription-author {
+  font-weight: bold;
+  color: var(--saito-font-color);
+  margin-bottom: 4px;
+}
+
+.stack-subscription-tier {
+  font-size: 0.9em;
+  color: var(--saito-font-color-light);
+}
+
+.stack-subscribe-btn,
+.stack-unsubscribe-btn {
+  padding: 6px 12px;
+  font-size: 0.9em;
+}
+
+/* Loading State */
+.stack-loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--saito-font-color-light);
+  font-size: 1.1em;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stack-content {
+    grid-template-columns: 1fr;
+  }
+
+  .stack-sidebar {
+    order: 2;
+  }
+
+  .stack-main {
+    order: 1;
+  }
+}
+

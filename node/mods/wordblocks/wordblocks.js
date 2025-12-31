@@ -43,7 +43,7 @@ class Wordblocks extends GameTemplate {
 
 		this.defaultMsg = `Click on the board to enter a word from that square, click a tile to select it for play, or <span class="link tosstiles" title="Double click tiles to select them for deletion">discard tiles</span> if you cannot move.`;
 
-		this.clock.container = "#clock_";
+		this.clock.container = '#clock_';
 
 		return this;
 	}
@@ -101,11 +101,10 @@ class Wordblocks extends GameTemplate {
 			let compact_html = '';
 
 			for (let i = 1; i <= this.game.players.length; i++) {
-
 				let score = this.getPlayerScore(i);
-				
+
 				let newhtml = `<div class="playerscore" id="score_${i}">${score}</div>`;
-				if (this.useClock){
+				if (this.useClock) {
 					newhtml += `<div class="player_clock" id="clock_${i}"></div>`;
 				}
 
@@ -114,7 +113,6 @@ class Wordblocks extends GameTemplate {
 				compact_html += `<div class="score" id="mobile_score_${i}"><img class="player-identicon" src="${this.app.keychain.returnIdenticon(
 					this.game.players[i - 1]
 				)}"/><span>: ${score}</span></div>`;
-
 			}
 
 			this.scoreboard.update(compact_html);
@@ -125,7 +123,7 @@ class Wordblocks extends GameTemplate {
 			});
 
 			let wordblocks_self = this;
-			$(".playerscore").on('click', function(){
+			$('.playerscore').on('click', function () {
 				wordblocks_self.overlay.show(wordblocks_self.returnStatsOverlay());
 			});
 		} catch (err) {
@@ -134,12 +132,10 @@ class Wordblocks extends GameTemplate {
 
 		if (this.useClock == 1) {
 			this.clock.render();
-			for (let i = 0; i < this.game.clock.length; i++){
-				this.clock.displayTime(this.game.clock[i].limit - this.game.clock[i].spent, i+1);
+			for (let i = 0; i < this.game.clock.length; i++) {
+				this.clock.displayTime(this.game.clock[i].limit - this.game.clock[i].spent, i + 1);
 			}
 		}
-
-
 
 		try {
 			if (
@@ -211,7 +207,6 @@ class Wordblocks extends GameTemplate {
 	}
 
 	respondTo(type, obj = null) {
-
 		switch (type) {
 			case 'ntfy-notification':
 				if (obj.tx?.msg?.module != 'Wordblocks') {
@@ -241,13 +236,11 @@ class Wordblocks extends GameTemplate {
 				let url = `${this.app.server.server.url}/${this.returnSlug()}/`;
 				url += `#gid=${this.app.crypto.hash(tx.msg.game_id).slice(-6)}`;
 
-				notification.actions = [
-					{ action: 'view', label: 'Play', url }
-				];
+				notification.actions = [{ action: 'view', label: 'Play', url }];
 				return notification;
 
 			default:
-				return super.respondTo(type);
+				return super.respondTo(type, obj);
 		}
 	}
 
@@ -347,8 +340,8 @@ class Wordblocks extends GameTemplate {
 			this.addTile($(divname), letter);
 			if (!(letter == '_') && !(letter == '')) {
 				try {
-					if (this.game.state.newLetters.includes(i)){
-						$(divname).addClass('new');	
+					if (this.game.state.newLetters.includes(i)) {
+						$(divname).addClass('new');
 					}
 					$(divname).addClass('set');
 					this.letters[letter].count--;
@@ -381,9 +374,9 @@ class Wordblocks extends GameTemplate {
 			}
 		}
 
-		$(".score.active").removeClass("active");
+		$('.score.active').removeClass('active');
 		this.playerbox.setActive(this.game.target);
-		$(`#mobile_score_${this.game.target}`).addClass("active");
+		$(`#mobile_score_${this.game.target}`).addClass('active');
 
 		if (this.game.players.length > 2) {
 			this.grace_window = this.game.players.length * 8;
@@ -529,9 +522,9 @@ class Wordblocks extends GameTemplate {
 				}
 			});
 
-			$("#remainingctrl").on('click', function(){
+			$('#remainingctrl').on('click', function () {
 				wordblocks_self.displayRemainingTiles();
-			})
+			});
 
 			/* Click to popup more information on what the last move just was */
 			for (let i = 1; i <= this.game.players.length; i++) {
@@ -592,9 +585,9 @@ class Wordblocks extends GameTemplate {
 			document.querySelector('.slot .tempplacement') ||
 			document.querySelector('#tiles .highlighttile');
 
-		$("#remainingctrl").on('click', function(){
+		$('#remainingctrl').on('click', function () {
 			wordblocks_self.displayRemainingTiles();
-		})
+		});
 
 		try {
 			//Show delete and skip controls
@@ -692,8 +685,8 @@ class Wordblocks extends GameTemplate {
 
 			$('#skipturn').off();
 			$('#skipturn').on('click', async function () {
-				let c = await sconfirm("Are you sure you want to end your turn without playing?");
-				if (c){
+				let c = await sconfirm('Are you sure you want to end your turn without playing?');
+				if (c) {
 					wordblocks_self.clearBoard();
 					wordblocks_self.addMove('discard_tiles\t' + wordblocks_self.game.player + '\t');
 					wordblocks_self.endTurn();
@@ -1415,7 +1408,7 @@ class Wordblocks extends GameTemplate {
 		x = parseInt(x);
 		y = parseInt(y);
 
-		$(".new").removeClass("new");
+		$('.new').removeClass('new');
 
 		this.game.state.newLetters = [];
 		for (let i = 0; i < word.length; i++) {
@@ -2252,19 +2245,19 @@ class Wordblocks extends GameTemplate {
 					}
 				}
 
-        this.game.canProcess = true;
+				this.game.canProcess = true;
 
-        if (this.gameOverCallback){
-        	console.log("Run game over callback!!!");
-          this.gameOverCallback();  
-          return 0;
-        }
+				if (this.gameOverCallback) {
+					console.log('Run game over callback!!!');
+					this.gameOverCallback();
+					return 0;
+				}
 
-   			let txSent = null;
+				let txSent = null;
 
 				if (idx < 0) {
 					txSent = await this.sendGameOverTransaction([], 'no winners');
-				}else{
+				} else {
 					let winners = [this.game.players[idx]];
 
 					//Check for ties -- will need to improve the logic for multi winners
@@ -2279,14 +2272,13 @@ class Wordblocks extends GameTemplate {
 					} else {
 						txSent = await this.sendGameOverTransaction(winners, 'high score');
 					}
-
 				}
 
 				// If async and I finish, but lose... won't get the official game over tx
 				// until my friend reconnects..., so simulate!
 				if (txSent) {
 					this.receiveGameoverTransaction(0, txSent, 0, this.app);
-				}	
+				}
 
 				return 0;
 			}
@@ -2348,7 +2340,6 @@ class Wordblocks extends GameTemplate {
 					score = this.getLastMove(player).score;
 				}
 				this.animatePlay();
-
 			}
 
 			if (mv[0] === 'discard_tiles') {
@@ -2398,9 +2389,9 @@ class Wordblocks extends GameTemplate {
 				this.startClock();
 			}
 
-			$(".score.active").removeClass("active");
+			$('.score.active').removeClass('active');
 			this.playerbox.setActive(this.game.target);
-			$(`#mobile_score_${this.game.target}`).addClass("active");
+			$(`#mobile_score_${this.game.target}`).addClass('active');
 
 			// We add a save point here so closing the tab doesn't break the game
 			console.log('Save Wordblocks game');
@@ -2424,7 +2415,6 @@ class Wordblocks extends GameTemplate {
 
 		this.game.score[player - 1] = this.getPlayerScore(player) + score;
 		this.refreshPlayerScore(player);
-
 	}
 
 	endTurn() {
@@ -2450,40 +2440,38 @@ class Wordblocks extends GameTemplate {
 		}
 	}
 
-
 	refreshPlayerScore(player) {
-
 		let score = this.getPlayerScore(player);
 
-		if (document.getElementById(`score_${player}`)){
+		if (document.getElementById(`score_${player}`)) {
 			document.getElementById(`score_${player}`).innerHTML = score;
 		}
 
-		if (document.getElementById(`mobile_score_${player}`)){
-			document.getElementById(`mobile_score_${player}`).innerHTML = `<img class="player-identicon" src="${this.app.keychain.returnIdenticon(
-				this.game.players[player-1])}"><span>: ${score}</span>`;
+		if (document.getElementById(`mobile_score_${player}`)) {
+			document.getElementById(`mobile_score_${player}`).innerHTML =
+				`<img class="player-identicon" src="${this.app.keychain.returnIdenticon(
+					this.game.players[player - 1]
+				)}"><span>: ${score}</span>`;
 		}
-
 	}
 
-	displayRemainingTiles(){
+	displayRemainingTiles() {
 		let html = `<div class="remaining_tiles">`;
 
-		for (let letter in this.letters){
+		for (let letter in this.letters) {
 			let printed = false;
-			for (let j = 0; j < this.letters[letter].count; j++){
+			for (let j = 0; j < this.letters[letter].count; j++) {
 				printed = true;
 				html += this.returnTileHTML(letter);
 			}
-			if (printed){
+			if (printed) {
 				html += `<div class="gap"></div>`;
 			}
 		}
-		html += "</div>";
+		html += '</div>';
 
 		this.overlay.show(html);
 	}
-
 }
 
 module.exports = Wordblocks;

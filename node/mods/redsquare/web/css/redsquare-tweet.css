@@ -339,6 +339,10 @@
   display: inherit;
 }
 
+/*.tweet .saito-treated-link[data-link='local_link'] .link-info {
+  display: none;
+}*/
+
 .tweet .saito-treated-link[data-link='local_link'] .link-img.has-picture {
   max-height: 15rem;
 }

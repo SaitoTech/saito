@@ -1,0 +1,69 @@
+/* Witness Overlay Styles */
+
+.witness-dual-textarea-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 70rem;
+}
+
+.witness-textarea-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.witness-textarea-label {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--saito-font-color);
+  margin-bottom: 0.3rem;
+}
+
+.witness-script-textarea,
+.witness-data-textarea {
+  width: 100%;
+  min-height: 20rem;
+  height: 20rem;
+  padding: 1rem;
+  border: 2px solid var(--saito-border-color, #999);
+  border-radius: 0.5rem;
+  background: var(--saito-background-color, #fff);
+  color: var(--saito-font-color, #333);
+  font-family: var(--vault-font-mono, 'Courier New', monospace);
+  font-size: 1.3rem;
+  line-height: 1.6;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.witness-script-textarea {
+  background: rgba(200, 200, 200, 0.1);
+  cursor: not-allowed;
+  opacity: 0.9;
+}
+
+.witness-data-textarea:focus {
+  outline: none;
+  border-color: var(--saito-primary, var(--saito-font-color));
+  box-shadow: 0 0 0 3px rgba(252, 163, 17, 0.18);
+}
+
+.witness-data-textarea::placeholder {
+  color: var(--saito-muted, #999);
+  opacity: 0.6;
+}
+
+@media (max-width: 768px) {
+  .witness-dual-textarea-container {
+    max-width: 100%;
+  }
+  
+  .witness-script-textarea,
+  .witness-data-textarea {
+    min-height: 15rem;
+    height: 15rem;
+  }
+}
+

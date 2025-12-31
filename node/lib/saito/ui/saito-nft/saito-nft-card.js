@@ -84,8 +84,27 @@ class SaitoNFTCard {
       return 0;
     }
 
+    if (this.nft.title) {
+      try {
+        let telm = document.querySelector(`.nfttxsig${this.nft.tx_sig} .nft-card-title`);
+        telm.innerHTML = this.nft.title;
+      } catch (err) {
+
+      }
+    }
+
+
     let elm = document.querySelector(`.nfttxsig${this.nft.tx_sig} .nft-card-img`);
     if (elm) {
+      if (this.nft.nft_type == "vault") {
+	try {
+          elm.innerHTML = `<div class="nft-card-text">${this.nft.json}</div>`;
+	  let obj = JSON.parse(this.nft.json);
+          elm.style.backgroundImage = `url("/vault/img/jade_key_min.png")`;
+          if (obj.file_access_script) { elm.style.backgroundImage = `url("/vault/img/crystal_key_min.png")`; }
+          return;
+        } catch (err) {}
+      }
       if (this.nft.image != '') {
         elm.innerHTML = '';
         elm.style.backgroundImage = `url("${this.nft.image}")`;

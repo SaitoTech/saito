@@ -114,13 +114,28 @@
 
 .saito-overlay-form-header {
   height: 6rem;
-  background: var(--saito-surface-selected);
-  color: var(--saito-font-color-heavy);
+  background: linear-gradient(90deg, 
+    var(--saito-primary) 0%, 
+    var(--saito-primary) 20%,
+    transparent 100%
+  );
+  color: var(--saito-primary-text);
   width: 100%;
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: flex-start;
+}
+
+/* Mobile: 40% solid primary before fade for better text readability */
+@media (max-width: 768px) {
+  .saito-overlay-form-header {
+    background: linear-gradient(90deg, 
+      var(--saito-primary) 0%, 
+      var(--saito-primary) 40%,
+      transparent 100%
+    );
+  }
 }
 
 .saito-overlay-form-header-title {

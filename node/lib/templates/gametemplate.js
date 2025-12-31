@@ -665,7 +665,7 @@ class GameTemplate extends ModTemplate {
   //
   // ARCADE SUPPORT
   //
-  respondTo(type) {
+  respondTo(type = '', obj) {
     /*
     This is primarily used as a flag to say "Yes I am a game", but some arcade functions want to
     access the game properties to render properly
@@ -675,20 +675,20 @@ class GameTemplate extends ModTemplate {
         this.sort_priority = this?.status ? -1 : 0;
       }
 
-      let obj = {};
-      obj.image = this.returnImage();
-      obj.banner = this.returnBanner();
-      return obj;
+      let x = {};
+      x.image = this.returnImage();
+      x.banner = this.returnBanner();
+      return x;
     }
 
     if (type == 'default-league') {
-      let obj = {};
-      obj.name = this.gamename || this.name;
-      obj.game = this.name;
-      obj.description = this.description;
-      obj.ranking_algorithm = 'ELO';
-      obj.default_score = 1500;
-      return obj;
+      let x = {};
+      x.name = this.gamename || this.name;
+      x.game = this.name;
+      x.description = this.description;
+      x.ranking_algorithm = 'ELO';
+      x.default_score = 1500;
+      return x;
     }
 
     return null;

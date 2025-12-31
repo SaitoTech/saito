@@ -18,9 +18,11 @@ class FileInfo {
 
   attachEvents() {
     try {
-    document.getElementById('.vault-copy-sig').onclick = (e) => {
+    let copyBtn = document.querySelector('.vault-copy-sig');
+    if (copyBtn) {
+      copyBtn.onclick = (e) => {
       try {
-        navigator.clipboard.writeText(this.privateKey);
+          navigator.clipboard.writeText(this.sig);
         let icon_element = document.querySelector('.vault-copy-sig i');
         if (icon_element) {
           icon_element.classList.toggle('fa-copy');
@@ -32,6 +34,7 @@ class FileInfo {
         }
       } catch (err) {}
     };
+    }
 
     document.querySelector('.vault-sig-grid div').addEventListener('click', function (e) {
       try {

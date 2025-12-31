@@ -621,7 +621,6 @@ class RedSquare extends ModTemplate {
   // network functions //
   ///////////////////////
   async handlePeerTransaction(app, tx = null, peer, mycallback) {
-
     if (tx == null) {
       return 0;
     }
@@ -705,6 +704,7 @@ class RedSquare extends ModTemplate {
           'localhost'
         );
       }
+      return 1;
     }
 
     //////////////////////////////////////////
@@ -767,9 +767,11 @@ class RedSquare extends ModTemplate {
           return mycallback(txs);
         }
       }
+
+      return 1;
     }
 
-    return 1;
+    return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
   //

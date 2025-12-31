@@ -1,8 +1,10 @@
 .game-crypto-transfer-manager-container {
   max-width: 95vw;
   align-items: center;
+
+  /* Hard code color themes to light text on dark background */
   color: var(--saito-white);
-  background: var(--saito-background-color);
+  background: var(--saito-gray-900); /* this is pure black... */
   border-radius: 1rem;
   display: flex;
   flex-direction: column;
@@ -14,7 +16,7 @@
 
 .game-crypto-transfer-manager-container .token-dropdown {
   color: var(--saito-white);
-  background: var(--saito-arcade-overlay-background);
+  background: var(--saito-gray-900);
 }
 
 .saito-overlay:has(.game-crypto-transfer-manager-container) {

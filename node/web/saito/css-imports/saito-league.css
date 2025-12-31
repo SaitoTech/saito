@@ -73,6 +73,13 @@
 	display: none;
 }
 
+.empty-game-list {
+	font-style: italic;
+	padding: 2rem;
+	text-align: center;
+	opacity: 0.8;
+}
+
 .league-page-tab:hover,
 .league-page-tab.active-tab {
 	border-color: var(--saito-primary);

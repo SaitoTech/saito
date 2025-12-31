@@ -10,6 +10,7 @@ class SaitoLink {
     this.container = container;
 
     this.url = url;
+    this.display_url = url;
     this.link_properties = link_properties;
 
     this.show_photo = false;

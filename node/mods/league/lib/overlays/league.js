@@ -14,10 +14,19 @@ class LeagueOverlay {
 
 		this.leaderboards = {};
 
-		app.connection.on('league-overlay-render-request', (league_id) => {
-			this.league = this.mod.returnLeague(league_id);
+		app.connection.on('league-overlay-render-request', (league_id, game_name, view = 'home') => {
+			if (league_id) {
+				this.league = this.mod.returnLeague(league_id);
+			} else if (game_name) {
+				const ls = this.mod.returnLeaguesByGame(game_name);
+				if (ls.length > 0) {
+					this.league = ls[0];
+				}
+			}
+
 			if (this.league) {
 				this.render();
+				this.changeViewTab(view);
 			} else {
 				console.warn('Overlay Render Request for Invalid League');
 			}
@@ -152,49 +161,43 @@ class LeagueOverlay {
 		if (!document.querySelector('.contactAdminWarning')) {
 			Array.from(document.querySelectorAll('.league-page-tab')).forEach((item) => {
 				item.onclick = (e) => {
-					let nav = e.currentTarget.id;
-
-					try {
-						document.querySelector('.active-tab').classList.remove('active-tab');
-						document.querySelector('.league-overlay-leaderboard').classList.remove('hidden');
-						document.querySelector('.league-overlay-body').classList.remove('admin-mode');
-						Array.from(
-							document.querySelectorAll(
-								'.league-overlay-body-content > .league-overlay-content-box'
-							)
-						).forEach((div) => div.classList.add('hidden'));
-
-						switch (nav) {
-							case 'home':
-								document.querySelector('.league-overlay-description').classList.remove('hidden');
-								break;
-							case 'contact':
-								document.querySelector('#admin_details').classList.remove('hidden');
-								if (document.querySelector('#admin_note')) {
-									document.querySelector('#admin_note').classList.remove('hidden');
-								}
-								break;
-							case 'games':
-								document
-									.querySelector('.league-overlay-league-body-games')
-									.classList.remove('hidden');
-								break;
-							case 'players':
-								document.querySelector('.league-overlay-body').classList.add('admin-mode');
-								document.querySelector('#admin-widget').classList.remove('hidden');
-								document.querySelector('.league-overlay-leaderboard').classList.add('hidden');
-								this.loadPlayersUI();
-								break;
-							case 'rankings':
-								document.querySelector('.league-overlay-leaderboard').classList.add('hidden');
-						}
-					} catch (err) {
-						console.error('dom selection in league overlay', err);
-					}
-					e.currentTarget.classList.add('active-tab');
+					this.changeViewTab(e.currentTarget.id);
 				};
 			});
 		}
+	}
+
+	changeViewTab(nav) {
+		document.querySelector('.active-tab').classList.remove('active-tab');
+		document.querySelector('.league-overlay-leaderboard').classList.remove('hidden');
+		document.querySelector('.league-overlay-body').classList.remove('admin-mode');
+		Array.from(
+			document.querySelectorAll('.league-overlay-body-content > .league-overlay-content-box')
+		).forEach((div) => div.classList.add('hidden'));
+
+		switch (nav) {
+			case 'home':
+				document.querySelector('.league-overlay-description').classList.remove('hidden');
+				break;
+			case 'contact':
+				document.querySelector('#admin_details').classList.remove('hidden');
+				if (document.querySelector('#admin_note')) {
+					document.querySelector('#admin_note').classList.remove('hidden');
+				}
+				break;
+			case 'games':
+				document.querySelector('.league-overlay-league-body-games').classList.remove('hidden');
+				break;
+			case 'players':
+				document.querySelector('.league-overlay-body').classList.add('admin-mode');
+				document.querySelector('#admin-widget').classList.remove('hidden');
+				document.querySelector('.league-overlay-leaderboard').classList.add('hidden');
+				this.loadPlayersUI();
+				break;
+			case 'rankings':
+				document.querySelector('.league-overlay-leaderboard').classList.add('hidden');
+		}
+		document.querySelector(`#${nav}.league-page-tab`).classList.add('active-tab');
 	}
 
 	loadPlayersUI() {

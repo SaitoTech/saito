@@ -9,7 +9,7 @@ module.exports = (app, mod, file_info={}) => {
   let msg = `
     Your NFT should arrive in your wallet shortly.
     <p></p>
-    Once it arrives, you can return to this page to access your file anytime.
+    Once it arrives, you can access your file <a href="/vault">on this page</a> anytime.
   `;
 
   let html = `

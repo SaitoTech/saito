@@ -105,12 +105,12 @@ class Scripting extends ModTemplate {
 canonicalize(x) {
 
     // null
-    if (x === null) return "null";
+    if (x === null) { return "null"; }
 
     // primitives
-    if (typeof x === "number") return JSON.stringify(x);
-    if (typeof x === "boolean") return JSON.stringify(x);
-    if (typeof x === "string") return JSON.stringify(x);
+    if (typeof x === "number") { return JSON.stringify(x); }
+    if (typeof x === "boolean") { return JSON.stringify(x); }
+    if (typeof x === "string") { return JSON.stringify(x); }
 
     // array
     if (Array.isArray(x)) {
@@ -730,6 +730,53 @@ _assembleScriptAndWitness(ast) {
     script,
     witness: witnessList
   };
+}
+
+
+
+/**
+ * generateWitnessFromScript(access_script)
+ * 
+ * Takes a script JSON and returns a witness template with placeholder values.
+ * Mirrors the structure of _assembleScriptAndWitness but in reverse.
+ * 
+ * @param {Object|String} access_script - The compiled script JSON
+ * @returns {Object} - Witness template object
+ */
+generateWitnessFromScript(access_script) {
+  try {
+    // Parse if string
+    let script = typeof access_script === 'string' 
+      ? JSON.parse(access_script) 
+      : access_script;
+    
+    const collectWitness = (node) => {
+      if (!node || typeof node !== 'object') return {};
+      
+      let op = (node.op || '').toLowerCase();
+      
+      // Logical operators - merge witness from all args
+      if (['and', 'or', 'not'].includes(op)) {
+        let merged = {};
+        if (Array.isArray(node.args)) {
+          node.args.forEach(arg => {
+            Object.assign(merged, collectWitness(arg));
+          });
+        }
+        return merged;
+      }
+      
+      // Regular opcode - return its example witness
+      let opcode = this.opcodes[op];
+      return opcode?.exampleWitness || {};
+    };
+    
+    return collectWitness(script);
+    
+  } catch (err) {
+    console.error('generateWitnessFromScript error:', err);
+    return {};
+  }
 }
 
 

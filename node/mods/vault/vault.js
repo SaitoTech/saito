@@ -16,6 +16,7 @@ class Vault extends ModTemplate {
 		this.slug = 'vault';
 		this.description = 'Storage Vault regulated by NFT Keys';
 		this.categories = 'Utility Cryptography Programming';
+		this.icon = "fas fa-vault";
 
 		this.peer_connected = false;
 		this.peer = null;
@@ -51,6 +52,23 @@ class Vault extends ModTemplate {
   	/////////////////////////////////
   	respondTo(type = '', obj) {
   	  let this_mod = this;
+
+    	  if (type === 'saito-header') {
+    	    let x = [];
+    	    if (!this.browser_active) {
+    	      x.push({
+    	        text: 'Vault',
+    	        icon: this.icon,
+    	        rank: 105,
+    	        type: 'navigation',
+    	        callback: function (app, id) {
+    	          navigateWindow('/vault');
+    	        }
+    	      });
+    	    }
+    	    return x;
+    	  }
+
 
   	  if (type === 'saito-create-nft') {
   	    return {
@@ -100,8 +118,6 @@ class Vault extends ModTemplate {
     		}
     
     		if (txmsg.request === 'vault access file') {
-    			console.log("inside txmsg.request = vault access");
-
 			    try {
 
 			      //
@@ -117,10 +133,6 @@ class Vault extends ModTemplate {
 			      // evaluate(hash, script, witness, vars, tx, blk)
 			      // tx => the request transaction, so CHECKOWN sees tx/from/signature
 			      //
-			      console.log("CHECKOWN: ");
-			      console.log("access_hash: ",txmsg.data.access_hash);
-			      console.log("access_script: ",txmsg.data.access_script);
-			      console.log("access_witness: ",txmsg.data.access_witness);
 			      let ok = await scripting_mod.evaluate(
 			        txmsg.data.access_hash || "",
 			        txmsg.data.access_script || "",
@@ -158,8 +170,6 @@ class Vault extends ModTemplate {
 			        0
 			      );
 
-			       console.log('5');
-
 			    } catch (err) {
 			      mycallback({ status : "err" , err : JSON.stringify(err) });
 			    }
@@ -187,7 +197,7 @@ class Vault extends ModTemplate {
 				mycallback({ status : "success" , err : "" });
 
 			} catch (err) {
-				console.log("ERROR: " + err);
+				console.error("Vault add file error:", err);
 				mycallback({ status : "err" , err : JSON.stringify(err) });
 			}
 
@@ -195,41 +205,45 @@ class Vault extends ModTemplate {
 	}
 
 
-	async createVaultAddFileTransaction(nftid=null) {
+	async createVaultAddFileTransaction(nftid=null, access_script_obj=null) {
 
 	  let newtx = await this.app.wallet.createUnsignedTransaction();
 
-	  let scripting_mod = this.app.modules.returnModule("Scripting");
-	  if (!scripting_mod) { return null; }
+	  try {
+	    let scripting_mod = this.app.modules.returnModule("Scripting");
+	    if (!scripting_mod) { return null; }
 
-	  if (!nftid) {
-	    console.log("Vault :: createVaultAddFileTransaction missing nftid");
-	    return null;
-	  }
+	    if (!nftid) {
+	      console.warn("Vault: createVaultAddFileTransaction missing nftid");
+	      return null;
+	    }
 
-	  let access_script_obj = {
-	    op: "CHECKOWNNFT",
-	    nftid,
-	  };
+	    if (access_script_obj == null) {
+	      access_script_obj = {
+	        op: "CHECKOWNNFT",
+	        nftid,
+	      };
+	    }
 
-	  let access_script = JSON.stringify(access_script_obj);
-	  let access_hash   = scripting_mod.hash(access_script);
+	    let access_script = JSON.stringify(access_script_obj);
+	    let access_hash   = scripting_mod.hash(access_script);
 
-	  let msg = {
-	    request       : "vault add file",
-	    access_script : access_script,
-	    access_hash   : access_hash,
-	    data          : { file : this.file , name : this.filename },
-	  };
+	    let msg = {
+	      request       : "vault add file",
+	      access_script : access_script,
+	      access_hash   : access_hash,
+	      data          : { file : this.file , name : this.filename },
+	    };
 
-	  newtx.msg = msg;
-	  await newtx.sign();
+	    newtx.msg = msg;
+	    await newtx.sign();
+	  } catch (err) {}
 
 	  return newtx;
 	}
 
 	
-	async sendAccessFileRequest(vault_data = null, mycallback=null) {
+	async sendAccessFileRequest(vault_data = null, witness_data = null, mycallback=null) {
 
     		//
     		// get scripting module
@@ -243,26 +257,26 @@ class Vault extends ModTemplate {
 
     		//
     		// script: CHECKOWNNFT + nftid
-    		// witness: three utxokeys proving ownership
+    		// witness: three utxokeys proving ownership (or custom witness data)
     		//
     		let nftid     = null;
     		let utxokey1  = null;
     		let utxokey2  = null;
     		let utxokey3  = null;
     		let file_id   = null;
+    		let file_access_script = "";
 
     		//
     		// if called from UI (LoadNFTs click) use provided values
     		//
     		if (vault_data) {
-      			console.log("VAULT: using values from vault_data");
       			nftid     = vault_data.nft_id;
       			utxokey1  = vault_data.slip1_utxokey;
       			utxokey2  = vault_data.slip2_utxokey;
       			utxokey3  = vault_data.slip3_utxokey;
       			file_id   = vault_data.file_id;
+      			file_access_script = vault_data.file_access_script;
     		} else {
-      			console.log("VAULT: vault_data missing, falling back to prompt() flow");
       			nftid    = prompt("NFT ID (nftid):");
       			utxokey1 = prompt("NFT utxokey1:");
       			utxokey2 = prompt("NFT utxokey2:");
@@ -275,20 +289,43 @@ class Vault extends ModTemplate {
     		  return null;
     		}
 
-    		let access_script_obj = {
-    		  	op   : "CHECKOWNNFT",
-    		  	nftid
-    		};
+    		let access_script = "";
+    		let access_witness = "";
+    		let access_hash = "";
 
-    		let access_script = JSON.stringify(access_script_obj);
-    		let access_witness_obj = {
-    		  	utxokey1,
-    		  	utxokey2,
-    		  	utxokey3
-    		};
+    		//
+    		// Check if this is a custom/advanced key with custom script
+    		//
+    		if (file_access_script && witness_data) {
 
-    		let access_witness = JSON.stringify(access_witness_obj);
-    		let access_hash = scripting_mod.hash(access_script);
+		  try {
+    		    access_script = file_access_script;
+    		    access_witness = witness_data;
+    		    access_hash = scripting_mod.hash(access_script);
+		  } catch (err) {
+		    alert("Error submitting witness data: perhaps script does not validate?");
+		    return;
+		  }
+
+    		} else {
+    		  //
+    		  // Standard CHECKOWNNFT flow
+    		  //
+    		  let access_script_obj = {
+    		    op   : "CHECKOWNNFT",
+    		    nftid
+    		  };
+
+    		  access_script = JSON.stringify(access_script_obj);
+    		  let access_witness_obj = {
+    		    utxokey1,
+    		    utxokey2,
+    		    utxokey3
+    		  };
+
+    		  access_witness = JSON.stringify(access_witness_obj);
+    		  access_hash = scripting_mod.hash(access_script);
+    		}
 
     		//
     		// if file_id still not set, fall back to this.file_id
