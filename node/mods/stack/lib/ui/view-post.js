@@ -208,8 +208,19 @@ class ViewPost {
         }, 50);
       }
 
-      // Update UI state
+      // PART 2 — DETECTING PUBLISHED POSTS: Set parent_id for editing
+      // Post loaded from transaction (view-post) is a published post
+      // Determine root signature: if post has parent_id, use it; otherwise use post's own signature
+      const parent_id = data.parent_id || null;
       if (this.mod.create_post_ui) {
+        if (parent_id) {
+          // This is a revision - root is the parent_id
+          this.mod.create_post_ui.parent_id = parent_id;
+        } else {
+          // This is a root post - root is the post's own signature
+          this.mod.create_post_ui.parent_id = this.tx.signature;
+        }
+        
         if (typeof this.mod.create_post_ui.updatePlaceholderVisibility === 'function') {
           this.mod.create_post_ui.updatePlaceholderVisibility();
         }

@@ -173,44 +173,7 @@ class ExploreOverlay {
   }
 
   /**
-   * Gets post signatures for the given filter.
-   * Extracts signatures from the module's postsCache.
-   * Returns empty array if no posts available.
-   */
-  getKeysForFilter(filter) {
-    if (!this.mod.postsCache) {
-      return [];
-    }
-
-    // URL-based routing: if targetPublicKey is set, posts are already loaded directly
-    // For creator view, posts array is already populated by handleCreatorView
-    if (this.targetPublicKey && filter === 'creator') {
-      // Posts are already loaded in handleCreatorView, return their signatures
-      return this.posts.map(post => post.signature).filter(sig => sig);
-    }
-
-    if (filter === 'my-posts') {
-      // Get current user's public key
-      const userPublicKey = this.mod.publicKey || '';
-      if (!userPublicKey) {
-        return [];
-      }
-      
-      // Get posts by this author from cache
-      const byAuthor = (this.mod.postsCache && this.mod.postsCache.byAuthor) || null;
-      const authorPosts = (byAuthor && byAuthor.get(userPublicKey)) || [];
-      return authorPosts.map(post => post.sig).filter(sig => sig);
-    } else if (filter === 'all') {
-      // Get all posts from cache
-      const allPosts = this.mod.postsCache.allPosts || [];
-      return allPosts.map(post => post.sig).filter(sig => sig);
-    }
-
-    return [];
-  }
-
-  /**
-   * Loads posts for the given filter using Stack middleware.
+   * Loads posts for the given filter using loadPostsForAuthor().
    * Shows loading state, then populated or empty state.
    */
   async loadPostsForFilter(filter) {
@@ -221,24 +184,77 @@ class ExploreOverlay {
     // Update UI to show loading state
     this.updatePostsGrid();
     
-    // Get post signatures for this filter
-    const signatures = this.getKeysForFilter(filter);
-    
-    if (signatures.length === 0) {
-      // No signatures available - show empty state
-      this.isLoading = false;
-      this.updatePostsGrid();
-      return;
+    try {
+      if (filter === 'my-posts') {
+        // PART 3: My Posts - load from archive using loadPostsForAuthor
+        const userPublicKey = this.mod.publicKey || '';
+        if (!userPublicKey) {
+          this.isLoading = false;
+          this.updatePostsGrid();
+          return;
+        }
+        
+        // Load posts for current user from archive
+        const loadedPosts = await this.mod.loadPostsForAuthor(userPublicKey, { forceRemote: true });
+        this.posts = loadedPosts || [];
+        
+      } else if (filter === 'all') {
+        // PART 3: All Posts - load from subscriptions
+        this.mod.load();
+        const subscriptions = this.mod.app.options.stack?.subscriptions || [];
+        
+        if (subscriptions.length === 0) {
+          // No subscriptions - show empty state
+          this.posts = [];
+        } else {
+          // Load posts for each subscription and merge
+          const allPosts = [];
+          const seenSignatures = new Set();
+          
+          for (const sub of subscriptions) {
+            const publicKey = sub.publicKey || sub;
+            if (!publicKey) continue;
+            
+            try {
+              const authorPosts = await this.mod.loadPostsForAuthor(publicKey, { forceRemote: true });
+              
+              // Merge posts, deduplicating by signature
+              for (const post of authorPosts) {
+                if (post && post.signature && !seenSignatures.has(post.signature)) {
+                  seenSignatures.add(post.signature);
+                  allPosts.push(post);
+                }
+              }
+            } catch (error) {
+              console.warn('Stack: Error loading posts for subscription:', publicKey, error);
+            }
+          }
+          
+          // Sort by timestamp DESC (most recent first)
+          allPosts.sort((a, b) => {
+            const aTime = a.timestamp || 0;
+            const bTime = b.timestamp || 0;
+            return bTime - aTime;
+          });
+          
+          this.posts = allPosts;
+        }
+        
+      } else if (filter === 'creator' && this.targetPublicKey) {
+        // URL-based creator view - already handled in handleCreatorView
+        // This path should not be reached, but handle gracefully
+        this.posts = [];
+      } else {
+        // Unknown filter
+        this.posts = [];
+      }
+    } catch (error) {
+      console.error('Stack: Error loading posts for filter:', filter, error);
+      this.posts = [];
     }
     
-    // Load posts using Stack middleware
-    // This will check cache → peers → archive
-    this.mod.loadPosts(signatures, 0, {}, (loadedPosts) => {
-      // Callback receives array of Transaction objects (or empty array)
-      this.posts = loadedPosts || [];
-      this.isLoading = false;
-      this.updatePostsGrid();
-    });
+    this.isLoading = false;
+    this.updatePostsGrid();
   }
 
   /**
@@ -249,12 +265,12 @@ class ExploreOverlay {
     if (!grid) return;
 
     if (this.isLoading) {
-      // Show loading spinner
+      // PART 5: Show loading spinner with "Fetching latest posts…" message
       grid.innerHTML = `
         <div class="stack-explore-loading" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 4rem 2rem;">
           <div style="text-align: center;">
             <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
-            <p style="color: var(--saito-font-color-light); font-size: 1.6rem;">Loading posts...</p>
+            <p style="color: var(--saito-font-color-light); font-size: 1.6rem;">Fetching latest posts…</p>
           </div>
         </div>
       `;
@@ -560,12 +576,7 @@ class ExploreOverlay {
       }
       
       // Show success message
-      if (this.app.connection && this.app.connection.emit) {
-        this.app.connection.emit('saito-header-update-message', {
-          msg: 'Subscribed!',
-          timeout: 2000
-        });
-      }
+      siteMessage('Subscribed!', 2000);
     }
   }
 }

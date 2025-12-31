@@ -9,6 +9,11 @@ module.exports = (app, mod, postState = {}) => {
   
   // Check if post is published (from postState or create_post_ui.isPublished)
   const isPublished = postState.published || (mod.create_post_ui && mod.create_post_ui.isPublished) || false;
+  // PART 3 — BUTTON LABEL LOGIC: Use parent_id to determine button text
+  // parent_id === null → "Publish" (new post or draft)
+  // parent_id !== null → "Update" (editing published post)
+  const parent_id = mod.create_post_ui && mod.create_post_ui.parent_id ? mod.create_post_ui.parent_id : null;
+  const buttonText = parent_id ? 'Update' : 'Publish';
   const accessLevel = postState.accessLevel || 'public';
   
   // Get content for size calculation (using DOM-based serialization if available)
@@ -52,7 +57,7 @@ module.exports = (app, mod, postState = {}) => {
           <!-- CARD 1: STATUS + PRIMARY ACTION -->
           <div class="stack-publish-card stack-publish-card-status">
             <button id="stack-publish-primary-btn" class="stack-publish-primary-action-btn">
-              ${isPublished ? 'Update' : 'Publish'}
+              ${buttonText}
             </button>
             <p class="stack-publish-draft-explanation">
               This draft is saved only on your device.<br>

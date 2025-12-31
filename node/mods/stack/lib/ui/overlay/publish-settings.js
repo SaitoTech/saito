@@ -291,7 +291,16 @@ class PublishSettingsOverlay {
     }
 
     try {
-      this.app.connection.emit('saito-header-update-message', { msg: 'Publishing post...' });
+      // PART 2 — TRANSACTION CREATION CHANGE: Include parent_id if editing
+      // If editor.parent_id exists, this is an edit - include parent_id in transaction data
+      const parent_id = this.mod.create_post_ui && this.mod.create_post_ui.parent_id ? this.mod.create_post_ui.parent_id : null;
+      
+      // Show appropriate message based on whether this is an update or new publish
+      if (parent_id) {
+        siteMessage('Updating post...', 1500);
+      } else {
+        siteMessage('Publishing post...', 1500);
+      }
       
       // Capture draft ID and transaction reference before publishing
       const draftIdToDelete = this.mod.create_post_ui ? this.mod.create_post_ui.activeDraftId : null;
@@ -310,7 +319,8 @@ class PublishSettingsOverlay {
         timestamp: Date.now(),
         subscriptionTier: this.postState.accessLevel === 'public' ? 'free' : 'paid',
         excerpt: this.postState.description || content.substring(0, 200).replace(/\n/g, ' ').trim(),
-        accessLevel: this.postState.accessLevel // 'public' or 'private'
+        accessLevel: this.postState.accessLevel, // 'public' or 'private'
+        parent_id: parent_id // Include parent_id if editing (null for new posts)
       }, () => {
         // This callback runs after network confirmation (may take time)
         // State is already cleaned up below, this is just for final sync
@@ -328,12 +338,35 @@ class PublishSettingsOverlay {
         const from = publishedTx.from && publishedTx.from.length > 0 ? publishedTx.from[0].publicKey : this.mod.publicKey;
         
         if (txmsg && txmsg.data && from) {
+          // ISSUE 2 — DUPLICATE POSTS AFTER EDITING: Remove old versions before adding new one
+          const optimistic_parent_id = parent_id; // parent_id is already extracted above
+          
+          // If this is an edit (has parent_id), remove older versions from cache
+          if (optimistic_parent_id && this.mod.postsCache) {
+            // Remove from allPosts: remove posts where sig === parent_id OR parent_id === parent_id
+            if (this.mod.postsCache.allPosts) {
+              this.mod.postsCache.allPosts = this.mod.postsCache.allPosts.filter(p => 
+                p.sig !== optimistic_parent_id && p.parent_id !== optimistic_parent_id
+              );
+            }
+            
+            // Remove from byAuthor cache
+            if (this.mod.postsCache.byAuthor && this.mod.postsCache.byAuthor.has(from)) {
+              const authorPosts = this.mod.postsCache.byAuthor.get(from);
+              const filteredAuthorPosts = authorPosts.filter(p => 
+                p.sig !== optimistic_parent_id && p.parent_id !== optimistic_parent_id
+              );
+              this.mod.postsCache.byAuthor.set(from, filteredAuthorPosts);
+            }
+          }
+          
           const post = {
             ...txmsg.data,
             sig: publishedTx.signature,
             publicKey: from,
             timestamp: txmsg.data.timestamp || publishedTx.timestamp,
-            lastEdited: txmsg.data.timestamp || publishedTx.timestamp
+            lastEdited: txmsg.data.timestamp || publishedTx.timestamp,
+            parent_id: optimistic_parent_id // Store parent_id for future deduplication
           };
           
           // Add to transactionCache for immediate access
@@ -344,6 +377,9 @@ class PublishSettingsOverlay {
             const existingIndex = this.mod.postsCache.allPosts.findIndex(p => p.sig === publishedTx.signature);
             if (existingIndex < 0) {
               this.mod.postsCache.allPosts.push(post);
+            } else {
+              // Update existing entry
+              this.mod.postsCache.allPosts[existingIndex] = post;
             }
           }
           
@@ -356,6 +392,9 @@ class PublishSettingsOverlay {
             const existingIndex = authorPosts.findIndex(p => p.sig === publishedTx.signature);
             if (existingIndex < 0) {
               authorPosts.push(post);
+            } else {
+              // Update existing entry
+              authorPosts[existingIndex] = post;
             }
           }
         }
@@ -428,16 +467,22 @@ class PublishSettingsOverlay {
         }
       }
       
-      // Success message
-      this.app.connection.emit('saito-header-update-message', { msg: 'Post published' });
-      siteMessage('Stack post published', 1500);
+      // Success message - use appropriate message based on whether this is an update or new publish
+      if (parent_id) {
+        siteMessage('Post updated', 1500);
+      } else {
+        siteMessage('Stack post published', 1500);
+      }
       
     } catch (error) {
       console.error('Error publishing post:', error);
-      this.app.connection.emit('saito-header-update-message', {
-        msg: 'Error publishing post',
-        timeout: 2000
-      });
+      // Check parent_id again in error handler to determine appropriate message
+      const parent_id = this.mod.create_post_ui && this.mod.create_post_ui.parent_id ? this.mod.create_post_ui.parent_id : null;
+      if (parent_id) {
+        siteMessage('Unable to update post', 3000);
+      } else {
+        siteMessage('Unable to publish post', 3000);
+      }
       alert('Failed to publish post. Please try again.');
     }
   }

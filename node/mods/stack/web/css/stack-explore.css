@@ -33,10 +33,11 @@
 
 .stack-explore-sidebar-header {
   padding: 2.5rem 2rem;
-  border-bottom: 2px solid var(--saito-border-color);
+  /* ISSUE 3 — CSS FIX: Sidebar header spacing */
+  margin-bottom: 0px;
+  border-bottom: none;
   background: var(--saito-primary);
   color: var(--saito-font-color-inverse);
-  margin-bottom: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;

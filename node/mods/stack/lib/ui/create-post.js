@@ -91,6 +91,7 @@ class CreatePost {
     this.storedInsertionPoint = null; // Store insertion point that matches visual indicator (single source of truth)
     this.isDragging = false; // Track drag state
     this.isPublished = false; // Track if post is published
+    this.parent_id = null; // Track root post signature when editing published posts (null for new posts/drafts)
     this.draftTransaction = null; // Track current draft transaction (unsigned, saved to localhost)
     this.eventsAttached = false; // Track if event listeners have been attached (prevents double attachment)
     this.sessionIntent = null; // Session intent: { mode: 'resume'|'select'|'new', draftId?: string }
@@ -225,6 +226,8 @@ class CreatePost {
       // Mode: new - Initialize empty editor, draft created lazily on first edit
       // INVARIANT 2: Do NOT check draft count - honor the explicit "new" intent
       this.activeDraftId = null;
+      // PART 3 — BUTTON LABEL LOGIC: Reset parent_id for new posts
+      this.parent_id = null; // New posts have no parent
       this.initializeEmptyEditor();
     } else if (sessionIntent.mode === 'resume' || sessionIntent.mode === 'select') {
       // Mode: resume or select - Load specified draft
@@ -1156,6 +1159,10 @@ class CreatePost {
     
     this.draftTransaction = clonedTx;
     this.activeDraftId = tx.signature || tx.hash || null;
+    
+    // PART 4 — SAFETY CONSTRAINTS: Drafts NEVER set parent_id
+    // Drafts ALWAYS show "Publish" button
+    this.parent_id = null;
 
     // Load featured image from draft if present (use cloned data)
     if (clonedData.image) {
@@ -3786,6 +3793,18 @@ class CreatePost {
     } else {
       adminElement.classList.remove('stack-admin-published');
       adminElement.setAttribute('title', 'Publish settings');
+    }
+
+    // ISSUE 1 — EDITOR BUTTON TEXT: Update button text based on parent_id
+    // If parent_id !== null, this is editing a published post → "Update"
+    // If parent_id === null, this is new post or draft → "Publish"
+    const publishBtn = document.querySelector('#stack-editor-publish-btn');
+    if (publishBtn) {
+      if (this.parent_id !== null) {
+        publishBtn.textContent = 'Update';
+      } else {
+        publishBtn.textContent = 'Publish';
+      }
     }
 
     // Update status display to reflect published state (unless currently saving)

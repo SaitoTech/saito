@@ -99,14 +99,7 @@ class Stack extends ModTemplate {
     // Load persistent local UX state
     this.load();
     
-    // DEVELOPMENT ONLY: Create demo blog posts for testing
-    // TODO: Remove this function call and generateDemoStackTransactions() when ready for production
-    if (this.app.BROWSER) {
-      // Don't await - let it run in background
-      this.generateDemoStackTransactions().catch(err => {
-        console.debug('Stack: Error generating demo posts:', err);
-      });
-    }
+    // Demo posts generation removed - posts now load from archive
   }
 
   ////////////////////////////
@@ -190,42 +183,9 @@ class Stack extends ModTemplate {
     this.exploreOverlay.targetPublicKey = publicKey;
     this.exploreOverlay.render();
 
-    // Query archive for posts by this publicKey
+    // Load posts for this creator using loadPostsForAuthor
     try {
-      const posts = await new Promise((resolve) => {
-        this.app.storage.loadTransactions(
-          {
-            field1: 'Stack',
-            field2: publicKey
-          },
-          (txs) => {
-            if (!txs || txs.length === 0) {
-              resolve([]);
-              return;
-            }
-            
-            // Filter out drafts and pending posts
-            // Published posts have field4 = 'stack:post' (or no field4 for legacy posts)
-            // Drafts have field4 = 'stack:draft', pending have field4 = 'stack:pending'
-            const publishedTxs = txs.filter(tx => {
-              const field4 = tx.field4 || '';
-              // Include posts with field4 = 'stack:post' or no field4 (legacy published posts)
-              return field4 === 'stack:post' || field4 === '';
-            });
-            
-            // Extract signatures from published transactions
-            const signatures = publishedTxs
-              .map(tx => tx.signature)
-              .filter(sig => sig);
-            
-            // Load full transactions using loadPosts (handles cache → peers → archive)
-            this.loadPosts(signatures, 0, {}, (loadedPosts) => {
-              resolve(loadedPosts || []);
-            });
-          },
-          null // Query all peers, not just localhost
-        );
-      });
+      const posts = await this.loadPostsForAuthor(publicKey, { forceRemote: true });
 
       // Update overlay with loaded posts
       this.exploreOverlay.posts = posts;
@@ -421,6 +381,11 @@ class Stack extends ModTemplate {
     if (Number(conf) == 0) {
       if (txmsg.request === 'create stack post request') {
         console.log('Stack onConfirmation: createStackPost');
+        
+        // Archive management - SINGLE place managing Stack archive writes
+        await this.onReceiveBlogPost(tx, blk);
+        
+        // Cache and UI updates
         await this.receiveStackPostTransaction(tx, blk);
         
         // Clean up pending drafts after successful confirmation (only for user's own posts)
@@ -501,6 +466,12 @@ class Stack extends ModTemplate {
         subscriptionTier: post.subscriptionTier || 'free',
         excerpt: post.excerpt || ''
       };
+      
+      // PART 2 — TRANSACTION CREATION CHANGE: Include parent_id if editing
+      // If parent_id is provided, this is an edit of an existing post
+      if (post.parent_id) {
+        data.parent_id = post.parent_id;
+      }
 
       // ========================================================================
       // ACCESS SCRIPT GENERATION: Attach access script and hash based on mode
@@ -614,11 +585,110 @@ alert("Propagating the Transaction!");
       return newtx;
     } catch (error) {
       console.error('Error creating stack post transaction:', error);
-      this.app.connection.emit('saito-header-update-message', {
-        msg: 'Error creating stack post',
-        timeout: 2000
-      });
+      siteMessage('Unable to create post transaction', 3000);
       throw error;
+    }
+  }
+
+  ////////////////////////////
+  // Receive Stack Post Transaction
+  ////////////////////////////
+  ////////////////////////////
+  // Archive Handler for Blog Posts
+  ////////////////////////////
+  /**
+   * Handles archive management for Stack blog posts.
+   * This is the SINGLE place managing Stack archive writes.
+   * 
+   * For revisions (parent_id exists):
+   * - Deletes older revisions with same (author, parent_id)
+   * - Saves latest revision with preserve = 1
+   * 
+   * For root posts (parent_id is null):
+   * - Saves with preserve = 1
+   * 
+   * @param {Transaction} tx - The confirmed transaction
+   * @param {Block} blk - The block containing the transaction
+   */
+  async onReceiveBlogPost(tx, blk) {
+    // PART 4 — SAFETY CHECKS
+    // Fail silently if tx is malformed
+    if (!tx || !tx.msg || !tx.from || !tx.from[0]) {
+      return;
+    }
+
+    const txmsg = tx.returnMessage();
+    
+    // Never touch non-Stack transactions
+    if (txmsg.module !== this.name || txmsg.request !== 'create stack post request') {
+      return;
+    }
+
+    // Never delete drafts or pending posts (only handle confirmed posts)
+    // This function is only called from onConfirmation, so we're safe here
+    // But we check field4 to ensure we only handle 'stack:post' status
+    if (txmsg.data?.type !== 'stack_post') {
+      return;
+    }
+
+    // Extract required data
+    const author = tx.from[0].publicKey;
+    const signature = tx.signature;
+    const parent_id = txmsg.data?.parent_id || null;
+
+    // Prepare archive metadata
+    const archiveData = {
+      field1: 'Stack', // Explicitly set (though may be auto-set)
+      field2: author,
+      field4: 'stack:post',
+      field5: parent_id || '', // Empty string for root posts, parent_id for revisions
+      preserve: 1
+    };
+
+    // If parent_id EXISTS: delete older revisions
+    if (parent_id) {
+      // Query local archive for existing Stack posts where:
+      // - field2 = author
+      // - field5 = parent_id
+      // Never delete transactions from non-local peers
+      const olderRevisions = await new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          {
+            field1: 'Stack',
+            field2: author,
+            field4: 'stack:post',
+            field5: parent_id
+          },
+          (txs) => {
+            resolve(txs || []);
+          },
+          'localhost' // CRITICAL: Only query localhost, never remote peers
+        );
+      });
+
+      // Delete ALL matches (these are older revisions)
+      for (const oldTx of olderRevisions) {
+        // Don't delete the current transaction if it's already in archive
+        if (oldTx.signature !== signature) {
+          try {
+            // Never delete transactions from non-local peers
+            await this.app.storage.deleteTransaction(oldTx, null, 'localhost');
+          } catch (error) {
+            console.warn('Stack: Error deleting older revision:', error);
+            // Fail silently - continue with save
+          }
+        }
+      }
+    }
+
+    // Save the new transaction to the local archive
+    // Do NOT save multiple revisions locally
+    // Do NOT retain history locally
+    try {
+      await this.app.storage.saveTransaction(tx, archiveData, 'localhost', blk);
+    } catch (error) {
+      console.warn('Stack: Error saving blog post to archive:', error);
+      // Fail silently
     }
   }
 
@@ -628,6 +698,7 @@ alert("Propagating the Transaction!");
   /**
    * Handles receiving and processing a stack post transaction.
    * Called automatically when a stack post transaction is confirmed on the network.
+   * Handles caching and UI updates only - archive management is in onReceiveBlogPost().
    * 
    * @param {Transaction} tx - The confirmed transaction
    * @param {Block} blk - The block containing the transaction
@@ -654,14 +725,38 @@ alert("Propagating the Transaction!");
       this.transactionCache[tx.signature] = tx;
     }
 
+    // ISSUE 2 — DUPLICATE POSTS AFTER EDITING: Remove old versions before adding new one
+    // Extract parent_id to determine if this is an edit
+    const parent_id = txmsg.data?.parent_id || null;
+    
+    // If this is an edit (has parent_id), remove older versions from cache
+    if (parent_id) {
+      // Remove from allPosts: remove posts where sig === parent_id OR parent_id === parent_id
+      this.postsCache.allPosts = this.postsCache.allPosts.filter(p => 
+        p.sig !== parent_id && p.parent_id !== parent_id
+      );
+      
+      // Remove from byAuthor cache
+      if (this.postsCache.byAuthor.has(from)) {
+        const authorPosts = this.postsCache.byAuthor.get(from);
+        const filteredAuthorPosts = authorPosts.filter(p => 
+          p.sig !== parent_id && p.parent_id !== parent_id
+        );
+        this.postsCache.byAuthor.set(from, filteredAuthorPosts);
+      }
+    }
+
     // Add to cache (check for duplicates to avoid adding the same post twice)
     // This can happen if post was added optimistically during publish
     const existingInAllPosts = this.postsCache.allPosts.findIndex(p => p.sig === tx.signature);
     if (existingInAllPosts < 0) {
+      // Add parent_id to post object for future deduplication
+      post.parent_id = parent_id;
       this.postsCache.allPosts.push(post);
     } else {
       // Update existing entry in case data changed
       this.postsCache.allPosts[existingInAllPosts] = post;
+      this.postsCache.allPosts[existingInAllPosts].parent_id = parent_id;
     }
     
     // Also cache by author (check for duplicates)
@@ -671,10 +766,13 @@ alert("Propagating the Transaction!");
     const authorPosts = this.postsCache.byAuthor.get(from);
     const existingInAuthorPosts = authorPosts.findIndex(p => p.sig === tx.signature);
     if (existingInAuthorPosts < 0) {
+      // Add parent_id to post object for future deduplication
+      post.parent_id = parent_id;
       authorPosts.push(post);
     } else {
       // Update existing entry in case data changed
       authorPosts[existingInAuthorPosts] = post;
+      authorPosts[existingInAuthorPosts].parent_id = parent_id;
     }
 
     // ========================================================================
@@ -687,24 +785,45 @@ alert("Propagating the Transaction!");
         this.app.options.stack.posts = [];
       }
       
-      // Store only lightweight reference (sig, publicKey, timestamp, status)
+      // Extract parent_id for revision tracking
+      const parent_id = txmsg.data?.parent_id || null;
+      
+      // Store only lightweight reference (sig, publicKey, timestamp, status, parent_id)
       // Full content must be loaded from archive when needed
       const lightweightPost = {
         sig: tx.signature,
         publicKey: tx.from[0].publicKey,
         timestamp: txmsg.data.timestamp || tx.timestamp,
         lastEdited: txmsg.data.timestamp || tx.timestamp,
-        status: 'published' // Can be 'published', 'unpublished', etc.
+        status: 'published', // Can be 'published', 'unpublished', etc.
+        parent_id: parent_id || null // null for root posts, parent signature for revisions
       };
       
-      // Check if post already exists (update) or add new
-      const existingIndex = this.app.options.stack.posts.findIndex(p => p.sig === lightweightPost.sig);
-      if (existingIndex >= 0) {
-        // Update existing post reference
-        this.app.options.stack.posts[existingIndex] = lightweightPost;
+      // For revisions: update the entry for the root post (identified by parent_id)
+      // For root posts: check if entry exists by signature
+      if (parent_id) {
+        // This is a revision - find entry for this post (by parent_id or root signature)
+        // Look for entry where sig === parent_id (root) OR parent_id matches
+        const postIndex = this.app.options.stack.posts.findIndex(p => 
+          p.sig === parent_id || p.parent_id === parent_id
+        );
+        if (postIndex >= 0) {
+          // Update existing post entry with latest revision info
+          this.app.options.stack.posts[postIndex] = lightweightPost;
+        } else {
+          // Post not in list yet - add this revision
+          this.app.options.stack.posts.push(lightweightPost);
+        }
       } else {
-        // Add new post reference
-        this.app.options.stack.posts.push(lightweightPost);
+        // This is a root post - check if entry exists by signature
+        const existingIndex = this.app.options.stack.posts.findIndex(p => p.sig === lightweightPost.sig);
+        if (existingIndex >= 0) {
+          // Update existing post reference
+          this.app.options.stack.posts[existingIndex] = lightweightPost;
+        } else {
+          // Add new post reference
+          this.app.options.stack.posts.push(lightweightPost);
+        }
       }
       
       this.save();
@@ -712,8 +831,14 @@ alert("Propagating the Transaction!");
 
     if (this.app.BROWSER) {
       if (tx.isFrom(this.publicKey)) {
-        this.app.connection.emit('saito-header-update-message', { msg: '' });
-        siteMessage('Stack post published', 1500);
+        // Check if this is an update (has parent_id) or new post
+        const txmsg = tx.returnMessage();
+        const parent_id = txmsg.data?.parent_id || null;
+        if (parent_id) {
+          siteMessage('Post updated', 1500);
+        } else {
+          siteMessage('Stack post published', 1500);
+        }
         
         // Browser-only confirmation alert for testing
         if (this.browser_active) {
@@ -724,10 +849,8 @@ alert("Propagating the Transaction!");
       }
     }
 
-    //
-    // Save confirmed post transaction to local archive with field4 = "stack:post"
-    //
-    await this.app.storage.saveTransaction(tx, { field4: 'stack:post', preserve: 1 }, 'localhost', blk);
+    // Archive management is now handled by onReceiveBlogPost() in onConfirmation()
+    // This function only handles caching and UI updates
 
     if (this.callbackAfterPost) {
       this.callbackAfterPost();
@@ -1444,6 +1567,129 @@ alert("Propagating the Transaction!");
       return;
     }
     return null;
+  }
+
+  /**
+   * Loads posts for a specific author from local and optionally remote archives.
+   * 
+   * @param {string} publicKey - The author's public key
+   * @param {Object} options - Options object
+   * @param {boolean} options.forceRemote - If true, also query remote peers (default: true)
+   * @returns {Promise<Array<Transaction>>} Array of Transaction objects, deduplicated by signature
+   */
+  async loadPostsForAuthor(publicKey, { forceRemote = true } = {}) {
+    if (!publicKey || !this.app.wallet.isValidPublicKey(publicKey)) {
+      return [];
+    }
+
+    const seenSignatures = new Set();
+    const posts = [];
+
+    // PART 2.1: Query local archive first
+    const localPosts = await new Promise((resolve) => {
+      this.app.storage.loadTransactions(
+        {
+          field1: 'Stack',
+          field2: publicKey,
+          field4: 'stack:post'
+        },
+        (txs) => {
+          resolve(txs || []);
+        },
+        'localhost'
+      );
+    });
+
+    // PART 2.2: Collect and deduplicate local results
+    for (const tx of localPosts) {
+      if (tx && tx.signature && !seenSignatures.has(tx.signature)) {
+        seenSignatures.add(tx.signature);
+        posts.push(tx);
+      }
+    }
+
+    // PART 2.3: If forceRemote, query remote peers
+    if (forceRemote) {
+      const remotePosts = await new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          {
+            field1: 'Stack',
+            field2: publicKey,
+            field4: 'stack:post'
+          },
+          (txs) => {
+            resolve(txs || []);
+          },
+          null // null = remote peers
+        );
+      });
+
+      // PART 2.4: For each remotely discovered post, append if unseen and save to localhost
+      for (const tx of remotePosts) {
+        if (tx && tx.signature && !seenSignatures.has(tx.signature)) {
+          seenSignatures.add(tx.signature);
+          posts.push(tx);
+          
+          // PART 2.5: Immediately save to localhost archive with proper revision handling
+          try {
+            const txmsg = tx.returnMessage();
+            const parent_id = txmsg?.data?.parent_id || null;
+            const from = tx?.from[0]?.publicKey;
+            
+            // For revisions: delete older revisions with same (author, parent_id)
+            if (parent_id && from) {
+              const olderRevisions = await new Promise((resolve) => {
+                this.app.storage.loadTransactions(
+                  {
+                    field1: 'Stack',
+                    field2: from,
+                    field4: 'stack:post',
+                    field5: parent_id
+                  },
+                  (txs) => {
+                    resolve(txs || []);
+                  },
+                  'localhost'
+                );
+              });
+              
+              // Delete all older revisions
+              for (const oldTx of olderRevisions) {
+                if (oldTx.signature !== tx.signature) {
+                  try {
+                    await this.app.storage.deleteTransaction(oldTx, null, 'localhost');
+                  } catch (error) {
+                    console.warn('Stack: Error deleting older revision when saving remote post:', error);
+                  }
+                }
+              }
+            }
+            
+            // Save with field5 = parent_id (or empty for root posts)
+            await this.app.storage.saveTransaction(
+              tx,
+              { 
+                field4: 'stack:post', 
+                field5: parent_id || '',
+                preserve: 1 
+              },
+              'localhost'
+            );
+          } catch (error) {
+            console.warn('Stack: Failed to save remote post to local archive:', error);
+          }
+        }
+      }
+    }
+
+    // Sort by timestamp DESC (most recent first)
+    posts.sort((a, b) => {
+      const aTime = a.timestamp || 0;
+      const bTime = b.timestamp || 0;
+      return bTime - aTime;
+    });
+
+    return posts;
   }
 
   /**

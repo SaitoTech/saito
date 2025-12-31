@@ -86,7 +86,7 @@ class StackMain {
 
   /**
    * Handle "Start Writing" button click
-   * Checks for existing posts/drafts and shows welcome overlay if needed
+   * Proceeds directly to editor - Drafts overlay handles draft selection if needed
    */
   handleStartWriting() {
     // ========================================================================
@@ -98,42 +98,11 @@ class StackMain {
       this.mod.create_post_ui.onEditorUnmount();
     }
 
-    // Check session flag to prevent immediate re-showing
-    const overlayShown = sessionStorage.getItem('stack-welcome-overlay-shown');
-    
-    // Load stack state
-    this.mod.load();
-    const stackState = this.mod.app.options.stack || {};
-    const posts = stackState.posts || [];
-    
-    // Check if we have posts and overlay hasn't been shown this session
-    if (posts.length > 0 && !overlayShown) {
-      // Render editor first (empty surface)
-      this.mod.create_post_ui.render();
-      
-      // Check for active draft
-      let hasDraft = false;
-      try {
-        const draft = localStorage.getItem('stack-post-draft');
-        hasDraft = draft && draft.trim().length > 0;
-      } catch (err) {
-        // Ignore
-      }
-      
-      // Show welcome overlay
-      setTimeout(() => {
-        if (!this.mod.welcomeBackOverlay) {
-          const WelcomeBackOverlay = require('./overlay/welcome-back');
-          this.mod.welcomeBackOverlay = new WelcomeBackOverlay(this.app, this.mod);
-        }
-        this.mod.welcomeBackOverlay.render(posts, hasDraft);
-      }, 100);
-    } else {
-      // No posts or overlay already shown - proceed directly to editor with explicit intent
-      // INVARIANT 2: Always pass explicit intent - default to "new" mode
-      this.mod.create_post_ui.render();
-      // render() will call initializeDocument() with default intent { mode: 'new' }
-    }
+    // Proceed directly to editor with explicit intent
+    // INVARIANT 2: Always pass explicit intent - default to "new" mode
+    // The editor will show the Drafts overlay if needed via showDraftChooserOverlay()
+    this.mod.create_post_ui.render();
+    // render() will call initializeDocument() with default intent { mode: 'new' }
   }
 }
 
