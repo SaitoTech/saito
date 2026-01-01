@@ -339,24 +339,48 @@ class PublishSettingsOverlay {
         
         if (txmsg && txmsg.data && from) {
           // ISSUE 2 — DUPLICATE POSTS AFTER EDITING: Remove old versions before adding new one
-          const optimistic_parent_id = parent_id; // parent_id is already extracted above
+          // Compute logical post ID for this transaction using canonical helper
+          const incomingLogicalPostId = this.mod.getLogicalPostId(publishedTx);
           
-          // If this is an edit (has parent_id), remove older versions from cache
-          if (optimistic_parent_id && this.mod.postsCache) {
-            // Remove from allPosts: remove posts where sig === parent_id OR parent_id === parent_id
+          // Extract parent_id from transaction message data (source of truth)
+          const postParentId = txmsg.data.parent_id || null;
+          
+          // Remove older versions of the same logical post from cache
+          if (this.mod.postsCache) {
+            // Remove from allPosts: filter out posts that belong to the same logical post
             if (this.mod.postsCache.allPosts) {
-              this.mod.postsCache.allPosts = this.mod.postsCache.allPosts.filter(p => 
-                p.sig !== optimistic_parent_id && p.parent_id !== optimistic_parent_id
-              );
+              try {
+                this.mod.postsCache.allPosts = this.mod.postsCache.allPosts.filter(p => {
+                  if (!p) return false; // Skip null/undefined entries
+                  try {
+                    return this.mod.getLogicalPostIdFromPost(p) !== incomingLogicalPostId;
+                  } catch (err) {
+                    console.warn('Stack: Error filtering post from allPosts cache:', err);
+                    return true; // Keep entry if we can't process it (safer than removing)
+                  }
+                });
+              } catch (err) {
+                console.error('Stack: Error filtering allPosts cache:', err);
+              }
             }
             
             // Remove from byAuthor cache
             if (this.mod.postsCache.byAuthor && this.mod.postsCache.byAuthor.has(from)) {
-              const authorPosts = this.mod.postsCache.byAuthor.get(from);
-              const filteredAuthorPosts = authorPosts.filter(p => 
-                p.sig !== optimistic_parent_id && p.parent_id !== optimistic_parent_id
-              );
-              this.mod.postsCache.byAuthor.set(from, filteredAuthorPosts);
+              try {
+                const authorPosts = this.mod.postsCache.byAuthor.get(from);
+                const filteredAuthorPosts = authorPosts.filter(p => {
+                  if (!p) return false; // Skip null/undefined entries
+                  try {
+                    return this.mod.getLogicalPostIdFromPost(p) !== incomingLogicalPostId;
+                  } catch (err) {
+                    console.warn('Stack: Error filtering post from byAuthor cache:', err);
+                    return true; // Keep entry if we can't process it (safer than removing)
+                  }
+                });
+                this.mod.postsCache.byAuthor.set(from, filteredAuthorPosts);
+              } catch (err) {
+                console.error('Stack: Error filtering byAuthor cache:', err);
+              }
             }
           }
           
@@ -366,7 +390,7 @@ class PublishSettingsOverlay {
             publicKey: from,
             timestamp: txmsg.data.timestamp || publishedTx.timestamp,
             lastEdited: txmsg.data.timestamp || publishedTx.timestamp,
-            parent_id: optimistic_parent_id // Store parent_id for future deduplication
+            parent_id: postParentId // Store parent_id from transaction data
           };
           
           // Add to transactionCache for immediate access
@@ -468,7 +492,9 @@ class PublishSettingsOverlay {
       }
       
       // Success message - use appropriate message based on whether this is an update or new publish
-      if (parent_id) {
+      // Extract parent_id from transaction data (source of truth)
+      const finalParentId = publishedTx ? (publishedTx.returnMessage()?.data?.parent_id || null) : null;
+      if (finalParentId) {
         siteMessage('Post updated', 1500);
       } else {
         siteMessage('Stack post published', 1500);

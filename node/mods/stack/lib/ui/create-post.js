@@ -97,6 +97,7 @@ class CreatePost {
     this.sessionIntent = null; // Session intent: { mode: 'resume'|'select'|'new', draftId?: string }
     this.activeDraftId = null; // Active draft ID for this session (bound to autosave)
     this.featuredImage = null; // Featured/teaser image (base64 data, stored in tx.msg.image)
+    this.pendingIntent = null; // Intent to use on next render() call (set by handleStartWriting for draft detection)
   }
 
   render(container = "") {
@@ -156,7 +157,10 @@ class CreatePost {
     // Mount happens FIRST (infrastructure), draft loading happens SECOND (data)
     // Draft loading must NOT suppress mount - mount is independent of draft state
     // INVARIANT 2: Editor requires explicit intent - default to "new" mode if no intent provided
-    const defaultIntent = { mode: 'new' };
+    // Note: If intent is provided externally (e.g., from handleStartWriting), it will be used
+    // Otherwise, default to "new" mode
+    const defaultIntent = this.pendingIntent || { mode: 'new' };
+    this.pendingIntent = null; // Clear after use
     this.initializeDocument(defaultIntent).then(() => {
       this.onEditorMount();
       // Update featured image display after mount (in case draft was loaded)

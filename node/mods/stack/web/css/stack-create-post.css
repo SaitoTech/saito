@@ -190,18 +190,24 @@ html:has(.stack-create-post-page) {
   font-style: italic;
 }
 
-/* Publish/Update Button */
-.stack-create-post-page .stack-editor-publish-btn {
+/* Shared structural invariant for primary editor controls (button and dropzone) */
+/* This class enforces identical geometry so elements align visually */
+.stack-create-post-page .stack-editor-primary-control {
   width: 100%;
+  min-width: 0; /* Override global button min-width: 18rem to allow container-defined width */
   margin: 0; /* No margin - container padding provides spacing */
   padding: 1rem 1.5rem;
+  box-sizing: border-box; /* Padding and border included in width calculation */
+}
+
+/* Publish/Update Button */
+.stack-create-post-page .stack-editor-publish-btn {
   font-size: 1.5rem;
   font-weight: 500;
   color: var(--saito-primary-text);
   background: var(--saito-primary);
   border: none;
   border-radius: 4px;
-  box-sizing: border-box; /* Padding included in width calculation - matches dropzone */
   cursor: pointer;
   transition: opacity 0.2s ease;
   font-family: inherit;
@@ -306,13 +312,9 @@ html:has(.stack-create-post-page) {
 
 /* Featured Image Dropzone (shown when no image) */
 .stack-featured-image-dropzone {
-  width: 100%;
   min-height: 100px; /* More compact for sidebar */
-  margin: 0; /* No margin - container padding provides spacing */
-  padding: 1.2rem; /* Reduced padding for sidebar */
-  border: 2px dashed var(--saito-border-color);
+  border: 2px dashed var(--saito-border-color); /* Border drawn INSIDE shared geometry */
   border-radius: 8px;
-  box-sizing: border-box; /* Border and padding included in width calculation */
   text-align: center;
   cursor: pointer;
   transition: all 0.2s ease;

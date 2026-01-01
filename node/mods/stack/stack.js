@@ -591,6 +591,63 @@ alert("Propagating the Transaction!");
   }
 
   ////////////////////////////
+  // Logical Post Identity Helper
+  ////////////////////////////
+  /**
+   * Returns the canonical logical post ID for a transaction.
+   * 
+   * A Stack post is a LOGICAL OBJECT WITH REVISIONS, not a single transaction.
+   * Multiple transactions can represent the same logical post:
+   * - Root post: signature = sigA, parent_id = null → logical ID = sigA
+   * - Edited post: signature = sigAA, parent_id = sigA → logical ID = sigA
+   * 
+   * This is the AUTHORITATIVE definition of logical post identity.
+   * Do NOT re-derive this logic elsewhere.
+   * 
+   * @param {Transaction} tx - The transaction to get logical post ID for
+   * @returns {string} The logical post ID (parent_id for revisions, signature for roots)
+   */
+  getLogicalPostId(tx) {
+    if (!tx) {
+      throw new Error('getLogicalPostId: tx is required');
+    }
+    
+    try {
+      const txmsg = tx.returnMessage();
+      const parent_id = txmsg?.data?.parent_id || null;
+      
+      // Logical post identity = parent_id || signature
+      // For revisions: use parent_id (the root post signature)
+      // For root posts: use their own signature
+      return parent_id || tx.signature;
+    } catch (error) {
+      // Fallback to signature if message parsing fails
+      console.warn('Stack: Error computing logical post ID, falling back to signature:', error);
+      return tx.signature || '';
+    }
+  }
+
+  /**
+   * Returns the canonical logical post ID for a cached post object.
+   * 
+   * Cached post objects have { sig, parent_id, ... } structure.
+   * This uses the same logical post identity rule as getLogicalPostId(tx).
+   * 
+   * @param {Object} post - The cached post object with sig and parent_id fields
+   * @returns {string} The logical post ID (parent_id for revisions, sig for roots)
+   */
+  getLogicalPostIdFromPost(post) {
+    if (!post) {
+      throw new Error('getLogicalPostIdFromPost: post is required');
+    }
+    
+    // Logical post identity = parent_id || sig
+    // For revisions: use parent_id (the root post signature)
+    // For root posts: use their own signature
+    return (post.parent_id || post.sig) || '';
+  }
+
+  ////////////////////////////
   // Receive Stack Post Transaction
   ////////////////////////////
   ////////////////////////////
@@ -712,6 +769,9 @@ alert("Propagating the Transaction!");
 
     let txmsg = tx.returnMessage();
 
+    // Extract parent_id from transaction data (source of truth)
+    const parent_id = txmsg.data?.parent_id || null;
+
     let post = { 
       ...txmsg.data, 
       sig: tx.signature, 
@@ -726,24 +786,22 @@ alert("Propagating the Transaction!");
     }
 
     // ISSUE 2 — DUPLICATE POSTS AFTER EDITING: Remove old versions before adding new one
-    // Extract parent_id to determine if this is an edit
-    const parent_id = txmsg.data?.parent_id || null;
+    // Compute logical post ID for this transaction
+    const incomingLogicalPostId = this.getLogicalPostId(tx);
     
-    // If this is an edit (has parent_id), remove older versions from cache
-    if (parent_id) {
-      // Remove from allPosts: remove posts where sig === parent_id OR parent_id === parent_id
-      this.postsCache.allPosts = this.postsCache.allPosts.filter(p => 
-        p.sig !== parent_id && p.parent_id !== parent_id
+    // Remove older versions of the same logical post from cache
+    // Filter out any cached posts that belong to the same logical post
+    this.postsCache.allPosts = this.postsCache.allPosts.filter(p => 
+      this.getLogicalPostIdFromPost(p) !== incomingLogicalPostId
+    );
+    
+    // Remove from byAuthor cache
+    if (this.postsCache.byAuthor.has(from)) {
+      const authorPosts = this.postsCache.byAuthor.get(from);
+      const filteredAuthorPosts = authorPosts.filter(p => 
+        this.getLogicalPostIdFromPost(p) !== incomingLogicalPostId
       );
-      
-      // Remove from byAuthor cache
-      if (this.postsCache.byAuthor.has(from)) {
-        const authorPosts = this.postsCache.byAuthor.get(from);
-        const filteredAuthorPosts = authorPosts.filter(p => 
-          p.sig !== parent_id && p.parent_id !== parent_id
-        );
-        this.postsCache.byAuthor.set(from, filteredAuthorPosts);
-      }
+      this.postsCache.byAuthor.set(from, filteredAuthorPosts);
     }
 
     // Add to cache (check for duplicates to avoid adding the same post twice)
@@ -799,31 +857,18 @@ alert("Propagating the Transaction!");
         parent_id: parent_id || null // null for root posts, parent signature for revisions
       };
       
-      // For revisions: update the entry for the root post (identified by parent_id)
-      // For root posts: check if entry exists by signature
-      if (parent_id) {
-        // This is a revision - find entry for this post (by parent_id or root signature)
-        // Look for entry where sig === parent_id (root) OR parent_id matches
-        const postIndex = this.app.options.stack.posts.findIndex(p => 
-          p.sig === parent_id || p.parent_id === parent_id
-        );
-        if (postIndex >= 0) {
-          // Update existing post entry with latest revision info
-          this.app.options.stack.posts[postIndex] = lightweightPost;
-        } else {
-          // Post not in list yet - add this revision
-          this.app.options.stack.posts.push(lightweightPost);
-        }
+      // Find existing entry for this logical post using canonical helper
+      const incomingLogicalPostId = this.getLogicalPostId(tx);
+      const postIndex = this.app.options.stack.posts.findIndex(p => 
+        this.getLogicalPostIdFromPost(p) === incomingLogicalPostId
+      );
+      
+      if (postIndex >= 0) {
+        // Update existing post entry with latest revision info
+        this.app.options.stack.posts[postIndex] = lightweightPost;
       } else {
-        // This is a root post - check if entry exists by signature
-        const existingIndex = this.app.options.stack.posts.findIndex(p => p.sig === lightweightPost.sig);
-        if (existingIndex >= 0) {
-          // Update existing post reference
-          this.app.options.stack.posts[existingIndex] = lightweightPost;
-        } else {
-          // Add new post reference
-          this.app.options.stack.posts.push(lightweightPost);
-        }
+        // Post not in list yet - add this revision
+        this.app.options.stack.posts.push(lightweightPost);
       }
       
       this.save();
@@ -1682,14 +1727,55 @@ alert("Propagating the Transaction!");
       }
     }
 
+    // ========================================================================
+    // COLLAPSE REVISIONS: Group by logical post identity, keep latest only
+    // ========================================================================
+    // A "post" is a LOGICAL OBJECT WITH REVISIONS, not a single transaction.
+    // We MUST show only ONE entry per logical post (the latest revision).
+    // This handles:
+    // - Race conditions during archive deletion
+    // - Remote peers returning stale data
+    // - Partial deletions
+    // - Reorgs
+    const postGroups = new Map(); // key: logicalPostId, value: Transaction
+
+    for (const tx of posts) {
+      try {
+        // Use canonical helper to compute logical post identity
+        const logicalPostId = this.getLogicalPostId(tx);
+        
+        // Get current best revision for this logical post
+        const existingTx = postGroups.get(logicalPostId);
+        
+        if (!existingTx) {
+          // First occurrence of this logical post
+          postGroups.set(logicalPostId, tx);
+        } else {
+          // Compare timestamps - keep the newer one
+          const existingTime = existingTx.timestamp || 0;
+          const currentTime = tx.timestamp || 0;
+          if (currentTime > existingTime) {
+            postGroups.set(logicalPostId, tx);
+          }
+        }
+      } catch (error) {
+        // Skip malformed transactions, but log for debugging
+        console.warn('Stack: Error processing transaction in loadPostsForAuthor:', error);
+      }
+    }
+
+    // Create new array with collapsed versions (one per logical post)
+    // Do NOT reassign posts (it is const) - create new variable instead
+    const collapsedPosts = Array.from(postGroups.values());
+
     // Sort by timestamp DESC (most recent first)
-    posts.sort((a, b) => {
+    collapsedPosts.sort((a, b) => {
       const aTime = a.timestamp || 0;
       const bTime = b.timestamp || 0;
       return bTime - aTime;
     });
 
-    return posts;
+    return collapsedPosts;
   }
 
   /**
