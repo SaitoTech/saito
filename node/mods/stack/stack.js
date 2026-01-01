@@ -46,6 +46,11 @@ class Stack extends ModTemplate {
       lastFetch: 0
     };
 
+    // Optimistic posts layer (for immediate UI updates before confirmation)
+    // key: LogicalPostId, value: { tx, post, optimistic: true }
+    // Only stores edits (posts with parent_id) - new posts don't need optimistic layer
+    this.optimistic_posts = new Map();
+
     // Transaction loading middleware
     // Track peers offering Stack service
     this.peers = {};
@@ -771,6 +776,26 @@ alert("Propagating the Transaction!");
 
     // Extract parent_id from transaction data (source of truth)
     const parent_id = txmsg.data?.parent_id || null;
+
+    // ========================================================================
+    // RECONCILE OPTIMISTIC POSTS: Clear optimistic update when confirmed
+    // ========================================================================
+    // Case 1: Transaction matches optimistic revision (same signature)
+    // Case 2: Transaction does NOT match (different signature for same logical post)
+    // In both cases, clear the optimistic post - confirmed state is authoritative
+    const logicalPostId = this.getLogicalPostId(tx);
+    const optimisticEntry = this.optimistic_posts.get(logicalPostId);
+    
+    if (optimisticEntry) {
+      if (optimisticEntry.tx.signature === tx.signature) {
+        // Case 1: Same transaction confirmed - promote to confirmed (clear optimistic flag)
+        this.optimistic_posts.delete(logicalPostId);
+      } else {
+        // Case 2: Different transaction confirmed - remove optimistic (it was wrong/rejected)
+        this.optimistic_posts.delete(logicalPostId);
+        console.debug('Stack: Optimistic post replaced by different confirmed transaction');
+      }
+    }
 
     let post = { 
       ...txmsg.data, 
@@ -1775,7 +1800,105 @@ alert("Propagating the Transaction!");
       return bTime - aTime;
     });
 
-    return collapsedPosts;
+    // ========================================================================
+    // MERGE OPTIMISTIC POSTS: Overlay optimistic edits on confirmed posts
+    // ========================================================================
+    // For each logical post ID, if an optimistic post exists, replace the confirmed one
+    // Optimistic posts temporarily outrank confirmed posts for immediate UI feedback
+    const finalPosts = [];
+    const seenLogicalIds = new Set();
+
+    // First, add optimistic posts (they take priority)
+    for (const [logicalPostId, optimisticEntry] of this.optimistic_posts.entries()) {
+      if (optimisticEntry && optimisticEntry.tx) {
+        // Only include optimistic posts for this author
+        const optimisticFrom = optimisticEntry.tx.from?.[0]?.publicKey;
+        if (optimisticFrom === publicKey) {
+          finalPosts.push(optimisticEntry.tx);
+          seenLogicalIds.add(logicalPostId);
+        }
+      }
+    }
+
+    // Then, add confirmed posts that don't have optimistic versions
+    for (const tx of collapsedPosts) {
+      const logicalPostId = this.getLogicalPostId(tx);
+      if (!seenLogicalIds.has(logicalPostId)) {
+        finalPosts.push(tx);
+        seenLogicalIds.add(logicalPostId);
+      }
+    }
+
+    // Re-sort final merged list by timestamp DESC
+    finalPosts.sort((a, b) => {
+      const aTime = a.timestamp || 0;
+      const bTime = b.timestamp || 0;
+      return bTime - aTime;
+    });
+
+    return finalPosts;
+  }
+
+  /**
+   * Apply optimistic post update for immediate UI feedback
+   * Called immediately after sending an edit transaction, before confirmation
+   * 
+   * @param {Transaction} tx - The transaction that was just sent (not yet confirmed)
+   */
+  applyOptimisticPostUpdate(tx) {
+    if (!tx || !tx.signature) {
+      return;
+    }
+
+    try {
+      const txmsg = tx.returnMessage();
+      const parent_id = txmsg?.data?.parent_id || null;
+
+      // Only apply optimistic updates for edits (posts with parent_id)
+      // New posts don't need optimistic layer - they appear immediately via cache
+      if (!parent_id) {
+        return;
+      }
+
+      // Compute logical post ID for this edit
+      const logicalPostId = this.getLogicalPostId(tx);
+
+      // Store optimistic post
+      this.optimistic_posts.set(logicalPostId, {
+        tx: tx,
+        optimistic: true,
+        timestamp: Date.now() // Track when optimistic update was applied
+      });
+
+      // Trigger UI refresh if Explore overlay is open
+      if (this.exploreOverlay && this.exploreOverlay.currentFilter === 'my-posts') {
+        // Reload posts to show optimistic update
+        this.exploreOverlay.loadPostsForFilter('my-posts').catch(err => {
+          console.warn('Stack: Error refreshing Explore after optimistic update:', err);
+        });
+      }
+    } catch (error) {
+      console.warn('Stack: Error applying optimistic post update:', error);
+    }
+  }
+
+  /**
+   * Clear optimistic post update
+   * Called when transaction is confirmed or fails
+   * 
+   * @param {Transaction} tx - The transaction that was confirmed or failed
+   */
+  clearOptimisticPost(tx) {
+    if (!tx || !tx.signature) {
+      return;
+    }
+
+    try {
+      const logicalPostId = this.getLogicalPostId(tx);
+      this.optimistic_posts.delete(logicalPostId);
+    } catch (error) {
+      console.warn('Stack: Error clearing optimistic post:', error);
+    }
   }
 
   /**

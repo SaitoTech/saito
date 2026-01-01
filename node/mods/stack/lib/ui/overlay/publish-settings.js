@@ -328,6 +328,15 @@ class PublishSettingsOverlay {
       });
       
       // ========================================================================
+      // OPTIMISTIC UPDATE: Apply immediate UI update for edits
+      // ========================================================================
+      // For edits (parent_id exists), apply optimistic update for immediate feedback
+      // New posts don't need this - they appear immediately via cache update below
+      if (parent_id && this.mod.applyOptimisticPostUpdate) {
+        this.mod.applyOptimisticPostUpdate(publishedTx);
+      }
+      
+      // ========================================================================
       // OPTIMISTIC CACHE UPDATE: Add post to postsCache immediately
       // ========================================================================
       // Add to cache so it appears in Explore → My Posts immediately
