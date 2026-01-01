@@ -224,6 +224,35 @@ class PublishSettingsOverlay {
         card.classList.remove('stack-publish-access-card-active');
       }
     });
+    
+    // Update educational content in middle column
+    this.updateEducationalContent(level);
+  }
+
+  /**
+   * Update the educational content in the middle column based on access level
+   */
+  updateEducationalContent(level) {
+    const educationalContentEl = document.querySelector('#stack-publish-educational-content');
+    if (!educationalContentEl) return;
+    
+    let content = '';
+    switch (level) {
+      case 'public':
+        content = 'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
+        break;
+      case 'private':
+        content = 'This post will only be readable by people you explicitly grant access to.\nYou control who can see it.';
+        break;
+      case 'subscription':
+        content = 'Subscription-based access will allow flexible, programmable permissions.\nThis option is not yet available.';
+        break;
+      default:
+        content = 'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
+    }
+    
+    // Render as paragraphs for proper line breaks
+    educationalContentEl.innerHTML = content.split('\n').map(line => `<p>${line}</p>`).join('');
   }
 
   async handleImageUpload(e) {
@@ -280,13 +309,16 @@ class PublishSettingsOverlay {
     // Use DOM-based serialization (DOM is single source of truth)
     const content = this.mod.create_post_ui ? this.mod.create_post_ui.serializeDOMToMarkdown() : '';
 
-    if (!title.trim()) {
-      alert('Please enter a title for your post');
-      return;
-    }
-
-    if (!content.trim()) {
-      alert('Please enter content for your post');
+    // ========================================================================
+    // VALIDATION GUARD: Prevent publishing empty posts (no title AND no content)
+    // ========================================================================
+    // Block only if BOTH title and content are empty
+    // Allow publishing if EITHER title OR content exists
+    const titleEmpty = !title.trim();
+    const contentEmpty = !content.trim();
+    
+    if (titleEmpty && contentEmpty) {
+      alert('Please add a title or some content before publishing.');
       return;
     }
 

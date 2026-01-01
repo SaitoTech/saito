@@ -17,7 +17,7 @@ const OpcodeCheckMultiSig = require('./lib/opcodes/checkmultisig');
 const OpcodeCheckOwn      = require('./lib/opcodes/checkown');
 const OpcodeCheckOwnNft   = require('./lib/opcodes/checkownnft');
 const OpcodeCheckPath     = require('./lib/opcodes/checkpath');
-const OpcodeCheckPathTime = require('./lib/opcodes/checkpathtime');
+const OpcodeCheckPathHop  = require('./lib/opcodes/checkpathhop');
 
 class Scripting extends ModTemplate {
 
@@ -49,7 +49,7 @@ class Scripting extends ModTemplate {
 		  OpcodeCheckSig , OpcodeCheckTime , OpcodeCheckHash , 
       		  OpcodeCheckSender , OpcodeCheckField , OpcodeCheckMultiSig, 
       		  OpcodeCheckOwn, OpcodeCheckOwnNft, OpcodeCheckPath, 
-		  OpcodeCheckPathTime 
+		  OpcodeCheckPathHop 
     		].forEach((op) => { 
   			if (op?.name && typeof op.execute === "function") {
   		  		this.opcodes[op.name.toLowerCase()] = op;

@@ -19,7 +19,7 @@ module.exports = (app, mod) => {
                 type="text" 
                 id="stack-post-title-input" 
                 class="stack-post-title-input" 
-                placeholder="Untitled Post"
+                placeholder="Give your post a working title"
               />
             </div>
             
@@ -58,7 +58,7 @@ module.exports = (app, mod) => {
             
             <div class="stack-editor-help">
               <span class="stack-editor-help-text">
-                <a href="#" class="stack-editor-help-link" id="stack-editor-help-link">Need help?</a> Learn how to write posts, add headers, quotes, images, and publish to the network.
+                <a href="https://wiki.saito.io/en/applications/stack" class="stack-editor-help-link" id="stack-editor-help-link">Need help?</a> Learn how to write posts, add headers, quotes, images, and publish to the network.
               </span>
             </div>
           </div>

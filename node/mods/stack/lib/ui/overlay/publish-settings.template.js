@@ -48,24 +48,26 @@ module.exports = (app, mod, postState = {}) => {
   const isPrivate = accessLevel === 'private';
   const isSubscription = accessLevel === 'subscription';
 
+  // Determine educational content based on current access level
+  let educationalContent = '';
+  if (isPublic) {
+    educationalContent = 'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
+  } else if (isPrivate) {
+    educationalContent = 'This post will only be readable by people you explicitly grant access to.\nYou control who can see it.';
+  } else if (isSubscription) {
+    educationalContent = 'Subscription-based access will allow flexible, programmable permissions.\nThis option is not yet available.';
+  } else {
+    // Default to public
+    educationalContent = 'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
+  }
+
   return `
     <div class="stack-publish-overlay">
       <div class="stack-publish-content">
-        <!-- Three Equal-Height Cards -->
+        <!-- Three-Column Layout -->
         <div class="stack-publish-cards">
           
-          <!-- CARD 1: STATUS + PRIMARY ACTION -->
-          <div class="stack-publish-card stack-publish-card-status">
-            <button id="stack-publish-primary-btn" class="stack-publish-primary-action-btn">
-              ${buttonText}
-            </button>
-            <p class="stack-publish-draft-explanation">
-              This draft is saved only on your device.<br>
-              Publish to broadcast it to the network.
-            </p>
-          </div>
-
-          <!-- CARD 2: ACCESS CONTROL -->
+          <!-- LEFT COLUMN: ACCESS DECISION -->
           <div class="stack-publish-card stack-publish-card-access">
             <h3 class="stack-publish-card-title">Who can read this post?</h3>
             <div class="stack-publish-access-cards">
@@ -79,7 +81,7 @@ module.exports = (app, mod, postState = {}) => {
                 />
                 <div class="stack-publish-access-card-content">
                   <div class="stack-publish-access-card-label">Public</div>
-                  <div class="stack-publish-access-card-description">Anyone with the link can read this post.</div>
+                  <div class="stack-publish-access-card-description">Anyone can read this post.</div>
                 </div>
               </label>
 
@@ -93,7 +95,7 @@ module.exports = (app, mod, postState = {}) => {
                 />
                 <div class="stack-publish-access-card-content">
                   <div class="stack-publish-access-card-label">Private</div>
-                  <div class="stack-publish-access-card-description">Only people who own NFTs you issued can read this post.</div>
+                  <div class="stack-publish-access-card-description">Only people you give access to can read this post.</div>
                 </div>
               </label>
 
@@ -108,15 +110,27 @@ module.exports = (app, mod, postState = {}) => {
                 />
                 <div class="stack-publish-access-card-content">
                   <div class="stack-publish-access-card-label">Subscription</div>
-                  <div class="stack-publish-access-card-description">Coming soon – time limited access</div>
+                  <div class="stack-publish-access-card-description">Coming soon — customizable access rules and permissions.</div>
                 </div>
               </label>
             </div>
           </div>
 
-          <!-- CARD 3: METADATA (READ-ONLY) -->
+          <!-- MIDDLE COLUMN: CONTEXTUAL EXPLANATION -->
+          <div class="stack-publish-card stack-publish-card-educational">
+            <div id="stack-publish-educational-content" class="stack-publish-educational-content">
+              ${educationalContent.split('\n').map(line => `<p>${line}</p>`).join('')}
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: METADATA + DESTRUCTIVE ACTION -->
           <div class="stack-publish-card stack-publish-card-metadata">
-            <h3 class="stack-publish-card-title">Metadata</h3>
+            <div class="stack-publish-metadata-header">
+              <h3 class="stack-publish-card-title">Metadata</h3>
+              <button id="stack-publish-delete-draft-btn" class="stack-publish-delete-draft-icon" title="Delete Draft">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
             <div class="stack-publish-metadata-list">
               <div class="stack-publish-metadata-row">
                 <span class="stack-publish-metadata-label">Status</span>
@@ -138,12 +152,11 @@ module.exports = (app, mod, postState = {}) => {
           </div>
 
         </div>
-
-        <!-- Bottom Actions -->
-        <div class="stack-publish-bottom-actions">
-          <div class="stack-publish-bottom-actions-spacer"></div>
-          <button id="stack-publish-delete-draft-btn" class="stack-publish-delete-btn">
-            Delete Draft
+        
+        <!-- GLOBAL PUBLISH ACTION - Bottom-right of overlay -->
+        <div class="stack-publish-global-action">
+          <button id="stack-publish-primary-btn" class="stack-publish-primary-action-btn">
+            ${buttonText}
           </button>
         </div>
       </div>
