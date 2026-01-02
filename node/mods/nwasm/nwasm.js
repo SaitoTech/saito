@@ -105,7 +105,7 @@ class Nwasm extends OnePlayerGameTemplate {
             return {
               title : "N64 ROM" ,
               class : ["nwasm-nft-mod"] ,
-	      createObject : async (modfile) => {
+	      createData : async (modfile) => {
 		let name = prompt("What is the name of this N64 ROM?");
 		let obj = {};
 		obj.module = "Nwasm";

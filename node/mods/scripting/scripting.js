@@ -8,16 +8,17 @@ const ScriptingMain = require('./lib/ui/main');
 /////////////
 // OPCODES //
 /////////////
-const OpcodeCheckSig      = require('./lib/opcodes/checksig');
-const OpcodeCheckTime     = require('./lib/opcodes/checktime');
-const OpcodeCheckHash     = require('./lib/opcodes/checkhash');
-const OpcodeCheckSender   = require('./lib/opcodes/checksender');
-const OpcodeCheckField    = require('./lib/opcodes/checkfield');
-const OpcodeCheckMultiSig = require('./lib/opcodes/checkmultisig');
-const OpcodeCheckOwn      = require('./lib/opcodes/checkown');
-const OpcodeCheckOwnNft   = require('./lib/opcodes/checkownnft');
-const OpcodeCheckPath     = require('./lib/opcodes/checkpath');
-const OpcodeCheckPathHop  = require('./lib/opcodes/checkpathhop');
+var OpcodeCheckSig      	= require('./lib/opcodes/checksig');
+var OpcodeCheckTime     	= require('./lib/opcodes/checktime');
+var OpcodeCheckHash     	= require('./lib/opcodes/checkhash');
+var OpcodeCheckSender   	= require('./lib/opcodes/checksender');
+var OpcodeCheckField    	= require('./lib/opcodes/checkfield');
+var OpcodeCheckMultiSig 	= require('./lib/opcodes/checkmultisig');
+var OpcodeCheckOwn      	= require('./lib/opcodes/checkown');
+var OpcodeCheckOwnNft   	= require('./lib/opcodes/checkownnft');
+var OpcodeCheckOwnNftWhere   	= require('./lib/opcodes/checkownnftwhere');
+var OpcodeCheckPath     	= require('./lib/opcodes/checkpath');
+var OpcodeCheckPathHop  	= require('./lib/opcodes/checkpathhop');
 
 class Scripting extends ModTemplate {
 
@@ -42,6 +43,11 @@ class Scripting extends ModTemplate {
 
 	initialize(app) {
 
+
+  		const sharedHelpers = {
+    			evaluateCondition : this.evaluateCondition
+  		};
+
 		//
 		// initialize our opcodes
 		//
@@ -49,9 +55,12 @@ class Scripting extends ModTemplate {
 		  OpcodeCheckSig , OpcodeCheckTime , OpcodeCheckHash , 
       		  OpcodeCheckSender , OpcodeCheckField , OpcodeCheckMultiSig, 
       		  OpcodeCheckOwn, OpcodeCheckOwnNft, OpcodeCheckPath, 
-		  OpcodeCheckPathHop 
+		  OpcodeCheckPathHop, OpcodeCheckOwnNftWhere
     		].forEach((op) => { 
   			if (op?.name && typeof op.execute === "function") {
+
+      				Object.assign(op, sharedHelpers);
+
   		  		this.opcodes[op.name.toLowerCase()] = op;
   			}
 		});
@@ -82,7 +91,7 @@ class Scripting extends ModTemplate {
               title : "Scripting NFT" ,
               class : ["scripting-nft-mod"] ,
 	      text : "Access Script" ,
-              createObject : async (script) => {
+              createData : async (script) => {
                 let obj = {};
                 obj.module = "Scripting";
                 obj.access_hash = this_mod.app.crypto.hash(this_mod.canonicalize(script));
@@ -782,6 +791,52 @@ generateWitnessFromScript(access_script) {
     return {};
   }
 }
+
+
+
+
+evaluateCondition(context, condition, vars = {}) {
+
+console.log("into EVALUATE CONDITION");
+
+  const { field, operator, value, type } = condition;
+
+  // resolve dot-path on context
+  const lhs = field.split(".").reduce(
+    (obj, key) => (obj ? obj[key] : undefined),
+    context
+  );
+
+  // resolve symbolic RHS
+  let rhs = value;
+  if (typeof value === "string" && vars && vars[value] !== undefined) {
+    rhs = vars[value];
+  }
+
+  // optional coercion
+  const coerce = (v) => {
+    if (!type) return v;
+    if (type === "number") return Number(v);
+    if (type === "string") return String(v);
+    if (type === "boolean") return Boolean(v);
+    return v;
+  };
+
+  const left = coerce(lhs);
+  const right = coerce(rhs);
+
+  switch (operator) {
+    case "==":  return left === right;
+    case "!=":  return left !== right;
+    case "<":   return left < right;
+    case "<=":  return left <= right;
+    case ">":   return left > right;
+    case ">=":  return left >= right;
+    default:
+      throw new Error(`Unknown operator: ${operator}`);
+  }
+}
+
 
 
 

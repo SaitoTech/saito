@@ -354,6 +354,55 @@
   }
 }
 
+/* Access Type Selector (secondary selection for Private) */
+.stack-publish-access-type-selector {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--saito-border-color);
+}
+
+.stack-publish-access-type-label {
+  font-size: 1.3rem;
+  color: var(--saito-font-color);
+  opacity: 0.7;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.stack-publish-access-type-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stack-publish-access-type-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--saito-border-radius);
+  transition: background-color 0.2s ease;
+}
+
+.stack-publish-access-type-option:hover {
+  background-color: var(--saito-surface-selected);
+}
+
+.stack-publish-access-type-radio {
+  margin-right: 0.75rem;
+  cursor: pointer;
+  width: 1.6rem;
+  height: 1.6rem;
+  accent-color: var(--saito-primary);
+}
+
+.stack-publish-access-type-option-label {
+  font-size: 1.4rem;
+  color: var(--saito-font-color);
+  cursor: pointer;
+  user-select: none;
+}
+
 /* ============================================
    RIGHT COLUMN: METADATA + DESTRUCTIVE ACTION
    ============================================ */

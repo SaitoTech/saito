@@ -47,6 +47,11 @@ module.exports = (app, mod, postState = {}) => {
   const isPublic = accessLevel === 'public';
   const isPrivate = accessLevel === 'private';
   const isSubscription = accessLevel === 'subscription';
+  
+  // Get access mode for private posts (default to 'transferable' - Flexible)
+  const accessMode = postState.accessMode || 'transferable';
+  const isNonTransferable = accessMode === 'non-transferable';
+  const isTransferable = accessMode === 'transferable';
 
   // Determine educational content based on current access level
   let educationalContent = '';
@@ -121,6 +126,35 @@ module.exports = (app, mod, postState = {}) => {
             <div id="stack-publish-educational-content" class="stack-publish-educational-content">
               ${educationalContent.split('\n').map(line => `<p>${line}</p>`).join('')}
             </div>
+            
+            <!-- Access type selector (only shown when Private is selected) -->
+            ${isPrivate ? `
+              <div class="stack-publish-access-type-selector">
+                <div class="stack-publish-access-type-label">Access type:</div>
+                <div class="stack-publish-access-type-options">
+                  <label class="stack-publish-access-type-option">
+                    <input 
+                      type="radio" 
+                      name="stack-publish-access-type" 
+                      value="transferable"
+                      ${isTransferable ? 'checked' : ''}
+                      class="stack-publish-access-type-radio"
+                    />
+                    <span class="stack-publish-access-type-option-label">Flexible (transferable)</span>
+                  </label>
+                  <label class="stack-publish-access-type-option">
+                    <input 
+                      type="radio" 
+                      name="stack-publish-access-type" 
+                      value="non-transferable"
+                      ${isNonTransferable ? 'checked' : ''}
+                      class="stack-publish-access-type-radio"
+                    />
+                    <span class="stack-publish-access-type-option-label">Non-transferable (stricter)</span>
+                  </label>
+                </div>
+              </div>
+            ` : ''}
           </div>
 
           <!-- RIGHT COLUMN: METADATA + DESTRUCTIVE ACTION -->

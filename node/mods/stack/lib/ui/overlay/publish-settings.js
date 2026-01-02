@@ -9,6 +9,7 @@ class PublishSettingsOverlay {
     this.postState = {
       published: false,
       accessLevel: 'public', // 'public', 'private', 'subscription'
+      accessMode: 'transferable', // 'transferable' | 'non-transferable' (only relevant when accessLevel === 'private', default is 'transferable')
       description: '',
       image: null,
       imageUrl: null,
@@ -22,6 +23,13 @@ class PublishSettingsOverlay {
       ...this.postState,
       ...postData
     };
+    
+    // Ensure accessMode is set correctly based on accessLevel
+    if (this.postState.accessLevel === 'private' && !this.postState.accessMode) {
+      this.postState.accessMode = 'transferable'; // Default for private posts is transferable (Flexible)
+    } else if (this.postState.accessLevel === 'public') {
+      this.postState.accessMode = null; // Public posts don't have access mode
+    }
 
     // If editor has featured image, use it (authoritative source)
     if (this.mod.create_post_ui && this.mod.create_post_ui.featuredImage) {
@@ -128,6 +136,16 @@ class PublishSettingsOverlay {
         this.handlePublish();
       });
     }
+
+    // Access type radio buttons (for private posts)
+    const accessTypeRadios = document.querySelectorAll('.stack-publish-access-type-radio');
+    accessTypeRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          this.setAccessMode(e.target.value);
+        }
+      });
+    });
   }
 
   handleDeleteDraft() {
@@ -209,6 +227,14 @@ class PublishSettingsOverlay {
     
     this.postState.accessLevel = level; // 'public' or 'private'
     
+    // Reset accessMode when switching to public
+    if (level === 'public') {
+      this.postState.accessMode = null;
+    } else if (level === 'private' && !this.postState.accessMode) {
+      // Default to transferable (Flexible) for private posts
+      this.postState.accessMode = 'transferable';
+    }
+    
     // Update checkbox card states
     const accessCards = document.querySelectorAll('.stack-publish-access-card');
     
@@ -227,6 +253,33 @@ class PublishSettingsOverlay {
     
     // Update educational content in middle column
     this.updateEducationalContent(level);
+    
+    // Re-render to show/hide access type selector
+    this.render(this.postState);
+  }
+
+  /**
+   * Set access mode for private posts (transferable or non-transferable)
+   * 
+   * @param {string} mode - 'transferable' | 'non-transferable'
+   */
+  setAccessMode(mode) {
+    if (this.postState.accessLevel !== 'private') {
+      return; // Only valid for private posts
+    }
+    
+    if (mode !== 'transferable' && mode !== 'non-transferable') {
+      console.warn('Stack: Invalid access mode:', mode);
+      return;
+    }
+    
+    this.postState.accessMode = mode;
+    
+    // Update radio button states
+    const radios = document.querySelectorAll('.stack-publish-access-type-radio');
+    radios.forEach(radio => {
+      radio.checked = (radio.value === mode);
+    });
   }
 
   /**
@@ -341,6 +394,42 @@ class PublishSettingsOverlay {
       // Get featured image from editor state (authoritative source)
       const featuredImage = this.mod.create_post_ui && this.mod.create_post_ui.featuredImage ? this.mod.create_post_ui.featuredImage : (this.postState.image || '');
       
+      // ========================================================================
+      // PUBLISH INTENT: Generate normalized intent object from UI selection
+      // ========================================================================
+      // UI expresses intent, Stack handles script generation
+      const visibility = this.postState.accessLevel || 'public';
+      
+      // Map UI state to publish intent
+      let publishIntent;
+      if (visibility === 'public') {
+        // Public: access_mode must be null
+        publishIntent = {
+          visibility: 'public',
+          access_mode: null,
+          time_limit: null,
+          author: this.mod.publicKey
+        };
+      } else if (visibility === 'private') {
+        // Private: map accessMode to access_mode
+        // Default to 'transferable' (Flexible) if not set
+        const accessMode = this.postState.accessMode || 'transferable';
+        publishIntent = {
+          visibility: 'private',
+          access_mode: accessMode, // 'transferable' | 'non-transferable'
+          time_limit: null,
+          author: this.mod.publicKey
+        };
+      } else {
+        // Fallback (should not happen)
+        publishIntent = {
+          visibility: 'public',
+          access_mode: null,
+          time_limit: null,
+          author: this.mod.publicKey
+        };
+      }
+      
       // Create and propagate the transaction
       const publishedTx = await this.mod.createStackPostTransaction({
         title,
@@ -351,7 +440,8 @@ class PublishSettingsOverlay {
         timestamp: Date.now(),
         subscriptionTier: this.postState.accessLevel === 'public' ? 'free' : 'paid',
         excerpt: this.postState.description || content.substring(0, 200).replace(/\n/g, ' ').trim(),
-        accessLevel: this.postState.accessLevel, // 'public' or 'private'
+        publishIntent: publishIntent, // Normalized intent object
+        accessLevel: this.postState.accessLevel, // Legacy: kept for backward compatibility
         parent_id: parent_id // Include parent_id if editing (null for new posts)
       }, () => {
         // This callback runs after network confirmation (may take time)

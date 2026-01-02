@@ -108,7 +108,7 @@ class StackMain {
 
     // Check if valid drafts exist
     const hasValidDrafts = this.mod.hasValidDrafts && this.mod.hasValidDrafts();
-    
+      
     // Determine intent based on draft existence
     const intent = hasValidDrafts ? { mode: 'choose' } : { mode: 'new' };
     
@@ -118,7 +118,7 @@ class StackMain {
     }
     
     // Render editor - it will use pendingIntent if set, otherwise defaults to 'new'
-    this.mod.create_post_ui.render();
+      this.mod.create_post_ui.render();
   }
 }
 

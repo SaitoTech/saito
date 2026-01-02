@@ -268,6 +268,31 @@ class NFTOverlay {
         try {
           let newtx = await this.app.wallet.createSendNFTTransaction(this.nft, receiver);
 
+	  let nft_type = this.nft?.nft_type;
+console.log("about to go into looking for this nft-type: " + nft_type);
+
+	  const handlers = this.app.modules.getRespondTos(
+	    'saito-nft-transfer',
+	    this.nft
+	  );
+
+	  for (const modobj of handlers) {
+            if (!modobj?.class || !modobj.class.includes(nft_type) || !nft_type) {
+console.log("no class or incude type found... ");
+              continue;
+            }
+            if (typeof modobj.onTransfer === 'function') {
+console.log("running ontransfer...");
+              try {
+                newtx = await modobj.onTransfer(this.nft, newtx, receiver);
+              } catch (err) {
+                console.error('onTransfer() failed in module...');
+                salert(`NFT transfer blocked by module...`);
+                return;
+              }
+            }
+          }
+
           await newtx.sign();
           await this.app.network.propagateTransaction(newtx);
 

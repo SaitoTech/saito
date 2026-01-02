@@ -8,6 +8,7 @@ const HomePage = require('./index');
 const StackMain = require('./lib/ui/main');
 const ExploreOverlay = require('./lib/ui/overlay/explore');
 const CreatePost = require('./lib/ui/create-post');
+const { getAccessScriptForIntent } = require('./lib/access/access-scripts');
 
 //
 // Stack - Permissioned Blogging Platform
@@ -45,11 +46,6 @@ class Stack extends ModTemplate {
       allPosts: [],
       lastFetch: 0
     };
-
-    // Optimistic posts layer (for immediate UI updates before confirmation)
-    // key: LogicalPostId, value: { tx, post, optimistic: true }
-    // Only stores edits (posts with parent_id) - new posts don't need optimistic layer
-    this.optimistic_posts = new Map();
 
     // Transaction loading middleware
     // Track peers offering Stack service
@@ -352,6 +348,7 @@ class Stack extends ModTemplate {
   // Inter-module Communication //
   ////////////////////////////
   respondTo(type = '', obj) {
+
     if (type === 'saito-header') {
       let x = [];
       if (!this.browser_active) {
@@ -366,6 +363,82 @@ class Stack extends ModTemplate {
         });
       }
       return x;
+    }
+
+    if (type === 'saito-create-nft') {
+      let this_mod = this;
+      
+      return {
+        title: 'Stack Access NFT',
+        class: ['stack'], // This becomes the nft_type parameter for createMintNFTTransaction
+        text: 'Stack Access Key',
+        createData: async (modfile) => {
+          return {
+            module: 'Stack',
+          };
+        }
+      };
+    }
+
+    if (type === 'saito-nft-transfer') {
+      let this_mod = this;
+      return {
+        class: ['stack'],
+        onTransfer: async (nft=null, tx=null, receiver="", data={}) => {
+console.log("ABOUT TO TEST VERIFICATION 1");
+
+      	  if (!tx.msg) { tx.msg = {}; }
+          if (!tx.msg.data) { tx.msg.data = {}; }
+
+          if (!Array.isArray(tx.msg.data.path)) {
+            tx.msg.data.path = [];
+          }
+
+          if (!nft?.id) { return tx; }
+console.log("ABOUT TO TEST VERIFICATION 2");
+
+          const value_obj = {
+            timestamp: Date.now(),
+            delegate: false
+          };
+
+console.log("ABOUT TO TEST VERIFICATION 3");
+          const value_json = JSON.stringify(value_obj);
+          const value_b64 = Buffer.from(value_json).toString('base64');
+console.log("ABOUT TO TEST VERIFICATION 4");
+
+          const canonical_string = `${receiver}|${value_b64}|${nft.id}`;
+	  const hash_digest = this_mod.app.crypto.hash(canonical_string);
+	  const privatekey = await this_mod.app.wallet.getPrivateKey();
+	  const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
+
+console.log("ABOUT TO TEST VERIFICATION 5");
+
+          tx.msg.data.path.push({
+            to: receiver,
+            value: value_b64,
+            sig: sig
+          });
+
+console.log("ABOUT TO TEST VERIFICATION 4");
+
+//
+// TEST VERIFICATION NOW
+//
+const is_ok = this_mod.app.crypto.verifyRoutingPath(
+  tx.msg.data.path,
+  nft.returnCreator(),
+  nft.id
+);
+console.log("###");
+console.log("###");
+console.log("###");
+console.log("DOES PATH VALIDATE: " + is_ok)
+
+
+          return tx;
+        }
+      };
     }
 
     return super.respondTo(type, obj);
@@ -400,6 +473,60 @@ class Stack extends ModTemplate {
       }
       // Add other request types here as needed (update, delete, etc.)
     }
+  }
+
+  ////////////////////////////
+  // Access Script Pipeline
+  ////////////////////////////
+  /**
+   * Get access script for a publish intent
+   * 
+   * Maps a normalized publish intent to a canonical access script template.
+   * Returns null for public posts (no access gate).
+   * 
+   * @param {Object} intent - Publish intent object
+   * @param {string} intent.visibility - "public" | "private"
+   * @param {string|null} intent.access_mode - null | "transferable" | "non-transferable"
+   * @param {Object|null} intent.time_limit - null | { seconds: number }
+   * @param {string} intent.author - Public key of the post author
+   * @returns {Object|null} Access script object, or null for public posts
+   */
+  getAccessScriptForPublishIntent(intent) {
+    try {
+      return getAccessScriptForIntent(intent);
+    } catch (error) {
+      console.error('Stack: Error getting access script for intent:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Hash an access script using canonicalization
+   * 
+   * Canonicalizes the script JSON to ensure deterministic hashing.
+   * Same script object will always produce the same hash.
+   * 
+   * @param {Object|null} script - Access script object, or null
+   * @returns {string} Access hash (empty string if script is null)
+   */
+  hashAccessScript(script) {
+    if (script === null || script === undefined) {
+      return '';
+    }
+
+    const scripting_mod = this.app.modules.returnModule("Scripting");
+    if (!scripting_mod) {
+      console.warn('Stack: Scripting module not available - cannot hash access script');
+      return '';
+    }
+
+    // Canonicalize the script to ensure deterministic hashing
+    const canonical_script = scripting_mod.canonicalize(script);
+    
+    // Hash the canonicalized script
+    const access_hash = scripting_mod.hash(canonical_script);
+    
+    return access_hash;
   }
 
   ////////////////////////////
@@ -479,96 +606,83 @@ class Stack extends ModTemplate {
       }
 
       // ========================================================================
-      // ACCESS SCRIPT GENERATION: Attach access script and hash based on mode
+      // ACCESS SCRIPT GENERATION: Deterministic pipeline from intent to hash
       // ========================================================================
-      // Public mode: unrestricted access (script that always passes)
-      // Private mode: NFT-restricted access (CHECKOWNNFT script)
-      // Subscription mode: no script (disabled path)
+      // 1. Generate normalized publish intent from post data
+      // 2. Map intent to canonical access script template
+      // 3. Canonicalize and hash the script
+      // 4. Attach access_hash to transaction
       // ========================================================================
-      const accessLevel = post.accessLevel || 'public';
+      
+      // Generate publish intent (backward compatible with accessLevel string)
+      let publishIntent;
+      if (post.publishIntent && typeof post.publishIntent === 'object') {
+        // New format: normalized intent object
+        publishIntent = post.publishIntent;
+        // Ensure author is set
+        if (!publishIntent.author) {
+          publishIntent.author = this.publicKey;
+        }
+      } else {
+        // Legacy format: convert accessLevel string to intent
+        const accessLevel = post.accessLevel || 'public';
+        publishIntent = {
+          visibility: accessLevel,
+          access_mode: null, // Default to null (will default to transferable for private)
+          time_limit: null,
+          author: this.publicKey
+        };
+      }
+
+      // Get access script for intent
       let access_script = null;
       let access_hash = '';
 
-      // Check if Scripting module is available
-      const scripting_mod = this.app.modules.returnModule("Scripting");
-      if (scripting_mod) {
-        if (accessLevel === 'public') {
-          // Public mode: Create a script that permits unrestricted access
-          // For public access, we use a script that always evaluates to true
-          // Since there's no "always true" opcode, we use OR with a condition
-          // that checks if the sender is the publisher OR not the publisher (always true)
-          // However, a simpler approach: use a minimal script structure that
-          // effectively allows unrestricted access by checking a condition that's
-          // always true for any sender
-          // 
-          // Note: In practice, Archive module may handle missing access scripts
-          // as public, but we attach a script here to be explicit about access mode
-          access_script = {
-            op: "OR",
-            args: [
-              {
-                op: "CHECKSENDER",
-                publickey: this.publicKey
-              },
-              {
-                op: "NOT",
-                args: [
-                  {
-                    op: "CHECKSENDER",
-                    publickey: this.publicKey
-                  }
-                ]
-              }
-            ]
-          };
-          // This script structure: (sender == publisher) OR (sender != publisher)
-          // Always evaluates to true for any sender, effectively allowing unrestricted access
-          const access_script_json = JSON.stringify(access_script);
-          access_hash = scripting_mod.hash(access_script_json);
-          
-          // Attach to transaction message
-          if (!newtx.msg) {
-            newtx.msg = {};
-          }
-          newtx.msg.access_script = access_script_json;
-          newtx.msg.access_hash = access_hash;
-        } else if (accessLevel === 'private') {
-          // Private mode: Restrict access to NFTs issued by the publisher
-          // This uses CHECKOWNNFT to verify the requester owns an NFT issued by the publisher
-          // 
-          // NOTE: In a full implementation, this would require:
-          // 1. The publisher to have minted a subscription NFT
-          // 2. The NFT ID to be known and passed here
-          // 
-          // For now, we use the publisher's public key as a placeholder NFT ID.
-          // This is a stub - full private access requires subscription NFT infrastructure.
-          // 
-          // The script structure follows Vault's pattern for NFT-gated access.
-          const publisherPublicKey = this.publicKey;
-          
-          // Create CHECKOWNNFT script (similar to Vault's createVaultAddFileTransaction pattern)
-          // This script requires the requester to provide witness data (utxokeys) proving
-          // they own an NFT with the specified nftid
-          access_script = {
-            op: "CHECKOWNNFT",
-            nftid: publisherPublicKey // Placeholder - in production, this must be the actual subscription NFT ID
-          };
-          
-          // Convert to JSON string and compute hash using Scripting module helper
-          const access_script_json = JSON.stringify(access_script);
-          access_hash = scripting_mod.hash(access_script_json);
-          
-          // Attach to transaction message (following Vault pattern: access_script and access_hash in msg)
-          if (!newtx.msg) {
-            newtx.msg = {};
-          }
-          newtx.msg.access_script = access_script_json;
-          newtx.msg.access_hash = access_hash;
+      try {
+        access_script = this.getAccessScriptForPublishIntent(publishIntent);
+        
+        // Initialize msg object if needed
+        if (!newtx.msg) {
+          newtx.msg = {};
         }
-        // Subscription mode: no script attached (disabled path)
-      } else {
-        console.warn('Stack: Scripting module not available - access scripts will not be attached');
-        // Fail safely: continue without access scripts
+        
+        if (access_script !== null) {
+          // Private post: Hash the script and attach access_hash
+          access_hash = this.hashAccessScript(access_script);
+          
+          if (access_hash) {
+            // Canonicalize script for optional local storage (debugging only)
+            const scripting_mod = this.app.modules.returnModule("Scripting");
+            if (scripting_mod) {
+              const canonical_script = scripting_mod.canonicalize(access_script);
+              // Store canonicalized script locally for debugging (not required for access)
+              newtx.msg.access_script = canonical_script;
+            }
+            newtx.msg.access_hash = access_hash;
+          }
+        } else {
+          // Public post: access_hash must be ABSENT, not null
+          // Explicitly delete if it exists (e.g., switching from private to public)
+          if (newtx.msg.access_hash !== undefined) {
+            delete newtx.msg.access_hash;
+          }
+          // Also remove access_script if present
+          if (newtx.msg.access_script !== undefined) {
+            delete newtx.msg.access_script;
+          }
+        }
+      } catch (error) {
+        console.error('Stack: Error generating access script:', error);
+        // Fail safely: for public posts, ensure access_hash is absent
+        if (!newtx.msg) {
+          newtx.msg = {};
+        }
+        // If visibility is public, ensure access_hash is deleted
+        if (publishIntent.visibility === 'public') {
+          if (newtx.msg.access_hash !== undefined) {
+            delete newtx.msg.access_hash;
+          }
+        }
       }
 
       // Set the transaction message
@@ -707,6 +821,14 @@ alert("Propagating the Transaction!");
       preserve: 1
     };
 
+    // Set owner field for private posts (required for access_hash enforcement)
+    // If access_hash exists, this is a private post and needs owner set
+    // Check both txmsg.access_hash (from returnMessage) and tx.msg.access_hash (direct)
+    const access_hash = txmsg.access_hash || tx.msg?.access_hash;
+    if (access_hash) {
+      archiveData.owner = access_hash;
+    }
+
     // If parent_id EXISTS: delete older revisions
     if (parent_id) {
       // Query local archive for existing Stack posts where:
@@ -776,26 +898,6 @@ alert("Propagating the Transaction!");
 
     // Extract parent_id from transaction data (source of truth)
     const parent_id = txmsg.data?.parent_id || null;
-
-    // ========================================================================
-    // RECONCILE OPTIMISTIC POSTS: Clear optimistic update when confirmed
-    // ========================================================================
-    // Case 1: Transaction matches optimistic revision (same signature)
-    // Case 2: Transaction does NOT match (different signature for same logical post)
-    // In both cases, clear the optimistic post - confirmed state is authoritative
-    const logicalPostId = this.getLogicalPostId(tx);
-    const optimisticEntry = this.optimistic_posts.get(logicalPostId);
-    
-    if (optimisticEntry) {
-      if (optimisticEntry.tx.signature === tx.signature) {
-        // Case 1: Same transaction confirmed - promote to confirmed (clear optimistic flag)
-        this.optimistic_posts.delete(logicalPostId);
-      } else {
-        // Case 2: Different transaction confirmed - remove optimistic (it was wrong/rejected)
-        this.optimistic_posts.delete(logicalPostId);
-        console.debug('Stack: Optimistic post replaced by different confirmed transaction');
-      }
-    }
 
     let post = { 
       ...txmsg.data, 
@@ -1467,6 +1569,72 @@ alert("Propagating the Transaction!");
   }
 
   ////////////////////////////
+  // NFT Access Resolution //
+  ////////////////////////////
+  /**
+   * Resolves Stack NFT access data from wallet for Archive queries.
+   * Mirrors Vault's pattern: discovers Stack NFTs, loads transactions, extracts slips.
+   * 
+   * @returns {Object|null} Access data object with access_hash, access_script, access_witness, or null if no NFT found
+   */
+  async resolveStackAccessData() {
+    try {
+      // Update NFT list to ensure wallet cache is fresh
+      await this.app.wallet.updateNFTList();
+      
+      const nftList = this.app.options.wallet.nfts || [];
+      if (!nftList || nftList.length === 0) {
+        return null;
+      }
+
+      // Find first Stack NFT (type === "stack")
+      let stackNFT = null;
+      for (const rec of nftList) {
+        const nftType = this.app.wallet.extractNFTType(rec.slip3?.utxo_key || '');
+        if (nftType === 'stack') {
+          stackNFT = rec;
+          break;
+        }
+      }
+
+      if (!stackNFT) {
+        return null;
+      }
+
+      // Create SaitoNFT object and load transaction to get full slip data
+      const SaitoNFT = require('../../lib/saito/ui/saito-nft/saito-nft');
+      const nft = new SaitoNFT(this.app, this, null, stackNFT, null);
+      await nft.fetchTransaction();
+
+      // Extract slip utxo_keys (required for witness)
+      const slip1_utxokey = nft.slip1?.utxo_key || '';
+      const slip2_utxokey = nft.slip2?.utxo_key || '';
+      const slip3_utxokey = nft.slip3?.utxo_key || '';
+
+      if (!slip1_utxokey || !slip2_utxokey || !slip3_utxokey) {
+        console.warn('Stack: NFT missing required slip utxo_keys');
+        return null;
+      }
+
+      // Construct witness data in CHECKOWNNFTWHERE format: { slips: [utxokey1, utxokey2, utxokey3] }
+      const access_witness_obj = {
+        slips: [slip1_utxokey, slip2_utxokey, slip3_utxokey]
+      };
+      const access_witness = JSON.stringify(access_witness_obj);
+
+      // Note: access_hash and access_script come from the POST transaction, not the NFT
+      // We return witness data here, and the caller will attach it along with post's access_hash/access_script
+      return {
+        access_witness: access_witness,
+        nft_creator: nft.creator || nft.slip1?.public_key || ''
+      };
+    } catch (error) {
+      console.warn('Stack: Error resolving NFT access data:', error);
+      return null;
+    }
+  }
+
+  ////////////////////////////
   // Transaction Loading   //
   ////////////////////////////
   /**
@@ -1544,9 +1712,21 @@ alert("Propagating the Transaction!");
 
     // Step 3: Check localhost archive (if no peer specified)
     // This checks our own local archive before making network requests
+    // For loadPost(), we don't know the author ahead of time, so we can't construct access_hash
+    // Try loading without access first (works for public posts)
+    const localQuery = { field1: 'Stack', signature: signature };
+    
+    // Resolve NFT access data - we'll try with it if available
+    // Note: For private posts, we'd need to know the author to construct the correct access_hash
+    // This is a limitation - private posts loaded by signature alone may not be accessible
+    // unless we can determine the author from cache or other means
+    const accessData = await this.resolveStackAccessData();
+    
+    // For now, try without access data first (public posts)
+    // TODO: Enhance to support private posts by signature (would need author lookup)
     const localTx = await new Promise((resolve) => {
       this.app.storage.loadTransactions(
-        { field1: 'Stack', signature: signature },
+        localQuery,
         (txs) => {
           let tx = null;
 
@@ -1655,14 +1835,60 @@ alert("Propagating the Transaction!");
     const seenSignatures = new Set();
     const posts = [];
 
+    // PART 1: Resolve Stack NFT access data (mirrors Vault pattern)
+    // This provides witness data that can be attached to Archive queries
+    const accessData = await this.resolveStackAccessData();
+
+    // PART 1.5: If we have NFT access data, construct access_hash and access_script
+    // All posts from the same author use the same access script template, so they share the same access_hash
+    let access_hash = null;
+    let access_script = null;
+    
+    if (accessData && accessData.access_witness) {
+      // Construct the access script for this author (transferable private posts)
+      // This matches the script used when creating private posts
+      const { getAccessScriptForIntent } = require('./lib/access/access-scripts');
+      const publishIntent = {
+        visibility: 'private',
+        access_mode: 'transferable',
+        time_limit: null,
+        author: publicKey
+      };
+      
+      try {
+        access_script = getAccessScriptForIntent(publishIntent);
+        if (access_script) {
+          // Canonicalize and hash the script to get access_hash
+          const scripting_mod = this.app.modules.returnModule("Scripting");
+          if (scripting_mod) {
+            const canonical_script = scripting_mod.canonicalize(access_script);
+            access_hash = scripting_mod.hash(canonical_script);
+            access_script = JSON.stringify(canonical_script);
+          }
+        }
+      } catch (error) {
+        console.warn('Stack: Error constructing access script for query:', error);
+      }
+    }
+
     // PART 2.1: Query local archive first
+    // Build query object - attach access data if NFT exists
+    const localQuery = {
+      field1: 'Stack',
+      field2: publicKey,
+      field4: 'stack:post'
+    };
+
+    // If we have complete access data, attach it to query (mirrors Vault pattern)
+    if (accessData && accessData.access_witness && access_hash && access_script) {
+      localQuery.access_hash = access_hash;
+      localQuery.access_script = access_script;
+      localQuery.access_witness = accessData.access_witness;
+    }
+
     const localPosts = await new Promise((resolve) => {
       this.app.storage.loadTransactions(
-        {
-          field1: 'Stack',
-          field2: publicKey,
-          field4: 'stack:post'
-        },
+        localQuery,
         (txs) => {
           resolve(txs || []);
         },
@@ -1680,13 +1906,23 @@ alert("Propagating the Transaction!");
 
     // PART 2.3: If forceRemote, query remote peers
     if (forceRemote) {
+      // Build remote query with same access data pattern
+      const remoteQuery = {
+        field1: 'Stack',
+        field2: publicKey,
+        field4: 'stack:post'
+      };
+      
+      // Attach same access data to remote query
+      if (accessData && accessData.access_witness && access_hash && access_script) {
+        remoteQuery.access_hash = access_hash;
+        remoteQuery.access_script = access_script;
+        remoteQuery.access_witness = accessData.access_witness;
+      }
+
       const remotePosts = await new Promise((resolve) => {
         this.app.storage.loadTransactions(
-          {
-            field1: 'Stack',
-            field2: publicKey,
-            field4: 'stack:post'
-          },
+          remoteQuery,
           (txs) => {
             resolve(txs || []);
           },
@@ -1800,105 +2036,7 @@ alert("Propagating the Transaction!");
       return bTime - aTime;
     });
 
-    // ========================================================================
-    // MERGE OPTIMISTIC POSTS: Overlay optimistic edits on confirmed posts
-    // ========================================================================
-    // For each logical post ID, if an optimistic post exists, replace the confirmed one
-    // Optimistic posts temporarily outrank confirmed posts for immediate UI feedback
-    const finalPosts = [];
-    const seenLogicalIds = new Set();
-
-    // First, add optimistic posts (they take priority)
-    for (const [logicalPostId, optimisticEntry] of this.optimistic_posts.entries()) {
-      if (optimisticEntry && optimisticEntry.tx) {
-        // Only include optimistic posts for this author
-        const optimisticFrom = optimisticEntry.tx.from?.[0]?.publicKey;
-        if (optimisticFrom === publicKey) {
-          finalPosts.push(optimisticEntry.tx);
-          seenLogicalIds.add(logicalPostId);
-        }
-      }
-    }
-
-    // Then, add confirmed posts that don't have optimistic versions
-    for (const tx of collapsedPosts) {
-      const logicalPostId = this.getLogicalPostId(tx);
-      if (!seenLogicalIds.has(logicalPostId)) {
-        finalPosts.push(tx);
-        seenLogicalIds.add(logicalPostId);
-      }
-    }
-
-    // Re-sort final merged list by timestamp DESC
-    finalPosts.sort((a, b) => {
-      const aTime = a.timestamp || 0;
-      const bTime = b.timestamp || 0;
-      return bTime - aTime;
-    });
-
-    return finalPosts;
-  }
-
-  /**
-   * Apply optimistic post update for immediate UI feedback
-   * Called immediately after sending an edit transaction, before confirmation
-   * 
-   * @param {Transaction} tx - The transaction that was just sent (not yet confirmed)
-   */
-  applyOptimisticPostUpdate(tx) {
-    if (!tx || !tx.signature) {
-      return;
-    }
-
-    try {
-      const txmsg = tx.returnMessage();
-      const parent_id = txmsg?.data?.parent_id || null;
-
-      // Only apply optimistic updates for edits (posts with parent_id)
-      // New posts don't need optimistic layer - they appear immediately via cache
-      if (!parent_id) {
-        return;
-      }
-
-      // Compute logical post ID for this edit
-      const logicalPostId = this.getLogicalPostId(tx);
-
-      // Store optimistic post
-      this.optimistic_posts.set(logicalPostId, {
-        tx: tx,
-        optimistic: true,
-        timestamp: Date.now() // Track when optimistic update was applied
-      });
-
-      // Trigger UI refresh if Explore overlay is open
-      if (this.exploreOverlay && this.exploreOverlay.currentFilter === 'my-posts') {
-        // Reload posts to show optimistic update
-        this.exploreOverlay.loadPostsForFilter('my-posts').catch(err => {
-          console.warn('Stack: Error refreshing Explore after optimistic update:', err);
-        });
-      }
-    } catch (error) {
-      console.warn('Stack: Error applying optimistic post update:', error);
-    }
-  }
-
-  /**
-   * Clear optimistic post update
-   * Called when transaction is confirmed or fails
-   * 
-   * @param {Transaction} tx - The transaction that was confirmed or failed
-   */
-  clearOptimisticPost(tx) {
-    if (!tx || !tx.signature) {
-      return;
-    }
-
-    try {
-      const logicalPostId = this.getLogicalPostId(tx);
-      this.optimistic_posts.delete(logicalPostId);
-    } catch (error) {
-      console.warn('Stack: Error clearing optimistic post:', error);
-    }
+    return collapsedPosts;
   }
 
   /**

@@ -50,8 +50,8 @@ class Archive extends ModTemplate {
 		// limitations like a private archive node that wants to limit
 		// usage of privately-uploaded data.
 		//
-		this.access_hash = 0;
-		//this.access_hash = 1; // don't serve txs with access_hash restrictions
+		//this.access_hash = 0; // ignore access_hash
+		this.access_hash = 1; // don't serve txs with access_hash restrictions
 
 		this.schema = [
 			'id',
@@ -828,6 +828,8 @@ class Archive extends ModTemplate {
 							}
 						}
 					}
+				} else {
+    					altered_rows.push(r);
 				}
 			}
 

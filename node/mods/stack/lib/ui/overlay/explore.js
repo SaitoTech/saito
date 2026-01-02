@@ -189,14 +189,14 @@ class ExploreOverlay {
         // PART 3: My Posts - load from archive using loadPostsForAuthor
         const userPublicKey = this.mod.publicKey || '';
         if (!userPublicKey) {
-          this.isLoading = false;
-          this.updatePostsGrid();
-          return;
-        }
-        
+      this.isLoading = false;
+      this.updatePostsGrid();
+      return;
+    }
+    
         // Load posts for current user from archive
         const loadedPosts = await this.mod.loadPostsForAuthor(userPublicKey, { forceRemote: true });
-        this.posts = loadedPosts || [];
+      this.posts = loadedPosts || [];
         
       } else if (filter === 'all') {
         // PART 3: All Posts - load from subscriptions
@@ -253,8 +253,8 @@ class ExploreOverlay {
       this.posts = [];
     }
     
-    this.isLoading = false;
-    this.updatePostsGrid();
+      this.isLoading = false;
+      this.updatePostsGrid();
   }
 
   /**
