@@ -790,37 +790,82 @@ class Archive extends ModTemplate {
 				// a specific network item in order to access.
 				//
 				if (r.owner) {
-					//
-					//
-					//
-					if (!obj.access_script || !obj.access_witness) {
-						//
-						// no script / witness remove row
-						//
-					} else {
-						//
-						// otherwise evaluate...
-						//
-						if (obj.access_hash === r.owner) {
-							//let peers = await this.app.network.getPeers();
-							//for (let peer of peers) {
-							//	console.log('PEER: ' + JSON.stringify(peer));
-							//}
 
+console.log(" we have found a protected row ... ");
+
+  					let access_script = obj.access_script || null;
+  					let access_hash   = obj.access_hash   || null;
+
+					if (!access_script && obj.access_witness) {
+
+console.log("* * * WITNESS * * *");
+console.log(JSON.stringify(obj.access_witness));
+console.log("* * * * * * * * * *");
+
+    						try {
+//  							if (!r.tx || !r.tx.includes('"access_script"')) {
+//console.log("no access_script in transaction, thus no way to confirm access_witness alone valid...");
+//  								continue;
+//							}
+
+      							let tx = new Transaction();
+      							tx.deserialize_from_web(this.app, r.tx);
+
+							let txmsg = tx.returnMessage();
+
+      							if (txmsg.access_script) {
+        							access_script = txmsg.access_script;
+        						}
+      							if (txmsg.access_hash) {
+								access_hash   = txmsg.access_hash;
+      							}
+    						} catch (err) {
+      							// malformed tx, deny
+      							continue;
+    						}
+					}
+
+					//
+					// 
+					//
+  					//if (access_hash !== r.owner) {
+    					//	continue;
+  					//}
+
+
+					//
+					//
+					//
+					if (!access_script && !obj.access_witness) {
+						//
+						// no script but witness provided...
+						//
+						continue;
+
+					} else {
+
+						if (access_hash === r.owner) {
+	
 							let include_row = false;
 							let scripting_mod = this.app.modules.returnModule('Scripting');
 							if (scripting_mod) {
 								if (
 									scripting_mod.evaluate(
-										obj.access_hash,
-										obj.access_script,
+										access_hash,
+										access_script,
 										obj.access_witness,
 										{},
 										request_tx,
 										null
 									)
 								) {
+console.log("SUCCEEDED in EVALUATE...");
 									include_row = true;
+								} else {
+console.log("FAILED TO EVALUATE...");
+console.log(access_hash);
+console.log(JSON.stringify(access_script));
+console.log(JSON.stringify(obj.access_witness));
 								}
 							}
 							if (include_row) {

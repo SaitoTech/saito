@@ -31,6 +31,9 @@ class Stack extends ModTemplate {
     this.categories = 'Social Media Blogging Publishing';
     this.icon_fa = 'fa-solid fa-newspaper';
 
+    this.pending_author_load = null;
+    this.pending_post_load = null;
+
     this.social = {
       twitter: '@SaitoOfficial',
       title: 'Stack - Permissioned Blogging',
@@ -108,6 +111,8 @@ class Stack extends ModTemplate {
   ////////////////////////////
   async render(app) {
 
+console.log("RENDER: " + this.browser_active);
+
     if (!this.browser_active) {
       return;
     }
@@ -138,7 +143,10 @@ class Stack extends ModTemplate {
       if (segments.length === 1) {
         // /stack/<publicKey> - Show creator's posts in Explorer
         const publicKey = segments[0];
-        await this.handleCreatorView(publicKey);
+        this.main.render();
+	setTimeout(async () => {
+          await this.handleCreatorView(publicKey);
+	}, 0);
         return;
       } else if (segments.length === 2) {
         // /stack/<publicKey>/<transactionSignature> - Show specific blog post
@@ -332,7 +340,10 @@ class Stack extends ModTemplate {
    * @param {Object} service - Service object with service name
    */
   async onPeerServiceUp(app, peer, service = {}) {
-    // Only track peers offering Stack service
+
+    //
+    // Stack
+    //
     if (service.service === 'stack') {
       const peerKey = peer?.publicKey || 'unknown';
       this.peers[peerKey] = {
@@ -342,6 +353,16 @@ class Stack extends ModTemplate {
       };
       console.log(`Stack: Peer ${peerKey} connected with Stack service`);
     }
+
+    //
+    // Archives 
+    //
+    if (service === "archive" && this.pending_author_load) {
+      let pk = this.pending_author_load;
+      this.pending_author_load = null;
+      this.loadPostsForAuthor(pk, { forceRemote: true });
+    }
+
   }
 
   ////////////////////////////
@@ -450,6 +471,7 @@ console.log("DOES PATH VALIDATE: " + is_ok)
   // Transaction Handling  //
   ////////////////////////////
   async onConfirmation(blk, tx, conf) {
+
     const txmsg = tx.returnMessage();
     
     // Check if transaction is relevant to Stack module
@@ -789,6 +811,7 @@ alert("Propagating the Transaction!");
    * @param {Block} blk - The block containing the transaction
    */
   async onReceiveBlogPost(tx, blk) {
+
     // PART 4 — SAFETY CHECKS
     // Fail silently if tx is malformed
     if (!tx || !tx.msg || !tx.from || !tx.from[0]) {
@@ -1676,8 +1699,19 @@ alert("Propagating the Transaction!");
    * @returns {Transaction|null} Transaction object if no callback, null if not found
    */
   async loadPost(signature, options = {}, callback = null) {
+
     // Extract peer from options if provided
     const peer = options?.peer || null;
+
+    // Build access context once per request
+    let access_script = null;
+    let access_hash = null;
+    let access_witness = null;
+
+    const accessData = await this.resolveStackAccessData();
+    if (accessData?.access_witness) {
+      access_witness = accessData.access_witness;
+    }
 
     // Validate signature
     if (!signature || typeof signature !== 'string') {
@@ -1698,8 +1732,15 @@ alert("Propagating the Transaction!");
       return cachedTx;
     }
 
+    // Step 3: Check localhost archive (if no peer specified)
+    // This checks our own local archive before making network requests
+    // For loadPost(), we don't know the author ahead of time, so we can't construct access_hash
+    // Try loading without access first (works for public posts)
+    const localQuery = { field1: 'Stack', signature: signature , access_witness : access_witness };
+    
     // Step 2: If peer is provided, use it directly (skip localhost check and peer queries)
     if (peer) {
+
       // Determine peer string for loadTransactions
       // Can be "localhost" string or a peer object (we'll use its identifier)
       let peerString = peer;
@@ -1711,7 +1752,7 @@ alert("Propagating the Transaction!");
 
       return new Promise((resolve) => {
         this.app.storage.loadTransactions(
-          { field1: 'Stack', signature: signature },
+          localQuery ,
           (txs) => {
             let tx = null;
 
@@ -1738,18 +1779,6 @@ alert("Propagating the Transaction!");
       });
     }
 
-    // Step 3: Check localhost archive (if no peer specified)
-    // This checks our own local archive before making network requests
-    // For loadPost(), we don't know the author ahead of time, so we can't construct access_hash
-    // Try loading without access first (works for public posts)
-    const localQuery = { field1: 'Stack', signature: signature };
-    
-    // Resolve NFT access data - we'll try with it if available
-    // Note: For private posts, we'd need to know the author to construct the correct access_hash
-    // This is a limitation - private posts loaded by signature alone may not be accessible
-    // unless we can determine the author from cache or other means
-    const accessData = await this.resolveStackAccessData();
-    
     // For now, try without access data first (public posts)
     // TODO: Enhance to support private posts by signature (would need author lookup)
     const localTx = await new Promise((resolve) => {
@@ -1786,6 +1815,9 @@ alert("Propagating the Transaction!");
     // Step 4: Query connected Stack peers (if localhost didn't have it)
     // Simple sequential query - try first available peer
     // No racing, no retries, no timeouts (as per requirements)
+
+console.log("about to make remote fetch...");
+
     const peerKeys = Object.keys(this.peers);
     if (peerKeys.length > 0) {
       const firstPeerKey = peerKeys[0];
@@ -1797,7 +1829,7 @@ alert("Propagating the Transaction!");
             // Query peer for the post
             this.app.network.sendRequestAsTransaction(
               'load stack post',
-              { signature: signature },
+              { signature: signature , access_witness : access_witness },
               (response) => {
                 // Response is array of serialized transactions
                 if (Array.isArray(response) && response.length > 0) {
@@ -1856,22 +1888,26 @@ alert("Propagating the Transaction!");
    * @returns {Promise<Array<Transaction>>} Array of Transaction objects, deduplicated by signature
    */
   async loadPostsForAuthor(publicKey, { forceRemote = true } = {}) {
+
+console.log("LPFA 1: " + publicKey);
+
     if (!publicKey || !this.app.wallet.isValidPublicKey(publicKey)) {
       return [];
     }
 
     const seenSignatures = new Set();
     const posts = [];
+    let access_witness = null;
 
     // PART 1: Resolve Stack NFT access data (mirrors Vault pattern)
     // This provides witness data that can be attached to Archive queries
     const accessData = await this.resolveStackAccessData();
+    if (accessData?.access_witness) {
+      access_witness = accessData.access_witness;
+    } 
 
-    // PART 1.5: If we have NFT access data, construct access_hash and access_script
-    // All posts from the same author use the same access script template, so they share the same access_hash
-    let access_hash = null;
-    let access_script = null;
-    
+console.log("LPFA 2: " + JSON.stringify(access_witness));
+
     if (accessData && accessData.access_witness) {
       // Construct the access script for this author (transferable private posts)
       // This matches the script used when creating private posts
@@ -1883,21 +1919,10 @@ alert("Propagating the Transaction!");
         author: publicKey
       };
       
-      try {
-        access_script = getAccessScriptForIntent(publishIntent);
-        if (access_script) {
-          // Canonicalize and hash the script to get access_hash
-          const scripting_mod = this.app.modules.returnModule("Scripting");
-          if (scripting_mod) {
-            const canonical_script = scripting_mod.canonicalize(access_script);
-            access_hash = scripting_mod.hash(canonical_script);
-            access_script = JSON.stringify(canonical_script);
-          }
-        }
-      } catch (error) {
-        console.warn('Stack: Error constructing access script for query:', error);
-      }
     }
+
+console.log("LPFA 2: " + JSON.stringify(access_witness));
+
 
     // PART 2.1: Query local archive first
     // Build query object - attach access data if NFT exists
@@ -1906,13 +1931,9 @@ alert("Propagating the Transaction!");
       field2: publicKey,
       field4: 'stack:post'
     };
+    if (access_witness) { localQuery.access_witness = access_witness; }
 
-    // If we have complete access data, attach it to query (mirrors Vault pattern)
-    if (accessData && accessData.access_witness && access_hash && access_script) {
-      localQuery.access_hash = access_hash;
-      localQuery.access_script = access_script;
-      localQuery.access_witness = accessData.access_witness;
-    }
+console.log("LPFA 3: " + JSON.stringify(localQuery));
 
     const localPosts = await new Promise((resolve) => {
       this.app.storage.loadTransactions(
@@ -1932,22 +1953,35 @@ alert("Propagating the Transaction!");
       }
     }
 
+console.log("LPFA 4...: " + forceRemote);
+
     // PART 2.3: If forceRemote, query remote peers
     if (forceRemote) {
       // Build remote query with same access data pattern
-      const remoteQuery = {
+      let remoteQuery = {
         field1: 'Stack',
         field2: publicKey,
         field4: 'stack:post'
       };
-      
-      // Attach same access data to remote query
-      if (accessData && accessData.access_witness && access_hash && access_script) {
-        remoteQuery.access_hash = access_hash;
-        remoteQuery.access_script = access_script;
-        remoteQuery.access_witness = accessData.access_witness;
-      }
+      if (access_witness) { remoteQuery.access_witness = access_witness; }
 
+console.log("LPFA 5...: " + JSON.stringify(remoteQuery));
+
+      if (Object.keys(this.peers).length === 0) {
+	// Defer until peers are available
+  	this.pendingAuthorLoad = publicKey;
+  	return posts;
+     }
+
+console.log("LPFA 6...: " + JSON.stringify(remoteQuery));
+
+     let peers = this.app.network.getPeersProvidingService("archive");
+     if (!peers || peers.length === 0) {
+    	this.pending_author_load = publicKey;
+    	return resolve([]);
+     }
+
+ 
       const remotePosts = await new Promise((resolve) => {
         this.app.storage.loadTransactions(
           remoteQuery,
@@ -2129,26 +2163,67 @@ alert("Propagating the Transaction!");
   ////////////////////////////
   // Web Server            //
   ////////////////////////////
-  webServer(app, expressapp, express, alternative_slug = null) {
-    const mod_self = this;
-    const webdir = path.resolve(__dirname, '../../mods', this.dirname, 'web');
-    const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
-    
-    // Main Application Route - Serves the HTML Shell generated by index.js
-    expressapp.get(uri, async function (req, res) {
-      let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
-      let updatedSocial = Object.assign({}, mod_self.social);
-      updatedSocial.url = reqBaseURL + encodeURI(mod_self.returnSlug());
+///////////////
+// webserver //
+///////////////
+webServer(app, expressapp, express, alternative_slug = null) {
 
-      res.setHeader('Content-type', 'text/html');
-      res.charset = 'UTF-8';
-      res.send(HomePage(app, mod_self, app.build_number, updatedSocial, []));
-    });
+  const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+  const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
+  const stack_self = this;
 
-    // Serve static files (CSS, JS, images, etc.)
-    // Use path.resolve to ensure absolute path for Express static middleware
-    expressapp.use(uri, express.static(webdir));
-  }
+  //
+  // 1. STATIC FILES — ALWAYS FIRST
+  //
+  // This ensures /stack/js, /stack/css, etc. resolve correctly
+  //
+  expressapp.use(uri, express.static(webdir));
+
+
+  //
+  // 2. STACK APP BOOTSTRAP
+  //
+  // Explicitly handle:
+  //   /stack
+  //   /stack/<publickey>
+  //   /stack/<publickey>/<txsig>
+  //
+  // In ALL cases, we just return the Stack home HTML.
+  // Stack (browser-side) will inspect window.location.pathname
+  // and decide whether to call:
+  //   - loadPostsForAuthor()
+  //   - loadPost()
+  //   - explore logic
+  //
+  let html = HomePage(
+    app,
+    stack_self,
+    app.build_number
+  );
+
+  expressapp.get(`${uri}`, (req, res) => {
+    res.setHeader('Content-type', 'text/html');
+    res.charset = 'UTF-8';
+    return res.send(html);
+  });
+
+  expressapp.get(`${uri}/:publickey`, (req, res) => {
+    res.setHeader('Content-type', 'text/html');
+    res.charset = 'UTF-8';
+    return res.send(html);
+  });
+
+  expressapp.get(`${uri}/:publickey/:txsig`, (req, res) => {
+    res.setHeader('Content-type', 'text/html');
+    res.charset = 'UTF-8';
+    return res.send(html);
+  });
+
+}
+
+
+
+
 
   ////////////////////////////
   // DEVELOPMENT ONLY: Demo Transactions
