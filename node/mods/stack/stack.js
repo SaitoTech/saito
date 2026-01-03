@@ -1967,19 +1967,15 @@ console.log("LPFA 4...: " + forceRemote);
 
 console.log("LPFA 5...: " + JSON.stringify(remoteQuery));
 
-      if (Object.keys(this.peers).length === 0) {
+      let peers = await this.app.network.getPeers();
+      if (peers.length === 0) {
 	// Defer until peers are available
-  	this.pendingAuthorLoad = publicKey;
+console.log("NO PEERS... deferring...");
+    	this.pending_author_load = publicKey;
   	return posts;
      }
 
 console.log("LPFA 6...: " + JSON.stringify(remoteQuery));
-
-     let peers = this.app.network.getPeersProvidingService("archive");
-     if (!peers || peers.length === 0) {
-    	this.pending_author_load = publicKey;
-    	return resolve([]);
-     }
 
  
       const remotePosts = await new Promise((resolve) => {

@@ -12,6 +12,7 @@ class ExploreOverlay {
     this.posts = [];
     this.isLoading = false;
     this.currentFilter = 'all';
+    this.subscriptions = [];
     this.targetPublicKey = null; // For URL-based routing: publicKey to show posts for
   }
 
@@ -27,7 +28,9 @@ class ExploreOverlay {
     this.isLoading = true;
     this.posts = [];
     
-    const html = ExploreTemplate(this.app, this.mod, this.posts, this.isLoading);
+    this.subscriptions = this.calculateSubscriptions();
+
+    const html = ExploreTemplate(this.app, this.mod, this.posts, this.isLoading, this.subscriptions);
     this.overlay.show(html);
     
     setTimeout(() => {
@@ -38,6 +41,42 @@ class ExploreOverlay {
         this.loadPostsForFilter(this.currentFilter);
       }
     }, 25);
+  }
+
+  calculateSubscriptions() {
+
+    let subscriptions = [];
+
+    // 1. URL-driven single-user view
+    if (this.targetPublicKey) {
+      subscriptions = [{
+        publickey: this.targetPublicKey,
+	icon : "fa-solid fa-user",
+        label : this.app.keychain.returnUsername(this.targetPublicKey),
+        source: "url"
+      }];
+    }
+
+    
+    subscriptions.push({ icon : "fa-solid fa-user", label : "SaitoOfficial" , publickey: this.mod.STACK_OFFICIAL_PUBLICKEY, source: "default" });
+    subscriptions.push({ icon : "fa-solid fa-user", label : "My Posts" , publickey: 'my-posts', source: "default" });
+
+    if (
+      this.app.options?.stack?.subscriptions &&
+      Array.isArray(this.app.options.stack.subscriptions) &&
+      this.app.options.stack.subscriptions.length > 0
+    ) {
+      for (let pk in this.app.options.stack.subscriptions) {
+        subscriptions.push({
+          publickey: pk,
+	  icon : "fa-solid fa-user",
+          label : this.app.keychain.returnUsername(pk),
+	  source: "subscription"
+        });
+      }
+    }
+
+    return subscriptions;
   }
 
   updateHelpNoteVisibility() {
@@ -135,9 +174,8 @@ class ExploreOverlay {
     const filter = activeItem.getAttribute('data-filter');
     let description = 'Explore';
 
-    // Set description based on filter (but ALWAYS use current user's public key)
     if (filter === 'my-posts') {
-      description = 'Your posts';
+      description = 'Your Posts';
     } else if (filter === 'all') {
       description = 'Explore';
     }
@@ -162,7 +200,6 @@ class ExploreOverlay {
     const settingsBtn = document.querySelector('#stack-explore-settings-btn');
     
     if (filter === 'my-posts') {
-      // Show Settings button for My Posts
       if (addUserBtn) addUserBtn.style.display = 'none';
       if (settingsBtn) settingsBtn.style.display = '';
     } else {
@@ -177,92 +214,46 @@ class ExploreOverlay {
    * Shows loading state, then populated or empty state.
    */
   async loadPostsForFilter(filter) {
-    this.currentFilter = filter;
+
+    this.isLoading = true;
+ 
+  console.log("loadPostsForFilter:", filter);
+
     this.isLoading = true;
     this.posts = [];
-    
-    // Update UI to show loading state
-    this.updatePostsGrid();
-    
-    try {
-      if (filter === 'my-posts') {
-        // PART 3: My Posts - load from archive using loadPostsForAuthor
-        const userPublicKey = this.mod.publicKey || '';
-        if (!userPublicKey) {
-      this.isLoading = false;
-      this.updatePostsGrid();
+    this.targetPublicKey = null;
+    let author = null;
+
+    // Resolve UI filter → concrete author
+    if (filter === "my-posts") {
+      author = this.app.wallet.publicKey;
+    } else {
+      author = filter;
+    }
+
+    this.updatePostsGrid(author);
+
+    if (!author) {
+      console.warn("No author resolved for filter:", filter);
       return;
     }
-    
-        // Load posts for current user from archive
-        const loadedPosts = await this.mod.loadPostsForAuthor(userPublicKey, { forceRemote: true });
-      this.posts = loadedPosts || [];
-        
-      } else if (filter === 'all') {
-        // PART 3: All Posts - load from subscriptions
-        this.mod.load();
-        const subscriptions = this.mod.app.options.stack?.subscriptions || [];
-        
-        if (subscriptions.length === 0) {
-          // No subscriptions - show empty state
-          this.posts = [];
-        } else {
-          // Load posts for each subscription and merge
-          const allPosts = [];
-          const seenSignatures = new Set();
-          
-          for (const sub of subscriptions) {
-            const publicKey = sub.publicKey || sub;
-            if (!publicKey) continue;
-            
-            try {
-              const authorPosts = await this.mod.loadPostsForAuthor(publicKey, { forceRemote: true });
-              
-              // Merge posts, deduplicating by signature
-              for (const post of authorPosts) {
-                if (post && post.signature && !seenSignatures.has(post.signature)) {
-                  seenSignatures.add(post.signature);
-                  allPosts.push(post);
-                }
-              }
-            } catch (error) {
-              console.warn('Stack: Error loading posts for subscription:', publicKey, error);
-            }
-          }
-          
-          // Sort by timestamp DESC (most recent first)
-          allPosts.sort((a, b) => {
-            const aTime = a.timestamp || 0;
-            const bTime = b.timestamp || 0;
-            return bTime - aTime;
-          });
-          
-          this.posts = allPosts;
-        }
-        
-      } else if (filter === 'creator' && this.targetPublicKey) {
-        // URL-based creator view - already handled in handleCreatorView
-        // This path should not be reached, but handle gracefully
-        this.posts = [];
-      } else {
-        // Unknown filter
-        this.posts = [];
-      }
-    } catch (error) {
-      console.error('Stack: Error loading posts for filter:', filter, error);
-      this.posts = [];
-    }
-    
-      this.isLoading = false;
-      this.updatePostsGrid();
-  }
 
+    // Delegate ALL loading to the author loader
+    this.posts = await this.mod.loadPostsForAuthor(author, { forceRemote: true });
+    this.isLoading = false;
+    this.updatePostsGrid(author);
+
+  }
+   
   /**
    * Updates the posts grid with current state (loading, empty, or populated).
    */
-  updatePostsGrid() {
+  updatePostsGrid(author="") {
+
     const grid = document.querySelector('#stack-explore-posts-grid');
-    if (!grid) return;
+    if (!grid) { return; }
+
+    this.pruneEditedPosts();
 
     if (this.isLoading) {
       // PART 5: Show loading spinner with "Fetching latest posts…" message
@@ -275,7 +266,13 @@ class ExploreOverlay {
         </div>
       `;
     } else if (this.posts.length > 0) {
-      // Show populated posts - use PostTeaser UI component
+
+for (let z = 0; z < this.posts.length; z++) {
+console.log("z: " + this.posts[z].from[0].publicKey);
+console.log("tx sig: " + this.posts[z].signature);
+console.log("txmsg: " + JSON.stringify(this.posts[z].returnMessage()));
+}
+
       const teaserHtml = this.posts.map(transaction => {
         const teaser = new PostTeaser(this.app, this.mod, '', transaction);
         return teaser.render(); // Returns HTML string for batch rendering
@@ -297,6 +294,49 @@ class ExploreOverlay {
       `;
     }
   }
+
+
+  pruneEditedPosts() {
+
+    if (!Array.isArray(this.posts)) { return; }
+    let hasChildren = new Set();
+
+    // First pass: record all parents that have edits
+    for (const tx of this.posts) {
+      if (!tx?.signature) { continue; }
+      let msg = tx.returnMessage?.();
+      if (msg?.data?.parent_id) {
+        hasChildren.add(msg?.data?.parent_id);
+      }
+    }
+
+    // Second pass: keep only latest leaf nodes
+    this.posts = this.posts.filter(tx => {
+      if (!tx?.signature) { return false; }
+
+      const msg = tx.returnMessage?.();
+      const ts  = msg?.data?.timestamp ?? 0;
+
+      // Rule 1: remove anything that has been edited
+      if (hasChildren.has(tx.signature)) { return false; }
+
+      // Rule 2: among siblings, keep only newest
+      if (msg?.data?.parent_id) {
+        return !this.posts.some(other => {
+          if (!other?.signature) { return false; }
+          const om = other.returnMessage?.();
+          return (
+            om?.data?.parent_id === msg?.data?.parent_id &&
+            (om?.data?.timestamp ?? 0) > ts
+          );
+        });
+      }
+
+      return true;
+    });
+
+  }
+
 
   /**
    * Attaches click handlers to post teasers.
@@ -474,6 +514,8 @@ class ExploreOverlay {
       subscriptionItems.forEach(item => {
         item.onclick = (e) => {
           e.preventDefault();
+	  // IMPORTANT: user-driven navigation overrides URL bootstrap
+  	  this.mod.targetPublicKey = null;
           // Remove active class from all items
           subscriptionItems.forEach(i => i.classList.remove('active'));
           // Add active class to clicked item
