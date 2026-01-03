@@ -397,10 +397,12 @@ console.log("ABOUT TO TEST VERIFICATION 1");
           if (!nft?.id) { return tx; }
 console.log("ABOUT TO TEST VERIFICATION 2");
 
-          const value_obj = {
+          let value_obj = {
             timestamp: Date.now(),
             delegate: false
           };
+
+	  if (data.delegate == true) { value_obj.delegate = true; }
 
 console.log("ABOUT TO TEST VERIFICATION 3");
           const value_json = JSON.stringify(value_obj);
@@ -1610,16 +1612,42 @@ alert("Propagating the Transaction!");
       const slip1_utxokey = nft.slip1?.utxo_key || '';
       const slip2_utxokey = nft.slip2?.utxo_key || '';
       const slip3_utxokey = nft.slip3?.utxo_key || '';
+      let slips = [];
+      slips.push(slip1_utxokey);
+      slips.push(slip2_utxokey);
+      slips.push(slip3_utxokey);
 
       if (!slip1_utxokey || !slip2_utxokey || !slip3_utxokey) {
         console.warn('Stack: NFT missing required slip utxo_keys');
         return null;
       }
 
+
+      // 2. Extract routing path from NFT transaction if present
+      let path = []; 
+      try {
+  	const nft_txmsg = nft.tx?.returnMessage?.();
+  	if (Array.isArray(nft_txmsg?.data?.path)) {
+  	  path = nft_txmsg.data.path;
+  	}
+      } catch (err) {
+        // Fail silently — absence of path is normal
+      }
+
+
       // Construct witness data in CHECKOWNNFTWHERE format: { slips: [utxokey1, utxokey2, utxokey3] }
-      const access_witness_obj = {
-        slips: [slip1_utxokey, slip2_utxokey, slip3_utxokey]
-      };
+      let access_witness_obj = [
+	{
+	  utxokey1 : slip1_utxokey ,
+	  utxokey2 : slip2_utxokey ,
+	  utxokey3 : slip3_utxokey ,
+	}
+      ];
+      if (Array.isArray(path) && path.length > 0) {
+        access_witness_obj.push({
+          hops: path
+        });
+      }
       const access_witness = JSON.stringify(access_witness_obj);
 
       // Note: access_hash and access_script come from the POST transaction, not the NFT

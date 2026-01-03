@@ -31,7 +31,7 @@ module.exports = {
   },
 
   exampleWitness: {
-    path: [
+    hops : [
       {
         to: "<publickey>",
         value: "<base64_json_payload>",
@@ -49,7 +49,7 @@ module.exports = {
       hash: "string"
     },
     witness: {
-      path: "array"
+      hops: "array"
     }
   },
 
@@ -60,7 +60,7 @@ module.exports = {
        * 0. Basic input checks
        * -------------------------------------------------- */
 
-      const path = witness?.path;
+      const path = witness?.hops;
       if (!Array.isArray(path) || path.length === 0) {
         return false;
       }
