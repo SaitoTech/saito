@@ -86,7 +86,7 @@ module.exports = {
         if (tx.from[0].publicKey) { vars.REQUESTER = tx.from[0].publicKey; }
       }
       vars.NOW = Date.now();
-
+console.log("VARS: " + JSON.stringify(vars));
 
       /* --------------------------------------------------
        * 1. Cryptographic verification of routing path
