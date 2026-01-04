@@ -816,9 +816,16 @@ console.log("into EVALUATE CONDITION");
   // optional coercion
   const coerce = (v) => {
     if (!type) return v;
-    if (type === "number") return Number(v);
-    if (type === "string") return String(v);
-    if (type === "boolean") return Boolean(v);
+    if (type === "number") { return Number(v); }
+    if (type === "string") { return String(v); }
+    if (type === "boolean") { 
+      if (v === true || v === false) { return v; }
+      if (v === "true") { return true; }
+      if (v === "false") { return false; }
+      if (v === 1) { return true; }
+      if (v === 0) { return false; }
+      return false;
+    }
     return v;
   };
 

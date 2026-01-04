@@ -105,12 +105,6 @@ function getPrivateNonTransferableScript(authorPublicKey) {
     op: "AND",
     args: [
       {
-        op: "CHECKPATH"
-      },
-      {
-        op: "CHECKPATHHOP"
-      },
-      {
         op: "CHECKOWNNFTWHERE",
         where: [
           {
@@ -124,10 +118,32 @@ function getPrivateNonTransferableScript(authorPublicKey) {
             value: authorPublicKey
           }
         ]
+      },
+      {
+        op: "CHECKPATHHOP",
+        selector: "FIRST",
+        where: [
+          {
+            field: "value.delegate",
+            operator: "==",
+            value: false,
+            type: "boolean"
+          }
+        ],
+        assert: [
+          {
+            field: "to",
+            operator: "==",
+            value: "REQUESTER"
+          }
+        ],
+        publickey: authorPublicKey,
+        hash: ""
       }
     ]
   };
 }
+
 
 module.exports = {
   getAccessScriptForIntent

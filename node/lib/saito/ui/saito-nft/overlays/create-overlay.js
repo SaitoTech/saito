@@ -338,7 +338,7 @@ class CreateNFT {
             }
 
             if (obj.createData) {
-              document.querySelector('#nft-image-upload').style.display = 'block';
+              document.querySelector('#nft-image-upload').style.display = 'flex';
               document.querySelector('#create-nft-textarea').style.display = 'none';
             }
           }

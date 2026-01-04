@@ -221,7 +221,10 @@ class ExploreOverlay {
 
     this.isLoading = true;
     this.posts = [];
-    this.targetPublicKey = null;
+
+// breaks fetch
+//    this.targetPublicKey = null;
+
     let author = null;
 
     // Resolve UI filter → concrete author

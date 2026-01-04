@@ -196,16 +196,18 @@ console.log("RENDER: " + this.browser_active);
     try {
       const posts = await this.loadPostsForAuthor(publicKey, { forceRemote: true });
 
+console.log("handle creator view..." + posts.length);
+
       // Update overlay with loaded posts
       this.exploreOverlay.posts = posts;
       this.exploreOverlay.isLoading = false;
-      this.exploreOverlay.updatePostsGrid();
+      this.exploreOverlay.updatePostsGrid(publicKey);
     } catch (error) {
       console.error('Stack: Error loading creator posts:', error);
       // Show error state
       this.exploreOverlay.isLoading = false;
       this.exploreOverlay.posts = [];
-      this.exploreOverlay.updatePostsGrid();
+      this.exploreOverlay.updatePostsGrid(publicKey);
     }
   }
 
@@ -357,10 +359,20 @@ console.log("RENDER: " + this.browser_active);
     //
     // Archives 
     //
-    if (service === "archive" && this.pending_author_load) {
-      let pk = this.pending_author_load;
-      this.pending_author_load = null;
-      this.loadPostsForAuthor(pk, { forceRemote: true });
+    if (service.service === "archive") {
+console.log("$$$$$$$$$$$$$$$$$$");
+console.log("ARCHIVE NODE UP!");
+console.log("$$$$$$$$$$$$$$$$$$");
+      if (this.pending_author_load) {
+console.log("AND PENDING TO FETCH!");
+        let pk = this.pending_author_load;
+        this.pending_author_load = null;
+        await this.handleCreatorView(pk);
+        //this.exploreOverlay.posts = await this.handleCreatorView(pk);
+        //this.exploreOverlay.isLoading = false;
+        //this.exploreOverlay.updatePostsGrid(pk);
+console.log("updated UI...");
+      }
     }
 
   }
@@ -1953,6 +1965,8 @@ console.log("LPFA 3: " + JSON.stringify(localQuery));
       }
     }
 
+console.log("LPFA 3.5 ---> posts total: " + posts.length);
+
 console.log("LPFA 4...: " + forceRemote);
 
     // PART 2.3: If forceRemote, query remote peers
@@ -1975,6 +1989,8 @@ console.log("NO PEERS... deferring...");
   	return posts;
      }
 
+
+
 console.log("LPFA 6...: " + JSON.stringify(remoteQuery));
 
  
@@ -1988,12 +2004,19 @@ console.log("LPFA 6...: " + JSON.stringify(remoteQuery));
         );
       });
 
+console.log("LPFA 6.5... remote posts num: " + remotePosts.length);
+      for (const tx of remotePosts) {
+        seenSignatures.add(tx.signature);
+        posts.push(tx);
+      }
+
       // PART 2.4: For each remotely discovered post, append if unseen and save to localhost
+/***
       for (const tx of remotePosts) {
         if (tx && tx.signature && !seenSignatures.has(tx.signature)) {
           seenSignatures.add(tx.signature);
           posts.push(tx);
-          
+
           // PART 2.5: Immediately save to localhost archive with proper revision handling
           try {
             const txmsg = tx.returnMessage();
@@ -2044,6 +2067,7 @@ console.log("LPFA 6...: " + JSON.stringify(remoteQuery));
           }
         }
       }
+***/
     }
 
     // ========================================================================

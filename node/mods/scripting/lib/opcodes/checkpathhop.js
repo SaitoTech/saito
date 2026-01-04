@@ -1,3 +1,7 @@
+// CHECKPATHHOP CONTRACT:
+// - MUST be satisfiable using only { hops } + vars
+// - MUST fully verify routing path internally
+// - MUST NOT depend on external chain state
 module.exports = {
   name: "CHECKPATHHOP",
 
@@ -53,7 +57,7 @@ module.exports = {
     }
   },
 
-  execute(app, script, witness, vars, tx, blk) {
+  execute(app, script, witness, vars = {}, tx = null, blk = null) {
     try {
 
       /* --------------------------------------------------
@@ -71,6 +75,18 @@ module.exports = {
       if (!start_publickey || typeof start_publickey !== "string") {
         return false;
       }
+
+
+      /* --------------------------------------------------
+       * 0.5 variables that may be needed....
+       * -------------------------------------------------- */
+
+      vars.REQUESTER = "";
+      if (tx?.from.length > 0) {
+        if (tx.from[0].publicKey) { vars.REQUESTER = tx.from[0].publicKey; }
+      }
+      vars.NOW = Date.now();
+
 
       /* --------------------------------------------------
        * 1. Cryptographic verification of routing path
@@ -141,6 +157,17 @@ module.exports = {
         default:
           return false;
       }
+
+
+if (vars?.__DEBUG_ACCESS__) {
+  console.log("CHECKPATHHOP DEBUG", {
+    decoded,
+    filtered,
+    selected,
+    requester: vars.REQUESTER
+  });
+}
+
 
       /* --------------------------------------------------
        * 5. ASSERT conditions
