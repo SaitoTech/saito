@@ -344,6 +344,17 @@ class Archive extends ModTemplate {
 		}
 
 		//
+		// add REQUESTER and TS to submitted object
+		//
+		// over-write any existing information / vars in order to 
+		// avoid users submitting with correct information inappropriately
+		//
+		if (req.data) {
+		  req.data.REQUESTER = peer.publicKey;
+		  req.data.NOW = new Date().getTime(); 
+		}
+
+		//
 		// saves TX containing archive insert instruction
 		//
 		if (req.request === 'archive') {
@@ -616,6 +627,9 @@ class Archive extends ModTemplate {
 		let sort = 'DESC';
 		let request_tx = obj.request_tx || null;
 
+console.log("REQUEST TX IS: " + JSON.stringify(request_tx));
+console.log("REQUEST OBJ IS: " + JSON.stringify(obj));
+
 		//For JS-Store
 		let order_obj = { by: 'id', type: 'desc' };
 		let where_obj = {};
@@ -846,15 +860,18 @@ console.log("* * * * * * * * * *");
 
 						if (access_hash === r.owner) {
 	
+
+console.log("HEADING IN WITH REQUESTER: " + obj.REQUESTER);
+
 							let include_row = false;
 							let scripting_mod = this.app.modules.returnModule('Scripting');
 							if (scripting_mod) {
 								if (
-									scripting_mod.evaluate(
+									await scripting_mod.evaluate(
 										access_hash,
 										access_script,
 										obj.access_witness,
-										{},
+										obj,
 										request_tx,
 										null
 									)

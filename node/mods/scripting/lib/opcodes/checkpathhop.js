@@ -60,6 +60,8 @@ module.exports = {
   execute(app, script, witness, vars = {}, tx = null, blk = null) {
     try {
 
+console.log("EXECUTING CHECKPATHHOP...");
+
       /* --------------------------------------------------
        * 0. Basic input checks
        * -------------------------------------------------- */
@@ -82,7 +84,7 @@ module.exports = {
        * -------------------------------------------------- */
 
       vars.REQUESTER = "";
-      if (tx?.from.length > 0) {
+      if (tx?.from?.length > 0) {
         if (tx.from[0].publicKey) { vars.REQUESTER = tx.from[0].publicKey; }
       }
       vars.NOW = Date.now();
@@ -92,13 +94,17 @@ console.log("VARS: " + JSON.stringify(vars));
        * 1. Cryptographic verification of routing path
        * -------------------------------------------------- */
 
+
       if (!app.crypto.verifyRoutingPath(
         path,
         start_publickey,
         binding_hash
       )) {
+console.log("ROUTING PATH DOES NOT VERIFY: -- return false");
         return false;
       }
+
+console.log("ROUTING PATH VERIFIES!");
 
       /* --------------------------------------------------
        * 2. Decode hops into queryable objects
@@ -158,6 +164,9 @@ console.log("VARS: " + JSON.stringify(vars));
           return false;
       }
 
+      if (!Array.isArray(selected) || selected.length === 0 || selected.some(h => !h)) {
+        return false;
+      }
 
 if (vars?.__DEBUG_ACCESS__) {
   console.log("CHECKPATHHOP DEBUG", {
@@ -169,21 +178,47 @@ if (vars?.__DEBUG_ACCESS__) {
 }
 
 
-      /* --------------------------------------------------
-       * 5. ASSERT conditions
-       * -------------------------------------------------- */
+	/* --------------------------------------------------
+	 * 5. ASSERT conditions
+	 * -------------------------------------------------- */
+console.log("PRE ASSERT: " + JSON.stringify(script));
 
-      if (Array.isArray(script.assert) && script.assert.length > 0) {
-        for (const hop of selected) {
-          for (const assertion of script.assert) {
-            if (!this.evaluateCondition(hop, assertion, vars)) {
-              return false;
-            }
-          }
-        }
+if (Array.isArray(script.assert) && script.assert.length > 0) {
+
+console.log("ASSERT EXISTS...");
+
+  let assertion_satisfied = false;
+
+  for (const hop of selected) {
+console.log("HOP EXISTS...");
+    for (const assertion of script.assert) {
+      const result = this.evaluateCondition(hop, assertion, vars);
+
+console.log("does the result hold: " + result);
+
+      // Any non-boolean result is a failure (prevents vacuous success)
+      if (result !== true && result !== false) {
+        return false;
       }
 
-      return true;
+      if (result === false) {
+        return false;
+      }
+
+      if (result === true) {
+        assertion_satisfied = true;
+      }
+    }
+  }
+
+  if (!assertion_satisfied) {
+    return false;
+  }
+}
+
+console.log("returning true...");
+
+	return true;
 
     } catch (err) {
       console.error("CHECKPATHHOP error:", err);

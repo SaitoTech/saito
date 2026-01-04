@@ -189,6 +189,7 @@ console.log("tx _eval:", tx);
 		let counter = {};
 		counter.node = 0;
 		counter.depth = 0;
+		counter.i = 0;
 
     		//
     		// scripts are communicated over the network as JSON strings, so we 
@@ -234,7 +235,7 @@ console.log("back hash error");
 console.log("swap witness dat into script and evaluate... 2");
 console.log("script: " + JSON.stringify(script));
 console.log("witness: " + JSON.stringify(witness));
-
+console.log("SUBMITTING THIS WITNESS AND SCRIPT INTO _eval");
     		//
     		// swap witness data into script and evaluate the rules
     		//
@@ -246,7 +247,7 @@ console.log("witness: " + JSON.stringify(witness));
 
 async _eval(script, witness, vars, counter, tx, blk) {
 
-console.log("tx _eval:", tx);
+console.log("SUBMITTING THIS WITNESS AND SCRIPT INTO _eval");
   //
   // Safety checks
   //
@@ -260,8 +261,8 @@ console.log("tx _eval:", tx);
     return false;
   }
 
-  if (!script || typeof script !== "object") return false;
-  if (!witness || typeof witness !== "object") return false;
+  if (!script || typeof script !== "object") { return false; }
+  if (!witness || typeof witness !== "object") { return false; }
 
   // normalize args: ALWAYS treat missing args as []
   const args = Array.isArray(script.args) ? script.args : [];
@@ -271,34 +272,50 @@ console.log("tx _eval:", tx);
   //
   // LOGICAL OPS
   //
-  switch (op) {
-    case "and": {
-      counter.depth++;
-      try {
-        return args.every(arg => this._eval(arg, witness, vars, counter, tx, blk));
-      } finally {
-        counter.depth--;
-      }
-    }
+//
+// LOGICAL OPS
+//
+switch (op) {
 
-    case "or": {
-      counter.depth++;
-      try {
-        return args.some(arg => this._eval(arg, witness, vars, counter, tx, blk));
-      } finally {
-        counter.depth--;
+  case "and": {
+    counter.depth++;
+    try {
+      for (const arg of args) {
+        if (!(await this._eval(arg, witness, vars, counter, tx, blk))) {
+          return false;
+        }
       }
-    }
-
-    case "not": {
-      counter.depth++;
-      try {
-        return !this._eval(args[0], witness, vars, counter, tx, blk);
-      } finally {
-        counter.depth--;
-      }
+      return true;
+    } finally {
+      counter.depth--;
     }
   }
+
+  case "or": {
+    counter.depth++;
+    try {
+      for (const arg of args) {
+        if (await this._eval(arg, witness, vars, counter, tx, blk)) {
+          return true;
+        }
+      }
+      return false;
+    } finally {
+      counter.depth--;
+    }
+  }
+
+  case "not": {
+    counter.depth++;
+    try {
+      if (!args[0]) { return true; }
+      return !(await this._eval(args[0], witness, vars, counter, tx, blk));
+    } finally {
+      counter.depth--;
+    }
+  }
+}
+
 
   //
   // OPCODES
@@ -315,7 +332,21 @@ console.log("tx _eval:", tx);
     console.log("witness: ", witness);
     console.log("vars: ", vars);
     console.log("tx: ", tx);
-    return await opcode.execute(this.app, script, witness, vars, tx, blk);
+
+
+    let w = {};
+
+    if (opcode.consumes_witness !== false) {
+      w = witness[counter.i];
+      counter.i++;
+    }
+
+console.log("sending into opcode.execute: ");
+console.log("sending into opcode.execute: witness " + JSON.stringify(w));
+console.log("sending into opcode.execute: script " + JSON.stringify(script));
+
+    return await opcode.execute(this.app, script, w, vars, tx, blk);
+
   } catch (err) {
     console.error(`Error executing opcode '${op}':`, err);
     return false;
@@ -803,7 +834,7 @@ console.log("into EVALUATE CONDITION");
 
   // resolve dot-path on context
   const lhs = field.split(".").reduce(
-    (obj, key) => (obj ? obj[key] : undefined),
+    (obj, key) => (obj !== undefined && obj !== null ? obj[key] : undefined),
     context
   );
 

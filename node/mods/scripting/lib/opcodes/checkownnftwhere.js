@@ -46,7 +46,8 @@ Witness must include:
     }
   },
 
-  execute(app, tx, script, witness) {
+
+  execute(app, script, witness, vars, tx, blk) {
 
     if (!witness?.slips || witness.slips.length !== 3) {
       return false;

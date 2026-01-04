@@ -196,8 +196,6 @@ console.log("RENDER: " + this.browser_active);
     try {
       const posts = await this.loadPostsForAuthor(publicKey, { forceRemote: true });
 
-console.log("handle creator view..." + posts.length);
-
       // Update overlay with loaded posts
       this.exploreOverlay.posts = posts;
       this.exploreOverlay.isLoading = false;
@@ -1941,7 +1939,7 @@ console.log("LPFA 2: " + JSON.stringify(access_witness));
     const localQuery = {
       field1: 'Stack',
       field2: publicKey,
-      field4: 'stack:post'
+      field4: 'stack:post',
     };
     if (access_witness) { localQuery.access_witness = access_witness; }
 
@@ -1973,9 +1971,9 @@ console.log("LPFA 4...: " + forceRemote);
     if (forceRemote) {
       // Build remote query with same access data pattern
       let remoteQuery = {
-        field1: 'Stack',
-        field2: publicKey,
-        field4: 'stack:post'
+        field1: 'Stack' ,
+        field2: publicKey ,
+        field4: 'stack:post' ,
       };
       if (access_witness) { remoteQuery.access_witness = access_witness; }
 
