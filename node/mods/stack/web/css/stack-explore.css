@@ -253,21 +253,7 @@
   overflow-y: auto; /* Main content scrolls, not nested */
 }
 
-/* Sidebar Header - Contains title and add subscription button */
-.stack-explore-sidebar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-}
-
-.stack-explore-sidebar-header h2 {
-  margin: 0;
-  font-size: 2.4rem;
-  font-weight: 600;
-  color: var(--saito-font-color);
-}
-
+/* Sidebar Header is defined above (line 34) - do not duplicate */
 /* Old "+" button styles removed - replaced with text link in main panel header */
 
 /* Main Panel Header - Contains author identity and action links */

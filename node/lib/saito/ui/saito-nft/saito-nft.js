@@ -190,7 +190,6 @@ class SaitoNFT {
 
     if (!this.id) {
       this.id = this.computeNFTIdFromTx(this.tx);
-console.log("this.id: " + this.id);
     }
   }
 
@@ -321,13 +320,9 @@ console.log("this.id: " + this.id);
       return null;
     }
 
-console.log("we are in compute NFTId from TX... 1");
-
     // Prefer outputs; fall back to inputs
     let s3 = (tx?.to && tx.to[2]) || (tx?.from && tx.from[2]);
     if (!s3 || !s3.publicKey) { return null; }
-
-console.log("we are in compute NFTId from TX... 2");
 
     let pk = s3.publicKey;
     let bytes = null;
@@ -347,17 +342,11 @@ console.log("we are in compute NFTId from TX... 2");
       bytes = new Uint8Array(pk.data);
     }
 
-console.log("we are in compute NFTId from TX... 6");
-
     if (!bytes) { return null; }
-
-console.log("we are in compute NFTId from TX... 7");
 
     // Some encoders may prepend a 0x00; tolerate 34→33
     if (bytes.length === 34 && bytes[0] === 0) { bytes = bytes.slice(1); }
     if (bytes.length !== 33) { return null; }
-
-console.log("we are in compute NFTId from TX... 8");
 
     // Return as hex string
     return Array.from(bytes)
@@ -496,6 +485,25 @@ console.log("we are in compute NFTId from TX... 8");
         return prop;
       }
     }
+    return null;
+  }
+
+  returnCreator() {
+    if (this.creator) { return this.creator; }
+
+    // The creator is the public key on the NFT UTXO (slip1)
+    if (this.slip1?.publicKey) {
+      return this.slip1.publicKey;
+    }
+
+    // Fallback: attempt extraction from utxo_key if available
+    if (this.slip3?.utxo_key) {
+      const nft = this.app.wallet.extractNFT(this.slip3.utxo_key);
+      if (nft?.slip1?.publicKey) {
+        return nft.slip1.publicKey;
+      }
+    }
+
     return null;
   }
 }

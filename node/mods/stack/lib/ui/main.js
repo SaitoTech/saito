@@ -86,9 +86,9 @@ class StackMain {
 
   /**
    * Handle "Start Writing" button click
-   * Proceeds directly to editor - Drafts overlay handles draft selection if needed
+   * Checks for existing drafts and shows draft chooser if drafts exist
    */
-  handleStartWriting() {
+  async handleStartWriting() {
     // ========================================================================
     // INVARIANT 4: Unmount before navigating to editor (navigation path: splash → editor)
     // ========================================================================
@@ -98,11 +98,27 @@ class StackMain {
       this.mod.create_post_ui.onEditorUnmount();
     }
 
-    // Proceed directly to editor with explicit intent
-    // INVARIANT 2: Always pass explicit intent - default to "new" mode
-    // The editor will show the Drafts overlay if needed via showDraftChooserOverlay()
-    this.mod.create_post_ui.render();
-    // render() will call initializeDocument() with default intent { mode: 'new' }
+    // ========================================================================
+    // DRAFT FLOW FIX: Check for drafts before deciding intent
+    // ========================================================================
+    // Ensure drafts are discovered before checking validity
+    if (this.mod.discoverDrafts) {
+      await this.mod.discoverDrafts();
+    }
+
+    // Check if valid drafts exist
+    const hasValidDrafts = this.mod.hasValidDrafts && this.mod.hasValidDrafts();
+      
+    // Determine intent based on draft existence
+    const intent = hasValidDrafts ? { mode: 'choose' } : { mode: 'new' };
+    
+    // Set pending intent before render() so it uses the correct intent
+    if (this.mod.create_post_ui) {
+      this.mod.create_post_ui.pendingIntent = intent;
+    }
+    
+    // Render editor - it will use pendingIntent if set, otherwise defaults to 'new'
+      this.mod.create_post_ui.render();
   }
 }
 

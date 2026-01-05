@@ -9,6 +9,7 @@ class PublishSettingsOverlay {
     this.postState = {
       published: false,
       accessLevel: 'public', // 'public', 'private', 'subscription'
+      accessMode: 'transferable', // 'transferable' | 'non-transferable' (only relevant when accessLevel === 'private', default is 'transferable')
       description: '',
       image: null,
       imageUrl: null,
@@ -22,6 +23,13 @@ class PublishSettingsOverlay {
       ...this.postState,
       ...postData
     };
+    
+    // Ensure accessMode is set correctly based on accessLevel
+    if (this.postState.accessLevel === 'private' && !this.postState.accessMode) {
+      this.postState.accessMode = 'transferable'; // Default for private posts is transferable (Flexible)
+    } else if (this.postState.accessLevel === 'public') {
+      this.postState.accessMode = null; // Public posts don't have access mode
+    }
 
     // If editor has featured image, use it (authoritative source)
     if (this.mod.create_post_ui && this.mod.create_post_ui.featuredImage) {
@@ -128,6 +136,16 @@ class PublishSettingsOverlay {
         this.handlePublish();
       });
     }
+
+    // Access type radio buttons (for private posts)
+    const accessTypeRadios = document.querySelectorAll('.stack-publish-access-type-radio');
+    accessTypeRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          this.setAccessMode(e.target.value);
+        }
+      });
+    });
   }
 
   handleDeleteDraft() {
@@ -209,6 +227,14 @@ class PublishSettingsOverlay {
     
     this.postState.accessLevel = level; // 'public' or 'private'
     
+    // Reset accessMode when switching to public
+    if (level === 'public') {
+      this.postState.accessMode = null;
+    } else if (level === 'private' && !this.postState.accessMode) {
+      // Default to transferable (Flexible) for private posts
+      this.postState.accessMode = 'transferable';
+    }
+    
     // Update checkbox card states
     const accessCards = document.querySelectorAll('.stack-publish-access-card');
     
@@ -224,6 +250,62 @@ class PublishSettingsOverlay {
         card.classList.remove('stack-publish-access-card-active');
       }
     });
+    
+    // Update educational content in middle column
+    this.updateEducationalContent(level);
+    
+    // Re-render to show/hide access type selector
+    this.render(this.postState);
+  }
+
+  /**
+   * Set access mode for private posts (transferable or non-transferable)
+   * 
+   * @param {string} mode - 'transferable' | 'non-transferable'
+   */
+  setAccessMode(mode) {
+    if (this.postState.accessLevel !== 'private') {
+      return; // Only valid for private posts
+    }
+    
+    if (mode !== 'transferable' && mode !== 'non-transferable') {
+      console.warn('Stack: Invalid access mode:', mode);
+      return;
+    }
+    
+    this.postState.accessMode = mode;
+    
+    // Update radio button states
+    const radios = document.querySelectorAll('.stack-publish-access-type-radio');
+    radios.forEach(radio => {
+      radio.checked = (radio.value === mode);
+    });
+  }
+
+  /**
+   * Update the educational content in the middle column based on access level
+   */
+  updateEducationalContent(level) {
+    const educationalContentEl = document.querySelector('#stack-publish-educational-content');
+    if (!educationalContentEl) return;
+    
+    let content = '';
+    switch (level) {
+      case 'public':
+        content = 'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
+        break;
+      case 'private':
+        content = 'This post will only be readable by people you explicitly grant access to.\nYou control who can see it.';
+        break;
+      case 'subscription':
+        content = 'Subscription-based access will allow flexible, programmable permissions.\nThis option is not yet available.';
+        break;
+      default:
+        content = 'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
+    }
+    
+    // Render as paragraphs for proper line breaks
+    educationalContentEl.innerHTML = content.split('\n').map(line => `<p>${line}</p>`).join('');
   }
 
   async handleImageUpload(e) {
@@ -280,13 +362,16 @@ class PublishSettingsOverlay {
     // Use DOM-based serialization (DOM is single source of truth)
     const content = this.mod.create_post_ui ? this.mod.create_post_ui.serializeDOMToMarkdown() : '';
 
-    if (!title.trim()) {
-      alert('Please enter a title for your post');
-      return;
-    }
-
-    if (!content.trim()) {
-      alert('Please enter content for your post');
+    // ========================================================================
+    // VALIDATION GUARD: Prevent publishing empty posts (no title AND no content)
+    // ========================================================================
+    // Block only if BOTH title and content are empty
+    // Allow publishing if EITHER title OR content exists
+    const titleEmpty = !title.trim();
+    const contentEmpty = !content.trim();
+    
+    if (titleEmpty && contentEmpty) {
+      alert('Please add a title or some content before publishing.');
       return;
     }
 
@@ -309,6 +394,42 @@ class PublishSettingsOverlay {
       // Get featured image from editor state (authoritative source)
       const featuredImage = this.mod.create_post_ui && this.mod.create_post_ui.featuredImage ? this.mod.create_post_ui.featuredImage : (this.postState.image || '');
       
+      // ========================================================================
+      // PUBLISH INTENT: Generate normalized intent object from UI selection
+      // ========================================================================
+      // UI expresses intent, Stack handles script generation
+      const visibility = this.postState.accessLevel || 'public';
+      
+      // Map UI state to publish intent
+      let publishIntent;
+      if (visibility === 'public') {
+        // Public: access_mode must be null
+        publishIntent = {
+          visibility: 'public',
+          access_mode: null,
+          time_limit: null,
+          author: this.mod.publicKey
+        };
+      } else if (visibility === 'private') {
+        // Private: map accessMode to access_mode
+        // Default to 'transferable' (Flexible) if not set
+        const accessMode = this.postState.accessMode || 'transferable';
+        publishIntent = {
+          visibility: 'private',
+          access_mode: accessMode, // 'transferable' | 'non-transferable'
+          time_limit: null,
+          author: this.mod.publicKey
+        };
+      } else {
+        // Fallback (should not happen)
+        publishIntent = {
+          visibility: 'public',
+          access_mode: null,
+          time_limit: null,
+          author: this.mod.publicKey
+        };
+      }
+      
       // Create and propagate the transaction
       const publishedTx = await this.mod.createStackPostTransaction({
         title,
@@ -319,13 +440,23 @@ class PublishSettingsOverlay {
         timestamp: Date.now(),
         subscriptionTier: this.postState.accessLevel === 'public' ? 'free' : 'paid',
         excerpt: this.postState.description || content.substring(0, 200).replace(/\n/g, ' ').trim(),
-        accessLevel: this.postState.accessLevel, // 'public' or 'private'
+        publishIntent: publishIntent, // Normalized intent object
+        accessLevel: this.postState.accessLevel, // Legacy: kept for backward compatibility
         parent_id: parent_id // Include parent_id if editing (null for new posts)
       }, () => {
         // This callback runs after network confirmation (may take time)
         // State is already cleaned up below, this is just for final sync
         this.postState.published = true;
       });
+      
+      // ========================================================================
+      // OPTIMISTIC UPDATE: Apply immediate UI update for edits
+      // ========================================================================
+      // For edits (parent_id exists), apply optimistic update for immediate feedback
+      // New posts don't need this - they appear immediately via cache update below
+      if (parent_id && this.mod.applyOptimisticPostUpdate) {
+        this.mod.applyOptimisticPostUpdate(publishedTx);
+      }
       
       // ========================================================================
       // OPTIMISTIC CACHE UPDATE: Add post to postsCache immediately
@@ -339,24 +470,48 @@ class PublishSettingsOverlay {
         
         if (txmsg && txmsg.data && from) {
           // ISSUE 2 — DUPLICATE POSTS AFTER EDITING: Remove old versions before adding new one
-          const optimistic_parent_id = parent_id; // parent_id is already extracted above
+          // Compute logical post ID for this transaction using canonical helper
+          const incomingLogicalPostId = this.mod.getLogicalPostId(publishedTx);
           
-          // If this is an edit (has parent_id), remove older versions from cache
-          if (optimistic_parent_id && this.mod.postsCache) {
-            // Remove from allPosts: remove posts where sig === parent_id OR parent_id === parent_id
+          // Extract parent_id from transaction message data (source of truth)
+          const postParentId = txmsg.data.parent_id || null;
+          
+          // Remove older versions of the same logical post from cache
+          if (this.mod.postsCache) {
+            // Remove from allPosts: filter out posts that belong to the same logical post
             if (this.mod.postsCache.allPosts) {
-              this.mod.postsCache.allPosts = this.mod.postsCache.allPosts.filter(p => 
-                p.sig !== optimistic_parent_id && p.parent_id !== optimistic_parent_id
-              );
+              try {
+                this.mod.postsCache.allPosts = this.mod.postsCache.allPosts.filter(p => {
+                  if (!p) return false; // Skip null/undefined entries
+                  try {
+                    return this.mod.getLogicalPostIdFromPost(p) !== incomingLogicalPostId;
+                  } catch (err) {
+                    console.warn('Stack: Error filtering post from allPosts cache:', err);
+                    return true; // Keep entry if we can't process it (safer than removing)
+                  }
+                });
+              } catch (err) {
+                console.error('Stack: Error filtering allPosts cache:', err);
+              }
             }
             
             // Remove from byAuthor cache
             if (this.mod.postsCache.byAuthor && this.mod.postsCache.byAuthor.has(from)) {
-              const authorPosts = this.mod.postsCache.byAuthor.get(from);
-              const filteredAuthorPosts = authorPosts.filter(p => 
-                p.sig !== optimistic_parent_id && p.parent_id !== optimistic_parent_id
-              );
-              this.mod.postsCache.byAuthor.set(from, filteredAuthorPosts);
+              try {
+                const authorPosts = this.mod.postsCache.byAuthor.get(from);
+                const filteredAuthorPosts = authorPosts.filter(p => {
+                  if (!p) return false; // Skip null/undefined entries
+                  try {
+                    return this.mod.getLogicalPostIdFromPost(p) !== incomingLogicalPostId;
+                  } catch (err) {
+                    console.warn('Stack: Error filtering post from byAuthor cache:', err);
+                    return true; // Keep entry if we can't process it (safer than removing)
+                  }
+                });
+                this.mod.postsCache.byAuthor.set(from, filteredAuthorPosts);
+              } catch (err) {
+                console.error('Stack: Error filtering byAuthor cache:', err);
+              }
             }
           }
           
@@ -366,7 +521,7 @@ class PublishSettingsOverlay {
             publicKey: from,
             timestamp: txmsg.data.timestamp || publishedTx.timestamp,
             lastEdited: txmsg.data.timestamp || publishedTx.timestamp,
-            parent_id: optimistic_parent_id // Store parent_id for future deduplication
+            parent_id: postParentId // Store parent_id from transaction data
           };
           
           // Add to transactionCache for immediate access
@@ -468,7 +623,9 @@ class PublishSettingsOverlay {
       }
       
       // Success message - use appropriate message based on whether this is an update or new publish
-      if (parent_id) {
+      // Extract parent_id from transaction data (source of truth)
+      const finalParentId = publishedTx ? (publishedTx.returnMessage()?.data?.parent_id || null) : null;
+      if (finalParentId) {
         siteMessage('Post updated', 1500);
       } else {
         siteMessage('Stack post published', 1500);

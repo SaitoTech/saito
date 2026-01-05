@@ -49,7 +49,6 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
-  margin-bottom: 3rem;
   align-items: stretch; /* Equal height cards */
 }
 
@@ -117,15 +116,7 @@
   margin: 1rem 0 0 0;
 }
 
-/* Draft Explanation Text - below publish button */
-.stack-publish-draft-explanation {
-  font-size: 1.4rem; /* 14px - smaller font */
-  line-height: 1.5;
-  color: var(--saito-font-color);
-  opacity: 0.7; /* Subdued color */
-  margin: 0 0 1.5rem 0;
-  text-align: center;
-}
+/* Draft explanation removed - no longer used in new layout */
 
 /* Featured Image Control */
 .stack-publish-featured-image-control {
@@ -224,65 +215,43 @@
 }
 
 /* ============================================
-   CARD 1: STATUS + PRIMARY ACTION
-   ============================================ */
-
-.stack-publish-card-status {
-  /* Card 1: Status + Publish - Publish button at top */
-  /* Layout flows: Title → Publish Button → Description → Hint */
-}
-
-/* Primary Action Button - Very Prominent, at TOP of card */
-.stack-publish-primary-action-btn {
-  width: 100%;
-  padding: 1.625rem 2rem; /* Increased from 1.5rem - taller for more prominence */
-  border: none;
-  background: var(--saito-primary);
-  color: var(--saito-primary-text, var(--saito-font-color-inverse));
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1.8rem; /* 18px - primary action */
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 0 1.5rem 0; /* Positioned at top */
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15); /* Enhanced shadow for more prominence */
-}
-
-@media (min-width: 769px) {
-  .stack-publish-primary-action-btn {
-    font-size: 2rem; /* 20px on desktop - more prominent */
-    padding: 1.75rem 2.5rem; /* Increased from 1.5rem - taller on desktop */
-    font-weight: 700; /* Increased from 600 for stronger visual weight */
-  }
-}
-
-.stack-publish-primary-action-btn:hover {
-  opacity: 0.95;
-  transform: translateY(-1px);
-  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
-}
-
-.stack-publish-primary-action-btn:active {
-  transform: translateY(0);
-}
-
-@media (max-width: 768px) {
-  .stack-publish-primary-action-btn {
-    padding: 1.5rem 2rem; /* Increased from 1.375rem - taller touch target */
-    font-size: 1.8rem; /* 18px - large and readable */
-    margin-bottom: 1.25rem;
-  }
-}
-
-/* ============================================
-   CARD 2: ACCESS CONTROL
+   LEFT COLUMN: ACCESS CONTROL
    ============================================ */
 
 .stack-publish-card-access {
-  /* Card 2 specific styles */
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   MIDDLE COLUMN: EDUCATIONAL / CONTEXT PANEL
+   ============================================ */
+
+.stack-publish-card-educational {
+  display: flex;
+  flex-direction: column;
+}
+
+.stack-publish-educational-content {
+  font-size: 1.6rem;
+  line-height: 1.6;
+  color: var(--saito-font-color);
+  opacity: 0.85;
+  padding-top: 0.5rem;
+}
+
+.stack-publish-educational-content p {
+  margin: 0 0 1rem 0;
+}
+
+.stack-publish-educational-content p:last-child {
+  margin-bottom: 0;
+}
+
+@media (min-width: 769px) {
+  .stack-publish-educational-content {
+    font-size: 1.7rem;
+  }
 }
 
 /* Access Cards Container */
@@ -293,17 +262,18 @@
   flex: 1;
 }
 
-/* Individual Access Card (Checkbox Card) */
+/* Individual Access Card (Large, Self-Describing) */
 .stack-publish-access-card {
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
-  padding: 1.25rem;
-  border: 1px solid var(--saito-border-color);
-  border-radius: 8px;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  border: 2px solid var(--saito-border-color);
+  border-radius: 10px;
   background: var(--saito-background-color);
   cursor: pointer;
   transition: all 0.2s ease;
+  min-height: 5rem; /* Ensure cards are large enough */
 }
 
 .stack-publish-access-card:hover {
@@ -313,6 +283,7 @@
 
 .stack-publish-access-card-active {
   border-color: var(--saito-primary);
+  border-width: 2px;
   background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background-color) 88%);
 }
 
@@ -336,12 +307,12 @@
   opacity: 0.7;
 }
 
-/* Checkbox */
+/* Checkbox - Larger for prominent cards */
 .stack-publish-access-checkbox {
   margin: 0;
-  margin-top: 0.125rem; /* Align with first line of text */
-  width: 1.25rem;
-  height: 1.25rem;
+  margin-top: 0.25rem; /* Align with first line of text */
+  width: 1.5rem;
+  height: 1.5rem;
   cursor: pointer;
   flex-shrink: 0;
   accent-color: var(--saito-primary);
@@ -356,37 +327,136 @@
 }
 
 .stack-publish-access-card-label {
-  font-size: 1.6rem; /* 16px minimum - option label */
-  font-weight: 500;
+  font-size: 1.8rem; /* 18px minimum - prominent label */
+  font-weight: 600;
   color: var(--saito-font-color);
   line-height: 1.4;
+  margin-bottom: 0.5rem;
 }
 
 @media (min-width: 769px) {
   .stack-publish-access-card-label {
-    font-size: 1.8rem; /* 18px on desktop */
+    font-size: 2rem; /* 20px on desktop */
   }
 }
 
 .stack-publish-access-card-description {
-  font-size: 1.6rem; /* 16px minimum - readable description */
+  font-size: 1.5rem; /* 15px minimum - readable description */
   color: var(--saito-font-color);
-  opacity: 0.85;
+  opacity: 0.8;
   line-height: 1.5;
+  margin: 0;
 }
 
 @media (min-width: 769px) {
   .stack-publish-access-card-description {
-    font-size: 1.7rem; /* 17px on desktop - comfortable reading */
+    font-size: 1.6rem; /* 16px on desktop */
   }
 }
 
+/* Access Type Selector (secondary selection for Private) */
+.stack-publish-access-type-selector {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--saito-border-color);
+}
+
+.stack-publish-access-type-label {
+  font-size: 1.3rem;
+  color: var(--saito-font-color);
+  opacity: 0.7;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.stack-publish-access-type-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stack-publish-access-type-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--saito-border-radius);
+  transition: background-color 0.2s ease;
+}
+
+.stack-publish-access-type-option:hover {
+  background-color: var(--saito-surface-selected);
+}
+
+.stack-publish-access-type-radio {
+  margin-right: 0.75rem;
+  cursor: pointer;
+  width: 1.6rem;
+  height: 1.6rem;
+  accent-color: var(--saito-primary);
+}
+
+.stack-publish-access-type-option-label {
+  font-size: 1.4rem;
+  color: var(--saito-font-color);
+  cursor: pointer;
+  user-select: none;
+}
+
 /* ============================================
-   CARD 3: METADATA (READ-ONLY)
+   RIGHT COLUMN: METADATA + DESTRUCTIVE ACTION
    ============================================ */
 
 .stack-publish-card-metadata {
-  /* Card 3 specific styles */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Metadata Header - Title + Delete Icon */
+.stack-publish-metadata-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start; /* Align titles at top, not center */
+  margin-bottom: 1.5rem;
+}
+
+.stack-publish-metadata-header .stack-publish-card-title {
+  margin: 0; /* Remove default margin to align with other column titles */
+}
+
+/* Delete Draft Icon - Icon-only, subtle, flush-right */
+.stack-publish-delete-draft-icon {
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--saito-font-color);
+  opacity: 0.5;
+  border-radius: 50%; /* Circular background on hover */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  flex-shrink: 0;
+  margin-left: auto; /* Push to flush-right */
+}
+
+.stack-publish-delete-draft-icon:hover {
+  opacity: 1;
+  color: var(--saito-red, #dc3545);
+  background: rgba(220, 53, 69, 0.1); /* Circular background on hover */
+}
+
+.stack-publish-delete-draft-icon:focus {
+  outline: 2px solid var(--saito-primary);
+  outline-offset: 2px;
+}
+
+.stack-publish-delete-draft-icon:active {
+  transform: scale(0.95);
 }
 
 /* Metadata List */
@@ -440,63 +510,67 @@
 }
 
 /* ============================================
-   BOTTOM ACTIONS
+   GLOBAL PUBLISH ACTION
    ============================================ */
 
-.stack-publish-bottom-actions {
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--saito-border-color);
+.stack-publish-global-action {
+  margin-top: 2.5rem;
   display: flex;
-  justify-content: flex-end; /* Align Delete to right */
-  align-items: center;
-  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 2rem;
+  /* Border removed - no longer needed for visual separation */
 }
 
 @media (max-width: 768px) {
-  .stack-publish-bottom-actions {
-    margin-top: 1.5rem;
+  .stack-publish-global-action {
+    margin-top: 2rem;
     padding-top: 1.5rem;
-    justify-content: flex-end; /* Still right-aligned on mobile */
   }
 }
 
-/* Spacer to push Delete to right */
-.stack-publish-bottom-actions-spacer {
-  flex: 1;
-}
-
-/* Delete Draft Button - Secondary, destructive, bottom-right */
-.stack-publish-delete-btn {
-  padding: 0.875rem 1.5rem; /* Increased padding */
-  border: 1px solid var(--saito-red, #dc3545);
-  background: transparent;
-  color: var(--saito-red, #dc3545);
+/* Primary Action Button - Global Commit Action */
+.stack-publish-primary-action-btn {
+  padding: 1.625rem 3rem;
+  border: none;
+  background: var(--saito-primary);
+  color: var(--saito-primary-text, var(--saito-font-color-inverse));
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 1.6rem; /* 16px minimum - readable but secondary */
-  font-weight: 600; /* Increased from 500 for better legibility */
+  font-size: 1.8rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+  min-width: 15rem;
 }
 
 @media (min-width: 769px) {
-  .stack-publish-delete-btn {
-    padding: 1rem 1.75rem; /* More padding on desktop */
+  .stack-publish-primary-action-btn {
+    font-size: 2rem;
+    padding: 1.75rem 3.5rem;
+    font-weight: 700;
+    min-width: 18rem;
   }
+}
+
+.stack-publish-primary-action-btn:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.2);
+}
+
+.stack-publish-primary-action-btn:active {
+  transform: translateY(0);
 }
 
 @media (max-width: 768px) {
-  .stack-publish-delete-btn {
-    padding: 1rem 1.5rem; /* Comfortable touch target */
-    font-size: 1.6rem; /* 16px - readable */
+  .stack-publish-primary-action-btn {
+    padding: 1.5rem 2.5rem;
+    font-size: 1.8rem;
+    width: 100%;
+    min-width: 0;
   }
 }
 
-.stack-publish-delete-btn:hover {
-  border-color: var(--saito-red, #dc3545);
-  color: var(--saito-red, #dc3545);
-  background: rgba(220, 53, 69, 0.1); /* Subtle background on hover, no aggressive red */
-}

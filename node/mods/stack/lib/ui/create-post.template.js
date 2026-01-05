@@ -19,7 +19,7 @@ module.exports = (app, mod) => {
                 type="text" 
                 id="stack-post-title-input" 
                 class="stack-post-title-input" 
-                placeholder="Untitled Post"
+                placeholder="Give your post a working title"
               />
             </div>
             
@@ -43,7 +43,7 @@ module.exports = (app, mod) => {
             <!-- Upload box is only a chooser - image appears in main layout above title -->
             <div id="stack-featured-image-section" class="stack-featured-image-section">
               <!-- Upload Dropzone (shown when no image) -->
-              <div id="stack-featured-image-dropzone" class="stack-featured-image-dropzone">
+              <div id="stack-featured-image-dropzone" class="stack-featured-image-dropzone stack-editor-primary-control">
                 <div class="stack-featured-image-dropzone-content">
                   <i class="fa-solid fa-image stack-featured-image-upload-icon"></i>
                   <p class="stack-featured-image-dropzone-text">Drag and drop an image here</p>
@@ -52,13 +52,13 @@ module.exports = (app, mod) => {
               </div>
             </div>
             
-            <button class="stack-editor-publish-btn" id="stack-editor-publish-btn">
+            <button class="stack-editor-publish-btn stack-editor-primary-control" id="stack-editor-publish-btn">
               Publish
             </button>
             
             <div class="stack-editor-help">
               <span class="stack-editor-help-text">
-                <a href="#" class="stack-editor-help-link" id="stack-editor-help-link">Need help?</a> Learn how to write posts, add headers, quotes, images, and publish to the network.
+                <a href="https://wiki.saito.io/en/applications/stack" class="stack-editor-help-link" id="stack-editor-help-link">Need help?</a> Learn how to write posts, add headers, quotes, images, and publish to the network.
               </span>
             </div>
           </div>

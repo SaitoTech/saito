@@ -8,6 +8,7 @@ const HomePage = require('./index');
 const StackMain = require('./lib/ui/main');
 const ExploreOverlay = require('./lib/ui/overlay/explore');
 const CreatePost = require('./lib/ui/create-post');
+const { getAccessScriptForIntent } = require('./lib/access/access-scripts');
 
 //
 // Stack - Permissioned Blogging Platform
@@ -29,6 +30,9 @@ class Stack extends ModTemplate {
     this.description = 'Permissioned blogging platform - an open-source alternative to Substack';
     this.categories = 'Social Media Blogging Publishing';
     this.icon_fa = 'fa-solid fa-newspaper';
+
+    this.pending_author_load = null;
+    this.pending_post_load = null;
 
     this.social = {
       twitter: '@SaitoOfficial',
@@ -107,6 +111,8 @@ class Stack extends ModTemplate {
   ////////////////////////////
   async render(app) {
 
+console.log("RENDER: " + this.browser_active);
+
     if (!this.browser_active) {
       return;
     }
@@ -137,7 +143,10 @@ class Stack extends ModTemplate {
       if (segments.length === 1) {
         // /stack/<publicKey> - Show creator's posts in Explorer
         const publicKey = segments[0];
-        await this.handleCreatorView(publicKey);
+        this.main.render();
+	setTimeout(async () => {
+          await this.handleCreatorView(publicKey);
+	}, 0);
         return;
       } else if (segments.length === 2) {
         // /stack/<publicKey>/<transactionSignature> - Show specific blog post
@@ -190,13 +199,13 @@ class Stack extends ModTemplate {
       // Update overlay with loaded posts
       this.exploreOverlay.posts = posts;
       this.exploreOverlay.isLoading = false;
-      this.exploreOverlay.updatePostsGrid();
+      this.exploreOverlay.updatePostsGrid(publicKey);
     } catch (error) {
       console.error('Stack: Error loading creator posts:', error);
       // Show error state
       this.exploreOverlay.isLoading = false;
       this.exploreOverlay.posts = [];
-      this.exploreOverlay.updatePostsGrid();
+      this.exploreOverlay.updatePostsGrid(publicKey);
     }
   }
 
@@ -331,7 +340,10 @@ class Stack extends ModTemplate {
    * @param {Object} service - Service object with service name
    */
   async onPeerServiceUp(app, peer, service = {}) {
-    // Only track peers offering Stack service
+
+    //
+    // Stack
+    //
     if (service.service === 'stack') {
       const peerKey = peer?.publicKey || 'unknown';
       this.peers[peerKey] = {
@@ -341,12 +353,33 @@ class Stack extends ModTemplate {
       };
       console.log(`Stack: Peer ${peerKey} connected with Stack service`);
     }
+
+    //
+    // Archives 
+    //
+    if (service.service === "archive") {
+console.log("$$$$$$$$$$$$$$$$$$");
+console.log("ARCHIVE NODE UP!");
+console.log("$$$$$$$$$$$$$$$$$$");
+      if (this.pending_author_load) {
+console.log("AND PENDING TO FETCH!");
+        let pk = this.pending_author_load;
+        this.pending_author_load = null;
+        await this.handleCreatorView(pk);
+        //this.exploreOverlay.posts = await this.handleCreatorView(pk);
+        //this.exploreOverlay.isLoading = false;
+        //this.exploreOverlay.updatePostsGrid(pk);
+console.log("updated UI...");
+      }
+    }
+
   }
 
   ////////////////////////////
   // Inter-module Communication //
   ////////////////////////////
   respondTo(type = '', obj) {
+
     if (type === 'saito-header') {
       let x = [];
       if (!this.browser_active) {
@@ -363,6 +396,84 @@ class Stack extends ModTemplate {
       return x;
     }
 
+    if (type === 'saito-create-nft') {
+      let this_mod = this;
+      
+      return {
+        title: 'Stack Access NFT',
+        class: ['stack'], // This becomes the nft_type parameter for createMintNFTTransaction
+        text: 'Stack Access Key',
+        createData: async (modfile) => {
+          return {
+            module: 'Stack',
+          };
+        }
+      };
+    }
+
+    if (type === 'saito-nft-transfer') {
+      let this_mod = this;
+      return {
+        class: ['stack'],
+        onTransfer: async (nft=null, tx=null, receiver="", data={}) => {
+console.log("ABOUT TO TEST VERIFICATION 1");
+
+      	  if (!tx.msg) { tx.msg = {}; }
+          if (!tx.msg.data) { tx.msg.data = {}; }
+
+          if (!Array.isArray(tx.msg.data.path)) {
+            tx.msg.data.path = [];
+          }
+
+          if (!nft?.id) { return tx; }
+console.log("ABOUT TO TEST VERIFICATION 2");
+
+          let value_obj = {
+            timestamp: Date.now(),
+            delegate: false
+          };
+
+	  if (data.delegate == true) { value_obj.delegate = true; }
+
+console.log("ABOUT TO TEST VERIFICATION 3");
+          const value_json = JSON.stringify(value_obj);
+          const value_b64 = Buffer.from(value_json).toString('base64');
+console.log("ABOUT TO TEST VERIFICATION 4");
+
+          const canonical_string = `${receiver}|${value_b64}|${nft.id}`;
+	  const hash_digest = this_mod.app.crypto.hash(canonical_string);
+	  const privatekey = await this_mod.app.wallet.getPrivateKey();
+	  const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
+
+console.log("ABOUT TO TEST VERIFICATION 5");
+
+          tx.msg.data.path.push({
+            to: receiver,
+            value: value_b64,
+            sig: sig
+          });
+
+console.log("ABOUT TO TEST VERIFICATION 4");
+
+//
+// TEST VERIFICATION NOW
+//
+const is_ok = this_mod.app.crypto.verifyRoutingPath(
+  tx.msg.data.path,
+  nft.returnCreator(),
+  nft.id
+);
+console.log("###");
+console.log("###");
+console.log("###");
+console.log("DOES PATH VALIDATE: " + is_ok)
+
+
+          return tx;
+        }
+      };
+    }
+
     return super.respondTo(type, obj);
   }
 
@@ -370,6 +481,7 @@ class Stack extends ModTemplate {
   // Transaction Handling  //
   ////////////////////////////
   async onConfirmation(blk, tx, conf) {
+
     const txmsg = tx.returnMessage();
     
     // Check if transaction is relevant to Stack module
@@ -395,6 +507,60 @@ class Stack extends ModTemplate {
       }
       // Add other request types here as needed (update, delete, etc.)
     }
+  }
+
+  ////////////////////////////
+  // Access Script Pipeline
+  ////////////////////////////
+  /**
+   * Get access script for a publish intent
+   * 
+   * Maps a normalized publish intent to a canonical access script template.
+   * Returns null for public posts (no access gate).
+   * 
+   * @param {Object} intent - Publish intent object
+   * @param {string} intent.visibility - "public" | "private"
+   * @param {string|null} intent.access_mode - null | "transferable" | "non-transferable"
+   * @param {Object|null} intent.time_limit - null | { seconds: number }
+   * @param {string} intent.author - Public key of the post author
+   * @returns {Object|null} Access script object, or null for public posts
+   */
+  getAccessScriptForPublishIntent(intent) {
+    try {
+      return getAccessScriptForIntent(intent);
+    } catch (error) {
+      console.error('Stack: Error getting access script for intent:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Hash an access script using canonicalization
+   * 
+   * Canonicalizes the script JSON to ensure deterministic hashing.
+   * Same script object will always produce the same hash.
+   * 
+   * @param {Object|null} script - Access script object, or null
+   * @returns {string} Access hash (empty string if script is null)
+   */
+  hashAccessScript(script) {
+    if (script === null || script === undefined) {
+      return '';
+    }
+
+    const scripting_mod = this.app.modules.returnModule("Scripting");
+    if (!scripting_mod) {
+      console.warn('Stack: Scripting module not available - cannot hash access script');
+      return '';
+    }
+
+    // Canonicalize the script to ensure deterministic hashing
+    const canonical_script = scripting_mod.canonicalize(script);
+    
+    // Hash the canonicalized script
+    const access_hash = scripting_mod.hash(canonical_script);
+    
+    return access_hash;
   }
 
   ////////////////////////////
@@ -474,96 +640,83 @@ class Stack extends ModTemplate {
       }
 
       // ========================================================================
-      // ACCESS SCRIPT GENERATION: Attach access script and hash based on mode
+      // ACCESS SCRIPT GENERATION: Deterministic pipeline from intent to hash
       // ========================================================================
-      // Public mode: unrestricted access (script that always passes)
-      // Private mode: NFT-restricted access (CHECKOWNNFT script)
-      // Subscription mode: no script (disabled path)
+      // 1. Generate normalized publish intent from post data
+      // 2. Map intent to canonical access script template
+      // 3. Canonicalize and hash the script
+      // 4. Attach access_hash to transaction
       // ========================================================================
-      const accessLevel = post.accessLevel || 'public';
+      
+      // Generate publish intent (backward compatible with accessLevel string)
+      let publishIntent;
+      if (post.publishIntent && typeof post.publishIntent === 'object') {
+        // New format: normalized intent object
+        publishIntent = post.publishIntent;
+        // Ensure author is set
+        if (!publishIntent.author) {
+          publishIntent.author = this.publicKey;
+        }
+      } else {
+        // Legacy format: convert accessLevel string to intent
+        const accessLevel = post.accessLevel || 'public';
+        publishIntent = {
+          visibility: accessLevel,
+          access_mode: null, // Default to null (will default to transferable for private)
+          time_limit: null,
+          author: this.publicKey
+        };
+      }
+
+      // Get access script for intent
       let access_script = null;
       let access_hash = '';
 
-      // Check if Scripting module is available
-      const scripting_mod = this.app.modules.returnModule("Scripting");
-      if (scripting_mod) {
-        if (accessLevel === 'public') {
-          // Public mode: Create a script that permits unrestricted access
-          // For public access, we use a script that always evaluates to true
-          // Since there's no "always true" opcode, we use OR with a condition
-          // that checks if the sender is the publisher OR not the publisher (always true)
-          // However, a simpler approach: use a minimal script structure that
-          // effectively allows unrestricted access by checking a condition that's
-          // always true for any sender
-          // 
-          // Note: In practice, Archive module may handle missing access scripts
-          // as public, but we attach a script here to be explicit about access mode
-          access_script = {
-            op: "OR",
-            args: [
-              {
-                op: "CHECKSENDER",
-                publickey: this.publicKey
-              },
-              {
-                op: "NOT",
-                args: [
-                  {
-                    op: "CHECKSENDER",
-                    publickey: this.publicKey
-                  }
-                ]
-              }
-            ]
-          };
-          // This script structure: (sender == publisher) OR (sender != publisher)
-          // Always evaluates to true for any sender, effectively allowing unrestricted access
-          const access_script_json = JSON.stringify(access_script);
-          access_hash = scripting_mod.hash(access_script_json);
-          
-          // Attach to transaction message
-          if (!newtx.msg) {
-            newtx.msg = {};
-          }
-          newtx.msg.access_script = access_script_json;
-          newtx.msg.access_hash = access_hash;
-        } else if (accessLevel === 'private') {
-          // Private mode: Restrict access to NFTs issued by the publisher
-          // This uses CHECKOWNNFT to verify the requester owns an NFT issued by the publisher
-          // 
-          // NOTE: In a full implementation, this would require:
-          // 1. The publisher to have minted a subscription NFT
-          // 2. The NFT ID to be known and passed here
-          // 
-          // For now, we use the publisher's public key as a placeholder NFT ID.
-          // This is a stub - full private access requires subscription NFT infrastructure.
-          // 
-          // The script structure follows Vault's pattern for NFT-gated access.
-          const publisherPublicKey = this.publicKey;
-          
-          // Create CHECKOWNNFT script (similar to Vault's createVaultAddFileTransaction pattern)
-          // This script requires the requester to provide witness data (utxokeys) proving
-          // they own an NFT with the specified nftid
-          access_script = {
-            op: "CHECKOWNNFT",
-            nftid: publisherPublicKey // Placeholder - in production, this must be the actual subscription NFT ID
-          };
-          
-          // Convert to JSON string and compute hash using Scripting module helper
-          const access_script_json = JSON.stringify(access_script);
-          access_hash = scripting_mod.hash(access_script_json);
-          
-          // Attach to transaction message (following Vault pattern: access_script and access_hash in msg)
-          if (!newtx.msg) {
-            newtx.msg = {};
-          }
-          newtx.msg.access_script = access_script_json;
-          newtx.msg.access_hash = access_hash;
+      try {
+        access_script = this.getAccessScriptForPublishIntent(publishIntent);
+        
+        // Initialize msg object if needed
+        if (!newtx.msg) {
+          newtx.msg = {};
         }
-        // Subscription mode: no script attached (disabled path)
-      } else {
-        console.warn('Stack: Scripting module not available - access scripts will not be attached');
-        // Fail safely: continue without access scripts
+        
+        if (access_script !== null) {
+          // Private post: Hash the script and attach access_hash
+          access_hash = this.hashAccessScript(access_script);
+          
+          if (access_hash) {
+            // Canonicalize script for optional local storage (debugging only)
+            const scripting_mod = this.app.modules.returnModule("Scripting");
+            if (scripting_mod) {
+              const canonical_script = scripting_mod.canonicalize(access_script);
+              // Store canonicalized script locally for debugging (not required for access)
+              newtx.msg.access_script = canonical_script;
+            }
+            newtx.msg.access_hash = access_hash;
+          }
+        } else {
+          // Public post: access_hash must be ABSENT, not null
+          // Explicitly delete if it exists (e.g., switching from private to public)
+          if (newtx.msg.access_hash !== undefined) {
+            delete newtx.msg.access_hash;
+          }
+          // Also remove access_script if present
+          if (newtx.msg.access_script !== undefined) {
+            delete newtx.msg.access_script;
+          }
+        }
+      } catch (error) {
+        console.error('Stack: Error generating access script:', error);
+        // Fail safely: for public posts, ensure access_hash is absent
+        if (!newtx.msg) {
+          newtx.msg = {};
+        }
+        // If visibility is public, ensure access_hash is deleted
+        if (publishIntent.visibility === 'public') {
+          if (newtx.msg.access_hash !== undefined) {
+            delete newtx.msg.access_hash;
+          }
+        }
       }
 
       // Set the transaction message
@@ -591,6 +744,63 @@ alert("Propagating the Transaction!");
   }
 
   ////////////////////////////
+  // Logical Post Identity Helper
+  ////////////////////////////
+  /**
+   * Returns the canonical logical post ID for a transaction.
+   * 
+   * A Stack post is a LOGICAL OBJECT WITH REVISIONS, not a single transaction.
+   * Multiple transactions can represent the same logical post:
+   * - Root post: signature = sigA, parent_id = null → logical ID = sigA
+   * - Edited post: signature = sigAA, parent_id = sigA → logical ID = sigA
+   * 
+   * This is the AUTHORITATIVE definition of logical post identity.
+   * Do NOT re-derive this logic elsewhere.
+   * 
+   * @param {Transaction} tx - The transaction to get logical post ID for
+   * @returns {string} The logical post ID (parent_id for revisions, signature for roots)
+   */
+  getLogicalPostId(tx) {
+    if (!tx) {
+      throw new Error('getLogicalPostId: tx is required');
+    }
+    
+    try {
+      const txmsg = tx.returnMessage();
+      const parent_id = txmsg?.data?.parent_id || null;
+      
+      // Logical post identity = parent_id || signature
+      // For revisions: use parent_id (the root post signature)
+      // For root posts: use their own signature
+      return parent_id || tx.signature;
+    } catch (error) {
+      // Fallback to signature if message parsing fails
+      console.warn('Stack: Error computing logical post ID, falling back to signature:', error);
+      return tx.signature || '';
+    }
+  }
+
+  /**
+   * Returns the canonical logical post ID for a cached post object.
+   * 
+   * Cached post objects have { sig, parent_id, ... } structure.
+   * This uses the same logical post identity rule as getLogicalPostId(tx).
+   * 
+   * @param {Object} post - The cached post object with sig and parent_id fields
+   * @returns {string} The logical post ID (parent_id for revisions, sig for roots)
+   */
+  getLogicalPostIdFromPost(post) {
+    if (!post) {
+      throw new Error('getLogicalPostIdFromPost: post is required');
+    }
+    
+    // Logical post identity = parent_id || sig
+    // For revisions: use parent_id (the root post signature)
+    // For root posts: use their own signature
+    return (post.parent_id || post.sig) || '';
+  }
+
+  ////////////////////////////
   // Receive Stack Post Transaction
   ////////////////////////////
   ////////////////////////////
@@ -611,6 +821,7 @@ alert("Propagating the Transaction!");
    * @param {Block} blk - The block containing the transaction
    */
   async onReceiveBlogPost(tx, blk) {
+
     // PART 4 — SAFETY CHECKS
     // Fail silently if tx is malformed
     if (!tx || !tx.msg || !tx.from || !tx.from[0]) {
@@ -644,6 +855,14 @@ alert("Propagating the Transaction!");
       field5: parent_id || '', // Empty string for root posts, parent_id for revisions
       preserve: 1
     };
+
+    // Set owner field for private posts (required for access_hash enforcement)
+    // If access_hash exists, this is a private post and needs owner set
+    // Check both txmsg.access_hash (from returnMessage) and tx.msg.access_hash (direct)
+    const access_hash = txmsg.access_hash || tx.msg?.access_hash;
+    if (access_hash) {
+      archiveData.owner = access_hash;
+    }
 
     // If parent_id EXISTS: delete older revisions
     if (parent_id) {
@@ -712,6 +931,9 @@ alert("Propagating the Transaction!");
 
     let txmsg = tx.returnMessage();
 
+    // Extract parent_id from transaction data (source of truth)
+    const parent_id = txmsg.data?.parent_id || null;
+
     let post = { 
       ...txmsg.data, 
       sig: tx.signature, 
@@ -726,24 +948,22 @@ alert("Propagating the Transaction!");
     }
 
     // ISSUE 2 — DUPLICATE POSTS AFTER EDITING: Remove old versions before adding new one
-    // Extract parent_id to determine if this is an edit
-    const parent_id = txmsg.data?.parent_id || null;
+    // Compute logical post ID for this transaction
+    const incomingLogicalPostId = this.getLogicalPostId(tx);
     
-    // If this is an edit (has parent_id), remove older versions from cache
-    if (parent_id) {
-      // Remove from allPosts: remove posts where sig === parent_id OR parent_id === parent_id
-      this.postsCache.allPosts = this.postsCache.allPosts.filter(p => 
-        p.sig !== parent_id && p.parent_id !== parent_id
+    // Remove older versions of the same logical post from cache
+    // Filter out any cached posts that belong to the same logical post
+    this.postsCache.allPosts = this.postsCache.allPosts.filter(p => 
+      this.getLogicalPostIdFromPost(p) !== incomingLogicalPostId
+    );
+    
+    // Remove from byAuthor cache
+    if (this.postsCache.byAuthor.has(from)) {
+      const authorPosts = this.postsCache.byAuthor.get(from);
+      const filteredAuthorPosts = authorPosts.filter(p => 
+        this.getLogicalPostIdFromPost(p) !== incomingLogicalPostId
       );
-      
-      // Remove from byAuthor cache
-      if (this.postsCache.byAuthor.has(from)) {
-        const authorPosts = this.postsCache.byAuthor.get(from);
-        const filteredAuthorPosts = authorPosts.filter(p => 
-          p.sig !== parent_id && p.parent_id !== parent_id
-        );
-        this.postsCache.byAuthor.set(from, filteredAuthorPosts);
-      }
+      this.postsCache.byAuthor.set(from, filteredAuthorPosts);
     }
 
     // Add to cache (check for duplicates to avoid adding the same post twice)
@@ -799,31 +1019,18 @@ alert("Propagating the Transaction!");
         parent_id: parent_id || null // null for root posts, parent signature for revisions
       };
       
-      // For revisions: update the entry for the root post (identified by parent_id)
-      // For root posts: check if entry exists by signature
-      if (parent_id) {
-        // This is a revision - find entry for this post (by parent_id or root signature)
-        // Look for entry where sig === parent_id (root) OR parent_id matches
-        const postIndex = this.app.options.stack.posts.findIndex(p => 
-          p.sig === parent_id || p.parent_id === parent_id
-        );
-        if (postIndex >= 0) {
-          // Update existing post entry with latest revision info
-          this.app.options.stack.posts[postIndex] = lightweightPost;
-        } else {
-          // Post not in list yet - add this revision
-          this.app.options.stack.posts.push(lightweightPost);
-        }
+      // Find existing entry for this logical post using canonical helper
+      const incomingLogicalPostId = this.getLogicalPostId(tx);
+      const postIndex = this.app.options.stack.posts.findIndex(p => 
+        this.getLogicalPostIdFromPost(p) === incomingLogicalPostId
+      );
+      
+      if (postIndex >= 0) {
+        // Update existing post entry with latest revision info
+        this.app.options.stack.posts[postIndex] = lightweightPost;
       } else {
-        // This is a root post - check if entry exists by signature
-        const existingIndex = this.app.options.stack.posts.findIndex(p => p.sig === lightweightPost.sig);
-        if (existingIndex >= 0) {
-          // Update existing post reference
-          this.app.options.stack.posts[existingIndex] = lightweightPost;
-        } else {
-          // Add new post reference
-          this.app.options.stack.posts.push(lightweightPost);
-        }
+        // Post not in list yet - add this revision
+        this.app.options.stack.posts.push(lightweightPost);
       }
       
       this.save();
@@ -1397,6 +1604,98 @@ alert("Propagating the Transaction!");
   }
 
   ////////////////////////////
+  // NFT Access Resolution //
+  ////////////////////////////
+  /**
+   * Resolves Stack NFT access data from wallet for Archive queries.
+   * Mirrors Vault's pattern: discovers Stack NFTs, loads transactions, extracts slips.
+   * 
+   * @returns {Object|null} Access data object with access_hash, access_script, access_witness, or null if no NFT found
+   */
+  async resolveStackAccessData() {
+    try {
+      // Update NFT list to ensure wallet cache is fresh
+      await this.app.wallet.updateNFTList();
+      
+      const nftList = this.app.options.wallet.nfts || [];
+      if (!nftList || nftList.length === 0) {
+        return null;
+      }
+
+      // Find first Stack NFT (type === "stack")
+      let stackNFT = null;
+      for (const rec of nftList) {
+        const nftType = this.app.wallet.extractNFTType(rec.slip3?.utxo_key || '');
+        if (nftType === 'stack') {
+          stackNFT = rec;
+          break;
+        }
+      }
+
+      if (!stackNFT) {
+        return null;
+      }
+
+      // Create SaitoNFT object and load transaction to get full slip data
+      const SaitoNFT = require('../../lib/saito/ui/saito-nft/saito-nft');
+      const nft = new SaitoNFT(this.app, this, null, stackNFT, null);
+      await nft.fetchTransaction();
+
+      // Extract slip utxo_keys (required for witness)
+      const slip1_utxokey = nft.slip1?.utxo_key || '';
+      const slip2_utxokey = nft.slip2?.utxo_key || '';
+      const slip3_utxokey = nft.slip3?.utxo_key || '';
+      let slips = [];
+      slips.push(slip1_utxokey);
+      slips.push(slip2_utxokey);
+      slips.push(slip3_utxokey);
+
+      if (!slip1_utxokey || !slip2_utxokey || !slip3_utxokey) {
+        console.warn('Stack: NFT missing required slip utxo_keys');
+        return null;
+      }
+
+
+      // 2. Extract routing path from NFT transaction if present
+      let path = []; 
+      try {
+  	const nft_txmsg = nft.tx?.returnMessage?.();
+  	if (Array.isArray(nft_txmsg?.data?.path)) {
+  	  path = nft_txmsg.data.path;
+  	}
+      } catch (err) {
+        // Fail silently — absence of path is normal
+      }
+
+
+      // Construct witness data in CHECKOWNNFTWHERE format: { slips: [utxokey1, utxokey2, utxokey3] }
+      let access_witness_obj = [
+	{
+	  utxokey1 : slip1_utxokey ,
+	  utxokey2 : slip2_utxokey ,
+	  utxokey3 : slip3_utxokey ,
+	}
+      ];
+      if (Array.isArray(path) && path.length > 0) {
+        access_witness_obj.push({
+          hops: path
+        });
+      }
+      const access_witness = JSON.stringify(access_witness_obj);
+
+      // Note: access_hash and access_script come from the POST transaction, not the NFT
+      // We return witness data here, and the caller will attach it along with post's access_hash/access_script
+      return {
+        access_witness: access_witness,
+        nft_creator: nft.creator || nft.slip1?.public_key || ''
+      };
+    } catch (error) {
+      console.warn('Stack: Error resolving NFT access data:', error);
+      return null;
+    }
+  }
+
+  ////////////////////////////
   // Transaction Loading   //
   ////////////////////////////
   /**
@@ -1410,8 +1709,19 @@ alert("Propagating the Transaction!");
    * @returns {Transaction|null} Transaction object if no callback, null if not found
    */
   async loadPost(signature, options = {}, callback = null) {
+
     // Extract peer from options if provided
     const peer = options?.peer || null;
+
+    // Build access context once per request
+    let access_script = null;
+    let access_hash = null;
+    let access_witness = null;
+
+    const accessData = await this.resolveStackAccessData();
+    if (accessData?.access_witness) {
+      access_witness = accessData.access_witness;
+    }
 
     // Validate signature
     if (!signature || typeof signature !== 'string') {
@@ -1432,8 +1742,15 @@ alert("Propagating the Transaction!");
       return cachedTx;
     }
 
+    // Step 3: Check localhost archive (if no peer specified)
+    // This checks our own local archive before making network requests
+    // For loadPost(), we don't know the author ahead of time, so we can't construct access_hash
+    // Try loading without access first (works for public posts)
+    const localQuery = { field1: 'Stack', signature: signature , access_witness : access_witness };
+    
     // Step 2: If peer is provided, use it directly (skip localhost check and peer queries)
     if (peer) {
+
       // Determine peer string for loadTransactions
       // Can be "localhost" string or a peer object (we'll use its identifier)
       let peerString = peer;
@@ -1445,7 +1762,7 @@ alert("Propagating the Transaction!");
 
       return new Promise((resolve) => {
         this.app.storage.loadTransactions(
-          { field1: 'Stack', signature: signature },
+          localQuery ,
           (txs) => {
             let tx = null;
 
@@ -1472,11 +1789,11 @@ alert("Propagating the Transaction!");
       });
     }
 
-    // Step 3: Check localhost archive (if no peer specified)
-    // This checks our own local archive before making network requests
+    // For now, try without access data first (public posts)
+    // TODO: Enhance to support private posts by signature (would need author lookup)
     const localTx = await new Promise((resolve) => {
       this.app.storage.loadTransactions(
-        { field1: 'Stack', signature: signature },
+        localQuery,
         (txs) => {
           let tx = null;
 
@@ -1508,6 +1825,9 @@ alert("Propagating the Transaction!");
     // Step 4: Query connected Stack peers (if localhost didn't have it)
     // Simple sequential query - try first available peer
     // No racing, no retries, no timeouts (as per requirements)
+
+console.log("about to make remote fetch...");
+
     const peerKeys = Object.keys(this.peers);
     if (peerKeys.length > 0) {
       const firstPeerKey = peerKeys[0];
@@ -1519,7 +1839,7 @@ alert("Propagating the Transaction!");
             // Query peer for the post
             this.app.network.sendRequestAsTransaction(
               'load stack post',
-              { signature: signature },
+              { signature: signature , access_witness : access_witness },
               (response) => {
                 // Response is array of serialized transactions
                 if (Array.isArray(response) && response.length > 0) {
@@ -1578,21 +1898,56 @@ alert("Propagating the Transaction!");
    * @returns {Promise<Array<Transaction>>} Array of Transaction objects, deduplicated by signature
    */
   async loadPostsForAuthor(publicKey, { forceRemote = true } = {}) {
+
+console.log("LPFA 1: " + publicKey);
+
     if (!publicKey || !this.app.wallet.isValidPublicKey(publicKey)) {
       return [];
     }
 
     const seenSignatures = new Set();
     const posts = [];
+    let access_witness = null;
+
+    // PART 1: Resolve Stack NFT access data (mirrors Vault pattern)
+    // This provides witness data that can be attached to Archive queries
+    const accessData = await this.resolveStackAccessData();
+    if (accessData?.access_witness) {
+      access_witness = accessData.access_witness;
+    } 
+
+console.log("LPFA 2: " + JSON.stringify(access_witness));
+
+    if (accessData && accessData.access_witness) {
+      // Construct the access script for this author (transferable private posts)
+      // This matches the script used when creating private posts
+      const { getAccessScriptForIntent } = require('./lib/access/access-scripts');
+      const publishIntent = {
+        visibility: 'private',
+        access_mode: 'transferable',
+        time_limit: null,
+        author: publicKey
+      };
+      
+    }
+
+console.log("LPFA 2: " + JSON.stringify(access_witness));
+
 
     // PART 2.1: Query local archive first
+    // Build query object - attach access data if NFT exists
+    const localQuery = {
+      field1: 'Stack',
+      field2: publicKey,
+      field4: 'stack:post',
+    };
+    if (access_witness) { localQuery.access_witness = access_witness; }
+
+console.log("LPFA 3: " + JSON.stringify(localQuery));
+
     const localPosts = await new Promise((resolve) => {
       this.app.storage.loadTransactions(
-        {
-          field1: 'Stack',
-          field2: publicKey,
-          field4: 'stack:post'
-        },
+        localQuery,
         (txs) => {
           resolve(txs || []);
         },
@@ -1608,15 +1963,38 @@ alert("Propagating the Transaction!");
       }
     }
 
+console.log("LPFA 3.5 ---> posts total: " + posts.length);
+
+console.log("LPFA 4...: " + forceRemote);
+
     // PART 2.3: If forceRemote, query remote peers
     if (forceRemote) {
+      // Build remote query with same access data pattern
+      let remoteQuery = {
+        field1: 'Stack' ,
+        field2: publicKey ,
+        field4: 'stack:post' ,
+      };
+      if (access_witness) { remoteQuery.access_witness = access_witness; }
+
+console.log("LPFA 5...: " + JSON.stringify(remoteQuery));
+
+      let peers = await this.app.network.getPeers();
+      if (peers.length === 0) {
+	// Defer until peers are available
+console.log("NO PEERS... deferring...");
+    	this.pending_author_load = publicKey;
+  	return posts;
+     }
+
+
+
+console.log("LPFA 6...: " + JSON.stringify(remoteQuery));
+
+ 
       const remotePosts = await new Promise((resolve) => {
         this.app.storage.loadTransactions(
-          {
-            field1: 'Stack',
-            field2: publicKey,
-            field4: 'stack:post'
-          },
+          remoteQuery,
           (txs) => {
             resolve(txs || []);
           },
@@ -1624,12 +2002,19 @@ alert("Propagating the Transaction!");
         );
       });
 
+console.log("LPFA 6.5... remote posts num: " + remotePosts.length);
+      for (const tx of remotePosts) {
+        seenSignatures.add(tx.signature);
+        posts.push(tx);
+      }
+
       // PART 2.4: For each remotely discovered post, append if unseen and save to localhost
+/***
       for (const tx of remotePosts) {
         if (tx && tx.signature && !seenSignatures.has(tx.signature)) {
           seenSignatures.add(tx.signature);
           posts.push(tx);
-          
+
           // PART 2.5: Immediately save to localhost archive with proper revision handling
           try {
             const txmsg = tx.returnMessage();
@@ -1680,16 +2065,58 @@ alert("Propagating the Transaction!");
           }
         }
       }
+***/
     }
 
+    // ========================================================================
+    // COLLAPSE REVISIONS: Group by logical post identity, keep latest only
+    // ========================================================================
+    // A "post" is a LOGICAL OBJECT WITH REVISIONS, not a single transaction.
+    // We MUST show only ONE entry per logical post (the latest revision).
+    // This handles:
+    // - Race conditions during archive deletion
+    // - Remote peers returning stale data
+    // - Partial deletions
+    // - Reorgs
+    const postGroups = new Map(); // key: logicalPostId, value: Transaction
+
+    for (const tx of posts) {
+      try {
+        // Use canonical helper to compute logical post identity
+        const logicalPostId = this.getLogicalPostId(tx);
+        
+        // Get current best revision for this logical post
+        const existingTx = postGroups.get(logicalPostId);
+        
+        if (!existingTx) {
+          // First occurrence of this logical post
+          postGroups.set(logicalPostId, tx);
+        } else {
+          // Compare timestamps - keep the newer one
+          const existingTime = existingTx.timestamp || 0;
+          const currentTime = tx.timestamp || 0;
+          if (currentTime > existingTime) {
+            postGroups.set(logicalPostId, tx);
+          }
+        }
+      } catch (error) {
+        // Skip malformed transactions, but log for debugging
+        console.warn('Stack: Error processing transaction in loadPostsForAuthor:', error);
+      }
+    }
+
+    // Create new array with collapsed versions (one per logical post)
+    // Do NOT reassign posts (it is const) - create new variable instead
+    const collapsedPosts = Array.from(postGroups.values());
+
     // Sort by timestamp DESC (most recent first)
-    posts.sort((a, b) => {
+    collapsedPosts.sort((a, b) => {
       const aTime = a.timestamp || 0;
       const bTime = b.timestamp || 0;
       return bTime - aTime;
     });
 
-    return posts;
+    return collapsedPosts;
   }
 
   /**
@@ -1754,26 +2181,67 @@ alert("Propagating the Transaction!");
   ////////////////////////////
   // Web Server            //
   ////////////////////////////
-  webServer(app, expressapp, express, alternative_slug = null) {
-    const mod_self = this;
-    const webdir = path.resolve(__dirname, '../../mods', this.dirname, 'web');
-    const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
-    
-    // Main Application Route - Serves the HTML Shell generated by index.js
-    expressapp.get(uri, async function (req, res) {
-      let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
-      let updatedSocial = Object.assign({}, mod_self.social);
-      updatedSocial.url = reqBaseURL + encodeURI(mod_self.returnSlug());
+///////////////
+// webserver //
+///////////////
+webServer(app, expressapp, express, alternative_slug = null) {
 
-      res.setHeader('Content-type', 'text/html');
-      res.charset = 'UTF-8';
-      res.send(HomePage(app, mod_self, app.build_number, updatedSocial, []));
-    });
+  const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+  const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
+  const stack_self = this;
 
-    // Serve static files (CSS, JS, images, etc.)
-    // Use path.resolve to ensure absolute path for Express static middleware
-    expressapp.use(uri, express.static(webdir));
-  }
+  //
+  // 1. STATIC FILES — ALWAYS FIRST
+  //
+  // This ensures /stack/js, /stack/css, etc. resolve correctly
+  //
+  expressapp.use(uri, express.static(webdir));
+
+
+  //
+  // 2. STACK APP BOOTSTRAP
+  //
+  // Explicitly handle:
+  //   /stack
+  //   /stack/<publickey>
+  //   /stack/<publickey>/<txsig>
+  //
+  // In ALL cases, we just return the Stack home HTML.
+  // Stack (browser-side) will inspect window.location.pathname
+  // and decide whether to call:
+  //   - loadPostsForAuthor()
+  //   - loadPost()
+  //   - explore logic
+  //
+  let html = HomePage(
+    app,
+    stack_self,
+    app.build_number
+  );
+
+  expressapp.get(`${uri}`, (req, res) => {
+    res.setHeader('Content-type', 'text/html');
+    res.charset = 'UTF-8';
+    return res.send(html);
+  });
+
+  expressapp.get(`${uri}/:publickey`, (req, res) => {
+    res.setHeader('Content-type', 'text/html');
+    res.charset = 'UTF-8';
+    return res.send(html);
+  });
+
+  expressapp.get(`${uri}/:publickey/:txsig`, (req, res) => {
+    res.setHeader('Content-type', 'text/html');
+    res.charset = 'UTF-8';
+    return res.send(html);
+  });
+
+}
+
+
+
+
 
   ////////////////////////////
   // DEVELOPMENT ONLY: Demo Transactions

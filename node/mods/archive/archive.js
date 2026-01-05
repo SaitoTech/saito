@@ -50,8 +50,8 @@ class Archive extends ModTemplate {
 		// limitations like a private archive node that wants to limit
 		// usage of privately-uploaded data.
 		//
-		this.access_hash = 0;
-		//this.access_hash = 1; // don't serve txs with access_hash restrictions
+		//this.access_hash = 0; // ignore access_hash
+		this.access_hash = 1; // don't serve txs with access_hash restrictions
 
 		this.schema = [
 			'id',
@@ -344,6 +344,17 @@ class Archive extends ModTemplate {
 		}
 
 		//
+		// add REQUESTER and TS to submitted object
+		//
+		// over-write any existing information / vars in order to 
+		// avoid users submitting with correct information inappropriately
+		//
+		if (req.data) {
+		  req.data.REQUESTER = peer.publicKey;
+		  req.data.NOW = new Date().getTime(); 
+		}
+
+		//
 		// saves TX containing archive insert instruction
 		//
 		if (req.request === 'archive') {
@@ -616,6 +627,9 @@ class Archive extends ModTemplate {
 		let sort = 'DESC';
 		let request_tx = obj.request_tx || null;
 
+console.log("REQUEST TX IS: " + JSON.stringify(request_tx));
+console.log("REQUEST OBJ IS: " + JSON.stringify(obj));
+
 		//For JS-Store
 		let order_obj = { by: 'id', type: 'desc' };
 		let where_obj = {};
@@ -790,37 +804,85 @@ class Archive extends ModTemplate {
 				// a specific network item in order to access.
 				//
 				if (r.owner) {
+
+console.log(" we have found a protected row ... ");
+
+  					let access_script = obj.access_script || null;
+  					let access_hash   = obj.access_hash   || null;
+
+					if (!access_script && obj.access_witness) {
+
+console.log("* * * WITNESS * * *");
+console.log(JSON.stringify(obj.access_witness));
+console.log("* * * * * * * * * *");
+
+    						try {
+//  							if (!r.tx || !r.tx.includes('"access_script"')) {
+//console.log("no access_script in transaction, thus no way to confirm access_witness alone valid...");
+//  								continue;
+//							}
+
+      							let tx = new Transaction();
+      							tx.deserialize_from_web(this.app, r.tx);
+
+							let txmsg = tx.returnMessage();
+
+      							if (txmsg.access_script) {
+        							access_script = txmsg.access_script;
+        						}
+      							if (txmsg.access_hash) {
+								access_hash   = txmsg.access_hash;
+      							}
+    						} catch (err) {
+      							// malformed tx, deny
+      							continue;
+    						}
+					}
+
+					//
+					// 
+					//
+  					//if (access_hash !== r.owner) {
+    					//	continue;
+  					//}
+
+
 					//
 					//
 					//
-					if (!obj.access_script || !obj.access_witness) {
+					if (!access_script && !obj.access_witness) {
 						//
-						// no script / witness remove row
+						// no script but witness provided...
 						//
+						continue;
+
 					} else {
-						//
-						// otherwise evaluate...
-						//
-						if (obj.access_hash === r.owner) {
-							//let peers = await this.app.network.getPeers();
-							//for (let peer of peers) {
-							//	console.log('PEER: ' + JSON.stringify(peer));
-							//}
+
+						if (access_hash === r.owner) {
+	
+
+console.log("HEADING IN WITH REQUESTER: " + obj.REQUESTER);
 
 							let include_row = false;
 							let scripting_mod = this.app.modules.returnModule('Scripting');
 							if (scripting_mod) {
 								if (
-									scripting_mod.evaluate(
-										obj.access_hash,
-										obj.access_script,
+									await scripting_mod.evaluate(
+										access_hash,
+										access_script,
 										obj.access_witness,
-										{},
+										obj,
 										request_tx,
 										null
 									)
 								) {
+console.log("SUCCEEDED in EVALUATE...");
 									include_row = true;
+								} else {
+console.log("FAILED TO EVALUATE...");
+console.log(access_hash);
+console.log(JSON.stringify(access_script));
+console.log(JSON.stringify(obj.access_witness));
 								}
 							}
 							if (include_row) {
@@ -828,6 +890,8 @@ class Archive extends ModTemplate {
 							}
 						}
 					}
+				} else {
+    					altered_rows.push(r);
 				}
 			}
 

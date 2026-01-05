@@ -1,7 +1,7 @@
 const PostTeaser = require('../post-teaser');
 
-module.exports = (app, mod, posts = [], isLoading = false) => {
-  return `
+module.exports = (app, mod, posts = [], isLoading = false, subs  =[]) => {
+  let html = `
     <div class="stack-explore-overlay">
       <div class="stack-explore-sidebar">
         <div class="stack-explore-sidebar-header">
@@ -9,14 +9,19 @@ module.exports = (app, mod, posts = [], isLoading = false) => {
         </div>
         <div class="stack-explore-sidebar-content">
           <div class="stack-explore-subscriptions-list">
-            <div class="stack-explore-subscription-item active" data-filter="all">
-              <i class="fa-solid fa-newspaper"></i>
-              <span>Saito Official</span>
+  `;
+  for (let z = 0; z < subs.length; z++) {
+    let active = "";
+    if (z == 0) { active = " active"; }
+    html += `
+            <div class="stack-explore-subscription-item ${active}" data-filter="${subs[z].publickey}">
+              <i class="${subs[z].icon}"></i>
+              <span>${subs[z].label}</span>
             </div>
-            <div class="stack-explore-subscription-item" data-filter="my-posts">
-              <i class="fa-solid fa-user"></i>
-              <span>My Posts</span>
-            </div>
+    `;
+  }
+
+  html += `
           </div>
           
           <!-- Contextual help note - only shown when subscription list is short (2 or fewer) -->
@@ -89,5 +94,7 @@ module.exports = (app, mod, posts = [], isLoading = false) => {
       </div>
     </div>
   `;
+
+  return html;
 };
 

@@ -1,4 +1,7 @@
-module.exports = (app, mod, build_number, og_card, recent_posts = []) => {
+module.exports = (app, mod, build_number, og_card = {}, recent_posts = []) => {
+
+ 
+
   let html = `
 
 <!DOCTYPE html>
