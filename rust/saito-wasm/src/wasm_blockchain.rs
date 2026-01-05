@@ -87,7 +87,7 @@ impl WasmBlockchain {
                 .config_lock
                 .write()
                 .await;
-            configs.set_blockchain_configs(Some(Default::default()));
+            // configs.set_blockchain_configs(Some(Default::default()));
             // configs
             //     .get_blockchain_configs_mut()
             //     .expect("blockchain config should exist here")

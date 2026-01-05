@@ -44,13 +44,13 @@ pub fn bit_unpack(packed: u64) -> (u32, u32) {
     (top, bottom)
 }
 
-// const FORK_ID_WEIGHTS: [u64; 16] = [
-//     0, 10, 10, 10, 10, 10, 25, 25, 100, 300, 500, 4000, 10000, 20000, 50000, 100000,
-// ];
-
 const FORK_ID_WEIGHTS: [u64; 16] = [
-    0, 10, 10, 20, 40, 60, 100, 400, 1000, 1000, 1000, 2000, 5000, 10000, 20000, 40000,
+    0, 10, 10, 10, 10, 10, 25, 25, 100, 300, 500, 4000, 10000, 20000, 50000, 100000,
 ];
+
+// const FORK_ID_WEIGHTS: [u64; 16] = [
+//     0, 10, 10, 20, 40, 60, 100, 400, 1000, 1000, 1000, 2000, 5000, 10000, 20000, 40000,
+// ];
 
 pub type NewChainDetected = bool;
 
@@ -313,10 +313,7 @@ impl Blockchain {
                     "hash is empty for parent of block : {:?}",
                     block.hash.to_hex()
                 );
-            } else if configs
-                .get_blockchain_configs()
-                .expect("blockchain config should exist here")
-                .initial_loading_completed
+            } else if configs.get_blockchain_configs().initial_loading_completed
                 || self.checkpoint_found
             {
                 let previous_block_fetched = iterate!(mempool.blocks_queue, 100)
@@ -722,7 +719,6 @@ impl Blockchain {
 
                 let writing_interval = configs
                     .get_blockchain_configs()
-                    .expect("blockchain config should exist here")
                     .issuance_writing_block_interval;
 
                 if writing_interval > 0
@@ -784,10 +780,7 @@ impl Blockchain {
         let mut confirmations = vec![];
         let mut block_depth: BlockId = 0;
         const MAX_BLOCK_DEPTH: BlockId = 100;
-        let stored_confirmations = &configs
-            .get_blockchain_configs()
-            .expect("blockchain config should exist here")
-            .confirmations;
+        let stored_confirmations = &configs.get_blockchain_configs().confirmations;
         let min_block_id = stored_confirmations
             .iter()
             .map(|(id, _, _)| *id)
@@ -859,16 +852,8 @@ impl Blockchain {
         }
 
         let mut confs: Vec<BlockId> = Vec::with_capacity(self.block_confirmation_limit as usize);
-        let mut config_confs = configs
-            .get_blockchain_configs_mut()
-            .expect("blockchain config should exist here")
-            .confirmations
-            .clone();
-        configs
-            .get_blockchain_configs_mut()
-            .expect("blockchain config should exist here")
-            .confirmations
-            .clear();
+        let mut config_confs = configs.get_blockchain_configs_mut().confirmations.clone();
+        configs.get_blockchain_configs_mut().confirmations.clear();
         while let Some((block_id, block_hash, required_confirmation_count)) = confirmations.pop() {
             {
                 let block = self.get_block_mut(&block_hash).unwrap();
@@ -877,11 +862,11 @@ impl Blockchain {
                 }
                 block.confirmations += required_confirmation_count;
 
-                configs
-                    .get_blockchain_configs_mut()
-                    .expect("blockchain config should exist here")
-                    .confirmations
-                    .push((block.id, block.hash, block.confirmations));
+                configs.get_blockchain_configs_mut().confirmations.push((
+                    block.id,
+                    block.hash,
+                    block.confirmations,
+                ));
             }
 
             self.notify_on_confirmation(block_id, &block_hash, &confs);
@@ -889,10 +874,7 @@ impl Blockchain {
         }
 
         // add any leftover confirmations back into the vec
-        let entries_in_config = &mut configs
-            .get_blockchain_configs_mut()
-            .expect("blockchain config should exist here")
-            .confirmations;
+        let entries_in_config = &mut configs.get_blockchain_configs_mut().confirmations;
         config_confs.sort_by(|a, b| a.0.cmp(&b.0));
         while let Some((id, hash, confirmation_count)) = config_confs.pop() {
             if entries_in_config
