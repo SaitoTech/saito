@@ -135,7 +135,7 @@ impl Configuration for NodeConfigurations {
     }
 
     fn get_blockchain_configs(&self) -> &BlockchainConfig {
-         &self.blockchain
+        &self.blockchain
     }
     fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
         &mut self.blockchain
