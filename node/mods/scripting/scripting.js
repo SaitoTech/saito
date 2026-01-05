@@ -8,14 +8,17 @@ const ScriptingMain = require('./lib/ui/main');
 /////////////
 // OPCODES //
 /////////////
-const OpcodeCheckSig      = require('./lib/opcodes/checksig');
-const OpcodeCheckTime     = require('./lib/opcodes/checktime');
-const OpcodeCheckHash     = require('./lib/opcodes/checkhash');
-const OpcodeCheckSender   = require('./lib/opcodes/checksender');
-const OpcodeCheckField    = require('./lib/opcodes/checkfield');
-const OpcodeCheckMultiSig = require('./lib/opcodes/checkmultisig');
-const OpcodeCheckOwn      = require('./lib/opcodes/checkown');
-const OpcodeCheckOwnNft   = require('./lib/opcodes/checkownnft');
+var OpcodeCheckSig      	= require('./lib/opcodes/checksig');
+var OpcodeCheckTime     	= require('./lib/opcodes/checktime');
+var OpcodeCheckHash     	= require('./lib/opcodes/checkhash');
+var OpcodeCheckSender   	= require('./lib/opcodes/checksender');
+var OpcodeCheckField    	= require('./lib/opcodes/checkfield');
+var OpcodeCheckMultiSig 	= require('./lib/opcodes/checkmultisig');
+var OpcodeCheckOwn      	= require('./lib/opcodes/checkown');
+var OpcodeCheckOwnNft   	= require('./lib/opcodes/checkownnft');
+var OpcodeCheckOwnNftWhere   	= require('./lib/opcodes/checkownnftwhere');
+var OpcodeCheckPath     	= require('./lib/opcodes/checkpath');
+var OpcodeCheckPathHop  	= require('./lib/opcodes/checkpathhop');
 
 class Scripting extends ModTemplate {
 
@@ -40,14 +43,24 @@ class Scripting extends ModTemplate {
 
 	initialize(app) {
 
+
+  		const sharedHelpers = {
+    			evaluateCondition : this.evaluateCondition
+  		};
+
 		//
 		// initialize our opcodes
 		//
-		[ OpcodeCheckSig , OpcodeCheckTime , OpcodeCheckHash , 
-      OpcodeCheckSender , OpcodeCheckField , OpcodeCheckMultiSig, 
-      OpcodeCheckOwn, OpcodeCheckOwnNft
-    ].forEach((op) => { 
+		[
+		  OpcodeCheckSig , OpcodeCheckTime , OpcodeCheckHash , 
+      		  OpcodeCheckSender , OpcodeCheckField , OpcodeCheckMultiSig, 
+      		  OpcodeCheckOwn, OpcodeCheckOwnNft, OpcodeCheckPath, 
+		  OpcodeCheckPathHop, OpcodeCheckOwnNftWhere
+    		].forEach((op) => { 
   			if (op?.name && typeof op.execute === "function") {
+
+      				Object.assign(op, sharedHelpers);
+
   		  		this.opcodes[op.name.toLowerCase()] = op;
   			}
 		});
@@ -78,7 +91,7 @@ class Scripting extends ModTemplate {
               title : "Scripting NFT" ,
               class : ["scripting-nft-mod"] ,
 	      text : "Access Script" ,
-              createObject : async (script) => {
+              createData : async (script) => {
                 let obj = {};
                 obj.module = "Scripting";
                 obj.access_hash = this_mod.app.crypto.hash(this_mod.canonicalize(script));
@@ -105,12 +118,12 @@ class Scripting extends ModTemplate {
 canonicalize(x) {
 
     // null
-    if (x === null) return "null";
+    if (x === null) { return "null"; }
 
     // primitives
-    if (typeof x === "number") return JSON.stringify(x);
-    if (typeof x === "boolean") return JSON.stringify(x);
-    if (typeof x === "string") return JSON.stringify(x);
+    if (typeof x === "number") { return JSON.stringify(x); }
+    if (typeof x === "boolean") { return JSON.stringify(x); }
+    if (typeof x === "string") { return JSON.stringify(x); }
 
     // array
     if (Array.isArray(x)) {
@@ -176,6 +189,7 @@ console.log("tx _eval:", tx);
 		let counter = {};
 		counter.node = 0;
 		counter.depth = 0;
+		counter.i = 0;
 
     		//
     		// scripts are communicated over the network as JSON strings, so we 
@@ -221,7 +235,7 @@ console.log("back hash error");
 console.log("swap witness dat into script and evaluate... 2");
 console.log("script: " + JSON.stringify(script));
 console.log("witness: " + JSON.stringify(witness));
-
+console.log("SUBMITTING THIS WITNESS AND SCRIPT INTO _eval");
     		//
     		// swap witness data into script and evaluate the rules
     		//
@@ -233,7 +247,7 @@ console.log("witness: " + JSON.stringify(witness));
 
 async _eval(script, witness, vars, counter, tx, blk) {
 
-console.log("tx _eval:", tx);
+console.log("SUBMITTING THIS WITNESS AND SCRIPT INTO _eval");
   //
   // Safety checks
   //
@@ -247,8 +261,8 @@ console.log("tx _eval:", tx);
     return false;
   }
 
-  if (!script || typeof script !== "object") return false;
-  if (!witness || typeof witness !== "object") return false;
+  if (!script || typeof script !== "object") { return false; }
+  if (!witness || typeof witness !== "object") { return false; }
 
   // normalize args: ALWAYS treat missing args as []
   const args = Array.isArray(script.args) ? script.args : [];
@@ -258,34 +272,50 @@ console.log("tx _eval:", tx);
   //
   // LOGICAL OPS
   //
-  switch (op) {
-    case "and": {
-      counter.depth++;
-      try {
-        return args.every(arg => this._eval(arg, witness, vars, counter, tx, blk));
-      } finally {
-        counter.depth--;
-      }
-    }
+//
+// LOGICAL OPS
+//
+switch (op) {
 
-    case "or": {
-      counter.depth++;
-      try {
-        return args.some(arg => this._eval(arg, witness, vars, counter, tx, blk));
-      } finally {
-        counter.depth--;
+  case "and": {
+    counter.depth++;
+    try {
+      for (const arg of args) {
+        if (!(await this._eval(arg, witness, vars, counter, tx, blk))) {
+          return false;
+        }
       }
-    }
-
-    case "not": {
-      counter.depth++;
-      try {
-        return !this._eval(args[0], witness, vars, counter, tx, blk);
-      } finally {
-        counter.depth--;
-      }
+      return true;
+    } finally {
+      counter.depth--;
     }
   }
+
+  case "or": {
+    counter.depth++;
+    try {
+      for (const arg of args) {
+        if (await this._eval(arg, witness, vars, counter, tx, blk)) {
+          return true;
+        }
+      }
+      return false;
+    } finally {
+      counter.depth--;
+    }
+  }
+
+  case "not": {
+    counter.depth++;
+    try {
+      if (!args[0]) { return true; }
+      return !(await this._eval(args[0], witness, vars, counter, tx, blk));
+    } finally {
+      counter.depth--;
+    }
+  }
+}
+
 
   //
   // OPCODES
@@ -302,7 +332,21 @@ console.log("tx _eval:", tx);
     console.log("witness: ", witness);
     console.log("vars: ", vars);
     console.log("tx: ", tx);
-    return await opcode.execute(this.app, script, witness, vars, tx, blk);
+
+
+    let w = {};
+
+    if (opcode.consumes_witness !== false) {
+      w = witness[counter.i];
+      counter.i++;
+    }
+
+console.log("sending into opcode.execute: ");
+console.log("sending into opcode.execute: witness " + JSON.stringify(w));
+console.log("sending into opcode.execute: script " + JSON.stringify(script));
+
+    return await opcode.execute(this.app, script, w, vars, tx, blk);
+
   } catch (err) {
     console.error(`Error executing opcode '${op}':`, err);
     return false;
@@ -731,6 +775,106 @@ _assembleScriptAndWitness(ast) {
     witness: witnessList
   };
 }
+
+
+
+/**
+ * generateWitnessFromScript(access_script)
+ * 
+ * Takes a script JSON and returns a witness template with placeholder values.
+ * Mirrors the structure of _assembleScriptAndWitness but in reverse.
+ * 
+ * @param {Object|String} access_script - The compiled script JSON
+ * @returns {Object} - Witness template object
+ */
+generateWitnessFromScript(access_script) {
+  try {
+    // Parse if string
+    let script = typeof access_script === 'string' 
+      ? JSON.parse(access_script) 
+      : access_script;
+    
+    const collectWitness = (node) => {
+      if (!node || typeof node !== 'object') return {};
+      
+      let op = (node.op || '').toLowerCase();
+      
+      // Logical operators - merge witness from all args
+      if (['and', 'or', 'not'].includes(op)) {
+        let merged = {};
+        if (Array.isArray(node.args)) {
+          node.args.forEach(arg => {
+            Object.assign(merged, collectWitness(arg));
+          });
+        }
+        return merged;
+      }
+      
+      // Regular opcode - return its example witness
+      let opcode = this.opcodes[op];
+      return opcode?.exampleWitness || {};
+    };
+    
+    return collectWitness(script);
+    
+  } catch (err) {
+    console.error('generateWitnessFromScript error:', err);
+    return {};
+  }
+}
+
+
+
+
+evaluateCondition(context, condition, vars = {}) {
+
+console.log("into EVALUATE CONDITION");
+
+  const { field, operator, value, type } = condition;
+
+  // resolve dot-path on context
+  const lhs = field.split(".").reduce(
+    (obj, key) => (obj !== undefined && obj !== null ? obj[key] : undefined),
+    context
+  );
+
+  // resolve symbolic RHS
+  let rhs = value;
+  if (typeof value === "string" && vars && vars[value] !== undefined) {
+    rhs = vars[value];
+  }
+
+  // optional coercion
+  const coerce = (v) => {
+    if (!type) return v;
+    if (type === "number") { return Number(v); }
+    if (type === "string") { return String(v); }
+    if (type === "boolean") { 
+      if (v === true || v === false) { return v; }
+      if (v === "true") { return true; }
+      if (v === "false") { return false; }
+      if (v === 1) { return true; }
+      if (v === 0) { return false; }
+      return false;
+    }
+    return v;
+  };
+
+  const left = coerce(lhs);
+  const right = coerce(rhs);
+
+  switch (operator) {
+    case "==":  return left === right;
+    case "!=":  return left !== right;
+    case "<":   return left < right;
+    case "<=":  return left <= right;
+    case ">":   return left > right;
+    case ">=":  return left >= right;
+    default:
+      throw new Error(`Unknown operator: ${operator}`);
+  }
+}
+
 
 
 

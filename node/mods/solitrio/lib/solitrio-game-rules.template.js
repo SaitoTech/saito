@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	let html = `<div class="rules-overlay">
+  let html = `<div class="rules-overlay saito-overlay-size">
               <h1>Solitrio</h1>
                 <ul>
                   <li>Cards (2-10 in each suit) are randomly arranged in four rows of ten with four blank spaces.</li>
@@ -12,5 +12,5 @@ module.exports = (app, mod) => {
             </div>
             `;
 
-	return html;
+  return html;
 };

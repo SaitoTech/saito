@@ -45,14 +45,14 @@ class OnePlayerGameTemplate extends GameTemplate {
   }
 
   // Create an exp league for single player games by default
-  respondTo(type) {
+  respondTo(type = '', obj = null) {
     if (type == 'default-league') {
       let obj = super.respondTo(type);
       obj.ranking_algorithm = 'EXP';
       obj.default_score = 0;
       return obj;
     }
-    return super.respondTo(type);
+    return super.respondTo(type, obj);
   }
 
   returnStatsHTML(title = null, adjustment = 0) {

@@ -1,0 +1,170 @@
+/* ============================================
+   CHOOSE DRAFT OVERLAY - VERTICAL BOXED LAYOUT
+   ============================================ */
+
+/* Overlay Container */
+.stack-choose-draft-overlay {
+  max-width: 600px;
+  width: min(600px, 90vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--saito-background-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .stack-choose-draft-overlay {
+    max-width: 100vw;
+    width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* Content Container */
+.stack-choose-draft-content {
+  padding: 3rem 3rem 2rem 3rem;
+}
+
+@media (max-width: 768px) {
+  .stack-choose-draft-content {
+    padding: 2rem 1.5rem 1.5rem 1.5rem;
+  }
+}
+
+/* Title / Headline */
+.stack-choose-draft-title {
+  font-size: 2.8rem;
+  font-weight: 600;
+  color: var(--saito-font-color);
+  margin: 0 0 2.5rem 0;
+  padding: 0;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .stack-choose-draft-title {
+    font-size: 2.4rem;
+    margin-bottom: 2rem;
+  }
+}
+
+/* List Container with Subtle Background */
+.stack-choose-draft-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--saito-surface-selected, var(--saito-background-color-secondary, var(--saito-background-color)));
+  border-radius: 8px;
+  padding: 0.5rem;
+  border: 1px solid var(--saito-border-color);
+}
+
+/* Draft Row - Equal height, clickable */
+.stack-choose-draft-row {
+  display: flex;
+  flex-direction: column;
+  background: var(--saito-background-color);
+  border-radius: 6px;
+  padding: 1.275rem 2rem; /* Reduced by ~15% from 1.5rem */
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+  border: 1px solid transparent;
+  margin-bottom: 0.5rem;
+}
+
+.stack-choose-draft-row:last-child {
+  margin-bottom: 0;
+}
+
+.stack-choose-draft-row:hover {
+  background: var(--saito-surface-hover, var(--saito-background-color-secondary, var(--saito-background-color)));
+  border-color: var(--saito-primary);
+  transform: translateY(-1px);
+}
+
+.stack-choose-draft-row-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem; /* Tightened from 0.5rem */
+}
+
+.stack-choose-draft-row-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.stack-choose-draft-row-title {
+  font-size: 2.2rem; /* Increased from 2rem */
+  font-weight: 500;
+  color: var(--saito-font-color);
+  line-height: 1.3; /* Tighter line height */
+  word-wrap: break-word;
+  flex: 1;
+}
+
+.stack-choose-draft-row-meta {
+  font-size: 1.4rem; /* Slightly smaller */
+  color: var(--saito-font-color-light);
+  line-height: 1.3; /* Tighter line height */
+  margin-top: 0.2rem; /* Reduced spacing from title */
+}
+
+/* Delete Icon - Icon-only, no button chrome */
+.stack-choose-draft-row-delete {
+  flex-shrink: 0;
+  color: var(--saito-font-color-light);
+  cursor: pointer;
+  font-size: 1.6rem;
+  transition: opacity 150ms ease, color 150ms ease;
+  display: inline-block;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.stack-choose-draft-row-delete:hover {
+  opacity: 1;
+  color: var(--saito-red, #f71f3d);
+}
+
+/* Create New Post Row - Primary action styling */
+.stack-choose-draft-row-create-new {
+  background: var(--saito-primary);
+  color: var(--saito-primary-text, var(--saito-font-color-inverse));
+  border-color: var(--saito-primary);
+}
+
+.stack-choose-draft-row-create-new .stack-choose-draft-row-title {
+  color: var(--saito-primary-text, var(--saito-font-color-inverse));
+  font-weight: 500;
+}
+
+.stack-choose-draft-row-create-new:hover {
+  background: var(--saito-primary);
+  opacity: 0.9;
+  border-color: var(--saito-primary);
+}
+
+@media (max-width: 768px) {
+  .stack-choose-draft-row {
+    padding: 1.1rem 1.5rem; /* Reduced by ~15% from 1.3rem */
+  }
+  
+  .stack-choose-draft-row-title {
+    font-size: 2rem; /* Increased from 1.8rem */
+  }
+  
+  .stack-choose-draft-row-meta {
+    font-size: 1.3rem; /* Slightly smaller */
+  }
+
+  .stack-choose-draft-row-delete {
+    font-size: 1.5rem;
+  }
+}

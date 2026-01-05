@@ -654,9 +654,9 @@ class Mods {
     return null;
   }
 
-  returnFirstRespondTo(request) {
+  returnFirstRespondTo(request, obj = null) {
     for (let i = 0; i < this.mods.length; i++) {
-      let result = this.mods[i].respondTo(request);
+      let result = this.mods[i].respondTo(request, obj);
       if (result) {
         return result;
       }
@@ -690,8 +690,10 @@ class Mods {
     //
     // then they learn about any services now-available
     //
-    for (let i = 0; i < peer.services.length; i++) {
-      await this.onPeerServiceUp(peer, peer.services[i]);
+    if (peer.services) {
+      for (let i = 0; i < peer.services.length; i++) {
+        await this.onPeerServiceUp(peer, peer.services[i]);
+      }
     }
   }
 

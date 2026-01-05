@@ -19,7 +19,7 @@ class CreateNFT {
     this.provide_metadata_overlay = new ProvideMetaDataOverlay(app, mod, container);
   }
 
-  render() {
+  async render() {
     this.reset();
     this.module_provided_nfts = [];
 
@@ -28,6 +28,11 @@ class CreateNFT {
     for (const nft_mod of this.app.modules.respondTo('saito-create-nft', this.mod)) {
       let obj = nft_mod.respondTo('saito-create-nft', this.mod);
       this.module_provided_nfts.push(obj);
+    }
+
+    let balance = await this.app.wallet.getBalance();
+    if (Number(balance) == 0) {
+      this.app.modules.renderInto('.get-saito-tokens');
     }
 
     setTimeout(() => {
@@ -62,8 +67,8 @@ class CreateNFT {
       try {
         let modobj = this.module_provided_nfts[z];
         if (modobj.class.includes(this.nft_type)) {
-          if (modobj.createObject) {
-            obj = await modobj.createObject(this.file);
+          if (modobj.createData) {
+            obj = await modobj.createData(this.file);
             processed = true;
           } else {
             obj.text = text;
@@ -332,8 +337,8 @@ class CreateNFT {
               textarea.innerHTML = JSON.stringify(obj.json, null, 2);
             }
 
-            if (obj.createObject) {
-              document.querySelector('#nft-image-upload').style.display = 'block';
+            if (obj.createData) {
+              document.querySelector('#nft-image-upload').style.display = 'flex';
               document.querySelector('#create-nft-textarea').style.display = 'none';
             }
           }
@@ -342,14 +347,10 @@ class CreateNFT {
     };
 
     document.querySelector('#create_nft').onclick = async (e) => {
-      console.log('create nft 1');
-
       let obj = await this.createObject();
       if (obj == false) {
         return;
       }
-
-      console.log('create nft 2');
 
       //
       // this value is not either nolan/saito
@@ -385,8 +386,6 @@ class CreateNFT {
       let tx_msg = {
         data: obj
       };
-
-      console.log('create nft 3');
 
       this.overlay.close();
 

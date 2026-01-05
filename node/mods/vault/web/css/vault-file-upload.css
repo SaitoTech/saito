@@ -35,13 +35,35 @@
 }
 
 #vault-file-upload {
-    border: 3px dotted;
+    border: 3px dotted var(--saito-border-color, #999);
     height: 30rem;
-    text-align: center;
-    line-height: 30rem;
-    font-size: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    font-size: 1.6rem;
     border-radius: 1rem;
     width: 55rem;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+#vault-file-upload:hover {
+    border-color: var(--saito-primary, var(--saito-font-color));
+    background: rgba(255, 255, 255, 0.02);
+    transform: translateY(-2px);
+}
+
+#vault-file-upload i {
+    font-size: 4rem;
+    color: var(--saito-surface-selected, var(--saito-font-color));
+    opacity: 0.8;
+}
+
+.vault-file-upload-text {
+    color: var(--saito-font-color);
+    font-size: 1.6rem;
 }
 
 .vault-upload-notice {

@@ -71,18 +71,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
   </style>
   </head>
   
-  <body>
-    <div class="saito-container" id="saito-container">
-
-      <h2>Saito Staging Faucet</h2>
-
-      <p>click on the button to receive 100 SAITO from the testnet faucet</p>
-
-      <button class="saito-primary faucet-button" id="faucet-button" >Request Testnet SAITO</button>
-      <div class="faucet-spinner"><img class="spinner" src="/saito/img/spinner.svg"></div>
-
-    </div>
-  </body>
+  <body></body>
 
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}" ></script>
   </html>`;

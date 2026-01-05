@@ -26,7 +26,7 @@ const SaitoNFT = require('../../lib/saito/ui/saito-nft/saito-nft');
 // The Nwasm components abstract away the saving and loading of the ROMs themselves
 // and initialization of the webpage.
 //
-// 	ROMS -- saved as 'Nwams' modules
+// 	ROMS -- saved as 'Nwasm' modules
 // 	SAVEGAMES --- saved as 'NwasmGAMESIG' (hash of title)
 //
 class Nwasm extends OnePlayerGameTemplate {
@@ -105,7 +105,7 @@ class Nwasm extends OnePlayerGameTemplate {
             return {
               title : "N64 ROM" ,
               class : ["nwasm-nft-mod"] ,
-	      createObject : async (modfile) => {
+	      createData : async (modfile) => {
 		let name = prompt("What is the name of this N64 ROM?");
 		let obj = {};
 		obj.module = "Nwasm";
@@ -156,7 +156,7 @@ class Nwasm extends OnePlayerGameTemplate {
                                 i++
                         ) {
                                 if (
-                                        item.id == this.library[peer].id
+                                        item.id == this.library[peer][i].id
                                 ) {
                                         return true;
                                 }
@@ -273,7 +273,10 @@ class Nwasm extends OnePlayerGameTemplate {
                         }
                         if (mycallback) {
                                 let x = JSON.parse(JSON.stringify(this.library[this.publicKey]));
-                                for (let key in x) { x.random = ""; } // do not share decryption key
+                                // Remove decryption keys before sharing
+                                for (let i = 0; i < x.length; i++) {
+                                        if (x[i].key) { x[i].key = ""; }
+                                }
                                 mycallback( x );
                                 return 1;
                         }
@@ -401,13 +404,15 @@ class Nwasm extends OnePlayerGameTemplate {
 			text: 'Load',
 			id: 'game-import',
 			class: 'game-import',
-			callback: function (app, game_mod) {
+			callback: async function (app, game_mod) {
 				game_mod.menu.hideSubMenus();
 				let x = new SaveGameOverlay(app, game_mod);
-				x.render(app, game_mod);
+				await x.render();
 				//game_mod.importState();
 			}
 		});
+
+/****
 		this.menu.addSubMenuOption('game-game', {
 			text: 'Delete',
 			id: 'game-rom-delete',
@@ -421,7 +426,7 @@ class Nwasm extends OnePlayerGameTemplate {
 				}
 			}
 		});
-
+****/
 		this.menu.addChatMenu();
 		this.menu.render();
 		await this.ui.render();
@@ -876,8 +881,8 @@ class Nwasm extends OnePlayerGameTemplate {
 						txmsg.data
 					);
 					nwasm_mod.active_game = byteArray;
-					mwasm_mod.active_game_time_played = txmsg.time_played;
-					nwasm.startPlaying();
+					nwasm_mod.active_game_time_played = txmsg.time_played;
+					nwasm_mod.startPlaying();
 					myApp.loadStateLocal();
 				} catch (err) {
 					console.log('error loading Nwasm game...: ' + err);
@@ -906,7 +911,7 @@ class Nwasm extends OnePlayerGameTemplate {
 		newtx.msg = obj;
 		await newtx.sign();
 		await this.app.storage.saveTransaction(newtx, {
-			field1: 'Nwasm-' + this.active_rom_sig
+			field1: 'Nwasm' + this.active_rom_sig
 		});
 		this.active_game_saves.push(newtx);
 	}

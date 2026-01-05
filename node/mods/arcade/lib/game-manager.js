@@ -31,25 +31,22 @@ class GameManager {
 		let target = this.container + ' .game-manager';
 
 		if (document.querySelector(target)) {
-			this.app.browser.replaceElementBySelector(
-				`<div class="game-manager"></div>`,
-				target
-			);
+			this.app.browser.replaceElementBySelector(`<div class="game-manager"></div>`, target);
 		} else {
-			this.app.browser.addElementToSelector(
-				`<div class="game-manager"></div>`,
-				this.container
-			);
+			this.app.browser.addElementToSelector(`<div class="game-manager"></div>`, this.container);
 		}
 
 		if (!this.filter) {
+			this.app.browser.addElementToSelector(
+				`<div class='empty-game-list'>Invalid recent activity to display</div>`,
+				target
+			);
 			return;
 		}
 
 		for (let list of this.lists) {
 			if (this.mod.games[list]) {
 				let gameList = this.mod.games[list].filter((game) => {
-
 					let gametxmsg = game.returnMessage();
 
 					if (!gametxmsg) {
@@ -63,10 +60,7 @@ class GameManager {
 					}
 
 					for (let req in this.filter) {
-						if (
-							!gameOptions[req] ||
-							gameOptions[req] != this.filter[req]
-						) {
+						if (!gameOptions[req] || gameOptions[req] != this.filter[req]) {
 							return false;
 						}
 					}
@@ -111,6 +105,11 @@ class GameManager {
 						);
 						newInvite.render();
 					}
+				} else {
+					this.app.browser.addElementToSelector(
+						`<div class='empty-game-list'>No recent activity to display</div>`,
+						target
+					);
 				}
 			}
 		}

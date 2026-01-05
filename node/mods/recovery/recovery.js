@@ -352,8 +352,10 @@ class Recovery extends ModTemplate {
 		let peers = await this.app.network.getPeers();
 
 		for (let peer of peers) {
-			for (s of peer.services) {
-				console.log(s);
+			if (peer.services) {
+				for (s of peer.services) {
+					console.log(s);
+				}
 			}
 			if (peer.hasService('recovery')) {
 				this.app.network.sendTransactionWithCallback(

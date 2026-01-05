@@ -143,6 +143,12 @@ class Blog extends ModTemplate {
       }
     }
 
+    if (type === 'filter-saito-link') {
+      if (obj.slug == 'blog') {
+        return { info: ['title', 'display_url', 'description'] };
+      }
+    }
+
     if (type === 'post-content') {
       let blog_self = this;
       return {
@@ -664,13 +670,14 @@ class Blog extends ModTemplate {
     this.overlay.show(markdownTemplate());
   }
 
-  extractBlogSummary(text, length = 300) {
+  extractBlogSummary(text = '', length = 300) {
     // Extract preview of first n-hundred characters...
     let contentPreview = this.app.browser
       .stripHtml(text)
       .substring(0, length)
       .replace(/#+/g, '#')
       .split(/\s/);
+
     contentPreview.pop();
     let in_title = false;
     for (let i = 0; i < contentPreview.length; i++) {
@@ -711,7 +718,7 @@ class Blog extends ModTemplate {
 
             updatedSocial.title = `'${targetPost.title}' by ${user}`;
 
-            updatedSocial.description = this.extractBlogSummary(targetPost.content);
+            updatedSocial.description = mod_self.extractBlogSummary(targetPost.content);
 
             if (targetPost?.imageUrl) {
               updatedSocial.image = targetPost.imageUrl;

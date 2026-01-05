@@ -34,6 +34,61 @@ export default class Crypto {
     return this.verifySignature(Buffer.from(msg, 'utf-8'), sig, publicKey);
   }
 
+  /**
+   * Verify a routing capability path.
+   *
+   * @param path            Array of routing hops
+   *  - to: <publickey>
+   *  - value: base64 of JSON object
+   *  - sig: signature
+   * @param publickey       Public key expected to have signed hop 0
+   * @param hash            Optional canonical hash to combine each hop (e.g. nft.id)
+   *
+   * @returns true if the routing path is cryptographically valid
+   **/
+  verifyRoutingPath(path: any[], publickey: string, binding_hash: string | null = ''): boolean {
+    // Basic structural checks
+    if (!Array.isArray(path) || path.length === 0) {
+      return false;
+    }
+
+    if (!publickey || typeof publickey !== 'string') {
+      return false;
+    }
+
+    let expected_signer = publickey;
+
+    for (let i = 0; i < path.length; i++) {
+      const hop = path[i];
+
+      if (
+        !hop ||
+        typeof hop.to !== 'string' ||
+        typeof hop.value !== 'string' ||
+        typeof hop.sig !== 'string'
+      ) {
+        return false;
+      }
+
+      const to = hop.to || '';
+      const value = hop.value || '';
+      const sig = hop.sig || '';
+      const canonical_string = `${to}|${value}|${binding_hash}`;
+      const digest = this.hash(canonical_string);
+
+      const valid = this.verifyMessage(digest, sig, expected_signer);
+
+      if (!valid) {
+        return false;
+      }
+
+      // Authority advances to the recipient of this hop
+      expected_signer = to;
+    }
+
+    return true;
+  }
+
   ////////////////////////////////
   // AES SYMMETRICAL ENCRYPTION //
   ////////////////////////////////

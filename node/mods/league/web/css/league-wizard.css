@@ -95,7 +95,7 @@
 	max-width: 75vw;
 	overflow-y: auto;
 	grid-template-rows: min-content auto;
-	background: var(--saito-arcade-overlay-background);
+	background: var(--saito-gray-900);
 	padding: 2rem;
 	border-radius: 0.5rem;
 	color: var(--saito-white);

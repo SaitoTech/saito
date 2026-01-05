@@ -35,6 +35,17 @@ font imports
   font-style: normal;
 }
 @font-face {
+  font-family: 'visuelt-regular';
+  src: url('/saito/fonts/visuelt-regular.eot');
+  src:
+    url('/saito/fonts/visuelt-regular.eot?#iefix') format('embedded-opentype'),
+    url('/saito/fonts/visuelt-regular.woff2') format('woff2'),
+    url('/saito/fonts/visuelt-regular.woff') format('woff'),
+    url('/saito/fonts/visuelt-regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
   font-family: 'p-word';
   src: url('/saito/fonts/password.ttf') format('truetype');
 }
@@ -107,9 +118,9 @@ font imports
   --saito-background-color-inverse: #4e4e4e;
 
   /* panels, tables that sit above the background */
-  --saito-surface-color: rgba(102, 102, 102, 0.125); 
+  --saito-surface-color: rgba(102, 102, 102, 0.125);
   --saito-surface-text: var(--saito-font-color);
-  --saito-surface-hover: rgba(102, 102, 102, 0.20); 
+  --saito-surface-hover: rgba(102, 102, 102, 0.2);
   --saito-surface-selected: rgba(68, 68, 68, 0.33);
   --saito-surface-inverse: rgba(255, 255, 255, 0.85);
   --saito-surface-inverse-text: rgba(0, 0, 0, 0.85);
@@ -132,8 +143,9 @@ font imports
   --saito-header-background: var(--dreamscape);
 
   /* Box Shadows */
-  --saito-box-shadow-low: 0px 1px 2px color-mix(in srgb, var(--saito-black) 30%, transparent);
-  --saito-box-shadow: 0px 2px 4px color-mix(in srgb, var(--saito-black) 50%, transparent);
+  --saito-box-shadow-low: 0px 1px 2px
+    color-mix(in srgb, var(--saito-font-color-heavy) 30%, transparent);
+  --saito-box-shadow: 1px 2px 3px color-mix(in srgb, var(--saito-font-color-heavy) 50%, transparent);
   --saito-box-shadow-high:
     0px 12px 17px 2px hsla(0, 0%, 0%, 0.14), 0px 5px 22px 4px hsla(0, 0%, 0%, 0.12),
     0px 7px 8px -4px hsla(0, 0%, 0%, 0.2);
@@ -157,7 +169,7 @@ font imports
   --saito-font-color: var(--saito-font-color-primary);
   --saito-font-color-primary: var(--saito-gray-750);
   --saito-font-color-secondary: var(--saito-gray-600);
-  --saito-font-color-heavy: var(--saito-black-heavy);
+  --saito-font-color-heavy: var(--saito-gray-850);
   --saito-font-color-light: var(--saito-font-color-secondary);
   --saito-font-color-inverse: #e6e6e6;
 

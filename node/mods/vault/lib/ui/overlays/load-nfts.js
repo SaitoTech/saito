@@ -1,12 +1,14 @@
 const LoadNFTsTemplate = require('./load-nfts.template');
 const SaitoNFT = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const WitnessOverlay = require('./witness');
 
 class LoadNFTs {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
+    this.witness_overlay = new WitnessOverlay(this.app, this.mod);
 
     this.nft_list = [];
     this.vault_nfts = [];
@@ -73,26 +75,25 @@ class LoadNFTs {
       //
       let nft = new SaitoNFT(this.app, this.mod, null, rec, null);
 
-      console.log('nft:', nft);
-
       //
       // determine nft type
       //
       let nft_type = this.app.wallet.extractNFTType(rec.slip3.utxo_key);
 
-      console.log('-------------------------------------');
-      console.log('nft type is: ', nft_type);
-
       if (nft_type == 'vault') {
-        console.log('fetching txmsg from archive...');
         await nft.fetchTransaction();
 
-        console.log('txmsg is: ', nft.txmsg);
         let data = nft.txmsg?.data;
         let file_id = data?.file_id;
         let filename = data?.filename;
+        let file_access_script = data?.file_access_script;
 
-        console.log('file_id: ', file_id);
+        //
+        // determine which key image to display
+        // crystal key = custom/advanced (has file_access_script)
+        // jade key = public/standard (no file_access_script)
+        //
+        let keyImage = file_access_script ? 'crystal_key.png' : 'jade_key.png';
 
         //
         // collect utxokeys from nft object
@@ -109,7 +110,8 @@ class LoadNFTs {
           file_id,
           slip1_utxokey,
           slip2_utxokey,
-          slip3_utxokey
+          slip3_utxokey,
+          file_access_script: file_access_script || null
         });
 
         //
@@ -123,7 +125,7 @@ class LoadNFTs {
           <div class="vault-nft-item" data-vault-index="${index}">
             <img
               class="vault-nft-img"
-              src="/vault/img/jade_key.png"
+              src="/vault/img/${keyImage}"
             />
 
             <div class="vault-nft-footer">
@@ -139,11 +141,7 @@ class LoadNFTs {
         // use wrapper and inject as HTML
         //
         wrapper.insertAdjacentHTML('beforeend', html);
-      } else {
-        console.log('not fetching txmsg');
       }
-
-      console.log('-------------------------------------');
     }
 
     //
@@ -175,9 +173,30 @@ class LoadNFTs {
 
         let vault_entry = this.vault_nfts[idx];
 
-        console.log('vault-nft clicked: ', vault_entry);
-
+        //
+        // Check if this is a custom/advanced key (has file_access_script)
+        //
+        if (vault_entry.file_access_script) {
+          //
+          // Show witness overlay for custom keys
+          //
+          this.overlay.hide();
+          this.witness_overlay.access_script = vault_entry.file_access_script;
+          this.witness_overlay.render();
+          
+          this.witness_overlay.callback = (result) => {
+            //
+            // User provided witness data, now make the file request
+            //
+            let witness_data = result.witness_data;
+            this.mod.sendAccessFileRequest(vault_entry, witness_data);
+          };
+        } else {
+          //
+          // Public key - direct file request (no witness needed)
+          //
         this.mod.sendAccessFileRequest(vault_entry);
+        }
 
       };
     });

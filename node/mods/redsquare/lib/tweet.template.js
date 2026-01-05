@@ -73,7 +73,7 @@ module.exports = (app, mod, tweet) => {
         <div class="tweet-text">${app.browser.sanitize(text, true)}</div>
 	      <div class="tweet-image"></div>
 	      <div class="tweet-retweet"></div>
-	      <div class="tweet-preview"></div>
+	      <div class="tweet-link-preview"></div>
 
 	`;
 	if (tweet.youtube_id != null && tweet.youtube_id != 'null') {

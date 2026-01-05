@@ -329,10 +329,6 @@ class Tweet {
 			}
 		}
 
-		if (this.rethread) {
-			this.show_controls = 0;
-		}
-
 		//
 		// create link preview if link
 		//
@@ -340,7 +336,7 @@ class Tweet {
 			this.link_preview = new Link(
 				this.app,
 				this.mod,
-				this.container + `> .tweet-${this.tx.signature} .tweet-body .tweet-preview`,
+				this.container + `> .tweet-${this.tx.signature} .tweet-body .tweet-link-preview`,
 				this.link,
 				this.link_properties
 			);
@@ -416,11 +412,14 @@ class Tweet {
 				'this tweet was edited on ' + this.formatDate(this.tx.optional.update_tx.timestamp);
 		}
 
+		//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 		if (this.render_after_selector) {
+			console.log('!!!!!!! ' + this.render_after_selector);
 			//
 			// remove if selector does not exist
 			//
 			if (!document.querySelector(this.render_after_selector)) {
+				console.warn('!!!!!!!!! !document.querySelector(this.render_after_selector)');
 				this.render_after_selector = '';
 			}
 			//
@@ -428,6 +427,7 @@ class Tweet {
 			//
 			let preview_selector = '.tweet-preview ' + this.render_after_selector;
 			if (document.querySelector(preview_selector)) {
+				console.warn('!!!!!!!!! document.querySelector(preview_selector)');
 				//
 				//
 				//

@@ -1603,6 +1603,17 @@ class League extends ModTemplate {
 		return null;
 	}
 
+	returnLeaguesByGame(gameName) {
+		let ls = [];
+		for (let i = 0; i < this.leagues.length; i++) {
+			console.log(gameName, this.leagues[i].game);
+			if (this.leagues[i].game === gameName) {
+				ls.push(this.leagues[i]);
+			}
+		}
+		return ls;
+	}
+
 	async removeLeague(league_id) {
 		for (let i = 0; i < this.leagues.length; i++) {
 			if (this.leagues[i].id === league_id) {

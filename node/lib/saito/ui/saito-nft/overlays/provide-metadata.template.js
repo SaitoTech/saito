@@ -1,44 +1,18 @@
 module.exports = (app, mod, nfttx, nft) => {
   let identicon = app.keychain.returnIdenticon(nft.id);
-  let description = 'Click here to provide include a text description for your NFT...';
-  let title = 'Vintage Saito NFT';
-  let saitoItems = [
-    'Vintage Collectible',
-    'Classic Saito NFT',
-    'Genesis Collectable',
-    'Saito Heritage Item',
-    'Unique Item',
-    'Historical Saito Mint',
-    'Provenance Edition',
-    'Founders Edition',
-    'NFT Collectable',
-    'Unique Item',
-    'Saito Legacy',
-    'Rare Saito Artifact',
-    'Limited Saito Release',
-    'Archival Series',
-    'Original Chain Relic',
-    'Timeless Collectable',
-    'Retro Blockchain Piece',
-    'Immutable Classic',
-    'Chain Memory Artifact',
-    'Saito Vault Item',
-    'Eternal Collectable'
-  ];
-  title = saitoItems[Math.floor(Math.random() * saitoItems.length)];
+  let defaultTitle = 'Click to provide title (optional)';
+  let defaultDescription = 'Click to provide description (optional)';
 
+  // Get text content for display
   let text = '';
   if (nft.text) {
     text = nft.text;
-  }
-  if (nft.css) {
+  } else if (nft.css) {
     text = nft.css;
-  }
-  if (nft.json) {
+  } else if (nft.json) {
     text = nft.json;
-  }
-  if (nft.js) {
-    icext = nft.js;
+  } else if (nft.js) {
+    text = nft.js;
   }
 
   let html = `
@@ -51,26 +25,35 @@ module.exports = (app, mod, nfttx, nft) => {
           <img class="saito-identicon" src="${identicon}" data-disable="true" />
         </div>
         <div class="saito-nft-header-text">
-          <div class="saito-nft-header-title editable">${nft.title || title}</div>
+          <div class="saito-nft-header-title-wrapper-metadata">
+            <div class="saito-nft-header-title editable" data-default-title="${defaultTitle}">${nft.title || defaultTitle}</div>
+            <i class="fa-solid fa-pencil saito-nft-edit-title-icon-metadata"></i>
+          </div>
           <div class="saito-nft-header-sub">by ${nft.creator}</div>
         </div>
       </div>
 
       <div class="saito-nft-header-right">
-        <div class="saito-nft-header-btn">⋯</div>
       </div>
     </div>
 
     <div class="saito-nft-overlay panels">
       <div class="saito-nft-panel saito-nft-panel-view active .create-nft-container">
         <div class="saito-nft-panel-body nft-creator">
-
+          <div class="nft-creator-content-wrapper">
   `;
+
+  // Create image/textbox display (full-size like nft-overlay)
   if (nft.image) {
     html += `
-		<div class="nft-image-preview">
-                  <img style="max-height: 100%; max-width: 100%; height: inherit; width: inherit" src="${nft.image}"/>
-                  <i class="fa fa-times" id="rmv-nft"></i>
+      <div class="saito-nft-image" style="background-image:url('${nft.image}')">
+        ${text ? `<div class="saito-nft-text">${text}</div>` : ''}
+      </div>
+    `;
+  } else if (text) {
+    html += `
+      <div class="saito-nft-image" style="background-image:url('/saito/img/dreamscape.png')">
+        <div class="saito-nft-text">${text}</div>
                 </div>
 	    `;
   } else {
@@ -84,13 +67,17 @@ module.exports = (app, mod, nfttx, nft) => {
 	    `;
   }
 
+  // Description box OVER the image/textbox
+  let descriptionText = nft.description || defaultDescription;
   html += `
-          <div class="saito-nft-description">${nft.description}</div>
+            <div class="saito-nft-description-box-metadata editable" data-default-description="${defaultDescription}">
+              <div class="saito-nft-description-text-metadata">${descriptionText}</div>
+              <i class="fa-solid fa-pencil saito-nft-edit-description-icon-metadata"></i>
+            </div>
+          </div>
         </div>
 
         <div class="saito-nft-panel-footer">
-          <button class="saito-nft-footer-btn edit-title">Edit Title</button>
-          <button class="saito-nft-footer-btn edit-description">Edit Description</button>
           <button class="saito-nft-footer-btn send">Confirm</button>
         </div>
       </div>

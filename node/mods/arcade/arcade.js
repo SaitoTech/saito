@@ -192,7 +192,9 @@ class Arcade extends ModTemplate {
 					document.querySelector('.invite-manager').innerHTML = '';
 					target = '.invite-manager';
 				} else if (!document.querySelector(target)) {
-					this.loader_overlay.show('<div class="arcade_game_overlay_loader"></div>');
+					this.loader_overlay.show(
+						'<div class="arcade_game_overlay_loader saito-overlay-size"></div>'
+					);
 				}
 
 				console.log('arcade-game-initialize-render-request -- target: ', target);
@@ -467,12 +469,15 @@ class Arcade extends ModTemplate {
 		let game = this.returnGameFromHash(game_id_short);
 
 		if (!game || game.msg.request == 'cancel' || game.msg.request == 'closed') {
+			console.warn('Load Game by ID failed...', game?.msg);
 			if (is_invite) {
 				salert('Sorry, the game is no longer available');
 				if (gameName) {
 					let gm = this.app.modules.returnModule(gameName);
 					this.app.connection.emit('arcade-launch-game-wizard', { game: gm.returnName() });
 				}
+			} else {
+				this.app.connection.emit('league-overlay-render-request', '', gameName, 'games');
 			}
 			return;
 		}
@@ -681,6 +686,21 @@ class Arcade extends ModTemplate {
 						);
 					}
 				};
+			}
+		}
+
+		if (type == 'filter-saito-link') {
+			if (obj.slug == this.returnSlug()) {
+				if (!obj.url.includes('invite')) {
+					return {
+						info: [],
+						no_photo: true
+					};
+				} else {
+					return {
+						info: ['title']
+					};
+				}
 			}
 		}
 

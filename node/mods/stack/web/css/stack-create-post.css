@@ -1,0 +1,1021 @@
+/* ============================================
+   CREATE POST PAGE
+   ============================================ */
+
+/* ARCHITECTURAL CHANGE: Delegate scrolling to body/html for create-post page */
+/* Override base Saito body rules to enable normal document scrolling */
+body:has(.stack-create-post-page) {
+  position: static !important; /* Remove fixed positioning */
+  overflow-y: auto !important; /* Enable vertical scrolling */
+  overflow-x: hidden !important;
+  height: auto !important; /* Allow body to grow with content */
+  min-height: 100vh !important; /* Ensure at least viewport height */
+}
+
+html:has(.stack-create-post-page) {
+  overflow-y: auto !important; /* Enable scrolling on html as well */
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100vh !important;
+}
+
+/* Remove scroll responsibility from container - let it grow naturally */
+.saito-container:has(.stack-create-post-page),
+.saito-container.stack-create-post-container {
+  grid-template-columns: 1fr !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+  width: 100vw !important;
+  /* Position below header in normal document flow */
+  position: relative !important; /* Use relative positioning instead of absolute */
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  /* Container grows naturally with content - no height constraints */
+  height: auto !important;
+  min-height: 0 !important;
+  /* Remove scroll container behavior - body/html owns scrolling */
+  overflow: visible !important;
+}
+
+.saito-container.stack-create-post-container .saito-sidebar {
+  display: none !important;
+}
+
+.stack-create-post-page {
+  /* Remove min-height: 100vh - allow natural growth, don't force viewport height */
+  /* Top padding accounts for fixed header + spacing */
+  padding-top: calc(var(--saito-header-height, 60px) + 4rem);
+  padding-bottom: 4rem; /* Bottom padding for comfortable scrolling */
+  background: var(--saito-background-color);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Align to top, allow natural growth */
+  position: relative;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  /* Body/html owns scrolling - no internal scroll containers */
+  overflow: visible;
+  /* Ensure page can grow naturally with content */
+  height: auto;
+  
+  /* Mount-only transition: fade + micro-translate */
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+.stack-create-post-page.stack-create-post-page-mounted {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.stack-create-post-page .stack-create-post-container {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 1.5rem 0 2rem 0; /* Reduced top padding to align title with status */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* No flex: 1 - allow natural growth, page scrolls */
+  min-height: 0;
+}
+
+/* Content wrapper for document column and sidebar */
+.stack-create-post-page .stack-editor-content-wrapper {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative; /* For absolute positioning of sidebar */
+  padding: 0;
+}
+
+/* Right-hand gradient for sidebar zoning (desktop only) */
+.stack-create-post-page .stack-editor-content-wrapper::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 300px; /* Extend beyond sidebar for fade effect */
+  min-height: 100%; /* Use min-height to allow gradient to grow with content */
+  height: auto; /* Allow gradient to extend with page content */
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(0, 0, 0, 0.015) 20%,
+    rgba(0, 0, 0, 0.02) 40%,
+    rgba(0, 0, 0, 0.015) 60%,
+    transparent 100%
+  );
+  z-index: 0;
+}
+
+/* Bounded Writing Column - scoped to create-post page only */
+.stack-create-post-page .stack-document-column {
+  width: 720px; /* Explicit readable width - defines page centerline */
+  max-width: 720px; /* Optimal reading width (680-740px range) */
+  margin: 0 auto; /* Center the writing column independently */
+  display: flex;
+  flex-direction: column;
+  position: relative; /* Required for absolute positioning of publish trigger */
+  padding: 0; /* Remove padding - let title/body handle their own spacing */
+  /* NO flex: 1 - allow natural growth, page scrolls */
+  /* NO overflow - page owns scrolling */
+  overflow: visible;
+  /* Clean, minimal background - no shadows or effects */
+  background: transparent;
+  z-index: 1; /* Above gradient */
+}
+
+/* Editor Header - Draft State */
+.stack-create-post-page .stack-editor-header {
+  width: 100%;
+  max-width: 1200px; /* Match content wrapper width */
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 1rem;
+  padding: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Editor Sidebar */
+.stack-create-post-page .stack-editor-sidebar {
+  width: 240px;
+  padding: 1.5rem;
+  background: var(--saito-background-color);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  font-size: 1.4rem;
+  line-height: 1.5;
+  color: var(--saito-font-color);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: absolute;
+  top: 0;
+  right: 0; /* Align right edge with wrapper's right edge (matches header boundary) */
+  /* Ensure sidebar scrolls with page, not independently */
+  overflow: visible;
+  z-index: 1; /* Above gradient */
+}
+
+/* Editor Status */
+.stack-create-post-page .stack-editor-status {
+  display: block;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  color: var(--saito-font-color);
+  opacity: 0.8;
+  font-weight: 400;
+  white-space: nowrap; /* Ensure "Status: Draft" stays on one line */
+}
+
+.stack-create-post-page .stack-editor-status-label {
+  display: inline;
+  font-weight: 600; /* Emphasize "Status" label - bold, not underlined */
+}
+
+.stack-create-post-page .stack-editor-status-value {
+  display: inline;
+  font-weight: 500;
+  transition: opacity 200ms ease;
+}
+
+.stack-create-post-page .stack-editor-status-value.saving {
+  font-style: italic;
+}
+
+/* Shared structural invariant for primary editor controls (button and dropzone) */
+/* This class enforces identical geometry so elements align visually */
+.stack-create-post-page .stack-editor-primary-control {
+  width: 100%;
+  min-width: 0; /* Override global button min-width: 18rem to allow container-defined width */
+  margin: 0; /* No margin - container padding provides spacing */
+  padding: 1rem 1.5rem;
+  box-sizing: border-box; /* Padding and border included in width calculation */
+}
+
+/* Publish/Update Button */
+.stack-create-post-page .stack-editor-publish-btn {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--saito-primary-text);
+  background: var(--saito-primary);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  font-family: inherit;
+}
+
+.stack-create-post-page .stack-editor-publish-btn:hover {
+  opacity: 0.9;
+}
+
+.stack-create-post-page .stack-editor-publish-btn:active {
+  opacity: 0.8;
+}
+
+/* Help Section */
+.stack-create-post-page .stack-editor-help {
+  display: block;
+  background: var(--saito-surface-selected);
+  padding: 0.5rem;
+  border-radius: var(--saito-border-radius);
+  color: var(--saito-surface-text);
+}
+
+.stack-create-post-page .stack-editor-help-link {
+  font-size: 1.4rem;
+  color: inherit; /* Inherit from container, not primary color */
+  text-decoration: none;
+  font-weight: 500;
+  transition: text-decoration 0.2s ease;
+}
+
+.stack-create-post-page .stack-editor-help-link:hover {
+  text-decoration: underline;
+}
+
+.stack-create-post-page .stack-editor-help-text {
+  display: inline;
+  font-size: 1.4rem;
+  line-height: 1.5;
+  color: inherit; /* Inherit from container */
+  margin: 0;
+}
+
+.stack-create-post-page .stack-draft-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.6rem;
+  line-height: 1.4;
+  color: var(--saito-font-color);
+  opacity: 0.85;
+  transition: all 0.2s ease;
+  font-weight: 400;
+  cursor: pointer;
+  user-select: none;
+  padding-right: 0; /* No padding needed with clean layout */
+}
+
+.stack-create-post-page .stack-draft-state:hover {
+  opacity: 1;
+  color: var(--saito-primary);
+}
+
+.stack-create-post-page .stack-draft-state.stack-admin-active {
+  opacity: 0.9;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-draft-state.stack-admin-active:hover {
+  opacity: 1;
+  color: var(--saito-primary);
+}
+
+.stack-create-post-page .stack-draft-state.stack-admin-published {
+  opacity: 0.9;
+  color: var(--saito-primary);
+}
+
+.stack-create-post-page .stack-draft-state.stack-admin-published:hover {
+  opacity: 1;
+}
+
+.stack-create-post-page .stack-draft-state.saving {
+  opacity: 0.9;
+}
+
+.stack-create-post-page .stack-draft-state.saved {
+  opacity: 0.8;
+}
+
+.stack-create-post-page .stack-draft-state-text {
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* Featured Image Section (in sidebar, between Status and Publish button) */
+/* Upload box is only a chooser - image appears in main layout above title */
+.stack-featured-image-section {
+  width: 100%;
+  margin: 0; /* No margin in sidebar - gap is handled by sidebar's gap property */
+  padding: 0; /* No padding - children handle their own spacing */
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* Featured Image Dropzone (shown when no image) */
+.stack-featured-image-dropzone {
+  min-height: 100px; /* More compact for sidebar */
+  border: 2px dashed var(--saito-border-color); /* Border drawn INSIDE shared geometry */
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--saito-background-color);
+  position: relative;
+  display: flex; /* Changed from block to flex for better centering */
+  align-items: center;
+  justify-content: center;
+}
+
+.stack-featured-image-dropzone:hover {
+  border-color: var(--saito-primary);
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+}
+
+.stack-featured-image-dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem; /* Tighter gap for sidebar */
+  pointer-events: none;
+}
+
+.stack-featured-image-upload-icon {
+  font-size: 2rem; /* Slightly smaller for sidebar */
+  color: var(--saito-font-color-light);
+  margin-bottom: 0.5rem;
+}
+
+.stack-featured-image-dropzone-text {
+  font-size: 1.3rem; /* Slightly smaller for sidebar */
+  color: var(--saito-font-color);
+  margin: 0;
+  font-weight: 500;
+}
+
+.stack-featured-image-dropzone-subtext {
+  font-size: 1.1rem; /* Slightly smaller for sidebar */
+  color: var(--saito-font-color);
+  opacity: 0.7;
+  margin: 0;
+}
+
+/* Featured Image Display (in main page layout, above title) - read-only preview */
+.stack-featured-image-display {
+  width: 100%;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.stack-featured-image-display-container {
+  width: 100%;
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--saito-background-color);
+}
+
+.stack-featured-image-display-img {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+  object-fit: cover;
+  display: block;
+  border-radius: 8px;
+}
+
+/* Remove button hidden (display is read-only, removal via sidebar only) */
+.stack-featured-image-display-remove {
+  display: none;
+}
+
+.stack-create-post-page .stack-post-title-field {
+  width: 100%;
+  margin: 0;
+  padding: 1.5rem 0 0 0; /* Align top with sidebar status (1.5rem matches sidebar padding) */
+  margin-bottom: 3rem; /* Clear separation from body */
+  position: relative;
+}
+
+.stack-create-post-page .stack-post-title-input {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  font-size: 3.6rem; /* Larger, more prominent */
+  line-height: 1.2;
+  font-weight: 700; /* Heavier weight */
+  border: none;
+  background: transparent;
+  color: var(--saito-font-color);
+  font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  outline: none;
+  transition: opacity 0.2s ease;
+  text-align: left;
+  display: block;
+  letter-spacing: -0.02em; /* Tighter letter spacing for large text */
+}
+
+.stack-create-post-page .stack-post-title-input::placeholder {
+  color: var(--saito-font-color);
+  opacity: 0.4; /* More visible, intentional placeholder */
+  font-weight: 500; /* Slightly heavier for visibility */
+}
+
+.stack-create-post-page .stack-post-title-input:focus {
+  opacity: 1;
+}
+
+.stack-create-post-page .stack-post-body-field {
+  width: 100%;
+  margin-bottom: 4rem;
+  padding: 0;
+  margin-left: 0;
+  margin-right: 0;
+  /* Page owns scrolling - no nested scroll containers */
+  overflow: visible;
+}
+
+/* Block Editor - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor {
+  width: 100%;
+  min-height: 50vh;
+  padding: 0;
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.7; /* Improved line-height for better readability */
+  border: none;
+  background: transparent;
+  color: var(--saito-font-color);
+  font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  outline: none;
+  cursor: text;
+  text-align: left;
+  position: relative;
+  /* NO overflow - page owns scrolling */
+  overflow: visible;
+  font-weight: 400;
+  /* Calm top spacing - first line feels like start of writing */
+  padding-top: 0.5rem;
+}
+
+/* Placeholder for empty editor - scoped to create-post page only */
+/* Show placeholder when editor is empty (has stack-editor-empty class) */
+/* Target the first paragraph block, which may contain zero-width space for editability */
+/* Use CSS variable to pass placeholder text from editor's data-placeholder attribute */
+.stack-create-post-page .stack-post-body-editor.stack-editor-empty > p:first-child {
+  position: relative;
+}
+
+.stack-create-post-page .stack-post-body-editor.stack-editor-empty > p:first-child::before {
+  content: "Start writing..."; /* Placeholder text - matches data-placeholder on editor */
+  color: var(--saito-font-color);
+  opacity: 0.5;
+  pointer-events: none;
+  font-weight: 400;
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+}
+
+.stack-create-post-page .stack-post-body-editor:focus {
+  outline: none;
+}
+
+/* Block elements - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > p,
+.stack-create-post-page .stack-post-body-editor > h1,
+.stack-create-post-page .stack-post-body-editor > h2,
+.stack-create-post-page .stack-post-body-editor > h3,
+.stack-create-post-page .stack-post-body-editor > h4,
+.stack-create-post-page .stack-post-body-editor > h5,
+.stack-create-post-page .stack-post-body-editor > h6,
+.stack-create-post-page .stack-post-body-editor > figure,
+.stack-create-post-page .stack-post-body-editor > div[data-block-type="rawhtml"] {
+  margin: 0;
+  margin-bottom: 1.8rem; /* Improved paragraph spacing - visually distinct */
+  padding: 0;
+  outline: none;
+  color: var(--saito-font-color);
+}
+
+/* Code blocks - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > pre[data-block-type="code"] {
+  background: var(--saito-background-color-inverse);
+  color: var(--saito-font-color-inverse);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  border-left: 4px solid var(--saito-primary);
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+/* I3: Visual list markers rendered via CSS, not textContent */
+.stack-create-post-page .stack-post-body-editor > ul {
+  list-style-type: disc;
+  padding-left: 1.2em;
+  margin: 0;
+  margin-bottom: 1.8rem;
+}
+
+.stack-create-post-page .stack-post-body-editor > ul > li {
+  margin: 0;
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.stack-create-post-page .stack-post-body-editor > ul > li:last-child {
+  margin-bottom: 0;
+}
+
+/* First child blocks - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > p:first-child,
+.stack-create-post-page .stack-post-body-editor > h1:first-child,
+.stack-create-post-page .stack-post-body-editor > h2:first-child,
+.stack-create-post-page .stack-post-body-editor > h3:first-child,
+.stack-create-post-page .stack-post-body-editor > h4:first-child,
+.stack-create-post-page .stack-post-body-editor > h5:first-child,
+.stack-create-post-page .stack-post-body-editor > h6:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  margin-bottom: 1.8rem; /* Consistent spacing */
+}
+
+/* Subtle block insertion affordance on hover between blocks */
+.stack-post-body-editor > p:hover::after,
+.stack-post-body-editor > h1:hover::after,
+.stack-post-body-editor > h2:hover::after,
+.stack-post-body-editor > h3:hover::after,
+.stack-post-body-editor > h4:hover::after,
+.stack-post-body-editor > h5:hover::after,
+.stack-post-body-editor > h6:hover::after {
+  content: '';
+  position: absolute;
+  left: -1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--saito-primary);
+  opacity: 0.2;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.stack-post-body-editor > p:hover::after,
+.stack-post-body-editor > h1:hover::after,
+.stack-post-body-editor > h2:hover::after,
+.stack-post-body-editor > h3:hover::after,
+.stack-post-body-editor > h4:hover::after,
+.stack-post-body-editor > h5:hover::after,
+.stack-post-body-editor > h6:hover::after {
+  opacity: 0.3;
+}
+
+/* Last child blocks - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > p:last-child,
+.stack-create-post-page .stack-post-body-editor > h1:last-child,
+.stack-create-post-page .stack-post-body-editor > h2:last-child,
+.stack-create-post-page .stack-post-body-editor > h3:last-child,
+.stack-create-post-page .stack-post-body-editor > h4:last-child,
+.stack-create-post-page .stack-post-body-editor > h5:last-child,
+.stack-create-post-page .stack-post-body-editor > h6:last-child {
+  margin-bottom: 0;
+}
+
+/* Document End Indicator - hidden for create-post page */
+.stack-create-post-page .stack-document-end {
+  display: none;
+}
+
+/* Editor Footer - hidden for create-post page */
+.stack-create-post-page .stack-editor-footer {
+  display: none;
+}
+
+/* Body text - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > p {
+  font-size: 2rem;
+  line-height: 1.7; /* Improved line-height for better readability */
+  color: var(--saito-font-color);
+  font-weight: 400;
+}
+
+/* Heading styles - scoped to create-post page only */
+.stack-create-post-page .stack-post-body-editor > h1 {
+  font-size: 2.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-post-body-editor > h2 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin: 1.5rem 0 1rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-post-body-editor > h3 {
+  font-size: 2.2rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 1.25rem 0 0.75rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-post-body-editor > h4 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-post-body-editor > h5 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.5rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-create-post-page .stack-post-body-editor > h6 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-post-body-editor > figure {
+  margin: 1.5rem 0;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.stack-post-body-editor > figure img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+  margin: 0 auto;
+}
+
+.stack-post-body-editor > figure figcaption {
+  margin-top: 0.5rem;
+  font-size: 1.2rem;
+  color: var(--saito-font-color-light);
+  font-style: italic;
+  display: none; /* Hidden by default */
+}
+
+.stack-post-body-editor > figure.stack-image-selected {
+  outline: 2px solid var(--saito-primary);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.stack-post-body-editor > figure.stack-image-selected figcaption {
+  display: block; /* Show caption when selected */
+}
+
+/* Insertion indicator */
+.stack-insertion-indicator {
+  height: 2px;
+  background: var(--saito-primary);
+  margin: 0.5rem 0;
+  position: relative;
+  opacity: 0.8;
+}
+
+.stack-insertion-indicator::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--saito-primary);
+  border-radius: 50%;
+}
+
+.stack-post-body-editor > div[data-block-type="rawhtml"] {
+  margin: 1rem 0;
+}
+
+/* Legacy textarea styles (for backwards compatibility) */
+.stack-post-body-input {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  padding: 1.5rem;
+  font-size: 1.8rem;
+  line-height: 1.9;
+  border: none;
+  background: transparent;
+  color: var(--saito-font-color-heavy, var(--saito-font-color));
+  font-family: var(--saito-font-monospace, 'Courier New', monospace);
+  resize: none;
+  outline: none;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.stack-post-body-input::placeholder {
+  color: var(--saito-font-color-light);
+  opacity: 0.5;
+  font-style: italic;
+}
+
+/* Sidebar */
+.stack-create-post-sidebar {
+  width: 320px;
+  min-width: 320px;
+  border-right: 1px solid var(--saito-border-color);
+  background: var(--saito-background-color);
+  padding: 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-height: calc(100vh - var(--saito-header-height, 60px));
+}
+
+.stack-sidebar-section {
+  background: var(--saito-background-color);
+  border: 1px solid var(--saito-border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.stack-sidebar-actions {
+  margin-top: auto;
+}
+
+.stack-sidebar-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--saito-font-color-heavy, var(--saito-font-color));
+}
+
+.stack-btn-full-width {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.stack-btn-full-width:last-child {
+  margin-bottom: 0;
+}
+
+/* Image Upload Area */
+.stack-image-upload-area {
+  border: 2px dashed var(--saito-border-color);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--saito-background-color);
+  position: relative;
+}
+
+.stack-image-upload-area:hover {
+  border-color: var(--saito-primary);
+  background: var(--saito-background-color);
+}
+
+.stack-image-upload-area.stack-upload-dragover {
+  border-color: var(--saito-primary);
+  background: rgba(var(--saito-primary-rgb, 74, 144, 226), 0.1);
+  transform: scale(1.02);
+}
+
+.stack-image-upload-content {
+  pointer-events: none;
+}
+
+.stack-upload-icon {
+  font-size: 3rem;
+  color: var(--saito-font-color-light);
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.stack-upload-text {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--saito-font-color);
+  margin: 0 0 0.5rem 0;
+}
+
+.stack-upload-subtext {
+  font-size: 1.1rem;
+  color: var(--saito-font-color);
+  margin: 0;
+  opacity: 0.8;
+}
+
+.stack-image-upload-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Uploaded Images */
+.stack-uploaded-images {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.stack-uploaded-image-item {
+  position: relative;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--saito-background-color);
+}
+
+.stack-uploaded-image-item img {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-height: 200px;
+  object-fit: cover;
+}
+
+.stack-remove-image-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 1.6rem; /* 16px minimum - button icon text */
+}
+
+.stack-remove-image-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.stack-image-name {
+  display: block;
+  padding: 0.5rem;
+  font-size: 1.6rem;
+  color: var(--saito-font-color);
+  text-align: center;
+  word-break: break-all;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+/* Medium screens - maintain readable width */
+@media (max-width: 1200px) and (min-width: 769px) {
+  .stack-create-post-page .stack-editor-content-wrapper::after {
+    display: none; /* Hide gradient on smaller screens */
+  }
+
+  .stack-create-post-page .stack-editor-content-wrapper {
+    max-width: 100%;
+    gap: 2rem;
+  }
+
+  .stack-create-post-page .stack-document-column {
+    max-width: 720px; /* Maintain optimal reading width */
+    padding: 0;
+  }
+
+  .stack-create-post-page .stack-editor-header {
+    max-width: 1200px;
+    padding: 0;
+  }
+
+  .stack-create-post-page .stack-draft-state {
+    padding-right: 0;
+  }
+
+  .stack-create-post-page .stack-editor-sidebar {
+    width: 200px;
+    right: 0; /* Maintain alignment with wrapper right edge */
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .stack-create-post-page .stack-editor-content-wrapper::after {
+    display: none; /* Hide gradient on mobile */
+  }
+
+  .stack-create-post-page {
+    /* Remove min-height: 100vh on mobile - allow natural growth */
+    padding-top: calc(var(--saito-header-height, 60px) + 3rem); /* Slightly less top spacing on mobile */
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    /* Body/html owns scrolling on mobile too */
+    overflow: visible;
+  }
+
+  .stack-create-post-container {
+    padding: 0;
+  }
+
+  .stack-create-post-page .stack-editor-sidebar {
+    position: relative;
+    width: 100%;
+    left: auto;
+    right: auto;
+    margin-bottom: 2rem;
+  }
+
+  .stack-document-column {
+    max-width: 100%; /* Full width on mobile */
+    /* Remove fixed min-height - allow natural content growth */
+    min-height: 0;
+    /* NO overflow on mobile - page scrolls */
+    overflow: visible;
+  }
+
+  .stack-post-body-field {
+    /* Page owns scrolling - no nested scroll containers */
+    overflow: visible;
+  }
+
+  .stack-editor-header {
+    max-width: 100%;
+    margin-bottom: 1.5rem;
+    padding: 0;
+  }
+
+  .stack-create-post-page .stack-draft-state {
+    padding-right: 0;
+  }
+
+  .stack-post-title-field {
+    margin-bottom: 2.5rem; /* Clear separation on mobile */
+  }
+
+  .stack-post-title-input {
+    font-size: 2.8rem; /* Slightly smaller on mobile but still prominent */
+    line-height: 1.2;
+  }
+
+  .stack-post-body-field {
+    margin-bottom: 3rem;
+  }
+
+  .stack-post-body-editor {
+    font-size: 1.8rem;
+    line-height: 1.7; /* Improved line-height */
+    min-height: 50vh;
+  }
+
+  .stack-document-end {
+    margin-top: 3rem;
+    margin-bottom: 2rem;
+  }
+
+  .stack-editor-footer {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+  }
+
+  .stack-post-body-editor > p {
+    font-size: 1.8rem;
+    line-height: 1.7; /* Improved line-height */
+    margin-bottom: 1.8rem; /* Consistent paragraph spacing */
+  }
+
+  .stack-post-body-editor > h1 {
+    font-size: 2.5rem;
+  }
+
+  .stack-post-body-editor > h2 {
+    font-size: 2rem;
+  }
+
+  .stack-post-body-editor > h3 {
+    font-size: 1.75rem;
+  }
+}
+

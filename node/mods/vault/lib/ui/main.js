@@ -1,5 +1,4 @@
 const VaultMainTemplate = require('./main.template.js');
-//const ListNFTsOverlay = require('./overlays/list-nfts.js');
 const AccessFileOverlay = require('./overlays/access-file.js');
 const FileUploadOverlay = require('./overlays/file-upload.js');
 
@@ -59,7 +58,7 @@ class VaultMain {
       }
 
     } catch (err) {
-console.log("ERROR: vault main: " + err);
+      console.error("Vault main attachEvents error:", err);
     }
   }
 

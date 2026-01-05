@@ -16,11 +16,9 @@
   padding: 10px 0;
   background: #0008;
   opacity: 0.9;
-}
-
-.key_level_info:hover {
-  opacity: 1;
-  background: #0006;
+  transition: all 0.3s ease;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .key_level_info h5 {
@@ -31,14 +29,41 @@
   position: relative;
   background-image: url('/vault/img/crystal_key.png');
   background-size: cover;
+  background-posiiton: center;
   width: 450px !important;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 3px solid transparent;
 }
+
 .jade_key {
   position: relative;
   background-image: url('/vault/img/jade_key.png');
   background-size: cover;
+  background-posiiton: center;
   width: 450px !important;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 3px solid transparent;
 }
+
+.jade_key:hover, .crystal_key:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.5);
+  border-color: var(--saito-primary-text);
+  filter: brightness(1.1);
+}
+
+.jade_key:hover .key_level_info,
+.crystal_key:hover .key_level_info {
+  opacity: 1;
+  background: var(--saito-primary);
+  color: var(--saito-primary-text);
+  padding: 15px 0;
+}
+
 .copper_key {
   background-image: url('/vault/img/copper_key.png');
   background-size: cover;

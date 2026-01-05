@@ -1,4 +1,4 @@
-module.exports  = (app, mod, group, chat_open) => {
+module.exports = (app, mod, group, chat_open) => {
 	let id = group.id;
 
 	let last_msg = '<em>new chat</em>';
@@ -23,11 +23,10 @@ module.exports  = (app, mod, group, chat_open) => {
 		last_msg = last_msg.replace(regex2, '').replace('</a>', '');
 
 		if (tx?.mentioned) {
-				for (let m of tx.mentioned){
-					last_msg = last_msg.replace(`data-id="${m}"`, "");
-				}
+			for (let m of tx.mentioned) {
+				last_msg = last_msg.replace(`data-id="${m}"`, '');
+			}
 		}
-
 	}
 
 	let identicon_source = id;
@@ -45,17 +44,17 @@ module.exports  = (app, mod, group, chat_open) => {
 
 	let imgsrc = app.keychain.returnIdenticon(identicon_source);
 
-	let classes = "saito-user " + notification;
+	let classes = 'saito-user ' + notification;
 	if (group?.online) {
 		classes += group.online;
 	}
-	if (chat_open){
-		classes += " saito-chat-active";
+	if (chat_open) {
+		classes += ' saito-chat-active';
 	}
 
 	// reduce flicker of browser mutation observer
 	let display_name = group.name;
-	if (app.wallet.isValidPublicKey(display_name)){
+	if (app.wallet.isValidPublicKey(display_name)) {
 		display_name = app.keychain.returnUsername(display_name);
 	}
 
@@ -65,22 +64,22 @@ module.exports  = (app, mod, group, chat_open) => {
       <img class="saito-identicon" src="${imgsrc}" data-disable="true"/>
     </div>
     <div class="saito-address saito-address-long">
-    	<div class="saito-address treated" data-id="${group.name}" data-disable="true">${display_name}</div>
-    	${group?.muted ? `<i class="fa-solid fa-volume-xmark"></i>` : ""}
+    	<div class="chat-group-name">${display_name}</div>
+    	${group?.muted ? `<i class="fa-solid fa-volume-xmark"></i>` : ''}
     </div>
     <div class="saito-userline">${last_msg}</div>
     <div class="saito-chat-notifications">`;
 
-    if (group.mentioned){
-    	html += `<div class="saito-notification-dot">@</div>`;
-    }
-    if (group.unread > 0){
-    	html += `<div class="saito-notification-dot">${group.unread}</div>`;
-    }
+	if (group.mentioned) {
+		html += `<div class="saito-notification-dot">@</div>`;
+	}
+	if (group.unread > 0) {
+		html += `<div class="saito-notification-dot">${group.unread}</div>`;
+	}
 
-  html += `</div>
+	html += `</div>
     <div class="online-status-indicator"><i class="fa-solid fa-bolt-lightning"></i></div>
   </div>`;
 
-  return html;
+	return html;
 };

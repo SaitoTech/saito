@@ -28,8 +28,6 @@ class NwasmMain {
 		  	if (nwasm_self.library[peer].length > 0) { games_to_show = true; }
 		}
 
-console.log("LIBRARY: " + JSON.stringify(nwasm_self.library));
-
 		//
 		// render
 		//
@@ -149,8 +147,6 @@ console.log("LIBRARY: " + JSON.stringify(nwasm_self.library));
 								}
 
 								if (txs.length > 0) {
-
-									console.log('THEREIS AT LEAST 1 TX');
 
 									try {
 										let tx = txs[0];

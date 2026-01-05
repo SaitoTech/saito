@@ -1768,18 +1768,13 @@ pub async fn get_confirmations() -> Result<JsValue, JsValue> {
         .config_lock
         .read()
         .await;
-    let str = serde_json::to_string(
-        &configs
-            .get_blockchain_configs()
-            .expect("blockchain config should exist here")
-            .confirmations,
-    )
-    .map_err(|e| {
-        JsValue::from_str(&format!(
-            "Failed to serialize blockchain confirmations configs: {}",
-            e
-        ))
-    })?;
+    let str =
+        serde_json::to_string(&configs.get_blockchain_configs().confirmations).map_err(|e| {
+            JsValue::from_str(&format!(
+                "Failed to serialize blockchain confirmations configs: {}",
+                e
+            ))
+        })?;
     Ok(str.into())
 }
 

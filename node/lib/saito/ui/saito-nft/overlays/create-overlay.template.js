@@ -60,6 +60,7 @@ module.exports = (app, mod) => {
          <div class="textarea-container">
             <div class="saito-app-upload active-tab paste_event" id="nft-image-upload">
                <i class="fa-solid fa-file-image"></i>
+               <div class="nft-upload-text">drag-and-drop image to upload</div>
             </div>
             <textarea class="create-nft-textarea" id="create-nft-textarea"></textarea>
          </div>
@@ -68,6 +69,7 @@ module.exports = (app, mod) => {
         <div class="create-nft-btn-row">
             <div class="create-nft-help-link" id="create-nft-help-link">need help?</div>    
             <div class="saito-button-row">
+                 <div class="get-saito-tokens"></div>
                  <button id="create_nft">Next Step</button>
             </div>
         </div>

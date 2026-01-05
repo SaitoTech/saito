@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	let html = `<div class="rules-overlay">
+  let html = `<div class="rules-overlay saito-overlay-size">
     <h1>Midnight Rogue</h1>
     <blockquote>
     Danger lurks in every corner of Port Blacksand — infamous city of evil-doers!
@@ -9,5 +9,5 @@ module.exports = (app, mod) => {
     <h2>Specific Instructions</h2>
     <p>You may carry up to six items with you in your rucksack, with the provisions counting together as one item. You are also gifted with abilities taught by the Guild of Thieves.</p>
   </div>`;
-	return html;
+  return html;
 };

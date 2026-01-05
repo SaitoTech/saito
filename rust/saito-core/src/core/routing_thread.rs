@@ -1014,7 +1014,6 @@ impl RoutingThread {
         }
         configs
             .get_blockchain_configs_mut()
-            .expect("blockchain config should exist here")
             .initial_loading_completed = true;
     }
 
@@ -1251,14 +1250,14 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
                 };
                 drop(peers);
-                ConfigManager::write_congestion_data(
-                    &congestion_data,
-                    self.network.io_interface.deref(),
-                )
-                .await
-                .unwrap_or_else(|e| {
-                    error!("failed to write congestion data : {:?}", e);
-                });
+                // ConfigManager::write_congestion_data(
+                //     &congestion_data,
+                //     self.network.io_interface.deref(),
+                // )
+                // .await
+                // .unwrap_or_else(|e| {
+                //     error!("failed to write congestion data : {:?}", e);
+                // });
 
                 configs.set_congestion_data(Some(congestion_data));
                 self.congestion_check_timer = 0;
@@ -1340,9 +1339,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 {
                     let mut configs = self.config_lock.write().await;
                     let blockchain = self.blockchain_lock.read().await;
-                    let blockchain_configs = configs
-                        .get_blockchain_configs_mut()
-                        .expect("blockchain config should exist here");
+                    let blockchain_configs = configs.get_blockchain_configs_mut();
 
                     blockchain_configs.last_block_hash = blockchain.last_block_hash.to_hex();
                     blockchain_configs.last_block_id = blockchain.last_block_id;
@@ -1357,17 +1354,18 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         blockchain.lowest_acceptable_block_id;
                     blockchain_configs.fork_id = blockchain.fork_id.unwrap_or_default().to_hex();
 
-                    ConfigManager::write_blockchain_configs(
-                        blockchain_configs,
-                        self.network.io_interface.deref(),
-                    )
-                    .await
-                    .unwrap_or_else(|e| {
-                        error!(
-                            "Error writing blockchain configs after a blockchain updated event, {}",
-                            e
-                        );
-                    });
+                    configs.save();
+                    // ConfigManager::write_blockchain_configs(
+                    //     blockchain_configs,
+                    //     self.network.io_interface.deref(),
+                    // )
+                    // .await
+                    // .unwrap_or_else(|e| {
+                    //     error!(
+                    //         "Error writing blockchain configs after a blockchain updated event, {}",
+                    //         e
+                    //     );
+                    // });
                 }
                 if initial_sync {
                     // we set this to false here since now we know the genesis block is added already.

@@ -252,16 +252,20 @@ class Registry extends ModTemplate {
 			});
 		} else {
 			//console.log("My peer is the registry");
-			this.queryKeys(this.peers[0], missing_keys, (identifiers) => {
-				//
-				// This callback is executed in the browser
-				//
-				for (let key in identifiers) {
-					registry_self.cached_keys[key] = identifiers[key];
-					found_keys[key] = identifiers[key];
-				}
-				mycallback(found_keys);
-			});
+			if (this.peers.length) {
+				this.queryKeys(this.peers[0], missing_keys, (identifiers) => {
+					//
+					// This callback is executed in the browser
+					//
+					for (let key in identifiers) {
+						registry_self.cached_keys[key] = identifiers[key];
+						found_keys[key] = identifiers[key];
+					}
+					mycallback(found_keys);
+				});
+			} else {
+				console.warn('Cannot fetchManyIdentifiers until I connect to a peer with Registry service');
+			}
 		}
 	}
 

@@ -1,0 +1,710 @@
+/* ============================================
+   EXPLORE OVERLAY - Desktop-first, library-like
+   ============================================ */
+
+/* Explore Overlay Container */
+.stack-explore-overlay {
+  max-width: 1600px; /* Wider for comfortable scanning */
+  width: 90vw;
+  height: 85vh;
+  max-height: 85vh;
+  background: var(--saito-background-color);
+  border-radius: 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(0, 0, 0, 0.1),
+    0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Sidebar */
+.stack-explore-sidebar {
+  width: 320px; /* Wider for comfortable identity display */
+  min-width: 320px;
+  border-right: 1px solid var(--saito-border-color);
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  display: flex;
+  flex-direction: column;
+  /* No overflow - overlay handles scroll */
+}
+
+.stack-explore-sidebar-header {
+  padding: 2.5rem 2rem;
+  /* ISSUE 3 — CSS FIX: Sidebar header spacing */
+  margin-bottom: 0px;
+  border-bottom: none;
+  background: var(--saito-primary);
+  color: var(--saito-font-color-inverse);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stack-explore-sidebar-header h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--saito-primary-text);
+  line-height: 1.3;
+  flex: 1;
+}
+
+/* Old "+" button removed - replaced with text link in main panel header */
+
+.stack-explore-sidebar-content {
+  flex: 1;
+  /* No overflow-y - overlay handles scroll */
+  padding: 0;
+  padding-top: 0; /* INVARIANT 4: No top padding - flush with header */
+  padding-bottom: 0; /* Explicitly remove bottom padding */
+  margin: 0; /* INVARIANT 4: No margin - flush with header */
+  margin-top: 0; /* INVARIANT 4: Explicitly no top margin */
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  min-height: 0; /* Allow flex shrinking */
+}
+
+/* Filter section removed - subscriptions list flows directly */
+
+/* Subscriptions List - Flat navigation rows, not buttons */
+/* INVARIANT 4: Must be flush with Explore header box - no gap */
+.stack-explore-subscriptions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+  margin: 0;
+  margin-top: 0; /* INVARIANT 4: Explicitly no top margin */
+  padding: 0; /* INVARIANT 4: No padding - items begin immediately below header */
+  padding-top: 0; /* INVARIANT 4: Explicitly no top padding */
+  border-left: 2px solid var(--saito-primary); /* Left border aligned with header */
+}
+
+.stack-explore-subscription-item {
+  width: 100%;
+  min-height: 4.4rem; /* Consistent row height */
+  padding: 1.2rem 2rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--saito-border-color);
+  border-top: none; /* No top border */
+  color: var(--saito-font-color);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: inherit; /* Use inherited font-size from body */
+  line-height: 1.5;
+  font-weight: 400;
+  user-select: none;
+}
+
+.stack-explore-subscription-item:first-child {
+  /* INVARIANT 4: First item aligns with header - no top gap */
+  border-top: none;
+  margin-top: 0; /* Explicitly no top margin */
+  padding-top: 1.2rem; /* Normal padding */
+}
+
+.stack-explore-subscription-item:last-child {
+  border-bottom: none;
+}
+
+/* Inactive state - muted icon */
+.stack-explore-subscription-item i {
+  color: var(--saito-font-color);
+  opacity: 0.6;
+  font-size: 1.4rem; /* 14px minimum */
+  width: 1.6rem; /* Fixed width for alignment */
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.stack-explore-subscription-item span {
+  flex: 1;
+  font-size: inherit;
+}
+
+/* Hover state - desktop only, uses primary color */
+@media (hover: hover) {
+  .stack-explore-subscription-item:hover {
+    background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background-color) 88%);
+    border-left: 3px solid var(--saito-primary);
+    padding-left: calc(2rem - 3px); /* Adjust padding to account for border */
+  }
+  
+  .stack-explore-subscription-item:not(.active):hover i {
+    color: var(--saito-primary);
+    opacity: 1;
+  }
+  
+  .stack-explore-subscription-item.active:hover {
+    background: color-mix(in srgb, var(--saito-primary) 15%, var(--saito-background-color) 85%);
+  }
+}
+
+/* Active state - subtle indication, NO left border by default */
+.stack-explore-subscription-item.active {
+  background: color-mix(in srgb, var(--saito-primary) 8%, var(--saito-background-color) 92%);
+  color: var(--saito-font-color);
+  font-weight: 500;
+  /* No left border by default - only on hover */
+}
+
+.stack-explore-subscription-item.active i {
+  color: var(--saito-font-color);
+  opacity: 0.9;
+}
+
+.stack-explore-subscription-item.active span {
+  color: var(--saito-font-color);
+}
+
+/* Contextual Help Note - Bottom of left panel */
+.stack-explore-help-note {
+  margin-top: auto;
+  padding: 1.5rem 2rem 1.5rem 2rem; /* Top and bottom padding, horizontal padding */
+  border-top: 1px solid var(--saito-border-color);
+  background: color-mix(in srgb, var(--saito-background-color) 98%, var(--saito-font-color) 2%);
+  opacity: 0.7;
+}
+
+.stack-explore-help-note p {
+  margin: 0;
+  padding: 0;
+  font-size: 1.4rem; /* 14px minimum - readable but subtle */
+  line-height: 1.5;
+  color: var(--saito-font-color);
+  font-weight: 400;
+}
+
+/* Hide help note when subscription list has more than 2 items */
+.stack-explore-subscriptions-list:has(.stack-explore-subscription-item:nth-child(3)) ~ .stack-explore-help-note {
+  display: none;
+}
+
+/* Fallback: hide if more than 2 items (for browsers without :has support) */
+.stack-explore-help-note.hide-help {
+  display: none;
+}
+
+/* Legacy button styles - kept for compatibility but not used */
+.stack-explore-filter-btn {
+  width: 100%;
+  padding: 1rem 1.25rem; /* More generous padding */
+  margin-bottom: 0.75rem;
+  background: transparent;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 8px;
+  color: var(--saito-font-color);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  font-size: 1.8rem; /* 18px - readable body text */
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.stack-explore-filter-btn:hover {
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  border-color: var(--saito-primary);
+}
+
+.stack-explore-filter-btn.active {
+  background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background-color) 88%);
+  color: var(--saito-font-color);
+  border-color: var(--saito-primary);
+  font-weight: 500;
+}
+
+.stack-explore-search-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 8px;
+  background: var(--saito-background-color);
+  color: var(--saito-font-color);
+  font-size: 1.6rem; /* 16px minimum - input text */
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.stack-explore-search-input:focus {
+  border-color: var(--saito-primary);
+}
+
+/* Main Content Area */
+.stack-explore-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* No overflow - overlay handles scroll */
+  padding: 2.5rem 3rem; /* More generous padding */
+  overflow-y: auto; /* Main content scrolls, not nested */
+}
+
+/* Sidebar Header is defined above (line 34) - do not duplicate */
+/* Old "+" button styles removed - replaced with text link in main panel header */
+
+/* Main Panel Header - Contains author identity and action links */
+/* INVARIANT 2: Header row alignment must not shift - use space-between */
+.stack-explore-main-header {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--saito-border-color);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between; /* Left: SaitoUser, Right: action button - never shifts */
+  align-items: center; /* Vertically center items */
+  gap: 2rem;
+}
+
+/* Author Identity Header - Context-aware publisher display using SaitoUser */
+.stack-explore-author-header {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start; /* Left-align author identity */
+  align-items: center; /* Vertically center with action button */
+  gap: 2rem;
+  min-width: 0; /* Allow shrinking */
+}
+
+#stack-explore-author-identity {
+  flex: 1;
+}
+
+/* Subscribe button container (shown when viewing creator via URL and not subscribed) */
+/* Positioned identically to Add user button for layout consistency */
+#stack-explore-subscribe-button-container {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end; /* Right-align button */
+  align-items: flex-start;
+}
+
+.stack-explore-subscribe-btn {
+  background: var(--saito-primary);
+  color: var(--saito-primary-text);
+  border: none;
+  border-radius: 8px;
+  padding: 0.8rem 1.6rem;
+  font-size: 1.6rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms ease, transform 150ms ease;
+  white-space: nowrap;
+}
+
+.stack-explore-subscribe-btn:hover {
+  background: var(--saito-primary-dark);
+  transform: translateY(-1px);
+}
+
+.stack-explore-subscribe-btn:active {
+  transform: translateY(0);
+}
+
+/* Do NOT override SaitoUser CSS - use default Saito.css styling */
+/* Only container-level styling is allowed */
+
+/* Action Button Container (in main panel header, right-aligned) */
+.stack-explore-action-button-container {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end; /* Right-align button */
+  align-items: center; /* Vertically center with SaitoUser */
+  gap: 1rem;
+}
+
+/* Add Subscription Button - Secondary styling (no orange fill) */
+.stack-explore-add-subscription-btn {
+  padding: 0.8rem 1.6rem;
+  background: transparent;
+  color: var(--saito-primary);
+  border: 1px solid var(--saito-primary);
+  border-radius: 8px;
+  font-size: 1.6rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.stack-explore-add-subscription-btn:hover {
+  background: color-mix(in srgb, var(--saito-primary) 10%, transparent 90%);
+  border-color: var(--saito-primary);
+  transform: translateY(-1px);
+}
+
+.stack-explore-add-subscription-btn:active {
+  transform: translateY(0);
+}
+
+/* Settings Button - Secondary styling (no orange fill) */
+.stack-explore-settings-btn {
+  padding: 0.8rem 1.6rem;
+  background: transparent;
+  color: var(--saito-primary);
+  border: 1px solid var(--saito-primary);
+  border-radius: 8px;
+  font-size: 1.6rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 150ms ease;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.stack-explore-settings-btn:hover {
+  background: color-mix(in srgb, var(--saito-primary) 10%, transparent 90%);
+  border-color: var(--saito-primary);
+  transform: translateY(-1px);
+}
+
+.stack-explore-settings-btn:active {
+  transform: translateY(0);
+}
+
+/* INVARIANT 1: Never hide author header - user identity must always be visible */
+/* Removed :empty hiding rule - header should never be empty */
+
+.stack-explore-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.stack-explore-header h2 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-explore-subtitle {
+  font-size: 1.8rem;
+  color: var(--saito-font-color-light);
+  margin: 0;
+}
+
+.stack-explore-content {
+  flex: 1;
+  /* No overflow-y - parent handles scroll */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Posts Grid - Vertical stacking for library-like feel */
+.stack-explore-posts-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 0;
+  max-width: 900px; /* Constrain width for comfortable reading */
+}
+
+
+/* ============================================
+   LEGACY EXPLORE CLASSES (Compatibility)
+   ============================================ */
+
+.stack-explore-post-card {
+  background: var(--saito-background-color);
+  border: 1px solid var(--saito-border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.stack-explore-post-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-color: var(--saito-primary);
+}
+
+.stack-explore-post-image {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--saito-background-color);
+}
+
+.stack-explore-post-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.stack-explore-post-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-primary-dark, #4a90e2) 100%);
+  color: white;
+  font-size: 3rem;
+  opacity: 0.3;
+}
+
+.stack-explore-post-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.stack-explore-post-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  font-size: 1.4rem; /* 14px minimum - metadata text */
+  color: var(--saito-font-color-light);
+}
+
+.stack-explore-post-author {
+  font-weight: 600;
+  color: var(--saito-primary);
+}
+
+.stack-explore-post-date {
+  color: var(--saito-font-color-light);
+}
+
+.stack-explore-post-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--saito-font-color);
+  line-height: 1.3;
+}
+
+.stack-explore-post-excerpt {
+  font-size: 1.6rem; /* 16px minimum - excerpt text */
+  line-height: 1.6;
+  color: var(--saito-font-color-light);
+  margin: 0 0 1rem 0;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stack-explore-read-more-btn {
+  background: transparent;
+  border: 1px solid var(--saito-border-color);
+  color: var(--saito-primary);
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-size: 1.6rem; /* 16px minimum - button text */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.stack-explore-read-more-btn:hover {
+  background: var(--saito-primary);
+  color: white;
+  border-color: var(--saito-primary);
+  transform: translateX(4px);
+}
+
+/* Empty State - Centered, informative */
+.stack-explore-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.stack-explore-empty-message {
+  font-size: 1.8rem; /* 18px - readable body text */
+  line-height: 1.6;
+  color: var(--saito-font-color);
+  margin: 0 0 1.5rem 0;
+  max-width: 500px;
+}
+
+.stack-explore-empty-link {
+  margin: 0;
+}
+
+.stack-explore-empty-link a {
+  font-size: 1.6rem; /* 16px minimum - link text */
+  color: var(--saito-primary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.stack-explore-empty-link a:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+/* Legacy empty state - kept for compatibility */
+.stack-explore-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--saito-font-color);
+}
+
+.stack-explore-empty-icon {
+  font-size: 4rem;
+  color: var(--saito-font-color-light);
+  margin-bottom: 1.5rem;
+  opacity: 0.5;
+}
+
+.stack-explore-empty h3 {
+  font-size: 1.8rem;
+  margin: 0 0 1rem 0;
+  color: var(--saito-font-color);
+}
+
+.stack-explore-empty p {
+  font-size: 1.8rem;
+  color: var(--saito-font-color-light);
+  margin: 0 0 2rem 0;
+}
+
+/* ============================================
+   RESPONSIVE - MOBILE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .stack-explore-overlay {
+    width: 100vw;
+    height: 100vh;
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0; /* Full screen, no rounded corners */
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .stack-explore-sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--saito-border-color);
+    /* No max-height - let it flow naturally */
+    flex-shrink: 0;
+  }
+
+  .stack-explore-sidebar-header {
+    padding: 1.5rem;
+  }
+
+  .stack-explore-sidebar-header h2 {
+    font-size: 1.5rem;
+  }
+
+  /* Old "+" button responsive styles removed - replaced with text link */
+
+  .stack-explore-sidebar-content {
+    padding: 0;
+    gap: 0;
+  }
+
+  .stack-explore-subscription-item {
+    min-height: 4.8rem; /* Larger touch targets on mobile */
+    padding: 1.4rem 1.5rem;
+    font-size: inherit;
+  }
+
+  .stack-explore-subscription-item.active {
+    /* No left border by default on mobile either */
+  }
+  
+  /* Mobile hover - add left border on hover for both active and inactive */
+  @media (hover: hover) {
+    .stack-explore-subscription-item:hover {
+      border-left: 3px solid var(--saito-primary);
+      padding-left: calc(1.5rem - 3px); /* Adjust for border on mobile */
+    }
+  }
+
+  .stack-explore-help-note {
+    padding: 1.5rem; /* Consistent padding on all sides for mobile */
+  }
+
+  .stack-explore-help-note p {
+    font-size: 1.4rem; /* 14px minimum - readable on mobile */
+  }
+
+  .stack-explore-filter-btn {
+    padding: 1.125rem 1.25rem; /* Generous touch targets */
+    font-size: 1.8rem; /* 18px - readable */
+    margin-bottom: 0.625rem;
+  }
+
+  .stack-explore-main {
+    padding: 1.5rem;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto; /* Main content scrolls */
+  }
+
+  .stack-explore-main-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .stack-explore-author-header {
+    width: 100%;
+  }
+
+  .stack-explore-action-button-container {
+    width: 100%;
+    justify-content: center; /* Center on mobile */
+  }
+
+  .stack-explore-add-subscription-btn,
+  .stack-explore-settings-btn {
+    width: 100%; /* Full width on mobile */
+  }
+  
+  #stack-explore-subscribe-button-container {
+    width: 100%;
+    justify-content: center; /* Center on mobile */
+  }
+  
+  .stack-explore-subscribe-btn {
+    width: 100%; /* Full width on mobile */
+  }
+
+  /* Removed SaitoUser CSS override - use default Saito.css styling */
+
+
+  .stack-explore-posts-grid {
+    max-width: 100%;
+  }
+}
+

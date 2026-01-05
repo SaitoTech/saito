@@ -17,8 +17,8 @@
 
 .resize-icon {
   position: absolute;
-  left: calc(var(--border-radius-offset) - 0.3rem);
-  top: calc(var(--border-radius-offset) - 0.4rem);
+  left: -0.3rem;
+  top: -0.4rem;
   width: 0.8rem;
   height: 1.3rem;
   cursor: nw-resize;

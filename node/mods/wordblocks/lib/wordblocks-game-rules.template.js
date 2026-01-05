@@ -1,6 +1,6 @@
 module.exports = (app, mod) => {
-	let html = `
-      <div class="rules-overlay">
+  let html = `
+      <div class="rules-overlay saito-overlay-size">
       <div class="intro">
       <div class="h1">Wordblocks</div>
       <p>Wordblocks is a crossword puzzle spelling game, similar to the classic boardgame.</p> 
@@ -12,5 +12,5 @@ module.exports = (app, mod) => {
       <p>If you use all 7 tiles in one play, you receive 10 additional points to the letter score and a +1 multiple on the overall word score.</p>
       <p>Good luck and happy spelling!</p>
       </div></div>`;
-	return html;
+  return html;
 };
