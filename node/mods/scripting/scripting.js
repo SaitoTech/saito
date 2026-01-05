@@ -19,6 +19,9 @@ var OpcodeCheckOwnNft   	= require('./lib/opcodes/checkownnft');
 var OpcodeCheckOwnNftWhere   	= require('./lib/opcodes/checkownnftwhere');
 var OpcodeCheckPath     	= require('./lib/opcodes/checkpath');
 var OpcodeCheckPathHop  	= require('./lib/opcodes/checkpathhop');
+var OpcodeCheckField 		= require('./lib/opcodes/checkfield');
+var OpcodeSumFields 		= require('./lib/opcodes/sumfields');
+var OpcodeImportField 		= require('./lib/opcodes/importfield');
 
 class Scripting extends ModTemplate {
 
@@ -55,7 +58,8 @@ class Scripting extends ModTemplate {
 		  OpcodeCheckSig , OpcodeCheckTime , OpcodeCheckHash , 
       		  OpcodeCheckSender , OpcodeCheckField , OpcodeCheckMultiSig, 
       		  OpcodeCheckOwn, OpcodeCheckOwnNft, OpcodeCheckPath, 
-		  OpcodeCheckPathHop, OpcodeCheckOwnNftWhere
+		  OpcodeCheckPathHop, OpcodeCheckOwnNftWhere, OpcodeCheckField ,
+		  OpcodeImportField , OpcodeSumFields
     		].forEach((op) => { 
   			if (op?.name && typeof op.execute === "function") {
 

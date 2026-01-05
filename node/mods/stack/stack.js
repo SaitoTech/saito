@@ -404,8 +404,12 @@ console.log("updated UI...");
         class: ['stack'], // This becomes the nft_type parameter for createMintNFTTransaction
         text: 'Stack Access Key',
         createData: async (modfile) => {
+	  // 100 years by default
+	  // duration: 3155760000000;
+	  // duration: 300000; // 5 minutes
           return {
             module: 'Stack',
+	    duration: 300000
           };
         }
       };
@@ -434,6 +438,27 @@ console.log("adding routing path to Stack NFT...");
 
           if (!nft?.id) { return tx; }
 
+	  //
+	  // if we are the creator and this is a subscription, we should
+	  // sign for the duration of the subscription so that access
+	  // scripts can reconstruct our signature and import the duration
+	  // variable used to regulate access.
+	  //
+	  if (nft != null && tx.msg.data.path.length == 0) {
+	    if (nft.returnCreator() == this.publicKey) {
+	      if (tx.msg.data.duration && !tx.msg.data.duration_sig) {
+      		let duration = tx.msg.data.duration;
+      		let binding_hash = nft.id;
+      		let canonical_string = `${duration}|${binding_hash}`;
+      		let digest = this.app.crypto.hash(canonical_string);
+	  	let privatekey = await this.app.wallet.getPrivateKey();
+console.log("SIGNING DURATION SIG FOR: " + digest);
+console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
+	  	tx.msg.data.duration_sig = this.app.crypto.signMessage(digest, privatekey);
+	      }
+	    }
+	  }
+
           let value_obj = {
             timestamp: Date.now(),
             delegate: false
@@ -445,37 +470,15 @@ console.log("adding routing path to Stack NFT...");
           const value_b64 = Buffer.from(value_json).toString('base64');
 
           const canonical_string = `${receiver}|${value_b64}|${nft.id}`;
-console.log("nftid: " + nft.id);
 	  const hash_digest = this_mod.app.crypto.hash(canonical_string);
 	  const privatekey = await this_mod.app.wallet.getPrivateKey();
 	  const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
-
-console.log("signing string: " + canonical_string);
-console.log("as hash: " + hash_digest);
-
-console.log("ABOUT TO TEST VERIFICATION 5");
 
           tx.msg.data.path.push({
             to: receiver,
             value: value_b64,
             sig: sig
           });
-
-console.log("ABOUT TO TEST VERIFICATION 4");
-
-//
-// TEST VERIFICATION NOW
-//
-const is_ok = this_mod.app.crypto.verifyRoutingPath(
-  tx.msg.data.path,
-  nft.returnCreator(),
-  nft.id
-);
-console.log("###");
-console.log("###");
-console.log("###");
-console.log("DOES PATH VALIDATE: " + is_ok)
-
 
           return tx;
         }
@@ -647,6 +650,20 @@ console.log("DOES PATH VALIDATE: " + is_ok)
         data.parent_id = post.parent_id;
       }
 
+// ------------------------------------------------------------
+// AUTHORITATIVE ACCESS INTENT NORMALIZATION (SUBSCRIPTIONS)
+// ------------------------------------------------------------
+// This MUST run before publishIntent is constructed
+if (post.accessLevel === 'subscription') {
+  post.publishIntent = {
+    visibility: 'subscription',
+    access_mode: post.access_mode || 'transferable',
+    time_limit: null,
+    author: this.publicKey
+  };
+}
+
+
       // ========================================================================
       // ACCESS SCRIPT GENERATION: Deterministic pipeline from intent to hash
       // ========================================================================
@@ -666,15 +683,20 @@ console.log("DOES PATH VALIDATE: " + is_ok)
           publishIntent.author = this.publicKey;
         }
       } else {
-        // Legacy format: convert accessLevel string to intent
-        const accessLevel = post.accessLevel || 'public';
-        publishIntent = {
-          visibility: accessLevel,
-          access_mode: null, // Default to null (will default to transferable for private)
-          time_limit: null,
-          author: this.publicKey
-        };
+  	// Legacy format: convert accessLevel string to intent
+  	const accessLevel = post.accessLevel || 'public';
+  	publishIntent = {
+  	  visibility: accessLevel,
+  	  access_mode:
+  	    accessLevel === 'subscription'
+  	      ? (post.access_mode || 'transferable')
+  	      : null,
+  	  time_limit: null,
+  	  author: this.publicKey
+  	};
       }
+
+console.log("PUBLISH INTENT:", publishIntent);
 
       // Get access script for intent
       let access_script = null;
@@ -1689,7 +1711,21 @@ alert("Propagating the Transaction!");
           hops: path
         });
       }
+      try {
+        let nft_txmsg = nft.tx?.returnMessage?.();
+        if (nft_txmsg.data.duration) {
+          access_witness_obj.push({
+            duration: nft_txmsg.data.duration ,
+            signature: nft_txmsg.data.duration_sig ,
+          });
+        }
+      } catch (err) {
+console.log("ERROR attaching duration and sig to witness...");
+      }
       const access_witness = JSON.stringify(access_witness_obj);
+
+console.log("WITNESS FOR QUERY: ");
+console.log(JSON.stringify(access_witness));
 
       // Note: access_hash and access_script come from the POST transaction, not the NFT
       // We return witness data here, and the caller will attach it along with post's access_hash/access_script

@@ -60,7 +60,7 @@ module.exports = (app, mod, postState = {}) => {
   } else if (isPrivate) {
     educationalContent = 'This post will only be readable by people you explicitly grant access to.\nYou control who can see it.';
   } else if (isSubscription) {
-    educationalContent = 'Subscription-based access will allow flexible, programmable permissions.\nThis option is not yet available.';
+    educationalContent = 'This post will only be readable by people with an active subscription.\nThis option is under development.';
   } else {
     // Default to public
     educationalContent = 'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
@@ -104,18 +104,17 @@ module.exports = (app, mod, postState = {}) => {
                 </div>
               </label>
 
-              <label class="stack-publish-access-card stack-publish-access-card-disabled ${isSubscription ? 'stack-publish-access-card-active' : ''}" data-access="subscription">
+              <label class="stack-publish-access-card ${isSubscription ? 'stack-publish-access-card-active' : ''}" data-access="subscription">
                 <input 
                   type="checkbox" 
                   name="stack-publish-access" 
                   value="subscription" 
                   ${isSubscription ? 'checked' : ''}
-                  disabled
                   class="stack-publish-access-checkbox"
                 />
                 <div class="stack-publish-access-card-content">
                   <div class="stack-publish-access-card-label">Subscription</div>
-                  <div class="stack-publish-access-card-description">Coming soon — customizable access rules and permissions.</div>
+                  <div class="stack-publish-access-card-description">Only people with valid subscription have access.</div>
                 </div>
               </label>
             </div>
@@ -129,6 +128,35 @@ module.exports = (app, mod, postState = {}) => {
             
             <!-- Access type selector (only shown when Private is selected) -->
             ${isPrivate ? `
+              <div class="stack-publish-access-type-selector">
+                <div class="stack-publish-access-type-label">Access type:</div>
+                <div class="stack-publish-access-type-options">
+                  <label class="stack-publish-access-type-option">
+                    <input 
+                      type="radio" 
+                      name="stack-publish-access-type" 
+                      value="transferable"
+                      ${isTransferable ? 'checked' : ''}
+                      class="stack-publish-access-type-radio"
+                    />
+                    <span class="stack-publish-access-type-option-label">Flexible (transferable)</span>
+                  </label>
+                  <label class="stack-publish-access-type-option">
+                    <input 
+                      type="radio" 
+                      name="stack-publish-access-type" 
+                      value="non-transferable"
+                      ${isNonTransferable ? 'checked' : ''}
+                      class="stack-publish-access-type-radio"
+                    />
+                    <span class="stack-publish-access-type-option-label">Non-transferable (stricter)</span>
+                  </label>
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Access type selector (only shown when Private is selected) -->
+            ${isSubscription ? `
               <div class="stack-publish-access-type-selector">
                 <div class="stack-publish-access-type-label">Access type:</div>
                 <div class="stack-publish-access-type-options">

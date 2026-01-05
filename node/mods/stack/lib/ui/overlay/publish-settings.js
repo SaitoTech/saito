@@ -77,14 +77,6 @@ class PublishSettingsOverlay {
         checkbox.checked = true;
         card.classList.add('stack-publish-access-card-active');
         
-        // Only allow selection of public or private (subscription is disabled)
-        if (accessValue === 'subscription') {
-          // Subscription is disabled - do not change state
-          checkbox.checked = false;
-          card.classList.remove('stack-publish-access-card-active');
-          return;
-        }
-        
         this.setAccessLevel(accessValue);
       });
     });
@@ -96,11 +88,6 @@ class PublishSettingsOverlay {
         const accessValue = card?.getAttribute('data-access');
         
         if (checkbox.checked) {
-          // Prevent selection of disabled subscription option
-          if (accessValue === 'subscription') {
-            checkbox.checked = false;
-            return;
-          }
           
           // Uncheck all others
           accessCheckboxes.forEach(cb => {
@@ -219,18 +206,13 @@ class PublishSettingsOverlay {
   }
 
   setAccessLevel(level) {
-    // Only allow 'public' or 'private' (subscription is disabled)
-    if (level === 'subscription') {
-      console.warn('Stack: Subscription access mode is not yet available');
-      return;
-    }
     
     this.postState.accessLevel = level; // 'public' or 'private'
     
     // Reset accessMode when switching to public
     if (level === 'public') {
       this.postState.accessMode = null;
-    } else if (level === 'private' && !this.postState.accessMode) {
+    } else if ((level === 'private' || level === 'subscription') && !this.postState.accessMode) {
       // Default to transferable (Flexible) for private posts
       this.postState.accessMode = 'transferable';
     }
@@ -298,7 +280,7 @@ class PublishSettingsOverlay {
         content = 'This post will only be readable by people you explicitly grant access to.\nYou control who can see it.';
         break;
       case 'subscription':
-        content = 'Subscription-based access will allow flexible, programmable permissions.\nThis option is not yet available.';
+        content = 'This post will only be readable by people with an active subscription\n This option is under development.';
         break;
       default:
         content = 'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';

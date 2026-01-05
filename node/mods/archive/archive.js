@@ -810,6 +810,9 @@ console.log(" we have found a protected row ... ");
   					let access_script = obj.access_script || null;
   					let access_hash   = obj.access_hash   || null;
 
+console.log("Access script: " + access_script);
+console.log("Access witness: " + obj.access_witness);
+
 					if (!access_script && obj.access_witness) {
 
 console.log("* * * WITNESS * * *");
@@ -854,6 +857,7 @@ console.log("* * * * * * * * * *");
 						//
 						// no script but witness provided...
 						//
+console.log("no script but witness...");
 						continue;
 
 					} else {

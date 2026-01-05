@@ -168,13 +168,13 @@ if (vars?.__DEBUG_ACCESS__) {
   });
 }
 
+      const winning_hop = selected[0];
+
 
 	/* --------------------------------------------------
 	 * 5. ASSERT conditions
 	 * -------------------------------------------------- */
-console.log("PRE ASSERT: " + JSON.stringify(script));
-
-if (Array.isArray(script.assert) && script.assert.length > 0) {
+	if (Array.isArray(script.assert) && script.assert.length > 0) {
 
 console.log("ASSERT EXISTS...");
 
@@ -206,6 +206,21 @@ console.log("does the result hold: " + result);
     return false;
   }
 }
+
+
+
+  // ensure opcode namespace
+  if (!vars.__opcodes) { vars.__opcodes = {}; }
+  if (!vars.__opcodes.checkpathhop) { vars.__opcodes.checkpathhop = {}; }
+
+  // write structured data
+  vars.__opcodes.checkpathhop.hop = {
+    to: winning_hop.to,
+    sig: winning_hop.sig,
+    value: winning_hop.value
+  };
+
+console.log("VARS is set in CHECKPATHHOP: " + JSON.stringify(vars.__opcodes.checkpathhop));
 
 console.log("returning true...");
 
