@@ -1,0 +1,502 @@
+/* ============================================
+   PUBLISH OVERLAY - THREE-CARD LAYOUT
+   Complete rewrite for the moment of publishing
+   ============================================ */
+
+/* Overlay Container - Desktop-first, wide modal */
+.stack-publish-overlay {
+  max-width: 1100px; /* Increased from 900px for comfortable large screens */
+  width: min(1100px, 90vw); /* Use min() to respect viewport but cap at 1100px - fixes min-content parent conflict */
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--saito-background-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 0;
+}
+
+@media (min-width: 769px) {
+  .stack-publish-overlay {
+    max-width: 1100px; /* Increased from 900px for comfortable large screens */
+    width: min(1100px, 85vw); /* Use min() to respect viewport but cap at 1100px - fixes min-content parent conflict */
+  }
+}
+
+/* Mobile: full screen takeover */
+@media (max-width: 768px) {
+  .stack-publish-overlay {
+    max-width: 100vw;
+    width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* Content Container */
+.stack-publish-content {
+  padding: 3.5rem 4rem; /* Increased from 3rem 3.5rem - more generous padding */
+}
+
+@media (max-width: 768px) {
+  .stack-publish-content {
+    padding: 2rem 1.5rem; /* Maintain comfortable mobile padding */
+  }
+}
+
+/* Three Equal-Height Cards Container */
+.stack-publish-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-bottom: 3rem;
+  align-items: stretch; /* Equal height cards */
+}
+
+@media (max-width: 768px) {
+  .stack-publish-cards {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+}
+
+/* Individual Card */
+.stack-publish-card {
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  border: 1px solid var(--saito-border-color);
+  border-radius: 10px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Allow cards to grow equally */
+}
+
+@media (max-width: 768px) {
+  .stack-publish-card {
+    padding: 1.5rem;
+  }
+}
+
+/* Card Title */
+.stack-publish-card-title {
+  font-size: 1.8rem; /* 18px minimum - readable heading */
+  font-weight: 600;
+  color: var(--saito-font-color);
+  margin: 0 0 1.5rem 0;
+  line-height: 1.3;
+}
+
+@media (min-width: 769px) {
+  .stack-publish-card-title {
+    font-size: 2rem; /* 20px on desktop */
+  }
+}
+
+/* Card Description */
+.stack-publish-card-description {
+  font-size: 1.7rem; /* 17px - comfortable body text */
+  line-height: 1.6;
+  color: var(--saito-font-color);
+  margin: 1.5rem 0 0 0;
+  flex: 1;
+}
+
+@media (min-width: 769px) {
+  .stack-publish-card-description {
+    font-size: 1.7rem; /* 17px on desktop - comfortable reading */
+  }
+}
+
+/* Card Hint (subtle secondary text) */
+.stack-publish-card-hint {
+  font-size: 1.4rem; /* 14px minimum - subtle but readable */
+  line-height: 1.5;
+  color: var(--saito-font-color);
+  opacity: 0.7;
+  margin: 1rem 0 0 0;
+}
+
+/* Draft Explanation Text - below publish button */
+.stack-publish-draft-explanation {
+  font-size: 1.4rem; /* 14px - smaller font */
+  line-height: 1.5;
+  color: var(--saito-font-color);
+  opacity: 0.7; /* Subdued color */
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+/* Featured Image Control */
+.stack-publish-featured-image-control {
+  margin-top: 1.5rem;
+}
+
+.stack-publish-featured-image-label {
+  font-size: 1.4rem;
+  font-weight: 500;
+  color: var(--saito-font-color);
+  margin-bottom: 0.8rem;
+  display: block;
+}
+
+.stack-publish-featured-image-dropzone {
+  width: 100%;
+  min-height: 120px;
+  border: 2px dashed var(--saito-border-color);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--saito-background-color);
+  position: relative;
+}
+
+.stack-publish-featured-image-dropzone:hover {
+  border-color: var(--saito-primary);
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+}
+
+.stack-publish-featured-image-dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.stack-publish-featured-image-dropzone-text {
+  font-size: 1.4rem;
+  color: var(--saito-font-color);
+  margin: 0;
+  font-weight: 500;
+}
+
+.stack-publish-featured-image-dropzone-subtext {
+  font-size: 1.2rem;
+  color: var(--saito-font-color);
+  opacity: 0.7;
+  margin: 0;
+}
+
+.stack-publish-featured-image-preview {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.stack-publish-featured-image-preview img {
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.stack-publish-featured-image-remove {
+  position: absolute;
+  top: 0.8rem;
+  right: 0.8rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 3.2rem;
+  height: 3.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 1.4rem;
+  z-index: 10;
+}
+
+.stack-publish-featured-image-remove:hover {
+  background: rgba(220, 53, 69, 0.9);
+  transform: scale(1.1);
+}
+
+.stack-publish-featured-image-remove:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   CARD 1: STATUS + PRIMARY ACTION
+   ============================================ */
+
+.stack-publish-card-status {
+  /* Card 1: Status + Publish - Publish button at top */
+  /* Layout flows: Title → Publish Button → Description → Hint */
+}
+
+/* Primary Action Button - Very Prominent, at TOP of card */
+.stack-publish-primary-action-btn {
+  width: 100%;
+  padding: 1.625rem 2rem; /* Increased from 1.5rem - taller for more prominence */
+  border: none;
+  background: var(--saito-primary);
+  color: var(--saito-primary-text, var(--saito-font-color-inverse));
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.8rem; /* 18px - primary action */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 1.5rem 0; /* Positioned at top */
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15); /* Enhanced shadow for more prominence */
+}
+
+@media (min-width: 769px) {
+  .stack-publish-primary-action-btn {
+    font-size: 2rem; /* 20px on desktop - more prominent */
+    padding: 1.75rem 2.5rem; /* Increased from 1.5rem - taller on desktop */
+    font-weight: 700; /* Increased from 600 for stronger visual weight */
+  }
+}
+
+.stack-publish-primary-action-btn:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.2); /* Enhanced hover shadow */
+}
+
+.stack-publish-primary-action-btn:active {
+  transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+  .stack-publish-primary-action-btn {
+    padding: 1.5rem 2rem; /* Increased from 1.375rem - taller touch target */
+    font-size: 1.8rem; /* 18px - large and readable */
+    margin-bottom: 1.25rem;
+  }
+}
+
+/* ============================================
+   CARD 2: ACCESS CONTROL
+   ============================================ */
+
+.stack-publish-card-access {
+  /* Card 2 specific styles */
+}
+
+/* Access Cards Container */
+.stack-publish-access-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  flex: 1;
+}
+
+/* Individual Access Card (Checkbox Card) */
+.stack-publish-access-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 8px;
+  background: var(--saito-background-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.stack-publish-access-card:hover {
+  border-color: var(--saito-primary);
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+}
+
+.stack-publish-access-card-active {
+  border-color: var(--saito-primary);
+  background: color-mix(in srgb, var(--saito-primary) 12%, var(--saito-background-color) 88%);
+}
+
+/* Disabled access card (Subscription - coming soon) */
+.stack-publish-access-card-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.stack-publish-access-card-disabled:hover {
+  border-color: var(--saito-border-color);
+  background: var(--saito-background-color);
+}
+
+.stack-publish-access-card-disabled .stack-publish-access-checkbox {
+  cursor: not-allowed;
+}
+
+.stack-publish-access-card-disabled .stack-publish-access-card-content {
+  opacity: 0.7;
+}
+
+/* Checkbox */
+.stack-publish-access-checkbox {
+  margin: 0;
+  margin-top: 0.125rem; /* Align with first line of text */
+  width: 1.25rem;
+  height: 1.25rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  accent-color: var(--saito-primary);
+}
+
+/* Access Card Content */
+.stack-publish-access-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stack-publish-access-card-label {
+  font-size: 1.6rem; /* 16px minimum - option label */
+  font-weight: 500;
+  color: var(--saito-font-color);
+  line-height: 1.4;
+}
+
+@media (min-width: 769px) {
+  .stack-publish-access-card-label {
+    font-size: 1.8rem; /* 18px on desktop */
+  }
+}
+
+.stack-publish-access-card-description {
+  font-size: 1.6rem; /* 16px minimum - readable description */
+  color: var(--saito-font-color);
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+@media (min-width: 769px) {
+  .stack-publish-access-card-description {
+    font-size: 1.7rem; /* 17px on desktop - comfortable reading */
+  }
+}
+
+/* ============================================
+   CARD 3: METADATA (READ-ONLY)
+   ============================================ */
+
+.stack-publish-card-metadata {
+  /* Card 3 specific styles */
+}
+
+/* Metadata List */
+.stack-publish-metadata-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+}
+
+/* Metadata Row */
+.stack-publish-metadata-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--saito-border-color);
+}
+
+.stack-publish-metadata-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.stack-publish-metadata-label {
+  font-size: 1.4rem; /* 14px minimum - label */
+  color: var(--saito-font-color);
+  opacity: 0.7;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+@media (min-width: 769px) {
+  .stack-publish-metadata-label {
+    font-size: 1.6rem; /* 16px on desktop - more readable */
+  }
+}
+
+.stack-publish-metadata-value {
+  font-size: 1.6rem; /* 16px minimum - value */
+  color: var(--saito-font-color);
+  font-weight: 400;
+  text-align: right;
+}
+
+@media (min-width: 769px) {
+  .stack-publish-metadata-value {
+    font-size: 1.7rem; /* 17px on desktop - comfortable reading */
+  }
+}
+
+/* ============================================
+   BOTTOM ACTIONS
+   ============================================ */
+
+.stack-publish-bottom-actions {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--saito-border-color);
+  display: flex;
+  justify-content: flex-end; /* Align Delete to right */
+  align-items: center;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .stack-publish-bottom-actions {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    justify-content: flex-end; /* Still right-aligned on mobile */
+  }
+}
+
+/* Spacer to push Delete to right */
+.stack-publish-bottom-actions-spacer {
+  flex: 1;
+}
+
+/* Delete Draft Button - Secondary, destructive, bottom-right */
+.stack-publish-delete-btn {
+  padding: 0.875rem 1.5rem; /* Increased padding */
+  border: 1px solid var(--saito-red, #dc3545);
+  background: transparent;
+  color: var(--saito-red, #dc3545);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.6rem; /* 16px minimum - readable but secondary */
+  font-weight: 600; /* Increased from 500 for better legibility */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (min-width: 769px) {
+  .stack-publish-delete-btn {
+    padding: 1rem 1.75rem; /* More padding on desktop */
+  }
+}
+
+@media (max-width: 768px) {
+  .stack-publish-delete-btn {
+    padding: 1rem 1.5rem; /* Comfortable touch target */
+    font-size: 1.6rem; /* 16px - readable */
+  }
+}
+
+.stack-publish-delete-btn:hover {
+  border-color: var(--saito-red, #dc3545);
+  color: var(--saito-red, #dc3545);
+  background: rgba(220, 53, 69, 0.1); /* Subtle background on hover, no aggressive red */
+}

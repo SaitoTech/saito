@@ -1,5 +1,10 @@
 /* Stack Styles */
 
+/* Smooth container transitions for ViewPost */
+.saito-container {
+  transition: opacity 200ms ease;
+}
+
 /* Override Saito default 3-column layout for splash page - only when stack-splash class exists */
 .saito-container:has(.stack-splash),
 .saito-container.stack-splash-container {
@@ -67,6 +72,13 @@
   width: 100%;
 }
 
+@media (min-width: 769px) {
+  .stack-cta-section {
+    padding-top: 6rem;
+    padding-bottom: 4rem;
+  }
+}
+
 @media (max-width: 768px) {
   .stack-cta-section {
     flex-direction: column;
@@ -76,18 +88,54 @@
   }
 }
 
-/* CTA Image */
-.stack-cta-image {
+/* CTA Image - Flip Card Effect */
+.stack-cta-image-flip {
   flex: 0 0 auto;
   width: 100%;
   max-width: 500px;
   aspect-ratio: 1;
+  perspective: 1000px;
+  border-radius: 16px;
+  position: relative;
+}
+
+.stack-cta-image-front,
+.stack-cta-image-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  transition: transform 0.6s;
 }
 
-.stack-cta-image img {
+.stack-cta-image-front {
+  transform: rotateY(0deg);
+}
+
+.stack-cta-image-back {
+  transform: rotateY(180deg);
+  background: var(--saito-background-color);
+  border: 1px solid var(--saito-border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  /* Remove heavy shadow - cleaner explanation panel */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stack-cta-image-flip:hover .stack-cta-image-front {
+  transform: rotateY(-180deg);
+}
+
+.stack-cta-image-flip:hover .stack-cta-image-back {
+  transform: rotateY(0deg);
+}
+
+.stack-cta-image-front img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -101,6 +149,8 @@
   justify-content: center;
   color: white;
   font-size: 3rem;
+  width: 100%;
+  height: 100%;
 }
 
 .stack-cta-image-placeholder::before {
@@ -109,10 +159,141 @@
   opacity: 0.3;
 }
 
+.stack-cta-image-back-content {
+  text-align: left; /* Left-align for explanation panel feel */
+  color: var(--saito-font-color);
+  transform: rotateY(0deg);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* Start from top, not centered */
+  padding: 2.5rem;
+  /* Do NOT set base font-size - each role has explicit rem size */
+  font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+}
+
+.stack-cta-image-back-content h3 {
+  font-size: 2.4rem; /* 24px - clear section title */
+  margin: 0 0 1.5rem 0;
+  color: var(--saito-font-color);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.stack-cta-image-back-content p {
+  font-size: 1.6rem; /* 16px minimum - readable body text */
+  line-height: 1.6;
+  margin: 0 0 2rem 0;
+  color: var(--saito-font-color);
+  opacity: 1;
+  font-weight: 400;
+}
+
+.stack-features-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem 0;
+  text-align: left;
+}
+
+.stack-features-list li {
+  padding: 0.75rem 0;
+  font-size: 1.6rem; /* 16px minimum - readable list items */
+  color: var(--saito-font-color);
+  opacity: 1;
+  font-weight: 400;
+  line-height: 1.6;
+  border-bottom: 1px solid var(--saito-border-color);
+}
+
+.stack-features-list li:last-child {
+  border-bottom: none;
+}
+
+.stack-learn-more-link {
+  margin-top: auto;
+  text-align: left; /* Left-align for explanation panel */
+  padding-top: 1rem;
+}
+
+.stack-learn-more-btn {
+  color: var(--saito-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  font-size: 1.6rem; /* 16px minimum - readable link */
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  transition: all 0.2s ease;
+}
+
+.stack-learn-more-btn:hover {
+  color: var(--saito-primary-dark, var(--saito-primary));
+  text-decoration-thickness: 2px;
+}
+
+.stack-learn-more-btn i {
+  font-size: 1.4rem; /* 14px minimum - icon size */
+}
+
+/* Large screens - maintain readability */
+@media (min-width: 1400px) {
+  .stack-cta-image-back-content {
+    padding: 3rem;
+  }
+
+  .stack-cta-image-back-content h3 {
+    font-size: 2.6rem; /* 26px - clear hierarchy */
+  }
+
+  .stack-cta-image-back-content p {
+    font-size: 1.7rem; /* 17px - comfortable reading */
+  }
+
+  .stack-features-list li {
+    font-size: 1.7rem; /* 17px - comfortable reading */
+  }
+
+  .stack-learn-more-btn {
+    font-size: 1.7rem; /* 17px - comfortable reading */
+  }
+}
+
 @media (max-width: 768px) {
-  .stack-cta-image {
+  .stack-cta-image-flip {
     max-width: 100%;
     max-height: 300px;
+  }
+
+  .stack-cta-image-back-content {
+    padding: 1.5rem;
+  }
+
+  .stack-cta-image-back-content h3 {
+    font-size: 2.2rem; /* 22px - clear hierarchy on mobile */
+    margin: 0 0 1.25rem 0;
+  }
+
+  .stack-cta-image-back-content p {
+    font-size: 1.6rem; /* 16px minimum - readable on mobile */
+    line-height: 1.6;
+    margin: 0 0 1.75rem 0;
+  }
+
+  .stack-features-list {
+    margin: 0 0 1.75rem 0;
+  }
+
+  .stack-features-list li {
+    padding: 0.625rem 0;
+    font-size: 1.6rem; /* 16px minimum - readable on mobile */
+  }
+
+  .stack-learn-more-btn {
+    font-size: 1.6rem; /* 16px minimum - readable on mobile */
   }
 }
 
@@ -123,18 +304,19 @@
 }
 
 .stack-cta-title {
-  font-size: 3.5rem;
+  font-size: 5rem;
   font-weight: 700;
   margin: 0 0 1.5rem 0;
-  color: var(--saito-font-color);
+  color: var(--saito-font-color-heavy, var(--saito-font-color));
   line-height: 1.2;
 }
 
 .stack-cta-description {
-  font-size: 1.25rem;
-  line-height: 1.6;
-  color: var(--saito-font-color-light);
+  font-size: 1.8rem;
+  line-height: 1.7;
+  color: var(--saito-font-color);
   margin: 0 0 2.5rem 0;
+  font-weight: 400;
 }
 
 .stack-cta-buttons {
@@ -145,11 +327,11 @@
 
 @media (max-width: 768px) {
   .stack-cta-title {
-    font-size: 2.5rem;
+    font-size: 3.5rem;
   }
   
   .stack-cta-description {
-    font-size: 1.1rem;
+    font-size: 1.8rem;
   }
   
   .stack-cta-buttons {
@@ -158,53 +340,10 @@
   
   .stack-cta-buttons button {
     width: 100%;
+    font-size: 1.5rem;
   }
 }
 
-/* Explore link - positioned at bottom */
-.stack-explore-link {
-  flex: 0 0 auto;
-  padding: 2rem;
-  text-align: center;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.stack-explore-link span {
-  color: var(--saito-font-color-light);
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.stack-explore-btn {
-  background: transparent;
-  border: 2px solid var(--saito-border-color);
-  color: var(--saito-font-color);
-  padding: 1rem 2rem;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.stack-explore-btn:hover {
-  border-color: var(--saito-primary);
-  color: var(--saito-primary);
-  transform: translateY(-2px);
-}
-
-@media (min-width: 769px) {
-  .stack-explore-link {
-    padding-bottom: 3rem;
-  }
-}
 
 .stack-container {
   max-width: 1200px;
@@ -226,7 +365,7 @@
 }
 
 .stack-subtitle {
-  font-size: 1.2em;
+  font-size: 1.9rem; /* 19px - explicit rem for consistency */
   color: var(--saito-font-color);
   margin-top: 10px;
 }
@@ -253,8 +392,9 @@
 .stack-sidebar-section h3 {
   margin-top: 0;
   margin-bottom: 15px;
-  font-size: 1.2em;
-  color: var(--saito-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--saito-font-color-heavy, var(--saito-font-color));
 }
 
 .stack-publications-list,
@@ -292,7 +432,7 @@
   display: flex;
   align-items: center;
   gap: 15px;
-  font-size: 0.9em;
+  font-size: 1.4rem; /* 14px minimum - metadata text */
   color: var(--saito-font-color-light);
 }
 
@@ -308,7 +448,7 @@
 .stack-tier-badge {
   padding: 4px 8px;
   border-radius: 4px;
-  font-size: 0.8em;
+  font-size: 1.4rem; /* 14px minimum - badge text */
   font-weight: bold;
 }
 
@@ -323,13 +463,13 @@
 }
 
 .stack-post-title {
-  font-size: 1.8em;
+  font-size: 2.9rem; /* 29px - explicit rem for consistency */
   margin: 0 0 10px 0;
   color: var(--saito-font-color);
 }
 
 .stack-post-excerpt {
-  font-size: 1.1em;
+  font-size: 1.8rem; /* 18px - explicit rem for consistency */
   color: var(--saito-font-color-light);
   margin-bottom: 15px;
   font-style: italic;
@@ -353,7 +493,7 @@
   color: white;
   padding: 4px 10px;
   border-radius: 12px;
-  font-size: 0.85em;
+  font-size: 1.4rem; /* 14px minimum - tag text */
 }
 
 .stack-post-actions {
@@ -378,6 +518,9 @@
 .stack-btn-primary {
   background: var(--saito-primary);
   color: white;
+  font-size: 1.5rem;
+  font-weight: 500;
+  padding: 1.2rem 2.5rem;
 }
 
 .stack-btn-primary:hover {
@@ -387,8 +530,11 @@
 
 .stack-btn-secondary {
   background: var(--saito-background-color);
-  color: var(--saito-font-color);
+  color: var(--saito-font-color-heavy, var(--saito-font-color));
   border: 1px solid var(--saito-border-color);
+  font-size: 1.5rem;
+  font-weight: 500;
+  padding: 1.2rem 2.5rem;
 }
 
 .stack-btn-secondary:hover {
@@ -479,14 +625,14 @@
 }
 
 .stack-subscription-tier {
-  font-size: 0.9em;
+  font-size: 1.4rem; /* 14px minimum - tier text */
   color: var(--saito-font-color-light);
 }
 
 .stack-subscribe-btn,
 .stack-unsubscribe-btn {
   padding: 6px 12px;
-  font-size: 0.9em;
+  font-size: 1.6rem; /* 16px minimum - button text */
 }
 
 /* Loading State */
@@ -494,7 +640,7 @@
   text-align: center;
   padding: 40px;
   color: var(--saito-font-color-light);
-  font-size: 1.1em;
+  font-size: 1.8rem; /* 18px - explicit rem for consistency */
 }
 
 /* Responsive */
@@ -511,4 +657,15 @@
     order: 1;
   }
 }
+
+
+/* ============================================
+   PUBLISH SETTINGS OVERLAY
+   ============================================ */
+
+
+/* ============================================
+   EXPLORE OVERLAY
+   ============================================ */
+
 

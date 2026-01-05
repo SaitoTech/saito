@@ -192,7 +192,9 @@ class Arcade extends ModTemplate {
 					document.querySelector('.invite-manager').innerHTML = '';
 					target = '.invite-manager';
 				} else if (!document.querySelector(target)) {
-					this.loader_overlay.show('<div class="arcade_game_overlay_loader"></div>');
+					this.loader_overlay.show(
+						'<div class="arcade_game_overlay_loader saito-overlay-size"></div>'
+					);
 				}
 
 				console.log('arcade-game-initialize-render-request -- target: ', target);

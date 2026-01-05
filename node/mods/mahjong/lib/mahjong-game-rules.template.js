@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	let html = `<div class="rules-overlay">
+  let html = `<div class="rules-overlay saito-overlay-size">
               
               <p>Two pairs of 36 tiles (144 total) are randomly arranged into a multi-layered shape. 
                   Tiles can only be selected if they are open on the left or the right.</p>
@@ -11,5 +11,5 @@ module.exports = (app, mod) => {
               </div>
             </div>
             `;
-	return html;
+  return html;
 };

@@ -26,6 +26,27 @@
   background-color: var(--saito-background-color); /* Dont know why had to be added manually*/
 }
 
+.saito-overlay-size {
+  width: min(600px, 95vw);
+  min-height: min(400px, 80vh);
+  max-height: 80vh;
+  padding: 2rem;
+}
+
+.saito-overlay-size.wide {
+  width: min(900px, 100vw);
+  padding: 2.5rem;
+}
+
+.saito-overlay-size.tall {
+  min-height: min(600px, 100vh);
+  max-height: 100vh;
+}
+
+.saito-overlay-size.narrow {
+  width: min(400px, 90vw);
+}
+
 .saito-overlay > div:last-child,
 .saito-overlay > form {
   box-shadow: var(--saito-box-shadow);
@@ -114,8 +135,9 @@
 
 .saito-overlay-form-header {
   height: 6rem;
-  background: linear-gradient(90deg, 
-    var(--saito-primary) 0%, 
+  background: linear-gradient(
+    90deg,
+    var(--saito-primary) 0%,
     var(--saito-primary) 20%,
     transparent 100%
   );
@@ -130,8 +152,9 @@
 /* Mobile: 40% solid primary before fade for better text readability */
 @media (max-width: 768px) {
   .saito-overlay-form-header {
-    background: linear-gradient(90deg, 
-      var(--saito-primary) 0%, 
+    background: linear-gradient(
+      90deg,
+      var(--saito-primary) 0%,
       var(--saito-primary) 40%,
       transparent 100%
     );

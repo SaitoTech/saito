@@ -19,7 +19,7 @@ class CreateNFT {
     this.provide_metadata_overlay = new ProvideMetaDataOverlay(app, mod, container);
   }
 
-  render() {
+  async render() {
     this.reset();
     this.module_provided_nfts = [];
 
@@ -28,6 +28,11 @@ class CreateNFT {
     for (const nft_mod of this.app.modules.respondTo('saito-create-nft', this.mod)) {
       let obj = nft_mod.respondTo('saito-create-nft', this.mod);
       this.module_provided_nfts.push(obj);
+    }
+
+    let balance = await this.app.wallet.getBalance();
+    if (Number(balance) == 0) {
+      this.app.modules.renderInto('.get-saito-tokens');
     }
 
     setTimeout(() => {

@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	let html = `<div class="rules-overlay">
+  let html = `<div class="rules-overlay saito-overlay-size">
     <div class="h1">${mod.name}</div>
     <p>Welcome to the city-state of Jaipur, where with a little luck and quick wits you can become fabulously wealthy at the world famous bazaar.</p>
     <div class="h2">How to Play</div>
@@ -17,5 +17,5 @@ module.exports = (app, mod) => {
     <p>The player with the highest total wins the round, and the first player to win two rounds is the winner of the game.</p>
     `;
 
-	return html;
+  return html;
 };

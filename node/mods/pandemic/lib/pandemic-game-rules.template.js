@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	let html = `<div class="rules-overlay">
+  let html = `<div class="rules-overlay saito-overlay-size">
             <h1>${mod.gamename}</h1>
             <p>Four novel viruses are quickly spreading throughout the world and it is up to you and your teammates to find the cure in this fast paced cooperative board game.</p>
             <h2>Roles</h2>
@@ -31,5 +31,5 @@ module.exports = (app, mod) => {
             <p>If the players discover the cures to all four diseases, then they are victorious. However, they are in a race against time. The players lose upon the 8th OUTBREAK, if the deck of player cards runs out, or if any disease exceeds more than 24 cubes on the board.</p>
             </div>`;
 
-	return html;
+  return html;
 };

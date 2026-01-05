@@ -1,13 +1,23 @@
 module.exports = (app, mod) => {
   return `
     <div class="stack-splash">
-      <div class="stack-subscriptions-toggle" id="stack-subscriptions-toggle">
-        <i class="fa-solid fa-bars"></i>
-      </div>
-
       <section class="stack-cta-section">
-        <div class="stack-cta-image">
-          <img src="/stack/img/splash-hero.png" alt="Stack - Publish. Monetize. Own." onerror="this.style.display='none'; this.parentElement.classList.add('stack-cta-image-placeholder');" />
+        <div class="stack-cta-image-flip">
+          <div class="stack-cta-image-front">
+            <img src="/stack/img/splash.png" alt="Stack - Publish. Monetize. Own." onerror="this.style.display='none'; this.parentElement.classList.add('stack-cta-image-placeholder');" />
+          </div>
+          <div class="stack-cta-image-back">
+            <div class="stack-cta-image-back-content">
+              <h3>Monetize Your Content</h3>
+              <p>Set up subscriptions, distribute access keys, and build your community on the decentralized web.</p>
+              <ul class="stack-features-list">
+                <li><i class="fa-solid fa-check"></i> Subscription management</li>
+                <li><i class="fa-solid fa-check"></i> NFT access keys</li>
+                <li><i class="fa-solid fa-check"></i> Creator monetization</li>
+                <li><i class="fa-solid fa-check"></i> Full ownership</li>
+              </ul>
+            </div>
+          </div>
         </div>
         <div class="stack-cta-content">
           <h2 class="stack-cta-title">Publish. Monetize. Own.</h2>
@@ -20,18 +30,11 @@ module.exports = (app, mod) => {
               <i class="fa-solid fa-plus"></i> Create Post
             </button>
             <button class="stack-btn-secondary" id="stack-get-started-btn">
-              Get Started
+              Learn More
             </button>
           </div>
         </div>
       </section>
-
-      <div class="stack-explore-link">
-        <span>or</span>
-        <button class="stack-explore-btn" id="stack-explore-btn">
-          Explore Available Posts <i class="fa-solid fa-arrow-right"></i>
-        </button>
-      </div>
     </div>
   `;
 };

@@ -1,28 +1,33 @@
-
-
-.saito-container {
-    display: flex;
-    flex-direction: column;
-    margin-top: 100px;
-    text-align: center;
+body > .faucet {
+  margin: 150px auto 0;
 }
 
-.saito-container p {
-    font-size: 1.8rem;
-    font-style: italic;
-    padding-top: 1rem;
-    padding-bottom: 2rem;
+.faucet p {
+  font-size: 1.8rem;
+  font-style: italic;
+  padding-top: 1rem;
+  padding-bottom: 2rem;
 }
 
-.saito-container button {
-    max-width: 400px;
-    width: 400px;
-    margin-left: auto;
-    margin-right: auto;
+.faucet button {
+  max-width: 400px;
+  width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .faucet-spinner {
-    display: none;
+  display: none;
 }
 
+.faucet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+}
 
+.saito-faucet-button {
+  font-size: 2.4rem;
+  min-width: 60px;
+}

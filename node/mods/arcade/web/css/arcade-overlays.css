@@ -125,9 +125,7 @@
 }
 
 .arcade_game_overlay_loader {
-	width: min(75rem, 100vw);
 	background: var(--saito-background-color);
-	padding: 10rem;
 }
 
 .arcade_game_overlay_loader .arcade-game-initializer-success-title,
@@ -144,13 +142,13 @@
 }
 
 .arcade_game_overlay_loader .arcade-initializer {
-	text-align: center;
-	min-width: 18rem;
+	height: 100%;
+	width: 100%;
 	display: flex;
 	flex-direction: column;
 	justify-content: space-around;
-	gap: 5rem;
 	align-items: center;
+	gap: 2rem;
 }
 
 .arcade-game-playerbox .winner::before {

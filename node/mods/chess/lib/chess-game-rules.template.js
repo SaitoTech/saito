@@ -1,5 +1,5 @@
 module.exports = (app, mod) => {
-	let html = `<div class="rules-overlay">
+  let html = `<div class="rules-overlay saito-overlay-size">
         <h4>Objective</h4>
         <p>Two players command opposing armies on a square battlefield in an attempt to capture the other player's king. 
             If your king is in danger, he is said to be in CHECK and you must get him out of danger. If you cannot, then the game ends with CHECKMATE</p>
@@ -19,5 +19,5 @@ module.exports = (app, mod) => {
             then the enemy pawn may capture said pawn as if it had only moved forward one space.</p> 
     </div>
     `;
-	return html;
+  return html;
 };

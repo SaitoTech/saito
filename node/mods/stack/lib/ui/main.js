@@ -1,0 +1,110 @@
+const MainTemplate = require('./main.template');
+
+class StackMain {
+  constructor(app, mod, container = "") {
+    this.app = app;
+    this.mod = mod;
+    this.container = container;
+  }
+
+  render(container = "") {
+    // ========================================================================
+    // INVARIANT 4: Unmount before navigating to splash (navigation path: editor → splash)
+    // ========================================================================
+    if (this.mod.create_post_ui && typeof this.mod.create_post_ui.onEditorUnmount === 'function') {
+      this.mod.create_post_ui.onEditorUnmount();
+    }
+
+    if (container !== "") {
+      this.container = container;
+    }
+
+    if (!this.container || this.container.trim() === "") {
+      this.container = ".saito-container";
+    }
+
+    const html = MainTemplate(this.app, this.mod);
+
+    // ========================================================================
+    // FIX: Use replaceElementContentBySelector to preserve .saito-container
+    // ========================================================================
+    // Ensure container is preserved when rendering splash to avoid conflicts
+    // with editor ownership of .saito-container
+    if (!document.querySelector(".stack-splash")) {
+      this.app.browser.addElementToSelector(html, this.container);
+    } else {
+      // Replace only the splash content, not the entire container
+      this.app.browser.replaceElementContentBySelector(html, ".stack-splash");
+    }
+
+    // Update container class
+    const containerEl = document.querySelector(this.container);
+    if (containerEl) {
+      containerEl.classList.add('stack-splash-container');
+      containerEl.classList.remove('stack-create-post-container');
+    }
+
+    this.attachEvents();
+  }
+
+  attachEvents() {
+    try {
+      const createBtn = document.querySelector('#stack-create-post-btn');
+      if (createBtn) {
+        createBtn.onclick = (e) => {
+          e.preventDefault();
+          this.handleStartWriting();
+        };
+      }
+
+      const getStartedBtn = document.querySelector('#stack-get-started-btn');
+      if (getStartedBtn) {
+        getStartedBtn.onclick = (e) => {
+          e.preventDefault();
+          // ========================================================================
+          // INVARIANT 4: Unmount before navigating to explore (navigation path: splash → explore)
+          // ========================================================================
+          if (this.mod.create_post_ui && typeof this.mod.create_post_ui.onEditorUnmount === 'function') {
+            this.mod.create_post_ui.onEditorUnmount();
+          }
+          this.mod.exploreOverlay.render();
+        };
+      }
+
+      const learnMoreBackBtn = document.querySelector('#stack-learn-more-back-btn');
+      if (learnMoreBackBtn) {
+        learnMoreBackBtn.onclick = (e) => {
+          e.preventDefault();
+          // Open Stack wiki page in new tab
+          window.open('https://wiki.saito.io/en/applications/stack', '_blank');
+        };
+      }
+    } catch (err) {
+      console.error('StackMain attachEvents error:', err);
+    }
+  }
+
+  /**
+   * Handle "Start Writing" button click
+   * Proceeds directly to editor - Drafts overlay handles draft selection if needed
+   */
+  handleStartWriting() {
+    // ========================================================================
+    // INVARIANT 4: Unmount before navigating to editor (navigation path: splash → editor)
+    // ========================================================================
+    // Note: Editor render() will also unmount if already mounted, but we unmount here
+    // to ensure clean state when coming from splash
+    if (this.mod.create_post_ui && typeof this.mod.create_post_ui.onEditorUnmount === 'function') {
+      this.mod.create_post_ui.onEditorUnmount();
+    }
+
+    // Proceed directly to editor with explicit intent
+    // INVARIANT 2: Always pass explicit intent - default to "new" mode
+    // The editor will show the Drafts overlay if needed via showDraftChooserOverlay()
+    this.mod.create_post_ui.render();
+    // render() will call initializeDocument() with default intent { mode: 'new' }
+  }
+}
+
+module.exports = StackMain;
+

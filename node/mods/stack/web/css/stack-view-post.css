@@ -1,0 +1,429 @@
+/* ============================================
+   VIEW POST COMPONENT - Read-only post display
+   Medium/Substack-style reading experience
+   ============================================ */
+
+/* Override container for view post page - ensure full width and scrolling */
+.saito-container:has(.stack-view-post) {
+  grid-template-columns: 1fr !important;
+  padding: 0 !important;
+  max-width: 100% !important;
+  width: 100vw !important;
+  /* Container positioning: below header, full width */
+  position: absolute !important;
+  top: var(--saito-header-height, 6rem) !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  /* Container height: viewport minus header - this container controls scrolling */
+  height: calc(100vh - var(--saito-header-height, 6rem)) !important;
+  max-height: calc(100vh - var(--saito-header-height, 6rem)) !important;
+  /* Single container controls vertical scrolling */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  z-index: 0 !important;
+}
+
+.saito-container:has(.stack-view-post) .saito-sidebar {
+  display: none !important;
+}
+
+.stack-view-post {
+  width: 100%;
+  /* Position relative, part of normal document flow - NOT fixed or absolute */
+  position: relative;
+  /* Content grows naturally - no height constraints */
+  background: var(--saito-background-color);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  /* Top padding ensures content starts below header with proper spacing */
+  padding-top: 2rem;
+  padding-right: 1.5rem;
+  padding-bottom: 4rem;
+  padding-left: 1.5rem;
+  /* Ensure content fills container to bottom - no white space */
+  min-height: 100%;
+  /* Let parent container handle scrolling - content grows naturally */
+  overflow: visible;
+}
+
+.stack-view-post-article {
+  width: 100%;
+  max-width: 720px; /* ~700-760px range for comfortable reading */
+  margin: 0 auto;
+}
+
+/* Feature Image - only renders if image exists, no placeholder space */
+.stack-view-post-feature-image {
+  width: 100%;
+  margin-top: 0; /* No top margin - padding-top on parent handles spacing from header */
+  margin-bottom: 2.5rem; /* Spacing below image to title */
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* If no feature image, this area collapses completely */
+.stack-view-post-feature-image:empty {
+  display: none;
+}
+
+.stack-view-post-feature-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  max-height: 500px; /* Constrain height for calm, non-dominant feel */
+}
+
+/* Header */
+.stack-view-post-header {
+  margin-bottom: 0; /* Let meta handle spacing */
+}
+
+.stack-view-post-title {
+  font-size: 4.2rem; /* 42px - large, calm typography */
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--saito-font-color);
+  margin: 0 0 1.25rem 0; /* Tighter spacing to subtitle */
+  letter-spacing: -0.02em;
+}
+
+/* When no subtitle, add more space below title */
+.stack-view-post-title:only-child {
+  margin-bottom: 2rem;
+}
+
+.stack-view-post-subtitle {
+  font-size: 2.4rem; /* 24px - smaller than title, larger than body */
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--saito-font-color);
+  opacity: 0.75; /* Slightly more subdued than title */
+  margin: 0 0 2rem 0; /* Clear separation to attribution row */
+}
+
+/* Attribution Row - Single horizontal row directly under title/subtitle */
+.stack-view-post-attribution {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-top: 2rem; /* Space from title/subtitle - unchanged */
+  margin-bottom: 2.5rem; /* Reduced spacing to body text for better flow */
+  flex-wrap: wrap;
+  /* Subtle background band - very low opacity tint */
+  background: color-mix(in srgb, var(--saito-font-color) 3%, var(--saito-background-color) 97%);
+  /* Minimal vertical padding inside band */
+  padding-top: 1.25rem;
+  padding-bottom: 1.25rem;
+  /* Horizontal borders and padding */
+  border-left: 3px solid var(--saito-primary);
+  border-right: 3px solid var(--saito-primary);
+  padding-left: 1rem;
+  padding-right: 1rem;
+  border-radius: 0.5rem;
+}
+
+/* SaitoUser Component Container - Left side */
+.stack-view-post-author-container {
+  flex: 1;
+  min-width: 0;
+  /* Do NOT override SaitoUser CSS - only container spacing */
+}
+
+/* Action Icons - Right side, compact cluster */
+.stack-view-post-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Circular icon-only badges */
+.stack-view-post-action-badge {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--saito-border-color);
+  color: var(--saito-font-color);
+  opacity: 0.6; /* Low contrast by default */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.stack-view-post-action-badge:hover {
+  opacity: 1;
+  background: var(--saito-primary);
+  border-color: var(--saito-primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.stack-view-post-action-badge i {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+/* Body Content */
+.stack-view-post-body {
+  margin-bottom: 4rem;
+}
+
+/* First paragraph should have no top margin */
+.stack-view-post-body .stack-view-post-content > p:first-child {
+  margin-top: 0;
+}
+
+.stack-view-post-content {
+  font-size: 2rem; /* 20px - optimized for reading */
+  line-height: 1.75; /* Comfortable for long-form reading */
+  color: var(--saito-font-color);
+  font-weight: 400;
+}
+
+.stack-view-post-content p {
+  margin: 0 0 1.75rem 0; /* Slightly more space between paragraphs */
+  font-size: 2rem;
+  line-height: 1.75; /* Slightly more breathing room for 20px text */
+}
+
+.stack-view-post-content h2,
+.stack-view-post-content h3,
+.stack-view-post-content h4,
+.stack-view-post-content h5,
+.stack-view-post-content h6 {
+  margin: 3rem 0 1.25rem 0; /* More space above, tighter below */
+  font-weight: 600;
+  color: var(--saito-font-color);
+  line-height: 1.3;
+}
+
+/* First heading in body should have less top margin */
+.stack-view-post-body .stack-view-post-content > h2:first-child,
+.stack-view-post-body .stack-view-post-content > h3:first-child {
+  margin-top: 0;
+}
+
+.stack-view-post-content h2 {
+  font-size: 3.6rem; /* 36px */
+}
+
+.stack-view-post-content h2 {
+  font-size: 3rem; /* 30px */
+}
+
+.stack-view-post-content h3 {
+  font-size: 2.6rem; /* 26px */
+}
+
+.stack-view-post-content h4 {
+  font-size: 2.3rem; /* 23px */
+}
+
+.stack-view-post-content h5 {
+  font-size: 2.1rem; /* 21px */
+}
+
+.stack-view-post-content h6 {
+  font-size: 2rem; /* 20px */
+}
+
+.stack-view-post-content ul,
+.stack-view-post-content ol {
+  margin: 1.75rem 0; /* Match paragraph spacing */
+  padding-left: 2.5rem;
+}
+
+.stack-view-post-content li {
+  margin: 0.5rem 0; /* Tighter list item spacing */
+  font-size: 2rem;
+  line-height: 1.75;
+}
+
+.stack-view-post-content blockquote {
+  margin: 2rem 0;
+  padding: 0 0 0 2rem;
+  border-left: 3px solid var(--saito-primary);
+  font-style: italic;
+  color: var(--saito-font-color);
+  opacity: 0.85;
+  line-height: 1.75;
+}
+
+.stack-view-post-content code {
+  background: var(--saito-background-color-secondary, var(--saito-background-color));
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 1.8rem;
+  font-family: var(--saito-font-monospace, monospace);
+}
+
+.stack-view-post-content pre {
+  background: var(--saito-background-color-inverse);
+  color: var(--saito-font-color-inverse);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  border-left: 4px solid var(--saito-primary);
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.stack-view-post-content pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.stack-view-post-content a {
+  color: var(--saito-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.stack-view-post-content a:hover {
+  opacity: 0.8;
+}
+
+.stack-view-post-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 2.5rem 0; /* More space around inline images */
+  display: block;
+}
+
+/* Inline Images */
+.stack-view-post-inline-images {
+  margin: 2rem 0;
+}
+
+.stack-view-post-inline-image {
+  margin: 2.5rem 0;
+  text-align: center;
+}
+
+.stack-view-post-inline-image img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 0 auto;
+  display: block;
+}
+
+.stack-view-post-inline-image figcaption {
+  margin-top: 1rem;
+  font-size: 1.6rem; /* 16px minimum */
+  color: var(--saito-font-color);
+  opacity: 0.7;
+  font-style: italic;
+  text-align: center;
+}
+
+/* Footer */
+.stack-view-post-footer {
+  margin-top: 5rem; /* Generous space after body content */
+  padding-top: 2rem;
+}
+
+.stack-view-post-footer-divider {
+  height: 1px;
+  background: var(--saito-border-color);
+  width: 100%;
+}
+
+/* Error State */
+.stack-view-post-error {
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--saito-font-color);
+  font-size: 1.8rem;
+}
+
+/* ============================================
+   RESPONSIVE - MOBILE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .stack-view-post {
+    padding-top: 1.5rem;
+    padding-right: 1rem;
+    padding-bottom: 3rem;
+    padding-left: 1rem;
+    min-height: 100%;
+  }
+
+  .stack-view-post-feature-image {
+    margin-bottom: 2.5rem; /* Consistent spacing on mobile */
+  }
+
+  .stack-view-post-feature-image img {
+    max-height: 400px; /* Smaller on mobile */
+  }
+
+  .stack-view-post-title {
+    font-size: 3rem; /* 30px on mobile */
+    margin-bottom: 1rem;
+  }
+
+  .stack-view-post-title:only-child {
+    margin-bottom: 1.5rem;
+  }
+
+  .stack-view-post-subtitle {
+    font-size: 2rem; /* 20px on mobile */
+    margin-bottom: 1.75rem;
+  }
+
+  .stack-view-post-attribution {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    margin-bottom: 2rem; /* Reduced spacing to body text for better flow on mobile */
+    /* Subtle background band maintained on mobile */
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .stack-view-post-actions {
+    gap: 0.5rem;
+  }
+
+  .stack-view-post-action-badge {
+    width: 3.2rem;
+    height: 3.2rem;
+  }
+
+  .stack-view-post-action-badge i {
+    font-size: 1.4rem;
+  }
+
+  .stack-view-post-content {
+    font-size: 1.8rem; /* 18px on mobile - still readable */
+    line-height: 1.7;
+  }
+
+  .stack-view-post-content p {
+    font-size: 1.8rem;
+  }
+
+
+  .stack-view-post-content h2 {
+    font-size: 2.4rem;
+  }
+
+  .stack-view-post-content h3 {
+    font-size: 2.1rem;
+  }
+}
+
