@@ -58,57 +58,56 @@ where
 {
     let time_keeper = time_keeper_origin.clone();
     let t_name = thread_name.to_string();
-    tokio::task::Builder::new()
-        .name(thread_name)
-        .spawn(async move {
-            info!("new thread started");
-            // let mut work_done;
-            let mut last_stat_time = Instant::now();
-            let time_keeper = time_keeper.clone();
+    tokio::spawn(async move {
+        info!("new thread started");
+        // let mut work_done;
+        let mut last_stat_time = Instant::now();
+        let time_keeper = time_keeper.clone();
 
-            event_processor.on_init().await;
-            let mut interval =
-                tokio::time::interval(Duration::from_millis(thread_sleep_time_in_ms));
-            let mut stat_interval = tokio::time::interval(Duration::from_millis(stat_timer_in_ms));
+        event_processor.on_init().await;
+        let mut interval = tokio::time::interval(Duration::from_millis(thread_sleep_time_in_ms));
+        let mut stat_interval = tokio::time::interval(Duration::from_millis(stat_timer_in_ms));
 
-            loop {
-                let ready = event_processor.is_ready_to_process();
-                if !ready{
-                    debug!("event processor : {:?} not ready. channels are filled",t_name);
+        loop {
+            let ready = event_processor.is_ready_to_process();
+            if !ready {
+                debug!(
+                    "event processor : {:?} not ready. channels are filled",
+                    t_name
+                );
+            }
+            select! {
+                result = receive_event(&mut event_receiver), if event_receiver.is_some() && ready=>{
+                    if result.is_some() {
+                        let event = result.unwrap();
+                        event_processor.process_event(event).await;
+                    }
                 }
-                select! {
-                        result = receive_event(&mut event_receiver), if event_receiver.is_some() && ready=>{
-                            if result.is_some() {
-                                let event = result.unwrap();
-                                event_processor.process_event(event).await;
-                            }
-                        }
-                        result = receive_event(&mut network_event_receiver), if network_event_receiver.is_some() && ready=>{
-                            if result.is_some() {
-                                let event: NetworkEvent = result.unwrap();
-                                event_processor.process_network_event(event).await;
-                            }
-                        }
-                        _ = interval.tick()=>{
-                                event_processor
-                                   .process_timer_event(interval.period())
-                                   .await;
-                        }
-                        _ = stat_interval.tick()=>{
-                            {
-                                let current_instant = Instant::now();
+                result = receive_event(&mut network_event_receiver), if network_event_receiver.is_some() && ready=>{
+                    if result.is_some() {
+                        let event: NetworkEvent = result.unwrap();
+                        event_processor.process_network_event(event).await;
+                    }
+                }
+                _ = interval.tick()=>{
+                        event_processor
+                           .process_timer_event(interval.period())
+                           .await;
+                }
+                _ = stat_interval.tick()=>{
+                    {
+                        let current_instant = Instant::now();
 
-                                let duration = current_instant.duration_since(last_stat_time);
-                                if duration > Duration::from_millis(stat_timer_in_ms) {
-                                    last_stat_time = current_instant;
-                                    event_processor
-                                        .on_stat_interval(time_keeper.get_timestamp_in_ms())
-                                        .await;
-                                }
-                            }
+                        let duration = current_instant.duration_since(last_stat_time);
+                        if duration > Duration::from_millis(stat_timer_in_ms) {
+                            last_stat_time = current_instant;
+                            event_processor
+                                .on_stat_interval(time_keeper.get_timestamp_in_ms())
+                                .await;
                         }
                     }
+                }
             }
-        })
-        .unwrap()
+        }
+    })
 }

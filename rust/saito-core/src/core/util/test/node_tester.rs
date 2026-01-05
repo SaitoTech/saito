@@ -60,8 +60,7 @@ pub mod test {
     pub struct TestConfiguration {
         server: Option<Server>,
         peers: Vec<PeerConfig>,
-        #[serde(skip)]
-        blockchain: Option<BlockchainConfig>,
+        blockchain: BlockchainConfig,
         spv_mode: bool,
         browser_mode: bool,
         #[serde(default = "get_default_consensus")]
@@ -76,11 +75,11 @@ pub mod test {
             &self.peers
         }
 
-        fn get_blockchain_configs(&self) -> Option<&BlockchainConfig> {
-            self.blockchain.as_ref()
+        fn get_blockchain_configs(&self) -> &BlockchainConfig {
+            &self.blockchain
         }
-        fn get_blockchain_configs_mut(&mut self) -> Option<&mut BlockchainConfig> {
-            self.blockchain.as_mut()
+        fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+            &mut self.blockchain
         }
         fn get_block_fetch_url(&self) -> String {
             "".to_string()
@@ -121,9 +120,9 @@ pub mod test {
         ) {
         }
 
-        fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
-            self.blockchain = config;
-        }
+        // fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
+        //     self.blockchain = config;
+        // }
 
         fn get_config_path(&self) -> String {
             String::new()
@@ -163,7 +162,7 @@ pub mod test {
                     block_fetch_batch_size: 0,
                 }),
                 peers: vec![],
-                blockchain: Some(BlockchainConfig::default()),
+                blockchain: BlockchainConfig::default(),
                 spv_mode: false,
                 browser_mode: false,
                 consensus: Some(ConsensusConfig {

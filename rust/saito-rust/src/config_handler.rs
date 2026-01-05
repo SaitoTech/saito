@@ -29,9 +29,8 @@ pub struct NodeConfigurations {
     spv_mode: Option<bool>,
     #[serde(default = "get_default_consensus")]
     consensus: Option<ConsensusConfig>,
-    /// these skipped values are written into a separate file
-    #[serde(skip)]
-    blockchain: Option<BlockchainConfig>,
+    #[serde(default)]
+    blockchain: BlockchainConfig,
     /// these skipped values are written into a separate file
     #[serde(skip)]
     congestion: Option<CongestionStatsDisplay>,
@@ -63,7 +62,7 @@ impl Default for NodeConfigurations {
             lite: false,
             spv_mode: Some(false),
             consensus: Some(ConsensusConfig::default()),
-            blockchain: Some(BlockchainConfig::default()),
+            blockchain: BlockchainConfig::default(),
             congestion: None,
             config_path: String::from("config/config.json"),
             wallet: None,
@@ -135,11 +134,11 @@ impl Configuration for NodeConfigurations {
         &self.peers
     }
 
-    fn get_blockchain_configs(&self) -> Option<&BlockchainConfig> {
-        self.blockchain.as_ref()
+    fn get_blockchain_configs(&self) -> &BlockchainConfig {
+         &self.blockchain
     }
-    fn get_blockchain_configs_mut(&mut self) -> Option<&mut BlockchainConfig> {
-        self.blockchain.as_mut()
+    fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+        &mut self.blockchain
     }
     fn get_block_fetch_url(&self) -> String {
         let endpoint = &self.get_server_configs().unwrap().endpoint;
@@ -165,7 +164,7 @@ impl Configuration for NodeConfigurations {
         self.lite = config.is_spv_mode();
         self.consensus = config.get_consensus_config().cloned();
         self.congestion = config.get_congestion_data().cloned();
-        self.blockchain = config.get_blockchain_configs().cloned();
+        self.blockchain = config.get_blockchain_configs().clone();
         self.wallet = config.get_wallet_configs().cloned();
     }
 
@@ -214,9 +213,9 @@ impl Configuration for NodeConfigurations {
         self.wallet.as_mut()
     }
 
-    fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
-        self.blockchain = config;
-    }
+    //     fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
+    //         self.blockchain = config;
+    //     }
 }
 
 pub struct ConfigHandler {}
