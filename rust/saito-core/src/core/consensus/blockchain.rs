@@ -2158,7 +2158,7 @@ impl Blockchain {
             let purge_bid =
                 latest_block_id - (configs.get_consensus_config().unwrap().genesis_period * 2);
 
-            debug!("genesis block id set as : {:?}", self.genesis_block_id);
+            // debug!("genesis block id set as : {:?}", self.genesis_block_id);
 
             // in either case, we are OK to throw out everything below the
             // lowest_block_id that we have found. we use the purge_id to

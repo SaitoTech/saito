@@ -1368,16 +1368,25 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     // });
                 }
                 if initial_sync {
-                    // we set this to false here since now we know the genesis block is added already.
-                    self.waiting_for_genesis_block = false;
                     {
+                        let configs = self.config_lock.read().await;
                         let mut blockchain = self.blockchain_lock.write().await;
-                        blockchain.genesis_block_id = blockchain.get_latest_block_id();
+
+                        let block_id = max(
+                            blockchain.get_latest_block_id().saturating_sub(
+                                configs.get_consensus_config().unwrap().genesis_period,
+                            ),
+                            1,
+                        );
+                        blockchain.genesis_block_id = block_id;
                         info!(
                             "setting genesis block id to the received genesis block id : {}",
                             blockchain.genesis_block_id
                         );
                     }
+
+                    // we set this to false here since now we know the genesis block is added already.
+                    self.waiting_for_genesis_block = false;
 
                     info!("since initial sync is done, we will request the chain from peers");
                     // since we added the initial block, we will request the rest of the blocks from peers
