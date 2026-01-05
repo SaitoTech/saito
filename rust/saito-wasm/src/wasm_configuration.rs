@@ -8,7 +8,8 @@ use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
 use saito_core::core::util::configuration::{
-    BlockchainConfig, Configuration, ConsensusConfig, Endpoint, PeerConfig, Server, WalletConfig,
+    get_default_issuance_writing_block_interval, BlockchainConfig, Configuration, ConsensusConfig,
+    Endpoint, PeerConfig, Server, WalletConfig,
 };
 fn get_default_consensus() -> Option<ConsensusConfig> {
     Some(ConsensusConfig::default())
@@ -18,8 +19,8 @@ fn get_default_consensus() -> Option<ConsensusConfig> {
 pub struct WasmConfiguration {
     server: Option<Server>,
     peers: Vec<PeerConfig>,
-    #[serde(skip)]
-    blockchain: Option<BlockchainConfig>,
+    #[serde(default)]
+    blockchain: BlockchainConfig,
     spv_mode: bool,
     browser_mode: bool,
     #[serde(default = "get_default_consensus")]
@@ -51,7 +52,23 @@ impl WasmConfiguration {
                 block_fetch_batch_size: 0,
             }),
             peers: vec![],
-            blockchain: None,
+            blockchain: BlockchainConfig {
+                last_block_hash: "0000000000000000000000000000000000000000000000000000000000000000"
+                    .to_string(),
+                last_block_id: 0,
+                last_timestamp: 0,
+                genesis_block_id: 0,
+                genesis_timestamp: 0,
+                lowest_acceptable_timestamp: 0,
+                lowest_acceptable_block_hash:
+                    "0000000000000000000000000000000000000000000000000000000000000000".to_string(),
+                lowest_acceptable_block_id: 0,
+                fork_id: "0000000000000000000000000000000000000000000000000000000000000000"
+                    .to_string(),
+                initial_loading_completed: false,
+                issuance_writing_block_interval: get_default_issuance_writing_block_interval(),
+                confirmations: vec![],
+            },
             spv_mode: false,
             browser_mode: false,
             consensus: Some(ConsensusConfig::default()),
@@ -88,12 +105,12 @@ impl Configuration for WasmConfiguration {
         &self.peers
     }
 
-    fn get_blockchain_configs(&self) -> Option<&BlockchainConfig> {
-        self.blockchain.as_ref()
+    fn get_blockchain_configs(&self) -> &BlockchainConfig {
+        &self.blockchain
     }
 
-    fn get_blockchain_configs_mut(&mut self) -> Option<&mut BlockchainConfig> {
-        self.blockchain.as_mut()
+    fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+        &mut self.blockchain
     }
 
     fn get_block_fetch_url(&self) -> String {
@@ -120,7 +137,7 @@ impl Configuration for WasmConfiguration {
         self.peers = config.get_peer_configs().clone();
         self.spv_mode = config.is_spv_mode();
         self.browser_mode = config.is_browser();
-        self.blockchain = config.get_blockchain_configs().cloned();
+        self.blockchain = config.get_blockchain_configs().clone();
         self.consensus = config.get_consensus_config().cloned();
         self.congestion = config.get_congestion_data().cloned();
     }
@@ -141,9 +158,9 @@ impl Configuration for WasmConfiguration {
         self.congestion = congestion_data;
     }
 
-    fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
-        self.blockchain = config;
-    }
+    // fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
+    //     self.blockchain = config;
+    // }
 
     fn get_config_path(&self) -> String {
         String::new()

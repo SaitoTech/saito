@@ -164,6 +164,7 @@ pub fn new(
             received_ghost_chain: None,
             waiting_for_genesis_block: false,
             message_sending_timer: 0,
+            blockchain_send_results: Default::default(),
         },
         consensus_thread: ConsensusThread {
             mempool_lock: context.mempool_lock.clone(),
@@ -758,6 +759,7 @@ pub async fn create_remove_bound_transaction(
     slip1_utxo_key: JsString,
     slip2_utxo_key: JsString,
     slip3_utxo_key: JsString,
+    tx_msg: Uint8Array, // ADD THIS
 ) -> Result<WasmTransaction, JsValue> {
     //
     // get SAITO instance
@@ -778,12 +780,17 @@ pub async fn create_remove_bound_transaction(
         string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
 
     //
+    // convert the `data` string into raw UTF-8 bytes (Vec<u8>)
+    //
+    let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+    //
     // build the remove-bound transaction via wallet
     //
     let tx = {
         let mut wallet = saito.context.wallet_lock.write().await;
         wallet
-            .create_remove_bound_transaction(s1, s2, s3)
+            .create_remove_bound_transaction(s1, s2, s3, serialized_msg)
             .await
             .map_err(|_| JsValue::from_str("create_remove_bound_transaction failed"))?
     };
@@ -1761,18 +1768,13 @@ pub async fn get_confirmations() -> Result<JsValue, JsValue> {
         .config_lock
         .read()
         .await;
-    let str = serde_json::to_string(
-        &configs
-            .get_blockchain_configs()
-            .expect("blockchain config should exist here")
-            .confirmations,
-    )
-    .map_err(|e| {
-        JsValue::from_str(&format!(
-            "Failed to serialize blockchain confirmations configs: {}",
-            e
-        ))
-    })?;
+    let str =
+        serde_json::to_string(&configs.get_blockchain_configs().confirmations).map_err(|e| {
+            JsValue::from_str(&format!(
+                "Failed to serialize blockchain confirmations configs: {}",
+                e
+            ))
+        })?;
     Ok(str.into())
 }
 

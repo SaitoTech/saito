@@ -347,7 +347,6 @@ class CreateNFT {
     };
 
     document.querySelector('#create_nft').onclick = async (e) => {
-
       let obj = await this.createObject();
       if (obj == false) {
         return;

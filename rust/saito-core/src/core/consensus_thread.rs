@@ -542,20 +542,20 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     consensus.block_confirmation_limit
                 );
             }
-            let blockchain_configs =
-                ConfigManager::read_blockchain_configs(self.network.io_interface.deref())
-                    .await
-                    .map(|config| Some(config))
-                    .unwrap_or_else(|e| {
-                        error!(
-                            "Error reading blockchain config: {}. Loading with default values",
-                            e
-                        );
-                        Some(Default::default())
-                    });
-            configs.set_blockchain_configs(blockchain_configs);
+            // let blockchain_configs =
+            //     ConfigManager::read_blockchain_configs(self.network.io_interface.deref())
+            //         .await
+            //         .map(|config| Some(config))
+            //         .unwrap_or_else(|e| {
+            //             error!(
+            //                 "Error reading blockchain config: {}. Loading with default values",
+            //                 e
+            //             );
+            //             Some(Default::default())
+            //         });
+            // configs.set_blockchain_configs(blockchain_configs);
 
-            let blockchain_configs = configs.get_blockchain_configs().unwrap();
+            let blockchain_configs = configs.get_blockchain_configs();
             info!(
                 "loading blockchain state from configs : {:?}",
                 blockchain_configs
@@ -658,7 +658,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
             }
             configs
                 .get_blockchain_configs_mut()
-                .expect("blockchain config should exist here")
                 .initial_loading_completed = true;
             info!(
                 "{:?} total blocks in blockchain. Timestamp : {:?}, elapsed_time : {:?}",

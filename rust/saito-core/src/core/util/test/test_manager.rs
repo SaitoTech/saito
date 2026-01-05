@@ -122,7 +122,7 @@ pub mod test {
                     recollect_discarded_txs_mode: get_default_recollect_mode(),
                     disable_block_production: false,
                 },
-                blockchain: Some(Default::default()),
+                blockchain: Default::default(),
             }));
 
             let issuance_path = TestManager::get_test_issuance_file().unwrap();
@@ -1150,7 +1150,7 @@ pub mod test {
 
     struct TestConfiguration {
         consensus: ConsensusConfig,
-        blockchain: Option<BlockchainConfig>,
+        blockchain: BlockchainConfig,
     }
 
     impl Debug for TestConfiguration {
@@ -1168,11 +1168,11 @@ pub mod test {
             todo!()
         }
 
-        fn get_blockchain_configs(&self) -> Option<&BlockchainConfig> {
-            self.blockchain.as_ref()
+        fn get_blockchain_configs(&self) -> &BlockchainConfig {
+            &self.blockchain
         }
-        fn get_blockchain_configs_mut(&mut self) -> Option<&mut BlockchainConfig> {
-            self.blockchain.as_mut()
+        fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+            &mut self.blockchain
         }
         fn get_block_fetch_url(&self) -> String {
             todo!()
@@ -1214,9 +1214,9 @@ pub mod test {
             todo!()
         }
 
-        fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
-            self.blockchain = config;
-        }
+        // fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
+        //     self.blockchain = config;
+        // }
 
         fn get_config_path(&self) -> String {
             String::new()

@@ -42,7 +42,7 @@ module.exports = (app, mod, nfttx, nft) => {
         <div class="saito-nft-panel-body nft-creator">
           <div class="nft-creator-content-wrapper">
   `;
-  
+
   // Create image/textbox display (full-size like nft-overlay)
   if (nft.image) {
     html += `
@@ -94,4 +94,3 @@ module.exports = (app, mod, nfttx, nft) => {
 
   return html;
 };
-

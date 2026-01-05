@@ -441,11 +441,16 @@ export default class Saito {
       slip1UtxoKey: string,
       slip2UtxoKey: string,
       slip3UtxoKey: string,
+      tx_msg: any,        // ADD THIS
     ): Promise<T> {
+
+      let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
+
       const wasmTx = await Saito.getLibInstance().create_remove_bound_transaction(
         slip1UtxoKey,
         slip2UtxoKey,
         slip3UtxoKey,
+        new Uint8Array(tx_msg_arr),   // SEND IT TO WASM
       );
 
       const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
@@ -559,7 +564,7 @@ export default class Saito {
         peerIndex?: bigint,
         signature_required?: boolean
     ): Promise<any> {
-        console.log("sending request : peer = " + peerIndex);
+        console.info("sending request : " + message + ", peer = " + peerIndex);
         let wallet = await this.getWallet();
         let publicKey = await wallet.getPublicKey();
         let tx = await this.createTransaction(publicKey, BigInt(0), BigInt(0));
@@ -569,14 +574,9 @@ export default class Saito {
         };
         tx.packData();
 
-
-
         if (signature_required) {
-            tx.sign();
+            await tx.sign();
         }
-
-        console.log("signature_required: ", signature_required);
-        console.log(tx);
 
         return this.sendTransactionWithCallback(
             tx,

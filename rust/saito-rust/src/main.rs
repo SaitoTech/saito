@@ -66,73 +66,69 @@ async fn run_verification_thread(
     time_keeper_origin: &Timer,
 ) -> JoinHandle<()> {
     let time_keeper = time_keeper_origin.clone();
-    tokio::task::Builder::new()
-        .name(thread_name)
-        .spawn(async move {
-            info!("verification thread started");
-            // let mut work_done;
-            let mut stat_timer = Instant::now();
+    tokio::spawn(async move {
+        info!("verification thread started");
+        // let mut work_done;
+        let mut stat_timer = Instant::now();
 
-            event_processor.on_init().await;
-            let mut queued_requests = vec![];
-            // let mut requests = VecDeque::new();
-            let mut interval =
-                tokio::time::interval(Duration::from_millis(thread_sleep_time_in_ms));
-            let mut stat_interval = tokio::time::interval(Duration::from_millis(stat_timer_in_ms));
+        event_processor.on_init().await;
+        let mut queued_requests = vec![];
+        // let mut requests = VecDeque::new();
+        let mut interval = tokio::time::interval(Duration::from_millis(thread_sleep_time_in_ms));
+        let mut stat_interval = tokio::time::interval(Duration::from_millis(stat_timer_in_ms));
 
+        loop {
             loop {
-                loop {
-                    select! {
-                        result = event_receiver.recv() =>{
-                            if result.is_some() {
-                                let request = result.unwrap();
-                                // if let VerifyRequest::Block(..) = &request {
-                                //     queued_requests.push(request);
-                                //     break;
-                                // }else if let VerifyRequest::Transaction(tx) = request {
-                                //     requests.push_back(tx);
-                                // }else if let VerifyRequest::Transactions(..) = &request {
-                                //     queued_requests.push(request);
-                                //     break;
-                                // }
-                                queued_requests.push(request);
-                                break;
-                            } else {
-                                break;
-                            }
-                            // if requests.len() == batch_size {
+                select! {
+                    result = event_receiver.recv() =>{
+                        if result.is_some() {
+                            let request = result.unwrap();
+                            // if let VerifyRequest::Block(..) = &request {
+                            //     queued_requests.push(request);
+                            //     break;
+                            // }else if let VerifyRequest::Transaction(tx) = request {
+                            //     requests.push_back(tx);
+                            // }else if let VerifyRequest::Transactions(..) = &request {
+                            //     queued_requests.push(request);
                             //     break;
                             // }
+                            queued_requests.push(request);
+                            break;
+                        } else {
+                            break;
                         }
-                        _ = interval.tick()=>{
+                        // if requests.len() == batch_size {
+                        //     break;
+                        // }
+                    }
+                    _ = interval.tick()=>{
 
-                        }
-                        _ = stat_interval.tick()=>{
-                            {
-                                let current_instant = Instant::now();
-                                let duration = current_instant.duration_since(stat_timer);
-                                if duration > Duration::from_millis(stat_timer_in_ms) {
-                                    stat_timer = current_instant;
-                                    event_processor
-                                        .on_stat_interval(time_keeper.get_timestamp_in_ms())
-                                        .await;
-                                }
+                    }
+                    _ = stat_interval.tick()=>{
+                        {
+                            let current_instant = Instant::now();
+                            let duration = current_instant.duration_since(stat_timer);
+                            if duration > Duration::from_millis(stat_timer_in_ms) {
+                                stat_timer = current_instant;
+                                event_processor
+                                    .on_stat_interval(time_keeper.get_timestamp_in_ms())
+                                    .await;
                             }
                         }
                     }
                 }
-                // if !requests.is_empty() {
-                //     event_processor
-                //         .processed_msgs
-                //         .increment_by(requests.len() as u64);
-                //     event_processor.verify_txs(&mut requests).await;
-                // }
-                for request in queued_requests.drain(..) {
-                    event_processor.process_event(request).await;
-                }
             }
-        })
-        .unwrap()
+            // if !requests.is_empty() {
+            //     event_processor
+            //         .processed_msgs
+            //         .increment_by(requests.len() as u64);
+            //     event_processor.verify_txs(&mut requests).await;
+            // }
+            for request in queued_requests.drain(..) {
+                event_processor.process_event(request).await;
+            }
+        }
+    })
 }
 
 async fn run_mining_event_processor(
@@ -290,6 +286,7 @@ async fn run_routing_event_processor(
         received_ghost_chain: None,
         waiting_for_genesis_block: false,
         message_sending_timer: 0,
+        blockchain_send_results: Default::default(),
     };
 
     let (interface_sender_to_routing, interface_receiver_for_routing) =
@@ -381,53 +378,50 @@ fn run_loop_thread(
     time_keeper_origin: &Timer,
 ) -> JoinHandle<()> {
     let time_keeper = time_keeper_origin.clone();
-    tokio::task::Builder::new()
-        .name("saito-looper")
-        .spawn(async move {
-            let mut incoming_msgs = StatVariable::new(
-                "network::incoming_msgs".to_string(),
-                STAT_BIN_COUNT,
-                sender_to_stat.clone(),
-            );
-            let mut stat_interval = tokio::time::interval(Duration::from_millis(stat_timer_in_ms));
+    tokio::spawn(async move {
+        let mut incoming_msgs = StatVariable::new(
+            "network::incoming_msgs".to_string(),
+            STAT_BIN_COUNT,
+            sender_to_stat.clone(),
+        );
+        let mut stat_interval = tokio::time::interval(Duration::from_millis(stat_timer_in_ms));
 
-            let mut last_stat_on: Instant = Instant::now();
-            loop {
-                select! {
-                    result = receiver.recv()=>{
-                        if result.is_some() {
-                            let command = result.unwrap();
-                            incoming_msgs.increment();
-                            match command.event_processor_id {
-                                ROUTING_EVENT_PROCESSOR_ID => {
-                                    network_event_sender_to_routing_ep
-                                        .send(command.event)
-                                        .await
-                                        .unwrap();
-                                }
-
-                                _ => {
-                                    unreachable!()
-                                }
+        let mut last_stat_on: Instant = Instant::now();
+        loop {
+            select! {
+                result = receiver.recv()=>{
+                    if result.is_some() {
+                        let command = result.unwrap();
+                        incoming_msgs.increment();
+                        match command.event_processor_id {
+                            ROUTING_EVENT_PROCESSOR_ID => {
+                                network_event_sender_to_routing_ep
+                                    .send(command.event)
+                                    .await
+                                    .unwrap();
                             }
-                        }
-                    }
-                    _ = stat_interval.tick()=>{
-                        {
-                            if Instant::now().duration_since(last_stat_on)
-                                > Duration::from_millis(stat_timer_in_ms)
-                            {
-                                last_stat_on = Instant::now();
-                                incoming_msgs
-                                    .calculate_stats(time_keeper.get_timestamp_in_ms())
-                                    .await;
+
+                            _ => {
+                                unreachable!()
                             }
                         }
                     }
                 }
+                _ = stat_interval.tick()=>{
+                    {
+                        if Instant::now().duration_since(last_stat_on)
+                            > Duration::from_millis(stat_timer_in_ms)
+                        {
+                            last_stat_on = Instant::now();
+                            incoming_msgs
+                                .calculate_stats(time_keeper.get_timestamp_in_ms())
+                                .await;
+                        }
+                    }
+                }
             }
-        })
-        .unwrap()
+        }
+    })
 }
 
 fn setup_log() {
