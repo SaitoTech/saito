@@ -1,4 +1,5 @@
-const Slip = require("../../../../lib/saito/slip");
+const Slip = require('./../../../../lib/saito/slip').default;
+
 
 module.exports = {
 
@@ -30,11 +31,9 @@ Witness must include:
   },
 
   exampleWitness: {
-    slips: [
-      "<utxokey1>",
-      "<utxokey2>",
-      "<utxokey3>"
-    ]
+    utxokey1 : "<string>" ,
+    utxokey2 : "<string>" ,
+    utxokey3 : "<string>" 
   },
 
   schema: {
@@ -42,18 +41,20 @@ Witness must include:
       where: "array"
     },
     witness: {
-      slips: "array"
+      utxokey1 : "string" ,
+      utxokey2 : "string" ,
+      utxokey3 : "string" ,
     }
   },
 
 
   execute(app, script, witness, vars, tx, blk) {
 
-    if (!witness?.slips || witness.slips.length !== 3) {
-      return false;
-    }
+    let utxo1 = witness.utxokey1 || null;
+    let utxo2 = witness.utxokey2 || null;
+    let utxo3 = witness.utxokey3 || null;
 
-    const [utxo1, utxo2, utxo3] = witness.slips;
+    if (!utxo1 || !utxo2 || !utxo3) { return false; }
 
     const slip1 = Slip.fromUtxoKey(utxo1);
     const slip2 = Slip.fromUtxoKey(utxo2);
@@ -62,6 +63,21 @@ Witness must include:
     if (!slip1 || !slip2 || !slip3) {
       return false;
     }
+
+    //
+    // write to OPCODE
+    //
+    try {
+      vars.__opcodes.checkownnftwhere = {};
+      // 66 bytes from utxokey 3 = nft.id
+      vars.__opcodes.checkownnftwhere.nft_id = utxo3.substring(0, 66).toLowerCase();
+console.log("**** CHECKOWNNFTWHERE produced nft_id of: " + vars.__opcodes.checkownnftwhere.nft_id);
+console.log("**** CHECKOWNNFTWHERE produced length: " + vars.__opcodes.checkownnftwhere.nft_id.length);
+    } catch (err) {
+      vars.__opcodes.checkownnftwhere = { nft_id: "" };
+    }
+
+
 
     // --------------------------------------------------
     // Ownership check (runtime only)
@@ -76,7 +92,7 @@ Witness must include:
     // --------------------------------------------------
     // Extract NFT metadata
     // --------------------------------------------------
-    const nft_type = app.wallet.extractNFTType(slip3.utxo_key);
+    const nft_type = app.wallet.extractNFTType(utxo3);
     const creator  = slip1.publicKey;
 
     // --------------------------------------------------

@@ -30,8 +30,7 @@ module.exports = {
       }
     ],
 
-    publickey: "<creator_publickey>",
-    hash: "<binding_hash_or_empty_string>"
+    publickey: "<creator_publickey>"
   },
 
   exampleWitness: {
@@ -49,8 +48,7 @@ module.exports = {
       selector: "string",
       where: "array",
       assert: "array",
-      publickey: "string",
-      hash: "string"
+      publickey: "string"
     },
     witness: {
       hops: "array"
@@ -71,29 +69,22 @@ console.log("EXECUTING CHECKPATHHOP...");
         return false;
       }
 
-      const start_publickey = script.publickey;
-      const binding_hash = script.hash || "";
-
-      if (!start_publickey || typeof start_publickey !== "string") {
-        return false;
-      }
-
-
-      /* --------------------------------------------------
-       * 0.5 variables that may be needed....
-       * -------------------------------------------------- */
-
-      vars.REQUESTER = "";
-      if (tx?.from?.length > 0) {
-        if (tx.from[0].publicKey) { vars.REQUESTER = tx.from[0].publicKey; }
-      }
-      vars.NOW = Date.now();
-console.log("VARS: " + JSON.stringify(vars));
+console.log("CPH 2");
+      const start_publickey = app.browser.resolveVarReference(vars, script.publickey);
+console.log("CPH 3");
+      let binding_hash = app.browser.resolveVarReference(vars, script.hash);
+console.log("CPH 4: " + binding_hash.length);
+      if (typeof binding_hash !== "string" || !binding_hash.length) { binding_hash = ""; }
+console.log("CPH 5");
+      if (!start_publickey || typeof start_publickey !== "string") { return false; }
+console.log("CPH 6");
 
       /* --------------------------------------------------
        * 1. Cryptographic verification of routing path
        * -------------------------------------------------- */
 
+console.log("starting publickey: " + start_publickey);
+console.log("binding hash: " + binding_hash);
 
       if (!app.crypto.verifyRoutingPath(
         path,

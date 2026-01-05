@@ -416,7 +416,14 @@ console.log("updated UI...");
       return {
         class: ['stack'],
         onTransfer: async (nft=null, tx=null, receiver="", data={}) => {
-console.log("ABOUT TO TEST VERIFICATION 1");
+
+console.log("***");
+console.log("***");
+console.log("***");
+console.log("***");
+console.log("***");
+console.log("***");
+console.log("adding routing path to Stack NFT...");
 
       	  if (!tx.msg) { tx.msg = {}; }
           if (!tx.msg.data) { tx.msg.data = {}; }
@@ -426,7 +433,6 @@ console.log("ABOUT TO TEST VERIFICATION 1");
           }
 
           if (!nft?.id) { return tx; }
-console.log("ABOUT TO TEST VERIFICATION 2");
 
           let value_obj = {
             timestamp: Date.now(),
@@ -435,15 +441,17 @@ console.log("ABOUT TO TEST VERIFICATION 2");
 
 	  if (data.delegate == true) { value_obj.delegate = true; }
 
-console.log("ABOUT TO TEST VERIFICATION 3");
           const value_json = JSON.stringify(value_obj);
           const value_b64 = Buffer.from(value_json).toString('base64');
-console.log("ABOUT TO TEST VERIFICATION 4");
 
           const canonical_string = `${receiver}|${value_b64}|${nft.id}`;
+console.log("nftid: " + nft.id);
 	  const hash_digest = this_mod.app.crypto.hash(canonical_string);
 	  const privatekey = await this_mod.app.wallet.getPrivateKey();
 	  const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
+
+console.log("signing string: " + canonical_string);
+console.log("as hash: " + hash_digest);
 
 console.log("ABOUT TO TEST VERIFICATION 5");
 

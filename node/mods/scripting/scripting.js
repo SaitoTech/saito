@@ -182,6 +182,10 @@ canonicalize(x) {
   	//
   	async evaluate(hash="", script="", witness = "", vars = {}, tx = null, blk = null) {
 
+		//
+		// OPCODES periodically write data outputs, for use in other opcodes
+		//
+		vars.__opcodes = {};
 
 console.log("into evaluate... 1");
 console.log("tx _eval:", tx);

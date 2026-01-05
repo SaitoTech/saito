@@ -137,8 +137,8 @@ function getPrivateNonTransferableScript(authorPublicKey) {
             value: "REQUESTER"
           }
         ],
-        publickey: authorPublicKey,
-        hash: ""
+        publickey: authorPublicKey ,
+        hash: "__opcodes.checkownnftwhere.nft_id"
       }
     ]
   };
