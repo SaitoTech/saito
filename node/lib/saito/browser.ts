@@ -1142,7 +1142,7 @@ class Browser {
     if (dropArea.querySelector('.saito-file-read-spinner')) {
       return; // Already showing
     }
-    
+
     // Ensure position relative for absolute positioning of spinner
     const computedStyle = window.getComputedStyle(dropArea);
     if (computedStyle.position === 'static') {
@@ -1152,7 +1152,7 @@ class Browser {
         dropArea.dataset.originalPosition = dropArea.style.position || '';
       }
     }
-    
+
     const spinnerHtml = `
       <div class="saito-file-read-spinner" style="
         position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -1171,7 +1171,7 @@ class Browser {
     if (spinner) {
       spinner.remove();
     }
-    
+
     // Restore original position if we changed it
     if (dropArea.dataset.originalPosition !== undefined) {
       const originalPos = dropArea.dataset.originalPosition;
@@ -1191,7 +1191,6 @@ class Browser {
     read_as_array_buffer = false,
     read_as_text = false
   ) {
-
     const hidden_upload_form = `
       <form id="uploader_${id}" class="saito-file-uploader" style="display:none">
         <p>Upload multiple files with the file dialog or by dragging and dropping images onto the dashed region</p>
@@ -1226,7 +1225,9 @@ class Browser {
             // Early size validation - check BEFORE reading
             // This prevents memory issues with very large files when using readAsDataURL
             if (!read_as_array_buffer && !read_as_text && file.size > self.MAX_FILE_SIZE) {
-              console.warn(`File ${file.name} (${file.size} bytes) exceeds safe size limit for readAsDataURL`);
+              console.warn(
+                `File ${file.name} (${file.size} bytes) exceeds safe size limit for readAsDataURL`
+              );
               // Call handler with null file to indicate failure
               if (handleFileDrop) {
                 handleFileDrop(null, false, file);
@@ -1238,7 +1239,7 @@ class Browser {
             self.showFileReadSpinner(dropArea);
 
             const reader = new FileReader();
-            
+
             // Helper to hide spinner and call handler
             const cleanupAndCall = (result, file) => {
               self.hideFileReadSpinner(dropArea);
@@ -1246,19 +1247,19 @@ class Browser {
                 handleFileDrop(result, false, file);
               }
             };
-            
+
             // Add error handler (backwards compatible - calls handler with null file)
             reader.addEventListener('error', (event) => {
               console.error('FileReader error for file:', file.name, file.size, 'bytes');
               cleanupAndCall(null, file);
             });
-            
+
             // Add abort handler
             reader.addEventListener('abort', (event) => {
               console.warn('FileReader aborted for file:', file.name);
               cleanupAndCall(null, file);
             });
-            
+
             reader.addEventListener('load', (event) => {
               cleanupAndCall(event.target.result, file);
             });
@@ -1282,11 +1283,13 @@ class Browser {
             const self = this; // Capture Browser instance
             [...files].forEach(function (file) {
               drag_and_drop = true;
-              
+
               // Early size validation - check BEFORE reading
               const MAX_SAFE_SIZE = 100 * 1024 * 1024; // 100MB safety limit
               if (!read_as_array_buffer && !read_as_text && file.size > MAX_SAFE_SIZE) {
-                console.warn(`File ${file.name} (${file.size} bytes) exceeds safe size limit for readAsDataURL`);
+                console.warn(
+                  `File ${file.name} (${file.size} bytes) exceeds safe size limit for readAsDataURL`
+                );
                 if (handleFileDrop) {
                   handleFileDrop(null, true, file);
                 }
@@ -1297,7 +1300,7 @@ class Browser {
               self.showFileReadSpinner(dropArea);
 
               const reader = new FileReader();
-              
+
               // Helper to hide spinner and call handler
               const cleanupAndCall = (result, file) => {
                 self.hideFileReadSpinner(dropArea);
@@ -1305,19 +1308,19 @@ class Browser {
                   handleFileDrop(result, true, file);
                 }
               };
-              
+
               // Add error handler
               reader.addEventListener('error', (event) => {
                 console.error('FileReader error for file:', file.name, file.size, 'bytes');
                 cleanupAndCall(null, file);
               });
-              
+
               // Add abort handler
               reader.addEventListener('abort', (event) => {
                 console.warn('FileReader aborted for file:', file.name);
                 cleanupAndCall(null, file);
               });
-              
+
               reader.addEventListener('load', (event) => {
                 cleanupAndCall(event.target.result, file);
               });
@@ -1359,7 +1362,9 @@ class Browser {
               // Early size validation - check BEFORE reading
               const MAX_SAFE_SIZE = 100 * 1024 * 1024; // 100MB safety limit
               if (!read_as_array_buffer && !read_as_text && file.size > MAX_SAFE_SIZE) {
-                console.warn(`File ${file.name} (${file.size} bytes) exceeds safe size limit for readAsDataURL`);
+                console.warn(
+                  `File ${file.name} (${file.size} bytes) exceeds safe size limit for readAsDataURL`
+                );
                 if (handleFileDrop) {
                   handleFileDrop(null, false, file);
                 }
@@ -1370,7 +1375,7 @@ class Browser {
               self.showFileReadSpinner(dropArea);
 
               const reader = new FileReader();
-              
+
               // Helper to hide spinner and call handler
               const cleanupAndCall = (result, file) => {
                 self.hideFileReadSpinner(dropArea);
@@ -1378,19 +1383,19 @@ class Browser {
                   handleFileDrop(result, false, file);
                 }
               };
-              
+
               // Add error handler
               reader.addEventListener('error', (event) => {
                 console.error('FileReader error for file:', file.name, file.size, 'bytes');
                 cleanupAndCall(null, file);
               });
-              
+
               // Add abort handler
               reader.addEventListener('abort', (event) => {
                 console.warn('FileReader aborted for file:', file.name);
                 cleanupAndCall(null, file);
               });
-              
+
               reader.addEventListener('load', (event) => {
                 cleanupAndCall(event.target.result, file);
               });

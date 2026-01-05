@@ -45,36 +45,34 @@ export default class Crypto {
    * @param hash            Optional canonical hash to combine each hop (e.g. nft.id)
    *
    * @returns true if the routing path is cryptographically valid
-  **/
-  verifyRoutingPath(path: any[], publickey: string, binding_hash: string | null = ""): boolean {
-
+   **/
+  verifyRoutingPath(path: any[], publickey: string, binding_hash: string | null = ''): boolean {
     // Basic structural checks
     if (!Array.isArray(path) || path.length === 0) {
       return false;
     }
 
-    if (!publickey || typeof publickey !== "string") {
+    if (!publickey || typeof publickey !== 'string') {
       return false;
     }
 
     let expected_signer = publickey;
 
     for (let i = 0; i < path.length; i++) {
-
       const hop = path[i];
 
       if (
         !hop ||
-        typeof hop.to !== "string" ||
-        typeof hop.value !== "string" ||
-        typeof hop.sig !== "string"
+        typeof hop.to !== 'string' ||
+        typeof hop.value !== 'string' ||
+        typeof hop.sig !== 'string'
       ) {
         return false;
       }
 
-      const to    = hop.to || "";
-      const value = hop.value || "";
-      const sig   = hop.sig || "";
+      const to = hop.to || '';
+      const value = hop.value || '';
+      const sig = hop.sig || '';
       const canonical_string = `${to}|${value}|${binding_hash}`;
       const digest = this.hash(canonical_string);
 
@@ -90,8 +88,6 @@ export default class Crypto {
 
     return true;
   }
-
-
 
   ////////////////////////////////
   // AES SYMMETRICAL ENCRYPTION //

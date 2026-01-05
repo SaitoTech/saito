@@ -1,6 +1,6 @@
 module.exports = (app, mod, nft_overlay) => {
   let nft = nft_overlay.nft;
-  
+
   let title = 'Vintage Saito NFT';
   let saitoItems = [
     'Vintage Collectible',
@@ -76,4 +76,3 @@ module.exports = (app, mod, nft_overlay) => {
     </div>
   `;
 };
-
