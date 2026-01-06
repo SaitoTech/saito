@@ -130,14 +130,14 @@ async function init() {
 
     // saito.storage.convertOptionsBigInt(saito.options);
 
-    console.log('saito options : ', saito.options);
+    //console.log('saito options : ', saito.options);
     try {
         await initSaito(
             saito.options,
             new WebMethods(saito),
             new Factory(),
             saito.options.wallet?.privateKey || '',
-            LogLevel.Info,
+            LogLevel.Debug,
             BigInt(1),
             true,
         );
