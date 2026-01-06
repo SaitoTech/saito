@@ -1312,20 +1312,34 @@ pub async fn propagate_transaction(tx: &WasmTransaction) {
             .await;
         tx.generate(&wallet.public_key, 0, 0);
     }
-    // saito
-    //     .as_mut()
-    //     .unwrap()
-    //     .consensus_thread
-    //     .process_event(ConsensusEvent::NewTransaction { transaction: tx })
-    //     .await;
-
+    debug!(
+        "propagating transaction: {} input: {}, output : {}",
+        tx.signature.to_hex(),
+        tx.from
+            .iter()
+            .map(|slip| format!("{}", slip))
+            .collect::<Vec<String>>()
+            .join(", "),
+        tx.to
+            .iter()
+            .map(|slip| format!("{}", slip))
+            .collect::<Vec<String>>()
+            .join(", "),
+    );
     saito
         .as_mut()
         .unwrap()
-        .routing_thread
-        .network
-        .propagate_transaction(&tx)
+        .consensus_thread
+        .process_event(ConsensusEvent::NewTransaction { transaction: tx })
         .await;
+
+    // saito
+    //     .as_mut()
+    //     .unwrap()
+    //     .routing_thread
+    //     .network
+    //     .propagate_transaction(&tx)
+    //     .await;
 }
 
 #[wasm_bindgen]

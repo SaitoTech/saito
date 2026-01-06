@@ -272,11 +272,12 @@ impl ConsensusThread {
         } else {
             // route messages to peers
             if !self.txs_for_mempool.is_empty() {
-                trace!(
+                debug!(
                     "since a block was not produced, propagating {:?} txs to peers",
                     self.txs_for_mempool.len()
                 );
                 for tx in self.txs_for_mempool.drain(..) {
+                    debug!("propagating tx : {} to peers", tx.signature.to_hex());
                     self.network.propagate_transaction(&tx).await;
                 }
             }
