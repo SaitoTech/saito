@@ -26,7 +26,7 @@ use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::config_manager::ConfigManager;
-use crate::core::util::configuration::Configuration;
+use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::hash;
 
 use super::stat_thread::{BlockchainStat, MempoolStat, StatEvent, WalletStat};
@@ -657,9 +657,8 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     }
                 }
             }
-            configs
-                .get_blockchain_configs_mut()
-                .initial_loading_completed = true;
+            configs.get_blockchain_configs_mut().initial_loading_status =
+                InitialLoadingStatus::Completed;
             info!(
                 "{:?} total blocks in blockchain. Timestamp : {:?}, elapsed_time : {:?}",
                 blockchain.blocks.len(),

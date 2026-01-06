@@ -30,7 +30,7 @@ use crate::core::io::storage::Storage;
 use crate::core::mining_thread::MiningEvent;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
-use crate::core::util::configuration::Configuration;
+use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::{drain, iterate};
 
 pub fn bit_pack(top: u32, bottom: u32) -> u64 {
@@ -313,8 +313,10 @@ impl Blockchain {
                     "hash is empty for parent of block : {:?}",
                     block.hash.to_hex()
                 );
-            } else if configs.get_blockchain_configs().initial_loading_completed
-                || self.checkpoint_found
+            } else if matches!(
+                configs.get_blockchain_configs().initial_loading_status,
+                InitialLoadingStatus::Completed
+            ) || self.checkpoint_found
             {
                 let previous_block_fetched = iterate!(mempool.blocks_queue, 100)
                     .any(|b| block.previous_block_hash == b.hash);
@@ -355,11 +357,19 @@ impl Blockchain {
                     );
                     AddBlockResult::FailedButRetry(block, false, false)
                 };
-            } else {
-                // info!("yyyyyyy : initload : {}, checkpoint : {}",configs.get_blockchain_configs().initial_loading_completed,self.checkpoint_found);
             }
-        } else {
-            // info!("xxxxxxxx : blockring empty : {} &&  prev block found : {}", self.blockring.is_empty() , self.get_block(&block.previous_block_hash).is_none());
+        }
+
+        if let InitialLoadingStatus::WaitingFor(waiting_for) =
+            &mut configs.get_blockchain_configs_mut().initial_loading_status
+        {
+            waiting_for.retain(|(waiting_block_id, waiting_block_hash)| {
+                !(*waiting_block_id == block.id && *waiting_block_hash == block.hash)
+            });
+            if waiting_for.is_empty() {
+                configs.get_blockchain_configs_mut().initial_loading_status =
+                    InitialLoadingStatus::Completed;
+            }
         }
 
         // pre-validation
@@ -2627,6 +2637,10 @@ impl Blockchain {
         keys: Vec<SaitoPublicKey>,
         configs: &(dyn Configuration + Send + Sync),
     ) -> BalanceSnapshot {
+        trace!(
+            "generating balance snapshot for keys : {:?}",
+            keys.iter().map(|key| key.to_base58())
+        );
         let latest_block_id = self.get_latest_block_id();
         let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
 
@@ -2661,6 +2675,7 @@ impl Blockchain {
                 // if no keys provided we get the full picture
                 //
                 if keys.is_empty() || keys.contains(&slip.public_key) {
+                    trace!("adding slip : {} to balance snapshot", slip);
                     snapshot.slips.push(slip);
                 }
             });

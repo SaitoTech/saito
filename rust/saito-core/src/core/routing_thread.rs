@@ -26,7 +26,7 @@ use crate::core::process::process_event::ProcessEvent;
 use crate::core::process::version::Version;
 use crate::core::util;
 use crate::core::util::config_manager::ConfigManager;
-use crate::core::util::configuration::Configuration;
+use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::hash;
 use crate::core::verification_thread::VerifyRequest;
 use ahash::HashMap;
@@ -1012,9 +1012,11 @@ impl RoutingThread {
                     lowest_id_to_reorg,
                 ));
         }
-        configs
-            .get_blockchain_configs_mut()
-            .initial_loading_completed = true;
+
+        if !need_blocks_fetched {
+            configs.get_blockchain_configs_mut().initial_loading_status =
+                InitialLoadingStatus::Completed;
+        }
     }
 
     // TODO : remove if not required
