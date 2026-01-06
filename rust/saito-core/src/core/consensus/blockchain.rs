@@ -2637,7 +2637,7 @@ impl Blockchain {
         keys: Vec<SaitoPublicKey>,
         configs: &(dyn Configuration + Send + Sync),
     ) -> BalanceSnapshot {
-        debug!(
+        trace!(
             "generating balance snapshot for keys : {:?}",
             keys.iter().map(|key| key.to_base58())
         );
@@ -2675,7 +2675,7 @@ impl Blockchain {
                 // if no keys provided we get the full picture
                 //
                 if keys.is_empty() || keys.contains(&slip.public_key) {
-                    debug!("adding slip : {} to balance snapshot", slip);
+                    trace!("adding slip : {} to balance snapshot", slip);
                     snapshot.slips.push(slip);
                 }
             });
