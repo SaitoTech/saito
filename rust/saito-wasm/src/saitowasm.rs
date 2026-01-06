@@ -1312,11 +1312,19 @@ pub async fn propagate_transaction(tx: &WasmTransaction) {
             .await;
         tx.generate(&wallet.public_key, 0, 0);
     }
+    // saito
+    //     .as_mut()
+    //     .unwrap()
+    //     .consensus_thread
+    //     .process_event(ConsensusEvent::NewTransaction { transaction: tx })
+    //     .await;
+
     saito
         .as_mut()
         .unwrap()
-        .consensus_thread
-        .process_event(ConsensusEvent::NewTransaction { transaction: tx })
+        .routing_thread
+        .network
+        .propagate_transaction(&tx)
         .await;
 }
 
