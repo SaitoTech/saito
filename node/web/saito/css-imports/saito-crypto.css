@@ -1,10 +1,9 @@
 .saito-crypto-deposit-container {
-  max-width: min(40rem, 90vw);
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  min-height: 45rem;
   justify-content: space-between;
+  height: 54rem;
 }
 
 .saito-crypto-wallet-state {
@@ -275,4 +274,39 @@
     padding: 0;
     overflow: hidden;
   }
+}
+
+.saito-crypto-deposit-content {
+  font-size: 1.8rem;
+  line-height: 2.2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 1rem;
+  flex-grow: 1;
+  height: 350px;
+}
+
+.saito-crypto-deposit-content .img-prev {
+  width: 100%;
+  max-height: 30rem;
+  height: auto;
+  object-fit: cover;
+}
+
+.saito-progress-meter {
+  position: relative;
+  display: flex;
+  height: 3rem;
+  width: 100%;
+  color: var(--saito-primary-text);
+  background: var(--saito-highlight);
+  border: 1px solid var(--saito-border-color);
+  border-radius: var(--saito-border-radius);
+  overflow: hidden;
+}
+
+.saito-crypto-deposit-container .game-loader-spinner {
+  margin: 10rem auto;
 }

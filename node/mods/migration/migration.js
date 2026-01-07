@@ -16,81 +16,27 @@ class Migration extends ModTemplate {
 		this.categories = 'Core Utilities Messaging';
 		this.styles = ['/migration/style.css'];
 
+		this.dependencies = ['Relay', 'Mixin', 'ERC', 'MailRelay'];
+
 		this.main = null;
 		this.header = null;
 		this.overlay = new SaitoOverlay(this.app, this, false);
 
-		this.key_cache = {};
+		this.key_cache = {}; // Mapping from Mixin Address --> Saito publicKey
+		this.pending_payments = [];
+
 		this.wrapped_saito_ticker = 'ERC-SAITO';
+		this.MAX_DEPOSIT = 500000; // Max of 500k at a time
 
 		this.relay_available = false;
 		this.can_auto = false;
 		this.ercMod = null;
 
-		this.local_dev = false;
+		this.local_dev = true;
 
-		//
-		// TODO -- CHANGE THIS
-		//
 		//this.migration_publickey = 'zYCCXRZt2DyPD9UmxRfwFgLTNAqCd5VE8RuNneg4aNMK';
 		this.migration_publickey = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
 		this.migration_mixin_address = '';
-
-		this.messages = [
-			'This is taking a while',
-			'Hang in there',
-			'Wow, Ethereum is slow',
-			'It will come through eventually',
-			'Please remain on the line'
-		];
-		this.gifs = [
-			'https://media4.giphy.com/media/mlvseq9yvZhba/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
-			'https://media3.giphy.com/media/nR4L10XlJcSeQ/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
-			'https://media2.giphy.com/media/5i7umUqAOYYEw/giphy.gif?cid=2dedbeb5qwxjlsbfbb6hoegrqhuuk3jyox9114xh67d5n26b&ep=v1_gifs_search&rid=giphy.gif&ct=g',
-			'https://media4.giphy.com/media/ND6xkVPaj8tHO/giphy.gif?cid=2dedbeb5zv19d51h53z7kixbzxbyecof4okksa5gllpv0pxr&ep=v1_gifs_search&rid=giphy.gif&ct=g',
-			'https://media1.giphy.com/media/YBsd8wdchmxqg/giphy.gif?cid=2dedbeb5zv19d51h53z7kixbzxbyecof4okksa5gllpv0pxr&ep=v1_gifs_search&rid=giphy.gif&ct=g'
-		];
-
-		if (!app.BROWSER) {
-			app.connection.on('saito-crypto-payment-received', (tx) => {
-				let txmsg = tx.returnMessage();
-
-				const { amount, from } = txmsg;
-
-				if (tx.isFrom(this.publicKey)) {
-					this.notifyTeam(txmsg, 2, tx.signature);
-					return;
-				}
-
-				if (tx.isTo(this.publicKey)) {
-					if (txmsg.module !== this.wrapped_saito_ticker) {
-						this.notifyTeam(txmsg, 0, 'Processing a crypto transfer tx for non-Saito!!');
-						console.error('Processing a crypto transfer tx for non-Saito!!');
-						return;
-					}
-
-					let saitozen_key = this.key_cache[from];
-
-					if (!saitozen_key) {
-						this.notifyTeam(txmsg, 0, 'Processing a crypto transfer tx for non-Saito!!');
-						console.error('Process a crypto transfer from an unknown sender!!!');
-						return;
-					}
-
-					let sm = app.wallet.returnCryptoModuleByTicker('SAITO');
-
-					sm.sendPayment(amount, saitozen_key, txmsg.hash + 1)
-						.then(() => {
-							this.notifyTeam(txmsg, 1, saitozen_key);
-						})
-						.catch((err) => {
-							this.notifyTeam(txmsg, 0, err);
-							console.error(err);
-							this.sendFailureNotification(saitozen_key);
-						});
-				}
-			});
-		}
 
 		return this;
 	}
@@ -103,15 +49,10 @@ class Migration extends ModTemplate {
 				this.migration_publickey = this.publicKey;
 				console.warn('---> I am the migration bot for local testing!!!!');
 			}
-			return;
-		}
 
-		if (this.browser_active) {
-			try {
-				this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
-			} catch (err) {
-				salert('Automated Migration requires Mixin and ERC modules to be installed!');
-			}
+			await this.load();
+
+			return;
 		}
 	}
 
@@ -153,12 +94,13 @@ class Migration extends ModTemplate {
 								siteMessage('checking if automated migration available...', 2000);
 								return;
 							}
+						} else {
+							salert('Automated Migration requires Mixin and ERC modules to be installed!');
 						}
 					} catch (err) {
 						console.error(err);
+						salert('Unable to initialize deposit address for automated migration');
 					}
-					console.log('Hello...');
-					salert('Unable to initialize deposit address for automated migration');
 				}, 1000);
 			}
 		}
@@ -173,29 +115,112 @@ class Migration extends ModTemplate {
 		this.addComponent(this.header);
 
 		await super.render(this.app, this);
+
+		// Set this on rendering... All modules will be initialized, so guaranteed to return if available.
+		try {
+			this.ercMod = this.app.wallet.returnCryptoModuleByTicker(this.wrapped_saito_ticker);
+		} catch (err) {
+			console.error(err);
+		}
+	}
+
+	shouldAffixCallbackToModule(modname) {
+		if (modname == this.name) {
+			return 1;
+		}
+
+		// Monitor "crypto" transactions
+
+		const my_cryptos = this.app.wallet.returnInstalledCryptos(false);
+
+		for (let mc of my_cryptos) {
+			if (mc.name == modname) {
+				return 1;
+			}
+		}
+
+		return 0;
+	}
+
+	async handlePeerTransaction(app, tx = null, peer, mycallback) {
+		if (tx?.isTo(this.publicKey)) {
+			let txmsg = tx.returnMessage();
+
+			if (txmsg.request == 'migration accept') {
+				await this.receiveMigrationResponseTransaction(app, tx, peer, mycallback);
+			}
+
+			if (txmsg.request == 'migration check') {
+				await this.receiveMigrationPingTransaction(tx);
+			}
+
+			if (txmsg.request == 'migration failure') {
+				if (this.app.BROWSER) {
+					salert(
+						'Uh oh, something went wrong with the automated migration. Please back up your wallet to ensure the security of your tokens and contact the team for a manual resolution.'
+					);
+				}
+			}
+		}
 	}
 
 	async onConfirmation(blk, tx, conf) {
+		//
+		// Just double checking that browsers only process what is addressed to them
+		//
 		if (this.app.BROWSER && !tx.isTo(this.publicKey)) {
 			return;
 		}
 
 		let txmsg = tx.returnMessage();
-		try {
-			if (Number(conf) == 0) {
-				if (txmsg.request === 'save migration data') {
-					await this.receiveStoreMigrationTransaction(blk, tx, conf);
+
+		if (Number(conf) == 0) {
+			if (txmsg.request === 'save migration data') {
+				await this.receiveStoreMigrationTransaction(blk, tx, conf);
+			}
+
+			if (txmsg.request == 'migration check') {
+				this.receiveMigrationPingTransaction(tx);
+			}
+
+			if (txmsg.request === 'crypto payment') {
+				if (this.app.BROWSER) {
+					// Browsers will process receipt of funds (log and update UI) inside their crypto module
+					return;
 				}
 
-				if (txmsg.request == 'migration check' && this.publicKey == this.migration_publickey) {
-					this.receiveMigrationPingTransaction(tx);
-				}
+				console.log(
+					'>>>>>>>>>> crypto payment',
+					'Conf:',
+					conf,
+					'Block: ',
+					blk.id,
+					'\n>>',
+					tx,
+					'\n>>',
+					tx.to
+				);
+				// tells the migration bot that the user's deposit is complete
+				this.receiveCryptoPaymentTransaction(tx, blk);
 			}
-		} catch (err) {
-			console.error('ERROR in ' + this.name + ' onConfirmation: ' + err);
 		}
 	}
 
+	/**
+	 * On new block (assuming we get a slip back), try to clear out the payments queue
+	 */
+	async onNewBlock(blk, lc) {
+		if (this.app.BROWSER) {
+			return;
+		}
+		if (!this.pending_payments?.length) {
+			return;
+		}
+	}
+
+	/**
+	 *  Send transaction for manual migration
+	 */
 	async sendStoreMigrationTransaction(app, mod, data) {
 		let obj = {
 			module: this.name,
@@ -214,6 +239,9 @@ class Migration extends ModTemplate {
 		return newtx;
 	}
 
+	/**
+	 *  Send transaction for manual migration
+	 */
 	async receiveStoreMigrationTransaction(blk, tx, conf) {
 		try {
 			//
@@ -255,28 +283,6 @@ class Migration extends ModTemplate {
 		}
 	}
 
-	async handlePeerTransaction(app, tx = null, peer, mycallback) {
-		if (tx?.isTo(this.publicKey)) {
-			let txmsg = tx.returnMessage();
-
-			if (txmsg.request == 'migration accept') {
-				await this.receiveMigrationResponseTransaction(app, tx, peer, mycallback);
-			}
-
-			if (txmsg.request == 'migration check') {
-				await this.receiveMigrationPingTransaction(tx);
-			}
-
-			if (txmsg.request == 'migration failure') {
-				if (this.app.BROWSER) {
-					salert(
-						'Uh oh, something went wrong with the automated migration. Please back up your wallet to ensure the security of your tokens and contact the team for a manual resolution.'
-					);
-				}
-			}
-		}
-	}
-
 	async sendFailureNotification(publickey) {
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(publickey);
 
@@ -291,6 +297,17 @@ class Migration extends ModTemplate {
 		this.app.connection.emit('relay-transaction', newtx);
 	}
 
+	/**
+	 * [BROWSER] Ping the Migration Bot to:
+	 * -- check its availability
+	 * -- let it cache my publickey & mixin account number
+	 * -- get its mixin account number
+	 *
+	 * We ping the migration bot twice. The first time on chain to make sure that
+	 * our account is able to send onChain transactions (wallet version not screwed up)
+	 *
+	 * And the second time to confirm that the bot still has sufficient balance for the transfer
+	 */
 	async sendMigrationPingTransaction(data, offchain = false) {
 		if (!this.migration_publickey) {
 			return;
@@ -316,9 +333,19 @@ class Migration extends ModTemplate {
 		}
 	}
 
+	/**
+	 * [SERVER] Migration Bot respond to Ping
+	 * -- give user transfer details (address, max amount)
+	 * -- cache user's Saito public key and Mixin account number
+	 */
 	async receiveMigrationPingTransaction(tx) {
 		let txmsg = tx.returnMessage();
 		let saitozen = tx.from[0].publicKey;
+
+		// Only respond if I am the known migration bot
+		if (!this.publicKey == this.migration_publickey) {
+			return;
+		}
 
 		if (!this.ercMod) {
 			try {
@@ -348,9 +375,10 @@ class Migration extends ModTemplate {
 		let max_deposit = await this.app.wallet.getBalance('SAITO');
 		max_deposit = Number(this.app.wallet.convertNolanToSaito(max_deposit));
 
-		// Max of 500k at a time
-		if (max_deposit > 500000) {
-			max_deposit = 500000;
+		if (max_deposit > this.MAX_DEPOSIT) {
+			max_deposit = this.MAX_DEPOSIT;
+		} else {
+			this.sendLowBalanceEmail(max_deposit);
 		}
 
 		let mixin_address = '';
@@ -389,6 +417,18 @@ class Migration extends ModTemplate {
 
 			if (txmsg.data.error) {
 				console.error(txmsg.data.error);
+				let btn = document.querySelector('button#automatic');
+				if (btn) {
+					btn.title = txmsg.data.error;
+				}
+				// We have deposited and want to finish the transfer, so need a more robust failure mode
+				if (txmsg.data.go) {
+					salert(
+						'Migration Bot currently unable to process: \n' +
+							txmsg.data.error +
+							'\n Your ERC20 SAITO are safe on this wallet, you can refresh later to complete the migration'
+					);
+				}
 				return;
 			}
 
@@ -398,204 +438,133 @@ class Migration extends ModTemplate {
 
 			this.can_auto = true;
 
-			// We are already sitting on some ERC20 wrapped SAITO
-			this.balance = Number(this.ercMod.returnBalance());
-
 			if (txmsg.data?.go) {
-				this.processDepositedSaito(this.balance);
+				let new_balance = Number(this.ercMod.returnBalance());
+				if (this.local_dev) {
+					new_balance = 100000 * Math.random();
+					new_balance = Number(new_balance.toFixed(8));
+				}
+
+				this.main.processDepositedSaito(new_balance);
 			} else {
+				// We are already sitting on some ERC20 wrapped SAITO
+				this.balance = Number(this.ercMod.returnBalance());
 				this.main.render();
 			}
 		}
 	}
 
-	checkForLocalDeposit() {
-		this.overlay.show(`
-						        <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit-container">
-						            <div class="saito-overlay-form-header">
-						                <div class="saito-overlay-form-header-title">Depositing...</div>
-						                <div class="saito-overlay-form-header-content">1 of 2</div>
-						            </div>
-						            <div class="saito-overlay-form-content">
-						            	<div>This may take a few minutes to confirm, please be patient</div>
-						            	<div class="game-loader-spinner"></div>
-						            </div>
-						            <div class="saito-progress-meter"><div class="file-transfer-progress" style="width:0%;"></div></div>
-						        </div>`);
+	receiveCryptoPaymentTransaction(tx, blk) {
+		let txmsg = tx.returnMessage();
 
-		this.overlay.blockClose();
-		let confs = this.ercMod.confirmations;
-		let ct = 0;
-		let interval = setInterval(() => {
-			this.ercMod.checkBalance();
-			this.ercMod.fetchPendingDeposits((res) => {
-				if (res.length > 0) {
-					let pending = res.pop();
-					ct = pending.confirmations;
-					let amount = Number(pending.amount);
-					if (amount > 0) {
-						console.log(`${amount} deposit pending (${ct}/${confs})`);
-					}
-				}
-				if (this.local_dev) {
-					ct += 4;
-				}
+		const tx_sender = tx?.from[0]?.publicKey;
+		const { amount, from } = txmsg;
 
-				if (document.querySelector('.saito-progress-meter')) {
-					document.querySelector('.saito-progress-meter .file-transfer-progress').style.width =
-						`${(100 * ct) / confs}%`;
-				}
-			});
-
-			if (ct % 2 == 0 && ct > 0) {
-				let html = `<div>${this.messages[Math.floor(this.messages.length * Math.random())]}</div>`;
-				html += `<img class="img-prev" src="${this.gifs[Math.floor(this.gifs.length * Math.random())]}"/>`;
-				document.querySelector('.saito-overlay-form-content').innerHTML = html;
-			}
-
-			let new_balance = Number(this.ercMod.returnBalance());
-
-			if (this.local_dev && ct > 8) {
-				new_balance = 100000 * Math.random();
-				new_balance = Number(new_balance.toFixed(8));
-			}
-
-			if (new_balance > this.balance) {
-				clearInterval(interval);
-				this.sendMigrationPingTransaction(
-					{
-						mixin_address: this.ercMod.formatAddress(),
-						double_check: true
-					},
-					true
-				);
-			}
-		}, 4250);
-	}
-
-	processDepositedSaito(new_balance) {
-		let html = `
-	        <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit-container">
-	            <div class="saito-overlay-form-header">
-	                <div class="saito-overlay-form-header-title">Deposited</div>
-	            </div>
-	            <div class="saito-overlay-form-content">`;
-
-		if (this.balance) {
-			html += `<div>${this.balance} ERC20 SAITO pending conversion into </div>`;
-		} else {
-			html += `<div>Deposited ${new_balance} ERC20 SAITO into </div>`;
-		}
-		html += `<div class=""> ${this.publicKey.slice(0, 8)}...${this.publicKey.slice(-8)} </div>`;
-
-		if (new_balance > this.max_deposit) {
-			html += `<div>Click to convert the maximum of ${this.max_deposit} into on chain SAITO. The remaining ${new_balance - this.max_deposit} SAITO will be safe on your wallet (please back it up!!!), 
-					let omskian@saito [Richard] know that the migration bot is out of money. 
-					When it is refilled, you'll be able to convert the rest just be revisiting this page.</div>`;
-		} else {
-			html += `<div>Click next to convert to on chain SAITO</div>`;
+		//
+		// This should be confirmation that the Migration Bot's disbursement is onChain
+		//
+		if (tx.isFrom(this.publicKey)) {
+			console.log('***** Migration Disbursement confirmed...');
+			this.savePaymentFromBot(tx);
+			this.notifyTeam(txmsg, tx_sender, 2, `TX Signature: ${tx.signature}<br>Block ID: ${blk?.id}`);
+			return;
 		}
 
-		html += `</div>
+		//
+		if (tx.isTo(this.publicKey)) {
+			console.log('**** Migration processing crypto transfer...');
 
-	        <div class="saito-button-row">
-	           <button type="button" class="saito-button-primary" id='submit'>Convert</button> 
-	        </div>
+			//  module: 'ERC-SAITO',
+			//  request: 'crypto payment',
+			//  amount: '36293.58109136',
+			//  from: '0x9e97e4c1201E961F6586fC5293b801e9e0d07859|e15bbf5b-f385-348f-b1a8-31ba2b0aae12|mixin',
+			//  to: '0x1f7Fb1952bAd0be96d61971a95d1Ca1cA8b21A17|60b3be17-a4f7-363a-a2c7-06dc1f25bee9|mixin',
+			//  hash: 'ce23e0df0c53a9605834101d71d89fcf84cf3f52757850856ca9074ba9a63017'
 
-			`;
-
-		this.overlay.show(html);
-		const mod_self = this;
-
-		const sendCallback = (robj) => {
-			if (robj?.err) {
-				salert('Migration Error: <br> ' + robj.err);
+			if (txmsg.module !== this.wrapped_saito_ticker) {
+				this.notifyTeam(txmsg, 0, tx_sender, 'Processing a crypto transfer tx for non-Saito!!');
+				console.error('Processing a crypto transfer tx for non-Saito!!');
 				return;
 			}
 
-			try {
-				mod_self.overlay.remove();
-				document.querySelector('.withdraw-title').innerHTML = 'Converting saito';
-				this.app.browser.addElementToSelectorOrDom(
-					'<div class="saito-overlay-form-header-content">2 of 2</div>',
-					'.saito-overlay-form-header'
-				);
-				document.querySelector('.withdraw-intro').innerHTML =
-					'Check your wallet in the side bar ->';
-				document.querySelector('.withdraw-form-fields').remove();
+			this.savePaymentToBot(tx);
 
-				/*this.app.browser.addElementToSelectorOrDom(
-					`<div class="game-loader-spinner"></div>`,
-					'.saito-overlay-form.withdraw-container'
-				);*/
-			} catch (err) {
-				console.warn('UI errors...', err);
+			let saitozen_key = this.key_cache[from];
+
+			if (!saitozen_key || !tx.isFrom(saitozen_key)) {
+				this.notifyTeam(
+					txmsg,
+					tx_sender,
+					0,
+					`Received a ${txmsg.module.toUpper()} transaction from an unknown sender!!`
+				);
+				console.error('Process a crypto transfer from an unknown sender!!!');
+				return;
 			}
-		};
 
-		if (document.getElementById('submit')) {
-			document.getElementById('submit').onclick = (e) => {
-				if (document.querySelector('.saito-overlay-form-header-title')) {
-					document.querySelector('.saito-overlay-form-header-title').innerHTML = 'Converting...';
-				}
-
-				e.currentTarget.remove();
-				let sender = this.ercMod.formatAddress();
-
-				let amount = Math.min(new_balance, this.max_deposit).toFixed(8);
-
-				let unique_hash = this.app.crypto.hash(
-					Buffer.from(sender + this.migration_mixin_address + amount + 'ERC-SAITO', 'utf-8')
-				);
-
-				if (this.local_dev) {
-					//Fake payment
-					this.ercMod.sendPaymentTransaction(
-						this.migration_publickey,
-						this.ercMod.formatAddress(),
-						this.migration_mixin_address,
-						amount,
-						unique_hash
-					);
-					sendCallback({});
-					return;
-				}
-
-				this.app.wallet.sendPayment(
-					this.wrapped_saito_ticker,
-					[this.ercMod.formatAddress()],
-					[this.migration_mixin_address],
-					[amount],
-					unique_hash,
-					sendCallback,
-					this.migration_publickey
-				);
+			const disburseSaito = () => {
+				let sm = this.app.wallet.returnCryptoModuleByTicker('SAITO');
+				sm.sendPayment(amount, saitozen_key, txmsg.hash + 1)
+					.then(() => {
+						this.notifyTeam(txmsg, saitozen_key, 1);
+					})
+					.catch((err) => {
+						this.notifyTeam(txmsg, saitozen_key, 0, err);
+						console.error(err);
+						this.sendFailureNotification(saitozen_key);
+					});
 			};
+
+			if (this.local_dev) {
+				console.info('Disbursing Saito without verification because local testing...');
+				disburseSaito();
+			} else {
+				this.ercMod.checkHistory((history) => {
+					for (let h of history) {
+						if (h.counter_party?.address) {
+							if (txmsg.from.includes(h.counter_party?.address)) {
+								if (Number(amount) == h.amount) {
+									console.info("Payment 'Verified' in Mixin history");
+									disburseSaito();
+									return;
+								}
+							}
+						}
+					}
+				});
+			}
 		}
 	}
 
-	async notifyTeam(txmsg, result, msg) {
+	savePaymentToBot(tx) {}
+
+	async load() {
+		let sql = `SELECT * FROM auto_migration WHERE issued_at = 0`;
+		let params = {};
+
+		let sqlResults = await this.app.storage.queryDatabase(sql, params, 'migration');
+
+		console.log('MIGRATION: DB Check -- ', sqlResults);
+
+		if (sqlResults.length > 0) {
+			for (let s of sqlResults) {
+				this.pending_payments.push({
+					publicKey: s.publickey,
+					nolan: s.nolan_received
+				});
+			}
+		}
+	}
+
+	/**
+	 * Format and send email for record keeping
+	 */
+	async notifyTeam(txmsg, pk, result, msg) {
 		const { amount, from } = txmsg;
 
-		let emailtext = `
-			      <div>
-			     	<p>Saito Automated Migration Transfer Service</p>
-			     	<hr>
-			     	<p>Tokens received by Migration Bot:</p>
-			     	<p>TICKER: ${txmsg.module}</p>
-			        <p>AMOUNT: ${this.app.browser.formatDecimals(txmsg.amount, true)}</p>
-			     	<p></p>
-			     	`;
+		let emailtext;
 
-		if (result) {
-			emailtext += `<p>Sending SAITO to ${msg}</p></div>`;
-		} else {
-			emailtext += `<p>FROM: ${from}</p>`;
-			emailtext += `<p>Error: ${msg}</p></div>`;
-		}
-
-		let low_balance = false;
-
+		// 2 -> Whole process confirmed onChain, tokens migrated!
 		if (result == 2) {
 			let x = await this.app.wallet.getBalance();
 			let y = this.app.wallet.convertNolanToSaito(x);
@@ -606,34 +575,54 @@ class Migration extends ModTemplate {
 				     	<hr>
 				        <p>Migration Bot issued ${this.app.browser.formatDecimals(txmsg.amount, true)} ${txmsg.module} to ${txmsg.to}</p>
 				     	<p></p>
-				     	<p>TX SIGNATURE: ${msg}</p>
+				     	<p>${msg}</p>
 				        <p>Remaining BALANCE: ${this.app.browser.formatDecimals(y)}</p>
 				     </div>
 			     	`;
 
-			if (Number(y) < 10000) {
-				low_balance = y;
+			if (Number(y) < 500000) {
+				this.sendLowBalanceEmail(Number(y));
+			}
+		} else {
+			emailtext = `
+			      <div>
+			     	<p>Saito Automated Migration Transfer Service</p>
+			     	<hr>
+			     	<p>Tokens received by Migration Bot:</p>
+			     	<p>TICKER: ${txmsg.module} </p>
+			        <p>AMOUNT: ${this.app.browser.formatDecimals(txmsg.amount, true)} </p>
+			        <p>FROM: ${from}</p>
+			        <p>PUBLICKEY: ${pk}</p>
+			     	<p></p>
+			     	`;
+
+			// 1 -> sent tokens to Saitozen, but not confirmed
+			if (result) {
+				emailtext += `<p>Disbursing SAITO!</p></div>`;
+			} else {
+				// Something went wrong!!!
+				emailtext += `<p>Error: ${msg}</p></div>`;
 			}
 		}
 
 		this.app.connection.emit('mailrelay-send-email', {
 			to: 'migration@saito.tech',
 			from: 'Saito Token Migration <info@saito.tech>',
-			subject: `Saito Token Automated Migration Alert (${result ? 'Success!' : 'Error'})`,
+			subject: `Saito Token Automated Migration Alert (${result ? 'Success!' : 'Error!'})`,
 			html: emailtext,
 			ishtml: true,
 			bcc: 'migration@saito.io'
 		});
+	}
 
-		if (low_balance) {
-			this.app.connection.emit('mailrelay-send-email', {
-				to: 'migration@saito.tech',
-				from: 'Saito Token Migration <info@saito.tech>',
-				subject: `Low Balance Warning: ${this.app.browser.formatDecimals(low_balance)}`,
-				text: `Please deposit more SAITO ASAP`,
-				bcc: 'migration@saito.io'
-			});
-		}
+	sendLowBalanceEmail(balance) {
+		this.app.connection.emit('mailrelay-send-email', {
+			to: 'migration@saito.tech',
+			from: 'Saito Token Migration <info@saito.tech>',
+			subject: `Low Balance Warning: ${this.app.browser.formatDecimals(balance)}`,
+			text: `Please deposit more SAITO ASAP`,
+			bcc: 'migration@saito.io'
+		});
 	}
 }
 

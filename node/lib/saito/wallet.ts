@@ -148,6 +148,7 @@ export default class Wallet extends SaitoWallet {
           console.log('Invalid Payment Transaction to save...', txmsg);
           return;
         }
+        console.log('Save SAITO payment transaction in ledger...');
 
         const obj = {
           counter_party: { publicKey: '' },
@@ -183,6 +184,7 @@ export default class Wallet extends SaitoWallet {
           this.history_update_ts = obj.timestamp + 1;
         }
 
+        // Cache history in local forage
         this.save();
       }
 

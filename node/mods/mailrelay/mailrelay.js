@@ -103,7 +103,7 @@ class MailRelay extends ModTemplate {
       return;
     }
 
-    console.log('sending email...', email);
+    console.info('sending email...', email);
 
     //array of attahments in formats as defined here
     // ref: https://github.com/guileen/node-sendmail/blob/master/examples/attachmentFile.js
@@ -173,6 +173,12 @@ class MailRelay extends ModTemplate {
     this.services = [];
     if (process.env.SENDGRID) {
       this.services.push(new PeerService(null, 'mailrelay', 'Mail Relay Service'));
+    }
+
+    if (this.services.length) {
+      console.log('I am a mail relay :)');
+    } else {
+      console.log('I am not a mail relay :(');
     }
     return this.services;
   }

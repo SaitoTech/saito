@@ -1,13 +1,21 @@
 const MigrationMainTemplate = require('./main.template');
 const WarningTemplate = require('./warning.template');
 const SaitoUser = require('./../../../lib/saito/ui/saito-user/saito-user');
+const SaitoOverlay = require('../../../lib/saito/ui/saito-overlay/saito-overlay');
 
 class MigrationMain {
 	constructor(app, mod) {
 		this.app = app;
 		this.mod = mod;
+		this.overlay = new SaitoOverlay(this.app, this, false);
 	}
 
+	/**
+	 * First render -- manual form / disabled automated migration button
+	 * Second render -- enables button
+	 * #automatic.onclick -> launch an overlay form
+	 *
+	 */
 	async render() {
 		if (document.querySelector('.main')) {
 			this.app.browser.replaceElementBySelector(MigrationMainTemplate(this.mod), '.main');
@@ -157,24 +165,33 @@ class MigrationMain {
 		if (document.getElementById('automatic')) {
 			document.getElementById('automatic').onclick = async () => {
 				if (this.mod.balance) {
-					this.mod.processDepositedSaito(this.mod.balance);
+					this.processDepositedSaito(this.mod.balance);
 					return;
 				}
 
-				this.app.connection.emit('saito-backup-render-request', {
-					msg: 'Backup your wallet before initiating automated ERC-20 to mainnet token migration',
-					success_callback: () => {
-						this.app.connection.emit('saito-crypto-deposit-render-request', {
-							title: 'My Deposit Address',
-							ticker: this.mod.wrapped_saito_ticker,
-							warning: `<div>Reminder: send only ERC-20 SAITO</div><div>Max Deposit: ${this.mod.max_deposit}</div><div>Click <em>'Done'</em> to check on deposit.</div>`,
-							migration: true,
-							callback: () => {
-								this.mod.checkForLocalDeposit();
-							}
-						});
+				//				this.app.connection.emit('saito-backup-render-request', {
+				//					msg: 'Backup your wallet before initiating automated ERC-20 to mainnet token migration',
+				//					success_callback: () => {
+				this.app.connection.emit('saito-crypto-deposit-render-request', {
+					title: 'My Deposit Address',
+					ticker: this.mod.wrapped_saito_ticker,
+					warning: `<div>Reminder: send only ERC-20 SAITO</div><div>Max Deposit: ${this.mod.max_deposit}</div><div>Click <em>'Done'</em> to check on deposit.</div>`,
+					migration: true,
+					callback: () => {
+						//
+						// Double check the Migration bot can handle our transfer
+						//
+						this.mod.sendMigrationPingTransaction(
+							{
+								mixin_address: this.mod.ercMod.formatAddress(),
+								double_check: true
+							},
+							true
+						);
 					}
 				});
+				//					}
+				//				});
 
 				/*this.mod.overlay.show(WarningTemplate(this.mod, this.app));
 
@@ -215,6 +232,110 @@ class MigrationMain {
 						this.mod.overlay.close();
 					};
 				}*/
+			};
+		}
+	}
+
+	/***
+	 * Final step of Automated Migration
+	 * */
+	processDepositedSaito(new_balance) {
+		let html = `
+	        <div id="saito-deposit-form" class="saito-overlay-form saito-crypto-deposit-container saito-overlay-size narrow">
+	            <div class="saito-overlay-form-header">
+	                <div class="saito-overlay-form-header-title">Deposited</div>
+	            </div>
+	            <div class="saito-crypto-deposit-content"><div>`;
+
+		if (this.mod.balance) {
+			html += `<div>${this.mod.balance} ERC20 SAITO pending conversion into </div>`;
+		} else {
+			html += `<div>Deposited ${new_balance} ERC20 SAITO into </div>`;
+		}
+		html += `<div class=""> ${this.mod.publicKey.slice(0, 8)}...${this.mod.publicKey.slice(-8)} </div>`;
+
+		if (new_balance > this.mod.max_deposit) {
+			html += `<div>Click to convert the maximum of ${this.mod.max_deposit} into on chain SAITO. The remaining ${new_balance - this.mod.max_deposit} SAITO will be safe on your wallet (please back it up!!!), 
+					let omskian@saito [Richard] know that the migration bot is out of money. 
+					When it is refilled, you'll be able to convert the rest just be revisiting this page.</div>`;
+		} else {
+			html += `<div>Click next to convert to on chain SAITO</div></div>`;
+		}
+
+		html += `</div>
+
+	        <div class="saito-button-row">
+	           <button type="button" class="saito-button-primary" id='submit'>Convert</button> 
+	        </div>
+
+			`;
+
+		this.overlay.show(html);
+
+		const sendCallback = (robj) => {
+			if (robj?.err) {
+				salert('Migration Error: <br> ' + robj.err);
+				return;
+			}
+
+			try {
+				this.overlay.remove();
+				document.querySelector('.withdraw-title').innerHTML = 'Converting saito';
+				this.app.browser.addElementToSelectorOrDom(
+					'<div class="saito-overlay-form-header-content">2 of 2</div>',
+					'.saito-overlay-form-header'
+				);
+				document.querySelector('.withdraw-intro').innerHTML =
+					'Check your wallet in the side bar ->';
+				document.querySelector('.withdraw-form-fields').remove();
+
+				/*this.app.browser.addElementToSelectorOrDom(
+					`<div class="game-loader-spinner"></div>`,
+					'.saito-overlay-form.withdraw-container'
+				);*/
+			} catch (err) {
+				console.warn('UI errors...', err);
+			}
+		};
+
+		if (document.getElementById('submit')) {
+			document.getElementById('submit').onclick = (e) => {
+				e.currentTarget.remove();
+				let sender = this.mod.ercMod.formatAddress();
+
+				let amount = Math.min(new_balance, this.mod.max_deposit).toFixed(8);
+
+				if (document.querySelector('.saito-overlay-form-header-title')) {
+					document.querySelector('.saito-overlay-form-header-title').innerHTML =
+						`Converting ${new_balance > this.mod.max_deposit ? 'only' : ''} ${amount} ERC20 SAITO...`;
+				}
+
+				let unique_hash = this.app.crypto.hash(
+					Buffer.from(sender + this.mod.migration_mixin_address + amount + 'ERC-SAITO', 'utf-8')
+				);
+
+				if (this.mod.local_dev) {
+					//Fake payment
+					this.mod.ercMod.sendPaymentTransaction(
+						this.mod.migration_publickey,
+						this.mod.ercMod.formatAddress(),
+						this.mod.migration_mixin_address,
+						amount,
+						unique_hash
+					);
+					sendCallback({});
+					return;
+				}
+
+				this.app.wallet.sendPayment(
+					this.mod.wrapped_saito_ticker,
+					[this.mod.ercMod.formatAddress()],
+					[this.mod.migration_mixin_address],
+					[amount],
+					unique_hash,
+					sendCallback,
+					this.mod.migration_publickey
+				);
 			};
 		}
 	}

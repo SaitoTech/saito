@@ -130,19 +130,6 @@ class CryptoModule extends ModTemplate {
       if (txmsg.request === 'crypto payment') {
         if (this.app.BROWSER) {
           this.receivePaymentTransaction(tx);
-        } else {
-          console.log(
-            '>>>>>>>>>> crypto payment',
-            conf,
-            tx.signature,
-            blk.id,
-            '\n>>',
-            tx,
-            '\n>>',
-            blk
-          );
-          // tells the migration bot that the user's deposit is complete
-          this.app.connection.emit('saito-crypto-payment-received', tx);
         }
       }
     }
@@ -171,10 +158,21 @@ class CryptoModule extends ModTemplate {
   //
   savePaymentTransaction(tx) {}
 
+  //////////////////////////
+  // BROWSER ONLY!!!
+  //////////////////////////
   receivePaymentTransaction(tx) {
     let txmsg = tx.returnMessage();
 
-    console.info('Crypto: receivePaymentTransaction', txmsg);
+    let role = 'Unknown';
+    if (tx.isTo(this.publicKey)) {
+      role = 'Recipient';
+    }
+    if (tx.isFrom(this.publicKey)) {
+      role = 'Sender';
+    }
+
+    console.info(`Crypto: receivePaymentTransaction as ${role}`, txmsg);
 
     if (!tx.isFrom(this.publicKey)) {
       if (!this.ticker.toLowerCase().includes('saito')) {
@@ -210,6 +208,7 @@ class CryptoModule extends ModTemplate {
     } else {
       //
       // I sent the payment!
+      // If web3 crypto, make sure I save my friend's address
       //
       if (!this.ticker.toLowerCase().includes('saito')) {
         this.app.keychain.addCryptoAddress(tx.to[0].publicKey, this.ticker, txmsg.to);
