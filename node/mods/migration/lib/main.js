@@ -1,5 +1,4 @@
 const MigrationMainTemplate = require('./main.template');
-const WarningTemplate = require('./warning.template');
 const SaitoUser = require('./../../../lib/saito/ui/saito-user/saito-user');
 const SaitoOverlay = require('../../../lib/saito/ui/saito-overlay/saito-overlay');
 
@@ -169,69 +168,29 @@ class MigrationMain {
 					return;
 				}
 
-				//				this.app.connection.emit('saito-backup-render-request', {
-				//					msg: 'Backup your wallet before initiating automated ERC-20 to mainnet token migration',
-				//					success_callback: () => {
-				this.app.connection.emit('saito-crypto-deposit-render-request', {
-					title: 'My Deposit Address',
-					ticker: this.mod.wrapped_saito_ticker,
-					warning: `<div>Reminder: send only ERC-20 SAITO</div><div>Max Deposit: ${this.mod.max_deposit}</div><div>Click <em>'Done'</em> to check on deposit.</div>`,
-					migration: true,
-					callback: () => {
-						//
-						// Double check the Migration bot can handle our transfer
-						//
-						this.mod.sendMigrationPingTransaction(
-							{
-								mixin_address: this.mod.ercMod.formatAddress(),
-								double_check: true
-							},
-							true
-						);
-					}
-				});
-				//					}
-				//				});
-
-				/*this.mod.overlay.show(WarningTemplate(this.mod, this.app));
-
-				let user = new SaitoUser(
-					this.app,
-					this.mod,
-					'.user-id-check',
-					this.mod.publicKey,
-					this.mod.publicKey
-				);
-				user.render();
-				this.mod.overlay.blockClose();
-
-				if (document.getElementById('log-in')) {
-					document.getElementById('log-in').onclick = () => {
-						this.app.connection.emit('recovery-login-overlay-render-request');
-						this.mod.overlay.close();
-					};
-				}
-
-				if (document.getElementById('migration-cancel')) {
-					document.getElementById('migration-cancel').onclick = () => {
-						this.mod.overlay.close();
-					};
-				}
-
-				if (document.getElementById('migration-confirm')) {
-					document.getElementById('migration-confirm').onclick = () => {
+				this.app.connection.emit('saito-backup-render-request', {
+					msg: 'Backup your wallet before initiating automated ERC-20 to mainnet token migration',
+					success_callback: () => {
 						this.app.connection.emit('saito-crypto-deposit-render-request', {
 							title: 'My Deposit Address',
 							ticker: this.mod.wrapped_saito_ticker,
-							warning: `<div>Send only ERC20 SAITO</div><div>Max Deposit: ${this.mod.max_deposit}</div><div>Click <em>'Done'</em> to continue.</div>`,
+							warning: `<div>Reminder: send only ERC-20 SAITO</div><div>Max Deposit: ${this.mod.max_deposit}</div><div>Click <em>'Done'</em> to check on deposit.</div>`,
 							migration: true,
 							callback: () => {
-								this.mod.checkForLocalDeposit();
+								//
+								// Double check the Migration bot can handle our transfer
+								//
+								this.mod.sendMigrationPingTransaction(
+									{
+										mixin_address: this.mod.ercMod.formatAddress(),
+										double_check: true
+									},
+									true
+								);
 							}
 						});
-						this.mod.overlay.close();
-					};
-				}*/
+					}
+				});
 			};
 		}
 	}
@@ -288,11 +247,6 @@ class MigrationMain {
 				document.querySelector('.withdraw-intro').innerHTML =
 					'Check your wallet in the side bar ->';
 				document.querySelector('.withdraw-form-fields').remove();
-
-				/*this.app.browser.addElementToSelectorOrDom(
-					`<div class="game-loader-spinner"></div>`,
-					'.saito-overlay-form.withdraw-container'
-				);*/
 			} catch (err) {
 				console.warn('UI errors...', err);
 			}

@@ -285,7 +285,12 @@ export default class Wallet extends SaitoWallet {
 
         await this.app.network.propagateTransaction(newtx);
 
-        console.log('Expecting new balance of: ', this.pending_balance);
+        console.log(
+          'Current balance: ',
+          await this.checkBalance(),
+          '\nExpecting new balance of: ',
+          this.pending_balance
+        );
 
         return newtx.signature;
       }
