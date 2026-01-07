@@ -900,7 +900,8 @@ console.log(JSON.stringify(obj.access_witness));
 			}
 
 			rows = altered_rows;
-			console.log('ROWS RETURNING: ' + JSON.stringify(rows));
+			//console.log('ROWS RETURNING: ' + JSON.stringify(rows));
+			console.info('ROWS RETURNED: ' + rows.length);
 		}
 
 		return rows;
