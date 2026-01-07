@@ -1655,7 +1655,19 @@ export default class Wallet extends SaitoWallet {
 
   public async onNewBoundTransaction(tx: Transaction, save = true) {
     try {
+
+console.log("%");
+console.log("%");
+console.log("%");
+console.log("%");
+console.log("%");
+console.log("%");
+console.log("%");
+console.log("%");
+console.log("%");
       console.log('saving new nft...');
+
+
       if (tx.isTo(this.app.wallet.publicKey)) {
         console.log('yeah, it is for me!');
         let nft_list = this.app.options.wallet.nfts || [];
@@ -1666,7 +1678,7 @@ export default class Wallet extends SaitoWallet {
           }
         });
         tx.packData();
-        console.log('saving transaction: ' + nft_id);
+        console.log('saving nft transaction: ' + nft_id);
         this.app.storage.saveTransaction(tx, { field4: nft_id, preserve: 1 }, 'localhost');
       }
     } catch (err) {

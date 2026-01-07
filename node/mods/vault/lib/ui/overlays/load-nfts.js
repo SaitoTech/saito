@@ -81,12 +81,21 @@ class LoadNFTs {
       let nft_type = this.app.wallet.extractNFTType(rec.slip3.utxo_key);
 
       if (nft_type == 'vault') {
+
         await nft.fetchTransaction();
 
-        let data = nft.txmsg?.data;
+console.log("fetched the nft...");
+
+        let nfttxmsg = nft.tx.returnMessage();
+console.log("NFT TXMSG: " + JSON.stringify(nfttxmsg));
+        let data = nfttxmsg?.data; 
         let file_id = data?.file_id;
         let filename = data?.filename;
         let file_access_script = data?.file_access_script;
+
+console.log("file_id: " + file_id);
+console.log("filename: " + filename);
+console.log("file_as: " + file_access_script);
 
         //
         // determine which key image to display
@@ -101,6 +110,8 @@ class LoadNFTs {
         let slip1_utxokey = nft.slip1?.utxo_key || '';
         let slip2_utxokey = nft.slip2?.utxo_key || '';
         let slip3_utxokey = nft.slip3?.utxo_key || '';
+
+console.log("EXTRACTED FILE_ID: " + file_id);
 
         //
         // push into vault_nfts array
@@ -119,8 +130,12 @@ class LoadNFTs {
         //
         let index = this.vault_nfts.length - 1;
 
+console.log("file_id: " + file_id);
+try {
         let identicon = this.app.keychain.returnIdenticon(file_id);
-
+} catch (err) {
+  console.log("ERROR: " + err);
+}
         let html = `
           <div class="vault-nft-item" data-vault-index="${index}">
             <img
@@ -172,6 +187,8 @@ class LoadNFTs {
         }
 
         let vault_entry = this.vault_nfts[idx];
+
+console.log("CLICKED: " + JSON.stringify(vault_entry));
 
         //
         // Check if this is a custom/advanced key (has file_access_script)

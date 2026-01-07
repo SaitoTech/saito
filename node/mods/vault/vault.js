@@ -69,7 +69,6 @@ class Vault extends ModTemplate {
     	    return x;
     	  }
 
-
   	  if (type === 'saito-create-nft') {
   	    return {
 	      title : "NFT Access Key" ,
@@ -317,11 +316,11 @@ class Vault extends ModTemplate {
     		  };
 
     		  access_script = JSON.stringify(access_script_obj);
-    		  let access_witness_obj = {
+    		  let access_witness_obj = [{
     		    utxokey1,
     		    utxokey2,
     		    utxokey3
-    		  };
+    		  }];
 
     		  access_witness = JSON.stringify(access_witness_obj);
     		  access_hash = scripting_mod.hash(access_script);
@@ -344,8 +343,10 @@ class Vault extends ModTemplate {
     		};
 
     if (this.peer) {
+
       console.log("VAULT: peer found, sending request as transaction");
       console.log("VAULT: peerIndex:", this.peer.peerIndex);
+      console.log("VAULT: data: " + JSON.stringify(data));
 
       this.app.network.sendRequestAsTransaction(
         "vault access file",
