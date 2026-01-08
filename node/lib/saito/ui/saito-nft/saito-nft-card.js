@@ -94,15 +94,13 @@ class SaitoNFTCard {
     let elm = document.querySelector(`.nfttxsig${this.nft.tx_sig} .nft-card-img`);
     if (elm) {
       if (this.nft.nft_type == 'vault') {
-
-console.log("*");
-console.log("*");
-console.log("*");
-console.log("insert NFT details: " + nft_type);
-console.log("*");
-console.log("*");
-console.log("*");
-
+        console.log('*');
+        console.log('*');
+        console.log('*');
+        console.log('insert NFT details: ' + nft_type);
+        console.log('*');
+        console.log('*');
+        console.log('*');
 
         try {
           elm.innerHTML = `<div class="nft-card-text">${this.nft.json}</div>`;
@@ -113,8 +111,8 @@ console.log("*");
           }
           return;
         } catch (err) {
-console.log("ERROR IS: " + JSON.stringify(err));
-	}
+          console.log('ERROR IS: ' + JSON.stringify(err));
+        }
       }
       if (this.nft.image != '') {
         elm.innerHTML = '';

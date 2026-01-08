@@ -1662,18 +1662,16 @@ export default class Wallet extends SaitoWallet {
 
   public async onNewBoundTransaction(tx: Transaction, save = true) {
     try {
-
-console.log("%");
-console.log("%");
-console.log("%");
-console.log("%");
-console.log("%");
-console.log("%");
-console.log("%");
-console.log("%");
-console.log("%");
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
       console.log('saving new nft...');
-
 
       if (tx.isTo(this.app.wallet.publicKey)) {
         console.log('yeah, it is for me!');

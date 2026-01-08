@@ -76,17 +76,17 @@ export default class Crypto {
       const canonical_string = `${to}|${value}|${binding_hash}`;
       const digest = this.hash(canonical_string);
 
-console.log("verifying hop " + i + " against digest " + digest);
-console.log("expected signer: " + expected_signer);
-console.log("sig: " + sig);
+      console.log('verifying hop ' + i + ' against digest ' + digest);
+      console.log('expected signer: ' + expected_signer);
+      console.log('sig: ' + sig);
 
       const valid = this.verifyMessage(digest, sig, expected_signer);
 
       if (!valid) {
-console.log("this sig is invalid...");
+        console.log('this sig is invalid...');
         return false;
       }
-console.log("this sig is valid...");
+      console.log('this sig is valid...');
 
       // Authority advances to the recipient of this hop
       expected_signer = to;

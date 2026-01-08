@@ -95,7 +95,7 @@ class SaitoNFT {
       return;
     }
 
-console.log("fetching field4: " + this.id);
+    console.log('fetching field4: ' + this.id);
 
     await this.app.storage.loadTransactions(
       { field4: this.id },
