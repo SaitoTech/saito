@@ -434,10 +434,10 @@ class Archive extends ModTemplate {
 			});
 
 			if (numRows) {
-				console.log(
-					'Local Archive index successfully inserted: ',
-					JSON.parse(JSON.stringify(newObj))
-				);
+				console.log('Local Archive index successfully inserted.');
+//					'Local Archive index successfully inserted: ',
+//					JSON.parse(JSON.stringify(newObj))
+//				);
 			} else {
 				console.log('Local Archive index not inserted...');
 			}
@@ -1204,7 +1204,7 @@ class Archive extends ModTemplate {
 
 			sql = 'SELECT COUNT(*) FROM archives';
 			rows = await this.app.storage.queryDatabase(sql, {}, 'archive');
-			console.log(rows);
+			//console.log(rows);
 		}
 
 		this.archive.last_prune = now;

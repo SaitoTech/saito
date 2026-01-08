@@ -1,17 +1,16 @@
 import { Saito } from '../core';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-import mods_config from '../../config/modules.config';
-import build from '../../config/build.json';
 import { initialize as initSaito } from 'saito-js/index.web';
-import S from 'saito-js/saito';
 import WebSharedMethods from 'saito-js/lib/custom/shared_methods.web';
-import Transaction from '../../lib/saito/transaction';
-import Factory from '../../lib/saito/factory';
-import Wallet from '../../lib/saito/wallet';
-import Blockchain from '../../lib/saito/blockchain';
 import PeerServiceList from 'saito-js/lib/peer_service_list';
-import { LogLevel } from 'saito-js/saito';
+import S, { LogLevel } from 'saito-js/saito';
+import build from '../../config/build.json';
+import mods_config from '../../config/modules.config';
+import Blockchain from '../../lib/saito/blockchain';
+import Factory from '../../lib/saito/factory';
+import Transaction from '../../lib/saito/transaction';
+import Wallet from '../../lib/saito/wallet';
 
 
 
@@ -130,15 +129,58 @@ async function init() {
 
     // saito.storage.convertOptionsBigInt(saito.options);
 
-    console.log('saito options : ', saito.options);
-            // LogLevel.Info or LogLevel.Debug,
+    //console.log('saito options : ', saito.options);
+    
+    // Determine log level from options, defaulting to Info
+    let logLevel: LogLevel = LogLevel.Info;
+    if (saito.options.loglevel !== undefined && saito.options.loglevel !== null) {
+        const logLevelValue = saito.options.loglevel;
+        // Handle string values (case-insensitive)
+        if (typeof logLevelValue === 'string') {
+            const normalized = logLevelValue.toLowerCase();
+            switch (normalized) {
+                case 'error':
+                    logLevel = LogLevel.Error;
+                    break;
+                case 'warn':
+                    logLevel = LogLevel.Warn;
+                    break;
+                case 'info':
+                    logLevel = LogLevel.Info;
+                    break;
+                case 'debug':
+                    logLevel = LogLevel.Debug;
+                    break;
+                case 'trace':
+                    logLevel = LogLevel.Trace;
+                    break;
+                default:
+                    console.warn(`Invalid log level "${logLevelValue}", defaulting to Info`);
+                    logLevel = LogLevel.Info;
+            }
+        } 
+        // Handle LogLevel enum values directly
+        else if (typeof logLevelValue === 'number') {
+            const validLevels = [LogLevel.Error, LogLevel.Warn, LogLevel.Info, LogLevel.Debug, LogLevel.Trace];
+            if (validLevels.includes(logLevelValue)) {
+                logLevel = logLevelValue;
+            } else {
+                console.warn(`Invalid log level value ${logLevelValue}, defaulting to Info`);
+                logLevel = LogLevel.Info;
+            }
+        } else {
+            console.warn(`Invalid log level type, defaulting to Info`);
+            logLevel = LogLevel.Info;
+        }
+    }
+    
     try {
         await initSaito(
             saito.options,
             new WebMethods(saito),
             new Factory(),
             saito.options.wallet?.privateKey || '',
-            LogLevel.Debug,
+            logLevel,
             BigInt(1),
             true,
         );
