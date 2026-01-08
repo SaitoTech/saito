@@ -90,7 +90,7 @@ module.exports = (app, mod, postState = {}) => {
                 </div>
               </label>
 
-              <label class="stack-publish-access-card ${isPrivate ? 'stack-publish-access-card-active' : ''}" data-access="private">
+              <label class="stack-publish-access-card stack-publish-access-card-disabled ${isPrivate ? 'stack-publish-access-card-active' : ''}" data-access="private">
                 <input 
                   type="checkbox" 
                   name="stack-publish-access" 
@@ -104,7 +104,7 @@ module.exports = (app, mod, postState = {}) => {
                 </div>
               </label>
 
-              <label class="stack-publish-access-card ${isSubscription ? 'stack-publish-access-card-active' : ''}" data-access="subscription">
+              <label class="stack-publish-access-card stack-publish-access-card-disabled ${isSubscription ? 'stack-publish-access-card-active' : ''}" data-access="subscription">
                 <input 
                   type="checkbox" 
                   name="stack-publish-access" 
