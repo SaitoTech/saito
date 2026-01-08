@@ -173,9 +173,11 @@ class Vault extends ModTemplate {
 			      mycallback({ status : "err" , err : JSON.stringify(err) });
 			    }
 
+			    // prevent sending fake response
+			    return 1;
 			  }
 
-    		if (txmsg.request === 'vault add file') {
+ 	     		if (txmsg.request === 'vault add file') {
 
 			try {
 
@@ -199,6 +201,8 @@ class Vault extends ModTemplate {
 				console.error("Vault add file error:", err);
 				mycallback({ status : "err" , err : JSON.stringify(err) });
 			}
+
+			return 1;
 
 		}
 	}
@@ -344,10 +348,6 @@ class Vault extends ModTemplate {
 
     if (this.peer) {
 
-      console.log("VAULT: peer found, sending request as transaction");
-      console.log("VAULT: peerIndex:", this.peer.peerIndex);
-      console.log("VAULT: data: " + JSON.stringify(data));
-
       this.app.network.sendRequestAsTransaction(
         "vault access file",
         data,
@@ -381,27 +381,26 @@ class Vault extends ModTemplate {
   		  txs = res.txs;
   		}
 
-          if (txs.length > 0) {
-            for (let i = 0; i < txs.length; i++) {
-              let tx = new Transaction();
-              tx.deserialize_from_web(this.app, txs[i]);
-              txmsg = tx.returnMessage();
+ 	        if (txs.length > 0) {
+            	  for (let i = 0; i < txs.length; i++) {
+              	    let tx = new Transaction();
+                    tx.deserialize_from_web(this.app, txs[i]);
+                    txmsg = tx.returnMessage();
 
-              try {
-                let filename = txmsg.data.name;
+                    try {
+                      let filename = txmsg.data.name;
+                      if (!filename) {
+                        filename = prompt("Enter filename to save:") || "vault.bin";
+                      }
 
-                if (!filename) {
-                  filename = prompt("Enter filename to save:") || "vault.bin";
-                }
+                      const parts = txmsg.data.file.split(',');
+                      const header = parts[0];
+                      const base64Data = parts[1];
+                      const mime = header.match(/data:(.*);base64/)[1];
 
-                const parts = txmsg.data.file.split(',');
-                const header = parts[0];
-                const base64Data = parts[1];
-                const mime = header.match(/data:(.*);base64/)[1];
-
-		if (mycallback) {
+		      if (mycallback) {
 			mycallback(base64Data);
-		} else {
+		      } else {
 
                 	const binary = atob(base64Data);
                 	const len = binary.length;
@@ -420,12 +419,12 @@ class Vault extends ModTemplate {
                 	a.click();
                 	URL.revokeObjectURL(url);
 
-		}
-              } catch (err) {
-                console.log("VAULT: ERROR while handling downloaded file: " + JSON.stringify(err));
-              }
-            }
-          }
+		      }
+                    } catch (err) {
+                      console.log("VAULT: ERROR while handling downloaded file: " + JSON.stringify(err));
+                    }
+                  }
+                }
         },
         this.peer.peerIndex,
         true

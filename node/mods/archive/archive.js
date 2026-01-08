@@ -193,11 +193,6 @@ class Archive extends ModTemplate {
 
 		var isDbCreated = await this.localDB.initDb(db);
 
-		/*if (isDbCreated) {
-			console.log('ARCHIVE: Db Created & connection is opened');
-		} else {
-			console.log('ARCHIVE: Connection is opened');
-		}*/
 	}
 
 	async render() {
@@ -367,7 +362,6 @@ class Archive extends ModTemplate {
 				//Duplicates loadTransactionsWithCallback, but that's fine
 				//
 				let txs = await this.loadTransactions(req.data);
-
 				if (mycallback) {
 					mycallback(txs);
 					return 1;
@@ -815,17 +809,6 @@ class Archive extends ModTemplate {
     						}
 					}
 
-					//
-					// 
-					//
-  					//if (access_hash !== r.owner) {
-    					//	continue;
-  					//}
-
-
-					//
-					//
-					//
 					if (!access_script && !obj.access_witness) {
 						//
 						// no script but witness provided...

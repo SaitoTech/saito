@@ -204,27 +204,32 @@ class Storage {
    * Note: You might need to await this function for the internal callbacks to work...
    */
   async loadTransactions(obj = {}, mycallback, peer = null, deserialize = 1) {
-    let storage_self = this;
 
+console.log("INTO LOAD TRANSACTIONS...");
+console.log("INTO LOAD TRANSACTIONS...");
+console.log("INTO LOAD TRANSACTIONS...");
+console.log("INTO LOAD TRANSACTIONS...");
+console.log("INTO LOAD TRANSACTIONS...");
+
+    let storage_self = this;
     const message = 'archive';
     let data: any = {};
     data.request = 'load';
-
     data = Object.assign(data, obj);
-
     const startTime = Date.now();
 
-    //
-    // We could have the archive module handle this
-    // idk why we have it return an array of objects that are just {"tx": serialized/stringified transaction}
-    //
     let internal_callback = (res) => {
+console.log("into internal callback: " + res.length);
       let txs = [];
       const endTime = Date.now();
       if (res) {
+console.log("res length is: " + res.length);
         for (let i = 0; i < res.length; i++) {
+console.log("checking for: " + i);
           if (res[i]?.tx) {
+console.log("tx exists here...");
             if (deserialize) {
+console.log("deserializing and pushing back...");
               let tx = new Transaction();
               tx.deserialize_from_web(storage_self.app, res[i].tx);
               if (!tx.optional.updated_at) {
@@ -233,6 +238,8 @@ class Storage {
               }
               txs.push(tx);
             } else {
+console.log("pushing it back!");
+console.log("this ==> " + res[i].tx);
               txs.push(res[i].tx);
             }
           }
@@ -241,13 +248,18 @@ class Storage {
       if (peer?.publicKey) {
         console.debug(`>>> Transction fetch elapsed time: ${endTime - startTime}ms`);
       }
+console.log("pushing txs back into my own submitted callback....");
+console.log("txs len: " + txs.length);
+console.log("this => "+JSON.stringify(txs));
       return mycallback(txs);
     };
 
     if (peer === 'localhost') {
       let archive_mod = this.app.modules.returnModule('Archive');
       if (archive_mod) {
+console.log("loading txs with callbac in local archive mod...");
         return archive_mod.loadTransactionsWithCallback(obj, (res) => {
+console.log("res back in storage: " + res.length);
           return internal_callback(res);
         });
       }

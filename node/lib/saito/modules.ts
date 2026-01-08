@@ -153,6 +153,7 @@ class Mods {
     }
     if (have_responded == false) {
       if (mycallback) {
+console.log("TESTING SUBMIT A BAD EMPTY RESULT...");
         //
         // callback is defined in apps/lite/index.ts
         // it runs sendApiSuccess() with the response object
