@@ -340,6 +340,14 @@ class PublishSettingsOverlay {
 
 
   async handlePublish() {
+
+    let wallet_balance = await this.app.wallet.getBalance('SAITO');
+    if (Number(wallet_balance) == 0) {
+      siteMessage('A Saito balance is needed to Publish Posts...', 3000);
+      return;
+    }
+
+
     const title = document.querySelector('#stack-post-title-input') ? (document.querySelector('#stack-post-title-input').value || '') : '';
     // Use DOM-based serialization (DOM is single source of truth)
     const content = this.mod.create_post_ui ? this.mod.create_post_ui.serializeDOMToMarkdown() : '';
