@@ -28,15 +28,19 @@ module.exports = (app, mod, build_number, og_card = {}, recent_posts = []) => {
   <meta name="twitter:card" content="${og_card.image}" />
   <meta name="twitter:site" content="${og_card.twitter}" />
   <meta name="twitter:creator" content="${og_card.twitter}" />
-  <meta name="twitter:title" content="${og_card.title}" />
+  <!--meta name="twitter:title" content="${og_card.title}" /-->
+  <meta name="twitter:title" content="Stack - Permissioned Blogging" />
   <meta name="twitter:url" content="${og_card.url}" />
-  <meta name="twitter:description" content="${og_card.description}" />
+  <!--meta name="twitter:description" content="${og_card.description}" /-->
+  <meta name="twitter:description" content="Open-source subscription-based blogging platform" />
   <meta name="twitter:image" content="${og_card.image}" />
 
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="${og_card.title}" />
+  <!--meta property="og:title" content="${og_card.title}" /-->
+  <meta property="og:title" content="Stack - Permissioned Blogging" />
   <meta property="og:url" content="${og_card.url}" />
-  <meta property="og:description" content="${og_card.description}"/>
+  <!--meta property="og:description" content="${og_card.description}"/-->
+  <meta property="og:description" content="Open-source subscription-based blogging platform"/>
   <meta property="og:site_name" content="Saito" />
   <meta property="og:image" content="${og_card.image}"/>
   <meta property="og:image:url" content="${og_card.image}"/>
