@@ -4094,6 +4094,154 @@ class CreatePost {
           this.handlePublishTriggerClick();
         });
       }
+
+      // Help section - toggle cheat sheet visibility
+      const helpQuestionIcon = document.querySelector('.stack-editor-help-icon-container .fa-question');
+      if (helpQuestionIcon) {
+        helpQuestionIcon.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const helpTextContainer = document.querySelector('.stack-editor-help-text-container');
+          if (helpTextContainer) {
+            const currentMaxHeight = helpTextContainer.style.maxHeight;
+            // Toggle between '0' (collapsed) and '1000px' (expanded)
+            // Using max-height instead of height for smooth CSS transitions
+            if (currentMaxHeight === '1000px') {
+              // If expanded, collapse it
+              helpTextContainer.style.maxHeight = '0';
+            } else {
+              // If collapsed (0 or empty), expand it
+              helpTextContainer.style.maxHeight = '1000px';
+            }
+          }
+        });
+      }
+
+      // Markdown cheat sheet - make items clickable to insert markdown
+      const cheatSheetItems = document.querySelectorAll('.stack-cheatsheet-item');
+      cheatSheetItems.forEach((item) => {
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Get the markdown text from the <code> element
+          const codeElement = item.querySelector('code');
+          if (!codeElement) return;
+          
+          let markdownText = codeElement.textContent.trim();
+          
+          // Check if cursor is in the editor or its children
+          const editor = document.querySelector('#stack-post-body-editor');
+          if (!editor) return;
+          
+          const selection = window.getSelection();
+          if (!selection.rangeCount) return;
+          
+          // Check if the selection is within the editor
+          const range = selection.getRangeAt(0);
+          const isInEditor = editor.contains(range.commonAncestorContainer);
+          if (!isInEditor) return;
+          
+          // Determine if this is a start-of-line element
+          const headerElements = ['# Title', '## Subtitle', '### Heading', '#### Subheading'];
+          const isHeader = headerElements.includes(markdownText);
+          // Check for start-of-line elements: horizontal rule, bullet, code block
+          const isStartOfLine = markdownText.startsWith('––-') || 
+                                markdownText.startsWith('* bullet') ||
+                                markdownText.startsWith('```');
+          
+          // Get the focused block
+          const focusedBlock = this.getFocusedBlock();
+          if (!focusedBlock) return;
+          
+          const blockType = focusedBlock.getAttribute('data-block-type');
+          const blockText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+          const cursorOffset = this.getTextOffsetInBlock(focusedBlock, selection);
+          
+          // For headers and start-of-line elements, place at start of line
+          if (isHeader || isStartOfLine) {
+            // If cursor is not at the start of the block, create a new block
+            if (cursorOffset > 0) {
+              // Split the block at cursor position
+              const beforeText = blockText.substring(0, cursorOffset);
+              const afterText = blockText.substring(cursorOffset);
+              
+              // Update current block with text before cursor
+              focusedBlock.textContent = beforeText;
+              
+              // Create new block with the markdown text at the start
+              const editor = focusedBlock.parentNode;
+              const newBlockElement = document.createElement('p');
+              const newBlockId = generateBlockId(this.getBlockCount());
+              newBlockElement.setAttribute('data-block-id', newBlockId);
+              newBlockElement.setAttribute('data-block-type', 'paragraph');
+              newBlockElement.contentEditable = 'true';
+              
+              // For headers, place hashes at start; for others, add markdown then any remaining text
+              if (afterText.trim().length > 0) {
+                newBlockElement.textContent = markdownText + ' ' + afterText;
+              } else {
+                newBlockElement.textContent = markdownText;
+              }
+              
+              // Insert after current block
+              focusedBlock.parentNode.insertBefore(newBlockElement, focusedBlock.nextSibling);
+              
+              // Place cursor after the inserted markdown text
+              const textNode = newBlockElement.firstChild;
+              if (textNode) {
+                const newRange = document.createRange();
+                const cursorPos = markdownText.length + (afterText.trim().length > 0 ? 1 : 0);
+                newRange.setStart(textNode, cursorPos);
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+              }
+              
+              // Focus the new block
+              newBlockElement.focus();
+            } else {
+              // Cursor is at start, replace or prepend the markdown text
+              if (blockText.trim().length > 0) {
+                focusedBlock.textContent = markdownText + ' ' + blockText;
+              } else {
+                focusedBlock.textContent = markdownText;
+              }
+              
+              // Place cursor after the inserted markdown text
+              const textNode = focusedBlock.firstChild;
+              if (textNode) {
+                const newRange = document.createRange();
+                const cursorPos = markdownText.length + (blockText.trim().length > 0 ? 1 : 0);
+                newRange.setStart(textNode, cursorPos);
+                newRange.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+              }
+            }
+          } else {
+            // For inline elements (_italic_, **bold**), insert at cursor position
+            const beforeText = blockText.substring(0, cursorOffset);
+            const afterText = blockText.substring(cursorOffset);
+            focusedBlock.textContent = beforeText + markdownText + afterText;
+            
+            // Place cursor after the inserted markdown text
+            const textNode = focusedBlock.firstChild;
+            if (textNode) {
+              const newRange = document.createRange();
+              newRange.setStart(textNode, beforeText.length + markdownText.length);
+              newRange.collapse(true);
+              selection.removeAllRanges();
+              selection.addRange(newRange);
+            }
+          }
+          
+          // Schedule serialization and update placeholder
+          this.scheduleSerialization();
+          this.updatePlaceholderVisibility();
+        });
+      });
       
       // Title input - update next step button on change
       const titleInput = document.querySelector('#stack-post-title-input');
