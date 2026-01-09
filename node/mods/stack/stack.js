@@ -66,7 +66,7 @@ class Stack extends ModTemplate {
     // "Saito Official" is a hardcoded system identity that must never be inferred
     // All references to "Saito Official" must use this constant
     // TODO: Replace with actual Saito Official public key when available
-    this.STACK_OFFICIAL_PUBLICKEY = 'saito-official-placeholder-publickey-12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890';
+    this.STACK_OFFICIAL_PUBLICKEY = '238JR7SpoBRbo4nqbt1Ljpa168g1iwqGFSMvdjF7uXPfk';
 
     this.overlay = new SaitoOverlay(app, this);
     this.exploreOverlay = new ExploreOverlay(app, this);
@@ -759,7 +759,7 @@ console.log("PUBLISH INTENT:", publishIntent);
 
       await newtx.sign();
 
-alert("Propagating the Transaction!");
+      siteMessage("Propagating the Transaction!");
       await this.app.network.propagateTransaction(newtx);
       if (callback) {
         this.callbackAfterPost = callback;
@@ -1079,7 +1079,7 @@ alert("Propagating the Transaction!");
         
         // Browser-only confirmation alert for testing
         if (this.browser_active) {
-          alert("Your blog post has been received from the network.");
+          siteMessage("Your blog post has been received from the network.");
         }
       } else {
         siteMessage(`New stack post by ${this.app.keychain.returnUsername(from)}`, 3000);

@@ -173,7 +173,7 @@ class PublishSettingsOverlay {
           })
           .catch(error => {
             console.error('Error deleting draft transaction:', error);
-            alert('Failed to delete draft. Please try again.');
+            siteMessage('Failed to delete draft. Please try again.');
           });
       } else {
         // If no draftTransaction, just clear editor and navigate back
@@ -361,7 +361,7 @@ class PublishSettingsOverlay {
     const contentEmpty = !content.trim();
     
     if (titleEmpty && contentEmpty) {
-      alert('Please add a title or some content before publishing.');
+      siteMessage('Please add a title or some content before publishing.');
       return;
     }
 
@@ -630,7 +630,7 @@ class PublishSettingsOverlay {
       } else {
         siteMessage('Unable to publish post', 3000);
       }
-      alert('Failed to publish post. Please try again.');
+      siteMessage('Failed to publish post. Please try again.');
     }
   }
 
