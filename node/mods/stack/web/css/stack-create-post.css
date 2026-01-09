@@ -238,6 +238,10 @@ html:has(.stack-create-post-page) {
   transition: max-height ease-in-out 0.5s;
 }
 
+.stack-cheatsheet-title {
+ text-align: center;
+}
+
 .stack-create-post-page .stack-editor-help {
   display: block;
   padding: 1rem;
