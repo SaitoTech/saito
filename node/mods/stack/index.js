@@ -33,7 +33,8 @@ module.exports = (app, mod, build_number, og_card = {}, recent_posts = []) => {
   <meta name="twitter:url" content="${og_card.url}" />
   <!--meta name="twitter:description" content="${og_card.description}" /-->
   <meta name="twitter:description" content="Open-source subscription-based blogging platform" />
-  <meta name="twitter:image" content="${og_card.image}" />
+  <!--meta name="twitter:image" content="${og_card.image}" /-->
+  <meta name="twitter:image" content="https://saito.tech/wp-content/uploads/2022/04/saito_card.png" />
 
   <meta property="og:type" content="website" />
   <!--meta property="og:title" content="${og_card.title}" /-->
@@ -44,7 +45,8 @@ module.exports = (app, mod, build_number, og_card = {}, recent_posts = []) => {
   <meta property="og:site_name" content="Saito" />
   <meta property="og:image" content="${og_card.image}"/>
   <meta property="og:image:url" content="${og_card.image}"/>
-  <meta property="og:image:secure_url" content="${og_card.image}"/>
+  <!--meta property="og:image:secure_url" content="${og_card.image}"/-->
+  <meta property="og:image:secure_url" content="https://saito.tech/wp-content/uploads/2022/04/saito_card.png"/>
 
   <link rel="icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
   <link rel="apple-touch-icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
