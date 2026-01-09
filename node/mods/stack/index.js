@@ -25,18 +25,18 @@ module.exports = (app, mod, build_number, og_card = {}, recent_posts = []) => {
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="msapplication-starturl" content="/index.html" />
 
-  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="${og_card.image}" />
   <meta name="twitter:site" content="${og_card.twitter}" />
   <meta name="twitter:creator" content="${og_card.twitter}" />
-  <meta name="twitter:title" content="${app.browser.escapeHTML(og_card.title)}" />
+  <meta name="twitter:title" content="${og_card.title}" />
   <meta name="twitter:url" content="${og_card.url}" />
-  <meta name="twitter:description" content="${app.browser.escapeHTML(og_card.description)}" />
+  <meta name="twitter:description" content="${og_card.description}" />
   <meta name="twitter:image" content="${og_card.image}" />
 
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="${app.browser.escapeHTML(og_card.title)}" />
+  <meta property="og:title" content="${og_card.title}" />
   <meta property="og:url" content="${og_card.url}" />
-  <meta property="og:description" content="${app.browser.escapeHTML(og_card.description)}"/>
+  <meta property="og:description" content="${og_card.description}"/>
   <meta property="og:site_name" content="Saito" />
   <meta property="og:image" content="${og_card.image}"/>
   <meta property="og:image:url" content="${og_card.image}"/>
@@ -56,6 +56,8 @@ module.exports = (app, mod, build_number, og_card = {}, recent_posts = []) => {
   <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
 
   <title>Saito Stack</title>
+  <meta name="description" content="Stack - Permissioned Blogging">
+
 
     <style type="text/css">
     /* css for fade-out bg effect while content is loading */

@@ -41,6 +41,7 @@ class Stack extends ModTemplate {
       description: 'Open-source subscription-based blogging platform',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card.png'
     };
+    
 
     // Cache for posts and subscriptions
     this.postsCache = {
