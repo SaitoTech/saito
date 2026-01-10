@@ -32,7 +32,8 @@ class Stack extends ModTemplate {
     this.icon_fa = 'fa-solid fa-newspaper';
 
     this.pending_author_load = null;
-    this.pending_post_load = null;
+    this.pending_post_sig = null;
+    this.pending_post_pk = null;
 
     this.social = {
       twitter: '@SaitoOfficial',
@@ -112,8 +113,6 @@ class Stack extends ModTemplate {
   ////////////////////////////
   async render(app) {
 
-console.log("RENDER: " + this.browser_active);
-
     if (!this.browser_active) {
       return;
     }
@@ -134,7 +133,7 @@ console.log("RENDER: " + this.browser_active);
     // ========================================================================
     const pathname = window.location.pathname;
     const slug = '/' + this.slug;
-    
+
     // Check if pathname starts with /stack
     if (pathname.startsWith(slug)) {
       // Extract path segments after /stack
@@ -214,8 +213,9 @@ console.log("RENDER: " + this.browser_active);
    * Handle blog post view: /stack/<publicKey>/<transactionSignature>
    * Shows ViewPost for the specific transaction
    */
-  async handlePostView(publicKey, transactionSignature) {
-    if (!publicKey || !transactionSignature) {
+  async handlePostView(publicKey = "", transactionSignature) {
+
+    if (!transactionSignature) {
       this.handleInvalidURL();
       return;
     }
@@ -240,7 +240,7 @@ console.log("RENDER: " + this.browser_active);
     // Load the transaction by signature
     try {
       const tx = await this.loadPost(transactionSignature, {}, null);
-      
+
       if (!tx) {
         // Transaction not found - show error
         if (container) {
@@ -255,13 +255,6 @@ console.log("RENDER: " + this.browser_active);
           `;
         }
         return;
-      }
-
-      // Verify the transaction is from the expected publicKey (for security)
-      const txPublicKey = tx.from && tx.from.length > 0 ? (tx.from[0].publicKey || tx.from[0].address) : null;
-      if (txPublicKey !== publicKey) {
-        console.warn('Stack: Transaction publicKey mismatch. Expected:', publicKey, 'Got:', txPublicKey);
-        // Still render, but log the mismatch
       }
 
       // Render the post
@@ -342,37 +335,35 @@ console.log("RENDER: " + this.browser_active);
    */
   async onPeerServiceUp(app, peer, service = {}) {
 
-    //
-    // Stack
-    //
-    if (service.service === 'stack') {
+    if (service.service === "stack" || service.service === "archive") {
       const peerKey = peer?.publicKey || 'unknown';
       this.peers[peerKey] = {
         peer: peer,
         publicKey: peerKey,
         connected: true
       };
-      console.log(`Stack: Peer ${peerKey} connected with Stack service`);
     }
+
 
     //
     // Archives 
     //
     if (service.service === "archive") {
-console.log("$$$$$$$$$$$$$$$$$$");
-console.log("ARCHIVE NODE UP!");
-console.log("$$$$$$$$$$$$$$$$$$");
+      if (this.pending_post_sig) {
+        let sig = this.pending_post_sig;
+        let pk = this.pending_post_pk;
+        this.pending_post_sig = "";
+        this.pending_post_pk = "";
+        await this.handlePostView(pk, sig);
+      }
       if (this.pending_author_load) {
-console.log("AND PENDING TO FETCH!");
         let pk = this.pending_author_load;
         this.pending_author_load = null;
         await this.handleCreatorView(pk);
-        //this.exploreOverlay.posts = await this.handleCreatorView(pk);
-        //this.exploreOverlay.isLoading = false;
-        //this.exploreOverlay.updatePostsGrid(pk);
-console.log("updated UI...");
       }
+      track_peer = true;
     }
+
 
   }
 
@@ -1725,9 +1716,6 @@ console.log("ERROR attaching duration and sig to witness...");
       }
       const access_witness = JSON.stringify(access_witness_obj);
 
-console.log("WITNESS FOR QUERY: ");
-console.log(JSON.stringify(access_witness));
-
       // Note: access_hash and access_script come from the POST transaction, not the NFT
       // We return witness data here, and the caller will attach it along with post's access_hash/access_script
       return {
@@ -1867,11 +1855,17 @@ console.log(JSON.stringify(access_witness));
       return localTx;
     }
 
+    //
     // Step 4: Query connected Stack peers (if localhost didn't have it)
     // Simple sequential query - try first available peer
     // No racing, no retries, no timeouts (as per requirements)
-
-console.log("about to make remote fetch...");
+    //
+    let peers = await this.app.network.getPeers();
+    if (peers.length === 0) {
+      this.pending_post_sig = signature;
+      this.pending_post_pk = null;
+      return null;
+    }
 
     const peerKeys = Object.keys(this.peers);
     if (peerKeys.length > 0) {
@@ -1944,8 +1938,6 @@ console.log("about to make remote fetch...");
    */
   async loadPostsForAuthor(publicKey, { forceRemote = true } = {}) {
 
-console.log("LPFA 1: " + publicKey);
-
     if (!publicKey || !this.app.wallet.isValidPublicKey(publicKey)) {
       return [];
     }
@@ -1961,8 +1953,6 @@ console.log("LPFA 1: " + publicKey);
       access_witness = accessData.access_witness;
     } 
 
-console.log("LPFA 2: " + JSON.stringify(access_witness));
-
     if (accessData && accessData.access_witness) {
       // Construct the access script for this author (transferable private posts)
       // This matches the script used when creating private posts
@@ -1976,9 +1966,6 @@ console.log("LPFA 2: " + JSON.stringify(access_witness));
       
     }
 
-console.log("LPFA 2: " + JSON.stringify(access_witness));
-
-
     // PART 2.1: Query local archive first
     // Build query object - attach access data if NFT exists
     const localQuery = {
@@ -1987,8 +1974,6 @@ console.log("LPFA 2: " + JSON.stringify(access_witness));
       field4: 'stack:post',
     };
     if (access_witness) { localQuery.access_witness = access_witness; }
-
-console.log("LPFA 3: " + JSON.stringify(localQuery));
 
     const localPosts = await new Promise((resolve) => {
       this.app.storage.loadTransactions(
@@ -2008,10 +1993,6 @@ console.log("LPFA 3: " + JSON.stringify(localQuery));
       }
     }
 
-console.log("LPFA 3.5 ---> posts total: " + posts.length);
-
-console.log("LPFA 4...: " + forceRemote);
-
     // PART 2.3: If forceRemote, query remote peers
     if (forceRemote) {
       // Build remote query with same access data pattern
@@ -2022,21 +2003,13 @@ console.log("LPFA 4...: " + forceRemote);
       };
       if (access_witness) { remoteQuery.access_witness = access_witness; }
 
-console.log("LPFA 5...: " + JSON.stringify(remoteQuery));
-
       let peers = await this.app.network.getPeers();
       if (peers.length === 0) {
 	// Defer until peers are available
-console.log("NO PEERS... deferring...");
     	this.pending_author_load = publicKey;
   	return posts;
      }
 
-
-
-console.log("LPFA 6...: " + JSON.stringify(remoteQuery));
-
- 
       const remotePosts = await new Promise((resolve) => {
         this.app.storage.loadTransactions(
           remoteQuery,
@@ -2047,7 +2020,6 @@ console.log("LPFA 6...: " + JSON.stringify(remoteQuery));
         );
       });
 
-console.log("LPFA 6.5... remote posts num: " + remotePosts.length);
       for (const tx of remotePosts) {
         seenSignatures.add(tx.signature);
         posts.push(tx);

@@ -849,6 +849,8 @@ class Archive extends ModTemplate {
 			rows = altered_rows;
 		}
 
+console.log("returning rows: " + JSON.stringify(rows));
+
 		return rows;
 	}
 

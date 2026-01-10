@@ -153,7 +153,6 @@ class Mods {
     }
     if (have_responded == false) {
       if (mycallback) {
-console.log("TESTING SUBMIT A BAD EMPTY RESULT...");
         //
         // callback is defined in apps/lite/index.ts
         // it runs sendApiSuccess() with the response object
@@ -166,18 +165,10 @@ console.log("TESTING SUBMIT A BAD EMPTY RESULT...");
   async initialize() {
     try {
       if (this.app.BROWSER === 1) {
-        //        console.log('#');
-        //        console.log('#');
-        //        console.log('#');
-        //        console.log('#');
-        //        console.log('# MY NFTS...');
-        //        const raw = await this.app.wallet.getNFTList();
-        //        console.log(JSON.stringify(raw));
 
         let dyn_mods = await this.app.storage.loadLocalApplications();
 
         if (dyn_mods.length > 0) {
-          console.log('loaded mods:', dyn_mods);
 
           self['saito-js'] = require('saito-js').default;
           self['saito-js/lib/slip'] = require('saito-js/lib/slip').default;
