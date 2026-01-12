@@ -69,7 +69,6 @@ class SaitoNFT {
   }
 
   async fetchTransaction(callback = null, localhost_only = false) {
-
     if (!this.id) {
       console.error('0.5 Unable to fetch NFT transaction (no nft id found)');
       if (callback) {
@@ -100,7 +99,6 @@ class SaitoNFT {
       { field4: this.id },
 
       async (txs) => {
-
         if (txs?.length > 0) {
           this.tx = txs[0];
           this.buildNFTData();
