@@ -75,11 +75,11 @@ class ExplorerCore extends ModTemplate {
 			}
 		});
 
-		expressapp.get('/explorer/mempool', function (req, res) {
+		expressapp.get('/explorer/mempool', async function (req, res) {
 			if (!res.finished) {
 				res.setHeader('Content-type', 'text/html');
 				res.charset = 'UTF-8';
-				return res.send(explorer_self.returnMempoolHTML());
+				return res.send(await explorer_self.returnMempoolHTML());
 			}
 			return;
 		});
