@@ -36,6 +36,16 @@ class MailRelay extends ModTemplate {
       return;
     }
 
+    if (process.env.SENDGRID) {
+      this.services.push(new PeerService(null, 'mailrelay', 'Mail Relay Service'));
+    }
+
+    if (this.services.length) {
+      console.log('I am a mail relay :)');
+    } else {
+      console.log('I am not a mail relay :(');
+    }
+
     // add an email
     let email = {
       to: 'richard@saito.tech',
@@ -91,6 +101,7 @@ class MailRelay extends ModTemplate {
     }
 
     console.warn('No peers offer mailrelay service');
+    console.log('unsent email: ', email);
 
     return newtx;
   }
@@ -103,7 +114,7 @@ class MailRelay extends ModTemplate {
       return;
     }
 
-    console.log('sending email...', email);
+    console.info('sending email...', email);
 
     //array of attahments in formats as defined here
     // ref: https://github.com/guileen/node-sendmail/blob/master/examples/attachmentFile.js
@@ -170,10 +181,6 @@ class MailRelay extends ModTemplate {
   }
 
   returnServices() {
-    this.services = [];
-    if (process.env.SENDGRID) {
-      this.services.push(new PeerService(null, 'mailrelay', 'Mail Relay Service'));
-    }
     return this.services;
   }
 }

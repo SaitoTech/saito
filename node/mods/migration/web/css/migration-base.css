@@ -54,36 +54,6 @@ input[type='text'] {
 	border: 1px solid #888a;
 }
 
-.saito-overlay-form-content {
-	font-size: 1.8rem;
-	line-height: 2.2rem;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 1rem;
-	flex-grow: 1;
-}
-
-.saito-crypto-deposit-container {
-	min-height: 52rem;
-}
-
-.saito-progress-meter {
-	position: relative;
-	display: flex;
-	height: 3rem;
-	width: 100%;
-	color: var(--saito-primary-text);
-	background: var(--saito-highlight);
-	border: 1px solid var(--saito-border-color);
-	border-radius: var(--saito-border-radius);
-	overflow: hidden;
-}
-
-.saito-crypto-deposit-container .game-loader-spinner {
-	margin: 10rem auto;
-}
-
 .migration-check {
 	padding: 3rem;
 	display: flex;

@@ -77,6 +77,14 @@ class FileUpload {
       //
       if (document.querySelector('.private-nft')) {
         document.querySelector('.private-nft').onclick = async (e) => {
+
+          let wallet_balance = await this.app.wallet.getBalance('SAITO');
+                
+          if (Number(wallet_balance) < 1) {
+            siteMessage('Insufficient SAITO to Create Vault NFTs...', 3000);
+            return;
+          }
+
           this.overlay.hide();
           this.scripting_overlay.render();
 	  this.scripting_overlay.callback = (obj) => {
@@ -91,6 +99,14 @@ class FileUpload {
       }
 
       document.querySelector('.public-nft').onclick = async (e) => {
+
+        let wallet_balance = await this.app.wallet.getBalance('SAITO');
+
+        if (Number(wallet_balance) < 1) {
+          siteMessage('Insufficient SAITO to Create Vault NFTs...', 3000);
+          return;
+        }
+
 	this.mintNFT();
       };
 
