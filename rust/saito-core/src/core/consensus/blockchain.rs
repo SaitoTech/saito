@@ -81,7 +81,13 @@ pub const ALERT_ON_NEWER_CHAIN_GAP: BlockId = 20;
 
 #[derive(Debug)]
 pub enum WindingResult<'a> {
-    Wind(WindIndex, Failed, WalletUpdateStatus),
+    Wind(
+        WindIndex,
+        Failed,
+        &'a [SaitoHash],
+        &'a [SaitoHash],
+        WalletUpdateStatus,
+    ),
     Unwind(
         WindIndex,
         Failed,
@@ -1437,11 +1443,22 @@ impl Blockchain {
         }
 
         if old_chain.is_empty() {
-            let mut result: WindingResult<'_> =
-                WindingResult::Wind(new_chain.len() - 1, false, WALLET_NOT_UPDATED);
+            let mut result: WindingResult<'_> = WindingResult::Wind(
+                new_chain.len() - 1,
+                false,
+                new_chain,
+                old_chain,
+                WALLET_NOT_UPDATED,
+            );
             loop {
                 match result {
-                    WindingResult::Wind(current_wind_index, wind_failure, wallet_status) => {
+                    WindingResult::Wind(
+                        current_wind_index,
+                        wind_failure,
+                        new_chain,
+                        old_chain,
+                        wallet_status,
+                    ) => {
                         wallet_update_status |= wallet_status;
 
                         result = self
@@ -1489,7 +1506,13 @@ impl Blockchain {
                 WindingResult::Unwind(0, false, new_chain, old_chain, WALLET_NOT_UPDATED);
             loop {
                 match result {
-                    WindingResult::Wind(current_wind_index, wind_failure, wallet_status) => {
+                    WindingResult::Wind(
+                        current_wind_index,
+                        wind_failure,
+                        new_chain,
+                        old_chain,
+                        wallet_status,
+                    ) => {
                         wallet_update_status |= wallet_status;
                         result = self
                             .wind_chain(
@@ -1696,7 +1719,13 @@ impl Blockchain {
                 return WindingResult::FinishWithSuccess(wallet_updated);
             }
 
-            WindingResult::Wind(current_wind_index - 1, false, wallet_updated)
+            WindingResult::Wind(
+                current_wind_index - 1,
+                false,
+                new_chain,
+                old_chain,
+                wallet_updated,
+            )
         } else {
             // we have had an error while winding the chain. this requires us to
             // unwind any blocks we have already wound, and rewind any blocks we
@@ -1732,7 +1761,13 @@ impl Blockchain {
                 // which requires us to start at the END of the new chain vector.
                 if !old_chain.is_empty() {
                     debug!("old chain len: {}", old_chain.len());
-                    WindingResult::Wind(old_chain.len() - 1, true, wallet_updated)
+                    WindingResult::Wind(
+                        old_chain.len() - 1,
+                        true,
+                        old_chain,
+                        new_chain,
+                        wallet_updated,
+                    )
                 } else {
                     debug!("old chain is empty. finishing with failure");
                     WindingResult::FinishWithFailure
@@ -2029,7 +2064,13 @@ impl Blockchain {
             //
             // winding requires starting at the END of the vector and rolling
             // backwards until we have added block #5, etc.
-            WindingResult::Wind(new_chain.len() - 1, wind_failure, wallet_updated)
+            WindingResult::Wind(
+                new_chain.len() - 1,
+                wind_failure,
+                new_chain,
+                old_chain,
+                wallet_updated,
+            )
         } else {
             // continue unwinding,, which means
             //

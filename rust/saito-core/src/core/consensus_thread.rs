@@ -806,13 +806,14 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
 
 #[cfg(test)]
 mod tests {
-    use log::info;
+    use log::{info, trace};
+    use rayon::vec;
     use tracing_subscriber::filter::Directive;
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
     use tracing_subscriber::Layer;
 
-    use crate::core::consensus::block::Block;
+    use crate::core::consensus::block::{Block, BlockType};
     use crate::core::consensus::slip::SlipType;
     use crate::core::consensus_thread::ConsensusEvent;
     use crate::core::defs::{PrintForLog, SaitoHash, NOLAN_PER_SAITO, UTXO_KEY_LENGTH};
@@ -2264,7 +2265,7 @@ mod tests {
             }
         }
         fn on_add_block_success(&self, block_id: u64, block_hash: &crate::core::defs::BlockHash) {
-            info!(
+            trace!(
                 "on_add_block_success block_id {}-{}",
                 block_id,
                 block_hash.to_hex()
@@ -2279,7 +2280,7 @@ mod tests {
             block_hash: &crate::core::defs::BlockHash,
             confirmations: &[u64],
         ) {
-            info!(
+            trace!(
                 "on_block_confirmation block_id {}-{} confirmations : {}",
                 block_id,
                 block_hash.to_hex(),
@@ -2525,5 +2526,136 @@ mod tests {
     }
     #[tokio::test]
     #[serial_test::serial]
-    async fn running_callbacks_on_reorg() {}
+    async fn invalid_block_test() {
+        // setup_log();
+
+        NodeTester::delete_data().await.unwrap();
+        let mut tester = NodeTester::new(100, None, None);
+        let public_key = tester.get_public_key().await;
+        let private_key = tester.get_private_key().await;
+        tester
+            .set_staking_requirement(2 * NOLAN_PER_SAITO, 50)
+            .await;
+        let issuance = vec![
+            (public_key.to_base58(), 8 * 2 * NOLAN_PER_SAITO),
+            (public_key.to_base58(), 100 * NOLAN_PER_SAITO),
+            (
+                "27UK2MuBTdeARhYp97XBnCovGkEquJjkrQntCgYoqj6GC".to_string(),
+                50 * NOLAN_PER_SAITO,
+            ),
+        ];
+        tester.set_issuance(issuance.clone()).await.unwrap();
+
+        {
+            // register the temporary observer
+            let mut blockchain = tester.consensus_thread.blockchain_lock.write().await;
+            blockchain.register_observer(Box::new(TempTestBlockchainObserver));
+        }
+
+        tester.init().await.unwrap();
+        tester.wait_till_block_id(1).await.unwrap();
+        tester
+            .check_total_supply()
+            .await
+            .expect("total supply should not change");
+
+        let block_1 = tester.get_latest_block().await;
+
+        let path = Path::new("./data/blocks/").join(block_1.get_file_name());
+
+        let mut original_blocks = vec![];
+        for i in 2..=120 {
+            let tx = tester.create_transaction(10, 10, public_key).await.unwrap();
+
+            tester.add_transaction(tx).await;
+            tester.wait_till_block_id(i).await.unwrap();
+
+            tester
+                .check_total_supply()
+                .await
+                .expect("total supply should not change");
+
+            let block = tester.get_latest_block().await;
+            original_blocks.push(block);
+        }
+
+        NodeTester::delete_data().await.unwrap();
+
+        tokio::fs::create_dir_all("./data/blocks").await.unwrap();
+        tokio::fs::write(path.clone(), block_1.serialize_for_net(BlockType::Full))
+            .await
+            .unwrap();
+
+        info!("\n+++++++++ restarting the node 1 +++++++++\n");
+        let mut tester = NodeTester::new(100, Some(private_key), Some(tester.timer));
+        tester.set_staking_requirement(0, 50).await;
+        tester.init().await.unwrap();
+        for block in original_blocks.iter() {
+            if block.id > 110 {
+                break;
+            }
+            tester.add_block(block.clone()).await;
+            tester.wait_till_block_id(block.id).await.unwrap();
+
+            tester
+                .check_total_supply()
+                .await
+                .expect("total supply should not change");
+        }
+        tester.wait_till_block_id(110).await.unwrap();
+        assert_eq!(tester.get_latest_block_id().await, 110);
+
+        let mut new_blocks = vec![];
+
+        for i in 111..=130 {
+            let tx = tester.create_transaction(10, 0, public_key).await.unwrap();
+
+            tester.add_transaction(tx).await;
+            tester.wait_till_block_id(i).await.unwrap();
+
+            tester
+                .check_total_supply()
+                .await
+                .expect("total supply should not change");
+
+            let block = tester.get_latest_block().await;
+            new_blocks.push(block);
+        }
+
+        NodeTester::delete_data().await.unwrap();
+        tokio::fs::create_dir_all("./data/blocks").await.unwrap();
+        tokio::fs::write(path, block_1.serialize_for_net(BlockType::Full))
+            .await
+            .unwrap();
+
+        info!("\n+++++++++ restarting the node 2 +++++++++\n");
+        let mut tester = NodeTester::new(100, Some(private_key), Some(tester.timer));
+        let public_key = tester.get_public_key().await;
+        let private_key = tester.get_private_key().await;
+        tester
+            .set_staking_requirement(2 * NOLAN_PER_SAITO, 50)
+            .await;
+        tester.init().await.unwrap();
+
+        for block in original_blocks.iter() {
+            tester.add_block(block.clone()).await;
+            tester.wait_till_block_id(block.id).await.unwrap();
+            tester
+                .check_total_supply()
+                .await
+                .expect("total supply should not change");
+        }
+
+        for block in new_blocks.iter() {
+            tester.add_block(block.clone()).await;
+            tester
+                .wait_till_block_id_with_hash(block.id, block.hash)
+                .await
+                .unwrap();
+            tester
+                .check_total_supply()
+                .await
+                .expect("total supply should not change");
+        }
+    }
 }

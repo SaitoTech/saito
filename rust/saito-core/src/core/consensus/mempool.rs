@@ -123,7 +123,7 @@ impl Mempool {
         if tx_valid {
             self.add_transaction(transaction).await;
         } else {
-            info!(
+            debug!(
                 "transaction not valid : {:?}. cannot add to mempool",
                 transaction.signature.to_hex()
             );
