@@ -661,6 +661,7 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
     callback
   ) {
     try {
+
       // Create new transaction
       let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
 
@@ -678,6 +679,19 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
         excerpt: post.excerpt || ''
       };
       
+      // --------------------------------------------------------------------
+      // IMAGE INVARIANT ENFORCEMENT
+      // Published posts MUST NOT contain raw data:image URLs in markdown.
+      // All inline images must be converted to stack:image:<id> references
+      // during serialization (editor → markdown).
+      // --------------------------------------------------------------------
+      if (/!\[[^\]]*\]\(data:image\/[a-zA-Z+]+;base64,/i.test(data.content)) {
+        throw new Error(
+          'Publish aborted: raw data:image URL found in post content. ' +
+          'Images must be published using stack:image:<id> references.'
+        );
+      }
+
       // PART 2 — TRANSACTION CREATION CHANGE: Include parent_id if editing
       // If parent_id is provided, this is an edit of an existing post
       if (post.parent_id) {

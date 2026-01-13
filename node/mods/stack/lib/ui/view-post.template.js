@@ -26,15 +26,19 @@ module.exports = (app, mod, tx) => {
     const mimeType = 'image/png'; // Default
     featureImageUrl = `data:image/${mimeType};base64,${image}`;
   }
-  
+
+
   // Create image lookup map for resolving stack:image: references
   const imageMap = new Map();
-  images.forEach(img => {
-    if (img && img.id) {
-      imageMap.set(img.id, img);
+  if (Array.isArray(images)) {
+    for (const img of images) {
+      if (img && img.id && img.data && img.mime) {
+        imageMap.set(img.id, img);
+      }
     }
-  });
-  
+  }
+
+ 
   // Render markdown body text to HTML with image reference resolution
   const renderMarkdown = (markdown) => {
     if (!markdown) return '';
@@ -59,7 +63,17 @@ module.exports = (app, mod, tx) => {
     });
     
     let html = '';
+
+    // LEGACY IMAGE FIX: convert markdown images containing data URLs
+    //
+    // this prevents sanitize from breaking image display in practice
+    //
+    processedMarkdown = processedMarkdown.replace(
+      /!\[([^\]]*)\]\((data:image\/[^)]+)\)/g,
+      (_, alt, dataUrl) => `<img src="${dataUrl}" alt="${alt || ''}" />`
+   );
     
+
     // Use browser sanitize if available (handles markdown)
     if (app.browser.sanitize) {
       html = app.browser.sanitize(processedMarkdown, true);
