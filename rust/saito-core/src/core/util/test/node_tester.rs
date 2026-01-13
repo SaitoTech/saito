@@ -33,7 +33,7 @@ pub mod test {
     use crate::core::util::crypto::{generate_keypair_from_private_key, generate_keys};
     use crate::core::util::test::test_io_handler::test::TestIOHandler;
     use crate::core::verification_thread::{VerificationThread, VerifyRequest};
-    use log::{info, warn};
+    use log::{debug, info, trace, warn};
     use serde::Deserialize;
     use std::io::{Error, ErrorKind};
     use std::ops::DerefMut;
@@ -458,7 +458,7 @@ pub mod test {
         pub async fn wait_till_block_id(&mut self, block_id: BlockId) -> Result<(), Error> {
             let time_keeper = TestTimeKeeper {};
             let timeout = time_keeper.get_timestamp_in_ms() + self.timeout_in_ms;
-            info!("waiting for block id : {}", block_id);
+            debug!("waiting for block id : {}", block_id);
             loop {
                 {
                     let blockchain = self.routing_thread.blockchain_lock.read().await;
@@ -483,7 +483,7 @@ pub mod test {
         ) -> Result<(), Error> {
             let time_keeper = TestTimeKeeper {};
             let timeout = time_keeper.get_timestamp_in_ms() + self.timeout_in_ms;
-            info!("waiting for block id : {}", block_id);
+            debug!("waiting for block id : {}", block_id);
             loop {
                 {
                     let blockchain = self.routing_thread.blockchain_lock.read().await;
@@ -603,6 +603,15 @@ pub mod test {
                 .await
                 .unwrap()
         }
+        pub async fn get_latest_block(&self) -> Block {
+            self.consensus_thread
+                .blockchain_lock
+                .read()
+                .await
+                .get_latest_block()
+                .cloned()
+                .unwrap()
+        }
         pub async fn add_block(&mut self, block: Block) {
             self.routing_thread
                 .process_network_event(NetworkEvent::BlockFetched {
@@ -706,7 +715,7 @@ pub mod test {
                 .filter(|(_, value)| **value)
                 .map(|(key, value)| {
                     let slip = Slip::parse_slip_from_utxokey(key).unwrap();
-                    info!(
+                    trace!(
                         "Utxo : {:?} : {} : {:?}, block : {}-{}-{}, valid : {}",
                         slip.public_key.to_base58(),
                         slip.amount,
@@ -730,23 +739,23 @@ pub mod test {
             current_supply += latest_block.previous_block_unpaid;
             current_supply += latest_block.total_fees;
 
-            info!(
+            trace!(
                 "diff : {}",
                 self.initial_token_supply as i64 - current_supply as i64
             );
-            info!("Current supply is {}", current_supply);
-            info!("Initial token supply is {}", self.initial_token_supply);
-            info!(
+            trace!("Current supply is {}", current_supply);
+            trace!("Initial token supply is {}", self.initial_token_supply);
+            trace!(
                 "Social Stake Requirement is {}",
                 blockchain.social_stake_requirement
             );
-            info!("Graveyard is {}", latest_block.graveyard);
-            info!("Treasury is {}", latest_block.treasury);
-            info!("Unpaid fees is {}", latest_block.previous_block_unpaid);
-            info!("Total Fees ATR is {}", latest_block.total_fees_atr);
-            info!("Total Fees New is {}", latest_block.total_fees_new);
-            info!("Total Fee is {}", latest_block.total_fees);
-            info!("Amount in utxo {}", amount_in_utxo);
+            trace!("Graveyard is {}", latest_block.graveyard);
+            trace!("Treasury is {}", latest_block.treasury);
+            trace!("Unpaid fees is {}", latest_block.previous_block_unpaid);
+            trace!("Total Fees ATR is {}", latest_block.total_fees_atr);
+            trace!("Total Fees New is {}", latest_block.total_fees_new);
+            trace!("Total Fee is {}", latest_block.total_fees);
+            trace!("Amount in utxo {}", amount_in_utxo);
 
             if current_supply != self.initial_token_supply {
                 warn!(
