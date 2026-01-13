@@ -200,13 +200,21 @@ class ExploreOverlay {
     const settingsBtn = document.querySelector('#stack-explore-settings-btn');
     
     if (filter === 'my-posts') {
-      if (addUserBtn) addUserBtn.style.display = 'none';
-      if (settingsBtn) settingsBtn.style.display = '';
+      if (addUserBtn) { addUserBtn.style.display = 'none'; }
+      if (settingsBtn) { settingsBtn.style.display = ''; }
     } else {
       // Show Add User button for general feeds (all, etc.)
-      if (addUserBtn) addUserBtn.style.display = '';
-      if (settingsBtn) settingsBtn.style.display = 'none';
+      if (addUserBtn) { addUserBtn.style.display = ''; }
+      if (settingsBtn) { settingsBtn.style.display = 'none'; }
     }
+
+    if (settingsBtn) {
+      settingsBtn.onclick = (e) => {
+	siteMessage("Saito Stack is Under Development...", 2000);
+      }
+    }
+
+
   }
 
   /**
@@ -217,8 +225,6 @@ class ExploreOverlay {
 
     this.isLoading = true;
  
-  console.log("loadPostsForFilter:", filter);
-
     this.isLoading = true;
     this.posts = [];
 
@@ -269,12 +275,6 @@ class ExploreOverlay {
         </div>
       `;
     } else if (this.posts.length > 0) {
-
-for (let z = 0; z < this.posts.length; z++) {
-console.log("z: " + this.posts[z].from[0].publicKey);
-console.log("tx sig: " + this.posts[z].signature);
-console.log("txmsg: " + JSON.stringify(this.posts[z].returnMessage()));
-}
 
       const teaserHtml = this.posts.map(transaction => {
         const teaser = new PostTeaser(this.app, this.mod, '', transaction);
@@ -512,6 +512,13 @@ console.log("txmsg: " + JSON.stringify(this.posts[z].returnMessage()));
         };
       }
       
+      const settingsBtn = document.querySelector('.stack-explore-settings-btn');
+      if (settingsBtn) {
+	settingsBtn.onclick = (e) => { 
+	  siteMessage("Saito Stack is Under Development...", 2000);
+	}
+      }
+
       // Subscription/Identity list items
       const subscriptionItems = document.querySelectorAll('.stack-explore-subscription-item');
       subscriptionItems.forEach(item => {
