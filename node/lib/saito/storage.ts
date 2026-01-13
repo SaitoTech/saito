@@ -203,7 +203,6 @@ class Storage {
    * Note: You might need to await this function for the internal callbacks to work...
    */
   async loadTransactions(obj = {}, mycallback, peer = null, deserialize = 1) {
-
     let storage_self = this;
     const message = 'archive';
     let data: any = {};
