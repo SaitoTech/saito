@@ -34,6 +34,7 @@ class Stack extends ModTemplate {
     this.pending_author_load = null;
     this.pending_post_sig = null;
     this.pending_post_pk = null;
+    this.pending_post_loaded = null;
 
     this.social = {
       twitter: '@SaitoOfficial',
@@ -68,7 +69,7 @@ class Stack extends ModTemplate {
     // "Saito Official" is a hardcoded system identity that must never be inferred
     // All references to "Saito Official" must use this constant
     // TODO: Replace with actual Saito Official public key when available
-    this.STACK_OFFICIAL_PUBLICKEY = '238JR7SpoBRbo4nqbt1Ljpa168g1iwqGFSMvdjF7uXPfk';
+    this.STACK_OFFICIAL_PUBLICKEY = 'k73CaRGwgNbqq1prNngSstb9NrfkaJVQwq8onf1oabBz';
 
     this.overlay = new SaitoOverlay(app, this);
     this.exploreOverlay = new ExploreOverlay(app, this);
@@ -242,9 +243,47 @@ class Stack extends ModTemplate {
       const tx = await this.loadPost(transactionSignature, {}, null);
 
       if (!tx) {
-        // Transaction not found - show error
+
         if (container) {
-          container.innerHTML = `
+
+          if (this.pending_post_sig != "" && this.pending_post_loaded != true) {
+
+    	    container.innerHTML = `
+    <div
+      class="stack-post-loading"
+      style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1.2rem;
+        pointer-events: none;
+        z-index: 10;
+      "
+    >
+      <img
+        src="/saito/img/spinner.svg"
+        style="width:8rem;height:8rem;"
+      />
+
+      <div
+        style="
+          font-size: 2.5rem;
+          color: var(--saito-font-color-light);
+          text-align: center;
+        "
+      >
+        Loading Post from Saito Network
+      </div>
+    </div>
+  `;
+	  } else {
+            container.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem; text-align: center;">
               <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
               <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">Unable to load this blog post</h3>
@@ -252,13 +291,16 @@ class Stack extends ModTemplate {
                 The blog post you're looking for could not be found. It may have been deleted, or you may not have permission to view it.
               </p>
             </div>
-          `;
+            `;
+          }
         }
         return;
       }
 
       // Render the post
       this.viewPostComponent.render(tx);
+      this.pending_post_loaded = true;
+
     } catch (error) {
       console.error('Stack: Error loading blog post:', error);
       // Show error state
@@ -352,9 +394,9 @@ class Stack extends ModTemplate {
       if (this.pending_post_sig) {
         let sig = this.pending_post_sig;
         let pk = this.pending_post_pk;
+        await this.handlePostView(pk, sig);
         this.pending_post_sig = "";
         this.pending_post_pk = "";
-        await this.handlePostView(pk, sig);
       }
       if (this.pending_author_load) {
         let pk = this.pending_author_load;
@@ -2569,6 +2611,7 @@ Remember: The best monetization strategy is one that provides genuine value to y
       }
     }
   }
+
 }
 
 module.exports = Stack;
