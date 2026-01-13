@@ -63,10 +63,7 @@ class ChatManager {
 				}
 
 				let popup_rendered = 0;
-				if (
-					this.render_popups_to_screen ||
-					this.popups[group.id].is_rendered
-				) {
+				if (this.render_popups_to_screen || this.popups[group.id].is_rendered) {
 					popup_rendered = this.popups[group.id].render();
 				}
 
@@ -127,18 +124,15 @@ class ChatManager {
 			} else {
 				if (data.key) {
 					if (Array.isArray(data.key)) {
-						group = this.mod.returnOrCreateChatGroupFromMembers(
-							data.key,
-							data.name
-						);
+						group = this.mod.returnOrCreateChatGroupFromMembers(data.key, data.name);
 					} else {
 						group = this.mod.returnOrCreateChatGroupFromMembers(
 							[this.mod.publicKey, data.key],
 							data.name
 						);
 					}
-				}else{
-					console.log("**********", data);
+				} else {
+					console.log('**********', data);
 					if (data.id && data.name) {
 						this.mod.createFreshGroup(data.name, data.id);
 					}
@@ -154,16 +148,14 @@ class ChatManager {
 					}
 				}
 
-				if (data?.temporary){
+				if (data?.temporary) {
 					group.temporary = true;
 				}
-
 			}
 
 			if (this.mod.browser_active) {
 				this.switchTabs();
 			}
-
 
 			//
 			// permit re-open
@@ -178,34 +170,29 @@ class ChatManager {
 			this.popups[group.id].activate();
 		});
 
-		app.connection.on("stun-connection-connected", (peer) => {
-			app.connection.emit("relay-is-online", peer, true);
+		app.connection.on('stun-connection-connected', (peer) => {
+			app.connection.emit('relay-is-online', peer, true);
 		});
 
 		app.connection.on('relay-is-online', (pkey, stun = false) => {
-			let target_id = this.mod.createGroupIdFromMembers([
-				pkey,
-				this.mod.publicKey
-			]);
+			let target_id = this.mod.createGroupIdFromMembers([pkey, this.mod.publicKey]);
 			let group = this.mod.returnGroup(target_id);
 			//console.log("Receive online confirmation from " + pkey);
 			if (!group || group.members.length !== 2) {
 				return;
 			}
 
-			if (stun){
-				group.online = " stun";	
-			}else{
-				group.online = " online";
+			if (stun) {
+				group.online = ' stun';
+			} else {
+				group.online = ' online';
 			}
-			
-			let cm_handle = document.querySelector(
-				`.chat-manager #saito-user-${group.id}`
-			);
+
+			let cm_handle = document.querySelector(`.chat-manager #saito-user-${group.id}`);
 			if (cm_handle) {
 				cm_handle.classList.add('online');
-				if (stun){
-					cm_handle.classList.add("stun");
+				if (stun) {
+					cm_handle.classList.add('stun');
 				}
 				if (this.timers[group.id]) {
 					clearTimeout(this.timers[group.id]);
@@ -219,10 +206,10 @@ class ChatManager {
 				return;
 			}
 
-			if (!group.online){
-				group.online = " online";	
+			if (!group.online) {
+				group.online = ' online';
 			}
-			
+
 			if (this.timers[group.id]) {
 				clearTimeout(this.timers[group.id]);
 			}
@@ -248,19 +235,13 @@ class ChatManager {
 		// replace element or insert into page
 		//
 		if (document.querySelector(this.container + '.chat-manager')) {
-			this.app.browser.replaceElementBySelector(
-				ChatManagerTemplate(this),
-				'.chat-manager'
-			);
+			this.app.browser.replaceElementBySelector(ChatManagerTemplate(this), '.chat-manager');
 		} else {
 			if (document.querySelector('.chat-manager')) {
 				document.querySelector('.chat-manager').remove();
 			}
 
-			this.app.browser.addElementToSelectorOrDom(
-				ChatManagerTemplate(this),
-				this.container
-			);
+			this.app.browser.addElementToSelectorOrDom(ChatManagerTemplate(this), this.container);
 		}
 
 		// Sort chat groups
@@ -276,6 +257,7 @@ class ChatManager {
 		//
 		let now = new Date().getTime();
 
+		let groups_to_ping = [];
 		for (let group of this.mod.groups) {
 			// *****************************************************
 			// If this devolves into a DDOS attack against ourselves
@@ -287,14 +269,10 @@ class ChatManager {
 			if (group.members.length == 2 && this.mod.isRelayConnected) {
 				for (let member of group.members) {
 					if (member != this.mod.publicKey) {
-						if (
-							!this.pinged[group.id] ||
-							this.pinged[group.id] < now - 60000
-						) {
-
+						if (!this.pinged[group.id] || this.pinged[group.id] < now - 60000) {
 							this.pinged[group.id] = now;
 
-							this.app.connection.emit('relay-ping-peer', member);
+							groups_to_ping.push(member);
 
 							if (this.timers[group.id]) {
 								clearTimeout(this.timers[group.id]);
@@ -302,9 +280,7 @@ class ChatManager {
 
 							//If you don't hear back in 5 seconds, assume offline
 							this.timers[group.id] = setTimeout(() => {
-								let cm_handle = document.querySelector(
-									`.chat-manager #saito-user-${group.id}`
-								);
+								let cm_handle = document.querySelector(`.chat-manager #saito-user-${group.id}`);
 								if (cm_handle) {
 									cm_handle.classList.remove('online');
 								}
@@ -328,10 +304,7 @@ class ChatManager {
 				this.app.browser.replaceElementById(html, divid);
 			} else {
 				if (document.querySelector('.chat-manager-list')) {
-					this.app.browser.addElementToSelector(
-						html,
-						'.chat-manager-list'
-					);
+					this.app.browser.addElementToSelector(html, '.chat-manager-list');
 				}
 				obj = document.getElementById(divid);
 			}
@@ -340,6 +313,8 @@ class ChatManager {
 				obj.classList.remove('new-notification');
 			}, 1000);
 		}
+
+		this.app.connection.emit('relay-ping-peer', groups_to_ping);
 
 		this.attachEvents();
 	}
@@ -358,57 +333,51 @@ class ChatManager {
 		//
 		// clicks on the element itself (background)
 		//
-		document
-			.querySelectorAll('.chat-manager-list .saito-user')
-			.forEach((item) => {
-				item.onclick = (e) => {
-					e.stopPropagation();
+		document.querySelectorAll('.chat-manager-list .saito-user').forEach((item) => {
+			item.onclick = (e) => {
+				e.stopPropagation();
 
-					let gid = e.currentTarget.getAttribute('data-id');
-					let group = this.mod.returnGroup(gid);
+				let gid = e.currentTarget.getAttribute('data-id');
+				let group = this.mod.returnGroup(gid);
 
-					if (!this.popups[gid]) {
-						this.popups[gid] = new ChatPopup(
-							this.app,
-							this.mod,
-							group?.target_container || this.chat_popup_container
-						);
-						this.popups[gid].group = group;
-					}
-
-					if (this.mod.browser_active) {
-						this.switchTabs();
-					}
-
-					// unset manually closed to permit rendering
-					this.popups[gid].manually_closed = false;
-
-					this.popups[gid].render();
-					this.popups[gid].activate();
-
-					//
-					// We would want to force this if juggling multiple chat popups on a desktop
-					// because the user is choosing to open the popup, otherwise there are safety
-					// catches to keep the focus on the already open text window
-					//
-					if (!this.app.browser.isMobileBrowser()) {
-						this.popups[gid].input.focus(true);
-					}
-
-					this.app.connection.emit('chat-manager-render-request');
-				};
-
-				item.oncontextmenu = (e) => {
-					e.preventDefault();
-					let gid = e.currentTarget.getAttribute('data-id');
-					let chatMenu = new ChatUserMenu(
+				if (!this.popups[gid]) {
+					this.popups[gid] = new ChatPopup(
 						this.app,
 						this.mod,
-						this.mod.returnGroup(gid)
+						group?.target_container || this.chat_popup_container
 					);
-					chatMenu.render();
-				};
-			});
+					this.popups[gid].group = group;
+				}
+
+				if (this.mod.browser_active) {
+					this.switchTabs();
+				}
+
+				// unset manually closed to permit rendering
+				this.popups[gid].manually_closed = false;
+
+				this.popups[gid].render();
+				this.popups[gid].activate();
+
+				//
+				// We would want to force this if juggling multiple chat popups on a desktop
+				// because the user is choosing to open the popup, otherwise there are safety
+				// catches to keep the focus on the already open text window
+				//
+				if (!this.app.browser.isMobileBrowser()) {
+					this.popups[gid].input.focus(true);
+				}
+
+				this.app.connection.emit('chat-manager-render-request');
+			};
+
+			item.oncontextmenu = (e) => {
+				e.preventDefault();
+				let gid = e.currentTarget.getAttribute('data-id');
+				let chatMenu = new ChatUserMenu(this.app, this.mod, this.mod.returnGroup(gid));
+				chatMenu.render();
+			};
+		});
 
 		if (document.querySelector('.close-chat-manager')) {
 			document.querySelector('.close-chat-manager').onclick = (e) => {
@@ -431,7 +400,7 @@ class ChatManager {
 		if (document.querySelector('.chat-manager-options')) {
 			document.querySelector('.chat-manager-options').onclick = (e) => {
 				this.mod.loadSettings();
-			}
+			};
 		}
 	}
 }

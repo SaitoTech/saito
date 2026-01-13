@@ -9,6 +9,7 @@ class QuakeControls {
 		this.overlay = new SaitoOverlay(app);
 		this.current_setting = '';
 		//this.controls = {};
+/*****
 		this.default_config = {
 			'+attack': ['MOUSE1', 'bind MOUSE1 +attack'],
 			'+zoom': ['MOUSE2', 'bind MOUSE2 +zoom'],
@@ -39,6 +40,41 @@ class QuakeControls {
 			cg_fov: [90, 'cg_fov 90'],
 			s_volume: [0.23, 's_volume 0.23']
 		};
+*****/
+this.default_config = {
+  '+attack': ['MOUSE1', 'bind MOUSE1 +attack'],
+  '+zoom': ['MOUSE2', 'bind MOUSE2 +zoom'],
+  '+forward': ['w', 'bind w +forward'],
+  '+back': ['s', 'bind s +back'],
+  '+moveleft': ['a', 'bind a +moveleft'],
+  '+moveright': ['d', 'bind d +moveright'],
+  '+moveup': ['SPACE', 'bind SPACE +moveup'],
+  '+speed': ['SHIFT', 'bind SHIFT +speed'],
+  '+movedown': ['CTRL', 'bind CTRL +movedown'],
+
+  '+weapnext': ['MWHEELDOWN', 'bind MWHEELDOWN +weapnext'],
+  '+weapprev': ['MWHEELUP',   'bind MWHEELUP +weapprev'],
+
+  'weapon 1': ['1', 'bind 1 weapon 1'],
+  'weapon 2': ['2', 'bind 2 weapon 2'],
+  'weapon 3': ['3', 'bind 3 weapon 3'],
+  'weapon 4': ['4', 'bind 4 weapon 4'],
+  'weapon 5': ['5', 'bind 5 weapon 5'],
+  'weapon 6': ['6', 'bind 6 weapon 6'],
+  'weapon 7': ['7', 'bind 7 weapon 7'],
+  'weapon 8': ['8', 'bind 8 weapon 8'],
+  'weapon 9': ['9', 'bind 9 weapon 9'],
+
+  messagemode: ['t', 'bind t messagemode'],
+  messagemode2: ['y', 'bind y messagemode2'],
+  '+scores': ['TAB', 'bind TAB +scores'],
+  togglemenu: ['ESCAPE', 'bind ESCAPE togglemenu'],
+  screenshot: ['p', 'bind p screenshot'],
+  sensitivity: [5, 'sensitivity 5'],
+  cg_fov: [90, 'cg_fov 90'],
+  s_volume: [0.23, 's_volume 0.23']
+};
+
 		this.controls = {};
 		this.loadSavedControls();
 	}

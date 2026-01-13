@@ -138,25 +138,29 @@ class Admin extends ModTemplate {
       return;
     }
 
+    let validated = true;
+
     if (app.options.admin?.length) {
-      let validated = false;
+      validated = false;
       for (let a of app.options.admin) {
         if (tx.isFrom(a)) {
           validated = true;
         }
       }
+    }
 
+    let txmsg = tx.returnMessage();
+    const accepted_requests = ['set-admin-key', 'validate-admin-key', 'update-options'];
+
+    if (accepted_requests.includes(txmsg.request)) {
       if (!validated) {
         console.error('Unauthorized access!');
         if (mycallback) {
           mycallback({ err: 'Unauthorized access' });
         }
-
         return;
       }
     }
-
-    let txmsg = tx.returnMessage();
 
     if (txmsg.request == 'set-admin-key') {
       if (!this.app.options.admin) {

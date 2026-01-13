@@ -32,7 +32,8 @@ class Stack extends ModTemplate {
     this.icon_fa = 'fa-solid fa-newspaper';
 
     this.pending_author_load = null;
-    this.pending_post_load = null;
+    this.pending_post_sig = null;
+    this.pending_post_pk = null;
 
     this.social = {
       twitter: '@SaitoOfficial',
@@ -41,6 +42,7 @@ class Stack extends ModTemplate {
       description: 'Open-source subscription-based blogging platform',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card.png'
     };
+    
 
     // Cache for posts and subscriptions
     this.postsCache = {
@@ -66,7 +68,7 @@ class Stack extends ModTemplate {
     // "Saito Official" is a hardcoded system identity that must never be inferred
     // All references to "Saito Official" must use this constant
     // TODO: Replace with actual Saito Official public key when available
-    this.STACK_OFFICIAL_PUBLICKEY = 'saito-official-placeholder-publickey-12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890';
+    this.STACK_OFFICIAL_PUBLICKEY = '238JR7SpoBRbo4nqbt1Ljpa168g1iwqGFSMvdjF7uXPfk';
 
     this.overlay = new SaitoOverlay(app, this);
     this.exploreOverlay = new ExploreOverlay(app, this);
@@ -111,8 +113,6 @@ class Stack extends ModTemplate {
   ////////////////////////////
   async render(app) {
 
-console.log("RENDER: " + this.browser_active);
-
     if (!this.browser_active) {
       return;
     }
@@ -133,7 +133,7 @@ console.log("RENDER: " + this.browser_active);
     // ========================================================================
     const pathname = window.location.pathname;
     const slug = '/' + this.slug;
-    
+
     // Check if pathname starts with /stack
     if (pathname.startsWith(slug)) {
       // Extract path segments after /stack
@@ -213,8 +213,9 @@ console.log("RENDER: " + this.browser_active);
    * Handle blog post view: /stack/<publicKey>/<transactionSignature>
    * Shows ViewPost for the specific transaction
    */
-  async handlePostView(publicKey, transactionSignature) {
-    if (!publicKey || !transactionSignature) {
+  async handlePostView(publicKey = "", transactionSignature) {
+
+    if (!transactionSignature) {
       this.handleInvalidURL();
       return;
     }
@@ -239,7 +240,7 @@ console.log("RENDER: " + this.browser_active);
     // Load the transaction by signature
     try {
       const tx = await this.loadPost(transactionSignature, {}, null);
-      
+
       if (!tx) {
         // Transaction not found - show error
         if (container) {
@@ -254,13 +255,6 @@ console.log("RENDER: " + this.browser_active);
           `;
         }
         return;
-      }
-
-      // Verify the transaction is from the expected publicKey (for security)
-      const txPublicKey = tx.from && tx.from.length > 0 ? (tx.from[0].publicKey || tx.from[0].address) : null;
-      if (txPublicKey !== publicKey) {
-        console.warn('Stack: Transaction publicKey mismatch. Expected:', publicKey, 'Got:', txPublicKey);
-        // Still render, but log the mismatch
       }
 
       // Render the post
@@ -341,37 +335,35 @@ console.log("RENDER: " + this.browser_active);
    */
   async onPeerServiceUp(app, peer, service = {}) {
 
-    //
-    // Stack
-    //
-    if (service.service === 'stack') {
+    if (service.service === "stack" || service.service === "archive") {
       const peerKey = peer?.publicKey || 'unknown';
       this.peers[peerKey] = {
         peer: peer,
         publicKey: peerKey,
         connected: true
       };
-      console.log(`Stack: Peer ${peerKey} connected with Stack service`);
     }
+
 
     //
     // Archives 
     //
     if (service.service === "archive") {
-console.log("$$$$$$$$$$$$$$$$$$");
-console.log("ARCHIVE NODE UP!");
-console.log("$$$$$$$$$$$$$$$$$$");
+      if (this.pending_post_sig) {
+        let sig = this.pending_post_sig;
+        let pk = this.pending_post_pk;
+        this.pending_post_sig = "";
+        this.pending_post_pk = "";
+        await this.handlePostView(pk, sig);
+      }
       if (this.pending_author_load) {
-console.log("AND PENDING TO FETCH!");
         let pk = this.pending_author_load;
         this.pending_author_load = null;
         await this.handleCreatorView(pk);
-        //this.exploreOverlay.posts = await this.handleCreatorView(pk);
-        //this.exploreOverlay.isLoading = false;
-        //this.exploreOverlay.updatePostsGrid(pk);
-console.log("updated UI...");
       }
+      track_peer = true;
     }
+
 
   }
 
@@ -404,8 +396,12 @@ console.log("updated UI...");
         class: ['stack'], // This becomes the nft_type parameter for createMintNFTTransaction
         text: 'Stack Access Key',
         createData: async (modfile) => {
+	  // 100 years by default
+	  // duration: 3155760000000;
+	  // duration: 300000; // 5 minutes
           return {
             module: 'Stack',
+	    duration: 300000
           };
         }
       };
@@ -416,7 +412,14 @@ console.log("updated UI...");
       return {
         class: ['stack'],
         onTransfer: async (nft=null, tx=null, receiver="", data={}) => {
-console.log("ABOUT TO TEST VERIFICATION 1");
+
+console.log("***");
+console.log("***");
+console.log("***");
+console.log("***");
+console.log("***");
+console.log("***");
+console.log("adding routing path to Stack NFT...");
 
       	  if (!tx.msg) { tx.msg = {}; }
           if (!tx.msg.data) { tx.msg.data = {}; }
@@ -426,7 +429,27 @@ console.log("ABOUT TO TEST VERIFICATION 1");
           }
 
           if (!nft?.id) { return tx; }
-console.log("ABOUT TO TEST VERIFICATION 2");
+
+	  //
+	  // if we are the creator and this is a subscription, we should
+	  // sign for the duration of the subscription so that access
+	  // scripts can reconstruct our signature and import the duration
+	  // variable used to regulate access.
+	  //
+	  if (nft != null && tx.msg.data.path.length == 0) {
+	    if (nft.returnCreator() == this.publicKey) {
+	      if (tx.msg.data.duration && !tx.msg.data.duration_sig) {
+      		let duration = tx.msg.data.duration;
+      		let binding_hash = nft.id;
+      		let canonical_string = `${duration}|${binding_hash}`;
+      		let digest = this.app.crypto.hash(canonical_string);
+	  	let privatekey = await this.app.wallet.getPrivateKey();
+console.log("SIGNING DURATION SIG FOR: " + digest);
+console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
+	  	tx.msg.data.duration_sig = this.app.crypto.signMessage(digest, privatekey);
+	      }
+	    }
+	  }
 
           let value_obj = {
             timestamp: Date.now(),
@@ -435,39 +458,19 @@ console.log("ABOUT TO TEST VERIFICATION 2");
 
 	  if (data.delegate == true) { value_obj.delegate = true; }
 
-console.log("ABOUT TO TEST VERIFICATION 3");
           const value_json = JSON.stringify(value_obj);
           const value_b64 = Buffer.from(value_json).toString('base64');
-console.log("ABOUT TO TEST VERIFICATION 4");
 
           const canonical_string = `${receiver}|${value_b64}|${nft.id}`;
 	  const hash_digest = this_mod.app.crypto.hash(canonical_string);
 	  const privatekey = await this_mod.app.wallet.getPrivateKey();
 	  const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
 
-console.log("ABOUT TO TEST VERIFICATION 5");
-
           tx.msg.data.path.push({
             to: receiver,
             value: value_b64,
             sig: sig
           });
-
-console.log("ABOUT TO TEST VERIFICATION 4");
-
-//
-// TEST VERIFICATION NOW
-//
-const is_ok = this_mod.app.crypto.verifyRoutingPath(
-  tx.msg.data.path,
-  nft.returnCreator(),
-  nft.id
-);
-console.log("###");
-console.log("###");
-console.log("###");
-console.log("DOES PATH VALIDATE: " + is_ok)
-
 
           return tx;
         }
@@ -639,6 +642,20 @@ console.log("DOES PATH VALIDATE: " + is_ok)
         data.parent_id = post.parent_id;
       }
 
+// ------------------------------------------------------------
+// AUTHORITATIVE ACCESS INTENT NORMALIZATION (SUBSCRIPTIONS)
+// ------------------------------------------------------------
+// This MUST run before publishIntent is constructed
+if (post.accessLevel === 'subscription') {
+  post.publishIntent = {
+    visibility: 'subscription',
+    access_mode: post.access_mode || 'transferable',
+    time_limit: null,
+    author: this.publicKey
+  };
+}
+
+
       // ========================================================================
       // ACCESS SCRIPT GENERATION: Deterministic pipeline from intent to hash
       // ========================================================================
@@ -658,15 +675,20 @@ console.log("DOES PATH VALIDATE: " + is_ok)
           publishIntent.author = this.publicKey;
         }
       } else {
-        // Legacy format: convert accessLevel string to intent
-        const accessLevel = post.accessLevel || 'public';
-        publishIntent = {
-          visibility: accessLevel,
-          access_mode: null, // Default to null (will default to transferable for private)
-          time_limit: null,
-          author: this.publicKey
-        };
+  	// Legacy format: convert accessLevel string to intent
+  	const accessLevel = post.accessLevel || 'public';
+  	publishIntent = {
+  	  visibility: accessLevel,
+  	  access_mode:
+  	    accessLevel === 'subscription'
+  	      ? (post.access_mode || 'transferable')
+  	      : null,
+  	  time_limit: null,
+  	  author: this.publicKey
+  	};
       }
+
+console.log("PUBLISH INTENT:", publishIntent);
 
       // Get access script for intent
       let access_script = null;
@@ -729,7 +751,7 @@ console.log("DOES PATH VALIDATE: " + is_ok)
 
       await newtx.sign();
 
-alert("Propagating the Transaction!");
+      siteMessage("Propagating the Transaction!");
       await this.app.network.propagateTransaction(newtx);
       if (callback) {
         this.callbackAfterPost = callback;
@@ -1049,7 +1071,7 @@ alert("Propagating the Transaction!");
         
         // Browser-only confirmation alert for testing
         if (this.browser_active) {
-          alert("Your blog post has been received from the network.");
+          siteMessage("Your blog post has been received from the network.");
         }
       } else {
         siteMessage(`New stack post by ${this.app.keychain.returnUsername(from)}`, 3000);
@@ -1681,6 +1703,17 @@ alert("Propagating the Transaction!");
           hops: path
         });
       }
+      try {
+        let nft_txmsg = nft.tx?.returnMessage?.();
+        if (nft_txmsg.data.duration) {
+          access_witness_obj.push({
+            duration: nft_txmsg.data.duration ,
+            signature: nft_txmsg.data.duration_sig ,
+          });
+        }
+      } catch (err) {
+console.log("ERROR attaching duration and sig to witness...");
+      }
       const access_witness = JSON.stringify(access_witness_obj);
 
       // Note: access_hash and access_script come from the POST transaction, not the NFT
@@ -1822,11 +1855,17 @@ alert("Propagating the Transaction!");
       return localTx;
     }
 
+    //
     // Step 4: Query connected Stack peers (if localhost didn't have it)
     // Simple sequential query - try first available peer
     // No racing, no retries, no timeouts (as per requirements)
-
-console.log("about to make remote fetch...");
+    //
+    let peers = await this.app.network.getPeers();
+    if (peers.length === 0) {
+      this.pending_post_sig = signature;
+      this.pending_post_pk = null;
+      return null;
+    }
 
     const peerKeys = Object.keys(this.peers);
     if (peerKeys.length > 0) {
@@ -1899,8 +1938,6 @@ console.log("about to make remote fetch...");
    */
   async loadPostsForAuthor(publicKey, { forceRemote = true } = {}) {
 
-console.log("LPFA 1: " + publicKey);
-
     if (!publicKey || !this.app.wallet.isValidPublicKey(publicKey)) {
       return [];
     }
@@ -1916,8 +1953,6 @@ console.log("LPFA 1: " + publicKey);
       access_witness = accessData.access_witness;
     } 
 
-console.log("LPFA 2: " + JSON.stringify(access_witness));
-
     if (accessData && accessData.access_witness) {
       // Construct the access script for this author (transferable private posts)
       // This matches the script used when creating private posts
@@ -1931,9 +1966,6 @@ console.log("LPFA 2: " + JSON.stringify(access_witness));
       
     }
 
-console.log("LPFA 2: " + JSON.stringify(access_witness));
-
-
     // PART 2.1: Query local archive first
     // Build query object - attach access data if NFT exists
     const localQuery = {
@@ -1942,8 +1974,6 @@ console.log("LPFA 2: " + JSON.stringify(access_witness));
       field4: 'stack:post',
     };
     if (access_witness) { localQuery.access_witness = access_witness; }
-
-console.log("LPFA 3: " + JSON.stringify(localQuery));
 
     const localPosts = await new Promise((resolve) => {
       this.app.storage.loadTransactions(
@@ -1963,10 +1993,6 @@ console.log("LPFA 3: " + JSON.stringify(localQuery));
       }
     }
 
-console.log("LPFA 3.5 ---> posts total: " + posts.length);
-
-console.log("LPFA 4...: " + forceRemote);
-
     // PART 2.3: If forceRemote, query remote peers
     if (forceRemote) {
       // Build remote query with same access data pattern
@@ -1977,21 +2003,13 @@ console.log("LPFA 4...: " + forceRemote);
       };
       if (access_witness) { remoteQuery.access_witness = access_witness; }
 
-console.log("LPFA 5...: " + JSON.stringify(remoteQuery));
-
       let peers = await this.app.network.getPeers();
       if (peers.length === 0) {
 	// Defer until peers are available
-console.log("NO PEERS... deferring...");
     	this.pending_author_load = publicKey;
   	return posts;
      }
 
-
-
-console.log("LPFA 6...: " + JSON.stringify(remoteQuery));
-
- 
       const remotePosts = await new Promise((resolve) => {
         this.app.storage.loadTransactions(
           remoteQuery,
@@ -2002,7 +2020,6 @@ console.log("LPFA 6...: " + JSON.stringify(remoteQuery));
         );
       });
 
-console.log("LPFA 6.5... remote posts num: " + remotePosts.length);
       for (const tx of remotePosts) {
         seenSignatures.add(tx.signature);
         posts.push(tx);

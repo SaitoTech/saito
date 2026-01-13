@@ -148,6 +148,7 @@ export default class Wallet extends SaitoWallet {
           console.log('Invalid Payment Transaction to save...', txmsg);
           return;
         }
+        console.log('Save SAITO payment transaction in ledger...');
 
         const obj = {
           counter_party: { publicKey: '' },
@@ -183,6 +184,7 @@ export default class Wallet extends SaitoWallet {
           this.history_update_ts = obj.timestamp + 1;
         }
 
+        // Cache history in local forage
         this.save();
       }
 
@@ -283,7 +285,12 @@ export default class Wallet extends SaitoWallet {
 
         await this.app.network.propagateTransaction(newtx);
 
-        console.log('Expecting new balance of: ', this.pending_balance);
+        console.log(
+          'Current balance: ',
+          await this.checkBalance(),
+          '\nExpecting new balance of: ',
+          this.pending_balance
+        );
 
         return newtx.signature;
       }
@@ -1655,7 +1662,17 @@ export default class Wallet extends SaitoWallet {
 
   public async onNewBoundTransaction(tx: Transaction, save = true) {
     try {
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
+      console.log('%');
       console.log('saving new nft...');
+
       if (tx.isTo(this.app.wallet.publicKey)) {
         console.log('yeah, it is for me!');
         let nft_list = this.app.options.wallet.nfts || [];
@@ -1666,7 +1683,7 @@ export default class Wallet extends SaitoWallet {
           }
         });
         tx.packData();
-        console.log('saving transaction: ' + nft_id);
+        console.log('saving nft transaction: ' + nft_id);
         this.app.storage.saveTransaction(tx, { field4: nft_id, preserve: 1 }, 'localhost');
       }
     } catch (err) {

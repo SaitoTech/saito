@@ -121,7 +121,9 @@ export default class Blockchain extends SaitoBlockchain {
         // in blocks only the first time they are processed. For this reason we save the NFTs
         // here by flagging the transactions which have them and sending them to teh wallet.
         //
+
         if (txs[z].type == TransactionType.Bound) {
+          console.log('into wallet on new bound tx');
           this.app.wallet.onNewBoundTransaction(txs[z]);
         }
 

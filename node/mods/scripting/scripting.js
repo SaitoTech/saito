@@ -19,6 +19,9 @@ var OpcodeCheckOwnNft   	= require('./lib/opcodes/checkownnft');
 var OpcodeCheckOwnNftWhere   	= require('./lib/opcodes/checkownnftwhere');
 var OpcodeCheckPath     	= require('./lib/opcodes/checkpath');
 var OpcodeCheckPathHop  	= require('./lib/opcodes/checkpathhop');
+var OpcodeCheckField 		= require('./lib/opcodes/checkfield');
+var OpcodeSumFields 		= require('./lib/opcodes/sumfields');
+var OpcodeImportField 		= require('./lib/opcodes/importfield');
 
 class Scripting extends ModTemplate {
 
@@ -55,7 +58,8 @@ class Scripting extends ModTemplate {
 		  OpcodeCheckSig , OpcodeCheckTime , OpcodeCheckHash , 
       		  OpcodeCheckSender , OpcodeCheckField , OpcodeCheckMultiSig, 
       		  OpcodeCheckOwn, OpcodeCheckOwnNft, OpcodeCheckPath, 
-		  OpcodeCheckPathHop, OpcodeCheckOwnNftWhere
+		  OpcodeCheckPathHop, OpcodeCheckOwnNftWhere, OpcodeCheckField ,
+		  OpcodeImportField , OpcodeSumFields
     		].forEach((op) => { 
   			if (op?.name && typeof op.execute === "function") {
 
@@ -182,6 +186,10 @@ canonicalize(x) {
   	//
   	async evaluate(hash="", script="", witness = "", vars = {}, tx = null, blk = null) {
 
+		//
+		// OPCODES periodically write data outputs, for use in other opcodes
+		//
+		vars.__opcodes = {};
 
 console.log("into evaluate... 1");
 console.log("tx _eval:", tx);

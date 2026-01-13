@@ -193,11 +193,6 @@ class Archive extends ModTemplate {
 
 		var isDbCreated = await this.localDB.initDb(db);
 
-		/*if (isDbCreated) {
-			console.log('ARCHIVE: Db Created & connection is opened');
-		} else {
-			console.log('ARCHIVE: Connection is opened');
-		}*/
 	}
 
 	async render() {
@@ -350,8 +345,10 @@ class Archive extends ModTemplate {
 		// avoid users submitting with correct information inappropriately
 		//
 		if (req.data) {
-		  req.data.REQUESTER = peer.publicKey;
-		  req.data.NOW = new Date().getTime(); 
+		  if (typeof req.data === "object" && req.data !== null && !Array.isArray(req.data)) {
+		    req.data.REQUESTER = peer.publicKey;
+		    req.data.NOW = new Date().getTime(); 
+		  }
 		}
 
 		//
@@ -365,7 +362,6 @@ class Archive extends ModTemplate {
 				//Duplicates loadTransactionsWithCallback, but that's fine
 				//
 				let txs = await this.loadTransactions(req.data);
-
 				if (mycallback) {
 					mycallback(txs);
 					return 1;
@@ -438,10 +434,10 @@ class Archive extends ModTemplate {
 			});
 
 			if (numRows) {
-				console.log(
-					'Local Archive index successfully inserted: ',
-					JSON.parse(JSON.stringify(newObj))
-				);
+				console.log('Local Archive index successfully inserted.');
+//					'Local Archive index successfully inserted: ',
+//					JSON.parse(JSON.stringify(newObj))
+//				);
 			} else {
 				console.log('Local Archive index not inserted...');
 			}
@@ -505,11 +501,9 @@ class Archive extends ModTemplate {
 			};
 
 			if (newObj.tx_size > 50000) {
-				console.log('Save large tx: ', tx.length);
 				const fs = this.app?.storage?.returnFileSystem();
 				if (fs) {
 					let filename = `${__dirname}/../../data/archive/${newObj.sig}`;
-					console.log(filename);
 					fs.writeFileSync(filename, newObj.tx);
 					params['$tx'] = '';
 				}
@@ -590,8 +584,6 @@ class Archive extends ModTemplate {
 				}
 			});
 		} else {
-			//console.log(sql, params, tx.optional);
-
 			if (newObj.tx_size > 50000) {
 				const fs = this.app?.storage?.returnFileSystem();
 				if (fs) {
@@ -626,9 +618,6 @@ class Archive extends ModTemplate {
 		let order_clause = ' ORDER BY archives.id';
 		let sort = 'DESC';
 		let request_tx = obj.request_tx || null;
-
-console.log("REQUEST TX IS: " + JSON.stringify(request_tx));
-console.log("REQUEST OBJ IS: " + JSON.stringify(obj));
 
 		//For JS-Store
 		let order_obj = { by: 'id', type: 'desc' };
@@ -750,7 +739,6 @@ console.log("REQUEST OBJ IS: " + JSON.stringify(obj));
 		let rows = await this.app.storage.queryDatabase(sql, params, 'archive');
 
 		if (this.app.BROWSER && !rows?.length) {
-			//console.log('archive checkpoint');
 			rows = await this.localDB.select({
 				from: 'archives',
 				where: where_obj,
@@ -764,7 +752,6 @@ console.log("REQUEST OBJ IS: " + JSON.stringify(obj));
 			} else {
 				for (let r of rows) {
 					if (!r.tx) {
-						//console.log('Read tx from disk: ', r.sig);
 						let filename = `${__dirname}/../../data/archive/${r.sig}`;
 						if (fs.existsSync(filename)) {
 							r.tx = fs.readFileSync(filename, { encoding: 'UTF-8' });
@@ -792,9 +779,6 @@ console.log("REQUEST OBJ IS: " + JSON.stringify(obj));
 		// access_script and access_witness.
 		//
 		if (this.access_hash == 1) {
-			console.log('*****************');
-			console.log('ACCESS HASH CHECK');
-			console.log('*****************');
 			let altered_rows = [];
 
 			for (let r of rows) {
@@ -804,24 +788,10 @@ console.log("REQUEST OBJ IS: " + JSON.stringify(obj));
 				// a specific network item in order to access.
 				//
 				if (r.owner) {
-
-console.log(" we have found a protected row ... ");
-
   					let access_script = obj.access_script || null;
   					let access_hash   = obj.access_hash   || null;
-
 					if (!access_script && obj.access_witness) {
-
-console.log("* * * WITNESS * * *");
-console.log(JSON.stringify(obj.access_witness));
-console.log("* * * * * * * * * *");
-
     						try {
-//  							if (!r.tx || !r.tx.includes('"access_script"')) {
-//console.log("no access_script in transaction, thus no way to confirm access_witness alone valid...");
-//  								continue;
-//							}
-
       							let tx = new Transaction();
       							tx.deserialize_from_web(this.app, r.tx);
 
@@ -839,17 +809,6 @@ console.log("* * * * * * * * * *");
     						}
 					}
 
-					//
-					// 
-					//
-  					//if (access_hash !== r.owner) {
-    					//	continue;
-  					//}
-
-
-					//
-					//
-					//
 					if (!access_script && !obj.access_witness) {
 						//
 						// no script but witness provided...
@@ -860,9 +819,6 @@ console.log("* * * * * * * * * *");
 
 						if (access_hash === r.owner) {
 	
-
-console.log("HEADING IN WITH REQUESTER: " + obj.REQUESTER);
-
 							let include_row = false;
 							let scripting_mod = this.app.modules.returnModule('Scripting');
 							if (scripting_mod) {
@@ -876,13 +832,8 @@ console.log("HEADING IN WITH REQUESTER: " + obj.REQUESTER);
 										null
 									)
 								) {
-console.log("SUCCEEDED in EVALUATE...");
 									include_row = true;
 								} else {
-console.log("FAILED TO EVALUATE...");
-console.log(access_hash);
-console.log(JSON.stringify(access_script));
-console.log(JSON.stringify(obj.access_witness));
 								}
 							}
 							if (include_row) {
@@ -896,8 +847,9 @@ console.log(JSON.stringify(obj.access_witness));
 			}
 
 			rows = altered_rows;
-			console.log('ROWS RETURNING: ' + JSON.stringify(rows));
 		}
+
+console.log("returning rows: " + JSON.stringify(rows));
 
 		return rows;
 	}
@@ -947,7 +899,6 @@ console.log(JSON.stringify(obj.access_witness));
 
 		// Check if transaction exists
 		if (!existing_rows || existing_rows.length === 0) {
-			console.log('Transaction not found in archive, cannot delete');
 			return false;
 		}
 
@@ -963,7 +914,6 @@ console.log(JSON.stringify(obj.access_witness));
 			console.log('*****************');
 			console.log('DELETE ACCESS HASH CHECK');
 			console.log('*****************');
-			console.log('Transaction owner:', existing_row.owner);
 
 			// Check if access credentials are provided
 			if (!obj.access_script || !obj.access_witness) {
@@ -1256,7 +1206,7 @@ console.log(JSON.stringify(obj.access_witness));
 
 			sql = 'SELECT COUNT(*) FROM archives';
 			rows = await this.app.storage.queryDatabase(sql, {}, 'archive');
-			console.log(rows);
+			//console.log(rows);
 		}
 
 		this.archive.last_prune = now;

@@ -570,18 +570,18 @@ console.log("txmsg: " + JSON.stringify(this.posts[z].returnMessage()));
           if (keyData && keyData.publicKey) {
             publicKey = keyData.publicKey;
           } else {
-            alert('Unable to find user with that username or public key. Please check and try again.');
+            siteMessage('Unable to find user with that username or public key. Please check and try again.');
             return;
           }
         } else {
-          alert('Unable to resolve username. Please enter a valid public key.');
+          siteMessage('Unable to resolve username. Please enter a valid public key.');
           return;
         }
       }
 
       // Validate publicKey
       if (!this.app.wallet.isValidPublicKey(publicKey)) {
-        alert('Invalid public key. Please check and try again.');
+        siteMessage('Invalid public key. Please check and try again.');
         return;
       }
 
@@ -591,11 +591,11 @@ console.log("txmsg: " + JSON.stringify(this.posts[z].returnMessage()));
         // Refresh the overlay to show new subscription
         this.mod.exploreOverlay.render();
       } else {
-        alert('Already subscribed to this creator.');
+        siteMessage('Already subscribed to this creator.');
       }
     } catch (error) {
       console.error('Stack: Error adding subscription:', error);
-      alert('Error adding subscription. Please try again.');
+      siteMessage('Error adding subscription. Please try again.');
     }
   }
 
