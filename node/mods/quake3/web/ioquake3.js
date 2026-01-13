@@ -17182,7 +17182,7 @@ var SYSC = {
 		// HACK - shift to HTTPS
 		//
 		//var url = 'https://' + root + '/assets/' + name;
-		var url = 'https://q3-us.saito.io/assets/' + name;
+		var url = 'https://quake.adsotrans.com/assets/' + name;
 		console.log('URL IS: ' + url);
 
 		SYS.DoXHR(url, {

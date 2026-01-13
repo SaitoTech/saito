@@ -48,14 +48,10 @@ class Relay extends ModTemplate {
       this.busy = true;
     });
 
-    app.connection.on('relay-ping-peer', (publicKey) => {
-      if (this.stun?.hasConnection(publicKey)) {
-        app.connection.emit('relay-is-online', publicKey, true);
-      } else {
-        this.sendRelayMessage([publicKey], 'ping', {
-          status: this.busy
-        });
-      }
+    app.connection.on('relay-ping-peer', (public_keys) => {
+      this.sendRelayMessage(public_keys, 'ping', {
+        status: this.busy
+      });
     });
 
     app.connection.on('relay-notify-peer', (publicKeys, data) => {
@@ -177,7 +173,11 @@ class Relay extends ModTemplate {
           if (message.data.status) {
             app.connection.emit('relay-is-busy', tx.from[0].publicKey);
           } else {
-            app.connection.emit('relay-is-online', tx.from[0].publicKey);
+            app.connection.emit(
+              'relay-is-online',
+              tx.from[0].publicKey,
+              this.stun?.hasConnection(tx.from[0].publicKey)
+            );
           }
 
           if (message.request === 'ping') {

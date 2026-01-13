@@ -35,7 +35,6 @@ class Storage {
       try {
         this.localDB = null;
         await this.initializeApplicationDB();
-        console.log(JSON.stringify(await this.loadLocalApplications()));
       } catch (err) {
         console.log('Error initializeApplicationDB:', err);
       }
@@ -204,20 +203,14 @@ class Storage {
    * Note: You might need to await this function for the internal callbacks to work...
    */
   async loadTransactions(obj = {}, mycallback, peer = null, deserialize = 1) {
-    let storage_self = this;
 
+    let storage_self = this;
     const message = 'archive';
     let data: any = {};
     data.request = 'load';
-
     data = Object.assign(data, obj);
-
     const startTime = Date.now();
 
-    //
-    // We could have the archive module handle this
-    // idk why we have it return an array of objects that are just {"tx": serialized/stringified transaction}
-    //
     let internal_callback = (res) => {
       let txs = [];
       const endTime = Date.now();

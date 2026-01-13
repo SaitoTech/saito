@@ -222,11 +222,31 @@ html:has(.stack-create-post-page) {
 }
 
 /* Help Section */
+.stack-editor-help-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.stack-create-post-page .stack-editor-help-icon-container {
+  display: flex;
+  justify-content: space-around;
+}
+
+.stack-editor-help-text-container {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height ease-in-out 0.5s;
+}
+
+.stack-cheatsheet-title {
+ text-align: center;
+}
+
 .stack-create-post-page .stack-editor-help {
   display: block;
-  background: var(--saito-surface-selected);
-  padding: 0.5rem;
+  padding: 1rem;
   border-radius: var(--saito-border-radius);
+  border: 1px solid var(--saito-border-color);
   color: var(--saito-surface-text);
 }
 
@@ -248,6 +268,71 @@ html:has(.stack-create-post-page) {
   line-height: 1.5;
   color: inherit; /* Inherit from container */
   margin: 0;
+}
+
+.stack-create-post-page .stack-markdown-cheatsheet {
+  margin: 1rem 0 0 0;
+  font-size: small;
+}
+
+/* Help Icon Container - matches stack-view-post-actions styling */
+.stack-create-post-page .stack-editor-help-icon-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Circular icon-only badges - matches stack-view-post-action-badge styling */
+/* Direct icon (not wrapped in <a>) */
+.stack-create-post-page .stack-editor-help-icon-container > .stack-help-icon {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--saito-border-color);
+  color: var(--saito-font-color);
+  opacity: 0.6; /* Low contrast by default */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+/* Link wrapper for icon */
+.stack-create-post-page .stack-editor-help-icon-container > a {
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--saito-border-color);
+  color: var(--saito-font-color);
+  opacity: 0.6; /* Low contrast by default */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+/* Icon inside link wrapper */
+.stack-create-post-page .stack-editor-help-icon-container > a .stack-help-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+/* Hover states */
+.stack-create-post-page .stack-editor-help-icon-container > .stack-help-icon:hover,
+.stack-create-post-page .stack-editor-help-icon-container > a:hover {
+  opacity: 1;
+  background: var(--saito-primary);
+  border-color: var(--saito-primary);
+  color: white;
+  transform: scale(1.05);
 }
 
 .stack-create-post-page .stack-draft-state {
@@ -1016,6 +1101,21 @@ html:has(.stack-create-post-page) {
 
   .stack-post-body-editor > h3 {
     font-size: 1.75rem;
+  }
+
+  .stack-create-post-page .stack-editor-help-icon-container {
+    gap: 0.5rem;
+  }
+
+  .stack-create-post-page .stack-editor-help-icon-container > .stack-help-icon,
+  .stack-create-post-page .stack-editor-help-icon-container > a {
+    width: 3.2rem;
+    height: 3.2rem;
+  }
+
+  .stack-create-post-page .stack-editor-help-icon-container > .stack-help-icon,
+  .stack-create-post-page .stack-editor-help-icon-container > a .stack-help-icon {
+    font-size: 1.4rem;
   }
 }
 

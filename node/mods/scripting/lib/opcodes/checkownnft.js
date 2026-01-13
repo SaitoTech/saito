@@ -24,6 +24,7 @@ module.exports = {
   },
 
   execute: async function (app, script, witness, vars, tx, blk) {
+
     let tx_sender = null;
     if (tx.from.length > 0) {
       tx_sender = tx.from[0].publicKey;
@@ -31,10 +32,11 @@ module.exports = {
       return false;
     }
 
+console.log("WITNESS: " +JSON.stringify(witness));
+
     //
     // check tx.signature is correct / validates
     //
-
     let nftid    = script.nftid || "";
     let utxokey1 = witness.utxokey1 || "";
     let utxokey2 = witness.utxokey2 || "";
@@ -43,6 +45,11 @@ module.exports = {
     if (!nftid) { return false; }
     if (!utxokey1 || !utxokey2 || !utxokey3) { return false; }
 
+console.log("CHECKOWNNFT: " + tx_sender);
+console.log("CHECKOWNNFT: " + nftid);
+console.log("CHECKOWNNFT: " + utxokey1);
+console.log("CHECKOWNNFT: " + utxokey2);
+console.log("CHECKOWNNFT: " + utxokey3);
 
     //
     // TEMPORARILY RETURNING TRUE, NEED NEW NPMS FOR SPENDABILITY CHECK

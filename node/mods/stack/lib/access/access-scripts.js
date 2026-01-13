@@ -24,7 +24,7 @@ function getAccessScriptForIntent(intent) {
   }
 
   // Validate intent structure
-  if (intent.visibility !== 'public' && intent.visibility !== 'private') {
+  if (!['public', 'private', 'subscription'].includes(intent.visibility)) {
     throw new Error(`getAccessScriptForIntent: invalid visibility "${intent.visibility}"`);
   }
 
@@ -51,6 +51,22 @@ function getAccessScriptForIntent(intent) {
     } else if (accessMode === null) {
       // Default to transferable if not specified
       return getPrivateTransferableScript(intent.author);
+    } else {
+      throw new Error(`getAccessScriptForIntent: invalid access_mode "${accessMode}"`);
+    }
+  }
+
+  // Subscription posts: select template based on access_mode
+  if (intent.visibility === 'subscription') {
+    const accessMode = intent.access_mode;
+
+    if (accessMode === 'transferable') {
+      return getSubscriptionTransferableScript(intent.author);
+    } else if (accessMode === 'non-transferable') {
+      return getSubscriptionNonTransferableScript(intent.author);
+    } else if (accessMode === null) {
+      // Default to transferable
+      return getSubscriptionTransferableScript(intent.author);
     } else {
       throw new Error(`getAccessScriptForIntent: invalid access_mode "${accessMode}"`);
     }
@@ -137,8 +153,117 @@ function getPrivateNonTransferableScript(authorPublicKey) {
             value: "REQUESTER"
           }
         ],
+        publickey: authorPublicKey ,
+        hash: "__opcodes.checkownnftwhere.nft_id"
+      }
+    ]
+  };
+}
+
+
+function getSubscriptionTransferableScript(authorPublicKey) {
+  return {
+    op: "AND",
+    args: [
+
+      { 
+	op: "CHECKOWNNFTWHERE",
+        where: [
+          {
+            field: "type",
+            operator: "==",
+            value: "stack"
+          },
+          {
+            field: "creator",
+            operator: "==",
+            value: authorPublicKey
+          }
+        ]
+
+      },
+
+      {
+        op: "CHECKPATHHOP",
+        selector: "FIRST",
+        where: [{ field: "value.delegate", operator: "==", value: false }],
+        publickey: authorPublicKey ,
+        hash: "__opcodes.checkownnftwhere.nft_id"
+      },
+
+      {
+        op: "IMPORTFIELD",
+        field: "duration",
+        publickey: authorPublicKey ,
+        hash: "__opcodes.checkownnftwhere.nft_id"
+      },
+
+      {
+        op: "SUMFIELDS",
+        a: "__opcodes.checkpathhop.hop.value.timestamp",
+        b: "__opcodes.importfield.duration",
+        into: "expiry"
+      },
+
+      {
+        op: "CHECKFIELD",
+        field: "__opcodes.sumfields.expiry",
+        operator: ">",
+        value: "NOW"
+      }
+    ]
+  }
+}
+
+function getSubscriptionNonTransferableScript(authorPublicKey) {
+  return {
+    op: "AND",
+    args: [
+
+      {
+        op: "CHECKOWNNFTWHERE",
+        where: [
+          { field: "type", operator: "==", value: "stack" },
+          { field: "creator", operator: "==", value: authorPublicKey }
+        ]
+      },
+
+      {
+        op: "CHECKPATHHOP",
+        selector: "FIRST",
+        where: [
+          { field: "value.delegate", operator: "==", value: false }
+        ],
         publickey: authorPublicKey,
-        hash: ""
+        hash: "__opcodes.checkownnftwhere.nft_id"
+      },
+
+      {
+        op: "IMPORTFIELD",
+        field: "duration",
+        publickey: authorPublicKey,
+        hash: "__opcodes.checkownnftwhere.nft_id"
+      },
+
+      {
+        op: "SUMFIELDS",
+        a: "__opcodes.checkpathhop.hop.value.timestamp",
+        b: "__opcodes.importfield.duration",
+        into: "expiry"
+      },
+
+      {
+        op: "CHECKFIELD",
+        field: "__opcodes.sumfields.expiry",
+        operator: ">",
+        value: "NOW"
+      },
+
+      {
+        op: "CHECKFIELD",
+        field: "__opcodes.checkpathhop.hop.to",
+        operator: "==",
+        value: "REQUESTER"
       }
     ]
   };

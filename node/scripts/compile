@@ -202,6 +202,7 @@ function reset_persistent {
 
   #rm -f ./data/archive.sq3
   rm -f ./data/memento.sq3
+  rm -f ./data/migration.sq3
   #rm -f ./data/warehouse.sq3
   #rm -f ./data/warehousex.sq3
   rm -f ./data/assetstore.sq3

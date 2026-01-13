@@ -2947,6 +2947,33 @@ class Browser {
       cleanup
     };
   }
+
+  //
+  // convenience function, used in scripting, put here so it
+  // will be available on for the OPCODEs on the app.* structure
+  //
+  // it takes a value, and an object and either extracts the
+  // value from the object (if exists) or returns the string
+  //
+  resolveVarReference(vars, value) {
+    if (typeof value !== 'string') {
+      return value;
+    }
+    const parts = value.split('.');
+    let cursor = vars;
+    for (let key of parts) {
+      if (
+        cursor &&
+        typeof cursor === 'object' &&
+        Object.prototype.hasOwnProperty.call(cursor, key)
+      ) {
+        cursor = cursor[key];
+      } else {
+        return value; // fail closed: treat as literal
+      }
+    }
+    return cursor;
+  }
 }
 
 export default Browser;
