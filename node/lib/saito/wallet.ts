@@ -1674,10 +1674,14 @@ export default class Wallet extends SaitoWallet {
   }
 
   public extractNFTType(hex = '') {
-    if (!hex || hex.length < 66 || !/^[0-9a-fA-F]+$/.test(hex)) { return ''; }
+    if (!hex || hex.length < 66 || !/^[0-9a-fA-F]+$/.test(hex)) {
+      return '';
+    }
     hex = hex.slice(0, 66);
     const bytes = new Uint8Array(hex.match(/.{2}/g).map((b) => parseInt(b, 16)));
-    if (bytes.length !== 33) { return ''; }
+    if (bytes.length !== 33) {
+      return '';
+    }
     const typeBytes = bytes.slice(17); // bytes[17..33)
     const decoder = new TextDecoder();
     const text = decoder.decode(typeBytes).replace(/\x00+$/, '');

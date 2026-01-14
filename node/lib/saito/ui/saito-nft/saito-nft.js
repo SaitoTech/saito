@@ -190,7 +190,7 @@ class SaitoNFT {
 
     if (!this.id) {
       this.id = this.computeNFTIdFromTx(this.tx);
-console.log("this.id: " + this.id);
+      console.log('this.id: ' + this.id);
     }
   }
 
@@ -198,7 +198,6 @@ console.log("this.id: " + this.id);
   // Extracts NFT image/text, tx_sig, txmsg data from a transaction
   //
   extractNFTData() {
-
     if (!this.tx) {
       return;
     }
@@ -211,13 +210,13 @@ console.log("this.id: " + this.id);
 
     // Store the old tx_sig before updating
     let old_tx_sig = this.tx_sig;
-  
+
     // Update to new signature
     this.tx_sig = this.tx?.signature;
- 
-    // 
+
+    //
     // If signature changed and we're in a browser, update the DOM element's class
-    // 
+    //
     if (this.app.BROWSER && old_tx_sig && this.tx_sig && old_tx_sig !== this.tx_sig) {
       let oldElement = document.querySelector(`.nfttxsig${old_tx_sig}`);
       if (oldElement && !document.querySelector(`.nfttxsig${this.tx_sig}`)) {
@@ -226,7 +225,7 @@ console.log("this.id: " + this.id);
         oldElement.classList.add(`nfttxsig${this.tx_sig}`);
       }
     }
-  
+
     this.txmsg = this.tx.returnMessage();
     this.id = this.computeNFTIdFromTx(this.tx);
     this.data = this.txmsg?.data ?? {};
@@ -321,13 +320,15 @@ console.log("this.id: " + this.id);
       return null;
     }
 
-console.log("we are in compute NFTId from TX... 1");
+    console.log('we are in compute NFTId from TX... 1');
 
     // Prefer outputs; fall back to inputs
     let s3 = (tx?.to && tx.to[2]) || (tx?.from && tx.from[2]);
-    if (!s3 || !s3.publicKey) { return null; }
+    if (!s3 || !s3.publicKey) {
+      return null;
+    }
 
-console.log("we are in compute NFTId from TX... 2");
+    console.log('we are in compute NFTId from TX... 2');
 
     let pk = s3.publicKey;
     let bytes = null;
@@ -347,17 +348,23 @@ console.log("we are in compute NFTId from TX... 2");
       bytes = new Uint8Array(pk.data);
     }
 
-console.log("we are in compute NFTId from TX... 6");
+    console.log('we are in compute NFTId from TX... 6');
 
-    if (!bytes) { return null; }
+    if (!bytes) {
+      return null;
+    }
 
-console.log("we are in compute NFTId from TX... 7");
+    console.log('we are in compute NFTId from TX... 7');
 
     // Some encoders may prepend a 0x00; tolerate 34→33
-    if (bytes.length === 34 && bytes[0] === 0) { bytes = bytes.slice(1); }
-    if (bytes.length !== 33) { return null; }
+    if (bytes.length === 34 && bytes[0] === 0) {
+      bytes = bytes.slice(1);
+    }
+    if (bytes.length !== 33) {
+      return null;
+    }
 
-console.log("we are in compute NFTId from TX... 8");
+    console.log('we are in compute NFTId from TX... 8');
 
     // Return as hex string
     return Array.from(bytes)
@@ -482,9 +489,10 @@ console.log("we are in compute NFTId from TX... 8");
     return all_slips;
   }
 
-
   returnType() {
-    if (this.nft_type) { return this.nft_type; } 
+    if (this.nft_type) {
+      return this.nft_type;
+    }
     if (this.slip3?.utxo_key) {
       return this.app.wallet.extractNFTType(this.slip3.utxo_key);
     }

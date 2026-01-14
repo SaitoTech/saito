@@ -43,7 +43,9 @@ class ProvideMetaDataOverlay {
     //
     let confirm_btn = document.querySelector('.saito-nft-footer-btn.send');
     let title_element = document.querySelector('.saito-nft-header-title.editable');
-    let description_element = document.querySelector('.saito-nft-description-box-metadata.editable');
+    let description_element = document.querySelector(
+      '.saito-nft-description-box-metadata.editable'
+    );
 
     //
     // confirm / create
@@ -53,7 +55,7 @@ class ProvideMetaDataOverlay {
         // Only set title/description if they were modified (not default values)
         let titleEl = document.querySelector('.saito-nft-header-title.editable');
         let descEl = document.querySelector('.saito-nft-description-box-metadata.editable');
-        
+
         if (titleEl) {
           let currentTitle = titleEl.innerText.trim();
           let defaultTitle = titleEl.getAttribute('data-default-title');
@@ -61,7 +63,7 @@ class ProvideMetaDataOverlay {
             this.nfttx.msg.title = currentTitle;
           }
         }
-        
+
         if (descEl) {
           let descTextEl = descEl.querySelector('.saito-nft-description-text-metadata') || descEl;
           let currentDesc = descTextEl.innerText.trim();
@@ -71,7 +73,7 @@ class ProvideMetaDataOverlay {
             this.nfttx.msg.description = currentDesc.trim();
           }
         }
-        
+
         siteMessage('Broadcasting NFT Transaction...', 3000);
         this.overlay.close();
         this.nfttx.packData();
@@ -87,14 +89,14 @@ class ProvideMetaDataOverlay {
     let editTitle = async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       if (!title_element) return;
-      
+
       let currentTitle = title_element.innerText.trim();
       let defaultTitle = title_element.getAttribute('data-default-title');
       let promptText = currentTitle === defaultTitle ? '' : currentTitle;
       let new_title = await sprompt('Provide NFT Title:', promptText);
-      
+
       if (new_title !== null) {
         if (new_title.trim()) {
           title_element.innerText = new_title.trim();
@@ -104,18 +106,18 @@ class ProvideMetaDataOverlay {
         }
       }
     };
-    
+
     if (title_element) {
       title_element.style.cursor = 'pointer';
       title_element.onclick = editTitle;
     }
-    
+
     // Also make the pencil icon clickable
     let title_icon = document.querySelector('.saito-nft-edit-title-icon-metadata');
     if (title_icon) {
       title_icon.style.cursor = 'pointer';
       title_icon.onclick = editTitle;
-      }
+    }
 
     //
     // Description editing
@@ -125,18 +127,18 @@ class ProvideMetaDataOverlay {
       description_element.onclick = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         let descBox = e.currentTarget.closest('.saito-nft-description-box-metadata');
         if (!descBox) {
           descBox = description_element;
         }
-        
+
         let descText = descBox.querySelector('.saito-nft-description-text-metadata') || descBox;
         let currentDesc = descText.innerText.trim();
         let defaultDesc = descBox.getAttribute('data-default-description');
         let promptText = currentDesc === defaultDesc ? '' : currentDesc;
         let new_description = await sprompt('Provide NFT Description:', promptText);
-        
+
         if (new_description !== null) {
           if (new_description.trim()) {
             descText.innerText = new_description.trim();

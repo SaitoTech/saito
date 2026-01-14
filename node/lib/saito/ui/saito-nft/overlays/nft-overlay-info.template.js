@@ -7,7 +7,7 @@ module.exports = (app, mod, nft_overlay) => {
   // Extract NFT information
   let nft_id = nft?.id || 'N/A';
   let creator = nft?.creator || nft?.slip1?.public_key || 'N/A';
-  
+
   // Decode creation block info from slip3
   let creationInfo = nft_overlay.decodeSlip3CreationInfo();
   let block_id = creationInfo.block_id || 'N/A';
@@ -37,10 +37,11 @@ module.exports = (app, mod, nft_overlay) => {
   }
 
   // Build info table HTML
-  let createdInDisplay = block_id !== 'N/A' && tx_ordinal !== 'N/A' 
-    ? `block ${block_id}, transaction ${tx_ordinal}` 
-    : 'N/A';
-  
+  let createdInDisplay =
+    block_id !== 'N/A' && tx_ordinal !== 'N/A'
+      ? `block ${block_id}, transaction ${tx_ordinal}`
+      : 'N/A';
+
   let metadataRow = '';
   if (Object.keys(metadata).length > 0) {
     metadataRow = `
@@ -50,7 +51,7 @@ module.exports = (app, mod, nft_overlay) => {
       </div>
     `;
   }
-  
+
   let infoTableHtml = `
     <div class="nft-info-table">
       <div class="nft-info-row">
@@ -81,7 +82,7 @@ module.exports = (app, mod, nft_overlay) => {
     for (let z = 0; z < all_slips.length; z++) {
       let utxoIdx = z + 1;
       let slip = all_slips[z];
-      
+
       // Get UUID from slip1: block_id-transaction_id-slip_id
       let uuid = 'N/A';
       if (slip.slip1) {
@@ -90,13 +91,13 @@ module.exports = (app, mod, nft_overlay) => {
         let slipIndex = slip.slip1.slip_index || 'N/A';
         uuid = `${blockId}-${txOrdinal}-${slipIndex}`;
       }
-      
+
       let amount = Number(slip.slip1.amount) || 0;
       let splitButtonHtml = '';
       if (amount > 1) {
         splitButtonHtml = `<div class="utxo-split-btn" data-utxo-idx="${utxoIdx}">[ split ]</div>`;
       }
-      
+
       splitUtxosHtml += `
         <div class="nft-slip-box utxo-${utxoIdx}" id="utxo_${utxoIdx}">
           <div class="nft-slip-box-row">
@@ -117,14 +118,14 @@ module.exports = (app, mod, nft_overlay) => {
           </div>
         </div>
       `;
-      
+
       // Create a hidden slider for each UTXO
       let canAtomize = all_slips[z].slip1.amount <= 25;
       let atomizeButtonHtml = '';
       if (canAtomize) {
         atomizeButtonHtml = `<button class="split-button atomize-button atomize-button-utxo-${utxoIdx}">atomize</button>`;
       }
-      
+
       splitSlidersHtml += `
         <div class="saito-nft-split-overlay split-container-utxo-${utxoIdx}" data-utxo-idx="${utxoIdx}">
           <div class="split-instructions">
