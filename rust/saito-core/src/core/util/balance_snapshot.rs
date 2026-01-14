@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter, Write};
 use std::io::{BufRead, BufReader};
 
 use log::{debug, info};
+use num_traits::{FromPrimitive, ToPrimitive};
 
 use crate::core::consensus::slip::{Slip, SlipType};
 use crate::core::defs::{
@@ -58,8 +59,13 @@ impl BalanceSnapshot {
             .map(|slip| {
                 let key = slip.public_key.to_base58();
                 let entry = format!(
-                    "{} {:?} {:?} {:?} {:?}",
-                    key, slip.block_id, slip.tx_ordinal, slip.slip_index, slip.amount
+                    "{} {:?} {:?} {:?} {:?} {:?}",
+                    key,
+                    slip.block_id,
+                    slip.tx_ordinal,
+                    slip.slip_index,
+                    slip.amount,
+                    slip.slip_type.to_u8().unwrap()
                 );
                 entry
             })
@@ -103,9 +109,9 @@ impl BalanceSnapshot {
 
         rows.iter().try_for_each(|row| {
             let cols: Vec<&str> = row.split(' ').collect();
-            if cols.len() != 5 {
+            if cols.len() != 6 {
                 return Err(format!(
-                    "row is invalid. number of columns is {:?}. but should be 5",
+                    "row is invalid. number of columns is {:?}. but should be 6",
                     cols.len()
                 ));
             }
@@ -118,6 +124,9 @@ impl BalanceSnapshot {
                 .get(3)
                 .ok_or("cannot find slip id in row".to_string())?;
             let amount = cols.get(4).ok_or("cannot find amount in row".to_string())?;
+            let slip_type = cols
+                .get(5)
+                .ok_or("cannot find slip type in row".to_string())?;
 
             let key: SaitoPublicKey = SaitoPublicKey::from_base58(key)
                 .or(Err(format!("failed parsing key : {:?}", key)))?;
@@ -133,6 +142,11 @@ impl BalanceSnapshot {
             let amount = amount
                 .parse()
                 .or(Err(format!("failed parsing amount : {:?}", amount)))?;
+            let slip_type = slip_type
+                .parse::<u8>()
+                .or(Err(format!("failed parsing slip type : {:?}", slip_type)))?;
+            let slip_type = SlipType::from_u8(slip_type)
+                .ok_or(format!("invalid slip type value : {:?} in row", slip_type))?;
 
             let mut slip = Slip {
                 public_key: key,
@@ -140,7 +154,7 @@ impl BalanceSnapshot {
                 slip_index: slip_id,
                 block_id,
                 tx_ordinal: tx_id,
-                slip_type: SlipType::Normal,
+                slip_type: slip_type,
                 utxoset_key: [0; UTXO_KEY_LENGTH],
                 is_utxoset_key_set: false,
             };
@@ -201,6 +215,7 @@ impl TryFrom<String> for BalanceSnapshot {
 #[cfg(test)]
 mod tests {
     use log::info;
+    use num_traits::ToPrimitive;
 
     use crate::core::consensus::slip::{Slip, SlipType};
     use crate::core::defs::{PrintForLog, UTXO_KEY_LENGTH};
@@ -230,7 +245,7 @@ mod tests {
             slip_index: 2,
             block_id: 2,
             tx_ordinal: 2,
-            slip_type: SlipType::Normal,
+            slip_type: SlipType::Bound,
             utxoset_key: [0; UTXO_KEY_LENGTH],
             is_utxoset_key_set: false,
         });
@@ -240,7 +255,7 @@ mod tests {
             slip_index: 3,
             block_id: 3,
             tx_ordinal: 3,
-            slip_type: SlipType::Normal,
+            slip_type: SlipType::ATR,
             utxoset_key: [0; UTXO_KEY_LENGTH],
             is_utxoset_key_set: false,
         });
@@ -262,8 +277,13 @@ mod tests {
             let key = slip.public_key.to_base58();
             info!("key = {:?}", key);
             let expected_str = format!(
-                "{} {:?} {:?} {:?} {:?}",
-                key, slip.block_id, slip.tx_ordinal, slip.slip_index, slip.amount
+                "{} {:?} {:?} {:?} {:?} {:?}",
+                key,
+                slip.block_id,
+                slip.tx_ordinal,
+                slip.slip_index,
+                slip.amount,
+                slip.slip_type.to_u8().unwrap()
             );
             info!("{:?} row = {:?}", index, expected_str);
 
@@ -327,13 +347,14 @@ mod tests {
             slip_index: 3,
             block_id: 3,
             tx_ordinal: 3,
-            slip_type: SlipType::Normal,
+            slip_type: SlipType::ATR,
             utxoset_key: [0; UTXO_KEY_LENGTH],
             is_utxoset_key_set: false,
         });
 
         let str = snapshot.to_string();
         assert_ne!(str.len(), 0);
+        info!("snapshot = {}", str);
 
         let result: Result<BalanceSnapshot, String> = str.try_into();
         assert!(result.is_ok(), "{:?}", result.err().unwrap());
@@ -350,6 +371,7 @@ mod tests {
             assert_eq!(slip.block_id, slip2.block_id);
             assert_eq!(slip.tx_ordinal, slip2.tx_ordinal);
             assert_eq!(slip.amount, slip2.amount);
+            assert_eq!(slip.slip_type, slip2.slip_type);
         }
     }
 }

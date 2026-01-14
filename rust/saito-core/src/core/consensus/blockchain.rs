@@ -30,7 +30,7 @@ use crate::core::io::storage::Storage;
 use crate::core::mining_thread::MiningEvent;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
-use crate::core::util::configuration::Configuration;
+use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::{drain, iterate};
 
 pub fn bit_pack(top: u32, bottom: u32) -> u64 {
@@ -81,7 +81,13 @@ pub const ALERT_ON_NEWER_CHAIN_GAP: BlockId = 20;
 
 #[derive(Debug)]
 pub enum WindingResult<'a> {
-    Wind(WindIndex, Failed, WalletUpdateStatus),
+    Wind(
+        WindIndex,
+        Failed,
+        &'a [SaitoHash],
+        &'a [SaitoHash],
+        WalletUpdateStatus,
+    ),
     Unwind(
         WindIndex,
         Failed,
@@ -313,8 +319,10 @@ impl Blockchain {
                     "hash is empty for parent of block : {:?}",
                     block.hash.to_hex()
                 );
-            } else if configs.get_blockchain_configs().initial_loading_completed
-                || self.checkpoint_found
+            } else if matches!(
+                configs.get_blockchain_configs().initial_loading_status,
+                InitialLoadingStatus::Completed
+            ) || self.checkpoint_found
             {
                 let previous_block_fetched = iterate!(mempool.blocks_queue, 100)
                     .any(|b| block.previous_block_hash == b.hash);
@@ -355,11 +363,19 @@ impl Blockchain {
                     );
                     AddBlockResult::FailedButRetry(block, false, false)
                 };
-            } else {
-                // info!("yyyyyyy : initload : {}, checkpoint : {}",configs.get_blockchain_configs().initial_loading_completed,self.checkpoint_found);
             }
-        } else {
-            // info!("xxxxxxxx : blockring empty : {} &&  prev block found : {}", self.blockring.is_empty() , self.get_block(&block.previous_block_hash).is_none());
+        }
+
+        if let InitialLoadingStatus::WaitingFor(waiting_for) =
+            &mut configs.get_blockchain_configs_mut().initial_loading_status
+        {
+            waiting_for.retain(|(waiting_block_id, waiting_block_hash)| {
+                !(*waiting_block_id == block.id && *waiting_block_hash == block.hash)
+            });
+            if waiting_for.is_empty() {
+                configs.get_blockchain_configs_mut().initial_loading_status =
+                    InitialLoadingStatus::Completed;
+            }
         }
 
         // pre-validation
@@ -1427,11 +1443,22 @@ impl Blockchain {
         }
 
         if old_chain.is_empty() {
-            let mut result: WindingResult<'_> =
-                WindingResult::Wind(new_chain.len() - 1, false, WALLET_NOT_UPDATED);
+            let mut result: WindingResult<'_> = WindingResult::Wind(
+                new_chain.len() - 1,
+                false,
+                new_chain,
+                old_chain,
+                WALLET_NOT_UPDATED,
+            );
             loop {
                 match result {
-                    WindingResult::Wind(current_wind_index, wind_failure, wallet_status) => {
+                    WindingResult::Wind(
+                        current_wind_index,
+                        wind_failure,
+                        new_chain,
+                        old_chain,
+                        wallet_status,
+                    ) => {
                         wallet_update_status |= wallet_status;
 
                         result = self
@@ -1479,7 +1506,13 @@ impl Blockchain {
                 WindingResult::Unwind(0, false, new_chain, old_chain, WALLET_NOT_UPDATED);
             loop {
                 match result {
-                    WindingResult::Wind(current_wind_index, wind_failure, wallet_status) => {
+                    WindingResult::Wind(
+                        current_wind_index,
+                        wind_failure,
+                        new_chain,
+                        old_chain,
+                        wallet_status,
+                    ) => {
                         wallet_update_status |= wallet_status;
                         result = self
                             .wind_chain(
@@ -1686,7 +1719,13 @@ impl Blockchain {
                 return WindingResult::FinishWithSuccess(wallet_updated);
             }
 
-            WindingResult::Wind(current_wind_index - 1, false, wallet_updated)
+            WindingResult::Wind(
+                current_wind_index - 1,
+                false,
+                new_chain,
+                old_chain,
+                wallet_updated,
+            )
         } else {
             // we have had an error while winding the chain. this requires us to
             // unwind any blocks we have already wound, and rewind any blocks we
@@ -1722,7 +1761,13 @@ impl Blockchain {
                 // which requires us to start at the END of the new chain vector.
                 if !old_chain.is_empty() {
                     debug!("old chain len: {}", old_chain.len());
-                    WindingResult::Wind(old_chain.len() - 1, true, wallet_updated)
+                    WindingResult::Wind(
+                        old_chain.len() - 1,
+                        true,
+                        old_chain,
+                        new_chain,
+                        wallet_updated,
+                    )
                 } else {
                     debug!("old chain is empty. finishing with failure");
                     WindingResult::FinishWithFailure
@@ -2019,7 +2064,13 @@ impl Blockchain {
             //
             // winding requires starting at the END of the vector and rolling
             // backwards until we have added block #5, etc.
-            WindingResult::Wind(new_chain.len() - 1, wind_failure, wallet_updated)
+            WindingResult::Wind(
+                new_chain.len() - 1,
+                wind_failure,
+                new_chain,
+                old_chain,
+                wallet_updated,
+            )
         } else {
             // continue unwinding,, which means
             //
@@ -2145,20 +2196,20 @@ impl Blockchain {
             latest_block_id.saturating_sub(configs.get_consensus_config().unwrap().genesis_period),
             1,
         );
-        if self
-            .blockring
-            .get_longest_chain_block_hash_at_block_id(block_id)
-            .is_some()
-        {
-            self.genesis_block_id = block_id;
-            debug!("genesis block id set as : {:?}", self.genesis_block_id);
-        }
+        // if self
+        //     .blockring
+        //     .get_longest_chain_block_hash_at_block_id(block_id)
+        //     .is_some()
+        // {
+        self.genesis_block_id = block_id;
+        debug!("genesis block id set as : {:?}", self.genesis_block_id);
+        // }
         if latest_block_id >= block_limit {
             // prune blocks
             let purge_bid =
                 latest_block_id - (configs.get_consensus_config().unwrap().genesis_period * 2);
 
-            debug!("genesis block id set as : {:?}", self.genesis_block_id);
+            // debug!("genesis block id set as : {:?}", self.genesis_block_id);
 
             // in either case, we are OK to throw out everything below the
             // lowest_block_id that we have found. we use the purge_id to
@@ -2627,6 +2678,10 @@ impl Blockchain {
         keys: Vec<SaitoPublicKey>,
         configs: &(dyn Configuration + Send + Sync),
     ) -> BalanceSnapshot {
+        trace!(
+            "generating balance snapshot for keys : {:?}",
+            keys.iter().map(|key| key.to_base58())
+        );
         let latest_block_id = self.get_latest_block_id();
         let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
 
@@ -2661,6 +2716,7 @@ impl Blockchain {
                 // if no keys provided we get the full picture
                 //
                 if keys.is_empty() || keys.contains(&slip.public_key) {
+                    trace!("adding slip : {} to balance snapshot", slip);
                     snapshot.slips.push(slip);
                 }
             });
