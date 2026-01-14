@@ -7,13 +7,6 @@ const BuySaitoHome = require('./index');
 const SaitoPurchaseOverlay = require('./lib/saito-purchase');
 
 //
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
-// INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-// PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-// HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-// OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-// SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//
 //
 
 class BuySaito extends ModTemplate {
@@ -23,7 +16,7 @@ class BuySaito extends ModTemplate {
 		this.name = 'BuySaito';
 		this.slug = 'buy';
 
-		this.dependencies = ['Mixin'];
+		this.dependencies = ['Relay', 'Mixin', 'ERC'];
 		this.description = 'Testnet BuySaito for Testing and Application Development';
 		this.categories = 'Utility Ecommerce NFTs';
 
@@ -35,7 +28,12 @@ class BuySaito extends ModTemplate {
 			image: 'https://saito.tech/wp-content/uploads/2023/11/buysaito-300x300.png'
 		};
 
-		this.mixin_peer = null;
+		this.mixin_mod = null;
+
+		// For the full node, to juggle multiple deposit addresses
+		this.mixin_accounts = [];
+
+		this.authorized_public_key = null;
 
 		/////////////////////////////////////////////
 		// * = Accept all installed crypto modules
@@ -45,10 +43,41 @@ class BuySaito extends ModTemplate {
 		this.purchase_overlay = new SaitoPurchaseOverlay(app, this);
 	}
 
+	async initialize(app) {
+		await super.initialize(app);
+
+		if (!this.app.BROWSER) {
+			this.mixin_mod = app.modules.returnModule('Mixin');
+
+			if (app.options?.server?.host == 'localhost') {
+				console.log('---> Buy Saito Local development mode');
+				this.authorized_public_key = this.publicKey;
+			}
+
+			setTimeout(() => {
+				if (this.mixin_mod && this.authorized_public_key === this.publicKey) {
+					this.mixin_mod.createAccount();
+					this.loadAltAccounts();
+				}
+			}, 5000);
+		}
+	}
+
+	returnServices() {
+		let services = [];
+		if (!this.app.BROWSER) {
+			if (this.publicKey == this.authorized_public_key) {
+				console.log('---> I provide saito selling services!!!!');
+				services.push(new PeerService(null, 'buysaito'));
+			}
+		}
+		return services;
+	}
+
 	async onPeerServiceUp(app, peer, service = {}) {
-		if (service.service === 'mixin') {
-			console.info('BuySaito: Mixin API available!');
-			this.mixin_peer = peer;
+		if (service.service === 'buysaito') {
+			console.warn('---> set public key of authorized Saito seller!!!!');
+			this.authorized_public_key = peer.publicKey;
 		}
 	}
 
@@ -187,6 +216,55 @@ class BuySaito extends ModTemplate {
 		});
 
 		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
+	}
+
+	createNewAltAccount(callback) {
+		if (!this.mixin_mod) {
+			console.error('Mixin not installed!');
+			return;
+		}
+
+		this.mixin_mod.createAccount(async (res) => {
+			if (res.err || Object.keys(res).length < 1) {
+				console.error('Mixin create account failed...', res.err);
+				return;
+			}
+
+			// Save encrypted Mixin account (keys) in our own DB...
+			let sql = `INSERT INTO mixin_accounts (publickey, mixin_json) VALUES ($publickey, $mixin_json) `;
+			let params = {
+				$publickey: this.publicKey,
+				$mixin_json: res.res
+			};
+
+			await this.app.storage.runDatabase(sql, params, 'buysaito');
+
+			// Add raw account keys to our accounts array...
+			this.mixin_accounts.push(res.keys);
+
+			// Run provided callback because we don't have a direct return value...
+			if (callback) {
+				callback(res.keys);
+			}
+		}, true);
+	}
+
+	async loadAltAccounts() {
+		let sql = `SELECT * FROM mixin_accounts WHERE publickey = $publickey`;
+		let params = { $publickey: this.publicKey };
+
+		let res = await this.app.storage.queryDatabase(sql, params, 'buysaito');
+
+		const privateKey = await this.app.wallet.getPrivateKey();
+
+		for (let r of res) {
+			// Unencrypt
+			const buf1 = Buffer.from(r.mixin_json, 'base64');
+			const buf2 = this.app.crypto.decryptWithPrivateKey(buf1, privateKey);
+			this.mixin_accounts.push(JSON.parse(buf2.toString('utf8')));
+		}
+
+		console.info(`BuySaito Service Loaded ${this.mixin_accounts.length} alternate Mixin accounts`);
 	}
 }
 

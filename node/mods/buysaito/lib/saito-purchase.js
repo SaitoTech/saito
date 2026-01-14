@@ -153,13 +153,14 @@ class SaitoPurchaseOverlay {
   async loadAvailableCryptos() {
     console.log('loadAvailableCryptos -> request');
 
-    if (!this.mod.mixin_peer) {
-      console.warn('No mixin peer available to handle purchases');
-      salert('No mixin peer available to handle purchases');
-      return 0;
-    }
-
     if (this.available_currencies?.length == 0) {
+      let peers = await this.app.network.getPeers();
+      if (!peers.length) {
+        console.warn('No mixin peer available to handle purchases');
+        salert('No mixin peer available to handle purchases');
+        return 0;
+      }
+
       await this.app.network.sendRequestAsTransaction(
         'mixin available cryptos',
         null,
@@ -182,7 +183,7 @@ class SaitoPurchaseOverlay {
             }
           }
         },
-        this.mod.mixin_peer.peerIndex
+        peers[0].peerIndex
       );
     }
 

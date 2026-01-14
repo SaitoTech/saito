@@ -383,7 +383,8 @@ class Mixin extends ModTemplate {
   // sendFetchAddressByUserIdTransaction()
   // ---------------------
   //
-  async createAccount(callback = null) {
+
+  async createAccount(callback = null, force_new = false) {
     if (this.account_created == 0) {
       const mixin_self = this;
       const privateKey = await this.app.wallet.getPrivateKey();
@@ -393,13 +394,19 @@ class Mixin extends ModTemplate {
           // Unencrypt
           const buf1 = Buffer.from(res.res, 'base64');
           const buf2 = mixin_self.app.crypto.decryptWithPrivateKey(buf1, privateKey);
-          mixin_self.mixin = JSON.parse(buf2.toString('utf8'));
-          mixin_self.account_created = 1;
-          mixin_self.save();
+
           if (res.restored) {
             console.log('Successfully Restored Mixin Account!', mixin_self.mixin);
           } else {
             console.log('Successfully Created Mixin Account!', mixin_self.mixin);
+          }
+
+          res.keys = JSON.parse(buf2.toString('utf8'));
+          // Skip save step if we are creating multiple accounts on the same public key
+          if (!force_new) {
+            mixin_self.mixin = res.keys;
+            mixin_self.account_created = 1;
+            mixin_self.save();
           }
         } else {
           console.error('Mixin Account Error:', res?.err);
@@ -411,18 +418,20 @@ class Mixin extends ModTemplate {
 
       if (this.mixin_peer) {
         console.log('Request remote node to create Mixin User Account', this.mixin_peer.publicKey);
-        await this.sendCreateAccountForPeerTransaction(callback2);
+        await this.sendCreateAccountTransaction(callback2, force_new);
       } else {
         console.log('==> Create Mixin User Account on Same Node as API Keys');
-        await this.createAccountForPeer(this.publicKey, callback2);
+        await this.createMixinUserAccount(this.publicKey, callback2, force_new);
       }
+    } else {
+      console.warn('You already have a Mixin Account created...');
     }
   }
 
-  sendCreateAccountTransaction(callback = null) {
+  sendCreateAccountTransaction(callback = null, force_new = false) {
     let mixin_self = this;
 
-    let data = {};
+    let data = { force_new };
     return mixin_self.app.network.sendRequestAsTransaction(
       'mixin create account',
       data,
@@ -433,85 +442,99 @@ class Mixin extends ModTemplate {
 
   receiveCreateAccountTransaction(app, tx, peer, callback) {
     let pkey = tx.from[0].publicKey;
+    let txmsg = tx.returnMessage();
 
-    return this.createMixinUserAccount(pkey, callback);
+    return this.createMixinUserAccount(pkey, callback, txmsg.data?.force_new);
   }
 
-  async createMixinUserAccount(pkey, callback) {
+  async createMixinUserAccount(pkey, callback, force_new = false) {
     // Check if account is already created and in DB
     const rtn_obj = {};
+    let success = false;
 
-    let db_results = await this.retrieveMixinAccountData(pkey);
+    if (!force_new) {
+      let db_results = await this.retrieveMixinAccountData(pkey);
 
-    if (db_results?.length > 0) {
-      // default to the most recent (if there is more than 1)
-      rtn_obj.res = db_results.pop().account_hash;
-      rtn_obj.restored = true;
-    } else if (!this.bot) {
-      Object.assign(rtn_obj, { err: 'Cannot process Mixin account request for peer' });
-    } else {
-      try {
-        const { seed: sessionSeed, publicKey: sessionPublicKey } = getED25519KeyPair();
-        const session_private_key = sessionSeed.toString('hex');
-        //console.log('user session_private_key', session_private_key);
+      if (db_results?.length > 0) {
+        // default to the most recent (if there is more than 1)
+        rtn_obj.res = db_results.pop().account_hash;
+        rtn_obj.restored = true;
+        success = true;
+      }
+    }
+    if (!success) {
+      if (this.bot) {
+        try {
+          const { seed: sessionSeed, publicKey: sessionPublicKey } = getED25519KeyPair();
+          const session_private_key = sessionSeed.toString('hex');
 
-        const user = await this.bot.user.createBareUser(
-          `Saito User ${pkey}`,
-          base64RawURLEncode(sessionPublicKey)
-        );
+          const user = await this.bot.user.createBareUser(
+            `Saito User ${pkey}`,
+            base64RawURLEncode(sessionPublicKey)
+          );
 
-        console.log('user //', user.user_id);
+          console.log('user //', user.user_id);
 
-        // update/create first tipPin
-        const userClient = MixinApi({
-          keystore: {
-            app_id: user.user_id,
-            session_id: user.session_id,
-            pin_token_base64: user.pin_token_base64,
-            session_private_key
-          }
-        });
+          // update/create first tipPin
+          const userClient = MixinApi({
+            keystore: {
+              app_id: user.user_id,
+              session_id: user.session_id,
+              pin_token_base64: user.pin_token_base64,
+              session_private_key
+            }
+          });
 
-        const { publicKey: spendPublicKey, seed: spendPrivateKey } = getED25519KeyPair();
+          const { publicKey: spendPublicKey, seed: spendPrivateKey } = getED25519KeyPair();
 
-        const spend_private_key = spendPrivateKey.toString('hex');
+          const spend_private_key = spendPrivateKey.toString('hex');
 
-        await userClient.pin.updateTipPin('', spendPublicKey.toString('hex'), user.tip_counter + 1);
-        console.log('update pin //');
+          await userClient.pin.updateTipPin(
+            '',
+            spendPublicKey.toString('hex'),
+            user.tip_counter + 1
+          );
+          console.log('update pin //');
 
-        await userClient.pin.verifyTipPin(spendPrivateKey);
-        console.log('verify pin //');
+          await userClient.pin.verifyTipPin(spendPrivateKey);
+          console.log('verify pin //');
 
-        const account = await userClient.safe.register(
-          user.user_id,
-          spend_private_key,
-          spendPrivateKey
-        );
-
-        console.log('safe account ///', account.user_id, account.has_safe);
-
-        const buf = Buffer.from(
-          JSON.stringify({
-            user_id: account.user_id,
-            full_name: account.full_name,
-            session_id: account.session_id,
-            tip_key_base64: account.tip_key_base64,
+          const account = await userClient.safe.register(
+            user.user_id,
             spend_private_key,
-            spend_public_key: spendPublicKey.toString('hex'),
-            session_seed: session_private_key,
-            backed_up: true
-          }),
-          'utf8'
-        );
+            spendPrivateKey
+          );
 
-        const encrypted_data = this.app.crypto.encryptWithPublicKey(buf, pkey).toString('base64');
+          console.log('safe account ///', account.user_id, account.has_safe);
 
-        rtn_obj.res = encrypted_data;
+          const buf = Buffer.from(
+            JSON.stringify({
+              user_id: account.user_id,
+              full_name: account.full_name,
+              session_id: account.session_id,
+              tip_key_base64: account.tip_key_base64,
+              spend_private_key,
+              spend_public_key: spendPublicKey.toString('hex'),
+              session_seed: session_private_key,
+              backed_up: true
+            }),
+            'utf8'
+          );
 
-        await this.backupMixinAccount(encrypted_data, pkey);
-      } catch (err) {
-        console.error('Mixin Create Account Error', err);
-        Object.assign(rtn_obj, { err: 'Mixin create account error' });
+          const encrypted_data = this.app.crypto.encryptWithPublicKey(buf, pkey).toString('base64');
+
+          rtn_obj.res = encrypted_data;
+
+          // Skip save step if we are creating multiple accounts on the same public key
+          if (!force_new) {
+            await this.backupMixinAccount(encrypted_data, pkey);
+          }
+        } catch (err) {
+          console.error('Mixin Create Account Error', err);
+          Object.assign(rtn_obj, { err: 'Mixin create account error' });
+        }
+      } else {
+        Object.assign(rtn_obj, { err: 'Cannot process Mixin account request for peer' });
       }
     }
 
@@ -683,6 +706,28 @@ class Mixin extends ModTemplate {
     }
   }
 
+  /**
+ * "data": [
+    {
+        "deposit_id": "UUID-DEPOSIT",
+        "destination": "ADDRESS",
+        "tag": "TAG",
+        "chain_id": "CHAIN-UUID",
+        "asset_id": "ASSET-UUID",
+        "asset_key": "CHAIN-ASSET-KEY",
+        "amount": "NUMBER",
+        "transaction_hash": "BLOCKCHAIN-SPECIFIC-HASH",
+        "output_index": 0,
+        "block_hash": "BLOCKCHAIN-SPECIFIC-HASH",
+        "block_number": 333333,
+        "confirmations": 5,
+        "threshold": 10,
+        "state": "pending or confirmed",
+        "created_at": "RFC3339NANO",
+        "updated_at": "RFC3339NANO"
+    }
+  ]
+ */
   async fetchPendingDeposits(asset_id, destination, callback) {
     try {
       let user = MixinApi({
@@ -1061,106 +1106,6 @@ class Mixin extends ModTemplate {
     } catch (err) {
       return { status: 400, message: err };
     }
-  }
-
-  async createAccountForPeer(pkey, callback) {
-    const rtn_obj = {};
-
-    let db_results = await this.receiveMixinRestoreAccountRequest(pkey);
-
-    if (db_results?.length > 0) {
-      rtn_obj.res = db_results[0].account_hash;
-      rtn_obj.restored = true;
-    } else if (!this.bot) {
-      Object.assign(rtn_obj, { err: 'Cannot process Mixin account request for peer' });
-    } else {
-      try {
-        const { seed: sessionSeed, publicKey: sessionPublicKey } = getED25519KeyPair();
-        const session_private_key = sessionSeed.toString('hex');
-        //console.log('user session_private_key', session_private_key);
-
-        const user = await this.bot.user.createBareUser(
-          `Saito User ${pkey}`,
-          base64RawURLEncode(sessionPublicKey)
-        );
-
-        console.log('user //', user.user_id);
-
-        // update/create first tipPin
-        const userClient = MixinApi({
-          keystore: {
-            app_id: user.user_id,
-            session_id: user.session_id,
-            pin_token_base64: user.pin_token_base64,
-            session_private_key
-          }
-        });
-
-        const { publicKey: spendPublicKey, seed: spendPrivateKey } = getED25519KeyPair();
-
-        const spend_private_key = spendPrivateKey.toString('hex');
-
-        await userClient.pin.updateTipPin('', spendPublicKey.toString('hex'), user.tip_counter + 1);
-        console.log('update pin //');
-
-        await userClient.pin.verifyTipPin(spendPrivateKey);
-        console.log('verify pin //');
-
-        const account = await userClient.safe.register(
-          user.user_id,
-          spend_private_key,
-          spendPrivateKey
-        );
-
-        console.log('safe account ///', account.user_id, account.has_safe);
-
-        const buf = Buffer.from(
-          JSON.stringify({
-            user_id: account.user_id,
-            full_name: account.full_name,
-            session_id: account.session_id,
-            tip_key_base64: account.tip_key_base64,
-            spend_private_key,
-            spend_public_key: spendPublicKey.toString('hex'),
-            session_seed: session_private_key,
-            backed_up: true
-          }),
-          'utf8'
-        );
-
-        const encrypted_data = this.app.crypto.encryptWithPublicKey(buf, pkey).toString('base64');
-
-        rtn_obj.res = encrypted_data;
-
-        await this.backupMixinAccount(encrypted_data, pkey);
-      } catch (err) {
-        console.error('Mixin Create Account Error', err);
-        Object.assign(rtn_obj, { err: 'Mixin create account error' });
-      }
-    }
-
-    if (callback) {
-      return callback(rtn_obj);
-    } else {
-      return rtn_obj;
-    }
-  }
-
-  sendCreateAccountForPeerTransaction(callback = null) {
-    let mixin_self = this;
-
-    let data = {};
-    return mixin_self.app.network.sendRequestAsTransaction(
-      'mixin create account',
-      data,
-      callback,
-      mixin_self.mixin_peer?.peerIndex
-    );
-  }
-
-  receiveCreateAccountTransaction(app, tx, peer, callback) {
-    let pkey = tx.from[0].publicKey;
-    return this.createAccountForPeer(pkey, callback);
   }
 
   async receiveSaveUserTransaction(app, tx, peer, callback) {

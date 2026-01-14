@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS mixin_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  publickey TEXT DEFAULT "",
+  mixin_json TEXT DEFAULT "",
+);
+

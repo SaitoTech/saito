@@ -93,17 +93,6 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
       };
     }
   }
-
-  async createDepositAddress(mixin, asset_id, chain_id, ticker) {
-    let deposit = await mixin.createDepositAddress(asset_id, chain_id, false);
-    if (!deposit) {
-      if (this.app.BROWSER) {
-        salert('Having problem generating key for ' + ' ' + ticker);
-      }
-      return null;
-    }
-    return deposit[0];
-  }
 }
 
 module.exports = BuyNFTOverlay;
