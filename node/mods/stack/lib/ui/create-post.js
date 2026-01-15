@@ -649,8 +649,14 @@ class CreatePost {
    * What the user sees in the editor is exactly what gets serialized.
    */
   serializeDOMToMarkdown(imageIdMap = null) {
+
+    // PUBLISH MODE: build imageIdMap if not provided
+    if (imageIdMap === null) {
+      imageIdMap = new Map();
+    }
+
     const editor = document.querySelector('#stack-post-body-editor');
-    if (!editor) return '';
+    if (!editor) { return ''; }
 
     const markdownLines = [];
     const blockElements = Array.from(editor.querySelectorAll('[data-block-id]'));
@@ -672,28 +678,22 @@ class CreatePost {
           markdownLines.push(`${headingPrefix} ${headingText}`);
           break;
 
-        case 'image':
-          const img = blockEl.querySelector('img');
-          const captionEl = blockEl.querySelector('.stack-image-caption');
-          const alt = captionEl ? captionEl.textContent : '';
-          
-          // If imageIdMap is provided (publish-time), use image reference
-          // Otherwise (autosave), preserve original src for draft recovery
-          if (imageIdMap && img && img.src) {
-            // Find the imageId for this image src in the map
-            const imageId = imageIdMap.get(img.src);
-            if (imageId) {
-              markdownLines.push(`![${alt}](stack:image:${imageId})`);
-            } else {
-              // Fallback: if no ID found, use original src (should not happen)
-              markdownLines.push(`![${alt}](${img.src})`);
-            }
-          } else {
-            // Draft serialization: preserve original src
-          const src = img ? img.src : '';
-          markdownLines.push(`![${alt}](${src})`);
-          }
-          break;
+case 'image': {
+  const img = blockEl.querySelector('img');
+  const captionEl = blockEl.querySelector('.stack-image-caption');
+  const alt = captionEl ? captionEl.textContent : '';
+
+  if (!img) break;
+
+  const imageId = img.dataset.stackImageId;
+  if (!imageId) {
+    throw new Error('serializeDOMToMarkdown: image missing stackImageId');
+  }
+
+  markdownLines.push(`![${alt}](stack:image:${imageId})`);
+  break;
+}
+
 
         case 'code':
           // Code blocks: <pre> with data-block-type="code"
@@ -709,8 +709,16 @@ class CreatePost {
           markdownLines.push(htmlContent);
           break;
 
+	case 'list-item': {
+	  const text = (blockEl.textContent || '').replace(/\u200B/g, '').trim();
+	  if (text) {
+	    const marker = blockEl.getAttribute('data-list-marker') || '- ';
+	    markdownLines.push(`${marker}${text}`);
+	  }
+	  break;
+	}
+
         case 'paragraph':
-        case 'list-item':
         case 'blockquote':
         default:
           // Paragraph, list-item, and blockquote are plain text
@@ -1130,13 +1138,65 @@ class CreatePost {
     const editor = document.querySelector('#stack-post-body-editor');
     if (editor) {
       if (content.trim()) {
-        // Parse markdown content to document structure
-        const tempDocument = parseMarkdownToDocument(content);
-        
-        // Render document to editor
-        renderDocument(tempDocument, editor, {
-          contentEditable: true
-        });
+
+// ----------------------------------------------------
+// RESOLVE stack:image:* REFERENCES FOR EDIT MODE
+// ----------------------------------------------------
+if (Array.isArray(clonedData.images) && clonedData.images.length > 0) {
+  content = content.replace(
+    /!\[([^\]]*)\]\(stack:image:([^)]+)\)/g,
+    (match, alt, imageId) => {
+      const image = clonedData.images.find(img => img.id === imageId);
+      if (!image) return match;
+
+      const src = `data:${image.mime};base64,${image.data}`;
+      return `![${alt || ''}](${src})`;
+    }
+  );
+}
+
+// ----------------------------------------------------
+// EDIT MODE RENDERING (markdown + images)
+// ----------------------------------------------------
+
+// Clear editor
+editor.innerHTML = '';
+
+// Restore image registry
+this.images = Array.isArray(clonedData.images) ? [...clonedData.images] : [];
+
+// Split content by stack:image references
+const parts = content.split(/!\[([^\]]*)\]\(stack:image:([^)]+)\)/g);
+
+for (let i = 0; i < parts.length; i++) {
+  if (i % 3 === 0) {
+    // Text segment
+    if (parts[i] && parts[i].trim()) {
+      const p = document.createElement('p');
+      p.textContent = parts[i];
+      editor.appendChild(p);
+    }
+  }
+
+  if (i % 3 === 2) {
+    // Image ID segment
+    const imageId = parts[i];
+    const image = this.images.find(img => img.id === imageId);
+    if (!image) continue;
+
+    const figure = document.createElement('figure');
+    figure.setAttribute('data-block-type', 'image');
+
+    const img = document.createElement('img');
+    img.src = `data:${image.mime};base64,${image.data}`;
+    img.dataset.stackImageId = image.id;
+
+    figure.appendChild(img);
+    editor.appendChild(figure);
+  }
+}
+
+
       } else {
         // Empty content - render empty document
         const tempDocument = { blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }] };
@@ -1250,18 +1310,19 @@ class CreatePost {
         // Create new unsigned transaction
         tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.mod.publicKey);
         
-        // Set transaction message structure matching Stack post format
-        const data = {
-          type: 'stack_post',
-          title: title.trim() || '',
-          content: content.trim() || '',
-          tags: [],
-          image: this.featuredImage || '', // Featured/teaser image (singular, separate)
-          imageUrl: '',
-          timestamp: Date.now(),
-          subscriptionTier: 'free',
-          excerpt: ''
-        };
+const data = {
+  type: 'stack_post',
+  title: title.trim() || '',
+  content: content.trim() || '',
+  tags: [],
+  image: this.featuredImage || '',
+  imageUrl: '',
+  images: Array.isArray(this.images) ? this.images : [],   // ← FIX
+  timestamp: Date.now(),
+  subscriptionTier: 'free',
+  excerpt: ''
+};
+
 
         tx.msg = {
           module: 'Stack',
@@ -3631,6 +3692,36 @@ class CreatePost {
     img.style.display = 'block';
     img.style.margin = '0 auto';
     imageElement.appendChild(img);
+
+
+// ----------------------------------------------------
+// REGISTER IMAGE IN EDITOR STATE
+// ----------------------------------------------------
+
+// Ensure image registry exists
+this.images = Array.isArray(this.images) ? this.images : [];
+
+// Assign stable image ID
+const imageId = `img_${this.images.length}`;
+
+// Extract mime + base64 (do NOT reuse existing base64Data variable)
+const parts = imageDataUrl.split(',');
+const meta = parts[0];
+const imageBase64 = parts[1];
+
+const mimeMatch = meta.match(/data:(.*?);base64/);
+const mime = mimeMatch ? mimeMatch[1] : 'image/png';
+
+// Store image payload
+this.images.push({
+  id: imageId,
+  mime,
+  data: imageBase64
+});
+
+// Stamp ID onto DOM node for serialization
+img.dataset.stackImageId = imageId;
+
 
     // Create new paragraph element in DOM
     const newParagraphElement = document.createElement('p');

@@ -181,13 +181,73 @@ class ViewPost {
       const editor = document.querySelector('#stack-post-body-editor');
       if (editor) {
         if (content.trim()) {
-          // Parse markdown content to document structure
-          const tempDocument = parseMarkdownToDocument(content);
-          
-          // Render document to editor
-          renderDocument(tempDocument, editor, {
-            contentEditable: true
-          });
+
+// ----------------------------------------------------
+// RESOLVE stack:image:* REFERENCES BEFORE EDIT RENDER
+// ----------------------------------------------------
+let resolvedContent = content;
+
+if (Array.isArray(data.images) && data.images.length > 0) {
+  resolvedContent = resolvedContent.replace(
+    /!\[([^\]]*)\]\(stack:image:([^)]+)\)/g,
+    (match, alt, imageId) => {
+      const image = data.images.find(img => img.id === imageId);
+      if (!image) return match;
+
+      const src = `data:${image.mime};base64,${image.data}`;
+      return `![${alt || ''}](${src})`;
+    }
+  );
+}
+
+// Parse markdown content to document structure
+const tempDocument = parseMarkdownToDocument(resolvedContent);
+
+renderDocument(tempDocument, editor, {
+  contentEditable: true
+});
+
+// ----------------------------------------------------
+// RESTORE IMAGE REGISTRY + STAMP stackImageId (EDIT MODE)
+// ----------------------------------------------------
+if (Array.isArray(data.images)) {
+  // Restore editor image registry
+  this.mod.create_post_ui.images = [...data.images];
+
+// ----------------------------------------------------
+// NORMALIZE IMAGES INTO REAL IMAGE BLOCKS
+// ----------------------------------------------------
+const imgNodes = Array.from(editor.querySelectorAll('img'));
+
+imgNodes.forEach((img, i) => {
+  const parent = img.closest('[data-block-type="image"]');
+  if (parent) return;
+
+  const figure = document.createElement('figure');
+  const blockId = `img_block_${Date.now()}_${i}`;
+
+  figure.setAttribute('data-block-id', blockId);
+  figure.setAttribute('data-block-type', 'image');
+  figure.className = 'stack-image-block';
+  figure.contentEditable = false;
+
+  img.replaceWith(figure);
+  figure.appendChild(img);
+});
+
+// ----------------------------------------------------
+// RE-STAMP stackImageId AFTER NORMALIZATION
+// ----------------------------------------------------
+for (let i = 0; i < imgNodes.length; i++) {
+  if (data.images[i]) {
+    imgNodes[i].dataset.stackImageId = data.images[i].id;
+  }
+}
+
+
+}
+         
+ 
         } else {
           // Empty content - render empty document
           const { generateBlockId } = require('../post-document');
