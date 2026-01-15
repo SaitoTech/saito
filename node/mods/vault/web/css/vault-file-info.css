@@ -1,7 +1,7 @@
 .vault-file-info {
   padding: 2.5rem;
-  font-size: 2rem;
-  line-height: 4rem;
+  font-size: 2.4rem;
+  line-height: 3.6rem;
   min-width: 520px;
   width: 520px;
   min-height: 360px;
@@ -38,7 +38,7 @@
 }
 
 .vault-loading-title {
-  font-size: 2.2rem;
+  font-size: 2.4rem;
   font-weight: 500;
   opacity: 0.9;
 }
@@ -49,14 +49,15 @@
 }
 
 .vault-loading-subtext {
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   opacity: 0.65;
 }
 
 .vault-file-info-success {
   flex-direction: column;
   text-align: center;
-  line-height: 3.2rem;
+  line-height: 4.6rem;
+  font-size: 2rem;
 }
 
 .vault-sig-grid {
@@ -86,4 +87,5 @@
   opacity: 1;
   transform: scale(1.1);
 }
+
 
