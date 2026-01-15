@@ -19,7 +19,7 @@ module.exports = (app, mod, file_info = {}) => {
     <h2>Success!</h2>
       Your NFT access key is being finalized.
       <p></p>
-      Once it arrives, <a href="/">access your file</a> here.
+      Once it arrives, <a href="/vault">access your file</a> here.
   </div>
 </div>
   `;
