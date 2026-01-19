@@ -103,7 +103,7 @@ OS_NAME=$(uname)
 echo "OS = ${OS_NAME}"
 
 # Script to build and link saito-wasm and saito-js packages
-if [[ "$OS_NAME" = "Darwin" ]]; then
+if [ "$OS_NAME" = "Darwin" ]; then
   echo "Setting clang path..."
   # check the wiki for installing clang
   # https://github.com/SaitoTech/saito-rust-workspace/blob/develop/LINK_MAC.md
