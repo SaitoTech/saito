@@ -9,10 +9,10 @@ BASE_PATH="$SCRIPT_DIR/../saito-rust"
 echo "$BASE_PATH"
 
 # Setup config
-CONFIG_PATH="$BASE_PATH/configs/config.json"
-if [ ! -f "$BASE_PATH/configs/config.json" ]; then
-  cp "$BASE_PATH/configs/config.template.json" "$BASE_PATH/configs/config.json"
-  echo "./configs/config.json has been created from ./configs/config.template.json."
+CONFIG_PATH="$BASE_PATH/config/config.json"
+if [ ! -f "$BASE_PATH/config/config.json" ]; then
+  cp "$BASE_PATH/config/config.template.json" "$BASE_PATH/config/config.json"
+  echo "./config/config.json has been created from ./config/config.template.json."
     if grep -q '"peers": \[' "$CONFIG_PATH"; then
     awk '
     BEGIN {print_mode=1}
