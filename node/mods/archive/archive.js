@@ -353,7 +353,7 @@ class Archive extends ModTemplate {
 				//
 				if (req.data) {
 				  if (typeof req.data === "object" && req.data !== null && !Array.isArray(req.data)) {
-				    if (peer.publicKey) {
+				    if (peer && peer.publicKey) {
 				      req.data.REQUESTER = peer.publicKey;
 				      req.data.NOW = new Date().getTime(); 
 				    } else {
