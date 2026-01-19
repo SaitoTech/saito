@@ -104,6 +104,10 @@ class Saito {
       //
       await hash_loader(this);
 
+            // browser sets active module
+            await this.browser.initialize(this);
+
+
       console.log('initializing wallet....');
       await this.wallet.initialize();
       console.log('initializing keychain....');

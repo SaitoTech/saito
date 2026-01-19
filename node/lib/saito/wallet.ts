@@ -552,6 +552,7 @@ export default class Wallet extends SaitoWallet {
     // add nfts back to rust wallet
     //
     await this.addNFTList();
+
   }
 
   constructor(wallet: any) {
