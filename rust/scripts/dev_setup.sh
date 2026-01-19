@@ -61,18 +61,36 @@ case "$OS" in
 esac
 
 
-source "$HOME/.cargo/env" 2>/dev/null
-
 # Reload the shell
-[ -f "$HOME/.bashrc" ] && source "$HOME/.bashrc"
-[ -f "$HOME/.bash_profile" ] && source "$HOME/.bash_profile"
-[ -f "$HOME/.profile" ] && source "$HOME/.profile"
-[ -f "$HOME/.zshrc" ] && source "$HOME/.zshrc"
+if [ -f "$HOME/.cargo/env" ]; then
+    . "$HOME/.cargo/env"
+elif [ -f "$HOME/.cargo/bin/cargo" ]; then
+    export PATH="$HOME/.cargo/bin:$PATH"
+fi
+
+[ -f "$HOME/.bashrc" ] && . "$HOME/.bashrc"
+[ -f "$HOME/.bash_profile" ] && . "$HOME/.bash_profile"
+[ -f "$HOME/.profile" ] && . "$HOME/.profile"
+[ -f "$HOME/.zshrc" ] && . "$HOME/.zshrc"
+
+# Ensure cargo is in PATH
+if ! command -v cargo >/dev/null 2>&1; then
+  if [ -f "$HOME/.cargo/bin/cargo" ]; then
+    export PATH="$HOME/.cargo/bin:$PATH"
+  fi
+fi
+
+if ! command -v cargo >/dev/null 2>&1; then
+  echo "Error: cargo not found. Please ensure Rust is installed and in your PATH."
+  exit 1
+fi
 
 
 # Installing wasm-pack
-sudo apt update || { echo "Error: Failed to update apt packages."; exit 1; }
-sudo NEEDRESTART_MODE=a apt install -y build-essential libssl-dev pkg-config clang gcc-multilib python-is-python3 || { echo "Error: Failed to install required packages."; exit 1; }
+if [ "$(uname)" = "Linux" ]; then
+  sudo apt update || { echo "Error: Failed to update apt packages."; exit 1; }
+  sudo NEEDRESTART_MODE=a apt install -y build-essential libssl-dev pkg-config clang gcc-multilib python-is-python3 || { echo "Error: Failed to install required packages."; exit 1; }
+fi
 #cargo install flamegraph
 cargo install --version 0.12.0 wasm-pack || { echo "Error: Failed to install wasm-pack."; exit 1; }
 rustup target add wasm32-unknown-unknown || { echo "Error: Failed to add wasm32-unknown-unknown target."; exit 1; }
