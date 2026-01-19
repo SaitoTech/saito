@@ -10,7 +10,7 @@ echo "$BASE_PATH"
 # Setup config
 CONFIG_PATH="$BASE_PATH/config/config.json"
 if [ ! -f "$BASE_PATH/config/config.json" ]; then
-  cp "$BASE_PATH/config/config.template.json" "$BASE_PATH/config/config.json"
+  cp "$BASE_PATH/config/config.template.json" "$BASE_PATH/config/config.json" || { echo "Error: Failed to copy config.template.json. Is the source file missing or are you in the wrong location?"; exit 1; }
   echo "./config/config.json has been created from ./config/config.template.json."
     if grep -q '"peers": \[' "$CONFIG_PATH"; then
     awk '
@@ -29,7 +29,7 @@ fi
 
 # Create blocks folder
 if [ ! -d "$BASE_PATH/data/blocks" ]; then
-  mkdir -p "$BASE_PATH/data/blocks"
+  mkdir -p "$BASE_PATH/data/blocks" || { echo "Error: Failed to create blocks directory."; exit 1; }
   echo "blocks folder has been created."
 else
   echo "blocks folder already exists. No changes made."
@@ -37,7 +37,7 @@ fi
 
 # Setup issuance
 if [ ! -f "$BASE_PATH/data/issuance" ]; then
-  cp "$BASE_PATH/data/issuance/issuance.template" "$BASE_PATH/data/issuance/issuance"
+  cp "$BASE_PATH/data/issuance/issuance.template" "$BASE_PATH/data/issuance/issuance" || { echo "Error: Failed to copy issuance.template."; exit 1; }
   echo "./issuance/issuance  has been created from issuance/issuance.template."
 else
   echo "issuance file already exists. No changes made."
@@ -64,14 +64,14 @@ esac
 source "$HOME/.cargo/env" 2>/dev/null
 
 # Installing wasm-pack
-sudo apt update
-sudo NEEDRESTART_MODE=a apt install -y build-essential libssl-dev pkg-config clang gcc-multilib python-is-python3
+sudo apt update || { echo "Error: Failed to update apt packages."; exit 1; }
+sudo NEEDRESTART_MODE=a apt install -y build-essential libssl-dev pkg-config clang gcc-multilib python-is-python3 || { echo "Error: Failed to install required packages."; exit 1; }
 #cargo install flamegraph
-cargo install --version 0.12.0 wasm-pack
-rustup target add wasm32-unknown-unknown
+cargo install --version 0.12.0 wasm-pack || { echo "Error: Failed to install wasm-pack."; exit 1; }
+rustup target add wasm32-unknown-unknown || { echo "Error: Failed to add wasm32-unknown-unknown target."; exit 1; }
 
 # Start node
-cd "$BASE_PATH"
+cd "$BASE_PATH" || { echo "Error: Failed to enter $BASE_PATH directory."; exit 1; }
 
 OS_NAME=$(uname)
 
@@ -88,23 +88,23 @@ else
   echo "Not setting env variables"
 fi
 
-cd ..
+cd .. || { echo "Error: Failed to go back to parent directory."; exit 1; }
 
 echo "Building saito-wasm"
-cd saito-wasm || (echo "cannot find saito-wasm directory" && exit -1)
-npm install || (echo "failed installing npm packages" && exit -1)
-npm run build || (echo "failed building saito-wasm package" && exit -1)
-npm link || (echo "failed linking saito-wasm" && exit -1)
+cd saito-wasm || { echo "Error: cannot find saito-wasm directory"; exit 1; }
+npm install || { echo "Error: failed installing npm packages"; exit 1; }
+npm run build || { echo "Error: failed building saito-wasm package"; exit 1; }
+npm link || { echo "Error: failed linking saito-wasm"; exit 1; }
 echo "saito-wasm linked successfully"
-cd .. || (echo "cannot find parent directory" && exit -1)
+cd .. || { echo "Error: cannot find parent directory"; exit 1; }
 
 echo "Building saito-js"
-cd saito-js || (echo "cannot find saito-js directory" && exit -1)
-npm install || (echo "failed installing npm packages" && exit -1)
-npm link saito-wasm || (echo "failed linking saito-wasm to saito-js" && exit -1)
-npm run build || (echo "failed building saito-wasm" && exit -1)
-cd dist || (echo "cannot find dist folder" && exit -1)
-npm link || (echo "failed linking saito-js" && exit -1)
+cd saito-js || { echo "Error: cannot find saito-js directory"; exit 1; }
+npm install || { echo "Error: failed installing npm packages"; exit 1; }
+npm link saito-wasm || { echo "Error: failed linking saito-wasm to saito-js"; exit 1; }
+npm run build || { echo "Error: failed building saito-wasm"; exit 1; }
+cd dist || { echo "Error: cannot find dist folder"; exit 1; }
+npm link || { echo "Error: failed linking saito-js"; exit 1; }
 echo "Linking finished successfully"
 
 cd $SCRIPT_DIR
