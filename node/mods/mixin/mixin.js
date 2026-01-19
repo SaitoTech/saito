@@ -209,17 +209,6 @@ class Mixin extends ModTemplate {
       return 1;
     }
 
-    //
-    // restore account
-    //
-    if (message.request === 'mixin restore account') {
-      let db_results = await this.receiveMixinRestoreAccountRequest(peer.publicKey);
-      if (mycallback) {
-        mycallback(db_results);
-      }
-      return 1;
-    }
-
     if (message.request === 'mixin request payment address') {
       if (!this.account_created) {
         mycallback({ err: 'No mixin account' });
@@ -247,24 +236,6 @@ class Mixin extends ModTemplate {
         console.log('insdie handlePeerTransaction mixin saito send confirmed');
         this.app.connection.emit('saito-purchase-saito-issued', message);
       }
-    }
-
-    if (message.request === 'mixin available cryptos') {
-      await this.createAccount(); // skips if created
-
-      let list = [];
-
-      for (let cm of this.crypto_mods) {
-        list.push({
-          ticker: cm.ticker,
-          price_usd: cm.price_usd,
-          last_update: cm.last_update
-        });
-      }
-      console.log(list);
-      mycallback(list);
-
-      return 1;
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
@@ -310,9 +281,8 @@ class Mixin extends ModTemplate {
         }
       }
 
-      let info = await crypto_module.returnNetworkInfo();
-      crypto_module.price_usd = info.price_usd;
-      crypto_module.last_update = Date.now();
+      // Will update confirmations, usd_price, etc
+      await crypto_module.returnNetworkInfo();
 
       await crypto_module.installModule(mixin_self.app);
       this.crypto_mods.push(crypto_module);
@@ -385,7 +355,7 @@ class Mixin extends ModTemplate {
   //
 
   async createAccount(callback = null, force_new = false) {
-    if (this.account_created == 0) {
+    if (this.account_created == 0 || force_new) {
       const mixin_self = this;
       const privateKey = await this.app.wallet.getPrivateKey();
       const callback2 = (res) => {
@@ -451,9 +421,10 @@ class Mixin extends ModTemplate {
     // Check if account is already created and in DB
     const rtn_obj = {};
     let success = false;
+    let user_id = `Saito User ${pkey}`;
 
     if (!force_new) {
-      let db_results = await this.retrieveMixinAccountData(pkey);
+      let db_results = await this.restoreMixinAccount(pkey);
 
       if (db_results?.length > 0) {
         // default to the most recent (if there is more than 1)
@@ -461,6 +432,8 @@ class Mixin extends ModTemplate {
         rtn_obj.restored = true;
         success = true;
       }
+    } else {
+      user_id = `${pkey}_${force_new.toString().padStart(3, '0')}`;
     }
     if (!success) {
       if (this.bot) {
@@ -469,7 +442,7 @@ class Mixin extends ModTemplate {
           const session_private_key = sessionSeed.toString('hex');
 
           const user = await this.bot.user.createBareUser(
-            `Saito User ${pkey}`,
+            user_id,
             base64RawURLEncode(sessionPublicKey)
           );
 
@@ -545,56 +518,62 @@ class Mixin extends ModTemplate {
     }
   }
 
-  async createDepositAddress(asset_id, chain_id, save = true) {
-    try {
-      let user = MixinApi({
-        keystore: {
-          app_id: this.mixin.user_id,
-          session_id: this.mixin.session_id,
-          pin_token_base64: this.mixin.tip_key_base64,
-          session_private_key: this.mixin.session_seed
-        }
-      });
+  async createDepositAddress(asset_id, chain_id, alt_keys = null) {
+    let keystore;
 
-      let address = await user.safe.createDeposit(chain_id);
+    if (alt_keys) {
+      keystore = {
+        app_id: alt_keys.user_id,
+        session_id: alt_keys.session_id,
+        pin_token_base64: alt_keys.tip_key_base64,
+        session_private_key: alt_keys.session_seed
+      };
+    } else {
+      keystore = {
+        app_id: this.mixin.user_id,
+        session_id: this.mixin.session_id,
+        pin_token_base64: this.mixin.tip_key_base64,
+        session_private_key: this.mixin.session_seed
+      };
+    }
 
-      if (save) {
-        if (typeof address[0].destination != 'undefined') {
-          for (let i = 0; i < this.crypto_mods.length; i++) {
-            if (this.crypto_mods[i].asset_id === asset_id) {
-              this.crypto_mods[i].address = address[0].destination;
-              this.crypto_mods[i].save();
+    let user = MixinApi({ keystore });
 
-              if (this.app.BROWSER) {
-                await this.app.network.sendRequestAsTransaction(
-                  'mixin save new deposit address',
-                  {
-                    user_id: this.mixin.user_id,
-                    asset_id: asset_id,
-                    address: address[0].destination,
-                    publickey: this.publicKey
-                  },
-                  function (res) {
-                    console.log('Callback for sendSaveUserTransaction request: ', res);
-                  },
-                  this.mixin_peer?.peerIndex
-                );
-              }
-            }
-          }
-        } else {
-          throw new Error('Deposit Address undefined!');
-        }
-      } else {
-        return address;
-      }
-    } catch (err) {
-      console.error('ERROR: Mixin error create deposit address: ' + err);
-      console.log(this.mixin);
+    let address = await user.safe.createDeposit(chain_id);
+
+    console.log('New MIXIN deposit address:', address);
+
+    if (!address[0]?.destination) {
+      console.error('ERROR: Mixin error create deposit address: Deposit Address undefined!');
       return false;
     }
 
-    return true;
+    if (!alt_keys) {
+      for (let i = 0; i < this.crypto_mods.length; i++) {
+        if (this.crypto_mods[i].asset_id === asset_id) {
+          this.crypto_mods[i].address = address[0].destination;
+          this.crypto_mods[i].save();
+
+          if (this.app.BROWSER) {
+            await this.app.network.sendRequestAsTransaction(
+              'mixin save new deposit address',
+              {
+                user_id: this.mixin.user_id,
+                asset_id: asset_id,
+                address: address[0].destination,
+                publickey: this.publicKey
+              },
+              function (res) {
+                console.log('Callback for sendSaveUserTransaction request: ', res);
+              },
+              this.mixin_peer?.peerIndex
+            );
+          }
+        }
+      }
+    }
+
+    return address[0].destination;
   }
 
   async fetchAsset(asset_id) {
@@ -1166,7 +1145,7 @@ class Mixin extends ModTemplate {
     return result;
   }
 
-  async receiveMixinRestoreAccountRequest(pkey) {
+  async restoreMixinAccount(pkey) {
     let sql = `SELECT * FROM mixin_accounts WHERE publickey = $publickey`;
     let params = { $publickey: pkey };
     let result = await this.app.storage.queryDatabase(sql, params, 'mixin');
@@ -1580,7 +1559,7 @@ class Mixin extends ModTemplate {
       }
     }
 
-    let created = await this.createDepositAddress(asset_id, chain_id, false);
+    let created = await this.createDepositAddress(asset_id, chain_id);
     if (!created || !created.length) {
       return null;
     }

@@ -1,5 +1,5 @@
 module.exports = (app, mod, self) => {
-  let cryptos_list = self.available_currencies
+  let cryptos_list = mod.available_currencies
     .map((currency) => {
       let lbl = (currency.ticker || '').toUpperCase();
       return `

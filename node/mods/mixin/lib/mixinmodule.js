@@ -295,8 +295,14 @@ class MixinModule extends CryptoModule {
 		return status;
 	}
 
-	returnNetworkInfo() {
-		return this.mixin.returnNetworkInfo(this.asset_id);
+	async returnNetworkInfo() {
+		let info = await this.mixin.returnNetworkInfo(this.asset_id);
+
+		this.confirmations = info.confirmations || 0;
+		this.price_usd = Number(info.price_usd);
+		this.last_update = Date.now();
+
+		return info;
 	}
 
 	//

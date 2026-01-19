@@ -108,9 +108,9 @@
   }
 
   & .instructions {
-    font-weight: normal;
-    line-height: 1.4;
-    text-align: center;
+    display: flex;
+    gap: 1.5rem;
+    width: 150px;
   }
 
   & .details {
