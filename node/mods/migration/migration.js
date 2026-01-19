@@ -43,7 +43,7 @@ class Migration extends ModTemplate {
 		await super.initialize(app);
 
 		if (!this.app.BROWSER) {
-			if (app.options?.server?.host == 'localhost') {
+			if (app.options?.server?.endpoint?.host == 'localhost') {
 				this.local_dev = true;
 			} else {
 				this.local_dev = false;
@@ -79,6 +79,7 @@ class Migration extends ModTemplate {
 			if (service.service == 'migration') {
 				console.warn('---> update public key of Migration bot for local testing!!!!');
 				this.migration_publickey = peer.publicKey;
+				this.local_dev = true;
 			}
 
 			if (service.service == 'relay') {
