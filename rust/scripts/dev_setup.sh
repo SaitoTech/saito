@@ -63,6 +63,13 @@ esac
 
 source "$HOME/.cargo/env" 2>/dev/null
 
+# Reload the shell
+[ -f "$HOME/.bashrc" ] && source "$HOME/.bashrc"
+[ -f "$HOME/.bash_profile" ] && source "$HOME/.bash_profile"
+[ -f "$HOME/.profile" ] && source "$HOME/.profile"
+[ -f "$HOME/.zshrc" ] && source "$HOME/.zshrc"
+
+
 # Installing wasm-pack
 sudo apt update || { echo "Error: Failed to update apt packages."; exit 1; }
 sudo NEEDRESTART_MODE=a apt install -y build-essential libssl-dev pkg-config clang gcc-multilib python-is-python3 || { echo "Error: Failed to install required packages."; exit 1; }
