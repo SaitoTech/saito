@@ -179,6 +179,11 @@ class Migration extends ModTemplate {
 			return;
 		}
 
+		if (this.hasSeenTransaction(tx, Number(blk.id))) {
+			console.error('Migration is ignoring a duplicate transaction!!!!');
+			return;
+		}
+
 		let txmsg = tx.returnMessage();
 
 		if (Number(conf) == 0) {
