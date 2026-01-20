@@ -145,17 +145,14 @@ echo "Compiling Lite-Client JS..."
 
 function set_localdev {
 
+# override settings with settings for localdev
   echo "setting localdev"
-  if [ -f ./config/options.conf ]; then
-    echo "creating options file"
-    cp ./config/options.conf ./config/options
-  else
-    cp ./config/.templates.localdev.options.conf ./config/options.conf
-    cp ./config/options.conf ./config/options
-  fi
-  cp ./config/modules.config.js ./config/modules.config.js
+  cp ./config/.template.localdev.options.conf ./config/options.conf
+  cp ./config/options.conf ./config/options
 
   if [ -f ./data/issuance/issuance ]; then
+    echo "issuance file found"
+  else
     echo "creating issuance file"
     cp ./data/issuance/issuance.localdev ./data/issuance/issuance
   fi
@@ -263,13 +260,13 @@ function copy_lite_mods_to_bundler_directory {
 
 }
 
-// local first run setup for dev
+#local first run setup for dev
 
 if [ "$1" == "local" ] || [ "$1" == "localdev" ]; then
 
   echo ""
   echo ""
-  echo "   ######################    "
+  echo "    ######################    "
   echo "  ###                    ###  "
   echo "  ##                      ##  "
   echo "  ##                      ##  "
@@ -288,12 +285,9 @@ if [ "$1" == "local" ] || [ "$1" == "localdev" ]; then
   echo ""
   echo ""
 
-  rm -rf built/*
   tsc -p ./build/tsconfig.json
-  set_localdev
-  reset_nonpersistent
-  reset_persistent
   reset_bundler
+  set_localdev
 
   time node build/webpack.config.cjs dev $2
 
