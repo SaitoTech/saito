@@ -25,7 +25,8 @@
     "go": "npm run compile dev $@ && npm run start --",
     "nettest": "bash scripts/nettest.sh",
     "options": "node ./scripts/options-tool.js",
-    "options-manager": "node ./scripts/options-manager.js"
+    "options-manager": "node ./scripts/options-manager.js",
+    "config": " ./scripts/compile"
   },
   "author": "Team Saito",
   "license": "SAITO",

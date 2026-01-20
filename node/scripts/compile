@@ -143,6 +143,24 @@ echo "Compiling Lite-Client JS..."
 
 }
 
+function set_localdev {
+
+  echo "setting localdev"
+  if [ -f ./config/options.conf ]; then
+    echo "creating options file"
+    cp ./config/options.conf ./config/options
+  else
+    cp ./config/.templates.localdev.options.conf ./config/options.conf
+    cp ./config/options.conf ./config/options
+  fi
+  cp ./config/modules.config.js ./config/modules.config.js
+
+  if [ -f ./data/issuance/issuance ]; then
+    echo "creating issuance file"
+    cp ./data/issuance/issuance.localdev ./data/issuance/issuance
+  fi
+}
+
 function reset_nonpersistent {
 
  # ensure deleted
@@ -167,10 +185,6 @@ function reset_nonpersistent {
 
   rm -rf ./mods/devtools/mods
   mkdir ./mods/devtools/mods
-  #
-  # do not delete compiled software
-  #
-  # rm -rf ./mods/devtools/bundler/dist/
 
   rm -f ./mods/devtools/mods/*
   rm -rf ./mods/devtools/bundler/mods/*
@@ -180,11 +194,6 @@ function reset_nonpersistent {
   rm -f ./logs/*
 
   rm -f ./data/state/*
-
-  #let the system know that users pre-existed a reset.
-  if [ -f ./data/rewards.sq3 ]; then
-  echo "update users set latest_tx = -1;" | sqlite3 ./data/rewards.sq3
-  fi
 
   if [ -f ./config/options.conf ]; then
     echo "creating options file"
@@ -254,6 +263,43 @@ function copy_lite_mods_to_bundler_directory {
 
 }
 
+// local first run setup for dev
+
+if [ "$1" == "local" ] || [ "$1" == "localdev" ]; then
+
+  echo ""
+  echo ""
+  echo "   ######################    "
+  echo "  ###                    ###  "
+  echo "  ##                      ##  "
+  echo "  ##                      ##  "
+  echo "  ##   ###                ##  "
+  echo "  ##     ###              ##  "
+  echo "  ##       ##             ##  "
+  echo "  ##     ###              ##  "
+  echo "  ##   ###   ########     ##  "
+  echo "  ##                      ##  "
+  echo "  ###                    ###  "
+  echo "    ######################    "
+  echo "  -------------------------  "
+  echo "   SAITO LOCAL DEV SESTUP    "
+  echo "  -------------------------  "
+  echo "  (resetting configuration)  "
+  echo ""
+  echo ""
+
+  rm -rf built/*
+  tsc -p ./build/tsconfig.json
+  set_localdev
+  reset_nonpersistent
+  reset_persistent
+  reset_bundler
+
+  time node build/webpack.config.cjs dev $2
+
+  post_compile
+
+fi
 
 if [ "$1" == "nuke" ]; then
 
