@@ -403,9 +403,7 @@ pub async fn initialize(
             if config.is_browser() {
                 enable_stats = false;
             }
-            info!("########################################################");
             info!("config loaded");
-            info!("########################################################");
             //info!("config : {:?}", config);
             // info!("config congestion : {:?}", config.congestion);
             configs.replace(&config);
