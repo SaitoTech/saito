@@ -1263,7 +1263,12 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
                 configs.set_congestion_data(Some(congestion_data));
             }
-            ConfigManager::write_confirmation_data(configs.get_blockchain_configs().confirmations.as_ref(), self.network.io_interface.deref()).await.unwrap_or_else(|e| {
+            ConfigManager::write_confirmation_data(
+                configs.get_blockchain_configs().confirmations.as_ref(),
+                self.network.io_interface.deref(),
+            )
+            .await
+            .unwrap_or_else(|e| {
                 error!("failed to write confirmation data : {:?}", e);
             });
             self.congestion_check_timer = 0;
@@ -1456,10 +1461,14 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     None
                 });
 
-        let confirmation_data = ConfigManager::read_confirmation_data(self.network.io_interface.deref()).await.map(|result| Some(result)).unwrap_or_else(|e|{
-            error!("Couldn't read confirmation data on load up. {:?}", e);
-            None
-        });
+        let confirmation_data =
+            ConfigManager::read_confirmation_data(self.network.io_interface.deref())
+                .await
+                .map(|result| Some(result))
+                .unwrap_or_else(|e| {
+                    error!("Couldn't read confirmation data on load up. {:?}", e);
+                    None
+                });
 
         {
             let mut configs = self.config_lock.write().await;
