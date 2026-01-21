@@ -94,6 +94,7 @@ impl WasmBlockchain {
             //     .confirmations
             //     .clear();
             configs.set_congestion_data(None);
+            configs.get_blockchain_configs_mut().confirmations.clear();
         }
         let mut blockchain = self.blockchain_lock.write().await;
         blockchain.reset().await;
