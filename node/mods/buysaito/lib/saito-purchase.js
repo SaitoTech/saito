@@ -37,10 +37,6 @@ class SaitoPurchaseOverlay {
       this.updateSaitoIssued(data);
     });
 
-    app.connection.on('saito-purchase-pending-deposit-confirmed', async (data) => {
-      this.updatePendingDepositConfirmed(data);
-    });
-
     app.connection.on('saito-purchase-address-reserved', (data) => {
       this.receivePaymentAddressFromServer(data);
     });
@@ -53,7 +49,7 @@ class SaitoPurchaseOverlay {
       // More complicated but smoother transition while fetching info
       this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
       setTimeout(async () => {
-        this.tx = tx || (await this.mod.createBuySaitoTransaction());
+        this.tx = tx;
         if (this.mod.available_currencies?.length) {
           setTimeout(() => {
             console.warn('Timed out rendering...');
@@ -173,7 +169,7 @@ class SaitoPurchaseOverlay {
       publicKey: this.mod.publicKey,
       issue_amount: this.amount, // saito amount
       ticker: this.crypto_selected.ticker,
-      tx: this.tx.serialize_to_web(this.app)
+      tx: this.tx
     };
     console.log('Payment Address Request:', data);
 
@@ -284,18 +280,12 @@ class SaitoPurchaseOverlay {
     console.log('[countdown] interval started (1s)');
   }
 
-  updatePendingDepositConfirmed(data = {}) {
-    this.overlay.remove();
-
-    salert('Your deposit is confirmed. Sending SAITO to your wallet...');
-  }
-
   updateSaitoIssued(data = {}) {
-    console.log(data);
     this.overlay.remove();
     salert(
-      `Transaction (${data?.sig}) to issue SAITO sent. Please wait for network confirmation...`
+      `Transaction (${data?.paid}) to issue SAITO sent. Please wait for network confirmation...`
     );
+    this.reset();
   }
 
   reset() {

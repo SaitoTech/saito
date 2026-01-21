@@ -79,17 +79,13 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
 
       buy_with_other_btn.onclick = async (e) => {
         e.preventDefault();
-
-        this.app.connection.emit('saito-purchase-launch', this.price);
-        /*buy_with_other_btn.onclick = (e) => {};
-        try {
-          this.purchase_saito.reset(); // reset previous selecte options
-          this.purchase_saito.nft = this.nft;
-          this.purchase_saito.render();
-        } catch (err) {
-          console.log(err);
-          salert('Could not create purchase saito address: ' + err);
-        }*/
+        const newtx = await this.mod.createWeb3CryptoPurchase(this.nft);
+        this.app.connection.emit(
+          'saito-purchase-launch',
+          this.price,
+          newtx.serialize_to_web(this.app),
+          `Purchase NFT`
+        );
       };
     }
   }

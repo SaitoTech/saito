@@ -736,7 +736,7 @@ class Mixin extends ModTemplate {
   }
 
   // Custom function to play nicely with BuySaito ... can't fck with callbacks
-  async returnPendingDeposits(ticker, destination, keys) {
+  async consolidatedLookUp(ticker, destination, created_at, keys) {
     let asset_id;
 
     // Note to self: if we ever support duplicate tickers on different chains
@@ -763,7 +763,24 @@ class Mixin extends ModTemplate {
     };
 
     let deposits = await user.safe.pendingDeposits(params);
-    return deposits;
+
+    let utxo = await user.utxo.safeAssetBalance({
+      members: [keys.user_id],
+      threshold: 1,
+      asset: asset_id
+    });
+
+    let offset = new Date(created_at).toISOString();
+    offset = offset.substring(0, offset.length - 1);
+    offset = offset + '000000Z';
+
+    let snapshots = await user.safe.fetchSafeSnapshots({
+      asset: asset_id,
+      limit: 100,
+      offset
+    });
+
+    return { deposits, utxo, snapshots };
   }
 
   async fetchUtxo(state = 'unspent', limit = 100000, order = 'DESC', callback = null) {

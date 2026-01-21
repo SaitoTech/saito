@@ -5,7 +5,7 @@ module.exports = (app, mod, self) => {
       <div class='saito-purchase-deposit-header'>Awaiting Payment</div>
 
       <div class="price">
-        ${app.browser.formatDecimals(self.expected_deposit)} ${self.crypto_selected.ticker}
+        ${app.browser.formatDecimals(self.expected_deposit, true)} ${self.crypto_selected.ticker}
       </div>
 
       <div class="pqrcode qrcode" id="pqrcode"></div>
@@ -24,7 +24,7 @@ module.exports = (app, mod, self) => {
       </div>
 
       <div class="details">
-        <div class="product-desc">${self.description || `Purchase ${app.browser.formatDecimals(self.amount)} SAITO`}</div>
+        <div class="product-desc">${self.description || `Purchase ${app.browser.formatDecimals(self.amount, true)} SAITO`}</div>
       </div>
 
       <div class="instructions">

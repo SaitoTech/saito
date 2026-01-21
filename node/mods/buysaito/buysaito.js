@@ -52,6 +52,8 @@ class BuySaito extends ModTemplate {
 
 		this.available_currencies = [];
 
+		this.local_dev = false;
+
 		this.purchase_overlay = new SaitoPurchaseOverlay(app, this);
 	}
 
@@ -62,9 +64,10 @@ class BuySaito extends ModTemplate {
 			this.mixin_mod = app.modules.returnModule('Mixin');
 
 			if (app.options?.server?.endpoint?.host == 'localhost') {
-				this.local_dev = true;
 				console.log('BUYSAITO ---> Local development mode');
 				this.authorized_public_key = this.publicKey;
+			} else {
+				this.local_dev = false;
 			}
 
 			setTimeout(() => {
@@ -218,7 +221,14 @@ class BuySaito extends ModTemplate {
 
 			if (txmsg.request === 'buysaito saito issued') {
 				if (tx.isFrom(this.authorized_public_key)) {
-					this.app.connection.emit('saito-purchase-saito-issued', txmsg.data);
+					for (let j = 0; j < this.pending_payments.length; j++) {
+						if (this.pending_payments[j].destination == txmsg.data.destination) {
+							this.pending_payments.splice(j, 1);
+							this.app.connection.emit('saito-purchase-saito-issued', txmsg.data);
+							return;
+						}
+					}
+					console.warn('BUYSAITO - received notification for an Unexpected pending payment');
 				} else {
 					console.warn('BUYSAITO - Unexpected peer message: ', txmsg);
 				}
@@ -236,91 +246,6 @@ class BuySaito extends ModTemplate {
 		if (this.publicKey == this.authorized_public_key && !this.app.BROWSER) {
 			await this.processPayments();
 		}
-	}
-
-	async onConfirmation(blk, tx, conf = 0) {
-		//
-		// only process the first conf
-		//
-		if (conf != 0) {
-			return;
-		}
-
-		//
-		// sanity check
-		//
-		if (this.hasSeenTransaction(tx, Number(blk.id))) {
-			return;
-		}
-
-		console.log('###############################');
-		console.log('BuySaito onConfirmation: ', tx);
-		console.log('###############################');
-
-		//
-		// Bound Transactions (monitor NFT transfers)
-		//
-		let txmsg = tx.returnMessage();
-
-		if (txmsg.request === 'buysaito request') {
-			if (!this.app.BROWSER) {
-				await this.receiveBuySaitoRequestTransaction(tx, blk);
-			} else {
-				if (tx.isFrom(this.publicKey)) {
-					siteMessage('BuySaito Token Request received by Server...', 5000);
-				}
-			}
-			return;
-		}
-
-		if (txmsg.request === 'buysaito issuance') {
-			if (tx.isTo(this.publicKey)) {
-				siteMessage('BuySaito Payment Received...', 3000);
-				try {
-					let msg = document.querySelector('.saito-container p');
-					msg.innerHTML = 'please check your wallet...';
-				} catch (err) {}
-			}
-			return;
-		}
-	}
-
-	async createBuySaitoTransaction() {
-		//
-		// create the wrapper transaction
-		//
-		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
-		newtx.msg = {
-			module: 'BuySaito',
-			request: 'buysaito request'
-		};
-		newtx.type = 0;
-		newtx.packData();
-		await newtx.sign();
-		return newtx;
-	}
-
-	async receiveBuySaitoRequestTransaction(tx = null, blk = null) {
-		//
-		// sanity check transaction is valid
-		//
-		if (tx == null || blk == null) {
-			return;
-		}
-
-		let receiver = tx.from[0].publicKey;
-		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-			receiver,
-			// uh... what!
-			this.amount
-		);
-		newtx.msg = {
-			module: 'BuySaito',
-			request: 'buysaito issuance'
-		};
-		newtx.packData();
-		await newtx.sign();
-		this.app.network.propagateTransaction(newtx);
 	}
 
 	webServer(app, expressapp, express) {
@@ -367,7 +292,15 @@ class BuySaito extends ModTemplate {
 			console.warn('BUYSAITO - No ticker selected for conversion!');
 		}
 
-		return (amount * saito_price) / usd_price;
+		// calculate
+		let amount_to_deposit = (amount * saito_price) / usd_price;
+
+		//restrict to 6 significant digits
+		amount_to_deposit = Math.ceil(amount_to_deposit * 1000000) / 1000000;
+
+		// Mixin truncates TRX to 6 digits, send 0.32758538, but received amount: '0.327585',
+
+		return amount_to_deposit;
 	}
 
 	loadAvailableCryptos() {
@@ -641,8 +574,12 @@ class BuySaito extends ModTemplate {
 	async confirmPaymentReceipt(payment_data) {
 		payment_data.status = 'confirmed';
 
-		let sql = `UPDATE purchases SET status = "confirmed", updated_at = $updated_at WHERE id=$id`;
-		let params = { $id: payment_data.id, $updated_at: Date.now() };
+		let sql = `UPDATE purchases SET status = "confirmed", external_address = $external_address, updated_at = $updated_at WHERE id=$id`;
+		let params = {
+			$id: payment_data.id,
+			$external_address: pp.external_address || '',
+			$updated_at: Date.now()
+		};
 		await this.app.storage.runDatabase(sql, params, 'buysaito');
 	}
 
@@ -659,20 +596,13 @@ class BuySaito extends ModTemplate {
 
 		await this.app.storage.runDatabase(sql, params, 'buysaito');
 
-		if (payment_data.tx) {
-			let userTX = new Transaction();
-			userTX.deserialize_from_web(this.app, payment_data.tx);
-			this.app.network.propagateTransaction(userTX);
-			console.info("BUYSAITO: Propagated user's transaction!");
-		}
-
 		this.app.connection.emit('relay-send-message', {
 			recipient: payment_data.publicKey,
 			request: 'buysaito saito issued',
-			data: { sig: payment_data.paid }
+			data: payment_data
 		});
 
-		console.log('Payment done: ', payment_data);
+		console.debug('Payment done: ', payment_data);
 	}
 
 	clearInactivePayments() {
@@ -707,26 +637,48 @@ class BuySaito extends ModTemplate {
 
 		// Third, check Mixin to update status
 		for (let pp of this.pending_payments) {
+			let success = false;
 			if (pp.status !== 'confirmed') {
-				let deposits = await this.mixin_mod.returnPendingDeposits(
+				console.log('Checking pending payments...');
+				let { deposits, utxo, snapshots } = await this.mixin_mod.consolidatedLookUp(
 					pp.ticker,
 					pp.destination,
+					pp.ts,
 					pp.mixin
 				);
 
+				console.log(deposits, utxo, snapshots);
+
+				// Check pending deposits (first)
 				for (let j = 0; j < deposits.length; j++) {
-					if (Number(deposits[j].amount) == pp.expected_deposit) {
+					if (Number(deposits[j].amount) >= pp.expected_deposit) {
 						if (deposits[j].status == 'confirmed') {
 							// Mark as confirmed
 							await this.confirmPaymentReceipt(pp);
+							success = true;
 						} else if (pp.status == 'new') {
 							// Mark as pending
 							await this.authorizePaymentIssuance(pp);
+							success = true;
 						}
 					} else {
 						console.warn('Unexpected payment to mixin account...');
 					}
 				}
+
+				// Check if in safe snapshot history
+				if (!success) {
+					for (let j = 0; j < snapshots.length; j++) {
+						if (Number(snapshots[j].amount) >= pp.expected_deposit) {
+							// Mark as confirmed
+							pp.external_address = snapshots[j].deposit?.sender;
+							await this.confirmPaymentReceipt(pp);
+						} else {
+							console.warn('Unexpected payment to mixin account...');
+						}
+					}
+				}
+
 				if (this.local_dev) {
 					if (pp.status == 'new') {
 						await this.authorizePaymentIssuance(pp);
@@ -738,16 +690,10 @@ class BuySaito extends ModTemplate {
 		}
 
 		// Fourth, issue payments
-		let sm = this.app.wallet.returnCryptoModuleByTicker('SAITO');
 
 		for (let pp of this.pending_payments) {
 			if (pp.status !== 'new' && !pp.paid) {
-				let uh = this.app.crypto.hash(
-					Buffer.from(this.publicKey + pp.publicKey + pp.issue_amount + pp.created_at, 'utf-8')
-				);
-
-				await sm
-					.sendPayment(pp.issue_amount, pp.publicKey, uh)
+				await this.createSaitoIssuanceTransaction(pp)
 					.then((sig) => {
 						pp.paid = sig;
 						pp.active = 0;
@@ -759,6 +705,30 @@ class BuySaito extends ModTemplate {
 					});
 			}
 		}
+	}
+
+	async createSaitoIssuanceTransaction(payment_data) {
+		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+			payment_data.publicKey,
+			this.app.wallet.convertSaitoToNolan(payment_data.issue_amount)
+		);
+
+		if (payment_data.tx) {
+			let userTX = new Transaction();
+			userTX.deserialize_from_web(this.app, payment_data.tx);
+			newtx.msg = userTX.returnMessage();
+		} else {
+			newtx.msg = {
+				module: 'BuySaito',
+				request: 'buysaito issuance',
+				data: payment_data
+			};
+		}
+
+		await newtx.sign();
+		await this.app.network.propagateTransaction(newtx);
+
+		return newtx.signature;
 	}
 }
 
