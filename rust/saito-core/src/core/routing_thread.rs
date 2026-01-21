@@ -1364,7 +1364,13 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         blockchain.lowest_acceptable_block_id;
                     blockchain_configs.fork_id = blockchain.fork_id.unwrap_or_default().to_hex();
 
-                    configs.save();
+                    let confs = blockchain_configs.confirmations.clone();
+                    blockchain_configs.confirmations.clear();
+
+                    configs.save().unwrap();
+
+                    let blockchain_configs = configs.get_blockchain_configs_mut();
+                    blockchain_configs.confirmations = confs;
                     // ConfigManager::write_blockchain_configs(
                     //     blockchain_configs,
                     //     self.network.io_interface.deref(),
