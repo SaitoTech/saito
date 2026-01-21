@@ -109,6 +109,8 @@ class Faucet extends ModTemplate {
 					let spinner = document.querySelector('.faucet-spinner');
 					btn.style.display = 'none';
 					spinner.style.display = 'block';
+					let msg_holder = document.querySelector('.faucet p');
+					msg_holder.innerHTML = 'Please wait a moment';
 				} catch (err) {}
 
 				let tx = await this.createFaucetTransaction();
@@ -151,10 +153,10 @@ class Faucet extends ModTemplate {
 			if (tx.isTo(this.publicKey) && this.app.BROWSER) {
 				siteMessage('Faucet Payment Received...', 3000);
 				try {
-					let msg = document.querySelector('.saito-container p');
+					let msg_holder = document.querySelector('.faucet p');
 					let spinner = document.querySelector('.faucet-spinner');
 					spinner.style.display = 'none';
-					msg.innerHTML = 'please check your wallet...';
+					msg_holder.innerHTML = 'please check your wallet...';
 				} catch (err) {
 					console.error(err);
 				}
