@@ -651,11 +651,11 @@ class Migration extends ModTemplate {
 							this.updatePayment(pp);
 						})
 						.catch((err) => {
-							this.notifyTeam(data_for_email, saitozen_key, 0, err);
-							console.error(err);
 							if (sm.pending_balance && sm.pending_balance > amount) {
 								console.info('...but this should clear in a minute... keep active in queue');
 							} else {
+								this.notifyTeam(data_for_email, saitozen_key, 0, err);
+								console.error(err);
 								pp.status = 'failed';
 								this.sendFailureNotification(saitozen_key);
 								this.updatePayment(pp);

@@ -134,9 +134,6 @@ class Faucet extends ModTemplate {
 			return;
 		}
 
-		//
-		// Bound Transactions (monitor NFT transfers)
-		//
 		let txmsg = tx.returnMessage();
 
 		if (txmsg.request === 'faucet request') {
@@ -151,14 +148,16 @@ class Faucet extends ModTemplate {
 		}
 
 		if (txmsg.request === 'faucet issuance') {
-			if (tx.isTo(this.publicKey)) {
+			if (tx.isTo(this.publicKey) && this.app.BROWSER) {
 				siteMessage('Faucet Payment Received...', 3000);
 				try {
 					let msg = document.querySelector('.saito-container p');
 					let spinner = document.querySelector('.faucet-spinner');
 					spinner.style.display = 'none';
 					msg.innerHTML = 'please check your wallet...';
-				} catch (err) {}
+				} catch (err) {
+					console.error(err);
+				}
 			}
 			return;
 		}
@@ -173,8 +172,6 @@ class Faucet extends ModTemplate {
 			module: 'Faucet',
 			request: 'faucet request'
 		};
-		newtx.type = 0;
-		newtx.packData();
 		await newtx.sign();
 		return newtx;
 	}
@@ -206,7 +203,6 @@ class Faucet extends ModTemplate {
 			module: 'Faucet',
 			request: 'faucet issuance'
 		};
-		newtx.packData();
 		await newtx.sign();
 		this.app.network.propagateTransaction(newtx);
 	}
