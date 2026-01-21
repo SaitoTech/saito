@@ -34,7 +34,7 @@ export default class Blockchain extends SaitoBlockchain {
       confirmations: []
     };
     this.instance.reset();
-    await this.saveBlockchain();
+    this.app.storage.saveOptions();
   }
 
   async saveBlockchain() {

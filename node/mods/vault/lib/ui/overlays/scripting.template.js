@@ -20,7 +20,7 @@ module.exports = (app, mod, scripting_overlay={}) => {
         </div>
 
         <div class="textarea-container">
-<textarea class="create-nft-textarea create-nft-script-textarea" id="create-nft-textarea" style="display: flex;">{
+	  <textarea class="create-nft-textarea create-nft-script-textarea" id="create-nft-textarea" style="display: flex;">{
   "op": "CHECKHASH",
   "hash": "5fbf08af2b116ab8f7f3c14b8ec01a46ce23d290e2ebc7a752d0982d54c054f2"
 }

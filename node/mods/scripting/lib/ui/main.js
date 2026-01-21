@@ -64,9 +64,9 @@ class ScriptoriumMain {
       const op = this.mod.opcodes[selectedOp];
       if (!op) { return; }
       const exampleScript = op.exampleScript || { op: op.name };
-      const exampleWitness = op.exampleWitness || {};
+      const exampleWitnessArray = this.mod.generateWitnessFromScript(exampleScript);
       document.querySelector('.ss-script').value = JSON.stringify(exampleScript, null, 2);
-      document.querySelector('.ss-witness').value = JSON.stringify(exampleWitness, null, 2);
+      document.querySelector('.ss-witness').value = JSON.stringify(exampleWitnessArray, null, 2);
       this.evaluateScript();
     };
 
@@ -110,8 +110,6 @@ class ScriptoriumMain {
   }
 
   async evaluateScript() {
-
-console.log("EVALUATE SCRIPT FIRED");
 
     this.is_script_ok = 0;
 
@@ -164,20 +162,10 @@ console.log("EVALUATE SCRIPT FIRED");
     this.is_evaluate_ok = 0;
 
     try {
-console.log("into evaluate script and witness...");
-
       const script_raw = document.querySelector('.ss-script').value;
-console.log("into evaluate script and witness...");
       const hash = this.mod.hash(script_raw); 
-console.log("into evaluate script and witness...");
       const witness_raw = document.querySelector('.ss-witness').value;
-console.log("into evaluate script and witness...");
       const result = await this.mod.evaluate(hash, script_raw, witness_raw, {}, null, null);
-
-console.log(script_raw);
-console.log(hash);
-console.log(witness_raw);
-console.log(result);
 
       if (result === true) {
         this.is_evaluate_ok = 1;

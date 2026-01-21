@@ -1359,6 +1359,11 @@ export default class Wallet extends SaitoWallet {
         this.addNft(slip1_utxokey, slip2_utxokey, slip3_utxokey, id, tx_sig);
       }
     }
+
+    //
+    // created NFT? balance should be affected... update
+    //
+    this.app.connection.emit('saito-header-update-crypto');
   }
 
   async updateNFTList(): Promise<{
