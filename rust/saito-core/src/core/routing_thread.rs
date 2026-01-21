@@ -1252,19 +1252,27 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
                 };
                 drop(peers);
-                // ConfigManager::write_congestion_data(
-                //     &congestion_data,
-                //     self.network.io_interface.deref(),
-                // )
-                // .await
-                // .unwrap_or_else(|e| {
-                //     error!("failed to write congestion data : {:?}", e);
-                // });
+                ConfigManager::write_congestion_data(
+                    &congestion_data,
+                    self.network.io_interface.deref(),
+                )
+                .await
+                .unwrap_or_else(|e| {
+                    error!("failed to write congestion data : {:?}", e);
+                });
 
                 configs.set_congestion_data(Some(congestion_data));
-                self.congestion_check_timer = 0;
-                work_done = true;
             }
+            ConfigManager::write_confirmation_data(
+                configs.get_blockchain_configs().confirmations.as_ref(),
+                self.network.io_interface.deref(),
+            )
+            .await
+            .unwrap_or_else(|e| {
+                error!("failed to write confirmation data : {:?}", e);
+            });
+            self.congestion_check_timer = 0;
+            work_done = true;
         }
 
         const PEER_REMOVAL_TIMER_PERIOD: Timestamp =
@@ -1453,6 +1461,15 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     None
                 });
 
+        let confirmation_data =
+            ConfigManager::read_confirmation_data(self.network.io_interface.deref())
+                .await
+                .map(|result| Some(result))
+                .unwrap_or_else(|e| {
+                    error!("Couldn't read confirmation data on load up. {:?}", e);
+                    None
+                });
+
         {
             let mut configs = self.config_lock.write().await;
             let mut peers = self.network.peer_lock.write().await;
@@ -1470,6 +1487,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         )
                     })
                     .collect::<HashMap<SaitoPublicKey, PeerCongestionControls>>();
+            }
+            if let Some(confirmation_data) = confirmation_data {
+                configs.get_blockchain_configs_mut().confirmations = confirmation_data;
             }
         }
 
