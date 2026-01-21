@@ -606,7 +606,11 @@ export default class Saito {
     }
 
     public async getMempoolTxs() {
-        return Saito.getLibInstance().get_mempool_txs();
+        let txs = await Saito.getLibInstance().get_mempool_txs();
+        return Promise.all(txs.map(async (tx: any) => {
+            let txObj = await Saito.getInstance().factory.createTransaction(tx);
+            return txObj.toJson();
+        }));
     }
 
     public async getAccountSlips(publicKey: string) {

@@ -509,7 +509,7 @@ impl Wallet {
             self.unspent_slips.insert(wallet_slip.utxokey);
         }
 
-        trace!(
+        debug!(
             "adding slip of type : {:?} with value : {:?} to wallet : {:?} \n > slip : {}",
             wallet_slip.slip_type,
             wallet_slip.amount,
@@ -1443,10 +1443,11 @@ impl Wallet {
             if result.is_none() {
                 self.unspent_slips.insert(slip.utxoset_key);
                 self.available_balance += slip.amount;
-                info!("slip key : {:?} with value : {:?} added to wallet from snapshot for address : {:?}",
+                info!("slip key : {:?} with value : {:?} added to wallet from snapshot for address : {:?}. slip : {}",
                     slip.utxoset_key.to_hex(),
                     slip.amount,
-                    slip.public_key.to_base58());
+                    slip.public_key.to_base58(),
+                    slip);
             } else {
                 info!(
                     "slip with utxo key : {:?} was already available",
