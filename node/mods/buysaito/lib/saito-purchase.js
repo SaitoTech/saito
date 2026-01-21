@@ -56,6 +56,7 @@ class SaitoPurchaseOverlay {
         this.tx = tx || (await this.mod.createBuySaitoTransaction());
         if (this.mod.available_currencies?.length) {
           setTimeout(() => {
+            console.warn('Timed out rendering...');
             this.render();
           }, 1000);
         } else {
@@ -70,7 +71,7 @@ class SaitoPurchaseOverlay {
     let self = this;
     this.overlay.remove();
 
-    console.log(
+    console.debug(
       'SaitoPurchaseOverlay Rendering...',
       this.amount,
       this.description,
@@ -88,19 +89,21 @@ class SaitoPurchaseOverlay {
         //
         // 2. show loading screen after selecting crypto ticker
         //
-        this.overlay.show(SaitoPurchaseLoaderTemplate(this.ui_msg));
+        this.overlay.show(SaitoPurchaseLoaderTemplate(this.ui_msg, ''));
       } else {
         //
         // 3. Show address screen when deposit address is created/fetched
         //
         if (!this.deposit_confirmed) {
           this.overlay.show(SaitoPurchaseTemplate(this.app, this.mod, this));
+          this.overlay.blockClose('#confirm-purchase-btn');
           this.app.browser.generateQRCode(this.destination, 'pqrcode');
         } else {
           //
           // 4. Show loading screen when payment, deposited by user, is confirmed
           //
-          this.overlay.show(SaitoPurchaseLoaderTemplate(this.app, this.mod, this, this.ui_msg));
+          this.overlay.show(SaitoPurchaseLoaderTemplate(this.ui_msg));
+          this.overlay.blockClose();
         }
       }
     }
@@ -136,6 +139,27 @@ class SaitoPurchaseOverlay {
         }, 800);
       };
     }
+
+    if (document.getElementById('cancel-purchase-btn')) {
+      document.getElementById('cancel-purchase-btn').onclick = async () => {
+        this.app.connection.emit('relay-send-message', {
+          recipient: this.mod.authorized_public_key,
+          request: 'buysaito release address',
+          data: { ticker: this.crypto_selected.ticker }
+        });
+        this.reset();
+        this.overlay.close();
+      };
+    }
+
+    if (document.getElementById('confirm-purchase-btn')) {
+      document.getElementById('confirm-purchase-btn').onclick = async () => {
+        this.overlay.closebox = true;
+        this.deposit_confirmed = true;
+        this.ui_msg = 'Polling pending payment...';
+        this.render();
+      };
+    }
   }
 
   //
@@ -165,7 +189,6 @@ class SaitoPurchaseOverlay {
     console.log('RESERVE ADDRESS RESPONSE');
     console.log(data);
     console.log('/////////////////////////////////////\n');
-    console.log(this.crypto_selected, this.amount);
 
     //
     // reserve address success — extract info
@@ -268,9 +291,11 @@ class SaitoPurchaseOverlay {
   }
 
   updateSaitoIssued(data = {}) {
+    console.log(data);
     this.overlay.remove();
-
-    salert('Transation to issue SAITO sent. Please wait for network confirmation...');
+    salert(
+      `Transaction (${data?.sig}) to issue SAITO sent. Please wait for network confirmation...`
+    );
   }
 
   reset() {

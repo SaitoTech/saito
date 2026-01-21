@@ -1,6 +1,6 @@
 module.exports = (app, mod, self) => {
   let html = `
-    <div class="payment-box">
+    <div class="payment-box saito-overlay-size narrow">
 
       <div class='saito-purchase-deposit-header'>Awaiting Payment</div>
 
@@ -33,9 +33,9 @@ module.exports = (app, mod, self) => {
 
       <div class="help"> any problems? <span class="support-email">support@saito.io</span></div>
 
-      <div class="saito-button-row">
-        <button class="saito-button-secondary">Cancel</button>
-        <button class="saito-button-primary">Done</button>
+      <div class="saito-button-row auto-size">
+        <button id="cancel-purchase-btn" class="saito-button-secondary">Cancel</button>
+        <button id="confirm-purchase-btn" class="saito-button-primary">Done</button>
       </div>
     </div>
   `;

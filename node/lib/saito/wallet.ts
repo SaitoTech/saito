@@ -267,6 +267,10 @@ export default class Wallet extends SaitoWallet {
           throw new Error('sendPayment: Attempting to send payment with insufficient balance');
         }
 
+        if (!this.validateAddress(to_address)) {
+          throw new Error('sendPayment: Attempting to send payment to invalid public key');
+        }
+
         let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
           to_address,
           nolan_amount

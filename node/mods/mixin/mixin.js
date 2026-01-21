@@ -735,6 +735,37 @@ class Mixin extends ModTemplate {
     }
   }
 
+  // Custom function to play nicely with BuySaito ... can't fck with callbacks
+  async returnPendingDeposits(ticker, destination, keys) {
+    let asset_id;
+
+    // Note to self: if we ever support duplicate tickers on different chains
+    // (with different asset ids..), will need to fix a lot of things
+
+    for (let cm of this.crypto_mods) {
+      if (cm.ticker == ticker) {
+        asset_id = cm.asset_id;
+      }
+    }
+
+    let user = MixinApi({
+      keystore: {
+        app_id: keys.user_id,
+        session_id: keys.session_id,
+        pin_token_base64: keys.tip_key_base64,
+        session_private_key: keys.session_seed
+      }
+    });
+
+    let params = {
+      asset: asset_id,
+      destination: destination
+    };
+
+    let deposits = await user.safe.pendingDeposits(params);
+    return deposits;
+  }
+
   async fetchUtxo(state = 'unspent', limit = 100000, order = 'DESC', callback = null) {
     try {
       let user = MixinApi({

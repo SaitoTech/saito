@@ -31,10 +31,21 @@ class BuySaito extends ModTemplate {
 
 		this.mixin_mod = null;
 		this.erc_saito = null;
-
+		this.time_limit = 15 * 60000;
 		// For the full node, to juggle multiple deposit addresses
 		this.mixin_accounts = [];
 
+		/* A list of payments to handle
+		   stored in a DB every time a status is updated and restored on load for 
+		   persistence across server down time
+
+		   Statuses: 
+		   		'new' 		-- user has requested a deposit address
+		   		'pending' 	-- payment is pending in Mixin account, cleared to issue saito
+		   		'confirmed' -- payment in Mixin received (and transfered to safe wallet)
+		   		'failed'    -- payment didn't come in...
+		   		'cancelled' -- timeout or user cancels
+		*/
 		this.pending_payments = [];
 
 		this.authorized_public_key = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
@@ -50,7 +61,8 @@ class BuySaito extends ModTemplate {
 		if (!this.app.BROWSER) {
 			this.mixin_mod = app.modules.returnModule('Mixin');
 
-			if (app.options?.server?.host == 'localhost') {
+			if (app.options?.server?.endpoint?.host == 'localhost') {
+				this.local_dev = true;
 				console.log('BUYSAITO ---> Local development mode');
 				this.authorized_public_key = this.publicKey;
 			}
@@ -170,6 +182,23 @@ class BuySaito extends ModTemplate {
 				}
 			}
 
+			if (txmsg.request === 'buysaito release address') {
+				if (this.publicKey === this.authorized_public_key) {
+					for (let i = 0; i < this.pending_payments.length; i++) {
+						if (
+							this.pending_payments[i].publicKey == tx.from[0].publicKey &&
+							this.pending_payments[i].ticker == txmsg.data.ticker
+						) {
+							this.pending_payments[i].status = 'cancelled';
+							this.cancelPayment(this.pending_payments[i].id);
+						}
+					}
+				} else {
+					console.warn("BUYSAITO - We are getting a request we shouldn't be...");
+					console.warn(txmsg);
+				}
+			}
+
 			if (txmsg.request === 'buysaito reserve address') {
 				if (this.publicKey === this.authorized_public_key) {
 					// If user has an open address, ignore the new specifics... (?)
@@ -187,6 +216,14 @@ class BuySaito extends ModTemplate {
 				}
 			}
 
+			if (txmsg.request === 'buysaito saito issued') {
+				if (tx.isFrom(this.authorized_public_key)) {
+					this.app.connection.emit('saito-purchase-saito-issued', txmsg.data);
+				} else {
+					console.warn('BUYSAITO - Unexpected peer message: ', txmsg);
+				}
+			}
+
 			return 0;
 		}
 		return super.handlePeerTransaction(app, tx, peer, mycallback);
@@ -195,7 +232,11 @@ class BuySaito extends ModTemplate {
 	/**
 	 * On new block (assuming we get a slip back), try to clear out the payments queue
 	 */
-	async onNewBlock(blk, lc) {}
+	async onNewBlock(blk, lc) {
+		if (this.publicKey == this.authorized_public_key && !this.app.BROWSER) {
+			await this.processPayments();
+		}
+	}
 
 	async onConfirmation(blk, tx, conf = 0) {
 		//
@@ -424,10 +465,10 @@ class BuySaito extends ModTemplate {
 		let res = await this.app.storage.queryDatabase(sql, params, 'buysaito');
 
 		let now = Date.now();
-		let expired_cutoff = now - 15 * 60000;
+		let expired_cutoff = now - this.time_limit;
 		for (let i = 0; i < res.length; i++) {
 			if (res[i].created_at < expired_cutoff && res[i].status == 'new') {
-				this.paymentTimeout(res[i].id);
+				this.cancelPayment(res[i].id);
 			} else {
 				let pp = Object.assign({}, res[i]);
 				pp.ts = pp.created_at;
@@ -438,8 +479,8 @@ class BuySaito extends ModTemplate {
 				delete pp.created_at;
 				delete pp.updated_at;
 
-				pp.mixin = this.returnMixinAccountByID(pp.user_id);
-				delete pp.user_id;
+				pp.mixin = this.returnMixinAccountByID(pp.mixin_user_id);
+				delete pp.mixin_user_id;
 
 				this.pending_payments.push(pp);
 			}
@@ -463,7 +504,7 @@ class BuySaito extends ModTemplate {
 						ticker: p.ticker,
 						destination: p.destination,
 						expected_deposit: p.expected_deposit,
-						reserved_until: p.ts + 15 * 60000,
+						reserved_until: p.ts + this.time_limit,
 						status: 'pending'
 					}
 				});
@@ -545,8 +586,6 @@ class BuySaito extends ModTemplate {
 
 		this.pending_payments.push(payment_data);
 
-		console.debug(payment_data);
-
 		//
 		// Send key info back to user
 		//
@@ -559,7 +598,7 @@ class BuySaito extends ModTemplate {
 				ticker: payment_data.ticker,
 				destination: payment_data.destination,
 				expected_deposit: payment_data.expected_deposit,
-				reserved_until: payment_data.ts + 15 * 60000
+				reserved_until: payment_data.ts + this.time_limit
 			}
 		});
 
@@ -591,11 +630,135 @@ class BuySaito extends ModTemplate {
 		console.debug(this.pending_payments);
 	}
 
-	async paymentTimeout(payment_id) {
-		let sql = `UPDATE purchases SET active = 0, status = "failed" WHERE id=$id`;
-		let params = { $id: payment_id };
+	async authorizePaymentIssuance(payment_data) {
+		payment_data.status = 'pending';
+
+		let sql = `UPDATE purchases SET status = "pending", updated_at = $updated_at WHERE id=$id`;
+		let params = { $id: payment_data.id, $updated_at: Date.now() };
+		await this.app.storage.runDatabase(sql, params, 'buysaito');
+	}
+
+	async confirmPaymentReceipt(payment_data) {
+		payment_data.status = 'confirmed';
+
+		let sql = `UPDATE purchases SET status = "confirmed", updated_at = $updated_at WHERE id=$id`;
+		let params = { $id: payment_data.id, $updated_at: Date.now() };
+		await this.app.storage.runDatabase(sql, params, 'buysaito');
+	}
+
+	async cancelPayment(payment_id) {
+		let sql = `UPDATE purchases SET active = 0, status = "failed", updated_at = $updated_at WHERE id=$id`;
+		let params = { $id: payment_id, $updated_at: Date.now() };
 
 		await this.app.storage.runDatabase(sql, params, 'buysaito');
+	}
+
+	async finishPayment(payment_data) {
+		let sql = `UPDATE purchases SET active = 0, paid = $paid, updated_at = $updated_at WHERE id=$id`;
+		let params = { $id: payment_data.id, $paid: payment_data.paid, $updated_at: Date.now() };
+
+		await this.app.storage.runDatabase(sql, params, 'buysaito');
+
+		if (payment_data.tx) {
+			let userTX = new Transaction();
+			userTX.deserialize_from_web(this.app, payment_data.tx);
+			this.app.network.propagateTransaction(userTX);
+			console.info("BUYSAITO: Propagated user's transaction!");
+		}
+
+		this.app.connection.emit('relay-send-message', {
+			recipient: payment_data.publicKey,
+			request: 'buysaito saito issued',
+			data: { sig: payment_data.paid }
+		});
+
+		console.log('Payment done: ', payment_data);
+	}
+
+	clearInactivePayments() {
+		// Check for expired addresses
+		for (let pp of this.pending_payments) {
+			if (pp.status == 'new' && pp.created_at + this.time_limit < Date.now()) {
+				pp.status = 'failed';
+				this.cancelPayment(pp.id);
+			}
+		}
+
+		// Clear from list
+		for (let i = this.pending_payments.length - 1; i >= 0; i--) {
+			if (
+				this.pending_payments[i].status == 'cancelled' ||
+				this.pending_payments[i].status == 'failed' ||
+				(this.pending_payments[i].status == 'confirmed' && this.pending_payments[i].paid)
+			) {
+				this.pending_payments.splice(i, 1);
+			}
+		}
+	}
+
+	async processPayments() {
+		// First clear out any inactive payments
+		this.clearInactivePayments();
+
+		// Second, make sure we have something to process
+		if (!this.pending_payments.length) {
+			return;
+		}
+
+		// Third, check Mixin to update status
+		for (let pp of this.pending_payments) {
+			if (pp.status !== 'confirmed') {
+				let deposits = await this.mixin_mod.returnPendingDeposits(
+					pp.ticker,
+					pp.destination,
+					pp.mixin
+				);
+
+				for (let j = 0; j < deposits.length; j++) {
+					if (Number(deposits[j].amount) == pp.expected_deposit) {
+						if (deposits[j].status == 'confirmed') {
+							// Mark as confirmed
+							await this.confirmPaymentReceipt(pp);
+						} else if (pp.status == 'new') {
+							// Mark as pending
+							await this.authorizePaymentIssuance(pp);
+						}
+					} else {
+						console.warn('Unexpected payment to mixin account...');
+					}
+				}
+				if (this.local_dev) {
+					if (pp.status == 'new') {
+						await this.authorizePaymentIssuance(pp);
+					} else if (pp.status == 'pending') {
+						await this.confirmPaymentReceipt(pp);
+					}
+				}
+			}
+		}
+
+		// Fourth, issue payments
+		let sm = this.app.wallet.returnCryptoModuleByTicker('SAITO');
+
+		for (let pp of this.pending_payments) {
+			if (pp.status !== 'new' && !pp.paid) {
+				let uh = this.app.crypto.hash(
+					Buffer.from(this.publicKey + pp.publicKey + pp.issue_amount + pp.created_at, 'utf-8')
+				);
+
+				await sm
+					.sendPayment(pp.issue_amount, pp.publicKey, uh)
+					.then((sig) => {
+						pp.paid = sig;
+						pp.active = 0;
+						this.finishPayment(pp);
+					})
+					.catch((err) => {
+						// Don't do anything other than report the error
+						console.error(err);
+					});
+			}
+		}
 	}
 }
 
