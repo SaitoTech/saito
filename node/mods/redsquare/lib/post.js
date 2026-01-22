@@ -111,12 +111,55 @@ class Post {
 			document.querySelector(this.container + '.post-tweet-textarea').innerHTML = this.tweet.text;
 		}
 
+		this.addCharacterLimit();
 		this.attachEvents();
 	}
 
 	triggerClick(querySelector) {
 		if (document.querySelector(querySelector)) {
 			document.querySelector(querySelector).click();
+		}
+	}
+
+	async addCharacterLimit() {
+		let wallet_balance = await this.app.wallet.getBalance();
+		if (Number(wallet_balance > 0)) {
+			return;
+		}
+
+		this.app.browser.addElementToSelector(
+			`<div class="char-limit-container">
+				<div id="char-limit">0</div>
+				<div>/</div>
+				<div>500</div>
+			</div>`,
+			'.tweet-overlay-header'
+		);
+
+		const widget = document.querySelector('.char-limit-container');
+		const lem = document.getElementById('char-limit');
+		const textarea = document.querySelector('.post-tweet-textarea');
+		if (lem && textarea) {
+			textarea.addEventListener('input', (e) => {
+				let text = this.input.getInput(false);
+				lem.innerHTML = text.length;
+				if (text.length > 500) {
+					widget.classList.add('warning');
+				} else {
+					widget.classList.remove('warning');
+				}
+			});
+			textarea.addEventListener('keyup', (e) => {
+				let text = this.input.getInput(false);
+				lem.innerHTML = text.length;
+				if (text.length > 500) {
+					widget.classList.add('warning');
+				} else {
+					widget.classList.remove('warning');
+				}
+			});
+		} else {
+			console.warn(lem, textarea);
 		}
 	}
 
