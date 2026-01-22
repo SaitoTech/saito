@@ -1833,7 +1833,7 @@ class Browser {
     }
 
     try {
-      Array.from(document.querySelectorAll(`.saito-address[data-id='${key}']`)).forEach(
+      Array.from(document.querySelectorAll(`.saito-address.treated[data-id='${key}']`)).forEach(
         (add) => (add.innerText = id)
       );
     } catch (err) {
@@ -2474,6 +2474,7 @@ class Browser {
 
               if (identifier) {
                 el.innerText = identifier;
+                saito_app.browser.updateAddressHTML(key, identifier);
               } else {
                 // Prettify anon key
                 el.innerHTML = saito_app.keychain.returnUsername(key);
