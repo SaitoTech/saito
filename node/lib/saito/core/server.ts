@@ -1092,7 +1092,7 @@ class Server {
       .then((res) => {
         if (res.ok) {
           return res.text();
-        } else throw new Error(`Response status: ${response.status}`);
+        } else throw new Error(`Response status: ${res.status}`);
       })
       .then((data) => {
         let no_tags = {
