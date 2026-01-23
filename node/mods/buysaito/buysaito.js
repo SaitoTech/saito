@@ -52,7 +52,8 @@ class BuySaito extends ModTemplate {
 
 		this.available_currencies = [];
 
-		this.local_dev = false;
+		// turn this on to fake receiving a mixin payment and test out the UX flow
+		this.local_dev = true;
 
 		this.purchase_overlay = new SaitoPurchaseOverlay(app, this);
 	}
@@ -104,13 +105,15 @@ class BuySaito extends ModTemplate {
 
 		if (service.service === 'relay') {
 			if (this.app.BROWSER) {
-				if (this.authorized_public_key) {
-					if (this.available_currencies.length == 0) {
-						this.app.connection.emit('relay-send-message', {
-							recipient: this.authorized_public_key,
-							request: 'buysaito available currencies',
-							data: null
-						});
+				if (this.app.modules.returnActiveModule().respondTo('buysaito')) {
+					if (this.authorized_public_key) {
+						if (this.available_currencies.length == 0) {
+							this.app.connection.emit('relay-send-message', {
+								recipient: this.authorized_public_key,
+								request: 'buysaito available currencies',
+								data: null
+							});
+						}
 					}
 				}
 			}
@@ -135,6 +138,12 @@ class BuySaito extends ModTemplate {
 		await super.render();
 
 		this.attachEvents();
+	}
+
+	respondTo(type = '', obj) {
+		if (type == 'buysaito') {
+			return true;
+		}
 	}
 
 	attachEvents() {
@@ -206,7 +215,7 @@ class BuySaito extends ModTemplate {
 				if (this.publicKey === this.authorized_public_key) {
 					// If user has an open address, ignore the new specifics... (?)
 					if (!this.hasPendingPayment(tx.from[0].publicKey)) {
-						if (!tx.isFrom(txmsg.data.publicKey)) {
+						if (!tx.isFrom(txmsg.data.initiator_pubkey)) {
 							console.error('BUYSAITO - PublicKey mismatch... ignore payment request');
 							return;
 						}
@@ -405,10 +414,7 @@ class BuySaito extends ModTemplate {
 			} else {
 				let pp = Object.assign({}, res[i]);
 				pp.ts = pp.created_at;
-				pp.publicKey = pp.initiator_pubkey;
 
-				delete pp.initiator_pubkey;
-				delete pp.recipient_pubkey;
 				delete pp.created_at;
 				delete pp.updated_at;
 
@@ -427,12 +433,12 @@ class BuySaito extends ModTemplate {
 	hasPendingPayment(publicKey) {
 		// Check if this user has a pending payment and send them that info again
 		for (let p of this.pending_payments) {
-			if (p.publicKey == publicKey) {
+			if (p.initiator_pubkey == publicKey) {
 				this.app.connection.emit('relay-send-message', {
 					recipient: publicKey,
 					request: 'buysaito reserve address',
 					data: {
-						publicKey: p.publicKey,
+						initiator_pubkey: p.initiator_pubkey,
 						issue_amount: p.issue_amount,
 						ticker: p.ticker,
 						destination: p.destination,
@@ -523,10 +529,11 @@ class BuySaito extends ModTemplate {
 		// Send key info back to user
 		//
 		this.app.connection.emit('relay-send-message', {
-			recipient: payment_data.publicKey,
+			recipient: payment_data.initiator_pubkey,
 			request: 'buysaito reserve address',
 			data: {
-				publicKey: payment_data.publicKey,
+				initiator_pubkey: payment_data.initiator_pubkey,
+				recipient_pubkey: payment_data.recipient_pubkey,
 				issue_amount: payment_data.issue_amount,
 				ticker: payment_data.ticker,
 				destination: payment_data.destination,
@@ -540,8 +547,8 @@ class BuySaito extends ModTemplate {
 		VALUES ($initiator_pubkey, $recipient_pubkey, $ticker, $mixin_user_id, $destination, $issue_amount, $expected_deposit, $status, $tx, $created_at)`;
 
 		let params = {
-			$initiator_pubkey: payment_data.publicKey,
-			$recipient_pubkey: payment_data.publicKey,
+			$initiator_pubkey: payment_data.initiator_pubkey,
+			$recipient_pubkey: payment_data.recipient_pubkey,
 			$ticker: payment_data.ticker,
 			$mixin_user_id: mixin_account.user_id,
 			$destination: payment_data.destination,
@@ -577,7 +584,7 @@ class BuySaito extends ModTemplate {
 		let sql = `UPDATE purchases SET status = "confirmed", external_address = $external_address, updated_at = $updated_at WHERE id=$id`;
 		let params = {
 			$id: payment_data.id,
-			$external_address: pp.external_address || '',
+			$external_address: payment_data.external_address || '',
 			$updated_at: Date.now()
 		};
 		await this.app.storage.runDatabase(sql, params, 'buysaito');
@@ -597,7 +604,7 @@ class BuySaito extends ModTemplate {
 		await this.app.storage.runDatabase(sql, params, 'buysaito');
 
 		this.app.connection.emit('relay-send-message', {
-			recipient: payment_data.publicKey,
+			recipient: payment_data.initiator_pubkey,
 			request: 'buysaito saito issued',
 			data: payment_data
 		});
@@ -680,10 +687,12 @@ class BuySaito extends ModTemplate {
 				}
 
 				if (this.local_dev) {
-					if (pp.status == 'new') {
-						await this.authorizePaymentIssuance(pp);
-					} else if (pp.status == 'pending') {
-						await this.confirmPaymentReceipt(pp);
+					if (Math.random() > 0.5) {
+						if (pp.status == 'new') {
+							await this.authorizePaymentIssuance(pp);
+						} else if (pp.status == 'pending') {
+							await this.confirmPaymentReceipt(pp);
+						}
 					}
 				}
 			}
@@ -709,7 +718,7 @@ class BuySaito extends ModTemplate {
 
 	async createSaitoIssuanceTransaction(payment_data) {
 		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-			payment_data.publicKey,
+			payment_data.recipient_pubkey,
 			this.app.wallet.convertSaitoToNolan(payment_data.issue_amount)
 		);
 
@@ -724,6 +733,11 @@ class BuySaito extends ModTemplate {
 				data: payment_data
 			};
 		}
+
+		console.debug(
+			`Issuing ${payment_data.issue_amount} Saito to ${payment_data.recipient_pubkey} with tx_msg: `,
+			newtx.msg
+		);
 
 		await newtx.sign();
 		await this.app.network.propagateTransaction(newtx);

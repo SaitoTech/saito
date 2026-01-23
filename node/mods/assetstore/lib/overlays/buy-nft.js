@@ -21,11 +21,11 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
     );
 
     let priceRaw = await this.nft.getBuyPriceSaito?.();
-    let price = typeof priceRaw === 'bigint' ? priceRaw.toString() : (priceRaw ?? '');
+    this.price = typeof priceRaw === 'bigint' ? priceRaw.toString() : (priceRaw ?? '');
 
     let html = `
       <div class="assetstore-nft-listing-inputs">
-        Buy listing for <span id="nft-buy-price">${price}</span> SAITO?
+        Buy listing for <span id="nft-buy-price">${this.price}</span> SAITO?
       </div>
     `;
 
@@ -80,9 +80,10 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
         const newtx = await this.mod.createWeb3CryptoPurchase(this.nft);
         this.app.connection.emit(
           'saito-purchase-launch',
-          this.price,
+          Number(this.price),
+          this.mod.assetStore.publicKey,
           newtx.serialize_to_web(this.app),
-          `Purchase NFT`
+          `Purchase ${this.price} Saito NFT`
         );
       };
     }

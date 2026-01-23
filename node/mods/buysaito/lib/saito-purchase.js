@@ -17,6 +17,7 @@ class SaitoPurchaseOverlay {
     this.amount = 0;
     this.crypto_selected = false;
     this.tx = null;
+    this.recipient = '';
     this.description = '';
     this.deposit_confirmed = false;
     this.reserved_until = 0;
@@ -41,26 +42,29 @@ class SaitoPurchaseOverlay {
       this.receivePaymentAddressFromServer(data);
     });
 
-    app.connection.on('saito-purchase-launch', (amount, tx = null, description = '') => {
-      this.reset();
-      this.amount = Number(amount);
-      this.description = description;
+    app.connection.on(
+      'saito-purchase-launch',
+      (amount, recipient = '', tx = null, description = '') => {
+        this.reset();
+        this.amount = Number(amount);
+        this.description = description;
+        this.recipient = recipient || this.mod.publicKey;
 
-      // More complicated but smoother transition while fetching info
-      this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
-      setTimeout(async () => {
-        this.tx = tx;
-        if (this.mod.available_currencies?.length) {
-          setTimeout(() => {
-            console.warn('Timed out rendering...');
-            this.render();
-          }, 1000);
-        } else {
-          siteMessage('No cryptocurrencies available', 3000);
-          this.overlay.remove();
-        }
-      }, 50);
-    });
+        // More complicated but smoother transition while fetching info
+        this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
+        setTimeout(async () => {
+          this.tx = tx;
+          if (this.mod.available_currencies?.length) {
+            setTimeout(() => {
+              this.render();
+            }, 1000);
+          } else {
+            siteMessage('No cryptocurrencies available', 3000);
+            this.overlay.remove();
+          }
+        }, 50);
+      }
+    );
   }
 
   async render() {
@@ -166,7 +170,8 @@ class SaitoPurchaseOverlay {
     // build request payload
     //
     let data = {
-      publicKey: this.mod.publicKey,
+      initiator_pubkey: this.mod.publicKey,
+      recipient_pubkey: this.recipient,
       issue_amount: this.amount, // saito amount
       ticker: this.crypto_selected.ticker,
       tx: this.tx
@@ -296,6 +301,7 @@ class SaitoPurchaseOverlay {
     this.amount = 0;
     this.crypto_selected = false;
     this.tx = null;
+    this.recipient = '';
     this.destination = '';
     this.description = '';
 

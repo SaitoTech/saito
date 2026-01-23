@@ -159,6 +159,10 @@ class AssetStore extends ModTemplate {
 			return x;
 		}
 
+		if (type == 'buysaito') {
+			return true;
+		}
+
 		return super.respondTo(type, obj);
 	}
 
@@ -178,6 +182,7 @@ class AssetStore extends ModTemplate {
 		// sanity check
 		//
 		if (this.hasSeenTransaction(tx, Number(blk.id))) {
+			console.log('duplicate transaction', tx.returnMessage());
 			return;
 		}
 
@@ -296,6 +301,11 @@ class AssetStore extends ModTemplate {
 						await this.receivePurchaseAssetTransaction(tx, blk);
 					}
 
+					if (txmsg.request === 'seller_payout') {
+						if (this.app.BROWSER && tx.isTo(this.publicKey)) {
+							siteMessage('Someone bought your NFT!!!!');
+						}
+					}
 					//this.updateListings();
 				}
 			}
@@ -964,7 +974,7 @@ class AssetStore extends ModTemplate {
 			}
 
 			let txmsg = tx.returnMessage?.() || {};
-			let buyer = tx.from[0].publicKey;
+			let buyer = txmsg.from || tx.from[0].publicKey;
 			let nfttx_sig = txmsg.nft_sig;
 			let price = BigInt(this.app.wallet.convertSaitoToNolan(txmsg.price) ?? 0);
 			let fee = BigInt(this.app.wallet.convertSaitoToNolan(txmsg.fee) ?? 0);
