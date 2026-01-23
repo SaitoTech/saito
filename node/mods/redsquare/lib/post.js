@@ -211,9 +211,6 @@ class Post {
 		let post_self = this;
 		let text = this.input.getInput(false);
 
-		let keys = [];
-		let identifiers = [];
-
 		//
 		//don't send empty posts
 		//
@@ -254,10 +251,11 @@ class Post {
 		//
 		let data = { text: text };
 
-		keys = this.input.getMentions();
+		let keys = this.input.getMentions();
 
 		if (keys.length > 0) {
-			data['mentions'] = keys;
+			// Shallow copy so we don't add reply-to's as mentions
+			data['mentions'] = Array.from(keys);
 		}
 
 		//
