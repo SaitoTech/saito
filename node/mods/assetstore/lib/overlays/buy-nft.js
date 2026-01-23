@@ -16,11 +16,9 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
 
     await super.render();
 
-    document.querySelector('.saito-nft-footer-btn.send').style.display = 'none';
-    document.querySelector('.saito-nft-footer-btn.enable').style.display = 'none';
-    document.querySelector('.saito-nft-footer-btn.split').style.display = 'none';
-    document.querySelector('.saito-nft-footer-btn.merge').style.display = 'none';
-    document.querySelector('.saito-nft-footer-btn.disable').style.display = 'none';
+    Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
+      (el) => (el.style.display = 'none')
+    );
 
     let priceRaw = await this.nft.getBuyPriceSaito?.();
     let price = typeof priceRaw === 'bigint' ? priceRaw.toString() : (priceRaw ?? '');
