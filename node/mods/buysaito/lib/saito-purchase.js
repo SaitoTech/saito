@@ -49,11 +49,11 @@ class SaitoPurchaseOverlay {
         this.amount = Number(amount);
         this.description = description;
         this.recipient = recipient || this.mod.publicKey;
+        this.tx = tx;
 
         // More complicated but smoother transition while fetching info
         this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
         setTimeout(async () => {
-          this.tx = tx;
           if (this.mod.available_currencies?.length) {
             setTimeout(() => {
               this.render();

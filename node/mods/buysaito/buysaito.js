@@ -63,10 +63,11 @@ class BuySaito extends ModTemplate {
 
 		if (!this.app.BROWSER) {
 			this.mixin_mod = app.modules.returnModule('Mixin');
-
+			console.log(app.options.server);
 			if (
 				app.options?.server?.endpoint?.host == 'localhost' ||
-				app.options?.server?.endpoint?.host.includes('staging')
+				app.options?.server?.endpoint?.host.includes('staging') ||
+				app.options?.server?.host.includes('staging')
 			) {
 				console.log('BUYSAITO ---> Local development mode');
 				this.authorized_public_key = this.publicKey;
