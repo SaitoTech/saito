@@ -131,11 +131,11 @@ class Admin extends ModTemplate {
    */
   async handlePeerTransaction(app, tx = null, peer, mycallback) {
     if (this.app.BROWSER) {
-      return;
+      return 0;
     }
 
     if (!tx.isTo(this.publicKey)) {
-      return;
+      return 0;
     }
 
     let validated = true;
@@ -158,7 +158,8 @@ class Admin extends ModTemplate {
         if (mycallback) {
           mycallback({ err: 'Unauthorized access' });
         }
-        return;
+
+        return 0;
       }
     }
 

@@ -201,16 +201,6 @@ class Migration extends ModTemplate {
 					return;
 				}
 
-				console.log(
-					'>>>>>>>>>> crypto payment',
-					'Conf:',
-					conf,
-					'Block: ',
-					blk.id,
-					tx.from[0].publicKey,
-					'\n>>',
-					tx.msg
-				);
 				// tells the migration bot that the user's deposit is complete
 				this.receiveCryptoPaymentTransaction(tx, blk);
 			}
@@ -506,8 +496,8 @@ class Migration extends ModTemplate {
 			//  hash: 'ce23e0df0c53a9605834101d71d89fcf84cf3f52757850856ca9074ba9a63017'
 
 			if (txmsg.module !== this.wrapped_saito_ticker) {
-				this.notifyTeam(txmsg, 0, tx_sender, 'Processing a crypto transfer tx for non-Saito!!');
-				console.error('Processing a crypto transfer tx for non-Saito!!');
+				this.notifyTeam(txmsg, 0, tx_sender, 'Received unexpected crypto payment!!');
+				console.error('Processing a crypto transfer tx for something other than ERC-SAITO!!');
 				return;
 			}
 

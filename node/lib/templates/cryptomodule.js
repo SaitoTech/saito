@@ -128,6 +128,19 @@ class CryptoModule extends ModTemplate {
       }
 
       if (txmsg.request === 'crypto payment') {
+        console.log(
+          '>>>>>>>>>> crypto payment',
+          'Conf:',
+          conf,
+          'Block: ',
+          blk.id,
+          tx.from[0].publicKey,
+          '-->',
+          tx.to[0].publicKey,
+          '\n>>',
+          tx.msg
+        );
+
         if (this.app.BROWSER) {
           this.receivePaymentTransaction(tx);
         }
@@ -273,7 +286,6 @@ class CryptoModule extends ModTemplate {
 
     if (!this.options.isActivated) {
       let info = await this.returnNetworkInfo();
-      this.confirmations = info.confirmations;
       console.log(`Activated ${this.ticker}: `, info);
       this.options.isActivated = true;
     }

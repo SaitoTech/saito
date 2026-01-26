@@ -839,6 +839,7 @@ class Arcade extends ModTemplate {
 
 		if (message.request === 'arcade clear invite') {
 			this.removeGame(message.data.game_id);
+			return 1;
 		}
 
 		//

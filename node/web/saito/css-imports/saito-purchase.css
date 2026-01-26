@@ -1,3 +1,4 @@
+/***********************/
 
 .purchase-container {
   background: var(--saito-background-color);
@@ -10,169 +11,130 @@
   display: flex;
   flex-direction: column;
   text-align: center;
-  font-size: 2rem;
+  font-size: 3rem;
   gap: 1rem;
   width: max-content;
+}
+
+.loader-interstitial-overlay img {
+  height: 15rem;
+}
+
+.loader-interstitial-overlay .container-header {
+  font-size: 3rem;
+}
+
+.loader-interstitial-overlay .container-body {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .purchase-crypto-list {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 1.5rem;            
-  padding: 1rem; 
+  gap: 1.5rem;
+  padding: 1rem;
 }
 
 .purchase-crypto-item {
-  flex: 0 1 15rem;                  
-  max-width: 18rem;                 
-  aspect-ratio: 1 / 1;              
-  padding: 2rem;                     
+  flex: 0 1 15rem;
+  max-width: 18rem;
+  aspect-ratio: 1 / 1;
+  padding: 1rem;
   border-radius: var(--saito-border-radius);
   display: flex;
-  flex-direction: row;
-  column-gap: 0.5rem;
+  flex-direction: column;
+  gap: 1rem;
   justify-content: center;
   align-items: center;
   box-sizing: border-box;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
   background-color: var(--saito-primary);
   color: var(--saito-primary-text);
-  border: 0.25rem dashed var(--saito-primary-text);
-  font-weight: bolder;
-}
-
-.purchase-crypto-item input {
-  border: 1px solid var(--saito-primary-text)
-}
-
-.purchase-crypto-item:hover input {
-  border: 1px solid var(--saito-primary)
+  font-weight: bold;
 }
 
 .purchase-crypto-item:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  background-color: var(--saito-primary-text);
-  color: var(--saito-primary);
-  border: 0.25rem dashed var(--saito-primary);
+  background: var(--saito-primary-dark);
 }
 
-    .purchase-select-crypto-msg {
-      text-align: center;
-    }
+.purchase-select-crypto-msg {
+  text-align: center;
+}
 
-    #purchase-crypto-generate {
-      width: fit-content;
-      align-self: end;
-    }
+#purchase-crypto-generate {
+  width: fit-content;
+  align-self: end;
+}
 
-    .purchase-crypto-item input:hover {
-      cursor: pointer;
-    }
-
-
-
+.purchase-crypto-item input:hover {
+  cursor: pointer;
+}
 
 .payment-box {
-  padding: 30px;
+  padding: 2.5rem;
   width: 420px;
   height: 600px;
   border-radius: 16px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+
+  & .saito-purchase-deposit-header {
+    margin: 0 0 5px 0;
+    font-weight: 600;
+    font-size: 3rem;
+    color: var(--saito-primary);
+  }
+
+  & .product-desc {
+    line-height: 1.4;
+  }
+
+  & .price {
+    font-weight: 700;
+    font-size: 3rem;
+  }
+
+  & .instructions {
+    display: flex;
+    gap: 1.5rem;
+    width: 180px;
+  }
+
+  & .details {
+    border: 1px solid var(--saito-font-color);
+    border-radius: 15px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  & .help .support-email {
+    font-weight: bold;
+  }
+
+  & .timer {
+    font-weight: 600;
+    color: var(--saito-primary);
+  }
+
+  & .extend-timer {
+    color: var(--saito-primary);
+    cursor: pointer;
+    border-bottom: 1px dashed;
+  }
+  & .extend-timer:hover {
+    color: var(--saito-secondary);
+    cursor: pointer;
+    border-bottom: 1px solid;
+  }
 }
-
-.payment-box h2 {
-  margin: 0 0 15px 0;
-  font-weight: 600;
-  text-align: center;
-  font-size: 3rem;
-  color: var(--saito-primary);
-}
-
-.product-desc {
-  text-align: center;
-  margin-bottom: 20px;
-  line-height: 1.4;
-}
-
-.price {
-  font-weight: 700;
-  font-size: 3rem;
-  margin-bottom: 15px;
-}
-
-.instructions {
-  font-weight: normal;
-  text-align: center;
-  line-height: 1.4;
-}
-
-.help {
-  margin-top: auto;
-}
-
-.help .support-email {
-  font-weight:bold;
-}
-
-.timer {
-  font-weight: 600;
-  color: var(--saito-primary);
-}
-
-.pqrcode {
-  width: 220px;
-  height: 220px;
-  background: #f0f0f0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  font-family: monospace;
-  border: 0.5rem solid #FFF;
-  transform: scale(0.9);
-}
-
-.wallet-address {
-  width: max-content;
-}
-
-.wallet-address input {
-  width: 100%;
-  text-align: center;
-  align-self: stretch;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  font-family: 'Roboto Mono', monospace;
-  cursor: pointer;
-  transition: border 0.2s, box-shadow 0.2s;
-}
-
-.wallet-address input:hover,
-.wallet-address input:focus {
-  border-color: var(--saito-primary);
-  box-shadow: 0 0 8px rgba(255,95,109,0.3);
-}
-
-
-.extend-timer {
-  color: var(--saito-primary);
-  cursor: pointer;
-  border-bottom: 1px dashed;
-}
-.extend-timer:hover {
-  color: var(--saito-primary);
-  cursor: pointer;
-  border-bottom: 1px solid;
-  font-weight: bolder;
-}
-
-

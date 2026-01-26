@@ -3,12 +3,12 @@ module.exports = (mod) => {
 			<div class="saito-overlay-form withdraw-container">
 				<div class="saito-overlay-form-header">
 					<div class="saito-overlay-form-header-title withdraw-title">
-						Convert ERC20 Saito
+						Migrate wrapped SAITO to native tokens
 					</div>
 				</div>
 
 				<div class="withdraw-intro">
-					To convert ERC20-wrapped SAITO tokens to the on-chain network, please provide an
+					To convert ERC20-wrapped or BEP20-wrapped SAITO tokens to the on-chain network, please provide an
 					email address and on-chain Saito address.
 				</div>
 
