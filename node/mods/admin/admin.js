@@ -1,30 +1,35 @@
 const saito = require('../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
+const AdminMain = require('./lib/ui/main');
 const ConfigTemplate = require('./lib/config.template.js');
 const AdminHome = require('./index');
 const jsonTree = require('json-tree-viewer');
 
 class Admin extends ModTemplate {
+
   constructor(app) {
     super(app);
-
     this.name = 'Admin';
     this.slug = 'admin';
     this.description = 'Admin module for Saito application management';
     this.categories = 'Admin utilities';
+
+    this.server_publickey = null;
+    this.server_info = null;
+
   }
 
   async initialize(app) {
+
     await super.initialize(app);
-    console.log('initializing admin in saito.js');
+
+    this.main = new AdminMain(app, this);
+
   }
 
   async render() {
-    if (!document.querySelector('body')) {
-      console.error('No body');
-      return;
-    }
 
+/****
     console.log('Admin module rendering');
 
     let error = true;
@@ -36,75 +41,30 @@ class Admin extends ModTemplate {
     }
 
     if (error) {
-      document.getElementById('page-header').innerHTML = 'Warning!';
-      document.querySelector('.more-info').innerHTML =
-        'You need to enable SSL in order for the whole Javascript stack to work, though in the meantime you can do local development work.';
+      this.main.render();
+      this.main.updateHeader('Warning!');
+      this.main.updateInfo('You need to enable SSL in order for the whole Javascript stack to work, though in the meantime you can do local development work.');
       return;
     }
+****/
 
-    this.peerKey = document.getElementById('node-publickey').dataset['publickey'];
+    this.server_publickey = server_publickey;
+    this.main.render();
 
-    if (window.need_to_set_key) {
-      this.setAdminKey();
-    }
+
   }
 
-  /**
-   *  GUI for setting the administrator key on initial set up of node
-   */
-  setAdminKey() {
-    this.app.browser.addElementToDom(`
-      <hr>
-      <h2>Set Trusted Admin Key</h2>
-      <p>The node does not have an admin. Please enter the public key you will use to act as admin. Every browser that connects to the node will automatically generate one.</p>
-      <input type="text" id="admin-public-key" value="${this.publicKey}"/>
-      <button id="submit-button" type="submit">Submit and Download Backup</button>`);
 
-    document.getElementById('submit-button').onclick = async (e) => {
-      let publicKey = document.getElementById('admin-public-key')?.value;
 
-      console.log(publicKey);
-      if (!this.app.crypto.isValidPublicKey(publicKey)) {
-        salert('Not a valid Saito public key!');
-        return;
-      }
-
-      e.currentTarget.onclick = null;
-
-      let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.peerKey);
-      tx.msg = {
-        module: 'Admin',
-        request: 'set-admin-key',
-        key: publicKey
-      };
-      await tx.sign();
-
-      this.app.network.sendTransactionWithCallback(tx, (res_tx) => {
-        let res = res_tx.returnMessage();
-        if (res?.err) {
-          salert(res.err);
-        } else {
-          this.app.wallet.backupWallet();
-          siteMessage('admin key successfully set, downloaded copy! reloading page...');
-          reloadWindow(3000);
-        }
-      });
-    };
-  }
-
-  /**
-   * Wait until connected to network to check admin credentials (to return the node info)
-   */
   async onPeerHandshakeComplete(app, peer) {
-    //
-    // we don't care about this if we aren't looking at the admin module
-    //
+
     if (!this.browser_active) {
       return;
     }
 
-    if (app.BROWSER && !window.need_to_set_key) {
-      let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.peerKey);
+    if (app.BROWSER && !need_to_set_key) {
+
+      let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.server_publickey);
       tx.msg = {
         module: 'Admin',
         request: 'validate-admin-key',
@@ -113,14 +73,12 @@ class Admin extends ModTemplate {
       await tx.sign();
 
       await this.app.network.sendTransactionWithCallback(tx, (res_tx) => {
-        console.log(res_tx);
         let res = res_tx.returnMessage();
-        console.log(res);
-        if (res?.err) {
+        if (this.res?.err) {
           salert(res.err);
         } else {
-          document.getElementById('page-header').innerHTML = 'Welcome Back, Saito Admin!';
-          this.renderConfig(res);
+	  this.server_info = res;
+	  this.main.render();
         }
       });
     }
@@ -130,11 +88,14 @@ class Admin extends ModTemplate {
    * Admin communicates to the node through off-chain transactions
    */
   async handlePeerTransaction(app, tx = null, peer, mycallback) {
+
     if (this.app.BROWSER) {
       return;
     }
 
     if (!tx.isTo(this.publicKey)) {
+console.log("ADMIN: received tx but not to us");
+console.log(JSON.stringify(tx.returnMessage()));
       return;
     }
 
@@ -150,6 +111,7 @@ class Admin extends ModTemplate {
     }
 
     let txmsg = tx.returnMessage();
+
     const accepted_requests = ['set-admin-key', 'validate-admin-key', 'update-options'];
 
     if (accepted_requests.includes(txmsg.request)) {
@@ -163,6 +125,22 @@ class Admin extends ModTemplate {
     }
 
     if (txmsg.request == 'set-admin-key') {
+
+console.log("^^^^");
+console.log("^^^^");
+console.log("^^^^");
+console.log("^^^^");
+console.log("^^^^");
+console.log("^^^^");
+console.log("^^^^ setting admin key!");
+console.log("^^^^");
+console.log("^^^^");
+console.log("^^^^");
+console.log("^^^^");
+console.log("^^^^");
+console.log("^^^^");
+console.log("^^^^");
+
       if (!this.app.options.admin) {
         this.app.options.admin = [];
       }
@@ -199,13 +177,14 @@ class Admin extends ModTemplate {
     return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
+
   /**
    * Read config/options files from node directory and return summary to administrator
    */
   getOptions() {
+
     const path = this.app.storage.returnPath();
     const fs = this.app.storage.returnFileSystem();
-
     const node_info = {};
 
     if (fs && path) {
@@ -236,7 +215,8 @@ class Admin extends ModTemplate {
           //cut out the wrapping
           mcf = mcf.substring(1, mcf.length - 1);
 
-          node_info.module_config = JSON.parse(mcf);
+          this.module_config = JSON.parse(mcf);
+
         } catch (err) {
           console.error(err);
           console.log(mcf);
@@ -246,6 +226,7 @@ class Admin extends ModTemplate {
       console.warn('no path or filesystem available');
     }
 
+    node_info.module_config = this.module_config;
     node_info.options = this.app.options;
 
     return node_info;
@@ -273,6 +254,7 @@ class Admin extends ModTemplate {
   }
 
   renderConfig(config_obj) {
+
     if (!document.getElementById('node-config')) {
       this.app.browser.addElementToDom(ConfigTemplate(config_obj));
     } else {
@@ -304,7 +286,7 @@ class Admin extends ModTemplate {
       if (document.querySelector('.block-toggle')) {
         this.app.browser.replaceElementBySelector(p_html, '.block-toggle');
       } else {
-        this.app.browser.addElementToSelector(p_html, '.node-info');
+        this.app.browser.addElementToSelector(p_html, '.admin-info');
       }
 
       if (document.getElementById('produce-blocks')) {
@@ -345,7 +327,7 @@ class Admin extends ModTemplate {
         console.log('New config: ');
         console.log(new_mod_config);
 
-        let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.peerKey);
+        let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.server_publickey);
         tx.msg = {
           module: 'Admin',
           request: 'update-modules-config',
@@ -380,7 +362,7 @@ class Admin extends ModTemplate {
   }
 
   async toggleBlockProduction(setValue) {
-    let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.peerKey);
+    let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.server_publickey);
     tx.msg = {
       module: 'Admin',
       request: 'update-options',
@@ -446,14 +428,18 @@ class Admin extends ModTemplate {
     }
   }
 
+
+
+
   webServer(app, expressapp, express, alternative_slug = null) {
+
     const webdir = `${__dirname}/web`;
     const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
     const admin_self = this;
 
     const serverFn = async (req, res) => {
       let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
-      let html = await AdminHome(app, admin_self, app.build_number);
+      let html = await AdminHome(app, admin_self, app.build_number, this.publicKey);
       if (!res.finished) {
         res.setHeader('Content-type', 'text/html');
         res.charset = 'UTF-8';
