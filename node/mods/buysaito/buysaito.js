@@ -53,7 +53,7 @@ class BuySaito extends ModTemplate {
 		this.available_currencies = [];
 
 		// turn this on to fake receiving a mixin payment and test out the UX flow
-		this.local_dev = true;
+		this.local_dev = false;
 
 		this.purchase_overlay = new SaitoPurchaseOverlay(app, this);
 	}
@@ -64,7 +64,10 @@ class BuySaito extends ModTemplate {
 		if (!this.app.BROWSER) {
 			this.mixin_mod = app.modules.returnModule('Mixin');
 
-			if (app.options?.server?.endpoint?.host == 'localhost') {
+			if (
+				app.options?.server?.endpoint?.host == 'localhost' ||
+				app.options?.server?.endpoint?.host.includes('staging')
+			) {
 				console.log('BUYSAITO ---> Local development mode');
 				this.authorized_public_key = this.publicKey;
 			} else {
@@ -96,6 +99,13 @@ class BuySaito extends ModTemplate {
 
 	async onPeerServiceUp(app, peer, service = {}) {
 		if (service.service === 'buysaito') {
+			if (this.app.BROWSER) {
+				if (this.app.modules.returnActiveModule().respondTo('buysaito')) {
+					if (this.local_dev) {
+						salert('3rd party crypto purchases of SAITO are available in test mode');
+					}
+				}
+			}
 			this.authorized_public_key = peer.publicKey;
 			console.warn(
 				'BUYSAITO ---> set public key of authorized Saito seller!!!!',
