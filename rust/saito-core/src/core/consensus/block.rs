@@ -22,7 +22,7 @@ use crate::core::defs::{
     SaitoSignature, SaitoUTXOSetKey, Timestamp, UtxoSet, BLOCK_FILE_EXTENSION,
 };
 use crate::core::io::storage::Storage;
-use crate::core::util::configuration::Configuration;
+use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::{hash, sign, verify_signature};
 use crate::iterate;
 
@@ -2728,7 +2728,9 @@ impl Block {
             trace!("SPV mode, skipping block validation");
             self.generate_consensus_values(blockchain, storage, configs)
                 .await;
-            if configs.get_blockchain_configs().initial_loading_completed {
+            if let InitialLoadingStatus::Completed =
+                configs.get_blockchain_configs().initial_loading_status
+            {
                 self.is_valid = true;
             }
             return true;
@@ -3039,7 +3041,9 @@ impl Block {
             // ghost blocks
             //
             if let BlockType::Ghost = previous_block.block_type {
-                if configs.get_blockchain_configs().initial_loading_completed {
+                if let InitialLoadingStatus::Completed =
+                    configs.get_blockchain_configs().initial_loading_status
+                {
                     self.is_valid = true;
                 }
                 return true;
@@ -3278,7 +3282,9 @@ impl Block {
         // class. Note that we are passing in a read-only copy of our UTXOSet so
         // as to determine spendability.
 
-        if configs.get_blockchain_configs().initial_loading_completed {
+        if let InitialLoadingStatus::Completed =
+            configs.get_blockchain_configs().initial_loading_status
+        {
             // we don't validate transactions if we load blocks from disk
             trace!(
                 "validating transactions ... count : {:?}",
@@ -3329,7 +3335,9 @@ impl Block {
             trace!("transactions validation complete");
         }
 
-        if configs.get_blockchain_configs().initial_loading_completed {
+        if let InitialLoadingStatus::Completed =
+            configs.get_blockchain_configs().initial_loading_status
+        {
             self.is_valid = true;
         }
 

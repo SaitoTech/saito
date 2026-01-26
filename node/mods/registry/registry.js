@@ -37,7 +37,6 @@ class Registry extends ModTemplate {
 		//
 		this.cached_keys = {};
 		this.keys_to_look_up = [];
-		this.identifier_timeout = null;
 
 		//
 		// we keep a copy of our own publicKey for convenience. this is set in
@@ -63,7 +62,7 @@ class Registry extends ModTemplate {
 			//
 			// every 1 in 20 times, clear cache of anonymous keys to requery
 			//
-			if (Math.random() < 0.05) {
+			if (this.peers.length && Math.random() < 0.05) {
 				for (let i of Object.keys(this.cached_keys)) {
 					if (i == this.cached_keys[i]) {
 						delete this.cached_keys[i];
@@ -81,51 +80,46 @@ class Registry extends ModTemplate {
 				}
 			}
 
-			this.app.connection.emit('update-username-in-game');
-
-			if (this.identifier_timeout) {
-				clearTimeout(this.identifier_timeout);
+			if (!this.peers.length) {
+				return;
 			}
 
-			this.identifier_timeout = setTimeout(() => {
-				let unidentified_keys = Array.from(this.keys_to_look_up);
-				this.keys_to_look_up = [];
+			let unidentified_keys = Array.from(this.keys_to_look_up);
+			this.keys_to_look_up = [];
 
-				this.fetchManyIdentifiers(unidentified_keys, (answer) => {
-					//
-					// This callback is run in the browser
-					//
-					//console.log("REGISTRY: event triggered fetchManyIdentifiers callback");
-					Object.entries(answer).forEach(([key, value]) => {
-						if (value !== this.publicKey) {
-							//
-							// if this is a key that is stored in our keychain, then we want
-							// to update the cached value that we have stored there as well
-							//
-							if (this.app.keychain.returnKey(key, true) && key !== value) {
-								this.app.keychain.addKey({
-									publicKey: key,
-									identifier: value
-								});
-							}
-
-							this.app.browser.updateAddressHTML(key, value);
+			this.fetchManyIdentifiers(unidentified_keys, (answer) => {
+				//
+				// This callback is run in the browser
+				//
+				Object.entries(answer).forEach(([key, value]) => {
+					if (value !== this.publicKey) {
+						//
+						// if this is a key that is stored in our keychain, then we want
+						// to update the cached value that we have stored there as well
+						//
+						if (this.app.keychain.returnKey(key, true) && key !== value) {
+							this.app.keychain.addKey({
+								publicKey: key,
+								identifier: value
+							});
 						}
-					});
 
-					this.app.connection.emit('update-username-in-game');
-
-					//
-					// save all keys queried to cache so even if we get nothing
-					// back we won't query the server again for them.
-					//
-					for (let i = 0; i < unidentified_keys.length; i++) {
-						if (!this.cached_keys[unidentified_keys[i]]) {
-							this.cached_keys[unidentified_keys[i]] = unidentified_keys[i];
-						}
+						this.app.browser.updateAddressHTML(key, value);
 					}
 				});
-			}, 250);
+
+				this.app.connection.emit('update-username-in-game');
+
+				//
+				// save all keys queried to cache so even if we get nothing
+				// back we won't query the server again for them.
+				//
+				for (let i = 0; i < unidentified_keys.length; i++) {
+					if (!this.cached_keys[unidentified_keys[i]]) {
+						this.cached_keys[unidentified_keys[i]] = unidentified_keys[i];
+					}
+				}
+			});
 		});
 
 		this.app.connection.on('register-username-or-login', (obj) => {
@@ -178,9 +172,15 @@ class Registry extends ModTemplate {
 		await super.initialize(app);
 
 		if (this.app.BROWSER == 0) {
-			if (this.local_dev) {
+			if (app.options?.server?.endpoint?.host == 'localhost') {
 				this.registry_publickey = this.publicKey;
 				console.log('Registry public key: ' + this.registry_publickey);
+			}
+		} else {
+			if (window.location.host.includes('localhost')) {
+				this.local_dev = true;
+			} else {
+				this.local_dev = false;
 			}
 		}
 
@@ -251,7 +251,6 @@ class Registry extends ModTemplate {
 				mycallback(found_keys);
 			});
 		} else {
-			//console.log("My peer is the registry");
 			if (this.peers.length) {
 				this.queryKeys(this.peers[0], missing_keys, (identifiers) => {
 					//
@@ -428,6 +427,8 @@ class Registry extends ModTemplate {
 				return;
 			}
 
+			console.log('============== REGISTRY connected ==============');
+
 			//
 			// if we have instructed the server to run this application locally then we
 			// want browsers (connecting to the server) to update their registry publickey
@@ -437,8 +438,6 @@ class Registry extends ModTemplate {
 			if (this.local_dev) {
 				this.registry_publickey = peer.publicKey;
 			}
-
-			//console.log(`Registry connected: ${peer.publicKey} and/but using: ${this.registry_publickey}`);
 
 			let myKey = app.keychain.returnKey(this.publicKey, true);
 			if (myKey?.identifier) {
@@ -492,12 +491,18 @@ class Registry extends ModTemplate {
 				'registry',
 				msg,
 				(keys) => {
+					console.debug('Synching cached keys with peer: ', keys);
 					for (let key in keys) {
 						if (!this.cached_keys[key] || key == this.cached_keys[key]) {
 							this.cached_keys[key] = keys[key];
+							this.app.browser.updateAddressHTML(key, keys[key]);
 						}
 					}
-					this.app.connection.emit('registry-cache-loaded');
+					// Try again know that we have cached and looked up the keys...
+					this.app.connection.emit(
+						'registry-fetch-identifiers-and-update-dom',
+						this.keys_to_look_up
+					);
 				},
 				peer.peerIndex
 			);

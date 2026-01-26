@@ -38,6 +38,23 @@
   flex-direction: column;
 }
 
+.tweet-overlay-header {
+  position: relative;
+}
+
+.char-limit-container {
+  display: flex;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  color: var(--saito-font-color-light);
+  font-size: 1.2rem;
+}
+
+.char-limit-container.warning {
+  color: var(--saito-red);
+}
+
 .tweet-overlay-content .tweet-overlay-header {
   order: 1;
 }

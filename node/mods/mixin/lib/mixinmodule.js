@@ -429,7 +429,7 @@ class MixinModule extends CryptoModule {
 			let address = await super.returnAddressFromPublicKey(publicKey);
 
 			if (address) {
-				return;
+				return address;
 			}
 
 			// if it doesnt exist fetch it from node db

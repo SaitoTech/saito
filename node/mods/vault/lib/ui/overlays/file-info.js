@@ -13,7 +13,40 @@ class FileInfo {
 
   render() {
     this.overlay.show(FileInfoTemplate(this.app, this.mod, this));
-    setTimeout(() => this.attachEvents(), 25);
+
+    const fileSizeMB = this.mod?.file?.size
+      ? this.mod.file.size / (1024 * 1024)
+      : 0;
+
+    const MIN_DELAY = 2000;
+    const SIZE_DELAY = Math.min(fileSizeMB * 150, 3000);
+    const TOTAL_DELAY = MIN_DELAY + SIZE_DELAY;
+
+    const start = Date.now();
+
+    const revealSuccess = () => {
+      const loading = document.querySelector('.vault-file-info-loading');
+      const success = document.querySelector('.vault-file-info-success');
+
+      if (loading) {
+        loading.style.display = 'none';
+      }
+
+      if (success) {
+        success.style.display = 'block';
+        requestAnimationFrame(() => {
+          success.style.transition = 'opacity 400ms ease';
+          success.style.opacity = 1;
+        });
+      }
+
+      this.attachEvents();
+    };
+
+    const elapsed = Date.now() - start;
+    const remaining = Math.max(0, TOTAL_DELAY - elapsed);
+
+    setTimeout(revealSuccess, remaining);
   }
 
   attachEvents() {

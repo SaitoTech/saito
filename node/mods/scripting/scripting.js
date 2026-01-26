@@ -795,48 +795,46 @@ _assembleScriptAndWitness(ast) {
  * @param {Object|String} access_script - The compiled script JSON
  * @returns {Object} - Witness template object
  */
-generateWitnessFromScript(access_script) {
-  try {
-    // Parse if string
-    let script = typeof access_script === 'string' 
-      ? JSON.parse(access_script) 
-      : access_script;
-    
-    const collectWitness = (node) => {
-      if (!node || typeof node !== 'object') return {};
-      
-      let op = (node.op || '').toLowerCase();
-      
-      // Logical operators - merge witness from all args
-      if (['and', 'or', 'not'].includes(op)) {
-        let merged = {};
-        if (Array.isArray(node.args)) {
-          node.args.forEach(arg => {
-            Object.assign(merged, collectWitness(arg));
-          });
+  generateWitnessFromScript(access_script) {
+    try {
+      let script = typeof access_script === 'string'
+        ? JSON.parse(access_script)
+        : access_script;
+
+      const witnessList = [];
+
+      const traverse = (node) => {
+        if (!node || typeof node !== 'object') return;
+
+        const op = (node.op || '').toLowerCase();
+
+        if (['and', 'or', 'not'].includes(op)) {
+          if (Array.isArray(node.args)) {
+            node.args.forEach(traverse);
+          }
+          return;
         }
-        return merged;
-      }
-      
-      // Regular opcode - return its example witness
-      let opcode = this.opcodes[op];
-      return opcode?.exampleWitness || {};
-    };
-    
-    return collectWitness(script);
-    
-  } catch (err) {
-    console.error('generateWitnessFromScript error:', err);
-    return {};
+
+        // opcode node
+        let opcode = this.opcodes[op];
+        if (opcode && opcode.exampleWitness) {
+          witnessList.push({ ...opcode.exampleWitness });
+        } else {
+          witnessList.push({});
+        }
+      };
+
+      traverse(script);
+      return witnessList;
+
+    } catch (err) {
+      console.error('generateWitnessFromScript error:', err);
+      return [];
+    }
   }
-}
-
-
 
 
 evaluateCondition(context, condition, vars = {}) {
-
-console.log("into EVALUATE CONDITION");
 
   const { field, operator, value, type } = condition;
 

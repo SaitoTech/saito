@@ -142,6 +142,7 @@ class Vault extends ModTemplate {
 			      );
 
 			      if (!ok) {
+				siteMessage("Supplied Witness Data Incorrect: Access Denied", 2000);
 			        mycallback({ status : "err" , err : "access_denied_script_failed" });
 			        return 0;
 			      }

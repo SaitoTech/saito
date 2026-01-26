@@ -334,15 +334,26 @@ class Browser {
     //
     // Add Connection Monitors
     //
+    let first_connect = true;
+    this.page_navigation_active = false;
+    let browser_self = this;
+
     this.app.connection.on('peer_connect', function (peerIndex: bigint) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      siteMessage('Websocket Connection Established', 1000);
+      if (first_connect) {
+        siteMessage('Peer Connected, Syncing Blockchain', 2500);
+      } else {
+        siteMessage('Connection Restored', 1000);
+      }
     });
     this.app.connection.on('peer_disconnect', function (peerIndex: bigint) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      siteMessage('Websocket Connection Lost');
+      console.log('peer_disconnect: ', browser_self.page_navigation_active);
+      if (!browser_self.page_navigation_active) {
+        siteMessage('Connection Lost', 1000);
+      }
     });
 
     // attach listening events
@@ -1833,7 +1844,7 @@ class Browser {
     }
 
     try {
-      Array.from(document.querySelectorAll(`.saito-address[data-id='${key}']`)).forEach(
+      Array.from(document.querySelectorAll(`.saito-address.treated[data-id='${key}']`)).forEach(
         (add) => (add.innerText = id)
       );
     } catch (err) {
@@ -2474,6 +2485,7 @@ class Browser {
 
               if (identifier) {
                 el.innerText = identifier;
+                saito_app.browser.updateAddressHTML(key, identifier);
               } else {
                 // Prettify anon key
                 el.innerHTML = saito_app.keychain.returnUsername(key);
@@ -2863,9 +2875,16 @@ class Browser {
   reloadWindow(delay = 0) {
     if (delay > 0) {
       setTimeout(() => {
+        if (this){
+          this.page_navigation_active = true;  
+        }
         window.location.reload();
       }, delay);
     } else {
+      if (this){
+        this.page_navigation_active = true;  
+      }
+      
       window.location.reload();
     }
   }
@@ -2909,9 +2928,11 @@ class Browser {
 
     if (delay > 0) {
       setTimeout(() => {
+        this.page_navigation_active = true;
         window.location.href = target;
       }, delay);
     } else {
+      this.page_navigation_active = true;
       window.location.href = target;
     }
   }

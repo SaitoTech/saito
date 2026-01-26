@@ -124,7 +124,7 @@ impl Mempool {
             self.add_transaction(transaction).await;
         } else {
             debug!(
-                "transaction not valid : {:?}",
+                "transaction not valid : {:?}. cannot add to mempool",
                 transaction.signature.to_hex()
             );
         }
