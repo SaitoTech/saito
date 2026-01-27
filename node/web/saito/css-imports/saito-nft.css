@@ -410,11 +410,14 @@
   z-index: 10;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 1rem 1.2rem;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--saito-background-color);
   border: 2px solid rgba(100, 100, 100, 0.5);
   border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
@@ -434,6 +437,9 @@
   overflow: hidden;
   width: 100%;
   height: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .saito-nft-image img {
