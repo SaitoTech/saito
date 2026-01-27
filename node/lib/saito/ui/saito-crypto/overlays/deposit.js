@@ -11,6 +11,11 @@ class Deposit {
     this.local_dev = mod?.local_dev || false;
 
     app.connection.on('saito-crypto-deposit-render-request', async (obj) => {
+      this.local_dev = mod?.local_dev || false;
+      if (this.local_dev) {
+        console.info('Deposit overlay moves into local test mode...');
+      }
+
       // Cache these to fill in the overlay
       this.title = obj.title || 'Top up wallet';
       this.ticker = obj.ticker || this.app.wallet.returnPreferredCryptoTicker();

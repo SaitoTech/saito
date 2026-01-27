@@ -1324,7 +1324,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             }
             let mut peers = self.network.peer_lock.write().await;
 
-            peers.disconnect_stale_peers(current_time);
+            peers
+                .disconnect_stale_peers(current_time, self.network.io_interface.deref())
+                .await;
             peers.remove_disconnected_peers(current_time);
 
             work_done = true;

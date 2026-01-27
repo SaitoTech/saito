@@ -392,7 +392,7 @@ class RedSquare extends ModTemplate {
       let pr = this.addPeer('localhost', 100);
 
       this.loadTweets(
-        'later',
+        'earlier',
         (tx_count) => {
           // Use curation to bootstrap jedi council
           for (let tweet of this.tweets) {
@@ -411,7 +411,7 @@ class RedSquare extends ModTemplate {
       ///
       // We just want the metadata from the archive, lol
       ///
-      let archive_mod = this.app.modules.returnModule('Archive');
+      /*let archive_mod = this.app.modules.returnModule('Archive');
       if (archive_mod) {
         archive_mod.loadTransactionsWithCallback({ field1: 'Blog', limit: 50 }, (res) => {
           for (let i = 0; i < res.length; i++) {
@@ -424,7 +424,7 @@ class RedSquare extends ModTemplate {
 
           this.addBlogPseudoTweets();
         });
-      }
+      }*/
 
       return;
     }
@@ -611,7 +611,7 @@ class RedSquare extends ModTemplate {
       this.archive_connected = true;
 
       if (this.browser_active) {
-        siteMessage('Syncing Redsquare...', 2000);
+        //siteMessage('Syncing Redsquare...', 2000);
         this.main.render();
       }
     }
@@ -766,9 +766,9 @@ class RedSquare extends ModTemplate {
         if (!need_to_check_archive) {
           return mycallback(txs);
         }
-      }
 
-      return 1;
+        return 1;
+      }
     }
 
     return super.handlePeerTransaction(app, tx, peer, mycallback);
@@ -913,7 +913,7 @@ class RedSquare extends ModTemplate {
               (txs) => {
                 let count = this.processTweetsFromPeer(this.peers[i], txs);
 
-                if (txs.length < this.peers[i].tweets_limit) {
+                if (txs.length == 0) {
                   if (created_at === 'earlier') {
                     console.debug('RS: Mark peer as tapped out: ' + created_at);
                     this.peers[i].tweets_earliest_ts = 0;

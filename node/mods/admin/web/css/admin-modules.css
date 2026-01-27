@@ -1,0 +1,46 @@
+.node-config {
+  border-top: 2px solid black;
+}
+
+.module-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  margin-bottom: 1rem;
+}
+
+.mod-config-table {
+  display: grid;
+  column-gap: 12px;
+  row-gap: 5px;
+  grid-template-columns: repeat(8, max-content);
+  border: 1px solid black;
+  border-radius: 12px;
+  padding: 18px;
+  margin: auto;
+  width: fit-content;
+  margin-bottom: 20px;
+}
+
+.mod-config-table label {
+  min-width: 120px;
+}
+
+@media screen and (min-width: 1000px) {
+  .mod-config-table {
+    grid-template-columns: repeat(10, max-content);
+  }
+}
+
+@media screen and (min-width: 1200px) {
+  .mod-config-table {
+    grid-template-columns: repeat(12, max-content);
+  }
+}
+
+@media screen and (max-width: 780px) {
+  .mod-config-table {
+    grid-template-columns: repeat(6, max-content);
+  }
+}
+

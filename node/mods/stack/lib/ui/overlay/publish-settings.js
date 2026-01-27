@@ -349,8 +349,23 @@ class PublishSettingsOverlay {
 
 
     const title = document.querySelector('#stack-post-title-input') ? (document.querySelector('#stack-post-title-input').value || '') : '';
-    // Use DOM-based serialization (DOM is single source of truth)
-    const content = this.mod.create_post_ui ? this.mod.create_post_ui.serializeDOMToMarkdown() : '';
+    let content = '';
+
+    if (this.mod.create_post_ui) {
+
+      // ------------------------------------------------------------
+      // CRITICAL: Build imageIdMap BEFORE serialization (publish mode)
+      // ------------------------------------------------------------
+      if (typeof this.mod.create_post_ui.buildImageIdMap === 'function') {
+        this.mod.create_post_ui.buildImageIdMap();
+      }
+
+      content = this.mod.create_post_ui.serializeDOMToMarkdown(
+        this.mod.create_post_ui.imageIdMap || null
+      );
+    }
+
+
 
     // ========================================================================
     // VALIDATION GUARD: Prevent publishing empty posts (no title AND no content)
@@ -425,6 +440,9 @@ class PublishSettingsOverlay {
         title,
         content,
         image: featuredImage, // Featured/teaser image (singular)
+	images: Array.isArray(this.mod.create_post_ui?.images)
+	  ? this.mod.create_post_ui.images
+	  : [],
         imageUrl: this.postState.imageUrl,
         tags: [],
         timestamp: Date.now(),

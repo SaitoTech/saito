@@ -1567,24 +1567,6 @@ class GameTemplate extends ModTemplate {
     }
   }
 
-  // this function runs "connect" event
-  onConnectionStable(app, peer) {
-    if (this.app.BROWSER === 1) {
-      siteMessage('Connection Restored', 1000);
-    }
-  }
-
-  //
-  //
-  // ON CONNECTION UNSTABLE
-  //
-  // this function runs "disconnect" event
-  onConnectionUnstable(app, publicKey) {
-    if (this.app.BROWSER === 1) {
-      siteMessage('Connection Unstable', 1000);
-    }
-  }
-
   returnWelcome() {
     //return `<img src="/settlers/img/welcome2.jpg"/>`;
     return null;

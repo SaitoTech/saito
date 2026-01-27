@@ -1089,7 +1089,11 @@ class Server {
   //
   async fetchOpenGraphProperties(link, callback = null) {
     return fetch(link, { redirect: 'follow', follow: 50 })
-      .then((res) => res.text())
+      .then((res) => {
+        if (res.ok) {
+          return res.text();
+        } else throw new Error(`Response status: ${res.status}`);
+      })
       .then((data) => {
         let no_tags = {
           title: '',

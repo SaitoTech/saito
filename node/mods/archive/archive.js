@@ -339,24 +339,29 @@ class Archive extends ModTemplate {
 		}
 
 		//
-		// add REQUESTER and TS to submitted object
-		//
-		// over-write any existing information / vars in order to 
-		// avoid users submitting with correct information inappropriately
-		//
-		if (req.data) {
-		  if (typeof req.data === "object" && req.data !== null && !Array.isArray(req.data)) {
-		    req.data.REQUESTER = peer.publicKey;
-		    req.data.NOW = new Date().getTime(); 
-		  }
-		}
-
-		//
 		// saves TX containing archive insert instruction
 		//
 		if (req.request === 'archive') {
 			if (req.data.request === 'load') {
 				let ts1 = Date.now();
+
+				//
+				// add REQUESTER and TS to submitted object
+				//
+				// over-write any existing information / vars in order to 
+				// avoid users submitting with correct information inappropriately
+				//
+				if (req.data) {
+				  if (typeof req.data === "object" && req.data !== null && !Array.isArray(req.data)) {
+				    if (peer && peer.publicKey) {
+				      req.data.REQUESTER = peer.publicKey;
+				      req.data.NOW = new Date().getTime(); 
+				    } else {
+				      req.data.REQUESTER = "";
+				      req.data.NOW = new Date().getTime(); 
+				    }
+				  }
+				}
 
 				//
 				//Duplicates loadTransactionsWithCallback, but that's fine
@@ -848,8 +853,6 @@ class Archive extends ModTemplate {
 
 			rows = altered_rows;
 		}
-
-console.log("returning rows: " + JSON.stringify(rows));
 
 		return rows;
 	}

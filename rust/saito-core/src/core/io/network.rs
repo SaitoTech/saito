@@ -744,7 +744,9 @@ impl Network {
                         .connect_to_peer(url, peer.index)
                         .await
                         .unwrap();
-                    *period *= 2;
+                    if *period < 10_000 {
+                        *period *= 2;
+                    }
                     *connect_time = current_time + *period;
                 }
             }
