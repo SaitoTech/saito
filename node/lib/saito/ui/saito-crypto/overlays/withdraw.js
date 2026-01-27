@@ -158,7 +158,8 @@ class Withdraw {
         let address = document.querySelector('#withdraw-input-address').value;
 
         document.querySelector('.withdraw-confirm-amount').innerText = `${amount} ${this.ticker}`;
-        document.querySelector('.withdraw-confirm-address').innerText = address;
+        document.querySelector('.withdraw-address-1').innerText = address.slice(0, -8);
+        document.querySelector('.withdraw-address-2').innerText = address.slice(-8);
 
         document.querySelector('.withdraw-confirm-fee').innerText =
           `(fee: ${this.fee} ${this.ticker})`;

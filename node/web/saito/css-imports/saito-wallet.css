@@ -418,12 +418,33 @@
 }
 
 .confirm-msg-container .confirm-msg {
-  display: inline-block;
-  width: min-content;
+  display: flex;
+  flex-direction: column;
   text-align: center;
-  min-width: 40rem;
+  min-width: min(40rem, 100%);
   font-size: 1.8rem;
   line-height: 2.8rem;
+  max-width: 100%;
+}
+
+.confirm-msg-container .withdraw-confirm-amount,
+.confirm-msg-container .withdraw-address {
+  font-weight: bold;
+  font-family: monospace;
+}
+
+.confirm-msg-container .withdraw-address-1 {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.confirm-msg-container .withdraw-confirm-address {
+  display: grid;
+  grid-template-columns: minmax(0px, 1fr) min-content min-content;
+  width: 446px;
+  max-width: 100%;
+  grid-gap: 0;
 }
 
 .confirm-submit {

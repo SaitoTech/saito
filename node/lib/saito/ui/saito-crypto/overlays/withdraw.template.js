@@ -78,8 +78,17 @@ module.exports = (app, mod, publickey = '', address = '') => {
             <i class="withdraw-msg-icon fa-solid fa-circle-exclamation"></i>
             <img class="spinner" src="/saito/img/spinner.svg">
             <div class="confirm-msg">
-              <span class="withdraw-msg-text">Send</span> <b><span class="withdraw-confirm-amount">0 SAITO</span></b> to address <b><span class="withdraw-confirm-address">wcyj2qSvmPsNcbEx9PnjXtNzsDoCf1Xtv9SqWH6wYxnk</span></b><span class="withdraw-msg-question">?</span> <br>
-              <span class="withdraw-confirm-fee">(fee: 0 SAITO)</span>      
+              <div>
+                <span class="withdraw-msg-text">Send</span> 
+                <span class="withdraw-confirm-amount">0 SAITO</span>
+                to address 
+              </div>
+              <div class="withdraw-confirm-address">
+                <div class="withdraw-address withdraw-address-1"></div>
+                <div class="withdraw-address withdraw-address-2"></div>
+                <div class="withdraw-msg-question">?</div>
+              </div>
+              <div class="withdraw-confirm-fee">(fee: 0 SAITO)</div>
             </div>
           </div>
 
