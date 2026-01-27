@@ -2875,16 +2875,16 @@ class Browser {
   reloadWindow(delay = 0) {
     if (delay > 0) {
       setTimeout(() => {
-        if (this){
-          this.page_navigation_active = true;  
+        if (this) {
+          this.page_navigation_active = true;
         }
         window.location.reload();
       }, delay);
     } else {
-      if (this){
-        this.page_navigation_active = true;  
+      if (this) {
+        this.page_navigation_active = true;
       }
-      
+
       window.location.reload();
     }
   }

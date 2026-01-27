@@ -3,6 +3,7 @@ use crate::core::consensus::peers::congestion_controller::{
 };
 use crate::core::consensus::peers::peer::{Peer, PeerStatus};
 use crate::core::defs::{PeerIndex, PrintForLog, SaitoPublicKey, Timestamp};
+use crate::core::io::interface_io::InterfaceIO;
 use crate::core::msg::handshake::HandshakeResponse;
 use crate::core::util::configuration::Endpoint;
 use ahash::HashMap;
@@ -144,7 +145,11 @@ impl PeerCollection {
         }
     }
 
-    pub fn disconnect_stale_peers(&mut self, current_time: Timestamp) {
+    pub async fn disconnect_stale_peers(
+        &mut self,
+        current_time: Timestamp,
+        io_handler: &(dyn InterfaceIO + Send + Sync),
+    ) {
         trace!(
             "disconnecting stale peers out of {:?} peers",
             self.index_to_peers.len()
@@ -164,6 +169,7 @@ impl PeerCollection {
                         (current_time - peer.last_msg_received_at) / 1000
                         );
                     peer.mark_as_disconnected(current_time);
+                    io_handler.disconnect_from_peer(peer.index).await;
                 }
             }
         }
