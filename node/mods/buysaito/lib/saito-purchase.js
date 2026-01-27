@@ -21,6 +21,7 @@ class SaitoPurchaseOverlay {
     this.description = '';
     this.deposit_confirmed = false;
     this.reserved_until = 0;
+    this.fancy_ui = true;
 
     this.countdown_interval = null;
 
@@ -51,18 +52,16 @@ class SaitoPurchaseOverlay {
         this.recipient = recipient || this.mod.publicKey;
         this.tx = tx;
 
-        // More complicated but smoother transition while fetching info
-        this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
-        setTimeout(async () => {
-          if (this.mod.available_currencies?.length) {
-            setTimeout(() => {
-              this.render();
-            }, 1000);
-          } else {
-            siteMessage('No cryptocurrencies available', 3000);
-            this.overlay.remove();
-          }
-        }, 50);
+        if (this.fancy_ui) {
+          // More complicated but smoother transition while fetching info
+          this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
+          setTimeout(() => {
+            this.render();
+          }, 1000);
+          this.fancy_ui = false;
+        } else {
+          this.render();
+        }
       }
     );
   }
@@ -78,6 +77,11 @@ class SaitoPurchaseOverlay {
       this.crypto_selected,
       this.tx
     );
+
+    if (this.mod.available_currencies.length == 0) {
+      salert('No available currencies');
+      return;
+    }
 
     if (!this.crypto_selected) {
       //
@@ -268,6 +272,8 @@ class SaitoPurchaseOverlay {
         el.textContent = '00:00:00';
         clearInterval(this.countdown_interval);
         this.countdown_interval = null;
+        this.reset();
+        this.overlay.close();
         return;
       }
 
@@ -295,6 +301,8 @@ class SaitoPurchaseOverlay {
 
   reset() {
     console.log('Reset Saito-Purchase Values');
+    this.mod.pending_payments = [];
+
     //
     // reset values (incase we want to reuse the overlay)
     //

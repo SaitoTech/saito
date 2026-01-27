@@ -63,13 +63,12 @@ class BuySaito extends ModTemplate {
 
 		if (!this.app.BROWSER) {
 			this.mixin_mod = app.modules.returnModule('Mixin');
-			console.log(app.options.server);
 			if (
 				app.options?.server?.endpoint?.host == 'localhost' ||
 				app.options?.server?.endpoint?.host.includes('staging') ||
 				app.options?.server?.host.includes('staging')
 			) {
-				console.log('BUYSAITO ---> Local development mode');
+				console.warn('BUYSAITO ---> Local development mode');
 				this.authorized_public_key = this.publicKey;
 			} else {
 				this.local_dev = false;
@@ -184,8 +183,6 @@ class BuySaito extends ModTemplate {
 		}
 
 		if (txmsg.request.includes('buysaito')) {
-			console.log('BUYSAITO - ', txmsg.request, txmsg.data);
-
 			if (txmsg.request == 'buysaito available currencies') {
 				if (this.publicKey === this.authorized_public_key) {
 					if (!this.available_currencies.length) {
@@ -198,6 +195,9 @@ class BuySaito extends ModTemplate {
 					});
 					this.hasPendingPayment(tx.from[0].publicKey);
 				} else if (txmsg.data) {
+					if (document.getElementById('buysaito-button')) {
+						document.getElementById('buysaito-button').disabled = false;
+					}
 					this.available_currencies = txmsg.data;
 				} else {
 					console.warn("BUYSAITO - We are getting a request we shouldn't be...");
@@ -209,7 +209,7 @@ class BuySaito extends ModTemplate {
 				if (this.publicKey === this.authorized_public_key) {
 					for (let i = 0; i < this.pending_payments.length; i++) {
 						if (
-							this.pending_payments[i].publicKey == tx.from[0].publicKey &&
+							this.pending_payments[i].initiator_pubkey == tx.from[0].publicKey &&
 							this.pending_payments[i].ticker == txmsg.data.ticker
 						) {
 							this.pending_payments[i].status = 'cancelled';
@@ -442,6 +442,8 @@ class BuySaito extends ModTemplate {
 	}
 
 	hasPendingPayment(publicKey) {
+		this.clearInactivePayments();
+
 		// Check if this user has a pending payment and send them that info again
 		for (let p of this.pending_payments) {
 			if (p.initiator_pubkey == publicKey) {
@@ -485,7 +487,7 @@ class BuySaito extends ModTemplate {
 				return false;
 			}
 		}
-		console.log(ticker + ':' + destination + ' available!');
+		console.info(ticker + ':' + destination + ' available!');
 		return true;
 	}
 
@@ -582,6 +584,7 @@ class BuySaito extends ModTemplate {
 	}
 
 	async authorizePaymentIssuance(payment_data) {
+		console.info('Mark payment as pending...');
 		payment_data.status = 'pending';
 
 		let sql = `UPDATE purchases SET status = "pending", updated_at = $updated_at WHERE id=$id`;
@@ -602,10 +605,12 @@ class BuySaito extends ModTemplate {
 	}
 
 	async cancelPayment(payment_id) {
+		console.log('Canceling payment');
 		let sql = `UPDATE purchases SET active = 0, status = "failed", updated_at = $updated_at WHERE id=$id`;
 		let params = { $id: payment_id, $updated_at: Date.now() };
 
 		await this.app.storage.runDatabase(sql, params, 'buysaito');
+		this.clearInactivePayments();
 	}
 
 	async finishPayment(payment_data) {
@@ -626,9 +631,12 @@ class BuySaito extends ModTemplate {
 	clearInactivePayments() {
 		// Check for expired addresses
 		for (let pp of this.pending_payments) {
-			if (pp.status == 'new' && pp.created_at + this.time_limit < Date.now()) {
-				pp.status = 'failed';
-				this.cancelPayment(pp.id);
+			if (pp.status == 'new') {
+				if (pp.ts + this.time_limit < Date.now()) {
+					console.info('Marking payment as timed out');
+					pp.status = 'failed';
+					this.cancelPayment(pp.id);
+				}
 			}
 		}
 

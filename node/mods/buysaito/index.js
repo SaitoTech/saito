@@ -79,14 +79,14 @@ module.exports = (app, mod, build_number = '', og_card) => {
 
       <div class='purchase-saito-prompt'>click on the button to purchase 
         <select class="purchase-saito-amount" id="purchase-saito-amount">
-      	  <option id="100" value="100">100 SAITO</option>
       	  <option id="1000" value="1000">1,000 SAITO</option>
-      	  <option id="10000" value="10000" selected>10,000 SAITO</option>
+      	  <option id="10000" value="10000">10,000 SAITO</option>
+      	  <option id="50000" value="50000" selected>50,000 SAITO</option>
       	  <option id="100000" value="100000">100,000 SAITO</option>
         </select>
       </div>
 
-      <button class="saito-button-primary buysaito-button fat" id="buysaito-button" >Get Quote</button>
+      <button class="saito-button-primary buysaito-button fat" id="buysaito-button" disabled >Get Quote</button>
 
       <div class="footer-note">Already have SAITO? Visit our <a href="/migration">migration portal</a>.</div>
     </div>
