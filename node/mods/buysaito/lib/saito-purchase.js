@@ -1,6 +1,7 @@
 const SaitoPurchaseTemplate = require('./saito-purchase.template');
 const SaitoPurchaseLoaderTemplate = require('./saito-purchase-loader.template');
 const SaitoPurchaseCryptoTemplate = require('./saito-purchase-select-crypto.template');
+const SaitoPurchaseAmountTemplate = require('./saito-purchase-amount.template');
 
 const SaitoOverlay = require('./../../../lib/saito/ui/saito-overlay/saito-overlay');
 
@@ -15,6 +16,7 @@ class SaitoPurchaseOverlay {
     // init
     //
     this.amount = 0;
+    this.expected_deposit = 0;
     this.crypto_selected = false;
     this.tx = null;
     this.recipient = '';
@@ -51,6 +53,10 @@ class SaitoPurchaseOverlay {
         this.description = description;
         this.recipient = recipient || this.mod.publicKey;
         this.tx = tx;
+
+        if (!amount) {
+          this.fancy_ui = false;
+        }
 
         if (this.fancy_ui) {
           // More complicated but smoother transition while fetching info
@@ -90,10 +96,15 @@ class SaitoPurchaseOverlay {
       this.overlay.show(SaitoPurchaseCryptoTemplate(this.app, this.mod, this));
     } else {
       if (!this.destination) {
-        //
-        // 2. show loading screen after selecting crypto ticker
-        //
-        this.overlay.show(SaitoPurchaseLoaderTemplate(this.ui_msg, ''));
+        // 1.5 alternate amount selection
+        if (!this.amount) {
+          this.overlay.show(SaitoPurchaseAmountTemplate(this.app, this.mod, this));
+        } else {
+          //
+          // 2. show loading screen after selecting crypto ticker
+          //
+          this.overlay.show(SaitoPurchaseLoaderTemplate(this.ui_msg, ''));
+        }
       } else {
         //
         // 3. Show address screen when deposit address is created/fetched
@@ -116,6 +127,9 @@ class SaitoPurchaseOverlay {
   }
 
   attachEvents() {
+    //////////////////////
+    // Select Crypto Form
+    /////////////////////
     document.querySelectorAll('.purchase-crypto-item').forEach((el) => {
       el.onclick = (e) => {
         for (let i = 0; i < this.mod.available_currencies.length; i++) {
@@ -126,11 +140,50 @@ class SaitoPurchaseOverlay {
           salert('Error reading crypto selection');
           return;
         }
-        this.overlay.show(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
-        this.requestPaymentAddressFromServer();
+        if (this.amount) {
+          this.overlay.show(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
+          this.requestPaymentAddressFromServer();
+        } else {
+          this.render();
+        }
       };
     });
 
+    //////////////////////
+    // Select Amount Form
+    /////////////////////
+    if (document.getElementById('back-purchase-btn')) {
+      document.getElementById('back-purchase-btn').onclick = (e) => {
+        this.reset();
+        this.render();
+      };
+    }
+
+    const input = document.getElementById('input-amount');
+    const output = document.querySelector('.expected_amount');
+
+    if (input && output) {
+      input.onchange = (e) => {
+        let amount = input.value;
+        output.innerText = this.mod.convertToSaito(amount, this.crypto_selected.ticker);
+      };
+      input.onkeydown = (e) => {
+        let amount = input.value;
+        output.innerText = this.mod.convertToSaito(amount, this.crypto_selected.ticker);
+      };
+    }
+
+    if (document.getElementById('next-purchase-btn')) {
+      document.getElementById('next-purchase-btn').onclick = (e) => {
+        this.expected_deposit = document.querySelector('#input-amount').value;
+        this.overlay.show(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
+        this.requestPaymentAddressFromServer();
+      };
+    }
+
+    ///////////////////
+    // Deposit form
+    ///////////////////
     if (document.querySelector('.payment-box .pubkey-containter')) {
       document.querySelector('.payment-box .pubkey-containter').onclick = (e) => {
         navigator.clipboard.writeText(this.destination);
@@ -176,10 +229,19 @@ class SaitoPurchaseOverlay {
     let data = {
       initiator_pubkey: this.mod.publicKey,
       recipient_pubkey: this.recipient,
-      issue_amount: this.amount, // saito amount
       ticker: this.crypto_selected.ticker,
       tx: this.tx
     };
+
+    if (this.amount) {
+      data.issue_amount = this.amount;
+    } else if (this.expected_deposit) {
+      data.expected_deposit = this.expected_deposit;
+    } else {
+      console.error('No valid numeric input');
+      return;
+    }
+
     console.log('Payment Address Request:', data);
 
     this.app.connection.emit('relay-send-message', {
@@ -307,6 +369,7 @@ class SaitoPurchaseOverlay {
     // reset values (incase we want to reuse the overlay)
     //
     this.amount = 0;
+    this.expected_deposit = 0;
     this.crypto_selected = false;
     this.tx = null;
     this.recipient = '';

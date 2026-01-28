@@ -158,6 +158,18 @@ class BuySaito extends ModTemplate {
 
 		await super.render();
 
+		if (this.pending_payments.length) {
+			if (document.querySelector('.purchase-saito-prompt')) {
+				document.querySelector('.purchase-saito-prompt').visibility = 'hidden';
+			}
+			if (document.getElementById('advanced-purchase')) {
+				document.getElementById('advanced-purchase').visbility = 'hidden';
+			}
+			if (document.getElementById('buysaito-button')) {
+				document.getElementById('buysaito-button').innerText = 'Continue';
+			}
+		}
+
 		this.attachEvents();
 	}
 
@@ -172,6 +184,12 @@ class BuySaito extends ModTemplate {
 
 				const amount = document.getElementById('purchase-saito-amount').value;
 				this.app.connection.emit('saito-purchase-launch', amount);
+			};
+		}
+
+		if (document.getElementById('advanced-purchase')) {
+			document.getElementById('advanced-purchase').onclick = (e) => {
+				this.app.connection.emit('saito-purchase-launch', 0);
 			};
 		}
 	}
@@ -205,14 +223,20 @@ class BuySaito extends ModTemplate {
 					this.app.connection.emit('relay-send-message', {
 						recipient: tx.from[0].publicKey,
 						request: 'buysaito available currencies',
-						data: this.available_currencies
+						data: {
+							ac: this.available_currencies,
+							erc: this.erc_saito?.price_usd
+						}
 					});
 					this.hasPendingPayment(tx.from[0].publicKey);
 				} else if (txmsg.data && this.app.BROWSER) {
 					if (document.getElementById('buysaito-button')) {
 						document.getElementById('buysaito-button').disabled = false;
 					}
-					this.available_currencies = txmsg.data;
+					this.available_currencies = txmsg.data.ac;
+					if (!this.erc_saito) {
+						this.erc_saito = { price_usd: txmsg.data.erc };
+					}
 				} else {
 					console.warn("BUYSAITO - We are getting a request we shouldn't be...");
 					console.warn(txmsg);
@@ -344,6 +368,36 @@ class BuySaito extends ModTemplate {
 		// Mixin truncates TRX to 6 digits, send 0.32758538, but received amount: '0.327585',
 
 		return amount_to_deposit;
+	}
+
+	convertToSaito(amount, ticker = null) {
+		let saito_price = this.erc_saito ? 1.05 * Number(this.erc_saito.price_usd) : 1;
+		let usd_price = 0;
+
+		if (ticker) {
+			if (this.mixin_mod) {
+				for (let cm of this.mixin_mod.crypto_mods) {
+					if (cm.ticker == ticker) {
+						usd_price = Number(cm.price_usd);
+					}
+				}
+			} else {
+				for (let cm of this.available_currencies) {
+					if (cm.ticker == ticker) {
+						usd_price = Number(cm.price_usd);
+					}
+				}
+			}
+		}
+
+		if (usd_price == 0) {
+			console.warn('BUYSAITO - No ticker selected for conversion!');
+		}
+
+		// calculate
+		let amount_of_saito = (amount * usd_price) / saito_price;
+
+		return Math.floor(amount_of_saito);
 	}
 
 	//
@@ -609,10 +663,19 @@ class BuySaito extends ModTemplate {
 		payment_data.mixin = mixin_account;
 
 		// Do the math
-		payment_data.expected_deposit = this.convertSaitoToOther(
-			payment_data.issue_amount,
-			payment_data.ticker
-		);
+		if (payment_data.issue_amount) {
+			payment_data.expected_deposit = this.convertSaitoToOther(
+				payment_data.issue_amount,
+				payment_data.ticker
+			);
+		} else if (payment_data.expected_deposit) {
+			payment_data.issue_amount = this.convertToSaito(
+				payment_data.expected_deposit,
+				payment_data.ticker
+			);
+		} else {
+			console.error('BuySaito: no valid numeric input');
+		}
 
 		this.pending_payments.push(payment_data);
 

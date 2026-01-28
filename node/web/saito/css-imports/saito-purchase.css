@@ -79,6 +79,13 @@
   cursor: pointer;
 }
 
+.saito-purchase-deposit-header {
+  margin: 0 0 5px 0;
+  font-weight: 600;
+  font-size: 3rem;
+  color: var(--saito-primary);
+}
+
 .payment-box {
   padding: 2.5rem;
   width: 420px;
@@ -90,13 +97,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-
-  & .saito-purchase-deposit-header {
-    margin: 0 0 5px 0;
-    font-weight: 600;
-    font-size: 3rem;
-    color: var(--saito-primary);
-  }
 
   & .product-desc {
     line-height: 1.4;
@@ -142,4 +142,41 @@
     cursor: pointer;
     border-bottom: 1px solid;
   }
+}
+
+/*  Numeric entry */
+.amount-selection-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4rem;
+}
+
+.crypto-box {
+  display: flex;
+  font-size: 2rem;
+  height: 4rem;
+  gap: 2rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.amount-selection-box .crypto-logo {
+  width: unset;
+}
+
+.expected_amount {
+  padding: 1rem 1.5rem;
+  font-size: 1.6rem;
+  width: 20rem;
+  color: var(--saito-font-color);
+  border-radius: var(--saito-border-radius);
+  height: 41px;
+  background-color: var(--saito-background-color);
+  border: var(--border-thickness-thin) solid var(--saito-primary);
+}
+
+.input-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
 }
