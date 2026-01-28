@@ -34,6 +34,7 @@
   justify-content: center;
   gap: 1.5rem;
   padding: 1rem;
+  overflow-y: auto;
 }
 
 .purchase-crypto-item {
@@ -180,4 +181,15 @@
   display: flex;
   flex-direction: column;
   gap: 3rem;
+}
+
+@media screen and (max-width: 600px) {  
+  .purchase-crypto-list {
+    font-size: smaller;
+    flex: 0 1 12rem;
+  }
+  .purchase-crypto-item .crypto-logo {
+    width: 50%;
+    height: auto;
+  }
 }

@@ -202,4 +202,7 @@ span.saito-anchor {
   .saito-button-row > button[type='button'] {
     width: 100%;
   }
+  .saito-button-row {
+    flex-direction: column;
+  }
 }

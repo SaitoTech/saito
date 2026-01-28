@@ -75,7 +75,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
   <body>
     <div class="main">
     <div class="withdraw-container">
-      <h2>Buy Saito</h2>
+      <h2>Buy SAITO</h2>
 
       <div class='purchase-saito-prompt'>click on the button to purchase 
         <select class="purchase-saito-amount" id="purchase-saito-amount">
