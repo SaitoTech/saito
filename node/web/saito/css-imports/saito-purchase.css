@@ -51,10 +51,9 @@
   box-sizing: border-box;
   cursor: pointer;
   background-color: var(--saito-background-color);
-  color: var(--saito-primary-text);
+  color: var(--saito-font-color);
   font-weight: bold;
   transition: background-color 0.2s;
-  text-shadow: 1px 1px 2px var(--saito-black);
 }
 
 .purchase-crypto-item .crypto-logo {
@@ -64,6 +63,8 @@
 
 .purchase-crypto-item:hover {
   background: var(--saito-primary-dark);
+  color: var(--saito-primary-text);
+  text-shadow: 1px 1px 2px var(--saito-black);
 }
 
 .purchase-select-crypto-msg {
