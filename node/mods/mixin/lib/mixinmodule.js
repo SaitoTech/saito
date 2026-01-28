@@ -164,20 +164,10 @@ class MixinModule extends CryptoModule {
 
 		// internal mixin transfer
 		if (internal_transfer) {
-			res = await this.mixin.sendInNetworkTransferRequest(
-				this.asset_id,
-				destination,
-				amount,
-				unique_hash
-			);
+			res = await this.mixin.sendInNetworkTransferRequest(this.asset_id, destination, amount);
 		} else {
 			// address is external, send external withdrawl request
-			res = await this.mixin.sendExternalNetworkTransferRequest(
-				this.asset_id,
-				destination,
-				amount,
-				unique_hash
-			);
+			res = await this.mixin.sendExternalNetworkTransferRequest(this.asset_id, destination, amount);
 		}
 
 		if (res.status == 200) {

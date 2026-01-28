@@ -769,17 +769,26 @@ class Mixin extends ModTemplate {
     }
   }
 
-  async sendInNetworkTransferRequest(asset_id, destination, amount, unique_hash = '') {
+  async sendInNetworkTransferRequest(asset_id, destination, amount, alt_keys = null) {
     try {
       let spend_private_key = this.mixin.spend_private_key;
-      let client = MixinApi({
-        keystore: {
-          app_id: this.mixin.user_id,
-          session_id: this.mixin.session_id,
-          pin_token_base64: this.mixin.tip_key_base64,
-          session_private_key: this.mixin.session_seed
-        }
-      });
+      let keystore = {
+        app_id: this.mixin.user_id,
+        session_id: this.mixin.session_id,
+        pin_token_base64: this.mixin.tip_key_base64,
+        session_private_key: this.mixin.session_seed
+      };
+
+      if (alt_keys) {
+        keystore = {
+          app_id: alt_keys.user_id,
+          session_id: alt_keys.session_id,
+          pin_token_base64: alt_keys.pin_token_base64,
+          session_private_key: alt_keys.session_private_key
+        };
+      }
+
+      let client = MixinApi({ keystore });
 
       // destination
       const members = [destination];
@@ -853,7 +862,7 @@ class Mixin extends ModTemplate {
     }
   }
 
-  async sendExternalNetworkTransferRequest(asset_id, destination, amount, unique_hash = '') {
+  async sendExternalNetworkTransferRequest(asset_id, destination, amount) {
     try {
       let spend_private_key = this.mixin.spend_private_key;
       let user = MixinApi({

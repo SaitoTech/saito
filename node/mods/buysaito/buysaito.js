@@ -39,12 +39,6 @@ class BuySaito extends ModTemplate {
 		   stored in a DB every time a status is updated and restored on load for 
 		   persistence across server down time
 
-		   Statuses: 
-		   		'new' 		-- user has requested a deposit address
-		   		'pending' 	-- payment is pending in Mixin account, cleared to issue saito
-		   		'confirmed' -- payment in Mixin received (and transfered to safe wallet)
-		   		'failed'    -- payment didn't come in...
-		   		'cancelled' -- timeout or user cancels
 		*/
 		this.pending_payments = [];
 
@@ -97,7 +91,24 @@ class BuySaito extends ModTemplate {
 		return services;
 	}
 
+	//
+	// We use 'buysaito' response so that we don't always hit the
+	// node with peerServiceUp - request
+	// modules in which we want to support buysaito should add a respondTo
+	//
+	// To-do -- don't require us preloading the available cryptos before moving into saito-purchase overlay
+	//
+	respondTo(type = '', obj) {
+		if (type == 'buysaito') {
+			return true;
+		}
+	}
+
 	async onPeerServiceUp(app, peer, service = {}) {
+		//
+		// If our direct peer is the BuySaito service provider,
+		// make sure we update the publickey we send requests to
+		//
 		if (service.service === 'buysaito') {
 			if (this.app.BROWSER) {
 				if (this.app.modules.returnActiveModule().respondTo('buysaito')) {
@@ -113,6 +124,9 @@ class BuySaito extends ModTemplate {
 			);
 		}
 
+		//
+		// Browsers query the available cryptos once relay is available
+		//
 		if (service.service === 'relay') {
 			if (this.app.BROWSER) {
 				if (this.app.modules.returnActiveModule().respondTo('buysaito')) {
@@ -131,9 +145,6 @@ class BuySaito extends ModTemplate {
 	}
 
 	async render() {
-		//
-		// browsers only!
-		//
 		if (!this.app.BROWSER || !this.browser_active) {
 			return;
 		}
@@ -148,12 +159,6 @@ class BuySaito extends ModTemplate {
 		await super.render();
 
 		this.attachEvents();
-	}
-
-	respondTo(type = '', obj) {
-		if (type == 'buysaito') {
-			return true;
-		}
 	}
 
 	attachEvents() {
@@ -171,6 +176,15 @@ class BuySaito extends ModTemplate {
 		}
 	}
 
+	//
+	// All communication between browser and service node are off chain, using Relay
+	// commands are "bidirectional", i.e. server response uses the same request name
+	//
+	// *** buysaito available currencies -- request/receive list of acceptable web3 cryptos
+	// *** buysaito reserve address -- request/receive a dedicated deposit address for a particular web3 crypto and expected deposit amount
+	// *** buysaito release address -- inform server that we don't need the reserved deposit address
+	// *** buysaito saito issued -- inform browser of purchase success (on top of also propagating the desired tx)
+	//
 	async handlePeerTransaction(app, tx = null, peer, mycallback = null) {
 		if (tx == null) {
 			return 0;
@@ -184,7 +198,7 @@ class BuySaito extends ModTemplate {
 
 		if (txmsg.request.includes('buysaito')) {
 			if (txmsg.request == 'buysaito available currencies') {
-				if (this.publicKey === this.authorized_public_key) {
+				if (this.publicKey === this.authorized_public_key && !this.app.BROWSER) {
 					if (!this.available_currencies.length) {
 						this.loadAvailableCryptos();
 					}
@@ -194,7 +208,7 @@ class BuySaito extends ModTemplate {
 						data: this.available_currencies
 					});
 					this.hasPendingPayment(tx.from[0].publicKey);
-				} else if (txmsg.data) {
+				} else if (txmsg.data && this.app.BROWSER) {
 					if (document.getElementById('buysaito-button')) {
 						document.getElementById('buysaito-button').disabled = false;
 					}
@@ -205,8 +219,28 @@ class BuySaito extends ModTemplate {
 				}
 			}
 
+			if (txmsg.request === 'buysaito reserve address') {
+				if (this.publicKey === this.authorized_public_key && !this.app.BROWSER) {
+					// If user has an open address, ignore the new specifics... (?)
+					if (!this.hasPendingPayment(tx.from[0].publicKey)) {
+						if (!tx.isFrom(txmsg.data.initiator_pubkey)) {
+							console.error('BUYSAITO - PublicKey mismatch... ignore payment request');
+							return;
+						}
+						await this.checkPrices();
+						this.findAvailableAddress(txmsg.data);
+					}
+				} else if (tx.isFrom(this.authorized_public_key) && this.app.BROWSER) {
+					this.pending_payments.push(txmsg.data);
+					this.app.connection.emit('saito-purchase-address-reserved', txmsg.data);
+				} else {
+					console.warn("BUYSAITO - We are getting a request we shouldn't be...");
+					console.warn(txmsg);
+				}
+			}
+
 			if (txmsg.request === 'buysaito release address') {
-				if (this.publicKey === this.authorized_public_key) {
+				if (this.publicKey === this.authorized_public_key && !this.app.BROWSER) {
 					for (let i = 0; i < this.pending_payments.length; i++) {
 						if (
 							this.pending_payments[i].initiator_pubkey == tx.from[0].publicKey &&
@@ -222,25 +256,8 @@ class BuySaito extends ModTemplate {
 				}
 			}
 
-			if (txmsg.request === 'buysaito reserve address') {
-				if (this.publicKey === this.authorized_public_key) {
-					// If user has an open address, ignore the new specifics... (?)
-					if (!this.hasPendingPayment(tx.from[0].publicKey)) {
-						if (!tx.isFrom(txmsg.data.initiator_pubkey)) {
-							console.error('BUYSAITO - PublicKey mismatch... ignore payment request');
-							return;
-						}
-						await this.checkPrices();
-						this.findAvailableAddress(txmsg.data);
-					}
-				} else if (tx.isFrom(this.authorized_public_key)) {
-					this.pending_payments.push(txmsg.data);
-					this.app.connection.emit('saito-purchase-address-reserved', txmsg.data);
-				}
-			}
-
 			if (txmsg.request === 'buysaito saito issued') {
-				if (tx.isFrom(this.authorized_public_key)) {
+				if (tx.isFrom(this.authorized_public_key) && this.app.BROWSER) {
 					for (let j = 0; j < this.pending_payments.length; j++) {
 						if (this.pending_payments[j].destination == txmsg.data.destination) {
 							this.pending_payments.splice(j, 1);
@@ -260,11 +277,12 @@ class BuySaito extends ModTemplate {
 	}
 
 	/**
-	 * On new block (assuming we get a slip back), try to clear out the payments queue
+	 * On new block (assuming we get a slip back), roughtly every 30seconds,
+	 * try to clear out the payments queue
 	 */
 	async onNewBlock(blk, lc) {
 		if (this.publicKey == this.authorized_public_key && !this.app.BROWSER) {
-			await this.processPayments();
+			await this.processPendingPayments();
 		}
 	}
 
@@ -292,6 +310,11 @@ class BuySaito extends ModTemplate {
 	//////////////////////////
 	/// SERVER FUNCTIONS
 	//////////////////////////
+
+	// Use the current Mixin USD-pair rates plus a 5% spread to calculate a given SAITO value
+	// in a web3 Crypto. Rounds up to 6th decimal place
+	// To-do: round up to 6 significant digit
+	//
 	convertSaitoToOther(amount, ticker = null) {
 		console.log('Currency Conversion: ', amount, ticker);
 
@@ -323,6 +346,9 @@ class BuySaito extends ModTemplate {
 		return amount_to_deposit;
 	}
 
+	//
+	// Check what mixin-supported web3 cryptos are on the service node
+	//
 	loadAvailableCryptos() {
 		if (!this.mixin_mod) {
 			console.error('BUYSAITO - No mixin module -- loadAvailableCryptos');
@@ -347,6 +373,9 @@ class BuySaito extends ModTemplate {
 		}
 	}
 
+	//
+	// Refresh USD-pair price info of Web3Cryptos
+	//
 	async checkPrices() {
 		let updated = false;
 		for (let cm of this.mixin_mod.crypto_mods) {
@@ -360,6 +389,12 @@ class BuySaito extends ModTemplate {
 		}
 	}
 
+	/****************************************************************************************************
+	 * BuySaito uses the built-in Mixin functionality to support a *main* Mixin account, but in order
+	 * to have multiple valid deposit address, the node needs to juggle multiple mixin account credentials,
+	 * these are stored in a dedicated database and restored in the initialize() function
+	 *
+	 */
 	createNewAltAccount(callback) {
 		if (!this.mixin_mod) {
 			console.error('Mixin not installed!');
@@ -411,61 +446,6 @@ class BuySaito extends ModTemplate {
 		);
 	}
 
-	async loadPendingPayments() {
-		let sql = `SELECT * FROM purchases WHERE active = 1`;
-		let params = {};
-
-		let res = await this.app.storage.queryDatabase(sql, params, 'buysaito');
-
-		let now = Date.now();
-		let expired_cutoff = now - this.time_limit;
-		for (let i = 0; i < res.length; i++) {
-			if (res[i].created_at < expired_cutoff && res[i].status == 'new') {
-				this.cancelPayment(res[i].id);
-			} else {
-				let pp = Object.assign({}, res[i]);
-				pp.ts = pp.created_at;
-
-				delete pp.created_at;
-				delete pp.updated_at;
-
-				pp.mixin = this.returnMixinAccountByID(pp.mixin_user_id);
-				delete pp.mixin_user_id;
-
-				this.pending_payments.push(pp);
-			}
-		}
-
-		console.debug(
-			`BUYSAITO - Recovered ${this.pending_payments.length} pending payments from the DB`
-		);
-	}
-
-	hasPendingPayment(publicKey) {
-		this.clearInactivePayments();
-
-		// Check if this user has a pending payment and send them that info again
-		for (let p of this.pending_payments) {
-			if (p.initiator_pubkey == publicKey) {
-				this.app.connection.emit('relay-send-message', {
-					recipient: publicKey,
-					request: 'buysaito reserve address',
-					data: {
-						initiator_pubkey: p.initiator_pubkey,
-						issue_amount: p.issue_amount,
-						ticker: p.ticker,
-						destination: p.destination,
-						expected_deposit: p.expected_deposit,
-						reserved_until: p.ts + this.time_limit,
-						status: 'pending'
-					}
-				});
-				return true;
-			}
-		}
-		return false;
-	}
-
 	returnMixinAccountByID(user_id) {
 		if (user_id == this.mixin_mod.mixin.user_id) {
 			return this.mixin_mod.mixin;
@@ -481,6 +461,9 @@ class BuySaito extends ModTemplate {
 		return null;
 	}
 
+	//
+	// Is this deposit address currently "busy", i.e. associated with a pending payment
+	///
 	checkAvailability(ticker, destination) {
 		for (let ep of this.pending_payments) {
 			if (ep.ticker == ticker && ep.destination == destination) {
@@ -492,7 +475,11 @@ class BuySaito extends ModTemplate {
 	}
 
 	//
-	// 	publicKey, issue_amount, ticker,  tx
+	//  Find or create a deposit address (Mixin account) that is not currently busy,
+	// 	then pass that accound and all the user provided data into the function to
+	//  create the pending payment
+	//
+	// 	payment_data : { publicKey, issue_amount, ticker, tx}
 	//
 	async findAvailableAddress(payment_data) {
 		//Is my main available?
@@ -523,6 +510,96 @@ class BuySaito extends ModTemplate {
 		});
 	}
 
+	//
+	// Restore DB-backed up pending payments in case server blips offline
+	//
+	async loadPendingPayments() {
+		let sql = `SELECT * FROM purchases WHERE active = 1`;
+		let params = {};
+
+		let res = await this.app.storage.queryDatabase(sql, params, 'buysaito');
+
+		let now = Date.now();
+		let expired_cutoff = now - this.time_limit;
+		for (let i = 0; i < res.length; i++) {
+			if (res[i].created_at < expired_cutoff && res[i].status == 'new') {
+				this.cancelPayment(res[i].id);
+			} else {
+				let pp = Object.assign({}, res[i]);
+				pp.ts = pp.created_at;
+
+				delete pp.created_at;
+				delete pp.updated_at;
+
+				pp.mixin = this.returnMixinAccountByID(pp.mixin_user_id);
+				delete pp.mixin_user_id;
+
+				this.pending_payments.push(pp);
+			}
+		}
+
+		console.debug(
+			`BUYSAITO - Recovered ${this.pending_payments.length} pending payments from the DB`
+		);
+	}
+
+	// Check if a user has a pending payment request
+	// (so that we can restore that rather than generate a new one)
+	hasPendingPayment(publicKey) {
+		this.clearInactivePayments();
+
+		// Check if this user has a pending payment and send them that info again
+		for (let p of this.pending_payments) {
+			if (p.initiator_pubkey == publicKey) {
+				this.app.connection.emit('relay-send-message', {
+					recipient: publicKey,
+					request: 'buysaito reserve address',
+					data: {
+						initiator_pubkey: p.initiator_pubkey,
+						issue_amount: p.issue_amount,
+						ticker: p.ticker,
+						destination: p.destination,
+						expected_deposit: p.expected_deposit,
+						reserved_until: p.ts + this.time_limit,
+						status: 'pending'
+					}
+				});
+				return true;
+			}
+		}
+		return false;
+	}
+
+	//
+	// Clean up array of pending payments to remove expired, cancelled, and completed payments
+	//
+	clearInactivePayments() {
+		// Check for expired addresses
+		for (let pp of this.pending_payments) {
+			if (pp.status == 'new') {
+				if (pp.ts + this.time_limit < Date.now()) {
+					console.info('Marking payment as timed out');
+					pp.status = 'failed';
+					this.cancelPayment(pp.id);
+				}
+			}
+		}
+
+		// Clear from list
+		for (let i = this.pending_payments.length - 1; i >= 0; i--) {
+			if (
+				this.pending_payments[i].status == 'cancelled' ||
+				this.pending_payments[i].status == 'failed' ||
+				(this.pending_payments[i].status == 'confirmed' && this.pending_payments[i].paid)
+			) {
+				this.pending_payments.splice(i, 1);
+			}
+		}
+	}
+
+	//
+	// Pending payments are stored in an array and backed up in a database
+	//
 	async createPendingPayment(destination, payment_data, mixin_account) {
 		// Add remaining fields
 		payment_data.destination = destination;
@@ -583,6 +660,23 @@ class BuySaito extends ModTemplate {
 		console.debug(this.pending_payments);
 	}
 
+	/*************************************************
+	 * 
+	 * Pending payments have a number of statuses
+	 * 
+	   Statuses: 
+	   		'new' 		-- user has requested a deposit address
+   			'pending' 	-- payment is pending in Mixin account, cleared to issue saito
+		  	'confirmed' -- payment in Mixin received (and transfered to safe wallet)
+			'failed'    -- payment didn't come in...
+		   	'cancelled' -- timeout or user cancels
+	 * 
+	 * The following utility functions update the DB with these statuses
+	 * 
+	 *************************************************/
+
+	// We have evidence that mixin is going to get paid, so we mark as pending
+	// (which means we can go ahead and release the SAITO)
 	async authorizePaymentIssuance(payment_data) {
 		console.info('Mark payment as pending...');
 		payment_data.status = 'pending';
@@ -604,6 +698,7 @@ class BuySaito extends ModTemplate {
 		await this.app.storage.runDatabase(sql, params, 'buysaito');
 	}
 
+	// Payment status is set as 'canceled' or 'failed' before calling the function
 	async cancelPayment(payment_id) {
 		console.log('Canceling payment');
 		let sql = `UPDATE purchases SET active = 0, status = "failed", updated_at = $updated_at WHERE id=$id`;
@@ -628,31 +723,13 @@ class BuySaito extends ModTemplate {
 		console.debug('Payment done: ', payment_data);
 	}
 
-	clearInactivePayments() {
-		// Check for expired addresses
-		for (let pp of this.pending_payments) {
-			if (pp.status == 'new') {
-				if (pp.ts + this.time_limit < Date.now()) {
-					console.info('Marking payment as timed out');
-					pp.status = 'failed';
-					this.cancelPayment(pp.id);
-				}
-			}
-		}
-
-		// Clear from list
-		for (let i = this.pending_payments.length - 1; i >= 0; i--) {
-			if (
-				this.pending_payments[i].status == 'cancelled' ||
-				this.pending_payments[i].status == 'failed' ||
-				(this.pending_payments[i].status == 'confirmed' && this.pending_payments[i].paid)
-			) {
-				this.pending_payments.splice(i, 1);
-			}
-		}
-	}
-
-	async processPayments() {
+	/****************
+	 *
+	 * The main function loop that checks all pending payments,
+	 * the mixin deposit address and decides to issue SAITO
+	 *
+	 */
+	async processPendingPayments() {
 		// First clear out any inactive payments
 		this.clearInactivePayments();
 
@@ -662,18 +739,36 @@ class BuySaito extends ModTemplate {
 		}
 
 		// Third, check Mixin to update status
+		console.debug('BuySaito: Checking pending payments...');
 		for (let pp of this.pending_payments) {
 			let success = false;
 			if (pp.status !== 'confirmed') {
-				console.log('Checking pending payments...');
 				let { deposits, utxo, snapshots } = await this.mixin_mod.consolidatedLookUp(
 					pp.ticker,
 					pp.destination,
-					pp.ts,
+					pp.ts, // only check transaction history post creating the pending payment
 					pp.mixin
 				);
 
-				console.log(deposits, utxo, snapshots);
+				console.debug(pp.ticker, deposits, utxo, snapshots);
+
+				///////////////////////////
+				// If we have a balance on an alternate account, mixin internal transfer to main
+				// so the money is all under one set of keys
+				try {
+					if (pp.mixin.user_id !== this.mixin_mod.mixin.user_id && Number(utxo) > 0) {
+						const cm = this.app.wallet.returnCryptoModuleByTicker(pp.ticker);
+						res = await this.mixin_mod.sendInNetworkTransferRequest(
+							cm.asset_id,
+							this.mixin_mod.mixin.user_id,
+							utxo,
+							pp.mixin
+						);
+						console.debug('Mixin transfer between accounts: ', res);
+					}
+				} catch (err) {
+					console.error(err);
+				}
 
 				// Check pending deposits (first)
 				for (let j = 0; j < deposits.length; j++) {
@@ -707,6 +802,7 @@ class BuySaito extends ModTemplate {
 
 				if (this.local_dev) {
 					if (Math.random() > 0.5) {
+						console.debug('Local test mode: upgrading payment status...');
 						if (pp.status == 'new') {
 							await this.authorizePaymentIssuance(pp);
 						} else if (pp.status == 'pending') {
@@ -730,6 +826,11 @@ class BuySaito extends ModTemplate {
 					.catch((err) => {
 						// Don't do anything other than report the error
 						console.error(err);
+
+						// If this is just a matter of the node lacking slips,
+						// the pending payment (even one that is confirmed)
+						// will remain active and remain in the queue to be issued on the next new block
+						// If the server crashes, it will be restored from DB backup and added to the queue
 					});
 			}
 		}
