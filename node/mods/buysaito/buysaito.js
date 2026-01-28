@@ -367,7 +367,8 @@ class BuySaito extends ModTemplate {
 				this.available_currencies.push({
 					ticker: cm.ticker,
 					price_usd: cm.price_usd,
-					last_update: cm.last_update
+					last_update: cm.last_update,
+					icon_url: cm.icon_url
 				});
 			}
 		}

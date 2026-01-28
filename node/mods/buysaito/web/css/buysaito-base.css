@@ -3,12 +3,34 @@
     css-imports/saito-purchase.css 
 */
 
-.saito-container {
+.main {
+  background-image: url(/saito/img/tiled-logo.svg);
+  background-color: var(--saito-background-color);
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: min(100px, 10vh) 3rem;
   align-items: center;
-  gap: 2rem;
+  justify-content: space-between;
+  padding: min(100px, 10vh) 3rem;
+}
+
+.withdraw-container {
+  display: flex;
+  flex-direction: column;
+  max-width: min(800px, 100%);
+  max-height: 90vh;
+  gap: 1rem;
+  margin: 7rem;
+  justify-content: center;
+  align-items: center;
+  padding: 7rem;
+
+  /*border-radius: 1rem;
+  border: 1px solid var(--saito-border-color);
+  background: linear-gradient(135deg, #0008, #0000);
+  */
 }
 
 .purchase-saito-prompt {
@@ -34,4 +56,14 @@
 
 .footer-note {
   margin-top: auto;
+}
+
+@media screen and (max-width: 600px) {
+  .withdraw-container {
+    margin: 0;
+    padding: 7rem 0;
+  }
+  .purchase-saito-prompt {
+    text-align: center;
+  }
 }

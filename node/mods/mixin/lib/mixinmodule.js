@@ -291,6 +291,7 @@ class MixinModule extends CryptoModule {
 		this.confirmations = info.confirmations || 0;
 		this.price_usd = Number(info.price_usd);
 		this.last_update = Date.now();
+		this.icon_url = info.icon_url;
 
 		return info;
 	}

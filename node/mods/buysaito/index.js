@@ -73,8 +73,8 @@ module.exports = (app, mod, build_number = '', og_card) => {
   </head>
   
   <body>
-    <div class="saito-container" id="saito-container">
-
+    <div class="main">
+    <div class="withdraw-container">
       <h2>Buy Saito</h2>
 
       <div class='purchase-saito-prompt'>click on the button to purchase 
@@ -86,10 +86,14 @@ module.exports = (app, mod, build_number = '', og_card) => {
         </select>
       </div>
 
-      <button class="saito-button-primary buysaito-button fat" id="buysaito-button" disabled >Get Quote</button>
-
+      <div class='saito-button-row'>
+        <div id='advanced-purchase' class='saito-anchor'>Advanced options...</div>
+        <button class="saito-button-primary buysaito-button fat" id="buysaito-button" disabled >Get Quote</button>
+      </div>
+      </div>
       <div class="footer-note">Already have SAITO? Visit our <a href="/migration">migration portal</a>.</div>
     </div>
+
   </body>
 
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}" ></script>
