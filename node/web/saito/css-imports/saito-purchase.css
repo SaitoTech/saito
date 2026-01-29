@@ -186,7 +186,6 @@
 @media screen and (max-width: 600px) {  
   .purchase-crypto-list {
     font-size: smaller;
-    max-width: 14rem;
   }
   .purchase-crypto-item .crypto-logo {
     width: 50%;
