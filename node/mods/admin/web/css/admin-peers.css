@@ -1,0 +1,57 @@
+
+.admin-peers {
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.server-info code {
+  font-size: 16px;
+}
+
+.hint {
+  color: #666;
+  font-size: 14px;
+}
+
+.peers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.peer-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.peer-key {
+  font-size: 12px;
+  color: #777;
+  margin-top: 4px;
+}
+
+.peer-remove {
+  background: #e57373;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.peer-form {
+  display: grid;
+  grid-template-columns: 1fr 100px 120px 1fr auto;
+  gap: 10px;
+}
+
+.peer-actions {
+  padding-top: 10px;
+}
+
+

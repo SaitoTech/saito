@@ -5,8 +5,8 @@ module.exports = (app, mod) => {
     <h3 class="server-info">Your Server Info</h3>
     <div id="node-publickey" data-publickey="${mod.publicKey}">Public Key: ${mod.server_publickey}</div>
 
-    <div class="admin-adminkey">
-    </div>
+    <div class="admin-adminkey"></div>
+    <div class="admin-dashbox"></div>
 
   `;
 };

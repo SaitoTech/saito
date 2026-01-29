@@ -1,7 +1,6 @@
 const saito = require('../../lib/saito/saito');
 const ModTemplate = require('../../lib/templates/modtemplate');
 const AdminMain = require('./lib/ui/main');
-const ConfigTemplate = require('./lib/config.template.js');
 const AdminHome = require('./index');
 const jsonTree = require('json-tree-viewer');
 
@@ -78,6 +77,7 @@ class Admin extends ModTemplate {
           salert(res.err);
         } else {
 	  this.server_info = res;
+console.log("SERVER INFO: " + JSON.stringify(this.server_info));
 	  this.main.render();
         }
       });
@@ -253,113 +253,6 @@ console.log("^^^^");
     }
   }
 
-  renderConfig(config_obj) {
-
-    if (!document.getElementById('node-config')) {
-      this.app.browser.addElementToDom(ConfigTemplate(config_obj));
-    } else {
-      this.app.browser.replaceElementById(ConfigTemplate(config_obj), 'node-config');
-    }
-
-    if (config_obj?.options) {
-      try {
-        let el = document.getElementById('node-options');
-        let optjson = JSON.parse(
-          JSON.stringify(
-            config_obj.options,
-            (key, value) => (typeof value === 'bigint' ? value.toString() : value) // return everything else unchanged
-          )
-        );
-        var tree = jsonTree.create(optjson, el);
-      } catch (err) {
-        console.log('error creating jsonTree: ' + err);
-      }
-
-      // Inject button to toggle block production
-      let p_html = '';
-      if (config_obj.options.consensus.disable_block_production) {
-        p_html = `<button class="block-toggle" id="produce-blocks">Enable block production</button>`;
-      } else {
-        p_html = `<button class="block-toggle" id="stop-blocks">Disable block production</button>`;
-      }
-
-      if (document.querySelector('.block-toggle')) {
-        this.app.browser.replaceElementBySelector(p_html, '.block-toggle');
-      } else {
-        this.app.browser.addElementToSelector(p_html, '.admin-info');
-      }
-
-      if (document.getElementById('produce-blocks')) {
-        document.getElementById('produce-blocks').onclick = (e) => {
-          e.currentTarget.remove();
-          this.toggleBlockProduction(false);
-        };
-      }
-
-      if (document.getElementById('stop-blocks')) {
-        document.getElementById('stop-blocks').onclick = (e) => {
-          e.currentTarget.remove();
-          this.toggleBlockProduction(true);
-        };
-      }
-    }
-
-    // Attach events
-
-    if (document.getElementById('modconfig-button')) {
-      Array.from(document.querySelectorAll('.mod-config-table input')).forEach((input) => {
-        input.onchange = (e) => {
-          document.getElementById('modconfig-button').removeAttribute('disabled');
-        };
-      });
-
-      document.getElementById('modconfig-button').onclick = async (e) => {
-        const inputs = document.querySelectorAll('.mod-config-table input');
-        let new_mod_config = { lite: [], core: [] };
-
-        Array.from(inputs).forEach((element) => {
-          if (element.checked) {
-            new_mod_config.lite.push(`${element.name}/${element.name}.js`);
-            new_mod_config.core.push(`${element.name}/${element.name}.js`);
-          }
-        });
-
-        console.log('New config: ');
-        console.log(new_mod_config);
-
-        let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.server_publickey);
-        tx.msg = {
-          module: 'Admin',
-          request: 'update-modules-config',
-          config: JSON.stringify(new_mod_config)
-        };
-        await tx.sign();
-
-        this.app.network.sendTransactionWithCallback(tx, (res_tx) => {
-          let res = res_tx.returnMessage();
-          if (res?.err) {
-            salert(res.err);
-          } else {
-            siteMessage('Modules updated');
-          }
-        });
-      };
-    }
-
-    if (document.getElementById('show-modules')) {
-      document.getElementById('show-modules').onclick = (e) => {
-        e.currentTarget.classList.toggle('toggled');
-        document.querySelector('.mod-config-table').classList.toggle('minimize');
-      };
-    }
-
-    if (document.getElementById('show-options')) {
-      document.getElementById('show-options').onclick = (e) => {
-        e.currentTarget.classList.toggle('toggled');
-        document.querySelector('.node-options').classList.toggle('minimize');
-      };
-    }
-  }
 
   async toggleBlockProduction(setValue) {
     let tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.server_publickey);
@@ -409,7 +302,7 @@ console.log("^^^^");
     if (fs && path) {
       const config_dir = path.normalize(`${__dirname}/../../config`);
       if (fs.existsSync(config_dir)) {
-        let optFile = fs.readFileSync(`${config_dir}/options.conf`, { encoding: 'UTF-8' });
+        let optFile = fs.readFileSync(`${config_dir}/options`, { encoding: 'UTF-8' });
 
         // Process the file into parsable json
         optFile = optFile.replace(/\s/g, '').replace(/'/g, `"`);
@@ -423,7 +316,7 @@ console.log("^^^^");
           }
         }
 
-        fs.writeFileSync(`${config_dir}/options.conf`, JSON.stringify(optFile, null, 2));
+        fs.writeFileSync(`${config_dir}/options`, JSON.stringify(optFile, null, 2));
       }
     }
   }
@@ -451,6 +344,23 @@ console.log("^^^^");
     expressapp.get(uri, serverFn);
     expressapp.use(uri, express.static(webdir));
   }
+
+
+  returnDefaultModules() {
+    return [
+      "admin",
+      "arcade",
+      "archive",
+      "blog",
+      "chat",
+      "chess",
+      "crypto",
+      "devtools",
+      "encrypt",
+      "disburse"
+    ];
+  }
+
 }
 
 module.exports = Admin;
