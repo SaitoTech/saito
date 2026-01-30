@@ -21,7 +21,7 @@ class SaitoPurchaseOverlay {
     this.tx = null;
     this.recipient = '';
     this.description = '';
-    this.deposit_confirmed = false;
+    this.deposit_confirmed_by_user = false;
     this.reserved_until = 0;
     this.fancy_ui = true;
 
@@ -109,7 +109,7 @@ class SaitoPurchaseOverlay {
         //
         // 3. Show address screen when deposit address is created/fetched
         //
-        if (!this.deposit_confirmed) {
+        if (!this.deposit_confirmed_by_user) {
           this.overlay.show(SaitoPurchaseTemplate(this.app, this.mod, this));
           this.overlay.blockClose('#confirm-purchase-btn');
           this.app.browser.generateQRCode(this.destination, 'pqrcode');
@@ -167,7 +167,7 @@ class SaitoPurchaseOverlay {
         let amount = input.value;
         output.innerText = this.mod.convertToSaito(amount, this.crypto_selected.ticker);
       };
-      input.onkeydown = (e) => {
+      input.onkeyup = (e) => {
         let amount = input.value;
         output.innerText = this.mod.convertToSaito(amount, this.crypto_selected.ticker);
       };
@@ -176,6 +176,12 @@ class SaitoPurchaseOverlay {
     if (document.getElementById('next-purchase-btn')) {
       document.getElementById('next-purchase-btn').onclick = (e) => {
         this.expected_deposit = document.querySelector('#input-amount').value;
+
+        if (!this.expected_deposit) {
+          salert('Invalid input');
+          return;
+        }
+
         this.overlay.show(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
         this.requestPaymentAddressFromServer();
       };
@@ -212,7 +218,7 @@ class SaitoPurchaseOverlay {
     if (document.getElementById('confirm-purchase-btn')) {
       document.getElementById('confirm-purchase-btn').onclick = async () => {
         this.overlay.closebox = true;
-        this.deposit_confirmed = true;
+        this.deposit_confirmed_by_user = true;
         this.ui_msg = 'Polling pending payment...';
         this.render();
       };
@@ -257,6 +263,18 @@ class SaitoPurchaseOverlay {
     console.log(data);
     console.log('/////////////////////////////////////\n');
 
+    if (data.ticker !== this.crypto_selected.ticker) {
+      salert('You have an active pending deposit for a different crypto');
+      console.debug(data);
+      console.debug(
+        this.crypto_selected,
+        this.issue_amount,
+        this.expected_deposit,
+        this.description,
+        this.destination
+      );
+      return;
+    }
     //
     // reserve address success — extract info
     //
@@ -355,9 +373,15 @@ class SaitoPurchaseOverlay {
 
   updateSaitoIssued(data = {}) {
     this.overlay.remove();
-    salert(
-      `Transaction (${data?.paid}) to issue SAITO sent. Please wait for network confirmation...`
-    );
+    let msg = 'SAITO issuance processed! Please wait for the confirmation on chain...';
+    if (data?.paid) {
+      msg += `<div class="txsig">
+                <div class="sig-header">TX sig:</div>
+                <div class="sig monospace">${data.paid}</div>
+              <div>
+      `;
+    }
+    salert(msg);
     this.reset();
   }
 
@@ -375,6 +399,7 @@ class SaitoPurchaseOverlay {
     this.recipient = '';
     this.destination = '';
     this.description = '';
+    this.deposit_confirmed_by_user = false;
 
     //
     // reset countdown timer

@@ -605,7 +605,7 @@ class BuySaito extends ModTemplate {
 
 		// Check if this user has a pending payment and send them that info again
 		for (let p of this.pending_payments) {
-			if (p.initiator_pubkey == publicKey) {
+			if (p.initiator_pubkey == publicKey && !p.paid) {
 				this.app.connection.emit('relay-send-message', {
 					recipient: publicKey,
 					request: 'buysaito reserve address',

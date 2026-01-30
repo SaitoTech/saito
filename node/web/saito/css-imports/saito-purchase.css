@@ -150,6 +150,7 @@
 .amount-selection-box {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 4rem;
 }
 
@@ -183,7 +184,26 @@
   gap: 3rem;
 }
 
-@media screen and (max-width: 600px) {  
+.txsig {
+  display: flex;
+  align-items: center;
+  margin-top: 2rem;
+  line-height: 2rem;
+}
+
+.txsig .sig-header {
+  font-size: var(--font-size-medium);
+  flex-grow: 1;
+}
+
+.txsig .sig {
+  font-size: var(--font-size-tiny);
+  word-wrap: anywhere;
+  text-align: left;
+  max-width: 75%;
+}
+
+@media screen and (max-width: 600px) {
   .purchase-crypto-list {
     font-size: smaller;
   }

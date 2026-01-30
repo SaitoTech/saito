@@ -56,6 +56,7 @@
 
 .footer-note {
   margin-top: auto;
+  text-align: center;
 }
 
 @media screen and (max-width: 600px) {

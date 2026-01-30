@@ -1,5 +1,5 @@
 module.exports = (mod) => {
-  return `		<div class="main">
+	return `		<div class="main">
 			<div class="saito-overlay-form withdraw-container">
 				<div class="saito-overlay-form-header">
 					<div class="saito-overlay-form-header-title withdraw-title">
@@ -21,8 +21,8 @@ module.exports = (mod) => {
 						<button id="automatic" class="saito-button-primary fat" ${mod.can_auto ? '' : 'disabled'} title="${mod.can_auto ? 'ERC-20 SAITO available' : 'checking availability...'}">automated migration</button>
 					</div>
 				</div>
-				<div class="footer-note">Want to Buy SAITO? Visit our <a href="/buy">purchase portal</a>.</div>
-				<div class="withdraw-outtro">Any problems with migration? Write us anytime at migration@saito.io. </div>
+				<div class="footer-note">Want to buy SAITO?<br>Visit our <a href="/buy">purchase portal</a>.</div>
+				<div class="withdraw-outtro">Any problems? Write us any time at <a target="_blank" href="mailto:migration@saito.io" >migration@saito.io</a>. </div>
 			</div>
 		</div>
 	`;
