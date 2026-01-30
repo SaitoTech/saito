@@ -1,0 +1,38 @@
+.admin-key-setup {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  padding: 28px;
+  margin-top: 28px;
+  max-width: 700px;
+}
+
+.admin-key-setup h2 {
+  margin-bottom: 12px;
+}
+
+.admin-key-setup p {
+  margin-bottom: 18px;
+}
+
+.node-info {
+  border-top: 2px solid black;
+  border-bottom: 2px solid black;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.node-info h3 {
+  margin: 0;
+}
+
+.admin-info {
+  margin-bottom: 20px;
+}
+
+.admin-welcome {
+  margin-bottom: 20px;
+}
+
