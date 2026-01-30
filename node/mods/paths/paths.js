@@ -13626,8 +13626,6 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  //
 	  let attacker_units = this.returnAttackerUnits();
 	  for (let i = 0; i < attacker_units.length; i++) {
-	    if (!attacker_units[i]) { continue; }
-  	    if (!attacker_units[i].key) { continue; }
 	    let spacekey = attacker_units[i].spacekey;
 	    if (!this.game.state.attacks[spacekey]) {
 	      this.game.state.attacks[spacekey] = [];
@@ -13660,21 +13658,10 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  // sinai -3 DRM modifier
 	  //
 	  if (["portsaid","cairo","gaza","beersheba"].includes(this.game.state.combat.key)) {
-
 	    let attacker_units = this.returnAttackerUnits();
 	    let attacking_from_sinai = false;
-
-	    for (let i = 0; i < attacker_units.length; i++) { 
-	      if (!attacker_units[i]) { continue; }
-	      if (!attacker_units[i].spacekey) { continue; }
-	      if (attacker_units[i].spacekey == "sinai") { attacking_from_sinai = true; } 
-	    }
-	    for (let i = 0; i < attacker_units.length; i++) { 
-	      if (!attacker_units[i]) { continue; }
-  	      if (!attacker_units[i].spacekey) { continue; }
-	      if (attacker_units[i].spacekey != "sinai") { attacking_from_sinai = false; } 
-	    }
-
+	    for (let i = 0; i < attacker_units.length; i++) { if (attacker_units[i].spacekey == "sinai") { attacking_from_sinai = true; } }
+	    for (let i = 0; i < attacker_units.length; i++) { if (attacker_units[i].spacekey != "sinai") { attacking_from_sinai = false; } }
 	    if (attacking_from_sinai == true) {
 	      if (attacker_power == "allies" && this.game.state.events.sinai_pipeline == 1) {} else {
 		this.updateLog("Sinai -3 DRM modifier punishes attacker...");
@@ -13688,14 +13675,10 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  // Yanks and Tanks
 	  //
 	  for (let i = 0; i < this.game.state.combat.attacker.length; i++) {
-	    try {
-	      let unit = this.game.spaces[this.game.state.combat.attacker[i].unit_sourcekey].units[this.game.state.combat.attacker[i].unit_idx];
-	      if (!unit) { continue; }
-	      if (!unit.key) { continue; }
-	      if (unit.key.indexOf("army") > 0) { attacker_table = "army"; }	    
-	      if (this.game.state.events.yanks_and_tanks == 1 && unit.ckey == "US") { attacker_drm += 2; }
-	      unit.attacked = 1;
-	    } catch (err) {}
+	    let unit = this.game.spaces[this.game.state.combat.attacker[i].unit_sourcekey].units[this.game.state.combat.attacker[i].unit_idx];
+	    if (unit.key.indexOf("army") > 0) { attacker_table = "army"; }	    
+	    if (this.game.state.events.yanks_and_tanks == 1 && unit.ckey == "US") { attacker_drm += 2; }
+	    unit.attacked = 1;
 	  }
 
 	  attacker_roll = this.rollDice();
@@ -13799,14 +13782,6 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  this.updateLog(xhtml);
 	  this.updateLog(yhtml);
 
-	  //
-	  // prune impossible post-combat retreat
-	  //
-	  if (this.game.state.combat.winner !== "attacker") {
-	    this.game.queue = this.game.queue.filter(q => q !== "combat_defender_retreat");
-	    this.game.queue = this.game.queue.filter(q => q !== "combat_attacker_advance");
-	  }
-
 
 	  this.game.queue.splice(qe, 1);
 	  return 1;
@@ -13893,6 +13868,24 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 
 	}
 
+
+	if (mv[0] === "combat_determine_winner") {
+
+	  if (this.game.state.combat.attacker_loss_factor > this.game.state.combat.defender_loss_factor) {
+	    // loser discards combat cards
+	  }
+	  if (this.game.state.combat.attacker_loss_factor > this.game.state.combat.defender_loss_factor) {
+	    // loser discards combat cards
+	  }
+	  if (this.game.state.combat.attacker_loss_factor == this.game.state.combat.defender_loss_factor) {
+	    // both players lose
+	  }
+
+	  this.game.queue.splice(qe, 1);
+
+	  return 1;
+
+	}
 
 
 	if (mv[0] === "great_retreat_advance") {
@@ -14196,9 +14189,9 @@ console.log("moving unit in PCC: " + JSON.stringify(u));
 	          let f = this.returnPowerOfUnit(u);
 console.log("moving unit in PCC 2: " + JSON.stringify(u));
 	          if (f === "central") {
-		    this.moveUnit(spacekey, z, "ceubox");
+		    this.moveUnit(key, z, "ceubox");
 	          } else {
-		    this.moveUnit(spacekey, z, "aeubox");
+		    this.moveUnit(key, z, "aeubox");
 	          }
 
 		}
