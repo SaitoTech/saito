@@ -3,12 +3,11 @@ module.exports = (mod) => {
 
   const options = mod?.server_info?.options || {};
   const peers = options.peers || [];
-
   const endpoint =
-    options.endpoint || {
-      host: options.host,
-      port: options.port,
-      protocol: options.protocol
+    options.server?.endpoint || {
+      host: options?.server?.host,
+      port: options?.server?.port,
+      protocol: options?.server?.protocol
     };
 
   let peers_html = peers.map((peer, i) => {
@@ -49,14 +48,16 @@ module.exports = (mod) => {
       <div class="add-peer">
         <h2>Add Peer</h2>
         <div class="peer-form">
-          <input id="peer-host" placeholder="host (e.g. saito.io)" />
-          <input id="peer-port" placeholder="port" type="number" />
-          <select id="peer-protocol">
-            <option value="https">https</option>
-            <option value="http">http</option>
-          </select>
-          <input id="peer-key" placeholder="public key (optional)" />
-          <button id="add-peer-btn">Add Peer</button>
+<div class="peer-form-row">
+  <input id="peer-host" placeholder="host (e.g. saito.io)" />
+  <input id="peer-port" type="number" placeholder="port" />
+  <select id="peer-protocol">
+    <option value="https">https</option>
+    <option value="http">http</option>
+  </select>
+  <input id="peer-key" placeholder="public key (optional)" />
+  <button id="add-peer-btn">Add Peer</button>
+</div>
         </div>
       </div>
 

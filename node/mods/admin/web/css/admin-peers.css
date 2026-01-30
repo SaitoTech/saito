@@ -1,19 +1,58 @@
+/* ================================
+   Admin Peers – Layout + Defaults
+   ================================ */
 
 .admin-peers {
-  max-width: 900px;
+  max-width: 960px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 36px;
 }
 
-.server-info code {
-  font-size: 16px;
+.admin-peers h1 {
+  margin-bottom: 12px;
 }
 
-.hint {
-  color: #666;
+.admin-peers h2 {
+  margin-bottom: 10px;
+}
+
+
+/* ================================
+   Server Info
+   ================================ */
+
+.server-info {
+  padding: 18px 20px;
+  border: 1px solid #e1e4e8;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.server-endpoint {
+  margin: 10px 0;
+}
+
+.server-endpoint code {
+  font-size: 15px;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.admin-peers .hint {
   font-size: 14px;
+  color: #666;
+  margin-top: 6px;
 }
+
+
+
+/* ================================
+   Configured Peers List
+   ================================ */
 
 .peers-list {
   display: flex;
@@ -22,36 +61,128 @@
 }
 
 .peer-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
   align-items: center;
   padding: 14px 16px;
   border: 1px solid #ddd;
   border-radius: 8px;
-  background: #fafafa;
+  background: #ffffff;
+}
+
+.peer-main strong {
+  font-size: 14px;
 }
 
 .peer-key {
+  margin-top: 4px;
   font-size: 12px;
   color: #777;
-  margin-top: 4px;
+  word-break: break-all;
 }
 
 .peer-remove {
   background: #e57373;
   color: white;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
 }
 
-.peer-form {
-  display: grid;
-  grid-template-columns: 1fr 100px 120px 1fr auto;
-  gap: 10px;
+.peer-remove:hover {
+  background: #d85c5c;
 }
+
+
+/* ================================
+   Add Peer – Table-like Form
+   ================================ */
+
+.add-peer {
+  padding-top: 8px;
+}
+
+.peer-form-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 2fr auto;
+  gap: 12px;
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 6px;
+}
+
+.peer-form-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 2fr auto;
+  gap: 12px;
+  align-items: stretch;
+}
+
+/* Normalize inputs + selects */
+.peer-form-row input,
+.peer-form-row select {
+  height: 44px;
+  padding: 12px 14px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+/* Add Peer button matches inputs */
+.peer-form-row button {
+  height: 44px;
+  padding: 0 22px;
+  font-size: 14px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+
+/* ================================
+   Save Actions
+   ================================ */
 
 .peer-actions {
-  padding-top: 10px;
+  padding-top: 6px;
 }
 
+.peer-actions button {
+  max-width: 220px;
+}
+
+.peer-actions button[disabled] {
+  opacity: 0.5;
+}
+
+
+/* ================================
+   Mobile Responsiveness
+   ================================ */
+
+@media (max-width: 768px) {
+
+  .peer-form-header {
+    display: none;
+  }
+
+  .peer-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .peer-form-row button {
+    width: 100%;
+  }
+
+  .peer-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .peer-remove {
+    justify-self: flex-start;
+  }
+}
 

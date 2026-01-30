@@ -2,8 +2,7 @@ module.exports = (mod) => {
 
   const options = mod?.server_info?.options || {};
   const block_production_enabled =
-    options.consensus && options.consensus.disable_block_production === false;
-
+    options.consensus?.disable_block_production === false;
   const home_app = options.home_app || "";
 
   const splash_apps = [
@@ -35,14 +34,14 @@ module.exports = (mod) => {
 
       <div class="dashboard-section">
         <h2>Active</h2>
-        <button
-          id="block-production-btn"
-          class="${block_production_enabled ? "enabled" : ""}"
-        >
-          ${block_production_enabled
-            ? "Block Production Enabled"
-            : "Enable Block Production"}
-        </button>
+  <button
+    id="block-production-btn"
+    class="${block_production_enabled ? "enabled" : "disabled"}"
+  >
+    ${block_production_enabled
+      ? "Disable Block Production"
+      : "Enable Block Production"}
+  </button>
       </div>
 
       <div class="dashboard-section">

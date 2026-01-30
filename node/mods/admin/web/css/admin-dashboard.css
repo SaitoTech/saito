@@ -23,17 +23,17 @@
   padding: 14px 28px;
   font-size: 16px;
   border-radius: 8px;
-  background: #e0e0e0;
-  color: #333;
-}
-
-#block-production-btn.enabled {
   background: #4caf50;
   color: white;
 }
 
+#block-production-btn.enabled {
+  background: #ff9800; /* orange */
+}
+
 #block-production-btn[disabled] {
-  opacity: 0.7;
+  opacity: 0.6;
+  cursor: default;
 }
 
 .splash-grid {
