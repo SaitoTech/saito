@@ -62,6 +62,12 @@ class Details {
     let day = new Date().toDateString();
     let last_ts = 0;
 
+    if (this.ticker == 'SAITO') {
+      document.documentElement.style.setProperty('--saitox-column-ct', 6);
+    } else {
+      document.documentElement.style.setProperty('--saitox-column-ct', 5);
+    }
+
     if (this.mod.history?.length > 0) {
       console.log('Formatting HISTORY: ', this.mod.history);
 
@@ -100,6 +106,7 @@ class Details {
         } else {
           inner_html += '<div></div>';
         }
+        inner_html += `<div class="saito-only">${h?.memo || ''}</div>`;
 
         history_html += inner_html;
 

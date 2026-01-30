@@ -216,7 +216,8 @@ class GameWeb3 {
               console.debug('GT [payWinner] End game crypto transfer callback', robj);
               game_self.app.connection.emit('saito-crypto-send-confirm', robj, unique_hash);
             },
-            receiver
+            receiver,
+            `${game_self.name} stake`
           );
           return 0;
         }

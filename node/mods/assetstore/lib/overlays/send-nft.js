@@ -118,6 +118,7 @@ class SendNFTOverlay extends NFTDetailsOverlay {
       try {
         // appear responsive...
         this.overlay.close();
+        siteMessage('Sending NFT to the store...', 3000);
 
         let opt = {
           nft: this.nft,
@@ -135,8 +136,6 @@ class SendNFTOverlay extends NFTDetailsOverlay {
           'localhost',
           null
         );
-
-        siteMessage('NFT listing transaction broadcast...', 3000);
       } catch (err) {
         salert('Failed to list: ' + (err?.message || err));
       }

@@ -914,7 +914,8 @@ class BuySaito extends ModTemplate {
 			newtx.msg = {
 				module: 'BuySaito',
 				request: 'buysaito issuance',
-				data: payment_data
+				data: payment_data,
+				memo: `${payment_data.expected_deposit} ${payment_data.ticker}`
 			};
 		}
 

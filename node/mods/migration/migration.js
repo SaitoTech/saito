@@ -245,21 +245,21 @@ class Migration extends ModTemplate {
       //
       let txmsg = tx.returnMessage();
       let sql = `INSERT INTO migration ( 
-	    						publickey,
-	    						erc20,
-	    						erc20_tx_id,
-	    						email,
-	    						saito_isssued,
-	    						created_at
-	  						 )
-	               VALUES ( 
-	                $publickey,
-	                $erc20,
-	                '',
-	                $email,
-	                0,
-	                $created_at
-	               )`;
+                  publickey,
+                  erc20,
+                  erc20_tx_id,
+                  email,
+                  saito_isssued,
+                  created_at
+                 )
+                 VALUES ( 
+                  $publickey,
+                  $erc20,
+                  '',
+                  $email,
+                  0,
+                  $created_at
+                 )`;
       let params = {
         $publickey: txmsg.data.pk,
         $erc20: txmsg.data.erc20,
@@ -550,21 +550,21 @@ class Migration extends ModTemplate {
 
   async savePendingPayment(payment, add_to_queue = true) {
     let sql = `INSERT INTO auto_migration ( 
-								public_key,
-	    						mixin,
-	    						nolan_received,
-	    						created_at,
-	    						status,
-	    						ticker
-	  						 )
-	               VALUES ( 
-								$public_key,
-	    						$mixin,
-	    						$nolan_received,
-	    						$created_at,
-	    						$status,
-	    						$ticker
-	  	               )`;
+                public_key,
+                  mixin,
+                  nolan_received,
+                  created_at,
+                  status,
+                  ticker
+                 )
+                 VALUES ( 
+                $public_key,
+                  $mixin,
+                  $nolan_received,
+                  $created_at,
+                  $status,
+                  $ticker
+                     )`;
     let params = {
       $public_key: payment.public_key,
       $mixin: payment.mixin,
@@ -634,7 +634,7 @@ class Migration extends ModTemplate {
 
           let sm = this.app.wallet.returnCryptoModuleByTicker('SAITO');
           await sm
-            .sendPayment(amount, saitozen_key, pp.hash + 1)
+            .sendPayment(amount, saitozen_key, pp.hash + 1, 'token migration')
             .then(() => {
               this.notifyTeam(data_for_email, saitozen_key, 1);
               pp.status = 'issuing';
@@ -690,31 +690,31 @@ class Migration extends ModTemplate {
       let y = this.app.wallet.convertNolanToSaito(x);
 
       emailtext = `
-					<div>
-				     	<p>Saito Automated Migration Complete!</p>
-				     	<hr>
-				        <p>Migration Bot issued ${this.app.browser.formatDecimals(data.amount, true)} ${data.module} to ${data.to}</p>
-				     	<p></p>
-				     	<p>${msg}</p>
-				        <p>Remaining BALANCE: ${this.app.browser.formatDecimals(y)}</p>
-				     </div>
-			     	`;
+          <div>
+              <p>Saito Automated Migration Complete!</p>
+              <hr>
+                <p>Migration Bot issued ${this.app.browser.formatDecimals(data.amount, true)} ${data.module} to ${data.to}</p>
+              <p></p>
+              <p>${msg}</p>
+                <p>Remaining BALANCE: ${this.app.browser.formatDecimals(y)}</p>
+             </div>
+            `;
 
       if (Number(y) < 500000) {
         this.sendLowBalanceEmail(Number(y));
       }
     } else {
       emailtext = `
-			      <div>
-			     	<p>Saito Automated Migration Transfer Service</p>
-			     	<hr>
-			     	<p>Tokens received by Migration Bot:</p>
-			     	<p>TICKER: ${data.module} </p>
-			        <p>AMOUNT: ${this.app.browser.formatDecimals(data.amount, true)} </p>
-			        <p>FROM: ${data.from}</p>
-			        <p>PUBLICKEY: ${pk}</p>
-			     	<p></p>
-			     	`;
+            <div>
+            <p>Saito Automated Migration Transfer Service</p>
+            <hr>
+            <p>Tokens received by Migration Bot:</p>
+            <p>TICKER: ${data.module} </p>
+              <p>AMOUNT: ${this.app.browser.formatDecimals(data.amount, true)} </p>
+              <p>FROM: ${data.from}</p>
+              <p>PUBLICKEY: ${pk}</p>
+            <p></p>
+            `;
 
       // 1 -> sent tokens to Saitozen, but not confirmed
       if (result) {

@@ -263,9 +263,9 @@ export default class Transaction extends SaitoTransaction {
         // console.log('fallback on failure... 3');
       } catch (err) {
         // console.log(
-        // 	`buffer length = ${
-        // 		this.data.byteLength
-        // 	} type = ${typeof this.data}`
+        //  `buffer length = ${
+        //    this.data.byteLength
+        //  } type = ${typeof this.data}`
         // );
         // console.error('error parsing return message', err);
         // console.log('here: ' + JSON.stringify(this.msg));
@@ -346,5 +346,14 @@ export default class Transaction extends SaitoTransaction {
   deserialize_from_base64(base64string: string) {
     let b = Buffer.from(base64string, 'base64');
     this.deserialize(b);
+  }
+
+  printSlips() {
+    for (let s of this.to) {
+      console.log('to: ', s.toJson());
+    }
+    for (let s of this.from) {
+      console.log('from: ', s.toJson());
+    }
   }
 }

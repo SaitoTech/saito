@@ -113,18 +113,18 @@ class CryptoModule extends ModTemplate {
   async onConfirmation(blk, tx, conf) {
     if (Number(conf) == 0) {
       if (!tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
-        return;
+        return 0;
       }
 
       let txmsg = tx.returnMessage();
 
       if (txmsg.module !== this.name) {
-        return;
+        return 0;
       }
 
       if (this.hasSeenTransaction(tx, Number(blk.id))) {
         console.error('We are double processing a payment transaction!!!!');
-        return;
+        return 1;
       }
 
       if (txmsg.request === 'crypto payment') {
@@ -144,11 +144,15 @@ class CryptoModule extends ModTemplate {
         if (this.app.BROWSER) {
           this.receivePaymentTransaction(tx);
         }
+
+        return 1;
       }
     }
+
+    return 0;
   }
 
-  async sendPaymentTransaction(publicKey, from_address, to_address, amount, hash) {
+  async sendPaymentTransaction(publicKey, from_address, to_address, amount, hash, memo = '') {
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(publicKey);
 
     newtx.msg = {
@@ -159,6 +163,10 @@ class CryptoModule extends ModTemplate {
       to: to_address,
       hash
     };
+
+    if (memo) {
+      newtx.msg.memo = memo;
+    }
 
     await newtx.sign();
     await this.app.network.propagateTransaction(newtx);
