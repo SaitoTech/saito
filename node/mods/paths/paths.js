@@ -13626,6 +13626,8 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  //
 	  let attacker_units = this.returnAttackerUnits();
 	  for (let i = 0; i < attacker_units.length; i++) {
+	    if (!attacker_units[i]) { continue; }
+  	    if (!attacker_units[i].key) { continue; }
 	    let spacekey = attacker_units[i].spacekey;
 	    if (!this.game.state.attacks[spacekey]) {
 	      this.game.state.attacks[spacekey] = [];
@@ -13658,10 +13660,21 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  // sinai -3 DRM modifier
 	  //
 	  if (["portsaid","cairo","gaza","beersheba"].includes(this.game.state.combat.key)) {
+
 	    let attacker_units = this.returnAttackerUnits();
 	    let attacking_from_sinai = false;
-	    for (let i = 0; i < attacker_units.length; i++) { if (attacker_units[i].spacekey == "sinai") { attacking_from_sinai = true; } }
-	    for (let i = 0; i < attacker_units.length; i++) { if (attacker_units[i].spacekey != "sinai") { attacking_from_sinai = false; } }
+
+	    for (let i = 0; i < attacker_units.length; i++) { 
+	      if (!attacker_units[i]) { continue; }
+	      if (!attacker_units[i].spacekey) { continue; }
+	      if (attacker_units[i].spacekey == "sinai") { attacking_from_sinai = true; } 
+	    }
+	    for (let i = 0; i < attacker_units.length; i++) { 
+	      if (!attacker_units[i]) { continue; }
+  	      if (!attacker_units[i].spacekey) { continue; }
+	      if (attacker_units[i].spacekey != "sinai") { attacking_from_sinai = false; } 
+	    }
+
 	    if (attacking_from_sinai == true) {
 	      if (attacker_power == "allies" && this.game.state.events.sinai_pipeline == 1) {} else {
 		this.updateLog("Sinai -3 DRM modifier punishes attacker...");
@@ -13675,10 +13688,14 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  // Yanks and Tanks
 	  //
 	  for (let i = 0; i < this.game.state.combat.attacker.length; i++) {
-	    let unit = this.game.spaces[this.game.state.combat.attacker[i].unit_sourcekey].units[this.game.state.combat.attacker[i].unit_idx];
-	    if (unit.key.indexOf("army") > 0) { attacker_table = "army"; }	    
-	    if (this.game.state.events.yanks_and_tanks == 1 && unit.ckey == "US") { attacker_drm += 2; }
-	    unit.attacked = 1;
+	    try {
+	      let unit = this.game.spaces[this.game.state.combat.attacker[i].unit_sourcekey].units[this.game.state.combat.attacker[i].unit_idx];
+	      if (!unit) { continue; }
+	      if (!unit.key) { continue; }
+	      if (unit.key.indexOf("army") > 0) { attacker_table = "army"; }	    
+	      if (this.game.state.events.yanks_and_tanks == 1 && unit.ckey == "US") { attacker_drm += 2; }
+	      unit.attacked = 1;
+	    } catch (err) {}
 	  }
 
 	  attacker_roll = this.rollDice();

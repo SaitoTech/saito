@@ -150,9 +150,10 @@ class LossOverlay {
 		attacker_units = this.mod.returnAttackerUnits();
 		defender_units = this.mod.returnDefenderUnits();
 
-console.log(JSON.stringify(this.mod.game.state.combat));
-console.log("DEFENDER UNITS: " + JSON.stringify(defender_units));
-console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
+
+//console.log(JSON.stringify(this.mod.game.state.combat));
+//console.log("DEFENDER UNITS: " + JSON.stringify(defender_units));
+//console.log("ATTACKER UNITS: " + JSON.stringify(attacker_units));
 
  
 		this.units = defender_units;
