@@ -29,7 +29,14 @@ class AdminKeyUI {
     const btn = document.getElementById("submit-admin-key");
     if (!btn) { return; }
 
+    let clicked = false;
+
     btn.onclick = async (e) => {
+
+      if (clicked == true) { alert("Key Registered: please wait or reload..."); }
+      siteMessage("Registering Admin Key...");
+      clicked = true;
+
       let publicKey = document.getElementById("admin-public-key")?.value;
 
       if (!this.app.crypto.isValidPublicKey(publicKey)) {
@@ -52,10 +59,7 @@ class AdminKeyUI {
 
       await tx.sign();
 
-alert("SETTING ADMIN KEY!");
-
       this.app.network.sendTransactionWithCallback(tx, (res_tx) => {
-console.log("received back from button click....");
         let res = res_tx.returnMessage();
         if (res?.err) {
           salert(res.err);
@@ -64,7 +68,7 @@ console.log("received back from button click....");
           siteMessage(
             "Admin key successfully set, downloaded copy! Reloading page..."
           );
-          reloadWindow(3000);
+          reloadWindow(1200);
         }
       });
     };

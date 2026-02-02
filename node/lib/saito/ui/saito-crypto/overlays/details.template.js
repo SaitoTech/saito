@@ -1,8 +1,8 @@
 module.exports = (app, mod) => {
   let balance = Number(mod.returnBalance());
-
+  //saito-overlay-size wide
   let html = `
-    <div class="crypto-details-overlay">
+    <div class="crypto-details-overlay ">
         <div class="saito-overlay-form-header">
             <div class="crypto-logo-container"><img class="crypto-logo" src="/${mod.ticker.toLowerCase()}/img/logo.png"></div>
             <div class="saito-overlay-form-header-title">${mod.name}</div>
@@ -79,12 +79,13 @@ module.exports = (app, mod) => {
         <div class="transaction-history">
           <i id="check-history" class="fa-solid fa-arrows-rotate refresh"></i>
           <h6>Transaction History</h6>
-          <div class="transaction-history-table saitox-table">
+          <div class="transaction-history-table saitox-table" data-crypto="${mod.ticker}">
               <div class="saitox-header-item">Time</div>
               <div class="saitox-header-item">Type</div>
               <div class="saitox-header-item">Amount</div>
               <div class="saitox-header-item">Balance</div>
               <div class="saitox-header-item">To/From</div>
+              <div class="saitox-header-item saito-only">Memo</div>
           </div>
           <nav class="pagination-container disabled">
             <div class="pagination-button disabled" id="prev-button" aria-label="Previous page" title="Previous page">&lt;</div>

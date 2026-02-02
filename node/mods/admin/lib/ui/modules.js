@@ -6,9 +6,14 @@ class AdminModulesUI {
     this.app = app;
     this.mod = mod;
     this.container = container;
+    this.modules_changed = false;
+    this.initial_state = null;
   }
 
   render() {
+
+    this.modules_changed = false;
+    this.initial_state = null;
 
     this.app.browser.replaceElementBySelector(
       ModulesTemplate(this.mod),
@@ -19,18 +24,30 @@ class AdminModulesUI {
   }
 
   attachEvents() {
+
+    this.initial_state = Array.from(
+      document.querySelectorAll(".mod-config-table input")
+    ).map(el => ({ name: el.name, checked: el.checked }));
+
     const saveBtn = document.getElementById("modconfig-button");
     if (!saveBtn) { return; }
 
     document
       .querySelectorAll(".mod-config-table input")
       .forEach((input) => {
-        input.onchange = () => {
+        input.onclick = (e) => {
+	  e.checked = true;
           saveBtn.removeAttribute("disabled");
         };
       });
 
     saveBtn.onclick = async () => {
+
+      this.initial_state = Array.from(
+        document.querySelectorAll(".mod-config-table input")
+      ).map(el => ({ name: el.name, checked: el.checked }));
+
+
       const inputs = document.querySelectorAll(".mod-config-table input");
       let new_mod_config = { lite: [], core: [] };
 
@@ -59,20 +76,12 @@ class AdminModulesUI {
         if (res?.err) {
           salert(res.err);
         } else {
+	  saveBtn.setAttribute("disabled", true);
           siteMessage("Modules updated");
         }
       });
     };
 
-    const toggle = document.getElementById("show-modules");
-    if (toggle) {
-      toggle.onclick = (e) => {
-        e.currentTarget.classList.toggle("toggled");
-        document
-          .querySelector(".mod-config-table")
-          .classList.toggle("minimize");
-      };
-    }
   }
 }
 

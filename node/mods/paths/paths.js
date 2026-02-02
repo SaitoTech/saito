@@ -13782,14 +13782,6 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 	  this.updateLog(xhtml);
 	  this.updateLog(yhtml);
 
-	  //
-	  // prune impossible post-combat retreat
-	  //
-	  if (this.game.state.combat.winner !== "attacker") {
-	    this.game.queue = this.game.queue.filter(q => q !== "combat_defender_retreat");
-	    this.game.queue = this.game.queue.filter(q => q !== "combat_attacker_advance");
-	  }
-
 
 	  this.game.queue.splice(qe, 1);
 	  return 1;
@@ -13876,6 +13868,24 @@ console.log("error updated attacker loss factor: " + JSON.stringify(err));
 
 	}
 
+
+	if (mv[0] === "combat_determine_winner") {
+
+	  if (this.game.state.combat.attacker_loss_factor > this.game.state.combat.defender_loss_factor) {
+	    // loser discards combat cards
+	  }
+	  if (this.game.state.combat.attacker_loss_factor > this.game.state.combat.defender_loss_factor) {
+	    // loser discards combat cards
+	  }
+	  if (this.game.state.combat.attacker_loss_factor == this.game.state.combat.defender_loss_factor) {
+	    // both players lose
+	  }
+
+	  this.game.queue.splice(qe, 1);
+
+	  return 1;
+
+	}
 
 
 	if (mv[0] === "great_retreat_advance") {
@@ -14179,9 +14189,9 @@ console.log("moving unit in PCC: " + JSON.stringify(u));
 	          let f = this.returnPowerOfUnit(u);
 console.log("moving unit in PCC 2: " + JSON.stringify(u));
 	          if (f === "central") {
-		    this.moveUnit(spacekey, z, "ceubox");
+		    this.moveUnit(key, z, "ceubox");
 	          } else {
-		    this.moveUnit(spacekey, z, "aeubox");
+		    this.moveUnit(key, z, "aeubox");
 	          }
 
 		}

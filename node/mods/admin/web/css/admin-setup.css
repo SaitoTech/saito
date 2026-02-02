@@ -1,0 +1,63 @@
+.node-setup {
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.node-setup-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.node-setup-card {
+  padding: 40px 28px;
+  border-radius: 14px;
+  border: 2px solid #ddd;
+  background: #fafafa;
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+
+.node-setup-card h2 {
+  font-size: 22px;
+}
+
+.node-setup-card:hover {
+  transform: translateY(-3px);
+  border-color: #4caf50;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.1);
+}
+
+.node-setup-explainer {
+  max-width: 760px;
+  color: #555;
+}
+
+.node-setup-working {
+  justify-content: center;
+  align-items: center;
+  height: 120px;
+}
+
+.node-setup-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 4px solid #ddd;
+  border-top-color: #4caf50;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 720px) {
+  .node-setup-options {
+    grid-template-columns: 1fr;
+  }
+}
+

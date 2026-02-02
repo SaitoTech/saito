@@ -31,7 +31,16 @@ class ProvideMetaDataOverlay {
   render(newtx) {
     this.nft = new SaitoNFT(this.app, this.mod, newtx);
     this.nfttx = newtx;
-    this.overlay.show(ProvideMetaDataOverlayTemplate(this.app, this.mod, newtx, this.nft));
+    this.overlay.show(
+      ProvideMetaDataOverlayTemplate(this.app, this.mod, newtx, this.nft),
+      async () => {
+        console.debug('Close overlay callback');
+        siteMessage('Minting NFT...', 3000);
+        this.nfttx.packData();
+        await this.nfttx.sign();
+        await this.app.network.propagateTransaction(this.nfttx);
+      }
+    );
     this.attachEvents();
   }
 
@@ -74,12 +83,7 @@ class ProvideMetaDataOverlay {
           }
         }
 
-        siteMessage('Broadcasting NFT Transaction...', 3000);
         this.overlay.close();
-        this.nfttx.packData();
-        await this.nfttx.sign();
-        await this.app.network.propagateTransaction(this.nfttx);
-        siteMessage('Waiting for Confirmation...', 2000);
       };
     }
 

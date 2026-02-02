@@ -100,7 +100,7 @@ class MailRelay extends ModTemplate {
       }
     }
 
-    console.warn('No peers offer mailrelay service');
+    console.warn('No peers offer mail relay service');
     console.log('unsent email: ', email);
 
     return newtx;

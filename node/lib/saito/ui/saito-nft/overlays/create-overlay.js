@@ -389,8 +389,6 @@ class CreateNFT {
 
       this.overlay.close();
 
-      siteMessage('Minting NFT...', 3000);
-
       let publickey = await this.app.wallet.getPublicKey();
       let newtx = await this.app.wallet.createMintNFTTransaction(
         BigInt(numNFT),

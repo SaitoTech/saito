@@ -175,8 +175,11 @@
 .qrcode img {
   height: 18rem;
   width: 18rem;
-  border: var(--border-thickness-medium) solid var(--saito-primary);
-  padding: var(--border-padding-normal);
+  border: var(--border-thickness-fat) solid var(--saito-primary);
+  /* 
+  We need a thick border and no padding for the qrcode to be scannable
+  Do not add a padding
+  */
   border-radius: var(--saito-border-radius);
   background: var(--saito-background-color);
   visibility: inherit;

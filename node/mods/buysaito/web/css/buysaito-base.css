@@ -1,28 +1,70 @@
+/*  Just for the main page, 
+    overlay css put in ==> 
+    css-imports/saito-purchase.css 
+*/
 
+.main {
+  background-image: url(/saito/img/tiled-logo.svg);
+  background-color: var(--saito-background-color);
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: min(100px, 10vh) 3rem;
+}
 
-.saito-container {
-    display: flex;
-    flex-direction: column;
-    margin-top: 100px;
+.withdraw-container {
+  display: flex;
+  flex-direction: column;
+  max-width: min(800px, 100%);
+  max-height: 90vh;
+  gap: 1rem;
+  margin: 7rem;
+  justify-content: center;
+  align-items: center;
+  padding: 7rem;
+
+  /*border-radius: 1rem;
+  border: 1px solid var(--saito-border-color);
+  background: linear-gradient(135deg, #0008, #0000);
+  */
+}
+
+.purchase-saito-prompt {
+  font-size: 1.8rem;
+  font-style: italic;
+  padding-top: 1rem;
+  padding-bottom: 2rem;
+}
+
+.purchase-saito-amount {
+  border: none;
+  width: max-content;
+  height: 100%;
+  font-size: 2.2rem;
+  color: inherit;
+  text-align: right;
+  background: var(--saito-background-color);
+}
+
+.buysaito-button {
+  width: 400px;
+}
+
+.footer-note {
+  margin-top: auto;
+  text-align: center;
+}
+
+@media screen and (max-width: 600px) {
+  .withdraw-container {
+    margin: 0;
+    padding: 7rem 0;
+  }
+  .purchase-saito-prompt {
     text-align: center;
+  }
 }
-
-.saito-container p {
-    font-size: 1.8rem;
-    font-style: italic;
-    padding-top: 1rem;
-    padding-bottom: 2rem;
-}
-
-.saito-container button {
-    max-width: 400px;
-    width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.buysaito-spinner {
-    display: none;
-}
-
-

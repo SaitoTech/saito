@@ -273,10 +273,10 @@ class ATR extends ModTemplate {
     const m = tx.returnMessage();
     if (m.request === 'new-block-with-gt') {
       await app.wallet.produceBlockWithGt();
-      return 0;
+      return 1;
     } else if (m.request === 'new-block-with-no-gt') {
       await app.wallet.produceBlockWithoutGt();
-      return 0;
+      return 1;
     }
     return super.handlePeerTransaction(app, tx, peer, cb);
   }

@@ -19,6 +19,9 @@ module.exports = (app, mod) => {
         <div class="admin-modules">
         </div>
 
+        <div class="admin-peers">
+        </div>
+
         <div class="admin-blocks">
         </div>
 

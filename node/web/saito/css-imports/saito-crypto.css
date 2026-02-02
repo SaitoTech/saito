@@ -32,8 +32,8 @@
 }
 
 .crypto-details-overlay {
-  width: 600px;
-  max-width: 100vw;
+  width: 720px;
+  max-width: calc(100vw - 2px);
   min-height: 700px;
   max-height: calc(100vh - var(--saito-header-height));
   padding: 2rem;
@@ -187,6 +187,21 @@
   }
 }
 
+.transaction-history-table div.saito-only {
+  display: none;
+}
+
+.transaction-history-table[data-crypto='SAITO'] div.saito-only {
+  display: flex;
+}
+
+.saitox-table.transaction-history-table {
+  grid-template-columns: repeat(3, minmax(max-content, 2fr)) repeat(
+      calc(var(--saitox-column-ct) - 3),
+      minmax(max-content, 3fr)
+    );
+}
+
 .refreshed {
   visibility: hidden;
 }
@@ -221,6 +236,15 @@
   .wallet-actions {
     min-width: 210px;
     margin-left: auto;
+  }
+
+  .saitox-table.transaction-history-table {
+    grid-template-columns: 10rem 0px 1fr 0px 1fr 0px;
+  }
+
+  .saitox-table.transaction-history-table > div {
+    padding: 0;
+    overflow: hidden;
   }
 }
 
@@ -264,15 +288,6 @@
   .mobile-only460 {
     display: flex;
     margin-left: auto;
-  }
-
-  .saitox-table.transaction-history-table {
-    grid-template-columns: 10rem 0px 1fr 0px 1fr;
-  }
-
-  .saitox-table.transaction-history-table > div {
-    padding: 0;
-    overflow: hidden;
   }
 }
 
