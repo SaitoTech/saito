@@ -26,28 +26,28 @@
   justify-content: center;
   align-items: center;
   padding: 7rem;
-
-  /*border-radius: 1rem;
+  border-radius: 1rem;
   border: 1px solid var(--saito-border-color);
   background: linear-gradient(135deg, #0008, #0000);
-  */
 }
 
 .purchase-saito-prompt {
-  font-size: 1.8rem;
+  font-size: 2.25rem;
   font-style: italic;
   padding-top: 1rem;
   padding-bottom: 2rem;
 }
 
 .purchase-saito-amount {
-  border: none;
+  border: 1px solid var(--saito-border-color);
   width: max-content;
   height: 100%;
   font-size: 2.2rem;
   color: inherit;
   text-align: right;
   background: var(--saito-background-color);
+  border-radius: var(--saito-border-radius);
+  padding: 5px;
 }
 
 .buysaito-button {

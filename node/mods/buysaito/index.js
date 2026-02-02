@@ -49,7 +49,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
-    <link rel="stylesheet" type="text/css" href="/${mod.returnSlug()}/style.css?v=${build_number}" />
+    <link rel="stylesheet" type="text/css" href="/${mod.returnSlug()}/style.css?v=${build_number}">
 
     <title>Purchase SAITO</title>
   
@@ -77,7 +77,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
     <div class="withdraw-container">
       <h2>Buy SAITO</h2>
 
-      <div class='purchase-saito-prompt'>i want ... 
+      <div class='purchase-saito-prompt'>I want ...&nbsp; 
         <select class="purchase-saito-amount" id="purchase-saito-amount">
       	  <option id="1000" value="1000">1,000 SAITO</option>
       	  <option id="10000" value="10000">10,000 SAITO</option>
