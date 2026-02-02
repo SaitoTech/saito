@@ -139,9 +139,10 @@ impl Network {
         peer_index: u64,
         disconnect_type: PeerDisconnectType,
     ) {
-        debug!("handling peer disconnect, peer_index = {}", peer_index);
+        info!("handling peer disconnect, peer_index = {}", peer_index);
 
         if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
+            info!("peer disconnected externally, cleaning up locally created peer");
             self.io_interface
                 .disconnect_from_peer(peer_index)
                 .await

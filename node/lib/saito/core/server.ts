@@ -314,6 +314,7 @@ class Server {
   }
 
   initializeWebSocketServer() {
+    console.info('initializing websocket server');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const ws = require('ws');
 
@@ -325,9 +326,16 @@ class Server {
       console.debug('connection upgrade ----> ' + request.url);
       const { pathname } = parse(request.url);
       if (pathname === '/wsopen') {
-        wss.handleUpgrade(request, socket, head, (websocket: any) => {
-          wss.emit('connection', websocket, request);
-        });
+        try{
+          wss.handleUpgrade(request, socket, head, (websocket: any) => {
+            wss.emit('connection', websocket, request);
+          });
+        }
+        catch(error){
+          console.error('error upgrading websocket.', error);
+        }
+      } else {
+        socket.destroy();
       }
     });
     webserver.on('error', (error) => {
@@ -477,7 +485,7 @@ class Server {
       try {
         const blk = await this.app.blockchain.getBlock(bhash);
         if (!blk) {
-          console.info("Block block doesn't exist. cannot serve block. hash : " + bhash);
+          console.info('Block block doesn\'t exist. cannot serve block. hash : ' + bhash);
           return;
         }
         console.info('serving block : ' + blk.file_name);
