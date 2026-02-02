@@ -87,6 +87,7 @@ class SaitoPurchaseOverlay {
     );
 
     app.connection.on('saito-purchase-cryptos', () => {
+      console.log('saito-purchase-cryptos', this.mod.available_currencies);
       clearTimeout(this.timer);
       setTimeout(() => {
         this.fancy_ui = false;

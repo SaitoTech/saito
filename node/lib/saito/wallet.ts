@@ -172,7 +172,7 @@ export default class Wallet extends SaitoWallet {
           }
         }
         for (let i = 0; i < tx.from.length; i++) {
-          if (tx.to[i].type == 0) {
+          if (tx.from[i].type == 0) {
             if (tx.from[i].publicKey == this.address) {
               from_amount += BigInt(tx.from[i].amount);
             } else if (tx.from[i].amount > 0) {

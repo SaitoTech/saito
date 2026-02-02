@@ -184,6 +184,8 @@ class BuySaito extends ModTemplate {
 		}
 
 		if (txmsg.request.includes('buysaito')) {
+			console.debug(txmsg);
+
 			if (txmsg.request == 'buysaito available currencies') {
 				if (this.publicKey === this.authorized_public_key && !this.app.BROWSER) {
 					if (!this.available_currencies.length) {
