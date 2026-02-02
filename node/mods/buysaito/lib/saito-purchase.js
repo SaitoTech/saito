@@ -54,6 +54,21 @@ class SaitoPurchaseOverlay {
         this.recipient = recipient || this.mod.publicKey;
         this.tx = tx;
 
+        if (this.mod.available_currencies.length == 0) {
+          this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
+          this.app.connection.emit('relay-send-message', {
+            recipient: this.mod.authorized_public_key,
+            request: 'buysaito available currencies',
+            data: null
+          });
+
+          this.timer = setTimeout(() => {
+            this.mod.available_currencies = null;
+            this.render();
+          }, 5000);
+          return;
+        }
+
         if (!amount) {
           this.fancy_ui = false;
         }
@@ -70,6 +85,14 @@ class SaitoPurchaseOverlay {
         }
       }
     );
+
+    app.connection.on('saito-purchase-cryptos', () => {
+      clearTimeout(this.timer);
+      setTimeout(() => {
+        this.fancy_ui = false;
+        this.render();
+      }, 1000);
+    });
   }
 
   async render() {
@@ -84,7 +107,7 @@ class SaitoPurchaseOverlay {
       this.tx
     );
 
-    if (this.mod.available_currencies.length == 0) {
+    if (!this.mod.available_currencies) {
       salert('No available currencies');
       return;
     }

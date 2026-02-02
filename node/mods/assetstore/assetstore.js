@@ -159,10 +159,6 @@ class AssetStore extends ModTemplate {
 			return x;
 		}
 
-		if (type == 'buysaito') {
-			return true;
-		}
-
 		return super.respondTo(type, obj);
 	}
 

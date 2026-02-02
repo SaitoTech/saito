@@ -165,8 +165,9 @@ class Details {
 
     if (document.getElementById('get-saito')) {
       document.getElementById('get-saito').onclick = (e) => {
-        let overlay = new SaitoOverlay(this.app, this.mod);
-        overlay.show(SaitoTokenOverlay());
+        this.app.connection.emit('saito-purchase-launch');
+        //let overlay = new SaitoOverlay(this.app, this.mod);
+        //overlay.show(SaitoTokenOverlay());
       };
     }
 

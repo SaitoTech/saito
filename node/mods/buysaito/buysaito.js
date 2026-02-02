@@ -91,32 +91,12 @@ class BuySaito extends ModTemplate {
 		return services;
 	}
 
-	//
-	// We use 'buysaito' response so that we don't always hit the
-	// node with peerServiceUp - request
-	// modules in which we want to support buysaito should add a respondTo
-	//
-	// To-do -- don't require us preloading the available cryptos before moving into saito-purchase overlay
-	//
-	respondTo(type = '', obj) {
-		if (type == 'buysaito') {
-			return true;
-		}
-	}
-
 	async onPeerServiceUp(app, peer, service = {}) {
 		//
 		// If our direct peer is the BuySaito service provider,
 		// make sure we update the publickey we send requests to
 		//
 		if (service.service === 'buysaito') {
-			if (this.app.BROWSER) {
-				if (this.app.modules.returnActiveModule().respondTo('buysaito')) {
-					if (this.local_dev) {
-						salert('3rd party crypto purchases of SAITO are available in test mode');
-					}
-				}
-			}
 			this.authorized_public_key = peer.publicKey;
 			console.warn(
 				'BUYSAITO ---> set public key of authorized Saito seller!!!!',
@@ -124,21 +104,10 @@ class BuySaito extends ModTemplate {
 			);
 		}
 
-		//
-		// Browsers query the available cryptos once relay is available
-		//
-		if (service.service === 'relay') {
-			if (this.app.BROWSER) {
-				if (this.app.modules.returnActiveModule().respondTo('buysaito')) {
-					if (this.authorized_public_key) {
-						if (this.available_currencies.length == 0) {
-							this.app.connection.emit('relay-send-message', {
-								recipient: this.authorized_public_key,
-								request: 'buysaito available currencies',
-								data: null
-							});
-						}
-					}
+		if (service.service == 'relay') {
+			if (this.browser_active) {
+				if (document.getElementById('buysaito-button')) {
+					document.getElementById('buysaito-button').disabled = false;
 				}
 			}
 		}
@@ -230,13 +199,11 @@ class BuySaito extends ModTemplate {
 					});
 					this.hasPendingPayment(tx.from[0].publicKey);
 				} else if (txmsg.data && this.app.BROWSER) {
-					if (document.getElementById('buysaito-button')) {
-						document.getElementById('buysaito-button').disabled = false;
-					}
 					this.available_currencies = txmsg.data.ac;
 					if (!this.erc_saito) {
 						this.erc_saito = { price_usd: txmsg.data.erc };
 					}
+					this.app.connection.emit('saito-purchase-cryptos');
 				} else {
 					console.warn("BUYSAITO - We are getting a request we shouldn't be...");
 					console.warn(txmsg);
