@@ -449,7 +449,6 @@ impl RoutingThread {
             fork_id,
             &blockchain,
             peer_key_list,
-            &self.storage,
         )
         .await;
 
@@ -468,7 +467,6 @@ impl RoutingThread {
         fork_id: SaitoHash,
         blockchain: &Blockchain,
         peer_key_list: Vec<SaitoPublicKey>,
-        storage: &Storage,
     ) -> GhostChainSync {
         debug!(
             "generating ghost chain for block_id : {:?} fork_id : {:?}",
@@ -1614,7 +1612,6 @@ mod tests {
                 fork_id,
                 &blockchain,
                 vec![peer_public_key],
-                &tester.routing_thread.storage,
             )
             .await;
 
@@ -1650,7 +1647,6 @@ mod tests {
                 fork_id,
                 &blockchain,
                 vec![peer_public_key],
-                &tester.routing_thread.storage,
             )
             .await;
 
