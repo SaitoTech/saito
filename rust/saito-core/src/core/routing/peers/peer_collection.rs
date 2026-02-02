@@ -1,10 +1,10 @@
-use crate::core::consensus::peers::congestion_controller::{
+use crate::core::defs::{PeerIndex, PrintForLog, SaitoPublicKey, Timestamp};
+use crate::core::routing::io::interface_io::InterfaceIO;
+use crate::core::msg::handshake::HandshakeResponse;
+use crate::core::routing::peers::congestion_controller::{
     CongestionType, PeerCongestionControls, PeerCongestionStatus,
 };
-use crate::core::consensus::peers::peer::{Peer, PeerStatus};
-use crate::core::defs::{PeerIndex, PrintForLog, SaitoPublicKey, Timestamp};
-use crate::core::io::interface_io::InterfaceIO;
-use crate::core::msg::handshake::HandshakeResponse;
+use crate::core::routing::peers::peer::{Peer, PeerStatus};
 use crate::core::util::configuration::Endpoint;
 use ahash::HashMap;
 use log::{debug, info, trace};

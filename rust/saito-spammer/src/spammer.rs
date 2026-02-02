@@ -3,17 +3,17 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use log::info;
-use saito_core::core::consensus::peers::peer::PeerStatus;
+use saito_core::core::routing::peers::peer::PeerStatus;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::RwLock;
 
 use saito_core::core::consensus::blockchain::Blockchain;
-use saito_core::core::consensus::peers::peer_collection::PeerCollection;
 use saito_core::core::consensus::transaction::Transaction;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::Currency;
-use saito_core::core::io::network_event::NetworkEvent;
+use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::msg::message::Message;
+use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_rust::io_event::IoEvent;
 
 use crate::config_handler::SpammerConfigs;

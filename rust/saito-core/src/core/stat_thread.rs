@@ -6,8 +6,8 @@ use log::info;
 use serde::Serialize;
 
 use crate::core::defs::Timestamp;
-use crate::core::io::interface_io::InterfaceIO;
-use crate::core::io::network_event::NetworkEvent;
+use crate::core::routing::io::interface_io::InterfaceIO;
+use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::process::process_event::ProcessEvent;
 
 const STAT_FILENAME: &str = "./data/saito.stats";

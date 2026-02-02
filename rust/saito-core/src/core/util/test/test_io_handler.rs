@@ -9,10 +9,10 @@ pub mod test {
     use tokio::fs::File;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-    use crate::core::consensus::peers::peer_service::PeerService;
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::{BlockId, PeerIndex, SaitoHash, BLOCK_FILE_EXTENSION};
-    use crate::core::io::interface_io::{InterfaceEvent, InterfaceIO};
+    use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+    use crate::core::routing::peers::peer_service::PeerService;
 
     #[derive(Clone, Debug)]
     pub struct TestIOHandler {}

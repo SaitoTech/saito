@@ -2,7 +2,7 @@ use std::io::{Error, ErrorKind};
 
 use figment::providers::{Format, Json};
 use figment::Figment;
-use saito_core::core::consensus::peers::congestion_controller::CongestionStatsDisplay;
+use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use serde::Deserialize;
 
 use log::{debug, error};
