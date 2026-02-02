@@ -326,12 +326,11 @@ class Server {
       console.debug('connection upgrade ----> ' + request.url);
       const { pathname } = parse(request.url);
       if (pathname === '/wsopen') {
-        try{
+        try {
           wss.handleUpgrade(request, socket, head, (websocket: any) => {
             wss.emit('connection', websocket, request);
           });
-        }
-        catch(error){
+        } catch (error) {
           console.error('error upgrading websocket.', error);
         }
       } else {
@@ -485,7 +484,7 @@ class Server {
       try {
         const blk = await this.app.blockchain.getBlock(bhash);
         if (!blk) {
-          console.info('Block block doesn\'t exist. cannot serve block. hash : ' + bhash);
+          console.info("Block block doesn't exist. cannot serve block. hash : " + bhash);
           return;
         }
         console.info('serving block : ' + blk.file_name);
