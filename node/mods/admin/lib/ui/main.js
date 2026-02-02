@@ -2,6 +2,7 @@ const MainTemplate = require("./main.template");
 const AdminModulesUI = require("./modules");
 const AdminOverviewUI = require("./overview");
 const AdminOptionsUI = require("./options");
+const AdminPeersUI = require("./peers");
 
 class AdminMain {
 
@@ -12,6 +13,7 @@ class AdminMain {
     this.modules_ui = new AdminModulesUI(app, mod);
     this.options_ui = new AdminOptionsUI(app, mod);
     this.overview_ui = new AdminOverviewUI(app, mod);
+    this.peers_ui = new AdminPeersUI(app, mod);
   }
 
   render(view="overview") {
@@ -45,8 +47,13 @@ class AdminMain {
     document.querySelectorAll(`.saito-admin-nav-item .${view}`).forEach((el) => {
       el.classList.add("active");
     });
+
     if (view == "overview") {
       this.overview_ui.render();
+    }
+
+    if (view == "peers") {
+      this.peers_ui.render();
     }
 
     if (view == "modules") {

@@ -188,8 +188,26 @@ class Memento extends ModTemplate {
         let total_out = BigInt(0); // to
 
         let ledger = null;
-        if (transaction.from.length == 1) {
-          ledger = {};
+        if (transaction.from.length > 0) {
+          if (transaction.from.length == 1) {
+            ledger = {};
+          } else {
+            let pk = '';
+            for (let f of transaction.from) {
+              if (!pk) {
+                console.info('From...', f.publicKey);
+                pk = f.publicKey;
+              }
+              if (pk !== f.publicKey) {
+                console.warn('******************');
+                console.warn('******************');
+                console.warn('******************');
+                console.warn('Cannot guesstimate ledger if not exactly one from slip');
+                pk = '';
+                break;
+              }
+            }
+          }
         }
 
         /////////////////////////////////
@@ -232,6 +250,7 @@ class Memento extends ModTemplate {
             $lc: lc
           };
 
+          // Initialize ledger
           if (ledger) {
             ledger.tos = new Array();
             ledger.from_key = fromSlip.publicKey;
@@ -345,7 +364,8 @@ class Memento extends ModTemplate {
 
         if (ledger?.tos?.length > 0) {
           for (let payee of ledger.tos) {
-            let ledgerSql = `INSERT OR IGNORE INTO ledger (
+            if (payee.amount > 0) {
+              let ledgerSql = `INSERT OR IGNORE INTO ledger (
                                     block_id,
                                     tx_sig,
                                     timestamp,
@@ -361,16 +381,15 @@ class Memento extends ModTemplate {
                                     $to_key,
                                     $amount 
                                     )`;
-            let ledgerParams = {
-              $block_id: blk.id,
-              $tx_sig: ledger.tx_sig,
-              $timestamp: ledger.timestamp,
-              $from_key: ledger.from_key,
-              $to_key: payee.publicKey,
-              $amount: payee.amount
-            };
+              let ledgerParams = {
+                $block_id: blk.id,
+                $tx_sig: ledger.tx_sig,
+                $timestamp: ledger.timestamp,
+                $from_key: ledger.from_key,
+                $to_key: payee.publicKey,
+                $amount: payee.amount
+              };
 
-            if (payee.amount > 0) {
               await this.app.storage.runDatabase(ledgerSql, ledgerParams, 'memento');
             }
           }

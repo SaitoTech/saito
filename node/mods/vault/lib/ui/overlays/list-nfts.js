@@ -6,7 +6,12 @@ class ListNFTsOverlay extends ListNFT {
 
   constructor(app, mod) {
 
+
     super(app, mod, false);
+
+    if(!this.app.BROWSER) {
+      return;
+    }
 
     this.file_info_overlay = new FileInfoOverlay(app, mod);
 

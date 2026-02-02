@@ -143,9 +143,8 @@ font imports
   --saito-header-background: var(--dreamscape);
 
   /* Box Shadows */
-  --saito-box-shadow-low: 0px 1px 2px
-    color-mix(in srgb, var(--saito-font-color-heavy) 30%, transparent);
-  --saito-box-shadow: 1px 2px 3px color-mix(in srgb, var(--saito-font-color-heavy) 50%, transparent);
+  --saito-box-shadow-low: 0px 1px 2px color-mix(in srgb, var(--saito-gray-900) 30%, transparent);
+  --saito-box-shadow: 1px 2px 3px color-mix(in srgb, var(--saito-gray-900) 50%, transparent);
   --saito-box-shadow-high:
     0px 12px 17px 2px hsla(0, 0%, 0%, 0.14), 0px 5px 22px 4px hsla(0, 0%, 0%, 0.12),
     0px 7px 8px -4px hsla(0, 0%, 0%, 0.2);

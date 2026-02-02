@@ -100,8 +100,7 @@ class StorageCore extends Storage {
         return block;
       }
     } catch (error) {
-      console.log('Error reading block from disk');
-      console.error(error);
+      console.error('Error reading block from disk: ', error);
     }
     return null;
   }
@@ -244,11 +243,10 @@ class StorageCore extends Storage {
       // block.generateHashes();
       return block;
     } catch (err) {
-      console.error('Error reading block from disk');
-      console.error(err);
+      console.error('Error reading block from disk:', err);
     }
 
-    console.log('Block not being returned... returning null');
+    console.warn('Block not being returned... returning null');
     return null;
   }
 
@@ -296,7 +294,7 @@ class StorageCore extends Storage {
       } catch (err) {
         // this.app.logger.logError("Error Reading Options File", {message:"", stack: err});
         console.error(err);
-        console.log('options = ', optionsfile);
+        console.warn('options = ', optionsfile);
         process.exit();
       }
     } else {
@@ -586,7 +584,7 @@ class StorageCore extends Storage {
       const filename = `${row.timestamp}-${block_hash}.blk`;
       mycallback(filename, null);
     } catch (err) {
-      console.log('ERROR getting block filename in storage: ' + err);
+      console.error('ERROR getting block filename in storage: ' + err);
       mycallback(null, err);
     }
   }
@@ -619,8 +617,8 @@ class StorageCore extends Storage {
         return await db.run(sql, params, mycallback);
       }
     } catch (err) {
-      console.log('sql : ', sql);
-      console.log(err);
+      console.error('sql : ', sql);
+      console.error(err);
     }
   }
 
@@ -636,8 +634,8 @@ class StorageCore extends Storage {
       const db = await this.returnDatabaseByName(database);
       return await db.exec(sql);
     } catch (err) {
-      console.log('sql : ', sql);
-      console.log(err);
+      console.error('db error: ', err);
+      console.warn('failed executing sql : ', sql);
     }
   }
 
@@ -651,8 +649,8 @@ class StorageCore extends Storage {
       }
       return rows;
     } catch (err) {
-      console.log('failed executing sql : ', sql);
-      console.error(err);
+      console.error('db error: ', err);
+      console.warn('failed executing sql : ', sql);
       return [];
     }
   }

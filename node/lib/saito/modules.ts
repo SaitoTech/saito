@@ -97,7 +97,7 @@ class Mods {
     }
 
     // A bit of a hack to connect the ghost SaitoCrypto (from Wallet) into processing TXs on chain (for info!)
-    if (message?.module == 'Saito' && this.app.wallet?.saitoCrypto) {
+    if (this.app.wallet.saitoCrypto?.shouldAffixCallbackToModule(message?.module || '', tx) == 1) {
       callbackArray.push(
         this.app.wallet.saitoCrypto.onConfirmation.bind(this.app.wallet.saitoCrypto)
       );
@@ -157,7 +157,7 @@ class Mods {
         // callback is defined in apps/lite/index.ts
         // it runs sendApiSuccess() with the response object
         //
-        mycallback({});
+        mycallback({ err: 'no response' });
       }
     }
   }

@@ -193,7 +193,7 @@ class Arcade extends ModTemplate {
 					target = '.invite-manager';
 				} else if (!document.querySelector(target)) {
 					this.loader_overlay.show(
-						'<div class="arcade_game_overlay_loader saito-overlay-size"></div>'
+						'<div class="arcade_game_overlay_loader saito-overlay-size narrow"></div>'
 					);
 				}
 
@@ -839,6 +839,7 @@ class Arcade extends ModTemplate {
 
 		if (message.request === 'arcade clear invite') {
 			this.removeGame(message.data.game_id);
+			return 1;
 		}
 
 		//

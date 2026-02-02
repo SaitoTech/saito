@@ -4,6 +4,63 @@
   padding: 0;
 }
 
+.saito-admin-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid #e2e2e2;
+  padding: 24px 18px;
+  background: #fafafa;
+}
+
+.saito-admin-nav-item {
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  color: #333;
+  transition: background 0.15s, color 0.15s;
+}
+
+.saito-admin-nav-item:hover {
+  background: #f0f0f0;
+}
+
+.saito-admin-nav-item.active {
+  background: #e8f3ec;
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+
+.saito-admin-main {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.saito-admin-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid #ddd;
+  padding: 20px;
+  background: #fafafa;
+}
+
+.saito-admin-content {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  padding: 32px 48px;
+  background: #ffffff;
+  min-height: 100vh;
+}
+
+.admin-wiki {
+  margin-top: auto;
+  padding-top: 24px;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   line-height: 1.6;

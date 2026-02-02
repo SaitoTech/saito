@@ -31,4 +31,7 @@ html[data-theme='raven'] {
   /* BORDER COLORS */
   --saito-border-color: var(--saito-border-color-dark);
   --border-color-general-dividers: var(--saito-gray-500);
+
+  --saito-box-shadow:12px 17px 2px #00000024, 0px 5px 22px 4px #0000001f,
+  0px 7px 8px -4px #00000033
 }

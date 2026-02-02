@@ -49,9 +49,9 @@ module.exports = (app, mod, build_number = '', og_card) => {
     <script data-pace-options='{ "restartOnRequestAfter" : false, "restartOnPushState" : false}' src="/saito/lib/pace/pace.min.js"></script>
     <link rel="stylesheet" href="/saito/lib/pace/center-atom.css">
     <link rel="stylesheet" type="text/css" href="/saito/saito.css?v=${build_number}" />
-    <link rel="stylesheet" type="text/css" href="/buysaito/style.css" />
+    <link rel="stylesheet" type="text/css" href="/${mod.returnSlug()}/style.css?v=${build_number}" />
 
-    <title>Saito - Purchase Saito</title>
+    <title>Purchase SAITO</title>
   
     <style type="text/css">
 
@@ -69,37 +69,31 @@ module.exports = (app, mod, build_number = '', og_card) => {
       background-color: #1c1c23;
       background-image: url('/saito/img/tiled-logo.svg');
     }
-
-    .purchase-saito-amount {
-      border: none;
-      width: auto;
-      height: 100%;
-      font-size: 2.2rem;
-      color: inherit;
-      background: inherit;
-    }
-
   </style>
   </head>
   
   <body>
-    <div class="saito-container" id="saito-container">
+    <div class="main">
+    <div class="withdraw-container">
+      <h2>Buy SAITO</h2>
 
-      <h2>Buy Saito</h2>
-
-      <p style="font-size:2.2rem">click on the button to purchase 
+      <div class='purchase-saito-prompt'>i want ... 
         <select class="purchase-saito-amount" id="purchase-saito-amount">
-	  <option id="100" value="100">100 SAITO</option>
-	  <option id="1000" value="1000">1,000 SAITO</option>
-	  <option id="10000" value="10000" selected>10,000 SAITO</option>
-	  <option id="100000" value="100000">100,000 SAITO</option>
+      	  <option id="1000" value="1000">1,000 SAITO</option>
+      	  <option id="10000" value="10000">10,000 SAITO</option>
+      	  <option id="50000" value="50000" selected>50,000 SAITO</option>
+      	  <option id="100000" value="100000">100,000 SAITO</option>
+          <option id="0" value="0">custom</option>
         </select>
-      </p>
+      </div>
 
-      <button class="saito-primary buysaito-button" id="buysaito-button" >Get Quote</button>
-      <div class="buysaito-spinner"><img class="spinner" src="/saito/img/spinner.svg"></div>
-
+      <div class='saito-button-row'>
+        <button class="saito-button-primary buysaito-button fat" id="buysaito-button" disabled >Get Quote</button>
+      </div>
+      </div>
+      <div class="footer-note">Already have SAITO?<br>Visit our <a href="/migration">migration portal</a>.</div>
     </div>
+
   </body>
 
   <script type="text/javascript" src="/saito/saito.js?build=${build_number}" ></script>

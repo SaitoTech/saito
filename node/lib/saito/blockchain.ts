@@ -87,16 +87,12 @@ export default class Blockchain extends SaitoBlockchain {
     console.log('into affix callbacks... 1');
 
     if (this.callbacks.has(block.hash)) {
-      console.info('nope out of affixing callbacks on block: ' + block.hash);
+      console.info('nope out of affix callbacks on block: ' + block.hash);
       return;
     }
 
-    console.log('into affix callbacks... 2');
-
     let callbacks = [];
     let callbackIndices = [];
-
-    console.log('affixing callbacks to block...');
 
     let txs: Transaction[] = block.transactions as Transaction[];
 
@@ -104,14 +100,8 @@ export default class Blockchain extends SaitoBlockchain {
     for (let z = 0; z < txs.length; z++) {
       if (txs[z].type === TransactionType.Normal || txs[z].type === TransactionType.Bound) {
         let txmsg2 = txs[z].returnMessage();
-
-        const str_txmsg2 = JSON.stringify(txmsg2);
-        const ellipsis = '\n...\n';
-        const prefixLength = 500;
-        const suffixLength = 500;
-        const maxStrLength = prefixLength + ellipsis.length + suffixLength;
-
         await txs[z].decryptMessage(this.app);
+
         const txmsg = txs[z].returnMessage();
 
         //
@@ -121,7 +111,6 @@ export default class Blockchain extends SaitoBlockchain {
         // in blocks only the first time they are processed. For this reason we save the NFTs
         // here by flagging the transactions which have them and sending them to teh wallet.
         //
-
         if (txs[z].type == TransactionType.Bound) {
           console.log('into wallet on new bound tx');
           this.app.wallet.onNewBoundTransaction(txs[z]);

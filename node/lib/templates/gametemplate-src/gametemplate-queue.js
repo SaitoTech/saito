@@ -2694,7 +2694,8 @@ class GameQueue {
               game_self.restartQueue();
               return 0;
             },
-            receiver
+            receiver,
+            `${game_self.name} stake`
           );
         };
 
