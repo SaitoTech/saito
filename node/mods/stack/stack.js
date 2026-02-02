@@ -403,7 +403,6 @@ class Stack extends ModTemplate {
         this.pending_author_load = null;
         await this.handleCreatorView(pk);
       }
-      track_peer = true;
     }
 
 

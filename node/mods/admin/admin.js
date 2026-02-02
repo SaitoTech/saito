@@ -125,21 +125,6 @@ console.log("SERVER INFO: " + JSON.stringify(this.server_info));
 
     if (txmsg.request == 'set-admin-key') {
 
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^ setting admin key!");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-
       if (!this.app.options.admin) {
         this.app.options.admin = [];
       }
