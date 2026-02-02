@@ -141,15 +141,24 @@ class SettingsAppspace {
 	}
 
 	renderStorageInfo() {
-		navigator.storage.estimate().then((estimate) => {
-			let percentage = (estimate.usage / estimate.quota) * 100;
-			document.querySelector('.settings-appspace-indexdb-info .quota').innerHTML =
-				this.app.browser.formatNumberToLocale(estimate.quota);
-			document.querySelector('.settings-appspace-indexdb-info .usage').innerHTML =
-				this.app.browser.formatNumberToLocale(estimate.usage);
-			document.querySelector('.settings-appspace-indexdb-info .percent').innerHTML =
-				this.app.browser.formatNumberToLocale(percentage);
-		});
+		navigator.storage
+			.estimate()
+			.then((estimate) => {
+				if (estimate?.usage && estimate?.quota) {
+					let percentage = (estimate.usage / estimate.quota) * 100;
+					document.querySelector('.settings-appspace-indexdb-info .quota').innerHTML =
+						this.app.browser.formatNumberToLocale(estimate.quota);
+					document.querySelector('.settings-appspace-indexdb-info .usage').innerHTML =
+						this.app.browser.formatNumberToLocale(estimate.usage);
+					document.querySelector('.settings-appspace-indexdb-info .percent').innerHTML =
+						this.app.browser.formatNumberToLocale(percentage);
+				} else {
+					console.warn('Unexpected storage estimate: ', estimate);
+				}
+			})
+			.catch((err) => {
+				console.error(err);
+			});
 
 		function getLocalStorageSize() {
 			let total = 0;
