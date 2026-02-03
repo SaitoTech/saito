@@ -54,7 +54,7 @@ class SaitoPurchaseOverlay {
         this.recipient = recipient || this.mod.publicKey;
         this.tx = tx;
 
-        if (this.mod.available_currencies.length == 0) {
+        if (this.mod.available_currencies?.length == 0) {
           this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
           this.app.connection.emit('relay-send-message', {
             recipient: this.mod.authorized_public_key,
