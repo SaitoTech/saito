@@ -43,6 +43,13 @@ class Details {
       }
     }
 
+    setTimeout(async () => {
+      let balance = await this.app.wallet.getBalance();
+      if (Number(balance) == 0) {
+        this.app.modules.renderInto('.get-saito-tokens');
+      }
+    }, 0);
+
     this.loader.remove();
 
     this.formatHistory();
@@ -54,6 +61,12 @@ class Details {
     let history_html = '';
     let running_balance = Number(this.mod.returnBalance());
 
+    if (this.ticker == 'SAITO') {
+      document.documentElement.style.setProperty('--saitox-column-ct', 6);
+    } else {
+      document.documentElement.style.setProperty('--saitox-column-ct', 5);
+    }
+
     if (!this.mod.history?.length && running_balance == 0) {
       console.log('No history to format or interpolate');
       return;
@@ -61,12 +74,6 @@ class Details {
 
     let day = new Date().toDateString();
     let last_ts = 0;
-
-    if (this.ticker == 'SAITO') {
-      document.documentElement.style.setProperty('--saitox-column-ct', 6);
-    } else {
-      document.documentElement.style.setProperty('--saitox-column-ct', 5);
-    }
 
     if (this.mod.history?.length > 0) {
       console.log('Formatting HISTORY: ', this.mod.history);

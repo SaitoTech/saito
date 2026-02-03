@@ -51,6 +51,7 @@ module.exports = (app, mod) => {
 
       html += `
         <div class="saito-button-grid">
+          <div class="get-saito-tokens"></div>
           <button class="saito-button-secondary" id="get-saito">get saito</button>
           <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
         </div>
@@ -67,6 +68,7 @@ module.exports = (app, mod) => {
       html += `
           <div>${menu_html}</div>
           <div class="saito-button-grid">
+            <div></div>
             ${/*balance > 0 ? `<button class="saito-button-secondary" id="convert-saito">convert</button>` : */ '<div></div>'}
             <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
           </div>
