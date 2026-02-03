@@ -186,7 +186,11 @@ export default class Wallet extends SaitoWallet {
           return;
         }
 
+        console.log(tx.msg);
+        await tx.decryptMessage(this.app);
+        console.log(tx.msg);
         let obj = tx.returnMessage() || {};
+        console.log(obj);
 
         if (from_amount) {
           // I sent money...

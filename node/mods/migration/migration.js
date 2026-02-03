@@ -184,6 +184,8 @@ class Migration extends ModTemplate {
       return;
     }
 
+    await tx.decryptMessage(this.app);
+
     let txmsg = tx.returnMessage();
 
     if (Number(conf) == 0) {
@@ -482,7 +484,7 @@ class Migration extends ModTemplate {
         txmsg,
         tx_sender,
         0,
-        `TX Signature: ${tx.signature}</p><p>Block ID: ${blk?.id}</p><p>But payment not found in pending transactions... `
+        `TX Signature: ${tx.signature}</p><p>Block ID: ${blk?.id}</p><p>(Migration) payment not found in pending transactions... `
       );
     }
 
@@ -496,7 +498,7 @@ class Migration extends ModTemplate {
       //  hash: 'ce23e0df0c53a9605834101d71d89fcf84cf3f52757850856ca9074ba9a63017'
 
       if (txmsg.module !== this.wrapped_saito_ticker) {
-        this.notifyTeam(txmsg, 0, tx_sender, 'Received unexpected crypto payment!!');
+        this.notifyTeam(txmsg, tx_sender, 0, 'Received unexpected crypto payment!!');
         console.error('Processing a crypto transfer tx for something other than ERC-SAITO!!');
         return;
       }

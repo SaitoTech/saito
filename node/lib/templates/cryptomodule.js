@@ -116,6 +116,7 @@ class CryptoModule extends ModTemplate {
         return 0;
       }
 
+      await tx.decryptMessage(this.app);
       let txmsg = tx.returnMessage();
 
       if (txmsg.module !== this.name) {
