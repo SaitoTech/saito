@@ -6,6 +6,8 @@ import S from 'saito-js/saito';
 import { Saito } from '../../apps/core';
 import Slip from './slip';
 import Transaction from './transaction';
+import { TransactionType } from 'saito-js/lib/transaction';
+
 const getUuid = require('uuid-by-string');
 
 const CryptoModule = require('../templates/cryptomodule');
@@ -123,20 +125,22 @@ export default class Wallet extends SaitoWallet {
       shouldAffixCallbackToModule(modname, tx = null) {
         if (this.app.BROWSER) {
           if (tx.isTo(this.address) || tx.isFrom(this.address)) {
-            let to_amount = 0;
-            let from_amount = 0;
-            for (let i = 0; i < tx.to.length; i++) {
-              if (tx.to[i].publicKey == this.address) {
-                to_amount += Number(tx.to[i].amount);
+            if (tx.type == TransactionType.Normal) {
+              let to_amount = 0;
+              let from_amount = 0;
+              for (let i = 0; i < tx.to.length; i++) {
+                if (tx.to[i].publicKey == this.address) {
+                  to_amount += Number(tx.to[i].amount);
+                }
               }
-            }
-            for (let i = 0; i < tx.from.length; i++) {
-              if (tx.from[i].publicKey == this.address) {
-                from_amount += Number(tx.from[i].amount);
+              for (let i = 0; i < tx.from.length; i++) {
+                if (tx.from[i].publicKey == this.address) {
+                  from_amount += Number(tx.from[i].amount);
+                }
               }
-            }
-            if (to_amount !== from_amount) {
-              return 1;
+              if (to_amount !== from_amount) {
+                return 1;
+              }
             }
           }
         }
@@ -191,6 +195,7 @@ export default class Wallet extends SaitoWallet {
         console.log(tx.msg);
         let obj = tx.returnMessage() || {};
         console.log(obj);
+        let msg = '';
 
         if (from_amount) {
           // I sent money...
@@ -198,12 +203,14 @@ export default class Wallet extends SaitoWallet {
           obj.amount = from_amount - to_amount;
           obj.from = this.address;
           obj.to = to_key;
+          msg = 'Sent: ';
         } else {
           // I received money...
           console.log('I received money');
           obj.amount = to_amount;
           obj.to = this.address;
           obj.from = from_key;
+          msg = 'Received: ';
         }
 
         obj.amount = this.app.wallet.convertNolanToSaito(obj.amount);
@@ -212,6 +219,7 @@ export default class Wallet extends SaitoWallet {
           obj.memo = 'unknown';
         }
 
+        this.app.browser.siteMessage(`${msg}${obj.amount} SAITO`);
         console.log(obj);
         tx.printSlips();
         this.savePaymentTransaction(tx, obj);
@@ -1811,6 +1819,10 @@ export default class Wallet extends SaitoWallet {
         tx.packData();
         console.log('saving nft transaction: ' + nft_id);
         this.app.storage.saveTransaction(tx, { field4: nft_id, preserve: 1 }, 'localhost');
+
+        if (!tx.isFrom(this.app.wallet.publicKey)) {
+          //this.app.browser.siteMessage
+        }
       }
     } catch (err) {
       console.error('Error while saving NFT tx to archive in wallet.ts: ', err);

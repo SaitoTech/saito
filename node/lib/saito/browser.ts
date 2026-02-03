@@ -2441,6 +2441,12 @@ class Browser {
     }
   }
 
+  siteMessage(message, killtime = 9999999, callback = null) {
+    if (window) {
+      siteMessage(message, (killtime = 9999999), (callback = null));
+    }
+  }
+
   treatElements(nodeList) {
     for (let node of nodeList) {
       if (node.files) {
