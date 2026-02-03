@@ -1,22 +1,12 @@
 use super::stat_thread::StatEvent;
 use crate::core::consensus::blockchain::Blockchain;
-use crate::core::consensus::blockchain_sync_state::BlockchainSyncState;
 use crate::core::consensus::mempool::Mempool;
-use crate::core::consensus::peers::congestion_controller::{
-    CongestionStatsDisplay, CongestionType, PeerCongestionControls,
-};
-use crate::core::consensus::peers::peer::PeerStatus;
-use crate::core::consensus::peers::peer_service::PeerService;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
     BlockHash, BlockId, PeerIndex, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, Timestamp,
     CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
-use crate::core::io::interface_io::InterfaceEvent;
-use crate::core::io::network::{Network, PeerDisconnectType};
-use crate::core::io::network_event::NetworkEvent;
-use crate::core::io::storage::Storage;
 use crate::core::mining_thread::MiningEvent;
 use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
@@ -24,6 +14,16 @@ use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::process::version::Version;
+use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
+use crate::core::routing::io::interface_io::InterfaceEvent;
+use crate::core::routing::io::network::{Network, PeerDisconnectType};
+use crate::core::routing::io::network_event::NetworkEvent;
+use crate::core::routing::io::storage::Storage;
+use crate::core::routing::peers::congestion_controller::{
+    CongestionStatsDisplay, CongestionType, PeerCongestionControls,
+};
+use crate::core::routing::peers::peer::PeerStatus;
+use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util;
 use crate::core::util::config_manager::ConfigManager;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
@@ -444,14 +444,7 @@ impl RoutingThread {
             }
         }
 
-        let ghost = Self::generate_ghost_chain(
-            block_id,
-            fork_id,
-            &blockchain,
-            peer_key_list,
-            &self.storage,
-        )
-        .await;
+        let ghost = Self::generate_ghost_chain(block_id, fork_id, &blockchain, peer_key_list).await;
 
         debug!("sending ghost chain to peer : {:?}", peer_index);
         // debug!("ghost : {:?}", ghost);
@@ -468,7 +461,6 @@ impl RoutingThread {
         fork_id: SaitoHash,
         blockchain: &Blockchain,
         peer_key_list: Vec<SaitoPublicKey>,
-        storage: &Storage,
     ) -> GhostChainSync {
         debug!(
             "generating ghost chain for block_id : {:?} fork_id : {:?}",
@@ -1614,7 +1606,6 @@ mod tests {
                 fork_id,
                 &blockchain,
                 vec![peer_public_key],
-                &tester.routing_thread.storage,
             )
             .await;
 
@@ -1650,7 +1641,6 @@ mod tests {
                 fork_id,
                 &blockchain,
                 vec![peer_public_key],
-                &tester.routing_thread.storage,
             )
             .await;
 

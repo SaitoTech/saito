@@ -4,8 +4,8 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 use crate::wasm_peer_service::WasmPeerService;
-use saito_core::core::consensus::peers::peer::Peer;
 use saito_core::core::defs::{PeerIndex, PrintForLog};
+use saito_core::core::routing::peers::peer::Peer;
 
 #[wasm_bindgen]
 #[derive(Clone)]
@@ -81,11 +81,11 @@ impl WasmPeer {
     #[wasm_bindgen(getter = status)]
     pub fn get_status(&self) -> JsString {
         match self.peer.peer_status {
-            saito_core::core::consensus::peers::peer::PeerStatus::Connected => "connected",
-            saito_core::core::consensus::peers::peer::PeerStatus::Disconnected(_, _) => {
+            saito_core::core::routing::peers::peer::PeerStatus::Connected => "connected",
+            saito_core::core::routing::peers::peer::PeerStatus::Disconnected(_, _) => {
                 "disconnected"
             }
-            saito_core::core::consensus::peers::peer::PeerStatus::Connecting => "connecting",
+            saito_core::core::routing::peers::peer::PeerStatus::Connecting => "connecting",
         }
         .into()
     }

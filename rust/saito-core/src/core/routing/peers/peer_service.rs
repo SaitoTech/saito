@@ -98,7 +98,7 @@ impl PeerService {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::consensus::peers::peer_service::PeerService;
+    use crate::core::routing::peers::peer_service::PeerService;
 
     #[test]
     fn test_serialize() {

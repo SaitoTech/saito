@@ -1,5 +1,5 @@
-use crate::core::consensus::peers::rate_limiter::RateLimiter;
 use crate::core::defs::Timestamp;
+use crate::core::routing::peers::rate_limiter::RateLimiter;
 use ahash::HashMap;
 use log::info;
 use serde::{Deserialize, Serialize};

@@ -14,7 +14,6 @@ use tokio::sync::RwLock;
 use crate::core::consensus::block::{Block, BlockType};
 use crate::core::consensus::blockring::BlockRing;
 use crate::core::consensus::mempool::Mempool;
-use crate::core::consensus::peers::congestion_controller::CongestionType;
 use crate::core::consensus::slip::{Slip, SlipType};
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::{Wallet, WalletUpdateStatus, WALLET_NOT_UPDATED};
@@ -24,10 +23,11 @@ use crate::core::defs::{
     MIN_GOLDEN_TICKETS_NUMERATOR, PROJECT_PUBLIC_KEY, RECOLLECT_EVERY_TX, RECOLLECT_NOTHING,
     RECOLLECT_TXS_WITH_FEES,
 };
-use crate::core::io::interface_io::InterfaceEvent;
-use crate::core::io::network::Network;
-use crate::core::io::storage::Storage;
 use crate::core::mining_thread::MiningEvent;
+use crate::core::routing::io::interface_io::InterfaceEvent;
+use crate::core::routing::io::network::Network;
+use crate::core::routing::io::storage::Storage;
+use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
@@ -3028,7 +3028,7 @@ mod tests {
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::{ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO};
-    use crate::core::io::storage::Storage;
+    use crate::core::routing::io::storage::Storage;
     use crate::core::util::crypto::{generate_keys, hash};
     use crate::core::util::test::node_tester::test::NodeTester;
     use crate::core::util::test::test_manager::test::TestManager;

@@ -1,5 +1,5 @@
 use crate::core::defs::{BlockId, PeerIndex, SaitoHash, SaitoPublicKey};
-use crate::core::io::network::PeerDisconnectType;
+use crate::core::routing::io::network::PeerDisconnectType;
 
 #[derive(Debug)]
 pub enum NetworkEvent {

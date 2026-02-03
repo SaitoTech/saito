@@ -11,11 +11,11 @@ use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::mpsc::Sender;
 
-use saito_core::core::consensus::peers::peer_service::PeerService;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{BlockId, PeerIndex, SaitoHash, BLOCK_FILE_EXTENSION};
-use saito_core::core::io::interface_io::{InterfaceEvent, InterfaceIO};
-use saito_core::core::io::network_event::NetworkEvent;
+use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+use saito_core::core::routing::io::network_event::NetworkEvent;
+use saito_core::core::routing::peers::peer_service::PeerService;
 
 use crate::io_event::IoEvent;
 
@@ -305,7 +305,7 @@ impl InterfaceIO for RustIOHandler {
 
 #[cfg(test)]
 mod tests {
-    use saito_core::core::io::interface_io::InterfaceIO;
+    use saito_core::core::routing::io::interface_io::InterfaceIO;
 
     use crate::rust_io_handler::RustIOHandler;
 

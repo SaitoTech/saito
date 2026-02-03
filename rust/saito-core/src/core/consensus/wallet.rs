@@ -6,10 +6,10 @@ use crate::core::defs::{
     BlockId, Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, UTXO_KEY_LENGTH,
 };
-use crate::core::io::interface_io::{InterfaceEvent, InterfaceIO};
-use crate::core::io::network::Network;
-use crate::core::io::storage::Storage;
 use crate::core::process::version::{read_pkg_version, Version};
+use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+use crate::core::routing::io::network::Network;
+use crate::core::routing::io::storage::Storage;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
 use crate::core::util::crypto::{generate_keys, hash, sign};
 use ahash::{AHashMap, AHashSet};
@@ -1744,7 +1744,7 @@ impl Display for WalletSlip {
 mod tests {
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::SaitoPublicKey;
-    use crate::core::io::storage::Storage;
+    use crate::core::routing::io::storage::Storage;
     use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::test_manager::test::TestManager;
 

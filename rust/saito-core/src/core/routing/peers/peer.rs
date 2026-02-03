@@ -1,12 +1,12 @@
-use crate::core::consensus::peers::peer_service::PeerService;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
     PeerIndex, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp, WS_KEEP_ALIVE_PERIOD,
 };
-use crate::core::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use crate::core::msg::message::Message;
 use crate::core::process::version::Version;
+use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, sign, verify};
@@ -523,8 +523,8 @@ impl Peer {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::consensus::peers::peer::{Peer, PeerStatus};
     use crate::core::process::version::Version;
+    use crate::core::routing::peers::peer::{Peer, PeerStatus};
     use std::cmp::Ordering;
 
     #[test]

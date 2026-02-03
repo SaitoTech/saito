@@ -12,9 +12,9 @@ use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
     BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
 };
-use crate::core::io::network_event::NetworkEvent;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
+use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::{generate_random_bytes, hash};
 
