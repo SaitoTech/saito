@@ -17,12 +17,12 @@ use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
     BlockId, PrintForLog, SaitoHash, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
-use crate::core::routing::io::network::Network;
-use crate::core::routing::io::network_event::NetworkEvent;
-use crate::core::routing::io::storage::Storage;
 use crate::core::mining_thread::MiningEvent;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
+use crate::core::routing::io::network::Network;
+use crate::core::routing::io::network_event::NetworkEvent;
+use crate::core::routing::io::storage::Storage;
 use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::config_manager::ConfigManager;

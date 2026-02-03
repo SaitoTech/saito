@@ -7,10 +7,6 @@ use crate::core::defs::{
     BlockHash, BlockId, PeerIndex, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, Timestamp,
     CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
-use crate::core::routing::io::interface_io::InterfaceEvent;
-use crate::core::routing::io::network::{Network, PeerDisconnectType};
-use crate::core::routing::io::network_event::NetworkEvent;
-use crate::core::routing::io::storage::Storage;
 use crate::core::mining_thread::MiningEvent;
 use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
@@ -19,6 +15,10 @@ use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::process::version::Version;
 use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
+use crate::core::routing::io::interface_io::InterfaceEvent;
+use crate::core::routing::io::network::{Network, PeerDisconnectType};
+use crate::core::routing::io::network_event::NetworkEvent;
+use crate::core::routing::io::storage::Storage;
 use crate::core::routing::peers::congestion_controller::{
     CongestionStatsDisplay, CongestionType, PeerCongestionControls,
 };
@@ -444,13 +444,7 @@ impl RoutingThread {
             }
         }
 
-        let ghost = Self::generate_ghost_chain(
-            block_id,
-            fork_id,
-            &blockchain,
-            peer_key_list,
-        )
-        .await;
+        let ghost = Self::generate_ghost_chain(block_id, fork_id, &blockchain, peer_key_list).await;
 
         debug!("sending ghost chain to peer : {:?}", peer_index);
         // debug!("ghost : {:?}", ghost);

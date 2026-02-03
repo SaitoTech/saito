@@ -24,12 +24,12 @@ use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusStats, Consens
 use saito_core::core::defs::{
     PrintForLog, SaitoPrivateKey, SaitoPublicKey, StatVariable, STAT_BIN_COUNT,
 };
-use saito_core::core::routing::io::network::Network;
-use saito_core::core::routing::io::network_event::NetworkEvent;
-use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::process::keep_time::{KeepTime, Timer};
 use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
+use saito_core::core::routing::io::network::Network;
+use saito_core::core::routing::io::network_event::NetworkEvent;
+use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::StatThread;

@@ -23,10 +23,10 @@ use crate::core::defs::{
     MIN_GOLDEN_TICKETS_NUMERATOR, PROJECT_PUBLIC_KEY, RECOLLECT_EVERY_TX, RECOLLECT_NOTHING,
     RECOLLECT_TXS_WITH_FEES,
 };
+use crate::core::mining_thread::MiningEvent;
 use crate::core::routing::io::interface_io::InterfaceEvent;
 use crate::core::routing::io::network::Network;
 use crate::core::routing::io::storage::Storage;
-use crate::core::mining_thread::MiningEvent;
 use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::balance_snapshot::BalanceSnapshot;

@@ -32,13 +32,13 @@ use saito_core::core::defs::{
     Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, StatVariable, CHANNEL_SAFE_BUFFER,
     PROJECT_PUBLIC_KEY, STAT_BIN_COUNT,
 };
-use saito_core::core::routing::io::network::Network;
-use saito_core::core::routing::io::network_event::NetworkEvent;
-use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::process::keep_time::{KeepTime, Timer};
 use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
+use saito_core::core::routing::io::network::Network;
+use saito_core::core::routing::io::network_event::NetworkEvent;
+use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};

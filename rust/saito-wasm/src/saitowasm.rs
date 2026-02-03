@@ -29,9 +29,6 @@ use saito_core::core::defs::{
     BlockId, Currency, PeerIndex, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoUTXOSetKey,
     StatVariable, Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
-use saito_core::core::routing::io::network::{Network, PeerDisconnectType};
-use saito_core::core::routing::io::network_event::NetworkEvent;
-use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::msg::api_message::ApiMessage;
 use saito_core::core::msg::message::Message;
@@ -39,6 +36,9 @@ use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::process::version::Version;
 use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
+use saito_core::core::routing::io::network::{Network, PeerDisconnectType};
+use saito_core::core::routing::io::network_event::NetworkEvent;
+use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};

@@ -16,13 +16,13 @@ pub mod test {
         StatVariable, RECOLLECT_NOTHING, STAT_BIN_COUNT,
     };
     use crate::core::defs::{SaitoPublicKey, Timestamp};
-    use crate::core::routing::io::network::Network;
-    use crate::core::routing::io::network_event::NetworkEvent;
-    use crate::core::routing::io::storage::Storage;
     use crate::core::mining_thread::{MiningEvent, MiningThread};
     use crate::core::process::keep_time::KeepTime;
     use crate::core::process::keep_time::Timer;
     use crate::core::process::process_event::ProcessEvent;
+    use crate::core::routing::io::network::Network;
+    use crate::core::routing::io::network_event::NetworkEvent;
+    use crate::core::routing::io::storage::Storage;
     use crate::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
     use crate::core::stat_thread::{StatEvent, StatThread};
     use crate::core::util::config_manager::{BLOCKCHAIN_CONFIG_PATH, CONGESTION_CONFIG_PATH};

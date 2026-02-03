@@ -2,10 +2,10 @@ use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
     PeerIndex, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp, WS_KEEP_ALIVE_PERIOD,
 };
-use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use crate::core::msg::message::Message;
 use crate::core::process::version::Version;
+use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util;
 use crate::core::util::configuration::{Configuration, Endpoint};
