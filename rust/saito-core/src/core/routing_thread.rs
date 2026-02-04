@@ -10,6 +10,7 @@ use crate::core::defs::{
 use crate::core::mining_thread::MiningEvent;
 use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
+use crate::core::msg::handshake::HandshakeResponse;
 use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
@@ -190,15 +191,14 @@ impl RoutingThread {
                     }
                 }
 
-                self.network
-                    .handle_handshake_response(
-                        peer_index,
-                        response,
-                        self.wallet_lock.clone(),
-                        self.blockchain_lock.clone(),
-                        self.config_lock.clone(),
-                    )
-                    .await;
+                self.handle_handshake_response(
+                    peer_index,
+                    response,
+                    self.wallet_lock.clone(),
+                    self.blockchain_lock.clone(),
+                    self.config_lock.clone(),
+                )
+                .await;
 
                 let blockchain = self.blockchain_lock.read().await;
                 if blockchain.get_latest_block().is_none() && !is_browser {
@@ -227,8 +227,7 @@ impl RoutingThread {
                         peer_index
                     );
                     // start block syncing here
-                    self.network
-                        .request_blockchain_from_peer(peer_index, self.blockchain_lock.clone())
+                    self.request_blockchain_from_peer(peer_index, self.blockchain_lock.clone())
                         .await;
                 }
             }
@@ -836,7 +835,7 @@ impl RoutingThread {
                     .collect::<Vec<String>>()
             );
             wallet.set_key_list(key_list);
-            self.network.send_key_list(&wallet.key_list).await;
+            self.send_key_list(&wallet.key_list).await;
         }
     }
 
@@ -1069,8 +1068,7 @@ impl RoutingThread {
             for (hash, block_id) in vec.iter().rev() {
                 work_done = true;
                 let result = self
-                    .network
-                    .process_incoming_block_hash(
+                    .process_incoming_block_hash_(
                         *hash,
                         *block_id,
                         peer_index,
@@ -1088,6 +1086,376 @@ impl RoutingThread {
         }
         work_done
     }
+    pub async fn process_incoming_block_hash_(
+        &mut self,
+        block_hash: SaitoHash,
+        block_id: BlockId,
+        peer_index: PeerIndex,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        mempool_lock: Arc<RwLock<Mempool>>,
+    ) -> Option<()> {
+        trace!(
+            "fetching block : {:?}-{:?} from peer : {:?}",
+            block_id,
+            block_hash.to_hex(),
+            peer_index
+        );
+        let block_exists;
+        let my_public_key;
+
+        {
+            // trace!("locking blockchain 2");
+            let blockchain = blockchain_lock.read().await;
+            if blockchain.is_block_indexed(block_hash) {
+                block_exists = true;
+            } else {
+                let mempool = mempool_lock.read().await;
+                block_exists = mempool.blocks_queue.iter().any(|b| b.hash == block_hash);
+            }
+        }
+        // trace!("releasing blockchain 2");
+        {
+            let wallet = self.wallet_lock.read().await;
+            my_public_key = wallet.public_key;
+        }
+        if block_exists {
+            debug!(
+                "block : {:?}-{:?} already exists in chain. not fetching",
+                block_id,
+                block_hash.to_hex()
+            );
+            return None;
+        }
+        let url;
+        {
+            let configs = self.config_lock.read().await;
+            let peers = self.network.peer_lock.read().await;
+            let wallet = self.wallet_lock.read().await;
+
+            if let Some(peer) = peers.index_to_peers.get(&peer_index) {
+                // if let PeerStatus::Connected = peer.peer_status {
+                // } else {
+                //     warn!(
+                //         "Not connected to the peer : {}. So not fetching the block : {}-{}",
+                //         peer_index,
+                //         block_id,
+                //         block_hash.to_hex()
+                //     );
+                //     return None;
+                // }
+                if wallet.wallet_version > peer.wallet_version
+                    && peer.wallet_version != Version::new(0, 0, 0)
+                {
+                    warn!(
+                    "Not Fetching Block: {:?} from peer :{:?} since peer version is old. expected: {:?} actual {:?} ",
+                    block_hash.to_hex(), peer.index, wallet.wallet_version, peer.wallet_version
+                );
+                    return None;
+                }
+
+                if peer.block_fetch_url.is_empty() {
+                    debug!(
+                        "won't fetch block : {:?} from peer : {:?} since no url found",
+                        block_hash.to_hex(),
+                        peer_index
+                    );
+                    return None;
+                }
+                url = peer.get_block_fetch_url(block_hash, configs.is_spv_mode(), my_public_key);
+            } else {
+                warn!(
+                    "peer : {:?} is not in peer list. cannot generate the block fetch url",
+                    peer_index
+                );
+                return None;
+            }
+        }
+
+        debug!(
+            "fetching block for incoming hash : {:?}-{:?}",
+            block_id,
+            block_hash.to_hex()
+        );
+
+        if self
+            .network
+            .io_interface
+            .fetch_block_from_peer(block_hash, peer_index, url.as_str(), block_id)
+            .await
+            .is_err()
+        {
+            // failed fetching block from peer
+            warn!(
+                "failed fetching block : {:?} for block hash. so unmarking block as fetching",
+                block_hash.to_hex()
+            );
+        }
+        Some(())
+    }
+
+    pub async fn request_blockchain_from_peer(
+        &self,
+        peer_index: u64,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+    ) {
+        let configs = self.config_lock.read().await;
+        // trace!("locking blockchain 1");
+        let blockchain = blockchain_lock.read().await;
+        {
+            let mut peers = self.network.peer_lock.write().await;
+            if let Some(peer) = peers.find_peer_by_index_mut(peer_index) {
+                if peer.requested_blockchain_from_peer {
+                    info!("we already requested blockchain from peer : {}. so not requesting again until a reconnection",peer_index);
+                    return;
+                }
+                peer.requested_blockchain_from_peer = true;
+            } else {
+                warn!(
+                    "Cannot request blockchain from non existent peer : {}",
+                    peer_index
+                );
+            }
+        }
+
+        let buffer: Vec<u8>;
+        info!(
+            "requesting blockchain from peer : {:?} latest_block_id : {:?}, last_block_id : {:?}",
+            peer_index,
+            blockchain.get_latest_block_id(),
+            blockchain.last_block_id,
+        );
+
+        if configs.is_spv_mode() {
+            let request;
+            {
+                debug!(
+                    "blockchain last block id : {:?}, latest block id : {:?}",
+                    blockchain.last_block_id,
+                    blockchain.get_latest_block_id()
+                );
+                if blockchain.last_block_id >= blockchain.get_latest_block_id() {
+                    let fork_id = blockchain.fork_id.unwrap_or([0; 32]);
+                    debug!(
+                        "blockchain request 1 : latest_id: {:?} latest_hash: {:?} fork_id: {:?}",
+                        blockchain.last_block_id,
+                        blockchain.last_block_hash.to_hex(),
+                        fork_id.to_hex()
+                    );
+                    request = BlockchainRequest {
+                        latest_block_id: blockchain.last_block_id,
+                        latest_block_hash: blockchain.last_block_hash,
+                        fork_id,
+                    };
+                } else if let Some(fork_id) =
+                    blockchain.generate_fork_id(blockchain.get_latest_block_id())
+                {
+                    debug!(
+                        "blockchain request 2 : latest_id: {:?} latest_hash: {:?} fork_id: {:?}",
+                        blockchain.get_latest_block_id(),
+                        blockchain.get_latest_block_hash().to_hex(),
+                        fork_id.to_hex()
+                    );
+                    request = BlockchainRequest {
+                        latest_block_id: blockchain.get_latest_block_id(),
+                        latest_block_hash: blockchain.get_latest_block_hash(),
+                        fork_id,
+                    };
+                } else {
+                    debug!(
+                        "blockchain request 3 : latest_id: {:?} latest_hash: {:?} fork_id: {:?}",
+                        blockchain.get_latest_block_id(),
+                        blockchain.get_latest_block_hash().to_hex(),
+                        [0; 32]
+                    );
+                    request = BlockchainRequest {
+                        latest_block_id: blockchain.get_latest_block_id(),
+                        latest_block_hash: blockchain.get_latest_block_hash(),
+                        fork_id: [0; 32],
+                    };
+                }
+            }
+            debug!("sending ghost chain request to peer : {:?}", peer_index);
+            buffer = Message::GhostChainRequest(
+                request.latest_block_id,
+                request.latest_block_hash,
+                request.fork_id,
+            )
+            .serialize();
+        } else {
+            let request;
+            if let Some(fork_id) = blockchain.generate_fork_id(blockchain.get_latest_block_id()) {
+                request = BlockchainRequest {
+                    latest_block_id: blockchain.get_latest_block_id(),
+                    latest_block_hash: blockchain.get_latest_block_hash(),
+                    fork_id,
+                };
+                debug!(
+                    "blockchain request 4 : latest_id: {:?} latest_hash: {:?} fork_id: {:?}",
+                    blockchain.get_latest_block_id(),
+                    blockchain.get_latest_block_hash().to_hex(),
+                    fork_id.to_hex()
+                );
+            } else {
+                request = BlockchainRequest {
+                    latest_block_id: blockchain.get_latest_block_id(),
+                    latest_block_hash: blockchain.get_latest_block_hash(),
+                    fork_id: [0; 32],
+                };
+                debug!(
+                    "blockchain request 5 : latest_id: {:?} latest_hash: {:?} fork_id: {:?}",
+                    blockchain.get_latest_block_id(),
+                    blockchain.get_latest_block_hash().to_hex(),
+                    [0; 32]
+                );
+            }
+            debug!("sending blockchain request to peer : {:?}", peer_index);
+            buffer = Message::BlockchainRequest(request).serialize();
+        }
+        // need to drop the reference here to avoid deadlocks.
+        // We need blockchain lock till here to avoid integrity issues
+        drop(blockchain);
+        drop(configs);
+        // trace!("releasing blockchain 1");
+
+        _ = self
+            .network
+            .io_interface
+            .send_message(peer_index, buffer.as_slice())
+            .await
+            .inspect_err(|e| error!("error sending message to peer : {}, {:?}", peer_index, e));
+        trace!("blockchain request sent to peer : {:?}", peer_index);
+    }
+    pub async fn send_key_list(&self, key_list: &[SaitoPublicKey]) {
+        trace!(
+            "sending key list to all the peers {:?}",
+            key_list
+                .iter()
+                .map(|key| key.to_base58())
+                .collect::<Vec<String>>()
+        );
+        {
+            let peers = self.network.peer_lock.read().await;
+            let exclusions = peers
+                .index_to_peers
+                .values()
+                .filter_map(|peer| {
+                    if !matches!(peer.peer_status, PeerStatus::Connected) {
+                        Some(peer.index)
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>();
+            self.network
+                .io_interface
+                .send_message_to_all(
+                    Message::KeyListUpdate(key_list.to_vec())
+                        .serialize()
+                        .as_slice(),
+                    exclusions,
+                )
+                .await
+                .unwrap();
+        }
+    }
+
+    pub async fn handle_handshake_response(
+        &mut self,
+        peer_index: u64,
+        response: HandshakeResponse,
+        wallet_lock: Arc<RwLock<Wallet>>,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+    ) {
+        let mut peers = self.network.peer_lock.write().await;
+        let public_key;
+        let current_time = self.timer.get_timestamp_in_ms();
+        let endpoint = response.endpoint.clone();
+
+        // we need to make sure there isn't a peer with the same public key currently connected
+        for (_, peer) in peers.index_to_peers.iter_mut() {
+            if let Some(key) = &peer.get_public_key() {
+                if response.public_key == *key {
+                    if let PeerStatus::Connected = peer.peer_status {
+                        info!(
+                            "already connected to peer : {}. not handling the handshake response",
+                            key.to_base58()
+                        );
+                        // we disconnect here. should not impact the other peer since it also sees an established connection to us.
+                        // self.io_interface
+                        //     .disconnect_from_peer(peer_index)
+                        //     .await
+                        //     .unwrap();
+                        peers.print_current_peers();
+                        return;
+                    }
+                }
+            }
+        }
+
+        {
+            let peer = peers.index_to_peers.get_mut(&peer_index);
+            if peer.is_none() {
+                error!(
+                    "peer not found for index : {:?}. cannot handle handshake response",
+                    peer_index
+                );
+                return;
+            }
+            let peer: &mut Peer = peer.unwrap();
+            let result = peer
+                .handle_handshake_response(
+                    response,
+                    self.network.io_interface.as_ref(),
+                    wallet_lock.clone(),
+                    configs_lock.clone(),
+                    current_time,
+                )
+                .await;
+            if result.is_err() || peer.get_public_key().is_none() {
+                info!(
+                    "disconnecting peer : {:?} as handshake response was not handled",
+                    peer_index
+                );
+                self.network
+                    .io_interface
+                    .disconnect_from_peer(peer_index)
+                    .await
+                    .unwrap();
+                return;
+            }
+            public_key = peer.get_public_key().unwrap();
+            debug!(
+                "peer : {:?} handshake successful for peer : {:?}",
+                peer.index,
+                public_key.to_base58()
+            );
+        }
+        if let Some(old_peer) = peers.remove_reconnected_peer(&public_key, peer_index, &endpoint) {
+            // if we already have the public key, and it's disconnected, we will consider this as a reconnection.
+            // so we will remove the old peer and add those data into new peer
+            // else we will reject the new connection
+            let peer = peers
+                .find_peer_by_index_mut(peer_index)
+                .expect("peer should exist here since it was accessed previously");
+            peer.join_as_reconnection(old_peer);
+        }
+
+        peers.address_to_peers.insert(public_key, peer_index);
+
+        peers.print_current_peers();
+
+        peers.add_congestion_event(
+            peer_index,
+            CongestionType::CompletedHandshakes,
+            current_time,
+        );
+        drop(peers);
+        self.network
+            .io_interface
+            .send_interface_event(InterfaceEvent::PeerConnected(peer_index));
+    }
+
     async fn send_to_verification_thread(&mut self, request: VerifyRequest) {
         // waiting till we get an acceptable sender
         let sender_count = self.senders_to_verification.len();
@@ -1273,6 +1641,28 @@ impl RoutingThread {
         self.blockchain_send_results
             .retain(|entry| entry.start_id <= entry.end_id);
     }
+    pub async fn initialize_static_peers(
+        &mut self,
+        configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+    ) {
+        let configs = configs_lock.read().await;
+        let mut peers = self.network.peer_lock.write().await;
+
+        // TODO : can create a new disconnected peer with a is_static flag set. so we don't need to keep the static peers separately
+        configs
+            .get_peer_configs()
+            .clone()
+            .drain(..)
+            .for_each(|config| {
+                let mut peer = Peer::new(peers.peer_counter.get_next_index());
+
+                peer.static_peer_config = Some(config);
+
+                peers.index_to_peers.insert(peer.index, peer);
+            });
+
+        info!("added {:?} static peers", peers.index_to_peers.len());
+    }
 }
 
 #[async_trait]
@@ -1421,7 +1811,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             self.fetch_next_blocks().await;
             {
                 let wallet = self.wallet_lock.read().await;
-                self.network.send_key_list(&wallet.key_list).await;
+                self.send_key_list(&wallet.key_list).await;
             }
 
             work_done = true;
@@ -1510,15 +1900,14 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                             .await;
                     }
                 }
-                self.network
-                    .handle_handshake_response(
-                        new_peer_index,
-                        response.clone(),
-                        self.wallet_lock.clone(),
-                        self.blockchain_lock.clone(),
-                        self.config_lock.clone(),
-                    )
-                    .await;
+                self.handle_handshake_response(
+                    new_peer_index,
+                    response.clone(),
+                    self.wallet_lock.clone(),
+                    self.blockchain_lock.clone(),
+                    self.config_lock.clone(),
+                )
+                .await;
             }
             let mut peers = self.network.peer_lock.write().await;
 
@@ -1617,9 +2006,11 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         }
                     }
                     for peer_index in &peer_list {
-                        self.network
-                            .request_blockchain_from_peer(*peer_index, self.blockchain_lock.clone())
-                            .await;
+                        self.request_blockchain_from_peer(
+                            *peer_index,
+                            self.blockchain_lock.clone(),
+                        )
+                        .await;
                     }
                 }
             }
@@ -1646,8 +2037,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     "requesting blockchain from peer : {:?} after block add failure",
                     peer_index
                 );
-                self.network
-                    .request_blockchain_from_peer(peer_index, self.blockchain_lock.clone())
+                self.request_blockchain_from_peer(peer_index, self.blockchain_lock.clone())
                     .await;
             }
         }
@@ -1700,9 +2090,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         }
 
         // connect to peers
-        self.network
-            .initialize_static_peers(self.config_lock.clone())
-            .await;
+        self.initialize_static_peers(self.config_lock.clone()).await;
     }
     async fn on_stat_interval(&mut self, current_time: Timestamp) {
         self.stats
