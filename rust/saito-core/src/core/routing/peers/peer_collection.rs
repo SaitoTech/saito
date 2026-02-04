@@ -120,6 +120,27 @@ impl PeerCollection {
 
         io_handler.send_interface_event(InterfaceEvent::StunPeerConnected(peer_index));
     }
+    pub async fn update_peer_timer(&mut self, peer_index: PeerIndex, current_time: Timestamp) {
+        let peer = self.index_to_peers.get_mut(&peer_index);
+        if peer.is_none() {
+            return;
+        }
+        let peer = peer.unwrap();
+        peer.last_msg_received_at = current_time;
+
+        if peer.public_key.is_none() {
+            return;
+        }
+        let peer_public_key = peer.public_key.unwrap();
+
+        // if we receive any messages from an old peer while a new peer is pending, we remove the pending peer
+        self.pending_handshake_responses
+            .retain(|(new_peer_index, _, response, _)| {
+                !(response.public_key == peer_public_key
+                    // we check this peer index check to make sure we aren't removing the pending peer from any message sent by itself
+                    && *new_peer_index != peer_index)
+            });
+    }
     pub fn remove_reconnected_peer(
         &mut self,
         public_key: &SaitoPublicKey,
