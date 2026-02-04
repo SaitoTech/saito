@@ -924,7 +924,7 @@ impl Wallet {
 
     pub async fn create_send_bound_transaction(
         &mut self,
-        nft_amount: Currency,
+        _nft_amount: Currency,
         slip1_utxokey: SaitoUTXOSetKey,
         slip2_utxokey: SaitoUTXOSetKey,
         slip3_utxokey: SaitoUTXOSetKey,
@@ -940,7 +940,7 @@ impl Wallet {
         //
         // locate NFT from our repository of NFT slips
         //
-        let pos = self
+        let _pos = self
             .nfts
             .iter()
             .position(|nft| {

@@ -136,7 +136,6 @@ pub mod test {
                     Box::new(TestIOHandler::new()),
                     peers.clone(),
                     wallet_lock.clone(),
-                    configs.clone(),
                     Timer {
                         time_reader: Arc::new(TestTimeKeeper {}),
                         hasten_multiplier: 1,
