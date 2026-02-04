@@ -9,6 +9,7 @@ use crate::core::util::configuration::Endpoint;
 use ahash::HashMap;
 use log::{debug, error, info, trace};
 use serde::Serialize;
+use std::io::{Error, ErrorKind};
 use std::time::Duration;
 
 const PEER_REMOVAL_WINDOW: Timestamp = Duration::from_secs(600).as_millis() as Timestamp;
@@ -140,6 +141,42 @@ impl PeerCollection {
                     // we check this peer index check to make sure we aren't removing the pending peer from any message sent by itself
                     && *new_peer_index != peer_index)
             });
+    }
+    pub async fn handle_received_key_list(
+        &mut self,
+        peer_index: PeerIndex,
+        key_list: Vec<SaitoPublicKey>,
+        current_time: Timestamp,
+    ) -> Result<(), Error> {
+        trace!(
+            "handler received key list of length : {:?} from peer : {:?}",
+            key_list.len(),
+            peer_index
+        );
+
+        // Lock peers to write
+        self.add_congestion_event(peer_index, CongestionType::ReceivedKeyLists, current_time);
+
+        if let Some(peer) = self.index_to_peers.get_mut(&peer_index) {
+            // Check rate peers
+            trace!(
+                "handling received keylist : {:?} from peer : {:?}-{:?}",
+                key_list
+                    .iter()
+                    .map(|k| k.to_base58())
+                    .collect::<Vec<String>>(),
+                peer_index,
+                peer.get_public_key().unwrap_or([0; 33]).to_base58()
+            );
+            peer.key_list = key_list;
+            Ok(())
+        } else {
+            error!(
+                "peer not found for index : {:?}. cannot handle received key list",
+                peer_index
+            );
+            Err(Error::from(ErrorKind::NotFound))
+        }
     }
     pub fn remove_reconnected_peer(
         &mut self,

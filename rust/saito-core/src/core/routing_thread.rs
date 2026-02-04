@@ -352,8 +352,14 @@ impl RoutingThread {
                     .await;
             }
             Message::KeyListUpdate(key_list) => {
-                _ = self
-                    .handle_received_key_list(peer_index, key_list)
+                // Lock peers to write
+                let mut peers = self.network.peer_lock.write().await;
+                peers
+                    .handle_received_key_list(
+                        peer_index,
+                        key_list,
+                        self.timer.get_timestamp_in_ms(),
+                    )
                     .await
                     .inspect_err(|e| {
                         error!("Received key list error: {:?}", e);
@@ -511,43 +517,6 @@ impl RoutingThread {
             .unwrap();
     }
 
-    pub async fn handle_received_key_list(
-        &mut self,
-        peer_index: PeerIndex,
-        key_list: Vec<SaitoPublicKey>,
-    ) -> Result<(), Error> {
-        trace!(
-            "handler received key list of length : {:?} from peer : {:?}",
-            key_list.len(),
-            peer_index
-        );
-
-        let current_time = self.timer.get_timestamp_in_ms();
-        // Lock peers to write
-        let mut peers = self.network.peer_lock.write().await;
-        peers.add_congestion_event(peer_index, CongestionType::ReceivedKeyLists, current_time);
-
-        if let Some(peer) = peers.index_to_peers.get_mut(&peer_index) {
-            // Check rate peers
-            trace!(
-                "handling received keylist : {:?} from peer : {:?}-{:?}",
-                key_list
-                    .iter()
-                    .map(|k| k.to_base58())
-                    .collect::<Vec<String>>(),
-                peer_index,
-                peer.get_public_key().unwrap_or([0; 33]).to_base58()
-            );
-            peer.key_list = key_list;
-            Ok(())
-        } else {
-            error!(
-                "peer not found for index : {:?}. cannot handle received key list",
-                peer_index
-            );
-            Err(Error::from(ErrorKind::NotFound))
-        }
-    }
     pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
         let mut peers = self.network.peer_lock.write().await;
         for (peer_index, peer) in &mut peers.index_to_peers {
