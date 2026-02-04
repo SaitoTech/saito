@@ -354,7 +354,7 @@ impl RoutingThread {
             Message::KeyListUpdate(key_list) => {
                 // Lock peers to write
                 let mut peers = self.network.peer_lock.write().await;
-                peers
+                _ = peers
                     .handle_received_key_list(
                         peer_index,
                         key_list,
@@ -627,17 +627,6 @@ impl RoutingThread {
                     ghost.previous_block_hashes.push(block.previous_block_hash);
                     ghost.block_ids.push(block.id);
 
-                    // let mut clone = block.clone();
-                    // if !clone
-                    //     .upgrade_block_to_block_type(BlockType::Full, storage, false)
-                    //     .await
-                    // {
-                    //     warn!(
-                    //         "couldn't upgrade block : {:?}-{:?} for ghost chain generation",
-                    //         clone.id,
-                    //         clone.hash.to_hex()
-                    //     );
-                    // }
                     debug!(
                         "pushing block : {:?} at index : {:?} has txs : {:?} pre_hash : {} prev_block_hash : {}",
                         block.hash.to_hex(),
@@ -657,58 +646,6 @@ impl RoutingThread {
             }
         }
         ghost
-    }
-
-    async fn handle_new_peer(&mut self, peer_index: u64, ip: Option<String>) {
-        trace!("handling new peer : {:?}", peer_index);
-        let mut peers = self.network.peer_lock.write().await;
-
-        peers
-            .handle_new_peer(
-                peer_index,
-                self.timer.get_timestamp_in_ms(),
-                ip,
-                &self.network.io_interface,
-            )
-            .await;
-    }
-
-    async fn handle_new_stun_peer(&mut self, peer_index: u64, public_key: SaitoPublicKey) {
-        debug!(
-            "Adding STUN peer with index: {} and public key: {}",
-            peer_index,
-            public_key.to_base58()
-        );
-        let mut peers = self.network.peer_lock.write().await;
-        peers
-            .handle_new_stun_peer(
-                peer_index,
-                public_key,
-                self.timer.get_timestamp_in_ms(),
-                &self.network.io_interface,
-            )
-            .await;
-    }
-
-    async fn remove_stun_peer(&mut self, peer_index: u64) {
-        debug!("Removing STUN peer with index: {}", peer_index);
-        let mut peers = self.network.peer_lock.write().await;
-        let peer_public_key: SaitoPublicKey;
-        if let Some(peer) = peers.index_to_peers.remove(&peer_index) {
-            if let Some(public_key) = peer.get_public_key() {
-                peer_public_key = public_key;
-                peers.address_to_peers.remove(&public_key);
-                debug!("STUN peer removed from network successfully");
-                self.network.io_interface.send_interface_event(
-                    InterfaceEvent::StunPeerDisconnected(peer_index, peer_public_key),
-                );
-            }
-        } else {
-            error!(
-                "Failed to remove STUN peer: Peer with index {} not found",
-                peer_index
-            );
-        }
     }
 
     async fn handle_peer_disconnect(
@@ -1647,26 +1584,19 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     let (peer_index, ip) = result.unwrap();
                     let time = self.timer.get_timestamp_in_ms();
 
-                    {
-                        let peers = self.network.peer_lock.read().await;
-                        if peers.is_peer_blacklisted(peer_index, time) {
-                            warn!(
-                                "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
-                                peer_index,
-                                ip.as_deref().unwrap_or("unknown")
-                            );
-                            return Some(());
-                        }
-                    }
-                    self.handle_new_peer(peer_index, ip).await;
-                    {
-                        let mut peers = self.network.peer_lock.write().await;
-                        peers.add_congestion_event(
+                    let mut peers = self.network.peer_lock.write().await;
+                    if peers.is_peer_blacklisted(peer_index, time) {
+                        warn!(
+                            "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
                             peer_index,
-                            CongestionType::PeerConnections,
-                            time,
+                            ip.as_deref().unwrap_or("unknown")
                         );
+                        return Some(());
                     }
+                    peers
+                        .handle_new_peer(peer_index, time, ip, &self.network.io_interface)
+                        .await;
+                    peers.add_congestion_event(peer_index, CongestionType::PeerConnections, time);
                     return Some(());
                 }
             }
@@ -1674,11 +1604,27 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 peer_index,
                 public_key,
             } => {
-                self.handle_new_stun_peer(peer_index, public_key).await;
+                debug!(
+                    "Adding STUN peer with index: {} and public key: {}",
+                    peer_index,
+                    public_key.to_base58()
+                );
+                let mut peers = self.network.peer_lock.write().await;
+                peers
+                    .handle_new_stun_peer(
+                        peer_index,
+                        public_key,
+                        self.timer.get_timestamp_in_ms(),
+                        &self.network.io_interface,
+                    )
+                    .await;
                 return Some(());
             }
             NetworkEvent::RemoveStunPeer { peer_index } => {
-                self.remove_stun_peer(peer_index).await;
+                let mut peers = self.network.peer_lock.write().await;
+                peers
+                    .remove_stun_peer(peer_index, &self.network.io_interface)
+                    .await;
                 return Some(());
             }
             NetworkEvent::PeerDisconnected {

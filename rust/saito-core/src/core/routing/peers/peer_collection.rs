@@ -178,6 +178,31 @@ impl PeerCollection {
             Err(Error::from(ErrorKind::NotFound))
         }
     }
+    pub async fn remove_stun_peer(
+        &mut self,
+        peer_index: u64,
+        io_handler: &Box<dyn InterfaceIO + Send + Sync>,
+    ) {
+        debug!("Removing STUN peer with index: {}", peer_index);
+        let peer_public_key: SaitoPublicKey;
+        if let Some(peer) = self.index_to_peers.remove(&peer_index) {
+            if let Some(public_key) = peer.get_public_key() {
+                peer_public_key = public_key;
+                self.address_to_peers.remove(&public_key);
+                debug!("STUN peer removed from network successfully");
+                io_handler.send_interface_event(InterfaceEvent::StunPeerDisconnected(
+                    peer_index,
+                    peer_public_key,
+                ));
+            }
+        } else {
+            error!(
+                "Failed to remove STUN peer: Peer with index {} not found",
+                peer_index
+            );
+        }
+    }
+
     pub fn remove_reconnected_peer(
         &mut self,
         public_key: &SaitoPublicKey,
