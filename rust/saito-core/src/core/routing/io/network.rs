@@ -228,43 +228,6 @@ impl Network {
         self.io_interface
             .send_interface_event(InterfaceEvent::PeerConnected(peer_index));
     }
-    pub async fn handle_received_key_list(
-        &mut self,
-        peer_index: PeerIndex,
-        key_list: Vec<SaitoPublicKey>,
-    ) -> Result<(), Error> {
-        trace!(
-            "handler received key list of length : {:?} from peer : {:?}",
-            key_list.len(),
-            peer_index
-        );
-
-        let current_time = self.timer.get_timestamp_in_ms();
-        // Lock peers to write
-        let mut peers = self.peer_lock.write().await;
-        peers.add_congestion_event(peer_index, CongestionType::ReceivedKeyLists, current_time);
-
-        if let Some(peer) = peers.index_to_peers.get_mut(&peer_index) {
-            // Check rate peers
-            trace!(
-                "handling received keylist : {:?} from peer : {:?}-{:?}",
-                key_list
-                    .iter()
-                    .map(|k| k.to_base58())
-                    .collect::<Vec<String>>(),
-                peer_index,
-                peer.get_public_key().unwrap_or([0; 33]).to_base58()
-            );
-            peer.key_list = key_list;
-            Ok(())
-        } else {
-            error!(
-                "peer not found for index : {:?}. cannot handle received key list",
-                peer_index
-            );
-            Err(Error::from(ErrorKind::NotFound))
-        }
-    }
 
     pub async fn send_key_list(&self, key_list: &[SaitoPublicKey]) {
         trace!(
@@ -431,23 +394,6 @@ impl Network {
         trace!("blockchain request sent to peer : {:?}", peer_index);
     }
 
-    pub async fn request_genesis_block_from_peer(&self, peer_index: PeerIndex) {
-        info!("requesting genesis block from peer : {:?}", peer_index);
-        _ = self
-            .io_interface
-            .send_message(
-                peer_index,
-                Message::GenesisBlockRequest().serialize().as_slice(),
-            )
-            .await
-            .inspect_err(|e| {
-                error!(
-                    "error sending genesis block request to peer : {:?}. {}",
-                    peer_index, e
-                )
-            });
-    }
-
     pub async fn process_incoming_block_hash(
         &mut self,
         block_hash: SaitoHash,
@@ -575,93 +521,6 @@ impl Network {
             });
 
         info!("added {:?} static peers", peers.index_to_peers.len());
-    }
-
-    pub async fn handle_new_stun_peer(
-        &mut self,
-        peer_index: PeerIndex,
-        public_key: SaitoPublicKey,
-    ) {
-        debug!(
-            "Adding STUN peer with index: {} and public key: {}",
-            peer_index,
-            public_key.to_base58()
-        );
-        let mut peers = self.peer_lock.write().await;
-        if peers.index_to_peers.contains_key(&peer_index) {
-            error!(
-                "Failed to add STUN peer: Peer with index {} already exists",
-                peer_index
-            );
-            return;
-        }
-        let mut peer = Peer::new_stun(peer_index, public_key, self.io_interface.as_ref());
-        peer.last_msg_received_at = self.timer.get_timestamp_in_ms();
-        peers.index_to_peers.insert(peer_index, peer);
-        peers.address_to_peers.insert(public_key, peer_index);
-        debug!("STUN peer added successfully");
-        self.io_interface
-            .send_interface_event(InterfaceEvent::StunPeerConnected(peer_index));
-    }
-
-    pub async fn remove_stun_peer(&mut self, peer_index: PeerIndex) {
-        debug!("Removing STUN peer with index: {}", peer_index);
-        let mut peers = self.peer_lock.write().await;
-        let peer_public_key: SaitoPublicKey;
-        if let Some(peer) = peers.index_to_peers.remove(&peer_index) {
-            if let Some(public_key) = peer.get_public_key() {
-                peer_public_key = public_key;
-                peers.address_to_peers.remove(&public_key);
-                debug!("STUN peer removed from network successfully");
-                self.io_interface
-                    .send_interface_event(InterfaceEvent::StunPeerDisconnected(
-                        peer_index,
-                        peer_public_key,
-                    ));
-            }
-        } else {
-            error!(
-                "Failed to remove STUN peer: Peer with index {} not found",
-                peer_index
-            );
-        }
-    }
-
-    pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
-        let mut peers = self.peer_lock.write().await;
-        for (peer_index, peer) in &mut peers.index_to_peers {
-            let url = peer.get_url();
-            if let PeerStatus::Disconnected(connect_time, period) = &mut peer.peer_status {
-                if current_time < *connect_time {
-                    continue;
-                }
-                if let Some(config) = peer.static_peer_config.as_ref() {
-                    info!(
-                        "trying to connect to static peer : {:?} with {:?}",
-                        peer_index, config
-                    );
-                    self.io_interface
-                        .connect_to_peer(url, peer.index)
-                        .await
-                        .unwrap();
-                    if *period < 10_000 {
-                        *period *= 2;
-                    }
-                    *connect_time = current_time + *period;
-                }
-            }
-        }
-    }
-
-    pub async fn send_pings(&mut self) {
-        let current_time = self.timer.get_timestamp_in_ms();
-        let mut peers = self.peer_lock.write().await;
-        for (_, peer) in peers.index_to_peers.iter_mut() {
-            if peer.get_public_key().is_some() {
-                peer.send_ping(current_time, self.io_interface.as_ref())
-                    .await;
-            }
-        }
     }
 
     pub async fn update_peer_timer(&mut self, peer_index: PeerIndex) {
