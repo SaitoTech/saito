@@ -132,7 +132,7 @@ impl RoutingThread {
     ///
     /// ```
     async fn process_incoming_message(&mut self, peer_index: PeerIndex, message: Message) {
-        self.network.update_peer_timer(peer_index).await;
+        self.update_peer_timer(peer_index).await;
         match message {
             Message::HandshakeChallenge(challenge) => {
                 debug!("received handshake challenge from peer : {:?}", peer_index);
@@ -424,6 +424,33 @@ impl RoutingThread {
             }
         }
     }
+    pub async fn disconnect_from_peer(
+        &self,
+        peer_index: PeerIndex,
+        message: &str,
+    ) -> Result<(), Error> {
+        _ = self
+            .network
+            .io_interface
+            .send_message(
+                peer_index,
+                Message::ForcedDisconnection(message.to_string())
+                    .serialize()
+                    .as_ref(),
+            )
+            .await
+            .inspect_err(|err| {
+                error!(
+                    "failed sending disconnection message to peer : {}. {}",
+                    peer_index, err
+                )
+            });
+        self.network
+            .io_interface
+            .disconnect_from_peer(peer_index)
+            .await
+            .inspect_err(|err| error!("failed disconnecting from peer : {}. {}", peer_index, err))
+    }
     /// Processes a received ghost chain request from a peer to sync itself with the blockchain
     ///
     /// # Arguments
@@ -478,6 +505,29 @@ impl RoutingThread {
             .send_message(peer_index, buffer.as_slice())
             .await
             .unwrap();
+    }
+    pub async fn update_peer_timer(&mut self, peer_index: PeerIndex) {
+        let mut peers = self.network.peer_lock.write().await;
+        let peer = peers.index_to_peers.get_mut(&peer_index);
+        if peer.is_none() {
+            return;
+        }
+        let peer = peer.unwrap();
+        peer.last_msg_received_at = self.timer.get_timestamp_in_ms();
+
+        if peer.public_key.is_none() {
+            return;
+        }
+        let peer_public_key = peer.public_key.unwrap();
+
+        // if we receive any messages from an old peer while a new peer is pending, we remove the pending peer
+        peers
+            .pending_handshake_responses
+            .retain(|(new_peer_index, _, response, _)| {
+                !(response.public_key == peer_public_key
+                    // we check this peer index check to make sure we aren't removing the pending peer from any message sent by itself
+                    && *new_peer_index != peer_index)
+            });
     }
     pub async fn handle_received_key_list(
         &mut self,
@@ -818,7 +868,6 @@ impl RoutingThread {
                 error!("Cannot find the peer for index : {} to process the incoming blockchain request", peer_index);
 
                 _ = self
-                    .network
                     .disconnect_from_peer(peer_index, "cannot find peer details")
                     .await
                     .inspect_err(|e| {
@@ -870,15 +919,14 @@ impl RoutingThread {
                     peer.static_peer_config = None;
                 }
             }
-            self.network
-                .disconnect_from_peer(
-                    peer_index,
-                    "Cannot find a shared ancestor block to sync 2 nodes",
-                )
-                .await
-                .inspect_err(|e| {
-                    error!("error disconnecting from peer : {}. {}", peer_index, e);
-                })?;
+            self.disconnect_from_peer(
+                peer_index,
+                "Cannot find a shared ancestor block to sync 2 nodes",
+            )
+            .await
+            .inspect_err(|e| {
+                error!("error disconnecting from peer : {}. {}", peer_index, e);
+            })?;
             return Ok(());
         }
 
@@ -1193,7 +1241,6 @@ impl RoutingThread {
         for peer_index in congested_peers {
             warn!("peer : {:?} is congested. so disconnecting...", peer_index);
             _ = self
-                .network
                 .disconnect_from_peer(peer_index, "Peer is congested")
                 .await
                 .inspect_err(|e| error!("{:?}", e));
@@ -1457,7 +1504,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     if let Some(peer) = peers.find_peer_by_address_mut(&response.public_key) {
                         peer.mark_as_disconnected(self.timer.get_timestamp_in_ms());
                         _ = self
-                            .network
                             .disconnect_from_peer(
                                 peer.index,
                                 "already reconnected with a different socket",

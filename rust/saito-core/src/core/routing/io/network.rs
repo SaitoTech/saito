@@ -523,55 +523,6 @@ impl Network {
         info!("added {:?} static peers", peers.index_to_peers.len());
     }
 
-    pub async fn update_peer_timer(&mut self, peer_index: PeerIndex) {
-        let mut peers = self.peer_lock.write().await;
-        let peer = peers.index_to_peers.get_mut(&peer_index);
-        if peer.is_none() {
-            return;
-        }
-        let peer = peer.unwrap();
-        peer.last_msg_received_at = self.timer.get_timestamp_in_ms();
-
-        if peer.public_key.is_none() {
-            return;
-        }
-        let peer_public_key = peer.public_key.unwrap();
-
-        // if we receive any messages from an old peer while a new peer is pending, we remove the pending peer
-        peers
-            .pending_handshake_responses
-            .retain(|(new_peer_index, _, response, _)| {
-                !(response.public_key == peer_public_key
-                    // we check this peer index check to make sure we aren't removing the pending peer from any message sent by itself
-                && *new_peer_index != peer_index)
-            });
-    }
-
-    pub async fn disconnect_from_peer(
-        &self,
-        peer_index: PeerIndex,
-        message: &str,
-    ) -> Result<(), Error> {
-        _ = self
-            .io_interface
-            .send_message(
-                peer_index,
-                Message::ForcedDisconnection(message.to_string())
-                    .serialize()
-                    .as_ref(),
-            )
-            .await
-            .inspect_err(|err| {
-                error!(
-                    "failed sending disconnection message to peer : {}. {}",
-                    peer_index, err
-                )
-            });
-        self.io_interface
-            .disconnect_from_peer(peer_index)
-            .await
-            .inspect_err(|err| error!("failed disconnecting from peer : {}. {}", peer_index, err))
-    }
     pub async fn queue_to_send(&mut self, buffer: Vec<u8>, peer_index: PeerIndex) {
         self.send_message_buffer.push_back((buffer, peer_index));
     }
