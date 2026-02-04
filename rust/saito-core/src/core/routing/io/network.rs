@@ -19,7 +19,6 @@ pub enum PeerDisconnectType {
     /// If we disconnected the peer
     InternalDisconnect,
 }
-use crate::core::util::configuration::Configuration;
 
 // #[derive(Debug)]
 pub struct Network {

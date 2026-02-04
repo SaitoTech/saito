@@ -34,7 +34,7 @@ use ahash::HashMap;
 use async_trait::async_trait;
 use log::{debug, error, info, trace, warn};
 use std::cmp::max;
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 use std::ops::Deref;
 use std::sync::Arc;
 use std::time::Duration;
