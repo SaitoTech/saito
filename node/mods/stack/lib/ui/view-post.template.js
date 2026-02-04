@@ -1,3 +1,5 @@
+const marked = require('marked');
+
 module.exports = (app, mod, tx) => {
   if (!tx) {
     return '<div class="stack-view-post-error">No post data available</div>';
@@ -72,16 +74,30 @@ module.exports = (app, mod, tx) => {
       /!\[([^\]]*)\]\((data:image\/[^)]+)\)/g,
       (_, alt, dataUrl) => `<img src="${dataUrl}" alt="${alt || ''}" />`
    );
-    
 
-    // Use browser sanitize if available (handles markdown)
+    // Parse markdown FIRST so [text](url) becomes <a> before sanitize's urlRegexp runs.
+    // Otherwise urlRegexp wraps URLs inside markdown links and corrupts them.
+    let markdownHtml = marked.parse(processedMarkdown);
+
+    // Use browser sanitize (sanitizeHtml, bare-URL linkify, emoji). Markdown links
+    // are already <a> tags; urlRegexp does not match inside href attributes.
     if (app.browser.sanitize) {
-      html = app.browser.sanitize(processedMarkdown, true);
+      html = app.browser.sanitize(markdownHtml, true);
     } else {
-      // Fallback: basic HTML escape
-      html = app.browser.escapeHTML ? app.browser.escapeHTML(processedMarkdown) : processedMarkdown;
+      html = app.browser.escapeHTML ? app.browser.escapeHTML(markdownHtml) : markdownHtml;
     }
-    
+
+    // Add target/rel/class to all links (browser.sanitize only patches the first).
+    const host = (typeof window !== 'undefined' && window.location && window.location.host) || '';
+    html = html.replace(/<a\s+([^>]*)>/gi, (match, attrs) => {
+      if (attrs.includes('saito-link')) return match;
+      const hrefMatch = attrs.match(/href=["']([^"']*)["']/i);
+      const href = hrefMatch ? hrefMatch[1] : '';
+      const isLocal = href && host && href.indexOf(host) !== -1;
+      const extra = isLocal ? " data-link='local_link'" : ' target="_blank" rel="noopener noreferrer"';
+      return `<a ${extra} class="saito-link" ${attrs}>`;
+    });
+
     // Remove H1 tags from body content (title is already rendered separately)
     // Convert H1 to H2 to preserve heading hierarchy
     html = html.replace(/<h1[^>]*>/gi, '<h2>');

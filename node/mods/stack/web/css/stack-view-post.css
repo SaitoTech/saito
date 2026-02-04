@@ -285,7 +285,6 @@
 
 .stack-view-post-content a {
   color: var(--saito-primary);
-  text-decoration: underline;
   text-underline-offset: 0.2em;
 }
 

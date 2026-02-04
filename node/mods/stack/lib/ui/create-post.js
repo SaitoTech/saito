@@ -1618,6 +1618,36 @@ const data = {
   }
 
   /**
+   * Ensure the caret is inside a block. If not, create an empty paragraph and move the caret into it.
+   * Used by Enter and paste to restore the invariant (caret must live inside a block).
+   * @returns {HTMLElement|null} The focused block, or the new block after recovery, or null if no editor.
+   */
+  _ensureFocusedBlock() {
+    let block = this.getFocusedBlock();
+    if (block) return block;
+    const editor = document.querySelector('#stack-post-body-editor');
+    if (!editor) return null;
+    const newBlockElement = document.createElement('p');
+    const newBlockId = generateBlockId(this.getBlockCount());
+    newBlockElement.setAttribute('data-block-id', newBlockId);
+    newBlockElement.setAttribute('data-block-type', 'paragraph');
+    newBlockElement.contentEditable = 'true';
+    const caretAnchor = document.createTextNode('\u200B');
+    newBlockElement.appendChild(caretAnchor);
+    editor.appendChild(newBlockElement);
+    this.updatePlaceholderVisibility();
+    const newRange = document.createRange();
+    const newSelection = window.getSelection();
+    newRange.setStart(caretAnchor, 0);
+    newRange.setEnd(caretAnchor, 0);
+    newSelection.removeAllRanges();
+    newSelection.addRange(newRange);
+    newBlockElement.focus();
+    this.autoScrollToCaret();
+    return newBlockElement;
+  }
+
+  /**
    * Get block count from DOM (replaces this.document.blocks.length)
    * B1: Block identity - counts ONLY elements with data-block-id (true blocks)
    * Structural containers like <ul> are never counted
@@ -1679,6 +1709,29 @@ const data = {
   }
 
   /**
+   * Convert bare http/https URLs to Markdown link syntax [url](url).
+   * Pure text rewrite only. Does not create DOM nodes.
+   * Skips URLs already inside [text](url). Strips trailing punctuation in post-processing.
+   */
+  _convertBareUrlsToMarkdownLinks(text) {
+    if (!text || typeof text !== 'string') return text;
+    const re = /\b(https?:\/\/[^\s<>\[\]]+)/g;
+    return text.replace(re, (match, _p1, offset, fullString) => {
+      if (offset >= 2 && fullString.slice(offset - 2, offset) === '](') {
+        return match;
+      }
+      let url = match.replace(/[.,;:!?\]]+$/, '');
+      const openParens = (url.match(/\(/g) || []).length;
+      const closeParens = (url.match(/\)/g) || []).length;
+      if (closeParens > openParens && url.endsWith(')')) {
+        url = url.slice(0, -1);
+      }
+      const trailing = match.slice(url.length);
+      return `[${url}](${url})${trailing}`;
+    });
+  }
+
+  /**
    * Handle Enter key - split paragraph block
    * If text is selected, delete selection and insert newline
    * If in a block-formatted line and line is empty, exit the block
@@ -1727,7 +1780,11 @@ const data = {
     // DOM-AUTHORITATIVE: Get focused block element (DOM node only)
     let focusedBlock = this.getFocusedBlock();
     if (!focusedBlock) {
-      throw new Error('Enter pressed in invalid editor state: no focused block (cursor outside block element)');
+      // Recovery: caret can end up in the contenteditable root when the last block becomes empty.
+      if (!this._ensureFocusedBlock()) {
+        throw new Error('Enter pressed in invalid editor state: no focused block (cursor outside block element)');
+      }
+      return;
     }
 
     // Postcondition enforcement: track structural mutations
@@ -2512,8 +2569,13 @@ const data = {
     const beforeText = currentText.substring(0, cursorOffset);
     const afterText = currentText.substring(cursorOffset);
 
+    // Auto-link bare URLs: text-only rewrite before DOM write. Safe per invariants:
+    // no new blocks, no <a> elements, no cursor/selection changes—only textContent content.
+    const beforeTextTransformed = this._convertBareUrlsToMarkdownLinks(beforeText);
+    const afterTextTransformed = this._convertBareUrlsToMarkdownLinks(afterText);
+
     // Update current block text in DOM
-    focusedBlock.textContent = beforeText;
+    focusedBlock.textContent = beforeTextTransformed;
 
     // Create new paragraph block in DOM
     // ILLEGAL: Enter completion MUST create a new block. If no block is created here, this is a bug.
@@ -2530,7 +2592,7 @@ const data = {
       const caretAnchor = document.createTextNode('\u200B');
       newBlockElement.appendChild(caretAnchor);
     } else {
-    newBlockElement.textContent = afterText;
+    newBlockElement.textContent = afterTextTransformed;
     }
     
     // Insert after current block
@@ -3075,7 +3137,9 @@ const data = {
   }
 
   /**
-   * Handle paste events - support images and text
+   * Handle paste events - support images and text.
+   * Text paste replays content line-by-line through existing insert + Enter logic so that
+   * normalization, block creation, and link conversion stay invariant-safe.
    */
   async handlePaste(e) {
     const clipboardData = e.clipboardData || window.clipboardData;
@@ -3089,15 +3153,36 @@ const data = {
       e.preventDefault();
       const file = imageItem.getAsFile();
       await this.insertImageAtCursor(file);
-      // Auto-scroll after paste
       setTimeout(() => {
         this.autoScrollToCaret();
       }, 0);
       return;
     }
 
-    // Handle text paste - let default behavior happen, then process
-    // Auto-scroll will be handled by input event
+    // Text paste: replay as typing + Enter. Never parse Markdown or create structure here.
+    const text = clipboardData.getData('text/plain');
+    if (text == null) return;
+
+    e.preventDefault();
+
+    // Reuse same invariant recovery as Enter: caret must be inside a block.
+    if (!this._ensureFocusedBlock()) return;
+
+    const lines = text.split(/\r?\n/);
+    const syntheticEnter = { preventDefault: () => {} };
+
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].length > 0) {
+        document.execCommand('insertText', false, lines[i]);
+      }
+      if (i < lines.length - 1) {
+        this.handleEnterKey(syntheticEnter);
+      }
+    }
+
+    this.scheduleSerialization();
+    this.updatePlaceholderVisibility();
+    this.autoScrollToCaret();
   }
 
   /**
