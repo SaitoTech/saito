@@ -7,6 +7,7 @@
   max-height: 90vh;
   display: grid;
   grid-template-rows: min-content 1fr;
+  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
@@ -25,7 +26,8 @@
 }
 
 .saito-nft-header-left {
-  display: flex;
+  display: grid;
+  grid-template-columns: min-content minmax(0, 1fr);
   align-items: center;
   gap: 10px;
   flex: 1;
@@ -109,6 +111,9 @@
 .saito-nft-header-sub {
   font-size: 1.7rem;
   color: var(--saito-font-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .saito-nft-header-right {
@@ -246,7 +251,9 @@
 }
 
 /* Fade out panel body content when overlay is active */
-.saito-nft-panel-info.split-overlay-panel-active .saito-nft-panel-body > *:not(.saito-nft-split-overlay) {
+.saito-nft-panel-info.split-overlay-panel-active
+  .saito-nft-panel-body
+  > *:not(.saito-nft-split-overlay) {
   opacity: 0.3;
   pointer-events: none;
   transition: opacity 0.3s ease-in-out;
@@ -267,7 +274,10 @@
   border: 1px solid rgba(170, 170, 170, 0.2);
   border-radius: 8px;
   overflow: hidden;
-  background: var(--saito-surface-hover, var(--saito-surface-selected, var(--saito-background-color)));
+  background: var(
+    --saito-surface-hover,
+    var(--saito-surface-selected, var(--saito-background-color))
+  );
 }
 
 .nft-info-row {
@@ -345,6 +355,10 @@
 /* ============================================
    IMAGE & CONTENT
    ============================================ */
+.nft-creator {
+  padding: 1rem;
+}
+
 /* Full-size image/textbox for provide-metadata overlay */
 .nft-creator-content-wrapper {
   position: relative;
@@ -457,23 +471,23 @@
   transform: translateX(-50%);
   width: 100%;
   max-width: 600px;
-  min-width: 400px;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem 1.2rem;
+  color: var(--saito-font-color);
   background: var(--saito-background-color);
   border: 2px solid rgba(100, 100, 100, 0.5);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .saito-nft-description-box-metadata:hover {
-  background: rgba(255, 255, 255, 1);
+  color: var(--saito-font-color-inverse);
+  background: var(--saito-background-color-inverse);
   border-color: rgba(100, 100, 100, 0.7);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   transform: translateX(-50%) translateY(-2px);
@@ -483,14 +497,14 @@
 .saito-nft-description-text-metadata {
   flex: 1;
   font-size: 1.6rem;
-  color: var(--saito-font-color);
+  color: inherit;
   line-height: 1.5;
   word-break: break-word;
 }
 
 .saito-nft-edit-description-icon-metadata {
   font-size: 1.3rem;
-  color: var(--saito-font-color);
+  color: inherit;
   opacity: 0.6;
   flex-shrink: 0;
   transition: all 0.2s ease;
@@ -809,7 +823,9 @@
 
 .split-bar:hover {
   background: #777;
-  box-shadow: 0 0 0 2px var(--saito-background-color), 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 0 0 2px var(--saito-background-color),
+    0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .split-bar:active {

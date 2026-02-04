@@ -12,7 +12,7 @@ class AssetStoreMain {
 		this.app = app;
 		this.mod = mod;
 
-		this.send_nft_overlay = new SendNFTOverlay(this.app, this.mod);
+		this.sell_nft_overlay = new SellNFTOverlay(this.app, this.mod);
 		this.buy_nft_overlay = new BuyNFTOverlay(this.app, this.mod);
 		this.delist_nft_overlay = new DelistNFTOverlay(this.app, this.mod);
 
@@ -44,8 +44,8 @@ class AssetStoreMain {
 		if (list_asset_btn) {
 			list_asset_btn.onclick = async (e) => {
 				this.app.connection.emit('saito-nft-list-render-request', (nft) => {
-					this.send_nft_overlay.nft = nft;
-					this.send_nft_overlay.render();
+					this.sell_nft_overlay.nft = nft;
+					this.sell_nft_overlay.render();
 				});
 			};
 		}

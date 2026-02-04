@@ -1,5 +1,4 @@
 module.exports = (app, mod, nft) => {
-
   let identicon = '';
   if (nft.id == null || nft.id == '') {
     identicon = app.keychain.returnIdenticon('');
@@ -8,34 +7,38 @@ module.exports = (app, mod, nft) => {
   }
 
   let price = nft.getBuyPriceSaito();
-  let title = "Vintage Saito NFT";
+  let title = 'Vintage Saito NFT';
 
   let saitoItems = [
-    "Vintage Collectable",
-    "Classic Saito NFT",
-    "Genesis Collectable",
-    "Saito Heritage Item",
-    "Unique Item",
-    "Historical Saito Mint",
-    "Provenance Edition",
-    "Founders Edition",
-    "NFT Collectable",
-    "Unique Item",
-    "Saito Legacy",
-    "Rare Saito Artifact",
-    "Limited Saito Release",
-    "Archival Series",
-    "Original Chain Relic",
-    "Timeless Collectable",
-    "Retro Blockchain Piece",
-    "Immutable Classic",
-    "Chain Memory Artifact",
-    "Saito Vault Item",
-    "Eternal Collectable"
+    'Vintage Collectable',
+    'Classic Saito NFT',
+    'Genesis Collectable',
+    'Saito Heritage Item',
+    'Unique Item',
+    'Historical Saito Mint',
+    'Provenance Edition',
+    'Founders Edition',
+    'NFT Collectable',
+    'Unique Item',
+    'Saito Legacy',
+    'Rare Saito Artifact',
+    'Limited Saito Release',
+    'Archival Series',
+    'Original Chain Relic',
+    'Timeless Collectable',
+    'Retro Blockchain Piece',
+    'Immutable Classic',
+    'Chain Memory Artifact',
+    'Saito Vault Item',
+    'Eternal Collectable'
   ];
   title = saitoItems[Math.floor(Math.random() * saitoItems.length)];
-  if (nft.title) { title = nft.title; }
-  if (nft.description) { description = nft.description; }
+  if (nft.title) {
+    title = nft.title;
+  }
+  if (nft.description) {
+    description = nft.description;
+  }
 
   let html = `
 
@@ -55,8 +58,5 @@ module.exports = (app, mod, nft) => {
 
   `;
 
-return html;
-
+  return html;
 };
-
-

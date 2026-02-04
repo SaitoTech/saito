@@ -13,14 +13,12 @@
   flex-wrap: wrap;
   width: 100%;
   height: max-content;
-  min-height: 600px;
+  min-height: min(600px, 50vh);
   row-gap: 2rem;
   justify-items: center;
   align-content: start;
   padding-top: 1rem;
 }
-
-
 
 .assetstore-nft {
   height: 200px;
@@ -58,12 +56,22 @@
   font-size: 1.8rem;
 }
 
-
 #deposit-container {
   background: var(--saito-background-color);
   display: flex;
   height: 40rem;
   width: 60rem;
-  justify-content: space-between; 
+  justify-content: space-between;
   padding: 1.5rem;
+}
+
+@media screen and (max-width: 600px) {
+  .saito-container {
+    grid-template-columns: minmax(0px, 1fr);
+    grid-template-rows: min-content 1fr;
+  }
+
+  .saito-sidebar.left {
+    height: 8rem;
+  }
 }
