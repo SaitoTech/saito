@@ -600,16 +600,18 @@ class SaitoHeader extends UIModTemplate {
     if (
       document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
     ) {
-      document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
-      document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
-      //document.getElementById('saito-header').style.zIndex = 15;
-
-      this.clearBalanceCheck();
-      this.clearPendingDepositsCheck();
+      this.hideMenu();
     } else {
+      this.openMenu();
+    }
+  }
+
+  openMenu() {
+    if (
+      !document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
+    ) {
       document.querySelector('.saito-header-hamburger-contents').classList.add('show-menu');
       document.querySelector('.saito-header-backdrop').classList.add('menu-visible');
-      //document.getElementById('saito-header').style.zIndex = 20;
 
       console.log('Menu open, start polls on crypto balance and pending deposits');
       this.initiateBalanceCheck();
@@ -623,10 +625,10 @@ class SaitoHeader extends UIModTemplate {
     ) {
       document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
       document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
-      //document.getElementById('saito-header').style.zIndex = 15;
     }
 
     this.clearBalanceCheck();
+    this.clearPendingDepositsCheck();
   }
 
   /****************************************************

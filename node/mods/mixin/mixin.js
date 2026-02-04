@@ -308,13 +308,14 @@ class Mixin extends ModTemplate {
           const buf1 = Buffer.from(res.res, 'base64');
           const buf2 = mixin_self.app.crypto.decryptWithPrivateKey(buf1, privateKey);
 
+          res.keys = JSON.parse(buf2.toString('utf8'));
+
           if (res.restored) {
-            console.log('Successfully Restored Mixin Account!', mixin_self.mixin);
+            console.log('Successfully Restored Mixin Account!', res);
           } else {
-            console.log('Successfully Created Mixin Account!', mixin_self.mixin);
+            console.log('Successfully Created Mixin Account!', res);
           }
 
-          res.keys = JSON.parse(buf2.toString('utf8'));
           // Skip save step if we are creating multiple accounts on the same public key
           if (!force_new) {
             mixin_self.mixin = res.keys;

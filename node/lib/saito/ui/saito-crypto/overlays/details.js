@@ -45,7 +45,7 @@ class Details {
 
     setTimeout(async () => {
       let balance = await this.app.wallet.getBalance();
-      if (Number(balance) == 0) {
+      if (Number(balance) == 0 && document.querySelector('.get-saito-tokens')) {
         this.app.modules.renderInto('.get-saito-tokens');
       }
     }, 0);

@@ -170,12 +170,19 @@
 .expected_amount {
   padding: 1rem 1.5rem;
   font-size: 1.6rem;
-  width: rem;
+  flex-grow: 1;
   color: var(--saito-font-color);
   border-radius: var(--saito-border-radius);
   height: 41px;
   background-color: var(--saito-background-color);
   border: var(--border-thickness-thin) solid var(--saito-primary);
+  max-width: 19rem;
+}
+
+input.input-amount {
+  width: unset;
+  flex-grow: 1;
+  max-width: 19rem;
 }
 
 .input-entry {
@@ -211,10 +218,13 @@
     width: 50%;
     height: auto;
   }
-  .expected_amount {
-    width: 13rem;
+  .crypto-box {
+    gap: 1rem;
   }
-  .crypto-box input.input-amount {
-    width: 13rem;
+
+  .expected_amount,
+  input.input-amount {
+    max-width: 13rem;
+    padding: 1rem;
   }
 }

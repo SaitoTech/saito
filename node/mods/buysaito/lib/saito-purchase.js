@@ -66,6 +66,7 @@ class SaitoPurchaseOverlay {
             this.mod.available_currencies = null;
             this.render();
           }, 5000);
+
           return;
         }
 
@@ -109,7 +110,7 @@ class SaitoPurchaseOverlay {
     );
 
     if (!this.mod.available_currencies) {
-      salert('No available currencies');
+      salert('Service currently not available');
       return;
     }
 
@@ -137,6 +138,23 @@ class SaitoPurchaseOverlay {
           this.overlay.show(SaitoPurchaseTemplate(this.app, this.mod, this));
           this.overlay.blockClose('#confirm-purchase-btn');
           this.app.browser.generateQRCode(this.destination, 'pqrcode');
+          this.startReservationCountdown(this.reserved_until);
+
+          if (this.crypto_selected.available_balance >= this.expected_deposit) {
+            let c = await sconfirm(
+              `Authorize ${this.expected_deposit} ${this.crypto_selected.ticker} payment from Saito Multiwallet balance?`
+            );
+            if (c) {
+              this.overlay.show(SaitoPurchaseLoaderTemplate('Sending Payment...'));
+              let success = await this.handleInternalTransfer();
+              if (success) {
+                this.overlay.closebox = true;
+                this.deposit_confirmed_by_user = true;
+                this.ui_msg = 'Polling network transfer...';
+                this.render();
+              }
+            }
+          }
         } else {
           //
           // 4. Show loading screen when payment, deposited by user, is confirmed
@@ -155,15 +173,20 @@ class SaitoPurchaseOverlay {
     // Select Crypto Form
     /////////////////////
     document.querySelectorAll('.purchase-crypto-item').forEach((el) => {
-      el.onclick = (e) => {
+      el.onclick = async (e) => {
         for (let i = 0; i < this.mod.available_currencies.length; i++) {
-          if (this.mod.available_currencies[i].ticker == e.currentTarget.id)
+          if (this.mod.available_currencies[i].ticker == e.currentTarget.id) {
             this.crypto_selected = this.mod.available_currencies[i];
+          }
         }
         if (!this.crypto_selected) {
           salert('Error reading crypto selection');
           return;
         }
+
+        console.log(this.crypto_selected);
+        await this.checkForLocalCrypto();
+
         if (this.amount) {
           this.overlay.show(SaitoPurchaseLoaderTemplate('Requesting Payment Instructions...'));
           this.requestPaymentAddressFromServer();
@@ -249,6 +272,38 @@ class SaitoPurchaseOverlay {
     }
   }
 
+  async checkForLocalCrypto() {
+    try {
+      let cm = this.app.wallet.returnCryptoModuleByTicker(this.crypto_selected.ticker);
+
+      if (cm?.options?.isActivated) {
+        // query balance again
+        await cm.activate();
+
+        this.crypto_selected.available_balance = Number(cm.returnBalance());
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async handleInternalTransfer() {
+    try {
+      let cm = this.app.wallet.returnCryptoModuleByTicker(this.crypto_selected.ticker);
+      if (this.destination && this.mixin_id) {
+        let to_address = this.destination + '|' + this.mixin_id + '|mixin';
+        let res = await cm.sendPayment(this.expected_deposit, to_address, 'success');
+        if (res == 'success') {
+          return true;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+
+    return false;
+  }
+
   //
   // reserve address -> poll pending deposit -> fetch receipts
   //
@@ -287,7 +342,7 @@ class SaitoPurchaseOverlay {
     console.log(data);
     console.log('/////////////////////////////////////\n');
 
-    if (data.ticker !== this.crypto_selected.ticker) {
+    if (this.crypto_selected && data.ticker !== this.crypto_selected.ticker) {
       salert('You have an active pending deposit for a different crypto');
       console.debug(data);
       console.debug(
@@ -304,6 +359,8 @@ class SaitoPurchaseOverlay {
     //
     this.destination = data.destination;
     this.expected_deposit = data.expected_deposit;
+    this.mixin_id = data.mixin_id;
+    this.reserved_until = data.reserved_until;
 
     // Fallback recover data from rerunning...
     if (!this.crypto_selected) {
@@ -320,7 +377,6 @@ class SaitoPurchaseOverlay {
     // update UI
     //
     this.render();
-    this.startReservationCountdown(data.reserved_until);
   }
 
   startReservationCountdown(expiryMs) {
@@ -417,13 +473,18 @@ class SaitoPurchaseOverlay {
     // reset values (incase we want to reuse the overlay)
     //
     this.amount = 0;
+    this.internal_transfer = null;
     this.expected_deposit = 0;
+    this.reserved_until = 0;
     this.crypto_selected = false;
     this.tx = null;
     this.recipient = '';
     this.destination = '';
     this.description = '';
     this.deposit_confirmed_by_user = false;
+
+    clearTimeout(this.timer);
+    this.timer = null;
 
     //
     // reset countdown timer

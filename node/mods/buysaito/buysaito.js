@@ -36,10 +36,10 @@ class BuySaito extends ModTemplate {
     this.mixin_accounts = [];
 
     /* A list of payments to handle
-		   stored in a DB every time a status is updated and restored on load for 
-		   persistence across server down time
+       stored in a DB every time a status is updated and restored on load for 
+       persistence across server down time
 
-		*/
+    */
     this.pending_payments = [];
 
     this.authorized_public_key = 'cNACSaLdZQfbPkTTud4ezLWFYqRPUCMEt2dgLxJ9Axxx';
@@ -131,19 +131,19 @@ class BuySaito extends ModTemplate {
       if (document.querySelector('.purchase-saito-prompt')) {
         document.querySelector('.purchase-saito-prompt').visibility = 'hidden';
       }
-      if (document.getElementById('advanced-purchase')) {
-        document.getElementById('advanced-purchase').visbility = 'hidden';
-      }
       if (document.getElementById('buysaito-button')) {
         document.getElementById('buysaito-button').innerText = 'Continue';
       }
     }
 
-    this.attachEvents();
+    // Called by modules.ts!!!
+    //this.attachEvents();
   }
 
   attachEvents() {
     let btn = document.getElementById('buysaito-button');
+    const purchaseAmountInput = document.getElementById('purchase-saito-amount');
+
     if (btn) {
       btn.onclick = (e) => {
         if (this.pending_payments.length) {
@@ -151,21 +151,15 @@ class BuySaito extends ModTemplate {
           return;
         }
 
-        const amount = document.getElementById('purchase-saito-amount').value;
+        const amount = purchaseAmountInput.value;
         this.app.connection.emit('saito-purchase-launch', amount);
       };
     }
 
-    if (document.getElementById('advanced-purchase')) {
-      document.getElementById('advanced-purchase').onclick = (e) => {
-        this.app.connection.emit('saito-purchase-launch', 0);
-      };
-    }
-
-    let purchaseAmountInput = document.getElementById('purchase-saito-amount');
     if (purchaseAmountInput) {
       purchaseAmountInput.addEventListener('change', (e) => {
-        if (e.target.value == 0) {
+        e.stopPropagation();
+        if (purchaseAmountInput.value == 0) {
           this.app.connection.emit('saito-purchase-launch', 0);
         }
       });
@@ -509,10 +503,10 @@ class BuySaito extends ModTemplate {
 
   //
   //  Find or create a deposit address (Mixin account) that is not currently busy,
-  // 	then pass that accound and all the user provided data into the function to
+  //  then pass that accound and all the user provided data into the function to
   //  create the pending payment
   //
-  // 	payment_data : { publicKey, issue_amount, ticker, tx}
+  //  payment_data : { publicKey, issue_amount, ticker, tx}
   //
   async findAvailableAddress(payment_data) {
     //Is my main available?
@@ -592,6 +586,7 @@ class BuySaito extends ModTemplate {
             issue_amount: p.issue_amount,
             ticker: p.ticker,
             destination: p.destination,
+            mixin_id: p.mixin.user_id,
             expected_deposit: p.expected_deposit,
             reserved_until: p.ts + this.time_limit,
             status: 'pending'
@@ -669,6 +664,7 @@ class BuySaito extends ModTemplate {
         issue_amount: payment_data.issue_amount,
         ticker: payment_data.ticker,
         destination: payment_data.destination,
+        mixin_id: payment_data.mixin.user_id,
         expected_deposit: payment_data.expected_deposit,
         reserved_until: payment_data.ts + this.time_limit
       }
@@ -676,7 +672,7 @@ class BuySaito extends ModTemplate {
 
     // back up to DB
     let sql = `INSERT INTO purchases (initiator_pubkey, recipient_pubkey, ticker, mixin_user_id, destination, issue_amount, expected_deposit, status, tx, created_at) 
-		VALUES ($initiator_pubkey, $recipient_pubkey, $ticker, $mixin_user_id, $destination, $issue_amount, $expected_deposit, $status, $tx, $created_at)`;
+    VALUES ($initiator_pubkey, $recipient_pubkey, $ticker, $mixin_user_id, $destination, $issue_amount, $expected_deposit, $status, $tx, $created_at)`;
 
     let params = {
       $initiator_pubkey: payment_data.initiator_pubkey,
@@ -703,19 +699,19 @@ class BuySaito extends ModTemplate {
   }
 
   /*************************************************
-	 * 
-	 * Pending payments have a number of statuses
-	 * 
-	   Statuses: 
-	   		'new' 		-- user has requested a deposit address
-   			'pending' 	-- payment is pending in Mixin account, cleared to issue saito
-		  	'confirmed' -- payment in Mixin received (and transfered to safe wallet)
-			'failed'    -- payment didn't come in...
-		   	'cancelled' -- timeout or user cancels
-	 * 
-	 * The following utility functions update the DB with these statuses
-	 * 
-	 *************************************************/
+   * 
+   * Pending payments have a number of statuses
+   * 
+     Statuses: 
+        'new'     -- user has requested a deposit address
+        'pending'   -- payment is pending in Mixin account, cleared to issue saito
+        'confirmed' -- payment in Mixin received (and transfered to safe wallet)
+      'failed'    -- payment didn't come in...
+        'cancelled' -- timeout or user cancels
+   * 
+   * The following utility functions update the DB with these statuses
+   * 
+   *************************************************/
 
   // We have evidence that mixin is going to get paid, so we mark as pending
   // (which means we can go ahead and release the SAITO)
