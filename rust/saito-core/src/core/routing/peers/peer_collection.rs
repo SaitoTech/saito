@@ -64,7 +64,35 @@ impl PeerCollection {
     pub fn find_peer_by_index_mut(&mut self, peer_index: u64) -> Option<&mut Peer> {
         self.index_to_peers.get_mut(&peer_index)
     }
+    pub async fn handle_new_peer(
+        &mut self,
+        peer_index: PeerIndex,
+        current_time: Timestamp,
+        ip: Option<String>,
+        io_handler: &Box<dyn InterfaceIO + Send + Sync>,
+    ) {
+        if let Some(peer) = self.find_peer_by_index_mut(peer_index) {
+            debug!("static peer : {:?} connected", peer_index);
+            peer.peer_status = PeerStatus::Connecting;
+            peer.ip_address = ip;
+            peer.last_msg_received_at = current_time;
+        } else {
+            debug!("new peer added : {:?}", peer_index);
+            let mut peer = Peer::new(peer_index);
+            peer.peer_status = PeerStatus::Connecting;
+            peer.ip_address = ip;
+            peer.last_msg_received_at = current_time;
+            self.index_to_peers.insert(peer_index, peer);
+        }
 
+        if let Some(peer) = self.find_peer_by_index_mut(peer_index) {
+            if peer.static_peer_config.is_none() {
+                peer.initiate_handshake(io_handler.as_ref()).await.unwrap();
+            }
+        }
+
+        debug!("current peer count = {:?}", self.index_to_peers.len());
+    }
     pub fn remove_reconnected_peer(
         &mut self,
         public_key: &SaitoPublicKey,

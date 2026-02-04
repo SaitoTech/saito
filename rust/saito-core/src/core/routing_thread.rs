@@ -22,7 +22,7 @@ use crate::core::routing::io::storage::Storage;
 use crate::core::routing::peers::congestion_controller::{
     CongestionStatsDisplay, CongestionType, PeerCongestionControls,
 };
-use crate::core::routing::peers::peer::PeerStatus;
+use crate::core::routing::peers::peer::{Peer, PeerStatus};
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util;
 use crate::core::util::config_manager::ConfigManager;
@@ -136,14 +136,27 @@ impl RoutingThread {
         match message {
             Message::HandshakeChallenge(challenge) => {
                 debug!("received handshake challenge from peer : {:?}", peer_index);
-                self.network
-                    .handle_handshake_challenge(
-                        peer_index,
-                        challenge,
-                        self.wallet_lock.clone(),
-                        self.config_lock.clone(),
-                    )
-                    .await;
+                let mut peers = self.network.peer_lock.write().await;
+
+                let peer = peers.index_to_peers.get_mut(&peer_index);
+                if peer.is_none() {
+                    error!(
+                        "peer not found for index : {:?}. cannot handle handshake challenge",
+                        peer_index
+                    );
+                    return;
+                }
+                let peer = peer.unwrap();
+
+                peer.handle_handshake_challenge(
+                    challenge,
+                    self.network.io_interface.as_ref(),
+                    self.wallet_lock.clone(),
+                    self.config_lock.clone(),
+                    self.timer.get_timestamp_in_ms(),
+                )
+                .await
+                .unwrap();
             }
             Message::HandshakeResponse(response) => {
                 trace!("received handshake response from peer : {:?}", peer_index);
@@ -563,7 +576,17 @@ impl RoutingThread {
 
     async fn handle_new_peer(&mut self, peer_index: u64, ip: Option<String>) {
         trace!("handling new peer : {:?}", peer_index);
-        self.network.handle_new_peer(peer_index, ip).await;
+        let mut peers = self.network.peer_lock.write().await;
+
+        peers
+            .handle_new_peer(
+                peer_index,
+                self.timer.get_timestamp_in_ms(),
+                ip,
+                &self.network.io_interface,
+            )
+            .await;
+        // self.network.handle_new_peer(peer_index, ip).await;
     }
 
     async fn handle_new_stun_peer(&mut self, peer_index: u64, public_key: SaitoPublicKey) {
@@ -583,10 +606,31 @@ impl RoutingThread {
         peer_index: u64,
         disconnect_type: PeerDisconnectType,
     ) {
-        trace!("handling peer disconnect, peer_index = {}", peer_index);
-        self.network
-            .handle_peer_disconnect(peer_index, disconnect_type)
-            .await;
+        info!("handling peer disconnect, peer_index = {}", peer_index);
+        if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
+            info!("peer disconnected externally, cleaning up locally created peer");
+            self.network
+                .io_interface
+                .disconnect_from_peer(peer_index)
+                .await
+                .unwrap();
+        }
+        let mut peers = self.network.peer_lock.write().await;
+        if let Some(peer) = peers.find_peer_by_index_mut(peer_index) {
+            if peer.get_public_key().is_some() {
+                // calling here before removing the peer from collections
+                self.network.io_interface.send_interface_event(
+                    InterfaceEvent::PeerConnectionDropped(
+                        peer_index,
+                        peer.get_public_key().unwrap(),
+                    ),
+                );
+            }
+
+            peer.mark_as_disconnected(self.timer.get_timestamp_in_ms());
+        } else {
+            error!("unknown peer : {:?} disconnected", peer_index);
+        }
     }
     pub async fn set_my_key_list(&mut self, mut key_list: Vec<SaitoPublicKey>) {
         let mut wallet = self.wallet_lock.write().await;
