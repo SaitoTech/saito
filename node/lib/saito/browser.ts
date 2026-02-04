@@ -346,11 +346,11 @@ class Browser {
       } else {
         siteMessage('Connection Restored', 1000);
       }
+      first_connect = false;
     });
     this.app.connection.on('peer_disconnect', function (peerIndex: bigint) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      console.log('peer_disconnect: ', browser_self.page_navigation_active);
       if (!browser_self.page_navigation_active) {
         siteMessage('Connection Lost', 1000);
       }
