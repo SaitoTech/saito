@@ -88,7 +88,7 @@ module.exports = (app, mod, nft_overlay) => {
       if (slip.slip1) {
         let blockId = slip.slip1.block_id || 'N/A';
         let txOrdinal = slip.slip1.tx_ordinal || 'N/A';
-        let slipIndex = slip.slip1.slip_index || 'N/A';
+        let slipIndex = slip.slip1.slip_index !== undefined ? slip.slip1.slip_index : 'N/A';
         uuid = `${blockId}-${txOrdinal}-${slipIndex}`;
       }
 

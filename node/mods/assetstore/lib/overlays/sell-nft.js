@@ -1,6 +1,6 @@
 let NFTDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
 
-class SendNFTOverlay extends NFTDetailsOverlay {
+class SellNFTOverlay extends NFTDetailsOverlay {
   constructor(app, mod) {
     super(app, mod, false);
   }
@@ -143,4 +143,4 @@ class SendNFTOverlay extends NFTDetailsOverlay {
   }
 }
 
-module.exports = SendNFTOverlay;
+module.exports = SellNFTOverlay;

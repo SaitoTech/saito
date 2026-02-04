@@ -5,7 +5,7 @@ const SaitoOverlay = require('./../saito-overlay/saito-overlay');
 const SaitoLoader = require('./../saito-loader/saito-loader');
 const UserMenu = require('./../modals/user-menu/user-menu');
 const SaitoBackup = require('./../modals/saito-backup/saito-backup');
-const ListNFT = require('./../saito-nft/overlays/list-overlay');
+const SelectNFT = require('./../saito-nft/overlays/select-nft-overlay');
 
 //
 // UIModTemplate
@@ -55,7 +55,7 @@ class SaitoHeader extends UIModTemplate {
     this.saito_backup = new SaitoBackup(app, mod);
 
     // listens for events
-    this.list_nft_overlay = new ListNFT(app, mod);
+    this.select_nft_overlay = new SelectNFT(app, mod);
 
     console.log('Create Saito Header for ' + mod.name);
   }

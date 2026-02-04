@@ -44,7 +44,6 @@ class AssetStore extends ModTemplate {
 		this.styles = [`/${this.slug}/style.css`];
 
 		this.assetStore = { publicKey: '', peerIndex: null };
-		this.mixin_peer = { publicKey: '', peerIndex: null };
 
 		this.social = {
 			twitter: '@SaitoOfficial',
@@ -70,7 +69,7 @@ class AssetStore extends ModTemplate {
 		// servers pull listings from database
 		//
 		if (!this.app.BROWSER) {
-			this.updateListings();
+			await this.restoreListingsFromDB();
 		}
 	}
 
@@ -88,32 +87,28 @@ class AssetStore extends ModTemplate {
 		//
 		// BROWSER peers
 		//
-
-		// console.log("service.service: ", service.service);
-		// console.log(peer);
-
-		if (service.service === 'mixin') {
-			console.log('peer?.publicKey: ', peer?.publicKey);
-			console.log('peer?.peerIndex: ', peer?.peerIndex);
-
-			this.mixin_peer.publicKey = peer?.publicKey;
-			this.mixin_peer.peerIndex = peer?.peerIndex;
-		}
-
 		if (service.service === 'AssetStore') {
+			console.log('&&&&&&&&&&&&&&&\n&&&&&&&&&&&&&&&\n&&&&&&&&&&&&&');
 			//
 			// save store info
 			//
 			this.assetStore.publicKey = peer.publicKey;
 			this.assetStore.peerIndex = peer.peerIndex;
 
-			//
-			// fetch listings
-			//
-			this.updateListings((listings) => {
-				this.listings = listings;
-				this.app.connection.emit('assetstore-render');
-			});
+			if (this.browser_active) {
+				//
+				// fetch listings
+				//
+				this.app.network.sendRequestAsTransaction(
+					'request listings',
+					{},
+					(listings) => {
+						this.listings = listings;
+						this.app.connection.emit('assetstore-render-listings');
+					},
+					this.assetStore.peerIndex
+				);
+			}
 		}
 	}
 
@@ -232,28 +227,13 @@ class AssetStore extends ModTemplate {
 					// and propagate the delisting tx
 					//
 					this.app.network.propagateTransaction(delisting_nfttx);
-
-					//
-					// add the listing!
-					//
-					this.updateListings();
 				}
-
-				//
-				// NFTs this machine sends
-				//
-				if (!tx.isTo(this.publicKey) && tx.isFrom(this.publicKey)) {
-					//
-					//
-					//
-					this.updateListings();
-				}
-			} else {
-				//
-				// received NFT, so update UI in case I bought it
-				//
-				this.updateListings();
 			}
+
+			//
+			// add the listing!
+			//
+			this.updateListings();
 		}
 
 		try {
@@ -269,7 +249,7 @@ class AssetStore extends ModTemplate {
 						if (tx.isFrom(this.publicKey)) {
 							console.log('===> LIST ASSET (seller)');
 							await this.receiveListAssetTransaction(tx, blk);
-							this.app.connection.emit('assetstore-render');
+							this.app.connection.emit('assetstore-render-listings');
 							return;
 						}
 					}
@@ -302,7 +282,6 @@ class AssetStore extends ModTemplate {
 							siteMessage('Someone bought your NFT!!!!');
 						}
 					}
-					//this.updateListings();
 				}
 			}
 		} catch (err) {
@@ -714,7 +693,6 @@ class AssetStore extends ModTemplate {
 				this.app.options.assetstore.delist_drafts[nfttx_sig] = txmsg.data.nft_tx; // serialized inner tx
 				await this.app.storage.saveOptions();
 				console.log('created assetstore object...');
-				//this.app.connection.emit('assetstore-render');
 			} else {
 				let raw = await this.app.wallet.getNFTList();
 				console.log('Server nfts (after delist tx 2): ', raw);
@@ -724,114 +702,6 @@ class AssetStore extends ModTemplate {
 		} catch (err) {
 			console.error('receiveDelistAssetTransaction error:', err);
 		}
-	}
-
-	///////////////////
-	// Retreive records //
-	///////////////////
-	//
-	async updateListings(mycallback = null) {
-		let assetstore_self = this;
-
-		let tmp_listings = {};
-		for (let z = 0; z < this.listings.length; z++) {
-			tmp_listings[this.listings[z].nfttx_sig] = 1;
-		}
-		let txs_listings = {};
-
-		//
-		// default callback
-		//
-		// this is executed whenever a callback is not provided. it creates
-		//
-		if (mycallback == null) {
-			//
-			// browsers may keep self-generated listings
-			//
-			if (this.app.BROWSER) {
-				mycallback = (txs) => {
-					for (let z = 0; z < txs.length; z++) {
-						let listing = txs[z];
-						if (listing) {
-							if (tmp_listings[listing.nfttx_sig] == 1) {
-								tmp_listings[listing.nfttx_sig] = 2;
-							} else {
-								this.listings.push(listing);
-								tmp_listings[listing.nfttx_sig] = 2;
-							}
-						}
-					}
-
-					let tmpx = [];
-
-					for (let z = 0; z < this.listings.length; z++) {
-						let listing = this.listings[z];
-
-						if (tmp_listings[this.listings[z].nfttx_sig] == 2) {
-							tmpx.push(this.listings[z]);
-						} else {
-							// perhaps this is my recent posting
-							if (this.listings[z].seller == this.publicKey) {
-								tmpx.push(this.listings[z]);
-							}
-						}
-					}
-					this.listings = tmpx;
-
-					this.app.connection.emit('assetstore-render-listings');
-				};
-
-				//
-				// servers always trust their database fetch to be up-to-date, as they
-				// are not managing a UI that may be out-of-sync.
-				//
-			} else {
-				mycallback = (txs) => {
-					this.listings = txs;
-				};
-			}
-		}
-
-		//
-		// browsers refresh from server
-		//
-		if (this.app.BROWSER && this.assetStore.peerIndex) {
-			this.app.network.sendRequestAsTransaction(
-				'request listings',
-				{},
-				mycallback,
-				this.assetStore.peerIndex
-			);
-			return;
-		}
-
-		//
-		// servers refresh from database
-		//
-		if (!this.app.BROWSER) {
-			let sql = `SELECT t.* from listings t JOIN ( SELECT nft_id , MIN(reserve_price) AS min_reserve_price FROM listings GROUP BY nft_id ) kept ON t.nft_id = kept.nft_id AND t.reserve_price = kept.min_reserve_price AND t.status = 1`;
-			//			let sql = `SELECT * FROM listings WHERE status = 1`;
-			let params = {};
-			let res = await this.app.storage.queryDatabase(sql, params, this.dbname);
-			let nlistings = [];
-
-			for (let i = 0; i < res.length; i++) {
-				nlistings.push({
-					id: res[i].id,
-					nft_id: res[i].nft_id,
-					nfttx_sig: res[i].nfttx_sig,
-					seller: res[i].seller,
-					active: 1,
-					reserve_price: res[i].reserve_price,
-					title: res[i].title,
-					description: res[i].description
-				});
-			}
-
-			this.listings = nlistings;
-		}
-
-		return;
 	}
 
 	///////////////////
@@ -1166,18 +1036,6 @@ class AssetStore extends ModTemplate {
 		}
 	}
 
-	//
-	// purges invites unaccepted
-	//
-	purgeAssets() {}
-
-	async onChainReorganization(bid, bsh, lc) {
-		//var sql = 'UPDATE listings SET lc = $lc WHERE bid = $bid AND bsh = $bsh';
-		//var params = { $bid: bid, $bsh: bsh };
-		//await this.app.storage.runDatabase(sql, params, this.dbname);
-		return;
-	}
-
 	webServer(app, expressapp, express) {
 		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
 		let assetstore_self = this;
@@ -1197,6 +1055,96 @@ class AssetStore extends ModTemplate {
 		});
 
 		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
+	}
+
+	//
+	// servers refresh from database
+	//
+	async restoreListingsFromDB() {
+		if (!this.app.BROWSER) {
+			let sql = `SELECT t.* from listings t JOIN ( SELECT nft_id , MIN(reserve_price) AS min_reserve_price FROM listings GROUP BY nft_id ) kept ON t.nft_id = kept.nft_id AND t.reserve_price = kept.min_reserve_price AND t.status = 1`;
+			//			let sql = `SELECT * FROM listings WHERE status = 1`;
+			let params = {};
+			let res = await this.app.storage.queryDatabase(sql, params, this.dbname);
+			let nlistings = [];
+
+			for (let i = 0; i < res.length; i++) {
+				nlistings.push({
+					id: res[i].id,
+					nft_id: res[i].nft_id,
+					nfttx_sig: res[i].nfttx_sig,
+					seller: res[i].seller,
+					active: 1,
+					reserve_price: res[i].reserve_price,
+					title: res[i].title,
+					description: res[i].description
+				});
+			}
+
+			this.listings = nlistings;
+		}
+	}
+
+	async updateListings(mycallback = null) {
+		let tmp_listings = {};
+		for (let z = 0; z < this.listings.length; z++) {
+			tmp_listings[this.listings[z].nfttx_sig] = 1;
+		}
+
+		//
+		// default callback
+		//
+		// this is executed whenever a callback is not provided. it creates
+		//
+		if (mycallback == null) {
+			//
+			// browsers may keep self-generated listings
+			//
+			if (this.app.BROWSER) {
+				mycallback = (txs) => {
+					for (let z = 0; z < txs.length; z++) {
+						let listing = txs[z];
+						if (listing) {
+							if (tmp_listings[listing.nfttx_sig] == 1) {
+								tmp_listings[listing.nfttx_sig] = 2;
+							} else {
+								this.listings.push(listing);
+								tmp_listings[listing.nfttx_sig] = 2;
+							}
+						}
+					}
+
+					let tmpx = [];
+
+					for (let z = 0; z < this.listings.length; z++) {
+						let listing = this.listings[z];
+
+						if (tmp_listings[this.listings[z].nfttx_sig] == 2) {
+							tmpx.push(this.listings[z]);
+						} else {
+							// perhaps this is my recent posting
+							if (this.listings[z].seller == this.publicKey) {
+								tmpx.push(this.listings[z]);
+							}
+						}
+					}
+					this.listings = tmpx;
+
+					this.app.connection.emit('assetstore-render-listings');
+				};
+
+				//
+				// servers always trust their database fetch to be up-to-date, as they
+				// are not managing a UI that may be out-of-sync.
+				//
+			} else {
+				mycallback = (txs) => {
+					this.listings = txs;
+				};
+			}
+		}
+
+		return;
 	}
 
 	//
@@ -1265,11 +1213,6 @@ class AssetStore extends ModTemplate {
 				}
 			}
 		}
-
-		//
-		// refresh our cache of available NFTs for sale
-		//
-		this.updateListings();
 
 		return listing_id;
 	}

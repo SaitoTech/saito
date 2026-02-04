@@ -54,7 +54,7 @@ module.exports = (app, mod, nft_overlay) => {
       </div>
       <div class="saito-nft-header-right">
           <button class="saito-nft-back-caret"></button>
-        <div class="saito-nft-header-btn">⋯</div>
+        <div class="saito-nft-header-btn"><i class="fa-solid fa-bars"></i></div>
         </div>
       </div>
       <div class="saito-nft-overlay panels">

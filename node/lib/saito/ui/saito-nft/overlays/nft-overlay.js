@@ -358,7 +358,7 @@ try {
       siteMessage('NFT Deletion in Process...', 2000);
       this.overlay.close();
 
-      // Close the list-nfts overlay
+      // Close the overlay listing your nfts
       this.app.connection.emit('saito-nft-list-close-request');
 
       if (document.querySelector('.nft-list-container')) {
