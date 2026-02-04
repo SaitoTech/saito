@@ -52,6 +52,7 @@
 
 .buysaito-button {
   width: 400px;
+  max-width: 80%;
 }
 
 .footer-note {
@@ -66,5 +67,18 @@
   }
   .purchase-saito-prompt {
     text-align: center;
+  }
+  .purchase-crypto-item {
+    flex: 0 1 13rem;
+    max-width: 16rem;
+  }
+  .purchase-container {
+    padding: 1rem 1rem;
+  }
+  .saito-purchase-deposit-header {
+    font-size: 2rem;
+  }
+  .payment-box.saito-overlay-size {
+    max-height: 100vh;
   }
 }
