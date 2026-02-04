@@ -1364,7 +1364,7 @@ impl RoutingThread {
         peer_index: u64,
         response: HandshakeResponse,
         wallet_lock: Arc<RwLock<Wallet>>,
-        blockchain_lock: Arc<RwLock<Blockchain>>,
+        _blockchain_lock: Arc<RwLock<Blockchain>>,
         configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     ) {
         let mut peers = self.network.peer_lock.write().await;
@@ -2143,7 +2143,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 .unwrap();
         }
 
-        let peers = self.network.peer_lock.read().await;
+        let _peers = self.network.peer_lock.read().await;
         let peer_count = 0;
         let peers_in_handshake = 0;
 

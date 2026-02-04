@@ -1,24 +1,15 @@
-use std::collections::VecDeque;
-use std::io::{Error, ErrorKind};
 use std::sync::Arc;
 
-use log::{debug, error, info, trace, warn};
+use log::{debug, error};
 use tokio::sync::RwLock;
 
 use crate::core::consensus::block::Block;
-use crate::core::consensus::blockchain::Blockchain;
-use crate::core::consensus::mempool::Mempool;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
-use crate::core::defs::{BlockId, PeerIndex, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
-use crate::core::msg::block_request::BlockchainRequest;
-use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
+use crate::core::defs::PrintForLog;
 use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
-use crate::core::process::version::Version;
-use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-use crate::core::routing::peers::congestion_controller::CongestionType;
-use crate::core::routing::peers::peer::{Peer, PeerStatus};
+use crate::core::routing::io::interface_io::InterfaceIO;
 use crate::core::routing::peers::peer_collection::PeerCollection;
 
 #[derive(Debug)]

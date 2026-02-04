@@ -2,7 +2,6 @@ use std::cmp::max;
 use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::io::Error;
-use std::ops::Sub;
 use std::sync::Arc;
 
 use ahash::{AHashMap, HashMap};
@@ -992,7 +991,7 @@ impl Blockchain {
 
     async fn prune_blocks_after_add_block(
         &mut self,
-        storage: &mut Storage,
+        _storage: &mut Storage,
         configs: &(dyn Configuration + Send + Sync),
     ) {
         if self.get_latest_block_id() > configs.get_consensus_config().unwrap().genesis_period + 1 {

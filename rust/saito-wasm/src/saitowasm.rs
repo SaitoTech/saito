@@ -559,7 +559,7 @@ pub async fn create_bound_transaction(
     num: u64,
     deposit: u64,
     tx_msg: Uint8Array,
-    fee: u64,
+    _fee: u64,
     recipient_public_key: JsString,
     nft_type: JsString,
 ) -> Result<WasmTransaction, JsValue> {

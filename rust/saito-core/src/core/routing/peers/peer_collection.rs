@@ -97,7 +97,7 @@ impl PeerCollection {
         &mut self,
         public_key: &SaitoPublicKey,
         current_peer_index: PeerIndex,
-        endpoint: &Endpoint,
+        _endpoint: &Endpoint,
     ) -> Option<Peer> {
         let mut peer_index = None;
         {
@@ -262,7 +262,7 @@ impl PeerCollection {
     pub fn get_congested_peers(&self, current_time: Timestamp) -> Vec<PeerIndex> {
         self.index_to_peers
             .iter()
-            .filter_map(|(index, peer)| {
+            .filter_map(|(index, _peer)| {
                 let results = self
                     .get_congestion_status(*index, current_time)
                     .iter()
@@ -285,7 +285,7 @@ impl PeerCollection {
 
     pub fn print_current_peers(&self) {
         self.index_to_peers.iter().for_each(|(index, peer)| {
-            peer.public_key.iter().for_each(|key| {
+            peer.public_key.iter().for_each(|_key| {
                 debug!(
                     "peer : {:?} with key : {:?} and endpoint : {} is currently connected : {:?}",
                     index,

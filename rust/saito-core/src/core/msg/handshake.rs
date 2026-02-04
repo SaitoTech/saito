@@ -1,6 +1,6 @@
 use std::io::{Error, ErrorKind};
 
-use log::{debug, info, trace, warn};
+use log::{trace, warn};
 
 use crate::core::defs::{SaitoHash, SaitoPublicKey, SaitoSignature, Timestamp};
 use crate::core::process::version::Version;

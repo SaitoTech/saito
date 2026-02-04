@@ -2,10 +2,8 @@ use crate::core::defs::{BlockId, SaitoHash};
 use crate::core::routing::io::interface_io::InterfaceIO;
 use crate::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use crate::core::util::configuration::BlockchainConfig;
-use log::{error, info, warn};
-use serde::Serialize;
-use std::io::{Error, ErrorKind};
-use std::path::Path;
+use log::{error, warn};
+use std::io::Error;
 
 pub const BLOCKCHAIN_CONFIG_PATH: &str = "./data/state/blockchain.json";
 pub const CONGESTION_CONFIG_PATH: &str = "./data/state/congestion.json";

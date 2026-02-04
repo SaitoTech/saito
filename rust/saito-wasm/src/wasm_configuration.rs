@@ -166,7 +166,7 @@ impl Configuration for WasmConfiguration {
         String::new()
     }
 
-    fn set_config_path(&mut self, path: String) {}
+    fn set_config_path(&mut self, _path: String) {}
 
     fn save(&self) -> Result<(), std::io::Error> {
         Ok(())

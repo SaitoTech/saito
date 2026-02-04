@@ -61,7 +61,7 @@ async fn run_verification_thread(
     mut event_processor: Box<VerificationThread>,
     mut event_receiver: Receiver<VerifyRequest>,
     stat_timer_in_ms: u64,
-    thread_name: &str,
+    _thread_name: &str,
     thread_sleep_time_in_ms: u64,
     time_keeper_origin: &Timer,
 ) -> JoinHandle<()> {
@@ -751,7 +751,7 @@ pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
 
     let wallet = Arc::new(RwLock::new(Wallet::new(private_key, public_key)));
     {
-        let configs = configs_clone.write().await;
+        let _configs = configs_clone.write().await;
         let mut wallet = wallet.write().await;
         let (sender, _receiver) = tokio::sync::mpsc::channel::<IoEvent>(100);
         Wallet::load(&mut wallet, &(RustIOHandler::new(sender, 1))).await;
