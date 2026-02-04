@@ -5,12 +5,15 @@ use crate::core::routing::peers::congestion_controller::{
     CongestionType, PeerCongestionControls, PeerCongestionStatus,
 };
 use crate::core::routing::peers::peer::{Peer, PeerStatus};
-use crate::core::util::configuration::Endpoint;
+use crate::core::routing::peers::peer_service::PeerService;
+use crate::core::util::configuration::{Configuration, Endpoint};
 use ahash::HashMap;
-use log::{debug, error, info, trace};
+use log::{debug, error, info, trace, warn};
 use serde::Serialize;
 use std::io::{Error, ErrorKind};
+use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::RwLock;
 
 const PEER_REMOVAL_WINDOW: Timestamp = Duration::from_secs(600).as_millis() as Timestamp;
 const PEER_STALE_PERIOD: Timestamp = Duration::from_secs(30).as_millis() as Timestamp;
@@ -64,6 +67,31 @@ impl PeerCollection {
     }
     pub fn find_peer_by_index_mut(&mut self, peer_index: u64) -> Option<&mut Peer> {
         self.index_to_peers.get_mut(&peer_index)
+    }
+    pub async fn initialize_static_peers(&mut self, configs: &(dyn Configuration + Send + Sync)) {
+        // TODO : can create a new disconnected peer with a is_static flag set. so we don't need to keep the static peers separately
+        configs
+            .get_peer_configs()
+            .clone()
+            .drain(..)
+            .for_each(|config| {
+                let mut peer = Peer::new(self.peer_counter.get_next_index());
+
+                peer.static_peer_config = Some(config);
+
+                self.index_to_peers.insert(peer.index, peer);
+            });
+
+        info!("added {:?} static peers", self.index_to_peers.len());
+    }
+    pub async fn process_peer_services(&mut self, services: Vec<PeerService>, peer_index: u64) {
+        let peer = self.index_to_peers.get_mut(&peer_index);
+        if peer.is_some() {
+            let peer = peer.unwrap();
+            peer.services = services;
+        } else {
+            warn!("peer {:?} not found to update services", peer_index);
+        }
     }
     pub async fn handle_new_peer(
         &mut self,

@@ -319,7 +319,8 @@ impl RoutingThread {
             }
             Message::SPVChain() => {}
             Message::Services(services) => {
-                self.process_peer_services(services, peer_index).await;
+                let mut peers = self.network.peer_lock.write().await;
+                peers.process_peer_services(services, peer_index).await;
             }
             Message::GhostChain(chain) => {
                 self.process_ghost_chain(chain, peer_index).await;
@@ -1470,16 +1471,6 @@ impl RoutingThread {
     }
 
     // TODO : remove if not required
-    async fn process_peer_services(&mut self, services: Vec<PeerService>, peer_index: u64) {
-        let mut peers = self.network.peer_lock.write().await;
-        let peer = peers.index_to_peers.get_mut(&peer_index);
-        if peer.is_some() {
-            let peer = peer.unwrap();
-            peer.services = services;
-        } else {
-            warn!("peer {:?} not found to update services", peer_index);
-        }
-    }
 
     async fn manage_congested_peers(&mut self) {
         let peers = self.network.peer_lock.write().await;
@@ -1528,21 +1519,7 @@ impl RoutingThread {
     ) {
         let configs = configs_lock.read().await;
         let mut peers = self.network.peer_lock.write().await;
-
-        // TODO : can create a new disconnected peer with a is_static flag set. so we don't need to keep the static peers separately
-        configs
-            .get_peer_configs()
-            .clone()
-            .drain(..)
-            .for_each(|config| {
-                let mut peer = Peer::new(peers.peer_counter.get_next_index());
-
-                peer.static_peer_config = Some(config);
-
-                peers.index_to_peers.insert(peer.index, peer);
-            });
-
-        info!("added {:?} static peers", peers.index_to_peers.len());
+        peers.initialize_static_peers(configs.deref()).await;
     }
 }
 
