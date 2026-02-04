@@ -27,7 +27,6 @@ pub struct Network {
     pub peer_lock: Arc<RwLock<PeerCollection>>,
     pub io_interface: Box<dyn InterfaceIO + Send + Sync>,
     pub wallet_lock: Arc<RwLock<Wallet>>,
-    pub config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     pub timer: Timer,
 }
 
@@ -36,14 +35,12 @@ impl Network {
         io_handler: Box<dyn InterfaceIO + Send + Sync>,
         peer_lock: Arc<RwLock<PeerCollection>>,
         wallet_lock: Arc<RwLock<Wallet>>,
-        config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
         timer: Timer,
     ) -> Network {
         Network {
             peer_lock,
             io_interface: io_handler,
             wallet_lock,
-            config_lock,
             timer,
         }
     }

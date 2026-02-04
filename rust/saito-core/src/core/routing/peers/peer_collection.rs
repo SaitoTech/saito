@@ -1,13 +1,13 @@
 use crate::core::defs::{PeerIndex, PrintForLog, SaitoPublicKey, Timestamp};
 use crate::core::msg::handshake::HandshakeResponse;
-use crate::core::routing::io::interface_io::InterfaceIO;
+use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::congestion_controller::{
     CongestionType, PeerCongestionControls, PeerCongestionStatus,
 };
 use crate::core::routing::peers::peer::{Peer, PeerStatus};
 use crate::core::util::configuration::Endpoint;
 use ahash::HashMap;
-use log::{debug, info, trace};
+use log::{debug, error, info, trace};
 use serde::Serialize;
 use std::time::Duration;
 
@@ -92,6 +92,33 @@ impl PeerCollection {
         }
 
         debug!("current peer count = {:?}", self.index_to_peers.len());
+    }
+    pub async fn handle_new_stun_peer(
+        &mut self,
+        peer_index: u64,
+        public_key: SaitoPublicKey,
+        current_time: Timestamp,
+        io_handler: &Box<dyn InterfaceIO + Send + Sync>,
+    ) {
+        debug!(
+            "Adding STUN peer with index: {} and public key: {}",
+            peer_index,
+            public_key.to_base58()
+        );
+        if self.index_to_peers.contains_key(&peer_index) {
+            error!(
+                "Failed to add STUN peer: Peer with index {} already exists",
+                peer_index
+            );
+            return;
+        }
+        let mut peer = Peer::new_stun(peer_index, public_key, io_handler.as_ref());
+        peer.last_msg_received_at = current_time;
+        self.index_to_peers.insert(peer_index, peer);
+        self.address_to_peers.insert(public_key, peer_index);
+        debug!("STUN peer added successfully");
+
+        io_handler.send_interface_event(InterfaceEvent::StunPeerConnected(peer_index));
     }
     pub fn remove_reconnected_peer(
         &mut self,

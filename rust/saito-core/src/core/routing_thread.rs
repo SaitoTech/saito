@@ -719,7 +719,6 @@ impl RoutingThread {
                 &self.network.io_interface,
             )
             .await;
-        // self.network.handle_new_peer(peer_index, ip).await;
     }
 
     async fn handle_new_stun_peer(&mut self, peer_index: u64, public_key: SaitoPublicKey) {
@@ -729,21 +728,14 @@ impl RoutingThread {
             public_key.to_base58()
         );
         let mut peers = self.network.peer_lock.write().await;
-        if peers.index_to_peers.contains_key(&peer_index) {
-            error!(
-                "Failed to add STUN peer: Peer with index {} already exists",
-                peer_index
-            );
-            return;
-        }
-        let mut peer = Peer::new_stun(peer_index, public_key, self.network.io_interface.as_ref());
-        peer.last_msg_received_at = self.timer.get_timestamp_in_ms();
-        peers.index_to_peers.insert(peer_index, peer);
-        peers.address_to_peers.insert(public_key, peer_index);
-        debug!("STUN peer added successfully");
-        self.network
-            .io_interface
-            .send_interface_event(InterfaceEvent::StunPeerConnected(peer_index));
+        peers
+            .handle_new_stun_peer(
+                peer_index,
+                public_key,
+                self.timer.get_timestamp_in_ms(),
+                &self.network.io_interface,
+            )
+            .await;
     }
 
     async fn remove_stun_peer(&mut self, peer_index: u64) {
