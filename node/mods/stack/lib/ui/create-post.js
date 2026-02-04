@@ -3171,10 +3171,38 @@ const data = {
     const lines = text.split(/\r?\n/);
     const syntheticEnter = { preventDefault: () => {} };
 
+    // List context must be preserved across pasted lines so list items continue in the same list
+    // (Markdown lists are context-dependent; Enter already handles continuation when typing).
+    const lineStartsWithListMarker = (line) =>
+      (line.length >= 2 && (line.startsWith('* ') || line.startsWith('- ') || line.startsWith('+ '))) ||
+      /^\d+[.)]\s/.test(line);
+    const stripListMarker = (line) => {
+      if (line.startsWith('* ') || line.startsWith('- ') || line.startsWith('+ ')) return line.slice(2);
+      const m = line.match(/^(\d+[.)]\s)(.*)$/);
+      return m ? m[2] : line;
+    };
+
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].length > 0) {
-        document.execCommand('insertText', false, lines[i]);
+      const line = lines[i];
+      const focusedBlock = this.getFocusedBlock();
+      const blockType = focusedBlock ? focusedBlock.getAttribute('data-block-type') : null;
+      const inList = blockType === 'list-item';
+
+      if (inList && lineStartsWithListMarker(line)) {
+        // Insert content only (no marker) so existing list item gets correct text; Enter will create next item.
+        if (stripListMarker(line).length > 0) {
+          document.execCommand('insertText', false, stripListMarker(line));
+        }
+      } else {
+        if (inList && line.length > 0) {
+          // Exit list first so the line becomes a new paragraph, not a list item.
+          this.handleEnterKey(syntheticEnter);
+        }
+        if (line.length > 0) {
+          document.execCommand('insertText', false, line);
+        }
       }
+
       if (i < lines.length - 1) {
         this.handleEnterKey(syntheticEnter);
       }
