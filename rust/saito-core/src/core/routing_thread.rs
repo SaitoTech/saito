@@ -1431,7 +1431,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         self.message_sending_timer += duration_value;
         if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
             self.message_sending_timer = 0;
-            _ = self.network.send_messages_in_buffer().await;
             self.send_block_headers().await;
             work_done = true;
         }
