@@ -170,7 +170,7 @@
 .expected_amount {
   padding: 1rem 1.5rem;
   font-size: 1.6rem;
-  width: 20rem;
+  width: rem;
   color: var(--saito-font-color);
   border-radius: var(--saito-border-radius);
   height: 41px;
@@ -210,5 +210,11 @@
   .purchase-crypto-item .crypto-logo {
     width: 50%;
     height: auto;
+  }
+  .expected_amount {
+    width: 13rem;
+  }
+  .crypto-box input.input-amount {
+    width: 13rem;
   }
 }
