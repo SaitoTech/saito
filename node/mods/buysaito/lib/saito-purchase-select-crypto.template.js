@@ -19,6 +19,7 @@ module.exports = (app, mod, self) => {
       <div class="purchase-crypto-list">
         ${cryptos_list}
       </div>
+      <div class="footer-note">Already have (ERC-20 wrapped) SAITO? Visit our <a href="/migration">migration portal</a></div>
     </div>
   `;
 };

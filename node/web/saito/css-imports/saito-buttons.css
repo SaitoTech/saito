@@ -124,7 +124,7 @@ button i {
 .saito-button-row.auto-size .saito-button-secondary,
 .saito-button-row.auto-size .saito-button-primary {
   min-width: unset;
-  flex: 1;
+  flex-grow: 1;
   width: 100%;
 }
 

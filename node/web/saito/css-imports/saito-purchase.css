@@ -13,6 +13,11 @@
   gap: 1rem;
 }
 
+.purchase-container .footer-note {
+  font-size: var(--font-size-medium);
+  font-style: italic;
+}
+
 .loader-interstitial-overlay img {
   height: 15rem;
 }

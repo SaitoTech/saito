@@ -87,7 +87,7 @@ module.exports = (app, mod, build_number = '', og_card) => {
         </select>
       </div>
 
-      <div class='saito-button-row'>
+      <div class='saito-button-row auto-size'>
         <button class="saito-button-primary buysaito-button fat" id="buysaito-button" disabled >Get Quote</button>
       </div>
       </div>

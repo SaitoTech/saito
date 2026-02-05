@@ -196,6 +196,7 @@ class Mixin extends ModTemplate {
     let rtModules = this.app.modules.respondTo('mixin-crypto');
 
     for (let i = 0; i < rtModules.length; i++) {
+      // these are the responding Modules, not the returned object of the respondTo
       let crypto_module = new MixinModule(
         this.app,
         mixin_self,
