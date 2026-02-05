@@ -45,6 +45,8 @@ class AssetStore extends ModTemplate {
 
 		this.assetStore = { publicKey: '', peerIndex: null };
 
+		this.drafts = {}; // our listed nft, txs to send the back to us
+
 		this.social = {
 			twitter: '@SaitoOfficial',
 			title: '🟥 Saito AssetStore',
@@ -70,6 +72,11 @@ class AssetStore extends ModTemplate {
 		//
 		if (!this.app.BROWSER) {
 			await this.restoreListingsFromDB();
+		} else {
+			if (this.browser_active) {
+				this.drafts = (await this.app.storage.getLocalForageItem('listed_nfts')) || {};
+				console.log(`We have ${Object.keys(this.drafts).length} NFTs listed in the store`);
+			}
 		}
 	}
 
@@ -88,7 +95,6 @@ class AssetStore extends ModTemplate {
 		// BROWSER peers
 		//
 		if (service.service === 'AssetStore') {
-			console.log('&&&&&&&&&&&&&&&\n&&&&&&&&&&&&&&&\n&&&&&&&&&&&&&');
 			//
 			// save store info
 			//
@@ -103,6 +109,7 @@ class AssetStore extends ModTemplate {
 					'request listings',
 					{},
 					(listings) => {
+						console.log('STORE: fetched listings -- ', listings);
 						this.listings = listings;
 						this.app.connection.emit('assetstore-render-listings');
 					},
@@ -686,16 +693,14 @@ class AssetStore extends ModTemplate {
 			// transaction-within-a-transaction which will transfer ownership back
 			// to us.
 			//
-			console.log('about to create assetstore options object...');
+
 			if (this.app.BROWSER) {
-				this.app.options.assetstore ||= {};
-				this.app.options.assetstore.delist_drafts ||= {};
-				this.app.options.assetstore.delist_drafts[nfttx_sig] = txmsg.data.nft_tx; // serialized inner tx
-				await this.app.storage.saveOptions();
-				console.log('created assetstore object...');
+				this.drafts[nfttx_sig] = txmsg.data.nft_tx; // serialized inner tx
+				console.debug('STORE: saving drafts: ', this.drafts);
+				await this.app.storage.setLocalForageItem('listed_nfts', this.drafts);
 			} else {
 				let raw = await this.app.wallet.getNFTList();
-				console.log('Server nfts (after delist tx 2): ', raw);
+				console.debug('STORE: Server nfts (after delist tx 2): ', raw);
 			}
 
 			// Do NOT broadcast here; actual delist happens when user clicks “Delist”

@@ -20,6 +20,11 @@ class NFTOverlay {
 
     if (attach_events == true) {
       app.connection.on('saito-nft-details-render-request', (nft) => {
+        //
+        // CHANGE THIS
+        ///
+        //
+
         this.nft = nft;
         this.owner = nft.slip1.public_key;
         this.render();
@@ -73,7 +78,7 @@ class NFTOverlay {
     }, 25);
   }
 
-  async attachEvents() {
+  attachEvents() {
     let this_self = this;
 
     //
@@ -93,11 +98,6 @@ class NFTOverlay {
     let confirm_send_btn = document.querySelector('.saito-nft-panel-send .saito-nft-confirm-btn');
     let confirm_split_btn = document.querySelector('.saito-nft-confirm-split');
     let confirm_merge_btn = document.querySelector('#saito-nft-confirm-merge');
-
-    //
-    // back caret (subtle navigation)
-    //
-    let back_caret = document.querySelector('.saito-nft-back-caret');
 
     //
     // enable / disable
@@ -318,10 +318,12 @@ try {
     header_btn.onclick = (e) => {
       let p = document.querySelector('.saito-nft-overlay.panels');
 
-      if (p.classList.contains('saito-nft-mode-info')) {
-        p.classList.remove('saito-nft-mode-info');
-      } else {
-        p.classList.add('saito-nft-mode-info');
+      if (p) {
+        if (p.classList.contains('saito-nft-mode-info')) {
+          p.classList.remove('saito-nft-mode-info');
+        } else {
+          p.classList.add('saito-nft-mode-info');
+        }
       }
 
       header_btn.classList.toggle('rotate');
@@ -416,21 +418,6 @@ try {
       this.app.storage.saveOptions();
       this.render();
     };
-
-    //
-    // BACK caret (subtle navigation)
-    //
-    if (back_caret) {
-      back_caret.onclick = (e) => {
-        e.preventDefault();
-        let p = document.querySelector('.saito-nft-overlay.panels');
-
-        p.classList.remove('saito-nft-mode-send');
-        p.classList.remove('saito-nft-mode-info');
-        p.classList.remove('saito-nft-mode-split');
-        p.classList.remove('saito-nft-mode-merge');
-      };
-    }
 
     //
     // MERGE NFT

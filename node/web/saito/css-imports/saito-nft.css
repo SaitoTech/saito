@@ -140,34 +140,6 @@
   transform-origin: center;
 }
 
-/* Back caret - subtle navigation (only for send panel) */
-.saito-nft-back-caret {
-  display: none;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 24px;
-  color: var(--saito-font-color);
-  opacity: 0.5;
-  padding: 4px 8px;
-  margin-right: 8px;
-  transition: all 0.2s ease;
-  line-height: 1;
-}
-
-.saito-nft-overlay.panels.saito-nft-mode-send .saito-nft-back-caret {
-  display: block;
-}
-
-.saito-nft-back-caret:hover {
-  opacity: 1;
-  transform: translateX(-2px);
-}
-
-.saito-nft-back-caret::before {
-  content: '←';
-}
-
 /* ============================================
    PANELS WRAPPER
    ============================================ */

@@ -6,24 +6,25 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
     super(app, mod, false);
   }
 
-  async render() {
-    await super.render();
+  render() {
+    super.render();
+
+    Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
+      (el) => (el.style.display = 'none')
+    );
 
     if (document.querySelector('.saito-nft-footer-btn.send')) {
+      document.querySelector('.saito-nft-footer-btn.send').style.display = 'flex';
       document.querySelector('.saito-nft-footer-btn.send').innerHTML = 'Remove Listing';
     }
 
-    document.querySelector('.saito-nft-footer-btn.enable').style.display = 'none';
-    document.querySelector('.saito-nft-footer-btn.split').style.display = 'none';
-    document.querySelector('.saito-nft-footer-btn.merge').style.display = 'none';
-    document.querySelector('.saito-nft-footer-btn.disable').style.display = 'none';
-
     setTimeout(() => {
-      this.attachMyEvents();
+      this.attachEvents();
     }, 25);
   }
 
-  async attachMyEvents() {
+  attachEvents() {
+    super.attachEvents();
     let delist_btn = document.querySelector('.saito-nft-footer-btn.send');
     if (delist_btn) {
       delist_btn.onclick = async (e) => {
@@ -33,8 +34,7 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
           // fetch thedelisting transaction
           //
           let nfttx_sig = this.nft?.tx_sig;
-          let drafts = this.app.options?.assetstore?.delist_drafts || {};
-          let delist_tx_serialized = drafts[nfttx_sig];
+          let delist_tx_serialized = this.mod.drafts[nfttx_sig];
           if (!delist_tx_serialized) {
             //
             // we can be in this situation (unable to find delist) if the server
@@ -80,7 +80,7 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
           this.overlay.close();
           siteMessage('Delist request submitted. Waiting for network confirmation…', 3000);
         } catch (err) {
-          salert('Failed to delist: ' + (err?.message || err));
+          console.error(err);
         }
       };
     }
