@@ -520,7 +520,7 @@ class Migration extends ModTemplate {
           txmsg,
           tx_sender,
           0,
-          `Received a ${txmsg.module.toUpper()} transaction from an unknown sender!!`
+          `Received a ${txmsg.module.toUpperCase()} transaction from an unknown sender!!`
         );
 
         newPayment.status = 'failed';
