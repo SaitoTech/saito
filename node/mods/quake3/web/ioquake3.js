@@ -18862,7 +18862,10 @@ var SOCKFS = {
 			} else {
 				// create the actual websocket object and connect
 				try {
-					var url = 'wss://' + addr + ':' + port;
+					// HACK -- WSS
+					//
+					var url = 'ws://' + addr + ':' + port;
+					//var url = 'wss://' + addr + ':' + port;
 					// the node ws library API is slightly different than the browser's
 					var opts = ENVIRONMENT_IS_NODE
 						? { headers: { 'websocket-protocol': ['binary'] } }
@@ -18871,6 +18874,7 @@ var SOCKFS = {
 					var WebSocket = ENVIRONMENT_IS_NODE
 						? require('ws')
 						: window['WebSocket'];
+console.log("URL: " + url);
 					ws = new WebSocket(url, opts);
 					ws.binaryType = 'arraybuffer';
 				} catch (e) {
