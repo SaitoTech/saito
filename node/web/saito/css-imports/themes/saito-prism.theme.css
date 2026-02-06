@@ -1,0 +1,279 @@
+/*-------------------- PRISM THEME --------------------
+ * A dark, modern theme inspired by the Prism blockchain explorer
+ * Features: Deep dark backgrounds, indigo accent colors, modern card-based UI
+ */
+
+html[data-theme='prism'] {
+  /* ============================================
+     BASE COLOR SECTION
+     ============================================ */
+  
+  /* Background Colors - Deep dark Prism palette */
+  --saito-background-color: #0b0b10;
+  --saito-background-color-inverse: #e5e5eb;
+  --saito-header-background: #0b0b10;
+
+  /* Surface Colors - Card-based UI layers */
+  --saito-surface-color: rgba(26, 26, 38, 0.8); /* --pr-card with transparency */
+  --saito-surface-text: var(--saito-font-color);
+  --saito-surface-hover: rgba(32, 32, 46, 0.9); /* --pr-card-hover */
+  --saito-surface-selected: rgba(99, 102, 241, 0.15); /* --pr-accent-glow */
+  --saito-surface-inverse: var(--saito-background-color-inverse);
+  --saito-surface-inverse-text: #0b0b10;
+
+  /* Primary Colors - Indigo accent from Prism */
+  --saito-primary: #6366f1; /* --pr-accent */
+  --saito-primary-dark: #4f46e5;
+  --saito-primary-text: #ffffff;
+  --saito-primary-background: linear-gradient(
+    45deg,
+    #6366f1 0%,
+    #818cf8 55%,
+    #6366f1 100%
+  ) transparent no-repeat left top / 400% auto;
+
+  /* Secondary Colors */
+  --saito-secondary: #a855f7; /* --pr-purple */
+  --saito-secondary-text: #ffffff;
+
+  /* ============================================
+     FONTS SECTION
+     ============================================ */
+  
+  /* Font Colors - Light text on dark background */
+  --saito-font-color: #e5e5eb; /* --pr-text */
+  --saito-font-color-heavy: #ffffff;
+  --saito-font-color-light: #8888a0; /* --pr-text-secondary */
+  --saito-font-color-secondary: #8888a0;
+  --saito-font-color-inverse: #0b0b10;
+  --saito-font-color-primary: #e5e5eb;
+
+  /* Font Family - Modern system fonts like Prism */
+  --saito-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --saito-font-monospace: 'SF Mono', 'Fira Code', monospace;
+
+  /* ============================================
+     TINTS & HIGHLIGHTS
+     ============================================ */
+  
+  --saito-highlight: rgba(99, 102, 241, 0.1); /* Subtle indigo glow */
+  --saito-highlight-heavy: rgba(99, 102, 241, 0.2);
+
+  /* ============================================
+     BORDER COLORS
+     ============================================ */
+  
+  --saito-border-color: #2a2a3a; /* --pr-border */
+  --saito-border-color-light: #2a2a3a;
+  --saito-border-color-dark: #2a2a3a;
+  --border-color-general-dividers: #2a2a3a;
+  --saito-border-radius: 12px; /* --pr-radius */
+
+  /* ============================================
+     BOX SHADOWS - Modern, subtle shadows
+     ============================================ */
+  
+  --saito-box-shadow-low: 0px 1px 2px rgba(0, 0, 0, 0.3);
+  --saito-box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.4), 
+                      0px 2px 4px rgba(0, 0, 0, 0.2);
+  --saito-box-shadow-high: 0px 12px 32px -8px rgba(99, 102, 241, 0.3),
+                           0px 8px 16px rgba(0, 0, 0, 0.4);
+
+  /* ============================================
+     COMPONENT-SPECIFIC OVERRIDES
+     ============================================ */
+
+  /* Buttons - Match Prism's button style */
+  button,
+  .saito-button-primary {
+    background: var(--saito-primary);
+    color: var(--saito-primary-text);
+    border-color: var(--saito-primary);
+    border-radius: var(--saito-border-radius);
+    font-weight: 600;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  button:hover,
+  .saito-button-primary:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+  }
+
+  .saito-button-secondary {
+    background: var(--saito-surface-color);
+    color: var(--saito-primary);
+    border-color: var(--saito-primary);
+  }
+
+  .saito-button-secondary:hover {
+    background: var(--saito-surface-hover);
+    color: var(--saito-primary-text);
+  }
+
+  /* Modals - Dark card style */
+  .saito-modal {
+    background: var(--saito-surface-color);
+    border-color: var(--saito-border-color);
+    box-shadow: var(--saito-box-shadow-high);
+  }
+
+  .saito-modal-title {
+    color: var(--saito-font-color-heavy);
+  }
+
+  /* Tables - Prism table styling */
+  .saito-table-row {
+    background: var(--saito-surface-color);
+    border-radius: 8px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .saito-table-row:hover {
+    background: var(--saito-surface-hover);
+    border-color: var(--saito-primary);
+  }
+
+  .saito-table-header {
+    background: var(--saito-surface-selected);
+    color: var(--saito-font-color-secondary);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Input Fields - Match Prism search bar style */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea,
+  select {
+    background: var(--saito-surface-color);
+    border: 1px solid var(--saito-border-color);
+    border-radius: var(--saito-border-radius);
+    color: var(--saito-font-color);
+    font-family: var(--saito-font-monospace);
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--saito-primary);
+    outline: none;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--saito-font-color-secondary);
+  }
+
+  /* Cards & Modules - Prism card styling */
+  .saito-module {
+    background: var(--saito-surface-color);
+    border: 1px solid var(--saito-border-color);
+    border-radius: var(--saito-border-radius);
+    transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+  }
+
+  .saito-module:hover {
+    border-color: var(--saito-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--saito-box-shadow);
+  }
+
+  /* Links - Indigo accent */
+  a {
+    color: var(--saito-primary);
+    transition: opacity 0.2s;
+  }
+
+  a:hover {
+    opacity: 0.8;
+    color: var(--saito-primary-dark);
+  }
+
+  /* Status Colors - Match Prism's semantic colors */
+  /* Success/Green */
+  --saito-green: #22c55e; /* --pr-green */
+  
+  /* Error/Red */
+  --saito-red: #ef4444; /* --pr-red */
+  --saito-red-dark: #dc2626;
+  
+  /* Warning/Yellow */
+  --saito-yellow-light: #f59e0b; /* --pr-yellow */
+  
+  /* Info/Blue */
+  --saito-blue: #3b82f6; /* --pr-blue */
+
+  /* ============================================
+     HEADER STYLING
+     ============================================ */
+  
+  #saito-header {
+    background: var(--saito-header-background);
+    border-bottom: 1px solid var(--saito-border-color);
+    backdrop-filter: blur(10px);
+  }
+
+  /* ============================================
+     SCROLLBARS - Hide scrollbars like Prism
+     ============================================ */
+  
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--saito-background-color);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--saito-border-color);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--saito-primary);
+  }
+
+  /* ============================================
+     SELECTION & FOCUS
+     ============================================ */
+  
+  ::selection {
+    background: var(--saito-primary);
+    color: var(--saito-primary-text);
+  }
+
+  /* ============================================
+     UTILITY CLASSES - Prism-inspired
+     ============================================ */
+  
+  /* Monospace text for addresses/hashes */
+  .mono,
+  code {
+    font-family: var(--saito-font-monospace);
+    color: var(--saito-primary);
+  }
+
+  /* Accent glow effect */
+  .accent-glow {
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid var(--saito-primary);
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--saito-box-shadow-high);
+  }
+}
