@@ -18864,7 +18864,21 @@ var SOCKFS = {
 				try {
 					// HACK -- WSS
 					//
-					var url = 'ws://' + addr + ':' + port;
+const isHttps = window.location.protocol === 'https:';
+const scheme = isHttps ? 'wss://' : 'ws://';
+
+var url;
+
+if (isHttps) {
+  // HTTPS → Apache → proxy → Quake
+  url = scheme + addr + '/quake';
+} else {
+  // HTTP / localhost → direct to Quake
+  url = scheme + addr + ':' + port;
+}
+
+
+					//var url = 'ws://' + addr + ':' + port;
 					//var url = 'wss://' + addr + ':' + port;
 					// the node ws library API is slightly different than the browser's
 					var opts = ENVIRONMENT_IS_NODE
