@@ -666,7 +666,8 @@ class Arcade extends ModTemplate {
 					rank: 10,
 					type: 'quicklaunch',
 					callback: function (app, id) {
-						app.connection.emit('arcade-launch-game-selector', {});
+            					navigateWindow(`/arcade`);
+						//app.connection.emit('arcade-launch-game-selector', {});
 					},
 					navigation: '/arcade'
 				});

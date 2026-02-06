@@ -82,6 +82,7 @@ class FileUpload {
                 
           if (Number(wallet_balance) < 1) {
             siteMessage('Insufficient SAITO to Create Vault NFTs...', 3000);
+      	    this.app.connection.emit('saito-purchase-launch');
             return;
           }
 
@@ -104,6 +105,7 @@ class FileUpload {
 
         if (Number(wallet_balance) < 1) {
           siteMessage('Insufficient SAITO to Create Vault NFTs...', 3000);
+      	  this.app.connection.emit('saito-purchase-launch');
           return;
         }
 

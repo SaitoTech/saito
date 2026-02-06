@@ -344,6 +344,7 @@ class PublishSettingsOverlay {
     let wallet_balance = await this.app.wallet.getBalance('SAITO');
     if (Number(wallet_balance) == 0) {
       siteMessage('A Saito balance is needed to Publish Posts...', 3000);
+      this.app.connection.emit('saito-purchase-launch');
       return;
     }
 

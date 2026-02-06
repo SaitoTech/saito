@@ -17,7 +17,7 @@ module.exports = (app, mod) => {
             }
         </div>
         <div class="wallet-details">
-        <h6>My Wallet</h6>`;
+  `;
 
   if (!mod.isActivated()) {
     html += `<div id="activate-now" class="saito-anchor">

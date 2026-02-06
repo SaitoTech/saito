@@ -471,6 +471,7 @@ class SaitoHeader extends UIModTemplate {
     //
     if (document.getElementById('wallet-btn-withdraw')) {
       document.getElementById('wallet-btn-withdraw').onclick = (e) => {
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         app.connection.emit('saito-crypto-withdraw-render-request');
         this.hideMenu();
       };
@@ -485,6 +486,7 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.getElementById('wallet-btn-settings')) {
       document.getElementById('wallet-btn-settings').onclick = (e) => {
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         app.connection.emit('settings-overlay-render-request');
         this.hideMenu();
       };
@@ -501,6 +503,7 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.getElementById('wallet-btn-nft')) {
       document.getElementById('wallet-btn-nft').onclick = (e) => {
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         this.app.connection.emit('saito-nft-list-render-request');
       };
     }
