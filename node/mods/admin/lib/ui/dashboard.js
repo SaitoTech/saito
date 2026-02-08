@@ -70,11 +70,17 @@ class AdminDashboard {
     //
     // Splash selection (immediate)
     //
+    var updating_home_app = false;
     document.querySelectorAll(".splash-card").forEach(card => {
       card.onclick = async () => {
 
+	if (updating_home_app) { alert("Updating... please wait."); return; }
+	updating_home_app = true;
+
         const app_id = card.dataset.app;
         card.classList.add("working");
+
+alert("APPID: " + app_id);
 
         let tx =
           await this.app.wallet.createUnsignedTransactionWithDefaultFee(
@@ -85,7 +91,7 @@ class AdminDashboard {
           module: "Admin",
           request: "update-options",
           data: {
-            home_app: app_id
+            homeModule: app_id
           }
         };
 

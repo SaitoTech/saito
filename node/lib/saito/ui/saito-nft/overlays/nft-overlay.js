@@ -127,13 +127,15 @@ class NFTOverlay {
     //
     let can_split = this.can_split;
     let can_merge = this.can_merge;
-
+try {
     console.log('Number(this.nft.amount): ', Number(this.nft.amount));
     console.log('this.mod.publicKey: ', this.mod.publicKey);
     console.log('this.owner: ', this.owner);
     console.log('nft.slip1.public_key: ', this.nft.slip1.public_key);
     console.log('this.getSameIdCoun(): ', this.getSameIdCount());
-
+} catch (err) {
+    console.log("error in nft overlay: " + err);
+}
     if (Number(this.nft.amount) > 1 && this.mod.publicKey == this.nft.slip1.public_key) {
       can_split = true;
     }

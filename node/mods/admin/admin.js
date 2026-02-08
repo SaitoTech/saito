@@ -77,7 +77,6 @@ class Admin extends ModTemplate {
           salert(res.err);
         } else {
 	  this.server_info = res;
-console.log("SERVER INFO: " + JSON.stringify(this.server_info));
 	  this.main.render();
         }
       });
@@ -262,6 +261,7 @@ console.log("SERVER INFO: " + JSON.stringify(this.server_info));
   }
 
   updateOptions(options) {
+console.log("OPTIONS: "+ JSON.stringify(options));
     for (let a in options) {
       if (this.app.options[a]) {
         if (typeof options[a] === 'object') {
@@ -272,7 +272,7 @@ console.log("SERVER INFO: " + JSON.stringify(this.server_info));
           this.app.options[a] = options[a];
         }
       } else {
-        console.error(`${a} does not exist in options`);
+	this.app.options[a] = options[a];
       }
     }
 

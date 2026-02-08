@@ -335,5 +335,82 @@ if [ "$1" == "recompile" ]; then
 fi
 
 
+if [ "$1" == "setupprod" ]; then
+
+  echo ""
+  echo ""
+  echo "     _.-^^---....,,--        "
+  echo " _--                  --_    "
+  echo " <                        >) "
+  echo " |                         | "
+  echo "  \._                   _./  "
+  echo "     '''--. . , ; .--'''     "
+  echo "          | |   |            "
+  echo "       .-=||  | |=-.         "
+  echo "        -=#$%&%$/=-'         "
+  echo "          | ;  :|            "
+  echo "      .,-#%&$/#@%#&#~,         "
+  echo "  -------------------------  "
+  echo "  NUKING YOUR SAITO INSTALL  "
+  echo "  -------------------------  "
+  echo "  (resetting configuration)  "
+  echo ""
+  echo ""
+
+  cp ./config/options ./config/options.bk
+  rm -rf built/*
+  tsc -p ./build/tsconfig.json
+  reset_nonpersistent
+  reset_persistent
+  reset_bundler
+
+  time node build/webpack.config.cjs $2 $3
+
+  post_compile
+
+  cp ./data/issuance/issuance.orig ./data/issuance/issuance
+  mv ./config/options.bk ./config/options
+
+fi
+
+if [ "$1" == "setuplocal" ]; then
+
+  echo ""
+  echo ""
+  echo "     _.-^^---....,,--        "
+  echo " _--                  --_    "
+  echo " <                        >) "
+  echo " |                         | "
+  echo "  \._                   _./  "
+  echo "     '''--. . , ; .--'''     "
+  echo "          | |   |            "
+  echo "       .-=||  | |=-.         "
+  echo "        -=#$%&%$/=-'         "
+  echo "          | ;  :|            "
+  echo "      .,-#%&$/#@%#&#~,         "
+  echo "  -------------------------  "
+  echo "  NUKING YOUR SAITO INSTALL  "
+  echo "  -------------------------  "
+  echo "  (resetting configuration)  "
+  echo ""
+  echo ""
+
+  cp ./config/options ./config/options.bk
+  rm -rf built/*
+  tsc -p ./build/tsconfig.json
+  reset_nonpersistent
+  reset_persistent
+  reset_bundler
+
+  time node build/webpack.config.cjs $2 $3
+
+  post_compile
+
+  cp ./data/issuance/issuance.localdev ./data/issuance/issuance
+  mv ./config/options.bk ./config/options
+
+fi
+
+
 
 

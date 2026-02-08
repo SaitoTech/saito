@@ -11,6 +11,7 @@ import { TransactionType } from 'saito-js/lib/transaction';
 const getUuid = require('uuid-by-string');
 
 const CryptoModule = require('../templates/cryptomodule');
+const NFTCryptoModule = require('../templates/nftcryptomodule');
 
 interface PreferredTx {
   sig: string;
@@ -807,7 +808,7 @@ export default class Wallet extends SaitoWallet {
     return activeMods;
   }
 
-  returnCryptoModuleByTicker(ticker) {
+  returnCryptoModuleByTicker(ticker="") {
     const mods = this.returnInstalledCryptos(false);
     for (let i = 0; i < mods.length; i++) {
       // be case insensitive, just in case
@@ -815,8 +816,7 @@ export default class Wallet extends SaitoWallet {
         return mods[i];
       }
     }
-
-    throw 'Module Not Found: ' + ticker;
+    return null;
   }
 
   /**
@@ -1742,13 +1742,36 @@ export default class Wallet extends SaitoWallet {
   public async loadNFTs() {
     console.log('LOAD NFTs');
     try {
+
+      let nft_balance_by_id = {};
+
       if (this.app.options.wallet.nfts) {
+
         for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
+
           let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
           console.log('Extracting NFT type...');
           console.log(this.app.options.wallet.nfts[z].slip3?.utxo_key);
           let nft_type = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
           console.log(nft_type);
+
+	
+	  //
+	  // check balance (will be used for wallet)
+	  //
+  	  let nft = this.app.options.wallet.nfts[z];
+  	  try {
+ 	    let amt = BigInt(nft.amount);
+    	    if (amt > 0n) {
+      	      if (!nft_balance_by_id[nft.id]) {
+                nft_balance_by_id[nft.id] = 0n;
+      	      }
+      	      nft_balance_by_id[nft.id] += amt;
+    	    }
+  	  } catch (err) {
+	    console.warn('Invalid NFT amount:', nft.amount);
+	  }
+
 
           //
           // we only load "enabled" NFTS
@@ -1786,6 +1809,33 @@ export default class Wallet extends SaitoWallet {
             }
           }
         }
+
+for (let nft_id in nft_balance_by_id) {
+
+  let total = nft_balance_by_id[nft_id];
+  if (total <= 0n) { continue; }
+
+  let ticker = `NFT-${nft_id.slice(0, 6)}`;
+
+  // Prevent double-install on reload
+  if (this.returnCryptoModuleByTicker(ticker)) {
+    continue;
+  }
+
+  let mod = new NFTCryptoModule(this.app, nft_id, {
+    ticker,
+    name: ticker
+  });
+
+  this.app.modules.mods.push(mod);
+  await mod.initialize(this.app);
+
+  console.log(
+    `NFT crypto module installed: ${ticker} (balance ${total.toString()})`
+  );
+}
+
+
       }
     } catch (err) {
       console.log('Error: load nfts');

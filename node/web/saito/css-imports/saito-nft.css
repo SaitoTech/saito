@@ -477,6 +477,7 @@
   border-color: rgba(100, 100, 100, 0.7);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   transform: translateX(-50%) translateY(-2px);
+  color: black;
 }
 
 .saito-nft-description-text-metadata {

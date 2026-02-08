@@ -64,9 +64,17 @@ class NodeSetup {
       // local dev assumptions
       options.consensus = options.consensus || {};
       options.consensus.disable_block_production = false;
+      options.consensus.default_social_stake = 0;
+      options.consensus.default_social_stake_period = 0;
+      options.homeModule = "Admin";
 
-      // future: faucet keys, dev flags, etc.
-      // options.dev = { enabled: true };
+      setTimeout(() => {
+	document.querySelector(".admin-header").innerHTML = "Ready for Command-Line Recompile:";
+	document.querySelector(".admin-server").style.display = "none";
+	document.querySelector(".node-setup-explainer").style.display = "none";
+	document.querySelector(".node-setup-working").style.display = "none";
+	document.querySelector(".node-setup-dev-info").style.display = "block";
+      }, 1000);
 
     }
 
@@ -74,9 +82,41 @@ class NodeSetup {
 
       options.consensus = options.consensus || {};
       options.consensus.disable_block_production = true;
+      options.consensus.disable_block_production = true;
+      options.homeModule = "Admin";
 
-      // future: production-safe defaults
-      // remove dev-only flags here if present
+      options.peers = [];
+      options.peers.push({
+	host: "eames.saito.io" ,
+	port: "443" ,
+	protocol: "https" ,
+	synctype: "full"
+      });
+
+      setTimeout(() => {
+	document.querySelector(".admin-header").innerHTML = "Ready for Command-Line Recompile:";
+	document.querySelector(".admin-server").style.display = "none";
+	document.querySelector(".node-setup-explainer").style.display = "none";
+	document.querySelector(".node-setup-working").style.display = "none";
+	document.querySelector(".node-setup-dev-info").innerHTML = `
+
+	  Your server is configured to connect to the network.
+
+	  <p></p>
+
+	  Please run the following command:
+
+	  <p></p>
+
+	  npm run setupprod
+
+	  <p></p>
+
+	  After restarting, return here to configure your modules / setup.
+
+	`;
+	document.querySelector(".node-setup-dev-info").style.display = "block";
+      }, 1000);
 
     }
 

@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "ts-node-dev --max_old_space_size=8144 --project build/tsconfig.json ./scripts/start.ts",
     "dev-server": "./scripts/compile nuke ts-node-dev && npm run dev ",
+    "setuplocal": "./scripts/compile setuplocal && npm run dev",
+    "setupprod": "./scripts/compile setupprod && npm run dev",
     "cli": "ts-node --project build/tsconfig.json  ./scripts/cli.ts",
     "deserialize_block": "node ./scripts/deserialize_block.js",
     "generate-issuance": "NODE_OPTIONS='--max-old-space-size=12288' ts-node --project build/tsconfig.json ./scripts/gen-issuance",

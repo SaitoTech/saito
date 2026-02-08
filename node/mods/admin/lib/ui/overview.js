@@ -27,13 +27,16 @@ class AdminOverviewUI {
       this.updateHeader("Welcome back, Saito Admin!");
 
       try {
-        this.updateHeader("What are you trying to do?");
-        document.querySelector(".admin-server").style.display = "none";
-        this.setup_ui.render();
+        if (this.mod?.server_info?.options?.consensus?.disable_block_production == true) {
+          this.updateHeader("What are you trying to do?");
+          document.querySelector(".admin-server").style.display = "none";
+          this.setup_ui.render();
+	  return;
+        }
       } catch (err) {
       }
 
-      //this.dashboard_ui.render();
+      this.dashboard_ui.render();
     } else {
       this.adminkey_ui.render();
       return;

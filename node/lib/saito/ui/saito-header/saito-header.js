@@ -456,12 +456,14 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.querySelector('#saito-header-menu-toggle')) {
       document.querySelector('#saito-header-menu-toggle').addEventListener('click', () => {
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         this.toggleMenu();
       });
     }
 
     if (document.querySelector('.saito-header-backdrop')) {
       document.querySelector('.saito-header-backdrop').onclick = () => {
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         this.toggleMenu();
       };
     }

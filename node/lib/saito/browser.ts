@@ -404,15 +404,21 @@ class Browser {
   }
 
   determineActiveModule() {
+
     const current_url = window.location.toString();
     const myurl = new URL(current_url);
     const myurlpath = myurl.pathname.split('/');
+    const default_mod = 'website';
 
     if (myurlpath[1]) {
       return myurlpath[1].toLowerCase();
     }
 
-    return window?.active_module || 'website';
+    if (window?.active_module) { return window.active_module; }
+
+    if (this.app?.options?.homeModule) { return this.app.options.homeModule; }
+
+    return default_mod;
   }
 
   extractIdentifiers(text = '') {

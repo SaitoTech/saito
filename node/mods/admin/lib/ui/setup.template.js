@@ -30,6 +30,26 @@ module.exports = () => {
         <div class="node-setup-spinner"></div>
       </div>
 
+      <div class="node-setup-dev-info" style="display:none;">
+
+	Your configuration files have been updated for local development.
+
+	<p></p>
+
+	Please shutdown your server and run the following command:
+
+	<p></p>
+
+	npm run setuplocal
+
+	<p></p>
+
+	This will recompile your Saito install for local development with pre-allocated
+	Saito that you can use for development. Once your server restarts, you can connect
+	here to continue with module setup and configuration.
+
+      </div>
+
     </div>
   `;
 };
