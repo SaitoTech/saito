@@ -235,7 +235,7 @@ class Mixin extends ModTemplate {
       // Do an initial balance check if we are able to
       if (mixin_self.account_created) {
         if (crypto_module.isActivated()) {
-          await this.fetchSafeUtxoBalance();
+          await crypto_module.checkBalance();
         } else if (crypto_module.address) {
           crypto_module.activate();
         }
@@ -500,7 +500,7 @@ class Mixin extends ModTemplate {
           this.crypto_mods[i].save();
 
           if (this.app.BROWSER) {
-            await this.app.network.sendRequestAsTransaction(
+            this.app.network.sendRequestAsTransaction(
               'mixin save new deposit address',
               {
                 user_id: this.mixin.user_id,

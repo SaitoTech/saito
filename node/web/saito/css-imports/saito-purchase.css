@@ -215,6 +215,21 @@ input.input-amount {
   max-width: 75%;
 }
 
+.saito-purchase-error {
+  font-size: 2rem;
+  display: flex;
+  flex-direction: column;
+
+  & .container-header {
+    font-size: 4rem;
+  }
+
+  & .container-footer {
+    font-size: 1.8rem;
+    font-style: italic;
+  }
+}
+
 @media screen and (max-width: 600px) {
   .purchase-crypto-list {
     font-size: smaller;

@@ -57,7 +57,7 @@ class MixinModule extends CryptoModule {
 
 	async activate() {
 		if (this.mixin.account_created == 0) {
-			console.log('Create mixin account');
+			console.info('Create mixin account');
 			await this.mixin.createAccount((res) => {
 				if (res.err || Object.keys(res).length < 1) {
 					if (this.app.BROWSER) {
@@ -71,7 +71,7 @@ class MixinModule extends CryptoModule {
 			});
 		} else {
 			if (!this.address) {
-				console.log(`create deposit address for ${this.ticker}`);
+				console.info(`create deposit address for ${this.ticker}`);
 
 				let rv = await this.mixin.createDepositAddress(this.asset_id, this.chain_id);
 				if (!rv) {
@@ -80,7 +80,7 @@ class MixinModule extends CryptoModule {
 					}
 					await this.app.wallet.setPreferredCrypto('SAITO');
 				} else {
-					console.log(`Address for ${this.ticker}: ${this.address}`);
+					console.info(`Address for ${this.ticker}: ${this.address}`);
 				}
 			}
 
@@ -132,13 +132,12 @@ class MixinModule extends CryptoModule {
 
 		let res = {};
 
-		console.log('send sendPayment');
-		console.log('Recipient: ' + recipient);
+		console.info('Mixin sendPayment to ' + recipient);
 
 		// if address has |mixin| concat
 		if (r.length >= 2) {
 			if (r[2] === 'mixin') {
-				console.log('Send to Mixin address');
+				console.info('Send to Mixin address');
 				internal_transfer = true;
 				destination = r[1];
 			}
@@ -151,7 +150,7 @@ class MixinModule extends CryptoModule {
 					address: recipient
 				},
 				function (res) {
-					console.log('Cross network callback complete');
+					console.info('Cross network callback complete');
 					if (res?.user_id) {
 						internal_transfer = true;
 						destination = res.user_id;
@@ -159,8 +158,6 @@ class MixinModule extends CryptoModule {
 				}
 			);
 		}
-
-		console.log('Initiate mixin transfer, internally? ', internal_transfer);
 
 		// internal mixin transfer
 		if (internal_transfer) {
@@ -354,13 +351,12 @@ class MixinModule extends CryptoModule {
 	async checkHistory(callback = null) {
 		let this_self = this;
 
-		console.log(`Querying Mixin tx history (post ${new Date(this.history_update_ts)})`);
+		console.debug(`Querying Mixin tx history (post ${new Date(this.history_update_ts)})`);
 
 		let d = await this.mixin.fetchSafeSnapshots(
 			this.asset_id,
 			this.history_update_ts,
 			async function (d) {
-				console.log('mixin tx history:', d);
 				let timestamp = 0;
 
 				for (let snap of d) {
@@ -406,7 +402,6 @@ class MixinModule extends CryptoModule {
 
 				this_self.history_update_ts = Math.max(timestamp, this_self.history_update_ts) + 1;
 				this_self.save();
-				console.log('Formatted history: ', this_self.history);
 
 				if (callback) {
 					callback(this_self.history);

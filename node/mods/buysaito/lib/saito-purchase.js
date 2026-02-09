@@ -1,5 +1,6 @@
 const SaitoPurchaseTemplate = require('./saito-purchase.template');
 const SaitoPurchaseLoaderTemplate = require('./saito-purchase-loader.template');
+const SaitoPurchaseErrorTemplate = require('./saito-purchase-error.template');
 const SaitoPurchaseCryptoTemplate = require('./saito-purchase-select-crypto.template');
 const SaitoPurchaseAmountTemplate = require('./saito-purchase-amount.template');
 
@@ -43,6 +44,12 @@ class SaitoPurchaseOverlay {
 
     app.connection.on('saito-purchase-address-reserved', (data) => {
       this.receivePaymentAddressFromServer(data);
+    });
+
+    app.connection.on('saito-purchase-error-notification', () => {
+      this.overlay.close();
+      this.overlay.closebox = true;
+      this.overlay.show(SaitoPurchaseErrorTemplate());
     });
 
     app.connection.on(

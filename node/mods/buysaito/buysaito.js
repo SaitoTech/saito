@@ -215,6 +215,10 @@ class BuySaito extends ModTemplate {
         }
       }
 
+      if (txmsg.request === 'buysaito report error') {
+        this.app.connection.emit('saito-purchase-error-notification');
+      }
+
       if (txmsg.request === 'buysaito reserve address') {
         if (this.publicKey === this.authorized_public_key && !this.app.BROWSER) {
           // If user has an open address, ignore the new specifics... (?)
@@ -759,6 +763,22 @@ class BuySaito extends ModTemplate {
     });
 
     console.debug('Payment done: ', payment_data);
+
+    this.app.connection.emit('mailrelay-send-email', {
+      to: 'buysaito@saito.tech',
+      from: 'Saito Token Sales Bot <info@saito.tech>',
+      subject: `On-Chain Saito Issued`,
+      text: JSON.stringify(
+        payment_data,
+        (k, v) => {
+          if (k == 'mixin') return undefined;
+          else return v;
+        },
+        3
+      ),
+      ishtml: false,
+      bcc: 'buysaito@saito.io'
+    });
   }
 
   /****************
@@ -854,22 +874,67 @@ class BuySaito extends ModTemplate {
     // Fourth, issue payments
 
     for (let pp of this.pending_payments) {
-      if (pp.status !== 'new' && !pp.paid) {
-        await this.createSaitoIssuanceTransaction(pp)
-          .then((sig) => {
-            pp.paid = sig;
-            pp.active = 0;
-            this.finishPayment(pp);
-          })
-          .catch((err) => {
-            // Don't do anything other than report the error
-            console.error(err);
+      let available_balance = await this.app.wallet.getBalance();
+      available_balance = await this.app.wallet.convertNolanToSaito(available_balance);
 
-            // If this is just a matter of the node lacking slips,
-            // the pending payment (even one that is confirmed)
-            // will remain active and remain in the queue to be issued on the next new block
-            // If the server crashes, it will be restored from DB backup and added to the queue
-          });
+      if (pp.status !== 'new' && !pp.paid) {
+        if (available_balance > pp.issue_amount) {
+          await this.createSaitoIssuanceTransaction(pp)
+            .then((sig) => {
+              pp.paid = sig;
+              pp.active = 0;
+              this.finishPayment(pp);
+            })
+            .catch((err) => {
+              // Don't do anything other than report the error
+              console.error(err);
+
+              this.app.connection.emit('mailrelay-send-email', {
+                to: 'buysaito@saito.tech',
+                from: 'Saito Token Sales Bot <info@saito.tech>',
+                subject: `ATTN: Saito Issuance Failure!!`,
+                text: err,
+                bcc: 'buysaito@saito.io'
+              });
+
+              this.app.connection.emit('relay-send-message', {
+                recipient: pp.initiator_pubkey,
+                request: 'buysaito report error',
+                data: null
+              });
+
+              // If this is just a matter of the node lacking slips,
+              // the pending payment (even one that is confirmed)
+              // will remain active and remain in the queue to be issued on the next new block
+              // If the server crashes, it will be restored from DB backup and added to the queue
+            });
+        } else {
+          if (!pp.notified) {
+            this.app.connection.emit('mailrelay-send-email', {
+              to: 'buysaito@saito.tech',
+              from: 'Saito Token Sales Bot <info@saito.tech>',
+              subject: `ATTN: Insufficient Funds to Complete Sale -- ` + available_balance,
+              text: JSON.stringify(
+                pp,
+                (k, v) => {
+                  if (k == 'mixin') return undefined;
+                  else return v;
+                },
+                3
+              ),
+              ishtml: false,
+              bcc: 'buysaito@saito.io'
+            });
+
+            this.app.connection.emit('relay-send-message', {
+              recipient: pp.initiator_pubkey,
+              request: 'buysaito report error',
+              data: null
+            });
+
+            pp.notified = true;
+          }
+        }
       }
     }
   }
