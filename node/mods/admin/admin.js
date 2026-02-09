@@ -261,7 +261,6 @@ class Admin extends ModTemplate {
   }
 
   updateOptions(options) {
-console.log("OPTIONS: "+ JSON.stringify(options));
     for (let a in options) {
       if (this.app.options[a]) {
         if (typeof options[a] === 'object') {
@@ -275,7 +274,6 @@ console.log("OPTIONS: "+ JSON.stringify(options));
 	this.app.options[a] = options[a];
       }
     }
-
     this.app.storage.saveOptions();
     this.writeOptions(options);
   }

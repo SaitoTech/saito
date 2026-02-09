@@ -1761,7 +1761,7 @@ export default class Wallet extends SaitoWallet {
 	  //
   	  let nft = this.app.options.wallet.nfts[z];
   	  try {
- 	    let amt = BigInt(nft.amount);
+ 	    let amt = BigInt(nft.slip1.amount);
     	    if (amt > 0n) {
       	      if (!nft_balance_by_id[nft.id]) {
                 nft_balance_by_id[nft.id] = 0n;
@@ -1810,6 +1810,7 @@ export default class Wallet extends SaitoWallet {
           }
         }
 
+/***** ADD NFTS TO WALLET ******
 for (let nft_id in nft_balance_by_id) {
 
   let total = nft_balance_by_id[nft_id];
@@ -1834,6 +1835,7 @@ for (let nft_id in nft_balance_by_id) {
     `NFT crypto module installed: ${ticker} (balance ${total.toString()})`
   );
 }
+***********************************/
 
 
       }

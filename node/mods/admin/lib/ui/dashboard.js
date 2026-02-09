@@ -78,9 +78,7 @@ class AdminDashboard {
 	updating_home_app = true;
 
         const app_id = card.dataset.app;
-        card.classList.add("working");
-
-alert("APPID: " + app_id);
+        card.classList.add("selected working");
 
         let tx =
           await this.app.wallet.createUnsignedTransactionWithDefaultFee(
@@ -91,7 +89,7 @@ alert("APPID: " + app_id);
           module: "Admin",
           request: "update-options",
           data: {
-            homeModule: app_id
+            defaultModule: app_id
           }
         };
 
@@ -99,12 +97,13 @@ alert("APPID: " + app_id);
 
         this.app.network.sendTransactionWithCallback(tx, (res_tx) => {
           let res = res_tx.returnMessage();
+	  updating_home_app = false;
           if (res?.err) {
             salert(res.err);
             card.classList.remove("working");
           } else {
-            siteMessage(`Home application set to ${app_id}`);
-            reloadWindow(1200);
+            siteMessage(`Home Application will update on next Server Refresh...`, 2000);
+            //reloadWindow(1200);
           }
         });
       };

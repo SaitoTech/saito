@@ -60,6 +60,27 @@
 .splash-card.selected {
   border-color: #4caf50;
   background: #f5fbf7;
+  box-shadow:
+    0 0 0 2px rgba(76, 175, 80, 0.25),
+    0 10px 26px rgba(0, 0, 0, 0.10);
+  cursor: default;
+}
+
+.splash-card.selected::after {
+  content: "Default";
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2e7d32;
+  background: #e8f5e9;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.splash-card.selected:hover {
+  transform: none;
 }
 
 .splash-card.working {

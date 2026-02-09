@@ -3,7 +3,7 @@ module.exports = (mod) => {
   const options = mod?.server_info?.options || {};
   const block_production_enabled =
     options.consensus?.disable_block_production === false;
-  const home_app = options.home_app || "";
+  const home_app = options.defaultModule || "";
 
   const splash_apps = [
     { id: "redsquare", label: "RedSquare" },
@@ -30,6 +30,8 @@ module.exports = (mod) => {
 	  On this page you can now enable/disable block production and select the application 
 	  that you want to display by default.
         </p>
+        <div class="dashboard-note" id="dashboard-note">
+        </div>
       </div>
 
       <div class="dashboard-section">
@@ -43,8 +45,6 @@ module.exports = (mod) => {
         </div>
       </div>
 
-      <div class="dashboard-note" id="dashboard-note">
-      </div>
 
       <div class="dashboard-admin-keys" id="dashboard-admin-keys">
 <div class="admin-keys-panel">
