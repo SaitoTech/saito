@@ -29,7 +29,7 @@ module.exports = (app, mod, build_number, og_card = {}, recent_posts = []) => {
   <meta name="twitter:site" content="${og_card.twitter}" />
   <meta name="twitter:creator" content="${og_card.twitter}" />
   <!--meta name="twitter:title" content="${og_card.title}" /-->
-  <meta name="twitter:title" content="Stack - Permissioned Blogging" />
+  <meta name="twitter:title" content="Stack - Open, Unstoppable Publishing" />
   <meta name="twitter:url" content="${og_card.url}" />
   <!--meta name="twitter:description" content="${og_card.description}" /-->
   <meta name="twitter:description" content="Open-source subscription-based blogging platform" />
@@ -38,7 +38,7 @@ module.exports = (app, mod, build_number, og_card = {}, recent_posts = []) => {
 
   <meta property="og:type" content="website" />
   <!--meta property="og:title" content="${og_card.title}" /-->
-  <meta property="og:title" content="Stack - Permissioned Blogging" />
+  <meta property="og:title" content="Stack - Open, Unstoppable Publishing" />
   <meta property="og:url" content="${og_card.url}" />
   <!--meta property="og:description" content="${og_card.description}"/-->
   <meta property="og:description" content="Open-source subscription-based blogging platform"/>
