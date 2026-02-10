@@ -111,13 +111,7 @@ class NFTCryptoModule extends CryptoModule {
     return unique_hash || tx.signature;
   }
 
-  async receivePayment(
-    amount = '',
-    sender = '',
-    recipient = '',
-    timestamp = 0,
-    unique_hash = ''
-  ) {
+  async receivePayment(amount = '', sender = '', recipient = '', timestamp = 0, unique_hash = '') {
     // NFT receipt is handled by wallet UTXO processing
     // We simply return success
     return true;
@@ -157,12 +151,6 @@ class NFTCryptoModule extends CryptoModule {
   async returnNetworkInfo() {
     return { confirmations: 0 };
   }
-
-  async getReservedPaymentAddress(obj = {}) {
-    // NFTs don’t reserve addresses; reservation is UTXO-based
-    return null;
-  }
 }
 
 module.exports = NFTCryptoModule;
-

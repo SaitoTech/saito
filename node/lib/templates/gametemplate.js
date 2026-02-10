@@ -396,7 +396,6 @@ class GameTemplate extends ModTemplate {
       this.initializeHTML(app);
       this.game_move_notification = new Audio('/saito/sound/Belligerent.mp3');
 
-      this.game.crypto = 'EGLD';
       if (this.game.crypto) {
         this.insertCryptoLogo(this.game.crypto);
       }

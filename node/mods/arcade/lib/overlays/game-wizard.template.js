@@ -1,5 +1,5 @@
 module.exports = (game_mod, invite_obj = {}) => {
-	let html = `<div class="arcade-wizard-overlay">`;
+	let html = `<form class="arcade-wizard-overlay saito-overlay-size wide">`;
 	let invite = null;
 	let publicKey = null;
 	if (invite_obj.invite) {
@@ -12,7 +12,6 @@ module.exports = (game_mod, invite_obj = {}) => {
 	let img = game_mod.respondTo('arcade-games')?.image || '';
 
 	html += `
-    <form>
     <div class="arcade-wizard-game-container">
     
       <!- ***Game thumbnail & options start*** -->
@@ -90,7 +89,6 @@ module.exports = (game_mod, invite_obj = {}) => {
       </div>
 
     </div>
-  </form>
   `;
 
 	// support game publishers
@@ -99,7 +97,7 @@ module.exports = (game_mod, invite_obj = {}) => {
       <span>NOTE: </span>${game_mod.publisher_message}</div>`;
 	}
 
-	html += `</div>`; // overlay closing
+	html += `</form>`; // overlay closing
 
 	return html;
 };

@@ -94,17 +94,15 @@
 }
 
 .arcade-wizard-overlay {
-	display: grid;
-	max-height: 95vh;
-	height: min-content;
-	width: min(900px, 90vw);
-	grid-template-rows: min-content auto;
 	padding: 2rem;
 	border-radius: inherit;
 	color: var(--saito-white);
 	background: var(--saito-gray-850);
 	border: 1px solid var(--saito-gray-850);
 	user-select: none;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-around;
 }
 
 .arcade-wizard-overlay .arcade-wizard-game-container {
