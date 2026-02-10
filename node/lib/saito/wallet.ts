@@ -1818,9 +1818,9 @@ export default class Wallet extends SaitoWallet {
               );
             }
           }
-        }
+       }
 
-        /***** ADD NFTS TO WALLET ******
+/*******************************
 for (let nft_id in nft_balance_by_id) {
 
   let total = nft_balance_by_id[nft_id];
@@ -1846,6 +1846,9 @@ for (let nft_id in nft_balance_by_id) {
   );
 }
 ***********************************/
+
+
+>>>>>>> 73715687 (fix: ts update)
       }
     } catch (err) {
       console.log('Error: load nfts');

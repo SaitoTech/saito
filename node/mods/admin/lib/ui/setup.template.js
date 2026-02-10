@@ -70,7 +70,7 @@ module.exports = (mod) => {
 
 	<p></p>
 
-	npm run setuplocal
+	<b>npm run setuplocal</b>
 
 	<p></p>
 

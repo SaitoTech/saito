@@ -160,7 +160,7 @@ class NodeSetup {
 
 	  <p></p>
 
-	  npm run setupprod
+	  <b>npm run setupprod</b>
 
 	  <p></p>
 

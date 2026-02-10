@@ -584,6 +584,9 @@ class CreatePost {
     // ========================================================================
     console.debug('[EDITOR-INVARIANT] Mount verified, attaching event listeners');
 
+    // Normalize DOM: blockquote must never be a child of <ul>
+    this._ensureBlockquoteNotInList();
+
     // Mount verified - attach event listeners exactly once
     this.attachEvents();
     this.eventsAttached = true;
@@ -648,6 +651,193 @@ class CreatePost {
    * It does NOT use cached state, draft snapshots, or autosave output.
    * What the user sees in the editor is exactly what gets serialized.
    */
+  /**
+   * DOM repair: blockquote must never be a child of <ul>.
+   * Move any blockquote found inside a list to be a sibling after the list.
+   */
+  _ensureBlockquoteNotInList() {
+    const editor = document.querySelector('#stack-post-body-editor');
+    if (!editor) return;
+    const uls = editor.querySelectorAll('ul');
+    for (const ul of uls) {
+      const blockquotes = Array.from(ul.children).filter(n => n.tagName === 'BLOCKQUOTE' && n.hasAttribute('data-block-id'));
+      for (const bq of blockquotes) {
+        const editorParent = ul.parentNode;
+        ul.removeChild(bq);
+        if (ul.nextSibling) {
+          editorParent.insertBefore(bq, ul.nextSibling);
+        } else {
+          editorParent.appendChild(bq);
+        }
+      }
+    }
+  }
+
+  /**
+   * Parse markdown string into editor block elements (with data-block-id, data-block-type).
+   * Ensures block structure round-trips: paste -> serialize -> reload -> identical structure.
+   * @param {string} markdown - Markdown content to parse
+   * @param {{ blockIndex: number }} state - Optional; mutated blockIndex for unique IDs across multiple calls
+   */
+  _parseMarkdownToBlockElements(markdown, state = { blockIndex: 0 }) {
+    const elements = [];
+    const lines = (markdown || '').split(/\n/);
+    let i = 0;
+
+    const nextId = () => generateBlockId(state.blockIndex++, 'block');
+
+    while (i < lines.length) {
+      const line = lines[i];
+      const trimmed = line.trim();
+
+      if (trimmed === '') {
+        i++;
+        continue;
+      }
+
+      const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const text = headingMatch[2].trim();
+        const el = document.createElement(`h${level}`);
+        el.setAttribute('data-block-id', nextId());
+        el.setAttribute('data-block-type', 'heading');
+        el.textContent = text;
+        el.contentEditable = 'true';
+        elements.push(el);
+        i++;
+        continue;
+      }
+
+      const unorderedMatch = trimmed.match(/^([*\-+])\s+(.*)$/);
+      const orderedMatch = trimmed.match(/^(\d+)([.)])\s+(.*)$/);
+      const listMatch = unorderedMatch || orderedMatch;
+      if (listMatch) {
+        const ul = document.createElement('ul');
+        while (i < lines.length) {
+          const liLine = lines[i];
+          const liTrimmed = liLine.trim();
+          const liUnordered = liTrimmed.match(/^([*\-+])\s+(.*)$/);
+          const liOrdered = liTrimmed.match(/^(\d+)([.)])\s+(.*)$/);
+          const liMatch = liUnordered || liOrdered;
+          if (!liMatch) break;
+          const liMarker = liUnordered ? liUnordered[1] + ' ' : liOrdered[1] + liOrdered[2] + ' ';
+          const liText = (liUnordered ? liUnordered[2] : liOrdered[3]) || '';
+          const li = document.createElement('li');
+          li.setAttribute('data-block-id', nextId());
+          li.setAttribute('data-block-type', 'list-item');
+          li.setAttribute('data-list-marker', liMarker);
+          li.textContent = liText;
+          li.contentEditable = 'true';
+          ul.appendChild(li);
+          i++;
+        }
+        elements.push(ul);
+        continue;
+      }
+
+      if (trimmed.startsWith('> ')) {
+        const bqLines = [];
+        while (i < lines.length && lines[i].trimStart().startsWith('>')) {
+          bqLines.push(lines[i].replace(/^>\s?/, ''));
+          i++;
+        }
+        const bq = document.createElement('blockquote');
+        bq.setAttribute('data-block-id', nextId());
+        bq.setAttribute('data-block-type', 'blockquote');
+        bq.textContent = bqLines.join('\n').replace(/\u200B/g, '').trim();
+        bq.contentEditable = 'true';
+        elements.push(bq);
+        continue;
+      }
+
+      if (trimmed === '```') {
+        const codeLines = [];
+        i++;
+        while (i < lines.length && lines[i].trim() !== '```') {
+          codeLines.push(lines[i]);
+          i++;
+        }
+        if (i < lines.length) i++;
+        const pre = document.createElement('pre');
+        pre.setAttribute('data-block-id', nextId());
+        pre.setAttribute('data-block-type', 'code');
+        pre.textContent = codeLines.join('\n');
+        pre.contentEditable = 'true';
+        elements.push(pre);
+        continue;
+      }
+
+      const imageMatch = trimmed.match(/^!\[([^\]]*)\]\((stack:image:[^)]+)\)$/);
+      if (imageMatch && this.images && this.images.length > 0) {
+        const imageId = imageMatch[2].replace('stack:image:', '');
+        const imgData = this.images.find((im) => im.id === imageId);
+        if (imgData) {
+          const figure = document.createElement('figure');
+          figure.setAttribute('data-block-id', nextId());
+          figure.setAttribute('data-block-type', 'image');
+          figure.className = 'stack-image-block';
+          const img = document.createElement('img');
+          img.src = `data:${imgData.mime};base64,${imgData.data}`;
+          img.dataset.stackImageId = imgData.id;
+          img.alt = imageMatch[1] || '';
+          figure.appendChild(img);
+          elements.push(figure);
+          i++;
+          continue;
+        }
+      }
+
+      const paraLines = [];
+      while (i < lines.length) {
+        const pl = lines[i];
+        if (pl.trim() === '') break;
+        if (/^#{1,6}\s/.test(pl.trim()) || /^[*\-+]\s/.test(pl.trim()) || /^\d+[.)]\s/.test(pl.trim()) || pl.trimStart().startsWith('>') || pl.trim() === '```') break;
+        paraLines.push(pl);
+        i++;
+      }
+      const p = document.createElement('p');
+      p.setAttribute('data-block-id', nextId());
+      p.setAttribute('data-block-type', 'paragraph');
+      const paraText = paraLines.join('\n').replace(/\u200B/g, '').trim();
+      if (paraText) {
+        p.textContent = paraText;
+      } else {
+        p.appendChild(document.createTextNode('\u200B'));
+      }
+      p.contentEditable = 'true';
+      elements.push(p);
+    }
+
+    return elements;
+  }
+
+  /**
+   * Serialize inline content from a container, treating <code> and <pre> as opaque.
+   * No linkification, emphasis parsing, or any transformation of code content.
+   */
+  _serializeInlineContent(container) {
+    if (!container) return '';
+    let out = '';
+    for (const node of container.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        out += (node.textContent || '').replace(/\u200B/g, '');
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = node.tagName ? node.tagName.toLowerCase() : '';
+        if (tag === 'code') {
+          out += '`' + (node.textContent || '').replace(/\u200B/g, '') + '`';
+        } else if (tag === 'pre') {
+          out += (node.textContent || '').replace(/\u200B/g, '');
+        } else if (tag === 'br') {
+          out += '  \n';
+        } else {
+          out += this._serializeInlineContent(node);
+        }
+      }
+    }
+    return out;
+  }
+
   serializeDOMToMarkdown(imageIdMap = null) {
 
     // PUBLISH MODE: build imageIdMap if not provided
@@ -671,12 +861,13 @@ class CreatePost {
       }
 
       switch (blockType) {
-        case 'heading':
+        case 'heading': {
           const level = parseInt(blockEl.tagName.charAt(1)) || 1;
-          const headingText = (blockEl.textContent || '').replace(/\u200B/g, '').trim();
+          const headingText = this._serializeInlineContent(blockEl).replace(/\u200B/g, '').trim();
           const headingPrefix = '#'.repeat(level);
           markdownLines.push(`${headingPrefix} ${headingText}`);
           break;
+        }
 
 case 'image': {
   const img = blockEl.querySelector('img');
@@ -710,7 +901,7 @@ case 'image': {
           break;
 
 	case 'list-item': {
-	  const text = (blockEl.textContent || '').replace(/\u200B/g, '').trim();
+	  const text = this._serializeInlineContent(blockEl).replace(/\u200B/g, '').trim();
 	  if (text) {
 	    const marker = blockEl.getAttribute('data-list-marker') || '- ';
 	    markdownLines.push(`${marker}${text}`);
@@ -718,15 +909,23 @@ case 'image': {
 	  break;
 	}
 
+        case 'blockquote': {
+          // Blockquote: emit "> " prefix per line so structure round-trips
+          const rawText = this._serializeInlineContent(blockEl).replace(/\u200B/g, '');
+          const lines = rawText.split(/\n/);
+          const blockquoteLines = lines.map((line) => '> ' + (line || ''));
+          markdownLines.push(blockquoteLines.join('\n'));
+          break;
+        }
         case 'paragraph':
-        case 'blockquote':
-        default:
-          // Paragraph, list-item, and blockquote are plain text
-          const text = (blockEl.textContent || '').replace(/\u200B/g, '').trim();
+        default: {
+          // Paragraph: serialize inline content; <code>/<pre> are opaque
+          const text = this._serializeInlineContent(blockEl).replace(/\u200B/g, '').trim();
           if (text) {
             markdownLines.push(text);
           }
           break;
+        }
       }
     }
 
@@ -1140,60 +1339,46 @@ case 'image': {
       if (content.trim()) {
 
 // ----------------------------------------------------
-// RESOLVE stack:image:* REFERENCES FOR EDIT MODE
-// ----------------------------------------------------
-if (Array.isArray(clonedData.images) && clonedData.images.length > 0) {
-  content = content.replace(
-    /!\[([^\]]*)\]\(stack:image:([^)]+)\)/g,
-    (match, alt, imageId) => {
-      const image = clonedData.images.find(img => img.id === imageId);
-      if (!image) return match;
-
-      const src = `data:${image.mime};base64,${image.data}`;
-      return `![${alt || ''}](${src})`;
-    }
-  );
-}
-
-// ----------------------------------------------------
 // EDIT MODE RENDERING (markdown + images)
+// Parse markdown into block structure so paste->save->reload round-trips exactly
 // ----------------------------------------------------
 
-// Clear editor
 editor.innerHTML = '';
-
-// Restore image registry
 this.images = Array.isArray(clonedData.images) ? [...clonedData.images] : [];
 
-// Split content by stack:image references
 const parts = content.split(/!\[([^\]]*)\]\(stack:image:([^)]+)\)/g);
+const blockState = { blockIndex: 0 };
+const nextBlockId = () => generateBlockId(blockState.blockIndex++, 'block');
 
 for (let i = 0; i < parts.length; i++) {
-  if (i % 3 === 0) {
-    // Text segment
-    if (parts[i] && parts[i].trim()) {
-      const p = document.createElement('p');
-      p.textContent = parts[i];
-      editor.appendChild(p);
-    }
+  if (i % 3 === 0 && parts[i]) {
+    const blockEls = this._parseMarkdownToBlockElements(parts[i], blockState);
+    blockEls.forEach((el) => editor.appendChild(el));
   }
-
   if (i % 3 === 2) {
-    // Image ID segment
     const imageId = parts[i];
-    const image = this.images.find(img => img.id === imageId);
+    const image = this.images.find((img) => img.id === imageId);
     if (!image) continue;
-
     const figure = document.createElement('figure');
+    figure.setAttribute('data-block-id', nextBlockId());
     figure.setAttribute('data-block-type', 'image');
-
+    figure.className = 'stack-image-block';
     const img = document.createElement('img');
     img.src = `data:${image.mime};base64,${image.data}`;
     img.dataset.stackImageId = image.id;
-
+    img.alt = parts[i - 1] || '';
     figure.appendChild(img);
     editor.appendChild(figure);
   }
+}
+
+if (editor.children.length === 0) {
+  const p = document.createElement('p');
+  p.setAttribute('data-block-id', generateBlockId(blockState.blockIndex++, 'block'));
+  p.setAttribute('data-block-type', 'paragraph');
+  p.appendChild(document.createTextNode('\u200B'));
+  p.contentEditable = 'true';
+  editor.appendChild(p);
 }
 
 
@@ -1681,6 +1866,72 @@ const data = {
   }
 
   /**
+   * Get block content as serialized text (code as backticks) and cursor offset in that text.
+   * Code nodes are serialized as `...` so linkification treats their content as opaque.
+   */
+  getBlockContentForLinkification(blockElement, selection) {
+    const range = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+    let serialized = '';
+    let splitOffset = 0;
+    const targetNode = range ? range.startContainer : null;
+    const targetOffset = range ? range.startOffset : 0;
+
+    const offsetInNode = (node) => {
+      if (node === targetNode) return targetOffset;
+      if (node.nodeType === Node.TEXT_NODE) return -1;
+      const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
+      let pos = 0;
+      let n = walker.nextNode();
+      while (n) {
+        if (n === targetNode) return pos + targetOffset;
+        pos += (n.textContent || '').replace(/\u200B/g, '').length;
+        n = walker.nextNode();
+      }
+      return -1;
+    };
+
+    const walk = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = (node.textContent || '').replace(/\u200B/g, '');
+        if (node === targetNode) {
+          splitOffset = serialized.length + Math.min(targetOffset, text.length);
+        }
+        serialized += text;
+        return;
+      }
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const tag = node.tagName ? node.tagName.toLowerCase() : '';
+        if (tag === 'code') {
+          const inner = (node.textContent || '').replace(/\u200B/g, '');
+          const idx = offsetInNode(node);
+          if (idx >= 0) {
+            splitOffset = serialized.length + 1 + Math.min(idx, inner.length);
+          }
+          serialized += '`' + inner + '`';
+          return;
+        }
+        if (tag === 'pre') {
+          const inner = (node.textContent || '').replace(/\u200B/g, '');
+          const idx = offsetInNode(node);
+          if (idx >= 0) {
+            splitOffset = serialized.length + Math.min(idx, inner.length);
+          }
+          serialized += inner;
+          return;
+        }
+        for (let i = 0; i < node.childNodes.length; i++) {
+          walk(node.childNodes[i]);
+        }
+      }
+    };
+
+    for (let i = 0; i < blockElement.childNodes.length; i++) {
+      walk(blockElement.childNodes[i]);
+    }
+    return { text: serialized, splitOffset };
+  }
+
+  /**
    * Get text offset from a range within a block
    */
   getTextOffsetFromRange(blockElement, range) {
@@ -1712,14 +1963,51 @@ const data = {
    * Convert bare http/https URLs to Markdown link syntax [url](url).
    * Pure text rewrite only. Does not create DOM nodes.
    * Skips URLs already inside [text](url). Strips trailing punctuation in post-processing.
+   *
+   * Emphasis-aware: emphasis ALWAYS dominates. Links inside emphasized spans are
+   * linkified within the span; markers are never included in URLs or hrefs.
+   * Supports mixed text + link (e.g. **Check this: https://x.com**) and nested emphasis.
+   *
+   * Code-invariant: text inside `...` or ```...``` is never linkified.
    */
   _convertBareUrlsToMarkdownLinks(text) {
     if (!text || typeof text !== 'string') return text;
-    const re = /\b(https?:\/\/[^\s<>\[\]]+)/g;
-    return text.replace(re, (match, _p1, offset, fullString) => {
-      if (offset >= 2 && fullString.slice(offset - 2, offset) === '](') {
-        return match;
-      }
+
+    // Pre-pass: extract code spans (opaque - no linkification). Match ``` before `.
+    const codeSpans = [];
+    const CODE_PLACEHOLDER = '\u0000CODE\u0000';
+    text = text.replace(/```[\s\S]*?```/g, (m) => {
+      codeSpans.push(m);
+      return CODE_PLACEHOLDER + (codeSpans.length - 1) + CODE_PLACEHOLDER;
+    });
+    text = text.replace(/`[^`]*`/g, (m) => {
+      codeSpans.push(m);
+      return CODE_PLACEHOLDER + (codeSpans.length - 1) + CODE_PLACEHOLDER;
+    });
+
+    // Pre-pass: emphasis spans. Match longest delimiters first (*** before ** before *).
+    // For each span, linkify inner content only; never consume emphasis delimiters.
+    const emphasisPatterns = [
+      { marker: '***', re: /\*\*\*([^*]+?)\*\*\*/g },
+      { marker: '**', re: /\*\*([^*]+?)\*\*/g },
+      { marker: '__', re: /__([^_]+?)__/g },
+      { marker: '*', re: /\*([^*]+?)\*/g },
+      { marker: '_', re: /_([^_]+?)_/g }
+    ];
+
+    for (const { marker, re } of emphasisPatterns) {
+      text = text.replace(re, (_, inner) => {
+        const linkified = this._linkifyBareUrlsOnly(inner);
+        return `${marker}${linkified}${marker}`;
+      });
+    }
+
+    // Standard linkification for non-emphasized bare URLs
+    const bareUrlRe = /\b(https?:\/\/[^\s<>\[\]]+)/g;
+    text = text.replace(bareUrlRe, (match, _p1, offset, fullString) => {
+      // Skip if already inside markdown link: ](href) or [link text
+      if (offset >= 2 && fullString.slice(offset - 2, offset) === '](') return match;
+      if (offset >= 1 && fullString[offset - 1] === '[') return match;
       let url = match.replace(/[.,;:!?\]]+$/, '');
       const openParens = (url.match(/\(/g) || []).length;
       const closeParens = (url.match(/\)/g) || []).length;
@@ -1729,6 +2017,65 @@ const data = {
       const trailing = match.slice(url.length);
       return `[${url}](${url})${trailing}`;
     });
+
+    // Restore code spans (unchanged)
+    for (let i = 0; i < codeSpans.length; i++) {
+      text = text.replace(CODE_PLACEHOLDER + i + CODE_PLACEHOLDER, codeSpans[i]);
+    }
+    return text;
+  }
+
+  /**
+   * Linkify bare URLs only (no emphasis handling). Used when processing inner content
+   * of emphasis spans. Preserves code spans as opaque.
+   */
+  _linkifyBareUrlsOnly(text) {
+    if (!text || typeof text !== 'string') return text;
+
+    const codeSpans = [];
+    const CODE_PLACEHOLDER = '\u0000CODE\u0000';
+    text = text.replace(/```[\s\S]*?```/g, (m) => {
+      codeSpans.push(m);
+      return CODE_PLACEHOLDER + (codeSpans.length - 1) + CODE_PLACEHOLDER;
+    });
+    text = text.replace(/`[^`]*`/g, (m) => {
+      codeSpans.push(m);
+      return CODE_PLACEHOLDER + (codeSpans.length - 1) + CODE_PLACEHOLDER;
+    });
+
+    const bareUrlRe = /\b(https?:\/\/[^\s<>\[\]]+)/g;
+    text = text.replace(bareUrlRe, (match, _p1, offset, fullString) => {
+      if (offset >= 2 && fullString.slice(offset - 2, offset) === '](') return match;
+      if (offset >= 1 && fullString[offset - 1] === '[') return match;
+      let url = match.replace(/[.,;:!?\]]+$/, '');
+      const openParens = (url.match(/\(/g) || []).length;
+      const closeParens = (url.match(/\)/g) || []).length;
+      if (closeParens > openParens && url.endsWith(')')) {
+        url = url.slice(0, -1);
+      }
+      const trailing = match.slice(url.length);
+      return `[${url}](${url})${trailing}`;
+    });
+
+    for (let i = 0; i < codeSpans.length; i++) {
+      text = text.replace(CODE_PLACEHOLDER + i + CODE_PLACEHOLDER, codeSpans[i]);
+    }
+    return text;
+  }
+
+  /**
+   * Clean a bare URL for linkification: strip trailing punctuation.
+   * Returns empty string if input is invalid.
+   */
+  _linkifyBareUrl(url) {
+    if (!url || typeof url !== 'string') return '';
+    let clean = url.replace(/[.,;:!?\]]+$/, '');
+    const openParens = (clean.match(/\(/g) || []).length;
+    const closeParens = (clean.match(/\)/g) || []).length;
+    if (closeParens > openParens && clean.endsWith(')')) {
+      clean = clean.slice(0, -1);
+    }
+    return clean;
   }
 
   /**
@@ -1770,6 +2117,9 @@ const data = {
     // INVARIANT: Enter prevention is centralized here and must not be reintroduced conditionally.
     // No branch in this function "decides" whether Enter is prevented - it is always prevented.
     e.preventDefault();
+
+    // DOM repair: blockquote must never be a child of <ul> (ensures clean block boundaries before Enter)
+    this._ensureBlockquoteNotInList();
 
     // ========================================================================
     // PHASE 1: INTENT CAPTURE
@@ -2010,6 +2360,37 @@ const data = {
           focusedBlock = codeElement;
           blockType = 'code';
         }
+      }
+    }
+
+    // List-item blockquote: "> " at start of list item → break out of list, start new blockquote.
+    // Blockquote must never be a child of <ul>; insert after the list.
+    if (blockType === 'list-item' && focusedBlock.tagName === 'LI') {
+      const liText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
+      const liTrimmed = liText.trimStart();
+      if (liTrimmed.startsWith('> ')) {
+        const leadingWs = liText.length - liTrimmed.length;
+        const text = liText.substring(leadingWs + 2);
+        const blockquoteElement = document.createElement('blockquote');
+        blockquoteElement.setAttribute('data-block-id', generateBlockId(this.getBlockCount()));
+        blockquoteElement.setAttribute('data-block-type', 'blockquote');
+        blockquoteElement.contentEditable = 'true';
+        blockquoteElement.textContent = text;
+
+        const ulElement = focusedBlock.parentNode;
+        const editor = ulElement.parentNode;
+        ulElement.removeChild(focusedBlock);
+        if (ulElement.children.length === 0) {
+          editor.replaceChild(blockquoteElement, ulElement);
+        } else {
+          if (ulElement.nextSibling) {
+            editor.insertBefore(blockquoteElement, ulElement.nextSibling);
+          } else {
+            editor.appendChild(blockquoteElement);
+          }
+        }
+        focusedBlock = blockquoteElement;
+        blockType = 'blockquote';
       }
     }
 
@@ -2543,31 +2924,21 @@ const data = {
     // This ensures that EVERY Enter keypress in a paragraph results in exactly one structural action.
     // e.preventDefault() already called at function start
 
-    const currentText = (focusedBlock.textContent || '').replace(/\u200B/g, '');
-    
-    // Cursor offset logic is ONLY used for paragraph-to-paragraph splitting.
-    // If blockType changed during normalization, originalCursorOffset is INVALID.
-    // Only use originalCursorOffset if we're still a paragraph (no normalization occurred).
-    let cursorOffset;
-    if (blockType === 'paragraph' && originalBlockType === 'paragraph') {
-      // Paragraph-to-paragraph splitting: use pre-normalization offset
-      cursorOffset = originalCursorOffset;
-    } else {
-      // BlockType changed during normalization: offset is INVALID, recompute from live selection
-      const currentSelection = window.getSelection();
-      if (!currentSelection.rangeCount) {
-        throw new Error('No selection after normalization - structural violation');
-      }
-      cursorOffset = this.getTextOffsetInBlock(focusedBlock, currentSelection);
-    }
-    
-    // Ensure cursor offset is within bounds
-    if (cursorOffset < 0) cursorOffset = 0;
-    if (cursorOffset > currentText.length) cursorOffset = currentText.length;
-    
+    // Use serialized content (code as backticks) so URLs inside <code> are never linkified.
+    const currentSelection = window.getSelection();
+    const { text: currentText, splitOffset: cursorOffset } = this.getBlockContentForLinkification(
+      focusedBlock,
+      currentSelection
+    );
+
+    // Clamp cursor offset; if getBlockContentForLinkification failed to set it, fall back to end
+    let safeCursorOffset = cursorOffset;
+    if (safeCursorOffset < 0) safeCursorOffset = 0;
+    if (safeCursorOffset > currentText.length) safeCursorOffset = currentText.length;
+
     // Split text into before and after cursor
-    const beforeText = currentText.substring(0, cursorOffset);
-    const afterText = currentText.substring(cursorOffset);
+    const beforeText = currentText.substring(0, safeCursorOffset);
+    const afterText = currentText.substring(safeCursorOffset);
 
     // Auto-link bare URLs: text-only rewrite before DOM write. Safe per invariants:
     // no new blocks, no <a> elements, no cursor/selection changes—only textContent content.
@@ -2751,6 +3122,9 @@ const data = {
    * DOM is authoritative: sync from DOM FIRST
    */
   handleBackspaceKey(e) {
+    // DOM repair: blockquote must never be a child of <ul> (ensures clean block boundaries before Backspace)
+    this._ensureBlockquoteNotInList();
+
     // Check if an image is selected first
     const selectedImage = document.querySelector('.stack-image-selected');
     if (selectedImage) {
@@ -3171,6 +3545,16 @@ const data = {
     const lines = text.split(/\r?\n/);
     const syntheticEnter = { preventDefault: () => {} };
 
+    // Merge lines connected by markdown hard breaks (two trailing spaces)
+    const mergedLines = [];
+    for (let i = 0; i < lines.length; i++) {
+      let chunk = lines[i];
+      while (/  $/.test(chunk) && i + 1 < lines.length && lines[i + 1].length > 0) {
+        chunk += '\n' + lines[++i];
+      }
+      mergedLines.push(chunk);
+    }
+
     // List context must be preserved across pasted lines so list items continue in the same list
     // (Markdown lists are context-dependent; Enter already handles continuation when typing).
     const lineStartsWithListMarker = (line) =>
@@ -3182,8 +3566,8 @@ const data = {
       return m ? m[2] : line;
     };
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+    for (let i = 0; i < mergedLines.length; i++) {
+      const line = mergedLines[i];
       const focusedBlock = this.getFocusedBlock();
       const blockType = focusedBlock ? focusedBlock.getAttribute('data-block-type') : null;
       const inList = blockType === 'list-item';
@@ -3199,14 +3583,38 @@ const data = {
           this.handleEnterKey(syntheticEnter);
         }
         if (line.length > 0) {
-          document.execCommand('insertText', false, line);
+          if (line.includes('\n')) {
+            const parts = line.split('\n');
+            for (let j = 0; j < parts.length; j++) {
+              if (parts[j].length > 0) {
+                document.execCommand('insertText', false, parts[j]);
+              }
+              if (j < parts.length - 1) {
+                const sel = window.getSelection();
+                if (sel.rangeCount) {
+                  const r = sel.getRangeAt(0);
+                  const br = document.createElement('br');
+                  r.insertNode(br);
+                  r.setStartAfter(br);
+                  r.collapse(true);
+                  sel.removeAllRanges();
+                  sel.addRange(r);
+                }
+              }
+            }
+          } else {
+            document.execCommand('insertText', false, line);
+          }
         }
       }
 
-      if (i < lines.length - 1) {
+      if (i < mergedLines.length - 1) {
         this.handleEnterKey(syntheticEnter);
       }
     }
+
+    // DOM repair: blockquote must never be a child of <ul> (paste can create list+blockquote structure)
+    this._ensureBlockquoteNotInList();
 
     this.scheduleSerialization();
     this.updatePlaceholderVisibility();
