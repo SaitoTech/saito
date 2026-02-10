@@ -4,6 +4,19 @@ module.exports = (app, mod, self) => {
   );
   if (!data) return '';
 
+  let img = data.icon_url || `/${data.ticker.toLowerCase()}/img/logo.png`;
+
+  let results = app.modules.getRespondTos('crypto-logo', { ticker: data.ticker }).shift();
+
+  if (results?.img) {
+    img = results?.img;
+  }
+
+  let logo = `<img class='crypto-logo' src='${img}'>`;
+  if (results?.sub_logo) {
+    logo += `<img class='chain-logo' src='${results?.sub_logo}'>`;
+  }
+
   let url = data.icon_url || `/${data.ticker.toLowerCase()}/img/logo.png`;
 
   let html = `
@@ -12,7 +25,7 @@ module.exports = (app, mod, self) => {
       <div class='saito-purchase-deposit-header'>Select Amount</div>
       <div class='crypto-box'>
         <div>${data.ticker}</div>
-        <img class="crypto-logo" src="${url}">
+        <div class="crypto-logo-container">${logo}</div>
         <input type="number" autocomplete="off" min="0" max="9999999999.99999999" step="0.00000001" class="input-amount" id="input-amount" value="" required="" placeholder="amount to spend">
       </div>
       <div class='crypto-box'>

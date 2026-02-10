@@ -62,9 +62,12 @@
   transition: background-color 0.2s;
 }
 
-.purchase-crypto-item .crypto-logo {
-  width: 65%;
-  height: auto;
+.purchase-crypto-logo-container {
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
 }
 
 .purchase-crypto-item:hover {
@@ -162,14 +165,10 @@
 .crypto-box {
   display: flex;
   font-size: 2rem;
-  height: 4rem;
+  min-height: 4rem;
   gap: 2rem;
   align-items: center;
   justify-content: space-between;
-}
-
-.amount-selection-box .crypto-logo {
-  width: unset;
 }
 
 .expected_amount {

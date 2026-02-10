@@ -26,11 +26,6 @@ class BCH extends ModTemplate {
         asset_id: this.asset_id
       };
     }
-    if (type == 'crypto-logo') {
-      if (obj?.ticker == this.ticker) {
-        return { img: `/bch/img/logo.png` };
-      }
-    }
     return null;
   }
 }

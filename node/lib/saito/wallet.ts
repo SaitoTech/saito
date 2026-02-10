@@ -118,10 +118,6 @@ export default class Wallet extends SaitoWallet {
         });
       }
 
-      returnLogo() {
-        return '/saito/img/touch/pwa-192x192.png';
-      }
-
       // Check if I have a net change in slips amounts...
       shouldAffixCallbackToModule(modname, tx = null) {
         if (this.app.BROWSER) {
@@ -506,6 +502,10 @@ export default class Wallet extends SaitoWallet {
         return this.app.wallet.isValidPublicKey(address);
       }
 
+      returnLogos() {
+        return { img: '/saito/img/saito-icon.png', alt_img: '/saito/img/logo.png' };
+      }
+
       async checkBalanceUpdate() {
         let balance = this.balance;
         await this.checkBalance();
@@ -808,7 +808,7 @@ export default class Wallet extends SaitoWallet {
     return activeMods;
   }
 
-  returnCryptoModuleByTicker(ticker="") {
+  returnCryptoModuleByTicker(ticker = '') {
     const mods = this.returnInstalledCryptos(false);
     for (let i = 0; i < mods.length; i++) {
       // be case insensitive, just in case
@@ -1742,36 +1742,31 @@ export default class Wallet extends SaitoWallet {
   public async loadNFTs() {
     console.log('LOAD NFTs');
     try {
-
       let nft_balance_by_id = {};
 
       if (this.app.options.wallet.nfts) {
-
         for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
-
           let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
           console.log('Extracting NFT type...');
           console.log(this.app.options.wallet.nfts[z].slip3?.utxo_key);
           let nft_type = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
           console.log(nft_type);
 
-	
-	  //
-	  // check balance (will be used for wallet)
-	  //
-  	  let nft = this.app.options.wallet.nfts[z];
-  	  try {
- 	    let amt = BigInt(nft.slip1.amount);
-    	    if (amt > 0n) {
-      	      if (!nft_balance_by_id[nft.id]) {
+          //
+          // check balance (will be used for wallet)
+          //
+          let nft = this.app.options.wallet.nfts[z];
+          try {
+            let amt = BigInt(nft.slip1.amount);
+            if (amt > 0n) {
+              if (!nft_balance_by_id[nft.id]) {
                 nft_balance_by_id[nft.id] = 0n;
-      	      }
-      	      nft_balance_by_id[nft.id] += amt;
-    	    }
-  	  } catch (err) {
-	    console.warn('Invalid NFT amount:', nft.amount);
-	  }
-
+              }
+              nft_balance_by_id[nft.id] += amt;
+            }
+          } catch (err) {
+            console.warn('Invalid NFT amount:', nft.amount);
+          }
 
           //
           // we only load "enabled" NFTS
@@ -1810,7 +1805,7 @@ export default class Wallet extends SaitoWallet {
           }
         }
 
-/***** ADD NFTS TO WALLET ******
+        /***** ADD NFTS TO WALLET ******
 for (let nft_id in nft_balance_by_id) {
 
   let total = nft_balance_by_id[nft_id];
@@ -1836,8 +1831,6 @@ for (let nft_id in nft_balance_by_id) {
   );
 }
 ***********************************/
-
-
       }
     } catch (err) {
       console.log('Error: load nfts');

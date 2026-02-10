@@ -26,11 +26,6 @@ class ZEC extends ModTemplate {
         asset_id: this.asset_id
       };
     }
-    if (type == 'crypto-logo') {
-      if (obj?.ticker == this.ticker) {
-        return { img: `/zec/img/logo.png` };
-      }
-    }
     return null;
   }
 }

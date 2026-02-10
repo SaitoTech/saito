@@ -184,6 +184,38 @@ class Mixin extends ModTemplate {
     return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
+  respondTo(type = '', obj) {
+    if (type == 'crypto-logo') {
+      let ticker = obj.ticker;
+      for (let cm of this.crypto_mods)
+        if (ticker == cm.ticker) {
+          if (cm.respondTo('crypto-logo', obj)) {
+            return cm.respondTo('crypto-logo', obj);
+          }
+
+          let rtn_obj = {};
+
+          if (cm.icon_url) {
+            rtn_obj.img = cm.icon_url;
+            rtn_obj.alt_img = `/${ticker.toLowerCase()}/img/logo.png`;
+          } else {
+            rtn_obj.img = `/${ticker.toLowerCase()}/img/logo.png`;
+          }
+
+          if (cm.chain_id !== cm.asset_id) {
+            for (let i = 0; i < this.crypto_mods.length; i++) {
+              if (this.crypto_mods[i].asset_id == cm.chain_id) {
+                rtn_obj.sub_logo = `/${this.crypto_mods[i].ticker.toLowerCase()}/img/logo.png`;
+              }
+            }
+          }
+
+          return rtn_obj;
+        }
+    }
+
+    return null;
+  }
   //
   // installCryptos
   //

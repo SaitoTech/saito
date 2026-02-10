@@ -20,7 +20,7 @@ module.exports = (app, mod, publickey = '', address = '') => {
           <div class="dropdown-cont">
             <div class="saito-overlay-form-input">
                 <div class="token-dropdown">
-                  <div id="withdraw-logo-cont"></div>
+                  <div id="withdraw-logo-cont" class="withdraw-logo-cont"></div>
                   <select class="withdraw-select-crypto" id="withdraw-select-crypto"></select>
                 </div>
             </div>

@@ -257,11 +257,12 @@ class CryptoModule extends ModTemplate {
     }
   }
 
-  //
-  // Please include a small image at this location
-  //
-  returnLogo() {
-    return `/${this.ticker.toLowerCase()}/img/logo.png`;
+  returnLogos() {
+    return (
+      this.app.modules.getRespondTos('crypto-logo', { ticker: this.ticker }).shift() || {
+        img: this.icon_url || `/${this.ticker.toLowerCase()}/img/logo.png`
+      }
+    );
   }
 
   /**

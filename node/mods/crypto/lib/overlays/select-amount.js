@@ -27,11 +27,11 @@ class CryptoSelectAmount {
 
 		this.overlay.show(CryptoSelectAmountTemplate(this.app, this.mod, this));
 		this.overlay.blockClose('#enable_staking_yes');
-		if (document.querySelector(`#stake-crypto-request-container .withdraw-img-${this.ticker}`)) {
-			document
-				.querySelector(`#stake-crypto-request-container .withdraw-img-${this.ticker}`)
-				.classList.remove('hide-element');
-		}
+		document
+			.querySelectorAll(`#withdraw-logo-cont img[data-ticker="${this.ticker}"]`)
+			.forEach((el) => {
+				el.classList.remove('hide-element');
+			});
 		this.attachEvents();
 	}
 
@@ -100,9 +100,10 @@ class CryptoSelectAmount {
 
 		if (document.querySelector('#stake-select-crypto')) {
 			document.querySelector('#stake-select-crypto').onchange = (e) => {
-				document
-					.querySelector(`#stake-crypto-request-container .withdraw-img-${this.ticker}`)
-					.classList.add('hide-element');
+				document.querySelectorAll(`#withdraw-logo-cont img`).forEach((el) => {
+					el.classList.add('hide-element');
+				});
+
 				this.ticker = e.target.value;
 				this.stake = 0;
 
@@ -114,8 +115,11 @@ class CryptoSelectAmount {
 				);
 
 				document
-					.querySelector(`#stake-crypto-request-container .withdraw-img-${this.ticker}`)
-					.classList.remove('hide-element');
+					.querySelectorAll(`#withdraw-logo-cont img[data-ticker="${this.ticker}"]`)
+					.forEach((el) => {
+						el.classList.remove('hide-element');
+					});
+
 				this.attachEvents();
 
 				//stake_input.value = "";

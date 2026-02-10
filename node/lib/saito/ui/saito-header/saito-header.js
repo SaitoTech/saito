@@ -825,14 +825,23 @@ class SaitoHeader extends UIModTemplate {
       for (let i = 0; i < available_cryptos.length; i++) {
         let crypto_mod = available_cryptos[i];
 
+        // We allow Mixin to collectively handle some stuff for us...
+        let rtn_val = crypto_mod.returnLogos();
+
         options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
         id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${
           crypto_mod.ticker
         }</option>`;
 
         menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
-        menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="/${crypto_mod.ticker.toLowerCase()}/img/logo.png"></div>`;
-        menu_html += `<div class="header-crypto-balance">${this.app.browser.formatDecimals(crypto_mod.returnBalance())} ${crypto_mod.ticker}</div>`;
+
+        menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${rtn_val.img}">`;
+
+        if (rtn_val.sub_logo) {
+          menu_html += `<img class="chain-logo" src="${rtn_val.sub_logo}">`;
+        }
+
+        menu_html += `</div><div class="header-crypto-balance">${this.app.browser.formatDecimals(crypto_mod.returnBalance())} ${crypto_mod.ticker}</div>`;
 
         //price_usd
         /*if (crypto_mod.ticker !== 'SAITO') {

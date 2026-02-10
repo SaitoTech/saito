@@ -9,7 +9,6 @@
 	--p2-color-lite: #004193e9; /* bluish */
 	--p3-color-lite: #adce14e9; /* yellowish */
 	--p4-color-lite: #644700e9; /* brown */
-
 }
 
 @font-face {
@@ -21,10 +20,6 @@
 .mobile-log-tab {
 	background-color: #d3c38df5;
 	color: #424143;
-}
-
-.crypto_logo {
-	left: 50px;
 }
 
 .player-box {

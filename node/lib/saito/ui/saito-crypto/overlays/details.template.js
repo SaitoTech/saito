@@ -1,10 +1,15 @@
 module.exports = (app, mod) => {
   let balance = Number(mod.returnBalance());
   //saito-overlay-size wide
+  let rtn_val = mod.returnLogos();
+
   let html = `
     <div class="crypto-details-overlay ">
         <div class="saito-overlay-form-header">
-            <div class="crypto-logo-container"><img class="crypto-logo" src="/${mod.ticker.toLowerCase()}/img/logo.png"></div>
+            <div class="crypto-logo-container">
+              <img class="crypto-logo" src="${rtn_val.img}">
+              ${rtn_val.sub_logo ? `<img class="chain-logo" src="${rtn_val.sub_logo}">` : ''}
+            </div>
             <div class="saito-overlay-form-header-title">${mod.name}</div>
             ${
               mod.address

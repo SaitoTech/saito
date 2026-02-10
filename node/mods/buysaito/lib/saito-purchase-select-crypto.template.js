@@ -2,12 +2,22 @@ module.exports = (app, mod, self) => {
   let cryptos_list = mod.available_currencies
     .map((currency) => {
       let lbl = (currency.ticker || '').toUpperCase();
-      let url = currency.icon_url || `/${lbl.toLowerCase()}/img/logo.png`;
 
+      let img = currency.icon_url || `/${currency.ticker.toLowerCase()}/img/logo.png`;
+
+      let results = app.modules.getRespondTos('crypto-logo', { ticker: lbl }).shift();
+
+      if (results?.img) {
+        img = results?.img;
+      }
+      let logo = `<img class='crypto-logo' src='${img}'>`;
+      if (results?.sub_logo) {
+        logo += `<img class='chain-logo' src='${results?.sub_logo}'>`;
+      }
       return `
         <div class="purchase-crypto-item" id="${lbl}">
           <div>${lbl}</div>
-          <img class="crypto-logo" src="${url}">
+          <div class='purchase-crypto-logo-container'>${logo}</div>
         </div>
       `;
     })
