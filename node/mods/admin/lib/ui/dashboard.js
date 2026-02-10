@@ -67,48 +67,6 @@ class AdminDashboard {
       };
     }
 
-    //
-    // Splash selection (immediate)
-    //
-    var updating_home_app = false;
-    document.querySelectorAll(".splash-card").forEach(card => {
-      card.onclick = async () => {
-
-	if (updating_home_app) { alert("Updating... please wait."); return; }
-	updating_home_app = true;
-
-        const app_id = card.dataset.app;
-        card.classList.add("selected working");
-
-        let tx =
-          await this.app.wallet.createUnsignedTransactionWithDefaultFee(
-            this.mod.server_publickey
-          );
-
-        tx.msg = {
-          module: "Admin",
-          request: "update-options",
-          data: {
-            defaultModule: app_id
-          }
-        };
-
-        await tx.sign();
-
-        this.app.network.sendTransactionWithCallback(tx, (res_tx) => {
-          let res = res_tx.returnMessage();
-	  updating_home_app = false;
-          if (res?.err) {
-            salert(res.err);
-            card.classList.remove("working");
-          } else {
-            siteMessage(`Home Application will update on next Server Refresh...`, 2000);
-            //reloadWindow(1200);
-          }
-        });
-      };
-    });
-
 
     //
     // block production toggle

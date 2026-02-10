@@ -12,12 +12,12 @@ class NodeSetup {
 
     if (!document.querySelector(".node-setup-options")) {
       this.app.browser.addElementToSelector(
-        NodeSetupTemplate(),
+        NodeSetupTemplate(this.mod),
         this.container
       );
     } else {
       this.app.browser.replaceElementBySelector(
-        NodeSetupTemplate(),
+        NodeSetupTemplate(this.mod),
         this.container
       );
     }
@@ -27,6 +27,52 @@ class NodeSetup {
 
   attachEvents() {
 
+    //
+    // Splash selection (immediate)
+    //
+    var updating_home_app = false;
+    document.querySelectorAll(".splash-card").forEach(card => {
+      card.onclick = async () => {
+
+        if (updating_home_app) { alert("Updating... please wait."); return; }
+        updating_home_app = true;
+
+        const app_id = card.dataset.app;
+        card.classList.add("selected");
+
+        let tx =
+          await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+            this.mod.server_publickey
+          );
+
+        tx.msg = {
+          module: "Admin",
+          request: "update-options",
+          data: {
+            defaultModule: app_id
+          }
+        };
+
+        await tx.sign();
+
+        this.app.network.sendTransactionWithCallback(tx, (res_tx) => {
+          let res = res_tx.returnMessage();
+          updating_home_app = false;
+          if (res?.err) {
+            salert(res.err);
+            card.classList.remove("working");
+          } else {
+            siteMessage(`Home Application will update on next Server Refresh...`, 2000);
+          }
+        });
+      };
+    });
+
+
+
+    //
+    // node setup options
+    //
     document.querySelectorAll(".node-setup-card").forEach(card => {
       card.onclick = async () => {
 
@@ -35,6 +81,8 @@ class NodeSetup {
         // lock UI
         document.querySelector(".node-setup-options").style.display = "none";
         document.querySelector(".node-setup-working").style.display = "flex";
+	document.querySelector(".splash-grid").style.display = "none";
+	document.querySelectorAll(".node-setup-info").forEach((el)=> { el.style.display = "none"; });
 
         siteMessage("Customizing your Node Setup...");
 
@@ -74,7 +122,9 @@ class NodeSetup {
 	document.querySelector(".node-setup-explainer").style.display = "none";
 	document.querySelector(".node-setup-working").style.display = "none";
 	document.querySelector(".node-setup-dev-info").style.display = "block";
-      }, 1000);
+	document.querySelectorAll(".node-setup-info").forEach((el)=> { el.style.display = "none"; });
+	document.querySelector(".splash-grid").style.display = "none";
+      }, 200);
 
     }
 
@@ -98,6 +148,8 @@ class NodeSetup {
 	document.querySelector(".admin-server").style.display = "none";
 	document.querySelector(".node-setup-explainer").style.display = "none";
 	document.querySelector(".node-setup-working").style.display = "none";
+	document.querySelector(".splash-grid").style.display = "none";
+	document.querySelectorAll(".node-setup-info").forEach((el)=> { el.style.display = "none"; });
 	document.querySelector(".node-setup-dev-info").innerHTML = `
 
 	  Your server is configured to connect to the network.

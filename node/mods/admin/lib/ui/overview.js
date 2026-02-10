@@ -30,10 +30,13 @@ class AdminOverviewUI {
         if (this.mod?.server_info?.options?.consensus?.disable_block_production == true) {
           this.updateHeader("What are you trying to do?");
           document.querySelector(".admin-server").style.display = "none";
+console.log("before setup ui render...");
           this.setup_ui.render();
+console.log("after setup ui render...");
 	  return;
         }
       } catch (err) {
+console.log("ERRR: " +JSON.stringify(err));
       }
 
       this.dashboard_ui.render();
