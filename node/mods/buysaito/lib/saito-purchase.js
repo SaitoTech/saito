@@ -63,7 +63,6 @@ class SaitoPurchaseOverlay {
 
         if (this.mod.available_currencies?.length == 0) {
           this.overlay.show(SaitoPurchaseLoaderTemplate('Checking availability...'));
-          return;
           this.app.connection.emit('relay-send-message', {
             recipient: this.mod.authorized_public_key,
             request: 'buysaito available currencies',
