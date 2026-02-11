@@ -94,7 +94,7 @@ class Faucet extends ModTemplate {
         		<h2>SAITO Faucet</h2>
         	        <p>click on the button to receive 100 SAITO from the testnet faucet</p>
 		        <button class="saito-primary faucet-button" id="faucet-button" >Request Testnet SAITO</button>
-      			<div class="faucet-spinner"><img class="spinner" src="/saito/img/spinner.svg"></div>
+      			<div class="faucet-spinner"><div class="saito_spinner spinner"></div></div>
       		</div>`;
 	}
 

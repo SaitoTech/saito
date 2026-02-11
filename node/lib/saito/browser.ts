@@ -1,7 +1,7 @@
 // @ts-nocheck
-import screenfull, { element } from 'screenfull';
 import React from 'react';
 import { createRoot } from 'react-dom';
+import screenfull from 'screenfull';
 let marked = require('marked');
 let sanitizeHtml = require('sanitize-html');
 const sanitizer = require('sanitizer');
@@ -1176,7 +1176,7 @@ class Browser {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         background: rgba(0, 0, 0, 0.7); z-index: 1000; border-radius: inherit;
       ">
-        <img src="/saito/img/spinner.svg" style="width: 4rem; height: 4rem;" />
+        <div class="saito_spinner" style="width: 4rem; height: 4rem;"></div>
         <div style="color: white; margin-top: 1rem; font-size: 1.4rem;">Reading file...</div>
       </div>
     `;

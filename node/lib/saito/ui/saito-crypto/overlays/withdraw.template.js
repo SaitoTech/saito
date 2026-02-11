@@ -76,7 +76,7 @@ module.exports = (app, mod, publickey = '', address = '') => {
         <div id="withdraw-step-two" class="hide-element">
           <div class="confirm-msg-container">
             <i class="withdraw-msg-icon fa-solid fa-circle-exclamation"></i>
-            <img class="spinner" src="/saito/img/spinner.svg">
+            <div class="saito_spinner spinner"></div>
             <div class="confirm-msg">
               <div>
                 <span class="withdraw-msg-text">Send</span> 

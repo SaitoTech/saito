@@ -219,6 +219,7 @@ input[type='number'] {
   margin-left: auto;
   margin-right: auto;
   width: 10rem;
+  height: 10rem;
 }
 
 .game-crypto-transfer-manager-container .game-crypto-icon {

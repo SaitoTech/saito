@@ -259,10 +259,10 @@ class Stack extends ModTemplate {
         z-index: 10;
       "
     >
-      <img
-        src="/saito/img/spinner.svg"
+      <div
+        class="saito_spinner"
         style="width:8rem;height:8rem;"
-      />
+      ></div>
 
       <div
         style="

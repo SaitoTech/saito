@@ -414,6 +414,7 @@
 
 .confirm-msg-container .spinner {
   display: none;
+  width: 9rem;
   height: 9rem;
 }
 

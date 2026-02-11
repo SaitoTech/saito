@@ -7,7 +7,7 @@ module.exports = (app, mod, details) => {
     
     <h2 class="auth_title" id="auth_title">Sending Payment</h2>
 
-    <img class="spinner" id="spinner" src="/saito/img/spinner.svg">
+    <div class="saito_spinner spinner" id="spinner"></div>
 
     <i id="game-crypto-icon" class="game-crypto-icon fa-solid fa-circle-check"></i>
     <i id="game-crypto-failure-icon" class="game-crypto-icon fa-solid fa-circle-exclamation"></i>

@@ -119,3 +119,14 @@
     transform: rotate(720deg);
   }
 }
+
+.saito_spinner {
+  display: inline-block;
+  width: 4rem;
+  height: 4rem;
+  background-color: var(--saito-primary);
+  mask: url(/saito/img/spinner.svg) center/contain no-repeat;
+  -webkit-mask: url(/saito/img/spinner.svg) center/contain no-repeat;
+  mask-size: contain;
+  -webkit-mask-size: contain;
+}
