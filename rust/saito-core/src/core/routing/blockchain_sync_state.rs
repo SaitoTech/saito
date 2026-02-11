@@ -8,7 +8,7 @@ use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
 use tokio::sync::RwLock;
 
-use crate::core::defs::{BlockHash, BlockId, PeerIndex, PrintForLog, SaitoHash};
+use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey};
 
 #[derive(Debug)]
 enum BlockStatus {
@@ -32,9 +32,9 @@ const MAX_RETRIES_PER_BLOCK: u32 = 500;
 /// Tries to fetch the blocks in the most resource efficient way possible.
 pub struct BlockchainSyncState {
     /// These are the blocks we have received from each of our peers
-    received_block_picture: HashMap<PeerIndex, VecDeque<(BlockId, SaitoHash)>>,
+    received_block_picture: HashMap<SaitoPublicKey, VecDeque<(BlockId, SaitoHash)>>,
     /// These are the blocks which we have to fetch from each of our peers
-    blocks_to_fetch: HashMap<PeerIndex, VecDeque<BlockData>>,
+    blocks_to_fetch: HashMap<SaitoPublicKey, VecDeque<BlockData>>,
     /// Maximum amount of blocks which can be fetched concurrently from a peer. If this number is too high, the peer's performance might get affected or the requests might be rejected
     batch_size: usize,
 }
@@ -142,19 +142,14 @@ impl BlockchainSyncState {
     /// Generates the list of blocks which needs to be fetched next. A list is generated per each peer since we can fetch from multiple peers concurrently.
     pub fn get_blocks_to_fetch_per_peer(
         &mut self,
-    ) -> HashMap<PeerIndex, Vec<(SaitoHash, BlockId)>> {
+    ) -> HashMap<SaitoPublicKey, Vec<(SaitoHash, BlockId)>> {
         trace!("getting block to be fetched per each peer",);
-        let mut selected_blocks_per_peer: HashMap<PeerIndex, Vec<(SaitoHash, BlockId)>> =
+        let mut selected_blocks_per_peer: HashMap<SaitoPublicKey, Vec<(SaitoHash, BlockId)>> =
             Default::default();
 
         // for each peer check if we can fetch block
         for (peer_index, deq) in self.blocks_to_fetch.iter_mut() {
             // TODO : sorting this array can be a performance hit. need to check
-
-            assert_ne!(
-                *peer_index, 0,
-                "peer index 0 should not enter this list since we handle it at add_entry"
-            );
 
             // we need to sort the list to make sure we are fetching the next in sequence blocks.
             // otherwise our memory will grow since we need to keep those fetched blocks in memory.
@@ -336,7 +331,7 @@ impl BlockchainSyncState {
         &mut self,
         block_hash: SaitoHash,
         block_id: BlockId,
-        peer_index: PeerIndex,
+        peer_index: SaitoPublicKey,
         peer_lock: Arc<RwLock<PeerCollection>>,
     ) {
         debug!(
@@ -345,12 +340,12 @@ impl BlockchainSyncState {
             block_id,
             peer_index
         );
-        if peer_index == 0 {
+        if peer_index == [0; 33] {
             // this means we don't have which peer to request this block from
             let peers = peer_lock.read().await;
             debug!("block : {:?}-{:?} is requested without a peer. request the block from all the peers", block_id,block_hash.to_hex());
 
-            for (index, peer) in peers.index_to_peers.iter() {
+            for (index, peer) in peers.peers.iter() {
                 if peer.block_fetch_url.is_empty() {
                     continue;
                 }
@@ -446,28 +441,28 @@ impl BlockchainSyncState {
     /// ```
     ///
     /// ```
-    pub fn mark_as_failed(&mut self, id: BlockId, hash: BlockHash, peer_index: PeerIndex) {
+    pub fn mark_as_failed(&mut self, id: BlockId, hash: BlockHash, key: SaitoPublicKey) {
         warn!(
             "failed to fetch block : {:?}-{:?} from peer : {:?}",
             id,
             hash.to_hex(),
-            peer_index
+            key
         );
 
-        if let Some(deq) = self.blocks_to_fetch.get_mut(&peer_index) {
+        if let Some(deq) = self.blocks_to_fetch.get_mut(&key) {
             let data = deq
                 .iter_mut()
                 .find(|data| data.block_id == id && data.block_hash == hash);
             match data {
                 None => {
-                    debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a block or it's already fetched",id,hash.to_hex(),peer_index);
+                    debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a block or it's already fetched",id,hash.to_hex(),key);
                 }
                 Some(data) => {
                     data.status = BlockStatus::Failed;
                 }
             }
         } else {
-            debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a peer",id,hash.to_hex(),peer_index);
+            debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a peer",id,hash.to_hex(),key);
         }
     }
 }
@@ -508,7 +503,7 @@ mod tests {
         state.build_peer_block_picture(t.blockchain_lock.read().await.deref());
         let mut result = state.get_blocks_to_fetch_per_peer();
         assert_eq!(result.len(), 1);
-        let vec = result.get_mut(&1);
+        let vec = result.get_mut(&[1; 33]);
         assert!(vec.is_some());
         let vec = vec.unwrap();
         assert_eq!(vec.len(), state.batch_size);
@@ -540,7 +535,7 @@ mod tests {
         state.build_peer_block_picture(t.blockchain_lock.read().await.deref());
         let mut result = state.get_blocks_to_fetch_per_peer();
         assert_eq!(result.len(), 1);
-        let vec = result.get_mut(&1).unwrap();
+        let vec = result.get_mut(&[1; 33]).unwrap();
         assert_eq!(vec.len(), 3);
         // TODO : fix this
         // assert!(vec.contains(&[8; 32]));

@@ -18,8 +18,8 @@ use crate::core::consensus::merkle::MerkleTree;
 use crate::core::consensus::slip::{Slip, SlipType, SLIP_SIZE};
 use crate::core::consensus::transaction::{Transaction, TransactionType, TRANSACTION_SIZE};
 use crate::core::defs::{
-    BlockId, Currency, PeerIndex, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey,
-    SaitoSignature, SaitoUTXOSetKey, Timestamp, UtxoSet, BLOCK_FILE_EXTENSION,
+    BlockId, Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
+    SaitoUTXOSetKey, Timestamp, UtxoSet, BLOCK_FILE_EXTENSION,
 };
 use crate::core::routing::io::storage::Storage;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
@@ -422,7 +422,7 @@ pub struct Block {
     #[serde(skip)]
     pub created_hashmap_of_slips_spent_this_block: bool,
     #[serde(skip)]
-    pub routed_from_peer: Option<PeerIndex>,
+    pub routed_from_peer: Option<SaitoPublicKey>,
     #[serde(skip)]
     pub keys_invloved: AHashSet<SaitoPublicKey>,
     #[serde(skip)]

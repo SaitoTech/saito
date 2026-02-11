@@ -8,6 +8,9 @@ export default class WebSharedMethods extends CustomSharedMethods {
             console.debug("connecting to " + url + "....");
             let socket = new WebSocket(url);
             socket.binaryType = "arraybuffer";
+
+            // handle handshake here
+
             Saito.getInstance().addNewSocket(socket, peer_index);
 
             socket.onmessage = (event: MessageEvent) => {

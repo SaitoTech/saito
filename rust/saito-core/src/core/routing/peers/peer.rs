@@ -1,11 +1,10 @@
 use crate::core::consensus::wallet::Wallet;
-use crate::core::defs::{
-    PeerIndex, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp, WS_KEEP_ALIVE_PERIOD,
-};
+use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp, WS_KEEP_ALIVE_PERIOD};
 use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use crate::core::msg::message::Message;
 use crate::core::process::version::Version;
 use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util;
 use crate::core::util::configuration::{Configuration, Endpoint};
@@ -70,16 +69,15 @@ where
 
 // TODO : since we are keeping the peers against a peer index, once a peer is reconnected, we will lose the stats from the previous connection.
 
-#[serde_with::serde_as]
-#[derive(Debug, Clone, Serialize)]
+// #[serde_with::serde_as]
+#[derive(Debug, Clone)]
 pub struct Peer {
-    pub index: PeerIndex,
     pub peer_status: PeerStatus,
     pub block_fetch_url: String,
     // if this is None(), it means an incoming connection. else a connection which we started from the data from config file
     pub static_peer_config: Option<util::configuration::PeerConfig>,
     pub challenge_for_peer: Option<SaitoHash>,
-    #[serde(serialize_with = "vec_of_arrays_as_base58")]
+    // #[serde(serialize_with = "vec_of_arrays_as_base58")]
     pub key_list: Vec<SaitoPublicKey>,
     pub services: Vec<PeerService>,
     pub last_msg_sent_at: Timestamp,
@@ -90,8 +88,8 @@ pub struct Peer {
     pub wallet_version: Version,
     pub core_version: Version,
     // NOTE: we are currently mapping 1 peer = 1 socket = 1 public key. But in the future we need to support multiple peers per public key
-    #[serde(serialize_with = "option_as_base58")]
-    pub public_key: Option<SaitoPublicKey>,
+    // #[serde(with = "BigArray")]
+    pub public_key: SaitoPublicKey,
     pub peer_type: PeerType,
     pub ip_address: Option<String>,
     pub stats: PeerStats,
@@ -103,9 +101,8 @@ pub struct Peer {
 }
 
 impl Peer {
-    pub fn new(peer_index: PeerIndex) -> Peer {
+    pub fn new(public_key: SaitoPublicKey) -> Peer {
         Peer {
-            index: peer_index,
             peer_status: PeerStatus::Disconnected(0, 1_000),
             block_fetch_url: "".to_string(),
             static_peer_config: None,
@@ -116,7 +113,7 @@ impl Peer {
             disconnected_at: Timestamp::MAX,
             wallet_version: Default::default(),
             core_version: Default::default(),
-            public_key: None,
+            public_key,
             peer_type: PeerType::Default,
             ip_address: None,
             stats: PeerStats::default(),
@@ -130,13 +127,11 @@ impl Peer {
     }
 
     pub fn new_stun(
-        peer_index: PeerIndex,
         public_key: SaitoPublicKey,
         io_handler: &(dyn InterfaceIO + Send + Sync),
     ) -> Peer {
-        let mut peer = Peer::new(peer_index);
+        let mut peer = Peer::new(public_key);
         peer.peer_type = PeerType::Stun;
-        peer.public_key = Some(public_key);
         peer.peer_status = PeerStatus::Connected;
         peer.services = io_handler.get_my_services();
         peer
@@ -146,205 +141,290 @@ impl Peer {
         matches!(self.peer_type, PeerType::Stun)
     }
 
-    pub fn get_url(&self) -> String {
-        if let Some(config) = self.static_peer_config.as_ref() {
-            let mut protocol: String = String::from("ws");
-            if config.protocol == "https" {
-                protocol = String::from("wss");
-            }
-            protocol
-                + "://"
-                + config.host.as_str()
-                + ":"
-                + config.port.to_string().as_str()
-                + "/wsopen"
-        } else {
-            "".to_string()
-        }
-    }
-    pub async fn initiate_handshake(
+    // pub async fn initiate_handshake(
+    //     &mut self,
+    //     io_handler: &(dyn InterfaceIO + Send + Sync),
+    // ) -> Result<(), Error> {
+    //     debug!("initiating handshake : {:?}", self.public_key.to_base58());
+    //
+    //     let challenge = HandshakeChallenge {
+    //         challenge: generate_random_bytes(32).await.try_into().unwrap(),
+    //     };
+    //     debug!(
+    //         "generated challenge : {:?} for peer : {:?}",
+    //         challenge.challenge.to_hex(),
+    //         self.public_key.to_base58()
+    //     );
+    //     self.challenge_for_peer = Some(challenge.challenge);
+    //     let message = Message::HandshakeChallenge(challenge);
+    //     io_handler
+    //         .send_message(self.public_key, message.serialize().as_slice())
+    //         .await?;
+    //     debug!(
+    //         "handshake challenge sent for peer: {:?}",
+    //         self.public_key.to_base58()
+    //     );
+    //
+    //     Ok(())
+    // }
+
+    // pub async fn handle_handshake_challenge(
+    //     &mut self,
+    //     challenge: HandshakeChallenge,
+    //     io_handler: &(dyn InterfaceIO + Send + Sync),
+    //     wallet_lock: Arc<RwLock<Wallet>>,
+    //     configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+    //     current_time: Timestamp,
+    // ) -> Result<(), Error> {
+    //     debug!(
+    //         "handling handshake challenge : {:?} for peer : {:?}",
+    //         challenge.challenge.to_hex(),
+    //         self.public_key.to_base58()
+    //     );
+    //     let block_fetch_url;
+    //     let is_lite;
+    //     let endpoint;
+    //     {
+    //         let configs = configs_lock.read().await;
+    //
+    //         if let Some(config) = configs.get_server_configs() {
+    //             endpoint = config.endpoint.clone();
+    //         } else {
+    //             endpoint = Endpoint::default();
+    //         }
+    //         is_lite = configs.is_spv_mode();
+    //         if is_lite {
+    //             block_fetch_url = "".to_string();
+    //         } else {
+    //             block_fetch_url = configs.get_block_fetch_url();
+    //         }
+    //     }
+    //
+    //     let wallet = wallet_lock.read().await;
+    //     let response = HandshakeResponse {
+    //         public_key: wallet.public_key,
+    //         signature: sign(challenge.challenge.as_slice(), &wallet.private_key),
+    //         challenge: generate_random_bytes(32).await.try_into().unwrap(),
+    //         is_lite,
+    //         block_fetch_url,
+    //         services: io_handler.get_my_services(),
+    //         wallet_version: wallet.wallet_version,
+    //         core_version: wallet.core_version,
+    //         endpoint: endpoint.clone(),
+    //         timestamp: current_time,
+    //     };
+    //     debug!(
+    //         "handshake challenge : {:?} generated for peer : {:?}",
+    //         response.challenge.to_hex(),
+    //         self.public_key.to_base58()
+    //     );
+    //
+    //     self.challenge_for_peer = Some(response.challenge);
+    //     io_handler
+    //         .send_message(
+    //             self.public_key,
+    //             Message::HandshakeResponse(response).serialize().as_slice(),
+    //         )
+    //         .await?;
+    //     debug!(
+    //         "first handshake response sent for peer: {:?}",
+    //         self.public_key.to_base58()
+    //     );
+    //
+    //     Ok(())
+    // }
+    // pub async fn handle_handshake_response(
+    //     &mut self,
+    //     response: HandshakeResponse,
+    //     io_handler: &(dyn InterfaceIO + Send + Sync),
+    //     wallet_lock: Arc<RwLock<Wallet>>,
+    //     configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+    //     current_time: Timestamp,
+    // ) -> Result<(), Error> {
+    //     debug!(
+    //         "handling handshake response :{:?} for peer : {:?} with address : {:?}",
+    //         response.challenge.to_hex(),
+    //         self.index,
+    //         response.public_key.to_base58()
+    //     );
+    //     if !response.core_version.is_set() {
+    //         debug!(
+    //             "core version is not set in handshake response. expected : {:?}",
+    //             wallet_lock.read().await.core_version
+    //         );
+    //         self.mark_as_disconnected(current_time);
+    //         io_handler.disconnect_from_peer(self.index).await?;
+    //         return Err(Error::from(ErrorKind::InvalidInput));
+    //     }
+    //     if self.challenge_for_peer.is_none() {
+    //         warn!(
+    //             "we don't have a challenge to verify for peer : {:?}",
+    //             self.index
+    //         );
+    //         self.mark_as_disconnected(current_time);
+    //         io_handler.disconnect_from_peer(self.index).await?;
+    //         return Err(Error::from(ErrorKind::InvalidInput));
+    //     }
+    //     // TODO : validate block fetch URL
+    //     let sent_challenge = self.challenge_for_peer.unwrap();
+    //     let result = verify(&sent_challenge, &response.signature, &response.public_key);
+    //     if !result {
+    //         warn!(
+    //             "handshake failed. signature is not valid. sig : {:?} challenge : {:?} key : {:?}",
+    //             response.signature.to_hex(),
+    //             sent_challenge.to_hex(),
+    //             response.public_key.to_base58()
+    //         );
+    //         self.mark_as_disconnected(current_time);
+    //         io_handler.disconnect_from_peer(self.index).await?;
+    //         return Err(Error::from(ErrorKind::InvalidInput));
+    //     }
+    //
+    //     let block_fetch_url;
+    //     let is_lite;
+    //     let endpoint;
+    //     {
+    //         let configs = configs_lock.read().await;
+    //         if let Some(config) = configs.get_server_configs() {
+    //             endpoint = config.endpoint.clone();
+    //         } else {
+    //             endpoint = Endpoint::default();
+    //         }
+    //         is_lite = configs.is_spv_mode();
+    //         if is_lite {
+    //             block_fetch_url = "".to_string();
+    //         } else {
+    //             block_fetch_url = configs.get_block_fetch_url();
+    //         }
+    //     }
+    //     let wallet = wallet_lock.read().await;
+    //
+    //     // if !wallet
+    //     //     .core_version
+    //     //     .is_same_minor_version(&response.core_version)
+    //     // {
+    //     //     warn!("peer : {:?} core version is not compatible. current core version : {:?} peer core version : {:?}",
+    //     //         self.index, wallet.core_version, response.core_version);
+    //     //     io_handler.send_interface_event(InterfaceEvent::NewVersionDetected(
+    //     //         self.public_key.unwrap(),
+    //     //         response.wallet_version,
+    //     //     ));
+    //     //     self.mark_as_disconnected(current_time);
+    //     //     io_handler.disconnect_from_peer(self.index).await?;
+    //     //     return Err(Error::from(ErrorKind::InvalidInput));
+    //     // }
+    //     //
+    //     // if self.public_key.is_some() {
+    //     //     assert_eq!(
+    //     //         response.public_key,
+    //     //         self.public_key.unwrap(),
+    //     //         "This peer instance is to handle a peer with a different public key. current : {} new : {}",
+    //     //         self.public_key.unwrap().to_base58(),
+    //     //         response.public_key.to_base58()
+    //     //     );
+    //     // }
+    //
+    //     // self.block_fetch_url = response.block_fetch_url;
+    //     // self.services = response.services;
+    //     // self.wallet_version = response.wallet_version;
+    //     // self.core_version = response.core_version;
+    //     // self.peer_status = PeerStatus::Connected;
+    //     // self.public_key = response.public_key;
+    //     // self.endpoint = response.endpoint.clone();
+    //     // self.connected_at_peer_time = response.timestamp;
+    //     // self.connected_at_my_time = current_time;
+    //
+    //     debug!(
+    //         "my version : {:?} peer version : {:?}",
+    //         wallet.wallet_version, response.wallet_version
+    //     );
+    //     if wallet.wallet_version < response.wallet_version {
+    //         io_handler.send_interface_event(InterfaceEvent::NewVersionDetected(
+    //             self.public_key,
+    //             response.wallet_version,
+    //         ));
+    //     }
+    //
+    //     // if self.static_peer_config.is_none() {
+    //     //     // this is only called in initiator's side.
+    //     //     // [1. A:challenge -> 2. B:response -> 3. A : response|B verified -> 4. B: A verified]
+    //     //     // we only need to send a response for response is in above stage 3 (meaning the challenger).
+    //     //
+    //     //     let response = HandshakeResponse {
+    //     //         public_key: wallet.public_key,
+    //     //         signature: sign(&response.challenge, &wallet.private_key),
+    //     //         is_lite,
+    //     //         block_fetch_url: block_fetch_url.to_string(),
+    //     //         challenge: [0; 32],
+    //     //         services: io_handler.get_my_services(),
+    //     //         wallet_version: wallet.wallet_version,
+    //     //         core_version: wallet.core_version,
+    //     //         endpoint: endpoint.clone(),
+    //     //         timestamp: current_time,
+    //     //     };
+    //     //     io_handler
+    //     //         .send_message(
+    //     //             self.public_key,
+    //     //             Message::HandshakeResponse(response).serialize().as_slice(),
+    //     //         )
+    //     //         .await?;
+    //     //     debug!(
+    //     //         "second handshake response sent for peer: {:?}",
+    //     //         self.public_key.to_base58()
+    //     //     );
+    //     // } else {
+    //     //     info!(
+    //     //         "handshake completed for peer : {:?}",
+    //     //         self.get_public_key().unwrap().to_base58()
+    //     //     );
+    //     // }
+    //     self.challenge_for_peer = None;
+    //
+    //     io_handler
+    //         .send_message_to_all(
+    //             Message::KeyListUpdate(wallet.key_list.to_vec())
+    //                 .serialize()
+    //                 .as_slice(),
+    //             vec![],
+    //         )
+    //         .await?;
+    //
+    //     io_handler.send_interface_event(InterfaceEvent::PeerHandshakeComplete(self.public_key));
+    //
+    //     Ok(())
+    // }
+    pub async fn handle_new_peer(
         &mut self,
-        io_handler: &(dyn InterfaceIO + Send + Sync),
-    ) -> Result<(), Error> {
-        debug!("initiating handshake : {:?}", self.index);
-
-        let challenge = HandshakeChallenge {
-            challenge: generate_random_bytes(32).await.try_into().unwrap(),
-        };
-        debug!(
-            "generated challenge : {:?} for peer : {:?}",
-            challenge.challenge.to_hex(),
-            self.index
-        );
-        self.challenge_for_peer = Some(challenge.challenge);
-        let message = Message::HandshakeChallenge(challenge);
-        io_handler
-            .send_message(self.index, message.serialize().as_slice())
-            .await?;
-        debug!("handshake challenge sent for peer: {:?}", self.index);
-
-        Ok(())
-    }
-
-    pub async fn handle_handshake_challenge(
-        &mut self,
-        challenge: HandshakeChallenge,
-        io_handler: &(dyn InterfaceIO + Send + Sync),
+        peer: NetworkPeer,
         wallet_lock: Arc<RwLock<Wallet>>,
-        configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        io_handler: &Box<dyn InterfaceIO + Send + Sync>,
         current_time: Timestamp,
     ) -> Result<(), Error> {
-        debug!(
-            "handling handshake challenge : {:?} for peer : {:?}",
-            challenge.challenge.to_hex(),
-            self.index,
-        );
-        let block_fetch_url;
-        let is_lite;
-        let endpoint;
-        {
-            let configs = configs_lock.read().await;
-
-            if let Some(config) = configs.get_server_configs() {
-                endpoint = config.endpoint.clone();
-            } else {
-                endpoint = Endpoint::default();
-            }
-            is_lite = configs.is_spv_mode();
-            if is_lite {
-                block_fetch_url = "".to_string();
-            } else {
-                block_fetch_url = configs.get_block_fetch_url();
-            }
-        }
-
-        let wallet = wallet_lock.read().await;
-        let response = HandshakeResponse {
-            public_key: wallet.public_key,
-            signature: sign(challenge.challenge.as_slice(), &wallet.private_key),
-            challenge: generate_random_bytes(32).await.try_into().unwrap(),
-            is_lite,
-            block_fetch_url,
-            services: io_handler.get_my_services(),
-            wallet_version: wallet.wallet_version,
-            core_version: wallet.core_version,
-            endpoint: endpoint.clone(),
-            timestamp: current_time,
-        };
-        debug!(
-            "handshake challenge : {:?} generated for peer : {:?}",
-            response.challenge.to_hex(),
-            self.index
-        );
-
-        self.challenge_for_peer = Some(response.challenge);
-        io_handler
-            .send_message(
-                self.index,
-                Message::HandshakeResponse(response).serialize().as_slice(),
-            )
-            .await?;
-        debug!("first handshake response sent for peer: {:?}", self.index);
-
-        Ok(())
-    }
-    pub async fn handle_handshake_response(
-        &mut self,
-        response: HandshakeResponse,
-        io_handler: &(dyn InterfaceIO + Send + Sync),
-        wallet_lock: Arc<RwLock<Wallet>>,
-        configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
-        current_time: Timestamp,
-    ) -> Result<(), Error> {
-        debug!(
-            "handling handshake response :{:?} for peer : {:?} with address : {:?}",
-            response.challenge.to_hex(),
-            self.index,
-            response.public_key.to_base58()
-        );
-        if !response.core_version.is_set() {
-            debug!(
-                "core version is not set in handshake response. expected : {:?}",
-                wallet_lock.read().await.core_version
-            );
-            self.mark_as_disconnected(current_time);
-            io_handler.disconnect_from_peer(self.index).await?;
-            return Err(Error::from(ErrorKind::InvalidInput));
-        }
-        if self.challenge_for_peer.is_none() {
-            warn!(
-                "we don't have a challenge to verify for peer : {:?}",
-                self.index
-            );
-            self.mark_as_disconnected(current_time);
-            io_handler.disconnect_from_peer(self.index).await?;
-            return Err(Error::from(ErrorKind::InvalidInput));
-        }
-        // TODO : validate block fetch URL
-        let sent_challenge = self.challenge_for_peer.unwrap();
-        let result = verify(&sent_challenge, &response.signature, &response.public_key);
-        if !result {
-            warn!(
-                "handshake failed. signature is not valid. sig : {:?} challenge : {:?} key : {:?}",
-                response.signature.to_hex(),
-                sent_challenge.to_hex(),
-                response.public_key.to_base58()
-            );
-            self.mark_as_disconnected(current_time);
-            io_handler.disconnect_from_peer(self.index).await?;
-            return Err(Error::from(ErrorKind::InvalidInput));
-        }
-
-        let block_fetch_url;
-        let is_lite;
-        let endpoint;
-        {
-            let configs = configs_lock.read().await;
-            if let Some(config) = configs.get_server_configs() {
-                endpoint = config.endpoint.clone();
-            } else {
-                endpoint = Endpoint::default();
-            }
-            is_lite = configs.is_spv_mode();
-            if is_lite {
-                block_fetch_url = "".to_string();
-            } else {
-                block_fetch_url = configs.get_block_fetch_url();
-            }
-        }
         let wallet = wallet_lock.read().await;
 
-        if !wallet
-            .core_version
-            .is_same_minor_version(&response.core_version)
-        {
-            warn!("peer : {:?} core version is not compatible. current core version : {:?} peer core version : {:?}",
-                self.index, wallet.core_version, response.core_version);
-            io_handler.send_interface_event(InterfaceEvent::NewVersionDetected(
-                self.index,
-                response.wallet_version,
-            ));
-            self.mark_as_disconnected(current_time);
-            io_handler.disconnect_from_peer(self.index).await?;
-            return Err(Error::from(ErrorKind::InvalidInput));
-        }
-
-        if self.public_key.is_some() {
-            assert_eq!(
-                response.public_key,
-                self.public_key.unwrap(),
-                "This peer instance is to handle a peer with a different public key. current : {} new : {}",
-                self.public_key.unwrap().to_base58(),
-                response.public_key.to_base58()
-            );
-        }
+        let response = peer.response.unwrap();
+        self.public_key = response.public_key;
+        // if !wallet
+        //     .core_version
+        //     .is_same_minor_version(&response.core_version)
+        // {
+        //     warn!("peer : {:?} core version is not compatible. current core version : {:?} peer core version : {:?}",
+        //         self.public_key, wallet.core_version, response.core_version);
+        //     io_handler.send_interface_event(InterfaceEvent::NewVersionDetected(
+        //         self.public_key,
+        //         response.wallet_version,
+        //     ));
+        //     self.mark_as_disconnected(current_time);
+        //     io_handler.disconnect_from_peer(self.public_key).await?;
+        //     return Err(Error::from(ErrorKind::InvalidInput));
+        // }
 
         self.block_fetch_url = response.block_fetch_url;
         self.services = response.services;
         self.wallet_version = response.wallet_version;
         self.core_version = response.core_version;
         self.peer_status = PeerStatus::Connected;
-        self.public_key = Some(response.public_key);
+        self.public_key = response.public_key;
         self.endpoint = response.endpoint.clone();
         self.connected_at_peer_time = response.timestamp;
         self.connected_at_my_time = current_time;
@@ -355,42 +435,10 @@ impl Peer {
         );
         if wallet.wallet_version < response.wallet_version {
             io_handler.send_interface_event(InterfaceEvent::NewVersionDetected(
-                self.index,
+                self.public_key,
                 response.wallet_version,
             ));
         }
-
-        if self.static_peer_config.is_none() {
-            // this is only called in initiator's side.
-            // [1. A:challenge -> 2. B:response -> 3. A : response|B verified -> 4. B: A verified]
-            // we only need to send a response for response is in above stage 3 (meaning the challenger).
-
-            let response = HandshakeResponse {
-                public_key: wallet.public_key,
-                signature: sign(&response.challenge, &wallet.private_key),
-                is_lite,
-                block_fetch_url: block_fetch_url.to_string(),
-                challenge: [0; 32],
-                services: io_handler.get_my_services(),
-                wallet_version: wallet.wallet_version,
-                core_version: wallet.core_version,
-                endpoint: endpoint.clone(),
-                timestamp: current_time,
-            };
-            io_handler
-                .send_message(
-                    self.index,
-                    Message::HandshakeResponse(response).serialize().as_slice(),
-                )
-                .await?;
-            debug!("second handshake response sent for peer: {:?}", self.index);
-        } else {
-            info!(
-                "handshake completed for peer : {:?}",
-                self.get_public_key().unwrap().to_base58()
-            );
-        }
-        self.challenge_for_peer = None;
 
         io_handler
             .send_message_to_all(
@@ -402,7 +450,7 @@ impl Peer {
             .await
             .unwrap();
 
-        io_handler.send_interface_event(InterfaceEvent::PeerHandshakeComplete(self.index));
+        io_handler.send_interface_event(InterfaceEvent::PeerHandshakeComplete(self.public_key));
 
         Ok(())
     }
@@ -443,9 +491,9 @@ impl Peer {
     ) {
         if self.last_msg_sent_at + WS_KEEP_ALIVE_PERIOD < current_time {
             self.last_msg_sent_at = current_time;
-            trace!("sending ping to peer : {:?}", self.index);
+            trace!("sending ping to peer : {:?}", self.public_key.to_base58());
             io_handler
-                .send_message(self.index, Message::Ping().serialize().as_slice())
+                .send_message(self.public_key, Message::Ping().serialize().as_slice())
                 .await
                 .unwrap();
         }
@@ -467,8 +515,11 @@ impl Peer {
     pub fn is_static_peer(&self) -> bool {
         self.static_peer_config.is_some()
     }
-    pub fn get_public_key(&self) -> Option<SaitoPublicKey> {
+    pub fn get_public_key(&self) -> SaitoPublicKey {
         self.public_key
+    }
+    pub fn is_connected(&self) -> bool {
+        todo!()
     }
 
     pub fn mark_as_disconnected(&mut self, disconnected_at: Timestamp) {
@@ -478,7 +529,8 @@ impl Peer {
         self.requested_blockchain_from_peer = false;
         info!(
             "marking peer : {:?} as disconnected. at : {:?}",
-            self.index, disconnected_at
+            self.public_key.to_base58(),
+            disconnected_at
         );
         self.disconnected_at = disconnected_at;
 
@@ -508,7 +560,8 @@ impl Peer {
         );
         info!(
             "joining peer : {:?} to peer : {:?} as a reconnection",
-            peer.index, self.index
+            peer.public_key.to_base58(),
+            self.public_key.to_base58()
         );
 
         if self.static_peer_config.is_none() {
@@ -529,10 +582,10 @@ mod tests {
 
     #[test]
     fn peer_new_test() {
-        let peer = Peer::new(1);
+        let peer = Peer::new([1; 33]);
 
-        assert_eq!(peer.index, 1);
-        assert_eq!(peer.get_public_key(), None);
+        // assert_eq!(peer.index, 1);
+        assert_eq!(peer.get_public_key(), [1; 33]);
         assert!(matches!(
             peer.peer_status,
             PeerStatus::Disconnected(0, 1_000)
@@ -544,10 +597,10 @@ mod tests {
 
     #[test]
     fn peer_compare_test() {
-        let peer_1 = Peer::new(1);
-        let mut peer_2 = Peer::new(2);
-        let mut peer_3 = Peer::new(3);
-        let mut peer_4 = Peer::new(4);
+        let peer_1 = Peer::new([1; 33]);
+        let mut peer_2 = Peer::new([2; 33]);
+        let mut peer_3 = Peer::new([3; 33]);
+        let mut peer_4 = Peer::new([4; 33]);
 
         assert_eq!(peer_1.wallet_version, Version::new(0, 0, 0));
 

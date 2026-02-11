@@ -15,7 +15,8 @@ use crate::core::consensus::mempool::Mempool;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
-    BlockId, PrintForLog, SaitoHash, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
+    BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
+    STAT_BIN_COUNT,
 };
 use crate::core::mining_thread::MiningEvent;
 use crate::core::process::keep_time::Timer;
@@ -34,10 +35,19 @@ pub const BLOCK_PRODUCING_TIMER: u64 = Duration::from_millis(1000).as_millis() a
 
 #[derive(Debug)]
 pub enum ConsensusEvent {
-    NewGoldenTicket { golden_ticket: GoldenTicket },
-    BlockFetched { peer_index: u64, block: Block },
-    NewTransaction { transaction: Transaction },
-    NewTransactions { transactions: Vec<Transaction> },
+    NewGoldenTicket {
+        golden_ticket: GoldenTicket,
+    },
+    BlockFetched {
+        peer_index: SaitoPublicKey,
+        block: Block,
+    },
+    NewTransaction {
+        transaction: Transaction,
+    },
+    NewTransactions {
+        transactions: Vec<Transaction>,
+    },
 }
 
 pub struct ConsensusStats {
@@ -1697,8 +1707,8 @@ mod tests {
                 tester
                     .consensus_thread
                     .process_event(ConsensusEvent::BlockFetched {
-                        block: block,
-                        peer_index: 0,
+                        block,
+                        peer_index: [0; 33],
                     })
                     .await;
             }
@@ -1800,7 +1810,7 @@ mod tests {
             tester
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
-                    block: block,
+                    block,
                     peer_index: 0,
                 })
                 .await;
@@ -2054,7 +2064,7 @@ mod tests {
             tester
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
-                    block: block,
+                    block,
                     peer_index: 0,
                 })
                 .await;
@@ -2088,8 +2098,8 @@ mod tests {
                 tester
                     .consensus_thread
                     .process_event(ConsensusEvent::BlockFetched {
-                        block: block,
-                        peer_index: 0,
+                        block,
+                        peer_index: [0; 33],
                     })
                     .await;
                 tester

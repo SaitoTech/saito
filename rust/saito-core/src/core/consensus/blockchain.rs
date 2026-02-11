@@ -2567,7 +2567,7 @@ impl Blockchain {
                 debug!("need to fetch the previous block. failed to add the block : {}-{} to the chain", block.id, block.hash.to_hex());
                 sender
                     .send(RoutingEvent::BlockFetchRequest(
-                        block.routed_from_peer.unwrap_or(0),
+                        block.routed_from_peer.unwrap_or([0; 33]),
                         block.previous_block_hash,
                         block.id - 1,
                     ))

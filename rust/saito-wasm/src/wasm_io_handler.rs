@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 use saito_core::core::consensus::wallet::Wallet;
-use saito_core::core::defs::{BlockId, PeerIndex, PrintForLog, SaitoHash};
+use saito_core::core::defs::{BlockId, PrintForLog, SaitoHash};
 use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use saito_core::core::routing::peers::peer_service::PeerService;
 

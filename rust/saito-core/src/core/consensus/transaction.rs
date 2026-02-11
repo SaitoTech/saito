@@ -14,7 +14,7 @@ use crate::core::consensus::hop::{Hop, HOP_SIZE};
 use crate::core::consensus::slip::{Slip, SlipType, SLIP_SIZE};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
-    Currency, PeerIndex, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
+    Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, Timestamp, UtxoSet, UTXO_KEY_LENGTH,
 };
 use crate::core::routing::io::network::Network;
@@ -68,7 +68,7 @@ pub struct Transaction {
     /// cumulative fees for this tx-in-block
     pub cumulative_fees: Currency,
     #[serde(skip)]
-    pub routed_from_peer: Option<PeerIndex>,
+    pub routed_from_peer: Option<SaitoPublicKey>,
 }
 
 impl Display for Transaction {

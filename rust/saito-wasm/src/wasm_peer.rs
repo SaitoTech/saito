@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 use crate::wasm_peer_service::WasmPeerService;
-use saito_core::core::defs::{PeerIndex, PrintForLog};
+use saito_core::core::defs::PrintForLog;
 use saito_core::core::routing::peers::peer::Peer;
 
 #[wasm_bindgen]

@@ -10,7 +10,7 @@ pub mod test {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     use crate::core::consensus::wallet::Wallet;
-    use crate::core::defs::{BlockId, PeerIndex, SaitoHash, BLOCK_FILE_EXTENSION};
+    use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey, BLOCK_FILE_EXTENSION};
     use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
     use crate::core::routing::peers::peer_service::PeerService;
 
@@ -25,7 +25,11 @@ pub mod test {
 
     #[async_trait]
     impl InterfaceIO for TestIOHandler {
-        async fn send_message(&self, _peer_index: u64, _buffer: &[u8]) -> Result<(), Error> {
+        async fn send_message(
+            &self,
+            _peer_index: SaitoPublicKey,
+            _buffer: &[u8],
+        ) -> Result<(), Error> {
             // TODO : implement a way to check sent messages
 
             Ok(())
@@ -34,31 +38,25 @@ pub mod test {
         async fn send_message_to_all(
             &self,
             _buffer: &[u8],
-            _peer_exceptions: Vec<u64>,
+            _peer_exceptions: Vec<SaitoPublicKey>,
         ) -> Result<(), Error> {
             // debug!("send message to all");
 
             Ok(())
         }
 
-        async fn connect_to_peer(
-            &mut self,
-            _url: String,
-            peer_index: PeerIndex,
-        ) -> Result<(), Error> {
-            debug!("connecting to peer : {:?}", peer_index);
-
+        async fn connect_to_peer(&mut self, _url: String) -> Result<(), Error> {
             Ok(())
         }
 
-        async fn disconnect_from_peer(&self, _peer_index: u64) -> Result<(), Error> {
+        async fn disconnect_from_peer(&self, _peer_index: SaitoPublicKey) -> Result<(), Error> {
             todo!("")
         }
 
         async fn fetch_block_from_peer(
             &self,
             _block_hash: SaitoHash,
-            _peer_index: u64,
+            _peer_index: SaitoPublicKey,
             _url: &str,
             _block_id: BlockId,
         ) -> Result<(), Error> {
@@ -161,7 +159,7 @@ pub mod test {
             &self,
             _buffer: Vec<u8>,
             _msg_index: u32,
-            _peer_index: PeerIndex,
+            _peer_index: SaitoPublicKey,
         ) {
             todo!()
         }
@@ -170,7 +168,7 @@ pub mod test {
             &self,
             _buffer: Vec<u8>,
             _msg_index: u32,
-            _peer_index: PeerIndex,
+            _peer_index: SaitoPublicKey,
         ) {
             todo!()
         }
@@ -179,7 +177,7 @@ pub mod test {
             &self,
             _buffer: Vec<u8>,
             _msg_index: u32,
-            _peer_index: PeerIndex,
+            _peer_index: SaitoPublicKey,
         ) {
             todo!()
         }
