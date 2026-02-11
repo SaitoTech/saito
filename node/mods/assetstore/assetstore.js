@@ -248,6 +248,8 @@ class AssetStore extends ModTemplate {
 				let txmsg = tx.returnMessage();
 
 				if (txmsg.module === 'AssetStore') {
+					console.debug('===============', txmsg, '===============');
+
 					if (txmsg.request === 'list asset') {
 						if (tx.isTo(this.publicKey)) {
 							console.log('===> LIST ASSET');
@@ -319,7 +321,7 @@ class AssetStore extends ModTemplate {
 		let txmsg = tx.returnMessage();
 
 		if (txmsg?.request === 'request listings') {
-			console.log('==> request listings');
+			console.debug('===============', txmsg, '===============');
 			if (this.app.BROWSER != 1 && mycallback != null) {
 				mycallback(this.listings);
 				return 1;
@@ -327,6 +329,7 @@ class AssetStore extends ModTemplate {
 		}
 
 		if (txmsg?.request === 'request nft image') {
+			console.debug('===============', txmsg, '===============');
 			let nfttx_sig = txmsg?.data?.nfttx_sig;
 			let txs = await new Promise((resolve) => {
 				this.app.storage.loadTransactions(
@@ -353,6 +356,7 @@ class AssetStore extends ModTemplate {
 		}
 
 		if (txmsg?.request === 'request delist complete') {
+			console.debug('===============', txmsg, '===============');
 			if (!this.app.BROWSER) {
 				let delist_tx_serialized = txmsg?.data?.nft_tx;
 				let nfttx_sig = txmsg?.data?.nfttx_sig;

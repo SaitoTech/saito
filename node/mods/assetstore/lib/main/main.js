@@ -44,8 +44,7 @@ class AssetStoreMain {
 		if (list_asset_btn) {
 			list_asset_btn.onclick = async (e) => {
 				this.app.connection.emit('saito-nft-list-render-request', (nft) => {
-					this.sell_nft_overlay.nft = nft;
-					this.sell_nft_overlay.render();
+					this.sell_nft_overlay.render(nft);
 				});
 			};
 		}
@@ -82,11 +81,9 @@ class AssetStoreMain {
 					async (nft1) => {
 						let seller_publicKey = nft1?.seller || '';
 						if (seller_publicKey === this.mod.publicKey) {
-							this.delist_nft_overlay.nft = nft1;
-							this.delist_nft_overlay.render();
+							this.delist_nft_overlay.render(nft1);
 						} else {
-							this.buy_nft_overlay.nft = nft1;
-							this.buy_nft_overlay.render();
+							this.buy_nft_overlay.render(nft1);
 						}
 					}
 				);

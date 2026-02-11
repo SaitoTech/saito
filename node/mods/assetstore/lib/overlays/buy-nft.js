@@ -6,21 +6,14 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
     this.nft = null;
   }
 
-  async render() {
-    if (this.nft.tx) {
-      console.log('trying to build NFT data...');
-      try {
-        this.nft.buildNFTData();
-      } catch (err) {}
-    }
-
-    super.render();
+  render(nft = null) {
+    super.render(nft);
 
     Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
       (el) => (el.style.display = 'none')
     );
 
-    let priceRaw = await this.nft.getBuyPriceSaito?.();
+    let priceRaw = this.nft.getBuyPriceSaito();
     this.price = typeof priceRaw === 'bigint' ? priceRaw.toString() : (priceRaw ?? '');
 
     let html = `

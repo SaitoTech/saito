@@ -20,14 +20,7 @@ class NFTOverlay {
 
     if (attach_events == true) {
       app.connection.on('saito-nft-details-render-request', (nft) => {
-        //
-        // CHANGE THIS
-        ///
-        //
-
-        this.nft = nft;
-        this.owner = nft.slip1.public_key;
-        this.render();
+        this.render(nft);
       });
 
       app.connection.on('saito-nft-details-close-request', () => {
@@ -46,7 +39,11 @@ class NFTOverlay {
     }
   }
 
-  render() {
+  render(nft = null) {
+    if (nft) {
+      this.nft = nft;
+      this.owner = nft.slip1.public_key;
+    }
     //
     // examine wallet for all possibilities
     //

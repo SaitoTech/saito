@@ -8,8 +8,7 @@ class AssetStoreNFTCard extends SaitoNFTCard {
     this.tx = tx;
     this.title = '';
     this.description = '';
-    this.nft = new AssetStoreNFT(app, mod, tx, data, mycallback, this); // last argument is the card that is rendered
-    this.nft.buildNFTData();
+    this.nft = new AssetStoreNFT(app, mod, tx, data, this); // last argument is the card that is rendered
     this.callback = mycallback;
   }
 
@@ -58,8 +57,8 @@ class AssetStoreNFTCard extends SaitoNFTCard {
     // avoid re-fetching of nft tx
     //
     if (!this.nft.tx_fetched) {
-      this.nft.fetchTransaction(function () {
-        this_self.insertNFTDetails();
+      this.nft.fetchTransaction(() => {
+        this.insertNFTDetails();
       });
     } else {
       if (this.nft?.tx) {

@@ -1,6 +1,5 @@
 const SaitoNFTCardTemplate = require('./saito-nft-card.template');
 const SaitoNFT = require('./saito-nft');
-const SaitoNFTDetails = require('./overlays/nft-overlay');
 
 class SaitoNFTCard {
   constructor(app, mod, container = '', tx = null, data = null, callback = null) {
@@ -83,6 +82,8 @@ class SaitoNFTCard {
     if (this.app.BROWSER != 1) {
       return 0;
     }
+
+    console.log('Insert fetched NFT details into CARD');
 
     if (this.nft.title) {
       try {

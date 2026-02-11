@@ -435,7 +435,10 @@ class Storage {
           // Not everything is json... we don't care
         }
         console.debug(localStorage.key(i), item.length, item, parsed_item);
-        console.debug(`Trying to save: (${new_wallet_json.length})`, JSON.parse(new_wallet_json));
+      }
+      console.debug(`Trying to save: (${new_wallet_json.length})`, JSON.parse(new_wallet_json));
+      for (let key in this.app.options) {
+        console.log(key, JSON.stringify(this.app.options[key]).length);
       }
     }
 

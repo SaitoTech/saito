@@ -54,11 +54,6 @@ class SelectNFT {
     }, 25);
   }
 
-  async renderNFTOverlay(nft) {
-    this.nft_overlay.nft = nft;
-    this.nft_overlay.render();
-  }
-
   async renderNFTList() {
     const container = document.querySelector('#nft-list');
 
@@ -105,7 +100,7 @@ class SelectNFT {
         if (!card.callback) {
           console.warn('Adding default callback to NFT card');
           card.callback = (nft) => {
-            this.renderNFTOverlay(nft);
+            this.nft_overlay.render(nft);
           };
         }
         await card.render();

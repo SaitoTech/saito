@@ -25,7 +25,7 @@ class SaitoNFT {
     this.tx = tx;
     this.txmsg = null;
 
-    this.card = null; // nft card, if created by one
+    this.card = card; // nft card, if created by one
 
     this.amount = BigInt(0); // nolans
     this.deposit = BigInt(0); // nolans
@@ -79,6 +79,7 @@ class SaitoNFT {
 
     // If we already have the transaction AND the image/data, we're done
     if (this.tx && this.txmsg && (this.image || this.text || this.js || this.css || this.json)) {
+      console.log('NFT Data all together');
       if (callback) {
         this.tx_fetched = false;
         return callback();
@@ -87,6 +88,7 @@ class SaitoNFT {
 
     // If we have the transaction but no image/data, try to extract it
     if (this.tx != null) {
+      console.log('Building nft data from transaction');
       this.buildNFTData();
       if (callback) {
         this.tx_fetched = true;
@@ -95,11 +97,13 @@ class SaitoNFT {
       return;
     }
 
+    console.log('Fetching nft transaction from archive');
     await this.app.storage.loadTransactions(
       { field4: this.id },
 
       async (txs) => {
         if (txs?.length > 0) {
+          console.log('local archive returned nft');
           this.tx = txs[0];
           this.buildNFTData();
           if (callback) {
@@ -110,6 +114,7 @@ class SaitoNFT {
           if (localhost_only) {
             return null;
           }
+          console.log('trying remote archive for nft');
 
           //
           // try remote host (ours IS **NOT** CURRENTLY INDEXING NFT TXS)
@@ -189,7 +194,7 @@ class SaitoNFT {
     }
 
     if (!this.id) {
-      this.id = this.computeNFTIdFromTx(this.tx);
+      this.id = this.app.wallet.computeNFTIdFromTx(this.tx);
     }
   }
 
@@ -226,7 +231,11 @@ class SaitoNFT {
     }
 
     this.txmsg = this.tx.returnMessage();
-    this.id = this.computeNFTIdFromTx(this.tx);
+
+    if (!this.id) {
+      this.id = this.app.wallet.computeNFTIdFromTx(this.tx);
+    }
+
     this.data = this.txmsg?.data ?? {};
 
     if (typeof this.data.image !== 'undefined') {
@@ -293,119 +302,6 @@ class SaitoNFT {
       tx_ordinal: toStr(slip.txOrdinal),
       utxo_key: slip.utxoKey
     };
-  }
-
-  //
-  // We need a way to get nft_id from NFT tx.
-  //
-  // If the NFT belongs to us we can simply get nft_id
-  // from storage (app.options.wallet.nfts[i].id). But in cases
-  // where NFT doesnt belong to us (e.g listed on assetstore) we
-  // need to compute nft_id based on the NFT tx we have.
-  //
-  // This situation isnt unqiue to assetstore, other mods will be
-  // creating NFT objects based on NFT tx so doesnt makes sense for this
-  // method below to be placed in assetstore.
-  //
-
-  //
-  // Ideal way would be to let rust comoute this by sending NFT tx
-  // to rust. For now temporarily JS is handling this.
-  //
-
-  // Derive an NFT id from a tx
-  computeNFTIdFromTx(tx) {
-    if (!tx) {
-      return null;
-    }
-
-    // Prefer outputs; fall back to inputs
-    let s3 = (tx?.to && tx.to[2]) || (tx?.from && tx.from[2]);
-    if (!s3 || !s3.publicKey) {
-      return null;
-    }
-
-    let pk = s3.publicKey;
-    let bytes = null;
-
-    // Normalize to Uint8Array
-    if (pk instanceof Uint8Array || (typeof Buffer !== 'undefined' && pk instanceof Buffer)) {
-      bytes = new Uint8Array(pk);
-    } else if (typeof pk === 'string') {
-      if (/^[0-9a-fA-F]{66}$/.test(pk)) {
-        // Hex (33 bytes = 66 hex chars)
-        bytes = this.hexToBytes(pk);
-      } else {
-        // Assume Base58 (Saito-style pubkey encoding)
-        bytes = this.base58ToBytes(pk);
-      }
-    } else if (pk && typeof pk === 'object' && pk.data) {
-      bytes = new Uint8Array(pk.data);
-    }
-
-    if (!bytes) {
-      return null;
-    }
-
-    // Some encoders may prepend a 0x00; tolerate 34→33
-    if (bytes.length === 34 && bytes[0] === 0) {
-      bytes = bytes.slice(1);
-    }
-    if (bytes.length !== 33) {
-      return null;
-    }
-
-    // Return as hex string
-    return Array.from(bytes)
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-  }
-
-  hexToBytes(hex) {
-    let clean = hex.startsWith('0x') ? hex.slice(2) : hex;
-    let out = new Uint8Array(clean.length / 2);
-    for (let i = 0; i < out.length; i++) {
-      out[i] = parseInt(clean.substr(i * 2, 2), 16);
-    }
-    return out;
-  }
-
-  base58ToBytes(str) {
-    // Bitcoin Base58 alphabet
-    let B58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    let B58_MAP = (() => {
-      let m = new Map();
-      for (let i = 0; i < B58_ALPHABET.length; i++) m.set(B58_ALPHABET[i], i);
-      return m;
-    })();
-
-    // Count leading zeros
-    let zeros = 0;
-    while (zeros < str.length && str[zeros] === '1') zeros++;
-
-    // Base58 decode to a big integer in bytes (base256)
-    let bytes = [];
-    for (let i = zeros; i < str.length; i++) {
-      let val = B58_MAP.get(str[i]);
-      if (val == null) throw new Error('Invalid Base58 character');
-      let carry = val;
-      for (let j = 0; j < bytes.length; j++) {
-        let x = bytes[j] * 58 + carry;
-        bytes[j] = x & 0xff;
-        carry = x >> 8;
-      }
-      while (carry > 0) {
-        bytes.push(carry & 0xff);
-        carry >>= 8;
-      }
-    }
-
-    // Add leading zeros
-    for (let k = 0; k < zeros; k++) bytes.push(0);
-
-    // Output is little-endian; reverse to big-endian
-    bytes.reverse();
-    return new Uint8Array(bytes);
   }
 
   async setPrice(saitoAmount) {

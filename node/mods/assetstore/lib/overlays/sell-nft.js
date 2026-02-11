@@ -5,8 +5,8 @@ class SellNFTOverlay extends NFTDetailsOverlay {
     super(app, mod, false);
   }
 
-  render() {
-    super.render();
+  render(nft) {
+    super.render(nft);
 
     Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
       (el) => (el.style.display = 'none')

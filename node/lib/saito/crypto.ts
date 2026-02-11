@@ -523,4 +523,55 @@ export default class Crypto {
   a = Buffer.from(a, 'base64');
   let b = this.app.crypto.decryptWithPrivateKey(a, await this.app.wallet.getPrivateKey());
   */
+
+  ////////////////////////
+  // NFT UTILITES
+  ////////////////////////
+
+  hexToBytes(hex) {
+    let clean = hex.startsWith('0x') ? hex.slice(2) : hex;
+    let out = new Uint8Array(clean.length / 2);
+    for (let i = 0; i < out.length; i++) {
+      out[i] = parseInt(clean.substr(i * 2, 2), 16);
+    }
+    return out;
+  }
+
+  base58ToBytes(str) {
+    // Bitcoin Base58 alphabet
+    let B58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    let B58_MAP = (() => {
+      let m = new Map();
+      for (let i = 0; i < B58_ALPHABET.length; i++) m.set(B58_ALPHABET[i], i);
+      return m;
+    })();
+
+    // Count leading zeros
+    let zeros = 0;
+    while (zeros < str.length && str[zeros] === '1') zeros++;
+
+    // Base58 decode to a big integer in bytes (base256)
+    let bytes = [];
+    for (let i = zeros; i < str.length; i++) {
+      let val = B58_MAP.get(str[i]);
+      if (val == null) throw new Error('Invalid Base58 character');
+      let carry = val;
+      for (let j = 0; j < bytes.length; j++) {
+        let x = bytes[j] * 58 + carry;
+        bytes[j] = x & 0xff;
+        carry = x >> 8;
+      }
+      while (carry > 0) {
+        bytes.push(carry & 0xff);
+        carry >>= 8;
+      }
+    }
+
+    // Add leading zeros
+    for (let k = 0; k < zeros; k++) bytes.push(0);
+
+    // Output is little-endian; reverse to big-endian
+    bytes.reverse();
+    return new Uint8Array(bytes);
+  }
 }
