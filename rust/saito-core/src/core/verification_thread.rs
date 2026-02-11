@@ -14,7 +14,7 @@ use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
-    BlockHash, BlockId, PeerIndex, PrintForLog, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
+    BlockHash, BlockId, PrintForLog, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
 };
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
@@ -28,7 +28,7 @@ use super::stat_thread::StatEvent;
 pub enum VerifyRequest {
     Transaction(Transaction),
     // Transactions(VecDeque<Transaction>),
-    Block(Vec<u8>, PeerIndex, BlockHash, BlockId),
+    Block(Vec<u8>, SaitoPublicKey, BlockHash, BlockId),
 }
 
 pub struct VerificationThread {
@@ -140,7 +140,7 @@ impl VerificationThread {
     pub async fn verify_block(
         &mut self,
         buffer: &[u8],
-        peer_index: PeerIndex,
+        peer_index: SaitoPublicKey,
         block_hash: BlockHash,
         block_id: BlockId,
     ) {

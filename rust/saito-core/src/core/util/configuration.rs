@@ -266,6 +266,16 @@ impl ConsensusConfig {
     }
 }
 
+impl PeerConfig {
+    pub fn get_url(&self) -> String {
+        let mut protocol: String = String::from("ws");
+        if self.protocol == "https" {
+            protocol = String::from("wss");
+        }
+        protocol + "://" + self.host.as_str() + ":" + self.port.to_string().as_str() + "/wsopen"
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
