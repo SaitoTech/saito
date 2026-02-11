@@ -70,10 +70,9 @@ module.exports = (app, mod, nft_overlay) => {
     </div>
   `;
 
-  let mergeButtonHtml = '';
-  if (can_merge) {
-    mergeButtonHtml = `<button class="saito-nft-footer-btn merge">Merge</button>`;
-  }
+  let mergeButtonHtml = can_merge
+    ? `<button class="saito-nft-footer-btn merge">Merge</button>`
+    : '';
 
   let splitUtxosHtml = '';
   let splitSlidersHtml = '';
@@ -121,10 +120,7 @@ module.exports = (app, mod, nft_overlay) => {
 
       // Create a hidden slider for each UTXO
       let canAtomize = all_slips[z].slip1.amount <= 25;
-      let atomizeButtonHtml = '';
-      if (canAtomize) {
-        atomizeButtonHtml = `<button class="split-button atomize-button atomize-button-utxo-${utxoIdx}">atomize</button>`;
-      }
+      let atomizeButtonHtml = `<button class="split-button atomize-button atomize-button-utxo-${utxoIdx}" ${canAtomize ? '' : "disabled title='atomize only supported for quantities of 25 or less' "}>atomize</button>`;
 
       splitSlidersHtml += `
         <div class="saito-nft-split-overlay split-container-utxo-${utxoIdx}" data-utxo-idx="${utxoIdx}">
@@ -170,11 +166,11 @@ module.exports = (app, mod, nft_overlay) => {
       <div class="saito-nft-panel-body">
         ${infoTableHtml}
         ${slipsContainerHtml}
-        ${mergeButtonHtml ? `<div class="nft-merge-button-container">${mergeButtonHtml}</div>` : ''}
         ${splitSlidersHtml}
       </div>
       <div class="saito-nft-split-utxo"></div>
       <div class="saito-nft-panel-footer">
+        ${mergeButtonHtml}
         <button class="saito-nft-footer-btn saito-nft-delete-btn">Delete</button>
       </div>
     </div>

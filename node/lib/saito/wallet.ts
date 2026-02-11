@@ -1861,21 +1861,40 @@ for (let nft_id in nft_balance_by_id) {
       if (tx.isTo(this.app.wallet.publicKey)) {
         console.log('%%% yeah, it is for me!');
         let nft_list = this.app.options.wallet.nfts || [];
-        let nft_id = '';
+        let nft_id = this.computeNFTIdFromTx(tx);
+
         nft_list.forEach(function (nft) {
           if (nft.tx_sig == tx.signature) {
-            nft_id = nft.id;
+            console.log('Have nft saved locally');
+            if (nft_id !== nft.id) {
+              console.warn('Nft id mismatch!!!');
+              nft_id = nft.id;
+            }
           }
         });
 
-        console.log(nft_id, this.computeNFTIdFromTx(tx));
-        console.log(this.app.options.wallet.nfts);
-
         let txmsg = tx.returnMessage();
         let field1 = txmsg.module || 'NFT';
-        tx.packData();
-        console.log('%%% saving nft transaction: ' + nft_id);
-        this.app.storage.saveTransaction(tx, { field1, field4: nft_id, preserve: 1 }, 'localhost');
+
+        if (nft_id)
+          this.app.storage.loadTransactions(
+            { field4: nft_id },
+            (txs) => {
+              if (txs.length) {
+                console.log('%%% nft already in local archives' + nft_id);
+              } else {
+                console.log('%%% saving nft transaction: ' + nft_id);
+                tx.packData();
+                this.app.storage.saveTransaction(
+                  tx,
+                  { field1, field4: nft_id, preserve: 1 },
+                  'localhost'
+                );
+              }
+            },
+            'localhost',
+            0
+          );
 
         if (!tx.isFrom(this.app.wallet.publicKey)) {
           //this.app.browser.siteMessage
