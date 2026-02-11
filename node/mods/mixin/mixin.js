@@ -344,9 +344,9 @@ class Mixin extends ModTemplate {
           res.keys = JSON.parse(buf2.toString('utf8'));
 
           if (res.restored) {
-            console.log('Successfully Restored Mixin Account!', res);
+            console.log('Successfully Restored Mixin Account!');
           } else {
-            console.log('Successfully Created Mixin Account!', res);
+            console.log('Successfully Created Mixin Account!');
           }
 
           // Skip save step if we are creating multiple accounts on the same public key
