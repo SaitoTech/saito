@@ -371,7 +371,6 @@ class Server {
     this.app.modules.onWebSocketServer(webserver);
   }
 
-
   initialize() {
     const server_self = this;
 
