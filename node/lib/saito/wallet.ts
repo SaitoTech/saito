@@ -655,11 +655,19 @@ export default class Wallet extends SaitoWallet {
       //
       // filter and resend pending txs
       //
-      if (!this.app.options.pending_txs) {
-        this.app.options.pending_txs = [];
+
+      let pending_txs: Array<any>;
+
+      if (this.app.BROWSER) {
+        pending_txs = (await this.app.storage.getLocalForageItem('pending_txs')) || [];
+      } else {
+        pending_txs = this.app.options?.pending_txs || [];
       }
-      let pending_txs = this.app.options.pending_txs;
-      this.app.options.pending_txs = [];
+
+      delete this.app.options.pending_txs;
+
+      console.info('Recovered pending_txs -- ', pending_txs);
+
       for (let i = pending_txs.length - 1, k = 0; i >= 0; i--, k++) {
         try {
           if (pending_txs[i].instance) {
@@ -698,7 +706,6 @@ export default class Wallet extends SaitoWallet {
   constructor(wallet: any) {
     super(wallet);
     this.saitoCrypto = null;
-    // this.recreate_pending_transactions = 0;
   }
 
   /**
@@ -759,13 +766,12 @@ export default class Wallet extends SaitoWallet {
     this.app.options.wallet.version = this.version;
     this.app.options.wallet.default_fee = this.default_fee.toString();
 
-    try {
-      this.app.options.pending_txs = await this.getPendingTransactions();
-      if (!this.app.options.pending_txs) {
-        this.app.options.pending_txs = [];
-      }
-    } catch (err) {
-      this.app.options.pending_txs = [];
+    let pending_txs = await this.getPendingTransactions();
+
+    if (this.app.BROWSER) {
+      await this.app.storage.setLocalForageItem('pending_txs', pending_txs);
+    } else {
+      this.app.options.pending_txs = pending_txs;
     }
 
     let slips = await this.getSlips();
@@ -1335,18 +1341,10 @@ export default class Wallet extends SaitoWallet {
   // temporarily disabled
   //
   public async addTransactionToPending(tx: Transaction, save = true) {
-    if (!this.app.options.pending_txs) {
-      this.app.options.pending_txs = [];
-    }
+    await S.getInstance().addPendingTx(tx);
+
     if (save) {
-      if (!this.app.options.pending_txs) {
-        this.app.options.pending_txs = [];
-      }
-      this.app.options.pending_txs.push(tx.serialize_to_web(this.app));
-    }
-    return S.getInstance().addPendingTx(tx);
-    if (save) {
-      this.app.storage.saveOptions();
+      await this.saveWallet();
     }
   }
 
