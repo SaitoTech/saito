@@ -97,7 +97,7 @@ class AssetStoreNFTCard extends SaitoNFTCard {
       if (this.nft.load_failed) {
         elm.innerHTML = `<i class="fa-solid fa-heart-crack"></i>`;
       } else {
-        elm.innerHTML = `<img class="spinner" src="/saito/img/spinner.svg">`;
+        elm.innerHTML = `<div class="saito_spinner spinner"></div>`;
       }
     } else {
       console.log('Element not rendered');
