@@ -1847,8 +1847,6 @@ for (let nft_id in nft_balance_by_id) {
 }
 ***********************************/
 
-
->>>>>>> 73715687 (fix: ts update)
       }
     } catch (err) {
       console.log('Error: load nfts');
