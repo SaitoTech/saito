@@ -424,11 +424,8 @@ class Storage {
 
       //Update hash
       this.wallet_options_hash = new_wallet_hash;
-
-      //update indexedDB (which is needed for privateKey wallet recovery)
-      this.saveOptionsToForage();
     } catch (err) {
-      console.trace(err);
+      console.error('localStorage error: ', err);
       for (let i = 0; i < localStorage.length; i++) {
         let item = localStorage.getItem(localStorage.key(i));
         let parsed_item = '';
@@ -437,8 +434,19 @@ class Storage {
         } catch (err) {
           // Not everything is json... we don't care
         }
-        console.log(localStorage.key(i), item.length, item, parsed_item);
+        console.debug(localStorage.key(i), item.length, item, parsed_item);
       }
+      console.debug(`Trying to save: (${new_wallet_json.length})`, JSON.parse(new_wallet_json));
+      for (let key in this.app.options) {
+        console.log(key, JSON.stringify(this.app.options[key]).length);
+      }
+    }
+
+    try {
+      //update indexedDB (which is needed for privateKey wallet recovery)
+      this.saveOptionsToForage();
+    } catch (err) {
+      console.error('LocalForage error: ', err);
     }
   }
 

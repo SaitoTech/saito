@@ -16,7 +16,6 @@ class CreateNFT {
       this.render();
     });
     this.enable_deposit = false;
-    this.provide_metadata_overlay = new ProvideMetaDataOverlay(app, mod, container);
   }
 
   async render() {
@@ -399,9 +398,8 @@ class CreateNFT {
         this.nft_type
       );
 
-      console.log('create nft 4');
-      this.provide_metadata_overlay.render(newtx);
-      console.log('create nft 5');
+      const nextOverlay = new ProvideMetaDataOverlay(this.app, this.mod);
+      nextOverlay.render(newtx);
     };
   }
 

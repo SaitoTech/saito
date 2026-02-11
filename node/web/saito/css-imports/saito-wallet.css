@@ -470,6 +470,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .dropdown-cont .saito-overlay-form-input {
@@ -606,7 +607,8 @@
 
 .nft-image-preview {
   align-self: center;
-  height: 30rem;
+  max-width: 56rem;
+  max-height: 30rem;
   position: relative;
 }
 

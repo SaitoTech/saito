@@ -43,7 +43,7 @@ module.exports = (app, mod) => {
             
 
             <div class="withdraw-info-cont">
-              <span class="withdraw-info-title">Cost (SAITO)</span> 
+              <span class="withdraw-info-title">Deposit</span> 
                <input
                  type="text"
                  inputmode="numeric"

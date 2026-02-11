@@ -661,12 +661,7 @@ class GameMoves {
     // comes back online. refreshing the browser will also try to auto-resend the tx this way.
     //
     game_self.app.wallet.addTransactionToPending(newtx);
-    //
-    // await here seems to sometimes trigger game engine to continue
-    // which can result in moves = [] becoming empty and we lose
-    // our resolve...
-    //
-    //await game_self.app.wallet.addTransactionToPending(newtx);
+
     game_self.saveGame(game_self.game.id);
 
     console.debug('GT: Sending Move: ', JSON.parse(JSON.stringify(mymsg)));

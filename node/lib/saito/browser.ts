@@ -404,7 +404,6 @@ class Browser {
   }
 
   determineActiveModule() {
-
     const current_url = window.location.toString();
     const myurl = new URL(current_url);
     const myurlpath = myurl.pathname.split('/');
@@ -414,9 +413,13 @@ class Browser {
       return myurlpath[1].toLowerCase();
     }
 
-    if (window?.active_module) { return window.active_module; }
+    if (window?.active_module) {
+      return window.active_module;
+    }
 
-    if (this.app?.options?.homeModule) { return this.app.options.homeModule; }
+    if (this.app?.options?.homeModule) {
+      return this.app.options.homeModule;
+    }
 
     return default_mod;
   }

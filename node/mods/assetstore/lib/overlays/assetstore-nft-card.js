@@ -2,25 +2,17 @@ let SaitoNFTCard = require('./../../../../lib/saito/ui/saito-nft/saito-nft-card'
 let AssetStoreNFTCardTemplate = require('./assetstore-nft-card.template');
 let AssetStoreNFT = require('./assetstore-nft');
 
-
 class AssetStoreNFTCard extends SaitoNFTCard {
-
-
   constructor(app, mod, container = '', tx = null, data = null, mycallback = null) {
-
     super(app, mod, container, tx, data, mycallback);
     this.tx = tx;
-    this.title = "";
-    this.description = "";
-    this.nft = new AssetStoreNFT(app, mod, tx, data, mycallback, this); // last argument is the card that is rendered
-    this.nft.buildNFTData();
+    this.title = '';
+    this.description = '';
+    this.nft = new AssetStoreNFT(app, mod, tx, data, this); // last argument is the card that is rendered
     this.callback = mycallback;
-
   }
 
-
   async render() {
-
     let this_self = this;
     if (!document.querySelector(this.container)) {
       console.warn('nft card -- missing container');
@@ -42,8 +34,12 @@ class AssetStoreNFTCard extends SaitoNFTCard {
     //
     let my_qs = this.container + ' .nfttxsig' + this.nft.tx_sig;
 
-    if (this.title) { this.nft.title = this.title; }
-    if (this.description) { this.nft.description = this.description; }
+    if (this.title) {
+      this.nft.title = this.title;
+    }
+    if (this.description) {
+      this.nft.description = this.description;
+    }
 
     if (document.querySelector(my_qs)) {
       this.app.browser.replaceElementBySelector(
@@ -61,8 +57,8 @@ class AssetStoreNFTCard extends SaitoNFTCard {
     // avoid re-fetching of nft tx
     //
     if (!this.nft.tx_fetched) {
-      this.nft.fetchTransaction(function () {
-        this_self.insertNFTDetails();
+      this.nft.fetchTransaction(() => {
+        this.insertNFTDetails();
       });
     } else {
       if (this.nft?.tx) {
@@ -73,12 +69,9 @@ class AssetStoreNFTCard extends SaitoNFTCard {
 
     // Ensure DOM is in place
     setTimeout(() => this.attachEvents(), 0);
-
   }
 
-
   insertNFTDetails() {
-
     if (this.app.BROWSER != 1) {
       return 0;
     }
@@ -102,7 +95,6 @@ class AssetStoreNFTCard extends SaitoNFTCard {
     } else {
       console.log('Element not rendered');
     }
-
   }
 
   async attachEvents() {
@@ -112,14 +104,11 @@ class AssetStoreNFTCard extends SaitoNFTCard {
         if (this.callback) {
           this.callback(this.nft);
         } else {
-//          this.app.connection.emit('saito-nft-details-render-request', this.nft);
+          //          this.app.connection.emit('saito-nft-details-render-request', this.nft);
         }
       };
     }
   }
-
-
 }
 
 module.exports = AssetStoreNFTCard;
-

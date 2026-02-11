@@ -378,6 +378,11 @@ class SettingsAppspace {
 							siteMessage('Clearing archive...');
 							await archive.onUpgrade('nuke');
 						}
+						siteMessage('Clearing cookies....');
+						localStorage.clear();
+
+						this.app.storage.saveOptions();
+
 						siteMessage('rebooting...');
 						if (this.app.browser.browser_active == 1) {
 							reloadWindow(300);

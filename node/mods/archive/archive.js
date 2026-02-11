@@ -192,7 +192,6 @@ class Archive extends ModTemplate {
 		};
 
 		var isDbCreated = await this.localDB.initDb(db);
-
 	}
 
 	async render() {
@@ -314,14 +313,23 @@ class Archive extends ModTemplate {
 				return;
 			}
 
+			let obj = { block_id, block_hash };
+
+			if (tx.type == 8) {
+				console.log('ARCHIVE saving an NFT!!!');
+				obj.field4 = this.app.wallet.computeNFTIdFromTx(tx);
+				obj.field1 = txmsg.module || 'NFT';
+				obj.preserve = 1;
+			}
+
 			setTimeout(async () => {
 				let txs = await this.loadTransactions({
 					signature: tx.signature
 				});
 				if (txs?.length > 0) {
-					this.updateTransaction(tx, { block_id, block_hash });
+					this.updateTransaction(tx, obj);
 				} else {
-					this.app.storage.saveTransaction(tx, { block_id, block_hash }, 'localhost');
+					this.app.storage.saveTransaction(tx, obj, 'localhost');
 				}
 			}, 10000);
 		}
@@ -348,19 +356,19 @@ class Archive extends ModTemplate {
 				//
 				// add REQUESTER and TS to submitted object
 				//
-				// over-write any existing information / vars in order to 
+				// over-write any existing information / vars in order to
 				// avoid users submitting with correct information inappropriately
 				//
 				if (req.data) {
-				  if (typeof req.data === "object" && req.data !== null && !Array.isArray(req.data)) {
-				    if (peer && peer.publicKey) {
-				      req.data.REQUESTER = peer.publicKey;
-				      req.data.NOW = new Date().getTime(); 
-				    } else {
-				      req.data.REQUESTER = "";
-				      req.data.NOW = new Date().getTime(); 
-				    }
-				  }
+					if (typeof req.data === 'object' && req.data !== null && !Array.isArray(req.data)) {
+						if (peer && peer.publicKey) {
+							req.data.REQUESTER = peer.publicKey;
+							req.data.NOW = new Date().getTime();
+						} else {
+							req.data.REQUESTER = '';
+							req.data.NOW = new Date().getTime();
+						}
+					}
 				}
 
 				//
@@ -439,12 +447,12 @@ class Archive extends ModTemplate {
 			});
 
 			if (numRows) {
-				console.log('Local Archive index successfully inserted.');
-//					'Local Archive index successfully inserted: ',
-//					JSON.parse(JSON.stringify(newObj))
-//				);
+				console.debug('Local Archive index successfully inserted.');
+				//					'Local Archive index successfully inserted: ',
+				//					JSON.parse(JSON.stringify(newObj))
+				//				);
 			} else {
-				console.log('Local Archive index not inserted...');
+				console.debug('Local Archive index not inserted...');
 			}
 		} else {
 			//
@@ -516,6 +524,8 @@ class Archive extends ModTemplate {
 
 			await this.app.storage.runDatabase(sql, params, 'archive');
 		}
+		delete newObj.tx;
+		console.debug('ARCHIVE Save -- ', newObj);
 	}
 
 	/////////////////////////////////////////////////////
@@ -793,25 +803,25 @@ class Archive extends ModTemplate {
 				// a specific network item in order to access.
 				//
 				if (r.owner) {
-  					let access_script = obj.access_script || null;
-  					let access_hash   = obj.access_hash   || null;
+					let access_script = obj.access_script || null;
+					let access_hash = obj.access_hash || null;
 					if (!access_script && obj.access_witness) {
-    						try {
-      							let tx = new Transaction();
-      							tx.deserialize_from_web(this.app, r.tx);
+						try {
+							let tx = new Transaction();
+							tx.deserialize_from_web(this.app, r.tx);
 
 							let txmsg = tx.returnMessage();
 
-      							if (txmsg.access_script) {
-        							access_script = txmsg.access_script;
-        						}
-      							if (txmsg.access_hash) {
-								access_hash   = txmsg.access_hash;
-      							}
-    						} catch (err) {
-      							// malformed tx, deny
-      							continue;
-    						}
+							if (txmsg.access_script) {
+								access_script = txmsg.access_script;
+							}
+							if (txmsg.access_hash) {
+								access_hash = txmsg.access_hash;
+							}
+						} catch (err) {
+							// malformed tx, deny
+							continue;
+						}
 					}
 
 					if (!access_script && !obj.access_witness) {
@@ -819,11 +829,8 @@ class Archive extends ModTemplate {
 						// no script but witness provided...
 						//
 						continue;
-
 					} else {
-
 						if (access_hash === r.owner) {
-	
 							let include_row = false;
 							let scripting_mod = this.app.modules.returnModule('Scripting');
 							if (scripting_mod) {
@@ -847,7 +854,7 @@ class Archive extends ModTemplate {
 						}
 					}
 				} else {
-    					altered_rows.push(r);
+					altered_rows.push(r);
 				}
 			}
 
