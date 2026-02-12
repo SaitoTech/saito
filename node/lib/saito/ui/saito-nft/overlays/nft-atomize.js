@@ -196,36 +196,48 @@ console.log("into onWallet Update: " + this.active);
 
       const nft_list = this.app.options.wallet.nfts || [];
       const slip = nft_list.find((n) => n.slip1?.utxo_key === utxoKey);
-      if (!slip) return;
+      if (!slip) {
+        this.state.inflight.delete(utxoKey);
+        if (utxoKey.endsWith("_r")) this.state.pending.delete(utxoKey);
+        else this.state.pending.set(utxoKey, amount);
+        return;
+      }
 
       let slipNFT = slip;
       if (typeof slipNFT.fetchTransaction !== "function") {
         slipNFT = new SaitoNFT(this.app, this.mod, null, slip, null);
       }
 
-      let tx;
+      const MAX = BigInt(this.MAX_NFT_ATOMIZE_PER_TX);
+      const amt = BigInt(amount);
 
-      if (amount > this.MAX_NFT_ATOMIZE_PER_TX) {
-
-        tx = await this.app.wallet.createSplitNFTTransaction(
-          slipNFT,
-          this.MAX_NFT_ATOMIZE_PER_TX,
-          amount - this.MAX_NFT_ATOMIZE_PER_TX
-        );
-
-      } else {
-
-        tx = await this.app.wallet.createSplitNFTTransaction(
-          slipNFT,
-          1,
-          amount - 1
-        );
+      if (amt <= MAX) {
+        let tx = await this.app.wallet.createAtomizeNFTTransaction(slipNFT);
+        await tx.sign();
+        await this.app.network.propagateTransaction(tx);
+        this.state.tx_sent_this_cycle++;
+        // optimistic local state advance to prevent stall
+        this.state.inflight.delete(utxoKey);
+        this.state.done.add(utxoKey);
+        this.processStep();
+        return;
       }
 
+      let tx = await this.app.wallet.createSplitNFTTransaction(
+        slipNFT,
+        Number(this.MAX_NFT_ATOMIZE_PER_TX),
+        Number(amt - MAX)
+      );
       await tx.sign();
       await this.app.network.propagateTransaction(tx);
-
       this.state.tx_sent_this_cycle++;
+      // optimistic local state advance to prevent stall
+      this.state.inflight.delete(utxoKey);
+      const MAX_NUM = this.MAX_NFT_ATOMIZE_PER_TX;
+      const remainder = amount - MAX_NUM;
+      this.state.pending.set(utxoKey + "_r", remainder);
+      this.state.done.add(utxoKey + "_c");
+      this.processStep();
 
     } catch (err) {
       console.error("Atomize split failed:", err);

@@ -1729,6 +1729,27 @@ export default class Wallet extends SaitoWallet {
     );
   }
 
+
+  /**
+   *
+   *  Atomize an NFT
+   *
+   */
+  public async createAtomizeNFTTransaction(nft: any): Promise<Transaction> {
+
+    await nft.fetchTransaction();
+
+    return S.getInstance().createAtomizeBoundTransaction(
+      nft.slip1.utxo_key,
+      nft.slip2.utxo_key,
+      nft.slip3.utxo_key,
+      nft.txmsg
+    );
+  }
+
+
+
+
   /**
    *
    *  Merge an NFT
@@ -1992,4 +2013,5 @@ for (let nft_id in nft_balance_by_id) {
       .map((b: number) => b.toString(16).padStart(2, '0'))
       .join('');
   }
+
 }

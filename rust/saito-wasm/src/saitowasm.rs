@@ -672,6 +672,8 @@ pub async fn create_send_bound_transaction(
     Ok(WasmTransaction::from_transaction(tx))
 }
 
+
+
 #[wasm_bindgen]
 pub async fn create_split_bound_transaction(
     slip1_utxo_key: JsString,
@@ -708,6 +710,51 @@ pub async fn create_split_bound_transaction(
         let mut wallet = saito.context.wallet_lock.write().await;
         wallet
             .create_split_bound_transaction(s1, s2, s3, left_count, right_count, serialized_msg)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?
+    };
+
+    //
+    // return the newly created transaction to JavaScript
+    //
+    Ok(WasmTransaction::from_transaction(tx))
+}
+
+
+#[wasm_bindgen]
+pub async fn create_atomize_bound_transaction(
+    slip1_utxo_key: JsString,
+    slip2_utxo_key: JsString,
+    slip3_utxo_key: JsString,
+    tx_msg: Uint8Array,
+) -> Result<WasmTransaction, JsValue> {
+
+    let mut saito_guard = SAITO.lock().await;
+    let saito = saito_guard
+        .as_mut()
+        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+    //
+    // decode each hex‐string into a fixed‐length UTXO key
+    //
+    let s1: SaitoUTXOSetKey =
+        string_to_hex(slip1_utxo_key).map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
+    let s2: SaitoUTXOSetKey =
+        string_to_hex(slip2_utxo_key).map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
+    let s3: SaitoUTXOSetKey =
+        string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
+
+    //
+    // convert the `data` string into raw UTF-8 bytes (Vec<u8>)
+    //
+    let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+    //
+    // build the split-bound transaction
+    //
+    let tx = {
+        let mut wallet = saito.context.wallet_lock.write().await;
+        wallet
+            .create_atomize_bound_transaction(s1, s2, s3, serialized_msg)
             .map_err(|e| JsValue::from_str(&e.to_string()))?
     };
 

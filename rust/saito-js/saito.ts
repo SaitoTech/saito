@@ -393,6 +393,31 @@ export default class Saito {
         return tx;
     }
 
+
+    public async createAtomizeBoundTransaction<T extends Transaction>(
+      slip1UtxoKey: string,
+      slip2UtxoKey: string,
+      slip3UtxoKey: string,
+      tx_msg: any
+    ): Promise<T> {
+
+      const tx_msg_arr = Buffer.from(JSON.stringify(tx_msg), "utf-8");
+
+      const wasmTx = await Saito.getLibInstance().create_atomize_bound_transaction(
+        slip1UtxoKey,
+        slip2UtxoKey,
+        slip3UtxoKey,
+        new Uint8Array(tx_msg_arr)
+      );
+
+      const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
+
+      tx.timestamp = Date.now();
+
+      return tx;
+    }
+
+
     public async createSplitBoundTransaction<T extends Transaction>(
       slip1UtxoKey: string,
       slip2UtxoKey: string,
