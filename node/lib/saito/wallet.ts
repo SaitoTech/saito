@@ -1660,6 +1660,12 @@ export default class Wallet extends SaitoWallet {
     //   await this.app.wallet.saveOptions?.();
     // }
 
+    //
+    // crypto (nfts) updated
+    //
+    this.app.connection.emit('saito-header-update-crypto')
+
+
     return { updated, rebroadcast, persisted };
   }
 
