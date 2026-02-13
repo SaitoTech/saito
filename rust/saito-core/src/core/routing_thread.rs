@@ -187,6 +187,23 @@ impl RoutingThread {
                     )
                     .await;
 
+                let is_handshake_completed = {
+                    let peers = self.network.peer_lock.read().await;
+                    if let Some(peer) = peers.find_peer_by_index(peer_index) {
+                        matches!(peer.peer_status, PeerStatus::Connected)
+                            && peer.public_key.is_some()
+                    } else {
+                        false
+                    }
+                };
+                if !is_handshake_completed {
+                    info!(
+                        "skipping blockchain request for peer : {:?} as handshake was not completed",
+                        peer_index
+                    );
+                    return;
+                }
+
                 let blockchain = self.blockchain_lock.read().await;
                 if blockchain.get_latest_block().is_none() && !is_browser {
                     // we don't have any blocks in the blockchain yet. so we need to get the genesis block from this peer
@@ -434,13 +451,22 @@ impl RoutingThread {
         {
             let peers = self.network.peer_lock.read().await;
             if let Some(peer) = peers.find_peer_by_index(peer_index) {
-                peer_key_list.push(peer.public_key.unwrap());
-                peer_key_list.append(&mut peer.key_list.clone());
+                if let Some(public_key) = peer.public_key {
+                    peer_key_list.push(public_key);
+                    peer_key_list.extend(peer.key_list.iter().copied());
+                } else {
+                    warn!(
+                        "ignoring ghost chain request from peer : {:?} without completed handshake",
+                        peer_index
+                    );
+                    return;
+                }
             } else {
                 warn!(
                     "couldn't find peer : {:?} for processing ghost chain request",
                     peer_index
                 );
+                return;
             }
         }
 
@@ -460,7 +486,13 @@ impl RoutingThread {
             .io_interface
             .send_message(peer_index, buffer.as_slice())
             .await
-            .unwrap();
+            .inspect_err(|err| {
+                warn!(
+                    "failed sending ghost chain to peer : {:?}. error : {:?}",
+                    peer_index, err
+                )
+            })
+            .ok();
     }
 
     pub(crate) async fn generate_ghost_chain(
@@ -1558,7 +1590,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::consensus::peers::peer::Peer;
     use crate::core::defs::NOLAN_PER_SAITO;
+    use crate::core::msg::message::Message;
     use crate::core::routing_thread::RoutingThread;
     use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::node_tester::test::NodeTester;
@@ -1633,5 +1667,28 @@ mod tests {
             assert_eq!(ghost_chain.previous_block_hashes.len(), 5);
             assert_eq!(ghost_chain.txs.iter().filter(|x| **x).count(), 1);
         }
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_ghost_chain_request_without_handshake_does_not_panic() {
+        let mut tester = NodeTester::default();
+        let peer_index = 1;
+        {
+            let mut peers = tester.routing_thread.network.peer_lock.write().await;
+            peers
+                .index_to_peers
+                .insert(peer_index, Peer::new(peer_index));
+        }
+
+        tester
+            .routing_thread
+            .process_incoming_message(peer_index, Message::GhostChainRequest(0, [0; 32], [0; 32]))
+            .await;
+
+        let peers = tester.routing_thread.network.peer_lock.read().await;
+        let peer = peers.find_peer_by_index(peer_index);
+        assert!(peer.is_some());
+        assert!(peer.unwrap().public_key.is_none());
     }
 }
