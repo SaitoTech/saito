@@ -1,6 +1,6 @@
 const PostTeaser = require('../post-teaser');
 
-module.exports = (app, mod, posts = [], isLoading = false, subs  =[]) => {
+module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
   let html = `
     <div class="stack-explore-overlay">
       <div class="stack-explore-sidebar">
@@ -11,8 +11,10 @@ module.exports = (app, mod, posts = [], isLoading = false, subs  =[]) => {
           <div class="stack-explore-subscriptions-list">
   `;
   for (let z = 0; z < subs.length; z++) {
-    let active = "";
-    if (z == 0) { active = " active"; }
+    let active = '';
+    if (z == 0) {
+      active = ' active';
+    }
     html += `
             <div class="stack-explore-subscription-item ${active}" data-filter="${subs[z].publickey}">
               <i class="${subs[z].icon}"></i>
@@ -65,7 +67,9 @@ module.exports = (app, mod, posts = [], isLoading = false, subs  =[]) => {
 
         <div class="stack-explore-content">
           <div class="stack-explore-posts-grid" id="stack-explore-posts-grid">
-            ${isLoading ? `
+            ${
+              isLoading
+                ? `
               <!-- Loading state -->
               <div class="stack-explore-loading" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 4rem 2rem;">
                 <div style="text-align: center;">
@@ -73,13 +77,18 @@ module.exports = (app, mod, posts = [], isLoading = false, subs  =[]) => {
                   <p style="color: var(--saito-font-color-light); font-size: 1.6rem;">Loading posts...</p>
                 </div>
               </div>
-            ` : posts.length > 0 ? `
+            `
+                : posts.length > 0
+                  ? `
               <!-- Populated state - render real posts using PostTeaser UI component -->
-              ${posts.map(transaction => {
-                const teaser = new PostTeaser(app, mod, '', transaction);
-                return teaser.render(); // Returns HTML string for template
-              }).join('')}
-            ` : `
+              ${posts
+                .map((transaction) => {
+                  const teaser = new PostTeaser(app, mod, '', transaction);
+                  return teaser.render(); // Returns HTML string for template
+                })
+                .join('')}
+            `
+                  : `
               <!-- Empty state -->
               <div class="stack-explore-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 4rem 2rem; text-align: center;">
                 <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
@@ -88,7 +97,8 @@ module.exports = (app, mod, posts = [], isLoading = false, subs  =[]) => {
                   No posts are visible at this time. This may be because no posts have been published yet, or you may need to subscribe to see content from this creator.
                 </p>
               </div>
-            `}
+            `
+            }
           </div>
         </div>
       </div>
@@ -97,4 +107,3 @@ module.exports = (app, mod, posts = [], isLoading = false, subs  =[]) => {
 
   return html;
 };
-
