@@ -694,7 +694,7 @@ class NFTOverlay {
           await tx.sign();
           await this.app.network.propagateTransaction(tx);
 
-          siteMessage('Split NFT tx sent', 2000);
+          siteMessage('Splitting NFT: transaction broadcast...', 2000);
           this.overlay.close();
 
           if (document.querySelector('.nft-list-container')) {
