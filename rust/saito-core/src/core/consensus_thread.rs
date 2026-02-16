@@ -39,7 +39,7 @@ pub enum ConsensusEvent {
         golden_ticket: GoldenTicket,
     },
     BlockFetched {
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         block: Block,
     },
     NewTransaction {
@@ -462,11 +462,11 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 self.stats.received_tx.increment();
 
                 {
-                    if let Some(peer_index) = transaction.routed_from_peer {
+                    if let Some(public_key) = transaction.routed_from_peer {
                         let mut peers = self.network.peer_lock.write().await;
                         let time: u64 = self.timer.get_timestamp_in_ms();
                         peers.add_congestion_event(
-                            peer_index,
+                            public_key,
                             CongestionType::ReceivedValidTransactions,
                             time,
                         );
@@ -499,10 +499,10 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 let mut mempool = self.mempool_lock.write().await;
                 let mut peers = self.network.peer_lock.write().await;
                 for transaction in transactions.drain(..) {
-                    if let Some(peer_index) = transaction.routed_from_peer {
+                    if let Some(public_key) = transaction.routed_from_peer {
                         let time: u64 = self.timer.get_timestamp_in_ms();
                         peers.add_congestion_event(
-                            peer_index,
+                            public_key,
                             CongestionType::ReceivedValidTransactions,
                             time,
                         );
@@ -1708,7 +1708,7 @@ mod tests {
                     .consensus_thread
                     .process_event(ConsensusEvent::BlockFetched {
                         block,
-                        peer_index: [0; 33],
+                        public_key: [0; 33],
                     })
                     .await;
             }
@@ -1811,7 +1811,7 @@ mod tests {
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
                     block,
-                    peer_index: [0; 33],
+                    public_key: [0; 33],
                 })
                 .await;
         }
@@ -2065,7 +2065,7 @@ mod tests {
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
                     block,
-                    peer_index: [0; 33],
+                    public_key: [0; 33],
                 })
                 .await;
             tester.wait_till_block_id(block_id).await.unwrap();
@@ -2099,7 +2099,7 @@ mod tests {
                     .consensus_thread
                     .process_event(ConsensusEvent::BlockFetched {
                         block,
-                        peer_index: [0; 33],
+                        public_key: [0; 33],
                     })
                     .await;
                 tester

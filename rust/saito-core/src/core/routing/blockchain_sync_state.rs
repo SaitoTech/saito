@@ -63,7 +63,7 @@ impl BlockchainSyncState {
                 .sum::<usize>()
         );
         // for every block picture received from a peer, we sort and create a list of sequential hashes to fetch from peers
-        for (peer_index, received_picture_from_peer) in self.received_block_picture.iter_mut() {
+        for (public_key, received_picture_from_peer) in self.received_block_picture.iter_mut() {
             // need to sort before sequencing
             received_picture_from_peer.make_contiguous().sort_by(
                 |(id_a, hash_a), (id_b, hash_b)| {
@@ -74,7 +74,7 @@ impl BlockchainSyncState {
                 },
             );
 
-            let blocks_to_fetch_from_peer = self.blocks_to_fetch.entry(*peer_index).or_default();
+            let blocks_to_fetch_from_peer = self.blocks_to_fetch.entry(*public_key).or_default();
             let mut counter = 0;
 
             loop {
@@ -125,7 +125,7 @@ impl BlockchainSyncState {
                     counter,
                     blocks_to_fetch_from_peer.len(),
                     received_picture_from_peer.len(),
-                    peer_index
+                    public_key
                 );
             }
         }
@@ -148,7 +148,7 @@ impl BlockchainSyncState {
             Default::default();
 
         // for each peer check if we can fetch block
-        for (peer_index, deq) in self.blocks_to_fetch.iter_mut() {
+        for (public_key, deq) in self.blocks_to_fetch.iter_mut() {
             // TODO : sorting this array can be a performance hit. need to check
 
             // we need to sort the list to make sure we are fetching the next in sequence blocks.
@@ -170,7 +170,7 @@ impl BlockchainSyncState {
                     BlockStatus::Queued => {}
                     BlockStatus::Fetching => {
                         fetching_count += 1;
-                        trace!("currently fetching : {:?}-{:?} from peer : {:?} with retry_count : {:?}",block_data.block_id,block_data.block_hash.to_hex(),peer_index, block_data.retry_count);
+                        trace!("currently fetching : {:?}-{:?} from peer : {:?} with retry_count : {:?}",block_data.block_id,block_data.block_hash.to_hex(),public_key, block_data.retry_count);
                     }
                     BlockStatus::Fetched => {}
                     BlockStatus::Failed => {}
@@ -192,11 +192,11 @@ impl BlockchainSyncState {
                             "selecting entry : {:?}-{:?} for peer : {:?}",
                             block_data.block_id,
                             block_data.block_hash.to_hex(),
-                            peer_index
+                            public_key
                         );
                         allowed_quota -= 1;
                         selected_blocks_per_peer
-                            .entry(*peer_index)
+                            .entry(*public_key)
                             .or_default()
                             .push((block_data.block_hash, block_data.block_id));
                         block_data.status = BlockStatus::Fetching;
@@ -211,7 +211,7 @@ impl BlockchainSyncState {
                                     "selecting failed entry : {:?}-{:?} for peer : {:?}",
                                     block_data.block_id,
                                     block_data.block_hash.to_hex(),
-                                    peer_index
+                                    public_key
                                 );
                                 allowed_quota -= 1;
                                 block_data.status = BlockStatus::Queued;
@@ -220,7 +220,7 @@ impl BlockchainSyncState {
                                 error!("ignoring block : {:?}-{:?} from peer : {:?} since we have repeatedly failed to fetch it",
                                 block_data.block_id,
                                 block_data.block_hash.to_hex(),
-                                peer_index);
+                                public_key);
 
                                 // increasing this so the error is only printed once per block per peer
                                 block_data.retry_count += 1;
@@ -233,7 +233,7 @@ impl BlockchainSyncState {
 
             debug!(
                 "peer : {:?} to be fetched {:?} blocks. first : {:?} last : {:?} fetching : {:?} failed : {:?} queued : {:?}",
-                peer_index,
+                public_key,
                 deq.len(),
                 deq.front().unwrap().block_id,
                 deq.back().unwrap().block_id,
@@ -256,7 +256,7 @@ impl BlockchainSyncState {
     ///
     /// # Arguments
     ///
-    /// * `peer_index`:
+    /// * `public_key`:
     /// * `hash`:
     ///
     /// returns: ()
@@ -268,14 +268,14 @@ impl BlockchainSyncState {
     /// ```
     pub fn mark_as_fetched(&mut self, hash: SaitoHash) {
         debug!("marking block : {:?} as fetched", hash.to_hex());
-        for (peer_index, deq) in self.blocks_to_fetch.iter_mut() {
+        for (public_key, deq) in self.blocks_to_fetch.iter_mut() {
             for block_data in deq {
                 if hash.eq(&block_data.block_hash) {
                     block_data.status = BlockStatus::Fetched;
                     trace!(
                         "block : {:?} marked as fetched from peer : {:?}",
                         block_data.block_hash.to_hex(),
-                        peer_index
+                        public_key
                     );
                     break;
                 }
@@ -289,7 +289,7 @@ impl BlockchainSyncState {
     ///
     /// # Arguments
     ///
-    /// * `peer_index`:
+    /// * `public_key`:
     ///
     /// returns: ()
     ///
@@ -318,7 +318,7 @@ impl BlockchainSyncState {
     ///
     /// * `block_hash`:
     /// * `block_id`:
-    /// * `peer_index`:
+    /// * `public_key`:
     ///
     /// returns: ()
     ///
@@ -331,16 +331,16 @@ impl BlockchainSyncState {
         &mut self,
         block_hash: SaitoHash,
         block_id: BlockId,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         peer_lock: Arc<RwLock<PeerCollection>>,
     ) {
         debug!(
             "adding sync state entry : {:?} - {:?} from {:?}",
             block_hash.to_hex(),
             block_id,
-            peer_index
+            public_key
         );
-        if peer_index == [0; 33] {
+        if public_key == [0; 33] {
             // this means we don't have which peer to request this block from
             let peers = peer_lock.read().await;
             debug!("block : {:?}-{:?} is requested without a peer. request the block from all the peers", block_id,block_hash.to_hex());
@@ -356,7 +356,7 @@ impl BlockchainSyncState {
             }
         } else {
             self.received_block_picture
-                .entry(peer_index)
+                .entry(public_key)
                 .or_default()
                 .push_back((block_id, block_hash));
         }
@@ -366,7 +366,7 @@ impl BlockchainSyncState {
     /// # Arguments
     ///
     /// * `block_hash`:
-    /// * `peer_index`:
+    /// * `public_key`:
     ///
     /// returns: ()
     ///
@@ -386,8 +386,8 @@ impl BlockchainSyncState {
 
     pub fn get_stats(&self) -> Vec<String> {
         let mut stats = vec![];
-        for (peer_index, vec) in self.blocks_to_fetch.iter() {
-            let res = self.received_block_picture.get(peer_index);
+        for (public_key, vec) in self.blocks_to_fetch.iter() {
+            let res = self.received_block_picture.get(public_key);
             let mut count = 0;
             if let Some(deq) = res {
                 count = deq.len();
@@ -409,7 +409,7 @@ impl BlockchainSyncState {
             let stat = format!(
                 "{} - peer : {:?} lowest_id: {:?} fetching_count : {:?} ordered_till : {:?} unordered_block_ids : {:?}",
                 format!("{:width$}", "routing::sync_state", width = 40),
-                peer_index,
+                public_key,
                 lowest_id,
                 fetching_blocks_count,
                 highest_id,
@@ -432,7 +432,7 @@ impl BlockchainSyncState {
     ///
     /// * `id`:
     /// * `hash`:
-    /// * `peer_index`:
+    /// * `public_key`:
     ///
     /// returns: ()
     ///

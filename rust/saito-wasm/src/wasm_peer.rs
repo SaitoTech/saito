@@ -28,9 +28,9 @@ impl WasmPeer {
     }
     //
     // #[wasm_bindgen(constructor)]
-    // pub fn new(peer_index: PeerIndex) -> WasmPeer {
+    // pub fn new(public_key: PeerIndex) -> WasmPeer {
     //     WasmPeer {
-    //         peer: Peer::new(peer_index),
+    //         peer: Peer::new(public_key),
     //     }
     // }
     #[wasm_bindgen(getter = sync_type)]

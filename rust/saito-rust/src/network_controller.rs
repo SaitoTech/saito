@@ -92,7 +92,7 @@ impl NetworkController {
                         public_key.to_base58()
                     );
 
-                    // sockets.remove(&peer_index);
+                    // sockets.remove(&public_key);
                 }
             }
         } else {
@@ -191,7 +191,7 @@ impl NetworkController {
     }
     pub async fn fetch_block(
         block_hash: SaitoHash,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         url: String,
         event_id: u64,
         sender_to_core: Sender<IoEvent>,
@@ -227,7 +227,7 @@ impl NetworkController {
                     event_id,
                     event: NetworkEvent::BlockFetchFailed {
                         block_hash,
-                        peer_index,
+                        public_key,
                         block_id,
                     },
                 })
@@ -251,7 +251,7 @@ impl NetworkController {
                     event_id,
                     event: NetworkEvent::BlockFetchFailed {
                         block_hash,
-                        peer_index,
+                        public_key,
                         block_id,
                     },
                 })
@@ -270,7 +270,7 @@ impl NetworkController {
                     event_id,
                     event: NetworkEvent::BlockFetchFailed {
                         block_hash,
-                        peer_index,
+                        public_key,
                         block_id,
                     },
                 })
@@ -294,7 +294,7 @@ impl NetworkController {
                 event: NetworkEvent::BlockFetched {
                     block_hash,
                     block_id,
-                    peer_index,
+                    public_key,
                     buffer,
                 },
             })
@@ -326,7 +326,7 @@ impl NetworkController {
 
         // {
         //
-        //     sockets.lock().await.insert(peer_index, sender);
+        //     sockets.lock().await.insert(public_key, sender);
         // }
 
         NetworkController::receive_message_from_peer(
@@ -733,12 +733,12 @@ pub async fn run_network_controller(
                                 outgoing_messages.increment();
                             }
                             NetworkEvent::OutgoingNetworkMessage {
-                                peer_index,
+                                public_key,
                                 buffer,
                             } => {
 
                                     let mut network_controller = network_controller_lock.write().await;
-                                network_controller.send_outgoing_message(&peer_index, buffer).await;
+                                network_controller.send_outgoing_message(&public_key, buffer).await;
                                 outgoing_messages.increment();
                             }
                             NetworkEvent::ConnectToPeer {url,  } => {
@@ -754,7 +754,7 @@ pub async fn run_network_controller(
 
                             NetworkEvent::BlockFetchRequest {
                                 block_hash,
-                                peer_index,
+                                public_key,
                                 url,
                                 block_id,
                             } => {
@@ -772,7 +772,7 @@ pub async fn run_network_controller(
 
                                     NetworkController::fetch_block(
                                         block_hash,
-                                        peer_index,
+                                        public_key,
                                         url,
                                         event_id,
                                         sender,
@@ -784,10 +784,10 @@ pub async fn run_network_controller(
                                 });
                             }
 
-                            NetworkEvent::DisconnectFromPeer { peer_index } => {
+                            NetworkEvent::DisconnectFromPeer { public_key } => {
                                     let mut network_controller = network_controller_lock.write().await;
                                 network_controller.disconnect_socket_by_key(
-                                  peer_index
+                                  public_key
                                 )
                                 .await
                             }

@@ -615,7 +615,7 @@ pub mod test {
                 .process_network_event(NetworkEvent::BlockFetched {
                     block_hash: block.hash,
                     block_id: block.id,
-                    peer_index: block.routed_from_peer.unwrap_or([0; 33]),
+                    public_key: block.routed_from_peer.unwrap_or([0; 33]),
                     buffer: block.serialize_for_net(BlockType::Full),
                 })
                 .await;

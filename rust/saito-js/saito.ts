@@ -10,11 +10,11 @@ import BalanceSnapshot from "./lib/balance_snapshot";
 import Nft from "./lib/nft";
 
 export enum LogLevel {
-    Error = 0,
-    Warn,
-    Info,
-    Debug,
-    Trace,
+  Error = 0,
+  Warn,
+  Info,
+  Debug,
+  Trace,
 }
 
 export default class Saito {
@@ -45,14 +45,14 @@ export default class Saito {
 
     // @ts-ignore
     globalThis.shared_methods = {
-      send_message: (peer_index: bigint, buffer: Uint8Array) => {
-        sharedMethods.sendMessage(peer_index, buffer);
+      send_message: (public_key: bigint, buffer: Uint8Array) => {
+        sharedMethods.sendMessage(public_key, buffer);
       },
       send_message_to_all: (buffer: Uint8Array, exceptions: Array<bigint>) => {
         sharedMethods.sendMessageToAll(buffer, exceptions);
       },
-      connect_to_peer: (url: string, peer_index: bigint) => {
-        sharedMethods.connectToPeer(url, peer_index);
+      connect_to_peer: (url: string, public_key: bigint) => {
+        sharedMethods.connectToPeer(url, public_key);
       },
       write_value: (key: string, value: Uint8Array) => {
         return sharedMethods.writeValue(key, value);
@@ -78,31 +78,31 @@ export default class Saito {
       remove_value: (key: string) => {
         return sharedMethods.removeValue(key);
       },
-      disconnect_from_peer: (peer_index: bigint) => {
-        return sharedMethods.disconnectFromPeer(peer_index);
+      disconnect_from_peer: (public_key: bigint) => {
+        return sharedMethods.disconnectFromPeer(public_key);
       },
       fetch_block_from_peer: (
         hash: Uint8Array,
-        peer_index: bigint,
+        public_key: bigint,
         url: string,
         block_id: bigint
       ) => {
         sharedMethods
           .fetchBlockFromPeer(url)
           .then((buffer: Uint8Array) => {
-            return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, peer_index);
+            return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, public_key);
           })
           .catch((error: any) => {
             console.log(
               "failed fetching block for url : " +
                 url +
                 " from peer : " +
-                peer_index +
+                public_key +
                 ", block id = " +
                 block_id
             );
             console.error(error);
-            return Saito.getLibInstance().process_failed_block_fetch(hash, block_id, peer_index);
+            return Saito.getLibInstance().process_failed_block_fetch(hash, block_id, public_key);
           });
       },
       process_api_call: (buffer: Uint8Array, msgIndex: number, peerIndex: bigint) => {
@@ -222,9 +222,9 @@ export default class Saito {
     return Saito.wasmMemory;
   }
 
-  public addNewSocket(socket: any, peer_index: bigint) {
-    this.sockets.set(peer_index, socket);
-    console.log("adding socket : " + peer_index + ". total sockets : " + this.sockets.size);
+  public addNewSocket(socket: any, public_key: bigint) {
+    this.sockets.set(public_key, socket);
+    console.log("adding socket : " + public_key + ". total sockets : " + this.sockets.size);
   }
 
   public async addStunPeer(publicKey: string, peerConnection: RTCPeerConnection) {
@@ -280,21 +280,21 @@ export default class Saito {
     return Saito.getLibInstance().process_new_peer(index, ip);
   }
 
-  public async processPeerDisconnection(peer_index: bigint): Promise<void> {
-    return Saito.getLibInstance().process_peer_disconnection(peer_index);
+  public async processPeerDisconnection(public_key: bigint): Promise<void> {
+    return Saito.getLibInstance().process_peer_disconnection(public_key);
   }
 
-  public async processMsgBufferFromPeer(buffer: Uint8Array, peer_index: bigint): Promise<void> {
-    return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer_index);
+  public async processMsgBufferFromPeer(buffer: Uint8Array, public_key: bigint): Promise<void> {
+    return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, public_key);
   }
 
   public async processFetchedBlock(
     buffer: Uint8Array,
     hash: Uint8Array,
     block_id: bigint,
-    peer_index: bigint
+    public_key: bigint
   ): Promise<void> {
-    return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, peer_index);
+    return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, public_key);
   }
 
   public async processTimerEvent(duration_in_ms: bigint): Promise<void> {
@@ -498,7 +498,7 @@ export default class Saito {
         throw new Error("peer not found");
       }
       if (peer.status !== "connected") {
-        throw new Error(`peer : ${peer.peerIndex} not connected. status : ${peer.status}`);
+        throw new Error(`peer : ${peer.publicKey} not connected. status : ${peer.status}`);
       }
     }
 
