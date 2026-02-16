@@ -423,8 +423,7 @@ impl NetworkController {
                     if result.is_binary() {
                         let buffer = result.into_bytes();
                         trace!("received buffer of size : {:?}", buffer.len());
-
-                        if !peer
+                        let result = peer
                             .process_incoming_buffer(
                                 buffer,
                                 &mut public_key,
@@ -432,9 +431,6 @@ impl NetworkController {
                                 configs.clone(),
                                 &timer,
                                 &network_controller.services,
-                                async |buffer| {
-                                    NetworkController::send(&mut socket, buffer).await;
-                                },
                                 async |event| {
                                     let message = IoEvent {
                                         event_processor_id: 1,
@@ -447,11 +443,15 @@ impl NetworkController {
                                         .expect("sending failed");
                                 },
                             )
-                            .await
-                            .is_ok()
-                        {
+                            .await;
+                        if !result.is_ok() {
                             network_controller.disconnect_socket(socket).await;
                             break;
+                        } else {
+                            let buffer = result.unwrap();
+                            if !buffer.is_empty() {
+                                NetworkController::send(&mut socket, buffer).await;
+                            }
                         }
                     } else if result.is_close() {
                         warn!(
@@ -479,7 +479,7 @@ impl NetworkController {
                     match result {
                         tokio_tungstenite::tungstenite::Message::Binary(buffer) => {
                             trace!("received buffer of size : {:?}", buffer.len());
-                            if !peer
+                            let result = peer
                                 .process_incoming_buffer(
                                     buffer,
                                     &mut public_key,
@@ -487,9 +487,6 @@ impl NetworkController {
                                     configs.clone(),
                                     &timer,
                                     &network_controller.services,
-                                    async |buffer| {
-                                        NetworkController::send(&mut socket, buffer).await;
-                                    },
                                     async |event| {
                                         let message = IoEvent {
                                             event_processor_id: 1,
@@ -502,10 +499,14 @@ impl NetworkController {
                                             .expect("sending failed");
                                     },
                                 )
-                                .await
-                                .is_ok()
-                            {
+                                .await;
+                            if !result.is_ok() {
                                 break;
+                            } else {
+                                let buffer = result.unwrap();
+                                if !buffer.is_empty() {
+                                    Self::send(&mut socket, buffer).await;
+                                }
                             }
                         }
                         tokio_tungstenite::tungstenite::Message::Close(_) => {
