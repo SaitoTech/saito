@@ -38,6 +38,9 @@ class NFTAtomize {
     this.nft = nft;
     this.utxoIdx = utxoIdx;
 
+    const selected_utxo_key = nft.slip1?.utxo_key;
+    const selected_amount = Number(nft.slip1?.amount ?? nft.amount) || 0;
+
     //
     // Limits (should be injected from parent if needed)
     //
@@ -46,18 +49,22 @@ class NFTAtomize {
     this.MAX_NFT_ATOMIZE_TX_PER_BLOCK = 5;
 
     //
-    // State
+    // State: scope to selected UTXO and remainder slips from splitting that branch only
     //
     this.active = false;
 
     this.state = {
       nft_id: nft.id,
-      initial_amount: Number(nft.slip1?.amount ?? nft.amount) || 0,
+      initial_amount: selected_amount,
+      active_keys: new Set(),
+      consumed_pending: new Map(),
       pending: new Map(),
       inflight: new Set(),
       done: new Set(),
       tx_sent_this_cycle: 0
     };
+
+    if (selected_utxo_key) this.state.active_keys.add(selected_utxo_key);
 
     this.walletListener = this.onWalletUpdate.bind(this);
     this.reassuranceInterval = null;
@@ -71,6 +78,53 @@ class NFTAtomize {
     this.currentStatus = msg;
     const el = document.querySelector('.nft-atomize-status');
     if (el) el.innerText = msg;
+  }
+
+
+  reconcileConsumedKeys(nft_list) {
+    const walletKeys = new Set();
+    for (const slip of nft_list) {
+      const key = slip.slip1?.utxo_key;
+      if (key) walletKeys.add(key);
+    }
+    const MAX = this.MAX_NFT_ATOMIZE_PER_TX;
+    const nft_id = this.state.nft_id;
+    for (const key of Array.from(this.state.active_keys)) {
+      if (walletKeys.has(key)) continue;
+      const consumed = this.state.consumed_pending.get(key);
+      this.state.active_keys.delete(key);
+      this.state.consumed_pending.delete(key);
+      this.state.inflight.delete(key);
+      if (!consumed || !consumed.was_split) continue;
+      const amount = consumed.amount;
+      const remainder = amount - MAX;
+      let chunkKey = null;
+      let remainderKey = null;
+      for (const slip of nft_list) {
+        if (String(slip.id) !== String(nft_id)) continue;
+        const k = slip.slip1?.utxo_key;
+        if (!k || this.state.active_keys.has(k)) continue;
+        const amt = Number(slip.slip1?.amount);
+        if (amt === MAX) chunkKey = k;
+        else if (amt === remainder) remainderKey = k;
+      }
+      if (chunkKey) this.state.active_keys.add(chunkKey);
+      if (remainderKey) this.state.active_keys.add(remainderKey);
+    }
+  }
+
+
+  buildPendingAndDoneFromActiveKeys(nft_list) {
+    this.state.pending.clear();
+    this.state.done.clear();
+    for (const slip of nft_list) {
+      const key = slip.slip1?.utxo_key;
+      if (!key || !this.state.active_keys.has(key)) continue;
+      const amt = Number(slip.slip1?.amount);
+      if (amt > 1) this.state.pending.set(key, amt);
+      else if (amt === 1) this.state.done.add(key);
+    }
+    for (const key of this.state.done) this.state.inflight.delete(key);
   }
 
 
@@ -95,20 +149,11 @@ class NFTAtomize {
 
 
     //
-    // Initialize pending and done from current wallet (read-only)
+    // Scope: only selected UTXO and its split remainders (active_keys)
     //
     const nft_list = this.app.options.wallet.nfts || [];
-    this.state.pending.clear();
-    this.state.done.clear();
-    this.state.inflight.clear();
-    for (const slip of nft_list) {
-      if (String(slip.id) !== String(this.state.nft_id)) continue;
-      const key = slip.slip1?.utxo_key;
-      if (!key) continue;
-      const amt = Number(slip.slip1?.amount);
-      if (amt > 1) this.state.pending.set(key, amt);
-      else if (amt === 1) this.state.done.add(key);
-    }
+    this.reconcileConsumedKeys(nft_list);
+    this.buildPendingAndDoneFromActiveKeys(nft_list);
 
     //
     // Replace parent container content
@@ -182,21 +227,11 @@ class NFTAtomize {
     if (!this.active) { return; }
 
     //
-    // Rebuild pending and done from current wallet state only.
-    // Progress and completion are derived from wallet (confirmation), not from send.
+    // Rebuild from wallet: resolve consumed keys (add remainder keys to active_keys), then only slips in active_keys.
     //
     const nft_list = this.app.options.wallet.nfts || [];
-    this.state.pending.clear();
-    this.state.done.clear();
-    for (const slip of nft_list) {
-      if (String(slip.id) !== String(this.state.nft_id)) continue;
-      const key = slip.slip1?.utxo_key;
-      if (!key) continue;
-      const amt = Number(slip.slip1?.amount);
-      if (amt > 1) this.state.pending.set(key, amt);
-      else if (amt === 1) this.state.done.add(key);
-    }
-    for (const key of this.state.done) this.state.inflight.delete(key);
+    this.reconcileConsumedKeys(nft_list);
+    this.buildPendingAndDoneFromActiveKeys(nft_list);
 
     this.state.tx_sent_this_cycle = 0;
     this.processStep();
@@ -261,6 +296,7 @@ class NFTAtomize {
         this.setStatus(STATUS.BROADCASTING);
         await this.app.network.propagateTransaction(tx);
         this.state.tx_sent_this_cycle++;
+        this.state.consumed_pending.set(utxoKey, { amount: Number(amount), was_split: false });
         this.confirmationEscalationTicks = 0;
         this.setStatus(STATUS.AWAITING);
         return;
@@ -276,6 +312,7 @@ class NFTAtomize {
       this.setStatus(STATUS.BROADCASTING);
       await this.app.network.propagateTransaction(tx);
       this.state.tx_sent_this_cycle++;
+      this.state.consumed_pending.set(utxoKey, { amount: Number(amount), was_split: true });
       this.confirmationEscalationTicks = 0;
       this.setStatus(STATUS.AWAITING);
     } catch (err) {

@@ -10,10 +10,20 @@ class NFTOverlay {
     this.overlay = new SaitoOverlay(this.app, this.mod);
 
     this.overlay.callback_on_close = () => {
+      if (this._cryptoListenerAttached) {
+	this.app.connection.removeListener(
+	  'saito-header-update-crypto',
+	  this._cryptoUpdateHandler
+	);
+	this._cryptoListenerAttached = false;
+      }
       if (this.atomizer) {
 	this.atomizer.shutdown();
       }
-    }
+    };
+
+    this._cryptoUpdateHandler = this._onCryptoUpdate.bind(this);
+    this._cryptoListenerAttached = false;
 
 
     //
@@ -52,36 +62,46 @@ class NFTOverlay {
     }
   }
 
-  render(nft = null) {
-    if (nft) {
-      this.nft = nft;
-      this.owner = nft.slip1.public_key;
-    }
-    //
-    // examine wallet for all possibilities
-    //
-    let nft_list = this.app.options.wallet.nfts;
+  _rebuildSlipsFromWallet() {
+    if (!this.nft) return;
+    const nft_list = this.app.options.wallet.nfts || [];
     this.all_slips = [];
     this.total_slips = 0;
     this.total_amount = 0;
     this.can_split = false;
     this.can_merge = false;
-
     for (let z = 0; z < nft_list.length; z++) {
-      let n = nft_list[z];
+      const n = nft_list[z];
       if (n.id == this.nft.id) {
         this.total_slips++;
         this.total_amount += n.slip1.amount;
-        if (this.total_slips > 1) {
-          this.can_merge = true;
-        }
-        if (n.slip1.amount > 1) {
-          this.can_split = true;
-        }
+        if (this.total_slips > 1) this.can_merge = true;
+        if (n.slip1.amount > 1) this.can_split = true;
         this.all_slips.push(n);
       }
     }
+  }
 
+  _onCryptoUpdate() {
+    if (!this.overlay.visible || !this.nft) return;
+    this._rebuildSlipsFromWallet();
+    this.overlay.show(NFTOverlayTemplate(this.app, this.mod, this));
+    setTimeout(() => this.attachEvents(), 25);
+  }
+
+  render(nft = null) {
+    if (nft) {
+      this.nft = nft;
+      this.owner = nft.slip1.public_key;
+    }
+    this._rebuildSlipsFromWallet();
+    if (!this._cryptoListenerAttached) {
+      this.app.connection.on(
+	'saito-header-update-crypto',
+	this._cryptoUpdateHandler
+      );
+      this._cryptoListenerAttached = true;
+    }
     this.overlay.show(NFTOverlayTemplate(this.app, this.mod, this));
     setTimeout(() => {
       this.attachEvents();

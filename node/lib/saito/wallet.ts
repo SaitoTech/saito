@@ -1782,7 +1782,7 @@ export default class Wallet extends SaitoWallet {
   // with them...
   //
   public async loadNFTs() {
-    console.log('LOAD NFTs');
+
     try {
       let nft_balance_by_id = {};
 
@@ -1845,34 +1845,44 @@ export default class Wallet extends SaitoWallet {
               );
             }
           }
-       }
+        }
 
-/*******************************
-for (let nft_id in nft_balance_by_id) {
 
-  let total = nft_balance_by_id[nft_id];
-  if (total <= 0n) { continue; }
+/*****
+ * CREATE CRYPTO MOD
+ *
+	for (let nft_id in nft_balance_by_id) {
 
-  let ticker = `NFT-${nft_id.slice(0, 6)}`;
+	  let total = nft_balance_by_id[nft_id];
+	  if (total <= 0n) { continue; }
 
-  // Prevent double-install on reload
-  if (this.returnCryptoModuleByTicker(ticker)) {
-    continue;
-  }
+	  let ticker = "";
 
-  let mod = new NFTCryptoModule(this.app, nft_id, {
-    ticker,
-    name: ticker
-  });
+          for (let z = 0; z < this.app.options.wallet.nfts.length; z++) { 
+            let nft = this.app.options.wallet.nfts[z];
+            if (nft.id == nft_id) {
+	      ticker = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
+	    }
+	  }
 
-  this.app.modules.mods.push(mod);
-  await mod.initialize(this.app);
+	  if (this.returnCryptoModuleByTicker(ticker) || ticker == "") {
+	    continue;
+	  }
+	
+	  let mod = new NFTCryptoModule(this.app, nft_id, {
+	    ticker,
+	    name: ticker
+	  });
 
-  console.log(
-    `NFT crypto module installed: ${ticker} (balance ${total.toString()})`
-  );
-}
-***********************************/
+	  this.app.modules.mods.push(mod);
+	  await mod.initialize(this.app);
+	
+	  console.log(
+	    `NFT crypto module installed: ${ticker} (balance ${total.toString()})`
+	  );
+	}
+*****/
+
 
       }
     } catch (err) {
