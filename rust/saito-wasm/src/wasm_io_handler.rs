@@ -336,7 +336,7 @@ impl Debug for WasmIoHandler {
 
 #[wasm_bindgen(module = "/js/msg_handler.js")]
 extern "C" {
-    type MsgHandler;
+    pub type MsgHandler;
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_message(public_key: String, buffer: &Uint8Array);

@@ -20,7 +20,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
         try {
           let buffer = new Uint8Array(event.data);
 
-          Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.publicKey);
+          Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer);
         } catch (error) {
           console.error(error);
         }

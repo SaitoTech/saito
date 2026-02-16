@@ -20,7 +20,10 @@ impl WasmNetworkPeer {
     pub fn new(peer: NetworkPeer) -> WasmNetworkPeer {
         Self { peer }
     }
-    pub fn get_peer(&self) -> NetworkPeer {
-        self.peer.clone()
+    pub fn get_peer(&self) -> &NetworkPeer {
+        &self.peer
+    }
+    pub fn get_peer_mut(&mut self) -> &mut NetworkPeer {
+        &mut self.peer
     }
 }

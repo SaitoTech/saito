@@ -8,7 +8,7 @@ use crate::wasm_balance_snapshot::WasmBalanceSnapshot;
 use crate::wasm_block::WasmBlock;
 use crate::wasm_blockchain::WasmBlockchain;
 use crate::wasm_configuration::WasmConfiguration;
-use crate::wasm_io_handler::WasmIoHandler;
+use crate::wasm_io_handler::{MsgHandler, WasmIoHandler};
 use crate::wasm_network_peer::WasmNetworkPeer;
 use crate::wasm_nft::WasmNFT;
 use crate::wasm_peer::WasmPeer;
@@ -887,7 +887,7 @@ pub async fn process_new_peer(peer: WasmNetworkPeer) {
         .unwrap()
         .routing_thread
         .process_network_event(NetworkEvent::PeerConnectionResult {
-            result: Ok(peer.get_peer()),
+            result: Ok(peer.get_peer().clone()),
         })
         .await;
 }
@@ -956,20 +956,45 @@ pub async fn process_peer_disconnection(key: JsString) {
 }
 
 #[wasm_bindgen]
-pub async fn process_msg_buffer_from_peer(buffer: js_sys::Uint8Array, key: JsString) {
-    let key: SaitoPublicKey = string_to_key(key).unwrap();
+pub async fn process_msg_buffer_from_peer(
+    buffer: js_sys::Uint8Array,
+    mut peer: WasmNetworkPeer,
+) -> js_sys::Uint8Array {
     let mut saito = SAITO.lock().await;
+    let saito = saito.as_mut().unwrap();
     let buffer = buffer.to_vec();
 
-    saito
-        .as_mut()
-        .unwrap()
-        .routing_thread
-        .process_network_event(NetworkEvent::IncomingNetworkMessage {
-            public_key: key,
+    let network_peer = peer.get_peer_mut();
+
+    let mut public_key = None;
+    let mut result = js_sys::Uint8Array::new_with_length(0);
+    network_peer
+        .process_incoming_buffer(
             buffer,
-        })
-        .await;
+            &mut public_key,
+            saito.context.wallet_lock.clone(),
+            saito.context.config_lock.clone(),
+            &saito.routing_thread.timer,
+            &saito.routing_thread.network.io_interface.get_my_services(),
+            |buffer| async move {
+                let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
+                array.copy_from(buffer.as_slice());
+                result = array;
+            },
+            |event| async move {
+                let mut saito = SAITO.lock().await;
+                saito
+                    .as_mut()
+                    .unwrap()
+                    .routing_thread
+                    .process_network_event(event)
+                    .await;
+            },
+        )
+        .await
+        .expect("fail processing incoming buffer");
+
+    result
 }
 
 #[wasm_bindgen]
