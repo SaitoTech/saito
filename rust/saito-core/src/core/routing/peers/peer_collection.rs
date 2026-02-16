@@ -5,7 +5,6 @@ use crate::core::routing::peers::congestion_controller::{
 };
 use crate::core::routing::peers::peer::{Peer, PeerStatus};
 use crate::core::routing::peers::peer_service::PeerService;
-use crate::core::util::configuration::Endpoint;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
 use std::io::{Error, ErrorKind};

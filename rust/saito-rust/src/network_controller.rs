@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::net::SocketAddr;
-use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -32,7 +31,6 @@ use saito_core::core::defs::{
     BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, BLOCK_FILE_EXTENSION,
     STAT_BIN_COUNT,
 };
-use saito_core::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::routing::io::network::PeerDisconnectType;
 use saito_core::core::routing::io::network_event::NetworkEvent;
@@ -426,17 +424,21 @@ impl NetworkController {
                         let buffer = result.into_bytes();
                         trace!("received buffer of size : {:?}", buffer.len());
 
-                        if !Self::handle_received_buffer(
-                            &mut peer,
-                            &mut socket,
-                            wallet.clone(),
-                            configs.clone(),
-                            &timer,
-                            &mut public_key,
-                            &mut network_controller,
-                            buffer,
-                        )
-                        .await
+                        if !peer
+                            .process_incoming_buffer(
+                                buffer,
+                                network_controller.sender_to_core.clone(),
+                                &mut public_key,
+                                wallet.clone(),
+                                configs.clone(),
+                                &timer,
+                                &network_controller.services,
+                                async |buffer| {
+                                    NetworkController::send(&mut socket, buffer).await;
+                                },
+                            )
+                            .await
+                            .is_ok()
                         {
                             network_controller.disconnect_socket(socket).await;
                             break;
@@ -467,17 +469,21 @@ impl NetworkController {
                     match result {
                         tokio_tungstenite::tungstenite::Message::Binary(buffer) => {
                             trace!("received buffer of size : {:?}", buffer.len());
-                            if !Self::handle_received_buffer(
-                                &mut peer,
-                                &mut socket,
-                                wallet.clone(),
-                                configs.clone(),
-                                &timer,
-                                &mut public_key,
-                                &mut network_controller,
-                                buffer,
-                            )
-                            .await
+                            if !peer
+                                .process_incoming_buffer(
+                                    buffer,
+                                    network_controller.sender_to_core.clone(),
+                                    &mut public_key,
+                                    wallet.clone(),
+                                    configs.clone(),
+                                    &timer,
+                                    &network_controller.services,
+                                    async |buffer| {
+                                        NetworkController::send(&mut socket, buffer).await;
+                                    },
+                                )
+                                .await
+                                .is_ok()
                             {
                                 break;
                             }
@@ -503,31 +509,31 @@ impl NetworkController {
         });
     }
 
-    async fn handle_received_buffer(
-        peer: &mut NetworkPeer,
-        mut socket: &mut PeerSender,
-        wallet: Arc<RwLock<Wallet>>,
-        configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
-        timer: &Timer,
-        public_key: &mut Option<SaitoPublicKey>,
-        network_controller: &mut NetworkController,
-        buffer: Vec<u8>,
-    ) -> bool {
-        peer.process_incoming_buffer(
-            buffer,
-            network_controller.sender_to_core.clone(),
-            public_key,
-            wallet,
-            configs,
-            timer,
-            &network_controller.services,
-            async |buffer| {
-                NetworkController::send(&mut socket, buffer).await;
-            },
-        )
-        .await
-        .is_ok()
-    }
+    // async fn handle_received_buffer(
+    //     peer: &mut NetworkPeer,
+    //     mut socket: &mut PeerSender,
+    //     wallet: Arc<RwLock<Wallet>>,
+    //     configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
+    //     timer: &Timer,
+    //     public_key: &mut Option<SaitoPublicKey>,
+    //     network_controller: &mut NetworkController,
+    //     buffer: Vec<u8>,
+    // ) -> bool {
+    //     peer.process_incoming_buffer(
+    //         buffer,
+    //         network_controller.sender_to_core.clone(),
+    //         public_key,
+    //         wallet,
+    //         configs,
+    //         timer,
+    //         &network_controller.services,
+    //         async |buffer| {
+    //             NetworkController::send(&mut socket, buffer).await;
+    //         },
+    //     )
+    //     .await
+    //     .is_ok()
+    // }
 }
 
 ///

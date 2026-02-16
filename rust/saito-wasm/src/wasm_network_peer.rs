@@ -1,7 +1,6 @@
 use js_sys::JsString;
 use saito_core::core::defs::PrintForLog;
 use saito_core::core::routing::peers::network_peer::NetworkPeer;
-use saito_core::core::routing::peers::peer::Peer;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
