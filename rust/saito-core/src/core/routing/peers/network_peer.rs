@@ -217,7 +217,7 @@ impl NetworkPeer {
         //
         // io_handler.send_interface_event(InterfaceEvent::PeerHandshakeComplete(self.index));
     }
-    pub async fn process_incoming_buffer<F1, F2, T, S>(
+    pub async fn process_incoming_buffer<F2, S>(
         &mut self,
         buffer: Vec<u8>,
         public_key: &mut Option<SaitoPublicKey>,
@@ -225,13 +225,10 @@ impl NetworkPeer {
         configs: Arc<RwLock<dyn Configuration + Send + Sync>>,
         timer: &Timer,
         services: &Vec<PeerService>,
-        send_buffer: T,
         send_event: S,
-    ) -> Result<(), Error>
+    ) -> Result<Vec<u8>, Error>
     where
-        T: FnOnce(Vec<u8>) -> F1,
         S: FnOnce(NetworkEvent) -> F2,
-        F1: std::future::Future<Output = ()>,
         F2: std::future::Future<Output = ()>,
     {
         if self.is_connected() {
@@ -240,7 +237,7 @@ impl NetworkPeer {
                 buffer,
             })
             .await;
-            Ok(())
+            Ok(vec![])
         } else {
             if self.challenge.is_some() {
                 if let Ok(response) = HandshakeResponse::deserialize(&buffer) {
@@ -267,10 +264,12 @@ impl NetworkPeer {
                             &wallet,
                             configs.deref(),
                         ) {
+                            let mut buffer = vec![];
                             if let Some(response) = result {
                                 // we need to send this response to the other side
-                                let buffer = response.serialize();
-                                send_buffer(buffer).await;
+                                buffer = response.serialize();
+
+                                // send_buffer(buffer).await;
                             }
                             // now the handshake is complete. We need to alert the core
                             public_key.replace(self.public_key.unwrap());
@@ -278,12 +277,13 @@ impl NetworkPeer {
                                 result: Ok(self.clone()),
                             })
                             .await;
+                            return Ok(buffer);
                         } else {
                             warn!("failed handling the handshake response");
                             return Err(Error::from(ErrorKind::InvalidInput));
                         }
                     }
-                    Ok(())
+                    Ok(vec![])
                 } else {
                     warn!(
                         "failed deserializing handshake response : {:?}",
@@ -305,9 +305,9 @@ impl NetworkPeer {
                         )
                         .await
                     {
-                        send_buffer(response.serialize()).await;
+                        return Ok(response.serialize());
                     }
-                    Ok(())
+                    Ok(vec![])
                 } else {
                     error!(
                         "failed deserializing handshake challenge : {:?}",

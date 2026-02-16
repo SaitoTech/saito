@@ -1010,8 +1010,7 @@ pub async fn process_msg_buffer_from_peer(
     let network_peer = peer.get_peer_mut();
 
     let mut public_key = None;
-    let mut result = js_sys::Uint8Array::new_with_length(0);
-    network_peer
+    let buffer = network_peer
         .process_incoming_buffer(
             buffer,
             &mut public_key,
@@ -1019,11 +1018,6 @@ pub async fn process_msg_buffer_from_peer(
             saito.context.config_lock.clone(),
             &saito.routing_thread.timer,
             &saito.routing_thread.network.io_interface.get_my_services(),
-            |buffer| async move {
-                let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
-                array.copy_from(buffer.as_slice());
-                result = array;
-            },
             |event| async move {
                 let mut saito = SAITO.lock().await;
                 saito
@@ -1037,7 +1031,9 @@ pub async fn process_msg_buffer_from_peer(
         .await
         .expect("fail processing incoming buffer");
 
-    result
+    let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
+    array.copy_from(buffer.as_slice());
+    array
 }
 
 #[wasm_bindgen]
