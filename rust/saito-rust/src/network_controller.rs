@@ -381,7 +381,7 @@ impl NetworkController {
         self.sender_to_core
             .send(IoEvent {
                 event_processor_id: 1,
-                event_id: 0,
+                // event_id: 0,
                 event: NetworkEvent::PeerDisconnected {
                     public_key,
                     disconnect_type: PeerDisconnectType::InternalDisconnect,
@@ -515,7 +515,7 @@ impl NetworkController {
     ) -> bool {
         peer.process_incoming_buffer(
             buffer,
-            network_controller.sender_to_core,
+            network_controller.sender_to_core.clone(),
             public_key,
             wallet,
             configs,
@@ -639,7 +639,6 @@ pub async fn run_network_controller(
                 result = receiver.recv()=>{
                     if result.is_some() {
                         let event = result.unwrap();
-                        let event_id = event.event_id;
                         let interface_event = event.event;
                         match interface_event {
                             NetworkEvent::OutgoingNetworkMessageForAll { buffer, exceptions } => {
@@ -691,7 +690,6 @@ pub async fn run_network_controller(
                                         block_hash,
                                         public_key,
                                         url,
-                                        event_id,
                                         sender,
                                         current_queries,
                                         client,

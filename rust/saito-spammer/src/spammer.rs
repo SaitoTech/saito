@@ -109,7 +109,7 @@ impl Spammer {
                         sender
                             .send(IoEvent {
                                 event_processor_id: 0,
-                                event_id: 0,
+                                // event_id: 0,
                                 event: NetworkEvent::OutgoingNetworkMessageForAll {
                                     buffer: Message::Transaction(tx).serialize(),
                                     exceptions: vec![],
