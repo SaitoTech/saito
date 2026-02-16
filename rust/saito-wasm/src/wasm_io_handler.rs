@@ -223,7 +223,7 @@ impl InterfaceIO for WasmIoHandler {
 
     fn send_interface_event(&self, event: InterfaceEvent) {
         match event {
-            InterfaceEvent::PeerHandshakeComplete(index) => {
+            InterfaceEvent::PeerHandshakeComplete(_index) => {
                 MsgHandler::send_interface_event("handshake_complete".to_string(), "".to_string());
             }
             InterfaceEvent::PeerConnectionDropped(public_key) => {
@@ -232,7 +232,7 @@ impl InterfaceIO for WasmIoHandler {
                     public_key.to_base58(),
                 );
             }
-            InterfaceEvent::PeerConnected(index) => {
+            InterfaceEvent::PeerConnected(_index) => {
                 MsgHandler::send_interface_event("peer_connect".to_string(), "".to_string());
             }
             InterfaceEvent::BlockAddSuccess(hash, block_id) => {
@@ -252,7 +252,7 @@ impl InterfaceIO for WasmIoHandler {
                 );
             }
 
-            InterfaceEvent::StunPeerConnected(index) => {
+            InterfaceEvent::StunPeerConnected(_index) => {
                 MsgHandler::send_interface_event("stun peer connect".to_string(), "".to_string());
             }
             InterfaceEvent::StunPeerDisconnected(public_key) => {

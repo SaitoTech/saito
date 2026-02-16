@@ -1,16 +1,11 @@
 use crate::core::consensus::wallet::Wallet;
-use crate::core::defs::{PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, Timestamp};
+use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
-use crate::core::msg::message::Message;
-use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-use crate::core::routing::peers::peer::PeerStatus;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
-use crate::core::util::serialize::Serialize;
-use log::{debug, info, warn};
+use log::{info, warn};
 use std::io::{Error, ErrorKind};
-use std::net::IpAddr;
 
 #[derive(Debug, Clone)]
 pub struct NetworkPeer {

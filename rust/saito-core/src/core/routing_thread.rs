@@ -24,7 +24,6 @@ use crate::core::routing::peers::congestion_controller::{
     CongestionStatsDisplay, CongestionType, PeerCongestionControls,
 };
 use crate::core::routing::peers::peer::{Peer, PeerStatus};
-use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util;
 use crate::core::util::config_manager::ConfigManager;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
@@ -1227,14 +1226,14 @@ impl RoutingThread {
         &mut self,
         peer_index: SaitoPublicKey,
         response: HandshakeResponse,
-        wallet_lock: Arc<RwLock<Wallet>>,
+        _wallet_lock: Arc<RwLock<Wallet>>,
         _blockchain_lock: Arc<RwLock<Blockchain>>,
-        configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        _configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     ) {
         let mut peers = self.network.peer_lock.write().await;
         // let public_key;
         let current_time = self.timer.get_timestamp_in_ms();
-        let endpoint = response.endpoint.clone();
+        let _endpoint = response.endpoint.clone();
 
         // we need to make sure there isn't a peer with the same public key currently connected
         for (_, peer) in peers.peers.iter_mut() {

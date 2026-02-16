@@ -7,7 +7,6 @@ use crate::core::defs::{BlockHash, BlockId, ForkId, SaitoPublicKey};
 use crate::core::msg::api_message::ApiMessage;
 use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
-use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::serialize::Serialize;
 use log::{error, warn};

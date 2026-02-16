@@ -1,18 +1,16 @@
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp, WS_KEEP_ALIVE_PERIOD};
-use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use crate::core::msg::message::Message;
 use crate::core::process::version::Version;
 use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util;
-use crate::core::util::configuration::{Configuration, Endpoint};
-use crate::core::util::crypto::{generate_random_bytes, sign, verify};
-use log::{debug, info, trace, warn};
+use crate::core::util::configuration::Endpoint;
+use log::{debug, info, trace};
 use serde::{Serialize, Serializer};
 use std::cmp::Ordering;
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
