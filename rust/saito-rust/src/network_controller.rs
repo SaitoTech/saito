@@ -427,7 +427,6 @@ impl NetworkController {
                         if !peer
                             .process_incoming_buffer(
                                 buffer,
-                                network_controller.sender_to_core.clone(),
                                 &mut public_key,
                                 wallet.clone(),
                                 configs.clone(),
@@ -435,6 +434,17 @@ impl NetworkController {
                                 &network_controller.services,
                                 async |buffer| {
                                     NetworkController::send(&mut socket, buffer).await;
+                                },
+                                async |event| {
+                                    let message = IoEvent {
+                                        event_processor_id: 1,
+                                        event,
+                                    };
+                                    network_controller
+                                        .sender_to_core
+                                        .send(message)
+                                        .await
+                                        .expect("sending failed");
                                 },
                             )
                             .await
@@ -472,7 +482,6 @@ impl NetworkController {
                             if !peer
                                 .process_incoming_buffer(
                                     buffer,
-                                    network_controller.sender_to_core.clone(),
                                     &mut public_key,
                                     wallet.clone(),
                                     configs.clone(),
@@ -480,6 +489,17 @@ impl NetworkController {
                                     &network_controller.services,
                                     async |buffer| {
                                         NetworkController::send(&mut socket, buffer).await;
+                                    },
+                                    async |event| {
+                                        let message = IoEvent {
+                                            event_processor_id: 1,
+                                            event,
+                                        };
+                                        network_controller
+                                            .sender_to_core
+                                            .send(message)
+                                            .await
+                                            .expect("sending failed");
                                     },
                                 )
                                 .await

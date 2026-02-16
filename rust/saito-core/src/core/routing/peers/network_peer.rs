@@ -217,30 +217,29 @@ impl NetworkPeer {
         //
         // io_handler.send_interface_event(InterfaceEvent::PeerHandshakeComplete(self.index));
     }
-    pub async fn process_incoming_buffer<F, T>(
+    pub async fn process_incoming_buffer<F1, F2, T, S>(
         &mut self,
         buffer: Vec<u8>,
-        sender_to_core: Sender<IoEvent>,
         public_key: &mut Option<SaitoPublicKey>,
         wallet: Arc<RwLock<Wallet>>,
         configs: Arc<RwLock<dyn Configuration + Send + Sync>>,
         timer: &Timer,
         services: &Vec<PeerService>,
         send_buffer: T,
+        send_event: S,
     ) -> Result<(), Error>
     where
-        T: FnOnce(Vec<u8>) -> F,
-        F: std::future::Future<Output = ()>,
+        T: FnOnce(Vec<u8>) -> F1,
+        S: FnOnce(NetworkEvent) -> F2,
+        F1: std::future::Future<Output = ()>,
+        F2: std::future::Future<Output = ()>,
     {
         if self.is_connected() {
-            let message = IoEvent {
-                event_processor_id: 1,
-                event: NetworkEvent::IncomingNetworkMessage {
-                    public_key: public_key.unwrap(),
-                    buffer,
-                },
-            };
-            sender_to_core.send(message).await.expect("sending failed");
+            send_event(NetworkEvent::IncomingNetworkMessage {
+                public_key: public_key.unwrap(),
+                buffer,
+            })
+            .await;
             Ok(())
         } else {
             if self.challenge.is_some() {
@@ -255,17 +254,11 @@ impl NetworkPeer {
                         warn!("peer : {:?} core version is not compatible. current core version : {:?} peer core version : {:?}",
                                  response.public_key.to_base58(), wallet.core_version, response.core_version);
 
-                        sender_to_core
-                            .send(IoEvent {
-                                event_processor_id: 1,
-                                // event_id: 0,
-                                event: NetworkEvent::NewVersionDetected {
-                                    public_key: response.public_key,
-                                    version: response.wallet_version,
-                                },
-                            })
-                            .await
-                            .expect("sending failed");
+                        send_event(NetworkEvent::NewVersionDetected {
+                            public_key: response.public_key,
+                            version: response.wallet_version,
+                        })
+                        .await;
                     } else {
                         if let Ok(result) = self.process_handshake_response(
                             response.clone(),
@@ -281,17 +274,10 @@ impl NetworkPeer {
                             }
                             // now the handshake is complete. We need to alert the core
                             public_key.replace(self.public_key.unwrap());
-
-                            sender_to_core
-                                .send(IoEvent {
-                                    event_processor_id: 1,
-                                    // event_id: 0,
-                                    event: NetworkEvent::PeerConnectionResult {
-                                        result: Ok(self.clone()),
-                                    },
-                                })
-                                .await
-                                .expect("sending failed");
+                            send_event(NetworkEvent::PeerConnectionResult {
+                                result: Ok(self.clone()),
+                            })
+                            .await;
                         } else {
                             warn!("failed handling the handshake response");
                             return Err(Error::from(ErrorKind::InvalidInput));
