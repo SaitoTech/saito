@@ -18,14 +18,14 @@ pub struct WasmIoHandler {}
 
 #[async_trait]
 impl InterfaceIO for WasmIoHandler {
-    async fn send_message(&self, peer_index: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error> {
-        // trace!("WasmIoHandler::send_message : {:?}", peer_index);
+    async fn send_message(&self, public_key: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error> {
+        // trace!("WasmIoHandler::send_message : {:?}", public_key);
 
         let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
         array.copy_from(buffer);
 
         // let async_fn =
-        MsgHandler::send_message(peer_index.to_base58(), &array);
+        MsgHandler::send_message(public_key.to_base58(), &array);
         // let promise = js_sys::Promise::resolve(async_fn);
         // let result = wasm_bindgen_futures::JsFuture::from(async_fn).await;
         drop(array);
@@ -66,16 +66,16 @@ impl InterfaceIO for WasmIoHandler {
         Ok(())
     }
 
-    async fn disconnect_from_peer(&self, peer_index: SaitoPublicKey) -> Result<(), Error> {
-        trace!("disconnect from peer : {:?}", peer_index);
-        MsgHandler::disconnect_from_peer(peer_index.to_base58()).expect("TODO: panic message");
+    async fn disconnect_from_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error> {
+        trace!("disconnect from peer : {:?}", public_key);
+        MsgHandler::disconnect_from_peer(public_key.to_base58()).expect("TODO: panic message");
         Ok(())
     }
 
     async fn fetch_block_from_peer(
         &self,
         block_hash: SaitoHash,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         url: &str,
         block_id: BlockId,
     ) -> Result<(), Error> {
@@ -83,7 +83,7 @@ impl InterfaceIO for WasmIoHandler {
         hash.copy_from(block_hash.as_slice());
         let result = MsgHandler::fetch_block_from_peer(
             &hash,
-            peer_index.to_base58(),
+            public_key.to_base58(),
             url.to_string(),
             BigInt::from(block_id),
         );
@@ -193,32 +193,32 @@ impl InterfaceIO for WasmIoHandler {
         Ok(())
     }
 
-    async fn process_api_call(&self, buffer: Vec<u8>, msg_index: u32, peer_index: SaitoPublicKey) {
+    async fn process_api_call(&self, buffer: Vec<u8>, msg_index: u32, public_key: SaitoPublicKey) {
         let buf = Uint8Array::new_with_length(buffer.len() as u32);
         buf.copy_from(buffer.as_slice());
-        MsgHandler::process_api_call(buf, msg_index, peer_index.to_base58());
+        MsgHandler::process_api_call(buf, msg_index, public_key.to_base58());
     }
 
     async fn process_api_success(
         &self,
         buffer: Vec<u8>,
         msg_index: u32,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
     ) {
         // let tx = Transaction::deserialize_from_net(&buffer);
         // let buffer = tx.data;
         let buf = Uint8Array::new_with_length(buffer.len() as u32);
         buf.copy_from(buffer.as_slice());
-        MsgHandler::process_api_success(buf, msg_index, peer_index.to_base58());
+        MsgHandler::process_api_success(buf, msg_index, public_key.to_base58());
     }
 
-    async fn process_api_error(&self, buffer: Vec<u8>, msg_index: u32, peer_index: SaitoPublicKey) {
+    async fn process_api_error(&self, buffer: Vec<u8>, msg_index: u32, public_key: SaitoPublicKey) {
         // let tx = Transaction::deserialize_from_net(&buffer);
         // let buffer = tx.data;
 
         let buf = Uint8Array::new_with_length(buffer.len() as u32);
         buf.copy_from(buffer.as_slice());
-        MsgHandler::process_api_error(buf, msg_index, peer_index.to_base58());
+        MsgHandler::process_api_error(buf, msg_index, public_key.to_base58());
     }
 
     fn send_interface_event(&self, event: InterfaceEvent) {
@@ -339,7 +339,7 @@ extern "C" {
     type MsgHandler;
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_message(peer_index: String, buffer: &Uint8Array);
+    pub fn send_message(public_key: String, buffer: &Uint8Array);
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_message_to_all(buffer: &Uint8Array, exceptions: &Array);
@@ -369,24 +369,24 @@ extern "C" {
     pub fn remove_value(key: String) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
-    pub fn disconnect_from_peer(peer_index: String) -> Result<JsValue, js_sys::Error>;
+    pub fn disconnect_from_peer(public_key: String) -> Result<JsValue, js_sys::Error>;
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
     pub fn fetch_block_from_peer(
         hash: &Uint8Array,
-        peer_index: String,
+        public_key: String,
         url: String,
         block_id: BigInt,
     ) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn process_api_call(buffer: Uint8Array, msg_index: u32, peer_index: String);
+    pub fn process_api_call(buffer: Uint8Array, msg_index: u32, public_key: String);
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn process_api_success(buffer: Uint8Array, msg_index: u32, peer_index: String);
+    pub fn process_api_success(buffer: Uint8Array, msg_index: u32, public_key: String);
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn process_api_error(buffer: Uint8Array, msg_index: u32, peer_index: String);
+    pub fn process_api_error(buffer: Uint8Array, msg_index: u32, public_key: String);
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_interface_event(event: String, public_key: String);
@@ -417,5 +417,5 @@ extern "C" {
     pub fn get_my_services() -> WasmPeerServiceList;
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_new_version_alert(version: String, peer_index: String);
+    pub fn send_new_version_alert(version: String, public_key: String);
 }

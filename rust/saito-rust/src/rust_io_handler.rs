@@ -58,10 +58,10 @@ impl Debug for RustIOHandler {
 
 #[async_trait]
 impl InterfaceIO for RustIOHandler {
-    async fn send_message(&self, peer_index: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error> {
+    async fn send_message(&self, public_key: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error> {
         // TODO : refactor to combine event and the future
         let event = IoEvent::new(NetworkEvent::OutgoingNetworkMessage {
-            peer_index,
+            public_key,
             buffer: buffer.to_vec(),
         });
 
@@ -96,10 +96,10 @@ impl InterfaceIO for RustIOHandler {
         Ok(())
     }
 
-    async fn disconnect_from_peer(&self, peer_index: SaitoPublicKey) -> Result<(), Error> {
+    async fn disconnect_from_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error> {
         self.sender
             .send(IoEvent::new(NetworkEvent::DisconnectFromPeer {
-                peer_index,
+                public_key,
             }))
             .await
             .unwrap();
@@ -109,7 +109,7 @@ impl InterfaceIO for RustIOHandler {
     async fn fetch_block_from_peer(
         &self,
         block_hash: SaitoHash,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         url: &str,
         block_id: BlockId,
     ) -> Result<(), Error> {
@@ -120,7 +120,7 @@ impl InterfaceIO for RustIOHandler {
         debug!("fetching block : {:?} from peer : {:?}", block_id, url);
         let event = IoEvent::new(NetworkEvent::BlockFetchRequest {
             block_hash,
-            peer_index,
+            public_key,
             block_id,
             url: url.to_string(),
         });
@@ -275,7 +275,7 @@ impl InterfaceIO for RustIOHandler {
         &self,
         _buffer: Vec<u8>,
         _msg_index: u32,
-        _peer_index: SaitoPublicKey,
+        _public_key: SaitoPublicKey,
     ) {
     }
 
@@ -283,7 +283,7 @@ impl InterfaceIO for RustIOHandler {
         &self,
         _buffer: Vec<u8>,
         _msg_index: u32,
-        _peer_index: SaitoPublicKey,
+        _public_key: SaitoPublicKey,
     ) {
     }
 
@@ -291,7 +291,7 @@ impl InterfaceIO for RustIOHandler {
         &self,
         _buffer: Vec<u8>,
         _msg_index: u32,
-        _peer_index: SaitoPublicKey,
+        _public_key: SaitoPublicKey,
     ) {
     }
 

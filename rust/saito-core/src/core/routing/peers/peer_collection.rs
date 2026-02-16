@@ -67,14 +67,14 @@ impl PeerCollection {
     pub async fn process_peer_services(
         &mut self,
         services: Vec<PeerService>,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
     ) {
-        let peer = self.peers.get_mut(&peer_index);
+        let peer = self.peers.get_mut(&public_key);
         if peer.is_some() {
             let peer = peer.unwrap();
             peer.services = services;
         } else {
-            warn!("peer {:?} not found to update services", peer_index);
+            warn!("peer {:?} not found to update services", public_key);
         }
     }
 
@@ -102,8 +102,8 @@ impl PeerCollection {
 
         io_handler.send_interface_event(InterfaceEvent::StunPeerConnected(public_key));
     }
-    pub async fn update_peer_timer(&mut self, peer_index: SaitoPublicKey, current_time: Timestamp) {
-        let peer = self.peers.get_mut(&peer_index);
+    pub async fn update_peer_timer(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {
+        let peer = self.peers.get_mut(&public_key);
         if peer.is_none() {
             return;
         }
@@ -117,28 +117,28 @@ impl PeerCollection {
 
         // if we receive any messages from an old peer while a new peer is pending, we remove the pending peer
         // self.pending_handshake_responses
-        //     .retain(|(new_peer_index, _, response, _)| {
+        //     .retain(|(new_public_key, _, response, _)| {
         //         !(response.public_key == peer_public_key
         //             // we check this peer index check to make sure we aren't removing the pending peer from any message sent by itself
-        //             && *new_peer_index != peer_index)
+        //             && *new_public_key != public_key)
         //     });
     }
     pub async fn handle_received_key_list(
         &mut self,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         key_list: Vec<SaitoPublicKey>,
         current_time: Timestamp,
     ) -> Result<(), Error> {
         trace!(
             "handler received key list of length : {:?} from peer : {:?}",
             key_list.len(),
-            peer_index
+            public_key
         );
 
         // Lock peers to write
-        self.add_congestion_event(peer_index, CongestionType::ReceivedKeyLists, current_time);
+        self.add_congestion_event(public_key, CongestionType::ReceivedKeyLists, current_time);
 
-        if let Some(peer) = self.peers.get_mut(&peer_index) {
+        if let Some(peer) = self.peers.get_mut(&public_key) {
             // Check rate peers
             trace!(
                 "handling received keylist : {:?} from peer : {:?}-{:?}",
@@ -146,7 +146,7 @@ impl PeerCollection {
                     .iter()
                     .map(|k| k.to_base58())
                     .collect::<Vec<String>>(),
-                peer_index,
+                public_key,
                 peer.get_public_key().to_base58()
             );
             peer.key_list = key_list;
@@ -154,19 +154,19 @@ impl PeerCollection {
         } else {
             error!(
                 "peer not found for index : {:?}. cannot handle received key list",
-                peer_index
+                public_key
             );
             Err(Error::from(ErrorKind::NotFound))
         }
     }
     pub async fn remove_stun_peer(
         &mut self,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         io_handler: &Box<dyn InterfaceIO + Send + Sync>,
     ) {
-        debug!("Removing STUN peer with index: {}", peer_index.to_base58());
+        debug!("Removing STUN peer with index: {}", public_key.to_base58());
         let peer_public_key: SaitoPublicKey;
-        if let Some(peer) = self.peers.remove(&peer_index) {
+        if let Some(peer) = self.peers.remove(&public_key) {
             let public_key = peer.get_public_key();
             peer_public_key = public_key;
             self.peers.remove(&public_key);
@@ -175,48 +175,17 @@ impl PeerCollection {
         } else {
             error!(
                 "Failed to remove STUN peer: Peer with index {} not found",
-                peer_index.to_base58()
+                public_key.to_base58()
             );
         }
     }
 
-    pub fn remove_reconnected_peer(
-        &mut self,
-        public_key: &SaitoPublicKey,
-        _endpoint: &Endpoint,
-    ) -> Option<Peer> {
-        let mut peer_index = None;
-        {
-            for (index, peer) in self.peers.iter() {
-                // if *index == current_peer_index {
-                //     continue;
-                // }
-
-                if *public_key == peer.public_key {
-                    debug!("old peer found for key : {:?}", public_key.to_base58());
-                    peer_index = Some(*index);
-                    break;
-                }
-
-                // if peer.endpoint == *endpoint
-                //     && matches!(peer.peer_status, PeerStatus::Disconnected(_, _))
-                // {
-                //     debug!("old peer found for endpoint : {:?}", endpoint);
-                //     peer_index = Some(*index);
-                //     break;
-                // }
-            }
-            if peer_index.is_none() {
-                debug!("peer with key : {:?} not found", public_key.to_base58());
-                return None;
-            }
-        }
-
-        let peer = self.peers.remove(&peer_index.unwrap())?;
+    pub fn remove_reconnected_peer(&mut self, public_key: &SaitoPublicKey) -> Option<Peer> {
+        let peer = self.peers.remove(public_key)?;
         self.peers.remove(&peer.public_key);
         debug!(
             "removed reconnected peer : {:?} with key : {:?}. current peer count : {:?}",
-            peer_index,
+            public_key,
             peer.public_key.to_base58(),
             self.peers.len()
         );
@@ -228,7 +197,7 @@ impl PeerCollection {
         let peer_indices: Vec<SaitoPublicKey> = self
             .peers
             .iter()
-            .filter_map(|(peer_index, peer)| {
+            .filter_map(|(public_key, peer)| {
                 if peer.static_peer_config.is_some() {
                     // static peers always remain in memory
                     return None;
@@ -244,15 +213,15 @@ impl PeerCollection {
                 }
                 info!(
                     "removing peer : {:?} as peer hasn't connected for more than {:?} seconds",
-                    peer_index,
+                    public_key,
                     Duration::from_millis(current_time - peer.disconnected_at).as_secs()
                 );
-                Some(*peer_index)
+                Some(*public_key)
             })
             .collect();
 
-        for peer_index in peer_indices {
-            let _peer = self.peers.remove(&peer_index).unwrap();
+        for public_key in peer_indices {
+            let _peer = self.peers.remove(&public_key).unwrap();
         }
     }
 
@@ -308,11 +277,11 @@ impl PeerCollection {
 
     pub fn get_congestion_status(
         &self,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         current_time: Timestamp,
     ) -> Vec<PeerCongestionStatus> {
         let mut statuses = Vec::new();
-        if let Some(peer) = self.peers.get(&peer_index) {
+        if let Some(peer) = self.peers.get(&public_key) {
             let public_key = peer.get_public_key();
             if let Some(controls) = self.congestion_controls_by_key.get(&public_key) {
                 let result = controls.get_congestion_status(current_time);
@@ -329,8 +298,8 @@ impl PeerCollection {
         statuses
     }
 
-    pub fn is_peer_blacklisted(&self, peer_index: SaitoPublicKey, current_time: Timestamp) -> bool {
-        let statuses = self.get_congestion_status(peer_index, current_time);
+    pub fn is_peer_blacklisted(&self, public_key: SaitoPublicKey, current_time: Timestamp) -> bool {
+        let statuses = self.get_congestion_status(public_key, current_time);
         !statuses.is_empty()
             && statuses.iter().any(|status| {
                 matches!(

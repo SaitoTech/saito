@@ -2375,7 +2375,7 @@ impl Blockchain {
 
             debug!("blocks to add : {:?}", blocks.len());
             while let Some(block) = blocks.pop_front() {
-                let peer_index = block.routed_from_peer;
+                let public_key = block.routed_from_peer;
                 let block_id = block.id;
                 let result = self
                     .add_block(block, storage, &mut mempool, configs, network)
@@ -2443,10 +2443,10 @@ impl Blockchain {
                         .await;
                     }
                     AddBlockResult::FailedNotValid => {
-                        if let Some(peer_index) = peer_index {
+                        if let Some(public_key) = public_key {
                             let mut peers = network.unwrap().peer_lock.write().await;
                             peers.add_congestion_event(
-                                peer_index,
+                                public_key,
                                 CongestionType::ReceivedInvalidBlocks,
                                 network.unwrap().timer.get_timestamp_in_ms(),
                             );

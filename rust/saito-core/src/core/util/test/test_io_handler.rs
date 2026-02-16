@@ -27,7 +27,7 @@ pub mod test {
     impl InterfaceIO for TestIOHandler {
         async fn send_message(
             &self,
-            _peer_index: SaitoPublicKey,
+            _public_key: SaitoPublicKey,
             _buffer: &[u8],
         ) -> Result<(), Error> {
             // TODO : implement a way to check sent messages
@@ -49,14 +49,14 @@ pub mod test {
             Ok(())
         }
 
-        async fn disconnect_from_peer(&self, _peer_index: SaitoPublicKey) -> Result<(), Error> {
+        async fn disconnect_from_peer(&self, _public_key: SaitoPublicKey) -> Result<(), Error> {
             todo!("")
         }
 
         async fn fetch_block_from_peer(
             &self,
             _block_hash: SaitoHash,
-            _peer_index: SaitoPublicKey,
+            _public_key: SaitoPublicKey,
             _url: &str,
             _block_id: BlockId,
         ) -> Result<(), Error> {
@@ -159,7 +159,7 @@ pub mod test {
             &self,
             _buffer: Vec<u8>,
             _msg_index: u32,
-            _peer_index: SaitoPublicKey,
+            _public_key: SaitoPublicKey,
         ) {
             todo!()
         }
@@ -168,7 +168,7 @@ pub mod test {
             &self,
             _buffer: Vec<u8>,
             _msg_index: u32,
-            _peer_index: SaitoPublicKey,
+            _public_key: SaitoPublicKey,
         ) {
             todo!()
         }
@@ -177,7 +177,7 @@ pub mod test {
             &self,
             _buffer: Vec<u8>,
             _msg_index: u32,
-            _peer_index: SaitoPublicKey,
+            _public_key: SaitoPublicKey,
         ) {
             todo!()
         }

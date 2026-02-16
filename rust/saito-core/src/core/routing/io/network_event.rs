@@ -6,7 +6,7 @@ use crate::core::routing::peers::network_peer::NetworkPeer;
 #[derive(Debug)]
 pub enum NetworkEvent {
     OutgoingNetworkMessage {
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         buffer: Vec<u8>,
     },
     OutgoingNetworkMessageForAll {
@@ -19,10 +19,10 @@ pub enum NetworkEvent {
     },
     ConnectToPeer {
         url: String,
-        // peer_index: PeerIndex,
+        // public_key: PeerIndex,
     },
     DisconnectFromPeer {
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
     },
     PeerConnectionResult {
         result: Result<NetworkPeer, std::io::Error>,
@@ -31,7 +31,7 @@ pub enum NetworkEvent {
         public_key: SaitoPublicKey,
     },
     RemoveStunPeer {
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
     },
     PeerDisconnected {
         public_key: SaitoPublicKey,
@@ -39,19 +39,19 @@ pub enum NetworkEvent {
     },
     BlockFetchRequest {
         block_hash: SaitoHash,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         url: String,
         block_id: BlockId,
     },
     BlockFetched {
         block_hash: SaitoHash,
         block_id: BlockId,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         buffer: Vec<u8>,
     },
     BlockFetchFailed {
         block_hash: SaitoHash,
-        peer_index: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         block_id: BlockId,
     },
     NewVersionDetected {

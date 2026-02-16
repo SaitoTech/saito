@@ -934,11 +934,8 @@ pub async fn process_new_peer(key: JsString, ip: JsString) {
 }
 
 #[wasm_bindgen]
-pub async fn process_stun_peer(peer_index: JsString, public_key: JsString) -> Result<(), JsValue> {
-    debug!(
-        "processing stun peer with index: {:?} and public key: {:?} ",
-        peer_index, public_key
-    );
+pub async fn process_stun_peer(public_key: JsString) -> Result<(), JsValue> {
+    debug!("processing stun peer with public key: {:?} ", public_key,);
     let mut saito = SAITO.lock().await;
     let key: SaitoPublicKey = string_to_key(public_key.into())
         .map_err(|e| JsValue::from_str(&format!("Failed to parse public key: {}", e)))?;
@@ -953,8 +950,8 @@ pub async fn process_stun_peer(peer_index: JsString, public_key: JsString) -> Re
 }
 
 #[wasm_bindgen]
-pub async fn remove_stun_peer(peer_index: JsString) {
-    let key: SaitoPublicKey = string_to_key(peer_index).unwrap();
+pub async fn remove_stun_peer(public_key: JsString) {
+    let key: SaitoPublicKey = string_to_key(public_key).unwrap();
     debug!(
         "removing stun peer with index: {:?} from netowrk ",
         key.to_base58()
@@ -964,12 +961,12 @@ pub async fn remove_stun_peer(peer_index: JsString) {
         .as_mut()
         .unwrap()
         .routing_thread
-        .process_network_event(NetworkEvent::RemoveStunPeer { peer_index: key })
+        .process_network_event(NetworkEvent::RemoveStunPeer { public_key: key })
         .await;
 }
 //
 // #[wasm_bindgen]
-// pub async fn get_next_peer_index() -> BigInt {
+// pub async fn get_next_public_key() -> BigInt {
 //     let mut saito = SAITO.lock().await;
 //     let mut peers = saito
 //         .as_mut()
@@ -1032,7 +1029,7 @@ pub async fn process_fetched_block(
         .process_network_event(NetworkEvent::BlockFetched {
             block_hash: hash.to_vec().try_into().unwrap(),
             block_id,
-            peer_index: key,
+            public_key: key,
             buffer: buffer.to_vec(),
         })
         .await;
@@ -1048,7 +1045,7 @@ pub async fn process_failed_block_fetch(hash: js_sys::Uint8Array, block_id: u64,
         .routing_thread
         .process_network_event(NetworkEvent::BlockFetchFailed {
             block_hash: hash.to_vec().try_into().unwrap(),
-            peer_index: key,
+            public_key: key,
             block_id,
         })
         .await;
@@ -1229,7 +1226,7 @@ pub async fn get_peers() -> Array {
         .count();
     let array = Array::new_with_length(valid_peer_count as u32);
     let mut array_index = 0;
-    for (_i, (_peer_index, peer)) in peers.peers.iter().enumerate() {
+    for (_i, (_public_key, peer)) in peers.peers.iter().enumerate() {
         let peer = peer.clone();
         array.set(
             array_index as u32,
@@ -1657,7 +1654,7 @@ pub async fn produce_block_with_gt() -> bool {
                 .unwrap()
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
-                    peer_index: [0; 33],
+                    public_key: [0; 33],
                     block,
                 })
                 .await;
@@ -1756,7 +1753,7 @@ pub async fn produce_block_without_gt() -> bool {
                 .unwrap()
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
-                    peer_index: [0; 33],
+                    public_key: [0; 33],
                     block,
                 })
                 .await;
@@ -1849,8 +1846,8 @@ pub async fn get_confirmations() -> Result<JsValue, JsValue> {
 pub async fn start_from_received_ghost_chain() {
     let mut saito = SAITO.lock().await;
     let routing_thread = &mut saito.as_mut().unwrap().routing_thread;
-    if let Some((chain, peer_index)) = routing_thread.received_ghost_chain.take() {
-        routing_thread.process_ghost_chain(chain, peer_index).await;
+    if let Some((chain, public_key)) = routing_thread.received_ghost_chain.take() {
+        routing_thread.process_ghost_chain(chain, public_key).await;
     }
 }
 
