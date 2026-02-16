@@ -217,7 +217,7 @@ impl NetworkPeer {
         //
         // io_handler.send_interface_event(InterfaceEvent::PeerHandshakeComplete(self.index));
     }
-    pub async fn process_incoming_buffer<T: FnOnce(Vec<u8>) -> ()>(
+    pub async fn process_incoming_buffer<F, T>(
         &mut self,
         buffer: Vec<u8>,
         sender_to_core: Sender<IoEvent>,
@@ -227,7 +227,11 @@ impl NetworkPeer {
         timer: &Timer,
         services: &Vec<PeerService>,
         send_buffer: T,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error>
+    where
+        T: FnOnce(Vec<u8>) -> F,
+        F: std::future::Future<Output = ()>,
+    {
         if self.is_connected() {
             let message = IoEvent {
                 event_processor_id: 1,
