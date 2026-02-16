@@ -8,6 +8,7 @@ import Wallet, { DefaultEmptyPrivateKey } from "./lib/wallet";
 import Blockchain from "./lib/blockchain";
 import BalanceSnapshot from "./lib/balance_snapshot";
 import Nft from "./lib/nft";
+import NetworkPeer from "./lib/network_peer";
 
 export enum LogLevel {
   Error = 0,
@@ -20,7 +21,8 @@ export enum LogLevel {
 export default class Saito {
   private static instance: Saito;
   private static libInstance: any;
-  sockets: Map<bigint, any> = new Map<bigint, any>();
+  sockets: Map<string, any> = new Map<string, any>();
+  peers: Map<string, NetworkPeer> = new Map<string, NetworkPeer>();
   private stunPeers: Map<bigint, { peerConnection: RTCPeerConnection; publicKey: string }> =
     new Map();
   stunManager: StunPeer;
@@ -45,14 +47,14 @@ export default class Saito {
 
     // @ts-ignore
     globalThis.shared_methods = {
-      send_message: (public_key: bigint, buffer: Uint8Array) => {
+      send_message: (public_key: string, buffer: Uint8Array) => {
         sharedMethods.sendMessage(public_key, buffer);
       },
-      send_message_to_all: (buffer: Uint8Array, exceptions: Array<bigint>) => {
+      send_message_to_all: (buffer: Uint8Array, exceptions: Array<string>) => {
         sharedMethods.sendMessageToAll(buffer, exceptions);
       },
-      connect_to_peer: (url: string, public_key: bigint) => {
-        sharedMethods.connectToPeer(url, public_key);
+      connect_to_peer: (url: string) => {
+        sharedMethods.connectToPeer(url);
       },
       write_value: (key: string, value: Uint8Array) => {
         return sharedMethods.writeValue(key, value);
@@ -78,12 +80,12 @@ export default class Saito {
       remove_value: (key: string) => {
         return sharedMethods.removeValue(key);
       },
-      disconnect_from_peer: (public_key: bigint) => {
+      disconnect_from_peer: (public_key: string) => {
         return sharedMethods.disconnectFromPeer(public_key);
       },
       fetch_block_from_peer: (
         hash: Uint8Array,
-        public_key: bigint,
+        public_key: string,
         url: string,
         block_id: bigint
       ) => {
@@ -105,17 +107,17 @@ export default class Saito {
             return Saito.getLibInstance().process_failed_block_fetch(hash, block_id, public_key);
           });
       },
-      process_api_call: (buffer: Uint8Array, msgIndex: number, peerIndex: bigint) => {
-        return sharedMethods.processApiCall(buffer, msgIndex, peerIndex).then(() => {});
+      process_api_call: (buffer: Uint8Array, msgIndex: number, public_key: string) => {
+        return sharedMethods.processApiCall(buffer, msgIndex, public_key).then(() => {});
       },
-      process_api_success: (buffer: Uint8Array, msgIndex: number, peerIndex: bigint) => {
-        return sharedMethods.processApiSuccess(buffer, msgIndex, peerIndex);
+      process_api_success: (buffer: Uint8Array, msgIndex: number, public_key: string) => {
+        return sharedMethods.processApiSuccess(buffer, msgIndex, public_key);
       },
-      process_api_error: (buffer: Uint8Array, msgIndex: number, peerIndex: bigint) => {
-        return sharedMethods.processApiError(buffer, msgIndex, peerIndex);
+      process_api_error: (buffer: Uint8Array, msgIndex: number, public_key: string) => {
+        return sharedMethods.processApiError(buffer, msgIndex, public_key);
       },
-      send_interface_event: (event: string, peerIndex: bigint, public_key: string) => {
-        return sharedMethods.sendInterfaceEvent(event, peerIndex, public_key);
+      send_interface_event: (event: string, public_key: string) => {
+        return sharedMethods.sendInterfaceEvent(event, public_key);
       },
       send_block_fetch_status_event: (count: bigint) => {
         return sharedMethods.sendBlockFetchStatus(count);
@@ -141,8 +143,8 @@ export default class Saito {
       get_my_services: () => {
         return sharedMethods.getMyServices().instance;
       },
-      send_new_version_alert: (major: number, minor: number, patch: number, peerIndex: bigint) => {
-        return sharedMethods.sendNewVersionAlert(major, minor, patch, peerIndex);
+      send_new_version_alert: (major: number, minor: number, patch: number, public_key: string) => {
+        return sharedMethods.sendNewVersionAlert(major, minor, patch, public_key);
       },
       send_new_chain_detected_event: () => {
         return sharedMethods.sendNewChainDetectedEvent();
@@ -231,19 +233,19 @@ export default class Saito {
     await this.stunManager.addStunPeer(publicKey, peerConnection);
   }
 
-  public getSocket(index: bigint): any | null {
-    return this.sockets.get(index);
+  public getSocket(publicKey: string): any | null {
+    return this.sockets.get(publicKey);
   }
 
-  public removeSocket(index: bigint) {
+  public removeSocket(publicKey: string) {
     try {
       console.log(
-        "Removing socket for : " + index + " out of " + this.sockets.size + " total sockets"
+        "Removing socket for : " + publicKey + " out of " + this.sockets.size + " total sockets"
       );
-      let socket = this.sockets.get(index);
-      this.sockets.delete(index);
+      let socket = this.sockets.get(publicKey);
+      this.sockets.delete(publicKey);
       if (socket) {
-        console.info("closing socket for peer index : " + index);
+        console.info("closing socket for peer index : " + publicKey);
 
         if (socket.readyState !== 1) {
           socket.terminate();
@@ -251,7 +253,7 @@ export default class Saito {
           socket.close();
         }
       } else {
-        console.info("no socket found for index : " + index);
+        console.info("no socket found for index : " + publicKey);
       }
     } catch (error) {
       console.error("failed removing socket", error);

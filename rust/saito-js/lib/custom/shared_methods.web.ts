@@ -1,24 +1,26 @@
 import Saito from "../../saito";
 
 import CustomSharedMethods from "./custom_shared_methods";
+import NetworkPeer from "../network_peer";
 
 export default class WebSharedMethods extends CustomSharedMethods {
-  connectToPeer(url: string, public_key: bigint): void {
+  connectToPeer(url: string): void {
     try {
       console.debug("connecting to " + url + "....");
       let socket = new WebSocket(url);
       socket.binaryType = "arraybuffer";
 
       // handle handshake here
+      let peer = new NetworkPeer(undefined, url);
+      peer.socket = socket;
 
-      Saito.getInstance().addNewSocket(socket, public_key);
+      // Saito.getInstance().addNewSocket(socket, public_key);
 
       socket.onmessage = (event: MessageEvent) => {
         try {
-          Saito.getLibInstance().process_msg_buffer_from_peer(
-            new Uint8Array(event.data),
-            public_key
-          );
+          let buffer = new Uint8Array(event.data);
+
+          Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.publicKey);
         } catch (error) {
           console.error(error);
         }
@@ -26,24 +28,24 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
       socket.onopen = () => {
         try {
-          Saito.getLibInstance().process_new_peer(public_key, url);
-          console.debug("connected to : " + url + " with peer index : " + public_key);
+          // Saito.getLibInstance().process_new_peer(public_key, url);
+          // console.debug("connected to : " + url + " with peer index : " + public_key);
         } catch (error) {
           console.error(error);
         }
       };
       socket.onclose = () => {
         try {
-          console.debug("socket.onclose : " + public_key);
-          Saito.getLibInstance().process_peer_disconnection(public_key);
+          // console.debug("socket.onclose : " + peer.public_key);
+          Saito.getLibInstance().process_peer_disconnection(peer.publicKey);
         } catch (error) {
           console.error(error);
         }
       };
       socket.onerror = (error) => {
         try {
-          console.error(`socket.onerror ${public_key}: `, error);
-          Saito.getInstance().removeSocket(public_key);
+          console.error(`socket.onerror ${peer.publicKey}: `, error);
+          Saito.getInstance().removeSocket(peer.publicKey);
         } catch (error) {
           console.error(error);
         }
@@ -53,9 +55,9 @@ export default class WebSharedMethods extends CustomSharedMethods {
     }
   }
 
-  disconnectFromPeer(peerIndex: bigint): void {
-    console.debug("disconnect from peer : " + peerIndex);
-    Saito.getInstance().removeSocket(peerIndex);
+  disconnectFromPeer(publicKey: string): void {
+    console.debug("disconnect from peer : " + publicKey);
+    Saito.getInstance().removeSocket(publicKey);
   }
 
   fetchBlockFromPeer(url: string): Promise<Uint8Array> {
@@ -121,10 +123,10 @@ export default class WebSharedMethods extends CustomSharedMethods {
     }
   }
 
-  sendMessage(peerIndex: bigint, buffer: Uint8Array): void {
+  sendMessage(publicKey: string, buffer: Uint8Array): void {
     try {
-      if (Saito.getInstance().stunManager.isStunPeer(peerIndex)) {
-        const stunPeer = Saito.getInstance().stunManager.getStunPeer(peerIndex);
+      if (Saito.getInstance().stunManager.isStunPeer(publicKey)) {
+        const stunPeer = Saito.getInstance().stunManager.getStunPeer(publicKey);
         if (stunPeer) {
           //@ts-ignore
           const { peerConnection, publicKey } = stunPeer;
@@ -132,41 +134,41 @@ export default class WebSharedMethods extends CustomSharedMethods {
           const dc = peerConnection.dc;
           if (dc) {
             if (dc.readyState === "open") {
-              console.debug(`Sending message to STUN peer ${peerIndex} via data channel`);
+              console.debug(`Sending message to STUN peer ${publicKey} via data channel`);
               try {
                 dc.send(buffer);
               } catch (error) {
                 console.error(
-                  `Error sending message to STUN peer ${peerIndex} via data channel:`,
+                  `Error sending message to STUN peer ${publicKey} via data channel:`,
                   error
                 );
               }
             } else {
               console.warn(
-                `Data channel for STUN peer ${peerIndex} is not open. Current state: ${dc.readyState}`
+                `Data channel for STUN peer ${publicKey} is not open. Current state: ${dc.readyState}`
               );
             }
           } else {
-            console.warn(`Data channel for STUN peer ${peerIndex} is not initialized`);
+            console.warn(`Data channel for STUN peer ${publicKey} is not initialized`);
           }
         } else {
-          console.warn(`STUN peer ${peerIndex} not found`);
+          console.warn(`STUN peer ${publicKey} not found`);
         }
         return;
       }
 
-      let socket = Saito.getInstance().getSocket(peerIndex);
+      let socket = Saito.getInstance().getSocket(publicKey);
       if (socket) {
         socket.send(buffer);
       } else {
-        console.error(`No WebSocket found for peer ${peerIndex}`);
+        console.error(`No WebSocket found for peer ${publicKey}`);
       }
     } catch (e) {
       console.error(e);
     }
   }
 
-  sendMessageToAll(buffer: Uint8Array, exceptions: Array<bigint>): void {
+  sendMessageToAll(buffer: Uint8Array, exceptions: Array<string>): void {
     // console.debug("sending message to  all with size : " + buffer.byteLength);
     // console.info(' --- Sending to All ---')
     Saito.getInstance().sockets.forEach((socket, key) => {
@@ -201,7 +203,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
     // TODO : check if this needs implementing. might be not needed for web
   }
 
-  sendInterfaceEvent(event: String, peerIndex: bigint, public_key: string) {
+  sendInterfaceEvent(event: String, public_key: string) {
     throw new Error("Method not implemented.");
   }
 }

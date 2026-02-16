@@ -1,11 +1,19 @@
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
+use crate::core::process::keep_time::Timer;
+use crate::core::routing::io::network_event::NetworkEvent;
+use crate::core::routing::peers::io_event::IoEvent;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
-use log::{info, warn};
+use crate::core::util::serialize::Serialize;
+use log::{error, info, warn};
 use std::io::{Error, ErrorKind};
+use std::ops::Deref;
+use std::sync::Arc;
+use tokio::sync::mpsc::Sender;
+use tokio::sync::RwLock;
 
 #[derive(Debug, Clone)]
 pub struct NetworkPeer {
@@ -25,6 +33,9 @@ impl NetworkPeer {
             url,
             ip: None,
         }
+    }
+    pub fn is_connected(&self) -> bool {
+        self.response.is_some()
     }
     pub async fn get_handshake_challenge_buffer(&mut self) -> HandshakeChallenge {
         let challenge = HandshakeChallenge {
@@ -205,5 +216,116 @@ impl NetworkPeer {
         //     .unwrap();
         //
         // io_handler.send_interface_event(InterfaceEvent::PeerHandshakeComplete(self.index));
+    }
+    pub async fn process_incoming_buffer<T: FnOnce(Vec<u8>) -> ()>(
+        &mut self,
+        buffer: Vec<u8>,
+        sender_to_core: Sender<IoEvent>,
+        public_key: &mut Option<SaitoPublicKey>,
+        wallet: Arc<RwLock<Wallet>>,
+        configs: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        timer: &Timer,
+        services: &Vec<PeerService>,
+        send_buffer: T,
+    ) -> Result<(), Error> {
+        if self.is_connected() {
+            let message = IoEvent {
+                event_processor_id: 1,
+                event: NetworkEvent::IncomingNetworkMessage {
+                    public_key: public_key.unwrap(),
+                    buffer,
+                },
+            };
+            sender_to_core.send(message).await.expect("sending failed");
+            Ok(())
+        } else {
+            if self.challenge.is_some() {
+                if let Ok(response) = HandshakeResponse::deserialize(&buffer) {
+                    let configs = configs.read().await;
+                    let wallet = wallet.read().await;
+
+                    if !wallet
+                        .core_version
+                        .is_same_minor_version(&response.core_version)
+                    {
+                        warn!("peer : {:?} core version is not compatible. current core version : {:?} peer core version : {:?}",
+                                 response.public_key.to_base58(), wallet.core_version, response.core_version);
+
+                        sender_to_core
+                            .send(IoEvent {
+                                event_processor_id: 1,
+                                // event_id: 0,
+                                event: NetworkEvent::NewVersionDetected {
+                                    public_key: response.public_key,
+                                    version: response.wallet_version,
+                                },
+                            })
+                            .await
+                            .expect("sending failed");
+                    } else {
+                        if let Ok(result) = self.process_handshake_response(
+                            response.clone(),
+                            timer.get_timestamp_in_ms(),
+                            &services,
+                            &wallet,
+                            configs.deref(),
+                        ) {
+                            if let Some(response) = result {
+                                // we need to send this response to the other side
+                                let buffer = response.serialize();
+                                send_buffer(buffer).await;
+                            }
+                            // now the handshake is complete. We need to alert the core
+                            public_key.replace(self.public_key.unwrap());
+
+                            sender_to_core
+                                .send(IoEvent {
+                                    event_processor_id: 1,
+                                    // event_id: 0,
+                                    event: NetworkEvent::PeerConnectionResult {
+                                        result: Ok(self.clone()),
+                                    },
+                                })
+                                .await
+                                .expect("sending failed");
+                        } else {
+                            warn!("failed handling the handshake response");
+                            return Err(Error::from(ErrorKind::InvalidInput));
+                        }
+                    }
+                    Ok(())
+                } else {
+                    warn!(
+                        "failed deserializing handshake response : {:?}",
+                        public_key.unwrap_or([0; 33]).to_base58()
+                    );
+                    Err(Error::from(ErrorKind::InvalidInput))
+                }
+            } else {
+                if let Ok(challenge) = HandshakeChallenge::deserialize(&buffer) {
+                    let configs = configs.read().await;
+                    let wallet = wallet.read().await;
+                    if let Ok(response) = self
+                        .process_handshake_challenge(
+                            &challenge,
+                            timer.get_timestamp_in_ms(),
+                            &services,
+                            &wallet,
+                            configs.deref(),
+                        )
+                        .await
+                    {
+                        send_buffer(response.serialize()).await;
+                    }
+                    Ok(())
+                } else {
+                    error!(
+                        "failed deserializing handshake challenge : {:?}",
+                        public_key.unwrap_or([0; 33]).to_base58()
+                    );
+                    Err(Error::from(ErrorKind::InvalidInput))
+                }
+            }
+        }
     }
 }
