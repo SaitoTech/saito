@@ -1,8 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::io::{Error, ErrorKind};
 use std::net::SocketAddr;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -17,7 +16,7 @@ use tokio::io::AsyncReadExt;
 use tokio::net::TcpStream;
 use tokio::select;
 use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::sync::{Mutex, RwLock, RwLockWriteGuard};
+use tokio::sync::{Mutex, RwLock};
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use tokio_tungstenite::{connect_async, tungstenite, MaybeTlsStream, WebSocketStream};
@@ -26,7 +25,6 @@ use warp::ws::{WebSocket, Ws};
 use warp::Filter;
 
 use crate::io_event::IoEvent;
-use crate::network_controller;
 use crate::rust_io_handler::BLOCKS_DIR_PATH;
 use saito_core::core::consensus::block::{Block, BlockType};
 use saito_core::core::consensus::blockchain::Blockchain;
@@ -37,13 +35,11 @@ use saito_core::core::defs::{
 };
 use saito_core::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use saito_core::core::process::keep_time::Timer;
-use saito_core::core::routing::io::interface_io::InterfaceEvent;
 use saito_core::core::routing::io::network::PeerDisconnectType;
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::peers::network_peer::NetworkPeer;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::routing::peers::peer_service::PeerService;
-use saito_core::core::util::config_manager::ConfigManager;
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::serialize::Serialize;
 // use crate::{IoEvent, NetworkEvent, TimeKeeper};
@@ -87,7 +83,7 @@ impl NetworkController {
         let buf_len = buffer.len();
 
         // let mut sockets = sockets.lock().await;
-        if let Some((network_peer, sender)) = self.network_peers.get_mut(public_key) {
+        if let Some((_network_peer, sender)) = self.network_peers.get_mut(public_key) {
             if let Some(sender) = sender {
                 if !Self::send(sender, buffer).await {
                     warn!(
@@ -169,7 +165,7 @@ impl NetworkController {
 
     pub async fn send_to_all(&mut self, buffer: Vec<u8>, exceptions: Vec<SaitoPublicKey>) {
         trace!("sending buffer of size : {:?} to all", buffer.len());
-        let mut peers_with_errors: Vec<SaitoPublicKey> = Default::default();
+        let _peers_with_errors: Vec<SaitoPublicKey> = Default::default();
 
         for (key, (_, sender)) in self.network_peers.iter_mut() {
             if exceptions.contains(&key) {
@@ -363,7 +359,7 @@ impl NetworkController {
     }
     pub async fn disconnect_socket_by_key(&mut self, public_key: SaitoPublicKey) {
         info!("disconnect peer : {:?}", public_key.to_base58());
-        if let Some((peer, sender)) = self.network_peers.remove(&public_key) {
+        if let Some((_peer, sender)) = self.network_peers.remove(&public_key) {
             if let Some(sender) = sender {
                 match sender {
                     PeerSender::Warp(mut sender) => {
@@ -406,7 +402,7 @@ impl NetworkController {
         debug!("starting new task for reading from peer",);
         tokio::spawn(async move {
             debug!("new thread started for peer receiving");
-            let mut handshake_completed = false;
+            let handshake_completed = false;
             let mut public_key = None;
             match receiver {
                 PeerReceiver::Warp(mut receiver) => loop {
@@ -511,14 +507,14 @@ impl NetworkController {
     }
 
     async fn handle_received_buffer(
-        mut peer: &mut NetworkPeer,
+        peer: &mut NetworkPeer,
         mut socket: &mut PeerSender,
         wallet: Arc<RwLock<Wallet>>,
         configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: &Timer,
         mut handshake_completed: bool,
         public_key: &mut Option<SaitoPublicKey>,
-        mut network_controller: &mut NetworkController,
+        network_controller: &mut NetworkController,
         buffer: Vec<u8>,
     ) -> bool {
         if handshake_completed {
@@ -599,7 +595,7 @@ impl NetworkController {
                 if let Ok(challenge) = HandshakeChallenge::deserialize(&buffer) {
                     let configs = configs.read().await;
                     let wallet = wallet.read().await;
-                    if let Ok(response) = peer
+                    if let Ok(_response) = peer
                         .process_handshake_challenge(
                             &challenge,
                             timer.get_timestamp_in_ms(),
@@ -641,7 +637,7 @@ pub async fn run_network_controller(
     mut receiver: Receiver<IoEvent>,
     sender_to_core: Sender<IoEvent>,
     configs_lock: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
-    blockchain_lock: Arc<RwLock<Blockchain>>,
+    _blockchain_lock: Arc<RwLock<Blockchain>>,
     sender_to_stat: Sender<StatEvent>,
     peers_lock: Arc<RwLock<PeerCollection>>,
     sender_to_network: Sender<IoEvent>,
@@ -852,7 +848,7 @@ struct ConfigsWrapper {
 }
 
 fn run_websocket_server(
-    sender_clone: Sender<IoEvent>,
+    _sender_clone: Sender<IoEvent>,
     io_controller: Arc<RwLock<NetworkController>>,
     port: u16,
     host: String,

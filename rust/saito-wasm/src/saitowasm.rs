@@ -16,7 +16,7 @@ use crate::wasm_stats::WasmStats;
 use crate::wasm_time_keeper::WasmTimeKeeper;
 use crate::wasm_transaction::WasmTransaction;
 use crate::wasm_wallet::WasmWallet;
-use js_sys::{Array, BigInt, JsString, Uint8Array};
+use js_sys::{Array, JsString, Uint8Array};
 use lazy_static::lazy_static;
 use log::{debug, error, info, trace, warn, Level, Log, Metadata, Record};
 use saito_core::core::consensus::blockchain::Blockchain;

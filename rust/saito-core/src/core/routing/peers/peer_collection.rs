@@ -1,19 +1,15 @@
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
-use crate::core::msg::handshake::HandshakeResponse;
 use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::congestion_controller::{
     CongestionType, PeerCongestionControls, PeerCongestionStatus,
 };
 use crate::core::routing::peers::peer::{Peer, PeerStatus};
 use crate::core::routing::peers::peer_service::PeerService;
-use crate::core::util::configuration::{Configuration, Endpoint};
+use crate::core::util::configuration::Endpoint;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
-use serde::Serialize;
 use std::io::{Error, ErrorKind};
-use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::RwLock;
 
 const PEER_REMOVAL_WINDOW: Timestamp = Duration::from_secs(600).as_millis() as Timestamp;
 const PEER_STALE_PERIOD: Timestamp = Duration::from_secs(30).as_millis() as Timestamp;
@@ -256,7 +252,7 @@ impl PeerCollection {
             .collect();
 
         for peer_index in peer_indices {
-            let peer = self.peers.remove(&peer_index).unwrap();
+            let _peer = self.peers.remove(&peer_index).unwrap();
         }
     }
 
