@@ -3,11 +3,11 @@ import Blockchain from "./lib/blockchain";
 import PeerServiceList from "./lib/peer_service_list";
 
 export default interface SharedMethods {
-  sendMessage(peerIndex: bigint, buffer: Uint8Array): void;
+  sendMessage(public_key: string, buffer: Uint8Array): void;
 
-  sendMessageToAll(buffer: Uint8Array, exceptions: Array<bigint>): void;
+  sendMessageToAll(buffer: Uint8Array, exceptions: Array<string>): void;
 
-  connectToPeer(url: string, public_key: bigint): void;
+  connectToPeer(url: string): void;
 
   writeValue(key: string, value: Uint8Array): void;
 
@@ -25,21 +25,21 @@ export default interface SharedMethods {
 
   removeValue(key: string): void;
 
-  disconnectFromPeer(peerIndex: bigint): void;
+  disconnectFromPeer(public_key: string): void;
 
   fetchBlockFromPeer(url: string): Promise<Uint8Array>;
 
-  processApiCall(buffer: Uint8Array, msgIndex: number, peerIndex: bigint): Promise<void>;
+  processApiCall(buffer: Uint8Array, msgIndex: number, public_key: string): Promise<void>;
 
-  processApiSuccess(buffer: Uint8Array, msgIndex: number, peerIndex: bigint): void;
+  processApiSuccess(buffer: Uint8Array, msgIndex: number, public_key: string): void;
 
-  processApiError(buffer: Uint8Array, msgIndex: number, peerIndex: bigint): void;
+  processApiError(buffer: Uint8Array, msgIndex: number, public_key: string): void;
 
-  sendInterfaceEvent(event: String, peerIndex: bigint, public_key: string): void;
+  sendInterfaceEvent(event: String, public_key: string): void;
 
   sendBlockFetchStatus(count: bigint): void;
 
-  sendNewVersionAlert(major: number, minor: number, patch: number, peerIndex: bigint): void;
+  sendNewVersionAlert(major: number, minor: number, patch: number, public_key: string): void;
 
   sendBlockSuccess(hash: String, blockId: bigint): void;
 

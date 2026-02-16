@@ -24,7 +24,6 @@ use warp::http::StatusCode;
 use warp::ws::{WebSocket, Ws};
 use warp::Filter;
 
-use crate::io_event::IoEvent;
 use crate::rust_io_handler::BLOCKS_DIR_PATH;
 use saito_core::core::consensus::block::{Block, BlockType};
 use saito_core::core::consensus::blockchain::Blockchain;
@@ -37,6 +36,7 @@ use saito_core::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::routing::io::network::PeerDisconnectType;
 use saito_core::core::routing::io::network_event::NetworkEvent;
+use saito_core::core::routing::peers::io_event::IoEvent;
 use saito_core::core::routing::peers::network_peer::NetworkPeer;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::routing::peers::peer_service::PeerService;
@@ -193,7 +193,7 @@ impl NetworkController {
         block_hash: SaitoHash,
         public_key: SaitoPublicKey,
         url: String,
-        event_id: u64,
+        // event_id: u64,
         sender_to_core: Sender<IoEvent>,
         current_queries: Arc<Mutex<HashSet<String>>>,
         client: Client,
@@ -224,7 +224,7 @@ impl NetworkController {
             sender_to_core
                 .send(IoEvent {
                     event_processor_id: 1,
-                    event_id,
+                    // event_id,
                     event: NetworkEvent::BlockFetchFailed {
                         block_hash,
                         public_key,
@@ -248,7 +248,7 @@ impl NetworkController {
             sender_to_core
                 .send(IoEvent {
                     event_processor_id: 1,
-                    event_id,
+                    // event_id,
                     event: NetworkEvent::BlockFetchFailed {
                         block_hash,
                         public_key,
@@ -267,7 +267,7 @@ impl NetworkController {
             sender_to_core
                 .send(IoEvent {
                     event_processor_id: 1,
-                    event_id,
+                    // event_id,
                     event: NetworkEvent::BlockFetchFailed {
                         block_hash,
                         public_key,
@@ -290,7 +290,7 @@ impl NetworkController {
         sender_to_core
             .send(IoEvent {
                 event_processor_id: 1,
-                event_id,
+                // event_id,
                 event: NetworkEvent::BlockFetched {
                     block_hash,
                     block_id,
@@ -402,7 +402,6 @@ impl NetworkController {
         debug!("starting new task for reading from peer",);
         tokio::spawn(async move {
             debug!("new thread started for peer receiving");
-            let handshake_completed = false;
             let mut public_key = None;
             match receiver {
                 PeerReceiver::Warp(mut receiver) => loop {
@@ -433,7 +432,6 @@ impl NetworkController {
                             wallet.clone(),
                             configs.clone(),
                             &timer,
-                            handshake_completed,
                             &mut public_key,
                             &mut network_controller,
                             buffer,
@@ -475,7 +473,6 @@ impl NetworkController {
                                 wallet.clone(),
                                 configs.clone(),
                                 &timer,
-                                handshake_completed,
                                 &mut public_key,
                                 &mut network_controller,
                                 buffer,
@@ -512,104 +509,24 @@ impl NetworkController {
         wallet: Arc<RwLock<Wallet>>,
         configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: &Timer,
-        mut handshake_completed: bool,
         public_key: &mut Option<SaitoPublicKey>,
         network_controller: &mut NetworkController,
         buffer: Vec<u8>,
     ) -> bool {
-        if handshake_completed {
-            let message = IoEvent {
-                event_processor_id: 1,
-                event_id: 0,
-                event: NetworkEvent::IncomingNetworkMessage {
-                    public_key: public_key.unwrap(),
-                    buffer,
-                },
-            };
-            network_controller
-                .sender_to_core
-                .send(message)
-                .await
-                .expect("sending failed");
-        } else {
-            if peer.challenge.is_some() {
-                if let Ok(response) = HandshakeResponse::deserialize(&buffer) {
-                    let configs = configs.read().await;
-                    let wallet = wallet.read().await;
-                    if let Ok(result) = peer.process_handshake_response(
-                        response.clone(),
-                        timer.get_timestamp_in_ms(),
-                        &network_controller.services,
-                        &wallet,
-                        configs.deref(),
-                    ) {
-                        if let Some(response) = result {
-                            // we need to send this response to the other side
-                            let buffer = response.serialize();
-                            NetworkController::send(&mut socket, buffer).await;
-                        }
-                        // now the handshake is complete. We need to alert the core
-                        handshake_completed = true;
-                        public_key.replace(peer.public_key.unwrap());
-
-                        network_controller
-                            .sender_to_core
-                            .send(IoEvent {
-                                event_processor_id: 1,
-                                event_id: 0,
-                                event: NetworkEvent::PeerConnectionResult {
-                                    result: Ok(peer.clone()),
-                                },
-                            })
-                            .await
-                            .expect("sending failed");
-                    } else {
-                        if !wallet
-                            .core_version
-                            .is_same_minor_version(&response.core_version)
-                        {
-                            warn!("peer : {:?} core version is not compatible. current core version : {:?} peer core version : {:?}",
-                                 response.public_key.to_base58(), wallet.core_version, response.core_version);
-                            network_controller
-                                .sender_to_core
-                                .send(IoEvent {
-                                    event_processor_id: 1,
-                                    event_id: 0,
-                                    event: NetworkEvent::NewVersionDetected {
-                                        public_key: response.public_key,
-                                        version: response.wallet_version,
-                                    },
-                                })
-                                .await
-                                .expect("sending failed");
-                        }
-                    }
-                } else {
-                    warn!(
-                        "failed deserializing handshake response : {:?}",
-                        public_key.unwrap_or([0; 33]).to_base58()
-                    );
-                    return false;
-                }
-            } else {
-                if let Ok(challenge) = HandshakeChallenge::deserialize(&buffer) {
-                    let configs = configs.read().await;
-                    let wallet = wallet.read().await;
-                    if let Ok(_response) = peer
-                        .process_handshake_challenge(
-                            &challenge,
-                            timer.get_timestamp_in_ms(),
-                            &network_controller.services,
-                            &wallet,
-                            configs.deref(),
-                        )
-                        .await
-                    {}
-                } else {
-                }
-            }
-        }
-        false
+        peer.process_incoming_buffer(
+            buffer,
+            network_controller.sender_to_core,
+            public_key,
+            wallet,
+            configs,
+            timer,
+            &network_controller.services,
+            async |buffer| {
+                NetworkController::send(&mut socket, buffer).await;
+            },
+        )
+        .await
+        .is_ok()
     }
 }
 

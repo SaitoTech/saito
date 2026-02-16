@@ -27,15 +27,15 @@ export default class CustomSharedMethods implements SharedMethods {
     return new PeerServiceList();
   }
 
-  processApiCall(buffer: Uint8Array, msgIndex: number, peerIndex: bigint): Promise<void> {
+  processApiCall(buffer: Uint8Array, msgIndex: number, publicKey: string): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  connectToPeer(url: string, public_key: bigint): void {
+  connectToPeer(url: string): void {
     throw new Error("Method not implemented.");
   }
 
-  disconnectFromPeer(peerIndex: bigint): void {
+  disconnectFromPeer(publicKey: string): void {
     throw new Error("Method not implemented.");
   }
 
@@ -51,24 +51,24 @@ export default class CustomSharedMethods implements SharedMethods {
     throw new Error("Method not implemented.");
   }
 
-  processApiError(buffer: Uint8Array, msgIndex: number, peerIndex: bigint): void {
+  processApiError(buffer: Uint8Array, msgIndex: number, publicKey: string): void {
     let promise = Saito.getInstance().promises.get(msgIndex);
     if (promise) {
       promise.reject(buffer);
     } else {
       console.error(
-        "callback not found for callback index : " + msgIndex + " from peer : " + peerIndex
+        "callback not found for callback index : " + msgIndex + " from peer : " + publicKey
       );
     }
   }
 
-  processApiSuccess(buffer: Uint8Array, msgIndex: number, peerIndex: bigint): void {
+  processApiSuccess(buffer: Uint8Array, msgIndex: number, publicKey: string): void {
     let promise = Saito.getInstance().promises.get(msgIndex);
     if (promise) {
       promise.resolve(buffer);
     } else {
       console.error(
-        "callback not found for callback index : " + msgIndex + " from peer : " + peerIndex
+        "callback not found for callback index : " + msgIndex + " from peer : " + publicKey
       );
     }
   }
@@ -85,11 +85,11 @@ export default class CustomSharedMethods implements SharedMethods {
     throw new Error("Method not implemented.");
   }
 
-  sendMessage(peerIndex: bigint, buffer: Uint8Array): void {
+  sendMessage(publicKey: string, buffer: Uint8Array): void {
     throw new Error("Method not implemented.");
   }
 
-  sendMessageToAll(buffer: Uint8Array, exceptions: Array<bigint>): void {
+  sendMessageToAll(buffer: Uint8Array, exceptions: Array<string>): void {
     throw new Error("Method not implemented.");
   }
 
@@ -97,7 +97,7 @@ export default class CustomSharedMethods implements SharedMethods {
     throw new Error("Method not implemented.");
   }
 
-  sendInterfaceEvent(event: String, peerIndex: bigint, public_key: string): void {
+  sendInterfaceEvent(event: String, public_key: string): void {
     throw new Error("Method not implemented.");
   }
 
@@ -117,7 +117,7 @@ export default class CustomSharedMethods implements SharedMethods {
     throw new Error("Method not implemented.");
   }
 
-  sendNewVersionAlert(major: number, minor: number, patch: number, peerIndex: bigint): void {
+  sendNewVersionAlert(major: number, minor: number, patch: number, publicKey: string): void {
     throw new Error("Method not implemented");
   }
   sendNewChainDetectedEvent(): void {

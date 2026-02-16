@@ -9,6 +9,7 @@ use crate::wasm_block::WasmBlock;
 use crate::wasm_blockchain::WasmBlockchain;
 use crate::wasm_configuration::WasmConfiguration;
 use crate::wasm_io_handler::WasmIoHandler;
+use crate::wasm_network_peer::WasmNetworkPeer;
 use crate::wasm_nft::WasmNFT;
 use crate::wasm_peer::WasmPeer;
 use crate::wasm_slip::WasmSlip;
@@ -874,19 +875,21 @@ pub async fn get_block(block_hash: JsString) -> Result<WasmBlock, JsValue> {
 }
 
 #[wasm_bindgen]
-pub async fn process_new_peer(key: JsString, ip: JsString) {
-    let key: SaitoPublicKey = string_to_key(key).unwrap();
+pub async fn process_new_peer(peer: WasmNetworkPeer) {
+    // let key: SaitoPublicKey = string_to_key(key).unwrap();
 
-    let peer = NetworkPeer::new(ip.as_string());
+    // let peer = NetworkPeer::new(ip.as_string());
 
-    debug!("process_new_peer : {:?} - {:?}", key.to_base58(), ip);
+    // debug!("process_new_peer : {:?} - {:?}", peer.key.to_base58(), ip);
     let mut saito = SAITO.lock().await;
 
     saito
         .as_mut()
         .unwrap()
         .routing_thread
-        .process_network_event(NetworkEvent::PeerConnectionResult { result: Ok(peer) })
+        .process_network_event(NetworkEvent::PeerConnectionResult {
+            result: Ok(peer.get_peer()),
+        })
         .await;
 }
 

@@ -17,7 +17,7 @@ use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::peers::peer_service::PeerService;
 
-use crate::io_event::IoEvent;
+use saito_core::core::routing::peers::io_event::IoEvent;
 
 lazy_static! {
     pub static ref BLOCKS_DIR_PATH: String = configure_storage();
