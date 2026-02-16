@@ -713,6 +713,7 @@ async fn run_node(
         peers_lock.clone(),
         sender_to_network_controller.clone(),
         &time_keeper,
+        context.wallet_lock.clone(),
     )
     .await;
 

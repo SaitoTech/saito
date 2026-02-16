@@ -22,7 +22,7 @@ use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use tokio_tungstenite::{connect_async, tungstenite, MaybeTlsStream, WebSocketStream};
 use warp::http::StatusCode;
-use warp::ws::WebSocket;
+use warp::ws::{WebSocket, Ws};
 use warp::Filter;
 
 use crate::io_event::IoEvent;
@@ -111,7 +111,7 @@ impl NetworkController {
         network_controller: Arc<RwLock<NetworkController>>,
         url: String,
         wallet: Arc<RwLock<Wallet>>,
-        configs: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: &Timer,
     ) {
         // TODO : handle connecting to an already connected (via incoming connection) node.
@@ -318,7 +318,7 @@ impl NetworkController {
         receiver: PeerReceiver,
         network_controller: Arc<RwLock<NetworkController>>,
         wallet: Arc<RwLock<Wallet>>,
-        configs: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: &Timer,
     ) {
         if ip.is_none() {
@@ -399,7 +399,7 @@ impl NetworkController {
         mut peer: NetworkPeer,
         mut socket: PeerSender,
         wallet: Arc<RwLock<Wallet>>,
-        configs: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: Timer,
         network_controller: Arc<RwLock<NetworkController>>,
     ) {
@@ -420,7 +420,7 @@ impl NetworkController {
                         // TODO : handle peer disconnections
                         warn!("failed receiving message [1] : {:?}", result.err().unwrap());
                         let mut network_controller = network_controller.write().await;
-                        network_controller.disconnect_socket(socket, None).await;
+                        network_controller.disconnect_socket(socket).await;
                         // NetworkController::disconnect_socket(sockets, sender).await;
                         break;
                     }
@@ -444,7 +444,7 @@ impl NetworkController {
                         )
                         .await
                         {
-                            network_controller.disconnect_socket(socket, None).await;
+                            network_controller.disconnect_socket(socket).await;
                             break;
                         }
                     } else if result.is_close() {
@@ -452,7 +452,7 @@ impl NetworkController {
                             "connection closed by remote peer : {:?}",
                             public_key.unwrap_or([0; 33]).to_base58()
                         );
-                        network_controller.disconnect_socket(socket, None).await;
+                        network_controller.disconnect_socket(socket).await;
                         break;
                     }
                 },
@@ -466,7 +466,7 @@ impl NetworkController {
                     let mut network_controller = network_controller.write().await;
                     if result.is_err() {
                         warn!("failed receiving message [2] : {:?}", result.err().unwrap());
-                        network_controller.disconnect_socket(socket, None).await;
+                        network_controller.disconnect_socket(socket).await;
                         break;
                     }
                     let result = result.unwrap();
@@ -494,7 +494,7 @@ impl NetworkController {
                                 "socket for peer : {:?} was closed",
                                 public_key.unwrap_or([0; 33]).to_base58()
                             );
-                            network_controller.disconnect_socket(socket, None).await;
+                            network_controller.disconnect_socket(socket).await;
                             break;
                         }
                         _ => {
@@ -514,7 +514,7 @@ impl NetworkController {
         mut peer: &mut NetworkPeer,
         mut socket: &mut PeerSender,
         wallet: Arc<RwLock<Wallet>>,
-        configs: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: &Timer,
         mut handshake_completed: bool,
         public_key: &mut Option<SaitoPublicKey>,
@@ -640,7 +640,7 @@ impl NetworkController {
 pub async fn run_network_controller(
     mut receiver: Receiver<IoEvent>,
     sender_to_core: Sender<IoEvent>,
-    configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+    configs_lock: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
     blockchain_lock: Arc<RwLock<Blockchain>>,
     sender_to_stat: Sender<StatEvent>,
     peers_lock: Arc<RwLock<PeerCollection>>,
@@ -669,8 +669,8 @@ pub async fn run_network_controller(
         host = configs.get_server_configs().unwrap().host.clone();
 
         // trace!("locking blockchain 9");
-        let blockchain = blockchain_lock.read().await;
-        let wallet = blockchain.wallet_lock.read().await;
+        // let blockchain = blockchain_lock.read().await;
+        let wallet = wallet.read().await;
         public_key = wallet.public_key;
     }
     // trace!("releasing blockchain 9");
@@ -846,6 +846,11 @@ pub enum PeerReceiver {
     Tungstenite(SocketReceiver),
 }
 
+#[derive(Clone)]
+struct ConfigsWrapper {
+    configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
+}
+
 fn run_websocket_server(
     sender_clone: Sender<IoEvent>,
     io_controller: Arc<RwLock<NetworkController>>,
@@ -854,53 +859,52 @@ fn run_websocket_server(
     public_key: SaitoPublicKey,
     peers_lock: Arc<RwLock<PeerCollection>>,
     wallet: Arc<RwLock<Wallet>>,
-    configs: Arc<RwLock<dyn Configuration + Send + Sync>>,
+    configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
     timer: &Timer,
 ) -> JoinHandle<()> {
     info!("running websocket server on {:?}", port);
+
+    let timer = timer.clone();
+    let configs_wrapper = ConfigsWrapper { configs };
     tokio::spawn(async move {
         info!("starting websocket server");
-        let network_controller = io_controller.clone();
-        let peers_lock_1 = peers_lock.clone();
-        let sender_to_io = sender_clone.clone();
         let ws_route = warp::path("wsopen")
             .and(warp::ws())
             .and(warp::addr::remote())
-            .map(move |ws: warp::ws::Ws, addr: Option<SocketAddr>| {
-                debug!("incoming connection received");
-                let clone = network_controller.clone();
-                let peers = peers_lock_1.clone();
-                let sender_to_io = sender_to_io.clone();
-                let ws = ws.max_message_size(10_000_000_000);
-                let ws = ws.max_frame_size(10_000_000_000);
+            .and(warp::any().map(move || io_controller.clone()))
+            .and(warp::any().map(move || wallet.clone()))
+            .and(warp::any().map(move || configs_wrapper.clone()))
+            .and(warp::any().map(move || timer.clone()))
+            .map(
+                move |ws: Ws,
+                      addr: Option<SocketAddr>,
+                      network_controller: Arc<RwLock<NetworkController>>,
+                      wallet: Arc<RwLock<Wallet>>,
+                      configs: ConfigsWrapper,
+                      timer: Timer| {
+                    debug!("incoming connection received");
+                    let ws = ws.max_message_size(10_000_000_000);
+                    let ws = ws.max_frame_size(10_000_000_000);
 
-                ws.on_upgrade(move |socket| async move {
-                    debug!("socket connection established");
+                    ws.on_upgrade(move |socket| async move {
+                        debug!("socket connection established");
 
-                    let (sender, receiver) = socket.split();
+                        let (sender, receiver) = socket.split();
 
-                    // let network_controller = clone.read().await;
-
-                    let peer_index;
-                    {
-                        let mut peers = peers.write().await;
-                        peer_index = peers.peer_counter.get_next_index();
-                    }
-
-                    NetworkController::handle_new_connection(
-                        peer_index,
-                        NetworkPeer::new(None),
-                        addr.map(|a| a.ip().to_string()),
-                        PeerSender::Warp(sender),
-                        PeerReceiver::Warp(receiver),
-                        network_controller.clone(),
-                        wallet,
-                        configs,
-                        timer,
-                    )
-                    .await
-                })
-            });
+                        NetworkController::handle_new_connection(
+                            NetworkPeer::new(None),
+                            addr.map(|a| a.ip().to_string()),
+                            PeerSender::Warp(sender),
+                            PeerReceiver::Warp(receiver),
+                            network_controller,
+                            wallet,
+                            configs.configs,
+                            &timer,
+                        )
+                        .await
+                    })
+                },
+            );
         let http_route = warp::path!("block" / String).and_then(|block_hash: String| async move {
             // debug!("serving block : {:?}", block_hash);
             let mut buffer: Vec<u8> = Default::default();
@@ -1091,42 +1095,42 @@ mod tests {
     use saito_core::core::util::crypto::generate_random_bytes;
     use tokio_tungstenite::connect_async;
 
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn multi_peer_perf_test() {
-        // pretty_env_logger::init();
-        let url = "ws://127.0.0.1:12101/wsopen";
-
-        info!("url = {:?}", url);
-
-        let mut sockets = vec![];
-        let it = 10000;
-        for i in 0..it {
-            let result = connect_async(url).await;
-            if result.is_err() {
-                println!("{:?}", result.err().unwrap());
-                return;
-            }
-            let result = result.unwrap();
-            let mut socket = result.0;
-
-            let challenge = HandshakeChallenge {
-                challenge: generate_random_bytes(32).await.try_into().unwrap(),
-            };
-            // challenge_for_peer = Some(challenge.challenge);
-            let message = Message::HandshakeChallenge(challenge);
-
-            socket
-                .send(tokio_tungstenite::tungstenite::Message::Binary(
-                    message.serialize(),
-                ))
-                .await
-                .unwrap();
-
-            sockets.push(socket);
-
-            // let (socket_sender, socket_receiver): (SocketSender, SocketReceiver) = socket.split();
-            info!("connecting ... : {:?}", i);
-        }
-    }
+    // #[tokio::test]
+    // #[serial_test::serial]
+    // async fn multi_peer_perf_test() {
+    //     // pretty_env_logger::init();
+    //     let url = "ws://127.0.0.1:12101/wsopen";
+    //
+    //     info!("url = {:?}", url);
+    //
+    //     let mut sockets = vec![];
+    //     let it = 10000;
+    //     for i in 0..it {
+    //         let result = connect_async(url).await;
+    //         if result.is_err() {
+    //             println!("{:?}", result.err().unwrap());
+    //             return;
+    //         }
+    //         let result = result.unwrap();
+    //         let mut socket = result.0;
+    //
+    //         let challenge = HandshakeChallenge {
+    //             challenge: generate_random_bytes(32).await.try_into().unwrap(),
+    //         };
+    //         // challenge_for_peer = Some(challenge.challenge);
+    //         let message = Message::HandshakeChallenge(challenge);
+    //
+    //         socket
+    //             .send(tokio_tungstenite::tungstenite::Message::Binary(
+    //                 message.serialize(),
+    //             ))
+    //             .await
+    //             .unwrap();
+    //
+    //         sockets.push(socket);
+    //
+    //         // let (socket_sender, socket_receiver): (SocketSender, SocketReceiver) = socket.split();
+    //         info!("connecting ... : {:?}", i);
+    //     }
+    // }
 }

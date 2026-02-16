@@ -1811,7 +1811,7 @@ mod tests {
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
                     block,
-                    peer_index: 0,
+                    peer_index: [0; 33],
                 })
                 .await;
         }
@@ -2065,7 +2065,7 @@ mod tests {
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
                     block,
-                    peer_index: 0,
+                    peer_index: [0; 33],
                 })
                 .await;
             tester.wait_till_block_id(block_id).await.unwrap();

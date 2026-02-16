@@ -140,14 +140,14 @@ impl TransactionGenerator {
             {
                 let peers = self.peer_lock.read().await;
 
-                if peers.index_to_peers.is_empty() {
+                if peers.peers.is_empty() {
                     info!("not yet connected to a node");
                     return;
                 }
 
-                if let Some((_, peer)) = peers.index_to_peers.iter().next() {
+                if let Some((_, peer)) = peers.peers.iter().next() {
                     if let PeerStatus::Connected = peer.peer_status {
-                        to_public_key = peer.get_public_key().unwrap();
+                        to_public_key = peer.get_public_key();
                     } else {
                         info!("peer not connected. status : {:?}", peer.peer_status);
                         return;
@@ -364,11 +364,11 @@ impl TransactionGenerator {
         {
             let peers = self.peer_lock.read().await;
 
-            if let Some((_, peer)) = peers.index_to_peers.iter().next() {
+            if let Some((_, peer)) = peers.peers.iter().next() {
                 // if let PeerStatus::Connected = peer.peer_status {
-                info!("peer count : {}", peers.index_to_peers.len());
+                info!("peer count : {}", peers.peers.len());
                 info!("peer status : {:?}", peer.peer_status);
-                to_public_key = peer.get_public_key().unwrap();
+                to_public_key = peer.get_public_key();
                 // } else {
                 //     info!("peer not connected. status : {:?}", peer.peer_status);
                 // }
