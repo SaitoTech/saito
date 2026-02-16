@@ -635,6 +635,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         peers_lock.clone(),
         sender_to_network_controller.clone(),
         &timer,
+        context.wallet_lock.clone(),
     )
     .await;
 

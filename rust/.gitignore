@@ -6,3 +6,4 @@ dist/
 .vscode
 config/config.json
 temp_test_directory
+.output.txt

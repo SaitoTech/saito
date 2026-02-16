@@ -484,7 +484,7 @@ mod tests {
                 .add_entry(
                     [(i + 1) as u8; 32],
                     (i + 1) as BlockId,
-                    1,
+                    [1; 33],
                     t.peer_lock.clone(),
                 )
                 .await;
@@ -494,7 +494,7 @@ mod tests {
                 .add_entry(
                     [(i + 101) as u8; 32],
                     (i + 1) as BlockId,
-                    1,
+                    [1; 33],
                     t.peer_lock.clone(),
                 )
                 .await;

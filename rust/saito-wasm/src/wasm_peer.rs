@@ -17,11 +17,7 @@ pub struct WasmPeer {
 impl WasmPeer {
     #[wasm_bindgen(getter = public_key)]
     pub fn get_public_key(&self) -> JsString {
-        if self.peer.get_public_key().is_none() {
-            warn!("peer : {:?} public key is not set", self.peer.index);
-            return JsString::from([0; 33].to_base58());
-        }
-        self.peer.get_public_key().unwrap().to_base58().into()
+        self.peer.get_public_key().to_base58().into()
     }
     #[wasm_bindgen(getter = key_list)]
     pub fn get_key_list(&self) -> Array {
@@ -31,17 +27,13 @@ impl WasmPeer {
         }
         array
     }
-
-    #[wasm_bindgen(getter = peer_index)]
-    pub fn get_peer_index(&self) -> u64 {
-        self.peer.index
-    }
-    #[wasm_bindgen(constructor)]
-    pub fn new(peer_index: PeerIndex) -> WasmPeer {
-        WasmPeer {
-            peer: Peer::new(peer_index),
-        }
-    }
+    //
+    // #[wasm_bindgen(constructor)]
+    // pub fn new(peer_index: PeerIndex) -> WasmPeer {
+    //     WasmPeer {
+    //         peer: Peer::new(peer_index),
+    //     }
+    // }
     #[wasm_bindgen(getter = sync_type)]
     pub fn get_sync_type(&self) -> JsString {
         if self.peer.block_fetch_url.is_empty() {
