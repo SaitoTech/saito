@@ -6,10 +6,7 @@ const webpack = require("webpack");
 
 let minimize = false;
 let devtool = undefined;
-// let entrypoint = "./../bundler/default/mods/debug/debug.js";
-//let entrypoint = "./../mods/twilight/twilight.js";
 let entrypoint = "./../mods/settlers/settlers.js";
-//let entrypoint = "./../mods/tmp_mod/solitrio.js";
 let outputfile = "dyn.module.js";
 
 
@@ -51,7 +48,7 @@ webpack(
     // Path to your entry point. From this file Webpack will begin his work
     entry: [path.resolve(__dirname, entrypoint)],
     output: {
-      path: path.resolve(__dirname, "./../build/dyn/web"),
+      path: path.resolve(__dirname, "../../build/dyn/web"),
       filename: outputfile,
       library:{
         name:'Dyn',
@@ -87,7 +84,7 @@ webpack(
           use: [{
             loader: 'ts-loader',
             options: {
-                configFile:path.resolve(__dirname, "../build/tsconfig.json")
+                configFile:path.resolve(__dirname, "./tsconfig.json")
             }
           }]
         },

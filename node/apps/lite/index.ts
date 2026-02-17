@@ -5,7 +5,7 @@ import { initialize as initSaito } from 'saito-js/index.web';
 import WebSharedMethods from 'saito-js/lib/custom/shared_methods.web';
 import PeerServiceList from 'saito-js/lib/peer_service_list';
 import S, { LogLevel } from 'saito-js/saito';
-import build from '../../config/build.json';
+import build from '../../config/build/build.json';
 import mods_config from '../../config/modules.config';
 import Blockchain from '../../lib/saito/blockchain';
 import Factory from '../../lib/saito/factory';
