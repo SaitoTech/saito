@@ -670,8 +670,6 @@ pub async fn create_send_bound_transaction(
     Ok(WasmTransaction::from_transaction(tx))
 }
 
-
-
 #[wasm_bindgen]
 pub async fn create_split_bound_transaction(
     slip1_utxo_key: JsString,
@@ -717,7 +715,6 @@ pub async fn create_split_bound_transaction(
     Ok(WasmTransaction::from_transaction(tx))
 }
 
-
 #[wasm_bindgen]
 pub async fn create_atomize_bound_transaction(
     slip1_utxo_key: JsString,
@@ -725,7 +722,6 @@ pub async fn create_atomize_bound_transaction(
     slip3_utxo_key: JsString,
     tx_msg: Uint8Array,
 ) -> Result<WasmTransaction, JsValue> {
-
     let mut saito_guard = SAITO.lock().await;
     let saito = saito_guard
         .as_mut()

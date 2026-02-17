@@ -1094,16 +1094,13 @@ impl Wallet {
         Ok(transaction)
     }
 
-
-
     pub fn create_atomize_bound_transaction(
         &mut self,
         slip1_utxo_key: SaitoUTXOSetKey,
         slip2_utxo_key: SaitoUTXOSetKey,
         slip3_utxo_key: SaitoUTXOSetKey,
-        tx_msg: Vec<u8>
+        tx_msg: Vec<u8>,
     ) -> Result<Transaction, Error> {
-
         //
         // locate NFT in wallet
         //
@@ -1111,9 +1108,9 @@ impl Wallet {
             .nfts
             .iter()
             .position(|nft| {
-                nft.slip1 == slip1_utxo_key &&
-                nft.slip2 == slip2_utxo_key &&
-                nft.slip3 == slip3_utxo_key
+                nft.slip1 == slip1_utxo_key
+                    && nft.slip2 == slip2_utxo_key
+                    && nft.slip3 == slip3_utxo_key
             })
             .ok_or_else(|| Error::new(ErrorKind::NotFound, "NFT not found"))?;
 
@@ -1138,11 +1135,17 @@ impl Wallet {
         let deposit_amount = input_slip2.amount;
 
         if original_amount <= 1 {
-            return Err(Error::new(ErrorKind::InvalidInput, "NFT does not need atomization"));
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "NFT does not need atomization",
+            ));
         }
 
         if deposit_amount % original_amount != 0 {
-            return Err(Error::new(ErrorKind::InvalidInput, "Deposit not evenly divisible by unit count"));
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "Deposit not evenly divisible by unit count",
+            ));
         }
 
         const MAX_ATOMIZE: u64 = 20;
@@ -1165,7 +1168,6 @@ impl Wallet {
         // create unit outputs
         //
         for _ in 0..atomize_units {
-
             let mut out1 = input_slip1.clone();
             out1.amount = 1;
 
@@ -1183,7 +1185,6 @@ impl Wallet {
         // if more than MAX_ATOMIZE, bundle remainder into final unit
         //
         if remainder > 0 {
-
             let mut out1 = input_slip1.clone();
             out1.amount = remainder;
 
@@ -1201,8 +1202,6 @@ impl Wallet {
 
         Ok(transaction)
     }
-
-
 
     pub fn create_merge_bound_transaction(
         &mut self,
