@@ -1,8 +1,6 @@
 function formatSaito(nolan) {
   const value = Number(nolan) / 100000000;
-  return value
-    .toFixed(8)
-    .replace(/\.?0+$/, '');
+  return value.toFixed(8).replace(/\.?0+$/, '');
 }
 
 module.exports = (app, mod, nft_overlay) => {

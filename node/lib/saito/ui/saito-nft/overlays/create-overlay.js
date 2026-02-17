@@ -297,7 +297,7 @@ class CreateNFT {
 
       let processed = false;
 
-alert(this.nft_type + " ... ");
+      alert(this.nft_type + ' ... ');
 
       if (this.nft_type === 'text') {
         document.querySelector('#nft-image-upload').style.display = 'none';
@@ -395,7 +395,9 @@ alert(this.nft_type + " ... ");
 
       this.overlay.close();
 
-      if (obj.ticker) { this.nft_type = "NFT-"+obj.ticker; }
+      if (obj.ticker) {
+        this.nft_type = 'NFT-' + obj.ticker;
+      }
 
       let publickey = await this.app.wallet.getPublicKey();
       let newtx = await this.app.wallet.createMintNFTTransaction(

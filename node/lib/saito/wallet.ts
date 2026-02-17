@@ -1663,8 +1663,7 @@ export default class Wallet extends SaitoWallet {
     //
     // crypto (nfts) updated
     //
-    this.app.connection.emit('saito-header-update-crypto')
-
+    this.app.connection.emit('saito-header-update-crypto');
 
     return { updated, rebroadcast, persisted };
   }
@@ -1729,14 +1728,12 @@ export default class Wallet extends SaitoWallet {
     );
   }
 
-
   /**
    *
    *  Atomize an NFT
    *
    */
   public async createAtomizeNFTTransaction(nft: any): Promise<Transaction> {
-
     await nft.fetchTransaction();
 
     return S.getInstance().createAtomizeBoundTransaction(
@@ -1746,9 +1743,6 @@ export default class Wallet extends SaitoWallet {
       nft.txmsg
     );
   }
-
-
-
 
   /**
    *
@@ -1782,7 +1776,6 @@ export default class Wallet extends SaitoWallet {
   // with them...
   //
   public async loadNFTs() {
-
     try {
       let nft_balance_by_id = {};
 
@@ -1847,8 +1840,7 @@ export default class Wallet extends SaitoWallet {
           }
         }
 
-
-/*****
+        /*****
  * CREATE CRYPTO MOD
  *
 	for (let nft_id in nft_balance_by_id) {
@@ -1882,8 +1874,6 @@ export default class Wallet extends SaitoWallet {
 	  );
 	}
 *****/
-
-
       }
     } catch (err) {
       console.log('Error: load nfts');
@@ -2023,5 +2013,4 @@ export default class Wallet extends SaitoWallet {
       .map((b: number) => b.toString(16).padStart(2, '0'))
       .join('');
   }
-
 }

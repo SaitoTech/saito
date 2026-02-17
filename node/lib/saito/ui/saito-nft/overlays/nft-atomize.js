@@ -5,17 +5,17 @@ const SaitoNFT = require('./../saito-nft');
 // Status messages: state-driven, network-aware sequence
 //
 const STATUS = {
-  ANALYZING: "analyzing NFT state…",
-  PREPARING: "preparing split transaction…",
-  SIGNING: "signing transaction…",
-  BROADCASTING: "broadcasting transaction to network…",
-  AWAITING: "transaction broadcast. awaiting confirmation…",
-  WAITING_BLOCK: "waiting for next block…",
-  STILL_AWAITING: "still awaiting confirmation…",
-  FINALIZING: "network is finalizing your transaction…",
-  MONITORING: "block times can vary. monitoring confirmation…",
-  CONFIRMED: "confirmed in block.",
-  COMPLETE: "atomization complete."
+  ANALYZING: 'analyzing NFT state…',
+  PREPARING: 'preparing split transaction…',
+  SIGNING: 'signing transaction…',
+  BROADCASTING: 'broadcasting transaction to network…',
+  AWAITING: 'transaction broadcast. awaiting confirmation…',
+  WAITING_BLOCK: 'waiting for next block…',
+  STILL_AWAITING: 'still awaiting confirmation…',
+  FINALIZING: 'network is finalizing your transaction…',
+  MONITORING: 'block times can vary. monitoring confirmation…',
+  CONFIRMED: 'confirmed in block.',
+  COMPLETE: 'atomization complete.'
 };
 
 const CONFIRMATION_ESCALATION_MS = 15000;
@@ -27,9 +27,7 @@ const WAITING_PHASE_MESSAGES = [
 ];
 
 class NFTAtomize {
-
   constructor(app, mod, container, nft, utxoIdx) {
-
     this.app = app;
     this.mod = mod;
 
@@ -68,10 +66,9 @@ class NFTAtomize {
 
     this.walletListener = this.onWalletUpdate.bind(this);
     this.reassuranceInterval = null;
-    this.currentStatus = "";
+    this.currentStatus = '';
     this.confirmationEscalationTicks = 0;
   }
-
 
   setStatus(msg) {
     if (this.currentStatus === msg) return;
@@ -79,7 +76,6 @@ class NFTAtomize {
     const el = document.querySelector('.nft-atomize-status');
     if (el) el.innerText = msg;
   }
-
 
   reconcileConsumedKeys(nft_list) {
     const walletKeys = new Set();
@@ -113,7 +109,6 @@ class NFTAtomize {
     }
   }
 
-
   buildPendingAndDoneFromActiveKeys(nft_list) {
     this.state.pending.clear();
     this.state.done.clear();
@@ -127,18 +122,13 @@ class NFTAtomize {
     for (const key of this.state.done) this.state.inflight.delete(key);
   }
 
-
   render() {
-
-
     if (!this.state.initial_amount || this.state.initial_amount < 1) {
-      console.error("NFTAtomize: invalid initial_amount", this.state.initial_amount);
+      console.error('NFTAtomize: invalid initial_amount', this.state.initial_amount);
       return;
     }
     if (this.state.initial_amount > this.MAX_NFT_ATOMIZE_TOTAL) {
-      salert(
-        `Atomization limit exceeded. Maximum allowed is ${this.MAX_NFT_ATOMIZE_TOTAL}.`
-      );
+      salert(`Atomization limit exceeded. Maximum allowed is ${this.MAX_NFT_ATOMIZE_TOTAL}.`);
       return;
     }
 
@@ -146,7 +136,6 @@ class NFTAtomize {
     // No Way Home
     //
     document.querySelector('.saito-nft-header-btn')?.remove();
-
 
     //
     // Scope: only selected UTXO and its split remainders (active_keys)
@@ -159,10 +148,7 @@ class NFTAtomize {
     // Replace parent container content
     //
     this.app.browser.replaceElementBySelector(
-      NFTAtomizeTemplate(
-        this.utxoIdx,
-        this.state.initial_amount
-      ),
+      NFTAtomizeTemplate(this.utxoIdx, this.state.initial_amount),
       this.container
     );
 
@@ -172,17 +158,18 @@ class NFTAtomize {
     //
     // Listen for wallet updates
     //
-    this.app.connection.on(
-      'saito-header-update-crypto',
-      this.walletListener
-    );
+    this.app.connection.on('saito-header-update-crypto', this.walletListener);
 
     //
     // Confirmation-waiting escalation: advance message every N seconds while awaiting confirmation
     //
     this.reassuranceInterval = setInterval(() => {
       if (!this.active) return;
-      if (this.currentStatus !== STATUS.AWAITING && !WAITING_PHASE_MESSAGES.includes(this.currentStatus)) return;
+      if (
+        this.currentStatus !== STATUS.AWAITING &&
+        !WAITING_PHASE_MESSAGES.includes(this.currentStatus)
+      )
+        return;
       this.confirmationEscalationTicks++;
       const idx = Math.min(this.confirmationEscalationTicks, WAITING_PHASE_MESSAGES.length - 1);
       this.setStatus(WAITING_PHASE_MESSAGES[idx]);
@@ -204,27 +191,22 @@ class NFTAtomize {
     this.processStep();
   }
 
-
   shutdown() {
-
     if (!this.active) return;
 
     this.active = false;
 
-    this.app.connection.removeListener(
-      'saito-header-update-crypto',
-      this.walletListener
-    );
+    this.app.connection.removeListener('saito-header-update-crypto', this.walletListener);
 
     if (this.reassuranceInterval) {
       clearInterval(this.reassuranceInterval);
     }
   }
 
-
   onWalletUpdate() {
-
-    if (!this.active) { return; }
+    if (!this.active) {
+      return;
+    }
 
     //
     // Rebuild from wallet: resolve consumed keys (add remainder keys to active_keys), then only slips in active_keys.
@@ -237,9 +219,7 @@ class NFTAtomize {
     this.processStep();
   }
 
-
   processStep() {
-
     if (!this.active) return;
 
     this.updateProgressUI();
@@ -253,8 +233,9 @@ class NFTAtomize {
       return;
     }
 
-    const pendingEntries = Array.from(this.state.pending.entries())
-      .filter(([key]) => !this.state.inflight.has(key));
+    const pendingEntries = Array.from(this.state.pending.entries()).filter(
+      ([key]) => !this.state.inflight.has(key)
+    );
     if (pendingEntries.length === 0) return;
 
     pendingEntries.sort((a, b) => b[1] - a[1]);
@@ -264,11 +245,8 @@ class NFTAtomize {
     this.splitSlip(utxoKey, amount);
   }
 
-
   async splitSlip(utxoKey, amount) {
-
     try {
-
       this.state.pending.delete(utxoKey);
       this.state.inflight.add(utxoKey);
 
@@ -276,13 +254,13 @@ class NFTAtomize {
       const slip = nft_list.find((n) => n.slip1?.utxo_key === utxoKey);
       if (!slip) {
         this.state.inflight.delete(utxoKey);
-        if (utxoKey.endsWith("_r")) this.state.pending.delete(utxoKey);
+        if (utxoKey.endsWith('_r')) this.state.pending.delete(utxoKey);
         else this.state.pending.set(utxoKey, amount);
         return;
       }
 
       let slipNFT = slip;
-      if (typeof slipNFT.fetchTransaction !== "function") {
+      if (typeof slipNFT.fetchTransaction !== 'function') {
         slipNFT = new SaitoNFT(this.app, this.mod, null, slip, null);
       }
 
@@ -316,25 +294,20 @@ class NFTAtomize {
       this.confirmationEscalationTicks = 0;
       this.setStatus(STATUS.AWAITING);
     } catch (err) {
-      console.error("Atomize split failed:", err);
+      console.error('Atomize split failed:', err);
       this.state.inflight.delete(utxoKey);
       this.state.pending.set(utxoKey, amount);
     }
   }
 
-
   updateProgressUI() {
-
     const el = document.querySelector('.nft-atomize-progress');
     if (!el) return;
 
-    el.innerText =
-      `${this.state.done.size} / ${this.state.initial_amount}`;
+    el.innerText = `${this.state.done.size} / ${this.state.initial_amount}`;
   }
 
-
   finish() {
-
     this.active = false;
 
     const containerEl = document.querySelector(this.container);
@@ -350,10 +323,7 @@ class NFTAtomize {
       this.setStatus(STATUS.COMPLETE);
     }, 800);
 
-    this.app.connection.removeListener(
-      'saito-header-update-crypto',
-      this.walletListener
-    );
+    this.app.connection.removeListener('saito-header-update-crypto', this.walletListener);
 
     if (this.reassuranceInterval) {
       clearInterval(this.reassuranceInterval);
@@ -362,4 +332,3 @@ class NFTAtomize {
 }
 
 module.exports = NFTAtomize;
-

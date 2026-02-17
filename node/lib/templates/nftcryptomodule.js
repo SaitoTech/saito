@@ -58,9 +58,7 @@ class NFTCryptoModule extends CryptoModule {
       return [];
     }
 
-    let slips = this.app.options.wallet.nfts.filter(
-      (n) => n.id === this.nft_id
-    );
+    let slips = this.app.options.wallet.nfts.filter((n) => n.id === this.nft_id);
 
     if (unreserved) {
       slips = slips.filter((s) => !s.reserved);

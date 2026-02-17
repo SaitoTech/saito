@@ -653,16 +653,14 @@ class Server {
       // TODO - load from disk to ensure we have txs -- slow.
       //
       try {
-	let buffer: Uint8Array = new Uint8Array();
-	let list = methods.loadBlockFileList();
-	for (let filename of list) {
-	  if (filename.includes(bsh)) {
-	    buffer = new Uint8Array(
-	      methods.readValue('./data/blocks/' + filename)
-	    );
-	    break;
-	  }
-	}
+        let buffer: Uint8Array = new Uint8Array();
+        let list = methods.loadBlockFileList();
+        for (let filename of list) {
+          if (filename.includes(bsh)) {
+            buffer = new Uint8Array(methods.readValue('./data/blocks/' + filename));
+            break;
+          }
+        }
 
         if (buffer.byteLength == 0) {
           if (!res.finished) {
@@ -844,16 +842,14 @@ class Server {
       // TODO - load from disk to ensure we have txs -- slow.
       //
       try {
-	let buffer: Uint8Array = new Uint8Array();
-	let list = methods.loadBlockFileList();
-	for (let filename of list) {
-	  if (filename.includes(bsh)) {
-	    buffer = new Uint8Array(
-	      methods.readValue('./data/blocks/' + filename)
-	    );
-	    break;
-	  }
-	}
+        let buffer: Uint8Array = new Uint8Array();
+        let list = methods.loadBlockFileList();
+        for (let filename of list) {
+          if (filename.includes(bsh)) {
+            buffer = new Uint8Array(methods.readValue('./data/blocks/' + filename));
+            break;
+          }
+        }
         if (buffer.byteLength == 0) {
           if (!res.finished) {
             return res.sendStatus(404);
