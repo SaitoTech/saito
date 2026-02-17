@@ -1,0 +1,25 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es2020",
+		"moduleResolution": "node",
+		"sourceMap": true,
+		 "jsx": "react",
+		"esModuleInterop": true,
+		"outDir": "./../../built",
+		"allowJs": true,
+		"resolveJsonModule": true,
+		"downlevelIteration": true,
+		"lib": [
+			"dom",
+			"es2022"
+		]
+	},
+	"exclude": [
+		"../../node_modules",
+		"../../lib/templates",
+		"../../bundler",
+		"../../lib/saito/ui/**/*"
+	],
+	"include": ["../../lib/**/*.ts", "../../scripts/start.ts"]
+}

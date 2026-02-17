@@ -268,7 +268,7 @@ class DevTools extends ModTemplate {
 					console.error(error);
 				}
 
-				let DYN_MOD_WEB = fs.readFileSync('./build/dyn_mod.js', {
+				let DYN_MOD_WEB = fs.readFileSync('./dist/dyn_mod.js', {
 					encoding: 'binary'
 				});
 
@@ -277,7 +277,7 @@ class DevTools extends ModTemplate {
 				/********************************************************
 /**** WHEN DEBUGGING, EDIT THIS TO HAVE A COPY SAVED ****
 /********************************************************
-				execSync(`cp ./build/dyn_mod.js /Users/david/dyn_mod.js`, (error, stdout, stderr) => {
+				execSync(`cp ./dist/dyn_mod.js /Users/david/dyn_mod.js`, (error, stdout, stderr) => {
 					console.log(stdout);
 					console.log(stderr);
 					if (error !== null) {
@@ -288,7 +288,7 @@ class DevTools extends ModTemplate {
 /********************************************************
 /*******************************************************/
 
-				execSync(`rm -rf  ./tmp_mod/ ./build/dyn_mod.js`, (error, stdout, stderr) => {
+				execSync(`rm -rf  ./tmp_mod/ ./dist/dyn_mod.js`, (error, stdout, stderr) => {
 					console.log(stdout);
 					console.log(stderr);
 					if (error !== null) {
@@ -297,7 +297,7 @@ class DevTools extends ModTemplate {
 				});
 
 				execSync(
-					`truncate -s 0 ./build/dyn/web/base.txt &&  truncate -s 0 ./build/dyn/web/dyn.module.js`,
+					`truncate -s 0 ./dist/dyn/web/base.txt &&  truncate -s 0 ./dist/dyn/web/dyn.module.js`,
 					(error, stdout, stderr) => {
 						console.log(stdout);
 						console.log(stderr);
