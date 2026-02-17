@@ -401,7 +401,7 @@ class Mods {
         console.info(data);
         this.app.network.sendRequest('software-update', data, null, peer);
       }
-      console.log('handshake complete');
+      console.log('handshake complete : ', publicKey);
       await onPeerHandshakeComplete(peer);
     });
 

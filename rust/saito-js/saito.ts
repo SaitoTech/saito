@@ -489,15 +489,17 @@ export default class Saito {
 
   public async sendApiCall(
     buffer: Uint8Array,
-    publicKey: string,
-    waitForReply: boolean
+    publicKey?: string,
+    waitForReply?: boolean
   ): Promise<Uint8Array> {
-    let peer = await this.getPeer(publicKey);
-    if (peer === null) {
-      throw new Error("peer not found. public key : " + publicKey + "");
-    }
-    if (peer.status !== "connected") {
-      throw new Error(`peer : ${peer.publicKey} not connected. status : ${peer.status}`);
+    if (!!publicKey) {
+      let peer = await this.getPeer(publicKey!);
+      if (peer === null) {
+        throw new Error("peer not found. public key : " + publicKey + "");
+      }
+      if (peer.status !== "connected") {
+        throw new Error(`peer : ${peer.publicKey} not connected. status : ${peer.status}`);
+      }
     }
 
     if (waitForReply) {
@@ -507,10 +509,10 @@ export default class Saito {
           resolve,
           reject,
         });
-        Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey);
+        Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey || "");
       });
     } else {
-      return Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey);
+      return Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey || "");
     }
   }
 
@@ -534,7 +536,7 @@ export default class Saito {
     // );
     let buffer = transaction.wasmTransaction.serialize();
 
-    await this.sendApiCall(buffer, publicKey!, !!callback)
+    await this.sendApiCall(buffer, publicKey, !!callback)
       .then((buffer: Uint8Array) => {
         if (callback) {
           // console.log("sendTransactionWithCallback. buffer length = " + buffer.byteLength);

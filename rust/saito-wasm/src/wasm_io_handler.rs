@@ -223,8 +223,11 @@ impl InterfaceIO for WasmIoHandler {
 
     fn send_interface_event(&self, event: InterfaceEvent) {
         match event {
-            InterfaceEvent::PeerHandshakeComplete(_index) => {
-                MsgHandler::send_interface_event("handshake_complete".to_string(), "".to_string());
+            InterfaceEvent::PeerHandshakeComplete(public_key) => {
+                MsgHandler::send_interface_event(
+                    "handshake_complete".to_string(),
+                    public_key.to_base58(),
+                );
             }
             InterfaceEvent::PeerConnectionDropped(public_key) => {
                 MsgHandler::send_interface_event(
@@ -232,8 +235,11 @@ impl InterfaceIO for WasmIoHandler {
                     public_key.to_base58(),
                 );
             }
-            InterfaceEvent::PeerConnected(_index) => {
-                MsgHandler::send_interface_event("peer_connect".to_string(), "".to_string());
+            InterfaceEvent::PeerConnected(public_key) => {
+                MsgHandler::send_interface_event(
+                    "peer_connect".to_string(),
+                    public_key.to_base58(),
+                );
             }
             InterfaceEvent::BlockAddSuccess(hash, block_id) => {
                 MsgHandler::send_block_success(hash.to_hex(), BigInt::from(block_id));
@@ -252,8 +258,11 @@ impl InterfaceIO for WasmIoHandler {
                 );
             }
 
-            InterfaceEvent::StunPeerConnected(_index) => {
-                MsgHandler::send_interface_event("stun peer connect".to_string(), "".to_string());
+            InterfaceEvent::StunPeerConnected(public_key) => {
+                MsgHandler::send_interface_event(
+                    "stun peer connect".to_string(),
+                    public_key.to_base58(),
+                );
             }
             InterfaceEvent::StunPeerDisconnected(public_key) => {
                 MsgHandler::send_interface_event(

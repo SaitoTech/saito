@@ -1233,7 +1233,7 @@ pub async fn get_peers() -> Array {
 
 #[wasm_bindgen]
 pub async fn get_peer(key: JsString) -> Option<WasmPeer> {
-    let key: SaitoPublicKey = string_to_hex(key).ok()?;
+    let key: SaitoPublicKey = string_to_key(key).ok()?;
     let saito = SAITO.lock().await;
     let peers = saito
         .as_ref()
@@ -1376,7 +1376,7 @@ pub async fn propagate_transaction(tx: &WasmTransaction) {
 
 #[wasm_bindgen]
 pub async fn send_api_call(buffer: Uint8Array, msg_index: u32, key: JsString) {
-    let key: SaitoPublicKey = string_to_key(key).unwrap();
+    let key: SaitoPublicKey = string_to_key(key).unwrap_or([0; 33]);
     trace!("send_api_call : {:?}", key.to_base58());
     let saito = SAITO.lock().await;
     let api_message = ApiMessage {
