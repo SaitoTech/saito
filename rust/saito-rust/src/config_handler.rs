@@ -1,5 +1,5 @@
 use log::{debug, error, info};
-use saito_core::core::consensus::peers::congestion_controller::CongestionStatsDisplay;
+use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use saito_core::core::util::configuration::{
     BlockchainConfig, Configuration, ConsensusConfig, Endpoint, PeerConfig, Server, WalletConfig,
 };

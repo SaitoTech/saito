@@ -242,13 +242,18 @@ export default class Saito {
             let socket = this.sockets.get(index);
             this.sockets.delete(index);
             if (socket) {
-                console.log("closing socket for peer index : " + index);
-                socket.close();
+                console.info("closing socket for peer index : " + index);
+
+                if (socket.readyState !== 1) {
+                  socket.terminate();
+                } else {
+                  socket.close();
+                }
             } else {
-                console.log("no socket found for index : " + index);
+                console.info("no socket found for index : " + index);
             }
         } catch (error) {
-            console.error(error);
+            console.error("failed removing socket", error);
         }
     }
 

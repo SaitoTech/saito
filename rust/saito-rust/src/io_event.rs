@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 
-use saito_core::core::io::network_event::NetworkEvent;
+use saito_core::core::routing::io::network_event::NetworkEvent;
 
 #[derive(Debug)]
 pub struct IoEvent {

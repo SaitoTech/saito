@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use std::sync::Arc;
 
 use crate::core::consensus::blockchain::Blockchain;
-use crate::core::consensus::peers::peer_collection::PeerCollection;
+use crate::core::routing::peers::peer_collection::PeerCollection;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
 use tokio::sync::RwLock;
@@ -474,8 +474,8 @@ impl BlockchainSyncState {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::consensus::blockchain_sync_state::BlockchainSyncState;
     use crate::core::defs::BlockId;
+    use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
     use crate::core::util::test::test_manager::test::TestManager;
     use std::ops::Deref;
 

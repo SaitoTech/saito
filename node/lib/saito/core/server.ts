@@ -77,33 +77,46 @@ export class NodeSharedMethods extends CustomSharedMethods {
         try {
           S.getLibInstance().process_msg_buffer_from_peer(buffer, peer_index);
         } catch (e) {
-          console.error(e);
+          console.error(
+            `failed processing socket message buffer from peer : ${peer_index} from url : ${url}`,
+            e
+          );
         }
       });
       socket.on('close', () => {
         try {
           S.getLibInstance().process_peer_disconnection(peer_index);
         } catch (e) {
-          console.error(e);
+          console.error(
+            `failed processing socket close from peer : ${peer_index} from url : ${url}`,
+            e
+          );
         }
       });
       socket.on('error', (error) => {
-        console.error(error);
+        console.error(`received socket error from peer : ${peer_index} from url : ${url}`, error);
         try {
           S.getLibInstance().process_peer_disconnection(peer_index);
         } catch (e) {
-          console.error(e);
+          console.error(`failed processing error from peer : ${peer_index} from url : ${url}`, e);
         }
       });
       socket.on('open', () => {
-        S.getLibInstance()
-          .process_new_peer(peer_index, url)
-          .then(() => {
-            console.log('connected to : ' + url + ' with peer index : ' + peer_index);
-          });
+        try {
+          S.getLibInstance()
+            .process_new_peer(peer_index, url)
+            .then(() => {
+              console.log('connected to : ' + url + ' with peer index : ' + peer_index);
+            });
+        } catch (e) {
+          console.error(
+            `failed processing socket open from peer : ${peer_index} from url : ${url}`,
+            e
+          );
+        }
       });
     } catch (e) {
-      console.error(e);
+      console.error(`error from peer : ${peer_index} from url : ${url}`, e);
     }
   }
 
@@ -314,6 +327,7 @@ class Server {
   }
 
   initializeWebSocketServer() {
+    console.info('initializing websocket server');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const ws = require('ws');
 
@@ -325,9 +339,15 @@ class Server {
       console.debug('connection upgrade ----> ' + request.url);
       const { pathname } = parse(request.url);
       if (pathname === '/wsopen') {
-        wss.handleUpgrade(request, socket, head, (websocket: any) => {
-          wss.emit('connection', websocket, request);
-        });
+        try {
+          wss.handleUpgrade(request, socket, head, (websocket: any) => {
+            wss.emit('connection', websocket, request);
+          });
+        } catch (error) {
+          console.error('error upgrading websocket.', error);
+        }
+      } else {
+        socket.destroy();
       }
     });
     webserver.on('error', (error) => {

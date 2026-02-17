@@ -17,7 +17,7 @@ use crate::core::defs::{
     Currency, PeerIndex, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, Timestamp, UtxoSet, UTXO_KEY_LENGTH,
 };
-use crate::core::io::network::Network;
+use crate::core::routing::io::network::Network;
 use crate::core::util::crypto::{hash, sign, verify, verify_signature};
 use crate::iterate;
 
@@ -1118,7 +1118,7 @@ impl Transaction {
         // validation criteria for the remaining classes of txs are
         // further down iin this function.
         //
-        let transaction_type = self.transaction_type;
+        let _transaction_type = self.transaction_type;
 
         if self.transaction_type != TransactionType::ATR
             && self.transaction_type != TransactionType::Issuance
@@ -1136,7 +1136,7 @@ impl Transaction {
             //
             if let Some(hash_for_signature) = &self.hash_for_signature {
                 let sig: SaitoSignature = self.signature;
-                let public_key: SaitoPublicKey = self.from[0].public_key;
+                let _public_key: SaitoPublicKey = self.from[0].public_key;
 
                 //
                 // for bound (NFT) txs, the "owner" is in the normal slip (slip2),

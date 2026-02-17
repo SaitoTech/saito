@@ -2,10 +2,10 @@
 pub mod test {
     use crate::core::consensus::block::{Block, BlockType};
     use crate::core::consensus::blockchain::Blockchain;
-    use crate::core::consensus::blockchain_sync_state::BlockchainSyncState;
     use crate::core::consensus::context::Context;
     use crate::core::consensus::mempool::Mempool;
-    use crate::core::consensus::peers::peer_collection::PeerCollection;
+    use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
+    use crate::core::routing::peers::peer_collection::PeerCollection;
 
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::transaction::Transaction;
@@ -16,13 +16,13 @@ pub mod test {
         StatVariable, RECOLLECT_NOTHING, STAT_BIN_COUNT,
     };
     use crate::core::defs::{SaitoPublicKey, Timestamp};
-    use crate::core::io::network::Network;
-    use crate::core::io::network_event::NetworkEvent;
-    use crate::core::io::storage::Storage;
     use crate::core::mining_thread::{MiningEvent, MiningThread};
     use crate::core::process::keep_time::KeepTime;
     use crate::core::process::keep_time::Timer;
     use crate::core::process::process_event::ProcessEvent;
+    use crate::core::routing::io::network::Network;
+    use crate::core::routing::io::network_event::NetworkEvent;
+    use crate::core::routing::io::storage::Storage;
     use crate::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
     use crate::core::stat_thread::{StatEvent, StatThread};
     use crate::core::util::config_manager::{BLOCKCHAIN_CONFIG_PATH, CONGESTION_CONFIG_PATH};
@@ -107,7 +107,7 @@ pub mod test {
 
         fn get_congestion_data(
             &self,
-        ) -> Option<&crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay>
+        ) -> Option<&crate::core::routing::peers::congestion_controller::CongestionStatsDisplay>
         {
             None
         }
@@ -115,7 +115,7 @@ pub mod test {
         fn set_congestion_data(
             &mut self,
             congestion_data: Option<
-                crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay,
+                crate::core::routing::peers::congestion_controller::CongestionStatsDisplay,
             >,
         ) {
         }
@@ -269,7 +269,6 @@ pub mod test {
                         Box::new(TestIOHandler {}),
                         peers.clone(),
                         context.wallet_lock.clone(),
-                        context.config_lock.clone(),
                         timer.clone().unwrap(),
                     ),
                     storage: Storage::new(Box::new(TestIOHandler {})),
@@ -301,7 +300,6 @@ pub mod test {
                         Box::new(TestIOHandler {}),
                         peers.clone(),
                         context.wallet_lock.clone(),
-                        configuration.clone(),
                         timer.clone().unwrap(),
                     ),
                     storage: Storage::new(Box::new(TestIOHandler {})),
