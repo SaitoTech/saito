@@ -14,7 +14,7 @@ class BNB extends ModTemplate {
 
     // MIXIN STUFF
     this.asset_id = '11dbb585-4787-35fb-b1b5-f95ba7de6a3a';
-    this.chain_id = '43d61dcd-e413-450d-80b8-101d5e903357';
+    this.chain_id = '11dbb585-4787-35fb-b1b5-f95ba7de6a3a';
   }
 
   respondTo(type = '', obj) {
