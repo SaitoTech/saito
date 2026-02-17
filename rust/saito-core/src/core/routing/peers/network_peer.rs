@@ -8,7 +8,7 @@ use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
 use crate::core::util::serialize::Serialize;
-use log::{error, info, warn};
+use log::{error, info, trace, warn};
 use std::io::{Error, ErrorKind};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -26,6 +26,7 @@ pub struct NetworkPeer {
 
 impl NetworkPeer {
     pub fn new(url: Option<String>) -> Self {
+        info!("creating network peer : {:?}", url);
         Self {
             challenge: None,
             response: None,
@@ -231,6 +232,7 @@ impl NetworkPeer {
         S: FnOnce(NetworkEvent) -> F2,
         F2: std::future::Future<Output = ()>,
     {
+        trace!("NetworkPeer::process_msg_buffer_from_peer");
         if self.is_connected() {
             send_event(NetworkEvent::IncomingNetworkMessage {
                 public_key: public_key.unwrap(),

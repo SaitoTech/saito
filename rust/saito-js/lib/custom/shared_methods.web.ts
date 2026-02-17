@@ -18,24 +18,31 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
       socket.onmessage = (event: MessageEvent) => {
         try {
-          let buffer = new Uint8Array(event.data);
+          console.log("aaa : ", typeof event.data);
+          let buffer = Buffer.from(event.data);
+          console.log("bbb : ", typeof buffer);
+
+          // let peer = new NetworkPeer(undefined, url);
+          // let buffer2 = new Uint8Array();
 
           Saito.getLibInstance()
             .process_msg_buffer_from_peer(buffer, peer)
             .then((buffer: any) => {
+              console.log("ccc");
+
               if (buffer && buffer.byteLength > 0) {
                 socket.send(buffer);
               }
             });
         } catch (error) {
-          console.error(error);
+          console.error("processing incoming message buffer failed.", error);
         }
       };
 
       socket.onopen = () => {
         try {
           // Saito.getLibInstance().process_new_peer(public_key, url);
-          // console.debug("connected to : " + url + " with peer index : " + public_key);
+          console.debug("connected to : " + url);
         } catch (error) {
           console.error(error);
         }

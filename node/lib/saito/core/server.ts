@@ -381,9 +381,9 @@ class Server {
       let peer = new NetworkPeer();
       peer.socket = socket;
 
-      console.log(
-        'adding new peer : ' + (request.headers['x-forwarded-for'] + request.socket.remoteAddress)
-      );
+      // console.log(
+      //   'adding new peer : ' + (request.headers['x-forwarded-for'] + request.socket.remoteAddress)
+      // );
       // S.getInstance().addNewSocket(socket, peer_index);
 
       socket.on('message', (buffer: any) => {
@@ -402,6 +402,11 @@ class Server {
         console.error('error on socket : ' + peer.publicKey, error);
         S.getLibInstance().process_peer_disconnection(peer.publicKey);
       });
+      peer.get_handshake_challenge_buffer().then(buffer=>{
+        console.log('sending handshake challenge to peer : ', peer.publicKey);
+        socket.send(buffer);
+      });
+
     });
 
     this.app.modules.onWebSocketServer(webserver);

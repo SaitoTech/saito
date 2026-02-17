@@ -964,34 +964,49 @@ pub async fn process_msg_buffer_from_peer(
     buffer: js_sys::Uint8Array,
     mut peer: WasmNetworkPeer,
 ) -> js_sys::Uint8Array {
-    let mut saito = SAITO.lock().await;
-    let saito = saito.as_mut().unwrap();
+    info!("process_msg_buffer_from_peer");
+    let mut saito1 = SAITO.lock().await;
+    let saito = saito1.as_mut().unwrap();
     let buffer = buffer.to_vec();
+
+    info!("0000");
+
+    let wallet = saito.context.wallet_lock.clone();
+    let configs = saito.context.config_lock.clone();
+    let timer = saito.routing_thread.timer.clone();
+    let services = saito.routing_thread.network.io_interface.get_my_services();
+    drop(saito);
+    drop(saito1);
 
     let network_peer = peer.get_peer_mut();
 
+    info!("buffer size : {}", buffer.len());
     let mut public_key = None;
     let buffer = network_peer
         .process_incoming_buffer(
             buffer,
             &mut public_key,
-            saito.context.wallet_lock.clone(),
-            saito.context.config_lock.clone(),
-            &saito.routing_thread.timer,
-            &saito.routing_thread.network.io_interface.get_my_services(),
+            wallet,
+            configs,
+            &timer,
+            &services,
             |event| async move {
+                info!("111");
                 let mut saito = SAITO.lock().await;
+                info!("222");
                 saito
                     .as_mut()
                     .unwrap()
                     .routing_thread
                     .process_network_event(event)
                     .await;
+                info!("333");
             },
         )
         .await
         .expect("fail processing incoming buffer");
 
+    info!("return buffer size : {}", buffer.len());
     let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
     array.copy_from(buffer.as_slice());
     array
