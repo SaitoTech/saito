@@ -517,7 +517,7 @@ impl Peer {
         self.public_key
     }
     pub fn is_connected(&self) -> bool {
-        todo!()
+        matches!(self.peer_status, PeerStatus::Connected)
     }
 
     pub fn mark_as_disconnected(&mut self, disconnected_at: Timestamp) {
