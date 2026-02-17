@@ -55,16 +55,7 @@ module.exports = (app, mod, nfttx, nft) => {
       <div class="saito-nft-image" style="background-image:url('/saito/img/dreamscape.png')">
         <div class="saito-nft-text">${text}</div>
                 </div>
-	    `;
-  } else {
-    html += `
-              <div class="textarea-container">
-                <div class="saito-app-upload active-tab paste_event" id="nft-image-upload">
-                  drag-and-drop to add image to NFT (optional)
-                </div>
-                <textarea class="create-nft-textarea" id="create-nft-textarea"></textarea>
-              </div>
-	    `;
+      `;
   }
 
   // Description box OVER the image/textbox

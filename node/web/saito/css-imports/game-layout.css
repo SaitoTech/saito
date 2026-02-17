@@ -161,17 +161,13 @@ div.h3 {
 /*******************
     Crypto
 ******************/
-.crypto_logo {
+.game-crypto-logo-container {
   position: absolute;
-  bottom: 0;
-  left: 40px;
+  bottom: 20px;
+  left: 50px;
   width: min(12rem, 20vw);
-  height: min(12rem, 20vw);
+  height: auto /*min(12rem, 20vw)*/;
   z-index: 0;
-}
-
-.crypto_logo img {
-  width: 100%;
 }
 
 /***************************

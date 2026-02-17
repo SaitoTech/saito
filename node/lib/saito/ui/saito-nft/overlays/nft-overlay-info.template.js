@@ -1,3 +1,8 @@
+function formatSaito(nolan) {
+  const value = Number(nolan) / 100000000;
+  return value.toFixed(8).replace(/\.?0+$/, '');
+}
+
 module.exports = (app, mod, nft_overlay) => {
   let can_merge = nft_overlay.can_merge;
   let can_split = nft_overlay.can_split;
@@ -70,10 +75,9 @@ module.exports = (app, mod, nft_overlay) => {
     </div>
   `;
 
-  let mergeButtonHtml = '';
-  if (can_merge) {
-    mergeButtonHtml = `<button class="saito-nft-footer-btn merge">Merge</button>`;
-  }
+  let mergeButtonHtml = can_merge
+    ? `<button class="saito-nft-footer-btn merge">Merge</button>`
+    : '';
 
   let splitUtxosHtml = '';
   let splitSlidersHtml = '';
@@ -88,7 +92,7 @@ module.exports = (app, mod, nft_overlay) => {
       if (slip.slip1) {
         let blockId = slip.slip1.block_id || 'N/A';
         let txOrdinal = slip.slip1.tx_ordinal || 'N/A';
-        let slipIndex = slip.slip1.slip_index || 'N/A';
+        let slipIndex = slip.slip1.slip_index !== undefined ? slip.slip1.slip_index : 'N/A';
         uuid = `${blockId}-${txOrdinal}-${slipIndex}`;
       }
 
@@ -105,12 +109,12 @@ module.exports = (app, mod, nft_overlay) => {
             <div class="nft-slip-box-value">${uuid}</div>
           </div>
           <div class="nft-slip-box-row">
-            <div class="nft-slip-box-label">amount:</div>
+            <div class="nft-slip-box-label">units:</div>
             <div class="nft-slip-box-value">${slip.slip1.amount}</div>
           </div>
           <div class="nft-slip-box-row">
             <div class="nft-slip-box-label">deposit:</div>
-            <div class="nft-slip-box-value">${slip.slip2.amount}</div>
+            <div class="nft-slip-box-value">${formatSaito(slip.slip2.amount)} SAITO</div>
           </div>
           <div class="nft-slip-box-actions">
             <div class="utxo-deposit-btn" data-utxo-idx="${utxoIdx}">[ deposit ]</div>
@@ -120,16 +124,13 @@ module.exports = (app, mod, nft_overlay) => {
       `;
 
       // Create a hidden slider for each UTXO
-      let canAtomize = all_slips[z].slip1.amount <= 25;
-      let atomizeButtonHtml = '';
-      if (canAtomize) {
-        atomizeButtonHtml = `<button class="split-button atomize-button atomize-button-utxo-${utxoIdx}">atomize</button>`;
-      }
+      let canAtomize = all_slips[z].slip1.amount <= 100;
+      let atomizeButtonHtml = `<button class="split-button atomize-button atomize-button-utxo-${utxoIdx}" ${canAtomize ? '' : "disabled title='atomize only supported for quantities of 100 or less' "}>atomize</button>`;
 
       splitSlidersHtml += `
         <div class="saito-nft-split-overlay split-container-utxo-${utxoIdx}" data-utxo-idx="${utxoIdx}">
           <div class="split-instructions">
-            Adjust this slider to manually split your NFT into two parts. When you are happy with the new allocation, click the "split" button to make the transaction that divides it.${canAtomize ? ' If your unit has less than 25 items, you can also "atomize" it -- dividing it up into single units that cannot be further divided.' : ''}
+            Adjust this slider to manually split your NFT into two parts. When you are happy with the new allocation, click the "split" button to make the transaction that divides it.${canAtomize ? ' If your unit has 100 items or less, you can also "atomize" it -- dividing it up into single units that cannot be further divided.' : ''}
           </div>
           <div class="split-slider-wrapper">
             <div class="split-number-box split-number-left-utxo-${utxoIdx}" id="split-number-left-utxo-${utxoIdx}">0</div>
@@ -170,11 +171,11 @@ module.exports = (app, mod, nft_overlay) => {
       <div class="saito-nft-panel-body">
         ${infoTableHtml}
         ${slipsContainerHtml}
-        ${mergeButtonHtml ? `<div class="nft-merge-button-container">${mergeButtonHtml}</div>` : ''}
         ${splitSlidersHtml}
       </div>
       <div class="saito-nft-split-utxo"></div>
       <div class="saito-nft-panel-footer">
+        ${mergeButtonHtml}
         <button class="saito-nft-footer-btn saito-nft-delete-btn">Delete</button>
       </div>
     </div>

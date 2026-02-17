@@ -1,6 +1,5 @@
 const SaitoNFTCardTemplate = require('./saito-nft-card.template');
 const SaitoNFT = require('./saito-nft');
-const SaitoNFTDetails = require('./overlays/nft-overlay');
 
 class SaitoNFTCard {
   constructor(app, mod, container = '', tx = null, data = null, callback = null) {
@@ -84,6 +83,8 @@ class SaitoNFTCard {
       return 0;
     }
 
+    console.log('Insert fetched NFT details into CARD');
+
     if (this.nft.title) {
       try {
         let telm = document.querySelector(`.nfttxsig${this.nft.tx_sig} .nft-card-title`);
@@ -129,7 +130,7 @@ class SaitoNFTCard {
       if (this.nft.load_failed) {
         elm.innerHTML = `<i class="fa-solid fa-heart-crack"></i>`;
       } else {
-        elm.innerHTML = `<img class="spinner" src="/saito/img/spinner.svg">`;
+        elm.innerHTML = `<div class="saito_spinner spinner"></div>`;
       }
     } else {
       console.log('Element not rendered');

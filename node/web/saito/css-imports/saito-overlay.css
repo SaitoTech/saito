@@ -35,7 +35,7 @@
 
 .saito-overlay-size.wide {
   width: min(900px, 100vw);
-  padding: 2.5rem;
+  padding: 3rem;
 }
 
 .saito-overlay-size.tall {
@@ -45,6 +45,7 @@
 
 .saito-overlay-size.narrow {
   width: min(400px, 90vw);
+  min-width: unset;
 }
 
 .saito-overlay > div:last-child,

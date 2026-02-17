@@ -184,6 +184,38 @@ class Mixin extends ModTemplate {
     return super.handlePeerTransaction(app, tx, peer, mycallback);
   }
 
+  respondTo(type = '', obj) {
+    if (type == 'crypto-logo') {
+      let ticker = obj.ticker;
+      for (let cm of this.crypto_mods)
+        if (ticker == cm.ticker) {
+          if (cm.respondTo('crypto-logo', obj)) {
+            return cm.respondTo('crypto-logo', obj);
+          }
+
+          let rtn_obj = {};
+
+          if (cm.icon_url) {
+            rtn_obj.img = cm.icon_url;
+            rtn_obj.alt_img = `/${ticker.toLowerCase()}/img/logo.png`;
+          } else {
+            rtn_obj.img = `/${ticker.toLowerCase()}/img/logo.png`;
+          }
+
+          if (cm.chain_id !== cm.asset_id) {
+            for (let i = 0; i < this.crypto_mods.length; i++) {
+              if (this.crypto_mods[i].asset_id == cm.chain_id) {
+                rtn_obj.sub_logo = `/${this.crypto_mods[i].ticker.toLowerCase()}/img/logo.png`;
+              }
+            }
+          }
+
+          return rtn_obj;
+        }
+    }
+
+    return null;
+  }
   //
   // installCryptos
   //
@@ -196,6 +228,7 @@ class Mixin extends ModTemplate {
     let rtModules = this.app.modules.respondTo('mixin-crypto');
 
     for (let i = 0; i < rtModules.length; i++) {
+      // these are the responding Modules, not the returned object of the respondTo
       let crypto_module = new MixinModule(
         this.app,
         mixin_self,
@@ -234,7 +267,7 @@ class Mixin extends ModTemplate {
       // Do an initial balance check if we are able to
       if (mixin_self.account_created) {
         if (crypto_module.isActivated()) {
-          await this.fetchSafeUtxoBalance();
+          await crypto_module.checkBalance();
         } else if (crypto_module.address) {
           crypto_module.activate();
         }
@@ -308,13 +341,14 @@ class Mixin extends ModTemplate {
           const buf1 = Buffer.from(res.res, 'base64');
           const buf2 = mixin_self.app.crypto.decryptWithPrivateKey(buf1, privateKey);
 
+          res.keys = JSON.parse(buf2.toString('utf8'));
+
           if (res.restored) {
-            console.log('Successfully Restored Mixin Account!', mixin_self.mixin);
+            console.log('Successfully Restored Mixin Account!');
           } else {
-            console.log('Successfully Created Mixin Account!', mixin_self.mixin);
+            console.log('Successfully Created Mixin Account!');
           }
 
-          res.keys = JSON.parse(buf2.toString('utf8'));
           // Skip save step if we are creating multiple accounts on the same public key
           if (!force_new) {
             mixin_self.mixin = res.keys;
@@ -498,7 +532,7 @@ class Mixin extends ModTemplate {
           this.crypto_mods[i].save();
 
           if (this.app.BROWSER) {
-            await this.app.network.sendRequestAsTransaction(
+            this.app.network.sendRequestAsTransaction(
               'mixin save new deposit address',
               {
                 user_id: this.mixin.user_id,

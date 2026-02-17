@@ -116,6 +116,7 @@ class CryptoModule extends ModTemplate {
         return 0;
       }
 
+      await tx.decryptMessage(this.app);
       let txmsg = tx.returnMessage();
 
       if (txmsg.module !== this.name) {
@@ -256,11 +257,12 @@ class CryptoModule extends ModTemplate {
     }
   }
 
-  //
-  // Please include a small image at this location
-  //
-  returnLogo() {
-    return `/${this.ticker.toLowerCase()}/img/logo.png`;
+  returnLogos() {
+    return (
+      this.app.modules.getRespondTos('crypto-logo', { ticker: this.ticker }).shift() || {
+        img: this.icon_url || `/${this.ticker.toLowerCase()}/img/logo.png`
+      }
+    );
   }
 
   /**
@@ -611,10 +613,6 @@ CryptoModule.prototype.returnUtxo = async function (
 
 CryptoModule.prototype.returnNetworkInfo = async function (ticker) {
   return { confirmations: 0 };
-};
-
-CryptoModule.prototype.getReservedPaymentAddress = async function (obj) {
-  throw new Error('getReservedPaymentAddress must be implemented by subclass!');
 };
 
 module.exports = CryptoModule;

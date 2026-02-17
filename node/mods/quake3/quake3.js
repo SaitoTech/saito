@@ -43,8 +43,13 @@ class Quake3 extends GameTemplate {
 		//this.content_server = 'q3.saito.io';
 		//this.game_server = 'q3.saito.io:27960';
 
+		//this.content_server  = "quake.adsotrans.com";
+		//this.game_server     = "quake.adsotrans.com:27960";
+
 		this.content_server  = "quake.adsotrans.com";
-		this.game_server     = "quake.adsotrans.com:27960";
+		this.game_server     = "quake.adsotrans.com";
+
+
 		//this.content_server  = "quake.adsotrans.com:80";
 		//this.game_server     = "18.162.50.137:27960";
 	}

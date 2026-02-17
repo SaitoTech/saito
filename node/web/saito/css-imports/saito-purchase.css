@@ -13,6 +13,11 @@
   gap: 1rem;
 }
 
+.purchase-container .footer-note {
+  font-size: var(--font-size-medium);
+  font-style: italic;
+}
+
 .loader-interstitial-overlay img {
   height: 15rem;
 }
@@ -57,9 +62,12 @@
   transition: background-color 0.2s;
 }
 
-.purchase-crypto-item .crypto-logo {
-  width: 65%;
-  height: auto;
+.purchase-crypto-logo-container {
+  width: 9rem;
+  height: 9rem;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
 }
 
 .purchase-crypto-item:hover {
@@ -157,25 +165,28 @@
 .crypto-box {
   display: flex;
   font-size: 2rem;
-  height: 4rem;
+  min-height: 4rem;
   gap: 2rem;
   align-items: center;
   justify-content: space-between;
 }
 
-.amount-selection-box .crypto-logo {
-  width: unset;
-}
-
 .expected_amount {
   padding: 1rem 1.5rem;
   font-size: 1.6rem;
-  width: 20rem;
+  flex-grow: 1;
   color: var(--saito-font-color);
   border-radius: var(--saito-border-radius);
   height: 41px;
   background-color: var(--saito-background-color);
   border: var(--border-thickness-thin) solid var(--saito-primary);
+  max-width: 19rem;
+}
+
+input.input-amount {
+  width: unset;
+  flex-grow: 1;
+  max-width: 19rem;
 }
 
 .input-entry {
@@ -203,6 +214,21 @@
   max-width: 75%;
 }
 
+.saito-purchase-error {
+  font-size: 2rem;
+  display: flex;
+  flex-direction: column;
+
+  & .container-header {
+    font-size: 4rem;
+  }
+
+  & .container-footer {
+    font-size: 1.8rem;
+    font-style: italic;
+  }
+}
+
 @media screen and (max-width: 600px) {
   .purchase-crypto-list {
     font-size: smaller;
@@ -210,5 +236,14 @@
   .purchase-crypto-item .crypto-logo {
     width: 50%;
     height: auto;
+  }
+  .crypto-box {
+    gap: 1rem;
+  }
+
+  .expected_amount,
+  input.input-amount {
+    max-width: 13rem;
+    padding: 1rem;
   }
 }

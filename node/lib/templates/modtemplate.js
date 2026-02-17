@@ -41,7 +41,8 @@ class ModTemplate {
     this.theme_options = {
       lite: 'fa-solid fa-sun',
       raven: 'fa-solid fa-crow',
-      dark: 'fa-solid fa-moon'
+      dark: 'fa-solid fa-moon',
+      prism: 'fa-solid fa-gem'
     };
 
     this.processedTxs = {};

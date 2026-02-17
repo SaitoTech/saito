@@ -5,7 +5,7 @@ const SaitoOverlay = require('./../saito-overlay/saito-overlay');
 const SaitoLoader = require('./../saito-loader/saito-loader');
 const UserMenu = require('./../modals/user-menu/user-menu');
 const SaitoBackup = require('./../modals/saito-backup/saito-backup');
-const ListNFT = require('./../saito-nft/overlays/list-overlay');
+const SelectNFT = require('./../saito-nft/overlays/select-nft-overlay');
 
 //
 // UIModTemplate
@@ -55,7 +55,7 @@ class SaitoHeader extends UIModTemplate {
     this.saito_backup = new SaitoBackup(app, mod);
 
     // listens for events
-    this.list_nft_overlay = new ListNFT(app, mod);
+    this.select_nft_overlay = new SelectNFT(app, mod);
 
     console.log('Create Saito Header for ' + mod.name);
   }
@@ -456,12 +456,14 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.querySelector('#saito-header-menu-toggle')) {
       document.querySelector('#saito-header-menu-toggle').addEventListener('click', () => {
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         this.toggleMenu();
       });
     }
 
     if (document.querySelector('.saito-header-backdrop')) {
       document.querySelector('.saito-header-backdrop').onclick = () => {
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         this.toggleMenu();
       };
     }
@@ -471,6 +473,7 @@ class SaitoHeader extends UIModTemplate {
     //
     if (document.getElementById('wallet-btn-withdraw')) {
       document.getElementById('wallet-btn-withdraw').onclick = (e) => {
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         app.connection.emit('saito-crypto-withdraw-render-request');
         this.hideMenu();
       };
@@ -485,6 +488,7 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.getElementById('wallet-btn-settings')) {
       document.getElementById('wallet-btn-settings').onclick = (e) => {
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         app.connection.emit('settings-overlay-render-request');
         this.hideMenu();
       };
@@ -501,6 +505,7 @@ class SaitoHeader extends UIModTemplate {
 
     if (document.getElementById('wallet-btn-nft')) {
       document.getElementById('wallet-btn-nft').onclick = (e) => {
+        document.querySelector('.saito-header-hamburger-contents').classList.remove('show-wallet');
         this.app.connection.emit('saito-nft-list-render-request');
       };
     }
@@ -600,16 +605,18 @@ class SaitoHeader extends UIModTemplate {
     if (
       document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
     ) {
-      document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
-      document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
-      //document.getElementById('saito-header').style.zIndex = 15;
-
-      this.clearBalanceCheck();
-      this.clearPendingDepositsCheck();
+      this.hideMenu();
     } else {
+      this.openMenu();
+    }
+  }
+
+  openMenu() {
+    if (
+      !document.querySelector('.saito-header-hamburger-contents').classList.contains('show-menu')
+    ) {
       document.querySelector('.saito-header-hamburger-contents').classList.add('show-menu');
       document.querySelector('.saito-header-backdrop').classList.add('menu-visible');
-      //document.getElementById('saito-header').style.zIndex = 20;
 
       console.log('Menu open, start polls on crypto balance and pending deposits');
       this.initiateBalanceCheck();
@@ -623,10 +630,10 @@ class SaitoHeader extends UIModTemplate {
     ) {
       document.querySelector('.saito-header-hamburger-contents').classList.remove('show-menu');
       document.querySelector('.saito-header-backdrop').classList.remove('menu-visible');
-      //document.getElementById('saito-header').style.zIndex = 15;
     }
 
     this.clearBalanceCheck();
+    this.clearPendingDepositsCheck();
   }
 
   /****************************************************
@@ -818,14 +825,23 @@ class SaitoHeader extends UIModTemplate {
       for (let i = 0; i < available_cryptos.length; i++) {
         let crypto_mod = available_cryptos[i];
 
+        // We allow Mixin to collectively handle some stuff for us...
+        let rtn_val = crypto_mod.returnLogos();
+
         options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
         id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${
           crypto_mod.ticker
         }</option>`;
 
         menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
-        menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="/${crypto_mod.ticker.toLowerCase()}/img/logo.png"></div>`;
-        menu_html += `<div class="header-crypto-balance">${this.app.browser.formatDecimals(crypto_mod.returnBalance())} ${crypto_mod.ticker}</div>`;
+
+        menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${rtn_val.img}">`;
+
+        if (rtn_val.sub_logo) {
+          menu_html += `<img class="chain-logo" src="${rtn_val.sub_logo}">`;
+        }
+
+        menu_html += `</div><div class="header-crypto-balance">${this.app.browser.formatDecimals(crypto_mod.returnBalance())} ${crypto_mod.ticker}</div>`;
 
         //price_usd
         /*if (crypto_mod.ticker !== 'SAITO') {

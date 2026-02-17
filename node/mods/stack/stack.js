@@ -83,14 +83,7 @@ class Stack extends ModTemplate {
 
     this.styles = [
       '/saito/saito.css', 
-      '/stack/style.css',
-      '/stack/stack-main.css',
-      '/stack/stack-publish-overlay.css',
-      '/stack/stack-choose-draft-overlay.css',
-      '/stack/stack-explore.css',
-      '/stack/stack-post-teaser.css',
-      '/stack/stack-create-post.css',
-      '/stack/stack-view-post.css'
+      '/stack/style.css'
     ];
     this.scripts = [];
 
@@ -266,10 +259,10 @@ class Stack extends ModTemplate {
         z-index: 10;
       "
     >
-      <img
-        src="/saito/img/spinner.svg"
+      <div
+        class="saito_spinner"
         style="width:8rem;height:8rem;"
-      />
+      ></div>
 
       <div
         style="
@@ -403,7 +396,6 @@ class Stack extends ModTemplate {
         this.pending_author_load = null;
         await this.handleCreatorView(pk);
       }
-      track_peer = true;
     }
 
 

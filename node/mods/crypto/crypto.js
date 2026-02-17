@@ -55,6 +55,8 @@ class Crypto extends ModTemplate {
 	}
 
 	respondTo(type = '') {
+
+/*****
 		if (type == 'game-menu') {
 			//
 			// This should be a game module
@@ -164,6 +166,8 @@ try {
 
 			return menu;
 		}
+
+****/
 
 		return super.respondTo(type);
 	}

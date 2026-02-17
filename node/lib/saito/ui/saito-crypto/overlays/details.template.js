@@ -1,10 +1,15 @@
 module.exports = (app, mod) => {
   let balance = Number(mod.returnBalance());
   //saito-overlay-size wide
+  let rtn_val = mod.returnLogos();
+
   let html = `
     <div class="crypto-details-overlay ">
         <div class="saito-overlay-form-header">
-            <div class="crypto-logo-container"><img class="crypto-logo" src="/${mod.ticker.toLowerCase()}/img/logo.png"></div>
+            <div class="crypto-logo-container">
+              <img class="crypto-logo" src="${rtn_val.img}">
+              ${rtn_val.sub_logo ? `<img class="chain-logo" src="${rtn_val.sub_logo}">` : ''}
+            </div>
             <div class="saito-overlay-form-header-title">${mod.name}</div>
             ${
               mod.address
@@ -17,7 +22,7 @@ module.exports = (app, mod) => {
             }
         </div>
         <div class="wallet-details">
-        <h6>My Wallet</h6>`;
+  `;
 
   if (!mod.isActivated()) {
     html += `<div id="activate-now" class="saito-anchor">
@@ -51,6 +56,7 @@ module.exports = (app, mod) => {
 
       html += `
         <div class="saito-button-grid">
+          <div class="get-saito-tokens"></div>
           <button class="saito-button-secondary" id="get-saito">get saito</button>
           <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
         </div>
@@ -67,6 +73,7 @@ module.exports = (app, mod) => {
       html += `
           <div>${menu_html}</div>
           <div class="saito-button-grid">
+            <div></div>
             ${/*balance > 0 ? `<button class="saito-button-secondary" id="convert-saito">convert</button>` : */ '<div></div>'}
             <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>
           </div>

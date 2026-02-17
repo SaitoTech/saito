@@ -61,6 +61,28 @@ module.exports = (mod) => {
         </div>
       </div>
 
+      <hr class="admin-peers-divider" />
+
+      <div class="admin-live-peers">
+
+        <h2>Live Network Peers</h2>
+
+        <p class="admin-live-peers-description">
+          These peers are currently connected to your node at runtime.
+        </p>
+
+        <button id="refresh-live-peers-button">
+          Refresh Live Peers
+        </button>
+
+        <div class="admin-live-peers-results">
+          <div id="admin-live-peers-output">
+            <em>No data loaded.</em>
+          </div>
+        </div>
+
+      </div>
+
       <div class="peer-actions">
         <button id="save-peers" disabled>Save Changes</button>
       </div>

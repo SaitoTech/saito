@@ -1,7 +1,7 @@
 module.exports = (app, mod, form) => {
   let html = `
 
-    <div class="game-crypto-transfer-manager-container" id="stake-crypto-request-container">
+    <div class="game-crypto-transfer-manager-container saito-overlay-size narrow" id="stake-crypto-request-container">
 
       <h2 class="auth_title">Amount to Stake?</h2>
       
@@ -16,7 +16,7 @@ module.exports = (app, mod, form) => {
 
     fee = mod.includeFeeInMax(form.ticker);
   } else {
-    let img_html = `<div id="withdraw-logo-cont">`;
+    let img_html = `<div id="withdraw-logo-cont" class="withdraw-logo-cont">`;
     let opt_html = '';
 
     for (let ticker in mod.balances) {
@@ -33,8 +33,14 @@ module.exports = (app, mod, form) => {
 
       opt_html += `<option value="${ticker}" ${form.ticker == ticker ? 'selected' : ''}>${ticker}</option>`;
 
-      let crypto_mod = app.wallet.returnCryptoModuleByTicker(ticker);
-      img_html += `<img class="withdraw-img-${ticker} hide-element" src="${crypto_mod.returnLogo()}">`;
+      let icons = app.modules.getRespondTos('crypto-logo', { ticker }).shift() || {
+        img: `/${ticker.toLowerCase()}/img/logo.png`
+      };
+
+      img_html += `<img class="crypto-logo hide-element" data-ticker="${ticker}" src="${icons.img}">`;
+      if (icons.sub_logo) {
+        img_html += `<img class="chain-logo hide-element" data-ticker="${ticker}" src="${icons.sub_logo}">`;
+      }
     }
 
     html += `<div class="token-dropdown">

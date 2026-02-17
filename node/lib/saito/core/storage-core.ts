@@ -558,6 +558,7 @@ class StorageCore extends Storage {
     t.wallet = {};
     t.consensus = this.app.options.consensus;
     t.registry = this.app.options.registry;
+    t.homeModule = this.app.options.homeModule;
     //t.appstore             = {};
     //t.appstore.default     = this.app.wallet.getPublicKey();
     t.peers.push(client_peer);

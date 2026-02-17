@@ -580,6 +580,8 @@
   position: relative;
   max-width: 5rem;
   max-height: 5rem;
+  overflow: hidden;
+  border-radius: 50%;
 }
 
 .saito-crypto-details .crypto-logo-container {
@@ -591,6 +593,14 @@
 .crypto-logo {
   height: 100%;
   width: 100%;
+}
+
+.chain-logo {
+  position: absolute;
+  width: auto;
+  height: 36%;
+  bottom: 8%;
+  right: 8%;
 }
 
 .header-crypto-balance {

@@ -60,6 +60,27 @@
 .splash-card.selected {
   border-color: #4caf50;
   background: #f5fbf7;
+  box-shadow:
+    0 0 0 2px rgba(76, 175, 80, 0.25),
+    0 10px 26px rgba(0, 0, 0, 0.10);
+  cursor: default;
+}
+
+.splash-card.selected::after {
+  content: "Default";
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2e7d32;
+  background: #e8f5e9;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.splash-card.selected:hover {
+  transform: none;
 }
 
 .splash-card.working {
@@ -76,5 +97,116 @@
   padding-top: 10px;
   color: #666;
 }
+
+
+/* ================================
+   Local Development Keys Panel
+   ================================ */
+
+.admin-keys-panel {
+  margin-top: 32px;
+  padding: 28px 32px;
+  background: #ffffff;
+  border: 1px solid #e1e4e8;
+  border-radius: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.admin-keys-panel h2 {
+  margin-bottom: 10px;
+  font-size: 22px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.keys-warning {
+  margin-bottom: 22px;
+  padding: 12px 16px;
+  background: #fff5f5;
+  border: 1px solid #f2c7c7;
+  border-radius: 10px;
+  color: #a52828;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Table-like layout */
+
+.keys-table {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.keys-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px solid #e6e8eb;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.keys-row:hover {
+  background: #f4f7f9;
+  border-color: #d9dde2;
+}
+
+/* Header row */
+
+.keys-row.header {
+  background: transparent;
+  border: none;
+  padding: 0 4px 8px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+/* Key styling */
+
+.keys-row code {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-all;
+  user-select: text;
+}
+
+/* Private keys */
+
+.keys-row code.private {
+  background: #fff1f1;
+  border: 1px solid #f0caca;
+  color: #b91c1c;
+}
+
+/* Public keys */
+
+.keys-row code.public {
+  background: #f1f8f4;
+  border: 1px solid #cfe6da;
+  color: #1b5e20;
+}
+
+/* Responsive */
+
+@media screen and (max-width: 900px) {
+  .keys-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .keys-row.header {
+    display: none;
+  }
+}
+
 
 

@@ -46,14 +46,17 @@ class GameWeb3 {
     let results = this.app.modules.getRespondTos('crypto-logo', { ticker });
 
     if (results.length > 0) {
-      let html;
+      let html = `<div class="game-crypto-logo-container">`;
       if (results[0]?.svg) {
-        html = `<div class="crypto_logo">${results[0].svg}</div>`;
+        html += results[0].svg;
+      } else if (results[0]?.alt_img) {
+        html += `<img class="crypto-logo" src="${results[0].alt_img}">`;
       } else if (results[0]?.img) {
-        html = `<div class="crypto_logo"><img src="${results[0].img}"></div>`;
+        html += `<img class="crypto-logo" src="${results[0].img}">`;
       } else {
         return;
       }
+      html += '</div>';
 
       let target = 'body';
       if (document.querySelector('.main')) {

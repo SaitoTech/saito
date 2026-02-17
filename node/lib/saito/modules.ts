@@ -780,7 +780,6 @@ class Mods {
     let base_module = this.app.options?.defaultModule || 'website';
     for (let i = 0; i < this.mods.length; i++) {
       this.mods[i].webServer(this.app, expressapp, express);
-
       if (this.mods[i].returnSlug() == base_module) {
         this.mods[i].webServer(this.app, expressapp, express, '/');
       }

@@ -77,7 +77,6 @@ class Admin extends ModTemplate {
           salert(res.err);
         } else {
 	  this.server_info = res;
-console.log("SERVER INFO: " + JSON.stringify(this.server_info));
 	  this.main.render();
         }
       });
@@ -110,7 +109,7 @@ console.log("SERVER INFO: " + JSON.stringify(this.server_info));
 
     let txmsg = tx.returnMessage();
 
-    const accepted_requests = ['set-admin-key', 'validate-admin-key', 'update-options'];
+    const accepted_requests = ['list-databases', 'list-database-tables', 'list-peers', 'run-sql-query', 'set-admin-key', 'validate-admin-key', 'update-options'];
 
     if (accepted_requests.includes(txmsg.request)) {
       if (!validated) {
@@ -118,27 +117,78 @@ console.log("SERVER INFO: " + JSON.stringify(this.server_info));
         if (mycallback) {
           mycallback({ err: 'Unauthorized access' });
         }
-
         return 0;
       }
     }
 
-    if (txmsg.request == 'set-admin-key') {
+    if (txmsg.request == 'list-databases') {
+      console.log("=== MODULE DEBUG START ===");
+      for (let m of this.app.modules.mods || []) {
+        console.log("Module:", m.name);
+        console.log("Properties:", Object.keys(m));
+      }
+      console.log("=== MODULE DEBUG END ===");
+      const arr = [];
+      for (const m of this.app.modules.mods || []) {
+        if (m.db_tables && m.db_tables.length > 0) {
+          const dbname = m.dbname ? m.dbname : m.returnSlug();
+          arr.push(dbname);
+        }
+      }
+      const databasesArray = [...new Set(arr)];
+      if (mycallback) mycallback({ result: databasesArray });
+      return 1;
+    }
 
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^ setting admin key!");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
-console.log("^^^^");
+    if (txmsg.request == 'list-database-tables') {
+      const db = txmsg.data?.db;
+      if (!db) {
+        if (mycallback) mycallback({ err: 'No database specified' });
+        return 1;
+      }
+      try {
+        const rows = await this.app.storage.queryDatabase("SELECT name FROM sqlite_master WHERE type='table'", [], db);
+        if (mycallback) mycallback({ result: rows });
+      } catch (err) {
+        if (mycallback) mycallback({ err: err.message });
+      }
+      return 1;
+    }
+
+    if (txmsg.request == 'run-sql-query') {
+      const db = txmsg.data?.db;
+      const query = txmsg.data?.query;
+      const params = txmsg.data?.params || [];
+      try {
+        const result = await this.app.storage.queryDatabase(query, params, db);
+        if (mycallback) mycallback({ result });
+      } catch (err) {
+        if (mycallback) mycallback({ err: err.message });
+      }
+      return 1;
+    }
+
+    if (txmsg.request === 'list-peers') {
+      try {
+        const peers = await this.app.network.getPeers();
+        const snapshot = peers.map((p) => {
+          const keys = Object.getOwnPropertyNames(Object.getPrototypeOf(p));
+          return {
+            publicKey: p.publicKey || p.public_key || null,
+            host: p.host || null,
+            port: p.port || null,
+            services: p.services || null,
+            rawKeys: keys
+          };
+        });
+        if (mycallback) mycallback({ result: snapshot });
+      } catch (err) {
+        if (mycallback) mycallback({ err: err.message });
+      }
+      return 1;
+    }
+
+    if (txmsg.request == 'set-admin-key') {
 
       if (!this.app.options.admin) {
         this.app.options.admin = [];
@@ -228,6 +278,17 @@ console.log("^^^^");
     node_info.module_config = this.module_config;
     node_info.options = this.app.options;
 
+    node_info.databases = [];
+    for (let m of this.app.modules.mods) {
+      if (m.db_tables && m.db_tables.length > 0) {
+        node_info.databases.push({
+          module: m.name,
+          dbname: m.dbname ? m.dbname : m.returnSlug(),
+          tables: m.db_tables
+        });
+      }
+    }
+
     return node_info;
   }
 
@@ -287,10 +348,9 @@ console.log("^^^^");
           this.app.options[a] = options[a];
         }
       } else {
-        console.error(`${a} does not exist in options`);
+	this.app.options[a] = options[a];
       }
     }
-
     this.app.storage.saveOptions();
     this.writeOptions(options);
   }
