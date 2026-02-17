@@ -400,7 +400,7 @@ impl NetworkController {
         debug!("starting new task for reading from peer",);
         tokio::spawn(async move {
             debug!("new thread started for peer receiving");
-            let mut public_key = None;
+            // let mut public_key = None;
             match receiver {
                 PeerReceiver::Warp(mut receiver) => loop {
                     let result = receiver.next().await;
@@ -426,7 +426,7 @@ impl NetworkController {
                         let result = peer
                             .process_incoming_buffer(
                                 buffer,
-                                &mut public_key,
+                                // &mut public_key,
                                 wallet.clone(),
                                 configs.clone(),
                                 &timer,
@@ -454,10 +454,10 @@ impl NetworkController {
                             }
                         }
                     } else if result.is_close() {
-                        warn!(
-                            "connection closed by remote peer : {:?}",
-                            public_key.unwrap_or([0; 33]).to_base58()
-                        );
+                        // warn!(
+                        //     "connection closed by remote peer : {:?}",
+                        //     public_key.unwrap_or([0; 33]).to_base58()
+                        // );
                         network_controller.disconnect_socket(socket).await;
                         break;
                     }
@@ -482,7 +482,7 @@ impl NetworkController {
                             let result = peer
                                 .process_incoming_buffer(
                                     buffer,
-                                    &mut public_key,
+                                    // &mut public_key,
                                     wallet.clone(),
                                     configs.clone(),
                                     &timer,
@@ -510,10 +510,10 @@ impl NetworkController {
                             }
                         }
                         tokio_tungstenite::tungstenite::Message::Close(_) => {
-                            info!(
-                                "socket for peer : {:?} was closed",
-                                public_key.unwrap_or([0; 33]).to_base58()
-                            );
+                            // info!(
+                            //     "socket for peer : {:?} was closed",
+                            //     public_key.unwrap_or([0; 33]).to_base58()
+                            // );
                             network_controller.disconnect_socket(socket).await;
                             break;
                         }
@@ -523,10 +523,10 @@ impl NetworkController {
                     }
                 },
             }
-            debug!(
-                "listening thread existed for peer : {:?}",
-                public_key.unwrap_or([0; 33]).to_base58()
-            );
+            // debug!(
+            //     "listening thread existed for peer : {:?}",
+            //     public_key.unwrap_or([0; 33]).to_base58()
+            // );
         });
     }
 

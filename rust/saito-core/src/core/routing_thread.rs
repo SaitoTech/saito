@@ -459,7 +459,7 @@ impl RoutingThread {
         public_key: SaitoPublicKey,
     ) {
         debug!("processing ghost chain request from peer : {:?}. block_id : {:?} block_hash: {:?} fork_id: {:?}",
-            public_key,
+            public_key.to_base58(),
             block_id,
             block_hash.to_hex(),
             fork_id.to_hex()
@@ -474,14 +474,14 @@ impl RoutingThread {
             } else {
                 warn!(
                     "couldn't find peer : {:?} for processing ghost chain request",
-                    public_key
+                    public_key.to_base58()
                 );
             }
         }
 
         let ghost = Self::generate_ghost_chain(block_id, fork_id, &blockchain, peer_key_list).await;
 
-        debug!("sending ghost chain to peer : {:?}", public_key);
+        debug!("sending ghost chain to peer : {:?}", public_key.to_base58());
         // debug!("ghost : {:?}", ghost);
         let buffer = Message::GhostChain(ghost).serialize();
         self.network
@@ -502,7 +502,8 @@ impl RoutingThread {
                 if let Some(config) = peer.static_peer_config.as_ref() {
                     info!(
                         "trying to connect to static peer : {:?} with {:?}",
-                        public_key, config
+                        public_key.to_base58(),
+                        config
                     );
                     self.network
                         .io_interface
