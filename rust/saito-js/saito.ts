@@ -285,7 +285,7 @@ export default class Saito {
   }
 
   public async processMsgBufferFromPeer(buffer: Uint8Array, peer: NetworkPeer): Promise<void> {
-    return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer);
+    return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
   }
 
   public async processFetchedBlock(
