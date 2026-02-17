@@ -91,7 +91,6 @@ impl NetworkPeer {
         response: HandshakeResponse,
         current_time: Timestamp,
         services: &Vec<PeerService>,
-        // io_handler: &(dyn InterfaceIO + Send + Sync),
         wallet: &Wallet,
         configs: &(dyn Configuration + Send + Sync),
     ) -> Result<Option<HandshakeResponse>, Error> {
@@ -221,7 +220,7 @@ impl NetworkPeer {
     pub async fn process_incoming_buffer<F2, S>(
         &mut self,
         buffer: Vec<u8>,
-        public_key: &mut Option<SaitoPublicKey>,
+        // public_key: &mut Option<SaitoPublicKey>,
         wallet: Arc<RwLock<Wallet>>,
         configs: Arc<RwLock<dyn Configuration + Send + Sync>>,
         timer: &Timer,
@@ -232,10 +231,13 @@ impl NetworkPeer {
         S: FnOnce(NetworkEvent) -> F2,
         F2: std::future::Future<Output = ()>,
     {
-        trace!("NetworkPeer::process_msg_buffer_from_peer");
+        info!(
+            "NetworkPeer::process_msg_buffer_from_peer : {}",
+            self.public_key.unwrap_or([0; 33]).to_base58()
+        );
         if self.is_connected() {
             send_event(NetworkEvent::IncomingNetworkMessage {
-                public_key: public_key.unwrap(),
+                public_key: self.public_key.unwrap(),
                 buffer,
             })
             .await;
@@ -274,7 +276,7 @@ impl NetworkPeer {
                                 // send_buffer(buffer).await;
                             }
                             // now the handshake is complete. We need to alert the core
-                            public_key.replace(self.public_key.unwrap());
+                            self.public_key.replace(self.public_key.unwrap());
                             send_event(NetworkEvent::PeerConnectionResult {
                                 result: Ok(self.clone()),
                             })
@@ -289,7 +291,7 @@ impl NetworkPeer {
                 } else {
                     warn!(
                         "failed deserializing handshake response : {:?}",
-                        public_key.unwrap_or([0; 33]).to_base58()
+                        self.public_key.unwrap_or([0; 33]).to_base58()
                     );
                     Err(Error::from(ErrorKind::InvalidInput))
                 }
@@ -313,7 +315,7 @@ impl NetworkPeer {
                 } else {
                     error!(
                         "failed deserializing handshake challenge : {:?}",
-                        public_key.unwrap_or([0; 33]).to_base58()
+                        self.public_key.unwrap_or([0; 33]).to_base58()
                     );
                     Err(Error::from(ErrorKind::InvalidInput))
                 }

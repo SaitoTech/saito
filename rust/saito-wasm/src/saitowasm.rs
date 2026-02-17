@@ -980,11 +980,10 @@ pub async fn process_msg_buffer_from_peer(
     let network_peer = peer.get_peer_mut();
 
     info!("buffer size : {}", buffer.len());
-    let mut public_key = None;
     let buffer = network_peer
         .process_incoming_buffer(
             buffer,
-            &mut public_key,
+            // &mut network_peer.public_key,
             wallet,
             configs,
             &timer,
