@@ -2,7 +2,8 @@
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-LOG_FILE="${PROJECT_DIR}/nettest/nettest.log"
+NETTEST_DIR="${SCRIPT_DIR}/nettest"
+LOG_FILE="${NETTEST_DIR}/nettest.log"
 
 # Ensure log directory exists
 mkdir -p "$(dirname "$LOG_FILE")"
@@ -31,7 +32,7 @@ execute() {
 
 
 function check_folder_structure() {
-    local base_dir="${PROJECT_DIR}/nettest"
+    local base_dir="${NETTEST_DIR}"
     local required_dirs=(
         "${base_dir}"
         "${base_dir}/nodes"
@@ -99,7 +100,7 @@ function clear_network() {
     fi
     
     # Delete node folders
-    local nodes_dir="${PROJECT_DIR}/nettest/nodes"
+    local nodes_dir="${NETTEST_DIR}/nodes"
     if [ -d "$nodes_dir" ]; then
         announce "Removing all node folders..."
         execute "rm -rf ${nodes_dir:?}/*"
@@ -116,8 +117,8 @@ function deploy_scenario() {
     local scenario=$1
     local branch=$2
     local no_confirm=$3
-    local scenario_dir="${PROJECT_DIR}/nettest/scenarios/${scenario}"
-    local nodes_dir="${PROJECT_DIR}/nettest/nodes"
+    local scenario_dir="${NETTEST_DIR}/scenarios/${scenario}"
+    local nodes_dir="${NETTEST_DIR}/nodes"
 
     announce "----------------------------------------"
     announce "Checking requirements..."
@@ -223,8 +224,8 @@ function deploy_scenario() {
 
 function reset_scenario() {
     local scenario=$1
-    local scenario_dir="${PROJECT_DIR}/nettest/scenarios/${scenario}"
-    local nodes_dir="${PROJECT_DIR}/nettest/nodes"
+    local scenario_dir="${NETTEST_DIR}/scenarios/${scenario}"
+    local nodes_dir="${NETTEST_DIR}/nodes"
 
     announce "Resetting scenario: $scenario"
 
@@ -285,7 +286,7 @@ function reset_scenario() {
 }
 
 function display_issuance() {
-    local node_dir="${PROJECT_DIR}/nettest/nodes/1"
+    local node_dir="${NETTEST_DIR}/nodes/1"
     local issuance_file="${node_dir}/data/issuance/issuance.keys"
 
     if [ -f "$issuance_file" ]; then
@@ -353,7 +354,7 @@ function show_status() {
 
 function view_logs() {
     local node_num=$1
-    local node_dir="${PROJECT_DIR}/nettest/nodes/${node_num}"
+    local node_dir="${NETTEST_DIR}/nodes/${node_num}"
     local log_file="${node_dir}/saito.log"
 
     if [ -z "$node_num" ]; then
@@ -380,7 +381,7 @@ function view_logs() {
 
 function show_endpoints() {
     announce "Node Endpoints:"
-    local nodes_dir="${PROJECT_DIR}/nettest/nodes"
+    local nodes_dir="${NETTEST_DIR}/nodes"
     
     # Check if nodes directory exists
     if [ ! -d "$nodes_dir" ]; then
@@ -475,8 +476,8 @@ function snapshot_network() {
     announce "Enter name for new scenario:"
     read -r scenario_name
 
-    local scenario_dir="${PROJECT_DIR}/nettest/scenarios/${scenario_name}"
-    local nodes_dir="${PROJECT_DIR}/nettest/nodes"
+    local scenario_dir="${NETTEST_DIR}/scenarios/${scenario_name}"
+    local nodes_dir="${NETTEST_DIR}/nodes"
 
     # Check if scenario already exists
     if [ -d "$scenario_dir" ]; then
@@ -559,7 +560,7 @@ function snapshot_network() {
 }
 
 function list_scenarios() {
-    local scenarios_dir="${PROJECT_DIR}/nettest/scenarios"
+    local scenarios_dir="${NETTEST_DIR}/scenarios"
     
     if [ ! -d "$scenarios_dir" ]; then
         announce "No scenarios directory found at: $scenarios_dir"
@@ -595,7 +596,7 @@ function list_scenarios() {
 
 function whatis_scenario() {
     local scenario=$1
-    local scenario_dir="${PROJECT_DIR}/nettest/scenarios/${scenario}"
+    local scenario_dir="${NETTEST_DIR}/scenarios/${scenario}"
     local readme_file="${scenario_dir}/README.md"
 
     if [ -z "$scenario" ]; then

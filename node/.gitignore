@@ -61,10 +61,10 @@ data/state
 dist
 dist/*
 
-nettest/nettest.log
-nettest/nodes
-nettest/nodes/*
-nettest/nodes/nettest.log
+scripts/nettest/nettest.log
+scripts/nettest/nodes
+scripts/nettest/nodes/*
+scripts/nettest/nodes/nettest.log
 
 saito-issuance
 saito-issuance/*

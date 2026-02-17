@@ -2,7 +2,6 @@
   "name": "saito",
   "version": "0.2.0",
   "description": "scalable blockchain with proper economics",
-  "main": "start.js",
   "scripts": {
     "dev": "ts-node-dev --max_old_space_size=8144 --project config/build/tsconfig.json ./scripts/start.ts",
     "dev-server": "./scripts/compile nuke ts-node-dev && npm run dev ",
@@ -17,8 +16,8 @@
     "nuke": " ./scripts/compile nuke",
     "reset": " ./scripts/compile reset",
     "compile": " ./scripts/compile recompile",
-    "modules": " ./scripts/modules",
-    "mods": " ./scripts/modules",
+    "modules": " ./scripts/modules.sh",
+    "mods": " ./scripts/modules.sh",
     "old": " webpack --config ./webpack/old/.config.js",
     "test": "jest",
     "analyze": "webpack --config ./config/build/webpack.analyze.js",
