@@ -78,6 +78,8 @@ echo ""
 echo "CSS complete"
 echo ""
 
+mkdir -p dist/ts dist/dyn dist/bundler
+
 if [ "$1" == "dev" ] || [ "$2" == "dev" ]; then
   echo ""
   echo "Dev build - don't update build number"
@@ -106,24 +108,24 @@ function reset_bundler {
 echo "Resetting Saito to Default Modules!"
 echo ""
 
-  rm -rf ./bundler
-  if [ ! -d "./bundler" ]; then
+  rm -rf ./dist/bundler
+  if [ ! -d "./dist/bundler" ]; then
 
-    mkdir -p bundler/default/mods
-    cp -rf ./lib bundler/default/lib
-    rm -f bundler/default/lib/saito/*.spec.js
-    rm -f bundler/default/lib/saito/core/*.spec.js
-    cp -rf ./config bundler/default/config
-    cp -rf ./apps bundler/default/apps
+    mkdir -p dist/bundler/default/mods
+    cp -rf ./lib dist/bundler/default/lib
+    rm -f dist/bundler/default/lib/saito/*.spec.js
+    rm -f dist/bundler/default/lib/saito/core/*.spec.js
+    cp -rf ./config dist/bundler/default/config
+    cp -rf ./apps dist/bundler/default/apps
 
     copy_lite_mods_to_bundler_directory
 
 echo ""
 echo "Compiling Lite-Client JS..."
 
-    rm -rf bundler/default/mods/devtools/bundler/dist
+    rm -rf dist/bundler/default/mods/devtools/bundler/dist
 
-    for md in bundler/default/mods/* ; do
+    for md in dist/bundler/default/mods/* ; do
       rm -rf "$md/web"
       rm -rf "$md/sql"
       rm -rf "$md/www"
@@ -244,12 +246,12 @@ function copy_lite_mods_to_bundler_directory {
 
   for i in "${ARRAY_OF_MODS[@]}"; do
     echo "installing mod for lite-client bundling: $i";
-    cp -rf ./mods/$i bundler/default/mods/$i
+    cp -rf ./mods/$i dist/bundler/default/mods/$i
   done
 
-  rm -f ./bundler/default/mods/devtools/mods/*
-  rm -f ./bundler/default/mods/devtools/bundler/*
-  rm -f ./bundler/default/mods/devtools/dist/*
+  rm -f ./dist/bundler/default/mods/devtools/mods/*
+  rm -f ./dist/bundler/default/mods/devtools/bundler/*
+  rm -f ./dist/bundler/default/mods/devtools/dist/*
 
 }
 
@@ -276,7 +278,7 @@ if [ "$1" == "nuke" ]; then
   echo ""
   echo ""
 
-  rm -rf built/*
+  rm -rf dist/ts/*
   tsc -p ./config/build/tsconfig.json
   reset_nonpersistent
   reset_persistent
@@ -357,7 +359,7 @@ if [ "$1" == "setupprod" ]; then
   echo ""
 
   cp ./config/options ./config/options.bk
-  rm -rf built/*
+  rm -rf dist/ts/*
   tsc -p ./config/build/tsconfig.json
   reset_nonpersistent
   reset_persistent
@@ -395,7 +397,7 @@ if [ "$1" == "setuplocal" ]; then
   echo ""
 
   cp ./config/options ./config/options.bk
-  rm -rf built/*
+  rm -rf dist/ts/*
   tsc -p ./config/build/tsconfig.json
   reset_nonpersistent
   reset_persistent

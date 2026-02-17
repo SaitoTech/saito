@@ -48,7 +48,7 @@ webpack(
     // Path to your entry point. From this file Webpack will begin his work
     entry: [path.resolve(__dirname, entrypoint)],
     output: {
-      path: path.resolve(__dirname, "../../build/dyn/web"),
+      path: path.resolve(__dirname, "../../dist/dyn/web"),
       filename: outputfile,
       library:{
         name:'Dyn',

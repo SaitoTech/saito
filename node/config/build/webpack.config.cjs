@@ -5,7 +5,7 @@ const webpack = require("webpack");
 
 let minimize = true;
 let devtool = undefined;
-let entrypoint = "../../bundler/default/apps/lite/index.ts";
+let entrypoint = "../../dist/bundler/default/apps/lite/index.ts";
 let outputfile = "saito.js";
 if (process.argv.includes("dev")) {
   console.log("dev mode source not minified");
@@ -13,7 +13,7 @@ if (process.argv.includes("dev")) {
   devtool = "eval";
 }
 if (process.argv.includes("web3")) {
-  entrypoint = "../../bundler/default/apps/lite/web3index.ts";
+  entrypoint = "../../dist/bundler/default/apps/lite/web3index.ts";
   outputfile = "web3saito.js";
 }
 webpack(
@@ -140,10 +140,7 @@ webpack(
 	{
 	  test: /\.tsx?$/,
 	  include: [
-	    path.resolve(__dirname, "../../lib"),
-	    path.resolve(__dirname, "../../apps"),
-	    path.resolve(__dirname, "../../mods"),
-	    path.resolve(__dirname, "../../bundler")
+	    path.resolve(__dirname, "../../dist/bundler")
 	  ],
 	  use: {
 	    loader: "ts-loader",

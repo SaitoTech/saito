@@ -6,7 +6,7 @@
 		"sourceMap": true,
 		 "jsx": "react",
 		"esModuleInterop": true,
-		"outDir": "./../../built",
+		"outDir": "./../../dist/ts",
 		"allowJs": true,
 		"resolveJsonModule": true,
 		"downlevelIteration": true,
@@ -18,7 +18,7 @@
 	"exclude": [
 		"../../node_modules",
 		"../../lib/templates",
-		"../../bundler",
+		"../../dist/bundler",
 		"../../lib/saito/ui/**/*"
 	],
 	"include": ["../../lib/**/*.ts", "../../scripts/start.ts"]
