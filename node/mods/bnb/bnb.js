@@ -13,8 +13,8 @@ class BNB extends ModTemplate {
     this.categories = 'Utility Cryptocurrency Finance';
 
     // MIXIN STUFF
-    this.asset_id = '11dbb585-4787-35fb-b1b5-f95ba7de6a3a';
-    this.chain_id = '11dbb585-4787-35fb-b1b5-f95ba7de6a3a';
+    this.asset_id = '1949e683-6a08-49e2-b087-d6b72398588f';
+    this.chain_id = '1949e683-6a08-49e2-b087-d6b72398588f';
   }
 
   respondTo(type = '', obj) {
