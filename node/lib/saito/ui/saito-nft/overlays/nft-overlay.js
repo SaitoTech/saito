@@ -1,5 +1,7 @@
 let NFTOverlayTemplate = require('./nft-overlay.template');
 let SaitoOverlay = require('./../../saito-overlay/saito-overlay');
+let NFTAtomize = require('./nft-atomize');
+
 
 class NFTOverlay {
   constructor(app, mod, attach_events = true) {
@@ -7,10 +9,21 @@ class NFTOverlay {
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
 
+    this.overlay.callback_on_close = () => {
+      if (this.atomizer) {
+	this.atomizer.shutdown();
+      }
+    }
+
+
     //
     // ui helpers
     //
     this.nft = null;
+
+    this.MAX_NFT_ATOMIZE_PER_TX = 20;
+    this.MAX_NFT_ATOMIZE_TOTAL = 100;
+    this.MAX_NFT_ATOMIZE_TX_PER_BLOCK = 5;
 
     this.total_slips = 0;
     this.total_amount = 0;
@@ -694,7 +707,18 @@ class NFTOverlay {
 
       if (atomizeButton) {
         atomizeButton.onclick = async (e) => {
-          console.log('click on atomize');
+
+  	  this.atomize_in_progress = true;
+  	  const this_nft = this.all_slips[utxoIdx - 1];
+  	  if (!this_nft) { return; }
+  	  this.atomizer_ui = new NFTAtomize(
+    	    this.app,
+    	    this.mod,
+    	    ".split-container-utxo-" + utxoIdx,
+    	    this_nft,
+    	    utxoIdx
+          );
+          this.atomizer_ui.render();
         };
       }
 

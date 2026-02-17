@@ -19,6 +19,8 @@ class AdminPeers {
     );
 
     this.attachEvents();
+    this.attachLivePeerEvents();
+    this.loadLivePeers();
   }
 
   markDirty() {
@@ -107,6 +109,112 @@ class AdminPeers {
         });
       };
     }
+  }
+
+  attachLivePeerEvents() {
+    const btn = document.getElementById("refresh-live-peers-button");
+    if (!btn) return;
+
+    btn.onclick = async () => {
+      btn.disabled = true;
+      btn.innerText = "Loading...";
+      await this.loadLivePeers();
+      btn.disabled = false;
+      btn.innerText = "Refresh Live Peers";
+    };
+  }
+
+  async loadLivePeers() {
+    let tx =
+      await this.app.wallet.createUnsignedTransactionWithDefaultFee(
+        this.mod.server_publickey
+      );
+
+    tx.msg = {
+      module: "Admin",
+      request: "list-peers",
+      data: {}
+    };
+
+    await tx.sign();
+
+    this.app.network.sendTransactionWithCallback(tx, (res_tx) => {
+      let res = res_tx.returnMessage();
+
+      if (res?.err) {
+        this.renderLivePeerError(res.err);
+      } else {
+        this.renderLivePeersTable(res.result || []);
+      }
+    });
+  }
+
+  renderLivePeersTable(rows) {
+    const container = document.getElementById("admin-live-peers-output");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (!rows || rows.length === 0) {
+      container.innerHTML = "<em>No peers currently connected.</em>";
+      return;
+    }
+
+    const table = document.createElement("table");
+    table.className = "admin-live-peers-table";
+
+    // Dynamically determine all keys present across rows
+    const allKeys = new Set();
+    rows.forEach((row) => {
+      Object.keys(row).forEach((key) => allKeys.add(key));
+    });
+
+    const keys = Array.from(allKeys);
+
+    // Header
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+
+    keys.forEach((key) => {
+      const th = document.createElement("th");
+      th.innerText = key;
+      headerRow.appendChild(th);
+    });
+
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    // Body
+    const tbody = document.createElement("tbody");
+
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
+
+      keys.forEach((key) => {
+        const td = document.createElement("td");
+
+        const value = row[key];
+
+        if (typeof value === "object" && value !== null) {
+          td.innerText = JSON.stringify(value);
+        } else {
+          td.innerText = value !== undefined && value !== null ? value : "-";
+        }
+
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+    container.appendChild(table);
+  }
+
+  renderLivePeerError(msg) {
+    const container = document.getElementById("admin-live-peers-output");
+    if (!container) return;
+    container.innerHTML = `<div class="admin-live-peer-error">${msg}</div>`;
   }
 }
 
