@@ -1131,7 +1131,10 @@ impl RoutingThread {
                     };
                 }
             }
-            debug!("sending ghost chain request to peer : {:?}", public_key);
+            debug!(
+                "sending ghost chain request to peer : {:?}",
+                public_key.to_base58()
+            );
             buffer = Message::GhostChainRequest(
                 request.latest_block_id,
                 request.latest_block_hash,

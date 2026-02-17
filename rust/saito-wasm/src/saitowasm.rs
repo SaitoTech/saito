@@ -1012,8 +1012,6 @@ pub async fn process_msg_buffer_from_peer(
     let saito = saito1.as_mut().unwrap();
     let buffer = buffer.to_vec();
 
-    info!("0000");
-
     let wallet = saito.context.wallet_lock.clone();
     let configs = saito.context.config_lock.clone();
     let timer = saito.routing_thread.timer.clone();
@@ -1034,16 +1032,13 @@ pub async fn process_msg_buffer_from_peer(
             &timer,
             &services,
             |event| async move {
-                info!("111");
                 let mut saito = SAITO.lock().await;
-                info!("222");
                 saito
                     .as_mut()
                     .unwrap()
                     .routing_thread
                     .process_network_event(event)
                     .await;
-                info!("333");
             },
         )
         .await

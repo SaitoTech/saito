@@ -410,17 +410,14 @@ class Mods {
       await onPeerHandshakeComplete(peer);
     });
 
-    this.app.connection.on('stun peer disconnect', async ( publicKey) => {
-      await onStunPeerDisconnected( publicKey);
+    this.app.connection.on('stun peer disconnect', async (publicKey) => {
+      await onStunPeerDisconnected(publicKey);
       console.log('peer handshake completed for peer', publicKey);
     });
 
     const onConnectionUnstable = this.onConnectionUnstable.bind(this);
-    this.app.connection.on('peer_disconnect', async ( public_key: string) => {
-      console.log(
-        'connection dropped -- triggering on connection unstable. key : ',
-        public_key
-      );
+    this.app.connection.on('peer_disconnect', async (public_key: string) => {
+      console.log('connection dropped -- triggering on connection unstable. key : ', public_key);
       this.onConnectionUnstable(public_key);
     });
 

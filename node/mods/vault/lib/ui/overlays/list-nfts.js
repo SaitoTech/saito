@@ -50,7 +50,7 @@ class ListNFTsOverlay extends SelectNFT {
                 'vault add file',
                 newtx.serialize_to_web(this.app),
                 callback_func,
-                this.mod.peer.peerIndex
+                this.mod.peer.publicKey
               );
             } catch (err) {}
           } else {

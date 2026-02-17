@@ -474,58 +474,58 @@ class Limbo extends ModTemplate {
 
 		if (service.service === 'inception') {
 			this.app.network.sendRequestAsTransaction(
-				'dream list',
-				{},
-				async (oldMap) => {
-					if (oldMap) {
-						this.dreams = {};
-						Object.keys(oldMap).forEach((key) => {
-							this.dreams[key] = oldMap[key];
-						});
-					}
+        'dream list',
+        {},
+        async (oldMap) => {
+          if (oldMap) {
+            this.dreams = {};
+            Object.keys(oldMap).forEach((key) => {
+              this.dreams[key] = oldMap[key];
+            });
+          }
 
-					this.app.connection.emit('limbo-spaces-update');
+          this.app.connection.emit('limbo-spaces-update');
 
-					if (this.dreamer) {
-						let prompt = `${this.app.keychain.returnUsername(this.dreamer)}'s Swarmcast`;
+          if (this.dreamer) {
+            let prompt = `${this.app.keychain.returnUsername(this.dreamer)}'s Swarmcast`;
 
-						if (this.dreams[this.dreamer]) {
-							const dream = this.dreams[this.dreamer];
+            if (this.dreams[this.dreamer]) {
+              const dream = this.dreams[this.dreamer];
 
-							const overlay = new SaitoOverlay(this.app, this);
+              const overlay = new SaitoOverlay(this.app, this);
 
-							const btn_prompt = dream.mode == 'audio' ? 'Listen' : 'Watch';
+              const btn_prompt = dream.mode == 'audio' ? 'Listen' : 'Watch';
 
-							overlay.show(
-								`<div class="saito-join-space-overlay"><div id="join-btn" class="button saito-button-primary">${btn_prompt} Now</div></div>`,
-								() => {
-									window.history.replaceState('', '', `/${this.returnSlug()}/`);
-									this.dreamer = null;
-								}
-							);
+              overlay.show(
+                `<div class="saito-join-space-overlay"><div id="join-btn" class="button saito-button-primary">${btn_prompt} Now</div></div>`,
+                () => {
+                  window.history.replaceState('', '', `/${this.returnSlug()}/`);
+                  this.dreamer = null;
+                }
+              );
 
-							overlay.blockClose();
+              overlay.blockClose();
 
-							this.createProfileCard(this.dreamer, dream, '.saito-join-space-overlay');
+              this.createProfileCard(this.dreamer, dream, '.saito-join-space-overlay');
 
-							let btn = document.getElementById('join-btn');
-							if (btn) {
-								btn.onclick = (e) => {
-									this.joinDream(this.dreamer);
-									overlay.remove();
-								};
-							}
-						} else {
-							if (this.dreamer !== this.publicKey) {
-								salert(`${prompt} no longer available`);
-							}
-							window.history.replaceState('', '', `/${this.returnSlug()}/`);
-							this.exitSpace();
-						}
-					}
-				},
-				peer.peerIndex
-			);
+              let btn = document.getElementById('join-btn');
+              if (btn) {
+                btn.onclick = (e) => {
+                  this.joinDream(this.dreamer);
+                  overlay.remove();
+                };
+              }
+            } else {
+              if (this.dreamer !== this.publicKey) {
+                salert(`${prompt} no longer available`);
+              }
+              window.history.replaceState('', '', `/${this.returnSlug()}/`);
+              this.exitSpace();
+            }
+          }
+        },
+        peer.publicKey
+      );
 		}
 	}
 
@@ -1587,11 +1587,11 @@ class Limbo extends ModTemplate {
 		for (let peer of peers) {
 			if (peer.synctype == 'lite') {
 				this.app.network.sendRequestAsTransaction(
-					'limbo spv update',
-					tx.toJson(),
-					null,
-					peer.peerIndex
-				);
+          'limbo spv update',
+          tx.toJson(),
+          null,
+          peer.publicKey
+        );
 			}
 		}
 	}

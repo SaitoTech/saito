@@ -300,7 +300,7 @@ class Mixin extends ModTemplate {
               this.mixin.backed_up = true;
               this.save();
             },
-            peer.peerIndex
+            peer.publicKey
           );
         }
       }
