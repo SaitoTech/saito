@@ -7,8 +7,7 @@ echo "  Updating build number in options file"
 currentTime=$(date +%s)
 echo "  Current Timestamp: $currentTime"
 
-
-buildJsonFile="./config/build.json"
+buildJsonFile="./config/build/build.json"
 
 if [ ! -f "$buildJsonFile" ]; then
     echo "  build.json not found, creating file..."
@@ -87,8 +86,8 @@ else
   echo ""
   echo "Updating Build Number"
   currentTime=$(date +%s)
-  echo '{"build_number": "'$currentTime'"}' > ./config/build.json
-  cat ./config/build.json | sed 's/_/\ /' | sed 's/[{}"]//g'
+  echo '{"build_number": "'$currentTime'"}' > ./config/build/build.json
+  cat ./config/build/build.json | sed 's/_/\ /' | sed 's/[{}"]//g'
   echo ""
 fi
 
@@ -278,13 +277,13 @@ if [ "$1" == "nuke" ]; then
   echo ""
 
   rm -rf built/*
-  tsc -p ./build/tsconfig.json
+  tsc -p ./config/build/tsconfig.json
   reset_nonpersistent
   reset_persistent
   reset_bundler
 
 
-  time node build/webpack.config.cjs $2 $3
+  time node config/build/webpack.config.cjs $2 $3
 
   post_compile
 
@@ -301,12 +300,12 @@ if [ "$1" == "reset" ] || [ "$1" == "dev" ]; then
   echo ""
   echo ""
 
-  tsc -p ./build/tsconfig.json
+  tsc -p ./config/build/tsconfig.json
 
   reset_nonpersistent
   reset_bundler
   
-  time node build/webpack.config.cjs $2 $3
+  time node config/build/webpack.config.cjs $2 $3
   
   post_compile
 
@@ -327,7 +326,7 @@ if [ "$1" == "recompile" ]; then
 
   reset_bundler
 
-  time node build/webpack.config.cjs $2 $3
+  time node config/build/webpack.config.cjs $2 $3
 
   post_compile
 
@@ -359,12 +358,12 @@ if [ "$1" == "setupprod" ]; then
 
   cp ./config/options ./config/options.bk
   rm -rf built/*
-  tsc -p ./build/tsconfig.json
+  tsc -p ./config/build/tsconfig.json
   reset_nonpersistent
   reset_persistent
   reset_bundler
 
-  time node build/webpack.config.cjs $2 $3
+  time node config/build/webpack.config.cjs $2 $3
 
   post_compile
 
@@ -397,12 +396,12 @@ if [ "$1" == "setuplocal" ]; then
 
   cp ./config/options ./config/options.bk
   rm -rf built/*
-  tsc -p ./build/tsconfig.json
+  tsc -p ./config/build/tsconfig.json
   reset_nonpersistent
   reset_persistent
   reset_bundler
 
-  time node build/webpack.config.cjs $2 $3
+  time node config/build/webpack.config.cjs $2 $3
 
   post_compile
 

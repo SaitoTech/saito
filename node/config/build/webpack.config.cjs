@@ -5,7 +5,7 @@ const webpack = require("webpack");
 
 let minimize = true;
 let devtool = undefined;
-let entrypoint = "../bundler/default/apps/lite/index.ts";
+let entrypoint = "../../bundler/default/apps/lite/index.ts";
 let outputfile = "saito.js";
 if (process.argv.includes("dev")) {
   console.log("dev mode source not minified");
@@ -13,8 +13,7 @@ if (process.argv.includes("dev")) {
   devtool = "eval";
 }
 if (process.argv.includes("web3")) {
-  //TODO: build a separate saito.js for web3
-  entrypoint = "../bundler/default/apps/lite/web3index.ts";
+  entrypoint = "../../bundler/default/apps/lite/web3index.ts";
   outputfile = "web3saito.js";
 }
 webpack(
@@ -102,7 +101,7 @@ webpack(
     // Path to your entry point. From this file Webpack will begin his work
     entry: ["babel-polyfill", path.resolve(__dirname, entrypoint)],
     output: {
-	  path: path.resolve(__dirname, '../web/saito'),
+	  path: path.resolve(__dirname, '../../web/saito'),
 	  filename: outputfile,
 	  library: {
 	    type: 'var',
@@ -141,15 +140,15 @@ webpack(
 	{
 	  test: /\.tsx?$/,
 	  include: [
-	    path.resolve(__dirname, "../lib"),
-	    path.resolve(__dirname, "../apps"),
-	    path.resolve(__dirname, "../mods"),
-	    path.resolve(__dirname, "../bundler")
+	    path.resolve(__dirname, "../../lib"),
+	    path.resolve(__dirname, "../../apps"),
+	    path.resolve(__dirname, "../../mods"),
+	    path.resolve(__dirname, "../../bundler")
 	  ],
 	  use: {
 	    loader: "ts-loader",
 	    options: {
-	      configFile: path.resolve(__dirname, "../build/tsconfig.json"),
+	      configFile: path.resolve(__dirname, "./tsconfig.json"),
 	      transpileOnly: true
 	    }
 	  },
@@ -162,7 +161,7 @@ webpack(
             {
               loader: "babel-loader",
               options: {
-                root: path.resolve(__dirname, './build'),
+                root: path.resolve(__dirname, '.'),
                 rootMode: "upward",
                 presets: ["@babel/preset-env", "@babel/preset-react"],
                 sourceMaps: false,

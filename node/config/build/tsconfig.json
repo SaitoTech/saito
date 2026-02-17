@@ -5,13 +5,9 @@
 		"moduleResolution": "node",
 		"sourceMap": true,
 		 "jsx": "react",
-		//    "skipLibCheck": true,
 		"esModuleInterop": true,
-		"outDir": "../built",
+		"outDir": "./../../built",
 		"allowJs": true,
-		//    "declaration": true,
-		//    "declarationMap": true,
-		//    "inlineSourceMap": true,
 		"resolveJsonModule": true,
 		"downlevelIteration": true,
 		"lib": [
@@ -20,10 +16,10 @@
 		]
 	},
 	"exclude": [
-		"../node_modules",
-		"../lib/templates",
-		"../bundler",
-		"../lib/saito/ui/**/*"
+		"../../node_modules",
+		"../../lib/templates",
+		"../../bundler",
+		"../../lib/saito/ui/**/*"
 	],
-	"include": ["../lib/**/*.ts", "../scripts/start.ts"]
+	"include": ["../../lib/**/*.ts", "../../scripts/start.ts"]
 }

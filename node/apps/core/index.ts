@@ -9,7 +9,7 @@ import Browser from '../../lib/saito/browser';
 import Wallet from '../../lib/saito/wallet';
 import Keychain from '../../lib/saito/keychain';
 import Storage from '../../lib/saito/storage';
-import build from '../../config/build.json';
+import build from '../../config/build/build.json';
 import S, { LogLevel } from 'saito-js/saito';
 
 import Network from '../../lib/saito/network';
@@ -50,7 +50,6 @@ class Saito {
   SPVMODE: number;
   build_number: number;
   options: any = {};
-  // config: any = {};
   modules: Mods;
   binary: Binary;
   crypto: Crypto;
@@ -60,7 +59,6 @@ class Saito {
   wallet: Wallet;
   keychain: Keychain;
   network: Network;
-  // networkApi: NetworkAPI;
   blockchain: Blockchain;
   hash: (data: Uint8Array) => string;
   server: Server;
