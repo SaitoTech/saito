@@ -8,7 +8,7 @@ use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
 use crate::core::util::serialize::Serialize;
-use log::{error, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use std::io::{Error, ErrorKind};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -96,10 +96,10 @@ impl NetworkPeer {
         configs: &(dyn Configuration + Send + Sync),
     ) -> Result<Option<HandshakeResponse>, Error> {
         if !response.core_version.is_set() {
-            // debug!(
-            //     "core version is not set in handshake response. expected : {:?}",
-            //     wallet.core_version
-            // );
+            debug!(
+                "core version is not set in handshake response. expected : {:?}",
+                wallet.core_version
+            );
             return Err(Error::from(ErrorKind::InvalidInput));
         }
 
