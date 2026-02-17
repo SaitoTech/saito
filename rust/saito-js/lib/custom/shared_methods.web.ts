@@ -23,10 +23,14 @@ export default class WebSharedMethods extends CustomSharedMethods {
           Saito.getLibInstance()
             .process_msg_buffer_from_peer(buffer, peer.instance)
             .then((buffer: any) => {
-              console.log("ccc");
-
               if (buffer && buffer.byteLength > 0) {
                 socket.send(buffer);
+              }
+              if (peer.publicKey) {
+                if (!Saito.getInstance().peers.has(peer.publicKey)) {
+                  console.info("added peer : ", peer.publicKey);
+                  Saito.getInstance().peers.set(peer.publicKey, peer);
+                }
               }
             });
         } catch (error) {

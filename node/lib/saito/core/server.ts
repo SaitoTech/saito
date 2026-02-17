@@ -393,6 +393,12 @@ class Server {
             if (buffer && buffer.byteLength > 0) {
               socket.send(buffer);
             }
+            if (peer.publicKey) {
+              if (!S.getInstance().peers.has(peer.publicKey)) {
+                console.info('added peer : ', peer.publicKey);
+                S.getInstance().peers.set(peer.publicKey, peer);
+              }
+            }
           });
       });
       socket.on('close', () => {

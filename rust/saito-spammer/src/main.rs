@@ -336,6 +336,7 @@ async fn run_routing_event_processor(
         waiting_for_genesis_block: false,
         message_sending_timer: 0,
         blockchain_send_results: Default::default(),
+        new_peers: vec![],
     };
 
     let (interface_sender_to_routing, interface_receiver_for_routing) =
