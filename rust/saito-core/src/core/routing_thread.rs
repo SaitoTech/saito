@@ -1077,7 +1077,7 @@ impl RoutingThread {
         let buffer: Vec<u8>;
         info!(
             "requesting blockchain from peer : {:?} latest_block_id : {:?}, last_block_id : {:?}",
-            public_key,
+            public_key.to_base58(),
             blockchain.get_latest_block_id(),
             blockchain.last_block_id,
         );
@@ -1165,7 +1165,10 @@ impl RoutingThread {
                     [0; 32]
                 );
             }
-            debug!("sending blockchain request to peer : {:?}", public_key);
+            debug!(
+                "sending blockchain request to peer : {:?}",
+                public_key.to_base58()
+            );
             buffer = Message::BlockchainRequest(request).serialize();
         }
         // need to drop the reference here to avoid deadlocks.

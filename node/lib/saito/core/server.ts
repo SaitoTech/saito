@@ -388,7 +388,7 @@ class Server {
 
       socket.on('message', (buffer: any) => {
         S.getLibInstance()
-          .process_msg_buffer_from_peer(new Uint8Array(buffer), peer)
+          .process_msg_buffer_from_peer(new Uint8Array(buffer), peer.instance)
           .then((buffer: any) => {
             if (buffer && buffer.byteLength > 0) {
               socket.send(buffer);

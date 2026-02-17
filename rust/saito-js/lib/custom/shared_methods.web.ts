@@ -18,15 +18,10 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
       socket.onmessage = (event: MessageEvent) => {
         try {
-          console.log("aaa : ", typeof event.data);
           let buffer = Buffer.from(event.data);
-          console.log("bbb : ", typeof buffer);
-
-          // let peer = new NetworkPeer(undefined, url);
-          // let buffer2 = new Uint8Array();
 
           Saito.getLibInstance()
-            .process_msg_buffer_from_peer(buffer, peer)
+            .process_msg_buffer_from_peer(buffer, peer.instance)
             .then((buffer: any) => {
               console.log("ccc");
 

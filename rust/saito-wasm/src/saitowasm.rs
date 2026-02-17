@@ -962,7 +962,7 @@ pub async fn process_peer_disconnection(key: JsString) {
 #[wasm_bindgen]
 pub async fn process_msg_buffer_from_peer(
     buffer: js_sys::Uint8Array,
-    mut peer: WasmNetworkPeer,
+    peer: &mut WasmNetworkPeer,
 ) -> js_sys::Uint8Array {
     info!("process_msg_buffer_from_peer");
     let mut saito1 = SAITO.lock().await;
