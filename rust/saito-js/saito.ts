@@ -223,7 +223,7 @@ export default class Saito {
     return Saito.wasmMemory;
   }
 
-  // public addNewSocket(socket: any, public_key: bigint) {
+  // public addNewSocket(peer: NetworkPeer, public_key: bigint) {
   //   this.sockets.set(public_key, socket);
   //   console.log("adding socket : " + public_key + ". total sockets : " + this.sockets.size);
   // }

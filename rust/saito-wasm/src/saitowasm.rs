@@ -165,6 +165,7 @@ pub fn new(
             waiting_for_genesis_block: false,
             message_sending_timer: 0,
             blockchain_send_results: Default::default(),
+            new_peers: vec![],
         },
         consensus_thread: ConsensusThread {
             mempool_lock: context.mempool_lock.clone(),

@@ -23,6 +23,7 @@ use crate::core::routing::io::storage::Storage;
 use crate::core::routing::peers::congestion_controller::{
     CongestionStatsDisplay, CongestionType, PeerCongestionControls,
 };
+use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer::{Peer, PeerStatus};
 use crate::core::util;
 use crate::core::util::config_manager::ConfigManager;
@@ -114,6 +115,7 @@ pub struct RoutingThread {
     pub received_ghost_chain: Option<(GhostChainSync, SaitoPublicKey)>,
     pub waiting_for_genesis_block: bool,
     pub blockchain_send_results: Vec<BlockchainSendResults>,
+    pub new_peers: Vec<NetworkPeer>,
 }
 
 impl RoutingThread {
@@ -644,7 +646,7 @@ impl RoutingThread {
 
             peer.mark_as_disconnected(self.timer.get_timestamp_in_ms());
         } else {
-            error!("unknown peer : {:?} disconnected", public_key);
+            error!("unknown peer : {:?} disconnected", public_key.to_base58());
         }
     }
     pub async fn set_my_key_list(&mut self, mut key_list: Vec<SaitoPublicKey>) {
@@ -1516,6 +1518,77 @@ impl RoutingThread {
         // let mut peers = self.network.peer_lock.write().await;
         // peers.initialize_static_peers(configs.deref()).await;
     }
+
+    async fn handle_new_peer(&mut self, network_peer: NetworkPeer) -> Option<()> {
+        let time = self.timer.get_timestamp_in_ms();
+        let is_browser = {
+            let configs = self.config_lock.read().await;
+            configs.is_browser()
+        };
+
+        let public_key = network_peer.public_key.unwrap();
+
+        {
+            let mut peers = self.network.peer_lock.write().await;
+            if peers.is_peer_blacklisted(network_peer.public_key.unwrap(), time) {
+                warn!(
+                    "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
+                    network_peer.public_key.unwrap().to_base58(),
+                    network_peer.ip.as_deref().unwrap_or("unknown")
+                );
+                return Some(());
+            }
+            let mut peer = Peer::new(network_peer.public_key.unwrap());
+            // peer.ip_address = network_peer.ip;
+            peer.handle_new_peer(
+                network_peer,
+                self.wallet_lock.clone(),
+                &self.network.io_interface,
+                self.timer.get_timestamp_in_ms(),
+            )
+            .await
+            .unwrap();
+            peers.add_congestion_event(peer.public_key, CongestionType::PeerConnections, time);
+            peers.peers.insert(peer.public_key, peer);
+        }
+
+        let blockchain = self.blockchain_lock.read().await;
+        if blockchain.get_latest_block().is_none() && !is_browser {
+            // we don't have any blocks in the blockchain yet. so we need to get the genesis block from this peer
+            info!(
+                "requesting genesis block from peer : {:?}",
+                public_key.to_base58()
+            );
+            _ = self
+                .network
+                .io_interface
+                .send_message(
+                    public_key,
+                    Message::GenesisBlockRequest().serialize().as_slice(),
+                )
+                .await
+                .inspect_err(|e| {
+                    error!(
+                        "error sending genesis block request to peer : {:?}. {}",
+                        public_key.to_base58(),
+                        e
+                    )
+                });
+
+            self.waiting_for_genesis_block = true;
+        } else {
+            drop(blockchain);
+            info!(
+                "requesting blockchain from peer : {:?} after handshake",
+                public_key.to_base58()
+            );
+            // start block syncing here
+            self.request_blockchain_from_peer(public_key, self.blockchain_lock.clone())
+                .await;
+        }
+
+        return Some(());
+    }
 }
 
 #[async_trait]
@@ -1554,78 +1627,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             NetworkEvent::PeerConnectionResult { result } => {
                 if result.is_ok() {
                     let network_peer = result.unwrap();
-                    let time = self.timer.get_timestamp_in_ms();
-                    let is_browser = {
-                        let configs = self.config_lock.read().await;
-                        configs.is_browser()
-                    };
-
-                    let public_key = network_peer.public_key.unwrap();
-
-                    {
-                        let mut peers = self.network.peer_lock.write().await;
-                        if peers.is_peer_blacklisted(network_peer.public_key.unwrap(), time) {
-                            warn!(
-                                "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
-                                network_peer.public_key.unwrap().to_base58(),
-                                network_peer.ip.as_deref().unwrap_or("unknown")
-                            );
-                            return Some(());
-                        }
-                        let mut peer = Peer::new(network_peer.public_key.unwrap());
-                        // peer.ip_address = network_peer.ip;
-                        peer.handle_new_peer(
-                            network_peer,
-                            self.wallet_lock.clone(),
-                            &self.network.io_interface,
-                            self.timer.get_timestamp_in_ms(),
-                        )
-                        .await
-                        .unwrap();
-                        peers.add_congestion_event(
-                            peer.public_key,
-                            CongestionType::PeerConnections,
-                            time,
-                        );
-                        peers.peers.insert(peer.public_key, peer);
-                    }
-
-                    let blockchain = self.blockchain_lock.read().await;
-                    if blockchain.get_latest_block().is_none() && !is_browser {
-                        // we don't have any blocks in the blockchain yet. so we need to get the genesis block from this peer
-                        info!(
-                            "requesting genesis block from peer : {:?}",
-                            public_key.to_base58()
-                        );
-                        _ = self
-                            .network
-                            .io_interface
-                            .send_message(
-                                public_key,
-                                Message::GenesisBlockRequest().serialize().as_slice(),
-                            )
-                            .await
-                            .inspect_err(|e| {
-                                error!(
-                                    "error sending genesis block request to peer : {:?}. {}",
-                                    public_key.to_base58(),
-                                    e
-                                )
-                            });
-
-                        self.waiting_for_genesis_block = true;
-                    } else {
-                        drop(blockchain);
-                        info!(
-                            "requesting blockchain from peer : {:?} after handshake",
-                            public_key.to_base58()
-                        );
-                        // start block syncing here
-                        self.request_blockchain_from_peer(public_key, self.blockchain_lock.clone())
-                            .await;
-                    }
-
-                    return Some(());
+                    self.new_peers.push(network_peer);
                 }
             }
             NetworkEvent::AddStunPeer { public_key } => {
@@ -1735,6 +1737,11 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
             self.message_sending_timer = 0;
             self.send_block_headers().await;
+            let peers = self.new_peers.drain(..).collect::<Vec<_>>();
+            for peer in peers {
+                let _ = self.handle_new_peer(peer).await;
+            }
+
             work_done = true;
         }
 
