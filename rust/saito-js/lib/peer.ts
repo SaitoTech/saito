@@ -4,9 +4,9 @@ import WasmWrapper from "./wasm_wrapper";
 export default class Peer extends WasmWrapper<WasmPeer> {
   public static Type: any;
 
-  constructor(peer?: WasmPeer, peerIndex?: bigint) {
+  constructor(peer?: WasmPeer, publicKey?: string) {
     if (!peer) {
-      peer = new Peer.Type(peerIndex);
+      peer = new Peer.Type(publicKey);
     }
     super(peer!);
   }

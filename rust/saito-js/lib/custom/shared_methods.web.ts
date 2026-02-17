@@ -23,7 +23,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
           Saito.getLibInstance()
             .process_msg_buffer_from_peer(buffer, peer)
             .then((buffer: any) => {
-              if (buffer) {
+              if (buffer && buffer.byteLength > 0) {
                 socket.send(buffer);
               }
             });
@@ -175,16 +175,22 @@ export default class WebSharedMethods extends CustomSharedMethods {
   }
 
   sendMessageToAll(buffer: Uint8Array, exceptions: Array<string>): void {
-    // console.debug("sending message to  all with size : " + buffer.byteLength);
+    // console.debug("sending message to all with size: " + buffer.byteLength);
     // console.info(' --- Sending to All ---')
-    Saito.getInstance().sockets.forEach((socket, key) => {
+    Saito.getInstance().peers.forEach((peer, key) => {
       if (exceptions.includes(key)) {
         return;
       }
       try {
+        let socket = peer.socket;
+        if (!socket) {
+          return;
+        }
+        // @ts-ignore
         if (socket.readyState !== socket.OPEN) {
           console.error("Blocked Socket Send Before Open");
         } else {
+          // @ts-ignore
           socket.send(buffer);
         }
       } catch (err) {

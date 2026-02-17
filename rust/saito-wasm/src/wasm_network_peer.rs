@@ -12,7 +12,27 @@ pub struct WasmNetworkPeer {
 #[wasm_bindgen]
 impl WasmNetworkPeer {
     pub fn get_public_key(&self) -> JsString {
+        if self.peer.public_key.is_none() {
+            return "".into();
+        }
         self.peer.public_key.unwrap().to_base58().into()
+    }
+
+    #[wasm_bindgen(constructor)]
+    pub fn new_peer() -> WasmNetworkPeer {
+        Self {
+            peer: NetworkPeer {
+                challenge: None,
+                response: None,
+                public_key: None,
+                url: None,
+                ip: None,
+            },
+        }
+    }
+    pub fn get_handshake_challenge_buffer(&mut self) -> js_sys::Uint8Array {
+        let buffer = self.peer.get_handshake_challenge_buffer();
+        js_sys::Uint8Array::from(&buffer)
     }
 }
 
