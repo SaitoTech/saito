@@ -402,11 +402,10 @@ class Server {
         console.error('error on socket : ' + peer.publicKey, error);
         S.getLibInstance().process_peer_disconnection(peer.publicKey);
       });
-      peer.get_handshake_challenge_buffer().then(buffer=>{
+      peer.get_handshake_challenge_buffer().then((buffer) => {
         console.log('sending handshake challenge to peer : ', peer.publicKey);
         socket.send(buffer);
       });
-
     });
 
     this.app.modules.onWebSocketServer(webserver);

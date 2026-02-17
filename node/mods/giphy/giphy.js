@@ -117,13 +117,13 @@ class Giphy extends ModTemplate {
 
 		if (service.service === 'giphy') {
 			app.network.sendRequestAsTransaction(
-				'get giphy auth',
-				{},
-				function (res) {
-					gif_self.auth = res;
-				},
-				peer.peerIndex
-			);
+        'get giphy auth',
+        {},
+        function (res) {
+          gif_self.auth = res;
+        },
+        peer.publicKey
+      );
 		}
 	}
 

@@ -75,12 +75,12 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
           //
           this.app.network.sendRequestAsTransaction(
             'request delist complete',
-            { 
-              nft_tx : delist_tx_serialized,
+            {
+              nft_tx: delist_tx_serialized,
               nfttx_sig: nfttx_sig
             },
             () => {},
-            this.mod.assetStore.peerIndex
+            this.mod.assetStore.publicKey
           );
 
 

@@ -795,15 +795,15 @@ class AssetStore extends ModTemplate {
 		//
 		// browsers refresh from server
 		//
-		if (this.app.BROWSER && this.assetStore.peerIndex) {
-			this.app.network.sendRequestAsTransaction(
-				'request listings',
-				{},
-				mycallback,
-				this.assetStore.peerIndex
-			);
-			return;
-		}
+		if (this.app.BROWSER && this.assetStore.publicKey) {
+      this.app.network.sendRequestAsTransaction(
+        'request listings',
+        {},
+        mycallback,
+        this.assetStore.publicKey
+      );
+      return;
+    }
 
 		//
 		// servers refresh from database

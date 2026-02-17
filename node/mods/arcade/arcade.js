@@ -977,11 +977,11 @@ class Arcade extends ModTemplate {
 				message.data = tx.toJson();
 
 				this.app.network.sendRequestAsTransaction(
-					message.request,
-					message.data,
-					null,
-					peer.peerIndex
-				);
+          message.request,
+          message.data,
+          null,
+          peer.publicKey
+        );
 			}
 		}
 	}

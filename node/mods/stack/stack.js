@@ -1928,20 +1928,20 @@ console.log("ERROR attaching duration and sig to witness...");
       const firstPeerKey = peerKeys[0];
       const peerObj = this.peers[firstPeerKey]?.peer;
       
-      if (peerObj && peerObj.peerIndex !== undefined) {
+      if (peerObj && peerObj.publicKey !== undefined) {
         try {
           const peerTx = await new Promise((resolve) => {
             // Query peer for the post
             this.app.network.sendRequestAsTransaction(
               'load stack post',
-              { signature: signature , access_witness : access_witness },
+              { signature: signature, access_witness: access_witness },
               (response) => {
                 // Response is array of serialized transactions
                 if (Array.isArray(response) && response.length > 0) {
                   try {
                     const tx = new Transaction();
                     tx.deserialize_from_web(this.app, response[0]);
-                    
+
                     // Validate it's the transaction we requested
                     if (tx.signature === signature) {
                       // Cache it
@@ -1956,7 +1956,7 @@ console.log("ERROR attaching duration and sig to witness...");
                 // Peer didn't have it or returned invalid data - resolve null
                 resolve(null);
               },
-              peerObj.peerIndex
+              peerObj.publicKey
             );
           });
 

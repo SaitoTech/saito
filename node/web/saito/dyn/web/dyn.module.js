@@ -6222,7 +6222,7 @@ var ModTemplate = /*#__PURE__*/function () {
             case 15:
               return _context11.abrupt("return", this.app.network.sendRequestAsTransaction(message.request, message.data, function (res) {
                 return mycallback(res);
-              }, peer.peerIndex));
+              }, peer.publicKey));
             case 16:
             case "end":
               return _context11.stop();
@@ -6375,7 +6375,7 @@ var ModTemplate = /*#__PURE__*/function () {
                   if (success_callback != null) {
                     success_callback(res);
                   }
-                }, peer.peerIndex);
+                }, peer.publicKey);
               }
             case 15:
             case "end":

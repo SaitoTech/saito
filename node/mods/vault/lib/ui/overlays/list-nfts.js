@@ -58,10 +58,10 @@ class ListNFTsOverlay extends ListNFT {
               siteMessage('Binding NFT to Secure File Access...', 3000);
               this.file_info_overlay.sig = newtx.signature;
               await this.app.network.sendRequestAsTransaction(
-                'vault add file' ,
-                newtx.serialize_to_web(this.app) ,
+                'vault add file',
+                newtx.serialize_to_web(this.app),
                 callback_func,
-                this.mod.peer.peerIndex
+                this.mod.peer.publicKey
               );
             } catch (err) { }
           } else {

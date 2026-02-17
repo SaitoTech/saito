@@ -141,7 +141,7 @@ class Relay extends ModTemplate {
             'relay peer message',
             tx.toJson(),
             null,
-            peers[i].peerIndex
+            peers[i].publicKey
           );
         }
       }
@@ -245,7 +245,7 @@ class Relay extends ModTemplate {
                   }
                   return 1;
                 },
-                peers[i].peerIndex
+                peers[i].publicKey
               );
             }
           }
