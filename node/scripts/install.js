@@ -151,7 +151,7 @@ function nuke() {
 	} else {
 		var cmd = 'npx';
 	}
-	const tsc = spawnSync(cmd, ['tsc']);
+	const tsc = spawnSync(cmd, ['tsc', '-p' ,'scripts/tsconfig.json']);
 	console.log('\x1b[32mCOMPLETE');
 	console.log('\x1b[0m');
 
@@ -257,13 +257,25 @@ function webPack() {
 			entry: ['babel-polyfill', path.resolve(__dirname, entrypoint)],
 			output: {
 				path: path.resolve(__dirname, './web/saito'),
-				filename: outputfile
+				filename: outputfile,
+    				environment: {
+        				module: false
+			    	}
 			},
 			resolve: {
-				// Add '.ts' and '.tsx' as resolvable extensions.
-				//extensions: ["", ".webpack.js", ".web.js", ".ts", ".tsx", ".js"],
-				extensions: ['.webpack.js', '.web.js', '.ts', '.tsx', '.js'],
-				fallback: {
+    				extensions: ['.webpack.js', '.web.js', '.js', '.ts', '.tsx'],
+
+    				alias: {
+        				"saito-js/lib": path.resolve(__dirname, "../rust/saito-js/dist/lib"),
+        				"saito-js/saito": path.resolve(__dirname, "../rust/saito-js/dist/saito.js"),
+        				"saito-js/index.web": path.resolve(__dirname, "../rust/saito-js/dist/index.web.js"),
+        				"saito-js/index.node": path.resolve(__dirname, "../rust/saito-js/dist/index.node.js")
+    				},
+
+    				mainFields: ['browser','module','main'],
+    				conditionNames: ['browser','import','default'],
+
+    				fallback: {
 					fs: false,
 					tls: false,
 					net: false,
@@ -282,9 +294,19 @@ function webPack() {
 				rules: [
 					// All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
 					{
-						test: /\.tsx?$/,
-						loader: 'ts-loader',
-						exclude: /(node_modules)/
+    						test: /\.tsx?$/,
+    						include: [
+        						path.resolve(__dirname, "lib"),
+        						path.resolve(__dirname, "apps"),
+        						path.resolve(__dirname, "mods"),
+        						path.resolve(__dirname, "bundler")
+    						],
+    						use: {
+        						loader: 'ts-loader',
+        						options: {
+            							transpileOnly: true
+        						}
+    						}
 					},
 					// All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
 					{
