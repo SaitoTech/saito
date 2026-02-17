@@ -102,8 +102,13 @@ webpack(
     // Path to your entry point. From this file Webpack will begin his work
     entry: ["babel-polyfill", path.resolve(__dirname, entrypoint)],
     output: {
-      path: path.resolve(__dirname, "./../web/saito"),
-      filename: outputfile,
+	  path: path.resolve(__dirname, '../web/saito'),
+	  filename: outputfile,
+	  library: {
+	    type: 'var',
+	    name: 'saito_bundle'
+	  },
+	  module: false
     },
     resolve: {
       // Add '.ts' and '.tsx' as resolvable extensions.
@@ -126,36 +131,29 @@ webpack(
     experiments: {
       asyncWebAssembly: true,
       syncWebAssembly: true,
-      topLevelAwait: true
+      topLevelAwait: true,
+      outputModule: false
     },
     
     module: {
       rules: [
         // All files with a '.ts' or '.tsx' extension will be handled by 'ts-loader'.
-        {
-          test: /\.tsx?$/,
-          exclude: /(node_modules)/,
-          use: [{
-            loader: 'ts-loader',
-            options: {
-                configFile:path.resolve(__dirname, "../build/tsconfig.json")
-            },
-            
-        }],
-          // exclude: [
-          //   {
-          //     and: [path.resolve(__dirname,"node_modules")],
-          //     // TODO : remove ts loadup entirely
-          //     // not: [path.resolve(__dirname,"node_modules/saito-js")]
-          //   }
-          // ],
-          // resolve: {
-          //   fullySpecified:false
-          // }
-          // options:{
-          //   allowTsInNodeModules: true
-          // }
-        },
+	{
+	  test: /\.tsx?$/,
+	  include: [
+	    path.resolve(__dirname, "../lib"),
+	    path.resolve(__dirname, "../apps"),
+	    path.resolve(__dirname, "../mods"),
+	    path.resolve(__dirname, "../bundler")
+	  ],
+	  use: {
+	    loader: "ts-loader",
+	    options: {
+	      configFile: path.resolve(__dirname, "../build/tsconfig.json"),
+	      transpileOnly: true
+	    }
+	  },
+	},
         // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
         {
           test: /\.js$/,
