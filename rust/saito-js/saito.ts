@@ -21,7 +21,6 @@ export enum LogLevel {
 export default class Saito {
   private static instance: Saito;
   private static libInstance: any;
-  sockets: Map<string, any> = new Map<string, any>();
   peers: Map<string, NetworkPeer> = new Map<string, NetworkPeer>();
   private stunPeers: Map<bigint, { peerConnection: RTCPeerConnection; publicKey: string }> =
     new Map();
@@ -224,32 +223,35 @@ export default class Saito {
     return Saito.wasmMemory;
   }
 
-  public addNewSocket(socket: any, public_key: bigint) {
-    this.sockets.set(public_key, socket);
-    console.log("adding socket : " + public_key + ". total sockets : " + this.sockets.size);
-  }
+  // public addNewSocket(socket: any, public_key: bigint) {
+  //   this.sockets.set(public_key, socket);
+  //   console.log("adding socket : " + public_key + ". total sockets : " + this.sockets.size);
+  // }
 
   public async addStunPeer(publicKey: string, peerConnection: RTCPeerConnection) {
     await this.stunManager.addStunPeer(publicKey, peerConnection);
   }
 
   public getSocket(publicKey: string): any | null {
-    return this.sockets.get(publicKey);
+    return this.peers.get(publicKey)?.socket;
   }
 
   public removeSocket(publicKey: string) {
     try {
       console.log(
-        "Removing socket for : " + publicKey + " out of " + this.sockets.size + " total sockets"
+        "Removing socket for : " + publicKey + " out of " + this.peers.size + " total sockets"
       );
-      let socket = this.sockets.get(publicKey);
-      this.sockets.delete(publicKey);
+      let socket = this.peers.get(publicKey);
+      this.peers.delete(publicKey);
       if (socket) {
         console.info("closing socket for peer index : " + publicKey);
 
+        // @ts-ignore
         if (socket.readyState !== 1) {
+          // @ts-ignore
           socket.terminate();
         } else {
+          // @ts-ignore
           socket.close();
         }
       } else {
@@ -278,16 +280,12 @@ export default class Saito {
     }
   }
 
-  public async processNewPeer(index: bigint, ip: string): Promise<void> {
-    return Saito.getLibInstance().process_new_peer(index, ip);
-  }
-
-  public async processPeerDisconnection(public_key: bigint): Promise<void> {
+  public async processPeerDisconnection(public_key: string): Promise<void> {
     return Saito.getLibInstance().process_peer_disconnection(public_key);
   }
 
-  public async processMsgBufferFromPeer(buffer: Uint8Array, public_key: bigint): Promise<void> {
-    return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, public_key);
+  public async processMsgBufferFromPeer(buffer: Uint8Array, peer: NetworkPeer): Promise<void> {
+    return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer);
   }
 
   public async processFetchedBlock(
@@ -467,8 +465,8 @@ export default class Saito {
     });
   }
 
-  public async getPeer(index: bigint): Promise<Peer | null> {
-    let peer = await Saito.getLibInstance().get_peer(index);
+  public async getPeer(publicKey: string): Promise<Peer | null> {
+    let peer = await Saito.getLibInstance().get_peer(publicKey);
     if (!peer) {
       return null;
     }
@@ -491,17 +489,15 @@ export default class Saito {
 
   public async sendApiCall(
     buffer: Uint8Array,
-    peerIndex: bigint,
+    publicKey: string,
     waitForReply: boolean
   ): Promise<Uint8Array> {
-    if (peerIndex !== BigInt(0)) {
-      let peer = await this.getPeer(peerIndex);
-      if (peer === null) {
-        throw new Error("peer not found");
-      }
-      if (peer.status !== "connected") {
-        throw new Error(`peer : ${peer.publicKey} not connected. status : ${peer.status}`);
-      }
+    let peer = await this.getPeer(publicKey);
+    if (peer === null) {
+      throw new Error("peer not found. public key : " + publicKey + "");
+    }
+    if (peer.status !== "connected") {
+      throw new Error(`peer : ${peer.publicKey} not connected. status : ${peer.status}`);
     }
 
     if (waitForReply) {
@@ -511,25 +507,25 @@ export default class Saito {
           resolve,
           reject,
         });
-        Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, peerIndex);
+        Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey);
       });
     } else {
-      return Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, peerIndex);
+      return Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey);
     }
   }
 
-  public async sendApiSuccess(msgId: number, buffer: Uint8Array, peerIndex: bigint) {
-    return Saito.getLibInstance().send_api_success(buffer, msgId, peerIndex);
+  public async sendApiSuccess(msgId: number, buffer: Uint8Array, publicKey: string) {
+    return Saito.getLibInstance().send_api_success(buffer, msgId, publicKey);
   }
 
-  public async sendApiError(msgId: number, buffer: Uint8Array, peerIndex: bigint) {
-    return Saito.getLibInstance().send_api_error(buffer, msgId, peerIndex);
+  public async sendApiError(msgId: number, buffer: Uint8Array, publicKey: string) {
+    return Saito.getLibInstance().send_api_error(buffer, msgId, publicKey);
   }
 
   public async sendTransactionWithCallback(
     transaction: Transaction,
     callback?: any,
-    peerIndex?: bigint
+    publicKey?: string
   ): Promise<any> {
     // TODO : implement retry on fail
     // TODO : stun code goes here probably???
@@ -538,7 +534,7 @@ export default class Saito {
     // );
     let buffer = transaction.wasmTransaction.serialize();
 
-    await this.sendApiCall(buffer, peerIndex || BigInt(0), !!callback)
+    await this.sendApiCall(buffer, publicKey!, !!callback)
       .then((buffer: Uint8Array) => {
         if (callback) {
           // console.log("sendTransactionWithCallback. buffer length = " + buffer.byteLength);
@@ -561,13 +557,13 @@ export default class Saito {
     message: string,
     data: any = "",
     callback?: any,
-    peerIndex?: bigint,
+    publicKey?: string,
     signature_required?: boolean
   ): Promise<any> {
-    console.info("sending request : " + message + ", peer = " + peerIndex);
+    console.info("sending request : " + message + ", peer = " + publicKey);
     let wallet = await this.getWallet();
-    let publicKey = await wallet.getPublicKey();
-    let tx = await this.createTransaction(publicKey, BigInt(0), BigInt(0));
+    let myPublicKey = await wallet.getPublicKey();
+    let tx = await this.createTransaction(myPublicKey, BigInt(0), BigInt(0));
     tx.msg = {
       request: message,
       data: data,
@@ -585,7 +581,7 @@ export default class Saito {
           return callback(tx.msg);
         }
       },
-      peerIndex
+      publicKey
     );
   }
 

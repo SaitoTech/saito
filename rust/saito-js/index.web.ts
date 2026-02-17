@@ -10,6 +10,7 @@ import Blockchain from "./lib/blockchain";
 import PeerService from "./lib/peer_service";
 import PeerServiceList from "./lib/peer_service_list";
 import BalanceSnapshot from "./lib/balance_snapshot";
+import NetworkPeer from "./lib/network_peer";
 
 // import Config from "./lib/config";
 
@@ -55,6 +56,7 @@ export async function initialize(
       PeerServiceList.Type = s.WasmPeerServiceList;
       BalanceSnapshot.Type = s.WasmBalanceSnapshot;
       WalletSlip.Type = s.WasmWalletSlip;
+      NetworkPeer.Type = s.WasmNetworkPeer;
       // Config.Type = s.WasmConfiguration;
 
       console.log("init output = ", s);

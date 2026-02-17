@@ -941,7 +941,11 @@ pub async fn remove_stun_peer(public_key: JsString) {
 
 #[wasm_bindgen]
 pub async fn process_peer_disconnection(key: JsString) {
-    let key: SaitoPublicKey = string_to_key(key).unwrap();
+    let key = string_to_key(key);
+    if key.is_err() {
+        return;
+    }
+    let key: SaitoPublicKey = key.unwrap();
     debug!("process_peer_disconnection : {:?}", key.to_base58());
     let mut saito = SAITO.lock().await;
     saito
@@ -1219,7 +1223,7 @@ pub async fn get_peers() -> Array {
 
 #[wasm_bindgen]
 pub async fn get_peer(key: JsString) -> Option<WasmPeer> {
-    let key: SaitoPublicKey = string_to_hex(key).unwrap();
+    let key: SaitoPublicKey = string_to_hex(key).ok()?;
     let saito = SAITO.lock().await;
     let peers = saito
         .as_ref()
