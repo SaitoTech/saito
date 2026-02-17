@@ -272,24 +272,28 @@
   padding: 0 0.5rem;
   border-radius: var(--saito-border-radius);
   border: 1px solid var(--saito-border-color);
+  gap: 0.25rem;
+  align-items: center;
 }
 
-.token-dropdown img {
-  width: 2rem;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  left: 0.5rem;
+.withdraw-logo-cont {
+  position: relative;
+  min-width: 35px;
+  height: 35px;
+  border-radius: 20px;
+  overflow: hidden;
 }
 
 .token-dropdown select {
   height: 45px;
-  padding: 0rem 1rem 0 3rem;
+  padding: 0.5rem;
   border: none;
   font-size: 1.6rem;
   width: 100%;
   color: inherit;
   background: inherit;
+  font-size: 1.8rem;
+  text-align: center;
 }
 
 .withdraw-input-cont {
@@ -410,6 +414,7 @@
 
 .confirm-msg-container .spinner {
   display: none;
+  width: 9rem;
   height: 9rem;
 }
 
@@ -465,6 +470,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .dropdown-cont .saito-overlay-form-input {
@@ -505,7 +511,7 @@
   color: var(--saito-red);
   display: none;
   position: absolute;
-  right: 3rem;
+  right: 6.5rem;
   background: var(--saito-background-color);
 }
 
@@ -601,7 +607,8 @@
 
 .nft-image-preview {
   align-self: center;
-  height: 30rem;
+  max-width: 56rem;
+  max-height: 30rem;
   position: relative;
 }
 

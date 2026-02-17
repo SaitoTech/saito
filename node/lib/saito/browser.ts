@@ -1,7 +1,7 @@
 // @ts-nocheck
-import screenfull, { element } from 'screenfull';
 import React from 'react';
 import { createRoot } from 'react-dom';
+import screenfull from 'screenfull';
 let marked = require('marked');
 let sanitizeHtml = require('sanitize-html');
 const sanitizer = require('sanitizer');
@@ -346,11 +346,11 @@ class Browser {
       } else {
         siteMessage('Connection Restored', 1000);
       }
+      first_connect = false;
     });
     this.app.connection.on('peer_disconnect', function (peerIndex: bigint) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      console.log('peer_disconnect: ', browser_self.page_navigation_active);
       if (!browser_self.page_navigation_active) {
         siteMessage('Connection Lost', 1000);
       }
@@ -407,12 +407,21 @@ class Browser {
     const current_url = window.location.toString();
     const myurl = new URL(current_url);
     const myurlpath = myurl.pathname.split('/');
+    const default_mod = 'website';
 
     if (myurlpath[1]) {
       return myurlpath[1].toLowerCase();
     }
 
-    return window?.active_module || 'website';
+    if (window?.active_module) {
+      return window.active_module;
+    }
+
+    if (this.app?.options?.homeModule) {
+      return this.app.options.homeModule;
+    }
+
+    return default_mod;
   }
 
   extractIdentifiers(text = '') {
@@ -1170,7 +1179,7 @@ class Browser {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         background: rgba(0, 0, 0, 0.7); z-index: 1000; border-radius: inherit;
       ">
-        <img src="/saito/img/spinner.svg" style="width: 4rem; height: 4rem;" />
+        <div class="saito_spinner" style="width: 4rem; height: 4rem;"></div>
         <div style="color: white; margin-top: 1rem; font-size: 1.4rem;">Reading file...</div>
       </div>
     `;
@@ -2438,6 +2447,12 @@ class Browser {
 
       window.reloadWindow = this.reloadWindow;
       window.navigateWindow = this.navigateWindow.bind(this);
+    }
+  }
+
+  siteMessage(message, killtime = 9999999, callback = null) {
+    if (window) {
+      siteMessage(message, (killtime = 9999999), (callback = null));
     }
   }
 

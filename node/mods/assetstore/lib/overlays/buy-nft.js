@@ -6,21 +6,14 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
     this.nft = null;
   }
 
-  async render() {
-    if (this.nft.tx) {
-      console.log('trying to build NFT data...');
-      try {
-        this.nft.buildNFTData();
-      } catch (err) {}
-    }
-
-    await super.render();
+  render(nft = null) {
+    super.render(nft);
 
     Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
       (el) => (el.style.display = 'none')
     );
 
-    let priceRaw = await this.nft.getBuyPriceSaito?.();
+    let priceRaw = this.nft.getBuyPriceSaito();
     this.price = typeof priceRaw === 'bigint' ? priceRaw.toString() : (priceRaw ?? '');
 
     let html = `
@@ -33,11 +26,12 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
       document.querySelector('.saito-nft-description').innerHTML = html;
     }
     setTimeout(() => {
-      this.attachMyEvents();
+      this.attachEvents();
     }, 25);
   }
 
-  async attachMyEvents() {
+  attachEvents() {
+    super.attachEvents();
     let buy_with_saito_btn = document.querySelector('.saito-nft-footer-btn.enable');
     let buy_with_other_btn = document.querySelector('.saito-nft-footer-btn.disable');
 

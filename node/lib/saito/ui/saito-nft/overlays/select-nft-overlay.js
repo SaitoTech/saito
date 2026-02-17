@@ -1,11 +1,11 @@
-const ListNFTTemplate = require('./list-overlay.template');
+const SelectNFTTemplate = require('./select-nft-overlay.template');
 const NFTCard = require('./../saito-nft-card');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoUser = require('./../../saito-user/saito-user');
 const CreateNFT = require('./create-overlay');
 const NFTOverlay = require('./nft-overlay');
 
-class ListNFT {
+class SelectNFT {
   constructor(app, mod, attach_events = true) {
     this.app = app;
     this.mod = mod;
@@ -37,8 +37,8 @@ class ListNFT {
 
         // re-render send-nft overlay if its open
         if (this.overlay.visible) {
-          //	this doesn't seem to trigger when NFT is just newly created by wallet
-          //	if (this.overlay.visible && (updated.length > 0 || persisted)) {
+          //  this doesn't seem to trigger when NFT is just newly created by wallet
+          //  if (this.overlay.visible && (updated.length > 0 || persisted)) {
           this.render();
         }
       });
@@ -46,17 +46,12 @@ class ListNFT {
   }
 
   async render() {
-    this.overlay.show(ListNFTTemplate(this.app, this.mod));
+    this.overlay.show(SelectNFTTemplate(this.app, this.mod));
     this.nft_list = await this.fetchNFT();
     await this.renderNFTList();
     setTimeout(() => {
       this.attachEvents();
     }, 25);
-  }
-
-  async renderNFTOverlay(nft) {
-    this.nft_overlay.nft = nft;
-    this.nft_overlay.render();
   }
 
   async renderNFTList() {
@@ -102,9 +97,12 @@ class ListNFT {
       container.innerHTML = html;
 
       for (let card of this.card_list) {
-        card.callback = (nft) => {
-          this.renderNFTOverlay(nft);
-        };
+        if (!card.callback) {
+          console.warn('Adding default callback to NFT card');
+          card.callback = (nft) => {
+            this.nft_overlay.render(nft);
+          };
+        }
         await card.render();
       }
     }
@@ -127,4 +125,4 @@ class ListNFT {
   }
 }
 
-module.exports = ListNFT;
+module.exports = SelectNFT;

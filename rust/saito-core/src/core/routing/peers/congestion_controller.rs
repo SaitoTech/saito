@@ -104,7 +104,7 @@ impl PeerCongestionControls {
     pub fn get_congestion_status(&self, current_time: Timestamp) -> PeerCongestionStatus {
         let mut current_status = PeerCongestionStatus::NoAction;
 
-        for (congestion_type, status) in &self.statuses {
+        for (_congestion_type, status) in &self.statuses {
             match status {
                 PeerCongestionStatus::Throttle(expiry_time) => {
                     if *expiry_time < current_time {

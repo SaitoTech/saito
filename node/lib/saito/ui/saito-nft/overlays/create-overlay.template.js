@@ -17,6 +17,7 @@ module.exports = (app, mod) => {
               <div class="withdraw-info-title">NFT Type</div>
               <select class="create-nft-type-dropdown" id="create-nft-type-dropdown" style="padding: 1rem 1.5rem; font-size: 1.6rem;">
                  <option value="image">Image</option>
+                 <option value="token">Token</option>
                  <option value="text">Text</option>
                  <option value="css">CSS</option>
                  <option value="json">JSON</option>
@@ -43,7 +44,7 @@ module.exports = (app, mod) => {
             
 
             <div class="withdraw-info-cont">
-              <span class="withdraw-info-title">Cost (SAITO)</span> 
+              <span class="withdraw-info-title">Deposit</span> 
                <input
                  type="text"
                  inputmode="numeric"

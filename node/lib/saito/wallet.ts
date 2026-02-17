@@ -6,9 +6,12 @@ import S from 'saito-js/saito';
 import { Saito } from '../../apps/core';
 import Slip from './slip';
 import Transaction from './transaction';
+import { TransactionType } from 'saito-js/lib/transaction';
+
 const getUuid = require('uuid-by-string');
 
 const CryptoModule = require('../templates/cryptomodule');
+const NFTCryptoModule = require('../templates/nftcryptomodule');
 
 interface PreferredTx {
   sig: string;
@@ -115,28 +118,27 @@ export default class Wallet extends SaitoWallet {
         });
       }
 
-      returnLogo() {
-        return '/saito/img/touch/pwa-192x192.png';
-      }
-
       // Check if I have a net change in slips amounts...
       shouldAffixCallbackToModule(modname, tx = null) {
         if (this.app.BROWSER) {
           if (tx.isTo(this.address) || tx.isFrom(this.address)) {
-            let to_amount = 0;
-            let from_amount = 0;
-            for (let i = 0; i < tx.to.length; i++) {
-              if (tx.to[i].publicKey == this.address) {
-                to_amount += Number(tx.to[i].amount);
+            console.log(tx.type, TransactionType.Normal, TransactionType.Bound);
+            if (tx.type == TransactionType.Normal || tx.type == TransactionType.Bound) {
+              let to_amount = 0;
+              let from_amount = 0;
+              for (let i = 0; i < tx.to.length; i++) {
+                if (tx.to[i].publicKey == this.address) {
+                  to_amount += Number(tx.to[i].amount);
+                }
               }
-            }
-            for (let i = 0; i < tx.from.length; i++) {
-              if (tx.from[i].publicKey == this.address) {
-                from_amount += Number(tx.from[i].amount);
+              for (let i = 0; i < tx.from.length; i++) {
+                if (tx.from[i].publicKey == this.address) {
+                  from_amount += Number(tx.from[i].amount);
+                }
               }
-            }
-            if (to_amount !== from_amount) {
-              return 1;
+              if (to_amount !== from_amount) {
+                return 1;
+              }
             }
           }
         }
@@ -165,14 +167,19 @@ export default class Wallet extends SaitoWallet {
         for (let i = 0; i < tx.to.length; i++) {
           if (tx.to[i].type == 0) {
             if (tx.to[i].publicKey == this.address) {
-              to_amount += BigInt(tx.to[i].amount);
+              // Make sure it is in my wallet slips
+              for (let j = 0; j < this.app.options.wallet.slips.length; j++) {
+                if (this.app.options.wallet.slips[j].utxokey == tx.to[i].utxoKey) {
+                  to_amount += BigInt(tx.to[i].amount);
+                }
+              }
             } else if (tx.to[i].amount > 0) {
               to_key = tx.to[i].publicKey;
             }
           }
         }
         for (let i = 0; i < tx.from.length; i++) {
-          if (tx.to[i].type == 0) {
+          if (tx.from[i].type == 0) {
             if (tx.from[i].publicKey == this.address) {
               from_amount += BigInt(tx.from[i].amount);
             } else if (tx.from[i].amount > 0) {
@@ -186,26 +193,43 @@ export default class Wallet extends SaitoWallet {
           return;
         }
 
+        await tx.decryptMessage(this.app);
         let obj = tx.returnMessage() || {};
+        let msg = '';
 
         if (from_amount) {
           // I sent money...
           console.log('I sent money');
+          if (!to_key) {
+            if (tx.isTo(this.address)) {
+              to_key = this.address;
+            }
+          }
           obj.amount = from_amount - to_amount;
           obj.from = this.address;
           obj.to = to_key;
+          msg = 'Sent: ';
         } else {
           // I received money...
           console.log('I received money');
           obj.amount = to_amount;
           obj.to = this.address;
           obj.from = from_key;
+          msg = 'Received: ';
         }
 
         obj.amount = this.app.wallet.convertNolanToSaito(obj.amount);
 
         if (!obj.module && !obj.request) {
-          obj.memo = 'unknown';
+          if (tx.type == 8) {
+            obj.memo = 'nft deposit';
+          } else {
+            obj.memo = 'unknown';
+          }
+        }
+
+        if (tx.type !== 8) {
+          this.app.browser.siteMessage(`${msg}${obj.amount} SAITO`);
         }
 
         console.log(obj);
@@ -493,6 +517,10 @@ export default class Wallet extends SaitoWallet {
         return this.app.wallet.isValidPublicKey(address);
       }
 
+      returnLogos() {
+        return { img: '/saito/img/saito-icon.png', alt_img: '/saito/img/logo.png' };
+      }
+
       async checkBalanceUpdate() {
         let balance = this.balance;
         await this.checkBalance();
@@ -627,11 +655,19 @@ export default class Wallet extends SaitoWallet {
       //
       // filter and resend pending txs
       //
-      if (!this.app.options.pending_txs) {
-        this.app.options.pending_txs = [];
+
+      let pending_txs: Array<any>;
+
+      if (this.app.BROWSER) {
+        pending_txs = (await this.app.storage.getLocalForageItem('pending_txs')) || [];
+      } else {
+        pending_txs = this.app.options?.pending_txs || [];
       }
-      let pending_txs = this.app.options.pending_txs;
-      this.app.options.pending_txs = [];
+
+      delete this.app.options.pending_txs;
+
+      console.info('Recovered pending_txs -- ', pending_txs);
+
       for (let i = pending_txs.length - 1, k = 0; i >= 0; i--, k++) {
         try {
           if (pending_txs[i].instance) {
@@ -670,7 +706,6 @@ export default class Wallet extends SaitoWallet {
   constructor(wallet: any) {
     super(wallet);
     this.saitoCrypto = null;
-    // this.recreate_pending_transactions = 0;
   }
 
   /**
@@ -731,13 +766,12 @@ export default class Wallet extends SaitoWallet {
     this.app.options.wallet.version = this.version;
     this.app.options.wallet.default_fee = this.default_fee.toString();
 
-    try {
-      this.app.options.pending_txs = await this.getPendingTransactions();
-      if (!this.app.options.pending_txs) {
-        this.app.options.pending_txs = [];
-      }
-    } catch (err) {
-      this.app.options.pending_txs = [];
+    let pending_txs = await this.getPendingTransactions();
+
+    if (this.app.BROWSER) {
+      await this.app.storage.setLocalForageItem('pending_txs', pending_txs);
+    } else {
+      this.app.options.pending_txs = pending_txs;
     }
 
     let slips = await this.getSlips();
@@ -795,7 +829,7 @@ export default class Wallet extends SaitoWallet {
     return activeMods;
   }
 
-  returnCryptoModuleByTicker(ticker) {
+  returnCryptoModuleByTicker(ticker = '') {
     const mods = this.returnInstalledCryptos(false);
     for (let i = 0; i < mods.length; i++) {
       // be case insensitive, just in case
@@ -803,8 +837,7 @@ export default class Wallet extends SaitoWallet {
         return mods[i];
       }
     }
-
-    throw 'Module Not Found: ' + ticker;
+    return null;
   }
 
   /**
@@ -1308,18 +1341,10 @@ export default class Wallet extends SaitoWallet {
   // temporarily disabled
   //
   public async addTransactionToPending(tx: Transaction, save = true) {
-    if (!this.app.options.pending_txs) {
-      this.app.options.pending_txs = [];
-    }
+    await S.getInstance().addPendingTx(tx);
+
     if (save) {
-      if (!this.app.options.pending_txs) {
-        this.app.options.pending_txs = [];
-      }
-      this.app.options.pending_txs.push(tx.serialize_to_web(this.app));
-    }
-    return S.getInstance().addPendingTx(tx);
-    if (save) {
-      this.app.storage.saveOptions();
+      await this.saveWallet();
     }
   }
 
@@ -1498,6 +1523,8 @@ export default class Wallet extends SaitoWallet {
       tx_sig: string;
     }> = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
+    console.log('UPDATE NFT LIST from Rust: ', nfts);
+
     //
     // snapshot local
     //
@@ -1633,6 +1660,11 @@ export default class Wallet extends SaitoWallet {
     //   await this.app.wallet.saveOptions?.();
     // }
 
+    //
+    // crypto (nfts) updated
+    //
+    this.app.connection.emit('saito-header-update-crypto');
+
     return { updated, rebroadcast, persisted };
   }
 
@@ -1698,6 +1730,22 @@ export default class Wallet extends SaitoWallet {
 
   /**
    *
+   *  Atomize an NFT
+   *
+   */
+  public async createAtomizeNFTTransaction(nft: any): Promise<Transaction> {
+    await nft.fetchTransaction();
+
+    return S.getInstance().createAtomizeBoundTransaction(
+      nft.slip1.utxo_key,
+      nft.slip2.utxo_key,
+      nft.slip3.utxo_key,
+      nft.txmsg
+    );
+  }
+
+  /**
+   *
    *  Merge an NFT
    *
    */
@@ -1728,8 +1776,9 @@ export default class Wallet extends SaitoWallet {
   // with them...
   //
   public async loadNFTs() {
-    console.log('LOAD NFTs');
     try {
+      let nft_balance_by_id = {};
+
       if (this.app.options.wallet.nfts) {
         for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
           let nft_sig = this.app.options?.wallet?.nfts[z]?.tx_sig;
@@ -1737,6 +1786,22 @@ export default class Wallet extends SaitoWallet {
           console.log(this.app.options.wallet.nfts[z].slip3?.utxo_key);
           let nft_type = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
           console.log(nft_type);
+
+          //
+          // check balance (will be used for wallet)
+          //
+          let nft = this.app.options.wallet.nfts[z];
+          try {
+            let amt = BigInt(nft.slip1.amount);
+            if (amt > 0n) {
+              if (!nft_balance_by_id[nft.id]) {
+                nft_balance_by_id[nft.id] = 0n;
+              }
+              nft_balance_by_id[nft.id] += amt;
+            }
+          } catch (err) {
+            console.warn('Invalid NFT amount:', nft.amount);
+          }
 
           //
           // we only load "enabled" NFTS
@@ -1774,39 +1839,94 @@ export default class Wallet extends SaitoWallet {
             }
           }
         }
+
+        /*****
+ * CREATE CRYPTO MOD
+ *
+	for (let nft_id in nft_balance_by_id) {
+
+	  let total = nft_balance_by_id[nft_id];
+	  if (total <= 0n) { continue; }
+
+	  let ticker = "";
+
+          for (let z = 0; z < this.app.options.wallet.nfts.length; z++) { 
+            let nft = this.app.options.wallet.nfts[z];
+            if (nft.id == nft_id) {
+	      ticker = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
+	    }
+	  }
+
+	  if (this.returnCryptoModuleByTicker(ticker) || ticker == "") {
+	    continue;
+	  }
+	
+	  let mod = new NFTCryptoModule(this.app, nft_id, {
+	    ticker,
+	    name: ticker
+	  });
+
+	  this.app.modules.mods.push(mod);
+	  await mod.initialize(this.app);
+	
+	  console.log(
+	    `NFT crypto module installed: ${ticker} (balance ${total.toString()})`
+	  );
+	}
+*****/
       }
     } catch (err) {
       console.log('Error: load nfts');
     }
   }
 
-  public async onNewBoundTransaction(tx: Transaction, save = true) {
+  public async onNewBoundTransaction(tx: Transaction) {
     try {
-      console.log('%');
-      console.log('%');
-      console.log('%');
-      console.log('%');
-      console.log('%');
-      console.log('%');
-      console.log('%');
-      console.log('%');
-      console.log('%');
-      console.log('saving new nft...');
-
+      console.log('%%% NFT %%%');
       tx.printSlips();
+      console.log('%%% %%% %%%');
 
       if (tx.isTo(this.app.wallet.publicKey)) {
-        console.log('yeah, it is for me!');
+        console.log('%%% yeah, it is for me!');
         let nft_list = this.app.options.wallet.nfts || [];
-        let nft_id = '';
+        let nft_id = this.computeNFTIdFromTx(tx);
+
         nft_list.forEach(function (nft) {
           if (nft.tx_sig == tx.signature) {
-            nft_id = nft.id;
+            console.log('Have nft saved locally');
+            if (nft_id !== nft.id) {
+              console.warn('Nft id mismatch!!!');
+              nft_id = nft.id;
+            }
           }
         });
-        tx.packData();
-        console.log('saving nft transaction: ' + nft_id);
-        this.app.storage.saveTransaction(tx, { field4: nft_id, preserve: 1 }, 'localhost');
+
+        let txmsg = tx.returnMessage();
+        let field1 = txmsg.module || 'NFT';
+
+        if (nft_id)
+          this.app.storage.loadTransactions(
+            { field4: nft_id },
+            (txs) => {
+              if (txs.length) {
+                console.log('%%% nft already in local archives' + nft_id);
+              } else {
+                console.log('%%% saving nft transaction: ' + nft_id);
+                tx.packData();
+                this.app.storage.saveTransaction(
+                  tx,
+                  { field1, field4: nft_id, preserve: 1 },
+                  'localhost'
+                );
+              }
+            },
+            'localhost',
+            0
+          );
+
+        if (!tx.isFrom(this.app.wallet.publicKey)) {
+          //this.app.browser.siteMessage
+        }
       }
     } catch (err) {
       console.error('Error while saving NFT tx to archive in wallet.ts: ', err);
@@ -1826,5 +1946,71 @@ export default class Wallet extends SaitoWallet {
     const decoder = new TextDecoder();
     const text = decoder.decode(typeBytes).replace(/\x00+$/, '');
     return text;
+  }
+
+  //
+  // We need a way to get nft_id from NFT tx.
+  //
+  // If the NFT belongs to us we can simply get nft_id
+  // from storage (app.options.wallet.nfts[i].id). But in cases
+  // where NFT doesnt belong to us (e.g listed on assetstore) we
+  // need to compute nft_id based on the NFT tx we have.
+  //
+  // This situation isnt unqiue to assetstore, other mods will be
+  // creating NFT objects based on NFT tx so doesnt makes sense for this
+  // method below to be placed in assetstore.
+  //
+
+  //
+  // Ideal way would be to let rust comoute this by sending NFT tx
+  // to rust. For now temporarily JS is handling this.
+  //
+
+  // Derive an NFT id from a tx
+  public computeNFTIdFromTx(tx: Transaction) {
+    if (!tx) {
+      return null;
+    }
+
+    // Prefer outputs; fall back to inputs
+    let s3 = (tx?.to && tx.to[2]) || (tx?.from && tx.from[2]);
+    if (!s3 || !s3.publicKey) {
+      return null;
+    }
+
+    let pk: any = s3.publicKey;
+    let bytes = null;
+
+    // Normalize to Uint8Array
+    if (pk instanceof Uint8Array || (typeof Buffer !== 'undefined' && pk instanceof Buffer)) {
+      bytes = new Uint8Array(pk);
+    } else if (typeof pk === 'string') {
+      if (/^[0-9a-fA-F]{66}$/.test(pk)) {
+        // Hex (33 bytes = 66 hex chars)
+        bytes = this.app.crypto.hexToBytes(pk);
+      } else {
+        // Assume Base58 (Saito-style pubkey encoding)
+        bytes = this.app.crypto.base58ToBytes(pk);
+      }
+    } else if (pk && typeof pk === 'object' && pk.data) {
+      bytes = new Uint8Array(pk?.data || pk);
+    }
+
+    if (!bytes) {
+      return null;
+    }
+
+    // Some encoders may prepend a 0x00; tolerate 34→33
+    if (bytes.length === 34 && bytes[0] === 0) {
+      bytes = bytes.slice(1);
+    }
+    if (bytes.length !== 33) {
+      return null;
+    }
+
+    // Return as hex string
+    return Array.from(bytes)
+      .map((b: number) => b.toString(16).padStart(2, '0'))
+      .join('');
   }
 }

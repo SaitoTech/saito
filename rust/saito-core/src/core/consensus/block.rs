@@ -972,7 +972,8 @@ impl Block {
         let treasury: Currency = Currency::from_be_bytes(bytes[189..197].try_into().unwrap());
         let burnfee: Currency = Currency::from_be_bytes(bytes[197..205].try_into().unwrap());
         let difficulty: u64 = u64::from_be_bytes(bytes[205..213].try_into().unwrap());
-        let avg_total_fees: Currency = Currency::from_be_bytes(bytes[213..221].try_into().unwrap()); // dupe below
+        let _avg_total_fees: Currency =
+            Currency::from_be_bytes(bytes[213..221].try_into().unwrap()); // dupe below
         let avg_fee_per_byte: Currency =
             Currency::from_be_bytes(bytes[221..229].try_into().unwrap());
         let avg_nolan_rebroadcast_per_block: Currency =
@@ -2281,7 +2282,7 @@ impl Block {
                 } else {
                     // our previous_previous_block is about to disappear, which means
                     // we should make note that these funds are slipping into our graveyard
-                    if let Some(previous_previous_block) =
+                    if let Some(_previous_previous_block) =
                         blockchain.blocks.get(&previous_block.previous_block_hash)
                     {
                         graveyard_contribution += previous_block.previous_block_unpaid;

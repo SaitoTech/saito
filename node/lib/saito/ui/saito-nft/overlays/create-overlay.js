@@ -16,7 +16,6 @@ class CreateNFT {
       this.render();
     });
     this.enable_deposit = false;
-    this.provide_metadata_overlay = new ProvideMetaDataOverlay(app, mod, container);
   }
 
   async render() {
@@ -86,6 +85,17 @@ class CreateNFT {
         obj.text = text;
       } catch (e) {
         salert('Provide parseable TEXT to create NFT');
+        return false;
+      }
+      processed = true;
+    }
+
+    if (this.nft_type === 'token' && processed == false) {
+      let text = document.querySelector('#create-nft-textarea').value;
+      try {
+        obj.ticker = text;
+      } catch (e) {
+        salert('Provide TOKEN name in TEXTAREA');
         return false;
       }
       processed = true;
@@ -270,17 +280,6 @@ class CreateNFT {
       true
     );
 
-    // const nftAmountInput = document.getElementById('create-nft-amount');
-
-    // nftAmountInput.addEventListener('input', function () {
-    //   let val = this.value;
-    //   val = val.replace(/[^\d.]/g, '');
-    //   if (val.includes('.')) {
-    //     val = val.split('.')[0];
-    //   }
-    //   this.value = val;
-    // });
-
     document.querySelector('#create-nft-type-dropdown').onchange = async (e) => {
       let element = e.target;
       this.nft_type = element.value;
@@ -298,10 +297,17 @@ class CreateNFT {
 
       let processed = false;
 
+      alert(this.nft_type + ' ... ');
+
       if (this.nft_type === 'text') {
         document.querySelector('#nft-image-upload').style.display = 'none';
         document.querySelector('#create-nft-textarea').style.display = 'flex';
         textarea.innerHTML = 'provide text or markdown';
+      }
+      if (this.nft_type === 'token') {
+        document.querySelector('#nft-image-upload').style.display = 'none';
+        document.querySelector('#create-nft-textarea').style.display = 'flex';
+        textarea.innerHTML = 'provide token ticker';
       }
       if (this.nft_type === 'js') {
         document.querySelector('#nft-image-upload').style.display = 'none';
@@ -389,6 +395,10 @@ class CreateNFT {
 
       this.overlay.close();
 
+      if (obj.ticker) {
+        this.nft_type = 'NFT-' + obj.ticker;
+      }
+
       let publickey = await this.app.wallet.getPublicKey();
       let newtx = await this.app.wallet.createMintNFTTransaction(
         BigInt(numNFT),
@@ -399,9 +409,8 @@ class CreateNFT {
         this.nft_type
       );
 
-      console.log('create nft 4');
-      this.provide_metadata_overlay.render(newtx);
-      console.log('create nft 5');
+      const nextOverlay = new ProvideMetaDataOverlay(this.app, this.mod);
+      nextOverlay.render(newtx);
     };
   }
 

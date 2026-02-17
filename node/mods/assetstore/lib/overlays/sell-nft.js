@@ -1,12 +1,12 @@
 let NFTDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
 
-class SendNFTOverlay extends NFTDetailsOverlay {
+class SellNFTOverlay extends NFTDetailsOverlay {
   constructor(app, mod) {
     super(app, mod, false);
   }
 
-  async render() {
-    await super.render();
+  render(nft) {
+    super.render(nft);
 
     Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
       (el) => (el.style.display = 'none')
@@ -36,11 +36,12 @@ class SendNFTOverlay extends NFTDetailsOverlay {
     }
 
     setTimeout(() => {
-      this.attachMyEvents();
+      this.attachEvents();
     }, 25);
   }
 
-  async attachMyEvents() {
+  attachEvents() {
+    super.attachEvents();
     let input = document.querySelector('#nft-buy-price');
     let desc = document.querySelector('#nft-buy-description');
     let MIN = 0.00000001;
@@ -115,11 +116,12 @@ class SendNFTOverlay extends NFTDetailsOverlay {
         return;
       }
 
-      try {
-        // appear responsive...
-        this.overlay.close();
-        siteMessage('Sending NFT to the store...', 3000);
+      // appear responsive...
+      this.overlay.close();
+      this.app.connection.emit('saito-nft-list-close-request');
+      siteMessage('Sending NFT to the store...', 3000);
 
+      try {
         let opt = {
           nft: this.nft,
           receiver: receiver,
@@ -130,17 +132,12 @@ class SendNFTOverlay extends NFTDetailsOverlay {
 
         let newtx = await this.mod.createListAssetTransaction(opt);
         await this.app.network.propagateTransaction(newtx);
-        await this.app.storage.saveTransaction(
-          newtx,
-          { field4: newtx.signature },
-          'localhost',
-          null
-        );
       } catch (err) {
+        console.error(err);
         salert('Failed to list: ' + (err?.message || err));
       }
     };
   }
 }
 
-module.exports = SendNFTOverlay;
+module.exports = SellNFTOverlay;

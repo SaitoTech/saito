@@ -59,7 +59,10 @@ class Withdraw {
 
     document.querySelector('.withdraw-info-value.balance').innerHTML =
       `${this.app.browser.formatDecimals(this.pc.returnBalance())}`;
-    document.querySelector(`.withdraw-img-${this.pc.ticker}`).classList.remove('hide-element');
+
+    document
+      .querySelectorAll(`#withdraw-logo-cont img[data-ticker="${this.pc.ticker}"]`)
+      .forEach((el) => el.classList.remove('hide-element'));
 
     await this.fetchWithdrawFee();
 
@@ -85,7 +88,13 @@ class Withdraw {
 
         this.app.browser.addElementToId(html, 'withdraw-select-crypto');
 
-        let img_html = `<img class="withdraw-img-${crypto_mod.ticker} hide-element" src="${crypto_mod.returnLogo()}">`;
+        let icons = crypto_mod.returnLogos();
+
+        let img_html = `<img class="crypto-logo hide-element" data-ticker="${crypto_mod.ticker}" src="${icons.img}">`;
+        if (icons.sub_logo) {
+          img_html += `<img class="chain-logo hide-element" data-ticker="${crypto_mod.ticker}" src="${icons.sub_logo}">`;
+        }
+
         this.app.browser.addElementToId(img_html, 'withdraw-logo-cont');
       }
     }
@@ -98,7 +107,13 @@ class Withdraw {
       let element = e.target;
 
       document.querySelector('.withdraw-info-value.balance').innerHTML = `fetching...`;
-      document.querySelector(`.withdraw-img-${this.pc.ticker}`).classList.add('hide-element');
+      document
+        .querySelectorAll(`#withdraw-logo-cont img`)
+        .forEach((el) => el.classList.add('hide-element'));
+
+      document
+        .querySelectorAll(`#withdraw-logo-cont img[data-ticker="${element.value}"]`)
+        .forEach((el) => el.classList.remove('hide-element'));
 
       await this.app.wallet.setPreferredCrypto(element.value);
       this.fee = null;
@@ -114,7 +129,6 @@ class Withdraw {
 
       this.pc = this.app.wallet.returnPreferredCrypto();
       this.ticker = this.pc.ticker;
-      document.querySelector(`.withdraw-img-${this.ticker}`).classList.remove('hide-element');
       await this.fetchWithdrawFee();
 
       setTimeout(async () => {

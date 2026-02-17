@@ -1,5 +1,5 @@
 module.exports = (mod) => {
-	return `		<div class="main">
+  return `		<div class="main">
 			<div class="saito-overlay-form withdraw-container">
 				<div class="saito-overlay-form-header">
 					<div class="saito-overlay-form-header-title withdraw-title">

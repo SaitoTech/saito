@@ -26,13 +26,13 @@ class ETH extends ModTemplate {
 				asset_id: this.asset_id
 			};
 		}
-		if (type == 'crypto-logo') {
+		/*if (type == 'crypto-logo') {
 			if (obj?.ticker == this.ticker) {
 				return {
 					img: `/eth/img/logo2.png`
 				};
 			}
-		}
+		}*/
 
 		return null;
 	}

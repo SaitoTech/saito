@@ -116,10 +116,21 @@ class MsgHandler {
     }
 }
 
+export { MsgHandler };
+
+if (typeof module !== "undefined") {
+  module.exports = { MsgHandler };
+}
+
+//
+// FEB 12, 2026 - above replaces this
+//module.exports = exports = {MsgHandler};
+//
+
+
 // if (typeof exports === "undefined") {
 //     module.exports = {MsgHandler};
 // } else {
 //     exports = {MsgHandler};
 // }
-module.exports = exports = {MsgHandler};
 // export {MsgHandler};

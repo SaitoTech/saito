@@ -3,6 +3,7 @@ const AdminModulesUI = require("./modules");
 const AdminOverviewUI = require("./overview");
 const AdminOptionsUI = require("./options");
 const AdminPeersUI = require("./peers");
+const AdminDatabaseUI = require("./database");
 
 class AdminMain {
 
@@ -14,6 +15,7 @@ class AdminMain {
     this.options_ui = new AdminOptionsUI(app, mod);
     this.overview_ui = new AdminOverviewUI(app, mod);
     this.peers_ui = new AdminPeersUI(app, mod);
+    this.database_ui = new AdminDatabaseUI(app, mod);
   }
 
   render(view="overview") {
@@ -54,6 +56,10 @@ class AdminMain {
 
     if (view == "peers") {
       this.peers_ui.render();
+    }
+
+    if (view == "database") {
+      this.database_ui.render();
     }
 
     if (view == "modules") {

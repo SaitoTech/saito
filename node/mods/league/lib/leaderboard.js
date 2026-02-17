@@ -39,7 +39,6 @@ class Leaderboard {
 			!this.league.timestamp ||
 			this.league.timestamp + 900000 < new Date().getTime()
 		) {
-			document.querySelector(this.container + ' .leaderboard-updating-msg').style.display = 'block';
 			if (this.mod.debug) {
 				console.debug(
 					this.league.numPlayers,
@@ -48,10 +47,6 @@ class Leaderboard {
 				);
 			}
 			this.mod.fetchLeagueLeaderboard(this.league.id, (rows) => {
-				if (document.querySelector(this.container + ' .leaderboard-updating-msg')) {
-					document.querySelector(this.container + ' .leaderboard-updating-msg').style.display =
-						'none';
-				}
 				this.renderLeaderboardContents();
 			});
 		}

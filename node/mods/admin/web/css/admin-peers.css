@@ -186,3 +186,46 @@
   }
 }
 
+
+.admin-peers-divider {
+  margin: 40px 0;
+  border: none;
+  border-top: 1px solid #e5e5e5;
+}
+
+.admin-live-peers h2 {
+  margin-bottom: 10px;
+}
+
+.admin-live-peers-description {
+  margin-bottom: 15px;
+  color: #666;
+  font-size: 14px;
+}
+
+#refresh-live-peers-button {
+  margin-bottom: 20px;
+}
+
+.admin-live-peers-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin-live-peers-table th,
+.admin-live-peers-table td {
+  border: 1px solid #e0e0e0;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.admin-live-peers-table th {
+  background: #f7f7f7;
+  font-weight: 600;
+}
+
+.admin-live-peer-error {
+  color: #c62828;
+  font-weight: 500;
+}

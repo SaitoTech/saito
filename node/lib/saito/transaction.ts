@@ -125,6 +125,7 @@ export default class Transaction extends SaitoTransaction {
 
   async decryptMessage(app: Saito) {
     if (!app) {
+      console.error('Need to pass Saito App into decryptMessage');
       return;
     }
     let myPublicKey = await app.wallet.getPublicKey();

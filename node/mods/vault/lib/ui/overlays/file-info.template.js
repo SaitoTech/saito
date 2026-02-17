@@ -7,7 +7,7 @@ module.exports = (app, mod, file_info = {}) => {
     <div class="vault-file-info-loading-inner">
       <div class="vault-loading-title">Uploading file</div>
       <div class="vault-loading-spinner">
-        <img src="/saito/img/spinner.svg" />
+        <div class="saito_spinner"></div>
       </div>
       <div class="vault-loading-subtext">
         Finalizing secure access key…

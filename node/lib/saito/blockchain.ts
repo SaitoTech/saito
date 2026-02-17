@@ -112,7 +112,7 @@ export default class Blockchain extends SaitoBlockchain {
         // here by flagging the transactions which have them and sending them to teh wallet.
         //
         if (txs[z].type == TransactionType.Bound) {
-          console.log('into wallet on new bound tx');
+          console.log('into wallet on new bound tx', txs[z].type, TransactionType.Bound);
           this.app.wallet.onNewBoundTransaction(txs[z]);
         }
 

@@ -14,7 +14,7 @@ async function fetchBlock(hash) {
     .then((data) => {
       listTransactions(data, hash);
 
-      if (document.querySelector(".block-transactions-table") == null) {
+      if (document.querySelector('.block-transactions-table') == null) {
         loadBlockFromDisk(hash);
       }
     })
@@ -28,16 +28,16 @@ async function loadBlockFromDisk(hash) {
   try {
     var url = window.location.origin + `/lite-block-disk/${hash}`;
 
-    await fetch(url).then((response) => response.json())
-    .then((data) => {
-      document.querySelector(".txlist").innerHTML = (data.html);
-    })
-    .catch((err) => {
-      console.error('Error fetching content: ' + err);
-      return '';
-    });
-
-  } catch(err) {
+    await fetch(url)
+      .then((response) => response.json())
+      .then((data) => {
+        document.querySelector('.txlist').innerHTML = data.html;
+      })
+      .catch((err) => {
+        console.error('Error fetching content: ' + err);
+        return '';
+      });
+  } catch (err) {
     console.error('Error fetching block from disk: ' + err);
   }
 }
@@ -60,10 +60,7 @@ function drawRawBlock(blk, hash) {
     jsonBlk.innerHTML += "<div class='block-row-" + index + "'></div>";
   });
   blk.forEach((row, index) => {
-    var tree = jsonTree.create(
-      row,
-      document.querySelector('.block-row-' + index)
-    );
+    var tree = jsonTree.create(row, document.querySelector('.block-row-' + index));
   });
 }
 
@@ -71,17 +68,17 @@ function listTransactions(blk, hash) {
   let nolan_per_saito = 100000000;
 
   var html = '<div class="block-table">';
-  html += "<div><h4>id</h4></div><div>" + blk.id + "</div>";
-  html += "<div><h4>hash</h4></div><div>" + hash + "</div>";
-  html += "<div><h4>creator</h4></div><div>" + blk.creator + "</div>";
+  html += '<div><h4>id</h4></div><div>' + blk.id + '</div>';
+  html += '<div><h4>hash</h4></div><div>' + hash + '</div>';
+  html += '<div><h4>creator</h4></div><div>' + blk.creator + '</div>';
   html +=
     '<div><h4>source</h4></div><div><a href="/explorer/blocksource?hash=' +
     hash +
     '">click to view source</a></div>';
-  html += "</div>";
+  html += '</div>';
 
   if (blk.transactions.length > 0) {
-    html += "<h3>Bundled Transactions:</h3></div>";
+    html += '<h3>Bundled Transactions:</h3></div>';
 
     html += '<div class="block-transactions-table">';
     html += '<div class="table-header">id</div>';
@@ -123,39 +120,41 @@ function listTransactions(blk, hash) {
       tx_fees = inputs - outputs;
 
       //}
-      let tx_from = "fee tx";
+      let tx_from = 'fee tx';
       if (tmptx.from.length > 0) {
         tx_from = tmptx.from[0].publicKey;
-      } else if (tmptx.type===6){
-        tx_from = "issuance tx";
+      } else if (tmptx.type === 6) {
+        tx_from = 'issuance tx';
         tx_fees = 0;
-      } else if (tmptx.type===7){
-        tx_from = "block stake tx";
+      } else if (tmptx.type === 7) {
+        tx_from = 'block stake tx';
       }
 
       html += `<div><a onclick="showTransaction('tx-` + tmptx.id + `');">` + mt + `</a></div>`;
       html += `<div><a onclick="showTransaction('tx-` + tmptx.id + `');">` + tx_from + `</a></div>`;
-      html += "<div>" + (BigInt(tx_fees) * BigInt(nolan_per_saito)) + "</div>";
-      html += "<div>" + tmptx.type + "</div>";
+      html += '<div>' + BigInt(tx_fees) * BigInt(nolan_per_saito) + '</div>';
+      html += '<div>' + tmptx.type + '</div>';
       if (tmptx.type == 0) {
         if (tmptx.msg.module) {
-          html += "<div>" + tmptx.msg.module + "</div>";
+          html += '<div>' + tmptx.msg.module + '</div>';
+        } else if (Number(outputs) > 0) {
+          html += '<div>Money</div>';
         } else {
-          html += "<div>Money</div>";
+          html += '<div>encrypted</div>';
         }
       }
       if (tmptx.type == 1) {
-        html += "<div>" + tmptx.msg.name + "</div>";
+        html += '<div>' + tmptx.msg.name + '</div>';
       }
       if (tmptx.type > 1) {
-        html += "<div> </div>";
+        html += '<div> </div>';
       }
-      html += '<div class="hidden txbox tx-' + tmptx.id + '">' + JSON.stringify(tmptx) + "</div>";
+      html += '<div class="hidden txbox tx-' + tmptx.id + '">' + JSON.stringify(tmptx) + '</div>';
     }
-    html += "</div>";
+    html += '</div>';
   }
   //return html;
-  document.querySelector(".txlist").innerHTML = html;
+  document.querySelector('.txlist').innerHTML = html;
 }
 
 function showTransaction(obj) {
@@ -183,7 +182,7 @@ async function* makeTextFileLineIterator(fileURL) {
   let startIndex = 0;
   let result;
 
-  for (; ;) {
+  for (;;) {
     let result = re.exec(chunk);
     if (!result) {
       if (readerDone) {
@@ -204,11 +203,11 @@ async function* makeTextFileLineIterator(fileURL) {
   }
 }
 
-async function checkBalance(pubkey = "") {
+async function checkBalance(pubkey = '') {
   if (pubkey) {
     // API
     let balance = await balanceAPI();
-    let supply = 0.0
+    let supply = 0.0;
     if (balance.hasOwnProperty(pubkey)) {
       document.querySelector('.balance-search-input').placeholder = pubkey;
       let balance_nolan = balance[pubkey] || 0;
@@ -221,8 +220,6 @@ async function checkBalance(pubkey = "") {
   }
 }
 
-
-
 async function checkAllBalance() {
   // API
   let balance = await balanceAPI();
@@ -230,31 +227,33 @@ async function checkAllBalance() {
   let supply = BigInt(0);
 
   // draw
-  let node = document.querySelector(".explorer-balance-table");
+  let node = document.querySelector('.explorer-balance-table');
   for (row in balance) {
     supply = supply + BigInt(balance[row]);
 
-    let wallet = document.createElement("div");
-    wallet.setAttribute("class", "explorer-balance-data");
+    let wallet = document.createElement('div');
+    wallet.setAttribute('class', 'explorer-balance-data');
     wallet.innerHTML = row;
     node.appendChild(wallet);
 
-    let balance_saito = document.createElement("div");
-    balance_saito.setAttribute("class", "explorer-balance-data");
+    let balance_saito = document.createElement('div');
+    balance_saito.setAttribute('class', 'explorer-balance-data');
     let nolan_per_saito = parseFloat(balance[row]) / 100000000;
     balance_saito.innerHTML = formatNumberLocale(nolan_per_saito);
     node.appendChild(balance_saito);
 
-    let balance_nolan = document.createElement("div");
-    balance_nolan.setAttribute("class", "explorer-balance-data");
+    let balance_nolan = document.createElement('div');
+    balance_nolan.setAttribute('class', 'explorer-balance-data');
     balance_nolan.innerHTML = balance[row];
     node.appendChild(balance_nolan);
   }
-  document.querySelector('.balance-saito').innerHTML = formatNumberLocale(parseFloat(supply) / 100000000);
+  document.querySelector('.balance-saito').innerHTML = formatNumberLocale(
+    parseFloat(supply) / 100000000
+  );
   document.querySelector('.balance-nolan').innerHTML = formatNumberLocale(supply);
 }
 
-async function balanceAPI(pubkey = "") {
+async function balanceAPI(pubkey = '') {
   // API
   let response = await fetch('/balance/' + pubkey);
   let data = await response.text();
@@ -262,9 +261,10 @@ async function balanceAPI(pubkey = "") {
   // format
   data = data.split(/\n/).filter(Boolean); // undefined = 0?
   let balance_list = {};
-  for (let i = 1; i < data.length; i++) { /**
-   * i = 0 -> first line is file name.
-   */
+  for (let i = 1; i < data.length; i++) {
+    /**
+     * i = 0 -> first line is file name.
+     */
     let row = data[i];
     row = row.split(/\s/);
     if (balance_list.hasOwnProperty(row[0])) {
@@ -277,11 +277,11 @@ async function balanceAPI(pubkey = "") {
 }
 
 function formatNumberLocale(number) {
-  const locale = (window.navigator?.language) ? window.navigator?.language : 'en-US';
+  const locale = window.navigator?.language ? window.navigator?.language : 'en-US';
   const numberFormatter = new Intl.NumberFormat(locale, {
     minimumFractionDigits: 1,
     // maximumFractionDigits: 4,
-    minimumSignificantDigits: 1,
+    minimumSignificantDigits: 1
     // maximumSignificantDigits: 4
   });
   return numberFormatter.format(number);

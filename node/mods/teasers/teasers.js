@@ -21,34 +21,39 @@ class Teasers extends ModTemplate {
         slug: 'his',
         img: 'https://staging.saito.io/his/img/arcade/arcade.jpg',
         title: 'Here I Stand',
-        link: 'https://wiki.saito.io/tech/applications/his'
-      },
+        link: 'https://wiki.saito.io/applications/his'
+      } ,
       {
         name: 'Paths',
         slug: 'paths',
         img: 'https://staging.saito.io/paths/img/arcade/arcade.jpg',
         title: 'Paths of Glory',
-        link: 'https://wiki.saito.io/tech/applications/paths'
-      },
+        link: 'https://wiki.saito.io/applications/paths'
+      } ,
       {
         name: 'Twilight',
         slug: 'twilight',
         img: 'https://staging.saito.io/twilight/img/arcade/arcade.jpg',
         title: 'Twilight',
-        link: 'https://wiki.saito.io/tech/applications/twilight'
-      },
-      {
-        name: 'Quake3',
-        slug: 'quake3',
-        img: 'https://staging.saito.io/quake3/img/arcade/arcade.jpg',
-        title: 'Quake3',
-        link: 'https://wiki.saito.io/tech/applications/quake3'
-      }
+        link: 'https://wiki.saito.io/applications/twilight'
+      } ,
+      { 
+	name : "Nintendo" , 
+	slug : "nwasm" , 
+	img : "https://staging.saito.io/nwasm/img/arcade/arcade.jpg" , 
+	title : "Nintendo" , 
+	link : "https://wiki.saito.io/applications/nwasm" 
+      } ,
+      { 
+	name : "Imperium" , 
+	slug : "imperium" , img : "https://staging.saito.io/imperium/img/arcade/arcade.jpg" , 
+	title : "Red Imperium" , 
+	link : "https://wiki.saito.io/applications/imperium" 
+      } 
       /****
       { name : "Blackjack" , slug : "blackjack" , img : "https://staging.saito.io/blackjack/img/arcade/arcade.jpg" , title : "Blackjack" , link : "https://wiki.saito.io/tech/applications/blackjack" } ,
       { name : "Chess" , slug : "chess" , img : "https://staging.saito.io/chess/img/arcade/arcade.jpg" , title : "Chess" , link : "https://wiki.saito.io/tech/applications/chess" }     ,
       { name : "Hearts" , slug : "hearts" , img : "https://staging.saito.io/hearts/img/arcade/arcade.jpg" , title : "Hearts" , link : "https://wiki.saito.io/tech/applications/hearts" }      ,
-      { name : "Imperium" , slug : "imperium" , img : "https://staging.saito.io/imperium/img/arcade/arcade.jpg" , title : "Red Imperium" , link : "https://wiki.saito.io/tech/applications/imperium" }  ,
       { name : "Quake3" , slug : "quake3" , img : "https://staging.saito.io/quake3/img/arcade/arcade.jpg" , title : "Quake3" , link : "https://wiki.saito.io/tech/applications/quake3" }      ,
       { name : "Poker" , slug : "poker" , img : "https://staging.saito.io/poker/img/arcade/arcade.jpg" , title : "Poker" , link : "https://wiki.saito.io/tech/applications/poker" }     ,
       { name : "SaitoMania" , slug : "saitomania" , img : "https://staging.saito.io/saitomania/img/arcade/arcade.jpg" , title : "Saito Mania" , link : "https://wiki.saito.io/tech/applications/saitomania" } ,
@@ -61,7 +66,6 @@ class Teasers extends ModTemplate {
       
       { name : "Wordblocks" , slug : "wordblocks" , img : "https://staging.saito.io/wordblocks/img/arcade/arcade.jpg" , title : "Wordblocks" , link : "https://wiki.saito.io/tech/applications/wordblocks" }  ,
       { name : "Wuziqi" , slug : "wuziqi" , img : "https://staging.saito.io/wuziqi/img/arcade/arcade.jpg" , title : "Wuziqi" , link : "https://wiki.saito.io/tech/applications/wuziqi" }      ,
-      { name : "Nintendo" , slug : "nwasm" , img : "https://staging.saito.io/nwasm/img/arcade/arcade.jpg" , title : "Nintendo" , link : "https://wiki.saito.io/tech/applications/nwasm" } ,
 ***/
     ];
   }
@@ -76,8 +80,8 @@ class Teasers extends ModTemplate {
       for (let z = 0; z < this.teasers.length; z++) {
         let t = this.teasers[z];
         let install_this = true;
-        for (let zz = 0; zz < app.modules.mods.length; zz++) {
-          if (app.modules.mods[zz].name == t.name) {
+        for (let zz = 0; zz < app.options.modules.length; zz++) {
+          if (app.options.modules[zz].name == t.name) {
             install_this = false;
           }
         }

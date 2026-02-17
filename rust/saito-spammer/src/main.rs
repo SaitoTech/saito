@@ -195,7 +195,6 @@ async fn run_consensus_event_processor(
             )),
             peer_lock.clone(),
             context.wallet_lock.clone(),
-            context.config_lock.clone(),
             timer.clone(),
         ),
         block_producing_timer: 0,
@@ -321,7 +320,6 @@ async fn run_routing_event_processor(
             )),
             peers_lock.clone(),
             context.wallet_lock.clone(),
-            context.config_lock.clone(),
             timer.clone(),
         ),
         storage: Storage::new(Box::new(RustIOHandler::new(sender, 1))),
@@ -524,7 +522,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let keys = generate_keys();
     let wallet = Arc::new(RwLock::new(Wallet::new(private_key, public_key)));
     {
-        let configs = configs_clone.write().await;
+        let _configs = configs_clone.write().await;
         let mut wallet = wallet.write().await;
         let (sender, _receiver) = tokio::sync::mpsc::channel::<IoEvent>(channel_size);
         Wallet::load(&mut wallet, &(RustIOHandler::new(sender, 1))).await;

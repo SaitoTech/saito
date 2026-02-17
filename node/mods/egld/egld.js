@@ -22,7 +22,7 @@ class EGLDModule extends CryptoModule {
     this.proxyNetworkProvider = null;
     this.networkConfig = null;
 
-    this.slug = "egld";
+    this.slug = 'egld';
     this.account = null;
     this.address_obj = null;
     this.secretKey = null;
@@ -638,7 +638,8 @@ class EGLDModule extends CryptoModule {
                             <path class="st0" d="M106.4,74L192,28L177.6,0.2L99.2,32.1c-2,0.8-4.3,0.8-6.3,0L14.5,0.2L0.1,28l85.6,46l-85.6,46l14.4,27.8
                                 l78.4-31.9c2-0.8,4.3-0.8,6.3,0l78.4,31.9l14.4-27.8L106.4,74z"/>
                             </svg>
-                        `
+                        `,
+            img: '/egld/img/logo.png'
           };
         }
       }

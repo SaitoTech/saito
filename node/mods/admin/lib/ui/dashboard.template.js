@@ -3,23 +3,6 @@ module.exports = (mod) => {
   const options = mod?.server_info?.options || {};
   const block_production_enabled =
     options.consensus?.disable_block_production === false;
-  const home_app = options.home_app || "";
-
-  const splash_apps = [
-    { id: "redsquare", label: "RedSquare" },
-    { id: "arcade", label: "Arcade" },
-    { id: "store", label: "Store" },
-    { id: "other", label: "Other" }
-  ];
-
-  let splash_html = splash_apps.map(app => {
-    const selected = home_app === app.id ? "selected" : "";
-    return `
-      <div class="splash-card ${selected}" data-app="${app.id}">
-        <div class="splash-title">${app.label}</div>
-      </div>
-    `;
-  }).join("");
 
   return `
     <div class="admin-dashboard">
@@ -30,35 +13,77 @@ module.exports = (mod) => {
 	  On this page you can now enable/disable block production and select the application 
 	  that you want to display by default.
         </p>
-      </div>
-
-      <div class="dashboard-section">
-        <h2>Active</h2>
-  <button
-    id="block-production-btn"
-    class="${block_production_enabled ? "enabled" : "disabled"}"
-  >
-    ${block_production_enabled
-      ? "Disable Block Production"
-      : "Enable Block Production"}
-  </button>
-      </div>
-
-      <div class="dashboard-section">
-        <h2>Applications</h2>
-        p>
-          Choose which application loads at the root (<code>/</code>) of your server.
-          You can change this later as you install new apps.
-        </p>
-        <div class="splash-grid">
-          ${splash_html}
+        <div class="dashboard-note" id="dashboard-note">
         </div>
       </div>
 
-      <div class="dashboard-note" id="dashboard-note">
-      </div>
 
+      <div class="dashboard-admin-keys" id="dashboard-admin-keys">
+<div class="admin-keys-panel">
+  <h2>Local Development Keys</h2>
+  <p class="keys-warning">
+    These private keys have tokens available. You can import them into browser wallets
+    using the import key function. They should be used for <strong>local development only</strong>
+    as they are publicly shared. Do not use them on public networks.
+  </p>
+
+  <div class="keys-table">
+    <div class="keys-row header">
+      <div>Private Key</div>
+      <div>Public Key</div>
     </div>
+
+    <div class="keys-row">
+      <code class="private">d62cd978a0bac0bcf97eff82f7388c6210f649e2126c332dcee3894cfd77a103</code>
+      <code class="public">wDwNGzgx1yn2N21gHiHs43USRiXPx9H9NAcef1UZjLRX</code>
+    </div>
+
+    <div class="keys-row">
+      <code class="private">0435658a9dd54ce741b4ce4789711707e8cf4aa7e841a76ff5df0313caf941d1</code>
+      <code class="public">sHs6UQb5TDN5WTJ4nnehSUo79uCMxZaCENrzPzGiV6pJ</code>
+    </div>
+
+    <div class="keys-row">
+      <code class="private">c8beb43281c53efea632d3a6185577b446ab1403b4b67525f8e8aef4f7513ba6</code>
+      <code class="public">h17F8nAJ6BEsFuUbD4EbQKwHHYQBZxzwQpAsL58akY7m</code>
+    </div>
+
+    <div class="keys-row">
+      <code class="private">7614198ed41f4214729a7d5957c2e79d969792d3046bfd43348b8bed5567f582</code>
+      <code class="public">xM2vUs5XCpNjYjcgxk4yVhybDcayk3tnwZNWrFg7jRGs</code>
+    </div>
+
+    <div class="keys-row">
+      <code class="private">45dd08cfa770778c5dcaa9d6c0e63815f16dda79c43cf6aaadbbcae017a8bd5d</code>
+      <code class="public">tFCXYDgmKxTZTKG1wDuLLkLW1T1tZ5uiz4fZDPeYGWfC</code>
+    </div>
+
+    <div class="keys-row">
+      <code class="private">ce17f5286520182283876638ffc36bc8a0db3e2498dddcc30587cfa94eb4b50d</code>
+      <code class="public">zavTygq2xGHETckJvnMNfgY5UpqWEU46vBXyVz2wUZgz</code>
+    </div>
+
+    <div class="keys-row">
+      <code class="private">7462b66d116779aafd485d86fce0e7c86e7396e0fb8b6b995bba0a9578ba9466</code>
+      <code class="public">dd4s6mdnYdq4bb7QtcwTRWoq7hApUiQrDGi9CE8hvfdc</code>
+    </div>
+
+    <div class="keys-row">
+      <code class="private">f2a7da8b170894bac3152957c6b45a0b5af823cef9224df5cb66807042ec8917</code>
+      <code class="public">bujP18K4fkzHvtuRriXqgN6ay8AmUjhoRSj9jjBXohkj</code>
+    </div>
+
+    <div class="keys-row">
+      <code class="private">503ed5ff51f2a17866ce8ca34013e58bb697a4aae740c40e6d1c1d3cf0d528a0</code>
+      <code class="public">muJ8J1paK3nvHdFtdpakTejgCsAVkFmG7rGkc2dvCNpm</code>
+    </div>
+
+    <div class="keys-row">
+      <code class="private">5e8baa6faf568242ab7bce2cbdaa7684d50de778f2e873f2423cd0d3c955fbed</code>
+      <code class="public">urxxJT3p3wBNM1FSpF8nCUd8mKbyqGARbgDybr43Umna</code>
+    </div>
+  </div>
+</div>
   `;
 };
 
