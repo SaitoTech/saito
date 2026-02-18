@@ -139,6 +139,24 @@ impl NetworkController {
 
             info!("connected to peer : {:?}", url,);
 
+            // let network_peer: NetworkPeer = {
+            //     let network_controller = network_controller.read().await;
+            //
+            //     let mut selected_peer = None;
+            //     for (key, (peer, _)) in network_controller.network_peers.iter() {
+            //         if let Some(url2) = peer.url.as_ref() {
+            //             if url == *url2 {
+            //                 selected_peer = Some(peer);
+            //             }
+            //         }
+            //     }
+            //     if let Some(peer) = selected_peer {
+            //         peer.clone()
+            //     } else {
+            //         NetworkPeer::new(Some(url))
+            //     }
+            // };
+
             let network_peer = NetworkPeer::new(Some(url));
 
             NetworkController::handle_new_connection(
@@ -177,7 +195,7 @@ impl NetworkController {
                 );
                 if !Self::send(sender, buffer.clone()).await {
                     warn!(
-                        "failed sending buffer of size : {:?} to peer : {:?}",
+                        "failed sending buffer (all) of size : {:?} to peer : {:?}",
                         buffer.len(),
                         key.to_base58()
                     );
@@ -400,6 +418,12 @@ impl NetworkController {
         debug!("starting new task for reading from peer",);
         tokio::spawn(async move {
             debug!("new thread started for peer receiving");
+
+            let network_controller_clone = network_controller.clone();
+            let wallet_clone = wallet.clone();
+            let configs_clone = configs.clone();
+            let socket_lock = Arc::new(Mutex::new(Some(socket)));
+
             // let mut public_key = None;
             match receiver {
                 PeerReceiver::Warp(mut receiver) => loop {
@@ -412,45 +436,83 @@ impl NetworkController {
                     if result.is_err() {
                         // TODO : handle peer disconnections
                         warn!("failed receiving message [1] : {:?}", result.err().unwrap());
-                        let mut network_controller = network_controller.write().await;
-                        network_controller.disconnect_socket(socket).await;
+                        let mut network_controller = network_controller_clone.write().await;
+                        if let Some(socket) = socket_lock.lock().await.take() {
+                            network_controller.disconnect_socket(socket).await;
+                        }
                         // NetworkController::disconnect_socket(sockets, sender).await;
                         break;
                     }
                     let result = result.unwrap();
 
-                    let mut network_controller = network_controller.write().await;
                     if result.is_binary() {
                         let buffer = result.into_bytes();
                         trace!("received buffer of size : {:?}", buffer.len());
+                        let network_controller_for_closure = network_controller_clone.clone();
+                        let socket_lock_for_closure = socket_lock.clone();
+
                         let result = peer
                             .process_incoming_buffer(
                                 buffer,
                                 // &mut public_key,
-                                wallet.clone(),
-                                configs.clone(),
+                                wallet_clone.clone(),
+                                configs_clone.clone(),
                                 &timer,
-                                &network_controller.services,
-                                async |event| {
-                                    let message = IoEvent {
-                                        event_processor_id: 1,
-                                        event,
-                                    };
-                                    network_controller
-                                        .sender_to_core
-                                        .send(message)
-                                        .await
-                                        .expect("sending failed");
+                                &network_controller_clone.read().await.services,
+                                |event| {
+                                    let network_controller = network_controller_for_closure.clone();
+                                    let socket_lock = socket_lock_for_closure.clone();
+                                    async move {
+                                        let mut peer_to_store = None;
+                                        if let NetworkEvent::PeerConnectionResult {
+                                            result: Ok(ref peer),
+                                        } = event
+                                        {
+                                            peer_to_store = Some(peer.clone());
+                                        }
+
+                                        let message = IoEvent {
+                                            event_processor_id: 1,
+                                            event,
+                                        };
+                                        let mut network_controller =
+                                            network_controller.write().await;
+
+                                        if let Some(peer) = peer_to_store {
+                                            if let Some(public_key) = peer.public_key {
+                                                if !network_controller
+                                                    .network_peers
+                                                    .contains_key(&public_key)
+                                                {
+                                                    let socket = socket_lock.lock().await.take();
+                                                    network_controller
+                                                        .network_peers
+                                                        .insert(public_key, (peer, socket));
+                                                }
+                                            }
+                                        }
+
+                                        network_controller
+                                            .sender_to_core
+                                            .send(message)
+                                            .await
+                                            .expect("sending failed");
+                                    }
                                 },
                             )
                             .await;
                         if !result.is_ok() {
-                            network_controller.disconnect_socket(socket).await;
+                            let mut network_controller = network_controller_clone.write().await;
+                            if let Some(socket) = socket_lock.lock().await.take() {
+                                network_controller.disconnect_socket(socket).await;
+                            }
                             break;
                         } else {
                             let buffer = result.unwrap();
                             if !buffer.is_empty() {
-                                NetworkController::send(&mut socket, buffer).await;
+                                if let Some(socket) = socket_lock.lock().await.as_mut() {
+                                    NetworkController::send(socket, buffer).await;
+                                }
                             }
                         }
                     } else if result.is_close() {
@@ -458,7 +520,10 @@ impl NetworkController {
                         //     "connection closed by remote peer : {:?}",
                         //     public_key.unwrap_or([0; 33]).to_base58()
                         // );
-                        network_controller.disconnect_socket(socket).await;
+                        let mut network_controller = network_controller_clone.write().await;
+                        if let Some(socket) = socket_lock.lock().await.take() {
+                            network_controller.disconnect_socket(socket).await;
+                        }
                         break;
                     }
                 },
@@ -469,43 +534,89 @@ impl NetworkController {
                         continue;
                     }
                     let result = result.unwrap();
-                    let mut network_controller = network_controller.write().await;
                     if result.is_err() {
                         warn!("failed receiving message [2] : {:?}", result.err().unwrap());
-                        network_controller.disconnect_socket(socket).await;
+                        let mut network_controller = network_controller_clone.write().await;
+                        if let Some(socket) = socket_lock.lock().await.take() {
+                            network_controller.disconnect_socket(socket).await;
+                        }
                         break;
                     }
                     let result = result.unwrap();
                     match result {
                         tokio_tungstenite::tungstenite::Message::Binary(buffer) => {
                             trace!("received buffer of size : {:?}", buffer.len());
+                            let network_controller_for_closure = network_controller_clone.clone();
+                            let socket_lock_for_closure = socket_lock.clone();
+                            let services = network_controller_clone.read().await.services.clone();
                             let result = peer
                                 .process_incoming_buffer(
                                     buffer,
                                     // &mut public_key,
-                                    wallet.clone(),
-                                    configs.clone(),
+                                    wallet_clone.clone(),
+                                    configs_clone.clone(),
                                     &timer,
-                                    &network_controller.services,
-                                    async |event| {
-                                        let message = IoEvent {
-                                            event_processor_id: 1,
-                                            event,
-                                        };
-                                        network_controller
-                                            .sender_to_core
-                                            .send(message)
-                                            .await
-                                            .expect("sending failed");
+                                    &services,
+                                    |event| {
+                                        let network_controller =
+                                            network_controller_for_closure.clone();
+                                        let socket_lock = socket_lock_for_closure.clone();
+                                        async move {
+                                            let mut peer_to_store = None;
+                                            if let NetworkEvent::PeerConnectionResult {
+                                                result: Ok(ref peer),
+                                            } = event
+                                            {
+                                                peer_to_store = Some(peer.clone());
+                                            }
+
+                                            let message = IoEvent {
+                                                event_processor_id: 1,
+                                                event,
+                                            };
+                                            // TODO : this lock needs to be removed probably for performance
+                                            let mut network_controller =
+                                                network_controller.write().await;
+
+                                            if let Some(peer) = peer_to_store {
+                                                if let Some(public_key) = peer.public_key {
+                                                    if !network_controller
+                                                        .network_peers
+                                                        .contains_key(&public_key)
+                                                    {
+                                                        let socket =
+                                                            socket_lock.lock().await.take();
+                                                        debug!(
+                                                            "adding network peer : {:?}",
+                                                            public_key.to_base58()
+                                                        );
+                                                        network_controller
+                                                            .network_peers
+                                                            .insert(public_key, (peer, socket));
+                                                    }
+                                                }
+                                            }
+                                            network_controller
+                                                .sender_to_core
+                                                .send(message)
+                                                .await
+                                                .expect("sending failed");
+                                        }
                                     },
                                 )
                                 .await;
                             if !result.is_ok() {
+                                let mut network_controller = network_controller_clone.write().await;
+                                if let Some(socket) = socket_lock.lock().await.take() {
+                                    network_controller.disconnect_socket(socket).await;
+                                }
                                 break;
                             } else {
                                 let buffer = result.unwrap();
                                 if !buffer.is_empty() {
-                                    Self::send(&mut socket, buffer).await;
+                                    if let Some(socket) = socket_lock.lock().await.as_mut() {
+                                        NetworkController::send(socket, buffer).await;
+                                    }
                                 }
                             }
                         }
@@ -514,7 +625,10 @@ impl NetworkController {
                             //     "socket for peer : {:?} was closed",
                             //     public_key.unwrap_or([0; 33]).to_base58()
                             // );
-                            network_controller.disconnect_socket(socket).await;
+                            let mut network_controller = network_controller_clone.write().await;
+                            if let Some(socket) = socket_lock.lock().await.take() {
+                                network_controller.disconnect_socket(socket).await;
+                            }
                             break;
                         }
                         _ => {

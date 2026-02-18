@@ -1563,6 +1563,7 @@ impl RoutingThread {
             .await
             .unwrap();
             peers.add_congestion_event(peer.public_key, CongestionType::PeerConnections, time);
+            info!("adding new peer : {}", peer.public_key.to_base58());
             peers.peers.insert(peer.public_key, peer);
         }
 
@@ -1641,6 +1642,10 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             NetworkEvent::PeerConnectionResult { result } => {
                 if result.is_ok() {
                     let network_peer = result.unwrap();
+                    info!(
+                        "adding new peer : {} to be processed",
+                        network_peer.public_key.unwrap().to_base58()
+                    );
                     self.new_peers.push(network_peer);
                 }
             }
@@ -1730,6 +1735,13 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
         let mut work_done = false;
 
+        {
+            let peers = self.new_peers.drain(..).collect::<Vec<_>>();
+            for peer in peers {
+                let _ = self.handle_new_peer(peer).await;
+            }
+        }
+
         self.reconnection_timer = self.reconnection_timer.saturating_add(duration_value);
 
         let current_time = self.timer.get_timestamp_in_ms();
@@ -1751,10 +1763,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
             self.message_sending_timer = 0;
             self.send_block_headers().await;
-            let peers = self.new_peers.drain(..).collect::<Vec<_>>();
-            for peer in peers {
-                let _ = self.handle_new_peer(peer).await;
-            }
 
             work_done = true;
         }
