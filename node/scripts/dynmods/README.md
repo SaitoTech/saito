@@ -15,6 +15,10 @@ The compile script runs **zipmods.sh** automatically before compiling whenever `
 bash scripts/dynmods/zipmods.sh
 ```
 
+## dyn-mod-compile.sh
+
+**dyn-mod-compile.sh** lives in this directory and performs the low-level steps: run webpack for a single entry point, then base64 the bundle into `dist/dyn_mod.js`. It uses `SCRIPT_DIR`/`PROJECT_DIR` so it works from any working directory. The main **compile.js** pipeline does the equivalent in Node (webpack + base64) and does not invoke this script; the script is available for standalone or scripted use. Expects the module to be extracted at `config/tmp_mod/` and takes the entry path as argument (e.g. `bash scripts/dynmods/dyn-mod-compile.sh arcade/arcade.js`).
+
 ## How to run
 
 The script resolves the project root from its own location, so you can run it from **any directory** (e.g. from the **node** repo root or from inside **scripts/dynmods**):
