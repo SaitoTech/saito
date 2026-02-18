@@ -113,6 +113,12 @@ class MixinModule extends CryptoModule {
 			}
 		}
 
+		if (this.pending_balance) {
+			if (this.pending_balance <= Number(this.balance)) {
+				delete this.pending_balance;
+			}
+		}
+
 		return this.balance;
 	}
 
@@ -477,7 +483,18 @@ class MixinModule extends CryptoModule {
 	}
 
 	async fetchPendingDeposits(callback = null) {
-		return await this.mixin.fetchPendingDeposits(this.asset_id, this.address, callback);
+		const callback_wrapper = (pending_deposits) => {
+			this.pending_balance = Number(this.balance);
+			for (let pd of pending_deposits) {
+				this.pending_balance += Number(pd.amount);
+			}
+
+			if (callback) {
+				callback(pending_deposits);
+			}
+		};
+
+		return await this.mixin.fetchPendingDeposits(this.asset_id, this.address, callback_wrapper);
 	}
 }
 

@@ -48,7 +48,7 @@ module.exports = (app, mod, main) => {
 
   let html = `
 
-  <div class="settings-appspace">
+  <div class="settings-appspace saito-overlay-size wide tall">
 
     <div class="settings-appspace-header">
       <div class="settings-actions-container">

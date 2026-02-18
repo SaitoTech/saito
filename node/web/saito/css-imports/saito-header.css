@@ -619,6 +619,7 @@
     width: 100vw;
     right: -100vw;
     border-radius: unset;
+    border-left: unset;
   }
 
   #saito-header {
@@ -648,7 +649,7 @@
 
   .show-qr .wallet-infoo {
     margin-top: 1.5rem;
-    height: 260px;
+    height: 265px;
     gap: 1rem;
   }
 

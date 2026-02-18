@@ -145,6 +145,8 @@
   color: var(--saito-primary-text);
   width: 100%;
   border-radius: 0.5rem;
+  padding-left: 1.6rem;
+  gap: 1.6rem;
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -163,9 +165,9 @@
 }
 
 .saito-overlay-form-header-title {
-  height: 6rem;
+  /*height: 6rem;*/
   color: inherit;
-  padding: 1.6rem;
+  /*padding: 1.6rem;*/
   font-size: 2.5rem;
   text-transform: uppercase;
   white-space: nowrap;
@@ -286,5 +288,9 @@
     top: unset;
     bottom: 0;
     transform: translateX(-50%);
+  }
+
+  .saito-overlay-size.wide {
+    padding: 2rem 1rem;
   }
 }
