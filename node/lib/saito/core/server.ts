@@ -633,7 +633,7 @@ class Server {
       // TODO - load from disk to ensure we have txs -- slow.
       //
       try {
-        let buffer = new Uint8Array();
+        let buffer: Uint8Array = new Uint8Array();
         let list = methods.loadBlockFileList();
         for (let filename of list) {
           if (filename.includes(bsh)) {
@@ -821,7 +821,7 @@ class Server {
       // TODO - load from disk to ensure we have txs -- slow.
       //
       try {
-        let buffer = new Uint8Array();
+        let buffer: Uint8Array = new Uint8Array();
         let list = methods.loadBlockFileList();
         for (let filename of list) {
           if (filename.includes(bsh)) {

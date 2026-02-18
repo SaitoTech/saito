@@ -1,14 +1,23 @@
 {
   "name": "saito-js",
-  "version": "0.2.11",
+  "version": "0.2.200",
   "description": "js wrappings around saito-core using wasm",
   "scripts": {
     "test": "env TS_NODE_PROJECT=\"tsconfig.testing.json\" mocha --require ts-node/register 'tests/**/*.ts'",
     "build": "tsc",
     "serve": "webpack-dev-server"
   },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "author": "",
   "license": "ISC",
+  "exports": {
+    "./index.web": "./dist/index.web.js",
+    "./index.node": "./dist/index.node.js",
+    "./saito": "./dist/saito.js",
+    "./lib/*": "./dist/lib/*.js",
+    ".": "./dist/index.node.js"
+  },
   "devDependencies": {
     "@types/jest": "29.2.5",
     "@types/ws": "8.5.5",
@@ -24,7 +33,7 @@
     "stream-browserify": "3.0.0",
     "ts-loader": "9.4.2",
     "ts-node-dev": "2.0.0",
-    "typescript": "4.9.4"
+    "typescript": "5.4.x"
   },
   "dependencies": {
     "base-58": "0.0.1",
