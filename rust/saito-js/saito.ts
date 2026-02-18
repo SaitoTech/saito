@@ -241,13 +241,14 @@ export default class Saito {
       console.log(
         "Removing socket for : " + publicKey + " out of " + this.peers.size + " total sockets"
       );
-      let socket = this.peers.get(publicKey);
+      let peer = this.peers.get(publicKey);
+      let socket = peer?.socket;
       this.peers.delete(publicKey);
       if (socket) {
         console.info("closing socket for peer index : " + publicKey);
 
         // @ts-ignore
-        if (socket.readyState !== 1) {
+        if (socket.readyState !== 1 && socket.terminate) {
           // @ts-ignore
           socket.terminate();
         } else {
