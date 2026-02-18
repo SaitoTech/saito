@@ -206,7 +206,7 @@ impl RoutingThread {
                 trace!(
                     "received transaction : {} from peer : {:?}",
                     transaction.signature.to_hex(),
-                    public_key
+                    public_key.to_base58()
                 );
                 transaction.routed_from_peer = Some(public_key);
                 {
@@ -218,7 +218,7 @@ impl RoutingThread {
                     } else {
                         warn!(
                             "Received transaction from peer {:?} does not exist",
-                            public_key
+                            public_key.to_base58()
                         );
                     }
                 }
@@ -229,7 +229,7 @@ impl RoutingThread {
             Message::BlockchainRequest(request) => {
                 trace!(
                     "received blockchain request from peer : {:?} with block id : {:?} and hash : {:?}",
-                    public_key,
+                    public_key.to_base58(),
                     request.latest_block_id,
                     request.latest_block_hash.to_hex()
                 );
@@ -252,7 +252,7 @@ impl RoutingThread {
                 }
                 debug!(
                     "received block header hash from peer : {:?} with block id : {:?} and hash : {:?}",
-                    public_key,
+                    public_key.to_base58(),
                     block_id,
                     hash.to_hex()
                 );
@@ -265,7 +265,7 @@ impl RoutingThread {
                     } else {
                         warn!(
                             "Received block header from peer {:?} does not exist",
-                            public_key
+                            public_key.to_base58()
                         );
                     }
                 }
@@ -298,7 +298,7 @@ impl RoutingThread {
                 trace!(
                     "processing application msg with buffer size : {:?} from peer : {:?}",
                     api_message.data.len(),
-                    public_key
+                    public_key.to_base58()
                 );
                 self.network
                     .io_interface
@@ -360,7 +360,7 @@ impl RoutingThread {
                 } else {
                     warn!(
                         "We don't have a genesis block id set to alert the peer : {:?}",
-                        public_key
+                        public_key.to_base58()
                     );
                 }
             }
@@ -369,7 +369,7 @@ impl RoutingThread {
                     "Received genesis block header : {:?}-{:?} from peer : {:?}",
                     block_id,
                     hash.to_hex(),
-                    public_key,
+                    public_key.to_base58(),
                 );
                 {
                     let mut peers = self.network.peer_lock.write().await;
@@ -380,7 +380,7 @@ impl RoutingThread {
                     } else {
                         warn!(
                             "Received block header from peer {:?} does not exist",
-                            public_key
+                            public_key.to_base58()
                         );
                     }
                 }
@@ -702,7 +702,7 @@ impl RoutingThread {
             request.latest_block_id,
             request.latest_block_hash.to_hex(),
             request.fork_id.to_hex(),
-            public_key
+            public_key.to_base58()
         );
         // TODO : can we ignore the functionality if it's a lite node ?
 
@@ -742,7 +742,7 @@ impl RoutingThread {
         );
 
         debug!("peer : {:?} has latest block : {}-{}. our latest block : {}-{}. last shared ancestor = {:?}. genesis_id : {}",
-                public_key,
+                public_key.to_base58(),
                 request.latest_block_id,
                 request.latest_block_hash.to_hex(),
                 blockchain.get_latest_block_id(),
@@ -758,7 +758,7 @@ impl RoutingThread {
             && blockchain.get_latest_block_id() > 0
         {
             info!("peer : {:?} has latest block : {}-{}. our latest block : {}-{}. cannot find a shared ancestor. Therefore disconnecting the peer",
-                public_key,
+                public_key.to_base58(),
                 request.latest_block_id,
                 request.latest_block_hash.to_hex(),
                 blockchain.get_latest_block_id(),
@@ -853,7 +853,7 @@ impl RoutingThread {
             "processing incoming block hash : {:?}-{:?} from peer : {:?}",
             block_id,
             block_hash.to_hex(),
-            public_key
+            public_key.to_base58()
         );
         {
             // trace!("locking blockchain 6");
@@ -862,7 +862,7 @@ impl RoutingThread {
                 debug!("skipping block header : {:?}-{:?} from peer : {:?} since our lowest acceptable id : {:?}",
                     block_id,
                     block_hash.to_hex(),
-                    public_key,
+                    public_key.to_base58(),
                     blockchain.lowest_acceptable_block_id);
                 return;
             }
@@ -870,7 +870,7 @@ impl RoutingThread {
                 debug!("skipping block header : {:?}-{:?} from peer : {:?} since it's earlier than our genesis block id : {}",
                     block_id,
                     block_hash.to_hex(),
-                    public_key,
+                    public_key.to_base58(),
                     blockchain.genesis_block_id);
                 return;
             }
@@ -959,7 +959,7 @@ impl RoutingThread {
             "fetching block : {:?}-{:?} from peer : {:?}",
             block_id,
             block_hash.to_hex(),
-            public_key
+            public_key.to_base58()
         );
         let block_exists;
         let my_public_key;
@@ -1018,7 +1018,7 @@ impl RoutingThread {
                     debug!(
                         "won't fetch block : {:?} from peer : {:?} since no url found",
                         block_hash.to_hex(),
-                        public_key
+                        public_key.to_base58()
                     );
                     return None;
                 }
@@ -1026,7 +1026,7 @@ impl RoutingThread {
             } else {
                 warn!(
                     "peer : {:?} is not in peer list. cannot generate the block fetch url",
-                    public_key
+                    public_key.to_base58()
                 );
                 return None;
             }
@@ -1386,7 +1386,7 @@ impl RoutingThread {
                 debug!(
                     "ghost block : {:?} has txs for me. fetching from peer : {:?}",
                     block_hash.to_hex(),
-                    public_key
+                    public_key.to_base58()
                 );
                 self.blockchain_sync_state
                     .add_entry(
