@@ -717,7 +717,10 @@ impl RoutingThread {
                 }
                 peer.requested_blockchain_from_us = true;
             } else {
-                error!("Cannot find the peer for index : {} to process the incoming blockchain request", public_key.to_base58());
+                error!(
+                    "Cannot find the peer : {} to process the incoming blockchain request",
+                    public_key.to_base58()
+                );
 
                 _ = self
                     .disconnect_from_peer(public_key, "cannot find peer details")
