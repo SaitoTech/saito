@@ -428,6 +428,8 @@ impl Peer {
         self.endpoint = response.endpoint.clone();
         self.connected_at_peer_time = response.timestamp;
         self.connected_at_my_time = current_time;
+        self.last_msg_received_at = current_time;
+        self.last_msg_sent_at = current_time;
         self.url = peer.url;
 
         debug!(
@@ -492,7 +494,7 @@ impl Peer {
     ) {
         if self.last_msg_sent_at + WS_KEEP_ALIVE_PERIOD < current_time {
             self.last_msg_sent_at = current_time;
-            trace!("sending ping to peer : {:?}", self.public_key.to_base58());
+            info!("sending ping to peer : {:?}", self.public_key.to_base58());
             io_handler
                 .send_message(self.public_key, Message::Ping().serialize().as_slice())
                 .await

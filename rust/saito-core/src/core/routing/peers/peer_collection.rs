@@ -216,7 +216,7 @@ impl PeerCollection {
                 }
                 info!(
                     "removing peer : {:?} as peer hasn't connected for more than {:?} seconds",
-                    public_key,
+                    public_key.to_base58(),
                     Duration::from_millis(current_time - peer.disconnected_at).as_secs()
                 );
                 Some(*public_key)

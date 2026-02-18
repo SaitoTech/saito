@@ -468,6 +468,7 @@ fn setup_log() {
     let fmt_layer = tracing_subscriber::fmt::Layer::default()
         .with_ansi(true) // no color codes in files
         .with_writer(non_blocking)
+        .with_writer(std::io::stdout)
         .with_filter(filter);
 
     tracing_subscriber::registry().with(fmt_layer).init();
