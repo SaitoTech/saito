@@ -231,7 +231,7 @@ impl NetworkPeer {
         S: FnOnce(NetworkEvent) -> F2,
         F2: std::future::Future<Output = ()>,
     {
-        info!(
+        trace!(
             "NetworkPeer::process_msg_buffer_from_peer : {}",
             self.public_key.unwrap_or([0; 33]).to_base58()
         );

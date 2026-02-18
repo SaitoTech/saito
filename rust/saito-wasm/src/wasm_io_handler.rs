@@ -67,7 +67,7 @@ impl InterfaceIO for WasmIoHandler {
     }
 
     async fn disconnect_from_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error> {
-        trace!("disconnect from peer : {:?}", public_key);
+        trace!("disconnect from peer : {:?}", public_key.to_base58());
         MsgHandler::disconnect_from_peer(public_key.to_base58()).expect("TODO: panic message");
         Ok(())
     }

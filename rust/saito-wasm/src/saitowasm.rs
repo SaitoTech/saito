@@ -895,7 +895,7 @@ pub async fn process_new_peer(peer: WasmNetworkPeer) {
 
 #[wasm_bindgen]
 pub async fn process_stun_peer(public_key: JsString) -> Result<(), JsValue> {
-    debug!("processing stun peer with public key: {:?} ", public_key,);
+    debug!("processing stun peer with public key: {:?} ", public_key);
     let mut saito = SAITO.lock().await;
     let key: SaitoPublicKey = string_to_key(public_key.into())
         .map_err(|e| JsValue::from_str(&format!("Failed to parse public key: {}", e)))?;
@@ -965,7 +965,7 @@ pub async fn process_msg_buffer_from_peer(
     buffer: js_sys::Uint8Array,
     peer: &mut WasmNetworkPeer,
 ) -> js_sys::Uint8Array {
-    info!("process_msg_buffer_from_peer");
+    trace!("process_msg_buffer_from_peer");
     let mut saito1 = SAITO.lock().await;
     let saito = saito1.as_mut().unwrap();
     let buffer = buffer.to_vec();
@@ -979,7 +979,7 @@ pub async fn process_msg_buffer_from_peer(
 
     let network_peer = peer.get_peer_mut();
 
-    info!("buffer size : {}", buffer.len());
+    trace!("buffer size : {}", buffer.len());
     let buffer = network_peer
         .process_incoming_buffer(
             buffer,
@@ -1001,7 +1001,7 @@ pub async fn process_msg_buffer_from_peer(
         .await
         .expect("fail processing incoming buffer");
 
-    info!("return buffer size : {}", buffer.len());
+    trace!("return buffer size : {}", buffer.len());
     let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
     array.copy_from(buffer.as_slice());
     array
