@@ -125,7 +125,7 @@ impl BlockchainSyncState {
                     counter,
                     blocks_to_fetch_from_peer.len(),
                     received_picture_from_peer.len(),
-                    public_key
+                    public_key.to_base58()
                 );
             }
         }
@@ -338,7 +338,7 @@ impl BlockchainSyncState {
             "adding sync state entry : {:?} - {:?} from {:?}",
             block_hash.to_hex(),
             block_id,
-            public_key
+            public_key.to_base58()
         );
         if public_key == [0; 33] {
             // this means we don't have which peer to request this block from
