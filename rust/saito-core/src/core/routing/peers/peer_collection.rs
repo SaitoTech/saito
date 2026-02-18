@@ -73,7 +73,10 @@ impl PeerCollection {
             let peer = peer.unwrap();
             peer.services = services;
         } else {
-            warn!("peer {:?} not found to update services", public_key);
+            warn!(
+                "peer {:?} not found to update services",
+                public_key.to_base58()
+            );
         }
     }
 
@@ -131,7 +134,7 @@ impl PeerCollection {
         trace!(
             "handler received key list of length : {:?} from peer : {:?}",
             key_list.len(),
-            public_key
+            public_key.to_base58()
         );
 
         // Lock peers to write
@@ -145,17 +148,18 @@ impl PeerCollection {
                     .iter()
                     .map(|k| k.to_base58())
                     .collect::<Vec<String>>(),
-                public_key,
+                public_key.to_base58(),
                 peer.get_public_key().to_base58()
             );
             peer.key_list = key_list;
             Ok(())
         } else {
-            error!(
-                "peer not found for index : {:?}. cannot handle received key list",
-                public_key
-            );
-            Err(Error::from(ErrorKind::NotFound))
+            // error!(
+            //     "peer not found for index : {:?}. cannot handle received key list",
+            //     public_key.to_base58()
+            // );
+            // Err(Error::from(ErrorKind::NotFound))
+            Ok(())
         }
     }
     pub async fn remove_stun_peer(
@@ -197,7 +201,7 @@ impl PeerCollection {
             .peers
             .iter()
             .filter_map(|(public_key, peer)| {
-                if peer.static_peer_config.is_some() {
+                if peer.url.is_some() {
                     // static peers always remain in memory
                     return None;
                 }

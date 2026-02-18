@@ -233,7 +233,7 @@ impl BlockchainSyncState {
 
             debug!(
                 "peer : {:?} to be fetched {:?} blocks. first : {:?} last : {:?} fetching : {:?} failed : {:?} queued : {:?}",
-                public_key,
+                public_key.to_base58(),
                 deq.len(),
                 deq.front().unwrap().block_id,
                 deq.back().unwrap().block_id,

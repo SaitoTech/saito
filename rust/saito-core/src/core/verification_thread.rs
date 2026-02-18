@@ -187,7 +187,7 @@ impl VerificationThread {
             "block : {:?}-{:?} deserialized from buffer from peer : {:?}",
             block.id,
             block.hash.to_hex(),
-            public_key
+            public_key.to_base58()
         );
 
         self.processed_blocks.increment();

@@ -73,7 +73,7 @@ pub struct Peer {
     pub peer_status: PeerStatus,
     pub block_fetch_url: String,
     // if this is None(), it means an incoming connection. else a connection which we started from the data from config file
-    pub static_peer_config: Option<util::configuration::PeerConfig>,
+    // pub static_peer_config: Option<util::configuration::PeerConfig>,
     pub challenge_for_peer: Option<SaitoHash>,
     // #[serde(serialize_with = "vec_of_arrays_as_base58")]
     pub key_list: Vec<SaitoPublicKey>,
@@ -96,6 +96,7 @@ pub struct Peer {
     pub requested_blockchain_from_us: bool,
     /// we requested blockchain from the peer
     pub requested_blockchain_from_peer: bool,
+    pub url: Option<String>,
 }
 
 impl Peer {
@@ -103,7 +104,7 @@ impl Peer {
         Peer {
             peer_status: PeerStatus::Disconnected(0, 1_000),
             block_fetch_url: "".to_string(),
-            static_peer_config: None,
+            // static_peer_config: None,
             challenge_for_peer: None,
             key_list: vec![],
             services: vec![],
@@ -121,6 +122,7 @@ impl Peer {
             last_msg_received_at: 0,
             requested_blockchain_from_us: false,
             requested_blockchain_from_peer: false,
+            url: None,
         }
     }
 
@@ -426,6 +428,7 @@ impl Peer {
         self.endpoint = response.endpoint.clone();
         self.connected_at_peer_time = response.timestamp;
         self.connected_at_my_time = current_time;
+        self.url = peer.url;
 
         debug!(
             "my version : {:?} peer version : {:?}",
@@ -510,9 +513,9 @@ impl Peer {
         self.wallet_version.partial_cmp(version)
     }
 
-    pub fn is_static_peer(&self) -> bool {
-        self.static_peer_config.is_some()
-    }
+    // pub fn is_static_peer(&self) -> bool {
+    //     self.static_peer_config.is_some()
+    // }
     pub fn get_public_key(&self) -> SaitoPublicKey {
         self.public_key
     }
@@ -538,38 +541,38 @@ impl Peer {
         }
     }
 
-    /// Copies data from an old peer instance to a new reconnected peer
-    ///
-    /// # Arguments
-    ///
-    /// * `peer`:
-    ///
-    /// returns: ()
-    ///
-    /// # Examples
-    ///
-    /// ```
-    ///
-    /// ```
-    pub(crate) fn join_as_reconnection(&mut self, mut peer: Peer) {
-        assert!(
-            !matches!(peer.peer_status, PeerStatus::Connected),
-            "Old peer should not be already connected"
-        );
-        info!(
-            "joining peer : {:?} to peer : {:?} as a reconnection",
-            peer.public_key.to_base58(),
-            self.public_key.to_base58()
-        );
-
-        if self.static_peer_config.is_none() {
-            self.static_peer_config = peer.static_peer_config;
-        }
-        self.requested_blockchain_from_us = false;
-        self.requested_blockchain_from_peer = false;
-
-        peer.static_peer_config = None;
-    }
+    // /// Copies data from an old peer instance to a new reconnected peer
+    // ///
+    // /// # Arguments
+    // ///
+    // /// * `peer`:
+    // ///
+    // /// returns: ()
+    // ///
+    // /// # Examples
+    // ///
+    // /// ```
+    // ///
+    // /// ```
+    // pub(crate) fn join_as_reconnection(&mut self, mut peer: Peer) {
+    //     assert!(
+    //         !matches!(peer.peer_status, PeerStatus::Connected),
+    //         "Old peer should not be already connected"
+    //     );
+    //     info!(
+    //         "joining peer : {:?} to peer : {:?} as a reconnection",
+    //         peer.public_key.to_base58(),
+    //         self.public_key.to_base58()
+    //     );
+    //
+    //     if self.static_peer_config.is_none() {
+    //         self.static_peer_config = peer.static_peer_config;
+    //     }
+    //     self.requested_blockchain_from_us = false;
+    //     self.requested_blockchain_from_peer = false;
+    //
+    //     peer.static_peer_config = None;
+    // }
 }
 
 #[cfg(test)]
@@ -589,7 +592,7 @@ mod tests {
             PeerStatus::Disconnected(0, 1_000)
         ));
         assert_eq!(peer.block_fetch_url, "".to_string());
-        assert_eq!(peer.static_peer_config, None);
+        assert_eq!(peer.url, None);
         assert_eq!(peer.challenge_for_peer, None);
     }
 

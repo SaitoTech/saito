@@ -494,27 +494,28 @@ impl RoutingThread {
     pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
         let mut peers = self.network.peer_lock.write().await;
         for (public_key, peer) in &mut peers.peers {
-            let url = peer.static_peer_config.as_ref().unwrap().get_url();
+            if peer.url.is_none() {
+                continue;
+            }
+            let url = peer.url.as_ref().unwrap().clone();
             if let PeerStatus::Disconnected(connect_time, period) = &mut peer.peer_status {
                 if current_time < *connect_time {
                     continue;
                 }
-                if let Some(config) = peer.static_peer_config.as_ref() {
-                    info!(
-                        "trying to connect to static peer : {:?} with {:?}",
-                        public_key.to_base58(),
-                        config
-                    );
-                    self.network
-                        .io_interface
-                        .connect_to_peer(url)
-                        .await
-                        .unwrap();
-                    if *period < 10_000 {
-                        *period *= 2;
-                    }
-                    *connect_time = current_time + *period;
+                info!(
+                    "trying to connect to static peer : {:?} with {:?}",
+                    public_key.to_base58(),
+                    url
+                );
+                self.network
+                    .io_interface
+                    .connect_to_peer(url)
+                    .await
+                    .unwrap();
+                if *period < 10_000 {
+                    *period *= 2;
                 }
+                *connect_time = current_time + *period;
             }
         }
     }
@@ -771,7 +772,7 @@ impl RoutingThread {
                     .peers
                     .get_mut(&public_key)
                 {
-                    peer.static_peer_config = None;
+                    peer.url = None;
                 }
             }
             self.disconnect_from_peer(
@@ -1195,7 +1196,10 @@ impl RoutingThread {
                     e
                 )
             });
-        trace!("blockchain request sent to peer : {:?}", public_key);
+        trace!(
+            "blockchain request sent to peer : {:?}",
+            public_key.to_base58()
+        );
     }
     pub async fn send_key_list(&self, key_list: &[SaitoPublicKey]) {
         trace!(
@@ -1359,7 +1363,10 @@ impl RoutingThread {
         }
     }
     pub async fn process_ghost_chain(&mut self, chain: GhostChainSync, public_key: SaitoPublicKey) {
-        debug!("processing ghost chain from peer : {:?}", public_key);
+        debug!(
+            "processing ghost chain from peer : {:?}",
+            public_key.to_base58()
+        );
 
         let mut previous_block_hash = chain.start;
         let mut configs = self.config_lock.write().await;
@@ -1468,7 +1475,10 @@ impl RoutingThread {
         drop(peers);
 
         for public_key in congested_peers {
-            warn!("peer : {:?} is congested. so disconnecting...", public_key);
+            warn!(
+                "peer : {:?} is congested. so disconnecting...",
+                public_key.to_base58()
+            );
             _ = self
                 .disconnect_from_peer(public_key, "Peer is congested")
                 .await
