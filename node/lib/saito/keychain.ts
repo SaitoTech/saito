@@ -1,7 +1,7 @@
 import modtemplate from './../templates/modtemplate';
 import * as JSON from 'json-bigint';
 import Identicon from 'identicon.js';
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 
 class Keychain {
   public app: Saito;

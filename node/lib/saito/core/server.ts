@@ -1,4 +1,4 @@
-import { Saito } from '../../../apps/core';
+import { Saito } from '../app';
 import express from 'express';
 import { Server as Ser } from 'http';
 import S from 'saito-js/index.node';

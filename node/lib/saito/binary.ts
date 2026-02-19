@@ -4,7 +4,7 @@
  * and is included in this class mostly as it does not fall cleanly into
  * the crypto class.
  */
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 
 class Binary {
   public app: Saito;

@@ -8,7 +8,7 @@ import path from 'path';
 import { open } from 'sqlite';
 import sqlite3 from 'sqlite3';
 
-import { Saito } from '../../../apps/core';
+import { Saito } from '../app';
 import Block from '../block';
 import Slip from '../slip';
 import { SlipType } from 'saito-js/lib/slip';

@@ -1,4 +1,4 @@
-import { Saito } from '../core';
+import { Saito } from '../../lib/saito/app';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import { initialize as initSaito } from 'saito-js/index.web';

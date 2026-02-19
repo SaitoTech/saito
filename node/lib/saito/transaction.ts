@@ -1,6 +1,6 @@
 import * as JSON from 'json-bigint';
 import Slip from './slip';
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 import { TransactionType } from 'saito-js/lib/transaction';
 import { SlipType } from 'saito-js/lib/slip';
 import SaitoTransaction from 'saito-js/lib/transaction';

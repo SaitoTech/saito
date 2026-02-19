@@ -3,7 +3,7 @@ import JSON from 'json-bigint';
 import BalanceSnapshot from 'saito-js/lib/balance_snapshot';
 import SaitoWallet, { WalletSlip } from 'saito-js/lib/wallet';
 import S from 'saito-js/saito';
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 import Slip from './slip';
 import Transaction from './transaction';
 import { TransactionType } from 'saito-js/lib/transaction';

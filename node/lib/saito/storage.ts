@@ -1,6 +1,6 @@
 import * as JSON from 'json-bigint';
 import Transaction from './transaction';
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 import Block from './block';
 const localforage = require('localforage');
 import fs from 'fs';
