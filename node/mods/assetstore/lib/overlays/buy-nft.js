@@ -53,7 +53,6 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
           siteMessage('Purchase Submitted. waiting for confirmation...', 3000);
         } catch (err) {
           siteMessage('Error submitting bid: ' + err);
-          send_btn.disabled = false;
         }
       };
     }

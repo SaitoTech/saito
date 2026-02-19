@@ -17,9 +17,10 @@ class ProvideMetaDataOverlay {
       async () => {
         console.debug('Close overlay callback');
         siteMessage('Minting NFT...', 3000);
-        this.nfttx.packData();
         await this.nfttx.sign();
+        console.debug('nft signed');
         await this.app.network.propagateTransaction(this.nfttx);
+        console.debug('nft propagated');
       }
     );
     this.attachEvents();
