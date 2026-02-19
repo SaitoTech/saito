@@ -93,7 +93,65 @@ class Stack extends ModTemplate {
     // Load persistent local UX state
     this.load();
 
-    // Demo posts generation removed - posts now load from archive
+    // Server: prime transactionCache and postsCache so we can serve posts with initial HTML
+    if (!this.app.BROWSER) {
+      this.prefetchStackCache().catch((err) => {
+        console.debug('Stack: prefetchStackCache failed', err);
+      });
+    }
+  }
+
+  /**
+   * Server-only: fetch last 5 Saito Official posts and last 5 other recent public Stack posts
+   * into transactionCache and postsCache so GET /stack/:pk/:txsig can serve them with the page.
+   */
+  async prefetchStackCache() {
+    const officialKey = this.STACK_OFFICIAL_PUBLICKEY;
+    const limit = 5;
+
+    // 1. Last 5 posts from Saito Official
+    try {
+      const officialTxs = await this.loadPostsForAuthor(officialKey, { forceRemote: true });
+      const toCache = (officialTxs || []).slice(0, limit);
+      for (const tx of toCache) {
+        if (tx && tx.signature) {
+          this.receiveStackPostTransaction(tx, null);
+        }
+      }
+    } catch (err) {
+      console.debug('Stack: prefetch official posts failed', err);
+    }
+
+    // 2. Last 5 other public Stack posts (any author except Official), by recent updated_at
+    try {
+      const allRecent = await new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          {
+            field1: 'Stack',
+            field4: 'stack:post',
+            updated_later_than: 0,
+            limit: 50
+          },
+          (txs) => resolve(txs || []),
+          'localhost'
+        );
+      });
+      const otherTxs = (allRecent || [])
+        .filter((tx) => tx?.from?.[0]?.publicKey && tx.from[0].publicKey !== officialKey)
+        .sort((a, b) => {
+          const ta = a.timestamp || a.optional?.updated_at || 0;
+          const tb = b.timestamp || b.optional?.updated_at || 0;
+          return tb - ta;
+        })
+        .slice(0, limit);
+      for (const tx of otherTxs) {
+        if (tx && tx.signature) {
+          this.receiveStackPostTransaction(tx, null);
+        }
+      }
+    } catch (err) {
+      console.debug('Stack: prefetch other recent posts failed', err);
+    }
   }
 
   ////////////////////////////
@@ -211,8 +269,27 @@ class Stack extends ModTemplate {
       this.viewPostComponent = new ViewPost(this.app, this, '.saito-container');
     }
 
-    // Show loading state immediately
     const container = document.querySelector('.saito-container');
+
+    // Use post embedded in initial HTML when server had it in cache (avoids archive request)
+    if (typeof window.__STACK_INITIAL_POST === 'string' && window.__STACK_INITIAL_POST.length > 0) {
+      try {
+        const tx = new Transaction();
+        tx.deserialize_from_web(this.app, window.__STACK_INITIAL_POST);
+        window.__STACK_INITIAL_POST = null;
+        if (tx.signature === transactionSignature) {
+          this.transactionCache[transactionSignature] = tx;
+          this.viewPostComponent.render(tx);
+          this.pending_post_loaded = true;
+          return;
+        }
+      } catch (err) {
+        console.debug('Stack: Failed to use embedded initial post', err);
+      }
+      window.__STACK_INITIAL_POST = null;
+    }
+
+    // Show loading state
     if (container) {
       container.innerHTML = `
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem;">
@@ -2288,6 +2365,17 @@ class Stack extends ModTemplate {
     expressapp.get(`${uri}/:publickey/:txsig`, (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
+      const txsig = req.params.txsig;
+      const cachedTx = txsig ? stack_self.transactionCache[txsig] : null;
+      if (cachedTx) {
+        try {
+          const serializedTx = cachedTx.serialize_to_web(app);
+          const htmlWithPost = HomePage(app, stack_self, app.build_number, {}, serializedTx);
+          return res.send(htmlWithPost);
+        } catch (err) {
+          console.debug('Stack: Failed to serialize cached post for initial HTML', err);
+        }
+      }
       return res.send(html);
     });
   }
