@@ -1,7 +1,7 @@
 import Saito from 'saito-js/saito';
 import SaitoBlockchain from 'saito-js/lib/blockchain';
 import Block from './block';
-import { Saito as S } from '../../apps/core';
+import { Saito as S } from './app';
 import { TransactionType } from 'saito-js/lib/transaction';
 import Transaction from './transaction';
 import { BlockType } from 'saito-js/lib/block';

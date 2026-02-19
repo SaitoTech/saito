@@ -1,4 +1,4 @@
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 import Peer from './peer';
 import Transaction from './transaction';
 import path from 'path';
@@ -33,7 +33,7 @@ class Mods {
     this.lowest_sync_bid = -1;
 
     if (typeof window !== 'undefined') {
-      // window.saitoJs = require('saito-js');
+      // window.saitoJs = require('saito-js/saito');
     }
   }
 
@@ -168,7 +168,7 @@ class Mods {
         let dyn_mods = await this.app.storage.loadLocalApplications();
 
         if (dyn_mods.length > 0) {
-          self['saito-js'] = require('saito-js').default;
+          self['saito-js'] = require('saito-js/saito').default;
           self['saito-js/lib/slip'] = require('saito-js/lib/slip').default;
           self['saito-js/lib/transaction'] = require('saito-js/lib/transaction').default;
           self['saito-js/lib/block'] = require('saito-js/lib/block').default;
