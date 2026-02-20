@@ -1,5 +1,4 @@
 module.exports = (utxoIdx, initial_amount) => {
-
   return `
     <div class="saito-nft-split-overlay split-container-utxo-${utxoIdx} split-overlay-active"
          data-utxo-idx="${utxoIdx}">
@@ -37,4 +36,3 @@ module.exports = (utxoIdx, initial_amount) => {
     </div>
   `;
 };
-
