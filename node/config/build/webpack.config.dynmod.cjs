@@ -13,7 +13,7 @@ let outputfile = "dyn.module.js";
 if (process.argv.indexOf("entrypoint")) {
   let app_path = ((process.argv[2]).split("--entrypoint="))[1];
   console.log('app_path:', app_path);
-  entrypoint = `./../tmp_mod/${app_path}`;
+  entrypoint = `../../dist/${app_path}`;
 }
 
 console.log('entrypoint:',entrypoint);
@@ -100,6 +100,8 @@ webpack(
                 sourceMaps: false,
                 cacheCompression: false,
                 cacheDirectory: true,
+	        babelrc: false,
+ 	        configFile: path.resolve(__dirname, "./babel.config.js")
               },
             },
           ],
@@ -113,6 +115,8 @@ webpack(
             {
               loader: "babel-loader",
               options: {
+		babelrc: false,
+		configFile: path.resolve(__dirname, "./babel.config.js"),
                 presets: ["@babel/preset-env"],
                 sourceMaps: false,
                 cacheCompression: false,
@@ -166,16 +170,17 @@ webpack(
     devtool: devtool,
   },
   (err, stats) => {
-    if (err || stats.hasErrors()) {
-      console.log(err);
-      if (stats) {
-        let info = stats.toJson();
-        console.log(info.errors);
-      }
+
+    if (err) {
+      console.error(err);
+      process.exit(1);
     }
-    //
-    // Done processing
-    //
-    console.log("Bundle Success!");
+
+    if (stats.hasErrors()) {
+      const info = stats.toJson();
+      console.error(info.errors);
+      process.exit(1);
+    }
+
   }
 );

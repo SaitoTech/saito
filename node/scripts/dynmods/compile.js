@@ -20,14 +20,33 @@ const { buildSaitoPayload } = require('./helpers/saitoPayload');
 
 // Project root (node/) from script location so it works whether you run from node/ or scripts/dynmods/
 const PROJECT_ROOT = path.resolve(path.join(__dirname, '..', '..'));
+
+let saitoJsInitialized = false;
+
+/**
+ * Minimal saito-js init so Transaction/Slip.Type are set (WASM). Run once before any buildSaitoPayload().
+ * Uses the same saito-js classes that dist/ts/lib/saito/transaction extends.
+ * Resolves saito-wasm from saito-js's node_modules (same as index.node).
+ */
+async function initSaitoJsForCompile() {
+  if (saitoJsInitialized) return;
+  const createRequire = require('module').createRequire;
+  const requireFromSaitoJs = createRequire(require.resolve('saito-js'));
+  const wasm = requireFromSaitoJs('saito-wasm/pkg/node');
+  const SaitoJsTransaction = require('saito-js/lib/transaction').default;
+  const SaitoJsSlip = require('saito-js/lib/slip').default;
+  SaitoJsTransaction.Type = wasm.WasmTransaction;
+  SaitoJsSlip.Type = wasm.WasmSlip;
+  saitoJsInitialized = true;
+}
 const ZIP_DIR = path.join(PROJECT_ROOT, 'dist', 'mods', 'zip');
 const SAITO_DIR = path.join(PROJECT_ROOT, 'dist', 'mods', 'saito');
-const TMP_MOD = path.join(PROJECT_ROOT, 'config', 'tmp_mod');
+const TMP_MOD = path.join(PROJECT_ROOT, 'dist');
 const DYN_WEB = path.join(PROJECT_ROOT, 'dist', 'dyn', 'web');
 const DYN_MODULE_JS = path.join(DYN_WEB, 'dyn.module.js');
 
 function ensureDirs() {
-  [ZIP_DIR, SAITO_DIR].forEach((dir) => {
+  [ZIP_DIR, SAITO_DIR, TMP_MOD].forEach((dir) => {
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
@@ -39,8 +58,12 @@ function rimraf(dir) {
   fs.rmSync(dir, { recursive: true, force: true });
 }
 
-function cleanTmpMod() {
-  rimraf(TMP_MOD);
+function cleanTmpMod(slug) {
+  if (slug) {
+    rimraf(path.join(TMP_MOD, slug));
+  } else if (TMP_MOD !== path.join(PROJECT_ROOT, 'dist')) {
+    rimraf(TMP_MOD);
+  }
 }
 
 function cleanDynWeb() {
@@ -146,8 +169,8 @@ async function runSingle(zipPath, slugArg) {
   ensureDirs();
   const baseName = path.basename(zipPath);
   process.stdout.write(`Compiling ${baseName} (slug: ${slugArg}) ... `);
+  let slug;
   try {
-    cleanTmpMod();
     const directory = await unzipper.Open.file(zipPath);
     let metadata;
     try {
@@ -155,10 +178,11 @@ async function runSingle(zipPath, slugArg) {
     } catch (err) {
       throw new Error(`Metadata extraction failed: ${err.message}`);
     }
-    const slug = (metadata.slug || slugArg || '').trim();
+    slug = (metadata.slug || slugArg || '').trim();
     if (!slug) throw new Error('No slug in module and none provided via --slug');
     const appPath = await getAppPath(directory, slug);
     if (!fs.existsSync(TMP_MOD)) fs.mkdirSync(TMP_MOD, { recursive: true });
+    cleanTmpMod(slug);
     await directory.extract({ path: TMP_MOD });
     const entryPath = path.join(TMP_MOD, appPath);
     if (!fs.existsSync(entryPath)) throw new Error(`Entry point not found: ${entryPath}`);
@@ -188,12 +212,14 @@ async function runSingle(zipPath, slugArg) {
     console.log(`OK -> ${path.relative(PROJECT_ROOT, outPath)}`);
     return { slug, outPath };
   } finally {
-    cleanTmpMod();
+    if (slug) cleanTmpMod(slug);
     cleanDynWeb();
   }
 }
 
 async function run() {
+  await initSaitoJsForCompile();
+
   const single = parseArgs();
   if (single) {
     await runSingle(single.zipPath, single.slug);
@@ -218,9 +244,27 @@ async function run() {
 
   for (const zipFile of zips) {
     process.stdout.write(`Compiling ${zipFile} ... `);
+    let slug;
     try {
-      cleanTmpMod();
-      const { slug, outPath } = await compileOne(zipFile);
+      const zipPath = path.join(ZIP_DIR, zipFile);
+      const directory = await unzipper.Open.file(zipPath);
+      const metadata = await getMetadataFromZip(zipPath);
+      slug = (metadata.slug || '').trim();
+    } catch (e) {
+      console.log('FAILED');
+      console.error(`  Error: ${e.message}`);
+      failed++;
+      continue;
+    }
+    if (!slug) {
+      console.log('FAILED');
+      console.error(`  Error: Module has no slug (missing or invalid this.slug in main .js)`);
+      failed++;
+      continue;
+    }
+    cleanTmpMod(slug);
+    try {
+      const { outPath } = await compileOne(zipFile);
       console.log(`OK -> ${path.relative(PROJECT_ROOT, outPath)}`);
       success++;
     } catch (err) {
@@ -228,7 +272,7 @@ async function run() {
       console.error(`  Error: ${err.message}`);
       failed++;
     } finally {
-      cleanTmpMod();
+      cleanTmpMod(slug);
       cleanDynWeb();
     }
   }

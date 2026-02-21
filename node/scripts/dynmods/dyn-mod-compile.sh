@@ -1,6 +1,6 @@
 #!/bin/bash
 # Builds a single dynamic module: webpack bundle + base64 into dyn_mod.js.
-# Expects: entry point path (e.g. arcade/arcade.js) and extracted module tree in config/tmp_mod/.
+# Expects: entry point path (e.g. arcade/arcade.js) and extracted module tree in dist/ (extract to dist/<slug>).
 # Safe to run from any directory: project root is resolved from this script's location.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
