@@ -65,6 +65,7 @@
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	grid-gap: 1rem;
+	align-content: start;
 }
 
 .arcade-sidebar .saito-announcement {
@@ -89,13 +90,13 @@
  *  OVER WRITE Game Selector Overlay code
  *****************************************/
 
-.arcade-central-panel .arcade-game-selector-game {
+.arcade-central-panel .arcade-teaser {
 	box-shadow: var(--saito-box-shadow);
 	height: min(250px, calc((100vw - 34.5rem) / 4));
 	border-radius: var(--saito-border-radius);
 }
 
-.arcade-central-panel .arcade-game-selector-game-title {
+.arcade-central-panel .arcade-teaser-title {
 	height: 5rem;
 	display: flex;
 	align-items: center;
@@ -103,7 +104,7 @@
 	padding: 0 1.5rem;
 }
 
-.arcade-central-panel .arcade-game-selector-game-title span {
+.arcade-central-panel .arcade-teaser-title span {
 	font-size: 2.4rem;
 	text-transform: unset;
 	overflow: hidden;
@@ -163,7 +164,7 @@
 	.arcade-sidebar .saito-announcement {
 		display: none;
 	}
-	.arcade-central-panel .arcade-game-selector-game {
+	.arcade-central-panel .arcade-teaser {
 		height: min(180px, calc(100vw / 3));
 	}
 }
@@ -172,7 +173,7 @@
 	.arcade-main {
 		padding: 0.5rem;
 	}
-	.arcade-central-panel .arcade-game-selector-game-title span {
+	.arcade-central-panel .arcade-teaser-title span {
 		font-size: 1.8rem;
 	}
 }
@@ -261,7 +262,7 @@
 	content: '\f0d8';
 }
 
-.arcade-game-selector-teaser .arcade-game-selector-footer {
+.arcade-teaser-install .arcade-teaser-footer {
 	bottom: -2px;
 	right: -2px;
 	max-width: 100%;
@@ -271,7 +272,7 @@
 	width: 20rem;
 }
 
-.arcade-game-selector-teaser .arcade-game-selector-footer::before {
+.arcade-teaser-install .arcade-teaser-footer::before {
 	content: 'install';
 	position: absolute;
 	bottom: 1rem;

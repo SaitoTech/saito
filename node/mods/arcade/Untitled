@@ -1,0 +1,24 @@
+We are beginning a UI class naming refactor in the Arcade module.
+
+We are NOT changing layout, markup structure, or behavior.
+We are ONLY renaming CSS classes to a new naming convention.
+
+Please update all Arcade teaser markup classes as follows:
+
+Rename:
+
+- arcade-game-selector-game → arcade-teaser
+- arcade-game-selector-game-title → arcade-teaser-title
+- arcade-game-selector-game-image → arcade-teaser-image
+- arcade-game-selector-footer → arcade-teaser-footer
+- arcade-game-selector-teaser → arcade-teaser-install
+
+Update only template markup (main.template.js and any Arcade HTML templates).
+
+Do not modify structure or logic.
+Do not change attributes.
+Do not change element hierarchy.
+
+After renaming, ensure no old class names remain in templates.
+
+Stop after completing markup changes.
