@@ -145,7 +145,7 @@ class JoinGameOverlay {
 
 				if (c) {
 					this.app.connection.emit(
-						'stop-game',
+						'arcade-stop-game',
 						this.invite.game_mod.name,
 						this.invite.game_id,
 						'cancellation'
@@ -172,7 +172,7 @@ class JoinGameOverlay {
 
 				if (c) {
 					this.app.connection.emit(
-						'stop-game',
+						'arcade-stop-game',
 						this.invite.game_mod.name,
 						this.invite.game_id,
 						'forfeit'

@@ -50,7 +50,7 @@ module.exports = (app, mod, invite) => {
 	for (let i = 0; i < invite.desired_opponent_publickeys.length; i++) {
 		html += `
 
-      <div class="arcade-game-playerbox empty saito-table-row requested_player" id="invite-user-${invite.desired_opponent_publickeys[i]}">
+      <div class="arcade-game-playerbox empty saito-table-row arcade-invite-requested" id="invite-user-${invite.desired_opponent_publickeys[i]}">
 	      <div class="saito-identicon-box">
 	      	<img class="saito-identicon" src="${app.keychain.returnIdenticon(invite.desired_opponent_publickeys[i])}">
 	      </div>

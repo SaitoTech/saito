@@ -7,7 +7,6 @@ const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const InviteManager = require('./lib/invite-manager');
 const GameManager = require('./lib/game-manager');
 const GameWizard = require('./lib/overlays/game-wizard');
-const GameSelector = require('./lib/overlays/game-selector');
 const GameScheduler = require('./lib/overlays/game-scheduler');
 const GameInvitationLink = require('./../../lib/saito/ui/modals/saito-link/saito-link');
 const Invite = require('./lib/invite');
@@ -33,8 +32,6 @@ class Arcade extends ModTemplate {
 			'Interface for creating and joining games coded for the Saito Open Source Game Engine.';
 		this.categories = 'Games Entertainment Appspace';
 
-		// We store reference to all the installed modules which are arcade compatible
-		// Useful for rendering the sidebar menu, or any list of games for game-selector (prior to game-wizard)
 		this.arcade_games = [];
 
 		this.games = {};
@@ -118,27 +115,6 @@ class Arcade extends ModTemplate {
 			}
 		});
 
-		app.connection.on('arcade-launch-game-selector', (obj = {}) => {
-			/*this.styles = ['/arcade/style.css'];
-			this.renderIntos[qs] = [];
-			this.invite_manager = new InviteManager(this.app, this, qs);
-			this.invite_manager.type = 'short';
-			this.renderIntos[qs].push(this.invite_manager);
-			this.attachStyleSheets();*/
-
-			if (!this.mobile_invite_manager) {
-				//if (this.invite_manager) {
-				//} else {
-				setTimeout(() => {
-					this.mobile_invite_manager = new InviteManager(app, this, '.overlay-invite-manager');
-					this.mobile_invite_manager.type = 'long';
-					this.mobile_invite_manager.show_carousel = false;
-					this.mobile_invite_manager.render();
-				}, 50);
-				//}
-			}
-		});
-
 		// Ported over from invite-manager because not necessary there...
 		app.connection.on('arcade-continue-game-from-options', async (game_mod) => {
 			let id = game_mod.game?.id;
@@ -180,11 +156,11 @@ class Arcade extends ModTemplate {
 			if (!this.browser_active) {
 				let target = '.arcade_game_overlay_loader';
 
-				let im = document.querySelector('.invite-manager');
+				let im = document.querySelector('.arcade-invite');
 				//If we have an invite manager AND it is visible
 				if (im && im.getBoundingClientRect().width) {
-					document.querySelector('.invite-manager').innerHTML = '';
-					target = '.invite-manager';
+					document.querySelector('.arcade-invite').innerHTML = '';
+					target = '.arcade-invite';
 				} else if (!document.querySelector(target)) {
 					this.loader_overlay.show(
 						'<div class="arcade_game_overlay_loader saito-overlay-size narrow"></div>'
@@ -265,11 +241,10 @@ class Arcade extends ModTemplate {
 				this.sudo = true;
 			}
 
-			// These are three overlays with event listeners that can function outside of the Arcade
+			//
+			// used to create games
+			//
 			this.wizard = new GameWizard(app, this, null, {});
-			this.game_selector = new GameSelector(app, this, {});
-			//We create this here so it can respond to events
-			this.game_scheduler = new GameScheduler(app, this, {});
 
 			//
 			// my games stored in local wallet
@@ -330,7 +305,7 @@ class Arcade extends ModTemplate {
 		}
 
 		try {
-			this.leagueCallback = this.app.modules.returnFirstRespondTo('league_membership');
+			this.leagueCallback = this.app.modules.returnFirstRespondTo('league-membership');
 		} catch (err) {
 			this.leagueCallback = {};
 		}

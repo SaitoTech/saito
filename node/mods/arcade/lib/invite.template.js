@@ -10,13 +10,13 @@ module.exports = (app, mod, invite) => {
           <div class="saito-module-titlebar-title">${invite.game_name}</div>
           <div class="saito-module-titlebar-details game-type">${invite.game_type.toUpperCase()}</div>
         </div>           
-        <div class="saito-module-holder">
-          <div class="saito-game-details saito-game-identicons">
+        <div class="arcade-invite-actions">
+          <div class="saito-game-details arcade-invite-identicons">
     `;
 
 	// render players who have joined
 	for (let i = 0; i < invite.players.length; i++) {
-		//invite_class = (invite.target && invite.target == i + 1) ? " player-turn" : ""; 
+		//invite_class = (invite.target && invite.target == i + 1) ? " arcade-invite-turn" : ""; 
 		html += `
           <div class="saito-identicon-box">
             <img class="saito-module-identicon saito-identicon" id-${invite.players[i]}" 
@@ -30,7 +30,7 @@ module.exports = (app, mod, invite) => {
 	// render players who are requested to join (their slot isnt empty)
 	for (let i = 0; i < invite.desired_opponent_publickeys.length; i++) {
 		html += `
-          <div class="requested_player">
+          <div class="arcade-invite-requested">
             <img class="saito-module-identicon saito-identicon" id-${invite.desired_opponent_publickeys[i]}" 
             			src="${app.keychain.returnIdenticon(invite.desired_opponent_publickeys[i])}">
           </div>
@@ -41,7 +41,7 @@ module.exports = (app, mod, invite) => {
 	// render empty slots; empty slots =  players needed - (players joined + players requested)
 	for (let i = 0; i < invite.empty_slots; i++) {
 		html += `
-          <div class="saito-module-identicon identicon-needed">
+          <div class="saito-module-identicon arcade-invite-slot">
           </div>
       `;
 	}
@@ -51,14 +51,14 @@ module.exports = (app, mod, invite) => {
         </div>`;
   
   if (invite_class) {
-    html += `<div class="angled-notification">your turn</div>`;
+    html += `<div class="arcade-invite-badge">your turn</div>`;
   } 
   // Overwrite "your turn" as necessary
   if (invite.winner) {
     if (invite.winner.includes(mod.publicKey)) {
-      html += `<div class="angled-notification">you won</div>`;
+      html += `<div class="arcade-invite-badge">you won</div>`;
     } else {
-      html += `<div class="angled-notification">you lost</div>`;
+      html += `<div class="arcade-invite-badge">you lost</div>`;
     } 
   }    
   

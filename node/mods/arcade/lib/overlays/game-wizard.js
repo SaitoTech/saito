@@ -66,8 +66,8 @@ class GameWizard {
 		//Test if we should include Advanced Options
 		let advancedOptions = this.game_mod.returnAdvancedOptions();
 		if (!advancedOptions) {
-			if (document.querySelector('.arcade-advance-opt-text')) {
-				document.querySelector('.arcade-advance-opt-text').style.visibility = 'hidden';
+			if (document.querySelector('.arcade-wizard-advanced-text')) {
+				document.querySelector('.arcade-wizard-advanced-text').style.visibility = 'hidden';
 			}
 		} else {
 			let accept_button = `<div id="game-wizard-advanced-return-btn" class="game-wizard-advanced-return-btn button saito-button-primary">Accept</div>`;
@@ -111,7 +111,7 @@ class GameWizard {
 		//
 		// Display Advanced Options Overlay
 		//
-		const advancedOptionsToggle = document.querySelector('.arcade-advance-opt-text');
+		const advancedOptionsToggle = document.querySelector('.arcade-wizard-advanced-text');
 		if (advancedOptionsToggle) {
 			advancedOptionsToggle.onclick = (e) => {
 				this.meta_overlay.show();
@@ -184,7 +184,7 @@ class GameWizard {
 		let options = {};
 		document
 			.querySelectorAll(
-				'#advanced-options-overlay-container input, #advanced-options-overlay-container select, .arcade-wizard-overlay input, .arcade-wizard-overlay select'
+				'#advanced-options-overlay-container input, #advanced-options-overlay-container select, .arcade-wizard input, .arcade-wizard select'
 			)
 			.forEach((element) => {
 				if (element.name) {
