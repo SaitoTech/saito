@@ -13,7 +13,7 @@
 	user-select: none;
 }
 
-.overlay-invite-manager > .invite-manager {
+.overlay-invite-manager > .arcade-invite {
 	margin-bottom: 0.5rem;
 }
 
@@ -46,7 +46,7 @@
 	padding: 2rem;
 }
 
-.arcade-game-playerbox.requested_player {
+.arcade-game-playerbox.arcade-invite-requested {
 	opacity: 0.6;
 	filter: grayscale(0.7);
 }

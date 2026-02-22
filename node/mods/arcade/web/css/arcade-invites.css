@@ -3,7 +3,7 @@
 	font-size: 3rem;
 	margin-top: 10rem;
 }
-.invite-manager {
+.arcade-invite {
 	width: 100%;
 	padding-top: 0px;
 	display: flex;
@@ -12,35 +12,35 @@
 	user-select: none;
 }
 
-.arcade-players-needed {
+.arcade-invite-players {
 	margin-bottom: -1rem;
 }
 
-.saito-module-holder {
+.arcade-invite-actions {
 	margin: 0 0 0 auto;
 }
 
-.saito-game-identicons {
+.arcade-invite-identicons {
 	min-width: min-content;
 	padding: 1rem;
 }
 
-.saito-sidebar .saito-game-identicons {
+.saito-sidebar .arcade-invite-identicons {
 	padding: 0.5rem;
 	column-gap: 0.75rem;
 }
 
-.saito-game-identicons div {
+.arcade-invite-identicons div {
 	height: 3.5rem;
 	backdrop-filter: blur(3px);
 }
 
-.saito-game-identicons .requested_player {
+.arcade-invite-identicons .arcade-invite-requested {
 	opacity: 0.6;
 	filter: grayscale(0.7);
 }
 
-.identicon-needed {
+.arcade-invite-slot {
 	height: 3.5rem;
 	width: 3.5rem;
 	border: 1px solid var(--saito-border-color);
@@ -55,11 +55,11 @@
 }
 */
 
-.player-turn {
+.arcade-invite-turn {
 	position: relative;
 }
 
-.player-turn i {
+.arcade-invite-turn i {
 	display: none;
 	position: absolute;
 	left: 50%;
@@ -72,11 +72,11 @@
 	box-shadow: var(--saito-box-shadow);
 }
 
-.my-turn .player-turn i {
+.my-turn .arcade-invite-turn i {
 	display: block;
 }
 
-.angled-notification {
+.arcade-invite-badge {
 	position: absolute;
 	right: 0;
 	height: 100%;

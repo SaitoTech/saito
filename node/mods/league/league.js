@@ -94,7 +94,7 @@ class League extends ModTemplate {
 	}
 
 	respondTo(type, obj = null) {
-		if (type == 'league_membership') {
+		if (type == 'league-membership') {
 			let league_self = this;
 			return {
 				testMembership: (league_id) => {
@@ -664,7 +664,7 @@ class League extends ModTemplate {
 				//Render initial UI based on what we have saved
 				league_self.app.connection.emit('leagues-render-request'); // league/ main
 				league_self.app.connection.emit('league-rankings-render-request'); // sidebar league list
-				league_self.app.connection.emit('finished-loading-leagues');
+				league_self.app.connection.emit('league-finished-loading');
 			} else {
 				this.app.options.league.leagues = [];
 			}

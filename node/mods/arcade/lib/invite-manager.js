@@ -12,7 +12,7 @@ class InviteManager {
 		this.name = 'InviteManager';
 		this.type = 'short';
 
-		this.slider = new GameSlider(this.app, this.mod, '.invite-manager');
+		this.slider = new GameSlider(this.app, this.mod, '.arcade-invite');
 
 		// For filtering which games get displayed
 		// We may want to only display one type of game invite, so overwrite this before render()
@@ -41,7 +41,7 @@ class InviteManager {
 			}
 		});
 
-		app.connection.on('finished-loading-leagues', () => {
+		app.connection.on('league-finished-loading', () => {
 			if (!this.mod.is_game_initializing) {
 				this.mod.purgeOldGames();
 				this.render();
@@ -53,7 +53,7 @@ class InviteManager {
 		//
 		// replace element or insert into page (deletes invites for a full refresh)
 		//
-		let target = this.container + ' .invite-manager';
+		let target = this.container + ' .arcade-invite';
 
 		if (document.querySelector(target)) {
 			this.app.browser.replaceElementBySelector(InviteManagerTemplate(this.app, this.mod), target);
