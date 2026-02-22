@@ -176,7 +176,7 @@
 	background: var(--saito-gray-850);
 }
 
-.arcade-wizard-controls .settings > div.overlay-input {
+.arcade-wizard-controls .overlay-input {
 	position: relative;
 	display: flex;
 	width: 20em;
@@ -196,7 +196,7 @@
 	row-gap: 1rem;
 }
 
-.arcade-wizard-controls .settings > div.overlay-input::after {
+.arcade-wizard-controls .overlay-input::after {
 	content: '\25BC';
 	position: absolute;
 	top: 0;
@@ -354,7 +354,7 @@
 	padding-left: 20px;
 }
 
-.arcade-wizard-advanced ul li {
+.arcade-wizard-advanced li {
 	width: 20rem;
 }
 
@@ -366,13 +366,13 @@
 	justify-content: space-between;
 }
 
-.arcade-wizard-advanced ul li {
+.arcade-wizard-advanced li {
 	display: grid;
 	grid-template-columns: 0.25fr 1fr;
 }
 
 @media screen and (max-width: 1000px) {
-	.arcade-wizard-advanced ul li {
+	.arcade-wizard-advanced li {
 		width: 15rem;
 	}
 }

@@ -1,8 +1,7 @@
 const Invite = require('./invite');
-const InviteManagerTemplate = require('./invite-manager.template');
+const InviteManagerTemplate = require('./invite-container.template');
 const JSON = require('json-bigint');
-const JoinGameOverlay = require('./overlays/join-game');
-const GameSlider = require('./game-slider');
+const JoinGameOverlay = require('./overlays/lounge');
 
 class InviteManager {
 	constructor(app, mod, container = '') {
@@ -11,8 +10,6 @@ class InviteManager {
 		this.container = container;
 		this.name = 'InviteManager';
 		this.type = 'short';
-
-		this.slider = new GameSlider(this.app, this.mod, '.arcade-invite');
 
 		// For filtering which games get displayed
 		// We may want to only display one type of game invite, so overwrite this before render()
@@ -25,28 +22,6 @@ class InviteManager {
 		}
 
 		this.game_filter = null;
-
-		this.show_carousel = true;
-
-		//
-		// handle requests to re-render invite manager
-		//
-		app.connection.on('arcade-invite-manager-render-request', () => {
-			if (this.mod.debug) {
-				console.debug('RERENDER ARCADE INVITES: ', this.mod.games);
-			}
-			if (!this.mod.is_game_initializing) {
-				this.mod.purgeOldGames();
-				this.render();
-			}
-		});
-
-		app.connection.on('league-finished-loading', () => {
-			if (!this.mod.is_game_initializing) {
-				this.mod.purgeOldGames();
-				this.render();
-			}
-		});
 	}
 
 	render() {
@@ -142,10 +117,6 @@ class InviteManager {
 					}
 				}
 			}
-		}
-
-		if (!rendered_content && !this.game_filter && this.show_carousel) {
-			this.slider.render();
 		}
 
 		this.attachEvents();

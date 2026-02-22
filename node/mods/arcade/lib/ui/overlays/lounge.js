@@ -1,5 +1,5 @@
-const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const JoinGameOverlayTemplate = require('./join-game.template');
+const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
+const JoinGameOverlayTemplate = require('./lounge.template');
 const jsonTree = require('json-tree-viewer');
 
 /*

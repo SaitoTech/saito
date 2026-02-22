@@ -1,6 +1,6 @@
-const ImportGame = require('./import-game.js');
-const GameWizardTemplate = require('./game-wizard.template.js');
-const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
+const ImportGame = require('../../overlays/import-game.js');
+const GameWizardTemplate = require('./wizard.template.js');
+const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
 
 //
 // {
