@@ -441,7 +441,13 @@ impl NetworkController {
                         if let Some(socket) = socket_lock.lock().await.take() {
                             network_controller.disconnect_socket(socket).await;
                         } else {
-                            warn!("socket was not found for peer");
+                            if let Some(public_key) = peer.public_key {
+                                network_controller
+                                    .disconnect_socket_by_key(public_key)
+                                    .await;
+                            } else {
+                                warn!("socket was not found for peer");
+                            }
                         }
                         // NetworkController::disconnect_socket(sockets, sender).await;
                         break;
@@ -509,7 +515,13 @@ impl NetworkController {
                             if let Some(socket) = socket_lock.lock().await.take() {
                                 network_controller.disconnect_socket(socket).await;
                             } else {
-                                warn!("socket was not found for peer");
+                                if let Some(public_key) = peer.public_key {
+                                    network_controller
+                                        .disconnect_socket_by_key(public_key)
+                                        .await;
+                                } else {
+                                    warn!("socket was not found for peer");
+                                }
                             }
                             break;
                         } else {
@@ -526,7 +538,13 @@ impl NetworkController {
                         if let Some(socket) = socket_lock.lock().await.take() {
                             network_controller.disconnect_socket(socket).await;
                         } else {
-                            warn!("socket was not found for peer");
+                            if let Some(public_key) = peer.public_key {
+                                network_controller
+                                    .disconnect_socket_by_key(public_key)
+                                    .await;
+                            } else {
+                                warn!("socket was not found for peer");
+                            }
                         }
                         break;
                     }
@@ -544,7 +562,13 @@ impl NetworkController {
                         if let Some(socket) = socket_lock.lock().await.take() {
                             network_controller.disconnect_socket(socket).await;
                         } else {
-                            warn!("socket was not found for peer");
+                            if let Some(public_key) = peer.public_key {
+                                network_controller
+                                    .disconnect_socket_by_key(public_key)
+                                    .await;
+                            } else {
+                                warn!("socket was not found for peer");
+                            }
                         }
                         break;
                     }
@@ -616,7 +640,13 @@ impl NetworkController {
                                 if let Some(socket) = socket_lock.lock().await.take() {
                                     network_controller.disconnect_socket(socket).await;
                                 } else {
-                                    warn!("socket was not found for peer");
+                                    if let Some(public_key) = peer.public_key {
+                                        network_controller
+                                            .disconnect_socket_by_key(public_key)
+                                            .await;
+                                    } else {
+                                        warn!("socket was not found for peer");
+                                    }
                                 }
                                 break;
                             } else {
@@ -634,7 +664,13 @@ impl NetworkController {
                             if let Some(socket) = socket_lock.lock().await.take() {
                                 network_controller.disconnect_socket(socket).await;
                             } else {
-                                warn!("socket was not found for peer");
+                                if let Some(public_key) = peer.public_key {
+                                    network_controller
+                                        .disconnect_socket_by_key(public_key)
+                                        .await;
+                                } else {
+                                    warn!("socket was not found for peer");
+                                }
                             }
                             break;
                         }

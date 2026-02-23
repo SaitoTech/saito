@@ -28,7 +28,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
               }
               if (peer.publicKey) {
                 if (!Saito.getInstance().peers.has(peer.publicKey)) {
-                  console.info("added peer : ", peer.publicKey);
+                  console.info("added peer : " + peer.publicKey + ", url : " + peer.url);
                   Saito.getInstance().peers.set(peer.publicKey, peer);
                 }
               }
@@ -48,7 +48,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
       };
       socket.onclose = () => {
         try {
-          // console.debug("socket.onclose : " + peer.public_key);
+          console.debug("socket.onclose : " + url + " , key : " + peer.publicKey);
           Saito.getLibInstance().process_peer_disconnection(peer.publicKey);
         } catch (error) {
           console.error(error);

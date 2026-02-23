@@ -18,6 +18,12 @@ impl WasmNetworkPeer {
         }
         self.peer.public_key.unwrap().to_base58().into()
     }
+    pub fn get_url(&self) -> JsString {
+        if self.peer.url.is_none() {
+            return "".into();
+        }
+        self.peer.url.as_ref().unwrap().clone().into()
+    }
 
     #[wasm_bindgen(constructor)]
     pub fn new_peer() -> WasmNetworkPeer {

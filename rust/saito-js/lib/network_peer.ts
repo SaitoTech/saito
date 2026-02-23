@@ -16,6 +16,10 @@ export default class NetworkPeer extends WasmWrapper<WasmNetworkPeer> {
     return this.instance.get_public_key();
   }
 
+  public get url(): string {
+    return this.instance.get_url();
+  }
+
   public get_handshake_challenge_buffer() {
     return this.instance.get_handshake_challenge_buffer();
   }
