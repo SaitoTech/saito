@@ -1,4 +1,3 @@
-const ImportGame = require('../../overlays/import-game.js');
 const GameWizardTemplate = require('./wizard.template.js');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
 
@@ -14,7 +13,6 @@ class GameWizard {
 		this.app = app;
 		this.mod = mod;
 		this.game_mod = game_mod;
-		this.import_game = new ImportGame(app, mod, game_mod);
 		this.overlay = new SaitoOverlay(app, mod);
 		this.obj = obj;
 
@@ -168,11 +166,6 @@ class GameWizard {
 					gameType = 'private';
 				} else {
 					this.app.browser.logMatomoEvent('GameWizard', 'CreateOpenInvite', options.game);
-				}
-
-				if (gameType === 'import') {
-					this.import_game.render(options.game);
-					return;
 				}
 
 				this.mod.makeGameInvite(options, gameType, this.obj);
