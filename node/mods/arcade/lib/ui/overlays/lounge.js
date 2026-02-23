@@ -1,5 +1,5 @@
 const SaitoOverlay = require('../../../../../lib/saito/ui/saito-overlay/saito-overlay');
-const JoinGameOverlayTemplate = require('./lounge.template');
+const LoungeOverlayTemplate = require('./lounge.template');
 const jsonTree = require('json-tree-viewer');
 
 /*
@@ -11,7 +11,7 @@ const jsonTree = require('json-tree-viewer');
   The basic purpose is to display the game details (results of game-selector/game-wizard) and allow a player to join/cance
 */
 
-class JoinGameOverlay {
+class LoungeOverlay {
 	constructor(app, mod, invite) {
 		this.app = app;
 		this.mod = mod;
@@ -61,7 +61,7 @@ class JoinGameOverlay {
 				console.error('ARCADE: [joinGame] error creating jsonTree: ', err);
 			}
 		} else {
-			this.overlay.show(JoinGameOverlayTemplate(this.app, this.mod, this.invite));
+			this.overlay.show(LoungeOverlayTemplate(this.app, this.mod, this.invite));
 		}
 
 		this.overlay.setBackground(game_mod.respondTo('arcade-games').image);
@@ -241,4 +241,4 @@ class JoinGameOverlay {
 	}
 }
 
-module.exports = JoinGameOverlay;
+module.exports = LoungeOverlay;
