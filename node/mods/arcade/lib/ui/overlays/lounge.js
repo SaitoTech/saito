@@ -16,10 +16,11 @@ class LoungeOverlay {
 		this.app = app;
 		this.mod = mod;
 		this.invite = invite;
+		this.game_id = null;
 		this.overlay = new SaitoOverlay(app, mod, false, true); //No close button, auto-delete overlay
 
 		app.connection.on('relay-is-online', async (pkey) => {
-			if (pkey == this.invite.originator) {
+			if (this.invite && pkey == this.invite.originator) {
 				if (document.getElementById(`invite-user-${pkey}`)) {
 					document.getElementById(`invite-user-${pkey}`).classList.add('online');
 				}
@@ -27,16 +28,30 @@ class LoungeOverlay {
 		});
 
 		app.connection.on('relay-is-busy', async (pkey) => {
-			if (pkey == this.invite.originator) {
+			if (this.invite && pkey == this.invite.originator) {
 				if (document.getElementById(`invite-user-${pkey}`)) {
 					document.getElementById(`invite-user-${pkey}`).classList.add('online');
 					document.getElementById(`invite-user-${pkey}`).classList.add('busy');
 				}
 			}
 		});
+
+		app.connection.on('arcade-close-game', (game_id) => {
+			if (game_id == this?.game_id) {
+				this.overlay.close();
+				if (this.mod.browser_active && this.mod.ui) {
+					this.mod.ui.render();
+				}
+			}
+		});
 	}
 
 	render() {
+		if (this.game_id != null && this.invite == null) {
+			this._renderGameIdMode();
+			return;
+		}
+
 		let game_mod = this.app.modules.returnModuleBySlug(this.invite.game_slug);
 
 		if (this.mod.sudo) {
@@ -69,7 +84,120 @@ class LoungeOverlay {
 		this.app.connection.emit('add-league-identifier-to-dom');
 	}
 
+	_renderGameIdMode() {
+		let record = this.mod.returnGame(this.game_id);
+		const state = record?.state;
+		let slug = record?.tx?.msg?.game || state?.module || 'arcade';
+		let game_mod = this.app.modules.returnModuleBySlug(slug);
+		let image = game_mod?.respondTo?.('arcade-games')?.image || '';
+		let gameName = (game_mod && (game_mod.returnName?.() || game_mod.name)) || slug;
+
+		let derivedState;
+		if (state && state.initializing === 1) {
+			derivedState = 'INITIALIZING';
+		} else if (state && state.initializing === 0 && !state.over) {
+			derivedState = 'READY';
+		} else if (state && state.over === 1) {
+			derivedState = 'COMPLETED';
+		} else {
+			derivedState = 'INITIALIZING';
+		}
+
+		let stateLabel, bodyHtml, controlsHtml;
+		const headerImageStyle = image ? ` style="background-image: url('${image}')"` : '';
+
+		if (derivedState === 'INITIALIZING') {
+			stateLabel = 'Initializing Game';
+			bodyHtml = `
+	  <div class="arcade-lounge-section">
+		  <div id="game-loader-spinner" class="arcade-lounge-loader game-loader-spinner"></div>
+		  <div class="arcade-lounge-message">Setting up your game...</div>
+	  </div>`;
+			controlsHtml = '';
+		} else if (derivedState === 'READY') {
+			stateLabel = 'Game Ready';
+			bodyHtml = this._buildReadyBody(record, state, game_mod);
+			controlsHtml = `
+	  <div id="arcade-game-controls-start-game" class="fat saito-button-primary">Start Game</div>
+	  <div id="arcade-game-controls-close-game" class="fat saito-button-secondary">Cancel</div>`;
+		} else {
+			stateLabel = 'Game completed';
+			bodyHtml = '';
+			controlsHtml = `
+	  <div id="arcade-game-controls-continue-game" class="fat saito-button-primary">View game</div>`;
+		}
+
+		let html = `
+  <div class="arcade-lounge">
+  <div class="arcade-lounge-header">
+	  <div class="arcade-lounge-header-image"${headerImageStyle}></div>
+	  <div class="arcade-lounge-header-title">${gameName}</div>
+	  <div class="arcade-lounge-header-desc">${stateLabel}</div>
+  </div>
+  <div class="arcade-lounge-body">
+	  ${bodyHtml}
+  </div>
+  <div class="arcade-lounge-chat"></div>
+  <div class="arcade-lounge-controls">${controlsHtml}
+  </div>
+</div>`;
+
+		this.overlay.show(html);
+		if (image) {
+			this.overlay.setBackground(image);
+		}
+		this.attachEvents();
+		this.app.connection.emit('add-league-identifier-to-dom');
+	}
+
+	_buildReadyBody(record, state, game_mod) {
+		const players = state?.players || record?.tx?.msg?.players || [];
+		const options = state?.options || record?.tx?.msg?.options || {};
+		let optsHtml = '';
+		if (game_mod && typeof game_mod.returnShortGameOptionsArray === 'function') {
+			const sgoa = game_mod.returnShortGameOptionsArray(options);
+			for (let key in sgoa) {
+				if (sgoa[key] != null) {
+					optsHtml += `<div class="saito-table-row"><div class="arcade-lounge-key">${String(key).replace(/_/g, ' ')}</div><div class="arcade-lounge-value">${sgoa[key]}</div></div>`;
+				}
+			}
+		}
+		let playersHtml = '';
+		for (let i = 0; i < players.length; i++) {
+			const pkey = players[i];
+			playersHtml += `
+		  <div class="arcade-lounge-playerbox saito-table-row" id="invite-user-${pkey}">
+		    <div class="saito-identicon-box"><img class="saito-identicon" src="${this.app.keychain.returnIdenticon(pkey)}"></div>
+		    ${this.app.browser.returnAddressHTML(pkey)}
+		    <div class="online-status-indicator"></div>
+		  </div>`;
+		}
+		return `
+	  <div class="arcade-lounge-section hide-scrollbar">
+	    <div class="arcade-lounge-players">${playersHtml}
+	    </div>
+	    <div class="saito-table"><div class="saito-table-body">${optsHtml}</div></div>
+	  </div>`;
+	}
+
 	attachEvents() {
+		let startBtn = document.getElementById('arcade-game-controls-start-game');
+		if (startBtn && this.game_id != null) {
+			startBtn.onclick = (e) => {
+				let rec = this.mod.returnGame(this.game_id);
+				let slug = rec?.tx?.msg?.game || rec?.state?.module || 'arcade';
+				let am = this.app.modules.returnActiveModule()?.returnName() || 'Arcade';
+				this.app.options.homeModule = am;
+				this.app.storage.saveOptions();
+				this.app.browser.logMatomoEvent(
+					'StartGameClick',
+					am,
+					slug ? slug.slice(0, 1).toUpperCase() + slug.slice(1) : 'Game'
+				);
+				navigateWindow(`/${slug || 'arcade'}`, 200);
+			};
+		}
+
 		if (document.getElementById('arcade-game-controls-join-game')) {
 			//This is a joinable game
 			this.app.connection.emit('relay-send-message', {
@@ -127,29 +255,40 @@ class LoungeOverlay {
 
 		if (document.getElementById('arcade-game-controls-continue-game')) {
 			document.getElementById('arcade-game-controls-continue-game').onclick = (e) => {
-				console.log('click on continue');
-				this.app.browser.logMatomoEvent('GameInvite', 'ContinueGame', this.invite.game_mod.name);
-				navigateWindow(
-					`/${this.invite.game_slug}/#gid=${this.app.crypto.hash(this.invite.game_id).slice(-6)}`
-				);
+				let slug, gameId, name;
+				if (this.invite) {
+					slug = this.invite.game_slug;
+					gameId = this.invite.game_id;
+					name = this.invite.game_mod?.name;
+				} else if (this.game_id != null) {
+					let rec = this.mod.returnGame(this.game_id);
+					slug = rec?.tx?.msg?.game || rec?.state?.module || 'arcade';
+					gameId = this.game_id;
+					name = this.app.modules.returnModuleBySlug(slug)?.name;
+				}
+				if (name) this.app.browser.logMatomoEvent('GameInvite', 'ContinueGame', name);
+				if (slug != null && gameId != null) {
+					navigateWindow(`/${slug}/#gid=${this.app.crypto.hash(gameId).slice(-6)}`);
+				}
 			};
 		}
 
 		if (document.getElementById('arcade-game-controls-close-game')) {
 			document.getElementById('arcade-game-controls-close-game').onclick = async (e) => {
-				this.overlay.remove();
-
-				this.app.browser.logMatomoEvent('GameInvite', 'CloseActiveGame', this.invite.game_mod.name);
-
-				let c = await sconfirm('Are you sure you want to end the game?');
-
-				if (c) {
-					this.app.connection.emit(
-						'arcade-stop-game',
-						this.invite.game_mod.name,
-						this.invite.game_id,
-						'cancellation'
-					);
+				if (this.invite) {
+					this.overlay.remove();
+					this.app.browser.logMatomoEvent('GameInvite', 'CloseActiveGame', this.invite.game_mod.name);
+					let c = await sconfirm('Are you sure you want to end the game?');
+					if (c) {
+						this.app.connection.emit(
+							'arcade-stop-game',
+							this.invite.game_mod.name,
+							this.invite.game_id,
+							'cancellation'
+						);
+					}
+				} else if (this.game_id != null) {
+					this.overlay.remove();
 				}
 			};
 		}

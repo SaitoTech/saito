@@ -1,6 +1,5 @@
 const JSON = require('json-bigint');
 const ArcadeMainTemplate = require('./main.template');
-const ArcadeInitializer = require('../ui/overlays/initializer');
 const ArcadeSidebar = require('./sidebar');
 const ArcadeTeasers = require('./teasers');
 
@@ -53,13 +52,7 @@ class ArcadeMain {
 
 	showInitializer(game_id) {
 		if (!this.mod.browser_active) return;
-
-		this.mod.is_game_initializing = true;
-
-		const initializer = new ArcadeInitializer(this.app, this.mod);
-
-		initializer.game_id = game_id;
-		initializer.render();
+		this.mod.render('lounge_overlay', { game_id });
 	}
 
 	async render() {

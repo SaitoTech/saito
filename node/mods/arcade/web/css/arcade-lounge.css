@@ -80,6 +80,12 @@
 	justify-content: center;
 }
 
+.arcade-lounge-message {
+	text-align: center;
+	margin-top: 1rem;
+	opacity: 0.9;
+}
+
 /* Invite variant: players grid */
 .arcade-lounge-players {
 	display: grid;

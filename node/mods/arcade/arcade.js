@@ -9,7 +9,7 @@ const GameWizard = require('./lib/ui/overlays/wizard');
 const GameInvitationLink = require('./../../lib/saito/ui/modals/saito-link/saito-link');
 const Invite = require('./lib/ui/invite');
 const LoungeOverlay = require('./lib/ui/overlays/lounge');
-const ArcadeInitializer = require('./lib/ui/overlays/initializer');
+const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
 
 const arcadeHome = require('./index');
 
@@ -37,9 +37,6 @@ class Arcade extends ModTemplate {
 		this.mods = [];
 		this.games = {};
 
-		this.is_game_initializing = false;
-
-
 		////////////////////////////////////////////////////
 		///////////////////  UI STATE  /////////////////////
 		////////////////////////////////////////////////////
@@ -50,7 +47,6 @@ class Arcade extends ModTemplate {
 		this.ui = null;
 		this.header = null;
 		this.lounge_overlay = null;
-		this.initializer_overlay = null;
 		this.wizard_overlay = null;
 		this.share_overlay = null;
 
@@ -119,6 +115,26 @@ class Arcade extends ModTemplate {
 			let game_tx = this.returnGameTransaction(game_id);
 			if (game_tx) {
 				this.sendLeaveTransaction(game_tx, player_stats);
+			}
+		});
+
+		app.connection.on('arcade-game-ready-render-request', (game_details) => {
+			if (!game_details?.id) return;
+			if (this.browser_active) {
+				this.render('lounge_overlay', { game_id: game_details.id });
+				if (this.app.BROWSER && this.ui) {
+					let game_mod = this.app.modules.returnModuleBySlug(game_details?.slug);
+					if (game_mod && !(game_mod.maxPlayers === 1 || this.app.browser.isMobileBrowser())) {
+						this.app.browser.createTabNotification('Game ready!', game_details?.name || '');
+						siteMessage(`${game_details?.name || 'Game'} ready to play!`);
+						try {
+							let chime = new Audio('/saito/sound/Jinja.mp3');
+							chime.play();
+						} catch (e) {}
+					}
+				}
+			} else {
+				this._showReadyPopup(game_details);
 			}
 		});
 
@@ -226,7 +242,6 @@ class Arcade extends ModTemplate {
 			this.addComponent(this.ui);
 
 			this.lounge_overlay = new LoungeOverlay(this.app, this, null);
-			this.initializer_overlay = new ArcadeInitializer(this.app, this);
 			this.wizard_overlay = new GameWizard(this.app, this, null, {});
 
 			this.renderIntos = this.renderIntos || {};
@@ -312,18 +327,10 @@ class Arcade extends ModTemplate {
 		await super.render();
 
 		if (mode === 'lounge_overlay') {
-			if (this.lounge_overlay && data.invite_data != null) {
-				this.lounge_overlay.invite = data.invite_data;
+			if (this.lounge_overlay && (data.invite_data != null || data.game_id != null)) {
+				this.lounge_overlay.invite = data.invite_data != null ? data.invite_data : null;
+				this.lounge_overlay.game_id = data.game_id != null ? data.game_id : null;
 				this.lounge_overlay.render();
-			}
-			return;
-		}
-
-		if (mode === 'initializer_overlay') {
-			if (this.initializer_overlay) {
-				this.initializer_overlay.game_id = data.game_id;
-				this.is_game_initializing = true;
-				this.initializer_overlay.render();
 			}
 			return;
 		}
@@ -1242,7 +1249,7 @@ class Arcade extends ModTemplate {
 			) {
 				let newtx = await this.createAcceptTransaction(game);
 				if (!newtx) {
-					console.warn('ARCADE: createAcceptTransaction returned nothing; skipping propagate and initializer');
+					console.warn('ARCADE: createAcceptTransaction returned nothing; skipping propagate and lounge overlay');
 					return;
 				}
 				this.app.network.propagateTransaction(newtx);
@@ -1253,7 +1260,7 @@ class Arcade extends ModTemplate {
 				});
 
 				//Start Spinner
-				this.render('initializer_overlay', { game_id: txmsg.game_id });
+				this.render('lounge_overlay', { game_id: txmsg.game_id });
 			}
 		}
 	}
@@ -1433,7 +1440,7 @@ class Arcade extends ModTemplate {
 
 			this.app.options.arcade.last_game = txmsg.game;
 
-			await this.render('initializer_overlay', { game_id: txmsg.game_id });
+			await this.render('lounge_overlay', { game_id: txmsg.game_id });
 
 			if (this.app.BROWSER == 1 && txmsg.players.length > 1) {
 				siteMessage(txmsg.game + ' invite accepted', 5000);
@@ -1562,7 +1569,7 @@ class Arcade extends ModTemplate {
 		});
 
 		//Start Spinner
-		this.render('initializer_overlay', { game_id: opentx.signature });
+		this.render('lounge_overlay', { game_id: opentx.signature });
 	}
 
 
@@ -1607,7 +1614,13 @@ class Arcade extends ModTemplate {
 	}
 
 	returnGame(game_id) {
-		return this.games[game_id] || null;
+		const record = this.games[game_id] || null;
+		if (!record) return null;
+		const engineState = this.app.options?.games?.find((g) => g.id === game_id) || null;
+		return {
+			...record,
+			state: engineState
+		};
 	}
 
 	returnGameTransaction(game_id) {
@@ -1835,6 +1848,42 @@ class Arcade extends ModTemplate {
 
 	}
 
+	_showReadyPopup(game_details) {
+		if (!this.app.BROWSER) return;
+		if (!this.ready_popup_overlay) {
+			this.ready_popup_overlay = new SaitoOverlay(this.app, this, true, true, false);
+			this.ready_popup_overlay.nonBlocking = true;
+		}
+		const slug = game_details?.slug || 'arcade';
+		const name = game_details?.name || 'Game';
+		const html = `
+  <div class="arcade-ready-popup">
+    <div class="arcade-ready-popup-title">Your game is ready!</div>
+    <div class="arcade-ready-popup-name">${name}</div>
+    <div class="arcade-ready-popup-actions">
+      <button class="saito-button-primary arcade-ready-popup-start" data-slug="${slug}">Start Game</button>
+      <button class="saito-button-secondary arcade-ready-popup-dismiss">Dismiss</button>
+    </div>
+  </div>`;
+		this.ready_popup_overlay.show(html);
+		const overlay = this.ready_popup_overlay;
+		setTimeout(() => {
+			const el = document.getElementById(`saito-overlay${overlay.ordinal}`);
+			if (!el) return;
+			const startBtn = el.querySelector('.arcade-ready-popup-start');
+			const dismissBtn = el.querySelector('.arcade-ready-popup-dismiss');
+			if (startBtn) {
+				startBtn.onclick = () => {
+					overlay.close();
+					navigateWindow(`/${slug}`, 200);
+				};
+			}
+			if (dismissBtn) {
+				dismissBtn.onclick = () => overlay.close();
+			}
+		}, 50);
+	}
+
 	showShareLink(game_sig, show = true) {
 		let data = {};
 		let accepted_game_tx = null;
@@ -1985,7 +2034,7 @@ class Arcade extends ModTemplate {
 
 		let game_mod = this.app.modules.returnModule(game_msg.game);
 
-		this.render('initializer_overlay', { game_id });
+		this.render('lounge_overlay', { game_id });
 
 		game_msg.game_id = game_id;
 
