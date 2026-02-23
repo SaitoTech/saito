@@ -87,10 +87,13 @@ class LoungeOverlay {
 	_renderGameIdMode() {
 		let record = this.mod.returnGame(this.game_id);
 		const state = record?.state;
-		let slug = record?.tx?.msg?.game || state?.module || 'arcade';
-		let game_mod = this.app.modules.returnModuleBySlug(slug);
+		const txGame = record?.tx?.msg?.game;
+		const stateModule = state?.module;
+		// Resolve game_mod same as invite: tx.msg.game is module name; fallback to slug from state
+		let game_mod = this.app.modules.returnModule(txGame) || this.app.modules.returnModuleBySlug(stateModule || txGame || 'arcade') || this.app.modules.returnModule(stateModule);
+		let slug = game_mod?.returnSlug?.() || stateModule || txGame || 'arcade';
 		let image = game_mod?.respondTo?.('arcade-games')?.image || '';
-		let gameName = (game_mod && (game_mod.returnName?.() || game_mod.name)) || slug;
+		let gameName = (game_mod && (game_mod.returnName?.() || game_mod.name)) || txGame || slug;
 
 		let derivedState;
 		if (state && state.initializing === 1) {
@@ -127,6 +130,7 @@ class LoungeOverlay {
 	  <div id="arcade-game-controls-continue-game" class="fat saito-button-primary">View game</div>`;
 		}
 
+		// Unified layout: same header (thumbnail + title + subtitle), body, chat, controls for all states
 		let html = `
   <div class="arcade-lounge">
   <div class="arcade-lounge-header">
@@ -143,9 +147,7 @@ class LoungeOverlay {
 </div>`;
 
 		this.overlay.show(html);
-		if (image) {
-			this.overlay.setBackground(image);
-		}
+		this.overlay.setBackground(image);
 		this.attachEvents();
 		this.app.connection.emit('add-league-identifier-to-dom');
 	}

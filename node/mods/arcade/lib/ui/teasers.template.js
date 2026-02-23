@@ -19,7 +19,7 @@ module.exports = (app, mod) => {
          <div class="arcade-teaser-title"><span>${game_mod.returnName()}</span></div>
          <div class="arcade-teaser-footer"></div>
        </div>
-      `;
+			`;
 		} else {
 			games_menu += `
        <div id="${game_mod.name}" class="arcade-teaser" data-id="${game_mod.name}" data-league="${lid}">
@@ -27,7 +27,7 @@ module.exports = (app, mod) => {
          <div class="arcade-teaser-title"><span>${game_mod.returnName()}</span></div>
          <div class="arcade-teaser-footer"></div>
        </div>
-      `;
+			`;
 		}
 	}
 
