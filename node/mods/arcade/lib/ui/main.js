@@ -1,6 +1,6 @@
 const JSON = require('json-bigint');
 const ArcadeMainTemplate = require('./main.template');
-const ArcadeInitializer = require('../main/initializer');
+const ArcadeInitializer = require('../ui/overlays/initializer');
 const ArcadeSidebar = require('./sidebar');
 const ArcadeTeasers = require('./teasers');
 
@@ -56,11 +56,7 @@ class ArcadeMain {
 
 		this.mod.is_game_initializing = true;
 
-		const initializer = new ArcadeInitializer(
-			this.app,
-			this.mod,
-			'.arcade-main'
-		);
+		const initializer = new ArcadeInitializer(this.app, this.mod);
 
 		initializer.game_id = game_id;
 		initializer.render();
