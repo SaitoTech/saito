@@ -1,7 +1,7 @@
 const Invite = require('./invite');
 const InviteManagerTemplate = require('./invite-container.template');
 const JSON = require('json-bigint');
-const JoinGameOverlay = require('./overlays/lounge');
+const LoungeOverlay = require('./overlays/lounge');
 
 class InviteManager {
 	constructor(app, mod, container = '') {
@@ -43,7 +43,7 @@ class InviteManager {
 
 		for (let list of this.lists) {
 			if (this.list === 'all' || this.list === list) {
-				let listGames = this.mod.gamesByStatus(list);
+				let listGames = this.mod.returnGamesWithFilter({ status: list }).map((r) => r.tx);
 
 				if (listGames.length > 0 && !this.game_filter) {
 					if (list === 'mine') {
@@ -119,7 +119,7 @@ class InviteManager {
 
 		// Sudo: group records where sender is unreachable, label "Offline"
 		if (this.mod?.sudo && (this.list === 'all')) {
-			let offlineGames = this.mod.gamesWithSenderReachable(false);
+			let offlineGames = this.mod.returnGamesWithFilter({ is_sender_reachable: false }).map((r) => r.tx);
 			if (offlineGames.length > 0 && !this.game_filter) {
 				this.app.browser.addElementToSelector(
 					`<h5 class="sidebar-header">Offline</h5>`,

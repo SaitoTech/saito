@@ -4,8 +4,8 @@ module.exports = (app, mod) => {
 
 	league = app.modules.returnFirstRespondTo('leagues-for-arcade');
 
-	for (let i = 0; i < mod.arcade_games.length; i++) {
-		let game_mod = mod.arcade_games[i];
+	for (let i = 0; i < mod.mods.length; i++) {
+		let game_mod = mod.mods[i];
 
 		let lid = app.crypto.hash(game_mod.returnName());
 		if (!league?.returnLeague(lid)) {
