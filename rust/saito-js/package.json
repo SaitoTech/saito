@@ -7,8 +7,8 @@
     "build": "tsc",
     "serve": "webpack-dev-server"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/index.node.js",
+  "types": "dist/index.node.d.ts",
   "author": "",
   "license": "ISC",
   "exports": {
