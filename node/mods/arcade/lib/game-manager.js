@@ -45,8 +45,9 @@ class GameManager {
 		}
 
 		for (let list of this.lists) {
-			if (this.mod.games[list]) {
-				let gameList = this.mod.games[list].filter((game) => {
+			let listGames = this.mod.gamesByStatus(list);
+			if (listGames.length > 0) {
+				let gameList = listGames.filter((game) => {
 					let gametxmsg = game.returnMessage();
 
 					if (!gametxmsg) {

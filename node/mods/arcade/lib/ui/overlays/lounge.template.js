@@ -1,5 +1,5 @@
 module.exports = (app, mod, invite) => {
-	let game_tx = mod.returnGame(invite.game_id);
+	let game_tx = mod.getGameTx(invite.game_id);
 
 	//Uncreated games
 	let desc = invite.verbose_game_type;
