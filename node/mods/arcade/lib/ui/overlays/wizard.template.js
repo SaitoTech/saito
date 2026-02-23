@@ -67,13 +67,11 @@ module.exports = (game_mod, invite_obj = {}) => {
 				html += `
 					<button type="button" class="saito-multi-btn  game-invite-btn" data-type="open">create public league invite</button>
                 			 <button type="button" class="saito-multi-btn  game-invite-btn" data-type="private">create private league invite</button>
-                			 <button type="button" class="saito-multi-btn  game-invite-btn" data-type="import">import game file</button>
 				`;
 			} else {
 				html += `
               				<button type="button" class="saito-multi-btn  game-invite-btn" data-type="open">create public invite</button>
               				<button type="button" class="saito-multi-btn game-invite-btn" data-type="private">create private invite</button>
-                			 <button type="button" class="saito-multi-btn  game-invite-btn" data-type="import">import game file</button>
          			`;
 
 				if (game_mod?.can_play_async) {
