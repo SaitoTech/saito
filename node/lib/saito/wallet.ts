@@ -1663,8 +1663,7 @@ export default class Wallet extends SaitoWallet {
     //
     // crypto (nfts) updated
     //
-    this.app.connection.emit('saito-header-update-crypto')
-
+    this.app.connection.emit('saito-header-update-crypto');
 
     return { updated, rebroadcast, persisted };
   }
@@ -1824,9 +1823,9 @@ export default class Wallet extends SaitoWallet {
               );
             }
           }
-       }
+        }
 
-/*******************************
+        /*******************************
 for (let nft_id in nft_balance_by_id) {
 
   let total = nft_balance_by_id[nft_id];
@@ -1852,7 +1851,6 @@ for (let nft_id in nft_balance_by_id) {
   );
 }
 ***********************************/
-
       }
     } catch (err) {
       console.log('Error: load nfts');
