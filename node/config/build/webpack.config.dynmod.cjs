@@ -27,6 +27,16 @@ webpack(
       minimizer: [
         new TerserPlugin({
           parallel: true,
+          terserOptions: {
+            ecma: 2022,
+            compress: {
+              ecma: 2022
+            },
+            output: {
+              ecma: 2022
+            },
+	    parse: { ecma: 2022 }
+          }
         }),
       ],
     },

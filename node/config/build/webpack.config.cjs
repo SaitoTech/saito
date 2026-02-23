@@ -1,14 +1,12 @@
 const path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
-
 const webpack = require("webpack");
 
 let minimize = true;
-let devtool = undefined;
+let devtool = "source-map";
 let entrypoint = "../../dist/bundler/default/apps/lite/index.ts";
 let outputfile = "saito.js";
 if (process.argv.includes("dev")) {
-  console.log("dev mode source not minified");
   minimize = false;
   devtool = "eval";
 }
@@ -22,12 +20,20 @@ webpack(
       type: "filesystem",
     },
     optimization: {
-      //set the appropriate value for minimisation
-      // dev => false, prod => true
       minimize: minimize,
       minimizer: [
         new TerserPlugin({
           parallel: true,
+          terserOptions: {
+            ecma: 2022,
+            compress: {
+              ecma: 2022
+            },
+            output: {
+              ecma: 2022
+             },
+	    parse: { ecma: 2022 }
+          }
         }),
       ],
       splitChunks: {

@@ -102,7 +102,7 @@ class Arcade extends ModTemplate {
 
 		app.connection.on('arcade-gametable-addplayer', (game_id) => {
 			console.info('EVENT: arcade-gametable-addplayer');
-			let game = this.returnGame(game_id);
+			let game = this.getGameTx(game_id);
 			if (game) {
 				this.sendJoinTransaction({ tx: game, game_name: 'open_table' });
 			}
@@ -110,7 +110,7 @@ class Arcade extends ModTemplate {
 
 		app.connection.on('arcade-gametable-removeplayer', (game_id, player_stats) => {
 			console.info('EVENT: arcade-gametable-removeplayer');
-			let game = this.returnGame(game_id);
+			let game = this.getGameTx(game_id);
 			if (game) {
 				this.sendLeaveTransaction(game, player_stats);
 			}
@@ -125,7 +125,7 @@ class Arcade extends ModTemplate {
 
 			console.info('arcade-continue-game-from-options');
 
-			let game_tx = this.returnGame(id);
+			let game_tx = this.getGameTx(id);
 
 			if (!game_tx) {
 				console.info('ARCADE: Creating fresh transaction');
@@ -220,9 +220,6 @@ class Arcade extends ModTemplate {
 			return b_count - a_count;
 		});
 
-		this.games['mine'] = [];
-		this.games['open'] = [];
-
 		//
 		// If we have a browser (are a user)
 		// initialize some UI components and query the list of games to display
@@ -283,15 +280,14 @@ class Arcade extends ModTemplate {
 
 			setInterval(() => {
 				let cutoff = new Date().getTime() - this.invite_cutoff;
-				for (let key of ['mine', 'open']) {
-					let my_games = this.games[key];
-					for (let i = my_games.length - 1; i >= 0; i--) {
-						if (my_games[i].timestamp < cutoff) {
-							this.removeGame(my_games[i].signature);
-							this.addGame(my_games[i], 'closed');
-							if (this.browser_active && this.main) {
-								this.main.renderInvites();
-							}
+				for (let id of Object.keys(this.games)) {
+					let record = this.games[id];
+					let g = record.tx;
+					if ((record.status === 'mine' || record.status === 'open') && g.timestamp < cutoff) {
+						this.removeGame(g.signature);
+						this.addGame(g, 'closed');
+						if (this.browser_active && this.main) {
+							this.main.renderInvites();
 						}
 					}
 				}
@@ -341,14 +337,22 @@ class Arcade extends ModTemplate {
 
 	async onPeerServiceUp(app, peer, service = {}) {
 		if (!app.BROWSER) {
-			if (this.games?.offline) {
-				for (let j = 0; j < this.games.offline.length; j++) {
-					if (this.games.offline[j].from[0].publicKey == peer.publicKey) {
-						let game = this.games.offline[j];
-						this.notifyPeers(this.games.offline[j]);
-						this.removeGame(game.signature);
-						this.addGame(game, 'open');
-					}
+			let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
+			newtx.msg = {
+				module: 'Arcade',
+				request: 'arcade update peer status',
+				data: {
+					publickey: peer.publicKey,
+					status: 'online'
+				}
+			};
+			await newtx.sign();
+			this.notifyPeers(newtx);
+
+			for (let id in this.games) {
+				let record = this.games[id];
+				if (record.tx.from[0].publicKey == peer.publicKey) {
+					record.is_sender_reachable = true;
 				}
 			}
 
@@ -431,7 +435,13 @@ class Arcade extends ModTemplate {
 	}
 
 	loadGameInviteById(game_id_short, gameName, is_invite = false) {
-		let game = this.returnGameFromHash(game_id_short);
+		let record = this.filterGames(
+			(r) => this.app.crypto.hash(r.tx.signature).slice(-6) == game_id_short
+		)[0];
+		let game = record ? record.tx : null;
+		if (this.debug && record) {
+			console.info(`ARCADE: Game found (${record.status})`);
+		}
 
 		if (!game || game.msg.request == 'cancel' || game.msg.request == 'closed') {
 			console.warn('Load Game by ID failed...', game?.msg);
@@ -782,10 +792,11 @@ class Arcade extends ModTemplate {
 			let txs = [];
 			let peers = await app.network.getPeers();
 
-			for (let key in this.games) {
-				for (let g of this.games[key]) {
-					txs.push(g.serialize_to_web(this.app));
-				}
+			for (let id in this.games) {
+				let record = this.games[id];
+				if (record.is_sender_reachable !== true) continue;
+				let g = record.tx;
+				txs.push(g.serialize_to_web(this.app));
 			}
 
 			if (mycallback) {
@@ -860,8 +871,8 @@ class Arcade extends ModTemplate {
 					app.connection.emit('arcade-reject-challenge', txmsg.game_id);
 				}
 
-				if (txmsg.request == 'offline') {
-					await this.receiveOfflineTransaction(tx);
+				if (txmsg.request === 'arcade update peer status') {
+					await this.receivePeerStatusUpdateTransaction(tx);
 				}
 			} else {
 				if (txmsg.request === 'stopgame') {
@@ -895,22 +906,22 @@ class Arcade extends ModTemplate {
 			return;
 		}
 
-		// Only care about open, public invites
-		for (let g of this.games['open']) {
-			if (publicKey == g.from[0].publicKey) {
-				let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
-				newtx.msg = {
-					module: 'Arcade',
-					request: 'offline',
-					game_id: g.signature
-				};
+		let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
+		newtx.msg = {
+			module: 'Arcade',
+			request: 'arcade update peer status',
+			data: {
+				publickey: publicKey,
+				status: 'offline'
+			}
+		};
+		await newtx.sign();
+		this.notifyPeers(newtx);
 
-				await newtx.sign();
-
-				this.notifyPeers(newtx);
-
-				this.removeGame(g.signature);
-				this.addGame(g, 'offline');
+		for (let id in this.games) {
+			let record = this.games[id];
+			if (record.tx.from[0].publicKey === publicKey) {
+				record.is_sender_reachable = false;
 			}
 		}
 	}
@@ -1047,7 +1058,7 @@ class Arcade extends ModTemplate {
 
 	async receiveCancelTransaction(tx) {
 		let txmsg = tx.returnMessage();
-		let game = this.returnGame(txmsg.game_id);
+		let game = this.getGameTx(txmsg.game_id);
 
 		if (!game || !game.msg) {
 			return;
@@ -1095,7 +1106,7 @@ class Arcade extends ModTemplate {
 	}
 
 	async sendCancelTransaction(game_id) {
-		let game = this.returnGame(game_id);
+		let game = this.getGameTx(game_id);
 
 		if (!game || !game.msg) {
 			return;
@@ -1118,7 +1129,7 @@ class Arcade extends ModTemplate {
 	}
 
 	changeGameStatus(game_id, newStatus) {
-		let game = this.returnGame(game_id);
+		let game = this.getGameTx(game_id);
 
 		//Move game to different list
 		if (game) {
@@ -1150,7 +1161,7 @@ class Arcade extends ModTemplate {
 	async receiveGameoverTransaction(tx) {
 		let txmsg = tx.returnMessage();
 
-		let game = this.returnGame(txmsg.game_id);
+		let game = this.getGameTx(txmsg.game_id);
 
 		//In case we arrive at gameover without close game
 		this.app.connection.emit('arcade-close-game', txmsg.game_id);
@@ -1180,7 +1191,7 @@ class Arcade extends ModTemplate {
 
 	async receiveGameStepTransaction(tx) {
 		let txmsg = tx.returnMessage();
-		let game = this.returnGame(txmsg.game_id);
+		let game = this.getGameTx(txmsg.game_id);
 		if (game?.msg) {
 			game.msg.step = txmsg.step.game;
 			game.msg.timestamp = txmsg.step.timestamp;
@@ -1302,7 +1313,7 @@ class Arcade extends ModTemplate {
 		//
 		// game is the copy of the original invite creation TX stored in our object of arrays.
 		//
-		let game = this.returnGame(txmsg.game_id);
+		let game = this.getGameTx(txmsg.game_id);
 		//
 		// If we don't find it, or we have already marked the game as active, stop processing
 		//
@@ -1433,7 +1444,7 @@ class Arcade extends ModTemplate {
 		//
 		// game is the copy of the original invite creation TX stored in our object of arrays.
 		//
-		let game = this.returnGame(txmsg.game_id);
+		let game = this.getGameTx(txmsg.game_id);
 
 		//
 		// If we don't find it, or we have already marked the game as active, stop processing
@@ -1524,7 +1535,7 @@ class Arcade extends ModTemplate {
 			return;
 		}
 
-		let game = this.returnGame(txmsg.game_id);
+		let game = this.getGameTx(txmsg.game_id);
 
 		// Must be an available invite
 		if (!game || (!this.isAvailableGame(game, 'accepted') && !txmsg.options?.async_dealing)) {
@@ -1579,21 +1590,22 @@ class Arcade extends ModTemplate {
 		}
 	}
 
-	async receiveOfflineTransaction(tx) {
+	async receivePeerStatusUpdateTransaction(tx) {
 		let txmsg = tx.returnMessage();
+		let pk = txmsg.data?.publickey;
+		let status = txmsg.data?.status;
+		if (!pk || !status) return 0;
 
-		if (this.app.BROWSER) {
-			for (let j = 0; j < this.games.open.length; j++) {
-				if (this.games.open[j].signature == txmsg.game_id) {
-					this.games.open.splice(j, 1);
-					if (this.browser_active && this.main) {
-						this.main.renderInvites();
-					}
-					break;
-				}
+		for (let id in this.games) {
+			let record = this.games[id];
+			if (record.tx.from[0].publicKey === pk) {
+				record.is_sender_reachable = (status === 'online');
 			}
 		}
 
+		if (this.app.BROWSER && this.browser_active && this.main) {
+			this.main.renderInvites();
+		}
 		return 0;
 	}
 
@@ -1749,57 +1761,40 @@ class Arcade extends ModTemplate {
 	//Add a game (tx) to a specified list
 	//
 	addGame(tx, list = null) {
-		//
-		// Sanity check the tx and make sure we don't already have it
-		//
 		if (!tx || !tx.msg || !tx.signature) {
 			console.error("ARCADE: [addGame] Invalid Game TX, won't add to list", tx);
 			return false;
 		}
 
-		//Always removeGame before calling addGame to successfully reclassify
-		for (let key in this.games) {
-			for (let z = 0; z < this.games[key].length; z++) {
-				if (tx.signature === this.games[key][z].signature) {
-					if (this.debug) {
-						console.warn('ARCADE: [addGame] TX is already in Arcade list. tx : ' + tx.signature);
-					}
-					return false;
-				}
+		if (this.games[tx.signature]) {
+			if (this.debug) {
+				console.warn('ARCADE: [addGame] TX is already in Arcade list. tx : ' + tx.signature);
 			}
+			return false;
 		}
 
 		if (list) {
-			//Update the game status (open/private/active/close/over)
-			tx.msg.request = list;
+			// status from caller
 		} else {
-			//default to the embedded invite type
 			list = tx.msg?.request || 'open';
 		}
 
-		if (list !== 'over' && !list.includes('close') && list !== 'offline') {
-			//
-			// Sanity check the target list so my games are grouped together
-			//
+		if (list !== 'over' && !list.includes('close')) {
 			if (this.isMyGame(tx)) {
 				list = 'mine';
 			} else {
 				if (tx.msg.players_needed <= tx.msg.players.length) {
 					list = 'active';
 				}
-				//if (tx.msg?.options['open-table']) {
-				//	list = 'open';
-				//}
 			}
 		}
 
-		if (!this.games[list]) {
-			this.games[list] = [];
-		}
-
-		// We want new games to go towards the top
-
-		this.games[list].unshift(tx);
+		this.games[tx.signature] = {
+			tx,
+			status: list,
+			updated_at: Date.now(),
+			is_sender_reachable: true
+		};
 
 		if (this.debug) {
 			console.debug(
@@ -1812,41 +1807,65 @@ class Arcade extends ModTemplate {
 	}
 
 	removeGame(game_id) {
-		for (let key in this.games) {
-			this.games[key] = this.games[key].filter((game) => {
-				if (game.signature) {
-					return game.signature != game_id;
-				} else {
-					return true;
-				}
-			});
-		}
+		delete this.games[game_id];
+	}
+
+	getGameRecord(game_id) {
+		return this.games[game_id] || null;
+	}
+
+	getGameTx(game_id) {
+		let record = this.getGameRecord(game_id);
+		return record ? record.tx : null;
+	}
+
+	filterGames(predicateFn) {
+		return Object.values(this.games).filter(predicateFn);
+	}
+
+	getGamesByStatus(status) {
+		return this.filterGames((r) => r.status === status);
+	}
+
+	getOpenInvites() {
+		return this.filterGames(
+			(r) => r.status === 'open' && r.is_sender_reachable === true
+		);
+	}
+
+	gamesByStatus(status) {
+		return this.getGamesByStatus(status).map((r) => r.tx);
+	}
+
+	gamesWithSenderReachable(reachable) {
+		return this.filterGames((r) => r.is_sender_reachable === reachable).map((r) => r.tx);
 	}
 
 	purge() {
 		const now = new Date().getTime();
 		let walletModified = false;
 
-		// --- Purge this.games (from purgeOldGames) ---
-		for (let key in this.games) {
+		// --- Purge this.games by age ---
+		for (let id of Object.keys(this.games)) {
+			let record = this.games[id];
 			let cutoff = now - this.invite_cutoff;
-			if (key == 'active' || key == 'over' || key == 'mine') {
+			if (record.status === 'active' || record.status === 'over' || record.status === 'mine') {
 				cutoff = now - this.game_cutoff;
 			}
-			this.games[key] = this.games[key].filter((game) => {
-				return game.timestamp > cutoff;
-			});
+			if (record.tx.timestamp <= cutoff) {
+				delete this.games[id];
+			}
 		}
 
 		if (this.app.BROWSER) {
-			//Second pass for my open invites
+			// Second pass: expire my invites that are not available
 			let cutoff = now - this.invite_cutoff;
-			for (let g = this.games.mine.length - 1; g >= 0; g--) {
-				if (!this.isAvailableGame(this.games.mine[g])) {
-					if (this.games.mine[g].timestamp < cutoff) {
-						siteMessage('Game invite timed out...', 4000);
-						this.games.mine.splice(g, 1);
-					}
+			for (let id of Object.keys(this.games)) {
+				let record = this.games[id];
+				if (record.status !== 'mine') continue;
+				if (!this.isAvailableGame(record.tx) && record.tx.timestamp < cutoff) {
+					siteMessage('Game invite timed out...', 4000);
+					delete this.games[id];
 				}
 			}
 		}
@@ -1941,52 +1960,13 @@ class Arcade extends ModTemplate {
 		return false;
 	}
 
-	findGame(game, short_id) {
-		for (let key in this.games) {
-			for (let g of this.games[key]) {
-				if (g.game == game && this.app.crypto.hash(g.signature).slice(-6) === short_id) {
-					return g;
-				}
-			}
-		}
-		return null;
-	}
-
-	returnGame(game_id) {
-		for (let key in this.games) {
-			let game = this.games[key].find((g) => g.signature == game_id);
-			if (game) {
-				return game;
-			}
-		}
-		return null;
-	}
-
 	returnOpenInvites() {
-		let invites = [];
-
-		for (let invite of this.games?.mine) {
-			if (this.isAvailableGame(invite) && this.publicKey == invite.msg.originator) {
-				invites.push(invite.signature);
-			}
-		}
-
-		return invites;
-	}
-
-	returnGameFromHash(game_id) {
-		for (let key in this.games) {
-			let game = this.games[key].find(
-				(g) => this.app.crypto.hash(g.signature).slice(-6) == game_id
-			);
-			if (game) {
-				if (this.debug) {
-					console.info(`ARCADE: Game found in ${key} list`);
-				}
-				return game;
-			}
-		}
-		return null;
+		return this.filterGames(
+			(r) =>
+				r.status === 'mine' &&
+				this.isAvailableGame(r.tx) &&
+				this.publicKey == r.tx.msg.originator
+		).map((r) => r.tx.signature);
 	}
 
 	shouldAffixCallbackToModule(modname) {
@@ -2038,7 +2018,12 @@ class Arcade extends ModTemplate {
 				}
 
 				let id = query_params?.game_id;
-				game_data = arcade_self.findGame(game, id);
+				game_data = arcade_self
+					.filterGames(
+						(r) =>
+							r.tx.game == game &&
+							arcade_self.app.crypto.hash(r.tx.signature).slice(-6) === id
+					)[0]?.tx ?? null;
 
 				console.log('WEBSERVER ARCADE GAME DATA --- ', game_data);
 			}
@@ -2083,11 +2068,9 @@ class Arcade extends ModTemplate {
 		let accepted_game_msg = null;
 
 		//Add more information about the game
-		for (let key in this.games) {
-			let x = this.games[key].find((g) => g.signature === game_sig);
-			if (x) {
-				accepted_game_tx = x;
-			}
+		let record = this.getGameRecord(game_sig);
+		if (record) {
+			accepted_game_tx = record.tx;
 		}
 
 		if (accepted_game_tx) {
@@ -2224,7 +2207,7 @@ class Arcade extends ModTemplate {
 	///////////////////////////////////////////////////////////////////////////
 
 	async observeGame(game_id, watch_live = false) {
-		let game_tx = this.returnGame(game_id);
+		let game_tx = this.getGameTx(game_id);
 
 		if (!game_tx) {
 			console.error('ARCADE: [observeGame] -- Game not found!');

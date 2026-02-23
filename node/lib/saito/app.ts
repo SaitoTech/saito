@@ -104,6 +104,7 @@ class Saito {
       this.modules.mods = this.modules.mods_list.map((mod_path) => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         console.log('Installing: ', mod_path);
+        //const Module = require(`../../mods/${mod_path}.js`);
         const Module = require(`../../mods/${mod_path}`);
         const x = new Module(this);
         x.dirname = path.dirname(mod_path);
