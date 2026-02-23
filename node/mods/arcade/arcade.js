@@ -5,7 +5,6 @@ const ModTemplate = require('../../lib/templates/modtemplate');
 const ArcadeMain = require('./lib/ui/main');
 const SaitoHeader = require('./../../lib/saito/ui/saito-header/saito-header');
 const InviteManager = require('./lib/ui/invites');
-const GameManager = require('./lib/game-manager');
 const GameWizard = require('./lib/ui/overlays/wizard');
 const GameInvitationLink = require('./../../lib/saito/ui/modals/saito-link/saito-link');
 const Invite = require('./lib/ui/invite');
@@ -234,11 +233,6 @@ class Arcade extends ModTemplate {
 			this.wizard_overlay = new GameWizard(this.app, this, null, {});
 
 			this.renderIntos = this.renderIntos || {};
-			this.invite_manager_game_page = new InviteManager(this.app, this, '.game-page-invites');
-			this.invite_manager_game_page.type = 'long';
-			this.renderIntos['.game-page-invites'] = [this.invite_manager_game_page];
-			this.game_manager_league = new GameManager(this.app, this, '.league-overlay-games-list');
-			this.renderIntos['.league-overlay-games-list'] = [this.game_manager_league];
 
 			//
 			// my games stored in local wallet
@@ -473,25 +467,6 @@ class Arcade extends ModTemplate {
 	async render(mode = null, data = {}) {
 
 		//
-		// game specific landing pages
-		//
-		if (
-			window.location.pathname.includes('game') &&
-			!window.location.pathname.includes(this.returnSlug())
-		) {
-			let path = window.location.pathname.split('/');
-			let game_name = path.pop();
-			let game_mod = this.app.modules.returnModuleBySlug(game_name);
-			if (game_mod) {
-				game_mod.game = null;
-				game_mod.attachEvents();
-			}
-
-			this.browser_active = 0;
-			return;
-		}
-
-		//
 		// add chat manager
 		//
 		if (!this.chat_components_added) {
@@ -539,7 +514,7 @@ class Arcade extends ModTemplate {
 			return true;
 		}
 
-		return qs == '.league-overlay-games-list';
+		return false;
 	}
 
 	//
@@ -566,33 +541,6 @@ class Arcade extends ModTemplate {
 			}
 		}
 
-		//
-		// Game info page invites
-		//
-		if (qs == '.game-page-invites') {
-			if (!this.renderIntos[qs]) {
-				this.styles = ['/arcade/style.css'];
-				this.renderIntos[qs] = [];
-				this.invite_manager = new InviteManager(this.app, this, '.game-page-invites');
-				this.invite_manager.type = 'long';
-				this.renderIntos[qs].push(this.invite_manager);
-				this.attachStyleSheets();
-			}
-		}
-
-		//
-		// Completed/active games in league overlay
-		//
-		if (qs == '.league-overlay-games-list') {
-			if (!this.renderIntos[qs]) {
-				this.styles = ['/arcade/style.css'];
-				this.renderIntos[qs] = [];
-				let obj = new GameManager(this.app, this, '.league-overlay-games-list');
-				this.renderIntos[qs].push(obj);
-				this.attachStyleSheets();
-			}
-		}
-
 		if (this.renderIntos[qs] != null && this.renderIntos[qs].length > 0) {
 			for (const comp of this.renderIntos[qs]) {
 				await comp.render();
@@ -606,23 +554,6 @@ class Arcade extends ModTemplate {
 
 	respondTo(type = '', obj) {
 		// Phase 1: no direct UI instantiation, no .render() calls; return references only
-
-		if (type === 'game-manager') {
-			let container = obj?.container || '';
-			if (this.game_manager_league && container) {
-				this.game_manager_league.container = container;
-			}
-			return this.game_manager_league ? { gm: this.game_manager_league } : {};
-		}
-
-		if (type === 'invite-manager') {
-			let game_filter = obj?.filter || null;
-			if (this.invite_manager_game_page) {
-				this.invite_manager_game_page.game_filter = game_filter;
-				return { invite_manager: this.invite_manager_game_page };
-			}
-			return {};
-		}
 
 		if (type === 'saito-header') {
 			let x = [];
@@ -657,7 +588,7 @@ class Arcade extends ModTemplate {
 			}
 		}
 
-		if (type == 'filter-saito-link') {
+		if (type === 'saito-filter-link') {
 			if (obj.slug == this.returnSlug()) {
 				if (!obj.url.includes('invite')) {
 					return {
@@ -1950,7 +1881,7 @@ class Arcade extends ModTemplate {
 	}
 
 	isSlug(slug) {
-		if (slug == this.returnSlug() || slug == 'game') {
+		if (slug == this.returnSlug()) {
 			return true;
 		}
 		return false;
@@ -2005,29 +1936,6 @@ class Arcade extends ModTemplate {
 			return;
 		});
 
-		expressapp.get('/game/:game', async function (req, res) {
-			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
-			let game = req.params.game;
-			let game_mod = arcade_self.app.modules.returnModuleBySlug(game);
-
-			if (game_mod) {
-				let html = game_mod.returnHomePage(reqBaseURL);
-				if (!res.finished) {
-					res.setHeader('Content-type', 'text/html');
-					res.charset = 'UTF-8';
-					return res.send(html);
-				}
-				return;
-			} else {
-				let html = arcadeHome(app, arcade_self, app.build_number, arcade_self.social, null);
-				if (!res.finished) {
-					res.setHeader('Content-type', 'text/html');
-					res.charset = 'UTF-8';
-					return res.send(html);
-				}
-				return;
-			}
-		});
 	}
 
 	showShareLink(game_sig, show = true) {

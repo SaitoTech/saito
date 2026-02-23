@@ -11,8 +11,6 @@ class InviteManager {
 		this.name = 'InviteManager';
 		this.type = 'short';
 
-		// For filtering which games get displayed
-		// We may want to only display one type of game invite, so overwrite this before render()
 		this.list = 'all';
 		this.lists = ['mine', 'open', 'active'];
 
