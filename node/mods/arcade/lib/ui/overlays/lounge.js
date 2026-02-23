@@ -41,7 +41,7 @@ class JoinGameOverlay {
 
 		if (this.mod.sudo) {
 			this.overlay.show(
-				`<div class="arcade-game-overlay debug_overlay"><button class="saito-button-primary" id="clear-invite">Delete</button></div>`
+				`<div class="arcade-lounge debug_overlay"><button class="saito-button-primary" id="clear-invite">Delete</button></div>`
 			);
 
 			if (!this.mod.styles.includes('/saito/lib/jsonTree/jsonTree.css')) {
@@ -49,7 +49,7 @@ class JoinGameOverlay {
 				this.mod.attachStyleSheets();
 			}
 
-			let el = document.querySelector('.arcade-game-overlay');
+			let el = document.querySelector('.arcade-lounge');
 
 			try {
 				let optjson = JSON.parse(
