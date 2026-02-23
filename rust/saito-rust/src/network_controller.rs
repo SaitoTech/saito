@@ -59,7 +59,7 @@ impl NetworkController {
         match connection {
             PeerSender::Warp(sender) => {
                 if let Err(error) = sender.send(warp::ws::Message::binary(buffer)).await {
-                    error!("Error sending message,  Reason {:?}", error);
+                    error!("Error sending message.  Reason {}", error);
                     send_failed = true;
                 }
             }
@@ -68,7 +68,7 @@ impl NetworkController {
                     .send(tokio_tungstenite::tungstenite::Message::Binary(buffer))
                     .await
                 {
-                    error!("Error sending message,  Reason {:?}", error);
+                    error!("Error sending message.  Reason {}", error);
                     send_failed = true;
                 }
             }
@@ -358,6 +358,7 @@ impl NetworkController {
     }
 
     pub async fn disconnect_socket(&mut self, connection: PeerSender) {
+        debug!("disconnecting socket");
         match connection {
             PeerSender::Warp(mut sender) => {
                 let _ = sender.close().await.or_else(|e| {
@@ -374,7 +375,7 @@ impl NetworkController {
         }
     }
     pub async fn disconnect_socket_by_key(&mut self, public_key: SaitoPublicKey) {
-        info!("disconnect peer : {:?}", public_key.to_base58());
+        info!("disconnecting peer : {:?}", public_key.to_base58());
         if let Some((_peer, sender)) = self.network_peers.remove(&public_key) {
             if let Some(sender) = sender {
                 match sender {
@@ -409,7 +410,7 @@ impl NetworkController {
     pub async fn receive_message_from_peer(
         receiver: PeerReceiver,
         mut peer: NetworkPeer,
-        mut socket: PeerSender,
+        socket: PeerSender,
         wallet: Arc<RwLock<Wallet>>,
         configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: Timer,
@@ -439,6 +440,8 @@ impl NetworkController {
                         let mut network_controller = network_controller_clone.write().await;
                         if let Some(socket) = socket_lock.lock().await.take() {
                             network_controller.disconnect_socket(socket).await;
+                        } else {
+                            warn!("socket was not found for peer");
                         }
                         // NetworkController::disconnect_socket(sockets, sender).await;
                         break;
@@ -505,6 +508,8 @@ impl NetworkController {
                             let mut network_controller = network_controller_clone.write().await;
                             if let Some(socket) = socket_lock.lock().await.take() {
                                 network_controller.disconnect_socket(socket).await;
+                            } else {
+                                warn!("socket was not found for peer");
                             }
                             break;
                         } else {
@@ -516,13 +521,12 @@ impl NetworkController {
                             }
                         }
                     } else if result.is_close() {
-                        // warn!(
-                        //     "connection closed by remote peer : {:?}",
-                        //     public_key.unwrap_or([0; 33]).to_base58()
-                        // );
+                        warn!("connection closed by remote peer",);
                         let mut network_controller = network_controller_clone.write().await;
                         if let Some(socket) = socket_lock.lock().await.take() {
                             network_controller.disconnect_socket(socket).await;
+                        } else {
+                            warn!("socket was not found for peer");
                         }
                         break;
                     }
@@ -539,6 +543,8 @@ impl NetworkController {
                         let mut network_controller = network_controller_clone.write().await;
                         if let Some(socket) = socket_lock.lock().await.take() {
                             network_controller.disconnect_socket(socket).await;
+                        } else {
+                            warn!("socket was not found for peer");
                         }
                         break;
                     }
@@ -609,6 +615,8 @@ impl NetworkController {
                                 let mut network_controller = network_controller_clone.write().await;
                                 if let Some(socket) = socket_lock.lock().await.take() {
                                     network_controller.disconnect_socket(socket).await;
+                                } else {
+                                    warn!("socket was not found for peer");
                                 }
                                 break;
                             } else {
@@ -621,13 +629,12 @@ impl NetworkController {
                             }
                         }
                         tokio_tungstenite::tungstenite::Message::Close(_) => {
-                            // info!(
-                            //     "socket for peer : {:?} was closed",
-                            //     public_key.unwrap_or([0; 33]).to_base58()
-                            // );
+                            info!("socket for peer was closed");
                             let mut network_controller = network_controller_clone.write().await;
                             if let Some(socket) = socket_lock.lock().await.take() {
                                 network_controller.disconnect_socket(socket).await;
+                            } else {
+                                warn!("socket was not found for peer");
                             }
                             break;
                         }

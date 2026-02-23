@@ -494,6 +494,13 @@ impl Peer {
     ) {
         if self.last_msg_sent_at + WS_KEEP_ALIVE_PERIOD < current_time {
             self.last_msg_sent_at = current_time;
+            if matches!(self.peer_status, PeerStatus::Disconnected(_, _)) {
+                debug!(
+                    "peer : {} is disconnected. not sending ping",
+                    self.public_key.to_base58()
+                );
+                return;
+            }
             info!("sending ping to peer : {:?}", self.public_key.to_base58());
             io_handler
                 .send_message(self.public_key, Message::Ping().serialize().as_slice())
