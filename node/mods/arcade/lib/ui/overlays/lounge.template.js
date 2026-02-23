@@ -98,6 +98,7 @@ module.exports = (app, mod, invite) => {
 		  </div>
 	    </div>
 	  </div>
+	  <div class="arcade-lounge-chat"></div>
 	  <div class="arcade-lounge-controls">`;
 
 	if (!invite.time_finished) {

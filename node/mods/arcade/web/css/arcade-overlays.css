@@ -2,3 +2,32 @@
 .overlay-invite-manager > .arcade-invite {
 	margin-bottom: 0.5rem;
 }
+
+/* Lightweight READY notification popup (when not in Arcade) */
+.arcade-ready-popup {
+	max-width: 22rem;
+	margin: 0 auto;
+	padding: 1.5rem;
+	text-align: center;
+	background: var(--saito-background-color);
+	border-radius: var(--saito-border-radius);
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+.arcade-ready-popup-title {
+	font-size: 1.25rem;
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+}
+.arcade-ready-popup-name {
+	opacity: 0.9;
+	margin-bottom: 1.25rem;
+}
+.arcade-ready-popup-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+.arcade-ready-popup-actions .saito-button-primary,
+.arcade-ready-popup-actions .saito-button-secondary {
+	width: 100%;
+}
