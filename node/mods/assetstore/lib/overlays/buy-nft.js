@@ -13,48 +13,63 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
       (el) => (el.style.display = 'none')
     );
 
-    let priceRaw = this.nft.getBuyPriceSaito();
-    this.price = typeof priceRaw === 'bigint' ? priceRaw.toString() : (priceRaw ?? '');
-
-    let html = `
-      <div class="assetstore-nft-listing-inputs">
-        Buy listing for <span id="nft-buy-price">${this.price}</span> SAITO?
-      </div>
-    `;
-
-    if (document.querySelector('.saito-nft-description')) {
-      document.querySelector('.saito-nft-description').innerHTML = html;
-    }
     setTimeout(() => {
       this.attachEvents();
     }, 25);
   }
 
-  attachEvents() {
+  async attachEvents() {
     super.attachEvents();
-    let buy_with_saito_btn = document.querySelector('.saito-nft-footer-btn.enable');
-    let buy_with_other_btn = document.querySelector('.saito-nft-footer-btn.disable');
 
+    // Use Enable/Disable buttons for controls...
+    let buy_with_saito_btn = document.querySelector('.saito-nft-footer-btn.enable-nft');
+    let buy_with_other_btn = document.querySelector('.saito-nft-footer-btn.disable-nft');
     buy_with_saito_btn.innerHTML = 'Buy with Saito';
     buy_with_saito_btn.style.display = 'block';
+
+    let priceRaw = this.nft.getBuyPriceSaito(); // BigInt -- Saito
+    let fee = BigInt(this.mod?.fee || 0);
+
+    let total_price = this.app.wallet.convertSaitoToNolan(priceRaw + fee);
+    let wallet_balance = await this.app.wallet.getBalance(); // BigInt - Nolan
+
+    let insufficient_funds = wallet_balance < total_price;
+
+    // I don't know why we would get this, but okay..
+    if (total_price <= 0n) {
+      alert('ERROR: price seems to be negative? Please report issue...');
+      return;
+    }
 
     //
     // BUY WITH SAITO
     //
     if (buy_with_saito_btn) {
-      buy_with_saito_btn.onclick = async (e) => {
-        siteMessage('Submitting Order: please be patient...', 5000);
-        e.preventDefault();
-        buy_with_saito_btn.onclick = (e) => {};
-        try {
-          let newtx = await this.mod.createPurchaseAssetTransaction(this.nft);
-          await this.app.network.propagateTransaction(newtx);
-          this.overlay?.hide?.();
-          siteMessage('Purchase Submitted. waiting for confirmation...', 3000);
-        } catch (err) {
-          siteMessage('Error submitting bid: ' + err);
-        }
-      };
+      if (insufficient_funds) {
+        buy_with_saito_btn.classList.add('disabled-btn');
+
+        buy_with_saito_btn.onclick = (e) => {
+          salert('Insufficient SAITO in Wallet');
+        };
+      } else {
+        buy_with_saito_btn.onclick = async (e) => {
+          siteMessage('Submitting Order: please be patient...', 5000);
+          e.preventDefault();
+          buy_with_saito_btn.onclick = null;
+          this.overlay.hide();
+          try {
+            let newtx = await this.mod.createPurchaseAssetTransaction(
+              this.nft,
+              { price: priceRaw, fee },
+              total_price
+            );
+            await this.app.network.propagateTransaction(newtx);
+            siteMessage('Purchase Submitted. waiting for confirmation...', 3000);
+          } catch (err) {
+            console.err('Error submitting bid: ' + err);
+          }
+        };
+      }
     }
 
     //
@@ -70,13 +85,18 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
 
       buy_with_other_btn.onclick = async (e) => {
         e.preventDefault();
-        const newtx = await this.mod.createWeb3CryptoPurchase(this.nft);
+        let newtx = await this.mod.createPurchaseAssetTransaction(
+          this.nft,
+          { price: priceRaw, fee },
+          0n
+        );
+
         this.app.connection.emit(
           'saito-purchase-launch',
-          Number(this.price),
+          this.app.wallet.convertNolanToSaito(total_price),
           this.mod.assetStore.publicKey,
           newtx.serialize_to_web(this.app),
-          `Purchase ${this.price} Saito NFT`
+          `Purchase ${this.app.wallet.convertNolanToSaito(total_price)} Saito NFT`
         );
       };
     }

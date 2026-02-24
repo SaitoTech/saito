@@ -83,6 +83,7 @@
   flex-direction: column;
   gap: 0.2rem;
   padding: 1rem;
+  justify-content: space-between;
 }
 
 .main-balance {

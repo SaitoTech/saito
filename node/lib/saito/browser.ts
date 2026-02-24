@@ -2952,6 +2952,44 @@ class Browser {
     }
   }
 
+  safeConsole(header, ui_component, log_level = '') {
+    const getCircularReplacer = () => {
+      const seen = new WeakSet();
+      return (key, value) => {
+        if (key == 'mod' || key == 'app') {
+          return undefined;
+        }
+        if (typeof value === 'object' && value !== null) {
+          if (seen.has(value)) {
+            //console.warn('JSON.Stringify -- Circular reference found at key:', key); // Log the key
+            return; // Discard the circular reference
+          }
+          seen.add(value);
+        }
+        return typeof value === 'bigint' ? value.toString() : value; // return everything else unchanged
+      };
+    };
+
+    let new_obj = JSON.parse(JSON.stringify(ui_component, getCircularReplacer()));
+
+    switch (log_level) {
+      case 'debug':
+        console.debug(header, new_obj);
+        break;
+      case 'info':
+        console.info(header, new_obj);
+        break;
+      case 'warn':
+        console.warn(header, new_obj);
+        break;
+      case 'error':
+        console.error(header, new_obj);
+        break;
+      default:
+        console.log(header, new_obj);
+    }
+  }
+
   /**
    * Creates a container div and renders a React component into it
    * @param Component The React component to render

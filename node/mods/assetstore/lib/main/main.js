@@ -16,12 +16,12 @@ class AssetStoreMain {
 		this.buy_nft_overlay = new BuyNFTOverlay(this.app, this.mod);
 		this.delist_nft_overlay = new DelistNFTOverlay(this.app, this.mod);
 
-		this.app.connection.on('assetstore-render-listings', async () => {
-			await this.renderListings();
+		this.app.connection.on('assetstore-render-listings', () => {
+			this.renderListings();
 		});
 	}
 
-	async render() {
+	render() {
 		let this_self = this;
 
 		if (!document.querySelector('.saito-container')) {
@@ -33,7 +33,7 @@ class AssetStoreMain {
 			);
 		}
 
-		await this.renderListings();
+		this.renderListings();
 
 		this.attachEvents();
 	}
@@ -50,13 +50,14 @@ class AssetStoreMain {
 		}
 	}
 
-	async renderListings() {
+	renderListings() {
 		if (document.querySelector('.assetstore-table-list')) {
 			document.querySelector('.assetstore-table-list').innerHTML = ``;
 		}
 
 		let empty_msg = document.querySelector('#assetstore-empty');
 
+		console.debug(`Rendering: ${this.mod.listings.length} store listings`);
 		//
 		//
 		//
@@ -64,50 +65,76 @@ class AssetStoreMain {
 			empty_msg.style.display = 'none';
 			for (let i = 0; i < this.mod.listings.length; i++) {
 				let record = this.mod.listings[i];
-				let nfttx = null;
-				let data = {};
-				if (record.nfttx) {
-					nfttx = new Transaction();
-					nfttx.deserialize_from_web(this.app, record.nfttx);
-				} else {
+
+				if (record?.active > 1) {
+					console.warn('Have unavailable nfts listed in store');
+					continue;
 				}
 
-				let nft_card = new AssetStoreNFTCard(
-					this.app,
-					this.mod,
-					'.assetstore-table-list',
-					nfttx,
-					record,
-					async (nft1) => {
-						let seller_publicKey = nft1?.seller || '';
-						if (seller_publicKey === this.mod.publicKey) {
-							this.delist_nft_overlay.render(nft1);
-						} else {
-							this.buy_nft_overlay.render(nft1);
+				console.log(record);
+				if (!record.nft_card) {
+					let nfttx = null;
+
+					if (record.nfttx) {
+						nfttx = new Transaction();
+						nfttx.deserialize_from_web(this.app, record.nfttx);
+					}
+
+					let nft_card = new AssetStoreNFTCard(
+						this.app,
+						this.mod,
+						'.assetstore-table-list',
+						nfttx,
+						record,
+						(nft1) => {
+							let seller_publicKey = nft1?.seller || '';
+							if (seller_publicKey === this.mod.publicKey) {
+								this.delist_nft_overlay.render(nft1);
+							} else {
+								this.buy_nft_overlay.render(nft1);
+							}
+						}
+					);
+
+					//
+					// no transaction, we need the sig so fetch will work
+					//
+					if (nfttx == null) {
+						if (record.nfttx_sig) {
+							nft_card.nft.tx_sig = record.nfttx_sig;
+							nft_card.nft.id = record.nft_id;
 						}
 					}
-				);
 
-				//
-				// no transaction, we need the sig so fetch will work
-				//
-				if (nfttx == null) {
-					if (record.nfttx_sig) {
-						nft_card.nft.tx_sig = record.nfttx_sig;
-						nft_card.nft.id = record.nft_id;
+					nft_card.nft.setPrice(record?.reserve_price);
+					nft_card.nft.setSeller(record?.seller);
+
+					record.nft_card = nft_card;
+				}
+
+				record.nft_card.nft.fetchTransaction(async () => {
+					//
+					// check if transaction has changed...
+					//
+					if (record.nft_card.nft.tx_sig != record.nfttx_sig) {
+						//this.app.browser.safeConsole('NFT:', record.nft_card.nft, 'debug');
+
+						let new_nfttx = null;
+
+						record.nft_card.nft.tx_sig = record.nfttx_sig;
+
+						if (record.nfttx) {
+							new_nfttx = new Transaction();
+							new_nfttx.deserialize_from_web(this.app, record.nfttx);
+							record.nft_card.nft.tx = new_nfttx;
+							record.nft_card.nft.tx_sig = new_nfttx.signature;
+						}
 					}
-				}
 
-				if (record.title) {
-					nft_card.title = record.title;
-				}
-				if (record.description) {
-					nft_card.description = record.description;
-				}
+					record.nft_card.nft.metadata = record;
 
-				await nft_card.nft.setPrice(record?.reserve_price);
-				await nft_card.nft.setSeller(record?.seller);
-				await nft_card.render();
+					await record.nft_card.render();
+				});
 			}
 		} else {
 			empty_msg.style.display = 'block';

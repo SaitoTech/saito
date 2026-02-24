@@ -13,9 +13,9 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
       (el) => (el.style.display = 'none')
     );
 
-    if (document.querySelector('.saito-nft-footer-btn.send')) {
-      document.querySelector('.saito-nft-footer-btn.send').style.display = 'flex';
-      document.querySelector('.saito-nft-footer-btn.send').innerHTML = 'Remove Listing';
+    if (document.querySelector('.saito-nft-footer-btn.send-nft')) {
+      document.querySelector('.saito-nft-footer-btn.send-nft').style.display = 'flex';
+      document.querySelector('.saito-nft-footer-btn.send-nft').innerHTML = 'Remove Listing';
     }
 
     setTimeout(() => {
@@ -25,7 +25,7 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
 
   attachEvents() {
     super.attachEvents();
-    let delist_btn = document.querySelector('.saito-nft-footer-btn.send');
+    let delist_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
     if (delist_btn) {
       delist_btn.onclick = async (e) => {
         e.preventDefault();

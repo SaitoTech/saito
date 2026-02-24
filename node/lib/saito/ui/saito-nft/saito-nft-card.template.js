@@ -13,8 +13,6 @@ module.exports = (app, mod, nft) => {
     total_amount += parseInt(all_slips[z].slip1.amount);
   }
 
-  const price = nft.getBuyPriceSaito();
-
   let html = `
       <div class="nft-card nfttxsig${nft.tx_sig}" id="nft-card-${nft.uuid}">
       <div class="nft-card-title">${nft.title}</div>
