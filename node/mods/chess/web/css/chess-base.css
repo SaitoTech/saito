@@ -44,24 +44,6 @@
 	transform: rotate(-90deg);
 }
 */
-#game-observer-hud {
-	border-radius: 7px;
-	font-size: 1rem;
-	height: 110px;
-	width: 300px;
-	padding: 10px;
-  }
-
-  .game-observer-status, #obstatus {
-	font-size: 1.7rem;
-	height: unset;
-  }
-
-  #game-observer-controls {
-	font-size: 2rem;
-	height: 40px;
-  }
-
 h1 {
 	margin: 0;
 }

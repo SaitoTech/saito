@@ -73,7 +73,6 @@ const GameCardfan = require('./../saito/ui/game-cardfan/game-cardfan');
 const GameBoardSizer = require('./../saito/ui/game-board-sizer/game-board-sizer');
 const GameHexGrid = require('./../saito/ui/game-hexgrid/game-hexgrid');
 const GameAcknowledgeOverlay = require('./../saito/ui/game-acknowledge-overlay/game-acknowledge-overlay');
-const GameObserverControls = require('./../saito/ui/game-observer/game-observer');
 const GameHelp = require('./../saito/ui/game-help/game-help');
 const GameScoreboard = require('./../saito/ui/game-scoreboard/game-scoreboard');
 const GameHammerMobile = require('./../saito/ui/game-hammer-mobile/game-hammer-mobile');
@@ -184,7 +183,19 @@ class GameTemplate extends ModTemplate {
     this.hexgrid = new GameHexGrid(app, this);
     this.overlay = new SaitoOverlay(app, this, false);
     this.acknowledge_overlay = new GameAcknowledgeOverlay(app, this);
-    this.observerControls = new GameObserverControls(app, this);
+    // Legacy UI GameObserver removed — observer semantics (player==0, processFutureMoves) remain; use ArcadeObserver via /arcade/?observer_debug=1&game=<slug>&game_id=<id>
+    this.observerControls = {
+      game_states: [],
+      game_moves: [],
+      step_speed: 3,
+      get is_paused() { return false; },
+      render() {},
+      next() { return Promise.resolve(); },
+      updateStep() {},
+      updateStatus() {},
+      showLastMoveButton() {},
+      showNextMoveButton() {}
+    };
     this.racetrack = new GameRaceTrack(app, this);
     this.game_help = new GameHelp(app, this);
 

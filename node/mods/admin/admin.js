@@ -247,8 +247,9 @@ class Admin extends ModTemplate {
       }
 
       if (fs.existsSync(config_dir)) {
+        let mcf;
         try {
-          let mcf = fs.readFileSync(`${config_dir}/modules.config.js`, { encoding: 'UTF-8' });
+          mcf = fs.readFileSync(`${config_dir}/modules.config.js`, { encoding: 'UTF-8' });
 
           ///////
           // Process the file into parsable json
