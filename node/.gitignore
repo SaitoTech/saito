@@ -34,9 +34,6 @@ scripts/mods/*
 
 compile-e
 
-built
-bundler
-
 .DS_Store
 node_modules
 node_modules/*
