@@ -17,6 +17,8 @@ module.exports = async (app, mod, build_number, server_publickey="") => {
     <meta name="apple-mobile-web-app-capable" content="no" />
       
     <link rel="stylesheet" type="text/css" href="/admin/style.css?v=${build_number}" />
+    <link rel="stylesheet" type="text/css" href="/saito/lib/font-awesome-6/css/fontawesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="/saito/lib/font-awesome-6/css/all.css" />
     <link rel="stylesheet" type="text/css" href='/saito/lib/jsonTree/jsonTree.css'/>
     <title>Saito Dashboard</title>
   
