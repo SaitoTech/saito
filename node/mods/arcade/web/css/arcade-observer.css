@@ -38,26 +38,40 @@
   opacity: 0.8;
 }
 
+/* Loading overlay: match Saito overlay (backdrop + centered panel) */
 .arcade-observer-loading {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 100;
+}
+
+.arcade-observer-loading-backdrop {
+  display: block !important;
+  position: absolute;
+  inset: 0;
+  background-color: var(--background-color-shim-normal);
+}
+
+.arcade-observer-loading-panel {
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--saito-box-shadow);
+  border: var(--border-thickness) solid var(--border-color-general-dividers);
 }
 
 .arcade-observer-loading-inner {
   text-align: center;
-  color: #fff;
+  color: var(--saito-font-color);
 }
 
 .arcade-observer-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #444;
-  border-top: 4px solid #fff;
+  border: 4px solid var(--border-color-general-dividers);
+  border-top-color: var(--saito-primary);
   border-radius: 50%;
   animation: arcade-observer-spin 1s linear infinite;
   margin: 0 auto 16px;
@@ -71,16 +85,16 @@
 .arcade-observer-progress-bar {
   width: 300px;
   height: 6px;
-  background: #333;
+  background: var(--background-color-shim-light);
   margin: 20px auto;
-  border-radius: 3px;
+  border-radius: var(--saito-border-radius);
   overflow: hidden;
 }
 
 .arcade-observer-progress-fill {
   height: 100%;
   width: 0%;
-  background: #4caf50;
+  background: var(--saito-primary);
   transition: width 0.2s ease;
 }
 
@@ -88,6 +102,7 @@
   font-size: 14px;
   opacity: 0.8;
   margin-top: 10px;
+  color: var(--saito-font-color);
 }
 
 @keyframes arcade-observer-spin {

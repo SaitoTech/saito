@@ -77,6 +77,9 @@ const GameHelp = require('./../saito/ui/game-help/game-help');
 const GameScoreboard = require('./../saito/ui/game-scoreboard/game-scoreboard');
 const GameHammerMobile = require('./../saito/ui/game-hammer-mobile/game-hammer-mobile');
 const GameRaceTrack = require('./../saito/ui/game-racetrack/game-racetrack');
+const GameObserverControls = require('./../saito/ui/game-observer/game-observer');
+
+
 
 const JSON = require('json-bigint');
 
@@ -183,19 +186,7 @@ class GameTemplate extends ModTemplate {
     this.hexgrid = new GameHexGrid(app, this);
     this.overlay = new SaitoOverlay(app, this, false);
     this.acknowledge_overlay = new GameAcknowledgeOverlay(app, this);
-    // Legacy UI GameObserver removed — observer semantics (player==0, processFutureMoves) remain; use ArcadeObserver via /arcade/?observer_debug=1&game=<slug>&game_id=<id>
-    this.observerControls = {
-      game_states: [],
-      game_moves: [],
-      step_speed: 3,
-      get is_paused() { return false; },
-      render() {},
-      next() { return Promise.resolve(); },
-      updateStep() {},
-      updateStatus() {},
-      showLastMoveButton() {},
-      showNextMoveButton() {}
-    };
+    this.observerControls = new GameObserverControls(app, this);
     this.racetrack = new GameRaceTrack(app, this);
     this.game_help = new GameHelp(app, this);
 

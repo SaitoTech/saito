@@ -249,14 +249,11 @@ class Admin extends ModTemplate {
       if (fs.existsSync(config_dir)) {
         let mcf;
         try {
-          mcf = fs.readFileSync(`${config_dir}/modules.config.js`, { encoding: 'UTF-8' });
 
-          ///////
-          // Process the file into parsable json
-          //
+          mcf = fs.readFileSync(`${config_dir}/modules.config.js`, { encoding: 'UTF-8' });
           // remove white space
-          // remove comments
           mcf = mcf.replace(/\s*\/\/.*/g, '');
+          // remove comments
           mcf = mcf.replace(/\s/g, '').replace(/'/g, `"`);
           // change quotation marks
           mcf = mcf.replace('core', `"core"`).replace('lite', `"lite"`);
