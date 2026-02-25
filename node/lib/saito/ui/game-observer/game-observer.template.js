@@ -40,11 +40,22 @@ module.exports = (game_mod) => {
         }"><i class="fas fa-step-backward" title="Rewind one game move"></i></div>
         <div id="game-observer-play-btn" class="game-observer-btn play-state"><i class="fas fa-play" title="Play moves continually"></i><i class="fas fa-pause" title="Stop execution and queue all incoming game moves"></i></div>
         <div id="game-observer-next-btn" class="game-observer-btn play-state"><i class="fas fa-forward" title="Fast forward"></i><i class="fas fa-step-forward" title="Move forward one game step"></i></div>
+      </div>
+      <div class="game-observer-state-slider-wrap">
+        <input type="range" id="game-observer-state-slider" class="game-observer-state-slider" min="0" max="0" value="0">
+        <span id="game-observer-viewing-label" class="game-observer-viewing-label">Viewing move 0 of 0</span>
       </div>`;
   }
 
   html += `<div id="obstatus" class="status">in observer mode</div>
            <div id="controls"></div>
+      <div id="game-observer-sync-overlay" class="game-observer-sync-overlay" aria-hidden="true">
+        <div class="game-observer-sync-overlay-panel">
+          <div class="game-observer-sync-overlay-spinner"></div>
+          <div id="game-observer-sync-overlay-message" class="game-observer-sync-overlay-message">Syncing Game...</div>
+          <div id="game-observer-sync-overlay-steps" class="game-observer-sync-overlay-steps"></div>
+        </div>
+      </div>
     </div>
   `;
 

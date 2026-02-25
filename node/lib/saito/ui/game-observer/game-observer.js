@@ -15,11 +15,109 @@ class GameObserver {
     this.arcade_mod = null;
 
     this.step_speed = 2000;
-    this.is_paused = true;
+    this._paused = true;
 
     this.game_states = [];
     this.game_moves = [];
     this.future_moves = [];
+
+    this.is_syncing = false;
+    this.total_moves_expected = 0;
+    this.moves_processed = 0;
+
+    this._viewingIndex = 0;
+    this._stepSpeedBeforeSync = undefined;
+  }
+
+  get is_paused() {
+    return this._paused;
+  }
+
+  _checkSyncEnd() {
+    const game = this.game_mod?.game;
+    const futureLen = game?.future?.length ?? -1;
+    const archiveExhausted = this.game_mod.archive_exhausted;
+    const exhaustedOk = archiveExhausted === undefined || archiveExhausted >= 0;
+    if (futureLen === 0 && exhaustedOk && this.is_syncing) {
+      this.is_syncing = false;
+      this._hideSyncOverlay();
+      console.log('[GameObserver] sync end detected: future.length=0, archive_exhausted=', archiveExhausted);
+    }
+  }
+
+  _showSyncOverlay() {
+    if (this._stepSpeedBeforeSync === undefined) {
+      this._stepSpeedBeforeSync = this.step_speed;
+      this.step_speed = 0;
+    }
+    const el = document.getElementById('game-observer-sync-overlay');
+    if (!el) return;
+    el.classList.add('is-visible');
+    el.setAttribute('aria-hidden', 'false');
+    const msgEl = document.getElementById('game-observer-sync-overlay-message');
+    if (msgEl) msgEl.textContent = 'Syncing Game...';
+    this._updateSyncOverlaySteps();
+  }
+
+  _hideSyncOverlay() {
+    if (this._stepSpeedBeforeSync !== undefined) {
+      this.step_speed = this._stepSpeedBeforeSync;
+      this._stepSpeedBeforeSync = undefined;
+    }
+    const el = document.getElementById('game-observer-sync-overlay');
+    if (!el) return;
+    el.classList.remove('is-visible');
+    el.setAttribute('aria-hidden', 'true');
+  }
+
+  _updateSyncOverlaySteps() {
+    const stepsEl = document.getElementById('game-observer-sync-overlay-steps');
+    if (!stepsEl) return;
+    if (this.moves_processed > 0) {
+      stepsEl.textContent = `Step ${this.moves_processed}`;
+      stepsEl.style.display = '';
+    } else {
+      stepsEl.textContent = '';
+      stepsEl.style.display = 'none';
+    }
+  }
+
+  _updateViewingLabel() {
+    const label = document.getElementById('game-observer-viewing-label');
+    if (!label) return;
+    const total = Math.max(0, this.game_states.length);
+    const x = total === 0 ? 0 : this._viewingIndex + 1;
+    label.textContent = `Viewing move ${x} of ${total}`;
+  }
+
+  _updateStateSlider() {
+    const slider = document.getElementById('game-observer-state-slider');
+    if (!slider) return;
+    const max = Math.max(0, this.game_states.length - 1);
+    if (this._viewingIndex > max) this._viewingIndex = max;
+    slider.max = String(max);
+    slider.value = String(this._viewingIndex);
+    this._updateViewingLabel();
+  }
+
+  _onStateSliderInput() {
+    const slider = document.getElementById('game-observer-state-slider');
+    if (!slider) return;
+    const idx = parseInt(slider.value, 10);
+    if (idx < 0 || idx >= this.game_states.length) return;
+    const state = this.game_states[idx];
+    if (!state) return;
+
+    this.pause();
+    this._viewingIndex = idx;
+    const clone = JSON.parse(JSON.stringify(state));
+    this.game_mod.game = clone;
+    this.game_mod.saveGame(this.game_mod.game.id);
+    this._updateViewingLabel();
+
+    if (typeof this.game_mod.render === 'function') {
+      this.game_mod.render(this.app);
+    }
   }
 
   /**
@@ -28,7 +126,7 @@ class GameObserver {
   render() {
     console.log('Rendering ObserverHUD');
     if (this.game_mod.game?.live) {
-      this.is_paused = false;
+      this._paused = false;
     }
 
     if (!this.arcade_mod) {
@@ -61,6 +159,15 @@ class GameObserver {
   }
 
   updateStatus(str) {
+    const s = String(str || '');
+    if (s.includes('New future move') || s.includes('Checking for missing') || s.includes('additional moves')) {
+      if (!this.is_syncing) {
+        this.is_syncing = true;
+        this._showSyncOverlay();
+        console.log('[GameObserver] sync start detected (updateStatus):', s.slice(0, 60));
+      }
+    }
+    this._checkSyncEnd();
     try {
       let statusBox = document.getElementById('obstatus');
       if (statusBox) {
@@ -94,7 +201,9 @@ class GameObserver {
     }
 
     if (document.getElementById('game-observer-play-btn')) {
-      document.getElementById('game-observer-play-btn').onclick = (e) => {
+      const playBtn = document.getElementById('game-observer-play-btn');
+      playBtn.setAttribute('title', this.is_paused ? 'Resume' : 'Pause');
+      playBtn.onclick = (e) => {
         if (this.game_mod.game?.live) {
           this.game_mod.game.live = 0;
           this.render();
@@ -107,9 +216,7 @@ class GameObserver {
 
         this.step_speed = 2000; //Reset to normal play speed
         if (this.is_paused) {
-          //Update controls UI and flags
           this.play();
-          //Kick off loop with next move
           this.next();
         } else {
           this.pause();
@@ -133,10 +240,14 @@ class GameObserver {
 
         this.game_mod.halted = 1; // Default to paused
 
+        observer_self.is_syncing = true;
+        observer_self._showSyncOverlay();
+        console.log('[GameObserver] sync start detected (first-btn: archive load)');
         this.game_mod.observerDownloadNextMoves(() => {
           console.log('GAME QUEUE:' + JSON.stringify(this.game_mod.game.queue));
           this.game_mod.initialize_game_run = 0;
           this.game_mod.initializeGameQueue(this.game_mod.game.id);
+          observer_self._checkSyncEnd();
           //Tell gameObserver HUD to update its step
           observer_self.updateStep(this.game_mod.game.step.game);
         });
@@ -151,6 +262,13 @@ class GameObserver {
         this.last();
       };
     }
+
+    const stateSlider = document.getElementById('game-observer-state-slider');
+    if (stateSlider) {
+      stateSlider.addEventListener('input', () => this._onStateSliderInput());
+      this._updateStateSlider();
+    }
+
     this.app.browser.makeDraggable('game-observer-hud');
 
     let joinBtn = document.getElementById('observer-join-game-btn');
@@ -195,35 +313,56 @@ class GameObserver {
   }
 
   updateStep(step) {
+    this.moves_processed = typeof step === 'number' ? step : parseInt(step, 10) || 0;
+    if (this.is_syncing) this._updateSyncOverlaySteps();
+    this._updateStateSlider();
+    if (this.total_moves_expected > 0) {
+      console.log('[GameObserver] progress: moves_processed=', this.moves_processed, 'total_moves_expected=', this.total_moves_expected);
+    } else {
+      console.log('[GameObserver] updateStep: moves_processed=', this.moves_processed);
+    }
+    this._checkSyncEnd();
     try {
       document.getElementById('game-observer-status').innerHTML = `Game step: ${step}`;
     } catch (err) {}
   }
 
   pause() {
-    let playBtn = document.getElementById('game-observer-play-btn');
-    playBtn.classList.add('play-state');
-    playBtn.classList.remove('pause-state');
-    let fwdBtn = document.getElementById('game-observer-next-btn');
-    fwdBtn.classList.add('play-state');
-    fwdBtn.classList.remove('pause-state');
-
-    this.is_paused = true;
+    this._paused = true;
     this.game_mod.halted = 1;
+    const playBtn = document.getElementById('game-observer-play-btn');
+    if (playBtn) {
+      playBtn.classList.add('play-state');
+      playBtn.classList.remove('pause-state');
+      playBtn.setAttribute('title', 'Resume');
+    }
+    const fwdBtn = document.getElementById('game-observer-next-btn');
+    if (fwdBtn) {
+      fwdBtn.classList.add('play-state');
+      fwdBtn.classList.remove('pause-state');
+    }
+  }
+
+  resume() {
+    this._paused = false;
+    this.game_mod.halted = 0;
+    this.updateStatus('Replaying moves...');
+    const playBtn = document.getElementById('game-observer-play-btn');
+    if (playBtn) {
+      playBtn.classList.remove('play-state');
+      playBtn.classList.add('pause-state');
+      playBtn.setAttribute('title', 'Pause');
+    }
+    const fwdBtn = document.getElementById('game-observer-next-btn');
+    if (fwdBtn) {
+      fwdBtn.classList.remove('play-state');
+      fwdBtn.classList.add('pause-state');
+    }
   }
 
   play() {
-    let playBtn = document.getElementById('game-observer-play-btn');
-    playBtn.classList.remove('play-state');
-    playBtn.classList.add('pause-state');
-    let fwdBtn = document.getElementById('game-observer-next-btn');
-    fwdBtn.classList.remove('play-state');
-    fwdBtn.classList.add('pause-state');
-
-    this.updateStatus('Replaying moves...');
-    this.is_paused = false;
+    this.resume();
     console.log('OBSERVER: unhalt game (play)');
-    this.game_mod.halted = 0;
   }
 
   insertFutureMoves(game_mod) {
@@ -262,6 +401,7 @@ class GameObserver {
         if (this.game_mod.game.future.length == 0) {
           this.hideNextMoveButton();
         }
+        this._checkSyncEnd();
       });
     } else {
       console.log('processFutureMoves returned ', result);

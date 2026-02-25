@@ -92,7 +92,68 @@
   color: #444;
 }
 
+.game-observer-state-slider-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+.game-observer-state-slider {
+  flex: 1;
+  min-width: 80px;
+  height: 6px;
+  cursor: pointer;
+}
+.game-observer-viewing-label {
+  font-size: 0.85em;
+  color: #aaa;
+  white-space: nowrap;
+}
 
 .game-observer-hud .status-header, .game-observer-hud .status-message {
   background-color: unset;
+}
+
+/* Sync overlay: full-screen block when is_syncing */
+.game-observer-sync-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+.game-observer-sync-overlay.is-visible {
+  display: flex;
+}
+.game-observer-sync-overlay-panel {
+  background: #fff;
+  padding: 24px 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  min-width: 220px;
+}
+.game-observer-sync-overlay-spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 16px;
+  border: 3px solid #eee;
+  border-top-color: #333;
+  border-radius: 50%;
+  animation: game-observer-sync-spin 0.8s linear infinite;
+}
+@keyframes game-observer-sync-spin {
+  to { transform: rotate(360deg); }
+}
+.game-observer-sync-overlay-message {
+  font-size: 16px;
+  color: #333;
+}
+.game-observer-sync-overlay-steps {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #666;
 }
