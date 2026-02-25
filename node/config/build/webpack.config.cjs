@@ -175,6 +175,7 @@ webpack(
         // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
         {
           test: /\.js$/,
+          exclude: /[\/]node_modules[\/]@noble[\/]/,
           use: [
             "source-map-loader",
             {
