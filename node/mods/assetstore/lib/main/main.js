@@ -7,6 +7,8 @@ const SellNFTOverlay = require('./../overlays/sell-nft');
 const BuyNFTOverlay = require('./../overlays/buy-nft');
 const DelistNFTOverlay = require('./../overlays/delist-nft');
 
+const SaitoLoader = require('./../../../lib/saito/ui/saito-loader/saito-loader');
+
 class AssetStoreMain {
 	constructor(app, mod) {
 		this.app = app;
@@ -16,14 +18,16 @@ class AssetStoreMain {
 		this.buy_nft_overlay = new BuyNFTOverlay(this.app, this.mod);
 		this.delist_nft_overlay = new DelistNFTOverlay(this.app, this.mod);
 
+		this.view = null;
+
+		this.loader = new SaitoLoader(app, mod, '.assetstore-table-list');
+
 		this.app.connection.on('assetstore-render-listings', () => {
 			this.renderListings();
 		});
 	}
 
 	render() {
-		let this_self = this;
-
 		if (!document.querySelector('.saito-container')) {
 			this.app.browser.addElementToDom(AssetStoreMainTemplate(this.app, this.mod, this));
 		} else {
@@ -33,13 +37,16 @@ class AssetStoreMain {
 			);
 		}
 
+		this.renderSidebar();
 		this.renderListings();
 
 		this.attachEvents();
 	}
 
 	attachEvents() {
-		let this_self = this;
+		//
+		// Clicking on add Listing button
+		//
 		let list_asset_btn = document.querySelector('.list-asset');
 		if (list_asset_btn) {
 			list_asset_btn.onclick = async (e) => {
@@ -47,6 +54,56 @@ class AssetStoreMain {
 					this.sell_nft_overlay.render(nft);
 				});
 			};
+		}
+
+		//
+		// View navigation
+		//
+		Array.from(document.querySelectorAll('.saito-store-page-tab')).forEach((tab) => {
+			tab.onclick = async (e) => {
+				if (document.querySelector('.store-active-tab')) {
+					document.querySelector('.store-active-tab').classList.remove('store-active-tab');
+				}
+
+				console.debug(
+					'***',
+					e.currentTarget.dataset[pkey],
+					e.currentTarget.getAttribute('dataset-pkey')
+				);
+				this.view = e.currentTarget.dataset['pkey'];
+
+				if (!this.mod.authorized_sellers.includes(this.view)) {
+					this.loading = true;
+					this.mod.authorized_sellers.push(this.view);
+
+					this.app.network.sendRequestAsTransaction(
+						'request listings',
+						{
+							seller: this.mod.authorized_sellers
+						},
+						(listings) => {
+							console.log('STORE: re-fetched listings -- ', listings);
+							this.mod.listings = listings;
+							this.loading = false;
+							this.renderListings();
+						},
+						this.mod.assetStore.peerIndex
+					);
+				}
+
+				this.renderListings();
+			};
+		});
+	}
+
+	renderSidebar() {
+		for (let pkey of this.mod.authorized_sellers) {
+			if (!document.querySelector(`.saito-store-page-tab[data-pkey="${this.view}"]`)) {
+				this.app.browser.addElementToSelector(
+					`<div class='saito-store-page-tab' data-pkey='${pkey}'>${this.app.keychain.returnUsername(pkey)}</div>`,
+					'.saito-store-explorer'
+				);
+			}
 		}
 	}
 
@@ -56,16 +113,30 @@ class AssetStoreMain {
 		}
 
 		let empty_msg = document.querySelector('#assetstore-empty');
+		empty_msg.style.display = 'none';
 
-		console.debug(`Rendering: ${this.mod.listings.length} store listings`);
-		//
-		//
-		//
-		if (this.mod.listings.length > 0) {
-			empty_msg.style.display = 'none';
-			for (let i = 0; i < this.mod.listings.length; i++) {
-				let record = this.mod.listings[i];
+		console.debug(`Store: ${this.mod.listings.length} listings`);
 
+		if (!this.view) {
+			this.view = this.mod.authorized_sellers[0];
+		}
+
+		// Show active tab (in sidebar)
+		if (document.querySelector(`.saito-store-page-tab[data-pkey="${this.view}"]`)) {
+			document
+				.querySelector(`.saito-store-page-tab[data-pkey="${this.view}"]`)
+				.classList.add('store-active-tab');
+		}
+
+		const listings_to_render = this.mod.filterListings([this.view]);
+
+		console.debug(`Store: ${listings_to_render.length} listings to display`);
+
+		//
+		//
+		//
+		if (listings_to_render.length > 0) {
+			for (let record of listings_to_render.length) {
 				if (record?.active > 1) {
 					console.warn('Have unavailable nfts listed in store');
 					continue;
@@ -137,7 +208,11 @@ class AssetStoreMain {
 				});
 			}
 		} else {
-			empty_msg.style.display = 'block';
+			if (this.loading) {
+				this.loader.show();
+			} else {
+				empty_msg.style.display = 'block';
+			}
 		}
 	}
 }

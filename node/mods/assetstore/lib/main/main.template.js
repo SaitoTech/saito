@@ -4,6 +4,10 @@ module.exports = (app, mod, this_self) => {
 
       <div class="saito-sidebar left">
         <div class="saito-button-primary list-asset">list asset</div>
+        <div class="saito-store-explorer">
+          <div class='saito-store-page-tab' data-pkey='${mod.SAITO_OFFICIAL_PUBLICKEY}'>home</div>
+          <div class='saito-store-page-tab' data-pkey='${mod.publicKey}'>my store</div>
+        </div>
       </div>
 
       <div class="saito-main">

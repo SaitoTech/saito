@@ -44,12 +44,20 @@ class AssetStore extends ModTemplate {
 
 		this.assetStore = { publicKey: '', peerIndex: null };
 
-		this.authorized_sellers = [];
-
 		this.fee = 0; // Optional to add a service fee... (but should be included in the display price
 
-		this.peers = [];
+		// The store will track who is browsing the store so that it can push real time updates to them
+		// and avoid the need for users to refresh...
+		this.peers = {};
 
+		// Trusted sellers for the default page, add the user's own key in initialize
+		// or override by provided URL params
+		this.SAITO_OFFICIAL_PUBLICKEY = 'k73CaRGwgNbqq1prNngSstb9NrfkaJVQwq8onf1oabBz';
+		// this determines what listings we pull from the shop server
+		// main.js has code controlling the view
+		this.authorized_sellers = [];
+
+		// Browser-only
 		this.drafts = {}; // our listed nft, txs to send the back to us
 
 		this.social = {
@@ -81,6 +89,23 @@ class AssetStore extends ModTemplate {
 			if (this.browser_active) {
 				this.drafts = (await this.app.storage.getLocalForageItem('listed_nfts')) || {};
 				console.log(`We have ${Object.keys(this.drafts).length} NFTs listed in the store`);
+
+				if (this.app.wallet.isValidPublicKey(this.app.browser.returnURLParameter('seller'))) {
+					// Load only the publickey from the URL parameter
+					this.authorized_sellers = [this.app.browser.returnURLParameter('seller')];
+				} else {
+					// Otherwise, Saito Store
+					this.authorized_sellers = [this.SAITO_OFFICIAL_PUBLICKEY];
+
+					// And any contacts we have bookmarked
+					const my_keys = this.app.keychain.returnKeys({ guanzhu_shop: true });
+					for (let key of my_keys) {
+						this.authorized_sellers.push(key.publicKey);
+					}
+				}
+				if (this.app.browser.returnURLParameter('listing')) {
+					this.target_listing = this.app.browser.returnURLParameter('listing');
+				}
 			}
 		}
 	}
@@ -112,7 +137,10 @@ class AssetStore extends ModTemplate {
 				//
 				this.app.network.sendRequestAsTransaction(
 					'request listings',
-					{},
+					{
+						seller: this.authorized_sellers,
+						listing: this.target_listing
+					},
 					(listings) => {
 						console.log('STORE: fetched listings -- ', listings);
 						this.listings = listings;
@@ -125,10 +153,8 @@ class AssetStore extends ModTemplate {
 	}
 
 	onConnectionUnstable(app, publicKey) {
-		for (let j = this.peers.length - 1; j >= 0; j--) {
-			if (this.peers[j] == publicKey) {
-				this.peers.splice(j, 1);
-			}
+		if (this.peers[publicKey]) {
+			delete this.peers[publicKey];
 		}
 	}
 
@@ -139,13 +165,18 @@ class AssetStore extends ModTemplate {
 		let peers = await this.app.network.getPeers();
 
 		for (let peer of peers) {
-			if (peer.synctype == 'lite' && this.peers.includes(peer.publicKey)) {
-				this.app.network.sendRequestAsTransaction(
-					'assetstore update',
-					record,
-					null,
-					peer.peerIndex
-				);
+			if (peer.synctype == 'lite') {
+				if (this.peers[peer.publicKey]) {
+					// peer is a browser looking the store and may be interested in this updated record
+					if (this.peers[peer.publicKey].includes(record.seller)) {
+						this.app.network.sendRequestAsTransaction(
+							'assetstore update',
+							record,
+							null,
+							peer.peerIndex
+						);
+					}
+				}
 			}
 		}
 	}
@@ -345,13 +376,19 @@ class AssetStore extends ModTemplate {
 
 		if (txmsg?.request === 'request listings') {
 			if (!this.app.BROWSER && mycallback != null) {
+				let watch_list = txmsg.data.seller || [];
+
 				if (peer?.publicKey) {
-					if (!this.peers.includes(peer.publicKey)) {
-						this.peers.push(peer.publicKey);
+					watch_list.push(peer.publicKey);
+
+					if (!this.peers[peer.publicKey]) {
+						this.peers.push(watch_list);
+					} else {
+						this.peers[peer.publicKey] = watch_list;
 					}
 				}
 
-				mycallback(this.listings);
+				mycallback(this.filterListings(watch_list));
 				return 1;
 			}
 		}
@@ -392,6 +429,18 @@ class AssetStore extends ModTemplate {
 		}
 
 		return super.handlePeerTransaction(app, tx, peer, mycallback);
+	}
+
+	filterListings(whiteList = []) {
+		let copyArray = new Array();
+
+		for (let rec of this.listings) {
+			if (whiteList.includes(rec.seller)) {
+				copyArray.push(rec);
+			}
+		}
+
+		return copyArray;
 	}
 
 	/////////////////
