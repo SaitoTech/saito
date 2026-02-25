@@ -623,8 +623,8 @@ class Arcade extends ModTemplate {
 
 		if (Number(conf) == 0) {
 
-console.log("INTO ONCONFIRMATION IN ARCADE...");
-console.log(JSON.stringify(txmsg));
+// console.log("INTO ONCONFIRMATION IN ARCADE...");
+// console.log(JSON.stringify(txmsg));
 
 			try {
 				if (txmsg.module === 'Arcade') {
@@ -666,8 +666,8 @@ console.log(JSON.stringify(txmsg));
 					}
 				} else {
 
-console.log("ARCADE PROCESSING GAME MOVE: ");
-console.log(tx.returnMessage());
+// console.log("ARCADE PROCESSING GAME MOVE: ");
+// console.log(tx.returnMessage());
 					if (txmsg.request === 'stopgame') {
 						await arcade_self.receiveCloseTransaction(tx);
 					}
@@ -705,7 +705,7 @@ console.log("SAVING GAME MOVE: ");
 					this.notifyPeers(tx);
 				}
 			} catch (err) {
-				console.error('ERROR in arcade onconfirmation block: ', err);
+				// console.error('ERROR in arcade onconfirmation block: ', err);
 			}
 		}
 	}
@@ -1418,7 +1418,7 @@ console.log("SAVING GAME MOVE: ");
 
 		// Must be an available invite
 		if (!game || (!this.isAvailableGame(game, 'accepted') && !txmsg.options?.async_dealing)) {
-			console.warn('ARCADE: game not available to accept', game, txmsg);
+			// console.warn('ARCADE: game not available to accept', game, txmsg);
 			return;
 		}
 
@@ -1581,7 +1581,7 @@ console.log("SAVING GAME MOVE: ");
 
 	addGame(tx, list = null) {
 		if (!tx || !tx.msg || !tx.signature) {
-			console.error("ARCADE: [addGame] Invalid Game TX, won't add to list", tx);
+			// console.error("ARCADE: [addGame] Invalid Game TX, won't add to list", tx);
 			return false;
 		}
 
@@ -1840,7 +1840,7 @@ console.log("SAVING GAME MOVE: ");
 							arcade_self.app.crypto.hash(r.tx.signature).slice(-6) === id
 					)[0]?.tx ?? null;
 
-				console.log('WEBSERVER ARCADE GAME DATA --- ', game_data);
+				// console.log('WEBSERVER ARCADE GAME DATA --- ', game_data);
 			}
 
 			let html = arcadeHome(app, arcade_self, app.build_number, updatedSocial, game_data);

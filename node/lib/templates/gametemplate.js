@@ -746,7 +746,7 @@ class GameTemplate extends ModTemplate {
     let game_id = tx.signature;
     let txmsg = tx.returnMessage();
 
-    console.log(' !!!!!\n GT: OBSERVER MODE\n !!!!!\n', game_id, JSON.parse(JSON.stringify(txmsg)));
+    // console.log(' !!!!!\n GT: OBSERVER MODE\n !!!!!\n', game_id, JSON.parse(JSON.stringify(txmsg)));
 
     this.loadGame(game_id);
 
@@ -1058,7 +1058,7 @@ class GameTemplate extends ModTemplate {
     try {
       message = tx.returnMessage();
     } catch (err) {
-      console.error('GT HPT Error: ', err);
+      // console.error('GT HPT Error: ', err);
       return 0;
     }
 
@@ -1084,7 +1084,7 @@ class GameTemplate extends ModTemplate {
             gametx = newtx;
             gametxmsg = newtx.returnMessage();
           } catch (err) {
-            console.log('error with game relay moves return');
+            // console.log('error with game relay moves return');
           }
 
           if (
@@ -1282,7 +1282,7 @@ class GameTemplate extends ModTemplate {
       clearInterval(this.clock_timers[player]); //Just in case
     }
 
-    console.debug('GT Start CLOCK: ', player, JSON.parse(JSON.stringify(this.game.clock)));
+    // console.debug('GT Start CLOCK: ', player, JSON.parse(JSON.stringify(this.game.clock)));
 
     if (!player) {
       return;
@@ -1330,7 +1330,7 @@ class GameTemplate extends ModTemplate {
     //
     // Only process if the clock is running (avoid double taps for when we send a move and receive it back on chain)
     //
-    console.debug('GT Stop CLOCK: ', player, JSON.parse(JSON.stringify(this.game.clock)));
+    // console.debug('GT Stop CLOCK: ', player, JSON.parse(JSON.stringify(this.game.clock)));
 
     clearInterval(this.clock_timers[player]);
     delete this.clock_timers[player];
@@ -1411,7 +1411,7 @@ class GameTemplate extends ModTemplate {
     if (txmsg.request == 'SHARE') {
       if (this.expecting_state) {
         console.info('GT [Meta] Player shared last game state', tx.from[0].publicKey);
-        console.debug(JSON.parse(JSON.stringify(this.game)));
+        // console.debug(JSON.parse(JSON.stringify(this.game)));
 
         if (txmsg?.data != '') {
           this.game = JSON.parse(txmsg.data);
@@ -1477,7 +1477,7 @@ class GameTemplate extends ModTemplate {
           }
         }
       } catch (err) {
-        console.error('GT Staking ERROR: ', err);
+        // console.error('GT Staking ERROR: ', err);
       }
 
       if (auths == this.game.players.length) {
@@ -1503,7 +1503,7 @@ class GameTemplate extends ModTemplate {
       return;
     }
 
-    console.warn('GT: unprocessed meta transaction -- ', tx, txmsg);
+    // console.warn('GT: unprocessed meta transaction -- ', tx, txmsg);
   }
 
   /*
@@ -1525,11 +1525,11 @@ class GameTemplate extends ModTemplate {
       newtx.addTo(this.game.accepted[i]);
     }
 
-    console.info(
-      'GT [sendMetaMessage] to ',
-      JSON.parse(JSON.stringify(this.game.accepted)),
-      newtx.msg
-    );
+    // console.info(
+    //   'GT [sendMetaMessage] to ',
+    //   JSON.parse(JSON.stringify(this.game.accepted)),
+    //   newtx.msg
+    // );
 
     await newtx.sign();
 

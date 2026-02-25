@@ -242,7 +242,7 @@ class AssetStore extends ModTemplate {
 		// sanity check
 		//
 		if (this.hasSeenTransaction(tx, Number(blk.id))) {
-			console.log('duplicate transaction', tx.returnMessage());
+			// console.log('duplicate transaction', tx.returnMessage());
 			return;
 		}
 
@@ -348,7 +348,7 @@ class AssetStore extends ModTemplate {
 				}
 			}
 		} catch (err) {
-			console.error('ERROR in assetstore onconfirmation block: ', err);
+			// console.error('ERROR in assetstore onconfirmation block: ', err);
 		}
 	}
 
@@ -662,7 +662,7 @@ class AssetStore extends ModTemplate {
 
 					let nfttx_msg = nfttx.returnMessage();
 
-					console.log('txmsg of this nft is: ' + JSON.stringify(nfttx_msg));
+					// console.log('txmsg of this nft is: ' + JSON.stringify(nfttx_msg));
 
 					let nft = new SaitoNFT(this.app, this, nfttx);
 
@@ -691,7 +691,7 @@ class AssetStore extends ModTemplate {
 			let nfttx = await this.app.wallet.createSendNFTTransaction(nft, receiver, 'AssetStore');
 			await nfttx.sign();
 		} catch (err) {
-			console.error('receiveDelistAssetTransaction error:', err);
+			// console.error('receiveDelistAssetTransaction error:', err);
 		}
 	}
 
@@ -909,7 +909,7 @@ class AssetStore extends ModTemplate {
 			this.app.network.propagateTransaction(payout_tx);
 			await this.addTransaction(nfttx_sig, 3, payout_tx, blk);
 		} catch (e) {
-			console.error('Seller payout failed:', e);
+			// console.error('Seller payout failed:', e);
 		}
 	}
 
@@ -927,7 +927,7 @@ class AssetStore extends ModTemplate {
 			//
 			await this.addTransaction(nft_sig, 5, refund_tx, blk);
 		} catch (e) {
-			console.error('Refund failed:', e);
+			// console.error('Refund failed:', e);
 		}
 	}
 

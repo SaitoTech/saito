@@ -425,7 +425,7 @@ class Storage {
       //Update hash
       this.wallet_options_hash = new_wallet_hash;
     } catch (err) {
-      console.error('localStorage error: ', err);
+      // console.error('localStorage error: ', err); // full err can be large/circular
       for (let i = 0; i < localStorage.length; i++) {
         let item = localStorage.getItem(localStorage.key(i));
         let parsed_item = '';
@@ -434,11 +434,11 @@ class Storage {
         } catch (err) {
           // Not everything is json... we don't care
         }
-        console.debug(localStorage.key(i), item.length, item, parsed_item);
+        // console.debug(localStorage.key(i), item.length, item, parsed_item);
       }
-      console.debug(`Trying to save: (${new_wallet_json.length})`, JSON.parse(new_wallet_json));
+      // console.debug(`Trying to save: (${new_wallet_json.length})`, JSON.parse(new_wallet_json));
       for (let key in this.app.options) {
-        console.log(key, JSON.stringify(this.app.options[key]).length);
+        // console.log(key, JSON.stringify(this.app.options[key]).length);
       }
     }
 
@@ -446,7 +446,7 @@ class Storage {
       //update indexedDB (which is needed for privateKey wallet recovery)
       this.saveOptionsToForage();
     } catch (err) {
-      console.error('LocalForage error: ', err);
+      // console.error('LocalForage error: ', err);
     }
   }
 
@@ -463,7 +463,7 @@ class Storage {
         updated_at: new Date().getTime()
       };
 
-      console.log('obj: ', obj);
+      // console.log('obj: ', obj);
 
       let numRows = await this.localDB.insert({
         into: 'dyn_mods',
@@ -471,7 +471,7 @@ class Storage {
       });
 
       let v = await this.loadLocalApplications();
-      console.log('POST INSERT: ' + JSON.stringify(v));
+      // console.log('POST INSERT: ' + JSON.stringify(v));
     }
   }
 
@@ -667,7 +667,7 @@ class Storage {
             }
             this.app.build_number = Number(buildNumber);
             let peers = await this.app.network.getPeers();
-            console.log('peers', peers);
+            // console.log('peers', peers);
             peers.forEach((peer) => {
               this.app.network.sendRequest('software-update', data, null, peer);
             });
@@ -679,7 +679,7 @@ class Storage {
             // console.log("Current build number is up-to-date or higher");
           }
         } catch (e) {
-          console.error('Error parsing JSON from options file:', e);
+          // console.error('Error parsing JSON from options file:', e);
         }
       });
     };

@@ -173,7 +173,7 @@ class AssetStoreMain {
 					continue;
 				}
 
-				console.log(record);
+				// console.log(record);
 				if (!record.nft_card) {
 					let nfttx = null;
 

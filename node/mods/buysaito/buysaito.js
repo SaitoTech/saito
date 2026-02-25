@@ -211,7 +211,7 @@ class BuySaito extends ModTemplate {
           this.app.connection.emit('saito-purchase-cryptos');
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
-          console.warn(txmsg);
+          // console.warn(txmsg);
         }
       }
 
@@ -235,7 +235,7 @@ class BuySaito extends ModTemplate {
           this.app.connection.emit('saito-purchase-address-reserved', txmsg.data);
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
-          console.warn(txmsg);
+          // console.warn(txmsg);
         }
       }
 
@@ -252,7 +252,7 @@ class BuySaito extends ModTemplate {
           }
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
-          console.warn(txmsg);
+          // console.warn(txmsg);
         }
       }
 
@@ -267,7 +267,7 @@ class BuySaito extends ModTemplate {
           }
           console.warn('BUYSAITO - received notification for an Unexpected pending payment');
         } else {
-          console.warn('BUYSAITO - Unexpected peer message: ', txmsg);
+          // console.warn('BUYSAITO - Unexpected peer message: ', txmsg);
         }
       }
 
@@ -825,7 +825,7 @@ class BuySaito extends ModTemplate {
             console.debug('Mixin transfer between accounts: ', res);
           }
         } catch (err) {
-          console.error(err);
+          // console.error(err);
         }
 
         // Check pending deposits (first)
@@ -887,7 +887,7 @@ class BuySaito extends ModTemplate {
             })
             .catch((err) => {
               // Don't do anything other than report the error
-              console.error(err);
+              // console.error(err);
 
               this.app.connection.emit('mailrelay-send-email', {
                 to: 'buysaito@saito.tech',

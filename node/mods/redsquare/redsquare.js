@@ -453,7 +453,7 @@ class RedSquare extends ModTemplate {
         }
       }
     } catch (err) {
-      console.error('RS.initialize: Error while checking pending txs: ', err);
+      // console.error('RS.initialize: Error while checking pending txs: ', err);
     }
   }
 
@@ -554,7 +554,7 @@ class RedSquare extends ModTemplate {
     } else {
       this.peers[peer_idx].peer = peer;
       peer_obj = this.peers[peer_idx];
-      console.log('RS.addPeer: peer refreshed -- ', peer_obj);
+      // console.log('RS.addPeer: peer refreshed -- ', peer_obj);
       return peer_obj;
     }
 
@@ -2198,8 +2198,8 @@ class RedSquare extends ModTemplate {
         'localhost'
       );
     } catch (err) {
-      console.error('RedSquare: error editing tweet', err);
-      console.log(tx);
+      // console.error('RedSquare: error editing tweet', err);
+      // console.log(tx);
     }
   }
 
@@ -2368,7 +2368,7 @@ class RedSquare extends ModTemplate {
         }
       }
     } catch (err) {
-      console.error('RS.receiveTweetsTransaction ERROR: ', err);
+      // console.error('RS.receiveTweetsTransaction ERROR: ', err);
     }
   }
 
@@ -2896,7 +2896,7 @@ class RedSquare extends ModTemplate {
           }
         }
       } catch (err) {
-        console.error('RS.webServer: Loading OG data failed with error: ', err);
+        // console.error('RS.webServer: Loading OG data failed with error: ', err);
       }
 
       redsquare_self.cacheRecentTweets();
