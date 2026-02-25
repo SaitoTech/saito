@@ -53,37 +53,45 @@ class NFTOverlay {
   render(nft = null) {
     if (nft) {
       this.nft = nft;
-      this.owner = nft.slip1.public_key;
-    }
-    //
-    // examine wallet for all possibilities
-    //
-    let nft_list = this.app.options.wallet.nfts;
-    this.all_slips = [];
-    this.total_slips = 0;
-    this.total_amount = 0;
-    this.can_split = false;
-    this.can_merge = false;
-
-    for (let z = 0; z < nft_list.length; z++) {
-      let n = nft_list[z];
-      if (n.id == this.nft.id) {
-        this.total_slips++;
-        this.total_amount += n.slip1.amount;
-        if (this.total_slips > 1) {
-          this.can_merge = true;
-        }
-        if (n.slip1.amount > 1) {
-          this.can_split = true;
-        }
-        this.all_slips.push(n);
-      }
+      this.owner = nft?.slip1?.public_key;
     }
 
     this.overlay.show(NFTOverlayTemplate(this.app, this.mod, this));
-    setTimeout(() => {
+    setTimeout(async () => {
+      if (!this.nft.tx_fetched) {
+        this.nft.fetchTransaction(() => {
+          console.log('Rerendering nft overlay after fetching data');
+          this.render();
+        });
+        return;
+      }
+
+      this.attachBaseEvent();
       this.attachEvents();
     }, 25);
+  }
+
+  attachBaseEvent() {
+    let header_btn = document.querySelector('.saito-nft-header-btn');
+
+    //
+    // header info toggle
+    //
+    if (header_btn) {
+      header_btn.onclick = (e) => {
+        let p = document.querySelector('.saito-nft-overlay.panels');
+
+        if (p) {
+          if (p.classList.contains('saito-nft-mode-info')) {
+            p.classList.remove('saito-nft-mode-info');
+          } else {
+            p.classList.add('saito-nft-mode-info');
+          }
+        }
+
+        header_btn.classList.toggle('rotate');
+      };
+    }
   }
 
   attachEvents() {
@@ -92,7 +100,6 @@ class NFTOverlay {
     //
     // buttons
     //
-    let header_btn = document.querySelector('.saito-nft-header-btn');
     let send_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
     let enable_btn = document.querySelector('.saito-nft-footer-btn.enable-nft');
     let disable_btn = document.querySelector('.saito-nft-footer-btn.disable-nft');
@@ -131,6 +138,31 @@ class NFTOverlay {
     //
     // split + merge visibility
     //
+    //
+    // examine wallet for all possibilities
+    //
+    let nft_list = this.app.options.wallet.nfts;
+    this.all_slips = [];
+    this.total_slips = 0;
+    this.total_amount = 0;
+    this.can_split = false;
+    this.can_merge = false;
+
+    for (let z = 0; z < nft_list.length; z++) {
+      let n = nft_list[z];
+      if (n.id == this.nft.id) {
+        this.total_slips++;
+        this.total_amount += n.slip1.amount;
+        if (this.total_slips > 1) {
+          this.can_merge = true;
+        }
+        if (n.slip1.amount > 1) {
+          this.can_split = true;
+        }
+        this.all_slips.push(n);
+      }
+    }
+
     let can_split = this.can_split;
     let can_merge = this.can_merge;
     try {
@@ -314,25 +346,6 @@ class NFTOverlay {
           console.error(err);
           salert('Failed to send NFT');
         }
-      };
-    }
-
-    //
-    // header info toggle
-    //
-    if (header_btn) {
-      header_btn.onclick = (e) => {
-        let p = document.querySelector('.saito-nft-overlay.panels');
-
-        if (p) {
-          if (p.classList.contains('saito-nft-mode-info')) {
-            p.classList.remove('saito-nft-mode-info');
-          } else {
-            p.classList.add('saito-nft-mode-info');
-          }
-        }
-
-        header_btn.classList.toggle('rotate');
       };
     }
 

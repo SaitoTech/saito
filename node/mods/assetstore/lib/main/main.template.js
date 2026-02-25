@@ -4,14 +4,31 @@ module.exports = (app, mod, this_self) => {
 
       <div class="saito-sidebar left">
         <div class="saito-button-primary list-asset">list asset</div>
-        <div class="saito-store-explorer">
-          <div class='saito-store-page-tab' data-pkey='${mod.SAITO_OFFICIAL_PUBLICKEY}'>home</div>
-          <div class='saito-store-page-tab' data-pkey='${mod.publicKey}'>my store</div>
+        <div class="saito-store-explorer saito-menu-select-heavy">
+          <div class='saito-store-page-tab' data-pkey='${mod.SAITO_OFFICIAL_PUBLICKEY}'>
+            <i class="fas fa-house"></i>
+            <span>home</span>
+          </div>
+          <div class='saito-store-page-tab' data-pkey='${mod.publicKey}'>
+            <i class="fa-solid fa-store"></i>
+            <span>my store</span>
+            <div class="store-link"><i class="fa-solid fa-link"></i></div>
+          </div>
         </div>
+        <select class="saito-store-explorer-mobile">
+          <option value="${mod.SAITO_OFFICIAL_PUBLICKEY}">
+            <i class="fas fa-house"></i>
+            <span>home</span>
+          </option>
+          <option value="${mod.publicKey}">
+            <i class="fa-solid fa-store"></i>
+            <span>my store</span>
+          </option>
+        </select>
       </div>
 
       <div class="saito-main">
-        <div id="assetstore-empty">No items for auction yet —— be the first to list one.</div>
+        <div id="assetstore-empty">No items for auction yet</div>
         <div class="assetstore-table">
           <div class="assetstore-table-list"></div>
         </div>

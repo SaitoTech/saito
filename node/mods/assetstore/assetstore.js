@@ -380,12 +380,7 @@ class AssetStore extends ModTemplate {
 
 				if (peer?.publicKey) {
 					watch_list.push(peer.publicKey);
-
-					if (!this.peers[peer.publicKey]) {
-						this.peers.push(watch_list);
-					} else {
-						this.peers[peer.publicKey] = watch_list;
-					}
+					this.peers[peer.publicKey] = watch_list;
 				}
 
 				mycallback(this.filterListings(watch_list));
@@ -432,11 +427,13 @@ class AssetStore extends ModTemplate {
 	}
 
 	filterListings(whiteList = []) {
-		let copyArray = new Array();
+		let copyArray = [];
 
-		for (let rec of this.listings) {
-			if (whiteList.includes(rec.seller)) {
-				copyArray.push(rec);
+		if (this.listings.length > 0) {
+			for (let rec of this.listings) {
+				if (whiteList.includes(rec.seller)) {
+					copyArray.push(rec);
+				}
 			}
 		}
 
@@ -943,7 +940,29 @@ class AssetStore extends ModTemplate {
 
 			let updatedSocial = Object.assign({}, assetstore_self.social);
 
-			let html = AssetStoreHome(app, assetstore_self, app.build_number, updatedSocial);
+			let listing = null,
+				tx = null;
+
+			if (req.query?.listing) {
+				listing = assetstore_self.returnListing(req.query?.listing);
+
+				// We need a fall back for if it doesn't return a listing...
+			}
+			if (listing) {
+				await app.storage.loadTransactions(
+					{ field4: listing.nft_id },
+					(txs) => {
+						if (txs.length > 0) {
+							tx = txs[0];
+						}
+					},
+					'localhost',
+					0
+				);
+			}
+
+			let html = AssetStoreHome(app, assetstore_self, app.build_number, updatedSocial, listing, tx);
+
 			if (!res.finished) {
 				res.setHeader('Content-type', 'text/html');
 				res.charset = 'UTF-8';

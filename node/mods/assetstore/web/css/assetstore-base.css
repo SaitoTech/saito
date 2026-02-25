@@ -65,13 +65,86 @@
   padding: 1.5rem;
 }
 
+/*  Side bar */
+.saito-store-explorer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.saito-store-page-tab {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 1.5rem;
+  padding-right: 1.5rem;
+  padding-right: 2.5rem;
+  font-size: 18px;
+  border-radius: 3rem;
+  width: 100%;
+  position: relative;
+}
+
+select.saito-store-explorer-mobile {
+  display: none;
+  background-color: inherit;
+  color: inherit;
+  max-width: 50%;
+  padding: 1.5rem;
+  padding-right: 1.5rem;
+  padding-right: 2.5rem;
+  font-size: 18px;
+}
+
+select.saito-store-explorer-mobile option {
+  background-color: inherit;
+  color: inherit;
+}
+
+.store-active-tab {
+  background-color: var(--saito-surface-selected);
+  color: var(--saito-font-color-heavy);
+}
+
+.store-link {
+  position: absolute;
+  height: 5rem;
+  width: 5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  right: 2rem;
+  transition: transform 0.5s;
+}
+
+.store-link:hover {
+  transform: translateY(-50%) rotate(45deg);
+}
+
 @media screen and (max-width: 720px) {
   .saito-container {
     grid-template-columns: minmax(0px, 1fr);
     grid-template-rows: min-content 1fr;
   }
 
+  .list-asset {
+    flex-grow: 1;
+  }
+
   .saito-sidebar.left {
     height: 8rem;
+    flex-direction: row;
+    background: var(--saito-background-color);
+  }
+
+  .saito-store-explorer {
+    display: none;
+  }
+
+  select.saito-store-explorer-mobile {
+    display: flex;
   }
 }

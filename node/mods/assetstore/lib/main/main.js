@@ -2,12 +2,14 @@ const JSON = require('json-bigint');
 const AssetStoreMainTemplate = require('./main.template');
 const Transaction = require('../../../../lib/saito/transaction').default;
 const AssetStoreNFTCard = require('./../overlays/assetstore-nft-card');
+const AssetStoreNFT = require('./../overlays/assetstore-nft');
 
 const SellNFTOverlay = require('./../overlays/sell-nft');
 const BuyNFTOverlay = require('./../overlays/buy-nft');
 const DelistNFTOverlay = require('./../overlays/delist-nft');
 
-const SaitoLoader = require('./../../../lib/saito/ui/saito-loader/saito-loader');
+const SaitoLoader = require('./../../../../lib/saito/ui/saito-loader/saito-loader');
+const SaitoInvitationLink = require('./../../../../lib/saito/ui/modals/saito-link/saito-link');
 
 class AssetStoreMain {
 	constructor(app, mod) {
@@ -20,9 +22,15 @@ class AssetStoreMain {
 
 		this.view = null;
 
-		this.loader = new SaitoLoader(app, mod, '.assetstore-table-list');
+		this.loader = new SaitoLoader(app, mod, '.assetstore-table');
+		this.link = new SaitoInvitationLink(app, mod, {
+			name: 'Store',
+			path: '/store',
+			seller: mod.publicKey
+		});
 
 		this.app.connection.on('assetstore-render-listings', () => {
+			console.log('assetstore-render-listings');
 			this.renderListings();
 		});
 	}
@@ -41,6 +49,16 @@ class AssetStoreMain {
 		this.renderListings();
 
 		this.attachEvents();
+
+		if (window?.target_listing) {
+			let listing = JSON.parse(window.target_listing);
+			let tx = window.nft_tx ? new Transaction() : null;
+			if (tx) {
+				tx.deserialize_from_web(this.app, window.nft_tx);
+			}
+			let nft = new AssetStoreNFT(this.app, this.mod, tx, listing);
+			this.buy_nft_overlay.render(nft);
+		}
 	}
 
 	attachEvents() {
@@ -65,43 +83,54 @@ class AssetStoreMain {
 					document.querySelector('.store-active-tab').classList.remove('store-active-tab');
 				}
 
-				console.debug(
-					'***',
-					e.currentTarget.dataset[pkey],
-					e.currentTarget.getAttribute('dataset-pkey')
-				);
 				this.view = e.currentTarget.dataset['pkey'];
 
-				if (!this.mod.authorized_sellers.includes(this.view)) {
+				if (!this.mod.authorized_sellers.includes(this.view) && this.view !== this.mod.publicKey) {
 					this.loading = true;
 					this.mod.authorized_sellers.push(this.view);
 
-					this.app.network.sendRequestAsTransaction(
-						'request listings',
-						{
-							seller: this.mod.authorized_sellers
-						},
-						(listings) => {
-							console.log('STORE: re-fetched listings -- ', listings);
-							this.mod.listings = listings;
-							this.loading = false;
-							this.renderListings();
-						},
-						this.mod.assetStore.peerIndex
-					);
+					console.debug('Loading nfts for user: ', this.view);
+
+					setTimeout(() => {
+						this.app.network.sendRequestAsTransaction(
+							'request listings',
+							{
+								seller: this.mod.authorized_sellers
+							},
+							(listings) => {
+								console.log('STORE: re-fetched listings -- ', listings);
+								this.mod.listings = listings;
+								this.loading = false;
+								this.renderListings();
+							},
+							this.mod.assetStore.peerIndex
+						);
+					}, 1000);
 				}
 
 				this.renderListings();
+			};
+		});
+
+		Array.from(document.querySelectorAll('.store-link')).forEach((link) => {
+			link.onclick = (e) => {
+				e.stopPropagation();
+				this.link.render();
 			};
 		});
 	}
 
 	renderSidebar() {
 		for (let pkey of this.mod.authorized_sellers) {
-			if (!document.querySelector(`.saito-store-page-tab[data-pkey="${this.view}"]`)) {
+			if (!document.querySelector(`.saito-store-page-tab[data-pkey="${pkey}"]`)) {
 				this.app.browser.addElementToSelector(
-					`<div class='saito-store-page-tab' data-pkey='${pkey}'>${this.app.keychain.returnUsername(pkey)}</div>`,
+					`<div class='saito-store-page-tab' data-pkey='${pkey}'><span>${this.app.keychain.returnUsername(pkey)}</span></div>`,
 					'.saito-store-explorer'
+				);
+
+				this.app.browser.addElementToSelector(
+					`<option value='${pkey}'><span>${this.app.keychain.returnUsername(pkey)}</span></option>`,
+					'.saito-store-explorer-mobile'
 				);
 			}
 		}
@@ -111,6 +140,7 @@ class AssetStoreMain {
 		if (document.querySelector('.assetstore-table-list')) {
 			document.querySelector('.assetstore-table-list').innerHTML = ``;
 		}
+		this.loader.hide();
 
 		let empty_msg = document.querySelector('#assetstore-empty');
 		empty_msg.style.display = 'none';
@@ -119,6 +149,7 @@ class AssetStoreMain {
 
 		if (!this.view) {
 			this.view = this.mod.authorized_sellers[0];
+			console.info('Inferred seller: ', this.view);
 		}
 
 		// Show active tab (in sidebar)
@@ -136,7 +167,7 @@ class AssetStoreMain {
 		//
 		//
 		if (listings_to_render.length > 0) {
-			for (let record of listings_to_render.length) {
+			for (let record of listings_to_render) {
 				if (record?.active > 1) {
 					console.warn('Have unavailable nfts listed in store');
 					continue;
@@ -151,7 +182,7 @@ class AssetStoreMain {
 						nfttx.deserialize_from_web(this.app, record.nfttx);
 					}
 
-					let nft_card = new AssetStoreNFTCard(
+					const nft_card = new AssetStoreNFTCard(
 						this.app,
 						this.mod,
 						'.assetstore-table-list',
@@ -204,6 +235,7 @@ class AssetStoreMain {
 
 					record.nft_card.nft.metadata = record;
 
+					console.log('rendering nft card');
 					await record.nft_card.render();
 				});
 			}

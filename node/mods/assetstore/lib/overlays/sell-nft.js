@@ -6,7 +6,7 @@ class SellNFTOverlay extends NFTDetailsOverlay {
   }
 
   render(nft) {
-    super.render(nft);
+    super.render(nft); // Will call attachEvents
 
     Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
       (el) => (el.style.display = 'none')
@@ -31,14 +31,9 @@ class SellNFTOverlay extends NFTDetailsOverlay {
     } else {
       document.querySelector('.saito-nft-description').innerHTML = html;
     }
-
-    setTimeout(() => {
-      this.attachEvents();
-    }, 25);
   }
 
   attachEvents() {
-    super.attachEvents();
     let input = document.querySelector('#nft-buy-price');
     const MIN = 0.00000001;
     const MAX = 100000000;

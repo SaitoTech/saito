@@ -3,7 +3,6 @@ let NFTDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/n
 class BuyNFTOverlay extends NFTDetailsOverlay {
   constructor(app, mod) {
     super(app, mod, false);
-    this.nft = null;
   }
 
   render(nft = null) {
@@ -12,15 +11,13 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
     Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
       (el) => (el.style.display = 'none')
     );
-
-    setTimeout(() => {
-      this.attachEvents();
-    }, 25);
   }
 
   async attachEvents() {
-    super.attachEvents();
-
+    if (this.nft.metadata.active !== 1) {
+      console.warn('NFT unavailable to purchase');
+      return;
+    }
     // Use Enable/Disable buttons for controls...
     let buy_with_saito_btn = document.querySelector('.saito-nft-footer-btn.enable-nft');
     let buy_with_other_btn = document.querySelector('.saito-nft-footer-btn.disable-nft');
