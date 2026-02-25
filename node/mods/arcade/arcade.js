@@ -988,28 +988,28 @@ console.log("SAVING GAME MOVE: ");
 
 	async receiveCancelTransaction(tx) {
 		let txmsg = tx.returnMessage();
-		let game = this.returnGameTransaction(txmsg.game_id);
+		let game_tx = this.returnGameTransaction(txmsg.game_id);
 
-		if (!game || !game.msg) {
+		if (!game_tx || !game_tx.msg) {
 			return;
 		}
 
-		if (game.msg.players.includes(tx.from[0].publicKey)) {
-			if (tx.from[0].publicKey == game.msg.originator) {
+		if (game_tx.msg.players.includes(tx.from[0].publicKey)) {
+			if (tx.from[0].publicKey == game_tx.msg.originator) {
 				this.changeGameStatus(txmsg.game_id, 'closed');
 			} else {
-				let p_index = game.msg.players.indexOf(tx.from[0].publicKey);
-				game.msg.players.splice(p_index, 1);
+				let p_index = game_tx.msg.players.indexOf(tx.from[0].publicKey);
+				game_tx.msg.players.splice(p_index, 1);
 				//Make sure player_sigs array exists and add invite_sig
-				if (game.msg.players_sigs && game.msg.players_sigs.length > p_index) {
-					game.msg.players_sigs.splice(p_index, 1);
+				if (game_tx.msg.players_sigs && game_tx.msg.players_sigs.length > p_index) {
+					game_tx.msg.players_sigs.splice(p_index, 1);
 				}
 			}
 		} else if (
-			game.msg.options?.desired_opponent_publickey &&
-			tx.isFrom(game.msg.options.desired_opponent_publickey)
+			game_tx.msg.options?.desired_opponent_publickey &&
+			tx.isFrom(game_tx.msg.options.desired_opponent_publickey)
 		) {
-			if (this.publicKey == game.msg.originator) {
+			if (this.publicKey == game_tx.msg.originator) {
 				siteMessage('Your game invite was declined', 5000);
 			}
 			this.changeGameStatus(txmsg.game_id, 'closed');
@@ -1022,17 +1022,17 @@ console.log("SAVING GAME MOVE: ");
 	}
 
 	async sendCancelTransaction(game_id) {
-		let game = this.returnGameTransaction(game_id);
+		let game_tx = this.returnGameTransaction(game_id);
 
-		if (!game || !game.msg) {
+		if (!game_tx || !game_tx.msg) {
 			return;
 		}
 
-		let close_tx = await this.createCancelTransaction(game);
+		let close_tx = await this.createCancelTransaction(game_tx);
 		this.app.network.propagateTransaction(close_tx);
 
 		this.app.connection.emit('relay-send-message', {
-			recipient: game.msg.players,
+			recipient: game_tx.msg.players,
 			request: 'arcade spv update',
 			data: close_tx.toJson()
 		});
@@ -1045,24 +1045,24 @@ console.log("SAVING GAME MOVE: ");
 	}
 
 	changeGameStatus(game_id, newStatus) {
-		let game = this.returnGameTransaction(game_id);
+		let game_tx = this.returnGameTransaction(game_id);
 
 		//Move game to different list
-		if (game) {
+		if (game_tx) {
 			if (this.sudo) {
 				console.debug(
-					`ARCADE: Change game (${game_id.substring(0, 10)}...) status from ${game.msg.request} to ${newStatus}`
+					`ARCADE: Change game (${game_id.substring(0, 10)}...) status from ${game_tx.msg.request} to ${newStatus}`
 				);
 			}
 
 			if (!this?.sudo) {
-				if (game?.msg?.request == 'over' || game?.msg?.request == 'closed') {
+				if (game_tx?.msg?.request == 'over' || game_tx?.msg?.request == 'closed') {
 					return;
 				}
 			}
 
 			this.removeGame(game_id);
-			this.addGame(game, newStatus);
+			this.addGame(game_tx, newStatus);
 		}
 
 		if (this.browser_active && this.ui) {
@@ -1073,7 +1073,7 @@ console.log("SAVING GAME MOVE: ");
 	async receiveGameoverTransaction(tx) {
 		let txmsg = tx.returnMessage();
 
-		let game = this.returnGameTransaction(txmsg.game_id);
+		let game_tx = this.returnGameTransaction(txmsg.game_id);
 
 		//In case we arrive at gameover without close game
 		this.app.connection.emit('arcade-close-game', txmsg.game_id);
@@ -1081,11 +1081,11 @@ console.log("SAVING GAME MOVE: ");
 
 		let winner = txmsg.winner || null;
 
-		if (game?.msg) {
+		if (game_tx?.msg) {
 			//Store the results locally
-			game.msg.winner = winner;
-			game.msg.method = txmsg.reason;
-			game.msg.time_finished = txmsg.timestamp;
+			game_tx.msg.winner = winner;
+			game_tx.msg.method = txmsg.reason;
+			game_tx.msg.time_finished = txmsg.timestamp;
 		} else {
 			console.warn("Game not found, arcade can't process gameover tx");
 		}
@@ -1103,10 +1103,10 @@ console.log("SAVING GAME MOVE: ");
 
 	async receiveGameStepTransaction(tx) {
 		let txmsg = tx.returnMessage();
-		let game = this.returnGameTransaction(txmsg.game_id);
-		if (game?.msg) {
-			game.msg.step = txmsg.step.game;
-			game.msg.timestamp = txmsg.step.timestamp;
+		let game_tx = this.returnGameTransaction(txmsg.game_id);
+		if (game_tx?.msg) {
+			game_tx.msg.step = txmsg.step.game;
+			game_tx.msg.timestamp = txmsg.step.timestamp;
 		}
 	}
 
@@ -1176,11 +1176,23 @@ console.log("SAVING GAME MOVE: ");
 	}
 
 	async receiveJoinTransaction(tx) {
+
 		if (!tx || !tx.signature) {
 			return;
 		}
 
 		let txmsg = tx.returnMessage();
+
+		// If engine state already exists locally, ignore JOIN replay
+		let game = this.returnGame(txmsg.game_id);
+		if (game?.state) {
+			return;
+		}
+
+		// Also ignore if game already exists in wallet (engine initialized)
+		if (this.app?.options?.games?.some(g => g.id === txmsg.game_id)) {
+			return;
+		}
 
 		//Transaction must be signed
 		if (!txmsg.invite_sig) {
@@ -1188,38 +1200,38 @@ console.log("SAVING GAME MOVE: ");
 		}
 
 		//
-		// game is the copy of the original invite creation TX stored in our object of arrays.
+		// game_tx is the copy of the original invite creation TX stored in our object of arrays.
 		//
-		let game = this.returnGameTransaction(txmsg.game_id);
+		let game_tx = this.returnGameTransaction(txmsg.game_id);
 		//
 		// If we don't find it, or we have already marked the game as active, stop processing
 		//
-		if (!game) {
+		if (!game_tx) {
 			return;
 		}
 
 		//
 		// Don't add the same player twice!
 		//
-		if (!game.msg.players.includes(tx.from[0].publicKey)) {
-			if (this.isAvailableGame(game)) {
+		if (!game_tx.msg.players.includes(tx.from[0].publicKey)) {
+			if (this.isAvailableGame(game_tx)) {
 				if (txmsg.update_options) {
 					console.info(
 						`ARCADE: Join TX updates the invite options -- ${txmsg.update_options}!`,
-						game.msg.options,
+						game_tx.msg.options,
 						txmsg.options
 					);
-					Object.assign(game.msg.options[txmsg.update_options], txmsg.options);
+					Object.assign(game_tx.msg.options[txmsg.update_options], txmsg.options);
 				}
 
 				//
 				// add player to game
 				//
-				game.msg.players.push(tx.from[0].publicKey);
-				game.msg.players_sigs.push(txmsg.invite_sig);
+				game_tx.msg.players.push(tx.from[0].publicKey);
+				game_tx.msg.players_sigs.push(txmsg.invite_sig);
 
 				this.removeGame(txmsg.game_id);
-				this.addGame(game);
+				this.addGame(game_tx);
 
 				if (this.browser_active && this.ui) {
 					this.ui.renderInvites();
@@ -1233,27 +1245,31 @@ console.log("SAVING GAME MOVE: ");
 		}
 
 		// If this is an already initialized table game... stop
-		if (game.msg.request == 'active' || game.msg.request == 'over') {
+		if (game_tx.msg.request == 'active' || game_tx.msg.request == 'over') {
 			return;
 		}
 
 		//
 		// Do we have enough players?
 		//
-		if (game.msg.players.length >= game.msg.players_needed) {
+		if (
+			game_tx.msg.players.length >= game_tx.msg.players_needed &&
+			game_tx.msg.request !== 'accepted' &&
+			game_tx.msg.request !== 'active'
+		) {
 			//
 			// Temporarily change it so we don't process additional joins
 			//
-			game.msg.request = 'accepted';
+			game_tx.msg.request = 'accepted';
 
 			//
 			// First player (originator) sends the accept message
 			//
 			if (
-				game.msg.originator == this.publicKey ||
-				(tx.isFrom(this.publicKey) && game.msg.options?.async_dealing)
+				game_tx.msg.originator == this.publicKey ||
+				(tx.isFrom(this.publicKey) && game_tx.msg.options?.async_dealing)
 			) {
-				let newtx = await this.createAcceptTransaction(game);
+				let newtx = await this.createAcceptTransaction(game_tx);
 				if (!newtx) {
 					console.warn('ARCADE: createAcceptTransaction returned nothing; skipping propagate and lounge overlay');
 					return;
@@ -1311,33 +1327,33 @@ console.log("SAVING GAME MOVE: ");
 		let txmsg = tx.returnMessage();
 
 		//
-		// game is the copy of the original invite creation TX stored in our object of arrays.
+		// game_tx is the copy of the original invite creation TX stored in our object of arrays.
 		//
-		let game = this.returnGameTransaction(txmsg.game_id);
+		let game_tx = this.returnGameTransaction(txmsg.game_id);
 
 		//
 		// If we don't find it, or we have already marked the game as active, stop processing
 		//
-		if (!game) {
+		if (!game_tx) {
 			return;
 		}
 
 		//
 		// Don't remove the same player twice!
 		//
-		if (game.msg.players.includes(tx.from[0].publicKey)) {
-			let index = game.msg.players.indexOf(tx.from[0].publicKey);
-			game.msg.players.splice(index, 1);
-			game.msg.players_sigs.splice(index, 1);
+		if (game_tx.msg.players.includes(tx.from[0].publicKey)) {
+			let index = game_tx.msg.players.indexOf(tx.from[0].publicKey);
+			game_tx.msg.players.splice(index, 1);
+			game_tx.msg.players_sigs.splice(index, 1);
 
-			if (!game.msg.options?.eliminated) {
-				game.msg.options.eliminated = {};
+			if (!game_tx.msg.options?.eliminated) {
+				game_tx.msg.options.eliminated = {};
 			}
 
-			game.msg.options.eliminated[tx.from[0].publicKey] = txmsg.data;
+			game_tx.msg.options.eliminated[tx.from[0].publicKey] = txmsg.data;
 
 			this.removeGame(txmsg.game_id);
-			this.addGame(game);
+			this.addGame(game_tx);
 
 			if (this.browser_active && this.ui) {
 				this.ui.renderInvites();
@@ -1393,6 +1409,18 @@ console.log("SAVING GAME MOVE: ");
 		}
 		let txmsg = tx.returnMessage();
 
+		// If engine state already exists locally, ignore duplicate ACCEPT
+		let game = this.returnGame(txmsg.game_id);
+		if (game?.state) {
+			return;
+		}
+
+		// Ignore duplicate accept if game already exists locally
+		if (this.app?.options?.games?.some(g => g.id === txmsg.game_id)) {
+			console.debug('ARCADE: duplicate accept ignored');
+			return;
+		}
+
 		if (!txmsg) {
 			console.error('ARCADE: receiveAcceptTransaction -- tx.returnMessage() is null; cannot initialize', tx?.signature);
 			return;
@@ -1414,11 +1442,11 @@ console.log("SAVING GAME MOVE: ");
 			return;
 		}
 
-		let game = this.returnGameTransaction(txmsg.game_id);
+		let game_tx = this.returnGameTransaction(txmsg.game_id);
 
 		// Must be an available invite
-		if (!game || (!this.isAvailableGame(game, 'accepted') && !txmsg.options?.async_dealing)) {
-			// console.warn('ARCADE: game not available to accept', game, txmsg);
+		if (!game_tx || (!this.isAvailableGame(game_tx, 'accepted') && !txmsg.options?.async_dealing)) {
+			// console.warn('ARCADE: game not available to accept', game_tx, txmsg);
 			return;
 		}
 
@@ -1896,9 +1924,9 @@ console.log("SAVING GAME MOVE: ");
 		let accepted_game_msg = null;
 
 		//Add more information about the game
-		let record = this.returnGame(game_sig);
-		if (record) {
-			accepted_game_tx = record.tx;
+		let game = this.returnGame(game_sig);
+		if (game) {
+			accepted_game_tx = game.tx;
 		}
 
 		if (accepted_game_tx) {
