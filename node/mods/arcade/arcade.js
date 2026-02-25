@@ -936,7 +936,6 @@ console.log("SAVING GAME MOVE: ");
 			originator: this.publicKey
 		};
 
-		newtx.packData();
 		await newtx.sign();
 
 		return newtx;

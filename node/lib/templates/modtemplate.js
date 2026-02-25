@@ -1096,7 +1096,7 @@ class ModTemplate {
     let hashed_data = this.name + tx.signature;
     if (this.processedTxs[hashed_data] !== undefined) {
       if (this.processedTxs[hashed_data]) {
-        console.log(
+        console.debug(
           'prevent processing duplicated on chain transaction : ',
           tx.from[0]?.publicKey,
           tx.returnMessage(),

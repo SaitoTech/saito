@@ -13,7 +13,11 @@
 		"lib": [
 			"dom",
 			"es2022"
-		]
+		],
+		"paths": {
+			"saito-js/*": ["../../node_modules/saito-js/dist/*"],
+			"saito-js": ["../../node_modules/saito-js/dist/index.node"]
+		}
 	},
 	"exclude": [
 		"../../node_modules",

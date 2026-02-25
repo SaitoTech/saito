@@ -1,4 +1,4 @@
-module.exports = (app, mod, build_number = '', og_card) => {
+module.exports = (app, mod, build_number = '', og_card, listing = null, tx = null) => {
   let html = `
   
   <!DOCTYPE html>
@@ -74,7 +74,28 @@ module.exports = (app, mod, build_number = '', og_card) => {
   <body>
     <div class="saito-container" id="saito-container"></div>
   </body>
-  <script type="text/javascript" src="/saito/saito.js?build=${build_number}" ></script>
+
+    <script type="text/javascript">
+      var active_module = '${mod.returnSlug()}';
+  `;
+
+  if (listing) {
+    html += `
+      if (!target_listing) { 
+        var target_listing = '${JSON.stringify(listing)}';
+      }
+    `;
+  }
+
+  if (tx) {
+    html += `
+      if (!nft_tx){
+        var nft_tx = '${tx}';
+      }
+    `;
+  }
+
+  html += `</script><script type="text/javascript" src="/saito/saito.js?build=${build_number}" ></script>
   </html>`;
 
   return html;

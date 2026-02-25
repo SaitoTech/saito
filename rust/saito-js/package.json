@@ -7,17 +7,8 @@
     "build": "tsc",
     "serve": "webpack-dev-server"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "author": "",
   "license": "ISC",
-  "exports": {
-    "./index.web": "./dist/index.web.js",
-    "./index.node": "./dist/index.node.js",
-    "./saito": "./dist/saito.js",
-    "./lib/*": "./dist/lib/*.js",
-    ".": "./dist/index.node.js"
-  },
   "devDependencies": {
     "@types/jest": "29.2.5",
     "@types/ws": "8.5.5",
