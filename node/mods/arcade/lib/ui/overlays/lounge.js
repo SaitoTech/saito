@@ -85,9 +85,9 @@ class LoungeOverlay {
 	}
 
 	_renderGameIdMode() {
-		let record = this.mod.returnGame(this.game_id);
-		const state = record?.state;
-		const txGame = record?.tx?.msg?.game;
+		let game = this.mod.returnGame(this.game_id);
+		const state = game?.state;
+		const txGame = game?.tx?.msg?.game;
 		const stateModule = state?.module;
 		// Resolve game_mod same as invite: tx.msg.game is module name; fallback to slug from state
 		let game_mod = this.app.modules.returnModule(txGame) || this.app.modules.returnModuleBySlug(stateModule || txGame || 'arcade') || this.app.modules.returnModule(stateModule);
@@ -119,7 +119,7 @@ class LoungeOverlay {
 			controlsHtml = '';
 		} else if (derivedState === 'READY') {
 			stateLabel = 'Game Ready';
-			bodyHtml = this._buildReadyBody(record, state, game_mod);
+			bodyHtml = this._buildReadyBody(game, state, game_mod);
 			controlsHtml = `
 	  <div id="arcade-game-controls-start-game" class="fat saito-button-primary">Start Game</div>
 	  <div id="arcade-game-controls-close-game" class="fat saito-button-secondary">Cancel</div>`;
@@ -152,9 +152,9 @@ class LoungeOverlay {
 		this.app.connection.emit('add-league-identifier-to-dom');
 	}
 
-	_buildReadyBody(record, state, game_mod) {
-		const players = state?.players || record?.tx?.msg?.players || [];
-		const options = state?.options || record?.tx?.msg?.options || {};
+	_buildReadyBody(game, state, game_mod) {
+		const players = state?.players || game?.tx?.msg?.players || [];
+		const options = state?.options || game?.tx?.msg?.options || {};
 		let optsHtml = '';
 		if (game_mod && typeof game_mod.returnShortGameOptionsArray === 'function') {
 			const sgoa = game_mod.returnShortGameOptionsArray(options);
@@ -186,8 +186,8 @@ class LoungeOverlay {
 		let startBtn = document.getElementById('arcade-game-controls-start-game');
 		if (startBtn && this.game_id != null) {
 			startBtn.onclick = (e) => {
-				let rec = this.mod.returnGame(this.game_id);
-				let slug = rec?.tx?.msg?.game || rec?.state?.module || 'arcade';
+				let game = this.mod.returnGame(this.game_id);
+				let slug = game?.tx?.msg?.game || game?.state?.module || 'arcade';
 				let am = this.app.modules.returnActiveModule()?.returnName() || 'Arcade';
 				this.app.options.homeModule = am;
 				this.app.storage.saveOptions();
@@ -263,8 +263,8 @@ class LoungeOverlay {
 					gameId = this.invite.game_id;
 					name = this.invite.game_mod?.name;
 				} else if (this.game_id != null) {
-					let rec = this.mod.returnGame(this.game_id);
-					slug = rec?.tx?.msg?.game || rec?.state?.module || 'arcade';
+					let game = this.mod.returnGame(this.game_id);
+					slug = game?.tx?.msg?.game || game?.state?.module || 'arcade';
 					gameId = this.game_id;
 					name = this.app.modules.returnModuleBySlug(slug)?.name;
 				}
