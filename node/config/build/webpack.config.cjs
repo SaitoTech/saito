@@ -113,6 +113,28 @@ webpack(
       // Add '.ts' and '.tsx' as resolvable extensions.
       //extensions: ["", ".webpack.js", ".web.js", ".ts", ".tsx", ".js"],
       extensions: [".webpack.js", ".web.js", ".ts", ".tsx", ".js", ],
+      modules: [
+        path.resolve(__dirname, "../../node_modules"),
+        "node_modules"
+      ],
+      alias: {
+        "saito-js/saito": [
+          path.resolve(__dirname, "../../node_modules/saito-js/dist/saito.js"),
+          path.resolve(__dirname, "../../node_modules/saito-js/saito.js")
+        ],
+        "saito-js/index.web": [
+          path.resolve(__dirname, "../../node_modules/saito-js/dist/index.web.js"),
+          path.resolve(__dirname, "../../node_modules/saito-js/index.web.js")
+        ],
+        "saito-js/lib": [
+          path.resolve(__dirname, "../../node_modules/saito-js/dist/lib"),
+          path.resolve(__dirname, "../../node_modules/saito-js/lib")
+        ],
+        "saito-js": [
+          path.resolve(__dirname, "../../node_modules/saito-js/dist"),
+          path.resolve(__dirname, "../../node_modules/saito-js")
+        ]
+      },
       fallback: {
         fs: false,
         tls: false,
