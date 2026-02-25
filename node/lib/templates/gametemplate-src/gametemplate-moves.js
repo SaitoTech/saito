@@ -384,7 +384,7 @@ class GameMoves {
           }
         } catch (err) {
           console.error('Observer error adding future move');
-          console.error(err);
+          // console.error(err);
         }
       }
     }
@@ -664,7 +664,7 @@ class GameMoves {
 
     game_self.saveGame(game_self.game.id);
 
-    console.debug('GT: Sending Move: ', JSON.parse(JSON.stringify(mymsg)));
+    // console.debug('GT: Sending Move: ', JSON.parse(JSON.stringify(mymsg)));
 
     //
     // send off-chain if possible - step 2 onchain to avoid relay issues with options
@@ -764,7 +764,7 @@ class GameMoves {
               if (!this.game.future.includes(ftx)) {
                 this.game.future.push(ftx);
                 new_moves++;
-                console.debug('GT [observer] Archived move: ' + JSON.stringify(game_move));
+                // console.debug('GT [observer] Archived move: ' + JSON.stringify(game_move));
               }
             }
           } else {

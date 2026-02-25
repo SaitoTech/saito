@@ -115,7 +115,7 @@ export default class Transaction extends SaitoTransaction {
         }
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
 
     this.unpackData();
@@ -334,8 +334,8 @@ export default class Transaction extends SaitoTransaction {
       this.unpackData();
       this.optional = JSON.parse(app.crypto.base64ToString(web_obj.opt));
     } catch (err) {
-      console.error('failed deserializing from buffer : ', webstring);
-      console.error(err);
+      // console.error('failed deserializing from buffer : ', webstring);
+      // console.error(err);
     }
   }
 

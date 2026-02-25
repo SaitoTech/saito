@@ -1365,11 +1365,11 @@ class Stack extends ModTemplate {
     // DIAGNOSTIC: Log query parameters
     // ========================================================================
     const queryParams = { field1: 'Stack', field4: 'stack:draft' };
-    console.log('[DIAG] discoverDrafts() Query parameters:', JSON.stringify(queryParams, null, 2));
-    console.log('[DIAG] discoverDrafts() Query peer: localhost');
-    console.log(
-      '[DIAG] discoverDrafts() Expected match: field1="Stack" AND field4="stack:draft" AND peer="localhost"'
-    );
+    // console.log('[DIAG] discoverDrafts() Query parameters:', JSON.stringify(queryParams, null, 2));
+    // console.log('[DIAG] discoverDrafts() Query peer: localhost');
+    // console.log(
+    //   '[DIAG] discoverDrafts() Expected match: field1="Stack" AND field4="stack:draft" AND peer="localhost"'
+    // );
 
     return new Promise((resolve) => {
       this.app.storage.loadTransactions(

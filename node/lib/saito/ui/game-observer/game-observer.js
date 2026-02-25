@@ -244,7 +244,7 @@ class GameObserver {
         observer_self._showSyncOverlay();
         console.log('[GameObserver] sync start detected (first-btn: archive load)');
         this.game_mod.observerDownloadNextMoves(() => {
-          console.log('GAME QUEUE:' + JSON.stringify(this.game_mod.game.queue));
+          // console.log('GAME QUEUE:' + JSON.stringify(this.game_mod.game.queue));
           this.game_mod.initialize_game_run = 0;
           this.game_mod.initializeGameQueue(this.game_mod.game.id);
           observer_self._checkSyncEnd();
@@ -417,7 +417,7 @@ class GameObserver {
     let observer_self = this;
     const callback = function (mod) {
       //Get game module to reload and refresh the DOM
-      console.log('GAME QUEUE:' + JSON.stringify(mod.game.queue));
+      // console.log('GAME QUEUE:' + JSON.stringify(mod.game.queue));
       mod.initialize_game_run = 0;
       mod.initializeGameQueue(mod.game.id);
       //Tell gameObserver HUD to update its step

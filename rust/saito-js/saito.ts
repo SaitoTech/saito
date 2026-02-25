@@ -550,7 +550,11 @@ export default class Saito {
                 }
             })
             .catch((error) => {
-                console.info("couldn't send api call : ", error);
+                let errMsg = "unknown error";
+                try {
+                    errMsg = error?.message ?? String(error);
+                } catch (_) {}
+                console.info("couldn't send api call:", errMsg);
                 if (callback) {
                     return callback({ err: error.toString() });
                 }

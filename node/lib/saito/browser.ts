@@ -2980,19 +2980,19 @@ class Browser {
 
     switch (log_level) {
       case 'debug':
-        console.debug(header, new_obj);
+        // console.debug(header, new_obj);
         break;
       case 'info':
-        console.info(header, new_obj);
+        // console.info(header, new_obj);
         break;
       case 'warn':
-        console.warn(header, new_obj);
+        // console.warn(header, new_obj);
         break;
       case 'error':
-        console.error(header, new_obj);
+        // console.error(header, new_obj);
         break;
       default:
-        console.log(header, new_obj);
+        // console.log(header, new_obj);
     }
   }
 

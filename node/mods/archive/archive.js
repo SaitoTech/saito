@@ -556,7 +556,7 @@ class Archive extends ModTemplate {
 		newObj.tx_size = newObj.tx.length;
 
 		if (!tx_to_update) {
-			console.error('No tx signature for archive update:', tx);
+			// console.error('No tx signature for archive update:', tx);
 			return 0;
 		}
 

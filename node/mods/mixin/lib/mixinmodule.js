@@ -233,7 +233,7 @@ class MixinModule extends CryptoModule {
 		//mixinmodule.js:454 received_datetime:  Sun Sep 20 56111 06:01:14 GMT+0500 (Pakistan Standard Time)
 
 		let status = await this.mixin.fetchUtxo('unspent', 100000, 'DESC', (d) => {
-			console.log('utxo: ', d);
+					// console.log('utxo: ', d);
 
 			if (d.length > 0) {
 				for (let i = d.length - 1; i >= 0; i--) {
@@ -442,7 +442,7 @@ class MixinModule extends CryptoModule {
 					asset_id: this.asset_id
 				},
 				function (res) {
-					console.log('miximodule res: ', res);
+					// console.log('miximodule res: ', res);
 					// this.address + '|' + this.mixin.mixin.user_id + '|' + 'mixin';
 					if (res.length > 0) {
 						for (let i = 0; i < res.length; i++) {
@@ -467,7 +467,7 @@ class MixinModule extends CryptoModule {
 				}
 			);
 		} catch (err) {
-			console.error('Error getMixinAddress: ', err);
+			// console.error('Error getMixinAddress: ', err);
 			return null;
 		}
 	}
@@ -488,7 +488,7 @@ class MixinModule extends CryptoModule {
 
 //			return WAValidator.validate(address, this.ticker);
 		} catch (err) {
-			console.error("Error 'validateAddress' MixinModule: ", err);
+			// console.error("Error 'validateAddress' MixinModule: ", err);
 		}
 	}
 
