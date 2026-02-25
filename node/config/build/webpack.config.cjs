@@ -173,6 +173,24 @@ webpack(
 	  },
 	},
         // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
+        // @noble: babel only (no source-map-loader) so Mixin SDK works in browser.
+        {
+          test: /\.js$/,
+	  exclude: /[\\/]node_modules[\\/]@noble[\\/]/,
+          use: [
+            {
+              loader: "babel-loader",
+              options: {
+                root: path.resolve(__dirname, '.'),
+                rootMode: "upward",
+                presets: ["@babel/preset-env", "@babel/preset-react"],
+                sourceMaps: false,
+                cacheCompression: false,
+                cacheDirectory: true,
+              },
+            },
+          ],
+        },
         {
           test: /\.js$/,
           exclude: /[\/]node_modules[\/]@noble[\/]/,
