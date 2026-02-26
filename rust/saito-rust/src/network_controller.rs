@@ -95,7 +95,7 @@ impl NetworkController {
             }
         } else {
             error!(
-                "Cannot find the corresponding sender socket, Peer Index : {:?}",
+                "Cannot find the corresponding sender socket, key : {:?}",
                 public_key.to_base58()
             );
         }

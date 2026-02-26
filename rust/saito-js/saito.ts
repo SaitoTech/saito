@@ -245,7 +245,7 @@ export default class Saito {
       let socket = peer?.socket;
       this.peers.delete(publicKey);
       if (socket) {
-        console.info("closing socket for peer index : " + publicKey);
+        console.info("closing socket for peer  : " + publicKey);
 
         // @ts-ignore
         if (socket.readyState !== 1 && socket.terminate) {
