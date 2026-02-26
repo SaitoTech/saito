@@ -7,7 +7,7 @@ use crate::core::routing::peers::peer::{Peer, PeerStatus};
 use crate::core::routing::peers::peer_service::PeerService;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
-use std::io::{Error, ErrorKind};
+use std::io::Error;
 use std::time::Duration;
 
 const PEER_REMOVAL_WINDOW: Timestamp = Duration::from_secs(600).as_millis() as Timestamp;

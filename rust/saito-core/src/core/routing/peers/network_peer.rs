@@ -3,7 +3,6 @@ use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use crate::core::process::keep_time::Timer;
 use crate::core::routing::io::network_event::NetworkEvent;
-use crate::core::routing::peers::io_event::IoEvent;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
@@ -12,7 +11,6 @@ use log::{debug, error, info, trace, warn};
 use std::io::{Error, ErrorKind};
 use std::ops::Deref;
 use std::sync::Arc;
-use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
 #[derive(Debug, Clone)]
