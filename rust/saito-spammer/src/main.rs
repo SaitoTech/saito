@@ -30,12 +30,12 @@ use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
 use saito_core::core::routing::io::network::Network;
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::io::storage::Storage;
+use saito_core::core::routing::peers::io_event::IoEvent;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::StatThread;
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
-use saito_rust::io_event::IoEvent;
 use saito_rust::network_controller::run_network_controller;
 use saito_rust::rust_io_handler::RustIOHandler;
 use saito_rust::time_keeper::TimeKeeper;
@@ -336,6 +336,7 @@ async fn run_routing_event_processor(
         waiting_for_genesis_block: false,
         message_sending_timer: 0,
         blockchain_send_results: Default::default(),
+        new_peers: vec![],
     };
 
     let (interface_sender_to_routing, interface_receiver_for_routing) =
@@ -635,6 +636,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         peers_lock.clone(),
         sender_to_network_controller.clone(),
         &timer,
+        context.wallet_lock.clone(),
     )
     .await;
 

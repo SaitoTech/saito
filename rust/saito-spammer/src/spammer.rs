@@ -13,8 +13,8 @@ use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::Currency;
 use saito_core::core::msg::message::Message;
 use saito_core::core::routing::io::network_event::NetworkEvent;
+use saito_core::core::routing::peers::io_event::IoEvent;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
-use saito_rust::io_event::IoEvent;
 
 use crate::config_handler::SpammerConfigs;
 use crate::transaction_generator::{GeneratorState, TransactionGenerator};
@@ -85,7 +85,7 @@ impl Spammer {
             loop {
                 {
                     let peers = peer_lock.read().await;
-                    if let Some((_, peer)) = peers.index_to_peers.iter().next() {
+                    if let Some((_, peer)) = peers.peers.iter().next() {
                         if let PeerStatus::Connected = peer.peer_status {
                             // info!("peer count : {}", peers.index_to_peers.len());
                             // info!("peer status : {:?}", peer.peer_status);
@@ -109,7 +109,7 @@ impl Spammer {
                         sender
                             .send(IoEvent {
                                 event_processor_id: 0,
-                                event_id: 0,
+                                // event_id: 0,
                                 event: NetworkEvent::OutgoingNetworkMessageForAll {
                                     buffer: Message::Transaction(tx).serialize(),
                                     exceptions: vec![],
@@ -145,7 +145,7 @@ impl Spammer {
                 // }
                 {
                     let peers = self.tx_generator.peer_lock.read().await;
-                    if let Some((_, peer)) = peers.index_to_peers.iter().next() {
+                    if let Some((_, peer)) = peers.peers.iter().next() {
                         if let PeerStatus::Connected = peer.peer_status {
                             // info!("peer count : {}", peers.index_to_peers.len());
                             // info!("peer status : {:?}", peer.peer_status);

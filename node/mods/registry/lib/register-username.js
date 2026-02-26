@@ -59,9 +59,9 @@ class RegisterUsername {
 				};
 
 				let registry_peer = null;
-				if (this.mod.peers[0]?.peerIndex) {
-					registry_peer = this.mod.peers[0].peerIndex;
-				}
+				if (this.mod.peers[0]?.publicKey) {
+          registry_peer = this.mod.peers[0].publicKey;
+        }
 
 				this.app.network.sendRequestAsTransaction(
 					'registry query',

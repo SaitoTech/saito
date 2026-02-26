@@ -206,17 +206,15 @@ class Library extends ModTemplate {
 				// add it to our library
 				//
 				app.network.sendRequestAsTransaction(
-					message.request,
-					message.data,
-					(res) => {
-						if (res.length > 0) {
-							library_self.library[m.collection].peers[
-								peer.publicKey
-							] = res; // res = collection
-						}
-					},
-					peer.peerIndex
-				);
+          message.request,
+          message.data,
+          (res) => {
+            if (res.length > 0) {
+              library_self.library[m.collection].peers[peer.publicKey] = res; // res = collection
+            }
+          },
+          peer.publicKey
+        );
 			}
 		}
 	}

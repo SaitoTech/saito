@@ -22,6 +22,7 @@ import prettify from 'html-prettify';
 import { toBase58 } from 'saito-js/lib/util';
 import { TransactionType } from 'saito-js/lib/transaction';
 import { BlockType } from 'saito-js/lib/block';
+import NetworkPeer from 'saito-js/lib/network_peer';
 
 const JSON = require('json-bigint');
 
@@ -42,9 +43,9 @@ export class NodeSharedMethods extends CustomSharedMethods {
     this.app = app;
   }
 
-  sendMessage(peerIndex: bigint, buffer: Uint8Array): void {
+  sendMessage(publicKey: string, buffer: Uint8Array): void {
     try {
-      let socket = S.getInstance().getSocket(peerIndex);
+      let socket = S.getInstance().getSocket(publicKey);
       if (socket) {
         socket.send(buffer);
       }
@@ -53,70 +54,88 @@ export class NodeSharedMethods extends CustomSharedMethods {
     }
   }
 
-  sendMessageToAll(buffer: Uint8Array, exceptions: bigint[]): void {
-    S.getInstance().sockets.forEach((socket, key) => {
+  sendMessageToAll(buffer: Uint8Array, exceptions: string[]): void {
+    S.getInstance().peers.forEach((peer, key) => {
       if (exceptions.includes(key)) {
         return;
       }
       try {
-        socket.send(buffer);
+        let socket = peer.socket;
+        if (socket) {
+          socket.send(buffer);
+        }
       } catch (error) {
         console.error(error);
       }
     });
   }
 
-  connectToPeer(url: string, peer_index: bigint): void {
+  connectToPeer(url: string): void {
     try {
       console.log('connecting to ' + url + '....');
 
       let socket = new ws.WebSocket(url);
-      S.getInstance().addNewSocket(socket, peer_index);
+      // S.getInstance().addNewSocket(socket, peer_index);
+
+      let peer = new NetworkPeer(undefined, url);
+      peer.socket = socket;
 
       socket.on('message', (buffer: any) => {
         try {
-          S.getLibInstance().process_msg_buffer_from_peer(buffer, peer_index);
+          S.getLibInstance()
+            .process_msg_buffer_from_peer(buffer, peer)
+            .then((buffer: any) => {
+              if (buffer && buffer.byteLength > 0) {
+                socket.send(buffer);
+              }
+            });
         } catch (e) {
           console.error(
-            `failed processing socket message buffer from peer : ${peer_index} from url : ${url}`,
+            `failed processing socket message buffer from peer : ${peer.publicKey} from url : ${url}`,
             e
           );
         }
       });
       socket.on('close', () => {
         try {
-          S.getLibInstance().process_peer_disconnection(peer_index);
+          S.getLibInstance().process_peer_disconnection(peer.publicKey);
         } catch (e) {
           console.error(
-            `failed processing socket close from peer : ${peer_index} from url : ${url}`,
+            `failed processing socket close from peer : ${peer.publicKey} from url : ${url}`,
             e
           );
         }
       });
       socket.on('error', (error) => {
-        console.error(`received socket error from peer : ${peer_index} from url : ${url}`, error);
+        console.error(
+          `received socket error from peer : ${peer.publicKey} from url : ${url}`,
+          error
+        );
         try {
-          S.getLibInstance().process_peer_disconnection(peer_index);
+          S.getLibInstance().process_peer_disconnection(peer.publicKey);
         } catch (e) {
-          console.error(`failed processing error from peer : ${peer_index} from url : ${url}`, e);
+          console.error(
+            `failed processing error from peer : ${peer.publicKey} from url : ${url}`,
+            e
+          );
         }
       });
       socket.on('open', () => {
         try {
-          S.getLibInstance()
-            .process_new_peer(peer_index, url)
-            .then(() => {
-              console.log('connected to : ' + url + ' with peer index : ' + peer_index);
-            });
+          // S.getLibInstance()
+          //   .process_new_peer(peer_index, url)
+          //   .then(() => {
+          //     console.log('connected to : ' + url + ' with peer index : ' + peer_index);
+          //   });
         } catch (e) {
           console.error(
-            `failed processing socket open from peer : ${peer_index} from url : ${url}`,
+            `failed processing socket open from peer : ${peer.publicKey} from url : ${url}`,
             e
           );
         }
       });
     } catch (e) {
-      console.error(`error from peer : ${peer_index} from url : ${url}`, e);
+      console.error(`error from peer from url : ${url}`, e);
     }
   }
 
@@ -177,8 +196,8 @@ export class NodeSharedMethods extends CustomSharedMethods {
     }
   }
 
-  disconnectFromPeer(peerIndex: bigint): void {
-    S.getInstance().removeSocket(peerIndex);
+  disconnectFromPeer(publicKey: string): void {
+    S.getInstance().removeSocket(publicKey);
   }
 
   fetchBlockFromPeer(url: string): Promise<Uint8Array> {
@@ -197,7 +216,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
       });
   }
 
-  async processApiCall(buffer: Uint8Array, msgIndex: number, peerIndex: bigint): Promise<void> {
+  async processApiCall(buffer: Uint8Array, msgIndex: number, publicKey: string): Promise<void> {
     // console.log(
     //   "NodeMethods.processApiCall : peer= " + peerIndex + " with size : " + buffer.byteLength
     // );
@@ -206,10 +225,10 @@ export class NodeSharedMethods extends CustomSharedMethods {
       await S.getInstance().sendApiSuccess(
         msgIndex,
         response_object ? Buffer.from(JSON.stringify(response_object), 'utf-8') : Buffer.alloc(0),
-        peerIndex
+        publicKey
       );
     };
-    let peer = await this.app.network.getPeer(peerIndex);
+    let peer = await this.app.network.getPeer(publicKey);
     let newtx = new Transaction();
     try {
       // console.log("buffer length : " + buffer.byteLength, buffer);
@@ -224,8 +243,8 @@ export class NodeSharedMethods extends CustomSharedMethods {
     await this.app.modules.handlePeerTransaction(newtx, peer, mycallback);
   }
 
-  sendInterfaceEvent(event: string, peerIndex: bigint, public_key: string) {
-    this.app.connection.emit(event, peerIndex, public_key);
+  sendInterfaceEvent(event: string, public_key: string) {
+    this.app.connection.emit(event, public_key);
   }
 
   sendBlockSuccess(hash: string, blockId: bigint) {
@@ -267,7 +286,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
     return list;
   }
 
-  sendNewVersionAlert(major: number, minor: number, patch: number, peerIndex: bigint): void {
+  sendNewVersionAlert(major: number, minor: number, patch: number, publicKey: string): void {
     console.error(
       'This is an older version',
       'current version: ',
@@ -359,33 +378,40 @@ class Server {
         'connection established : ',
         request.headers['x-forwarded-for'] + ' || ' + request.socket.remoteAddress
       );
-      S.getLibInstance()
-        .get_next_peer_index()
-        .then((peer_index: bigint) => {
-          console.log(
-            'adding new peer : ' +
-              (request.headers['x-forwarded-for'] + request.socket.remoteAddress) +
-              ' as ' +
-              peer_index
-          );
-          S.getInstance().addNewSocket(socket, peer_index);
+      let peer = new NetworkPeer();
+      peer.socket = socket;
 
-          socket.on('message', (buffer: any) => {
-            S.getLibInstance().process_msg_buffer_from_peer(new Uint8Array(buffer), peer_index);
-          });
-          socket.on('close', () => {
-            S.getLibInstance().process_peer_disconnection(peer_index);
-          });
-          socket.on('error', (error) => {
-            console.error('error on socket : ' + peer_index, error);
-            S.getLibInstance().process_peer_disconnection(peer_index);
-          });
+      // console.log(
+      //   'adding new peer : ' + (request.headers['x-forwarded-for'] + request.socket.remoteAddress)
+      // );
+      // S.getInstance().addNewSocket(socket, peer_index);
 
-          return S.getLibInstance().process_new_peer(
-            peer_index,
-            request.headers['x-forwarded-for'] || request.socket.remoteAddress
-          );
-        });
+      socket.on('message', (buffer: any) => {
+        S.getLibInstance()
+          .process_msg_buffer_from_peer(new Uint8Array(buffer), peer.instance)
+          .then((buffer: any) => {
+            if (buffer && buffer.byteLength > 0) {
+              socket.send(buffer);
+            }
+            if (peer.publicKey) {
+              if (!S.getInstance().peers.has(peer.publicKey)) {
+                console.info('added peer : ', peer.publicKey);
+                S.getInstance().peers.set(peer.publicKey, peer);
+              }
+            }
+          });
+      });
+      socket.on('close', () => {
+        S.getLibInstance().process_peer_disconnection(peer.publicKey);
+      });
+      socket.on('error', (error) => {
+        console.error('error on socket : ' + peer.publicKey, error);
+        S.getLibInstance().process_peer_disconnection(peer.publicKey);
+      });
+      peer.get_handshake_challenge_buffer().then((buffer) => {
+        console.log('sending handshake challenge to peer : ', peer.publicKey);
+        socket.send(buffer);
+      });
     });
 
     this.app.modules.onWebSocketServer(webserver);

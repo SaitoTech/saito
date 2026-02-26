@@ -139,7 +139,7 @@ class Storage {
         }
       }
       if (peer != null) {
-        return await this.app.network.sendRequestAsTransaction(message, data, null, peer.peerIndex);
+        return await this.app.network.sendRequestAsTransaction(message, data, null, peer.publicKey);
       } else {
         // This await doesn't seem to ever resolve sometimes...
         return await this.app.network.sendRequestAsTransaction(message, data);
@@ -185,7 +185,7 @@ class Storage {
       }
     } else {
       if (peer != null) {
-        return await this.app.network.sendRequestAsTransaction(message, data, null, peer.peerIndex);
+        return await this.app.network.sendRequestAsTransaction(message, data, null, peer.publicKey);
       } else {
         return await this.app.network.sendRequestAsTransaction(message, data);
       }
@@ -252,7 +252,7 @@ class Storage {
         (res) => {
           return internal_callback(res);
         },
-        peer.peerIndex
+        peer.publicKey
       );
     } else {
       this.app.network.sendRequestAsTransaction(message, data, function (res) {

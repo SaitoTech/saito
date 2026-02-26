@@ -273,19 +273,19 @@ class ModTools extends ModTemplate {
 			//
 			if (this.canPeerModerate(peer.publicKey)) {
 				app.network.sendRequestAsTransaction(
-					'modtools',
-					{ request: 'load' },
-					(res) => {
-						if (res?.blacklist?.length) {
-							modtools_self.addPeerBlacklist(peer.publicKey, res.blacklist);
-						}
+          'modtools',
+          { request: 'load' },
+          (res) => {
+            if (res?.blacklist?.length) {
+              modtools_self.addPeerBlacklist(peer.publicKey, res.blacklist);
+            }
 
-						if (res?.whitelist?.length) {
-							modtools_self.addPeerWhitelist(peer.publicKey, res.whitelist);
-						}
-					},
-					peer.peerIndex
-				);
+            if (res?.whitelist?.length) {
+              modtools_self.addPeerWhitelist(peer.publicKey, res.whitelist);
+            }
+          },
+          peer.publicKey
+        );
 			}
 		}
 	}

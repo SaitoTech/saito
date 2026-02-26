@@ -403,7 +403,7 @@ class Chat extends ModTemplate {
               this.app.connection.emit('chat-ready');
             }
           },
-          peer.peerIndex
+          peer.publicKey
         );
       }
 
@@ -829,11 +829,11 @@ class Chat extends ModTemplate {
     }
 
     if (txmsg.request === 'chat history') {
-      console.log('Chat history request for: ', peer.publicKey, peer.peerIndex);
+      console.log('Chat history request for: ', peer.publicKey);
       let group = this.returnGroup(txmsg?.data?.group_id);
 
       if (!group) {
-        console.log("Group doesn't exist?");
+        console.log('Group doesn\'t exist?');
         return 0;
       }
 
@@ -908,7 +908,7 @@ class Chat extends ModTemplate {
               let peers = await app.network.getPeers();
               peers.forEach((p) => {
                 if (p.publicKey !== peer.publicKey) {
-                  app.network.sendTransactionWithCallback(tx, null, p.peerIndex);
+                  app.network.sendTransactionWithCallback(tx, null, p.publicKey);
                 }
               });
             }
@@ -945,7 +945,7 @@ class Chat extends ModTemplate {
               app.network.sendTransactionWithCallback(
                 tx, // the relay wrapped message
                 null,
-                p.peerIndex
+                p.publicKey
               );
               //}
             });
@@ -985,7 +985,7 @@ class Chat extends ModTemplate {
           message.request,
           message.data,
           null,
-          peer.peerIndex
+          peer.publicKey
         );
       }
     }

@@ -595,7 +595,7 @@ class EGLDModule extends CryptoModule {
             return callback(res);
           }
         },
-        peers[0].peerIndex
+        peers[0].publicKey
       );
     } catch (error) {
       console.error('Error sendFetchEnvTransaction:', error);
