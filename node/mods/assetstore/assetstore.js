@@ -940,25 +940,83 @@ class AssetStore extends ModTemplate {
 
 			let updatedSocial = Object.assign({}, assetstore_self.social);
 
+			let seller = req.query?.seller;
+
+			if (seller) {
+				updatedSocial.description = `Browse ${app.keychain.returnUsername(seller)}'s store on Saito`;
+			}
+
 			let listing = null,
 				tx = null;
 
-			if (req.query?.listing) {
-				listing = assetstore_self.returnListing(req.query?.listing);
-
-				// We need a fall back for if it doesn't return a listing...
-			}
-			if (listing) {
+			//
+			// Fetch NFT image for opengraph display
+			//
+			let sig = req.query.og_img_nft_id;
+			if (sig) {
 				await app.storage.loadTransactions(
-					{ field4: listing.nft_id },
+					{ field4: sig },
 					(txs) => {
 						if (txs.length > 0) {
-							tx = txs[0];
+							let nft = new SaitoNFT(app, assetstore_self, txs[0], null);
+
+							let img_uri = nft.image;
+							let img_type = img_uri.substring(img_uri.indexOf(':') + 1, img_uri.indexOf(';'));
+							let base64Data = img_uri.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+							let img = Buffer.from(base64Data, 'base64');
+
+							if (img_type == 'image/svg+xml') {
+								img_type = 'image/svg';
+							}
+
+							if (!res.finished) {
+								res.writeHead(200, {
+									'Content-Type': img_type,
+									'Content-Length': img.length
+								});
+								return res.end(img);
+							}
 						}
 					},
-					'localhost',
-					0
+					'localhost'
 				);
+
+				return;
+			}
+
+			if (req.query?.listing) {
+				listing = assetstore_self.returnListing(req.query?.listing);
+				if (!listing) {
+					// DB fallback
+					listing = await assetstore_self.fetchListing(req.query?.listing);
+				}
+				if (listing) {
+					updatedSocial.title = `NFT For Sale : ${listing.title}`;
+					updatedSocial.description = `Buy ${seller ? app.keychain.returnUsername(seller) + "'s" : 'this'} NFT on the Saito Asset Store <br> Price: ${listing.reserve_price} SAITO`;
+					if (listing.description) {
+						updatedSocial.description += `<br> Description: ${listing.description}`;
+					}
+
+					//fetch transaction so user can reconstruct nft quickly
+					await app.storage.loadTransactions(
+						{ field4: listing.nft_id },
+						(txs) => {
+							if (txs.length > 0) {
+								tx = txs[0];
+							}
+						},
+						'localhost',
+						0
+					);
+
+					let nfttx = new Transaction();
+					nfttx.deserialize_from_web(app, tx);
+					const nft = new SaitoNFT(app, assetstore_self, nfttx, listing);
+					if (nft.image) {
+						let url = reqBaseURL + encodeURI(assetstore_self.returnSlug());
+						updatedSocial.image = url + '?og_img_nft_id=' + listing.nft_id;
+					}
+				}
 			}
 
 			let html = AssetStoreHome(app, assetstore_self, app.build_number, updatedSocial, listing, tx);
@@ -974,6 +1032,28 @@ class AssetStore extends ModTemplate {
 		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
 	}
 
+	async fetchListing(nfttx_sig) {
+		let sql = `SELECT * from listings WHERE nfttx_sig = $nfttx_sig`;
+		let params = { $nfttx_sig: nfttx_sig };
+		let res = await this.app.storage.queryDatabase(sql, params, this.dbname);
+
+		let listing = null;
+
+		if (res.length) {
+			listing = {
+				id: res[0].id,
+				nft_id: res[0].nft_id,
+				nfttx_sig: res[0].nfttx_sig,
+				seller: res[0].seller,
+				active: res[0].status, // Status
+				reserve_price: res[0].reserve_price,
+				title: res[0].title,
+				description: res[0].description
+			};
+		}
+
+		return listing;
+	}
 	//
 	// servers refresh from database
 	//
