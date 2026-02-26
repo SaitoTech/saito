@@ -43,10 +43,6 @@
   gap: 2rem;
 }
 
-.crypto-details-overlay .saito-overlay-form-header {
-  padding: 0 1rem;
-}
-
 .wallet-details {
   display: grid;
   grid-template-columns: 25rem 1fr;
@@ -87,6 +83,7 @@
   flex-direction: column;
   gap: 0.2rem;
   padding: 1rem;
+  justify-content: space-between;
 }
 
 .main-balance {
@@ -153,7 +150,7 @@
   position: absolute;
   right: 1rem;
   font-size: 2rem;
-  padding: 1rem;
+  padding: 0.5rem;
   cursor: pointer;
   top: 0;
 }
@@ -233,9 +230,19 @@
     gap: 0;
   }
 
+  .deposit-address,
+  .wallet-actions {
+    padding: 0.5rem;
+  }
+
+  .pubkey-container {
+    font-size: 1.5rem;
+  }
+
   .wallet-actions {
     min-width: 210px;
     margin-left: auto;
+    width: 100%;
   }
 
   .saitox-table.transaction-history-table {
@@ -245,6 +252,14 @@
   .saitox-table.transaction-history-table > div {
     padding: 0;
     overflow: hidden;
+  }
+
+  .wallet-details .qrcode {
+    height: 15rem;
+  }
+  .wallet-details .qrcode img {
+    height: 15rem;
+    width: 15rem;
   }
 }
 
@@ -263,32 +278,14 @@
     display: none;
   }*/
 
-  .wallet-actions {
-    padding: 1rem 0;
-    margin-left: unset;
-    display: grid;
-    grid-template-areas: 'A C' 'B C';
-  }
-
-  .saito-button-grid {
-    grid-area: C;
-  }
-
-  .refresh,
-  .main-balance .refresh {
-    right: unset;
-    left: 0;
-    top: -3rem;
-  }
-
-  .deposit-address .pubkey-container {
+  /*.deposit-address .pubkey-container {
     display: none;
   }
 
   .mobile-only460 {
     display: flex;
     margin-left: auto;
-  }
+  }*/
 }
 
 .saito-crypto-deposit-content {

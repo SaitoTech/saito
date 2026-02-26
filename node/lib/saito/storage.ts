@@ -1,6 +1,6 @@
 import * as JSON from 'json-bigint';
 import Transaction from './transaction';
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 import Block from './block';
 const localforage = require('localforage');
 import fs from 'fs';
@@ -641,7 +641,7 @@ class Storage {
 
   watchBuildFile(): void {
     const checkBuildNumber = async () => {
-      const filePath = path.join(__dirname, '/config/build.json');
+      const filePath = path.join(__dirname, '/config/build/build.json');
       fs.readFile('config/build.json', 'utf8', async (err, data) => {
         if (err) {
           console.error('Error reading options file:', err);

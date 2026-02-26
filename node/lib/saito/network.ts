@@ -1,7 +1,7 @@
 import Transaction from './transaction';
 import Peer from './peer';
 import S from 'saito-js/saito';
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 import PeerService from 'saito-js/lib/peer_service';
 
 export default class Network {

@@ -38,7 +38,12 @@
  **********************************************************************************/
 const CryptoModule = require('./../../../lib/templates/cryptomodule');
 const getUuid = require('uuid-by-string');
-const WAValidator = require('multicoin-address-validator');
+//
+// TODO - this is old and deprecated and doesn't compile well with ().default bundled
+// code as we require. so we should be updating address validation if we need it, but 
+// this should not be blocking us. 
+//
+//const WAValidator = require("multicoin-address-validator");
 
 class MixinModule extends CryptoModule {
 	constructor(app, mixin_mod, ticker, asset_id, chain_id) {
@@ -110,6 +115,12 @@ class MixinModule extends CryptoModule {
 					this.balance = balance;
 					this.save();
 				}
+			}
+		}
+
+		if (this.pending_balance) {
+			if (this.pending_balance <= Number(this.balance)) {
+				delete this.pending_balance;
 			}
 		}
 
@@ -470,14 +481,30 @@ class MixinModule extends CryptoModule {
 		// suported cryptos by validator package
 		//https://www.npmjs.com/package/multicoin-address-validator?activeTab=readme
 		try {
-			return WAValidator.validate(address, this.ticker);
+			//
+			// see above
+			//
+			return true;
+
+//			return WAValidator.validate(address, this.ticker);
 		} catch (err) {
 			console.error("Error 'validateAddress' MixinModule: ", err);
 		}
 	}
 
 	async fetchPendingDeposits(callback = null) {
-		return await this.mixin.fetchPendingDeposits(this.asset_id, this.address, callback);
+		const callback_wrapper = (pending_deposits) => {
+			this.pending_balance = Number(this.balance);
+			for (let pd of pending_deposits) {
+				this.pending_balance += Number(pd.amount);
+			}
+
+			if (callback) {
+				callback(pending_deposits);
+			}
+		};
+
+		return await this.mixin.fetchPendingDeposits(this.asset_id, this.address, callback_wrapper);
 	}
 }
 

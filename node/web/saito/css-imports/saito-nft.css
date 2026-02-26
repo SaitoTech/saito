@@ -594,6 +594,10 @@
   color: var(--saito-primary-text);
 }
 
+.saito-nft-footer-btn.disabled-btn {
+  filter: opacity(60%) brightness(0.8);
+}
+
 .saito-nft-footer-btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);

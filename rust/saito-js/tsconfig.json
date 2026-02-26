@@ -11,7 +11,7 @@
     // "disableReferencedProjectLoad": true,             /* Reduce the number of projects loaded automatically by TypeScript. */
 
     /* Language and Environment */
-    "target": "es2020",
+    "target": "es2022",
     /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
     // "lib": [],                                        /* Specify a set of bundled library declaration files that describe the target runtime environment. */
     // "jsx": "preserve",                                /* Specify what JSX code is generated. */
@@ -116,9 +116,10 @@
 ////      "es2021.weakref"
 //    ]
     "lib": [
-      "es2020",
-      "es2021.weakref",
-      "dom"
+      "es2022",
+      "dom",
+      "dom.iterable",
+      "webworker"
     ]
   }
 }

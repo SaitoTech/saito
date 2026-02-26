@@ -27,12 +27,18 @@ class ExploreOverlay {
     // Show loading state initially
     this.isLoading = true;
     this.posts = [];
-    
+
     this.subscriptions = this.calculateSubscriptions();
 
-    const html = ExploreTemplate(this.app, this.mod, this.posts, this.isLoading, this.subscriptions);
+    const html = ExploreTemplate(
+      this.app,
+      this.mod,
+      this.posts,
+      this.isLoading,
+      this.subscriptions
+    );
     this.overlay.show(html);
-    
+
     setTimeout(() => {
       this.attachEvents();
       this.updateHelpNoteVisibility();
@@ -44,22 +50,32 @@ class ExploreOverlay {
   }
 
   calculateSubscriptions() {
-
     let subscriptions = [];
 
     // 1. URL-driven single-user view
     if (this.targetPublicKey) {
-      subscriptions = [{
-        publickey: this.targetPublicKey,
-	icon : "fa-solid fa-user",
-        label : this.app.keychain.returnUsername(this.targetPublicKey),
-        source: "url"
-      }];
+      subscriptions = [
+        {
+          publickey: this.targetPublicKey,
+          icon: 'fa-solid fa-user',
+          label: this.app.keychain.returnUsername(this.targetPublicKey),
+          source: 'url'
+        }
+      ];
     }
 
-    
-    subscriptions.push({ icon : "fa-solid fa-user", label : "SaitoOfficial" , publickey: this.mod.STACK_OFFICIAL_PUBLICKEY, source: "default" });
-    subscriptions.push({ icon : "fa-solid fa-user", label : "My Posts" , publickey: 'my-posts', source: "default" });
+    subscriptions.push({
+      icon: 'fa-solid fa-user',
+      label: 'SaitoOfficial',
+      publickey: this.mod.STACK_OFFICIAL_PUBLICKEY,
+      source: 'default'
+    });
+    subscriptions.push({
+      icon: 'fa-solid fa-user',
+      label: 'My Posts',
+      publickey: 'my-posts',
+      source: 'default'
+    });
 
     if (
       this.app.options?.stack?.subscriptions &&
@@ -69,9 +85,9 @@ class ExploreOverlay {
       for (let pk in this.app.options.stack.subscriptions) {
         subscriptions.push({
           publickey: pk,
-	  icon : "fa-solid fa-user",
-          label : this.app.keychain.returnUsername(pk),
-	  source: "subscription"
+          icon: 'fa-solid fa-user',
+          label: this.app.keychain.returnUsername(pk),
+          source: 'subscription'
         });
       }
     }
@@ -83,12 +99,12 @@ class ExploreOverlay {
     // Count subscription items
     const subscriptionItems = document.querySelectorAll('.stack-explore-subscription-item');
     const helpNote = document.querySelector('.stack-explore-help-note');
-    
-    if (helpNote && subscriptionItems.length > 2) {
-      // Hide help note if more than 2 subscriptions
+
+    if (helpNote && subscriptionItems.length > 3) {
+      // Hide help note if more than 3 subscriptions
       helpNote.classList.add('hide-help');
     } else if (helpNote) {
-      // Show help note if 2 or fewer subscriptions
+      // Show help note if 3 or fewer subscriptions
       helpNote.classList.remove('hide-help');
     }
   }
@@ -133,7 +149,9 @@ class ExploreOverlay {
       // Show/hide subscribe button based on subscription status
       // Hide action buttons when Subscribe button is shown (mutually exclusive)
       const isSubscribed = this.mod.isSubscribed(this.targetPublicKey);
-      const subscribeBtnContainer = document.querySelector('#stack-explore-subscribe-button-container');
+      const subscribeBtnContainer = document.querySelector(
+        '#stack-explore-subscribe-button-container'
+      );
       const actionBtnContainer = document.querySelector('.stack-explore-action-button-container');
       if (subscribeBtnContainer) {
         subscribeBtnContainer.style.display = isSubscribed ? 'none' : 'block';
@@ -149,7 +167,9 @@ class ExploreOverlay {
     // ========================================================================
     // Clear existing content (but preserve structure - SaitoUser will replace the placeholder)
     // Keep subscribe button container if it exists
-    const subscribeContainer = authorHeader.querySelector('#stack-explore-subscribe-button-container');
+    const subscribeContainer = authorHeader.querySelector(
+      '#stack-explore-subscribe-button-container'
+    );
     authorHeader.innerHTML = '';
     if (subscribeContainer) {
       authorHeader.appendChild(subscribeContainer);
@@ -198,23 +218,29 @@ class ExploreOverlay {
     // ========================================================================
     const addUserBtn = document.querySelector('#stack-explore-add-subscription-btn');
     const settingsBtn = document.querySelector('#stack-explore-settings-btn');
-    
+
     if (filter === 'my-posts') {
-      if (addUserBtn) { addUserBtn.style.display = 'none'; }
-      if (settingsBtn) { settingsBtn.style.display = ''; }
+      if (addUserBtn) {
+        addUserBtn.style.display = 'none';
+      }
+      if (settingsBtn) {
+        settingsBtn.style.display = '';
+      }
     } else {
       // Show Add User button for general feeds (all, etc.)
-      if (addUserBtn) { addUserBtn.style.display = ''; }
-      if (settingsBtn) { settingsBtn.style.display = 'none'; }
+      if (addUserBtn) {
+        addUserBtn.style.display = '';
+      }
+      if (settingsBtn) {
+        settingsBtn.style.display = 'none';
+      }
     }
 
     if (settingsBtn) {
       settingsBtn.onclick = (e) => {
-	siteMessage("Saito Stack is Under Development...", 2000);
-      }
+        siteMessage('Saito Stack is Under Development...', 2000);
+      };
     }
-
-
   }
 
   /**
@@ -222,19 +248,18 @@ class ExploreOverlay {
    * Shows loading state, then populated or empty state.
    */
   async loadPostsForFilter(filter) {
-
     this.isLoading = true;
- 
+
     this.isLoading = true;
     this.posts = [];
 
-// breaks fetch
-//    this.targetPublicKey = null;
+    // breaks fetch
+    //    this.targetPublicKey = null;
 
     let author = null;
 
     // Resolve UI filter → concrete author
-    if (filter === "my-posts") {
+    if (filter === 'my-posts') {
       author = this.app.wallet.publicKey;
     } else {
       author = filter;
@@ -243,7 +268,7 @@ class ExploreOverlay {
     this.updatePostsGrid(author);
 
     if (!author) {
-      console.warn("No author resolved for filter:", filter);
+      console.warn('No author resolved for filter:', filter);
       return;
     }
 
@@ -251,16 +276,16 @@ class ExploreOverlay {
     this.posts = await this.mod.loadPostsForAuthor(author, { forceRemote: true });
     this.isLoading = false;
     this.updatePostsGrid(author);
-
   }
-   
+
   /**
    * Updates the posts grid with current state (loading, empty, or populated).
    */
-  updatePostsGrid(author="") {
-
+  updatePostsGrid(author = '') {
     const grid = document.querySelector('#stack-explore-posts-grid');
-    if (!grid) { return; }
+    if (!grid) {
+      return;
+    }
 
     this.pruneEditedPosts();
 
@@ -275,12 +300,13 @@ class ExploreOverlay {
         </div>
       `;
     } else if (this.posts.length > 0) {
+      const teaserHtml = this.posts
+        .map((transaction) => {
+          const teaser = new PostTeaser(this.app, this.mod, '', transaction);
+          return teaser.render(); // Returns HTML string for batch rendering
+        })
+        .join('');
 
-      const teaserHtml = this.posts.map(transaction => {
-        const teaser = new PostTeaser(this.app, this.mod, '', transaction);
-        return teaser.render(); // Returns HTML string for batch rendering
-      }).join('');
-      
       grid.innerHTML = teaserHtml;
       // Re-attach click handlers for new posts
       this.attachPostClickHandlers();
@@ -298,15 +324,17 @@ class ExploreOverlay {
     }
   }
 
-
   pruneEditedPosts() {
-
-    if (!Array.isArray(this.posts)) { return; }
+    if (!Array.isArray(this.posts)) {
+      return;
+    }
     let hasChildren = new Set();
 
     // First pass: record all parents that have edits
     for (const tx of this.posts) {
-      if (!tx?.signature) { continue; }
+      if (!tx?.signature) {
+        continue;
+      }
       let msg = tx.returnMessage?.();
       if (msg?.data?.parent_id) {
         hasChildren.add(msg?.data?.parent_id);
@@ -314,32 +342,33 @@ class ExploreOverlay {
     }
 
     // Second pass: keep only latest leaf nodes
-    this.posts = this.posts.filter(tx => {
-      if (!tx?.signature) { return false; }
+    this.posts = this.posts.filter((tx) => {
+      if (!tx?.signature) {
+        return false;
+      }
 
       const msg = tx.returnMessage?.();
-      const ts  = msg?.data?.timestamp ?? 0;
+      const ts = msg?.data?.timestamp ?? 0;
 
       // Rule 1: remove anything that has been edited
-      if (hasChildren.has(tx.signature)) { return false; }
+      if (hasChildren.has(tx.signature)) {
+        return false;
+      }
 
       // Rule 2: among siblings, keep only newest
       if (msg?.data?.parent_id) {
-        return !this.posts.some(other => {
-          if (!other?.signature) { return false; }
+        return !this.posts.some((other) => {
+          if (!other?.signature) {
+            return false;
+          }
           const om = other.returnMessage?.();
-          return (
-            om?.data?.parent_id === msg?.data?.parent_id &&
-            (om?.data?.timestamp ?? 0) > ts
-          );
+          return om?.data?.parent_id === msg?.data?.parent_id && (om?.data?.timestamp ?? 0) > ts;
         });
       }
 
       return true;
     });
-
   }
-
 
   /**
    * Attaches click handlers to post teasers.
@@ -348,9 +377,10 @@ class ExploreOverlay {
    */
   attachPostClickHandlers() {
     const teasers = document.querySelectorAll('.stack-post-teaser');
-    teasers.forEach(teaser => {
+    teasers.forEach((teaser) => {
       // Get transaction signature from DOM (preferred) or fallback to post-id
-      const txSignature = teaser.getAttribute('data-tx-signature') || teaser.getAttribute('data-post-id');
+      const txSignature =
+        teaser.getAttribute('data-tx-signature') || teaser.getAttribute('data-post-id');
       if (!txSignature) return;
 
       // Remove existing click handlers to avoid duplicates
@@ -361,19 +391,19 @@ class ExploreOverlay {
       newTeaser.onclick = async (e) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         // Close the explore overlay
         this.overlay.hide();
-        
+
         // Resolve transaction from cache
         // First try this.posts (already loaded)
-        let tx = this.posts.find(p => p.signature === txSignature) || null;
-        
+        let tx = this.posts.find((p) => p.signature === txSignature) || null;
+
         // If not found, try Stack module cache
         if (!tx && this.mod.transactionCache && this.mod.transactionCache[txSignature]) {
           tx = this.mod.transactionCache[txSignature];
         }
-        
+
         // If still not found, try loading via middleware (cache → localhost → peers)
         if (!tx && this.mod.loadPost) {
           try {
@@ -382,7 +412,7 @@ class ExploreOverlay {
             console.debug('Stack: Failed to load transaction:', error);
           }
         }
-        
+
         // Load ViewPost with transaction (or show error if not found)
         this.loadViewPost(tx, txSignature);
       };
@@ -392,7 +422,7 @@ class ExploreOverlay {
   /**
    * Loads ViewPost into the main saito-container.
    * Handles missing transactions gracefully with error message.
-   * 
+   *
    * @param {Transaction|null} tx - The transaction to render, or null if not found
    * @param {string} txSignature - The transaction signature (for error messages)
    */
@@ -434,11 +464,15 @@ class ExploreOverlay {
             <p style="font-size: 1.8rem; color: var(--saito-font-color-light); margin: 0; line-height: 1.6;">
               This post could not be loaded or is no longer available.
             </p>
-            ${txSignature ? `
+            ${
+              txSignature
+                ? `
               <p style="font-size: 1.4rem; color: var(--saito-font-color-light); margin: 1.5rem 0 0 0; opacity: 0.7; font-family: monospace; word-break: break-all;">
                 ${txSignature.substring(0, 32)}...
               </p>
-            ` : ''}
+            `
+                : ''
+            }
           </div>
         `;
         container.innerHTML = errorHtml;
@@ -481,7 +515,7 @@ class ExploreOverlay {
     try {
       // Update author header on initial load
       this.updateAuthorHeader();
-      
+
       // Add subscription button (in main panel header, right-aligned)
       const addSubscriptionBtn = document.querySelector('#stack-explore-add-subscription-btn');
       if (addSubscriptionBtn) {
@@ -491,10 +525,12 @@ class ExploreOverlay {
           this.handleAddSubscription();
         };
       }
-      
+
       // Hide action buttons if Subscribe button is visible (mutually exclusive)
       if (!this.targetPublicKey) {
-        const subscribeBtnContainer = document.querySelector('#stack-explore-subscribe-button-container');
+        const subscribeBtnContainer = document.querySelector(
+          '#stack-explore-subscribe-button-container'
+        );
         const actionBtnContainer = document.querySelector('.stack-explore-action-button-container');
         if (subscribeBtnContainer && actionBtnContainer) {
           const isSubscribeVisible = subscribeBtnContainer.style.display !== 'none';
@@ -511,23 +547,23 @@ class ExploreOverlay {
           this.handleSubscribeToCreator();
         };
       }
-      
+
       const settingsBtn = document.querySelector('.stack-explore-settings-btn');
       if (settingsBtn) {
-	settingsBtn.onclick = (e) => { 
-	  siteMessage("Saito Stack is Under Development...", 2000);
-	}
+        settingsBtn.onclick = (e) => {
+          siteMessage('Saito Stack is Under Development...', 2000);
+        };
       }
 
       // Subscription/Identity list items
       const subscriptionItems = document.querySelectorAll('.stack-explore-subscription-item');
-      subscriptionItems.forEach(item => {
+      subscriptionItems.forEach((item) => {
         item.onclick = (e) => {
           e.preventDefault();
-	  // IMPORTANT: user-driven navigation overrides URL bootstrap
-  	  this.mod.targetPublicKey = null;
+          // IMPORTANT: user-driven navigation overrides URL bootstrap
+          this.mod.targetPublicKey = null;
           // Remove active class from all items
-          subscriptionItems.forEach(i => i.classList.remove('active'));
+          subscriptionItems.forEach((i) => i.classList.remove('active'));
           // Add active class to clicked item
           item.classList.add('active');
           const filter = item.getAttribute('data-filter');
@@ -550,8 +586,8 @@ class ExploreOverlay {
    * Handle manual subscription addition via "+" icon
    * Opens a modal/overlay to enter username or publicKey
    */
-  handleAddSubscription() {
-    const promptText = prompt('Enter Saito username or public key:');
+  async handleAddSubscription() {
+    const promptText = await sprompt('Enter Saito username or public key:');
     if (!promptText || !promptText.trim()) {
       return; // User cancelled or entered empty
     }
@@ -571,24 +607,21 @@ class ExploreOverlay {
       // Check if input is a valid publicKey
       if (!this.app.wallet.isValidPublicKey(input)) {
         // Try to resolve username to publicKey via keychain
-        const keyResponse = this.app.connection.respondTo('saito-return-key');
-        if (keyResponse && keyResponse.returnKey) {
-          const keyData = keyResponse.returnKey({ identifier: input });
-          if (keyData && keyData.publicKey) {
-            publicKey = keyData.publicKey;
-          } else {
-            siteMessage('Unable to find user with that username or public key. Please check and try again.');
-            return;
-          }
+        const keyData = this.app.keychain.returnKey({ identifier: input });
+        if (keyData && keyData.publicKey) {
+          publicKey = keyData.publicKey;
         } else {
-          siteMessage('Unable to resolve username. Please enter a valid public key.');
+          siteMessage(
+            'Unable to find user with that username or public key. Please check and try again.',
+            5000
+          );
           return;
         }
       }
 
       // Validate publicKey
       if (!this.app.wallet.isValidPublicKey(publicKey)) {
-        siteMessage('Invalid public key. Please check and try again.');
+        siteMessage('Invalid public key. Please check and try again.', 5000);
         return;
       }
 
@@ -598,11 +631,11 @@ class ExploreOverlay {
         // Refresh the overlay to show new subscription
         this.mod.exploreOverlay.render();
       } else {
-        siteMessage('Already subscribed to this creator.');
+        siteMessage('Already subscribed to this creator.', 5000);
       }
     } catch (error) {
       console.error('Stack: Error adding subscription:', error);
-      siteMessage('Error adding subscription. Please try again.');
+      siteMessage('Error adding subscription. Please try again.', 5000);
     }
   }
 
@@ -618,7 +651,9 @@ class ExploreOverlay {
     const added = this.mod.addSubscription(this.targetPublicKey);
     if (added) {
       // Hide subscribe button and show action buttons (mutually exclusive)
-      const subscribeContainer = document.querySelector('#stack-explore-subscribe-button-container');
+      const subscribeContainer = document.querySelector(
+        '#stack-explore-subscribe-button-container'
+      );
       const actionBtnContainer = document.querySelector('.stack-explore-action-button-container');
       if (subscribeContainer) {
         subscribeContainer.style.display = 'none';
@@ -626,7 +661,7 @@ class ExploreOverlay {
       if (actionBtnContainer) {
         actionBtnContainer.style.display = 'flex';
       }
-      
+
       // Show success message
       siteMessage('Subscribed!', 2000);
     }
@@ -634,4 +669,3 @@ class ExploreOverlay {
 }
 
 module.exports = ExploreOverlay;
-

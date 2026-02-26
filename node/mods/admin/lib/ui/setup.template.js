@@ -22,7 +22,7 @@ module.exports = (mod) => {
   return `
     <div class="node-setup">
 
-      <div class="node-setup-info">First, pick the module for your server root:</div>
+      <div class="node-setup-info">1. Pick the module for your server root:</div>
  
       <div class="splash-section">
         <div class="splash-grid">
@@ -70,7 +70,10 @@ module.exports = (mod) => {
 
 	<p></p>
 
-	<b>npm run setuplocal</b>
+	<span class="admin-cmd-line">
+	  <b>npm run setuplocal</b>
+	  <button type="button" class="admin-copy-cmd" data-cmd="npm run setuplocal" title="Copy to clipboard" aria-label="Copy to clipboard"><i class="fa-solid fa-copy"></i></button>
+	</span>
 
 	<p></p>
 

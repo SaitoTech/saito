@@ -1,4 +1,4 @@
-// import { Saito } from "../../../apps/core";
+// import { Saito } from "../app";
 // import StorageCore from "./storage-core";
 //
 // import fs from "fs-extra";
