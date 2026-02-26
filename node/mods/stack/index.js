@@ -1,6 +1,4 @@
-module.exports = (app, mod, build_number, og_card = {}, recent_posts = []) => {
-
- 
+module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = null) => {
 
   let html = `
 
@@ -90,7 +88,11 @@ module.exports = (app, mod, build_number, og_card = {}, recent_posts = []) => {
 <body>
   <div class="saito-container" id="saito-container"></div>
 </body>
-<script type="text/javascript" src="/saito/saito.js?build=${build_number}"></script>
+`;
+  if (initialPostSerialized) {
+    html += `<script>window.__STACK_INITIAL_POST = JSON.parse(${JSON.stringify(initialPostSerialized)});</script>\n`;
+  }
+  html += `<script type="text/javascript" src="/saito/saito.js?build=${build_number}"></script>
 </html>`;
   return html;
 };

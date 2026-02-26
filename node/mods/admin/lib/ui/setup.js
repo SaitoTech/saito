@@ -71,6 +71,25 @@ class NodeSetup {
 
 
     //
+    // copy command to clipboard
+    //
+    const containerEl = document.querySelector(this.container);
+    if (containerEl) {
+      containerEl.addEventListener("click", (e) => {
+        const copyBtn = e.target.closest(".admin-copy-cmd");
+        if (!copyBtn) return;
+        const cmd = copyBtn.dataset.cmd || copyBtn.getAttribute("data-cmd");
+        if (cmd) {
+          navigator.clipboard.writeText(cmd).then(() => {
+            if (typeof siteMessage === "function") {
+              siteMessage("Copied to clipboard", 2000);
+            }
+          }).catch(() => {});
+        }
+      });
+    }
+
+    //
     // node setup options
     //
     document.querySelectorAll(".node-setup-card").forEach(card => {
@@ -160,7 +179,10 @@ class NodeSetup {
 
 	  <p></p>
 
-	  <b>npm run setupprod</b>
+	  <span class="admin-cmd-line">
+	    <b>npm run setupprod</b>
+	    <button type="button" class="admin-copy-cmd" data-cmd="npm run setupprod" title="Copy to clipboard" aria-label="Copy to clipboard"><i class="fa-solid fa-copy"></i></button>
+	  </span>
 
 	  <p></p>
 

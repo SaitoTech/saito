@@ -69,9 +69,9 @@ module.exports = (app, mod, nft_overlay) => {
         </div>
       </div>
       <div class="saito-nft-panel-footer">
-        <button class="saito-nft-footer-btn enable">Enable</button>
-        <button class="saito-nft-footer-btn disable">Disable</button>
-        <button class="saito-nft-footer-btn send">Transfer</button>
+        <button class="saito-nft-footer-btn enable-nft">Enable</button>
+        <button class="saito-nft-footer-btn disable-nft">Disable</button>
+        <button class="saito-nft-footer-btn send-nft">Transfer</button>
       </div>
     </div>
   `;

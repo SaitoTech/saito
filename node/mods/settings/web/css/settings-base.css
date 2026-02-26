@@ -2,15 +2,17 @@
 	display: flex;
 	flex-direction: column;
 	row-gap: 3rem;
-	width: min(95vw, 100rem);
-	height: min(800px, 95vh);
 	overflow: auto;
 	background: var(--saito-background-color);
 	color: var(--saito-font-color);
-	padding: 2rem;
 	border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
 	border-radius: var(--saito-border-radius);
 	box-shadow: var(--saito-box-shadow);
+	/*
+	width: min(95vw, 100rem);
+	height: min(800px, 95vh);
+	padding: 2rem;
+*/
 }
 
 .settings-actions-container {
@@ -182,21 +184,21 @@ label.treated {
 	cursor: pointer;
 }
 @media only screen and (max-width: 900px) {
-	.settings-appspace {
+	/*.settings-appspace {
 		padding: 1.5rem;
-	}
+	}*/
 	.settings-appspace-modules {
 		grid-template-columns: repeat(4, 1fr);
 	}
 }
 
 @media only screen and (max-width: 650px) {
-	.settings-appspace {
+	/*.settings-appspace {
 		padding: 1rem;
 		padding-top: 2rem;
 		height: 99vh;
 		width: 99vw;
-	}
+	}*/
 	.settings-appspace-modules {
 		grid-template-columns: repeat(3, 1fr);
 	}

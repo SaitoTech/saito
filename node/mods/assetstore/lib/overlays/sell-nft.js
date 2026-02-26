@@ -6,26 +6,23 @@ class SellNFTOverlay extends NFTDetailsOverlay {
   }
 
   render(nft) {
-    super.render(nft);
+    super.render(nft); // Will call attachEvents
 
     Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
       (el) => (el.style.display = 'none')
     );
 
-    if (document.querySelector('.saito-nft-footer-btn.send')) {
-      document.querySelector('.saito-nft-footer-btn.send').innerHTML = 'Confirm and List';
-      document.querySelector('.saito-nft-footer-btn.send').style.display = 'flex';
+    if (document.querySelector('.saito-nft-footer-btn.send-nft')) {
+      document.querySelector('.saito-nft-footer-btn.send-nft').innerHTML = 'Confirm and List';
+      document.querySelector('.saito-nft-footer-btn.send-nft').style.display = 'flex';
     }
 
     let html = `
       <div class="saito-nft-description">
-          <div class="assetstore-nft-listing-inputs-receiver" style="display:none">
-            <input type="text" placeholder="Recipient public key" id="nft-receiver-address" value="${this.mod.assetStore?.publicKey}" />
-          </div>
           <div class="assetstore-nft-listing-inputs-price">
             <input type="text" placeholder="sale price (SAITO)" id="nft-buy-price" autocomplete="off" inputmode="decimal" pattern="^[0-9]+(\.[0-9]{1,8})?$" title="Enter a decimal amount up to 8 decimals (min 0.00000001, max 100000000)" style="width: 100%; box-sizing: border-box;" />
           </div>
-    <textarea placeholder="description (optional)" id="nft-buy-description" autocomplete="off" title="" style="height:80px; width: 100%; box-sizing: border-box;">${this.nft.description || ''}</textarea>
+    <textarea id="nft-buy-description" autocomplete="off" title="" style="height:80px; width: 100%; box-sizing: border-box;" placeholder="${this.nft.description || 'description (optional)'}"></textarea>
       </div>
     `;
 
@@ -34,18 +31,12 @@ class SellNFTOverlay extends NFTDetailsOverlay {
     } else {
       document.querySelector('.saito-nft-description').innerHTML = html;
     }
-
-    setTimeout(() => {
-      this.attachEvents();
-    }, 25);
   }
 
   attachEvents() {
-    super.attachEvents();
     let input = document.querySelector('#nft-buy-price');
-    let desc = document.querySelector('#nft-buy-description');
-    let MIN = 0.00000001;
-    let MAX = 100000000;
+    const MIN = 0.00000001;
+    const MAX = 100000000;
 
     input.addEventListener('input', () => {
       let v = input.value;
@@ -80,15 +71,17 @@ class SellNFTOverlay extends NFTDetailsOverlay {
     //
     // send button click
     //
-    let send_btn = document.querySelector('.saito-nft-footer-btn.send');
-    send_btn.onclick = async (e) => {
+    let send_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
+    send_btn.onclick = (e) => {
       e.preventDefault();
-
-      let receiver = (document.getElementById('nft-receiver-address').value || '').trim();
+      const desc_field = document.querySelector('#nft-buy-description');
       let title = (document.querySelector('.saito-nft-header-title').innerHTML || '').trim();
-      let description = (document.querySelector('#nft-buy-description').innerHTML || '').trim();
+      let description = desc_field?.innerText || desc_field?.value || desc_field.innerHTML || '';
+      description = description.trim();
 
-      if (!this.app.wallet.isValidPublicKey(receiver)) {
+      console.log(description, this.nft.description);
+
+      if (!this.app.wallet.isValidPublicKey(this.mod.assetStore?.publicKey)) {
         salert('Node public key is not valid');
         return;
       }
@@ -117,25 +110,56 @@ class SellNFTOverlay extends NFTDetailsOverlay {
       }
 
       // appear responsive...
+      console.log('sell-nft: update ui');
       this.overlay.close();
       this.app.connection.emit('saito-nft-list-close-request');
       siteMessage('Sending NFT to the store...', 3000);
 
-      try {
-        let opt = {
-          nft: this.nft,
-          receiver: receiver,
-          reserve_price: buy_price_num,
-          title: title,
-          description: description
-        };
+      this.app.browser.safeConsole('Nft: ', this.nft, 'info');
 
-        let newtx = await this.mod.createListAssetTransaction(opt);
-        await this.app.network.propagateTransaction(newtx);
-      } catch (err) {
-        console.error(err);
-        salert('Failed to list: ' + (err?.message || err));
-      }
+      setTimeout(async () => {
+        try {
+          // create the NFT transaction
+          //
+          let nfttx = await this.app.wallet.createSendNFTTransaction(
+            this.nft,
+            this.mod.assetStore.publicKey,
+            'AssetStore'
+          );
+          await nfttx.sign();
+
+          let opt = {
+            receiver: this.mod.assetStore.publicKey,
+            reserve_price: buy_price_num,
+            title,
+            description,
+            nft_tx: nfttx.serialize_to_web(this.app)
+          };
+
+          console.log('sell-nft: make transaction');
+          let newtx = await this.mod.createListAssetTransaction(opt);
+
+          let pseudo_record = {
+            nft_id: this.nft.id,
+            nfttx: nfttx.serialize_to_web(this.app),
+            nfttx_sig: nfttx.signature, // transfer NFT ownership to Store transaction
+            seller: this.mod.publicKey,
+            active: 0,
+            reserve_price: buy_price_num,
+            title,
+            description
+          };
+
+          this.mod.listings.push(pseudo_record);
+          await this.app.network.propagateTransaction(newtx);
+          console.log('New pseudo_record:', pseudo_record);
+          this.app.connection.emit('assetstore-render-listings');
+        } catch (err) {
+          console.error(err);
+          salert('Failed to list: ' + (err?.message || err));
+          this.app.browser.safeConsole('Nft: ', this.nft, 'debug');
+        }
+      }, 50);
     };
   }
 }

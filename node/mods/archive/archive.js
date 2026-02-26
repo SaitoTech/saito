@@ -524,8 +524,6 @@ class Archive extends ModTemplate {
 
 			await this.app.storage.runDatabase(sql, params, 'archive');
 		}
-		delete newObj.tx;
-		console.debug('ARCHIVE Save -- ', newObj);
 	}
 
 	/////////////////////////////////////////////////////

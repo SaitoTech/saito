@@ -207,4 +207,8 @@ span.saito-anchor {
   .saito-button-row {
     flex-direction: column;
   }
+
+  .saito-button-row.force-row {
+    flex-direction: row;
+  }
 }

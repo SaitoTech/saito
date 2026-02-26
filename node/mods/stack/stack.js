@@ -43,7 +43,6 @@ class Stack extends ModTemplate {
       description: 'Open-source subscription-based blogging platform',
       image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card.png'
     };
-    
 
     // Cache for posts and subscriptions
     this.postsCache = {
@@ -58,7 +57,7 @@ class Stack extends ModTemplate {
     this.peers = {};
     // In-memory cache for fetched transactions, keyed by signature
     this.transactionCache = {};
-    
+
     // In-memory draft state (single source of truth)
     // Ordered by last-modified DESC (most recent first)
     this.drafts = [];
@@ -81,12 +80,8 @@ class Stack extends ModTemplate {
     // Callback for after post creation
     this.callbackAfterPost = null;
 
-    this.styles = [
-      '/saito/saito.css', 
-      '/stack/style.css'
-    ];
+    this.styles = ['/saito/saito.css', '/stack/style.css'];
     this.scripts = [];
-
   }
 
   ////////////////////////////
@@ -94,19 +89,75 @@ class Stack extends ModTemplate {
   ////////////////////////////
   async initialize(app) {
     await super.initialize(app);
-    this.publicKey = await this.app.wallet.getPublicKey();
-    
+
     // Load persistent local UX state
     this.load();
-    
-    // Demo posts generation removed - posts now load from archive
+
+    // Server: prime transactionCache and postsCache so we can serve posts with initial HTML
+    if (!this.app.BROWSER) {
+      this.prefetchStackCache().catch((err) => {
+        console.debug('Stack: prefetchStackCache failed', err);
+      });
+    }
+  }
+
+  /**
+   * Server-only: fetch last 5 Saito Official posts and last 5 other recent public Stack posts
+   * into transactionCache and postsCache so GET /stack/:pk/:txsig can serve them with the page.
+   */
+  async prefetchStackCache() {
+    const officialKey = this.STACK_OFFICIAL_PUBLICKEY;
+    const limit = 5;
+
+    // 1. Last 5 posts from Saito Official
+    try {
+      const officialTxs = await this.loadPostsForAuthor(officialKey, { forceRemote: true });
+      const toCache = (officialTxs || []).slice(0, limit);
+      for (const tx of toCache) {
+        if (tx && tx.signature) {
+          this.receiveStackPostTransaction(tx, null);
+        }
+      }
+    } catch (err) {
+      console.debug('Stack: prefetch official posts failed', err);
+    }
+
+    // 2. Last 5 other public Stack posts (any author except Official), by recent updated_at
+    try {
+      const allRecent = await new Promise((resolve) => {
+        this.app.storage.loadTransactions(
+          {
+            field1: 'Stack',
+            field4: 'stack:post',
+            updated_later_than: 0,
+            limit: 50
+          },
+          (txs) => resolve(txs || []),
+          'localhost'
+        );
+      });
+      const otherTxs = (allRecent || [])
+        .filter((tx) => tx?.from?.[0]?.publicKey && tx.from[0].publicKey !== officialKey)
+        .sort((a, b) => {
+          const ta = a.timestamp || a.optional?.updated_at || 0;
+          const tb = b.timestamp || b.optional?.updated_at || 0;
+          return tb - ta;
+        })
+        .slice(0, limit);
+      for (const tx of otherTxs) {
+        if (tx && tx.signature) {
+          this.receiveStackPostTransaction(tx, null);
+        }
+      }
+    } catch (err) {
+      console.debug('Stack: prefetch other recent posts failed', err);
+    }
   }
 
   ////////////////////////////
   // Rendering             //
   ////////////////////////////
   async render(app) {
-
     if (!this.browser_active) {
       return;
     }
@@ -118,7 +169,7 @@ class Stack extends ModTemplate {
     await super.render(this.app, this);
 
     // Discover local drafts (non-blocking, in-memory state)
-    this.discoverDrafts().catch(err => {
+    this.discoverDrafts().catch((err) => {
       console.error('Stack: Error discovering drafts:', err);
     });
 
@@ -132,15 +183,15 @@ class Stack extends ModTemplate {
     if (pathname.startsWith(slug)) {
       // Extract path segments after /stack
       const pathAfterSlug = pathname.substring(slug.length);
-      const segments = pathAfterSlug.split('/').filter(seg => seg.length > 0);
-      
+      const segments = pathAfterSlug.split('/').filter((seg) => seg.length > 0);
+
       if (segments.length === 1) {
         // /stack/<publicKey> - Show creator's posts in Explorer
         const publicKey = segments[0];
         this.main.render();
-	setTimeout(async () => {
+        setTimeout(async () => {
           await this.handleCreatorView(publicKey);
-	}, 0);
+        }, 0);
         return;
       } else if (segments.length === 2) {
         // /stack/<publicKey>/<transactionSignature> - Show specific blog post
@@ -158,7 +209,6 @@ class Stack extends ModTemplate {
 
     // Default: Render the main component (splash page)
     this.main.render();
-
   }
 
   ////////////////////////////
@@ -207,8 +257,7 @@ class Stack extends ModTemplate {
    * Handle blog post view: /stack/<publicKey>/<transactionSignature>
    * Shows ViewPost for the specific transaction
    */
-  async handlePostView(publicKey = "", transactionSignature) {
-
+  async handlePostView(publicKey = '', transactionSignature) {
     if (!transactionSignature) {
       this.handleInvalidURL();
       return;
@@ -220,8 +269,27 @@ class Stack extends ModTemplate {
       this.viewPostComponent = new ViewPost(this.app, this, '.saito-container');
     }
 
-    // Show loading state immediately
     const container = document.querySelector('.saito-container');
+
+    // Use post embedded in initial HTML when server had it in cache (avoids archive request)
+    if (typeof window.__STACK_INITIAL_POST === 'string' && window.__STACK_INITIAL_POST.length > 0) {
+      try {
+        const tx = new Transaction();
+        tx.deserialize_from_web(this.app, window.__STACK_INITIAL_POST);
+        window.__STACK_INITIAL_POST = null;
+        if (tx.signature === transactionSignature) {
+          this.transactionCache[transactionSignature] = tx;
+          this.viewPostComponent.render(tx);
+          this.pending_post_loaded = true;
+          return;
+        }
+      } catch (err) {
+        console.debug('Stack: Failed to use embedded initial post', err);
+      }
+      window.__STACK_INITIAL_POST = null;
+    }
+
+    // Show loading state
     if (container) {
       container.innerHTML = `
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem;">
@@ -236,12 +304,9 @@ class Stack extends ModTemplate {
       const tx = await this.loadPost(transactionSignature, {}, null);
 
       if (!tx) {
-
         if (container) {
-
-          if (this.pending_post_sig != "" && this.pending_post_loaded != true) {
-
-    	    container.innerHTML = `
+          if (this.pending_post_sig != '' && this.pending_post_loaded != true) {
+            container.innerHTML = `
     <div
       class="stack-post-loading"
       style="
@@ -275,7 +340,7 @@ class Stack extends ModTemplate {
       </div>
     </div>
   `;
-	  } else {
+          } else {
             container.innerHTML = `
             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; padding: 4rem 2rem; text-align: center;">
               <i class="fa-solid fa-exclamation-triangle" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
@@ -293,7 +358,6 @@ class Stack extends ModTemplate {
       // Render the post
       this.viewPostComponent.render(tx);
       this.pending_post_loaded = true;
-
     } catch (error) {
       console.error('Stack: Error loading blog post:', error);
       // Show error state
@@ -339,7 +403,6 @@ class Stack extends ModTemplate {
     console.log('Show explore posts overlay (placeholder)');
   }
 
-
   ////////////////////////////
   // Service Declaration    //
   ////////////////////////////
@@ -350,9 +413,7 @@ class Stack extends ModTemplate {
   returnServices() {
     let services = [];
     if (!this.app.BROWSER || this.offerService) {
-      services.push(
-        this.app.network.createPeerService(null, 'stack', 'Stack Post Archive')
-      );
+      services.push(this.app.network.createPeerService(null, 'stack', 'Stack Post Archive'));
     }
     return services;
   }
@@ -363,14 +424,13 @@ class Stack extends ModTemplate {
   /**
    * Called when a peer connects with Stack service capability.
    * Tracks peers that advertise Stack service for future use.
-   * 
+   *
    * @param {Object} app - Saito application instance
    * @param {Object} peer - Peer object
    * @param {Object} service - Service object with service name
    */
   async onPeerServiceUp(app, peer, service = {}) {
-
-    if (service.service === "stack" || service.service === "archive") {
+    if (service.service === 'stack' || service.service === 'archive') {
       const peerKey = peer?.publicKey || 'unknown';
       this.peers[peerKey] = {
         peer: peer,
@@ -379,17 +439,16 @@ class Stack extends ModTemplate {
       };
     }
 
-
     //
-    // Archives 
+    // Archives
     //
-    if (service.service === "archive") {
+    if (service.service === 'archive') {
       if (this.pending_post_sig) {
         let sig = this.pending_post_sig;
         let pk = this.pending_post_pk;
         await this.handlePostView(pk, sig);
-        this.pending_post_sig = "";
-        this.pending_post_pk = "";
+        this.pending_post_sig = '';
+        this.pending_post_pk = '';
       }
       if (this.pending_author_load) {
         let pk = this.pending_author_load;
@@ -397,15 +456,12 @@ class Stack extends ModTemplate {
         await this.handleCreatorView(pk);
       }
     }
-
-
   }
 
   ////////////////////////////
   // Inter-module Communication //
   ////////////////////////////
   respondTo(type = '', obj) {
-
     if (type === 'saito-header') {
       let x = [];
       if (!this.browser_active) {
@@ -424,18 +480,18 @@ class Stack extends ModTemplate {
 
     if (type === 'saito-create-nft') {
       let this_mod = this;
-      
+
       return {
         title: 'Stack Access NFT',
         class: ['stack'], // This becomes the nft_type parameter for createMintNFTTransaction
         text: 'Stack Access Key',
         createData: async (modfile) => {
-	  // 100 years by default
-	  // duration: 3155760000000;
-	  // duration: 300000; // 5 minutes
+          // 100 years by default
+          // duration: 3155760000000;
+          // duration: 300000; // 5 minutes
           return {
             module: 'Stack',
-	    duration: 300000
+            duration: 300000
           };
         }
       };
@@ -445,60 +501,67 @@ class Stack extends ModTemplate {
       let this_mod = this;
       return {
         class: ['stack'],
-        onTransfer: async (nft=null, tx=null, receiver="", data={}) => {
+        onTransfer: async (nft = null, tx = null, receiver = '', data = {}) => {
+          console.log('***');
+          console.log('***');
+          console.log('***');
+          console.log('***');
+          console.log('***');
+          console.log('***');
+          console.log('adding routing path to Stack NFT...');
 
-console.log("***");
-console.log("***");
-console.log("***");
-console.log("***");
-console.log("***");
-console.log("***");
-console.log("adding routing path to Stack NFT...");
-
-      	  if (!tx.msg) { tx.msg = {}; }
-          if (!tx.msg.data) { tx.msg.data = {}; }
+          if (!tx.msg) {
+            tx.msg = {};
+          }
+          if (!tx.msg.data) {
+            tx.msg.data = {};
+          }
 
           if (!Array.isArray(tx.msg.data.path)) {
             tx.msg.data.path = [];
           }
 
-          if (!nft?.id) { return tx; }
+          if (!nft?.id) {
+            return tx;
+          }
 
-	  //
-	  // if we are the creator and this is a subscription, we should
-	  // sign for the duration of the subscription so that access
-	  // scripts can reconstruct our signature and import the duration
-	  // variable used to regulate access.
-	  //
-	  if (nft != null && tx.msg.data.path.length == 0) {
-	    if (nft.returnCreator() == this.publicKey) {
-	      if (tx.msg.data.duration && !tx.msg.data.duration_sig) {
-      		let duration = tx.msg.data.duration;
-      		let binding_hash = nft.id;
-      		let canonical_string = `${duration}|${binding_hash}`;
-      		let digest = this.app.crypto.hash(canonical_string);
-	  	let privatekey = await this.app.wallet.getPrivateKey();
-console.log("SIGNING DURATION SIG FOR: " + digest);
-console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
-	  	tx.msg.data.duration_sig = this.app.crypto.signMessage(digest, privatekey);
-	      }
-	    }
-	  }
+          //
+          // if we are the creator and this is a subscription, we should
+          // sign for the duration of the subscription so that access
+          // scripts can reconstruct our signature and import the duration
+          // variable used to regulate access.
+          //
+          if (nft != null && tx.msg.data.path.length == 0) {
+            if (nft.returnCreator() == this.publicKey) {
+              if (tx.msg.data.duration && !tx.msg.data.duration_sig) {
+                let duration = tx.msg.data.duration;
+                let binding_hash = nft.id;
+                let canonical_string = `${duration}|${binding_hash}`;
+                let digest = this.app.crypto.hash(canonical_string);
+                let privatekey = await this.app.wallet.getPrivateKey();
+                console.log('SIGNING DURATION SIG FOR: ' + digest);
+                console.log('SIGNING DURATION SIG W/ BH: ' + binding_hash);
+                tx.msg.data.duration_sig = this.app.crypto.signMessage(digest, privatekey);
+              }
+            }
+          }
 
           let value_obj = {
             timestamp: Date.now(),
             delegate: false
           };
 
-	  if (data.delegate == true) { value_obj.delegate = true; }
+          if (data.delegate == true) {
+            value_obj.delegate = true;
+          }
 
           const value_json = JSON.stringify(value_obj);
           const value_b64 = Buffer.from(value_json).toString('base64');
 
           const canonical_string = `${receiver}|${value_b64}|${nft.id}`;
-	  const hash_digest = this_mod.app.crypto.hash(canonical_string);
-	  const privatekey = await this_mod.app.wallet.getPrivateKey();
-	  const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
+          const hash_digest = this_mod.app.crypto.hash(canonical_string);
+          const privatekey = await this_mod.app.wallet.getPrivateKey();
+          const sig = this_mod.app.crypto.signMessage(hash_digest, privatekey);
 
           tx.msg.data.path.push({
             to: receiver,
@@ -518,9 +581,8 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
   // Transaction Handling  //
   ////////////////////////////
   async onConfirmation(blk, tx, conf) {
-
     const txmsg = tx.returnMessage();
-    
+
     // Check if transaction is relevant to Stack module
     if (txmsg.module !== this.name) {
       return;
@@ -530,13 +592,13 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
     if (Number(conf) == 0) {
       if (txmsg.request === 'create stack post request') {
         console.log('Stack onConfirmation: createStackPost');
-        
+
         // Archive management - SINGLE place managing Stack archive writes
         await this.onReceiveBlogPost(tx, blk);
-        
+
         // Cache and UI updates
         await this.receiveStackPostTransaction(tx, blk);
-        
+
         // Clean up pending drafts after successful confirmation (only for user's own posts)
         if (tx.isFrom(this.publicKey)) {
           await this.cleanupPendingDrafts();
@@ -551,10 +613,10 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
   ////////////////////////////
   /**
    * Get access script for a publish intent
-   * 
+   *
    * Maps a normalized publish intent to a canonical access script template.
    * Returns null for public posts (no access gate).
-   * 
+   *
    * @param {Object} intent - Publish intent object
    * @param {string} intent.visibility - "public" | "private"
    * @param {string|null} intent.access_mode - null | "transferable" | "non-transferable"
@@ -573,10 +635,10 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
 
   /**
    * Hash an access script using canonicalization
-   * 
+   *
    * Canonicalizes the script JSON to ensure deterministic hashing.
    * Same script object will always produce the same hash.
-   * 
+   *
    * @param {Object|null} script - Access script object, or null
    * @returns {string} Access hash (empty string if script is null)
    */
@@ -585,7 +647,7 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
       return '';
     }
 
-    const scripting_mod = this.app.modules.returnModule("Scripting");
+    const scripting_mod = this.app.modules.returnModule('Scripting');
     if (!scripting_mod) {
       console.warn('Stack: Scripting module not available - cannot hash access script');
       return '';
@@ -593,10 +655,10 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
 
     // Canonicalize the script to ensure deterministic hashing
     const canonical_script = scripting_mod.canonicalize(script);
-    
+
     // Hash the canonicalized script
     const access_hash = scripting_mod.hash(canonical_script);
-    
+
     return access_hash;
   }
 
@@ -605,7 +667,7 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
   ////////////////////////////
   /**
    * Creates a new stack post transaction and propagates it to the network.
-   * 
+   *
    * @param {Object} post - The post data object
    * @param {string} post.title - The title of the post (required)
    * @param {string} post.content - The content/body of the post in Markdown format (required)
@@ -616,9 +678,9 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
    * @param {string} post.subscriptionTier - Subscription tier: 'free' or 'paid' (optional, defaults to 'free')
    * @param {string} post.excerpt - Short excerpt/summary of the post (optional)
    * @param {Function} callback - Optional callback function to execute after post is confirmed
-   * 
+   *
    * @returns {Promise<Transaction>} The signed transaction object
-   * 
+   *
    * Transaction message (tx.msg) structure:
    * {
    *   module: 'Stack',
@@ -642,7 +704,7 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
       title: '',
       content: '',
       image: '',
-      images: [] ,
+      images: [],
       imageUrl: '',
       tags: [],
       timestamp: Date.now(),
@@ -653,7 +715,6 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
     callback
   ) {
     try {
-
       // Create new transaction
       let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
 
@@ -670,7 +731,7 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
         subscriptionTier: post.subscriptionTier || 'free',
         excerpt: post.excerpt || ''
       };
-      
+
       // --------------------------------------------------------------------
       // IMAGE INVARIANT ENFORCEMENT
       // Published posts MUST NOT contain raw data:image URLs in markdown.
@@ -680,7 +741,7 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
       if (/!\[[^\]]*\]\(data:image\/[a-zA-Z+]+;base64,/i.test(data.content)) {
         throw new Error(
           'Publish aborted: raw data:image URL found in post content. ' +
-          'Images must be published using stack:image:<id> references.'
+            'Images must be published using stack:image:<id> references.'
         );
       }
 
@@ -690,19 +751,18 @@ console.log("SIGNING DURATION SIG W/ BH: " + binding_hash);
         data.parent_id = post.parent_id;
       }
 
-// ------------------------------------------------------------
-// AUTHORITATIVE ACCESS INTENT NORMALIZATION (SUBSCRIPTIONS)
-// ------------------------------------------------------------
-// This MUST run before publishIntent is constructed
-if (post.accessLevel === 'subscription') {
-  post.publishIntent = {
-    visibility: 'subscription',
-    access_mode: post.access_mode || 'transferable',
-    time_limit: null,
-    author: this.publicKey
-  };
-}
-
+      // ------------------------------------------------------------
+      // AUTHORITATIVE ACCESS INTENT NORMALIZATION (SUBSCRIPTIONS)
+      // ------------------------------------------------------------
+      // This MUST run before publishIntent is constructed
+      if (post.accessLevel === 'subscription') {
+        post.publishIntent = {
+          visibility: 'subscription',
+          access_mode: post.access_mode || 'transferable',
+          time_limit: null,
+          author: this.publicKey
+        };
+      }
 
       // ========================================================================
       // ACCESS SCRIPT GENERATION: Deterministic pipeline from intent to hash
@@ -712,7 +772,7 @@ if (post.accessLevel === 'subscription') {
       // 3. Canonicalize and hash the script
       // 4. Attach access_hash to transaction
       // ========================================================================
-      
+
       // Generate publish intent (backward compatible with accessLevel string)
       let publishIntent;
       if (post.publishIntent && typeof post.publishIntent === 'object') {
@@ -723,20 +783,17 @@ if (post.accessLevel === 'subscription') {
           publishIntent.author = this.publicKey;
         }
       } else {
-  	// Legacy format: convert accessLevel string to intent
-  	const accessLevel = post.accessLevel || 'public';
-  	publishIntent = {
-  	  visibility: accessLevel,
-  	  access_mode:
-  	    accessLevel === 'subscription'
-  	      ? (post.access_mode || 'transferable')
-  	      : null,
-  	  time_limit: null,
-  	  author: this.publicKey
-  	};
+        // Legacy format: convert accessLevel string to intent
+        const accessLevel = post.accessLevel || 'public';
+        publishIntent = {
+          visibility: accessLevel,
+          access_mode: accessLevel === 'subscription' ? post.access_mode || 'transferable' : null,
+          time_limit: null,
+          author: this.publicKey
+        };
       }
 
-console.log("PUBLISH INTENT:", publishIntent);
+      console.log('PUBLISH INTENT:', publishIntent);
 
       // Get access script for intent
       let access_script = null;
@@ -744,19 +801,19 @@ console.log("PUBLISH INTENT:", publishIntent);
 
       try {
         access_script = this.getAccessScriptForPublishIntent(publishIntent);
-        
+
         // Initialize msg object if needed
         if (!newtx.msg) {
           newtx.msg = {};
         }
-        
+
         if (access_script !== null) {
           // Private post: Hash the script and attach access_hash
           access_hash = this.hashAccessScript(access_script);
-          
+
           if (access_hash) {
             // Canonicalize script for optional local storage (debugging only)
-            const scripting_mod = this.app.modules.returnModule("Scripting");
+            const scripting_mod = this.app.modules.returnModule('Scripting');
             if (scripting_mod) {
               const canonical_script = scripting_mod.canonicalize(access_script);
               // Store canonicalized script locally for debugging (not required for access)
@@ -799,8 +856,9 @@ console.log("PUBLISH INTENT:", publishIntent);
 
       await newtx.sign();
 
-      siteMessage("Propagating the Transaction!");
+      siteMessage('Publishing...', 3000);
       await this.app.network.propagateTransaction(newtx);
+
       if (callback) {
         this.callbackAfterPost = callback;
       }
@@ -818,15 +876,15 @@ console.log("PUBLISH INTENT:", publishIntent);
   ////////////////////////////
   /**
    * Returns the canonical logical post ID for a transaction.
-   * 
+   *
    * A Stack post is a LOGICAL OBJECT WITH REVISIONS, not a single transaction.
    * Multiple transactions can represent the same logical post:
    * - Root post: signature = sigA, parent_id = null → logical ID = sigA
    * - Edited post: signature = sigAA, parent_id = sigA → logical ID = sigA
-   * 
+   *
    * This is the AUTHORITATIVE definition of logical post identity.
    * Do NOT re-derive this logic elsewhere.
-   * 
+   *
    * @param {Transaction} tx - The transaction to get logical post ID for
    * @returns {string} The logical post ID (parent_id for revisions, signature for roots)
    */
@@ -834,11 +892,11 @@ console.log("PUBLISH INTENT:", publishIntent);
     if (!tx) {
       throw new Error('getLogicalPostId: tx is required');
     }
-    
+
     try {
       const txmsg = tx.returnMessage();
       const parent_id = txmsg?.data?.parent_id || null;
-      
+
       // Logical post identity = parent_id || signature
       // For revisions: use parent_id (the root post signature)
       // For root posts: use their own signature
@@ -852,10 +910,10 @@ console.log("PUBLISH INTENT:", publishIntent);
 
   /**
    * Returns the canonical logical post ID for a cached post object.
-   * 
+   *
    * Cached post objects have { sig, parent_id, ... } structure.
    * This uses the same logical post identity rule as getLogicalPostId(tx).
-   * 
+   *
    * @param {Object} post - The cached post object with sig and parent_id fields
    * @returns {string} The logical post ID (parent_id for revisions, sig for roots)
    */
@@ -863,11 +921,11 @@ console.log("PUBLISH INTENT:", publishIntent);
     if (!post) {
       throw new Error('getLogicalPostIdFromPost: post is required');
     }
-    
+
     // Logical post identity = parent_id || sig
     // For revisions: use parent_id (the root post signature)
     // For root posts: use their own signature
-    return (post.parent_id || post.sig) || '';
+    return post.parent_id || post.sig || '';
   }
 
   ////////////////////////////
@@ -879,19 +937,18 @@ console.log("PUBLISH INTENT:", publishIntent);
   /**
    * Handles archive management for Stack blog posts.
    * This is the SINGLE place managing Stack archive writes.
-   * 
+   *
    * For revisions (parent_id exists):
    * - Deletes older revisions with same (author, parent_id)
    * - Saves latest revision with preserve = 1
-   * 
+   *
    * For root posts (parent_id is null):
    * - Saves with preserve = 1
-   * 
+   *
    * @param {Transaction} tx - The confirmed transaction
    * @param {Block} blk - The block containing the transaction
    */
   async onReceiveBlogPost(tx, blk) {
-
     // PART 4 — SAFETY CHECKS
     // Fail silently if tx is malformed
     if (!tx || !tx.msg || !tx.from || !tx.from[0]) {
@@ -899,7 +956,7 @@ console.log("PUBLISH INTENT:", publishIntent);
     }
 
     const txmsg = tx.returnMessage();
-    
+
     // Never touch non-Stack transactions
     if (txmsg.module !== this.name || txmsg.request !== 'create stack post request') {
       return;
@@ -988,7 +1045,7 @@ console.log("PUBLISH INTENT:", publishIntent);
    * Handles receiving and processing a stack post transaction.
    * Called automatically when a stack post transaction is confirmed on the network.
    * Handles caching and UI updates only - archive management is in onReceiveBlogPost().
-   * 
+   *
    * @param {Transaction} tx - The confirmed transaction
    * @param {Block} blk - The block containing the transaction
    */
@@ -1004,9 +1061,9 @@ console.log("PUBLISH INTENT:", publishIntent);
     // Extract parent_id from transaction data (source of truth)
     const parent_id = txmsg.data?.parent_id || null;
 
-    let post = { 
-      ...txmsg.data, 
-      sig: tx.signature, 
+    let post = {
+      ...txmsg.data,
+      sig: tx.signature,
       publicKey: tx.from[0].publicKey,
       timestamp: txmsg.data.timestamp || tx.timestamp,
       lastEdited: txmsg.data.timestamp || tx.timestamp
@@ -1020,25 +1077,25 @@ console.log("PUBLISH INTENT:", publishIntent);
     // ISSUE 2 — DUPLICATE POSTS AFTER EDITING: Remove old versions before adding new one
     // Compute logical post ID for this transaction
     const incomingLogicalPostId = this.getLogicalPostId(tx);
-    
+
     // Remove older versions of the same logical post from cache
     // Filter out any cached posts that belong to the same logical post
-    this.postsCache.allPosts = this.postsCache.allPosts.filter(p => 
-      this.getLogicalPostIdFromPost(p) !== incomingLogicalPostId
+    this.postsCache.allPosts = this.postsCache.allPosts.filter(
+      (p) => this.getLogicalPostIdFromPost(p) !== incomingLogicalPostId
     );
-    
+
     // Remove from byAuthor cache
     if (this.postsCache.byAuthor.has(from)) {
       const authorPosts = this.postsCache.byAuthor.get(from);
-      const filteredAuthorPosts = authorPosts.filter(p => 
-        this.getLogicalPostIdFromPost(p) !== incomingLogicalPostId
+      const filteredAuthorPosts = authorPosts.filter(
+        (p) => this.getLogicalPostIdFromPost(p) !== incomingLogicalPostId
       );
       this.postsCache.byAuthor.set(from, filteredAuthorPosts);
     }
 
     // Add to cache (check for duplicates to avoid adding the same post twice)
     // This can happen if post was added optimistically during publish
-    const existingInAllPosts = this.postsCache.allPosts.findIndex(p => p.sig === tx.signature);
+    const existingInAllPosts = this.postsCache.allPosts.findIndex((p) => p.sig === tx.signature);
     if (existingInAllPosts < 0) {
       // Add parent_id to post object for future deduplication
       post.parent_id = parent_id;
@@ -1048,13 +1105,13 @@ console.log("PUBLISH INTENT:", publishIntent);
       this.postsCache.allPosts[existingInAllPosts] = post;
       this.postsCache.allPosts[existingInAllPosts].parent_id = parent_id;
     }
-    
+
     // Also cache by author (check for duplicates)
     if (!this.postsCache.byAuthor.has(from)) {
       this.postsCache.byAuthor.set(from, []);
     }
     const authorPosts = this.postsCache.byAuthor.get(from);
-    const existingInAuthorPosts = authorPosts.findIndex(p => p.sig === tx.signature);
+    const existingInAuthorPosts = authorPosts.findIndex((p) => p.sig === tx.signature);
     if (existingInAuthorPosts < 0) {
       // Add parent_id to post object for future deduplication
       post.parent_id = parent_id;
@@ -1074,10 +1131,10 @@ console.log("PUBLISH INTENT:", publishIntent);
       if (!this.app.options.stack.posts) {
         this.app.options.stack.posts = [];
       }
-      
+
       // Extract parent_id for revision tracking
       const parent_id = txmsg.data?.parent_id || null;
-      
+
       // Store only lightweight reference (sig, publicKey, timestamp, status, parent_id)
       // Full content must be loaded from archive when needed
       const lightweightPost = {
@@ -1088,13 +1145,13 @@ console.log("PUBLISH INTENT:", publishIntent);
         status: 'published', // Can be 'published', 'unpublished', etc.
         parent_id: parent_id || null // null for root posts, parent signature for revisions
       };
-      
+
       // Find existing entry for this logical post using canonical helper
       const incomingLogicalPostId = this.getLogicalPostId(tx);
-      const postIndex = this.app.options.stack.posts.findIndex(p => 
-        this.getLogicalPostIdFromPost(p) === incomingLogicalPostId
+      const postIndex = this.app.options.stack.posts.findIndex(
+        (p) => this.getLogicalPostIdFromPost(p) === incomingLogicalPostId
       );
-      
+
       if (postIndex >= 0) {
         // Update existing post entry with latest revision info
         this.app.options.stack.posts[postIndex] = lightweightPost;
@@ -1102,7 +1159,7 @@ console.log("PUBLISH INTENT:", publishIntent);
         // Post not in list yet - add this revision
         this.app.options.stack.posts.push(lightweightPost);
       }
-      
+
       this.save();
     }
 
@@ -1116,10 +1173,10 @@ console.log("PUBLISH INTENT:", publishIntent);
         } else {
           siteMessage('Stack post published', 1500);
         }
-        
+
         // Browser-only confirmation alert for testing
         if (this.browser_active) {
-          siteMessage("Your blog post has been received from the network.");
+          siteMessage('Your blog post has been received from the network.');
         }
       } else {
         siteMessage(`New stack post by ${this.app.keychain.returnUsername(from)}`, 3000);
@@ -1180,7 +1237,7 @@ console.log("PUBLISH INTENT:", publishIntent);
    * Load persistent local UX state from app.options
    * Initializes app.options.stack if it doesn't exist
    * This is CLIENT-SIDE STATE ONLY - not authoritative
-   * 
+   *
    * Structure:
    * app.options.stack = {
    *   posts: [ { sig, publicKey, timestamp, lastEdited, status } ],  // Lightweight references only
@@ -1199,7 +1256,7 @@ console.log("PUBLISH INTENT:", publishIntent);
     }
     // Note: app.options.stack is lightweight - no post bodies, images, or heavy data
     // Full post content must be loaded from archive transactions when needed
-    
+
     return this.app.options.stack;
   }
 
@@ -1218,9 +1275,9 @@ console.log("PUBLISH INTENT:", publishIntent);
 
     this.load();
     const subscriptions = this.app.options.stack.subscriptions || [];
-    
+
     // Check if already subscribed
-    if (subscriptions.some(sub => sub.publicKey === publicKey)) {
+    if (subscriptions.some((sub) => sub.publicKey === publicKey)) {
       return false;
     }
 
@@ -1244,7 +1301,7 @@ console.log("PUBLISH INTENT:", publishIntent);
     if (!publicKey) return false;
     this.load();
     const subscriptions = this.app.options.stack.subscriptions || [];
-    return subscriptions.some(sub => sub.publicKey === publicKey);
+    return subscriptions.some((sub) => sub.publicKey === publicKey);
   }
 
   /**
@@ -1254,7 +1311,7 @@ console.log("PUBLISH INTENT:", publishIntent);
   getSubscriptions() {
     this.load();
     const subscriptions = this.app.options.stack.subscriptions || [];
-    return subscriptions.map(sub => sub.publicKey);
+    return subscriptions.map((sub) => sub.publicKey);
   }
 
   /**
@@ -1281,8 +1338,10 @@ console.log("PUBLISH INTENT:", publishIntent);
     if (!this.publicKey) {
       return false;
     }
-    return this.postsCache.byAuthor.has(this.publicKey) && 
-           this.postsCache.byAuthor.get(this.publicKey).length > 0;
+    return (
+      this.postsCache.byAuthor.has(this.publicKey) &&
+      this.postsCache.byAuthor.get(this.publicKey).length > 0
+    );
   }
 
   /**
@@ -1296,7 +1355,7 @@ console.log("PUBLISH INTENT:", publishIntent);
     // DIAGNOSTIC: Log entry into discoverDrafts()
     // ========================================================================
     console.log('[DIAG] discoverDrafts() ENTRY');
-    
+
     if (!this.app.storage) {
       console.log('[DIAG] discoverDrafts() EARLY RETURN: this.app.storage is not available');
       return;
@@ -1308,7 +1367,9 @@ console.log("PUBLISH INTENT:", publishIntent);
     const queryParams = { field1: 'Stack', field4: 'stack:draft' };
     console.log('[DIAG] discoverDrafts() Query parameters:', JSON.stringify(queryParams, null, 2));
     console.log('[DIAG] discoverDrafts() Query peer: localhost');
-    console.log('[DIAG] discoverDrafts() Expected match: field1="Stack" AND field4="stack:draft" AND peer="localhost"');
+    console.log(
+      '[DIAG] discoverDrafts() Expected match: field1="Stack" AND field4="stack:draft" AND peer="localhost"'
+    );
 
     return new Promise((resolve) => {
       this.app.storage.loadTransactions(
@@ -1319,12 +1380,14 @@ console.log("PUBLISH INTENT:", publishIntent);
           // ========================================================================
           const rawCount = txs ? txs.length : 0;
           console.log('[DIAG] discoverDrafts() Raw results count:', rawCount);
-          
+
           // ========================================================================
           // DIAGNOSTIC: Log field values of returned transactions for comparison
           // ========================================================================
           if (txs && txs.length > 0) {
-            console.log('[DIAG] discoverDrafts() Returned transactions have the following field values:');
+            console.log(
+              '[DIAG] discoverDrafts() Returned transactions have the following field values:'
+            );
             txs.forEach((tx, idx) => {
               console.log(`[DIAG]   Transaction ${idx + 1}:`);
               console.log(`[DIAG]     - field1: "${tx.field1 || 'N/A'}"`);
@@ -1333,8 +1396,10 @@ console.log("PUBLISH INTENT:", publishIntent);
               console.log(`[DIAG]     - signature: ${tx.signature || 'N/A'}`);
             });
           } else {
-            console.log('[DIAG] discoverDrafts() No transactions returned - checking if ANY drafts exist with different field values...');
-            
+            console.log(
+              '[DIAG] discoverDrafts() No transactions returned - checking if ANY drafts exist with different field values...'
+            );
+
             // ========================================================================
             // DIAGNOSTIC: Try querying with just field4 to see if drafts exist with different field1
             // ========================================================================
@@ -1342,12 +1407,20 @@ console.log("PUBLISH INTENT:", publishIntent);
               { field4: 'stack:draft' },
               (allDrafts) => {
                 const allDraftsCount = allDrafts ? allDrafts.length : 0;
-                console.log('[DIAG] discoverDrafts() Query with ONLY field4="stack:draft" found', allDraftsCount, 'transactions');
+                console.log(
+                  '[DIAG] discoverDrafts() Query with ONLY field4="stack:draft" found',
+                  allDraftsCount,
+                  'transactions'
+                );
                 if (allDrafts && allDraftsCount > 0) {
-                  console.log('[DIAG] discoverDrafts() These drafts have the following field values:');
+                  console.log(
+                    '[DIAG] discoverDrafts() These drafts have the following field values:'
+                  );
                   allDrafts.forEach((tx, idx) => {
                     console.log(`[DIAG]   Draft ${idx + 1}:`);
-                    console.log(`[DIAG]     - field1: "${tx.field1 || 'N/A'}" (query expected "Stack")`);
+                    console.log(
+                      `[DIAG]     - field1: "${tx.field1 || 'N/A'}" (query expected "Stack")`
+                    );
                     console.log(`[DIAG]     - field2: "${tx.field2 || 'N/A'}"`);
                     console.log(`[DIAG]     - field4: "${tx.field4 || 'N/A'}" (matches)`);
                     console.log(`[DIAG]     - signature: ${tx.signature || 'N/A'}`);
@@ -1357,20 +1430,20 @@ console.log("PUBLISH INTENT:", publishIntent);
               'localhost'
             );
           }
-          
+
           if (!txs || txs.length === 0) {
             this.drafts = [];
-            
+
             // Log draftCount after discovery (downgraded from diagnostic)
             console.debug('Stack: discoverDrafts() completed. draftCount = 0');
             console.log('[DIAG] discoverDrafts() EXIT: No drafts found');
-            
+
             resolve();
             return;
           }
 
           // Extract pruned draft representation
-          const draftList = txs.map(tx => {
+          const draftList = txs.map((tx) => {
             let title = 'Untitled draft';
             let lastModified = tx.timestamp || 0;
 
@@ -1401,7 +1474,10 @@ console.log("PUBLISH INTENT:", publishIntent);
           // ========================================================================
           // DIAGNOSTIC: Log parsed drafts added to this.mod.drafts
           // ========================================================================
-          console.log('[DIAG] discoverDrafts() Parsed drafts added to this.mod.drafts:', JSON.stringify(draftList, null, 2));
+          console.log(
+            '[DIAG] discoverDrafts() Parsed drafts added to this.mod.drafts:',
+            JSON.stringify(draftList, null, 2)
+          );
 
           // Log draftCount after discovery (downgraded from diagnostic)
           console.debug(`Stack: discoverDrafts() completed. draftCount = ${draftList.length}`);
@@ -1424,16 +1500,16 @@ console.log("PUBLISH INTENT:", publishIntent);
 
   /**
    * Check if there are any valid drafts available
-   * 
+   *
    * INVARIANT: Centralized function for determining draft existence
    * Filters drafts defensively to exclude:
    * - null/undefined entries
    * - malformed entries without valid IDs
    * - published drafts (checked against postsCache)
-   * 
+   *
    * All UI and editor logic must rely on this function.
    * No other draft-count logic is allowed.
-   * 
+   *
    * @returns {boolean} True if at least one valid draft exists, false otherwise
    */
   hasValidDrafts() {
@@ -1452,7 +1528,7 @@ console.log("PUBLISH INTENT:", publishIntent);
     }
 
     // Filter drafts defensively
-    const validDrafts = this.drafts.filter(draft => {
+    const validDrafts = this.drafts.filter((draft) => {
       // Exclude null/undefined entries
       if (!draft) {
         console.log('[DRAFT-CHECK] Filtering out null/undefined draft entry');
@@ -1468,7 +1544,7 @@ console.log("PUBLISH INTENT:", publishIntent);
       // Check if draft has been published (exists in postsCache)
       // Published drafts should not appear in draft chooser
       if (this.postsCache && this.postsCache.allPosts) {
-        const isPublished = this.postsCache.allPosts.some(post => post.sig === draft.id);
+        const isPublished = this.postsCache.allPosts.some((post) => post.sig === draft.id);
         if (isPublished) {
           console.log('[DRAFT-CHECK] Filtering out published draft:', draft.id);
           return false;
@@ -1525,7 +1601,7 @@ console.log("PUBLISH INTENT:", publishIntent);
       console.log('[DRAFT-CHECK] In-memory draft list refreshed - draft removed');
 
       // Verify draft is gone
-      const stillExists = this.drafts.some(d => d.id === draftId);
+      const stillExists = this.drafts.some((d) => d.id === draftId);
       if (stillExists) {
         console.warn('[DRAFT-CHECK] WARNING: Draft still exists in memory after deletion!');
       } else {
@@ -1554,9 +1630,7 @@ console.log("PUBLISH INTENT:", publishIntent);
           }
 
           // Find transaction by signature or hash
-          const tx = txs.find(t => 
-            t.signature === draftId || t.hash === draftId
-          );
+          const tx = txs.find((t) => t.signature === draftId || t.hash === draftId);
 
           resolve(tx || null);
         },
@@ -1572,7 +1646,7 @@ console.log("PUBLISH INTENT:", publishIntent);
    * Handles incoming Stack service requests from peers.
    * Serves cached posts to requesting peers.
    * Follows RedSquare pattern for service request handling.
-   * 
+   *
    * @param {Object} app - Saito application instance
    * @param {Transaction} tx - Request transaction from peer
    * @param {Object} peer - Peer object making the request
@@ -1592,7 +1666,7 @@ console.log("PUBLISH INTENT:", publishIntent);
     // Handle request for a single post by signature
     if (txmsg.request === 'load stack post') {
       const signature = txmsg.data?.signature;
-      
+
       if (!signature || typeof signature !== 'string') {
         // Invalid request - respond with empty array
         mycallback([]);
@@ -1614,7 +1688,7 @@ console.log("PUBLISH INTENT:", publishIntent);
         { field1: 'Stack', signature: signature },
         (txs) => {
           if (Array.isArray(txs) && txs.length > 0) {
-            const foundTx = txs.find(t => t.signature === signature);
+            const foundTx = txs.find((t) => t.signature === signature);
             if (foundTx) {
               // Cache it for future requests
               this.transactionCache[signature] = foundTx;
@@ -1636,7 +1710,7 @@ console.log("PUBLISH INTENT:", publishIntent);
     // This happens when a peer sends us a post they have cached
     if (txmsg.request === 'stack post transaction') {
       const serializedTx = txmsg.data?.transaction;
-      
+
       if (!serializedTx) {
         return 0; // Not a valid Stack post transaction
       }
@@ -1645,7 +1719,7 @@ console.log("PUBLISH INTENT:", publishIntent);
         // Deserialize and validate the transaction
         const receivedTx = new Transaction();
         receivedTx.deserialize_from_web(app, serializedTx);
-        
+
         // Basic validation - ensure it's a Stack post
         const receivedMsg = receivedTx.returnMessage();
         if (receivedMsg.module !== 'Stack' || receivedMsg.data?.type !== 'stack_post') {
@@ -1679,14 +1753,14 @@ console.log("PUBLISH INTENT:", publishIntent);
   /**
    * Resolves Stack NFT access data from wallet for Archive queries.
    * Mirrors Vault's pattern: discovers Stack NFTs, loads transactions, extracts slips.
-   * 
+   *
    * @returns {Object|null} Access data object with access_hash, access_script, access_witness, or null if no NFT found
    */
   async resolveStackAccessData() {
     try {
       // Update NFT list to ensure wallet cache is fresh
       await this.app.wallet.updateNFTList();
-      
+
       const nftList = this.app.options.wallet.nfts || [];
       if (!nftList || nftList.length === 0) {
         return null;
@@ -1725,26 +1799,24 @@ console.log("PUBLISH INTENT:", publishIntent);
         return null;
       }
 
-
       // 2. Extract routing path from NFT transaction if present
-      let path = []; 
+      let path = [];
       try {
-  	const nft_txmsg = nft.tx?.returnMessage?.();
-  	if (Array.isArray(nft_txmsg?.data?.path)) {
-  	  path = nft_txmsg.data.path;
-  	}
+        const nft_txmsg = nft.tx?.returnMessage?.();
+        if (Array.isArray(nft_txmsg?.data?.path)) {
+          path = nft_txmsg.data.path;
+        }
       } catch (err) {
         // Fail silently — absence of path is normal
       }
 
-
       // Construct witness data in CHECKOWNNFTWHERE format: { slips: [utxokey1, utxokey2, utxokey3] }
       let access_witness_obj = [
-	{
-	  utxokey1 : slip1_utxokey ,
-	  utxokey2 : slip2_utxokey ,
-	  utxokey3 : slip3_utxokey ,
-	}
+        {
+          utxokey1: slip1_utxokey,
+          utxokey2: slip2_utxokey,
+          utxokey3: slip3_utxokey
+        }
       ];
       if (Array.isArray(path) && path.length > 0) {
         access_witness_obj.push({
@@ -1755,12 +1827,12 @@ console.log("PUBLISH INTENT:", publishIntent);
         let nft_txmsg = nft.tx?.returnMessage?.();
         if (nft_txmsg.data.duration) {
           access_witness_obj.push({
-            duration: nft_txmsg.data.duration ,
-            signature: nft_txmsg.data.duration_sig ,
+            duration: nft_txmsg.data.duration,
+            signature: nft_txmsg.data.duration_sig
           });
         }
       } catch (err) {
-console.log("ERROR attaching duration and sig to witness...");
+        console.log('ERROR attaching duration and sig to witness...');
       }
       const access_witness = JSON.stringify(access_witness_obj);
 
@@ -1783,14 +1855,13 @@ console.log("ERROR attaching duration and sig to witness...");
    * Loads a single transaction by signature.
    * Checks cache first, then queries peers, then falls back to archive.
    * Supports both callback and Promise/await usage.
-   * 
+   *
    * @param {string} signature - Transaction signature to load
    * @param {Object} options - Optional parameters. Can include `peer` (object or "localhost")
    * @param {Function} callback - Optional callback function(tx)
    * @returns {Transaction|null} Transaction object if no callback, null if not found
    */
   async loadPost(signature, options = {}, callback = null) {
-
     // Extract peer from options if provided
     const peer = options?.peer || null;
 
@@ -1827,11 +1898,10 @@ console.log("ERROR attaching duration and sig to witness...");
     // This checks our own local archive before making network requests
     // For loadPost(), we don't know the author ahead of time, so we can't construct access_hash
     // Try loading without access first (works for public posts)
-    const localQuery = { field1: 'Stack', signature: signature , access_witness : access_witness };
-    
+    const localQuery = { field1: 'Stack', signature: signature, access_witness: access_witness };
+
     // Step 2: If peer is provided, use it directly (skip localhost check and peer queries)
     if (peer) {
-
       // Determine peer string for loadTransactions
       // Can be "localhost" string or a peer object (we'll use its identifier)
       let peerString = peer;
@@ -1843,13 +1913,13 @@ console.log("ERROR attaching duration and sig to witness...");
 
       return new Promise((resolve) => {
         this.app.storage.loadTransactions(
-          localQuery ,
+          localQuery,
           (txs) => {
             let tx = null;
 
             // Find matching transaction
             if (Array.isArray(txs) && txs.length > 0) {
-              tx = txs.find(t => t.signature === signature);
+              tx = txs.find((t) => t.signature === signature);
             }
 
             // Cache if found
@@ -1880,7 +1950,7 @@ console.log("ERROR attaching duration and sig to witness...");
 
           // Find matching transaction
           if (Array.isArray(txs) && txs.length > 0) {
-            tx = txs.find(t => t.signature === signature);
+            tx = txs.find((t) => t.signature === signature);
           }
 
           // Cache if found
@@ -1919,21 +1989,21 @@ console.log("ERROR attaching duration and sig to witness...");
     if (peerKeys.length > 0) {
       const firstPeerKey = peerKeys[0];
       const peerObj = this.peers[firstPeerKey]?.peer;
-      
+
       if (peerObj && peerObj.peerIndex !== undefined) {
         try {
           const peerTx = await new Promise((resolve) => {
             // Query peer for the post
             this.app.network.sendRequestAsTransaction(
               'load stack post',
-              { signature: signature , access_witness : access_witness },
+              { signature: signature, access_witness: access_witness },
               (response) => {
                 // Response is array of serialized transactions
                 if (Array.isArray(response) && response.length > 0) {
                   try {
                     const tx = new Transaction();
                     tx.deserialize_from_web(this.app, response[0]);
-                    
+
                     // Validate it's the transaction we requested
                     if (tx.signature === signature) {
                       // Cache it
@@ -1978,14 +2048,13 @@ console.log("ERROR attaching duration and sig to witness...");
 
   /**
    * Loads posts for a specific author from local and optionally remote archives.
-   * 
+   *
    * @param {string} publicKey - The author's public key
    * @param {Object} options - Options object
    * @param {boolean} options.forceRemote - If true, also query remote peers (default: true)
    * @returns {Promise<Array<Transaction>>} Array of Transaction objects, deduplicated by signature
    */
   async loadPostsForAuthor(publicKey, { forceRemote = true } = {}) {
-
     if (!publicKey || !this.app.wallet.isValidPublicKey(publicKey)) {
       return [];
     }
@@ -1999,7 +2068,7 @@ console.log("ERROR attaching duration and sig to witness...");
     const accessData = await this.resolveStackAccessData();
     if (accessData?.access_witness) {
       access_witness = accessData.access_witness;
-    } 
+    }
 
     if (accessData && accessData.access_witness) {
       // Construct the access script for this author (transferable private posts)
@@ -2011,7 +2080,6 @@ console.log("ERROR attaching duration and sig to witness...");
         time_limit: null,
         author: publicKey
       };
-      
     }
 
     // PART 2.1: Query local archive first
@@ -2019,9 +2087,11 @@ console.log("ERROR attaching duration and sig to witness...");
     const localQuery = {
       field1: 'Stack',
       field2: publicKey,
-      field4: 'stack:post',
+      field4: 'stack:post'
     };
-    if (access_witness) { localQuery.access_witness = access_witness; }
+    if (access_witness) {
+      localQuery.access_witness = access_witness;
+    }
 
     const localPosts = await new Promise((resolve) => {
       this.app.storage.loadTransactions(
@@ -2045,18 +2115,20 @@ console.log("ERROR attaching duration and sig to witness...");
     if (forceRemote) {
       // Build remote query with same access data pattern
       let remoteQuery = {
-        field1: 'Stack' ,
-        field2: publicKey ,
-        field4: 'stack:post' ,
+        field1: 'Stack',
+        field2: publicKey,
+        field4: 'stack:post'
       };
-      if (access_witness) { remoteQuery.access_witness = access_witness; }
+      if (access_witness) {
+        remoteQuery.access_witness = access_witness;
+      }
 
       let peers = await this.app.network.getPeers();
       if (peers.length === 0) {
-	// Defer until peers are available
-    	this.pending_author_load = publicKey;
-  	return posts;
-     }
+        // Defer until peers are available
+        this.pending_author_load = publicKey;
+        return posts;
+      }
 
       const remotePosts = await new Promise((resolve) => {
         this.app.storage.loadTransactions(
@@ -2074,7 +2146,7 @@ console.log("ERROR attaching duration and sig to witness...");
       }
 
       // PART 2.4: For each remotely discovered post, append if unseen and save to localhost
-/***
+      /***
       for (const tx of remotePosts) {
         if (tx && tx.signature && !seenSignatures.has(tx.signature)) {
           seenSignatures.add(tx.signature);
@@ -2149,10 +2221,10 @@ console.log("ERROR attaching duration and sig to witness...");
       try {
         // Use canonical helper to compute logical post identity
         const logicalPostId = this.getLogicalPostId(tx);
-        
+
         // Get current best revision for this logical post
         const existingTx = postGroups.get(logicalPostId);
-        
+
         if (!existingTx) {
           // First occurrence of this logical post
           postGroups.set(logicalPostId, tx);
@@ -2189,7 +2261,7 @@ console.log("ERROR attaching duration and sig to witness...");
    * Iterates through keys starting at index, preserving order.
    * Skips null results (missing transactions are normal).
    * Supports both callback and Promise/await usage.
-   * 
+   *
    * @param {Array<string>} keys - Array of transaction signatures
    * @param {number} index - Starting index in keys array (default: 0)
    * @param {Object} options - Optional parameters (reserved for future use)
@@ -2246,67 +2318,67 @@ console.log("ERROR attaching duration and sig to witness...");
   ////////////////////////////
   // Web Server            //
   ////////////////////////////
-///////////////
-// webserver //
-///////////////
-webServer(app, expressapp, express, alternative_slug = null) {
+  ///////////////
+  // webserver //
+  ///////////////
+  webServer(app, expressapp, express, alternative_slug = null) {
+    const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+    const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
+    const stack_self = this;
 
-  const webdir = `${__dirname}/../../mods/${this.dirname}/web`;
-  const uri = alternative_slug || '/' + encodeURI(this.returnSlug());
-  const stack_self = this;
+    //
+    // 1. STATIC FILES — ALWAYS FIRST
+    //
+    // This ensures /stack/js, /stack/css, etc. resolve correctly
+    //
+    expressapp.use(uri, express.static(webdir));
 
-  //
-  // 1. STATIC FILES — ALWAYS FIRST
-  //
-  // This ensures /stack/js, /stack/css, etc. resolve correctly
-  //
-  expressapp.use(uri, express.static(webdir));
+    //
+    // 2. STACK APP BOOTSTRAP
+    //
+    // Explicitly handle:
+    //   /stack
+    //   /stack/<publickey>
+    //   /stack/<publickey>/<txsig>
+    //
+    // In ALL cases, we just return the Stack home HTML.
+    // Stack (browser-side) will inspect window.location.pathname
+    // and decide whether to call:
+    //   - loadPostsForAuthor()
+    //   - loadPost()
+    //   - explore logic
+    //
+    let html = HomePage(app, stack_self, app.build_number);
 
+    expressapp.get(`${uri}`, (req, res) => {
+      res.setHeader('Content-type', 'text/html');
+      res.charset = 'UTF-8';
+      return res.send(html);
+    });
 
-  //
-  // 2. STACK APP BOOTSTRAP
-  //
-  // Explicitly handle:
-  //   /stack
-  //   /stack/<publickey>
-  //   /stack/<publickey>/<txsig>
-  //
-  // In ALL cases, we just return the Stack home HTML.
-  // Stack (browser-side) will inspect window.location.pathname
-  // and decide whether to call:
-  //   - loadPostsForAuthor()
-  //   - loadPost()
-  //   - explore logic
-  //
-  let html = HomePage(
-    app,
-    stack_self,
-    app.build_number
-  );
+    expressapp.get(`${uri}/:publickey`, (req, res) => {
+      res.setHeader('Content-type', 'text/html');
+      res.charset = 'UTF-8';
+      return res.send(html);
+    });
 
-  expressapp.get(`${uri}`, (req, res) => {
-    res.setHeader('Content-type', 'text/html');
-    res.charset = 'UTF-8';
-    return res.send(html);
-  });
-
-  expressapp.get(`${uri}/:publickey`, (req, res) => {
-    res.setHeader('Content-type', 'text/html');
-    res.charset = 'UTF-8';
-    return res.send(html);
-  });
-
-  expressapp.get(`${uri}/:publickey/:txsig`, (req, res) => {
-    res.setHeader('Content-type', 'text/html');
-    res.charset = 'UTF-8';
-    return res.send(html);
-  });
-
-}
-
-
-
-
+    expressapp.get(`${uri}/:publickey/:txsig`, (req, res) => {
+      res.setHeader('Content-type', 'text/html');
+      res.charset = 'UTF-8';
+      const txsig = req.params.txsig;
+      const cachedTx = txsig ? stack_self.transactionCache[txsig] : null;
+      if (cachedTx) {
+        try {
+          const serializedTx = cachedTx.serialize_to_web(app);
+          const htmlWithPost = HomePage(app, stack_self, app.build_number, {}, serializedTx);
+          return res.send(htmlWithPost);
+        } catch (err) {
+          console.debug('Stack: Failed to serialize cached post for initial HTML', err);
+        }
+      }
+      return res.send(html);
+    });
+  }
 
   ////////////////////////////
   // DEVELOPMENT ONLY: Demo Transactions
@@ -2314,9 +2386,9 @@ webServer(app, expressapp, express, alternative_slug = null) {
   /**
    * Generates synthetic blog post transactions for development/testing.
    * These transactions exist only in memory and are not persisted to disk.
-   * 
+   *
    * TODO: Remove this function and its call in initialize() when ready for production.
-   * 
+   *
    * This function:
    * - Creates 3 Transaction objects with realistic blog content
    * - Inserts them into transactionCache and postsCache
@@ -2389,7 +2461,8 @@ The shared dream, then, becomes a metaphor for all forms of collective construct
       },
       {
         title: 'Getting Started with Saito Stack',
-        subtitle: 'Learn how to create your first post, set up subscriptions, and build your audience on the decentralized web.',
+        subtitle:
+          'Learn how to create your first post, set up subscriptions, and build your audience on the decentralized web.',
         text: `# Getting Started with Saito Stack
 
 Welcome to Saito Stack, a permissioned blogging platform built on the decentralized Saito network. This guide will help you create your first post and understand the core concepts.
@@ -2436,7 +2509,8 @@ Happy writing!`,
       },
       {
         title: 'Understanding Peer-to-Peer Publishing',
-        subtitle: 'Unlike traditional blogging platforms, Saito Stack runs on a peer-to-peer network.',
+        subtitle:
+          'Unlike traditional blogging platforms, Saito Stack runs on a peer-to-peer network.',
         text: `# Understanding Peer-to-Peer Publishing
 
 Unlike traditional blogging platforms, Saito Stack runs on a peer-to-peer network. Your posts are stored across the network, giving you true ownership and control over your content.
@@ -2491,7 +2565,8 @@ This is the future of publishing.`,
       },
       {
         title: 'Advanced Monetization Strategies',
-        subtitle: 'This premium content explores advanced techniques for monetizing your writing through NFT subscriptions.',
+        subtitle:
+          'This premium content explores advanced techniques for monetizing your writing through NFT subscriptions.',
         text: `# Advanced Monetization Strategies
 
 This premium content explores advanced techniques for monetizing your writing through NFT subscriptions, custom access rules, and building sustainable revenue streams.
@@ -2560,7 +2635,7 @@ Remember: The best monetization strategy is one that provides genuine value to y
       try {
         // Create a new transaction
         const tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
-        
+
         // Set transaction message with blog post data
         tx.msg = {
           module: this.name,
@@ -2611,14 +2686,14 @@ Remember: The best monetization strategy is one that provides genuine value to y
         }
         this.postsCache.byAuthor.get(from).push(post);
 
-        console.debug(`Stack: Generated demo post "${postData.title}" (${signature.substring(0, 16)}...)`);
+        console.debug(
+          `Stack: Generated demo post "${postData.title}" (${signature.substring(0, 16)}...)`
+        );
       } catch (error) {
         console.error(`Stack: Failed to generate demo post ${index + 1}:`, error);
       }
     }
   }
-
 }
 
 module.exports = Stack;
-
