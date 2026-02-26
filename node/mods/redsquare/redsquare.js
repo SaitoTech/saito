@@ -833,8 +833,6 @@ class RedSquare extends ModTemplate {
     //
     let peer_count = 0;
 
-    console.log(peer);
-
     for (let i = 0; i < this.peers.length; i++) {
       if (!peer || peer.publicKey == this.peers[i].publicKey) {
         if (
@@ -890,7 +888,7 @@ class RedSquare extends ModTemplate {
                 }
                 this.peers[i].busy[created_at] = null;
               },
-              this.peers[i].peer.peerIndex
+              this.peers[i].peer.publicKey
             );
           } else {
             console.debug(`RS.loadTweets requesting ${created_at} tweets from archive...`);
@@ -1170,7 +1168,7 @@ class RedSquare extends ModTemplate {
               mycallback(txs);
             }
           },
-          this.peers[j].peer.peerIndex
+          this.peers[j].peer.publicKey
         );
       } else {
         peer_count--;
@@ -1308,6 +1306,7 @@ class RedSquare extends ModTemplate {
 
       if (!t) {
         console.warn('RS.addTweet: tweet in hmap by not returned...');
+        console.debug(txmsg);
         return 0;
       }
 
@@ -1423,7 +1422,10 @@ class RedSquare extends ModTemplate {
         if (this.debug) {
           console.debug('RS.addTweet -- ignore marked tweet');
         }
-        this.tweets_sigs_hmap[tweet.tx.signature] = 2;
+
+        // I am not sure we need to mark this as such...
+        // it does lead to a bunch more warnings in the logs down the way
+        //this.tweets_sigs_hmap[tweet.tx.signature] = 2;
         return 0;
       }
 

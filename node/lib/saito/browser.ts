@@ -338,7 +338,7 @@ class Browser {
     this.page_navigation_active = false;
     let browser_self = this;
 
-    this.app.connection.on('peer_connect', function (peerIndex: bigint) {
+    this.app.connection.on('peer_connect', function (publicKey: string) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       if (first_connect) {
@@ -348,7 +348,7 @@ class Browser {
       }
       first_connect = false;
     });
-    this.app.connection.on('peer_disconnect', function (peerIndex: bigint) {
+    this.app.connection.on('peer_disconnect', function (publicKey: string) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       if (!browser_self.page_navigation_active) {
@@ -2949,6 +2949,44 @@ class Browser {
     } else {
       this.page_navigation_active = true;
       window.location.href = target;
+    }
+  }
+
+  safeConsole(header, ui_component, log_level = '') {
+    const getCircularReplacer = () => {
+      const seen = new WeakSet();
+      return (key, value) => {
+        if (key == 'mod' || key == 'app') {
+          return undefined;
+        }
+        if (typeof value === 'object' && value !== null) {
+          if (seen.has(value)) {
+            //console.warn('JSON.Stringify -- Circular reference found at key:', key); // Log the key
+            return; // Discard the circular reference
+          }
+          seen.add(value);
+        }
+        return typeof value === 'bigint' ? value.toString() : value; // return everything else unchanged
+      };
+    };
+
+    let new_obj = JSON.parse(JSON.stringify(ui_component, getCircularReplacer()));
+
+    switch (log_level) {
+      case 'debug':
+        console.debug(header, new_obj);
+        break;
+      case 'info':
+        console.info(header, new_obj);
+        break;
+      case 'warn':
+        console.warn(header, new_obj);
+        break;
+      case 'error':
+        console.error(header, new_obj);
+        break;
+      default:
+        console.log(header, new_obj);
     }
   }
 

@@ -1,6 +1,5 @@
 node_modules
-built/*
-bundler/*
+dist/*
 coverage/*
 *.min.js
 .editorconfig

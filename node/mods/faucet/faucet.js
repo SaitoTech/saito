@@ -157,9 +157,7 @@ class Faucet extends ModTemplate {
 					let spinner = document.querySelector('.faucet-spinner');
 					spinner.style.display = 'none';
 					msg_holder.innerHTML = 'please check your wallet...';
-				} catch (err) {
-					console.error(err);
-				}
+				} catch (err) {}
 			}
 			return;
 		}

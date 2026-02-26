@@ -666,7 +666,7 @@ class Arcade extends ModTemplate {
 					rank: 10,
 					type: 'quicklaunch',
 					callback: function (app, id) {
-            					navigateWindow(`/arcade`);
+						navigateWindow(`/arcade`);
 						//app.connection.emit('arcade-launch-game-selector', {});
 					},
 					navigation: '/arcade'
@@ -978,11 +978,11 @@ class Arcade extends ModTemplate {
 				message.data = tx.toJson();
 
 				this.app.network.sendRequestAsTransaction(
-					message.request,
-					message.data,
-					null,
-					peer.peerIndex
-				);
+          message.request,
+          message.data,
+          null,
+          peer.publicKey
+        );
 			}
 		}
 	}
@@ -1035,7 +1035,6 @@ class Arcade extends ModTemplate {
 			originator: this.publicKey
 		};
 
-		newtx.packData();
 		await newtx.sign();
 
 		return newtx;

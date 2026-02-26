@@ -109,14 +109,14 @@ class DevTools extends ModTemplate {
 		console.log('zip_file trans', zip);
 
 		this.app.network.sendRequestAsTransaction(
-			'submit module',
-			msg,
-			(res) => {
-				console.log('appstore callback: ' + res);
-				return callback(res);
-			},
-			peers[0].peerIndex
-		);
+      'submit module',
+      msg,
+      (res) => {
+        console.log('appstore callback: ' + res);
+        return callback(res);
+      },
+      peers[0].publicKey
+    );
 	}
 
 	async sendModuleDetailsTransaction(zip, callback) {
@@ -133,14 +133,14 @@ class DevTools extends ModTemplate {
 		};
 
 		this.app.network.sendRequestAsTransaction(
-			'get module details',
-			msg,
-			(res) => {
-				console.log('appstore callback: ' + res);
-				return callback(res);
-			},
-			peers[0].peerIndex
-		);
+      'get module details',
+      msg,
+      (res) => {
+        console.log('appstore callback: ' + res);
+        return callback(res);
+      },
+      peers[0].publicKey
+    );
 	}
 
 	async handlePeerTransaction(app, tx = null, peer, mycallback) {
@@ -228,90 +228,34 @@ class DevTools extends ModTemplate {
 	}
 
 	async createAppBinary(zip_bin, slug, mycallback) {
-		let this_self = this;
+		const path = require('path');
+		const fs = this.app.storage.returnFileSystem();
+		const { execSync } = require('child_process');
+		const projectRoot = path.join(__dirname, '../..');
+		const zipDir = path.join(projectRoot, 'dist', 'mods', 'zip');
+		const saitoDir = path.join(projectRoot, 'dist', 'mods', 'saito');
 		try {
-			const path = require('path');
-			const unzipper = require('unzipper');
-			const fs = this_self.app.storage.returnFileSystem();
-			let zip_path = `app.zip`;
-
+			if (!fs.existsSync(zipDir)) {
+				fs.mkdirSync(zipDir, { recursive: true });
+			}
+			const tempZipPath = path.join(zipDir, `.tmp_${slug}.zip`);
+			const zipBin2 = Buffer.from(zip_bin, 'base64').toString('binary');
+			fs.writeFileSync(tempZipPath, zipBin2, { encoding: 'binary' });
 			try {
-				//
-				// convert base64 to binary
-				//
-				let zip_bin2 = Buffer.from(zip_bin, 'base64').toString('binary');
-				fs.writeFileSync(path.resolve(__dirname, zip_path), zip_bin2, {
-					encoding: 'binary'
+				execSync(`node scripts/dynmods/compile.js --zip "${tempZipPath}" --slug "${slug}"`, {
+					cwd: projectRoot,
+					stdio: 'pipe',
+					maxBuffer: 10 * 1024 * 1024
 				});
-
-				console.log('zip_file created: ', zip_path);
-				const directory = await unzipper.Open.file(path.resolve(__dirname, zip_path));
-
-				let app_path = await this_self.getAppPath(directory, slug);
-				await directory.extract({ path: './tmp_mod/' });
-
-				console.log('app_path: ', app_path);
-
-				const { execSync } = require('child_process');
-				execSync(`sh  ./scripts/dyn-mod-compile.sh ${app_path}`, (error, stdout, stderr) => {
-					console.log(stdout);
-					console.log(stderr);
-					if (error !== null) {
-						console.log(`exec error: ${error}`);
-					}
-				});
-
-				//delete unziped module
-				try {
-					await fs.unlink(path.resolve(__dirname, zip_path));
-				} catch (error) {
-					console.error(error);
-				}
-
-				let DYN_MOD_WEB = fs.readFileSync('./build/dyn_mod.js', {
-					encoding: 'binary'
-				});
-
-				//console.log("Loaded DYN_MOD_WEB:", DYN_MOD_WEB);
-
-				/********************************************************
-/**** WHEN DEBUGGING, EDIT THIS TO HAVE A COPY SAVED ****
-/********************************************************
-				execSync(`cp ./build/dyn_mod.js /Users/david/dyn_mod.js`, (error, stdout, stderr) => {
-					console.log(stdout);
-					console.log(stderr);
-					if (error !== null) {
-						console.log(`execSync error: ${error}`);
-					}
-				});
-/********************************************************
-/********************************************************
-/*******************************************************/
-
-				execSync(`rm -rf  ./tmp_mod/ ./build/dyn_mod.js`, (error, stdout, stderr) => {
-					console.log(stdout);
-					console.log(stderr);
-					if (error !== null) {
-						console.log(`execSync error: ${error}`);
-					}
-				});
-
-				execSync(
-					`truncate -s 0 ./build/dyn/web/base.txt &&  truncate -s 0 ./build/dyn/web/dyn.module.js`,
-					(error, stdout, stderr) => {
-						console.log(stdout);
-						console.log(stderr);
-						if (error !== null) {
-							console.log(`execSync error: ${error}`);
-						}
-					}
-				);
-
-				if (mycallback) {
-					return mycallback({ DYN_MOD_WEB });
-				}
-			} catch (err) {
-				console.log('ERROR UNZIPPING: ' + err);
+				const saitoPath = path.join(saitoDir, `${slug}.saito`);
+				const content = fs.readFileSync(saitoPath, 'utf8');
+				const webObj = JSON.parse(content);
+				const msgStr = Buffer.from(webObj.m, 'base64').toString('utf8');
+				const msgObj = JSON.parse(msgStr);
+				const DYN_MOD_WEB = msgObj.bin;
+				if (mycallback) return mycallback({ DYN_MOD_WEB });
+			} finally {
+				try { fs.unlinkSync(tempZipPath); } catch (e) {}
 			}
 		} catch (err) {
 			console.log('Error in Appstore createAppBinary:', err);

@@ -21,7 +21,7 @@ pub type ForkId = SaitoHash;
 pub const UTXO_KEY_LENGTH: usize = 59;
 pub type SaitoUTXOSetKey = [u8; UTXO_KEY_LENGTH];
 pub type UtxoSet = AHashMap<SaitoUTXOSetKey, bool>;
-pub type PeerIndex = u64;
+// pub type PeerIndex = u64;
 pub type BlockId = u64;
 
 pub const CHANNEL_SAFE_BUFFER: usize = 16;

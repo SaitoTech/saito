@@ -140,20 +140,20 @@ impl TransactionGenerator {
             {
                 let peers = self.peer_lock.read().await;
 
-                if peers.index_to_peers.is_empty() {
+                if peers.peers.is_empty() {
                     info!("not yet connected to a node");
                     return;
                 }
 
-                if let Some((_, peer)) = peers.index_to_peers.iter().next() {
+                if let Some((_, peer)) = peers.peers.iter().next() {
                     if let PeerStatus::Connected = peer.peer_status {
-                        to_public_key = peer.get_public_key().unwrap();
+                        to_public_key = peer.get_public_key();
                     } else {
                         info!("peer not connected. status : {:?}", peer.peer_status);
                         return;
                     }
                 }
-                assert_eq!(peers.address_to_peers.len(), 1usize, "we have assumed connecting to a single node. move add_hop to correct place if not.");
+                assert_eq!(peers.peers.len(), 1usize, "we have assumed connecting to a single node. move add_hop to correct place if not.");
                 assert_ne!(to_public_key, self.public_key);
             }
             let mut txs: VecDeque<Transaction> = Default::default();
@@ -364,11 +364,11 @@ impl TransactionGenerator {
         {
             let peers = self.peer_lock.read().await;
 
-            if let Some((_, peer)) = peers.index_to_peers.iter().next() {
+            if let Some((_, peer)) = peers.peers.iter().next() {
                 // if let PeerStatus::Connected = peer.peer_status {
-                info!("peer count : {}", peers.index_to_peers.len());
+                info!("peer count : {}", peers.peers.len());
                 info!("peer status : {:?}", peer.peer_status);
-                to_public_key = peer.get_public_key().unwrap();
+                to_public_key = peer.get_public_key();
                 // } else {
                 //     info!("peer not connected. status : {:?}", peer.peer_status);
                 // }

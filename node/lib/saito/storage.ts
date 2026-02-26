@@ -1,6 +1,6 @@
 import * as JSON from 'json-bigint';
 import Transaction from './transaction';
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 import Block from './block';
 const localforage = require('localforage');
 import fs from 'fs';
@@ -139,7 +139,7 @@ class Storage {
         }
       }
       if (peer != null) {
-        return await this.app.network.sendRequestAsTransaction(message, data, null, peer.peerIndex);
+        return await this.app.network.sendRequestAsTransaction(message, data, null, peer.publicKey);
       } else {
         // This await doesn't seem to ever resolve sometimes...
         return await this.app.network.sendRequestAsTransaction(message, data);
@@ -185,7 +185,7 @@ class Storage {
       }
     } else {
       if (peer != null) {
-        return await this.app.network.sendRequestAsTransaction(message, data, null, peer.peerIndex);
+        return await this.app.network.sendRequestAsTransaction(message, data, null, peer.publicKey);
       } else {
         return await this.app.network.sendRequestAsTransaction(message, data);
       }
@@ -252,7 +252,7 @@ class Storage {
         (res) => {
           return internal_callback(res);
         },
-        peer.peerIndex
+        peer.publicKey
       );
     } else {
       this.app.network.sendRequestAsTransaction(message, data, function (res) {
@@ -641,7 +641,7 @@ class Storage {
 
   watchBuildFile(): void {
     const checkBuildNumber = async () => {
-      const filePath = path.join(__dirname, '/config/build.json');
+      const filePath = path.join(__dirname, '/config/build/build.json');
       fs.readFile('config/build.json', 'utf8', async (err, data) => {
         if (err) {
           console.error('Error reading options file:', err);

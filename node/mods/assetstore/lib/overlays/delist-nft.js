@@ -1,5 +1,6 @@
 let Transaction = require('./../../../../lib/saito/transaction').default;
 let NFTDetailsOverlay = require('./../../../../lib/saito/ui/saito-nft/overlays/nft-overlay');
+const SaitoInvitationLink = require('./../../../../lib/saito/ui/modals/saito-link/saito-link');
 
 class DelistNFTOverlay extends NFTDetailsOverlay {
   constructor(app, mod) {
@@ -7,25 +8,26 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
   }
 
   render(nft) {
-    super.render(nft);
+    super.render(nft); // Will call attachEvents
 
     Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
       (el) => (el.style.display = 'none')
     );
 
-    if (document.querySelector('.saito-nft-footer-btn.send')) {
-      document.querySelector('.saito-nft-footer-btn.send').style.display = 'flex';
-      document.querySelector('.saito-nft-footer-btn.send').innerHTML = 'Remove Listing';
+    if (document.querySelector('.saito-nft-footer-btn.send-nft')) {
+      document.querySelector('.saito-nft-footer-btn.send-nft').style.display = 'flex';
+      document.querySelector('.saito-nft-footer-btn.send-nft').innerHTML = 'Remove Listing';
     }
 
-    setTimeout(() => {
-      this.attachEvents();
-    }, 25);
+    if (document.querySelector('.saito-nft-footer-btn.enable-nft')) {
+      document.querySelector('.saito-nft-footer-btn.enable-nft').style.display = 'flex';
+      document.querySelector('.saito-nft-footer-btn.enable-nft').innerHTML =
+        `<i class="fa-solid fa-link"></i><span>Share</span>`;
+    }
   }
 
   attachEvents() {
-    super.attachEvents();
-    let delist_btn = document.querySelector('.saito-nft-footer-btn.send');
+    let delist_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
     if (delist_btn) {
       delist_btn.onclick = async (e) => {
         e.preventDefault();
@@ -74,7 +76,7 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
               nfttx_sig: nfttx_sig
             },
             () => {},
-            this.mod.assetStore.peerIndex
+            this.mod.assetStore.publicKey
           );
 
           this.overlay.close();
@@ -82,6 +84,23 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
         } catch (err) {
           console.error(err);
         }
+      };
+    }
+
+    let share_btn = document.querySelector('.saito-nft-footer-btn.enable-nft');
+    if (share_btn) {
+      share_btn.onclick = (e) => {
+        if (!this.link) {
+          this.link = new SaitoInvitationLink(this.app, this.mod, {
+            name: 'Item',
+            path: '/store',
+            seller: this.mod.publicKey,
+            listing: this.nft.tx_sig
+          });
+        }
+
+        this.overlay.close();
+        this.link.render();
       };
     }
   }

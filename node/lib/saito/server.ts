@@ -1,4 +1,4 @@
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 
 class Server {
   public app: Saito;

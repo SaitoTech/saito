@@ -1621,6 +1621,7 @@ const data = {
           tags: [],
           image: this.featuredImage || '', // Featured/teaser image (singular, separate)
           imageUrl: '',
+          images: Array.isArray(this.images) ? this.images : [],
           timestamp: tx.msg?.data?.timestamp || Date.now(),
           subscriptionTier: 'free',
           excerpt: ''
@@ -4243,21 +4244,28 @@ this.images.push({
 // Stamp ID onto DOM node for serialization
 img.dataset.stackImageId = imageId;
 
-
-    // Create new paragraph element in DOM
-    const newParagraphElement = document.createElement('p');
-    const newParagraphId = generateBlockId(this.getBlockCount() + 1);
-    newParagraphElement.setAttribute('data-block-id', newParagraphId);
-    newParagraphElement.setAttribute('data-block-type', 'paragraph');
-    newParagraphElement.contentEditable = 'true';
-    newParagraphElement.textContent = '';
-    newParagraphElement.appendChild(document.createTextNode('\u200B'));
-
     // Insert into DOM at the correct position
     // Images are always direct children of the editor, not nested
     // Get all blocks to find the correct insertion point relative to editor's direct children
     const allBlocks = Array.from(editor.querySelectorAll('[data-block-id]'));
-    
+    const insertAtEnd = insertIndex >= allBlocks.length;
+
+    // [IMAGE INSERT] Temporary logging: insertion position and at-end decision
+    console.log('[IMAGE INSERT] insertIndex=', insertIndex, 'allBlocks.length=', allBlocks.length, 'insertAtEnd=', insertAtEnd);
+
+    // Only create a new paragraph when inserting at end of document (no following block).
+    // When inserting before an existing block, do NOT add a paragraph — leave structure intact.
+    let newParagraphElement = null;
+    if (insertAtEnd) {
+      newParagraphElement = document.createElement('p');
+      const newParagraphId = generateBlockId(this.getBlockCount() + 1);
+      newParagraphElement.setAttribute('data-block-id', newParagraphId);
+      newParagraphElement.setAttribute('data-block-type', 'paragraph');
+      newParagraphElement.contentEditable = 'true';
+      newParagraphElement.textContent = '';
+      newParagraphElement.appendChild(document.createTextNode('\u200B'));
+    }
+
     if (insertIndex <= 0) {
       // Insert at the beginning (index 0) - insert as first child
       if (editor.firstChild) {
@@ -4265,64 +4273,66 @@ img.dataset.stackImageId = imageId;
       } else {
         editor.appendChild(imageElement);
       }
-      // Insert paragraph after the image
-      if (imageElement.nextSibling) {
-        editor.insertBefore(newParagraphElement, imageElement.nextSibling);
-      } else {
-        editor.appendChild(newParagraphElement);
+      if (newParagraphElement) {
+        if (imageElement.nextSibling) {
+          editor.insertBefore(newParagraphElement, imageElement.nextSibling);
+        } else {
+          editor.appendChild(newParagraphElement);
+        }
       }
-    } else if (insertIndex >= allBlocks.length) {
-      // Insert at the end
+      console.log('[IMAGE INSERT] inserted at start; paragraph auto-created=', !!newParagraphElement);
+    } else if (insertAtEnd) {
+      // Insert at the end — image then new paragraph
       editor.appendChild(imageElement);
       editor.appendChild(newParagraphElement);
-        } else {
-      // Insert at the specified index - find the block at that index and insert before it (or its parent)
+      console.log('[IMAGE INSERT] inserted at end; paragraph auto-created=true');
+    } else {
+      // Insert before an existing block — image only, no new paragraph
       const targetBlock = allBlocks[insertIndex];
       if (targetBlock) {
-        // Find the direct child of editor to insert before
-        // If targetBlock is nested (like <li> in <ul>), insert before its parent container
         let insertBeforeElement = targetBlock;
         while (insertBeforeElement && insertBeforeElement.parentNode !== editor) {
           insertBeforeElement = insertBeforeElement.parentNode;
         }
-        
         if (insertBeforeElement && insertBeforeElement.parentNode === editor) {
           editor.insertBefore(imageElement, insertBeforeElement);
-          // Insert paragraph after the image
-          if (imageElement.nextSibling) {
-      editor.insertBefore(newParagraphElement, imageElement.nextSibling);
-          } else {
-            editor.appendChild(newParagraphElement);
-          }
         } else {
-          // Fallback: append to end
           editor.appendChild(imageElement);
-          editor.appendChild(newParagraphElement);
         }
       } else {
-        // Fallback: append to end
         editor.appendChild(imageElement);
-        editor.appendChild(newParagraphElement);
       }
-        }
+      console.log('[IMAGE INSERT] inserted before existing block; paragraph auto-created=false');
+    }
 
     // Update placeholder visibility
     this.updatePlaceholderVisibility();
 
-    // Focus the new paragraph synchronously
+    // Cursor placement: at end → new paragraph; before existing block → start of next block
     const newRange = document.createRange();
     const newSelection = window.getSelection();
-    const textNode = newParagraphElement.firstChild;
-    if (textNode && textNode.nodeType === Node.TEXT_NODE) {
-      newRange.setStart(textNode, 0);
-      newRange.setEnd(textNode, 0);
-        } else {
-      newRange.setStart(newParagraphElement, 0);
-      newRange.setEnd(newParagraphElement, 0);
+    if (newParagraphElement) {
+      const textNode = newParagraphElement.firstChild;
+      if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+        newRange.setStart(textNode, 0);
+        newRange.setEnd(textNode, 0);
+      } else {
+        newRange.setStart(newParagraphElement, 0);
+        newRange.setEnd(newParagraphElement, 0);
+      }
+      newParagraphElement.focus();
+    } else {
+      // Place cursor at start of the block immediately after the image (existing content)
+      const nextBlock = imageElement.nextSibling;
+      if (nextBlock) {
+        newRange.setStart(nextBlock, 0);
+        newRange.setEnd(nextBlock, 0);
+        const editorEl = document.querySelector('#stack-post-body-editor');
+        if (editorEl && editorEl.focus) editorEl.focus();
+      }
     }
     newSelection.removeAllRanges();
     newSelection.addRange(newRange);
-    newParagraphElement.focus();
 
     // ========================================================================
     // IMAGE INSERTION MUST TRIGGER AUTOSAVE

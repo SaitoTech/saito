@@ -55,7 +55,7 @@ module.exports = (app, mod) => {
       }
 
       html += `
-        <div class="saito-button-grid">
+        <div class="saito-button-row auto-size force-row">
           <div class="get-saito-tokens"></div>
           <button class="saito-button-secondary" id="get-saito">get saito</button>
           <button class='saito-button-primary ${balance > 0 ? '' : 'disabled'}' id='send-crypto'>Send</button>

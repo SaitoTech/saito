@@ -1,7 +1,7 @@
 import Transaction from './transaction';
 import Peer from './peer';
 import S from 'saito-js/saito';
-import { Saito } from '../../apps/core';
+import { Saito } from './app';
 import PeerService from 'saito-js/lib/peer_service';
 
 export default class Network {
@@ -24,8 +24,8 @@ export default class Network {
     return S.getInstance().getPeers();
   }
 
-  public async getPeer(index: bigint): Promise<Peer> {
-    return S.getInstance().getPeer(index);
+  public async getPeer(publicKey: string): Promise<Peer> {
+    return S.getInstance().getPeer(publicKey);
   }
 
   public async sendRequest(
@@ -40,7 +40,7 @@ export default class Network {
       message,
       data,
       callback,
-      peer ? peer.peerIndex : undefined,
+      peer ? peer.publicKey : undefined,
       signature_required
     );
   }
@@ -51,9 +51,9 @@ export default class Network {
   public async sendTransactionWithCallback(
     transaction: Transaction,
     callback?: any,
-    peerIndex?: bigint
+    publicKey?: string
   ) {
-    return S.getInstance().sendTransactionWithCallback(transaction, callback, peerIndex);
+    return S.getInstance().sendTransactionWithCallback(transaction, callback, publicKey);
   }
 
   /*
@@ -64,10 +64,10 @@ export default class Network {
     message: string,
     data: any = '',
     callback?: any,
-    peerIndex?: bigint,
+    publicKey?: string,
     signature_required?: boolean
   ) {
-    return S.getInstance().sendRequest(message, data, callback, peerIndex, signature_required);
+    return S.getInstance().sendRequest(message, data, callback, publicKey, signature_required);
   }
 
   public close() {}

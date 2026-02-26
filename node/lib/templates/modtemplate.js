@@ -765,7 +765,7 @@ class ModTemplate {
         function (res) {
           return mycallback(res);
         },
-        peer.peerIndex
+        peer.publicKey
       );
     }
   }
@@ -851,7 +851,7 @@ class ModTemplate {
             success_callback(res);
           }
         },
-        peer.peerIndex
+        peer.publicKey
       );
     }
   }
@@ -1095,7 +1095,7 @@ class ModTemplate {
     let hashed_data = this.name + tx.signature;
     if (this.processedTxs[hashed_data] !== undefined) {
       if (this.processedTxs[hashed_data]) {
-        console.log(
+        console.debug(
           'prevent processing duplicated on chain transaction : ',
           tx.from[0]?.publicKey,
           tx.returnMessage(),

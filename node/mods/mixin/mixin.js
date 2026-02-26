@@ -300,7 +300,7 @@ class Mixin extends ModTemplate {
               this.mixin.backed_up = true;
               this.save();
             },
-            peer.peerIndex
+            peer.publicKey
           );
         }
       }
@@ -654,6 +654,10 @@ class Mixin extends ModTemplate {
  */
   async fetchPendingDeposits(asset_id, destination, callback) {
     try {
+      if (!destination) {
+        return callback([]);
+      }
+
       let user = MixinApi({
         keystore: {
           app_id: this.mixin.user_id,
@@ -662,10 +666,6 @@ class Mixin extends ModTemplate {
           session_private_key: this.mixin.session_seed
         }
       });
-
-      if (!destination) {
-        return callback([]);
-      }
 
       let params = {
         asset: asset_id,

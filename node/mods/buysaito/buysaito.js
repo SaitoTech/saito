@@ -910,6 +910,12 @@ class BuySaito extends ModTemplate {
             });
         } else {
           if (!pp.notified) {
+            console.error(
+              'BuySaito cannot complete sale because lacking money: ',
+              available_balance,
+              pp.issue_amount
+            );
+
             this.app.connection.emit('mailrelay-send-email', {
               to: 'buysaito@saito.tech',
               from: 'Saito Token Sales Bot <info@saito.tech>',
