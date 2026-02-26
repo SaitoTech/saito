@@ -56,9 +56,9 @@ echo ""
 
 if [ "$1" == "dev" ] || [ "$2" == "dev" ]; then
   echo "linking game-*.css files into game.css"
-  find "${PROJECT_DIR}/web/saito/" -type f -name 'game-*.css' | sed 's|.*/web|@import url("/web|' | sed 's/$/");/' > "${PROJECT_DIR}/web/saito/game.css"
+  find "${PROJECT_DIR}/web/saito/" -type f -name 'game-*.css' | sed 's|.*/web|@import url("|' | sed 's/$/");/' > "${PROJECT_DIR}/web/saito/game.css"
   echo "linking saito-*.css files into saito.css"
-  find "${PROJECT_DIR}/web/saito/" -type f -name 'saito-*.css' | sed 's|.*/web|@import url("/web|' | sed 's/$/");/' > "${PROJECT_DIR}/web/saito/saito.css"
+  find "${PROJECT_DIR}/web/saito/" -type f -name 'saito-*.css' | sed 's|.*/web|@import url("|' | sed 's/$/");/' > "${PROJECT_DIR}/web/saito/saito.css"
   echo "@import url(\"/saito/css-imports/xclose.css\");" >> "${PROJECT_DIR}/web/saito/saito.css"
 else
   echo "compiling game-*.css files into game.css"
