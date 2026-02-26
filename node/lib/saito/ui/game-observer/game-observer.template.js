@@ -17,7 +17,7 @@ module.exports = (game_mod) => {
         html += '<div></div>';
       }
     } else {
-      html += `<div class="observer-loader-spinner"></div>`;
+      html += '<div></div>';
     }
   }
 
@@ -47,15 +47,13 @@ module.exports = (game_mod) => {
       </div>`;
   }
 
-  html += `<div id="obstatus" class="status">in observer mode</div>
+  html += `<div id="observer-inline-loading" class="observer-inline-loading">
+  <div class="observer-inline-spinner"></div>
+  <div class="observer-inline-text">Loading game...</div>
+</div>
+<div id="observer-status-line" class="observer-title">Game Step: 0 / 0</div>
+<div id="obstatus" class="status">in observer mode</div>
            <div id="controls"></div>
-      <div id="game-observer-sync-overlay" class="game-observer-sync-overlay" aria-hidden="true">
-        <div class="game-observer-sync-overlay-panel">
-          <div class="game-observer-sync-overlay-spinner"></div>
-          <div id="game-observer-sync-overlay-message" class="game-observer-sync-overlay-message">Syncing Game...</div>
-          <div id="game-observer-sync-overlay-steps" class="game-observer-sync-overlay-steps"></div>
-        </div>
-      </div>
     </div>
   `;
 

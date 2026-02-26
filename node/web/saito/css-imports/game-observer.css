@@ -72,20 +72,78 @@
   min-height: 5rem;
 }
 
-.game-observer-controls {
-  height: 70px;
-  width: 100%;
-  cursor: pointer;
-  opacity: 0.8;
+.observer-controls-row {
   display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
+  justify-content: center;
   align-items: center;
-  justify-content: space-evenly;
+  gap: 18px;
 }
 
-.game-observer-controls .flashit{
-  animation: flashme 1s infinite cubic-bezier(0.4, 0, 1, 1);
+.observer-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  font-size: 18px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.observer-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.observer-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.observer-title {
+  text-align: center;
+  font-size: 22px;
+  margin-bottom: 16px;
+  white-space: nowrap;
+}
+
+.observer-inline-loading {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.observer-inline-loading.active {
+  display: flex;
+}
+
+.observer-inline-spinner {
+  width: 26px;
+  height: 26px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: observer-inline-spin 0.8s linear infinite;
+}
+
+@keyframes observer-inline-spin {
+  to { transform: rotate(360deg); }
+}
+
+.observer-inline-text {
+  font-size: 0.9em;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.observer-slider-row {
+  width: 70%;
+  margin-top: 10px;
+}
+
+#observer-slider {
+  width: 100%;
+  height: 4px;
 }
 
 .unavailable {

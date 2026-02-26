@@ -41,7 +41,7 @@ class InviteManager {
 
 		for (let list of this.lists) {
 			if (this.list === 'all' || this.list === list) {
-				let listGames = this.mod.returnGamesWithFilter({ status: list }).map((game) => game.tx);
+				let listGames = this.mod.returnGamesWithFilter({ status: list }).map((r) => r.tx);
 
 				if (listGames.length > 0 && !this.game_filter) {
 					if (list === 'mine') {

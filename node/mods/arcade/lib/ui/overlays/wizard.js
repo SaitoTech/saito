@@ -128,7 +128,7 @@ class GameWizard {
 		// Display Rules Overlay
 		//
 		if (document.getElementById('game-rules-btn')) {
-			document.getElementById('game-rules-btn').onclick = function () {
+			document.getElementById('game-rules-btn').onclick = () => {
 				let rules_overlay = new SaitoOverlay(this.app, this.mod);
 				rules_overlay.show(this.game_mod.returnGameRulesHTML());
 			};
