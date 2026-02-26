@@ -6,7 +6,7 @@ use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::Endpoint;
-use log::{debug, info};
+use log::{debug, info, trace};
 use serde::{Serialize, Serializer};
 use std::cmp::Ordering;
 use std::io::Error;
@@ -500,7 +500,7 @@ impl Peer {
                 );
                 return;
             }
-            info!("sending ping to peer : {:?}", self.public_key.to_base58());
+            trace!("sending ping to peer : {:?}", self.public_key.to_base58());
             io_handler
                 .send_message(self.public_key, Message::Ping().serialize().as_slice())
                 .await
