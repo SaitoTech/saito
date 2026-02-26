@@ -492,11 +492,11 @@ impl RoutingThread {
     }
 
     pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
-        debug!("connecting to static peers");
+        trace!("connecting to static peers");
         let mut peers = self.network.peer_lock.write().await;
         for (public_key, peer) in &mut peers.peers {
             if peer.url.is_none() {
-                debug!(
+                trace!(
                     "peer : {} doesn't have a url. so not connecting to it",
                     public_key.to_base58()
                 );
