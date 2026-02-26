@@ -152,9 +152,9 @@ class LoungeOverlay {
 		this.app.connection.emit('add-league-identifier-to-dom');
 	}
 
-	_buildReadyBody(game, state, game_mod) {
-		const players = state?.players || game?.tx?.msg?.players || [];
-		const options = state?.options || game?.tx?.msg?.options || {};
+	_buildReadyBody(record, state, game_mod) {
+		const players = state?.players || record?.tx?.msg?.players || [];
+		const options = state?.options || record?.tx?.msg?.options || {};
 		let optsHtml = '';
 		if (game_mod && typeof game_mod.returnShortGameOptionsArray === 'function') {
 			const sgoa = game_mod.returnShortGameOptionsArray(options);
@@ -279,12 +279,12 @@ class LoungeOverlay {
 			document.getElementById('arcade-game-controls-close-game').onclick = async (e) => {
 				if (this.invite) {
 					this.overlay.remove();
-					this.app.browser.logMatomoEvent('GameInvite', 'CloseActiveGame', this.invite.game_mod.name);
+					this.app.browser.logMatomoEvent('GameInvite', 'CloseActiveGame', this.invite.game_mod?.name);
 					let c = await sconfirm('Are you sure you want to end the game?');
 					if (c) {
 						this.app.connection.emit(
 							'arcade-stop-game',
-							this.invite.game_mod.name,
+							this.invite.game_mod?.name,
 							this.invite.game_id,
 							'cancellation'
 						);
@@ -307,14 +307,14 @@ class LoungeOverlay {
 		if (document.getElementById('arcade-game-controls-forfeit-game')) {
 			document.getElementById('arcade-game-controls-forfeit-game').onclick = async (e) => {
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent('GameInvite', 'ForfeitGame', this.invite.game_mod.name);
+				this.app.browser.logMatomoEvent('GameInvite', 'ForfeitGame', this.invite.game_mod?.name);
 
 				let c = await sconfirm('Are you sure you want to end the game and take a loss?');
 
 				if (c) {
 					this.app.connection.emit(
 						'arcade-stop-game',
-						this.invite.game_mod.name,
+						this.invite.game_mod?.name,
 						this.invite.game_id,
 						'forfeit'
 					);
@@ -326,7 +326,7 @@ class LoungeOverlay {
 			document.getElementById('arcade-game-controls-cancel-join').onclick = (e) => {
 				this.mod.sendCancelTransaction(this.invite.game_id);
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent('GameInvite', 'CancelJoin', this.invite.game_mod.name);
+				this.app.browser.logMatomoEvent('GameInvite', 'CancelJoin', this.invite.game_mod?.name);
 			};
 		}
 
@@ -341,7 +341,7 @@ class LoungeOverlay {
 				this.app.connection.emit('league-overlay-remove-request');
 				this.mod.observeGame(this.invite.game_id, true);
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent('GameInvite', 'WatchGame', this.invite.game_mod.name);
+				this.app.browser.logMatomoEvent('GameInvite', 'WatchGame', this.invite.game_mod?.name);
 			};
 		}
 
@@ -350,7 +350,7 @@ class LoungeOverlay {
 				this.app.connection.emit('league-overlay-remove-request');
 				this.mod.observeGame(this.invite.game_id);
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent('GameInvite', 'ReviewGame', this.invite.game_mod.name);
+				this.app.browser.logMatomoEvent('GameInvite', 'ReviewGame', this.invite.game_mod?.name);
 			};
 		}
 
