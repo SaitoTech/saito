@@ -26,9 +26,9 @@ impl WasmNetworkPeer {
     }
 
     #[wasm_bindgen(constructor)]
-    pub fn new_peer() -> WasmNetworkPeer {
+    pub fn new_peer(url: Option<String>) -> WasmNetworkPeer {
         Self {
-            peer: NetworkPeer::new(None),
+            peer: NetworkPeer::new(url),
         }
     }
     pub async fn get_handshake_challenge_buffer(&mut self) -> js_sys::Uint8Array {
