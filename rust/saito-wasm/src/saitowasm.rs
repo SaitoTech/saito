@@ -8,7 +8,7 @@ use crate::wasm_balance_snapshot::WasmBalanceSnapshot;
 use crate::wasm_block::WasmBlock;
 use crate::wasm_blockchain::WasmBlockchain;
 use crate::wasm_configuration::WasmConfiguration;
-use crate::wasm_io_handler::{MsgHandler, WasmIoHandler};
+use crate::wasm_io_handler::WasmIoHandler;
 use crate::wasm_network_peer::WasmNetworkPeer;
 use crate::wasm_nft::WasmNFT;
 use crate::wasm_peer::WasmPeer;
