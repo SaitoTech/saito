@@ -83,7 +83,7 @@ class ProvideMetaDataOverlay {
       let promptText = currentTitle === defaultTitle ? '' : currentTitle;
       let new_title = await sprompt('Provide NFT Title:', promptText);
 
-      if (new_title !== null) {
+      if (new_title) {
         if (new_title.trim()) {
           title_element.innerText = new_title.trim();
         } else {
@@ -125,7 +125,7 @@ class ProvideMetaDataOverlay {
         let promptText = currentDesc === defaultDesc ? '' : currentDesc;
         let new_description = await sprompt('Provide NFT Description:', promptText);
 
-        if (new_description !== null) {
+        if (new_description) {
           if (new_description.trim()) {
             descText.innerText = new_description.trim();
           } else {

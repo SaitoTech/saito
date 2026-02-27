@@ -607,8 +607,8 @@
 
 .nft-image-preview {
   align-self: center;
-  max-width: 56rem;
-  max-height: 30rem;
+  max-width: min(56rem, 100%);
+  max-height: min(30rem, 50vh);
   position: relative;
 }
 

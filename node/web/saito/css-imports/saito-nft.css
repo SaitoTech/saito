@@ -359,6 +359,8 @@
   min-height: 300px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Image wrapper for overlay positioning */
@@ -585,26 +587,13 @@
   flex: 1;
   padding: 12px 24px;
   border-radius: 8px;
-  border: none;
-  cursor: pointer;
   font-weight: 600;
   max-width: 20rem;
   transition: all 0.2s ease;
-  background: var(--saito-primary);
-  color: var(--saito-primary-text);
 }
 
 .saito-nft-footer-btn.disabled-btn {
   filter: opacity(60%) brightness(0.8);
-}
-
-.saito-nft-footer-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-.saito-nft-footer-btn:active {
-  transform: translateY(0);
 }
 
 /* ============================================

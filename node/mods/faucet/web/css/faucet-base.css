@@ -11,7 +11,7 @@ body > .faucet {
 
 .faucet button {
   max-width: 400px;
-  width: 400px;
+  width: 100%;
   margin-left: auto;
   margin-right: auto;
 }

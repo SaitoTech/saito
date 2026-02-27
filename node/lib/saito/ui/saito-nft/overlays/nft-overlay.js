@@ -109,6 +109,7 @@ class NFTOverlay {
     //
     // contextual confirm buttons
     //
+    let cancel_send_btn = document.querySelector('.saito-nft-panel-send .saito-nft-cancel-btn');
     let confirm_send_btn = document.querySelector('.saito-nft-panel-send .saito-nft-confirm-btn');
     let confirm_merge_btn = document.querySelector('#saito-nft-confirm-merge');
 
@@ -355,6 +356,12 @@ class NFTOverlay {
     if (send_btn) {
       send_btn.onclick = (e) => {
         document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-send');
+      };
+    }
+
+    if (cancel_send_btn) {
+      cancel_send_btn.onclick = (e) => {
+        document.querySelector('.saito-nft-overlay.panels').classList.remove('saito-nft-mode-send');
       };
     }
 

@@ -257,7 +257,7 @@ export default class Wallet extends SaitoWallet {
         }
 
         if (tx.type !== 8) {
-          this.app.browser.siteMessage(`${msg}${obj.amount} SAITO`);
+          this.app.browser.siteMessage(`${msg}${obj.amount} SAITO`, 5000);
         }
 
         console.log(obj);
