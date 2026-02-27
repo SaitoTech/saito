@@ -31,7 +31,7 @@ class BuySaito extends ModTemplate {
 
     this.mixin_mod = null;
     this.erc_saito = null;
-    this.time_limit = 15 * 60000;
+    this.time_limit = 25 * 60000;
     // For the full node, to juggle multiple deposit addresses
     this.mixin_accounts = [];
 
