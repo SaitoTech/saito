@@ -457,7 +457,7 @@ class GameMoves {
       console.info(
         'GT [processFutureMoves] Observer.... check for additional moves... after processing future moves'
       );
-      this.observerDownloadNextMoves(() => {
+      this.observerControls.observerDownloadNextMoves(() => {
         this.processFutureMoves();
       });
     }
@@ -695,122 +695,6 @@ class GameMoves {
     game_self.app.network.propagateTransaction(newtx);
   }
 
-  async observerDownloadNextMoves(mycallback = null) {
-    // purge old transactions
-    for (let i = this.game.future.length - 1; i >= 0; i--) {
-      let queued_tx = new Transaction();
-      queued_tx.deserialize_from_web(this.app, this.game.future[i]);
-      let queued_txmsg = queued_tx.returnMessage();
-
-      if (
-        queued_txmsg.step.game <= this.game.step.game &&
-        queued_txmsg.step.game <= this.game.step.players[queued_tx.from[0].publicKey]
-      ) {
-        console.info(
-          'GT [observer] Trimming future move to download new ones:',
-          JSON.parse(JSON.stringify(queued_txmsg))
-        );
-        this.game.future.splice(i, 1);
-      }
-    }
-
-    if (!this.archive_connected) {
-      console.warn("GT [observer] Haven't established peer yet, try again after 3s");
-      setTimeout(() => {
-        this.observerDownloadNextMoves(mycallback);
-      }, 3000);
-      return null;
-    }
-
-    if (this.archive_exhausted < 0) {
-      console.info('GT [observer] Try archives after 10s delay');
-      setTimeout(() => {
-        this.archive_exhausted = 0;
-        this.observerDownloadNextMoves(mycallback);
-      }, 10000);
-      return null;
-    }
-
-    let currentStep = String(this.game.step.game).padStart(5, '0');
-
-    console.info(
-      `GT [observer] Load game moves from archive (${this.archive_exhausted}): ${this.name}_${this.game.id} from ${this.game.originator} after ${currentStep}`
-    );
-
-    return this.app.storage.loadTransactions(
-      {
-        field1: this.name,
-        field4: this.game.id,
-        field5: currentStep,
-        ascending: 1,
-        limit: 20,
-        field5_sort: 1
-      },
-      async (txs) => {
-        let new_moves = 0;
-
-        for (let tx of txs) {
-          let game_move = tx.returnMessage();
-
-          if (game_move?.step && game_move.request == 'game') {
-            let loaded_step = game_move.step.game;
-
-            if (
-              loaded_step > this.game.step.game ||
-              loaded_step > this.game.step.players[tx.from[0].publicKey]
-            ) {
-              let ftx = tx.serialize_to_web(this.app);
-
-              if (!this.game.future.includes(ftx)) {
-                this.game.future.push(ftx);
-                new_moves++;
-                // console.debug('GT [observer] Archived move: ' + JSON.stringify(game_move));
-              }
-            }
-          } else {
-            console.warn('GT [observer] Non game move: ', game_move);
-
-            let rtx = new Transaction();
-            rtx.msg.module = 'Relay';
-            rtx.msg.request = 'game relay update';
-            rtx.msg.data = tx.toJson();
-
-            if (!this.game.futurePlus) {
-              this.game.futurePlus = {};
-            }
-
-            this.game.futurePlus[game_move.step] = rtx;
-          }
-        }
-
-        console.info(
-          `GT [observer] Found ${new_moves} future moves in archives. Initializing? `,
-          this.game.initializing
-        );
-
-        this.saveFutureMoves(this.game.id);
-        this.saveGame(this.game.id);
-
-        if (new_moves == 0) {
-          if (this.game.initializing) {
-            // Allow delayed looping when getting initial moves...
-            this.archive_exhausted = -1;
-          } else {
-            this.archive_exhausted = 1;
-          }
-
-          if (this.game.player == 0 && this.gameBrowserActive()) {
-            this.observerControls.render();
-          }
-        }
-
-        if (mycallback) {
-          console.debug('GT [observer] Run callback after fetching archives...');
-          mycallback();
-        }
-      }
-    );
-  }
 }
 
 module.exports = GameMoves;

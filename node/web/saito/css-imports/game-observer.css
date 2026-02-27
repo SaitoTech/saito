@@ -1,6 +1,29 @@
+.game-observer-sync-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.game-observer-sync-title {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.game-observer-sync-status {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  margin-top: 1rem;
+}
 
 .game-observer-hud{
-  position: absolute;
+  position: fixed;
+  pointer-events: auto;
   display: flex;
   bottom: 2rem;
   left: 50%;
@@ -38,48 +61,37 @@
   display: none;
 }
 
-.game-observer-hud-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.game-observer-hud-header > div {
-  flex: 1;
-}
-
-.game-observer-header-control .game-observer-btn {
-  width: fit-content;
-  padding: 2px 10px;
-  border: 1px solid;
-  border-radius: 0.75rem;
-  cursor: pointer;
-  margin-left: auto;
-  display: flex;
-}
-
-.join-game {
-  font-size: 1.6rem;
-  padding: 4px 16px;
-  cursor: pointer;
-  border: 1px solid;
-  border-radius: 1rem;
-  width: fit-content;
-}
-
 #obstatus {
   font-size: 1.8rem;
   min-height: 5rem;
 }
 
-.observer-controls-row {
+.game-observer-controls-row {
   display: flex;
+  flex-direction: row !important;
   justify-content: center;
   align-items: center;
   gap: 18px;
 }
 
-.observer-btn {
+.game-observer-controls-row .game-observer-btn {
+  width: fit-content;
+  padding: 2px 10px;
+  border: 1px solid;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.game-observer-controls-row .game-observer-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.game-observer-ctrl-btn {
   width: 44px;
   height: 44px;
   border-radius: 50%;
@@ -90,55 +102,77 @@
   transition: background 0.2s ease, opacity 0.2s ease;
 }
 
-.observer-btn:hover:not(:disabled) {
+.game-observer-ctrl-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.3);
 }
 
-.observer-btn:disabled {
+.game-observer-ctrl-btn:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
-.observer-title {
+.game-observer-title {
   text-align: center;
   font-size: 22px;
   margin-bottom: 16px;
   white-space: nowrap;
 }
 
-.observer-inline-loading {
-  display: none;
+.game-observer-inline-loading {
+  display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
   margin-bottom: 10px;
+  gap: 8px;
 }
 
-.observer-inline-loading.active {
-  display: flex;
-}
-
-.observer-inline-spinner {
+.game-observer-inline-spinner {
   width: 26px;
   height: 26px;
   border: 3px solid rgba(255, 255, 255, 0.3);
   border-top-color: white;
   border-radius: 50%;
-  animation: observer-inline-spin 0.8s linear infinite;
+  animation: game-observer-inline-spin 0.8s linear infinite;
 }
 
-@keyframes observer-inline-spin {
+@keyframes game-observer-inline-spin {
   to { transform: rotate(360deg); }
 }
 
-.observer-inline-text {
+.game-observer-hud.loading .game-observer-inline-loading {
+  display: flex;
+}
+
+.game-observer-hud.loading .game-observer-controls-row,
+.game-observer-hud.loading .game-observer-slider-row {
+  display: none;
+}
+
+.game-observer-hud .game-observer-controls-row {
+  display: flex;
+}
+
+.game-observer-hud .game-observer-slider-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 10px;
+  gap: 4px;
+}
+
+.game-observer-inline-text {
   font-size: 0.9em;
   color: rgba(255, 255, 255, 0.9);
 }
 
-.observer-slider-row {
-  width: 70%;
-  margin-top: 10px;
+.game-observer-slider-row .game-observer-state-slider {
+  width: 100%;
+  max-width: 350px;
+  height: 6px;
+  cursor: pointer;
+  accent-color: rgba(255, 255, 255, 0.8);
 }
 
 #observer-slider {
@@ -214,4 +248,71 @@
   margin-top: 8px;
   font-size: 14px;
   color: #666;
+}
+
+/* --- HARD LAYOUT ENFORCEMENT --- */
+
+.game-observer-hud {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+.game-observer-hud .game-observer-controls-row {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+.game-observer-hud .game-observer-slider-row {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100%;
+}
+
+.game-observer-hud .status {
+  display: block !important;
+}
+
+/* --- Override global button styles inside observer --- */
+
+.game-observer-hud button {
+  min-width: auto !important;
+  min-height: auto !important;
+  margin: 0 !important;
+  padding: 4px 10px !important;
+  font-size: 1.4rem !important;
+  border-radius: 0.5rem !important;
+}
+
+.game-observer-hud .game-observer-btn {
+  width: auto !important;
+  min-width: auto !important;
+  min-height: auto !important;
+  margin: 0 !important;
+}
+
+/* Component-level reset for observer */
+
+.game-observer-hud button {
+  all: unset;
+  box-sizing: border-box;
+}
+
+.game-observer-hud .game-observer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--saito-primary);
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.game-observer-hud .game-observer-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
