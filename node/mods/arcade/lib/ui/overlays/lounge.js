@@ -187,7 +187,9 @@ class LoungeOverlay {
 		if (startBtn && this.game_id != null) {
 			startBtn.onclick = (e) => {
 				let game = this.mod.returnGame(this.game_id);
-				let slug = game?.tx?.msg?.game || game?.state?.module || 'arcade';
+				const gameName = game?.tx?.msg?.game || game?.state?.module;
+				const mod = gameName ? this.app.modules.returnModule(gameName) : null;
+				let slug = mod?.returnSlug?.() || mod?.slug || gameName || 'arcade';
 				let am = this.app.modules.returnActiveModule()?.returnName() || 'Arcade';
 				this.app.options.homeModule = am;
 				this.app.storage.saveOptions();
@@ -196,7 +198,7 @@ class LoungeOverlay {
 					am,
 					slug ? slug.slice(0, 1).toUpperCase() + slug.slice(1) : 'Game'
 				);
-				navigateWindow(`/${slug || 'arcade'}`, 200);
+				navigateWindow(`/${slug}`, 200);
 			};
 		}
 
@@ -264,9 +266,11 @@ class LoungeOverlay {
 					name = this.invite.game_mod?.name;
 				} else if (this.game_id != null) {
 					let game = this.mod.returnGame(this.game_id);
-					slug = game?.tx?.msg?.game || game?.state?.module || 'arcade';
+					const gameName = game?.tx?.msg?.game || game?.state?.module;
+					const mod = gameName ? this.app.modules.returnModule(gameName) : null;
+					slug = mod?.returnSlug?.() || mod?.slug || gameName || 'arcade';
 					gameId = this.game_id;
-					name = this.app.modules.returnModuleBySlug(slug)?.name;
+					name = mod?.returnName?.() || mod?.name;
 				}
 				if (name) this.app.browser.logMatomoEvent('GameInvite', 'ContinueGame', name);
 				if (slug != null && gameId != null) {

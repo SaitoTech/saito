@@ -292,6 +292,12 @@ class GameGame {
         if (this.app.options.games[i].id === game_id) {
           this.game = JSON.parse(JSON.stringify(this.app.options.games[i]));
           console.info('GT loading game: ' + game_id);
+
+          // Enforce observer invariant after reload
+          if (this.game?.observer_mode === true) {
+            this.game.player = 0;
+          }
+
           return this.game;
         }
       }
@@ -304,6 +310,11 @@ class GameGame {
       this.saveGame(this.game.id);
 
       console.debug('GT [loadGame]: ', JSON.parse(JSON.stringify(this.app.options.games)));
+
+      // Enforce observer invariant for newly created games that were marked observer_mode earlier
+      if (this.game?.observer_mode === true) {
+        this.game.player = 0;
+      }
 
       return this.game;
     }

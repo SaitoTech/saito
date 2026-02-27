@@ -1,4 +1,5 @@
 const GameObserverTemplate = require('./game-observer.template');
+const Transaction = require('../../transaction').default;
 
 /**
  * An interface for a third party to trace the moves of a game step-by-step
@@ -17,8 +18,11 @@ class GameObserver {
     this.step_speed = 2000;
     this._paused = true;
 
-    this.game_states = [];
+    this.is_loading = true;
+    this._engine_game_states = []; // engine pushes here via .game_states getter; observer logic uses all_moves only
     this.game_moves = [];
+    this.all_moves = []; // canonical move list: authoritative for step counts and slider; only grows when new moves arrive from network, never during replay
+    this.baseline_state = null; // post-READY snapshot for deterministic replay
     this.future_moves = [];
 
     this.is_syncing = false;
@@ -33,21 +37,35 @@ class GameObserver {
     this.follow_live = true;
     this.is_playing = false;
     this.base_game_state = null;
+    this.is_replaying = false; // true while replayToIndex is running; prevents syncing duplicates into all_moves
 
     // configurable slider resolution
     this.max_slider_stops = 20;
 
-    this.is_loading = true;
+    this.sync_phase = 'connecting';
+    this._lastKnownStatesLength = 0;
+    this._draggable_initialized = false;
   }
 
   get is_paused() {
     return this._paused;
   }
 
+  /** Engine expects this array for push/shift; observer logic does not use it. */
+  get game_states() {
+    return this._engine_game_states || (this._engine_game_states = []);
+  }
+
+  /** Clamp _viewingIndex to [0, all_moves.length - 1]. */
+  _clampViewingIndex() {
+    const max = Math.max(0, this.all_moves.length - 1);
+    this._viewingIndex = Math.max(0, Math.min(this._viewingIndex, max));
+  }
+
   _updateViewingLabel() {
     const label = document.getElementById('game-observer-viewing-label');
     if (!label) return;
-    const total = Math.max(0, this.game_states.length);
+    const total = Math.max(0, this.all_moves.length);
     const x = total === 0 ? 0 : this._viewingIndex + 1;
     label.textContent = `Viewing move ${x} of ${total}`;
   }
@@ -55,42 +73,27 @@ class GameObserver {
   _updateStateSlider() {
     const slider = document.getElementById('game-observer-state-slider');
     if (!slider) return;
-    const max = Math.max(0, this.game_states.length - 1);
-    if (this._viewingIndex > max) this._viewingIndex = max;
+    this._clampViewingIndex();
+    const max = Math.max(0, this.all_moves.length - 1);
     slider.max = String(max);
     slider.value = String(this._viewingIndex);
     this._updateViewingLabel();
+    this._updateDisabledState();
   }
 
   _onStateSliderInput() {
     const slider = document.getElementById('game-observer-state-slider');
     if (!slider) return;
     const idx = parseInt(slider.value, 10);
-    if (idx < 0 || idx >= this.game_states.length) return;
-    const state = this.game_states[idx];
-    if (!state) return;
+    if (idx < 0 || idx >= this.all_moves.length) return;
 
-    this.pause();
-    this._viewingIndex = idx;
-    const clone = JSON.parse(JSON.stringify(state));
-    this.game_mod.game = clone;
-    this.game_mod.saveGame(this.game_mod.game.id);
-    this._updateViewingLabel();
-
-    if (typeof this.game_mod.render === 'function') {
-      this.game_mod.render(this.app);
-    }
+    this.replayToIndex(idx);
   }
 
   /**
    * Render the Observer interface
    */
   render() {
-    console.log('Rendering ObserverHUD');
-    if (this.game_mod.game?.live) {
-      this._paused = false;
-    }
-
     if (!this.arcade_mod) {
       this.arcade_mod = this.app.modules.returnModule('Arcade');
       if (this.arcade_mod == null) {
@@ -99,11 +102,32 @@ class GameObserver {
       }
     }
 
-    if (!document.getElementById('game-observer-hud')) {
-      this.app.browser.addElementToDom(GameObserverTemplate(this.game_mod));
-    } else {
-      this.app.browser.replaceElementById(GameObserverTemplate(this.game_mod), 'game-observer-hud');
+    // When archive returns zero moves, engine calls render() after setting archive_exhausted = 1; exit loading so overlay is removed
+    if (this.is_loading && this.game_mod.archive_exhausted === 1) {
+      this.finishLoading();
+      return;
     }
+
+    const html = GameObserverTemplate(this.game_mod, this.is_loading);
+
+    if (this.is_loading) {
+      const syncOverlay = document.getElementById('observer-sync-overlay');
+      if (syncOverlay) {
+        this.app.browser.replaceElementById(html, 'observer-sync-overlay');
+      } else {
+        this.app.browser.addElementToDom(html);
+      }
+    } else {
+      const prevSync = document.getElementById('observer-sync-overlay');
+      if (prevSync) prevSync.remove();
+      if (!document.getElementById('game-observer-hud')) {
+        this.app.browser.addElementToDom(html);
+      } else {
+        this.app.browser.replaceElementById(html, 'game-observer-hud');
+      }
+    }
+
+    console.log('Observer DOM Audit:', document.querySelectorAll('.game-observer-controls-row').length, document.querySelectorAll('.game-observer-hud').length);
 
     this.attachEvents();
     this.updateUIState();
@@ -119,6 +143,11 @@ class GameObserver {
     if (document.getElementById('game-observer-hud')) {
       document.getElementById('game-observer-hud').remove();
     }
+  }
+
+  updateSyncStatus(message) {
+    const el = document.getElementById('observer-sync-status');
+    if (el) el.innerText = message;
   }
 
   updateStatus(str) {
@@ -142,75 +171,41 @@ class GameObserver {
     let observer_self = this;
     console.log('Paused/Halted: ' + this.is_paused + ' ' + this.game_mod.halted);
 
-    if (document.getElementById('game-observer-next-btn')) {
-      document.getElementById('game-observer-next-btn').onclick = (e) => {
-        document.getElementById('game-observer-next-btn').classList.remove('flashit');
-        if (!this.is_paused) {
-          this.step_speed /= 2;
-          return;
-        }
-
-        this.next();
+    if (document.getElementById('observer-back')) {
+      document.getElementById('observer-back').onclick = (e) => {
+        if (e.target.closest('button').disabled) return;
+        this.showNextMoveButton();
+        this.last();
       };
     }
 
-    if (document.getElementById('game-observer-play-btn')) {
-      const playBtn = document.getElementById('game-observer-play-btn');
+    if (document.getElementById('observer-play')) {
+      const playBtn = document.getElementById('observer-play');
       playBtn.setAttribute('title', this.is_paused ? 'Resume' : 'Pause');
       playBtn.onclick = (e) => {
-        if (this.game_mod.game?.live) {
-          this.game_mod.game.live = 0;
-          this.render();
-          this.pause();
-          return;
-        }
-
         console.log('GO Paused/Halted: ' + this.is_paused + ' ' + this.game_mod.halted);
-        document.getElementById('game-observer-next-btn').classList.remove('flashit');
+        const fwdBtn = document.getElementById('observer-forward');
+        if (fwdBtn) fwdBtn.classList.remove('flashit');
 
-        this.step_speed = 2000; //Reset to normal play speed
+        this.step_speed = 2000;
         if (this.is_paused) {
           this.play();
-          this.next();
         } else {
           this.pause();
         }
       };
     }
 
-    if (document.getElementById('game-observer-first-btn')) {
-      document.getElementById('game-observer-first-btn').onclick = async (e) => {
-        this.game_states = [];
-        this.future_moves = this.future_moves.concat(this.game_moves);
-        this.game_moves = [];
-        this.pause();
-
-        //Reset the game_mod.game
-        this.game_mod.game = this.game_mod.newGame(this.game_mod.game.id);
-        this.game_mod.saveGame(this.game_mod.game.id);
-        let game = this.arcade_mod.returnGame(this.game_mod.game.id);
-        await this.game_mod.initializeObserverMode(game);
-
-        this.game_mod.halted = 1; // Default to paused
-
-        observer_self.is_syncing = true;
-        console.log('[GameObserver] sync start detected (first-btn: archive load)');
-        this.game_mod.observerDownloadNextMoves(() => {
-          console.log('GAME QUEUE:' + JSON.stringify(this.game_mod.game.queue));
-          this.game_mod.initialize_game_run = 0;
-          this.game_mod.initializeGameQueue(this.game_mod.game.id);
-          //Tell gameObserver HUD to update its step
-          observer_self.updateStep(this.game_mod.game.step.game);
-        });
-      };
-    }
-
-    if (document.getElementById('game-observer-last-btn')) {
-      document.getElementById('game-observer-last-btn').onclick = (e) => {
-        //Backup one step
-        this.pause();
-        this.showNextMoveButton();
-        this.last();
+    if (document.getElementById('observer-forward')) {
+      document.getElementById('observer-forward').onclick = (e) => {
+        if (e.target.closest('button').disabled) return;
+        const fwdBtn = document.getElementById('observer-forward');
+        if (fwdBtn) fwdBtn.classList.remove('flashit');
+        if (!this.is_paused) {
+          this.step_speed /= 2;
+          return;
+        }
+        this.next();
       };
     }
 
@@ -220,53 +215,166 @@ class GameObserver {
       this._updateStateSlider();
     }
 
-    this.app.browser.makeDraggable('game-observer-hud');
-
-    let joinBtn = document.getElementById('observer-join-game-btn');
-    if (joinBtn) {
-      joinBtn.onclick = async () => {
-        let c = await sconfirm('Request to be dealt into the next hand?');
-        if (c) {
-          console.log(this.game_mod.game.options);
-          if (
-            this.game_mod.game.options.crypto &&
-            (parseFloat(this.game_mod.game.options.stake) > 0 ||
-              parseFloat(this.game_mod.game.options.stake?.min) >= 0)
-          ) {
-            this.app.connection.emit('accept-game-stake', {
-              game_mod: this.game_mod,
-              ticker: this.game_mod.game.options.crypto,
-              stake: this.game_mod.game.options.stake,
-              accept_callback: (input = null) => {
-                joinBtn.innerHTML = 'waiting';
-                joinBtn.onclick = null;
-                this.game_mod.sendMetaMessage('JOIN', {
-                  pkey: this.game_mod.publicKey,
-                  round: this.game_mod.currentRound(),
-                  sigs: new Array(this.game_mod.game.players.length)
-                });
-                $('#game-observer-play-btn').remove();
-              }
-            });
-          } else {
-            joinBtn.innerHTML = 'waiting';
-            joinBtn.onclick = null;
-            this.game_mod.sendMetaMessage('JOIN', {
-              pkey: this.game_mod.publicKey,
-              round: this.game_mod.currentRound(),
-              sigs: new Array(this.game_mod.game.players.length)
-            });
-            $('#game-observer-play-btn').remove();
-          }
-        }
-      };
+    if (!this._draggable_initialized) {
+      this.app.browser.makeDraggable('game-observer-hud');
+      this._draggable_initialized = true;
     }
   }
 
-  updateStep(step) {
-    this.moves_processed = typeof step === 'number' ? step : parseInt(step, 10) || 0;
+  finishLoading() {
+    if (!this.is_loading) return;
+
+    this.sync_phase = 'ready';
+
+    const total = this.all_moves.length;
+    if (total > 0) {
+      if (this.game_mod.game?.over === 1) {
+        this._viewingIndex = 0;
+        this.is_playing = false;
+        this._paused = true;
+      } else {
+        this._viewingIndex = total - 1;
+        this.is_playing = true;
+        this._paused = false;
+      }
+    } else {
+      this._viewingIndex = 0;
+    }
+
+    console.log('finishLoading:', {
+      total: this.all_moves.length,
+      viewingIndex: this._viewingIndex
+    });
+    this.is_loading = false;
+    this._clampViewingIndex();
     this._updateStateSlider();
     this.updateUIState();
+    if (this.all_moves.length > 0 && !this.baseline_state && this._engine_game_states && this._engine_game_states.length > 0) {
+      this.baseline_state = JSON.parse(JSON.stringify(this._engine_game_states[0]));
+    }
+
+    // Re-render once to switch from Loading → Ready template
+    this.render();
+
+    // Live follow after archive sync: request current state from host so new moves arrive in real time
+    if (this.game_mod.observer_watch_live) {
+      this.game_mod.game.live = true;
+      this.game_mod.expecting_state = true;
+      this.game_mod.sendMetaMessage('FOLLOW');
+    }
+  }
+
+  /**
+   * Reset to READY baseline and replay moves 0..targetIndex deterministically.
+   * Does not call saveGame. Updates _viewingIndex and UI after execution.
+   * Preserves moves beyond targetIndex (and any engine future) so they are restored after replay.
+   */
+  async replayToIndex(targetIndex) {
+    this.is_playing = false;
+    if (!this.baseline_state) return;
+
+    const maxIndex = Math.max(0, this.all_moves.length - 1);
+    const clamped = Math.max(0, Math.min(targetIndex, maxIndex));
+
+    // Store future beyond target so we never permanently delete canonical moves; new moves arriving during rewind remain accessible
+    const futureBeyondTarget = [];
+    for (let i = clamped + 1; i < this.all_moves.length; i++) {
+      const tx = this.all_moves[i];
+      if (tx && typeof tx.serialize_to_web === 'function') {
+        futureBeyondTarget.push(tx.serialize_to_web(this.app));
+      }
+    }
+    const storedEngineFuture = (this.game_mod.game?.future && this.game_mod.game.future.length)
+      ? this.game_mod.game.future.slice()
+      : [];
+
+    this.is_replaying = true;
+
+    this.game_mod.game = JSON.parse(JSON.stringify(this.baseline_state));
+    this.game_mod.game.queue = [];
+    this.game_mod.game.future = [];
+
+    for (let i = 0; i <= clamped && i < this.all_moves.length; i++) {
+      const tx = this.all_moves[i];
+      if (tx && typeof tx.serialize_to_web === 'function') {
+        this.game_mod.game.future.push(tx.serialize_to_web(this.app));
+      }
+    }
+
+    if (!this.game_mod.game.future) this.game_mod.game.future = [];
+
+    if (this.app.options && this.app.options.games) {
+      for (let i = 0; i < this.app.options.games.length; i++) {
+        if (this.app.options.games[i].id === this.game_mod.game.id) {
+          if (this.app.options.games[i].future === undefined) {
+            this.app.options.games[i].future = [];
+          }
+          break;
+        }
+      }
+    }
+
+    this.game_mod.halted = 0;
+    await this.game_mod.startQueue();
+
+    this.is_replaying = false;
+
+    // Restore moves beyond targetIndex so canonical moves and new arrivals remain accessible
+    this.game_mod.game.future = futureBeyondTarget.slice();
+    for (const mv of storedEngineFuture) {
+      const key = JSON.stringify(mv);
+      if (!this.game_mod.game.future.some((f) => JSON.stringify(f) === key)) {
+        this.game_mod.game.future.push(mv);
+      }
+    }
+
+    this.game_mod.game.player = 0;
+
+    this._viewingIndex = clamped;
+    this._clampViewingIndex();
+    this._updateStateSlider();
+    this.updateUIState();
+
+    this.game_mod.game.status = `Paused at move ${this._viewingIndex + 1}. Click Play to continue.`;
+  }
+
+  updateStep(step) {
+    // Canonical append: only when engine just added a move (addNextMove → updateStep) and not replaying
+    if (!this.is_replaying && this.game_moves.length > 0) {
+      this.all_moves.push(this.game_moves[this.game_moves.length - 1]);
+    }
+    console.log('updateStep:', {
+      is_replaying: this.is_replaying,
+      game_moves_length: this.game_moves.length,
+      all_moves_length: this.all_moves.length
+    });
+    const prevLen = this._lastKnownStatesLength ?? 0;
+    const total = this.all_moves.length;
+    if (total > prevLen && this.is_playing && this._viewingIndex === prevLen - 1) {
+      this._viewingIndex = total - 1;
+    }
+    this._lastKnownStatesLength = total;
+
+    const wasAtEnd = this._viewingIndex === total - 2;
+    if (this.is_playing && wasAtEnd) {
+      this._viewingIndex = total - 1;
+    }
+    this._clampViewingIndex();
+    this._updateStateSlider();
+    this.updateUIState();
+
+    this.moves_processed = typeof step === 'number' ? step : parseInt(step, 10) || 0;
+    if (total > 0) {
+      if (this.sync_phase === 'connecting') this.sync_phase = 'validating';
+      const totalExpected = this.total_moves_expected || total;
+      this.updateSyncStatus('Validating move ' + total + ' of ' + totalExpected);
+    }
+    if (this.is_loading) {
+      this.updateSyncStatus('Validating moves ' + total + '...');
+    }
+    if (total > 0) {
+      this.finishLoading();
+    }
     if (this.total_moves_expected > 0) {
       console.log('[GameObserver] progress: moves_processed=', this.moves_processed, 'total_moves_expected=', this.total_moves_expected);
     } else {
@@ -274,54 +382,86 @@ class GameObserver {
     }
   }
 
+  /** Reflects canonical move count only (all_moves.length). */
   updateUIState() {
+    if (this.is_loading) return;
+
+    const total = Math.max(0, this.all_moves.length);
+    this._clampViewingIndex();
+    const current = total === 0 ? 0 : this._viewingIndex + 1;
+
     const status = document.getElementById('observer-status-line');
-    if (!status) return;
-    if (this.is_loading) {
-      status.innerHTML = 'Loading Observer Mode';
-    } else {
-      status.innerHTML =
-        'Game Step: ' +
-        (this.current_index ?? 0) +
-        ' / ' +
-        (this.total_moves ?? 0);
+    if (status) {
+      if (total === 0) {
+        status.innerHTML = 'Loading Moves...';
+      } else {
+        status.innerHTML = `Game Step: ${current} / ${total}`;
+      }
+    }
+
+    this._updateDisabledState();
+  }
+
+  _updateDisabledState() {
+    const total = this.all_moves.length;
+
+    const backBtn = document.getElementById('observer-back');
+    const fwdBtn = document.getElementById('observer-forward');
+
+    if (backBtn) {
+      backBtn.disabled = total === 0 || this._viewingIndex <= 0;
+    }
+
+    if (fwdBtn) {
+      fwdBtn.disabled = total === 0 || this._viewingIndex >= total - 1;
     }
   }
 
   pause() {
     this._paused = true;
     this.game_mod.halted = 1;
-    const playBtn = document.getElementById('game-observer-play-btn');
+    const playBtn = document.getElementById('observer-play');
     if (playBtn) {
       playBtn.classList.add('play-state');
       playBtn.classList.remove('pause-state');
       playBtn.setAttribute('title', 'Resume');
     }
-    const fwdBtn = document.getElementById('game-observer-next-btn');
+    const fwdBtn = document.getElementById('observer-forward');
     if (fwdBtn) {
       fwdBtn.classList.add('play-state');
       fwdBtn.classList.remove('pause-state');
     }
+    this._updateDisabledState();
   }
 
   resume() {
     this._paused = false;
     this.game_mod.halted = 0;
     this.updateStatus('Replaying moves...');
-    const playBtn = document.getElementById('game-observer-play-btn');
+    const playBtn = document.getElementById('observer-play');
     if (playBtn) {
       playBtn.classList.remove('play-state');
       playBtn.classList.add('pause-state');
       playBtn.setAttribute('title', 'Pause');
     }
-    const fwdBtn = document.getElementById('game-observer-next-btn');
+    const fwdBtn = document.getElementById('observer-forward');
     if (fwdBtn) {
       fwdBtn.classList.remove('play-state');
       fwdBtn.classList.add('pause-state');
     }
+    this._updateDisabledState();
   }
 
-  play() {
+  /**
+   * Resume deterministic forward execution.
+   * If behind latest: replay to last move then enable auto-advance.
+   * If already at latest: just enable auto-advance for new moves.
+   */
+  async play() {
+    if (this.all_moves.length > 0 && this._viewingIndex < this.all_moves.length - 1) {
+      await this.replayToIndex(this.all_moves.length - 1);
+    }
+    this.is_playing = true;
     this.resume();
     console.log('OBSERVER: unhalt game (play)');
   }
@@ -335,110 +475,177 @@ class GameObserver {
   }
 
   /**
-   * Move forward one step
-   *
+   * Move forward one step (replay from baseline to target index).
+   * Only replays when paused; at end does nothing.
    */
-  async next() {
-    console.log('OBSERVER: unhalt game (next)');
-    this.game_mod.halted = 0;
-
-    //If we have backed up, we kept an array of undone moves add those back onto the game's future queue
-    this.insertFutureMoves(this.game_mod);
-
-    let result = await this.game_mod.processFutureMoves();
-
-    if (result == 0) {
-      //Only download if there are no new valid moves pending in the future queue
-      this.updateStatus('Checking for missing additional moves...');
-
-      this.game_mod.observerDownloadNextMoves(async () => {
-        console.log('Callback', this.game_mod.game.future.length);
-
-        await this.game_mod.processFutureMoves();
-
-        //Reset game to halted
-        this.game_mod.halted = this.is_paused ? 1 : 0;
-
-        if (this.game_mod.game.future.length == 0) {
-          this.hideNextMoveButton();
-        }
-        this.is_loading = false;
-        this.updateUIState();
-      });
-    } else {
-      console.log('processFutureMoves returned ', result);
-      this.is_loading = false;
-      this.updateUIState();
+  next() {
+    if (this._viewingIndex >= this.all_moves.length - 1) return;
+    if (this.is_paused) {
+      this.replayToIndex(this._viewingIndex + 1);
     }
   }
 
   /**
-   * Rewind one step
-   *
+   * Rewind one step (replay from baseline to target index).
+   * Exits play mode via replayToIndex (is_playing = false).
    */
   last() {
-    console.log('Backing up from...' + this.game_mod.game.step.game);
-    let observer_self = this;
-    const callback = function (mod) {
-      //Get game module to reload and refresh the DOM
-      // console.log('GAME QUEUE:' + JSON.stringify(mod.game.queue));
-      mod.initialize_game_run = 0;
-      mod.initializeGameQueue(mod.game.id);
-      //Tell gameObserver HUD to update its step
-      observer_self.updateStep(mod.game.step.game);
-      //Clear status of gameObserverHUD
-      //observer_self.updateStatus("");
-    };
-
-    if (this.game_states.length > 0) {
-      let g1 = this.game_states.pop();
-      this.future_moves.unshift(this.game_moves.pop());
-
-      console.log('PREVIOUS GAME STATE:');
-      console.log(g1);
-      this.game_mod.game = g1;
-      this.game_mod.saveGame(this.game_mod.game.id);
-      callback(this.game_mod);
-    }
-    /*else{
-      salert("Please wait while we query the previous step...");
-
-      this.arcade_mod.initializeObserverModePreviousStep(
-        this.game_mod,
-        this.game_mod.game.step.game, 
-        callback
-      );
-    }*/
+    if (this._viewingIndex <= 0) return;
+    const newIndex = this._viewingIndex - 1;
+    this.replayToIndex(newIndex);
   }
 
   hideNextMoveButton() {
-    let nextMoveBtn = document.getElementById('game-observer-next-btn');
-    if (nextMoveBtn) {
-      nextMoveBtn.classList.remove('flashit');
-      nextMoveBtn.classList.add('unavailable');
+    const fwdBtn = document.getElementById('observer-forward');
+    if (fwdBtn) {
+      fwdBtn.classList.remove('flashit');
+      fwdBtn.disabled = true;
     }
   }
 
   showNextMoveButton() {
-    let nextMoveBtn = document.getElementById('game-observer-next-btn');
-    if (nextMoveBtn) {
-      if (nextMoveBtn.classList.contains('unavailable')) {
-        nextMoveBtn.classList.remove('unavailable');
-      } else {
-        nextMoveBtn.classList.add('flashit');
-      }
+    const fwdBtn = document.getElementById('observer-forward');
+    if (fwdBtn) {
+      fwdBtn.classList.add('flashit');
+      this._updateDisabledState();
     }
   }
 
   showLastMoveButton() {
-    let lastBtn = document.getElementById('game-observer-last-btn');
-    if (lastBtn) {
-      lastBtn.classList.remove('unavailable');
+    this._updateDisabledState();
+  }
+
+  /**
+   * Observer-only: load next batch of moves from archive. Mutates game_mod.game.future,
+   * game_mod.archive_exhausted; invokes callback when done. Same semantics as former
+   * GameTemplate implementation (pure relocation).
+   */
+  async observerDownloadNextMoves(mycallback = null) {
+    const g = this.game_mod.game;
+    const mod = this.game_mod;
+
+console.log("ODNM 1");
+
+    // purge old transactions
+    for (let i = g.future.length - 1; i >= 0; i--) {
+console.log("ODNM 2");
+      let queued_tx = new Transaction();
+
+console.log("ODNM 3");
+      queued_tx.deserialize_from_web(this.app, g.future[i]);
+console.log("ODNM 4");
+      let queued_txmsg = queued_tx.returnMessage();
+console.log("ODNM 5");
+
+      if (
+        queued_txmsg.step.game <= g.step.game &&
+        queued_txmsg.step.game <= g.step.players[queued_tx.from[0].publicKey]
+      ) {
+        console.info(
+          'GT [observer] Trimming future move to download new ones:',
+          JSON.parse(JSON.stringify(queued_txmsg))
+        );
+        g.future.splice(i, 1);
+      }
+console.log("ODNM 6");
     }
-    let firstBtn = document.getElementById('game-observer-first-btn');
-    if (firstBtn) {
-      firstBtn.classList.remove('unavailable');
+
+    if (!mod.archive_connected) {
+      console.warn("GT [observer] Haven't established peer yet, try again after 3s");
+      setTimeout(() => {
+        this.observerDownloadNextMoves(mycallback);
+      }, 3000);
+      return null;
     }
+
+    if (mod.archive_exhausted < 0) {
+      console.info('GT [observer] Try archives after 10s delay');
+      setTimeout(() => {
+        mod.archive_exhausted = 0;
+        this.observerDownloadNextMoves(mycallback);
+      }, 10000);
+      return null;
+    }
+
+    let currentStep = String(g.step.game).padStart(5, '0');
+
+    console.info(
+      `GT [observer] Load game moves from archive (${mod.archive_exhausted}): ${mod.name}_${g.id} from ${g.originator} after ${currentStep}`
+    );
+
+    return this.app.storage.loadTransactions(
+      {
+        field1: mod.name,
+        field4: g.id,
+        field5: currentStep,
+        ascending: 1,
+        limit: 20,
+        field5_sort: 1
+      },
+      async (txs) => {
+        let new_moves = 0;
+
+        for (let tx of txs) {
+          let game_move = tx.returnMessage();
+
+          if (game_move?.step && game_move.request == 'game') {
+            let loaded_step = game_move.step.game;
+
+            if (
+              loaded_step > g.step.game ||
+              loaded_step > g.step.players[tx.from[0].publicKey]
+            ) {
+              let ftx = tx.serialize_to_web(this.app);
+
+              if (!g.future.includes(ftx)) {
+                g.future.push(ftx);
+                new_moves++;
+              }
+            }
+          } else {
+            console.warn('GT [observer] Non game move: ', game_move);
+
+            let rtx = new Transaction();
+            rtx.msg.module = 'Relay';
+            rtx.msg.request = 'game relay update';
+            rtx.msg.data = tx.toJson();
+
+            if (!g.futurePlus) {
+              g.futurePlus = {};
+            }
+
+            g.futurePlus[game_move.step] = rtx;
+          }
+        }
+
+        console.info(
+          `GT [observer] Found ${new_moves} future moves in archives. Initializing? `,
+          g.initializing
+        );
+
+        mod.saveFutureMoves(g.id);
+        mod.saveGame(g.id);
+
+        if (new_moves == 0) {
+          if (g.initializing) {
+            mod.archive_exhausted = -1;
+          } else {
+            mod.archive_exhausted = 1;
+          }
+
+          if (g.player == 0 && mod.gameBrowserActive()) {
+            // Run startQueue (mycallback) before render so is_loading stays true; halt guard does not fire; processFutureMoves runs
+            if (mycallback) await mycallback();
+            this.render();
+          }
+        }
+
+        if (mycallback && (new_moves !== 0 || !(g.player == 0 && mod.gameBrowserActive()))) {
+          console.debug('GT [observer] Run callback after fetching archives...');
+          mycallback();
+        }
+      }
+    );
   }
 }
 

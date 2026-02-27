@@ -130,12 +130,24 @@ class GameQueue {
       this.gaming_active = 1;
       //The pending transactions are processed elsewhere...
     } else {
-      if (this.game.player == 0) {
+      if (this.game.observer_mode === true || this.game.player == 0) {
         console.info(
           'GT [initializeGameQueue]: Observer.... check for additional moves..., set active while loading...'
         );
         this.gaming_active = 1;
-        this.observerDownloadNextMoves(() => {
+
+        // --- OBSERVER UI SAFETY RENDER ---
+        if (this.observerControls) {
+            const hasOverlay = document.getElementById('observer-sync-overlay');
+            const hasHud = document.getElementById('game-observer-hud');
+
+            if (!hasOverlay && !hasHud) {
+                this.observerControls.render();
+            }
+        }
+        // --- END SAFETY RENDER ---
+
+        this.observerControls.observerDownloadNextMoves(() => {
           this.startQueue();
         });
       } else {
@@ -183,12 +195,18 @@ class GameQueue {
       // Game Observer UI stuff
       //
       if (this.game.player == 0 && this.gameBrowserActive()) {
+        const controls = this.observerControls;
         console.info(
           'GT [observer] running Queue in Observer mode. paused? ',
-          this.observerControls.is_paused
+          controls ? controls.is_paused : undefined
         );
 
-        if (this.observerControls.is_paused && !this.game?.live) {
+        //
+        // Only couple pause -> halted after initial sync has completed.
+        // During initial archive reconstruction, observerControls.is_loading is true,
+        // so _paused should not halt the engine or block addNextMove().
+        //
+        if (!controls?.is_loading && controls?.is_paused && !this.game?.live) {
           console.info('GT Observer controls halt game');
           this.halted = 1;
         }
@@ -971,6 +989,12 @@ class GameQueue {
         game_self.game.initializing = 0;
         game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
         game_self.saveGame(game_self.game.id);
+
+	//
+	// observer mode
+	//
+        if (game_self.game.player == 0) { game_self.game_state_pre_move = JSON.parse(JSON.stringify(game_self.game)); }
+
         if (game_self.gameBrowserActive()) {
           return 1;
         } else {
@@ -1368,12 +1392,10 @@ class GameQueue {
         let sender = parseInt(gmv[2]);
         let recipient = parseInt(gmv[3]);
         let cards = parseInt(gmv[4]);
-        let opponent_deck_length = parseInt(gmv[5]); // this is telling us how many keys the other player has, so we can coordinate and not double-decrypt
-
-        game_self.game.queue.splice(game_self.game.queue.length - 1, 1); //Remove "ISSUEKEYS"
-
+        // how many keys the other player has
+        let opponent_deck_length = parseInt(gmv[5]);
+        game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
         let keyidx = game_self.game.queue.length - cards;
-
         let my_deck_length = game_self.game.deck[deckidx - 1].crypt.length;
 
         if (game_self.game.player == recipient) {
@@ -2041,7 +2063,7 @@ class GameQueue {
         for (let i = 1; i <= cryptLength; i++) {
           //Adding one to i here so don't have to insert additional -1 term
           let card = game_self.game.queue.pop();
-          game_self.game.deck[deckidx - 1].crypt[cryptLength - i] = card;
+          if (game_self.game.player != 0) { game_self.game.deck[deckidx - 1].crypt[cryptLength - i] = card; }
         }
       }
       return 1;

@@ -91,6 +91,7 @@ class GameTemplate extends ModTemplate {
     this.game_length = 30; //Estimated number of minutes to complete a game
     this.game = {};
     this.moves = [];
+    this.future = [];
     this.description = 'Peer to peer gaming on the blockchain';
     this.endmoves = [];
     this.commands = [];
@@ -469,6 +470,12 @@ class GameTemplate extends ModTemplate {
       return;
     }
     if (this.initialize_game_run == 1) {
+      // Ensure observer overlay still renders
+      if (this.game?.observer_mode === true || this.game?.player == 0) {
+        if (this.observerControls) {
+          this.observerControls.render();
+        }
+      }
       return 0;
     }
 
@@ -750,6 +757,10 @@ class GameTemplate extends ModTemplate {
 
     this.loadGame(game_id);
 
+    this.game.observer_mode = true;
+    this.game.player = 0;
+    this.saveGame(game_id);
+
     //
     // otherwise setup the game
     //
@@ -869,6 +880,14 @@ class GameTemplate extends ModTemplate {
       console.error('GT [initialize] No valid game.... stop!!!!!');
       this.initialize_game_run = 1; //Will prevent rendering of game assets
       return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("observer") === "1") {
+      this.game = this.game || {};
+      this.game.observer_mode = true;
+      this.game.player = 0;
+      if (this.game.id) this.saveGame(this.game.id);
     }
 
     //

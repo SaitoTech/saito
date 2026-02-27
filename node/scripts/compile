@@ -377,6 +377,11 @@ if [ "$1" == "setupprod" ]; then
 
 fi
 
+if [ "$1" == "nukelocal" ]; then
+  npm run setuplocal
+  exit 0
+fi
+
 if [ "$1" == "setuplocal" ]; then
 
   echo ""

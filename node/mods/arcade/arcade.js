@@ -479,6 +479,7 @@ class Arcade extends ModTemplate {
 	}
 
 	async onPeerServiceUp(app, peer, service = {}) {
+console.log("OPSU 1");
 		if (!app.BROWSER) {
 			let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
 			newtx.msg = {
@@ -501,28 +502,37 @@ class Arcade extends ModTemplate {
 
 			return;
 		}
+console.log("OPSU 2");
 
 		let arcade_self = this;
+console.log("OPSU 3");
 
 		if (service.service == 'arcade') {
+console.log("OPSU 4");
 			this.app.network.sendRequestAsTransaction('arcade invite list', {}, async (txs) => {
 				for (let serial_tx of txs) {
+console.log("OPSU 5");
 					let game_tx = new Transaction();
 					game_tx.deserialize_from_web(app, serial_tx);
+console.log("OPSU 6");
 
 					let status = game_tx.msg.request;
 					let game_added = arcade_self.addGame(game_tx);
+console.log("OPSU 7");
 
 					if (arcade_self?.debug && arcade_self.browser_active) {
 						console.debug('Available arcade game:', status, game_added, game_tx);
 					}
+console.log("OPSU 8");
 
 					//Game is marked as "active" but we didn't already add it from our app.options file...
 					if (status == 'active' && game_added && arcade_self.isMyGame(game_tx)) {
 						game_tx.msg.game_id = game_tx.signature;
 						arcade_self.receiveAcceptTransaction(game_tx);
 					}
+console.log("OPSU 9");
 				}
+console.log("OPSU 10");
 
 				//
 				// For processing direct link to game invite
@@ -535,20 +545,25 @@ class Arcade extends ModTemplate {
 					);
 					window.history.replaceState('', '', `/arcade/`);
 				}
+console.log("OPSU 11");
 
 				if (this.browser_active && this.ui) {
 					this.ui.renderInvites();
 				}
+console.log("OPSU 12");
 				app.connection.emit('arcade-data-loaded');
 			});
 		}
 
+console.log("OPSU 13");
 		if (service.service === 'archive') {
+console.log("OPSU 14");
 			for (let game of this.app.options.games) {
 				if (game?.over) {
 					continue;
 				}
 
+console.log("OPSU 15");
 				let query = game.module + '_' + game.id;
 				let game_mod = this.app.modules.returnModule(game.module);
 
@@ -556,6 +571,7 @@ class Arcade extends ModTemplate {
 					continue;
 				}
 
+console.log("OPSU 16");
 				this.app.storage.loadTransactions(
 					{
 						field1: query
@@ -566,8 +582,11 @@ class Arcade extends ModTemplate {
 							await this.onConfirmation(-1, txs[i], 0);
 
 							// game mod
+console.log("OPSU 17");
 							await game_mod.onConfirmation(-1, txs[i], 0);
+console.log("OPSU 18");
 						}
+console.log("OPSU 19");
 					},
 					peer
 				);
@@ -2049,8 +2068,10 @@ console.log("SAVING GAME MOVE: ");
 
 
 	async observeGame(game_id, watch_live = false) {
-		let game = this.returnGame(game_id);
 
+		let game = this.returnGame(game_id);
+		let game_tx = game?.tx;
+	
 		if (!game) {
 			console.error('ARCADE: [observeGame] -- Game not found!');
 			return;
@@ -2062,27 +2083,28 @@ console.log("SAVING GAME MOVE: ");
 
 		let game_mod = this.app.modules.returnModule(game_msg.game);
 
-		this.render('lounge_overlay', { game_id });
-
 		game_msg.game_id = game_id;
 
 		if (!this.app.options.games) {
 			this.app.options.games = [];
 		}
 
+		// So GameObserver can trigger FOLLOW after archive sync when watch_live was true
+		game_mod.observer_watch_live = watch_live;
+
 		if (!game_mod.doesGameExistLocally(game_id)) {
 			console.info('ARCADE Observer -- Initialize game');
-			await game_mod.initializeObserverMode(game, watch_live);
+			// Always pass false so archive sync runs; live follow is triggered in GameObserver.finishLoading() when observer_watch_live
+			await game_mod.initializeObserverMode(game_tx, false);
 		} else {
 			console.info('ARCADE Observer -- Game already exists, load it');
 			game_mod.loadGame(game_id);
 			game_mod.game.player = 0;
 		}
 
-		if (watch_live) {
-			game_mod.expecting_state = true;
-			game_mod.sendMetaMessage('FOLLOW');
-		}
+		const slug = game_mod?.returnSlug?.() || game_mod?.slug || game_msg?.game || 'arcade';
+		const gid = this.app.crypto.hash(game_id).slice(-6);
+		this.app.browser.navigateWindow(`/${slug}/#gid=${gid}`);
 	}
 }
 
