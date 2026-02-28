@@ -1,5 +1,3 @@
-//import E73 from "../../web/img/Event73.png";
-//import E16 from "../../web/img/Event16.svg";
 export default (app, mod) => {
 	return `<div id="main" class="main" style="display: all">
 			<div class="gameboard" id="gameboard">

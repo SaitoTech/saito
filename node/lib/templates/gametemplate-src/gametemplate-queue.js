@@ -130,7 +130,7 @@ class GameQueue {
       this.gaming_active = 1;
       //The pending transactions are processed elsewhere...
     } else {
-      if (this.game.observer_mode === true || this.game.player == 0) {
+      if (this.game.player == 0) {
         console.info(
           'GT [initializeGameQueue]: Observer.... check for additional moves..., set active while loading...'
         );

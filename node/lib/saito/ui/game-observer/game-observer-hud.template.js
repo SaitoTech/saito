@@ -1,21 +1,12 @@
-module.exports = (game_mod, is_loading = true) => {
-
-  if (is_loading) {
-    return `
-      <div id="observer-sync-overlay" class="game-observer-sync-overlay">
-        <div class="game-observer-sync-title">Syncing Game</div>
-        <div class="game-observer-inline-spinner"></div>
-        <div id="observer-sync-status" class="game-observer-sync-status">
-          Communicating with server...
-        </div>
-      </div>
-    `;
-  }
-
+/**
+ * Template for the Game Observer HUD (controls, slider, status line only).
+ * No loader/sync markup. Renders inside a provided container only.
+ */
+module.exports = () => {
   return `
     <div id="game-observer-hud" class="game-observer-hud">
 
-      <!-- Line 1: Step -->
+      <!-- Line 1: Status -->
       <div id="observer-status-line" class="game-observer-title">
         Loading Moves...
       </div>
@@ -57,7 +48,7 @@ module.exports = (game_mod, is_loading = true) => {
                value="0">
       </div>
 
-      <!-- Line 4: Status -->
+      <!-- Line 4: Status line (secondary) -->
       <div id="obstatus" class="status">
         Observer mode
       </div>
