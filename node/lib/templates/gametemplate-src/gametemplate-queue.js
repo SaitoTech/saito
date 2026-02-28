@@ -136,16 +136,12 @@ class GameQueue {
         );
         this.gaming_active = 1;
 
-        // --- OBSERVER UI SAFETY RENDER ---
+        // --- FORCE DETERMINISTIC LOADING OVERLAY ---
         if (this.observerControls) {
-            const hasOverlay = document.getElementById('observer-sync-overlay');
-            const hasHud = document.getElementById('game-observer-hud');
-
-            if (!hasOverlay && !hasHud) {
-                this.observerControls.render();
-            }
+            this.observerControls.is_loading = true;
+            this.observerControls.render();
         }
-        // --- END SAFETY RENDER ---
+        // --- END LOADING OVERLAY FORCE ---
 
         this.observerControls.observerDownloadNextMoves(() => {
           this.startQueue();

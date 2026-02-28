@@ -45,6 +45,7 @@ class GameObserver {
     this.sync_phase = 'connecting';
     this._lastKnownStatesLength = 0;
     this._draggable_initialized = false;
+    this.sync_in_progress = false;
   }
 
   get is_paused() {
@@ -100,12 +101,6 @@ class GameObserver {
         salert('ERROR 413252: Arcade Module not Installed');
         return;
       }
-    }
-
-    // When archive returns zero moves, engine calls render() after setting archive_exhausted = 1; exit loading so overlay is removed
-    if (this.is_loading && this.game_mod.archive_exhausted === 1) {
-      this.finishLoading();
-      return;
     }
 
     const html = GameObserverTemplate(this.game_mod, this.is_loading);
@@ -246,6 +241,13 @@ class GameObserver {
       viewingIndex: this._viewingIndex
     });
     this.is_loading = false;
+
+    if (this.game_mod.observer_watch_live === true || this.follow_live === true || this.game_mod.game?.live === true) {
+      this._paused = false;
+      this.game_mod.halted = 0;
+      this.is_playing = true;
+    }
+
     this._clampViewingIndex();
     this._updateStateSlider();
     this.updateUIState();
@@ -253,8 +255,10 @@ class GameObserver {
       this.baseline_state = JSON.parse(JSON.stringify(this._engine_game_states[0]));
     }
 
-    // Re-render once to switch from Loading → Ready template
-    this.render();
+    // Re-render once to switch from Loading → Ready template (defer to next frame so overlay paints before removal)
+    requestAnimationFrame(() => {
+      this.render();
+    });
 
     // Live follow after archive sync: request current state from host so new moves arrive in real time
     if (this.game_mod.observer_watch_live) {
@@ -516,9 +520,8 @@ class GameObserver {
   }
 
   /**
-   * Observer-only: load next batch of moves from archive. Mutates game_mod.game.future,
-   * game_mod.archive_exhausted; invokes callback when done. Same semantics as former
-   * GameTemplate implementation (pure relocation).
+   * Observer-only: load next batch of moves from archive. Mutates game_mod.game.future;
+   * invokes callback when done. Sync completion is determined by checkSyncStability().
    */
   async observerDownloadNextMoves(mycallback = null) {
     const g = this.game_mod.game;
@@ -558,21 +561,13 @@ console.log("ODNM 6");
       return null;
     }
 
-    if (mod.archive_exhausted < 0) {
-      console.info('GT [observer] Try archives after 10s delay');
-      setTimeout(() => {
-        mod.archive_exhausted = 0;
-        this.observerDownloadNextMoves(mycallback);
-      }, 10000);
-      return null;
-    }
-
     let currentStep = String(g.step.game).padStart(5, '0');
 
     console.info(
-      `GT [observer] Load game moves from archive (${mod.archive_exhausted}): ${mod.name}_${g.id} from ${g.originator} after ${currentStep}`
+      `GT [observer] Load game moves from archive: ${mod.name}_${g.id} from ${g.originator} after ${currentStep}`
     );
 
+    this.sync_in_progress = true;
     return this.app.storage.loadTransactions(
       {
         field1: mod.name,
@@ -627,16 +622,11 @@ console.log("ODNM 6");
         mod.saveGame(g.id);
 
         if (new_moves == 0) {
+          this.updateSyncStatus("No moves found in game archive.");
           if (g.initializing) {
             mod.archive_exhausted = -1;
           } else {
             mod.archive_exhausted = 1;
-          }
-
-          if (g.player == 0 && mod.gameBrowserActive()) {
-            // Run startQueue (mycallback) before render so is_loading stays true; halt guard does not fire; processFutureMoves runs
-            if (mycallback) await mycallback();
-            this.render();
           }
         }
 

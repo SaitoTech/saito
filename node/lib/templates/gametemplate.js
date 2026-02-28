@@ -209,7 +209,6 @@ class GameTemplate extends ModTemplate {
     this.pending = [];
 
     this.archive_connected = false;
-    this.archive_exhausted = 0;
 
     //
     // used to generate provably-fair dice rolls
@@ -877,9 +876,32 @@ class GameTemplate extends ModTemplate {
     // we grab the game with the most current timestamp (ts)
     // since no ID is provided
     if (!this.loadGame()) {
-      console.error('GT [initialize] No valid game.... stop!!!!!');
-      this.initialize_game_run = 1; //Will prevent rendering of game assets
-      return;
+      // Option B: observer stub bootstrap — when observing a game not in app.options.games
+      const params = new URLSearchParams(window.location.search);
+      const observerParam = params.get("observer") === "1";
+      let observerStubGameId = this.app.browser.returnURLParameter('load') || null;
+      if (!observerStubGameId && typeof window !== 'undefined' && window.location?.hash) {
+        const hash = this.app.browser.parseHash(window.location.hash);
+        if (hash?.gid && this.app.options?.games?.length > 0) {
+          for (let i = 0; i < this.app.options.games.length; i++) {
+            if (this.name === this.app.options.games[i].module &&
+                this.app.crypto.hash(this.app.options.games[i].id).slice(-6) === hash.gid) {
+              observerStubGameId = this.app.options.games[i].id;
+              break;
+            }
+          }
+        }
+      }
+      if (observerParam && observerStubGameId) {
+        this.game = this.newGame(observerStubGameId);
+        this.game.observer_mode = true;
+        this.game.player = 0;
+        this._observer_stub_bootstrap = true; // do not save stub to options.games
+      } else {
+        console.error('GT [initialize] No valid game.... stop!!!!!');
+        this.initialize_game_run = 1; //Will prevent rendering of game assets
+        return;
+      }
     }
 
     const params = new URLSearchParams(window.location.search);
@@ -887,7 +909,7 @@ class GameTemplate extends ModTemplate {
       this.game = this.game || {};
       this.game.observer_mode = true;
       this.game.player = 0;
-      if (this.game.id) this.saveGame(this.game.id);
+      if (this.game.id && !this._observer_stub_bootstrap) this.saveGame(this.game.id);
     }
 
     //
