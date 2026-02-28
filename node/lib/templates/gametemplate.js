@@ -470,7 +470,7 @@ class GameTemplate extends ModTemplate {
     }
     if (this.initialize_game_run == 1) {
       // Ensure observer overlay still renders
-      if (this.game?.observer_mode === true || this.game?.player == 0) {
+      if (this.game?.player == 0) {
         if (this.observerControls) {
           this.observerControls.render();
         }
@@ -756,7 +756,6 @@ class GameTemplate extends ModTemplate {
 
     this.loadGame(game_id);
 
-    this.game.observer_mode = true;
     this.game.player = 0;
     this.saveGame(game_id);
 
@@ -894,7 +893,6 @@ class GameTemplate extends ModTemplate {
       }
       if (observerParam && observerStubGameId) {
         this.game = this.newGame(observerStubGameId);
-        this.game.observer_mode = true;
         this.game.player = 0;
         this._observer_stub_bootstrap = true; // do not save stub to options.games
       } else {
@@ -907,7 +905,6 @@ class GameTemplate extends ModTemplate {
     const params = new URLSearchParams(window.location.search);
     if (params.get("observer") === "1") {
       this.game = this.game || {};
-      this.game.observer_mode = true;
       this.game.player = 0;
       if (this.game.id && !this._observer_stub_bootstrap) this.saveGame(this.game.id);
     }
@@ -1695,23 +1692,21 @@ class GameTemplate extends ModTemplate {
 
   async injectGameHTML(template) {
     if (!this.game_template_injected) {
-      //
-      // Initialize Header just before rendering...
-      //
+
       this.header = new SaitoHeader(this.app, this);
       this.header.header_class = 'game';
 
       await this.timeout(500);
-
       await this.header.initialize(this.app);
 
-      // Delete any default html
-      while (document.body.hasChildNodes()) {
-        document.body.firstChild.remove();
-      }
-
+      while (document.body.hasChildNodes()) { document.body.firstChild.remove(); }
       document.body.innerHTML = template;
       this.calculateBoardRatio();
+
+      if (this.game?.player === 0) {
+alert("rendering observer controls...");
+        this.observerControls.render();
+      }
     }
     this.game_template_injected = 1;
   }

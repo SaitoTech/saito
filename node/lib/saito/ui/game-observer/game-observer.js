@@ -1,4 +1,5 @@
-const GameObserverTemplate = require('./game-observer.template');
+const GameObserverLoader = require('./game-observer-loader');
+const GameObserverHUD = require('./game-observer-hud');
 const Transaction = require('../../transaction').default;
 
 /**
@@ -14,6 +15,14 @@ class GameObserver {
     this.app = app;
     this.game_mod = game_mod;
     this.arcade_mod = null;
+
+    this.isObserverView = false;
+    if (typeof window !== 'undefined' && window.location?.search) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('observer') === '1') {
+        this.isObserverView = true;
+      }
+    }
 
     this.step_speed = 2000;
     this._paused = true;
@@ -44,8 +53,39 @@ class GameObserver {
 
     this.sync_phase = 'connecting';
     this._lastKnownStatesLength = 0;
-    this._draggable_initialized = false;
     this.sync_in_progress = false;
+    this.replay_active = false;
+    this.stability_monitor_active = false;
+    this._sync_stability_interval = null;
+    this._observer_overlay_start_time = null;
+    this._overlay_removal_scheduled = false;
+
+    this.loader = new GameObserverLoader(app, game_mod, '');
+    this._hudContext = {
+      getState: () => ({
+        totalMoves: this.all_moves.length,
+        viewingIndex: this._viewingIndex,
+        isPaused: this.is_paused
+      }),
+      onBack: () => {
+        this.showNextMoveButton();
+        this.last();
+      },
+      onPlay: () => {
+        this.step_speed = 2000;
+        if (this.is_paused) this.play();
+        else this.pause();
+      },
+      onForward: () => {
+        if (!this.is_paused) {
+          this.step_speed /= 2;
+          return;
+        }
+        this.next();
+      },
+      onSliderInput: (idx) => this.replayToIndex(idx)
+    };
+    this.hud = new GameObserverHUD(app, this._hudContext, '');
   }
 
   get is_paused() {
@@ -63,163 +103,71 @@ class GameObserver {
     this._viewingIndex = Math.max(0, Math.min(this._viewingIndex, max));
   }
 
-  _updateViewingLabel() {
-    const label = document.getElementById('game-observer-viewing-label');
-    if (!label) return;
-    const total = Math.max(0, this.all_moves.length);
-    const x = total === 0 ? 0 : this._viewingIndex + 1;
-    label.textContent = `Viewing move ${x} of ${total}`;
-  }
-
-  _updateStateSlider() {
-    const slider = document.getElementById('game-observer-state-slider');
-    if (!slider) return;
-    this._clampViewingIndex();
-    const max = Math.max(0, this.all_moves.length - 1);
-    slider.max = String(max);
-    slider.value = String(this._viewingIndex);
-    this._updateViewingLabel();
-    this._updateDisabledState();
-  }
-
-  _onStateSliderInput() {
-    const slider = document.getElementById('game-observer-state-slider');
-    if (!slider) return;
-    const idx = parseInt(slider.value, 10);
-    if (idx < 0 || idx >= this.all_moves.length) return;
-
-    this.replayToIndex(idx);
-  }
-
   /**
-   * Render the Observer interface
+   * Render the Observer interface into document.body. Loader renders only once during loading;
+   * if overlay already exists and is_loading, do nothing to avoid duplicate re-renders.
    */
   render() {
-    if (!this.arcade_mod) {
-      this.arcade_mod = this.app.modules.returnModule('Arcade');
-      if (this.arcade_mod == null) {
-        salert('ERROR 413252: Arcade Module not Installed');
-        return;
-      }
-    }
-
-    const html = GameObserverTemplate(this.game_mod, this.is_loading);
+    if (typeof document === 'undefined' || !document.body) return;
 
     if (this.is_loading) {
-      const syncOverlay = document.getElementById('observer-sync-overlay');
-      if (syncOverlay) {
-        this.app.browser.replaceElementById(html, 'observer-sync-overlay');
-      } else {
-        this.app.browser.addElementToDom(html);
-      }
+      const overlayEl = document.body.querySelector('#observer-sync-overlay');
+      if (overlayEl) return;
+      const hudEl = document.body.querySelector('#game-observer-hud');
+      if (hudEl) hudEl.remove();
+      this._observer_overlay_start_time = Date.now();
+      this.loader.render();
     } else {
-      const prevSync = document.getElementById('observer-sync-overlay');
-      if (prevSync) prevSync.remove();
-      if (!document.getElementById('game-observer-hud')) {
-        this.app.browser.addElementToDom(html);
-      } else {
-        this.app.browser.replaceElementById(html, 'game-observer-hud');
-      }
+      this.hud.render();
+      this.hud.attachEvents();
+      this.hud.updateUIState();
     }
-
-    console.log('Observer DOM Audit:', document.querySelectorAll('.game-observer-controls-row').length, document.querySelectorAll('.game-observer-hud').length);
-
-    this.attachEvents();
-    this.updateUIState();
   }
 
   hide() {
-    if (document.getElementById('game-observer-hud')) {
-      document.getElementById('game-observer-hud').style.display = 'none';
-    }
+    this.hud.hide();
   }
 
   remove() {
-    if (document.getElementById('game-observer-hud')) {
-      document.getElementById('game-observer-hud').remove();
-    }
+    this.hud.remove();
   }
 
   updateSyncStatus(message) {
-    const el = document.getElementById('observer-sync-status');
-    if (el) el.innerText = message;
+    this.loader.updateSyncStatus(message);
   }
 
   updateStatus(str) {
     try {
-      let statusBox = document.getElementById('obstatus');
-      if (statusBox) {
-        statusBox.innerHTML = sanitize(str);
-        setTimeout(() => {
-          statusBox.innerHTML = this.game_mod.game.status;
-        }, 1500);
-      }
+      const sanitized = typeof sanitize === 'function' ? sanitize(str) : str;
+      this.hud.updateStatus(sanitized);
+      setTimeout(() => {
+        this.hud.updateStatus(this.game_mod.game.status);
+      }, 1500);
     } catch (err) {
       console.error(err);
     }
   }
 
-  /**
-   * Add functionality to the forward/rewind buttons
-   */
-  attachEvents() {
-    let observer_self = this;
-    console.log('Paused/Halted: ' + this.is_paused + ' ' + this.game_mod.halted);
-
-    if (document.getElementById('observer-back')) {
-      document.getElementById('observer-back').onclick = (e) => {
-        if (e.target.closest('button').disabled) return;
-        this.showNextMoveButton();
-        this.last();
-      };
-    }
-
-    if (document.getElementById('observer-play')) {
-      const playBtn = document.getElementById('observer-play');
-      playBtn.setAttribute('title', this.is_paused ? 'Resume' : 'Pause');
-      playBtn.onclick = (e) => {
-        console.log('GO Paused/Halted: ' + this.is_paused + ' ' + this.game_mod.halted);
-        const fwdBtn = document.getElementById('observer-forward');
-        if (fwdBtn) fwdBtn.classList.remove('flashit');
-
-        this.step_speed = 2000;
-        if (this.is_paused) {
-          this.play();
-        } else {
-          this.pause();
-        }
-      };
-    }
-
-    if (document.getElementById('observer-forward')) {
-      document.getElementById('observer-forward').onclick = (e) => {
-        if (e.target.closest('button').disabled) return;
-        const fwdBtn = document.getElementById('observer-forward');
-        if (fwdBtn) fwdBtn.classList.remove('flashit');
-        if (!this.is_paused) {
-          this.step_speed /= 2;
-          return;
-        }
-        this.next();
-      };
-    }
-
-    const stateSlider = document.getElementById('game-observer-state-slider');
-    if (stateSlider) {
-      stateSlider.addEventListener('input', () => this._onStateSliderInput());
-      this._updateStateSlider();
-    }
-
-    if (!this._draggable_initialized) {
-      this.app.browser.makeDraggable('game-observer-hud');
-      this._draggable_initialized = true;
-    }
-  }
-
   finishLoading() {
     if (!this.is_loading) return;
+    if (this._overlay_removal_scheduled) return;
+    this._overlay_removal_scheduled = true;
+
+    const MIN_VISIBLE_MS = 2000;
+    const elapsed = (this._observer_overlay_start_time != null)
+      ? Date.now() - this._observer_overlay_start_time
+      : MIN_VISIBLE_MS;
+    const delayMs = Math.max(0, MIN_VISIBLE_MS - elapsed);
 
     this.sync_phase = 'ready';
+    this.replay_active = false;
+    this.stability_monitor_active = false;
+    this.is_loading = false;
+
+    if (this._sync_stability_interval != null) {
+      clearInterval(this._sync_stability_interval);
+      this._sync_stability_interval = null;
+    }
 
     const total = this.all_moves.length;
     if (total > 0) {
@@ -236,36 +184,27 @@ class GameObserver {
       this._viewingIndex = 0;
     }
 
-    console.log('finishLoading:', {
-      total: this.all_moves.length,
-      viewingIndex: this._viewingIndex
-    });
-    this.is_loading = false;
-
     if (this.game_mod.observer_watch_live === true || this.follow_live === true || this.game_mod.game?.live === true) {
       this._paused = false;
-      this.game_mod.halted = 0;
       this.is_playing = true;
     }
 
     this._clampViewingIndex();
-    this._updateStateSlider();
-    this.updateUIState();
     if (this.all_moves.length > 0 && !this.baseline_state && this._engine_game_states && this._engine_game_states.length > 0) {
       this.baseline_state = JSON.parse(JSON.stringify(this._engine_game_states[0]));
     }
 
-    // Re-render once to switch from Loading → Ready template (defer to next frame so overlay paints before removal)
-    requestAnimationFrame(() => {
-      this.render();
-    });
+    this.hud.render();
+    this.hud.attachEvents();
+    this.hud.updateUIState();
 
-    // Live follow after archive sync: request current state from host so new moves arrive in real time
-    if (this.game_mod.observer_watch_live) {
-      this.game_mod.game.live = true;
-      this.game_mod.expecting_state = true;
-      this.game_mod.sendMetaMessage('FOLLOW');
-    }
+    setTimeout(() => {
+      const overlayEl = document.body.querySelector('#observer-sync-overlay');
+      if (overlayEl) overlayEl.remove();
+      if (this.game_mod.observer_watch_live) {
+        this.game_mod.sendMetaMessage('FOLLOW');
+      }
+    }, delayMs);
   }
 
   /**
@@ -318,7 +257,6 @@ class GameObserver {
       }
     }
 
-    this.game_mod.halted = 0;
     await this.game_mod.startQueue();
 
     this.is_replaying = false;
@@ -332,12 +270,9 @@ class GameObserver {
       }
     }
 
-    this.game_mod.game.player = 0;
-
     this._viewingIndex = clamped;
     this._clampViewingIndex();
-    this._updateStateSlider();
-    this.updateUIState();
+    this.hud.updateUIState();
 
     this.game_mod.game.status = `Paused at move ${this._viewingIndex + 1}. Click Play to continue.`;
   }
@@ -364,8 +299,7 @@ class GameObserver {
       this._viewingIndex = total - 1;
     }
     this._clampViewingIndex();
-    this._updateStateSlider();
-    this.updateUIState();
+    this.hud.updateUIState();
 
     this.moves_processed = typeof step === 'number' ? step : parseInt(step, 10) || 0;
     if (total > 0) {
@@ -376,9 +310,6 @@ class GameObserver {
     if (this.is_loading) {
       this.updateSyncStatus('Validating moves ' + total + '...');
     }
-    if (total > 0) {
-      this.finishLoading();
-    }
     if (this.total_moves_expected > 0) {
       console.log('[GameObserver] progress: moves_processed=', this.moves_processed, 'total_moves_expected=', this.total_moves_expected);
     } else {
@@ -386,74 +317,15 @@ class GameObserver {
     }
   }
 
-  /** Reflects canonical move count only (all_moves.length). */
-  updateUIState() {
-    if (this.is_loading) return;
-
-    const total = Math.max(0, this.all_moves.length);
-    this._clampViewingIndex();
-    const current = total === 0 ? 0 : this._viewingIndex + 1;
-
-    const status = document.getElementById('observer-status-line');
-    if (status) {
-      if (total === 0) {
-        status.innerHTML = 'Loading Moves...';
-      } else {
-        status.innerHTML = `Game Step: ${current} / ${total}`;
-      }
-    }
-
-    this._updateDisabledState();
-  }
-
-  _updateDisabledState() {
-    const total = this.all_moves.length;
-
-    const backBtn = document.getElementById('observer-back');
-    const fwdBtn = document.getElementById('observer-forward');
-
-    if (backBtn) {
-      backBtn.disabled = total === 0 || this._viewingIndex <= 0;
-    }
-
-    if (fwdBtn) {
-      fwdBtn.disabled = total === 0 || this._viewingIndex >= total - 1;
-    }
-  }
-
   pause() {
     this._paused = true;
-    this.game_mod.halted = 1;
-    const playBtn = document.getElementById('observer-play');
-    if (playBtn) {
-      playBtn.classList.add('play-state');
-      playBtn.classList.remove('pause-state');
-      playBtn.setAttribute('title', 'Resume');
-    }
-    const fwdBtn = document.getElementById('observer-forward');
-    if (fwdBtn) {
-      fwdBtn.classList.add('play-state');
-      fwdBtn.classList.remove('pause-state');
-    }
-    this._updateDisabledState();
+    this.hud.updateUIState();
   }
 
   resume() {
     this._paused = false;
-    this.game_mod.halted = 0;
     this.updateStatus('Replaying moves...');
-    const playBtn = document.getElementById('observer-play');
-    if (playBtn) {
-      playBtn.classList.remove('play-state');
-      playBtn.classList.add('pause-state');
-      playBtn.setAttribute('title', 'Pause');
-    }
-    const fwdBtn = document.getElementById('observer-forward');
-    if (fwdBtn) {
-      fwdBtn.classList.remove('play-state');
-      fwdBtn.classList.add('pause-state');
-    }
-    this._updateDisabledState();
+    this.hud.updateUIState();
   }
 
   /**
@@ -500,23 +372,15 @@ class GameObserver {
   }
 
   hideNextMoveButton() {
-    const fwdBtn = document.getElementById('observer-forward');
-    if (fwdBtn) {
-      fwdBtn.classList.remove('flashit');
-      fwdBtn.disabled = true;
-    }
+    this.hud.hideNextMoveButton();
   }
 
   showNextMoveButton() {
-    const fwdBtn = document.getElementById('observer-forward');
-    if (fwdBtn) {
-      fwdBtn.classList.add('flashit');
-      this._updateDisabledState();
-    }
+    this.hud.showNextMoveButton();
   }
 
   showLastMoveButton() {
-    this._updateDisabledState();
+    this.hud.updateUIState();
   }
 
   /**
@@ -527,18 +391,13 @@ class GameObserver {
     const g = this.game_mod.game;
     const mod = this.game_mod;
 
-console.log("ODNM 1");
+    this.replay_active = true;
 
     // purge old transactions
     for (let i = g.future.length - 1; i >= 0; i--) {
-console.log("ODNM 2");
       let queued_tx = new Transaction();
-
-console.log("ODNM 3");
       queued_tx.deserialize_from_web(this.app, g.future[i]);
-console.log("ODNM 4");
       let queued_txmsg = queued_tx.returnMessage();
-console.log("ODNM 5");
 
       if (
         queued_txmsg.step.game <= g.step.game &&
@@ -550,7 +409,6 @@ console.log("ODNM 5");
         );
         g.future.splice(i, 1);
       }
-console.log("ODNM 6");
     }
 
     if (!mod.archive_connected) {
@@ -578,6 +436,7 @@ console.log("ODNM 6");
         field5_sort: 1
       },
       async (txs) => {
+        this.sync_in_progress = false;
         let new_moves = 0;
 
         for (let tx of txs) {
@@ -623,19 +482,65 @@ console.log("ODNM 6");
 
         if (new_moves == 0) {
           this.updateSyncStatus("No moves found in game archive.");
-          if (g.initializing) {
-            mod.archive_exhausted = -1;
-          } else {
-            mod.archive_exhausted = 1;
-          }
         }
 
         if (mycallback && (new_moves !== 0 || !(g.player == 0 && mod.gameBrowserActive()))) {
           console.debug('GT [observer] Run callback after fetching archives...');
           mycallback();
         }
+
+        this.checkSyncStability();
       }
     );
+  }
+
+  /**
+   * Poll every 100ms. Engine-ready when sync_in_progress is false and queue/future lengths
+   * are stable (unchanged) for >= 1000ms. Does NOT require queue or future to be empty.
+   */
+  checkSyncStability() {
+    if (!this.is_loading || !this.game_mod?.game) return;
+    if (this._sync_stability_interval != null) return;
+    const self = this;
+    const CHECK_MS = 100;
+    const STABLE_MS = 1000;
+    let lastQLen;
+    let lastFLen;
+    let stableSince = null;
+    this.stability_monitor_active = true;
+    this._sync_stability_interval = setInterval(() => {
+      if (!self.is_loading || !self.game_mod?.game) {
+        if (self._sync_stability_interval != null) {
+          clearInterval(self._sync_stability_interval);
+          self._sync_stability_interval = null;
+        }
+        self.stability_monitor_active = false;
+        return;
+      }
+      const qLen = self.game_mod.game.queue?.length || 0;
+      const fLen = self.game_mod.game.future?.length || 0;
+      const now = Date.now();
+
+      if (self.sync_in_progress) {
+        stableSince = null;
+      } else {
+        if (qLen === lastQLen && fLen === lastFLen) {
+          if (stableSince == null) stableSince = now;
+          if (now - stableSince >= STABLE_MS) {
+            if (self._sync_stability_interval != null) {
+              clearInterval(self._sync_stability_interval);
+              self._sync_stability_interval = null;
+            }
+            self.stability_monitor_active = false;
+            self.finishLoading();
+          }
+        } else {
+          stableSince = null;
+          lastQLen = qLen;
+          lastFLen = fLen;
+        }
+      }
+    }, CHECK_MS);
   }
 }
 

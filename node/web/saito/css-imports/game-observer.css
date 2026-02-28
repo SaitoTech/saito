@@ -6,19 +6,28 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 3rem;
   z-index: 10000;
+  height: 100vh;
+  width: 100vw;
 }
 
-.game-observer-sync-title {
+.game-observer-sync-overlay .game-observer-sync-title {
   color: #fff;
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
+  font-size: 4.5rem;
+  margin: 0;
 }
 
-.game-observer-sync-status {
+.game-observer-sync-overlay .game-observer-sync-status {
   color: rgba(255, 255, 255, 0.9);
-  font-size: 1rem;
-  margin-top: 1rem;
+  font-size: 3rem;
+  margin: 0;
+}
+
+.game-observer-sync-overlay .game-observer-inline-spinner {
+  width: 78px;
+  height: 78px;
+  border-width: 9px;
 }
 
 .game-observer-hud{
@@ -206,20 +215,7 @@
   background-color: unset;
 }
 
-/* Sync overlay: full-screen block when is_syncing */
-.game-observer-sync-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100000000;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
-}
-.game-observer-sync-overlay.is-visible {
-  display: flex;
-}
+/* Sync overlay sub-elements (optional panel/spinner/message variants) */
 .game-observer-sync-overlay-panel {
   background: #fff;
   padding: 24px 32px;
