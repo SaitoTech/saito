@@ -376,7 +376,7 @@ class GameMoves {
           if (this.observerControls.is_paused || this.halted) {
             this.observerControls.showNextMoveButton();
             this.observerControls.updateStatus('New future move');
-          } else if (!this.gaming_active && this.archive_exhausted > 0) {
+          } else if (!this.gaming_active) {
             console.warn(
               'GT: [addFutureMove] game seems stuck..., moving into processing future moves'
             );
@@ -449,11 +449,9 @@ class GameMoves {
       console.warn(
         `GT [processFutureMoves] We have ${this.game.future.length} future moves, but NOT the next one!`
       );
-      this.archive_exhausted = -1;
     }
 
-    if (this.game.player == 0 && this.archive_exhausted <= 0) {
-      //param prevents endless looping
+    if (this.game.player == 0) {
       console.info(
         'GT [processFutureMoves] Observer.... check for additional moves... after processing future moves'
       );
