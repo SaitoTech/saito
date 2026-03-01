@@ -1734,7 +1734,10 @@ class GameTemplate extends ModTemplate {
       document.body.innerHTML = template;
       this.calculateBoardRatio();
 
+console.log("INJECT GAME HTML:" + this.game.player);
+
       if (this.game?.player === 0 && this.observerControls) {
+console.log("and into observerControls...");
         this.observerControls.render();
       }
     }
