@@ -135,13 +135,17 @@ class GameQueue {
           'GT [initializeGameQueue]: Observer.... check for additional moves..., set active while loading...'
         );
         this.gaming_active = 1;
+        const overlayBefore = typeof document !== 'undefined' && document.body ? !!document.body.querySelector('#observer-sync-overlay') : null;
+        console.log('[OBS_TRACE] initializeGameQueue (observer): gaming_active=1, game.initialize_game_run=', this.game.initialize_game_run, 'overlayExistsBeforeRender=', overlayBefore);
 
         // --- FORCE DETERMINISTIC LOADING OVERLAY ---
         if (this.observerControls) {
-            this.observerControls.is_loading = true;
+            this.observerControls.is_ui_initializing = true;
             this.observerControls.render();
         }
         // --- END LOADING OVERLAY FORCE ---
+        const overlayAfter = typeof document !== 'undefined' && document.body ? !!document.body.querySelector('#observer-sync-overlay') : null;
+        console.log('[OBS_TRACE] initializeGameQueue (observer): after render overlayExists=', overlayAfter, 'observerControls.is_ui_initializing=', this.observerControls?.is_ui_initializing);
 
         this.observerControls.observerDownloadNextMoves(() => {
           this.startQueue();
@@ -158,6 +162,7 @@ class GameQueue {
    *  Game moves are processed through a queue.
    */
   async startQueue() {
+    console.log('[OBS_TRACE] startQueue()', { halted: this.halted, gaming_active: this.gaming_active, is_ui_initializing: this.observerControls?.is_ui_initializing });
     console.info(
       `GT [startQueue] halted: (${this.halted}) , gaming_active (${this.gaming_active})`
     );
@@ -199,10 +204,10 @@ class GameQueue {
 
         //
         // Only couple pause -> halted after initial sync has completed.
-        // During initial archive reconstruction, observerControls.is_loading is true,
+        // During initial archive reconstruction, observerControls.is_ui_initializing is true,
         // so _paused should not halt the engine or block addNextMove().
         //
-        if (!controls?.is_loading && controls?.is_paused && !this.game?.live) {
+        if (!controls?.is_ui_initializing && controls?.is_paused && !this.game?.live) {
           console.info('GT Observer controls halt game');
           this.halted = 1;
         }
@@ -271,6 +276,7 @@ class GameQueue {
     // this indicates we are processing our queue
     //
     this.gaming_active = 1; // prevents future moves from getting added to the queue while it is processing
+    console.log('[OBS_TRACE] runQueue(): set gaming_active = 1');
     //
     //stash a copy of state before doing anything
     //

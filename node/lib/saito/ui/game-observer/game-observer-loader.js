@@ -20,7 +20,6 @@ class GameObserverLoader {
    * Insert or replace #observer-sync-overlay in this.container. Idempotent.
    */
   render() {
-
     if (!this.container || typeof document === 'undefined') { return; }
 
     const html = GameObserverLoaderTemplate();
@@ -38,10 +37,7 @@ class GameObserverLoader {
       this.container.appendChild(node);
     }
 
-    console.log('[Loader] render');
-    if (this.container.querySelector('#observer-sync-overlay')) {
-      console.log('[Loader] visible');
-    }
+    console.log('[OBS_TRACE] Loader.render() called; overlay in DOM:', !!this.container.querySelector('#observer-sync-overlay'));
   }
 
   /**
@@ -53,7 +49,7 @@ class GameObserverLoader {
     const overlay = this.container.querySelector('#observer-sync-overlay');
     if (overlay) {
       overlay.style.display = 'none';
-      console.log('[Loader] hide');
+      console.log('[OBS_TRACE] Loader.hide() called');
     }
   }
 
@@ -66,8 +62,7 @@ class GameObserverLoader {
     const overlay = this.container.querySelector('#observer-sync-overlay');
     if (overlay) {
       overlay.remove();
-      console.log('[Loader] remove');
-      console.log('[Loader] removed from DOM');
+      console.log('[OBS_TRACE] Loader.remove() called; overlay removed from DOM');
     }
     if (this.container.querySelector('#observer-sync-overlay')) {
       console.warn('[Loader] existence check after remove: element still in DOM');

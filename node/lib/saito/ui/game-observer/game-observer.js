@@ -27,7 +27,7 @@ class GameObserver {
     this.step_speed = 2000;
     this._paused = true;
 
-    this.is_loading = true;
+    this.is_ui_initializing = true;
     this._engine_game_states = []; // engine pushes here via .game_states getter; observer logic uses all_moves only
     this.game_moves = [];
     this.all_moves = []; // canonical move list: authoritative for step counts and slider; only grows when new moves arrive from network, never during replay
@@ -44,7 +44,6 @@ class GameObserver {
     this.current_index = 0;
     this.total_moves = 0;
     this.follow_live = true;
-    this.is_playing = false;
     this.base_game_state = null;
     this.is_replaying = false; // true while replayToIndex is running; prevents syncing duplicates into all_moves
 
@@ -59,6 +58,8 @@ class GameObserver {
     this._sync_stability_interval = null;
     this._observer_overlay_start_time = null;
     this._overlay_removal_scheduled = false;
+    this._observer_initialized = false;
+    this._observer_poll_interval = null;
     this._history_complete = true;
 
     this.loader = new GameObserverLoader(app, game_mod, '');
@@ -107,17 +108,22 @@ class GameObserver {
 
   /**
    * Render the Observer interface into document.body. Loader renders only once during loading;
-   * if overlay already exists and is_loading, do nothing to avoid duplicate re-renders.
+   * if overlay already exists and is_ui_initializing, do nothing to avoid duplicate re-renders.
    */
   render() {
     if (typeof document === 'undefined' || !document.body) return;
-
-    if (this.is_loading) {
+    const overlayExists = !!document.body.querySelector('#observer-sync-overlay');
+    console.log('[OBS_TRACE] GameObserver.render()', { is_ui_initializing: this.is_ui_initializing, overlayExists });
+    if (this.is_ui_initializing) {
       const overlayEl = document.body.querySelector('#observer-sync-overlay');
-      if (overlayEl) return;
+      if (overlayEl) {
+        console.log('[OBS_TRACE] GameObserver.render() early return: overlay already exists');
+        return;
+      }
       const hudEl = document.body.querySelector('#game-observer-hud');
       if (hudEl) hudEl.remove();
       this._observer_overlay_start_time = Date.now();
+      console.log('[OBS_TRACE] GameObserver.render() calling loader.render(), _observer_overlay_start_time set');
       this.loader.render();
     } else {
       this.hud.render();
@@ -151,9 +157,9 @@ class GameObserver {
   }
 
   finishLoading() {
-    if (!this.is_loading) return;
-    if (this._overlay_removal_scheduled) return;
-    this._overlay_removal_scheduled = true;
+    if (!this.is_ui_initializing) return;
+    this.is_ui_initializing = false;
+    this._observer_initialized = true;
 
     const MIN_VISIBLE_MS = 2000;
     const elapsed = (this._observer_overlay_start_time != null)
@@ -164,16 +170,22 @@ class GameObserver {
     this.sync_phase = 'ready';
     this.replay_active = false;
     this.stability_monitor_active = false;
-    this.is_loading = false;
 
     if (this._sync_stability_interval != null) {
       clearInterval(this._sync_stability_interval);
       this._sync_stability_interval = null;
     }
 
+    if (this._observer_poll_interval == null) {
+      this._observer_poll_interval = setInterval(() => {
+        if (!this.game_mod?.game) return;
+        this.observerDownloadNextMoves(null);
+      }, 30000);
+    }
+
     const engineStep = this.game_mod?.game?.step?.game || 0;
     if (engineStep > 0 && this.all_moves.length === 0) {
-      this.all_moves.length = engineStep;
+      this.all_moves = new Array(engineStep).fill(null);
       this._viewingIndex = engineStep - 1;
       this._history_complete = false;
     }
@@ -182,11 +194,9 @@ class GameObserver {
     if (total > 0) {
       if (this.game_mod.game?.over === 1) {
         this._viewingIndex = 0;
-        this.is_playing = false;
         this._paused = true;
       } else {
         this._viewingIndex = total - 1;
-        this.is_playing = true;
         this._paused = false;
       }
     } else {
@@ -195,7 +205,6 @@ class GameObserver {
 
     if (this.game_mod.observer_watch_live === true || this.follow_live === true || this.game_mod.game?.live === true) {
       this._paused = false;
-      this.is_playing = true;
     }
 
     this._clampViewingIndex();
@@ -209,6 +218,7 @@ class GameObserver {
 
     setTimeout(() => {
       const overlayEl = document.body.querySelector('#observer-sync-overlay');
+      console.log('[OBS_TRACE] finishLoading() setTimeout: removing overlay', { overlayExists: !!overlayEl });
       if (overlayEl) overlayEl.remove();
       if (this.game_mod.observer_watch_live) {
         this.game_mod.sendMetaMessage('FOLLOW');
@@ -222,7 +232,7 @@ class GameObserver {
    * Preserves moves beyond targetIndex (and any engine future) so they are restored after replay.
    */
   async replayToIndex(targetIndex) {
-    this.is_playing = false;
+    this._paused = true;
     if (!this.baseline_state) return;
 
     const maxIndex = Math.max(0, this.all_moves.length - 1);
@@ -298,13 +308,13 @@ class GameObserver {
     });
     const prevLen = this._lastKnownStatesLength ?? 0;
     const total = this.all_moves.length;
-    if (total > prevLen && this.is_playing && this._viewingIndex === prevLen - 1) {
+    if (total > prevLen && !this._paused && this._viewingIndex === prevLen - 1) {
       this._viewingIndex = total - 1;
     }
     this._lastKnownStatesLength = total;
 
     const wasAtEnd = this._viewingIndex === total - 2;
-    if (this.is_playing && wasAtEnd) {
+    if (!this._paused && wasAtEnd) {
       this._viewingIndex = total - 1;
     }
     this._clampViewingIndex();
@@ -316,7 +326,7 @@ class GameObserver {
       const totalExpected = this.total_moves_expected || total;
       this.updateSyncStatus('Validating move ' + total + ' of ' + totalExpected);
     }
-    if (this.is_loading) {
+    if (this.is_ui_initializing) {
       this.updateSyncStatus('Validating moves ' + total + '...');
     }
     if (this.total_moves_expected > 0) {
@@ -346,7 +356,7 @@ class GameObserver {
     if (this.all_moves.length > 0 && this._viewingIndex < this.all_moves.length - 1) {
       await this.replayToIndex(this.all_moves.length - 1);
     }
-    this.is_playing = true;
+    this._paused = false;
     this.resume();
     console.log('OBSERVER: unhalt game (play)');
   }
@@ -372,7 +382,7 @@ class GameObserver {
 
   /**
    * Rewind one step (replay from baseline to target index).
-   * Exits play mode via replayToIndex (is_playing = false).
+   * Exits play mode via replayToIndex (_paused = true).
    */
   last() {
     if (this._viewingIndex <= 0) return;
@@ -397,9 +407,10 @@ class GameObserver {
    * clear all_moves, re-fetch from archive, and run queue so finishLoading() runs normally.
    */
   async rebuildHistoryFromArchive() {
-    this.is_loading = true;
+    this.is_ui_initializing = true;
     this._overlay_removal_scheduled = false;
     this._observer_overlay_start_time = Date.now();
+    this._observer_initialized = false;
     this.loader.render();
 
     this.all_moves = [];
@@ -512,12 +523,15 @@ class GameObserver {
         }
 
         if (mycallback) {
-          if (new_moves !== 0 || !(g.player == 0 && mod.gameBrowserActive())) {
-            console.debug('GT [observer] Run callback after fetching archives...');
+          const observerAndActive = g.player == 0 && mod.gameBrowserActive();
+          const coldStart = !this._observer_initialized;
+          const allowCallback = new_moves !== 0 || !observerAndActive || coldStart;
+          if (allowCallback) {
+            if (new_moves === 0 && observerAndActive && coldStart) {
+              console.log('[OBS_TRACE] observerDownloadNextMoves: cold-start + 0 new moves, invoking callback once');
+            }
             mycallback();
           } else {
-            // Observer with 0 new moves:
-            // Unblock queue so next live move can trigger startQueue()
             mod.gaming_active = 0;
           }
         }
@@ -532,7 +546,7 @@ class GameObserver {
    * are stable (unchanged) for >= 1000ms. Does NOT require queue or future to be empty.
    */
   checkSyncStability() {
-    if (!this.is_loading || !this.game_mod?.game) return;
+    if (!this.game_mod?.game) return;
     if (this._sync_stability_interval != null) return;
     const self = this;
     const CHECK_MS = 100;
@@ -542,7 +556,7 @@ class GameObserver {
     let stableSince = null;
     this.stability_monitor_active = true;
     this._sync_stability_interval = setInterval(() => {
-      if (!self.is_loading || !self.game_mod?.game) {
+      if (!self.game_mod?.game) {
         if (self._sync_stability_interval != null) {
           clearInterval(self._sync_stability_interval);
           self._sync_stability_interval = null;
