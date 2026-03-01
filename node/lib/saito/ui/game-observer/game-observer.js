@@ -60,6 +60,7 @@ class GameObserver {
     this._overlay_removal_scheduled = false;
     this._observer_poll_interval = null;
     this._history_complete = true;
+    this.sync_started = false;
 
     this.loader = new GameObserverLoader(app, game_mod, '');
     this._hudContext = {
@@ -131,10 +132,6 @@ class GameObserver {
     }
 
     game_mod.game.player = 0;
-
-    this.observerDownloadNextMoves(async () => {
-      await game_mod.startQueue();
-    });
   }
 
   get is_paused() {
@@ -157,7 +154,9 @@ class GameObserver {
    * if overlay already exists and is_ui_initializing, do nothing to avoid duplicate re-renders.
    */
   render() {
-    if (typeof document === 'undefined' || !document.body) return;
+
+    if (typeof document === 'undefined' || !document.body) { console.log("ERROR NO DOCUMENT BODY"); return; }
+
     const overlayExists = !!document.body.querySelector('#observer-sync-overlay');
     console.log('[OBS_TRACE] GameObserver.render()', { is_ui_initializing: this.is_ui_initializing, overlayExists });
     if (this.is_ui_initializing) {
@@ -171,6 +170,15 @@ class GameObserver {
       this._observer_overlay_start_time = Date.now();
       console.log('[OBS_TRACE] GameObserver.render() calling loader.render(), _observer_overlay_start_time set');
       this.loader.render();
+      if (!this.sync_started) {
+        this.sync_started = true;
+        this.observerDownloadNextMoves(async () => {
+          await this.game_mod.startQueue();
+        });
+      }
+      if (!this.stability_monitor_active) {
+        this.checkSyncStability();
+      }
     } else {
       this.hud.render();
       this.hud.attachEvents();
@@ -205,6 +213,7 @@ class GameObserver {
   finishLoading() {
     if (!this.is_ui_initializing) return;
     this.is_ui_initializing = false;
+    this.render();
 
     const MIN_VISIBLE_MS = 2000;
     const elapsed = (this._observer_overlay_start_time != null)
@@ -256,10 +265,6 @@ class GameObserver {
     if (this.all_moves.length > 0 && !this.baseline_state && this._engine_game_states && this._engine_game_states.length > 0) {
       this.baseline_state = JSON.parse(JSON.stringify(this._engine_game_states[0]));
     }
-
-    this.hud.render();
-    this.hud.attachEvents();
-    this.hud.updateUIState();
 
     setTimeout(() => {
       const overlayEl = document.body.querySelector('#observer-sync-overlay');
@@ -444,7 +449,7 @@ class GameObserver {
     this.is_ui_initializing = true;
     this._overlay_removal_scheduled = false;
     this._observer_overlay_start_time = Date.now();
-    this.loader.render();
+    this.render();
 
     this.all_moves = [];
     this._history_complete = true;
@@ -566,8 +571,6 @@ class GameObserver {
             mod.gaming_active = 0;
           }
         }
-
-        this.checkSyncStability();
       }
     );
   }
