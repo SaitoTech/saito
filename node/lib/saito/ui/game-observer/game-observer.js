@@ -59,6 +59,7 @@ class GameObserver {
     this._sync_stability_interval = null;
     this._observer_overlay_start_time = null;
     this._overlay_removal_scheduled = false;
+    this._history_complete = true;
 
     this.loader = new GameObserverLoader(app, game_mod, '');
     this._hudContext = {
@@ -83,7 +84,8 @@ class GameObserver {
         }
         this.next();
       },
-      onSliderInput: (idx) => this.replayToIndex(idx)
+      onSliderInput: (idx) => this.replayToIndex(idx),
+      observer: this
     };
     this.hud = new GameObserverHUD(app, this._hudContext, '');
   }
@@ -167,6 +169,13 @@ class GameObserver {
     if (this._sync_stability_interval != null) {
       clearInterval(this._sync_stability_interval);
       this._sync_stability_interval = null;
+    }
+
+    const engineStep = this.game_mod?.game?.step?.game || 0;
+    if (engineStep > 0 && this.all_moves.length === 0) {
+      this.all_moves.length = engineStep;
+      this._viewingIndex = engineStep - 1;
+      this._history_complete = false;
     }
 
     const total = this.all_moves.length;
@@ -384,6 +393,24 @@ class GameObserver {
   }
 
   /**
+   * Lazy canonical reconstruction: when _history_complete is false and user rewinds,
+   * clear all_moves, re-fetch from archive, and run queue so finishLoading() runs normally.
+   */
+  async rebuildHistoryFromArchive() {
+    this.is_loading = true;
+    this._overlay_removal_scheduled = false;
+    this._observer_overlay_start_time = Date.now();
+    this.loader.render();
+
+    this.all_moves = [];
+    this._history_complete = true;
+
+    await this.observerDownloadNextMoves(async () => {
+      await this.game_mod.startQueue();
+    });
+  }
+
+  /**
    * Observer-only: load next batch of moves from archive. Mutates game_mod.game.future;
    * invokes callback when done. Sync completion is determined by checkSyncStability().
    */
@@ -484,9 +511,15 @@ class GameObserver {
           this.updateSyncStatus("No moves found in game archive.");
         }
 
-        if (mycallback && (new_moves !== 0 || !(g.player == 0 && mod.gameBrowserActive()))) {
-          console.debug('GT [observer] Run callback after fetching archives...');
-          mycallback();
+        if (mycallback) {
+          if (new_moves !== 0 || !(g.player == 0 && mod.gameBrowserActive())) {
+            console.debug('GT [observer] Run callback after fetching archives...');
+            mycallback();
+          } else {
+            // Observer with 0 new moves:
+            // Unblock queue so next live move can trigger startQueue()
+            mod.gaming_active = 0;
+          }
         }
 
         this.checkSyncStability();

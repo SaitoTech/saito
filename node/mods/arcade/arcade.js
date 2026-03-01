@@ -2084,8 +2084,7 @@ console.log("SAVING GAME MOVE: ");
 		}
 
 		const slug = game_mod?.returnSlug?.() || game_mod?.slug || game_msg?.game || 'arcade';
-		const gid = this.app.crypto.hash(game_id).slice(-6);
-		this.app.browser.navigateWindow(`/${slug}?observer=1#gid=${gid}`);
+		this.app.browser.navigateWindow(`/${slug}?observer=1#gid=${game_id}`);
 	}
 }
 
