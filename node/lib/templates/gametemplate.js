@@ -478,6 +478,12 @@ class GameTemplate extends ModTemplate {
       return 0;
     }
 
+    console.log('[OBS_TRACE] initializeHTML() (first run)', {
+      game_player: this.game?.player,
+      game_id: this.game?.id?.substring?.(0, 12),
+      browser_active: this.browser_active
+    });
+
     //
     // Query server to make sure you know and remember your new friends names
     this.app.connection.emit('registry-fetch-identifiers-and-update-dom', this.game.players);
@@ -491,6 +497,7 @@ class GameTemplate extends ModTemplate {
       window.location.hash = `#`;
 
       let short_game_id = this.app.crypto.hash(this.game.id).slice(-6);
+      console.log('[OBS_TRACE] initializeHTML() setting hash', { oldHash: oldHash?.substring(0, 60), short_game_id });
 
       //This function is stupid and confusing
       window.location.hash = app.browser.initializeHash(
@@ -554,12 +561,29 @@ class GameTemplate extends ModTemplate {
         game_id = this.game.id;
       }
       try {
+        const vars_in_url = this.app.browser.parseHash(window.location.hash);
+        const gid_from_url = vars_in_url?.gid;
         let short_game_id = this.app.crypto.hash(game_id).slice(-6);
-        let gid = window.location.hash.split('&')[0].substring(5);
-        if (gid === short_game_id) {
+        const result = (
+          gid_from_url === short_game_id
+          || gid_from_url === game_id
+        );
+        // Only log in observer mode to reduce noise
+        if (this.game?.player === 0) {
+          console.log('[OBS_TRACE] gameBrowserActive()', {
+            hash: window.location.hash?.substring(0, 80),
+            gidLength: gid_from_url?.length,
+            short_game_id,
+            result
+          });
+        }
+        if (result) {
           return true;
         }
       } catch (err) {
+        if (this.game?.player === 0) {
+          console.log('[OBS_TRACE] gameBrowserActive() catch', err?.message);
+        }
         return false;
       }
     }
@@ -569,6 +593,7 @@ class GameTemplate extends ModTemplate {
 
   async attachEvents(app) {
     if (this?.game?.id) {
+      console.log('[OBS_TRACE] attachEvents() calling initializeGameQueue', { game_id: this.game.id?.substring?.(0, 12), game_player: this.game?.player });
       await this.initializeGameQueue(this.game.id);
     } else {
       document.documentElement.setAttribute('data-theme', 'arcade');
@@ -751,6 +776,7 @@ class GameTemplate extends ModTemplate {
   async initializeObserverMode(tx, use_state = false) {
     let game_id = tx.signature;
     let txmsg = tx.returnMessage();
+    console.log('[OBS_TRACE] initializeObserverMode()', { game_id: game_id?.substring?.(0, 12), use_state });
 
     // console.log(' !!!!!\n GT: OBSERVER MODE\n !!!!!\n', game_id, JSON.parse(JSON.stringify(txmsg)));
 
@@ -880,11 +906,14 @@ class GameTemplate extends ModTemplate {
       const observerParam = params.get("observer") === "1";
       let observerStubGameId = this.app.browser.returnURLParameter('load') || null;
       if (!observerStubGameId && typeof window !== 'undefined' && window.location?.hash) {
-        const hash = this.app.browser.parseHash(window.location.hash);
-        if (hash?.gid && this.app.options?.games?.length > 0) {
+        const vars_in_url = this.app.browser.parseHash(window.location.hash);
+        if (vars_in_url?.gid && this.app.options?.games?.length > 0) {
           for (let i = 0; i < this.app.options.games.length; i++) {
             if (this.name === this.app.options.games[i].module &&
-                this.app.crypto.hash(this.app.options.games[i].id).slice(-6) === hash.gid) {
+                (
+                  this.app.crypto.hash(this.app.options.games[i].id).slice(-6) === vars_in_url.gid
+                  || this.app.options.games[i].id === vars_in_url.gid
+                )) {
               observerStubGameId = this.app.options.games[i].id;
               break;
             }
@@ -1025,13 +1054,23 @@ class GameTemplate extends ModTemplate {
           //
           // process game move
           //
+          const asFuture = this?.treat_all_moves_as_future || this.isFutureMove(tx.from[0].publicKey, txmsg);
+          const asNext = !asFuture && this.isUnprocessedMove(tx.from[0].publicKey, txmsg);
+          console.log('[OBS_TRACE] onConfirmation(game move)', {
+            step: txmsg?.step?.game,
+            game_player: this.game?.player,
+            asFuture,
+            asNext,
+            gaming_active: this.gaming_active,
+            halted: this.halted
+          });
 
           //
           // cache recently received move
           //
           this.cacheRecentMove(tx);
 
-          if (this?.treat_all_moves_as_future || this.isFutureMove(tx.from[0].publicKey, txmsg)) {
+          if (asFuture) {
             await this.addFutureMove(tx);
 
             //Safety check in case observer missed a move
@@ -1048,7 +1087,7 @@ class GameTemplate extends ModTemplate {
                 await this.observerControls.next();
               }
             }
-          } else if (this.isUnprocessedMove(tx.from[0].publicKey, txmsg)) {
+          } else if (asNext) {
             await this.addNextMove(tx);
             this.notifyMove();
           } else {
@@ -1201,17 +1240,26 @@ class GameTemplate extends ModTemplate {
               return 0;
             }
 
+            const asFuture = this?.treat_all_moves_as_future || this.isFutureMove(gametx.from[0].publicKey, gametxmsg);
+            const asNext = !asFuture && this.isUnprocessedMove(gametx.from[0].publicKey, gametxmsg);
+            if (this.game?.player === 0) {
+              console.log('[OBS_TRACE] handlePeerTransaction(game relay gamemove)', {
+                step: gametxmsg?.step?.game,
+                asFuture,
+                asNext,
+                gaming_active: this.gaming_active,
+                halted: this.halted
+              });
+            }
+
             //
             // cache recently received move
             //
             this.cacheRecentMove(gametx);
 
-            if (
-              this?.treat_all_moves_as_future ||
-              this.isFutureMove(gametx.from[0].publicKey, gametxmsg)
-            ) {
+            if (asFuture) {
               await this.addFutureMove(gametx);
-            } else if (this.isUnprocessedMove(gametx.from[0].publicKey, gametxmsg)) {
+            } else if (asNext) {
               await this.addNextMove(gametx);
               this.notifyMove();
             } else {

@@ -2049,6 +2049,7 @@ console.log("SAVING GAME MOVE: ");
 
 
 	async observeGame(game_id, watch_live = false) {
+		console.log('[OBS_TRACE] Arcade.observeGame()', { game_id: game_id?.substring?.(0, 12), watch_live });
 
 		let game = this.returnGame(game_id);
 		let game_tx = game?.tx;

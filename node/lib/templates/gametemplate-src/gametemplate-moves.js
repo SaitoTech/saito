@@ -250,8 +250,16 @@ class GameMoves {
 
   async addNextMove(gametx) {
     let gametxmsg = gametx.returnMessage();
+    const guard = this.halted == 1 || this.gaming_active == 1 || this.game.initialize_game_run == 0;
+    console.log('[OBS_TRACE] addNextMove()', {
+      step: gametxmsg?.step?.game,
+      gaming_active: this.gaming_active,
+      halted: this.halted,
+      initialize_game_run: this.game.initialize_game_run,
+      guardTriggered: guard
+    });
 
-    if (this.halted == 1 || this.gaming_active == 1 || this.game.initialize_game_run == 0) {
+    if (guard) {
       console.info(
         `GT [addNextMove] -- save as future move because halted (${this.halted}) or active (${
           this.gaming_active
@@ -326,6 +334,7 @@ class GameMoves {
 
       this.saveFutureMoves(this.game.id);
       this.saveGame(this.game.id);
+      console.log('[OBS_TRACE] addNextMove() accepted; calling startQueue()');
       await this.startQueue();
     } else {
       console.error('No queue in game engine');
@@ -372,6 +381,7 @@ class GameMoves {
       this.saveFutureMoves(this.game.id);
 
       if (this.game.player == 0 && this.gameBrowserActive()) {
+        console.log('[OBS_TRACE] addFutureMove(): observer path', { is_paused: this.observerControls?.is_paused, halted: this.halted, gaming_active: this.gaming_active });
         try {
           if (this.observerControls.is_paused || this.halted) {
             this.observerControls.showNextMoveButton();
@@ -398,6 +408,7 @@ class GameMoves {
     // this is always called after runQueue which locks the queue for newMoves while processing
     // but there are multiple paths out of the queue, so we unlock it here
     this.gaming_active = 0;
+    console.log('[OBS_TRACE] processFutureMoves(): set gaming_active = 0', { futureLength: this.game.future?.length, halted: this.halted });
 
     if (this.game.futurePlus && this.game.futurePlus[this.game.step.game]) {
       //>>>>>>>>>>>>>>>>>>>
@@ -451,9 +462,9 @@ class GameMoves {
       );
     }
 
-    if (this.game.player == 0) {
+    if (this.game.player == 0 && !this.observerControls._observer_initialized) {
       console.info(
-        'GT [processFutureMoves] Observer.... check for additional moves... after processing future moves'
+        'GT [processFutureMoves] Observer.... check for additional moves... after processing future moves (cold start)'
       );
       this.observerControls.observerDownloadNextMoves(() => {
         this.processFutureMoves();

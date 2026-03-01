@@ -244,12 +244,15 @@ class GameGame {
     // try to URL specified game
     //
     if (game_id == null) {
-      let hash = this.app.browser.parseHash(window.location.hash);
-      if (hash?.gid) {
+      let vars_in_url = this.app.browser.parseHash(window.location.hash);
+      if (vars_in_url?.gid) {
         if (this.app.options?.games?.length > 0) {
           for (let i = 0; i < this.app.options.games.length; i++) {
             if (this.name == this.app.options.games[i].module) {
-              if (this.app.crypto.hash(this.app.options.games[i].id).slice(-6) == hash.gid) {
+              if (
+                this.app.crypto.hash(this.app.options.games[i].id).slice(-6) == vars_in_url.gid
+                || this.app.options.games[i].id === vars_in_url.gid
+              ) {
                 game_id = this.app.options.games[i].id;
                 break;
               }
