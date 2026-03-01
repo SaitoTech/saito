@@ -462,9 +462,9 @@ class GameMoves {
       );
     }
 
-    if (this.game.player == 0 && !this.observerControls._observer_initialized) {
+    if (this.game.player == 0 && this.observerControls._observer_poll_interval === null) {
       console.info(
-        'GT [processFutureMoves] Observer.... check for additional moves... after processing future moves (cold start)'
+        'GT [processFutureMoves] Observer.... check for additional moves... after processing future moves'
       );
       this.observerControls.observerDownloadNextMoves(() => {
         this.processFutureMoves();

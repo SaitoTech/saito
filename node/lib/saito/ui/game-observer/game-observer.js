@@ -58,7 +58,6 @@ class GameObserver {
     this._sync_stability_interval = null;
     this._observer_overlay_start_time = null;
     this._overlay_removal_scheduled = false;
-    this._observer_initialized = false;
     this._observer_poll_interval = null;
     this._history_complete = true;
 
@@ -159,7 +158,6 @@ class GameObserver {
   finishLoading() {
     if (!this.is_ui_initializing) return;
     this.is_ui_initializing = false;
-    this._observer_initialized = true;
 
     const MIN_VISIBLE_MS = 2000;
     const elapsed = (this._observer_overlay_start_time != null)
@@ -410,7 +408,6 @@ class GameObserver {
     this.is_ui_initializing = true;
     this._overlay_removal_scheduled = false;
     this._observer_overlay_start_time = Date.now();
-    this._observer_initialized = false;
     this.loader.render();
 
     this.all_moves = [];
@@ -524,7 +521,7 @@ class GameObserver {
 
         if (mycallback) {
           const observerAndActive = g.player == 0 && mod.gameBrowserActive();
-          const coldStart = !this._observer_initialized;
+          const coldStart = (this._observer_poll_interval === null);
           const allowCallback = new_moves !== 0 || !observerAndActive || coldStart;
           if (allowCallback) {
             if (new_moves === 0 && observerAndActive && coldStart) {
