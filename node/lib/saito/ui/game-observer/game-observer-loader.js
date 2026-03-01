@@ -21,13 +21,10 @@ class GameObserverLoader {
    */
   render() {
 
-alert("Game Loader 1");
     if (!this.container || typeof document === 'undefined') { return; }
-alert("Game Loader 2");
 
     const html = GameObserverLoaderTemplate();
     if (!html || !html.trim()) { return; }
-alert("Game Loader 3");
 
     const existing = this.container.querySelector('#observer-sync-overlay');
     const wrap = document.createElement('div');
@@ -51,7 +48,6 @@ alert("Game Loader 3");
    * Hide the overlay with display:none in this.container.
    */
   hide() {
-alert("hiding loader...");
     if (!this.container || typeof document === 'undefined') { return; }
 
     const overlay = this.container.querySelector('#observer-sync-overlay');
@@ -65,7 +61,6 @@ alert("hiding loader...");
    * Remove #observer-sync-overlay from this.container.
    */
   remove() {
-alert("hiding loader...");
     if (!this.container || typeof document === 'undefined') { return; }
 
     const overlay = this.container.querySelector('#observer-sync-overlay');

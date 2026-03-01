@@ -88,6 +88,11 @@ class GameObserverHUD {
     if (backBtn && typeof ctx.onBack === 'function') {
       backBtn.onclick = (e) => {
         if (e.target.closest('button')?.disabled) return;
+        const observer = ctx.observer;
+        if (observer && !observer._history_complete && observer._viewingIndex > 0) {
+          observer.rebuildHistoryFromArchive();
+          return;
+        }
         ctx.onBack();
       };
     }
@@ -110,7 +115,13 @@ class GameObserverHUD {
     if (slider && typeof ctx.onSliderInput === 'function') {
       slider.addEventListener('input', () => {
         const idx = parseInt(slider.value, 10);
-        if (!Number.isNaN(idx)) ctx.onSliderInput(idx);
+        if (Number.isNaN(idx)) return;
+        const observer = ctx.observer;
+        if (observer && !observer._history_complete && idx < observer._viewingIndex) {
+          observer.rebuildHistoryFromArchive();
+          return;
+        }
+        ctx.onSliderInput(idx);
       });
     }
 
