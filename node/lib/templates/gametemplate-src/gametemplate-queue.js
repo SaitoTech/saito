@@ -138,12 +138,9 @@ class GameQueue {
         const overlayBefore = typeof document !== 'undefined' && document.body ? !!document.body.querySelector('#observer-sync-overlay') : null;
         console.log('[OBS_TRACE] initializeGameQueue (observer): gaming_active=1, game.initialize_game_run=', this.game.initialize_game_run, 'overlayExistsBeforeRender=', overlayBefore);
 
-        // --- FORCE DETERMINISTIC LOADING OVERLAY ---
         if (this.observerControls) {
             this.observerControls.is_ui_initializing = true;
-            this.observerControls.render();
         }
-        // --- END LOADING OVERLAY FORCE ---
         const overlayAfter = typeof document !== 'undefined' && document.body ? !!document.body.querySelector('#observer-sync-overlay') : null;
         console.log('[OBS_TRACE] initializeGameQueue (observer): after render overlayExists=', overlayAfter, 'observerControls.is_ui_initializing=', this.observerControls?.is_ui_initializing);
 
