@@ -90,6 +90,53 @@ class GameObserver {
     this.hud = new GameObserverHUD(app, this._hudContext, '');
   }
 
+  /**
+   * Observer-only initialization: resolve or create game, assign to game_mod.game,
+   * then run archive fetch and queue processing. Called by GameTemplate.initialize() when observer=1.
+   * @param {Object} params - { full_game_id, url_vars, game_mod }
+   */
+  initialize(params = {}) {
+    const full_game_id = params.full_game_id;
+    const game_mod = params.game_mod || this.game_mod;
+    if (!full_game_id || !game_mod) return;
+
+    let localId = null;
+    if (this.app.options?.games?.length > 0) {
+      for (let i = 0; i < this.app.options.games.length; i++) {
+        const g = this.app.options.games[i];
+        if (g.module !== game_mod.name) continue;
+        if (g.id === full_game_id || this.app.crypto.hash(g.id).slice(-6) === full_game_id) {
+          localId = g.id;
+          break;
+        }
+      }
+    }
+
+    if (localId) {
+      game_mod.loadGame(localId);
+    } else {
+      const stub = {
+        id: full_game_id,
+        future: [],
+        queue: [],
+        step: { game: 0, players: {} },
+        players: [],
+        player: 0,
+        originator: ''
+      };
+      game_mod.game = stub;
+      if (typeof game_mod.normalizeGameShape === 'function') {
+        game_mod.normalizeGameShape(game_mod.game);
+      }
+    }
+
+    game_mod.game.player = 0;
+
+    this.observerDownloadNextMoves(async () => {
+      await game_mod.startQueue();
+    });
+  }
+
   get is_paused() {
     return this._paused;
   }
@@ -262,17 +309,6 @@ class GameObserver {
     }
 
     if (!this.game_mod.game.future) this.game_mod.game.future = [];
-
-    if (this.app.options && this.app.options.games) {
-      for (let i = 0; i < this.app.options.games.length; i++) {
-        if (this.app.options.games[i].id === this.game_mod.game.id) {
-          if (this.app.options.games[i].future === undefined) {
-            this.app.options.games[i].future = [];
-          }
-          break;
-        }
-      }
-    }
 
     await this.game_mod.startQueue();
 
@@ -479,11 +515,9 @@ class GameObserver {
 
           if (game_move?.step && game_move.request == 'game') {
             let loaded_step = game_move.step.game;
+            const playerStep = g.step.players?.[tx.from[0].publicKey] ?? 0;
 
-            if (
-              loaded_step > g.step.game ||
-              loaded_step > g.step.players[tx.from[0].publicKey]
-            ) {
+            if (loaded_step > g.step.game || loaded_step > playerStep) {
               let ftx = tx.serialize_to_web(this.app);
 
               if (!g.future.includes(ftx)) {

@@ -469,12 +469,6 @@ class GameTemplate extends ModTemplate {
       return;
     }
     if (this.initialize_game_run == 1) {
-      // Ensure observer overlay still renders
-      if (this.game?.player == 0) {
-        if (this.observerControls) {
-          this.observerControls.render();
-        }
-      }
       return 0;
     }
 
@@ -530,7 +524,6 @@ class GameTemplate extends ModTemplate {
     }
 
     if (this.game.player == 0) {
-      this.observerControls.render();
       document.body.classList.add('observer-mode');
       if (this.game.live) {
         this.observerControls.step_speed = 3;
@@ -900,30 +893,17 @@ class GameTemplate extends ModTemplate {
     //
     // we grab the game with the most current timestamp (ts)
     // since no ID is provided
+    const params = new URLSearchParams(window.location.search);
     if (!this.loadGame()) {
-      // Option B: observer stub bootstrap — when observing a game not in app.options.games
-      const params = new URLSearchParams(window.location.search);
       const observerParam = params.get("observer") === "1";
-      let observerStubGameId = this.app.browser.returnURLParameter('load') || null;
-      if (!observerStubGameId && typeof window !== 'undefined' && window.location?.hash) {
-        const vars_in_url = this.app.browser.parseHash(window.location.hash);
-        if (vars_in_url?.gid && this.app.options?.games?.length > 0) {
-          for (let i = 0; i < this.app.options.games.length; i++) {
-            if (this.name === this.app.options.games[i].module &&
-                (
-                  this.app.crypto.hash(this.app.options.games[i].id).slice(-6) === vars_in_url.gid
-                  || this.app.options.games[i].id === vars_in_url.gid
-                )) {
-              observerStubGameId = this.app.options.games[i].id;
-              break;
-            }
-          }
-        }
-      }
-      if (observerParam && observerStubGameId) {
-        this.game = this.newGame(observerStubGameId);
+      const vars_in_url =
+        typeof window !== 'undefined' && window.location?.hash
+          ? this.app.browser.parseHash(window.location.hash)
+          : {};
+      if (observerParam && vars_in_url?.gid) {
+        this.game = this.newGame(vars_in_url.gid);
         this.game.player = 0;
-        this._observer_stub_bootstrap = true; // do not save stub to options.games
+        this._observer_stub_bootstrap = true;
       } else {
         console.error('GT [initialize] No valid game.... stop!!!!!');
         this.initialize_game_run = 1; //Will prevent rendering of game assets
@@ -931,11 +911,14 @@ class GameTemplate extends ModTemplate {
       }
     }
 
-    const params = new URLSearchParams(window.location.search);
     if (params.get("observer") === "1") {
       this.game = this.game || {};
       this.game.player = 0;
       if (this.game.id && !this._observer_stub_bootstrap) this.saveGame(this.game.id);
+    }
+
+    if (this.game?.player === 0 && this.observerControls) {
+      this.observerControls.initialize({ full_game_id: this.game.id, game_mod: this });
     }
 
     //
@@ -1751,8 +1734,7 @@ class GameTemplate extends ModTemplate {
       document.body.innerHTML = template;
       this.calculateBoardRatio();
 
-      if (this.game?.player === 0) {
-alert("rendering observer controls...");
+      if (this.game?.player === 0 && this.observerControls) {
         this.observerControls.render();
       }
     }

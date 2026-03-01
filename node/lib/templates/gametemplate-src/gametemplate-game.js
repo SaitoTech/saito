@@ -159,6 +159,15 @@ class GameGame {
     pom.remove();
   }
 
+  /**
+   * Ensures game has .future and .queue as arrays. Does not clear or overwrite existing values.
+   */
+  normalizeGameShape(game) {
+    if (!game) return;
+    if (!Array.isArray(game.future)) game.future = [];
+    if (!Array.isArray(game.queue)) game.queue = [];
+  }
+
   saveGame(game_id) {
     if (!this.app.BROWSER) {
       return;
@@ -199,6 +208,9 @@ class GameGame {
         for (let i = 0; i < this.app.options.games.length; i++) {
           if (this.app.options.games[i].id === game_id) {
             this.game.timestamp = new Date().getTime();
+
+            this.normalizeGameShape(this.game);
+            this.normalizeGameShape(this.app.options.games[i]);
 
             //
             // sept 25 - do not overwrite any future moves saved separately
@@ -294,6 +306,7 @@ class GameGame {
       for (let i = 0; i < this.app.options?.games?.length; i++) {
         if (this.app.options.games[i].id === game_id) {
           this.game = JSON.parse(JSON.stringify(this.app.options.games[i]));
+          this.normalizeGameShape(this.game);
           console.info('GT loading game: ' + game_id);
 
           return this.game;
