@@ -318,7 +318,11 @@ class BuySaito extends ModTemplate {
   convertSaitoToOther(amount, ticker = null) {
     console.log('Currency Conversion: ', amount, ticker);
 
-    let saito_price = this.erc_saito ? 1.05 * Number(this.erc_saito.price_usd) : 1;
+    let saito_price = this.erc_saito ? 1.1 * Number(this.erc_saito.price_usd) : 1;
+
+    // Make sure we don't sell for less than 1/10 penny
+    saito_price = Math.max(0.001, saito_price);
+
     let usd_price = 0;
 
     if (ticker) {
@@ -328,8 +332,6 @@ class BuySaito extends ModTemplate {
         }
       }
     }
-
-    console.log(saito_price, usd_price);
 
     if (usd_price == 0) {
       console.warn('BUYSAITO - No ticker selected for conversion!');
@@ -347,7 +349,11 @@ class BuySaito extends ModTemplate {
   }
 
   convertToSaito(amount, ticker = null) {
-    let saito_price = this.erc_saito ? 1.05 * Number(this.erc_saito.price_usd) : 1;
+    let saito_price = this.erc_saito ? 1.1 * Number(this.erc_saito.price_usd) : 1;
+
+    // Make sure we don't sell for less than 1/10 penny
+    saito_price = Math.max(0.001, saito_price);
+
     let usd_price = 0;
 
     if (ticker) {
