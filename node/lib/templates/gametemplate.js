@@ -323,7 +323,7 @@ class GameTemplate extends ModTemplate {
       }
     });
 
-    app.connection.on('stop-game', async (game, id, reason) => {
+    app.connection.on('arcade-stop-game', async (game, id, reason) => {
       if (this.name === game) {
         if (!this.gameBrowserActive()) {
           let current_game_id = this.game.id;
@@ -331,7 +331,7 @@ class GameTemplate extends ModTemplate {
           await this.sendStopGameTransaction(reason);
           this.loadGame(current_game_id);
         } else {
-          // we have received stop-game that should not be triggered if we are IN the game... this means
+          // we have received arcade-stop-game that should not be triggered if we are IN the game... this means
           // something is sending an event that is forcing game-over...
           alert(
             'we are bug-hunting a game-ending bug -- please report this bug to developers - 582434'

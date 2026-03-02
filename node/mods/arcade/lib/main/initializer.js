@@ -24,7 +24,9 @@ class Initializer {
 		app.connection.on('arcade-close-game', (game_id) => {
 			if (game_id == this?.game_id) {
 				this.mod.is_game_initializing = false;
-				this.app.connection.emit('rerender-whole-arcade');
+				if (this.mod.browser_active && this.mod.main) {
+					this.mod.main.render();
+				}
 			}
 		});
 	}

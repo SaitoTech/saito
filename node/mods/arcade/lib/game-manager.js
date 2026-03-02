@@ -1,4 +1,4 @@
-const Invite = require('./invite');
+const Invite = require('./ui/invite');
 const JSON = require('json-bigint');
 
 class GameManager {

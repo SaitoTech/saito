@@ -62,6 +62,9 @@
 .arcade-central-panel {
 	height: 100%;
 	position: relative;
+}
+
+.arcade-teasers {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	grid-gap: 1rem;
@@ -149,16 +152,16 @@
 }
 
 /******************************************
- *  Central panel overrides (teaser grid)
+ *  Teaser grid layout and overrides
  *****************************************/
 
-.arcade-central-panel .arcade-teaser {
+.arcade-teasers .arcade-teaser {
 	box-shadow: var(--saito-box-shadow);
 	height: min(250px, calc((100vw - 34.5rem) / 4));
 	border-radius: var(--saito-border-radius);
 }
 
-.arcade-central-panel .arcade-teaser-title {
+.arcade-teasers .arcade-teaser-title {
 	height: 5rem;
 	display: flex;
 	align-items: center;
@@ -166,7 +169,7 @@
 	padding: 0 1.5rem;
 }
 
-.arcade-central-panel .arcade-teaser-title span {
+.arcade-teaser-title span {
 	font-size: 2.4rem;
 	text-transform: unset;
 	overflow: hidden;
@@ -189,7 +192,7 @@
 **************************************/
 
 @media screen and (max-width: 1200px) {
-	.arcade-central-panel {
+	.arcade-teasers {
 		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 	}
 }
@@ -212,21 +215,20 @@
 		margin: 0;
 		order: 2;
 	}
-	.arcade-container .saito-sidebar.right .saito-table-row {
+	.arcade-sidebar .saito-table-row {
 		padding: 1rem;
 	}
-	.arcade-container .saito-sidebar.right .saito-table-body {
+	.arcade-sidebar .saito-table-body {
 		grid-gap: 0.8rem;
 		font-size: 1.6rem;
 	}
-	.arcade-container .saito-sidebar.right .game-slider,
-	.arcade-container .saito-sidebar.right .chat-manager {
+	.arcade-sidebar .chat-manager {
 		display: none;
 	}
 	.arcade-sidebar .saito-announcement {
 		display: none;
 	}
-	.arcade-central-panel .arcade-teaser {
+	.arcade-teasers .arcade-teaser {
 		height: min(180px, calc(100vw / 3));
 	}
 }
@@ -235,13 +237,13 @@
 	.arcade-main {
 		padding: 0.5rem;
 	}
-	.arcade-central-panel .arcade-teaser-title span {
+	.arcade-teaser-title span {
 		font-size: 1.8rem;
 	}
 }
 
 @media screen and (max-width: 450px) {
-	.arcade-central-panel {
+	.arcade-teasers {
 		grid-template-columns: repeat(2, 1fr);
 	}
 }
@@ -261,17 +263,6 @@
 		font-size: 1.8rem;
 		height: 4rem;
 	}
-}
-
-/************ DEPRECATED ***************/
-
-.arcade-game-list-container {
-	max-height: 60%;
-	position: relative;
-}
-
-.arcade-menu {
-	max-height: calc(100% - 4rem);
 }
 
 /**************************

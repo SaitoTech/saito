@@ -1,4 +1,4 @@
-const JoinGameOverlay = require('./overlays/join-game');
+const JoinGameOverlay = require('./overlays/lounge');
 const InviteTemplate = require('./invite.template');
 const InviteTemplateSparse = require('./invite.template.sparse');
 const JSON = require('json-bigint');
