@@ -10,6 +10,7 @@ const GameInvitationLink = require('./../../lib/saito/ui/modals/saito-link/saito
 const Invite = require('./lib/ui/invite');
 const LoungeOverlay = require('./lib/ui/overlays/lounge');
 const SaitoOverlay = require('../../lib/saito/ui/saito-overlay/saito-overlay');
+const ArcadeObserver = require('./lib/observer/observer');
 
 const arcadeHome = require('./index');
 
@@ -182,6 +183,7 @@ class Arcade extends ModTemplate {
 	//
 	async initialize(app) {
 		await super.initialize(app);
+		console.log("Legacy UI GameObserver removed — ArcadeObserver active");
 
 		//
 		// compile list of arcade games
@@ -525,14 +527,26 @@ class Arcade extends ModTemplate {
 				// For processing direct link to game invite
 				//
 				if (arcade_self.app.browser.returnURLParameter('game_id')) {
-					this.loadGameInviteById(
-						arcade_self.app.browser.returnURLParameter('game_id'),
-						arcade_self.app.browser.returnURLParameter('game'),
-						arcade_self.app.browser.returnURLParameter('invite')
-					);
-
-					// Overwrite link-url with baseline url
-					window.history.replaceState('', '', `/arcade/`);
+					const observer_debug = arcade_self.app.browser.returnURLParameter('observer_debug');
+					const game_slug = arcade_self.app.browser.returnURLParameter('game');
+					const game_id = arcade_self.app.browser.returnURLParameter('game_id');
+					if (observer_debug === '1' && game_slug && game_id) {
+						console.info('ARCADE: observer_debug=1 — launching ArcadeObserver', { game_slug, game_id });
+						const game_mod = arcade_self.app.modules.returnModuleBySlug(game_slug) || arcade_self.app.modules.returnModule(game_slug);
+						if (!game_mod) {
+							console.warn('ARCADE: observer_debug — game module not found:', game_slug);
+						} else {
+							const observer = new ArcadeObserver(arcade_self.app, arcade_self, game_mod, game_id);
+							observer.initialize();
+						}
+					} else {
+						this.loadGameInviteById(
+							game_id,
+							arcade_self.app.browser.returnURLParameter('game'),
+							arcade_self.app.browser.returnURLParameter('invite')
+						);
+						window.history.replaceState('', '', `/arcade/`);
+					}
 				}
 
 				if (this.browser_active && this.ui) {
@@ -624,6 +638,10 @@ class Arcade extends ModTemplate {
 		let arcade_self = this.app.modules.returnModule('Arcade');
 
 		if (Number(conf) == 0) {
+
+console.log("INTO ONCONFIRMATION IN ARCADE...");
+console.log(JSON.stringify(txmsg));
+
 			try {
 				if (txmsg.module === 'Arcade') {
 					if (this.hasSeenTransaction(tx, Number(blk.id))) {
@@ -663,6 +681,9 @@ class Arcade extends ModTemplate {
 						await arcade_self.receiveAcceptTransaction(tx);
 					}
 				} else {
+
+console.log("ARCADE PROCESSING GAME MOVE: ");
+console.log(tx.returnMessage());
 					if (txmsg.request === 'stopgame') {
 						await arcade_self.receiveCloseTransaction(tx);
 					}
@@ -676,13 +697,14 @@ class Arcade extends ModTemplate {
 					}
 
 					//
-					// Archive game overs for async to work
+					// Archive game overs for async / observer mode to work
 					//
 					if (!this.app.BROWSER) {
 						let step = txmsg?.step?.game || txmsg.step || null;
 						if (step) {
 							step = String(step).padStart(5, '0');
 						}
+console.log("SAVING GAME MOVE: ");
 						await this.app.storage.saveTransaction(
 							tx,
 							{ field4: txmsg.game_id, field5: step, field5_sort: 1 },

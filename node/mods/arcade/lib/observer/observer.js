@@ -24,6 +24,32 @@ class ArcadeObserver {
     this._container = null;
     this._loadingContainer = null;
     this._template = null;
+
+    this.fetch_progress = {
+      downloaded: 0,
+      total: 0
+    };
+  }
+
+  /**
+   * Update loading overlay with progress (downloaded count and optional total).
+   * Updates progress text and progress bar fill width.
+   */
+  updateLoadingProgress(downloaded, total) {
+    this.fetch_progress.downloaded = downloaded;
+    this.fetch_progress.total = total;
+    if (!this._loadingContainer) return;
+    const textEl = this._loadingContainer.querySelector(".arcade-observer-progress-text");
+    const fillEl = this._loadingContainer.querySelector(".arcade-observer-progress-fill");
+    if (textEl) {
+      textEl.textContent = total > 0
+        ? `Downloaded ${downloaded} transactions`
+        : `Downloaded ${downloaded} transactions`;
+    }
+    if (fillEl) {
+      const pct = total > 0 ? Math.min(100, (downloaded / total) * 100) : 0;
+      fillEl.style.width = `${pct}%`;
+    }
   }
 
   /**
@@ -40,7 +66,7 @@ class ArcadeObserver {
   /**
    * Fetch all archive transactions for this game.
    * Uses existing storage pattern: field1 = module_gameid (same as Arcade archive).
-   * Paginates with limit until no more results.
+   * Paginates with limit until no more results. Updates loading progress after each batch.
    */
   async fetchAllGameTransactions() {
     const query = this.game_mod.name + "_" + this.game_id;
@@ -48,6 +74,9 @@ class ArcadeObserver {
     const seen = new Set();
     const limit = 500;
     let afterStep = null;
+    let batchCount = 0;
+
+    console.info("ArcadeObserver: fetchAllGameTransactions start", { game_id: this.game_id, module: this.game_mod.name });
 
     while (true) {
       const q = { field1: query, field5_sort: 1, ascending: 1, limit };
@@ -58,6 +87,7 @@ class ArcadeObserver {
         this.app.storage.loadTransactions(q, (r) => resolve(r || []), "localhost");
       });
       if (!txs.length) break;
+      batchCount++;
       for (const tx of txs) {
         const msg = tx.returnMessage ? tx.returnMessage() : tx.msg;
         if (!msg || msg.module !== this.game_mod.name || msg.game_id !== this.game_id) continue;
@@ -65,6 +95,9 @@ class ArcadeObserver {
         seen.add(tx.signature);
         all.push(tx);
       }
+      this.fetch_progress.downloaded = all.length;
+      this.updateLoadingProgress(this.fetch_progress.downloaded, 0);
+      this._renderLoadingOverlay();
       if (txs.length < limit) break;
       const last = txs[txs.length - 1];
       const lastMsg = last.returnMessage ? last.returnMessage() : last.msg;
@@ -72,6 +105,11 @@ class ArcadeObserver {
       if (step == null) break;
       afterStep = (typeof step === "number" ? step : parseInt(step, 10)) + 1;
     }
+
+    this.fetch_progress.total = all.length;
+    this.updateLoadingProgress(this.fetch_progress.downloaded, this.fetch_progress.total);
+    this._renderLoadingOverlay();
+    console.info("ArcadeObserver: fetchAllGameTransactions done", { total: all.length, batches: batchCount });
     return all;
   }
 
@@ -87,7 +125,7 @@ class ArcadeObserver {
       this._loadingContainer.className = "arcade-observer-loading-mount";
       document.body.appendChild(this._loadingContainer);
     }
-    this._loadingContainer.innerHTML = renderLoading();
+    this._loadingContainer.innerHTML = renderLoading(this);
   }
 
   /**
@@ -117,6 +155,7 @@ class ArcadeObserver {
       return;
     }
 
+    console.info("ArcadeObserver: sorting and reconstructing", { txs: txs.length });
     const sorted = txs.slice().sort((a, b) => {
       const am = a.returnMessage ? a.returnMessage() : a.msg;
       const bm = b.returnMessage ? b.returnMessage() : b.msg;
@@ -142,12 +181,14 @@ class ArcadeObserver {
     } else {
       this.initial_state = {};
     }
+    console.info("ArcadeObserver: initial_state set", { hasState: !!this.initial_state && Object.keys(this.initial_state || {}).length > 0 });
 
     let state = this.initial_state == null ? null : JSON.parse(JSON.stringify(this.initial_state));
     const moveTxs = sorted.filter((tx) => {
       const m = tx.returnMessage ? tx.returnMessage() : tx.msg;
       return m?.request === "game" && (m?.step?.game > 0 || m?.step > 0);
     });
+    console.info("ArcadeObserver: applying moves", { moveCount: moveTxs.length });
 
     for (const tx of moveTxs) {
       state = this.applyMoveToState(state, tx);
@@ -157,6 +198,7 @@ class ArcadeObserver {
     this.moves = moveTxs;
     this.step_max = moveTxs.length;
     this.step_current = this.step_max;
+    console.info("ArcadeObserver: reconstruction complete", { step_max: this.step_max });
     this.is_reconstructing = false;
     this._removeLoadingOverlay();
     this.render();
