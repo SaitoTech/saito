@@ -466,9 +466,7 @@ class GameMoves {
       console.info(
         'GT [processFutureMoves] Observer.... check for additional moves... after processing future moves'
       );
-      this.observerControls.observerDownloadNextMoves(() => {
-        this.processFutureMoves();
-      });
+      this.observerControls.downloadMoves();
     }
 
     return 0; //No processable moves in future
