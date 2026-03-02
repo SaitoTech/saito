@@ -157,11 +157,11 @@ impl NetworkController {
             //     }
             // };
 
-            let network_peer = NetworkPeer::new(Some(url));
+            let mut network_peer = NetworkPeer::new(Some(url));
+            network_peer.ip = ip;
 
             NetworkController::handle_new_connection(
                 network_peer,
-                ip,
                 PeerSender::Tungstenite(socket_sender),
                 PeerReceiver::Tungstenite(socket_receiver),
                 network_controller,
@@ -325,7 +325,6 @@ impl NetworkController {
     }
     pub async fn handle_new_connection(
         mut network_peer: NetworkPeer,
-        ip: Option<String>,
         mut sender: PeerSender,
         receiver: PeerReceiver,
         network_controller: Arc<RwLock<NetworkController>>,
@@ -333,8 +332,12 @@ impl NetworkController {
         configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: &Timer,
     ) {
-        if ip.is_none() {
+        if network_peer.url.is_none() {
             // we send the handshake challenge to the peer if we received this connection
+            debug!(
+                "sending handshake challenge to peer : {}",
+                network_peer.ip.as_ref().cloned().unwrap_or_default()
+            );
             let challenge = network_peer.get_handshake_challenge_buffer().await;
             let buffer = challenge.serialize();
             NetworkController::send(&mut sender, buffer).await;
@@ -460,6 +463,7 @@ impl NetworkController {
                         let network_controller_for_closure = network_controller_clone.clone();
                         let socket_lock_for_closure = socket_lock.clone();
 
+                        let services = network_controller_clone.read().await.services.clone();
                         let result = peer
                             .process_incoming_buffer(
                                 buffer,
@@ -467,7 +471,7 @@ impl NetworkController {
                                 wallet_clone.clone(),
                                 configs_clone.clone(),
                                 &timer,
-                                &network_controller_clone.read().await.services,
+                                &services,
                                 |event| {
                                     let network_controller = network_controller_for_closure.clone();
                                     let socket_lock = socket_lock_for_closure.clone();
@@ -986,9 +990,10 @@ fn run_websocket_server(
 
                         let (sender, receiver) = socket.split();
 
+                        let mut network_peer = NetworkPeer::new(None);
+                        network_peer.ip = addr.map(|a| a.ip().to_string());
                         NetworkController::handle_new_connection(
-                            NetworkPeer::new(None),
-                            addr.map(|a| a.ip().to_string()),
+                            network_peer,
                             PeerSender::Warp(sender),
                             PeerReceiver::Warp(receiver),
                             network_controller,

@@ -51,6 +51,7 @@ impl NetworkPeer {
         wallet: &Wallet,
         configs: &(dyn Configuration + Send + Sync),
     ) -> Result<HandshakeResponse, Error> {
+        debug!("processing handshake challenge");
         let block_fetch_url;
         let is_lite;
         let endpoint;
@@ -92,6 +93,10 @@ impl NetworkPeer {
         wallet: &Wallet,
         configs: &(dyn Configuration + Send + Sync),
     ) -> Result<Option<HandshakeResponse>, Error> {
+        debug!(
+            "processing handshake response from peer : {:?}",
+            response.public_key.to_base58()
+        );
         if !response.core_version.is_set() {
             debug!(
                 "core version is not set in handshake response. expected : {:?}",
@@ -186,6 +191,10 @@ impl NetworkPeer {
                 endpoint: endpoint.clone(),
                 timestamp: current_time,
             };
+            debug!(
+                "sending handshake response for peer: {:?}",
+                self.public_key.unwrap().to_base58()
+            );
             return Ok(Some(response_new));
             // io_handler
             //     .send_message(
@@ -259,31 +268,34 @@ impl NetworkPeer {
                         })
                         .await;
                     } else {
-                        if let Ok(result) = self.process_handshake_response(
+                        return if let Ok(result) = self.process_handshake_response(
                             response.clone(),
                             timer.get_timestamp_in_ms(),
                             &services,
                             &wallet,
                             configs.deref(),
                         ) {
+                            debug!("555");
                             let mut buffer = vec![];
                             if let Some(response) = result {
                                 // we need to send this response to the other side
                                 buffer = response.serialize();
-
-                                // send_buffer(buffer).await;
                             }
                             // now the handshake is complete. We need to alert the core
-                            self.public_key.replace(self.public_key.unwrap());
+                            debug!("666");
                             send_event(NetworkEvent::PeerConnectionResult {
                                 result: Ok(self.clone()),
                             })
                             .await;
-                            return Ok(buffer);
+                            debug!(
+                                "handshake completed for peer : {:?}",
+                                self.public_key.unwrap().to_base58()
+                            );
+                            Ok(buffer)
                         } else {
                             warn!("failed handling the handshake response");
-                            return Err(Error::from(ErrorKind::InvalidInput));
-                        }
+                            Err(Error::from(ErrorKind::InvalidInput))
+                        };
                     }
                     Ok(vec![])
                 } else {
@@ -307,6 +319,7 @@ impl NetworkPeer {
                         )
                         .await
                     {
+                        debug!("sending handshake response to peer");
                         return Ok(response.serialize());
                     }
                     Ok(vec![])
