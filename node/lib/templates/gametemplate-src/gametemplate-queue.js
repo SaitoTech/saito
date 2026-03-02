@@ -144,9 +144,7 @@ class GameQueue {
         const overlayAfter = typeof document !== 'undefined' && document.body ? !!document.body.querySelector('#observer-sync-overlay') : null;
         console.log('[OBS_TRACE] initializeGameQueue (observer): after render overlayExists=', overlayAfter, 'observerControls.is_ui_initializing=', this.observerControls?.is_ui_initializing);
 
-        this.observerControls.observerDownloadNextMoves(() => {
-          this.startQueue();
-        });
+        await this.observerControls.downloadMoves();
       } else {
         await this.startQueue();
       }

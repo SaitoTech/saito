@@ -134,16 +134,19 @@ class GameObserver {
     game_mod.game.player = 0;
   }
 
+  async runQueue() {
+    if (!this.game_mod) { return; }
+    this.game_mod.startQueue();
+  }
+
   get is_paused() {
     return this._paused;
   }
 
-  /** Engine expects this array for push/shift; observer logic does not use it. */
   get game_states() {
     return this._engine_game_states || (this._engine_game_states = []);
   }
 
-  /** Clamp _viewingIndex to [0, all_moves.length - 1]. */
   _clampViewingIndex() {
     const max = Math.max(0, this.all_moves.length - 1);
     this._viewingIndex = Math.max(0, Math.min(this._viewingIndex, max));
@@ -172,9 +175,7 @@ class GameObserver {
       this.loader.render();
       if (!this.sync_started) {
         this.sync_started = true;
-        this.observerDownloadNextMoves(async () => {
-          await this.game_mod.startQueue();
-        });
+        this.downloadMoves();
       }
       if (!this.stability_monitor_active) {
         this.checkSyncStability();
@@ -210,7 +211,7 @@ class GameObserver {
     }
   }
 
-  finishLoading() {
+  async finishLoading() {
     if (!this.is_ui_initializing) return;
     this.is_ui_initializing = false;
     this.render();
@@ -233,7 +234,7 @@ class GameObserver {
     if (this._observer_poll_interval == null) {
       this._observer_poll_interval = setInterval(() => {
         if (!this.game_mod?.game) return;
-        this.observerDownloadNextMoves(null);
+        this.downloadMoves();
       }, 30000);
     }
 
@@ -265,6 +266,8 @@ class GameObserver {
     if (this.all_moves.length > 0 && !this.baseline_state && this._engine_game_states && this._engine_game_states.length > 0) {
       this.baseline_state = JSON.parse(JSON.stringify(this._engine_game_states[0]));
     }
+
+    await this.runQueue();
 
     setTimeout(() => {
       const overlayEl = document.body.querySelector('#observer-sync-overlay');
@@ -454,22 +457,22 @@ class GameObserver {
     this.all_moves = [];
     this._history_complete = true;
 
-    await this.observerDownloadNextMoves(async () => {
-      await this.game_mod.startQueue();
-    });
+    this.downloadMoves();
   }
 
   /**
    * Observer-only: load next batch of moves from archive. Mutates game_mod.game.future;
-   * invokes callback when done. Sync completion is determined by checkSyncStability().
+   * calls runQueue() Sync completion is determined by checkSyncStability().
    */
-  async observerDownloadNextMoves(mycallback = null) {
+  async downloadMoves() {
     const g = this.game_mod.game;
     const mod = this.game_mod;
 
     this.replay_active = true;
 
-    // purge old transactions
+    //
+    // purge unneeded transactions
+    //
     for (let i = g.future.length - 1; i >= 0; i--) {
       let queued_tx = new Transaction();
       queued_tx.deserialize_from_web(this.app, g.future[i]);
@@ -490,7 +493,7 @@ class GameObserver {
     if (!mod.archive_connected) {
       console.warn("GT [observer] Haven't established peer yet, try again after 3s");
       setTimeout(() => {
-        this.observerDownloadNextMoves(mycallback);
+        this.downloadMoves();
       }, 3000);
       return null;
     }
@@ -558,18 +561,16 @@ class GameObserver {
           this.updateSyncStatus("No moves found in game archive.");
         }
 
-        if (mycallback) {
-          const observerAndActive = g.player == 0 && mod.gameBrowserActive();
-          const coldStart = (this._observer_poll_interval === null);
-          const allowCallback = new_moves !== 0 || !observerAndActive || coldStart;
-          if (allowCallback) {
-            if (new_moves === 0 && observerAndActive && coldStart) {
-              console.log('[OBS_TRACE] observerDownloadNextMoves: cold-start + 0 new moves, invoking callback once');
-            }
-            mycallback();
-          } else {
-            mod.gaming_active = 0;
+        const observerAndActive = g.player == 0 && mod.gameBrowserActive();
+        const coldStart = (this._observer_poll_interval === null);
+        const allowCallback = new_moves !== 0 || !observerAndActive || coldStart;
+        if (allowCallback) {
+          if (new_moves === 0 && observerAndActive && coldStart) {
+            console.log('[OBS_TRACE] observerDownloadNextMoves: cold-start + 0 new moves, invoking callback once');
           }
+          await this.runQueue();
+        } else {
+          mod.gaming_active = 0;
         }
       }
     );
