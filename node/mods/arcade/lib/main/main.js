@@ -41,7 +41,7 @@ class ArcadeMain {
 		if (league_hook){
 			app.connection.on('league-rankings-render-request', ()=>{
 				for (let league of league_hook.returnLeagues()){
-					let card = document.querySelector(`.arcade-game-selector-game[data-league="${league.id}"] .arcade-game-selector-footer`);
+					let card = document.querySelector(`.arcade-teaser[data-league="${league.id}"] .arcade-teaser-footer`);
 					if (card){
 						let html = "";
 						if (league.rank > 0){
@@ -104,14 +104,14 @@ class ArcadeMain {
 		this.intersectionObserver.observe(document.getElementById("bottom-of-game-list"));
 
 		Array.from(
-			document.querySelectorAll('.arcade-game-selector-game')
+			document.querySelectorAll('.arcade-teaser')
 		).forEach((game) => {
 			game.onclick = (e) => {
 
 				e.stopPropagation();
 				let league_id = e.currentTarget.getAttribute('data-league');
 
-				if (e.currentTarget.classList.contains("arcade-game-selector-teaser")) {
+				if (e.currentTarget.classList.contains("arcade-teaser-install")) {
 					let c = confirm("Do you want to install this game? This will take you to the app download site:");
 					if (c) {
 						let link = "";

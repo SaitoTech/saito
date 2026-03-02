@@ -37,12 +37,6 @@ class Arcade extends ModTemplate {
 		// Useful for rendering the sidebar menu, or any list of games for game-selector (prior to game-wizard)
 		this.arcade_games = [];
 
-		/*
-      We store the original transactions (from createOpenTransaction/joinOpenTransaction) in this.games,
-      but because it is an object in memory, we will update the player list as players join.
-      When the game kicks off, we update the server side sql so that anyone else joining the network won't get confused
-      the tx.signature becomes the game_id.
-    		*/
 		this.games = {};
 
 		this.is_game_initializing = false;
@@ -615,22 +609,6 @@ class Arcade extends ModTemplate {
 	//
 
 	respondTo(type = '', obj) {
-		if (type === 'user-menu') {
-			if (obj?.publicKey && obj.publicKey !== this.publicKey) {
-				let am = this.app.modules.returnActiveModule();
-				if (!am || !this.shouldAffixCallbackToModule(am.name) || this.name == am.name) {
-					return {
-						text: 'Challenge to Game',
-						icon: 'fas fa-gamepad',
-						callback: function (app, publicKey) {
-							app.connection.emit('arcade-launch-game-selector', {
-								publicKey
-							});
-						}
-					};
-				}
-			}
-		}
 
 		if (type === 'game-manager') {
 			let container = obj?.container || '';
@@ -666,12 +644,7 @@ class Arcade extends ModTemplate {
 					rank: 10,
 					type: 'quicklaunch',
 					callback: function (app, id) {
-						if (app.browser.isMobileBrowser(navigator.userAgent) || window.innerWidth < 650) {
-							// Mobile users can see available games from other modules without having to load Arcade
-							app.connection.emit('arcade-launch-game-selector', {});
-						} else {
-							navigateWindow(`/arcade`);
-						}
+            					navigateWindow(`/arcade`);
 					},
 					navigation: '/arcade'
 				});
