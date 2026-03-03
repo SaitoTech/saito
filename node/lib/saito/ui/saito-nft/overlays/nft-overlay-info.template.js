@@ -5,19 +5,12 @@ function formatSaito(nolan) {
 
 module.exports = (app, mod, nft_overlay) => {
   let can_merge = false;
-  let can_split = false;
   let all_slips = nft_overlay.nft.returnAllSlips() || [];
   let nft = nft_overlay.nft;
 
   nft_overlay.all_slips = all_slips;
 
-  for (let z = 0; z < all_slips.length; z++) {
-    if (Number(all_slips[z].slip1.amount) > 1 && mod.publicKey == all_slips[z].slip1.public_key) {
-      can_split = true;
-    }
-  }
-
-  if (nft.getSlipCount() > 1 && mod.publicKey == nft.slip1.public_key) {
+  if (nft.getSlipCount() > 1 && mod.publicKey == nft.slip2.public_key) {
     can_merge = true;
   }
 
@@ -93,8 +86,13 @@ module.exports = (app, mod, nft_overlay) => {
 
   let splitUtxosHtml = '';
   let splitSlidersHtml = '';
-  // Generate slip boxes for all slips, not just when can_split
+
+  if (!all_slips.length) {
+    all_slips.push(nft_overlay.nft);
+  }
+
   if (all_slips.length > 0) {
+    // Generate slip boxes for all slips, not just when can_split
     for (let z = 0; z < all_slips.length; z++) {
       let utxoIdx = z + 1;
       let slip = all_slips[z];
@@ -109,9 +107,16 @@ module.exports = (app, mod, nft_overlay) => {
       }
 
       let amount = Number(slip.slip1.amount) || 0;
-      let splitButtonHtml = '';
-      if (amount > 1) {
+      let splitButtonHtml = '',
+        depositButtonHtml = '';
+
+      //can split!
+      if (amount > 1 && mod.publicKey == slip.slip2.public_key) {
         splitButtonHtml = `<div class="utxo-split-btn" data-utxo-idx="${utxoIdx}">[ split ]</div>`;
+      }
+
+      if (false && slip.slip2.public_key) {
+        depositButtonHtml = `<div class="utxo-deposit-btn" data-utxo-idx="${utxoIdx}">[ deposit ]</div>`;
       }
 
       splitUtxosHtml += `
@@ -129,7 +134,7 @@ module.exports = (app, mod, nft_overlay) => {
             <div class="nft-slip-box-value">${formatSaito(slip.slip2.amount)} SAITO</div>
           </div>
           <div class="nft-slip-box-actions">
-            <div class="utxo-deposit-btn" data-utxo-idx="${utxoIdx}">[ deposit ]</div>
+            ${depositButtonHtml}
             ${splitButtonHtml}
           </div>
         </div>

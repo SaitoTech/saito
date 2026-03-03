@@ -34,7 +34,7 @@ class SaitoNFT {
     // tx details
     //
     this.tx = tx;
-    this.tx_sig = data?.tx_sig;
+    this.tx_sig = data?.nfttx_sig || data?.tx_sig || '';
     this.txmsg = null;
 
     //
@@ -91,10 +91,11 @@ class SaitoNFT {
       return;
     }
 
+    const search_cond = this.tx_sig ? { sig: this.tx_sig } : { field4: this.id };
+
     console.debug('Fetching nft transaction from archive');
     await this.app.storage.loadTransactions(
-      { field4: this.id },
-
+      search_cond,
       async (txs) => {
         if (txs?.length > 0) {
           console.debug('local archive returned nft');
@@ -117,7 +118,7 @@ class SaitoNFT {
           let peer = await this.app.network.getPeers();
 
           this.app.storage.loadTransactions(
-            { field4: this.id },
+            search_cond,
             (txs) => {
               if (txs?.length > 0) {
                 console.debug('remote archive returned nft');
@@ -336,6 +337,12 @@ class SaitoNFT {
   returnAllSlips() {
     let nft_list = this.app.options.wallet.nfts;
     let all_slips = [];
+
+    console.log('NFT slips:', this.slip1, this.slip2);
+    if (this.slip2.publicKey !== this.mod.publicKey) {
+      return [this];
+    }
+
     for (let z = 0; z < nft_list.length; z++) {
       let n = nft_list[z];
       if (n.id == this.id) {
