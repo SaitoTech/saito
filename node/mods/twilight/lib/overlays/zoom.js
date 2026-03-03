@@ -6,8 +6,9 @@ class ZoomOverlay {
   constructor(app, mod) {
     this.app = app;
     this.mod = mod;
-    this.overlay = new SaitoOverlay(app, mod);
     this.visible = false;
+    this.overlay = new SaitoOverlay(app, mod, false, false, false);
+    this.callback_on_close = () => { this.visible = false; }
 
     //
     // optional callback when selecting spaces via zoom
@@ -15,54 +16,15 @@ class ZoomOverlay {
     this.spaces_onclick_callback = null;
   }
 
-  //
-  // Public API
-  //
-
   hide() {
     this.visible = false;
     this.overlay.hide();
   }
 
-  renderAtCountry(countrykey = "") {
-    if (!this.mod.countries || !this.mod.countries[countrykey]) { return; }
-
-    let c = this.mod.countries[countrykey];
-    this.renderAtCoordinates(c.top, c.left);
-  }
-
-  renderAtCoordinates(top = 0, left = 0) {
-    this.render();
-
-    let zoomOverlay = document.querySelector(".zoom-overlay");
-    let board = document.querySelector(".zoom-overlay .gameboard-clone");
-
-    if (!zoomOverlay || !board) { return; }
-
-    const zoomWidth = zoomOverlay.clientWidth;
-    const zoomHeight = zoomOverlay.clientHeight;
-
-    const boardWidth = board.offsetWidth;
-    const boardHeight = board.offsetHeight;
-
-    let scrollLeft = left - zoomWidth / 2;
-    let scrollTop = top - zoomHeight / 2;
-
-    scrollLeft = Math.max(0, Math.min(scrollLeft, boardWidth - zoomWidth));
-    scrollTop = Math.max(0, Math.min(scrollTop, boardHeight - zoomHeight));
-
-    board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
-  }
-
-  //
-  // Core Render
-  //
-
   render() {
 
-    if (this.visible) { return; }
-
     this.visible = true;
+
     this.overlay.show(ZoomTemplate());
 
     let container = document.querySelector('.zoom-overlay');
@@ -109,6 +71,7 @@ class ZoomOverlay {
 
         let country_id = e.currentTarget.id;
 
+
         //
         // Selection mode
         //
@@ -132,17 +95,56 @@ console.log("PASSIVE INSPECT MOVE IN ZOOM...");
 console.log("PASSIVE INSPECT MOVE IN ZOOM...");
 console.log("PASSIVE INSPECT MOVE IN ZOOM...");
 console.log("PASSIVE INSPECT MOVE IN ZOOM...");
+  	  //
+  	  // forward click to real board
+  	  //
+  	  let real = document.querySelector(`.gameboard #${country_id}`);
+  	  if (real) {
+  	    real.click();
+  	  }
+
 
           //
           // Passive inspect mode
           //
-//          if (this.mod.displayCountryDetailedView) {
-//            this.mod.displayCountryDetailedView(country_id);
-//          }
+
         }
       };
     }
   }
+
+  renderAtCountry(countrykey = "") {
+    if (!this.mod.countries || !this.mod.countries[countrykey]) { return; }
+
+    let c = this.mod.countries[countrykey];
+    this.renderAtCoordinates(c.top, c.left);
+  }
+
+  renderAtCoordinates(top = 0, left = 0) {
+
+    let already_visible = this.visible;
+
+    this.render();
+
+    let zoomOverlay = document.querySelector(".zoom-overlay");
+    let board = document.querySelector(".zoom-overlay .gameboard-clone");
+
+    if (!zoomOverlay || !board) { return; }
+
+    if (!already_visible) {
+      const zoomWidth = zoomOverlay.clientWidth;
+      const zoomHeight = zoomOverlay.clientHeight;
+      const boardWidth = board.offsetWidth;
+      const boardHeight = board.offsetHeight;
+      let scrollLeft = left - zoomWidth / 2;
+      let scrollTop = top - zoomHeight / 2;
+      scrollLeft = Math.max(0, Math.min(scrollLeft, boardWidth - zoomWidth));
+      scrollTop = Math.max(0, Math.min(scrollTop, boardHeight - zoomHeight));
+      board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
+    }
+
+  }
+
 
 }
 

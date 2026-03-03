@@ -456,8 +456,17 @@ class Twilight extends GameTemplate {
     } catch (err) {}
 
     document.querySelector('.gameboard').addEventListener('click', (e) => {
+
       // ignore clicks on countries or interactive elements
-      if (e.target.closest('.country')) { return; }
+      if (e.defaultPrevented) { return; }
+      if (
+	  e.target.closest('.country') ||
+    	  e.target.closest('.selectable') ||
+    	  e.target.closest('.hud') ||
+    	  e.target.closest('.card')
+      ) { return; }
+
+alert("gameboard -- click!");
       let rect = e.currentTarget.getBoundingClientRect();
       let top = e.clientY - rect.top;
       let left = e.clientX - rect.left;
@@ -5829,8 +5838,8 @@ async playerTurnHeadlineSelected(card, player) {
    */
   showInfluence(country, player="", mycallback=null) {
 
-    let obj_us    = "#"+country+ " > .us";
-    let obj_ussr = "#"+country+ " > .ussr";
+    let obj_us    = "."+country+ " > .us";
+    let obj_ussr = "."+country+ " > .ussr";
 
     //Why do we need to parseInt?
     let us_i   = parseInt(this.countries[country].us);
@@ -6586,6 +6595,10 @@ async playerTurnHeadlineSelected(card, player) {
 
     for (let i in this.countries) {
       this.showInfluence(i);
+    }
+
+    if (this.zoom_overlay && this.zoom_overlay.visible) {
+      this.zoom_overlay.refresh();
     }
 
     this.updateDefcon();
