@@ -3004,9 +3004,9 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
       //
       if (this.is_testing == 1) {
         if (this.game.player == 2) {
-          this.game.deck[0].hand = ["brushwar", "iraniraq", "abmtreaty", "quagmire", "nato", "grainsales"];
+          this.game.deck[0].hand = ["brushwar", "missileenvy", "iraniraq", "abmtreaty", "quagmire", "nato", "grainsales"];
         } else {
-          this.game.deck[0].hand = ["missileenvy", "brezhnev", "saltnegotiations","opec","asknot","flowerpower","indopaki", "truman", "asia"];
+          this.game.deck[0].hand = ["brezhnev", "saltnegotiations","opec","asknot","flowerpower","indopaki", "truman", "asia"];
         }
 
       	//this.game.state.round = 1;

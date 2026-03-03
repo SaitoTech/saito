@@ -3004,9 +3004,9 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
       //
       if (this.is_testing == 1) {
         if (this.game.player == 2) {
-          this.game.deck[0].hand = ["brushwar", "iraniraq", "abmtreaty", "quagmire", "nato", "grainsales"];
+          this.game.deck[0].hand = ["brushwar", "missileenvy", "iraniraq", "abmtreaty", "quagmire", "nato", "grainsales"];
         } else {
-          this.game.deck[0].hand = ["missileenvy", "brezhnev", "saltnegotiations","opec","asknot","flowerpower","indopaki", "truman", "asia"];
+          this.game.deck[0].hand = ["brezhnev", "saltnegotiations","opec","asknot","flowerpower","indopaki", "truman", "asia"];
         }
 
       	//this.game.state.round = 1;
@@ -13120,12 +13120,17 @@ console.log("total countries: " + total_countries);
 
       let twilight_self = this;
 
+
       let ac = this.returnAllCards(true);
       let respondant = 2;
       let opponent = "us";
       if (player == "us") { respondant = 1; opponent = "ussr"; }
       this.game.state.events.missileenvy = 1;
 
+console.log("into missile envy");
+console.log("player: " + player);
+console.log("opponent: " + opponent);
+console.log("respondant: " + respondant);
 
       //
       // targeted player provided list if multiple options available
@@ -13162,12 +13167,12 @@ console.log("total countries: " + total_countries);
 
           let card = ac[available_cards[i]];
 
-          if (this.modifyOps(card.ops, available_cards[i], respondant) == selected_ops) {
+          if (this.modifyOps(card.ops, available_cards[i], opponent) == selected_ops) {
             multiple_cards = 1;
           }
 
-          if (this.modifyOps(card.ops, available_cards[i], respondant) > selected_ops) {
-            selected_ops  = this.modifyOps(card.ops, available_cards[i], respondant);
+          if (this.modifyOps(card.ops, available_cards[i], opponent) > selected_ops) {
+            selected_ops  = this.modifyOps(card.ops, available_cards[i], opponent);
             selected_card = available_cards[i];
             multiple_cards = 0;
           }
@@ -13189,7 +13194,7 @@ console.log("total countries: " + total_countries);
           //
           let html = "<ul>";
           for (let i = 0; i < available_cards.length; i++) {
-            if (this.modifyOps(ac[available_cards[i]].ops, available_cards[i], respondant) == selected_ops && available_cards[i] != "china") {
+            if (this.modifyOps(ac[available_cards[i]].ops, available_cards[i], opponent) == selected_ops && available_cards[i] != "china") {
               html += `<li class="option" id="${available_cards[i]}">${ac[available_cards[i]].name}</li>`;
             }
           }
