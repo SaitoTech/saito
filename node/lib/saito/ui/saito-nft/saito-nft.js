@@ -10,10 +10,18 @@ class SaitoNFT {
     if (data?.nft_id) {
       this.id = data?.nft_id;
     }
-    this.tx_sig = data?.tx_sig;
     this.slip1 = data?.slip1;
     this.slip2 = data?.slip2;
     this.slip3 = data?.slip3;
+
+    //
+    // Information encoded in the slips
+    //
+    this.uuid = null;
+    this.creator = '';
+    this.amount = BigInt(0); // How many nfts of this id of this slip
+    this.deposit = BigInt(0); // nolans
+    this.nft_type = '';
 
     //
     // and/or general meta data
@@ -22,49 +30,34 @@ class SaitoNFT {
     this.title = data?.title || '';
     this.description = data?.description || '';
 
-    this.creator = '';
-    if (this.slip1?.public_key) {
-      this.creator = this.slip1.public_key;
-    }
-
     //
     // tx details
     //
     this.tx = tx;
+    this.tx_sig = data?.tx_sig;
     this.txmsg = null;
 
-    this.amount = BigInt(0); // nolans
-    this.deposit = BigInt(0); // nolans
+    //
+    // NFT content
+    //
     this.image = '';
     this.text = '';
     this.json = '';
     this.js = '';
     this.css = '';
-    this.nft_type = '';
-
-    this.load_failed = false;
 
     //
     // UI helpers
     //
-    this.uuid = null;
     this.tx_fetched = false;
-
-    if (this.slip1?.amount) {
-      this.amount = BigInt(this.slip1.amount);
-      this.uuid = this.slip1?.utxo_key;
-    }
-
-    if (this.slip2?.amount) {
-      this.deposit = BigInt(this.slip2.amount);
-    }
-
-    if (this.slip3?.utxo_key) {
-      this.nft_type = this.app.wallet.extractNFTType(this.slip3.utxo_key);
-    }
+    this.load_failed = false;
 
     if (tx != null) {
+      // Analyze TX for slips and extra information
       this.buildNFTData();
+    } else {
+      // Assuming we had slips in data from our wallet, just extract them
+      this.parseSlips();
     }
   }
 
@@ -181,17 +174,17 @@ class SaitoNFT {
     this.slip2 ??= this.extractSlipObject(this.tx?.to[1] ?? null);
     this.slip3 ??= this.extractSlipObject(this.tx?.to[2] ?? null);
 
-    if (this.slip1?.public_key) {
-      this.creator = this.slip1.public_key;
-    }
+    this.parseSlips();
+  }
 
-    if (this.slip1?.amount) {
-      this.amount = BigInt(this.slip1.amount);
-      this.uuid = this.slip1?.utxo_key;
-    }
+  parseSlips() {
+    this.amount = BigInt(this.slip1?.amount || 0);
+    this.creator = this.slip1?.public_key || '';
+    this.uuid = this.slip1?.utxo_key || '';
+    this.deposit = BigInt(this.slip2?.amount || 0);
 
-    if (this.slip2?.amount) {
-      this.deposit = BigInt(this.slip2.amount);
+    if (this.slip3?.utxo_key) {
+      this.nft_type = this.app.wallet.extractNFTType(this.slip3.utxo_key);
     }
   }
 
@@ -323,6 +316,23 @@ class SaitoNFT {
     return this.app.wallet.convertNolanToSaito(this.deposit);
   }
 
+  //
+  // count items for merge
+  //
+  getSlipCount() {
+    let arr = this.app?.options?.wallet?.nfts || [];
+    return arr.filter((n) => n?.id === this.id).length;
+  }
+
+  getTotalAmount() {
+    let all_slips = this.returnAllSlips();
+    let total_amount = 0;
+    for (let z = 0; z < all_slips.length; z++) {
+      total_amount += parseInt(all_slips[z].slip1.amount);
+    }
+    return total_amount;
+  }
+
   returnAllSlips() {
     let nft_list = this.app.options.wallet.nfts;
     let all_slips = [];
@@ -340,7 +350,8 @@ class SaitoNFT {
       return this.nft_type;
     }
     if (this.slip3?.utxo_key) {
-      return this.app.wallet.extractNFTType(this.slip3.utxo_key);
+      this.nft_type = this.app.wallet.extractNFTType(this.slip3.utxo_key);
+      return this.nft_type;
     }
     const properties = ['image', 'text', 'json', 'js', 'css'];
     for (const prop of properties) {

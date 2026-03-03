@@ -219,3 +219,8 @@ span.saito-anchor {
     flex-direction: row;
   }
 }
+
+/* for dynamically added faucent button */
+.get-saito-tokens {
+  display: flex;
+}

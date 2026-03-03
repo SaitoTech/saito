@@ -81,6 +81,8 @@ class SelectNFT {
         this.card_list.push(
           new NFTCard(this.app, this.mod, '.send-nft-list', null, rec, this.callback)
         );
+      } else {
+        console.info('Skipping NFT: ', rec);
       }
     }
 

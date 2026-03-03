@@ -203,12 +203,14 @@
 .saito-nft-panel-body {
   display: grid;
   grid-template-rows: max-content min-content 1fr;
+  grid-template-columns: minmax(0, 1fr);
   overflow: hidden;
 }
 
 /* Panel body padding */
 .saito-nft-panel-send .saito-nft-panel-body {
-  padding: 1rem;
+  padding: 2rem;
+  gap: 2rem;
 }
 
 .saito-nft-panel-info .saito-nft-panel-body {
@@ -559,7 +561,7 @@
   -webkit-line-clamp: 10;
   overflow: hidden;
   overflow-y: auto;
-  white-space: pre;
+  white-space: pre-wrap;
   color: var(--saito-white);
   background: var(--saito-black);
   font-size: 1.75rem;
@@ -987,6 +989,18 @@
 .saito-nft-split-utxo {
   display: flex;
   flex-direction: column;
+}
+
+/* ============================================
+  UTXO TABLE for TRANSFER  
+  ============================================ */
+.saito-nft-panel-send .nft-slip-box {
+  cursor: pointer;
+  user-select: none;
+}
+
+.saito-nft-panel-send .nft-slip-box.selected-shard {
+  border: 3px solid var(--saito-secondary);
 }
 
 /* ============================================

@@ -4,10 +4,22 @@ function formatSaito(nolan) {
 }
 
 module.exports = (app, mod, nft_overlay) => {
-  let can_merge = nft_overlay.can_merge;
-  let can_split = nft_overlay.can_split;
-  let all_slips = nft_overlay.all_slips || [];
+  let can_merge = false;
+  let can_split = false;
+  let all_slips = nft_overlay.nft.returnAllSlips() || [];
   let nft = nft_overlay.nft;
+
+  nft_overlay.all_slips = all_slips;
+
+  for (let z = 0; z < all_slips.length; z++) {
+    if (Number(all_slips[z].slip1.amount) > 1 && mod.publicKey == all_slips[z].slip1.public_key) {
+      can_split = true;
+    }
+  }
+
+  if (nft.getSlipCount() > 1 && mod.publicKey == nft.slip1.public_key) {
+    can_merge = true;
+  }
 
   // Extract NFT information
   let nft_id = nft?.id || 'N/A';
