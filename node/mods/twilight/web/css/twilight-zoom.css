@@ -25,6 +25,10 @@
 	padding-right: 1rem;
 }
 
+.zoom-overlay .status:empty {
+	display: none;
+}
+
 .zoom-overlay .controls {
 	max-height: 80vh;
 }

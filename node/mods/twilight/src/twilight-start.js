@@ -466,7 +466,6 @@ class Twilight extends GameTemplate {
     	  e.target.closest('.card')
       ) { return; }
 
-alert("gameboard -- click!");
       let rect = e.currentTarget.getBoundingClientRect();
       let top = e.clientY - rect.top;
       let left = e.clientX - rect.left;
