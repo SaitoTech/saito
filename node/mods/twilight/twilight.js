@@ -8,9 +8,9 @@ const WarOverlay = require('./lib/overlays/war');
 const StatsOverlay = require('./lib/overlays/stats');
 const DeckOverlay = require('./lib/overlays/deck');
 const HeadlineOverlay = require('./lib/overlays/headline');
+const ZoomOverlay = require('./lib/overlays/zoom');
 const htmlTemplate = require('./lib/core/game-html.template').default;
 const GameHelp = require('./lib/overlays/game-help');
-
 
 const JSON = require('json-bigint');
 
@@ -68,6 +68,7 @@ class Twilight extends GameTemplate {
     this.war_overlay = new WarOverlay(this.app, this);
     this.deck_overlay = new DeckOverlay(this.app, this);
     this.headline_overlay = new HeadlineOverlay(this.app, this);
+    this.zoom_overlay = new ZoomOverlay(this.app, this);
     this.game_help = new GameHelp(this.app, this);
 
     //
@@ -453,6 +454,15 @@ class Twilight extends GameTemplate {
       }
 
     } catch (err) {}
+
+    document.querySelector('.gameboard').addEventListener('click', (e) => {
+      // ignore clicks on countries or interactive elements
+      if (e.target.closest('.country')) { return; }
+      let rect = e.currentTarget.getBoundingClientRect();
+      let top = e.clientY - rect.top;
+      let left = e.clientX - rect.left;
+      this.zoom_overlay.renderAtCoordinates(top, left);
+    });
 
     if (this.game.player > 0){
       if (this.useClock){
