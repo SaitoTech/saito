@@ -88,6 +88,34 @@ class AssetStoreMain {
 			};
 		}
 
+		const dissolveSplash = () => {
+			if (document.querySelector('.asset-store-splash')) {
+				document.querySelector('.asset-store-splash').classList.add('dissolve');
+
+				setTimeout(() => {
+					if (document.querySelector('.asset-store-splash')) {
+						document.querySelector('.asset-store-splash').remove();
+					}
+				}, 5000);
+			}
+		};
+
+		if (document.getElementById('my-store-btn')) {
+			document.getElementById('my-store-btn').onclick = (e) => {
+				this.view = this.mod.publicKey;
+				changeView();
+				dissolveSplash();
+			};
+		}
+
+		if (document.getElementById('home-store-btn')) {
+			document.getElementById('home-store-btn').onclick = (e) => {
+				this.view = this.mod.SAITO_OFFICIAL_PUBLICKEY;
+				changeView();
+				dissolveSplash();
+			};
+		}
+
 		//
 		// View navigation
 		//
