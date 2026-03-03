@@ -54,6 +54,7 @@ pub struct NetworkController {
 
 impl NetworkController {
     pub async fn send(connection: &mut PeerSender, buffer: Vec<u8>) -> bool {
+        trace!("sending buffer of size : {:?} to peer", buffer.len());
         let mut send_failed = false;
         // TODO : can be better optimized if we buffer the messages and flush once per timer event
         match connection {
@@ -428,7 +429,6 @@ impl NetworkController {
             let configs_clone = configs.clone();
             let socket_lock = Arc::new(Mutex::new(Some(socket)));
 
-            // let mut public_key = None;
             match receiver {
                 PeerReceiver::Warp(mut receiver) => loop {
                     let result = receiver.next().await;
@@ -515,6 +515,7 @@ impl NetworkController {
                             )
                             .await;
                         if !result.is_ok() {
+                            info!("disconnecting socket since we couldn't process the received buffer");
                             let mut network_controller = network_controller_clone.write().await;
                             if let Some(socket) = socket_lock.lock().await.take() {
                                 network_controller.disconnect_socket(socket).await;
@@ -527,12 +528,17 @@ impl NetworkController {
                                     warn!("socket was not found for peer");
                                 }
                             }
-                            break;
                         } else {
                             let buffer = result.unwrap();
                             if !buffer.is_empty() {
                                 if let Some(socket) = socket_lock.lock().await.as_mut() {
                                     NetworkController::send(socket, buffer).await;
+                                } else {
+                                    network_controller_clone
+                                        .write()
+                                        .await
+                                        .send_outgoing_message(&peer.public_key.unwrap(), buffer)
+                                        .await;
                                 }
                             }
                         }
@@ -640,6 +646,7 @@ impl NetworkController {
                                 )
                                 .await;
                             if !result.is_ok() {
+                                info!("disconnecting socket since we couldn't process the received buffer");
                                 let mut network_controller = network_controller_clone.write().await;
                                 if let Some(socket) = socket_lock.lock().await.take() {
                                     network_controller.disconnect_socket(socket).await;
@@ -652,12 +659,20 @@ impl NetworkController {
                                         warn!("socket was not found for peer");
                                     }
                                 }
-                                break;
                             } else {
                                 let buffer = result.unwrap();
                                 if !buffer.is_empty() {
                                     if let Some(socket) = socket_lock.lock().await.as_mut() {
                                         NetworkController::send(socket, buffer).await;
+                                    } else {
+                                        network_controller_clone
+                                            .write()
+                                            .await
+                                            .send_outgoing_message(
+                                                &peer.public_key.unwrap(),
+                                                buffer,
+                                            )
+                                            .await;
                                     }
                                 }
                             }

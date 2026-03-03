@@ -85,9 +85,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
           S.getLibInstance()
             .process_msg_buffer_from_peer(buffer, peer.instance)
             .then((buffer: any) => {
-              console.log("111");
               if (buffer && buffer.byteLength > 0) {
-                console.log('222');
                 socket.send(buffer);
               }
             });

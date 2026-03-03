@@ -343,20 +343,21 @@ impl RoutingThread {
                     blockchain.genesis_block_id
                 );
                 if blockchain.genesis_block_id != 0 {
-                    let genesis_block_hash = blockchain
+                    if let Some(genesis_block_hash) = blockchain
                         .blockring
                         .get_longest_chain_block_hash_at_block_id(blockchain.genesis_block_id)
-                        .unwrap();
-                    let buffer = Message::GenesisBlockHeader(
-                        genesis_block_hash,
-                        blockchain.genesis_block_id,
-                    )
-                    .serialize();
-                    self.network
-                        .io_interface
-                        .send_message(public_key, buffer.as_slice())
-                        .await
-                        .unwrap();
+                    {
+                        let buffer = Message::GenesisBlockHeader(
+                            genesis_block_hash,
+                            blockchain.genesis_block_id,
+                        )
+                        .serialize();
+                        self.network
+                            .io_interface
+                            .send_message(public_key, buffer.as_slice())
+                            .await
+                            .unwrap();
+                    }
                 } else {
                     warn!(
                         "We don't have a genesis block id set to alert the peer : {:?}",
@@ -1755,10 +1756,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             self.send_pings().await;
             self.reconnection_timer = 0;
             self.fetch_next_blocks().await;
-            {
-                let wallet = self.wallet_lock.read().await;
-                self.send_key_list(&wallet.key_list).await;
-            }
 
             work_done = true;
         }
@@ -1776,6 +1773,10 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         self.congestion_check_timer += duration_value;
         if self.congestion_check_timer >= CONGESTION_CHECK_PERIOD {
             self.manage_congested_peers().await;
+            {
+                let wallet = self.wallet_lock.read().await;
+                self.send_key_list(&wallet.key_list).await;
+            }
             let mut configs = self.config_lock.write().await;
             if !configs.is_browser() {
                 let peers = self.network.peer_lock.read().await;

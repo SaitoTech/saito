@@ -203,11 +203,6 @@ impl NetworkPeer {
             //     )
             //     .await?;
             // debug!("second handshake response sent for peer: {:?}", self.index);
-        } else {
-            info!(
-                "handshake completed for peer : {:?}",
-                self.public_key.unwrap().to_base58()
-            );
         }
         self.challenge = None;
 
@@ -275,14 +270,12 @@ impl NetworkPeer {
                             &wallet,
                             configs.deref(),
                         ) {
-                            debug!("555");
                             let mut buffer = vec![];
                             if let Some(response) = result {
                                 // we need to send this response to the other side
                                 buffer = response.serialize();
                             }
                             // now the handshake is complete. We need to alert the core
-                            debug!("666");
                             send_event(NetworkEvent::PeerConnectionResult {
                                 result: Ok(self.clone()),
                             })
@@ -300,8 +293,8 @@ impl NetworkPeer {
                     Ok(vec![])
                 } else {
                     warn!(
-                        "failed deserializing handshake response : {:?}",
-                        self.public_key.unwrap_or([0; 33]).to_base58()
+                        "failed deserializing handshake response. ip : {}",
+                        self.ip.as_ref().unwrap_or(&"unknown".to_string())
                     );
                     Err(Error::from(ErrorKind::InvalidInput))
                 }
