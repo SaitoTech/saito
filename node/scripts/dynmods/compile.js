@@ -1,6 +1,18 @@
 #!/usr/bin/env node
 'use strict';
 
+
+const Module = require('module');
+const originalResolveFilename = Module._resolveFilename;
+
+Module._resolveFilename = function (request, parent, isMain, options) {
+  if (request.startsWith('saito-js/lib/')) {
+    request = request.replace('saito-js/lib/', 'saito-js/dist/lib/');
+  }
+  return originalResolveFilename.call(this, request, parent, isMain, options);
+};
+
+
 /**
  * CLI Dynamic Module Compiler
  * Compiles zipped modules from dist/mods/zip/ into .saito files in dist/mods/saito/.
@@ -31,7 +43,9 @@ let saitoJsInitialized = false;
 async function initSaitoJsForCompile() {
   if (saitoJsInitialized) return;
   const createRequire = require('module').createRequire;
-  const requireFromSaitoJs = createRequire(require.resolve('saito-js'));
+  const requireFromSaitoJs = createRequire(
+    path.join(PROJECT_ROOT, 'node_modules', 'saito-js', 'package.json')
+  );
   const wasm = requireFromSaitoJs('saito-wasm/pkg/node');
   const SaitoJsTransaction = require('saito-js/lib/transaction').default;
   const SaitoJsSlip = require('saito-js/lib/slip').default;
