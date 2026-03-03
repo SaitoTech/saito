@@ -71,7 +71,6 @@ class ZoomOverlay {
 
         let country_id = e.currentTarget.id;
 
-
         //
         // Selection mode
         //
@@ -120,30 +119,42 @@ console.log("PASSIVE INSPECT MOVE IN ZOOM...");
     this.renderAtCoordinates(c.top, c.left);
   }
 
-  renderAtCoordinates(top = 0, left = 0) {
 
-    let already_visible = this.visible;
 
-    this.render();
+renderAtCoordinates(x = 0, y = 0) {
 
-    let zoomOverlay = document.querySelector(".zoom-overlay");
-    let board = document.querySelector(".zoom-overlay .gameboard-clone");
+  const scale = 2;
 
-    if (!zoomOverlay || !board) { return; }
+  this.render();
 
-    if (!already_visible) {
-      const zoomWidth = zoomOverlay.clientWidth;
-      const zoomHeight = zoomOverlay.clientHeight;
-      const boardWidth = board.offsetWidth;
-      const boardHeight = board.offsetHeight;
-      let scrollLeft = left - zoomWidth / 2;
-      let scrollTop = top - zoomHeight / 2;
-      scrollLeft = Math.max(0, Math.min(scrollLeft, boardWidth - zoomWidth));
-      scrollTop = Math.max(0, Math.min(scrollTop, boardHeight - zoomHeight));
-      board.style.transform = `translate(-${scrollLeft}px, -${scrollTop}px)`;
-    }
+  const zoomOverlay = document.querySelector(".zoom-overlay");
+  const board = document.querySelector(".zoom-overlay .gameboard-clone");
 
-  }
+  if (!zoomOverlay || !board) return;
+
+  const viewportWidth = zoomOverlay.clientWidth;
+  const viewportHeight = zoomOverlay.clientHeight;
+
+  const boardWidth = board.offsetWidth;
+  const boardHeight = board.offsetHeight;
+
+  // compute translation in unscaled space
+  let translateX = -(x - viewportWidth / (2 * scale));
+  let translateY = -(y - viewportHeight / (2 * scale));
+
+  // clamp in unscaled space
+  const maxX = 0;
+  const maxY = 0;
+  const minX = viewportWidth / scale - boardWidth;
+  const minY = viewportHeight / scale - boardHeight;
+
+  translateX = Math.min(maxX, Math.max(translateX, minX));
+  translateY = Math.min(maxY, Math.max(translateY, minY));
+
+  board.style.transformOrigin = "top left";
+  board.style.transform =
+    `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
+}
 
 
 }

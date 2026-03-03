@@ -462,14 +462,32 @@ class Twilight extends GameTemplate {
       if (
 	  e.target.closest('.country') ||
     	  e.target.closest('.selectable') ||
+    	  e.target.closest('.us') ||
+    	  e.target.closest('.ussr') ||
     	  e.target.closest('.hud') ||
     	  e.target.closest('.card')
       ) { return; }
 
-      let rect = e.currentTarget.getBoundingClientRect();
-      let top = e.clientY - rect.top;
-      let left = e.clientX - rect.left;
-      this.zoom_overlay.renderAtCoordinates(top, left);
+  	const board = e.currentTarget;
+  	const rect = board.getBoundingClientRect();
+
+  	const clickX = e.clientX - rect.left;
+  	const clickY = e.clientY - rect.top;
+
+  	const scaleX = board.offsetWidth / rect.width;
+  	const scaleY = board.offsetHeight / rect.height;
+
+  	const boardX = clickX * scaleX;
+  	const boardY = clickY * scaleY;
+
+console.log("Rendered board size:", rect.width, rect.height);
+console.log("Intrinsic board size:", board.offsetWidth, board.offsetHeight);
+console.log("Click screen:", clickX, clickY);
+console.log("Click board:", boardX, boardY);
+
+
+  	this.zoom_overlay.renderAtCoordinates(boardX, boardY);
+
     });
 
     if (this.game.player > 0){
