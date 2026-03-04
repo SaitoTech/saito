@@ -83,7 +83,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
       socket.on('message', (buffer: any) => {
         try {
           S.getLibInstance()
-            .process_msg_buffer_from_peer(buffer, peer)
+            .process_msg_buffer_from_peer(buffer, peer.instance)
             .then((buffer: any) => {
               if (buffer && buffer.byteLength > 0) {
                 socket.send(buffer);
@@ -699,13 +699,12 @@ class Server {
         const newblk = blk.generateLiteBlock(keylist);
 
         console.log(
-          `lite block fetch : block  = ${req.params.bhash} key = ${pkey} with txs : ${newblk.transactions.length}`
+          `lite block fetch : block  = ${blk.id} - ${req.params.bhash} key = ${pkey} with txs : ${newblk.transactions.length}`
         );
-        console.log(`liteblock : ${bsh} from disk txs count = : ${newblk.transactions.length}`);
         console.log(
-          'valid txs : ' +
-            newblk.transactions.filter((tx) => tx.type !== TransactionType.SPV).length
+          `liteblock : ${bsh} from disk txs count = : ${newblk.transactions.length} valid txs : ${newblk.transactions.filter((tx) => tx.type !== TransactionType.SPV).length}`
         );
+
         const buffer2 = Buffer.from(newblk.serialize());
 
         if (!res.finished) {
