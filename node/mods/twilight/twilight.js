@@ -462,6 +462,10 @@ class Twilight extends GameTemplate {
       if (
 	  e.target.closest('.country') ||
     	  e.target.closest('.selectable') ||
+    	  e.target.closest('.us_control') ||
+    	  e.target.closest('.ussr_control') ||
+    	  e.target.closest('.us_uncontrol') ||
+    	  e.target.closest('.ussr_uncontrol') ||
     	  e.target.closest('.us') ||
     	  e.target.closest('.ussr') ||
     	  e.target.closest('.hud') ||
@@ -6610,22 +6614,24 @@ async playerTurnHeadlineSelected(card, player) {
 
     try {
 
-    for (let i in this.countries) {
-      this.showInfluence(i);
+      for (let i in this.countries) {
+        this.showInfluence(i);
+      }
+
+      if (this.zoom_overlay && this.zoom_overlay.visible) {
+        this.zoom_overlay.refresh();
+      }
+
+      this.updateDefcon();
+      this.updateActionRound();
+      this.updateSpaceRace();
+      this.updateVictoryPoints();
+      this.updateMilitaryOperations();
+      this.updateRound();
+
+    } catch (err) {
+console.log("DISPLAY ERROR: " + JSON.stringify(err));
     }
-
-    if (this.zoom_overlay && this.zoom_overlay.visible) {
-      this.zoom_overlay.refresh();
-    }
-
-    this.updateDefcon();
-    this.updateActionRound();
-    this.updateSpaceRace();
-    this.updateVictoryPoints();
-    this.updateMilitaryOperations();
-    this.updateRound();
-
-    } catch (err) {}
 
   }
 

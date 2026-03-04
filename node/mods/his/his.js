@@ -147,7 +147,7 @@ class HereIStand extends GameTemplate {
     //
     //
     // players
-    this.minPlayers 	 = 1;
+    this.minPlayers 	 = 2;
     this.maxPlayers 	 = 6;
 
   }
