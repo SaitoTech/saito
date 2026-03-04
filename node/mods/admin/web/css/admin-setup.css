@@ -75,6 +75,11 @@
   color: #333;
 }
 
+.admin-copy-cmd:active {
+  transform: scale(0.96);
+  background: #ddd;
+}
+
 .admin-copy-cmd i {
   font-size: 1rem;
 }

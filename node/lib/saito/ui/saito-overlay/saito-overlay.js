@@ -34,6 +34,8 @@ class SaitoOverlay {
     let max_z_index = 0;
     let max = 0;
 
+    if (!document) { return; }
+
     Array.from(document.querySelectorAll('.saito-overlay')).forEach((ov) => {
       let temp = parseInt(ov.style.zIndex);
       if (temp > max) {
@@ -83,6 +85,8 @@ class SaitoOverlay {
     let app = this.app;
     let mod = this.mod;
 
+    if (!document) { return; }
+
     if (this.ordinal == 0) {
       let max = 0;
       Array.from(document.querySelectorAll('.saito-overlay')).forEach((ov) => {
@@ -126,6 +130,8 @@ class SaitoOverlay {
   show(html = '', mycallback = null) {
     let app = this.app;
     let mod = this.mod;
+
+    if (!document) { return; }
 
     this.render();
 
@@ -208,6 +214,9 @@ class SaitoOverlay {
   }
 
   hide() {
+
+    if (!document) { return; }
+
     this.visible = false;
     let elsq = `#saito-overlay${this.ordinal}`;
     let bdelsq = `#saito-overlay-backdrop${this.ordinal}`;

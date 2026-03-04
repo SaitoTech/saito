@@ -22,7 +22,7 @@ module.exports = (link) => {
       slug = slug.split('?')[0];
     }
 
-    let filters = link.app.modules.returnFirstRespondTo('filter-saito-link', {
+    let filters = link.app.modules.returnFirstRespondTo('saito-filter-link', {
       modname: link.mod.returnName(),
       slug,
       url: link.url

@@ -56,9 +56,9 @@ echo ""
 
 if [ "$1" == "dev" ] || [ "$2" == "dev" ]; then
   echo "linking game-*.css files into game.css"
-  find "${PROJECT_DIR}/web/saito/" -type f -name 'game-*.css' | sed 's|.*/web|@import url("/web|' | sed 's/$/");/' > "${PROJECT_DIR}/web/saito/game.css"
+  find "${PROJECT_DIR}/web/saito/" -type f -name 'game-*.css' | sed 's|.*/web|@import url("|' | sed 's/$/");/' > "${PROJECT_DIR}/web/saito/game.css"
   echo "linking saito-*.css files into saito.css"
-  find "${PROJECT_DIR}/web/saito/" -type f -name 'saito-*.css' | sed 's|.*/web|@import url("/web|' | sed 's/$/");/' > "${PROJECT_DIR}/web/saito/saito.css"
+  find "${PROJECT_DIR}/web/saito/" -type f -name 'saito-*.css' | sed 's|.*/web|@import url("|' | sed 's/$/");/' > "${PROJECT_DIR}/web/saito/saito.css"
   echo "@import url(\"/saito/css-imports/xclose.css\");" >> "${PROJECT_DIR}/web/saito/saito.css"
 else
   echo "compiling game-*.css files into game.css"
@@ -135,8 +135,8 @@ echo "Compiling Lite-Client JS..."
       rm -rf "$md/src"
       rm -rf "$md/docs"
       rm -rf "$md/compile"
-      rm -rf "$md/DESCRIPTION.txt"
       rm -rf "$md/BUGS.txt"
+      rm -rf "$md/DESCRIPTION.txt"
       rm -rf "$md/README.txt"
       rm -rf "$md/*.md"
       rm -rf "$md/README.md"
@@ -375,6 +375,11 @@ if [ "$1" == "setupprod" ]; then
   cp "${PROJECT_DIR}/data/issuance/issuance.orig" "${PROJECT_DIR}/data/issuance/issuance"
   mv "${PROJECT_DIR}/config/options.bk" "${PROJECT_DIR}/config/options"
 
+fi
+
+if [ "$1" == "nukelocal" ]; then
+  npm run setuplocal
+  exit 0
 fi
 
 if [ "$1" == "setuplocal" ]; then

@@ -1524,16 +1524,16 @@ const data = {
         // ========================================================================
         // DIAGNOSTIC: Log exact values being stored (field1, field2, field4, peer)
         // ========================================================================
-        console.log('[DIAG] saveDraftTransaction() About to save with:');
-        console.log('[DIAG]   - field1: (auto-populated from tx.msg.module, expected: "Stack")');
-        console.log('[DIAG]   - field2: (auto-populated from tx.from[0].publicKey, expected:', this.mod.publicKey, ')');
-        console.log('[DIAG]   - field4:', field4Value);
-        console.log('[DIAG]   - peer: "localhost"');
-        console.log('[DIAG]   - tx.msg.module =', JSON.stringify(tx.msg?.module), '(type:', typeof tx.msg?.module, ')');
-        console.log('[DIAG]   - tx.from =', tx.from ? JSON.stringify(tx.from) : 'N/A');
-        console.log('[DIAG]   - tx.from[0].publicKey =', tx.from && tx.from[0] ? JSON.stringify(tx.from[0].publicKey) : 'N/A');
-        console.log('[DIAG]   - tx.signature =', tx.signature || 'N/A (unsigned transaction - signature may be generated on save)');
-        console.log('[DIAG]   - this.mod.publicKey =', JSON.stringify(this.mod.publicKey));
+        // console.log('[DIAG] saveDraftTransaction() About to save with:');
+        // console.log('[DIAG]   - field1: (auto-populated from tx.msg.module, expected: "Stack")');
+        // console.log('[DIAG]   - field2: (auto-populated from tx.from[0].publicKey, expected:', this.mod.publicKey, ')');
+        // console.log('[DIAG]   - field4:', field4Value);
+        // console.log('[DIAG]   - peer: "localhost"');
+        // console.log('[DIAG]   - tx.msg.module =', JSON.stringify(tx.msg?.module), '(type:', typeof tx.msg?.module, ')');
+        // console.log('[DIAG]   - tx.from =', tx.from ? JSON.stringify(tx.from) : 'N/A');
+        // console.log('[DIAG]   - tx.from[0].publicKey =', tx.from && tx.from[0] ? JSON.stringify(tx.from[0].publicKey) : 'N/A');
+        // console.log('[DIAG]   - tx.signature =', tx.signature || 'N/A (unsigned transaction - signature may be generated on save)');
+        // console.log('[DIAG]   - this.mod.publicKey =', JSON.stringify(this.mod.publicKey));
 
         // Save new draft transaction (field1 is auto-populated from tx.msg.module)
         await this.app.storage.saveTransaction(tx, {

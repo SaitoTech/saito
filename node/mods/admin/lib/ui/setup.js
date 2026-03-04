@@ -82,7 +82,7 @@ class NodeSetup {
         if (cmd) {
           navigator.clipboard.writeText(cmd).then(() => {
             if (typeof siteMessage === "function") {
-              siteMessage("Copied to clipboard", 2000);
+              siteMessage("command copied to clipboard...", 2000);
             }
           }).catch(() => {});
         }

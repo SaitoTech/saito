@@ -143,7 +143,7 @@ class Blog extends ModTemplate {
       }
     }
 
-    if (type === 'filter-saito-link') {
+    if (type === 'saito-filter-link') {
       if (obj.slug == 'blog') {
         return { info: ['title', 'display_url', 'description'] };
       }

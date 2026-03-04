@@ -148,7 +148,7 @@ class Mods {
           }
         }
       } catch (err) {
-        console.error(`handlePeerTransaction Unknown Error in ${this.mods[iii].name}: `, err);
+        // console.error(`handlePeerTransaction Unknown Error in ${this.mods[iii].name}: `, err);
       }
     }
     if (have_responded == false) {
@@ -219,7 +219,7 @@ class Mods {
       }
     } catch (error) {
       console.error('failed loading dynamic mod');
-      console.error(error);
+      // console.error(error);
     }
 
     let module_removed = 0;

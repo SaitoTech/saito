@@ -29,6 +29,10 @@ This alows for a header with a header with title to be added without extra CSS
   overflow: auto;
 }
 
+.saito-modal-share-link {
+  background-color: var(--saito-background-color);
+}
+
 .saito-contact {
   display: flex;
   align-items: center;

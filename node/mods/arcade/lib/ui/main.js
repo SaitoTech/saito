@@ -1,47 +1,21 @@
 const JSON = require('json-bigint');
 const ArcadeMainTemplate = require('./main.template');
-const ArcadeInitializer = require('./initializer');
+const ArcadeSidebar = require('./sidebar');
+const ArcadeTeasers = require('./teasers');
 
 class ArcadeMain {
 	constructor(app, mod, container = 'body') {
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
-
-		//
-		// load init page
-		//
-		app.connection.on('arcade-game-initialize-render-request', (game_id) => {
-			this.intersectionObserver.disconnect();
-			document.querySelector('.arcade-main').innerHTML = '';
-			document.querySelector('.arcade-main').classList.remove("can-scroll-up");
-			document.querySelector('.arcade-main').classList.remove("can-scroll-down");
-
-			if (document.getElementById('saito-container')) {
-				document.getElementById('saito-container').scrollTop = 0;
-			}
-
-			let initializer = new ArcadeInitializer(
-				this.app,
-				this.mod,
-				'.arcade-main'
-			);
-
-			this.mod.is_game_initializing = true;
-			initializer.game_id = game_id;
-
-			initializer.render();
-		});
-
-		app.connection.on('rerender-whole-arcade', () => {
-			this.render();
-		});
+		this.sidebar = new ArcadeSidebar(app, mod, '.arcade-sidebar');
+		this.teasers = new ArcadeTeasers(app, mod, '.arcade-teasers');
 
 		let league_hook = app.modules.returnFirstRespondTo("leagues-for-arcade");
 		if (league_hook){
 			app.connection.on('league-rankings-render-request', ()=>{
 				for (let league of league_hook.returnLeagues()){
-					let card = document.querySelector(`.arcade-game-selector-game[data-league="${league.id}"] .arcade-game-selector-footer`);
+					let card = document.querySelector(`.arcade-teaser[data-league="${league.id}"] .arcade-teaser-footer`);
 					if (card){
 						let html = "";
 						if (league.rank > 0){
@@ -76,6 +50,11 @@ class ArcadeMain {
 
 	}
 
+	showInitializer(game_id) {
+		if (!this.mod.browser_active) return;
+		this.mod.render('lounge_overlay', { game_id });
+	}
+
 	async render() {
 		if (document.querySelector('.saito-container')) {
 			this.app.browser.replaceElementBySelector(
@@ -89,12 +68,17 @@ class ArcadeMain {
 			);
 		}
 
-		//
-		// invites box modules
-		//
+		this.teasers.render();
+		this.sidebar.render();
 		await this.app.modules.renderInto('.arcade-sidebar');
 
 		this.attachEvents();
+	}
+
+	renderInvites() {
+		if (!this.mod.browser_active) return;
+		if (!this.sidebar || !this.sidebar.invites) return;
+		this.sidebar.renderInvites();
 	}
 
 	attachEvents() {
@@ -104,14 +88,14 @@ class ArcadeMain {
 		this.intersectionObserver.observe(document.getElementById("bottom-of-game-list"));
 
 		Array.from(
-			document.querySelectorAll('.arcade-game-selector-game')
+			document.querySelectorAll('.arcade-teaser')
 		).forEach((game) => {
 			game.onclick = (e) => {
 
 				e.stopPropagation();
 				let league_id = e.currentTarget.getAttribute('data-league');
 
-				if (e.currentTarget.classList.contains("arcade-game-selector-teaser")) {
+				if (e.currentTarget.classList.contains("arcade-teaser-install")) {
 					let c = confirm("Do you want to install this game? This will take you to the app download site:");
 					if (c) {
 						let link = "";

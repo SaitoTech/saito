@@ -7,6 +7,7 @@ module.exports = (app, mod, nft_overlay) => {
         <input class="saito-nft-input-field" id="nft-receiver-address"/>
       </div>
       <div class="saito-nft-panel-footer">
+        <button class="saito-nft-footer-btn saito-button-secondary saito-nft-cancel-btn">Cancel</button>
         <button class="saito-nft-footer-btn saito-nft-confirm-btn">Confirm</button>
       </div>
     </div>

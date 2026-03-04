@@ -7,6 +7,9 @@ class SaitoNFT {
     // nft details from app.options.wallet
     //
     this.id = data?.id;
+    if (data?.nft_id) {
+      this.id = data?.nft_id;
+    }
     this.tx_sig = data?.tx_sig;
     this.slip1 = data?.slip1;
     this.slip2 = data?.slip2;

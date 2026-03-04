@@ -30,41 +30,16 @@
 	height: 100%;
 }
 
-/*********************************
- *  Spinner to enter the game
- ********************************/
-
-.arcade-initializer {
-	text-align: center;
-	min-width: 18rem;
-	display: flex;
-	flex-direction: column;
-}
-
-.arcade-main .arcade-initializer {
-	height: calc(100vh - var(--saito-header-height) - 3rem);
-	padding-top: 2rem;
-	gap: min(5rem, 7vh);
-}
-
-.arcade-game-initializer-success-title {
-	text-align: center;
-	font-size: 3rem;
-	margin: min(10rem, 16vh) auto min(5rem, 8vh);
-}
-
-.arcade-game-initializer-success-button {
-	margin: min(3rem, 5vh) auto;
-	width: calc(100% - 2rem);
-	max-width: 35rem;
-}
-
 .arcade-central-panel {
 	height: 100%;
 	position: relative;
+}
+
+.arcade-teasers {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 	grid-gap: 1rem;
+	align-content: start;
 }
 
 .arcade-sidebar .saito-announcement {
@@ -86,16 +61,78 @@
 }
 
 /******************************************
- *  OVER WRITE Game Selector Overlay code
+ *  Base teaser card styles (restored from
+ *  former arcade-game-selector-overlay.css)
  *****************************************/
 
-.arcade-central-panel .arcade-game-selector-game {
+.arcade-teaser {
+	width: 100%;
+	border: var(--border-thickness-thick) solid var(--saito-border-color);
+	position: relative;
+	cursor: pointer;
+	overflow: hidden;
+	border-radius: var(--saito-border-radius);
+}
+
+.arcade-teaser:hover {
+	border-color: var(--saito-primary);
+}
+
+.arcade-teaser-title {
+	position: absolute;
+	height: 6rem;
+	background-color: #000a;
+	overflow-x: hidden;
+	color: white;
+	width: 100%;
+	top: 0;
+	left: 0;
+	padding: 1.6rem;
+	font-size: 2.5rem;
+	text-transform: uppercase;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.arcade-teaser-image {
+	width: 100%;
+	height: 100%;
+}
+
+.arcade-teaser-image > img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.arcade-teaser-footer {
+	position: absolute;
+	bottom: -2px;
+	right: -2px;
+	max-width: 50%;
+	max-height: 25%;
+	height: 3rem;
+	min-width: 5rem;
+}
+
+.arcade-teaser-footer .angled-notification {
+	width: fit-content;
+	padding: 0 20% 0 33%;
+	max-width: unset;
+}
+
+/******************************************
+ *  Teaser grid layout and overrides
+ *****************************************/
+
+.arcade-teasers .arcade-teaser {
 	box-shadow: var(--saito-box-shadow);
 	height: min(250px, calc((100vw - 34.5rem) / 4));
 	border-radius: var(--saito-border-radius);
 }
 
-.arcade-central-panel .arcade-game-selector-game-title {
+.arcade-teasers .arcade-teaser-title {
 	height: 5rem;
 	display: flex;
 	align-items: center;
@@ -103,7 +140,7 @@
 	padding: 0 1.5rem;
 }
 
-.arcade-central-panel .arcade-game-selector-game-title span {
+.arcade-teaser-title span {
 	font-size: 2.4rem;
 	text-transform: unset;
 	overflow: hidden;
@@ -126,7 +163,7 @@
 **************************************/
 
 @media screen and (max-width: 1200px) {
-	.arcade-central-panel {
+	.arcade-teasers {
 		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 	}
 }
@@ -149,21 +186,20 @@
 		margin: 0;
 		order: 2;
 	}
-	.arcade-container .saito-sidebar.right .saito-table-row {
+	.arcade-sidebar .saito-table-row {
 		padding: 1rem;
 	}
-	.arcade-container .saito-sidebar.right .saito-table-body {
+	.arcade-sidebar .saito-table-body {
 		grid-gap: 0.8rem;
 		font-size: 1.6rem;
 	}
-	.arcade-container .saito-sidebar.right .game-slider,
-	.arcade-container .saito-sidebar.right .chat-manager {
+	.arcade-sidebar .chat-manager {
 		display: none;
 	}
 	.arcade-sidebar .saito-announcement {
 		display: none;
 	}
-	.arcade-central-panel .arcade-game-selector-game {
+	.arcade-teasers .arcade-teaser {
 		height: min(180px, calc(100vw / 3));
 	}
 }
@@ -172,26 +208,32 @@
 	.arcade-main {
 		padding: 0.5rem;
 	}
-	.arcade-central-panel .arcade-game-selector-game-title span {
+	.arcade-teaser-title span {
 		font-size: 1.8rem;
 	}
 }
 
 @media screen and (max-width: 450px) {
-	.arcade-central-panel {
+	.arcade-teasers {
 		grid-template-columns: repeat(2, 1fr);
 	}
 }
 
-/************ DEPRECATED ***************/
-
-.arcade-game-list-container {
-	max-height: 60%;
-	position: relative;
+/* Teaser title responsive (from former overlay) */
+@media screen and (max-width: 1000px) {
+	.arcade-teaser-title {
+		padding: 1.2rem;
+		font-size: 2rem;
+		height: 5rem;
+	}
 }
 
-.arcade-menu {
-	max-height: calc(100% - 4rem);
+@media screen and (max-width: 550px) {
+	.arcade-teaser-title {
+		padding: 0.8rem;
+		font-size: 1.8rem;
+		height: 4rem;
+	}
 }
 
 /**************************
@@ -261,7 +303,7 @@
 	content: '\f0d8';
 }
 
-.arcade-game-selector-teaser .arcade-game-selector-footer {
+.arcade-teaser-install .arcade-teaser-footer {
 	bottom: -2px;
 	right: -2px;
 	max-width: 100%;
@@ -271,7 +313,7 @@
 	width: 20rem;
 }
 
-.arcade-game-selector-teaser .arcade-game-selector-footer::before {
+.arcade-teaser-install .arcade-teaser-footer::before {
 	content: 'install';
 	position: absolute;
 	bottom: 1rem;

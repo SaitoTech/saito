@@ -26,7 +26,7 @@ config/options.*
 config/modules.config.js
 config/runtime.config.js
 config/mixin-credentials.js
-config/build.json
+config/build/build.json
 config/.temp.*
 
 scripts/mods

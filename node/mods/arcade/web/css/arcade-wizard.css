@@ -37,12 +37,12 @@
 	text-align: center;
 }
 
-.game-wizard-advanced-box {
+.arcade-wizard-advanced {
 	display: block;
 	text-align: left;
 }
 
-.game-wizard-advanced-box .list-header {
+.arcade-wizard-advanced .list-header {
 	color: var(--saito-primary);
 }
 
@@ -70,11 +70,11 @@
 
 /* Game Advanced Options Styling*/
 
-.game-wizard-options-toggle {
+.arcade-wizard-options-toggle {
 	padding-top: 1rem;
 }
 
-.game-wizard-options-toggle-text {
+.arcade-wizard-options-toggle-text {
 	border-bottom: 1px dashed;
 	cursor: pointer;
 }
@@ -93,7 +93,7 @@
 	justify-content: space-between;
 }
 
-.arcade-wizard-overlay {
+.arcade-wizard {
 	padding: 2rem;
 	border-radius: inherit;
 	color: var(--saito-white);
@@ -105,43 +105,43 @@
 	justify-content: space-around;
 }
 
-.arcade-wizard-overlay .arcade-wizard-game-container {
+.arcade-wizard .arcade-wizard-container {
 	min-height: 17rem;
 	display: grid;
 	grid-template-columns: 3fr 7fr;
 	grid-gap: 1.5rem;
 }
 
-.arcade-wizard-overlay .arcade-wizard-game-image {
+.arcade-wizard .arcade-wizard-image {
 	background-position: center;
 	background-repeat: no-repeat;
 	background-size: cover;
 }
 
-.arcade-wizard-overlay .arcade-wizard-game-image img {
+.arcade-wizard .arcade-wizard-image img {
 	width: 100%;
 	object-fit: cover;
 	height: 100%;
 }
 
-.arcade-wizard-game-name {
+.arcade-wizard-title {
 	font-size: 3.5rem;
 	margin-bottom: 1rem;
 }
 
-.arcade-wizard-game-description {
+.arcade-wizard-description {
 	font-size: 2rem;
 	line-height: 3rem;
 }
 
-.arcade-wizard-game-controls {
+.arcade-wizard-controls {
 	display: grid;
 	grid-template-columns: 3fr 7fr;
 	grid-gap: 1rem;
 	margin-top: 2rem;
 }
 
-.arcade-wizard-overlay select,
+.arcade-wizard select,
 #advanced-options-overlay-container select {
 	background: inherit;
 	color: inherit;
@@ -149,7 +149,7 @@
 	border: 1px solid var(--saito-primary);
 }
 
-.arcade-wizard-overlay select {
+.arcade-wizard select {
 	font-size: 2rem;
 	appearance: none;
 	padding: 0 1rem;
@@ -163,7 +163,7 @@
 	border-radius: 0;
 }
 
-.arcade-wizard-overlay select:focus {
+.arcade-wizard select:focus {
 	outline: none;
 }
 
@@ -176,7 +176,7 @@
 	background: var(--saito-gray-850);
 }
 
-.arcade-wizard-game-controls .settings > div.overlay-input {
+.arcade-wizard-controls .overlay-input {
 	position: relative;
 	display: flex;
 	width: 20em;
@@ -190,13 +190,13 @@
 	background: var(--saito-gray-850);
 }
 
-.arcade-wizard-game-controls .settings {
+.arcade-wizard-controls .settings {
 	display: flex;
 	flex-direction: column;
 	row-gap: 1rem;
 }
 
-.arcade-wizard-game-controls .settings > div.overlay-input::after {
+.arcade-wizard-controls .overlay-input::after {
 	content: '\25BC';
 	position: absolute;
 	top: 0;
@@ -230,7 +230,7 @@
 	line-height: 2.8rem;
 }
 
-.arcade-wizard-overlay .arcade-game-details {
+.arcade-wizard .arcade-game-details {
 	font-size: 1.6rem;
 	margin: 0.4rem;
 }
@@ -297,7 +297,7 @@
 	background: var(--saito-primary);
 }
 
-.game-wizard-form {
+.arcade-wizard-form {
 	display: grid;
 	grid-gap: 1em;
 	grid-template-columns: 1fr;
@@ -317,7 +317,7 @@
 	align-items: center;
 }
 
-.arcade-advance-opt-text {
+.arcade-wizard-advanced-text {
 	border-bottom: 1px dashed;
 	font-size: 2rem;
 	overflow: hidden;
@@ -325,7 +325,7 @@
 	white-space: nowrap;
 }
 
-.arcade-wizard-game-invite {
+.arcade-wizard-actions {
 	display: flex;
 	flex-direction: row;
 	justify-content: flex-end;
@@ -349,16 +349,16 @@
 	gap: 1rem;
 }
 
-.game-wizard-advanced-box {
+.arcade-wizard-advanced {
 	display: block;
 	padding-left: 20px;
 }
 
-.game-wizard-advanced-box ul li {
+.arcade-wizard-advanced li {
 	width: 20rem;
 }
 
-.game-wizard-advanced-box ul {
+.arcade-wizard-advanced ul {
 	display: flex;
 	gap: 1rem;
 	flex-direction: row;
@@ -366,43 +366,43 @@
 	justify-content: space-between;
 }
 
-.game-wizard-advanced-box ul li {
+.arcade-wizard-advanced li {
 	display: grid;
 	grid-template-columns: 0.25fr 1fr;
 }
 
 @media screen and (max-width: 1000px) {
-	.game-wizard-advanced-box ul li {
+	.arcade-wizard-advanced li {
 		width: 15rem;
 	}
 }
 
 @media screen and (max-width: 700px) {
-	.arcade-wizard-game-container {
+	.arcade-wizard-container {
 		display: flex !important;
 		flex-direction: column;
 	}
-	.arcade-wizard-game-controls {
+	.arcade-wizard-controls {
 		display: flex !important;
 		flex-direction: column-reverse;
 	}
-	.arcade-wizard-overlay {
+	.arcade-wizard {
 		font-size: 1.8rem;
 	}
 
-	.arcade-wizard-game-invite button {
+	.arcade-wizard-actions button {
 		width: 100%;
 		min-width: unset;
 	}
 
-	.arcade-wizard-game-name {
+	.arcade-wizard-title {
 		font-size: 2.8rem;
 	}
 
-	.arcade-wizard-game-description,
+	.arcade-wizard-description,
 	.saito-multi-select_btn_options button,
-	.arcade-advance-opt-text,
-	.arcade-wizard-overlay select {
+	.arcade-wizard-advanced-text,
+	.arcade-wizard select {
 		font-size: 1.6rem;
 		line-height: 2rem;
 	}

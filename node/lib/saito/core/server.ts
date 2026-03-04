@@ -53,7 +53,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
         // console.warn('socket not found for peer : '+publicKey+'. Cannot send the buffer : '+buffer.byteLength+' bytes.');
       }
     } catch (e) {
-      console.error(e);
+      // console.error(e);
     }
   }
 
@@ -68,7 +68,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
           socket.send(buffer);
         }
       } catch (error) {
-        console.error(error);
+        // console.error(error);
       }
     });
   }
@@ -152,7 +152,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
     try {
       fs.writeFileSync(key, value);
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
   }
 
@@ -160,7 +160,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
     try {
       fs.appendFileSync(key, value);
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
   }
 
@@ -170,7 +170,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
     try {
       return fs.readFileSync(key);
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       return new Uint8Array();
     }
   }
@@ -182,7 +182,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
       return files;
     } catch (e) {
       console.log('cwd : ', process.cwd());
-      console.error(e);
+      // console.error(e);
       return [];
     }
   }
@@ -192,7 +192,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
       let result = fs.existsSync(key);
       return !!result;
     } catch (error) {
-      console.error(error);
+      // console.error(error);
       return false;
     }
   }
@@ -201,7 +201,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
     try {
       fs.rmSync(key);
     } catch (e) {
-      console.error(e);
+      // console.error(e);
     }
   }
 
@@ -725,8 +725,8 @@ class Server {
         }
         return;
       } catch (error) {
-        console.log('failed serving lite block : ' + bsh);
-        console.error(error);
+        // console.log('failed serving lite block : ' + bsh);
+        // console.error(error);
       }
       try {
         if (!res.finished) {
@@ -995,8 +995,8 @@ class Server {
         }
         return;
       } catch (error) {
-        console.log('failed serving lite block : ' + bsh);
-        console.error(error);
+        // console.log('failed serving lite block : ' + bsh);
+        // console.error(error);
       }
     });
 

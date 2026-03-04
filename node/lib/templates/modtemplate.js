@@ -114,7 +114,7 @@ class ModTemplate {
             let data = fs.readFileSync(filename, 'utf8');
             await app.storage.executeDatabase(data, dbname);
           } catch (err) {
-            console.error('installModule Error: ', err);
+            // console.error('installModule Error: ', err);
           }
         }
       }
@@ -231,6 +231,7 @@ class ModTemplate {
   // this replaces initializeHTML and attachEvents with a single function
   //
   async render() {
+
     if (this.browser_active && this.possibleHome) {
       this.app.options.homeModule = this.returnName();
       this.app.storage.saveOptions();
@@ -633,11 +634,11 @@ class ModTemplate {
       // here so are leaving a visible and obvious error indicator here
       // to catch any problems.
       //
-      console.log(
-        '!!@@!@#!#!@#!@#\n!!@@!@#!#!@#!@#\n!!@@!@#!#!@#!@#\n',
-        JSON.parse(JSON.stringify(tx))
-      );
-      console.error('ModTemplate [HPT] ERROR: ', err);
+      // console.log(
+      //   '!!@@!@#!#!@#!@#\n!!@@!@#!#!@#!@#\n!!@@!@#!#!@#!@#\n',
+      //   JSON.parse(JSON.stringify(tx))
+      // );
+      // console.error('ModTemplate [HPT] ERROR: ', err);
 
       return 0;
     }

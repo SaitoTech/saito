@@ -31,7 +31,7 @@ class BuySaito extends ModTemplate {
 
     this.mixin_mod = null;
     this.erc_saito = null;
-    this.time_limit = 15 * 60000;
+    this.time_limit = 25 * 60000;
     // For the full node, to juggle multiple deposit addresses
     this.mixin_accounts = [];
 
@@ -211,7 +211,7 @@ class BuySaito extends ModTemplate {
           this.app.connection.emit('saito-purchase-cryptos');
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
-          console.warn(txmsg);
+          // console.warn(txmsg);
         }
       }
 
@@ -235,7 +235,7 @@ class BuySaito extends ModTemplate {
           this.app.connection.emit('saito-purchase-address-reserved', txmsg.data);
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
-          console.warn(txmsg);
+          // console.warn(txmsg);
         }
       }
 
@@ -252,7 +252,7 @@ class BuySaito extends ModTemplate {
           }
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
-          console.warn(txmsg);
+          // console.warn(txmsg);
         }
       }
 
@@ -267,7 +267,7 @@ class BuySaito extends ModTemplate {
           }
           console.warn('BUYSAITO - received notification for an Unexpected pending payment');
         } else {
-          console.warn('BUYSAITO - Unexpected peer message: ', txmsg);
+          // console.warn('BUYSAITO - Unexpected peer message: ', txmsg);
         }
       }
 
@@ -318,7 +318,11 @@ class BuySaito extends ModTemplate {
   convertSaitoToOther(amount, ticker = null) {
     console.log('Currency Conversion: ', amount, ticker);
 
-    let saito_price = this.erc_saito ? 1.05 * Number(this.erc_saito.price_usd) : 1;
+    let saito_price = this.erc_saito ? 1.1 * Number(this.erc_saito.price_usd) : 1;
+
+    // Make sure we don't sell for less than 1/10 penny
+    saito_price = Math.max(0.001, saito_price);
+
     let usd_price = 0;
 
     if (ticker) {
@@ -328,8 +332,6 @@ class BuySaito extends ModTemplate {
         }
       }
     }
-
-    console.log(saito_price, usd_price);
 
     if (usd_price == 0) {
       console.warn('BUYSAITO - No ticker selected for conversion!');
@@ -347,7 +349,11 @@ class BuySaito extends ModTemplate {
   }
 
   convertToSaito(amount, ticker = null) {
-    let saito_price = this.erc_saito ? 1.05 * Number(this.erc_saito.price_usd) : 1;
+    let saito_price = this.erc_saito ? 1.1 * Number(this.erc_saito.price_usd) : 1;
+
+    // Make sure we don't sell for less than 1/10 penny
+    saito_price = Math.max(0.001, saito_price);
+
     let usd_price = 0;
 
     if (ticker) {
@@ -825,7 +831,7 @@ class BuySaito extends ModTemplate {
             console.debug('Mixin transfer between accounts: ', res);
           }
         } catch (err) {
-          console.error(err);
+          // console.error(err);
         }
 
         // Check pending deposits (first)
@@ -887,7 +893,7 @@ class BuySaito extends ModTemplate {
             })
             .catch((err) => {
               // Don't do anything other than report the error
-              console.error(err);
+              // console.error(err);
 
               this.app.connection.emit('mailrelay-send-email', {
                 to: 'buysaito@saito.tech',

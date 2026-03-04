@@ -1,6 +1,5 @@
-const ImportGame = require('./import-game.js');
-const GameWizardTemplate = require('./game-wizard.template.js');
-const SaitoOverlay = require('./../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
+const GameWizardTemplate = require('./wizard.template.js');
+const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay.js');
 
 //
 // {
@@ -14,7 +13,6 @@ class GameWizard {
 		this.app = app;
 		this.mod = mod;
 		this.game_mod = game_mod;
-		this.import_game = new ImportGame(app, mod, game_mod);
 		this.overlay = new SaitoOverlay(app, mod);
 		this.obj = obj;
 
@@ -66,8 +64,8 @@ class GameWizard {
 		//Test if we should include Advanced Options
 		let advancedOptions = this.game_mod.returnAdvancedOptions();
 		if (!advancedOptions) {
-			if (document.querySelector('.arcade-advance-opt-text')) {
-				document.querySelector('.arcade-advance-opt-text').style.visibility = 'hidden';
+			if (document.querySelector('.arcade-wizard-advanced-text')) {
+				document.querySelector('.arcade-wizard-advanced-text').style.visibility = 'hidden';
 			}
 		} else {
 			let accept_button = `<div id="game-wizard-advanced-return-btn" class="game-wizard-advanced-return-btn button saito-button-primary">Accept</div>`;
@@ -111,7 +109,7 @@ class GameWizard {
 		//
 		// Display Advanced Options Overlay
 		//
-		const advancedOptionsToggle = document.querySelector('.arcade-advance-opt-text');
+		const advancedOptionsToggle = document.querySelector('.arcade-wizard-advanced-text');
 		if (advancedOptionsToggle) {
 			advancedOptionsToggle.onclick = (e) => {
 				this.meta_overlay.show();
@@ -130,7 +128,7 @@ class GameWizard {
 		// Display Rules Overlay
 		//
 		if (document.getElementById('game-rules-btn')) {
-			document.getElementById('game-rules-btn').onclick = function () {
+			document.getElementById('game-rules-btn').onclick = () => {
 				let rules_overlay = new SaitoOverlay(this.app, this.mod);
 				rules_overlay.show(this.game_mod.returnGameRulesHTML());
 			};
@@ -170,11 +168,6 @@ class GameWizard {
 					this.app.browser.logMatomoEvent('GameWizard', 'CreateOpenInvite', options.game);
 				}
 
-				if (gameType === 'import') {
-					this.import_game.render(options.game);
-					return;
-				}
-
 				this.mod.makeGameInvite(options, gameType, this.obj);
 			});
 		});
@@ -184,7 +177,7 @@ class GameWizard {
 		let options = {};
 		document
 			.querySelectorAll(
-				'#advanced-options-overlay-container input, #advanced-options-overlay-container select, .arcade-wizard-overlay input, .arcade-wizard-overlay select'
+				'#advanced-options-overlay-container input, #advanced-options-overlay-container select, .arcade-wizard input, .arcade-wizard select'
 			)
 			.forEach((element) => {
 				if (element.name) {

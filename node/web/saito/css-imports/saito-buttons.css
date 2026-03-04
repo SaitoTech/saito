@@ -125,7 +125,7 @@ button i {
 .saito-button-row.auto-size .saito-button-primary {
   min-width: unset;
   flex-grow: 1;
-  width: 100%;
+  width: 35%;
 }
 
 /*******************************
@@ -191,10 +191,20 @@ span.saito-anchor {
     min-width: 12rem;
   }
 
-  /*.saito-button-row
-  I think it is maybe better to not always default to vertically stacked buttons in mobile
-  but we can use this class to opt-in for .saito-button-row
-   */
+  /* This allows row to become column */
+  .saito-button-row {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .saito-button-row button,
+  .saito-button-row .saito-button-secondary,
+  .saito-button-row .saito-button-primary {
+    min-width: unset;
+    flex-grow: 1;
+    width: 35%; /* Set this to > 49% to force buttons to stack vertically */
+  }
+
   .saito-button-row.mobile-column,
   .saito-button-row.auto-size {
     flex-direction: column;
@@ -203,9 +213,6 @@ span.saito-anchor {
   .saito-overlay-form > button[type='button'],
   .saito-button-row > button[type='button'] {
     width: 100%;
-  }
-  .saito-button-row {
-    flex-direction: column;
   }
 
   .saito-button-row.force-row {
