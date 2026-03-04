@@ -364,7 +364,6 @@ impl Mempool {
             if current_timestamp < previous_block.timestamp + value {
                 return None;
             }
-            // info!("aaaa value = {:?}", value);
 
             let result = work_available >= work_needed;
             if result {

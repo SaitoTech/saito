@@ -1,5 +1,6 @@
 use js_sys::JsString;
 use saito_core::core::defs::PrintForLog;
+use saito_core::core::msg::message::Message;
 use saito_core::core::routing::peers::network_peer::NetworkPeer;
 use saito_core::core::util::serialize::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -33,7 +34,7 @@ impl WasmNetworkPeer {
     }
     pub async fn get_handshake_challenge_buffer(&mut self) -> js_sys::Uint8Array {
         let challenge = self.peer.get_handshake_challenge_buffer().await;
-        let buffer = challenge.serialize();
+        let buffer = Message::HandshakeChallenge(challenge).serialize();
         js_sys::Uint8Array::from(buffer.as_slice())
     }
 }

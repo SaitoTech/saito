@@ -1,6 +1,7 @@
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
+use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::routing::peers::peer_service::PeerService;
@@ -51,6 +52,7 @@ impl NetworkPeer {
         wallet: &Wallet,
         configs: &(dyn Configuration + Send + Sync),
     ) -> Result<HandshakeResponse, Error> {
+        debug!("processing handshake challenge");
         let block_fetch_url;
         let is_lite;
         let endpoint;
@@ -92,6 +94,10 @@ impl NetworkPeer {
         wallet: &Wallet,
         configs: &(dyn Configuration + Send + Sync),
     ) -> Result<Option<HandshakeResponse>, Error> {
+        debug!(
+            "processing handshake response from peer : {:?}",
+            response.public_key.to_base58()
+        );
         if !response.core_version.is_set() {
             debug!(
                 "core version is not set in handshake response. expected : {:?}",
@@ -186,6 +192,10 @@ impl NetworkPeer {
                 endpoint: endpoint.clone(),
                 timestamp: current_time,
             };
+            debug!(
+                "sending handshake response for peer: {:?}",
+                self.public_key.unwrap().to_base58()
+            );
             return Ok(Some(response_new));
             // io_handler
             //     .send_message(
@@ -194,11 +204,6 @@ impl NetworkPeer {
             //     )
             //     .await?;
             // debug!("second handshake response sent for peer: {:?}", self.index);
-        } else {
-            info!(
-                "handshake completed for peer : {:?}",
-                self.public_key.unwrap().to_base58()
-            );
         }
         self.challenge = None;
 
@@ -242,7 +247,9 @@ impl NetworkPeer {
             Ok(vec![])
         } else {
             if self.challenge.is_some() {
-                if let Ok(response) = HandshakeResponse::deserialize(&buffer) {
+                // let message = Message::deserialize(buffer)?;
+
+                if let Message::HandshakeResponse(response) = Message::deserialize(buffer)? {
                     let configs = configs.read().await;
                     let wallet = wallet.read().await;
 
@@ -259,7 +266,7 @@ impl NetworkPeer {
                         })
                         .await;
                     } else {
-                        if let Ok(result) = self.process_handshake_response(
+                        return if let Ok(result) = self.process_handshake_response(
                             response.clone(),
                             timer.get_timestamp_in_ms(),
                             &services,
@@ -269,32 +276,33 @@ impl NetworkPeer {
                             let mut buffer = vec![];
                             if let Some(response) = result {
                                 // we need to send this response to the other side
-                                buffer = response.serialize();
-
-                                // send_buffer(buffer).await;
+                                buffer = Message::HandshakeResponse(response).serialize();
                             }
                             // now the handshake is complete. We need to alert the core
-                            self.public_key.replace(self.public_key.unwrap());
                             send_event(NetworkEvent::PeerConnectionResult {
                                 result: Ok(self.clone()),
                             })
                             .await;
-                            return Ok(buffer);
+                            debug!(
+                                "handshake completed for peer : {:?}",
+                                self.public_key.unwrap().to_base58()
+                            );
+                            Ok(buffer)
                         } else {
                             warn!("failed handling the handshake response");
-                            return Err(Error::from(ErrorKind::InvalidInput));
-                        }
+                            Err(Error::from(ErrorKind::InvalidInput))
+                        };
                     }
                     Ok(vec![])
                 } else {
                     warn!(
-                        "failed deserializing handshake response : {:?}",
-                        self.public_key.unwrap_or([0; 33]).to_base58()
+                        "failed deserializing handshake response. ip : {}",
+                        self.ip.as_ref().unwrap_or(&"unknown".to_string())
                     );
                     Err(Error::from(ErrorKind::InvalidInput))
                 }
             } else {
-                if let Ok(challenge) = HandshakeChallenge::deserialize(&buffer) {
+                if let Message::HandshakeChallenge(challenge) = Message::deserialize(buffer)? {
                     let configs = configs.read().await;
                     let wallet = wallet.read().await;
                     if let Ok(response) = self
@@ -307,13 +315,15 @@ impl NetworkPeer {
                         )
                         .await
                     {
-                        return Ok(response.serialize());
+                        debug!("sending handshake response to peer");
+                        return Ok(Message::HandshakeResponse(response).serialize());
                     }
                     Ok(vec![])
                 } else {
                     error!(
                         "failed deserializing handshake challenge : {:?}",
-                        self.public_key.unwrap_or([0; 33]).to_base58()
+                        self.public_key.unwrap_or([0; 33]).to_base58(),
+                        // hex::encode(buffer)
                     );
                     Err(Error::from(ErrorKind::InvalidInput))
                 }

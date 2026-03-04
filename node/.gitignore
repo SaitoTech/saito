@@ -147,3 +147,5 @@ saito.log
 
 built/
 bundler/
+
+config/build/build.json

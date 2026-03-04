@@ -45,9 +45,12 @@ export class NodeSharedMethods extends CustomSharedMethods {
 
   sendMessage(publicKey: string, buffer: Uint8Array): void {
     try {
+      // console.log('sending message : '+buffer.byteLength+' bytes to peer : '+publicKey);
       let socket = S.getInstance().getSocket(publicKey);
       if (socket) {
         socket.send(buffer);
+      } else {
+        // console.warn('socket not found for peer : '+publicKey+'. Cannot send the buffer : '+buffer.byteLength+' bytes.');
       }
     } catch (e) {
       console.error(e);
@@ -83,10 +86,16 @@ export class NodeSharedMethods extends CustomSharedMethods {
       socket.on('message', (buffer: any) => {
         try {
           S.getLibInstance()
-            .process_msg_buffer_from_peer(buffer, peer)
+            .process_msg_buffer_from_peer(buffer, peer.instance)
             .then((buffer: any) => {
               if (buffer && buffer.byteLength > 0) {
                 socket.send(buffer);
+              }
+              if (peer.publicKey) {
+                if (!S.getInstance().peers.has(peer.publicKey)) {
+                  console.info('added peer : ' + peer.publicKey + ', url : ' + peer.url);
+                  S.getInstance().peers.set(peer.publicKey, peer);
+                }
               }
             });
         } catch (e) {
@@ -699,13 +708,12 @@ class Server {
         const newblk = blk.generateLiteBlock(keylist);
 
         console.log(
-          `lite block fetch : block  = ${req.params.bhash} key = ${pkey} with txs : ${newblk.transactions.length}`
+          `lite block fetch : block  = ${blk.id} - ${req.params.bhash} key = ${pkey} with txs : ${newblk.transactions.length}`
         );
-        console.log(`liteblock : ${bsh} from disk txs count = : ${newblk.transactions.length}`);
         console.log(
-          'valid txs : ' +
-            newblk.transactions.filter((tx) => tx.type !== TransactionType.SPV).length
+          `liteblock : ${bsh} from disk txs count = : ${newblk.transactions.length} valid txs : ${newblk.transactions.filter((tx) => tx.type !== TransactionType.SPV).length}`
         );
+
         const buffer2 = Buffer.from(newblk.serialize());
 
         if (!res.finished) {

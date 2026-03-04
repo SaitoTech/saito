@@ -1008,10 +1008,10 @@ pub async fn process_msg_buffer_from_peer(
     buffer: js_sys::Uint8Array,
     peer: &mut WasmNetworkPeer,
 ) -> js_sys::Uint8Array {
-    trace!("process_msg_buffer_from_peer");
+    let buffer = buffer.to_vec();
+    trace!("process_msg_buffer_from_peer : {}", buffer.len());
     let mut saito1 = SAITO.lock().await;
     let saito = saito1.as_mut().unwrap();
-    let buffer = buffer.to_vec();
 
     let wallet = saito.context.wallet_lock.clone();
     let configs = saito.context.config_lock.clone();
@@ -1041,13 +1041,22 @@ pub async fn process_msg_buffer_from_peer(
                     .await;
             },
         )
-        .await
-        .expect("fail processing incoming buffer");
+        .await;
+    if buffer.is_err() {
+        error!(
+            "process_msg_buffer_from_peer failed. {}",
+            buffer.err().unwrap()
+        );
+        let array = js_sys::Uint8Array::new_with_length(0);
+        array
+    } else {
+        let buffer = buffer.unwrap();
 
-    trace!("return buffer size : {}", buffer.len());
-    let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
-    array.copy_from(buffer.as_slice());
-    array
+        trace!("return buffer size : {}", buffer.len());
+        let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
+        array.copy_from(buffer.as_slice());
+        array
+    }
 }
 
 #[wasm_bindgen]
