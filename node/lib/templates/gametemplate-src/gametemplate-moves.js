@@ -381,7 +381,11 @@ class GameMoves {
       this.saveFutureMoves(this.game.id);
 
       if (this.game.player == 0 && this.gameBrowserActive()) {
-        console.log('[OBS_TRACE] addFutureMove(): observer path', { is_paused: this.observerControls?.is_paused, halted: this.halted, gaming_active: this.gaming_active });
+        console.log('[OBS_TRACE] addFutureMove(): observer path', {
+          is_paused: this.observerControls?.is_paused,
+          halted: this.halted,
+          gaming_active: this.gaming_active
+        });
         try {
           if (this.observerControls.is_paused || this.halted) {
             this.observerControls.showNextMoveButton();
@@ -408,7 +412,10 @@ class GameMoves {
     // this is always called after runQueue which locks the queue for newMoves while processing
     // but there are multiple paths out of the queue, so we unlock it here
     this.gaming_active = 0;
-    console.log('[OBS_TRACE] processFutureMoves(): set gaming_active = 0', { futureLength: this.game.future?.length, halted: this.halted });
+    console.log('[OBS_TRACE] processFutureMoves(): set gaming_active = 0', {
+      futureLength: this.game.future?.length,
+      halted: this.halted
+    });
 
     if (this.game.futurePlus && this.game.futurePlus[this.game.step.game]) {
       //>>>>>>>>>>>>>>>>>>>
@@ -701,7 +708,6 @@ class GameMoves {
 
     game_self.app.network.propagateTransaction(newtx);
   }
-
 }
 
 module.exports = GameMoves;

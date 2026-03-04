@@ -135,7 +135,9 @@ class GameObserver {
   }
 
   async runQueue() {
-    if (!this.game_mod) { return; }
+    if (!this.game_mod) {
+      return;
+    }
     this.game_mod.startQueue();
   }
 
@@ -157,11 +159,16 @@ class GameObserver {
    * if overlay already exists and is_ui_initializing, do nothing to avoid duplicate re-renders.
    */
   render() {
-
-    if (typeof document === 'undefined' || !document.body) { console.log("ERROR NO DOCUMENT BODY"); return; }
+    if (typeof document === 'undefined' || !document.body) {
+      console.log('ERROR NO DOCUMENT BODY');
+      return;
+    }
 
     const overlayExists = !!document.body.querySelector('#observer-sync-overlay');
-    console.log('[OBS_TRACE] GameObserver.render()', { is_ui_initializing: this.is_ui_initializing, overlayExists });
+    console.log('[OBS_TRACE] GameObserver.render()', {
+      is_ui_initializing: this.is_ui_initializing,
+      overlayExists
+    });
     if (this.is_ui_initializing) {
       const overlayEl = document.body.querySelector('#observer-sync-overlay');
       if (overlayEl) {
@@ -171,7 +178,9 @@ class GameObserver {
       const hudEl = document.body.querySelector('#game-observer-hud');
       if (hudEl) hudEl.remove();
       this._observer_overlay_start_time = Date.now();
-      console.log('[OBS_TRACE] GameObserver.render() calling loader.render(), _observer_overlay_start_time set');
+      console.log(
+        '[OBS_TRACE] GameObserver.render() calling loader.render(), _observer_overlay_start_time set'
+      );
       this.loader.render();
       if (!this.sync_started) {
         this.sync_started = true;
@@ -217,9 +226,10 @@ class GameObserver {
     this.render();
 
     const MIN_VISIBLE_MS = 2000;
-    const elapsed = (this._observer_overlay_start_time != null)
-      ? Date.now() - this._observer_overlay_start_time
-      : MIN_VISIBLE_MS;
+    const elapsed =
+      this._observer_overlay_start_time != null
+        ? Date.now() - this._observer_overlay_start_time
+        : MIN_VISIBLE_MS;
     const delayMs = Math.max(0, MIN_VISIBLE_MS - elapsed);
 
     this.sync_phase = 'ready';
@@ -258,12 +268,21 @@ class GameObserver {
       this._viewingIndex = 0;
     }
 
-    if (this.game_mod.observer_watch_live === true || this.follow_live === true || this.game_mod.game?.live === true) {
+    if (
+      this.game_mod.observer_watch_live === true ||
+      this.follow_live === true ||
+      this.game_mod.game?.live === true
+    ) {
       this._paused = false;
     }
 
     this._clampViewingIndex();
-    if (this.all_moves.length > 0 && !this.baseline_state && this._engine_game_states && this._engine_game_states.length > 0) {
+    if (
+      this.all_moves.length > 0 &&
+      !this.baseline_state &&
+      this._engine_game_states &&
+      this._engine_game_states.length > 0
+    ) {
       this.baseline_state = JSON.parse(JSON.stringify(this._engine_game_states[0]));
     }
 
@@ -271,7 +290,9 @@ class GameObserver {
 
     setTimeout(() => {
       const overlayEl = document.body.querySelector('#observer-sync-overlay');
-      console.log('[OBS_TRACE] finishLoading() setTimeout: removing overlay', { overlayExists: !!overlayEl });
+      console.log('[OBS_TRACE] finishLoading() setTimeout: removing overlay', {
+        overlayExists: !!overlayEl
+      });
       if (overlayEl) overlayEl.remove();
       if (this.game_mod.observer_watch_live) {
         this.game_mod.sendMetaMessage('FOLLOW');
@@ -299,9 +320,10 @@ class GameObserver {
         futureBeyondTarget.push(tx.serialize_to_web(this.app));
       }
     }
-    const storedEngineFuture = (this.game_mod.game?.future && this.game_mod.game.future.length)
-      ? this.game_mod.game.future.slice()
-      : [];
+    const storedEngineFuture =
+      this.game_mod.game?.future && this.game_mod.game.future.length
+        ? this.game_mod.game.future.slice()
+        : [];
 
     this.is_replaying = true;
 
@@ -372,7 +394,12 @@ class GameObserver {
       this.updateSyncStatus('Validating moves ' + total + '...');
     }
     if (this.total_moves_expected > 0) {
-      console.log('[GameObserver] progress: moves_processed=', this.moves_processed, 'total_moves_expected=', this.total_moves_expected);
+      console.log(
+        '[GameObserver] progress: moves_processed=',
+        this.moves_processed,
+        'total_moves_expected=',
+        this.total_moves_expected
+      );
     } else {
       console.log('[GameObserver] updateStep: moves_processed=', this.moves_processed);
     }
@@ -558,15 +585,17 @@ class GameObserver {
         mod.saveGame(g.id);
 
         if (new_moves == 0) {
-          this.updateSyncStatus("No moves found in game archive.");
+          this.updateSyncStatus('No moves found in game archive.');
         }
 
         const observerAndActive = g.player == 0 && mod.gameBrowserActive();
-        const coldStart = (this._observer_poll_interval === null);
+        const coldStart = this._observer_poll_interval === null;
         const allowCallback = new_moves !== 0 || !observerAndActive || coldStart;
         if (allowCallback) {
           if (new_moves === 0 && observerAndActive && coldStart) {
-            console.log('[OBS_TRACE] observerDownloadNextMoves: cold-start + 0 new moves, invoking callback once');
+            console.log(
+              '[OBS_TRACE] observerDownloadNextMoves: cold-start + 0 new moves, invoking callback once'
+            );
           }
           await this.runQueue();
         } else {
