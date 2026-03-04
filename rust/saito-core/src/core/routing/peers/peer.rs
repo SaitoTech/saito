@@ -248,7 +248,7 @@ impl Peer {
                 );
                 return;
             }
-            debug!("sending ping to peer : {:?}", self.public_key.to_base58());
+            trace!("sending ping to peer : {:?}", self.public_key.to_base58());
             io_handler
                 .send_message(self.public_key, Message::Ping().serialize().as_slice())
                 .await
