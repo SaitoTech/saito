@@ -15,7 +15,7 @@
     "start": "NODE_OPTIONS='--max-old-space-size=8192' ts-node -T --files --project config/build/tsconfig.json ./scripts/start.ts --",
     "init": "./scripts/.compile nuke",
     "nuke": " ./scripts/compile nuke",
-    "dynmods": "node ./scripts/dynmods/compile.js",
+    ".saito": "node ./scripts/dynmods/compile.js",
     "reset": " ./scripts/compile reset",
     "compile": " ./scripts/compile recompile",
     "modules": " ./scripts/modules.sh",
