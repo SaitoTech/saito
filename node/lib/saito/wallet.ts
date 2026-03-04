@@ -178,8 +178,6 @@ export default class Wallet extends SaitoWallet {
           return false;
         };
 
-        // console.log('My current slips: ', this.app.options.wallet.slips, slips);
-
         for (let i = 0; i < tx.to.length; i++) {
           if (tx.to[i].type == 0) {
             if (tx.to[i].publicKey == this.address) {
@@ -187,7 +185,7 @@ export default class Wallet extends SaitoWallet {
               if (checkSlips(tx.to[i].utxoKey, slips)) {
                 to_amount += BigInt(tx.to[i].amount);
               } else {
-                console.log('Ignore output not in my accessible slips');
+                //console.log('Ignore output not in my accessible slips');
               }
             } else if (Number(tx.to[i].amount) > 0) {
               to_key = tx.to[i].publicKey;
@@ -198,10 +196,10 @@ export default class Wallet extends SaitoWallet {
           if (tx.from[i].type == 0) {
             if (tx.from[i].publicKey == this.address) {
               if (checkSlips(tx.from[i].utxoKey, this.app.options.wallet.slips)) {
-                console.log('From slip in options!');
+                //console.log('From slip in options!');
                 from_amount += BigInt(tx.from[i].amount);
               } else {
-                console.log('Ignore input not among my historical slips..');
+                //console.log('Ignore input not among my historical slips..');
               }
             } else if (Number(tx.from[i].amount) > 0) {
               from_key = tx.from[i].publicKey;
@@ -1489,7 +1487,19 @@ export default class Wallet extends SaitoWallet {
       // convert number to string
       string = num.toString();
     } else {
-      console.error(`convertNolanToSaito: Type ` + typeof amount + ` provided. BigInt required`);
+      try {
+        let nolan = BigInt(amount);
+        num = Number((nolan * 100000000n) / bigint_divider) / 100000000;
+        // convert number to string
+        string = num.toString();
+      } catch (err) {
+        console.error(
+          `convertNolanToSaito: Type ` +
+            typeof amount +
+            ` provided. BigInt required, failed to convert --`,
+          err
+        );
+      }
     }
 
     return string;
@@ -1894,26 +1904,26 @@ export default class Wallet extends SaitoWallet {
         /*******************************
 for (let nft_id in nft_balance_by_id) {
 
-	  let total = nft_balance_by_id[nft_id];
-	  if (total <= 0n) { continue; }
+    let total = nft_balance_by_id[nft_id];
+    if (total <= 0n) { continue; }
 
-	  let ticker = "";
+    let ticker = "";
 
           for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
             let nft = this.app.options.wallet.nfts[z];
             if (nft.id == nft_id) {
-	      ticker = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
-	    }
-	  }
+        ticker = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
+      }
+    }
 
-	  if (this.returnCryptoModuleByTicker(ticker) || ticker == "") {
-	    continue;
-	  }
+    if (this.returnCryptoModuleByTicker(ticker) || ticker == "") {
+      continue;
+    }
 
-	  let mod = new NFTCryptoModule(this.app, nft_id, {
-	    ticker,
-	    name: ticker
-	  });
+    let mod = new NFTCryptoModule(this.app, nft_id, {
+      ticker,
+      name: ticker
+    });
 
   this.app.modules.mods.push(mod);
   await mod.initialize(this.app);

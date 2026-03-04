@@ -8,6 +8,8 @@ class SaitoNFTCard {
     this.container = container;
     this.nft = new SaitoNFT(app, mod, tx, data);
     this.template = SaitoNFTCardTemplate;
+    this.my_qs = this.container + ` #nft-card-${this.nft.uuid}`;
+
     //
     // UI helpers
     //
@@ -34,10 +36,12 @@ class SaitoNFTCard {
     // render can be writing a NEW NFT Card or attempting to re-render
     // an existing one.
     //
-    let my_qs = this.container + ' .nfttxsig' + this.nft.tx_sig;
 
-    if (document.querySelector(my_qs)) {
-      this.app.browser.replaceElementBySelector(this.template(this.app, this.mod, this.nft), my_qs);
+    if (document.querySelector(this.my_qs)) {
+      this.app.browser.replaceElementBySelector(
+        this.template(this.app, this.mod, this.nft),
+        this.my_qs
+      );
     } else {
       this.app.browser.prependElementToSelector(
         this.template(this.app, this.mod, this.nft),
@@ -66,7 +70,7 @@ class SaitoNFTCard {
   }
 
   async attachEvents() {
-    const el = document.querySelector(`.nfttxsig${this.nft.tx_sig}`);
+    const el = document.querySelector(this.my_qs);
     if (el) {
       el.onclick = () => {
         if (this.callback) {
@@ -85,12 +89,12 @@ class SaitoNFTCard {
 
     if (this.nft.title) {
       try {
-        let telm = document.querySelector(`.nfttxsig${this.nft.tx_sig} .nft-card-title`);
+        let telm = document.querySelector(this.my_qs + ' .nft-card-title');
         telm.innerHTML = this.nft.title;
       } catch (err) {}
     }
 
-    let elm = document.querySelector(`.nfttxsig${this.nft.tx_sig} .nft-card-img`);
+    let elm = document.querySelector(this.my_qs + ' .nft-card-img');
     if (elm) {
       if (this.nft.nft_type == 'vault') {
         try {
@@ -131,7 +135,7 @@ class SaitoNFTCard {
         elm.innerHTML = `<div class="saito_spinner spinner"></div>`;
       }
     } else {
-      console.warn('NFT Element not rendered');
+      console.warn('NFT Element not rendered --', this.my_qs);
     }
   }
 }

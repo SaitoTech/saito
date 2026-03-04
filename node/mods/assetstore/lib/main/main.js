@@ -82,9 +82,13 @@ class AssetStoreMain {
 		let list_asset_btn = document.querySelector('.list-asset');
 		if (list_asset_btn) {
 			list_asset_btn.onclick = async (e) => {
-				this.app.connection.emit('saito-nft-list-render-request', (nft) => {
-					this.sell_nft_overlay.render(nft);
-				});
+				this.app.connection.emit(
+					'saito-nft-list-render-request',
+					'Select an NFT to List',
+					(nft) => {
+						this.sell_nft_overlay.render(nft);
+					}
+				);
 			};
 		}
 
@@ -304,7 +308,6 @@ class AssetStoreMain {
 					continue;
 				}
 
-				// console.log(record);
 				if (!record.nft_card) {
 					let nfttx = null;
 

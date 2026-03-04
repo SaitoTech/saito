@@ -119,14 +119,7 @@ class NFTOverlay {
       if (splitBtn) {
         splitBtn.onclick = async (e) => {
           let idx = parseInt(e.currentTarget.getAttribute('data-utxo-idx')) - 1;
-          let split_nft = this.all_slips[idx];
-
-          this.nft.tx_sig = split_nft.tx_sig;
-          this.nft.slip1 = split_nft.slip1;
-          this.nft.slip2 = split_nft.slip2;
-          this.nft.slip3 = split_nft.slip3;
-          this.nft.amount = split_nft.slip1.amount;
-          this.nft.deposit = split_nft.slip2.amount;
+          this.nft.resetNFT(this.all_slips[idx]);
 
           // Hide all overlays first
           document.querySelectorAll('.saito-nft-split-overlay').forEach((overlay) => {
@@ -148,6 +141,46 @@ class NFTOverlay {
               panel.classList.add('split-overlay-panel-active');
             }
             this.showSplitOverlay(utxoIdx);
+          }
+        };
+      }
+
+      //
+      // DELETE button
+      //
+      let delete_btn = document.querySelector(`.utxo-delete-btn[data-utxo-idx="${utxoIdx}"]`);
+
+      if (delete_btn) {
+        delete_btn.onclick = async (e) => {
+          let idx = parseInt(e.currentTarget.getAttribute('data-utxo-idx')) - 1;
+          this.nft.resetNFT(this.all_slips[idx]);
+          let c = await sconfirm(
+            `Delete this NFT and recover ${this.app.wallet.convertNolanToSaito(this.nft.deposit)} SAITO?`
+          );
+          if (!c) {
+            return;
+          }
+
+          //
+          // create & send remove NFT tx
+          //
+          let newtx = await this.app.wallet.createRemoveNFTTransaction(this.nft);
+          await newtx.sign();
+          await this.app.network.propagateTransaction(newtx);
+
+          //
+          // remove any copies of NFT from local archive
+          //
+          this.app.storage.deleteTransaction(this.nft.tx, null, 'localhost');
+
+          siteMessage('NFT Deletion in Process...', 2000);
+          this.overlay.close();
+
+          // Close the overlay listing your nfts
+          this.app.connection.emit('saito-nft-list-close-request');
+
+          if (document.querySelector('.nft-list-container')) {
+            this.app.connection.emit('saito-nft-list-render-request');
           }
         };
       }
@@ -223,7 +256,6 @@ class NFTOverlay {
     let send_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
     let enable_btn = document.querySelector('.saito-nft-footer-btn.enable-nft');
     let disable_btn = document.querySelector('.saito-nft-footer-btn.disable-nft');
-    let delete_btn = document.querySelector('.saito-nft-delete-btn');
 
     //
     // contextual confirm buttons
@@ -285,15 +317,7 @@ class NFTOverlay {
           return;
         } else {
           let idx = parseInt(selected_shard.getAttribute('data-utxo-idx')) - 1;
-
-          let split_nft = this.all_slips[idx];
-
-          this.nft.tx_sig = split_nft?.tx_sig;
-          this.nft.slip1 = split_nft.slip1;
-          this.nft.slip2 = split_nft.slip2;
-          this.nft.slip3 = split_nft.slip3;
-          this.nft.amount = split_nft.slip1.amount;
-          this.nft.deposit = split_nft.slip2.amount;
+          this.nft.resetNFT(this.all_slips[idx]);
         }
 
         try {
@@ -349,40 +373,6 @@ class NFTOverlay {
     if (cancel_send_btn) {
       cancel_send_btn.onclick = (e) => {
         document.querySelector('.saito-nft-overlay.panels').classList.remove('saito-nft-mode-send');
-      };
-    }
-
-    //
-    // DELETE button
-    //
-    if (delete_btn) {
-      delete_btn.onclick = async (e) => {
-        let c = await sconfirm(`Delete this NFT and recover the SAITO?`);
-        if (!c) {
-          return;
-        }
-
-        //
-        // create & send remove NFT tx
-        //
-        let newtx = await this.app.wallet.createRemoveNFTTransaction(this.nft);
-        await newtx.sign();
-        await this.app.network.propagateTransaction(newtx);
-
-        //
-        // remove any copies of NFT from local archive
-        //
-        this.app.storage.deleteTransaction(this.nft.tx, null, 'localhost');
-
-        siteMessage('NFT Deletion in Process...', 2000);
-        this.overlay.close();
-
-        // Close the overlay listing your nfts
-        this.app.connection.emit('saito-nft-list-close-request');
-
-        if (document.querySelector('.nft-list-container')) {
-          this.app.connection.emit('saito-nft-list-render-request');
-        }
       };
     }
 
@@ -674,7 +664,8 @@ class NFTOverlay {
             this.app.connection.emit('saito-nft-list-render-request');
           }
         } catch (err) {
-          salert('Split failed: ' + (err?.message || err));
+          console.error(err);
+          this.app.browser.safeConsole('NFT: ', this.nft, 'debug');
         }
       };
 

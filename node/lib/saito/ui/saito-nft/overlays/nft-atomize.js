@@ -149,6 +149,8 @@ class NFTAtomize {
 
     this.updateProgressUI();
 
+    console.log(this.state);
+
     if (this.state.pending.size === 0 && this.state.inflight.size === 0) {
       this.finish();
       return;
@@ -178,10 +180,12 @@ class NFTAtomize {
 
       let slipNFT = slip;
       if (typeof slipNFT.fetchTransaction !== 'function') {
-        slipNFT = new SaitoNFT(this.app, this.mod, null, slip, null);
+        slipNFT = new SaitoNFT(this.app, this.mod, this.nft?.tx, slip);
       }
 
       let tx;
+      await slipNFT.fetchTransaction();
+      this.app.browser.safeConsole('slipNFT: ', slipNFT, 'debug');
 
       if (amount > this.MAX_NFT_ATOMIZE_PER_TX) {
         tx = await this.app.wallet.createSplitNFTTransaction(
@@ -241,6 +245,8 @@ class NFTAtomize {
     if (this.reassuranceInterval) {
       clearInterval(this.reassuranceInterval);
     }
+
+    document.querySelector('.split-number-box i').remove();
   }
 }
 

@@ -2,7 +2,7 @@ module.exports = (app, mod, nft_overlay) => {
   let html = `
     <div class="saito-nft-panel saito-nft-panel-send">
       <div class="saito-nft-panel-body">
-        <div>
+        <div id='transfer-info-panel'>
           <h2 class="saito-nft-mode-title">Send NFT</h2>
           <label class="saito-nft-input-label">Recipient Address</label>
           <input class="saito-nft-input-field" id="nft-receiver-address"/>
@@ -36,7 +36,7 @@ module.exports = (app, mod, nft_overlay) => {
           </div>
           <div class="nft-slip-box-row">
             <div class="nft-slip-box-label">deposit:</div>
-            <div class="nft-slip-box-value">${slip.slip2.amount}</div>
+            <div class="nft-slip-box-value">${app.wallet.convertNolanToSaito(slip.slip2.amount)} SAITO</div>
           </div>
         </div>
       `;

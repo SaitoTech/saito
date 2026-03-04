@@ -893,8 +893,7 @@
 }
 
 .nft-slip-box {
-  flex: 1 1 300px;
-  min-width: 250px;
+  flex: 1 1 250px;
   max-width: 200px;
   padding: 1.2rem;
   background: var(--saito-surface-hover, var(--saito-surface-selected, rgba(170, 170, 170, 0.05)));
@@ -971,7 +970,8 @@
 }
 
 .utxo-deposit-btn,
-.utxo-split-btn {
+.utxo-split-btn,
+.utxo-delete-btn {
   cursor: pointer;
   color: var(--saito-primary);
   font-weight: 600;
@@ -981,7 +981,8 @@
 }
 
 .utxo-deposit-btn:hover,
-.utxo-split-btn:hover {
+.utxo-split-btn:hover,
+.utxo-delete-btn:hover {
   background: var(--saito-surface-selected);
   transform: translateX(2px);
 }

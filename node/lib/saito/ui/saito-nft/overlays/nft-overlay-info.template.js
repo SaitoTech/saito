@@ -1,8 +1,3 @@
-function formatSaito(nolan) {
-  const value = Number(nolan) / 100000000;
-  return value.toFixed(8).replace(/\.?0+$/, '');
-}
-
 module.exports = (app, mod, nft_overlay) => {
   let can_merge = false;
   let all_slips = nft_overlay.nft.returnAllSlips() || [];
@@ -108,7 +103,13 @@ module.exports = (app, mod, nft_overlay) => {
 
       let amount = Number(slip.slip1.amount) || 0;
       let splitButtonHtml = '',
-        depositButtonHtml = '';
+        depositButtonHtml = '',
+        deleteButtonHtml = '';
+
+      //can delete
+      if (mod.publicKey == slip.slip2.public_key) {
+        deleteButtonHtml = `<div class="utxo-delete-btn" data-utxo-idx="${utxoIdx}">[ delete ]</div>`;
+      }
 
       //can split!
       if (amount > 1 && mod.publicKey == slip.slip2.public_key) {
@@ -131,9 +132,10 @@ module.exports = (app, mod, nft_overlay) => {
           </div>
           <div class="nft-slip-box-row">
             <div class="nft-slip-box-label">deposit:</div>
-            <div class="nft-slip-box-value">${formatSaito(slip.slip2.amount)} SAITO</div>
+            <div class="nft-slip-box-value">${app.wallet.convertNolanToSaito(slip.slip2.amount)} SAITO</div>
           </div>
           <div class="nft-slip-box-actions">
+            ${deleteButtonHtml}
             ${depositButtonHtml}
             ${splitButtonHtml}
           </div>
@@ -193,7 +195,6 @@ module.exports = (app, mod, nft_overlay) => {
       <div class="saito-nft-split-utxo"></div>
       <div class="saito-nft-panel-footer">
         ${mergeButtonHtml}
-        <button class="saito-nft-footer-btn saito-nft-delete-btn">Delete</button>
       </div>
     </div>
   `;

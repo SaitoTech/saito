@@ -8,7 +8,7 @@ module.exports = (app, mod, nft) => {
   }
 
   let html = `
-      <div class="nft-card nfttxsig${nft.tx_sig}" id="nft-card-${nft.uuid}">
+      <div class="nft-card" id="nft-card-${nft.uuid}">
       <div class="nft-card-title">${nft.title}</div>
       <div class="nft-card-img"></div>
 
