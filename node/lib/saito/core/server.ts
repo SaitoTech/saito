@@ -49,7 +49,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
       let socket = S.getInstance().getSocket(publicKey);
       if (socket) {
         socket.send(buffer);
-      }else{
+      } else {
         // console.warn('socket not found for peer : '+publicKey+'. Cannot send the buffer : '+buffer.byteLength+' bytes.');
       }
     } catch (e) {
@@ -532,7 +532,7 @@ class Server {
       try {
         const blk = await this.app.blockchain.getBlock(bhash);
         if (!blk) {
-          console.info('Block block doesn\'t exist. cannot serve block. hash : ' + bhash);
+          console.info("Block block doesn't exist. cannot serve block. hash : " + bhash);
           return;
         }
         console.info('serving block : ' + blk.file_name);

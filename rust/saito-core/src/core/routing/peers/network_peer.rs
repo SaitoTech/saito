@@ -318,8 +318,9 @@ impl NetworkPeer {
                     Ok(vec![])
                 } else {
                     error!(
-                        "failed deserializing handshake challenge : {:?}",
-                        self.public_key.unwrap_or([0; 33]).to_base58()
+                        "failed deserializing handshake challenge : {:?}. buffer : {}",
+                        self.public_key.unwrap_or([0; 33]).to_base58(),
+                        hex::encode(buffer)
                     );
                     Err(Error::from(ErrorKind::InvalidInput))
                 }
