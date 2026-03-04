@@ -44,7 +44,6 @@ pub mod test {
     use crate::core::consensus::blockchain::{AddBlockResult, Blockchain};
     use crate::core::consensus::golden_ticket::GoldenTicket;
     use crate::core::consensus::mempool::Mempool;
-    use crate::core::consensus::peers::peer_collection::PeerCollection;
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::transaction::{Transaction, TransactionType};
     use crate::core::consensus::wallet::Wallet;
@@ -53,10 +52,11 @@ pub mod test {
         Timestamp, UtxoSet, NOLAN_PER_SAITO, PROJECT_PUBLIC_KEY, RECOLLECT_EVERY_TX,
         RECOLLECT_NOTHING,
     };
-    use crate::core::io::network::Network;
-    use crate::core::io::storage::Storage;
     use crate::core::mining_thread::MiningEvent;
     use crate::core::process::keep_time::{KeepTime, Timer};
+    use crate::core::routing::io::network::Network;
+    use crate::core::routing::io::storage::Storage;
+    use crate::core::routing::peers::peer_collection::PeerCollection;
     use crate::core::util::configuration::{
         get_default_recollect_mode, BlockchainConfig, Configuration, ConsensusConfig, PeerConfig,
         Server, WalletConfig,
@@ -136,7 +136,6 @@ pub mod test {
                     Box::new(TestIOHandler::new()),
                     peers.clone(),
                     wallet_lock.clone(),
-                    configs.clone(),
                     Timer {
                         time_reader: Arc::new(TestTimeKeeper {}),
                         hasten_multiplier: 1,
@@ -1200,7 +1199,7 @@ pub mod test {
 
         fn get_congestion_data(
             &self,
-        ) -> Option<&crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay>
+        ) -> Option<&crate::core::routing::peers::congestion_controller::CongestionStatsDisplay>
         {
             todo!()
         }
@@ -1208,7 +1207,7 @@ pub mod test {
         fn set_congestion_data(
             &mut self,
             congestion_data: Option<
-                crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay,
+                crate::core::routing::peers::congestion_controller::CongestionStatsDisplay,
             >,
         ) {
             todo!()

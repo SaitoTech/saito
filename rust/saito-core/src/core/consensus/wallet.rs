@@ -6,10 +6,10 @@ use crate::core::defs::{
     BlockId, Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, UTXO_KEY_LENGTH,
 };
-use crate::core::io::interface_io::{InterfaceEvent, InterfaceIO};
-use crate::core::io::network::Network;
-use crate::core::io::storage::Storage;
 use crate::core::process::version::{read_pkg_version, Version};
+use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+use crate::core::routing::io::network::Network;
+use crate::core::routing::io::storage::Storage;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
 use crate::core::util::crypto::{generate_keys, hash, sign};
 use ahash::{AHashMap, AHashSet};
@@ -924,7 +924,7 @@ impl Wallet {
 
     pub async fn create_send_bound_transaction(
         &mut self,
-        nft_amount: Currency,
+        _nft_amount: Currency,
         slip1_utxokey: SaitoUTXOSetKey,
         slip2_utxokey: SaitoUTXOSetKey,
         slip3_utxokey: SaitoUTXOSetKey,
@@ -940,7 +940,7 @@ impl Wallet {
         //
         // locate NFT from our repository of NFT slips
         //
-        let pos = self
+        let _pos = self
             .nfts
             .iter()
             .position(|nft| {
@@ -1088,6 +1088,115 @@ impl Wallet {
         transaction.add_to_slip(right_slip1);
         transaction.add_to_slip(right_slip2);
         transaction.add_to_slip(right_slip3);
+
+        transaction.data = tx_msg;
+
+        Ok(transaction)
+    }
+
+    pub fn create_atomize_bound_transaction(
+        &mut self,
+        slip1_utxo_key: SaitoUTXOSetKey,
+        slip2_utxo_key: SaitoUTXOSetKey,
+        slip3_utxo_key: SaitoUTXOSetKey,
+        tx_msg: Vec<u8>,
+    ) -> Result<Transaction, Error> {
+        //
+        // locate NFT in wallet
+        //
+        let pos = self
+            .nfts
+            .iter()
+            .position(|nft| {
+                nft.slip1 == slip1_utxo_key
+                    && nft.slip2 == slip2_utxo_key
+                    && nft.slip3 == slip3_utxo_key
+            })
+            .ok_or_else(|| Error::new(ErrorKind::NotFound, "NFT not found"))?;
+
+        let old_nft = self.nfts.remove(pos);
+
+        //
+        // reconstruct full Slip structs from UTXO keys
+        //
+        let input_slip1 = Slip::parse_slip_from_utxokey(&old_nft.slip1)?;
+        let input_slip2 = Slip::parse_slip_from_utxokey(&old_nft.slip2)?;
+        let input_slip3 = Slip::parse_slip_from_utxokey(&old_nft.slip3)?;
+
+        let mut transaction = Transaction::default();
+
+        transaction.transaction_type = TransactionType::Bound;
+
+        transaction.add_from_slip(input_slip1.clone());
+        transaction.add_from_slip(input_slip2.clone());
+        transaction.add_from_slip(input_slip3.clone());
+
+        let original_amount = input_slip1.amount;
+        let deposit_amount = input_slip2.amount;
+
+        if original_amount <= 1 {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "NFT does not need atomization",
+            ));
+        }
+
+        if deposit_amount % original_amount != 0 {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "Deposit not evenly divisible by unit count",
+            ));
+        }
+
+        const MAX_ATOMIZE: u64 = 20;
+
+        let atomize_units = if original_amount > MAX_ATOMIZE {
+            MAX_ATOMIZE
+        } else {
+            original_amount
+        };
+
+        let remainder = if original_amount > MAX_ATOMIZE {
+            original_amount - MAX_ATOMIZE
+        } else {
+            0
+        };
+
+        let deposit_per_unit = deposit_amount / original_amount;
+
+        //
+        // create unit outputs
+        //
+        for _ in 0..atomize_units {
+            let mut out1 = input_slip1.clone();
+            out1.amount = 1;
+
+            let mut out2 = input_slip2.clone();
+            out2.amount = deposit_per_unit;
+
+            let out3 = input_slip3.clone();
+
+            transaction.add_to_slip(out1);
+            transaction.add_to_slip(out2);
+            transaction.add_to_slip(out3);
+        }
+
+        //
+        // if more than MAX_ATOMIZE, bundle remainder into final unit
+        //
+        if remainder > 0 {
+            let mut out1 = input_slip1.clone();
+            out1.amount = remainder;
+
+            let mut out2 = input_slip2.clone();
+            out2.amount = deposit_per_unit * remainder;
+
+            let out3 = input_slip3.clone();
+
+            transaction.add_to_slip(out1);
+            transaction.add_to_slip(out2);
+            transaction.add_to_slip(out3);
+        }
 
         transaction.data = tx_msg;
 
@@ -1744,7 +1853,7 @@ impl Display for WalletSlip {
 mod tests {
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::SaitoPublicKey;
-    use crate::core::io::storage::Storage;
+    use crate::core::routing::io::storage::Storage;
     use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::test_manager::test::TestManager;
 

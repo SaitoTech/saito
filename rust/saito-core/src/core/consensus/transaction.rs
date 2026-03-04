@@ -14,10 +14,10 @@ use crate::core::consensus::hop::{Hop, HOP_SIZE};
 use crate::core::consensus::slip::{Slip, SlipType, SLIP_SIZE};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
-    Currency, PeerIndex, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
+    Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, Timestamp, UtxoSet, UTXO_KEY_LENGTH,
 };
-use crate::core::io::network::Network;
+use crate::core::routing::io::network::Network;
 use crate::core::util::crypto::{hash, sign, verify, verify_signature};
 use crate::iterate;
 
@@ -68,7 +68,7 @@ pub struct Transaction {
     /// cumulative fees for this tx-in-block
     pub cumulative_fees: Currency,
     #[serde(skip)]
-    pub routed_from_peer: Option<PeerIndex>,
+    pub routed_from_peer: Option<SaitoPublicKey>,
 }
 
 impl Display for Transaction {
@@ -1118,7 +1118,7 @@ impl Transaction {
         // validation criteria for the remaining classes of txs are
         // further down iin this function.
         //
-        let transaction_type = self.transaction_type;
+        let _transaction_type = self.transaction_type;
 
         if self.transaction_type != TransactionType::ATR
             && self.transaction_type != TransactionType::Issuance
@@ -1136,7 +1136,7 @@ impl Transaction {
             //
             if let Some(hash_for_signature) = &self.hash_for_signature {
                 let sig: SaitoSignature = self.signature;
-                let public_key: SaitoPublicKey = self.from[0].public_key;
+                let _public_key: SaitoPublicKey = self.from[0].public_key;
 
                 //
                 // for bound (NFT) txs, the "owner" is in the normal slip (slip2),

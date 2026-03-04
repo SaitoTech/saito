@@ -27,15 +27,15 @@ class Vote extends ModTemplate {
         }
 
         await this.app.network.sendRequestAsTransaction(
-            "verify vote proof",
-            params,
-            function (res) {
-                console.log("Verification response received:", res);
-                if (callback) {
-                    return callback(res);
-                }
-            },
-            peers[0].peerIndex
+          'verify vote proof',
+          params,
+          function (res) {
+            console.log('Verification response received:', res);
+            if (callback) {
+              return callback(res);
+            }
+          },
+          peers[0].publicKey
         );
     }
 

@@ -888,7 +888,7 @@ class RedSquare extends ModTemplate {
                 }
                 this.peers[i].busy[created_at] = null;
               },
-              this.peers[i].peer.peerIndex
+              this.peers[i].peer.publicKey
             );
           } else {
             console.debug(`RS.loadTweets requesting ${created_at} tweets from archive...`);
@@ -1168,7 +1168,7 @@ class RedSquare extends ModTemplate {
               mycallback(txs);
             }
           },
-          this.peers[j].peer.peerIndex
+          this.peers[j].peer.publicKey
         );
       } else {
         peer_count--;

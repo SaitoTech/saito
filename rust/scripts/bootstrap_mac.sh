@@ -58,16 +58,28 @@ fi
 
 # Update Homebrew and install necessary packages
 for package in llvm pkg-config node npm python3; do
+for package in llvm clang pkg-config python3; do
   if ! command_exists $package && ! brew_package_installed $package; then
     missing_packages+=("$package")
   fi
 done
+
+if ! command_exists node || ! node -v | grep -q "v20"; then
+   missing_packages+=("node@20")
+fi
 
 if [ ${#missing_packages[@]} -gt 0 ]; then
   ask_permission "Some required packages are missing. Update Homebrew and install missing packages (${missing_packages[*]})?"
   brew update || exit 1
   for package in "${missing_packages[@]}"; do
     brew install "$package" || exit 1
+    if [ "$package" = "node@20" ]; then
+      brew install node@20 || exit 1
+      brew link --overwrite node@20 || exit 1
+    else
+      brew install $package || exit 1
+    fi
+    missing_packages=("${missing_packages[@]/$package}")
   done
 else
   echo "All required packages are already installed."

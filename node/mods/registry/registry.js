@@ -408,11 +408,11 @@ class Registry extends ModTemplate {
 
 		//console.log(`REGISTRY queryKeys from ${this.publicKey} to ${peer.publicKey}`);
 		return this.app.network.sendRequestAsTransaction(
-			'registry query',
-			data,
-			mycallback,
-			peer.peerIndex
-		);
+      'registry query',
+      data,
+      mycallback,
+      peer.publicKey
+    );
 	}
 
 	onPeerServiceUp(app, peer, service = {}) {
@@ -488,24 +488,24 @@ class Registry extends ModTemplate {
 			};
 
 			this.app.network.sendRequestAsTransaction(
-				'registry',
-				msg,
-				(keys) => {
-					console.debug('Synching cached keys with peer: ', keys);
-					for (let key in keys) {
-						if (!this.cached_keys[key] || key == this.cached_keys[key]) {
-							this.cached_keys[key] = keys[key];
-							this.app.browser.updateAddressHTML(key, keys[key]);
-						}
-					}
-					// Try again know that we have cached and looked up the keys...
-					this.app.connection.emit(
-						'registry-fetch-identifiers-and-update-dom',
-						this.keys_to_look_up
-					);
-				},
-				peer.peerIndex
-			);
+        'registry',
+        msg,
+        (keys) => {
+          console.debug('Synching cached keys with peer: ', keys);
+          for (let key in keys) {
+            if (!this.cached_keys[key] || key == this.cached_keys[key]) {
+              this.cached_keys[key] = keys[key];
+              this.app.browser.updateAddressHTML(key, keys[key]);
+            }
+          }
+          // Try again know that we have cached and looked up the keys...
+          this.app.connection.emit(
+            'registry-fetch-identifiers-and-update-dom',
+            this.keys_to_look_up
+          );
+        },
+        peer.publicKey
+      );
 		}
 	}
 

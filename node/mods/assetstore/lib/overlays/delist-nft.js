@@ -76,7 +76,7 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
               nfttx_sig: nfttx_sig
             },
             () => {},
-            this.mod.assetStore.peerIndex
+            this.mod.assetStore.publicKey
           );
 
           this.overlay.close();

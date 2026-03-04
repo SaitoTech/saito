@@ -766,7 +766,7 @@ class ModTemplate {
         function (res) {
           return mycallback(res);
         },
-        peer.peerIndex
+        peer.publicKey
       );
     }
   }
@@ -852,7 +852,7 @@ class ModTemplate {
             success_callback(res);
           }
         },
-        peer.peerIndex
+        peer.publicKey
       );
     }
   }

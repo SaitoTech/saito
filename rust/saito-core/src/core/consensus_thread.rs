@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use ahash::HashMap;
 use async_trait::async_trait;
-use log::{debug, error, info, trace, warn};
+use log::{debug, info, trace, warn};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
@@ -12,20 +12,20 @@ use crate::core::consensus::block::{Block, BlockType};
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::golden_ticket::GoldenTicket;
 use crate::core::consensus::mempool::Mempool;
-use crate::core::consensus::peers::congestion_controller::CongestionType;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
-    BlockId, PrintForLog, SaitoHash, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
+    BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
+    STAT_BIN_COUNT,
 };
-use crate::core::io::network::Network;
-use crate::core::io::network_event::NetworkEvent;
-use crate::core::io::storage::Storage;
 use crate::core::mining_thread::MiningEvent;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
+use crate::core::routing::io::network::Network;
+use crate::core::routing::io::network_event::NetworkEvent;
+use crate::core::routing::io::storage::Storage;
+use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::routing_thread::RoutingEvent;
-use crate::core::util::config_manager::ConfigManager;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::hash;
 
@@ -35,10 +35,19 @@ pub const BLOCK_PRODUCING_TIMER: u64 = Duration::from_millis(1000).as_millis() a
 
 #[derive(Debug)]
 pub enum ConsensusEvent {
-    NewGoldenTicket { golden_ticket: GoldenTicket },
-    BlockFetched { peer_index: u64, block: Block },
-    NewTransaction { transaction: Transaction },
-    NewTransactions { transactions: Vec<Transaction> },
+    NewGoldenTicket {
+        golden_ticket: GoldenTicket,
+    },
+    BlockFetched {
+        public_key: SaitoPublicKey,
+        block: Block,
+    },
+    NewTransaction {
+        transaction: Transaction,
+    },
+    NewTransactions {
+        transactions: Vec<Transaction>,
+    },
 }
 
 pub struct ConsensusStats {
@@ -453,11 +462,11 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 self.stats.received_tx.increment();
 
                 {
-                    if let Some(peer_index) = transaction.routed_from_peer {
+                    if let Some(public_key) = transaction.routed_from_peer {
                         let mut peers = self.network.peer_lock.write().await;
                         let time: u64 = self.timer.get_timestamp_in_ms();
                         peers.add_congestion_event(
-                            peer_index,
+                            public_key,
                             CongestionType::ReceivedValidTransactions,
                             time,
                         );
@@ -490,10 +499,10 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 let mut mempool = self.mempool_lock.write().await;
                 let mut peers = self.network.peer_lock.write().await;
                 for transaction in transactions.drain(..) {
-                    if let Some(peer_index) = transaction.routed_from_peer {
+                    if let Some(public_key) = transaction.routed_from_peer {
                         let time: u64 = self.timer.get_timestamp_in_ms();
                         peers.add_congestion_event(
-                            peer_index,
+                            public_key,
                             CongestionType::ReceivedValidTransactions,
                             time,
                         );
@@ -1698,8 +1707,8 @@ mod tests {
                 tester
                     .consensus_thread
                     .process_event(ConsensusEvent::BlockFetched {
-                        block: block,
-                        peer_index: 0,
+                        block,
+                        public_key: [0; 33],
                     })
                     .await;
             }
@@ -1801,8 +1810,8 @@ mod tests {
             tester
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
-                    block: block,
-                    peer_index: 0,
+                    block,
+                    public_key: [0; 33],
                 })
                 .await;
         }
@@ -2055,8 +2064,8 @@ mod tests {
             tester
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
-                    block: block,
-                    peer_index: 0,
+                    block,
+                    public_key: [0; 33],
                 })
                 .await;
             tester.wait_till_block_id(block_id).await.unwrap();
@@ -2089,8 +2098,8 @@ mod tests {
                 tester
                     .consensus_thread
                     .process_event(ConsensusEvent::BlockFetched {
-                        block: block,
-                        peer_index: 0,
+                        block,
+                        public_key: [0; 33],
                     })
                     .await;
                 tester

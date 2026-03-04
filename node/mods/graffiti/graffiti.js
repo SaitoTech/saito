@@ -83,23 +83,27 @@ class Graffiti extends ModTemplate {
   fetchBoardFromPeer_boardState(peer) {
     return new Promise((resolve, reject) => {
       this.app.network.sendRequestAsTransaction(
-        "graffiti: serve board",
+        'graffiti: serve board',
         [this.boardWidth, this.boardHeight],
         async (response) => {
           try {
-            if (typeof(response) !== "string") {
-              reject("Invalid response.");
+            if (typeof response !== 'string') {
+              reject('Invalid response.');
             }
-            const board = await this.board_fromBuffer(Buffer.from(response, "latin1"), this.boardWidth, this.boardHeight);
+            const board = await this.board_fromBuffer(
+              Buffer.from(response, 'latin1'),
+              this.boardWidth,
+              this.boardHeight
+            );
             if (!this.isValidBoard(board)) {
-              reject("Invalid board.");
+              reject('Invalid board.');
             }
             resolve(board);
           } catch (err) {
             reject(err);
           }
         },
-        peer.peerIndex
+        peer.publicKey
       );
     });
   }
@@ -107,7 +111,8 @@ class Graffiti extends ModTemplate {
   fetchBoardFromPeer_database(peer) {
     return new Promise((resolve, reject) => {
       this.sendPeerDatabaseRequestWithFilter(
-        this.name, this.queryForAllTiles(),
+        this.name,
+        this.queryForAllTiles(),
         async (response) => {
           if (response.rows) {
             const board = this.newGrid((i, j) => null);
@@ -115,7 +120,12 @@ class Graffiti extends ModTemplate {
               if (this.isValidRow(data)) {
                 const row = data;
                 board[row.i][row.j] = {
-                  rgbaColor: {red: row.red, green: row.green, blue: row.blue, alpha: row.alpha ?? 255},
+                  rgbaColor: {
+                    red: row.red,
+                    green: row.green,
+                    blue: row.blue,
+                    alpha: row.alpha ?? 255
+                  },
                   ordinal: row.ordinal
                 };
               } else {
@@ -127,7 +137,7 @@ class Graffiti extends ModTemplate {
             reject(`No rows in response: ${response}.`);
           }
         },
-        (p) => p.peerIndex === peer.peerIndex
+        (p) => p.publicKey === peer.publicKey
       );
     });
   }
@@ -188,7 +198,12 @@ class Graffiti extends ModTemplate {
     const peers = await this.app.network.getPeers();
     for (const peer of peers) {
       if (peer.synctype === "lite") {
-        this.app.network.sendRequestAsTransaction("graffiti: update tiles", tx.toJson(), null, peer.peerIndex);
+        this.app.network.sendRequestAsTransaction(
+          'graffiti: update tiles',
+          tx.toJson(),
+          null,
+          peer.publicKey
+        );
       }
     }
   }

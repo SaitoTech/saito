@@ -3,20 +3,20 @@ use std::io::Error;
 
 use async_trait::async_trait;
 
-use crate::core::consensus::peers::peer_service::PeerService;
 use crate::core::consensus::wallet::Wallet;
-use crate::core::defs::{BlockId, PeerIndex, SaitoHash, SaitoPublicKey};
+use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey};
 use crate::core::process::version::Version;
+use crate::core::routing::peers::peer_service::PeerService;
 
 pub enum InterfaceEvent {
-    PeerHandshakeComplete(PeerIndex),
-    PeerConnectionDropped(PeerIndex, SaitoPublicKey),
-    PeerConnected(PeerIndex),
+    PeerHandshakeComplete(SaitoPublicKey),
+    PeerConnectionDropped(SaitoPublicKey),
+    PeerConnected(SaitoPublicKey),
     BlockAddSuccess(SaitoHash, u64),
     WalletUpdate(),
-    NewVersionDetected(PeerIndex, Version),
-    StunPeerConnected(PeerIndex),
-    StunPeerDisconnected(PeerIndex, SaitoPublicKey),
+    NewVersionDetected(SaitoPublicKey, Version),
+    StunPeerConnected(SaitoPublicKey),
+    StunPeerDisconnected(SaitoPublicKey),
     BlockFetchStatus(BlockId),
     NewChainDetected(),
 }
@@ -24,7 +24,7 @@ pub enum InterfaceEvent {
 /// An interface is provided to access the IO functionalities in a platform (Rust/WASM) agnostic way
 #[async_trait]
 pub trait InterfaceIO: Debug {
-    async fn send_message(&self, peer_index: u64, buffer: &[u8]) -> Result<(), Error>;
+    async fn send_message(&self, public_key: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error>;
 
     /// Sends the given message buffer to all the peers except the ones specified
     ///
@@ -44,7 +44,7 @@ pub trait InterfaceIO: Debug {
     async fn send_message_to_all(
         &self,
         buffer: &[u8],
-        excluded_peers: Vec<u64>,
+        excluded_peers: Vec<SaitoPublicKey>,
     ) -> Result<(), Error>;
     /// Connects to the peer with given configuration
     ///
@@ -59,15 +59,15 @@ pub trait InterfaceIO: Debug {
     /// ```
     ///
     /// ```
-    async fn connect_to_peer(&mut self, url: String, peer_index: PeerIndex) -> Result<(), Error>;
-    async fn disconnect_from_peer(&self, peer_index: u64) -> Result<(), Error>;
+    async fn connect_to_peer(&mut self, url: String) -> Result<(), Error>;
+    async fn disconnect_from_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error>;
 
     /// Fetches a block with given hash from a specific peer
     ///
     /// # Arguments
     ///
     /// * `block_hash`:
-    /// * `peer_index`:
+    /// * `public_key`:
     /// * `url`:
     ///
     /// returns: Result<(), Error>
@@ -80,7 +80,7 @@ pub trait InterfaceIO: Debug {
     async fn fetch_block_from_peer(
         &self,
         block_hash: SaitoHash,
-        peer_index: u64,
+        public_key: SaitoPublicKey,
         url: &str,
         block_id: BlockId,
     ) -> Result<(), Error>;
@@ -129,9 +129,14 @@ pub trait InterfaceIO: Debug {
 
     fn ensure_directory_exists(&self, block_dir: &str) -> Result<(), Error>;
 
-    async fn process_api_call(&self, buffer: Vec<u8>, msg_index: u32, peer_index: PeerIndex);
-    async fn process_api_success(&self, buffer: Vec<u8>, msg_index: u32, peer_index: PeerIndex);
-    async fn process_api_error(&self, buffer: Vec<u8>, msg_index: u32, peer_index: PeerIndex);
+    async fn process_api_call(&self, buffer: Vec<u8>, msg_index: u32, public_key: SaitoPublicKey);
+    async fn process_api_success(
+        &self,
+        buffer: Vec<u8>,
+        msg_index: u32,
+        public_key: SaitoPublicKey,
+    );
+    async fn process_api_error(&self, buffer: Vec<u8>, msg_index: u32, public_key: SaitoPublicKey);
 
     fn send_interface_event(&self, event: InterfaceEvent);
 

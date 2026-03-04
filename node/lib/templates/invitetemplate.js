@@ -879,7 +879,7 @@ class InviteTemplate extends ModTemplate {
         message.request = request;
         message.data = {};
         message.data.tx = tx;
-        await app.network.sendRequest(message.request, message.data, null, peers[i].peerIndex);
+        await app.network.sendRequest(message.request, message.data, null, peers[i].publicKey);
       }
     }
   }

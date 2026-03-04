@@ -350,84 +350,81 @@ class Vault extends ModTemplate {
     if (this.peer) {
 
       this.app.network.sendRequestAsTransaction(
-        "vault access file",
+        'vault access file',
         data,
         (res) => {
+          // Handle undefined or error responses
+          if (!res) {
+            console.error('VAULT: No response received (network error or timeout)');
+            if (mycallback) {
+              mycallback(null); // Pass null to NWASM callback
+            }
+            return;
+          }
 
-  		// Handle undefined or error responses
-  		if (!res) {
-  		  console.error("VAULT: No response received (network error or timeout)");
-  		  if (mycallback) {
-  		    mycallback(null); // Pass null to NWASM callback
-  		  }
-  		  return;
-  		}
+          // Check for error status
+          if (res.status === 'err') {
+            console.error('VAULT: Error from vault:', res.err);
+            if (mycallback) {
+              mycallback(null); // Pass null to NWASM callback
+            }
+            return;
+          }
 
-  		// Check for error status
-  		if (res.status === "err") {
-  		  console.error("VAULT: Error from vault:", res.err);
-  		  if (mycallback) {
-  		    mycallback(null); // Pass null to NWASM callback
-  		  }
-  		  return;
-  		}
+          // Handle case where res might be a Transaction object instead of {status, txs}
+          let txs = [];
+          if (res.txs) {
+            txs = res.txs;
+          } else if (Array.isArray(res)) {
+            txs = res;
+          } else if (res.status === 'success' && res.txs) {
+            txs = res.txs;
+          }
 
-  		// Handle case where res might be a Transaction object instead of {status, txs}
-  		let txs = [];
-  		if (res.txs) {
-  		  txs = res.txs;
-  		} else if (Array.isArray(res)) {
-  		  txs = res;
-  		} else if (res.status === "success" && res.txs) {
-  		  txs = res.txs;
-  		}
+          if (txs.length > 0) {
+            for (let i = 0; i < txs.length; i++) {
+              let tx = new Transaction();
+              tx.deserialize_from_web(this.app, txs[i]);
+              txmsg = tx.returnMessage();
 
- 	        if (txs.length > 0) {
-            	  for (let i = 0; i < txs.length; i++) {
-              	    let tx = new Transaction();
-                    tx.deserialize_from_web(this.app, txs[i]);
-                    txmsg = tx.returnMessage();
-
-                    try {
-                      let filename = txmsg.data.name;
-                      if (!filename) {
-                        filename = prompt("Enter filename to save:") || "vault.bin";
-                      }
-
-                      const parts = txmsg.data.file.split(',');
-                      const header = parts[0];
-                      const base64Data = parts[1];
-                      const mime = header.match(/data:(.*);base64/)[1];
-
-		      if (mycallback) {
-			mycallback(base64Data);
-		      } else {
-
-                	const binary = atob(base64Data);
-                	const len = binary.length;
-
-                	const bytes = new Uint8Array(len);
-                	for (let i = 0; i < len; i++) {
-                	  bytes[i] = binary.charCodeAt(i);
-                	}
-
-                	const blob = new Blob([bytes], { type: mime });
-                	const url = URL.createObjectURL(blob);
-                	const a = document.createElement("a");
-                	a.href = url;
-                	a.download = filename || "download";
-	
-                	a.click();
-                	URL.revokeObjectURL(url);
-
-		      }
-                    } catch (err) {
-                      console.log("VAULT: ERROR while handling downloaded file: " + JSON.stringify(err));
-                    }
-                  }
+              try {
+                let filename = txmsg.data.name;
+                if (!filename) {
+                  filename = prompt('Enter filename to save:') || 'vault.bin';
                 }
+
+                const parts = txmsg.data.file.split(',');
+                const header = parts[0];
+                const base64Data = parts[1];
+                const mime = header.match(/data:(.*);base64/)[1];
+
+                if (mycallback) {
+                  mycallback(base64Data);
+                } else {
+                  const binary = atob(base64Data);
+                  const len = binary.length;
+
+                  const bytes = new Uint8Array(len);
+                  for (let i = 0; i < len; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                  }
+
+                  const blob = new Blob([bytes], { type: mime });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = filename || 'download';
+
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }
+              } catch (err) {
+                console.log('VAULT: ERROR while handling downloaded file: ' + JSON.stringify(err));
+              }
+            }
+          }
         },
-        this.peer.peerIndex,
+        this.peer.publicKey,
         true
       );
 
