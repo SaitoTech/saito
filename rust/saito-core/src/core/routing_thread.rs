@@ -141,67 +141,12 @@ impl RoutingThread {
                 .await;
         }
         match message {
-            // Message::HandshakeChallenge(challenge) => {
-            //     debug!("received handshake challenge from peer : {:?}", public_key);
-            //     let mut peers = self.network.peer_lock.write().await;
-            //
-            //     let peer = peers.peers.get_mut(&public_key);
-            //     if peer.is_none() {
-            //         error!(
-            //             "peer not found for index : {:?}. cannot handle handshake challenge",
-            //             public_key
-            //         );
-            //         return;
-            //     }
-            //     let peer = peer.unwrap();
-            //
-            //     peer.handle_handshake_challenge(
-            //         challenge,
-            //         self.network.io_interface.as_ref(),
-            //         self.wallet_lock.clone(),
-            //         self.config_lock.clone(),
-            //         self.timer.get_timestamp_in_ms(),
-            //     )
-            //     .await
-            //     .unwrap();
-            // }
-            // Message::HandshakeResponse(response) => {
-            //     trace!("received handshake response from peer : {:?}", public_key);
-            //
-            //     // {
-            //     //     let mut peers = self.network.peer_lock.write().await;
-            //     //     if let Some(peer) = peers.find_peer_by_address_mut(&response.public_key) {
-            //     //         if let PeerStatus::Connected = peer.peer_status {
-            //     //             info!("Received handshake response for an existing peer : {}-{:?}. Sending Ping to check if the current peer connection is live. New peer : {}",
-            //     //                 peer.index,
-            //     //                 response.public_key.to_base58(),
-            //     //                 public_key);
-            //     //             peer.send_ping(
-            //     //                 self.timer.get_timestamp_in_ms(),
-            //     //                 self.network.io_interface.as_ref(),
-            //     //             )
-            //     //             .await;
-            //     //             let old_public_key = peer.index;
-            //     //             peers.pending_handshake_responses.push((
-            //     //                 public_key,
-            //     //                 old_public_key,
-            //     //                 response,
-            //     //                 self.timer.get_timestamp_in_ms(),
-            //     //             ));
-            //     //             return;
-            //     //         }
-            //     //     }
-            //     // }
-            //     //
-            //     // self.handle_handshake_response(
-            //     //     public_key,
-            //     //     response,
-            //     //     self.wallet_lock.clone(),
-            //     //     self.blockchain_lock.clone(),
-            //     //     self.config_lock.clone(),
-            //     // )
-            //     // .await;
-            // }
+            Message::HandshakeChallenge(challenge) => {
+                // debug!("received handshake challenge from peer : {:?}", public_key);
+            }
+            Message::HandshakeResponse(response) => {
+                // trace!("received handshake response from peer : {:?}", public_key);
+            }
             Message::Transaction(mut transaction) => {
                 trace!(
                     "received transaction : {} from peer : {:?}",

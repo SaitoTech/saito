@@ -1,6 +1,7 @@
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
+use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::routing::peers::peer_service::PeerService;
@@ -246,7 +247,9 @@ impl NetworkPeer {
             Ok(vec![])
         } else {
             if self.challenge.is_some() {
-                if let Ok(response) = HandshakeResponse::deserialize(&buffer) {
+                // let message = Message::deserialize(buffer)?;
+
+                if let Message::HandshakeResponse(response) = Message::deserialize(buffer)? {
                     let configs = configs.read().await;
                     let wallet = wallet.read().await;
 
@@ -273,7 +276,7 @@ impl NetworkPeer {
                             let mut buffer = vec![];
                             if let Some(response) = result {
                                 // we need to send this response to the other side
-                                buffer = response.serialize();
+                                buffer = Message::HandshakeResponse(response).serialize();
                             }
                             // now the handshake is complete. We need to alert the core
                             send_event(NetworkEvent::PeerConnectionResult {
@@ -299,7 +302,7 @@ impl NetworkPeer {
                     Err(Error::from(ErrorKind::InvalidInput))
                 }
             } else {
-                if let Ok(challenge) = HandshakeChallenge::deserialize(&buffer) {
+                if let Message::HandshakeChallenge(challenge) = Message::deserialize(buffer)? {
                     let configs = configs.read().await;
                     let wallet = wallet.read().await;
                     if let Ok(response) = self
@@ -313,14 +316,14 @@ impl NetworkPeer {
                         .await
                     {
                         debug!("sending handshake response to peer");
-                        return Ok(response.serialize());
+                        return Ok(Message::HandshakeResponse(response).serialize());
                     }
                     Ok(vec![])
                 } else {
                     error!(
-                        "failed deserializing handshake challenge : {:?}. buffer : {}",
+                        "failed deserializing handshake challenge : {:?}",
                         self.public_key.unwrap_or([0; 33]).to_base58(),
-                        hex::encode(buffer)
+                        // hex::encode(buffer)
                     );
                     Err(Error::from(ErrorKind::InvalidInput))
                 }

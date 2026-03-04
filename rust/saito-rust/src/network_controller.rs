@@ -31,6 +31,7 @@ use saito_core::core::defs::{
     BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, BLOCK_FILE_EXTENSION,
     STAT_BIN_COUNT,
 };
+use saito_core::core::msg::message::Message;
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::routing::io::network::PeerDisconnectType;
 use saito_core::core::routing::io::network_event::NetworkEvent;
@@ -340,7 +341,7 @@ impl NetworkController {
                 network_peer.ip.as_ref().cloned().unwrap_or_default()
             );
             let challenge = network_peer.get_handshake_challenge_buffer().await;
-            let buffer = challenge.serialize();
+            let buffer = Message::HandshakeChallenge(challenge).serialize();
             NetworkController::send(&mut sender, buffer).await;
         }
 
