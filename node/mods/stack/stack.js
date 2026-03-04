@@ -442,7 +442,7 @@ class Stack extends ModTemplate {
     //
     // Archives
     //
-    if (service.service === 'archive') {
+    if (service.service === 'archive' && this.browser_active && this.app.BROWSER) {
       if (this.pending_post_sig) {
         let sig = this.pending_post_sig;
         let pk = this.pending_post_pk;
