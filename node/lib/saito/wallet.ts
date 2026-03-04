@@ -1377,16 +1377,15 @@ export default class Wallet extends SaitoWallet {
   }
 
   public async onUpgrade(type = '', privatekey = '', decrypted_wallet = null) {
-
     let publicKey = await this.getPublicKey();
 
     if (type == 'nuke') {
-
       if (this.app.BROWSER) {
-
         let risky = false;
         for (let crypto of this.app.wallet.returnInstalledCryptos()) {
-          if (!crypto.isActivated()) { continue; }
+          if (!crypto.isActivated()) {
+            continue;
+          }
           let bal = await crypto.returnBalance();
           if (parseFloat(bal) > 0) {
             risky = true;
@@ -1396,9 +1395,11 @@ export default class Wallet extends SaitoWallet {
 
         if (risky) {
           let ok = confirm(
-            "This wallet contains web3 crypto assets whose keys will be lost if not already backed-up. Continue?"
+            'This wallet contains web3 crypto assets whose keys will be lost if not already backed-up. Continue?'
           );
-          if (!ok) { return; }
+          if (!ok) {
+            return;
+          }
         }
       }
 

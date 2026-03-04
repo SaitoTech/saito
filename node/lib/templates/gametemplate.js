@@ -79,8 +79,6 @@ const GameHammerMobile = require('./../saito/ui/game-hammer-mobile/game-hammer-m
 const GameRaceTrack = require('./../saito/ui/game-racetrack/game-racetrack');
 const GameObserverControls = require('./../saito/ui/game-observer/game-observer');
 
-
-
 const JSON = require('json-bigint');
 
 class GameTemplate extends ModTemplate {
@@ -491,7 +489,10 @@ class GameTemplate extends ModTemplate {
       window.location.hash = `#`;
 
       let short_game_id = this.app.crypto.hash(this.game.id).slice(-6);
-      console.log('[OBS_TRACE] initializeHTML() setting hash', { oldHash: oldHash?.substring(0, 60), short_game_id });
+      console.log('[OBS_TRACE] initializeHTML() setting hash', {
+        oldHash: oldHash?.substring(0, 60),
+        short_game_id
+      });
 
       //This function is stupid and confusing
       window.location.hash = app.browser.initializeHash(
@@ -557,10 +558,7 @@ class GameTemplate extends ModTemplate {
         const vars_in_url = this.app.browser.parseHash(window.location.hash);
         const gid_from_url = vars_in_url?.gid;
         let short_game_id = this.app.crypto.hash(game_id).slice(-6);
-        const result = (
-          gid_from_url === short_game_id
-          || gid_from_url === game_id
-        );
+        const result = gid_from_url === short_game_id || gid_from_url === game_id;
         // Only log in observer mode to reduce noise
         if (this.game?.player === 0) {
           console.log('[OBS_TRACE] gameBrowserActive()', {
@@ -586,7 +584,10 @@ class GameTemplate extends ModTemplate {
 
   async attachEvents(app) {
     if (this?.game?.id) {
-      console.log('[OBS_TRACE] attachEvents() calling initializeGameQueue', { game_id: this.game.id?.substring?.(0, 12), game_player: this.game?.player });
+      console.log('[OBS_TRACE] attachEvents() calling initializeGameQueue', {
+        game_id: this.game.id?.substring?.(0, 12),
+        game_player: this.game?.player
+      });
       await this.initializeGameQueue(this.game.id);
     } else {
       document.documentElement.setAttribute('data-theme', 'arcade');
@@ -769,7 +770,10 @@ class GameTemplate extends ModTemplate {
   async initializeObserverMode(tx, use_state = false) {
     let game_id = tx.signature;
     let txmsg = tx.returnMessage();
-    console.log('[OBS_TRACE] initializeObserverMode()', { game_id: game_id?.substring?.(0, 12), use_state });
+    console.log('[OBS_TRACE] initializeObserverMode()', {
+      game_id: game_id?.substring?.(0, 12),
+      use_state
+    });
 
     // console.log(' !!!!!\n GT: OBSERVER MODE\n !!!!!\n', game_id, JSON.parse(JSON.stringify(txmsg)));
 
@@ -895,7 +899,7 @@ class GameTemplate extends ModTemplate {
     // since no ID is provided
     const params = new URLSearchParams(window.location.search);
     if (!this.loadGame()) {
-      const observerParam = params.get("observer") === "1";
+      const observerParam = params.get('observer') === '1';
       const vars_in_url =
         typeof window !== 'undefined' && window.location?.hash
           ? this.app.browser.parseHash(window.location.hash)
@@ -911,7 +915,7 @@ class GameTemplate extends ModTemplate {
       }
     }
 
-    if (params.get("observer") === "1") {
+    if (params.get('observer') === '1') {
       this.game = this.game || {};
       this.game.player = 0;
       if (this.game.id && !this._observer_stub_bootstrap) this.saveGame(this.game.id);
@@ -1037,7 +1041,8 @@ class GameTemplate extends ModTemplate {
           //
           // process game move
           //
-          const asFuture = this?.treat_all_moves_as_future || this.isFutureMove(tx.from[0].publicKey, txmsg);
+          const asFuture =
+            this?.treat_all_moves_as_future || this.isFutureMove(tx.from[0].publicKey, txmsg);
           const asNext = !asFuture && this.isUnprocessedMove(tx.from[0].publicKey, txmsg);
           console.log('[OBS_TRACE] onConfirmation(game move)', {
             step: txmsg?.step?.game,
@@ -1223,7 +1228,9 @@ class GameTemplate extends ModTemplate {
               return 0;
             }
 
-            const asFuture = this?.treat_all_moves_as_future || this.isFutureMove(gametx.from[0].publicKey, gametxmsg);
+            const asFuture =
+              this?.treat_all_moves_as_future ||
+              this.isFutureMove(gametx.from[0].publicKey, gametxmsg);
             const asNext = !asFuture && this.isUnprocessedMove(gametx.from[0].publicKey, gametxmsg);
             if (this.game?.player === 0) {
               console.log('[OBS_TRACE] handlePeerTransaction(game relay gamemove)', {
@@ -1723,21 +1730,22 @@ class GameTemplate extends ModTemplate {
 
   async injectGameHTML(template) {
     if (!this.game_template_injected) {
-
       this.header = new SaitoHeader(this.app, this);
       this.header.header_class = 'game';
 
       await this.timeout(500);
       await this.header.initialize(this.app);
 
-      while (document.body.hasChildNodes()) { document.body.firstChild.remove(); }
+      while (document.body.hasChildNodes()) {
+        document.body.firstChild.remove();
+      }
       document.body.innerHTML = template;
       this.calculateBoardRatio();
 
-console.log("INJECT GAME HTML:" + this.game.player);
+      console.log('INJECT GAME HTML:' + this.game.player);
 
       if (this.game?.player === 0 && this.observerControls) {
-console.log("and into observerControls...");
+        console.log('and into observerControls...');
         this.observerControls.render();
       }
     }
