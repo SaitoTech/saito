@@ -2305,6 +2305,7 @@ class Browser {
           },
           false
         );
+        document.querySelector('#saito-alert-box').style.top = '1rem';
       };
 
       window.sconfirm = function (message) {
@@ -2346,6 +2347,7 @@ class Browser {
             resolve(false);
             // }, false);
           };
+          document.querySelector('#saito-alert-box').style.top = '1rem';
         });
       };
 
@@ -2396,6 +2398,7 @@ class Browser {
             },
             false
           );
+          document.querySelector('#saito-alert-box').style.top = '1rem';
         });
       };
 
@@ -2413,7 +2416,10 @@ class Browser {
         document.body.appendChild(wrapper);
 
         let timeout = setTimeout(() => {
-          wrapper.remove();
+          wrapper.classList.add('fade-out');
+          timeout = setTimeout(() => {
+            wrapper.remove();
+          }, 500);
         }, killtime);
 
         document.querySelector('#site-message-wrapper').addEventListener(
@@ -2974,19 +2980,19 @@ class Browser {
 
     switch (log_level) {
       case 'debug':
-        console.debug(header, new_obj);
+        // console.debug(header, new_obj);
         break;
       case 'info':
-        console.info(header, new_obj);
+        // console.info(header, new_obj);
         break;
       case 'warn':
-        console.warn(header, new_obj);
+        // console.warn(header, new_obj);
         break;
       case 'error':
-        console.error(header, new_obj);
+        // console.error(header, new_obj);
         break;
       default:
-        console.log(header, new_obj);
+        // console.log(header, new_obj);
     }
   }
 

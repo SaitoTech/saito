@@ -1,4 +1,4 @@
-const JoinGameOverlay = require('./overlays/join-game');
+const LoungeOverlay = require('./overlays/lounge');
 const InviteTemplate = require('./invite.template');
 const InviteTemplateSparse = require('./invite.template.sparse');
 const JSON = require('json-bigint');
@@ -235,9 +235,9 @@ class Invite {
 					this.app.browser.logMatomoEvent(
 						'GameInvite',
 						this.invite_data.invite_type,
-						this.invite_data.game_mod.name
+						this.invite_data.game_mod?.name
 					);
-					let game_overlay = new JoinGameOverlay(this.app, this.mod, this.invite_data);
+					let game_overlay = new LoungeOverlay(this.app, this.mod, this.invite_data);
 					game_overlay.render();
 				};
 			}

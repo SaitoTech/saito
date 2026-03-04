@@ -94,7 +94,7 @@ class League extends ModTemplate {
 	}
 
 	respondTo(type, obj = null) {
-		if (type == 'league_membership') {
+		if (type == 'league-membership') {
 			let league_self = this;
 			return {
 				testMembership: (league_id) => {
@@ -577,10 +577,8 @@ class League extends ModTemplate {
 				await this.receiveUpdateTransaction(blk, tx, conf);
 			} else if (txmsg.request === 'league update player') {
 				await this.receiveUpdatePlayerTransaction(blk, tx, conf);
-			} else if (txmsg.request === 'gameover') {
-				await this.receiveGameoverTransaction(txmsg);
-			} else if (txmsg.request === 'roundover') {
-				await this.receiveRoundoverTransaction(txmsg);
+			} else if (txmsg.request === 'gameover' || txmsg.request === 'roundover') {
+				await this.receiveGameoverTransaction(blk, tx, conf);
 			} else if (txmsg.request === 'accept') {
 				console.log('League processing game accept');
 				await this.receiveAcceptTransaction(blk, tx, conf);
@@ -664,7 +662,7 @@ class League extends ModTemplate {
 				//Render initial UI based on what we have saved
 				league_self.app.connection.emit('leagues-render-request'); // league/ main
 				league_self.app.connection.emit('league-rankings-render-request'); // sidebar league list
-				league_self.app.connection.emit('finished-loading-leagues');
+				league_self.app.connection.emit('league-finished-loading');
 			} else {
 				this.app.options.league.leagues = [];
 			}
@@ -1027,18 +1025,15 @@ class League extends ModTemplate {
 		await this.removeLeague(txmsg.league_id);
 	}
 
-	///////////////////////////
-	// roundover transaction //
-	///////////////////////////
-	async receiveRoundoverTransaction(txmsg) {
-		await this.receiveGameoverTransaction(txmsg, false);
-	}
-
 	//////////////////////////
 	// gameover transaction //
 	//////////////////////////
-	async receiveGameoverTransaction(txmsg, is_gameover = true) {
+	async receiveGameoverTransaction(blk, tx, conf) {
 		//if (app.BROWSER == 1) { return; }
+
+		const txmsg = tx.returnMessage();
+
+		const is_gameover = txmsg.request == 'gameover' ? true : false;
 
 		let game = txmsg.module;
 
@@ -1097,7 +1092,7 @@ class League extends ModTemplate {
 			// update rankings (ELO)
 			//
 			if (leag.ranking_algorithm === 'ELO') {
-				await this.updateELORanking(publicKeys, leag, txmsg);
+				await this.updateELORanking(publicKeys, leag, tx);
 			}
 			if (leag.ranking_algorithm === 'EXP') {
 				await this.updateEXPRanking(publicKeys, leag, txmsg);
@@ -1302,10 +1297,12 @@ class League extends ModTemplate {
 		}
 	}
 
-	async updateELORanking(players, league, txmsg) {
+	async updateELORanking(players, league, tx) {
 		//
 		// no change for 1P games
 		//
+		const txmsg = tx.returnMessage();
+
 		if (players.length < 2) {
 			return;
 		}

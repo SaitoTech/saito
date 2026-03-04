@@ -10,11 +10,11 @@
 #saito-alert-box {
   width: 75vw;
   max-width: 70rem;
-  transition: all 333ms ease-in-out;
+  transition: all 500ms ease-in-out;
   background: var(--saito-background-color);
-  margin: 1rem auto;
+  margin: auto;
   position: relative;
-  top: 0;
+  top: -100%;
   border: var(--border-thickness-thin) solid var(--saito-border-color);
   border-radius: 0.5rem;
   padding: 1.5rem;
@@ -35,4 +35,10 @@
   overflow-wrap: break-word;
   line-height: 3rem;
   width: -webkit-fill-available;
+}
+
+@media (max-width: 600px) {
+  #saito-alert-box {
+    width: 95vw;
+  }
 }

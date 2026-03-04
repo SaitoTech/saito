@@ -8,9 +8,9 @@ const WarOverlay = require('./lib/overlays/war');
 const StatsOverlay = require('./lib/overlays/stats');
 const DeckOverlay = require('./lib/overlays/deck');
 const HeadlineOverlay = require('./lib/overlays/headline');
+const ZoomOverlay = require('./lib/overlays/zoom');
 const htmlTemplate = require('./lib/core/game-html.template').default;
 const GameHelp = require('./lib/overlays/game-help');
-
 
 const JSON = require('json-bigint');
 
@@ -68,6 +68,7 @@ class Twilight extends GameTemplate {
     this.war_overlay = new WarOverlay(this.app, this);
     this.deck_overlay = new DeckOverlay(this.app, this);
     this.headline_overlay = new HeadlineOverlay(this.app, this);
+    this.zoom_overlay = new ZoomOverlay(this.app, this);
     this.game_help = new GameHelp(this.app, this);
 
     //
@@ -453,6 +454,41 @@ class Twilight extends GameTemplate {
       }
 
     } catch (err) {}
+
+    document.querySelector('.gameboard').addEventListener('click', (e) => {
+
+      // ignore clicks on countries or interactive elements
+      if (e.defaultPrevented) { return; }
+      if (
+	  e.target.closest('.country') ||
+    	  e.target.closest('.selectable') ||
+    	  e.target.closest('.us') ||
+    	  e.target.closest('.ussr') ||
+    	  e.target.closest('.hud') ||
+    	  e.target.closest('.card')
+      ) { return; }
+
+  	const board = e.currentTarget;
+  	const rect = board.getBoundingClientRect();
+
+  	const clickX = e.clientX - rect.left;
+  	const clickY = e.clientY - rect.top;
+
+  	const scaleX = board.offsetWidth / rect.width;
+  	const scaleY = board.offsetHeight / rect.height;
+
+  	const boardX = clickX * scaleX;
+  	const boardY = clickY * scaleY;
+
+console.log("Rendered board size:", rect.width, rect.height);
+console.log("Intrinsic board size:", board.offsetWidth, board.offsetHeight);
+console.log("Click screen:", clickX, clickY);
+console.log("Click board:", boardX, boardY);
+
+
+  	this.zoom_overlay.renderAtCoordinates(boardX, boardY);
+
+    });
 
     if (this.game.player > 0){
       if (this.useClock){
@@ -3004,9 +3040,9 @@ console.log("DESC: " + JSON.stringify(discarded_cards));
       //
       if (this.is_testing == 1) {
         if (this.game.player == 2) {
-          this.game.deck[0].hand = ["brushwar", "iraniraq", "abmtreaty", "quagmire", "nato", "grainsales"];
+          this.game.deck[0].hand = ["brushwar", "missileenvy", "iraniraq", "abmtreaty", "quagmire", "nato", "grainsales"];
         } else {
-          this.game.deck[0].hand = ["missileenvy", "brezhnev", "saltnegotiations","opec","asknot","flowerpower","indopaki", "truman", "asia"];
+          this.game.deck[0].hand = ["brezhnev", "saltnegotiations","opec","asknot","flowerpower","indopaki", "truman", "asia"];
         }
 
       	//this.game.state.round = 1;
@@ -5819,8 +5855,8 @@ async playerTurnHeadlineSelected(card, player) {
    */
   showInfluence(country, player="", mycallback=null) {
 
-    let obj_us    = "#"+country+ " > .us";
-    let obj_ussr = "#"+country+ " > .ussr";
+    let obj_us    = "."+country+ " > .us";
+    let obj_ussr = "."+country+ " > .ussr";
 
     //Why do we need to parseInt?
     let us_i   = parseInt(this.countries[country].us);
@@ -6576,6 +6612,10 @@ async playerTurnHeadlineSelected(card, player) {
 
     for (let i in this.countries) {
       this.showInfluence(i);
+    }
+
+    if (this.zoom_overlay && this.zoom_overlay.visible) {
+      this.zoom_overlay.refresh();
     }
 
     this.updateDefcon();

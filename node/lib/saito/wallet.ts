@@ -178,7 +178,7 @@ export default class Wallet extends SaitoWallet {
           return false;
         };
 
-        console.log('My current slips: ', this.app.options.wallet.slips, slips);
+        // console.log('My current slips: ', this.app.options.wallet.slips, slips);
 
         for (let i = 0; i < tx.to.length; i++) {
           if (tx.to[i].type == 0) {
@@ -257,10 +257,10 @@ export default class Wallet extends SaitoWallet {
         }
 
         if (tx.type !== 8) {
-          this.app.browser.siteMessage(`${msg}${obj.amount} SAITO`);
+          this.app.browser.siteMessage(`${msg}${obj.amount} SAITO`, 5000);
         }
 
-        console.log(obj);
+        // console.log(obj);
         tx.printSlips();
         this.savePaymentTransaction(tx, obj);
       }
@@ -332,7 +332,7 @@ export default class Wallet extends SaitoWallet {
 
         if (obj.timestamp < this.history_update_ts) {
           console.warn('Pushing an earlier (or same ts) payment record in SAITO history!');
-          console.log(tx);
+          // console.log(tx);
         } else {
           this.history.push(obj);
           this.history_update_ts = obj.timestamp + 1;
@@ -382,7 +382,7 @@ export default class Wallet extends SaitoWallet {
 
                 this.history.push(obj);
               } else {
-                console.warn('Repeated/old transaction returned from Memento: ', r);
+                // console.warn('Repeated/old transaction returned from Memento: ', r);
               }
             }
 
@@ -710,7 +710,7 @@ export default class Wallet extends SaitoWallet {
             }
           }
         } catch (err) {
-          console.log('caught error: ' + JSON.stringify(err));
+          // console.log('caught error: ' + JSON.stringify(err));
         }
       }
 
@@ -883,7 +883,7 @@ export default class Wallet extends SaitoWallet {
       this.app.connection.emit('saito-header-update-crypto');
       return 1;
     } catch (err) {
-      console.error(err);
+      // console.error(err);
     }
     return 0;
   }
@@ -924,7 +924,7 @@ export default class Wallet extends SaitoWallet {
         console.log(`Crypto Module (${ticker}) not found`);
       }
     } catch (err) {
-      console.error(err);
+      // console.error(err);
     }
     return '';
   }
@@ -952,7 +952,7 @@ export default class Wallet extends SaitoWallet {
         }
       }
     } catch (err) {
-      console.error(err);
+      // console.error(err);
       console.log(ticker);
     }
     console.log('done wallet.returnAvailableCryptosAssociativeArray()');
@@ -996,7 +996,7 @@ export default class Wallet extends SaitoWallet {
     if (senders.length !== 1 || receivers.length !== 1 || amounts.length !== 1) {
       // We have no code which exercises multiple senders/receivers so can't implement it yet.
       console.error('sendPayment ERROR: Only supports one transaction');
-      console.log(senders, receivers, amounts);
+      // console.log(senders, receivers, amounts);
       if (mycallback) {
         mycallback({ err: 'Only supports one transaction' });
       }
@@ -1065,7 +1065,7 @@ export default class Wallet extends SaitoWallet {
       rtnObj = { err: 'already sent' };
     }
 
-    console.error('sendPayment ERROR: ', rtnObj);
+    // console.error('sendPayment ERROR: ', rtnObj);
 
     if (mycallback) {
       mycallback(rtnObj);
@@ -1123,7 +1123,7 @@ export default class Wallet extends SaitoWallet {
         return;
       } catch (err) {
         // it failed, delete the transaction
-        console.log('sendPayments ERROR: payment failed....\n' + err);
+        // console.log('sendPayments ERROR: payment failed....\n' + err);
         this.deletePreferredCryptoTransaction(unique_hash);
         if (mycallback) {
           mycallback({ err: err });
@@ -1280,7 +1280,7 @@ export default class Wallet extends SaitoWallet {
         await this.saveWallet();
       }
     } catch (err) {
-      console.log('Error backing-up wallet: ' + err);
+      // console.log('Error backing-up wallet: ' + err);
     }
   }
 
@@ -1330,11 +1330,11 @@ export default class Wallet extends SaitoWallet {
       //);
       tx.data = Buffer.from(JSON.stringify(tx.msg), 'utf-8');
     } catch (err) {
-      console.log('####################');
-      console.log('### OVERSIZED TX ###');
-      console.log('###   -revert-   ###');
-      console.log('####################');
-      console.log(err);
+      // console.log('####################');
+      // console.log('### OVERSIZED TX ###');
+      // console.log('###   -revert-   ###');
+      // console.log('####################');
+      // console.log(err);
       tx.msg = {};
     }
 
@@ -1353,7 +1353,7 @@ export default class Wallet extends SaitoWallet {
         await S.getInstance().updateBalanceFrom(snapshot);
       }
     } catch (error) {
-      console.error(error);
+      // console.error(error);
     }
   }
 
@@ -1377,9 +1377,31 @@ export default class Wallet extends SaitoWallet {
   }
 
   public async onUpgrade(type = '', privatekey = '', decrypted_wallet = null) {
+
     let publicKey = await this.getPublicKey();
 
     if (type == 'nuke') {
+
+      if (this.app.BROWSER) {
+
+        let risky = false;
+        for (let crypto of this.app.wallet.returnInstalledCryptos()) {
+          if (!crypto.isActivated()) { continue; }
+          let bal = await crypto.returnBalance();
+          if (parseFloat(bal) > 0) {
+            risky = true;
+            break;
+          }
+        }
+
+        if (risky) {
+          let ok = confirm(
+            "This wallet contains web3 crypto assets whose keys will be lost if not already backed-up. Continue?"
+          );
+          if (!ok) { return; }
+        }
+      }
+
       await this.resetWallet();
       publicKey = await this.getPublicKey();
     } else if (type == 'import') {
@@ -1401,7 +1423,7 @@ export default class Wallet extends SaitoWallet {
           wobj.games = [];
           this.app.options = wobj;
         } catch (err) {
-          console.error(err);
+          // console.error(err);
           return err;
         }
 
@@ -1423,7 +1445,7 @@ export default class Wallet extends SaitoWallet {
           // Maybe stored our options in localForage
           await this.app.storage.resetOptionsFromKey(publicKey);
         } catch (err) {
-          console.error(err);
+          // console.error(err);
           return err;
         }
       } else {
@@ -1440,7 +1462,7 @@ export default class Wallet extends SaitoWallet {
 
     await this.fetchBalanceSnapshot(publicKey);
 
-    console.log(JSON.parse(JSON.stringify(this.app.options.wallet)));
+    // console.log(JSON.parse(JSON.stringify(this.app.options.wallet)));
     await this.saveWallet();
     return true;
   }
@@ -1551,7 +1573,7 @@ export default class Wallet extends SaitoWallet {
       tx_sig: string;
     }> = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
-    console.log('UPDATE NFT LIST from Rust: ', nfts);
+    // console.log('UPDATE NFT LIST from Rust: ', nfts);
 
     //
     // snapshot local
@@ -1849,10 +1871,10 @@ export default class Wallet extends SaitoWallet {
                         let fn = new Function(`return (async () => { ${txmsg.data.js} })()`);
                         await fn.call(this);
                       } catch (err) {
-                        console.error(
-                          `NFT module execution failed [${txmsg.sig || 'unknown'}]:`,
-                          err
-                        );
+                        // console.error(
+                        //   `NFT module execution failed [${txmsg.sig || 'unknown'}]:`,
+                        //   err
+                        // );
                       }
                     }
                     if (txmsg.data?.css) {
@@ -1952,7 +1974,7 @@ for (let nft_id in nft_balance_by_id) {
         }
       }
     } catch (err) {
-      console.error('Error while saving NFT tx to archive in wallet.ts: ', err);
+      // console.error('Error while saving NFT tx to archive in wallet.ts: ', err);
     }
   }
 

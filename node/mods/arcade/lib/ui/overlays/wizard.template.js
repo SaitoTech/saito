@@ -1,5 +1,5 @@
 module.exports = (game_mod, invite_obj = {}) => {
-	let html = `<form class="arcade-wizard-overlay saito-overlay-size wide">`;
+	let html = `<form class="arcade-wizard saito-overlay-size wide">`;
 	let invite = null;
 	let publicKey = null;
 	if (invite_obj.invite) {
@@ -12,10 +12,10 @@ module.exports = (game_mod, invite_obj = {}) => {
 	let img = game_mod.respondTo('arcade-games')?.image || '';
 
 	html += `
-    <div class="arcade-wizard-game-container">
+    <div class="arcade-wizard-container">
     
       <!- ***Game thumbnail & options start*** -->
-      <div class="arcade-wizard-game-image">
+      <div class="arcade-wizard-image">
         <img class="arcade-wizard-game-thumbnail" src="${img}">
       </div>
       <!- ***Game thumbnail & options end*** -->
@@ -23,10 +23,10 @@ module.exports = (game_mod, invite_obj = {}) => {
 
       <!- ***Game desc & title start*** -->
       <div class="arcade-wizard-game-details  rs-create-game-desc-wrapper">
-        <div class="arcade-wizard-game-name">
+        <div class="arcade-wizard-title">
           <span><b>${game_mod.returnName()}</b></span>
         </div>
-        <div class="arcade-wizard-game-description">${game_mod.description}</div>
+        <div class="arcade-wizard-description">${game_mod.description}</div>
       </div>
       <!- ***Game desc & title end*** -->
   `;
@@ -38,14 +38,14 @@ module.exports = (game_mod, invite_obj = {}) => {
 	html += `
     </div>
 
-    <div class="arcade-wizard-game-controls">
+    <div class="arcade-wizard-controls">
   
       <div class="settings">
         ${game_mod.returnOptions()}
-        <div id="arcade-advance-opt"><div class="arcade-advance-opt-text saito-anchor">advanced options...</div></div>
+        <div id="arcade-advance-opt"><div class="arcade-wizard-advanced-text saito-anchor">advanced options...</div></div>
       </div>
 
-      <div class="arcade-wizard-game-invite">
+      <div class="arcade-wizard-actions">
   `;
 
 	if (game_mod.maxPlayers == 1) {
@@ -67,13 +67,11 @@ module.exports = (game_mod, invite_obj = {}) => {
 				html += `
 					<button type="button" class="saito-multi-btn  game-invite-btn" data-type="open">create public league invite</button>
                 			 <button type="button" class="saito-multi-btn  game-invite-btn" data-type="private">create private league invite</button>
-                			 <button type="button" class="saito-multi-btn  game-invite-btn" data-type="import">import game file</button>
 				`;
 			} else {
 				html += `
               				<button type="button" class="saito-multi-btn  game-invite-btn" data-type="open">create public invite</button>
               				<button type="button" class="saito-multi-btn game-invite-btn" data-type="private">create private invite</button>
-                			 <button type="button" class="saito-multi-btn  game-invite-btn" data-type="import">import game file</button>
          			`;
 
 				if (game_mod?.can_play_async) {

@@ -8,6 +8,7 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
   render(nft = null) {
     super.render(nft);
 
+    // Remove buttons (added below in AttachEvents)
     Array.from(document.querySelectorAll('.saito-nft-footer-btn')).forEach(
       (el) => (el.style.display = 'none')
     );
@@ -50,7 +51,6 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
         };
       } else {
         buy_with_saito_btn.onclick = async (e) => {
-          siteMessage('Submitting Order: please be patient...', 5000);
           e.preventDefault();
           buy_with_saito_btn.onclick = null;
           this.overlay.hide();
@@ -61,9 +61,10 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
               total_price
             );
             await this.app.network.propagateTransaction(newtx);
-            siteMessage('Purchase Submitted. waiting for confirmation...', 3000);
+            siteMessage('Purchase submitted, waiting for confirmation...', 3000);
           } catch (err) {
-            console.err('Error submitting bid: ' + err);
+            console.error('Error submitting bid: ' + err);
+            siteMessage('Purchase submission failed...', 3000);
           }
         };
       }

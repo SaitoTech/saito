@@ -268,6 +268,11 @@ Scrollbars
   border-radius: var(--saito-border-radius);
   user-select: none;
   cursor: default;
+  transition: all 0.5s;
+}
+
+#site-message-wrapper.fade-out {
+  filter: opacity(0);
 }
 
 #site-message-wrapper.message-clickable {

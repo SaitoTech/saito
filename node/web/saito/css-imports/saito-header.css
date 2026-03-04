@@ -42,6 +42,13 @@
   display: none;
 }
 
+#saito-header.game .hamburger-container {
+  padding: 0.5rem;
+  background: #0003;
+  border-radius: 0.5rem;
+  margin-top: 1rem;
+}
+
 .saito-header-logo {
   width: 15rem;
   cursor: pointer;
@@ -336,11 +343,12 @@
 }
 
 .hamburger-container {
-  display: grid;
+  /*display: grid;
+  grid-template-columns: 1fr min-content;*/
+  display: flex;
   align-items: center;
   gap: 1rem;
   margin-left: auto;
-  grid-template-columns: 1fr min-content;
 }
 
 #header-msg {

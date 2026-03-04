@@ -390,7 +390,7 @@ span.attention {
 	.league-overlay-body {
 		height: calc(90vh - 20rem);
 		flex-direction: column-reverse;
-		row-gap: 1rem;
+		row-gap: 0;
 	}
 	.league-overlay-controls {
 		justify-content: center;
@@ -407,6 +407,10 @@ span.attention {
 	.league-overlay-body-content {
 		flex: 1;
 	}
+	/*.league-overlay-body-content .saito-button-row {
+		margin: unset;
+	}*/
+
 	.league-overlay-header-image {
 		margin: 0;
 		width: 100%;

@@ -662,7 +662,7 @@ class Keychain {
     this.saveKeys();
 
     console.log('SAVED CRYPTO AES: ' + publicKey);
-    console.log(JSON.stringify(this.returnKey(publicKey)));
+    // console.log(JSON.stringify(this.returnKey(publicKey)));
 
     return true;
   }
