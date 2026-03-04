@@ -273,6 +273,7 @@ impl RoutingThread {
                     .await;
             }
             Message::Ping() => {
+                trace!("received ping from peer : {:?}", public_key.to_base58());
                 self.network
                     .io_interface
                     .send_message(public_key, Message::Pong().serialize().as_slice())

@@ -1009,7 +1009,7 @@ pub async fn process_msg_buffer_from_peer(
     peer: &mut WasmNetworkPeer,
 ) -> js_sys::Uint8Array {
     let buffer = buffer.to_vec();
-    debug!("process_msg_buffer_from_peer : {}", buffer.len());
+    trace!("process_msg_buffer_from_peer : {}", buffer.len());
     let mut saito1 = SAITO.lock().await;
     let saito = saito1.as_mut().unwrap();
 
@@ -1022,7 +1022,7 @@ pub async fn process_msg_buffer_from_peer(
 
     let network_peer = peer.get_peer_mut();
 
-    debug!("buffer size : {}", buffer.len());
+    trace!("buffer size : {}", buffer.len());
     let buffer = network_peer
         .process_incoming_buffer(
             buffer,
@@ -1032,7 +1032,6 @@ pub async fn process_msg_buffer_from_peer(
             &timer,
             &services,
             |event| async move {
-                debug!("aaa");
                 let mut saito = SAITO.lock().await;
                 saito
                     .as_mut()
@@ -1040,7 +1039,6 @@ pub async fn process_msg_buffer_from_peer(
                     .routing_thread
                     .process_network_event(event)
                     .await;
-                debug!("bbb");
             },
         )
         .await;
@@ -1054,7 +1052,7 @@ pub async fn process_msg_buffer_from_peer(
     } else {
         let buffer = buffer.unwrap();
 
-        debug!("return buffer size : {}", buffer.len());
+        trace!("return buffer size : {}", buffer.len());
         let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
         array.copy_from(buffer.as_slice());
         array

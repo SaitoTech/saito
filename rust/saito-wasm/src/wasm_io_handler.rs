@@ -3,7 +3,7 @@ use std::io::{Error, ErrorKind};
 
 use async_trait::async_trait;
 use js_sys::{Array, BigInt, Boolean, Uint8Array};
-use log::{error, trace};
+use log::{debug, error, trace};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
@@ -19,7 +19,7 @@ pub struct WasmIoHandler {}
 #[async_trait]
 impl InterfaceIO for WasmIoHandler {
     async fn send_message(&self, public_key: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error> {
-        // trace!("WasmIoHandler::send_message : {:?}", public_key);
+        trace!("WasmIoHandler::send_message : {:?}", public_key.to_base58());
 
         let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
         array.copy_from(buffer);

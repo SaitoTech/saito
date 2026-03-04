@@ -45,9 +45,12 @@ export class NodeSharedMethods extends CustomSharedMethods {
 
   sendMessage(publicKey: string, buffer: Uint8Array): void {
     try {
+      // console.log('sending message : '+buffer.byteLength+' bytes to peer : '+publicKey);
       let socket = S.getInstance().getSocket(publicKey);
       if (socket) {
         socket.send(buffer);
+      }else{
+        // console.warn('socket not found for peer : '+publicKey+'. Cannot send the buffer : '+buffer.byteLength+' bytes.');
       }
     } catch (e) {
       console.error(e);
@@ -87,6 +90,12 @@ export class NodeSharedMethods extends CustomSharedMethods {
             .then((buffer: any) => {
               if (buffer && buffer.byteLength > 0) {
                 socket.send(buffer);
+              }
+              if (peer.publicKey) {
+                if (!S.getInstance().peers.has(peer.publicKey)) {
+                  console.info('added peer : ' + peer.publicKey + ', url : ' + peer.url);
+                  S.getInstance().peers.set(peer.publicKey, peer);
+                }
               }
             });
         } catch (e) {
@@ -523,7 +532,7 @@ class Server {
       try {
         const blk = await this.app.blockchain.getBlock(bhash);
         if (!blk) {
-          console.info("Block block doesn't exist. cannot serve block. hash : " + bhash);
+          console.info('Block block doesn\'t exist. cannot serve block. hash : ' + bhash);
           return;
         }
         console.info('serving block : ' + blk.file_name);
