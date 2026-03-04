@@ -18,7 +18,7 @@ use crate::core::defs::SaitoUTXOSetKey;
 use crate::core::defs::{
     Currency, PrintForLog, SaitoHash, SaitoPublicKey, SaitoSignature, StatVariable, Timestamp,
 };
-use crate::core::io::storage::Storage;
+use crate::core::routing::io::storage::Storage;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::hash;
 use crate::iterate;
@@ -364,7 +364,6 @@ impl Mempool {
             if current_timestamp < previous_block.timestamp + value {
                 return None;
             }
-            // info!("aaaa value = {:?}", value);
 
             let result = work_available >= work_needed;
             if result {

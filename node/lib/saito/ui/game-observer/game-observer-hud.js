@@ -152,7 +152,8 @@ class GameObserverHUD {
 
     const statusEl = root.querySelector('#observer-status-line');
     if (statusEl) {
-      statusEl.textContent = total === 0 ? 'Loading Moves...' : `Game Step: ${viewingIndex + 1} / ${total}`;
+      statusEl.textContent =
+        total === 0 ? 'Loading Moves...' : `Game Step: ${viewingIndex + 1} / ${total}`;
     }
 
     const sliderEl = root.querySelector('#game-observer-state-slider');

@@ -262,8 +262,8 @@ class GameGame {
           for (let i = 0; i < this.app.options.games.length; i++) {
             if (this.name == this.app.options.games[i].module) {
               if (
-                this.app.crypto.hash(this.app.options.games[i].id).slice(-6) == vars_in_url.gid
-                || this.app.options.games[i].id === vars_in_url.gid
+                this.app.crypto.hash(this.app.options.games[i].id).slice(-6) == vars_in_url.gid ||
+                this.app.options.games[i].id === vars_in_url.gid
               ) {
                 game_id = this.app.options.games[i].id;
                 break;

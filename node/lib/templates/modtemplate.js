@@ -231,7 +231,6 @@ class ModTemplate {
   // this replaces initializeHTML and attachEvents with a single function
   //
   async render() {
-
     if (this.browser_active && this.possibleHome) {
       this.app.options.homeModule = this.returnName();
       this.app.storage.saveOptions();
@@ -766,7 +765,7 @@ class ModTemplate {
         function (res) {
           return mycallback(res);
         },
-        peer.peerIndex
+        peer.publicKey
       );
     }
   }
@@ -852,7 +851,7 @@ class ModTemplate {
             success_callback(res);
           }
         },
-        peer.peerIndex
+        peer.publicKey
       );
     }
   }

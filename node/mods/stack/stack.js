@@ -1989,8 +1989,8 @@ class Stack extends ModTemplate {
     if (peerKeys.length > 0) {
       const firstPeerKey = peerKeys[0];
       const peerObj = this.peers[firstPeerKey]?.peer;
-
-      if (peerObj && peerObj.peerIndex !== undefined) {
+      
+      if (peerObj && peerObj.publicKey !== undefined) {
         try {
           const peerTx = await new Promise((resolve) => {
             // Query peer for the post
@@ -2018,7 +2018,7 @@ class Stack extends ModTemplate {
                 // Peer didn't have it or returned invalid data - resolve null
                 resolve(null);
               },
-              peerObj.peerIndex
+              peerObj.publicKey
             );
           });
 

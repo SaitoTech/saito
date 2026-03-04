@@ -18,10 +18,10 @@ use crate::core::consensus::merkle::MerkleTree;
 use crate::core::consensus::slip::{Slip, SlipType, SLIP_SIZE};
 use crate::core::consensus::transaction::{Transaction, TransactionType, TRANSACTION_SIZE};
 use crate::core::defs::{
-    BlockId, Currency, PeerIndex, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey,
-    SaitoSignature, SaitoUTXOSetKey, Timestamp, UtxoSet, BLOCK_FILE_EXTENSION,
+    BlockId, Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
+    SaitoUTXOSetKey, Timestamp, UtxoSet, BLOCK_FILE_EXTENSION,
 };
-use crate::core::io::storage::Storage;
+use crate::core::routing::io::storage::Storage;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::{hash, sign, verify_signature};
 use crate::iterate;
@@ -422,7 +422,7 @@ pub struct Block {
     #[serde(skip)]
     pub created_hashmap_of_slips_spent_this_block: bool,
     #[serde(skip)]
-    pub routed_from_peer: Option<PeerIndex>,
+    pub routed_from_peer: Option<SaitoPublicKey>,
     #[serde(skip)]
     pub keys_invloved: AHashSet<SaitoPublicKey>,
     #[serde(skip)]
@@ -972,7 +972,8 @@ impl Block {
         let treasury: Currency = Currency::from_be_bytes(bytes[189..197].try_into().unwrap());
         let burnfee: Currency = Currency::from_be_bytes(bytes[197..205].try_into().unwrap());
         let difficulty: u64 = u64::from_be_bytes(bytes[205..213].try_into().unwrap());
-        let avg_total_fees: Currency = Currency::from_be_bytes(bytes[213..221].try_into().unwrap()); // dupe below
+        let _avg_total_fees: Currency =
+            Currency::from_be_bytes(bytes[213..221].try_into().unwrap()); // dupe below
         let avg_fee_per_byte: Currency =
             Currency::from_be_bytes(bytes[221..229].try_into().unwrap());
         let avg_nolan_rebroadcast_per_block: Currency =
@@ -2281,7 +2282,7 @@ impl Block {
                 } else {
                     // our previous_previous_block is about to disappear, which means
                     // we should make note that these funds are slipping into our graveyard
-                    if let Some(previous_previous_block) =
+                    if let Some(_previous_previous_block) =
                         blockchain.blocks.get(&previous_block.previous_block_hash)
                     {
                         graveyard_contribution += previous_block.previous_block_unpaid;
@@ -3444,7 +3445,7 @@ mod tests {
     use crate::core::defs::{
         Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, NOLAN_PER_SAITO,
     };
-    use crate::core::io::storage::Storage;
+    use crate::core::routing::io::storage::Storage;
     use crate::core::util::crypto::{generate_keys, verify_signature};
     use crate::core::util::test::node_tester::test::NodeTester;
     use crate::core::util::test::test_manager::test::TestManager;

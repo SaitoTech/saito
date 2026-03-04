@@ -389,45 +389,41 @@ class Mods {
     const onPeerHandshakeComplete = this.onPeerHandshakeComplete.bind(this);
     const onStunPeerDisconnected = this.onStunPeerDisconnected.bind(this);
     // include events here
-    this.app.connection.on('handshake_complete', async (peerIndex: bigint) => {
+    this.app.connection.on('handshake_complete', async (publicKey: string) => {
       if (this.app.BROWSER) {
         // broadcasts my keylist to other peers
         await this.app.wallet.setKeyList(this.app.keychain.returnWatchedPublicKeys());
       }
       // await this.app.network.propagateServices(peerIndex);
-      let peer = await this.app.network.getPeer(BigInt(peerIndex));
+      let peer = await this.app.network.getPeer(publicKey);
       if (this.app.BROWSER == 0) {
         let data = `{"build_number": "${this.app.build_number}"}`;
         console.info(data);
         this.app.network.sendRequest('software-update', data, null, peer);
       }
-      console.log('handshake complete');
+      console.log('handshake complete : ', publicKey);
       await onPeerHandshakeComplete(peer);
     });
 
-    this.app.connection.on('stun peer connect', async (peerIndex) => {
-      let peer = await this.app.network.getPeer(BigInt(peerIndex));
+    this.app.connection.on('stun peer connect', async (publicKey: string) => {
+      let peer = await this.app.network.getPeer(publicKey);
       await onPeerHandshakeComplete(peer);
     });
 
-    this.app.connection.on('stun peer disconnect', async (peerIndex, publicKey) => {
-      await onStunPeerDisconnected(peerIndex, publicKey);
-      console.log('peer handshake completed for peer', peerIndex);
+    this.app.connection.on('stun peer disconnect', async (publicKey) => {
+      await onStunPeerDisconnected(publicKey);
+      console.log('peer handshake completed for peer', publicKey);
     });
 
     const onConnectionUnstable = this.onConnectionUnstable.bind(this);
-    this.app.connection.on('peer_disconnect', async (peerIndex: bigint, public_key: string) => {
-      console.log(
-        'connection dropped -- triggering on connection unstable : ' + peerIndex,
-        ' key : ',
-        public_key
-      );
+    this.app.connection.on('peer_disconnect', async (public_key: string) => {
+      console.log('connection dropped -- triggering on connection unstable. key : ', public_key);
       this.onConnectionUnstable(public_key);
     });
 
-    this.app.connection.on('peer_connect', async (peerIndex: bigint) => {
-      console.log('peer_connect received for : ' + peerIndex);
-      let peer = await this.app.network.getPeer(peerIndex);
+    this.app.connection.on('peer_connect', async (publicKey: string) => {
+      console.log('peer_connect received for : ' + publicKey);
+      let peer = await this.app.network.getPeer(publicKey);
       this.onConnectionStable(peer);
     });
 

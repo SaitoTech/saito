@@ -135,14 +135,30 @@ class GameQueue {
           'GT [initializeGameQueue]: Observer.... check for additional moves..., set active while loading...'
         );
         this.gaming_active = 1;
-        const overlayBefore = typeof document !== 'undefined' && document.body ? !!document.body.querySelector('#observer-sync-overlay') : null;
-        console.log('[OBS_TRACE] initializeGameQueue (observer): gaming_active=1, game.initialize_game_run=', this.game.initialize_game_run, 'overlayExistsBeforeRender=', overlayBefore);
+        const overlayBefore =
+          typeof document !== 'undefined' && document.body
+            ? !!document.body.querySelector('#observer-sync-overlay')
+            : null;
+        console.log(
+          '[OBS_TRACE] initializeGameQueue (observer): gaming_active=1, game.initialize_game_run=',
+          this.game.initialize_game_run,
+          'overlayExistsBeforeRender=',
+          overlayBefore
+        );
 
         if (this.observerControls) {
-            this.observerControls.is_ui_initializing = true;
+          this.observerControls.is_ui_initializing = true;
         }
-        const overlayAfter = typeof document !== 'undefined' && document.body ? !!document.body.querySelector('#observer-sync-overlay') : null;
-        console.log('[OBS_TRACE] initializeGameQueue (observer): after render overlayExists=', overlayAfter, 'observerControls.is_ui_initializing=', this.observerControls?.is_ui_initializing);
+        const overlayAfter =
+          typeof document !== 'undefined' && document.body
+            ? !!document.body.querySelector('#observer-sync-overlay')
+            : null;
+        console.log(
+          '[OBS_TRACE] initializeGameQueue (observer): after render overlayExists=',
+          overlayAfter,
+          'observerControls.is_ui_initializing=',
+          this.observerControls?.is_ui_initializing
+        );
 
         await this.observerControls.downloadMoves();
       } else {
@@ -157,7 +173,11 @@ class GameQueue {
    *  Game moves are processed through a queue.
    */
   async startQueue() {
-    console.log('[OBS_TRACE] startQueue()', { halted: this.halted, gaming_active: this.gaming_active, is_ui_initializing: this.observerControls?.is_ui_initializing });
+    console.log('[OBS_TRACE] startQueue()', {
+      halted: this.halted,
+      gaming_active: this.gaming_active,
+      is_ui_initializing: this.observerControls?.is_ui_initializing
+    });
     console.info(
       `GT [startQueue] halted: (${this.halted}) , gaming_active (${this.gaming_active})`
     );
@@ -987,10 +1007,12 @@ class GameQueue {
         game_self.game.queue.splice(game_self.game.queue.length - 1, 1);
         game_self.saveGame(game_self.game.id);
 
-	//
-	// observer mode
-	//
-        if (game_self.game.player == 0) { game_self.game_state_pre_move = JSON.parse(JSON.stringify(game_self.game)); }
+        //
+        // observer mode
+        //
+        if (game_self.game.player == 0) {
+          game_self.game_state_pre_move = JSON.parse(JSON.stringify(game_self.game));
+        }
 
         if (game_self.gameBrowserActive()) {
           return 1;
@@ -2060,7 +2082,9 @@ class GameQueue {
         for (let i = 1; i <= cryptLength; i++) {
           //Adding one to i here so don't have to insert additional -1 term
           let card = game_self.game.queue.pop();
-          if (game_self.game.player != 0) { game_self.game.deck[deckidx - 1].crypt[cryptLength - i] = card; }
+          if (game_self.game.player != 0) {
+            game_self.game.deck[deckidx - 1].crypt[cryptLength - i] = card;
+          }
         }
       }
       return 1;

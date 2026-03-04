@@ -359,47 +359,47 @@ class Recovery extends ModTemplate {
 			}
 			if (peer.hasService('recovery')) {
 				this.app.network.sendTransactionWithCallback(
-					newtx,
-					async (rows_as_tx) => {
-						console.log('Restoring wallet!!!!!');
+          newtx,
+          async (rows_as_tx) => {
+            console.log('Restoring wallet!!!!!');
 
-						//This is so weird that the passed data gets turned into a pseudotransaction
-						let rows = rows_as_tx.msg;
+            //This is so weird that the passed data gets turned into a pseudotransaction
+            let rows = rows_as_tx.msg;
 
-						if (!rows?.length) {
-							console.log('no rows returned!');
-							this.login_overlay.failure();
-							return;
-						}
+            if (!rows?.length) {
+              console.log('no rows returned!');
+              this.login_overlay.failure();
+              return;
+            }
 
-						if (!rows[0].tx) {
-							console.log('no transaction in row returned');
-							this.login_overlay.failure();
-							return;
-						}
+            if (!rows[0].tx) {
+              console.log('no transaction in row returned');
+              this.login_overlay.failure();
+              return;
+            }
 
-						// Decrypt wallet(s) here
-						for (let r of rows) {
-							let newtx = new Transaction();
-							newtx.deserialize_from_web(this.app, r.tx);
+            // Decrypt wallet(s) here
+            for (let r of rows) {
+              let newtx = new Transaction();
+              newtx.deserialize_from_web(this.app, r.tx);
 
-							let txmsg = newtx.returnMessage();
+              let txmsg = newtx.returnMessage();
 
-							console.log('decrypting recovered wallet...');
+              console.log('decrypting recovered wallet...');
 
-							let encrypted_wallet = txmsg.wallet;
-							let decrypted_wallet = this.app.crypto.aesDecrypt(
-								encrypted_wallet,
-								decryption_secret
-							);
+              let encrypted_wallet = txmsg.wallet;
+              let decrypted_wallet = this.app.crypto.aesDecrypt(
+                encrypted_wallet,
+                decryption_secret
+              );
 
-							r.decrypted_wallet = decrypted_wallet;
-						}
+              r.decrypted_wallet = decrypted_wallet;
+            }
 
-						this.login_overlay.selection(rows);
-					},
-					peer.peerIndex
-				);
+            this.login_overlay.selection(rows);
+          },
+          peer.publicKey
+        );
 				return;
 			}
 		}

@@ -11,13 +11,13 @@ use tokio::fs::{File, OpenOptions};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::sync::mpsc::Sender;
 
-use saito_core::core::consensus::peers::peer_service::PeerService;
 use saito_core::core::consensus::wallet::Wallet;
-use saito_core::core::defs::{BlockId, PeerIndex, SaitoHash, BLOCK_FILE_EXTENSION};
-use saito_core::core::io::interface_io::{InterfaceEvent, InterfaceIO};
-use saito_core::core::io::network_event::NetworkEvent;
+use saito_core::core::defs::{BlockId, SaitoHash, SaitoPublicKey, BLOCK_FILE_EXTENSION};
+use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+use saito_core::core::routing::io::network_event::NetworkEvent;
+use saito_core::core::routing::peers::peer_service::PeerService;
 
-use crate::io_event::IoEvent;
+use saito_core::core::routing::peers::io_event::IoEvent;
 
 lazy_static! {
     pub static ref BLOCKS_DIR_PATH: String = configure_storage();
@@ -58,10 +58,10 @@ impl Debug for RustIOHandler {
 
 #[async_trait]
 impl InterfaceIO for RustIOHandler {
-    async fn send_message(&self, peer_index: u64, buffer: &[u8]) -> Result<(), Error> {
+    async fn send_message(&self, public_key: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error> {
         // TODO : refactor to combine event and the future
         let event = IoEvent::new(NetworkEvent::OutgoingNetworkMessage {
-            peer_index,
+            public_key,
             buffer: buffer.to_vec(),
         });
 
@@ -73,7 +73,7 @@ impl InterfaceIO for RustIOHandler {
     async fn send_message_to_all(
         &self,
         buffer: &[u8],
-        peer_exceptions: Vec<u64>,
+        peer_exceptions: Vec<SaitoPublicKey>,
     ) -> Result<(), Error> {
         // debug!("send message to all");
 
@@ -87,19 +87,19 @@ impl InterfaceIO for RustIOHandler {
         Ok(())
     }
 
-    async fn connect_to_peer(&mut self, url: String, peer_index: PeerIndex) -> Result<(), Error> {
-        debug!("connecting to peer : {:?} with url : {:?}", peer_index, url);
-        let event = IoEvent::new(NetworkEvent::ConnectToPeer { url, peer_index });
+    async fn connect_to_peer(&mut self, url: String) -> Result<(), Error> {
+        debug!("connecting to peer with url : {:?}", url);
+        let event = IoEvent::new(NetworkEvent::ConnectToPeer { url });
 
         self.sender.send(event).await.unwrap();
 
         Ok(())
     }
 
-    async fn disconnect_from_peer(&self, peer_index: u64) -> Result<(), Error> {
+    async fn disconnect_from_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error> {
         self.sender
             .send(IoEvent::new(NetworkEvent::DisconnectFromPeer {
-                peer_index,
+                public_key,
             }))
             .await
             .unwrap();
@@ -109,7 +109,7 @@ impl InterfaceIO for RustIOHandler {
     async fn fetch_block_from_peer(
         &self,
         block_hash: SaitoHash,
-        peer_index: u64,
+        public_key: SaitoPublicKey,
         url: &str,
         block_id: BlockId,
     ) -> Result<(), Error> {
@@ -120,7 +120,7 @@ impl InterfaceIO for RustIOHandler {
         debug!("fetching block : {:?} from peer : {:?}", block_id, url);
         let event = IoEvent::new(NetworkEvent::BlockFetchRequest {
             block_hash,
-            peer_index,
+            public_key,
             block_id,
             url: url.to_string(),
         });
@@ -271,25 +271,42 @@ impl InterfaceIO for RustIOHandler {
         Ok(())
     }
 
-    async fn process_api_call(&self, _buffer: Vec<u8>, _msg_index: u32, _peer_index: PeerIndex) {}
-
-    async fn process_api_success(&self, _buffer: Vec<u8>, _msg_index: u32, _peer_index: PeerIndex) {
+    async fn process_api_call(
+        &self,
+        _buffer: Vec<u8>,
+        _msg_index: u32,
+        _public_key: SaitoPublicKey,
+    ) {
     }
 
-    async fn process_api_error(&self, _buffer: Vec<u8>, _msg_index: u32, _peer_index: PeerIndex) {}
+    async fn process_api_success(
+        &self,
+        _buffer: Vec<u8>,
+        _msg_index: u32,
+        _public_key: SaitoPublicKey,
+    ) {
+    }
+
+    async fn process_api_error(
+        &self,
+        _buffer: Vec<u8>,
+        _msg_index: u32,
+        _public_key: SaitoPublicKey,
+    ) {
+    }
 
     fn send_interface_event(&self, _event: InterfaceEvent) {
         // no one is listening to these events in rust node
     }
 
-    async fn save_wallet(&self, wallet: &mut Wallet) -> Result<(), Error> {
+    async fn save_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
         // let buffer = wallet.serialize_for_disk();
         // self.write_value(WALLET_DIR_PATH.as_str(), buffer.as_slice())
         //     .await
         Ok(())
     }
 
-    async fn load_wallet(&self, wallet: &mut Wallet) -> Result<(), Error> {
+    async fn load_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
         // if !self.is_existing_file(WALLET_DIR_PATH.as_str()).await {
         //     return Ok(());
         // }
@@ -305,7 +322,7 @@ impl InterfaceIO for RustIOHandler {
 
 #[cfg(test)]
 mod tests {
-    use saito_core::core::io::interface_io::InterfaceIO;
+    use saito_core::core::routing::io::interface_io::InterfaceIO;
 
     use crate::rust_io_handler::RustIOHandler;
 

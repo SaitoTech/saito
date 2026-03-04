@@ -2,7 +2,7 @@ use std::io::{Error, ErrorKind};
 
 use figment::providers::{Format, Json};
 use figment::Figment;
-use saito_core::core::consensus::peers::congestion_controller::CongestionStatsDisplay;
+use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use serde::Deserialize;
 
 use log::{debug, error};
@@ -129,7 +129,7 @@ impl Configuration for SpammerConfigs {
         None
     }
 
-    fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>) {}
+    fn set_congestion_data(&mut self, _congestion_data: Option<CongestionStatsDisplay>) {}
 
     // fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
     //     self.blockchain = config;
@@ -139,7 +139,7 @@ impl Configuration for SpammerConfigs {
         String::new()
     }
 
-    fn set_config_path(&mut self, path: String) {}
+    fn set_config_path(&mut self, _path: String) {}
 
     fn save(&self) -> Result<(), std::io::Error> {
         Ok(())

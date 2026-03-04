@@ -4,17 +4,17 @@ use std::time::Duration;
 
 use log::{debug, info};
 use rayon::prelude::*;
-use saito_core::core::consensus::peers::peer::PeerStatus;
+use saito_core::core::routing::peers::peer::PeerStatus;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
 use saito_core::core::consensus::blockchain::Blockchain;
-use saito_core::core::consensus::peers::peer_collection::PeerCollection;
 use saito_core::core::consensus::slip::{Slip, SLIP_SIZE};
 use saito_core::core::consensus::transaction::Transaction;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{Currency, SaitoPrivateKey, SaitoPublicKey};
 use saito_core::core::process::keep_time::KeepTime;
+use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::util::crypto::generate_random_bytes;
 use saito_core::drain;
 use saito_rust::time_keeper::TimeKeeper;
@@ -140,20 +140,20 @@ impl TransactionGenerator {
             {
                 let peers = self.peer_lock.read().await;
 
-                if peers.index_to_peers.is_empty() {
+                if peers.peers.is_empty() {
                     info!("not yet connected to a node");
                     return;
                 }
 
-                if let Some((_, peer)) = peers.index_to_peers.iter().next() {
+                if let Some((_, peer)) = peers.peers.iter().next() {
                     if let PeerStatus::Connected = peer.peer_status {
-                        to_public_key = peer.get_public_key().unwrap();
+                        to_public_key = peer.get_public_key();
                     } else {
                         info!("peer not connected. status : {:?}", peer.peer_status);
                         return;
                     }
                 }
-                assert_eq!(peers.address_to_peers.len(), 1usize, "we have assumed connecting to a single node. move add_hop to correct place if not.");
+                assert_eq!(peers.peers.len(), 1usize, "we have assumed connecting to a single node. move add_hop to correct place if not.");
                 assert_ne!(to_public_key, self.public_key);
             }
             let mut txs: VecDeque<Transaction> = Default::default();
@@ -364,11 +364,11 @@ impl TransactionGenerator {
         {
             let peers = self.peer_lock.read().await;
 
-            if let Some((_, peer)) = peers.index_to_peers.iter().next() {
+            if let Some((_, peer)) = peers.peers.iter().next() {
                 // if let PeerStatus::Connected = peer.peer_status {
-                info!("peer count : {}", peers.index_to_peers.len());
+                info!("peer count : {}", peers.peers.len());
                 info!("peer status : {:?}", peer.peer_status);
-                to_public_key = peer.get_public_key().unwrap();
+                to_public_key = peer.get_public_key();
                 // } else {
                 //     info!("peer not connected. status : {:?}", peer.peer_status);
                 // }

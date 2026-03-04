@@ -109,14 +109,14 @@ class DevTools extends ModTemplate {
 		console.log('zip_file trans', zip);
 
 		this.app.network.sendRequestAsTransaction(
-			'submit module',
-			msg,
-			(res) => {
-				console.log('appstore callback: ' + res);
-				return callback(res);
-			},
-			peers[0].peerIndex
-		);
+      'submit module',
+      msg,
+      (res) => {
+        console.log('appstore callback: ' + res);
+        return callback(res);
+      },
+      peers[0].publicKey
+    );
 	}
 
 	async sendModuleDetailsTransaction(zip, callback) {
@@ -133,14 +133,14 @@ class DevTools extends ModTemplate {
 		};
 
 		this.app.network.sendRequestAsTransaction(
-			'get module details',
-			msg,
-			(res) => {
-				console.log('appstore callback: ' + res);
-				return callback(res);
-			},
-			peers[0].peerIndex
-		);
+      'get module details',
+      msg,
+      (res) => {
+        console.log('appstore callback: ' + res);
+        return callback(res);
+      },
+      peers[0].publicKey
+    );
 	}
 
 	async handlePeerTransaction(app, tx = null, peer, mycallback) {

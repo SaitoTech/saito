@@ -1377,16 +1377,15 @@ export default class Wallet extends SaitoWallet {
   }
 
   public async onUpgrade(type = '', privatekey = '', decrypted_wallet = null) {
-
     let publicKey = await this.getPublicKey();
 
     if (type == 'nuke') {
-
       if (this.app.BROWSER) {
-
         let risky = false;
         for (let crypto of this.app.wallet.returnInstalledCryptos()) {
-          if (!crypto.isActivated()) { continue; }
+          if (!crypto.isActivated()) {
+            continue;
+          }
           let bal = await crypto.returnBalance();
           if (parseFloat(bal) > 0) {
             risky = true;
@@ -1396,9 +1395,11 @@ export default class Wallet extends SaitoWallet {
 
         if (risky) {
           let ok = confirm(
-            "This wallet contains web3 crypto assets whose keys will be lost if not already backed-up. Continue?"
+            'This wallet contains web3 crypto assets whose keys will be lost if not already backed-up. Continue?'
           );
-          if (!ok) { return; }
+          if (!ok) {
+            return;
+          }
         }
       }
 
@@ -1780,6 +1781,22 @@ export default class Wallet extends SaitoWallet {
 
   /**
    *
+   *  Atomize an NFT
+   *
+   */
+  public async createAtomizeNFTTransaction(nft: any): Promise<Transaction> {
+    await nft.fetchTransaction();
+
+    return S.getInstance().createAtomizeBoundTransaction(
+      nft.slip1.utxo_key,
+      nft.slip2.utxo_key,
+      nft.slip3.utxo_key,
+      nft.txmsg
+    );
+  }
+
+  /**
+   *
    *  Merge an NFT
    *
    */
@@ -1810,7 +1827,6 @@ export default class Wallet extends SaitoWallet {
   // with them...
   //
   public async loadNFTs() {
-    console.log('LOAD NFTs');
     try {
       let nft_balance_by_id = {};
 
@@ -1878,20 +1894,26 @@ export default class Wallet extends SaitoWallet {
         /*******************************
 for (let nft_id in nft_balance_by_id) {
 
-  let total = nft_balance_by_id[nft_id];
-  if (total <= 0n) { continue; }
+	  let total = nft_balance_by_id[nft_id];
+	  if (total <= 0n) { continue; }
 
-  let ticker = `NFT-${nft_id.slice(0, 6)}`;
+	  let ticker = "";
 
-  // Prevent double-install on reload
-  if (this.returnCryptoModuleByTicker(ticker)) {
-    continue;
-  }
+          for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
+            let nft = this.app.options.wallet.nfts[z];
+            if (nft.id == nft_id) {
+	      ticker = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
+	    }
+	  }
 
-  let mod = new NFTCryptoModule(this.app, nft_id, {
-    ticker,
-    name: ticker
-  });
+	  if (this.returnCryptoModuleByTicker(ticker) || ticker == "") {
+	    continue;
+	  }
+
+	  let mod = new NFTCryptoModule(this.app, nft_id, {
+	    ticker,
+	    name: ticker
+	  });
 
   this.app.modules.mods.push(mod);
   await mod.initialize(this.app);

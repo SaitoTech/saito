@@ -1,6 +1,6 @@
-use crate::core::consensus::peers::congestion_controller::CongestionStatsDisplay;
 use crate::core::defs::{BlockId, SaitoHash, Timestamp};
 use crate::core::defs::{Currency, RECOLLECT_EVERY_TX};
+use crate::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use log::error;
 use serde::Deserialize;
 use serde::Serialize;
@@ -263,6 +263,16 @@ pub trait Configuration: Debug {
 impl ConsensusConfig {
     pub fn get_ring_buffer_length(&self) -> BlockId {
         self.genesis_period * 2
+    }
+}
+
+impl PeerConfig {
+    pub fn get_url(&self) -> String {
+        let mut protocol: String = String::from("ws");
+        if self.protocol == "https" {
+            protocol = String::from("wss");
+        }
+        protocol + "://" + self.host.as_str() + ":" + self.port.to_string().as_str() + "/wsopen"
     }
 }
 

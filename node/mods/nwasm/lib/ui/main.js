@@ -190,11 +190,11 @@ class NwasmMain {
 						}
 
 						this.app.network.sendRequestAsTransaction(
-							message.request,
-							message.data,
-							function (res) {},
-							peer.peerIndex
-						);
+              message.request,
+              message.data,
+              function (res) {},
+              peer.publicKey
+            );
 					}
 				};
 			}

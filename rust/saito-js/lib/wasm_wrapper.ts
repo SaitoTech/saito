@@ -1,3 +1,5 @@
+/// <reference lib="es2021" />
+
 // let registry = new FinalizationRegistry((heldValue: any) => {
 //   heldValue.free();
 // });

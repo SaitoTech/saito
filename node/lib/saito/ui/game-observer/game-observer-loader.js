@@ -20,10 +20,14 @@ class GameObserverLoader {
    * Insert or replace #observer-sync-overlay in this.container. Idempotent.
    */
   render() {
-    if (!this.container || typeof document === 'undefined') { return; }
+    if (!this.container || typeof document === 'undefined') {
+      return;
+    }
 
     const html = GameObserverLoaderTemplate();
-    if (!html || !html.trim()) { return; }
+    if (!html || !html.trim()) {
+      return;
+    }
 
     const existing = this.container.querySelector('#observer-sync-overlay');
     const wrap = document.createElement('div');
@@ -37,14 +41,19 @@ class GameObserverLoader {
       this.container.appendChild(node);
     }
 
-    console.log('[OBS_TRACE] Loader.render() called; overlay in DOM:', !!this.container.querySelector('#observer-sync-overlay'));
+    console.log(
+      '[OBS_TRACE] Loader.render() called; overlay in DOM:',
+      !!this.container.querySelector('#observer-sync-overlay')
+    );
   }
 
   /**
    * Hide the overlay with display:none in this.container.
    */
   hide() {
-    if (!this.container || typeof document === 'undefined') { return; }
+    if (!this.container || typeof document === 'undefined') {
+      return;
+    }
 
     const overlay = this.container.querySelector('#observer-sync-overlay');
     if (overlay) {
@@ -57,7 +66,9 @@ class GameObserverLoader {
    * Remove #observer-sync-overlay from this.container.
    */
   remove() {
-    if (!this.container || typeof document === 'undefined') { return; }
+    if (!this.container || typeof document === 'undefined') {
+      return;
+    }
 
     const overlay = this.container.querySelector('#observer-sync-overlay');
     if (overlay) {

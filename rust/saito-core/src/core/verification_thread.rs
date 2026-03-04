@@ -10,17 +10,17 @@ use tokio::sync::RwLock;
 
 use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
-use crate::core::consensus::peers::congestion_controller::CongestionType;
-use crate::core::consensus::peers::peer_collection::PeerCollection;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
-    BlockHash, BlockId, PeerIndex, PrintForLog, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
+    BlockHash, BlockId, PrintForLog, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
 };
-use crate::core::io::network_event::NetworkEvent;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
+use crate::core::routing::io::network_event::NetworkEvent;
+use crate::core::routing::peers::congestion_controller::CongestionType;
+use crate::core::routing::peers::peer_collection::PeerCollection;
 
 use super::stat_thread::StatEvent;
 
@@ -28,7 +28,7 @@ use super::stat_thread::StatEvent;
 pub enum VerifyRequest {
     Transaction(Transaction),
     // Transactions(VecDeque<Transaction>),
-    Block(Vec<u8>, PeerIndex, BlockHash, BlockId),
+    Block(Vec<u8>, SaitoPublicKey, BlockHash, BlockId),
 }
 
 pub struct VerificationThread {
@@ -60,9 +60,9 @@ impl VerificationThread {
                 transaction.signature.to_hex()
             );
             self.processed_txs.increment();
-            if let Some(peer_index) = transaction.routed_from_peer {
+            if let Some(public_key) = transaction.routed_from_peer {
                 peers.add_congestion_event(
-                    peer_index,
+                    public_key,
                     CongestionType::ReceivedInvalidTransactions,
                     self.timer.get_timestamp_in_ms(),
                 );
@@ -105,9 +105,9 @@ impl VerificationThread {
     //                         transaction.signature.to_hex()
     //                     );
 
-    //                     if let Some(peer_index) = transaction.routed_from_peer {
+    //                     if let Some(public_key) = transaction.routed_from_peer {
     //                         peers.add_congestion_event(
-    //                             peer_index,
+    //                             public_key,
     //                             CongestionType::ReceivedInvalidTransactions,
     //                             current_time,
     //                         );
@@ -115,9 +115,9 @@ impl VerificationThread {
 
     //                     None
     //                 } else {
-    //                     if let Some(peer_index) = transaction.routed_from_peer {
+    //                     if let Some(public_key) = transaction.routed_from_peer {
     //                         peers.add_congestion_event(
-    //                             peer_index,
+    //                             public_key,
     //                             CongestionType::ReceivedValidTransactions,
     //                             current_time,
     //                         );
@@ -140,7 +140,7 @@ impl VerificationThread {
     pub async fn verify_block(
         &mut self,
         buffer: &[u8],
-        peer_index: PeerIndex,
+        public_key: SaitoPublicKey,
         block_hash: BlockHash,
         block_id: BlockId,
     ) {
@@ -154,7 +154,7 @@ impl VerificationThread {
             );
             let mut peers = self.peer_lock.write().await;
             peers.add_congestion_event(
-                peer_index,
+                public_key,
                 CongestionType::ReceivedInvalidBlocks,
                 self.timer.get_timestamp_in_ms(),
             );
@@ -162,7 +162,7 @@ impl VerificationThread {
         }
 
         let mut block = result.unwrap();
-        block.routed_from_peer = Some(peer_index);
+        block.routed_from_peer = Some(public_key);
 
         block.generate().unwrap();
 
@@ -176,7 +176,7 @@ impl VerificationThread {
             );
             let mut peers = self.peer_lock.write().await;
             peers.add_congestion_event(
-                peer_index,
+                public_key,
                 CongestionType::ReceivedInvalidBlocks,
                 self.timer.get_timestamp_in_ms(),
             );
@@ -187,14 +187,14 @@ impl VerificationThread {
             "block : {:?}-{:?} deserialized from buffer from peer : {:?}",
             block.id,
             block.hash.to_hex(),
-            peer_index
+            public_key.to_base58()
         );
 
         self.processed_blocks.increment();
         self.processed_msgs.increment();
 
         self.sender_to_consensus
-            .send(ConsensusEvent::BlockFetched { peer_index, block })
+            .send(ConsensusEvent::BlockFetched { public_key, block })
             .await
             .unwrap();
     }
@@ -219,8 +219,8 @@ impl ProcessEvent<VerifyRequest> for VerificationThread {
             VerifyRequest::Transaction(transaction) => {
                 self.verify_tx(transaction).await;
             }
-            VerifyRequest::Block(block, peer_index, block_hash, block_id) => {
-                self.verify_block(block.as_slice(), peer_index, block_hash, block_id)
+            VerifyRequest::Block(block, public_key, block_hash, block_id) => {
+                self.verify_block(block.as_slice(), public_key, block_hash, block_id)
                     .await;
             } // VerifyRequest::Transactions(mut txs) => {
               //     self.verify_txs(&mut txs).await;

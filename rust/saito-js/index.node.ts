@@ -10,6 +10,7 @@ import Blockchain from "./lib/blockchain";
 import PeerService from "./lib/peer_service";
 import PeerServiceList from "./lib/peer_service_list";
 import BalanceSnapshot from "./lib/balance_snapshot";
+import NetworkPeer from "./lib/network_peer";
 
 const NODE_MAJOR_VERSION = parseInt(process.versions.node.split(".")[0]);
 if (NODE_MAJOR_VERSION < 19) {
@@ -32,7 +33,7 @@ export async function initialize(
   privateKey: string,
   logLevel: LogLevel = LogLevel.Info,
   haste_multiplier: bigint,
-  delete_old_blocks:boolean
+  delete_old_blocks: boolean
 ) {
   if (Saito.getLibInstance()) {
     console.error("saito already initialized");
@@ -58,9 +59,18 @@ export async function initialize(
   PeerServiceList.Type = s.WasmPeerServiceList;
   BalanceSnapshot.Type = s.WasmBalanceSnapshot;
   WalletSlip.Type = s.WasmWalletSlip;
+  NetworkPeer.Type = s.WasmNetworkPeer;
   // Config.Type = s.WasmConfiguration;
 
-  return Saito.initialize(configs, sharedMethods, factory, privateKey, logLevel, haste_multiplier,delete_old_blocks);
+  return Saito.initialize(
+    configs,
+    sharedMethods,
+    factory,
+    privateKey,
+    logLevel,
+    haste_multiplier,
+    delete_old_blocks
+  );
 }
 
 export default Saito;

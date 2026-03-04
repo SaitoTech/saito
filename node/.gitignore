@@ -144,3 +144,8 @@ zk/*/*.ptau
 *.swp
 *.swo
 saito.log
+
+built/
+bundler/
+
+config/build/build.json

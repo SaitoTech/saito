@@ -1,11 +1,10 @@
 use js_sys::{Array, JsString};
-use log::warn;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
 use crate::wasm_peer_service::WasmPeerService;
-use saito_core::core::consensus::peers::peer::Peer;
-use saito_core::core::defs::{PeerIndex, PrintForLog};
+use saito_core::core::defs::PrintForLog;
+use saito_core::core::routing::peers::peer::Peer;
 
 #[wasm_bindgen]
 #[derive(Clone)]
@@ -17,11 +16,7 @@ pub struct WasmPeer {
 impl WasmPeer {
     #[wasm_bindgen(getter = public_key)]
     pub fn get_public_key(&self) -> JsString {
-        if self.peer.get_public_key().is_none() {
-            warn!("peer : {:?} public key is not set", self.peer.index);
-            return JsString::from([0; 33].to_base58());
-        }
-        self.peer.get_public_key().unwrap().to_base58().into()
+        self.peer.get_public_key().to_base58().into()
     }
     #[wasm_bindgen(getter = key_list)]
     pub fn get_key_list(&self) -> Array {
@@ -31,17 +26,13 @@ impl WasmPeer {
         }
         array
     }
-
-    #[wasm_bindgen(getter = peer_index)]
-    pub fn get_peer_index(&self) -> u64 {
-        self.peer.index
-    }
-    #[wasm_bindgen(constructor)]
-    pub fn new(peer_index: PeerIndex) -> WasmPeer {
-        WasmPeer {
-            peer: Peer::new(peer_index),
-        }
-    }
+    //
+    // #[wasm_bindgen(constructor)]
+    // pub fn new(public_key: PeerIndex) -> WasmPeer {
+    //     WasmPeer {
+    //         peer: Peer::new(public_key),
+    //     }
+    // }
     #[wasm_bindgen(getter = sync_type)]
     pub fn get_sync_type(&self) -> JsString {
         if self.peer.block_fetch_url.is_empty() {
@@ -81,11 +72,11 @@ impl WasmPeer {
     #[wasm_bindgen(getter = status)]
     pub fn get_status(&self) -> JsString {
         match self.peer.peer_status {
-            saito_core::core::consensus::peers::peer::PeerStatus::Connected => "connected",
-            saito_core::core::consensus::peers::peer::PeerStatus::Disconnected(_, _) => {
+            saito_core::core::routing::peers::peer::PeerStatus::Connected => "connected",
+            saito_core::core::routing::peers::peer::PeerStatus::Disconnected(_, _) => {
                 "disconnected"
             }
-            saito_core::core::consensus::peers::peer::PeerStatus::Connecting => "connecting",
+            saito_core::core::routing::peers::peer::PeerStatus::Connecting => "connecting",
         }
         .into()
     }

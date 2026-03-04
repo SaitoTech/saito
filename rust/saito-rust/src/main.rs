@@ -25,28 +25,28 @@ use tracing_subscriber::Layer;
 
 use once_cell::sync::OnceCell;
 use saito_core::core::consensus::blockchain::Blockchain;
-use saito_core::core::consensus::blockchain_sync_state::BlockchainSyncState;
 use saito_core::core::consensus::context::Context;
-use saito_core::core::consensus::peers::peer_collection::PeerCollection;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusStats, ConsensusThread};
 use saito_core::core::defs::{
     Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, StatVariable, CHANNEL_SAFE_BUFFER,
     PROJECT_PUBLIC_KEY, STAT_BIN_COUNT,
 };
-use saito_core::core::io::network::Network;
-use saito_core::core::io::network_event::NetworkEvent;
-use saito_core::core::io::storage::Storage;
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::process::keep_time::{KeepTime, Timer};
 use saito_core::core::process::process_event::ProcessEvent;
+use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
+use saito_core::core::routing::io::network::Network;
+use saito_core::core::routing::io::network_event::NetworkEvent;
+use saito_core::core::routing::io::storage::Storage;
+use saito_core::core::routing::peers::io_event::IoEvent;
+use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::crypto::generate_keys;
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
 use saito_rust::config_handler::{ConfigHandler, NodeConfigurations};
-use saito_rust::io_event::IoEvent;
 use saito_rust::network_controller::run_network_controller;
 use saito_rust::rust_io_handler::RustIOHandler;
 use saito_rust::time_keeper::TimeKeeper;
@@ -61,7 +61,7 @@ async fn run_verification_thread(
     mut event_processor: Box<VerificationThread>,
     mut event_receiver: Receiver<VerifyRequest>,
     stat_timer_in_ms: u64,
-    thread_name: &str,
+    _thread_name: &str,
     thread_sleep_time_in_ms: u64,
     time_keeper_origin: &Timer,
 ) -> JoinHandle<()> {
@@ -205,7 +205,6 @@ async fn run_consensus_event_processor(
             )),
             peer_lock.clone(),
             context.wallet_lock.clone(),
-            context.config_lock.clone(),
             time_keeper_origin.clone(),
         ),
         block_producing_timer: 0,
@@ -262,7 +261,6 @@ async fn run_routing_event_processor(
         timer: time_keeper_origin.clone(),
         config_lock: configs_lock.clone(),
         wallet_lock: context.wallet_lock.clone(),
-
         network: Network::new(
             Box::new(RustIOHandler::new(
                 sender_to_io_controller.clone(),
@@ -270,7 +268,6 @@ async fn run_routing_event_processor(
             )),
             peers_lock.clone(),
             context.wallet_lock.clone(),
-            configs_lock.clone(),
             time_keeper_origin.clone(),
         ),
         storage: Storage::new(Box::new(RustIOHandler::new(sender, 1))),
@@ -287,6 +284,7 @@ async fn run_routing_event_processor(
         waiting_for_genesis_block: false,
         message_sending_timer: 0,
         blockchain_send_results: Default::default(),
+        new_peers: vec![],
     };
 
     let (interface_sender_to_routing, interface_receiver_for_routing) =
@@ -470,6 +468,7 @@ fn setup_log() {
     let fmt_layer = tracing_subscriber::fmt::Layer::default()
         .with_ansi(true) // no color codes in files
         .with_writer(non_blocking)
+        .with_writer(std::io::stdout)
         .with_filter(filter);
 
     tracing_subscriber::registry().with(fmt_layer).init();
@@ -715,6 +714,7 @@ async fn run_node(
         peers_lock.clone(),
         sender_to_network_controller.clone(),
         &time_keeper,
+        context.wallet_lock.clone(),
     )
     .await;
 
@@ -751,7 +751,7 @@ pub async fn run_utxo_to_issuance_converter(threshold: Currency) {
 
     let wallet = Arc::new(RwLock::new(Wallet::new(private_key, public_key)));
     {
-        let configs = configs_clone.write().await;
+        let _configs = configs_clone.write().await;
         let mut wallet = wallet.write().await;
         let (sender, _receiver) = tokio::sync::mpsc::channel::<IoEvent>(100);
         Wallet::load(&mut wallet, &(RustIOHandler::new(sender, 1))).await;

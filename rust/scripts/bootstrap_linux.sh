@@ -57,7 +57,33 @@ fi
 
 
 
-for package in build-essential libssl-dev pkg-config nodejs npm clang gcc-multilib python-is-python3; do
+install_node_20() {
+  echo "Installing Node.js 20..."
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+  sudo apt-get install -y nodejs || exit 1
+}
+
+check_node_version() {
+  if command_exists node; then
+    version=$(node -v | cut -d'v' -f2)
+    major=$(echo $version | cut -d'.' -f1)
+    if [ "$major" -eq 20 ]; then
+      return 0
+    else
+      echo "Node.js version $version is installed. Node.js 20 is recommended."
+      return 1
+    fi
+  fi
+  return 1
+}
+
+# Check for Node.js 20
+if ! check_node_version; then
+  ask_permission "Node.js 20 is not installed or not the correct version. Install Node.js 20?"
+  install_node_20
+fi
+
+for package in build-essential libssl-dev pkg-config clang gcc-multilib python-is-python3; do
   if ! command_exists $package && ! linux_package_installed $package; then
     missing_packages+=("$package")
   fi

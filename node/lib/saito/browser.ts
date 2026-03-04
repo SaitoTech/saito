@@ -338,7 +338,7 @@ class Browser {
     this.page_navigation_active = false;
     let browser_self = this;
 
-    this.app.connection.on('peer_connect', function (peerIndex: bigint) {
+    this.app.connection.on('peer_connect', function (publicKey: string) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       if (first_connect) {
@@ -348,7 +348,7 @@ class Browser {
       }
       first_connect = false;
     });
-    this.app.connection.on('peer_disconnect', function (peerIndex: bigint) {
+    this.app.connection.on('peer_disconnect', function (publicKey: string) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       if (!browser_self.page_navigation_active) {
@@ -2992,7 +2992,7 @@ class Browser {
         // console.error(header, new_obj);
         break;
       default:
-        // console.log(header, new_obj);
+      // console.log(header, new_obj);
     }
   }
 
