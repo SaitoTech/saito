@@ -749,8 +749,8 @@ export default class Wallet extends SaitoWallet {
     }
 
     await this.app.storage.clearLocalForage();
-
     await this.app.storage.resetOptions();
+    await this.app.storage.removeAllLocalApplications();
 
     //
     // keychain

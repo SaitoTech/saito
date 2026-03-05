@@ -6618,9 +6618,6 @@ async playerTurnHeadlineSelected(card, player) {
         this.showInfluence(i);
       }
 
-      if (this.zoom_overlay && this.zoom_overlay.visible) {
-        this.zoom_overlay.refresh();
-      }
 
       this.updateDefcon();
       this.updateActionRound();
@@ -6628,6 +6625,11 @@ async playerTurnHeadlineSelected(card, player) {
       this.updateVictoryPoints();
       this.updateMilitaryOperations();
       this.updateRound();
+
+      // this can trigger bug if open End-of-Turn, throws error, thus last
+      if (this.zoom_overlay && this.zoom_overlay.visible) {
+        this.zoom_overlay.refresh();
+      }
 
     } catch (err) {
 console.log("DISPLAY ERROR: " + JSON.stringify(err));
