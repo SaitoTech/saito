@@ -1397,7 +1397,7 @@ export default class Wallet extends SaitoWallet {
           //await sconfirm('This will wipe out your wallet and delete your data....');
           //await sconfirm('This will reset/nuke your account, do you wish to proceed?');
 
-          let ok = await sconfirm(
+          let ok = await confirm(
             'This wallet contains web3 crypto assets whose keys will be lost if not already backed-up. Continue?'
           );
           if (!ok) {
@@ -1406,7 +1406,7 @@ export default class Wallet extends SaitoWallet {
         }
 
         if (this.app.keychain.returnKey(publicKey)?.identifier) {
-          let ok = await sconfirm(
+          let ok = await confirm(
             'This wallet has a registerd username which will be lost if not already backed-up. Continue?'
           );
           if (!ok) {
