@@ -1392,11 +1392,25 @@ export default class Wallet extends SaitoWallet {
         }
 
         if (risky) {
-          let ok = confirm(
+          // Alternate language from mod/settings
+
+          //await sconfirm('This will wipe out your wallet and delete your data....');
+          //await sconfirm('This will reset/nuke your account, do you wish to proceed?');
+
+          let ok = await sconfirm(
             'This wallet contains web3 crypto assets whose keys will be lost if not already backed-up. Continue?'
           );
           if (!ok) {
-            return;
+            return false;
+          }
+        }
+
+        if (this.app.keychain.returnKey(publicKey)?.identifier) {
+          let ok = await sconfirm(
+            'This wallet has a registerd username which will be lost if not already backed-up. Continue?'
+          );
+          if (!ok) {
+            return false;
           }
         }
       }
