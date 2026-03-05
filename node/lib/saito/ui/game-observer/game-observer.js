@@ -61,6 +61,8 @@ class GameObserver {
     this._observer_poll_interval = null;
     this._history_complete = true;
     this.sync_started = false;
+    this.archive_fetch_completed = false;
+    this.initial_queue_run = false;
 
     this.shadow_status = '';
 
@@ -554,6 +556,7 @@ class GameObserver {
       },
       async (txs) => {
         this.sync_in_progress = false;
+        this.archive_fetch_completed = true;
         let new_moves = 0;
 
         for (let tx of txs) {
@@ -599,18 +602,11 @@ class GameObserver {
           this.updateSyncStatus('No moves found in game archive.');
         }
 
-        const observerAndActive = g.player == 0 && mod.gameBrowserActive();
-        const coldStart = this._observer_poll_interval === null;
-        const allowCallback = new_moves !== 0 || !observerAndActive || coldStart;
-        if (allowCallback) {
-          if (new_moves === 0 && observerAndActive && coldStart) {
-            console.log(
-              '[OBS_TRACE] observerDownloadNextMoves: cold-start + 0 new moves, invoking callback once'
-            );
-          }
+        if (!this.initial_queue_run) {
+          this.initial_queue_run = true;
           await this.runQueue();
-        } else {
-          mod.gaming_active = 0;
+        } else if (new_moves > 0) {
+          await this.runQueue();
         }
       }
     );
@@ -648,7 +644,10 @@ class GameObserver {
       } else {
         if (qLen === lastQLen && fLen === lastFLen) {
           if (stableSince == null) stableSince = now;
-          if (now - stableSince >= STABLE_MS) {
+          if (
+            self.archive_fetch_completed &&
+            now - stableSince >= STABLE_MS
+          ) {
             if (self._sync_stability_interval != null) {
               clearInterval(self._sync_stability_interval);
               self._sync_stability_interval = null;
