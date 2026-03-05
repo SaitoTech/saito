@@ -62,12 +62,15 @@ class GameObserver {
     this._history_complete = true;
     this.sync_started = false;
 
+    this.shadow_status = '';
+
     this.loader = new GameObserverLoader(app, game_mod, '');
     this._hudContext = {
       getState: () => ({
         totalMoves: this.all_moves.length,
         viewingIndex: this._viewingIndex,
-        isPaused: this.is_paused
+        isPaused: this.is_paused,
+        statusMessage: this.shadow_status || ''
       }),
       onBack: () => {
         this.showNextMoveButton();
@@ -190,6 +193,8 @@ class GameObserver {
         this.checkSyncStability();
       }
     } else {
+      const total = this.all_moves.length || (this.game_moves && this.game_moves.length) || 0;
+      if (total === 0) return;
       this.hud.render();
       this.hud.attachEvents();
       this.hud.updateUIState();
@@ -210,11 +215,9 @@ class GameObserver {
 
   updateStatus(str) {
     try {
-      const sanitized = typeof sanitize === 'function' ? sanitize(str) : str;
-      this.hud.updateStatus(sanitized);
-      setTimeout(() => {
-        this.hud.updateStatus(this.game_mod.game.status);
-      }, 1500);
+      const raw = typeof str === 'string' ? str : (str && String(str)) || '';
+      this.shadow_status = raw.replace(/<[^>]*>/g, '').trim() || this.shadow_status;
+      this.hud.updateUIState();
     } catch (err) {
       console.error(err);
     }
@@ -223,7 +226,6 @@ class GameObserver {
   async finishLoading() {
     if (!this.is_ui_initializing) return;
     this.is_ui_initializing = false;
-    this.render();
 
     const MIN_VISIBLE_MS = 2000;
     const elapsed =
@@ -275,6 +277,10 @@ class GameObserver {
     ) {
       this._paused = false;
     }
+
+    this._paused = true;
+
+    this.render();
 
     this._clampViewingIndex();
     if (
@@ -412,7 +418,7 @@ class GameObserver {
 
   resume() {
     this._paused = false;
-    this.updateStatus('Replaying moves...');
+    this.shadow_status = this.shadow_status || 'Replaying moves...';
     this.hud.updateUIState();
   }
 
@@ -426,7 +432,12 @@ class GameObserver {
       await this.replayToIndex(this.all_moves.length - 1);
     }
     this._paused = false;
+    const gameStatus = this.game_mod?.game?.status;
+    if (typeof gameStatus === 'string' && gameStatus.trim()) {
+      this.shadow_status = gameStatus.replace(/<[^>]*>/g, '').trim();
+    }
     this.resume();
+    this.hud.updateUIState();
     console.log('OBSERVER: unhalt game (play)');
   }
 

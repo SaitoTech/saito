@@ -6,9 +6,9 @@ module.exports = () => {
   return `
     <div id="game-observer-hud" class="game-observer-hud">
 
-      <!-- Line 1: Status -->
+      <!-- Row 1: Status (single line only) -->
       <div id="observer-status-line" class="game-observer-title">
-        Loading Moves...
+        Press Play to Observe
       </div>
 
       <!-- Line 2: Controls -->
@@ -38,19 +38,19 @@ module.exports = () => {
 
       </div>
 
-      <!-- Line 3: Slider -->
-      <div class="game-observer-slider-row">
-        <input type="range"
-               id="game-observer-state-slider"
-               class="game-observer-state-slider"
-               min="0"
-               max="0"
-               value="0">
-      </div>
-
-      <!-- Line 4: Status line (secondary) -->
-      <div id="obstatus" class="status">
-        Observer mode
+      <!-- Line 3: Timeline (1 — slider — total) -->
+      <div class="game-observer-timeline-row">
+        <div class="game-observer-timeline-tooltip" id="observer-timeline-tooltip" aria-hidden="true"></div>
+        <div class="game-observer-timeline-inner">
+          <span class="timeline-start">1</span>
+          <input type="range"
+                 id="game-observer-state-slider"
+                 class="game-observer-state-slider"
+                 min="0"
+                 max="0"
+                 value="0">
+          <span class="timeline-end">0</span>
+        </div>
       </div>
 
     </div>
