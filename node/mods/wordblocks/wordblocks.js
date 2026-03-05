@@ -234,7 +234,7 @@ class Wordblocks extends GameTemplate {
 				}
 
 				let url = `${this.app.server.server.url}/${this.returnSlug()}/`;
-				url += `#gid=${this.app.crypto.hash(tx.msg.game_id).slice(-6)}`;
+				url += `#gid=${encodeURIComponent(tx.msg.game_id)}`;
 
 				notification.actions = [{ action: 'view', label: 'Play', url }];
 				return notification;

@@ -82,6 +82,26 @@ class GameObserverHUD {
     const root = this.container.querySelector('#game-observer-hud');
     if (!root || this._eventsAttached) return;
 
+    const interactiveSelectors = [
+      '#game-observer-state-slider',
+      '#observer-back',
+      '#observer-play',
+      '#observer-forward'
+    ];
+
+    interactiveSelectors.forEach((selector) => {
+      const el = root.querySelector(selector);
+      if (!el) return;
+
+      el.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+      });
+
+      el.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+      });
+    });
+
     const ctx = this._context || {};
 
     const backBtn = root.querySelector('#observer-back');
@@ -116,11 +136,21 @@ class GameObserverHUD {
       slider.addEventListener('input', () => {
         const idx = parseInt(slider.value, 10);
         if (Number.isNaN(idx)) return;
-        const observer = ctx.observer;
-        if (observer && !observer._history_complete && idx < observer._viewingIndex) {
-          observer.rebuildHistoryFromArchive();
-          return;
+
+        const total = Math.max(0, ctx.getState?.().totalMoves ?? 0);
+        const knownTotal = total || (ctx.observer?.game_moves?.length ?? 0);
+        const statusEl = root.querySelector('#observer-status-line');
+
+        if (statusEl) {
+          statusEl.textContent =
+            knownTotal === 0 ? 'Loading Moves...' : `Game Step: ${idx + 1} / ${knownTotal}`;
         }
+      });
+
+      slider.addEventListener('change', () => {
+        const idx = parseInt(slider.value, 10);
+        if (Number.isNaN(idx)) return;
+
         ctx.onSliderInput(idx);
       });
     }
@@ -147,27 +177,34 @@ class GameObserverHUD {
     if (!root) return;
 
     const total = Math.max(0, getState.totalMoves ?? 0);
-    const viewingIndex = Math.max(0, Math.min(getState.viewingIndex ?? 0, Math.max(0, total - 1)));
+    const knownTotal = total || (this._context?.observer?.game_moves?.length ?? 0);
+    const viewingIndex = Math.max(
+      0,
+      Math.min(getState.viewingIndex ?? 0, Math.max(0, knownTotal - 1))
+    );
     const isPaused = !!getState.isPaused;
 
     const statusEl = root.querySelector('#observer-status-line');
     if (statusEl) {
-      statusEl.textContent =
-        total === 0 ? 'Loading Moves...' : `Game Step: ${viewingIndex + 1} / ${total}`;
+      if (knownTotal === 0) {
+        statusEl.textContent = 'Loading Moves...';
+      } else {
+        statusEl.textContent = `Game Step: ${viewingIndex + 1} / ${knownTotal}`;
+      }
     }
 
     const sliderEl = root.querySelector('#game-observer-state-slider');
     if (sliderEl) {
-      const max = Math.max(0, total - 1);
+      const max = Math.max(0, knownTotal - 1);
       sliderEl.max = String(max);
       sliderEl.value = String(viewingIndex);
     }
 
     const backBtn = root.querySelector('#observer-back');
-    if (backBtn) backBtn.disabled = total === 0 || viewingIndex <= 0;
+    if (backBtn) backBtn.disabled = knownTotal === 0 || viewingIndex <= 0;
 
     const fwdBtn = root.querySelector('#observer-forward');
-    if (fwdBtn) fwdBtn.disabled = total === 0 || viewingIndex >= total - 1;
+    if (fwdBtn) fwdBtn.disabled = knownTotal === 0 || viewingIndex >= knownTotal - 1;
 
     const playBtn = root.querySelector('#observer-play');
     if (playBtn) {

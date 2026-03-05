@@ -328,6 +328,8 @@ class Arcade extends ModTemplate {
 			if (this.lounge_overlay && (data.invite_data != null || data.game_id != null)) {
 				this.lounge_overlay.invite = data.invite_data != null ? data.invite_data : null;
 				this.lounge_overlay.game_id = data.game_id != null ? data.game_id : null;
+				this.lounge_overlay.observer_has_archive_data = data.observer_has_archive_data === true;
+				this.lounge_overlay.observer_game_module_slug = data.game_module_slug != null ? data.game_module_slug : null;
 				this.lounge_overlay.render();
 			}
 			return;
@@ -408,12 +410,33 @@ class Arcade extends ModTemplate {
 			const urlParams = new URL(obj?.link).searchParams;
 			if (urlParams.has('game_id') && urlParams.has('game')) {
 				return {
-					processLink: (link) => {
-						this.loadGameInviteById(
+					processLink: async (link) => {
+						const { game_tx, from_archive } = await this.returnGameInvite(
 							urlParams.get('game_id'),
-							urlParams.get('game'),
-							urlParams.has('invite')
+							urlParams.get('game')
 						);
+						const game_module_slug = urlParams.get('game');
+						if (game_tx && !from_archive && game_tx.msg.request !== 'cancel' && game_tx.msg.request !== 'closed') {
+							this.addGame(game_tx);
+							if (this.isAvailableGame(game_tx)) {
+								game_tx.msg.options.desired_opponent_publickey = this.publicKey;
+								this.removeGame(game_tx.signature);
+								this.addGame(game_tx);
+							}
+							this.app.browser.logMatomoEvent('GameInvite', 'FollowLink', game_tx.game);
+							const invite = new Invite(this.app, this, null, null, game_tx, this.publicKey);
+							this.render('lounge_overlay', { invite_data: invite.invite_data });
+						} else {
+							let game_id = urlParams.get('game_id');
+							try {
+								game_id = decodeURIComponent(game_id);
+							} catch (_) {}
+							this.render('lounge_overlay', {
+								game_id,
+								observer_has_archive_data: !!game_tx,
+								game_module_slug: game_module_slug || null
+							});
+						}
 					}
 				};
 			}
@@ -521,11 +544,29 @@ class Arcade extends ModTemplate {
 				// For processing direct link to game invite
 				//
 				if (arcade_self.app.browser.returnURLParameter('game_id')) {
-					arcade_self.loadGameInviteById(
-						arcade_self.app.browser.returnURLParameter('game_id'),
-						arcade_self.app.browser.returnURLParameter('game'),
-						arcade_self.app.browser.returnURLParameter('invite')
-					);
+					let game_id = arcade_self.app.browser.returnURLParameter('game_id');
+					try {
+						game_id = decodeURIComponent(game_id);
+					} catch (_) {}
+					const game_module_slug = arcade_self.app.browser.returnURLParameter('game');
+					const { game_tx, from_archive } = await arcade_self.returnGameInvite(game_id, game_module_slug);
+					if (game_tx && !from_archive && game_tx.msg.request !== 'cancel' && game_tx.msg.request !== 'closed') {
+						arcade_self.addGame(game_tx);
+						if (arcade_self.isAvailableGame(game_tx)) {
+							game_tx.msg.options.desired_opponent_publickey = arcade_self.publicKey;
+							arcade_self.removeGame(game_tx.signature);
+							arcade_self.addGame(game_tx);
+						}
+						arcade_self.app.browser.logMatomoEvent('GameInvite', 'FollowLink', game_tx.game);
+						const invite = new Invite(arcade_self.app, arcade_self, null, null, game_tx, arcade_self.publicKey);
+						arcade_self.render('lounge_overlay', { invite_data: invite.invite_data });
+					} else {
+						arcade_self.render('lounge_overlay', {
+							game_id,
+							observer_has_archive_data: !!game_tx,
+							game_module_slug: game_module_slug || null
+						});
+					}
 					window.history.replaceState('', '', `/arcade/`);
 				}
 
@@ -568,39 +609,43 @@ class Arcade extends ModTemplate {
 		}
 	}
 
-	loadGameInviteById(game_id_short, gameName, is_invite = false) {
-		let record = Object.values(this.games).filter(
-			(r) => this.app.crypto.hash(r.tx.signature).slice(-6) == game_id_short
-		)[0];
-		let game = record ? record.tx : null;
+	async returnGameInvite(game_id, game_module) {
+		try {
+			game_id = decodeURIComponent(game_id);
+		} catch (_) {}
 
-		if (!game || game.msg.request == 'cancel' || game.msg.request == 'closed') {
-			console.warn('Load Game by ID failed...', game?.msg);
-			if (is_invite) {
-				salert('Sorry, the game is no longer available');
-				if (gameName) {
-					let gm = this.app.modules.returnModule(gameName);
-					this.app.connection.emit('arcade-launch-game-wizard', { game: gm.returnName() });
-				}
-			} else {
-				this.app.connection.emit('league-overlay-render-request', '', gameName, 'games');
+		let game_tx = this.games[game_id]?.tx ?? null;
+		let from_archive = false;
+
+		if (!game_tx && this.app.options?.games?.length) {
+			const opt = this.app.options.games.find((g) => g.id === game_id);
+			if (opt) {
+				game_tx = await this.createPseudoTransaction(opt);
 			}
-			return;
 		}
 
-		if (this.isAvailableGame(game)) {
-			//Mark myself as an invited guest
-			game.msg.options.desired_opponent_publickey = this.publicKey;
-
-			//Then we have to remove and readd the game so it goes under "mine"
-			this.removeGame(game.signature);
-			this.addGame(game);
+		if (!game_tx && game_module) {
+			game_tx = await new Promise((resolve) => {
+				this.app.storage.loadTransactions(
+					{
+						field1: game_module,
+						field4: game_id,
+						order_by: 'field5',
+						order: 'ASC',
+						limit: 1
+					},
+					(txs) => {
+						const tx = txs && txs.length ? txs[0] : null;
+						resolve(tx || null);
+					}
+				);
+			});
+			if (game_tx) {
+				from_archive = true;
+			}
 		}
 
-		this.app.browser.logMatomoEvent('GameInvite', 'FollowLink', game.game);
-
-		let invite = new Invite(this.app, this, null, null, game, this.publicKey);
-		this.render('lounge_overlay', { invite_data: invite.invite_data });
+		return { game_tx, from_archive };
 	}
 
 	////////////////////////////////////////////////////
@@ -1844,7 +1889,7 @@ class Arcade extends ModTemplate {
 				let game = query_params?.game || query_params?.view_game;
 
 				if (typeof game === 'string') {
-					let gm = app.modules.returnModule(game);
+					let gm = app.modules.returnModuleBySlug(game) || app.modules.returnModule(game);
 					if (gm) {
 						updatedSocial.title = `Play <em>${gm.returnName()}</em> on the Saito Arcade`;
 						updatedSocial.image = `${reqBaseURL + gm.returnSlug()}/img/arcade/arcade-banner-background.png`; /*arcade.jpg*/
@@ -1853,11 +1898,16 @@ class Arcade extends ModTemplate {
 					}
 				}
 
-				let id = query_params?.game_id;
+				let game_id = query_params?.game_id;
+				if (game_id != null) {
+					try {
+						game_id = decodeURIComponent(game_id);
+					} catch (_) {}
+				}
 				game_data =
-					Object.values(arcade_self.games).filter(
-						(r) => r.tx.game == game && arcade_self.app.crypto.hash(r.tx.signature).slice(-6) === id
-					)[0]?.tx ?? null;
+					game_id && arcade_self.games[game_id]
+						? arcade_self.games[game_id].tx
+						: null;
 
 				// console.log('WEBSERVER ARCADE GAME DATA --- ', game_data);
 			}
@@ -1921,9 +1971,10 @@ class Arcade extends ModTemplate {
 
 		if (accepted_game_tx) {
 			accepted_game_msg = accepted_game_tx.msg;
+			const game_mod = this.app.modules.returnModule(accepted_game_msg.game) || this.app.modules.returnModuleBySlug(accepted_game_msg.game);
 
-			data.game = accepted_game_msg.game;
-			data.game_id = this.app.crypto.hash(game_sig).slice(-6);
+			data.game = game_mod?.returnSlug?.() ?? accepted_game_msg.game;
+			data.game_id = game_sig;
 			data.path = '/arcade/';
 			data.invite = 1;
 			if (accepted_game_msg?.options?.crypto) {
@@ -2042,47 +2093,53 @@ class Arcade extends ModTemplate {
 		}
 	}
 
-	async observeGame(game_id, watch_live = false) {
+	async observeGame(game_id, watch_live = false, game_module_slug = null) {
 		console.log('[OBS_TRACE] Arcade.observeGame()', {
 			game_id: game_id?.substring?.(0, 12),
-			watch_live
+			watch_live,
+			game_module_slug
 		});
 
 		let game = this.returnGame(game_id);
 		let game_tx = game?.tx;
+		let game_mod = null;
 
-		if (!game) {
-			console.error('ARCADE: [observeGame] -- Game not found!');
+		if (game) {
+			let game_msg = game.tx.returnMessage();
+			game_mod = this.app.modules.returnModule(game_msg.game);
+			game_msg.game_id = game_id;
+
+			if (!this.app.options.games) {
+				this.app.options.games = [];
+			}
+
+			// So GameObserver can trigger FOLLOW after archive sync when watch_live was true
+			game_mod.observer_watch_live = watch_live;
+
+			if (!game_mod.doesGameExistLocally(game_id)) {
+				console.info('ARCADE Observer -- Initialize game');
+				await game_mod.initializeObserverMode(game_tx, false);
+			} else {
+				console.info('ARCADE Observer -- Game already exists, load it');
+				game_mod.loadGame(game_id);
+				game_mod.game.player = 0;
+			}
+		} else if (game_module_slug) {
+			// No invite in arcade.games but we have the module slug (e.g. from observer link with archive data).
+			// Navigate to the game module; it will load game from hash and archive.
+			game_mod = this.app.modules.returnModuleBySlug(game_module_slug);
+			if (game_mod) {
+				game_mod.observer_watch_live = watch_live;
+			}
+		}
+
+		if (!game_mod) {
+			console.error('ARCADE: [observeGame] -- Game not found and no module slug');
 			return;
 		}
 
-		console.info('ARCADE Observe Game: ', watch_live);
-
-		let game_msg = game.tx.returnMessage();
-
-		let game_mod = this.app.modules.returnModule(game_msg.game);
-
-		game_msg.game_id = game_id;
-
-		if (!this.app.options.games) {
-			this.app.options.games = [];
-		}
-
-		// So GameObserver can trigger FOLLOW after archive sync when watch_live was true
-		game_mod.observer_watch_live = watch_live;
-
-		if (!game_mod.doesGameExistLocally(game_id)) {
-			console.info('ARCADE Observer -- Initialize game');
-			// Always pass false so archive sync runs; live follow is triggered in GameObserver.finishLoading() when observer_watch_live
-			await game_mod.initializeObserverMode(game_tx, false);
-		} else {
-			console.info('ARCADE Observer -- Game already exists, load it');
-			game_mod.loadGame(game_id);
-			game_mod.game.player = 0;
-		}
-
-		const slug = game_mod?.returnSlug?.() || game_mod?.slug || game_msg?.game || 'arcade';
-		this.app.browser.navigateWindow(`/${slug}?observer=1#gid=${game_id}`);
+		const slug = game_mod?.returnSlug?.() || game_mod?.slug || game_module_slug || 'arcade';
+		this.app.browser.navigateWindow(`/${slug}?observer=1#gid=${encodeURIComponent(game_id)}`);
 	}
 }
 

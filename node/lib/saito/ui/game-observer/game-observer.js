@@ -106,7 +106,7 @@ class GameObserver {
       for (let i = 0; i < this.app.options.games.length; i++) {
         const g = this.app.options.games[i];
         if (g.module !== game_mod.name) continue;
-        if (g.id === full_game_id || this.app.crypto.hash(g.id).slice(-6) === full_game_id) {
+        if (g.id === full_game_id) {
           localId = g.id;
           break;
         }
