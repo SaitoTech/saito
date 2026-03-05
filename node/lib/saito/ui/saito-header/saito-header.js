@@ -897,9 +897,12 @@ class SaitoHeader extends UIModTemplate {
         }
         b_elm.innerHTML = this.app.browser.returnBalanceHTML(balance_as_string);
 
-        if (Date.now() - preferred_crypto.history_update_ts > 30000) {
+        if (Date.now() - preferred_crypto.history_update_ts > 30000 && !this.checking_history) {
+          this.checking_history = true;
           console.log('Checking preferred crypto history for new transactions');
-          preferred_crypto.checkHistory();
+          preferred_crypto.checkHistory(() => {
+            delete this.checking_history;
+          });
         }
       }
     } catch (err) {
