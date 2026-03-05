@@ -17,19 +17,18 @@ class Arcade extends ModTemplate {
 	constructor(app) {
 		super(app);
 
-
 		//
 		// module basics
 		//
 		this.name = 'Arcade';
 		this.slug = 'arcade';
 		this.sudo = false;
-		this.description = 'Interface for creating and joining games coded for the Saito Open Source Game Engine.';
+		this.description =
+			'Interface for creating and joining games coded for the Saito Open Source Game Engine.';
 		this.categories = 'Games Entertainment Appspace';
 		this.icon = 'fas fa-gamepad';
 		this.styles = ['/arcade/style.css'];
 		this.affix_callbacks_to = [];
-
 
 		//
 		// modules and games
@@ -171,9 +170,7 @@ class Arcade extends ModTemplate {
 			let newInvite = new Invite(app, this, null, 'short', game.tx, this.publicKey);
 			this.render('lounge_overlay', { invite_data: newInvite.invite_data });
 		});
-
 	}
-
 
 	//////////////////////////////
 	// INITIALIZATION FUNCTIONS //
@@ -233,16 +230,6 @@ class Arcade extends ModTemplate {
 			if (this.browser_active && this.app.browser.returnURLParameter('moderator')) {
 				this.sudo = true;
 			}
-
-			//
-			// UI instances (do not render here)
-			//
-			this.ui = new ArcadeMain(this.app, this);
-			this.header = new SaitoHeader(this.app, this);
-			await this.header.initialize(this.app);
-			this.header.header_class = 'arcade';
-			this.addComponent(this.header);
-			this.addComponent(this.ui);
 
 			this.lounge_overlay = new LoungeOverlay(this.app, this, null);
 			this.wizard_overlay = new GameWizard(this.app, this, null, {});
@@ -308,8 +295,16 @@ class Arcade extends ModTemplate {
 		}
 	}
 
-
 	async render(mode = null, data = {}) {
+		//
+		// UI instances (do not render here)
+		//
+		this.ui = new ArcadeMain(this.app, this);
+		this.header = new SaitoHeader(this.app, this);
+		await this.header.initialize(this.app);
+		this.header.header_class = 'arcade';
+		this.addComponent(this.header);
+		this.addComponent(this.ui);
 
 		//
 		// add chat manager
@@ -325,7 +320,7 @@ class Arcade extends ModTemplate {
 		}
 
 		//
-		// 
+		//
 		//
 		await super.render();
 
@@ -337,7 +332,6 @@ class Arcade extends ModTemplate {
 			}
 			return;
 		}
-
 	}
 
 	//
@@ -402,7 +396,7 @@ class Arcade extends ModTemplate {
 					rank: 10,
 					type: 'quicklaunch',
 					callback: function (app, id) {
-            					navigateWindow(`/arcade`);
+						navigateWindow(`/arcade`);
 					},
 					navigation: '/arcade'
 				});
@@ -442,7 +436,6 @@ class Arcade extends ModTemplate {
 
 		return super.respondTo(type, obj);
 	}
-
 
 	async createPseudoTransaction(game) {
 		let game_tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
@@ -610,7 +603,6 @@ class Arcade extends ModTemplate {
 		this.render('lounge_overlay', { invite_data: invite.invite_data });
 	}
 
-
 	////////////////////////////////////////////////////
 	// NETWORK FUNCTIONS -- sending and receiving TXS //
 	////////////////////////////////////////////////////
@@ -620,14 +612,12 @@ class Arcade extends ModTemplate {
 	////////////////////////////////////////////////////
 
 	async onConfirmation(blk, tx, conf) {
-
 		let txmsg = tx.returnMessage();
 		let arcade_self = this.app.modules.returnModule('Arcade');
 
 		if (Number(conf) == 0) {
-
-console.log("INTO ONCONFIRMATION IN ARCADE...");
-console.log(JSON.stringify(txmsg));
+			console.log('INTO ONCONFIRMATION IN ARCADE...');
+			console.log(JSON.stringify(txmsg));
 
 			try {
 				if (txmsg.module === 'Arcade') {
@@ -668,9 +658,8 @@ console.log(JSON.stringify(txmsg));
 						await arcade_self.receiveAcceptTransaction(tx);
 					}
 				} else {
-
-// console.log("ARCADE PROCESSING GAME MOVE: ");
-// console.log(tx.returnMessage());
+					// console.log("ARCADE PROCESSING GAME MOVE: ");
+					// console.log(tx.returnMessage());
 					if (txmsg.request === 'stopgame') {
 						await arcade_self.receiveCloseTransaction(tx);
 					}
@@ -691,7 +680,7 @@ console.log(JSON.stringify(txmsg));
 						if (step) {
 							step = String(step).padStart(5, '0');
 						}
-console.log("SAVING GAME MOVE: ");
+						console.log('SAVING GAME MOVE: ');
 						await this.app.storage.saveTransaction(
 							tx,
 							{ field4: txmsg.game_id, field5: step, field5_sort: 1 },
@@ -882,11 +871,11 @@ console.log("SAVING GAME MOVE: ");
 				message.data = tx.toJson();
 
 				this.app.network.sendRequestAsTransaction(
-          message.request,
-          message.data,
-          null,
-          peer.publicKey
-        );
+					message.request,
+					message.data,
+					null,
+					peer.publicKey
+				);
 			}
 		}
 	}
@@ -1179,7 +1168,6 @@ console.log("SAVING GAME MOVE: ");
 	}
 
 	async receiveJoinTransaction(tx) {
-
 		if (!tx || !tx.signature) {
 			return;
 		}
@@ -1203,10 +1191,9 @@ console.log("SAVING GAME MOVE: ");
 			return;
 		}
 
-    		if (game.state) {
-    		    	return;
-    		}
-
+		if (game.state) {
+			return;
+		}
 
 		//
 		// Don't add the same player twice!
@@ -1273,7 +1260,9 @@ console.log("SAVING GAME MOVE: ");
 			) {
 				let newtx = await this.createAcceptTransaction(game.tx);
 				if (!newtx) {
-					console.warn('ARCADE: createAcceptTransaction returned nothing; skipping propagate and lounge overlay');
+					console.warn(
+						'ARCADE: createAcceptTransaction returned nothing; skipping propagate and lounge overlay'
+					);
 					return;
 				}
 				this.app.network.propagateTransaction(newtx);
@@ -1380,7 +1369,10 @@ console.log("SAVING GAME MOVE: ");
 		// Use returnMessage() so we get the full message even if tx was deserialized (lazy .msg)
 		let txmsg = orig_tx.returnMessage();
 		if (!txmsg || !txmsg.players || txmsg.players.length === 0) {
-			console.error('ARCADE: createAcceptTransaction -- invalid or empty message from orig_tx', orig_tx.signature);
+			console.error(
+				'ARCADE: createAcceptTransaction -- invalid or empty message from orig_tx',
+				orig_tx.signature
+			);
 			return;
 		}
 		// Provide originator if missing: open-invite creator is always the first player
@@ -1412,11 +1404,17 @@ console.log("SAVING GAME MOVE: ");
 		let txmsg = tx.returnMessage();
 
 		if (!txmsg) {
-			console.error('ARCADE: receiveAcceptTransaction -- tx.returnMessage() is null; cannot initialize', tx?.signature);
+			console.error(
+				'ARCADE: receiveAcceptTransaction -- tx.returnMessage() is null; cannot initialize',
+				tx?.signature
+			);
 			return;
 		}
 		if (txmsg.originator == null || txmsg.originator === '') {
-			console.error('ARCADE: receiveAcceptTransaction -- originator missing in accept tx; refusing to pass to game engine', txmsg.game_id);
+			console.error(
+				'ARCADE: receiveAcceptTransaction -- originator missing in accept tx; refusing to pass to game engine',
+				txmsg.game_id
+			);
 			return;
 		}
 
@@ -1491,7 +1489,7 @@ console.log("SAVING GAME MOVE: ");
 		for (let id in this.games) {
 			let record = this.games[id];
 			if (record.tx.from[0].publicKey === pk) {
-				record.is_sender_reachable = (status === 'online');
+				record.is_sender_reachable = status === 'online';
 			}
 		}
 
@@ -1566,7 +1564,6 @@ console.log("SAVING GAME MOVE: ");
 		this.app.connection.emit('arcade-challenge-issued', tx);
 	}
 
-
 	///////////////////////////////
 	// "LOAD"ING AND RUNNING GAMES //
 	///////////////////////////////
@@ -1599,7 +1596,6 @@ console.log("SAVING GAME MOVE: ");
 		//Start Spinner
 		this.render('lounge_overlay', { game_id: opentx.signature });
 	}
-
 
 	addGame(tx, list = null) {
 		if (!tx || !tx.msg || !tx.signature) {
@@ -1653,7 +1649,9 @@ console.log("SAVING GAME MOVE: ");
 
 	returnGameTransaction(game_id) {
 		let record = this.returnGame(game_id);
-		if (record.tx) { return record.tx; }
+		if (record.tx) {
+			return record.tx;
+		}
 		return null;
 	}
 
@@ -1677,7 +1675,10 @@ console.log("SAVING GAME MOVE: ");
 		for (let id of Object.keys(this.games)) {
 			let record = this.games[id];
 			let g = record.tx;
-			if ((record.status === 'mine' || record.status === 'open') && g.timestamp < now - INVITE_CUTOFF) {
+			if (
+				(record.status === 'mine' || record.status === 'open') &&
+				g.timestamp < now - INVITE_CUTOFF
+			) {
 				this.removeGame(g.signature);
 				this.addGame(g, 'closed');
 			}
@@ -1799,9 +1800,7 @@ console.log("SAVING GAME MOVE: ");
 		return Object.values(this.games)
 			.filter(
 				(r) =>
-					r.status === 'mine' &&
-					this.isAvailableGame(r.tx) &&
-					this.publicKey == r.tx.msg.originator
+					r.status === 'mine' && this.isAvailableGame(r.tx) && this.publicKey == r.tx.msg.originator
 			)
 			.map((r) => r.tx.signature);
 	}
@@ -1857,9 +1856,7 @@ console.log("SAVING GAME MOVE: ");
 				let id = query_params?.game_id;
 				game_data =
 					Object.values(arcade_self.games).filter(
-						(r) =>
-							r.tx.game == game &&
-							arcade_self.app.crypto.hash(r.tx.signature).slice(-6) === id
+						(r) => r.tx.game == game && arcade_self.app.crypto.hash(r.tx.signature).slice(-6) === id
 					)[0]?.tx ?? null;
 
 				// console.log('WEBSERVER ARCADE GAME DATA --- ', game_data);
@@ -1873,7 +1870,6 @@ console.log("SAVING GAME MOVE: ");
 			}
 			return;
 		});
-
 	}
 
 	_showReadyPopup(game_details) {
@@ -2043,17 +2039,18 @@ console.log("SAVING GAME MOVE: ");
 					"Haven't received confirmation of your game invite. Please check your network connections."
 				);
 			}, 10000);
-
 		}
 	}
 
-
 	async observeGame(game_id, watch_live = false) {
-		console.log('[OBS_TRACE] Arcade.observeGame()', { game_id: game_id?.substring?.(0, 12), watch_live });
+		console.log('[OBS_TRACE] Arcade.observeGame()', {
+			game_id: game_id?.substring?.(0, 12),
+			watch_live
+		});
 
 		let game = this.returnGame(game_id);
 		let game_tx = game?.tx;
-	
+
 		if (!game) {
 			console.error('ARCADE: [observeGame] -- Game not found!');
 			return;
