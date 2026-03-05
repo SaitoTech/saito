@@ -46,6 +46,14 @@ class AssetStoreMain {
 			console.log('assetstore-render-listings');
 			this.renderListings();
 		});
+
+		this.app.connection.on('assetstore-new-user-listing', () => {
+			if (this.view !== this.mod.publicKey) {
+				document
+					.querySelector(`.saito-store-page-tab[data-pkey="${this.mod.publicKey}"]`)
+					.classList.add('flashing-tab');
+			}
+		});
 	}
 
 	render() {
@@ -288,10 +296,10 @@ class AssetStoreMain {
 		}
 
 		// Show active tab (in sidebar)
-		if (document.querySelector(`.saito-store-page-tab[data-pkey="${this.view}"]`)) {
-			document
-				.querySelector(`.saito-store-page-tab[data-pkey="${this.view}"]`)
-				.classList.add('store-active-tab');
+		let current_tab = document.querySelector(`.saito-store-page-tab[data-pkey="${this.view}"]`);
+		if (current_tab) {
+			current_tab.classList.add('store-active-tab');
+			current_tab.classList.remove('flashing-tab');
 		}
 
 		const listings_to_render = this.mod.filterListings([this.view]);

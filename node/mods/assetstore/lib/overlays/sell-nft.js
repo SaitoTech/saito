@@ -17,13 +17,18 @@ class SellNFTOverlay extends NFTDetailsOverlay {
       document.querySelector('.saito-nft-footer-btn.send-nft').style.display = 'flex';
     }
 
+    let key = this.app.keychain.returnKey(this.mod.publicKey);
+
     let html = `
         <div id='transfer-info-panel' class="saito-nft-description">
           <h2 class="saito-nft-mode-title">List NFT for sale</h2>
-          <div class="assetstore-nft-listing-inputs-price">
-            <input type="text" placeholder="sale price (SAITO)" id="nft-buy-price" autocomplete="off" inputmode="decimal" pattern="^[0-9]+(\.[0-9]{1,8})?$" title="Enter a decimal amount up to 8 decimals (min 0.00000001, max 100000000)" style="width: 100%; box-sizing: border-box;" />
+          <div class="listing-inputs">
+            <input type="text" placeholder="sale price (SAITO)" id="nft-buy-price" autocomplete="off" inputmode="decimal" pattern="^[0-9]+(\.[0-9]{1,8})?$" title="Enter a decimal amount up to 8 decimals (min 0.00000001, max 100000000)" />
           </div>
-          <textarea id="nft-buy-description" autocomplete="off" title="" style="height:80px; width: 100%; box-sizing: border-box;" placeholder="${this.nft.description || 'description (optional)'}"></textarea>
+          <div class="listing-inputs">
+            <input id="seller-email" type="email" value="${key?.email || ''}" placeholder="email (optional)"></input>
+          </div>
+          <textarea id="nft-buy-description" autocomplete="off" title="" rows="4"  placeholder="${this.nft.description || 'description (optional)'}"></textarea>
         </div>
     `;
 
@@ -137,6 +142,11 @@ class SellNFTOverlay extends NFTDetailsOverlay {
         this.nft.deposit = split_nft.slip2.amount;
       }
 
+      let email = document.getElementById('seller-email')?.value || '';
+      if (email) {
+        this.app.keychain.addKey(this.mod.publicKey, { email });
+      }
+
       // appear responsive...
       console.log('sell-nft: update ui');
       this.overlay.close();
@@ -160,6 +170,7 @@ class SellNFTOverlay extends NFTDetailsOverlay {
             receiver: this.mod.assetStore.publicKey,
             reserve_price: buy_price_num,
             title,
+            email,
             description,
             nft_tx: nfttx.serialize_to_web(this.app)
           };
@@ -182,6 +193,7 @@ class SellNFTOverlay extends NFTDetailsOverlay {
           await this.app.network.propagateTransaction(newtx);
           console.log('New pseudo_record:', pseudo_record);
           this.app.connection.emit('assetstore-render-listings');
+          this.app.connection.emit('assetstore-new-user-listing');
         } catch (err) {
           console.error(err);
           salert('Failed to list: ' + (err?.message || err));

@@ -120,6 +120,21 @@ select.saito-store-explorer-mobile option {
   color: var(--saito-font-color-heavy);
 }
 
+.flashing-tab {
+  transition: 0.2s all;
+  animation: flashing-tab 1.2s infinite;
+}
+
+@keyframes flashing-tab {
+  0%,
+  100% {
+    background-color: inherit;
+  }
+  50% {
+    background-color: var(--saito-highlight-heavy);
+  }
+}
+
 .store-absolute-icon {
   position: absolute;
   height: 5rem;

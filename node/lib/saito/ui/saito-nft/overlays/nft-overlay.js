@@ -19,10 +19,6 @@ class NFTOverlay {
     //
     this.nft = null;
 
-    this.MAX_NFT_ATOMIZE_PER_TX = 20;
-    this.MAX_NFT_ATOMIZE_TOTAL = 100;
-    this.MAX_NFT_ATOMIZE_TX_PER_BLOCK = 5;
-
     if (attach_events == true) {
       app.connection.on('saito-nft-details-render-request', (nft) => {
         this.render(nft);

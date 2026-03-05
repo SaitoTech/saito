@@ -450,6 +450,7 @@ class AssetStore extends ModTemplate {
 		let title = opt.title;
 		let description = opt.description;
 		let nft = opt.nft_tx;
+		let email = opt.email || '';
 
 		//
 		// create the wrapper transaction
@@ -464,7 +465,8 @@ class AssetStore extends ModTemplate {
 				reserve_price,
 				title,
 				description,
-				nft
+				nft,
+				email
 			}
 		};
 
@@ -908,8 +910,41 @@ class AssetStore extends ModTemplate {
 			await payout_tx.sign();
 			this.app.network.propagateTransaction(payout_tx);
 			await this.addTransaction(nfttx_sig, 3, payout_tx, blk);
+			this.notifySeller(listing);
 		} catch (e) {
 			// console.error('Seller payout failed:', e);
+		}
+	}
+
+	async notifySeller(listing) {
+		let sql = `SELECT email from listings WHERE nfttx_sig = $nfttx_sig`;
+		let params = { $nfttx_sig: listing.nfttx_sig };
+		let res = await this.app.storage.queryDatabase(sql, params, this.dbname);
+
+		let email = null;
+		if (res.length) {
+			console.log(res);
+			email = res[0].email;
+		}
+
+		if (email) {
+			let emailtext = `
+            <div>
+	            <h2>Congratulations on the Sale</h2>
+	            <p>Item: ${listing.title} </p>
+		        <p>Description: ${listing.description} </p>
+		        <p>Price: ${listing.reserve_price}</p>
+	        </div>
+            `;
+
+			this.app.connection.emit('mailrelay-send-email', {
+				to: email,
+				from: 'Saito AssetStore <info@saito.tech>',
+				subject: 'Item Sold!',
+				html: emailtext,
+				ishtml: true,
+				bcc: 'assetstore@saito.tech'
+			});
 		}
 	}
 
@@ -1108,11 +1143,12 @@ class AssetStore extends ModTemplate {
 		let created_at = new Date().getTime();
 		let reserve_price = txmsg.data.reserve_price;
 		let title = txmsg?.data?.title || '';
+		let email = txmsg?.data?.email || '';
 		let description = txmsg?.data?.description || '';
 
 		let sql = `
-		  INSERT INTO listings (nft_id, nfttx_sig, status, seller, buyer, reserve_price, title, description)
-		  VALUES ($nft_id, $nfttx_sig, $status, $seller, $buyer, $reserve_price, $title, $description)
+		  INSERT INTO listings (nft_id, nfttx_sig, status, seller, email, buyer, reserve_price, title, description)
+		  VALUES ($nft_id, $nfttx_sig, $status, $seller, $email, $buyer, $reserve_price, $title, $description)
 		`;
 		let params = {
 			$nft_id: nft.id,
@@ -1121,6 +1157,7 @@ class AssetStore extends ModTemplate {
 			$seller: seller,
 			$buyer: '',
 			$title: title,
+			$email: email,
 			$description: description,
 			$reserve_price: reserve_price ?? null
 		};
