@@ -365,7 +365,7 @@ class GameObserver {
     this._clampViewingIndex();
     this.hud.updateUIState();
 
-    this.game_mod.game.status = `Paused at move ${this._viewingIndex + 1}. Click Play to continue.`;
+    this.shadow_status = `Paused at move ${this._viewingIndex + 1}. Click Play to continue.`;
   }
 
   updateStep(step) {
@@ -598,7 +598,7 @@ class GameObserver {
         mod.saveFutureMoves(g.id);
         mod.saveGame(g.id);
 
-        if (new_moves == 0) {
+        if (new_moves === 0 && this.all_moves.length === 0) {
           this.updateSyncStatus('No moves found in game archive.');
         }
 
