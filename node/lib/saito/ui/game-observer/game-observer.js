@@ -143,6 +143,12 @@ class GameObserver {
     if (!this.game_mod) {
       return;
     }
+    console.log('[OBS_DIAG] runQueue invoked', {
+      queue: this.game_mod?.game?.queue?.slice(),
+      queue_length: this.game_mod?.game?.queue?.length || 0,
+      future_length: this.game_mod?.game?.future?.length || 0,
+      step_game: this.game_mod?.game?.step?.game
+    });
     this.game_mod.startQueue();
   }
 
@@ -248,6 +254,7 @@ class GameObserver {
     if (this._observer_poll_interval == null) {
       this._observer_poll_interval = setInterval(() => {
         if (!this.game_mod?.game) return;
+        console.log('[OBS_DIAG] observer polling archive');
         this.downloadMoves();
       }, 30000);
     }
@@ -509,6 +516,7 @@ class GameObserver {
     const mod = this.game_mod;
 
     this.replay_active = true;
+    this.updateSyncStatus('Checking archive for game transactions...');
 
     //
     // purge unneeded transactions
@@ -571,6 +579,11 @@ class GameObserver {
 
               if (!g.future.includes(ftx)) {
                 g.future.push(ftx);
+                console.log('[OBS_DIAG] archive inserted future move', {
+                  step: loaded_step,
+                  queue_snapshot: g.queue?.slice(),
+                  future_length_now: g.future.length
+                });
                 new_moves++;
               }
             }
@@ -590,6 +603,14 @@ class GameObserver {
           }
         }
 
+        console.log('[OBS_DIAG] archive processing complete', {
+          new_moves,
+          queue_length: g.queue?.length || 0,
+          queue_snapshot: g.queue?.slice(),
+          future_length: g.future?.length || 0,
+          engine_step: g.step?.game
+        });
+
         console.info(
           `GT [observer] Found ${new_moves} future moves in archives. Initializing? `,
           g.initializing
@@ -606,7 +627,15 @@ class GameObserver {
           this.initial_queue_run = true;
           await this.runQueue();
         } else if (new_moves > 0) {
-          await this.runQueue();
+
+          if (this.game_mod?.game) {
+            this.game_mod.game.halted = 0;
+          }
+
+          if (typeof this.game_mod.processFutureMoves === "function") {
+            await this.game_mod.processFutureMoves();
+          }
+
         }
       }
     );
