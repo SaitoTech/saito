@@ -64,6 +64,10 @@ class GameObserver {
     this.archive_fetch_completed = false;
     this.initial_queue_run = false;
 
+    this.observer_buffer = [];
+    this.buffer_release_interval = null;
+    this.buffer_release_speed = 1000;
+
     this.shadow_status = '';
 
     this.loader = new GameObserverLoader(app, game_mod, '');
@@ -224,11 +228,60 @@ class GameObserver {
   updateStatus(str) {
     try {
       const raw = typeof str === 'string' ? str : (str && String(str)) || '';
-      this.shadow_status = raw.replace(/<[^>]*>/g, '').trim() || this.shadow_status;
+      const stripped = raw.replace(/<[^>]*>/g, '').trim();
+      if (stripped.toLowerCase() !== 'advanced one move') {
+        this.shadow_status = stripped || this.shadow_status;
+      }
       this.hud.updateUIState();
     } catch (err) {
       console.error(err);
     }
+  }
+
+  startBufferReleaseLoop() {
+    if (this.buffer_release_interval) return;
+
+    this.buffer_release_interval = setInterval(async () => {
+      if (!this.observer_buffer.length) return;
+      if (this._paused) return;
+
+      const g = this.game_mod?.game;
+      const mod = this.game_mod;
+
+      if (!g || !mod) return;
+
+      const next_tx = this.observer_buffer.shift();
+
+      if (!g.future) g.future = [];
+
+      g.future.push(next_tx);
+
+      if (typeof mod.processFutureMoves === "function") {
+        mod.halted = 0;
+        await mod.processFutureMoves();
+      }
+    }, this.buffer_release_speed);
+  }
+
+  enqueueObserverMove(tx) {
+    this.observer_buffer.push(tx);
+
+    this.observer_buffer.sort((a, b) => {
+      try {
+        const ta = new Transaction();
+        const tb = new Transaction();
+
+        ta.deserialize_from_web(this.app, a);
+        tb.deserialize_from_web(this.app, b);
+
+        const sa = ta.returnMessage()?.step?.game || 0;
+        const sb = tb.returnMessage()?.step?.game || 0;
+
+        return sa - sb;
+      } catch (err) {
+        return 0;
+      }
+    });
   }
 
   async finishLoading() {
@@ -342,9 +395,16 @@ class GameObserver {
 
     this.is_replaying = true;
 
+    this.loader.render();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
     this.game_mod.game = JSON.parse(JSON.stringify(this.baseline_state));
     this.game_mod.game.queue = [];
     this.game_mod.game.future = [];
+
+    if (typeof this.game_mod.render === "function") {
+      this.game_mod.render();
+    }
 
     for (let i = 0; i <= clamped && i < this.all_moves.length; i++) {
       const tx = this.all_moves[i];
@@ -355,6 +415,7 @@ class GameObserver {
 
     if (!this.game_mod.game.future) this.game_mod.game.future = [];
 
+    this.game_mod.halted = 0;
     await this.game_mod.startQueue();
 
     this.is_replaying = false;
@@ -373,13 +434,16 @@ class GameObserver {
     this.hud.updateUIState();
 
     this.shadow_status = `Paused at move ${this._viewingIndex + 1}. Click Play to continue.`;
+
+    const overlayEl = document.body.querySelector('#observer-sync-overlay');
+
+    setTimeout(() => {
+      const el = document.body.querySelector('#observer-sync-overlay');
+      if (el) el.remove();
+    }, 500);
   }
 
   updateStep(step) {
-    // Canonical append: only when engine just added a move (addNextMove → updateStep) and not replaying
-    if (!this.is_replaying && this.game_moves.length > 0) {
-      this.all_moves.push(this.game_moves[this.game_moves.length - 1]);
-    }
     console.log('updateStep:', {
       is_replaying: this.is_replaying,
       game_moves_length: this.game_moves.length,
@@ -441,6 +505,7 @@ class GameObserver {
       await this.replayToIndex(this.all_moves.length - 1);
     }
     this._paused = false;
+    this.startBufferReleaseLoop();
     const gameStatus = this.game_mod?.game?.status;
     if (typeof gameStatus === 'string' && gameStatus.trim()) {
       this.shadow_status = gameStatus.replace(/<[^>]*>/g, '').trim();
@@ -578,7 +643,39 @@ class GameObserver {
               let ftx = tx.serialize_to_web(this.app);
 
               if (!g.future.includes(ftx)) {
+
+                // Add to canonical observer history immediately
+                const tx_obj = new Transaction();
+                tx_obj.deserialize_from_web(this.app, ftx);
+
+                const step = tx_obj.returnMessage()?.step?.game || 0;
+                const sig = tx.signature;
+
+                const alreadyKnown = this.all_moves.some((m) => {
+                  try {
+                    const t = new Transaction();
+                    t.deserialize_from_web(this.app, m);
+                    return t.signature === sig;
+                  } catch (err) {
+                    return false;
+                  }
+                });
+
+                if (!alreadyKnown) {
+                  this.all_moves.push(ftx);
+                  this.all_moves.sort((a, b) => {
+                    const ta = new Transaction();
+                    const tb = new Transaction();
+                    ta.deserialize_from_web(this.app, a);
+                    tb.deserialize_from_web(this.app, b);
+                    const sa = ta.returnMessage()?.step?.game || 0;
+                    const sb = tb.returnMessage()?.step?.game || 0;
+                    return sa - sb;
+                  });
+                }
+
                 g.future.push(ftx);
+
                 console.log('[OBS_DIAG] archive inserted future move', {
                   step: loaded_step,
                   queue_snapshot: g.queue?.slice(),
