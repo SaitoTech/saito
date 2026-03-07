@@ -628,12 +628,9 @@ class GameObserver {
           await this.runQueue();
         } else if (new_moves > 0) {
 
-          if (this.game_mod?.game) {
-            this.game_mod.game.halted = 0;
-          }
-
-          if (typeof this.game_mod.processFutureMoves === "function") {
-            await this.game_mod.processFutureMoves();
+          if (typeof mod.processFutureMoves === "function") {
+            mod.halted = 0;
+            await mod.processFutureMoves();
           }
 
         }
