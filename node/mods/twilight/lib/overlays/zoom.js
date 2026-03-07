@@ -8,7 +8,7 @@ class ZoomOverlay {
     this.mod = mod;
     this.visible = false;
     this.overlay = new SaitoOverlay(app, mod, false, false, false);
-    this.callback_on_close = () => { this.visible = false; }
+    this.overlay.callback_on_close = () => { this.visible = false; }
 
     //
     // optional callback when selecting spaces via zoom

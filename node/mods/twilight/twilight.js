@@ -6640,7 +6640,10 @@ try {
 } catch (err) { console.log("error updating round: " + JSON.stringify(err)); }
 
       // this can trigger bug if open End-of-Turn, throws error, thus last
-      if (this.zoom_overlay && this.zoom_overlay.visible) {
+      if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
+console.log("ZOOM OVERLAY VISIBLE: " + this.zoom_overlay.visible);
+console.log("SAITO OVERLAY INSIDE VISIBLE: " + this.zoom_overlay.overlay.visible);
+console.log("rendering!");
         this.zoom_overlay.render();
       }
 
