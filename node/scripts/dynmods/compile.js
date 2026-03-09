@@ -252,6 +252,12 @@ async function runSingle(zipPath, slugArg) {
 }
 
 async function run() {
+  if (process.argv[2] === 'deploy') {
+    const deploySh = path.join(__dirname, 'deploy.sh');
+    execSync(`bash "${deploySh}"`, { cwd: PROJECT_ROOT, stdio: 'inherit' });
+    return;
+  }
+
   await initSaitoJsForCompile();
 
   const single = parseArgs();
