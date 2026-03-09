@@ -129,6 +129,7 @@ function parseArgs() {
 async function compileOne(zipFileName) {
   const zipPath = path.join(ZIP_DIR, zipFileName);
   const directory = await unzipper.Open.file(zipPath);
+  console.log("one directory: ", directory);
 
   let metadata;
   try {
@@ -148,16 +149,17 @@ async function compileOne(zipFileName) {
     fs.mkdirSync(TMP_MOD, { recursive: true });
   }
   await directory.extract({ path: TMP_MOD });
+  console.log("two TMP_MOD extracted: ", TMP_MOD);
 
   const entryPath = path.join(TMP_MOD, appPath);
-
+  console.log("three entryPath: ", entryPath);
+ 
   if (!fs.existsSync(entryPath)) {
     throw new Error(`Entry point not found: ${entryPath}`);
   }
 
   try {
-    const entry = appPath.replace(`${slug}/`, '');
-    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
+    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${appPath}`, {
       cwd: PROJECT_ROOT,
       stdio: 'pipe',
       maxBuffer: 10 * 1024 * 1024,
@@ -200,6 +202,7 @@ async function runSingle(zipPath, slugArg) {
   let slug;
   try {
     const directory = await unzipper.Open.file(zipPath);
+    console.log("directory: ", directory);
     let metadata;
     try {
       metadata = await getMetadataFromZip(zipPath);
@@ -214,8 +217,7 @@ async function runSingle(zipPath, slugArg) {
     await directory.extract({ path: TMP_MOD });
     const entryPath = path.join(TMP_MOD, appPath);
     if (!fs.existsSync(entryPath)) throw new Error(`Entry point not found: ${entryPath}`);
-    const entry = appPath.replace(`${slug}/`, '');
-    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
+    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${appPath}`, {
       cwd: PROJECT_ROOT,
       stdio: 'pipe',
       maxBuffer: 10 * 1024 * 1024,
@@ -277,6 +279,7 @@ async function run() {
     try {
       const zipPath = path.join(ZIP_DIR, zipFile);
       const directory = await unzipper.Open.file(zipPath);
+      console.log("two directory: ", directory);
       const metadata = await getMetadataFromZip(zipPath);
       slug = (metadata.slug || '').trim();
     } catch (e) {

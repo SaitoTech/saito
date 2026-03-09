@@ -9,6 +9,9 @@ PROJECT_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
 SOURCE_DIR="${PROJECT_DIR}/mods"
 TARGET_DIR="${PROJECT_DIR}/dist/mods/zip"
 
+echo "SOURCE_DIR: $SOURCE_DIR"
+echo "TARGET_DIR: $TARGET_DIR"
+
 mkdir -p "$TARGET_DIR"
 
 for dir in "$SOURCE_DIR"/*; do
