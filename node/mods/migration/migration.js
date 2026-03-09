@@ -498,7 +498,7 @@ class Migration extends ModTemplate {
       //  hash: 'ce23e0df0c53a9605834101d71d89fcf84cf3f52757850856ca9074ba9a63017'
 
       if (txmsg.module !== this.wrapped_saito_ticker) {
-        this.notifyTeam(txmsg, tx_sender, 0, 'Received unexpected crypto payment!!');
+        this.notifyTeam(txmsg, tx_sender, false, 'Received unexpected crypto payment!!');
         console.error('Processing a crypto transfer tx for something other than ERC-SAITO!!');
         return;
       }
@@ -621,6 +621,7 @@ class Migration extends ModTemplate {
     if (this.app.BROWSER) {
       return;
     }
+    console.log('Migration onNEWBLOCK');
     if (this.pending_payments?.length) {
       for (let i = 0; i < this.pending_payments.length; i++) {
         if (this.pending_payments[i].status == 'pending') {
@@ -644,10 +645,12 @@ class Migration extends ModTemplate {
             })
             .catch((err) => {
               if (sm.pending_balance && sm.pending_balance > amount) {
-                console.info('...but this should clear in a minute... keep active in queue');
+                console.info(
+                  '666.777 --- insufficient slips to migrate SAITO keep active in queue'
+                );
               } else {
                 this.notifyTeam(data_for_email, saitozen_key, 0, err);
-                console.error(err);
+                console.error('666.777 --- ', err);
                 pp.status = 'failed';
                 this.sendFailureNotification(saitozen_key);
                 this.updatePayment(pp);
@@ -685,12 +688,14 @@ class Migration extends ModTemplate {
    */
   async notifyTeam(data, pk, result, msg) {
     let emailtext;
+    let subject = `Saito Token Automated Migration Alert`;
 
     // 2 -> Whole process confirmed onChain, tokens migrated!
     if (result == 2) {
       let x = await this.app.wallet.getBalance();
       let y = this.app.wallet.convertNolanToSaito(x);
 
+      subject += ' (Complete!)';
       emailtext = `
           <div>
               <p>Saito Automated Migration Complete!</p>
@@ -702,7 +707,7 @@ class Migration extends ModTemplate {
              </div>
             `;
 
-      if (Number(y) < 500000) {
+      if (Number(y) < this.MAX_DEPOSIT) {
         this.sendLowBalanceEmail(Number(y));
       }
     } else {
@@ -720,17 +725,24 @@ class Migration extends ModTemplate {
 
       // 1 -> sent tokens to Saitozen, but not confirmed
       if (result) {
+        subject += ' (Success!)';
         emailtext += `<p>Disbursing SAITO!</p></div>`;
       } else {
+        if (result === false) {
+          subject += ' (Warning)';
+        } else {
+          subject += ' (Error)';
+        }
         // Something went wrong!!!
         emailtext += `<p>Error: ${msg}</p></div>`;
       }
     }
 
+    console.info('666.777 --- Sending Notification Email');
     this.app.connection.emit('mailrelay-send-email', {
       to: 'migration@saito.tech',
       from: 'Saito Token Migration <info@saito.tech>',
-      subject: `Saito Token Automated Migration Alert (${result ? 'Success!' : 'Error!'})`,
+      subject,
       html: emailtext,
       ishtml: true,
       bcc: 'migration@saito.io'
@@ -738,6 +750,7 @@ class Migration extends ModTemplate {
   }
 
   sendLowBalanceEmail(balance) {
+    console.info('666.777 --- Sending Low Balance Email');
     this.app.connection.emit('mailrelay-send-email', {
       to: 'migration@saito.tech',
       from: 'Saito Token Migration <info@saito.tech>',

@@ -1016,11 +1016,15 @@ pub async fn process_msg_buffer_from_peer(
     let wallet = saito.context.wallet_lock.clone();
     let configs = saito.context.config_lock.clone();
     let timer = saito.routing_thread.timer.clone();
-    let services = saito.routing_thread.network.io_interface.get_my_services();
+    // let services = saito.routing_thread.network.io_interface.get_my_services();
+    let network_peer = peer.get_peer_mut();
+    let services = if network_peer.is_connected() {
+        vec![]
+    } else {
+        saito.routing_thread.network.io_interface.get_my_services()
+    };
     drop(saito);
     drop(saito1);
-
-    let network_peer = peer.get_peer_mut();
 
     trace!("buffer size : {}", buffer.len());
     let buffer = network_peer

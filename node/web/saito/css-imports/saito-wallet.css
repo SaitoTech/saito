@@ -523,9 +523,11 @@
   display: none;
 }
 
-.create-nft-deposit {
-  cursor: pointer;
-}
+/********************************************
+ * 
+ * Older (but still used) NFT stuff
+ * 
+ ********************************************/
 
 .create-nft-btn {
   margin-left: auto;
@@ -559,50 +561,9 @@
   justify-content: space-between;
 }
 
-.user-slips {
-  width: 18rem;
-  font-size: 1.5rem;
-  padding: 1rem 0.5rem;
-}
-
-.slip-info {
-  padding: 1rem;
-  background: var(--saito-background-color);
-  display: flex;
-  justify-content: space-between;
-}
-
-.right-section {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.input-div {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-#nfts-deposit {
-  width: 65rem;
-  height: 5rem;
-}
-
 .nft-list {
   min-height: 24rem;
   user-select: none;
-}
-
-.nft-list-container > .right-section {
-  min-width: 50rem;
-  gap: 2rem;
-}
-
-.nft-list-container > .right-section > .nft-receiver {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
 }
 
 .nft-image-preview {
@@ -682,81 +643,6 @@ textarea {
   font-size: 1.6rem;
 }
 
-.utxo-div {
-  display: flex;
-  flex-direction: row;
-  width: 45rem;
-  gap: 1rem;
-  align-items: center;
-}
-
-.utxo-div.send-nft {
-  gap: 2rem;
-  width: auto;
-  flex-direction: column;
-}
-
-#utxo-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.slip-info .metric {
-  text-align: left;
-}
-
-.utxo-div.send-nft {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.send-nft-left-row {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.send-nft-right-row {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: fit-content;
-  align-self: center;
-}
-
-.send-nft-id,
-.send-nft-create-by {
-  white-space: normal;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-  word-break: break-all;
-  display: inline-block;
-}
-
-.send-nft-id {
-  letter-spacing: 0.1rem;
-}
-
-.send-nft-create-by > .saito-user > .saito-userline {
-  width: 10rem;
-}
-
-.send-nft-create-by > .saito-user {
-  margin-right: -1rem;
-}
-
-.send-nft-details {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-}
-
-.send-nft-deposit {
-  width: fit-content;
-}
-
 .send-nft-list {
   max-height: min(76rem, 85vh);
   overflow-y: scroll;
@@ -767,10 +653,6 @@ textarea {
   width: max-content;
   max-width: 94rem; /* fits 4 nfts wide */
   /* 4: 94rem, 3: 70rem */
-}
-
-#send-nft-wait-msg {
-  color: var(--saito-gray-750);
 }
 
 /*
@@ -909,11 +791,6 @@ textarea {
   border: 1px solid var(--saito-border-color-dark);
 }
 
-.split-bar {
-  width: 5px;
-  position: relative;
-}
-
 .split-half {
   display: flex;
   align-items: center;
@@ -927,11 +804,6 @@ input.split-half {
   height: 100%;
   border-radius: unset;
   text-align: center;
-}
-
-.split-bar > .resize-icon.horizontal {
-  background-color: var(--saito-primary);
-  height: 5rem;
 }
 
 /* 
@@ -1086,16 +958,6 @@ nft cards
   height: 100%;
 }
 
-.nft-details-container {
-  width: 750px;
-  max-width: 95vw;
-  min-height: 80vh;
-  padding: 1rem;
-  gap: 1rem;
-  display: grid;
-  grid-template-rows: min-content auto min-content;
-}
-
 .nft-details-data > .nft-card-img {
   background-size: contain;
   border-radius: var(--saito-border-radius);
@@ -1180,61 +1042,10 @@ nft cards
   padding: 1rem;
 }
 
-.nft-details-container .nft-card-text {
-  overflow-x: hidden;
-  overflow-y: scroll;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-size: 1.6rem;
-  padding: 0.5rem;
-}
-
-.nft-details-section {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.nft-details-section.left-justify {
-  align-items: flex-start;
-}
-
-.nft-details-section-title {
-  font-size: 1.3rem;
-  font-family: var(--saito-font-heavy);
-}
-
 .nft-details-row {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-}
-
-.nft-details-section-content {
-  text-align: center;
-  display: flex;
-  gap: 1rem;
-}
-
-.nft-details-id-cont {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  overflow: hidden;
-}
-
-.nft-details-id {
-  word-wrap: break-word;
-  white-space: pre-wrap; /* respects line breaks AND allows wrapping */
-  word-break: break-word; /* breaks long strings like utxo_key */
-}
-
-#nft-details-split-bar {
-  height: 4rem;
-  width: 100%;
-  position: relative;
-  display: block;
 }
 
 @keyframes spin {
@@ -1286,12 +1097,6 @@ nft cards
   .send-nft-list {
     width: unset;
     justify-content: center;
-  }
-
-  .nft-details-container {
-    width: 95vw;
-    max-height: 95vh;
-    overflow-y: scroll;
   }
 
   .nft-details-data {

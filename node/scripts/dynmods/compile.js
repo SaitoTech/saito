@@ -6,11 +6,23 @@ const Module = require('module');
 const originalResolveFilename = Module._resolveFilename;
 
 Module._resolveFilename = function (request, parent, isMain, options) {
+
   if (request.startsWith('saito-js/lib/')) {
-    request = request.replace('saito-js/lib/', 'saito-js/dist/lib/');
+
+    // try normal npm layout first
+    try {
+      return originalResolveFilename.call(this, request, parent, isMain, options);
+    } catch (err) {
+
+      // fallback to legacy dist layout
+      const alt = request.replace('saito-js/lib/', 'saito-js/dist/lib/');
+      return originalResolveFilename.call(this, alt, parent, isMain, options);
+    }
   }
+
   return originalResolveFilename.call(this, request, parent, isMain, options);
 };
+
 
 
 /**
@@ -138,12 +150,14 @@ async function compileOne(zipFileName) {
   await directory.extract({ path: TMP_MOD });
 
   const entryPath = path.join(TMP_MOD, appPath);
+
   if (!fs.existsSync(entryPath)) {
     throw new Error(`Entry point not found: ${entryPath}`);
   }
 
   try {
-    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${appPath}`, {
+    const entry = appPath.replace(`${slug}/`, '');
+    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
       cwd: PROJECT_ROOT,
       stdio: 'pipe',
       maxBuffer: 10 * 1024 * 1024,
@@ -200,7 +214,8 @@ async function runSingle(zipPath, slugArg) {
     await directory.extract({ path: TMP_MOD });
     const entryPath = path.join(TMP_MOD, appPath);
     if (!fs.existsSync(entryPath)) throw new Error(`Entry point not found: ${entryPath}`);
-    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${appPath}`, {
+    const entry = appPath.replace(`${slug}/`, '');
+    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
       cwd: PROJECT_ROOT,
       stdio: 'pipe',
       maxBuffer: 10 * 1024 * 1024,

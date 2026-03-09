@@ -25,7 +25,7 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
     buy_with_saito_btn.innerHTML = 'Buy with Saito';
     buy_with_saito_btn.style.display = 'block';
 
-    let priceRaw = this.nft.getBuyPriceSaito(); // BigInt -- Saito
+    let priceRaw = BigInt(this.nft.getBuyPriceSaito()); // BigInt -- Saito
     let fee = BigInt(this.mod?.fee || 0);
 
     let total_price = this.app.wallet.convertSaitoToNolan(priceRaw + fee);
@@ -47,6 +47,7 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
         buy_with_saito_btn.classList.add('disabled-btn');
 
         buy_with_saito_btn.onclick = (e) => {
+          console.info('Wallet: ', wallet_balance, 'Price: ', total_price);
           salert('Insufficient SAITO in Wallet');
         };
       } else {

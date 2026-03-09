@@ -7,14 +7,8 @@ module.exports = (app, mod, nft) => {
     identicon = app.keychain.returnIdenticon(nft.id);
   }
 
-  let all_slips = nft.returnAllSlips();
-  let total_amount = 0;
-  for (let z = 0; z < all_slips.length; z++) {
-    total_amount += parseInt(all_slips[z].slip1.amount);
-  }
-
   let html = `
-      <div class="nft-card nfttxsig${nft.tx_sig}" id="nft-card-${nft.uuid}">
+      <div class="nft-card" id="nft-card-${nft.uuid}">
       <div class="nft-card-title">${nft.title}</div>
       <div class="nft-card-img"></div>
 
@@ -22,7 +16,7 @@ module.exports = (app, mod, nft) => {
             <div class="nft-card-details">
                <div class="nft-card-amount">
                   <div class="nft-card-info-title">Units</div>
-                  <div class="nft-card-info-amount">${total_amount}</div>
+                  <div class="nft-card-info-amount">${nft.getTotalAmount()}${nft.getSlipCount() > 1 ? ` / ${nft.getSlipCount()} ` : ''}</div>
                </div>
                <div class="nft-card-deposit">
                   <div class="nft-card-info-title">Type</div>

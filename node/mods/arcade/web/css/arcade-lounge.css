@@ -86,6 +86,12 @@
 	opacity: 0.9;
 }
 
+.arcade-lounge-message-game-id,
+.arcade-lounge-section-game-id-message .arcade-lounge-message {
+	font-size: 1.2rem;
+	text-align: center;
+}
+
 /* Invite variant: players grid */
 .arcade-lounge-players {
 	display: grid;

@@ -120,6 +120,21 @@ select.saito-store-explorer-mobile option {
   color: var(--saito-font-color-heavy);
 }
 
+.flashing-tab {
+  transition: 0.2s all;
+  animation: flashing-tab 1.2s infinite;
+}
+
+@keyframes flashing-tab {
+  0%,
+  100% {
+    background-color: inherit;
+  }
+  50% {
+    background-color: var(--saito-highlight-heavy);
+  }
+}
+
 .store-absolute-icon {
   position: absolute;
   height: 5rem;
@@ -136,6 +151,96 @@ select.saito-store-explorer-mobile option {
 
 .store-absolute-icon:hover {
   transform: translateY(-50%) rotate(45deg);
+}
+
+/* ==========================
+  Splash cover page
+ ========================== */
+.asset-store-splash {
+  position: absolute;
+  background: var(--saito-background-color);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  column-gap: min(4rem, 10vw);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  padding: min(4rem, 10vw);
+  align-content: center;
+  font-size: 2rem;
+  transition: opacity 1s ease-in;
+}
+
+.asset-store-splash.dissolve {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.store-img-flip {
+  width: 100%;
+  max-width: 800px;
+  max-height: 600px;
+  aspect-ratio: 1;
+  perspective: 1000px;
+  position: relative;
+}
+
+.store-img-front,
+.store-img-back {
+  position: absolute;
+  width: 100%;
+  height: auto;
+  backface-visibility: hidden;
+  border-radius: 1rem;
+  background: inherit;
+  overflow: hidden;
+  transition: transform 0.8s;
+}
+
+.store-img-front {
+  transform: rotateY(0deg);
+}
+
+.store-img-back {
+  transform: rotateY(180deg);
+  height: 100%;
+  background: inherit;
+  padding: 3rem;
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.store-img-flip:hover .store-img-front {
+  transform: rotateY(180deg);
+}
+
+.store-img-flip:hover .store-img-back {
+  transform: rotateY(0deg);
+}
+
+.store-img-back-content,
+.store-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.store-splash-content {
+  max-width: 400px;
+  display: flex;
+  padding: 1rem;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5rem;
+}
+
+.store-splash-content p {
+  font-size: 1.8rem;
+  line-height: 1.8;
 }
 
 @media screen and (max-width: 720px) {

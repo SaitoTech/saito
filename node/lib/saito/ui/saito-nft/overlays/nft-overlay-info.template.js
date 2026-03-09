@@ -1,13 +1,13 @@
-function formatSaito(nolan) {
-  const value = Number(nolan) / 100000000;
-  return value.toFixed(8).replace(/\.?0+$/, '');
-}
-
 module.exports = (app, mod, nft_overlay) => {
-  let can_merge = nft_overlay.can_merge;
-  let can_split = nft_overlay.can_split;
-  let all_slips = nft_overlay.all_slips || [];
+  let can_merge = false;
+  let all_slips = nft_overlay.nft.returnAllSlips() || [];
   let nft = nft_overlay.nft;
+
+  nft_overlay.all_slips = all_slips;
+
+  if (nft.getSlipCount() > 1 && mod.publicKey == nft.slip2.public_key) {
+    can_merge = true;
+  }
 
   // Extract NFT information
   let nft_id = nft?.id || 'N/A';
@@ -81,8 +81,13 @@ module.exports = (app, mod, nft_overlay) => {
 
   let splitUtxosHtml = '';
   let splitSlidersHtml = '';
-  // Generate slip boxes for all slips, not just when can_split
+
+  if (!all_slips.length) {
+    all_slips.push(nft_overlay.nft);
+  }
+
   if (all_slips.length > 0) {
+    // Generate slip boxes for all slips, not just when can_split
     for (let z = 0; z < all_slips.length; z++) {
       let utxoIdx = z + 1;
       let slip = all_slips[z];
@@ -97,9 +102,22 @@ module.exports = (app, mod, nft_overlay) => {
       }
 
       let amount = Number(slip.slip1.amount) || 0;
-      let splitButtonHtml = '';
-      if (amount > 1) {
+      let splitButtonHtml = '',
+        depositButtonHtml = '',
+        deleteButtonHtml = '';
+
+      //can delete
+      if (mod.publicKey == slip.slip2.public_key) {
+        deleteButtonHtml = `<div class="utxo-delete-btn" data-utxo-idx="${utxoIdx}">[ delete ]</div>`;
+      }
+
+      //can split!
+      if (amount > 1 && mod.publicKey == slip.slip2.public_key) {
         splitButtonHtml = `<div class="utxo-split-btn" data-utxo-idx="${utxoIdx}">[ split ]</div>`;
+      }
+
+      if (false && slip.slip2.public_key) {
+        depositButtonHtml = `<div class="utxo-deposit-btn" data-utxo-idx="${utxoIdx}">[ deposit ]</div>`;
       }
 
       splitUtxosHtml += `
@@ -114,10 +132,11 @@ module.exports = (app, mod, nft_overlay) => {
           </div>
           <div class="nft-slip-box-row">
             <div class="nft-slip-box-label">deposit:</div>
-            <div class="nft-slip-box-value">${formatSaito(slip.slip2.amount)} SAITO</div>
+            <div class="nft-slip-box-value">${app.wallet.convertNolanToSaito(slip.slip2.amount)} SAITO</div>
           </div>
           <div class="nft-slip-box-actions">
-            <div class="utxo-deposit-btn" data-utxo-idx="${utxoIdx}">[ deposit ]</div>
+            ${deleteButtonHtml}
+            ${depositButtonHtml}
             ${splitButtonHtml}
           </div>
         </div>
@@ -176,7 +195,6 @@ module.exports = (app, mod, nft_overlay) => {
       <div class="saito-nft-split-utxo"></div>
       <div class="saito-nft-panel-footer">
         ${mergeButtonHtml}
-        <button class="saito-nft-footer-btn saito-nft-delete-btn">Delete</button>
       </div>
     </div>
   `;

@@ -89,9 +89,12 @@ class LoungeOverlay {
 		const state = game?.state;
 		const txGame = game?.tx?.msg?.game;
 		const stateModule = state?.module;
-		// Resolve game_mod same as invite: tx.msg.game is module name; fallback to slug from state
+		// Resolve game_mod: from game tx/state, or from observer_game_module_slug when metadata is missing
 		let game_mod = this.app.modules.returnModule(txGame) || this.app.modules.returnModuleBySlug(stateModule || txGame || 'arcade') || this.app.modules.returnModule(stateModule);
-		let slug = game_mod?.returnSlug?.() || stateModule || txGame || 'arcade';
+		if (!game_mod && this.observer_game_module_slug) {
+			game_mod = this.app.modules.returnModuleBySlug(this.observer_game_module_slug);
+		}
+		let slug = game_mod?.returnSlug?.() || stateModule || txGame || this.observer_game_module_slug || 'arcade';
 		let image = game_mod?.respondTo?.('arcade-games')?.image || '';
 		let gameName = (game_mod && (game_mod.returnName?.() || game_mod.name)) || txGame || slug;
 
@@ -109,7 +112,24 @@ class LoungeOverlay {
 		let stateLabel, bodyHtml, controlsHtml;
 		const headerImageStyle = image ? ` style="background-image: url('${image}')"` : '';
 
-		if (derivedState === 'INITIALIZING') {
+		//
+		// No local metadata for this game_id – show observer overlay.
+		// If archive has game data: enable Watch Game. Otherwise: show message and disable button.
+		//
+		if (!game) {
+			stateLabel = 'Observer Mode';
+			const hasArchive = this.observer_has_archive_data === true;
+			const message = hasArchive
+				? 'You can watch this game.'
+				: 'This server does not yet have game data for this match.';
+			bodyHtml = `
+	  <div class="arcade-lounge-section arcade-lounge-section-game-id-message">
+		  <div class="arcade-lounge-message arcade-lounge-message-game-id">${message}</div>
+	  </div>`;
+			controlsHtml = hasArchive
+				? `<button id="arcade-game-controls-watch-game" class="fat saito-button-primary">Watch Game</button>`
+				: `<button id="arcade-game-controls-watch-game" class="fat saito-button-primary" disabled>Watch Game</button>`;
+		} else if (derivedState === 'INITIALIZING') {
 			stateLabel = 'Initializing Game';
 			bodyHtml = `
 	  <div class="arcade-lounge-section">
@@ -274,7 +294,7 @@ class LoungeOverlay {
 				}
 				if (name) this.app.browser.logMatomoEvent('GameInvite', 'ContinueGame', name);
 				if (slug != null && gameId != null) {
-					navigateWindow(`/${slug}/#gid=${this.app.crypto.hash(gameId).slice(-6)}`);
+					navigateWindow(`/${slug}/#gid=${encodeURIComponent(gameId)}`);
 				}
 			};
 		}
@@ -342,10 +362,12 @@ class LoungeOverlay {
 
 		if (document.getElementById('arcade-game-controls-watch-game')) {
 			document.getElementById('arcade-game-controls-watch-game').onclick = (e) => {
+				const gid = this.invite?.game_id ?? this.game_id;
+				if (!gid) return;
 				this.app.connection.emit('league-overlay-remove-request');
-				this.mod.observeGame(this.invite.game_id, true);
+				this.mod.observeGame(gid, true, this.observer_game_module_slug || undefined);
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent('GameInvite', 'WatchGame', this.invite.game_mod?.name);
+				this.app.browser.logMatomoEvent('GameInvite', 'WatchGame', this.invite?.game_mod?.name);
 			};
 		}
 

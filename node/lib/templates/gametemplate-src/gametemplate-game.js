@@ -258,16 +258,18 @@ class GameGame {
     if (game_id == null) {
       let vars_in_url = this.app.browser.parseHash(window.location.hash);
       if (vars_in_url?.gid) {
+        game_id = vars_in_url.gid;
+        try {
+          game_id = decodeURIComponent(vars_in_url.gid);
+        } catch (_) {}
         if (this.app.options?.games?.length > 0) {
           for (let i = 0; i < this.app.options.games.length; i++) {
-            if (this.name == this.app.options.games[i].module) {
-              if (
-                this.app.crypto.hash(this.app.options.games[i].id).slice(-6) == vars_in_url.gid ||
-                this.app.options.games[i].id === vars_in_url.gid
-              ) {
-                game_id = this.app.options.games[i].id;
-                break;
-              }
+            if (
+              this.name == this.app.options.games[i].module &&
+              this.app.options.games[i].id === game_id
+            ) {
+              game_id = this.app.options.games[i].id;
+              break;
             }
           }
         }
@@ -664,9 +666,11 @@ class GameGame {
       newtx.addTo(player);
     });
 
+    const game_id = this.game.id;
+    const slug = typeof this.returnSlug === 'function' ? this.returnSlug() : this.name;
     let link =
       window.location.origin +
-      `/arcade/?game=${this.name}&game_id=${this.app.crypto.hash(this.game.id).slice(-6)}`;
+      `/arcade/?game=${encodeURIComponent(slug)}&game_id=${encodeURIComponent(game_id)}`;
 
     newtx.msg = {
       request: 'gameover',

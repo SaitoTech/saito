@@ -106,9 +106,12 @@ input[type='number'] {
   font-style: italic;
   position: absolute;
   top: 100%;
-  width: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: fit-content;
   right: 0;
   white-space: nowrap;
+  gap: 1.5rem;
 }
 
 .stake-input-container .crypto-ticker {

@@ -42,7 +42,7 @@ module.exports = (app, mod, nft) => {
 
   let html = `
 
-<div class="store-card nft-card nfttxsig${nft.tx_sig} ${nft.metadata?.active == 0 ? 'pending' : ''}" id="nft-card-${nft.uuid}">
+<div class="store-card nft-card ${nft.metadata?.active == 0 ? 'pending' : ''}" id="nft-listing-${nft.tx_sig}">
   <div class="store-card-image nft-card-img">
     <div class="store-card-overlay">
       <button class="store-buy-now-btn">Buy Now</button>

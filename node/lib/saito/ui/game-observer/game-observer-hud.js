@@ -82,6 +82,26 @@ class GameObserverHUD {
     const root = this.container.querySelector('#game-observer-hud');
     if (!root || this._eventsAttached) return;
 
+    const interactiveSelectors = [
+      '#game-observer-state-slider',
+      '#observer-back',
+      '#observer-play',
+      '#observer-forward'
+    ];
+
+    interactiveSelectors.forEach((selector) => {
+      const el = root.querySelector(selector);
+      if (!el) return;
+
+      el.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+      });
+
+      el.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+      });
+    });
+
     const ctx = this._context || {};
 
     const backBtn = root.querySelector('#observer-back');
@@ -112,15 +132,35 @@ class GameObserverHUD {
     }
 
     const slider = root.querySelector('#game-observer-state-slider');
+    const timelineTooltip = root.querySelector('#observer-timeline-tooltip');
     if (slider && typeof ctx.onSliderInput === 'function') {
       slider.addEventListener('input', () => {
         const idx = parseInt(slider.value, 10);
         if (Number.isNaN(idx)) return;
-        const observer = ctx.observer;
-        if (observer && !observer._history_complete && idx < observer._viewingIndex) {
-          observer.rebuildHistoryFromArchive();
-          return;
+
+        const total = Math.max(0, ctx.getState?.().totalMoves ?? 0);
+        const knownTotal = total || (ctx.observer?.game_moves?.length ?? 0);
+        const max = Math.max(0, knownTotal - 1);
+        const progress = max > 0 ? `${(idx / max) * 100}%` : '0%';
+        slider.style.setProperty('--progress', progress);
+
+        if (timelineTooltip && knownTotal > 0) {
+          timelineTooltip.textContent = `Move ${idx + 1}`;
+          timelineTooltip.classList.add('visible');
+          timelineTooltip.setAttribute('aria-hidden', 'false');
         }
+      });
+
+      slider.addEventListener('change', () => {
+        const idx = parseInt(slider.value, 10);
+        if (Number.isNaN(idx)) return;
+
+        if (timelineTooltip) {
+          timelineTooltip.classList.remove('visible');
+          timelineTooltip.textContent = '';
+          timelineTooltip.setAttribute('aria-hidden', 'true');
+        }
+
         ctx.onSliderInput(idx);
       });
     }
@@ -147,27 +187,41 @@ class GameObserverHUD {
     if (!root) return;
 
     const total = Math.max(0, getState.totalMoves ?? 0);
-    const viewingIndex = Math.max(0, Math.min(getState.viewingIndex ?? 0, Math.max(0, total - 1)));
+    const knownTotal = total || (this._context?.observer?.game_moves?.length ?? 0);
+    const viewingIndex = Math.max(
+      0,
+      Math.min(getState.viewingIndex ?? 0, Math.max(0, knownTotal - 1))
+    );
     const isPaused = !!getState.isPaused;
 
     const statusEl = root.querySelector('#observer-status-line');
     if (statusEl) {
-      statusEl.textContent =
-        total === 0 ? 'Loading Moves...' : `Game Step: ${viewingIndex + 1} / ${total}`;
+      if (isPaused) {
+        statusEl.textContent = 'Press Play to Observe';
+      } else {
+        statusEl.textContent = getState.statusMessage || 'Observer mode';
+      }
+    }
+
+    const timelineEndEl = root.querySelector('.timeline-end');
+    if (timelineEndEl) {
+      timelineEndEl.textContent = String(knownTotal);
     }
 
     const sliderEl = root.querySelector('#game-observer-state-slider');
     if (sliderEl) {
-      const max = Math.max(0, total - 1);
+      const max = Math.max(0, knownTotal - 1);
       sliderEl.max = String(max);
       sliderEl.value = String(viewingIndex);
+      const progress = max > 0 ? `${(viewingIndex / max) * 100}%` : '0%';
+      sliderEl.style.setProperty('--progress', progress);
     }
 
     const backBtn = root.querySelector('#observer-back');
-    if (backBtn) backBtn.disabled = total === 0 || viewingIndex <= 0;
+    if (backBtn) backBtn.disabled = knownTotal === 0 || viewingIndex <= 0;
 
     const fwdBtn = root.querySelector('#observer-forward');
-    if (fwdBtn) fwdBtn.disabled = total === 0 || viewingIndex >= total - 1;
+    if (fwdBtn) fwdBtn.disabled = knownTotal === 0 || viewingIndex >= knownTotal - 1;
 
     const playBtn = root.querySelector('#observer-play');
     if (playBtn) {
@@ -178,14 +232,15 @@ class GameObserverHUD {
   }
 
   /**
-   * Set the secondary status line (#obstatus) content. Caller should sanitize.
+   * Update the status message used when playback is active (shadow_status).
+   * Caller may pass HTML; it is stripped for the single status line.
    */
   updateStatus(message) {
-    if (!this.container) return;
-    const root = this.container.querySelector('#game-observer-hud');
-    if (!root) return;
-    const el = root.querySelector('#obstatus');
-    if (el) el.innerHTML = message;
+    const observer = this._context?.observer;
+    if (observer && typeof message === 'string') {
+      observer.shadow_status = message.replace(/<[^>]*>/g, '').trim() || observer.shadow_status;
+    }
+    this.updateUIState();
   }
 
   /**

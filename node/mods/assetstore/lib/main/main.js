@@ -46,6 +46,14 @@ class AssetStoreMain {
 			console.log('assetstore-render-listings');
 			this.renderListings();
 		});
+
+		this.app.connection.on('assetstore-new-user-listing', () => {
+			if (this.view !== this.mod.publicKey) {
+				document
+					.querySelector(`.saito-store-page-tab[data-pkey="${this.mod.publicKey}"]`)
+					.classList.add('flashing-tab');
+			}
+		});
 	}
 
 	render() {
@@ -82,9 +90,41 @@ class AssetStoreMain {
 		let list_asset_btn = document.querySelector('.list-asset');
 		if (list_asset_btn) {
 			list_asset_btn.onclick = async (e) => {
-				this.app.connection.emit('saito-nft-list-render-request', (nft) => {
-					this.sell_nft_overlay.render(nft);
-				});
+				this.app.connection.emit(
+					'saito-nft-list-render-request',
+					'Select an NFT to List',
+					(nft) => {
+						this.sell_nft_overlay.render(nft);
+					}
+				);
+			};
+		}
+
+		const dissolveSplash = () => {
+			if (document.querySelector('.asset-store-splash')) {
+				document.querySelector('.asset-store-splash').classList.add('dissolve');
+
+				setTimeout(() => {
+					if (document.querySelector('.asset-store-splash')) {
+						document.querySelector('.asset-store-splash').remove();
+					}
+				}, 5000);
+			}
+		};
+
+		if (document.getElementById('my-store-btn')) {
+			document.getElementById('my-store-btn').onclick = (e) => {
+				this.view = this.mod.publicKey;
+				changeView();
+				dissolveSplash();
+			};
+		}
+
+		if (document.getElementById('home-store-btn')) {
+			document.getElementById('home-store-btn').onclick = (e) => {
+				this.view = this.mod.SAITO_OFFICIAL_PUBLICKEY;
+				changeView();
+				dissolveSplash();
 			};
 		}
 
@@ -256,10 +296,10 @@ class AssetStoreMain {
 		}
 
 		// Show active tab (in sidebar)
-		if (document.querySelector(`.saito-store-page-tab[data-pkey="${this.view}"]`)) {
-			document
-				.querySelector(`.saito-store-page-tab[data-pkey="${this.view}"]`)
-				.classList.add('store-active-tab');
+		let current_tab = document.querySelector(`.saito-store-page-tab[data-pkey="${this.view}"]`);
+		if (current_tab) {
+			current_tab.classList.add('store-active-tab');
+			current_tab.classList.remove('flashing-tab');
 		}
 
 		const listings_to_render = this.mod.filterListings([this.view]);
@@ -276,7 +316,6 @@ class AssetStoreMain {
 					continue;
 				}
 
-				// console.log(record);
 				if (!record.nft_card) {
 					let nfttx = null;
 

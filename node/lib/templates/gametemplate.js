@@ -488,15 +488,10 @@ class GameTemplate extends ModTemplate {
       let oldHash = window.location.hash;
       window.location.hash = `#`;
 
-      let short_game_id = this.app.crypto.hash(this.game.id).slice(-6);
-      console.log('[OBS_TRACE] initializeHTML() setting hash', {
-        oldHash: oldHash?.substring(0, 60),
-        short_game_id
-      });
-
+      const game_id = this.game.id;
       //This function is stupid and confusing
       window.location.hash = app.browser.initializeHash(
-        `#gid=${short_game_id}&step=${this.game.step.game}`,
+        `#gid=${encodeURIComponent(game_id)}&step=${this.game.step.game}`,
         oldHash,
         {}
       );
@@ -551,26 +546,14 @@ class GameTemplate extends ModTemplate {
 
   gameBrowserActive(game_id = null) {
     if (this.browser_active) {
-      if (!game_id) {
-        game_id = this.game.id;
-      }
       try {
         const vars_in_url = this.app.browser.parseHash(window.location.hash);
-        const gid_from_url = vars_in_url?.gid;
-        let short_game_id = this.app.crypto.hash(game_id).slice(-6);
-        const result = gid_from_url === short_game_id || gid_from_url === game_id;
-        // Only log in observer mode to reduce noise
-        if (this.game?.player === 0) {
-          console.log('[OBS_TRACE] gameBrowserActive()', {
-            hash: window.location.hash?.substring(0, 80),
-            gidLength: gid_from_url?.length,
-            short_game_id,
-            result
-          });
-        }
-        if (result) {
-          return true;
-        }
+        if (vars_in_url?.gid == null) return false;
+        game_id = vars_in_url.gid;
+        try {
+          game_id = decodeURIComponent(vars_in_url.gid);
+        } catch (_) {}
+        return game_id === this.game.id;
       } catch (err) {
         if (this.game?.player === 0) {
           console.log('[OBS_TRACE] gameBrowserActive() catch', err?.message);

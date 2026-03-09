@@ -39,9 +39,11 @@ class AssetStoreNFT extends SaitoNFT {
   // for UI
   //
   getBuyPriceSaito() {
-    return this.price
+    let saito_as_string = this.price
       ? this.app.wallet.convertNolanToSaito(this.price)
       : this.app.wallet.convertNolanToSaito(this.deposit);
+
+    return BigInt(saito_as_string);
   }
 }
 

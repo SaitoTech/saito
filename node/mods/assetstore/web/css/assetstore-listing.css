@@ -1,36 +1,32 @@
-
 .nft-details-actions:has(.assetstore-list-container) {
-    flex-direction: column;
+  flex-direction: column;
 }
 
 .nft-buy-button-row {
-    display: flex;
-    flex-direction: row;
+  display: flex;
+  flex-direction: row;
 }
 
 #nft-buy-title {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 1rem 1.5rem;
-    font-size: 1.6rem;
-    color: var(--saito-font-color);
-    border-radius: .5rem;
-    margin-top: 8px;
-    font-family: var(--saito-font);
+  width: 100%;
+  box-sizing: border-box;
+  padding: 1rem 1.5rem;
+  font-size: 1.6rem;
+  color: var(--saito-font-color);
+  border-radius: 0.5rem;
+  margin-top: 8px;
+  font-family: var(--saito-font);
 }
 
 #nft-buy-description {
-    height: 40px;
-    width: 100%;
-    box-sizing: border-box;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 1rem 1.5rem;
-    font-size: 1.6rem;
-    color: var(--saito-font-color);
-    border-radius: .5rem;
-    margin-top: 8px;
-    font-family: var(--saito-font);
+  width: 100%;
+  padding: 1rem 1.5rem;
+  font-size: 1.6rem;
+  color: var(--saito-font-color);
+  border-radius: 0.5rem;
+  font-family: var(--saito-font);
 }
 
-
+.listing-inputs {
+  width: 100%;
+}

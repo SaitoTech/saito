@@ -145,9 +145,9 @@ class HereIStand extends GameTemplate {
     this.useCardbox = 1;
 
     //
-    //
     // players
-    this.minPlayers 	 = 1;
+    //
+    this.minPlayers 	 = 2;
     this.maxPlayers 	 = 6;
 
   }

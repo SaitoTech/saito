@@ -224,6 +224,10 @@ class SaitoOverlay {
       return;
     }
 
+    if (this.callback_on_close != null) {
+      this.callback_on_close();
+    }
+
     this.visible = false;
     let elsq = `#saito-overlay${this.ordinal}`;
     let bdelsq = `#saito-overlay-backdrop${this.ordinal}`;
