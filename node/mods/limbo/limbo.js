@@ -20,6 +20,7 @@ class Limbo extends ModTemplate {
 		super(app);
 		this.app = app;
 		this.name = 'Swarmcast';
+		this.slug = 'limbo';
 		this.localStream = null; // My Video or Audio Feed
 		this.combinedStream = null;
 		this.screenStream = null;

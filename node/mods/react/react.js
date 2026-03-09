@@ -14,6 +14,7 @@ class ReactMod extends ModTemplate {
     super(app);
     this.app = app;
     this.name = 'React';
+    this.slug = 'react';
     this.social = {
       twitter: '@SaitoOfficial',
       title: `🟥 ${this.returnName()}`,
