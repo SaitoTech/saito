@@ -61,13 +61,22 @@ class GameObserver {
     this._observer_poll_interval = null;
     this._history_complete = true;
     this.sync_started = false;
+    this.archive_fetch_completed = false;
+    this.initial_queue_run = false;
+
+    this.observer_buffer = [];
+    this.buffer_release_interval = null;
+    this.buffer_release_speed = 1000;
+
+    this.shadow_status = '';
 
     this.loader = new GameObserverLoader(app, game_mod, '');
     this._hudContext = {
       getState: () => ({
         totalMoves: this.all_moves.length,
         viewingIndex: this._viewingIndex,
-        isPaused: this.is_paused
+        isPaused: this.is_paused,
+        statusMessage: this.shadow_status || ''
       }),
       onBack: () => {
         this.showNextMoveButton();
@@ -106,7 +115,7 @@ class GameObserver {
       for (let i = 0; i < this.app.options.games.length; i++) {
         const g = this.app.options.games[i];
         if (g.module !== game_mod.name) continue;
-        if (g.id === full_game_id || this.app.crypto.hash(g.id).slice(-6) === full_game_id) {
+        if (g.id === full_game_id) {
           localId = g.id;
           break;
         }
@@ -138,6 +147,12 @@ class GameObserver {
     if (!this.game_mod) {
       return;
     }
+    console.log('[OBS_DIAG] runQueue invoked', {
+      queue: this.game_mod?.game?.queue?.slice(),
+      queue_length: this.game_mod?.game?.queue?.length || 0,
+      future_length: this.game_mod?.game?.future?.length || 0,
+      step_game: this.game_mod?.game?.step?.game
+    });
     this.game_mod.startQueue();
   }
 
@@ -190,6 +205,8 @@ class GameObserver {
         this.checkSyncStability();
       }
     } else {
+      const total = this.all_moves.length || (this.game_moves && this.game_moves.length) || 0;
+      if (total === 0) return;
       this.hud.render();
       this.hud.attachEvents();
       this.hud.updateUIState();
@@ -210,20 +227,66 @@ class GameObserver {
 
   updateStatus(str) {
     try {
-      const sanitized = typeof sanitize === 'function' ? sanitize(str) : str;
-      this.hud.updateStatus(sanitized);
-      setTimeout(() => {
-        this.hud.updateStatus(this.game_mod.game.status);
-      }, 1500);
+      const raw = typeof str === 'string' ? str : (str && String(str)) || '';
+      const stripped = raw.replace(/<[^>]*>/g, '').trim();
+      if (stripped.toLowerCase() !== 'advanced one move') {
+        this.shadow_status = stripped || this.shadow_status;
+      }
+      this.hud.updateUIState();
     } catch (err) {
       console.error(err);
     }
   }
 
+  startBufferReleaseLoop() {
+    if (this.buffer_release_interval) return;
+
+    this.buffer_release_interval = setInterval(async () => {
+      if (!this.observer_buffer.length) return;
+      if (this._paused) return;
+
+      const g = this.game_mod?.game;
+      const mod = this.game_mod;
+
+      if (!g || !mod) return;
+
+      const next_tx = this.observer_buffer.shift();
+
+      if (!g.future) g.future = [];
+
+      g.future.push(next_tx);
+
+      if (typeof mod.processFutureMoves === "function") {
+        mod.halted = 0;
+        await mod.processFutureMoves();
+      }
+    }, this.buffer_release_speed);
+  }
+
+  enqueueObserverMove(tx) {
+    this.observer_buffer.push(tx);
+
+    this.observer_buffer.sort((a, b) => {
+      try {
+        const ta = new Transaction();
+        const tb = new Transaction();
+
+        ta.deserialize_from_web(this.app, a);
+        tb.deserialize_from_web(this.app, b);
+
+        const sa = ta.returnMessage()?.step?.game || 0;
+        const sb = tb.returnMessage()?.step?.game || 0;
+
+        return sa - sb;
+      } catch (err) {
+        return 0;
+      }
+    });
+  }
+
   async finishLoading() {
     if (!this.is_ui_initializing) return;
     this.is_ui_initializing = false;
-    this.render();
 
     const MIN_VISIBLE_MS = 2000;
     const elapsed =
@@ -244,6 +307,7 @@ class GameObserver {
     if (this._observer_poll_interval == null) {
       this._observer_poll_interval = setInterval(() => {
         if (!this.game_mod?.game) return;
+        console.log('[OBS_DIAG] observer polling archive');
         this.downloadMoves();
       }, 30000);
     }
@@ -275,6 +339,10 @@ class GameObserver {
     ) {
       this._paused = false;
     }
+
+    this._paused = true;
+
+    this.render();
 
     this._clampViewingIndex();
     if (
@@ -327,9 +395,16 @@ class GameObserver {
 
     this.is_replaying = true;
 
+    this.loader.render();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
     this.game_mod.game = JSON.parse(JSON.stringify(this.baseline_state));
     this.game_mod.game.queue = [];
     this.game_mod.game.future = [];
+
+    if (typeof this.game_mod.render === "function") {
+      this.game_mod.render();
+    }
 
     for (let i = 0; i <= clamped && i < this.all_moves.length; i++) {
       const tx = this.all_moves[i];
@@ -340,6 +415,7 @@ class GameObserver {
 
     if (!this.game_mod.game.future) this.game_mod.game.future = [];
 
+    this.game_mod.halted = 0;
     await this.game_mod.startQueue();
 
     this.is_replaying = false;
@@ -357,14 +433,17 @@ class GameObserver {
     this._clampViewingIndex();
     this.hud.updateUIState();
 
-    this.game_mod.game.status = `Paused at move ${this._viewingIndex + 1}. Click Play to continue.`;
+    this.shadow_status = `Paused at move ${this._viewingIndex + 1}. Click Play to continue.`;
+
+    const overlayEl = document.body.querySelector('#observer-sync-overlay');
+
+    setTimeout(() => {
+      const el = document.body.querySelector('#observer-sync-overlay');
+      if (el) el.remove();
+    }, 500);
   }
 
   updateStep(step) {
-    // Canonical append: only when engine just added a move (addNextMove → updateStep) and not replaying
-    if (!this.is_replaying && this.game_moves.length > 0) {
-      this.all_moves.push(this.game_moves[this.game_moves.length - 1]);
-    }
     console.log('updateStep:', {
       is_replaying: this.is_replaying,
       game_moves_length: this.game_moves.length,
@@ -412,7 +491,7 @@ class GameObserver {
 
   resume() {
     this._paused = false;
-    this.updateStatus('Replaying moves...');
+    this.shadow_status = this.shadow_status || 'Replaying moves...';
     this.hud.updateUIState();
   }
 
@@ -426,7 +505,13 @@ class GameObserver {
       await this.replayToIndex(this.all_moves.length - 1);
     }
     this._paused = false;
+    this.startBufferReleaseLoop();
+    const gameStatus = this.game_mod?.game?.status;
+    if (typeof gameStatus === 'string' && gameStatus.trim()) {
+      this.shadow_status = gameStatus.replace(/<[^>]*>/g, '').trim();
+    }
     this.resume();
+    this.hud.updateUIState();
     console.log('OBSERVER: unhalt game (play)');
   }
 
@@ -496,6 +581,7 @@ class GameObserver {
     const mod = this.game_mod;
 
     this.replay_active = true;
+    this.updateSyncStatus('Checking archive for game transactions...');
 
     //
     // purge unneeded transactions
@@ -543,6 +629,7 @@ class GameObserver {
       },
       async (txs) => {
         this.sync_in_progress = false;
+        this.archive_fetch_completed = true;
         let new_moves = 0;
 
         for (let tx of txs) {
@@ -556,7 +643,44 @@ class GameObserver {
               let ftx = tx.serialize_to_web(this.app);
 
               if (!g.future.includes(ftx)) {
+
+                // Add to canonical observer history immediately
+                const tx_obj = new Transaction();
+                tx_obj.deserialize_from_web(this.app, ftx);
+
+                const step = tx_obj.returnMessage()?.step?.game || 0;
+                const sig = tx.signature;
+
+                const alreadyKnown = this.all_moves.some((m) => {
+                  try {
+                    const t = new Transaction();
+                    t.deserialize_from_web(this.app, m);
+                    return t.signature === sig;
+                  } catch (err) {
+                    return false;
+                  }
+                });
+
+                if (!alreadyKnown) {
+                  this.all_moves.push(ftx);
+                  this.all_moves.sort((a, b) => {
+                    const ta = new Transaction();
+                    const tb = new Transaction();
+                    ta.deserialize_from_web(this.app, a);
+                    tb.deserialize_from_web(this.app, b);
+                    const sa = ta.returnMessage()?.step?.game || 0;
+                    const sb = tb.returnMessage()?.step?.game || 0;
+                    return sa - sb;
+                  });
+                }
+
                 g.future.push(ftx);
+
+                console.log('[OBS_DIAG] archive inserted future move', {
+                  step: loaded_step,
+                  queue_snapshot: g.queue?.slice(),
+                  future_length_now: g.future.length
+                });
                 new_moves++;
               }
             }
@@ -576,6 +700,14 @@ class GameObserver {
           }
         }
 
+        console.log('[OBS_DIAG] archive processing complete', {
+          new_moves,
+          queue_length: g.queue?.length || 0,
+          queue_snapshot: g.queue?.slice(),
+          future_length: g.future?.length || 0,
+          engine_step: g.step?.game
+        });
+
         console.info(
           `GT [observer] Found ${new_moves} future moves in archives. Initializing? `,
           g.initializing
@@ -584,22 +716,20 @@ class GameObserver {
         mod.saveFutureMoves(g.id);
         mod.saveGame(g.id);
 
-        if (new_moves == 0) {
+        if (new_moves === 0 && this.all_moves.length === 0) {
           this.updateSyncStatus('No moves found in game archive.');
         }
 
-        const observerAndActive = g.player == 0 && mod.gameBrowserActive();
-        const coldStart = this._observer_poll_interval === null;
-        const allowCallback = new_moves !== 0 || !observerAndActive || coldStart;
-        if (allowCallback) {
-          if (new_moves === 0 && observerAndActive && coldStart) {
-            console.log(
-              '[OBS_TRACE] observerDownloadNextMoves: cold-start + 0 new moves, invoking callback once'
-            );
-          }
+        if (!this.initial_queue_run) {
+          this.initial_queue_run = true;
           await this.runQueue();
-        } else {
-          mod.gaming_active = 0;
+        } else if (new_moves > 0) {
+
+          if (typeof mod.processFutureMoves === "function") {
+            mod.halted = 0;
+            await mod.processFutureMoves();
+          }
+
         }
       }
     );
@@ -637,7 +767,10 @@ class GameObserver {
       } else {
         if (qLen === lastQLen && fLen === lastFLen) {
           if (stableSince == null) stableSince = now;
-          if (now - stableSince >= STABLE_MS) {
+          if (
+            self.archive_fetch_completed &&
+            now - stableSince >= STABLE_MS
+          ) {
             if (self._sync_stability_interval != null) {
               clearInterval(self._sync_stability_interval);
               self._sync_stability_interval = null;

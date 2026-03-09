@@ -81,7 +81,8 @@ class InvitationLink {
 
     for (let key in this.data) {
       if (key !== 'path' && key !== 'name') {
-        this.invite_link += '&' + key + '=' + this.data[key];
+        const val = this.data[key];
+        this.invite_link += '&' + key + '=' + encodeURIComponent(val != null ? val : '');
       }
     }
 

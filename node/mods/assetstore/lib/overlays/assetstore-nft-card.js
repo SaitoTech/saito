@@ -7,6 +7,7 @@ class AssetStoreNFTCard extends SaitoNFTCard {
     super(app, mod, container, tx, data, mycallback);
     this.nft = new AssetStoreNFT(app, mod, tx, data);
     this.template = AssetStoreNFTCardTemplate;
+    this.my_qs = this.container + ` #nft-listing-${this.nft.tx_sig}`;
   }
 }
 

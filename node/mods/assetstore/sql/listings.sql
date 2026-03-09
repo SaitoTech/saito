@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS listings (
   delisting_nfttx_sig TEXT DEFAULT '' ,			
   status INTEGER DEFAULT 0 ,			
   seller TEXT DEFAULT '' ,
+  email TEXT DEFAULT '', 
   buyer TEXT DEFAULT '' ,
   title TEXT DEFAULT '' ,
   description TEXT DEFAULT '' ,

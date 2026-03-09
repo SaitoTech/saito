@@ -220,8 +220,13 @@ class SaitoOverlay {
   }
 
   hide() {
+
     if (!document) {
       return;
+    }
+
+    if (this.callback_on_close != null) {
+      this.callback_on_close();
     }
 
     this.visible = false;

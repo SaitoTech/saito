@@ -461,7 +461,12 @@ class Twilight extends GameTemplate {
       if (e.defaultPrevented) { return; }
       if (
 	  e.target.closest('.country') ||
+	  e.target.closest('.set_defcon_box') ||
     	  e.target.closest('.selectable') ||
+    	  e.target.closest('.us_control') ||
+    	  e.target.closest('.ussr_control') ||
+    	  e.target.closest('.us_uncontrol') ||
+    	  e.target.closest('.ussr_uncontrol') ||
     	  e.target.closest('.us') ||
     	  e.target.closest('.ussr') ||
     	  e.target.closest('.hud') ||
@@ -6610,22 +6615,41 @@ async playerTurnHeadlineSelected(card, player) {
 
     try {
 
-    for (let i in this.countries) {
-      this.showInfluence(i);
+      for (let i in this.countries) {
+        this.showInfluence(i);
+      }
+
+
+try {
+      this.updateDefcon();
+} catch (err) { console.log("error updating defcon: " + JSON.stringify(err)); }
+try {
+      this.updateActionRound();
+} catch (err) { console.log("error updating action round: " + JSON.stringify(err)); }
+try {
+      this.updateSpaceRace();
+} catch (err) { console.log("error updating space race: " + JSON.stringify(err)); }
+try {
+      this.updateVictoryPoints();
+} catch (err) { console.log("error updating vp: " + JSON.stringify(err)); }
+try {
+      this.updateMilitaryOperations();
+} catch (err) { console.log("error updating milops: " + JSON.stringify(err)); }
+try {
+      this.updateRound();
+} catch (err) { console.log("error updating round: " + JSON.stringify(err)); }
+
+      // this can trigger bug if open End-of-Turn, throws error, thus last
+      if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
+console.log("ZOOM OVERLAY VISIBLE: " + this.zoom_overlay.visible);
+console.log("SAITO OVERLAY INSIDE VISIBLE: " + this.zoom_overlay.overlay.visible);
+console.log("rendering!");
+        this.zoom_overlay.render();
+      }
+
+    } catch (err) {
+console.log("DISPLAY ERROR: " + JSON.stringify(err));
     }
-
-    if (this.zoom_overlay && this.zoom_overlay.visible) {
-      this.zoom_overlay.refresh();
-    }
-
-    this.updateDefcon();
-    this.updateActionRound();
-    this.updateSpaceRace();
-    this.updateVictoryPoints();
-    this.updateMilitaryOperations();
-    this.updateRound();
-
-    } catch (err) {}
 
   }
 

@@ -1,5 +1,5 @@
 module.exports = (app, mod, this_self) => {
-  return `
+  let html = `
     <div class="saito-container" id="saito-container">
 
       <div class="saito-sidebar left">
@@ -37,7 +37,42 @@ module.exports = (app, mod, this_self) => {
         <div class="assetstore-table">
           <div class="assetstore-table-list"></div>
         </div>
+      </div>`;
+
+  if (app.browser.returnURLParameter('seller') || app.browser.returnURLParameter('listing')) {
+  } else {
+    html += `
+      <div class="asset-store-splash">
+        <div class='store-img-flip'>
+          <div class='store-img-front'>
+            <img src="/store/img/splash.png">
+          </div>
+          <div class='store-img-back'>
+            <div class='store-img-back-content'>
+              <h3>How it works</h3>
+              <div class='store-features-list'>
+                <div>Select an asset from your wallet</div>
+                <div>Set a desired sell price</div>
+                <div>Transfer ownership to the store</div>
+                <div>Receive payment when someone buys asset</div>
+                <div>Revoke listing at any time</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="store-splash-content">
+          <h2>Commerce without Limits</h2>
+          <p>Web3 powered platform for buying and selling NFTs, which are more than just jpegs of cartoon monkeys. SaitoNFTs can be limited collectibles, but they can also be mini-programs, new css themes, access keys to Vault or Stack subscriptions, or even your own meme-coin</p>
+          <div class='saito-button-row auto-size'>
+            <button id="my-store-btn" class="saito-button-secondary">My Store</button>
+            <button id="home-store-btn" class="saito-button-primary">Browse Assets</button>
+          </div>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
+
+  html += '</div>';
+
+  return html;
 };

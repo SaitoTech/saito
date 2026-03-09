@@ -15,7 +15,6 @@ class GameBoardSizer {
     this.app = app;
     this.mod = mod;
     this.maxZoom = 200;
-    this.debug = false;
     this.container = '.hamburger-container';
   }
 
@@ -56,19 +55,17 @@ class GameBoardSizer {
 
     if (!this.rendered) {
       this.app.connection.on('browser-fullscreen-toggle', () => {
-        centerBoard(document.querySelector('#game_board_sizer input'));
+	try {
+          centerBoard(document.querySelector('#game_board_sizer input'));
+	} catch (err) {}
       });
       this.rendered = true;
     }
 
-    let centerBoard = function (input) {
-      //Requery screen size
+    let centerBoard = (input) => {
       let topAdjustment = 0;
-      let boardWidth = parseInt(window.getComputedStyle(targetObject).width);
-      let boardHeight = parseInt(window.getComputedStyle(targetObject).height);
-      if (this.debug) {
-        console.log('Basic gameboard size:', boardWidth, boardHeight);
-      }
+      let boardWidth = parseInt(window.getComputedStyle(targetObject).width) || 0;
+      let boardHeight = parseInt(window.getComputedStyle(targetObject).height) || 0;
       if (window.getComputedStyle(targetObject).boxSizing == 'content-box') {
         boardWidth +=
           parseInt(window.getComputedStyle(targetObject).paddingLeft) +
@@ -78,9 +75,6 @@ class GameBoardSizer {
           parseInt(window.getComputedStyle(targetObject).paddingBottom);
         topAdjustment += parseInt(window.getComputedStyle(targetObject).paddingTop);
       }
-      if (this.debug) {
-        console.log('With padding included:', boardWidth, boardHeight);
-      }
       boardWidth +=
         parseInt(window.getComputedStyle(targetObject).marginLeft) +
         parseInt(window.getComputedStyle(targetObject).marginRight);
@@ -89,9 +83,6 @@ class GameBoardSizer {
         parseInt(window.getComputedStyle(targetObject).marginBottom);
       topAdjustment += parseInt(window.getComputedStyle(targetObject).marginTop);
 
-      if (this.debug) {
-        console.log('and with margins:', boardWidth, boardHeight);
-      }
       let screenRatio = Math.min(window.innerWidth / boardWidth, window.innerHeight / boardHeight);
 
       input.value = Math.floor(100 * screenRatio);
@@ -100,14 +91,6 @@ class GameBoardSizer {
       targetObject.style.left = '';
       targetObject.style.top = '';
 
-      if (this.debug) {
-        console.log(
-          'Scaled board:',
-          targetObject.getBoundingClientRect().width,
-          targetObject.getBoundingClientRect().height
-        );
-      }
-      //I want to somewhat center the board, at least add space for menu (if possible) and center left-right (if necessary)
       if (targetObject.getBoundingClientRect().width < window.innerWidth) {
         let offset =
           Math.round((window.innerWidth - targetObject.getBoundingClientRect().width) / 2) - 10;
@@ -132,17 +115,11 @@ class GameBoardSizer {
     if (boardScaler) {
       try {
         if (sizer_self.mod.loadGamePreference(sizer_self.mod.returnSlug() + '-board-scale')) {
-          if (this.debug) {
-            console.log('Using saved board Preference');
-          }
           boardScaler.value = sizer_self.mod.loadGamePreference(
             sizer_self.mod.returnSlug() + '-board-scale'
           );
           sizer_self.scaleBoard(targetObject);
         } else {
-          if (this.debug) {
-            console.log('Dynamically scaling board');
-          }
           setTimeout(centerBoard, 250, boardScaler);
         }
       } catch (err) {

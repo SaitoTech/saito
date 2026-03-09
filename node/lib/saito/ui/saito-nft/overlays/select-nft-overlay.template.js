@@ -1,9 +1,9 @@
-module.exports = (app, mod) => {
+module.exports = (ui) => {
   let html = `
     <div class="nft-list-container">
 
       <div class="saito-overlay-form-header">
-         <div class="saito-overlay-form-header-title">MY NFTs</div>
+         <div class="saito-overlay-form-header-title">${ui?.title ? ui.title : 'MY NFTs'}</div>
          <div id="create-nft" class="create-nft-btn"><i class="fa-solid fa-plus"></i></div>
       </div>
 

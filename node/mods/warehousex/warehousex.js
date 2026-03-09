@@ -114,6 +114,10 @@ class Warehousex extends ModTemplate {
 					} else if (this.app.crypto.isAesEncrypted(transaction.msg)) {
 						tx_module = 'Encrypted';
 						tx_msg = transaction.msg;
+					} else if (tx_type == 8) {
+						tx_module = 'NFT';
+					} else {
+						// maybe do a test for unmarked saito payments....
 					}
 				}
 				let tx_from = '';

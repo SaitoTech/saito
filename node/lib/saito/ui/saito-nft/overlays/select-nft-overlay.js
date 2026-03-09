@@ -18,7 +18,8 @@ class SelectNFT {
     this.callback = null;
 
     if (attach_events) {
-      this.app.connection.on('saito-nft-list-render-request', (callback = null) => {
+      this.app.connection.on('saito-nft-list-render-request', (title = '', callback = null) => {
+        this.title = title;
         this.callback = callback;
         this.render();
       });
@@ -47,7 +48,7 @@ class SelectNFT {
   }
 
   async render() {
-    this.overlay.show(SelectNFTTemplate(this.app, this.mod));
+    this.overlay.show(SelectNFTTemplate(this));
 
     await this.renderNFTList();
 
@@ -118,7 +119,6 @@ class SelectNFT {
 
       for (let card of this.card_list) {
         if (!card.callback) {
-          console.warn('Adding default callback to NFT card');
           card.callback = (nft) => {
             this.nft_overlay.render(nft);
           };

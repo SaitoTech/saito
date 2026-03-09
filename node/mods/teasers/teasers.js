@@ -98,6 +98,7 @@ class Teasers extends ModTemplate {
             console.log('**** adding teaser: ' + t.name);
             let tm = new TeaserModule(this.app, t.name, t.slug, t.title, t.img, t.link);
             tm.img = t.img;
+	    tm.is_teaser = true; 
             await tm.installModule(app);
             app.modules.mods.push(tm);
           }

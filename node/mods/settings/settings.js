@@ -115,9 +115,8 @@ class Settings extends ModTemplate {
 						rank: 130,
 						type: 'utilities',
 						callback: async function (app, id) {
-							let c = await sconfirm('This will wipe out your wallet and delete your data....');
+							let c = await app.wallet.onUpgrade('nuke');
 							if (c) {
-								await app.wallet.onUpgrade('nuke');
 								reloadWindow(150);
 							}
 						}

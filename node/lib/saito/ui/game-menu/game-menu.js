@@ -76,8 +76,8 @@ class GameMenu {
             game_mod.menu.hideSubMenus();
 
             let data = {
-              game: game_mod.name,
-              game_id: app.crypto.hash(game_mod.game.id).slice(-6),
+              game: game_mod.returnSlug?.() ?? game_mod.name,
+              game_id: game_mod.game.id,
               path: '/arcade/',
               name: 'Join'
             };
@@ -95,8 +95,8 @@ class GameMenu {
             game_mod.menu.hideSubMenus();
 
             let data = {
-              game: game_mod.name,
-              game_id: app.crypto.hash(game_mod.game.id).slice(-6),
+              game: game_mod.returnSlug?.() ?? game_mod.name,
+              game_id: game_mod.game.id,
               step: game_mod.game.step.game,
               path: '/arcade/',
               name: 'Observer'

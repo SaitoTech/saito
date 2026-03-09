@@ -8,7 +8,7 @@ class ZoomOverlay {
     this.mod = mod;
     this.visible = false;
     this.overlay = new SaitoOverlay(app, mod, false, false, false);
-    this.callback_on_close = () => { this.visible = false; }
+    this.overlay.callback_on_close = () => { this.visible = false; }
 
     //
     // optional callback when selecting spaces via zoom
@@ -28,19 +28,21 @@ class ZoomOverlay {
     this.overlay.show(ZoomTemplate());
 
     let container = document.querySelector('.zoom-overlay');
-    let originalBoard = document.querySelector('.gameboard');
+    let originalBoard = document.querySelector('#gameboard');
+    let boardClone = document.querySelector('.gameboard-clone');
 
     if (!originalBoard) { return; }
 
     //
     // clone board
     //
-    let boardClone = originalBoard.cloneNode(true);
-    boardClone.removeAttribute('id');
-    boardClone.removeAttribute('style');
-    boardClone.classList.add('gameboard-clone');
-
-    container.appendChild(boardClone);
+    if (!boardClone) {
+      boardClone = originalBoard.cloneNode(true);
+      boardClone.removeAttribute('id');
+      boardClone.removeAttribute('style');
+      boardClone.classList.add('gameboard-clone');
+      container.appendChild(boardClone);
+    }
 
     //
     // allow drag panning
