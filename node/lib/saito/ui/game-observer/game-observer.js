@@ -120,17 +120,6 @@ class GameObserver {
     if (this.playback_status === "init") {
 
       //
-      // start queue
-      //
-      await this.game_mod.startQueue();
-
-      //
-      // take first snapshot
-      //
-      this.snapshots = [];
-      this.snapshots.push(JSON.stringify(this.game_mod.game));
-
-      //
       // download moves
       //
       this.loader.updateStatus(`Downloading moves (${this.txs.length})`);
@@ -169,7 +158,7 @@ class GameObserver {
         ascending: 1,
         limit
       },
-      (txs) => {
+      async (txs) => {
 
         let new_tx_found = false;
 
@@ -215,6 +204,14 @@ class GameObserver {
 	// the game that way.
         //
         if (this.playback_status === "init") {
+
+          if (!this.game_mod.game.initialize_game_run) {
+            await this.game_mod.initializeGameQueue(this.game_mod.game.id);
+          }
+
+          this.snapshots = [];
+          this.snapshots.push(JSON.stringify(this.game_mod.game));
+
           for (let tx of this.txs) {
             this.game_mod.game.future.push(tx.serialize_to_web ? tx.serialize_to_web(this.app) : tx);
           }
