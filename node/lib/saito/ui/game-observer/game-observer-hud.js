@@ -39,6 +39,7 @@ class GameObserverHUD {
     }
 
     this._eventsAttached = false;
+    this.attachEvents();
     console.log('[HUD] render');
     if (this.container.querySelector('#game-observer-hud')) {
       console.log('[HUD] visible');
@@ -114,7 +115,7 @@ class GameObserverHUD {
 
     const playBtn = root.querySelector('#observer-play');
     if (playBtn && observer) {
-      playBtn.onclick = () => observer.play();
+      playBtn.onclick = () => observer.startPlayback();
     }
 
     const fwdBtn = root.querySelector('#observer-forward');
@@ -135,6 +136,29 @@ class GameObserverHUD {
     }
 
     this._eventsAttached = true;
+  }
+
+  setRange(min, max) {
+    if (!this.container) return;
+    const root = this.container.querySelector('#game-observer-hud');
+    if (!root) return;
+    const sliderEl = root.querySelector('#game-observer-state-slider');
+    if (sliderEl) sliderEl.max = String(Math.max(0, max));
+    const timelineEndEl = root.querySelector('.timeline-end');
+    if (timelineEndEl) timelineEndEl.textContent = String(max);
+  }
+
+  setPosition(pos) {
+    if (!this.container) return;
+    const root = this.container.querySelector('#game-observer-hud');
+    if (!root) return;
+    const sliderEl = root.querySelector('#game-observer-state-slider');
+    if (sliderEl) {
+      sliderEl.value = String(pos);
+      const max = parseInt(sliderEl.max, 10) || 0;
+      const progress = max > 0 ? `${(pos / max) * 100}%` : '0%';
+      sliderEl.style.setProperty('--progress', progress);
+    }
   }
 
   /**

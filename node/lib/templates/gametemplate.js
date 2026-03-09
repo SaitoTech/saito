@@ -521,10 +521,6 @@ class GameTemplate extends ModTemplate {
 
     if (this.game.player == 0) {
       document.body.classList.add('observer-mode');
-      if (this.game.live) {
-        this.observerControls.step_speed = 3;
-        //this.observerControls.play(); //Just update the controls so they match our altered state
-      }
     }
 
     //
@@ -905,7 +901,7 @@ class GameTemplate extends ModTemplate {
     }
 
     if (this.game?.player === 0 && this.observerControls) {
-      this.observerControls.initialize({ full_game_id: this.game.id, game_mod: this });
+      this.observerControls.initialize(this.game.id);
     }
 
     //
@@ -1043,21 +1039,6 @@ class GameTemplate extends ModTemplate {
 
           if (asFuture) {
             await this.addFutureMove(tx);
-
-            //Safety check in case observer missed a move
-            //If we have multiple moves in the future queue and are receiving moves on chain,
-            //then something has probably gone wrong
-            if (this.game.player === 0 && this.game.future.length > 3) {
-              console.info(
-                'GT [onConfirmation] Observer receives future move',
-                this.gaming_active,
-                this.halted
-              );
-              if (!this.gaming_active && !this.halted) {
-                console.info('GT [onConfirmation] Observer auto steps forward');
-                await this.observerControls.next();
-              }
-            }
           } else if (asNext) {
             await this.addNextMove(tx);
             this.notifyMove();
