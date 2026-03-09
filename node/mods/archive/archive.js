@@ -288,6 +288,7 @@ class Archive extends ModTemplate {
 		if (this.app.BROWSER == 0) {
 			services.push(new PeerService(null, 'archive'));
 		}
+		console.log('archive services', services);
 		return services;
 	}
 
