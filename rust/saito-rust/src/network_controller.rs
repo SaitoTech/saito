@@ -464,7 +464,11 @@ impl NetworkController {
                         let network_controller_for_closure = network_controller_clone.clone();
                         let socket_lock_for_closure = socket_lock.clone();
 
-                        let services = network_controller_clone.read().await.services.clone();
+                        let services = if peer.is_connected() {
+                            vec![]
+                        } else {
+                            network_controller_clone.read().await.services.clone()
+                        };
                         let result = peer
                             .process_incoming_buffer(
                                 buffer,
@@ -589,7 +593,11 @@ impl NetworkController {
                             trace!("received buffer of size : {:?}", buffer.len());
                             let network_controller_for_closure = network_controller_clone.clone();
                             let socket_lock_for_closure = socket_lock.clone();
-                            let services = network_controller_clone.read().await.services.clone();
+                            let services = if peer.is_connected() {
+                                vec![]
+                            } else {
+                                network_controller_clone.read().await.services.clone()
+                            };
                             let result = peer
                                 .process_incoming_buffer(
                                     buffer,
