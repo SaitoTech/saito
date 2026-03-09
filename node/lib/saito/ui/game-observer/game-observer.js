@@ -19,9 +19,13 @@ class GameObserver {
     //
     // playback
     //
-    this.playback_status = "init"; 
+    this.playback_status = "init";
     this.playback_speed = 2000;
     this.playback_timer = null;
+
+    this.is_downloading = false;
+    this.download_timer = null;
+    this.latest_step = 0;
 
     //
     // game transactions
@@ -31,24 +35,44 @@ class GameObserver {
     this.buffer = [];
     this.snapshots = [];
 
-    //
-    //
-    //
-    this.is_syncing = false;
-
-    //
-    // tracking the index
-    //
     this.index_max = 0;
     this.index_current = 0;
     this.index_range = 20;
 
-    //
-    // ui components
-    //
     this.loader = new GameObserverLoader(app, game_mod);
     this.hud = new GameObserverHUD(app, this);
-    this.slider = new GameObserverSlider(app, this);
+
+    this.playback_timer = setInterval(() => {
+
+      if (this.playback_status !== "playing") return;
+      if (!this.game_mod?.game) return;
+      if (this.game_mod.halted === 1) return;
+      if (this.buffer.length === 0) return;
+      if (this.game_mod.game.future.length > 0) return;
+
+      let tx = this.buffer.shift();
+
+      this.game_mod.game.future.push(
+        tx.serialize_to_web ? tx.serialize_to_web(this.app) : tx
+      );
+
+      if (this.game_mod.processFutureMoves()) {
+        this.game_mod.runQueue();
+      }
+
+    }, this.playback_speed);
+
+  }
+
+  updateStatus(message) {
+
+    if (this.hud && this.hud.updateStatus) {
+      this.hud.updateStatus(message);
+    }
+
+    if (this.loader && this.loader.updateStatus) {
+      this.loader.updateStatus(message);
+    }
 
   }
 
@@ -60,7 +84,7 @@ class GameObserver {
    * into its queue and have it execute the game appropriately.
    *
    */
-   initialize(game_id) {
+  initialize(game_id) {
 
      let game = this.game_mod.loadGame(game_id);
 
@@ -85,7 +109,7 @@ class GameObserver {
 
 
 
-  render() {
+  async render() {
 
     this.loader.render();
     this.hud.render();
@@ -93,7 +117,7 @@ class GameObserver {
     //
     // check status
     //
-    if (this.playback_status == "init") {
+    if (this.playback_status === "init") {
 
       //
       // start queue
@@ -109,68 +133,155 @@ class GameObserver {
       //
       // download moves
       //
-      this.download(this.game_mod.game.id);
+      this.loader.updateStatus(`Downloading moves (${this.txs.length})`);
+
+      //
+      // download timer
+      //
+      this.download_timer = setInterval(() => {
+        if (!this.game_mod?.game) { return; }
+        this.download(this.game_mod.game.id);
+      }, 3000);
+
     }
 
   }
 
-
-
   async download(game_id) {
 
-    this.txs = [];
-    this.buffer = [];
-
+    if (!this.game_mod?.game) { return null; }
+    if (this.is_downloading) { return null; }
     if (!this.game_mod.archive_connected) {
-      console.warn("GT [observer] Haven't established peer yet, try again after 3s");
-      setTimeout(() => { this.download(); }, 3000);
       return null;
     }
 
-    this.playback_status = "downloading";
+    this.is_downloading = true;
+
+    const limit = 20;
+    let cursor = this.latest_step;
 
     this.app.storage.loadTransactions(
       {
         field1: this.game_mod.name,
         field4: game_id,
-        field5: currentStep,
+        field5: cursor,
+        field5_sort: 1,
         ascending: 1,
-        limit: 20,
-        field5_sort: 1
+        limit
       },
-      async (txs) => {
+      (txs) => {
 
-	//
-	// all moves go in this.txs
-	//
-        for (let tx of txs) {
-      	  if (!this.tx_index[hash]) {
+        let new_tx_found = false;
+
+        for (let tx of txs || []) {
+          let sig = tx.signature != null ? tx.signature : tx.hash;
+          if (!this.tx_hashmap[sig]) {
             this.txs.push(tx);
-            this.tx_index[tx.hash] = this.txs.length-1;
+            this.tx_hashmap[sig] = this.txs.length - 1;
+            new_tx_found = true;
+            try {
+              let msg = tx.returnMessage ? tx.returnMessage() : (tx.msg || null);
+              let step = msg?.step?.game ?? 0;
+              if (step > this.latest_step) this.latest_step = step;
+            } catch (e) {}
+            if (this.playback_status === "playing") {
+              this.buffer.push(tx);
+            }
           }
         }
 
-	//
-	// all moves go into this.game_mod.future
-	//
-	for (let tx of this.txs) {
-	  this.game_mod.future.push(tx);
-	}
+        if (new_tx_found) {
+          this.index_max = this.txs.length;
+          if (this.hud?.setRange) {
+            this.hud.setRange(0, this.index_max);
+          }
+        }
 
-        this.game_mod.saveFutureMoves(g.id);
-        this.game_mod.saveGame(g.id);
+        if (txs && txs.length === limit && new_tx_found) {
+          this.loader.updateStatus("Fetching more moves...");
+          this.is_downloading = false;
+          this.download(game_id);
+          return;
+        }
 
+        //
+        // we only hit this point if we have completely loaded 
+	// our game moves from the archive, in which case we 
+	// are either in the initial sync-mode, in which case 
+	// we want to execute the whole game
 	//
-	// and execute the moves
-	//
-        this.game_mod.halted = 0;
-        this.game_mod.processFutureMoves();
+	// or we are playing in which case we start feeding them
+	// from the buffer into the futures queue and executing 
+	// the game that way.
+        //
+        if (this.playback_status === "init") {
+          for (let tx of this.txs) {
+            this.game_mod.game.future.push(tx.serialize_to_web ? tx.serialize_to_web(this.app) : tx);
+          }
+          this.game_mod.saveFutureMoves(this.game_mod.game.id);
+          this.game_mod.saveGame(this.game_mod.game.id);
 
+          this.game_mod.halted = 0;
+
+          while (true) {
+            if (this.game_mod.processFutureMoves()) {
+              this.game_mod.runQueue();
+              continue;
+            }
+            break;
+          }
+
+          this.readyToObserver();
+
+        }
+
+
+        if (this.playback_status === "playing" || this.playback_status === "paused") {
+          this.is_downloading = false;
+        }
       }
     );
   }
 
 
+  readyToObserve() {
+
+    this.index_max = this.txs.length;
+    this.index_current = this.index_max;
+    if (this.hud?.setRange) {
+      this.hud.setRange(0, this.index_max);
+      this.hud.setPosition(this.index_current);
+    }
+
+    this.loader.updateStatus("Game Synchronized...");
+    this.hud.updateStatus("Press Play to Observe");
+    this.loader.remove();
+    this.playback_status = "paused";
+
+  }
+
+
+
+
+
+  getMovesInRange(min=0, max=100000) {
+
+    let moves = [];
+
+    for (let tx of this.txs) {
+
+      let msg = tx.returnMessage();
+      let step = msg?.step?.game ?? 0;
+
+      if (step >= min && step <= max) {
+        moves.push(tx);
+      }
+
+    }
+
+    return moves;
+
+  }
 
   async replayToIndex(targetIndex) {
 
@@ -179,28 +290,6 @@ class GameObserver {
 
   }
 
-
-  /**
-   * Engine is ready for new moves when executing this.game_mod.processFutureMoves() results in no
-   * change to game_mod.queue or game_mod.future. This does NOT require queue or future to be empty.
-   */
-  isGameIdle() {
-
-    if (!this.game_mod?.game) { return false; }
-
-    let hash1 = this.app.crypto.hash(JSON.stringify(this.game_mod.queue)); 
-    let hash2 = this.app.crypto.hash(JSON.stringify(this.game_mod.future)); 
-
-    await this.game_mod.processFutureMoves();
-
-    let hash3 = this.app.crypto.hash(JSON.stringify(this.game_mod.queue)); 
-    let hash4 = this.app.crypto.hash(JSON.stringify(this.game_mod.future));     
-
-    if (hash3 == hash1 && hash4 == hash2) { return true; }
-
-    return false;
-
-  }
 
 }
 
