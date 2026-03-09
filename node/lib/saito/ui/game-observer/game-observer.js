@@ -256,7 +256,7 @@ class GameObserver {
 
       g.future.push(next_tx);
 
-      if (typeof mod.processFutureMoves === "function") {
+      if (typeof mod.processFutureMoves === 'function') {
         mod.halted = 0;
         await mod.processFutureMoves();
       }
@@ -396,13 +396,13 @@ class GameObserver {
     this.is_replaying = true;
 
     this.loader.render();
-    await new Promise(resolve => requestAnimationFrame(resolve));
+    await new Promise((resolve) => requestAnimationFrame(resolve));
 
     this.game_mod.game = JSON.parse(JSON.stringify(this.baseline_state));
     this.game_mod.game.queue = [];
     this.game_mod.game.future = [];
 
-    if (typeof this.game_mod.render === "function") {
+    if (typeof this.game_mod.render === 'function') {
       this.game_mod.render();
     }
 
@@ -643,7 +643,6 @@ class GameObserver {
               let ftx = tx.serialize_to_web(this.app);
 
               if (!g.future.includes(ftx)) {
-
                 // Add to canonical observer history immediately
                 const tx_obj = new Transaction();
                 tx_obj.deserialize_from_web(this.app, ftx);
@@ -724,12 +723,10 @@ class GameObserver {
           this.initial_queue_run = true;
           await this.runQueue();
         } else if (new_moves > 0) {
-
-          if (typeof mod.processFutureMoves === "function") {
+          if (typeof mod.processFutureMoves === 'function') {
             mod.halted = 0;
             await mod.processFutureMoves();
           }
-
         }
       }
     );
@@ -767,10 +764,7 @@ class GameObserver {
       } else {
         if (qLen === lastQLen && fLen === lastFLen) {
           if (stableSince == null) stableSince = now;
-          if (
-            self.archive_fetch_completed &&
-            now - stableSince >= STABLE_MS
-          ) {
+          if (self.archive_fetch_completed && now - stableSince >= STABLE_MS) {
             if (self._sync_stability_interval != null) {
               clearInterval(self._sync_stability_interval);
               self._sync_stability_interval = null;

@@ -220,7 +220,6 @@ class SaitoOverlay {
   }
 
   hide() {
-
     if (!document) {
       return;
     }

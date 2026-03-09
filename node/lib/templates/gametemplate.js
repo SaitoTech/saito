@@ -82,7 +82,6 @@ const GameObserverControls = require('./../saito/ui/game-observer/game-observer'
 const JSON = require('json-bigint');
 
 class GameTemplate extends ModTemplate {
-
   constructor(app) {
     super(app);
 
@@ -1766,7 +1765,6 @@ class GameTemplate extends ModTemplate {
 
     return HomePage(this.app, this, this.app.build_number, this.social, false);
   }
-
 }
 
 GameTemplate.importFunctions(

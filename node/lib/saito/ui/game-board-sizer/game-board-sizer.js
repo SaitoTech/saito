@@ -55,9 +55,9 @@ class GameBoardSizer {
 
     if (!this.rendered) {
       this.app.connection.on('browser-fullscreen-toggle', () => {
-	try {
+        try {
           centerBoard(document.querySelector('#game_board_sizer input'));
-	} catch (err) {}
+        } catch (err) {}
       });
       this.rendered = true;
     }

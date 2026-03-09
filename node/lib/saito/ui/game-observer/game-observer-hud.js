@@ -213,8 +213,7 @@ class GameObserverHUD {
       const max = Math.max(0, knownTotal - 1);
       sliderEl.max = String(max);
       sliderEl.value = String(viewingIndex);
-      const progress =
-        max > 0 ? `${(viewingIndex / max) * 100}%` : '0%';
+      const progress = max > 0 ? `${(viewingIndex / max) * 100}%` : '0%';
       sliderEl.style.setProperty('--progress', progress);
     }
 
