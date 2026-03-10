@@ -8,7 +8,7 @@ module.exports = () => {
       <div class="game-observer-sync-title">Initializing Observer Mode...</div>
       <div class="game-observer-inline-spinner"></div>
       <div id="observer-sync-status" class="game-observer-sync-status">
-        Initializing Observer Mode...
+        Checking archive for game transactions...
       </div>
     </div>
   `;

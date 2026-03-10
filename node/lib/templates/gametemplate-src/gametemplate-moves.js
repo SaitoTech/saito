@@ -309,8 +309,10 @@ class GameMoves {
         this.observerControls.updateStep(this.game.step.game);
       }
 
-      this.observerControls.game_states.push(this.game_state_pre_move);
-      this.observerControls.game_moves.push(gametx);
+      if (!this.observerControls?.is_replaying) {
+        this.observerControls.game_states.push(this.game_state_pre_move);
+        this.observerControls.game_moves.push(gametx);
+      }
       //To avoid memory overflow for long games
       if (this.observerControls.game_states.length > 100) {
         this.observerControls.game_states.shift();

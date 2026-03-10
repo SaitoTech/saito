@@ -6619,6 +6619,11 @@ async playerTurnHeadlineSelected(card, player) {
         this.showInfluence(i);
       }
 
+      let redisplay_zoom_overlay = false;
+      if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
+	redisplay_zoom_overlay = true;
+        this.zoom_overlay.remove();
+      }
 
 try {
       this.updateDefcon();
@@ -6640,7 +6645,7 @@ try {
 } catch (err) { console.log("error updating round: " + JSON.stringify(err)); }
 
       // this can trigger bug if open End-of-Turn, throws error, thus last
-      if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
+      if (redisplay_zoom_overlay) {
 console.log("ZOOM OVERLAY VISIBLE: " + this.zoom_overlay.visible);
 console.log("SAITO OVERLAY INSIDE VISIBLE: " + this.zoom_overlay.overlay.visible);
 console.log("rendering!");
