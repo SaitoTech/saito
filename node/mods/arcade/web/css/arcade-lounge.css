@@ -191,7 +191,7 @@
 	.arcade-lounge-controls {
 		row-gap: 1rem;
 		flex-direction: row;
-		flex-wrap: wrap;
+		flex-wrap: wrap-reverse;
 	}
 
 	.arcade-lounge-controls > .saito-button-primary,
