@@ -43,36 +43,7 @@ class GameObserver {
     this.hud = new GameObserverHUD(app, this);
 
     this.playback_timer_active = false;
-    this.playback_timer = setInterval(async () => {
-
-      if (this.player_timer_active == true) { return; }
-
-      this.playback_timer_active = true;
-console.log("playback timer...");
-
-      if (this.playback_status !== "playing") { return; }
-      if (!this.game_mod?.game) { return; }
-      if (this.game_mod.halted === 1) { return; }
-      if (this.buffer.length === 0) { return; }
-      if (this.game_mod.game.future.length > 0) { return; }
-
-      if (this.buffer.length > 0) {
-
-        let tx = this.buffer.shift();
-
-        this.game_mod.game.future.push(
-          tx.serialize_to_web ? tx.serialize_to_web(this.app) : tx
-        );
-
-        if (this.game_mod.processFutureMoves()) {
-          await this.game_mod.runQueue();
-        }
-
-      }
-
-      this.playback_timer_active = false;
-
-    }, this.playback_speed);
+    this.playback_timer = null;
 
   }
 
@@ -113,6 +84,40 @@ console.log("playback timer...");
        if (typeof this.game_mod.normalizeGameShape === 'function') {
          this.game_mod.normalizeGameShape(this.game_mod.game);
        }
+     }
+
+
+     if (this.app.BROWSER) {
+       this.playback_timer = setInterval(async () => {
+
+         if (this.player_timer_active == true) { return; }
+
+         this.playback_timer_active = true;
+console.log("playback timer...");
+
+         if (this.playback_status !== "playing") { return; }
+         if (!this.game_mod?.game) { return; }
+         if (this.game_mod.halted === 1) { return; }
+         if (this.buffer.length === 0) { return; }
+         if (this.game_mod.game.future.length > 0) { return; }
+
+         if (this.buffer.length > 0) {
+
+           let tx = this.buffer.shift();
+
+           this.game_mod.game.future.push(
+             tx.serialize_to_web ? tx.serialize_to_web(this.app) : tx
+           );
+
+           if (this.game_mod.processFutureMoves()) {
+             await this.game_mod.runQueue();
+           }
+
+         }
+
+         this.playback_timer_active = false;
+
+       }, this.playback_speed);
      }
 
      this.game_mod.game.player = 0;

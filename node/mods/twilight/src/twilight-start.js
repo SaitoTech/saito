@@ -6618,14 +6618,19 @@ async playerTurnHeadlineSelected(card, player) {
     try {
 
       for (let i in this.countries) {
+console.log("display: " + i);
         this.showInfluence(i);
       }
+console.log("before zoom overlaty check...");
 
       let redisplay_zoom_overlay = false;
       if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
+console.log("remove zoom overlay...");
 	redisplay_zoom_overlay = true;
+console.log("before zoom_overlay remove.....");
         this.zoom_overlay.remove();
       }
+console.log("after zoom overlay removal...");
 
 try {
       this.updateDefcon();
