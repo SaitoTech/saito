@@ -1382,6 +1382,8 @@ console.log("LATEST MOVE: " + mv);
           this.game.player = i+1;
         }
       }
+
+      return 1;
     }
 
     if (mv[0] === "update_observers") {
