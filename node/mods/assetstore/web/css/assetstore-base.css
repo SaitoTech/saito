@@ -33,7 +33,7 @@
   display: grid;
   width: 100%;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(95vw, 400px), 1fr));
 }
 
 #assetstore-empty {

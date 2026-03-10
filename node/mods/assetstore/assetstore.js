@@ -1207,8 +1207,6 @@ class AssetStore extends ModTemplate {
 		let sender = tx.from[0].publicKey;
 		let receiver = tx.to[0].publicKey;
 
-		let tx_json = tx.serialize_to_web(this.app);
-
 		//
 		// Bound Transaction
 		//
@@ -1269,7 +1267,6 @@ class AssetStore extends ModTemplate {
 		//
 		let sql = `INSERT INTO transactions (
 			listing_id, 
-			tx, 
 			tx_sig, 
 			sender, 
 			recipient, 
@@ -1280,7 +1277,6 @@ class AssetStore extends ModTemplate {
 			tid
 		) VALUES (
 			$listing_id, 
-			$tx, 
 			$tx_sig, 
 			$sender, 
 			$recipient, 
@@ -1293,7 +1289,6 @@ class AssetStore extends ModTemplate {
 
 		let params = {
 			$listing_id: listing_id,
-			$tx: tx_json,
 			$tx_sig: tx.signature,
 			$sender: sender,
 			$recipient: receiver,
