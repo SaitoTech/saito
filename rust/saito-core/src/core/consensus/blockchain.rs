@@ -2596,6 +2596,10 @@ impl Blockchain {
             ts,
             pre_hash.to_hex()
         );
+        if self.is_block_indexed(hash) {
+            warn!("block :{:?} exists in blockchain", hash.to_hex());
+            return;
+        }
         let ring_buffer_size = self.blockring.get_ring_buffer_size();
         let mut block = Block::new();
         block.id = id;
@@ -2606,16 +2610,17 @@ impl Blockchain {
         block.hash = hash;
         block.block_type = BlockType::Ghost;
 
-        if self.is_block_indexed(hash) {
-            warn!("block :{:?} exists in blockchain", hash.to_hex());
-            return;
-        }
         if !self.blockring.contains_block_hash_at_block_id(id, hash) {
+            block.in_longest_chain = true;
             self.blockring.add_block(&block);
             self.blockring.lc_pos = Some((id % ring_buffer_size) as usize);
             self.blockring.ring[(id % ring_buffer_size) as usize].lc_pos = Some(0);
         } else {
-            debug!("didn't add ghost block : {:?}-{:?}", id, hash.to_hex());
+            debug!(
+                "didn't add ghost block : {:?}-{:?} since we already have it in the chain",
+                id,
+                hash.to_hex()
+            );
         }
         self.blocks.insert(hash, block);
     }
