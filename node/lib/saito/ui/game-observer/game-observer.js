@@ -42,8 +42,12 @@ class GameObserver {
     this.loader = new GameObserverLoader(app, game_mod);
     this.hud = new GameObserverHUD(app, this);
 
-    this.playback_timer = setInterval(() => {
+    this.playback_timer_active = false;
+    this.playback_timer = setInterval(async () => {
 
+      if (this.player_timer_active == true) { return; }
+
+      this.playback_timer_active = true;
 console.log("playback timer...");
 
       if (this.playback_status !== "playing") { return; }
@@ -65,6 +69,8 @@ console.log("playback timer...");
         }
 
       }
+
+      this.playback_timer_active = false;
 
     }, this.playback_speed);
 
