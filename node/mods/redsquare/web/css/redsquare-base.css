@@ -1,149 +1,149 @@
 .tweet-container {
-	position: relative;
-	max-width: 600px;
-	margin: 0 auto;
-	border-right: 1px solid var(--saito-border-color);
-	border-left: 1px solid var(--saito-border-color);
-	border-bottom: 1px solid var(--saito-border-color);
-	background: var(--saito-background-color);
+  position: relative;
+  max-width: 600px;
+  margin: 0 auto;
+  border-right: 1px solid var(--saito-border-color);
+  border-left: 1px solid var(--saito-border-color);
+  border-bottom: 1px solid var(--saito-border-color);
+  background: var(--saito-background-color);
 }
 
 .saito-end-of-redsquare {
-	padding: 1rem;
-	text-align: center;
+  padding: 1rem;
+  text-align: center;
 }
 
 /************************************
  *  Feed-embedded reply form (overrides saito-post.css)
  * **********************************/
 .tweet-container .tweet-overlay {
-	max-width: 100%;
-	width: 100%;
-	border-bottom: 1px solid var(--saito-border-color);
+  max-width: 100%;
+  width: 100%;
+  border-bottom: 1px solid var(--saito-border-color);
 }
 
 .tweet-container .tweet-overlay .tweet-overlay-content .tweet-overlay-header {
-	display: none;
+  display: none;
 }
 
 .tweet-thread-holder {
-	display: none;
+  display: none;
 }
 
 /*****************************
  *  New Tweets Button (top of feed)
  ****************************/
 .redsquare-load-new-tweets-container {
-	display: none;
-	position: sticky;
-	height: 0;
-	top: 1rem;
-	z-index: 1000;
+  display: none;
+  position: sticky;
+  height: 0;
+  top: 1rem;
+  z-index: 1000;
 }
 
 .saito-load-new-tweets {
-	padding-left: 3rem;
-	padding-right: 3rem;
-	padding-top: 1rem;
-	padding-bottom: 1rem;
-	width: 50%;
-	margin: 0 25%;
+  padding-left: 3rem;
+  padding-right: 3rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  width: 50%;
+  margin: 0 25%;
 }
 
 .saito-main[data-view='tweets'] .redsquare-load-new-tweets-container {
-	display: block;
+  display: block;
 }
 
 /*****************************
  *  Intersection Observer (end of feed)
  ****************************/
 .redsquare-intersection {
-	opacity: 1;
-	height: 1rem;
-	position: relative;
+  opacity: 1;
+  height: 1rem;
+  position: relative;
 }
 
 .intersection-observer-trigger {
-	position: absolute;
-	height: 10px;
-	width: 100%;
-	top: -50vh;
-	pointer-events: none;
+  position: absolute;
+  height: 10px;
+  width: 100%;
+  top: -50vh;
+  pointer-events: none;
 }
 
 .intersection-observer-trigger.deactivated {
-	display: none;
+  display: none;
 }
 
 .tweet-image {
-	margin-top: 8px;
-	border-radius: 12px;
-	width: 100%;
-	max-width: 500px;
-	object-fit: cover;
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(49%, 1fr));
-	grid-gap: 0.3rem;
-	width: 100%;
+  margin-top: 8px;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 500px;
+  object-fit: cover;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(49%, 1fr));
+  grid-gap: 0.3rem;
+  width: 100%;
 }
 
 .tweet img:not([src]) {
-	display: none;
-	visibility: hidden;
+  display: none;
+  visibility: hidden;
 }
 .tweet img[src=''] {
-	display: none;
-	visibility: hidden;
+  display: none;
+  visibility: hidden;
 }
 .tweet img[src='about:blank'] {
-	display: none;
-	visibility: hidden;
+  display: none;
+  visibility: hidden;
 }
 .tweet-curation {
-	display: none;
+  display: none;
 }
 
 .tweet-context {
-	display: flex;
-	align-items: center;
-	font-size: 13px;
-	color: #718695;
-	margin-bottom: 6px;
-	gap: 6px;
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: #718695;
+  margin-bottom: 6px;
+  gap: 6px;
 }
 
 .tweet-preview:empty {
-	display: none;
+  display: none;
 }
 
 .tweet-retweet:empty {
-	display: none;
+  display: none;
 }
 
 .tweet-retweet {
-	margin-top: 8px;
-	padding: 4px;
-	border: 1px solid var(--saito-border-color);
-	border-radius: var(--saito-border-radius);
-	background-color: var(--saito-highlight);
+  margin-top: 8px;
+  padding: 4px;
+  border: 1px solid var(--saito-border-color);
+  border-radius: var(--saito-border-radius);
+  background-color: var(--saito-highlight);
 }
 
 .tweet-retweet .tweet-text {
-	font-size: 14px;
-	line-height: 18px;
-	margin-bottom: 0;
+  font-size: 14px;
+  line-height: 18px;
+  margin-bottom: 0;
 }
 
 .tweet-retweet .tweet {
-	border-bottom: unset;
+  border-bottom: unset;
 }
 
 .tweet-container > .tweet:hover {
-	background-color: var(--saito-highlight);
+  background-color: var(--saito-highlight);
 }
 
 .tweet-container.thread-view > .tweet:hover {
-	background-color: var(--saito-highlight-heavy);
+  background-color: var(--saito-highlight-heavy);
 }
 
 /* -------------------
@@ -151,53 +151,56 @@
 -------------------- */
 
 .tweet {
-	position: relative;
-	padding: 12px 16px;
-	border-bottom: 1px solid var(--saito-border-color);
-	color: var(--saito-font-color);
-	display: grid;
-	grid-template-columns: min-content minmax(0, 1fr);
-	cursor: pointer;
-	transition: background-color 0.2s ease-in-out;
+  position: relative;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--saito-border-color);
+  color: var(--saito-font-color);
+  display: grid;
+  grid-template-columns: min-content minmax(0, 1fr);
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
 }
 
 .tweet-avatar {
-	width: 48px;
-	height: 48px;
-	margin-right: 12px;
-	border-radius: 50%;
-	background-color: #aaa;
-	flex-shrink: 0;
-	z-index: 5;
-	display: block !important;
-	visibility: visible !important;
+  width: 48px;
+  height: 48px;
+  margin-right: 12px;
+  border-radius: 50%;
+  background-color: #aaa;
+  flex-shrink: 0;
+  z-index: 5;
+  display: block !important;
+  visibility: visible !important;
 }
 
 .tweet-body {
-	overflow: hidden;
-	width: 100%;
-	max-width: 100%;
-	flex: 1;
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .tweet-header {
-	font-weight: 600;
-	font-size: 15px;
-	margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 4px;
 }
 
 .tweet-header .saito-user {
-	display: flex;
-	flex-direction: column;
-	justify-items: start;
-	width: 100%;
-	position: relative;
-	white-space: nowrap;
-	row-gap: 0;
+  display: flex;
+  flex-direction: column;
+  justify-items: start;
+  width: 100%;
+  position: relative;
+  white-space: nowrap;
+  row-gap: 0;
 }
 
 .tweet-header .saito-user .saito-identicon-box {
-	display: none;
+  display: none;
 }
 
 /* -------------------------------
@@ -243,17 +246,17 @@
 -------------------------------- */
 
 @media (max-width: 600px) {
-	.tweet-container {
-		border: none;
-	}
+  .tweet-container {
+    border: none;
+  }
 
-	.tweet-avatar {
-		width: 40px;
-		height: 40px;
-	}
+  .tweet-avatar {
+    width: 40px;
+    height: 40px;
+  }
 
-	.saito-load-new-tweets {
-		width: 22rem; /* min width to avoid word wrap */
-		margin: 0 20%;
-	}
+  .saito-load-new-tweets {
+    width: 22rem; /* min width to avoid word wrap */
+    margin: 0 20%;
+  }
 }
