@@ -915,6 +915,9 @@ class AssetStore extends ModTemplate {
 		} catch (e) {
 			// console.error('Seller payout failed:', e);
 		}
+
+		// Requery DB in case we sold one of multiple copies of the same NFT
+		this.restoreListingsFromDB();
 	}
 
 	async notifySeller(listing) {
