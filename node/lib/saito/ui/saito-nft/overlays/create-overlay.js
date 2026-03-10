@@ -297,7 +297,7 @@ class CreateNFT {
 
       let processed = false;
 
-      alert(this.nft_type + ' ... ');
+      //alert(this.nft_type + ' ... ');
 
       if (this.nft_type === 'text') {
         document.querySelector('#nft-image-upload').style.display = 'none';

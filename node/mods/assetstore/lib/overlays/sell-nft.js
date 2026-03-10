@@ -186,6 +186,7 @@ class SellNFTOverlay extends NFTDetailsOverlay {
             active: 0,
             reserve_price: buy_price_num,
             title,
+            created_at: Date.now(),
             description
           };
 

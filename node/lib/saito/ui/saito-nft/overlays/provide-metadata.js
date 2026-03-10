@@ -44,21 +44,20 @@ class ProvideMetaDataOverlay {
     if (confirm_btn) {
       confirm_btn.onclick = async (e) => {
         // Only set title/description if they were modified (not default values)
-        let titleEl = document.querySelector('.saito-nft-header-title.editable');
-        let descEl = document.querySelector('.saito-nft-description-box-metadata.editable');
-
-        if (titleEl) {
-          let currentTitle = titleEl.innerText.trim();
-          let defaultTitle = titleEl.getAttribute('data-default-title');
+        if (title_element) {
+          let currentTitle = title_element.innerText.trim();
+          let defaultTitle = title_element.getAttribute('data-default-title');
           if (currentTitle && currentTitle !== defaultTitle) {
             this.nfttx.msg.title = currentTitle;
           }
         }
 
-        if (descEl) {
-          let descTextEl = descEl.querySelector('.saito-nft-description-text-metadata') || descEl;
+        if (description_element) {
+          let descTextEl =
+            description_element.querySelector('.saito-nft-description-text-metadata') ||
+            description_element;
           let currentDesc = descTextEl.innerText.trim();
-          let defaultDesc = descEl.getAttribute('data-default-description');
+          let defaultDesc = description_element.getAttribute('data-default-description');
           // Only set description if it was changed AND is not empty
           if (currentDesc && currentDesc !== defaultDesc && currentDesc.trim() !== '') {
             this.nfttx.msg.description = currentDesc.trim();
@@ -109,7 +108,6 @@ class ProvideMetaDataOverlay {
     // Description editing
     //
     if (description_element) {
-      description_element.style.cursor = 'pointer';
       description_element.onclick = async (e) => {
         e.preventDefault();
         e.stopPropagation();

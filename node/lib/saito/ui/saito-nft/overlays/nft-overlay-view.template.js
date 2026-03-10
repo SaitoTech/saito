@@ -1,35 +1,6 @@
 module.exports = (app, mod, nft_overlay) => {
   let nft = nft_overlay.nft;
 
-  let title = 'Vintage Saito NFT';
-  let saitoItems = [
-    'Vintage Collectible',
-    'Classic Saito NFT',
-    'Genesis Collectable',
-    'Saito Heritage Item',
-    'Unique Item',
-    'Historical Saito Mint',
-    'Provenance Edition',
-    'Founders Edition',
-    'NFT Collectable',
-    'Unique Item',
-    'Saito Legacy',
-    'Rare Saito Artifact',
-    'Limited Saito Release',
-    'Archival Series',
-    'Original Chain Relic',
-    'Timeless Collectable',
-    'Retro Blockchain Piece',
-    'Immutable Classic',
-    'Chain Memory Artifact',
-    'Saito Vault Item',
-    'Eternal Collectable'
-  ];
-  title = saitoItems[Math.floor(Math.random() * saitoItems.length)];
-  if (nft.title) {
-    title = nft.title;
-  }
-
   let text = '';
   if (nft.text) {
     text = nft.text;
