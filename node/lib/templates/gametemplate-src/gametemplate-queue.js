@@ -1130,9 +1130,6 @@ class GameQueue {
             game_self.game.deck[deckidx - 1].keys = [];
             game_self.game.deck[deckidx - 1].crypt = [];
           } else {
-            //Isn't this backwards????
-            //game_self.game.deck[deckidx - 1].keys = game_self.game.deck[deckidx - 1].keys.splice(cards,game_self.game.deck[deckidx - 1].keys.length - cards);
-            //game_self.game.deck[deckidx - 1].crypt = game_self.game.deck[deckidx - 1].crypt.splice(cards,game_self.game.deck[deckidx - 1].crypt.length - cards);
             game_self.game.deck[deckidx - 1].keys.splice(0, cards);
             game_self.game.deck[deckidx - 1].crypt.splice(0, cards);
             if (

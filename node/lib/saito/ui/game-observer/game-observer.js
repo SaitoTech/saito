@@ -44,20 +44,26 @@ class GameObserver {
 
     this.playback_timer = setInterval(() => {
 
-      if (this.playback_status !== "playing") return;
-      if (!this.game_mod?.game) return;
-      if (this.game_mod.halted === 1) return;
-      if (this.buffer.length === 0) return;
-      if (this.game_mod.game.future.length > 0) return;
+console.log("playback timer...");
 
-      let tx = this.buffer.shift();
+      if (this.playback_status !== "playing") { return; }
+      if (!this.game_mod?.game) { return; }
+      if (this.game_mod.halted === 1) { return; }
+      if (this.buffer.length === 0) { return; }
+      if (this.game_mod.game.future.length > 0) { return; }
 
-      this.game_mod.game.future.push(
-        tx.serialize_to_web ? tx.serialize_to_web(this.app) : tx
-      );
+      if (this.buffer.length > 0) {
 
-      if (this.game_mod.processFutureMoves()) {
-        this.game_mod.runQueue();
+        let tx = this.buffer.shift();
+
+        this.game_mod.game.future.push(
+          tx.serialize_to_web ? tx.serialize_to_web(this.app) : tx
+        );
+
+        if (this.game_mod.processFutureMoves()) {
+          await this.game_mod.runQueue();
+        }
+
       }
 
     }, this.playback_speed);
@@ -205,31 +211,48 @@ class GameObserver {
         //
         if (this.playback_status === "init") {
 
-          if (!this.game_mod.game.initialize_game_run) {
-            await this.game_mod.initializeGameQueue(this.game_mod.game.id);
+console.log("#");
+console.log("#");
+console.log("#");
+console.log("PLAYBACK STATUS IS INIT!!!!");
+
+          await this.game_mod.initializeGameQueue(this.game_mod.game.id);
+          this.game_mod.initialize_game_run = 1;
+          if (await this.game_mod.runQueue() == 0) {
+            this.game_mod.processFutureMoves();
           }
 
-          this.snapshots = [];
-          this.snapshots.push(JSON.stringify(this.game_mod.game));
-
-          for (let tx of this.txs) {
-            this.game_mod.game.future.push(tx.serialize_to_web ? tx.serialize_to_web(this.app) : tx);
-          }
-          this.game_mod.saveFutureMoves(this.game_mod.game.id);
-          this.game_mod.saveGame(this.game_mod.game.id);
+console.log("###");
+console.log("###");
+console.log("###");
+console.log("AFTER INITIALIZE GAME RUN CHECKED...");
 
           this.game_mod.halted = 0;
 
-          while (true) {
-            if (this.game_mod.processFutureMoves()) {
-              this.game_mod.runQueue();
-              continue;
-            }
-            break;
+          // snapshot the fully initialized baseline
+          this.snapshots = [];
+console.log("OBSERVER SNAPSHOT CHECK DECK:", this.game_mod.game.deck);
+          this.snapshots.push(JSON.stringify(this.game_mod.game));
+
+          // now replay all moves
+          for (let tx of this.txs) {
+            this.game_mod.game.future.push(
+              tx.serialize_to_web ? tx.serialize_to_web(this.app) : tx
+            );
           }
 
-          this.readyToObserver();
+          //this.game_mod.saveFutureMoves(this.game_mod.game.id);
+          //this.game_mod.saveGame(this.game_mod.game.id);
 
+          //while (true) {
+          //  if (this.game_mod.processFutureMoves()) {
+          //    await this.game_mod.runQueue();
+          //    continue;
+          //  }
+          //  break;
+          //}
+
+          this.readyToObserve();
         }
 
 
@@ -282,11 +305,76 @@ class GameObserver {
 
   async replayToIndex(targetIndex) {
 
-    this.game_mod.game = JSON.parse(this.snapshots[0]);
+    this.playback_status = "paused";
+
+    if (!this.snapshots || !this.snapshots[0]) {
+      return;
+    }
+
+    const baseline = JSON.parse(this.snapshots[0]);
+
+    const maxIndex = Math.max(0, this.txs.length);
+    const clamped = Math.max(0, Math.min(targetIndex, maxIndex));
+
+    this.loader.render();
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    this.buffer = [];
+
+    this.game_mod.game = baseline;
+
     this.game_mod.game.future = [];
+    this.game_mod.game.queue = [];
+
+    this.game_mod.halted = 0;
+    this.game_mod.gaming_active = 0;
+
+    await this.game_mod.initializeGameQueue(this.game_mod.game.id);
+
+    const replayMoves = this.txs.slice(0, clamped);
+
+    for (let tx of replayMoves) {
+      this.game_mod.game.future.push(
+        tx.serialize_to_web ? tx.serialize_to_web(this.app) : tx
+      );
+    }
+
+    while (true) {
+      if (this.game_mod.processFutureMoves()) {
+        await this.game_mod.runQueue();
+        continue;
+      }
+      break;
+    }
+
+    this.index_current = clamped;
+
+    if (this.hud?.setPosition) {
+      this.hud.setPosition(this.index_current);
+    }
+
+    this.loader.remove();
+    this.hud.updateStatus(`Paused at move ${this.index_current}`);
 
   }
 
+  startPlayback() {
+
+    if (!this.txs || this.txs.length === 0) {
+      return;
+    }
+
+    this.playback_status = "playing";
+
+    if (this.index_current < this.txs.length) {
+      this.buffer = this.txs.slice(this.index_current);
+    }
+
+    if (this.hud && this.hud.updateStatus) {
+      this.hud.updateStatus("Playing...");
+    }
+
+  }
 
 }
 
