@@ -547,21 +547,23 @@ class Arcade extends ModTemplate {
 
 		if (service.service == 'arcade') {
 			this.app.network.sendRequestAsTransaction('arcade invite list', {}, async (txs) => {
-				for (let serial_tx of txs) {
-					let game_tx = new Transaction();
-					game_tx.deserialize_from_web(app, serial_tx);
+				if (txs?.length > 0) {
+					for (let serial_tx of txs) {
+						let game_tx = new Transaction();
+						game_tx.deserialize_from_web(app, serial_tx);
 
-					let status = game_tx.msg.request;
-					let game_added = arcade_self.addGame(game_tx);
+						let status = game_tx.msg.request;
+						let game_added = arcade_self.addGame(game_tx);
 
-					if (arcade_self?.debug && arcade_self.browser_active) {
-						console.debug('Available arcade game:', status, game_added, game_tx);
-					}
+						if (arcade_self?.debug && arcade_self.browser_active) {
+							console.debug('Available arcade game:', status, game_added, game_tx);
+						}
 
-					//Game is marked as "active" but we didn't already add it from our app.options file...
-					if (status == 'active' && game_added && arcade_self.isMyGame(game_tx)) {
-						game_tx.msg.game_id = game_tx.signature;
-						arcade_self.receiveAcceptTransaction(game_tx);
+						//Game is marked as "active" but we didn't already add it from our app.options file...
+						if (status == 'active' && game_added && arcade_self.isMyGame(game_tx)) {
+							game_tx.msg.game_id = game_tx.signature;
+							arcade_self.receiveAcceptTransaction(game_tx);
+						}
 					}
 				}
 
@@ -617,13 +619,20 @@ class Arcade extends ModTemplate {
 			});
 		}
 
+		//
+		// I am going to comment this out for a bit, because I don't know if we still need it
+		// It was "broken" and so not working for... a while
+		// The idea is to query the last 10 moves of all your saved games in case you didn't get them
+		// on/off chain and then rerun them
+		// I think it might be essential for asynchronous gaming since we don't know that we will
+		// get lite blocks going back too far
+		//
 		if (service.service === 'archive') {
-			for (let game of this.app.options.games) {
+			/*for (let game of this.app.options.games) {
 				if (game?.over) {
 					continue;
 				}
 
-				let query = game.module + '_' + game.id;
 				let game_mod = this.app.modules.returnModule(game.module);
 
 				if (!game_mod) {
@@ -632,20 +641,23 @@ class Arcade extends ModTemplate {
 
 				this.app.storage.loadTransactions(
 					{
-						field1: query
+						field1: game.module,
+						field4: game.id
 					},
 					async (txs) => {
-						for (let i = txs.length - 1; i >= 0; i--) {
-							// arcade
-							await this.onConfirmation(-1, txs[i], 0);
+						if (txs?.length > 0) {
+							for (let i = txs.length - 1; i >= 0; i--) {
+								// arcade
+								await this.onConfirmation(-1, txs[i], 0);
 
-							// game mod
-							await game_mod.onConfirmation(-1, txs[i], 0);
+								// game mod
+								await game_mod.onConfirmation(-1, txs[i], 0);
+							}
 						}
 					},
 					peer
 				);
-			}
+			}*/
 		}
 	}
 
