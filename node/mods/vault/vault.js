@@ -6,9 +6,7 @@ const VaultMain = require('./lib/ui/main');
 const VaultHome = require('./index');
 
 class Vault extends ModTemplate {
-
 	constructor(app) {
-
 		super(app);
 
 		this.appname = 'Vault';
@@ -16,7 +14,7 @@ class Vault extends ModTemplate {
 		this.slug = 'vault';
 		this.description = 'Storage Vault regulated by NFT Keys';
 		this.categories = 'Utility Cryptography Programming';
-		this.icon = "fas fa-vault";
+		this.icon = 'fas fa-vault';
 
 		this.peer_connected = false;
 		this.peer = null;
@@ -25,458 +23,436 @@ class Vault extends ModTemplate {
 		// vars for users / uploads
 		//
 		this.file = null;
-		this.filename = "";
+		this.filename = '';
 		this.file_id = null;
-		this.mode = "private";
-
+		this.mode = 'private';
 	}
 
 	initialize(app) {
-
-		this.main = new VaultMain(this.app, this, ".saito-container");
+		this.main = new VaultMain(this.app, this, '.saito-container');
 
 		this.load();
-
 	}
 
 	render() {
-
 		this.header = new SaitoHeader(this.app, this);
 		this.header.render();
 		this.main.render();
-
 	}
 
-        /////////////////////////////////
-  	// inter-module communications //
-  	/////////////////////////////////
-  	respondTo(type = '', obj) {
-  	  let this_mod = this;
+	/////////////////////////////////
+	// inter-module communications //
+	/////////////////////////////////
+	respondTo(type = '', obj) {
+		let this_mod = this;
 
-    	  if (type === 'saito-header') {
-    	    let x = [];
-    	    if (!this.browser_active) {
-    	      x.push({
-    	        text: 'Vault',
-    	        icon: this.icon,
-    	        rank: 105,
-    	        type: 'navigation',
-    	        callback: function (app, id) {
-    	          navigateWindow('/vault');
-    	        }
-    	      });
-    	    }
-    	    return x;
-    	  }
+		if (type === 'saito-header') {
+			let x = [];
+			if (!this.browser_active) {
+				x.push({
+					text: 'Vault',
+					icon: this.icon,
+					rank: 105,
+					type: 'navigation',
+					callback: function (app, id) {
+						navigateWindow('/vault');
+					}
+				});
+			}
+			return x;
+		}
 
-  	  if (type === 'saito-create-nft') {
-  	    return {
-	      title : "NFT Access Key" ,
-  	      class : ["vault-nft-key"] ,
-  	      json: { 
-		txsig 	: "YYYYY" ,
-		archive : "ZZZZZ" ,
-	      }
-  	    };
-  	  }
-	  return null;
+		if (type === 'saito-create-nft') {
+			return {
+				title: 'NFT Access Key',
+				class: ['vault-nft-key'],
+				json: {
+					txsig: 'YYYYY',
+					archive: 'ZZZZZ'
+				}
+			};
+		}
+		return null;
+	}
 
-        }
-
-
-  	returnServices() {
-    		let services = [];
-    		if (!this.app.BROWSER || this.offerService) {
-      			services.push(
-				this.app.network.createPeerService(null, 'vault', 'Secure File Vault')
-      			);
-    		}
-    		return services;
+	returnServices() {
+		let services = [];
+		if (!this.app.BROWSER || this.offerService) {
+			services.push(this.app.network.createPeerService(null, 'vault', 'Secure File Vault'));
+		}
+		return services;
 	}
 
 	async onPeerServiceUp(app, peer, service = {}) {
-    		if (!this.browser_active) {
+		if (!this.browser_active) {
 			return;
 		}
-    		if (service.service === 'vault') {
+		if (service.service === 'vault') {
 			this.peer = peer;
-      			this.peer_connected = true;
+			this.peer_connected = true;
 		}
-  	}   
+	}
 
-  	async handlePeerTransaction(app, tx = null, peer, mycallback) {
+	async handlePeerTransaction(app, tx = null, peer, mycallback) {
+		if (tx == null) {
+			return 0;
+		}
 
-    		if (tx == null) {
-      			return 0;
-    		}
-  
-    		let txmsg = tx.returnMessage();
+		let txmsg = tx.returnMessage();
 
-    		if (!txmsg.request || !mycallback) {
-      			return 0; 
-    		}
-    
-    		if (txmsg.request === 'vault access file') {
-			    try {
+		if (!txmsg.request || !mycallback) {
+			return 0;
+		}
 
-			      //
-			      // run CHECKOWN / CHECKOWNNFT script
-			      //
-			      let scripting_mod = app.modules.returnModule("Scripting");
-			      if (!scripting_mod) {
-			        mycallback({ status : "err" , err : "scripting_module_missing" });
-			        return 0;
-			      }
-
-			      //
-			      // evaluate(hash, script, witness, vars, tx, blk)
-			      // tx => the request transaction, so CHECKOWN sees tx/from/signature
-			      //
-			      let ok = await scripting_mod.evaluate(
-			        txmsg.data.access_hash || "",
-			        txmsg.data.access_script || "",
-			        txmsg.data.access_witness || "",
-			        {},        //
-			        tx,        //
-			        null       //
-			      );
-
-			      if (!ok) {
-				siteMessage("Supplied Witness Data Incorrect: Access Denied", 2000);
-			        mycallback({ status : "err" , err : "access_denied_script_failed" });
-			        return 0;
-			      }
-
-			      //
-			      // If script passes, proceed to Archive
-			      //
-			      let archive_mod = app.modules.returnModule("Archive");
-			      archive_mod.access_hash = 1; // ownership restricted
-
-			      let data               = {};
-			      data.owner             = txmsg.data.access_hash;
-			      data.access_hash       = txmsg.data.access_hash;
-			      data.access_script     = txmsg.data.access_script;
-			      data.access_witness    = txmsg.data.access_witness;
-			      data.sig               = txmsg.data.data.file_id;
-			      data.request_tx        = tx;
-
-			      this.app.storage.loadTransactions(
-			        data,
-			        async (txs) => {
-			          mycallback({ status : "success" , err : "" , txs : txs });
-			        },
-			        "localhost",
-			        0
-			      );
-
-			    } catch (err) {
-			      mycallback({ status : "err" , err : JSON.stringify(err) });
-			    }
-
-			    // prevent sending fake response
-			    return 1;
-			  }
-
- 	     		if (txmsg.request === 'vault add file') {
-
+		if (txmsg.request === 'vault access file') {
 			try {
+				//
+				// run CHECKOWN / CHECKOWNNFT script
+				//
+				let scripting_mod = app.modules.returnModule('Scripting');
+				if (!scripting_mod) {
+					mycallback({ status: 'err', err: 'scripting_module_missing' });
+					return 0;
+				}
 
-				let archive_mod = app.modules.returnModule("Archive");
+				//
+				// evaluate(hash, script, witness, vars, tx, blk)
+				// tx => the request transaction, so CHECKOWN sees tx/from/signature
+				//
+				let ok = await scripting_mod.evaluate(
+					txmsg.data.access_hash || '',
+					txmsg.data.access_script || '',
+					txmsg.data.access_witness || '',
+					{}, //
+					tx, //
+					null //
+				);
+
+				if (!ok) {
+					siteMessage('Supplied Witness Data Incorrect: Access Denied', 2000);
+					mycallback({ status: 'err', err: 'access_denied_script_failed' });
+					return 0;
+				}
+
+				//
+				// If script passes, proceed to Archive
+				//
+				let archive_mod = app.modules.returnModule('Archive');
+				archive_mod.access_hash = 1; // ownership restricted
+
+				let data = {};
+				data.owner = txmsg.data.access_hash;
+				data.access_hash = txmsg.data.access_hash;
+				data.access_script = txmsg.data.access_script;
+				data.access_witness = txmsg.data.access_witness;
+				data.sig = txmsg.data.data.file_id;
+				data.request_tx = tx;
+
+				this.app.storage.loadTransactions(
+					data,
+					async (txs) => {
+						mycallback({ status: 'success', err: '', txs: txs });
+					},
+					'localhost',
+					0
+				);
+			} catch (err) {
+				mycallback({ status: 'err', err: JSON.stringify(err) });
+			}
+
+			// prevent sending fake response
+			return 1;
+		}
+
+		if (txmsg.request === 'vault add file') {
+			try {
+				let archive_mod = app.modules.returnModule('Archive');
 				archive_mod.access_hash = 1; // ownership restricted
 
 				let peer_tx = new Transaction();
 				peer_tx.deserialize_from_web(this.app, txmsg.data);
 				let peer_txmsg = peer_tx.returnMessage();
 
-				let access_hash = peer_txmsg.access_hash || "";
+				let access_hash = peer_txmsg.access_hash || '';
 
 				let data = {};
 				data.owner = access_hash;
 				data.preserve = 1;
 
 				this.app.storage.saveTransaction(peer_tx, data, 'localhost');
-				mycallback({ status : "success" , err : "" });
-
+				mycallback({ status: 'success', err: '' });
 			} catch (err) {
-				console.error("Vault add file error:", err);
-				mycallback({ status : "err" , err : JSON.stringify(err) });
+				console.error('Vault add file error:', err);
+				mycallback({ status: 'err', err: JSON.stringify(err) });
 			}
 
 			return 1;
-
 		}
 	}
 
+	async createVaultAddFileTransaction(nftid = null, access_script_obj = null) {
+		let newtx = await this.app.wallet.createUnsignedTransaction();
 
-	async createVaultAddFileTransaction(nftid=null, access_script_obj=null) {
+		try {
+			let scripting_mod = this.app.modules.returnModule('Scripting');
+			if (!scripting_mod) {
+				return null;
+			}
 
-	  let newtx = await this.app.wallet.createUnsignedTransaction();
+			if (!nftid) {
+				console.warn('Vault: createVaultAddFileTransaction missing nftid');
+				return null;
+			}
 
-	  try {
-	    let scripting_mod = this.app.modules.returnModule("Scripting");
-	    if (!scripting_mod) { return null; }
+			if (access_script_obj == null) {
+				access_script_obj = {
+					op: 'CHECKOWNNFT',
+					nftid
+				};
+			}
 
-	    if (!nftid) {
-	      console.warn("Vault: createVaultAddFileTransaction missing nftid");
-	      return null;
-	    }
+			let access_script = JSON.stringify(access_script_obj);
+			let access_hash = scripting_mod.hash(access_script);
 
-	    if (access_script_obj == null) {
-	      access_script_obj = {
-	        op: "CHECKOWNNFT",
-	        nftid,
-	      };
-	    }
+			let msg = {
+				request: 'vault add file',
+				access_script: access_script,
+				access_hash: access_hash,
+				data: { file: this.file, name: this.filename }
+			};
 
-	    let access_script = JSON.stringify(access_script_obj);
-	    let access_hash   = scripting_mod.hash(access_script);
+			newtx.msg = msg;
+			await newtx.sign();
+		} catch (err) {}
 
-	    let msg = {
-	      request       : "vault add file",
-	      access_script : access_script,
-	      access_hash   : access_hash,
-	      data          : { file : this.file , name : this.filename },
-	    };
-
-	    newtx.msg = msg;
-	    await newtx.sign();
-	  } catch (err) {}
-
-	  return newtx;
+		return newtx;
 	}
 
-	
-	async sendAccessFileRequest(vault_data = null, witness_data = null, mycallback=null) {
+	async sendAccessFileRequest(vault_data = null, witness_data = null, mycallback = null) {
+		//
+		// get scripting module
+		//
+		let scripting_mod = this.app.modules.returnModule('Scripting');
 
-    		//
-    		// get scripting module
-    		//
-    		let scripting_mod = this.app.modules.returnModule("Scripting");
+		if (!scripting_mod) {
+			console.warn('VAULT: Scripting module not found, aborting');
+			return null;
+		}
 
-    		if (!scripting_mod) {
-    		  console.warn("VAULT: Scripting module not found, aborting");
-    		  return null;
-    		}
+		//
+		// script: CHECKOWNNFT + nftid
+		// witness: three utxokeys proving ownership (or custom witness data)
+		//
+		let nftid = null;
+		let utxokey1 = null;
+		let utxokey2 = null;
+		let utxokey3 = null;
+		let file_id = null;
+		let file_access_script = '';
 
-    		//
-    		// script: CHECKOWNNFT + nftid
-    		// witness: three utxokeys proving ownership (or custom witness data)
-    		//
-    		let nftid     = null;
-    		let utxokey1  = null;
-    		let utxokey2  = null;
-    		let utxokey3  = null;
-    		let file_id   = null;
-    		let file_access_script = "";
+		//
+		// if called from UI (LoadNFTs click) use provided values
+		//
+		if (vault_data) {
+			nftid = vault_data.nft_id;
+			utxokey1 = vault_data.slip1_utxokey;
+			utxokey2 = vault_data.slip2_utxokey;
+			utxokey3 = vault_data.slip3_utxokey;
+			file_id = vault_data.file_id;
+			file_access_script = vault_data.file_access_script;
+		} else {
+			nftid = prompt('NFT ID (nftid):');
+			utxokey1 = prompt('NFT utxokey1:');
+			utxokey2 = prompt('NFT utxokey2:');
+			utxokey3 = prompt('NFT utxokey3:');
+			file_id = this.file_id;
+		}
 
-    		//
-    		// if called from UI (LoadNFTs click) use provided values
-    		//
-    		if (vault_data) {
-      			nftid     = vault_data.nft_id;
-      			utxokey1  = vault_data.slip1_utxokey;
-      			utxokey2  = vault_data.slip2_utxokey;
-      			utxokey3  = vault_data.slip3_utxokey;
-      			file_id   = vault_data.file_id;
-      			file_access_script = vault_data.file_access_script;
-    		} else {
-      			nftid    = prompt("NFT ID (nftid):");
-      			utxokey1 = prompt("NFT utxokey1:");
-      			utxokey2 = prompt("NFT utxokey2:");
-      			utxokey3 = prompt("NFT utxokey3:");
-      			file_id  = this.file_id;
-    		}
+		if (!nftid || !utxokey1 || !utxokey2 || !utxokey3) {
+			console.warn('VAULT: Missing nftid or one of the utxokeys, aborting');
+			return null;
+		}
 
-    		if (!nftid || !utxokey1 || !utxokey2 || !utxokey3) {
-    		  console.warn("VAULT: Missing nftid or one of the utxokeys, aborting");
-    		  return null;
-    		}
+		let access_script = '';
+		let access_witness = '';
+		let access_hash = '';
 
-    		let access_script = "";
-    		let access_witness = "";
-    		let access_hash = "";
+		//
+		// Check if this is a custom/advanced key with custom script
+		//
+		if (file_access_script && witness_data) {
+			try {
+				access_script = file_access_script;
+				access_witness = witness_data;
+				access_hash = scripting_mod.hash(access_script);
+			} catch (err) {
+				alert('Error submitting witness data: perhaps script does not validate?');
+				return;
+			}
+		} else {
+			//
+			// Standard CHECKOWNNFT flow
+			//
+			let access_script_obj = {
+				op: 'CHECKOWNNFT',
+				nftid
+			};
 
-    		//
-    		// Check if this is a custom/advanced key with custom script
-    		//
-    		if (file_access_script && witness_data) {
+			access_script = JSON.stringify(access_script_obj);
+			let access_witness_obj = [
+				{
+					utxokey1,
+					utxokey2,
+					utxokey3
+				}
+			];
 
-		  try {
-    		    access_script = file_access_script;
-    		    access_witness = witness_data;
-    		    access_hash = scripting_mod.hash(access_script);
-		  } catch (err) {
-		    alert("Error submitting witness data: perhaps script does not validate?");
-		    return;
-		  }
+			access_witness = JSON.stringify(access_witness_obj);
+			access_hash = scripting_mod.hash(access_script);
+		}
 
-    		} else {
-    		  //
-    		  // Standard CHECKOWNNFT flow
-    		  //
-    		  let access_script_obj = {
-    		    op   : "CHECKOWNNFT",
-    		    nftid
-    		  };
+		//
+		// if file_id still not set, fall back to this.file_id
+		//
+		if (!file_id) {
+			console.log('VAULT: file_id not set from vault_data, using this.file_id');
+			file_id = this.file_id;
+		}
 
-    		  access_script = JSON.stringify(access_script_obj);
-    		  let access_witness_obj = [{
-    		    utxokey1,
-    		    utxokey2,
-    		    utxokey3
-    		  }];
+		let data = {
+			request: 'vault access file',
+			access_witness: access_witness,
+			access_script: access_script,
+			access_hash: access_hash,
+			data: { file_id }
+		};
 
-    		  access_witness = JSON.stringify(access_witness_obj);
-    		  access_hash = scripting_mod.hash(access_script);
-    		}
+		if (this.peer) {
+			this.app.network.sendRequestAsTransaction(
+				'vault access file',
+				data,
+				(res) => {
+					// Handle undefined or error responses
+					if (!res) {
+						console.error('VAULT: No response received (network error or timeout)');
+						if (mycallback) {
+							mycallback(null); // Pass null to NWASM callback
+						}
+						return;
+					}
 
-    		//
-    		// if file_id still not set, fall back to this.file_id
-    		//
-    		if (!file_id) {
-    		  console.log("VAULT: file_id not set from vault_data, using this.file_id");
-    		  file_id = this.file_id;
-    		}
+					// Check for error status
+					if (res.status === 'err') {
+						console.error('VAULT: Error from vault:', res.err);
+						if (mycallback) {
+							mycallback(null); // Pass null to NWASM callback
+						}
+						return;
+					}
 
-    		let data = {
-    		  request        : "vault access file",
-    		  access_witness : access_witness,
-    		  access_script  : access_script,
-    		  access_hash    : access_hash,
-    		  data           : { file_id }
-    		};
+					// Handle case where res might be a Transaction object instead of {status, txs}
+					let txs = [];
+					if (res.txs) {
+						txs = res.txs;
+					} else if (Array.isArray(res)) {
+						txs = res;
+					} else if (res.status === 'success' && res.txs) {
+						txs = res.txs;
+					}
 
-    if (this.peer) {
+					if (txs.length > 0) {
+						for (let i = 0; i < txs.length; i++) {
+							let tx = new Transaction();
+							tx.deserialize_from_web(this.app, txs[i]);
+							txmsg = tx.returnMessage();
 
-      this.app.network.sendRequestAsTransaction(
-        'vault access file',
-        data,
-        (res) => {
-          // Handle undefined or error responses
-          if (!res) {
-            console.error('VAULT: No response received (network error or timeout)');
-            if (mycallback) {
-              mycallback(null); // Pass null to NWASM callback
-            }
-            return;
-          }
+							try {
+								let filename = txmsg.data.name;
+								if (!filename) {
+									filename = prompt('Enter filename to save:') || 'vault.bin';
+								}
 
-          // Check for error status
-          if (res.status === 'err') {
-            console.error('VAULT: Error from vault:', res.err);
-            if (mycallback) {
-              mycallback(null); // Pass null to NWASM callback
-            }
-            return;
-          }
+								const parts = txmsg.data.file.split(',');
+								const header = parts[0];
+								const base64Data = parts[1];
+								const mime = header.match(/data:(.*);base64/)[1];
 
-          // Handle case where res might be a Transaction object instead of {status, txs}
-          let txs = [];
-          if (res.txs) {
-            txs = res.txs;
-          } else if (Array.isArray(res)) {
-            txs = res;
-          } else if (res.status === 'success' && res.txs) {
-            txs = res.txs;
-          }
+								if (mycallback) {
+									mycallback(base64Data);
+								} else {
+									const binary = atob(base64Data);
+									const len = binary.length;
 
-          if (txs.length > 0) {
-            for (let i = 0; i < txs.length; i++) {
-              let tx = new Transaction();
-              tx.deserialize_from_web(this.app, txs[i]);
-              txmsg = tx.returnMessage();
+									const bytes = new Uint8Array(len);
+									for (let i = 0; i < len; i++) {
+										bytes[i] = binary.charCodeAt(i);
+									}
 
-              try {
-                let filename = txmsg.data.name;
-                if (!filename) {
-                  filename = prompt('Enter filename to save:') || 'vault.bin';
-                }
+									const blob = new Blob([bytes], { type: mime });
+									const url = URL.createObjectURL(blob);
+									const a = document.createElement('a');
+									a.href = url;
+									a.download = filename || 'download';
 
-                const parts = txmsg.data.file.split(',');
-                const header = parts[0];
-                const base64Data = parts[1];
-                const mime = header.match(/data:(.*);base64/)[1];
+									a.click();
+									URL.revokeObjectURL(url);
+								}
+							} catch (err) {
+								console.log('VAULT: ERROR while handling downloaded file: ' + JSON.stringify(err));
+							}
+						}
+					}
+				},
+				this.peer.publicKey,
+				true
+			);
 
-                if (mycallback) {
-                  mycallback(base64Data);
-                } else {
-                  const binary = atob(base64Data);
-                  const len = binary.length;
+			siteMessage('Transferring File...', 3000);
+		} else {
+			console.warn('VAULT: no peer found, cannot send vault access request');
+		}
+	}
 
-                  const bytes = new Uint8Array(len);
-                  for (let i = 0; i < len; i++) {
-                    bytes[i] = binary.charCodeAt(i);
-                  }
+	webServer(app, expressapp, express) {
+		let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
+		let vault_self = this;
 
-                  const blob = new Blob([bytes], { type: mime });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = filename || 'download';
+		expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
+			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
 
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }
-              } catch (err) {
-                console.log('VAULT: ERROR while handling downloaded file: ' + JSON.stringify(err));
-              }
-            }
-          }
-        },
-        this.peer.publicKey,
-        true
-      );
+			let updatedSocial = Object.assign({}, vault_self.social);
 
-      siteMessage("Transferring File...", 3000);
-    } else {
-      console.warn("VAULT: no peer found, cannot send vault access request");
-    }
-  }
+			let html = VaultHome(app, vault_self, app.build_number, updatedSocial);
+			if (!res.finished) {
+				res.setHeader('Content-type', 'text/html');
+				res.charset = 'UTF-8';
+				return res.send(html);
+			}
+			return;
+		});
 
-
-
-
-        webServer(app, expressapp, express) {
-                let webdir = `${__dirname}/../../mods/${this.dirname}/web`;
-                let vault_self = this;
-
-                expressapp.get('/' + encodeURI(this.returnSlug()), async function (req, res) {
-                        let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
-
-                        let updatedSocial = Object.assign({}, vault_self.social);
-
-                        let html = VaultHome(app, vault_self, app.build_number, updatedSocial);
-                        if (!res.finished) {
-                                res.setHeader('Content-type', 'text/html');
-                                res.charset = 'UTF-8';
-                                return res.send(html);
-                        }
-                        return;
-                });
-
-                expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
-        }
-
+		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
+	}
 
 	load() {
-		if (!this.app.options.vault) { this.app.options.vault = {}; }
-		if (!this.app.options.vault.files) { this.app.options.vault.files = []; }
+		if (!this.app.options.vault) {
+			this.app.options.vault = {};
+		}
+		if (!this.app.options.vault.files) {
+			this.app.options.vault.files = [];
+		}
 	}
 
 	save() {
-		if (!this.app.options.vault) { this.app.options.vault = {}; }
+		if (!this.app.options.vault) {
+			this.app.options.vault = {};
+		}
 		this.app.storage.saveOptions();
 	}
 
-
-
 	//
 	//
 	//
-
-
 }
 
 module.exports = Vault;
-
