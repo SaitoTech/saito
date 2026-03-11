@@ -24,7 +24,7 @@
 	padding: 1rem 1rem 3rem 1rem;
 }
 .us-global-title {
-	background: #0009;
+	background: #000000cf;
 	border: 0.1rem solid black;
 	height: 4.5rem;
 	font-weight: bold;
@@ -36,7 +36,7 @@
 	padding-top: 0.8rem;
 }
 .ussr-global-title {
-	background: #0009;
+	background: #000000cf;
 	border: 0.1rem solid black;
 	height: 4.5rem;
 	font-weight: bold;
@@ -50,17 +50,17 @@
 .us-global-stats {
 	grid-row: 2;
 	text-align: center;
-	background: #0006;
+	background: #000000ab;
 	padding-top: 1rem;
 }
 .ussr-global-stats {
 	grid-row: 3;
 	text-align: center;
-	background: #0004;
+	background: #000000ab;
 	padding-top: 1rem;
 }
 .global-desc {
-	background: #0009;
+	background: #000000cf;
 	border: 0.1rem solid black;
 	font-weight: bold;
 	text-transform: uppercase;
