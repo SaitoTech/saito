@@ -6,7 +6,7 @@ use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::Endpoint;
-use log::{debug, info, trace};
+use log::{debug, error, info, trace};
 use serde::{Serialize, Serializer};
 use std::cmp::Ordering;
 use std::io::Error;
@@ -190,7 +190,18 @@ impl Peer {
             ));
         }
 
-        io_handler
+        debug!(
+            "sending key list : {} to peer : {:?}",
+            wallet
+                .key_list
+                .iter()
+                .map(|k| k.to_base58())
+                .collect::<Vec<String>>()
+                .join(","),
+            self.public_key.to_base58()
+        );
+
+        let _ = io_handler
             .send_message_to_all(
                 Message::KeyListUpdate(wallet.key_list.to_vec())
                     .serialize()
@@ -198,7 +209,10 @@ impl Peer {
                 vec![],
             )
             .await
-            .unwrap();
+            .or_else(|e| {
+                error!("error sending key list to peer : {:?}", e);
+                Err(e)
+            });
 
         io_handler.send_interface_event(InterfaceEvent::PeerHandshakeComplete(self.public_key));
 
