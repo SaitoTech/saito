@@ -12,6 +12,7 @@ class Vault extends ModTemplate {
 		this.appname = 'Vault';
 		this.name = 'Vault';
 		this.slug = 'vault';
+		this.dependencies = ['Archive', 'Scripting'];
 		this.description = 'Storage Vault regulated by NFT Keys';
 		this.categories = 'Utility Cryptography Programming';
 		this.icon = 'fas fa-vault';

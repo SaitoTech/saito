@@ -17,7 +17,7 @@ class BuySaito extends ModTemplate {
     this.slug = 'buy';
     this.dbname = 'buysaito';
 
-    this.dependencies = ['Relay', 'Mixin', 'ERC'];
+    this.dependencies = ['Relay', 'Mixin', 'ERC', 'MailRelay'];
     this.description = 'Testnet BuySaito for Testing and Application Development';
     this.categories = 'Utility Ecommerce NFTs';
 
