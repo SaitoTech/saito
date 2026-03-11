@@ -300,26 +300,6 @@ class GameMoves {
       await this.initializeGameQueue(this.game.id);
     }
 
-    //
-    // OBSERVER MODE -
-    //
-    if (this.game.player == 0) {
-      if (this.gameBrowserActive()) {
-        this.observerControls.showLastMoveButton();
-        this.observerControls.updateStep(this.game.step.game);
-      }
-
-      this.observerControls.game_states.push(this.game_state_pre_move);
-      this.observerControls.game_moves.push(gametx);
-      //To avoid memory overflow for long games
-      if (this.observerControls.game_states.length > 100) {
-        this.observerControls.game_states.shift();
-      }
-      if (this.observerControls.game_moves.length > 100) {
-        this.observerControls.game_moves.shift();
-      }
-    }
-
     if (this.game.queue) {
       for (let i = 0; i < gametxmsg.turn.length; i++) {
         this.game.queue.push(gametxmsg.turn[i]);
@@ -380,26 +360,11 @@ class GameMoves {
       this.game.future.push(ftx);
       this.saveFutureMoves(this.game.id);
 
-      if (this.game.player == 0 && this.gameBrowserActive()) {
-        console.log('[OBS_TRACE] addFutureMove(): observer path', {
-          is_paused: this.observerControls?.is_paused,
-          halted: this.halted,
-          gaming_active: this.gaming_active
-        });
-        try {
-          if (this.observerControls.is_paused || this.halted) {
-            this.observerControls.showNextMoveButton();
-            this.observerControls.updateStatus('New future move');
-          } else if (!this.gaming_active) {
-            console.warn(
-              'GT: [addFutureMove] game seems stuck..., moving into processing future moves'
-            );
-            await this.processFutureMoves();
-          }
-        } catch (err) {
-          console.error('Observer error adding future move');
-          // console.error(err);
-        }
+      if (this.game.player == 0 && this.gameBrowserActive() && !this.gaming_active) {
+        console.warn(
+          'GT: [addFutureMove] game seems stuck..., moving into processing future moves'
+        );
+        await this.processFutureMoves();
       }
     }
   }
@@ -449,7 +414,6 @@ class GameMoves {
 
         //This move (future[i]) is the next one, move it to the queue
         this.game.future.splice(i, 1);
-        this.observerControls.updateStatus('Advanced one move');
         await this.addNextMove(ftx);
         return 1;
       } else if (this.isFutureMove(ftx.from[0].publicKey, ftxmsg)) {
@@ -467,13 +431,6 @@ class GameMoves {
       console.warn(
         `GT [processFutureMoves] We have ${this.game.future.length} future moves, but NOT the next one!`
       );
-    }
-
-    if (this.game.player == 0 && this.observerControls._observer_poll_interval === null) {
-      console.info(
-        'GT [processFutureMoves] Observer.... check for additional moves... after processing future moves'
-      );
-      this.observerControls.downloadMoves();
     }
 
     return 0; //No processable moves in future

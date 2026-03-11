@@ -13,6 +13,7 @@ class Explorerc extends ModTemplate {
     super(app);
     this.app = app;
     this.name = 'explorerc'; // Use lowercase slug for consistency
+    this.slug = 'explorerc';
     this.description = 'Saito Block Explorer (React Version)';
     this.categories = 'Utilities Information';
 

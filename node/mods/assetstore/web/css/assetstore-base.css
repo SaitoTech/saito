@@ -1,5 +1,5 @@
 :root {
-  --saito-assetstore-width: 1500px;
+  --saito-width: 1500px;
 }
 
 .saito-container {
@@ -27,12 +27,13 @@
 }
 
 .assetstore-table-list {
-  display: flex;
+  /*display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: wrap;*/
+  display: grid;
   width: 100%;
-  row-gap: 1.25rem;
-  column-gap: 1.25rem;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(95vw, 400px), 1fr));
 }
 
 #assetstore-empty {

@@ -156,8 +156,11 @@ async function compileOne(zipFileName) {
   }
 
   try {
-    const entry = appPath.replace(`${slug}/`, '');
-    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
+    //fix for path on linux
+    //const entry = appPath.replace(`${slug}/`, '');
+    //execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
+    execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${appPath}`, {
+
       cwd: PROJECT_ROOT,
       stdio: 'pipe',
       maxBuffer: 10 * 1024 * 1024,
@@ -214,7 +217,9 @@ async function runSingle(zipPath, slugArg) {
     await directory.extract({ path: TMP_MOD });
     const entryPath = path.join(TMP_MOD, appPath);
     if (!fs.existsSync(entryPath)) throw new Error(`Entry point not found: ${entryPath}`);
-    const entry = appPath.replace(`${slug}/`, '');
+    //fix for path on linux
+    //const entry = appPath.replace(`${slug}/`, '');
+    //execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
     execSync(`node config/build/webpack.config.dynmod.cjs --entrypoint=${entry}`, {
       cwd: PROJECT_ROOT,
       stdio: 'pipe',
@@ -247,6 +252,12 @@ async function runSingle(zipPath, slugArg) {
 }
 
 async function run() {
+  if (process.argv[2] === 'deploy') {
+    const deploySh = path.join(__dirname, 'deploy.sh');
+    execSync(`bash "${deploySh}"`, { cwd: PROJECT_ROOT, stdio: 'inherit' });
+    return;
+  }
+
   await initSaitoJsForCompile();
 
   const single = parseArgs();

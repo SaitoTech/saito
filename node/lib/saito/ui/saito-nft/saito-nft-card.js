@@ -54,7 +54,6 @@ class SaitoNFTCard {
     //
     if (!this.nft.tx_fetched) {
       this.nft.fetchTransaction(function () {
-        console.log('Insert fetched NFT details into CARD');
         this_self.insertNFTDetails();
       });
     } else {
@@ -83,8 +82,15 @@ class SaitoNFTCard {
   }
 
   insertNFTDetails() {
-    if (this.app.BROWSER != 1) {
+    if (!this.app.BROWSER) {
       return 0;
+    }
+
+    console.log('Insert fetched NFT details into CARD');
+
+    let type = document.querySelector(this.my_qs + ' .nft-card-type');
+    if (type) {
+      type.innerHTML = this.nft.returnType();
     }
 
     if (this.nft.title) {

@@ -526,7 +526,8 @@ class AssetStore extends ModTemplate {
 			active: 0,
 			reserve_price: txmsg?.data?.reserve_price,
 			title: txmsg?.data?.title,
-			description: txmsg?.data?.description
+			description: txmsg?.data?.description,
+			created_at: Date.now()
 		};
 		this.listings.push(record);
 
@@ -914,6 +915,9 @@ class AssetStore extends ModTemplate {
 		} catch (e) {
 			// console.error('Seller payout failed:', e);
 		}
+
+		// Requery DB in case we sold one of multiple copies of the same NFT
+		this.restoreListingsFromDB();
 	}
 
 	async notifySeller(listing) {
@@ -1109,7 +1113,8 @@ class AssetStore extends ModTemplate {
 					active: 1, // Status
 					reserve_price: res[i].reserve_price,
 					title: res[i].title,
-					description: res[i].description
+					description: res[i].description,
+					created_at: res[i].created_at
 				});
 			}
 
@@ -1147,8 +1152,8 @@ class AssetStore extends ModTemplate {
 		let description = txmsg?.data?.description || '';
 
 		let sql = `
-		  INSERT INTO listings (nft_id, nfttx_sig, status, seller, email, buyer, reserve_price, title, description)
-		  VALUES ($nft_id, $nfttx_sig, $status, $seller, $email, $buyer, $reserve_price, $title, $description)
+		  INSERT INTO listings (nft_id, nfttx_sig, status, seller, email, buyer, reserve_price, created_at, title, description)
+		  VALUES ($nft_id, $nfttx_sig, $status, $seller, $email, $buyer, $reserve_price, $created_at, $title, $description)
 		`;
 		let params = {
 			$nft_id: nft.id,
@@ -1159,6 +1164,7 @@ class AssetStore extends ModTemplate {
 			$title: title,
 			$email: email,
 			$description: description,
+			$created_at: created_at,
 			$reserve_price: reserve_price ?? null
 		};
 
@@ -1203,8 +1209,6 @@ class AssetStore extends ModTemplate {
 
 		let sender = tx.from[0].publicKey;
 		let receiver = tx.to[0].publicKey;
-
-		let tx_json = tx.serialize_to_web(this.app);
 
 		//
 		// Bound Transaction
@@ -1266,7 +1270,6 @@ class AssetStore extends ModTemplate {
 		//
 		let sql = `INSERT INTO transactions (
 			listing_id, 
-			tx, 
 			tx_sig, 
 			sender, 
 			recipient, 
@@ -1277,7 +1280,6 @@ class AssetStore extends ModTemplate {
 			tid
 		) VALUES (
 			$listing_id, 
-			$tx, 
 			$tx_sig, 
 			$sender, 
 			$recipient, 
@@ -1290,7 +1292,6 @@ class AssetStore extends ModTemplate {
 
 		let params = {
 			$listing_id: listing_id,
-			$tx: tx_json,
 			$tx_sig: tx.signature,
 			$sender: sender,
 			$recipient: receiver,

@@ -5,6 +5,7 @@
 	flex-direction: column;
 	row-gap: 1rem;
 	user-select: none;
+	margin-bottom: 1rem;
 }
 
 .arcade-invite-players {

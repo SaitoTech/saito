@@ -10,16 +10,16 @@ const GameObserverLoaderTemplate = require('./game-observer-loader.template');
  * @param {Element|string} [container=""] - DOM element to own; if falsy, document.body.
  */
 class GameObserverLoader {
-  constructor(app, game_mod, container = '') {
+
+  constructor(app, game_mod, container = '', observer) {
     this.app = app || null;
     this.game_mod = game_mod || null;
+    this.observer = observer || null;
     this.container = container || (typeof document !== 'undefined' ? document.body : null);
   }
 
-  /**
-   * Insert or replace #observer-sync-overlay in this.container. Idempotent.
-   */
   render() {
+
     if (!this.container || typeof document === 'undefined') {
       return;
     }
@@ -85,7 +85,7 @@ class GameObserverLoader {
    *
    * @param {string} message - Status message to display.
    */
-  updateSyncStatus(message) {
+  updateStatus(message) {
     if (!this.container || message == null) return;
     const el = this.container.querySelector('#observer-sync-status');
     if (el) el.innerText = message;

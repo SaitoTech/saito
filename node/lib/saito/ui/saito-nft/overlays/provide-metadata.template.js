@@ -3,6 +3,31 @@ module.exports = (app, mod, nfttx, nft) => {
   let defaultTitle = 'Click to provide title (optional)';
   let defaultDescription = 'Click to provide description (optional)';
 
+  let saitoItems = [
+    'Vintage Collectable',
+    'Classic Saito NFT',
+    'Genesis Collectable',
+    'Saito Heritage Item',
+    'Unique Item',
+    'Historical Saito Mint',
+    'Provenance Edition',
+    'Founders Edition',
+    'NFT Collectable',
+    'Unique Item',
+    'Saito Legacy',
+    'Rare Saito Artifact',
+    'Limited Saito Release',
+    'Archival Series',
+    'Original Chain Relic',
+    'Timeless Collectable',
+    'Retro Blockchain Piece',
+    'Immutable Classic',
+    'Chain Memory Artifact',
+    'Saito Vault Item',
+    'Eternal Collectable'
+  ];
+  let title = saitoItems[Math.floor(Math.random() * saitoItems.length)];
+
   // Get text content for display
   let text = '';
   if (nft.text) {
@@ -26,7 +51,7 @@ module.exports = (app, mod, nfttx, nft) => {
         </div>
         <div class="saito-nft-header-text">
           <div class="saito-nft-header-title-wrapper-metadata">
-            <div class="saito-nft-header-title editable" data-default-title="${defaultTitle}">${nft.title || defaultTitle}</div>
+            <div class="saito-nft-header-title editable" data-default-title="${defaultTitle}">${title}</div>
             <i class="fa-solid fa-pencil saito-nft-edit-title-icon-metadata"></i>
           </div>
           <div class="saito-nft-header-sub">by ${nft.creator}</div>

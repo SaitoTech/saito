@@ -6,13 +6,13 @@ const GameObserverHUDTemplate = require('./game-observer-hud.template');
  * - Replaces existing #game-observer-hud if present. No sync, stability, or replay logic.
  *
  * @param {Object} app - Saito application (optional; used for makeDraggable).
- * @param {Object} [context={}] - { getState(), onBack(), onPlay(), onForward(), onSliderInput(index) }.
+ * @param {Object} observer - GameObserver instance.
  * @param {Element|string} [container=""] - DOM element to own; if falsy, document.body.
  */
 class GameObserverHUD {
-  constructor(app, context = {}, container = '') {
+  constructor(app, observer, container = '') {
     this.app = app || null;
-    this._context = context;
+    this.observer = observer || null;
     this.container = container || (typeof document !== 'undefined' ? document.body : null);
     this._eventsAttached = false;
   }
@@ -39,6 +39,7 @@ class GameObserverHUD {
     }
 
     this._eventsAttached = false;
+    this.attachEvents();
     console.log('[HUD] render');
     if (this.container.querySelector('#game-observer-hud')) {
       console.log('[HUD] visible');
@@ -74,13 +75,15 @@ class GameObserverHUD {
   }
 
   /**
-   * Bind control and slider events. Call after render(). Uses callbacks from context.
+   * Bind control and slider events. Call after render().
    */
   attachEvents() {
     if (!this.container) return;
 
     const root = this.container.querySelector('#game-observer-hud');
     if (!root || this._eventsAttached) return;
+
+    const observer = this.observer;
 
     const interactiveSelectors = [
       '#game-observer-state-slider',
@@ -102,67 +105,49 @@ class GameObserverHUD {
       });
     });
 
-    const ctx = this._context || {};
-
     const backBtn = root.querySelector('#observer-back');
-    if (backBtn && typeof ctx.onBack === 'function') {
+    if (backBtn && observer) {
       backBtn.onclick = (e) => {
         if (e.target.closest('button')?.disabled) return;
-        const observer = ctx.observer;
-        if (observer && !observer._history_complete && observer._viewingIndex > 0) {
-          observer.rebuildHistoryFromArchive();
-          return;
-        }
-        ctx.onBack();
+        observer.last();
       };
     }
 
     const playBtn = root.querySelector('#observer-play');
-    if (playBtn && typeof ctx.onPlay === 'function') {
-      playBtn.onclick = () => ctx.onPlay();
+    if (playBtn && observer) {
+      playBtn.onclick = () => observer.startPlayback();
     }
 
     const fwdBtn = root.querySelector('#observer-forward');
-    if (fwdBtn && typeof ctx.onForward === 'function') {
+    if (fwdBtn && observer) {
       fwdBtn.onclick = (e) => {
         if (e.target.closest('button')?.disabled) return;
         if (fwdBtn) fwdBtn.classList.remove('flashit');
-        ctx.onForward();
+        observer.next();
       };
     }
 
     const slider = root.querySelector('#game-observer-state-slider');
-    const timelineTooltip = root.querySelector('#observer-timeline-tooltip');
-    if (slider && typeof ctx.onSliderInput === 'function') {
-      slider.addEventListener('input', () => {
-        const idx = parseInt(slider.value, 10);
-        if (Number.isNaN(idx)) return;
 
-        const total = Math.max(0, ctx.getState?.().totalMoves ?? 0);
-        const knownTotal = total || (ctx.observer?.game_moves?.length ?? 0);
-        const max = Math.max(0, knownTotal - 1);
-        const progress = max > 0 ? `${(idx / max) * 100}%` : '0%';
-        slider.style.setProperty('--progress', progress);
+    if (slider && observer) {
 
-        if (timelineTooltip && knownTotal > 0) {
-          timelineTooltip.textContent = `Move ${idx + 1}`;
-          timelineTooltip.classList.add('visible');
-          timelineTooltip.setAttribute('aria-hidden', 'false');
-        }
+      slider.addEventListener('mousedown', () => {
+        observer.playback_status = "paused";
+      });
+
+      slider.addEventListener('touchstart', () => {
+        observer.playback_status = "paused";
       });
 
       slider.addEventListener('change', () => {
+
         const idx = parseInt(slider.value, 10);
         if (Number.isNaN(idx)) return;
 
-        if (timelineTooltip) {
-          timelineTooltip.classList.remove('visible');
-          timelineTooltip.textContent = '';
-          timelineTooltip.setAttribute('aria-hidden', 'true');
-        }
+        observer.replayToIndex(idx);
 
-        ctx.onSliderInput(idx);
       });
+
     }
 
     if (this.app && this.app.browser && typeof this.app.browser.makeDraggable === 'function') {
@@ -172,34 +157,55 @@ class GameObserverHUD {
     this._eventsAttached = true;
   }
 
+  setRange(min, max) {
+    if (!this.container) return;
+    const root = this.container.querySelector('#game-observer-hud');
+    if (!root) return;
+    const sliderEl = root.querySelector('#game-observer-state-slider');
+    if (sliderEl) sliderEl.max = String(Math.max(0, max));
+    const timelineEndEl = root.querySelector('.timeline-end');
+    if (timelineEndEl) timelineEndEl.textContent = String(max);
+  }
+
+  setPosition(pos) {
+    if (!this.container) return;
+    const root = this.container.querySelector('#game-observer-hud');
+    if (!root) return;
+    const sliderEl = root.querySelector('#game-observer-state-slider');
+    if (sliderEl) {
+      sliderEl.value = String(pos);
+      const max = parseInt(sliderEl.max, 10) || 0;
+      const progress = max > 0 ? `${(pos / max) * 100}%` : '0%';
+      sliderEl.style.setProperty('--progress', progress);
+    }
+  }
+
   /**
-   * Update status line, slider range/value, and button disabled state from context.getState().
-   * getState() should return { totalMoves, viewingIndex, isPaused }.
+   * Update status line, slider range/value, and button disabled state from observer.
    */
   updateUIState() {
     if (!this.container) return;
 
-    const ctx = this._context || {};
-    const getState = typeof ctx.getState === 'function' ? ctx.getState() : null;
-    if (!getState) return;
+    const observer = this.observer;
+    if (!observer) return;
+
+    const total = observer.all_moves?.length ?? 0;
+    const knownTotal = total || (observer.game_moves?.length ?? 0);
+    const viewingIndex = Math.max(
+      0,
+      Math.min(observer._viewingIndex ?? 0, Math.max(0, knownTotal - 1))
+    );
+    const isPaused = observer._paused ?? true;
 
     const root = this.container.querySelector('#game-observer-hud');
     if (!root) return;
-
-    const total = Math.max(0, getState.totalMoves ?? 0);
-    const knownTotal = total || (this._context?.observer?.game_moves?.length ?? 0);
-    const viewingIndex = Math.max(
-      0,
-      Math.min(getState.viewingIndex ?? 0, Math.max(0, knownTotal - 1))
-    );
-    const isPaused = !!getState.isPaused;
 
     const statusEl = root.querySelector('#observer-status-line');
     if (statusEl) {
       if (isPaused) {
         statusEl.textContent = 'Press Play to Observe';
       } else {
-        statusEl.textContent = getState.statusMessage || 'Observer mode';
+        statusEl.textContent = observer.shadow_status || 'Observer mode';
       }
     }
 
@@ -236,7 +242,7 @@ class GameObserverHUD {
    * Caller may pass HTML; it is stripped for the single status line.
    */
   updateStatus(message) {
-    const observer = this._context?.observer;
+    const observer = this.observer;
     if (observer && typeof message === 'string') {
       observer.shadow_status = message.replace(/<[^>]*>/g, '').trim() || observer.shadow_status;
     }

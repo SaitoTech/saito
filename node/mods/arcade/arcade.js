@@ -296,15 +296,24 @@ class Arcade extends ModTemplate {
 	}
 
 	async render(mode = null, data = {}) {
+		if (!this.app.BROWSER) {
+			console.warn('Node attempting to render Arcade...');
+			return;
+		}
+
 		//
 		// UI instances (do not render here)
 		//
-		this.ui = new ArcadeMain(this.app, this);
-		this.header = new SaitoHeader(this.app, this);
-		await this.header.initialize(this.app);
-		this.header.header_class = 'arcade';
-		this.addComponent(this.header);
-		this.addComponent(this.ui);
+		if (!this.header) {
+			this.header = new SaitoHeader(this.app, this);
+			await this.header.initialize(this.app);
+			this.header.header_class = 'arcade';
+			this.addComponent(this.header);
+		}
+		if (!this.ui) {
+			this.ui = new ArcadeMain(this.app, this);
+			this.addComponent(this.ui);
+		}
 
 		//
 		// add chat manager
@@ -320,16 +329,19 @@ class Arcade extends ModTemplate {
 		}
 
 		//
+		// Only render the arcade if the arcade is active!!!
 		//
-		//
-		await super.render();
+		if (this.browser_active) {
+			await super.render();
+		}
 
 		if (mode === 'lounge_overlay') {
 			if (this.lounge_overlay && (data.invite_data != null || data.game_id != null)) {
 				this.lounge_overlay.invite = data.invite_data != null ? data.invite_data : null;
 				this.lounge_overlay.game_id = data.game_id != null ? data.game_id : null;
 				this.lounge_overlay.observer_has_archive_data = data.observer_has_archive_data === true;
-				this.lounge_overlay.observer_game_module_slug = data.game_module_slug != null ? data.game_module_slug : null;
+				this.lounge_overlay.observer_game_module_slug =
+					data.game_module_slug != null ? data.game_module_slug : null;
 				this.lounge_overlay.render();
 			}
 			return;
@@ -416,7 +428,12 @@ class Arcade extends ModTemplate {
 							urlParams.get('game')
 						);
 						const game_module_slug = urlParams.get('game');
-						if (game_tx && !from_archive && game_tx.msg.request !== 'cancel' && game_tx.msg.request !== 'closed') {
+						if (
+							game_tx &&
+							!from_archive &&
+							game_tx.msg.request !== 'cancel' &&
+							game_tx.msg.request !== 'closed'
+						) {
 							this.addGame(game_tx);
 							if (this.isAvailableGame(game_tx)) {
 								game_tx.msg.options.desired_opponent_publickey = this.publicKey;
@@ -494,7 +511,13 @@ class Arcade extends ModTemplate {
 		return game_tx;
 	}
 
-	async onPeerServiceUp(app, peer, service = {}) {
+	//////////////////////////////////////////////////////////////////////
+	// This function is called *once* when a peer connection is established,
+	// as opposed to onPeerServiceUp, which is called once per service...
+	// Though mostly, deprecated, this is still the function that gets called based
+	// on the wasm-triggered event 'handshake_complete'
+	//////////////////////////////////////////////////////////////////////
+	async onPeerHandshakeComplete(app, peer) {
 		if (!app.BROWSER) {
 			let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
 			newtx.msg = {
@@ -517,7 +540,9 @@ class Arcade extends ModTemplate {
 
 			return;
 		}
+	}
 
+	async onPeerServiceUp(app, peer, service = {}) {
 		let arcade_self = this;
 
 		if (service.service == 'arcade') {
@@ -549,8 +574,16 @@ class Arcade extends ModTemplate {
 						game_id = decodeURIComponent(game_id);
 					} catch (_) {}
 					const game_module_slug = arcade_self.app.browser.returnURLParameter('game');
-					const { game_tx, from_archive } = await arcade_self.returnGameInvite(game_id, game_module_slug);
-					if (game_tx && !from_archive && game_tx.msg.request !== 'cancel' && game_tx.msg.request !== 'closed') {
+					const { game_tx, from_archive } = await arcade_self.returnGameInvite(
+						game_id,
+						game_module_slug
+					);
+					if (
+						game_tx &&
+						!from_archive &&
+						game_tx.msg.request !== 'cancel' &&
+						game_tx.msg.request !== 'closed'
+					) {
 						arcade_self.addGame(game_tx);
 						if (arcade_self.isAvailableGame(game_tx)) {
 							game_tx.msg.options.desired_opponent_publickey = arcade_self.publicKey;
@@ -558,7 +591,14 @@ class Arcade extends ModTemplate {
 							arcade_self.addGame(game_tx);
 						}
 						arcade_self.app.browser.logMatomoEvent('GameInvite', 'FollowLink', game_tx.game);
-						const invite = new Invite(arcade_self.app, arcade_self, null, null, game_tx, arcade_self.publicKey);
+						const invite = new Invite(
+							arcade_self.app,
+							arcade_self,
+							null,
+							null,
+							game_tx,
+							arcade_self.publicKey
+						);
 						arcade_self.render('lounge_overlay', { invite_data: invite.invite_data });
 					} else {
 						arcade_self.render('lounge_overlay', {
@@ -1904,10 +1944,7 @@ class Arcade extends ModTemplate {
 						game_id = decodeURIComponent(game_id);
 					} catch (_) {}
 				}
-				game_data =
-					game_id && arcade_self.games[game_id]
-						? arcade_self.games[game_id].tx
-						: null;
+				game_data = game_id && arcade_self.games[game_id] ? arcade_self.games[game_id].tx : null;
 
 				// console.log('WEBSERVER ARCADE GAME DATA --- ', game_data);
 			}
@@ -1971,7 +2008,9 @@ class Arcade extends ModTemplate {
 
 		if (accepted_game_tx) {
 			accepted_game_msg = accepted_game_tx.msg;
-			const game_mod = this.app.modules.returnModule(accepted_game_msg.game) || this.app.modules.returnModuleBySlug(accepted_game_msg.game);
+			const game_mod =
+				this.app.modules.returnModule(accepted_game_msg.game) ||
+				this.app.modules.returnModuleBySlug(accepted_game_msg.game);
 
 			data.game = game_mod?.returnSlug?.() ?? accepted_game_msg.game;
 			data.game_id = game_sig;

@@ -1382,6 +1382,8 @@ console.log("LATEST MOVE: " + mv);
           this.game.player = i+1;
         }
       }
+
+      return 1;
     }
 
     if (mv[0] === "update_observers") {
@@ -6616,9 +6618,18 @@ async playerTurnHeadlineSelected(card, player) {
     try {
 
       for (let i in this.countries) {
+console.log("display: " + i);
         this.showInfluence(i);
       }
+console.log("before zoom overlaty check...");
 
+      let redisplay_zoom_overlay = false;
+      if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
+console.log("remove zoom overlay...");
+	redisplay_zoom_overlay = true;
+        this.zoom_overlay.remove();
+      }
+console.log("after zoom overlay removal...");
 
 try {
       this.updateDefcon();
@@ -6640,7 +6651,7 @@ try {
 } catch (err) { console.log("error updating round: " + JSON.stringify(err)); }
 
       // this can trigger bug if open End-of-Turn, throws error, thus last
-      if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
+      if (redisplay_zoom_overlay) {
 console.log("ZOOM OVERLAY VISIBLE: " + this.zoom_overlay.visible);
 console.log("SAITO OVERLAY INSIDE VISIBLE: " + this.zoom_overlay.overlay.visible);
 console.log("rendering!");

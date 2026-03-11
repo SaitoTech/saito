@@ -1120,6 +1120,16 @@ class Browser {
     }
   }
 
+  formatTimeDifference(timestamp) {
+    const now = Math.floor(Date.now() / 1000); // Convert current time to seconds
+    const diff = now - timestamp;
+
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+    return `${Math.floor(diff / 86400)} days ago`;
+  }
+
   saneTimeFromTimestamp(timestamp, with_seconds = true) {
     var date = new Date(timestamp);
     var hours = date.getHours();
