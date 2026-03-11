@@ -23,10 +23,10 @@ class BuySaito extends ModTemplate {
 
     this.social = {
       twitter: '@SaitoOfficial',
-      title: '🟥 Saito BuySaito',
+      title: '🟥 Official SAITO Sales Platform',
       url: 'https://saito.io/buysaito/',
       description: 'Get SAITO',
-      image: 'https://saito.tech/wp-content/uploads/2023/11/buysaito-300x300.png'
+      image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card_horizontal.png'
     };
 
     this.mixin_mod = null;
