@@ -296,6 +296,11 @@ class Arcade extends ModTemplate {
 	}
 
 	async render(mode = null, data = {}) {
+		if (!this.app.BROWSER) {
+			console.warn('Node attempting to render Arcade...');
+			return;
+		}
+
 		//
 		// UI instances (do not render here)
 		//
@@ -324,9 +329,11 @@ class Arcade extends ModTemplate {
 		}
 
 		//
+		// Only render the arcade if the arcade is active!!!
 		//
-		//
-		await super.render();
+		if (this.browser_active) {
+			await super.render();
+		}
 
 		if (mode === 'lounge_overlay') {
 			if (this.lounge_overlay && (data.invite_data != null || data.game_id != null)) {
