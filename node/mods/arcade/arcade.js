@@ -1917,7 +1917,12 @@ class Arcade extends ModTemplate {
 		expressapp.use(uri, express.static(webdir));
 
 		expressapp.get(uri, async function (req, res) {
-			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
+			//let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
+			const endpoint = app?.options?.server?.endpoint || app?.options?.server || {};
+			const protocol = (endpoint.protocol || req.protocol || 'https').replace(/:$/, '');
+			const host = endpoint.host || req.hostname || req.headers.host;
+			const port = endpoint.port ? `:${endpoint.port}` : '';
+			let reqBaseURL = `${protocol}://${host}${port}/`;
 			let game_data = null;
 			let updatedSocial = Object.assign({}, arcade_self.social);
 
