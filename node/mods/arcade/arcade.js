@@ -504,7 +504,13 @@ class Arcade extends ModTemplate {
 		return game_tx;
 	}
 
-	async onPeerServiceUp(app, peer, service = {}) {
+	//////////////////////////////////////////////////////////////////////
+	// This function is called *once* when a peer connection is established,
+	// as opposed to onPeerServiceUp, which is called once per service...
+	// Though mostly, deprecated, this is still the function that gets called based
+	// on the wasm-triggered event 'handshake_complete'
+	//////////////////////////////////////////////////////////////////////
+	async onPeerHandshakeComplete(app, peer) {
 		if (!app.BROWSER) {
 			let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
 			newtx.msg = {
@@ -527,7 +533,9 @@ class Arcade extends ModTemplate {
 
 			return;
 		}
+	}
 
+	async onPeerServiceUp(app, peer, service = {}) {
 		let arcade_self = this;
 
 		if (service.service == 'arcade') {
