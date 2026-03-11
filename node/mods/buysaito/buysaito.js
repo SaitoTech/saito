@@ -17,15 +17,15 @@ class BuySaito extends ModTemplate {
     this.slug = 'buy';
     this.dbname = 'buysaito';
 
-    this.dependencies = ['Relay', 'Mixin', 'ERC', 'MailRelay'];
-    this.description = 'Testnet BuySaito for Testing and Application Development';
+    this.dependencies = ['Relay', 'Mixin', 'ERC'];
+    this.description = 'Buy native Saito';
     this.categories = 'Utility Ecommerce NFTs';
 
     this.social = {
       twitter: '@SaitoOfficial',
       title: '🟥 Saito BuySaito',
       url: 'https://saito.io/buysaito/',
-      description: 'Get Testnet Saito',
+      description: 'Get Saito',
       image: 'https://saito.tech/wp-content/uploads/2023/11/buysaito-300x300.png'
     };
 
