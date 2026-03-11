@@ -29,16 +29,18 @@ class Vault extends ModTemplate {
 		this.mode = 'private';
 	}
 
-	initialize(app) {
-		this.main = new VaultMain(this.app, this, '.saito-container');
-
-		this.load();
+	async initialize(app) {
+		if (this.browser_active) {
+			this.main = new VaultMain(app, this, '.saito-container');
+			this.addComponent(this.main);
+			this.header = new SaitoHeader(app, this);
+			await this.header.initialize(app);
+			this.addComponent(this.header);
+		}
 	}
 
-	render() {
-		this.header = new SaitoHeader(this.app, this);
-		this.header.render();
-		this.main.render();
+	async render() {
+		await super.render();
 	}
 
 	/////////////////////////////////
@@ -344,7 +346,7 @@ class Vault extends ModTemplate {
 
 					// Check for error status
 					if (res.status === 'err') {
-						console.error('VAULT: Error from vault:', res.err);
+						console.error('VAULT: Error from vault:', res);
 						if (mycallback) {
 							mycallback(null); // Pass null to NWASM callback
 						}
@@ -434,26 +436,6 @@ class Vault extends ModTemplate {
 
 		expressapp.use('/' + encodeURI(this.returnSlug()), express.static(webdir));
 	}
-
-	load() {
-		if (!this.app.options.vault) {
-			this.app.options.vault = {};
-		}
-		if (!this.app.options.vault.files) {
-			this.app.options.vault.files = [];
-		}
-	}
-
-	save() {
-		if (!this.app.options.vault) {
-			this.app.options.vault = {};
-		}
-		this.app.storage.saveOptions();
-	}
-
-	//
-	//
-	//
 }
 
 module.exports = Vault;

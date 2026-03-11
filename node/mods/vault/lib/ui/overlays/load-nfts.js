@@ -12,6 +12,10 @@ class LoadNFTs {
 
     this.nft_list = [];
     this.vault_nfts = [];
+
+    app.connection.on('vault-file-access-render', () => {
+      this.render();
+    });
   }
 
   async render() {
@@ -73,70 +77,67 @@ class LoadNFTs {
       //
       // create saito-nft object
       //
-      let nft = new SaitoNFT(this.app, this.mod, null, rec, null);
+      let nft = new SaitoNFT(this.app, this.mod, null, rec);
 
       //
       // determine nft type
       //
-      let nft_type = this.app.wallet.extractNFTType(rec.slip3.utxo_key);
+      if (nft.returnType() == 'vault') {
+        // Put everything in the callback to make sure we can fetch the orig transaction if user transfered ownership!
+        await nft.fetchTransaction(() => {
+          console.log('fetched the nft...');
 
-      if (nft_type == 'vault') {
+          let nfttxmsg = nft.tx.returnMessage();
+          console.log('NFT TXMSG: ' + JSON.stringify(nfttxmsg));
+          let data = nfttxmsg?.data;
+          let file_id = data?.file_id;
+          let filename = data?.filename;
+          let file_access_script = data?.file_access_script;
 
-        await nft.fetchTransaction();
+          console.log('file_id: ' + file_id);
+          console.log('filename: ' + filename);
+          console.log('file_as: ' + file_access_script);
 
-console.log("fetched the nft...");
+          //
+          // determine which key image to display
+          // crystal key = custom/advanced (has file_access_script)
+          // jade key = public/standard (no file_access_script)
+          //
+          let keyImage = file_access_script ? 'crystal_key.png' : 'jade_key.png';
 
-        let nfttxmsg = nft.tx.returnMessage();
-console.log("NFT TXMSG: " + JSON.stringify(nfttxmsg));
-        let data = nfttxmsg?.data; 
-        let file_id = data?.file_id;
-        let filename = data?.filename;
-        let file_access_script = data?.file_access_script;
+          //
+          // collect utxokeys from nft object
+          //
+          let slip1_utxokey = nft.slip1?.utxo_key || '';
+          let slip2_utxokey = nft.slip2?.utxo_key || '';
+          let slip3_utxokey = nft.slip3?.utxo_key || '';
 
-console.log("file_id: " + file_id);
-console.log("filename: " + filename);
-console.log("file_as: " + file_access_script);
+          console.log('EXTRACTED FILE_ID: ' + file_id);
 
-        //
-        // determine which key image to display
-        // crystal key = custom/advanced (has file_access_script)
-        // jade key = public/standard (no file_access_script)
-        //
-        let keyImage = file_access_script ? 'crystal_key.png' : 'jade_key.png';
+          //
+          // push into vault_nfts array
+          //
+          this.vault_nfts.push({
+            nft_id: nft.id,
+            file_id,
+            slip1_utxokey,
+            slip2_utxokey,
+            slip3_utxokey,
+            file_access_script: file_access_script || null
+          });
 
-        //
-        // collect utxokeys from nft object
-        //
-        let slip1_utxokey = nft.slip1?.utxo_key || '';
-        let slip2_utxokey = nft.slip2?.utxo_key || '';
-        let slip3_utxokey = nft.slip3?.utxo_key || '';
+          //
+          // index in array for DOM mapping
+          //
+          let index = this.vault_nfts.length - 1;
 
-console.log("EXTRACTED FILE_ID: " + file_id);
-
-        //
-        // push into vault_nfts array
-        //
-        this.vault_nfts.push({
-          nft_id: nft.id,
-          file_id,
-          slip1_utxokey,
-          slip2_utxokey,
-          slip3_utxokey,
-          file_access_script: file_access_script || null
-        });
-
-        //
-        // index in array for DOM mapping
-        //
-        let index = this.vault_nfts.length - 1;
-
-console.log("file_id: " + file_id);
-try {
-        let identicon = this.app.keychain.returnIdenticon(file_id);
-} catch (err) {
-  console.log("ERROR: " + err);
-}
-        let html = `
+          console.log('file_id: ' + file_id);
+          try {
+            let identicon = this.app.keychain.returnIdenticon(file_id);
+          } catch (err) {
+            console.log('ERROR: ' + err);
+          }
+          let html = `
           <div class="vault-nft-item" data-vault-index="${index}">
             <img
               class="vault-nft-img"
@@ -152,10 +153,11 @@ try {
           </div>
         `;
 
-        //
-        // use wrapper and inject as HTML
-        //
-        wrapper.insertAdjacentHTML('beforeend', html);
+          //
+          // use wrapper and inject as HTML
+          //
+          wrapper.insertAdjacentHTML('beforeend', html);
+        });
       }
     }
 
@@ -188,7 +190,7 @@ try {
 
         let vault_entry = this.vault_nfts[idx];
 
-console.log("CLICKED: " + JSON.stringify(vault_entry));
+        console.log('CLICKED: ' + JSON.stringify(vault_entry));
 
         //
         // Check if this is a custom/advanced key (has file_access_script)
@@ -200,7 +202,7 @@ console.log("CLICKED: " + JSON.stringify(vault_entry));
           this.overlay.hide();
           this.witness_overlay.access_script = vault_entry.file_access_script;
           this.witness_overlay.render();
-          
+
           this.witness_overlay.callback = (result) => {
             //
             // User provided witness data, now make the file request
@@ -212,9 +214,8 @@ console.log("CLICKED: " + JSON.stringify(vault_entry));
           //
           // Public key - direct file request (no witness needed)
           //
-        this.mod.sendAccessFileRequest(vault_entry);
+          this.mod.sendAccessFileRequest(vault_entry);
         }
-
       };
     });
   }
