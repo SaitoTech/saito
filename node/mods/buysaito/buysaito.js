@@ -772,6 +772,7 @@ class BuySaito extends ModTemplate {
 
     this.app.connection.emit('mailrelay-send-email', {
       to: 'buysaito@saito.tech',
+      cc: 'richard@saito.tech',
       from: 'Saito Token Sales Bot <info@saito.tech>',
       subject: `On-Chain Saito Issued`,
       text: JSON.stringify(
@@ -782,8 +783,7 @@ class BuySaito extends ModTemplate {
         },
         3
       ),
-      ishtml: false,
-      bcc: 'buysaito@saito.io'
+      ishtml: false
     });
   }
 
@@ -897,10 +897,10 @@ class BuySaito extends ModTemplate {
 
               this.app.connection.emit('mailrelay-send-email', {
                 to: 'buysaito@saito.tech',
+		cc: 'richard@saito.tech',
                 from: 'Saito Token Sales Bot <info@saito.tech>',
                 subject: `ATTN: Saito Issuance Failure!!`,
-                text: err,
-                bcc: 'buysaito@saito.io'
+                text: err
               });
 
               this.app.connection.emit('relay-send-message', {
@@ -924,6 +924,7 @@ class BuySaito extends ModTemplate {
 
             this.app.connection.emit('mailrelay-send-email', {
               to: 'buysaito@saito.tech',
+	      cc: 'richard@saito.tech',
               from: 'Saito Token Sales Bot <info@saito.tech>',
               subject: `ATTN: Insufficient Funds to Complete Sale -- ` + available_balance,
               text: JSON.stringify(
@@ -934,8 +935,7 @@ class BuySaito extends ModTemplate {
                 },
                 3
               ),
-              ishtml: false,
-              bcc: 'buysaito@saito.io'
+              ishtml: false
             });
 
             this.app.connection.emit('relay-send-message', {
