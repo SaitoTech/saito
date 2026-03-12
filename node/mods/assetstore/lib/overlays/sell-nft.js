@@ -103,6 +103,7 @@ class SellNFTOverlay extends NFTDetailsOverlay {
 
       if (!this.app.wallet.isValidPublicKey(this.mod.assetStore?.publicKey)) {
         salert('Node public key is not valid');
+        console.error('STORE KEY: ', this.mod.assetStore?.publicKey);
         return;
       }
 
