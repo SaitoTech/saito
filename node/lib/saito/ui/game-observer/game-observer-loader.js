@@ -10,7 +10,6 @@ const GameObserverLoaderTemplate = require('./game-observer-loader.template');
  * @param {Element|string} [container=""] - DOM element to own; if falsy, document.body.
  */
 class GameObserverLoader {
-
   constructor(app, game_mod, container = '', observer) {
     this.app = app || null;
     this.game_mod = game_mod || null;
@@ -19,7 +18,6 @@ class GameObserverLoader {
   }
 
   render() {
-
     if (!this.container || typeof document === 'undefined') {
       return;
     }

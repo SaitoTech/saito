@@ -264,7 +264,10 @@ class GameGame {
         } catch (_) {}
         if (this.app.options?.games?.length > 0) {
           for (let i = 0; i < this.app.options.games.length; i++) {
-            if (this.name == this.app.options.games[i].module && this.app.options.games[i].id === game_id) {
+            if (
+              this.name == this.app.options.games[i].module &&
+              this.app.options.games[i].id === game_id
+            ) {
               game_id = this.app.options.games[i].id;
               break;
             }

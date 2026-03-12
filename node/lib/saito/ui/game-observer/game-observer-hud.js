@@ -130,24 +130,20 @@ class GameObserverHUD {
     const slider = root.querySelector('#game-observer-state-slider');
 
     if (slider && observer) {
-
       slider.addEventListener('mousedown', () => {
-        observer.playback_status = "paused";
+        observer.playback_status = 'paused';
       });
 
       slider.addEventListener('touchstart', () => {
-        observer.playback_status = "paused";
+        observer.playback_status = 'paused';
       });
 
       slider.addEventListener('change', () => {
-
         const idx = parseInt(slider.value, 10);
         if (Number.isNaN(idx)) return;
 
         observer.replayToIndex(idx);
-
       });
-
     }
 
     if (this.app && this.app.browser && typeof this.app.browser.makeDraggable === 'function') {
@@ -219,8 +215,7 @@ class GameObserverHUD {
       const max = Math.max(0, knownTotal - 1);
       sliderEl.max = String(max);
       sliderEl.value = String(viewingIndex);
-      const progress =
-        max > 0 ? `${(viewingIndex / max) * 100}%` : '0%';
+      const progress = max > 0 ? `${(viewingIndex / max) * 100}%` : '0%';
       sliderEl.style.setProperty('--progress', progress);
     }
 
