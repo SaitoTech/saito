@@ -87,6 +87,10 @@ class SellNFTOverlay extends NFTDetailsOverlay {
     let list_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
     list_btn.onclick = (e) => {
       document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-send');
+      setTimeout(() => {
+        console.log('autofocus on input price');
+        input.focus();
+      }, 50);
     };
 
     let send_btn = document.querySelector('.saito-nft-footer-btn.saito-nft-confirm-btn');

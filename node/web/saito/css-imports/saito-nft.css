@@ -3,7 +3,7 @@
    ============================================ */
 .saito-nft-overlay-container {
   width: min(90vw, 900px);
-  height: 85vh;
+  height: 750px;
   max-height: 90vh;
   display: grid;
   grid-template-rows: min-content 1fr;
@@ -462,7 +462,7 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
-  padding-top: 1.8rem;
+  padding: 1rem 1.8rem;
   border-top: 1px solid rgba(170, 170, 170, 0.15);
   transition: opacity 0.3s ease-in-out;
   margin-top: auto;
@@ -485,6 +485,11 @@
 
 .saito-nft-footer-btn.disabled-btn {
   filter: opacity(60%) brightness(0.8);
+}
+
+.create-nft-container .saito-nft-panel-footer {
+  padding: 0;
+  padding-top: 1.8rem;
 }
 
 /* ============================================
