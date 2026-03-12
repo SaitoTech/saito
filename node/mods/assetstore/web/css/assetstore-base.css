@@ -32,7 +32,7 @@
   display: grid;
   width: 100%;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(95vw, 400px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(95vw, 330px), 1fr));
 }
 
 #assetstore-empty {
@@ -60,7 +60,7 @@
   background: var(--saito-background-color);
   display: flex;
   height: 40rem;
-  width: 60rem;
+  width: 50rem;
   justify-content: space-between;
   padding: 1.5rem;
 }
