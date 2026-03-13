@@ -176,6 +176,8 @@ async function compileOne(zipFileName) {
   const dynModuleBinary = fs.readFileSync(DYN_MODULE_JS, { encoding: 'binary' });
   const DYN_MOD_WEB = Buffer.from(dynModuleBinary, 'binary').toString('base64');
 
+  //console.log('metadata:', metadata);
+
   const msg = {
     module: 'Appstore',
     request: 'submit application',
