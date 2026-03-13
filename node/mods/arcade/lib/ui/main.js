@@ -5,6 +5,7 @@ const ArcadeTeasers = require('./teasers');
 
 class ArcadeMain {
 	constructor(app, mod, container = 'body') {
+
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
@@ -56,6 +57,7 @@ class ArcadeMain {
 	}
 
 	async render() {
+
 		if (document.querySelector('.saito-container')) {
 			this.app.browser.replaceElementBySelector(
 				ArcadeMainTemplate(this.app, this.mod),

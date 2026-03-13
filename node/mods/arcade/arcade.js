@@ -94,9 +94,7 @@ class Arcade extends ModTemplate {
 					app.storage.saveOptions();
 
 					siteMessage(`It is now your turn in ${game.module}`, 5000);
-					if (this.browser_active && this.ui) {
-						this.ui.renderInvites();
-					}
+					this.renderInvites();
 				}
 			}
 		});
@@ -276,15 +274,11 @@ class Arcade extends ModTemplate {
 				this.addGame(game_tx);
 			}
 
-			if (this.browser_active && this.ui) {
-				this.ui.renderInvites();
-			}
+			this.renderInvites();
 
 			setInterval(() => {
 				this.purge();
-				if (this.browser_active && this.ui) {
-					this.ui.renderInvites();
-				}
+				this.renderInvites();
 			}, 90000);
 		}
 
@@ -295,6 +289,18 @@ class Arcade extends ModTemplate {
 		}
 	}
 
+	renderInvites() {
+		if (!this.app.BROWSER) { return; }
+		if (this.browser_active) {
+			if (this.ui) {
+				this.ui.renderInvites(); 
+			}
+		} else {
+			if (this.invite_manager) {
+				this.invite_manager.render();
+			}
+		}
+	}
 	async render(mode = null, data = {}) {
 		if (!this.app.BROWSER) {
 			console.warn('Node attempting to render Arcade...');
@@ -611,10 +617,7 @@ class Arcade extends ModTemplate {
 					}
 					window.history.replaceState('', '', `/arcade/`);
 				}
-
-				if (this.browser_active && this.ui) {
-					this.ui.renderInvites();
-				}
+				this.renderInvites();
 				app.connection.emit('arcade-data-loaded');
 			});
 		}
@@ -1035,9 +1038,7 @@ class Arcade extends ModTemplate {
 
 		// add to games list == open or private
 		this.addGame(tx);
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 
 		if (tx.isFrom(this.publicKey)) {
 			clearTimeout(this.game_timeout);
@@ -1105,9 +1106,7 @@ class Arcade extends ModTemplate {
 		}
 
 		this.app.connection.emit('arcade-close-game', txmsg.game_id);
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 	}
 
 	async sendCancelTransaction(game_id) {
@@ -1154,9 +1153,7 @@ class Arcade extends ModTemplate {
 			this.addGame(game.tx, newStatus);
 		}
 
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 	}
 
 	async receiveGameoverTransaction(tx) {
@@ -1259,9 +1256,7 @@ class Arcade extends ModTemplate {
 		});
 
 		this.app.browser.logMatomoEvent('GameInvite', 'JoinGame', invite.game_name);
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 	}
 
 	async receiveJoinTransaction(tx) {
@@ -1314,10 +1309,8 @@ class Arcade extends ModTemplate {
 
 				this.removeGame(txmsg.game_id);
 				this.addGame(game.tx);
+				this.renderInvites();
 
-				if (this.browser_active && this.ui) {
-					this.ui.renderInvites();
-				}
 			} else {
 				if (tx.isFrom(this.publicKey)) {
 					salert('Game not available right now...');
@@ -1401,10 +1394,7 @@ class Arcade extends ModTemplate {
 			data: newtx.toJson()
 		});
 
-		//this.app.browser.logMatomoEvent('GameInvite', 'LeaveGame', txmsg.game);
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 	}
 
 	async receiveLeaveTransaction(tx) {
@@ -1442,10 +1432,7 @@ class Arcade extends ModTemplate {
 
 			this.removeGame(txmsg.game_id);
 			this.addGame(game.tx);
-
-			if (this.browser_active && this.ui) {
-				this.ui.renderInvites();
-			}
+			this.renderInvites();
 		}
 	}
 
@@ -1589,9 +1576,8 @@ class Arcade extends ModTemplate {
 				record.is_sender_reachable = status === 'online';
 			}
 		}
-
-		if (this.app.BROWSER && this.browser_active && this.ui) {
-			this.ui.renderInvites();
+		if (this.app.BROWSER) {
+			this.renderInvites();
 		}
 		return 0;
 	}
@@ -1850,9 +1836,7 @@ class Arcade extends ModTemplate {
 			}
 		}
 		this.app.storage.saveOptions();
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 	}
 
 	isAvailableGame(game_tx, additional_status = '') {

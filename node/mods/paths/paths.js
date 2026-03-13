@@ -12066,54 +12066,57 @@ console.log("central_cards_post_deal: " + central_cards_post_deal);
 		  }
 		}
 	      }
-	    } else {
+	    }
+	  }
+
+	  //
+	  // empty-space control flip: separate pass so supply checks above
+	  // see a consistent board state (avoids desync from iteration order)
+	  //
+	  for (let key in this.game.spaces) {
+	    if (this.game.spaces[key].units.length == 0 &&
+		this.game.spaces[key].fort <= 0 &&
+	  	key != "arbox" && 
+		key != "crbox" && 
+		key != "aeubox" && 
+		key != "ceubox" &&
+		this.game.spaces[key].country != "serbia" 
+	    ) {
+
+	      let country = spaces[key].country;		
+	      let control = this.game.spaces[key].control;
 
 	      //
-	      // no units in this space
+	      // if the country is active and at war
 	      //
-	      if (this.game.spaces[key].units.length == 0 && this.game.spaces[key].units.length == 0 && this.game.spaces[key].fort <= 0 &&
-	  	  key != "arbox" && 
-		  key != "crbox" && 
-		  key != "aeubox" && 
-		  key != "ceubox" &&
-		  this.game.spaces[key].country != "serbia" 
-	      ) {
-
-		let country = spaces[key].country;		
-	        let control = this.game.spaces[key].control;
+	      if (this.game.state.events[country] == true || this.game.state.events[country] == 1) {
 
 		//
-		// if the country is active and at war
+		// does the current owner have supply access -- if not flip
 		//
-		if (this.game.state.events[country] == true || this.game.state.events[country] == 1) {
+		if (!this.checkSupplyStatus(control, key)) {
 
 		  //
-		  // does the current owner have supply access -- if not flip
+		  // if our space is controlled by invader and out-of-supply, revert
 		  //
-		  if (!this.checkSupplyStatus(control, key)) {
+		  if (spaces[key].control != this.game.spaces[key].control) {
 
-		    //
-		    // if our space is controlled by invader and out-of-supply, revert
-		    //
-		    if (spaces[key].control != this.game.spaces[key].control) {
+		    this.game.spaces[key].control = spaces[key].control;
 
-		      this.game.spaces[key].control = spaces[key].control;
-
-		    //
-		    // space is controlled by us, but out-of-supply
-		    //
+		  //
+		  // space is controlled by us, but out-of-supply
+		  //
+		  } else {
+		    if (this.game.spaces[key].control == "allies") {
+		      this.game.spaces[key].control = "central";
 		    } else {
-		      if (this.game.spaces[key].control == "allies") {
-			this.game.spaces[key].control = "central";
-		      } else {
-			this.game.spaces[key].control = "allies";
-		      }
+		      this.game.spaces[key].control = "allies";
 		    }
-
-		    this.game.spaces[key].besieged = 0;
-		    this.displaySpace(key);
-
 		  }
+
+		  this.game.spaces[key].besieged = 0;
+		  this.displaySpace(key);
+
 		}
 	      }
 	    }

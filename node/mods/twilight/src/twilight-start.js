@@ -455,6 +455,7 @@ class Twilight extends GameTemplate {
 
     } catch (err) {}
 
+/******
     document.querySelector('.gameboard').addEventListener('click', (e) => {
 
       // ignore clicks on countries or interactive elements
@@ -490,10 +491,10 @@ console.log("Intrinsic board size:", board.offsetWidth, board.offsetHeight);
 console.log("Click screen:", clickX, clickY);
 console.log("Click board:", boardX, boardY);
 
-
   	this.zoom_overlay.renderAtCoordinates(boardX, boardY);
 
     });
+******/
 
     if (this.game.player > 0){
       if (this.useClock){
@@ -6624,13 +6625,10 @@ console.log("display: " + i);
 console.log("before zoom overlaty check...");
 
       let redisplay_zoom_overlay = false;
-      if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
-console.log("remove zoom overlay...");
-	redisplay_zoom_overlay = true;
-console.log("before zoom_overlay remove.....");
-        this.zoom_overlay.remove();
-      }
-console.log("after zoom overlay removal...");
+//      if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
+//	redisplay_zoom_overlay = true;
+//        this.zoom_overlay.remove();
+//      }
 
 try {
       this.updateDefcon();
@@ -6652,12 +6650,12 @@ try {
 } catch (err) { console.log("error updating round: " + JSON.stringify(err)); }
 
       // this can trigger bug if open End-of-Turn, throws error, thus last
-      if (redisplay_zoom_overlay) {
-console.log("ZOOM OVERLAY VISIBLE: " + this.zoom_overlay.visible);
-console.log("SAITO OVERLAY INSIDE VISIBLE: " + this.zoom_overlay.overlay.visible);
-console.log("rendering!");
-        this.zoom_overlay.render();
-      }
+//      if (redisplay_zoom_overlay) {
+//console.log("ZOOM OVERLAY VISIBLE: " + this.zoom_overlay.visible);
+//console.log("SAITO OVERLAY INSIDE VISIBLE: " + this.zoom_overlay.overlay.visible);
+//console.log("rendering!");
+//        this.zoom_overlay.render();
+//      }
 
     } catch (err) {
 console.log("DISPLAY ERROR: " + JSON.stringify(err));
