@@ -1748,7 +1748,7 @@ class Arcade extends ModTemplate {
 	}
 
 	purge() {
-		const INVITE_CUTOFF = 1500000; // 25 minutes
+		const INVITE_CUTOFF = 2000000; // 30 minutes
 		const GAME_CUTOFF = 600000000;
 
 		const now = new Date().getTime();
