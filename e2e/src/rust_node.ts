@@ -25,6 +25,10 @@ export default class RustNode extends SaitoNode {
     this._proc = spawn(RUST_BINARY_PATH, ["--config", "config/config.json"], {
       cwd: this.nodeDir,
       detached: false,
+      env: {
+        ...process.env,
+        SAITO_TEST_MODE: "1",
+      },
     });
 
     this._proc.stdout?.on("data", (d: Buffer) => this.writeLog(`[stdout] ${d.toString().trim()}`));
@@ -46,12 +50,11 @@ export default class RustNode extends SaitoNode {
   }
 
   /**
-   * Rust nodes expose /stats/peers differently — use test-api once implemented,
-   * or fall back gracefully.
+   * Rust nodes expose a test-only peers endpoint when SAITO_TEST_MODE is set.
    */
   async getPeers(): Promise<string[]> {
     try {
-      const data = (await this.fetchTestApi("peers/all")) as { peers?: string[] };
+      const data = (await this.fetchTestApi("peers")) as { peers?: string[] };
       return data?.peers ?? [];
     } catch {
       return [];

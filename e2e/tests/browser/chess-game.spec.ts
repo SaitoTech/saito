@@ -118,13 +118,14 @@ test.describe.serial("Chess game — two browser players", () => {
   test("both browsers load /arcade", async () => {
     test.setTimeout(180_000);
 
-    await Promise.all([pageA.goto("/arcade"), pageB.goto("/arcade")]);
+    // Load sequentially to reduce peak memory pressure from two heavy arcade
+    // bundles starting up at the same time. Parallel loading was intermittently
+    // crashing Chromium during the full e2e suite on this machine.
+    await pageA.goto("/arcade");
+    await pageA.waitForLoadState("networkidle");
 
-    // Wait for network activity to settle before asserting DOM state
-    await Promise.all([
-      pageA.waitForLoadState("networkidle"),
-      pageB.waitForLoadState("networkidle"),
-    ]);
+    await pageB.goto("/arcade");
+    await pageB.waitForLoadState("networkidle");
 
     // The Chess game tile (#Chess / [data-id="Chess"]) is rendered by
     // ArcadeMain once the saito.js bundle initialises the arcade module and

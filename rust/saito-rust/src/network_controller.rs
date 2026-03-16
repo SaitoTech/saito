@@ -991,10 +991,11 @@ fn run_websocket_server(
     let configs_wrapper = ConfigsWrapper { configs };
     tokio::spawn(async move {
         info!("starting websocket server");
+        let io_controller_for_ws = io_controller.clone();
         let ws_route = warp::path("wsopen")
             .and(warp::ws())
             .and(warp::addr::remote())
-            .and(warp::any().map(move || io_controller.clone()))
+            .and(warp::any().map(move || io_controller_for_ws.clone()))
             .and(warp::any().map(move || wallet.clone()))
             .and(warp::any().map(move || configs_wrapper.clone()))
             .and(warp::any().map(move || timer.clone()))
@@ -1197,18 +1198,59 @@ fn run_websocket_server(
                     Ok(warp::reply::with_status(buffer, StatusCode::OK))
                 },
             );
-        let test_api_status_route = warp::path!("test-api" / "status").and(warp::get()).map(|| {
-            let ts = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis();
-            warp::reply::json(&serde_json::json!({ "ok": true, "timestamp": ts }))
-        });
+        let test_mode_enabled = std::env::var("SAITO_TEST_MODE")
+            .map(|value| !value.is_empty() && value != "0")
+            .unwrap_or(false);
+
+        let test_api_status_enabled = test_mode_enabled;
+        let test_api_status_route = warp::path!("test-api" / "status")
+            .and(warp::get())
+            .and(warp::any().map(move || test_api_status_enabled))
+            .and_then(|enabled: bool| async move {
+                if !enabled {
+                    return Err(warp::reject::not_found());
+                }
+
+                let ts = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis();
+                Ok::<_, warp::Rejection>(warp::reply::json(
+                    &serde_json::json!({ "ok": true, "timestamp": ts }),
+                ))
+            });
+
+        let test_api_peers_enabled = test_mode_enabled;
+        let io_controller_for_test_api = io_controller.clone();
+        let test_api_peers_route = warp::path!("test-api" / "peers")
+            .and(warp::get())
+            .and(warp::any().map(move || test_api_peers_enabled))
+            .and(warp::any().map(move || io_controller_for_test_api.clone()))
+            .and_then(
+                |enabled: bool, network_controller: Arc<RwLock<NetworkController>>| async move {
+                    if !enabled {
+                        return Err(warp::reject::not_found());
+                    }
+
+                    let network_controller = network_controller.read().await;
+                    let peers: Vec<String> = network_controller
+                        .network_peers
+                        .keys()
+                        .map(|key| key.to_base58())
+                        .collect();
+
+                    Ok::<_, warp::Rejection>(warp::reply::json(&serde_json::json!({
+                        "peers": peers
+                    })))
+                },
+            );
 
         let routes = http_route
             .or(ws_route)
             .or(lite_route)
-            .or(test_api_status_route);
+            .or(test_api_status_route)
+            .or(test_api_peers_route)
+            .boxed();
         // let (_, server) =
         //     warp::serve(ws_route).bind_with_graceful_shutdown(([127, 0, 0, 1], port), async {
         //         // tokio::signal::ctrl_c().await.ok();
