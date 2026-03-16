@@ -19,11 +19,20 @@ from .runtime import (
     SaitoTransactionHandle,
     SaitoWalletHandle,
 )
+from .sidecar import (
+    NodejsSidecarRuntimeLoader,
+    SidecarHostBridge,
+    SidecarProcessConfig,
+    SidecarRuntimeHandle,
+    SidecarTransactionHandle,
+    SidecarWalletHandle,
+)
 
 __all__ = [
     "BackendUnavailableError",
     "ClientConfig",
     "NodeConfig",
+    "NodejsSidecarRuntimeLoader",
     "NullHostBridge",
     "PeerConfig",
     "RuntimeBackendFactory",
@@ -39,6 +48,11 @@ __all__ = [
     "SaitoRuntimeLoader",
     "SaitoStateError",
     "SaitoTransactionHandle",
+    "SidecarHostBridge",
+    "SidecarProcessConfig",
+    "SidecarRuntimeHandle",
+    "SidecarTransactionHandle",
+    "SidecarWalletHandle",
     "TransactionRecord",
     "TransactionRequest",
     "UnavailableBackendFactory",
