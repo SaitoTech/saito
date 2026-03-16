@@ -238,6 +238,7 @@ class Arcade extends ModTemplate {
 			// my games stored in local wallet
 			//
 			if (this.app.options.games) {
+
 				this.purge();
 
 				for (let game of this.app.options.games) {
@@ -249,14 +250,15 @@ class Arcade extends ModTemplate {
   					}
   					let game_tx = await this.createPseudoTransaction(game);
   					this.addGame(game_tx, 'active');
-				}
-						// and add to list of my games
-						//
-						if (!game.over) {
-							this.addGame(game_tx, 'active');
-						} else {
-							this.addGame(game_tx, 'over');
-						}
+
+		
+					//
+					// and add to list of my games
+					//
+					if (!game.over) {
+						this.addGame(game_tx, 'active');
+					} else {
+						this.addGame(game_tx, 'over');
 					}
 				}
 			}
