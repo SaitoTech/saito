@@ -9,6 +9,7 @@ import Blockchain from "./lib/blockchain";
 import BalanceSnapshot from "./lib/balance_snapshot";
 import Nft from "./lib/nft";
 import NetworkPeer from "./lib/network_peer";
+import { installWasmHostBridge } from "./lib/wasm_host_bridge";
 
 export enum LogLevel {
   Error = 0,
@@ -44,111 +45,7 @@ export default class Saito {
     console.log("initializing saito lib");
     Saito.instance = new Saito(factory);
 
-    // @ts-ignore
-    globalThis.shared_methods = {
-      send_message: (public_key: string, buffer: Uint8Array) => {
-        sharedMethods.sendMessage(public_key, buffer);
-      },
-      send_message_to_all: (buffer: Uint8Array, exceptions: Array<string>) => {
-        sharedMethods.sendMessageToAll(buffer, exceptions);
-      },
-      connect_to_peer: (url: string) => {
-        sharedMethods.connectToPeer(url);
-      },
-      write_value: (key: string, value: Uint8Array) => {
-        return sharedMethods.writeValue(key, value);
-      },
-      append_value: (key: string, value: Uint8Array) => {
-        return sharedMethods.appendValue(key, value);
-      },
-      flush_data: (key: string) => {
-        return sharedMethods.flushData(key);
-      },
-      ensure_directory_exists: (path: string) => {
-        return sharedMethods.ensureDirExists(path);
-      },
-      read_value: (key: string) => {
-        return sharedMethods.readValue(key);
-      },
-      load_block_file_list: () => {
-        return sharedMethods.loadBlockFileList();
-      },
-      is_existing_file: (key: string) => {
-        return sharedMethods.isExistingFile(key);
-      },
-      remove_value: (key: string) => {
-        return sharedMethods.removeValue(key);
-      },
-      disconnect_from_peer: (public_key: string) => {
-        return sharedMethods.disconnectFromPeer(public_key);
-      },
-      fetch_block_from_peer: (
-        hash: Uint8Array,
-        public_key: string,
-        url: string,
-        block_id: bigint
-      ) => {
-        sharedMethods
-          .fetchBlockFromPeer(url)
-          .then((buffer: Uint8Array) => {
-            return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, public_key);
-          })
-          .catch((error: any) => {
-            console.log(
-              "failed fetching block for url : " +
-                url +
-                " from peer : " +
-                public_key +
-                ", block id = " +
-                block_id
-            );
-            console.error(error);
-            return Saito.getLibInstance().process_failed_block_fetch(hash, block_id, public_key);
-          });
-      },
-      process_api_call: (buffer: Uint8Array, msgIndex: number, public_key: string) => {
-        return sharedMethods.processApiCall(buffer, msgIndex, public_key).then(() => {});
-      },
-      process_api_success: (buffer: Uint8Array, msgIndex: number, public_key: string) => {
-        return sharedMethods.processApiSuccess(buffer, msgIndex, public_key);
-      },
-      process_api_error: (buffer: Uint8Array, msgIndex: number, public_key: string) => {
-        return sharedMethods.processApiError(buffer, msgIndex, public_key);
-      },
-      send_interface_event: (event: string, public_key: string) => {
-        return sharedMethods.sendInterfaceEvent(event, public_key);
-      },
-      send_block_fetch_status_event: (count: bigint) => {
-        return sharedMethods.sendBlockFetchStatus(count);
-      },
-      send_block_success: (hash: string, blockId: bigint) => {
-        return sharedMethods.sendBlockSuccess(hash, blockId);
-      },
-      send_wallet_update: () => {
-        return sharedMethods.sendWalletUpdate();
-      },
-      save_wallet: (wallet: any) => {
-        return sharedMethods.saveWallet(wallet);
-      },
-      load_wallet: (wallet: any) => {
-        return sharedMethods.loadWallet(wallet);
-      },
-      save_blockchain: (blockchain: any) => {
-        return sharedMethods.saveBlockchain(blockchain);
-      },
-      load_blockchain: (blockchain: any) => {
-        return sharedMethods.loadBlockchain(blockchain);
-      },
-      get_my_services: () => {
-        return sharedMethods.getMyServices().instance;
-      },
-      send_new_version_alert: (major: number, minor: number, patch: number, public_key: string) => {
-        return sharedMethods.sendNewVersionAlert(major, minor, patch, public_key);
-      },
-      send_new_chain_detected_event: () => {
-        return sharedMethods.sendNewChainDetectedEvent();
-      },
-    };
+    installWasmHostBridge(sharedMethods, () => Saito.getLibInstance());
     if (privateKey === "") {
       privateKey = DefaultEmptyPrivateKey;
     }

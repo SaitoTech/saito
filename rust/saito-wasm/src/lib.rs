@@ -5,6 +5,7 @@ mod wasm_blockchain;
 mod wasm_configuration;
 mod wasm_consensus_values;
 mod wasm_hop;
+mod wasm_host_log;
 mod wasm_io_handler;
 mod wasm_network_peer;
 mod wasm_nft;
