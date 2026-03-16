@@ -131,9 +131,7 @@ class GameQueue {
       //The pending transactions are processed elsewhere...
     } else {
       if (this.game.player == 0) {
-        console.info(
-          'GT [initializeGameQueue]: Observer.... set active while loading...'
-        );
+        console.info('GT [initializeGameQueue]: Observer.... set active while loading...');
         this.gaming_active = 1;
       }
       await this.startQueue();

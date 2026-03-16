@@ -94,9 +94,7 @@ class Arcade extends ModTemplate {
 					app.storage.saveOptions();
 
 					siteMessage(`It is now your turn in ${game.module}`, 5000);
-					if (this.browser_active && this.ui) {
-						this.ui.renderInvites();
-					}
+					this.renderInvites();
 				}
 			}
 		});
@@ -276,15 +274,11 @@ class Arcade extends ModTemplate {
 				this.addGame(game_tx);
 			}
 
-			if (this.browser_active && this.ui) {
-				this.ui.renderInvites();
-			}
+			this.renderInvites();
 
 			setInterval(() => {
 				this.purge();
-				if (this.browser_active && this.ui) {
-					this.ui.renderInvites();
-				}
+				this.renderInvites();
 			}, 90000);
 		}
 
@@ -295,6 +289,18 @@ class Arcade extends ModTemplate {
 		}
 	}
 
+	renderInvites() {
+		if (!this.app.BROWSER) { return; }
+		if (this.browser_active) {
+			if (this.ui) {
+				this.ui.renderInvites(); 
+			}
+		} else {
+			if (this.invite_manager) {
+				this.invite_manager.render();
+			}
+		}
+	}
 	async render(mode = null, data = {}) {
 		if (!this.app.BROWSER) {
 			console.warn('Node attempting to render Arcade...');
@@ -547,21 +553,23 @@ class Arcade extends ModTemplate {
 
 		if (service.service == 'arcade') {
 			this.app.network.sendRequestAsTransaction('arcade invite list', {}, async (txs) => {
-				for (let serial_tx of txs) {
-					let game_tx = new Transaction();
-					game_tx.deserialize_from_web(app, serial_tx);
+				if (txs?.length > 0) {
+					for (let serial_tx of txs) {
+						let game_tx = new Transaction();
+						game_tx.deserialize_from_web(app, serial_tx);
 
-					let status = game_tx.msg.request;
-					let game_added = arcade_self.addGame(game_tx);
+						let status = game_tx.msg.request;
+						let game_added = arcade_self.addGame(game_tx);
 
-					if (arcade_self?.debug && arcade_self.browser_active) {
-						console.debug('Available arcade game:', status, game_added, game_tx);
-					}
+						if (arcade_self?.debug && arcade_self.browser_active) {
+							console.debug('Available arcade game:', status, game_added, game_tx);
+						}
 
-					//Game is marked as "active" but we didn't already add it from our app.options file...
-					if (status == 'active' && game_added && arcade_self.isMyGame(game_tx)) {
-						game_tx.msg.game_id = game_tx.signature;
-						arcade_self.receiveAcceptTransaction(game_tx);
+						//Game is marked as "active" but we didn't already add it from our app.options file...
+						if (status == 'active' && game_added && arcade_self.isMyGame(game_tx)) {
+							game_tx.msg.game_id = game_tx.signature;
+							arcade_self.receiveAcceptTransaction(game_tx);
+						}
 					}
 				}
 
@@ -609,21 +617,25 @@ class Arcade extends ModTemplate {
 					}
 					window.history.replaceState('', '', `/arcade/`);
 				}
-
-				if (this.browser_active && this.ui) {
-					this.ui.renderInvites();
-				}
+				this.renderInvites();
 				app.connection.emit('arcade-data-loaded');
 			});
 		}
 
+		//
+		// I am going to comment this out for a bit, because I don't know if we still need it
+		// It was "broken" and so not working for... a while
+		// The idea is to query the last 10 moves of all your saved games in case you didn't get them
+		// on/off chain and then rerun them
+		// I think it might be essential for asynchronous gaming since we don't know that we will
+		// get lite blocks going back too far
+		//
 		if (service.service === 'archive') {
-			for (let game of this.app.options.games) {
+			/*for (let game of this.app.options.games) {
 				if (game?.over) {
 					continue;
 				}
 
-				let query = game.module + '_' + game.id;
 				let game_mod = this.app.modules.returnModule(game.module);
 
 				if (!game_mod) {
@@ -632,20 +644,23 @@ class Arcade extends ModTemplate {
 
 				this.app.storage.loadTransactions(
 					{
-						field1: query
+						field1: game.module,
+						field4: game.id
 					},
 					async (txs) => {
-						for (let i = txs.length - 1; i >= 0; i--) {
-							// arcade
-							await this.onConfirmation(-1, txs[i], 0);
+						if (txs?.length > 0) {
+							for (let i = txs.length - 1; i >= 0; i--) {
+								// arcade
+								await this.onConfirmation(-1, txs[i], 0);
 
-							// game mod
-							await game_mod.onConfirmation(-1, txs[i], 0);
+								// game mod
+								await game_mod.onConfirmation(-1, txs[i], 0);
+							}
 						}
 					},
 					peer
 				);
-			}
+			}*/
 		}
 	}
 
@@ -1023,9 +1038,7 @@ class Arcade extends ModTemplate {
 
 		// add to games list == open or private
 		this.addGame(tx);
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 
 		if (tx.isFrom(this.publicKey)) {
 			clearTimeout(this.game_timeout);
@@ -1093,9 +1106,7 @@ class Arcade extends ModTemplate {
 		}
 
 		this.app.connection.emit('arcade-close-game', txmsg.game_id);
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 	}
 
 	async sendCancelTransaction(game_id) {
@@ -1142,9 +1153,7 @@ class Arcade extends ModTemplate {
 			this.addGame(game.tx, newStatus);
 		}
 
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 	}
 
 	async receiveGameoverTransaction(tx) {
@@ -1247,9 +1256,7 @@ class Arcade extends ModTemplate {
 		});
 
 		this.app.browser.logMatomoEvent('GameInvite', 'JoinGame', invite.game_name);
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 	}
 
 	async receiveJoinTransaction(tx) {
@@ -1302,10 +1309,8 @@ class Arcade extends ModTemplate {
 
 				this.removeGame(txmsg.game_id);
 				this.addGame(game.tx);
+				this.renderInvites();
 
-				if (this.browser_active && this.ui) {
-					this.ui.renderInvites();
-				}
 			} else {
 				if (tx.isFrom(this.publicKey)) {
 					salert('Game not available right now...');
@@ -1389,10 +1394,7 @@ class Arcade extends ModTemplate {
 			data: newtx.toJson()
 		});
 
-		//this.app.browser.logMatomoEvent('GameInvite', 'LeaveGame', txmsg.game);
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 	}
 
 	async receiveLeaveTransaction(tx) {
@@ -1430,10 +1432,7 @@ class Arcade extends ModTemplate {
 
 			this.removeGame(txmsg.game_id);
 			this.addGame(game.tx);
-
-			if (this.browser_active && this.ui) {
-				this.ui.renderInvites();
-			}
+			this.renderInvites();
 		}
 	}
 
@@ -1577,9 +1576,8 @@ class Arcade extends ModTemplate {
 				record.is_sender_reachable = status === 'online';
 			}
 		}
-
-		if (this.app.BROWSER && this.browser_active && this.ui) {
-			this.ui.renderInvites();
+		if (this.app.BROWSER) {
+			this.renderInvites();
 		}
 		return 0;
 	}
@@ -1750,7 +1748,7 @@ class Arcade extends ModTemplate {
 	}
 
 	purge() {
-		const INVITE_CUTOFF = 1500000; // 25 minutes
+		const INVITE_CUTOFF = 2000000; // 30 minutes
 		const GAME_CUTOFF = 600000000;
 
 		const now = new Date().getTime();
@@ -1838,9 +1836,7 @@ class Arcade extends ModTemplate {
 			}
 		}
 		this.app.storage.saveOptions();
-		if (this.browser_active && this.ui) {
-			this.ui.renderInvites();
-		}
+		this.renderInvites();
 	}
 
 	isAvailableGame(game_tx, additional_status = '') {
@@ -1917,7 +1913,12 @@ class Arcade extends ModTemplate {
 		expressapp.use(uri, express.static(webdir));
 
 		expressapp.get(uri, async function (req, res) {
-			let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
+			//let reqBaseURL = req.protocol + '://' + req.headers.host + '/';
+			const endpoint = app?.options?.server?.endpoint || app?.options?.server || {};
+			const protocol = (endpoint.protocol || req.protocol || 'https').replace(/:$/, '');
+			const host = endpoint.host || req.hostname || req.headers.host;
+			const port = endpoint.port ? `:${endpoint.port}` : '';
+			let reqBaseURL = `${protocol}://${host}${port}/`;
 			let game_data = null;
 			let updatedSocial = Object.assign({}, arcade_self.social);
 

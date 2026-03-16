@@ -18,15 +18,15 @@ class BuySaito extends ModTemplate {
     this.dbname = 'buysaito';
 
     this.dependencies = ['Relay', 'Mixin', 'ERC'];
-    this.description = 'Testnet BuySaito for Testing and Application Development';
+    this.description = 'Buy native SAITO';
     this.categories = 'Utility Ecommerce NFTs';
 
     this.social = {
       twitter: '@SaitoOfficial',
-      title: '🟥 Saito BuySaito',
+      title: '🟥 Official SAITO Sales Platform',
       url: 'https://saito.io/buysaito/',
-      description: 'Get Testnet Saito',
-      image: 'https://saito.tech/wp-content/uploads/2023/11/buysaito-300x300.png'
+      description: 'Get SAITO',
+      image: 'https://saito.tech/wp-content/uploads/2022/04/saito_card_horizontal.png'
     };
 
     this.mixin_mod = null;
@@ -772,6 +772,7 @@ class BuySaito extends ModTemplate {
 
     this.app.connection.emit('mailrelay-send-email', {
       to: 'buysaito@saito.tech',
+      cc: 'richard@saito.tech',
       from: 'Saito Token Sales Bot <info@saito.tech>',
       subject: `On-Chain Saito Issued`,
       text: JSON.stringify(
@@ -782,8 +783,7 @@ class BuySaito extends ModTemplate {
         },
         3
       ),
-      ishtml: false,
-      bcc: 'buysaito@saito.io'
+      ishtml: false
     });
   }
 
@@ -897,10 +897,10 @@ class BuySaito extends ModTemplate {
 
               this.app.connection.emit('mailrelay-send-email', {
                 to: 'buysaito@saito.tech',
+		cc: 'richard@saito.tech',
                 from: 'Saito Token Sales Bot <info@saito.tech>',
                 subject: `ATTN: Saito Issuance Failure!!`,
-                text: err,
-                bcc: 'buysaito@saito.io'
+                text: err
               });
 
               this.app.connection.emit('relay-send-message', {
@@ -924,6 +924,7 @@ class BuySaito extends ModTemplate {
 
             this.app.connection.emit('mailrelay-send-email', {
               to: 'buysaito@saito.tech',
+	      cc: 'richard@saito.tech',
               from: 'Saito Token Sales Bot <info@saito.tech>',
               subject: `ATTN: Insufficient Funds to Complete Sale -- ` + available_balance,
               text: JSON.stringify(
@@ -934,8 +935,7 @@ class BuySaito extends ModTemplate {
                 },
                 3
               ),
-              ishtml: false,
-              bcc: 'buysaito@saito.io'
+              ishtml: false
             });
 
             this.app.connection.emit('relay-send-message', {

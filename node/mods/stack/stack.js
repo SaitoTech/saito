@@ -27,6 +27,7 @@ class Stack extends ModTemplate {
     this.app = app;
     this.name = 'Stack';
     this.slug = 'stack';
+    this.dependencies = ['Scripting'];
     this.description = 'Permissioned blogging platform - an open-source alternative to Substack';
     this.categories = 'Social Media Blogging Publishing';
     this.icon_fa = 'fa-solid fa-newspaper';
@@ -1989,7 +1990,7 @@ class Stack extends ModTemplate {
     if (peerKeys.length > 0) {
       const firstPeerKey = peerKeys[0];
       const peerObj = this.peers[firstPeerKey]?.peer;
-      
+
       if (peerObj && peerObj.publicKey !== undefined) {
         try {
           const peerTx = await new Promise((resolve) => {

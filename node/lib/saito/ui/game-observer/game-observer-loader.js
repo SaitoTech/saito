@@ -10,7 +10,6 @@ const GameObserverLoaderTemplate = require('./game-observer-loader.template');
  * @param {Element|string} [container=""] - DOM element to own; if falsy, document.body.
  */
 class GameObserverLoader {
-
   constructor(app, game_mod, container = '', observer) {
     this.app = app || null;
     this.game_mod = game_mod || null;
@@ -19,7 +18,6 @@ class GameObserverLoader {
   }
 
   render() {
-
     if (!this.container || typeof document === 'undefined') {
       return;
     }
@@ -29,6 +27,7 @@ class GameObserverLoader {
       return;
     }
 
+    const hud = this.container.querySelector('#game-observer-hud');
     const existing = this.container.querySelector('#observer-sync-overlay');
     const wrap = document.createElement('div');
     wrap.innerHTML = html.trim();
@@ -39,6 +38,12 @@ class GameObserverLoader {
       existing.replaceWith(node);
     } else {
       this.container.appendChild(node);
+    }
+
+
+    if (existing && hud) {
+      const hudZ = parseInt(window.getComputedStyle(hud).zIndex) || 0;
+      existing.style.zIndex = hudZ + 1;
     }
 
     console.log(

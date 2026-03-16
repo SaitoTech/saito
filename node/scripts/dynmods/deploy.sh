@@ -10,3 +10,4 @@ if [[ ! -d "$SAITO_DIR" ]]; then
 fi
 
 rsync -avP "$SAITO_DIR/" mods@mods.saito.io:/var/www/html/mods/
+ssh root@mods.saito.io '/var/www/html/mods/generate-module-metadata.sh'

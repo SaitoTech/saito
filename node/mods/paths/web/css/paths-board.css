@@ -896,7 +896,7 @@
     max-height: 100px;
 }
 
-.aeubox {
+.space.aeubox {
     top: 2950px;
     left: 1880px;
     width: 430px;
@@ -908,7 +908,7 @@
     row-gap: 1rem;
     column-gap: 1rem;
 }
-.ceubox {
+.space.ceubox {
     top: 110px;
     left: 1050px;
     width: 430px;

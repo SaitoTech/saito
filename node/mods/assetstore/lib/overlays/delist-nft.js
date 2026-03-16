@@ -36,7 +36,18 @@ class DelistNFTOverlay extends NFTDetailsOverlay {
           // fetch thedelisting transaction
           //
           let nfttx_sig = this.nft?.tx_sig;
-          let delist_tx_serialized = this.mod.drafts[nfttx_sig];
+
+          //nft_tx: nfttx.serialize_to_web(this.app),
+          //nfttx_sig: nft_sig,
+          //delisting_sig: nfttx.signature
+          let delist_tx_serialized;
+
+          for (let t of this.mod.drafts) {
+            if (t.nfttx_sig == nfttx_sig) {
+              delist_tx_serialized = t.nft_tx;
+            }
+          }
+
           if (!delist_tx_serialized) {
             //
             // we can be in this situation (unable to find delist) if the server
