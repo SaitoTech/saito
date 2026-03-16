@@ -1,0 +1,18 @@
+{
+  "name": "saito-e2e",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Saito nodes (Node.js and Rust)",
+  "private": true,
+  "scripts": {
+    "test": "npx playwright test",
+    "test:nodejs": "npx playwright test tests/node-startup/nodejs-startup.spec.ts tests/peer-connection/nodejs-to-nodejs.spec.ts",
+    "test:rust": "npx playwright test tests/node-startup/rust-startup.spec.ts tests/peer-connection/rust-to-rust.spec.ts",
+    "show-report": "npx playwright show-report",
+    "ui": "npx playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.44.0",
+    "@types/node": "^20.17.19",
+    "typescript": "^5.4.5"
+  }
+}

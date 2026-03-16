@@ -1197,7 +1197,18 @@ fn run_websocket_server(
                     Ok(warp::reply::with_status(buffer, StatusCode::OK))
                 },
             );
-        let routes = http_route.or(ws_route).or(lite_route);
+        let test_api_status_route = warp::path!("test-api" / "status").and(warp::get()).map(|| {
+            let ts = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis();
+            warp::reply::json(&serde_json::json!({ "ok": true, "timestamp": ts }))
+        });
+
+        let routes = http_route
+            .or(ws_route)
+            .or(lite_route)
+            .or(test_api_status_route);
         // let (_, server) =
         //     warp::serve(ws_route).bind_with_graceful_shutdown(([127, 0, 0, 1], port), async {
         //         // tokio::signal::ctrl_c().await.ok();

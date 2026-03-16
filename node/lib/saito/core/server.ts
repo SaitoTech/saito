@@ -1036,8 +1036,8 @@ class Server {
       return;
     });
 
-    // TODO : add a env variable? to enable this testing feature
-    if (false) {
+    // Enable test API when SAITO_TEST_MODE env var is set
+    if (process.env.SAITO_TEST_MODE) {
       this.provideTesterAPI(expressApp);
     }
 
