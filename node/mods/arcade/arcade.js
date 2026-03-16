@@ -241,21 +241,15 @@ class Arcade extends ModTemplate {
 				this.purge();
 
 				for (let game of this.app.options.games) {
-					if (game.players.includes(this.publicKey) || game.accepted.includes(this.publicKey)) {
-						if (game.over) {
-							if (game.last_block > 0) {
-								console.debug(`ARCADE: don't add finished game from options`);
-								return;
-							}
-						}
-
-						//
-						// We create a dummy tx from the saved game state so that the arcade can render the
-						// active game like a new open invite
-						//
-						let game_tx = await this.createPseudoTransaction(game);
-
-						//
+  					if (!(game.players.includes(this.publicKey) || game.accepted.includes(this.publicKey))) {
+  						continue;
+  					}
+  					if (game.over) {
+    						continue;
+  					}
+  					let game_tx = await this.createPseudoTransaction(game);
+  					this.addGame(game_tx, 'active');
+				}
 						// and add to list of my games
 						//
 						if (!game.over) {
@@ -554,16 +548,23 @@ class Arcade extends ModTemplate {
 		if (service.service == 'arcade') {
 			this.app.network.sendRequestAsTransaction('arcade invite list', {}, async (txs) => {
 				if (txs?.length > 0) {
+
 					for (let serial_tx of txs) {
+
 						let game_tx = new Transaction();
-						game_tx.deserialize_from_web(app, serial_tx);
+						let status = game_tx?.msg?.request;
+    						game_tx.deserialize_from_web(app, serial_tx);
 
-						let status = game_tx.msg.request;
-						let game_added = arcade_self.addGame(game_tx);
+    						if (arcade_self.isMyGame(game_tx)) {
+        						let exists_locally = arcade_self.app.options?.games?.find(
+            							g => g.id === game_tx.signature
+        						);
+        						if (!exists_locally) {
+            							continue;
+        						}
+    						}
 
-						if (arcade_self?.debug && arcade_self.browser_active) {
-							console.debug('Available arcade game:', status, game_added, game_tx);
-						}
+    						let game_added = arcade_self.addGame(game_tx);
 
 						//Game is marked as "active" but we didn't already add it from our app.options file...
 						if (status == 'active' && game_added && arcade_self.isMyGame(game_tx)) {
@@ -815,7 +816,6 @@ class Arcade extends ModTemplate {
 		let message = newtx.returnMessage();
 
 		if (message.request === 'arcade invite list') {
-			// Process stuff on server side
 
 			this.purge();
 
@@ -824,7 +824,7 @@ class Arcade extends ModTemplate {
 
 			for (let id in this.games) {
 				let record = this.games[id];
-				if (record.is_sender_reachable !== true) continue;
+				if (record.is_sender_reachable !== true) { continue; }
 				let g = record.tx;
 				txs.push(g.serialize_to_web(this.app));
 			}
@@ -1748,6 +1748,7 @@ class Arcade extends ModTemplate {
 	}
 
 	purge() {
+
 		const INVITE_CUTOFF = 2000000; // 30 minutes
 		const GAME_CUTOFF = 600000000;
 
