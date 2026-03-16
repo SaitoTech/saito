@@ -120,18 +120,13 @@ export default abstract class SaitoNode {
 
   /**
    * Returns connected peer public keys.
-   * Node.js nodes expose /stats/peers; Rust nodes expose /test-api/peers/all.
-   * Both are normalised here to a string[].
+   * Calls /test-api/peers which reads the live peers Map directly.
    */
   async getPeers(): Promise<string[]> {
     try {
-      const url = `http://${this.host}:${this.port}/stats/peers`;
-      const res = await fetchWithTimeout(url, 3000);
-      if (!res.ok) return [];
-      const data = (await res.json()) as unknown;
-      // The Node.js /stats/peers returns an object with peer entries
-      if (data && typeof data === "object") {
-        return Object.keys(data as Record<string, unknown>);
+      const data = await this.fetchTestApi("peers");
+      if (Array.isArray(data)) {
+        return data as string[];
       }
       return [];
     } catch {

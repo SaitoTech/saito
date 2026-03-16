@@ -1263,6 +1263,9 @@ class Server {
     express.get('/test-api/status', async (req, res) => {
       res.send({});
     });
+    express.get('/test-api/peers', (req, res) => {
+      res.send(Array.from(S.getInstance().peers.keys()));
+    });
     express.get('/test-api/balances', async (req, res) => {
       let balances = await S.getInstance().getBalanceSnapshot([]);
       res.send(balances);
