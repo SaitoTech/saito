@@ -426,6 +426,14 @@ impl RoutingThread {
             }
         }
 
+        debug!(
+            "peer key list: {:?}",
+            peer_key_list
+                .iter()
+                .map(|pk| pk.to_base58())
+                .collect::<Vec<String>>()
+        );
+
         let ghost = Self::generate_ghost_chain(block_id, fork_id, &blockchain, peer_key_list).await;
 
         debug!("sending ghost chain to peer : {:?}", public_key.to_base58());
@@ -2138,6 +2146,88 @@ mod tests {
             assert_eq!(ghost_chain.prehashes.len(), 5);
             assert_eq!(ghost_chain.previous_block_hashes.len(), 5);
             assert_eq!(ghost_chain.txs.iter().filter(|x| **x).count(), 1);
+        }
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn test_ghost_chain_common_key_marks_all_blocks_as_relevant() {
+        // Regression test for Bug 2: if peer_key_list contains a key that
+        // participates in the transaction slips of every block (e.g. the
+        // routing node's own public key, which appears in the from/to slips
+        // of every fee-bearing transaction it routes), then
+        // generate_ghost_chain sets txs[i] = true for ALL those blocks.
+        // A browser peer that merely watches the routing node key would then
+        // fetch the entire chain instead of only the blocks that contain
+        // transactions directly involving the peer.
+        NodeTester::delete_data().await.unwrap();
+        let unrelated_peer_key = generate_keys().0;
+        let mut tester = NodeTester::new(1000, None, None);
+        tester
+            .init_with_staking(0, 60, 100_000 * NOLAN_PER_SAITO)
+            .await
+            .unwrap();
+
+        // Produce 11 blocks each containing a transaction whose from and to
+        // slips both use the node's own public key.  This guarantees the node
+        // key is present in keys_invloved for every one of these blocks.
+        // Note: with genesis_period=1000 and latest_block_id=11,
+        // generate_ghost_chain(block_id=0) sets
+        //   last_shared_ancestor = max(0, genesis_block_id=1) → 1
+        // so the resulting ghost chain covers blocks 2..=11 = 10 entries.
+        tester
+            .wait_till_block_id_with_txs(11, 100, 10)
+            .await
+            .unwrap();
+
+        let node_public_key = tester.get_public_key().await;
+        // Simulate a brand-new browser peer that has no blocks yet.
+        let peer_block_id: u64 = 0;
+        let peer_fork_id = [0u8; 32];
+
+        // Case 1 – only the browser peer's own (unrelated) key in peer_key_list.
+        // The peer has no transactions in the chain, so no blocks should be
+        // flagged for fetching.
+        {
+            let blockchain = tester.routing_thread.blockchain_lock.read().await;
+            let ghost_chain = RoutingThread::generate_ghost_chain(
+                peer_block_id,
+                peer_fork_id,
+                &blockchain,
+                vec![unrelated_peer_key],
+            )
+            .await;
+            assert_eq!(ghost_chain.txs.len(), 10);
+            assert!(
+                ghost_chain.txs.iter().all(|x| !(*x)),
+                "expected no blocks to be relevant when only the peer's own key is watched"
+            );
+        }
+
+        // Case 2 – the peer also watches the routing node's public key.
+        // Because the node key is present in transaction slips of every block,
+        // all blocks are now flagged txs=true.  The browser would download the
+        // entire chain even though it has no transactions of its own.
+        // This is Bug 2: a single commonly-held key poisons the ghost chain
+        // filter for all blocks.
+        {
+            let blockchain = tester.routing_thread.blockchain_lock.read().await;
+            let ghost_chain = RoutingThread::generate_ghost_chain(
+                peer_block_id,
+                peer_fork_id,
+                &blockchain,
+                vec![unrelated_peer_key, node_public_key],
+            )
+            .await;
+            assert_eq!(ghost_chain.txs.len(), 10);
+            assert!(
+                ghost_chain.txs.iter().all(|x| *x),
+                "Bug 2: expected all {} blocks to be marked relevant when the routing \
+                 node key is watched, but only {}/{} were flagged",
+                ghost_chain.txs.len(),
+                ghost_chain.txs.iter().filter(|x| **x).count(),
+                ghost_chain.txs.len(),
+            );
         }
     }
 }
