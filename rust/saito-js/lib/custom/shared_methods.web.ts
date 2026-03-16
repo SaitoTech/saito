@@ -20,7 +20,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
         try {
           let buffer = Buffer.from(event.data);
 
-          Saito.getLibInstance()
+          Saito.getRuntimeInstance()
             .process_msg_buffer_from_peer(buffer, peer.instance)
             .then((buffer: any) => {
               if (buffer && buffer.byteLength > 0) {
@@ -49,7 +49,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
       socket.onclose = () => {
         try {
           console.debug("socket.onclose : " + url + " , key : " + peer.publicKey);
-          Saito.getLibInstance().process_peer_disconnection(peer.publicKey);
+          Saito.getRuntimeInstance().process_peer_disconnection(peer.publicKey);
         } catch (error) {
           console.error(error);
         }

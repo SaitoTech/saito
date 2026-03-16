@@ -22,6 +22,7 @@ export enum LogLevel {
 export default class Saito {
   private static instance: Saito;
   private static libInstance: any;
+  private static runtimeInstance: any;
   peers: Map<string, NetworkPeer> = new Map<string, NetworkPeer>();
   private stunPeers: Map<bigint, { peerConnection: RTCPeerConnection; publicKey: string }> =
     new Map();
@@ -45,13 +46,13 @@ export default class Saito {
     console.log("initializing saito lib");
     Saito.instance = new Saito(factory);
 
-    installWasmHostBridge(sharedMethods, () => Saito.getLibInstance());
+    installWasmHostBridge(sharedMethods, () => Saito.getRuntimeInstance());
     if (privateKey === "") {
       privateKey = DefaultEmptyPrivateKey;
     }
 
     let configStr = JSON.stringify(configs);
-    await Saito.getLibInstance().initialize(
+    Saito.runtimeInstance = await Saito.getLibInstance().initialize_runtime(
       configStr,
       privateKey,
       logLevel,
@@ -76,7 +77,7 @@ export default class Saito {
   public call_timed_functions(interval: number, lastCalledTime: number) {
     setTimeout(() => {
       let time = Date.now();
-      Saito.getLibInstance()
+      Saito.getRuntimeInstance()
         .process_timer_event(BigInt(time - lastCalledTime))
         .then(() => {
           this.call_timed_functions(interval, time);
@@ -87,7 +88,7 @@ export default class Saito {
   public call_stat_functions(interval: number) {
     setTimeout(() => {
       let time = Date.now();
-      Saito.getLibInstance()
+      Saito.getRuntimeInstance()
         .process_stat_interval(BigInt(time))
         .then(() => {
           this.call_stat_functions(interval);
@@ -106,6 +107,10 @@ export default class Saito {
 
   public static getLibInstance(): any {
     return Saito.libInstance;
+  }
+
+  public static getRuntimeInstance(): any {
+    return Saito.runtimeInstance || Saito.libInstance;
   }
 
   public static setLibInstance(instance: any) {
@@ -161,16 +166,16 @@ export default class Saito {
   }
 
   public async initialize(configs: any): Promise<any> {
-    return Saito.getLibInstance().initialize(configs);
+    return Saito.getRuntimeInstance().initialize?.(configs);
   }
 
   public async getLatestBlockHash(): Promise<string> {
-    return Saito.getLibInstance().get_latest_block_hash();
+    return Saito.getRuntimeInstance().get_latest_block_hash();
   }
 
   public async getBlock<B extends Block>(blockHash: string): Promise<B | null> {
     try {
-      let block = await Saito.getLibInstance().get_block(blockHash);
+      let block = await Saito.getRuntimeInstance().get_block(blockHash);
       return Saito.getInstance().factory.createBlock(block) as B;
     } catch (error) {
       console.error(error);
@@ -179,11 +184,11 @@ export default class Saito {
   }
 
   public async processPeerDisconnection(public_key: string): Promise<void> {
-    return Saito.getLibInstance().process_peer_disconnection(public_key);
+    return Saito.getRuntimeInstance().process_peer_disconnection(public_key);
   }
 
   public async processMsgBufferFromPeer(buffer: Uint8Array, peer: NetworkPeer): Promise<void> {
-    return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
+    return Saito.getRuntimeInstance().process_msg_buffer_from_peer(buffer, peer.instance);
   }
 
   public async processFetchedBlock(
@@ -192,11 +197,11 @@ export default class Saito {
     block_id: bigint,
     public_key: bigint
   ): Promise<void> {
-    return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, public_key);
+    return Saito.getRuntimeInstance().process_fetched_block(buffer, hash, block_id, public_key);
   }
 
   public async processTimerEvent(duration_in_ms: bigint): Promise<void> {
-    return Saito.getLibInstance().process_timer_event(duration_in_ms);
+    return Saito.getRuntimeInstance().process_timer_event(duration_in_ms);
   }
 
   public hash(buffer: Uint8Array): string {
@@ -217,7 +222,7 @@ export default class Saito {
     fee = BigInt(0),
     force_merge = false
   ): Promise<T> {
-    let wasmTx = await Saito.getLibInstance().create_transaction(
+    let wasmTx = await Saito.getRuntimeInstance().create_transaction(
       publickey,
       amount,
       fee,
@@ -233,7 +238,7 @@ export default class Saito {
     amounts: bigint[],
     fee: bigint
   ): Promise<T> {
-    let wasmTx = await Saito.getLibInstance().create_transaction_with_multiple_payments(
+    let wasmTx = await Saito.getRuntimeInstance().create_transaction_with_multiple_payments(
       keys,
       amounts,
       fee
@@ -255,7 +260,7 @@ export default class Saito {
   ): Promise<T> {
     let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
 
-    let wasmTx = await Saito.getLibInstance().create_bound_transaction(
+    let wasmTx = await Saito.getRuntimeInstance().create_bound_transaction(
       num,
       deposit,
       new Uint8Array(tx_msg_arr),
@@ -280,7 +285,7 @@ export default class Saito {
   ): Promise<T> {
     let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
 
-    const wasmTx = await Saito.getLibInstance().create_send_bound_transaction(
+    const wasmTx = await Saito.getRuntimeInstance().create_send_bound_transaction(
       amt,
       slip1UtxoKey,
       slip2UtxoKey,
@@ -304,7 +309,7 @@ export default class Saito {
 
       const tx_msg_arr = Buffer.from(JSON.stringify(tx_msg), "utf-8");
 
-      const wasmTx = await Saito.getLibInstance().create_atomize_bound_transaction(
+      const wasmTx = await Saito.getRuntimeInstance().create_atomize_bound_transaction(
         slip1UtxoKey,
         slip2UtxoKey,
         slip3UtxoKey,
@@ -330,7 +335,7 @@ export default class Saito {
 
         let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
 
-    const wasmTx = await Saito.getLibInstance().create_split_bound_transaction(
+    const wasmTx = await Saito.getRuntimeInstance().create_split_bound_transaction(
       slip1UtxoKey,
       slip2UtxoKey,
       slip3UtxoKey,
@@ -351,7 +356,7 @@ export default class Saito {
   ): Promise<T> {
     let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
 
-    const wasmTx = await Saito.getLibInstance().create_merge_bound_transaction(
+    const wasmTx = await Saito.getRuntimeInstance().create_merge_bound_transaction(
       nftId,
       new Uint8Array(tx_msg_arr)
     );
@@ -370,7 +375,7 @@ export default class Saito {
   ): Promise<T> {
     let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
 
-    const wasmTx = await Saito.getLibInstance().create_remove_bound_transaction(
+    const wasmTx = await Saito.getRuntimeInstance().create_remove_bound_transaction(
       slip1UtxoKey,
       slip2UtxoKey,
       slip3UtxoKey,
@@ -383,14 +388,14 @@ export default class Saito {
   }
 
   public async getPeers(): Promise<Array<Peer>> {
-    let peers = await Saito.getLibInstance().get_peers();
+    let peers = await Saito.getRuntimeInstance().get_peers();
     return peers.map((peer: any) => {
       return this.factory.createPeer(peer);
     });
   }
 
   public async getPeer(publicKey: string): Promise<Peer | null> {
-    let peer = await Saito.getLibInstance().get_peer(publicKey);
+    let peer = await Saito.getRuntimeInstance().get_peer(publicKey);
     if (!peer) {
       return null;
     }
@@ -408,7 +413,7 @@ export default class Saito {
 
   public async propagateTransaction(tx: Transaction) {
     let tx2 = tx.clone();
-    return Saito.getLibInstance().propagate_transaction(tx2.wasmTransaction);
+    return Saito.getRuntimeInstance().propagate_transaction(tx2.wasmTransaction);
   }
 
   public async sendApiCall(
@@ -433,19 +438,19 @@ export default class Saito {
           resolve,
           reject,
         });
-        Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey || "");
+        Saito.getRuntimeInstance().send_api_call(buffer, this.callbackIndex, publicKey || "");
       });
     } else {
-      return Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey || "");
+      return Saito.getRuntimeInstance().send_api_call(buffer, this.callbackIndex, publicKey || "");
     }
   }
 
   public async sendApiSuccess(msgId: number, buffer: Uint8Array, publicKey: string) {
-    return Saito.getLibInstance().send_api_success(buffer, msgId, publicKey);
+    return Saito.getRuntimeInstance().send_api_success(buffer, msgId, publicKey);
   }
 
   public async sendApiError(msgId: number, buffer: Uint8Array, publicKey: string) {
-    return Saito.getLibInstance().send_api_error(buffer, msgId, publicKey);
+    return Saito.getRuntimeInstance().send_api_error(buffer, msgId, publicKey);
   }
 
   public async sendTransactionWithCallback(
@@ -513,7 +518,7 @@ export default class Saito {
 
   public async getWallet() {
     if (!this.wallet) {
-      let w = await Saito.getLibInstance().get_wallet();
+      let w = await Saito.getRuntimeInstance().get_wallet();
       this.wallet = this.factory.createWallet(w);
     }
     return this.wallet;
@@ -521,14 +526,14 @@ export default class Saito {
 
   public async getBlockchain() {
     if (!this.blockchain) {
-      let b = await Saito.getLibInstance().get_blockchain();
+      let b = await Saito.getRuntimeInstance().get_blockchain();
       this.blockchain = this.factory.createBlockchain(b);
     }
     return this.blockchain;
   }
 
   public async getMempoolTxs() {
-    let txs = await Saito.getLibInstance().get_mempool_txs();
+    let txs = await Saito.getRuntimeInstance().get_mempool_txs();
     return Promise.all(
       txs.map(async (tx: any) => {
         let txObj = await Saito.getInstance().factory.createTransaction(tx);
@@ -538,16 +543,16 @@ export default class Saito {
   }
 
   public async getAccountSlips(publicKey: string) {
-    return Saito.getLibInstance().get_account_slips(publicKey);
+    return Saito.getRuntimeInstance().get_account_slips(publicKey);
   }
 
   public async getBalanceSnapshot(keys: string[]): Promise<BalanceSnapshot> {
-    let snapshot = await Saito.getLibInstance().get_balance_snapshot(keys);
+    let snapshot = await Saito.getRuntimeInstance().get_balance_snapshot(keys);
     return new BalanceSnapshot(snapshot);
   }
 
   public async getNftList(): Promise<string> {
-    const raw = await Saito.getLibInstance().get_nft_list();
+    const raw = await Saito.getRuntimeInstance().get_nft_list();
 
     const arr = Array.from(raw) as any[];
     const json = JSON.stringify(arr.map((w) => new Nft(w).toJSON()));
@@ -556,11 +561,11 @@ export default class Saito {
   }
 
   public async updateBalanceFrom(snapshot: BalanceSnapshot) {
-    await Saito.getLibInstance().update_from_balance_snapshot(snapshot.instance);
+    await Saito.getRuntimeInstance().update_from_balance_snapshot(snapshot.instance);
   }
 
   public async setWalletVersion(major: number, minor: number, patch: number) {
-    await Saito.getLibInstance().set_wallet_version(major, minor, patch);
+    await Saito.getRuntimeInstance().set_wallet_version(major, minor, patch);
   }
 
   public isValidPublicKey(key: string): boolean {
@@ -574,7 +579,7 @@ export default class Saito {
 
   public async writeIssuanceFile(threshold: bigint) {
     try {
-      return Saito.getLibInstance().write_issuance_file(threshold);
+      return Saito.getRuntimeInstance().write_issuance_file(threshold);
     } catch (error) {
       console.warn("failed writing issuance file");
       console.error(error);
@@ -592,7 +597,7 @@ export default class Saito {
 
   public async disableProducingBlocksByTimer() {
     try {
-      return Saito.getLibInstance().disable_producing_blocks_by_timer();
+      return Saito.getRuntimeInstance().disable_producing_blocks_by_timer();
     } catch (e) {
       console.error(e);
     }
@@ -600,7 +605,7 @@ export default class Saito {
 
   public async produceBlockWithGt(): Promise<boolean> {
     try {
-      return Saito.getLibInstance().produce_block_with_gt();
+      return Saito.getRuntimeInstance().produce_block_with_gt();
     } catch (e) {
       console.error(e);
       return false;
@@ -609,7 +614,7 @@ export default class Saito {
 
   public async produceBlockWithoutGt(): Promise<boolean> {
     try {
-      return Saito.getLibInstance().produce_block_without_gt();
+      return Saito.getRuntimeInstance().produce_block_without_gt();
     } catch (error) {
       console.error(error);
       return false;

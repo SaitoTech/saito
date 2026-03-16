@@ -36,7 +36,7 @@ declare global {
 
 export function createWasmHostBridge(
   sharedMethods: SharedMethods,
-  getLibInstance: () => any,
+  getRuntimeInstance: () => any,
 ): SaitoWasmHostBridge {
   return {
     send_message: (publicKey: string, buffer: Uint8Array) => {
@@ -79,7 +79,7 @@ export function createWasmHostBridge(
       sharedMethods
         .fetchBlockFromPeer(url)
         .then((buffer: Uint8Array) => {
-          return getLibInstance().process_fetched_block(buffer, hash, blockId, publicKey);
+          return getRuntimeInstance().process_fetched_block(buffer, hash, blockId, publicKey);
         })
         .catch((error: any) => {
           console.log(
@@ -91,7 +91,7 @@ export function createWasmHostBridge(
               blockId,
           );
           console.error(error);
-          return getLibInstance().process_failed_block_fetch(hash, blockId, publicKey);
+          return getRuntimeInstance().process_failed_block_fetch(hash, blockId, publicKey);
         });
     },
     process_api_call: (buffer: Uint8Array, msgIndex: number, publicKey: string) => {
@@ -141,9 +141,9 @@ export function createWasmHostBridge(
 
 export function installWasmHostBridge(
   sharedMethods: SharedMethods,
-  getLibInstance: () => any,
+  getRuntimeInstance: () => any,
 ): SaitoWasmHostBridge {
-  const bridge = createWasmHostBridge(sharedMethods, getLibInstance);
+  const bridge = createWasmHostBridge(sharedMethods, getRuntimeInstance);
   globalThis.__saito_wasm_bridge__ = bridge;
   return bridge;
 }
