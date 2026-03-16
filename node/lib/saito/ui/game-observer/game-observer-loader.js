@@ -27,6 +27,7 @@ class GameObserverLoader {
       return;
     }
 
+    const hud = this.container.querySelector('#game-observer-hud');
     const existing = this.container.querySelector('#observer-sync-overlay');
     const wrap = document.createElement('div');
     wrap.innerHTML = html.trim();
@@ -37,6 +38,12 @@ class GameObserverLoader {
       existing.replaceWith(node);
     } else {
       this.container.appendChild(node);
+    }
+
+
+    if (existing && hud) {
+      const hudZ = parseInt(window.getComputedStyle(hud).zIndex) || 0;
+      existing.style.zIndex = hudZ + 1;
     }
 
     console.log(

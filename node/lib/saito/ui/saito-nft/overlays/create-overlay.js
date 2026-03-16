@@ -1,6 +1,5 @@
 const CreateNFTTemplate = require('./create-overlay.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
-const ProvideMetaDataOverlay = require('./provide-metadata');
 
 class CreateNFT {
   constructor(app, mod, container = '') {
@@ -352,6 +351,18 @@ class CreateNFT {
       }
     };
 
+    if (document.getElementById('next-step')) {
+      document.getElementById('next-step').onclick = () => {
+        document.querySelector('.nft-creator-overlay.panels').classList.add('provide-metadata');
+      };
+    }
+
+    if (document.getElementById('back-btn')) {
+      document.getElementById('back-btn').onclick = () => {
+        document.querySelector('.nft-creator-overlay.panels').classList.remove('provide-metadata');
+      };
+    }
+
     document.querySelector('#create_nft').onclick = async (e) => {
       let obj = await this.createObject();
       if (obj == false) {
@@ -393,11 +404,31 @@ class CreateNFT {
         data: obj
       };
 
+      let title_el = document.querySelector('.saito-nft-metadata-box.title');
+      let title = title_el.value || title_el.getAttribute('placeholder') || '';
+      title = title.trim();
+
+      let desc_field = document.querySelector('.saito-nft-metadata-box.description');
+      let description = desc_field?.innerText || desc_field?.value || desc_field.innerHTML || '';
+      description = description.trim();
+
+      if (title) {
+        tx_msg.title = title;
+      }
+
+      if (description) {
+        tx_msg.description = description;
+      }
+
+      console.log(title, description);
+
       this.overlay.close();
 
       if (obj.ticker) {
         this.nft_type = 'NFT-' + obj.ticker;
       }
+
+      siteMessage('Minting NFT...', 3000);
 
       let publickey = await this.app.wallet.getPublicKey();
       let newtx = await this.app.wallet.createMintNFTTransaction(
@@ -409,8 +440,8 @@ class CreateNFT {
         this.nft_type
       );
 
-      const nextOverlay = new ProvideMetaDataOverlay(this.app, this.mod);
-      nextOverlay.render(newtx);
+      await newtx.sign();
+      await this.app.network.propagateTransaction(newtx);
     };
   }
 

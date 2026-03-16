@@ -11,11 +11,11 @@ module.exports = (app, mod, this_self) => {
         <div class="saito-store-explorer saito-menu-select-heavy">
           <div class='saito-store-page-tab' data-pkey='${mod.SAITO_OFFICIAL_PUBLICKEY}'>
             <i class="fas fa-house"></i>
-            <span>home</span>
+            <span>SaitoOfficial</span>
           </div>
           <div class='saito-store-page-tab' data-pkey='${mod.publicKey}'>
             <i class="fa-solid fa-store"></i>
-            <span>my store</span>
+            <span>My Listings</span>
             <div class="store-link store-absolute-icon"><i class="fa-solid fa-link"></i></div>
           </div>
         </div>

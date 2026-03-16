@@ -23,10 +23,10 @@ module.exports = (app, mod, nft) => {
   </div>
   <div class="store-card-info">
     <div class="store-card-title">${nft?.title || 'Vintage Saito NFT'}</div>
-    <div><span class="nft-card-type">${nft.returnType()}</span> asset</div>
-    <div class="store-card-details">creator: <span>${app.keychain.returnUsername(nft.creator).toLowerCase()}</span></div>
-    <div class="store-card-details">Listed: ${app.browser.formatTimeDifference(nft.metadata.created_at)}</div>
-    <div>Units: ${nft.getTotalAmount()}</div>
+    <div><span class="nft-card-type">${nft.returnType()}</span></div>
+    <div class="store-card-details">by ${app.keychain.returnUsername(nft.creator).toLowerCase()}</div>
+    <div class="store-card-details">${app.browser.formatTimeDifference(nft.metadata.created_at)}</div>
+    <!--div>Units: ${nft.getTotalAmount()}</div-->
     <div class="store-card-description">${nft.description}</div>    
     <div class="store-card-price">${app.browser.formatDecimals(price, true)} SAITO</div>
   </div>
