@@ -27,8 +27,8 @@ class StorageCore extends Storage {
   constructor(app, data?, dest = 'blocks') {
     super(app);
 
-    this.data_dir = data || path.join(__dirname, '../../../data');
-    this.config_dir = path.join(__dirname, '../../../config');
+    this.data_dir = data || process.env.SAITO_DATA_DIR || path.join(__dirname, '../../../data');
+    this.config_dir = process.env.SAITO_CONFIG_DIR || path.join(__dirname, '../../../config');
     this.dest = dest;
     this.db = [];
     this.dbname = [];
