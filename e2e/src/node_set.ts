@@ -23,6 +23,11 @@ export class NodeSetConfig {
    * Keep offsets < 100; keep basePort > 10000 to avoid privilege issues.
    */
   basePort: number = 43000;
+  /**
+   * Path to a custom modules.config.js fixture. Applied to all Node.js nodes in the set
+   * unless overridden per-node via NodeConfig.modulesConfigFile.
+   */
+  modulesConfigFile: string = "";
 
   /** Resolve peerLabels into concrete peer addresses. Call before bootstrapping. */
   generateNodeConfigs(): void {
@@ -54,7 +59,13 @@ export class NodeSet {
     for (const cfg of this.config.nodeConfigs) {
       const instanceDir = path.join(TEST_DIR, this.config.parentDir, cfg.name);
       const actualPort = this.config.basePort + cfg.port;
-      const resolvedCfg: NodeConfig = { ...cfg, dir: instanceDir, port: actualPort };
+      const resolvedCfg: NodeConfig = {
+        ...cfg,
+        dir: instanceDir,
+        port: actualPort,
+        // Inherit set-level modules config if the individual node doesn't specify one
+        modulesConfigFile: cfg.modulesConfigFile || this.config.modulesConfigFile || "",
+      };
 
       const node = await Bootstrapper.bootstrap(resolvedCfg);
 
@@ -126,9 +137,11 @@ class NodeJsBootstrapper {
       .replace(/\{\{PEERS\}\}/g, `[${peersJson ? "\n    " + peersJson + "\n  " : ""}]`);
     fs.writeFileSync(path.join(configDir, "options"), options, "utf-8");
 
-    // Copy minimal modules config fixture
-    const minimalMods = path.join(FIXTURES_DIR, "modules.config.min.js");
-    fs.copyFileSync(minimalMods, path.join(configDir, "modules.config.js"));
+    // Copy modules config fixture (custom if specified, otherwise minimal default)
+    const modsSource = config.modulesConfigFile
+      ? config.modulesConfigFile
+      : path.join(FIXTURES_DIR, "modules.config.min.js");
+    fs.copyFileSync(modsSource, path.join(configDir, "modules.config.js"));
 
     // Symlink node_modules from the source tree to avoid reinstalling
     const nmLink = path.join(dir, "node_modules");

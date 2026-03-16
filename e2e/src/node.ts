@@ -19,6 +19,8 @@ export class NodeConfig {
   privateKey: string = "";
   publicKey: string = "";
   isGenesis: boolean = false;
+  /** Path to a custom modules.config.js; if empty, the default minimal config is used. */
+  modulesConfigFile: string = "";
 }
 
 export default abstract class SaitoNode {
