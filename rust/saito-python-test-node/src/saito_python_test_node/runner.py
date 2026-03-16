@@ -3,7 +3,7 @@ from asyncio.subprocess import Process
 from collections.abc import Awaitable, Callable
 from typing import Protocol
 
-from saito_python import SaitoNode
+from saito_python import RuntimeBackendFactory, RuntimeBackendSettings, SaitoHostBridge, SaitoNode, SaitoRuntimeLoader
 
 from .config import InteropConfig, RustNodeProcessConfig
 
@@ -72,3 +72,23 @@ class InteropHarness:
     async def close(self) -> None:
         await self.python_node.close()
         await self.rust_node.stop()
+
+
+def build_runtime_backed_harness(
+    config: InteropConfig,
+    runtime_loader: SaitoRuntimeLoader,
+    host_bridge_factory: Callable[[dict[str, object], bool], SaitoHostBridge],
+    *,
+    runtime_settings: RuntimeBackendSettings = RuntimeBackendSettings(),
+    spawn: SpawnRustProcess = _spawn_rust_process,
+) -> InteropHarness:
+    python_node = SaitoNode(
+        config=config.python_node,
+        backend_factory=RuntimeBackendFactory(
+            runtime_loader=runtime_loader,
+            host_bridge_factory=host_bridge_factory,
+            settings=runtime_settings,
+        ),
+    )
+    rust_node = RustNodeProcess(config=config.rust_node, spawn=spawn)
+    return InteropHarness(config=config, python_node=python_node, rust_node=rust_node)

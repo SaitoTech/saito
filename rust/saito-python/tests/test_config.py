@@ -6,6 +6,8 @@ from saito_python import ClientConfig, NodeConfig, PeerConfig
 def test_client_config_serializes_peer_and_extra_fields() -> None:
     config = ClientConfig(
         data_dir=Path("/tmp/client"),
+        haste_multiplier=3,
+        delete_old_blocks=True,
         peers=[PeerConfig(url="http://peer-1", public_key="peer-key")],
         extra={"network": "testnet"},
     )
@@ -13,6 +15,8 @@ def test_client_config_serializes_peer_and_extra_fields() -> None:
     engine_config = config.to_engine_config()
 
     assert engine_config["data_dir"] == "/tmp/client"
+    assert engine_config["haste_multiplier"] == 3
+    assert engine_config["delete_old_blocks"] is True
     assert engine_config["peers"] == [{"url": "http://peer-1", "public_key": "peer-key"}]
     assert engine_config["network"] == "testnet"
 
