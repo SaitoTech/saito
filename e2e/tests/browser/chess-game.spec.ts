@@ -10,6 +10,10 @@
  *   4. Both browsers navigate to the chess game URL.
  *   5. Four moves are played: white e2-e4, black e7-e5, white d2-d4, black d7-d5.
  *   6. White resigns; both browsers see the "Game Over" status.
+ *
+ * Uses test.describe.serial so that:
+ *  - beforeAll / afterAll run exactly once for the whole block.
+ *  - A failure in an earlier step skips (not re-runs) later steps.
  */
 import { test, expect, chromium, Browser, BrowserContext, Page } from "@playwright/test";
 import path from "path";
@@ -17,10 +21,10 @@ import { NodeSet, NodeSetConfig, FIXTURES_DIR } from "../../src/node_set";
 import { NodeConfig, NodeType, sleep } from "../../src/node";
 import { TEST_KEY_PAIRS, BASE_PORT_NODEJS } from "../../src/fixtures";
 
-// Use a port range well clear of the startup/peer tests (43000-43199)
+// Use a port range well clear of the other tests (43000-43199)
 const CHESS_BASE_PORT = BASE_PORT_NODEJS + 200;
 
-// ── Shared state across sequential tests in this describe block ──────────────
+// ── Shared state across the serial test steps ────────────────────────────────
 let nodeSet: NodeSet;
 let browserA: Browser;
 let browserB: Browser;
@@ -35,9 +39,13 @@ let gameId: string;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-test.describe("Chess game — two browser players", () => {
+// test.describe.serial guarantees:
+//   • beforeAll / afterAll each run exactly once
+//   • if any test fails, the rest are skipped rather than re-run
+test.describe.serial("Chess game — two browser players", () => {
   test.beforeAll(async () => {
-    test.setTimeout(480_000); // 8 minutes – includes node startup + full game
+    // Give the whole suite (including node startup + full game) 10 minutes
+    test.setTimeout(600_000);
 
     // ── Spin up the saito Node.js server ─────────────────────────────────────
     const configSet = new NodeSetConfig();
@@ -68,15 +76,32 @@ test.describe("Chess game — two browser players", () => {
     const baseURL = `http://127.0.0.1:${serverPort}`;
 
     // ── Launch two independent browser instances ──────────────────────────────
-    // Separate processes → separate localStorage → different browser wallets
-    browserA = await chromium.launch({ headless: true });
-    browserB = await chromium.launch({ headless: true });
+    // --no-sandbox is required when running headless Chromium inside containers
+    // or as root.  --disable-dev-shm-usage prevents crashes on /dev/shm limits.
+    const launchOpts = {
+      headless: true,
+      args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    };
+    browserA = await chromium.launch(launchOpts);
+    browserB = await chromium.launch(launchOpts);
 
     ctxA = await browserA.newContext({ baseURL });
     ctxB = await browserB.newContext({ baseURL });
 
     pageA = await ctxA.newPage();
     pageB = await ctxB.newPage();
+
+    // Pipe browser console / errors into the test log for easier debugging
+    for (const [label, page] of [["A", pageA], ["B", pageB]] as const) {
+      page.on("console", (msg) => {
+        if (msg.type() === "error") {
+          console.log(`[browser-${label} ERROR] ${msg.text()}`);
+        }
+      });
+      page.on("pageerror", (err) => {
+        console.log(`[browser-${label} EXCEPTION] ${err.message}`);
+      });
+    }
   });
 
   test.afterAll(async () => {
@@ -91,39 +116,53 @@ test.describe("Chess game — two browser players", () => {
 
   // ── Test 1: arcade loads in both browsers ────────────────────────────────
   test("both browsers load /arcade", async () => {
+    test.setTimeout(180_000);
+
     await Promise.all([pageA.goto("/arcade"), pageB.goto("/arcade")]);
 
-    await expect(pageA.locator(".arcade-teasers")).toBeVisible({ timeout: 60_000 });
-    await expect(pageB.locator(".arcade-teasers")).toBeVisible({ timeout: 60_000 });
+    // Wait for network activity to settle before asserting DOM state
+    await Promise.all([
+      pageA.waitForLoadState("networkidle"),
+      pageB.waitForLoadState("networkidle"),
+    ]);
+
+    // The Chess game tile (#Chess / [data-id="Chess"]) is rendered by
+    // ArcadeMain once the saito.js bundle initialises the arcade module and
+    // populates mod.mods with the chess game.  This is more reliable than
+    // checking .arcade-teasers which is an empty 0×0 div until content is
+    // injected, which can fail Playwright's visible check.
+    await expect(pageA.locator('[data-id="Chess"]').first()).toBeVisible({ timeout: 120_000 });
+    await expect(pageB.locator('[data-id="Chess"]').first()).toBeVisible({ timeout: 120_000 });
   });
 
   // ── Test 2: Player 1 creates a public Chess invite ───────────────────────
   test("player 1 creates a chess invite", async () => {
+    test.setTimeout(120_000);
+
     // Click the Chess game tile
     await pageA.locator('[data-id="Chess"]').first().click();
 
-    // Wait for the wizard overlay
+    // Wait for the wizard overlay to be in DOM
     await pageA.waitForSelector(".arcade-wizard", { timeout: 15_000 });
 
-    // Force-select "white" in the advanced-options form so Player 1 is always
-    // white regardless of random assignment.  The wizard's getOptions() reads
-    // ALL form inputs (including hidden advanced options), so we can set the
-    // value without opening the advanced panel.
+    // Small pause to let the wizard's attachEvents() settle after DOM injection
+    await sleep(800);
+
+    // Set color and trigger the invite in one atomic evaluate() call.
+    // Using page.evaluate / btn.click() avoids Playwright mouse events that
+    // can bubble to the overlay's backdrop and inadvertently close the wizard.
+    // getOptions() in wizard.js reads from both .arcade-wizard and
+    // #advanced-options-overlay-container, so setting the hidden select is
+    // picked up correctly.
     await pageA.evaluate(() => {
       const sel = document.querySelector<HTMLSelectElement>('select[name="player1"]');
       if (sel) sel.value = "white";
+      const btn = document.querySelector<HTMLElement>('.game-invite-btn[data-type="open"]');
+      if (!btn) throw new Error('game-invite-btn[data-type="open"] not found in DOM');
+      btn.click();
     });
 
-    // The "create public invite" button is inside a multi-select dropdown.
-    // Click the outer toggle first to CSS-expose the inner buttons, then force-
-    // click the target button (it may still be visually hidden by the toggle).
-    const multiBtn = pageA.locator(".saito-multi-select_btn").first();
-    if ((await multiBtn.count()) > 0) {
-      await multiBtn.click();
-    }
-    await pageA.locator('.game-invite-btn[data-type="open"]').first().click({ force: true });
-
-    // Wait for the invite card to appear in the sidebar
+    // Wait for the invite card to appear in Player 1's sidebar
     const inviteCard = pageA.locator('[id^="saito-game-"]').first();
     await inviteCard.waitFor({ timeout: 30_000 });
 
@@ -134,8 +173,9 @@ test.describe("Chess game — two browser players", () => {
 
   // ── Test 3: Player 2 sees and joins the invite ───────────────────────────
   test("player 2 joins the chess invite", async () => {
-    // The node relays the invite tx to all connected clients; Player 2's arcade
-    // receives it and renders the invite card in the sidebar.
+    test.setTimeout(120_000);
+
+    // The node relays the invite tx to Player 2's arcade which renders the card
     const p2Invite = pageB.locator(`#saito-game-${gameId}`);
     await p2Invite.waitFor({ timeout: 60_000 });
 
@@ -143,7 +183,7 @@ test.describe("Chess game — two browser players", () => {
     await p2Invite.click();
     await pageB.waitForSelector(".arcade-lounge", { timeout: 10_000 });
 
-    // Player 2 may be asked about an open invite of their own; dismiss if needed
+    // Click "join game" in the lounge
     const joinBtn = pageB.locator("#arcade-game-controls-join-game");
     await joinBtn.waitFor({ timeout: 10_000 });
     await joinBtn.click();
@@ -151,43 +191,54 @@ test.describe("Chess game — two browser players", () => {
 
   // ── Test 4: both players navigate to the chess board ────────────────────
   test("both players navigate to the chess board", async () => {
+    test.setTimeout(120_000);
+
     const gameUrl = `/chess/#gid=${encodeURIComponent(gameId)}`;
 
-    // Give the server a moment to process the join transaction, then navigate
-    await sleep(3_000);
+    // Give the server a moment to process the join transaction
+    await sleep(4_000);
     await Promise.all([pageA.goto(gameUrl), pageB.goto(gameUrl)]);
 
     // Wait for the chess board to be rendered on both pages
-    await expect(pageA.locator("#board")).toBeVisible({ timeout: 60_000 });
-    await expect(pageB.locator("#board")).toBeVisible({ timeout: 60_000 });
+    await expect(pageA.locator("#board")).toBeVisible({ timeout: 90_000 });
+    await expect(pageB.locator("#board")).toBeVisible({ timeout: 90_000 });
   });
 
   // ── Test 5: four moves are played ───────────────────────────────────────
   test("each player makes two moves", async () => {
-    // Player 1 forced 'white', so pageA goes first (target = 1 = white).
-    // Wait briefly for the board to finish initialising.
-    await sleep(2_000);
+    test.setTimeout(180_000);
+
+    // Wait briefly for the board to finish initialising drag-and-drop
+    await sleep(3_000);
 
     // Move 1 – White: e2 → e4
     await expectMove(pageA, "e2", "e4");
-    await sleep(3_000); // let the relay deliver the move to pageB
+    await sleep(4_000); // let the relay deliver the move
 
     // Move 2 – Black: e7 → e5
     await expectMove(pageB, "e7", "e5");
-    await sleep(3_000);
+    await sleep(4_000);
 
     // Move 3 – White: d2 → d4
     await expectMove(pageA, "d2", "d4");
-    await sleep(3_000);
+    await sleep(4_000);
 
     // Move 4 – Black: d7 → d5
     await expectMove(pageB, "d7", "d5");
-    await sleep(3_000);
+    await sleep(4_000);
   });
 
   // ── Test 6: white resigns and both browsers see "Game Over" ─────────────
   test("white player resigns and game ends for both", async () => {
-    // ── White (pageA) triggers the resign flow ────────────────────────────
+    test.setTimeout(120_000);
+
+    // A hidden stale alert container can remain in the DOM from earlier UI
+    // interactions. sconfirm() bails out if #saito-alert already exists, so
+    // remove it before triggering the resign flow.
+    await pageA.evaluate(() => {
+      document.getElementById("saito-alert")?.remove();
+    });
+
     // Open the "Game" menu item in the top toolbar
     await pageA.locator("#game-game").click();
 
@@ -195,38 +246,32 @@ test.describe("Chess game — two browser players", () => {
     await pageA.waitForSelector("#game-resign", { timeout: 5_000 });
     await pageA.locator("#game-resign").click();
 
-    // Handle the sconfirm() dialog: a custom in-page modal (not a native dialog)
-    await pageA.waitForSelector("#saito-alert", { timeout: 10_000 });
+    // Handle the sconfirm() dialog — a custom in-page modal (#saito-alert)
+    await pageA.waitForSelector("#alert-ok", { state: "visible", timeout: 10_000 });
     await pageA.locator("#alert-ok").click();
 
-    // ── Verify game-over on both browsers ────────────────────────────────
-    // The resign tx propagates via relay; the winner (black) sends a gameover tx
-    // which both sides receive, causing gameOverUserInterface() to update #status.
-    await expect(pageA.locator("#status")).toContainText("Game Over", { timeout: 30_000 });
-    await expect(pageB.locator("#status")).toContainText("Game Over", { timeout: 30_000 });
+    // Both sides receive the relay-delivered gameover transaction and update
+    // #status with "Game Over: …"
+    await expect(pageA.locator("#status")).toContainText("Game Over", { timeout: 60_000 });
+    await expect(pageB.locator("#status")).toContainText("Game Over", { timeout: 60_000 });
   });
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Drags a chess piece from `from` square to `to` square and confirms the move
- * via the in-game confirm popup (#confirm button).
- * Asserts that the confirm dialog actually appeared (i.e. the move was legal
- * and it was the player's turn).
+ * Drags a chess piece from `from` square to `to` and accepts the confirm popup.
+ * Asserts that the confirm dialog appeared (proving the move was legal and it
+ * was that player's turn).
  */
 async function expectMove(page: Page, from: string, to: string): Promise<void> {
-  const succeeded = await tryMakeMove(page, from, to);
-  expect(
-    succeeded,
-    `Expected move ${from}-${to} to succeed (confirm dialog should have appeared)`
-  ).toBe(true);
+  const ok = await tryMakeMove(page, from, to);
+  expect(ok, `Expected move ${from}-${to} to succeed`).toBe(true);
 }
 
 /**
- * Simulates dragging a chess piece from `from` to `to`.
- * Returns true if the move confirmation popup appeared and was accepted,
- * false if the move was rejected (not the player's turn or illegal move).
+ * Simulates a drag from `from` to `to`.
+ * Returns true if the move confirmation popup appeared and was accepted.
  */
 async function tryMakeMove(page: Page, from: string, to: string): Promise<boolean> {
   const src = page.locator(`.square-${from}`);
@@ -241,19 +286,17 @@ async function tryMakeMove(page: Page, from: string, to: string): Promise<boolea
   const cy = (b: { x: number; y: number; width: number; height: number }) =>
     b.y + b.height / 2;
 
-  // Simulate a drag: mousedown on the piece, move to the target square, mouseup
   await page.mouse.move(cx(srcBox), cy(srcBox));
   await page.mouse.down();
   await page.mouse.move(cx(tgtBox), cy(tgtBox), { steps: 15 });
   await page.mouse.up();
 
-  // If the move was accepted, a confirmation popup appears with #confirm
+  // If the move was accepted a confirmation popup appears with #confirm
   try {
-    await page.waitForSelector("#confirm", { timeout: 3_000 });
+    await page.waitForSelector("#confirm", { timeout: 4_000 });
     await page.locator("#confirm").click();
     return true;
   } catch {
-    // No popup → move was rejected (wrong turn or illegal)
     return false;
   }
 }

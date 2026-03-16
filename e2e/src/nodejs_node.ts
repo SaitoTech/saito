@@ -1,4 +1,4 @@
-import { spawn, ChildProcess } from "child_process";
+import { spawn, ChildProcess, execSync } from "child_process";
 import path from "path";
 import SaitoNode, { NodeConfig } from "./node";
 
@@ -12,6 +12,15 @@ export default class NodeJsNode extends SaitoNode {
   }
 
   protected async onStartNode(): Promise<void> {
+    // Kill any stale process already bound to this port so our process can bind.
+    try {
+      execSync(`fuser -k ${this._config.port}/tcp 2>/dev/null`, { stdio: "ignore" });
+      // Give the OS a moment to release the port
+      await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+    } catch {
+      // fuser not available or port not in use — safe to continue
+    }
+
     const startScript = path.join(NODE_SRC_DIR, "scripts/start.ts");
     const tsconfig = path.join(NODE_SRC_DIR, "config/build/tsconfig.json");
     const instanceConfigDir = path.join(this.nodeDir, "config");
@@ -43,12 +52,20 @@ export default class NodeJsNode extends SaitoNode {
   }
 
   protected async onStopNode(): Promise<void> {
-    if (this._proc && !this._proc.killed) {
+    if (this._proc && this._proc.exitCode === null) {
+      // Set up a promise that resolves when the process actually exits
+      const exitPromise = new Promise<void>((resolve) => {
+        this._proc!.once("exit", () => resolve());
+      });
       this._proc.kill("SIGTERM");
-      // Give the process a moment to shut down gracefully
-      await new Promise<void>((resolve) => setTimeout(resolve, 500));
-      if (!this._proc.killed) {
+      // Wait up to 5 s for graceful shutdown, then force-kill
+      await Promise.race([
+        exitPromise,
+        new Promise<void>((resolve) => setTimeout(resolve, 5000)),
+      ]);
+      if (this._proc.exitCode === null) {
         this._proc.kill("SIGKILL");
+        await new Promise<void>((resolve) => setTimeout(resolve, 1000));
       }
     }
     this._proc = null;

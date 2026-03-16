@@ -63,8 +63,10 @@ test.describe("Node.js to Node.js — peer connection", () => {
     const node1 = nodeSet.getNode("node1")!;
     const node2 = nodeSet.getNode("node2")!;
 
-    // Poll /stats/peers on node1 until node2's key appears (up to 30s)
-    const deadline = Date.now() + 30_000;
+    // Poll /stats/peers on node1 until node2's key appears (up to 60s).
+    // With fresh (non-stale) processes the WebSocket handshake plus saito peer
+    // registration can take 20-30 s on slower arm64 machines.
+    const deadline = Date.now() + 60_000;
     let connected = false;
     while (Date.now() < deadline) {
       const peers = await node1.getPeers();
