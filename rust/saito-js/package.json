@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.17.19",
     "@types/jest": "29.2.5",
     "@types/ws": "8.5.5",
     "babel-loader": "8.2.3",
@@ -18,10 +20,12 @@
     "crypto-browserify": "3.12.0",
     "html-webpack-plugin": "5.5.0",
     "ignore-loader": "0.1.2",
+    "mocha": "^11.1.0",
     "path-browserify": "1.0.1",
     "prettier": "2.8.8",
     "source-map-loader": "3.0.0",
     "stream-browserify": "3.0.0",
+    "ts-node": "^10.9.2",
     "ts-loader": "9.4.2",
     "ts-node-dev": "2.0.0",
     "typescript": "5.4.x"

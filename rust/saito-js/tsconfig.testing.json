@@ -1,19 +1,21 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es2015",
-    "lib": [
-      "es2017"
-    ],
     "declaration": false,
-    "noImplicitAny": false,
-    "removeComments": true,
-    "inlineSourceMap": true,
-    "moduleResolution": "node"
+    "declarationMap": false,
+    "sourceMap": false,
+    "types": [
+      "node",
+      "mocha"
+    ]
   },
   "include": [
-    "scripts/**/*.ts",
-    "src/**/*.ts",
-    "node_modules/lodash-es/**/*.js"
+    "index.node.ts",
+    "index.web.ts",
+    "saito.ts",
+    "shared_methods.ts",
+    "lib/**/*.ts",
+    "tests/**/*.ts"
   ]
 }
