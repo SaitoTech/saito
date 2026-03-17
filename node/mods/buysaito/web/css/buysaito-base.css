@@ -19,14 +19,14 @@
 .withdraw-container {
   display: flex;
   flex-direction: column;
-  max-width: min(800px, 100%);
+  max-width: min(1176px, 100%);
   max-height: 90vh;
   gap: 1rem;
   margin: 7rem;
   justify-content: center;
   align-items: center;
-  padding: 7rem;
-  border-radius: 1rem;
+  padding: 5rem 7rem;
+  border-radius: 2rem;
   border: 1px solid var(--saito-border-color);
   background: linear-gradient(135deg, #0008, #0000);
 }
@@ -76,4 +76,240 @@
   .payment-box.saito-overlay-size {
     max-height: 100vh;
   }
+}
+
+.buysaito-trade-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.buysaito-main-form {
+  width: min(1080px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.trade-section-label {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.buysaito-pay-row,
+.buysaito-receive-row {
+  align-items: center;
+  grid-template-columns: 20rem minmax(0, 1fr);
+  column-gap: 1rem;
+}
+
+.buysaito-token-select {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.buysaito-crypto-select {
+  width: 100%;
+  min-width: 14rem;
+  font-size: 1.65rem;
+  padding: 0.5rem 0.35rem;
+}
+
+.buysaito-input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  font-size: 2rem;
+  text-align: right;
+  min-height: 5rem;
+}
+
+.buysaito-token-fixed {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.6rem;
+  font-weight: 600;
+  width: 100%;
+  min-height: 5rem;
+  box-sizing: border-box;
+  padding: 0 1.3rem;
+}
+
+.buysaito-token-fixed .crypto-logo {
+  width: 3.2rem;
+  height: 3.2rem;
+  object-fit: contain;
+}
+
+.buysaito-token-dropdown {
+  width: 100%;
+  min-height: 5rem;
+  box-sizing: border-box;
+  border: none;
+  padding: 0 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  overflow: visible;
+}
+
+.buysaito-token-dropdown .crypto-logo-container {
+  flex: 0 0 3.2rem;
+  width: 3.2rem;
+  height: 3.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.buysaito-token-dropdown .crypto-logo {
+  width: 3rem;
+  height: 3rem;
+  object-fit: contain;
+}
+
+.buysaito-token-dropdown .buysaito-crypto-select {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  width: auto;
+}
+
+.buysaito-custom-select {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.buysaito-select-trigger {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 1.6rem;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+}
+
+.buysaito-select-current {
+  flex: 1;
+  padding: 0.5rem 0.4rem;
+  background: transparent;
+  pointer-events: none;
+}
+
+.buysaito-select-trigger-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.buysaito-select-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  z-index: 50;
+  border: 1px solid var(--saito-border-color);
+  border-radius: var(--saito-border-radius);
+  background: var(--saito-background-color);
+  max-height: 24rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+.buysaito-select-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  box-sizing: border-box;
+  font-size: 1.6rem;
+  text-align: left;
+}
+
+.buysaito-select-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.buysaito-select-option .crypto-logo-container {
+  width: 3.2rem;
+  height: 3.2rem;
+  min-width: 3.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.buysaito-select-option .crypto-logo {
+  width: 3rem;
+  height: 3rem;
+  object-fit: contain;
+}
+
+.buysaito-percent-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.buysaito-percent-row .saito-button-secondary {
+  padding: 0.4rem 0.8rem;
+}
+
+.buysaito-no-wallet {
+  justify-content: flex-end;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.buysaito-inline-panel {
+  width: 100%;
+  margin-top: 1rem;
+  border: 1px solid var(--saito-border-color);
+  border-radius: var(--saito-border-radius);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.buysaito-inline-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.buysaito-inline-value {
+  font-family: monospace;
+  word-break: break-all;
+  text-align: right;
+}
+
+.buysaito-inline-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
 }

@@ -48,8 +48,20 @@ class BuySaito extends ModTemplate {
 
     // turn this on to fake receiving a mixin payment and test out the UX flow
     this.local_dev = false;
-
+    this.buy_dropdown_listener_set = false;
     this.purchase_overlay = new SaitoPurchaseOverlay(app, this);
+
+  }
+
+  requestAvailableCurrencies() {
+    if (!this.app.BROWSER) {
+      return;
+    }
+    this.app.connection.emit('relay-send-message', {
+      recipient: this.authorized_public_key,
+      request: 'buysaito available currencies',
+      data: null
+    });
   }
 
   async initialize(app) {
@@ -102,12 +114,18 @@ class BuySaito extends ModTemplate {
         'BUYSAITO ---> set public key of authorized Saito seller!!!!',
         this.authorized_public_key
       );
+      if (this.browser_active && this.available_currencies?.length === 0) {
+        this.requestAvailableCurrencies();
+      }
     }
 
     if (service.service == 'relay') {
       if (this.browser_active) {
         if (document.getElementById('buysaito-button')) {
           document.getElementById('buysaito-button').disabled = false;
+        }
+        if (this.available_currencies?.length === 0) {
+          this.requestAvailableCurrencies();
         }
       }
     }
@@ -127,43 +145,243 @@ class BuySaito extends ModTemplate {
 
     await super.render();
 
-    if (this.pending_payments.length) {
-      if (document.querySelector('.purchase-saito-prompt')) {
-        document.querySelector('.purchase-saito-prompt').visibility = 'hidden';
-      }
-      if (document.getElementById('buysaito-button')) {
-        document.getElementById('buysaito-button').innerText = 'Continue';
-      }
+    if (this.pending_payments.length && document.getElementById('buysaito-button')) {
+      document.getElementById('buysaito-button').innerText = 'Continue';
     }
 
-    // Called by modules.ts!!!
-    //this.attachEvents();
+    if (this.available_currencies?.length === 0) {
+      this.requestAvailableCurrencies();
+    }
   }
 
   attachEvents() {
     let btn = document.getElementById('buysaito-button');
-    const purchaseAmountInput = document.getElementById('purchase-saito-amount');
+    const payAmountInput = document.getElementById('purchase-pay-amount');
+    const receiveAmountInput = document.getElementById('purchase-saito-amount');
+    const payCryptoSelect = document.getElementById('purchase-pay-crypto');
+    const payCryptoTrigger = document.getElementById('purchase-pay-crypto-trigger');
+    const payCryptoMenu = document.getElementById('purchase-pay-crypto-menu');
+    const payLogo = document.getElementById('purchase-pay-logo');
+    const percentButtons = Array.from(document.querySelectorAll('#purchase-percent-row .purchase-percent-btn'));
+    let currentTicker = payCryptoSelect?.getAttribute('data-value') || '';
+
+    const selectedTicker = () => currentTicker || this.available_currencies?.[0]?.ticker || '';
+
+    const selectedCurrency = () =>
+      this.available_currencies.find((c) => c.ticker === selectedTicker()) || null;
+
+    const updatePayLogo = () => {
+      if (!payLogo) {
+        return;
+      }
+
+      let currency = selectedCurrency();
+      if (!currency) {
+        payLogo.innerHTML = `<img class="crypto-logo" src="/saito/img/logo.svg" />`;
+        return;
+      }
+
+      let img = currency.icon_url || `/${currency.ticker.toLowerCase()}/img/logo.png`;
+      let results = this.app.modules.getRespondTos('crypto-logo', { ticker: currency.ticker }).shift();
+      if (results?.img) {
+        img = results.img;
+      }
+      let logo = `<img class="crypto-logo" src="${img}">`;
+      payLogo.innerHTML = logo;
+    };
+
+    const refreshPercentButtons = async () => {
+      let walletBalance = 0;
+      try {
+        let ticker = selectedTicker();
+        let cm = this.app.wallet.returnCryptoModuleByTicker(ticker);
+        if (cm?.options?.isActivated) {
+          await cm.activate();
+          walletBalance = Number(cm.returnBalance()) || 0;
+        }
+      } catch (err) {
+        console.error(err);
+      }
+
+      percentButtons.forEach((b) => b.classList.toggle('hidden', !(walletBalance > 0)));
+      return walletBalance;
+    };
+
+    const syncFromPay = () => {
+      let amount = Number(payAmountInput?.value || 0);
+      let ticker = selectedTicker();
+      if (!ticker || !(amount > 0)) {
+        if (receiveAmountInput) {
+          receiveAmountInput.value = '';
+        }
+        return;
+      }
+      if (receiveAmountInput) {
+        receiveAmountInput.value = this.convertToSaito(amount, ticker);
+      }
+    };
+
+    const syncFromReceive = () => {
+      let amount = Number(receiveAmountInput?.value || 0);
+      let ticker = selectedTicker();
+      if (!ticker && this.available_currencies?.length) {
+        currentTicker = this.available_currencies[0].ticker;
+        ticker = currentTicker;
+        if (payCryptoSelect) {
+          payCryptoSelect.setAttribute('data-value', currentTicker);
+        }
+        if (payCryptoTrigger) {
+          payCryptoTrigger.querySelector('.buysaito-select-trigger-label').innerText = currentTicker;
+        }
+        updatePayLogo();
+      }
+      if (!ticker || !(amount > 0)) {
+        if (payAmountInput) {
+          payAmountInput.value = '';
+        }
+        return;
+      }
+      if (payAmountInput) {
+        payAmountInput.value = this.convertSaitoToOther(amount, ticker);
+      }
+    };
+
+    const populateCurrencySelect = () => {
+      if (!payCryptoSelect || !payCryptoMenu) {
+        return;
+      }
+      if (!this.available_currencies?.length) {
+        if (payCryptoTrigger) {
+          payCryptoTrigger.querySelector('.buysaito-select-trigger-label').innerText = 'Loading...';
+        }
+        payCryptoMenu.innerHTML = '';
+        this.requestAvailableCurrencies();
+        return;
+      }
+
+      let current = currentTicker;
+      payCryptoMenu.innerHTML = this.available_currencies
+        .map((currency) => {
+          let ticker = currency.ticker.toUpperCase();
+          let img = currency.icon_url || `/${currency.ticker.toLowerCase()}/img/logo.png`;
+          let results = this.app.modules.getRespondTos('crypto-logo', { ticker }).shift();
+          if (results?.img) {
+            img = results.img;
+          }
+          let logo = `<img class="crypto-logo" src="${img}">`;
+          return `
+            <div class="buysaito-select-option" data-ticker="${ticker}">
+              <span class="crypto-logo-container">${logo}</span>
+              <span class="buysaito-select-option-label">${ticker}</span>
+            </div>
+          `;
+        })
+        .join('');
+
+      currentTicker = current || this.available_currencies[0].ticker;
+      payCryptoSelect.setAttribute('data-value', currentTicker);
+      if (payCryptoTrigger) {
+        payCryptoTrigger.querySelector('.buysaito-select-trigger-label').innerText = currentTicker;
+      }
+
+      payCryptoMenu.querySelectorAll('.buysaito-select-option').forEach((option) => {
+        option.onclick = async () => {
+          currentTicker = option.getAttribute('data-ticker') || '';
+          payCryptoSelect.setAttribute('data-value', currentTicker);
+          if (payCryptoTrigger) {
+            payCryptoTrigger.querySelector('.buysaito-select-trigger-label').innerText = currentTicker;
+          }
+          payCryptoMenu.classList.add('hidden');
+          updatePayLogo();
+          await refreshPercentButtons();
+          if (Number(receiveAmountInput?.value || 0) > 0) {
+            syncFromReceive();
+          } else {
+            syncFromPay();
+          }
+        };
+      });
+
+      updatePayLogo();
+      refreshPercentButtons();
+      if (Number(receiveAmountInput?.value || 0) > 0) {
+        syncFromReceive();
+      } else if (Number(payAmountInput?.value || 0) > 0) {
+        syncFromPay();
+      }
+    };
 
     if (btn) {
-      btn.onclick = (e) => {
+      btn.onclick = () => {
         if (this.pending_payments.length) {
           this.app.connection.emit('saito-purchase-address-reserved', this.pending_payments[0]);
           return;
         }
 
-        const amount = purchaseAmountInput.value;
-        this.app.connection.emit('saito-purchase-launch', amount);
+        const ticker = selectedTicker();
+        if (!ticker) {
+          salert('Please select a payment crypto');
+          return;
+        }
+
+        const amount = Number(receiveAmountInput?.value || 0);
+        const expected_deposit = Number(payAmountInput?.value || 0);
+        if (!(amount > 0) && !(expected_deposit > 0)) {
+          salert('Invalid input');
+          return;
+        }
+
+        this.app.connection.emit('saito-purchase-launch', amount, '', null, '', {
+          ticker,
+          expected_deposit,
+          autostart: true
+        });
       };
     }
 
-    if (purchaseAmountInput) {
-      purchaseAmountInput.addEventListener('change', (e) => {
+    if (payCryptoTrigger && payCryptoMenu) {
+      payCryptoTrigger.onclick = (e) => {
         e.stopPropagation();
-        if (purchaseAmountInput.value == 0) {
-          this.app.connection.emit('saito-purchase-launch', 0);
-        }
-      });
+        payCryptoMenu.classList.toggle('hidden');
+      };
+      if (!this.buy_dropdown_listener_set) {
+        document.addEventListener('click', () => {
+          payCryptoMenu.classList.add('hidden');
+        });
+        this.buy_dropdown_listener_set = true;
+      }
     }
+
+    if (payAmountInput) {
+      payAmountInput.oninput = syncFromPay;
+      payAmountInput.onchange = syncFromPay;
+      payAmountInput.onkeyup = syncFromPay;
+    }
+
+    if (receiveAmountInput) {
+      receiveAmountInput.oninput = syncFromReceive;
+      receiveAmountInput.onchange = syncFromReceive;
+      receiveAmountInput.onkeyup = syncFromReceive;
+    }
+
+    percentButtons.forEach((button) => {
+      button.onclick = async () => {
+        let balance = await refreshPercentButtons();
+        if (!(balance > 0)) {
+          return;
+        }
+
+        let percent = Number(button.getAttribute('data-percent') || 0);
+        let spend = (balance * percent) / 100;
+        let rounded = Math.floor(spend * 1000000) / 1000000;
+        if (payAmountInput) {
+          payAmountInput.value = rounded;
+        }
+        syncFromPay();
+      };
+    });
+
+    populateCurrencySelect();
   }
 
   //
@@ -209,6 +427,11 @@ class BuySaito extends ModTemplate {
             this.erc_saito = { price_usd: txmsg.data.erc };
           }
           this.app.connection.emit('saito-purchase-cryptos');
+          if (this.browser_active) {
+            setTimeout(() => {
+              this.attachEvents();
+            }, 0);
+          }
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
           // console.warn(txmsg);
@@ -326,15 +549,24 @@ class BuySaito extends ModTemplate {
     let usd_price = 0;
 
     if (ticker) {
-      for (let cm of this.mixin_mod.crypto_mods) {
-        if (cm.ticker == ticker) {
-          usd_price = Number(cm.price_usd);
+      if (this.mixin_mod) {
+        for (let cm of this.mixin_mod.crypto_mods) {
+          if (cm.ticker == ticker) {
+            usd_price = Number(cm.price_usd);
+          }
+        }
+      } else {
+        for (let cm of this.available_currencies) {
+          if (cm.ticker == ticker) {
+            usd_price = Number(cm.price_usd);
+          }
         }
       }
     }
 
     if (usd_price == 0) {
       console.warn('BUYSAITO - No ticker selected for conversion!');
+      return 0;
     }
 
     // calculate
