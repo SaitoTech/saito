@@ -9,15 +9,15 @@ crate-type = ["cdylib"]
 
 [dependencies]
 saito-core = { path = "../saito-core" }
-wasm-bindgen = { version = "=0.2.92" }
-wasm-bindgen-futures = "=0.4.42"
+wasm-bindgen = "=0.2.114"
+wasm-bindgen-futures = "=0.4.64"
 serde = { version = "=1.0.204", features = ["derive"] }
-serde-wasm-bindgen = { version = "=0.6.5" }
-web-sys = "=0.3.69"
+serde-wasm-bindgen = "=0.6.5"
+web-sys = "=0.3.91"
 async-trait = "=0.1.80"
 hex = "=0.4.3"
 tokio = "=1.37.0"
-js-sys = { version = "=0.3.69" }
+js-sys = "=0.3.91"
 lazy_static = "=1.4.0"
 console_log = { version = "=1.0.0", features = ["color"] }
 log = "=0.4.21"
@@ -33,7 +33,7 @@ console_error_panic_hook = "=0.1.7"
 rayon = "=1.10.0"
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ['-Oz']
+wasm-opt = ["-Oz"]
 
 [profile.release]
 lto = "thin"
