@@ -31,6 +31,10 @@
   background: linear-gradient(135deg, #0008, #0000);
 }
 
+.withdraw-container h2 {
+  margin-bottom: 2rem;
+}
+
 .purchase-saito-prompt {
   font-size: 2.25rem;
   font-style: italic;
