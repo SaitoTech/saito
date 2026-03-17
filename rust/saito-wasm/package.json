@@ -2,9 +2,15 @@
   "name": "saito-wasm",
   "version": "0.2.11",
   "description": "js wrappings around saito-core using wasm",
+  "files": [
+    "Cargo.toml",
+    "pkg"
+  ],
   "scripts": {
     "test": "./node_modules/.bin/jest",
     "start": "ts-node-dev index.ts",
+    "prepare-pkg-for-pack": "node -e \"const fs=require('fs'); for (const dir of ['./pkg','./pkg/web','./pkg/node']) { fs.writeFileSync(dir + '/.npmignore', ''); }\"",
+    "prepack": "npm run build && npm run prepare-pkg-for-pack",
     "build-prod": "cross-env WASM_BINDGEN_WEAKREF=1 npm run build-web-prod && npm run build-nodejs-prod",
     "build-profile": "cross-env WASM_BINDGEN_WEAKREF=1 npm run build-web-profile && npm run build-nodejs-profile",
     "build": "cross-env WASM_BINDGEN_WEAKREF=1 npm run build-web && npm run build-nodejs",
