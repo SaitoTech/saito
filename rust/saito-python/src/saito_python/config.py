@@ -20,6 +20,8 @@ class ClientConfig:
     data_dir: Path
     private_key: str | None = None
     log_level: str = "info"
+    haste_multiplier: int = 1
+    delete_old_blocks: bool = False
     peers: list[PeerConfig] = field(default_factory=list)
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -28,6 +30,8 @@ class ClientConfig:
             "data_dir": str(self.data_dir),
             "private_key": self.private_key,
             "log_level": self.log_level,
+            "haste_multiplier": self.haste_multiplier,
+            "delete_old_blocks": self.delete_old_blocks,
             "peers": [peer.to_engine_config() for peer in self.peers],
             **self.extra,
         }
