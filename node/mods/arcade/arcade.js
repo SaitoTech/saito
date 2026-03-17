@@ -2130,7 +2130,7 @@ class Arcade extends ModTemplate {
 
 			this.game_timeout = setTimeout(() => {
 				salert(
-					"Haven't received confirmation of your game invite. Please check your network connections."
+					"Your browser may have broadcast that invite, but network seems unstable. Please refresh to confirm!"
 				);
 			}, 10000);
 		}
