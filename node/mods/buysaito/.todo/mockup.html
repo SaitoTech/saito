@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Buy SAITO Mockup</title>
+  <style>
+    :root {
+      --bg: #f6f8fc;
+      --panel: #ffffff;
+      --panel-2: #f2f5fb;
+      --text: #182133;
+      --muted: #5a677d;
+      --border: #d8e0ee;
+      --accent: #2f86d4;
+      --accent-2: #1f6fb7;
+      --chip: #e8eef9;
+      --shadow: 0 10px 30px rgba(26, 42, 74, 0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1421;
+        --panel: #131f32;
+        --panel-2: #0f1a2b;
+        --text: #eaf0ff;
+        --muted: #a4b0c7;
+        --border: #25344d;
+        --accent: #4aa3f0;
+        --accent-2: #2b86d5;
+        --chip: #1a2740;
+        --shadow: 0 14px 34px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 20% 0%, rgba(68,140,230,.15), transparent 35%), var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-weight: 450;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: min(980px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      background: color-mix(in srgb, var(--panel) 85%, var(--accent) 15%);
+    }
+
+    .title {
+      font-size: 1.55rem;
+      font-weight: 500;
+      letter-spacing: 0.2px;
+    }
+
+    .badge {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--muted);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 450;
+    }
+
+    .content {
+      padding: 22px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .trade-card {
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      border-radius: 7px;
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 250px 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .token {
+      min-height: 58px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--panel);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 12px;
+      position: relative;
+    }
+
+    .token button.trigger {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font-size: 1.08rem;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .dot {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      flex: 0 0 30px;
+    }
+    .b { background: #f3ba2f; color: #242424; }
+    .s { background: #121212; }
+    .e { background: #3b82f6; }
+    .t { background: #26a17b; }
+    .x { background: #ef4444; }
+
+    .menu {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 6px;
+      box-shadow: var(--shadow);
+      padding: 8px;
+      display: none;
+      z-index: 10;
+      max-height: 240px;
+      overflow: auto;
+    }
+    .menu.open { display: block; }
+
+    .opt {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-height: 44px;
+      border-radius: 5px;
+      padding: 0 10px;
+      cursor: pointer;
+    }
+    .opt:hover { background: color-mix(in srgb, var(--chip) 80%, transparent 20%); }
+
+    .amount {
+      width: 100%;
+      min-height: 58px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--panel);
+      color: var(--text);
+      font-size: 1.7rem;
+      text-align: right;
+      padding: 0 14px;
+      outline: none;
+    }
+    .amount:focus { border-color: var(--accent); }
+
+    /* Hide number input spinners (Chrome, Safari, Edge, Opera) */
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    /* Hide number input spinners (Firefox) */
+    input[type="number"] {
+      -moz-appearance: textfield;
+      appearance: textfield;
+    }
+
+    .chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      border: 1px solid var(--border);
+      background: var(--chip);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .actions {
+      padding-top: 4px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .buy {
+      min-height: 46px;
+      min-width: 180px;
+      border-radius: 6px;
+      border: 0;
+      color: #fff;
+      font-weight: 500;
+      font-size: 1rem;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2));
+      cursor: pointer;
+    }
+
+    .hint {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 760px) {
+      .row { grid-template-columns: 1fr; }
+      .buy { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <div class="title">Buy SAITO (Mockup)</div>
+      <div class="badge">Theme-responsive static prototype</div>
+    </div>
+
+    <div class="content">
+      <div class="trade-card">
+        <div>Pay With</div>
+        <div class="row">
+          <div class="token">
+            <span id="payIcon" class="dot b">B</span>
+            <button id="trigger" class="trigger" type="button">
+              <span id="payTicker">BNB</span>
+              <span>▾</span>
+            </button>
+            <div id="menu" class="menu"></div>
+          </div>
+          <input id="payAmount" class="amount" type="number" step="0.000001" min="0" value="0.00" />
+        </div>
+        <div class="chips">
+          <button class="chip" data-pct="12.5">12.5%</button>
+          <button class="chip" data-pct="25">25%</button>
+          <button class="chip" data-pct="50">50%</button>
+          <button class="chip" data-pct="75">75%</button>
+          <button class="chip" data-pct="100">MAX</button>
+        </div>
+      </div>
+
+      <div class="trade-card">
+        <div>Receive</div>
+        <div class="row">
+          <div class="token">
+            <span class="dot x">S</span>
+            <strong>SAITO</strong>
+          </div>
+          <input id="saitoAmount" class="amount" type="number" step="1" min="0" value="0" />
+        </div>
+        <div class="hint">Editing either field recalculates the other in this mockup.</div>
+      </div>
+
+      <div class="actions">
+        <button class="buy" type="button">Buy</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const currencies = [
+      { ticker: "BNB", cls: "b", icon: "B", usd: 610 },
+      { ticker: "ETH", cls: "e", icon: "E", usd: 3500 },
+      { ticker: "SOL", cls: "s", icon: "S", usd: 170 },
+      { ticker: "USDC", cls: "x", icon: "U", usd: 1 },
+      { ticker: "USDT", cls: "t", icon: "T", usd: 1 }
+    ];
+
+    const saitoUsd = 0.01;
+    const spread = 1.1;
+    let selected = currencies[0];
+    const mockBalance = 1000;
+
+    const payAmountEl = document.getElementById("payAmount");
+    const saitoAmountEl = document.getElementById("saitoAmount");
+    const payTickerEl = document.getElementById("payTicker");
+    const payIconEl = document.getElementById("payIcon");
+    const menuEl = document.getElementById("menu");
+    const triggerEl = document.getElementById("trigger");
+
+    function convertToSaito(payAmount) {
+      if (!selected.usd || payAmount <= 0) return 0;
+      return Math.floor((payAmount * selected.usd) / Math.max(0.001, saitoUsd * spread));
+    }
+
+    function convertFromSaito(saitoAmount) {
+      if (!selected.usd || saitoAmount <= 0) return 0;
+      return Math.ceil(((saitoAmount * Math.max(0.001, saitoUsd * spread)) / selected.usd) * 1e6) / 1e6;
+    }
+
+    function renderMenu() {
+      menuEl.innerHTML = currencies.map(c => `
+        <div class="opt" data-ticker="${c.ticker}">
+          <span class="dot ${c.cls}">${c.icon}</span>
+          <span>${c.ticker}</span>
+        </div>
+      `).join("");
+      menuEl.querySelectorAll(".opt").forEach(opt => {
+        opt.onclick = () => {
+          selected = currencies.find(c => c.ticker === opt.dataset.ticker) || selected;
+          payTickerEl.textContent = selected.ticker;
+          payIconEl.className = `dot ${selected.cls}`;
+          payIconEl.textContent = selected.icon;
+          menuEl.classList.remove("open");
+          const saitoVal = Number(saitoAmountEl.value || 0);
+          if (saitoVal > 0) {
+            payAmountEl.value = convertFromSaito(saitoVal).toFixed(6);
+          } else {
+            const payVal = Number(payAmountEl.value || 0);
+            saitoAmountEl.value = String(convertToSaito(payVal));
+          }
+        };
+      });
+    }
+
+    triggerEl.onclick = (e) => {
+      e.stopPropagation();
+      menuEl.classList.toggle("open");
+    };
+    document.addEventListener("click", () => menuEl.classList.remove("open"));
+
+    payAmountEl.addEventListener("input", () => {
+      const pay = Number(payAmountEl.value || 0);
+      saitoAmountEl.value = String(convertToSaito(pay));
+    });
+
+    saitoAmountEl.addEventListener("input", () => {
+      const saito = Number(saitoAmountEl.value || 0);
+      payAmountEl.value = convertFromSaito(saito).toFixed(6);
+    });
+
+    document.querySelectorAll(".chip").forEach(chip => {
+      chip.onclick = () => {
+        const pct = Number(chip.dataset.pct || 0);
+        const pay = (mockBalance * pct) / 100;
+        payAmountEl.value = pay.toFixed(6);
+        saitoAmountEl.value = String(convertToSaito(pay));
+      };
+    });
+
+    renderMenu();
+  </script>
+</body>
+</html>

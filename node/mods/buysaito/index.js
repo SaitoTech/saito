@@ -78,40 +78,44 @@ module.exports = (app, mod, build_number = '', og_card) => {
       <h2>Buy SAITO</h2>
 
       <div class="buysaito-main-form">
-        <div class="trade-section-label">Pay With</div>
-        <div class="crypto-box buysaito-pay-row">
-          <div class="buysaito-token-fixed buysaito-token-dropdown">
-            <div class="buysaito-custom-select" id="purchase-pay-crypto">
-              <button class="buysaito-select-trigger" id="purchase-pay-crypto-trigger" type="button">
-                <span class="buysaito-select-option buysaito-select-current">
-                  <span class="crypto-logo-container" id="purchase-pay-logo">
-                    <img class="crypto-logo" src="/saito/img/logo.svg" />
+        <div class="buysaito-form-card">
+          <div class="trade-section-label">Pay With</div>
+          <div class="crypto-box buysaito-pay-row">
+            <div class="buysaito-token-fixed buysaito-token-dropdown">
+              <div class="buysaito-custom-select" id="purchase-pay-crypto">
+                <button class="buysaito-select-trigger" id="purchase-pay-crypto-trigger" type="button">
+                  <span class="buysaito-select-option buysaito-select-current">
+                    <span class="crypto-logo-container" id="purchase-pay-logo">
+                      <img class="crypto-logo" src="/saito/img/logo.svg" />
+                    </span>
+                    <span class="buysaito-select-option-label buysaito-select-trigger-label">Loading...</span>
                   </span>
-                  <span class="buysaito-select-option-label buysaito-select-trigger-label">Loading...</span>
-                </span>
-                <i class="fa-solid fa-chevron-down"></i>
-              </button>
-              <div class="buysaito-select-menu hidden" id="purchase-pay-crypto-menu"></div>
+                  <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div class="buysaito-select-menu hidden" id="purchase-pay-crypto-menu"></div>
+              </div>
             </div>
+            <input type="number" autocomplete="off" min="0" max="9999999999.99999999" step="0.00000001" class="purchase-saito-amount buysaito-input" id="purchase-pay-amount" value="" placeholder="0.0">
           </div>
-          <input type="number" autocomplete="off" min="0" max="9999999999.99999999" step="0.00000001" class="purchase-saito-amount buysaito-input" id="purchase-pay-amount" value="" placeholder="0.0">
+
+          <div class="buysaito-percent-row" id="purchase-percent-row">
+            <button class="saito-button-secondary purchase-percent-btn hidden" data-percent="12.5">12.5%</button>
+            <button class="saito-button-secondary purchase-percent-btn hidden" data-percent="25">25%</button>
+            <button class="saito-button-secondary purchase-percent-btn hidden" data-percent="50">50%</button>
+            <button class="saito-button-secondary purchase-percent-btn hidden" data-percent="75">75%</button>
+            <button class="saito-button-secondary purchase-percent-btn hidden" data-percent="100">MAX</button>
+          </div>
         </div>
 
-        <div class="buysaito-percent-row" id="purchase-percent-row">
-          <button class="saito-button-secondary purchase-percent-btn hidden" data-percent="12.5">12.5%</button>
-          <button class="saito-button-secondary purchase-percent-btn hidden" data-percent="25">25%</button>
-          <button class="saito-button-secondary purchase-percent-btn hidden" data-percent="50">50%</button>
-          <button class="saito-button-secondary purchase-percent-btn hidden" data-percent="75">75%</button>
-          <button class="saito-button-secondary purchase-percent-btn hidden" data-percent="100">MAX</button>
-        </div>
-
-        <div class="trade-section-label">Receive</div>
-        <div class="crypto-box buysaito-receive-row">
-          <div class="buysaito-token-fixed">
-            <img class="crypto-logo" src="/saito/img/touch/pwa-192x192.png" />
-            <span>SAITO</span>
+        <div class="buysaito-form-card">
+          <div class="trade-section-label">Receive</div>
+          <div class="crypto-box buysaito-receive-row">
+            <div class="buysaito-token-fixed">
+              <img class="crypto-logo" src="/saito/img/touch/pwa-192x192.png" />
+              <span>SAITO</span>
+            </div>
+            <input type="number" autocomplete="off" min="0" max="9999999999" step="1" class="purchase-saito-amount buysaito-input" id="purchase-saito-amount" value="" placeholder="0">
           </div>
-          <input type="number" autocomplete="off" min="0" max="9999999999" step="1" class="purchase-saito-amount buysaito-input" id="purchase-saito-amount" value="" placeholder="0">
         </div>
       </div>
 
