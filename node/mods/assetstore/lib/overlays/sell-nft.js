@@ -87,6 +87,10 @@ class SellNFTOverlay extends NFTDetailsOverlay {
     let list_btn = document.querySelector('.saito-nft-footer-btn.send-nft');
     list_btn.onclick = (e) => {
       document.querySelector('.saito-nft-overlay.panels').classList.add('saito-nft-mode-send');
+      setTimeout(() => {
+        console.log('autofocus on input price');
+        input.focus();
+      }, 50);
     };
 
     let send_btn = document.querySelector('.saito-nft-footer-btn.saito-nft-confirm-btn');
@@ -99,6 +103,7 @@ class SellNFTOverlay extends NFTDetailsOverlay {
 
       if (!this.app.wallet.isValidPublicKey(this.mod.assetStore?.publicKey)) {
         salert('Node public key is not valid');
+        console.error('STORE KEY: ', this.mod.assetStore?.publicKey);
         return;
       }
 
@@ -186,6 +191,7 @@ class SellNFTOverlay extends NFTDetailsOverlay {
             active: 0,
             reserve_price: buy_price_num,
             title,
+            created_at: Date.now(),
             description
           };
 

@@ -557,7 +557,6 @@
 }
 
 .create-nft-container {
-  min-height: 65vh;
   justify-content: space-between;
 }
 
@@ -850,6 +849,7 @@ nft cards
 .nft-card-img {
   width: 100%;
   height: 100%;
+  background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
   background-image: url('/saito/img/dreamscape.png');
@@ -954,6 +954,7 @@ nft cards
   overflow: hidden;
   white-space: pre;
   color: #3ea63e;
+  padding: 5px;
   background: var(--saito-black);
   height: 100%;
 }

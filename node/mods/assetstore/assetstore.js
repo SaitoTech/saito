@@ -37,7 +37,6 @@ class AssetStore extends ModTemplate {
 		this.categories = 'Utility Ecommerce NFTs';
 		this.icon = 'fa-solid fa-cart-shopping';
 
-		this.nfts = {};
 		this.listings = [];
 
 		this.styles = [`/${this.slug}/style.css`];
@@ -58,7 +57,7 @@ class AssetStore extends ModTemplate {
 		this.authorized_sellers = [];
 
 		// Browser-only
-		this.drafts = {}; // our listed nft, txs to send the back to us
+		this.drafts = []; // our listed nft, txs to send the back to us
 
 		this.social = {
 			twitter: '@SaitoOfficial',
@@ -87,8 +86,13 @@ class AssetStore extends ModTemplate {
 			await this.restoreListingsFromDB();
 		} else {
 			if (this.browser_active) {
-				this.drafts = (await this.app.storage.getLocalForageItem('listed_nfts')) || {};
-				console.log(`We have ${Object.keys(this.drafts).length} NFTs listed in the store`);
+				this.drafts = (await this.app.storage.getLocalForageItem('listed_nfts')) || [];
+				if (!Array.isArray(this.drafts)) {
+					console.warn('Invalid data conversion...');
+					this.drafts = [];
+				} else {
+					console.log(`We have ${this.drafts.length} NFTs listed in the store`);
+				}
 
 				if (this.app.wallet.isValidPublicKey(this.app.browser.returnURLParameter('seller'))) {
 					// Load only the publickey from the URL parameter
@@ -298,6 +302,11 @@ class AssetStore extends ModTemplate {
 					//
 					this.app.network.propagateTransaction(delisting_nfttx);
 				}
+			} else {
+				if (tx.isTo(this.publicKey)) {
+					console.log('AssetStore onConfirmation -- processing NFT --', tx.signature);
+					this.removeDraft(tx.signature);
+				}
 			}
 		}
 
@@ -343,12 +352,29 @@ class AssetStore extends ModTemplate {
 					if (txmsg.request === 'seller_payout') {
 						if (this.app.BROWSER && tx.isTo(this.publicKey)) {
 							siteMessage('Someone bought your NFT!!!!');
+							this.removeDraft(txmsg.nfttx_sig);
 						}
 					}
 				}
 			}
 		} catch (err) {
 			// console.error('ERROR in assetstore onconfirmation block: ', err);
+		}
+	}
+
+	async removeDraft(tx_sig) {
+		let removed = false;
+		for (let i = 0; i < this.drafts.length; i++) {
+			if (this.drafts[i].nfttx_sig == tx_sig || this.drafts[i].delisting_sig == tx_sig) {
+				this.drafts.splice(i, 1);
+				removed = true;
+				break;
+			}
+		}
+
+		if (removed) {
+			console.info('STORE: saving drafts: ', this.drafts);
+			await this.app.storage.setLocalForageItem('listed_nfts', this.drafts);
 		}
 	}
 
@@ -526,7 +552,8 @@ class AssetStore extends ModTemplate {
 			active: 0,
 			reserve_price: txmsg?.data?.reserve_price,
 			title: txmsg?.data?.title,
-			description: txmsg?.data?.description
+			description: txmsg?.data?.description,
+			created_at: Date.now()
 		};
 		this.listings.push(record);
 
@@ -561,7 +588,8 @@ class AssetStore extends ModTemplate {
 			request: 'delist asset',
 			data: {
 				nft_tx: nfttx.serialize_to_web(this.app),
-				nfttx_sig: nft_sig
+				nfttx_sig: nft_sig,
+				delisting_sig: nfttx.signature
 			}
 		};
 
@@ -731,8 +759,8 @@ class AssetStore extends ModTemplate {
 		// to us.
 		//
 		if (this.app.BROWSER) {
-			this.drafts[nfttx_sig] = txmsg.data.nft_tx; // serialized inner tx
-			console.debug('STORE: saving drafts: ', this.drafts);
+			this.drafts.push(txmsg.data); // serialized inner tx
+			console.info('STORE: saving drafts: ', this.drafts);
 			await this.app.storage.setLocalForageItem('listed_nfts', this.drafts);
 		} else {
 			// We will "activate it here"
@@ -914,6 +942,9 @@ class AssetStore extends ModTemplate {
 		} catch (e) {
 			// console.error('Seller payout failed:', e);
 		}
+
+		// Requery DB in case we sold one of multiple copies of the same NFT
+		this.restoreListingsFromDB();
 	}
 
 	async notifySeller(listing) {
@@ -1109,7 +1140,8 @@ class AssetStore extends ModTemplate {
 					active: 1, // Status
 					reserve_price: res[i].reserve_price,
 					title: res[i].title,
-					description: res[i].description
+					description: res[i].description,
+					created_at: res[i].created_at
 				});
 			}
 
@@ -1147,8 +1179,8 @@ class AssetStore extends ModTemplate {
 		let description = txmsg?.data?.description || '';
 
 		let sql = `
-		  INSERT INTO listings (nft_id, nfttx_sig, status, seller, email, buyer, reserve_price, title, description)
-		  VALUES ($nft_id, $nfttx_sig, $status, $seller, $email, $buyer, $reserve_price, $title, $description)
+		  INSERT INTO listings (nft_id, nfttx_sig, status, seller, email, buyer, reserve_price, created_at, title, description)
+		  VALUES ($nft_id, $nfttx_sig, $status, $seller, $email, $buyer, $reserve_price, $created_at, $title, $description)
 		`;
 		let params = {
 			$nft_id: nft.id,
@@ -1159,6 +1191,7 @@ class AssetStore extends ModTemplate {
 			$title: title,
 			$email: email,
 			$description: description,
+			$created_at: created_at,
 			$reserve_price: reserve_price ?? null
 		};
 
@@ -1203,8 +1236,6 @@ class AssetStore extends ModTemplate {
 
 		let sender = tx.from[0].publicKey;
 		let receiver = tx.to[0].publicKey;
-
-		let tx_json = tx.serialize_to_web(this.app);
 
 		//
 		// Bound Transaction
@@ -1266,7 +1297,6 @@ class AssetStore extends ModTemplate {
 		//
 		let sql = `INSERT INTO transactions (
 			listing_id, 
-			tx, 
 			tx_sig, 
 			sender, 
 			recipient, 
@@ -1277,7 +1307,6 @@ class AssetStore extends ModTemplate {
 			tid
 		) VALUES (
 			$listing_id, 
-			$tx, 
 			$tx_sig, 
 			$sender, 
 			$recipient, 
@@ -1290,7 +1319,6 @@ class AssetStore extends ModTemplate {
 
 		let params = {
 			$listing_id: listing_id,
-			$tx: tx_json,
 			$tx_sig: tx.signature,
 			$sender: sender,
 			$recipient: receiver,

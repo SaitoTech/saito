@@ -55,6 +55,7 @@ class RedSquare extends ModTemplate {
     this.description = 'Open Source Twitter-clone for the Saito Network';
     this.categories = 'Social Entertainment';
     this.icon_fa = 'fas fa-square-full';
+    this.dependencies = ['Archive', 'Registry'];
 
     this.debug = false;
 

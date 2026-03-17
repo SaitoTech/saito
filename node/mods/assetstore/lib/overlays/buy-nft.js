@@ -21,17 +21,14 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
     }
     // Use Enable/Disable buttons for controls...
     let buy_with_saito_btn = document.querySelector('.saito-nft-footer-btn.enable-nft');
-    let buy_with_other_btn = document.querySelector('.saito-nft-footer-btn.disable-nft');
-    buy_with_saito_btn.innerHTML = 'Buy with Saito';
+
+    buy_with_saito_btn.innerHTML = 'Buy';
     buy_with_saito_btn.style.display = 'block';
 
     let priceRaw = BigInt(this.nft.getBuyPriceSaito()); // BigInt -- Saito
     let fee = BigInt(this.mod?.fee || 0);
 
     let total_price = this.app.wallet.convertSaitoToNolan(priceRaw + fee);
-    let wallet_balance = await this.app.wallet.getBalance(); // BigInt - Nolan
-
-    let insufficient_funds = wallet_balance < total_price;
 
     // I don't know why we would get this, but okay..
     if (total_price <= 0n) {
@@ -43,18 +40,31 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
     // BUY WITH SAITO
     //
     if (buy_with_saito_btn) {
-      if (insufficient_funds) {
-        buy_with_saito_btn.classList.add('disabled-btn');
+      buy_with_saito_btn.onclick = async (e) => {
+        e.preventDefault();
+        buy_with_saito_btn.onclick = null;
+        this.overlay.hide();
 
-        buy_with_saito_btn.onclick = (e) => {
-          console.info('Wallet: ', wallet_balance, 'Price: ', total_price);
-          salert('Insufficient SAITO in Wallet');
-        };
-      } else {
-        buy_with_saito_btn.onclick = async (e) => {
-          e.preventDefault();
-          buy_with_saito_btn.onclick = null;
-          this.overlay.hide();
+        let wallet_balance = await this.app.wallet.getBalance(); // BigInt - Nolan
+        let insufficient_funds = wallet_balance < total_price;
+
+        console.log('Click buy: ', wallet_balance, total_price);
+
+        if (insufficient_funds) {
+          let newtx = await this.mod.createPurchaseAssetTransaction(
+            this.nft,
+            { price: priceRaw, fee },
+            0n
+          );
+
+          this.app.connection.emit(
+            'saito-purchase-launch',
+            this.app.wallet.convertNolanToSaito(total_price),
+            this.mod.assetStore.publicKey,
+            newtx.serialize_to_web(this.app),
+            `Purchase ${this.app.wallet.convertNolanToSaito(total_price)} Saito NFT`
+          );
+        } else {
           try {
             let newtx = await this.mod.createPurchaseAssetTransaction(
               this.nft,
@@ -67,36 +77,7 @@ class BuyNFTOverlay extends NFTDetailsOverlay {
             console.error('Error submitting bid: ' + err);
             siteMessage('Purchase submission failed...', 3000);
           }
-        };
-      }
-    }
-
-    //
-    // BUY WITH OTHER CRYPTO
-    //
-
-    // Add RespondTo to see if we have a buy SAITO option
-    // And emit an event!
-
-    if (buy_with_other_btn) {
-      buy_with_other_btn.innerHTML = 'More Options';
-      buy_with_other_btn.style.display = 'block';
-
-      buy_with_other_btn.onclick = async (e) => {
-        e.preventDefault();
-        let newtx = await this.mod.createPurchaseAssetTransaction(
-          this.nft,
-          { price: priceRaw, fee },
-          0n
-        );
-
-        this.app.connection.emit(
-          'saito-purchase-launch',
-          this.app.wallet.convertNolanToSaito(total_price),
-          this.mod.assetStore.publicKey,
-          newtx.serialize_to_web(this.app),
-          `Purchase ${this.app.wallet.convertNolanToSaito(total_price)} Saito NFT`
-        );
+        }
       };
     }
   }

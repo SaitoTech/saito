@@ -455,6 +455,7 @@ class Twilight extends GameTemplate {
 
     } catch (err) {}
 
+/******
     document.querySelector('.gameboard').addEventListener('click', (e) => {
 
       // ignore clicks on countries or interactive elements
@@ -490,10 +491,10 @@ console.log("Intrinsic board size:", board.offsetWidth, board.offsetHeight);
 console.log("Click screen:", clickX, clickY);
 console.log("Click board:", boardX, boardY);
 
-
   	this.zoom_overlay.renderAtCoordinates(boardX, boardY);
 
     });
+******/
 
     if (this.game.player > 0){
       if (this.useClock){
@@ -1382,6 +1383,8 @@ console.log("LATEST MOVE: " + mv);
           this.game.player = i+1;
         }
       }
+
+      return 1;
     }
 
     if (mv[0] === "update_observers") {
@@ -6616,9 +6619,16 @@ async playerTurnHeadlineSelected(card, player) {
     try {
 
       for (let i in this.countries) {
+console.log("display: " + i);
         this.showInfluence(i);
       }
+console.log("before zoom overlaty check...");
 
+      let redisplay_zoom_overlay = false;
+//      if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
+//	redisplay_zoom_overlay = true;
+//        this.zoom_overlay.remove();
+//      }
 
 try {
       this.updateDefcon();
@@ -6640,12 +6650,12 @@ try {
 } catch (err) { console.log("error updating round: " + JSON.stringify(err)); }
 
       // this can trigger bug if open End-of-Turn, throws error, thus last
-      if (this.zoom_overlay && this.zoom_overlay.visible && this.zoom_overlay.overlay.visible) {
-console.log("ZOOM OVERLAY VISIBLE: " + this.zoom_overlay.visible);
-console.log("SAITO OVERLAY INSIDE VISIBLE: " + this.zoom_overlay.overlay.visible);
-console.log("rendering!");
-        this.zoom_overlay.render();
-      }
+//      if (redisplay_zoom_overlay) {
+//console.log("ZOOM OVERLAY VISIBLE: " + this.zoom_overlay.visible);
+//console.log("SAITO OVERLAY INSIDE VISIBLE: " + this.zoom_overlay.overlay.visible);
+//console.log("rendering!");
+//        this.zoom_overlay.render();
+//      }
 
     } catch (err) {
 console.log("DISPLAY ERROR: " + JSON.stringify(err));

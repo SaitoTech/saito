@@ -43,7 +43,9 @@ async function getMetadataFromZip(zipPath) {
   const promises = directory.files.map(async (file) => {
     const filePath = file.path;
 
-    if (filePath === 'web/img/arcade/arcade.jpg' || filePath === 'web/img/saito_icon.jpg') {
+    //console.log('filePath:', filePath);
+
+    if (filePath.endsWith('arcade.jpg') || filePath.endsWith('saito_icon.jpg')) {
       const content = await file.buffer();
       image = 'data:image/jpeg;base64,' + content.toString('base64');
       return;

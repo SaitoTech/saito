@@ -16,6 +16,11 @@ class ZoomOverlay {
     this.spaces_onclick_callback = null;
   }
 
+  remove() {
+    this.visible = false;
+    this.overlay.remove();
+  }
+
   hide() {
     this.visible = false;
     this.overlay.hide();

@@ -92,7 +92,8 @@ if [ "$(uname)" = "Linux" ]; then
   sudo NEEDRESTART_MODE=a apt install -y build-essential libssl-dev pkg-config clang gcc-multilib python-is-python3 || { echo "Error: Failed to install required packages."; exit 1; }
 fi
 #cargo install flamegraph
-cargo install --version 0.12.0 wasm-pack || { echo "Error: Failed to install wasm-pack."; exit 1; }
+cargo install --locked --version 0.14.0 wasm-pack || { echo "Error: Failed to install wasm-pack."; exit 1; }
+cargo install --locked --version 0.2.114 wasm-bindgen-cli || { echo "Error: Failed to install wasm-bindgen-cli."; exit 1; }
 rustup target add wasm32-unknown-unknown || { echo "Error: Failed to add wasm32-unknown-unknown target."; exit 1; }
 
 # Start node

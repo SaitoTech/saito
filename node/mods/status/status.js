@@ -8,6 +8,7 @@ class Status extends ModTemplate {
   constructor(app) {
     super(app);
     this.name        = 'status';
+    this.slug        = 'status';
     this.description = 'Node + Peer Status Dashboard';
     this.categories  = 'Utilities Dev';
 

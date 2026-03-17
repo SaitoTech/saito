@@ -1,5 +1,4 @@
 module.exports = (app, mod, file_info = {}) => {
-
   return `
 <div class="vault-file-info vault-file-info-wrapper">
 
@@ -19,9 +18,8 @@ module.exports = (app, mod, file_info = {}) => {
     <h2>Success!</h2>
       Your NFT access key is being finalized.
       <p></p>
-      Once it arrives, <a href="/vault">access your file</a> here.
+      Once it arrives, <span id="open-vault" class="saito-anchor">access your file</span> here.
   </div>
 </div>
   `;
 };
-

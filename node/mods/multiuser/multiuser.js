@@ -21,6 +21,7 @@ class MultiUser extends ModTemplate {
 	constructor(app) {
 		super(app);
 		this.name = 'MultiUser';
+		this.slug = 'multiuser';
 		this.description = 'Adds support for read/write handover access';
 		this.categories = 'Utility';
 

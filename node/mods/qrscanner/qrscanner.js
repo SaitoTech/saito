@@ -29,6 +29,7 @@ class QRScanner extends ModTemplate {
 		this.styles = ['/qrscanner/style.css'];
 		this.scanner_callback = null;
 
+		this.dependencies = ['Encrypt']; // For scan to add encrypted contact
 		this.description = 'Helper module with QR code scanning functionality.';
 		this.categories = 'Dev Data Utilities';
 		this.class = 'utility';

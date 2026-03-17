@@ -131,39 +131,10 @@ class GameQueue {
       //The pending transactions are processed elsewhere...
     } else {
       if (this.game.player == 0) {
-        console.info(
-          'GT [initializeGameQueue]: Observer.... check for additional moves..., set active while loading...'
-        );
+        console.info('GT [initializeGameQueue]: Observer.... set active while loading...');
         this.gaming_active = 1;
-        const overlayBefore =
-          typeof document !== 'undefined' && document.body
-            ? !!document.body.querySelector('#observer-sync-overlay')
-            : null;
-        console.log(
-          '[OBS_TRACE] initializeGameQueue (observer): gaming_active=1, game.initialize_game_run=',
-          this.game.initialize_game_run,
-          'overlayExistsBeforeRender=',
-          overlayBefore
-        );
-
-        if (this.observerControls) {
-          this.observerControls.is_ui_initializing = true;
-        }
-        const overlayAfter =
-          typeof document !== 'undefined' && document.body
-            ? !!document.body.querySelector('#observer-sync-overlay')
-            : null;
-        console.log(
-          '[OBS_TRACE] initializeGameQueue (observer): after render overlayExists=',
-          overlayAfter,
-          'observerControls.is_ui_initializing=',
-          this.observerControls?.is_ui_initializing
-        );
-
-        await this.observerControls.downloadMoves();
-      } else {
-        await this.startQueue();
       }
+      await this.startQueue();
     }
 
     return 1;
@@ -175,8 +146,7 @@ class GameQueue {
   async startQueue() {
     console.log('[OBS_TRACE] startQueue()', {
       halted: this.halted,
-      gaming_active: this.gaming_active,
-      is_ui_initializing: this.observerControls?.is_ui_initializing
+      gaming_active: this.gaming_active
     });
     console.info(
       `GT [startQueue] halted: (${this.halted}) , gaming_active (${this.gaming_active})`
@@ -207,27 +177,6 @@ class GameQueue {
     // (1/2) We run commands from the queue until one returns a zero or we run out of queue
     //
     if ((await this.runQueue()) == 0) {
-      //
-      // Game Observer UI stuff
-      //
-      if (this.game.player == 0 && this.gameBrowserActive()) {
-        const controls = this.observerControls;
-        console.info(
-          'GT [observer] running Queue in Observer mode. paused? ',
-          controls ? controls.is_paused : undefined
-        );
-
-        //
-        // Only couple pause -> halted after initial sync has completed.
-        // During initial archive reconstruction, observerControls.is_ui_initializing is true,
-        // so _paused should not halt the engine or block addNextMove().
-        //
-        if (!controls?.is_ui_initializing && controls?.is_paused && !this.game?.live) {
-          console.info('GT Observer controls halt game');
-          this.halted = 1;
-        }
-      }
-
       //
       // (2/2) After which we check if there are any new moves received
       // PROCESS FUTURE MOVES will add those to the queue and recursively
@@ -1179,9 +1128,6 @@ class GameQueue {
             game_self.game.deck[deckidx - 1].keys = [];
             game_self.game.deck[deckidx - 1].crypt = [];
           } else {
-            //Isn't this backwards????
-            //game_self.game.deck[deckidx - 1].keys = game_self.game.deck[deckidx - 1].keys.splice(cards,game_self.game.deck[deckidx - 1].keys.length - cards);
-            //game_self.game.deck[deckidx - 1].crypt = game_self.game.deck[deckidx - 1].crypt.splice(cards,game_self.game.deck[deckidx - 1].crypt.length - cards);
             game_self.game.deck[deckidx - 1].keys.splice(0, cards);
             game_self.game.deck[deckidx - 1].crypt.splice(0, cards);
             if (

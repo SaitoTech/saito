@@ -28,6 +28,11 @@ for dir in "$SOURCE_DIR"/*; do
     # copy module contents (including hidden files)
     cp -R "$dir"/. "$TMP_DIR/"
 
+    # keep arcade image for metadata extraction before removing web assets
+    if [ -f "$TMP_DIR/web/img/arcade/arcade.jpg" ]; then
+      mv -f "$TMP_DIR/web/img/arcade/arcade.jpg" "$TMP_DIR/arcade.jpg"
+    fi
+
     # remove unnecessary directories/files
     rm -rf "$TMP_DIR/license"
     rm -rf "$TMP_DIR/build"

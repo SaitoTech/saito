@@ -1,9 +1,8 @@
 :root {
-  --saito-assetstore-width: 1500px;
+  --saito-width: 1500px;
 }
 
 .saito-container {
-  padding-top: 1rem;
   grid-template-columns: 25rem 1fr;
 }
 
@@ -27,12 +26,13 @@
 }
 
 .assetstore-table-list {
-  display: flex;
+  /*display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
+  flex-wrap: wrap;*/
+  display: grid;
   width: 100%;
-  row-gap: 1.25rem;
-  column-gap: 1.25rem;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(95vw, 330px), 1fr));
 }
 
 #assetstore-empty {
@@ -60,7 +60,7 @@
   background: var(--saito-background-color);
   display: flex;
   height: 40rem;
-  width: 60rem;
+  width: 50rem;
   justify-content: space-between;
   padding: 1.5rem;
 }
@@ -146,11 +146,11 @@ select.saito-store-explorer-mobile option {
   transform: translateY(-50%);
   border-radius: 50%;
   right: 2rem;
-  transition: transform 0.5s;
+  transition: transform 0.3s;
 }
 
 .store-absolute-icon:hover {
-  transform: translateY(-50%) rotate(45deg);
+  transform: translate(5%, -55%);
 }
 
 /* ==========================
@@ -160,9 +160,11 @@ select.saito-store-explorer-mobile option {
   position: absolute;
   background: var(--saito-background-color);
   top: 0;
-  left: 0;
+  left: 50%;
   width: 100%;
+  max-width: calc(var(--saito-width) + 2rem);
   height: 100%;
+  transform: translateX(-50%);
   display: grid;
   column-gap: min(4rem, 10vw);
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
@@ -170,6 +172,7 @@ select.saito-store-explorer-mobile option {
   align-content: center;
   font-size: 2rem;
   transition: opacity 1s ease-in;
+  justify-items: center;
 }
 
 .asset-store-splash.dissolve {
@@ -257,6 +260,8 @@ select.saito-store-explorer-mobile option {
     height: 8rem;
     flex-direction: row;
     background: var(--saito-background-color);
+    width: 100%;
+    z-index: 100;
   }
 
   .saito-store-explorer {
@@ -282,5 +287,28 @@ select.saito-store-explorer-mobile option {
 
   select.saito-store-explorer-mobile {
     display: flex;
+  }
+
+  .asset-store-splash {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 1fr;
+    padding: min(2rem, 5vw);
+  }
+
+  .store-img-front {
+    height: 100%;
+  }
+
+  .store-splash-content {
+    gap: 0;
+  }
+
+  .store-splash-content p {
+    line-height: 1.6;
+  }
+
+  .asset-store-splash .saito-button-row.auto-size {
+    flex-direction: row;
+    min-height: 6rem;
   }
 }

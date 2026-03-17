@@ -344,12 +344,16 @@ class SaitoNFT {
     }
     if (this.slip3?.utxo_key) {
       this.nft_type = this.app.wallet.extractNFTType(this.slip3.utxo_key);
-      return this.nft_type;
+      if (this.nft_type) {
+        return this.nft_type;
+      }
     }
     const properties = ['image', 'text', 'json', 'js', 'css'];
+
     for (const prop of properties) {
       const value = this[prop];
       if (value && (typeof value !== 'string' || value.trim() !== '')) {
+        this.nft_type = prop;
         return prop;
       }
     }

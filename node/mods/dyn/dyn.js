@@ -5,6 +5,7 @@ class Dyn extends ModTemplate {
 		super(app);
 		console.log("dyn module loaded");
 		this.name = "Dyn";
+		this.slug = 'dyn';
 	}
 	respondTo(request_type = '', obj) {
 		console.log("dyn responding to " + request_type);

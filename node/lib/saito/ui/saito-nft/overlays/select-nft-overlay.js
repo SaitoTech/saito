@@ -18,11 +18,14 @@ class SelectNFT {
     this.callback = null;
 
     if (attach_events) {
-      this.app.connection.on('saito-nft-list-render-request', (title = '', callback = null) => {
-        this.title = title;
-        this.callback = callback;
-        this.render();
-      });
+      this.app.connection.on(
+        'saito-nft-list-render-request',
+        (title = '', callback = null, filter = null) => {
+          this.title = title;
+          this.callback = callback;
+          this.render(filter);
+        }
+      );
 
       this.app.connection.on('saito-nft-list-close-request', () => {
         this.overlay.close();
@@ -47,10 +50,10 @@ class SelectNFT {
     }
   }
 
-  async render() {
+  async render(filter = null) {
     this.overlay.show(SelectNFTTemplate(this));
 
-    await this.renderNFTList();
+    await this.renderNFTList(filter);
 
     setTimeout(() => {
       this.attachEvents();
@@ -92,7 +95,7 @@ class SelectNFT {
     }
   }
 
-  async renderNFTList() {
+  async renderNFTList(filter) {
     const container = document.querySelector('#nft-list');
 
     if (!container) {
@@ -123,7 +126,9 @@ class SelectNFT {
             this.nft_overlay.render(nft);
           };
         }
-        await card.render();
+        if (!filter || filter == card.nft.returnType()) {
+          await card.render();
+        }
       }
     }
   }

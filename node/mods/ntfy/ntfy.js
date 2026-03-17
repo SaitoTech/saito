@@ -6,6 +6,7 @@ class NTFY extends ModTemplate {
         super(app);
 
         this.name = 'ntfy';
+        this.slug = 'ntfy';
         this.description = 'Module to send notifications to ntfy server.';
         this.categories = 'Utilities';
         this.class = 'utility';

@@ -377,7 +377,6 @@ class AssetStoreMain {
 
 					record.nft_card.nft.metadata = record;
 
-					console.log('rendering nft card');
 					await record.nft_card.render();
 				});
 			}

@@ -1,4 +1,3 @@
-const ListNFTsOverlay = require('./list-nfts.js');
 const ScriptingKeyOverlay = require('./scripting.js');
 const FileInfoOverlay = require('./file-info.js');
 const FileUploadTemplate = require('./file-upload.template');
@@ -6,12 +5,10 @@ const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-
 let SaitoNFT = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
 
 class FileUpload {
-
   constructor(app, mod, container = '') {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
-    this.list_nfts_overlay = new ListNFTsOverlay(this.app, this.mod);
     this.file_info_overlay = new FileInfoOverlay(this.app, this.mod);
     this.scripting_overlay = new ScriptingKeyOverlay(this.app, this.mod);
     this.submit_button_active = false;
@@ -27,9 +24,11 @@ class FileUpload {
 
   attachEvents() {
     try {
-
-      document.querySelector('.vault-upload-overlay .nft-creator .button-container').style.display = "none";
-      document.querySelector('.vault-upload-overlay .nft-creator .textarea-container').style.display = "flex";
+      document.querySelector('.vault-upload-overlay .nft-creator .button-container').style.display =
+        'none';
+      document.querySelector(
+        '.vault-upload-overlay .nft-creator .textarea-container'
+      ).style.display = 'flex';
 
       //
       // drag-and-drop file upload
@@ -43,7 +42,9 @@ class FileUpload {
               if (fileobj.size > this.app.browser.MAX_FILE_SIZE) {
                 salert(`File size exceeds browser limit. Please choose a smaller file.`);
               } else {
-                salert(`Failed to read file. File may be too large (${(fileobj.size / 1024 / 1024).toFixed(2)} MB). Try a smaller file.`);
+                salert(
+                  `Failed to read file. File may be too large (${(fileobj.size / 1024 / 1024).toFixed(2)} MB). Try a smaller file.`
+                );
               }
               return;
             }
@@ -61,11 +62,17 @@ class FileUpload {
 
             this.mod.file = file;
             this.mod.filename = fileobj.name;
-            document.querySelector('.vault-upload-overlay .saito-overlay-form-header .saito-overlay-form-header-title').innerHTML = "Select Key Type:";
-            document.querySelector('.vault-upload-overlay .nft-creator .button-container').style.display = "flex";
-            document.querySelector('.vault-upload-overlay .nft-creator .textarea-container').style.display = "none";
+            document.querySelector(
+              '.vault-upload-overlay .saito-overlay-form-header .saito-overlay-form-header-title'
+            ).innerHTML = 'Select Key Type:';
+            document.querySelector(
+              '.vault-upload-overlay .nft-creator .button-container'
+            ).style.display = 'flex';
+            document.querySelector(
+              '.vault-upload-overlay .nft-creator .textarea-container'
+            ).style.display = 'none';
           } catch (err) {
-            console.error("Vault file upload error:", err);
+            console.error('Vault file upload error:', err);
             salert('Error processing file. Please try again.');
           }
         },
@@ -77,49 +84,44 @@ class FileUpload {
       //
       if (document.querySelector('.private-nft')) {
         document.querySelector('.private-nft').onclick = async (e) => {
-
           let wallet_balance = await this.app.wallet.getBalance('SAITO');
-                
+
           if (Number(wallet_balance) < 1) {
             siteMessage('Insufficient SAITO to Create Vault NFTs...', 3000);
-      	    this.app.connection.emit('saito-purchase-launch');
+            this.app.connection.emit('saito-purchase-launch');
             return;
           }
 
           this.overlay.hide();
           this.scripting_overlay.render();
-	  this.scripting_overlay.callback = (obj) => {
-	    let access_hash = obj.access_hash;
-	    let access_script = obj.access_script;
-	    if (access_script) {
-	      this.mintNFT(access_script);
-	    } else {
-	    }
-	  } 
-        }
+          this.scripting_overlay.callback = (obj) => {
+            let access_hash = obj.access_hash;
+            let access_script = obj.access_script;
+            if (access_script) {
+              this.mintNFT(access_script);
+            } else {
+            }
+          };
+        };
       }
 
       document.querySelector('.public-nft').onclick = async (e) => {
-
         let wallet_balance = await this.app.wallet.getBalance('SAITO');
 
         if (Number(wallet_balance) < 1) {
           siteMessage('Insufficient SAITO to Create Vault NFTs...', 3000);
-      	  this.app.connection.emit('saito-purchase-launch');
+          this.app.connection.emit('saito-purchase-launch');
           return;
         }
 
-	this.mintNFT();
+        this.mintNFT();
       };
-
     } catch (err) {}
   }
 
-
-  async mintNFT(access_script=null) {
-
+  async mintNFT(access_script = null) {
     if (!this.mod.file) {
-      alert("Please upload a file before creating an NFT.");
+      alert('Please upload a file before creating an NFT.');
       return;
     }
 
@@ -138,11 +140,11 @@ class FileUpload {
     }
 
     let tx_msg = {
-      data : {
+      data: {
         filename: this.mod.filename,
-        file_id: ""  //
-                     // will be filled after we know file tx signature
-                     //
+        file_id: '' //
+        // will be filled after we know file tx signature
+        //
       }
     };
 
@@ -164,18 +166,18 @@ class FileUpload {
     this.nft_id = nft_obj.id;
 
     if (!this.nft_id) {
-      alert("Unable to compute NFT ID for minted NFT");
+      alert('Unable to compute NFT ID for minted NFT');
       return;
     }
 
-    siteMessage("Binding Access Key to File...", 2000);
+    siteMessage('Binding Access Key to File...', 2000);
 
     //
     // Create and sign vault file tx bound to this nft_id
     //
     let file_tx = await this.mod.createVaultAddFileTransaction(this.nft_id, access_script);
     if (!file_tx) {
-      alert("Error creating Vault file transaction");
+      alert('Error creating Vault file transaction');
       return;
     }
 
@@ -184,13 +186,19 @@ class FileUpload {
     //
     // Add file_id into NFT tx msg.data and sign NFT tx
     //
-    if (!nft_tx.msg) { nft_tx.msg = {}; }
-    if (!nft_tx.msg.data) { nft_tx.msg.data = {}; }
+    if (!nft_tx.msg) {
+      nft_tx.msg = {};
+    }
+    if (!nft_tx.msg.data) {
+      nft_tx.msg.data = {};
+    }
 
     nft_tx.msg.data.file_id = file_id;
-    if (access_script != null) { nft_tx.msg.data.file_access_script = access_script; }
+    if (access_script != null) {
+      nft_tx.msg.data.file_access_script = access_script;
+    }
 
-    siteMessage("Signing and Propagating...", 2000);
+    siteMessage('Signing and Propagating...', 2000);
 
     await nft_tx.sign();
 
@@ -211,9 +219,9 @@ class FileUpload {
 
     if (this.mod.peer) {
       siteMessage('Transferring File to Archive...', 3000);
-      document.querySelector('.spinner-helper').style.display = "block";
-      document.querySelector('.public-nft').style.display = "none";
-      document.querySelector('.private-nft').style.display = "none";
+      document.querySelector('.spinner-helper').style.display = 'block';
+      document.querySelector('.public-nft').style.display = 'none';
+      document.querySelector('.private-nft').style.display = 'none';
 
       await this.app.network.sendRequestAsTransaction(
         'vault add file',
@@ -221,11 +229,9 @@ class FileUpload {
         callback_func
       );
     } else {
-      alert("ERROR: issue connecting to server. Please try again later.");
+      alert('ERROR: issue connecting to server. Please try again later.');
     }
-
   }
-
 }
 
 module.exports = FileUpload;
