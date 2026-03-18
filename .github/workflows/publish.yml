@@ -32,6 +32,9 @@ jobs:
           cache: npm
           cache-dependency-path: rust/saito-wasm/package-lock.json
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: get latest saito-wasm version
         run: |
           echo published_saito_wasm_version=$(npm show saito-wasm version) >> $GITHUB_ENV
@@ -91,7 +94,7 @@ jobs:
 
       - name: Publish saito-wasm package
         if: ${{ env.published_saito_wasm_version != env.current_saito_wasm_version }}
-        run: npm publish --provenance
+        run: npm publish --provenance --access public
         working-directory: ./rust/saito-wasm
 
       - name: Upload Saito Rust Artifact
@@ -159,7 +162,7 @@ jobs:
 
       - name: Publish saito-js package
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
-        run: npm publish --provenance
+        run: npm publish --provenance --access public
         working-directory: rust/saito-js/dist
 
       - name: Create github release
