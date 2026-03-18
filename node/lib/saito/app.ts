@@ -8,7 +8,7 @@ import Browser from './browser';
 import Wallet from './wallet';
 import Keychain from './keychain';
 import Storage from './storage';
-import build from '../../config/build/build.json';
+import build from '../../dist/build.json';
 import S, { LogLevel } from 'saito-js/saito';
 
 import Network from './network';

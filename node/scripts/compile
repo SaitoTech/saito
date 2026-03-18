@@ -10,11 +10,11 @@ echo "  Updating build number in options file"
 currentTime=$(date +%s)
 echo "  Current Timestamp: $currentTime"
 
-buildJsonFile="${PROJECT_DIR}/config/build/build.json"
+buildJsonFile="${PROJECT_DIR}/dist/build.json"
 
 if [ ! -f "$buildJsonFile" ]; then
     echo "  build.json not found, creating file..."
-    mkdir -p "${PROJECT_DIR}/config"
+    mkdir -p "${PROJECT_DIR}/dist"
     echo '{"build_number": "0"}' > "$buildJsonFile"
 fi
 
@@ -91,8 +91,8 @@ else
   echo ""
   echo "Updating Build Number"
   currentTime=$(date +%s)
-  echo '{"build_number": "'$currentTime'"}' > "${PROJECT_DIR}/config/build/build.json"
-  cat "${PROJECT_DIR}/config/build/build.json" | sed 's/_/\ /' | sed 's/[{}"]//g'
+  echo '{"build_number": "'$currentTime'"}' > "${PROJECT_DIR}/dist/build.json"
+  cat "${PROJECT_DIR}/dist/build.json" | sed 's/_/\ /' | sed 's/[{}"]//g'
   echo ""
 fi
 
@@ -115,11 +115,13 @@ echo ""
   if [ ! -d "${PROJECT_DIR}/dist/bundler" ]; then
 
     mkdir -p "${PROJECT_DIR}/dist/bundler/default/mods"
+    mkdir -p "${PROJECT_DIR}/dist/bundler/default/dist"
     cp -rf "${PROJECT_DIR}/lib" "${PROJECT_DIR}/dist/bundler/default/lib"
     rm -f "${PROJECT_DIR}/dist/bundler/default/lib/saito/"*.spec.js
     rm -f "${PROJECT_DIR}/dist/bundler/default/lib/saito/core/"*.spec.js
     cp -rf "${PROJECT_DIR}/config" "${PROJECT_DIR}/dist/bundler/default/config"
     cp -rf "${PROJECT_DIR}/apps" "${PROJECT_DIR}/dist/bundler/default/apps"
+    cp -rf "${PROJECT_DIR}/dist/build.json" "${PROJECT_DIR}/dist/bundler/default/dist/build.json"
 
     copy_lite_mods_to_bundler_directory
 
