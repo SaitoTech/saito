@@ -92,8 +92,6 @@ jobs:
       - name: Publish saito-wasm package
         if: ${{ env.published_saito_wasm_version != env.current_saito_wasm_version }}
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: ./rust/saito-wasm
 
       - name: Upload Saito Rust Artifact
@@ -162,8 +160,6 @@ jobs:
       - name: Publish saito-js package
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
         run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: rust/saito-js/dist
 
       - name: Create github release
