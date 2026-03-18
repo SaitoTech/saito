@@ -45,7 +45,7 @@ use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
 use saito_core::core::util::configuration::Configuration;
-use saito_core::core::util::crypto::{generate_keypair_from_private_key, sign};
+use saito_core::core::util::crypto::{generate_keypair_from_private_key, generate_keys, sign};
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
 use secp256k1::SECP256K1;
 use std::convert::TryInto;
@@ -273,14 +273,16 @@ impl SaitoWasm {
     async fn apply_private_key(&self, private_key: SaitoPrivateKey) {
         let mut configs = self.context.config_lock.write().await;
         let mut wallet = self.context.wallet_lock.write().await;
-        if private_key != [0; 32] {
-            let keys = generate_keypair_from_private_key(private_key.as_slice());
-            wallet.private_key = keys.1;
-            wallet.public_key = keys.0;
-            if let Some(wallet) = configs.get_wallet_configs_mut() {
-                wallet.privateKey = keys.1.to_hex();
-                wallet.publicKey = keys.0.to_base58();
-            }
+        let keys = if private_key != [0; 32] {
+            generate_keypair_from_private_key(private_key.as_slice())
+        } else {
+            generate_keys()
+        };
+        wallet.private_key = keys.1;
+        wallet.public_key = keys.0;
+        if let Some(wallet_config) = configs.get_wallet_configs_mut() {
+            wallet_config.privateKey = keys.1.to_hex();
+            wallet_config.publicKey = keys.0.to_base58();
         }
         info!("current core version : {:?}", wallet.core_version);
     }
