@@ -3,7 +3,6 @@ name: Run E2E Tests
 on:
   push:
     branches:
-      - develop
       - master
       - prod
   pull_request:
