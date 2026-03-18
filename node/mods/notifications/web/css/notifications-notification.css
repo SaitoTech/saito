@@ -1,0 +1,34 @@
+/* Notifications Module - Notification Item CSS
+ *
+ * CSS specific to the individual notification component.
+ */
+
+.notifications-notification {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.notifications-notification-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: #ccc;
+  flex-shrink: 0;
+}
+
+.notifications-notification-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notifications-notification-text {
+  font-size: 14px;
+}
+
+.notifications-notification-time {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}

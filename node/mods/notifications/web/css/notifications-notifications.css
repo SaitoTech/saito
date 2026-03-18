@@ -1,0 +1,12 @@
+/* Notifications Module - Notifications Panel CSS
+ *
+ * Styles the parent notifications component.
+ * - Handles scrolling
+ * - Defines intersection observer area
+ * - Defines layout of the notifications panel
+ */
+
+.notifications-notifications {
+  display: block;
+}
+

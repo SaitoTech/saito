@@ -641,7 +641,7 @@ class Storage {
 
   watchBuildFile(): void {
     const checkBuildNumber = async () => {
-      const filePath = path.join(__dirname, '/dist/build.json');
+      const filePath = path.join(__dirname, 'dist/build.json');
       fs.readFile('dist/build.json', 'utf8', async (err, data) => {
         if (err) {
           console.error('Error reading options file:', err);
