@@ -2,6 +2,42 @@
   "name": "saito-js",
   "version": "0.2.205",
   "description": "js wrappings around saito-core using wasm",
+  "main": "./dist/index.node.js",
+  "types": "./dist/index.node.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": "./dist/index.node.js",
+    "./index.node": "./dist/index.node.js",
+    "./index.web": "./dist/index.web.js",
+    "./saito": "./dist/saito.js",
+    "./shared_methods": "./dist/shared_methods.js",
+    "./configs": "./dist/configs.js",
+    "./lib/*": "./dist/lib/*.js"
+  },
+  "typesVersions": {
+    "*": {
+      "index.node": [
+        "dist/index.node.d.ts"
+      ],
+      "index.web": [
+        "dist/index.web.d.ts"
+      ],
+      "saito": [
+        "dist/saito.d.ts"
+      ],
+      "shared_methods": [
+        "dist/shared_methods.d.ts"
+      ],
+      "configs": [
+        "dist/configs.d.ts"
+      ],
+      "lib/*": [
+        "dist/lib/*.d.ts"
+      ]
+    }
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/SaitoTech/saito"
@@ -9,6 +45,7 @@
   "scripts": {
     "test": "env TS_NODE_PROJECT=\"tsconfig.testing.json\" mocha --require ts-node/register 'tests/**/*.ts'",
     "build": "tsc",
+    "prepack": "npm run build",
     "serve": "webpack-dev-server"
   },
   "author": "",
