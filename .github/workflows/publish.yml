@@ -151,19 +151,10 @@ jobs:
         run: npm run build
         working-directory: rust/saito-js
 
-      - name: copying saito-js
-        if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
-        run: |
-          cp package.json dist
-          cp package-lock.json dist
-          cp tsconfig.json dist
-          cp .npmignore dist
-        working-directory: rust/saito-js
-
       - name: Publish saito-js package
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
         run: npm publish --provenance --access public
-        working-directory: rust/saito-js/dist
+        working-directory: rust/saito-js
 
       - name: Create github release
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
