@@ -827,6 +827,7 @@ class Arcade extends ModTemplate {
 			for (let id in this.games) {
 				let record = this.games[id];
 				if (record.is_sender_reachable !== true) { continue; }
+				if (record.status === "closed" || record.status === "over") { continue; }
 				let g = record.tx;
 				txs.push(g.serialize_to_web(this.app));
 			}
