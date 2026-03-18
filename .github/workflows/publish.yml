@@ -32,8 +32,8 @@ jobs:
           cache: npm
           cache-dependency-path: rust/saito-wasm/package-lock.json
 
-      - name: Remove _authToken for OIDC publishing
-        run: sed -i '/\/\/registry.npmjs.org\/:_authToken/d' "$NPM_CONFIG_USERCONFIG"
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: get latest saito-wasm version
         run: |
