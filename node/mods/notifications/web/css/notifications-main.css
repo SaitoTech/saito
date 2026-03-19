@@ -1,16 +1,12 @@
-/* Notifications Module - Main Container CSS
+/* Notifications Module - Main / Header CSS
  *
- * CSS specific to the main notifications container component.
+ * Minor styling for header and spacing only.
+ * Layout is provided by Saito layout classes (saito-main, saito-center, etc).
  */
 
 .notifications-header {
   font-size: 20px;
   font-weight: 600;
   margin-bottom: 15px;
-}
-
-.notifications-main {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 10px;
+  padding: 12px 16px 0;
 }

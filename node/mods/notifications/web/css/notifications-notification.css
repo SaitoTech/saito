@@ -1,34 +1,71 @@
 /* Notifications Module - Notification Item CSS
  *
- * CSS specific to the individual notification component.
+ * Tweet-like styling (RedSquare feel).
  */
 
 .notifications-notification {
   display: flex;
-  gap: 10px;
-  padding: 12px;
-  border-bottom: 1px solid #eee;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background-color 0.15s ease;
+}
+
+.notifications-notification:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
 }
 
 .notifications-notification-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 20px;
-  background: #ccc;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
   flex-shrink: 0;
 }
 
-.notifications-notification-body {
+.notifications-notification-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.notifications-notification-text {
-  font-size: 14px;
+.notifications-notification-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.notifications-notification-user {
+  font-weight: 700;
+  font-size: 15px;
+  color: inherit;
 }
 
 .notifications-notification-time {
-  font-size: 12px;
-  color: #888;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.notifications-notification-body {
+  font-size: 15px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.notifications-notification-footer {
+  display: flex;
+  gap: 24px;
   margin-top: 4px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.notifications-notification-footer span:hover {
+  color: rgba(255, 255, 255, 0.8);
 }

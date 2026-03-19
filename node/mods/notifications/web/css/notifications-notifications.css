@@ -1,12 +1,16 @@
 /* Notifications Module - Notifications Panel CSS
  *
- * Styles the parent notifications component.
- * - Handles scrolling
- * - Defines intersection observer area
- * - Defines layout of the notifications panel
+ * Feed container only. Scrolling follows Saito layout system.
  */
 
 .notifications-notifications {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
+.notifications-notifications::-webkit-scrollbar {
+  display: none;
+}

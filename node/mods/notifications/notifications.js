@@ -1,4 +1,5 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
+const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const index = require('./index');
 
 class Notifications extends ModTemplate {
@@ -16,33 +17,29 @@ console.log("TESTING!");
 		this.notifications = {};
 
 		this.ui = null;
+		this.header = null;
 	}
 
 	async render() {
-		if (!this.app.BROWSER || !this.browser_active) return;
+
+		if (!this.app.BROWSER || !this.browser_active) { return; }
 
 		if (!this.ui) {
 			const NotificationsMain = require('./lib/main');
-			this.ui = new NotificationsMain(this.app, this);
+			this.ui = new NotificationsMain(this.app, this, ".saito-container");
+			this.header = new SaitoHeader(this.app, this);
 		}
 
 		this.ui.render();
+		this.header.render();
+
 	}
 
 	addNotification(tx) {
-		if (!tx?.signature) return false;
 
-		// ignore if we don't know who "we" are yet
-		if (!this.publicKey) return false;
-
-		// Ignore transactions sent by the user
-		if (typeof tx.isFrom === 'function' && tx.isFrom(this.publicKey)) return false;
-
-		// Only process transactions addressed to the user
-		if (typeof tx.isTo === 'function' && !tx.isTo(this.publicKey)) return false;
-
-		// Deduplicate by signature
-		if (this.notifications[tx.signature]) return false;
+		if (typeof tx.isFrom === 'function' && tx.isFrom(this.publicKey)) { return false; }
+		if (typeof tx.isTo === 'function' && !tx.isTo(this.publicKey)) { return false; }
+		if (this.notifications[tx.signature]) { return false; }
 
 		this.notifications[tx.signature] = {
 			tx,
@@ -52,6 +49,7 @@ console.log("TESTING!");
 
 		return true;
 	}
+
 
 	resetNotifications() {
 		for (const sig in this.notifications) {
