@@ -11,7 +11,6 @@ class ExploreOverlay {
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.posts = [];
     this.isLoading = false;
-    this.currentFilter = 'all';
     this.subscriptions = [];
     this.targetPublicKey = null; // For URL-based routing: publicKey to show posts for
   }
@@ -30,6 +29,10 @@ class ExploreOverlay {
 
     this.subscriptions = this.calculateSubscriptions();
 
+    if (!this.targetPublicKey) {
+      this.targetPublicKey = this.mod.STACK_OFFICIAL_PUBLICKEY;
+    }
+
     const html = ExploreTemplate(
       this.app,
       this.mod,
@@ -43,12 +46,26 @@ class ExploreOverlay {
       this.attachEvents();
       this.updateHelpNoteVisibility();
       // Load posts after attaching events (skip if URL-based routing already loaded posts)
-      if (!(this.targetPublicKey && this.currentFilter === 'creator')) {
-        this.loadPostsForFilter(this.currentFilter);
-      }
+      this.loadPostsForFilter(this.targetPublicKey);
     }, 25);
   }
 
+  createLabel(publicKey) {
+    if (publicKey == this.mod.STACK_OFFICIAL_PUBLICKEY) {
+      return 'SaitoOfficial';
+    }
+
+    if (publicKey == this.mod.publicKey) {
+      return 'My Posts';
+    }
+
+    return this.app.keychain.returnUsername(publicKey);
+  }
+
+  //
+  // URL - publicKey on top of list, then Official, then My Posts, then whatever is in in app.optoins.stack.subscriptions
+  // We prevent duplication of items if the URL is one of our otherwise listed publicKeys
+  //
   calculateSubscriptions() {
     let subscriptions = [];
 
@@ -58,24 +75,29 @@ class ExploreOverlay {
         {
           publickey: this.targetPublicKey,
           icon: 'fa-solid fa-user',
-          label: this.app.keychain.returnUsername(this.targetPublicKey),
+          label: this.createLabel(this.targetPublicKey),
           source: 'url'
         }
       ];
     }
 
-    subscriptions.push({
-      icon: 'fa-solid fa-user',
-      label: 'SaitoOfficial',
-      publickey: this.mod.STACK_OFFICIAL_PUBLICKEY,
-      source: 'default'
-    });
-    subscriptions.push({
-      icon: 'fa-solid fa-user',
-      label: 'My Posts',
-      publickey: 'my-posts',
-      source: 'default'
-    });
+    if (this.targetPublicKey !== this.mod.STACK_OFFICIAL_PUBLICKEY) {
+      subscriptions.push({
+        icon: 'fa-solid fa-user',
+        label: 'SaitoOfficial',
+        publickey: this.mod.STACK_OFFICIAL_PUBLICKEY,
+        source: 'default'
+      });
+    }
+
+    if (this.targetPublicKey !== this.mod.publicKey) {
+      subscriptions.push({
+        icon: 'fa-solid fa-user',
+        label: 'My Posts',
+        publickey: this.mod.publicKey,
+        source: 'default'
+      });
+    }
 
     if (
       this.app.options?.stack?.subscriptions &&
@@ -83,12 +105,14 @@ class ExploreOverlay {
       this.app.options.stack.subscriptions.length > 0
     ) {
       for (let pk in this.app.options.stack.subscriptions) {
-        subscriptions.push({
-          publickey: pk,
-          icon: 'fa-solid fa-user',
-          label: this.app.keychain.returnUsername(pk),
-          source: 'subscription'
-        });
+        if (this.targetPublicKey !== pk) {
+          subscriptions.push({
+            publickey: pk,
+            icon: 'fa-solid fa-user',
+            label: this.createLabel(pk),
+            source: 'subscription'
+          });
+        }
       }
     }
 
@@ -192,13 +216,7 @@ class ExploreOverlay {
     }
 
     const filter = activeItem.getAttribute('data-filter');
-    let description = 'Explore';
-
-    if (filter === 'my-posts') {
-      description = 'Your Posts';
-    } else if (filter === 'all') {
-      description = 'Explore';
-    }
+    let description = 'Explore (fix this)';
 
     // ========================================================================
     // INVARIANT 1: ALWAYS render current user's identity
@@ -219,7 +237,7 @@ class ExploreOverlay {
     const addUserBtn = document.querySelector('#stack-explore-add-subscription-btn');
     const settingsBtn = document.querySelector('#stack-explore-settings-btn');
 
-    if (filter === 'my-posts') {
+    if (filter === this.mod.publicKey) {
       if (addUserBtn) {
         addUserBtn.style.display = 'none';
       }
@@ -247,28 +265,14 @@ class ExploreOverlay {
    * Loads posts for the given filter using loadPostsForAuthor().
    * Shows loading state, then populated or empty state.
    */
-  async loadPostsForFilter(filter) {
-    this.isLoading = true;
-
+  async loadPostsForFilter(author) {
     this.isLoading = true;
     this.posts = [];
-
-    // breaks fetch
-    //    this.targetPublicKey = null;
-
-    let author = null;
-
-    // Resolve UI filter → concrete author
-    if (filter === 'my-posts') {
-      author = this.app.wallet.publicKey;
-    } else {
-      author = filter;
-    }
 
     this.updatePostsGrid(author);
 
     if (!author) {
-      console.warn('No author resolved for filter:', filter);
+      console.warn('No author resolved for filter:', author);
       return;
     }
 

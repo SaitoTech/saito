@@ -11,10 +11,8 @@ module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
           <div class="stack-explore-subscriptions-list">
   `;
   for (let z = 0; z < subs.length; z++) {
-    let active = '';
-    if (z == 0) {
-      active = ' active';
-    }
+    let active = subs[z].publickey == mod.exploreOverlay.targetPublicKey ? ' active' : '';
+
     html += `
             <div class="stack-explore-subscription-item ${active}" data-filter="${subs[z].publickey}">
               <i class="${subs[z].icon}"></i>
