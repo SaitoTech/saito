@@ -115,14 +115,16 @@ class ExploreOverlay {
 
   updateHelpNoteVisibility() {
     // Count subscription items
-    const subscriptionItems = document.querySelectorAll('.stack-explore-subscription-item');
+    const subscriptionItems = document.querySelectorAll(
+      '.stack-explore-subscriptions-list .stack-explore-subscription-item'
+    );
     const helpNote = document.querySelector('.stack-explore-help-note');
 
-    if (helpNote && subscriptionItems.length > 3) {
-      // Hide help note if more than 3 subscriptions
+    if (helpNote && subscriptionItems.length > 2) {
+      // Hide help note if more than 2 subscriptions
       helpNote.classList.add('hide-help');
     } else if (helpNote) {
-      // Show help note if 3 or fewer subscriptions
+      // Show help note if 2 or fewer subscriptions
       helpNote.classList.remove('hide-help');
     }
   }
@@ -131,130 +133,56 @@ class ExploreOverlay {
     const authorHeader = document.querySelector('#stack-explore-author-header');
     if (!authorHeader) return;
 
-    // ========================================================================
-    // INVARIANT 1: User identity MUST NEVER disappear
-    // ========================================================================
-    // Always render the CURRENT user's identity in the header, regardless of filter.
-    // "My Posts" is a filter, not a different header mode.
-    const currentUserPublicKey = this.mod.publicKey || '';
-    if (!currentUserPublicKey) {
-      // If no user key available, cannot render - but this should never happen
-      console.warn('Stack: No current user public key available for header');
-      return;
-    }
+    const currentUserPublicKey = this.targetPublicKey || this.mod.publicKey;
 
-    // URL-based routing: if targetPublicKey is set, show that user's posts
-    if (this.targetPublicKey) {
-      console.log('updateAuthorHeader', this.targetPublicKey);
-      // Clear header
-      authorHeader.innerHTML = '';
-
-      // Create container for author identity (viewing another user)
-      const authorIdentityContainer = document.createElement('div');
-      authorIdentityContainer.id = 'stack-explore-author-identity';
-      authorHeader.appendChild(authorIdentityContainer);
-
-      // Render the target user's identity
-      const saitoUser = new SaitoUser(
-        this.app,
-        this.mod,
-        '#stack-explore-author-identity',
-        this.targetPublicKey,
-        'Posts by this author', // Use notice parameter for description
-        '' // fourthelem
-      );
-      saitoUser.render();
-
-      // Show/hide subscribe button based on subscription status
-      // Hide action buttons when Subscribe button is shown (mutually exclusive)
-      const isSubscribed = this.mod.isSubscribed(this.targetPublicKey);
-      const subscribeBtnContainer = document.querySelector(
-        '#stack-explore-subscribe-button-container'
-      );
-      const actionBtnContainer = document.querySelector('.stack-explore-action-button-container');
-      if (subscribeBtnContainer) {
-        subscribeBtnContainer.style.display = isSubscribed ? 'none' : 'block';
-      }
-      if (actionBtnContainer) {
-        actionBtnContainer.style.display = isSubscribed ? 'flex' : 'none';
-      }
-      return;
-    }
-
-    // ========================================================================
-    // NON-URL ROUTING: Always show current user's identity
-    // ========================================================================
-    // Clear existing content (but preserve structure - SaitoUser will replace the placeholder)
-    // Keep subscribe button container if it exists
-    const subscribeContainer = authorHeader.querySelector(
-      '#stack-explore-subscribe-button-container'
-    );
+    // Clear header
     authorHeader.innerHTML = '';
-    if (subscribeContainer) {
-      authorHeader.appendChild(subscribeContainer);
-    }
 
-    // Find the currently active subscription item
-    const activeItem = document.querySelector('.stack-explore-subscription-item.active');
-    if (!activeItem) {
-      // No active item - still show current user with default description
-      const saitoUser = new SaitoUser(
-        this.app,
-        this.mod,
-        '#stack-explore-author-header',
-        currentUserPublicKey,
-        'Explore',
-        ''
-      );
-      saitoUser.render();
-      return;
-    }
+    // Create container for author identity (viewing another user)
+    const authorIdentityContainer = document.createElement('div');
+    authorIdentityContainer.id = 'stack-explore-author-identity';
+    authorHeader.appendChild(authorIdentityContainer);
 
-    const filter = activeItem.getAttribute('data-filter');
-    let description = 'Explore (fix this)';
-
-    // ========================================================================
-    // INVARIANT 1: ALWAYS render current user's identity
-    // ========================================================================
+    // Render the target user's identity
     const saitoUser = new SaitoUser(
       this.app,
       this.mod,
-      '#stack-explore-author-header',
-      currentUserPublicKey, // ALWAYS current user, regardless of filter
-      description,
-      ''
+      '#stack-explore-author-identity',
+      currentUserPublicKey,
+      'Explore', // User notice parameter for description
+      '' // fourthelem
     );
     saitoUser.render();
+
+    // Show/hide subscribe button based on subscription status
+    // Hide action buttons when Subscribe button is shown (mutually exclusive)
+    const isSubscribed = this.mod.isSubscribed(currentUserPublicKey);
+    const subscribeBtnContainer = document.querySelector(
+      '#stack-explore-subscribe-button-container'
+    );
+    const actionBtnContainer = document.querySelector('.stack-explore-action-button-container');
+    if (subscribeBtnContainer) {
+      subscribeBtnContainer.style.display = isSubscribed ? 'none' : 'block';
+    }
+    if (actionBtnContainer) {
+      actionBtnContainer.style.display = isSubscribed ? 'flex' : 'none';
+    }
 
     // ========================================================================
     // INVARIANT 3: Update action buttons based on filter
     // ========================================================================
-    const addUserBtn = document.querySelector('#stack-explore-add-subscription-btn');
-    const settingsBtn = document.querySelector('#stack-explore-settings-btn');
-
-    console.log(filter, this.mod.publicKey);
-
-    if (filter === this.mod.publicKey) {
-      if (addUserBtn) {
-        addUserBtn.style.display = 'none';
-      }
-      if (settingsBtn) {
-        settingsBtn.style.display = '';
-      }
-    } else {
-      // Show Add User button for general feeds (all, etc.)
-      if (addUserBtn) {
-        addUserBtn.style.display = '';
-      }
-      if (settingsBtn) {
-        settingsBtn.style.display = 'none';
+    const shareAuthorBtn = document.getElementById('stack-explore-author-share');
+    if (shareAuthorBtn) {
+      if (currentUserPublicKey == this.mod.STACK_OFFICIAL_PUBLICKEY) {
+        shareAuthorBtn.style.display = 'none';
+      } else {
+        shareAuthorBtn.style.display = '';
       }
     }
 
+    const settingsBtn = document.querySelector('#stack-explore-settings-btn');
     if (settingsBtn) {
-      settingsBtn.onclick = (e) => {
-        siteMessage('Saito Stack is Under Development...', 2000);
-      };
+      settingsBtn.style.display = currentUserPublicKey === this.mod.publicKey ? '' : 'none';
     }
   }
 
@@ -295,7 +223,7 @@ class ExploreOverlay {
       return;
     }
 
-    //this.pruneEditedPosts();
+    this.pruneEditedPosts();
 
     if (this.isLoading) {
       // PART 5: Show loading spinner with "Fetching latest posts…" message
@@ -557,6 +485,23 @@ class ExploreOverlay {
         };
       }
 
+      const shareAuthorBtn = document.getElementById('stack-explore-author-share');
+      if (shareAuthorBtn) {
+        shareAuthorBtn.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          let shareUrl = window.location.origin + `/${this.mod.slug}/${this.targetPublicKey}`;
+
+          // Copy to clipboard
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+              siteMessage('Link copied to clipboard', 1500);
+            });
+          }
+        };
+      }
+
       // Hide action buttons if Subscribe button is visible (mutually exclusive)
       if (!this.targetPublicKey) {
         const subscribeBtnContainer = document.querySelector(
@@ -579,7 +524,7 @@ class ExploreOverlay {
         };
       }
 
-      const settingsBtn = document.querySelector('.stack-explore-settings-btn');
+      const settingsBtn = document.querySelector('#stack-explore-settings-btn');
       if (settingsBtn) {
         settingsBtn.onclick = (e) => {
           siteMessage('Saito Stack is Under Development...', 2000);
@@ -587,7 +532,9 @@ class ExploreOverlay {
       }
 
       // Subscription/Identity list items
-      const subscriptionItems = document.querySelectorAll('.stack-explore-subscription-item');
+      const subscriptionItems = document.querySelectorAll(
+        '.stack-explore-subscriptions-list .stack-explore-subscription-item'
+      );
       subscriptionItems.forEach((item) => {
         item.onclick = (e) => {
           e.preventDefault();

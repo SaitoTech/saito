@@ -14,7 +14,7 @@
   display: flex;
   flex-direction: row;
   overflow: hidden;
-  box-shadow: 
+  box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(0, 0, 0, 0.1),
     0 8px 16px rgba(0, 0, 0, 0.2);
@@ -139,12 +139,12 @@
     border-left: 3px solid var(--saito-primary);
     padding-left: calc(2rem - 3px); /* Adjust padding to account for border */
   }
-  
+
   .stack-explore-subscription-item:not(.active):hover i {
     color: var(--saito-primary);
     opacity: 1;
   }
-  
+
   .stack-explore-subscription-item.active:hover {
     background: color-mix(in srgb, var(--saito-primary) 15%, var(--saito-background-color) 85%);
   }
@@ -170,29 +170,30 @@
 /* Contextual Help Note - Bottom of left panel */
 .stack-explore-help-note {
   margin-top: auto;
-  padding: 1.5rem 2rem 1.5rem 2rem; /* Top and bottom padding, horizontal padding */
+  /*padding: 1.5rem 2rem 1.5rem 2rem;  Top and bottom padding, horizontal padding */
   border-top: 1px solid var(--saito-border-color);
   background: color-mix(in srgb, var(--saito-background-color) 98%, var(--saito-font-color) 2%);
   opacity: 0.7;
+  cursor: pointer;
 }
 
 .stack-explore-help-note p {
   margin: 0;
-  padding: 0;
+  padding: 1.5rem 2rem 1.5rem 2rem;
   font-size: 1.4rem; /* 14px minimum - readable but subtle */
   line-height: 1.5;
   color: var(--saito-font-color);
   font-weight: 400;
 }
 
-/* Hide help note when subscription list has more than 2 items */
-.stack-explore-subscriptions-list:has(.stack-explore-subscription-item:nth-child(3)) ~ .stack-explore-help-note {
+/* Fallback: hide if more than 2 items (for browsers without :has support) */
+.stack-explore-help-note.hide-help > p,
+.stack-explore-help-note div {
   display: none;
 }
 
-/* Fallback: hide if more than 2 items (for browsers without :has support) */
-.stack-explore-help-note.hide-help {
-  display: none;
+.stack-explore-help-note.hide-help div {
+  display: flex;
 }
 
 /* Legacy button styles - kept for compatibility but not used */
@@ -301,7 +302,9 @@
   font-size: 1.6rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 150ms ease, transform 150ms ease;
+  transition:
+    background-color 150ms ease,
+    transform 150ms ease;
   white-space: nowrap;
 }
 
@@ -351,31 +354,6 @@
   transform: translateY(0);
 }
 
-/* Settings Button - Secondary styling (no orange fill) */
-.stack-explore-settings-btn {
-  padding: 0.8rem 1.6rem;
-  background: transparent;
-  color: var(--saito-primary);
-  border: 1px solid var(--saito-primary);
-  border-radius: 8px;
-  font-size: 1.6rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 150ms ease;
-  white-space: nowrap;
-  font-family: inherit;
-}
-
-.stack-explore-settings-btn:hover {
-  background: color-mix(in srgb, var(--saito-primary) 10%, transparent 90%);
-  border-color: var(--saito-primary);
-  transform: translateY(-1px);
-}
-
-.stack-explore-settings-btn:active {
-  transform: translateY(0);
-}
-
 /* INVARIANT 1: Never hide author header - user identity must always be visible */
 /* Removed :empty hiding rule - header should never be empty */
 
@@ -413,7 +391,6 @@
   padding: 0;
   max-width: 900px; /* Constrain width for comfortable reading */
 }
-
 
 /* ============================================
    LEGACY EXPLORE CLASSES (Compatibility)
@@ -457,7 +434,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-primary-dark, #4a90e2) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--saito-primary) 0%,
+    var(--saito-primary-dark, #4a90e2) 100%
+  );
   color: white;
   font-size: 3rem;
   opacity: 0.3;
@@ -640,7 +621,7 @@
   .stack-explore-subscription-item.active {
     /* No left border by default on mobile either */
   }
-  
+
   /* Mobile hover - add left border on hover for both active and inactive */
   @media (hover: hover) {
     .stack-explore-subscription-item:hover {
@@ -686,25 +667,22 @@
     justify-content: center; /* Center on mobile */
   }
 
-  .stack-explore-add-subscription-btn,
-  .stack-explore-settings-btn {
+  .stack-explore-add-subscription-btn {
     width: 100%; /* Full width on mobile */
   }
-  
+
   #stack-explore-subscribe-button-container {
     width: 100%;
     justify-content: center; /* Center on mobile */
   }
-  
+
   .stack-explore-subscribe-btn {
     width: 100%; /* Full width on mobile */
   }
 
   /* Removed SaitoUser CSS override - use default Saito.css styling */
 
-
   .stack-explore-posts-grid {
     max-width: 100%;
   }
 }
-

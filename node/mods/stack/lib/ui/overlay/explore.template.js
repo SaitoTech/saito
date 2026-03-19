@@ -26,8 +26,9 @@ module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
           </div>
           
           <!-- Contextual help note - only shown when subscription list is short (2 or fewer) -->
-          <div class="stack-explore-help-note">
-            <p>Need help? Explore shows posts from people you follow. Subscribe to creators to see their posts here.</p>
+          <div id='stack-explore-add-subscription-btn' class="stack-explore-help-note">
+            <p>Need help? Explore shows posts from people you follow. <span class="saito-anchor">Subscribe to creators to see their posts here.</span></p>
+            <div class='stack-explore-subscription-item'><i class="fa-solid fa-user-plus"></i><span>Add creator</span></div>
           </div>
         </div>
       </div>
@@ -55,12 +56,12 @@ module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
           
           <!-- Action Button Container (in main panel header, right-aligned) -->
           <div class="stack-explore-action-button-container">
-            <button class="stack-explore-add-subscription-btn" id="stack-explore-add-subscription-btn" style="display: none;">
-              Add user
-            </button>
-            <button class="stack-explore-settings-btn" id="stack-explore-settings-btn" style="display: none;">
-              Settings
-            </button>
+            <a href="#" class="stack-view-post-action-badge" id="stack-explore-settings-btn" style="display: none;">
+              <i class="fa-solid fa-gear"></i>
+            </a>
+            <a href="#" id="stack-explore-author-share" class="stack-view-post-action-badge" aria-label="Share Author" title="Share Author">
+              <i class="fa-solid fa-share-nodes"></i>
+            </a>
           </div>
         </div>
 
