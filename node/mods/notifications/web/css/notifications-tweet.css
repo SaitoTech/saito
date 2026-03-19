@@ -1,46 +1,70 @@
-/* Notifications Module - Saito Tweet Layout
+/* Notifications Module - Tweet Component
  *
- * Minimal tweet-like layout compatible with existing RedSquare patterns.
- * Uses CSS grid to position avatar (identicon) and content without
- * changing the HTML structure.
+ * Component styling. Clean structure: .saito-tweet > .header > .saito-user, .body, .controls.
+ * Thread connectors: container-based, drawn between tweets via adjacent sibling (no per-tweet ::before/::after).
  */
 
 .saito-tweet {
   position: relative;
-  display: grid;
-  grid-template-columns: 48px 1fr;
-  column-gap: 12px;
-  align-items: start;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: transparent;
-  transition: background-color 0.15s ease;
+  display: block;
+  padding: 14px 16px;
+  max-width: 600px;
+  width: auto;
+  --avatar-size: 40px;
+  --avatar-gap: 12px;
+  --content-offset: calc(var(--avatar-size) + var(--avatar-gap));
 }
 
 .saito-tweet:hover {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(0, 0, 0, 0.03);
   cursor: pointer;
 }
 
-/* Header participates in grid via contents so identicon/user-meta fill columns */
+/* grid-column removed (single tweet phase uses block + flex only) */
+
+/* Ensure username + timestamp render on separate lines */
+.saito-tweet .user-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Header layout: horizontal flex row */
 .saito-tweet .header {
-  display: contents;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--avatar-gap);
+  margin-left: 0;
+  padding-left: 0;
 }
+/* NOTE: do not use .saito-user for this component's layout anymore */
 
-.saito-tweet .saito-user {
-  display: contents;
-}
-
-.saito-tweet .identicon {
-  grid-column: 1;
-  grid-row: 1 / span 3;
+/* Avatar: always visible */
+.saito-tweet .avatar {
   width: 40px;
   height: 40px;
-  min-width: 40px;
-  min-height: 40px;
   border-radius: 50%;
-  overflow: hidden;
-  background: #444;
+  background: #666;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* User block */
+.saito-tweet .user-block {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.saito-tweet .username {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.saito-tweet .meta {
+  font-size: 13px;
+  color: #536471;
+  margin-top: 2px;
 }
 
 .saito-tweet .identicon img,
@@ -51,34 +75,60 @@
   object-fit: cover;
 }
 
-.saito-tweet .user-meta {
-  grid-column: 2;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 6px;
-  font-size: 15px;
+.saito-tweet img {
+  max-width: 100%;
+  display: block;
 }
 
+/* Header: username + secondary line (timestamp / context), NOT inline */
+.saito-tweet .saito-address,
 .saito-tweet .username {
   font-weight: 600;
-  color: #ffffff;
+  color: #000 !important;
 }
 
+.saito-tweet .saito-userline,
 .saito-tweet .timestamp {
   font-size: 0.9em;
-  color: #aaaaaa;
+  color: #777 !important;
+  margin-top: 2px;
 }
 
+.saito-tweet .meta {
+  margin-top: 2px;
+}
+
+/* Text block */
 .saito-tweet .body {
-  grid-column: 2;
   font-size: 15px;
-  line-height: 1.4;
+  line-height: 20px;
   margin-top: 4px;
+  font-weight: 400;
+}
+
+/* Align body + controls under username (avatar width + gap) */
+.saito-tweet .body,
+.saito-tweet .tweet-controls,
+.saito-tweet .controls {
+  margin-left: var(--content-offset);
+}
+
+.saito-tweet .body,
+.saito-tweet .body * {
+  line-height: 20px;
+}
+
+.saito-tweet .body p {
+  margin: 0;
+  padding: 0;
+}
+
+.saito-tweet .body p + p {
+  margin-top: 10px;
 }
 
 .saito-tweet .text {
-  line-height: 1.5;
+  display: block;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -88,8 +138,6 @@
 }
 
 .saito-tweet .media-item {
-  display: block;
-  max-width: 100%;
   border-radius: 12px;
 }
 
@@ -101,29 +149,32 @@
   display: block;
   padding: 8px 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   text-decoration: none;
+  color: #222 !important;
 }
 
 .saito-tweet .link-card:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.04);
 }
 
+/* Threading (has-parent / has-child) not implemented in this first-tweet phase */
+
+/* Controls (RedSquare-style) */
 .saito-tweet .tweet-controls {
-  grid-column: 2;
-  margin-top: 4px;
+  margin-top: 6px;
   display: flex;
   gap: 4px;
   justify-content: space-between;
-  font-size: 14px;
-  color: #718695;
-  padding-bottom: unset;
-  margin-bottom: unset;
+  color: #536471 !important;
   -webkit-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+/* Alias for compatibility (some templates may use .controls) */
+.saito-tweet .controls {
+  margin-top: 6px;
 }
 
 .saito-tweet .tweet-controls > div.tweet-tool {
@@ -154,28 +205,48 @@
   display: none;
 }
 
-/* Thread connector lines: vertical lines aligned with avatar column (pseudo-elements only) */
-.saito-tweet.has-parent::before {
-  content: '';
-  position: absolute;
-  left: 24px;
-  top: 0;
-  height: 12px;
-  width: 0;
-  border-left: 2px dotted #718695;
-  pointer-events: none;
-  z-index: 2;
+/* Parent-focus tweet: body/controls fully flush-left (no indentation) */
+.saito-tweet.is-parent-focus .body,
+.saito-tweet.is-parent-focus .controls,
+.saito-tweet.is-parent-focus .tweet-controls {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
 }
 
-.saito-tweet.has-child::after {
-  content: '';
-  position: absolute;
-  left: 24px;
-  top: 40px;
-  bottom: -8px;
-  width: 0;
-  border-left: 2px dotted #718695;
-  pointer-events: none;
-  z-index: 2;
+/* Twitter-style density (parent focus only) */
+.saito-tweet.is-parent-focus .body {
+  letter-spacing: -0.01em;
 }
 
+/* Parent tweet: stronger Twitter-like visual hierarchy */
+.saito-tweet.is-parent-focus .header {
+  margin-bottom: 10px;
+}
+
+.saito-tweet.is-parent-focus .body {
+  font-size: 16px;
+  line-height: 1.5;
+  margin-top: 0;
+}
+
+/* Override the global body* line-height (px) so parent density is correct */
+.saito-tweet.is-parent-focus .body,
+.saito-tweet.is-parent-focus .body * {
+  line-height: 1.5;
+}
+
+.saito-tweet.is-parent-focus .text,
+.saito-tweet.is-parent-focus .body {
+  color: #0f1419 !important;
+}
+
+/* Modern system font stack similar to Twitter/X */
+.saito-tweet.is-parent-focus .text {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.saito-tweet.is-parent-focus .body p + p {
+  margin-top: 10px;
+}
+
+/* No grid means no multi-row avatar behavior */

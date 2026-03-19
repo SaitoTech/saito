@@ -1,16 +1,14 @@
 /* Notifications Module - Base Overrides
  *
- * Loaded after web/saito/saito.css. Overrides Saito layout so the
- * notifications three-column structure (saito-main > sidebar-left, center, sidebar-right)
- * displays correctly.
+ * Overrides / resets for saito.css. Scope all resets to the notifications container.
+ * Do not modify saito.css.
  */
 
-/* Single-column grid so our .saito-main can span full width and host inner columns */
+/* Single-column grid so .saito-main can span full width and host inner columns */
 .saito-container:has(.notifications-header) {
   grid-template-columns: 1fr;
 }
 
-/* Notifications .saito-main: flex row for three columns (override saito.css .saito-main) */
 .saito-main:has(.notifications-header) {
   display: flex;
   width: 100%;
@@ -18,7 +16,6 @@
   position: relative;
 }
 
-/* Left/right sidebars - fixed width (saito.css has no .saito-sidebar-left/right) */
 .saito-main:has(.notifications-header) .saito-sidebar-left,
 .saito-main:has(.notifications-header) .saito-sidebar-right {
   width: 260px;
@@ -26,7 +23,6 @@
   flex-shrink: 0;
 }
 
-/* Center column: flexible, scrollable */
 .saito-main:has(.notifications-header) .saito-center {
   flex: 1;
   min-width: 0;
@@ -41,3 +37,49 @@
   flex: 1;
   min-height: 0;
 }
+
+/* Hard reset: scope box-sizing to notifications feed */
+.notifications-notifications,
+.notifications-notifications * {
+  box-sizing: border-box;
+}
+
+/* Kill layout interference from saito.css */
+.notifications-notifications {
+  position: relative;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* Narrow visibility fixes: avoid blanket overrides that can hide content */
+.notifications-notifications .saito-tweet {
+  color: #222 !important;
+}
+
+.notifications-notifications .saito-tweet .username,
+.notifications-notifications .saito-tweet .timestamp,
+.notifications-notifications .saito-tweet .body,
+.notifications-notifications .saito-tweet .text {
+  color: #222 !important;
+}
+
+.notifications-notifications .saito-tweet .timestamp {
+  color: #777 !important;
+}
+
+.notifications-notifications .saito-tweet .username {
+  color: #000 !important;
+  font-weight: 600;
+}
+
+/* Scroll: center column scrollable, scrollbar hidden */
+.notifications-notifications {
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.notifications-notifications::-webkit-scrollbar {
+  display: none;
+}
+

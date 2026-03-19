@@ -6,7 +6,8 @@ module.exports = (app, mod, data = {}) => {
 	const link = data.link ?? null;
 	const hasParent = data.hasParent ? 'has-parent' : '';
 	const hasChild = data.hasChild ? 'has-child' : '';
-	const stateClasses = [hasParent, hasChild].filter(Boolean).join(' ');
+	const isParentFocus = data.isParentFocus ? 'is-parent-focus' : '';
+	const stateClasses = [hasParent, hasChild, isParentFocus].filter(Boolean).join(' ');
 
 	let mediaHtml = '';
 	if (media) {
@@ -27,12 +28,10 @@ module.exports = (app, mod, data = {}) => {
 <div class="saito-tweet ${stateClasses}" data-id="${(data.id ?? '').replace(/"/g, '&quot;')}">
 
   <div class="header">
-    <div class="saito-user">
-      <div class="identicon"></div>
-      <div class="user-meta">
-        <div class="username">${username}</div>
-        <div class="timestamp">${timestamp}</div>
-      </div>
+    <div class="avatar"></div>
+    <div class="user-block">
+      <div class="username">${username}</div>
+      <div class="meta">${timestamp}</div>
     </div>
   </div>
 

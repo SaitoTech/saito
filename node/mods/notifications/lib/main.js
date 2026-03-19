@@ -1,72 +1,63 @@
 const NotificationsMainTemplate = require('./main.template');
 const NotificationTemplate = require('./notification.template');
 
-/** Hardcoded sample tweets for UI testing. Temporarily bypasses real data. */
+/** Demo tweets: exact state sequence for timeline/thread/connector testing.
+ *  Tweet 1: is-parent-focus | Tweet 2: has-parent (no connector 1→2)
+ *  Tweet 3: has-child | Tweet 4: has-parent (connector between 3→4) | Tweet 5: none
+ */
 const SAMPLE_NOTIFICATIONS = [
   {
     id: 'sample-1',
     username: 'saito_core',
     time: '2m',
     text:
-      'Welcome to Notifications.\n\nThis stream highlights activity from across the network with a cleaner timeline view.',
-    numReplies: 4,
-    numRetweets: 2,
-    numLikes: 19
+      'Longtime users are frustrated with X because it no longer works the way it used to.\n\n' +
+      'Back in the early days of Twitter, your reach was simple and direct. If you had 5,000 or 20,000 followers, your posts were delivered to them in real time. It was a true chronological feed — your tweets showed up in the order you posted them, and your audience actually saw your content.\n\n' +
+      'The “old” Twitter (pre-2016) was built around that real-time experience. Your voice reached the people who chose to follow you, without interference.\n\n' +
+      'Today, that’s no longer the case. X relies on an algorithm-driven, engagement-based feed, meaning even your own followers may never see your posts unless the system decides to prioritize them.',
+    numReplies: 1,
+    numRetweets: 0,
+    numLikes: 5,
+    isParentFocus: true
   },
   {
     id: 'sample-2',
     username: 'alice_dev',
     time: '15m',
-    text:
-      'Shipping update: we cut lobby load time by ~30% this morning.\n\nAnyone testing on mobile, please reply with perf notes.',
-    link: 'https://apps.saito.io/arcade',
-    numReplies: 5,
-    numRetweets: 2,
-    numLikes: 23,
-    hasChild: true
+    text: 'Tweet 2: Reply, has-parent only. No connector between 1 and 2.',
+    numReplies: 0,
+    numRetweets: 0,
+    numLikes: 2,
+    hasParent: true
   },
   {
     id: 'sample-3',
     username: 'bob_network',
     time: '17m',
-    text:
-      'Replying to @alice_dev\n\nTested on high-latency Wi‑Fi and reconnect behavior is noticeably better. Great improvement.',
+    text: 'Tweet 3: Parent of next reply (has-child). Connector shows below to Tweet 4.',
     numReplies: 1,
     numRetweets: 0,
-    numLikes: 9,
-    hasParent: true
+    numLikes: 3,
+    hasChild: true
   },
   {
     id: 'sample-4',
-    username: 'release_notes',
-    time: '1h',
-    text:
-      'Saito Node v3.4.0 is now live.\n\n• faster propagation\n• cleaner wallet prompts\n• stability fixes in message queue',
-    media: 'https://picsum.photos/600/300',
-    numReplies: 12,
-    numRetweets: 7,
-    numLikes: 54
+    username: 'carol',
+    time: '20m',
+    text: 'Tweet 4: Reply, has-parent. Connector between 3 and 4.',
+    numReplies: 0,
+    numRetweets: 0,
+    numLikes: 1,
+    hasParent: true
   },
   {
     id: 'sample-5',
-    username: 'carol_ops',
-    time: '5h',
-    text:
-      'Maintenance reminder:\nValidator restart window is 02:00–02:15 UTC.\n\nNo user action required unless you are running custom peers.',
-    numReplies: 0,
-    numRetweets: 4,
-    numLikes: 31
-  },
-  {
-    id: 'sample-6',
     username: 'validator_news',
-    time: 'Yesterday',
-    text:
-      'Public testnet reached a new daily throughput peak while keeping finality stable.\n\nDashboard details in the thread.',
-    link: 'https://status.saito.io',
-    numReplies: 2,
-    numRetweets: 3,
-    numLikes: 18
+    time: '1h',
+    text: 'Tweet 5: Standalone, no thread classes. No connector.',
+    numReplies: 0,
+    numRetweets: 0,
+    numLikes: 0
   }
 ];
 
@@ -94,7 +85,6 @@ class NotificationsMain {
 
 		container.innerHTML = '';
 
-		// UI testing: render hardcoded samples; otherwise render real notifications
 		const items = Object.keys(this.mod.notifications || {}).length > 0
 			? Object.values(this.mod.notifications).map((n) => ({
 					id: n.tx?.signature ?? '',
