@@ -1,5 +1,5 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
-const index = require('./web/index');
+const index = require('./index');
 
 class Notifications extends ModTemplate {
 	constructor(app) {
