@@ -475,7 +475,7 @@ class ExploreOverlay {
       // Update author header on initial load
       this.updateAuthorHeader();
 
-      // Add subscription button (in main panel header, right-aligned)
+      // Add subscription function -> in help / bottom of the explore list
       const addSubscriptionBtn = document.querySelector('#stack-explore-add-subscription-btn');
       if (addSubscriptionBtn) {
         addSubscriptionBtn.onclick = (e) => {
@@ -584,6 +584,9 @@ class ExploreOverlay {
 
       // Check if input is a valid publicKey
       if (!this.app.wallet.isValidPublicKey(input)) {
+        if (!input.includes('@')) {
+          input += '@saito';
+        }
         // Try to resolve username to publicKey via keychain
         const keyData = this.app.keychain.returnKey({ identifier: input });
         if (keyData && keyData.publicKey) {
