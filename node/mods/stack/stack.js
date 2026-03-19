@@ -462,6 +462,16 @@ class Stack extends ModTemplate {
       return x;
     }
 
+    if (type === 'user-menu') {
+      return {
+        text: `View Stack`,
+        icon: this.icon_fa,
+        callback: function (app, publicKey) {
+          navigateWindow(`/stack/${publicKey}`);
+        }
+      };
+    }
+
     if (type === 'saito-create-nft') {
       let this_mod = this;
 
