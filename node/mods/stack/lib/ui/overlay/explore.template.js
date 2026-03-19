@@ -45,12 +45,12 @@ module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
                 <div class="saito-userline-name" style="font-size: 1.8rem; font-weight: 600; color: var(--saito-font-color);">Loading...</div>
               </div>
             </div>
-            <!-- Subscribe button appears here when viewing via URL routing and not already subscribed -->
-            <div id="stack-explore-subscribe-button-container" style="display: none;">
-              <button class="stack-explore-subscribe-btn" id="stack-explore-subscribe-btn">
-                Subscribe
-              </button>
-            </div>
+          </div>
+          <!-- Subscribe button appears here when viewing via URL routing and not already subscribed -->
+          <div id="stack-explore-subscribe-button-container" style="display: none;">
+            <button class="stack-explore-subscribe-btn" id="stack-explore-subscribe-btn">
+              Subscribe
+            </button>
           </div>
           
           <!-- Action Button Container (in main panel header, right-aligned) -->

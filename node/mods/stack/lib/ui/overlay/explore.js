@@ -63,7 +63,7 @@ class ExploreOverlay {
   }
 
   //
-  // URL - publicKey on top of list, then Official, then My Posts, then whatever is in in app.optoins.stack.subscriptions
+  // URL - publicKey on top of list, then Official, then My Posts, then whatever is in in app.options.stack.subscriptions
   // We prevent duplication of items if the URL is one of our otherwise listed publicKeys
   //
   calculateSubscriptions() {
@@ -99,20 +99,14 @@ class ExploreOverlay {
       });
     }
 
-    if (
-      this.app.options?.stack?.subscriptions &&
-      Array.isArray(this.app.options.stack.subscriptions) &&
-      this.app.options.stack.subscriptions.length > 0
-    ) {
-      for (let pk in this.app.options.stack.subscriptions) {
-        if (this.targetPublicKey !== pk) {
-          subscriptions.push({
-            publickey: pk,
-            icon: 'fa-solid fa-user',
-            label: this.createLabel(pk),
-            source: 'subscription'
-          });
-        }
+    for (let pk of this.mod.getSubscriptions()) {
+      if (this.targetPublicKey !== pk) {
+        subscriptions.push({
+          publickey: pk,
+          icon: 'fa-solid fa-user',
+          label: this.createLabel(pk),
+          source: 'subscription'
+        });
       }
     }
 
@@ -151,6 +145,7 @@ class ExploreOverlay {
 
     // URL-based routing: if targetPublicKey is set, show that user's posts
     if (this.targetPublicKey) {
+      console.log('updateAuthorHeader', this.targetPublicKey);
       // Clear header
       authorHeader.innerHTML = '';
 
@@ -237,6 +232,8 @@ class ExploreOverlay {
     const addUserBtn = document.querySelector('#stack-explore-add-subscription-btn');
     const settingsBtn = document.querySelector('#stack-explore-settings-btn');
 
+    console.log(filter, this.mod.publicKey);
+
     if (filter === this.mod.publicKey) {
       if (addUserBtn) {
         addUserBtn.style.display = 'none';
@@ -310,7 +307,7 @@ class ExploreOverlay {
           </div>
         </div>
       `;
-    } else if (this.posts[author].length > 0) {
+    } else if (this.posts[author]?.length > 0) {
       const teaserHtml = this.posts[author]
         .map((transaction) => {
           const teaser = new PostTeaser(this.app, this.mod, '', transaction);
@@ -322,8 +319,20 @@ class ExploreOverlay {
       // Re-attach click handlers for new posts
       this.attachPostClickHandlers();
     } else {
-      // Show empty state
-      grid.innerHTML = `
+      if (author == this.mod.publicKey) {
+        grid.innerHTML = `
+        <div class="stack-explore-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 4rem 2rem; text-align: center;">
+          <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
+          <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">Welcome</h3>
+          <p style="font-size: 1.6rem; color: var(--saito-font-color-light); margin: 0; max-width: 500px; line-height: 1.6;">
+            You haven't published any posts yet. <span id='alt-write' class="saito-anchor">Get started now<span>
+          </p>
+        </div>
+      `;
+        this.attachGetStartedHandler();
+      } else {
+        // Show empty state for reading
+        grid.innerHTML = `
         <div class="stack-explore-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 4rem 2rem; text-align: center;">
           <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
           <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">No posts available</h3>
@@ -332,6 +341,7 @@ class ExploreOverlay {
           </p>
         </div>
       `;
+      }
     }
   }
 
@@ -428,6 +438,16 @@ class ExploreOverlay {
         this.loadViewPost(tx, txSignature);
       };
     });
+  }
+
+  attachGetStartedHandler() {
+    let btn = document.getElementById('alt-write');
+    if (btn) {
+      btn.onclick = (e) => {
+        document.querySelector('#stack-create-post-btn').click();
+        this.overlay.hide();
+      };
+    }
   }
 
   /**
@@ -577,7 +597,7 @@ class ExploreOverlay {
           item.classList.add('active');
           const filter = item.getAttribute('data-filter');
           // IMPORTANT: user-driven navigation overrides URL bootstrap
-          this.mod.targetPublicKey = null;
+          this.targetPublicKey = filter;
           // Update author header based on selection
           this.updateAuthorHeader();
           // Load posts for the selected filter

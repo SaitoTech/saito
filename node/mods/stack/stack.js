@@ -1111,11 +1111,6 @@ class Stack extends ModTemplate {
     // INVARIANT: app.options.stack is lightweight - no post bodies, images, or heavy data
     // ========================================================================
     if (tx.isFrom(this.publicKey)) {
-      this.load();
-      if (!this.app.options.stack.posts) {
-        this.app.options.stack.posts = [];
-      }
-
       // Extract parent_id for revision tracking
       const parent_id = txmsg.data?.parent_id || null;
 
@@ -1257,7 +1252,6 @@ class Stack extends ModTemplate {
       return false;
     }
 
-    this.load();
     const subscriptions = this.app.options.stack.subscriptions || [];
 
     // Check if already subscribed
@@ -1283,7 +1277,11 @@ class Stack extends ModTemplate {
    */
   isSubscribed(publicKey) {
     if (!publicKey) return false;
-    this.load();
+
+    if (publicKey == this.publicKey || publicKey == this.STACK_OFFICIAL_PUBLICKEY) {
+      return true;
+    }
+
     const subscriptions = this.app.options.stack.subscriptions || [];
     return subscriptions.some((sub) => sub.publicKey === publicKey);
   }
@@ -1293,7 +1291,6 @@ class Stack extends ModTemplate {
    * @returns {Array<string>}
    */
   getSubscriptions() {
-    this.load();
     const subscriptions = this.app.options.stack.subscriptions || [];
     return subscriptions.map((sub) => sub.publicKey);
   }
@@ -1304,9 +1301,6 @@ class Stack extends ModTemplate {
    * This is CLIENT-SIDE STATE ONLY - not authoritative
    */
   save() {
-    if (!this.app.options.stack) {
-      this.app.options.stack = {};
-    }
     this.app.storage.saveOptions();
   }
 
