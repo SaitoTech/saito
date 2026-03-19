@@ -9,7 +9,8 @@ class ExploreOverlay {
     this.app = app;
     this.mod = mod;
     this.overlay = new SaitoOverlay(this.app, this.mod);
-    this.posts = [];
+    this.posts = {};
+    this.lastTimeStamp = {};
     this.isLoading = false;
     this.subscriptions = [];
     this.targetPublicKey = null; // For URL-based routing: publicKey to show posts for
@@ -25,7 +26,6 @@ class ExploreOverlay {
 
     // Show loading state initially
     this.isLoading = true;
-    this.posts = [];
 
     this.subscriptions = this.calculateSubscriptions();
 
@@ -266,18 +266,25 @@ class ExploreOverlay {
    * Shows loading state, then populated or empty state.
    */
   async loadPostsForFilter(author) {
-    this.isLoading = true;
-    this.posts = [];
-
-    this.updatePostsGrid(author);
-
     if (!author) {
       console.warn('No author resolved for filter:', author);
       return;
     }
 
-    // Delegate ALL loading to the author loader
-    this.posts = await this.mod.loadPostsForAuthor(author, { forceRemote: true });
+    let ts = Date.now();
+
+    // Don't harrass the server with pull requests...
+    if (!this.lastTimeStamp[author] || ts - this.lastTimeStamp[author] > 120000) {
+      this.isLoading = true;
+      this.updatePostsGrid(author);
+
+      // Delegate ALL loading to the author loader
+      console.log('fetching', author);
+      let posts = await this.mod.loadPostsForAuthor(author, { forceRemote: true });
+      this.posts[author] = posts;
+      this.lastTimeStamp[author] = ts;
+    }
+
     this.isLoading = false;
     this.updatePostsGrid(author);
   }
@@ -291,7 +298,7 @@ class ExploreOverlay {
       return;
     }
 
-    this.pruneEditedPosts();
+    //this.pruneEditedPosts();
 
     if (this.isLoading) {
       // PART 5: Show loading spinner with "Fetching latest posts…" message
@@ -303,8 +310,8 @@ class ExploreOverlay {
           </div>
         </div>
       `;
-    } else if (this.posts.length > 0) {
-      const teaserHtml = this.posts
+    } else if (this.posts[author].length > 0) {
+      const teaserHtml = this.posts[author]
         .map((transaction) => {
           const teaser = new PostTeaser(this.app, this.mod, '', transaction);
           return teaser.render(); // Returns HTML string for batch rendering
@@ -329,13 +336,13 @@ class ExploreOverlay {
   }
 
   pruneEditedPosts() {
-    if (!Array.isArray(this.posts)) {
+    if (!Array.isArray(this.posts[this.targetPublicKey])) {
       return;
     }
     let hasChildren = new Set();
 
     // First pass: record all parents that have edits
-    for (const tx of this.posts) {
+    for (const tx of this.posts[this.targetPublicKey]) {
       if (!tx?.signature) {
         continue;
       }
@@ -346,7 +353,7 @@ class ExploreOverlay {
     }
 
     // Second pass: keep only latest leaf nodes
-    this.posts = this.posts.filter((tx) => {
+    this.posts[this.targetPublicKey] = this.posts[this.targetPublicKey].filter((tx) => {
       if (!tx?.signature) {
         return false;
       }
@@ -361,7 +368,7 @@ class ExploreOverlay {
 
       // Rule 2: among siblings, keep only newest
       if (msg?.data?.parent_id) {
-        return !this.posts.some((other) => {
+        return !this.posts[this.targetPublicKey].some((other) => {
           if (!other?.signature) {
             return false;
           }
@@ -401,7 +408,7 @@ class ExploreOverlay {
 
         // Resolve transaction from cache
         // First try this.posts (already loaded)
-        let tx = this.posts.find((p) => p.signature === txSignature) || null;
+        let tx = this.posts[this.targetPublicKey].find((p) => p.signature === txSignature) || null;
 
         // If not found, try Stack module cache
         if (!tx && this.mod.transactionCache && this.mod.transactionCache[txSignature]) {
@@ -564,13 +571,13 @@ class ExploreOverlay {
       subscriptionItems.forEach((item) => {
         item.onclick = (e) => {
           e.preventDefault();
-          // IMPORTANT: user-driven navigation overrides URL bootstrap
-          this.mod.targetPublicKey = null;
           // Remove active class from all items
           subscriptionItems.forEach((i) => i.classList.remove('active'));
           // Add active class to clicked item
           item.classList.add('active');
           const filter = item.getAttribute('data-filter');
+          // IMPORTANT: user-driven navigation overrides URL bootstrap
+          this.mod.targetPublicKey = null;
           // Update author header based on selection
           this.updateAuthorHeader();
           // Load posts for the selected filter

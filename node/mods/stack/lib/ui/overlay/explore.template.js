@@ -1,6 +1,7 @@
 const PostTeaser = require('../post-teaser');
 
 module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
+  let pk = mod.exploreOverlay.targetPublicKey;
   let html = `
     <div class="stack-explore-overlay">
       <div class="stack-explore-sidebar">
@@ -11,7 +12,7 @@ module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
           <div class="stack-explore-subscriptions-list">
   `;
   for (let z = 0; z < subs.length; z++) {
-    let active = subs[z].publickey == mod.exploreOverlay.targetPublicKey ? ' active' : '';
+    let active = subs[z].publickey == pk ? ' active' : '';
 
     html += `
             <div class="stack-explore-subscription-item ${active}" data-filter="${subs[z].publickey}">
@@ -76,10 +77,10 @@ module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
                 </div>
               </div>
             `
-                : posts.length > 0
+                : posts[pk].length > 0
                   ? `
               <!-- Populated state - render real posts using PostTeaser UI component -->
-              ${posts
+              ${posts[pk]
                 .map((transaction) => {
                   const teaser = new PostTeaser(app, mod, '', transaction);
                   return teaser.render(); // Returns HTML string for template
