@@ -592,17 +592,14 @@ class ExploreOverlay {
         if (keyData && keyData.publicKey) {
           publicKey = keyData.publicKey;
         } else {
-          siteMessage(
-            'Unable to find user with that username or public key. Please check and try again.',
-            5000
-          );
+          siteMessage(`Unable to find ${input}, Please check and try again`, 5000);
           return;
         }
       }
 
       // Validate publicKey
       if (!this.app.wallet.isValidPublicKey(publicKey)) {
-        siteMessage('Invalid public key. Please check and try again.', 5000);
+        siteMessage('Invalid public key. Please check and try again', 5000);
         return;
       }
 

@@ -1262,21 +1262,18 @@ class Stack extends ModTemplate {
       return false;
     }
 
-    const subscriptions = this.app.options.stack.subscriptions || [];
-
-    // Check if already subscribed
-    if (subscriptions.some((sub) => sub.publicKey === publicKey)) {
+    if (this.isSubscribed(publicKey)) {
       return false;
     }
 
     // Add subscription
-    subscriptions.push({
+    this.app.options.stack.subscriptions.push({
       publicKey: publicKey,
       addedAt: Date.now()
     });
 
-    this.app.options.stack.subscriptions = subscriptions;
     this.save();
+
     return true;
   }
 

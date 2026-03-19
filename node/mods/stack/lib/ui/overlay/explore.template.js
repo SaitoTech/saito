@@ -28,7 +28,7 @@ module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
           <!-- Contextual help note - only shown when subscription list is short (2 or fewer) -->
           <div id='stack-explore-add-subscription-btn' class="stack-explore-help-note">
             <p>Need help? Explore shows posts from people you follow. <span class="saito-anchor">Subscribe to creators to see their posts here.</span></p>
-            <div class='stack-explore-subscription-item'><i class="fa-solid fa-user-plus"></i><span>Add creator</span></div>
+            <div class='stack-explore-subscription-item'><i class="fa-solid fa-user-plus"></i><span>add creator</span></div>
           </div>
         </div>
       </div>
