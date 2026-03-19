@@ -1,0 +1,16 @@
+/* Notifications Module - Main Container CSS
+ *
+ * CSS specific to the main notifications container component.
+ */
+
+.notifications-header {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.notifications-main {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px;
+}
