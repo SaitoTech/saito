@@ -442,7 +442,6 @@ class Arcade extends ModTemplate {
 								this.removeGame(game_tx.signature);
 								this.addGame(game_tx);
 							}
-							this.app.browser.logMatomoEvent('GameInvite', 'FollowLink', game_tx.game);
 							const invite = new Invite(this.app, this, null, null, game_tx, this.publicKey);
 							this.render('lounge_overlay', { invite_data: invite.invite_data });
 						} else {
@@ -607,7 +606,6 @@ class Arcade extends ModTemplate {
 							arcade_self.removeGame(game_tx.signature);
 							arcade_self.addGame(game_tx);
 						}
-						arcade_self.app.browser.logMatomoEvent('GameInvite', 'FollowLink', game_tx.game);
 						const invite = new Invite(
 							arcade_self.app,
 							arcade_self,
@@ -1271,7 +1269,6 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 			data: newtx.toJson()
 		});
 
-		this.app.browser.logMatomoEvent('GameInvite', 'JoinGame', invite.game_name);
 		this.renderInvites();
 	}
 

@@ -147,13 +147,10 @@ class GameWizard {
 				this.overlay.remove();
 
 				if (gameType == 'private') {
-					this.app.browser.logMatomoEvent('GameWizard', 'CreatePrivateInvite', options.game);
 				} else if (gameType == 'single') {
-					this.app.browser.logMatomoEvent('GameWizard', 'PlaySinglePlayerGame', options.game);
 					this.mod.makeGameInvite(options, 'private', this.obj);
 					return;
 				} else if (gameType == 'direct') {
-					this.app.browser.logMatomoEvent('GameWizard', 'CreateDirectInvite', options.game);
 				} else if (gameType == 'async') {
 					if (options['game-wizard-players-select'] > 2) {
 						salert(
@@ -161,11 +158,9 @@ class GameWizard {
 						);
 						return;
 					}
-					this.app.browser.logMatomoEvent('GameWizard', 'CreateAsyncInvite', options.game);
 					options.async_dealing = 1;
 					gameType = 'private';
 				} else {
-					this.app.browser.logMatomoEvent('GameWizard', 'CreateOpenInvite', options.game);
 				}
 
 				this.mod.makeGameInvite(options, gameType, this.obj);
@@ -207,8 +202,6 @@ class GameWizard {
 					};
 					options['stake'][this.mod.publicKey] = parseFloat(hook.dataset.amount);
 				}
-
-				this.app.browser.logMatomoEvent('StakeCrypto', 'viaGameWizard', hook.dataset.ticker);
 			}
 		}
 

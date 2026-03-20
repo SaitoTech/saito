@@ -117,24 +117,12 @@ class ArcadeMain {
 				}
 
 				if (league_id){
-					this.app.browser.logMatomoEvent(
-						'LeagueOverlay',
-						'GameSelector',
-						league_id
-					);
-
 					this.app.connection.emit(
 							'league-overlay-render-request',
 							league_id
 					);			
 				}else{
 					let modname = e.currentTarget.getAttribute('data-id');
-					this.app.browser.logMatomoEvent(
-						'GameWizard',
-						'GameSelector',
-						modname
-					);
-
 					this.app.connection.emit(
 							'arcade-launch-game-wizard',
 							{game: modname}

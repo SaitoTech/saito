@@ -80,11 +80,6 @@ class LeagueRankings {
 			.forEach((el) => {
 				el.onclick = (e) => {
 					let lid = e.currentTarget.getAttribute('data-id');
-					this.app.browser.logMatomoEvent(
-						'LeagueOverlay',
-						this.app.modules.returnActiveModule().returnName(),
-						e.currentTarget.getAttribute('data-game')
-					);
 					this.app.connection.emit(
 						'league-overlay-render-request',
 						lid

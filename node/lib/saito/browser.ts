@@ -1871,16 +1871,6 @@ class Browser {
     }
   }
 
-  logMatomoEvent(category, action, name, value) {
-    try {
-      let m = this.app.modules.returnFirstRespondTo('matomo_event_push');
-      if (m) {
-        m.push(category, action, name, value);
-      }
-    } catch (err) {
-      console.error('Browser [logMatomoEvent] error: ', err);
-    }
-  }
 
   //////////////////////////////////////////////////////////////////////////////
   /////////////////////// url-hash helper functions ////////////////////////////
