@@ -550,19 +550,25 @@ class Arcade extends ModTemplate {
 		if (service.service == 'arcade') {
 			this.app.network.sendRequestAsTransaction('arcade invite list', {}, async (txs) => {
 				if (txs?.length > 0) {
-
 					for (let serial_tx of txs) {
 
 						let game_tx = new Transaction();
-						let status = game_tx?.msg?.request;
     						game_tx.deserialize_from_web(app, serial_tx);
+						let status = game_tx?.msg?.request;
 
     						if (arcade_self.isMyGame(game_tx)) {
         						let exists_locally = arcade_self.app.options?.games?.find(
             							g => g.id === game_tx.signature
         						);
         						if (!exists_locally) {
-            							continue;
+								//
+								// if this invite was created in the last 30 seconds, show it anyway
+								// as I may just not have received it online and refreshed...
+								//
+								let msg = game_tx.returnMessage();
+								if ((Date.now() - msg.timestamp) > 30000) {
+            								continue;
+        							}
         						}
     						}
 
@@ -816,6 +822,7 @@ class Arcade extends ModTemplate {
 			return 0;
 		}
 		let message = newtx.returnMessage();
+		let requester = peer.publicKey;
 
 		if (message.request === 'arcade invite list') {
 
@@ -826,7 +833,9 @@ class Arcade extends ModTemplate {
 
 			for (let id in this.games) {
 				let record = this.games[id];
-				if (record.is_sender_reachable !== true) { continue; }
+				if (record.is_sender_reachable !== true && (requester != record.tx.from[0].publicKey)) {
+					continue;
+				}
 				if (record.status === "closed" || record.status === "over") { continue; }
 				let g = record.tx;
 				txs.push(g.serialize_to_web(this.app));
@@ -868,7 +877,9 @@ class Arcade extends ModTemplate {
 					await this.receiveJoinTransaction(tx);
 				}
 
+				//
 				// Remove player from ongoing game
+				//
 				if (txmsg.request == 'leave') {
 					await this.receiveLeaveTransaction(tx);
 				}
@@ -1006,10 +1017,12 @@ class Arcade extends ModTemplate {
 		let sendto = this.publicKey;
 		let moduletype = 'Arcade';
 
-		let { timestamp, name, options, players_needed, invitation_type } = gamedata;
+		let { ts, name, options, players_needed, invitation_type } = gamedata;
+
+console.log("GAMEDATA: " + JSON.stringify(gamedata));
 
 		let accept_sig = await this.app.crypto.signMessage(
-			`invite_game_${timestamp}`,
+			`invite_game_${ts}`,
 			await this.app.wallet.getPrivateKey()
 		);
 
@@ -1020,7 +1033,7 @@ class Arcade extends ModTemplate {
 		}
 
 		newtx.msg = {
-			timestamp: timestamp,
+			timestamp: ts,
 			module: moduletype,
 			request: invitation_type,
 			game: name,
@@ -1568,10 +1581,11 @@ class Arcade extends ModTemplate {
 	}
 
 	async receivePeerStatusUpdateTransaction(tx) {
+
 		let txmsg = tx.returnMessage();
 		let pk = txmsg.data?.publickey;
 		let status = txmsg.data?.status;
-		if (!pk || !status) return 0;
+		if (!pk || !status) { return 0; }
 
 		for (let id in this.games) {
 			let record = this.games[id];
