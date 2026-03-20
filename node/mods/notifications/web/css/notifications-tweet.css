@@ -47,6 +47,8 @@
   background: #666;
   flex-shrink: 0;
   display: block;
+  position: relative;
+  z-index: 2;
 }
 
 /* User block */
@@ -250,3 +252,65 @@
 }
 
 /* No grid means no multi-row avatar behavior */
+
+/* --------------------------------------------------------------------
+   Critical pairing connector (CSS-only, pseudo-elements)
+   Only renders when:
+   - previous tweet has .has-critical-child
+   - next tweet has .is-critical-child
+   -------------------------------------------------------------------- */
+
+/* Disable pseudo-element connectors now that we use overlay-based connectors. */
+.saito-tweet.has-critical-child + .saito-tweet.is-critical-child::before,
+.saito-tweet.has-critical-child + .saito-tweet.is-critical-child::after,
+.saito-tweet.has-child + .saito-tweet.has-parent::before,
+.saito-tweet.has-child + .saito-tweet.has-parent::after {
+  display: none !important;
+}
+
+/* Draw connector from first (.has-critical-child) to second (.is-critical-child)
+ * using adjacent sibling only (no :has, for browser compatibility).
+ */
+.saito-tweet.has-critical-child + .saito-tweet.is-critical-child::before {
+  content: '';
+  position: absolute;
+
+  /* avatar center: left padding (16px) + half avatar width */
+  left: calc(16px + (var(--avatar-size, 40px) / 2));
+
+  /* extend upward to start just below the first tweet avatar */
+  top: calc(-1 * (14px + var(--avatar-size, 40px) + 2px));
+  height: calc(100% + (14px + var(--avatar-size, 40px) + 2px));
+
+  width: 2px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Mask the segment that would overlap the second avatar */
+.saito-tweet.has-critical-child + .saito-tweet.is-critical-child::after {
+  display: none;
+}
+
+/* Fallback connector for existing demo pairing:
+ * .has-child followed by .has-parent
+ * (adjacent sibling only, so it does not affect other tweets)
+ */
+.saito-tweet.has-child + .saito-tweet.has-parent::before {
+  content: '';
+  position: absolute;
+  left: calc(16px + (var(--avatar-size, 40px) / 2));
+  top: calc(-1 * (14px + var(--avatar-size, 40px) + 2px));
+  height: calc(100% + (14px + var(--avatar-size, 40px) + 2px));
+  width: 2px;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.saito-tweet.has-child + .saito-tweet.has-parent::after {
+  display: none;
+}

@@ -14,3 +14,19 @@
 .notifications-notifications::-webkit-scrollbar {
   display: none;
 }
+
+/* Overlay container for thread connectors (absolute, pointer-events none) */
+.notifications-thread-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.notifications-thread-connector {
+  position: absolute;
+  pointer-events: none;
+}
