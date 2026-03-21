@@ -28,7 +28,9 @@ const SAMPLE_NOTIFICATIONS = [
     numReplies: 0,
     numRetweets: 0,
     numLikes: 2,
-    hasParent: true
+    hasParent: true,
+    // Embedded inline content (image) for layout testing.
+    media: 'https://picsum.photos/seed/saito-notifications-tweet2/800/450'
   },
   {
     id: 'sample-3',
@@ -57,7 +59,17 @@ const SAMPLE_NOTIFICATIONS = [
     text: 'Tweet 5: Standalone, no thread classes. No connector.',
     numReplies: 0,
     numRetweets: 0,
-    numLikes: 0
+    numLikes: 0,
+    // Inline/embedded tweet (retweet/quote-tweet payload) for attachment testing.
+    quoted: {
+      id: 'sample-5-embedded',
+      username: 'new_tweet_user',
+      time: '12m',
+      text: 'Embedded tweet: this content is rendered inside `tweet__attachments`.',
+      numReplies: 1,
+      numRetweets: 0,
+      numLikes: 3
+    }
   }
 ];
 
@@ -70,6 +82,9 @@ class NotificationsMain {
 		this.threadOverlay = null;
 		this.threadResizeObserver = null;
 		this.threadDrawRaf = null;
+
+		// Embedded tweet interactions should not affect thread connector geometry.
+		this.embeddedTweetClickHandlerAttached = false;
 	}
 
 	render() {
@@ -108,6 +123,8 @@ class NotificationsMain {
 		this.ensureThreadOverlay(container);
 		this.drawThreadConnectors(container);
 		this.ensureThreadResizeObserver(container);
+
+		this.ensureEmbeddedTweetClickHandler(container);
 	}
 
 	ensureThreadOverlay(container) {
@@ -137,7 +154,9 @@ class NotificationsMain {
 		this.threadOverlay.innerHTML = '';
 
 		const containerRect = container.getBoundingClientRect();
-		const tweets = Array.from(container.querySelectorAll('.saito-tweet'));
+		// Embedded tweets reuse the same tweet component, but must not participate
+		// in thread connector pairing (geometry + adjacency ordering).
+		const tweets = Array.from(container.querySelectorAll('.saito-tweet:not(.tweet--embedded)'));
 
 		for (let i = 0; i < tweets.length - 1; i++) {
 			const tweetA = tweets[i];
@@ -186,6 +205,42 @@ class NotificationsMain {
 		});
 
 		this.threadResizeObserver.observe(container);
+	}
+
+	ensureEmbeddedTweetClickHandler(container) {
+		// Use delegation to avoid re-registering handlers on every render.
+		if (this.embeddedTweetClickHandlerAttached) return;
+		if (!container) return;
+
+		container.addEventListener('click', (e) => {
+			const embedded = e.target?.closest?.('.tweet--embedded');
+			if (!embedded) return;
+
+			e.stopPropagation();
+			e.stopImmediatePropagation();
+
+			this.openEmbeddedTweet(embedded);
+		});
+
+		this.embeddedTweetClickHandlerAttached = true;
+	}
+
+	openEmbeddedTweet(embeddedEl) {
+		if (!embeddedEl) return;
+
+		// "Open" behavior for embedded tweets: highlight + bring into view.
+		embeddedEl
+			.closest?.('.notifications-notifications')
+			?.querySelectorAll?.('.tweet--embedded-open')
+			?.forEach?.((el) => {
+				if (el !== embeddedEl) el.classList.remove('tweet--embedded-open');
+			});
+
+		embeddedEl.classList.add('tweet--embedded-open');
+
+		try {
+			embeddedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+		} catch (err) {}
 	}
 }
 

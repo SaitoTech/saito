@@ -314,3 +314,135 @@
 .saito-tweet.has-child + .saito-tweet.has-parent::after {
   display: none;
 }
+
+/* --------------------------------------------------------------------
+   Composable tweet structure + embedded tweet (retweet) attachments
+   -------------------------------------------------------------------- */
+
+/* Attachments container exists for composability.
+ * Hide it unless we have a tweet attachment to avoid top-level regressions.
+ */
+.saito-tweet .tweet__attachments {
+  margin-top: 0;
+  display: none;
+}
+
+.saito-tweet .tweet__attachments.tweet__attachments--tweet {
+  display: block;
+}
+
+/* When we have a tweet-attachment (embedded retweet), reserve spacing
+ * equivalent to the old body -> actions gap.
+ */
+.saito-tweet .tweet__attachments--tweet {
+  /* Same spacing token as other in-body attachments (media/link-preview are 8px) */
+  margin-top: 8px;
+}
+
+/* Ensure actions don't add extra spacing after attachments. */
+.saito-tweet .tweet__attachments--tweet + .tweet__actions {
+  margin-top: 0 !important;
+}
+
+/* Embedded tweet attachment wrapper */
+.saito-tweet .tweet__attachment--tweet {
+  border-radius: 12px;
+  overflow: hidden;
+  /* Container frame for quote-tweets / embedded tweet attachments */
+  background: rgba(0, 0, 0, 0.055);
+  border: 1px solid rgba(0, 0, 0, 0.045);
+  padding: 0;
+  /* Stabilize very short embedded tweets */
+  min-height: 48px;
+}
+
+/* Retweet meta (above header) */
+.saito-tweet .tweet__retweet-meta {
+  font-size: 12px;
+  color: #536471;
+  margin-bottom: 6px;
+}
+
+/* Embedded tweet modifier
+ * - tighter density
+ * - no duplicate avatar column indentation
+ * - stronger hover
+ */
+.saito-tweet.tweet--embedded {
+  padding: 6px 10px 4px 10px;
+  max-width: 100%;
+  width: 100%;
+  /* Embedded spacing scale (scoped to embedded only) */
+  --tweet-space-s: 4px;
+  --tweet-space-m: 3px;
+  --avatar-size: 33px;
+  --avatar-gap: 8px;
+  --content-offset: calc(var(--avatar-size) + var(--avatar-gap));
+}
+
+.saito-tweet.tweet--embedded .header {
+  align-items: flex-start;
+  gap: var(--avatar-gap);
+}
+
+.saito-tweet.tweet--embedded .avatar {
+  width: var(--avatar-size) !important;
+  height: var(--avatar-size) !important;
+  align-self: flex-start;
+  margin-top: 1px;
+}
+
+.saito-tweet.tweet--embedded:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.saito-tweet.tweet--embedded .body,
+.saito-tweet.tweet--embedded .body * {
+  font-size: 14px;
+  line-height: 16.5px;
+}
+
+.saito-tweet.tweet--embedded .body {
+  /* Keep embedded text aligned to the same left content column model */
+  text-align: left;
+  margin-top: var(--tweet-space-s);
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.saito-tweet.tweet--embedded .text {
+  text-align: left;
+}
+
+.saito-tweet.tweet--embedded .user-block {
+  align-items: flex-start;
+  line-height: 1.05;
+}
+
+/* Slightly tighter spacing for embedded tweet actions */
+.saito-tweet.tweet--embedded .tweet-controls {
+  margin-top: var(--tweet-space-m);
+}
+
+.saito-tweet.tweet--embedded .username {
+  font-size: 14px;
+}
+
+.saito-tweet.tweet--embedded .meta {
+  font-size: 11px;
+  margin-top: 0;
+  opacity: 0.72;
+}
+
+/* Keep vertical rhythm balanced when a tweet contains embedded attachments */
+.saito-tweet .tweet__body:has(.tweet__attachments--tweet) + .tweet__actions {
+  margin-top: 8px;
+}
+
+/* Open state highlight for embedded tweets (driven by main.js) */
+.saito-tweet.tweet--embedded-open {
+  outline: 2px solid rgba(0, 0, 0, 0.08);
+  outline-offset: 2px;
+}
