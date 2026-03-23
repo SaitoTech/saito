@@ -319,10 +319,15 @@ extern "C" {
 mod tests {
     use std::sync::{Arc, Mutex};
 
+    use lazy_static::lazy_static;
     use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 
     use super::*;
     use crate::wasm_io_handler::WasmIoHandler;
+
+    lazy_static! {
+        static ref TEST_LOCK: Mutex<()> = Mutex::new(());
+    }
 
     #[derive(Default)]
     struct MockState {
@@ -435,6 +440,7 @@ mod tests {
 
     #[tokio::test]
     async fn wasm_io_handler_delegates_send_message_to_host_bridge() {
+        let _guard = TEST_LOCK.lock().unwrap();
         let state = Arc::new(Mutex::new(MockState::default()));
         let previous = swap_host_bridge(Arc::new(MockHostBridge::new(state.clone())));
 
@@ -452,6 +458,7 @@ mod tests {
 
     #[test]
     fn wasm_io_handler_delegates_interface_events_to_host_bridge() {
+        let _guard = TEST_LOCK.lock().unwrap();
         let state = Arc::new(Mutex::new(MockState::default()));
         let previous = swap_host_bridge(Arc::new(MockHostBridge::new(state.clone())));
 

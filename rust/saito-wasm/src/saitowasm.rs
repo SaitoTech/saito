@@ -27,14 +27,14 @@ use saito_core::core::consensus::transaction::{Transaction, TransactionType};
 use saito_core::core::consensus::wallet::{DetailedNFT, Wallet};
 use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusStats, ConsensusThread};
 use saito_core::core::defs::{
-    BlockId, Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoUTXOSetKey, StatVariable,
-    Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
+    BlockId, Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoUTXOSetKey,
+    StatVariable, Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::msg::api_message::ApiMessage;
 use saito_core::core::msg::message::Message;
-use saito_core::core::process::timer::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
+use saito_core::core::process::timer::Timer;
 use saito_core::core::process::version::Version;
 use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
 use saito_core::core::routing::io::network::{Network, PeerDisconnectType};
@@ -510,16 +510,17 @@ impl SaitoWasm {
         hash: js_sys::Uint8Array,
         block_id: BlockId,
         key: JsString,
-    ) {
-        let key = string_to_key(key).unwrap();
+    ) -> Result<(), JsValue> {
+        let (key, block_hash) = parse_block_fetch_inputs(hash, key)?;
         self.routing_thread
             .process_network_event(NetworkEvent::BlockFetched {
-                block_hash: hash.to_vec().try_into().unwrap(),
+                block_hash,
                 block_id,
                 public_key: key,
                 buffer: buffer.to_vec(),
             })
             .await;
+        Ok(())
     }
 
     async fn process_failed_block_fetch_impl(
@@ -527,15 +528,16 @@ impl SaitoWasm {
         hash: js_sys::Uint8Array,
         block_id: u64,
         key: JsString,
-    ) {
-        let key = string_to_key(key).unwrap();
+    ) -> Result<(), JsValue> {
+        let (key, block_hash) = parse_block_fetch_inputs(hash, key)?;
         self.routing_thread
             .process_network_event(NetworkEvent::BlockFetchFailed {
-                block_hash: hash.to_vec().try_into().unwrap(),
+                block_hash,
                 public_key: key,
                 block_id,
             })
             .await;
+        Ok(())
     }
 
     async fn process_timer_event_impl(&mut self, duration_in_ms: u64) {
@@ -1422,9 +1424,9 @@ impl SaitoWasm {
         hash: js_sys::Uint8Array,
         block_id: BlockId,
         key: JsString,
-    ) {
+    ) -> Result<(), JsValue> {
         self.process_fetched_block_impl(buffer, hash, block_id, key)
-            .await;
+            .await
     }
 
     pub async fn process_failed_block_fetch(
@@ -1432,9 +1434,9 @@ impl SaitoWasm {
         hash: js_sys::Uint8Array,
         block_id: u64,
         key: JsString,
-    ) {
+    ) -> Result<(), JsValue> {
         self.process_failed_block_fetch_impl(hash, block_id, key)
-            .await;
+            .await
     }
 
     pub async fn process_timer_event(&mut self, duration_in_ms: u64) {
@@ -1824,23 +1826,27 @@ pub async fn process_fetched_block(
     hash: js_sys::Uint8Array,
     block_id: BlockId,
     key: JsString,
-) {
+) -> Result<(), JsValue> {
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()
         .unwrap()
         .process_fetched_block_impl(buffer, hash, block_id, key)
-        .await;
+        .await
 }
 
 #[wasm_bindgen]
-pub async fn process_failed_block_fetch(hash: js_sys::Uint8Array, block_id: u64, key: JsString) {
+pub async fn process_failed_block_fetch(
+    hash: js_sys::Uint8Array,
+    block_id: u64,
+    key: JsString,
+) -> Result<(), JsValue> {
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()
         .unwrap()
         .process_failed_block_fetch_impl(hash, block_id, key)
-        .await;
+        .await
 }
 
 #[wasm_bindgen]
@@ -2186,6 +2192,33 @@ where
     Ok(key)
 }
 
+fn parse_block_hash(hash: Uint8Array) -> Result<SaitoHash, JsValue> {
+    parse_block_hash_bytes(hash.to_vec()).map_err(JsValue::from_str)
+}
+
+fn parse_block_hash_bytes(hash: Vec<u8>) -> Result<SaitoHash, &'static str> {
+    hash.try_into().map_err(|_| "invalid block hash length")
+}
+
+fn parse_block_fetch_inputs(
+    hash: Uint8Array,
+    key: JsString,
+) -> Result<(SaitoPublicKey, SaitoHash), JsValue> {
+    parse_block_fetch_inputs_parts(hash.to_vec(), key.as_string()).map_err(JsValue::from_str)
+}
+
+fn parse_block_fetch_inputs_parts(
+    hash: Vec<u8>,
+    key: Option<String>,
+) -> Result<(SaitoPublicKey, SaitoHash), &'static str> {
+    let key = key.ok_or("failed parsing public key string to key")?;
+    let public_key = SaitoPublicKey::from_base58(key.as_str())
+        .map_err(|_| "failed parsing public key string to key")?;
+    let block_hash = parse_block_hash_bytes(hash)?;
+
+    Ok((public_key, block_hash))
+}
+
 pub fn string_to_hex<T: TryFrom<Vec<u8>> + PrintForLog<T>>(key: JsString) -> Result<T, Error>
 where
     <T as TryFrom<Vec<u8>>>::Error: std::fmt::Debug,
@@ -2213,6 +2246,31 @@ where
     }
     let key = key.unwrap();
     Ok(key)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_block_fetch_inputs_parts;
+    use saito_core::core::defs::PrintForLog;
+
+    #[test]
+    fn block_fetch_inputs_reject_invalid_key() {
+        let result = parse_block_fetch_inputs_parts(vec![1u8; 32], Some("invalid".to_string()));
+
+        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap(),
+            "failed parsing public key string to key"
+        );
+    }
+
+    #[test]
+    fn block_fetch_inputs_reject_invalid_hash_length() {
+        let result = parse_block_fetch_inputs_parts(vec![1u8; 31], Some([7u8; 33].to_base58()));
+
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), "invalid block hash length");
+    }
 }
 
 pub fn string_array_to_base58_keys<T: TryFrom<Vec<u8>> + PrintForLog<T>>(

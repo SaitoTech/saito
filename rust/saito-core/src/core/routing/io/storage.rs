@@ -68,20 +68,19 @@ impl Storage {
     pub fn generate_block_filepath(&self, block: &Block) -> String {
         self.io_interface.get_block_dir() + block.get_file_name().as_str()
     }
-    pub async fn write_block_to_disk(&mut self, block: &Block) -> String {
+    pub async fn write_block_to_disk(&mut self, block: &Block) -> Result<String, Error> {
         let buffer = block.serialize_for_net(BlockType::Full);
         let filename = self.generate_block_filepath(block);
 
-        let result = self
-            .io_interface
+        self.io_interface
             .write_value(filename.as_str(), buffer.as_slice())
-            .await;
-        if result.is_err() {
-            let err = result.err().unwrap();
-            // TODO : panicking currently to make sure we can serve any blocks for which we have propagated the header for
-            panic!("failed writing block to disk. {:?}", err);
-        }
-        filename
+            .await
+            .map_err(|err| {
+                error!("failed writing block to disk. {:?}", err);
+                err
+            })?;
+
+        Ok(filename)
     }
 
     pub async fn load_block_name_list(&self) -> Result<Vec<String>, Error> {
@@ -146,7 +145,10 @@ impl Storage {
             }
             let mut block: Block = result.unwrap();
             block.force_loaded = true;
-            block.generate().unwrap();
+            if let Err(err) = block.generate() {
+                error!("failed generating block loaded from disk : {:?}", err);
+                return;
+            }
             trace!("block : {:?} loaded from disk", block.hash.to_hex());
             mempool.add_block(block);
         }
@@ -186,20 +188,24 @@ impl Storage {
     ///
     /// This function reads a file from disk that contains the token issuance slips
     /// and returns these slips as a vector.
-    pub async fn get_token_supply_slips_from_disk_path(&self, issuance_file: &str) -> Vec<Slip> {
+    pub async fn get_token_supply_slips_from_disk_path(
+        &self,
+        issuance_file: &str,
+    ) -> Result<Vec<Slip>, Error> {
         let mut v: Vec<Slip> = vec![];
         let mut tokens_issued = 0;
         //
         if self.file_exists(issuance_file).await {
             if let Ok(lines) = self.io_interface.read_value(issuance_file).await {
-                let mut contents = String::from_utf8(lines).unwrap();
+                let mut contents =
+                    String::from_utf8(lines).map_err(|_| Error::from(ErrorKind::InvalidData))?;
                 contents = contents.trim_end_matches('\r').to_string();
                 let lines: Vec<&str> = contents.split('\n').collect();
 
                 for line in lines {
                     let line = line.trim_end_matches('\r');
                     if !line.is_empty() {
-                        if let Some(mut slip) = self.convert_issuance_into_slip(line) {
+                        if let Some(mut slip) = self.convert_issuance_into_slip(line)? {
                             slip.generate_utxoset_key();
                             v.push(slip);
                         }
@@ -211,32 +217,36 @@ impl Storage {
                 }
 
                 info!("{:?} tokens issued", tokens_issued);
-                return v;
+                return Ok(v);
             }
         } else {
             error!("issuance file does not exist");
+            return Err(Error::from(ErrorKind::NotFound));
         }
 
-        vec![]
+        Err(Error::from(ErrorKind::InvalidData))
     }
 
     /// get issuance slips from the standard file
-    pub async fn get_token_supply_slips_from_disk(&self) -> Vec<Slip> {
-        return self
-            .get_token_supply_slips_from_disk_path(ISSUANCE_FILE_PATH)
-            .await;
+    pub async fn get_token_supply_slips_from_disk(&self) -> Result<Vec<Slip>, Error> {
+        self.get_token_supply_slips_from_disk_path(ISSUANCE_FILE_PATH)
+            .await
     }
 
     /// convert an issuance expression to slip
-    fn convert_issuance_into_slip(&self, line: &str) -> Option<Slip> {
+    fn convert_issuance_into_slip(&self, line: &str) -> Result<Option<Slip>, Error> {
         let entries: Vec<&str> = line.split_whitespace().collect();
+
+        if entries.len() < 3 {
+            return Err(Error::from(ErrorKind::InvalidData));
+        }
 
         let result = entries[0].parse::<u64>();
 
         if result.is_err() {
             error!("couldn't parse line : {:?}", line);
             error!("{:?}", result.err().unwrap());
-            return None;
+            return Err(Error::from(ErrorKind::InvalidData));
         }
 
         let amount = result.unwrap();
@@ -260,7 +270,7 @@ impl Storage {
                 let slip_type = match entries[2].trim_end_matches('\r') {
                     "VipOutput" => SlipType::Normal,
                     "Normal" => SlipType::Normal,
-                    _ => panic!("Invalid slip type"),
+                    _ => return Err(Error::from(ErrorKind::InvalidData)),
                 };
 
                 let mut slip = Slip::default();
@@ -268,11 +278,11 @@ impl Storage {
                 slip.public_key = publickey_array;
                 slip.slip_type = slip_type;
 
-                Some(slip)
+                Ok(Some(slip))
             }
             Err(err) => {
                 debug!("error reading issuance line {:?}", err);
-                None
+                Ok(None)
             }
         }
     }
@@ -328,7 +338,13 @@ impl Storage {
             return None;
         }
         if let Ok(result) = self.io_interface.read_value(file_path.as_str()).await {
-            let mut contents = String::from_utf8(result).unwrap();
+            let mut contents = match String::from_utf8(result) {
+                Ok(contents) => contents,
+                Err(err) => {
+                    error!("invalid utf8 in checkpoint file {:?}: {:?}", file_path, err);
+                    return None;
+                }
+            };
             contents = contents.trim_end_matches('\r').to_string();
             let lines: Vec<&str> = contents.split('\n').collect();
             let mut keys: Vec<SaitoUTXOSetKey> = vec![];
@@ -352,6 +368,7 @@ mod test {
 
     use crate::core::consensus::block::Block;
     use crate::core::defs::{PrintForLog, SaitoHash};
+    use crate::core::routing::io::storage::Storage;
     use crate::core::util::crypto::hash;
     use crate::core::util::test::test_manager::test::{create_timestamp, TestManager};
 
@@ -376,7 +393,8 @@ mod test {
         let slips = t
             .storage
             .get_token_supply_slips_from_disk_path(t.issuance_path)
-            .await;
+            .await
+            .unwrap();
 
         t.initialize_from_slips(slips).await;
         let balance_map = t.balance_map().await;
@@ -409,7 +427,7 @@ mod test {
         let mut block = Block::new();
         block.timestamp = current_timestamp;
 
-        let filename = t.storage.write_block_to_disk(&mut block).await;
+        let filename = t.storage.write_block_to_disk(&mut block).await.unwrap();
         trace!("block written to file : {}", filename);
         let retrieved_block = t.storage.load_block_from_disk(filename.as_str()).await;
         let mut actual_retrieved_block = retrieved_block.unwrap();
@@ -440,5 +458,15 @@ mod test {
             hash.to_hex(),
             "de0cdde5db8fd4489f2038aca5224c18983f6676aebcb2561f5089e12ea2eedf"
         );
+    }
+
+    #[test]
+    fn invalid_issuance_slip_type_returns_error() {
+        let storage = Storage::new(Box::new(
+            crate::core::util::test::test_io_handler::test::TestIOHandler::new(),
+        ));
+        assert!(storage
+            .convert_issuance_into_slip("100 s8oFPjBX97NC2vbm9E5Kd2oHWUShuSTUuZwSB1U4wsPR Unknown")
+            .is_err());
     }
 }

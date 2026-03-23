@@ -273,10 +273,7 @@ impl Transaction {
         }
 
         let mut transaction = Transaction::default();
-        for _ in 0..keys.len() {
-            let key = keys.pop().unwrap();
-            let payment = payments.pop().unwrap();
-
+        for (key, payment) in keys.drain(..).zip(payments.drain(..)) {
             let output = Slip {
                 public_key: key,
                 amount: payment,

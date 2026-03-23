@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use ahash::HashMap;
 use async_trait::async_trait;
-use log::{debug, info, trace, warn};
+use log::{debug, error, info, trace, warn};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
@@ -112,7 +112,13 @@ impl ConsensusThread {
     ) {
         info!("generating issuance init transaction");
 
-        let slips = self.storage.get_token_supply_slips_from_disk().await;
+        let slips = match self.storage.get_token_supply_slips_from_disk().await {
+            Ok(slips) => slips,
+            Err(err) => {
+                error!("failed loading issuance slips: {:?}", err);
+                return;
+            }
+        };
         let private_key;
         let public_key;
         {
@@ -1571,7 +1577,8 @@ mod tests {
                 .consensus_thread
                 .storage
                 .write_block_to_disk(&old_block.unwrap())
-                .await;
+                .await
+                .unwrap();
         }
         let timer = tester.consensus_thread.timer.clone();
         drop(tester);
@@ -2049,7 +2056,8 @@ mod tests {
             .consensus_thread
             .storage
             .write_block_to_disk(&blocks.remove(0))
-            .await;
+            .await
+            .unwrap();
         tester.set_staking_requirement(2 * NOLAN_PER_SAITO, 8).await;
         tester.init().await.unwrap();
 

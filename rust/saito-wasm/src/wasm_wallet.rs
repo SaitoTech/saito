@@ -2,7 +2,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use js_sys::{Array, JsString};
-use log::{debug, error, warn};
+use log::{debug, warn};
 use num_traits::FromPrimitive;
 use tokio::sync::RwLock;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -21,7 +21,6 @@ use crate::wasm_io_handler::WasmIoHandler;
 use crate::wasm_transaction::WasmTransaction;
 
 use hex;
-use saito_core::core::util::configuration::Configuration;
 use std::convert::TryInto;
 
 /// Parse a hex string into a fixed-size UTXO set key
@@ -40,6 +39,21 @@ fn string_to_signature(s: &str) -> Result<SaitoSignature, String> {
         .as_slice()
         .try_into()
         .map_err(|_| "invalid signature length".into())
+}
+
+fn parse_public_key_string(s: &str) -> Result<SaitoPublicKey, String> {
+    SaitoPublicKey::from_base58(s).map_err(|error| format!("invalid public key: {:?}", error))
+}
+
+fn parse_private_key_string(s: &str) -> Result<SaitoPrivateKey, String> {
+    if s.len() != 64 {
+        return Err("invalid private key length".to_string());
+    }
+
+    let key = hex::decode(s).map_err(|error| format!("invalid private key hex: {}", error))?;
+
+    key.try_into()
+        .map_err(|_| "invalid private key length".to_string())
 }
 
 #[wasm_bindgen]
@@ -81,47 +95,25 @@ impl WasmWallet {
         let wallet = self.wallet.read().await;
         JsString::from(wallet.public_key.to_base58())
     }
-    pub async fn set_public_key(&mut self, key: JsString) {
+    pub async fn set_public_key(&mut self, key: JsString) -> Result<(), JsValue> {
         let str: String = key.into();
-        // if str.len() != 66 {
-        //     error!(
-        //         "invalid length : {:?} for public key string. expected 66",
-        //         str.len()
-        //     );
-        //     return;
-        // }
-        let key = SaitoPublicKey::from_base58(str.as_str());
-        if key.is_err() {
-            error!("{:?}", key.err().unwrap());
-            return;
-        }
-        let key = key.unwrap();
-        // let key: SaitoPublicKey = key.try_into().unwrap();
+        let key =
+            parse_public_key_string(str.as_str()).map_err(|error| JsValue::from_str(&error))?;
         let mut wallet = self.wallet.write().await;
         wallet.public_key = key;
+        Ok(())
     }
     pub async fn get_private_key(&self) -> JsString {
         let wallet = self.wallet.read().await;
         JsString::from(wallet.private_key.to_hex())
     }
-    pub async fn set_private_key(&mut self, key: JsString) {
+    pub async fn set_private_key(&mut self, key: JsString) -> Result<(), JsValue> {
         let str: String = key.into();
-        if str.len() != 64 {
-            error!(
-                "invalid length : {:?} for public key string. expected 64",
-                str.len()
-            );
-            return;
-        }
-        let key = hex::decode(str);
-        if key.is_err() {
-            error!("{:?}", key.err().unwrap());
-            return;
-        }
-        let key = key.unwrap();
-        let key: SaitoPrivateKey = key.try_into().unwrap();
+        let key =
+            parse_private_key_string(str.as_str()).map_err(|error| JsValue::from_str(&error))?;
         let mut wallet = self.wallet.write().await;
         wallet.private_key = key;
+        Ok(())
     }
     pub async fn get_balance(&self) -> Currency {
         let wallet = self.wallet.read().await;
@@ -213,6 +205,34 @@ impl WasmWallet {
         wallet.add_nft(slip1, slip2, slip3, id, tx_sig);
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_private_key_string, parse_public_key_string};
+
+    #[test]
+    fn private_key_parser_rejects_invalid_hex() {
+        let result = parse_private_key_string("zz");
+
+        assert!(result.is_err());
+        assert!(result.err().unwrap().starts_with("invalid private key"));
+    }
+
+    #[test]
+    fn public_key_parser_rejects_invalid_input() {
+        let result = parse_public_key_string("invalid");
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn private_key_parser_rejects_invalid_length() {
+        let result = parse_private_key_string("abcd");
+
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), "invalid private key length");
     }
 }
 

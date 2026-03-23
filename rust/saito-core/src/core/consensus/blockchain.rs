@@ -730,7 +730,13 @@ impl Blockchain {
                 && !configs.is_spv_mode()
             {
                 // TODO : this will have an impact when the block sizes are getting large or there are many forks. need to handle this
-                storage.write_block_to_disk(block).await;
+                if let Err(err) = storage.write_block_to_disk(block).await {
+                    error!(
+                        "failed to persist block {:?}: {:?}",
+                        block.hash.to_hex(),
+                        err
+                    );
+                }
 
                 let writing_interval = configs
                     .get_blockchain_configs()
@@ -2410,7 +2416,7 @@ impl Blockchain {
                                             slip,block_id,block_hash.to_hex());
                                     } else {
                                         error!("Key : {:?} in checkpoint file : {}-{} cannot be parsed to a slip", key.to_hex(),block_id,block_hash.to_hex());
-                                        panic!("cannot continue loading blocks");
+                                        return;
                                     }
                                 }
                             }
@@ -3565,7 +3571,8 @@ mod tests {
         let slips = t
             .storage
             .get_token_supply_slips_from_disk_path(file_path)
-            .await;
+            .await
+            .unwrap();
 
         // start blockchain with existing issuance and some value to my public key
         t.initialize_from_slips_and_value(slips.clone(), 200_000_000_000_000)
@@ -3609,7 +3616,8 @@ mod tests {
         let slips = t
             .storage
             .get_token_supply_slips_from_disk_path(t.issuance_path)
-            .await;
+            .await
+            .unwrap();
 
         let issuance_hashmap = t.convert_issuance_to_hashmap(t.issuance_path).await;
 
@@ -4343,7 +4351,8 @@ mod tests {
         let slips: Vec<Slip> = t
             .storage
             .get_token_supply_slips_from_disk_path(filepath)
-            .await;
+            .await
+            .unwrap();
         assert_eq!(slips.len(), 1);
 
         //TODO more tests on slips
