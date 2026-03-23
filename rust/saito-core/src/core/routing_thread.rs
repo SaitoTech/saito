@@ -129,7 +129,10 @@ impl RoutingThread {
                 SaitoPublicKey::from_base58(key.as_str())
                     .map(|decoded_key| (decoded_key, value.clone()))
                     .map_err(|err| {
-                        error!("ignoring invalid persisted congestion key {}: {:?}", key, err);
+                        error!(
+                            "ignoring invalid persisted congestion key {}: {:?}",
+                            key, err
+                        );
                     })
                     .ok()
             })
@@ -2082,8 +2085,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
             if let Some(display) = configs.get_congestion_data() {
                 peers.congestion_controls_by_ip = display.congestion_controls_by_ip.clone();
-                peers.congestion_controls_by_key =
-                    Self::decode_congestion_controls_by_key(display);
+                peers.congestion_controls_by_key = Self::decode_congestion_controls_by_key(display);
             }
             if let Some(confirmation_data) = confirmation_data {
                 configs.get_blockchain_configs_mut().confirmations = confirmation_data;
@@ -2186,8 +2188,8 @@ mod tests {
     };
     use crate::core::routing::peers::network_peer::NetworkPeer;
     use crate::core::routing::peers::peer::Peer;
-    use crate::core::routing_thread::RoutingThread;
     use crate::core::routing_thread::RoutingEvent;
+    use crate::core::routing_thread::RoutingThread;
     use crate::core::util::config_manager::CONGESTION_CONFIG_PATH;
     use crate::core::util::configuration::{
         BlockchainConfig, Configuration, ConsensusConfig, PeerConfig, Server, WalletConfig,
@@ -2556,16 +2558,15 @@ mod tests {
             .await
             .unwrap();
 
-        let failing_config: Arc<RwLock<dyn Configuration + Send + Sync>> = Arc::new(RwLock::new(
-            FailingSaveConfig {
+        let failing_config: Arc<RwLock<dyn Configuration + Send + Sync>> =
+            Arc::new(RwLock::new(FailingSaveConfig {
                 blockchain: BlockchainConfig::default(),
                 consensus: Some(ConsensusConfig {
                     genesis_period: 10,
                     ..ConsensusConfig::default()
                 }),
                 peers: vec![],
-            },
-        ));
+            }));
         tester.routing_thread.config_lock = failing_config;
 
         let result = tester
