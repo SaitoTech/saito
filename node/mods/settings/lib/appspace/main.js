@@ -124,7 +124,7 @@ class SettingsAppspace {
 							return;
 						}
 						this.showSettingsWarningBar(
-							`Browser build ${browserBuild} does not match connected node build ${nodeBuild}. Refresh the page or update your client to stay in sync.`
+							`Browser build ${browserBuild} does not match connected node build ${nodeBuild}.`
 						);
 					},
 					peer.publicKey
