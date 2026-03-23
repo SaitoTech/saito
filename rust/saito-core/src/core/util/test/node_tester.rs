@@ -17,9 +17,9 @@ pub mod test {
     };
     use crate::core::defs::{SaitoPublicKey, Timestamp};
     use crate::core::mining_thread::{MiningEvent, MiningThread};
+    use crate::core::process::process_event::ProcessEvent;
     use crate::core::process::timer::KeepTime;
     use crate::core::process::timer::Timer;
-    use crate::core::process::process_event::ProcessEvent;
     use crate::core::routing::io::network::Network;
     use crate::core::routing::io::network_event::NetworkEvent;
     use crate::core::routing::io::storage::Storage;

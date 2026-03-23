@@ -33,8 +33,8 @@ use saito_core::core::defs::{
     PROJECT_PUBLIC_KEY, STAT_BIN_COUNT,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
-use saito_core::core::process::timer::{KeepTime, Timer};
 use saito_core::core::process::process_event::ProcessEvent;
+use saito_core::core::process::timer::{KeepTime, Timer};
 use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
 use saito_core::core::routing::io::network::Network;
 use saito_core::core::routing::io::network_event::NetworkEvent;

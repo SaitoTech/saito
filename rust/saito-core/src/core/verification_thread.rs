@@ -16,8 +16,8 @@ use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
     BlockHash, BlockId, PrintForLog, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
 };
-use crate::core::process::timer::Timer;
 use crate::core::process::process_event::ProcessEvent;
+use crate::core::process::timer::Timer;
 use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::routing::peers::peer_collection::PeerCollection;
