@@ -4,6 +4,7 @@
  */
 
 .notifications-notifications {
+  position: relative;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -28,5 +29,10 @@
 
 .notifications-thread-connector {
   position: absolute;
+  width: 2px;
+  border-radius: 1px;
   pointer-events: none;
+  transform: translateX(-50%);
+  /* Geometry (top/left/height) set in JS */
+  background: rgba(0, 0, 0, 0.12);
 }

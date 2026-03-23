@@ -1,7 +1,10 @@
-/* Notifications Module - Base Overrides
+/* notifications-base.css — defensive overrides only (vs saito.css)
  *
- * Overrides / resets for saito.css. Scope all resets to the notifications container.
- * Do not modify saito.css.
+ * Not general styling. Keeps the notifications shell + tweet list readable when
+ * global Saito rules would break layout, height, scroll, or text color.
+ *
+ * Tweet chrome lives in notifications-tweet.css (.header / .body / .controls / .action).
+ * Do not duplicate those rules here unless saito.css requires an extra !important layer.
  */
 
 /* Single-column grid so .saito-main can span full width and host inner columns */
@@ -44,36 +47,11 @@
   box-sizing: border-box;
 }
 
-/* Kill layout interference from saito.css */
+/* Feed container: positioning for thread overlay + undo saito height clamps */
 .notifications-notifications {
   position: relative;
   height: auto !important;
   max-height: none !important;
-}
-
-/* Narrow visibility fixes: avoid blanket overrides that can hide content */
-.notifications-notifications .saito-tweet {
-  color: #222 !important;
-}
-
-.notifications-notifications .saito-tweet .username,
-.notifications-notifications .saito-tweet .timestamp,
-.notifications-notifications .saito-tweet .body,
-.notifications-notifications .saito-tweet .text {
-  color: #222 !important;
-}
-
-.notifications-notifications .saito-tweet .timestamp {
-  color: #777 !important;
-}
-
-.notifications-notifications .saito-tweet .username {
-  color: #000 !important;
-  font-weight: 600;
-}
-
-/* Scroll: center column scrollable, scrollbar hidden */
-.notifications-notifications {
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -83,3 +61,28 @@
   display: none;
 }
 
+/* Text color parity inside feed (saito often forces link/header colors) */
+.notifications-notifications .tweet {
+  color: #222 !important;
+}
+
+.notifications-notifications .tweet .timestamp,
+.notifications-notifications .tweet .body,
+.notifications-notifications .tweet .text {
+  color: #222 !important;
+}
+
+.notifications-notifications .tweet .timestamp {
+  color: #777 !important;
+}
+
+.notifications-notifications .tweet .username {
+  color: #000 !important;
+  font-weight: 600;
+}
+
+/* Empty .media / .link-preview wrappers must not reserve margin (whitespace-only :empty fallback) */
+.notifications-notifications .tweet .media:empty,
+.notifications-notifications .tweet .link-preview:empty {
+  display: none;
+}

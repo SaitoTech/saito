@@ -1,10 +1,6 @@
-/* Notifications Module - Tweet Component
- *
- * Component styling. Clean structure: .saito-tweet > .header > .saito-user, .body, .controls.
- * Thread connectors: container-based, drawn between tweets via adjacent sibling (no per-tweet ::before/::after).
- */
+/* Notifications Module - Tweet Component (scoped: .notifications-notifications .tweet) */
 
-.saito-tweet {
+.notifications-notifications .tweet {
   position: relative;
   display: block;
   padding: 14px 16px;
@@ -15,32 +11,20 @@
   --content-offset: calc(var(--avatar-size) + var(--avatar-gap));
 }
 
-.saito-tweet:hover {
+.notifications-notifications .tweet:hover {
   background-color: rgba(0, 0, 0, 0.03);
   cursor: pointer;
 }
 
-/* grid-column removed (single tweet phase uses block + flex only) */
-
-/* Ensure username + timestamp render on separate lines */
-.saito-tweet .user-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-/* Header layout: horizontal flex row */
-.saito-tweet .header {
+.notifications-notifications .tweet .header {
   display: flex;
   align-items: flex-start;
   gap: var(--avatar-gap);
   margin-left: 0;
   padding-left: 0;
 }
-/* NOTE: do not use .saito-user for this component's layout anymore */
 
-/* Avatar: always visible */
-.saito-tweet .avatar {
+.notifications-notifications .tweet .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -51,103 +35,125 @@
   z-index: 2;
 }
 
-/* User block */
-.saito-tweet .user-block {
+.notifications-notifications .tweet .user {
   display: flex;
   flex-direction: column;
   line-height: 1.2;
 }
 
-.saito-tweet .username {
+.notifications-notifications .tweet .saito-address,
+.notifications-notifications .tweet .username {
   font-weight: 600;
+  color: #000 !important;
+}
+
+.notifications-notifications .tweet .username {
   font-size: 15px;
 }
 
-.saito-tweet .meta {
+.notifications-notifications .tweet .meta {
   font-size: 13px;
   color: #536471;
   margin-top: 2px;
 }
 
-.saito-tweet .identicon img,
-.saito-tweet .identicon svg {
+.notifications-notifications .tweet .identicon img,
+.notifications-notifications .tweet .identicon svg {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: cover;
 }
 
-.saito-tweet img {
+.notifications-notifications .tweet img {
   max-width: 100%;
   display: block;
 }
 
-/* Header: username + secondary line (timestamp / context), NOT inline */
-.saito-tweet .saito-address,
-.saito-tweet .username {
-  font-weight: 600;
-  color: #000 !important;
-}
-
-.saito-tweet .saito-userline,
-.saito-tweet .timestamp {
+.notifications-notifications .tweet .saito-userline,
+.notifications-notifications .tweet .timestamp {
   font-size: 0.9em;
   color: #777 !important;
   margin-top: 2px;
 }
 
-.saito-tweet .meta {
-  margin-top: 2px;
-}
-
-/* Text block */
-.saito-tweet .body {
+.notifications-notifications .tweet .body {
   font-size: 15px;
   line-height: 20px;
   margin-top: 4px;
   font-weight: 400;
 }
 
-/* Align body + controls under username (avatar width + gap) */
-.saito-tweet .body,
-.saito-tweet .tweet-controls,
-.saito-tweet .controls {
+.notifications-notifications .tweet .body,
+.notifications-notifications .tweet .controls {
   margin-left: var(--content-offset);
 }
 
-.saito-tweet .body,
-.saito-tweet .body * {
+.notifications-notifications .tweet .body,
+.notifications-notifications .tweet .body * {
   line-height: 20px;
 }
 
-.saito-tweet .body p {
+.notifications-notifications .tweet .body p {
   margin: 0;
   padding: 0;
 }
 
-.saito-tweet .body p + p {
+.notifications-notifications .tweet .body p + p {
   margin-top: 10px;
 }
 
-.saito-tweet .text {
+.notifications-notifications .tweet .text {
   display: block;
   white-space: pre-wrap;
   word-break: break-word;
+  position: relative;
 }
 
-.saito-tweet .media {
+/* Clamp + fade only in preview; avoids extra blank band from max-height on all tweets */
+.notifications-notifications .tweet .text.preview {
+  max-height: 19rem;
+  overflow: hidden;
+  transition: max-height 0.2s ease;
+  /*
+   * Fade via mask (not a painted overlay): matches any real background, including
+   * .tweet:hover tint and gray feed chrome — avoids wrong solid from --saito-background-color.
+   */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 72px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 72px), transparent 100%);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Hover anywhere on this tweet card: drop fade on *this* tweet’s main text only (not nested quote .text) */
+.notifications-notifications .tweet:hover > .body > .text.preview {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.notifications-notifications .tweet .text.expanded {
+  max-height: none;
+  overflow: visible;
+  transition: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.notifications-notifications .tweet .media {
   margin-top: 8px;
 }
 
-.saito-tweet .media-item {
+.notifications-notifications .tweet .media-item {
   border-radius: 12px;
 }
 
-.saito-tweet .link-preview {
+.notifications-notifications .tweet .link-preview {
   margin-top: 8px;
 }
 
-.saito-tweet .link-card {
+.notifications-notifications .tweet .link-card {
   display: block;
   padding: 8px 10px;
   border-radius: 12px;
@@ -156,14 +162,11 @@
   color: #222 !important;
 }
 
-.saito-tweet .link-card:hover {
+.notifications-notifications .tweet .link-card:hover {
   background: rgba(0, 0, 0, 0.04);
 }
 
-/* Threading (has-parent / has-child) not implemented in this first-tweet phase */
-
-/* Controls (RedSquare-style) */
-.saito-tweet .tweet-controls {
+.notifications-notifications .tweet .controls {
   margin-top: 6px;
   display: flex;
   gap: 4px;
@@ -174,12 +177,7 @@
   user-select: none;
 }
 
-/* Alias for compatibility (some templates may use .controls) */
-.saito-tweet .controls {
-  margin-top: 6px;
-}
-
-.saito-tweet .tweet-controls > div.tweet-tool {
+.notifications-notifications .tweet .controls > .action {
   position: relative;
   display: flex;
   align-items: center;
@@ -189,190 +187,106 @@
   border-radius: 1rem;
 }
 
-.saito-tweet .tweet-controls span {
+.notifications-notifications .tweet .controls .action .count {
   display: inline-block;
   z-index: 1;
 }
 
-.saito-tweet .tweet-controls i {
+.notifications-notifications .tweet .controls .action .icon {
   font-size: 1.5rem;
   margin: 0 0.5rem;
   text-align: center;
   color: inherit;
 }
 
-.saito-tweet .media:empty,
-.saito-tweet .link-preview:empty,
-.saito-tweet .quoted:empty {
+/* Font Awesome: restore icon box for <i class="icon ..."> */
+.notifications-notifications .tweet .controls .action i.icon {
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Like: single .icon div (replaces heart-bg / heart-icon) */
+.notifications-notifications .tweet .controls .action[data-action='like'] .icon {
+  background: var(--saito-heart-animation);
+  cursor: pointer;
+  width: 50px;
+  height: 50px;
+  background-size: cover;
+  flex-shrink: 0;
+  margin: 0 0.5rem;
+  font-size: 0;
+  line-height: 0;
+}
+
+.notifications-notifications .tweet .controls .action[data-action='like'] .icon.liked {
+  animation: notifications-like-anim 0s steps(28) forwards;
+}
+
+.notifications-notifications .tweet .controls .action[data-action='like'] .icon.likes {
+  animation: notifications-like-anim 1.2s steps(28) forwards;
+}
+
+@keyframes notifications-like-anim {
+  to {
+    background-position: right;
+  }
+}
+
+.notifications-notifications .tweet .media:empty,
+.notifications-notifications .tweet .link-preview:empty,
+.notifications-notifications .tweet .quoted:empty {
   display: none;
 }
 
-/* Parent-focus tweet: body/controls fully flush-left (no indentation) */
-.saito-tweet.is-parent-focus .body,
-.saito-tweet.is-parent-focus .controls,
-.saito-tweet.is-parent-focus .tweet-controls {
+.notifications-notifications .tweet.is_parent_focus .body,
+.notifications-notifications .tweet.is_parent_focus .controls {
   margin-left: 0 !important;
   padding-left: 0 !important;
 }
 
-/* Twitter-style density (parent focus only) */
-.saito-tweet.is-parent-focus .body {
-  letter-spacing: -0.01em;
-}
-
-/* Parent tweet: stronger Twitter-like visual hierarchy */
-.saito-tweet.is-parent-focus .header {
+.notifications-notifications .tweet.is_parent_focus .header {
   margin-bottom: 10px;
 }
 
-.saito-tweet.is-parent-focus .body {
+.notifications-notifications .tweet.is_parent_focus .body {
+  letter-spacing: -0.01em;
   font-size: 16px;
   line-height: 1.5;
   margin-top: 0;
 }
 
-/* Override the global body* line-height (px) so parent density is correct */
-.saito-tweet.is-parent-focus .body,
-.saito-tweet.is-parent-focus .body * {
+.notifications-notifications .tweet.is_parent_focus .body,
+.notifications-notifications .tweet.is_parent_focus .body * {
   line-height: 1.5;
 }
 
-.saito-tweet.is-parent-focus .text,
-.saito-tweet.is-parent-focus .body {
+.notifications-notifications .tweet.is_parent_focus .text,
+.notifications-notifications .tweet.is_parent_focus .body {
   color: #0f1419 !important;
 }
 
-/* Modern system font stack similar to Twitter/X */
-.saito-tweet.is-parent-focus .text {
+.notifications-notifications .tweet.is_parent_focus .text {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-.saito-tweet.is-parent-focus .body p + p {
-  margin-top: 10px;
-}
-
-/* No grid means no multi-row avatar behavior */
-
-/* --------------------------------------------------------------------
-   Critical pairing connector (CSS-only, pseudo-elements)
-   Only renders when:
-   - previous tweet has .has-critical-child
-   - next tweet has .is-critical-child
-   -------------------------------------------------------------------- */
-
-/* Disable pseudo-element connectors now that we use overlay-based connectors. */
-.saito-tweet.has-critical-child + .saito-tweet.is-critical-child::before,
-.saito-tweet.has-critical-child + .saito-tweet.is-critical-child::after,
-.saito-tweet.has-child + .saito-tweet.has-parent::before,
-.saito-tweet.has-child + .saito-tweet.has-parent::after {
+/* Legacy pseudo connectors (disabled by !important; overlay draws lines in main.js) */
+.notifications-notifications .tweet.has_child + .tweet.has_parent::before,
+.notifications-notifications .tweet.has_child + .tweet.has_parent::after {
   display: none !important;
 }
 
-/* Draw connector from first (.has-critical-child) to second (.is-critical-child)
- * using adjacent sibling only (no :has, for browser compatibility).
- */
-.saito-tweet.has-critical-child + .saito-tweet.is-critical-child::before {
-  content: '';
-  position: absolute;
-
-  /* avatar center: left padding (16px) + half avatar width */
-  left: calc(16px + (var(--avatar-size, 40px) / 2));
-
-  /* extend upward to start just below the first tweet avatar */
-  top: calc(-1 * (14px + var(--avatar-size, 40px) + 2px));
-  height: calc(100% + (14px + var(--avatar-size, 40px) + 2px));
-
-  width: 2px;
-  background: rgba(0, 0, 0, 0.12);
-  border-radius: 1px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Mask the segment that would overlap the second avatar */
-.saito-tweet.has-critical-child + .saito-tweet.is-critical-child::after {
-  display: none;
-}
-
-/* Fallback connector for existing demo pairing:
- * .has-child followed by .has-parent
- * (adjacent sibling only, so it does not affect other tweets)
- */
-.saito-tweet.has-child + .saito-tweet.has-parent::before {
-  content: '';
-  position: absolute;
-  left: calc(16px + (var(--avatar-size, 40px) / 2));
-  top: calc(-1 * (14px + var(--avatar-size, 40px) + 2px));
-  height: calc(100% + (14px + var(--avatar-size, 40px) + 2px));
-  width: 2px;
-  background: rgba(0, 0, 0, 0.12);
-  border-radius: 1px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.saito-tweet.has-child + .saito-tweet.has-parent::after {
-  display: none;
-}
-
-/* --------------------------------------------------------------------
-   Composable tweet structure + embedded tweet (retweet) attachments
-   -------------------------------------------------------------------- */
-
-/* Attachments container exists for composability.
- * Hide it unless we have a tweet attachment to avoid top-level regressions.
- */
-.saito-tweet .tweet__attachments {
-  margin-top: 0;
-  display: none;
-}
-
-.saito-tweet .tweet__attachments.tweet__attachments--tweet {
-  display: block;
-}
-
-/* When we have a tweet-attachment (embedded retweet), reserve spacing
- * equivalent to the old body -> actions gap.
- */
-.saito-tweet .tweet__attachments--tweet {
-  /* Same spacing token as other in-body attachments (media/link-preview are 8px) */
+/* Embedded tweet: only direct child .tweet inside parent .body (structure; JS may still set is_embedded for threading) */
+.notifications-notifications .tweet .body > .tweet {
   margin-top: 8px;
-}
-
-/* Ensure actions don't add extra spacing after attachments. */
-.saito-tweet .tweet__attachments--tweet + .tweet__actions {
-  margin-top: 0 !important;
-}
-
-/* Embedded tweet attachment wrapper */
-.saito-tweet .tweet__attachment--tweet {
   border-radius: 12px;
   overflow: hidden;
-  /* Container frame for quote-tweets / embedded tweet attachments */
   background: rgba(0, 0, 0, 0.055);
   border: 1px solid rgba(0, 0, 0, 0.045);
-  padding: 0;
-  /* Stabilize very short embedded tweets */
-  min-height: 48px;
-}
-
-/* Retweet meta (above header) */
-.saito-tweet .tweet__retweet-meta {
-  font-size: 12px;
-  color: #536471;
-  margin-bottom: 6px;
-}
-
-/* Embedded tweet modifier
- * - tighter density
- * - no duplicate avatar column indentation
- * - stronger hover
- */
-.saito-tweet.tweet--embedded {
   padding: 6px 10px 4px 10px;
   max-width: 100%;
   width: 100%;
-  /* Embedded spacing scale (scoped to embedded only) */
+  min-height: 48px;
+  box-sizing: border-box;
   --tweet-space-s: 4px;
   --tweet-space-m: 3px;
   --avatar-size: 33px;
@@ -380,30 +294,30 @@
   --content-offset: calc(var(--avatar-size) + var(--avatar-gap));
 }
 
-.saito-tweet.tweet--embedded .header {
-  align-items: flex-start;
-  gap: var(--avatar-gap);
+.notifications-notifications .tweet .retweet-meta {
+  font-size: 12px;
+  color: #536471;
+  margin-bottom: 6px;
 }
 
-.saito-tweet.tweet--embedded .avatar {
+.notifications-notifications .tweet .body > .tweet .avatar {
   width: var(--avatar-size) !important;
   height: var(--avatar-size) !important;
   align-self: flex-start;
   margin-top: 1px;
 }
 
-.saito-tweet.tweet--embedded:hover {
+.notifications-notifications .tweet .body > .tweet:hover {
   background-color: rgba(0, 0, 0, 0.08) !important;
 }
 
-.saito-tweet.tweet--embedded .body,
-.saito-tweet.tweet--embedded .body * {
+.notifications-notifications .tweet .body > .tweet .body,
+.notifications-notifications .tweet .body > .tweet .body * {
   font-size: 14px;
   line-height: 16.5px;
 }
 
-.saito-tweet.tweet--embedded .body {
-  /* Keep embedded text aligned to the same left content column model */
+.notifications-notifications .tweet .body > .tweet .body {
   text-align: left;
   margin-top: var(--tweet-space-s);
   margin-left: 0;
@@ -412,37 +326,35 @@
   padding-right: 0;
 }
 
-.saito-tweet.tweet--embedded .text {
+.notifications-notifications .tweet .body > .tweet .text {
   text-align: left;
 }
 
-.saito-tweet.tweet--embedded .user-block {
+.notifications-notifications .tweet .body > .tweet .user {
   align-items: flex-start;
   line-height: 1.05;
 }
 
-/* Slightly tighter spacing for embedded tweet actions */
-.saito-tweet.tweet--embedded .tweet-controls {
+.notifications-notifications .tweet .body > .tweet .controls {
   margin-top: var(--tweet-space-m);
 }
 
-.saito-tweet.tweet--embedded .username {
+.notifications-notifications .tweet .body > .tweet .username {
   font-size: 14px;
 }
 
-.saito-tweet.tweet--embedded .meta {
+.notifications-notifications .tweet .body > .tweet .meta {
   font-size: 11px;
   margin-top: 0;
   opacity: 0.72;
 }
 
-/* Keep vertical rhythm balanced when a tweet contains embedded attachments */
-.saito-tweet .tweet__body:has(.tweet__attachments--tweet) + .tweet__actions {
+.notifications-notifications .tweet > .body:has(> .tweet) + .controls {
   margin-top: 8px;
 }
 
-/* Open state highlight for embedded tweets (driven by main.js) */
-.saito-tweet.tweet--embedded-open {
+/* JS toggles is_embedded_open when user focuses/opens an embedded card */
+.notifications-notifications .tweet .body > .tweet.is_embedded_open {
   outline: 2px solid rgba(0, 0, 0, 0.08);
   outline-offset: 2px;
 }
