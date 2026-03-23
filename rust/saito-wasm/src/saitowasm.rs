@@ -33,7 +33,7 @@ use saito_core::core::defs::{
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::msg::api_message::ApiMessage;
 use saito_core::core::msg::message::Message;
-use saito_core::core::process::keep_time::Timer;
+use saito_core::core::process::timer::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::process::version::Version;
 use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;

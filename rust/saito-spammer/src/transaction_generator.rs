@@ -13,7 +13,7 @@ use saito_core::core::consensus::slip::{Slip, SLIP_SIZE};
 use saito_core::core::consensus::transaction::Transaction;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{Currency, SaitoPrivateKey, SaitoPublicKey};
-use saito_core::core::process::keep_time::KeepTime;
+use saito_core::core::process::timer::KeepTime;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::util::crypto::generate_random_bytes;
 use saito_core::drain;

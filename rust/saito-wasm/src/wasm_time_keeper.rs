@@ -1,5 +1,5 @@
 use saito_core::core::defs::Timestamp;
-use saito_core::core::process::keep_time::KeepTime;
+use saito_core::core::process::timer::KeepTime;
 
 #[cfg(target_arch = "wasm32")]
 fn current_timestamp_in_ms() -> Timestamp {

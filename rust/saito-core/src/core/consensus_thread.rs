@@ -19,7 +19,7 @@ use crate::core::defs::{
     STAT_BIN_COUNT,
 };
 use crate::core::mining_thread::MiningEvent;
-use crate::core::process::keep_time::Timer;
+use crate::core::process::timer::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::routing::io::network::Network;
 use crate::core::routing::io::network_event::NetworkEvent;
@@ -829,7 +829,7 @@ mod tests {
 
     use crate::core::consensus::blockchain::BlockchainObserver;
     use crate::core::consensus::transaction::TransactionType;
-    use crate::core::process::keep_time::KeepTime;
+    use crate::core::process::timer::KeepTime;
     use crate::core::process::process_event::ProcessEvent;
     use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::node_tester::test::{NodeTester, TestTimeKeeper};

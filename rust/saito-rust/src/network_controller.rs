@@ -32,7 +32,7 @@ use saito_core::core::defs::{
     STAT_BIN_COUNT,
 };
 use saito_core::core::msg::message::Message;
-use saito_core::core::process::keep_time::Timer;
+use saito_core::core::process::timer::Timer;
 use saito_core::core::routing::io::network::PeerDisconnectType;
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::peers::io_event::IoEvent;

@@ -12,7 +12,7 @@ use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::msg::handshake::HandshakeResponse;
 use crate::core::msg::message::Message;
-use crate::core::process::keep_time::Timer;
+use crate::core::process::timer::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::process::version::Version;
 use crate::core::routing::blockchain_sync_state::BlockchainSyncState;

@@ -2,7 +2,7 @@ use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use crate::core::msg::message::Message;
-use crate::core::process::keep_time::Timer;
+use crate::core::process::timer::Timer;
 use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::{Configuration, Endpoint};

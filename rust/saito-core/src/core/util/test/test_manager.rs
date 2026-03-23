@@ -53,7 +53,7 @@ pub mod test {
         RECOLLECT_NOTHING,
     };
     use crate::core::mining_thread::MiningEvent;
-    use crate::core::process::keep_time::{KeepTime, Timer};
+    use crate::core::process::timer::{KeepTime, Timer};
     use crate::core::routing::io::network::Network;
     use crate::core::routing::io::storage::Storage;
     use crate::core::routing::peers::peer_collection::PeerCollection;
