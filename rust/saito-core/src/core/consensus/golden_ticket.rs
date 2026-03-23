@@ -156,6 +156,34 @@ mod tests {
     }
 
     #[test]
+    fn deserialize_rejects_short_public_key_segment() {
+        let mut buffer = vec![0; 64];
+        buffer.extend_from_slice(&[1; 32]);
+
+        assert!(GoldenTicket::deserialize_from_net(&buffer).is_err());
+    }
+
+    #[test]
+    fn deserialize_rejects_long_public_key_segment() {
+        let mut buffer = vec![0; 64];
+        buffer.extend_from_slice(&[1; 34]);
+
+        assert!(GoldenTicket::deserialize_from_net(&buffer).is_err());
+    }
+
+    #[test]
+    fn deserialize_accepts_valid_control_case() {
+        let golden_ticket = GoldenTicket::new([1; 32], [2; 32], [3; 33]);
+        let buffer = golden_ticket.serialize_for_net();
+
+        let decoded = GoldenTicket::deserialize_from_net(&buffer).unwrap();
+
+        assert_eq!(decoded.target, [1; 32]);
+        assert_eq!(decoded.random, [2; 32]);
+        assert_eq!(decoded.public_key, [3; 33]);
+    }
+
+    #[test]
     #[serial_test::serial]
     fn gt_against_slr_2() {
         // pretty_env_logger::init();

@@ -24,15 +24,15 @@
 
 ### Phase 1 Validation
 
-14. [ ] `High | Validation` Add `saito-wasm` tests for invalid `process_fetched_block` inputs: invalid public key string, short hash, long hash, and valid control case.
-15. [ ] `High | Validation` Add `saito-wasm` tests for invalid `process_failed_block_fetch` inputs: invalid public key string, short hash, long hash, and valid control case.
+14. [x] `High | Validation` Add `saito-wasm` tests for invalid `process_fetched_block` inputs: invalid public key string, short hash, long hash, and valid control case.
+15. [x] `High | Validation` Add `saito-wasm` tests for invalid `process_failed_block_fetch` inputs: invalid public key string, short hash, long hash, and valid control case.
 16. [x] `High | Validation` Add `saito-wasm` tests for wallet setter rejection paths: invalid base58 public key, invalid-length private key, non-hex private key, and unchanged state after rejection.
-17. [ ] `High | Validation` Add `saito-core` tests for malformed golden ticket buffers: short buffer, long buffer, wrong-sized key segment, and valid control case.
+17. [x] `High | Validation` Add `saito-core` tests for malformed golden ticket buffers: short buffer, long buffer, wrong-sized key segment, and valid control case.
 18. [x] `High | Validation` Add `saito-core` tests for block deserialization with short header buffers, truncated transaction metadata, and a valid control case.
 19. [x] `Medium | Validation` Add `saito-core` tests for malformed UTXO-set keys passed into slip parsing paths.
 20. [x] `High | Validation` Add `saito-core` tests for reorg comparison when `new_chain[0]` or an `old_chain` block hash is missing from `self.blocks`.
 21. [x] `High | Validation` Add `saito-core` tests for block deletion when the target block hash is absent from `self.blocks`.
-22. [ ] `High | Validation` Add `saito-core` tests for malformed checkpoint slips so startup reports a recoverable load error instead of panicking.
+22. [x] `High | Validation` Add `saito-core` tests for malformed checkpoint slips so startup reports a recoverable load error instead of panicking.
 23. [x] `Medium | Validation` Add `saito-core` tests that misplaced golden-ticket transactions are rejected by mempool insertion without crashing.
 24. [x] `Medium | Validation` Add `saito-core` tests for issuance-file parsing with unsupported slip types and invalid entries.
 25. [x] `Medium | Validation` Add `saito-core` tests for malformed block-request or similar fixed-length network message buffers.

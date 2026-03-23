@@ -3078,7 +3078,9 @@ mod tests {
     };
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::wallet::Wallet;
-    use crate::core::defs::{ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO};
+    use crate::core::defs::{
+        ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO, UTXO_KEY_LENGTH,
+    };
     use crate::core::routing::io::storage::Storage;
     use crate::core::util::crypto::{generate_keys, hash};
     use crate::core::util::test::node_tester::test::NodeTester;
@@ -3162,6 +3164,78 @@ mod tests {
         let status = blockchain.delete_block(999, [9; 32], &t.storage).await;
 
         assert_eq!(status, false);
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn malformed_checkpoint_slip_returns_without_panicking() {
+        let mut t = TestManager::default();
+        let mut t2 = TestManager::default();
+
+        t.initialize(100, 1_000_000_000).await;
+        t2.disable_staking().await;
+
+        let block1;
+        let block1_hash;
+        let ts;
+        {
+            let blockchain = t.blockchain_lock.write().await;
+            block1 = blockchain.get_latest_block().unwrap();
+            block1_hash = block1.hash;
+            ts = block1.timestamp;
+        }
+
+        let mut block2 = t
+            .create_block(block1_hash, ts + 120000, 0, 0, 0, true)
+            .await;
+        block2.generate().unwrap();
+        let block2_hash = block2.hash;
+        let block2_id = block2.id;
+
+        t.add_block(block2).await;
+
+        let mut malformed_key = [0; UTXO_KEY_LENGTH];
+        malformed_key[58] = u8::MAX;
+
+        let checkpoint_path = format!(
+            "{}{}-{}.chk",
+            t2.storage.io_interface.get_checkpoint_dir(),
+            block2_id,
+            block2_hash.to_hex()
+        );
+        std::fs::create_dir_all(t2.storage.io_interface.get_checkpoint_dir()).unwrap();
+        std::fs::write(&checkpoint_path, format!("{}\n", malformed_key.to_hex())).unwrap();
+
+        {
+            let mut blockchain = t2.blockchain_lock.write().await;
+            blockchain.utxoset.insert(malformed_key, true);
+        }
+
+        let list = t2.storage.load_block_name_list().await.unwrap();
+        t2.storage
+            .load_blocks_from_disk(list.as_slice(), t2.mempool_lock.clone())
+            .await;
+
+        {
+            let mut configs = t2.config_lock.write().await;
+            let mut blockchain = t2.blockchain_lock.write().await;
+
+            blockchain
+                .add_blocks_from_mempool(
+                    t2.mempool_lock.clone(),
+                    Some(&t2.network),
+                    &mut t2.storage,
+                    Some(t2.sender_to_miner.clone()),
+                    None,
+                    configs.deref_mut(),
+                )
+                .await;
+
+            assert!(!blockchain.checkpoint_found);
+            assert!(blockchain.get_block(&block2_hash).is_some());
+        }
+
+        let _ = std::fs::remove_file(checkpoint_path);
     }
 
     #[test]

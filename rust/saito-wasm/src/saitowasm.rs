@@ -2273,6 +2273,14 @@ mod tests {
     }
 
     #[test]
+    fn fetched_block_inputs_reject_long_hash_length() {
+        let result = parse_block_fetch_inputs_parts(vec![1u8; 33], Some([7u8; 33].to_base58()));
+
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), "invalid block hash length");
+    }
+
+    #[test]
     fn block_fetch_inputs_accept_valid_values() {
         let public_key = [7u8; 33];
         let hash = vec![1u8; 32];
@@ -2293,6 +2301,45 @@ mod tests {
             result.err().unwrap(),
             "failed parsing public key string to key"
         );
+    }
+
+    #[test]
+    fn failed_block_fetch_inputs_reject_invalid_key() {
+        let result = parse_block_fetch_inputs_parts(vec![1u8; 32], Some("invalid".to_string()));
+
+        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap(),
+            "failed parsing public key string to key"
+        );
+    }
+
+    #[test]
+    fn failed_block_fetch_inputs_reject_short_hash() {
+        let result = parse_block_fetch_inputs_parts(vec![1u8; 31], Some([8u8; 33].to_base58()));
+
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), "invalid block hash length");
+    }
+
+    #[test]
+    fn failed_block_fetch_inputs_reject_long_hash() {
+        let result = parse_block_fetch_inputs_parts(vec![1u8; 33], Some([8u8; 33].to_base58()));
+
+        assert!(result.is_err());
+        assert_eq!(result.err().unwrap(), "invalid block hash length");
+    }
+
+    #[test]
+    fn failed_block_fetch_inputs_accept_valid_values() {
+        let public_key = [8u8; 33];
+        let hash = vec![2u8; 32];
+
+        let (parsed_key, parsed_hash) =
+            parse_block_fetch_inputs_parts(hash.clone(), Some(public_key.to_base58())).unwrap();
+
+        assert_eq!(parsed_key, public_key);
+        assert_eq!(parsed_hash, hash.as_slice());
     }
 }
 
