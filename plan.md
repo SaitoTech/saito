@@ -58,9 +58,9 @@
 
 ## Phase 3: Wallet And Runtime State Correctness
 
-39. [ ] `Critical | P1` Add a small internal helper in `rust/saito-wasm/src/saitowasm.rs` to sync singleton wallet state from the active runtime.
-40. [ ] `Critical | P1` Call that wallet-sync helper from `initialize_runtime(...)` and from wallet mutation paths that affect signing identity.
-41. [ ] `High | P1` Verify that `WasmTransaction::sign()` always uses the latest active wallet keys after load, reset, or key replacement flows.
+39. [x] `Critical | P1` Add a small internal helper in `rust/saito-wasm/src/saitowasm.rs` to sync singleton wallet state from the active runtime.
+40. [x] `Critical | P1` Call that wallet-sync helper from `initialize_runtime(...)` and from wallet mutation paths that affect signing identity.
+41. [ ] `High | P1` Guard `WasmTransaction::sign()` against a missing `hash_for_signature` — either regenerate it or return an error instead of silently signing with an absent hash.
 42. [ ] `High | P1` Review `WasmWallet::set_key_list`, `WasmWallet::add_nft`, and `WasmBlockchain::reset` for hidden global-state mutation.
 43. [ ] `High | P1` For each of those methods, either route behavior through the intended runtime state explicitly or make the singleton-only behavior obvious in naming or documentation.
 44. [ ] `High | P1` Harden golden-ticket propagation and config-access paths in `rust/saito-core/src/core/consensus_thread.rs` so missing state or config does not panic.
@@ -119,7 +119,7 @@
 85. [ ] `Medium | P3` Inventory `saito-js` imports that depend on `saito-wasm/pkg/node` or `saito-wasm/pkg/web` internal layout.
 86. [ ] `Medium | P3` Define a thinner stable entry surface for `saito-wasm` where it reduces packaging fragility without disrupting the current build flow.
 87. [ ] `Low | P3` Defer broader package-shape refactors unless they materially improve correctness or release reliability.
-88. [ ] `Low | P3` Revisit `get_peers()` semantics later and decide whether it should return only connected peers or all known peers before changing behavior.
+88. [ ] `Medium | P2` Fix confirmed bug in standalone `get_peers()`: array is pre-allocated to `is_connected()` count but filled with all peers regardless of connection state, causing a size mismatch. Decide whether it should return only connected peers or all known peers.
 
 ### Phase 5 Validation
 
