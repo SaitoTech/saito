@@ -723,8 +723,6 @@ class Arcade extends ModTemplate {
 		let arcade_self = this.app.modules.returnModule('Arcade');
 
 		if (Number(conf) == 0) {
-			console.log('INTO ONCONFIRMATION IN ARCADE...');
-			console.log(JSON.stringify(txmsg));
 
 			try {
 				if (txmsg.module === 'Arcade') {
