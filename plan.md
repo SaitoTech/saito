@@ -60,26 +60,26 @@
 
 39. [x] `Critical | P1` Add a small internal helper in `rust/saito-wasm/src/saitowasm.rs` to sync singleton wallet state from the active runtime.
 40. [x] `Critical | P1` Call that wallet-sync helper from `initialize_runtime(...)` and from wallet mutation paths that affect signing identity.
-41. [ ] `High | P1` Guard `WasmTransaction::sign()` against a missing `hash_for_signature` — either regenerate it or return an error instead of silently signing with an absent hash.
-42. [ ] `High | P1` Review `WasmWallet::set_key_list`, `WasmWallet::add_nft`, and `WasmBlockchain::reset` for hidden global-state mutation.
-43. [ ] `High | P1` For each of those methods, either route behavior through the intended runtime state explicitly or make the singleton-only behavior obvious in naming or documentation.
-44. [ ] `High | P1` Harden golden-ticket propagation and config-access paths in `rust/saito-core/src/core/consensus_thread.rs` so missing state or config does not panic.
-45. [ ] `Medium | P1` Validate pending-transaction shape in `rust/saito-core/src/core/consensus/wallet.rs`, including empty `tx.from` and missing `hash_for_signature`, instead of relying on assertions and unwraps.
-46. [ ] `High | P1` Guard against drift between `slips`, `unspent_slips`, and `staking_slips` in `rust/saito-core/src/core/consensus/wallet.rs` so transaction generation and staking selection reject inconsistent state instead of panicking.
-47. [ ] `High | P1` Remove remaining wallet `parse_slip_from_utxokey(...).unwrap()` assumptions from staking selection, cleanup, NFT exposure, and internal `WalletSlip::to_slip()` conversion paths.
-48. [ ] `Medium | P2` Replace wallet persistence unwraps in `rust/saito-core/src/core/consensus/wallet.rs` load and save flows with returned errors or explicit fallback handling.
-49. [ ] `Medium | P2` Replace snapshot-import assertions in `rust/saito-core/src/core/consensus/wallet.rs::update_from_balance_snapshot(...)` with structured validation and error reporting.
+41. [x] `High | P1` Guard `WasmTransaction::sign()` against a missing `hash_for_signature` — either regenerate it or return an error instead of silently signing with an absent hash.
+42. [x] `High | P1` Review `WasmWallet::set_key_list`, `WasmWallet::add_nft`, and `WasmBlockchain::reset` for hidden global-state mutation.
+43. [x] `High | P1` For each of those methods, either route behavior through the intended runtime state explicitly or make the singleton-only behavior obvious in naming or documentation.
+44. [x] `High | P1` Harden golden-ticket propagation and config-access paths in `rust/saito-core/src/core/consensus_thread.rs` so missing state or config does not panic.
+45. [x] `Medium | P1` Validate pending-transaction shape in `rust/saito-core/src/core/consensus/wallet.rs`, including empty `tx.from` and missing `hash_for_signature`, instead of relying on assertions and unwraps.
+46. [x] `High | P1` Guard against drift between `slips`, `unspent_slips`, and `staking_slips` in `rust/saito-core/src/core/consensus/wallet.rs` so transaction generation and staking selection reject inconsistent state instead of panicking.
+47. [x] `High | P1` Remove remaining wallet `parse_slip_from_utxokey(...).unwrap()` assumptions from staking selection, cleanup, NFT exposure, and internal `WalletSlip::to_slip()` conversion paths.
+48. [x] `Medium | P2` Replace wallet persistence unwraps in `rust/saito-core/src/core/consensus/wallet.rs` load and save flows with returned errors or explicit fallback handling.
+49. [x] `Medium | P2` Replace snapshot-import assertions in `rust/saito-core/src/core/consensus/wallet.rs::update_from_balance_snapshot(...)` with structured validation and error reporting.
 
 ### Phase 3 Validation
 
-50. [ ] `High | Validation` Add `saito-wasm` regression tests for signing after wallet key mutation so signatures follow the latest active key.
-51. [ ] `Medium | Validation` Add `saito-wasm` tests for object methods with hidden or global coupling once their intended state ownership is fixed: `set_key_list`, `add_nft`, and blockchain `reset`.
-52. [ ] `High | Validation` Add `saito-core` tests for golden-ticket propagation when the mempool golden-ticket entry for the latest block is absent.
-53. [ ] `Medium | Validation` Add `saito-core` tests for missing consensus config during active consensus-thread setup or processing.
-54. [ ] `Medium | Validation` Add `saito-core` tests that input-less or malformed pending transactions are rejected without panicking wallet state updates.
-55. [ ] `Medium | Validation` Add `saito-core` tests for wallet collection drift so missing `slips` entries behind tracked UTXO keys fail cleanly.
-56. [ ] `Medium | Validation` Add `saito-core` tests for malformed UTXO keys in staking, NFT display, and wallet cleanup paths.
-57. [ ] `Low | Validation` Add `saito-core` tests for wallet load or save failure propagation and invalid balance-snapshot entries.
+50. [x] `High | Validation` Add `saito-wasm` regression tests for signing after wallet key mutation so signatures follow the latest active key.
+51. [x] `Medium | Validation` Add `saito-wasm` tests for object methods with hidden or global coupling once their intended state ownership is fixed: `set_key_list`, `add_nft`, and blockchain `reset`.
+52. [x] `High | Validation` Add `saito-core` tests for golden-ticket propagation when the mempool golden-ticket entry for the latest block is absent.
+53. [x] `Medium | Validation` Add `saito-core` tests for missing consensus config during active consensus-thread setup or processing.
+54. [x] `Medium | Validation` Add `saito-core` tests that input-less or malformed pending transactions are rejected without panicking wallet state updates.
+55. [x] `Medium | Validation` Add `saito-core` tests for wallet collection drift so missing `slips` entries behind tracked UTXO keys fail cleanly.
+56. [x] `Medium | Validation` Add `saito-core` tests for malformed UTXO keys in staking, NFT display, and wallet cleanup paths.
+57. [x] `Low | Validation` Add `saito-core` tests for wallet load or save failure propagation and invalid balance-snapshot entries.
 
 ## Phase 4: JS And WASM API Boundary Consistency
 

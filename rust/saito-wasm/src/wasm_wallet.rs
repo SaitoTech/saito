@@ -152,18 +152,22 @@ impl WasmWallet {
         }
         array
     }
-    pub async fn add_slip(&mut self, slip: WasmWalletSlip) {
+    pub async fn add_slip(&mut self, slip: WasmWalletSlip) -> Result<(), JsValue> {
         let wallet_slip = slip.slip;
         let mut wallet = self.wallet.write().await;
-        let slip = Slip::parse_slip_from_utxokey(&wallet_slip.utxokey).unwrap();
+        let slip = Slip::parse_slip_from_utxokey(&wallet_slip.utxokey)
+            .map_err(|e| JsValue::from_str(&format!("invalid utxo key: {}", e)))?;
         wallet.add_slip(&slip, wallet_slip.lc, Some(self.network.deref()));
+        Ok(())
     }
 
-    pub async fn add_to_pending(&mut self, tx: &WasmTransaction) {
+    pub async fn add_to_pending(&mut self, tx: &WasmTransaction) -> Result<(), JsValue> {
         let mut wallet = self.wallet.write().await;
         let mut tx = tx.clone().tx;
         tx.generate(&wallet.public_key, 0, 0);
-        wallet.add_to_pending(tx);
+        wallet
+            .add_to_pending(tx)
+            .map_err(|e| JsValue::from_str(&format!("add_to_pending failed: {}", e)))
     }
 
     pub async fn get_key_list(&self) -> Array {
@@ -174,16 +178,18 @@ impl WasmWallet {
         }
         array
     }
-    pub async fn set_key_list(&self, key_list: js_sys::Array) {
+    pub async fn set_key_list(&self, key_list: js_sys::Array) -> Result<(), JsValue> {
         let key_list: Vec<SaitoPublicKey> = string_array_to_base58_keys(key_list);
 
         let mut saito = SAITO.lock().await;
-        saito
+        let saito_ref = saito
             .as_mut()
-            .unwrap()
+            .ok_or_else(|| JsValue::from_str("runtime not initialized"))?;
+        saito_ref
             .routing_thread
             .set_my_key_list(key_list)
             .await;
+        Ok(())
     }
 
     #[wasm_bindgen]
@@ -196,7 +202,10 @@ impl WasmWallet {
         sig_hex: String,
     ) -> Result<(), JsValue> {
         let saito = SAITO.lock().await;
-        let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
+        let saito_ref = saito
+            .as_ref()
+            .ok_or_else(|| JsValue::from_str("runtime not initialized"))?;
+        let mut wallet = saito_ref.context.wallet_lock.write().await;
 
         let slip1: SaitoUTXOSetKey = string_to_utxoset_key(&slip1_hex)
             .map_err(|e| JsValue::from_str(&format!("slip1 parse error: {}", e)))?;

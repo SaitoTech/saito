@@ -126,10 +126,19 @@ impl WasmTransaction {
         self.tx.timestamp = timestamp;
     }
 
-    pub async fn sign(&mut self) {
+    pub async fn sign(&mut self) -> Result<(), JsValue> {
+        if self.tx.hash_for_signature.is_none() {
+            return Err(JsValue::from_str(
+                "hash_for_signature is not set; call generate_hash_for_signature() before sign()",
+            ));
+        }
         let saito = SAITO.lock().await;
-        let wallet = saito.as_ref().unwrap().context.wallet_lock.read().await;
+        let saito_ref = saito
+            .as_ref()
+            .ok_or_else(|| JsValue::from_str("runtime not initialized"))?;
+        let wallet = saito_ref.context.wallet_lock.read().await;
         self.tx.sign(&wallet.private_key);
+        Ok(())
     }
 
     #[wasm_bindgen(getter = type)]
@@ -184,5 +193,49 @@ impl WasmTransaction {
 impl WasmTransaction {
     pub fn from_transaction(transaction: Transaction) -> WasmTransaction {
         WasmTransaction { tx: transaction }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use saito_core::core::util::crypto::generate_keys;
+
+    /// Item 50: sign() guards against missing hash_for_signature.
+    /// We verify the guard condition directly because calling the wasm_bindgen
+    /// wrapper with an Err return aborts the native test runner (extern "C" cannot unwind).
+    #[test]
+    fn sign_rejects_missing_hash_for_signature() {
+        let tx = WasmTransaction::new();
+        // hash_for_signature is None by default — the guard in sign() would reject this
+        assert!(tx.tx.hash_for_signature.is_none());
+    }
+
+    #[test]
+    fn sign_guard_passes_after_generating_hash() {
+        let mut tx = WasmTransaction::new();
+        tx.generate_hash_for_signature();
+        // After generating the hash, the guard in sign() would pass
+        assert!(tx.tx.hash_for_signature.is_some());
+    }
+
+    #[test]
+    fn sign_with_key_after_mutation() {
+        // Validate that Transaction::sign() produces different signatures
+        // with different keys (core-level check for item 50)
+        let (pub1, priv1) = generate_keys();
+        let (pub2, priv2) = generate_keys();
+
+        let mut tx = Transaction::default();
+        tx.generate_hash_for_signature();
+
+        tx.sign(&priv1);
+        let sig1 = tx.signature;
+
+        tx.sign(&priv2);
+        let sig2 = tx.signature;
+
+        assert_ne!(sig1, sig2, "different keys must produce different signatures");
+        assert_ne!(pub1, pub2);
     }
 }

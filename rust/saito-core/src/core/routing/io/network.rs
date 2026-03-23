@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use log::{debug, error};
+use log::{debug, error, warn};
 use tokio::sync::RwLock;
 
 use crate::core::consensus::block::Block;
@@ -90,7 +90,9 @@ impl Network {
         {
             if let TransactionType::GoldenTicket = transaction.transaction_type {
             } else {
-                wallet.add_to_pending(transaction.clone());
+                if let Err(e) = wallet.add_to_pending(transaction.clone()) {
+                    warn!("failed to add transaction to pending: {}", e);
+                }
             }
         }
 

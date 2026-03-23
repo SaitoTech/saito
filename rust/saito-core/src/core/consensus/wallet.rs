@@ -135,8 +135,9 @@ impl Wallet {
         let result = io.load_wallet(wallet).await;
         if result.is_err() {
             error!("loading wallet failed. saving new wallet");
-            // TODO : check error code
-            io.save_wallet(wallet).await.unwrap();
+            if let Err(e) = io.save_wallet(wallet).await {
+                error!("saving new wallet also failed: {}", e);
+            }
         } else {
             info!("wallet loaded");
 
@@ -145,7 +146,9 @@ impl Wallet {
     }
     pub async fn save(wallet: &mut Wallet, io: &(dyn InterfaceIO + Send + Sync)) {
         trace!("saving wallet");
-        io.save_wallet(wallet).await.unwrap();
+        if let Err(e) = io.save_wallet(wallet).await {
+            error!("saving wallet failed: {}", e);
+        }
         trace!("wallet saved");
     }
 
@@ -463,9 +466,18 @@ impl Wallet {
         }
 
         for key in keys_to_remove {
-            let slip = Slip::parse_slip_from_utxokey(&key).unwrap();
-            debug!("removing old slip : {}", slip);
-            self.delete_slip(&slip, None);
+            match Slip::parse_slip_from_utxokey(&key) {
+                Ok(slip) => {
+                    debug!("removing old slip : {}", slip);
+                    self.delete_slip(&slip, None);
+                }
+                Err(e) => {
+                    warn!("remove_old_slips: invalid utxo key, removing raw entry: {}", e);
+                    self.slips.remove(&key);
+                    self.unspent_slips.remove(&key);
+                    self.staking_slips.remove(&key);
+                }
+            }
         }
 
         //
@@ -473,15 +485,22 @@ impl Wallet {
         // block id < latest_block_id - gensis_period
         //
         self.nfts.retain(|nft| {
-            let slip2 = Slip::parse_slip_from_utxokey(&nft.slip2).unwrap();
-            if slip2.block_id < block_id {
-                debug!(
-                    "removing stale NFT (from block {}) : {:?}",
-                    slip2.block_id, nft.id
-                );
-                false
-            } else {
-                true
+            match Slip::parse_slip_from_utxokey(&nft.slip2) {
+                Ok(slip2) => {
+                    if slip2.block_id < block_id {
+                        debug!(
+                            "removing stale NFT (from block {}) : {:?}",
+                            slip2.block_id, nft.id
+                        );
+                        false
+                    } else {
+                        true
+                    }
+                }
+                Err(e) => {
+                    warn!("remove_old_slips: NFT has invalid slip2 utxo key, removing: {}", e);
+                    false
+                }
             }
         });
     }
@@ -510,11 +529,10 @@ impl Wallet {
         }
 
         debug!(
-            "adding slip of type : {:?} with value : {:?} to wallet : {:?} \n > slip : {}",
+            "adding slip of type : {:?} with value : {:?} to wallet : {:?}",
             wallet_slip.slip_type,
             wallet_slip.amount,
             wallet_slip.utxokey.to_hex(),
-            Slip::parse_slip_from_utxokey(&wallet_slip.utxokey).unwrap()
         );
         self.slips.insert(wallet_slip.utxokey, wallet_slip);
         if let Some(network) = network {
@@ -571,10 +589,10 @@ impl Wallet {
         {
             // this part is compiled for tests to make sure selected slips are predictable. otherwise we will get random slips from a hashset
             unspent_slips = self.unspent_slips.iter().collect::<Vec<&SaitoUTXOSetKey>>();
-            unspent_slips.sort_by(|slip, slip2| {
-                let slip = Slip::parse_slip_from_utxokey(slip).unwrap();
-                let slip2 = Slip::parse_slip_from_utxokey(slip2).unwrap();
-                slip.amount.cmp(&slip2.amount)
+            unspent_slips.sort_by(|a, b| {
+                let slip_a = self.slips.get(*a).map(|s| s.amount).unwrap_or(0);
+                let slip_b = self.slips.get(*b).map(|s| s.amount).unwrap_or(0);
+                slip_a.cmp(&slip_b)
             });
         }
         #[cfg(not(test))]
@@ -583,7 +601,13 @@ impl Wallet {
         }
 
         for key in unspent_slips {
-            let slip = self.slips.get_mut(key).expect("slip should be here");
+            let slip = match self.slips.get_mut(key) {
+                Some(s) => s,
+                None => {
+                    warn!("generate_slips: unspent_slips contains key not in slips map");
+                    continue;
+                }
+            };
 
             // Prevent using slips from blocks earlier than (latest_block_id - (genesis_period-1)
             if slip.block_id <= latest_block_id.saturating_sub(genesis_period - 1) {
@@ -1509,15 +1533,38 @@ impl Wallet {
 
         transaction
     }
-    pub fn add_to_pending(&mut self, tx: Transaction) {
-        assert_eq!(tx.from.first().unwrap().public_key, self.public_key);
-        assert_ne!(tx.transaction_type, TransactionType::GoldenTicket);
-        assert!(tx.hash_for_signature.is_some());
-        self.pending_txs.insert(tx.hash_for_signature.unwrap(), tx);
+    pub fn add_to_pending(&mut self, tx: Transaction) -> Result<(), Error> {
+        let first_from = tx
+            .from
+            .first()
+            .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "tx.from is empty"))?;
+        if first_from.public_key != self.public_key {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "first input public key does not match wallet",
+            ));
+        }
+        if tx.transaction_type == TransactionType::GoldenTicket {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "cannot add GoldenTicket to pending transactions",
+            ));
+        }
+        let hash = tx.hash_for_signature.ok_or_else(|| {
+            Error::new(ErrorKind::InvalidInput, "tx.hash_for_signature is None")
+        })?;
+        self.pending_txs.insert(hash, tx);
+        Ok(())
     }
 
     pub fn delete_pending_transaction(&mut self, tx: &Transaction) -> bool {
-        let hash = tx.hash_for_signature.unwrap();
+        let hash = match tx.hash_for_signature {
+            Some(h) => h,
+            None => {
+                warn!("delete_pending_transaction: tx has no hash_for_signature");
+                return false;
+            }
+        };
         if self.pending_txs.remove(&hash).is_some() {
             true
         } else {
@@ -1537,7 +1584,10 @@ impl Wallet {
         self.available_balance = 0;
 
         snapshot.slips.iter().for_each(|slip| {
-            assert_ne!(slip.utxoset_key, [0; UTXO_KEY_LENGTH]);
+            if slip.utxoset_key == [0; UTXO_KEY_LENGTH] {
+                warn!("skipping snapshot slip with zero utxoset_key");
+                return;
+            }
             let wallet_slip = WalletSlip {
                 utxokey: slip.utxoset_key,
                 amount: slip.amount,
@@ -1628,7 +1678,13 @@ impl Wallet {
         let mut unlocked_slips_to_remove = vec![];
 
         for key in self.staking_slips.iter() {
-            let slip = self.slips.get(key).unwrap();
+            let slip = match self.slips.get(key) {
+                Some(s) => s,
+                None => {
+                    warn!("find_slips_for_staking: staking_slips key not in slips map");
+                    continue;
+                }
+            };
             if !slip.is_staking_slip_unlocked(latest_unlocked_block_id) {
                 // slip cannot be used for staking yet
                 continue;
@@ -1659,13 +1715,19 @@ impl Wallet {
             let mut unspent_slips_to_remove = vec![];
 
             let mut unspent_slips = self.unspent_slips.iter().collect::<Vec<&SaitoUTXOSetKey>>();
-            unspent_slips.sort_by(|slip, slip2| {
-                let slip = Slip::parse_slip_from_utxokey(slip).unwrap();
-                let slip2 = Slip::parse_slip_from_utxokey(slip2).unwrap();
-                slip2.amount.cmp(&slip.amount)
+            unspent_slips.sort_by(|a, b| {
+                let amount_a = self.slips.get(*a).map(|s| s.amount).unwrap_or(0);
+                let amount_b = self.slips.get(*b).map(|s| s.amount).unwrap_or(0);
+                amount_b.cmp(&amount_a)
             });
             for key in unspent_slips {
-                let slip = self.slips.get(key).unwrap();
+                let slip = match self.slips.get(key) {
+                    Some(s) => s,
+                    None => {
+                        warn!("find_slips_for_staking: unspent key not in slips map");
+                        continue;
+                    }
+                };
                 if slip.block_id < last_valid_slips_in_block_id {
                     // slip is too old
                     continue;
@@ -1747,24 +1809,36 @@ impl Wallet {
     pub fn get_nft_list(&self) -> Vec<DetailedNFT> {
         self.nfts
             .iter()
-            .map(|nft| {
-                //
-                // parse each utxokey back into a Slip
-                //
-                let s1 = Slip::parse_slip_from_utxokey(&nft.slip1)
-                    .expect("bound utxokey must parse to Slip");
-                let s2 = Slip::parse_slip_from_utxokey(&nft.slip2)
-                    .expect("normal utxokey must parse to Slip");
-                let s3 = Slip::parse_slip_from_utxokey(&nft.slip3)
-                    .expect("bound utxokey must parse to Slip");
+            .filter_map(|nft| {
+                let s1 = match Slip::parse_slip_from_utxokey(&nft.slip1) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        warn!("get_nft_list: invalid slip1 utxo key: {}", e);
+                        return None;
+                    }
+                };
+                let s2 = match Slip::parse_slip_from_utxokey(&nft.slip2) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        warn!("get_nft_list: invalid slip2 utxo key: {}", e);
+                        return None;
+                    }
+                };
+                let s3 = match Slip::parse_slip_from_utxokey(&nft.slip3) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        warn!("get_nft_list: invalid slip3 utxo key: {}", e);
+                        return None;
+                    }
+                };
 
-                DetailedNFT {
+                Some(DetailedNFT {
                     id: nft.id.clone(),
                     tx_sig: nft.tx_sig,
                     slip1: s1,
                     slip2: s2,
                     slip3: s3,
-                }
+                })
             })
             .collect()
     }
@@ -1838,8 +1912,13 @@ impl WalletSlip {
     }
 
     fn to_slip(&self) -> Slip {
-        Slip::parse_slip_from_utxokey(&self.utxokey)
-            .expect("since we already have a wallet slip, utxo key should be valid")
+        match Slip::parse_slip_from_utxokey(&self.utxokey) {
+            Ok(slip) => slip,
+            Err(e) => {
+                warn!("WalletSlip::to_slip: invalid utxo key: {}; returning default", e);
+                Slip::default()
+            }
+        }
     }
 }
 
@@ -2138,4 +2217,234 @@ mod tests {
     //     assert_eq!(wallet.public_key, public_key1);
     //     assert_eq!(wallet.private_key, private_key1);
     // }
+
+    // --- Phase 3 Validation Tests ---
+
+    /// Item 54: Empty tx.from is rejected by add_to_pending without panicking.
+    #[test]
+    fn add_to_pending_rejects_empty_from() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+        let tx = Transaction::default(); // from is empty
+        let result = wallet.add_to_pending(tx);
+        assert!(result.is_err());
+        let msg = result.err().unwrap().to_string();
+        assert!(msg.contains("empty"), "error should mention empty from: {}", msg);
+    }
+
+    /// Item 54: Missing hash_for_signature is rejected by add_to_pending.
+    #[test]
+    fn add_to_pending_rejects_missing_hash() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+        let mut tx = Transaction::default();
+        let mut slip = Slip::default();
+        slip.public_key = wallet.public_key;
+        tx.add_from_slip(slip);
+        // hash_for_signature is None
+        let result = wallet.add_to_pending(tx);
+        assert!(result.is_err());
+        let msg = result.err().unwrap().to_string();
+        assert!(
+            msg.contains("hash_for_signature"),
+            "error should mention hash: {}",
+            msg
+        );
+    }
+
+    /// Item 54: GoldenTicket transactions are rejected by add_to_pending.
+    #[test]
+    fn add_to_pending_rejects_golden_ticket() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+        let mut tx = Transaction {
+            transaction_type: TransactionType::GoldenTicket,
+            ..Default::default()
+        };
+        let mut slip = Slip::default();
+        slip.public_key = wallet.public_key;
+        tx.add_from_slip(slip);
+        tx.hash_for_signature = Some([1u8; 32]);
+        let result = wallet.add_to_pending(tx);
+        assert!(result.is_err());
+        let msg = result.err().unwrap().to_string();
+        assert!(
+            msg.contains("GoldenTicket"),
+            "error should mention GoldenTicket: {}",
+            msg
+        );
+    }
+
+    /// Item 54: Valid transaction is accepted by add_to_pending.
+    #[test]
+    fn add_to_pending_accepts_valid_tx() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+        let mut tx = Transaction::default();
+        let mut slip = Slip::default();
+        slip.public_key = wallet.public_key;
+        tx.add_from_slip(slip);
+        tx.hash_for_signature = Some([1u8; 32]);
+        let result = wallet.add_to_pending(tx);
+        assert!(result.is_ok());
+        assert_eq!(wallet.pending_txs.len(), 1);
+    }
+
+    /// Item 54: delete_pending_transaction handles missing hash gracefully.
+    #[test]
+    fn delete_pending_with_no_hash_returns_false() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+        let tx = Transaction::default(); // hash_for_signature is None
+        assert!(!wallet.delete_pending_transaction(&tx));
+    }
+
+    /// Item 55: generate_slips handles drift where unspent_slips key not in slips map.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn generate_slips_tolerates_missing_slip_entry() {
+        let t = TestManager::default();
+        let mut wallet = t.wallet_lock.write().await;
+
+        // Clear any pre-existing slips from TestManager initialization
+        wallet.slips.clear();
+        wallet.unspent_slips.clear();
+        wallet.available_balance = 0;
+
+        // Manually insert a key into unspent_slips without a corresponding slips entry
+        let orphan_key: SaitoUTXOSetKey = [99u8; UTXO_KEY_LENGTH];
+        wallet.unspent_slips.insert(orphan_key);
+
+        // generate_slips should skip the orphan key without panicking
+        let (inputs, _outputs) = wallet.generate_slips(100, Some(&t.network), 1, 10);
+        // The function always returns at least one (default) input, so verify
+        // no real slip was gathered — the only input should have amount == 0
+        assert_eq!(inputs.len(), 1);
+        assert_eq!(inputs[0].amount, 0);
+    }
+
+    /// Item 55: find_slips_for_staking handles staking_slips key not in slips map.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn find_slips_for_staking_tolerates_missing_staking_slip() {
+        let t = TestManager::default();
+        let mut wallet = t.wallet_lock.write().await;
+
+        // Insert orphan staking key
+        let orphan_key: SaitoUTXOSetKey = [88u8; UTXO_KEY_LENGTH];
+        wallet.staking_slips.insert(orphan_key);
+
+        // Should not panic — returns Err because no valid slips
+        let result = wallet.find_slips_for_staking(1000, 2, 0);
+        assert!(result.is_err());
+    }
+
+    /// Item 56: get_nft_list filters out NFTs with invalid UTXO keys.
+    #[test]
+    fn get_nft_list_filters_invalid_utxo_keys() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+
+        // Create a key with invalid SlipType byte (255) so parse_slip_from_utxokey fails
+        let mut bad_key: SaitoUTXOSetKey = [0u8; UTXO_KEY_LENGTH];
+        bad_key[58] = 255; // invalid SlipType
+
+        wallet.nfts.push(NFT {
+            slip1: bad_key,
+            slip2: bad_key,
+            slip3: bad_key,
+            id: vec![1, 2, 3],
+            tx_sig: [0u8; 64],
+        });
+
+        // Should not panic; invalid NFTs are filtered out
+        let nft_list = wallet.get_nft_list();
+        assert_eq!(nft_list.len(), 0);
+    }
+
+    /// Item 56: remove_old_slips handles invalid UTXO keys in slips map.
+    #[test]
+    fn remove_old_slips_handles_invalid_utxo_key() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+
+        // Insert a slip with an invalid SlipType byte so parse_slip_from_utxokey fails
+        let mut bad_key: SaitoUTXOSetKey = [0u8; UTXO_KEY_LENGTH];
+        bad_key[58] = 255; // invalid SlipType
+        wallet.slips.insert(
+            bad_key,
+            WalletSlip {
+                utxokey: bad_key,
+                amount: 100,
+                block_id: 1,
+                tx_ordinal: 0,
+                lc: true,
+                slip_index: 0,
+                spent: false,
+                slip_type: SlipType::Normal,
+            },
+        );
+        wallet.unspent_slips.insert(bad_key);
+
+        // Should not panic — invalid key entry is cleaned up via Err branch
+        wallet.remove_old_slips(10);
+        assert!(!wallet.slips.contains_key(&bad_key));
+        assert!(!wallet.unspent_slips.contains(&bad_key));
+    }
+
+    /// Item 57: update_from_balance_snapshot skips zero-key slips.
+    #[test]
+    fn update_from_balance_snapshot_skips_zero_key() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+
+        let mut slip = Slip {
+            public_key: wallet.public_key,
+            amount: 500,
+            block_id: 1,
+            tx_ordinal: 0,
+            utxoset_key: [0u8; UTXO_KEY_LENGTH], // zero key
+            ..Slip::default()
+        };
+
+        let snapshot = BalanceSnapshot {
+            latest_block_id: 1,
+            latest_block_hash: [0u8; 32],
+            timestamp: 0,
+            slips: vec![slip],
+        };
+
+        // Should not panic — zero-key slips are skipped
+        wallet.update_from_balance_snapshot(snapshot, None);
+        assert_eq!(wallet.slips.len(), 0);
+        assert_eq!(wallet.available_balance, 0);
+    }
+
+    /// Item 57: update_from_balance_snapshot accepts valid entries.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn update_from_balance_snapshot_with_valid_entry() {
+        let t = TestManager::default();
+        let mut wallet = t.wallet_lock.write().await;
+
+        let mut slip = Slip {
+            public_key: wallet.public_key,
+            amount: 1000,
+            block_id: 5,
+            tx_ordinal: 1,
+            ..Slip::default()
+        };
+        slip.generate_utxoset_key();
+
+        let snapshot = BalanceSnapshot {
+            latest_block_id: 5,
+            latest_block_hash: [0u8; 32],
+            timestamp: 0,
+            slips: vec![slip.clone()],
+        };
+
+        wallet.update_from_balance_snapshot(snapshot, None);
+        assert_eq!(wallet.slips.len(), 1);
+        assert_eq!(wallet.available_balance, 1000);
+    }
 }

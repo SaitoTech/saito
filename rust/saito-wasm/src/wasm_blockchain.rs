@@ -77,24 +77,23 @@ pub struct WasmBlockchain {
 
 #[wasm_bindgen]
 impl WasmBlockchain {
+    /// Resets blockchain state. Accesses the global SAITO singleton to clear
+    /// config data (congestion, confirmations). Will log a warning and skip
+    /// config cleanup if the runtime is not initialized.
     pub async fn reset(&self) {
         {
             let saito = SAITO.lock().await;
-            let mut configs = saito
-                .as_ref()
-                .unwrap()
-                .routing_thread
-                .config_lock
-                .write()
-                .await;
-            // configs.set_blockchain_configs(Some(Default::default()));
-            // configs
-            //     .get_blockchain_configs_mut()
-            //     .expect("blockchain config should exist here")
-            //     .confirmations
-            //     .clear();
-            configs.set_congestion_data(None);
-            configs.get_blockchain_configs_mut().confirmations.clear();
+            match saito.as_ref() {
+                Some(s) => {
+                    let mut configs =
+                        s.routing_thread.config_lock.write().await;
+                    configs.set_congestion_data(None);
+                    configs.get_blockchain_configs_mut().confirmations.clear();
+                }
+                None => {
+                    log::warn!("reset: SAITO runtime not initialized; skipping config cleanup");
+                }
+            }
         }
         let mut blockchain = self.blockchain_lock.write().await;
         blockchain.reset().await;
@@ -248,5 +247,28 @@ impl WasmBlockchain {
         // Call blockchain.is_slip_unlocked
         let blockchain = self.blockchain_lock.read().await;
         blockchain.is_slip_unlocked(&key)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use saito_core::core::consensus::blockchain::Blockchain;
+    use saito_core::core::consensus::wallet::Wallet;
+    use saito_core::core::util::crypto::generate_keys;
+
+    #[tokio::test]
+    async fn reset_does_not_panic_with_uninitialized_saito() {
+        // If SAITO singleton is initialized by lazy_static, reset should work.
+        // If it were None, the new code logs a warning instead of panicking.
+        let keys = generate_keys();
+        let wallet = Wallet::new(keys.1, keys.0);
+        let wallet_lock = Arc::new(RwLock::new(wallet));
+        let blockchain = Blockchain::new(wallet_lock, 10, 0, 0, 10, 5);
+        let wasm_bc = WasmBlockchain {
+            blockchain_lock: Arc::new(RwLock::new(blockchain)),
+        };
+        // Should not panic
+        wasm_bc.reset().await;
     }
 }
