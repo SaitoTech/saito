@@ -1,3 +1,151 @@
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::consensus::wallet::Wallet;
+    use crate::core::process::timer::{KeepTime, Timer};
+    use crate::core::process::version::Version;
+    use crate::core::routing::peers::congestion_controller::CongestionStatsDisplay;
+    use crate::core::util::configuration::{
+        BlockchainConfig, Configuration, ConsensusConfig, PeerConfig, Server, WalletConfig,
+    };
+    use crate::core::util::crypto::{generate_keys, sign};
+    use std::io::Error;
+    use std::sync::Arc;
+    use tokio::sync::RwLock;
+
+    #[derive(Debug)]
+    struct FixedTime;
+
+    impl KeepTime for FixedTime {
+        fn get_timestamp_in_ms(&self) -> Timestamp {
+            1
+        }
+    }
+
+    #[derive(Debug)]
+    struct TestConfig {
+        blockchain: BlockchainConfig,
+        consensus: ConsensusConfig,
+        peers: Vec<PeerConfig>,
+    }
+
+    impl Configuration for TestConfig {
+        fn get_server_configs(&self) -> Option<&Server> {
+            None
+        }
+        fn get_peer_configs(&self) -> &Vec<PeerConfig> {
+            &self.peers
+        }
+        fn get_blockchain_configs(&self) -> &BlockchainConfig {
+            &self.blockchain
+        }
+        fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+            &mut self.blockchain
+        }
+        fn get_block_fetch_url(&self) -> String {
+            String::new()
+        }
+        fn is_spv_mode(&self) -> bool {
+            false
+        }
+        fn is_browser(&self) -> bool {
+            false
+        }
+        fn replace(&mut self, _config: &dyn Configuration) {}
+        fn get_consensus_config(&self) -> Option<&ConsensusConfig> {
+            Some(&self.consensus)
+        }
+        fn get_consensus_config_mut(&mut self) -> Option<&mut ConsensusConfig> {
+            Some(&mut self.consensus)
+        }
+        fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay> {
+            None
+        }
+        fn set_congestion_data(&mut self, _congestion_data: Option<CongestionStatsDisplay>) {}
+        fn get_config_path(&self) -> String {
+            String::new()
+        }
+        fn set_config_path(&mut self, _path: String) {}
+        fn save(&self) -> Result<(), Error> {
+            Ok(())
+        }
+        fn get_wallet_configs(&self) -> Option<&WalletConfig> {
+            None
+        }
+        fn get_wallet_configs_mut(&mut self) -> Option<&mut WalletConfig> {
+            None
+        }
+    }
+
+    #[test]
+    fn process_handshake_response_rejects_mismatched_existing_public_key() {
+        let wallet_keys = generate_keys();
+        let peer_keys = generate_keys();
+        let challenge = [5; 32];
+        let wallet = Wallet::new(wallet_keys.1, wallet_keys.0);
+        let config = TestConfig {
+            blockchain: BlockchainConfig::default(),
+            consensus: ConsensusConfig::default(),
+            peers: vec![],
+        };
+        let mut network_peer = NetworkPeer::new(None);
+        network_peer.challenge = Some(challenge);
+        network_peer.public_key = Some([9; 33]);
+
+        let response = HandshakeResponse {
+            public_key: peer_keys.0,
+            signature: sign(&challenge, &peer_keys.1),
+            challenge: [7; 32],
+            is_lite: false,
+            block_fetch_url: String::new(),
+            services: vec![],
+            wallet_version: Version::new(1, 0, 0),
+            core_version: Version::new(1, 0, 0),
+            endpoint: Endpoint::default(),
+            timestamp: 1,
+        };
+
+        assert!(network_peer
+            .process_handshake_response(response, 1, &vec![], &wallet, &config)
+            .is_err());
+    }
+
+    #[tokio::test]
+    async fn connected_peer_without_public_key_returns_error() {
+        let keys = generate_keys();
+        let wallet = Arc::new(RwLock::new(Wallet::new(keys.1, keys.0)));
+        let config: Arc<RwLock<dyn Configuration + Send + Sync>> =
+            Arc::new(RwLock::new(TestConfig {
+                blockchain: BlockchainConfig::default(),
+                consensus: ConsensusConfig::default(),
+                peers: vec![],
+            }));
+        let timer = Timer {
+            time_reader: Arc::new(FixedTime),
+            hasten_multiplier: 1,
+            start_time: 0,
+        };
+        let mut network_peer = NetworkPeer::new(None);
+        network_peer.response = Some(HandshakeResponse {
+            public_key: keys.0,
+            signature: [0; 64],
+            challenge: [0; 32],
+            is_lite: false,
+            block_fetch_url: String::new(),
+            services: vec![],
+            wallet_version: Version::new(1, 0, 0),
+            core_version: Version::new(1, 0, 0),
+            endpoint: Endpoint::default(),
+            timestamp: 1,
+        });
+
+        let result = network_peer
+            .process_incoming_buffer(vec![1, 2, 3], wallet, config, &timer, &vec![], |_| async {})
+            .await;
+
+        assert!(result.is_err());
+    }
+}
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
@@ -114,7 +262,7 @@ impl NetworkPeer {
             return Err(Error::from(ErrorKind::InvalidInput));
         }
         // TODO : validate block fetch URL
-        let sent_challenge = self.challenge.unwrap();
+        let sent_challenge = self.challenge.ok_or(Error::from(ErrorKind::InvalidInput))?;
         let result = verify(&sent_challenge, &response.signature, &response.public_key);
         if !result {
             warn!(
@@ -143,14 +291,15 @@ impl NetworkPeer {
             }
         }
 
-        if self.public_key.is_some() {
-            assert_eq!(
-                response.public_key,
-                self.public_key.unwrap(),
-                "This peer instance is to handle a peer with a different public key. current : {} new : {}",
-                self.public_key.unwrap().to_base58(),
-                response.public_key.to_base58()
-            );
+        if let Some(existing_public_key) = self.public_key {
+            if response.public_key != existing_public_key {
+                warn!(
+                    "peer instance already bound to public key {} but received handshake for {}",
+                    existing_public_key.to_base58(),
+                    response.public_key.to_base58()
+                );
+                return Err(Error::from(ErrorKind::InvalidInput));
+            }
         }
 
         // self.block_fetch_url = response.block_fetch_url;
@@ -194,7 +343,7 @@ impl NetworkPeer {
             };
             debug!(
                 "sending handshake response for peer: {:?}",
-                self.public_key.unwrap().to_base58()
+                response.public_key.to_base58()
             );
             return Ok(Some(response_new));
             // io_handler
@@ -239,11 +388,11 @@ impl NetworkPeer {
             self.public_key.unwrap_or([0; 33]).to_base58()
         );
         if self.is_connected() {
-            send_event(NetworkEvent::IncomingNetworkMessage {
-                public_key: self.public_key.unwrap(),
-                buffer,
-            })
-            .await;
+            let Some(public_key) = self.public_key else {
+                warn!("received connected peer buffer without a resolved public key");
+                return Err(Error::from(ErrorKind::InvalidInput));
+            };
+            send_event(NetworkEvent::IncomingNetworkMessage { public_key, buffer }).await;
             Ok(vec![])
         } else {
             if self.challenge.is_some() {
@@ -285,7 +434,7 @@ impl NetworkPeer {
                             .await;
                             debug!(
                                 "handshake completed for peer : {:?}",
-                                self.public_key.unwrap().to_base58()
+                                self.public_key.unwrap_or(response.public_key).to_base58()
                             );
                             Ok(buffer)
                         } else {

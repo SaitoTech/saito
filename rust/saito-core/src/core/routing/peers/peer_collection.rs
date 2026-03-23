@@ -1,3 +1,140 @@
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::consensus::wallet::Wallet;
+    use crate::core::defs::{BlockId, SaitoHash};
+    use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+    use crate::core::routing::peers::peer_service::PeerService;
+    use async_trait::async_trait;
+    use std::io::{Error, ErrorKind};
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Debug, Default)]
+    struct MockIo {
+        disconnects: Arc<Mutex<Vec<SaitoPublicKey>>>,
+        fail_disconnect: bool,
+    }
+
+    #[async_trait]
+    impl InterfaceIO for MockIo {
+        async fn send_message(
+            &self,
+            _public_key: SaitoPublicKey,
+            _buffer: &[u8],
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn send_message_to_all(
+            &self,
+            _buffer: &[u8],
+            _excluded_peers: Vec<SaitoPublicKey>,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn connect_to_peer(&mut self, _url: String) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn disconnect_from_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error> {
+            self.disconnects.lock().unwrap().push(public_key);
+            if self.fail_disconnect {
+                Err(Error::from(ErrorKind::BrokenPipe))
+            } else {
+                Ok(())
+            }
+        }
+        async fn fetch_block_from_peer(
+            &self,
+            _block_hash: SaitoHash,
+            _public_key: SaitoPublicKey,
+            _url: &str,
+            _block_id: BlockId,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn write_value(&self, _key: &str, _value: &[u8]) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn append_value(&mut self, _key: &str, _value: &[u8]) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn flush_data(&mut self, _key: &str) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn read_value(&self, _key: &str) -> Result<Vec<u8>, Error> {
+            Ok(vec![])
+        }
+        async fn load_block_file_list(&self) -> Result<Vec<String>, Error> {
+            Ok(vec![])
+        }
+        async fn is_existing_file(&self, _key: &str) -> bool {
+            false
+        }
+        async fn remove_value(&self, _key: &str) -> Result<(), Error> {
+            Ok(())
+        }
+        fn get_block_dir(&self) -> String {
+            String::new()
+        }
+        fn get_checkpoint_dir(&self) -> String {
+            String::new()
+        }
+        fn ensure_directory_exists(&self, _block_dir: &str) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn process_api_call(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: SaitoPublicKey,
+        ) {
+        }
+        async fn process_api_success(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: SaitoPublicKey,
+        ) {
+        }
+        async fn process_api_error(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: SaitoPublicKey,
+        ) {
+        }
+        fn send_interface_event(&self, _event: InterfaceEvent) {}
+        async fn save_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn load_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
+            Ok(())
+        }
+        fn get_my_services(&self) -> Vec<PeerService> {
+            vec![]
+        }
+    }
+
+    #[tokio::test]
+    async fn disconnect_stale_peers_tolerates_disconnect_failures() {
+        let mut peers = PeerCollection::default();
+        let public_key = [7; 33];
+        let mut peer = Peer::new(public_key);
+        peer.peer_status = PeerStatus::Connected;
+        peer.last_msg_received_at = 0;
+        peers.peers.insert(public_key, peer);
+
+        let io = MockIo {
+            fail_disconnect: true,
+            ..Default::default()
+        };
+
+        peers
+            .disconnect_stale_peers(PEER_STALE_PERIOD + 1, &io)
+            .await;
+
+        assert_eq!(io.disconnects.lock().unwrap().as_slice(), &[public_key]);
+    }
+}
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
 use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::congestion_controller::{
@@ -68,9 +205,7 @@ impl PeerCollection {
         services: Vec<PeerService>,
         public_key: SaitoPublicKey,
     ) {
-        let peer = self.peers.get_mut(&public_key);
-        if peer.is_some() {
-            let peer = peer.unwrap();
+        if let Some(peer) = self.peers.get_mut(&public_key) {
             peer.services = services;
         } else {
             warn!(
@@ -105,12 +240,9 @@ impl PeerCollection {
         io_handler.send_interface_event(InterfaceEvent::StunPeerConnected(public_key));
     }
     pub async fn update_peer_timer(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {
-        let peer = self.peers.get_mut(&public_key);
-        if peer.is_none() {
-            return;
+        if let Some(peer) = self.peers.get_mut(&public_key) {
+            peer.last_msg_received_at = current_time;
         }
-        let peer = peer.unwrap();
-        peer.last_msg_received_at = current_time;
 
         // if peer.public_key.is_none() {
         //     return;
@@ -168,11 +300,8 @@ impl PeerCollection {
         io_handler: &Box<dyn InterfaceIO + Send + Sync>,
     ) {
         debug!("Removing STUN peer with index: {}", public_key.to_base58());
-        let peer_public_key: SaitoPublicKey;
         if let Some(peer) = self.peers.remove(&public_key) {
-            let public_key = peer.get_public_key();
-            peer_public_key = public_key;
-            self.peers.remove(&public_key);
+            let peer_public_key = peer.get_public_key();
             debug!("STUN peer removed from network successfully");
             io_handler.send_interface_event(InterfaceEvent::StunPeerDisconnected(peer_public_key));
         } else {
@@ -224,7 +353,12 @@ impl PeerCollection {
             .collect();
 
         for public_key in peer_indices {
-            let _peer = self.peers.remove(&public_key).unwrap();
+            if self.peers.remove(&public_key).is_none() {
+                debug!(
+                    "peer {} was already removed before stale cleanup completed",
+                    public_key.to_base58()
+                );
+            }
         }
     }
 
@@ -250,10 +384,13 @@ impl PeerCollection {
                         (current_time - peer.last_msg_received_at) / 1000
                         );
                     peer.mark_as_disconnected(current_time);
-                    io_handler
-                        .disconnect_from_peer(peer.public_key)
-                        .await
-                        .unwrap();
+                    if let Err(err) = io_handler.disconnect_from_peer(peer.public_key).await {
+                        warn!(
+                            "failed disconnecting stale peer {}: {:?}",
+                            peer.public_key.to_base58(),
+                            err
+                        );
+                    }
                 }
             }
         }

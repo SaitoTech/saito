@@ -9,7 +9,7 @@ use crate::core::util::configuration::Endpoint;
 use log::{debug, error, info, trace};
 use serde::{Serialize, Serializer};
 use std::cmp::Ordering;
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -149,7 +149,7 @@ impl Peer {
     ) -> Result<(), Error> {
         let wallet = wallet_lock.read().await;
 
-        let response = peer.response.unwrap();
+        let response = peer.response.ok_or(Error::from(ErrorKind::InvalidInput))?;
         self.public_key = response.public_key;
         // if !wallet
         //     .core_version
@@ -263,10 +263,16 @@ impl Peer {
                 return;
             }
             trace!("sending ping to peer : {:?}", self.public_key.to_base58());
-            io_handler
+            if let Err(err) = io_handler
                 .send_message(self.public_key, Message::Ping().serialize().as_slice())
                 .await
-                .unwrap();
+            {
+                error!(
+                    "failed sending ping to peer {}: {:?}",
+                    self.public_key.to_base58(),
+                    err
+                );
+            }
         }
     }
 
@@ -347,9 +353,115 @@ impl Peer {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::consensus::wallet::Wallet;
+    use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey};
     use crate::core::process::version::Version;
+    use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+    use crate::core::routing::peers::network_peer::NetworkPeer;
     use crate::core::routing::peers::peer::{Peer, PeerStatus};
+    use crate::core::routing::peers::peer_service::PeerService;
+    use async_trait::async_trait;
     use std::cmp::Ordering;
+    use std::io::{Error, ErrorKind};
+    use std::sync::Arc;
+    use tokio::sync::RwLock;
+
+    #[derive(Debug)]
+    struct FailingIo;
+
+    #[async_trait]
+    impl InterfaceIO for FailingIo {
+        async fn send_message(
+            &self,
+            _public_key: SaitoPublicKey,
+            _buffer: &[u8],
+        ) -> Result<(), Error> {
+            Err(Error::from(ErrorKind::BrokenPipe))
+        }
+        async fn send_message_to_all(
+            &self,
+            _buffer: &[u8],
+            _excluded_peers: Vec<SaitoPublicKey>,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn connect_to_peer(&mut self, _url: String) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn disconnect_from_peer(&self, _public_key: SaitoPublicKey) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn fetch_block_from_peer(
+            &self,
+            _block_hash: SaitoHash,
+            _public_key: SaitoPublicKey,
+            _url: &str,
+            _block_id: BlockId,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn write_value(&self, _key: &str, _value: &[u8]) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn append_value(&mut self, _key: &str, _value: &[u8]) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn flush_data(&mut self, _key: &str) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn read_value(&self, _key: &str) -> Result<Vec<u8>, Error> {
+            Ok(vec![])
+        }
+        async fn load_block_file_list(&self) -> Result<Vec<String>, Error> {
+            Ok(vec![])
+        }
+        async fn is_existing_file(&self, _key: &str) -> bool {
+            false
+        }
+        async fn remove_value(&self, _key: &str) -> Result<(), Error> {
+            Ok(())
+        }
+        fn get_block_dir(&self) -> String {
+            String::new()
+        }
+        fn get_checkpoint_dir(&self) -> String {
+            String::new()
+        }
+        fn ensure_directory_exists(&self, _block_dir: &str) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn process_api_call(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: SaitoPublicKey,
+        ) {
+        }
+        async fn process_api_success(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: SaitoPublicKey,
+        ) {
+        }
+        async fn process_api_error(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: SaitoPublicKey,
+        ) {
+        }
+        fn send_interface_event(&self, _event: InterfaceEvent) {}
+        async fn save_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
+            Ok(())
+        }
+        async fn load_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
+            Ok(())
+        }
+        fn get_my_services(&self) -> Vec<PeerService> {
+            vec![]
+        }
+    }
 
     #[test]
     fn peer_new_test() {
@@ -416,5 +528,26 @@ mod tests {
             peer_1.compare_version(&peer_1.wallet_version),
             Some(Ordering::Equal)
         );
+    }
+
+    #[tokio::test]
+    async fn handle_new_peer_without_response_returns_error() {
+        let wallet = Arc::new(RwLock::new(Wallet::new([9; 32], [8; 33])));
+        let mut peer = Peer::new([1; 33]);
+        let io_handler: Box<dyn InterfaceIO + Send + Sync> = Box::new(FailingIo);
+
+        let result = peer
+            .handle_new_peer(NetworkPeer::new(None), wallet, &io_handler, 1)
+            .await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn send_ping_tolerates_io_failure() {
+        let mut peer = Peer::new([1; 33]);
+        peer.peer_status = PeerStatus::Connected;
+
+        peer.send_ping(u64::MAX, &FailingIo).await;
     }
 }

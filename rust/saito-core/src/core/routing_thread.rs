@@ -12,8 +12,8 @@ use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::msg::handshake::HandshakeResponse;
 use crate::core::msg::message::Message;
-use crate::core::process::timer::Timer;
 use crate::core::process::process_event::ProcessEvent;
+use crate::core::process::timer::Timer;
 use crate::core::process::version::Version;
 use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
 use crate::core::routing::io::interface_io::InterfaceEvent;
@@ -219,11 +219,18 @@ impl RoutingThread {
             }
             Message::Ping() => {
                 trace!("received ping from peer : {:?}", public_key.to_base58());
-                self.network
+                if let Err(err) = self
+                    .network
                     .io_interface
                     .send_message(public_key, Message::Pong().serialize().as_slice())
                     .await
-                    .unwrap();
+                {
+                    warn!(
+                        "failed sending pong to peer {}: {:?}",
+                        public_key.to_base58(),
+                        err
+                    );
+                }
             }
             Message::Pong() => {
                 // not processing this
@@ -302,7 +309,14 @@ impl RoutingThread {
                             .io_interface
                             .send_message(public_key, buffer.as_slice())
                             .await
-                            .unwrap();
+                            .inspect_err(|err| {
+                                warn!(
+                                    "failed sending genesis block header to peer {}: {:?}",
+                                    public_key.to_base58(),
+                                    err
+                                );
+                            })
+                            .ok();
                     }
                 } else {
                     warn!(
@@ -439,25 +453,31 @@ impl RoutingThread {
         debug!("sending ghost chain to peer : {:?}", public_key.to_base58());
         // debug!("ghost : {:?}", ghost);
         let buffer = Message::GhostChain(ghost).serialize();
-        self.network
+        let _ = self
+            .network
             .io_interface
             .send_message(public_key, buffer.as_slice())
             .await
-            .unwrap();
+            .inspect_err(|err| {
+                warn!(
+                    "failed sending ghost chain to peer {}: {:?}",
+                    public_key.to_base58(),
+                    err
+                );
+            });
     }
 
     pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
         trace!("connecting to static peers");
         let mut peers = self.network.peer_lock.write().await;
         for (public_key, peer) in &mut peers.peers {
-            if peer.url.is_none() {
+            let Some(url) = peer.url.clone() else {
                 trace!(
                     "peer : {} doesn't have a url. so not connecting to it",
                     public_key.to_base58()
                 );
                 continue;
-            }
-            let url = peer.url.as_ref().unwrap().clone();
+            };
             if let PeerStatus::Disconnected(connect_time, period) = &mut peer.peer_status {
                 if current_time < *connect_time {
                     continue;
@@ -467,11 +487,13 @@ impl RoutingThread {
                     public_key.to_base58(),
                     url
                 );
-                self.network
-                    .io_interface
-                    .connect_to_peer(url)
-                    .await
-                    .unwrap();
+                if let Err(err) = self.network.io_interface.connect_to_peer(url).await {
+                    warn!(
+                        "failed connecting to static peer {}: {:?}",
+                        public_key.to_base58(),
+                        err
+                    );
+                }
                 if *period < 10_000 {
                     *period *= 2;
                 }
@@ -593,11 +615,18 @@ impl RoutingThread {
         );
         if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
             info!("peer disconnected externally, cleaning up locally created peer");
-            self.network
+            if let Err(err) = self
+                .network
                 .io_interface
                 .disconnect_from_peer(public_key)
                 .await
-                .unwrap();
+            {
+                warn!(
+                    "failed local cleanup disconnect for peer {}: {:?}",
+                    public_key.to_base58(),
+                    err
+                );
+            }
         }
         let mut peers = self.network.peer_lock.write().await;
         if let Some(peer) = peers.peers.get_mut(&public_key) {
@@ -1194,7 +1223,10 @@ impl RoutingThread {
                     exclusions,
                 )
                 .await
-                .unwrap();
+                .inspect_err(|err| {
+                    warn!("failed broadcasting key list update: {:?}", err);
+                })
+                .ok();
         }
     }
 
@@ -1482,11 +1514,14 @@ impl RoutingThread {
         let configs = configs_lock.read().await;
 
         for peer in configs.get_peer_configs().iter() {
-            self.network
+            if let Err(err) = self
+                .network
                 .io_interface
                 .connect_to_peer(peer.get_url())
                 .await
-                .unwrap();
+            {
+                warn!("failed connecting to configured peer {}: {:?}", peer, err);
+            }
         }
 
         // let mut peers = self.network.peer_lock.write().await;
@@ -1500,28 +1535,42 @@ impl RoutingThread {
             configs.is_browser()
         };
 
-        let public_key = network_peer.public_key.unwrap();
+        let Some(public_key) = network_peer.public_key else {
+            warn!(
+                "received peer connection result without a resolved public key. ip: {:?}",
+                network_peer.ip.as_deref().unwrap_or("unknown")
+            );
+            return Some(());
+        };
 
         {
             let mut peers = self.network.peer_lock.write().await;
-            if peers.is_peer_blacklisted(network_peer.public_key.unwrap(), time) {
+            if peers.is_peer_blacklisted(public_key, time) {
                 warn!(
                     "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
-                    network_peer.public_key.unwrap().to_base58(),
+                    public_key.to_base58(),
                     network_peer.ip.as_deref().unwrap_or("unknown")
                 );
                 return Some(());
             }
-            let mut peer = Peer::new(network_peer.public_key.unwrap());
+            let mut peer = Peer::new(public_key);
             // peer.ip_address = network_peer.ip;
-            peer.handle_new_peer(
-                network_peer,
-                self.wallet_lock.clone(),
-                &self.network.io_interface,
-                self.timer.get_timestamp_in_ms(),
-            )
-            .await
-            .unwrap();
+            if let Err(err) = peer
+                .handle_new_peer(
+                    network_peer,
+                    self.wallet_lock.clone(),
+                    &self.network.io_interface,
+                    self.timer.get_timestamp_in_ms(),
+                )
+                .await
+            {
+                warn!(
+                    "failed finalizing peer {} after handshake: {:?}",
+                    public_key.to_base58(),
+                    err
+                );
+                return Some(());
+            }
             peers.add_congestion_event(peer.public_key, CongestionType::PeerConnections, time);
             info!("adding new peer : {}", peer.public_key.to_base58());
             peers.peers.insert(peer.public_key, peer);
@@ -1600,13 +1649,18 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 return Some(());
             }
             NetworkEvent::PeerConnectionResult { result } => {
-                if result.is_ok() {
-                    let network_peer = result.unwrap();
-                    info!(
-                        "adding new peer : {} to be processed",
-                        network_peer.public_key.unwrap().to_base58()
-                    );
-                    self.new_peers.push(network_peer);
+                if let Ok(network_peer) = result {
+                    if let Some(public_key) = network_peer.public_key {
+                        info!(
+                            "adding new peer : {} to be processed",
+                            public_key.to_base58()
+                        );
+                        self.new_peers.push(network_peer);
+                    } else {
+                        warn!("received successful peer connection event without a public key");
+                    }
+                } else if let Err(err) = result {
+                    warn!("peer connection attempt failed: {:?}", err);
                 }
             }
             NetworkEvent::AddStunPeer { public_key } => {
@@ -1858,7 +1912,12 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     let confs = blockchain_configs.confirmations.clone();
                     blockchain_configs.confirmations.clear();
 
-                    configs.save().unwrap();
+                    if let Err(err) = configs.save() {
+                        error!(
+                            "failed saving routing config after blockchain update: {:?}",
+                            err
+                        );
+                    }
 
                     let blockchain_configs = configs.get_blockchain_configs_mut();
                     blockchain_configs.confirmations = confs;
@@ -1978,11 +2037,16 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 peers.congestion_controls_by_key = display
                     .congestion_controls_by_key
                     .iter()
-                    .map(|(key, value)| {
-                        (
-                            SaitoPublicKey::from_base58(key.as_str()).unwrap(),
-                            value.clone(),
-                        )
+                    .filter_map(|(key, value)| {
+                        SaitoPublicKey::from_base58(key.as_str())
+                            .map(|decoded_key| (decoded_key, value.clone()))
+                            .map_err(|err| {
+                                error!(
+                                    "ignoring invalid persisted congestion key {}: {:?}",
+                                    key, err
+                                );
+                            })
+                            .ok()
                     })
                     .collect::<HashMap<SaitoPublicKey, PeerCongestionControls>>();
             }
@@ -2075,6 +2139,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 #[cfg(test)]
 mod tests {
     use crate::core::defs::NOLAN_PER_SAITO;
+    use crate::core::process::process_event::ProcessEvent;
+    use crate::core::routing::io::network_event::NetworkEvent;
+    use crate::core::routing::peers::network_peer::NetworkPeer;
     use crate::core::routing_thread::RoutingThread;
     use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::node_tester::test::NodeTester;
@@ -2229,5 +2296,46 @@ mod tests {
                 ghost_chain.txs.len(),
             );
         }
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn peer_connection_result_without_public_key_is_ignored() {
+        NodeTester::delete_data().await.unwrap();
+        let mut tester = NodeTester::new(10, None, None);
+        tester
+            .init_with_staking(0, 60, 100_000 * NOLAN_PER_SAITO)
+            .await
+            .unwrap();
+
+        tester
+            .routing_thread
+            .process_network_event(NetworkEvent::PeerConnectionResult {
+                result: Ok(NetworkPeer::new(None)),
+            })
+            .await;
+
+        assert!(tester.routing_thread.new_peers.is_empty());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn malformed_incoming_network_message_does_not_panic() {
+        NodeTester::delete_data().await.unwrap();
+        let mut tester = NodeTester::new(10, None, None);
+        tester
+            .init_with_staking(0, 60, 100_000 * NOLAN_PER_SAITO)
+            .await
+            .unwrap();
+
+        let result = tester
+            .routing_thread
+            .process_network_event(NetworkEvent::IncomingNetworkMessage {
+                public_key: generate_keys().0,
+                buffer: vec![1, 2, 3],
+            })
+            .await;
+
+        assert!(result.is_none());
     }
 }
