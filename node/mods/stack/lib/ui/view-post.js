@@ -24,10 +24,11 @@ class ViewPost {
     // CANONICAL URL UPDATE: Update browser URL to reflect the post being viewed
     // ========================================================================
     if (this.tx && this.tx.signature) {
-      const authorPublicKey = this.tx.from && this.tx.from.length > 0 
-        ? (this.tx.from[0].publicKey || this.tx.from[0].address || '')
-        : '';
-      
+      const authorPublicKey =
+        this.tx.from && this.tx.from.length > 0
+          ? this.tx.from[0].publicKey || this.tx.from[0].address || ''
+          : '';
+
       if (authorPublicKey) {
         const canonicalUrl = `/${this.mod.slug}/${authorPublicKey}/${this.tx.signature}`;
         // Use pushState to update URL without reload (allows back button to work)
@@ -40,7 +41,7 @@ class ViewPost {
     }
 
     const html = ViewPostTemplate(this.app, this.mod, this.tx);
-    
+
     // Render into container
     if (typeof this.container === 'string') {
       const containerEl = document.querySelector(this.container);
@@ -73,9 +74,10 @@ class ViewPost {
 
     // Get sender public key from transaction (canonical Saito field)
     // Verify correct field by checking transaction structure
-    const authorPublicKey = this.tx.from && this.tx.from.length > 0 
-      ? (this.tx.from[0].publicKey || this.tx.from[0].address || '')
-      : '';
+    const authorPublicKey =
+      this.tx.from && this.tx.from.length > 0
+        ? this.tx.from[0].publicKey || this.tx.from[0].address || ''
+        : '';
 
     if (!authorPublicKey) return;
 
@@ -103,11 +105,12 @@ class ViewPost {
       const editorIcon = document.querySelector('#stack-view-post-build-on');
       if (editorIcon) {
         // Check if current user is the author
-        const authorPublicKey = this.tx.from && this.tx.from.length > 0 
-          ? (this.tx.from[0].publicKey || this.tx.from[0].address || '')
-          : '';
+        const authorPublicKey =
+          this.tx.from && this.tx.from.length > 0
+            ? this.tx.from[0].publicKey || this.tx.from[0].address || ''
+            : '';
         const currentUserPublicKey = this.mod.publicKey || '';
-        
+
         if (authorPublicKey === currentUserPublicKey && authorPublicKey) {
           // Show icon for author
           editorIcon.style.display = '';
@@ -121,21 +124,34 @@ class ViewPost {
         }
       }
 
-      // Copy Link icon - copies canonical URL
-      const copyLinkBtn = document.querySelector('#stack-view-post-copy-link');
-      if (copyLinkBtn) {
-        copyLinkBtn.addEventListener('click', (e) => {
-          e.preventDefault();
-          this.handleCopyLink();
-        });
-      }
-
       // Share icon - generic share
       const shareBtn = document.querySelector('#stack-view-post-share');
       if (shareBtn) {
         shareBtn.addEventListener('click', (e) => {
           e.preventDefault();
-          this.handleShare();
+
+          if (!this.tx) return;
+
+          // Get canonical URL
+          const authorPublicKey =
+            this.tx.from && this.tx.from.length > 0
+              ? this.tx.from[0].publicKey || this.tx.from[0].address || ''
+              : '';
+
+          let shareUrl = window.location.href;
+          if (authorPublicKey && this.tx.signature) {
+            shareUrl = `/${this.mod.slug}/${authorPublicKey}/${this.tx.signature}`;
+            if (!shareUrl.startsWith('http')) {
+              shareUrl = window.location.origin + shareUrl;
+            }
+          }
+
+          const msg = this.tx.returnMessage();
+
+          this.app.browser.handleShare({
+            title: msg?.data?.title || 'Stack Post',
+            url: shareUrl
+          });
         });
       }
     } catch (err) {
@@ -181,77 +197,74 @@ class ViewPost {
       const editor = document.querySelector('#stack-post-body-editor');
       if (editor) {
         if (content.trim()) {
+          // ----------------------------------------------------
+          // RESOLVE stack:image:* REFERENCES BEFORE EDIT RENDER
+          // ----------------------------------------------------
+          let resolvedContent = content;
 
-// ----------------------------------------------------
-// RESOLVE stack:image:* REFERENCES BEFORE EDIT RENDER
-// ----------------------------------------------------
-let resolvedContent = content;
+          if (Array.isArray(data.images) && data.images.length > 0) {
+            resolvedContent = resolvedContent.replace(
+              /!\[([^\]]*)\]\(stack:image:([^)]+)\)/g,
+              (match, alt, imageId) => {
+                const image = data.images.find((img) => img.id === imageId);
+                if (!image) return match;
 
-if (Array.isArray(data.images) && data.images.length > 0) {
-  resolvedContent = resolvedContent.replace(
-    /!\[([^\]]*)\]\(stack:image:([^)]+)\)/g,
-    (match, alt, imageId) => {
-      const image = data.images.find(img => img.id === imageId);
-      if (!image) return match;
+                const src = `data:${image.mime};base64,${image.data}`;
+                return `![${alt || ''}](${src})`;
+              }
+            );
+          }
 
-      const src = `data:${image.mime};base64,${image.data}`;
-      return `![${alt || ''}](${src})`;
-    }
-  );
-}
+          // Parse markdown content to document structure
+          const tempDocument = parseMarkdownToDocument(resolvedContent);
 
-// Parse markdown content to document structure
-const tempDocument = parseMarkdownToDocument(resolvedContent);
+          renderDocument(tempDocument, editor, {
+            contentEditable: true
+          });
 
-renderDocument(tempDocument, editor, {
-  contentEditable: true
-});
+          // ----------------------------------------------------
+          // RESTORE IMAGE REGISTRY + STAMP stackImageId (EDIT MODE)
+          // ----------------------------------------------------
+          if (Array.isArray(data.images)) {
+            // Restore editor image registry
+            this.mod.create_post_ui.images = [...data.images];
 
-// ----------------------------------------------------
-// RESTORE IMAGE REGISTRY + STAMP stackImageId (EDIT MODE)
-// ----------------------------------------------------
-if (Array.isArray(data.images)) {
-  // Restore editor image registry
-  this.mod.create_post_ui.images = [...data.images];
+            // ----------------------------------------------------
+            // NORMALIZE IMAGES INTO REAL IMAGE BLOCKS
+            // ----------------------------------------------------
+            const imgNodes = Array.from(editor.querySelectorAll('img'));
 
-// ----------------------------------------------------
-// NORMALIZE IMAGES INTO REAL IMAGE BLOCKS
-// ----------------------------------------------------
-const imgNodes = Array.from(editor.querySelectorAll('img'));
+            imgNodes.forEach((img, i) => {
+              const parent = img.closest('[data-block-type="image"]');
+              if (parent) return;
 
-imgNodes.forEach((img, i) => {
-  const parent = img.closest('[data-block-type="image"]');
-  if (parent) return;
+              const figure = document.createElement('figure');
+              const blockId = `img_block_${Date.now()}_${i}`;
 
-  const figure = document.createElement('figure');
-  const blockId = `img_block_${Date.now()}_${i}`;
+              figure.setAttribute('data-block-id', blockId);
+              figure.setAttribute('data-block-type', 'image');
+              figure.className = 'stack-image-block';
+              figure.contentEditable = false;
 
-  figure.setAttribute('data-block-id', blockId);
-  figure.setAttribute('data-block-type', 'image');
-  figure.className = 'stack-image-block';
-  figure.contentEditable = false;
+              img.replaceWith(figure);
+              figure.appendChild(img);
+            });
 
-  img.replaceWith(figure);
-  figure.appendChild(img);
-});
-
-// ----------------------------------------------------
-// RE-STAMP stackImageId AFTER NORMALIZATION
-// ----------------------------------------------------
-for (let i = 0; i < imgNodes.length; i++) {
-  if (data.images[i]) {
-    imgNodes[i].dataset.stackImageId = data.images[i].id;
-  }
-}
-
-
-}
-         
- 
+            // ----------------------------------------------------
+            // RE-STAMP stackImageId AFTER NORMALIZATION
+            // ----------------------------------------------------
+            for (let i = 0; i < imgNodes.length; i++) {
+              if (data.images[i]) {
+                imgNodes[i].dataset.stackImageId = data.images[i].id;
+              }
+            }
+          }
         } else {
           // Empty content - render empty document
           const { generateBlockId } = require('../post-document');
-          const tempDocument = { blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }] };
+          const tempDocument = {
+            blocks: [{ type: 'paragraph', id: generateBlockId(0), text: '' }]
+          };
           renderDocument(tempDocument, editor, {
             contentEditable: true
           });
@@ -262,7 +275,10 @@ for (let i = 0; i < imgNodes.length; i++) {
       if (data.image && this.mod.create_post_ui) {
         this.mod.create_post_ui.featuredImage = data.image;
         setTimeout(() => {
-          if (this.mod.create_post_ui && typeof this.mod.create_post_ui.updateFeaturedImageDisplay === 'function') {
+          if (
+            this.mod.create_post_ui &&
+            typeof this.mod.create_post_ui.updateFeaturedImageDisplay === 'function'
+          ) {
             this.mod.create_post_ui.updateFeaturedImageDisplay();
           }
         }, 50);
@@ -280,7 +296,7 @@ for (let i = 0; i < imgNodes.length; i++) {
           // This is a root post - root is the post's own signature
           this.mod.create_post_ui.parent_id = this.tx.signature;
         }
-        
+
         if (typeof this.mod.create_post_ui.updatePlaceholderVisibility === 'function') {
           this.mod.create_post_ui.updatePlaceholderVisibility();
         }
@@ -294,98 +310,6 @@ for (let i = 0; i < imgNodes.length; i++) {
     }, 100);
   }
 
-  handleCopyLink() {
-    if (!this.tx) return;
-
-    // Get canonical URL from transaction or fallback to current page URL
-    const authorPublicKey = this.tx.from && this.tx.from.length > 0 
-      ? (this.tx.from[0].publicKey || this.tx.from[0].address || '')
-      : '';
-    
-    let shareUrl = window.location.href;
-    if (authorPublicKey && this.tx.signature) {
-      // Build canonical URL: /stack/<authorPublicKey>/<signature>
-      shareUrl = `/${this.mod.slug}/${authorPublicKey}/${this.tx.signature}`;
-      // Make absolute URL if needed
-      if (!shareUrl.startsWith('http')) {
-        shareUrl = window.location.origin + shareUrl;
-      }
-    }
-
-    // Copy to clipboard
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        if (typeof siteMessage === 'function') {
-          siteMessage('Link copied to clipboard', 1500);
-        }
-      }).catch(err => {
-        console.error('Failed to copy:', err);
-        this.fallbackCopy(shareUrl);
-      });
-    } else {
-      this.fallbackCopy(shareUrl);
-    }
-  }
-
-  handleShare() {
-    if (!this.tx) return;
-
-    // Get canonical URL
-    const authorPublicKey = this.tx.from && this.tx.from.length > 0 
-      ? (this.tx.from[0].publicKey || this.tx.from[0].address || '')
-      : '';
-    
-    let shareUrl = window.location.href;
-    if (authorPublicKey && this.tx.signature) {
-      shareUrl = `/${this.mod.slug}/${authorPublicKey}/${this.tx.signature}`;
-      if (!shareUrl.startsWith('http')) {
-        shareUrl = window.location.origin + shareUrl;
-      }
-    }
-
-    const msg = this.tx.returnMessage();
-    const data = msg && msg.data ? msg.data : {};
-
-    // Use Web Share API if available, otherwise fall back to copy
-    if (navigator.share) {
-      navigator.share({
-        title: data.title || 'Stack Post',
-        url: shareUrl
-      }).catch(err => {
-        // User cancelled or error - fall back to copy
-        this.handleCopyLink();
-      });
-    } else {
-      // Fall back to copy link
-      this.handleCopyLink();
-    }
-  }
-
-  fallbackCopy(text) {
-    // Fallback for older browsers
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-999999px';
-    document.body.appendChild(textArea);
-    textArea.focus();
-    textArea.select();
-    
-    try {
-      document.execCommand('copy');
-      if (typeof siteMessage === 'function') {
-        siteMessage('Link copied to clipboard', 1500);
-      }
-    } catch (err) {
-      console.error('Fallback copy failed:', err);
-      if (typeof siteMessage === 'function') {
-        siteMessage('Failed to copy link', 1500);
-      }
-    }
-    
-    document.body.removeChild(textArea);
-  }
-
   /**
    * Creates a mock transaction for development/testing when tx is null.
    * This is a temporary development bridge and should be replaced with real transactions.
@@ -393,12 +317,14 @@ for (let i = 0; i < imgNodes.length; i++) {
   createMockTransaction() {
     // Create a mock transaction object that matches the Stack transaction structure
     const mockTx = {
-      from: [{
-        publicKey: 'mock-author-key-1234567890abcdef'
-      }],
+      from: [
+        {
+          publicKey: 'mock-author-key-1234567890abcdef'
+        }
+      ],
       timestamp: Date.now() - 86400000 * 3, // 3 days ago
       signature: 'mock-signature-1234567890',
-      returnMessage: function() {
+      returnMessage: function () {
         return {
           module: 'Stack',
           request: 'create stack post request',
@@ -406,7 +332,8 @@ for (let i = 0; i < imgNodes.length; i++) {
             type: 'stack_post',
             title: 'On Shared Dreaming',
             subtitle: 'Exploring the architecture of collective consciousness',
-            summary: 'What happens when we build worlds together, not just in our minds, but in spaces we can enter together? The question of shared dreaming touches on something fundamental about how we construct reality and trust one another within it.',
+            summary:
+              'What happens when we build worlds together, not just in our minds, but in spaces we can enter together? The question of shared dreaming touches on something fundamental about how we construct reality and trust one another within it.',
             text: `# On Shared Dreaming
 
 The idea of shared dreaming has haunted human imagination for as long as we have told stories. What happens when we build worlds together, not just in our minds, but in spaces we can enter together? The question touches on something fundamental about how we construct reality and trust one another within it.
@@ -515,7 +442,8 @@ The shared dream, then, becomes a metaphor for all forms of collective construct
             tags: [],
             timestamp: Date.now() - 86400000 * 3,
             subscriptionTier: 'free',
-            excerpt: 'What happens when we build worlds together, not just in our minds, but in spaces we can enter together? The question of shared dreaming touches on something fundamental about how we construct reality and trust one another within it.'
+            excerpt:
+              'What happens when we build worlds together, not just in our minds, but in spaces we can enter together? The question of shared dreaming touches on something fundamental about how we construct reality and trust one another within it.'
           }
         };
       }
@@ -526,4 +454,3 @@ The shared dream, then, becomes a metaphor for all forms of collective construct
 }
 
 module.exports = ViewPost;
-

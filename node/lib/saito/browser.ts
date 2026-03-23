@@ -1871,7 +1871,6 @@ class Browser {
     }
   }
 
-
   //////////////////////////////////////////////////////////////////////////////
   /////////////////////// url-hash helper functions ////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -2994,6 +2993,63 @@ class Browser {
       default:
         console.log(header, new_obj);
     }
+  }
+
+  handleShare(data) {
+    // Use Web Share API if available, otherwise fall back to copy
+    if (this.isMobileBrowser() && navigator.share) {
+      navigator.share(data).catch((err) => {
+        // User cancelled or error - fall back to copy
+        this.handleCopyLink();
+      });
+    } else {
+      // Fall back to copy link
+      this.handleCopyLink();
+    }
+  }
+
+  handleCopyLink(shareUrl) {
+    // Copy to clipboard
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(() => {
+          if (typeof siteMessage === 'function') {
+            siteMessage('Link copied to clipboard', 1500);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to copy:', err);
+          this.fallbackCopy(shareUrl);
+        });
+    } else {
+      this.fallbackCopy(shareUrl);
+    }
+  }
+
+  fallbackCopy(text) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      document.execCommand('copy');
+      if (typeof siteMessage === 'function') {
+        siteMessage('Link copied to clipboard', 1500);
+      }
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+      if (typeof siteMessage === 'function') {
+        siteMessage('Failed to copy link', 1500);
+      }
+    }
+
+    document.body.removeChild(textArea);
   }
 
   /**

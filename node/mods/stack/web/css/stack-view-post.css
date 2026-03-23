@@ -5,7 +5,7 @@
 
 /* Override container for view post page - ensure full width and scrolling */
 .saito-container:has(.stack-view-post) {
-  grid-template-columns: 1fr !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   padding: 0 !important;
   max-width: 100% !important;
   width: 100vw !important;
@@ -268,7 +268,7 @@
 .stack-view-post-content pre {
   background: var(--saito-background-color-inverse);
   color: var(--saito-font-color-inverse);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: 0.9rem;
   line-height: 1.5;
   padding: 1rem 1.25rem;
@@ -416,7 +416,6 @@
     font-size: 1.8rem;
   }
 
-
   .stack-view-post-content h2 {
     font-size: 2.4rem;
   }
@@ -425,4 +424,3 @@
     font-size: 2.1rem;
   }
 }
-

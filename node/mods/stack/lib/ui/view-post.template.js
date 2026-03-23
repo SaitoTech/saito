@@ -157,10 +157,7 @@ module.exports = (app, mod, tx) => {
               <a href="#" id="stack-view-post-build-on" class="stack-view-post-action-badge" aria-label="Edit" title="Edit" style="display: none;">
                 <i class="fa-solid fa-pencil"></i>
               </a>
-              <a href="#" id="stack-view-post-copy-link" class="stack-view-post-action-badge" aria-label="Copy link" title="Copy link">
-                <i class="fa-solid fa-link"></i>
-              </a>
-              <a href="#" id="stack-explore-creator-share" class="stack-view-post-action-badge" aria-label="Share Author" title="Share Author">
+              <a href="#" id="stack-view-post-share" class="stack-view-post-action-badge" aria-label="Share Post" title="Share Post">
                 <i class="fa-solid fa-share-nodes"></i>
               </a>
             </div>
