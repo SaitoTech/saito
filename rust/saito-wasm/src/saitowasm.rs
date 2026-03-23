@@ -1538,14 +1538,31 @@ pub async fn initialize_runtime(
     hasten_multiplier: u64,
     delete_old_blocks: bool,
 ) -> Result<SaitoWasm, JsValue> {
-    initialize_runtime_inner(
+    let runtime = initialize_runtime_inner(
         config_json,
         private_key,
         log_level_num,
         hasten_multiplier,
         delete_old_blocks,
     )
-    .await
+    .await?;
+
+    // Sync the wallet keys into the global SAITO so that free functions like
+    // WasmTransaction::sign (which use SAITO) get the correct keypair.
+    let (public_key, private_key) = {
+        let wallet = runtime.context.wallet_lock.read().await;
+        (wallet.public_key, wallet.private_key)
+    };
+    {
+        let saito = SAITO.lock().await;
+        if let Some(s) = saito.as_ref() {
+            let mut w = s.context.wallet_lock.write().await;
+            w.public_key = public_key;
+            w.private_key = private_key;
+        }
+    }
+
+    Ok(runtime)
 }
 
 #[wasm_bindgen]
