@@ -24,13 +24,10 @@ class InviteManager {
 
 	render() {
 
-console.log("INTO RENDER...");
-
 		//
 		// replace element or insert into page (deletes invites for a full refresh)
 		//
 		let target = this.container + ' .arcade-invite';
-console.log("INTO RENDER...: " + target);
 
 		if (document.querySelector(target)) {
 			this.app.browser.replaceElementBySelector(InviteManagerTemplate(this.app, this.mod), target);
@@ -150,6 +147,11 @@ console.log("INTO RENDER...: " + target);
 				}
 			}
 		}
+
+		//
+		// remove unneeded
+		//
+		this.purge();
 
 		this.attachEvents();
 	}
