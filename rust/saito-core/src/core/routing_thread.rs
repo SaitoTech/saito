@@ -119,6 +119,23 @@ pub struct RoutingThread {
 }
 
 impl RoutingThread {
+    fn decode_congestion_controls_by_key(
+        display: &CongestionStatsDisplay,
+    ) -> HashMap<SaitoPublicKey, PeerCongestionControls> {
+        display
+            .congestion_controls_by_key
+            .iter()
+            .filter_map(|(key, value)| {
+                SaitoPublicKey::from_base58(key.as_str())
+                    .map(|decoded_key| (decoded_key, value.clone()))
+                    .map_err(|err| {
+                        error!("ignoring invalid persisted congestion key {}: {:?}", key, err);
+                    })
+                    .ok()
+            })
+            .collect::<HashMap<SaitoPublicKey, PeerCongestionControls>>()
+    }
+
     ///
     ///
     /// # Arguments
@@ -986,6 +1003,15 @@ impl RoutingThread {
             let wallet = self.wallet_lock.read().await;
 
             if let Some(peer) = peers.peers.get(&public_key) {
+                if !matches!(peer.peer_status, PeerStatus::Connected) {
+                    debug!(
+                        "won't fetch block : {:?} from peer : {:?} since peer is not connected",
+                        block_hash.to_hex(),
+                        public_key.to_base58()
+                    );
+                    return None;
+                }
+
                 // if let PeerStatus::Connected = peer.peer_status {
                 // } else {
                 //     warn!(
@@ -1327,21 +1353,37 @@ impl RoutingThread {
     }
 
     async fn send_to_verification_thread(&mut self, request: VerifyRequest) {
-        // waiting till we get an acceptable sender
         let sender_count = self.senders_to_verification.len();
+        if sender_count == 0 {
+            warn!("dropping verification request because no verification senders are configured");
+            return;
+        }
+
+        let mut request = Some(request);
         let mut trials = 0;
         loop {
             trials += 1;
             self.last_verification_thread_index += 1;
             let sender_index: usize = self.last_verification_thread_index % sender_count;
-            let sender = self
-                .senders_to_verification
-                .get(sender_index)
-                .expect("sender should be here as we are using the modulus on index");
+            let Some(sender) = self.senders_to_verification.get(sender_index) else {
+                warn!(
+                    "verification sender index {} missing while dispatching request",
+                    sender_index
+                );
+                return;
+            };
 
             if sender.capacity() > 0 {
                 trace!("sending to verification thread : {:?}", sender_index);
-                sender.send(request).await.unwrap();
+                if let Err(err) = sender
+                    .send(request.take().expect("verification request should exist"))
+                    .await
+                {
+                    warn!(
+                        "dropping verification request after send failure on sender {}: {:?}",
+                        sender_index, err
+                    );
+                }
 
                 return;
             }
@@ -1352,8 +1394,11 @@ impl RoutingThread {
                 sender.max_capacity()
             );
             if trials == sender_count {
-                // todo : if all the channels are full, we should wait here. cannot sleep to support wasm interface
-                trials = 0;
+                warn!(
+                    "dropping verification request because all {} verification queues are full",
+                    sender_count
+                );
+                return;
             }
         }
     }
@@ -1632,17 +1677,18 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     peers.add_congestion_event(public_key, CongestionType::IncomingMessages, time);
                 }
                 let buffer_len = buffer.len();
-                let message = Message::deserialize(buffer);
-                if message.is_err() {
-                    error!(
-                        "failed deserializing msg from peer : {:?} with buffer size : {:?}. Check for any version mismatches or data corruptions",
-                        public_key.to_base58(), buffer_len
-                    );
-                    error!("error : {:?}", message.err().unwrap());
-                    // NOTE : not disconnecting here to support newer npm versions having new types of messages
-                    return None;
-                }
-                let message = message.unwrap();
+                let message = match Message::deserialize(buffer) {
+                    Ok(message) => message,
+                    Err(err) => {
+                        error!(
+                            "failed deserializing msg from peer : {:?} with buffer size : {:?}. Check for any version mismatches or data corruptions",
+                            public_key.to_base58(), buffer_len
+                        );
+                        error!("error : {:?}", err);
+                        // NOTE : not disconnecting here to support newer npm versions having new types of messages
+                        return None;
+                    }
+                };
 
                 self.stats.total_incoming_messages.increment();
                 self.process_incoming_message(public_key, message).await;
@@ -2006,7 +2052,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
     }
 
     async fn on_init(&mut self) {
-        assert!(!self.senders_to_verification.is_empty());
+        if self.senders_to_verification.is_empty() {
+            warn!("routing thread initialized without verification senders");
+        }
         self.reconnection_timer = RECONNECTION_PERIOD;
 
         let congestion_data =
@@ -2034,21 +2082,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
             if let Some(display) = configs.get_congestion_data() {
                 peers.congestion_controls_by_ip = display.congestion_controls_by_ip.clone();
-                peers.congestion_controls_by_key = display
-                    .congestion_controls_by_key
-                    .iter()
-                    .filter_map(|(key, value)| {
-                        SaitoPublicKey::from_base58(key.as_str())
-                            .map(|decoded_key| (decoded_key, value.clone()))
-                            .map_err(|err| {
-                                error!(
-                                    "ignoring invalid persisted congestion key {}: {:?}",
-                                    key, err
-                                );
-                            })
-                            .ok()
-                    })
-                    .collect::<HashMap<SaitoPublicKey, PeerCongestionControls>>();
+                peers.congestion_controls_by_key =
+                    Self::decode_congestion_controls_by_key(display);
             }
             if let Some(confirmation_data) = confirmation_data {
                 configs.get_blockchain_configs_mut().confirmations = confirmation_data;
@@ -2079,10 +2114,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             self.sender_to_consensus.capacity(),
             self.sender_to_consensus.max_capacity()
         );
-        self.stat_sender
-            .send(StatEvent::StringStat(stat))
-            .await
-            .unwrap();
+        if let Err(err) = self.stat_sender.send(StatEvent::StringStat(stat)).await {
+            warn!("failed reporting consensus channel stats: {:?}", err);
+        }
         for (index, sender) in self.senders_to_verification.iter().enumerate() {
             let stat = format!(
                 "{} - {} - capacity : {:?} / {:?}",
@@ -2095,18 +2129,19 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 sender.capacity(),
                 sender.max_capacity()
             );
-            self.stat_sender
-                .send(StatEvent::StringStat(stat))
-                .await
-                .unwrap();
+            if let Err(err) = self.stat_sender.send(StatEvent::StringStat(stat)).await {
+                warn!(
+                    "failed reporting verification channel stats for sender {}: {:?}",
+                    index, err
+                );
+            }
         }
 
         let stats = self.blockchain_sync_state.get_stats();
         for stat in stats {
-            self.stat_sender
-                .send(StatEvent::StringStat(stat))
-                .await
-                .unwrap();
+            if let Err(err) = self.stat_sender.send(StatEvent::StringStat(stat)).await {
+                warn!("failed reporting blockchain sync stats: {:?}", err);
+            }
         }
 
         let _peers = self.network.peer_lock.read().await;
@@ -2120,13 +2155,16 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             peer_count,
             peers_in_handshake,
         );
-        self.stat_sender
-            .send(StatEvent::StringStat(stat))
-            .await
-            .unwrap();
+        if let Err(err) = self.stat_sender.send(StatEvent::StringStat(stat)).await {
+            warn!("failed reporting peer state stats: {:?}", err);
+        }
     }
 
     fn is_ready_to_process(&self) -> bool {
+        if self.senders_to_verification.is_empty() {
+            return false;
+        }
+
         self.sender_to_miner.capacity() > CHANNEL_SAFE_BUFFER
             && self.sender_to_consensus.capacity() > CHANNEL_SAFE_BUFFER
             && self
@@ -2138,13 +2176,103 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::consensus::transaction::Transaction;
     use crate::core::defs::NOLAN_PER_SAITO;
     use crate::core::process::process_event::ProcessEvent;
+    use crate::core::routing::io::network::PeerDisconnectType;
     use crate::core::routing::io::network_event::NetworkEvent;
+    use crate::core::routing::peers::congestion_controller::{
+        CongestionStatsDisplay, PeerCongestionControls,
+    };
     use crate::core::routing::peers::network_peer::NetworkPeer;
+    use crate::core::routing::peers::peer::Peer;
     use crate::core::routing_thread::RoutingThread;
+    use crate::core::routing_thread::RoutingEvent;
+    use crate::core::util::config_manager::CONGESTION_CONFIG_PATH;
+    use crate::core::util::configuration::{
+        BlockchainConfig, Configuration, ConsensusConfig, PeerConfig, Server, WalletConfig,
+    };
     use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::node_tester::test::NodeTester;
+    use crate::core::verification_thread::VerifyRequest;
+    use std::io::{Error, ErrorKind};
+    use std::sync::Arc;
+    use tokio::sync::mpsc;
+    use tokio::sync::RwLock;
+
+    #[derive(Debug, Default)]
+    struct FailingSaveConfig {
+        blockchain: BlockchainConfig,
+        consensus: Option<ConsensusConfig>,
+        peers: Vec<PeerConfig>,
+    }
+
+    impl Configuration for FailingSaveConfig {
+        fn get_server_configs(&self) -> Option<&Server> {
+            None
+        }
+
+        fn get_peer_configs(&self) -> &Vec<PeerConfig> {
+            &self.peers
+        }
+
+        fn get_blockchain_configs(&self) -> &BlockchainConfig {
+            &self.blockchain
+        }
+
+        fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+            &mut self.blockchain
+        }
+
+        fn get_block_fetch_url(&self) -> String {
+            String::new()
+        }
+
+        fn is_spv_mode(&self) -> bool {
+            false
+        }
+
+        fn is_browser(&self) -> bool {
+            false
+        }
+
+        fn replace(&mut self, _config: &dyn Configuration) {}
+
+        fn get_consensus_config(&self) -> Option<&ConsensusConfig> {
+            self.consensus.as_ref()
+        }
+
+        fn get_consensus_config_mut(&mut self) -> Option<&mut ConsensusConfig> {
+            self.consensus.as_mut()
+        }
+
+        fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay> {
+            None
+        }
+
+        fn set_congestion_data(&mut self, _congestion_data: Option<CongestionStatsDisplay>) {}
+
+        fn get_config_path(&self) -> String {
+            String::new()
+        }
+
+        fn set_config_path(&mut self, _path: String) {}
+
+        fn save(&self) -> Result<(), Error> {
+            Err(Error::new(
+                ErrorKind::Other,
+                "expected save failure for test",
+            ))
+        }
+
+        fn get_wallet_configs(&self) -> Option<&WalletConfig> {
+            None
+        }
+
+        fn get_wallet_configs_mut(&mut self) -> Option<&mut WalletConfig> {
+            None
+        }
+    }
 
     #[tokio::test]
     #[serial_test::serial]
@@ -2337,5 +2465,146 @@ mod tests {
             .await;
 
         assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn disconnected_peer_is_not_used_for_block_fetch() {
+        NodeTester::delete_data().await.unwrap();
+        let mut tester = NodeTester::new(10, None, None);
+        tester
+            .init_with_staking(0, 60, 100_000 * NOLAN_PER_SAITO)
+            .await
+            .unwrap();
+
+        let public_key = generate_keys().0;
+        let mut peer = Peer::new(public_key);
+        peer.block_fetch_url = "https://example.test/block".to_string();
+        tester
+            .routing_thread
+            .network
+            .peer_lock
+            .write()
+            .await
+            .peers
+            .insert(public_key, peer);
+
+        let result = tester
+            .routing_thread
+            .process_incoming_block_hash_(
+                [1; 32],
+                1,
+                public_key,
+                tester.routing_thread.blockchain_lock.clone(),
+                tester.routing_thread.mempool_lock.clone(),
+            )
+            .await;
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn unknown_peer_disconnect_does_not_panic() {
+        NodeTester::delete_data().await.unwrap();
+        let mut tester = NodeTester::new(10, None, None);
+        tester
+            .init_with_staking(0, 60, 100_000 * NOLAN_PER_SAITO)
+            .await
+            .unwrap();
+
+        tester
+            .routing_thread
+            .handle_peer_disconnect(generate_keys().0, PeerDisconnectType::InternalDisconnect)
+            .await;
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn invalid_persisted_congestion_key_is_ignored_on_init() {
+        NodeTester::delete_data().await.unwrap();
+        let mut tester = NodeTester::new(10, None, None);
+
+        let mut display = CongestionStatsDisplay::default();
+        display.congestion_controls_by_key.insert(
+            "not-a-valid-base58-key".to_string(),
+            PeerCongestionControls::default(),
+        );
+
+        let encoded = serde_json::to_vec(&display).unwrap();
+        tester
+            .routing_thread
+            .network
+            .io_interface
+            .write_value(CONGESTION_CONFIG_PATH, &encoded)
+            .await
+            .unwrap();
+
+        tester.routing_thread.on_init().await;
+
+        let peers = tester.routing_thread.network.peer_lock.read().await;
+        assert!(peers.congestion_controls_by_key.is_empty());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn blockchain_update_tolerates_config_save_failure() {
+        NodeTester::delete_data().await.unwrap();
+        let mut tester = NodeTester::new(10, None, None);
+        tester
+            .init_with_staking(0, 60, 100_000 * NOLAN_PER_SAITO)
+            .await
+            .unwrap();
+
+        let failing_config: Arc<RwLock<dyn Configuration + Send + Sync>> = Arc::new(RwLock::new(
+            FailingSaveConfig {
+                blockchain: BlockchainConfig::default(),
+                consensus: Some(ConsensusConfig {
+                    genesis_period: 10,
+                    ..ConsensusConfig::default()
+                }),
+                peers: vec![],
+            },
+        ));
+        tester.routing_thread.config_lock = failing_config;
+
+        let result = tester
+            .routing_thread
+            .process_event(RoutingEvent::BlockchainUpdated([2; 32], false))
+            .await;
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn closed_verification_sender_does_not_panic() {
+        NodeTester::delete_data().await.unwrap();
+        let mut tester = NodeTester::new(10, None, None);
+        tester
+            .init_with_staking(0, 60, 100_000 * NOLAN_PER_SAITO)
+            .await
+            .unwrap();
+
+        let (sender, receiver) = mpsc::channel(1);
+        drop(receiver);
+        tester.routing_thread.senders_to_verification = vec![sender];
+
+        tester
+            .routing_thread
+            .send_to_verification_thread(VerifyRequest::Transaction(Transaction::default()))
+            .await;
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn routing_thread_without_verification_senders_is_not_ready() {
+        NodeTester::delete_data().await.unwrap();
+        let mut tester = NodeTester::new(10, None, None);
+        tester.routing_thread.senders_to_verification.clear();
+
+        tester.routing_thread.on_init().await;
+
+        assert!(!tester.routing_thread.is_ready_to_process());
     }
 }
