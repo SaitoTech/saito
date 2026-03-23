@@ -1766,6 +1766,12 @@ impl Transaction {
 
 #[cfg(test)]
 mod tests {
+    use std::sync::Arc;
+
+    use ahash::AHashMap;
+    use tokio::sync::RwLock;
+
+    use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::{PrintForLog, SaitoPrivateKey, SaitoPublicKey};
     use crate::core::util::crypto::generate_keys;
 
@@ -1962,5 +1968,75 @@ mod tests {
 
         let serialized_tx = mock_tx.serialize_for_net();
         assert_eq!(serialized_tx.len(), 0);
+    }
+
+    #[test]
+    fn create_with_multiple_payments_rejects_mismatched_vectors() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+        let recipients = vec![[1; 33], [2; 33]];
+        let payments = vec![50];
+
+        let result = Transaction::create_with_multiple_payments(
+            &mut wallet,
+            recipients,
+            payments,
+            10,
+            None,
+            0,
+            0,
+        );
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn bound_transaction_with_mismatched_nft_identifiers_fails_validation() {
+        let (public_key, private_key) = generate_keys();
+        let wallet = Arc::new(RwLock::new(Wallet::new(private_key, public_key)));
+        let blockchain = Blockchain::new(wallet, 1_000, 0, 60, 6, 6);
+        let mut tx = Transaction::default();
+
+        tx.transaction_type = TransactionType::Bound;
+        tx.timestamp = 1;
+        tx.add_from_slip(Slip {
+            public_key,
+            amount: 100,
+            block_id: 7,
+            tx_ordinal: 3,
+            slip_index: 1,
+            slip_type: SlipType::Normal,
+            ..Default::default()
+        });
+        tx.add_to_slip(Slip {
+            public_key,
+            amount: 60,
+            slip_type: SlipType::Bound,
+            ..Default::default()
+        });
+        tx.add_to_slip(Slip {
+            public_key,
+            amount: 40,
+            slip_type: SlipType::Normal,
+            ..Default::default()
+        });
+
+        let mut nft_identifier = [0; 33];
+        nft_identifier[0..8].copy_from_slice(&8u64.to_be_bytes());
+        nft_identifier[8..16].copy_from_slice(&3u64.to_be_bytes());
+        nft_identifier[16] = 1;
+        tx.add_to_slip(Slip {
+            public_key: nft_identifier,
+            amount: 0,
+            slip_type: SlipType::Bound,
+            ..Default::default()
+        });
+
+        tx.generate(&public_key, 0, 1);
+        tx.sign(&private_key);
+
+        let utxoset = AHashMap::new();
+
+        assert!(!tx.validate(&utxoset, &blockchain, false));
     }
 }

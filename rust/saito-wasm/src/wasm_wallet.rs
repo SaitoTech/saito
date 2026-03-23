@@ -56,6 +56,16 @@ fn parse_private_key_string(s: &str) -> Result<SaitoPrivateKey, String> {
         .map_err(|_| "invalid private key length".to_string())
 }
 
+fn apply_public_key_string(wallet: &mut Wallet, key: &str) -> Result<(), String> {
+    wallet.public_key = parse_public_key_string(key)?;
+    Ok(())
+}
+
+fn apply_private_key_string(wallet: &mut Wallet, key: &str) -> Result<(), String> {
+    wallet.private_key = parse_private_key_string(key)?;
+    Ok(())
+}
+
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct WasmWallet {
@@ -97,10 +107,9 @@ impl WasmWallet {
     }
     pub async fn set_public_key(&mut self, key: JsString) -> Result<(), JsValue> {
         let str: String = key.into();
-        let key =
-            parse_public_key_string(str.as_str()).map_err(|error| JsValue::from_str(&error))?;
         let mut wallet = self.wallet.write().await;
-        wallet.public_key = key;
+        apply_public_key_string(&mut wallet, str.as_str())
+            .map_err(|error| JsValue::from_str(&error))?;
         Ok(())
     }
     pub async fn get_private_key(&self) -> JsString {
@@ -109,10 +118,9 @@ impl WasmWallet {
     }
     pub async fn set_private_key(&mut self, key: JsString) -> Result<(), JsValue> {
         let str: String = key.into();
-        let key =
-            parse_private_key_string(str.as_str()).map_err(|error| JsValue::from_str(&error))?;
         let mut wallet = self.wallet.write().await;
-        wallet.private_key = key;
+        apply_private_key_string(&mut wallet, str.as_str())
+            .map_err(|error| JsValue::from_str(&error))?;
         Ok(())
     }
     pub async fn get_balance(&self) -> Currency {
@@ -210,7 +218,12 @@ impl WasmWallet {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_private_key_string, parse_public_key_string};
+    use saito_core::core::consensus::wallet::Wallet;
+
+    use super::{
+        apply_private_key_string, apply_public_key_string, parse_private_key_string,
+        parse_public_key_string,
+    };
 
     #[test]
     fn private_key_parser_rejects_invalid_hex() {
@@ -233,6 +246,24 @@ mod tests {
 
         assert!(result.is_err());
         assert_eq!(result.err().unwrap(), "invalid private key length");
+    }
+
+    #[test]
+    fn apply_public_key_preserves_existing_value_on_error() {
+        let original_public_key = [4; 33];
+        let mut wallet = Wallet::new([9; 32], original_public_key);
+
+        assert!(apply_public_key_string(&mut wallet, "invalid").is_err());
+        assert_eq!(wallet.public_key, original_public_key);
+    }
+
+    #[test]
+    fn apply_private_key_preserves_existing_value_on_error() {
+        let original_private_key = [6; 32];
+        let mut wallet = Wallet::new(original_private_key, [8; 33]);
+
+        assert!(apply_private_key_string(&mut wallet, "abcd").is_err());
+        assert_eq!(wallet.private_key, original_private_key);
     }
 }
 

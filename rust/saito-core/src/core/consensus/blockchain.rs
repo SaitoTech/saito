@@ -1345,6 +1345,10 @@ impl Blockchain {
         old_chain: &[SaitoHash],
     ) -> bool {
         trace!("checking for longest chain");
+        if new_chain.is_empty() {
+            warn!("new chain is empty while checking longest chain status");
+            return false;
+        }
         if self.blockring.is_empty() {
             return true;
         }
@@ -1357,11 +1361,19 @@ impl Blockchain {
             return false;
         }
 
-        if self.blockring.get_latest_block_id() >= self.blocks.get(&new_chain[0]).unwrap().id {
+        let Some(new_chain_tip) = self.blocks.get(&new_chain[0]) else {
+            warn!(
+                "new chain tip {:?} is missing while checking longest chain status",
+                new_chain[0].to_hex()
+            );
+            return false;
+        };
+
+        if self.blockring.get_latest_block_id() >= new_chain_tip.id {
             debug!(
                 "blockring latest : {:?} >= new chain block id : {:?}",
                 self.blockring.get_latest_block_id(),
-                self.blocks.get(&new_chain[0]).unwrap().id
+                new_chain_tip.id
             );
             return false;
         }
@@ -1370,7 +1382,15 @@ impl Blockchain {
         let mut new_bf: Currency = 0;
 
         for hash in old_chain.iter() {
-            old_bf += self.blocks.get(hash).unwrap().burnfee;
+            if let Some(block) = self.blocks.get(hash) {
+                old_bf += block.burnfee;
+            } else {
+                trace!(
+                    "block : {:?} in the old chain cannot be found",
+                    hash.to_hex()
+                );
+                return false;
+            }
         }
         for hash in new_chain.iter() {
             if let Some(x) = self.blocks.get(hash) {
@@ -1425,11 +1445,22 @@ impl Blockchain {
             old_chain.len()
         );
 
+        if new_chain.is_empty() {
+            warn!("cannot validate an empty new chain");
+            return (false, WALLET_NOT_UPDATED);
+        }
+
         let previous_block_hash;
         let mut wallet_update_status = WALLET_NOT_UPDATED;
         let has_gt;
         {
-            let block = self.blocks.get(new_chain[0].as_ref()).unwrap();
+            let Some(block) = self.blocks.get(&new_chain[0]) else {
+                warn!(
+                    "new chain tip {:?} is missing while validating chain",
+                    new_chain[0].to_hex()
+                );
+                return (false, WALLET_NOT_UPDATED);
+            };
             previous_block_hash = block.previous_block_hash;
             has_gt = block.has_golden_ticket;
         }
@@ -2018,10 +2049,13 @@ impl Blockchain {
         let block_hash;
         let mut wallet_updated = WALLET_NOT_UPDATED;
         {
-            let block = self
-                .blocks
-                .get_mut(&old_chain[current_unwind_index])
-                .unwrap();
+            let Some(block) = self.blocks.get_mut(&old_chain[current_unwind_index]) else {
+                warn!(
+                    "missing old-chain block {:?} during unwind",
+                    old_chain[current_unwind_index].to_hex()
+                );
+                return WindingResult::FinishWithFailure;
+            };
             if block.has_checkpoint {
                 info!("block has checkpoint. cannot unwind over this block");
                 return WindingResult::FinishWithFailure;
@@ -2291,7 +2325,14 @@ impl Blockchain {
         let wallet_update_status;
         // ask block to delete itself / utxo-wise
         {
-            let block = self.blocks.get(&delete_block_hash).unwrap();
+            let Some(block) = self.blocks.get(&delete_block_hash) else {
+                warn!(
+                    "cannot delete missing block {}-{}",
+                    delete_block_id,
+                    delete_block_hash.to_hex()
+                );
+                return WALLET_NOT_UPDATED;
+            };
             let block_filename = storage.generate_block_filepath(block);
 
             // remove slips from wallet
@@ -3073,6 +3114,54 @@ mod tests {
 
         assert_eq!(blockchain.fork_id, None);
         assert_eq!(blockchain.genesis_block_id, 0);
+    }
+
+    #[test]
+    fn longest_chain_check_rejects_missing_new_chain_tip() {
+        let keys = generate_keys();
+        let wallet = Arc::new(RwLock::new(Wallet::new(keys.1, keys.0)));
+        let mut blockchain = Blockchain::new(wallet, 1_000, 0, 60, 6, 6);
+
+        blockchain.blockring.empty = false;
+
+        assert!(!blockchain.is_new_chain_the_longest_chain(&[[2; 32]], &[]));
+    }
+
+    #[test]
+    fn longest_chain_check_rejects_missing_old_chain_block() {
+        let keys = generate_keys();
+        let wallet = Arc::new(RwLock::new(Wallet::new(keys.1, keys.0)));
+        let mut blockchain = Blockchain::new(wallet, 1_000, 0, 60, 6, 6);
+
+        let mut block1 = Block::new();
+        block1.id = 1;
+        block1.hash = [1; 32];
+        block1.burnfee = 5;
+
+        let mut block2 = Block::new();
+        block2.id = 2;
+        block2.hash = [2; 32];
+        block2.burnfee = 10;
+
+        blockchain.blocks.insert(block1.hash, block1.clone());
+        blockchain.blocks.insert(block2.hash, block2.clone());
+        blockchain.blockring.empty = false;
+
+        assert!(
+            !blockchain.is_new_chain_the_longest_chain(&[block2.hash, block1.hash], &[[9; 32]],)
+        );
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn delete_block_missing_target_returns_not_updated() {
+        let mut t = TestManager::default();
+        t.initialize(1, 1_000).await;
+
+        let mut blockchain = t.blockchain_lock.write().await;
+        let status = blockchain.delete_block(999, [9; 32], &t.storage).await;
+
+        assert_eq!(status, false);
     }
 
     #[test]

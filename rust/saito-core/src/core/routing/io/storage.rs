@@ -469,4 +469,24 @@ mod test {
             .convert_issuance_into_slip("100 s8oFPjBX97NC2vbm9E5Kd2oHWUShuSTUuZwSB1U4wsPR Unknown")
             .is_err());
     }
+
+    #[test]
+    fn invalid_issuance_amount_returns_error() {
+        let storage = Storage::new(Box::new(
+            crate::core::util::test::test_io_handler::test::TestIOHandler::new(),
+        ));
+        assert!(storage
+            .convert_issuance_into_slip("abc s8oFPjBX97NC2vbm9E5Kd2oHWUShuSTUuZwSB1U4wsPR Normal")
+            .is_err());
+    }
+
+    #[test]
+    fn truncated_issuance_entry_returns_error() {
+        let storage = Storage::new(Box::new(
+            crate::core::util::test::test_io_handler::test::TestIOHandler::new(),
+        ));
+        assert!(storage
+            .convert_issuance_into_slip("100 only-two-fields")
+            .is_err());
+    }
 }

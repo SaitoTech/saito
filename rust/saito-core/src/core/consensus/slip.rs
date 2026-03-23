@@ -359,6 +359,14 @@ mod tests {
         assert!(result.is_err());
     }
 
+    #[test]
+    fn parse_slip_from_utxokey_rejects_invalid_slip_type() {
+        let mut utxokey = [0; UTXO_KEY_LENGTH];
+        utxokey[58] = u8::MAX;
+
+        assert!(Slip::parse_slip_from_utxokey(&utxokey).is_err());
+    }
+
     #[tokio::test]
     #[serial_test::serial]
     async fn slip_addition_and_removal_from_utxoset() {

@@ -3450,7 +3450,7 @@ mod tests {
     use futures::future::join_all;
     use log::info;
 
-    use crate::core::consensus::block::{Block, BlockType};
+    use crate::core::consensus::block::{Block, BlockType, BLOCK_HEADER_SIZE};
 
     use crate::core::consensus::merkle::MerkleTree;
     use crate::core::consensus::slip::{Slip, SlipType};
@@ -3654,6 +3654,33 @@ mod tests {
 
         assert_eq!(block.pre_hash.to_hex(), lite_block.pre_hash.to_hex());
         assert_eq!(block.hash.to_hex(), lite_block.hash.to_hex());
+    }
+
+    #[test]
+    fn block_deserialization_rejects_short_header_buffer() {
+        assert!(Block::deserialize_from_net(&vec![0; BLOCK_HEADER_SIZE - 1]).is_err());
+    }
+
+    #[test]
+    fn block_deserialization_rejects_truncated_transaction_buffer() {
+        let mut block = Block::new();
+        block.id = 1;
+        block.timestamp = 1;
+
+        let mut tx = Transaction::default();
+        tx.timestamp = 1;
+        tx.signature = [1; 64];
+        tx.add_from_slip(Slip::default());
+        tx.add_to_slip(Slip::default());
+        tx.data = vec![1, 2, 3, 4];
+
+        block.transactions.push(tx);
+        block.generate().unwrap();
+
+        let mut serialized = block.serialize_for_net(BlockType::Full);
+        serialized.pop();
+
+        assert!(Block::deserialize_from_net(&serialized).is_err());
     }
 
     #[test]

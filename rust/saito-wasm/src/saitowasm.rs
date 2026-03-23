@@ -2271,6 +2271,29 @@ mod tests {
         assert!(result.is_err());
         assert_eq!(result.err().unwrap(), "invalid block hash length");
     }
+
+    #[test]
+    fn block_fetch_inputs_accept_valid_values() {
+        let public_key = [7u8; 33];
+        let hash = vec![1u8; 32];
+
+        let (parsed_key, parsed_hash) =
+            parse_block_fetch_inputs_parts(hash.clone(), Some(public_key.to_base58())).unwrap();
+
+        assert_eq!(parsed_key, public_key);
+        assert_eq!(parsed_hash, hash.as_slice());
+    }
+
+    #[test]
+    fn block_fetch_inputs_reject_missing_key_string() {
+        let result = parse_block_fetch_inputs_parts(vec![1u8; 32], None);
+
+        assert!(result.is_err());
+        assert_eq!(
+            result.err().unwrap(),
+            "failed parsing public key string to key"
+        );
+    }
 }
 
 pub fn string_array_to_base58_keys<T: TryFrom<Vec<u8>> + PrintForLog<T>>(

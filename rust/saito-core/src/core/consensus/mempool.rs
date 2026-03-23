@@ -436,6 +436,7 @@ mod tests {
 
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::{SaitoPrivateKey, SaitoPublicKey};
+    use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::test_manager::test::{create_timestamp, TestManager};
 
     use super::*;
@@ -534,5 +535,34 @@ mod tests {
             )
             .await
             .is_some());
+    }
+
+    #[tokio::test]
+    async fn malformed_golden_ticket_is_rejected() {
+        let keys = generate_keys();
+        let wallet = Arc::new(RwLock::new(Wallet::new(keys.1, keys.0)));
+        let mut mempool = Mempool::new(wallet);
+        let mut tx = Transaction::default();
+        tx.transaction_type = TransactionType::GoldenTicket;
+        tx.data = vec![0; 96];
+
+        mempool.add_golden_ticket(tx).await;
+
+        assert!(mempool.golden_tickets.is_empty());
+    }
+
+    #[tokio::test]
+    async fn misplaced_golden_ticket_transaction_is_rejected() {
+        let keys = generate_keys();
+        let wallet = Arc::new(RwLock::new(Wallet::new(keys.1, keys.0)));
+        let mut mempool = Mempool::new(wallet);
+        let mut tx = Transaction::default();
+        tx.transaction_type = TransactionType::GoldenTicket;
+        tx.signature = [3; 64];
+        tx.generate(&keys.0, 0, 0);
+
+        mempool.add_transaction(tx).await;
+
+        assert!(mempool.transactions.is_empty());
     }
 }
