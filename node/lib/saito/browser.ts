@@ -96,6 +96,7 @@ class Browser {
       setTimeout(() => {
         if (elem) {
           elem.classList.add('pace-erase');
+          this.render_ts = Date.now();
         }
         document.querySelector('body').classList.add('xclose');
       }, delay);
@@ -346,7 +347,15 @@ class Browser {
       } else {
         siteMessage('Connection Restored', 1000);
       }
+      console.info('Browser... Peer Connect');
       first_connect = false;
+      if (this.render_ts) {
+        let now = Date.now();
+        console.info(
+          `${(Math.round((now - this.render_ts) / 1000), 1)}s from Render to Peer Connect [Browser]`
+        );
+        delete this.render_ts;
+      }
     });
     this.app.connection.on('peer_disconnect', function (publicKey: string) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
