@@ -131,6 +131,28 @@ class Settings extends ModTemplate {
 		return true;
 	}
 
+	/**
+	 * Lite clients request the connected node's build number to compare with the browser bundle.
+	 */
+	async handlePeerTransaction(app, tx = null, peer, mycallback = null) {
+		if (tx == null) {
+			return 0;
+		}
+		let txmsg;
+		try {
+			txmsg = tx.returnMessage();
+		} catch (err) {
+			return 0;
+		}
+		if (txmsg?.request === 'settings server build') {
+			if (mycallback) {
+				mycallback({ build_number: String(this.app.build_number) });
+				return 1;
+			}
+		}
+		return super.handlePeerTransaction(app, tx, peer, mycallback);
+	}
+
 	loadSettings(container) {
 		let as = new AppSettings(this.app, this, container);
 		as.render();
