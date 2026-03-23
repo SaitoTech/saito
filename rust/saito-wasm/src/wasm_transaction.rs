@@ -235,7 +235,10 @@ mod tests {
         tx.sign(&priv2);
         let sig2 = tx.signature;
 
-        assert_ne!(sig1, sig2, "different keys must produce different signatures");
+        assert_ne!(
+            sig1, sig2,
+            "different keys must produce different signatures"
+        );
         assert_ne!(pub1, pub2);
     }
 }

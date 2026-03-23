@@ -185,10 +185,7 @@ impl WasmWallet {
         let saito_ref = saito
             .as_mut()
             .ok_or_else(|| JsValue::from_str("runtime not initialized"))?;
-        saito_ref
-            .routing_thread
-            .set_my_key_list(key_list)
-            .await;
+        saito_ref.routing_thread.set_my_key_list(key_list).await;
         Ok(())
     }
 

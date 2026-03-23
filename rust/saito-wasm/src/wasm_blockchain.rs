@@ -85,8 +85,7 @@ impl WasmBlockchain {
             let saito = SAITO.lock().await;
             match saito.as_ref() {
                 Some(s) => {
-                    let mut configs =
-                        s.routing_thread.config_lock.write().await;
+                    let mut configs = s.routing_thread.config_lock.write().await;
                     configs.set_congestion_data(None);
                     configs.get_blockchain_configs_mut().confirmations.clear();
                 }

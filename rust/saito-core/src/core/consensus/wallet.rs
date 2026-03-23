@@ -472,7 +472,10 @@ impl Wallet {
                     self.delete_slip(&slip, None);
                 }
                 Err(e) => {
-                    warn!("remove_old_slips: invalid utxo key, removing raw entry: {}", e);
+                    warn!(
+                        "remove_old_slips: invalid utxo key, removing raw entry: {}",
+                        e
+                    );
                     self.slips.remove(&key);
                     self.unspent_slips.remove(&key);
                     self.staking_slips.remove(&key);
@@ -484,8 +487,8 @@ impl Wallet {
         // Prune any NFT from wallet whose:
         // block id < latest_block_id - gensis_period
         //
-        self.nfts.retain(|nft| {
-            match Slip::parse_slip_from_utxokey(&nft.slip2) {
+        self.nfts
+            .retain(|nft| match Slip::parse_slip_from_utxokey(&nft.slip2) {
                 Ok(slip2) => {
                     if slip2.block_id < block_id {
                         debug!(
@@ -498,11 +501,13 @@ impl Wallet {
                     }
                 }
                 Err(e) => {
-                    warn!("remove_old_slips: NFT has invalid slip2 utxo key, removing: {}", e);
+                    warn!(
+                        "remove_old_slips: NFT has invalid slip2 utxo key, removing: {}",
+                        e
+                    );
                     false
                 }
-            }
-        });
+            });
     }
 
     pub fn add_slip(&mut self, slip: &Slip, lc: bool, network: Option<&Network>) {
@@ -1550,9 +1555,9 @@ impl Wallet {
                 "cannot add GoldenTicket to pending transactions",
             ));
         }
-        let hash = tx.hash_for_signature.ok_or_else(|| {
-            Error::new(ErrorKind::InvalidInput, "tx.hash_for_signature is None")
-        })?;
+        let hash = tx
+            .hash_for_signature
+            .ok_or_else(|| Error::new(ErrorKind::InvalidInput, "tx.hash_for_signature is None"))?;
         self.pending_txs.insert(hash, tx);
         Ok(())
     }
@@ -1915,7 +1920,10 @@ impl WalletSlip {
         match Slip::parse_slip_from_utxokey(&self.utxokey) {
             Ok(slip) => slip,
             Err(e) => {
-                warn!("WalletSlip::to_slip: invalid utxo key: {}; returning default", e);
+                warn!(
+                    "WalletSlip::to_slip: invalid utxo key: {}; returning default",
+                    e
+                );
                 Slip::default()
             }
         }
@@ -2229,7 +2237,11 @@ mod tests {
         let result = wallet.add_to_pending(tx);
         assert!(result.is_err());
         let msg = result.err().unwrap().to_string();
-        assert!(msg.contains("empty"), "error should mention empty from: {}", msg);
+        assert!(
+            msg.contains("empty"),
+            "error should mention empty from: {}",
+            msg
+        );
     }
 
     /// Item 54: Missing hash_for_signature is rejected by add_to_pending.

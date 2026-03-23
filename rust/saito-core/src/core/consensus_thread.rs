@@ -542,7 +542,10 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
         {
             if let Some(consensus) = configs.get_consensus_config() {
                 info!("genesis_period : {:?}", consensus.genesis_period);
-                info!("default_social_stake : {:?}", consensus.default_social_stake);
+                info!(
+                    "default_social_stake : {:?}",
+                    consensus.default_social_stake
+                );
                 info!(
                     "default_social_stake_period : {:?}",
                     consensus.default_social_stake_period
@@ -590,14 +593,14 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
         }
 
         if !configs.is_browser() {
-            let list_result = self
-                .storage
-                .load_block_name_list()
-                .await;
+            let list_result = self.storage.load_block_name_list().await;
             let mut list = match list_result {
                 Ok(l) => l,
                 Err(e) => {
-                    error!("cannot load block file list: {}; starting with empty list", e);
+                    error!(
+                        "cannot load block file list: {}; starting with empty list",
+                        e
+                    );
                     vec![]
                 }
             };
@@ -2686,8 +2689,10 @@ mod tests {
     fn golden_ticket_propagation_missing_entry_does_not_panic() {
         use ahash::AHashMap;
 
-        let mut golden_tickets: AHashMap<SaitoHash, (crate::core::consensus::transaction::Transaction, bool)> =
-            AHashMap::new();
+        let mut golden_tickets: AHashMap<
+            SaitoHash,
+            (crate::core::consensus::transaction::Transaction, bool),
+        > = AHashMap::new();
         // golden_tickets map is empty — lookup for any hash must not panic
         let fake_hash = [42u8; 32];
         let entry = golden_tickets.get_mut(&fake_hash);
