@@ -116,7 +116,7 @@
 	min-width: 5rem;
 }
 
-.arcade-teaser-footer .angled-notification {
+.arcade-teaser-footer .arcade-invite-badge {
 	width: fit-content;
 	padding: 0 20% 0 33%;
 	max-width: unset;
