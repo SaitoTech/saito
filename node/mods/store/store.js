@@ -1,6 +1,8 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
+const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const Main = require('./lib/ui/main');
 const index = require('./index');
+
 
 class Store extends ModTemplate {
 	constructor(app) {
@@ -10,6 +12,7 @@ class Store extends ModTemplate {
 		this.slug = 'store';
 
 		this.main = null;
+		this.header = null;
 	}
 
 	async initialize(app) {
@@ -17,19 +20,18 @@ class Store extends ModTemplate {
 
 		if (this.browser_active) {
 			this.main = new Main(this.app, this);
+			this.header = new SaitoHeader(this.app, this);
 		}
 	}
 
 	async render() {
-		if (this.browser_active && !this.main) {
-			this.main = new Main(this.app, this);
-		}
 
 		if (!this.main) {
 			return;
 		}
 
 		await this.main.render();
+		await this.header.render();
 	}
 
 	getItemsForSale() {

@@ -1,9 +1,13 @@
-module.exports = (data = {}, cardId = '', mediaClass = '', mediaBackground = '', badgeClass = '') => {
+module.exports = (data = {}, cardId = '', mediaClass = '', mediaBackground = '') => {
+	const actionSlot = data.has_action_text || data.show_buy_now
+		? `<div class="card-action-slot">Buy Now</div>`
+		: '';
+
 	return `
     <div class="store-teaser" id="${cardId}">
       <div class="teaser-media ${mediaClass}" style="background: ${mediaBackground};">
-        <button class="teaser-buy-btn">Buy Now</button>
-        <div class="teaser-badge ${badgeClass}">
+        ${actionSlot}
+        <div class="teaser-identicon">
           <img src="${data.identicon}" />
         </div>
       </div>
