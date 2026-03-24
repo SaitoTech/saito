@@ -8,7 +8,7 @@
 
 ## Phase 1: External Input And Crash Barriers
 
-1. [ ] `Critical | P0` Harden network-facing wasm entrypoints by replacing `unwrap()`-based parsing in block fetch and block-fetch-failure paths with explicit validation and `JsValue` errors.
+1. [x] `Critical | P0` Harden network-facing wasm entrypoints by replacing `unwrap()`-based parsing in block fetch and block-fetch-failure paths with explicit validation and `JsValue` errors.
 2. [ ] `High | P0` Add async error handling to the web socket receive path in `rust/saito-js/lib/custom/shared_methods.web.ts` so rejected `process_msg_buffer_from_peer(...)` calls are surfaced and handled. (Note: no Node.js equivalent of `shared_methods.web.ts` exists — only the web variant and the abstract `custom_shared_methods.ts` base. If a Node runtime path is added later, it will need the same `.catch()` treatment.)
 3. [ ] `Critical | P0` Convert golden ticket deserialization in `rust/saito-core/src/core/consensus/golden_ticket.rs` from panic-based parsing to `Result`-based validation.
 4. [ ] `Critical | P0` Harden `rust/saito-core/src/core/consensus/block.rs` deserialization against truncated or undersized buffers before fixed-offset header slicing.
