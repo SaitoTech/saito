@@ -143,7 +143,7 @@ impl Message {
                 let services = services?;
                 Ok(Message::Services(services))
             }
-            10 => Ok(Message::GhostChain(GhostChainSync::deserialize(buffer))),
+            10 => Ok(Message::GhostChain(GhostChainSync::deserialize(buffer)?)),
             11 => {
                 if buffer.len() != 72 {
                     warn!(
@@ -174,7 +174,7 @@ impl Message {
                     );
                     return Err(Error::from(ErrorKind::InvalidData));
                 }
-                let result = ApiMessage::deserialize(&buffer);
+                let result = ApiMessage::deserialize(&buffer)?;
                 Ok(Message::ApplicationMessage(result))
             }
             13 => {
@@ -186,7 +186,7 @@ impl Message {
                     );
                     return Err(Error::from(ErrorKind::InvalidData));
                 }
-                let result = ApiMessage::deserialize(&buffer);
+                let result = ApiMessage::deserialize(&buffer)?;
                 Ok(Message::Result(result))
             }
             14 => {
@@ -198,7 +198,7 @@ impl Message {
                     );
                     return Err(Error::from(ErrorKind::InvalidData));
                 }
-                let result = ApiMessage::deserialize(&buffer);
+                let result = ApiMessage::deserialize(&buffer)?;
                 Ok(Message::Error(result))
             }
             15 => {

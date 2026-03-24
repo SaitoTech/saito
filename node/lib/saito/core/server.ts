@@ -97,6 +97,12 @@ export class NodeSharedMethods extends CustomSharedMethods {
                   S.getInstance().peers.set(peer.publicKey, peer);
                 }
               }
+            })
+            .catch((e: any) => {
+              console.error(
+                `failed processing socket message buffer from peer : ${peer.publicKey} from url : ${url}`,
+                e
+              );
             });
         } catch (e) {
           console.error(
@@ -408,6 +414,12 @@ class Server {
                 S.getInstance().peers.set(peer.publicKey, peer);
               }
             }
+          })
+          .catch((error: any) => {
+            console.error(
+              `failed processing socket message buffer from peer : ${peer.publicKey}`,
+              error
+            );
           });
       });
       socket.on('close', () => {

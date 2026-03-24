@@ -1625,7 +1625,17 @@ impl Blockchain {
         // function because of limitatins imposed by Rust on mutable data
         // structures. So validation is "read-only" and our "write" actions
         // happen first.
-        let block_hash = new_chain.get(current_wind_index).unwrap();
+        let block_hash = match new_chain.get(current_wind_index) {
+            Some(bh) => bh,
+            None => {
+                warn!(
+                    "wind_chain: index {} out of bounds for new_chain length {}",
+                    current_wind_index,
+                    new_chain.len()
+                );
+                return WindingResult::FinishWithFailure;
+            }
+        };
 
         debug!("winding hash: {:?}", block_hash.to_hex());
         self.upgrade_blocks_for_wind_chain(storage, configs, block_hash)
@@ -1636,7 +1646,16 @@ impl Blockchain {
         let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
         let validate_against_utxo = self.has_total_supply_loaded(genesis_period);
 
-        let mut block = self.blocks.get(block_hash).cloned().unwrap();
+        let mut block = match self.blocks.get(block_hash).cloned() {
+            Some(b) => b,
+            None => {
+                warn!(
+                    "wind_chain: block {:?} not found in blocks map",
+                    block_hash.to_hex()
+                );
+                return WindingResult::FinishWithFailure;
+            }
+        };
         if block.has_checkpoint {
             info!("block has checkpoint. cannot wind over this block");
             // Re-insert before returning to keep state consistent
@@ -1661,7 +1680,10 @@ impl Blockchain {
 
         // Put the block back into the map before proceeding
         self.blocks.insert(*block_hash, block);
-        let block = self.blocks.get(block_hash).unwrap();
+        let block = match self.blocks.get(block_hash) {
+            Some(b) => b,
+            None => return WindingResult::FinishWithFailure,
+        };
 
         let mut wallet_updated = WALLET_NOT_UPDATED;
 
@@ -1687,8 +1709,14 @@ impl Blockchain {
 
             // utxoset update
             {
-                let block = self.blocks.get_mut(block_hash).unwrap();
-                block.on_chain_reorganization(&mut self.utxoset, true);
+                if let Some(block) = self.blocks.get_mut(block_hash) {
+                    block.on_chain_reorganization(&mut self.utxoset, true);
+                } else {
+                    warn!(
+                        "wind_chain: block {:?} not found for utxo reorganization",
+                        block_hash.to_hex()
+                    );
+                }
             }
 
             wallet_updated |= self
@@ -2012,10 +2040,16 @@ impl Blockchain {
         let block_hash;
         let mut wallet_updated = WALLET_NOT_UPDATED;
         {
-            let block = self
-                .blocks
-                .get_mut(&old_chain[current_unwind_index])
-                .unwrap();
+            let block = match self.blocks.get_mut(&old_chain[current_unwind_index]) {
+                Some(b) => b,
+                None => {
+                    warn!(
+                        "unwind_chain: block {:?} not found in blocks map; cannot unwind",
+                        old_chain[current_unwind_index].to_hex()
+                    );
+                    return WindingResult::FinishWithFailure;
+                }
+            };
             if block.has_checkpoint {
                 info!("block has checkpoint. cannot unwind over this block");
                 return WindingResult::FinishWithFailure;
@@ -2284,8 +2318,7 @@ impl Blockchain {
         );
         let wallet_update_status;
         // ask block to delete itself / utxo-wise
-        {
-            let block = self.blocks.get(&delete_block_hash).unwrap();
+        if let Some(block) = self.blocks.get(&delete_block_hash) {
             let block_filename = storage.generate_block_filepath(block);
 
             // remove slips from wallet
@@ -2301,6 +2334,13 @@ impl Blockchain {
             storage
                 .delete_block_from_disk(block_filename.as_str())
                 .await;
+        } else {
+            warn!(
+                "delete_block: block {}-{} not found in blocks map; skipping utxo/wallet cleanup",
+                delete_block_id,
+                delete_block_hash.to_hex()
+            );
+            wallet_update_status = WALLET_NOT_UPDATED;
         }
 
         // ask blockring to remove
@@ -2402,15 +2442,19 @@ impl Blockchain {
                                 if let Some((key, _)) = self.utxoset.remove_entry(&key) {
                                     if let Ok(slip) = Slip::parse_slip_from_utxokey(&key) {
                                         wallet.delete_slip(&slip, None);
-                                        let block = self.blocks.get_mut(&block_hash).unwrap();
-                                        block.graveyard += slip.amount;
-                                        block.has_checkpoint = true;
-                                        self.checkpoint_found = true;
-                                        info!("skipping slip : {} according to the checkpoint file : {}-{}",
-                                            slip,block_id,block_hash.to_hex());
+                                        if let Some(block) = self.blocks.get_mut(&block_hash) {
+                                            block.graveyard += slip.amount;
+                                            block.has_checkpoint = true;
+                                            self.checkpoint_found = true;
+                                            info!("skipping slip : {} according to the checkpoint file : {}-{}",
+                                                slip,block_id,block_hash.to_hex());
+                                        } else {
+                                            warn!("block {}-{} not found while processing checkpoint slip",
+                                                block_id, block_hash.to_hex());
+                                        }
                                     } else {
                                         error!("Key : {:?} in checkpoint file : {}-{} cannot be parsed to a slip", key.to_hex(),block_id,block_hash.to_hex());
-                                        panic!("cannot continue loading blocks");
+                                        warn!("checkpoint file may be corrupt; UTXO entry removed but slip not reconciled; continuing");
                                     }
                                 }
                             }
@@ -3028,9 +3072,10 @@ mod tests {
     use crate::core::consensus::block::Block;
     use crate::core::consensus::blockchain::{
         bit_pack, bit_unpack, is_golden_ticket_count_valid_, AddBlockResult, Blockchain,
+        WindingResult,
     };
     use crate::core::consensus::slip::Slip;
-    use crate::core::consensus::wallet::Wallet;
+    use crate::core::consensus::wallet::{Wallet, WALLET_NOT_UPDATED};
     use crate::core::defs::{ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO};
     use crate::core::routing::io::storage::Storage;
     use crate::core::util::crypto::{generate_keys, hash};
@@ -5156,5 +5201,45 @@ mod tests {
             blocks.get(&block_hash)
         });
         assert!(!result);
+    }
+
+    // Item 20: winding with wind_failure=true and empty new_chain returns FinishWithFailure
+    // without accessing any block data, so no blocks need to be present.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn wind_chain_failure_flag_with_empty_new_chain_returns_finish_with_failure() {
+        let mut t = TestManager::default();
+        t.initialize(100, 720_000).await;
+
+        let blockchain_lock = t.blockchain_lock.clone();
+        let mempool_lock = t.mempool_lock.clone();
+        let config_lock = t.config_lock.clone();
+
+        let mut bc = blockchain_lock.write().await;
+        let mut mempool = mempool_lock.write().await;
+        let config = config_lock.read().await;
+
+        let result = bc
+            .wind_chain(&[], &[], 0, true, &t.storage, &*config, &mut mempool, None)
+            .await;
+
+        assert!(matches!(result, WindingResult::FinishWithFailure));
+    }
+
+    // Item 21: deleting a block whose hash is absent from self.blocks returns WALLET_NOT_UPDATED
+    // without modifying wallet or utxo state.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn delete_block_with_absent_hash_returns_wallet_not_updated() {
+        let mut t = TestManager::default();
+        t.initialize(100, 720_000).await;
+
+        let blockchain_lock = t.blockchain_lock.clone();
+        let mut bc = blockchain_lock.write().await;
+
+        let absent_hash: SaitoHash = [42u8; 32];
+        let result = bc.delete_block(99, absent_hash, &t.storage).await;
+
+        assert_eq!(result, WALLET_NOT_UPDATED);
     }
 }

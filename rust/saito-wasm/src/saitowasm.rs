@@ -1069,36 +1069,62 @@ pub async fn process_fetched_block(
     hash: js_sys::Uint8Array,
     block_id: BlockId,
     key: JsString,
-) {
-    let key = string_to_key(key).unwrap();
+) -> Result<(), JsValue> {
+    let key: SaitoPublicKey =
+        string_to_key(key).map_err(|e| JsValue::from_str(&format!("invalid public key: {}", e)))?;
+    let hash_vec = hash.to_vec();
+    let hash_len = hash_vec.len();
+    let block_hash: [u8; 32] = hash_vec.try_into().map_err(|_| {
+        JsValue::from_str(&format!(
+            "invalid block hash length: expected 32, got {}",
+            hash_len
+        ))
+    })?;
     let mut saito = SAITO.lock().await;
-    saito
+    let saito = saito
         .as_mut()
-        .unwrap()
+        .ok_or_else(|| JsValue::from_str("SAITO runtime not initialized"))?;
+    saito
         .routing_thread
         .process_network_event(NetworkEvent::BlockFetched {
-            block_hash: hash.to_vec().try_into().unwrap(),
+            block_hash,
             block_id,
             public_key: key,
             buffer: buffer.to_vec(),
         })
         .await;
+    Ok(())
 }
 
 #[wasm_bindgen]
-pub async fn process_failed_block_fetch(hash: js_sys::Uint8Array, block_id: u64, key: JsString) {
-    let key = string_to_key(key).unwrap();
+pub async fn process_failed_block_fetch(
+    hash: js_sys::Uint8Array,
+    block_id: u64,
+    key: JsString,
+) -> Result<(), JsValue> {
+    let key: SaitoPublicKey =
+        string_to_key(key).map_err(|e| JsValue::from_str(&format!("invalid public key: {}", e)))?;
+    let hash_vec = hash.to_vec();
+    let hash_len = hash_vec.len();
+    let block_hash: [u8; 32] = hash_vec.try_into().map_err(|_| {
+        JsValue::from_str(&format!(
+            "invalid block hash length: expected 32, got {}",
+            hash_len
+        ))
+    })?;
     let mut saito = SAITO.lock().await;
-    saito
+    let saito = saito
         .as_mut()
-        .unwrap()
+        .ok_or_else(|| JsValue::from_str("SAITO runtime not initialized"))?;
+    saito
         .routing_thread
         .process_network_event(NetworkEvent::BlockFetchFailed {
-            block_hash: hash.to_vec().try_into().unwrap(),
+            block_hash,
             public_key: key,
             block_id,
         })
         .await;
+    Ok(())
 }
 
 #[wasm_bindgen]

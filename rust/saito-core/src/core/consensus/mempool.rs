@@ -80,7 +80,13 @@ impl Mempool {
         }
     }
     pub async fn add_golden_ticket(&mut self, golden_ticket: Transaction) {
-        let gt = GoldenTicket::deserialize_from_net(&golden_ticket.data);
+        let gt = match GoldenTicket::deserialize_from_net(&golden_ticket.data) {
+            Ok(gt) => gt,
+            Err(_) => {
+                warn!("failed to deserialize golden ticket data");
+                return;
+            }
+        };
         debug!(
             "adding golden ticket : {:?} target : {:?} public_key : {:?}",
             hash(&golden_ticket.serialize_for_net()).to_hex(),
@@ -159,22 +165,18 @@ impl Mempool {
         // transaction.generate(&self.public_key, 0, 0);
 
         if !self.transactions.contains_key(&transaction.signature) {
-            self.routing_work_in_mempool += transaction.total_work_for_me;
-            // trace!(
-            //     "routing work available in mempool : {:?} after adding work : {:?} from tx with fees : {:?}",
-            //     self.routing_work_in_mempool, transaction.total_work_for_me, transaction.total_fees
-            // );
             if let TransactionType::GoldenTicket = transaction.transaction_type {
-                panic!("golden tickets should be in gt collection");
-            } else {
-                self.transactions
-                    .insert(transaction.signature, transaction.clone());
-                self.new_tx_added = true;
+                warn!("golden ticket routed to add_transaction; use add_golden_ticket instead");
+                return;
+            }
+            self.routing_work_in_mempool += transaction.total_work_for_me;
+            self.transactions
+                .insert(transaction.signature, transaction.clone());
+            self.new_tx_added = true;
 
-                for input in transaction.from.iter() {
-                    let utxo_key = input.utxoset_key;
-                    self.utxo_map.insert(utxo_key, 1);
-                }
+            for input in transaction.from.iter() {
+                let utxo_key = input.utxoset_key;
+                self.utxo_map.insert(utxo_key, 1);
             }
         }
     }
@@ -396,8 +398,14 @@ impl Mempool {
     pub fn delete_transactions(&mut self, transactions: &Vec<Transaction>) {
         for transaction in transactions {
             if let TransactionType::GoldenTicket = transaction.transaction_type {
-                let gt = GoldenTicket::deserialize_from_net(&transaction.data);
-                self.golden_tickets.remove(&gt.target);
+                match GoldenTicket::deserialize_from_net(&transaction.data) {
+                    Ok(gt) => {
+                        self.golden_tickets.remove(&gt.target);
+                    }
+                    Err(_) => {
+                        warn!("failed to deserialize golden ticket during transaction cleanup");
+                    }
+                }
             } else {
                 self.transactions.remove(&transaction.signature);
             }
@@ -428,6 +436,7 @@ mod tests {
 
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::{SaitoPrivateKey, SaitoPublicKey};
+    use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::test_manager::test::{create_timestamp, TestManager};
 
     use super::*;
@@ -526,5 +535,27 @@ mod tests {
             )
             .await
             .is_some());
+    }
+
+    // Item 23: a GoldenTicket transaction sent to add_transaction is silently rejected
+    // (warn log only) and does not enter the transactions map.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn golden_ticket_transaction_rejected_by_add_transaction() {
+        let keys = generate_keys();
+        let wallet_lock = Arc::new(RwLock::new(Wallet::new(keys.1, keys.0)));
+        let mut mempool = Mempool::new(wallet_lock);
+
+        let mut tx = Transaction::default();
+        tx.transaction_type = TransactionType::GoldenTicket;
+        // add_transaction has a debug_assert requiring hash_for_signature to be set.
+        tx.hash_for_signature = Some([0u8; 32]);
+
+        mempool.add_transaction(tx).await;
+
+        assert!(
+            mempool.transactions.is_empty(),
+            "a GoldenTicket tx must be rejected by add_transaction"
+        );
     }
 }

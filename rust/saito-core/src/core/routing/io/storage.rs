@@ -55,10 +55,9 @@ impl Storage {
 
     // TODO : remove if not used
     pub async fn write(&mut self, data: &[u8], filename: &str) {
-        self.io_interface
-            .write_value(filename, data)
-            .await
-            .expect("writing to storage failed");
+        if let Err(e) = self.io_interface.write_value(filename, data).await {
+            error!("writing to storage failed for '{}': {:?}", filename, e);
+        }
     }
 
     pub async fn file_exists(&self, filename: &str) -> bool {
@@ -76,10 +75,8 @@ impl Storage {
             .io_interface
             .write_value(filename.as_str(), buffer.as_slice())
             .await;
-        if result.is_err() {
-            let err = result.err().unwrap();
-            // TODO : panicking currently to make sure we can serve any blocks for which we have propagated the header for
-            panic!("failed writing block to disk. {:?}", err);
+        if let Err(err) = result {
+            error!("failed writing block to disk '{}': {:?}", filename, err);
         }
         filename
     }
@@ -146,7 +143,10 @@ impl Storage {
             }
             let mut block: Block = result.unwrap();
             block.force_loaded = true;
-            block.generate().unwrap();
+            if let Err(e) = block.generate() {
+                warn!("failed to generate block loaded from disk: {:?}", e);
+                return;
+            }
             trace!("block : {:?} loaded from disk", block.hash.to_hex());
             mempool.add_block(block);
         }
@@ -192,8 +192,14 @@ impl Storage {
         //
         if self.file_exists(issuance_file).await {
             if let Ok(lines) = self.io_interface.read_value(issuance_file).await {
-                let mut contents = String::from_utf8(lines).unwrap();
-                contents = contents.trim_end_matches('\r').to_string();
+                let contents = match String::from_utf8(lines) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        error!("issuance file contains invalid UTF-8: {:?}", e);
+                        return vec![];
+                    }
+                };
+                let mut contents = contents.trim_end_matches('\r').to_string();
                 let lines: Vec<&str> = contents.split('\n').collect();
 
                 for line in lines {
@@ -231,6 +237,11 @@ impl Storage {
     fn convert_issuance_into_slip(&self, line: &str) -> Option<Slip> {
         let entries: Vec<&str> = line.split_whitespace().collect();
 
+        if entries.len() < 3 {
+            error!("issuance line has fewer than 3 fields: {:?}", line);
+            return None;
+        }
+
         let result = entries[0].parse::<u64>();
 
         if result.is_err() {
@@ -260,7 +271,10 @@ impl Storage {
                 let slip_type = match entries[2].trim_end_matches('\r') {
                     "VipOutput" => SlipType::Normal,
                     "Normal" => SlipType::Normal,
-                    _ => panic!("Invalid slip type"),
+                    other => {
+                        error!("invalid slip type in issuance file: {:?}", other);
+                        return None;
+                    }
                 };
 
                 let mut slip = Slip::default();
@@ -328,8 +342,14 @@ impl Storage {
             return None;
         }
         if let Ok(result) = self.io_interface.read_value(file_path.as_str()).await {
-            let mut contents = String::from_utf8(result).unwrap();
-            contents = contents.trim_end_matches('\r').to_string();
+            let contents = match String::from_utf8(result) {
+                Ok(s) => s,
+                Err(e) => {
+                    error!("checkpoint file contains invalid UTF-8: {:?}", e);
+                    return None;
+                }
+            };
+            let mut contents = contents.trim_end_matches('\r').to_string();
             let lines: Vec<&str> = contents.split('\n').collect();
             let mut keys: Vec<SaitoUTXOSetKey> = vec![];
             for line in lines {
@@ -440,5 +460,50 @@ mod test {
             hash.to_hex(),
             "de0cdde5db8fd4489f2038aca5224c18983f6676aebcb2561f5089e12ea2eedf"
         );
+    }
+
+    // Item 24: convert_issuance_into_slip rejects malformed and unsupported-type lines.
+    #[test]
+    fn issuance_line_with_fewer_than_three_fields_returns_none() {
+        let t = TestManager::default();
+        // empty line
+        assert!(t.storage.convert_issuance_into_slip("").is_none());
+        // only one field
+        assert!(t.storage.convert_issuance_into_slip("1000000").is_none());
+        // only two fields
+        assert!(t
+            .storage
+            .convert_issuance_into_slip("1000000 somekey")
+            .is_none());
+    }
+
+    #[test]
+    fn issuance_line_with_invalid_amount_returns_none() {
+        let t = TestManager::default();
+        assert!(t
+            .storage
+            .convert_issuance_into_slip("notanumber somekey Normal")
+            .is_none());
+    }
+
+    #[test]
+    fn issuance_line_with_unsupported_slip_type_returns_none() {
+        let t = TestManager::default();
+        // amount < 25_000 causes PROJECT_PUBLIC_KEY to be used, so the second
+        // field is irrelevant; only the slip-type field ("BadType") is checked.
+        assert!(t
+            .storage
+            .convert_issuance_into_slip("100 ignored BadType")
+            .is_none());
+    }
+
+    #[test]
+    fn issuance_line_with_invalid_base58_key_returns_none() {
+        let t = TestManager::default();
+        // amount is valid and type is valid but the key field is not valid base58
+        assert!(t
+            .storage
+            .convert_issuance_into_slip("1000000 !!!invalid!!! Normal")
+            .is_none());
     }
 }
