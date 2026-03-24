@@ -823,7 +823,10 @@ impl Transaction {
             }
         }
 
-        unreachable!("winning routing node should've been found before this");
+        warn!(
+            "winning routing node not found in path; routing work calculations may be inconsistent"
+        );
+        [0; 33]
     }
 
     /// Runs when the chain is re-organized
@@ -1077,7 +1080,13 @@ impl Transaction {
                         error!("slip is not unlocked. slip : {}", slip);
                         return false;
                     }
-                    let utxo_slip = Slip::parse_slip_from_utxokey(&slip.utxoset_key).unwrap();
+                    let utxo_slip = match Slip::parse_slip_from_utxokey(&slip.utxoset_key) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            error!("failed to parse utxoset_key during validation: {:?}", e);
+                            return false;
+                        }
+                    };
                     if utxo_slip.amount != slip.amount {
                         error!(
                             "slip amount doesn't match with the utxo amount : {}. slip : {}",
@@ -1965,5 +1974,45 @@ mod tests {
 
         let serialized_tx = mock_tx.serialize_for_net();
         assert_eq!(serialized_tx.len(), 0);
+    }
+
+    // Item 26: create_with_multiple_payments rejects mismatched key/payment vector lengths.
+    #[test]
+    fn create_with_multiple_payments_rejects_mismatched_key_and_payment_counts() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+
+        let recipient: SaitoPublicKey = [1u8; 33];
+        // 2 payments but only 1 key – must return Err(InvalidInput)
+        let result = Transaction::create_with_multiple_payments(
+            &mut wallet,
+            vec![recipient],
+            vec![100, 200],
+            0,
+            None,
+            0,
+            0,
+        );
+        assert!(result.is_err());
+    }
+
+    // Item 26: create_with_multiple_payments rejects when keys outnumber payments.
+    #[test]
+    fn create_with_multiple_payments_rejects_more_keys_than_payments() {
+        let keys = generate_keys();
+        let mut wallet = Wallet::new(keys.1, keys.0);
+
+        let r1: SaitoPublicKey = [1u8; 33];
+        let r2: SaitoPublicKey = [2u8; 33];
+        let result = Transaction::create_with_multiple_payments(
+            &mut wallet,
+            vec![r1, r2],
+            vec![100],
+            0,
+            None,
+            0,
+            0,
+        );
+        assert!(result.is_err());
     }
 }

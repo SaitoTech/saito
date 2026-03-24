@@ -32,6 +32,9 @@ export default class WebSharedMethods extends CustomSharedMethods {
                   Saito.getInstance().peers.set(peer.publicKey, peer);
                 }
               }
+            })
+            .catch((error: any) => {
+              console.error("processing incoming message buffer failed for peer : " + peer.publicKey, error);
             });
         } catch (error) {
           console.error("processing incoming message buffer failed.", error);
