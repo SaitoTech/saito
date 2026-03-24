@@ -823,7 +823,9 @@ impl Transaction {
             }
         }
 
-        warn!("winning routing node not found in path; routing work calculations may be inconsistent");
+        warn!(
+            "winning routing node not found in path; routing work calculations may be inconsistent"
+        );
         [0; 33]
     }
 
@@ -1081,10 +1083,7 @@ impl Transaction {
                     let utxo_slip = match Slip::parse_slip_from_utxokey(&slip.utxoset_key) {
                         Ok(s) => s,
                         Err(e) => {
-                            error!(
-                                "failed to parse utxoset_key during validation: {:?}",
-                                e
-                            );
+                            error!("failed to parse utxoset_key during validation: {:?}", e);
                             return false;
                         }
                     };
