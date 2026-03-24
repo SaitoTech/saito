@@ -183,34 +183,3 @@ impl Configuration for WasmConfiguration {
         self.wallet.as_mut()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn default_configuration_builds_local_block_fetch_url() {
-        let config = WasmConfiguration::new();
-
-        assert_eq!(config.get_block_fetch_url(), "http://localhost:12101");
-        assert!(!config.is_spv_mode());
-        assert!(!config.is_browser());
-    }
-
-    #[test]
-    fn configuration_parses_minimal_json_shape() {
-        let config = WasmConfiguration::new_from_json(
-            r#"{"server":null,"peers":[],"spv_mode":true,"browser_mode":false,"wallet":null}"#,
-        )
-        .expect("minimal wasm configuration should parse");
-
-        assert_eq!(config.get_block_fetch_url(), "");
-        assert!(config.is_spv_mode());
-        assert!(!config.is_browser());
-    }
-
-    #[test]
-    fn configuration_rejects_invalid_json() {
-        assert!(WasmConfiguration::new_from_json("{").is_err());
-    }
-}

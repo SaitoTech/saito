@@ -12,16 +12,13 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - uses: jetli/wasm-pack-action@v0.3.0
         with:
-          node-version: '20.x'
-          cache: npm
-          cache-dependency-path: rust/saito-wasm/package-lock.json
+          version: 'v0.12.1'
       - name: Check Formatting (RUST)
         run: cargo fmt --check --verbose
         working-directory: ./rust
@@ -34,16 +31,11 @@ jobs:
       - name: Run tests
         run: cargo test --verbose
         working-directory: ./rust
-      - name: Install WASM toolchain
-        run: bash ./scripts/bootstrap_for_ci.sh
-        shell: bash
-        working-directory: ./rust
-      - name: Install saito-wasm npm packages
-        run: npm install
-        working-directory: ./rust/saito-wasm
+      #- name: Install wasm-pack
+      #  run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
       - name: Compile into WASM
         working-directory: ./rust/saito-wasm
-        run: npm run build
+        run: wasm-pack build --debug --target browser
       - name: Compile JS code
         run: npm install && npm run reset
         working-directory: ./node

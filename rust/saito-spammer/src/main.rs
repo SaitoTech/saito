@@ -25,7 +25,7 @@ use saito_core::core::defs::{
     PrintForLog, SaitoPrivateKey, SaitoPublicKey, StatVariable, STAT_BIN_COUNT,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
-use saito_core::core::process::timer::{KeepTime, Timer};
+use saito_core::core::process::keep_time::{KeepTime, Timer};
 use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
 use saito_core::core::routing::io::network::Network;
 use saito_core::core::routing::io::network_event::NetworkEvent;

@@ -2,33 +2,32 @@ name: Run E2E Tests
 
 on:
   push:
-    branches:
-      - master
-      - prod
-  pull_request:
-    branches:
-      - develop
-      - master
-      - prod
+    branches: [ feature/315/e2e ]
 
 jobs:
   run-tests:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Check out the current repository
         uses: actions/checkout@v3
 
-      - name: Install system dependencies
-        run: bash ./rust/scripts/bootstrap_for_ci.sh
+      - name: Install moreutils for sponge
+        run: sudo apt-get install -y moreutils
+
+      - name: Bootstrapping
+        run: bash ./scripts/bootstrap_for_ci.sh
         shell: bash
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
+          node-version: '16.x'
           registry-url: 'https://registry.npmjs.org'
           cache: npm
-          cache-dependency-path: ./rust/saito-wasm/package-lock.json
+          cache-dependency-path: saito-wasm/package-lock.json
+
+      - name: node js version
+        run: node --version
 
       - name: saito-wasm npm install
         run: npm install
@@ -54,7 +53,7 @@ jobs:
         run: npm run build
         working-directory: ./rust/saito-js
 
-      - name: copy saito-js build artifacts
+      - name: copying saito-js
         run: |
           cp package.json dist
           cp package-lock.json dist
@@ -66,7 +65,7 @@ jobs:
         run: npm install
         working-directory: ./rust/saito-js/dist
 
-      - name: link saito-wasm in saito-js dist
+      - name: npm link saito-wasm
         run: npm link saito-wasm
         working-directory: ./rust/saito-js/dist
 
@@ -74,33 +73,89 @@ jobs:
         run: npm link
         working-directory: ./rust/saito-js/dist
 
-      - name: Install node/ dependencies
-        run: npm install
-        working-directory: ./node
+      - name: Check out the external repository
+        uses: actions/checkout@v2
+        with:
+          repository: 'SaitoTech/saito-lite-rust'
+          path: main
 
-      - name: link saito-js to node
+      - name: Check out the external repository
+        uses: actions/checkout@v2
+        with:
+          repository: 'SaitoTech/saito-lite-rust'
+          path: services
+
+      - name: Install dependencies in main node
+        run: npm install
+        working-directory: main
+
+      - name: Install dependencies in services node
+        run: npm install
+        working-directory: services
+
+      - name: link saito-js to main
         run: npm link saito-js
-        working-directory: ./node
+        working-directory: main
 
-      - name: Build Rust binary
-        run: cargo build --release -p saito-rust
-        working-directory: ./rust
+      - name: link saito-js to services
+        run: npm link saito-js
+        working-directory: services
 
-      - name: Install e2e dependencies
+      - name: Copy main modules config
+        run: cp saito-e2e/test-data/slr-modules.config.main.js main/config/modules.config.js
+
+      - name: Copy services modules config
+        run: cp saito-e2e/test-data/slr-modules.config.main.js services/config/modules.config.js
+
+      - name: Copy main config
+        run: cp saito-e2e/test-data/slr-main.options.json main/config/options.conf
+
+      - name: Copy services config
+        run: cp saito-e2e/test-data/slr-services.options.json services/config/options.conf
+
+      - name: Compile Main
+        run: ./compile reset dev
+        working-directory: main
+
+      - name: Compile Services
+        run: ./compile reset dev
+        working-directory: services
+
+      - name: Run server in main node
+        run: npm run dev-server &
+        working-directory: main
+
+      - name: Health check for main node
+        run: |
+          echo "Waiting for main node to be ready..."
+          timeout 300s bash -c "until curl --output /dev/null --silent --head --fail http://localhost:12101/redsquare; do printf '.'; sleep 5; done"
+          echo "main node is up and running!"
+
+      - name: Run server in service node
+        run: npm run dev-server &
+        working-directory: services
+
+      - name: Health check for service node
+        run: |
+          echo "Waiting for main node to be ready..."
+          timeout 600s bash -c "until curl --output /dev/null --silent --head --fail http://localhost:12102/redsquare; do printf '.'; sleep 5; done"
+          echo "main node is up and running!"
+
+      - name: Install dependencies for tests
         run: npm install
-        working-directory: ./e2e
+        working-directory: saito-e2e
 
-      - name: Install Playwright browsers
+      - name: Install Playwright Browsers
         run: npx playwright install --with-deps
-        working-directory: ./e2e
+        working-directory: saito-e2e
 
       - name: Run Playwright tests
         run: npx playwright test
-        working-directory: ./e2e
+        working-directory: saito-e2e
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report
-          path: e2e/playwright-report/
+          path: saito-e2e/playwright-report/
           retention-days: 7

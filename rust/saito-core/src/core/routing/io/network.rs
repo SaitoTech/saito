@@ -8,7 +8,7 @@ use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::PrintForLog;
 use crate::core::msg::message::Message;
-use crate::core::process::timer::Timer;
+use crate::core::process::keep_time::Timer;
 use crate::core::routing::io::interface_io::InterfaceIO;
 use crate::core::routing::peers::peer_collection::PeerCollection;
 
