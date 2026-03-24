@@ -20,26 +20,30 @@ class Notifications extends ModTemplate {
 
 		this.ui = null;
 		this.header = null;
-		this._notifications_initialized = false;
 	}
 
-	initialize() {
+	async initialize(app) {
+
+		if (!this.app.BROWSER || !this.browser_active) { return; }
+
 		for (let tx of this.getTweets()) {
 			this.addTweet(tx);
 		}
 
-		if (!this.app.BROWSER || !this.browser_active) { return; }
-
 		if (!this.ui) {
-			this.ui = new NotificationsMain(this.app, this);
+			this.ui = new NotificationsMain(this.app, this, ".saito-container");
 			this.header = new SaitoHeader(this.app, this);
 		}
 
 	}
 
-	render() {
+	async render() {
+
+alert("render!");
 
 		if (!this.app.BROWSER || !this.browser_active) { return; }
+
+alert("rendering UI!");
 
 		this.ui.render();
 		this.header.render();

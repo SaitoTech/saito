@@ -1,7 +1,8 @@
 const TweetsTemplate = require('./tweets.template');
 
 class Tweets {
-	constructor(app, mod, container) {
+	constructor(app, mod, container=".notifications-center") {
+
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
@@ -9,6 +10,30 @@ class Tweets {
 		this.thread_resize_observer = null;
 		this.thread_draw_raf = null;
 	}
+
+	render() {
+
+		if (!document.querySelector('.tweets')) {
+			this.app.browser.addElementToSelector(
+				TweetsTemplate(this),
+				'.notifications-center'
+			);
+		} else {
+			this.app.browser.replaceElementBySelector(
+				TweetsTemplate(this),
+				'.tweets'
+			);
+		}
+
+		Object.values(this.mod.tweets).forEach((tweet) => {
+			tweet.render();
+		});
+
+		this.drawThreadConnectors();
+		this.ensureThreadResizeObserver(document.querySelector(".tweets"));
+	}
+
+
 
 	queueThreadRedraw() {
 		if (this.thread_draw_raf != null) return;
@@ -82,36 +107,6 @@ class Tweets {
 		this.app.browser.replaceElementContentBySelector(html, '.connectors');
 	}
 
-	ensureTweetsPanelInDom() {
-		if (!document.querySelector('.tweets')) {
-			this.app.browser.addElementToSelector(
-				TweetsTemplate(this),
-				'.notifications-center'
-			);
-		} else {
-			this.app.browser.replaceElementBySelector(
-				TweetsTemplate(this),
-				'.tweets'
-			);
-		}
-	}
-
-	render() {
-		this.tweets = this.mod.tweets;
-
-		this.ensureTweetsPanelInDom();
-
-		const panel_el = document.querySelector('.notifications-center .tweets');
-
-		Object.values(this.tweets).forEach((tweet) => {
-			tweet.render();
-		});
-
-		if (panel_el) {
-			this.drawThreadConnectors();
-			this.ensureThreadResizeObserver(panel_el);
-		}
-	}
 }
 
 module.exports = Tweets;

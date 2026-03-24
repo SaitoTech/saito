@@ -1835,6 +1835,7 @@ console.log("GAMEDATA: " + JSON.stringify(gamedata));
 
 		if (walletModified) {
 			this.app.storage.saveOptions();
+			this.renderInvites();
 		}
 	}
 

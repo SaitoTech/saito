@@ -2,25 +2,26 @@ const MainTemplate = require('./main.template');
 const Tweets = require('./tweets');
 
 class NotificationsMain {
-	constructor(app, mod) {
+
+	constructor(app, mod, container=".saito-container") {
+
 		this.app = app;
 		this.mod = mod;
 
-		this.container = '';
+		this.container = container;
 		this.tweets = null;
 	}
 
 	render() {
-		const selector_main = '.saito-center .main';
 
-		if (document.querySelector(selector_main)) {
-			this.app.browser.replaceElementBySelector(MainTemplate(this), selector_main);
+		if (document.querySelector('.notifications-center')) {
+			this.app.browser.replaceElementBySelector(MainTemplate(this), '.notifications-center');
 		} else {
-			this.app.browser.addElementToSelector(MainTemplate(this), '.saito-center');
+			this.app.browser.addElementToSelector(MainTemplate(this), this.container);
 		}
 
 		if (this.tweets === null) {
-			this.tweets = new Tweets(this.app, this.mod, '.saito-center');
+			this.tweets = new Tweets(this.app, this.mod, '.notifications-center');
 		}
 
 		this.tweets.render();
