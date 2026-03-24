@@ -143,11 +143,25 @@ impl Slip {
 
     pub fn parse_slip_from_utxokey(key: &SaitoUTXOSetKey) -> Result<Slip, Error> {
         let mut slip = Slip::default();
-        slip.public_key = key[0..33].to_vec().try_into().unwrap();
-        slip.block_id = u64::from_be_bytes(key[33..41].try_into().unwrap());
-        slip.tx_ordinal = u64::from_be_bytes(key[41..49].try_into().unwrap());
+        slip.public_key = key[0..33]
+            .try_into()
+            .or(Err(Error::from(ErrorKind::InvalidData)))?;
+        slip.block_id = u64::from_be_bytes(
+            key[33..41]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        slip.tx_ordinal = u64::from_be_bytes(
+            key[41..49]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
         slip.slip_index = key[49];
-        slip.amount = u64::from_be_bytes(key[50..58].try_into().unwrap());
+        slip.amount = u64::from_be_bytes(
+            key[50..58]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
         slip.slip_type = SlipType::from_u8(key[58]).ok_or(Error::from(ErrorKind::InvalidData))?;
 
         slip.utxoset_key = *key;

@@ -80,7 +80,13 @@ impl Mempool {
         }
     }
     pub async fn add_golden_ticket(&mut self, golden_ticket: Transaction) {
-        let gt = GoldenTicket::deserialize_from_net(&golden_ticket.data);
+        let gt = match GoldenTicket::deserialize_from_net(&golden_ticket.data) {
+            Ok(gt) => gt,
+            Err(_) => {
+                warn!("failed to deserialize golden ticket data");
+                return;
+            }
+        };
         debug!(
             "adding golden ticket : {:?} target : {:?} public_key : {:?}",
             hash(&golden_ticket.serialize_for_net()).to_hex(),
@@ -396,8 +402,14 @@ impl Mempool {
     pub fn delete_transactions(&mut self, transactions: &Vec<Transaction>) {
         for transaction in transactions {
             if let TransactionType::GoldenTicket = transaction.transaction_type {
-                let gt = GoldenTicket::deserialize_from_net(&transaction.data);
-                self.golden_tickets.remove(&gt.target);
+                match GoldenTicket::deserialize_from_net(&transaction.data) {
+                    Ok(gt) => {
+                        self.golden_tickets.remove(&gt.target);
+                    }
+                    Err(_) => {
+                        warn!("failed to deserialize golden ticket during transaction cleanup");
+                    }
+                }
             } else {
                 self.transactions.remove(&transaction.signature);
             }

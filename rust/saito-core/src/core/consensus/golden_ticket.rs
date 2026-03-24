@@ -1,4 +1,5 @@
 use std::convert::TryInto;
+use std::io::{Error, ErrorKind};
 
 use serde::{Deserialize, Serialize};
 
@@ -33,12 +34,20 @@ impl GoldenTicket {
         GoldenTicket::new(previous_block_hash, random_bytes, public_key)
     }
 
-    pub fn deserialize_from_net(bytes: &Vec<u8>) -> GoldenTicket {
-        assert_eq!(bytes.len(), 97);
-        let target: SaitoHash = bytes[0..32].try_into().unwrap();
-        let random: SaitoHash = bytes[32..64].try_into().unwrap();
-        let public_key: SaitoPublicKey = bytes[64..97].try_into().unwrap();
-        GoldenTicket::new(target, random, public_key)
+    pub fn deserialize_from_net(bytes: &Vec<u8>) -> Result<GoldenTicket, Error> {
+        if bytes.len() != 97 {
+            return Err(Error::from(ErrorKind::InvalidData));
+        }
+        let target: SaitoHash = bytes[0..32]
+            .try_into()
+            .or(Err(Error::from(ErrorKind::InvalidData)))?;
+        let random: SaitoHash = bytes[32..64]
+            .try_into()
+            .or(Err(Error::from(ErrorKind::InvalidData)))?;
+        let public_key: SaitoPublicKey = bytes[64..97]
+            .try_into()
+            .or(Err(Error::from(ErrorKind::InvalidData)))?;
+        Ok(GoldenTicket::new(target, random, public_key))
     }
 
     pub fn serialize_for_net(&self) -> Vec<u8> {
@@ -121,7 +130,7 @@ mod tests {
         let buffer = hex::decode("844702489d49c7fb2334005b903580c7a48fe81121ff16ee6d1a528ad32f235e03bf1a4714cfc7ae33d3f6e860c23191ddea07bcb1bfa6c85bc124151ad8d4ce03cb14a56ddc769932baba62c22773aaf6d26d799b548c8b8f654fb92d25ce7610").unwrap();
         assert_eq!(buffer.len(), 97);
 
-        let result = GoldenTicket::deserialize_from_net(&buffer);
+        let result = GoldenTicket::deserialize_from_net(&buffer).unwrap();
         assert_eq!(
             result.target.to_hex(),
             "844702489d49c7fb2334005b903580c7a48fe81121ff16ee6d1a528ad32f235e"

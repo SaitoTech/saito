@@ -10,9 +10,9 @@
 
 1. [x] `Critical | P0` Harden network-facing wasm entrypoints by replacing `unwrap()`-based parsing in block fetch and block-fetch-failure paths with explicit validation and `JsValue` errors.
 2. [x] `High | P0` Add async error handling to the web socket receive path in `rust/saito-js/lib/custom/shared_methods.web.ts` so rejected `process_msg_buffer_from_peer(...)` calls are surfaced and handled. (Note: no Node.js equivalent of `shared_methods.web.ts` exists — only the web variant and the abstract `custom_shared_methods.ts` base. If a Node runtime path is added later, it will need the same `.catch()` treatment.)
-3. [ ] `Critical | P0` Convert golden ticket deserialization in `rust/saito-core/src/core/consensus/golden_ticket.rs` from panic-based parsing to `Result`-based validation.
-4. [ ] `Critical | P0` Harden `rust/saito-core/src/core/consensus/block.rs` deserialization against truncated or undersized buffers before fixed-offset header slicing.
-5. [ ] `High | P0` Validate `SaitoUTXOSetKey` length and layout before fixed-offset parsing in `rust/saito-core/src/core/consensus/slip.rs::parse_slip_from_utxokey(...)`.
+3. [x] `Critical | P0` Convert golden ticket deserialization in `rust/saito-core/src/core/consensus/golden_ticket.rs` from panic-based parsing to `Result`-based validation.
+4. [x] `Critical | P0` Harden `rust/saito-core/src/core/consensus/block.rs` deserialization against truncated or undersized buffers before fixed-offset header slicing.
+5. [x] `High | P0` Validate `SaitoUTXOSetKey` length and layout before fixed-offset parsing in `rust/saito-core/src/core/consensus/slip.rs::parse_slip_from_utxokey(...)`.
 6. [ ] `Critical | P0` Remove panic-prone missing-block lookups in `rust/saito-core/src/core/consensus/blockchain.rs` reorg and block-deletion paths.
 7. [ ] `Critical | P0` Replace the active `panic!("cannot continue loading blocks")` at line 2413 in `rust/saito-core/src/core/consensus/blockchain.rs` with a recoverable error. (Note: the checkpoint total-supply panic at line 2887 is already commented out.)
 8. [ ] `High | P1` Replace panic-on-disk-write behavior in `rust/saito-core/src/core/routing/io/storage.rs` with returned errors and explicit recovery or logging.
