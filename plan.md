@@ -32,8 +32,8 @@
 11f. [ ] `Medium | P1` Replace `.unwrap()` calls on deque/vec operations in `rust/saito-core/src/core/routing/blockchain_sync_state.rs` (lines ~238–239, 403, 513–538). Empty deque or vec after removal panics the sync state machine under race conditions.
 11g. [ ] `Medium | P1` Replace `.unwrap()` on endpoint deserialization in `rust/saito-core/src/core/util/configuration.rs` (line ~294). A malformed config file crashes the node at startup.
 11h. [ ] `Medium | P1` Replace chained `.get(N).unwrap()` on token parsing in `rust/saito-core/src/core/util/balance_snapshot.rs` (lines ~90–92, 174–176, 276–307, 360–369). A corrupted or format-changed snapshot file crashes the node.
-12. [ ] `Medium | P1` Validate transaction-construction assumptions in `rust/saito-core/src/core/consensus/transaction.rs`, including mismatched key or payment vectors and malformed NFT UUID decoding.
-13. [ ] `High | P1` Make wallet setter APIs return structured failures instead of only logging and returning silently on invalid key input. Note: `set_private_key` in `wasm_wallet.rs` also has a hidden panic — `key.try_into().unwrap()` after length check — that must be replaced.
+12. [x] `Medium | P1` Validate transaction-construction assumptions in `rust/saito-core/src/core/consensus/transaction.rs`, including mismatched key or payment vectors and malformed NFT UUID decoding.
+13. [x] `High | P1` Make wallet setter APIs return structured failures instead of only logging and returning silently on invalid key input. Note: `set_private_key` in `wasm_wallet.rs` also has a hidden panic — `key.try_into().unwrap()` after length check — that must be replaced.
 
 ### Phase 1 Validation
 

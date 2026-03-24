@@ -823,7 +823,8 @@ impl Transaction {
             }
         }
 
-        unreachable!("winning routing node should've been found before this");
+        warn!("winning routing node not found in path; routing work calculations may be inconsistent");
+        [0; 33]
     }
 
     /// Runs when the chain is re-organized
@@ -1077,7 +1078,16 @@ impl Transaction {
                         error!("slip is not unlocked. slip : {}", slip);
                         return false;
                     }
-                    let utxo_slip = Slip::parse_slip_from_utxokey(&slip.utxoset_key).unwrap();
+                    let utxo_slip = match Slip::parse_slip_from_utxokey(&slip.utxoset_key) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            error!(
+                                "failed to parse utxoset_key during validation: {:?}",
+                                e
+                            );
+                            return false;
+                        }
+                    };
                     if utxo_slip.amount != slip.amount {
                         error!(
                             "slip amount doesn't match with the utxo amount : {}. slip : {}",
