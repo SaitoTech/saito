@@ -1036,8 +1036,8 @@ class Server {
       return;
     });
 
-    // Enable test API when SAITO_TEST_MODE env var is set
-    if (process.env.SAITO_TEST_MODE) {
+    // TODO : add a env variable? to enable this testing feature
+    if (false) {
       this.provideTesterAPI(expressApp);
     }
 
@@ -1262,9 +1262,6 @@ class Server {
     });
     express.get('/test-api/status', async (req, res) => {
       res.send({});
-    });
-    express.get('/test-api/peers', (req, res) => {
-      res.send(Array.from(S.getInstance().peers.keys()));
     });
     express.get('/test-api/balances', async (req, res) => {
       let balances = await S.getInstance().getBalanceSnapshot([]);

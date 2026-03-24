@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build_and_publish:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
 
       - name: Checkout repository
@@ -27,13 +27,10 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
+          node-version: '16.x'
           registry-url: 'https://registry.npmjs.org'
           cache: npm
           cache-dependency-path: rust/saito-wasm/package-lock.json
-
-      - name: Update npm
-        run: npm install -g npm@latest
 
       - name: get latest saito-wasm version
         run: |
@@ -94,7 +91,9 @@ jobs:
 
       - name: Publish saito-wasm package
         if: ${{ env.published_saito_wasm_version != env.current_saito_wasm_version }}
-        run: npm publish --provenance --access public
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         working-directory: ./rust/saito-wasm
 
       - name: Upload Saito Rust Artifact
@@ -151,10 +150,21 @@ jobs:
         run: npm run build
         working-directory: rust/saito-js
 
+      - name: copying saito-js
+        if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
+        run: |
+          cp package.json dist
+          cp package-lock.json dist
+          cp tsconfig.json dist
+          cp .npmignore dist
+        working-directory: rust/saito-js
+
       - name: Publish saito-js package
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}
-        run: npm publish --provenance --access public
-        working-directory: rust/saito-js
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        working-directory: rust/saito-js/dist
 
       - name: Create github release
         if: ${{ env.published_saito_js_version != env.current_saito_js_version }}

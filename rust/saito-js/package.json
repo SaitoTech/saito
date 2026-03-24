@@ -2,57 +2,14 @@
   "name": "saito-js",
   "version": "0.2.205",
   "description": "js wrappings around saito-core using wasm",
-  "main": "./dist/index.node.js",
-  "types": "./dist/index.node.d.ts",
-  "files": [
-    "dist"
-  ],
-  "exports": {
-    ".": "./dist/index.node.js",
-    "./index.node": "./dist/index.node.js",
-    "./index.web": "./dist/index.web.js",
-    "./saito": "./dist/saito.js",
-    "./shared_methods": "./dist/shared_methods.js",
-    "./configs": "./dist/configs.js",
-    "./lib/*": "./dist/lib/*.js"
-  },
-  "typesVersions": {
-    "*": {
-      "index.node": [
-        "dist/index.node.d.ts"
-      ],
-      "index.web": [
-        "dist/index.web.d.ts"
-      ],
-      "saito": [
-        "dist/saito.d.ts"
-      ],
-      "shared_methods": [
-        "dist/shared_methods.d.ts"
-      ],
-      "configs": [
-        "dist/configs.d.ts"
-      ],
-      "lib/*": [
-        "dist/lib/*.d.ts"
-      ]
-    }
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/SaitoTech/saito"
-  },
   "scripts": {
     "test": "env TS_NODE_PROJECT=\"tsconfig.testing.json\" mocha --require ts-node/register 'tests/**/*.ts'",
     "build": "tsc",
-    "prepack": "npm run build",
     "serve": "webpack-dev-server"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^20.17.19",
     "@types/jest": "29.2.5",
     "@types/ws": "8.5.5",
     "babel-loader": "8.2.3",
@@ -61,12 +18,10 @@
     "crypto-browserify": "3.12.0",
     "html-webpack-plugin": "5.5.0",
     "ignore-loader": "0.1.2",
-    "mocha": "^11.1.0",
     "path-browserify": "1.0.1",
     "prettier": "2.8.8",
     "source-map-loader": "3.0.0",
     "stream-browserify": "3.0.0",
-    "ts-node": "^10.9.2",
     "ts-loader": "9.4.2",
     "ts-node-dev": "2.0.0",
     "typescript": "5.4.x"

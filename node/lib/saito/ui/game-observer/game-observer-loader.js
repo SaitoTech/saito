@@ -40,6 +40,7 @@ class GameObserverLoader {
       this.container.appendChild(node);
     }
 
+
     if (existing && hud) {
       const hudZ = parseInt(window.getComputedStyle(hud).zIndex) || 0;
       existing.style.zIndex = hudZ + 1;

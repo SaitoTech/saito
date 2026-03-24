@@ -2,8 +2,8 @@ import Server, { NodeSharedMethods } from '../lib/saito/core/server';
 import StorageCore from '../lib/saito/core/storage-core';
 import { Saito, parseLogLevel } from '../apps/core/index';
 import S, { initialize as initS } from 'saito-js/index.node';
+import mods_config from '../config/modules.config.js';
 import process from 'process';
-import path from 'path';
 import Factory from '../lib/saito/factory';
 import Wallet from '../lib/saito/wallet';
 import Blockchain from '../lib/saito/blockchain';
@@ -19,10 +19,6 @@ function getCommandLineArg(key) {
 
 async function initSaito() {
 	Error.stackTraceLimit = 20;
-	const defaultConfigDir = path.join(__dirname, '../config');
-	const configDir = process.env.SAITO_CONFIG_DIR || defaultConfigDir;
-	// eslint-disable-next-line @typescript-eslint/no-var-requires
-	const mods_config = require(path.join(configDir, 'modules.config.js'));
 	const app = new Saito({
 		mod_paths: mods_config.core
 	});

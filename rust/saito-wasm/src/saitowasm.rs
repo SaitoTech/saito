@@ -1,5 +1,6 @@
 use std::io::{Error, ErrorKind};
 use std::ops::{Deref, DerefMut};
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -7,7 +8,6 @@ use crate::wasm_balance_snapshot::WasmBalanceSnapshot;
 use crate::wasm_block::WasmBlock;
 use crate::wasm_blockchain::WasmBlockchain;
 use crate::wasm_configuration::WasmConfiguration;
-use crate::wasm_host_log::init_logging;
 use crate::wasm_io_handler::WasmIoHandler;
 use crate::wasm_network_peer::WasmNetworkPeer;
 use crate::wasm_nft::WasmNFT;
@@ -19,7 +19,7 @@ use crate::wasm_transaction::WasmTransaction;
 use crate::wasm_wallet::WasmWallet;
 use js_sys::{Array, JsString, Uint8Array};
 use lazy_static::lazy_static;
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, info, trace, warn, Level, Log, Metadata, Record};
 use saito_core::core::consensus::blockchain::Blockchain;
 use saito_core::core::consensus::context::Context;
 use saito_core::core::consensus::mempool::Mempool;
@@ -33,7 +33,7 @@ use saito_core::core::defs::{
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::msg::api_message::ApiMessage;
 use saito_core::core::msg::message::Message;
-use saito_core::core::process::timer::Timer;
+use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::process::version::Version;
 use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
@@ -45,13 +45,15 @@ use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
 use saito_core::core::util::configuration::Configuration;
-use saito_core::core::util::crypto::{generate_keypair_from_private_key, generate_keys, sign};
+use saito_core::core::util::crypto::{generate_keypair_from_private_key, sign};
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
 use secp256k1::SECP256K1;
+use serde::Serialize;
 use std::convert::TryInto;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::{Mutex, RwLock};
 use wasm_bindgen::prelude::*;
+use web_sys::console;
 
 #[wasm_bindgen]
 pub struct SaitoWasm {
@@ -71,22 +73,14 @@ pub struct SaitoWasm {
 }
 
 lazy_static! {
-    pub static ref SAITO: Mutex<Option<SaitoWasm>> = Mutex::new(Some(new_with_configuration(
-        Arc::new(RwLock::new(WasmConfiguration::new())),
-        1,
-        true,
-        100_000,
-        0,
-        60,
-        false,
-        6,
-        6,
-        10,
-    )));
+    pub static ref SAITO: Mutex<Option<SaitoWasm>> =
+        Mutex::new(Some(new(1, true, 100_000, 0, 60, false, 6, 6, 10)));
+    static ref CONFIGS: Arc<RwLock<dyn Configuration + Send + Sync>> =
+        Arc::new(RwLock::new(WasmConfiguration::new()));
+    static ref PRIVATE_KEY: Mutex<String> = Mutex::new("".to_string());
 }
 
-pub fn new_with_configuration(
-    configuration: Arc<RwLock<dyn Configuration + Send + Sync>>,
+pub fn new(
     haste_multiplier: u64,
     enable_stats: bool,
     genesis_period: BlockId,
@@ -101,6 +95,8 @@ pub fn new_with_configuration(
     console_error_panic_hook::set_once();
 
     let wallet = Arc::new(RwLock::new(Wallet::new([0; 32], [0; 33])));
+
+    let configuration: Arc<RwLock<dyn Configuration + Send + Sync>> = CONFIGS.clone();
 
     let channel_size = 1_000_000;
 
@@ -137,7 +133,7 @@ pub fn new_with_configuration(
     let timer = Timer {
         time_reader: Arc::new(WasmTimeKeeper {}),
         hasten_multiplier: haste_multiplier,
-        start_time: WasmTimeKeeper::current_time_in_ms(),
+        start_time: js_sys::Date::now() as Timestamp,
     };
 
     SaitoWasm {
@@ -269,1300 +265,91 @@ pub fn new_with_configuration(
     }
 }
 
-impl SaitoWasm {
-    async fn apply_private_key(&self, private_key: SaitoPrivateKey) {
-        let mut configs = self.context.config_lock.write().await;
-        let mut wallet = self.context.wallet_lock.write().await;
-        let keys = if private_key != [0; 32] {
-            generate_keypair_from_private_key(private_key.as_slice())
-        } else {
-            generate_keys()
-        };
-        wallet.private_key = keys.1;
-        wallet.public_key = keys.0;
-        if let Some(wallet_config) = configs.get_wallet_configs_mut() {
-            wallet_config.privateKey = keys.1.to_hex();
-            wallet_config.publicKey = keys.0.to_base58();
-        }
-        info!("current core version : {:?}", wallet.core_version);
+struct WasmLogger {}
+
+impl Log for WasmLogger {
+    fn enabled(&self, metadata: &Metadata) -> bool {
+        metadata.level() <= log::max_level()
     }
 
-    async fn initialize_threads(&mut self) {
-        self.stat_thread.on_init().await;
-        self.mining_thread.on_init().await;
-        self.verification_thread.on_init().await;
-        self.routing_thread.on_init().await;
-        self.consensus_thread.on_init().await;
-    }
-
-    async fn create_transaction_impl(
-        &self,
-        public_key: JsString,
-        amount: u64,
-        fee: u64,
-        force_merge: bool,
-    ) -> Result<WasmTransaction, JsValue> {
-        trace!("create_transaction : {:?}", public_key.to_string());
-        let mut wallet = self.context.wallet_lock.write().await;
-        let key = string_to_key(public_key).or(Err(JsValue::from(
-            "Failed parsing public key string to key",
-        )))?;
-
-        let configs = self.routing_thread.config_lock.read().await;
-        let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
-        let blockchain = self.context.blockchain_lock.read().await;
-        let latest_block_id = blockchain.get_latest_block_id();
-
-        let transaction = Transaction::create(
-            &mut wallet,
-            key,
-            amount,
-            fee,
-            force_merge,
-            Some(&self.consensus_thread.network),
-            latest_block_id,
-            genesis_period,
-        );
-        if transaction.is_err() {
-            error!(
-                "failed creating transaction. {:?}",
-                transaction.err().unwrap()
-            );
-            return Err(JsValue::from("Failed creating transaction"));
-        }
-
-        Ok(WasmTransaction::from_transaction(transaction.unwrap()))
-    }
-
-    async fn create_transaction_with_multiple_payments_impl(
-        &self,
-        public_keys: js_sys::Array,
-        amounts: js_sys::BigUint64Array,
-        fee: u64,
-    ) -> Result<WasmTransaction, JsValue> {
-        let mut wallet = self.context.wallet_lock.write().await;
-
-        let configs = self.routing_thread.config_lock.read().await;
-        let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
-        let blockchain = self.context.blockchain_lock.read().await;
-        let latest_block_id = blockchain.get_latest_block_id();
-
-        let keys: Vec<SaitoPublicKey> = string_array_to_base58_keys(public_keys);
-        let amounts: Vec<Currency> = amounts.to_vec();
-
-        if keys.len() != amounts.len() {
-            return Err(JsValue::from("keys and payments have different counts"));
-        }
-
-        let transaction = Transaction::create_with_multiple_payments(
-            &mut wallet,
-            keys,
-            amounts,
-            fee,
-            Some(&self.consensus_thread.network),
-            latest_block_id,
-            genesis_period,
-        );
-        if transaction.is_err() {
-            error!(
-                "failed creating transaction. {:?}",
-                transaction.err().unwrap()
-            );
-            return Err(JsValue::from("Failed creating transaction"));
-        }
-
-        Ok(WasmTransaction::from_transaction(transaction.unwrap()))
-    }
-
-    async fn propagate_transaction_impl(&mut self, tx: &WasmTransaction) {
-        trace!("propagate_transaction");
-
-        let mut tx = tx.clone().tx;
-        {
-            let wallet = self.routing_thread.wallet_lock.read().await;
-            tx.generate(&wallet.public_key, 0, 0);
-        }
-        debug!(
-            "propagating transaction: {} input: {}, output : {}",
-            tx.signature.to_hex(),
-            tx.from
-                .iter()
-                .map(|slip| format!("{}", slip))
-                .collect::<Vec<String>>()
-                .join(", "),
-            tx.to
-                .iter()
-                .map(|slip| format!("{}", slip))
-                .collect::<Vec<String>>()
-                .join(", "),
-        );
-        self.consensus_thread
-            .process_event(ConsensusEvent::NewTransaction { transaction: tx })
-            .await;
-    }
-
-    async fn get_mempool_txs_impl(&self) -> js_sys::Array {
-        let mempool = self.consensus_thread.mempool_lock.read().await;
-        let txs = js_sys::Array::new_with_length(mempool.transactions.len() as u32);
-        for (index, (_, tx)) in mempool.transactions.iter().enumerate() {
-            let wasm_tx = WasmTransaction::from_transaction(tx.clone());
-            txs.set(index as u32, JsValue::from(wasm_tx));
-        }
-
-        txs
-    }
-
-    async fn process_new_peer_impl(&mut self, peer: WasmNetworkPeer) {
-        self.routing_thread
-            .process_network_event(NetworkEvent::PeerConnectionResult {
-                result: Ok(peer.get_peer().clone()),
-            })
-            .await;
-    }
-
-    async fn process_stun_peer_impl(&mut self, public_key: JsString) -> Result<(), JsValue> {
-        debug!("processing stun peer with public key: {:?} ", public_key);
-        let key: SaitoPublicKey = string_to_key(public_key.into())
-            .map_err(|e| JsValue::from_str(&format!("Failed to parse public key: {}", e)))?;
-
-        self.routing_thread
-            .process_network_event(NetworkEvent::AddStunPeer { public_key: key })
-            .await;
-        Ok(())
-    }
-
-    async fn remove_stun_peer_impl(&mut self, public_key: JsString) {
-        let key: SaitoPublicKey = string_to_key(public_key).unwrap();
-        debug!(
-            "removing stun peer with index: {:?} from netowrk ",
-            key.to_base58()
-        );
-        self.routing_thread
-            .process_network_event(NetworkEvent::RemoveStunPeer { public_key: key })
-            .await;
-    }
-
-    async fn process_peer_disconnection_impl(&mut self, key: JsString) {
-        let key = string_to_key(key);
-        if key.is_err() {
+    fn log(&self, record: &Record) {
+        if !self.enabled(record.metadata()) {
             return;
         }
-        let key: SaitoPublicKey = key.unwrap();
-        debug!("process_peer_disconnection : {:?}", key.to_base58());
-        self.routing_thread
-            .process_network_event(NetworkEvent::PeerDisconnected {
-                public_key: key,
-                disconnect_type: PeerDisconnectType::ExternalDisconnect,
-            })
-            .await;
+        log(record)
     }
 
-    async fn process_msg_buffer_from_peer_impl(
-        &mut self,
-        buffer: js_sys::Uint8Array,
-        peer: &mut WasmNetworkPeer,
-    ) -> js_sys::Uint8Array {
-        let buffer = buffer.to_vec();
-        trace!("process_msg_buffer_from_peer : {}", buffer.len());
-        let network_peer = peer.get_peer_mut();
-        let wallet = self.context.wallet_lock.clone();
-        let configs = self.context.config_lock.clone();
-        let timer = self.routing_thread.timer.clone();
-        let services = if network_peer.is_connected() {
-            vec![]
-        } else {
-            self.routing_thread.network.io_interface.get_my_services()
-        };
+    fn flush(&self) {}
+}
+pub(crate) struct Style<'s> {
+    pub trace: &'s str,
+    pub debug: &'s str,
+    pub info: &'s str,
+    pub warn: &'s str,
+    pub error: &'s str,
+    pub file_line: &'s str,
+    pub text: &'s str,
+}
 
-        trace!("buffer size : {}", buffer.len());
-        let routing_thread = &mut self.routing_thread;
-        let buffer = network_peer
-            .process_incoming_buffer(
-                buffer,
-                wallet,
-                configs,
-                &timer,
-                &services,
-                |event| async move {
-                    routing_thread.process_network_event(event).await;
-                },
-            )
-            .await;
-        if buffer.is_err() {
-            error!(
-                "process_msg_buffer_from_peer failed. {}",
-                buffer.err().unwrap()
-            );
-            js_sys::Uint8Array::new_with_length(0)
-        } else {
-            let buffer = buffer.unwrap();
-
-            trace!("return buffer size : {}", buffer.len());
-            let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
-            array.copy_from(buffer.as_slice());
-            array
-        }
-    }
-
-    async fn process_fetched_block_impl(
-        &mut self,
-        buffer: js_sys::Uint8Array,
-        hash: js_sys::Uint8Array,
-        block_id: BlockId,
-        key: JsString,
-    ) {
-        let key = string_to_key(key).unwrap();
-        self.routing_thread
-            .process_network_event(NetworkEvent::BlockFetched {
-                block_hash: hash.to_vec().try_into().unwrap(),
-                block_id,
-                public_key: key,
-                buffer: buffer.to_vec(),
-            })
-            .await;
-    }
-
-    async fn process_failed_block_fetch_impl(
-        &mut self,
-        hash: js_sys::Uint8Array,
-        block_id: u64,
-        key: JsString,
-    ) {
-        let key = string_to_key(key).unwrap();
-        self.routing_thread
-            .process_network_event(NetworkEvent::BlockFetchFailed {
-                block_hash: hash.to_vec().try_into().unwrap(),
-                public_key: key,
-                block_id,
-            })
-            .await;
-    }
-
-    async fn process_timer_event_impl(&mut self, duration_in_ms: u64) {
-        let duration = Duration::from_millis(duration_in_ms);
-        const EVENT_LIMIT: u32 = 100;
-        let mut event_counter = 0;
-
-        while let Ok(event) = self.receiver_for_router.try_recv() {
-            let _result = self.routing_thread.process_event(event).await;
-            event_counter += 1;
-            if event_counter >= EVENT_LIMIT {
-                break;
-            }
-            if !self.routing_thread.is_ready_to_process() {
-                break;
-            }
+impl Style<'static> {
+    /// Returns default style values.
+    pub const fn default() -> Self {
+        macro_rules! bg_color {
+            ($color:expr) => {
+                concat!("color: white; padding: 0 3px; background: ", $color, ";")
+            };
         }
 
-        self.routing_thread.process_timer_event(duration).await;
-
-        event_counter = 0;
-        while let Ok(event) = self.receiver_for_consensus.try_recv() {
-            let _result = self.consensus_thread.process_event(event).await;
-            event_counter += 1;
-            if event_counter >= EVENT_LIMIT {
-                break;
-            }
-            if !self.consensus_thread.is_ready_to_process() {
-                break;
-            }
-        }
-
-        self.consensus_thread.process_timer_event(duration).await;
-
-        event_counter = 0;
-        while let Ok(event) = self.receiver_for_verification.try_recv() {
-            let _result = self.verification_thread.process_event(event).await;
-            event_counter += 1;
-            if event_counter >= EVENT_LIMIT {
-                break;
-            }
-            if !self.verification_thread.is_ready_to_process() {
-                break;
-            }
-        }
-
-        self.verification_thread.process_timer_event(duration).await;
-
-        event_counter = 0;
-        while let Ok(event) = self.receiver_for_miner.try_recv() {
-            let _result = self.mining_thread.process_event(event).await;
-            event_counter += 1;
-            if event_counter >= EVENT_LIMIT {
-                break;
-            }
-            if !self.mining_thread.is_ready_to_process() {
-                break;
-            }
-        }
-
-        self.mining_thread.process_timer_event(duration).await;
-
-        self.stat_thread.process_timer_event(duration).await;
-
-        event_counter = 0;
-        while let Ok(event) = self.receiver_for_stats.try_recv() {
-            let _result = self.stat_thread.process_event(event).await;
-            event_counter += 1;
-            if event_counter >= EVENT_LIMIT {
-                break;
-            }
-            if !self.stat_thread.is_ready_to_process() {
-                break;
-            }
+        Style {
+            trace: bg_color!("gray"),
+            debug: bg_color!("blue"),
+            info: bg_color!("green"),
+            warn: bg_color!("orange"),
+            error: bg_color!("darkred"),
+            file_line: "font-weight: bold; color: inherit",
+            text: "background: inherit; color: inherit",
         }
     }
+}
+const STYLE: Style<'static> = Style::default();
 
-    async fn process_stat_interval_impl(&mut self, current_time: Timestamp) {
-        self.routing_thread.on_stat_interval(current_time).await;
-        self.consensus_thread.on_stat_interval(current_time).await;
-        self.verification_thread
-            .on_stat_interval(current_time)
-            .await;
-        self.mining_thread.on_stat_interval(current_time).await;
-    }
+pub fn log(record: &Record) {
+    let console_log = match record.level() {
+        Level::Error => console::error_4,
+        Level::Warn => console::warn_4,
+        Level::Info => console::info_4,
+        Level::Debug => console::debug_4,
+        Level::Trace => console::debug_4,
+    };
 
-    async fn send_api_call_impl(&self, buffer: Uint8Array, msg_index: u32, key: JsString) {
-        let key: SaitoPublicKey = string_to_key(key).unwrap_or([0; 33]);
-        trace!("send_api_call : {:?}", key.to_base58());
-        let api_message = ApiMessage {
-            msg_index,
-            data: buffer.to_vec(),
-        };
-        let message = Message::ApplicationMessage(api_message);
-        let buffer = message.serialize();
-        if key == [0; 33] {
-            self.routing_thread
-                .network
-                .io_interface
-                .send_message_to_all(buffer.as_slice(), vec![])
-                .await
-                .unwrap();
-        } else {
-            self.routing_thread
-                .network
-                .io_interface
-                .send_message(key, buffer.as_slice())
-                .await
-                .unwrap();
-        }
-    }
-
-    async fn send_api_success_impl(&self, buffer: Uint8Array, msg_index: u32, key: JsString) {
-        let key: SaitoPublicKey = string_to_key(key).unwrap();
-        trace!("send_api_success : {:?}", key.to_base58());
-        let api_message = ApiMessage {
-            msg_index,
-            data: buffer.to_vec(),
-        };
-        let message = Message::Result(api_message);
-        let buffer = message.serialize();
-
-        self.routing_thread
-            .network
-            .io_interface
-            .send_message(key, buffer.as_slice())
-            .await
-            .unwrap();
-    }
-
-    async fn send_api_error_impl(&self, buffer: Uint8Array, msg_index: u32, key: JsString) {
-        let key: SaitoPublicKey = string_to_key(key).unwrap();
-
-        trace!("send_api_error : {:?}", key.to_base58());
-        let api_message = ApiMessage {
-            msg_index,
-            data: buffer.to_vec(),
-        };
-        let message = Message::Error(api_message);
-        let buffer = message.serialize();
-
-        self.routing_thread
-            .network
-            .io_interface
-            .send_message(key, buffer.as_slice())
-            .await
-            .unwrap();
-    }
-
-    async fn create_bound_transaction_impl(
-        &mut self,
-        num: u64,
-        deposit: u64,
-        tx_msg: Uint8Array,
-        recipient_public_key: JsString,
-        nft_type: JsString,
-    ) -> Result<WasmTransaction, JsValue> {
-        let genesis_period = {
-            let configs = self.routing_thread.config_lock.read().await;
-            configs.get_consensus_config().unwrap().genesis_period
-        };
-        let latest_block_id = {
-            let blockchain = self.context.blockchain_lock.read().await;
-            blockchain.get_latest_block_id()
-        };
-        let serialized_msg: Vec<u8> = tx_msg.to_vec();
-        let key = string_to_key(recipient_public_key)
-            .map_err(|_| JsValue::from_str("Failed parsing public key"))?;
-
-        let transaction = {
-            let mut wallet = self.context.wallet_lock.write().await;
-            wallet
-                .create_bound_transaction(
-                    num,
-                    deposit,
-                    serialized_msg,
-                    &key,
-                    Some(&self.consensus_thread.network),
-                    latest_block_id,
-                    genesis_period,
-                    nft_type.as_string().unwrap(),
-                )
-                .await
-                .map_err(|e| {
-                    error!("failed creating transaction: {:?}", e);
-                    JsValue::from_str("Failed creating transaction")
-                })?
-        };
-
-        Ok(WasmTransaction::from_transaction(transaction))
-    }
-
-    async fn create_send_bound_transaction_impl(
-        &mut self,
-        amt: u64,
-        slip1_utxo_key: JsString,
-        slip2_utxo_key: JsString,
-        slip3_utxo_key: JsString,
-        recipient_public_key: JsString,
-        tx_msg: Uint8Array,
-    ) -> Result<WasmTransaction, JsValue> {
-        let s1: SaitoUTXOSetKey = string_to_hex(slip1_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
-        let s2: SaitoUTXOSetKey = string_to_hex(slip2_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
-        let s3: SaitoUTXOSetKey = string_to_hex(slip3_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
-        let serialized_msg: Vec<u8> = tx_msg.to_vec();
-        let key = string_to_key(recipient_public_key)
-            .map_err(|_| JsValue::from_str("Bad recipient_public_key"))?;
-
-        let tx = {
-            let mut wallet = self.context.wallet_lock.write().await;
-            wallet
-                .create_send_bound_transaction(amt, s1, s2, s3, &key, serialized_msg)
-                .await
-                .map_err(|_| JsValue::from_str("create_send_bound_transaction failed"))?
-        };
-
-        Ok(WasmTransaction::from_transaction(tx))
-    }
-
-    async fn create_split_bound_transaction_impl(
-        &mut self,
-        slip1_utxo_key: JsString,
-        slip2_utxo_key: JsString,
-        slip3_utxo_key: JsString,
-        left_count: u32,
-        right_count: u32,
-        tx_msg: Uint8Array,
-    ) -> Result<WasmTransaction, JsValue> {
-        let s1: SaitoUTXOSetKey = string_to_hex(slip1_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
-        let s2: SaitoUTXOSetKey = string_to_hex(slip2_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
-        let s3: SaitoUTXOSetKey = string_to_hex(slip3_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
-        let serialized_msg: Vec<u8> = tx_msg.to_vec();
-
-        let tx = {
-            let mut wallet = self.context.wallet_lock.write().await;
-            wallet
-                .create_split_bound_transaction(s1, s2, s3, left_count, right_count, serialized_msg)
-                .map_err(|e| JsValue::from_str(&e.to_string()))?
-        };
-
-        Ok(WasmTransaction::from_transaction(tx))
-    }
-
-    async fn create_atomize_bound_transaction_impl(
-        &mut self,
-        slip1_utxo_key: JsString,
-        slip2_utxo_key: JsString,
-        slip3_utxo_key: JsString,
-        tx_msg: Uint8Array,
-    ) -> Result<WasmTransaction, JsValue> {
-        let s1: SaitoUTXOSetKey = string_to_hex(slip1_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
-        let s2: SaitoUTXOSetKey = string_to_hex(slip2_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
-        let s3: SaitoUTXOSetKey = string_to_hex(slip3_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
-        let serialized_msg: Vec<u8> = tx_msg.to_vec();
-
-        let tx = {
-            let mut wallet = self.context.wallet_lock.write().await;
-            wallet
-                .create_atomize_bound_transaction(s1, s2, s3, serialized_msg)
-                .map_err(|e| JsValue::from_str(&e.to_string()))?
-        };
-
-        Ok(WasmTransaction::from_transaction(tx))
-    }
-
-    async fn create_merge_bound_transaction_impl(
-        &mut self,
-        nft_id_hex: String,
-        tx_msg: Uint8Array,
-    ) -> Result<WasmTransaction, JsValue> {
-        let id_bytes: Vec<u8> = hex::decode(&nft_id_hex)
-            .map_err(|e| JsValue::from_str(&format!("nft_id hex decode error: {}", e)))?;
-        let serialized_msg: Vec<u8> = tx_msg.to_vec();
-
-        let tx = {
-            let mut wallet = self.context.wallet_lock.write().await;
-            wallet
-                .create_merge_bound_transaction(id_bytes, serialized_msg)
-                .map_err(|e| JsValue::from_str(&e.to_string()))?
-        };
-
-        Ok(WasmTransaction::from_transaction(tx))
-    }
-
-    async fn create_remove_bound_transaction_impl(
-        &mut self,
-        slip1_utxo_key: JsString,
-        slip2_utxo_key: JsString,
-        slip3_utxo_key: JsString,
-        tx_msg: Uint8Array,
-    ) -> Result<WasmTransaction, JsValue> {
-        let s1: SaitoUTXOSetKey = string_to_hex(slip1_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
-        let s2: SaitoUTXOSetKey = string_to_hex(slip2_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
-        let s3: SaitoUTXOSetKey = string_to_hex(slip3_utxo_key)
-            .map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
-        let serialized_msg: Vec<u8> = tx_msg.to_vec();
-
-        let tx = {
-            let mut wallet = self.context.wallet_lock.write().await;
-            wallet
-                .create_remove_bound_transaction(s1, s2, s3, serialized_msg)
-                .await
-                .map_err(|_| JsValue::from_str("create_remove_bound_transaction failed"))?
-        };
-
-        Ok(WasmTransaction::from_transaction(tx))
-    }
-
-    async fn get_nft_list_impl(&self) -> Result<Array, JsValue> {
-        let wallet = self.context.wallet_lock.read().await;
-        let detailed_nfts: Vec<DetailedNFT> = wallet.get_nft_list();
-        let js_array = Array::new_with_length(detailed_nfts.len() as u32);
-
-        for (id, nft) in detailed_nfts.into_iter().enumerate() {
-            let mut w = WasmNFT::new();
-            let id_arr = Uint8Array::from(nft.id.as_slice());
-            w.set_id(&id_arr);
-            let sig_arr = Uint8Array::from(nft.tx_sig.as_ref());
-            w.set_tx_sig(&sig_arr);
-            let ws1 = WasmSlip::new_from_slip(nft.slip1);
-            w.set_slip1(&ws1);
-            let ws2 = WasmSlip::new_from_slip(nft.slip2);
-            w.set_slip2(&ws2);
-            let ws3 = WasmSlip::new_from_slip(nft.slip3);
-            w.set_slip3(&ws3);
-            js_array.set(id as u32, w.into());
-        }
-
-        Ok(js_array)
-    }
-
-    async fn get_latest_block_hash_impl(&self) -> JsString {
-        debug!("get_latest_block_hash");
-        let blockchain = self.context.blockchain_lock.read().await;
-        blockchain.get_latest_block_hash().to_hex().into()
-    }
-
-    async fn get_block_impl(&self, block_hash: JsString) -> Result<WasmBlock, JsValue> {
-        let block_hash = string_to_hex(block_hash).or(Err(JsValue::from(
-            "Failed parsing block hash string to key",
-        )))?;
-        let blockchain = self.routing_thread.blockchain_lock.read().await;
-        let result = blockchain.get_block(&block_hash);
-        if result.is_none() {
-            warn!("block {:?} not found", block_hash.to_hex());
-            return Err(JsValue::from("block not found"));
-        }
-        Ok(WasmBlock::from_block(result.cloned().unwrap()))
-    }
-
-    async fn get_peers_impl(&self) -> Array {
-        let peers = self.routing_thread.network.peer_lock.read().await;
-        let array = Array::new_with_length(peers.peers.len() as u32);
-        let mut array_index = 0;
-        for peer in peers.peers.values() {
-            array.set(
-                array_index,
-                JsValue::from(WasmPeer::new_from_peer(peer.clone())),
-            );
-            array_index += 1;
-        }
-        array
-    }
-
-    async fn get_peer_impl(&self, key: JsString) -> Option<WasmPeer> {
-        let key: SaitoPublicKey = string_to_key(key).ok()?;
-        let peers = self.routing_thread.network.peer_lock.read().await;
-        let peer = peers.peers.get(&key);
-        if peer.is_none() {
-            warn!("peer not found");
-            return None;
-        }
-        Some(WasmPeer::new_from_peer(peer.cloned().unwrap()))
-    }
-
-    async fn get_account_slips_impl(&self, public_key: JsString) -> Result<Array, JsValue> {
-        let blockchain = self.routing_thread.blockchain_lock.read().await;
-        let key = string_to_key(public_key).or(Err(JsValue::from(
-            "Failed parsing public key string to key",
-        )))?;
-        let mut slips = blockchain.get_slips_for(key);
-        let array = js_sys::Array::new_with_length(slips.len() as u32);
-        for (index, slip) in slips.drain(..).enumerate() {
-            let wasm_slip = WasmSlip::new_from_slip(slip);
-            array.set(index as u32, JsValue::from(wasm_slip));
-        }
-        Ok(array)
-    }
-
-    async fn get_balance_snapshot_impl(&self, keys: js_sys::Array) -> WasmBalanceSnapshot {
-        let configs = self.routing_thread.config_lock.read().await;
-        let keys: Vec<SaitoPublicKey> = string_array_to_base58_keys(keys);
-        let blockchain = self.routing_thread.blockchain_lock.read().await;
-        let snapshot = blockchain.get_balance_snapshot(keys, configs.deref());
-        WasmBalanceSnapshot::new(snapshot)
-    }
-
-    async fn update_from_balance_snapshot_impl(&self, snapshot: WasmBalanceSnapshot) {
-        let mut wallet = self.routing_thread.wallet_lock.write().await;
-        wallet.update_from_balance_snapshot(
-            snapshot.get_snapshot(),
-            Some(&self.routing_thread.network),
+    let message = {
+        let message = format!(
+            "%c{level}\t|%c%c{text}",
+            level = record.level(),
+            // file = record.file().unwrap_or_else(|| record.target()),
+            // line = record
+            //     .line()
+            //     .map_or_else(|| "[Unknown]".to_string(), |line| line.to_string()),
+            text = record.args(),
         );
-    }
-
-    async fn set_wallet_version_impl(&self, major: u8, minor: u8, patch: u16) {
-        let mut wallet = self.wallet.wallet.write().await;
-        wallet.wallet_version = Version {
-            major,
-            minor,
-            patch,
-        };
-    }
-
-    async fn write_issuance_file_impl(&mut self, threshold: Currency) {
-        let blockchain_lock = self.routing_thread.blockchain_lock.clone();
-        let storage = &mut self.consensus_thread.storage;
-        let blockchain = blockchain_lock.write().await;
-        blockchain
-            .write_issuance_file(threshold, "./data/issuance.file", storage)
-            .await;
-    }
-
-    async fn disable_producing_blocks_by_timer_impl(&mut self) {
-        self.consensus_thread.produce_blocks_by_timer = false;
-    }
-
-    async fn produce_block_with_gt_impl(&mut self) -> bool {
-        let config_lock = self.routing_thread.config_lock.clone();
-        let blockchain_lock = self.blockchain.blockchain_lock.clone();
-        let mempool_lock = self.consensus_thread.mempool_lock.clone();
-        let wallet_lock = self.wallet.wallet.clone();
-
-        let configs = config_lock.read().await;
-        let blockchain = blockchain_lock.read().await;
-        let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
-        let latest_block_id = blockchain.get_latest_block_id();
-
-        let mut mempool = mempool_lock.write().await;
-        let (public_key, private_key) = {
-            let wallet = wallet_lock.read().await;
-            (wallet.public_key, wallet.private_key)
-        };
-
-        let gt_tx: Transaction;
-        {
-            let miner = &mut self.mining_thread;
-            if miner.target == [0; 32] {
-                let blockchain = blockchain_lock.read().await;
-                if let Some(block) = blockchain.get_latest_block() {
-                    miner.difficulty = block.difficulty;
-                    miner.target = block.hash;
-                    miner.target_id = block.id;
-                } else {
-                    warn!("couldn't find the latest block");
-                }
-            }
-            info!("mining for a gt. target : {:?}", miner.target.to_hex());
-            loop {
-                if let Some(gt) = miner.mine().await {
-                    info!("gt found : {:?}", gt.target.to_hex());
-                    gt_tx = Wallet::create_golden_ticket_transaction(gt, &public_key, &private_key)
-                        .await;
-                    break;
-                }
-            }
-        }
-
-        {
-            let mut wallet = wallet_lock.write().await;
-            if let Ok(mut tx) = Transaction::create(
-                &mut wallet,
-                public_key,
-                0,
-                0,
-                false,
-                None,
-                latest_block_id,
-                genesis_period,
-            ) {
-                drop(wallet);
-                info!("created tx");
-                tx.transaction_type = TransactionType::Vip;
-                tx.sign(&private_key);
-                info!("tx signed");
-                mempool.add_transaction_if_validates(tx, &blockchain).await;
-                info!("Tx added to mempool");
-            }
-        }
-
-        let timestamp = self.consensus_thread.timer.get_timestamp_in_ms();
-        info!("waiting till a block is produced");
-        for _ in 0..1000 {
-            if let Some(block) = self
-                .consensus_thread
-                .produce_block(
-                    timestamp,
-                    Some(&gt_tx),
-                    mempool.deref_mut(),
-                    blockchain.deref(),
-                    configs.deref(),
-                )
-                .await
-            {
-                info!("produced block with gt");
-                drop(mempool);
-                drop(blockchain);
-                drop(configs);
-                self.consensus_thread
-                    .process_event(ConsensusEvent::BlockFetched {
-                        public_key: [0; 33],
-                        block,
-                    })
-                    .await;
-                return true;
-            }
-        }
-        warn!("couldn't produce block");
-        false
-    }
-
-    async fn produce_block_without_gt_impl(&mut self) -> bool {
-        let config_lock = self.routing_thread.config_lock.clone();
-        let blockchain_lock = self.blockchain.blockchain_lock.clone();
-        let mempool_lock = self.consensus_thread.mempool_lock.clone();
-        let wallet_lock = self.wallet.wallet.clone();
-
-        let configs = config_lock.read().await;
-        let blockchain = blockchain_lock.read().await;
-        let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
-        let latest_block_id = blockchain.get_latest_block_id();
-        let mut mempool = mempool_lock.write().await;
-        let (public_key, private_key) = {
-            let wallet = wallet_lock.read().await;
-            (wallet.public_key, wallet.private_key)
-        };
-        info!(
-            "clearing {:?} gts from mempool...",
-            mempool.golden_tickets.len()
-        );
-        mempool.golden_tickets.clear();
-        {
-            let mut wallet = wallet_lock.write().await;
-            if let Ok(mut tx) = Transaction::create(
-                &mut wallet,
-                public_key,
-                0,
-                0,
-                false,
-                None,
-                latest_block_id,
-                genesis_period,
-            ) {
-                drop(wallet);
-                info!("created tx");
-                tx.transaction_type = TransactionType::Vip;
-                tx.sign(&private_key);
-                info!("tx signed");
-                mempool.add_transaction_if_validates(tx, &blockchain).await;
-                info!("Tx added to mempool");
-            }
-        }
-        let timestamp = self.consensus_thread.timer.get_timestamp_in_ms();
-        info!("waiting till a block is produced");
-        for _ in 0..1000 {
-            if let Some(block) = self
-                .consensus_thread
-                .produce_block(
-                    timestamp,
-                    None,
-                    mempool.deref_mut(),
-                    blockchain.deref(),
-                    configs.deref(),
-                )
-                .await
-            {
-                info!("produced block with gt");
-                drop(mempool);
-                drop(blockchain);
-                drop(configs);
-                self.consensus_thread
-                    .process_event(ConsensusEvent::BlockFetched {
-                        public_key: [0; 33],
-                        block,
-                    })
-                    .await;
-                return true;
-            }
-        }
-        warn!("couldn't produce block");
-        false
-    }
-
-    fn get_stats_impl(&self) -> Result<JsString, JsValue> {
-        let stat_thread = &self.stat_thread;
-        let stat = WasmStats {
-            current_wallet_state: stat_thread.current_wallet_state.clone(),
-            current_blockchain_state: stat_thread.current_blockchain_state.clone(),
-            current_mempool_state: stat_thread.current_mempool_state.clone(),
-            current_mining_state: stat_thread.current_mining_state.clone(),
-        };
-        let str = serde_json::to_string(&stat)
-            .map_err(|e| JsValue::from_str(&format!("Failed to serialize stats: {}", e)))?;
-        Ok(str.into())
-    }
-
-    async fn get_congestion_stats_impl(&self) -> Result<JsString, JsValue> {
-        let peers = self.routing_thread.network.peer_lock.read().await;
-        let stats = CongestionStatsDisplay {
-            congestion_controls_by_key: peers
-                .congestion_controls_by_key
-                .iter()
-                .map(|(key, control)| (key.to_base58(), control.clone()))
-                .collect(),
-            congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
-        };
-        let str = serde_json::to_string(&stats)
-            .map_err(|e| JsValue::from_str(&format!("Failed to serialize peer stats: {}", e)))?;
-        Ok(str.into())
-    }
-
-    async fn get_confirmations_impl(&self) -> Result<JsValue, JsValue> {
-        let configs = self.routing_thread.config_lock.read().await;
-        let str = serde_json::to_string(&configs.get_blockchain_configs().confirmations).map_err(
-            |e| {
-                JsValue::from_str(&format!(
-                    "Failed to serialize blockchain confirmations configs: {}",
-                    e
-                ))
-            },
-        )?;
-        Ok(str.into())
-    }
-
-    async fn start_from_received_ghost_chain_impl(&mut self) {
-        if let Some((chain, public_key)) = self.routing_thread.received_ghost_chain.take() {
-            self.routing_thread
-                .process_ghost_chain(chain, public_key)
-                .await;
-        }
-    }
-}
-
-#[wasm_bindgen]
-impl SaitoWasm {
-    pub async fn create_transaction(
-        &self,
-        public_key: JsString,
-        amount: u64,
-        fee: u64,
-        force_merge: bool,
-    ) -> Result<WasmTransaction, JsValue> {
-        self.create_transaction_impl(public_key, amount, fee, force_merge)
-            .await
-    }
-
-    pub async fn create_transaction_with_multiple_payments(
-        &self,
-        public_keys: js_sys::Array,
-        amounts: js_sys::BigUint64Array,
-        fee: u64,
-    ) -> Result<WasmTransaction, JsValue> {
-        self.create_transaction_with_multiple_payments_impl(public_keys, amounts, fee)
-            .await
-    }
-
-    pub async fn propagate_transaction(&mut self, tx: &WasmTransaction) {
-        self.propagate_transaction_impl(tx).await;
-    }
-
-    pub fn get_wallet(&self) -> WasmWallet {
-        self.wallet.clone()
-    }
-
-    pub fn get_blockchain(&self) -> WasmBlockchain {
-        self.blockchain.clone()
-    }
-
-    pub async fn get_mempool_txs(&self) -> js_sys::Array {
-        self.get_mempool_txs_impl().await
-    }
-
-    pub async fn create_bound_transaction(
-        &mut self,
-        num: u64,
-        deposit: u64,
-        tx_msg: Uint8Array,
-        fee: u64,
-        recipient_public_key: JsString,
-        nft_type: JsString,
-    ) -> Result<WasmTransaction, JsValue> {
-        let _ = fee;
-        self.create_bound_transaction_impl(num, deposit, tx_msg, recipient_public_key, nft_type)
-            .await
-    }
-
-    pub async fn create_send_bound_transaction(
-        &mut self,
-        amt: u64,
-        slip1_utxo_key: JsString,
-        slip2_utxo_key: JsString,
-        slip3_utxo_key: JsString,
-        recipient_public_key: JsString,
-        tx_msg: Uint8Array,
-    ) -> Result<WasmTransaction, JsValue> {
-        self.create_send_bound_transaction_impl(
-            amt,
-            slip1_utxo_key,
-            slip2_utxo_key,
-            slip3_utxo_key,
-            recipient_public_key,
-            tx_msg,
-        )
-        .await
-    }
-
-    pub async fn create_split_bound_transaction(
-        &mut self,
-        slip1_utxo_key: JsString,
-        slip2_utxo_key: JsString,
-        slip3_utxo_key: JsString,
-        left_count: u32,
-        right_count: u32,
-        tx_msg: Uint8Array,
-    ) -> Result<WasmTransaction, JsValue> {
-        self.create_split_bound_transaction_impl(
-            slip1_utxo_key,
-            slip2_utxo_key,
-            slip3_utxo_key,
-            left_count,
-            right_count,
-            tx_msg,
-        )
-        .await
-    }
-
-    pub async fn create_atomize_bound_transaction(
-        &mut self,
-        slip1_utxo_key: JsString,
-        slip2_utxo_key: JsString,
-        slip3_utxo_key: JsString,
-        tx_msg: Uint8Array,
-    ) -> Result<WasmTransaction, JsValue> {
-        self.create_atomize_bound_transaction_impl(
-            slip1_utxo_key,
-            slip2_utxo_key,
-            slip3_utxo_key,
-            tx_msg,
-        )
-        .await
-    }
-
-    pub async fn create_merge_bound_transaction(
-        &mut self,
-        nft_id_hex: String,
-        tx_msg: Uint8Array,
-    ) -> Result<WasmTransaction, JsValue> {
-        self.create_merge_bound_transaction_impl(nft_id_hex, tx_msg)
-            .await
-    }
-
-    pub async fn create_remove_bound_transaction(
-        &mut self,
-        slip1_utxo_key: JsString,
-        slip2_utxo_key: JsString,
-        slip3_utxo_key: JsString,
-        tx_msg: Uint8Array,
-    ) -> Result<WasmTransaction, JsValue> {
-        self.create_remove_bound_transaction_impl(
-            slip1_utxo_key,
-            slip2_utxo_key,
-            slip3_utxo_key,
-            tx_msg,
-        )
-        .await
-    }
-
-    pub async fn get_nft_list(&self) -> Result<Array, JsValue> {
-        self.get_nft_list_impl().await
-    }
-
-    pub async fn get_latest_block_hash(&self) -> JsString {
-        self.get_latest_block_hash_impl().await
-    }
-
-    pub async fn get_block(&self, block_hash: JsString) -> Result<WasmBlock, JsValue> {
-        self.get_block_impl(block_hash).await
-    }
-
-    pub async fn get_peers(&self) -> Array {
-        self.get_peers_impl().await
-    }
-
-    pub async fn get_peer(&self, key: JsString) -> Option<WasmPeer> {
-        self.get_peer_impl(key).await
-    }
-
-    pub async fn get_account_slips(&self, public_key: JsString) -> Result<Array, JsValue> {
-        self.get_account_slips_impl(public_key).await
-    }
-
-    pub async fn get_balance_snapshot(&self, keys: js_sys::Array) -> WasmBalanceSnapshot {
-        self.get_balance_snapshot_impl(keys).await
-    }
-
-    pub async fn update_from_balance_snapshot(&self, snapshot: WasmBalanceSnapshot) {
-        self.update_from_balance_snapshot_impl(snapshot).await;
-    }
-
-    pub async fn set_wallet_version(&self, major: u8, minor: u8, patch: u16) {
-        self.set_wallet_version_impl(major, minor, patch).await;
-    }
-
-    pub async fn write_issuance_file(&mut self, threshold: Currency) {
-        self.write_issuance_file_impl(threshold).await;
-    }
-
-    pub async fn disable_producing_blocks_by_timer(&mut self) {
-        self.disable_producing_blocks_by_timer_impl().await;
-    }
-
-    pub async fn produce_block_with_gt(&mut self) -> bool {
-        self.produce_block_with_gt_impl().await
-    }
-
-    pub async fn produce_block_without_gt(&mut self) -> bool {
-        self.produce_block_without_gt_impl().await
-    }
-
-    pub fn get_stats(&self) -> Result<JsString, JsValue> {
-        self.get_stats_impl()
-    }
-
-    pub async fn get_congestion_stats(&self) -> Result<JsString, JsValue> {
-        self.get_congestion_stats_impl().await
-    }
-
-    pub async fn get_confirmations(&self) -> Result<JsValue, JsValue> {
-        self.get_confirmations_impl().await
-    }
-
-    pub async fn start_from_received_ghost_chain(&mut self) {
-        self.start_from_received_ghost_chain_impl().await;
-    }
-
-    pub async fn process_new_peer(&mut self, peer: WasmNetworkPeer) {
-        self.process_new_peer_impl(peer).await;
-    }
-
-    pub async fn process_stun_peer(&mut self, public_key: JsString) -> Result<(), JsValue> {
-        self.process_stun_peer_impl(public_key).await
-    }
-
-    pub async fn remove_stun_peer(&mut self, public_key: JsString) {
-        self.remove_stun_peer_impl(public_key).await;
-    }
-
-    pub async fn process_peer_disconnection(&mut self, key: JsString) {
-        self.process_peer_disconnection_impl(key).await;
-    }
-
-    pub async fn process_msg_buffer_from_peer(
-        &mut self,
-        buffer: js_sys::Uint8Array,
-        peer: &mut WasmNetworkPeer,
-    ) -> js_sys::Uint8Array {
-        self.process_msg_buffer_from_peer_impl(buffer, peer).await
-    }
-
-    pub async fn process_fetched_block(
-        &mut self,
-        buffer: js_sys::Uint8Array,
-        hash: js_sys::Uint8Array,
-        block_id: BlockId,
-        key: JsString,
-    ) {
-        self.process_fetched_block_impl(buffer, hash, block_id, key)
-            .await;
-    }
-
-    pub async fn process_failed_block_fetch(
-        &mut self,
-        hash: js_sys::Uint8Array,
-        block_id: u64,
-        key: JsString,
-    ) {
-        self.process_failed_block_fetch_impl(hash, block_id, key)
-            .await;
-    }
-
-    pub async fn process_timer_event(&mut self, duration_in_ms: u64) {
-        self.process_timer_event_impl(duration_in_ms).await;
-    }
-
-    pub async fn process_stat_interval(&mut self, current_time: Timestamp) {
-        self.process_stat_interval_impl(current_time).await;
-    }
-
-    pub async fn send_api_call(&self, buffer: Uint8Array, msg_index: u32, key: JsString) {
-        self.send_api_call_impl(buffer, msg_index, key).await;
-    }
-
-    pub async fn send_api_success(&self, buffer: Uint8Array, msg_index: u32, key: JsString) {
-        self.send_api_success_impl(buffer, msg_index, key).await;
-    }
-
-    pub async fn send_api_error(&self, buffer: Uint8Array, msg_index: u32, key: JsString) {
-        self.send_api_error_impl(buffer, msg_index, key).await;
-    }
-}
-
-async fn initialize_runtime_inner(
-    config_json: JsString,
-    private_key: JsString,
-    log_level_num: u8,
-    hasten_multiplier: u64,
-    delete_old_blocks: bool,
-) -> Result<SaitoWasm, JsValue> {
-    let log_level = match log_level_num {
-        0 => log::Level::Error,
-        1 => log::Level::Warn,
-        2 => log::Level::Info,
-        3 => log::Level::Debug,
-        4 => log::Level::Trace,
-        _ => log::Level::Info,
+        JsValue::from(&message)
     };
 
-    init_logging(log_level);
+    let level_style = {
+        let style_str = match record.level() {
+            Level::Trace => STYLE.trace,
+            Level::Debug => STYLE.debug,
+            Level::Info => STYLE.info,
+            Level::Warn => STYLE.warn,
+            Level::Error => STYLE.error,
+        };
 
-    trace!("trace test");
-    debug!("debug test");
-    info!("initializing saito-wasm  2");
-
-    info!("setting configs...");
-    let str: String = config_json.into();
-    let configuration = match WasmConfiguration::new_from_json(str.as_str()) {
-        Ok(config) => config,
-        Err(err) => {
-            error!("failed parsing configs. {:?}", err);
-            WasmConfiguration::new()
-        }
+        JsValue::from(style_str)
     };
 
-    let enable_stats = !configuration.is_browser();
-    info!("config loaded");
-
-    let consensus_config = configuration.get_consensus_config().unwrap();
-    let genesis_period = consensus_config.genesis_period;
-    let social_stake = consensus_config.default_social_stake;
-    let social_stake_period = consensus_config.default_social_stake_period;
-    let prune_after_blocks = consensus_config.prune_after_blocks;
-    let block_confirmation_limit = consensus_config.block_confirmation_limit;
-    let block_fetch_batch_size = configuration
-        .get_server_configs()
-        .map(|config| config.block_fetch_batch_size)
-        .unwrap_or(10);
-
-    info!("genesis_period = {:?}", genesis_period);
-    info!("social_stake = {:?}", social_stake);
-    let shared_configuration: Arc<RwLock<dyn Configuration + Send + Sync>> =
-        Arc::new(RwLock::new(configuration));
-    let mut saito = new_with_configuration(
-        shared_configuration,
-        hasten_multiplier,
-        enable_stats,
-        genesis_period,
-        social_stake,
-        social_stake_period,
-        delete_old_blocks,
-        prune_after_blocks,
-        block_confirmation_limit,
-        block_fetch_batch_size,
-    );
-
-    let private_key: SaitoPrivateKey = string_to_hex(private_key).or(Err(JsValue::from(
-        "Failed parsing private key string to key",
-    )))?;
-    saito.apply_private_key(private_key).await;
-    saito.initialize_threads().await;
-
-    Ok(saito)
-}
-
-#[wasm_bindgen]
-pub async fn initialize_runtime(
-    config_json: JsString,
-    private_key: JsString,
-    log_level_num: u8,
-    hasten_multiplier: u64,
-    delete_old_blocks: bool,
-) -> Result<SaitoWasm, JsValue> {
-    let runtime = initialize_runtime_inner(
-        config_json,
-        private_key,
-        log_level_num,
-        hasten_multiplier,
-        delete_old_blocks,
-    )
-    .await?;
-
-    // Sync the wallet keys into the global SAITO so that free functions like
-    // WasmTransaction::sign (which use SAITO) get the correct keypair.
-    let (public_key, private_key) = {
-        let wallet = runtime.context.wallet_lock.read().await;
-        (wallet.public_key, wallet.private_key)
-    };
-    {
-        let saito = SAITO.lock().await;
-        if let Some(s) = saito.as_ref() {
-            let mut w = s.context.wallet_lock.write().await;
-            w.public_key = public_key;
-            w.private_key = private_key;
-        }
-    }
-
-    Ok(runtime)
+    let file_line_style = JsValue::from_str(STYLE.file_line);
+    let text_style = JsValue::from_str(STYLE.text);
+    console_log(&message, &level_style, &file_line_style, &text_style);
 }
 
 #[wasm_bindgen]
@@ -1573,17 +360,109 @@ pub async fn initialize(
     hasten_multiplier: u64,
     delete_old_blocks: bool,
 ) -> Result<JsValue, JsValue> {
-    let runtime = initialize_runtime_inner(
-        config_json,
-        private_key,
-        log_level_num,
-        hasten_multiplier,
-        delete_old_blocks,
-    )
-    .await?;
+    // TODO : move these parameters to a config object to clean the interface
+
+    let log_level = match log_level_num {
+        0 => log::Level::Error,
+        1 => log::Level::Warn,
+        2 => log::Level::Info,
+        3 => log::Level::Debug,
+        4 => log::Level::Trace,
+        _ => log::Level::Info,
+    };
+
+    log::set_logger(&WasmLogger {}).unwrap();
+    log::set_max_level(log_level.to_level_filter());
+
+    // console_log::init_with_level(log_level).unwrap();
+
+    trace!("trace test");
+    debug!("debug test");
+    info!("initializing saito-wasm  2");
+
+    let mut enable_stats = true;
+    let mut genesis_period = 100_000;
+    let mut social_stake = 0;
+    let mut social_stake_period = 60;
+    let mut prune_after_blocks = 6;
+    let mut block_confirmation_limit = 6;
+    let mut block_fetch_batch_size = 10;
+    {
+        info!("setting configs...");
+        let mut configs = CONFIGS.write().await;
+        info!("config lock acquired");
+
+        let str: String = config_json.into();
+        let config = WasmConfiguration::new_from_json(str.as_str());
+
+        if config.is_err() {
+            error!("failed parsing configs. {:?}", config.err().unwrap());
+        } else {
+            let config: WasmConfiguration = config.unwrap();
+            if config.is_browser() {
+                enable_stats = false;
+            }
+            info!("config loaded");
+            //info!("config : {:?}", config);
+            // info!("config congestion : {:?}", config.congestion);
+            configs.replace(&config);
+            genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+            social_stake = configs.get_consensus_config().unwrap().default_social_stake;
+            social_stake_period = configs
+                .get_consensus_config()
+                .unwrap()
+                .default_social_stake_period;
+            prune_after_blocks = configs.get_consensus_config().unwrap().prune_after_blocks;
+            block_confirmation_limit = configs
+                .get_consensus_config()
+                .unwrap()
+                .block_confirmation_limit;
+            if configs.get_server_configs().is_some() {
+                block_fetch_batch_size =
+                    configs.get_server_configs().unwrap().block_fetch_batch_size;
+            }
+        }
+    }
 
     let mut saito = SAITO.lock().await;
-    saito.replace(runtime);
+
+    info!("genesis_period = {:?}", genesis_period);
+    info!("social_stake = {:?}", social_stake);
+    saito.replace(new(
+        hasten_multiplier,
+        enable_stats,
+        genesis_period,
+        social_stake,
+        social_stake_period,
+        delete_old_blocks,
+        prune_after_blocks,
+        block_confirmation_limit,
+        block_fetch_batch_size,
+    ));
+
+    let private_key: SaitoPrivateKey = string_to_hex(private_key).or(Err(JsValue::from(
+        "Failed parsing private key string to key",
+    )))?;
+    {
+        let mut configs = CONFIGS.write().await;
+        let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
+        if private_key != [0; 32] {
+            let keys = generate_keypair_from_private_key(private_key.as_slice());
+            wallet.private_key = keys.1;
+            wallet.public_key = keys.0;
+            if let Some(wallet) = configs.get_wallet_configs_mut() {
+                wallet.privateKey = keys.1.to_hex();
+                wallet.publicKey = keys.0.to_base58();
+            }
+        }
+        info!("current core version : {:?}", wallet.core_version);
+    }
+
+    saito.as_mut().unwrap().stat_thread.on_init().await;
+    saito.as_mut().unwrap().mining_thread.on_init().await;
+    saito.as_mut().unwrap().verification_thread.on_init().await;
+    saito.as_mut().unwrap().routing_thread.on_init().await;
+    saito.as_mut().unwrap().consensus_thread.on_init().await;
 
     Ok(JsValue::from("initialized"))
 }
@@ -1595,12 +474,39 @@ pub async fn create_transaction(
     fee: u64,
     force_merge: bool,
 ) -> Result<WasmTransaction, JsValue> {
+    trace!("create_transaction : {:?}", public_key.to_string());
     let saito = SAITO.lock().await;
-    saito
-        .as_ref()
-        .unwrap()
-        .create_transaction_impl(public_key, amount, fee, force_merge)
-        .await
+    let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
+    let key = string_to_key(public_key).or(Err(JsValue::from(
+        "Failed parsing public key string to key",
+    )))?;
+
+    let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
+    let configs = config_lock.read().await;
+    let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+    let blockchain = saito.as_ref().unwrap().context.blockchain_lock.read().await;
+    let latest_block_id = blockchain.get_latest_block_id();
+
+    let transaction = Transaction::create(
+        &mut wallet,
+        key,
+        amount,
+        fee,
+        force_merge,
+        Some(&saito.as_ref().unwrap().consensus_thread.network),
+        latest_block_id,
+        genesis_period,
+    );
+    if transaction.is_err() {
+        error!(
+            "failed creating transaction. {:?}",
+            transaction.err().unwrap()
+        );
+        return Err(JsValue::from("Failed creating transaction"));
+    }
+    let transaction = transaction.unwrap();
+    let wasm_transaction = WasmTransaction::from_transaction(transaction);
+    Ok(wasm_transaction)
 }
 
 #[wasm_bindgen]
@@ -1611,11 +517,40 @@ pub async fn create_transaction_with_multiple_payments(
     _force_merge: bool,
 ) -> Result<WasmTransaction, JsValue> {
     let saito = SAITO.lock().await;
-    saito
-        .as_ref()
-        .unwrap()
-        .create_transaction_with_multiple_payments_impl(public_keys, amounts, fee)
-        .await
+    let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
+
+    let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
+    let configs = config_lock.read().await;
+    let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+    let blockchain = saito.as_ref().unwrap().context.blockchain_lock.read().await;
+    let latest_block_id = blockchain.get_latest_block_id();
+
+    let keys: Vec<SaitoPublicKey> = string_array_to_base58_keys(public_keys);
+    let amounts: Vec<Currency> = amounts.to_vec();
+
+    if keys.len() != amounts.len() {
+        return Err(JsValue::from("keys and payments have different counts"));
+    }
+
+    let transaction = Transaction::create_with_multiple_payments(
+        &mut wallet,
+        keys,
+        amounts,
+        fee,
+        Some(&saito.as_ref().unwrap().consensus_thread.network),
+        latest_block_id,
+        genesis_period,
+    );
+    if transaction.is_err() {
+        error!(
+            "failed creating transaction. {:?}",
+            transaction.err().unwrap()
+        );
+        return Err(JsValue::from("Failed creating transaction"));
+    }
+    let transaction = transaction.unwrap();
+    let wasm_transaction = WasmTransaction::from_transaction(transaction);
+    Ok(wasm_transaction)
 }
 
 #[wasm_bindgen]
@@ -1627,12 +562,62 @@ pub async fn create_bound_transaction(
     recipient_public_key: JsString,
     nft_type: JsString,
 ) -> Result<WasmTransaction, JsValue> {
+    // lock the global SAITO object
     let mut saito_guard = SAITO.lock().await;
-    saito_guard
+    let saito = saito_guard
         .as_mut()
-        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?
-        .create_bound_transaction_impl(num, deposit, tx_msg, recipient_public_key, nft_type)
-        .await
+        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+    let genesis_period = {
+        let config_lock = saito.routing_thread.config_lock.clone();
+        let configs = config_lock.read().await;
+        configs.get_consensus_config().unwrap().genesis_period
+    };
+
+    let latest_block_id = {
+        let blockchain = saito.context.blockchain_lock.read().await;
+        blockchain.get_latest_block_id()
+    };
+
+    //
+    // convert the `tx_msg` string into raw UTF-8 bytes (Vec<u8>)
+    //
+    let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+    //
+    // parse recipient public key
+    //
+    let key = string_to_key(recipient_public_key)
+        .map_err(|_| JsValue::from_str("Failed parsing public key"))?;
+
+    //
+    // build the NFT‐minting transaction
+    //
+    let transaction = {
+        let mut wallet = saito.context.wallet_lock.write().await;
+        wallet
+            .create_bound_transaction(
+                num,
+                deposit,
+                serialized_msg,
+                &key,
+                Some(&saito.consensus_thread.network),
+                latest_block_id,
+                genesis_period,
+                nft_type.as_string().unwrap(),
+            )
+            .await
+            .map_err(|e| {
+                error!("failed creating transaction: {:?}", e);
+                JsValue::from_str("Failed creating transaction")
+            })?
+    };
+
+    //
+    // convert to WasmTransaction and return
+    //
+    let wasm_transaction = WasmTransaction::from_transaction(transaction);
+    Ok(wasm_transaction)
 }
 
 #[wasm_bindgen]
@@ -1645,18 +630,46 @@ pub async fn create_send_bound_transaction(
     tx_msg: Uint8Array,
 ) -> Result<WasmTransaction, JsValue> {
     let mut saito_guard = SAITO.lock().await;
-    saito_guard
+    let saito = saito_guard
         .as_mut()
-        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?
-        .create_send_bound_transaction_impl(
-            amt,
-            slip1_utxo_key,
-            slip2_utxo_key,
-            slip3_utxo_key,
-            recipient_public_key,
-            tx_msg,
-        )
-        .await
+        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+    //
+    // parse the UTXO set keys for the three slips
+    //
+    let s1: SaitoUTXOSetKey =
+        string_to_hex(slip1_utxo_key).map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
+    let s2: SaitoUTXOSetKey =
+        string_to_hex(slip2_utxo_key).map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
+    let s3: SaitoUTXOSetKey =
+        string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
+
+    //
+    // convert the `tx_msg` string into raw UTF-8 bytes (Vec<u8>)
+    //
+    let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+    //
+    // parse the recipient’s public key
+    //
+    let key = string_to_key(recipient_public_key)
+        .map_err(|_| JsValue::from_str("Bad recipient_public_key"))?;
+
+    //
+    // build the actual send-bound transaction
+    //
+    let tx = {
+        let mut wallet = saito.context.wallet_lock.write().await;
+        wallet
+            .create_send_bound_transaction(amt, s1, s2, s3, &key, serialized_msg)
+            .await
+            .map_err(|_| JsValue::from_str("create_send_bound_transaction failed"))?
+    };
+
+    //
+    // return the newly created transaction to JavaScript
+    //
+    Ok(WasmTransaction::from_transaction(tx))
 }
 
 #[wasm_bindgen]
@@ -1669,18 +682,39 @@ pub async fn create_split_bound_transaction(
     tx_msg: Uint8Array,
 ) -> Result<WasmTransaction, JsValue> {
     let mut saito_guard = SAITO.lock().await;
-    saito_guard
+    let saito = saito_guard
         .as_mut()
-        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?
-        .create_split_bound_transaction_impl(
-            slip1_utxo_key,
-            slip2_utxo_key,
-            slip3_utxo_key,
-            left_count,
-            right_count,
-            tx_msg,
-        )
-        .await
+        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+    //
+    // decode each hex‐string into a fixed‐length UTXO key
+    //
+    let s1: SaitoUTXOSetKey =
+        string_to_hex(slip1_utxo_key).map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
+    let s2: SaitoUTXOSetKey =
+        string_to_hex(slip2_utxo_key).map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
+    let s3: SaitoUTXOSetKey =
+        string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
+
+    //
+    // convert the `data` string into raw UTF-8 bytes (Vec<u8>)
+    //
+    let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+    //
+    // build the split-bound transaction
+    //
+    let tx = {
+        let mut wallet = saito.context.wallet_lock.write().await;
+        wallet
+            .create_split_bound_transaction(s1, s2, s3, left_count, right_count, serialized_msg)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?
+    };
+
+    //
+    // return the newly created transaction to JavaScript
+    //
+    Ok(WasmTransaction::from_transaction(tx))
 }
 
 #[wasm_bindgen]
@@ -1691,16 +725,39 @@ pub async fn create_atomize_bound_transaction(
     tx_msg: Uint8Array,
 ) -> Result<WasmTransaction, JsValue> {
     let mut saito_guard = SAITO.lock().await;
-    saito_guard
+    let saito = saito_guard
         .as_mut()
-        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?
-        .create_atomize_bound_transaction_impl(
-            slip1_utxo_key,
-            slip2_utxo_key,
-            slip3_utxo_key,
-            tx_msg,
-        )
-        .await
+        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+    //
+    // decode each hex‐string into a fixed‐length UTXO key
+    //
+    let s1: SaitoUTXOSetKey =
+        string_to_hex(slip1_utxo_key).map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
+    let s2: SaitoUTXOSetKey =
+        string_to_hex(slip2_utxo_key).map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
+    let s3: SaitoUTXOSetKey =
+        string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
+
+    //
+    // convert the `data` string into raw UTF-8 bytes (Vec<u8>)
+    //
+    let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+    //
+    // build the split-bound transaction
+    //
+    let tx = {
+        let mut wallet = saito.context.wallet_lock.write().await;
+        wallet
+            .create_atomize_bound_transaction(s1, s2, s3, serialized_msg)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?
+    };
+
+    //
+    // return the newly created transaction to JavaScript
+    //
+    Ok(WasmTransaction::from_transaction(tx))
 }
 
 #[wasm_bindgen]
@@ -1709,11 +766,35 @@ pub async fn create_merge_bound_transaction(
     tx_msg: Uint8Array,
 ) -> Result<WasmTransaction, JsValue> {
     let mut saito_guard = SAITO.lock().await;
-    saito_guard
+    let saito = saito_guard
         .as_mut()
-        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?
-        .create_merge_bound_transaction_impl(nft_id_hex, tx_msg)
-        .await
+        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+    //
+    // decode the NFT ID from hex into raw bytes
+    //
+    let id_bytes: Vec<u8> = hex::decode(&nft_id_hex)
+        .map_err(|e| JsValue::from_str(&format!("nft_id hex decode error: {}", e)))?;
+
+    //
+    // convert the `data` string into raw UTF-8 bytes (Vec<u8>)
+    //
+    let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+    //
+    // build the merge-bound transaction
+    //
+    let tx = {
+        let mut wallet = saito.context.wallet_lock.write().await;
+        wallet
+            .create_merge_bound_transaction(id_bytes, serialized_msg)
+            .map_err(|e| JsValue::from_str(&e.to_string()))?
+    };
+
+    //
+    // return the merged transaction back to JavaScript
+    //
+    Ok(WasmTransaction::from_transaction(tx))
 }
 
 #[wasm_bindgen]
@@ -1723,60 +804,167 @@ pub async fn create_remove_bound_transaction(
     slip3_utxo_key: JsString,
     tx_msg: Uint8Array, // ADD THIS
 ) -> Result<WasmTransaction, JsValue> {
+    //
+    // get SAITO instance
+    //
     let mut saito_guard = SAITO.lock().await;
-    saito_guard
+    let saito = saito_guard
         .as_mut()
-        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?
-        .create_remove_bound_transaction_impl(
-            slip1_utxo_key,
-            slip2_utxo_key,
-            slip3_utxo_key,
-            tx_msg,
-        )
-        .await
+        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+    //
+    // parse UTXO set keys
+    //
+    let s1: SaitoUTXOSetKey =
+        string_to_hex(slip1_utxo_key).map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
+    let s2: SaitoUTXOSetKey =
+        string_to_hex(slip2_utxo_key).map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
+    let s3: SaitoUTXOSetKey =
+        string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
+
+    //
+    // convert the `data` string into raw UTF-8 bytes (Vec<u8>)
+    //
+    let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+    //
+    // build the remove-bound transaction via wallet
+    //
+    let tx = {
+        let mut wallet = saito.context.wallet_lock.write().await;
+        wallet
+            .create_remove_bound_transaction(s1, s2, s3, serialized_msg)
+            .await
+            .map_err(|_| JsValue::from_str("create_remove_bound_transaction failed"))?
+    };
+
+    //
+    // return the merged transaction back to JavaScript
+    //
+    Ok(WasmTransaction::from_transaction(tx))
 }
 
 #[wasm_bindgen]
 pub async fn get_nft_list() -> Result<Array, JsValue> {
     let saito = SAITO.lock().await;
-    saito.as_ref().unwrap().get_nft_list_impl().await
+    let wallet = saito.as_ref().unwrap().context.wallet_lock.read().await;
+
+    let detailed_nfts: Vec<DetailedNFT> = wallet.get_nft_list();
+
+    let js_array = Array::new_with_length(detailed_nfts.len() as u32);
+
+    //
+    // for each DetailedNFT, build a WasmNFT
+    //
+    for (id, nft) in detailed_nfts.into_iter().enumerate() {
+        let mut w = WasmNFT::new();
+
+        let id_arr = Uint8Array::from(nft.id.as_slice());
+        w.set_id(&id_arr);
+
+        let sig_arr = Uint8Array::from(nft.tx_sig.as_ref());
+        w.set_tx_sig(&sig_arr);
+
+        //
+        // Slip to WasmSlip
+        //
+        let ws1 = WasmSlip::new_from_slip(nft.slip1);
+        w.set_slip1(&ws1);
+        let ws2 = WasmSlip::new_from_slip(nft.slip2);
+        w.set_slip2(&ws2);
+        let ws3 = WasmSlip::new_from_slip(nft.slip3);
+        w.set_slip3(&ws3);
+
+        js_array.set(id as u32, w.into());
+    }
+
+    Ok(js_array)
 }
 
 #[wasm_bindgen]
 pub async fn get_latest_block_hash() -> JsString {
+    debug!("get_latest_block_hash");
     let saito = SAITO.lock().await;
-    saito.as_ref().unwrap().get_latest_block_hash_impl().await
+    let blockchain = saito.as_ref().unwrap().context.blockchain_lock.read().await;
+    let hash = blockchain.get_latest_block_hash();
+
+    hash.to_hex().into()
 }
 
 #[wasm_bindgen]
 pub async fn get_block(block_hash: JsString) -> Result<WasmBlock, JsValue> {
+    let block_hash = string_to_hex(block_hash).or(Err(JsValue::from(
+        "Failed parsing block hash string to key",
+    )))?;
+
     let saito = SAITO.lock().await;
-    saito.as_ref().unwrap().get_block_impl(block_hash).await
+    let blockchain = saito
+        .as_ref()
+        .unwrap()
+        .routing_thread
+        .blockchain_lock
+        .read()
+        .await;
+
+    let result = blockchain.get_block(&block_hash);
+
+    if result.is_none() {
+        warn!("block {:?} not found", block_hash.to_hex());
+        return Err(JsValue::from("block not found"));
+    }
+    let block = result.cloned().unwrap();
+
+    Ok(WasmBlock::from_block(block))
 }
 
 #[wasm_bindgen]
 pub async fn process_new_peer(peer: WasmNetworkPeer) {
+    // let key: SaitoPublicKey = string_to_key(key).unwrap();
+
+    // let peer = NetworkPeer::new(ip.as_string());
+
+    // debug!("process_new_peer : {:?} - {:?}", peer.key.to_base58(), ip);
     let mut saito = SAITO.lock().await;
-    saito.as_mut().unwrap().process_new_peer_impl(peer).await;
+
+    saito
+        .as_mut()
+        .unwrap()
+        .routing_thread
+        .process_network_event(NetworkEvent::PeerConnectionResult {
+            result: Ok(peer.get_peer().clone()),
+        })
+        .await;
 }
 
 #[wasm_bindgen]
 pub async fn process_stun_peer(public_key: JsString) -> Result<(), JsValue> {
+    debug!("processing stun peer with public key: {:?} ", public_key);
     let mut saito = SAITO.lock().await;
+    let key: SaitoPublicKey = string_to_key(public_key.into())
+        .map_err(|e| JsValue::from_str(&format!("Failed to parse public key: {}", e)))?;
+
     saito
         .as_mut()
         .unwrap()
-        .process_stun_peer_impl(public_key)
-        .await
+        .routing_thread
+        .process_network_event(NetworkEvent::AddStunPeer { public_key: key })
+        .await;
+    Ok(())
 }
 
 #[wasm_bindgen]
 pub async fn remove_stun_peer(public_key: JsString) {
+    let key: SaitoPublicKey = string_to_key(public_key).unwrap();
+    debug!(
+        "removing stun peer with index: {:?} from netowrk ",
+        key.to_base58()
+    );
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()
         .unwrap()
-        .remove_stun_peer_impl(public_key)
+        .routing_thread
+        .process_network_event(NetworkEvent::RemoveStunPeer { public_key: key })
         .await;
 }
 //
@@ -1797,11 +985,21 @@ pub async fn remove_stun_peer(public_key: JsString) {
 
 #[wasm_bindgen]
 pub async fn process_peer_disconnection(key: JsString) {
+    let key = string_to_key(key);
+    if key.is_err() {
+        return;
+    }
+    let key: SaitoPublicKey = key.unwrap();
+    debug!("process_peer_disconnection : {:?}", key.to_base58());
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()
         .unwrap()
-        .process_peer_disconnection_impl(key)
+        .routing_thread
+        .process_network_event(NetworkEvent::PeerDisconnected {
+            public_key: key,
+            disconnect_type: PeerDisconnectType::ExternalDisconnect,
+        })
         .await;
 }
 
@@ -1810,12 +1008,59 @@ pub async fn process_msg_buffer_from_peer(
     buffer: js_sys::Uint8Array,
     peer: &mut WasmNetworkPeer,
 ) -> js_sys::Uint8Array {
+    let buffer = buffer.to_vec();
+    trace!("process_msg_buffer_from_peer : {}", buffer.len());
     let mut saito1 = SAITO.lock().await;
-    saito1
-        .as_mut()
-        .unwrap()
-        .process_msg_buffer_from_peer_impl(buffer, peer)
-        .await
+    let saito = saito1.as_mut().unwrap();
+
+    let wallet = saito.context.wallet_lock.clone();
+    let configs = saito.context.config_lock.clone();
+    let timer = saito.routing_thread.timer.clone();
+    // let services = saito.routing_thread.network.io_interface.get_my_services();
+    let network_peer = peer.get_peer_mut();
+    let services = if network_peer.is_connected() {
+        vec![]
+    } else {
+        saito.routing_thread.network.io_interface.get_my_services()
+    };
+    drop(saito);
+    drop(saito1);
+
+    trace!("buffer size : {}", buffer.len());
+    let buffer = network_peer
+        .process_incoming_buffer(
+            buffer,
+            // &mut network_peer.public_key,
+            wallet,
+            configs,
+            &timer,
+            &services,
+            |event| async move {
+                let mut saito = SAITO.lock().await;
+                saito
+                    .as_mut()
+                    .unwrap()
+                    .routing_thread
+                    .process_network_event(event)
+                    .await;
+            },
+        )
+        .await;
+    if buffer.is_err() {
+        error!(
+            "process_msg_buffer_from_peer failed. {}",
+            buffer.err().unwrap()
+        );
+        let array = js_sys::Uint8Array::new_with_length(0);
+        array
+    } else {
+        let buffer = buffer.unwrap();
+
+        trace!("return buffer size : {}", buffer.len());
+        let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
+        array.copy_from(buffer.as_slice());
+        array
+    }
 }
 
 #[wasm_bindgen]
@@ -1825,41 +1070,149 @@ pub async fn process_fetched_block(
     block_id: BlockId,
     key: JsString,
 ) {
+    let key = string_to_key(key).unwrap();
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()
         .unwrap()
-        .process_fetched_block_impl(buffer, hash, block_id, key)
+        .routing_thread
+        .process_network_event(NetworkEvent::BlockFetched {
+            block_hash: hash.to_vec().try_into().unwrap(),
+            block_id,
+            public_key: key,
+            buffer: buffer.to_vec(),
+        })
         .await;
 }
 
 #[wasm_bindgen]
 pub async fn process_failed_block_fetch(hash: js_sys::Uint8Array, block_id: u64, key: JsString) {
+    let key = string_to_key(key).unwrap();
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()
         .unwrap()
-        .process_failed_block_fetch_impl(hash, block_id, key)
+        .routing_thread
+        .process_network_event(NetworkEvent::BlockFetchFailed {
+            block_hash: hash.to_vec().try_into().unwrap(),
+            public_key: key,
+            block_id,
+        })
         .await;
 }
 
 #[wasm_bindgen]
 pub async fn process_timer_event(duration_in_ms: u64) {
     let mut saito = SAITO.lock().await;
+    let saito = saito.as_mut().unwrap();
+
+    let duration = Duration::from_millis(duration_in_ms);
+    const EVENT_LIMIT: u32 = 100;
+    let mut event_counter = 0;
+
+    while let Ok(event) = saito.receiver_for_router.try_recv() {
+        let _result = saito.routing_thread.process_event(event).await;
+        event_counter += 1;
+        if event_counter >= EVENT_LIMIT {
+            break;
+        }
+        if !saito.routing_thread.is_ready_to_process() {
+            break;
+        }
+    }
+
+    saito.routing_thread.process_timer_event(duration).await;
+
+    event_counter = 0;
+    while let Ok(event) = saito.receiver_for_consensus.try_recv() {
+        let _result = saito.consensus_thread.process_event(event).await;
+        event_counter += 1;
+        if event_counter >= EVENT_LIMIT {
+            break;
+        }
+        if !saito.consensus_thread.is_ready_to_process() {
+            break;
+        }
+    }
+
+    saito.consensus_thread.process_timer_event(duration).await;
+
+    event_counter = 0;
+    while let Ok(event) = saito.receiver_for_verification.try_recv() {
+        let _result = saito.verification_thread.process_event(event).await;
+        event_counter += 1;
+        if event_counter >= EVENT_LIMIT {
+            break;
+        }
+        if !saito.verification_thread.is_ready_to_process() {
+            break;
+        }
+    }
+
     saito
-        .as_mut()
-        .unwrap()
-        .process_timer_event_impl(duration_in_ms)
+        .verification_thread
+        .process_timer_event(duration)
         .await;
+
+    event_counter = 0;
+    while let Ok(event) = saito.receiver_for_miner.try_recv() {
+        let _result = saito.mining_thread.process_event(event).await;
+        event_counter += 1;
+        if event_counter >= EVENT_LIMIT {
+            break;
+        }
+        if !saito.mining_thread.is_ready_to_process() {
+            break;
+        }
+    }
+
+    saito.mining_thread.process_timer_event(duration).await;
+
+    saito.stat_thread.process_timer_event(duration).await;
+
+    event_counter = 0;
+    while let Ok(event) = saito.receiver_for_stats.try_recv() {
+        let _result = saito.stat_thread.process_event(event).await;
+        event_counter += 1;
+        if event_counter >= EVENT_LIMIT {
+            break;
+        }
+        if !saito.stat_thread.is_ready_to_process() {
+            break;
+        }
+    }
 }
 
 #[wasm_bindgen]
 pub async fn process_stat_interval(current_time: Timestamp) {
     let mut saito = SAITO.lock().await;
+
     saito
         .as_mut()
         .unwrap()
-        .process_stat_interval_impl(current_time)
+        .routing_thread
+        .on_stat_interval(current_time)
+        .await;
+
+    saito
+        .as_mut()
+        .unwrap()
+        .consensus_thread
+        .on_stat_interval(current_time)
+        .await;
+
+    saito
+        .as_mut()
+        .unwrap()
+        .verification_thread
+        .on_stat_interval(current_time)
+        .await;
+
+    saito
+        .as_mut()
+        .unwrap()
+        .mining_thread
+        .on_stat_interval(current_time)
         .await;
 }
 
@@ -1936,38 +1289,82 @@ pub async fn get_peers() -> Array {
 
 #[wasm_bindgen]
 pub async fn get_peer(key: JsString) -> Option<WasmPeer> {
+    let key: SaitoPublicKey = string_to_key(key).ok()?;
     let saito = SAITO.lock().await;
-    saito.as_ref().unwrap().get_peer_impl(key).await
+    let peers = saito
+        .as_ref()
+        .unwrap()
+        .routing_thread
+        .network
+        .peer_lock
+        .read()
+        .await;
+    let peer = peers.peers.get(&key);
+    if peer.is_none() {
+        warn!("peer not found");
+        return None;
+    }
+    let peer = peer.cloned().unwrap();
+    Some(WasmPeer::new_from_peer(peer))
 }
 
 #[wasm_bindgen]
 pub async fn get_account_slips(public_key: JsString) -> Result<Array, JsValue> {
     let saito = SAITO.lock().await;
-    saito
+    let blockchain = saito
         .as_ref()
         .unwrap()
-        .get_account_slips_impl(public_key)
-        .await
+        .routing_thread
+        .blockchain_lock
+        .read()
+        .await;
+    let key = string_to_key(public_key).or(Err(JsValue::from(
+        "Failed parsing public key string to key",
+    )))?;
+    let mut slips = blockchain.get_slips_for(key);
+    let array = js_sys::Array::new_with_length(slips.len() as u32);
+
+    for (index, slip) in slips.drain(..).enumerate() {
+        let wasm_slip = WasmSlip::new_from_slip(slip);
+        array.set(index as u32, JsValue::from(wasm_slip));
+    }
+
+    Ok(array)
 }
 
 #[wasm_bindgen]
 pub async fn get_balance_snapshot(keys: js_sys::Array) -> WasmBalanceSnapshot {
     let saito = SAITO.lock().await;
-    saito
+    let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
+    let configs = config_lock.read().await;
+    let keys: Vec<SaitoPublicKey> = string_array_to_base58_keys(keys);
+
+    let blockchain = saito
         .as_ref()
         .unwrap()
-        .get_balance_snapshot_impl(keys)
-        .await
+        .routing_thread
+        .blockchain_lock
+        .read()
+        .await;
+    let snapshot = blockchain.get_balance_snapshot(keys, configs.deref());
+
+    WasmBalanceSnapshot::new(snapshot)
 }
 
 #[wasm_bindgen]
 pub async fn update_from_balance_snapshot(snapshot: WasmBalanceSnapshot) {
     let saito = SAITO.lock().await;
-    saito
+    let mut wallet = saito
         .as_ref()
         .unwrap()
-        .update_from_balance_snapshot_impl(snapshot)
+        .routing_thread
+        .wallet_lock
+        .write()
         .await;
+    wallet.update_from_balance_snapshot(
+        snapshot.get_snapshot(),
+        Some(&saito.as_ref().unwrap().routing_thread.network),
+    );
 }
 
 #[wasm_bindgen]
@@ -1989,66 +1386,171 @@ pub fn generate_public_key(private_key: JsString) -> Result<JsString, JsValue> {
 
 #[wasm_bindgen]
 pub async fn propagate_transaction(tx: &WasmTransaction) {
+    trace!("propagate_transaction");
+
     let mut saito = SAITO.lock().await;
-    saito.as_mut().unwrap().propagate_transaction_impl(tx).await;
+    let mut tx = tx.clone().tx;
+    {
+        let wallet = saito
+            .as_ref()
+            .unwrap()
+            .routing_thread
+            .wallet_lock
+            .read()
+            .await;
+        tx.generate(&wallet.public_key, 0, 0);
+    }
+    debug!(
+        "propagating transaction: {} input: {}, output : {}",
+        tx.signature.to_hex(),
+        tx.from
+            .iter()
+            .map(|slip| format!("{}", slip))
+            .collect::<Vec<String>>()
+            .join(", "),
+        tx.to
+            .iter()
+            .map(|slip| format!("{}", slip))
+            .collect::<Vec<String>>()
+            .join(", "),
+    );
+    saito
+        .as_mut()
+        .unwrap()
+        .consensus_thread
+        .process_event(ConsensusEvent::NewTransaction { transaction: tx })
+        .await;
+
+    // saito
+    //     .as_mut()
+    //     .unwrap()
+    //     .routing_thread
+    //     .network
+    //     .propagate_transaction(&tx)
+    //     .await;
 }
 
 #[wasm_bindgen]
 pub async fn send_api_call(buffer: Uint8Array, msg_index: u32, key: JsString) {
+    let key: SaitoPublicKey = string_to_key(key).unwrap_or([0; 33]);
+    trace!("send_api_call : {:?}", key.to_base58());
     let saito = SAITO.lock().await;
-    saito
-        .as_ref()
-        .unwrap()
-        .send_api_call_impl(buffer, msg_index, key)
-        .await;
+    let api_message = ApiMessage {
+        msg_index,
+        data: buffer.to_vec(),
+    };
+    let message = Message::ApplicationMessage(api_message);
+    let buffer = message.serialize();
+    if key == [0; 33] {
+        saito
+            .as_ref()
+            .unwrap()
+            .routing_thread
+            .network
+            .io_interface
+            .send_message_to_all(buffer.as_slice(), vec![])
+            .await
+            .unwrap();
+    } else {
+        saito
+            .as_ref()
+            .unwrap()
+            .routing_thread
+            .network
+            .io_interface
+            .send_message(key, buffer.as_slice())
+            .await
+            .unwrap();
+    }
 }
 
 #[wasm_bindgen]
 pub async fn send_api_success(buffer: Uint8Array, msg_index: u32, key: JsString) {
+    let key: SaitoPublicKey = string_to_key(key).unwrap();
+    trace!("send_api_success : {:?}", key.to_base58());
     let saito = SAITO.lock().await;
+    let api_message = ApiMessage {
+        msg_index,
+        data: buffer.to_vec(),
+    };
+    let message = Message::Result(api_message);
+    let buffer = message.serialize();
+
     saito
         .as_ref()
         .unwrap()
-        .send_api_success_impl(buffer, msg_index, key)
-        .await;
+        .routing_thread
+        .network
+        .io_interface
+        .send_message(key, buffer.as_slice())
+        .await
+        .unwrap();
 }
 
 #[wasm_bindgen]
 pub async fn send_api_error(buffer: Uint8Array, msg_index: u32, key: JsString) {
+    let key: SaitoPublicKey = string_to_key(key).unwrap();
+
+    trace!("send_api_error : {:?}", key.to_base58());
     let saito = SAITO.lock().await;
+    let api_message = ApiMessage {
+        msg_index,
+        data: buffer.to_vec(),
+    };
+    let message = Message::Error(api_message);
+    let buffer = message.serialize();
+
     saito
         .as_ref()
         .unwrap()
-        .send_api_error_impl(buffer, msg_index, key)
-        .await;
+        .routing_thread
+        .network
+        .io_interface
+        .send_message(key, buffer.as_slice())
+        .await
+        .unwrap();
 }
 
 #[wasm_bindgen]
 pub async fn get_wallet() -> WasmWallet {
     let saito = SAITO.lock().await;
-    saito.as_ref().unwrap().get_wallet()
+    return saito.as_ref().unwrap().wallet.clone();
 }
 
 #[wasm_bindgen]
 pub async fn get_blockchain() -> WasmBlockchain {
     let saito = SAITO.lock().await;
-    saito.as_ref().unwrap().get_blockchain()
+    saito.as_ref().unwrap().blockchain.clone()
 }
 
 #[wasm_bindgen]
 pub async fn get_mempool_txs() -> js_sys::Array {
     let saito = SAITO.lock().await;
-    saito.as_ref().unwrap().get_mempool_txs_impl().await
+    let mempool = saito
+        .as_ref()
+        .unwrap()
+        .consensus_thread
+        .mempool_lock
+        .read()
+        .await;
+    let txs = js_sys::Array::new_with_length(mempool.transactions.len() as u32);
+    for (index, (_, tx)) in mempool.transactions.iter().enumerate() {
+        let wasm_tx = WasmTransaction::from_transaction(tx.clone());
+        txs.set(index as u32, JsValue::from(wasm_tx));
+    }
+
+    txs
 }
 
 #[wasm_bindgen]
 pub async fn set_wallet_version(major: u8, minor: u8, patch: u16) {
     let saito = SAITO.lock().await;
-    saito
-        .as_ref()
-        .unwrap()
-        .set_wallet_version_impl(major, minor, patch)
-        .await;
+    let mut wallet = saito.as_ref().unwrap().wallet.wallet.write().await;
+    wallet.wallet_version = Version {
+        major,
+        minor,
+        patch,
+    };
 }
 
 #[wasm_bindgen]
@@ -2064,10 +1566,20 @@ pub fn is_valid_public_key(key: JsString) -> bool {
 #[wasm_bindgen]
 pub async fn write_issuance_file(threshold: Currency) {
     let mut saito = SAITO.lock().await;
-    saito
+    let _configs_lock = saito.as_mut().unwrap().routing_thread.config_lock.clone();
+    let _mempool_lock = saito.as_mut().unwrap().routing_thread.mempool_lock.clone();
+    let blockchain_lock = saito
         .as_mut()
         .unwrap()
-        .write_issuance_file_impl(threshold)
+        .routing_thread
+        .blockchain_lock
+        .clone();
+    let mut storage = &mut saito.as_mut().unwrap().consensus_thread.storage;
+    // let _list = storage.load_block_name_list().await.unwrap();
+
+    let blockchain = blockchain_lock.write().await;
+    blockchain
+        .write_issuance_file(threshold, "./data/issuance.file", &mut storage)
         .await;
 }
 
@@ -2077,29 +1589,246 @@ pub async fn disable_producing_blocks_by_timer() {
     saito
         .as_mut()
         .unwrap()
-        .disable_producing_blocks_by_timer_impl()
-        .await;
+        .consensus_thread
+        .produce_blocks_by_timer = false;
+    // saito.as_mut().unwrap().mining_thread.enabled = true;
 }
 #[wasm_bindgen]
 pub async fn produce_block_with_gt() -> bool {
     let mut saito = SAITO.lock().await;
-    saito.as_mut().unwrap().produce_block_with_gt_impl().await
+
+    let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
+    let blockchain_lock = saito.as_ref().unwrap().blockchain.blockchain_lock.clone();
+    let mempool_lock = saito
+        .as_ref()
+        .unwrap()
+        .consensus_thread
+        .mempool_lock
+        .clone();
+    let wallet_lock = saito.as_ref().unwrap().wallet.wallet.clone();
+
+    let configs = config_lock.read().await;
+    let blockchain = blockchain_lock.read().await;
+
+    let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+    let latest_block_id = blockchain.get_latest_block_id();
+
+    let mut mempool = mempool_lock.write().await;
+    let public_key;
+    let private_key;
+    {
+        let wallet = wallet_lock.read().await;
+        public_key = wallet.public_key;
+        private_key = wallet.private_key;
+    }
+
+    let gt_tx: Transaction;
+
+    {
+        let miner = &mut saito.as_mut().unwrap().mining_thread;
+        if miner.target == [0; 32] {
+            let blockchain = blockchain_lock.read().await;
+            if let Some(block) = blockchain.get_latest_block() {
+                miner.difficulty = block.difficulty;
+                miner.target = block.hash;
+                miner.target_id = block.id;
+            } else {
+                warn!("couldn't find the latest block");
+            }
+        }
+        info!("mining for a gt. target : {:?}", miner.target.to_hex());
+
+        loop {
+            if let Some(gt) = miner.mine().await {
+                info!("gt found : {:?}", gt.target.to_hex());
+
+                let transaction =
+                    Wallet::create_golden_ticket_transaction(gt, &public_key, &private_key).await;
+
+                gt_tx = transaction;
+                break;
+            }
+        }
+    }
+
+    {
+        let mut wallet = wallet_lock.write().await;
+        if let Ok(mut tx) = Transaction::create(
+            &mut wallet,
+            public_key,
+            0,
+            0,
+            false,
+            None,
+            latest_block_id,
+            genesis_period,
+        ) {
+            drop(wallet);
+            info!("created tx");
+            tx.transaction_type = TransactionType::Vip;
+            tx.sign(&private_key);
+            info!("tx signed");
+            mempool.add_transaction_if_validates(tx, &blockchain).await;
+            info!("Tx added to mempool");
+        }
+    }
+
+    let timestamp = saito
+        .as_ref()
+        .unwrap()
+        .consensus_thread
+        .timer
+        .get_timestamp_in_ms();
+
+    info!("waiting till a block is produced");
+    for _ in 0..1000 {
+        if let Some(block) = saito
+            .as_mut()
+            .unwrap()
+            .consensus_thread
+            .produce_block(
+                timestamp,
+                Some(&gt_tx),
+                mempool.deref_mut(),
+                blockchain.deref(),
+                configs.deref(),
+            )
+            .await
+        {
+            info!("produced block with gt");
+            drop(mempool);
+            drop(blockchain);
+            drop(configs);
+            saito
+                .as_mut()
+                .unwrap()
+                .consensus_thread
+                .process_event(ConsensusEvent::BlockFetched {
+                    public_key: [0; 33],
+                    block,
+                })
+                .await;
+            return true;
+        }
+    }
+    warn!("couldn't produce block");
+    false
 }
 
 #[wasm_bindgen]
 pub async fn produce_block_without_gt() -> bool {
     let mut saito = SAITO.lock().await;
-    saito
-        .as_mut()
+
+    let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
+    let blockchain_lock = saito.as_ref().unwrap().blockchain.blockchain_lock.clone();
+    let mempool_lock = saito
+        .as_ref()
         .unwrap()
-        .produce_block_without_gt_impl()
-        .await
+        .consensus_thread
+        .mempool_lock
+        .clone();
+    let wallet_lock = saito.as_ref().unwrap().wallet.wallet.clone();
+
+    let configs = config_lock.read().await;
+    let blockchain = blockchain_lock.read().await;
+
+    let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+    let latest_block_id = blockchain.get_latest_block_id();
+
+    let mut mempool = mempool_lock.write().await;
+    let public_key;
+    let private_key;
+    {
+        let wallet = wallet_lock.read().await;
+        public_key = wallet.public_key;
+        private_key = wallet.private_key;
+    }
+    {
+        info!(
+            "clearing {:?} gts from mempool...",
+            mempool.golden_tickets.len()
+        );
+        mempool.golden_tickets.clear();
+    }
+    {
+        let mut wallet = wallet_lock.write().await;
+        if let Ok(mut tx) = Transaction::create(
+            &mut wallet,
+            public_key,
+            0,
+            0,
+            false,
+            None,
+            latest_block_id,
+            genesis_period,
+        ) {
+            drop(wallet);
+            info!("created tx");
+            tx.transaction_type = TransactionType::Vip;
+            tx.sign(&private_key);
+            info!("tx signed");
+            mempool.add_transaction_if_validates(tx, &blockchain).await;
+            info!("Tx added to mempool");
+        }
+    }
+
+    let timestamp = saito
+        .as_ref()
+        .unwrap()
+        .consensus_thread
+        .timer
+        .get_timestamp_in_ms();
+
+    info!("waiting till a block is produced");
+    for _ in 0..1000 {
+        if let Some(block) = saito
+            .as_mut()
+            .unwrap()
+            .consensus_thread
+            .produce_block(
+                timestamp,
+                None,
+                mempool.deref_mut(),
+                blockchain.deref(),
+                configs.deref(),
+            )
+            .await
+        {
+            info!("produced block with gt");
+            drop(mempool);
+            drop(blockchain);
+            drop(configs);
+            saito
+                .as_mut()
+                .unwrap()
+                .consensus_thread
+                .process_event(ConsensusEvent::BlockFetched {
+                    public_key: [0; 33],
+                    block,
+                })
+                .await;
+            return true;
+        }
+    }
+    warn!("couldn't produce block");
+    false
 }
 
 #[wasm_bindgen]
 pub async fn get_stats() -> Result<JsString, JsValue> {
     let saito = SAITO.lock().await;
-    saito.as_ref().unwrap().get_stats_impl()
+    let stat_thread = &saito.as_ref().unwrap().stat_thread;
+    let stat = WasmStats {
+        // current_peer_state: stat_thread.current_peer_state.clone(),
+        current_wallet_state: stat_thread.current_wallet_state.clone(),
+        current_blockchain_state: stat_thread.current_blockchain_state.clone(),
+        current_mempool_state: stat_thread.current_mempool_state.clone(),
+        current_mining_state: stat_thread.current_mining_state.clone(),
+    };
+
+    let str = serde_json::to_string(&stat)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize stats: {}", e)))?;
+    Ok(str.into())
 }
 
 // #[wasm_bindgen]
@@ -2122,23 +1851,54 @@ pub async fn get_stats() -> Result<JsString, JsValue> {
 #[wasm_bindgen]
 pub async fn get_congestion_stats() -> Result<JsString, JsValue> {
     let saito = SAITO.lock().await;
-    saito.as_ref().unwrap().get_congestion_stats_impl().await
+    let peers = saito
+        .as_ref()
+        .unwrap()
+        .routing_thread
+        .network
+        .peer_lock
+        .read()
+        .await;
+    let stats = CongestionStatsDisplay {
+        congestion_controls_by_key: peers
+            .congestion_controls_by_key
+            .iter()
+            .map(|(key, control)| (key.to_base58(), control.clone()))
+            .collect(),
+        congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
+    };
+    let str = serde_json::to_string(&stats)
+        .map_err(|e| JsValue::from_str(&format!("Failed to serialize peer stats: {}", e)))?;
+    Ok(str.into())
 }
 
 #[wasm_bindgen]
 pub async fn get_confirmations() -> Result<JsValue, JsValue> {
     let saito = SAITO.lock().await;
-    saito.as_ref().unwrap().get_confirmations_impl().await
+    let configs = &saito
+        .as_ref()
+        .unwrap()
+        .routing_thread
+        .config_lock
+        .read()
+        .await;
+    let str =
+        serde_json::to_string(&configs.get_blockchain_configs().confirmations).map_err(|e| {
+            JsValue::from_str(&format!(
+                "Failed to serialize blockchain confirmations configs: {}",
+                e
+            ))
+        })?;
+    Ok(str.into())
 }
 
 #[wasm_bindgen]
 pub async fn start_from_received_ghost_chain() {
     let mut saito = SAITO.lock().await;
-    saito
-        .as_mut()
-        .unwrap()
-        .start_from_received_ghost_chain_impl()
-        .await;
+    let routing_thread = &mut saito.as_mut().unwrap().routing_thread;
+    if let Some((chain, public_key)) = routing_thread.received_ghost_chain.take() {
+        routing_thread.process_ghost_chain(chain, public_key).await;
+    }
 }
 
 pub fn generate_keys_wasm() -> (SaitoPublicKey, SaitoPrivateKey) {
