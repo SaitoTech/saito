@@ -1,0 +1,25 @@
+.store-teasers {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 1.25rem;
+	align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+	.store-teasers {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 860px) {
+	.store-teasers {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1rem;
+	}
+}
+
+@media (max-width: 560px) {
+	.store-teasers {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}

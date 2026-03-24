@@ -1,0 +1,117 @@
+.store-teaser {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	background: var(--store-surface);
+	border: 1px solid var(--store-border);
+	border-radius: 16px;
+	box-shadow: var(--store-shadow);
+}
+
+.teaser-media {
+	position: relative;
+	min-height: 172px;
+	padding: 0.875rem;
+	background-size: cover;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+.teaser-media.gradient-1 {
+	background-image: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+}
+
+.teaser-media.gradient-2 {
+	background-image: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+}
+
+.teaser-media.gradient-3 {
+	background-image: linear-gradient(135deg, #10b981 0%, #14b8a6 100%);
+}
+
+.teaser-media.gradient-4 {
+	background-image: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+}
+
+.teaser-media.gradient-5 {
+	background-image: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+}
+
+.teaser-media.gradient-6 {
+	background-image: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+}
+
+.teaser-media.gradient-7 {
+	background-image: linear-gradient(135deg, #22c55e 0%, #3b82f6 100%);
+}
+
+.teaser-media.gradient-8 {
+	background-image: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+}
+
+.teaser-media.gradient-9 {
+	background-image: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+}
+
+.teaser-media.gradient-10 {
+	background-image: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);
+}
+
+.buy-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.4rem 0.7rem;
+	border: 0;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.95);
+	color: #111827;
+	font-size: 0.78rem;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	cursor: pointer;
+	transition: transform 120ms ease;
+}
+
+.buy-btn:hover {
+	transform: translateY(-1px);
+}
+
+.badge {
+	position: absolute;
+	top: 0.75rem;
+	right: 0.75rem;
+	width: 0.85rem;
+	height: 0.85rem;
+	border-radius: 999px;
+	background: #ffffff;
+	border: 2px solid rgba(17, 24, 39, 0.2);
+}
+
+.badge.hidden {
+	display: none;
+}
+
+.teaser-info {
+	padding: 0.95rem 1rem 1rem;
+	background: var(--store-surface);
+}
+
+.teaser-info .title {
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.25;
+}
+
+.teaser-info .subtitle {
+	margin-top: 0.2rem;
+	font-size: 0.82rem;
+	font-weight: 500;
+	color: var(--store-text-muted);
+}
+
+.teaser-info .seller {
+	margin-top: 0.6rem;
+	font-size: 0.78rem;
+	color: var(--store-text-muted);
+}
