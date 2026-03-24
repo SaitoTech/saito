@@ -25,9 +25,17 @@ impl Serialize<Self> for BlockchainRequest {
             return Err(Error::from(ErrorKind::InvalidData));
         }
         Ok(BlockchainRequest {
-            latest_block_id: u64::from_be_bytes(buffer[0..8].to_vec().try_into().unwrap()),
-            latest_block_hash: buffer[8..40].to_vec().try_into().unwrap(),
-            fork_id: buffer[40..72].to_vec().try_into().unwrap(),
+            latest_block_id: u64::from_be_bytes(
+                buffer[0..8]
+                    .try_into()
+                    .or(Err(Error::from(ErrorKind::InvalidData)))?,
+            ),
+            latest_block_hash: buffer[8..40]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+            fork_id: buffer[40..72]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
         })
     }
 }

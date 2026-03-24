@@ -18,7 +18,7 @@
 8. [x] `High | P1` Replace panic-on-disk-write behavior in `rust/saito-core/src/core/routing/io/storage.rs` with returned errors and explicit recovery or logging.
 9. [x] `High | P1` Replace startup issuance-file slip-type panics in `rust/saito-core/src/core/routing/io/storage.rs` with structured configuration or parse errors.
 10. [x] `High | P1` Replace the golden-ticket invariant panic in `rust/saito-core/src/core/consensus/mempool.rs` with explicit rejection and diagnostics.
-11. [ ] `High | P1` Validate fixed-length network message decoding in all `rust/saito-core/src/core/msg/` types so malformed peer input is rejected without panicking. Known affected files:
+11. [x] `High | P1` Validate fixed-length network message decoding in all `rust/saito-core/src/core/msg/` types so malformed peer input is rejected without panicking. Known affected files:
     - `block_request.rs` — 5 `try_into().unwrap()` on fixed offsets
     - `ghost_chain_sync.rs` — 6 `try_into().unwrap()` on external buffer slicing
     - `api_message.rs` — 1 `try_into().unwrap()` on buffer parse without length check
