@@ -145,7 +145,7 @@ class InviteManager {
 		//
 		// remove unneeded
 		//
-		this.purge();
+		this.mod.purge();
 
 		this.attachEvents();
 	}
