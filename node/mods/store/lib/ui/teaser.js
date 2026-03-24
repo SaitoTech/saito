@@ -26,7 +26,8 @@ class Teaser {
 			title: this.data.title || '',
 			subtitle: this.data.subtitle || '',
 			seller: this.data.seller || '',
-			identicon
+			identicon,
+			show_buy_now: this.data.show_buy_now ?? this.data.can_buy ?? this.data.badge ?? false
 		};
 
 		this.app.browser.addElementToSelector(
