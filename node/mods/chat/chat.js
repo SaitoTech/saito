@@ -999,8 +999,7 @@ class Chat extends ModTemplate {
     let pk = this.app.crypto.generateKeys();
     let id = this.app.crypto.generatePublicKey(pk);
 
-    this.app.keychain.addWatchedPublicKey(id);
-    this.app.keychain.addKey(id, { identifier: name, group: 1, privateKey: pk });
+    this.app.keychain.addKey(id, { identifier: name, group: 1, privateKey: pk, watched: true });
 
     let newtx = await this.app.wallet.createUnsignedTransaction(
       this.publicKey,
@@ -1043,10 +1042,10 @@ class Chat extends ModTemplate {
         return;
       }
 
-      this.app.keychain.addWatchedPublicKey(txmsg.id);
       this.app.keychain.addKey(txmsg.id, {
         identifier: txmsg.name,
-        group: 1
+        group: 1,
+        watched: true
       });
 
       let newGroup = {

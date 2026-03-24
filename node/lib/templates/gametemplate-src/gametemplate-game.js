@@ -480,13 +480,6 @@ class GameGame {
         // defaults to SAITO keys
         // I guess this is useful for something...
         this.game.keys.push(this.game.players[i]);
-
-        //
-        //This should automatically add all game opponents to my "contacts"
-        //
-        if (this.app.BROWSER) {
-          this.app.keychain.addWatchedPublicKey(this.game.players[i]);
-        }
       }
       //
       // game step
