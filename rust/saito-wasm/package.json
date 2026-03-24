@@ -2,6 +2,10 @@
   "name": "saito-wasm",
   "version": "0.2.11",
   "description": "js wrappings around saito-core using wasm",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SaitoTech/saito"
+  },
   "scripts": {
     "test": "./node_modules/.bin/jest",
     "start": "ts-node-dev index.ts",
