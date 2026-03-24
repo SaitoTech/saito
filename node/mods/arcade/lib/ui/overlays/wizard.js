@@ -21,6 +21,23 @@ class GameWizard {
 				let game_mod = this.app.modules.returnModuleByName(obj.game);
 
 				if (game_mod) {
+
+					//
+					// teasers
+					//
+					if (game_mod.is_teaser) {
+	                                	let c = confirm("Do you want to install this game? This will take you to the app download site:");
+        	                                if (c) {
+                	                                let link = game_mod.link;
+                                                	if (link != "") {
+                                                	        navigateWindow(link, 300);
+                                                	        return;
+                                                	}
+                                                	return;
+                                        	}
+                                        	return;
+                                	}
+
 					//
 					// We do a little check that if we already have a game in the options,
 					// we prompt them to continue that one instead of creating a new game
