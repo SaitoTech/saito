@@ -49,10 +49,7 @@ impl GhostChainSync {
     }
     pub fn deserialize(buffer: Vec<u8>) -> Result<GhostChainSync, Error> {
         if buffer.len() < 36 {
-            warn!(
-                "ghost chain sync buffer too short: {} bytes",
-                buffer.len()
-            );
+            warn!("ghost chain sync buffer too short: {} bytes", buffer.len());
             return Err(Error::from(ErrorKind::InvalidData));
         }
         let start: SaitoHash = buffer[0..32]
