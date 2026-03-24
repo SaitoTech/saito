@@ -66,7 +66,7 @@ class Keychain {
       }
 
       // Only recover keys that have been touched in the last week
-      if (key.watched || ts - key.last_update > 7 * 24 * 60 * 60 * 1000) {
+      if (key.watched || ts - key.last_update < 7 * 24 * 60 * 60 * 1000) {
         this.keys.push(key);
         this.publickey_keys_hmap[key.publicKey] = 1;
       }
@@ -128,7 +128,7 @@ class Keychain {
       return;
     }
 
-    let data = { publicKey: '' , last_update : Date.now() };
+    let data = { publicKey: '', last_update: Date.now() };
 
     //
     // argument-overloading permitted !!
