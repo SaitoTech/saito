@@ -1,17 +1,17 @@
 .store-teaser {
+	width: 220px;
+	flex-shrink: 0;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	background: var(--store-surface);
-	border: 1px solid var(--store-border);
-	border-radius: 16px;
-	box-shadow: var(--store-shadow);
+	background: #ffffff;
+	border-radius: 14px;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
 .teaser-media {
 	position: relative;
-	min-height: 172px;
-	padding: 0.875rem;
+	height: 140px;
 	background-size: cover;
 	background-position: center;
 	background-repeat: no-repeat;
@@ -57,61 +57,68 @@
 	background-image: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%);
 }
 
-.buy-btn {
-	display: inline-flex;
+.teaser-buy-btn {
+	position: absolute;
+	top: 10px;
+	left: 10px;
+	display: inline-block;
+	width: auto;
+	background: #ffffff;
+	border: 1px solid #ccc;
+	border-radius: 6px;
+	padding: 6px 10px;
+	font-size: 12px;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.teaser-buy-btn:hover {
+	background: #f8f8f8;
+}
+
+.teaser-badge {
+	position: absolute;
+	top: 10px;
+	right: 10px;
+	width: 32px;
+	height: 32px;
+	border-radius: 50%;
+	overflow: hidden;
+	background: #ffffff;
+	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 0.4rem 0.7rem;
-	border: 0;
-	border-radius: 999px;
-	background: rgba(255, 255, 255, 0.95);
-	color: #111827;
-	font-size: 0.78rem;
-	font-weight: 700;
-	letter-spacing: 0.02em;
-	cursor: pointer;
-	transition: transform 120ms ease;
 }
 
-.buy-btn:hover {
-	transform: translateY(-1px);
+.teaser-badge img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
 }
 
-.badge {
-	position: absolute;
-	top: 0.75rem;
-	right: 0.75rem;
-	width: 0.85rem;
-	height: 0.85rem;
-	border-radius: 999px;
-	background: #ffffff;
-	border: 2px solid rgba(17, 24, 39, 0.2);
-}
-
-.badge.hidden {
+.teaser-badge.hidden {
 	display: none;
 }
 
 .teaser-info {
-	padding: 0.95rem 1rem 1rem;
-	background: var(--store-surface);
+	padding: 12px;
+	text-align: center;
+	background: #ffffff;
 }
 
-.teaser-info .title {
-	font-size: 1rem;
-	font-weight: 700;
-	line-height: 1.25;
+.teaser-title {
+	font-weight: 600;
+	font-size: 16px;
 }
 
-.teaser-info .subtitle {
-	margin-top: 0.2rem;
-	font-size: 0.82rem;
-	font-weight: 500;
-	color: var(--store-text-muted);
+.teaser-subtitle {
+	font-size: 13px;
+	color: #666;
+	margin-top: 2px;
 }
 
-.teaser-info .seller {
-	margin-top: 0.6rem;
-	font-size: 0.78rem;
-	color: var(--store-text-muted);
+.teaser-seller {
+	font-size: 12px;
+	color: #999;
+	margin-top: 6px;
 }
