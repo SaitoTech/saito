@@ -3009,15 +3009,15 @@ class Browser {
     if (this.isMobileBrowser() && navigator.share) {
       navigator.share(data).catch((err) => {
         // User cancelled or error - fall back to copy
-        this.handleCopyLink();
+        this.handleCopyLink(data?.url);
       });
     } else {
       // Fall back to copy link
-      this.handleCopyLink();
+      this.handleCopyLink(data?.url);
     }
   }
 
-  handleCopyLink(shareUrl) {
+  handleCopyLink(shareUrl = window.location.href) {
     // Copy to clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard
