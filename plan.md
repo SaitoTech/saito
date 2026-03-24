@@ -13,11 +13,11 @@
 3. [x] `Critical | P0` Convert golden ticket deserialization in `rust/saito-core/src/core/consensus/golden_ticket.rs` from panic-based parsing to `Result`-based validation.
 4. [x] `Critical | P0` Harden `rust/saito-core/src/core/consensus/block.rs` deserialization against truncated or undersized buffers before fixed-offset header slicing.
 5. [x] `High | P0` Validate `SaitoUTXOSetKey` length and layout before fixed-offset parsing in `rust/saito-core/src/core/consensus/slip.rs::parse_slip_from_utxokey(...)`.
-6. [ ] `Critical | P0` Remove panic-prone missing-block lookups in `rust/saito-core/src/core/consensus/blockchain.rs` reorg and block-deletion paths.
-7. [ ] `Critical | P0` Replace the active `panic!("cannot continue loading blocks")` at line 2413 in `rust/saito-core/src/core/consensus/blockchain.rs` with a recoverable error. (Note: the checkpoint total-supply panic at line 2887 is already commented out.)
-8. [ ] `High | P1` Replace panic-on-disk-write behavior in `rust/saito-core/src/core/routing/io/storage.rs` with returned errors and explicit recovery or logging.
-9. [ ] `High | P1` Replace startup issuance-file slip-type panics in `rust/saito-core/src/core/routing/io/storage.rs` with structured configuration or parse errors.
-10. [ ] `High | P1` Replace the golden-ticket invariant panic in `rust/saito-core/src/core/consensus/mempool.rs` with explicit rejection and diagnostics.
+6. [x] `Critical | P0` Remove panic-prone missing-block lookups in `rust/saito-core/src/core/consensus/blockchain.rs` reorg and block-deletion paths.
+7. [x] `Critical | P0` Replace the active `panic!("cannot continue loading blocks")` at line 2413 in `rust/saito-core/src/core/consensus/blockchain.rs` with a recoverable error. (Note: the checkpoint total-supply panic at line 2887 is already commented out.)
+8. [x] `High | P1` Replace panic-on-disk-write behavior in `rust/saito-core/src/core/routing/io/storage.rs` with returned errors and explicit recovery or logging.
+9. [x] `High | P1` Replace startup issuance-file slip-type panics in `rust/saito-core/src/core/routing/io/storage.rs` with structured configuration or parse errors.
+10. [x] `High | P1` Replace the golden-ticket invariant panic in `rust/saito-core/src/core/consensus/mempool.rs` with explicit rejection and diagnostics.
 11. [ ] `High | P1` Validate fixed-length network message decoding in all `rust/saito-core/src/core/msg/` types so malformed peer input is rejected without panicking. Known affected files:
     - `block_request.rs` — 5 `try_into().unwrap()` on fixed offsets
     - `ghost_chain_sync.rs` — 6 `try_into().unwrap()` on external buffer slicing

@@ -165,22 +165,18 @@ impl Mempool {
         // transaction.generate(&self.public_key, 0, 0);
 
         if !self.transactions.contains_key(&transaction.signature) {
-            self.routing_work_in_mempool += transaction.total_work_for_me;
-            // trace!(
-            //     "routing work available in mempool : {:?} after adding work : {:?} from tx with fees : {:?}",
-            //     self.routing_work_in_mempool, transaction.total_work_for_me, transaction.total_fees
-            // );
             if let TransactionType::GoldenTicket = transaction.transaction_type {
-                panic!("golden tickets should be in gt collection");
-            } else {
-                self.transactions
-                    .insert(transaction.signature, transaction.clone());
-                self.new_tx_added = true;
+                warn!("golden ticket routed to add_transaction; use add_golden_ticket instead");
+                return;
+            }
+            self.routing_work_in_mempool += transaction.total_work_for_me;
+            self.transactions
+                .insert(transaction.signature, transaction.clone());
+            self.new_tx_added = true;
 
-                for input in transaction.from.iter() {
-                    let utxo_key = input.utxoset_key;
-                    self.utxo_map.insert(utxo_key, 1);
-                }
+            for input in transaction.from.iter() {
+                let utxo_key = input.utxoset_key;
+                self.utxo_map.insert(utxo_key, 1);
             }
         }
     }
