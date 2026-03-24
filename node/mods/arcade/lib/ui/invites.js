@@ -82,7 +82,7 @@ class InviteManager {
 					}
 				}
 
-				for (let i = 0; i < listGames.length && i < 5; i++) {
+				for (let i = 0; i < listGames.length && i < 15; i++) {
 					if (!this?.game_filter || this.game_filter == listGames[i].msg.game) {
 						if (list == 'active' && !listGames[i].msg.options['open-table'] && !this.mod.sudo) {
 							continue;
@@ -119,7 +119,7 @@ class InviteManager {
 			if (offlineGames.length > 0 && !this.game_filter) {
 				this.app.browser.addElementToSelector(`<h5 class="sidebar-header">Offline</h5>`, target);
 			}
-			for (let i = 0; i < offlineGames.length && i < 5; i++) {
+			for (let i = 0; i < offlineGames.length && i < 15; i++) {
 				if (!this?.game_filter || this.game_filter == offlineGames[i].msg.game) {
 					let newInvite = new Invite(
 						this.app,
