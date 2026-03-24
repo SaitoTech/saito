@@ -71,11 +71,13 @@ class Teaser {
 	}
 
 	attachEvents() {
-		const buyButton = document.querySelector(`#${this.cardId} .teaser-buy-btn`);
-		if (buyButton) {
-			buyButton.onclick = (e) => {
+		const teaserCard = document.querySelector(`#${this.cardId}`);
+		if (teaserCard) {
+			teaserCard.onclick = (e) => {
 				e.preventDefault();
-				console.log(this.data);
+				if (this.mod.product_overlay) {
+					this.mod.product_overlay.render(this.data);
+				}
 			};
 		}
 	}

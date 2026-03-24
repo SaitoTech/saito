@@ -1,6 +1,7 @@
 const ModTemplate = require('../../lib/templates/modtemplate');
 const SaitoHeader = require('../../lib/saito/ui/saito-header/saito-header');
 const Main = require('./lib/ui/main');
+const ProductOverlay = require('./lib/ui/overlays/product');
 const index = require('./index');
 
 
@@ -13,6 +14,7 @@ class Store extends ModTemplate {
 
 		this.main = null;
 		this.header = null;
+		this.product_overlay = null;
 	}
 
 	async initialize(app) {
@@ -22,6 +24,8 @@ class Store extends ModTemplate {
 			this.main = new Main(this.app, this);
 			this.header = new SaitoHeader(this.app, this);
 		}
+
+		this.product_overlay = new ProductOverlay(this.app, this);
 	}
 
 	async render() {
