@@ -66,7 +66,6 @@ export default class Slip extends WasmWrapper<WasmSlip> {
     public set publicKey(key: string) {
         if (key === "") {
             this.instance.public_key = DefaultEmptyPublicKey;
-            return;
         }
         this.instance.public_key = key;
     }

@@ -1,6 +1,0 @@
-temp_test_directory/
-playwright-report/
-test-results/
-dist/
-*.log
-node_modules/
