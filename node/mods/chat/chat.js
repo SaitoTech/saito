@@ -833,7 +833,7 @@ class Chat extends ModTemplate {
       let group = this.returnGroup(txmsg?.data?.group_id);
 
       if (!group) {
-        console.log('Group doesn\'t exist?');
+        console.log("Group doesn't exist?");
         return 0;
       }
 
@@ -1728,7 +1728,7 @@ class Chat extends ModTemplate {
               } else {
                 if (block[z].link_properties) {
                   if (solo_link_regex.test(saniText)) {
-                    console.log('Chat block is just a link: ', saniText);
+                    //console.log('Chat block is just a link: ', saniText);
                   } else {
                     msg += saniText;
                   }
