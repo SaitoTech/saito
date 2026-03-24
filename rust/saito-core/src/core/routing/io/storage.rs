@@ -461,4 +461,49 @@ mod test {
             "de0cdde5db8fd4489f2038aca5224c18983f6676aebcb2561f5089e12ea2eedf"
         );
     }
+
+    // Item 24: convert_issuance_into_slip rejects malformed and unsupported-type lines.
+    #[test]
+    fn issuance_line_with_fewer_than_three_fields_returns_none() {
+        let t = TestManager::default();
+        // empty line
+        assert!(t.storage.convert_issuance_into_slip("").is_none());
+        // only one field
+        assert!(t.storage.convert_issuance_into_slip("1000000").is_none());
+        // only two fields
+        assert!(t
+            .storage
+            .convert_issuance_into_slip("1000000 somekey")
+            .is_none());
+    }
+
+    #[test]
+    fn issuance_line_with_invalid_amount_returns_none() {
+        let t = TestManager::default();
+        assert!(t
+            .storage
+            .convert_issuance_into_slip("notanumber somekey Normal")
+            .is_none());
+    }
+
+    #[test]
+    fn issuance_line_with_unsupported_slip_type_returns_none() {
+        let t = TestManager::default();
+        // amount < 25_000 causes PROJECT_PUBLIC_KEY to be used, so the second
+        // field is irrelevant; only the slip-type field ("BadType") is checked.
+        assert!(t
+            .storage
+            .convert_issuance_into_slip("100 ignored BadType")
+            .is_none());
+    }
+
+    #[test]
+    fn issuance_line_with_invalid_base58_key_returns_none() {
+        let t = TestManager::default();
+        // amount is valid and type is valid but the key field is not valid base58
+        assert!(t
+            .storage
+            .convert_issuance_into_slip("1000000 !!!invalid!!! Normal")
+            .is_none());
+    }
 }

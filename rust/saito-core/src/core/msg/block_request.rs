@@ -63,4 +63,20 @@ mod tests {
         assert_eq!(request.latest_block_hash, new_request.latest_block_hash);
         assert_eq!(request.fork_id, new_request.fork_id);
     }
+
+    #[test]
+    fn deserialize_rejects_empty_buffer() {
+        assert!(BlockchainRequest::deserialize(&vec![]).is_err());
+    }
+
+    #[test]
+    fn deserialize_rejects_short_buffer() {
+        // 71 bytes is one byte short of the required 72
+        assert!(BlockchainRequest::deserialize(&vec![0u8; 71]).is_err());
+    }
+
+    #[test]
+    fn deserialize_accepts_exact_72_byte_buffer() {
+        assert!(BlockchainRequest::deserialize(&vec![0u8; 72]).is_ok());
+    }
 }

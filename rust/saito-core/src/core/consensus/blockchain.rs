@@ -3072,9 +3072,10 @@ mod tests {
     use crate::core::consensus::block::Block;
     use crate::core::consensus::blockchain::{
         bit_pack, bit_unpack, is_golden_ticket_count_valid_, AddBlockResult, Blockchain,
+        WindingResult,
     };
     use crate::core::consensus::slip::Slip;
-    use crate::core::consensus::wallet::Wallet;
+    use crate::core::consensus::wallet::{Wallet, WALLET_NOT_UPDATED};
     use crate::core::defs::{ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO};
     use crate::core::routing::io::storage::Storage;
     use crate::core::util::crypto::{generate_keys, hash};
@@ -5200,5 +5201,45 @@ mod tests {
             blocks.get(&block_hash)
         });
         assert!(!result);
+    }
+
+    // Item 20: winding with wind_failure=true and empty new_chain returns FinishWithFailure
+    // without accessing any block data, so no blocks need to be present.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn wind_chain_failure_flag_with_empty_new_chain_returns_finish_with_failure() {
+        let mut t = TestManager::default();
+        t.initialize(100, 720_000).await;
+
+        let blockchain_lock = t.blockchain_lock.clone();
+        let mempool_lock = t.mempool_lock.clone();
+        let config_lock = t.config_lock.clone();
+
+        let mut bc = blockchain_lock.write().await;
+        let mut mempool = mempool_lock.write().await;
+        let config = config_lock.read().await;
+
+        let result = bc
+            .wind_chain(&[], &[], 0, true, &t.storage, &*config, &mut mempool, None)
+            .await;
+
+        assert!(matches!(result, WindingResult::FinishWithFailure));
+    }
+
+    // Item 21: deleting a block whose hash is absent from self.blocks returns WALLET_NOT_UPDATED
+    // without modifying wallet or utxo state.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn delete_block_with_absent_hash_returns_wallet_not_updated() {
+        let mut t = TestManager::default();
+        t.initialize(100, 720_000).await;
+
+        let blockchain_lock = t.blockchain_lock.clone();
+        let mut bc = blockchain_lock.write().await;
+
+        let absent_hash: SaitoHash = [42u8; 32];
+        let result = bc.delete_block(99, absent_hash, &t.storage).await;
+
+        assert_eq!(result, WALLET_NOT_UPDATED);
     }
 }

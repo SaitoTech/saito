@@ -182,4 +182,33 @@ mod tests {
         assert_eq!(chain.txs, chain2.txs);
         assert_eq!(chain.gts, chain2.gts);
     }
+
+    // Item 25: reject buffers too short to contain the 36-byte header.
+    #[test]
+    fn deserialize_rejects_empty_buffer() {
+        assert!(GhostChainSync::deserialize(vec![]).is_err());
+    }
+
+    #[test]
+    fn deserialize_rejects_short_header() {
+        assert!(GhostChainSync::deserialize(vec![0u8; 35]).is_err());
+    }
+
+    // Item 25: reject buffers where the entry count exceeds available data.
+    #[test]
+    fn deserialize_rejects_count_larger_than_remaining_bytes() {
+        // header: 36 bytes, count = 1, so requires 36 + 82 = 118 bytes total.
+        // Provide exactly 36 bytes — too short for 1 entry.
+        let mut buf = vec![0u8; 36];
+        buf[32..36].copy_from_slice(&1u32.to_be_bytes()); // count = 1
+        assert!(GhostChainSync::deserialize(buf).is_err());
+    }
+
+    // Item 25: u32::MAX count causes checked_mul to overflow and returns Err.
+    #[test]
+    fn deserialize_rejects_overflow_count() {
+        let mut buf = vec![0u8; 36];
+        buf[32..36].copy_from_slice(&u32::MAX.to_be_bytes());
+        assert!(GhostChainSync::deserialize(buf).is_err());
+    }
 }

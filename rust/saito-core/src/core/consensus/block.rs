@@ -3538,7 +3538,7 @@ mod tests {
     use futures::future::join_all;
     use log::info;
 
-    use crate::core::consensus::block::{Block, BlockType};
+    use crate::core::consensus::block::{Block, BlockType, BLOCK_HEADER_SIZE};
 
     use crate::core::consensus::merkle::MerkleTree;
     use crate::core::consensus::slip::{Slip, SlipType};
@@ -4241,5 +4241,15 @@ mod tests {
             }
             assert!(have_atr_tx);
         }
+    }
+
+    #[test]
+    fn deserialize_from_net_rejects_empty_buffer() {
+        assert!(Block::deserialize_from_net(&[]).is_err());
+    }
+
+    #[test]
+    fn deserialize_from_net_rejects_short_header() {
+        assert!(Block::deserialize_from_net(&vec![0u8; BLOCK_HEADER_SIZE - 1]).is_err());
     }
 }

@@ -396,4 +396,17 @@ mod tests {
         //     false
         // );
     }
+
+    #[test]
+    fn parse_slip_from_utxokey_accepts_valid_all_zero_key() {
+        let key = [0u8; UTXO_KEY_LENGTH];
+        assert!(Slip::parse_slip_from_utxokey(&key).is_ok());
+    }
+
+    #[test]
+    fn parse_slip_from_utxokey_rejects_invalid_slip_type_byte() {
+        let mut key = [0u8; UTXO_KEY_LENGTH];
+        key[UTXO_KEY_LENGTH - 1] = 255; // 255 is not a valid SlipType variant
+        assert!(Slip::parse_slip_from_utxokey(&key).is_err());
+    }
 }

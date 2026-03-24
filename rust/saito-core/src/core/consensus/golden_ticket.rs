@@ -182,4 +182,24 @@ mod tests {
 
         assert!(result);
     }
+
+    #[test]
+    fn deserialize_from_net_rejects_empty_buffer() {
+        assert!(GoldenTicket::deserialize_from_net(&vec![]).is_err());
+    }
+
+    #[test]
+    fn deserialize_from_net_rejects_short_buffer() {
+        assert!(GoldenTicket::deserialize_from_net(&vec![0u8; 96]).is_err());
+    }
+
+    #[test]
+    fn deserialize_from_net_rejects_long_buffer() {
+        assert!(GoldenTicket::deserialize_from_net(&vec![0u8; 98]).is_err());
+    }
+
+    #[test]
+    fn deserialize_from_net_accepts_exact_97_bytes() {
+        assert!(GoldenTicket::deserialize_from_net(&vec![0u8; 97]).is_ok());
+    }
 }

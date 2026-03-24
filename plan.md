@@ -40,20 +40,20 @@
 14. [ ] `High | Validation` Add `saito-wasm` tests for invalid `process_fetched_block` inputs: invalid public key string, short hash, long hash, and valid control case.
 15. [ ] `High | Validation` Add `saito-wasm` tests for invalid `process_failed_block_fetch` inputs: invalid public key string, short hash, long hash, and valid control case.
 16. [ ] `High | Validation` Add `saito-wasm` tests for wallet setter rejection paths: invalid base58 public key, invalid-length private key, non-hex private key, valid-hex-but-wrong-size private key (hidden `try_into().unwrap()` path), and unchanged state after rejection.
-17. [ ] `High | Validation` Add `saito-core` tests for malformed golden ticket buffers: short buffer, long buffer, wrong-sized key segment, and valid control case.
-18. [ ] `High | Validation` Add `saito-core` tests for block deserialization with short header buffers, truncated transaction metadata, and a valid control case.
-19. [ ] `Medium | Validation` Add `saito-core` tests for malformed UTXO-set keys passed into slip parsing paths.
-20. [ ] `High | Validation` Add `saito-core` tests for reorg comparison when `new_chain[0]` or an `old_chain` block hash is missing from `self.blocks`.
-21. [ ] `High | Validation` Add `saito-core` tests for block deletion when the target block hash is absent from `self.blocks`.
+17. [x] `High | Validation` Add `saito-core` tests for malformed golden ticket buffers: short buffer, long buffer, wrong-sized key segment, and valid control case.
+18. [x] `High | Validation` Add `saito-core` tests for block deserialization with short header buffers, truncated transaction metadata, and a valid control case.
+19. [x] `Medium | Validation` Add `saito-core` tests for malformed UTXO-set keys passed into slip parsing paths.
+20. [x] `High | Validation` Add `saito-core` tests for reorg comparison when `new_chain[0]` or an `old_chain` block hash is missing from `self.blocks`.
+21. [x] `High | Validation` Add `saito-core` tests for block deletion when the target block hash is absent from `self.blocks`.
 22. [ ] `High | Validation` Add `saito-core` tests for block-loading failure paths (line 2413 panic replacement) so startup reports a recoverable load error instead of panicking.
-23. [ ] `Medium | Validation` Add `saito-core` tests that misplaced golden-ticket transactions are rejected by mempool insertion without crashing.
-24. [ ] `Medium | Validation` Add `saito-core` tests for issuance-file parsing with unsupported slip types and invalid entries.
-25. [ ] `Medium | Validation` Add `saito-core` tests for malformed fixed-length network message buffers across all `msg/` types: `block_request`, `ghost_chain_sync`, `api_message`, `message`, and `handshake`.
+23. [x] `Medium | Validation` Add `saito-core` tests that misplaced golden-ticket transactions are rejected by mempool insertion without crashing.
+24. [x] `Medium | Validation` Add `saito-core` tests for issuance-file parsing with unsupported slip types and invalid entries.
+25. [x] `Medium | Validation` Add `saito-core` tests for malformed fixed-length network message buffers across all `msg/` types: `block_request`, `ghost_chain_sync`, `api_message`, `message`, and `handshake`.
 25a. [ ] `Critical | Validation` Add `saito-core` tests for malformed peer service buffers (validates item 11a) and malformed version strings in handshake (validates item 11b).
 25b. [ ] `High | Validation` Add `saito-core` tests for handshake without response field (validates item 11c) and merkle tree operations on empty/malformed transaction lists (validates item 11d).
 25c. [ ] `High | Validation` Add `saito-core` tests for invalid key material and malformed signatures passed to crypto utility functions (validates item 11e).
 25d. [ ] `Medium | Validation` Add `saito-core` tests for corrupted balance snapshot files and malformed config endpoint entries (validates items 11g, 11h).
-26. [ ] `Medium | Validation` Add `saito-core` tests for mismatched transaction-construction inputs and malformed NFT UUID payloads.
+26. [x] `Medium | Validation` Add `saito-core` tests for mismatched transaction-construction inputs and malformed NFT UUID payloads.
 
 ## Phase 2: Peer Lifecycle And Routing Resilience
 

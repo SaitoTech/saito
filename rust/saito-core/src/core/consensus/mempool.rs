@@ -436,6 +436,7 @@ mod tests {
 
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::{SaitoPrivateKey, SaitoPublicKey};
+    use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::test_manager::test::{create_timestamp, TestManager};
 
     use super::*;
@@ -534,5 +535,27 @@ mod tests {
             )
             .await
             .is_some());
+    }
+
+    // Item 23: a GoldenTicket transaction sent to add_transaction is silently rejected
+    // (warn log only) and does not enter the transactions map.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn golden_ticket_transaction_rejected_by_add_transaction() {
+        let keys = generate_keys();
+        let wallet_lock = Arc::new(RwLock::new(Wallet::new(keys.1, keys.0)));
+        let mut mempool = Mempool::new(wallet_lock);
+
+        let mut tx = Transaction::default();
+        tx.transaction_type = TransactionType::GoldenTicket;
+        // add_transaction has a debug_assert requiring hash_for_signature to be set.
+        tx.hash_for_signature = Some([0u8; 32]);
+
+        mempool.add_transaction(tx).await;
+
+        assert!(
+            mempool.transactions.is_empty(),
+            "a GoldenTicket tx must be rejected by add_transaction"
+        );
     }
 }
