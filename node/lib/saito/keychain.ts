@@ -128,7 +128,7 @@ class Keychain {
       return;
     }
 
-    let data = { publicKey: '' };
+    let data = { publicKey: '' , last_update : Date.now() };
 
     //
     // argument-overloading permitted !!
@@ -143,8 +143,6 @@ class Keychain {
     } else {
       data = pa;
     }
-
-    data.last_update = Date.now();
 
     //
     // skip empty keys
