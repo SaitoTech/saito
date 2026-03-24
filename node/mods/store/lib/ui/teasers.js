@@ -17,11 +17,17 @@ class Teasers {
 			return;
 		}
 
-		this.app.browser.replaceElementContentBySelector(TeasersTemplate(), this.container);
+		let targetSelector = this.container;
+		if (this.container !== '.store-teasers') {
+			this.app.browser.replaceElementContentBySelector(TeasersTemplate(), this.container);
+			targetSelector = '.store-teasers';
+		} else {
+			this.app.browser.replaceElementContentBySelector('', this.container);
+		}
 
 		const items = this.mod.getItemsForSale();
 		for (const item of items) {
-			const teaser = new Teaser(this.app, this.mod, item, '.store-teasers');
+			const teaser = new Teaser(this.app, this.mod, item, targetSelector);
 			teaser.render();
 		}
 	}

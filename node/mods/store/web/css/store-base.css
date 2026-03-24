@@ -40,3 +40,8 @@ body {
 button {
 	font: inherit;
 }
+
+.saito-container {
+	display: block;
+	padding: 20px;
+}

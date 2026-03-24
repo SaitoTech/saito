@@ -6,7 +6,7 @@ class Main {
 		this.app = app;
 		this.mod = mod;
 		this.container = container;
-		this.teasers = new Teasers(this.app, this.mod, '.store-main');
+		this.teasers = new Teasers(this.app, this.mod, '.store-teasers');
 	}
 
 	render(container = '') {
@@ -15,7 +15,7 @@ class Main {
 		}
 
 		this.app.browser.replaceElementContentBySelector(MainTemplate(), this.container);
-		this.teasers.render('.store-main');
+		this.teasers.render('.store-teasers');
 	}
 }
 
