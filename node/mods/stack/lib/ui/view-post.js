@@ -84,7 +84,7 @@ class ViewPost {
     // Get publish date from transaction timestamp
     const timestamp = this.tx.timestamp || Date.now();
     const date = this.app.browser.formatDate ? this.app.browser.formatDate(timestamp) : null;
-    const dateString = date ? `Published ${date.month} ${date.day}, ${date.year}` : '';
+    const dateString = date ? `${date.month} ${date.day}, ${date.year}` : '';
 
     // Use SaitoUser component - notice parameter shows publish date as secondary line
     // Do NOT override SaitoUser CSS - use default styling

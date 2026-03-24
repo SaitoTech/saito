@@ -133,6 +133,10 @@
   /* Do NOT override SaitoUser CSS - only container spacing */
 }
 
+.stack-view-post-author-container .saito-userline {
+  color: var(--saito-font-color-secondary);
+}
+
 /* Action Icons - Right side, compact cluster */
 .stack-view-post-actions {
   display: flex;
