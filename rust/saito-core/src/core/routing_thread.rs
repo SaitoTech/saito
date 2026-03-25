@@ -2144,7 +2144,11 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::defs::Timestamp;
     use crate::core::defs::NOLAN_PER_SAITO;
+    use crate::core::routing::io::network::PeerDisconnectType;
+    use crate::core::routing::peers::network_peer::NetworkPeer;
+    use crate::core::routing::peers::peer::{Peer, PeerStatus};
     use crate::core::routing_thread::RoutingThread;
     use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::node_tester::test::NodeTester;
@@ -2299,5 +2303,82 @@ mod tests {
                 ghost_chain.txs.len(),
             );
         }
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn handle_new_peer_drops_connection_without_public_key() {
+        let mut tester = NodeTester::default();
+        let peer = NetworkPeer::new(Some("ws://example.test/wsopen".to_string()));
+
+        let result = tester.routing_thread.handle_new_peer(peer).await;
+
+        assert!(result.is_none());
+        let peers = tester.routing_thread.network.peer_lock.read().await;
+        assert!(peers.peers.is_empty());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn handle_new_peer_drops_connection_without_handshake_response() {
+        let mut tester = NodeTester::default();
+        let mut peer = NetworkPeer::new(Some("ws://example.test/wsopen".to_string()));
+        peer.public_key = Some(generate_keys().0);
+
+        let result = tester.routing_thread.handle_new_peer(peer).await;
+
+        assert!(result.is_none());
+        let peers = tester.routing_thread.network.peer_lock.read().await;
+        assert!(peers.peers.is_empty());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn process_incoming_block_hash_skips_peer_without_fetch_url() {
+        let mut tester = NodeTester::default();
+        let public_key = generate_keys().0;
+
+        {
+            let mut peers = tester.routing_thread.network.peer_lock.write().await;
+            peers.peers.insert(public_key, Peer::new(public_key));
+        }
+
+        let result = tester
+            .routing_thread
+            .process_incoming_block_hash_(
+                [7; 32],
+                1,
+                public_key,
+                tester.routing_thread.blockchain_lock.clone(),
+                tester.routing_thread.mempool_lock.clone(),
+            )
+            .await;
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn handle_peer_disconnect_marks_minimally_initialized_peer_disconnected() {
+        let mut tester = NodeTester::default();
+        let public_key = generate_keys().0;
+
+        {
+            let mut peers = tester.routing_thread.network.peer_lock.write().await;
+            peers.peers.insert(public_key, Peer::new(public_key));
+        }
+
+        tester
+            .routing_thread
+            .handle_peer_disconnect(public_key, PeerDisconnectType::InternalDisconnect)
+            .await;
+
+        let peers = tester.routing_thread.network.peer_lock.read().await;
+        let peer = peers
+            .peers
+            .get(&public_key)
+            .expect("peer should still exist");
+        assert!(matches!(peer.peer_status, PeerStatus::Disconnected(_, _)));
+        assert_ne!(peer.disconnected_at, Timestamp::MAX);
     }
 }
