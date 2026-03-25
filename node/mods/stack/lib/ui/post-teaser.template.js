@@ -4,6 +4,8 @@
  * Editorial-style blog post preview component.
  * Reads from transaction data: tx.msg.data.title, subtitle, summary, image, timestamp
  * 
+ *  ** Post is a Transaction **
+ * 
  * Structure:
  * - Feature image (left on desktop, top on mobile)
  * - Title (required, dominant)
@@ -17,6 +19,8 @@ module.exports = (app, mod, post) => {
   let postId = '';
   let publicKey = '';
   
+  console.log(post.msg.data);
+
   if (post && post.msg) {
     // Transaction object
     const msg = post.returnMessage ? post.returnMessage() : post.msg;

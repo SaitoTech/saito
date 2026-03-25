@@ -568,6 +568,32 @@ class Stack extends ModTemplate {
       };
     }
 
+    if (type == 'saito-return-key') {
+      return {
+        returnKey: (data = null) => {
+          //
+          // data might be a publickey, permit flexibility
+          // in how this is called by pushing it into a
+          // suitable object for searching
+          //
+          if (typeof data === 'string') {
+            let d = { publicKey: '' };
+            d.publicKey = data;
+            data = d;
+          }
+
+          if (data.publicKey == this.STACK_OFFICIAL_PUBLICKEY) {
+            return {
+              publicKey: data.publicKey,
+              identifier: 'SaitoOfficial'
+            };
+          }
+
+          return null;
+        }
+      };
+    }
+
     return super.respondTo(type, obj);
   }
 

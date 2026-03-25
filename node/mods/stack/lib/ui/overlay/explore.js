@@ -11,7 +11,7 @@ class ExploreOverlay {
     this.overlay = new SaitoOverlay(this.app, this.mod);
     this.posts = {};
     this.lastTimeStamp = {};
-    this.isLoading = false;
+    this.isLoading = true;
     this.subscriptions = [];
     this.targetPublicKey = null; // For URL-based routing: publicKey to show posts for
   }
@@ -24,22 +24,13 @@ class ExploreOverlay {
       this.mod.create_post_ui.onEditorUnmount();
     }
 
-    // Show loading state initially
-    this.isLoading = true;
-
     this.subscriptions = this.calculateSubscriptions();
 
     if (!this.targetPublicKey) {
       this.targetPublicKey = this.mod.STACK_OFFICIAL_PUBLICKEY;
     }
 
-    const html = ExploreTemplate(
-      this.app,
-      this.mod,
-      this.posts,
-      this.isLoading,
-      this.subscriptions
-    );
+    const html = ExploreTemplate(this.app, this.mod, this.subscriptions);
     this.overlay.show(html);
 
     setTimeout(() => {
@@ -485,6 +476,16 @@ class ExploreOverlay {
         };
       }
 
+      // Mobile Alternate
+      const mobileAddBtn = document.querySelector('.stack-explorer-mobile-icon');
+      if (mobileAddBtn) {
+        mobileAddBtn.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.handleAddSubscription();
+        };
+      }
+
       const shareAuthorBtn = document.getElementById('stack-explore-author-share');
       if (shareAuthorBtn) {
         shareAuthorBtn.onclick = (e) => {
@@ -551,6 +552,21 @@ class ExploreOverlay {
           this.loadPostsForFilter(filter);
         };
       });
+
+      // Mobile author selector
+      const mobileSelector = document.querySelector('.stack-explorer-mobile-selector');
+      if (mobileSelector) {
+        mobileSelector.onchange = (e) => {
+          e.preventDefault;
+          let filter = e.currentTarget.value;
+          // IMPORTANT: user-driven navigation overrides URL bootstrap
+          this.targetPublicKey = filter;
+          // Update author header based on selection
+          this.updateAuthorHeader();
+          // Load posts for the selected filter
+          this.loadPostsForFilter(filter);
+        };
+      }
 
       // Post teaser clicks are now handled by attachPostClickHandlers()
       // This is called after posts are loaded

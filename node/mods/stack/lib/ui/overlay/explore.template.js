@@ -1,6 +1,4 @@
-const PostTeaser = require('../post-teaser');
-
-module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
+module.exports = (app, mod, subs = []) => {
   let pk = mod.exploreOverlay.targetPublicKey;
   let html = `
     <div class="stack-explore-overlay">
@@ -31,6 +29,20 @@ module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
             <div class='stack-explore-subscription-item'><i class="fa-solid fa-user-plus"></i><span>add creator</span></div>
           </div>
         </div>
+      <div class='stack-explorer-mobile-header'>
+        <select class="stack-explorer-mobile-selector">`;
+  for (let z = 0; z < subs.length; z++) {
+    let active = subs[z].publickey == pk ? 'selected' : '';
+    html += `<option value="${subs[z].publickey}" ${active}>${subs[z].label}</option>`;
+  }
+
+  html += `</select>
+        <div class="stack-explorer-mobile-icon">
+          <i class="fa-solid fa-user-plus"></i>
+        </div>
+      </div>
+
+
       </div>
       
       <div class="stack-explore-main">
@@ -67,38 +79,13 @@ module.exports = (app, mod, posts = [], isLoading = false, subs = []) => {
 
         <div class="stack-explore-content">
           <div class="stack-explore-posts-grid" id="stack-explore-posts-grid">
-            ${
-              isLoading
-                ? `
-              <!-- Loading state -->
-              <div class="stack-explore-loading" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 4rem 2rem;">
-                <div style="text-align: center;">
-                  <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
-                  <p style="color: var(--saito-font-color-light); font-size: 1.6rem;">Loading posts...</p>
-                </div>
+            <!-- Loading state -->
+            <div class="stack-explore-loading" style="display: flex; justify-content: center; align-items: center; min-height: 200px; padding: 4rem 2rem;">
+              <div style="text-align: center;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 3rem; color: var(--saito-font-color-light); margin-bottom: 1rem;"></i>
+                <p style="color: var(--saito-font-color-light); font-size: 1.6rem;">Loading posts...</p>
               </div>
-            `
-                : posts[pk].length > 0
-                  ? `
-              <!-- Populated state - render real posts using PostTeaser UI component -->
-              ${posts[pk]
-                .map((transaction) => {
-                  const teaser = new PostTeaser(app, mod, '', transaction);
-                  return teaser.render(); // Returns HTML string for template
-                })
-                .join('')}
-            `
-                  : `
-              <!-- Empty state -->
-              <div class="stack-explore-empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; padding: 4rem 2rem; text-align: center;">
-                <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
-                <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">No posts available</h3>
-                <p style="font-size: 1.6rem; color: var(--saito-font-color-light); margin: 0; max-width: 500px; line-height: 1.6;">
-                  No posts are visible at this time. This may be because no posts have been published yet, or you may need to subscribe to see content from this creator.
-                </p>
-              </div>
-            `
-            }
+            </div>
           </div>
         </div>
       </div>
