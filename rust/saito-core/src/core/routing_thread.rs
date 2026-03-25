@@ -219,11 +219,18 @@ impl RoutingThread {
             }
             Message::Ping() => {
                 trace!("received ping from peer : {:?}", public_key.to_base58());
-                self.network
+                if let Err(err) = self
+                    .network
                     .io_interface
                     .send_message(public_key, Message::Pong().serialize().as_slice())
                     .await
-                    .unwrap();
+                {
+                    error!(
+                        "failed sending pong to peer {:?}: {:?}",
+                        public_key.to_base58(),
+                        err
+                    );
+                }
             }
             Message::Pong() => {
                 // not processing this
@@ -302,7 +309,14 @@ impl RoutingThread {
                             .io_interface
                             .send_message(public_key, buffer.as_slice())
                             .await
-                            .unwrap();
+                            .inspect_err(|err| {
+                                error!(
+                                    "failed sending genesis block header to peer {:?}: {:?}",
+                                    public_key.to_base58(),
+                                    err
+                                );
+                            })
+                            .ok();
                     }
                 } else {
                     warn!(
@@ -439,11 +453,18 @@ impl RoutingThread {
         debug!("sending ghost chain to peer : {:?}", public_key.to_base58());
         // debug!("ghost : {:?}", ghost);
         let buffer = Message::GhostChain(ghost).serialize();
-        self.network
+        if let Err(err) = self
+            .network
             .io_interface
             .send_message(public_key, buffer.as_slice())
             .await
-            .unwrap();
+        {
+            error!(
+                "failed sending ghost chain to peer {:?}: {:?}",
+                public_key.to_base58(),
+                err
+            );
+        }
     }
 
     pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
@@ -473,7 +494,14 @@ impl RoutingThread {
                     .io_interface
                     .connect_to_peer(url)
                     .await
-                    .unwrap();
+                    .inspect_err(|err| {
+                        error!(
+                            "failed connecting to static peer {:?}: {:?}",
+                            public_key.to_base58(),
+                            err
+                        );
+                    })
+                    .ok();
                 if *period < 10_000 {
                     *period *= 2;
                 }
@@ -595,11 +623,18 @@ impl RoutingThread {
         );
         if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
             info!("peer disconnected externally, cleaning up locally created peer");
-            self.network
+            if let Err(err) = self
+                .network
                 .io_interface
                 .disconnect_from_peer(public_key)
                 .await
-                .unwrap();
+            {
+                error!(
+                    "failed local cleanup disconnect for peer {:?}: {:?}",
+                    public_key.to_base58(),
+                    err
+                );
+            }
         }
         let mut peers = self.network.peer_lock.write().await;
         if let Some(peer) = peers.peers.get_mut(&public_key) {
@@ -1484,11 +1519,18 @@ impl RoutingThread {
         let configs = configs_lock.read().await;
 
         for peer in configs.get_peer_configs().iter() {
-            self.network
+            let peer_url = peer.get_url();
+            if let Err(err) = self
+                .network
                 .io_interface
-                .connect_to_peer(peer.get_url())
+                .connect_to_peer(peer_url.clone())
                 .await
-                .unwrap();
+            {
+                error!(
+                    "failed connecting to configured peer {:?}: {:?}",
+                    peer_url, err
+                );
+            }
         }
 
         // let mut peers = self.network.peer_lock.write().await;
@@ -1529,7 +1571,14 @@ impl RoutingThread {
                 self.timer.get_timestamp_in_ms(),
             )
             .await
-            .unwrap();
+            .inspect_err(|err| {
+                error!(
+                    "failed finalizing newly connected peer {:?}: {:?}",
+                    public_key.to_base58(),
+                    err
+                );
+            })
+            .ok()?;
             peers.add_congestion_event(peer.public_key, CongestionType::PeerConnections, time);
             info!("adding new peer : {}", peer.public_key.to_base58());
             peers.peers.insert(peer.public_key, peer);
@@ -1591,32 +1640,39 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     peers.add_congestion_event(public_key, CongestionType::IncomingMessages, time);
                 }
                 let buffer_len = buffer.len();
-                let message = Message::deserialize(buffer);
-                if message.is_err() {
-                    error!(
-                        "failed deserializing msg from peer : {:?} with buffer size : {:?}. Check for any version mismatches or data corruptions",
-                        public_key.to_base58(), buffer_len
-                    );
-                    error!("error : {:?}", message.err().unwrap());
-                    // NOTE : not disconnecting here to support newer npm versions having new types of messages
-                    return None;
-                }
-                let message = message.unwrap();
+                let message = match Message::deserialize(buffer) {
+                    Ok(message) => message,
+                    Err(err) => {
+                        error!(
+                            "failed deserializing msg from peer : {:?} with buffer size : {:?}. Check for any version mismatches or data corruptions",
+                            public_key.to_base58(), buffer_len
+                        );
+                        error!(
+                            "deserialization error from peer {:?}: {:?}",
+                            public_key.to_base58(),
+                            err
+                        );
+                        // NOTE : not disconnecting here to support newer npm versions having new types of messages
+                        return None;
+                    }
+                };
 
                 self.stats.total_incoming_messages.increment();
                 self.process_incoming_message(public_key, message).await;
                 return Some(());
             }
-            NetworkEvent::PeerConnectionResult { result } => {
-                if result.is_ok() {
-                    let network_peer = result.unwrap();
+            NetworkEvent::PeerConnectionResult { result } => match result {
+                Ok(network_peer) => {
                     info!(
                         "adding new peer : {} to be processed",
                         network_peer.public_key.unwrap_or([0; 33]).to_base58()
                     );
                     self.new_peers.push(network_peer);
                 }
-            }
+                Err(err) => {
+                    warn!("peer connection result returned error: {:?}", err);
+                }
+            },
             NetworkEvent::AddStunPeer { public_key } => {
                 debug!(
                     "Adding STUN peer with public key: {}",
@@ -1986,12 +2042,18 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 peers.congestion_controls_by_key = display
                     .congestion_controls_by_key
                     .iter()
-                    .map(|(key, value)| {
-                        (
-                            SaitoPublicKey::from_base58(key.as_str()).unwrap(),
-                            value.clone(),
-                        )
-                    })
+                    .filter_map(
+                        |(key, value)| match SaitoPublicKey::from_base58(key.as_str()) {
+                            Ok(public_key) => Some((public_key, value.clone())),
+                            Err(err) => {
+                                error!(
+                                    "ignoring malformed public key in congestion data: {:?} ({:?})",
+                                    key, err
+                                );
+                                None
+                            }
+                        },
+                    )
                     .collect::<HashMap<SaitoPublicKey, PeerCongestionControls>>();
             }
             if let Some(confirmation_data) = confirmation_data {

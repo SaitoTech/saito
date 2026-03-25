@@ -68,9 +68,7 @@ impl PeerCollection {
         services: Vec<PeerService>,
         public_key: SaitoPublicKey,
     ) {
-        let peer = self.peers.get_mut(&public_key);
-        if peer.is_some() {
-            let peer = peer.unwrap();
+        if let Some(peer) = self.peers.get_mut(&public_key) {
             peer.services = services;
         } else {
             warn!(
@@ -105,12 +103,9 @@ impl PeerCollection {
         io_handler.send_interface_event(InterfaceEvent::StunPeerConnected(public_key));
     }
     pub async fn update_peer_timer(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {
-        let peer = self.peers.get_mut(&public_key);
-        if peer.is_none() {
-            return;
+        if let Some(peer) = self.peers.get_mut(&public_key) {
+            peer.last_msg_received_at = current_time;
         }
-        let peer = peer.unwrap();
-        peer.last_msg_received_at = current_time;
 
         // if peer.public_key.is_none() {
         //     return;
@@ -224,7 +219,12 @@ impl PeerCollection {
             .collect();
 
         for public_key in peer_indices {
-            let _peer = self.peers.remove(&public_key).unwrap();
+            if self.peers.remove(&public_key).is_none() {
+                debug!(
+                    "peer {:?} already removed during disconnected-peer cleanup",
+                    public_key.to_base58()
+                );
+            }
         }
     }
 
@@ -250,10 +250,13 @@ impl PeerCollection {
                         (current_time - peer.last_msg_received_at) / 1000
                         );
                     peer.mark_as_disconnected(current_time);
-                    io_handler
-                        .disconnect_from_peer(peer.public_key)
-                        .await
-                        .unwrap();
+                    if let Err(err) = io_handler.disconnect_from_peer(peer.public_key).await {
+                        error!(
+                            "failed disconnecting stale peer {:?}: {:?}",
+                            peer.public_key.to_base58(),
+                            err
+                        );
+                    }
                 }
             }
         }

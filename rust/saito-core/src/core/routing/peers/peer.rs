@@ -9,7 +9,7 @@ use crate::core::util::configuration::Endpoint;
 use log::{debug, error, info, trace};
 use serde::{Serialize, Serializer};
 use std::cmp::Ordering;
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -149,7 +149,13 @@ impl Peer {
     ) -> Result<(), Error> {
         let wallet = wallet_lock.read().await;
 
-        let response = peer.response.unwrap();
+        let Some(response) = peer.response else {
+            error!(
+                "cannot finalize peer {} without completed handshake response",
+                self.public_key.to_base58()
+            );
+            return Err(Error::from(ErrorKind::InvalidInput));
+        };
         self.public_key = response.public_key;
         // if !wallet
         //     .core_version

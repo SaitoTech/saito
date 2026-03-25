@@ -58,10 +58,10 @@
 ## Phase 2: Peer Lifecycle And Routing Resilience
 
 27. [x] `Critical | P1` Eliminate unwraps of optional peer `public_key`, `url`, and handshake `response` before handshake completion across `rust/saito-core/src/core/routing_thread.rs` and `rust/saito-core/src/core/routing/peers/network_peer.rs`.
-28. [ ] `High | P1` Make stale-peer cleanup and disconnect paths in `rust/saito-core/src/core/routing/peers/peer_collection.rs` tolerant of races and network I/O failures.
-29. [ ] `High | P1` Guard block-fetch candidate selection and peer-add flows against partially initialized peers instead of assuming peer metadata is present. This includes `self.challenge.unwrap()` in `network_peer.rs` (line 117), which panics if a peer hasn't completed the challenge exchange.
-30. [ ] `High | P1` Reject malformed peer public keys in static or runtime config loading without panicking.
-31. [ ] `High | P1` Replace unwrap-based routing-message deserialization in `rust/saito-core/src/core/routing_thread.rs` with explicit error handling and peer-level diagnostics.
+28. [x] `High | P1` Make stale-peer cleanup and disconnect paths in `rust/saito-core/src/core/routing/peers/peer_collection.rs` tolerant of races and network I/O failures.
+29. [x] `High | P1` Guard block-fetch candidate selection and peer-add flows against partially initialized peers instead of assuming peer metadata is present. This includes `self.challenge.unwrap()` in `network_peer.rs` (line 117), which panics if a peer hasn't completed the challenge exchange.
+30. [x] `High | P1` Reject malformed peer public keys in static or runtime config loading without panicking.
+31. [x] `High | P1` Replace unwrap-based routing-message deserialization in `rust/saito-core/src/core/routing_thread.rs` with explicit error handling and peer-level diagnostics.
 32. [ ] `Medium | P1` Replace runtime config-save unwraps in routing paths with logged recoverable failures.
 33. [ ] `Medium | P2` Remove sender-queue and dropped-channel assumptions in routing dispatch so missing senders or queues fail cleanly. Also applies to `mining_thread.rs` (line ~170): `stat_sender.send().await.unwrap()` panics if the stats channel is dropped.
 33a. [ ] `High | P1` Fix confirmed crash-risk bug in `get_peers()` (`saitowasm.rs` line 1262): array is pre-allocated to `is_connected()` count but the fill loop iterates **all** peers without filtering, causing JS array size inconsistency. Either filter the loop to connected-only or allocate for all peers — the current code is always wrong regardless of intended semantics. (Moved here from Phase 5 — this is a peer-lifecycle bug, not a packaging concern.)

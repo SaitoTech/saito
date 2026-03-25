@@ -7,7 +7,6 @@ use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
-use crate::core::util::serialize::Serialize;
 use log::{debug, error, info, trace, warn};
 use std::io::{Error, ErrorKind};
 use std::ops::Deref;
