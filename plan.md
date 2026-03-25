@@ -69,11 +69,11 @@
 ### Phase 2 Validation
 
 34. [x] `High | Validation` Add `saito-core` tests for partially initialized peers flowing through add, fetch, and disconnect paths.
-35. [ ] `Medium | Validation` Add `saito-core` tests for stale-peer cleanup races and disconnect I/O failures.
-36. [ ] `High | Validation` Add `saito-core` tests for malformed routing messages so decode failures do not panic the routing thread.
-37. [ ] `Medium | Validation` Add `saito-core` tests for malformed configured peer keys and runtime peer reload failures.
-38. [ ] `Low | Validation` Add `saito-core` tests for routing config-save failure and dropped sender-queue behavior.
-38a. [ ] `High | Validation` Add a `saito-wasm` regression test for `get_peers()` with a mix of connected and disconnected peers to verify array consistency (validates item 33a).
+35. [x] `Medium | Validation` Add `saito-core` tests for stale-peer cleanup races and disconnect I/O failures.
+36. [x] `High | Validation` Add `saito-core` tests for malformed routing messages so decode failures do not panic the routing thread.
+37. [x] `Medium | Validation` Add `saito-core` tests for malformed configured peer keys and runtime peer reload failures.
+38. [x] `Low | Validation` Add `saito-core` tests for routing config-save failure and dropped sender-queue behavior.
+38a. [x] `High | Validation` Add a `saito-wasm` regression test for `get_peers()` with a mix of connected and disconnected peers to verify array consistency (validates item 33a).
 
 ## Phase 3: Wallet And Runtime State Correctness
 

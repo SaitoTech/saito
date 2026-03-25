@@ -353,3 +353,194 @@ impl PeerCollection {
         });
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use async_trait::async_trait;
+    use std::io::{Error, ErrorKind};
+    use std::sync::{Arc, Mutex};
+
+    #[derive(Debug, Default)]
+    struct DisconnectIoState {
+        disconnected_peers: Vec<SaitoPublicKey>,
+        fail_disconnect: bool,
+    }
+
+    #[derive(Debug, Clone)]
+    struct DisconnectIo {
+        state: Arc<Mutex<DisconnectIoState>>,
+    }
+
+    impl DisconnectIo {
+        fn new(state: Arc<Mutex<DisconnectIoState>>) -> Self {
+            Self { state }
+        }
+    }
+
+    #[async_trait]
+    impl InterfaceIO for DisconnectIo {
+        async fn send_message(
+            &self,
+            _public_key: SaitoPublicKey,
+            _buffer: &[u8],
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn send_message_to_all(
+            &self,
+            _buffer: &[u8],
+            _excluded_peers: Vec<SaitoPublicKey>,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn connect_to_peer(&mut self, _url: String) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn disconnect_from_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error> {
+            let mut state = self.state.lock().unwrap();
+            state.disconnected_peers.push(public_key);
+            if state.fail_disconnect {
+                return Err(Error::new(ErrorKind::BrokenPipe, "disconnect failed"));
+            }
+            Ok(())
+        }
+
+        async fn fetch_block_from_peer(
+            &self,
+            _block_hash: crate::core::defs::SaitoHash,
+            _public_key: SaitoPublicKey,
+            _url: &str,
+            _block_id: u64,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn write_value(&self, _key: &str, _value: &[u8]) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn append_value(&mut self, _key: &str, _value: &[u8]) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn flush_data(&mut self, _key: &str) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn read_value(&self, _key: &str) -> Result<Vec<u8>, Error> {
+            Err(Error::new(ErrorKind::NotFound, "not found"))
+        }
+
+        async fn load_block_file_list(&self) -> Result<Vec<String>, Error> {
+            Ok(vec![])
+        }
+
+        async fn is_existing_file(&self, _key: &str) -> bool {
+            false
+        }
+
+        async fn remove_value(&self, _key: &str) -> Result<(), Error> {
+            Ok(())
+        }
+
+        fn get_block_dir(&self) -> String {
+            String::new()
+        }
+
+        fn get_checkpoint_dir(&self) -> String {
+            String::new()
+        }
+
+        fn ensure_directory_exists(&self, _block_dir: &str) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn process_api_call(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: SaitoPublicKey,
+        ) {
+        }
+
+        async fn process_api_success(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: SaitoPublicKey,
+        ) {
+        }
+
+        async fn process_api_error(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: SaitoPublicKey,
+        ) {
+        }
+
+        fn send_interface_event(&self, _event: InterfaceEvent) {}
+
+        async fn save_wallet(
+            &self,
+            _wallet: &mut crate::core::consensus::wallet::Wallet,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn load_wallet(
+            &self,
+            _wallet: &mut crate::core::consensus::wallet::Wallet,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
+        fn get_my_services(&self) -> Vec<PeerService> {
+            vec![]
+        }
+    }
+
+    #[tokio::test]
+    async fn disconnect_stale_peers_marks_peer_disconnected_when_io_fails() {
+        let public_key = [5; 33];
+        let mut collection = PeerCollection::default();
+        let mut peer = Peer::new(public_key);
+        peer.peer_status = PeerStatus::Connected;
+        peer.last_msg_received_at = 0;
+        collection.peers.insert(public_key, peer);
+
+        let io_state = Arc::new(Mutex::new(DisconnectIoState {
+            fail_disconnect: true,
+            ..Default::default()
+        }));
+        let io = DisconnectIo::new(io_state.clone());
+
+        collection
+            .disconnect_stale_peers(PEER_STALE_PERIOD + 1, &io)
+            .await;
+
+        let peer = collection.peers.get(&public_key).unwrap();
+        assert!(matches!(peer.peer_status, PeerStatus::Disconnected(_, _)));
+        assert_eq!(
+            io_state.lock().unwrap().disconnected_peers,
+            vec![public_key]
+        );
+    }
+
+    #[test]
+    fn remove_disconnected_peers_removes_old_dynamic_peers() {
+        let public_key = [9; 33];
+        let mut collection = PeerCollection::default();
+        let mut peer = Peer::new(public_key);
+        peer.disconnected_at = 1;
+        collection.peers.insert(public_key, peer);
+
+        collection.remove_disconnected_peers(PEER_REMOVAL_WINDOW + 2);
+
+        assert!(!collection.peers.contains_key(&public_key));
+    }
+}
