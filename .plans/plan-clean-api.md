@@ -406,44 +406,45 @@ This section turns the plan into an ordered implementation checklist with concre
 
 Goal:
 
-- centralize wasm loading
-- isolate direct `pkg/*` imports
-- create a local runtime typing layer in `saito-js`
+- [ ] centralize wasm loading
+- [ ] isolate direct `pkg/*` imports
+- [ ] create a local runtime typing layer in `saito-js`
 
 ### 1. Add a dedicated runtime loader layer
 
 Files to add:
 
-- `rust/saito-js/runtime/load-node.ts`
+
+- [ ] `rust/saito-js/runtime/load-node.ts`
 	- import and initialize `saito-wasm/pkg/node`
 	- return a normalized runtime module interface
-- `rust/saito-js/runtime/load-web.ts`
+- [ ] `rust/saito-js/runtime/load-web.ts`
 	- import and initialize `saito-wasm/pkg/web`
 	- return the same normalized runtime module interface
-- `rust/saito-js/runtime/load.ts`
+- [ ] `rust/saito-js/runtime/load.ts`
 	- optional shared loader contract and environment dispatch
-- `rust/saito-js/runtime/types.ts`
+- [ ] `rust/saito-js/runtime/types.ts`
 	- define `SaitoRuntimeModule` and internal runtime handle interfaces
 
 Files to update:
 
-- `rust/saito-js/index.node.ts`
+- [ ] `rust/saito-js/index.node.ts`
 	- replace direct `import("saito-wasm/pkg/node")`
 	- consume the loader interface instead
-- `rust/saito-js/index.web.ts`
+- [ ] `rust/saito-js/index.web.ts`
 	- replace direct `import("saito-wasm/pkg/web")`
 	- consume the loader interface instead
 
 Done when:
 
-- all module loading is in one internal runtime loader directory
-- `index.node.ts` and `index.web.ts` do not reference `pkg/node` or `pkg/web`
+- [ ] all module loading is in one internal runtime loader directory
+- [ ] `index.node.ts` and `index.web.ts` do not reference `pkg/node` or `pkg/web`
 
 ### 2. Define local runtime-handle interfaces
 
 Files to add:
 
-- `rust/saito-js/runtime/handles.ts`
+- [ ] `rust/saito-js/runtime/handles.ts`
 	- declare local interfaces such as:
 		- `TransactionHandle`
 		- `BlockHandle`
@@ -456,226 +457,226 @@ Files to add:
 
 Files to update:
 
-- `rust/saito-js/lib/wasm_wrapper.ts`
+- [ ] `rust/saito-js/lib/wasm_wrapper.ts`
 	- retarget generic constraints to local handle interfaces
-- `rust/saito-js/saito.ts`
+- [ ] `rust/saito-js/saito.ts`
 	- consume the normalized runtime type instead of `any` where possible
 
 Done when:
 
-- the wrapper layer can be typed without importing generated `Wasm*` classes directly
+- [ ] the wrapper layer can be typed without importing generated `Wasm*` classes directly
 
 ### 3. Remove direct `Wasm*` imports from wrapper files
 
 Files to update first pass:
 
-- `rust/saito-js/lib/transaction.ts`
-- `rust/saito-js/lib/block.ts`
-- `rust/saito-js/lib/slip.ts`
-- `rust/saito-js/lib/peer.ts`
-- `rust/saito-js/lib/network_peer.ts`
-- `rust/saito-js/lib/peer_service.ts`
-- `rust/saito-js/lib/peer_service_list.ts`
-- `rust/saito-js/lib/wallet.ts`
-- `rust/saito-js/lib/blockchain.ts`
-- `rust/saito-js/lib/balance_snapshot.ts`
-- `rust/saito-js/lib/hop.ts`
-- `rust/saito-js/lib/nft.ts`
+- [ ] `rust/saito-js/lib/transaction.ts`
+- [ ] `rust/saito-js/lib/block.ts`
+- [ ] `rust/saito-js/lib/slip.ts`
+- [ ] `rust/saito-js/lib/peer.ts`
+- [ ] `rust/saito-js/lib/network_peer.ts`
+- [ ] `rust/saito-js/lib/peer_service.ts`
+- [ ] `rust/saito-js/lib/peer_service_list.ts`
+- [ ] `rust/saito-js/lib/wallet.ts`
+- [ ] `rust/saito-js/lib/blockchain.ts`
+- [ ] `rust/saito-js/lib/balance_snapshot.ts`
+- [ ] `rust/saito-js/lib/hop.ts`
+- [ ] `rust/saito-js/lib/nft.ts`
 
 Task in each file:
 
-- remove `import type { Wasm... } from "saito-wasm/pkg/node/index"`
-- replace with imports from local runtime handle/type files
-- keep runtime behavior unchanged
+- [ ] remove `import type { Wasm... } from "saito-wasm/pkg/node/index"`
+- [ ] replace with imports from local runtime handle/type files
+- [ ] keep runtime behavior unchanged
 
 Done when:
 
-- `grep` for `saito-wasm/pkg/node/index` in `rust/saito-js/lib/**` returns no source matches
+- [ ] `grep` for `saito-wasm/pkg/node/index` in `rust/saito-js/lib/**` returns no source matches
 
 ### 4. Add a single runtime registration point
 
 Files to add:
 
-- `rust/saito-js/runtime/register-types.ts`
+- [ ] `rust/saito-js/runtime/register-types.ts`
 	- assign runtime constructors to `Transaction.Type`, `Block.Type`, `Wallet.Type`, and related wrapper statics
 
 Files to update:
 
-- `rust/saito-js/index.node.ts`
-- `rust/saito-js/index.web.ts`
+- [ ] `rust/saito-js/index.node.ts`
+- [ ] `rust/saito-js/index.web.ts`
 
 Task:
 
-- move constructor registration out of the two entrypoints into one shared runtime registration function
+- [ ] move constructor registration out of the two entrypoints into one shared runtime registration function
 
 Done when:
 
-- type registration logic exists in one place only
+- [ ] type registration logic exists in one place only
 
 ### 5. Verification for Milestone 1
 
 Files/commands:
 
-- `rust/saito-js/package.json`
+- [ ] `rust/saito-js/package.json`
 	- use existing build/test commands for validation
 
 Checks:
 
-- run `npm run build` in `rust/saito-js`
-- run `npm test` in `rust/saito-js` if current tests are stable
-- inspect emitted `.d.ts` files under `rust/saito-js/dist/**`
-- verify public typings no longer reference `saito-wasm/pkg/node/index`
+- [ ] run `npm run build` in `rust/saito-js`
+- [ ] run `npm test` in `rust/saito-js` if current tests are stable
+- [ ] inspect emitted `.d.ts` files under `rust/saito-js/dist/**`
+- [ ] verify public typings no longer reference `saito-wasm/pkg/node/index`
 
 ## Milestone 2: Extract JS Host Glue Inside `saito-wasm`
 
 Goal:
 
-- move JS-specific host bindings to an adapter layer
-- make the runtime depend on traits/capabilities instead of JS modules
+- [ ] move JS-specific host bindings to an adapter layer
+- [ ] make the runtime depend on traits/capabilities instead of JS modules
 
 ### 6. Introduce host capability traits in Rust
 
 Files to add:
 
-- `rust/saito-wasm/src/host/mod.rs`
+- [ ] `rust/saito-wasm/src/host/mod.rs`
 	- module root for host-neutral traits and adapters
-- `rust/saito-wasm/src/host/io.rs`
+- [ ] `rust/saito-wasm/src/host/io.rs`
 	- define host I/O trait
-- `rust/saito-wasm/src/host/time.rs`
+- [ ] `rust/saito-wasm/src/host/time.rs`
 	- define clock trait
-- `rust/saito-wasm/src/host/events.rs`
+- [ ] `rust/saito-wasm/src/host/events.rs`
 	- define event emission trait if split from I/O
-- `rust/saito-wasm/src/host/log.rs`
+- [ ] `rust/saito-wasm/src/host/log.rs`
 	- optional logging abstraction
 
 Files to update:
 
-- `rust/saito-wasm/src/lib.rs`
+- [ ] `rust/saito-wasm/src/lib.rs`
 	- export the new host module
 
 Task:
 
-- codify the runtime dependencies as internal Rust traits first
-- do not change external JS behavior yet
+- [ ] codify the runtime dependencies as internal Rust traits first
+- [ ] do not change external JS behavior yet
 
 Done when:
 
-- the core runtime can be constructed against traits instead of concrete JS glue types
+- [ ] the core runtime can be constructed against traits instead of concrete JS glue types
 
 ### 7. Move JS bridge code into an adapter module
 
 Files to add:
 
-- `rust/saito-wasm/src/js/mod.rs`
-- `rust/saito-wasm/src/js/msg_handler_adapter.rs`
+- [ ] `rust/saito-wasm/src/js/mod.rs`
+- [ ] `rust/saito-wasm/src/js/msg_handler_adapter.rs`
 	- wrap the current `/js/msg_handler.js` bridge
-- `rust/saito-wasm/src/js/time_adapter.rs`
+- [ ] `rust/saito-wasm/src/js/time_adapter.rs`
 	- wrap JS time access
 
 Files to update:
 
-- `rust/saito-wasm/src/wasm_io_handler.rs`
+- [ ] `rust/saito-wasm/src/wasm_io_handler.rs`
 	- shrink into adapter or replace entirely with host trait implementation
-- `rust/saito-wasm/src/wasm_time_keeper.rs`
+- [ ] `rust/saito-wasm/src/wasm_time_keeper.rs`
 	- move JS-specific timestamp sourcing behind the new adapter
-- `rust/saito-wasm/src/lib.rs`
+- [ ] `rust/saito-wasm/src/lib.rs`
 	- wire new modules
 
 Task:
 
-- make JS-specific bindings live only under `src/js/**`
+- [ ] make JS-specific bindings live only under `src/js/**`
 
 Done when:
 
-- `wasm_io_handler.rs` and `wasm_time_keeper.rs` are either deleted, reduced to thin adapters, or renamed into the adapter layer
+- [ ] `wasm_io_handler.rs` and `wasm_time_keeper.rs` are either deleted, reduced to thin adapters, or renamed into the adapter layer
 
 ### 8. Decouple runtime construction from JS globals
 
 Files to update:
 
-- `rust/saito-wasm/src/saitowasm.rs`
+- [ ] `rust/saito-wasm/src/saitowasm.rs`
 	- stop directly constructing runtime dependencies with JS-specific concrete types
 	- inject host trait implementations during runtime construction
 
 Likely supporting files:
 
-- `rust/saito-wasm/src/wasm_configuration.rs`
-- `rust/saito-wasm/src/wasm_stats.rs`
-- `rust/saito-wasm/src/wasm_blockchain.rs`
-- `rust/saito-wasm/src/wasm_wallet.rs`
+- [ ] `rust/saito-wasm/src/wasm_configuration.rs`
+- [ ] `rust/saito-wasm/src/wasm_stats.rs`
+- [ ] `rust/saito-wasm/src/wasm_blockchain.rs`
+- [ ] `rust/saito-wasm/src/wasm_wallet.rs`
 
 Task:
 
-- ensure runtime orchestration depends on host-neutral abstractions
-- keep wasm-bindgen exports as a separate layer around that runtime
+- [ ] ensure runtime orchestration depends on host-neutral abstractions
+- [ ] keep wasm-bindgen exports as a separate layer around that runtime
 
 Done when:
 
-- the runtime can be initialized without reading `/js/msg_handler.js` to understand its core flow
+- [ ] the runtime can be initialized without reading `/js/msg_handler.js` to understand its core flow
 
 ### 9. Replace direct JS time and logging assumptions
 
 Files to update:
 
-- `rust/saito-wasm/src/wasm_time_keeper.rs`
-- `rust/saito-wasm/src/saitowasm.rs`
+- [ ] `rust/saito-wasm/src/wasm_time_keeper.rs`
+- [ ] `rust/saito-wasm/src/saitowasm.rs`
 
 Task:
 
-- replace `js_sys::Date::now()` usage with a clock abstraction
-- replace any core dependency on `web_sys::console` with a logging abstraction or runtime-local logging setup
+- [ ] replace `js_sys::Date::now()` usage with a clock abstraction
+- [ ] replace any core dependency on `web_sys::console` with a logging abstraction or runtime-local logging setup
 
 Done when:
 
-- JS time and console access appear only in adapter code
+- [ ] JS time and console access appear only in adapter code
 
 ### 10. Verification for Milestone 2
 
 Files/commands:
 
-- `rust/saito-wasm/Cargo.toml`
-- `rust/saito-wasm/package.json`
+- [ ] `rust/saito-wasm/Cargo.toml`
+- [ ] `rust/saito-wasm/package.json`
 
 Checks:
 
-- run `cargo test -p saito-wasm` from `rust/` if available and meaningful
-- run `npm run build` in `rust/saito-wasm`
-- confirm core runtime files no longer import `/js/msg_handler.js`
-- confirm JS-specific imports are isolated to adapter modules
+- [ ] run `cargo test -p saito-wasm` from `rust/` if available and meaningful
+- [ ] run `npm run build` in `rust/saito-wasm`
+- [ ] confirm core runtime files no longer import `/js/msg_handler.js`
+- [ ] confirm JS-specific imports are isolated to adapter modules
 
 ## Milestone 3: Design the Stable Runtime API
 
 Goal:
 
-- replace the accidental generated object graph with a deliberate runtime contract
+- [ ] replace the accidental generated object graph with a deliberate runtime contract
 
 ### 11. Define bootstrap and runtime control surface
 
 Files to add:
 
-- `rust/saito-wasm/src/api/mod.rs`
-- `rust/saito-wasm/src/api/runtime.rs`
+- [ ] `rust/saito-wasm/src/api/mod.rs`
+- [ ] `rust/saito-wasm/src/api/runtime.rs`
 	- runtime construction and control entrypoints
 
 Files to update:
 
-- `rust/saito-wasm/src/saitowasm.rs`
+- [ ] `rust/saito-wasm/src/saitowasm.rs`
 	- move orchestration logic toward the API layer
 
 Task:
 
-- define the stable set of runtime operations
-- identify what remains internal-only
+- [ ] define the stable set of runtime operations
+- [ ] identify what remains internal-only
 
 Done when:
 
-- runtime lifecycle operations are grouped under a deliberate API module
+- [ ] runtime lifecycle operations are grouped under a deliberate API module
 
 ### 12. Define DTOs for snapshots and requests
 
 Files to add:
 
-- `rust/saito-wasm/src/api/dto.rs`
+- [ ] `rust/saito-wasm/src/api/dto.rs`
 	- DTOs such as:
 		- `TransactionDTO`
 		- `TransactionRequestDTO`
@@ -687,171 +688,171 @@ Files to add:
 
 Files to update:
 
-- `rust/saito-wasm/src/wasm_transaction.rs`
-- `rust/saito-wasm/src/wasm_block.rs`
-- `rust/saito-wasm/src/wasm_wallet.rs`
-- `rust/saito-wasm/src/wasm_peer.rs`
-- `rust/saito-wasm/src/wasm_peer_service.rs`
-- `rust/saito-wasm/src/wasm_balance_snapshot.rs`
+- [ ] `rust/saito-wasm/src/wasm_transaction.rs`
+- [ ] `rust/saito-wasm/src/wasm_block.rs`
+- [ ] `rust/saito-wasm/src/wasm_wallet.rs`
+- [ ] `rust/saito-wasm/src/wasm_peer.rs`
+- [ ] `rust/saito-wasm/src/wasm_peer_service.rs`
+- [ ] `rust/saito-wasm/src/wasm_balance_snapshot.rs`
 
 Task:
 
-- identify which current getters should become DTO snapshots
-- keep handle-based methods only where needed for performance or mutation
+- [ ] identify which current getters should become DTO snapshots
+- [ ] keep handle-based methods only where needed for performance or mutation
 
 Done when:
 
-- there is a clear split between handle objects and serializable DTOs
+- [ ] there is a clear split between handle objects and serializable DTOs
 
 ### 13. Introduce a small exported wasm-bindgen facade
 
 Files to add:
 
-- `rust/saito-wasm/src/api/js_exports.rs`
+- [ ] `rust/saito-wasm/src/api/js_exports.rs`
 	- expose the minimal JS-facing facade for the stable runtime API
 
 Files to update:
 
-- `rust/saito-wasm/src/lib.rs`
+- [ ] `rust/saito-wasm/src/lib.rs`
 	- export the facade module
 
 Task:
 
-- keep the wasm-bindgen export set small and stable
-- prevent the full internal class graph from becoming the public contract by default
+- [ ] keep the wasm-bindgen export set small and stable
+- [ ] prevent the full internal class graph from becoming the public contract by default
 
 Done when:
 
-- consumers can use the runtime through the facade without touching most `Wasm*` implementation types
+- [ ] consumers can use the runtime through the facade without touching most `Wasm*` implementation types
 
 ### 14. Verification for Milestone 3
 
 Checks:
 
-- document every exported API symbol intended to be public
-- confirm the export list is smaller and easier to map than the current generated graph
-- ensure `saito-js` can adapt to the facade without needing direct `Wasm*` imports in public types
+- [ ] document every exported API symbol intended to be public
+- [ ] confirm the export list is smaller and easier to map than the current generated graph
+- [ ] ensure `saito-js` can adapt to the facade without needing direct `Wasm*` imports in public types
 
 ## Milestone 4: Convert `saito-js` into a Pure SDK Layer
 
 Goal:
 
-- make `saito-js` a convenience package built on top of the stable runtime API
+- [ ] make `saito-js` a convenience package built on top of the stable runtime API
 
 ### 15. Move JS host registration into adapter modules
 
 Files to add:
 
-- `rust/saito-js/runtime/host/node-host.ts`
-- `rust/saito-js/runtime/host/web-host.ts`
-- `rust/saito-js/runtime/host/shared.ts`
+- [ ] `rust/saito-js/runtime/host/node-host.ts`
+- [ ] `rust/saito-js/runtime/host/web-host.ts`
+- [ ] `rust/saito-js/runtime/host/shared.ts`
 
 Files to update:
 
-- `rust/saito-js/saito.ts`
-- `rust/saito-js/shared_methods.ts`
-- `rust/saito-js/index.node.ts`
-- `rust/saito-js/index.web.ts`
+- [ ] `rust/saito-js/saito.ts`
+- [ ] `rust/saito-js/shared_methods.ts`
+- [ ] `rust/saito-js/index.node.ts`
+- [ ] `rust/saito-js/index.web.ts`
 
 Task:
 
-- stop writing raw `globalThis.shared_methods` in the entrypoints
-- construct a host capability adapter and pass it through the loader/bootstrap path
+- [ ] stop writing raw `globalThis.shared_methods` in the entrypoints
+- [ ] construct a host capability adapter and pass it through the loader/bootstrap path
 
 Done when:
 
-- host registration is explicit and local to runtime bootstrapping
+- [ ] host registration is explicit and local to runtime bootstrapping
 
 ### 16. Add SDK-owned DTO and facade types
 
 Files to add:
 
-- `rust/saito-js/runtime/dto.ts`
-- `rust/saito-js/runtime/public-types.ts`
+- [ ] `rust/saito-js/runtime/dto.ts`
+- [ ] `rust/saito-js/runtime/public-types.ts`
 
 Files to update:
 
-- `rust/saito-js/saito.ts`
-- `rust/saito-js/configs.ts`
-- wrapper files under `rust/saito-js/lib/**`
+- [ ] `rust/saito-js/saito.ts`
+- [ ] `rust/saito-js/configs.ts`
+- [ ] wrapper files under `rust/saito-js/lib/**`
 
 Task:
 
-- define the public `saito-js` API in SDK-owned types
-- avoid re-exporting implementation details from `saito-wasm`
+- [ ] define the public `saito-js` API in SDK-owned types
+- [ ] avoid re-exporting implementation details from `saito-wasm`
 
 Done when:
 
-- the SDK public surface is owned by `saito-js`
+- [ ] the SDK public surface is owned by `saito-js`
 
 ### 17. Audit packaging outputs
 
 Files to inspect/update if needed:
 
-- `rust/saito-js/package.json`
-- `rust/saito-js/tsconfig.json`
-- `rust/saito-js/.npmignore`
-- `rust/saito-js/index.node.ts`
-- `rust/saito-js/index.web.ts`
+- [ ] `rust/saito-js/package.json`
+- [ ] `rust/saito-js/tsconfig.json`
+- [ ] `rust/saito-js/.npmignore`
+- [ ] `rust/saito-js/index.node.ts`
+- [ ] `rust/saito-js/index.web.ts`
 
 Task:
 
-- ensure packaged declarations and exports expose only SDK-facing types
-- avoid leaking generated wasm artifact internals in package output
+- [ ] ensure packaged declarations and exports expose only SDK-facing types
+- [ ] avoid leaking generated wasm artifact internals in package output
 
 Done when:
 
-- packed output does not expose `pkg/*` implementation paths in declarations or exports
+- [ ] packed output does not expose `pkg/*` implementation paths in declarations or exports
 
 ### 18. Verification for Milestone 4
 
 Checks:
 
-- run `npm run build` in `rust/saito-js`
-- inspect generated declarations in `rust/saito-js/dist/**`
-- run `npm pack` in `rust/saito-js` and inspect tarball contents if needed
+- [ ] run `npm run build` in `rust/saito-js`
+- [ ] inspect generated declarations in `rust/saito-js/dist/**`
+- [ ] run `npm pack` in `rust/saito-js` and inspect tarball contents if needed
 
 ## Milestone 5: Documentation and Migration
 
 Goal:
 
-- make the new boundary explicit and adoptable
+- [ ] make the new boundary explicit and adoptable
 
 ### 19. Write the API inventory and migration docs
 
 Files to add:
 
-- `rust/saito-js/docs/runtime-boundary.md`
-- `rust/saito-wasm/docs/host-abi.md`
-- `rust/saito-wasm/docs/binding-guide.md`
+- [ ] `rust/saito-js/docs/runtime-boundary.md`
+- [ ] `rust/saito-wasm/docs/host-abi.md`
+- [ ] `rust/saito-wasm/docs/binding-guide.md`
 
 Task:
 
-- document the runtime facade
-- document host capabilities
-- document which legacy `Wasm*` exports are transitional or internal
+- [ ] document the runtime facade
+- [ ] document host capabilities
+- [ ] document which legacy `Wasm*` exports are transitional or internal
 
 Done when:
 
-- a new contributor can identify the supported boundary without reading implementation files
+- [ ] a new contributor can identify the supported boundary without reading implementation files
 
 ### 20. Add deprecation notes for legacy entrypoints
 
 Files to update:
 
-- `rust/saito-js/README.md` if present later
-- `rust/saito-wasm/package.json`
-- `rust/saito-js/package.json`
-- relevant source files with transitional exports
+- [ ] `rust/saito-js/README.md` if present later
+- [ ] `rust/saito-wasm/package.json`
+- [ ] `rust/saito-js/package.json`
+- [ ] relevant source files with transitional exports
 
 Task:
 
-- mark old pathways as transitional
-- define the removal timeline once the new facade is stable
+- [ ] mark old pathways as transitional
+- [ ] define the removal timeline once the new facade is stable
 
 Done when:
 
-- the repo has one clearly preferred integration path
+- [ ] the repo has one clearly preferred integration path
 
 ## Fast Audit Checklist
 
@@ -874,34 +875,34 @@ Use this as the recurring PR checklist during implementation:
 
 Use small commits in this order:
 
-1. Add `saito-js` runtime loader and registration layer.
-2. Replace wrapper imports with local handle interfaces.
-3. Introduce `saito-wasm` host trait modules.
-4. Move JS bridge logic into adapter modules.
-5. Refactor runtime construction to use host abstractions.
-6. Add runtime facade and DTO layer.
-7. Switch `saito-js` to the new facade.
-8. Audit declaration output and packaging.
-9. Add docs and deprecation notes.
+- [ ] Add `saito-js` runtime loader and registration layer.
+- [ ] Replace wrapper imports with local handle interfaces.
+- [ ] Introduce `saito-wasm` host trait modules.
+- [ ] Move JS bridge logic into adapter modules.
+- [ ] Refactor runtime construction to use host abstractions.
+- [ ] Add runtime facade and DTO layer.
+- [ ] Switch `saito-js` to the new facade.
+- [ ] Audit declaration output and packaging.
+- [ ] Add docs and deprecation notes.
 
 ## Recommended Order of Execution
 
-1. Inventory and classify the current boundary.
-2. Add a loader boundary in `saito-js` to stop further spread of direct `pkg/*` imports.
-3. Introduce host traits/capabilities in `saito-wasm` and move JS glue behind them.
-4. Replace `Wasm*` public typing leakage in `saito-js`.
-5. Shrink `saito-wasm` to a stable minimal API surface.
-6. Add compatibility shims and migration notes.
-7. Validate with a second consumer model.
+- [ ] Inventory and classify the current boundary.
+- [ ] Add a loader boundary in `saito-js` to stop further spread of direct `pkg/*` imports.
+- [ ] Introduce host traits/capabilities in `saito-wasm` and move JS glue behind them.
+- [ ] Replace `Wasm*` public typing leakage in `saito-js`.
+- [ ] Shrink `saito-wasm` to a stable minimal API surface.
+- [ ] Add compatibility shims and migration notes.
+- [ ] Validate with a second consumer model.
 
 ## Practical First Milestone
 
 If this is implemented incrementally, the first milestone should be:
 
-- centralize wasm loading in `saito-js`
-- stop importing `saito-wasm/pkg/node/index` from wrapper classes
-- define local runtime handle interfaces in `saito-js`
-- extract JS host callbacks in `saito-wasm` behind one adapter module
+- [ ] centralize wasm loading in `saito-js`
+- [ ] stop importing `saito-wasm/pkg/node/index` from wrapper classes
+- [ ] define local runtime handle interfaces in `saito-js`
+- [ ] extract JS host callbacks in `saito-wasm` behind one adapter module
 
 That milestone does not solve full language independence, but it creates the seam needed for the rest of the migration.
 

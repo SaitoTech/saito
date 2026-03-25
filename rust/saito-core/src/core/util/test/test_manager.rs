@@ -27,9 +27,9 @@ pub mod test {
     use std::error::Error;
     use std::fmt::{Debug, Formatter};
     use std::fs;
-    use std::io::{BufReader, Read, Write};
     use std::ops::{Deref, DerefMut};
     use std::path::Path;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -72,6 +72,7 @@ pub mod test {
     }
 
     pub const TEST_ISSUANCE_FILEPATH: &'static str = "../saito-rust/data/issuance/test/issuance";
+    static TEST_ISSUANCE_DIR_COUNTER: AtomicUsize = AtomicUsize::new(0);
 
     struct TestTimeKeeper {}
 
@@ -154,20 +155,15 @@ pub mod test {
 
     impl TestManager {
         pub fn get_test_issuance_file() -> Result<&'static str, std::io::Error> {
-            let temp_dir = Path::new("./temp_test_directory").to_path_buf();
+            let dir_id = TEST_ISSUANCE_DIR_COUNTER.fetch_add(1, Ordering::Relaxed);
+            let temp_dir = Path::new("./temp_test_directory").join(format!(
+                "issuance-{}-{}",
+                std::process::id(),
+                dir_id
+            ));
             fs::create_dir_all(&temp_dir).unwrap();
             let source_path = Path::new(TEST_ISSUANCE_FILEPATH);
-            // Read the existing counter from the file or initialize it to 1 if the file doesn't exist
-            let issuance_counter_path = temp_dir.join("issuance_counter.txt");
-            let counter = if issuance_counter_path.exists() {
-                let mut file = BufReader::new(fs::File::open(&issuance_counter_path).unwrap());
-                let mut buffer = String::new();
-                file.read_to_string(&mut buffer).unwrap();
-                buffer.trim().parse::<usize>().unwrap_or(1)
-            } else {
-                1
-            };
-            let target_filename = format!("issuance-{}.txt", counter);
+            let target_filename = "issuance.txt";
             let target_path = temp_dir.join(target_filename);
             let cwd = std::env::current_dir().unwrap();
             // error!(
@@ -181,10 +177,6 @@ pub mod test {
             //     error!("source_path does not exist.");
             // }
             fs::copy(source_path, &target_path).unwrap();
-            // Update the counter in the file for the next instance
-            let mut file = fs::File::create(&issuance_counter_path).unwrap();
-            writeln!(file, "{}", counter + 1).unwrap();
-
             let target_path_str = target_path
                 .to_str()
                 .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::Other, "Invalid path"))
@@ -1140,9 +1132,10 @@ pub mod test {
 
     impl Drop for TestManager {
         fn drop(&mut self) {
-            // Cleanup: Remove the temporary directory and its contents
-            if let Err(err) = fs::remove_dir_all("./temp_test_directory") {
-                eprintln!("Error cleaning up: {}", err);
+            if let Some(temp_dir) = Path::new(self.issuance_path).parent() {
+                if let Err(err) = fs::remove_dir_all(temp_dir) {
+                    eprintln!("Error cleaning up: {}", err);
+                }
             }
         }
     }
