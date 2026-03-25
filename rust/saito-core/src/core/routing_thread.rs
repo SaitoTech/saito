@@ -219,11 +219,18 @@ impl RoutingThread {
             }
             Message::Ping() => {
                 trace!("received ping from peer : {:?}", public_key.to_base58());
-                self.network
+                if let Err(err) = self
+                    .network
                     .io_interface
                     .send_message(public_key, Message::Pong().serialize().as_slice())
                     .await
-                    .unwrap();
+                {
+                    error!(
+                        "failed sending pong to peer {:?}: {:?}",
+                        public_key.to_base58(),
+                        err
+                    );
+                }
             }
             Message::Pong() => {
                 // not processing this
@@ -302,7 +309,14 @@ impl RoutingThread {
                             .io_interface
                             .send_message(public_key, buffer.as_slice())
                             .await
-                            .unwrap();
+                            .inspect_err(|err| {
+                                error!(
+                                    "failed sending genesis block header to peer {:?}: {:?}",
+                                    public_key.to_base58(),
+                                    err
+                                );
+                            })
+                            .ok();
                     }
                 } else {
                     warn!(
@@ -439,25 +453,34 @@ impl RoutingThread {
         debug!("sending ghost chain to peer : {:?}", public_key.to_base58());
         // debug!("ghost : {:?}", ghost);
         let buffer = Message::GhostChain(ghost).serialize();
-        self.network
+        if let Err(err) = self
+            .network
             .io_interface
             .send_message(public_key, buffer.as_slice())
             .await
-            .unwrap();
+        {
+            error!(
+                "failed sending ghost chain to peer {:?}: {:?}",
+                public_key.to_base58(),
+                err
+            );
+        }
     }
 
     pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
         trace!("connecting to static peers");
         let mut peers = self.network.peer_lock.write().await;
         for (public_key, peer) in &mut peers.peers {
-            if peer.url.is_none() {
-                trace!(
-                    "peer : {} doesn't have a url. so not connecting to it",
-                    public_key.to_base58()
-                );
-                continue;
-            }
-            let url = peer.url.as_ref().unwrap().clone();
+            let url = match peer.url.as_ref() {
+                Some(u) => u.clone(),
+                None => {
+                    trace!(
+                        "peer : {} doesn't have a url. so not connecting to it",
+                        public_key.to_base58()
+                    );
+                    continue;
+                }
+            };
             if let PeerStatus::Disconnected(connect_time, period) = &mut peer.peer_status {
                 if current_time < *connect_time {
                     continue;
@@ -471,7 +494,14 @@ impl RoutingThread {
                     .io_interface
                     .connect_to_peer(url)
                     .await
-                    .unwrap();
+                    .inspect_err(|err| {
+                        error!(
+                            "failed connecting to static peer {:?}: {:?}",
+                            public_key.to_base58(),
+                            err
+                        );
+                    })
+                    .ok();
                 if *period < 10_000 {
                     *period *= 2;
                 }
@@ -593,11 +623,18 @@ impl RoutingThread {
         );
         if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
             info!("peer disconnected externally, cleaning up locally created peer");
-            self.network
+            if let Err(err) = self
+                .network
                 .io_interface
                 .disconnect_from_peer(public_key)
                 .await
-                .unwrap();
+            {
+                error!(
+                    "failed local cleanup disconnect for peer {:?}: {:?}",
+                    public_key.to_base58(),
+                    err
+                );
+            }
         }
         let mut peers = self.network.peer_lock.write().await;
         if let Some(peer) = peers.peers.get_mut(&public_key) {
@@ -1297,19 +1334,31 @@ impl RoutingThread {
     async fn send_to_verification_thread(&mut self, request: VerifyRequest) {
         // waiting till we get an acceptable sender
         let sender_count = self.senders_to_verification.len();
+        if sender_count == 0 {
+            error!("no verification-thread senders configured; dropping request");
+            return;
+        }
         let mut trials = 0;
         loop {
             trials += 1;
             self.last_verification_thread_index += 1;
             let sender_index: usize = self.last_verification_thread_index % sender_count;
-            let sender = self
-                .senders_to_verification
-                .get(sender_index)
-                .expect("sender should be here as we are using the modulus on index");
+            let Some(sender) = self.senders_to_verification.get(sender_index) else {
+                error!(
+                    "verification-thread sender index {} missing out of {} senders; dropping request",
+                    sender_index, sender_count
+                );
+                return;
+            };
 
             if sender.capacity() > 0 {
                 trace!("sending to verification thread : {:?}", sender_index);
-                sender.send(request).await.unwrap();
+                if let Err(err) = sender.send(request).await {
+                    error!(
+                        "failed sending request to verification thread {}: {:?}",
+                        sender_index, err
+                    );
+                }
 
                 return;
             }
@@ -1482,11 +1531,18 @@ impl RoutingThread {
         let configs = configs_lock.read().await;
 
         for peer in configs.get_peer_configs().iter() {
-            self.network
+            let peer_url = peer.get_url();
+            if let Err(err) = self
+                .network
                 .io_interface
-                .connect_to_peer(peer.get_url())
+                .connect_to_peer(peer_url.clone())
                 .await
-                .unwrap();
+            {
+                error!(
+                    "failed connecting to configured peer {:?}: {:?}",
+                    peer_url, err
+                );
+            }
         }
 
         // let mut peers = self.network.peer_lock.write().await;
@@ -1500,19 +1556,25 @@ impl RoutingThread {
             configs.is_browser()
         };
 
-        let public_key = network_peer.public_key.unwrap();
+        let public_key = match network_peer.public_key {
+            Some(k) => k,
+            None => {
+                warn!("handle_new_peer: received peer with no public key (incomplete handshake); dropping");
+                return None;
+            }
+        };
 
         {
             let mut peers = self.network.peer_lock.write().await;
-            if peers.is_peer_blacklisted(network_peer.public_key.unwrap(), time) {
+            if peers.is_peer_blacklisted(public_key, time) {
                 warn!(
                     "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
-                    network_peer.public_key.unwrap().to_base58(),
+                    public_key.to_base58(),
                     network_peer.ip.as_deref().unwrap_or("unknown")
                 );
                 return Some(());
             }
-            let mut peer = Peer::new(network_peer.public_key.unwrap());
+            let mut peer = Peer::new(public_key);
             // peer.ip_address = network_peer.ip;
             peer.handle_new_peer(
                 network_peer,
@@ -1521,7 +1583,14 @@ impl RoutingThread {
                 self.timer.get_timestamp_in_ms(),
             )
             .await
-            .unwrap();
+            .inspect_err(|err| {
+                error!(
+                    "failed finalizing newly connected peer {:?}: {:?}",
+                    public_key.to_base58(),
+                    err
+                );
+            })
+            .ok()?;
             peers.add_congestion_event(peer.public_key, CongestionType::PeerConnections, time);
             info!("adding new peer : {}", peer.public_key.to_base58());
             peers.peers.insert(peer.public_key, peer);
@@ -1583,32 +1652,39 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     peers.add_congestion_event(public_key, CongestionType::IncomingMessages, time);
                 }
                 let buffer_len = buffer.len();
-                let message = Message::deserialize(buffer);
-                if message.is_err() {
-                    error!(
-                        "failed deserializing msg from peer : {:?} with buffer size : {:?}. Check for any version mismatches or data corruptions",
-                        public_key.to_base58(), buffer_len
-                    );
-                    error!("error : {:?}", message.err().unwrap());
-                    // NOTE : not disconnecting here to support newer npm versions having new types of messages
-                    return None;
-                }
-                let message = message.unwrap();
+                let message = match Message::deserialize(buffer) {
+                    Ok(message) => message,
+                    Err(err) => {
+                        error!(
+                            "failed deserializing msg from peer : {:?} with buffer size : {:?}. Check for any version mismatches or data corruptions",
+                            public_key.to_base58(), buffer_len
+                        );
+                        error!(
+                            "deserialization error from peer {:?}: {:?}",
+                            public_key.to_base58(),
+                            err
+                        );
+                        // NOTE : not disconnecting here to support newer npm versions having new types of messages
+                        return None;
+                    }
+                };
 
                 self.stats.total_incoming_messages.increment();
                 self.process_incoming_message(public_key, message).await;
                 return Some(());
             }
-            NetworkEvent::PeerConnectionResult { result } => {
-                if result.is_ok() {
-                    let network_peer = result.unwrap();
+            NetworkEvent::PeerConnectionResult { result } => match result {
+                Ok(network_peer) => {
                     info!(
                         "adding new peer : {} to be processed",
-                        network_peer.public_key.unwrap().to_base58()
+                        network_peer.public_key.unwrap_or([0; 33]).to_base58()
                     );
                     self.new_peers.push(network_peer);
                 }
-            }
+                Err(err) => {
+                    warn!("peer connection result returned error: {:?}", err);
+                }
+            },
             NetworkEvent::AddStunPeer { public_key } => {
                 debug!(
                     "Adding STUN peer with public key: {}",
@@ -1840,28 +1916,35 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 {
                     let mut configs = self.config_lock.write().await;
                     let blockchain = self.blockchain_lock.read().await;
-                    let blockchain_configs = configs.get_blockchain_configs_mut();
+                    let confs = {
+                        let blockchain_configs = configs.get_blockchain_configs_mut();
 
-                    blockchain_configs.last_block_hash = blockchain.last_block_hash.to_hex();
-                    blockchain_configs.last_block_id = blockchain.last_block_id;
-                    blockchain_configs.last_timestamp = blockchain.last_timestamp;
-                    blockchain_configs.genesis_block_id = blockchain.genesis_block_id;
-                    blockchain_configs.genesis_timestamp = blockchain.genesis_timestamp;
-                    blockchain_configs.lowest_acceptable_timestamp =
-                        blockchain.lowest_acceptable_timestamp;
-                    blockchain_configs.lowest_acceptable_block_hash =
-                        blockchain.lowest_acceptable_block_hash.to_hex();
-                    blockchain_configs.lowest_acceptable_block_id =
-                        blockchain.lowest_acceptable_block_id;
-                    blockchain_configs.fork_id = blockchain.fork_id.unwrap_or_default().to_hex();
+                        blockchain_configs.last_block_hash = blockchain.last_block_hash.to_hex();
+                        blockchain_configs.last_block_id = blockchain.last_block_id;
+                        blockchain_configs.last_timestamp = blockchain.last_timestamp;
+                        blockchain_configs.genesis_block_id = blockchain.genesis_block_id;
+                        blockchain_configs.genesis_timestamp = blockchain.genesis_timestamp;
+                        blockchain_configs.lowest_acceptable_timestamp =
+                            blockchain.lowest_acceptable_timestamp;
+                        blockchain_configs.lowest_acceptable_block_hash =
+                            blockchain.lowest_acceptable_block_hash.to_hex();
+                        blockchain_configs.lowest_acceptable_block_id =
+                            blockchain.lowest_acceptable_block_id;
+                        blockchain_configs.fork_id =
+                            blockchain.fork_id.unwrap_or_default().to_hex();
 
-                    let confs = blockchain_configs.confirmations.clone();
-                    blockchain_configs.confirmations.clear();
+                        let confs = blockchain_configs.confirmations.clone();
+                        blockchain_configs.confirmations.clear();
+                        confs
+                    };
 
-                    configs.save().unwrap();
+                    let save_result = configs.save();
 
                     let blockchain_configs = configs.get_blockchain_configs_mut();
                     blockchain_configs.confirmations = confs;
+                    if let Err(err) = save_result {
+                        error!("failed saving blockchain configs after update: {:?}", err);
+                    }
                     // ConfigManager::write_blockchain_configs(
                     //     blockchain_configs,
                     //     self.network.io_interface.deref(),
@@ -1978,12 +2061,18 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 peers.congestion_controls_by_key = display
                     .congestion_controls_by_key
                     .iter()
-                    .map(|(key, value)| {
-                        (
-                            SaitoPublicKey::from_base58(key.as_str()).unwrap(),
-                            value.clone(),
-                        )
-                    })
+                    .filter_map(
+                        |(key, value)| match SaitoPublicKey::from_base58(key.as_str()) {
+                            Ok(public_key) => Some((public_key, value.clone())),
+                            Err(err) => {
+                                error!(
+                                    "ignoring malformed public key in congestion data: {:?} ({:?})",
+                                    key, err
+                                );
+                                None
+                            }
+                        },
+                    )
                     .collect::<HashMap<SaitoPublicKey, PeerCongestionControls>>();
             }
             if let Some(confirmation_data) = confirmation_data {
@@ -2074,10 +2163,332 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::consensus::transaction::Transaction;
+    use crate::core::defs::Timestamp;
     use crate::core::defs::NOLAN_PER_SAITO;
+    use crate::core::process::process_event::ProcessEvent;
+    use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+    use crate::core::routing::io::network::PeerDisconnectType;
+    use crate::core::routing::io::network_event::NetworkEvent;
+    use crate::core::routing::peers::congestion_controller::{
+        CongestionStatsDisplay, PeerCongestionControls,
+    };
+    use crate::core::routing::peers::network_peer::NetworkPeer;
+    use crate::core::routing::peers::peer::{Peer, PeerStatus};
     use crate::core::routing_thread::RoutingThread;
+    use crate::core::util::config_manager::CONGESTION_CONFIG_PATH;
+    use crate::core::util::configuration::{
+        BlockchainConfig, Configuration, ConsensusConfig, PeerConfig, Server, WalletConfig,
+    };
     use crate::core::util::crypto::generate_keys;
-    use crate::core::util::test::node_tester::test::NodeTester;
+    use crate::core::util::test::node_tester::test::{NodeTester, TestConfiguration};
+    use crate::core::verification_thread::VerifyRequest;
+    use ahash::HashMap;
+    use async_trait::async_trait;
+    use std::fmt::{Debug, Formatter};
+    use std::io::{Error, ErrorKind};
+    use std::sync::{Arc, Mutex};
+    use tokio::sync::RwLock;
+
+    #[derive(Debug, Default)]
+    struct TestHarnessIoState {
+        connect_attempts: Vec<String>,
+        stored_values: HashMap<String, Vec<u8>>,
+        fail_connect: bool,
+    }
+
+    #[derive(Debug, Clone)]
+    struct TestHarnessIo {
+        state: Arc<Mutex<TestHarnessIoState>>,
+    }
+
+    impl TestHarnessIo {
+        fn new(state: Arc<Mutex<TestHarnessIoState>>) -> Self {
+            Self { state }
+        }
+    }
+
+    #[async_trait]
+    impl InterfaceIO for TestHarnessIo {
+        async fn send_message(&self, _public_key: [u8; 33], _buffer: &[u8]) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn send_message_to_all(
+            &self,
+            _buffer: &[u8],
+            _excluded_peers: Vec<[u8; 33]>,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn connect_to_peer(&mut self, url: String) -> Result<(), Error> {
+            let mut state = self.state.lock().unwrap();
+            state.connect_attempts.push(url);
+            if state.fail_connect {
+                return Err(Error::new(ErrorKind::ConnectionRefused, "connect failed"));
+            }
+            Ok(())
+        }
+
+        async fn disconnect_from_peer(&self, _public_key: [u8; 33]) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn fetch_block_from_peer(
+            &self,
+            _block_hash: [u8; 32],
+            _public_key: [u8; 33],
+            _url: &str,
+            _block_id: u64,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn write_value(&self, key: &str, value: &[u8]) -> Result<(), Error> {
+            self.state
+                .lock()
+                .unwrap()
+                .stored_values
+                .insert(key.to_string(), value.to_vec());
+            Ok(())
+        }
+
+        async fn append_value(&mut self, key: &str, value: &[u8]) -> Result<(), Error> {
+            let mut state = self.state.lock().unwrap();
+            state
+                .stored_values
+                .entry(key.to_string())
+                .or_default()
+                .extend_from_slice(value);
+            Ok(())
+        }
+
+        async fn flush_data(&mut self, _key: &str) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn read_value(&self, key: &str) -> Result<Vec<u8>, Error> {
+            self.state
+                .lock()
+                .unwrap()
+                .stored_values
+                .get(key)
+                .cloned()
+                .ok_or_else(|| Error::new(ErrorKind::NotFound, "value not found"))
+        }
+
+        async fn load_block_file_list(&self) -> Result<Vec<String>, Error> {
+            Ok(vec![])
+        }
+
+        async fn is_existing_file(&self, key: &str) -> bool {
+            self.state.lock().unwrap().stored_values.contains_key(key)
+        }
+
+        async fn remove_value(&self, key: &str) -> Result<(), Error> {
+            self.state.lock().unwrap().stored_values.remove(key);
+            Ok(())
+        }
+
+        fn get_block_dir(&self) -> String {
+            "./data/test/blocks".to_string()
+        }
+
+        fn get_checkpoint_dir(&self) -> String {
+            "./data/test/checkpoints".to_string()
+        }
+
+        fn ensure_directory_exists(&self, _block_dir: &str) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn process_api_call(&self, _buffer: Vec<u8>, _msg_index: u32, _public_key: [u8; 33]) {
+        }
+
+        async fn process_api_success(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: [u8; 33],
+        ) {
+        }
+
+        async fn process_api_error(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: [u8; 33],
+        ) {
+        }
+
+        fn send_interface_event(&self, _event: InterfaceEvent) {}
+
+        async fn save_wallet(
+            &self,
+            _wallet: &mut crate::core::consensus::wallet::Wallet,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
+        async fn load_wallet(
+            &self,
+            _wallet: &mut crate::core::consensus::wallet::Wallet,
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
+        fn get_my_services(&self) -> Vec<crate::core::routing::peers::peer_service::PeerService> {
+            vec![]
+        }
+    }
+
+    #[derive(Clone)]
+    struct TestHarnessConfig {
+        server: Option<Server>,
+        peers: Vec<PeerConfig>,
+        blockchain: BlockchainConfig,
+        spv_mode: bool,
+        browser_mode: bool,
+        consensus: Option<ConsensusConfig>,
+        config_path: String,
+        save_should_fail: bool,
+    }
+
+    impl Default for TestHarnessConfig {
+        fn default() -> Self {
+            let base = TestConfiguration::default();
+            Self {
+                server: base.get_server_configs().cloned(),
+                peers: base.get_peer_configs().clone(),
+                blockchain: base.get_blockchain_configs().clone(),
+                spv_mode: base.is_spv_mode(),
+                browser_mode: base.is_browser(),
+                consensus: base.get_consensus_config().cloned(),
+                config_path: String::new(),
+                save_should_fail: false,
+            }
+        }
+    }
+
+    impl Debug for TestHarnessConfig {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            f.debug_struct("TestHarnessConfig")
+                .field("server", &self.server)
+                .field("peers", &self.peers)
+                .field("blockchain", &self.blockchain)
+                .field("spv_mode", &self.spv_mode)
+                .field("browser_mode", &self.browser_mode)
+                .field("consensus", &self.consensus)
+                .field("config_path", &self.config_path)
+                .field("save_should_fail", &self.save_should_fail)
+                .finish()
+        }
+    }
+
+    impl Configuration for TestHarnessConfig {
+        fn get_server_configs(&self) -> Option<&Server> {
+            self.server.as_ref()
+        }
+
+        fn get_peer_configs(&self) -> &Vec<PeerConfig> {
+            &self.peers
+        }
+
+        fn get_blockchain_configs(&self) -> &BlockchainConfig {
+            &self.blockchain
+        }
+
+        fn get_blockchain_configs_mut(&mut self) -> &mut BlockchainConfig {
+            &mut self.blockchain
+        }
+
+        fn get_block_fetch_url(&self) -> String {
+            self.server
+                .as_ref()
+                .map(|server| {
+                    peer_url_from_config(&PeerConfig {
+                        host: server.endpoint.host.clone(),
+                        port: server.endpoint.port,
+                        protocol: server.endpoint.protocol.clone(),
+                        synctype: "full".to_string(),
+                    })
+                })
+                .unwrap_or_default()
+        }
+
+        fn is_spv_mode(&self) -> bool {
+            self.spv_mode
+        }
+
+        fn is_browser(&self) -> bool {
+            self.browser_mode
+        }
+
+        fn replace(&mut self, config: &dyn Configuration) {
+            self.server = config.get_server_configs().cloned();
+            self.peers = config.get_peer_configs().clone();
+            self.blockchain = config.get_blockchain_configs().clone();
+            self.spv_mode = config.is_spv_mode();
+            self.browser_mode = config.is_browser();
+            self.consensus = config.get_consensus_config().cloned();
+        }
+
+        fn get_consensus_config(&self) -> Option<&ConsensusConfig> {
+            self.consensus.as_ref()
+        }
+
+        fn get_consensus_config_mut(&mut self) -> Option<&mut ConsensusConfig> {
+            self.consensus.as_mut()
+        }
+
+        fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay> {
+            None
+        }
+
+        fn set_congestion_data(&mut self, _congestion_data: Option<CongestionStatsDisplay>) {}
+
+        fn get_config_path(&self) -> String {
+            self.config_path.clone()
+        }
+
+        fn set_config_path(&mut self, path: String) {
+            self.config_path = path;
+        }
+
+        fn save(&self) -> Result<(), Error> {
+            if self.save_should_fail {
+                return Err(Error::new(ErrorKind::Other, "save failed"));
+            }
+            Ok(())
+        }
+
+        fn get_wallet_configs(&self) -> Option<&WalletConfig> {
+            None
+        }
+
+        fn get_wallet_configs_mut(&mut self) -> Option<&mut WalletConfig> {
+            None
+        }
+    }
+
+    fn install_test_io(tester: &mut NodeTester, state: Arc<Mutex<TestHarnessIoState>>) {
+        tester.routing_thread.network.io_interface = Box::new(TestHarnessIo::new(state.clone()));
+        tester.routing_thread.storage.io_interface = Box::new(TestHarnessIo::new(state));
+    }
+
+    fn install_test_config(tester: &mut NodeTester, config: TestHarnessConfig) {
+        tester.routing_thread.config_lock = Arc::new(RwLock::new(config));
+    }
+
+    fn peer_url_from_config(peer: &PeerConfig) -> String {
+        let protocol = if peer.protocol == "https" {
+            "wss"
+        } else {
+            "ws"
+        };
+        format!("{}://{}:{}/wsopen", protocol, peer.host, peer.port)
+    }
 
     #[tokio::test]
     #[serial_test::serial]
@@ -2229,5 +2640,211 @@ mod tests {
                 ghost_chain.txs.len(),
             );
         }
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn handle_new_peer_drops_connection_without_public_key() {
+        let mut tester = NodeTester::default();
+        let peer = NetworkPeer::new(Some("ws://example.test/wsopen".to_string()));
+
+        let result = tester.routing_thread.handle_new_peer(peer).await;
+
+        assert!(result.is_none());
+        let peers = tester.routing_thread.network.peer_lock.read().await;
+        assert!(peers.peers.is_empty());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn handle_new_peer_drops_connection_without_handshake_response() {
+        let mut tester = NodeTester::default();
+        let mut peer = NetworkPeer::new(Some("ws://example.test/wsopen".to_string()));
+        peer.public_key = Some(generate_keys().0);
+
+        let result = tester.routing_thread.handle_new_peer(peer).await;
+
+        assert!(result.is_none());
+        let peers = tester.routing_thread.network.peer_lock.read().await;
+        assert!(peers.peers.is_empty());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn process_incoming_block_hash_skips_peer_without_fetch_url() {
+        let mut tester = NodeTester::default();
+        let public_key = generate_keys().0;
+
+        {
+            let mut peers = tester.routing_thread.network.peer_lock.write().await;
+            peers.peers.insert(public_key, Peer::new(public_key));
+        }
+
+        let result = tester
+            .routing_thread
+            .process_incoming_block_hash_(
+                [7; 32],
+                1,
+                public_key,
+                tester.routing_thread.blockchain_lock.clone(),
+                tester.routing_thread.mempool_lock.clone(),
+            )
+            .await;
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn handle_peer_disconnect_marks_minimally_initialized_peer_disconnected() {
+        let mut tester = NodeTester::default();
+        let public_key = generate_keys().0;
+
+        {
+            let mut peers = tester.routing_thread.network.peer_lock.write().await;
+            peers.peers.insert(public_key, Peer::new(public_key));
+        }
+
+        tester
+            .routing_thread
+            .handle_peer_disconnect(public_key, PeerDisconnectType::InternalDisconnect)
+            .await;
+
+        let peers = tester.routing_thread.network.peer_lock.read().await;
+        let peer = peers
+            .peers
+            .get(&public_key)
+            .expect("peer should still exist");
+        assert!(matches!(peer.peer_status, PeerStatus::Disconnected(_, _)));
+        assert_ne!(peer.disconnected_at, Timestamp::MAX);
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn malformed_network_messages_do_not_panic_routing_thread() {
+        let mut tester = NodeTester::default();
+        let public_key = generate_keys().0;
+
+        let result = tester
+            .routing_thread
+            .process_network_event(NetworkEvent::IncomingNetworkMessage {
+                public_key,
+                buffer: vec![255, 0, 1],
+            })
+            .await;
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn on_init_ignores_malformed_congestion_public_keys() {
+        let mut tester = NodeTester::default();
+        let state = Arc::new(Mutex::new(TestHarnessIoState::default()));
+        let mut congestion_controls_by_key = HashMap::default();
+        congestion_controls_by_key.insert(
+            "not-a-valid-key".to_string(),
+            PeerCongestionControls::default(),
+        );
+        let malformed = CongestionStatsDisplay {
+            congestion_controls_by_key,
+            congestion_controls_by_ip: HashMap::default(),
+        };
+        state.lock().unwrap().stored_values.insert(
+            CONGESTION_CONFIG_PATH.to_string(),
+            serde_json::to_vec(&malformed).unwrap(),
+        );
+        install_test_io(&mut tester, state);
+
+        tester.routing_thread.on_init().await;
+
+        let peers = tester.routing_thread.network.peer_lock.read().await;
+        assert!(peers.congestion_controls_by_key.is_empty());
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn initialize_static_peers_continues_after_connect_failures() {
+        let mut tester = NodeTester::default();
+        let state = Arc::new(Mutex::new(TestHarnessIoState {
+            fail_connect: true,
+            ..Default::default()
+        }));
+        install_test_io(&mut tester, state.clone());
+
+        let mut config = TestHarnessConfig::default();
+        config.peers = vec![PeerConfig {
+            host: "peer.example".to_string(),
+            port: 443,
+            protocol: "https".to_string(),
+            synctype: "full".to_string(),
+        }];
+        install_test_config(&mut tester, config);
+
+        let config_lock = tester.routing_thread.config_lock.clone();
+        tester
+            .routing_thread
+            .initialize_static_peers(config_lock)
+            .await;
+
+        let attempts = state.lock().unwrap().connect_attempts.clone();
+        assert_eq!(
+            attempts,
+            vec![peer_url_from_config(&PeerConfig {
+                host: "peer.example".to_string(),
+                port: 443,
+                protocol: "https".to_string(),
+                synctype: "full".to_string(),
+            })]
+        );
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn blockchain_updated_tolerates_config_save_failures() {
+        let mut tester = NodeTester::default();
+        let mut config = TestHarnessConfig::default();
+        config.save_should_fail = true;
+        config.blockchain.confirmations = vec![(7, [9; 32], 3)];
+        install_test_config(&mut tester, config);
+
+        tester
+            .routing_thread
+            .process_event(
+                crate::core::routing_thread::RoutingEvent::BlockchainUpdated([1; 32], false),
+            )
+            .await;
+
+        let config = tester.routing_thread.config_lock.read().await;
+        assert_eq!(
+            config.get_blockchain_configs().confirmations,
+            vec![(7, [9; 32], 3)]
+        );
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn send_to_verification_thread_returns_when_sender_is_dropped() {
+        let mut tester = NodeTester::default();
+        let (sender, receiver) = tokio::sync::mpsc::channel(1);
+        drop(receiver);
+        tester.routing_thread.senders_to_verification = vec![sender];
+
+        tester
+            .routing_thread
+            .send_to_verification_thread(VerifyRequest::Transaction(Transaction::default()))
+            .await;
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn send_to_verification_thread_returns_when_no_senders_exist() {
+        let mut tester = NodeTester::default();
+        tester.routing_thread.senders_to_verification.clear();
+
+        tester
+            .routing_thread
+            .send_to_verification_thread(VerifyRequest::Transaction(Transaction::default()))
+            .await;
     }
 }

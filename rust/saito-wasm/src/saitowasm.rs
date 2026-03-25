@@ -1295,22 +1295,23 @@ pub async fn get_peers() -> Array {
         .peer_lock
         .read()
         .await;
-    let valid_peer_count = peers
-        .peers
-        .iter()
-        .filter(|(_, peer)| peer.is_connected())
-        .count();
-    let array = Array::new_with_length(valid_peer_count as u32);
-    let mut array_index = 0;
-    for (_i, (_public_key, peer)) in peers.peers.iter().enumerate() {
-        let peer = peer.clone();
-        array.set(
-            array_index as u32,
-            JsValue::from(WasmPeer::new_from_peer(peer)),
-        );
-        array_index += 1;
+    let connected_peers = collect_connected_peers(&peers);
+    let array = Array::new_with_length(connected_peers.len() as u32);
+    for (index, peer) in connected_peers.into_iter().enumerate() {
+        array.set(index as u32, JsValue::from(WasmPeer::new_from_peer(peer)));
     }
     array
+}
+
+fn collect_connected_peers(
+    peers: &PeerCollection,
+) -> Vec<saito_core::core::routing::peers::peer::Peer> {
+    peers
+        .peers
+        .values()
+        .filter(|peer| peer.is_connected())
+        .cloned()
+        .collect()
 }
 
 #[wasm_bindgen]
@@ -1332,6 +1333,33 @@ pub async fn get_peer(key: JsString) -> Option<WasmPeer> {
     }
     let peer = peer.cloned().unwrap();
     Some(WasmPeer::new_from_peer(peer))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use saito_core::core::routing::peers::peer::{Peer, PeerStatus};
+    use saito_core::core::routing::peers::peer_collection::PeerCollection;
+    use saito_core::core::util::crypto::generate_keys;
+
+    #[test]
+    fn get_peers_only_returns_connected_peers() {
+        let mut peers = PeerCollection::default();
+        let connected_key = generate_keys().0;
+        let disconnected_key = generate_keys().0;
+
+        let mut connected_peer = Peer::new(connected_key);
+        connected_peer.peer_status = PeerStatus::Connected;
+        peers.peers.insert(connected_key, connected_peer);
+        peers
+            .peers
+            .insert(disconnected_key, Peer::new(disconnected_key));
+
+        let exported = collect_connected_peers(&peers);
+
+        assert_eq!(exported.len(), 1);
+        assert_eq!(exported[0].public_key, connected_key);
+    }
 }
 
 #[wasm_bindgen]
