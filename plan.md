@@ -57,7 +57,7 @@
 
 ## Phase 2: Peer Lifecycle And Routing Resilience
 
-27. [ ] `Critical | P1` Eliminate unwraps of optional peer `public_key`, `url`, and handshake `response` before handshake completion across `rust/saito-core/src/core/routing_thread.rs` and `rust/saito-core/src/core/routing/peers/network_peer.rs`.
+27. [x] `Critical | P1` Eliminate unwraps of optional peer `public_key`, `url`, and handshake `response` before handshake completion across `rust/saito-core/src/core/routing_thread.rs` and `rust/saito-core/src/core/routing/peers/network_peer.rs`.
 28. [ ] `High | P1` Make stale-peer cleanup and disconnect paths in `rust/saito-core/src/core/routing/peers/peer_collection.rs` tolerant of races and network I/O failures.
 29. [ ] `High | P1` Guard block-fetch candidate selection and peer-add flows against partially initialized peers instead of assuming peer metadata is present. This includes `self.challenge.unwrap()` in `network_peer.rs` (line 117), which panics if a peer hasn't completed the challenge exchange.
 30. [ ] `High | P1` Reject malformed peer public keys in static or runtime config loading without panicking.

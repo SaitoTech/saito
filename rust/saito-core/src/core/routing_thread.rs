@@ -450,14 +450,16 @@ impl RoutingThread {
         trace!("connecting to static peers");
         let mut peers = self.network.peer_lock.write().await;
         for (public_key, peer) in &mut peers.peers {
-            if peer.url.is_none() {
-                trace!(
-                    "peer : {} doesn't have a url. so not connecting to it",
-                    public_key.to_base58()
-                );
-                continue;
-            }
-            let url = peer.url.as_ref().unwrap().clone();
+            let url = match peer.url.as_ref() {
+                Some(u) => u.clone(),
+                None => {
+                    trace!(
+                        "peer : {} doesn't have a url. so not connecting to it",
+                        public_key.to_base58()
+                    );
+                    continue;
+                }
+            };
             if let PeerStatus::Disconnected(connect_time, period) = &mut peer.peer_status {
                 if current_time < *connect_time {
                     continue;
@@ -1500,19 +1502,25 @@ impl RoutingThread {
             configs.is_browser()
         };
 
-        let public_key = network_peer.public_key.unwrap();
+        let public_key = match network_peer.public_key {
+            Some(k) => k,
+            None => {
+                warn!("handle_new_peer: received peer with no public key (incomplete handshake); dropping");
+                return None;
+            }
+        };
 
         {
             let mut peers = self.network.peer_lock.write().await;
-            if peers.is_peer_blacklisted(network_peer.public_key.unwrap(), time) {
+            if peers.is_peer_blacklisted(public_key, time) {
                 warn!(
                     "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
-                    network_peer.public_key.unwrap().to_base58(),
+                    public_key.to_base58(),
                     network_peer.ip.as_deref().unwrap_or("unknown")
                 );
                 return Some(());
             }
-            let mut peer = Peer::new(network_peer.public_key.unwrap());
+            let mut peer = Peer::new(public_key);
             // peer.ip_address = network_peer.ip;
             peer.handle_new_peer(
                 network_peer,
@@ -1604,7 +1612,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     let network_peer = result.unwrap();
                     info!(
                         "adding new peer : {} to be processed",
-                        network_peer.public_key.unwrap().to_base58()
+                        network_peer.public_key.unwrap_or([0; 33]).to_base58()
                     );
                     self.new_peers.push(network_peer);
                 }
