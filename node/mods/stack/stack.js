@@ -8,6 +8,7 @@ const HomePage = require('./index');
 const StackMain = require('./lib/ui/main');
 const ExploreOverlay = require('./lib/ui/overlay/explore');
 const CreatePost = require('./lib/ui/create-post');
+const ViewPost = require('./lib/ui/view-post');
 const { getAccessScriptForIntent } = require('./lib/access/access-scripts');
 
 //
@@ -249,7 +250,6 @@ class Stack extends ModTemplate {
 
     // Initialize ViewPost if needed (cache for reuse)
     if (!this.viewPostComponent) {
-      const ViewPost = require('./lib/ui/view-post');
       this.viewPostComponent = new ViewPost(this.app, this, '.saito-container');
     }
 
@@ -2263,6 +2263,8 @@ class Stack extends ModTemplate {
       const bTime = b.timestamp || 0;
       return bTime - aTime;
     });
+
+    this.postsCache.byAuthor.set(publicKey, collapsedPosts);
 
     return collapsedPosts;
   }

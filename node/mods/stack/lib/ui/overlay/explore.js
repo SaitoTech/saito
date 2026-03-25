@@ -173,7 +173,18 @@ class ExploreOverlay {
 
     const settingsBtn = document.querySelector('#stack-explore-settings-btn');
     if (settingsBtn) {
-      settingsBtn.style.display = currentUserPublicKey === this.mod.publicKey ? '' : 'none';
+      // Temporary since there is no connected functionality
+      //settingsBtn.style.display = currentUserPublicKey === this.mod.publicKey ? '' : 'none';
+    }
+
+    const postBtn = document.querySelector('#stack-explore-new-post-btn');
+    if (postBtn) {
+      if (currentUserPublicKey === this.mod.publicKey) {
+        postBtn.style.display = '';
+        this.attachGetStartedHandler();
+      } else {
+        postBtn.style.display = 'none';
+      }
     }
   }
 
@@ -244,7 +255,7 @@ class ExploreOverlay {
           <i class="fa-solid fa-newspaper" style="font-size: 4rem; color: var(--saito-font-color-light); opacity: 0.5; margin-bottom: 2rem;"></i>
           <h3 style="font-size: 2rem; font-weight: 600; color: var(--saito-font-color); margin: 0 0 1rem 0;">Welcome</h3>
           <p style="font-size: 1.6rem; color: var(--saito-font-color-light); margin: 0; max-width: 500px; line-height: 1.6;">
-            You haven't published any posts yet. <span id='alt-write' class="saito-anchor">Get started now<span>
+            You haven't published any posts yet. <span class="stack-alt-new-post saito-anchor">Get started now<span>
           </p>
         </div>
       `;
@@ -360,13 +371,12 @@ class ExploreOverlay {
   }
 
   attachGetStartedHandler() {
-    let btn = document.getElementById('alt-write');
-    if (btn) {
+    Array.from(document.querySelectorAll('.stack-alt-new-post')).forEach((btn) => {
       btn.onclick = (e) => {
         document.querySelector('#stack-create-post-btn').click();
         this.overlay.hide();
       };
-    }
+    });
   }
 
   /**
@@ -493,13 +503,15 @@ class ExploreOverlay {
           e.stopPropagation();
 
           let shareUrl = window.location.origin + `/${this.mod.slug}/${this.targetPublicKey}`;
-
-          // Copy to clipboard
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(shareUrl).then(() => {
-              siteMessage('Link copied to clipboard', 1500);
-            });
+          let title = 'Stack Creator';
+          if (this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey)) {
+            title += ' --- ' + this.app.keychain.returnIdentifierByPublicKey(this.targetPublicKey);
           }
+
+          this.app.browser.handleShare({
+            title,
+            url: shareUrl
+          });
         };
       }
 

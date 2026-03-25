@@ -68,6 +68,9 @@ module.exports = (app, mod, subs = []) => {
           
           <!-- Action Button Container (in main panel header, right-aligned) -->
           <div class="stack-explore-action-button-container">
+            <a href="#" class="stack-view-post-action-badge stack-alt-new-post" id="stack-explore-new-post-btn" style="display: none;">
+              <i class="fa-solid fa-plus"></i>
+            </a>
             <a href="#" class="stack-view-post-action-badge" id="stack-explore-settings-btn" style="display: none;">
               <i class="fa-solid fa-gear"></i>
             </a>

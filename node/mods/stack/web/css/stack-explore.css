@@ -52,6 +52,7 @@
   font-weight: 800;
   margin: 0;
   color: var(--saito-primary-text);
+  text-shadow: 1px 1px 1px var(--saito-black);
   line-height: 1.3;
   flex: 1;
 }
@@ -590,6 +591,11 @@
     border-radius: 0; /* Full screen, no rounded corners */
     flex-direction: column;
     padding: 0;
+  }
+
+  .saito-overlay-closebox:has(+ .stack-explore-overlay) .saito-overlay-closebox-btn {
+    background: var(--saito-font-color);
+    color: var(--saito-background-color);
   }
 
   .stack-explore-sidebar {

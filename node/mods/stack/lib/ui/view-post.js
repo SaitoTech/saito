@@ -1,4 +1,5 @@
 const ViewPostTemplate = require('./view-post.template');
+const PostTeaser = require('./post-teaser');
 const SaitoUser = require('./../../../../lib/saito/ui/saito-user/saito-user');
 
 class ViewPost {
@@ -10,6 +11,9 @@ class ViewPost {
   }
 
   render(tx = null) {
+    // Clear this out
+    this.authorPublicKey = null;
+
     // Update transaction if provided
     if (tx !== null) {
       this.tx = tx;
@@ -24,16 +28,16 @@ class ViewPost {
     // CANONICAL URL UPDATE: Update browser URL to reflect the post being viewed
     // ========================================================================
     if (this.tx && this.tx.signature) {
-      const authorPublicKey =
+      this.authorPublicKey =
         this.tx.from && this.tx.from.length > 0
           ? this.tx.from[0].publicKey || this.tx.from[0].address || ''
           : '';
 
-      if (authorPublicKey) {
-        const canonicalUrl = `/${this.mod.slug}/${authorPublicKey}/${this.tx.signature}`;
+      if (this.authorPublicKey) {
+        const canonicalUrl = `/${this.mod.slug}/${this.authorPublicKey}/${this.tx.signature}`;
         // Use pushState to update URL without reload (allows back button to work)
         window.history.pushState(
-          { view: 'stack_post', publicKey: authorPublicKey, signature: this.tx.signature },
+          { view: 'stack_post', publicKey: this.authorPublicKey, signature: this.tx.signature },
           null,
           canonicalUrl
         );
@@ -64,6 +68,7 @@ class ViewPost {
     setTimeout(() => {
       this.attachEvents();
       this.renderAuthorBlock();
+      this.addBreadCrumbs();
     }, 25);
   }
 
@@ -73,13 +78,8 @@ class ViewPost {
     if (!authorContainer || !this.tx) return;
 
     // Get sender public key from transaction (canonical Saito field)
-    // Verify correct field by checking transaction structure
-    const authorPublicKey =
-      this.tx.from && this.tx.from.length > 0
-        ? this.tx.from[0].publicKey || this.tx.from[0].address || ''
-        : '';
 
-    if (!authorPublicKey) return;
+    if (!this.authorPublicKey) return;
 
     // Get publish date from transaction timestamp
     const timestamp = this.tx.timestamp || Date.now();
@@ -92,11 +92,94 @@ class ViewPost {
       this.app,
       this.mod,
       '#stack-view-post-author-container',
-      authorPublicKey,
+      this.authorPublicKey,
       dateString, // Use notice parameter for publish date (renders as saito-userline)
       '' // fourthelem
     );
     saitoUser.render();
+  }
+
+  async addBreadCrumbs() {
+    if (!this.tx || !this.authorPublicKey) {
+      return;
+    }
+
+    let otherPosts = this.mod.postsCache.byAuthor.get(this.authorPublicKey);
+
+    if (!otherPosts) {
+      // Pull extras for breadcrumbs
+      await this.mod.loadPostsForAuthor(this.authorPublicKey);
+      otherPosts = this.mod.postsCache.byAuthor.get(this.authorPublicKey);
+    }
+
+    let idx = -1;
+
+    if (otherPosts?.length > 1) {
+      for (let i = 0; i < otherPosts.length; i++) {
+        if (otherPosts[i].signature == this.tx.signature) {
+          idx = i;
+          break;
+        }
+      }
+
+      if (idx >= 0) {
+        if (idx > 0) {
+          const teaser = new PostTeaser(this.app, this.mod, '#next-post', otherPosts[idx - 1]);
+          teaser.render();
+        } else {
+          this.app.browser.addElementToId(
+            `<div class="stack-view-footer-note">This is the most recent post</div>`,
+            'next-post'
+          );
+        }
+
+        if (idx < otherPosts.length - 1) {
+          const teaser = new PostTeaser(this.app, this.mod, '#previous-post', otherPosts[idx + 1]);
+          teaser.render();
+        } else {
+          this.app.browser.addElementToId(
+            `<div class="stack-view-footer-note">This is the earliest available post</div>`,
+            'previous-post'
+          );
+        }
+
+        //attach Events
+
+        const teasers = document.querySelectorAll('.stack-post-teaser');
+        teasers.forEach((teaser) => {
+          // Get transaction signature from DOM (preferred) or fallback to post-id
+          const txSignature =
+            teaser.getAttribute('data-tx-signature') || teaser.getAttribute('data-post-id');
+          if (!txSignature) return;
+
+          // Remove existing click handlers to avoid duplicates
+          const newTeaser = teaser.cloneNode(true);
+          teaser.parentNode.replaceChild(newTeaser, teaser);
+
+          // Attach click handler
+          newTeaser.onclick = async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            // Resolve transaction from cache
+            // First try this.posts (already loaded)
+            let tx = otherPosts.find((p) => p.signature === txSignature) || null;
+
+            if (tx) {
+              this.render(tx);
+              // Reset scroll position immediately
+              const container = document.querySelector('.saito-container');
+              window.scrollTo({ top: 0, behavior: 'instant' });
+              if (container.scrollTop !== undefined) {
+                container.scrollTop = 0;
+              }
+            } else {
+              siteMessage('Something went wrong...');
+            }
+          };
+        });
+      }
+    }
   }
 
   attachEvents() {
@@ -104,14 +187,9 @@ class ViewPost {
       // EDITOR icon (pencil) - only visible to post author, opens editor with post content
       const editorIcon = document.querySelector('#stack-view-post-build-on');
       if (editorIcon) {
-        // Check if current user is the author
-        const authorPublicKey =
-          this.tx.from && this.tx.from.length > 0
-            ? this.tx.from[0].publicKey || this.tx.from[0].address || ''
-            : '';
         const currentUserPublicKey = this.mod.publicKey || '';
 
-        if (authorPublicKey === currentUserPublicKey && authorPublicKey) {
+        if (this.authorPublicKey === currentUserPublicKey && this.authorPublicKey) {
           // Show icon for author
           editorIcon.style.display = '';
           editorIcon.addEventListener('click', (e) => {
@@ -130,17 +208,11 @@ class ViewPost {
         shareBtn.addEventListener('click', (e) => {
           e.preventDefault();
 
-          if (!this.tx) return;
-
-          // Get canonical URL
-          const authorPublicKey =
-            this.tx.from && this.tx.from.length > 0
-              ? this.tx.from[0].publicKey || this.tx.from[0].address || ''
-              : '';
+          if (!this.tx || !this.authorPublicKey) return;
 
           let shareUrl = window.location.href;
-          if (authorPublicKey && this.tx.signature) {
-            shareUrl = `/${this.mod.slug}/${authorPublicKey}/${this.tx.signature}`;
+          if (this.authorPublicKey && this.tx.signature) {
+            shareUrl = `/${this.mod.slug}/${this.authorPublicKey}/${this.tx.signature}`;
             if (!shareUrl.startsWith('http')) {
               shareUrl = window.location.origin + shareUrl;
             }

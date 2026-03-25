@@ -333,14 +333,26 @@
 
 /* Footer */
 .stack-view-post-footer {
-  margin-top: 5rem; /* Generous space after body content */
+  margin-top: 4rem; /* Generous space after body content */
   padding-top: 2rem;
+  padding-bottom: 2rem;
+  border-top: 1px solid var(--saito-border-color);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
 }
 
-.stack-view-post-footer-divider {
-  height: 1px;
-  background: var(--saito-border-color);
-  width: 100%;
+.stack-view-post-footer-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 12px;
+}
+
+.stack-view-footer-note {
+  text-align: center;
 }
 
 /* Error State */

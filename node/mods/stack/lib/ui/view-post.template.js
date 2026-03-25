@@ -177,7 +177,8 @@ module.exports = (app, mod, tx) => {
         }
         
         <footer class="stack-view-post-footer">
-          <div class="stack-view-post-footer-divider"></div>
+          <div id="next-post" class="stack-view-post-footer-card"></div>
+          <div id="previous-post" class="stack-view-post-footer-card"></div>
         </footer>
       </article>
     </div>

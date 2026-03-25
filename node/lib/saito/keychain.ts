@@ -324,7 +324,7 @@ class Keychain {
     }
   }
 
-  returnKey(data = null, force_local_keychain = false) {
+  returnKey(data: any = {}, force_local_keychain = false) {
     //
     // data might be a publicKey, permit flexibility
     // in how this is called by pushing it into a
