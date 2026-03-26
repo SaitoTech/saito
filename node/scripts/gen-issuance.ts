@@ -44,7 +44,9 @@ async function genIssuance() {
     });
 
     console.log('threshold set as ' + threshold);
-    await S.getInstance().writeIssuanceFile(threshold);
+    const core = S.getInstance().getCore();
+    await core.admin.writeIssuanceFile(threshold);
+
 }
 
 genIssuance().catch((e) => console.error(e));

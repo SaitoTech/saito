@@ -55,6 +55,7 @@ class Saito {
   blockchain: Blockchain;
   hash: (data: Uint8Array) => string;
   server: any;
+  core: any;
 
   constructor(config = {}) {
     this.BROWSER = 1;
@@ -73,7 +74,7 @@ class Saito {
 
   newSaito() {
     this.binary = new Binary(this);
-    this.crypto = new Crypto();
+    this.crypto = new Crypto(this);
     this.connection = new Connection();
     this.browser = new Browser(this);
     this.storage = new Storage(this);

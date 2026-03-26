@@ -8,30 +8,22 @@ const bip39 = require('bip39');
 const CryptoJS = node_cryptojs.CryptoJS;
 const JsonFormatter = node_cryptojs.JsonFormatter;
 
-
-class Crypto {
-
-  public app: any;
-
-  constructor(app) {
-    this.app = app || {};
-  }
-
+export default class Crypto {
   public hash(buffer: Uint8Array | string): string {
     // buffer = buffer || "";
     if (typeof buffer === 'string') {
-      return this.app.core.crypto.hash(Buffer.from(buffer));
+      return Saito.getInstance().hash(Buffer.from(buffer));
     }
     // 64-bit hash
-    return this.app.core.crypto.hash(buffer);
+    return Saito.getInstance().hash(buffer);
   }
 
   public signBuffer(buffer: Uint8Array, privateKey: string): string {
-    return this.app.core.crypto.signBuffer(buffer, privateKey);
+    return Saito.getInstance().signBuffer(buffer, privateKey);
   }
 
   public verifySignature(buffer: Uint8Array, sig: string, publicKey: string): boolean {
-    return this.app.core.crypto.verifySignature(buffer, sig, publicKey);
+    return Saito.getInstance().verifySignature(buffer, sig, publicKey);
   }
 
   public signMessage(msg: string, privateKey: string): string {
@@ -172,11 +164,11 @@ class Crypto {
   }
 
   generateKeys(): string {
-    return this.app.core.crypto.generatePrivateKey();
+    return Saito.getInstance().generatePrivateKey();
   }
 
   generatePublicKey(privateKey: string): string {
-    return this.app.core.crypto.generatePublicKey(privateKey);
+    return Saito.getInstance().generatePublicKey(privateKey);
   }
 
   /**
@@ -583,6 +575,3 @@ class Crypto {
     return new Uint8Array(bytes);
   }
 }
-
-export default Crypto;
-

@@ -184,6 +184,8 @@ async function init() {
   saito.wallet.app = saito;
   saito.blockchain = (await S.getInstance().getBlockchain()) as Blockchain;
   saito.blockchain.app = saito;
+  saito.core = S.getInstance().getCore();
+
   saito.BROWSER = 1;
   saito.SPVMODE = 1;
 
