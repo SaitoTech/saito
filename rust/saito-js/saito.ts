@@ -329,11 +329,6 @@ export default class Saito {
     return Saito.getLibInstance().initialize(configs);
   }
 
-  public async getLatestBlockHash(): Promise<string> {
-    const core = this.getCore();
-    return core.blockchain!.get_last_block_hash();
-  }
-
   public async getBlock<B extends Block>(blockHash: string): Promise<B | null> {
     try {
       let block = await Saito.getLibInstance().get_block(blockHash);
@@ -344,25 +339,8 @@ export default class Saito {
     }
   }
 
-  public async processPeerDisconnection(public_key: string): Promise<void> {
-    return Saito.getLibInstance().process_peer_disconnection(public_key);
-  }
-
   public async processMsgBufferFromPeer(buffer: Uint8Array, peer: NetworkPeer): Promise<void> {
     return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
-  }
-
-  public async processFetchedBlock(
-    buffer: Uint8Array,
-    hash: Uint8Array,
-    block_id: bigint,
-    public_key: bigint
-  ): Promise<void> {
-    return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, public_key);
-  }
-
-  public async processTimerEvent(duration_in_ms: bigint): Promise<void> {
-    return Saito.getLibInstance().process_timer_event(duration_in_ms);
   }
 
   public async createTransaction<T extends Transaction>(
@@ -589,10 +567,6 @@ export default class Saito {
     return Saito.getLibInstance().send_api_success(buffer, msgId, publicKey);
   }
 
-  public async sendApiError(msgId: number, buffer: Uint8Array, publicKey: string) {
-    return Saito.getLibInstance().send_api_error(buffer, msgId, publicKey);
-  }
-
   public async sendTransactionWithCallback(
     transaction: Transaction,
     callback?: any,
@@ -682,10 +656,6 @@ export default class Saito {
     );
   }
 
-  public async getAccountSlips(publicKey: string) {
-    return Saito.getLibInstance().get_account_slips(publicKey);
-  }
-
   public async getBalanceSnapshot(keys: string[]): Promise<BalanceSnapshot> {
     let snapshot = await Saito.getLibInstance().get_balance_snapshot(keys);
     return new BalanceSnapshot(snapshot);
@@ -715,15 +685,6 @@ export default class Saito {
       // console.debug(e);
     }
     return false;
-  }
-
-  public async writeIssuanceFile(threshold: bigint) {
-    try {
-      return Saito.getLibInstance().write_issuance_file(threshold);
-    } catch (error) {
-      console.warn("failed writing issuance file");
-      console.error(error);
-    }
   }
 
   public async addPendingTx(tx: Transaction) {
