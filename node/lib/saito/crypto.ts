@@ -1,4 +1,3 @@
-import Saito from 'saito-js/saito';
 import node_cryptojs from 'node-cryptojs-aes';
 import crypto from 'crypto-browserify';
 import * as Base58 from 'base-58';

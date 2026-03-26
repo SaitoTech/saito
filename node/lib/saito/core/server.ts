@@ -446,18 +446,6 @@ class Server {
     }
 
 
-const core = S.getInstance().getCore();
-console.log("CORE:", Object.keys(core));
-console.log("BLOCKCHAIN METHODS:",
-  Object.getOwnPropertyNames(
-    Object.getPrototypeOf(core.blockchain)
-  )
-);
-console.log(core.blockchain.get_last_block_hash());
-const input = new Uint8Array([1, 2, 3, 4]);
-console.log(core.crypto.hash(input));
-
-
     //
     // update server information from options file
     //

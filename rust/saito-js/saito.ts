@@ -203,6 +203,68 @@ export default class Saito {
     this.stunManager = new StunPeer(this);
   }
 
+  //
+  // our main entry point for JS calls to Saito-Core via Saito-WASM
+  //
+  // for ease of understanding, we separate system components into 
+  //
+  public getCore() {
+
+    //
+    // throw an error explicitly if these variables are uninitialized
+    // as that can result in very difficult problems to debug later
+    // if we run into them. better to exit now and get an immediate
+    // notification of the problem.
+    //
+    if (!this.wallet || !this.blockchain) {
+      throw new Error("Core not initialized yet");
+    }
+
+    const wasm = Saito.getLibInstance();
+
+    return {
+
+      //
+      // ROOT STATE OBJECTS (singletons backed by Rust)
+      //
+      blockchain: this.blockchain?.instance,
+      wallet: this.wallet?.instance,
+
+      //
+      // OBJECT CLASSES (constructors from WASM)
+      //
+      transaction: wasm.WasmTransaction,
+      block: wasm.WasmBlock,
+      slip: wasm.WasmSlip,
+      peer: wasm.WasmPeer,
+      hop: wasm.WasmHop,
+
+      //
+      // SYSTEM COMPONENTS / PLACEHOLDERS
+      //
+      network: null,
+      storage: null,
+
+      //
+      // CRYPTO
+      //
+      crypto: {
+        hash: wasm.hash?.bind(wasm),
+        signBuffer: wasm.sign_buffer?.bind(wasm),
+        verifySignature: wasm.verify_signature?.bind(wasm),
+        generatePrivateKey: wasm.generate_private_key?.bind(wasm),
+        generatePublicKey: wasm.generate_public_key?.bind(wasm),
+      },
+
+      //
+      // ADMIN / MISC (unstructured)
+      //
+      admin: {
+        writeIssuanceFile: wasm.write_issuance_file?.bind(wasm),
+      }
+    };
+  }
+
   public static getInstance(): Saito {
     return Saito.instance;
   }
@@ -268,7 +330,8 @@ export default class Saito {
   }
 
   public async getLatestBlockHash(): Promise<string> {
-    return Saito.getLibInstance().get_latest_block_hash();
+    const core = this.getCore();
+    return core.blockchain!.get_last_block_hash();
   }
 
   public async getBlock<B extends Block>(blockHash: string): Promise<B | null> {
@@ -300,18 +363,6 @@ export default class Saito {
 
   public async processTimerEvent(duration_in_ms: bigint): Promise<void> {
     return Saito.getLibInstance().process_timer_event(duration_in_ms);
-  }
-
-  public hash(buffer: Uint8Array): string {
-    return Saito.getLibInstance().hash(buffer);
-  }
-
-  public signBuffer(buffer: Uint8Array, privateKey: String): string {
-    return Saito.getLibInstance().sign_buffer(buffer, privateKey);
-  }
-
-  public verifySignature(buffer: Uint8Array, signature: string, publicKey: string): boolean {
-    return Saito.getLibInstance().verify_signature(buffer, signature, publicKey);
   }
 
   public async createTransaction<T extends Transaction>(
@@ -498,15 +549,6 @@ export default class Saito {
       return null;
     }
     return this.factory.createPeer(peer);
-  }
-
-  public generatePrivateKey(): string {
-    return Saito.getLibInstance().generate_private_key();
-  }
-
-  public generatePublicKey(privateKey: string): string {
-    let key = Saito.getLibInstance().generate_public_key(privateKey);
-    return key;
   }
 
   public async propagateTransaction(tx: Transaction) {

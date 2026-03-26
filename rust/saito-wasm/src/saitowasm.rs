@@ -378,7 +378,7 @@ pub async fn initialize(
 
     trace!("trace test");
     debug!("debug test");
-    info!("initializing saito-wasm  2");
+    info!("initializing saito-wasm 5");
 
     let mut enable_stats = true;
     let mut genesis_period = 100_000;
