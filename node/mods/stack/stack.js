@@ -582,7 +582,7 @@ class Stack extends ModTemplate {
             data = d;
           }
 
-          if (data.publicKey == this.STACK_OFFICIAL_PUBLICKEY) {
+          if (data?.publicKey == this.STACK_OFFICIAL_PUBLICKEY) {
             return {
               publicKey: data.publicKey,
               identifier: 'SaitoOfficial'

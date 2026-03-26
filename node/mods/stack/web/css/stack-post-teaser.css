@@ -143,7 +143,7 @@
   }
 
   .stack-post-teaser-image {
-    width: 100%;
+    width: 100% !important;
     min-width: 100%;
     aspect-ratio: 16 / 9; /* Wider on mobile */
   }

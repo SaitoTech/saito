@@ -87,7 +87,8 @@
     min-height: auto;
     height: 100%;
     display: grid;
-    grid-template-rows: minmax(0, 1fr) minmax(0, max-content);
+    /*grid-template-rows: minmax(0, 1fr) minmax(0, max-content);*/
+    grid-template-rows: minmax(0, min-content) minmax(min-content, 1fr);
   }
 }
 
@@ -355,7 +356,7 @@
 
 @media (max-width: 768px) {
   .stack-cta-title {
-    font-size: 3.5rem;
+    font-size: 3rem;
   }
 
   .stack-cta-description {
@@ -682,6 +683,22 @@
 
   .stack-main {
     order: 1;
+  }
+
+  .stack-features-list {
+    display: none;
+  }
+
+  .stack-cta-description {
+    margin-bottom: 1.5rem;
+  }
+
+  .stack-cta-buttons {
+    margin-bottom: 2rem;
+  }
+
+  .stack-cta-buttons button {
+    margin: 0;
   }
 }
 

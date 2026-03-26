@@ -173,6 +173,7 @@ select.saito-store-explorer-mobile option {
   font-size: 2rem;
   transition: opacity 1s ease-in;
   justify-items: center;
+  z-index: 150;
 }
 
 .asset-store-splash.dissolve {
@@ -252,8 +253,20 @@ select.saito-store-explorer-mobile option {
     grid-template-rows: min-content 1fr;
   }
 
+  .store-splash-content h2 {
+    font-size: 3rem;
+  }
+
   .list-asset {
     flex-grow: 1;
+  }
+
+  .store-img-flip {
+    height: 100%;
+  }
+
+  .store-features-list {
+    gap: 0.5rem;
   }
 
   .saito-sidebar.left {
@@ -291,7 +304,7 @@ select.saito-store-explorer-mobile option {
 
   .asset-store-splash {
     grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-rows: minmax(0, min-content) minmax(min-content, 1fr);
     padding: min(2rem, 5vw);
   }
 
