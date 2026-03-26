@@ -343,16 +343,18 @@
 }
 
 .stack-view-post-footer-card {
+}
+
+.stack-view-footer-note {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--saito-border-color);
   border-radius: 12px;
-}
-
-.stack-view-footer-note {
   text-align: center;
+  width: 100%;
+  height: 100%;
 }
 
 /* Error State */

@@ -157,6 +157,9 @@ module.exports = (app, mod, tx) => {
               <a href="#" id="stack-view-post-build-on" class="stack-view-post-action-badge" aria-label="Edit" title="Edit" style="display: none;">
                 <i class="fa-solid fa-pencil"></i>
               </a>
+              <a href="#" id="stack-view-post-subscribe" class="stack-view-post-action-badge" aria-label="Follow" title="Follow" style="display: none;">
+                <i class="fa-solid fa-user-plus"></i>
+              </a>
               <a href="#" id="stack-view-post-share" class="stack-view-post-action-badge" aria-label="Share Post" title="Share Post">
                 <i class="fa-solid fa-share-nodes"></i>
               </a>

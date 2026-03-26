@@ -202,6 +202,30 @@ class ViewPost {
         }
       }
 
+      // Follow
+      const followIcon = document.querySelector('#stack-view-post-subscribe');
+      if (followIcon) {
+        if (this.authorPublicKey !== this.mod.publicKey) {
+          if (!this.mod.isSubscribed(this.authorPublicKey)) {
+            followIcon.style.display = '';
+            followIcon.onclick = (e) => {
+              e.preventDefault();
+              const added = this.mod.addSubscription(this.authorPublicKey);
+              if (added) {
+                followIcon.style.display = 'none';
+                siteMessage('Subscribed!', 2000);
+              } else {
+                console.info(
+                  ' ! Subscribe failed...',
+                  this.authorPublicKey,
+                  this.app.options.stack.subscriptions
+                );
+              }
+            };
+          }
+        }
+      }
+
       // Share icon - generic share
       const shareBtn = document.querySelector('#stack-view-post-share');
       if (shareBtn) {
