@@ -44,6 +44,7 @@ async function genIssuance() {
     });
 
     console.log('threshold set as ' + threshold);
+    await S.getInstance().getWallet();
     const core = S.getInstance().getCore();
     await core.admin.writeIssuanceFile(threshold);
 

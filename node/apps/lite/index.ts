@@ -27,7 +27,7 @@ class WebMethods extends WebSharedMethods {
   async processApiCall(buffer: Uint8Array, msgIndex: number, publicKey: string): Promise<void> {
     const mycallback = async (response_object) => {
       try {
-        await S.getInstance().sendApiSuccess(
+        await this.app.core.network.api.success(
           msgIndex,
           Buffer.from(JSON.stringify(response_object), 'utf-8'),
           publicKey
