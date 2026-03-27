@@ -17,15 +17,15 @@ export default class Network {
   }
 
   public async propagateTransaction(tx: Transaction) {
-    return S.getInstance().propagateTransaction(tx);
+    return this.app.core.network.propagateTransaction(tx);
   }
 
   public async getPeers(): Promise<Array<Peer>> {
-    return S.getInstance().getPeers();
+    return this.app.core.network.getPeers();
   }
 
   public async getPeer(publicKey: string): Promise<Peer> {
-    return S.getInstance().getPeer(publicKey);
+    return this.app.core.network.getPeer(publicKey);
   }
 
   public async sendRequest(
@@ -36,7 +36,7 @@ export default class Network {
     signature_required = false
   ) {
     let buffer = Buffer.from(JSON.stringify(data), 'utf-8');
-    return S.getInstance().sendRequest(
+    return this.app.core.network.sendRequest(
       message,
       data,
       callback,
@@ -53,7 +53,7 @@ export default class Network {
     callback?: any,
     publicKey?: string
   ) {
-    return S.getInstance().sendTransactionWithCallback(transaction, callback, publicKey);
+    return this.app.core.network.sendTransactionWithCallback(transaction, callback, publicKey);
   }
 
   /*
@@ -67,7 +67,7 @@ export default class Network {
     publicKey?: string,
     signature_required?: boolean
   ) {
-    return S.getInstance().sendRequest(message, data, callback, publicKey, signature_required);
+    return this.app.core.network.sendRequest(message, data, callback, publicKey, signature_required);
   }
 
   public close() {}

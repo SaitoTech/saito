@@ -232,18 +232,15 @@ export class NodeSharedMethods extends CustomSharedMethods {
   }
 
   async processApiCall(buffer: Uint8Array, msgIndex: number, publicKey: string): Promise<void> {
-    // console.log(
-    //   "NodeMethods.processApiCall : peer= " + peerIndex + " with size : " + buffer.byteLength
-    // );
     const mycallback = async (response_object) => {
       // console.log("response_object ", response_object);
-      await S.getInstance().sendApiSuccess(
+      await this.app.core.network.api.success(
         msgIndex,
         response_object ? Buffer.from(JSON.stringify(response_object), 'utf-8') : Buffer.alloc(0),
         publicKey
       );
     };
-    let peer = await this.app.network.getPeer(publicKey);
+    let peer = await this.app.core.network.getPeer(publicKey);
     let newtx = new Transaction();
     try {
       // console.log("buffer length : " + buffer.byteLength, buffer);
@@ -636,7 +633,7 @@ class Server {
       const bsh = req.params.bhash;
       let keylist = [];
       let peer: Peer | null = null;
-      let peers: Peer[] = await this.app.network.getPeers();
+      let peers: Peer[] = await this.app.core.network.getPeers();
       for (let i = 0; i < peers.length; i++) {
         try {
           if (peers[i].publicKey === pkey) {
@@ -863,7 +860,7 @@ class Server {
       const bsh = req.params.bhash;
       let keylist = [];
       let peer: Peer | null = null;
-      let peers: Peer[] = await this.app.network.getPeers();
+      let peers: Peer[] = await this.app.core.network.getPeers();
       for (let i = 0; i < peers.length; i++) {
         try {
           if (peers[i].publicKey === pkey) {
@@ -1270,7 +1267,7 @@ class Server {
       let amt = req.params.amt;
       let tx = await S.getInstance().createTransaction(to, amt, BigInt(0));
       await tx.sign();
-      await S.getInstance().propagateTransaction(tx);
+      await this.app.core.network.core.propagateTransaction(tx);
       res.send({});
     });
     express.get('/test-api/status', async (req, res) => {

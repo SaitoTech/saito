@@ -206,10 +206,9 @@ export default class Saito {
   //
   // our main entry point for JS calls to Saito-Core via Saito-WASM
   //
-  // for ease of understanding, we separate system components into 
+  // for ease of understanding, we separate system components into
   //
   public getCore() {
-
     //
     // throw an error explicitly if these variables are uninitialized
     // as that can result in very difficult problems to debug later
@@ -220,9 +219,136 @@ export default class Saito {
       throw new Error("Core not initialized yet");
     }
 
+    const self = this;
     const wasm = Saito.getLibInstance();
+    const core: any = {};
+
+    //
+    // defined outside core for self-reference
+    //
+    core.network = {
+      getPeers: async () => {
+        const peers = await wasm.get_peers();
+        return peers.map((peer: any) => {
+          return self.factory.createPeer(peer);
+        });
+      },
+
+      getPeer: async (publicKey: string) => {
+        const peer = await wasm.get_peer(publicKey);
+        if (!peer) return null;
+        return self.factory.createPeer(peer);
+      },
+
+      propagateTransaction: async (tx: any) => {
+        const tx2 = tx.clone();
+        return wasm.propagate_transaction(tx2.wasmTransaction);
+      },
+
+      sendTransactionWithCallback: async (transaction: any, callback?: any, publicKey?: string) => {
+        const buffer = transaction.wasmTransaction.serialize();
+
+        await core.network.api
+          .call(buffer, publicKey, !!callback)
+          .then((buffer: Uint8Array) => {
+            if (callback) {
+              const tx = self.factory.createTransaction();
+              tx.data = buffer;
+              tx.unpackData();
+              return callback(tx);
+            }
+          })
+          .catch((error: any) => {
+            console.info("couldn't send api call : ", error);
+            if (callback) {
+              return callback({ err: error.toString() });
+            }
+          });
+      },
+
+      sendRequest: async (
+        message: string,
+        data: any = "",
+        callback?: any,
+        publicKey?: string,
+        signature_required?: boolean
+      ) => {
+        console.info("sending request : " + message + ", peer = " + publicKey);
+
+        const wallet = await self.getWallet();
+        const myPublicKey = await wallet.getPublicKey();
+
+        const tx = await wasm.create_transaction(myPublicKey, BigInt(0), BigInt(0), false);
+
+        const txObj = self.factory.createTransaction(tx);
+        txObj.msg = {
+          request: message,
+          data: data,
+        };
+
+        txObj.packData();
+
+        if (signature_required) {
+          await txObj.sign();
+        }
+
+        return core.network.sendTransactionWithCallback(
+          txObj,
+          (tx: any) => {
+            if (callback) {
+              return callback(tx.msg);
+            }
+          },
+          publicKey
+        );
+      },
+
+      //
+      // LOW-LEVEL PROTOCOL (API)
+      //
+      api: {
+        call: async (
+          buffer: Uint8Array,
+          publicKey?: string,
+          waitForReply?: boolean
+        ): Promise<Uint8Array> => {
+          if (!!publicKey) {
+            const peer = await core.network.getPeer(publicKey);
+            if (peer === null) {
+              throw new Error("peer not found. public key : " + publicKey);
+            }
+            if (peer.status !== "connected") {
+              throw new Error(`peer : ${peer.publicKey} not connected`);
+            }
+          }
+
+          if (waitForReply) {
+            return new Promise(async (resolve, reject) => {
+              self.callbackIndex++;
+              self.promises.set(self.callbackIndex, { resolve, reject });
+
+              wasm.send_api_call(buffer, self.callbackIndex, publicKey || "");
+            });
+          } else {
+            return wasm.send_api_call(buffer, self.callbackIndex, publicKey || "");
+          }
+        },
+
+        success: async (msgId: number, buffer: Uint8Array, publicKey: string) => {
+          return wasm.send_api_success(buffer, msgId, publicKey);
+        },
+
+        error: async (msgId: number, buffer: Uint8Array, publicKey: string) => {
+          return wasm.send_api_error(buffer, msgId, publicKey);
+        },
+      },
+    };
 
     return {
+      //
+      // why? because network defined outside
+      //
+      ...core,
 
       //
       // ROOT STATE OBJECTS (singletons backed by Rust)
@@ -242,7 +368,7 @@ export default class Saito {
       //
       // SYSTEM COMPONENTS / PLACEHOLDERS
       //
-      network: null,
+
       storage: null,
 
       //
@@ -261,7 +387,7 @@ export default class Saito {
       //
       admin: {
         writeIssuanceFile: wasm.write_issuance_file?.bind(wasm),
-      }
+      },
     };
   }
 
@@ -426,41 +552,37 @@ export default class Saito {
     return tx;
   }
 
+  public async createAtomizeBoundTransaction<T extends Transaction>(
+    slip1UtxoKey: string,
+    slip2UtxoKey: string,
+    slip3UtxoKey: string,
+    tx_msg: any
+  ): Promise<T> {
+    const tx_msg_arr = Buffer.from(JSON.stringify(tx_msg), "utf-8");
 
-    public async createAtomizeBoundTransaction<T extends Transaction>(
-      slip1UtxoKey: string,
-      slip2UtxoKey: string,
-      slip3UtxoKey: string,
-      tx_msg: any
-    ): Promise<T> {
+    const wasmTx = await Saito.getLibInstance().create_atomize_bound_transaction(
+      slip1UtxoKey,
+      slip2UtxoKey,
+      slip3UtxoKey,
+      new Uint8Array(tx_msg_arr)
+    );
 
-      const tx_msg_arr = Buffer.from(JSON.stringify(tx_msg), "utf-8");
+    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
 
-      const wasmTx = await Saito.getLibInstance().create_atomize_bound_transaction(
-        slip1UtxoKey,
-        slip2UtxoKey,
-        slip3UtxoKey,
-        new Uint8Array(tx_msg_arr)
-      );
+    tx.timestamp = Date.now();
 
-      const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
+    return tx;
+  }
 
-      tx.timestamp = Date.now();
-
-      return tx;
-    }
-
-
-    public async createSplitBoundTransaction<T extends Transaction>(
-      slip1UtxoKey: string,
-      slip2UtxoKey: string,
-      slip3UtxoKey: string,
-      leftCount: number,
-      rightCount: number,
-      tx_msg: any,
-    ): Promise<T> {
-
-        let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
+  public async createSplitBoundTransaction<T extends Transaction>(
+    slip1UtxoKey: string,
+    slip2UtxoKey: string,
+    slip3UtxoKey: string,
+    leftCount: number,
+    rightCount: number,
+    tx_msg: any
+  ): Promise<T> {
+    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
 
     const wasmTx = await Saito.getLibInstance().create_split_bound_transaction(
       slip1UtxoKey,
@@ -514,120 +636,8 @@ export default class Saito {
     return tx;
   }
 
-  public async getPeers(): Promise<Array<Peer>> {
-    let peers = await Saito.getLibInstance().get_peers();
-    return peers.map((peer: any) => {
-      return this.factory.createPeer(peer);
-    });
-  }
-
-  public async getPeer(publicKey: string): Promise<Peer | null> {
-    let peer = await Saito.getLibInstance().get_peer(publicKey);
-    if (!peer) {
-      return null;
-    }
-    return this.factory.createPeer(peer);
-  }
-
-  public async propagateTransaction(tx: Transaction) {
-    let tx2 = tx.clone();
-    return Saito.getLibInstance().propagate_transaction(tx2.wasmTransaction);
-  }
-
-  public async sendApiCall(
-    buffer: Uint8Array,
-    publicKey?: string,
-    waitForReply?: boolean
-  ): Promise<Uint8Array> {
-    if (!!publicKey) {
-      let peer = await this.getPeer(publicKey!);
-      if (peer === null) {
-        throw new Error("peer not found. public key : " + publicKey + "");
-      }
-      if (peer.status !== "connected") {
-        throw new Error(`peer : ${peer.publicKey} not connected. status : ${peer.status}`);
-      }
-    }
-
-    if (waitForReply) {
-      return new Promise(async (resolve, reject) => {
-        this.callbackIndex++;
-        await this.promises.set(this.callbackIndex, {
-          resolve,
-          reject,
-        });
-        Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey || "");
-      });
-    } else {
-      return Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey || "");
-    }
-  }
-
   public async sendApiSuccess(msgId: number, buffer: Uint8Array, publicKey: string) {
     return Saito.getLibInstance().send_api_success(buffer, msgId, publicKey);
-  }
-
-  public async sendTransactionWithCallback(
-    transaction: Transaction,
-    callback?: any,
-    publicKey?: string
-  ): Promise<any> {
-    // TODO : implement retry on fail
-    // TODO : stun code goes here probably???
-    // console.log(
-    //   "saito.sendTransactionWithCallback : peer = " + peerIndex + " sig = " + transaction.signature
-    // );
-    let buffer = transaction.wasmTransaction.serialize();
-
-    await this.sendApiCall(buffer, publicKey, !!callback)
-      .then((buffer: Uint8Array) => {
-        if (callback) {
-          // console.log("sendTransactionWithCallback. buffer length = " + buffer.byteLength);
-
-          let tx = this.factory.createTransaction();
-          tx.data = buffer;
-          tx.unpackData();
-          return callback(tx);
-        }
-      })
-      .catch((error) => {
-        console.info("couldn't send api call : ", error);
-        if (callback) {
-          return callback({ err: error.toString() });
-        }
-      });
-  }
-
-  public async sendRequest(
-    message: string,
-    data: any = "",
-    callback?: any,
-    publicKey?: string,
-    signature_required?: boolean
-  ): Promise<any> {
-    console.info("sending request : " + message + ", peer = " + publicKey);
-    let wallet = await this.getWallet();
-    let myPublicKey = await wallet.getPublicKey();
-    let tx = await this.createTransaction(myPublicKey, BigInt(0), BigInt(0));
-    tx.msg = {
-      request: message,
-      data: data,
-    };
-    tx.packData();
-
-    if (signature_required) {
-      await tx.sign();
-    }
-
-    return this.sendTransactionWithCallback(
-      tx,
-      (tx: Transaction) => {
-        if (callback) {
-          return callback(tx.msg);
-        }
-      },
-      publicKey
-    );
   }
 
   public async getWallet() {
