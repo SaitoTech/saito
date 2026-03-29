@@ -219,10 +219,11 @@ impl RoutingThread {
             }
             Message::Ping() => {
                 trace!("received ping from peer : {:?}", public_key.to_base58());
+                let serialized = Message::Pong().serialize();
                 if let Err(err) = self
                     .network
                     .io_interface
-                    .send_message(public_key, Message::Pong().serialize().as_slice())
+                    .send_message(public_key, serialized.as_slice())
                     .await
                 {
                     error!(
@@ -1615,12 +1616,13 @@ impl RoutingThread {
                 "requesting genesis block from peer : {:?}",
                 public_key.to_base58()
             );
+	    let serialized = Message::GenesisBlockRequest().serialize();
             _ = self
                 .network
                 .io_interface
                 .send_message(
                     public_key,
-                    Message::GenesisBlockRequest().serialize().as_slice(),
+                    serialized.as_slice(),
                 )
                 .await
                 .inspect_err(|e| {

@@ -269,8 +269,9 @@ impl Peer {
                 return;
             }
             trace!("sending ping to peer : {:?}", self.public_key.to_base58());
+	    let serialized = Message::Ping().serialize();
             io_handler
-                .send_message(self.public_key, Message::Ping().serialize().as_slice())
+                .send_message(self.public_key, serialized.as_slice())
                 .await
                 .unwrap();
         }

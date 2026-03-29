@@ -67,8 +67,9 @@ impl Network {
 
         debug!("sending block : {:?} to peers", block.hash.to_hex());
         let message = Message::BlockHeaderHash(block.hash, block.id);
+	let serialized = message.serialize();
         self.io_interface
-            .send_message_to_all(message.serialize().as_slice(), excluded_peers)
+            .send_message_to_all(serialized.as_slice(), excluded_peers)
             .await
             .unwrap();
     }
@@ -110,9 +111,10 @@ impl Network {
             let mut transaction = transaction.clone();
             transaction.add_hop(&wallet.private_key, &wallet.public_key, &public_key);
             let message = Message::Transaction(transaction);
+	    let serialized = message.serialize();
             _ = self
                 .io_interface
-                .send_message(*index, message.serialize().as_slice())
+                .send_message(*index, serialized.as_slice())
                 .await
                 .inspect_err(|e| error!("{}", e));
         }
