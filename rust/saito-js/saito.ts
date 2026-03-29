@@ -278,7 +278,7 @@ core.network = {
   },
 
   propagateTransaction: async (tx: any) => {
-    return wasmNetwork.propagateTransaction(tx.wasmTransaction);
+    return wasmNetwork.propagateTransaction(tx.clone().wasmTransaction);
   },
 
 };

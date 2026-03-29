@@ -93,7 +93,7 @@ impl WasmNetwork {
 
 
     #[wasm_bindgen(js_name = propagateTransaction)]
-    pub async fn propagate_transaction(&self, wtx: WasmTransaction) {
+    pub async fn propagate_transaction(&self, wtx: &WasmTransaction) {
         trace!("propagate_transaction");
 
         let mut saito = SAITO.lock().await;
