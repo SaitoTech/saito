@@ -223,133 +223,126 @@ export default class Saito {
     const wasm = Saito.getLibInstance();
     const core: any = {};
 
-const wasmNetwork = wasm.get_network();
-const wasmApi = wasmNetwork.api;
+    const wasmNetwork = wasm.get_network();
+    const wasmApi = wasmNetwork.api;
+    const api = Object.create(wasmApi);
 
-// -------------------------
-// API (safe wrapper, no mutation)
-// -------------------------
-const api = Object.create(wasmApi);
-
-api.call = async (
-  buffer: Uint8Array,
-  publicKey?: string,
-  waitForReply?: boolean
-): Promise<Uint8Array> => {
-  if (!!publicKey) {
-    const peer = await core.network.getPeer(publicKey);
-    if (peer === null) {
-      throw new Error("peer not found. public key : " + publicKey);
-    }
-    if (peer.status !== "connected") {
-      throw new Error(`peer : ${peer.publicKey} not connected`);
-    }
-  }
-
-  self.callbackIndex++;
-
-  if (waitForReply) {
-    return new Promise(async (resolve, reject) => {
-      self.promises.set(self.callbackIndex, { resolve, reject });
-      wasmApi.send(buffer, self.callbackIndex, publicKey || "");
-    });
-  } else {
-    return wasmApi.send(buffer, self.callbackIndex, publicKey || "");
-  }
-};
-
-// -------------------------
-// NETWORK (facade, no WASM mutation)
-// -------------------------
-core.network = {
-  api,
-
-  getPeers: async () => {
-    const peers = await wasmNetwork.getPeers();
-    return peers.map((peer: any) => {
-      return self.factory.createPeer(peer);
-    });
-  },
-
-  getPeer: async (publicKey: string) => {
-    const peer = await wasmNetwork.getPeer(publicKey);
-    if (!peer) return null;
-    return self.factory.createPeer(peer);
-  },
-
-  propagateTransaction: async (tx: any) => {
-    return wasmNetwork.propagateTransaction(tx.clone().wasmTransaction);
-  },
-
-};
-
-// -------------------------
-// HIGH-LEVEL NETWORK CALLS
-// -------------------------
-
-core.network.sendTransactionWithCallback = async (
-  transaction: any,
-  callback?: any,
-  publicKey?: string
-) => {
-  const buffer = transaction.wasmTransaction.serialize();
-
-  await api
-    .call(buffer, publicKey, !!callback)
-    .then((buffer: Uint8Array) => {
-      if (callback) {
-        const tx = self.factory.createTransaction();
-        tx.data = buffer;
-        tx.unpackData();
-        return callback(tx);
+    api.call = async (
+      buffer: Uint8Array,
+      publicKey?: string,
+      waitForReply?: boolean
+    ): Promise<Uint8Array> => {
+      if (!!publicKey) {
+        const peer = await core.network.getPeer(publicKey);
+        if (peer === null) {
+          throw new Error("peer not found. public key : " + publicKey);
+        }
+        if (peer.status !== "connected") {
+          throw new Error(`peer : ${peer.publicKey} not connected`);
+        }
       }
-    })
-    .catch((error: any) => {
-      console.info("couldn't send api call : ", error);
-      if (callback) {
-        return callback({ err: error.toString() });
+
+      self.callbackIndex++;
+
+      if (waitForReply) {
+        return new Promise(async (resolve, reject) => {
+          self.promises.set(self.callbackIndex, { resolve, reject });
+          wasmApi.send(buffer, self.callbackIndex, publicKey || "");
+        });
+      } else {
+        return wasmApi.send(buffer, self.callbackIndex, publicKey || "");
       }
-    });
-};
+    };
 
-core.network.sendRequest = async (
-  message: string,
-  data: any = "",
-  callback?: any,
-  publicKey?: string,
-  signature_required?: boolean
-) => {
-  console.info("sending request : " + message + ", peer = " + publicKey);
+    // -------------------------
+    // NETWORK (facade, no WASM mutation)
+    // -------------------------
+    core.network = {
+      api,
 
-  const wallet = await self.getWallet();
-  const myPublicKey = await wallet.getPublicKey();
+      getPeers: async () => {
+        const peers = await wasmNetwork.getPeers();
+        return peers.map((peer: any) => {
+          return self.factory.createPeer(peer);
+        });
+      },
 
-  const tx = await wasm.create_transaction(myPublicKey, BigInt(0), BigInt(0), false);
+      getPeer: async (publicKey: string) => {
+        const peer = await wasmNetwork.getPeer(publicKey);
+        if (!peer) return null;
+        return self.factory.createPeer(peer);
+      },
 
-  const txObj = self.factory.createTransaction(tx);
-  txObj.msg = {
-    request: message,
-    data: data,
-  };
+      propagateTransaction: async (tx: any) => {
+        return wasmNetwork.propagateTransaction(tx.clone().wasmTransaction);
+      },
+    };
 
-  txObj.packData();
+    // -------------------------
+    // HIGH-LEVEL NETWORK CALLS
+    // -------------------------
 
-  if (signature_required) {
-    await txObj.sign();
-  }
+    core.network.sendTransactionWithCallback = async (
+      transaction: any,
+      callback?: any,
+      publicKey?: string
+    ) => {
+      const buffer = transaction.wasmTransaction.serialize();
 
-  return core.network.sendTransactionWithCallback(
-    txObj,
-    (tx: any) => {
-      if (callback) {
-        return callback(tx.msg);
+      await api
+        .call(buffer, publicKey, !!callback)
+        .then((buffer: Uint8Array) => {
+          if (callback) {
+            const tx = self.factory.createTransaction();
+            tx.data = buffer;
+            tx.unpackData();
+            return callback(tx);
+          }
+        })
+        .catch((error: any) => {
+          console.info("couldn't send api call : ", error);
+          if (callback) {
+            return callback({ err: error.toString() });
+          }
+        });
+    };
+
+    core.network.sendRequest = async (
+      message: string,
+      data: any = "",
+      callback?: any,
+      publicKey?: string,
+      signature_required?: boolean
+    ) => {
+      console.info("sending request : " + message + ", peer = " + publicKey);
+
+      const wallet = await self.getWallet();
+      const myPublicKey = await wallet.getPublicKey();
+
+      const tx = await wasm.create_transaction(myPublicKey, BigInt(0), BigInt(0), false);
+
+      const txObj = self.factory.createTransaction(tx);
+      txObj.msg = {
+        request: message,
+        data: data,
+      };
+
+      txObj.packData();
+
+      if (signature_required) {
+        await txObj.sign();
       }
-    },
-    publicKey
-  );
-};
 
-
+      return core.network.sendTransactionWithCallback(
+        txObj,
+        (tx: any) => {
+          if (callback) {
+            return callback(tx.msg);
+          }
+        },
+        publicKey
+      );
+    };
 
     return {
       //
