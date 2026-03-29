@@ -1286,56 +1286,7 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
     saito_core::core::util::crypto::verify_signature(&h, &sig, &key.unwrap())
 }
 
-#[wasm_bindgen]
-pub async fn get_peers() -> Array {
-    let saito = SAITO.lock().await;
-    let peers = saito
-        .as_ref()
-        .unwrap()
-        .routing_thread
-        .network
-        .peer_lock
-        .read()
-        .await;
-    let connected_peers = collect_connected_peers(&peers);
-    let array = Array::new_with_length(connected_peers.len() as u32);
-    for (index, peer) in connected_peers.into_iter().enumerate() {
-        array.set(index as u32, JsValue::from(WasmPeer::new_from_peer(peer)));
-    }
-    array
-}
 
-fn collect_connected_peers(
-    peers: &PeerCollection,
-) -> Vec<saito_core::core::routing::peers::peer::Peer> {
-    peers
-        .peers
-        .values()
-        .filter(|peer| peer.is_connected())
-        .cloned()
-        .collect()
-}
-
-#[wasm_bindgen]
-pub async fn get_peer(key: JsString) -> Option<WasmPeer> {
-    let key: SaitoPublicKey = string_to_key(key).ok()?;
-    let saito = SAITO.lock().await;
-    let peers = saito
-        .as_ref()
-        .unwrap()
-        .routing_thread
-        .network
-        .peer_lock
-        .read()
-        .await;
-    let peer = peers.peers.get(&key);
-    if peer.is_none() {
-        warn!("peer not found");
-        return None;
-    }
-    let peer = peer.cloned().unwrap();
-    Some(WasmPeer::new_from_peer(peer))
-}
 
 #[cfg(test)]
 mod tests {
@@ -1344,6 +1295,8 @@ mod tests {
     use saito_core::core::routing::peers::peer_collection::PeerCollection;
     use saito_core::core::util::crypto::generate_keys;
 
+
+/*
     #[test]
     fn get_peers_only_returns_connected_peers() {
         let mut peers = PeerCollection::default();
@@ -1362,6 +1315,7 @@ mod tests {
         assert_eq!(exported.len(), 1);
         assert_eq!(exported[0].public_key, connected_key);
     }
+*/
 }
 
 #[wasm_bindgen]
