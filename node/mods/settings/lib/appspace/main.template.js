@@ -50,6 +50,8 @@ module.exports = (app, mod, main) => {
 
   <div class="settings-appspace saito-overlay-size wide tall">
 
+    <div id="settings-appspace-warning-bar" class="settings-appspace-warning-bar" style="display: none;" role="alert" aria-live="polite"></div>
+
     <div class="settings-appspace-header">
       <div class="settings-actions-container">
         <div class="saito-button-secondary small" id="restore-privatekey-btn" title="Restore account from private key or seed phrase">Import Key</div>
@@ -61,82 +63,90 @@ module.exports = (app, mod, main) => {
     </div>
 
     <div class="settings-appspace-body">
-      <div class="settings-appspace-user-details-container">
-        <h6>Wallet</h6>
-          <div class="settings-appspace-user-details">
-            <div>Username:</div>
-            ${identifier_registered}
-      
-            <div>Public Key:</div>
-            <div class="pubkey-grid" data-id="${publicKey}">
-              <div>${publicKey}</div>
-              <i class="fas fa-copy" id="copy-public-key"></i>
-            </div>
-      
-            <div>Private Key:</div>
-            <div class="settings-actions-container">
-              <div id="show-phrase" class="saito-button-secondary small">view seed phrase <i class="fa-solid fa-eye"></i></div>
-              <div id="copy-private-key" class="saito-button-secondary small">copy private key <i class="fas fa-copy"></i></div>
-            </div>
+      <details class="settings-appspace-section" open>
+        <summary class="settings-appspace-section-summary"><h6>Wallet</h6></summary>
+        <div class="settings-appspace-user-details">
+          <div>Username:</div>
+          ${identifier_registered}
 
-            <div>Default Fee:</div>
-            <div class="default-fee-containter">
-              <input type="number" 
-                     id="profile-default-fee-input" 
-                     class="profile-default-fee" 
-                     step="0.000000001" 
-                     min="0" 
-                     value="${app.wallet.convertNolanToSaito(app.wallet.default_fee)}"
-              />
-            </div>
+          <div>Public Key:</div>
+          <div class="pubkey-grid" data-id="${publicKey}">
+            <div>${publicKey}</div>
+            <i class="fas fa-copy" id="copy-public-key"></i>
+          </div>
+
+          <div>Private Key:</div>
+          <div class="settings-actions-container">
+            <div id="show-phrase" class="saito-button-secondary small">view seed phrase <i class="fa-solid fa-eye"></i></div>
+            <div id="copy-private-key" class="saito-button-secondary small">copy private key <i class="fas fa-copy"></i></div>
+          </div>
+
+          <div>Default Fee:</div>
+          <div class="default-fee-containter">
+            <input type="number"
+                   id="profile-default-fee-input"
+                   class="profile-default-fee"
+                   step="0.000000001"
+                   min="0"
+                   value="${app.wallet.convertNolanToSaito(app.wallet.default_fee)}"
+            />
           </div>
         </div>
-      </div>
-      
-      <div class="settings-appspace-modules-container">
-          <div class="settings-installed-mod-header">
-            <h6> Installed Modules </h6>
-            <i id="settings-add-app" class="fa-solid fa-plus"></i>
-          </div>
-          <div class="settings-appspace-modules saito-menu-select-subtle">
-              ${modules_html}
-          </div>
-      </div>
+      </details>
 
-      <div class="settings-appspace-crypto-transfer-container">
-        <h6>In-Game Crypto Transfers</h6>
-        <div id="settings-appspace-crypto-transfer" class="settings-appspace-modules">     
+      <details class="settings-appspace-section settings-appspace-modules-container">
+        <summary class="settings-appspace-section-summary settings-installed-mod-header">
+          <h6>Installed Modules</h6>
+          <i id="settings-add-app" class="fa-solid fa-plus" role="button" tabindex="0" aria-label="Add application"></i>
+        </summary>
+        <div class="settings-appspace-modules saito-menu-select-subtle">
+          ${modules_html}
         </div>
-      </div>
+      </details>
 
-      <div class="settings-appspace-debug">
-        <h6>Debug Info</h6>
+      <details class="settings-appspace-section settings-appspace-crypto-transfer-container">
+        <summary class="settings-appspace-section-summary"><h6>In-Game Crypto Transfers</h6></summary>
+        <div id="settings-appspace-crypto-transfer" class="settings-appspace-modules">
+        </div>
+      </details>
 
+      <details class="settings-appspace-section settings-appspace-debug">
+        <summary class="settings-appspace-section-summary"><h6>Debug Info</h6></summary>
         <!--div id="settings-edit-json">Edit wallet options</div-->
         <div>Advanced: ALT-select items to mark them (OPT-select in MacOS), then <span class="saito-text-link" id="delete_marked">click here to delete selected entries</span></div>
         <div class="settings-appspace-debug-content" id="settings-appspace-debug-content"></div>
-      </div>
+      </details>
 
-      <div class="settings-storage-info">
-      <h6>Storage Info</h6>
-      <div class="settings-appspace-storage-content">
+      <details class="settings-appspace-section settings-storage-info">
+        <summary class="settings-appspace-section-summary"><h6>Storage Info</h6></summary>
+        <div class="settings-appspace-storage-content">
 
-        <div class="settings-appspace-localstorage-info">
-          <div class="title">Local Storage</div><div></div>
-          <div>Quota (Bytes)</div><div class="quota"></div>
-          <div>Usage (Bytes)</div><div class="usage"></div>
-          <div>Used (%)</div><div class="percent"></div>
+          <div class="settings-appspace-localstorage-info">
+            <div class="title">Local Storage</div><div></div>
+            <div>Quota (Bytes)</div><div class="quota"></div>
+            <div>Usage (Bytes)</div><div class="usage"></div>
+            <div>Used (%)</div><div class="percent"></div>
+          </div>
+
+          <div class="settings-appspace-indexdb-info">
+            <div class="title">IndexDB</div><div></div>
+            <div>Quota (Bytes)</div><div class="quota"></div>
+            <div>Usage (Bytes)</div><div class="usage"></div>
+            <div>Used (%)</div><div class="percent"></div>
+          </div>
+
         </div>
+      </details>
 
-        <div class="settings-appspace-indexdb-info">
-          <div class="title">IndexDB</div><div></div>
-          <div>Quota (Bytes)</div><div class="quota"></div>
-          <div>Usage (Bytes)</div><div class="usage"></div>
-          <div>Used (%)</div><div class="percent"></div>
+      <details class="settings-appspace-section settings-appspace-build-info">
+        <summary class="settings-appspace-section-summary"><h6>Build Information</h6></summary>
+        <div class="settings-appspace-build-info-grid">
+          <div>Browser Build Number:</div>
+          <div id="settings-browser-build-value" class="settings-appspace-build-value">${String(app.build_number)}</div>
+          <div>Node Peer Build Number:</div>
+          <div id="settings-node-peer-build-value" class="settings-appspace-build-value">—</div>
         </div>
-
-      </div>
-      </div>
+      </details>
     </div>
   </div>
 

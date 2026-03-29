@@ -55,7 +55,7 @@ module.exports = (app, mod, tweet) => {
                   </div>
 								</div>
                 <div class="tweet-tool tweet-tool-share" title="Copy link to tweet">
-                	<i class="fa fa-arrow-up-from-bracket"></i>
+                	<i class="fa-solid fa-share-nodes"></i>
                 </div>
 								<div class="tweet-tool tweet-tool-more" title="More options">
 									<i class="fa-solid fa-ellipsis"></i>

@@ -341,10 +341,18 @@ class GameTemplate extends ModTemplate {
     });
 
     app.connection.on('relay-notification', (data) => {
-      let { mod, game_id, notification } = data;
+      let { mod, game_id, step, notification } = data;
       if (mod == this.name) {
         if (this.gameBrowserActive(game_id)) {
           siteMessage(notification, 2500);
+
+          if (step > this.game.step.game) {
+            console.warn('My game state is behind opponents!');
+            setTimeout(() => {
+              siteMessage('Game state out of sync, auto-fixing...', 2000);
+              this.fetchRecentMoves();
+            }, 2000);
+          }
 
           //
           // Opponent sent me notice that they entered, be kind and respond
@@ -353,6 +361,7 @@ class GameTemplate extends ModTemplate {
             let data = {
               mod: this.name,
               game_id: this.game?.id,
+              step: this.game.step.game,
               notification: `${this.app.keychain.returnUsername(
                 this.publicKey
               )} is already in the game`,
@@ -714,6 +723,7 @@ class GameTemplate extends ModTemplate {
       let data = {
         mod: this.name,
         game_id: this.game?.id,
+        step: this.game.step.game,
         notification: `${this.app.keychain.returnUsername(this.publicKey)} has entered the game`,
         code: 'enter'
       };

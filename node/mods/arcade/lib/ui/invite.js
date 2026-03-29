@@ -231,12 +231,6 @@ class Invite {
 			if (document.querySelector(qs)) {
 				document.querySelector(qs).onclick = (e) => {
 					e.stopImmediatePropagation();
-
-					this.app.browser.logMatomoEvent(
-						'GameInvite',
-						this.invite_data.invite_type,
-						this.invite_data.game_mod?.name
-					);
 					let game_overlay = new LoungeOverlay(this.app, this.mod, this.invite_data);
 					game_overlay.render();
 				};

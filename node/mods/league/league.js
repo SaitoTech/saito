@@ -130,6 +130,11 @@ class League extends ModTemplate {
 						tweet.rethread = true;
 						tweet.game = true;
 
+						if (!this.app.BROWSER && !tweet.tx.isFrom(this.publicKey)) {
+							tweet.thread_id = null;
+							return tweet;
+						}
+
 						for (let l of league_self.leagues) {
 							if (l.name == game_name || l.id == tweet.thread_id) {
 								// backwards compatability for old tweet meta data
@@ -1309,11 +1314,25 @@ class League extends ModTemplate {
 
 		let shouldTweet = false;
 
-		//
-		// Update Oct 28, 2025 -- will tweet about all gameovers
-		//
 		if (!this.app.BROWSER && txmsg.request == 'gameover') {
-			shouldTweet = true;
+
+			//
+			// Update March 25, 2026, only if this is the node that the winner was connected to...
+			//
+			for (let r of tx.routing_path){
+				if (r.to == this.publicKey){
+					shouldTweet = true;
+				}
+			}
+
+			// or player has a registered name on this node...
+			// revision from Oct 28, 2025 update
+			for (let key of players){
+				if (this.app.keychain.returnIdentifierByPublicKey(key, false)) {
+					shouldTweet = true;
+				}
+			}
+
 		}
 
 		if (txmsg.reason == 'forfeit') {

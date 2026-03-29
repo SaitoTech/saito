@@ -1,13 +1,13 @@
 const MainTemplate = require('./main.template');
 
 class StackMain {
-  constructor(app, mod, container = "") {
+  constructor(app, mod, container = '') {
     this.app = app;
     this.mod = mod;
     this.container = container;
   }
 
-  render(container = "") {
+  render(container = '') {
     // ========================================================================
     // INVARIANT 4: Unmount before navigating to splash (navigation path: editor → splash)
     // ========================================================================
@@ -15,12 +15,12 @@ class StackMain {
       this.mod.create_post_ui.onEditorUnmount();
     }
 
-    if (container !== "") {
+    if (container !== '') {
       this.container = container;
     }
 
-    if (!this.container || this.container.trim() === "") {
-      this.container = ".saito-container";
+    if (!this.container || this.container.trim() === '') {
+      this.container = '.saito-container';
     }
 
     const html = MainTemplate(this.app, this.mod);
@@ -30,16 +30,17 @@ class StackMain {
     // ========================================================================
     // Ensure container is preserved when rendering splash to avoid conflicts
     // with editor ownership of .saito-container
-    if (!document.querySelector(".stack-splash")) {
+    if (!document.querySelector('.stack-splash')) {
       this.app.browser.addElementToSelector(html, this.container);
     } else {
       // Replace only the splash content, not the entire container
-      this.app.browser.replaceElementContentBySelector(html, ".stack-splash");
+      this.app.browser.replaceElementContentBySelector(html, '.stack-splash');
     }
 
     // Update container class
     const containerEl = document.querySelector(this.container);
     if (containerEl) {
+      containerEl.classList.add('hide-scrollbar');
       containerEl.classList.add('stack-splash-container');
       containerEl.classList.remove('stack-create-post-container');
     }
@@ -64,7 +65,10 @@ class StackMain {
           // ========================================================================
           // INVARIANT 4: Unmount before navigating to explore (navigation path: splash → explore)
           // ========================================================================
-          if (this.mod.create_post_ui && typeof this.mod.create_post_ui.onEditorUnmount === 'function') {
+          if (
+            this.mod.create_post_ui &&
+            typeof this.mod.create_post_ui.onEditorUnmount === 'function'
+          ) {
             this.mod.create_post_ui.onEditorUnmount();
           }
           this.mod.exploreOverlay.render();
@@ -108,19 +112,18 @@ class StackMain {
 
     // Check if valid drafts exist
     const hasValidDrafts = this.mod.hasValidDrafts && this.mod.hasValidDrafts();
-      
+
     // Determine intent based on draft existence
     const intent = hasValidDrafts ? { mode: 'choose' } : { mode: 'new' };
-    
+
     // Set pending intent before render() so it uses the correct intent
     if (this.mod.create_post_ui) {
       this.mod.create_post_ui.pendingIntent = intent;
     }
-    
+
     // Render editor - it will use pendingIntent if set, otherwise defaults to 'new'
-      this.mod.create_post_ui.render();
+    this.mod.create_post_ui.render();
   }
 }
 
 module.exports = StackMain;
-

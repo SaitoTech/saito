@@ -122,7 +122,7 @@ class Mixin extends ModTemplate {
       }
     }
 
-    await this.installCryptos();
+    this.installCryptos();
   }
 
   //
@@ -223,7 +223,7 @@ class Mixin extends ModTemplate {
   // directory. this ensures those modules are initialized and fetches the balance
   // for any which are activated as the default web3 crypto.
   //
-  async installCryptos() {
+  installCryptos() {
     let mixin_self = this;
     let rtModules = this.app.modules.respondTo('mixin-crypto');
 
@@ -257,21 +257,27 @@ class Mixin extends ModTemplate {
         }
       }
 
-      // Will update confirmations, usd_price, etc
-      await crypto_module.returnNetworkInfo();
-
-      await crypto_module.installModule(mixin_self.app);
       this.crypto_mods.push(crypto_module);
       this.app.modules.mods.push(crypto_module);
 
-      // Do an initial balance check if we are able to
-      if (mixin_self.account_created) {
-        if (crypto_module.isActivated()) {
-          await crypto_module.checkBalance();
-        } else if (crypto_module.address) {
-          crypto_module.activate();
+      /////////////////////////////////////////////////////////////////
+      // Have a slight asynchronous delay to hit up the Mixin server
+      // so we don't slow down saito initialization
+      /////////////////////////////////////////////////////////////////
+      setTimeout(async () => {
+        // Will update confirmations, usd_price, etc
+        await crypto_module.returnNetworkInfo();
+        await crypto_module.installModule(mixin_self.app);
+
+        // Do an initial balance check if we are able to
+        if (mixin_self.account_created) {
+          if (crypto_module.isActivated()) {
+            await crypto_module.checkBalance();
+          } else if (crypto_module.address) {
+            crypto_module.activate();
+          }
         }
-      }
+      }, 250);
     }
   }
 
