@@ -223,34 +223,14 @@ export default class Saito {
     const wasm = Saito.getLibInstance();
     const core: any = {};
 
-    const wasmNetwork = wasm.get_network();
-    const api = wasmNetwork.api;
-    core.network = wasmNetwork;
+const wasmNetwork = wasm.get_network();
+const wasmApi = wasmNetwork.api;
 
 // -------------------------
-// NETWORK METHODS (JS layer)
+// API (safe wrapper, no mutation)
 // -------------------------
-core.network.getPeers = async () => {
-  const peers = await wasm.get_peers();
-  return peers.map((peer: any) => {
-    return self.factory.createPeer(peer);
-  });
-};
+const api = Object.create(wasmApi);
 
-core.network.getPeer = async (publicKey: string) => {
-  const peer = await wasm.get_peer(publicKey);
-  if (!peer) return null;
-  return self.factory.createPeer(peer);
-};
-
-core.network.propagateTransaction = async (tx: any) => {
-  const tx2 = tx.clone();
-  return wasm.propagate_transaction(tx2.wasmTransaction);
-};
-
-// -------------------------
-// API CALL (JS orchestration)
-// -------------------------
 api.call = async (
   buffer: Uint8Array,
   publicKey?: string,
@@ -266,17 +246,41 @@ api.call = async (
     }
   }
 
-  // ALWAYS increment
   self.callbackIndex++;
 
   if (waitForReply) {
     return new Promise(async (resolve, reject) => {
       self.promises.set(self.callbackIndex, { resolve, reject });
-      api.send(buffer, self.callbackIndex, publicKey || "");
+      wasmApi.send(buffer, self.callbackIndex, publicKey || "");
     });
   } else {
-    return api.send(buffer, self.callbackIndex, publicKey || "");
+    return wasmApi.send(buffer, self.callbackIndex, publicKey || "");
   }
+};
+
+// -------------------------
+// NETWORK (facade, no WASM mutation)
+// -------------------------
+core.network = {
+  api,
+
+  getPeers: async () => {
+    const peers = await wasmNetwork.getPeers();
+    return peers.map((peer: any) => {
+      return self.factory.createPeer(peer);
+    });
+  },
+
+  getPeer: async (publicKey: string) => {
+    const peer = await wasmNetwork.getPeer(publicKey);
+    if (!peer) return null;
+    return self.factory.createPeer(peer);
+  },
+
+  propagateTransaction: async (tx: any) => {
+    const tx2 = tx.clone();
+    return wasm.propagate_transaction(tx2.wasmTransaction);
+  },
 };
 
 // -------------------------
@@ -344,6 +348,8 @@ core.network.sendRequest = async (
     publicKey
   );
 };
+
+
 
     return {
       //
