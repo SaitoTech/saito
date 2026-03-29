@@ -223,126 +223,127 @@ export default class Saito {
     const wasm = Saito.getLibInstance();
     const core: any = {};
 
-    //
-    // defined outside core for self-reference
-    //
-    core.network = {
-      getPeers: async () => {
-        const peers = await wasm.get_peers();
-        return peers.map((peer: any) => {
-          return self.factory.createPeer(peer);
-        });
-      },
+    const wasmNetwork = wasm.get_network();
+    const api = wasmNetwork.api;
+    core.network = wasmNetwork;
 
-      getPeer: async (publicKey: string) => {
-        const peer = await wasm.get_peer(publicKey);
-        if (!peer) return null;
-        return self.factory.createPeer(peer);
-      },
+// -------------------------
+// NETWORK METHODS (JS layer)
+// -------------------------
+core.network.getPeers = async () => {
+  const peers = await wasm.get_peers();
+  return peers.map((peer: any) => {
+    return self.factory.createPeer(peer);
+  });
+};
 
-      propagateTransaction: async (tx: any) => {
-        const tx2 = tx.clone();
-        return wasm.propagate_transaction(tx2.wasmTransaction);
-      },
+core.network.getPeer = async (publicKey: string) => {
+  const peer = await wasm.get_peer(publicKey);
+  if (!peer) return null;
+  return self.factory.createPeer(peer);
+};
 
-      sendTransactionWithCallback: async (transaction: any, callback?: any, publicKey?: string) => {
-        const buffer = transaction.wasmTransaction.serialize();
+core.network.propagateTransaction = async (tx: any) => {
+  const tx2 = tx.clone();
+  return wasm.propagate_transaction(tx2.wasmTransaction);
+};
 
-        await core.network.api
-          .call(buffer, publicKey, !!callback)
-          .then((buffer: Uint8Array) => {
-            if (callback) {
-              const tx = self.factory.createTransaction();
-              tx.data = buffer;
-              tx.unpackData();
-              return callback(tx);
-            }
-          })
-          .catch((error: any) => {
-            console.info("couldn't send api call : ", error);
-            if (callback) {
-              return callback({ err: error.toString() });
-            }
-          });
-      },
+// -------------------------
+// API CALL (JS orchestration)
+// -------------------------
+api.call = async (
+  buffer: Uint8Array,
+  publicKey?: string,
+  waitForReply?: boolean
+): Promise<Uint8Array> => {
+  if (!!publicKey) {
+    const peer = await core.network.getPeer(publicKey);
+    if (peer === null) {
+      throw new Error("peer not found. public key : " + publicKey);
+    }
+    if (peer.status !== "connected") {
+      throw new Error(`peer : ${peer.publicKey} not connected`);
+    }
+  }
 
-      sendRequest: async (
-        message: string,
-        data: any = "",
-        callback?: any,
-        publicKey?: string,
-        signature_required?: boolean
-      ) => {
-        console.info("sending request : " + message + ", peer = " + publicKey);
+  // ALWAYS increment
+  self.callbackIndex++;
 
-        const wallet = await self.getWallet();
-        const myPublicKey = await wallet.getPublicKey();
+  if (waitForReply) {
+    return new Promise(async (resolve, reject) => {
+      self.promises.set(self.callbackIndex, { resolve, reject });
+      api.send(buffer, self.callbackIndex, publicKey || "");
+    });
+  } else {
+    return api.send(buffer, self.callbackIndex, publicKey || "");
+  }
+};
 
-        const tx = await wasm.create_transaction(myPublicKey, BigInt(0), BigInt(0), false);
+// -------------------------
+// HIGH-LEVEL NETWORK CALLS
+// -------------------------
 
-        const txObj = self.factory.createTransaction(tx);
-        txObj.msg = {
-          request: message,
-          data: data,
-        };
+core.network.sendTransactionWithCallback = async (
+  transaction: any,
+  callback?: any,
+  publicKey?: string
+) => {
+  const buffer = transaction.wasmTransaction.serialize();
 
-        txObj.packData();
+  await api
+    .call(buffer, publicKey, !!callback)
+    .then((buffer: Uint8Array) => {
+      if (callback) {
+        const tx = self.factory.createTransaction();
+        tx.data = buffer;
+        tx.unpackData();
+        return callback(tx);
+      }
+    })
+    .catch((error: any) => {
+      console.info("couldn't send api call : ", error);
+      if (callback) {
+        return callback({ err: error.toString() });
+      }
+    });
+};
 
-        if (signature_required) {
-          await txObj.sign();
-        }
+core.network.sendRequest = async (
+  message: string,
+  data: any = "",
+  callback?: any,
+  publicKey?: string,
+  signature_required?: boolean
+) => {
+  console.info("sending request : " + message + ", peer = " + publicKey);
 
-        return core.network.sendTransactionWithCallback(
-          txObj,
-          (tx: any) => {
-            if (callback) {
-              return callback(tx.msg);
-            }
-          },
-          publicKey
-        );
-      },
+  const wallet = await self.getWallet();
+  const myPublicKey = await wallet.getPublicKey();
 
-      //
-      // LOW-LEVEL PROTOCOL (API)
-      //
-      api: {
-        call: async (
-          buffer: Uint8Array,
-          publicKey?: string,
-          waitForReply?: boolean
-        ): Promise<Uint8Array> => {
-          if (!!publicKey) {
-            const peer = await core.network.getPeer(publicKey);
-            if (peer === null) {
-              throw new Error("peer not found. public key : " + publicKey);
-            }
-            if (peer.status !== "connected") {
-              throw new Error(`peer : ${peer.publicKey} not connected`);
-            }
-          }
+  const tx = await wasm.create_transaction(myPublicKey, BigInt(0), BigInt(0), false);
 
-          if (waitForReply) {
-            return new Promise(async (resolve, reject) => {
-              self.callbackIndex++;
-              self.promises.set(self.callbackIndex, { resolve, reject });
+  const txObj = self.factory.createTransaction(tx);
+  txObj.msg = {
+    request: message,
+    data: data,
+  };
 
-              wasm.send_api_call(buffer, self.callbackIndex, publicKey || "");
-            });
-          } else {
-            return wasm.send_api_call(buffer, self.callbackIndex, publicKey || "");
-          }
-        },
+  txObj.packData();
 
-        success: async (msgId: number, buffer: Uint8Array, publicKey: string) => {
-          return wasm.send_api_success(buffer, msgId, publicKey);
-        },
+  if (signature_required) {
+    await txObj.sign();
+  }
 
-        error: async (msgId: number, buffer: Uint8Array, publicKey: string) => {
-          return wasm.send_api_error(buffer, msgId, publicKey);
-        },
-      },
-    };
+  return core.network.sendTransactionWithCallback(
+    txObj,
+    (tx: any) => {
+      if (callback) {
+        return callback(tx.msg);
+      }
+    },
+    publicKey
+  );
+};
 
     return {
       //
@@ -634,10 +635,6 @@ export default class Saito {
     const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
     tx.timestamp = Date.now();
     return tx;
-  }
-
-  public async sendApiSuccess(msgId: number, buffer: Uint8Array, publicKey: string) {
-    return Saito.getLibInstance().send_api_success(buffer, msgId, publicKey);
   }
 
   public async getWallet() {
