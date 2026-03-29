@@ -60,7 +60,7 @@ use web_sys::console;
 #[wasm_bindgen]
 pub struct SaitoWasm {
     pub(crate) routing_thread: RoutingThread,
-    consensus_thread: ConsensusThread,
+    pub(crate) consensus_thread: ConsensusThread,
     mining_thread: MiningThread,
     verification_thread: VerificationThread,
     stat_thread: StatThread,
@@ -919,6 +919,7 @@ pub async fn get_block(block_hash: JsString) -> Result<WasmBlock, JsValue> {
     Ok(WasmBlock::from_block(block))
 }
 
+
 #[wasm_bindgen]
 pub async fn process_new_peer(peer: WasmNetworkPeer) {
     // let key: SaitoPublicKey = string_to_key(key).unwrap();
@@ -1394,51 +1395,6 @@ pub fn generate_public_key(private_key: JsString) -> Result<JsString, JsValue> {
     Ok(public_key.to_base58().into())
 }
 
-#[wasm_bindgen]
-pub async fn propagate_transaction(tx: &WasmTransaction) {
-    trace!("propagate_transaction");
-
-    let mut saito = SAITO.lock().await;
-    let mut tx = tx.clone().tx;
-    {
-        let wallet = saito
-            .as_ref()
-            .unwrap()
-            .routing_thread
-            .wallet_lock
-            .read()
-            .await;
-        tx.generate(&wallet.public_key, 0, 0);
-    }
-    debug!(
-        "propagating transaction: {} input: {}, output : {}",
-        tx.signature.to_hex(),
-        tx.from
-            .iter()
-            .map(|slip| format!("{}", slip))
-            .collect::<Vec<String>>()
-            .join(", "),
-        tx.to
-            .iter()
-            .map(|slip| format!("{}", slip))
-            .collect::<Vec<String>>()
-            .join(", "),
-    );
-    saito
-        .as_mut()
-        .unwrap()
-        .consensus_thread
-        .process_event(ConsensusEvent::NewTransaction { transaction: tx })
-        .await;
-
-    // saito
-    //     .as_mut()
-    //     .unwrap()
-    //     .routing_thread
-    //     .network
-    //     .propagate_transaction(&tx)
-    //     .await;
-}
 
 #[wasm_bindgen]
 pub async fn send_api_call(buffer: Uint8Array, msg_index: u32, key: JsString) {
