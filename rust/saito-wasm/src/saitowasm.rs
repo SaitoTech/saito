@@ -9,6 +9,8 @@ use crate::wasm_block::WasmBlock;
 use crate::wasm_blockchain::WasmBlockchain;
 use crate::wasm_configuration::WasmConfiguration;
 use crate::wasm_io_handler::WasmIoHandler;
+use crate::wasm_network::WasmNetwork;
+use crate::wasm_network_api::WasmNetworkApi;
 use crate::wasm_network_peer::WasmNetworkPeer;
 use crate::wasm_nft::WasmNFT;
 use crate::wasm_peer::WasmPeer;
@@ -1569,6 +1571,11 @@ pub async fn send_api_error(buffer: Uint8Array, msg_index: u32, key: JsString) {
 pub async fn get_wallet() -> WasmWallet {
     let saito = SAITO.lock().await;
     return saito.as_ref().unwrap().wallet.clone();
+}
+
+#[wasm_bindgen]
+pub fn get_network() -> WasmNetwork {
+    WasmNetwork::new()
 }
 
 #[wasm_bindgen]

@@ -235,8 +235,8 @@ export class NodeSharedMethods extends CustomSharedMethods {
     const mycallback = async (response_object) => {
       // console.log("response_object ", response_object);
       await this.app.core.network.api.success(
-        msgIndex,
         response_object ? Buffer.from(JSON.stringify(response_object), 'utf-8') : Buffer.alloc(0),
+        msgIndex,
         publicKey
       );
     };

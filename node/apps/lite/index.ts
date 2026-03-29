@@ -28,8 +28,8 @@ class WebMethods extends WebSharedMethods {
     const mycallback = async (response_object) => {
       try {
         await this.app.core.network.api.success(
-          msgIndex,
           Buffer.from(JSON.stringify(response_object), 'utf-8'),
+          msgIndex,
           publicKey
         );
       } catch (error) {
