@@ -1,5 +1,4 @@
 module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = null) => {
-
   let html = `
 
 <!DOCTYPE html>
@@ -86,7 +85,7 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
 
 </head>
 <body>
-  <div class="saito-container" id="saito-container"></div>
+  <div class="saito-container hide-scrollbar" id="saito-container"></div>
 </body>
 `;
   if (initialPostSerialized) {
