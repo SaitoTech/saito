@@ -917,6 +917,7 @@ impl RoutingThread {
                 self.network.peer_lock.clone(),
             )
             .await;
+        self.refresh_sync_fetch_floor().await;
 
         // self.fetch_next_blocks().await;
     }
@@ -958,8 +959,20 @@ impl RoutingThread {
                 }
             }
         }
+        self.refresh_sync_fetch_floor().await;
         work_done
     }
+
+    async fn refresh_sync_fetch_floor(&self) {
+        let sync_fetch_floor_block_id = self
+            .blockchain_sync_state
+            .get_sync_fetch_floor_block_id()
+            .unwrap_or(0);
+
+        let mut blockchain = self.blockchain_lock.write().await;
+        blockchain.sync_fetch_floor_block_id = sync_fetch_floor_block_id;
+    }
+
     pub async fn process_incoming_block_hash_(
         &mut self,
         block_hash: SaitoHash,
@@ -1442,6 +1455,7 @@ impl RoutingThread {
             }
             previous_block_hash = block_hash;
         }
+
         debug!(
             "calling reorg with lowest values : {:?}-{:?}",
             lowest_id_to_reorg,
@@ -1489,6 +1503,11 @@ impl RoutingThread {
             configs.get_blockchain_configs_mut().initial_loading_status =
                 InitialLoadingStatus::Completed;
         }
+
+        drop(mempool);
+        drop(blockchain);
+        drop(configs);
+        self.refresh_sync_fetch_floor().await;
     }
 
     // TODO : remove if not required
@@ -2027,6 +2046,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         self.network.peer_lock.clone(),
                     )
                     .await;
+                self.refresh_sync_fetch_floor().await;
             }
             RoutingEvent::BlockchainRequest(public_key) => {
                 info!(
