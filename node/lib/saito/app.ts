@@ -114,7 +114,7 @@ class Saito {
 
       console.log('setting current version : ' + this.wallet.version);
 
-      await S.getInstance().setWalletVersion(
+      this.core.wallet.setWalletVersion(
         0,
         Math.floor(this.wallet.version),
         (this.wallet.version * 1000) % 1000

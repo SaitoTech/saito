@@ -88,7 +88,6 @@ export default class Wallet extends SaitoWallet {
     ////////////////
     if (!privateKey || !publicKey) {
       await this.resetWallet();
-
       privateKey = await this.getPrivateKey();
       publicKey = await this.getPublicKey();
     }
@@ -540,7 +539,7 @@ export default class Wallet extends SaitoWallet {
 
       //typically async
       validateAddress(address) {
-        return this.app.wallet.isValidPublicKey(address);
+        return this.app.crypto.isPublicKey(address);
       }
 
       returnLogos() {
@@ -1352,14 +1351,6 @@ export default class Wallet extends SaitoWallet {
       }
     } catch (error) {
       // console.error(error);
-    }
-  }
-
-  public isValidPublicKey(key: string): boolean {
-    if (this.app.crypto.isBase58(key)) {
-      return S.getInstance().isValidPublicKey(key);
-    } else {
-      return false;
     }
   }
 

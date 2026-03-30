@@ -194,7 +194,7 @@ class ModTools extends ModTemplate {
 							hop: 0
 						};
 
-						if (key && this.app.wallet.isValidPublicKey(key)) {
+						if (key && this.app.crypto.isPublicKey(key)) {
 							this.whitelistAddress(data);
 							let newtx = await this.createWhitelistTransaction(data, this.app.crypto.hash(pw));
 							await this.app.network.propagateTransaction(newtx);

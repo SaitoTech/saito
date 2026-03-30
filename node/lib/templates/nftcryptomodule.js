@@ -123,10 +123,10 @@ class NFTCryptoModule extends CryptoModule {
 
       // If wallet has validation function, use it safely
       if (
-        this.app.wallet.isValidPublicKey &&
-        typeof this.app.wallet.isValidPublicKey === 'function'
+        this.app.crypto.isPublicKey &&
+        typeof this.app.crypto.isPublicKey === 'function'
       ) {
-        if (!this.app.wallet.isValidPublicKey(recipient)) {
+        if (!this.app.crypto.isPublicKey(recipient)) {
           recipient = this.app.wallet.publicKey;
         }
       } else {
@@ -180,7 +180,7 @@ class NFTCryptoModule extends CryptoModule {
   }
 
   validateAddress(address) {
-    return this.app.wallet.isValidPublicKey(address);
+    return this.app.crypto.isPublicKey(address);
   }
 
   async returnUtxo(state = 'unspent', limit = 1000, order = 'DESC') {

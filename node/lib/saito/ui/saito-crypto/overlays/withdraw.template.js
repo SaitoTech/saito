@@ -1,7 +1,7 @@
 module.exports = (app, mod, publickey = '', address = '') => {
   let identicon = null;
 
-  if (publickey && app.wallet.isValidPublicKey(publickey)) {
+  if (publickey && app.crypto.isPublicKey(publickey)) {
     identicon = app.keychain.returnIdenticon(publickey);
   }
 

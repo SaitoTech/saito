@@ -1432,25 +1432,14 @@ pub async fn get_mempool_txs() -> js_sys::Array {
     txs
 }
 
-#[wasm_bindgen]
-pub async fn set_wallet_version(major: u8, minor: u8, patch: u16) {
-    let saito = SAITO.lock().await;
-    let mut wallet = saito.as_ref().unwrap().wallet.wallet.write().await;
-    wallet.wallet_version = Version {
-        major,
-        minor,
-        patch,
-    };
-}
-
-#[wasm_bindgen]
-pub fn is_valid_public_key(key: JsString) -> bool {
+#[wasm_bindgen(js_name = isPublicKey)]
+pub fn is_public_key(key: JsString) -> bool {
     let result = string_to_key(key);
     if result.is_err() {
         return false;
     }
     let key: SaitoPublicKey = result.unwrap();
-    saito_core::core::util::crypto::is_valid_public_key(&key)
+    saito_core::core::util::crypto::is_public_key(&key)
 }
 
 #[wasm_bindgen]

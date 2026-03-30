@@ -15,6 +15,7 @@ use saito_core::core::defs::{
 };
 use saito_core::core::routing::io::network::Network;
 use saito_core::core::routing::io::storage::Storage;
+use saito_core::core::process::version::Version;
 
 use crate::saitowasm::{string_array_to_base58_keys, string_to_hex, SAITO};
 use crate::wasm_io_handler::WasmIoHandler;
@@ -121,6 +122,51 @@ impl WasmWallet {
         let mut wallet = self.wallet.write().await;
         wallet.private_key = key;
     }
+
+    #[wasm_bindgen(js_name = setWalletVersion)]
+    pub async fn set_wallet_version(
+        &self,
+        major: u8,
+        minor: u8,
+        patch: u16,
+    ) {
+	let mut wallet = self.wallet.write().await;
+        wallet.wallet_version = Version {
+            major,
+            minor,
+            patch,
+        };
+    }
+
+
+    #[wasm_bindgen(js_name = getWalletVersion)]
+    pub async fn get_wallet_version(&self) -> js_sys::Object {
+	let mut wallet = self.wallet.write().await;
+        let version = &wallet.wallet_version;
+        let obj = js_sys::Object::new();
+
+        js_sys::Reflect::set(
+            &obj,
+            &"major".into(),
+            &wasm_bindgen::JsValue::from(version.major),
+        ).unwrap();
+
+        js_sys::Reflect::set(
+            &obj,
+            &"minor".into(),
+            &wasm_bindgen::JsValue::from(version.minor),
+        ).unwrap();
+
+        js_sys::Reflect::set(
+            &obj,
+            &"patch".into(),
+            &wasm_bindgen::JsValue::from(version.patch),
+        ).unwrap();
+
+        obj
+    }
+
+
     pub async fn get_balance(&self) -> Currency {
         let wallet = self.wallet.read().await;
         // info!("get balance : {:?}", wallet.get_available_balance());
