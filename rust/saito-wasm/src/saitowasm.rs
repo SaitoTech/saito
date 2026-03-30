@@ -990,7 +990,6 @@ pub async fn process_peer_disconnection(key: JsString) {
         return;
     }
     let key: SaitoPublicKey = key.unwrap();
-    debug!("process_peer_disconnection : {:?}", key.to_base58());
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()
@@ -1487,7 +1486,6 @@ pub async fn propagate_transaction(tx: &WasmTransaction) {
 #[wasm_bindgen]
 pub async fn send_api_call(buffer: Uint8Array, msg_index: u32, key: JsString) {
     let key: SaitoPublicKey = string_to_key(key).unwrap_or([0; 33]);
-    trace!("send_api_call : {:?}", key.to_base58());
     let saito = SAITO.lock().await;
     let api_message = ApiMessage {
         msg_index,

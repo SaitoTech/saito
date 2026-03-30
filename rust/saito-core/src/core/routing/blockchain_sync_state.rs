@@ -139,6 +139,27 @@ impl BlockchainSyncState {
             .map(|v| v.len() as BlockId)
             .sum::<BlockId>()
     }
+
+    pub fn get_sync_fetch_floor_block_id(&self) -> Option<BlockId> {
+        let received_floor = self
+            .received_block_picture
+            .values()
+            .flat_map(|entries| entries.iter().map(|(block_id, _)| *block_id))
+            .min();
+        let queued_floor = self
+            .blocks_to_fetch
+            .values()
+            .flat_map(|entries| entries.iter().map(|entry| entry.block_id))
+            .min();
+
+        match (received_floor, queued_floor) {
+            (Some(received_floor), Some(queued_floor)) => Some(received_floor.min(queued_floor)),
+            (Some(received_floor), None) => Some(received_floor),
+            (None, Some(queued_floor)) => Some(queued_floor),
+            (None, None) => None,
+        }
+    }
+
     /// Generates the list of blocks which needs to be fetched next. A list is generated per each peer since we can fetch from multiple peers concurrently.
     pub fn get_blocks_to_fetch_per_peer(
         &mut self,
