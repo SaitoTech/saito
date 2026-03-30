@@ -12,6 +12,8 @@ The transport layers differ, but handshake state transitions and block-sync deci
 
 ## Handshake Flow
 
+![Handshake flow](./diagrams/handshake-flow.svg)
+
 ### Message Types
 
 The peer protocol uses these message variants:
@@ -110,6 +112,8 @@ After that, `RoutingThread::handle_new_peer(...)` starts blockchain bootstrap:
 
 ## Full Block Sync Flow
 
+![Full block sync flow](./diagrams/full-block-sync.svg)
+
 ### 1. Requesting blockchain state
 
 `request_blockchain_from_peer(...)` is the main entry point.
@@ -207,6 +211,8 @@ There is a dedicated empty-chain bootstrap path.
 While `waiting_for_genesis_block` is true, ordinary incoming block headers are ignored to keep startup ordered.
 
 ## Lite And SPV Sync Flow
+
+![Ghost sync flow](./diagrams/ghost-sync.svg)
 
 When the local node is in SPV mode, `request_blockchain_from_peer(...)` sends `Message::GhostChainRequest` instead of `BlockchainRequest`.
 
