@@ -4,10 +4,7 @@ import Factory from "../lib/factory";
 import Hop from "../lib/hop";
 import Slip from "../lib/slip";
 import Transaction, { TransactionType } from "../lib/transaction";
-import Wallet, {
-  DefaultEmptyPrivateKey,
-  DefaultEmptyPublicKey,
-} from "../lib/wallet";
+import Wallet, { DefaultEmptyPrivateKey, DefaultEmptyPublicKey } from "../lib/wallet";
 
 class FakeWasmSlip {
   public static parse_slip_from_utxokey(_utxoKey: string): FakeWasmSlip | undefined {
