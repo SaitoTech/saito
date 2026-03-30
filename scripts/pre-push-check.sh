@@ -34,12 +34,16 @@ step "Formatting Rust code (cargo fmt)"
 pass "Rust formatted"
 
 step "Formatting Node code (prettier --write)"
-(cd "$REPO_ROOT/node" && npx prettier --write .) || die "Node formatting failed"
+(cd "$REPO_ROOT/node" && npx prettier --write ./lib) || die "Node formatting failed"
 pass "Node formatted"
 
 step "Formatting WASM code (prettier --write)"
 (cd "$REPO_ROOT/rust/saito-wasm" && npx prettier --write .) || die "WASM formatting failed"
 pass "WASM formatted"
+
+step "Formatting Saito Js code (prettier --write)"
+(cd "$REPO_ROOT/rust/saito-js" && npx prettier --write .) || die "Saito Js formatting failed"
+pass "Saito Js formatted"
 
 # ─── 2. Compile, test, and build ─────────────────────────────────────
 
@@ -59,14 +63,18 @@ step "Building saito-wasm (npm run build)"
 (cd "$REPO_ROOT/rust/saito-wasm" && npm run build) || die "WASM build failed"
 pass "WASM build succeeded"
 
+step "Building saito-js (npm run build)"
+(cd "$REPO_ROOT/rust/saito-js" && npm run build) || die "Saito Js build failed"
+pass "Saito Js build succeeded"
+
 # ─── 5. Lint ──────────────────────────────────────────────────────────
 
-# step "Linting Rust code (cargo clippy)"
-# if (cd "$REPO_ROOT/rust" && cargo clippy --workspace); then
-#   pass "Clippy completed"
-# else
-#   warn_msg "Clippy reported issues; continuing because compilation, tests, and builds are the blocking gate"
-# fi
+step "Linting Rust code (cargo clippy)"
+if (cd "$REPO_ROOT/rust" && cargo clippy --workspace); then
+  pass "Clippy completed"
+else
+  warn_msg "Clippy reported issues; continuing because compilation, tests, and builds are the blocking gate"
+fi
 
 # step "Linting Node (eslint)"
 # if (cd "$REPO_ROOT/node" && npx eslint .); then

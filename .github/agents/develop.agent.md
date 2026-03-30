@@ -90,8 +90,9 @@ You may spawn subagents for exploration, parallel research, or delegating well-s
 1. If Phase 4 was N/A, skip this phase.
 2. First ensure builds are current:
    ```
-   cd rust/saito-wasm && npm run build-web
-   cd node/ && npm run build
+   cd rust/saito-wasm && npm run build
+   cd rust/saito-js && npm run build
+   cd node/ && npm run compile
    ```
 3. Run E2E tests:
    ```
@@ -122,7 +123,7 @@ You may spawn subagents for exploration, parallel research, or delegating well-s
 
 ### Phase 9 — Update documentation
 1. Update any relevant documents in `.plan/` and `.design/` that are affected by the change.
-   - If the task came from `.plan/coding-review.md`, update its status, line counts, or notes.
+   - If the task came from `.plan/`, update its status, line counts, or notes.
    - If the change affects architecture, update relevant wiki pages under `.design/archi/`.
    - If the change affects the public API, update relevant wiki pages.
 2. Only update docs that are directly related to the change — do not do a full doc audit.
@@ -174,8 +175,9 @@ You may spawn subagents for exploration, parallel research, or delegating well-s
 |--------|---------|
 | Rust tests (all) | `cd rust && cargo test --workspace -- --test-threads=1` |
 | Rust tests (specific) | `cd rust && cargo test <name> -- --test-threads=1` |
-| WASM build | `cd rust/saito-wasm && npm run build-web` |
-| SLR build | `cd node/ && npm run build` |
+| WASM build | `cd rust/saito-wasm && npm run build` |
+| Saito-js build | `cd rust/saito-js && npm run build` |
+| SLR build | `cd node/ && npm run compile` |
 | E2E tests (all) | `cd e2e && npx playwright test` |
 | E2E tests (specific) | `cd e2e && npx playwright test tests/<subdir>/<file>.spec.ts` |
 | E2E (rust only) | `cd e2e && npm run test:rust` |

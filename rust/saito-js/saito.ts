@@ -397,41 +397,37 @@ export default class Saito {
     return tx;
   }
 
+  public async createAtomizeBoundTransaction<T extends Transaction>(
+    slip1UtxoKey: string,
+    slip2UtxoKey: string,
+    slip3UtxoKey: string,
+    tx_msg: any
+  ): Promise<T> {
+    const tx_msg_arr = Buffer.from(JSON.stringify(tx_msg), "utf-8");
 
-    public async createAtomizeBoundTransaction<T extends Transaction>(
-      slip1UtxoKey: string,
-      slip2UtxoKey: string,
-      slip3UtxoKey: string,
-      tx_msg: any
-    ): Promise<T> {
+    const wasmTx = await Saito.getLibInstance().create_atomize_bound_transaction(
+      slip1UtxoKey,
+      slip2UtxoKey,
+      slip3UtxoKey,
+      new Uint8Array(tx_msg_arr)
+    );
 
-      const tx_msg_arr = Buffer.from(JSON.stringify(tx_msg), "utf-8");
+    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
 
-      const wasmTx = await Saito.getLibInstance().create_atomize_bound_transaction(
-        slip1UtxoKey,
-        slip2UtxoKey,
-        slip3UtxoKey,
-        new Uint8Array(tx_msg_arr)
-      );
+    tx.timestamp = Date.now();
 
-      const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
+    return tx;
+  }
 
-      tx.timestamp = Date.now();
-
-      return tx;
-    }
-
-
-    public async createSplitBoundTransaction<T extends Transaction>(
-      slip1UtxoKey: string,
-      slip2UtxoKey: string,
-      slip3UtxoKey: string,
-      leftCount: number,
-      rightCount: number,
-      tx_msg: any,
-    ): Promise<T> {
-
-        let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
+  public async createSplitBoundTransaction<T extends Transaction>(
+    slip1UtxoKey: string,
+    slip2UtxoKey: string,
+    slip3UtxoKey: string,
+    leftCount: number,
+    rightCount: number,
+    tx_msg: any
+  ): Promise<T> {
+    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
 
     const wasmTx = await Saito.getLibInstance().create_split_bound_transaction(
       slip1UtxoKey,
