@@ -641,8 +641,8 @@ class Storage {
 
   watchBuildFile(): void {
     const checkBuildNumber = async () => {
-      const filePath = path.join(__dirname, '/config/build/build.json');
-      fs.readFile('config/build.json', 'utf8', async (err, data) => {
+      const filePath = path.join(__dirname, 'dist/build.json');
+      fs.readFile('dist/build.json', 'utf8', async (err, data) => {
         if (err) {
           console.error('Error reading options file:', err);
           return;
@@ -688,7 +688,7 @@ class Storage {
       checkBuildNumber();
     });
 
-    const filePath = path.join(__dirname, 'config/build.json');
+    const filePath = path.join(__dirname, 'dist/build.json');
   }
 
   async loadNFTTransactions(nft_id) {

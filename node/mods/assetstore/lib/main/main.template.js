@@ -62,7 +62,7 @@ module.exports = (app, mod, this_self) => {
         </div>
         <div class="store-splash-content">
           <h2>Commerce without Limits</h2>
-          <p>Web3 powered platform for buying and selling NFTs, which are more than just jpegs of cartoon monkeys. SaitoNFTs can be limited collectibles, but they can also be mini-programs, new css themes, access keys to Vault or Stack subscriptions, or even your own meme-coin</p>
+          <p>Web3 powered platform for buying and selling <span class='mobile-hide'>NFTs, which are more than just jpegs of cartoon monkeys. SaitoNFTs can be</span> limited collectibles, <span class='mobile-hide'>but they can also be</span> mini-programs, new css themes, access keys to Vault or Stack subscriptions, or even your own meme-coin</p>
           <div class='saito-button-row auto-size'>
             <button id="my-store-btn" class="saito-button-secondary">My Store</button>
             <button id="home-store-btn" class="saito-button-primary">Browse Assets</button>

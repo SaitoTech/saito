@@ -562,7 +562,7 @@ class RedSquare extends ModTemplate {
     // Only set interval on new peers, (so we aren't setting multiple on network instability)
     if (this.browser_active) {
       this.loadTweets(
-        'earlier',
+        'later',
         (tx_count) => {
           this.app.connection.emit('redsquare-home-postcache-render-request', tx_count);
         },
@@ -2685,7 +2685,11 @@ class RedSquare extends ModTemplate {
 
       if (tweet.curated == 1) {
         tweet.tx.optional.curated = 1;
-        this.cached_tweets.push(tweet.tx.serialize_to_web(this.app));
+
+        if (!tweet.game){
+          this.cached_tweets.push(tweet.tx.serialize_to_web(this.app));  
+        }
+        
       }
     }
 

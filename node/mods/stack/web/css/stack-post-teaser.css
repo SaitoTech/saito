@@ -104,6 +104,27 @@
 }
 
 /* ============================================
+   View Post Footer
+   ============================================ */
+.stack-view-post-footer {
+  & .stack-post-teaser {
+    gap: 0.5rem;
+    height: 100%;
+    border-left-width: 1px;
+    max-width: 100%;
+  }
+
+  & .stack-post-teaser-image {
+    min-width: unset;
+    width: 50%;
+  }
+
+  .stack-post-teaser-content {
+    padding: 1rem;
+  }
+}
+
+/* ============================================
    RESPONSIVE - MOBILE
    ============================================ */
 
@@ -122,7 +143,7 @@
   }
 
   .stack-post-teaser-image {
-    width: 100%;
+    width: 100% !important;
     min-width: 100%;
     aspect-ratio: 16 / 9; /* Wider on mobile */
   }

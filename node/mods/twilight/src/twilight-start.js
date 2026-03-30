@@ -455,7 +455,6 @@ class Twilight extends GameTemplate {
 
     } catch (err) {}
 
-/******
     document.querySelector('.gameboard').addEventListener('click', (e) => {
 
       // ignore clicks on countries or interactive elements
@@ -494,7 +493,6 @@ console.log("Click board:", boardX, boardY);
   	this.zoom_overlay.renderAtCoordinates(boardX, boardY);
 
     });
-******/
 
     if (this.game.player > 0){
       if (this.useClock){
