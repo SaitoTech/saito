@@ -94,7 +94,7 @@ class AssetStore extends ModTemplate {
 					console.log(`We have ${this.drafts.length} NFTs listed in the store`);
 				}
 
-				if (this.app.wallet.isValidPublicKey(this.app.browser.returnURLParameter('seller'))) {
+				if (this.app.crypto.isPublicKey(this.app.browser.returnURLParameter('seller'))) {
 					// Load only the publickey from the URL parameter
 					this.authorized_sellers = [this.app.browser.returnURLParameter('seller')];
 				} else {

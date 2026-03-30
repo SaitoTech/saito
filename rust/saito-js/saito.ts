@@ -206,7 +206,10 @@ export default class Saito {
   //
   // our main entry point for JS calls to Saito-Core via Saito-WASM
   //
-  // for ease of understanding, we separate system components into
+  // core.wallet
+  // core.blockchain
+  // core.network
+  // ...
   //
   public getCore() {
 
@@ -374,11 +377,12 @@ export default class Saito {
       // CRYPTO
       //
       crypto: {
-        hash: wasm.hash?.bind(wasm),
-        signBuffer: wasm.sign_buffer?.bind(wasm),
-        verifySignature: wasm.verify_signature?.bind(wasm),
         generatePrivateKey: wasm.generate_private_key?.bind(wasm),
         generatePublicKey: wasm.generate_public_key?.bind(wasm),
+        hash: wasm.hash?.bind(wasm),
+	isPublicKey: wasm.is_public_key?.bind(wasm),
+        signBuffer: wasm.sign_buffer?.bind(wasm),
+        verifySignature: wasm.verify_signature?.bind(wasm),
       },
 
       //
@@ -677,19 +681,6 @@ export default class Saito {
 
   public async updateBalanceFrom(snapshot: BalanceSnapshot) {
     await Saito.getLibInstance().update_from_balance_snapshot(snapshot.instance);
-  }
-
-  public async setWalletVersion(major: number, minor: number, patch: number) {
-    await Saito.getLibInstance().set_wallet_version(major, minor, patch);
-  }
-
-  public isValidPublicKey(key: string): boolean {
-    try {
-      return Saito.getLibInstance().is_valid_public_key(key);
-    } catch (e) {
-      // console.debug(e);
-    }
-    return false;
   }
 
   public async addPendingTx(tx: Transaction) {

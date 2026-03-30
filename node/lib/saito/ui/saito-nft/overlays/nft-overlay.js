@@ -302,7 +302,7 @@ class NFTOverlay {
         let rec_in = document.querySelector('#nft-receiver-address');
         let receiver = rec_in ? rec_in.value.trim() : '';
 
-        if (!this.app.wallet.isValidPublicKey(receiver)) {
+        if (!this.app.crypto.isPublicKey(receiver)) {
           salert('Receiver’s public key is not valid');
           return;
         }

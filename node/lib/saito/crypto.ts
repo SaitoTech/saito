@@ -339,35 +339,23 @@ class Crypto {
     return stringx;
   }
 
-  isValidPublicKey(key) {
-    if (typeof key !== 'string') {
-      return false;
-    }
 
-    if (key.length !== 44) {
-      return false;
-    }
-
-    const base58Regex = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/;
-    return base58Regex.test(key);
-  }
-
-  isPublicKey(publicKey: string) {
-    if (publicKey) {
-      if (publicKey.indexOf('@') <= 0) {
-        if (this.isBase58(publicKey)) {
-          return 1;
-        }
+  isPublicKey(key: string) {
+    if (!key || typeof key !== "string") { return false; }
+    if (key.indexOf('@') <= 0) {
+      if (this.isBase58(key)) {
+        return this.app.core.crypto.isPublicKey(key);
+      } else {
+        return false;
       }
     }
-    return 0;
+    return false;
   }
 
   isBase58(t: string) {
     return /^[A-HJ-NP-Za-km-z1-9]*$/.test(t);
   }
 
-  //Restoring these functions ...
 
   generateSeedFromPrivateKey(existingPrivateKey: String) {
     // Create a seed that will deterministically generate your key first
