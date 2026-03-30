@@ -110,14 +110,55 @@ Recommended improvement:
 - Remove stale commented protocol definitions from `node/lib/saito/networkapi.ts`, or replace them with a note that ghost-chain handling is owned by Rust core.
 - Add one short design or adapter note near the Node bootstrapping path so future work does not accidentally reintroduce a second implementation.
 
+### 5. High: ghost-chain sync has no effective size cap once a shared ancestor is found or inferred
+
+Current behavior:
+
+- `request_blockchain_from_peer(...)` sends `GhostChainRequest(...)` for SPV/browser peers.
+- `generate_ghost_chain(...)` only limits the response to roughly the last 10 blocks when the requester reports `block_id == 0` or a pre-genesis height.
+- Otherwise it computes `last_shared_ancestor`, and if that returns `0`, it falls back to `max(block_id, genesis_block_id)`.
+- It then emits every longest-chain block from `last_shared_ancestor + 1` through the current tip.
+
+Why this matters:
+
+- There is no protocol-level rule that limits browser/lite sync to about 100 blocks.
+- If a browser comes back with a stale local tip, or if shared-ancestor detection lands too low, the peer can legitimately enqueue thousands of blocks from one ghost-chain response.
+- This matches the reported symptom much more closely than the full-node header-sync path, which does have explicit chunking.
+
+Recommended improvement:
+
+- Add an explicit cap or paging mechanism to ghost-chain responses for SPV/browser sync.
+- Treat "latest picture" sync as a bounded window instead of "everything since the inferred ancestor".
+- Log the requested `block_id`, derived `last_shared_ancestor`, and generated ghost-chain length so oversized sync ranges are visible in production.
+
+### 6. Medium: shared-ancestor fallback can widen sync ranges more than expected
+
+Current behavior:
+
+- `generate_last_shared_ancestor(...)` returns `0` when fork-id sampling cannot find a match.
+- `generate_ghost_chain(...)` then converts that `0` into `max(block_id, genesis_block_id)` before walking forward to the current tip.
+
+Why this matters:
+
+- This avoids syncing from genesis, which is good, but it still means the response size is anchored to the requester's reported height rather than to a bounded sync window.
+- If the requester has an old saved height, or if fork-id sampling fails during an otherwise normal reconnect, the resulting ghost-chain diff can still be very large.
+- In practice, that makes browser backlog size depend on stale local persistence and ancestor-detection accuracy, not on a fixed SPV target size.
+
+Recommended improvement:
+
+- Keep the ancestor fallback, but combine it with a hard maximum ghost-chain span per response.
+- Add diagnostics for the no-match path so it is possible to confirm whether large browser syncs are being driven by repeated fork-id misses.
+
 ## Suggested Implementation Order
 
 1. Remove the `sender_only_key_list` correctness shortcut or guard it behind an explicit config.
 2. Validate incoming ghost-chain structure before adding ghost blocks or triggering reorg.
-3. Improve ghost-chain generation performance so correctness is no longer traded away for throughput.
-4. Clean up stale Node-side protocol surface comments to make ownership obvious.
+3. Add a bounded or paged ghost-chain response so browser sync size is controlled even when the shared ancestor is old or uncertain.
+4. Improve ghost-chain generation performance so correctness is no longer traded away for throughput.
+5. Clean up stale Node-side protocol surface comments to make ownership obvious.
 
 ## Notes
 
 - No code changes were made in this pass.
 - The Node review for ghost chains mainly confirmed that runtime behavior is Rust-owned; the material issues are in the Rust core path, not in a separate Node implementation.
+- The browser overfetch symptom is at least partly consistent with current design: the ghost-chain path has no built-in 100-block cap once sync starts from a nonzero height.
