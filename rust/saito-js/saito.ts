@@ -209,6 +209,7 @@ export default class Saito {
   // for ease of understanding, we separate system components into
   //
   public getCore() {
+
     //
     // throw an error explicitly if these variables are uninitialized
     // as that can result in very difficult problems to debug later
@@ -223,6 +224,9 @@ export default class Saito {
     const wasm = Saito.getLibInstance();
     const core: any = {};
 
+    // -------------------------
+    // NETWORK 
+    // -------------------------
     const wasmNetwork = wasm.get_network();
     const wasmApi = wasmNetwork.api;
     const api = Object.create(wasmApi);
@@ -254,9 +258,6 @@ export default class Saito {
       }
     };
 
-    // -------------------------
-    // NETWORK (facade, no WASM mutation)
-    // -------------------------
     core.network = {
       api,
 
@@ -277,10 +278,6 @@ export default class Saito {
         return wasmNetwork.propagateTransaction(tx.clone().wasmTransaction);
       },
     };
-
-    // -------------------------
-    // HIGH-LEVEL NETWORK CALLS
-    // -------------------------
 
     core.network.sendTransactionWithCallback = async (
       transaction: any,
@@ -343,6 +340,8 @@ export default class Saito {
         publicKey
       );
     };
+
+
 
     return {
       //

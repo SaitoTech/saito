@@ -83,20 +83,12 @@ impl WasmWallet {
     }
     pub async fn set_public_key(&mut self, key: JsString) {
         let str: String = key.into();
-        // if str.len() != 66 {
-        //     error!(
-        //         "invalid length : {:?} for public key string. expected 66",
-        //         str.len()
-        //     );
-        //     return;
-        // }
         let key = SaitoPublicKey::from_base58(str.as_str());
         if key.is_err() {
             error!("{:?}", key.err().unwrap());
             return;
         }
         let key = key.unwrap();
-        // let key: SaitoPublicKey = key.try_into().unwrap();
         let mut wallet = self.wallet.write().await;
         wallet.public_key = key;
     }
