@@ -1,9 +1,7 @@
-
 .vault-file-access {
   width: 55rem !important;
   margin-top: 1rem;
 }
-
 
 .vault-nft-item {
   width: 22rem;
@@ -14,6 +12,15 @@
   flex-direction: column;
   gap: 1.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+}
+
+.vault-nft-item:hover {
+  transform: translate(-1px, -1px);
+}
+
+.vault-nft-item:hover button {
+  background: var(--saito-primary-dark);
 }
 
 .vault-nft-img {
@@ -33,7 +40,7 @@
 }
 
 .vault-nft-hash {
-    width: 90%;
+  width: 90%;
   flex: 1;
   font-size: 1.5rem;
   white-space: nowrap;
