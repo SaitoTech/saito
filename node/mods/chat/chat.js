@@ -213,7 +213,7 @@ class Chat extends ModTemplate {
     let chat_id = this.app.browser.returnURLParameter('chat_id');
 
     if (chat_id) {
-      if (this.app.wallet.isValidPublicKey(chat_id)) {
+      if (this.app.crypto.isPublicKey(chat_id)) {
         //data.key = public key(s) of other chat parties
         this.app.connection.emit('open-chat-with', { key: chat_id });
       } else {

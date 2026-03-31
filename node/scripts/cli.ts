@@ -45,6 +45,7 @@ async function initCLI() {
 	app.wallet.app = app;
 	app.blockchain = (await S.getInstance().getBlockchain()) as Blockchain;
 	app.blockchain.app = app;
+	app.core = S.getInstance().getCore();
 
 	console.log('\n===========================\nnpm run cli help - for help');
 

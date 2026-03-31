@@ -1,4 +1,3 @@
-import Saito from 'saito-js/saito';
 import node_cryptojs from 'node-cryptojs-aes';
 import crypto from 'crypto-browserify';
 import * as Base58 from 'base-58';
@@ -8,22 +7,28 @@ const bip39 = require('bip39');
 const CryptoJS = node_cryptojs.CryptoJS;
 const JsonFormatter = node_cryptojs.JsonFormatter;
 
-export default class Crypto {
+class Crypto {
+  public app: any;
+
+  constructor(app) {
+    this.app = app || {};
+  }
+
   public hash(buffer: Uint8Array | string): string {
     // buffer = buffer || "";
     if (typeof buffer === 'string') {
-      return Saito.getInstance().hash(Buffer.from(buffer));
+      return this.app.core.crypto.hash(Buffer.from(buffer));
     }
     // 64-bit hash
-    return Saito.getInstance().hash(buffer);
+    return this.app.core.crypto.hash(buffer);
   }
 
   public signBuffer(buffer: Uint8Array, privateKey: string): string {
-    return Saito.getInstance().signBuffer(buffer, privateKey);
+    return this.app.core.crypto.signBuffer(buffer, privateKey);
   }
 
   public verifySignature(buffer: Uint8Array, sig: string, publicKey: string): boolean {
-    return Saito.getInstance().verifySignature(buffer, sig, publicKey);
+    return this.app.core.crypto.verifySignature(buffer, sig, publicKey);
   }
 
   public signMessage(msg: string, privateKey: string): string {
@@ -164,11 +169,11 @@ export default class Crypto {
   }
 
   generateKeys(): string {
-    return Saito.getInstance().generatePrivateKey();
+    return this.app.core.crypto.generatePrivateKey();
   }
 
   generatePublicKey(privateKey: string): string {
-    return Saito.getInstance().generatePublicKey(privateKey);
+    return this.app.core.crypto.generatePublicKey(privateKey);
   }
 
   /**
@@ -332,35 +337,23 @@ export default class Crypto {
     return stringx;
   }
 
-  isValidPublicKey(key) {
-    if (typeof key !== 'string') {
+  isPublicKey(key: string) {
+    if (!key || typeof key !== 'string') {
       return false;
     }
-
-    if (key.length !== 44) {
-      return false;
-    }
-
-    const base58Regex = /^[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]+$/;
-    return base58Regex.test(key);
-  }
-
-  isPublicKey(publicKey: string) {
-    if (publicKey) {
-      if (publicKey.indexOf('@') <= 0) {
-        if (this.isBase58(publicKey)) {
-          return 1;
-        }
+    if (key.indexOf('@') <= 0) {
+      if (this.isBase58(key)) {
+        return this.app.core.crypto.isPublicKey(key);
+      } else {
+        return false;
       }
     }
-    return 0;
+    return false;
   }
 
   isBase58(t: string) {
     return /^[A-HJ-NP-Za-km-z1-9]*$/.test(t);
   }
-
-  //Restoring these functions ...
 
   generateSeedFromPrivateKey(existingPrivateKey: String) {
     // Create a seed that will deterministically generate your key first
@@ -575,3 +568,5 @@ export default class Crypto {
     return new Uint8Array(bytes);
   }
 }
+
+export default Crypto;

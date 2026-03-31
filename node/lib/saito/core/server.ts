@@ -41,16 +41,35 @@ export class NodeSharedMethods extends CustomSharedMethods {
   constructor(app: Saito) {
     super();
     this.app = app;
+
+    this.app.connection.on('peer_disconnect', (publicKey: string) => {
+      try {
+        S.getInstance().removeSocket(publicKey);
+      } catch (error) {
+        console.error(`failed removing socket for disconnected peer : ${publicKey}`, error);
+      }
+    });
+  }
+
+  emitAsync(event: string, payload?: any): void {
+    queueMicrotask(() => {
+      try {
+        this.app.connection.emit(event, payload);
+      } catch (error) {
+        console.error(`emitAsync: uncaught error in "${event}" listener:`, error);
+      }
+    });
   }
 
   sendMessage(publicKey: string, buffer: Uint8Array): void {
     try {
-      // console.log('sending message : '+buffer.byteLength+' bytes to peer : '+publicKey);
       let socket = S.getInstance().getSocket(publicKey);
       if (socket) {
+        if (socket.readyState !== ws.OPEN) {
+          S.getInstance().removeSocket(publicKey);
+          return;
+        }
         socket.send(buffer);
-      } else {
-        // console.warn('socket not found for peer : '+publicKey+'. Cannot send the buffer : '+buffer.byteLength+' bytes.');
       }
     } catch (e) {
       // console.error(e);
@@ -65,6 +84,10 @@ export class NodeSharedMethods extends CustomSharedMethods {
       try {
         let socket = peer.socket;
         if (socket) {
+          if (socket.readyState !== ws.OPEN) {
+            S.getInstance().removeSocket(key);
+            return;
+          }
           socket.send(buffer);
         }
       } catch (error) {
@@ -112,28 +135,28 @@ export class NodeSharedMethods extends CustomSharedMethods {
         }
       });
       socket.on('close', () => {
-        try {
-          S.getLibInstance().process_peer_disconnection(peer.publicKey);
-        } catch (e) {
-          console.error(
-            `failed processing socket close from peer : ${peer.publicKey} from url : ${url}`,
-            e
+        S.getLibInstance()
+          .process_peer_disconnection(peer.publicKey)
+          .catch((e: any) =>
+            console.error(
+              `failed processing socket close from peer : ${peer.publicKey} from url : ${url}`,
+              e
+            )
           );
-        }
       });
       socket.on('error', (error) => {
         console.error(
           `received socket error from peer : ${peer.publicKey} from url : ${url}`,
           error
         );
-        try {
-          S.getLibInstance().process_peer_disconnection(peer.publicKey);
-        } catch (e) {
-          console.error(
-            `failed processing error from peer : ${peer.publicKey} from url : ${url}`,
-            e
+        S.getLibInstance()
+          .process_peer_disconnection(peer.publicKey)
+          .catch((e: any) =>
+            console.error(
+              `failed processing error from peer : ${peer.publicKey} from url : ${url}`,
+              e
+            )
           );
-        }
       });
       socket.on('open', () => {
         try {
@@ -232,46 +255,44 @@ export class NodeSharedMethods extends CustomSharedMethods {
   }
 
   async processApiCall(buffer: Uint8Array, msgIndex: number, publicKey: string): Promise<void> {
-    // console.log(
-    //   "NodeMethods.processApiCall : peer= " + peerIndex + " with size : " + buffer.byteLength
-    // );
-    const mycallback = async (response_object) => {
-      // console.log("response_object ", response_object);
-      await S.getInstance().sendApiSuccess(
-        msgIndex,
-        response_object ? Buffer.from(JSON.stringify(response_object), 'utf-8') : Buffer.alloc(0),
-        publicKey
-      );
-    };
-    let peer = await this.app.network.getPeer(publicKey);
-    let newtx = new Transaction();
     try {
-      // console.log("buffer length : " + buffer.byteLength, buffer);
-      newtx.deserialize(buffer);
-      newtx.unpackData();
-      // console.debug("processing peer tx : ", newtx.msg);
+      const mycallback = async (response_object) => {
+        // console.log("response_object ", response_object);
+        await this.app.core.network.api.success(
+          response_object ? Buffer.from(JSON.stringify(response_object), 'utf-8') : Buffer.alloc(0),
+          msgIndex,
+          publicKey
+        );
+      };
+      let peer = await this.app.core.network.getPeer(publicKey);
+      let newtx = new Transaction();
+      try {
+        newtx.deserialize(buffer);
+        newtx.unpackData();
+      } catch (error) {
+        console.error(error);
+        newtx.msg = buffer;
+      }
+      await this.app.modules.handlePeerTransaction(newtx, peer, mycallback);
     } catch (error) {
-      console.error(error);
-      newtx.msg = buffer;
+      console.error('processApiCall: unhandled error:', error);
     }
-
-    await this.app.modules.handlePeerTransaction(newtx, peer, mycallback);
   }
 
   sendInterfaceEvent(event: string, public_key: string) {
-    this.app.connection.emit(event, public_key);
+    this.emitAsync(event, public_key);
   }
 
   sendBlockSuccess(hash: string, blockId: bigint) {
-    this.app.connection.emit('add-block-success', { hash, blockId });
+    this.emitAsync('add-block-success', { hash, blockId });
   }
 
   sendWalletUpdate() {
-    this.app.connection.emit('wallet-updated');
+    this.emitAsync('wallet-updated');
   }
 
   sendBlockFetchStatus(count: bigint) {
-    this.app.connection.emit('block-fetch-status', { count: count });
+    this.emitAsync('block-fetch-status', { count: count });
   }
 
   async saveWallet(): Promise<void> {
@@ -318,7 +339,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
     fs.mkdirSync(path);
   }
   sendNewChainDetectedEvent(): void {
-    this.app.connection.emit('new-chain-detected');
+    this.emitAsync('new-chain-detected');
   }
 }
 
@@ -423,11 +444,19 @@ class Server {
           });
       });
       socket.on('close', () => {
-        S.getLibInstance().process_peer_disconnection(peer.publicKey);
+        S.getLibInstance()
+          .process_peer_disconnection(peer.publicKey)
+          .catch((e: any) =>
+            console.error(`failed processing socket close from peer : ${peer.publicKey}`, e)
+          );
       });
       socket.on('error', (error) => {
         console.error('error on socket : ' + peer.publicKey, error);
-        S.getLibInstance().process_peer_disconnection(peer.publicKey);
+        S.getLibInstance()
+          .process_peer_disconnection(peer.publicKey)
+          .catch((e: any) =>
+            console.error(`failed processing socket error from peer : ${peer.publicKey}`, e)
+          );
       });
       peer.get_handshake_challenge_buffer().then((buffer) => {
         console.log('sending handshake challenge to peer : ', peer.publicKey);
@@ -444,6 +473,16 @@ class Server {
     if (this.app.BROWSER === 1) {
       return;
     }
+
+    process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+      console.error('[SAITO] Unhandled Promise Rejection:', reason);
+      if (reason?.stack) console.error(reason.stack);
+    });
+
+    process.on('uncaughtException', (error: Error) => {
+      console.error('[SAITO] Uncaught Exception:', error);
+      if (error?.stack) console.error(error.stack);
+    });
 
     //
     // update server information from options file
@@ -635,7 +674,7 @@ class Server {
       const bsh = req.params.bhash;
       let keylist = [];
       let peer: Peer | null = null;
-      let peers: Peer[] = await this.app.network.getPeers();
+      let peers: Peer[] = await this.app.core.network.getPeers();
       for (let i = 0; i < peers.length; i++) {
         try {
           if (peers[i].publicKey === pkey) {
@@ -862,7 +901,7 @@ class Server {
       const bsh = req.params.bhash;
       let keylist = [];
       let peer: Peer | null = null;
-      let peers: Peer[] = await this.app.network.getPeers();
+      let peers: Peer[] = await this.app.core.network.getPeers();
       for (let i = 0; i < peers.length; i++) {
         try {
           if (peers[i].publicKey === pkey) {
@@ -1269,7 +1308,7 @@ class Server {
       let amt = req.params.amt;
       let tx = await S.getInstance().createTransaction(to, amt, BigInt(0));
       await tx.sign();
-      await S.getInstance().propagateTransaction(tx);
+      await this.app.core.network.core.propagateTransaction(tx);
       res.send({});
     });
     express.get('/test-api/status', async (req, res) => {
