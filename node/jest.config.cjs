@@ -3,7 +3,6 @@ const legacySpecIgnores = [
   '<rootDir>/lib/saito/crypto.spec.ts',
   '<rootDir>/lib/saito/peer.spec.ts',
   '<rootDir>/lib/saito/slip.spec.ts',
-  '<rootDir>/lib/saito/transaction.spec.ts',
   '<rootDir>/lib/saito/core/storage-core.spec.ts',
 ];
 
