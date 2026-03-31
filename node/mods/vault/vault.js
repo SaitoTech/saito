@@ -30,6 +30,14 @@ class Vault extends ModTemplate {
 		this.mode = 'private';
 		this.styles = ['/vault/style.css'];
 
+		this.social = {
+			twitter: '@SaitoOfficial',
+			title: 'Vault - Secure Storage',
+			url: 'https://saito.io/vault',
+			description: 'NFT-based cloud storage',
+			image: 'https://saito.io/vault/img/splash.png'
+		};
+
 		this.access_file_overlay = new AccessFileOverlay(this.app, this.mod);
 	}
 
