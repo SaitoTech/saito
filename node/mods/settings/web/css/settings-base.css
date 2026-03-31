@@ -15,6 +15,114 @@
 */
 }
 
+.settings-appspace-warning-bar {
+	width: 100%;
+	box-sizing: border-box;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.85rem 1.25rem;
+	margin: 0;
+	border-radius: var(--saito-border-radius) var(--saito-border-radius) 0 0;
+	background: var(--saito-primary);
+	color: var(--saito-primary-text);
+	border-bottom: var(--border-thickness-medium) solid var(--saito-red, #c0392b);
+	font-weight: 600;
+	line-height: 1.35;
+}
+
+.settings-appspace-warning-bar .settings-appspace-warning-bar-text {
+	flex: 1;
+	min-width: 0;
+}
+
+details.settings-appspace-section {
+	padding: 1rem;
+}
+
+.settings-appspace-section-summary {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	padding: 0.5rem 0 0.75rem;
+	list-style: none;
+	cursor: pointer;
+	position: relative;
+	padding-left: 1.35rem;
+}
+
+.settings-appspace-section-summary::-webkit-details-marker {
+	display: none;
+}
+
+.settings-appspace-section-summary::marker {
+	content: '';
+}
+
+.settings-appspace-section-summary::before {
+	content: '▸';
+	position: absolute;
+	left: 0;
+	top: 50%;
+	transform: translateY(-63%);
+	font-size: 0.85em;
+	opacity: 0.75;
+	transition: transform 0.15s ease;
+}
+
+details.settings-appspace-section[open] > .settings-appspace-section-summary::before {
+	transform: translateY(-50%) rotate(90deg);
+}
+
+.settings-appspace-section-summary h6 {
+	margin: 0;
+}
+
+.settings-appspace-body details.settings-appspace-section > div {
+	border: 1px solid var(--saito-border-color);
+	border-radius: var(--saito-border-radius);
+	padding: 1rem;
+}
+
+.settings-appspace-build-info {
+	padding: 0 1rem 1rem;
+}
+
+.settings-appspace-build-info-grid {
+	display: grid;
+	grid-template-columns: minmax(12rem, auto) minmax(0, 1fr);
+	grid-column-gap: 1.5rem;
+	grid-row-gap: 0.75rem;
+	align-items: center;
+	padding: 0.5rem 0 0;
+}
+
+.settings-appspace-build-value {
+	font-family: 'Courier New', Courier, monospace;
+	word-break: break-all;
+}
+
+.settings-appspace-header {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.settings-appspace-header .settings-actions-container {
+	display: grid;
+	grid-template-columns: repeat(5, minmax(0, 1fr));
+	width: 100%;
+	max-width: 100%;
+	margin: 0;
+	gap: 0.75rem;
+}
+
+.settings-appspace-header .settings-actions-container .saito-button-secondary {
+	justify-content: center;
+	text-align: center;
+	min-width: 0;
+}
+
 .settings-actions-container {
 	display: flex;
 	flex-flow: row-reverse;
@@ -111,7 +219,7 @@
 	align-items: center;
 }
 
-.settings-appspace-app div {
+.settings-appspace-app > div {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -205,18 +313,19 @@ label.treated {
 	.settings-appspace-user-details {
 		grid-template-columns: 9rem 1fr;
 	}
-	.settings-actions-container {
-		gap: 0.6rem;
-		margin-right: 0.5rem;
-		flex-wrap: wrap;
-		justify-content: flex-end;
+
+	.settings-appspace-header .settings-actions-container {
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
 	}
 
 	.settings-appspace-user-details .settings-actions-container {
+		gap: 0.6rem;
+		margin-right: 0.5rem;
 		flex-wrap: nowrap;
+		justify-content: flex-end;
 	}
 
-	.settings-actions-container .saito-button-secondary {
+	.settings-appspace-user-details .settings-actions-container .saito-button-secondary {
 		padding: 0.4rem 0.3rem;
 		display: block;
 		white-space: nowrap;

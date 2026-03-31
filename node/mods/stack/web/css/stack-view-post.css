@@ -5,7 +5,7 @@
 
 /* Override container for view post page - ensure full width and scrolling */
 .saito-container:has(.stack-view-post) {
-  grid-template-columns: 1fr !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   padding: 0 !important;
   max-width: 100% !important;
   width: 100vw !important;
@@ -131,6 +131,10 @@
   flex: 1;
   min-width: 0;
   /* Do NOT override SaitoUser CSS - only container spacing */
+}
+
+.stack-view-post-author-container .saito-userline {
+  color: var(--saito-font-color-secondary);
 }
 
 /* Action Icons - Right side, compact cluster */
@@ -268,7 +272,7 @@
 .stack-view-post-content pre {
   background: var(--saito-background-color-inverse);
   color: var(--saito-font-color-inverse);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
   font-size: 0.9rem;
   line-height: 1.5;
   padding: 1rem 1.25rem;
@@ -329,14 +333,28 @@
 
 /* Footer */
 .stack-view-post-footer {
-  margin-top: 5rem; /* Generous space after body content */
+  margin-top: 4rem; /* Generous space after body content */
   padding-top: 2rem;
+  padding-bottom: 2rem;
+  border-top: 1px solid var(--saito-border-color);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem;
 }
 
-.stack-view-post-footer-divider {
-  height: 1px;
-  background: var(--saito-border-color);
+.stack-view-post-footer-card {
+}
+
+.stack-view-footer-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--saito-border-color);
+  border-radius: 12px;
+  text-align: center;
   width: 100%;
+  height: 100%;
 }
 
 /* Error State */
@@ -416,7 +434,6 @@
     font-size: 1.8rem;
   }
 
-
   .stack-view-post-content h2 {
     font-size: 2.4rem;
   }
@@ -425,4 +442,3 @@
     font-size: 2.1rem;
   }
 }
-

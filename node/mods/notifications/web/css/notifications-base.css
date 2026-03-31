@@ -1,0 +1,88 @@
+/* notifications-base.css — defensive overrides only (vs saito.css)
+ *
+ * Not general styling. Keeps the notifications shell + tweet list readable when
+ * global Saito rules would break layout, height, scroll, or text color.
+ *
+ * Tweet chrome lives in notifications-tweet.css (.header / .body / .controls / .action).
+ * Do not duplicate those rules here unless saito.css requires an extra !important layer.
+ */
+
+/* Single-column grid so .saito-main can span full width and host inner columns */
+.saito-container:has(.notifications-header) {
+  grid-template-columns: 1fr;
+}
+
+.saito-main:has(.notifications-header) {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+.saito-main:has(.notifications-header) .saito-sidebar-left,
+.saito-main:has(.notifications-header) .saito-sidebar-right {
+  width: 260px;
+  min-width: 260px;
+  flex-shrink: 0;
+}
+
+.saito-main:has(.notifications-header) .saito-center {
+  flex: 1;
+  min-width: 0;
+  max-width: 700px;
+  margin: 0 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.saito-main:has(.notifications-header) .notifications-notifications {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Hard reset: scope box-sizing to notifications feed */
+.notifications-notifications,
+.notifications-notifications * {
+  box-sizing: border-box;
+}
+
+/* Feed container: positioning for thread overlay + undo saito height clamps */
+.notifications-notifications {
+  position: relative;
+  height: auto !important;
+  max-height: none !important;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.notifications-notifications::-webkit-scrollbar {
+  display: none;
+}
+
+/* Text color parity inside feed (saito often forces link/header colors) */
+.notifications-notifications .tweet {
+  color: #222 !important;
+}
+
+.notifications-notifications .tweet .timestamp,
+.notifications-notifications .tweet .body,
+.notifications-notifications .tweet .text {
+  color: #222 !important;
+}
+
+.notifications-notifications .tweet .timestamp {
+  color: #777 !important;
+}
+
+.notifications-notifications .tweet .username {
+  color: #000 !important;
+  font-weight: 600;
+}
+
+/* Empty .media / .link-preview wrappers must not reserve margin (whitespace-only :empty fallback) */
+.notifications-notifications .tweet .media:empty,
+.notifications-notifications .tweet .link-preview:empty {
+  display: none;
+}

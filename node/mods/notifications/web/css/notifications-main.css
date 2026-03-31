@@ -1,0 +1,12 @@
+/* Notifications Module - Main / Header CSS
+ *
+ * Minor styling for header and spacing only.
+ * Layout is provided by Saito layout classes (saito-main, saito-center, etc).
+ */
+
+.notifications-header {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  padding: 12px 16px 0;
+}

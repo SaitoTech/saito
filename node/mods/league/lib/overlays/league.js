@@ -81,7 +81,6 @@ class LeagueOverlay {
 		if (document.getElementById('league-overlay-create-game-button')) {
 			document.getElementById('league-overlay-create-game-button').onclick = (e) => {
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent('GameWizard', 'LeagueOverlay', this.league.game);
 				if (this.league.admin) {
 					// private leagues get league provided
 					this.app.connection.emit('arcade-launch-game-wizard', {

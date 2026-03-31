@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="520" viewBox="0 0 1360 520">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a5568" />
+    </marker>
+    <style>
+      .title { font: 700 24px sans-serif; fill: #1a202c; }
+      .box { stroke-width: 2; rx: 12; ry: 12; }
+      .text { font: 14px sans-serif; fill: #1f2937; }
+      .small { font: 13px sans-serif; fill: #374151; }
+      .line { stroke: #4a5568; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <text x="30" y="36" class="title">Full block sync pipeline</text>
+
+  <rect x="30" y="100" width="230" height="94" class="box" fill="#dbeafe" stroke="#60a5fa" />
+  <text x="50" y="132" class="text">request_blockchain_from_peer()</text>
+  <text x="50" y="158" class="small">send BlockchainRequest with</text>
+  <text x="50" y="180" class="small">latest id, hash, and fork id</text>
+
+  <rect x="310" y="100" width="250" height="94" class="box" fill="#fef3c7" stroke="#f59e0b" />
+  <text x="330" y="132" class="text">Remote node computes</text>
+  <text x="330" y="154" class="text">last shared ancestor</text>
+  <text x="330" y="180" class="small">and queues header send work</text>
+
+  <rect x="610" y="100" width="230" height="94" class="box" fill="#fee2e2" stroke="#ef4444" />
+  <text x="630" y="132" class="text">send_block_headers()</text>
+  <text x="630" y="158" class="small">emit BlockHeaderHash in</text>
+  <text x="630" y="180" class="small">batches up to 100</text>
+
+  <rect x="890" y="100" width="250" height="94" class="box" fill="#dcfce7" stroke="#22c55e" />
+  <text x="910" y="132" class="text">process_incoming_block_hash()</text>
+  <text x="910" y="158" class="small">filter known / stale entries</text>
+  <text x="910" y="180" class="small">and add sync candidates</text>
+
+  <rect x="310" y="280" width="250" height="94" class="box" fill="#ede9fe" stroke="#8b5cf6" />
+  <text x="330" y="312" class="text">BlockchainSyncState</text>
+  <text x="330" y="338" class="small">orders work and applies</text>
+  <text x="330" y="360" class="small">per-peer fetch quotas</text>
+
+  <rect x="610" y="280" width="260" height="94" class="box" fill="#dbeafe" stroke="#60a5fa" />
+  <text x="630" y="312" class="text">process_incoming_block_hash_()</text>
+  <text x="630" y="338" class="small">derive peer-specific HTTP URL</text>
+  <text x="630" y="360" class="small">and call fetch_block_from_peer()</text>
+
+  <rect x="920" y="280" width="220" height="94" class="box" fill="#fef3c7" stroke="#f59e0b" />
+  <text x="940" y="312" class="text">Transport fetch</text>
+  <text x="940" y="338" class="small">Native: reqwest</text>
+  <text x="940" y="360" class="small">Web: browser fetch</text>
+
+  <rect x="310" y="430" width="250" height="64" class="box" fill="#dcfce7" stroke="#22c55e" />
+  <text x="330" y="458" class="text">BlockFetched → verification thread</text>
+  <text x="330" y="480" class="small">mark hash fetched in sync state</text>
+
+  <rect x="610" y="430" width="230" height="64" class="box" fill="#fee2e2" stroke="#ef4444" />
+  <text x="630" y="468" class="text">Verification + consensus add block</text>
+
+  <rect x="890" y="420" width="300" height="74" class="box" fill="#ede9fe" stroke="#8b5cf6" />
+  <text x="910" y="452" class="text">BlockchainUpdated</text>
+  <text x="910" y="476" class="small">remove entry and call fetch_next_blocks()</text>
+
+  <path d="M260 147 L310 147" class="line" />
+  <path d="M560 147 L610 147" class="line" />
+  <path d="M840 147 L890 147" class="line" />
+  <path d="M1015 194 L1015 280" class="line" />
+  <path d="M890 194 C 850 238, 690 286, 560 327" class="line" />
+  <path d="M560 327 L610 327" class="line" />
+  <path d="M870 327 L920 327" class="line" />
+  <path d="M920 374 C 870 414, 690 450, 560 462" class="line" />
+  <path d="M560 462 L610 462" class="line" />
+  <path d="M840 462 L890 457" class="line" />
+</svg>

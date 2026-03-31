@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="520" viewBox="0 0 1320 520">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a5568" />
+    </marker>
+    <style>
+      .title { font: 700 24px sans-serif; fill: #1a202c; }
+      .box { stroke-width: 2; rx: 12; ry: 12; }
+      .text { font: 14px sans-serif; fill: #1f2937; }
+      .small { font: 13px sans-serif; fill: #374151; }
+      .line { stroke: #4a5568; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <text x="30" y="36" class="title">SPV / ghost-chain sync</text>
+
+  <rect x="30" y="100" width="220" height="94" class="box" fill="#dbeafe" stroke="#60a5fa" />
+  <text x="50" y="132" class="text">SPV peer sends</text>
+  <text x="50" y="154" class="text">GhostChainRequest</text>
+  <text x="50" y="180" class="small">latest id, hash, fork id</text>
+
+  <rect x="300" y="100" width="250" height="94" class="box" fill="#fef3c7" stroke="#f59e0b" />
+  <text x="320" y="132" class="text">process_ghost_chain_request()</text>
+  <text x="320" y="158" class="small">load peer key list and compute</text>
+  <text x="320" y="180" class="small">last shared ancestor</text>
+
+  <rect x="600" y="100" width="280" height="94" class="box" fill="#fee2e2" stroke="#ef4444" />
+  <text x="620" y="132" class="text">generate_ghost_chain()</text>
+  <text x="620" y="158" class="small">build vectors for prehashes, prev</text>
+  <text x="620" y="180" class="small">hashes, ids, timestamps, txs, gts</text>
+
+  <rect x="930" y="110" width="230" height="74" class="box" fill="#dcfce7" stroke="#22c55e" />
+  <text x="950" y="144" class="text">Return GhostChainSync</text>
+  <text x="950" y="168" class="small">to the SPV peer</text>
+
+  <rect x="300" y="280" width="250" height="94" class="box" fill="#ede9fe" stroke="#8b5cf6" />
+  <text x="320" y="312" class="text">process_ghost_chain()</text>
+  <text x="320" y="338" class="small">reconstruct block hash from</text>
+  <text x="320" y="360" class="small">previous_block_hash + prehash</text>
+
+  <rect x="600" y="270" width="250" height="104" class="box" fill="#dbeafe" stroke="#60a5fa" />
+  <text x="620" y="302" class="text">Relevant txs?</text>
+  <text x="620" y="328" class="small">Queue full block fetch in</text>
+  <text x="620" y="350" class="small">BlockchainSyncState</text>
+
+  <rect x="900" y="270" width="270" height="104" class="box" fill="#dcfce7" stroke="#22c55e" />
+  <text x="920" y="302" class="text">No relevant txs?</text>
+  <text x="920" y="328" class="small">Add ghost block directly</text>
+  <text x="920" y="350" class="small">to blockchain state</text>
+
+  <rect x="420" y="430" width="280" height="64" class="box" fill="#fef3c7" stroke="#f59e0b" />
+  <text x="440" y="458" class="text">Trigger reorg from lowest affected point</text>
+  <text x="440" y="480" class="small">after ghost entries are applied</text>
+
+  <rect x="760" y="430" width="320" height="64" class="box" fill="#fee2e2" stroke="#ef4444" />
+  <text x="780" y="458" class="text">If no full blocks are needed, mark</text>
+  <text x="780" y="480" class="small">initial_loading_status = Completed</text>
+
+  <path d="M250 147 L300 147" class="line" />
+  <path d="M550 147 L600 147" class="line" />
+  <path d="M880 147 L930 147" class="line" />
+  <path d="M1045 184 C 980 238, 760 286, 550 327" class="line" />
+  <path d="M550 327 L600 327" class="line" />
+  <path d="M550 327 L900 327" class="line" />
+  <path d="M725 374 L560 430" class="line" />
+  <path d="M1035 374 L700 446" class="line" />
+  <path d="M700 462 L760 462" class="line" />
+</svg>

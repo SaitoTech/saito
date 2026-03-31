@@ -213,11 +213,6 @@ class LoungeOverlay {
 				let am = this.app.modules.returnActiveModule()?.returnName() || 'Arcade';
 				this.app.options.homeModule = am;
 				this.app.storage.saveOptions();
-				this.app.browser.logMatomoEvent(
-					'StartGameClick',
-					am,
-					slug ? slug.slice(0, 1).toUpperCase() + slug.slice(1) : 'Game'
-				);
 				navigateWindow(`/${slug}`, 200);
 			};
 		}
@@ -292,7 +287,6 @@ class LoungeOverlay {
 					gameId = this.game_id;
 					name = mod?.returnName?.() || mod?.name;
 				}
-				if (name) this.app.browser.logMatomoEvent('GameInvite', 'ContinueGame', name);
 				if (slug != null && gameId != null) {
 					navigateWindow(`/${slug}/#gid=${encodeURIComponent(gameId)}`);
 				}
@@ -303,7 +297,6 @@ class LoungeOverlay {
 			document.getElementById('arcade-game-controls-close-game').onclick = async (e) => {
 				if (this.invite) {
 					this.overlay.remove();
-					this.app.browser.logMatomoEvent('GameInvite', 'CloseActiveGame', this.invite.game_mod?.name);
 					let c = await sconfirm('Are you sure you want to end the game?');
 					if (c) {
 						this.app.connection.emit(
@@ -331,7 +324,6 @@ class LoungeOverlay {
 		if (document.getElementById('arcade-game-controls-forfeit-game')) {
 			document.getElementById('arcade-game-controls-forfeit-game').onclick = async (e) => {
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent('GameInvite', 'ForfeitGame', this.invite.game_mod?.name);
 
 				let c = await sconfirm('Are you sure you want to end the game and take a loss?');
 
@@ -350,7 +342,6 @@ class LoungeOverlay {
 			document.getElementById('arcade-game-controls-cancel-join').onclick = (e) => {
 				this.mod.sendCancelTransaction(this.invite.game_id);
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent('GameInvite', 'CancelJoin', this.invite.game_mod?.name);
 			};
 		}
 
@@ -367,7 +358,6 @@ class LoungeOverlay {
 				this.app.connection.emit('league-overlay-remove-request');
 				this.mod.observeGame(gid, true, this.observer_game_module_slug || undefined);
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent('GameInvite', 'WatchGame', this.invite?.game_mod?.name);
 			};
 		}
 
@@ -376,7 +366,6 @@ class LoungeOverlay {
 				this.app.connection.emit('league-overlay-remove-request');
 				this.mod.observeGame(this.invite.game_id);
 				this.overlay.remove();
-				this.app.browser.logMatomoEvent('GameInvite', 'ReviewGame', this.invite.game_mod?.name);
 			};
 		}
 
