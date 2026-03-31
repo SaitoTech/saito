@@ -255,18 +255,17 @@ export class NodeSharedMethods extends CustomSharedMethods {
   }
 
   async processApiCall(buffer: Uint8Array, msgIndex: number, publicKey: string): Promise<void> {
-
     try {
-    const mycallback = async (response_object) => {
-      // console.log("response_object ", response_object);
-      await this.app.core.network.api.success(
-        response_object ? Buffer.from(JSON.stringify(response_object), 'utf-8') : Buffer.alloc(0),
-        msgIndex,
-        publicKey
-      );
-    };
-    let peer = await this.app.core.network.getPeer(publicKey);
-    let newtx = new Transaction();
+      const mycallback = async (response_object) => {
+        // console.log("response_object ", response_object);
+        await this.app.core.network.api.success(
+          response_object ? Buffer.from(JSON.stringify(response_object), 'utf-8') : Buffer.alloc(0),
+          msgIndex,
+          publicKey
+        );
+      };
+      let peer = await this.app.core.network.getPeer(publicKey);
+      let newtx = new Transaction();
       try {
         newtx.deserialize(buffer);
         newtx.unpackData();
