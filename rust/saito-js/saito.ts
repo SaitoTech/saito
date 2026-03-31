@@ -203,6 +203,194 @@ export default class Saito {
     this.stunManager = new StunPeer(this);
   }
 
+  //
+  // our main entry point for JS calls to Saito-Core via Saito-WASM
+  //
+  // core.wallet
+  // core.blockchain
+  // core.network
+  // ...
+  //
+  public getCore() {
+    //
+    // throw an error explicitly if these variables are uninitialized
+    // as that can result in very difficult problems to debug later
+    // if we run into them. better to exit now and get an immediate
+    // notification of the problem.
+    //
+    if (!this.wallet || !this.blockchain) {
+      throw new Error("Core not initialized yet");
+    }
+
+    const self = this;
+    const wasm = Saito.getLibInstance();
+    const core: any = {};
+
+    // -------------------------
+    // NETWORK
+    // -------------------------
+    const wasmNetwork = wasm.get_network();
+    const wasmApi = wasmNetwork.api;
+    const api = Object.create(wasmApi);
+
+    api.call = async (
+      buffer: Uint8Array,
+      publicKey?: string,
+      waitForReply?: boolean
+    ): Promise<Uint8Array> => {
+      if (!!publicKey) {
+        const peer = await core.network.getPeer(publicKey);
+        if (peer === null) {
+          throw new Error("peer not found. public key : " + publicKey);
+        }
+        if (peer.status !== "connected") {
+          throw new Error(`peer : ${peer.publicKey} not connected`);
+        }
+      }
+
+      self.callbackIndex++;
+
+      if (waitForReply) {
+        return new Promise(async (resolve, reject) => {
+          self.promises.set(self.callbackIndex, { resolve, reject });
+          wasmApi.send(buffer, self.callbackIndex, publicKey || "");
+        });
+      } else {
+        return wasmApi.send(buffer, self.callbackIndex, publicKey || "");
+      }
+    };
+
+    core.network = {
+      api,
+
+      getPeers: async () => {
+        const peers = await wasmNetwork.getPeers();
+        return peers.map((peer: any) => {
+          return self.factory.createPeer(peer);
+        });
+      },
+
+      getPeer: async (publicKey: string) => {
+        const peer = await wasmNetwork.getPeer(publicKey);
+        if (!peer) return null;
+        return self.factory.createPeer(peer);
+      },
+
+      propagateTransaction: async (tx: any) => {
+        return wasmNetwork.propagateTransaction(tx.clone().wasmTransaction);
+      },
+    };
+
+    core.network.sendTransactionWithCallback = async (
+      transaction: any,
+      callback?: any,
+      publicKey?: string
+    ) => {
+      const buffer = transaction.wasmTransaction.serialize();
+
+      await api
+        .call(buffer, publicKey, !!callback)
+        .then((buffer: Uint8Array) => {
+          if (callback) {
+            const tx = self.factory.createTransaction();
+            tx.data = buffer;
+            tx.unpackData();
+            return callback(tx);
+          }
+        })
+        .catch((error: any) => {
+          console.info("couldn't send api call : ", error);
+          if (callback) {
+            return callback({ err: error.toString() });
+          }
+        });
+    };
+
+    core.network.sendRequest = async (
+      message: string,
+      data: any = "",
+      callback?: any,
+      publicKey?: string,
+      signature_required?: boolean
+    ) => {
+      console.info("sending request : " + message + ", peer = " + publicKey);
+
+      const wallet = await self.getWallet();
+      const myPublicKey = await wallet.getPublicKey();
+
+      const tx = await wasm.create_transaction(myPublicKey, BigInt(0), BigInt(0), false);
+
+      const txObj = self.factory.createTransaction(tx);
+      txObj.msg = {
+        request: message,
+        data: data,
+      };
+
+      txObj.packData();
+
+      if (signature_required) {
+        await txObj.sign();
+      }
+
+      return core.network.sendTransactionWithCallback(
+        txObj,
+        (tx: any) => {
+          if (callback) {
+            return callback(tx.msg);
+          }
+        },
+        publicKey
+      );
+    };
+
+    return {
+      //
+      // why? because network defined outside
+      //
+      ...core,
+
+      //
+      // ROOT STATE OBJECTS (singletons backed by Rust)
+      //
+      blockchain: this.blockchain?.instance,
+      wallet: this.wallet?.instance,
+
+      //
+      // OBJECT CLASSES (constructors from WASM)
+      //
+      transaction: wasm.WasmTransaction,
+      block: wasm.WasmBlock,
+      slip: wasm.WasmSlip,
+      peer: wasm.WasmPeer,
+      hop: wasm.WasmHop,
+
+      //
+      // SYSTEM COMPONENTS / PLACEHOLDERS
+      //
+
+      storage: null,
+
+      //
+      // CRYPTO
+      //
+      crypto: {
+        generatePrivateKey: wasm.generate_private_key?.bind(wasm),
+        generatePublicKey: wasm.generate_public_key?.bind(wasm),
+        hash: wasm.hash?.bind(wasm),
+        isPublicKey: wasm.is_public_key?.bind(wasm),
+        signBuffer: wasm.sign_buffer?.bind(wasm),
+        verifySignature: wasm.verify_signature?.bind(wasm),
+      },
+
+      //
+      // ADMIN / MISC (unstructured)
+      //
+      admin: {
+        writeIssuanceFile: wasm.write_issuance_file?.bind(wasm),
+      },
+    };
+  }
+
   public static getInstance(): Saito {
     return Saito.instance;
   }
@@ -267,10 +455,6 @@ export default class Saito {
     return Saito.getLibInstance().initialize(configs);
   }
 
-  public async getLatestBlockHash(): Promise<string> {
-    return Saito.getLibInstance().get_latest_block_hash();
-  }
-
   public async getBlock<B extends Block>(blockHash: string): Promise<B | null> {
     try {
       let block = await Saito.getLibInstance().get_block(blockHash);
@@ -281,37 +465,8 @@ export default class Saito {
     }
   }
 
-  public async processPeerDisconnection(public_key: string): Promise<void> {
-    return Saito.getLibInstance().process_peer_disconnection(public_key);
-  }
-
   public async processMsgBufferFromPeer(buffer: Uint8Array, peer: NetworkPeer): Promise<void> {
     return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
-  }
-
-  public async processFetchedBlock(
-    buffer: Uint8Array,
-    hash: Uint8Array,
-    block_id: bigint,
-    public_key: bigint
-  ): Promise<void> {
-    return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, public_key);
-  }
-
-  public async processTimerEvent(duration_in_ms: bigint): Promise<void> {
-    return Saito.getLibInstance().process_timer_event(duration_in_ms);
-  }
-
-  public hash(buffer: Uint8Array): string {
-    return Saito.getLibInstance().hash(buffer);
-  }
-
-  public signBuffer(buffer: Uint8Array, privateKey: String): string {
-    return Saito.getLibInstance().sign_buffer(buffer, privateKey);
-  }
-
-  public verifySignature(buffer: Uint8Array, signature: string, publicKey: string): boolean {
-    return Saito.getLibInstance().verify_signature(buffer, signature, publicKey);
   }
 
   public async createTransaction<T extends Transaction>(
@@ -481,135 +636,6 @@ export default class Saito {
     return tx;
   }
 
-  public async getPeers(): Promise<Array<Peer>> {
-    let peers = await Saito.getLibInstance().get_peers();
-    return peers.map((peer: any) => {
-      return this.factory.createPeer(peer);
-    });
-  }
-
-  public async getPeer(publicKey: string): Promise<Peer | null> {
-    let peer = await Saito.getLibInstance().get_peer(publicKey);
-    if (!peer) {
-      return null;
-    }
-    return this.factory.createPeer(peer);
-  }
-
-  public generatePrivateKey(): string {
-    return Saito.getLibInstance().generate_private_key();
-  }
-
-  public generatePublicKey(privateKey: string): string {
-    let key = Saito.getLibInstance().generate_public_key(privateKey);
-    return key;
-  }
-
-  public async propagateTransaction(tx: Transaction) {
-    let tx2 = tx.clone();
-    return Saito.getLibInstance().propagate_transaction(tx2.wasmTransaction);
-  }
-
-  public async sendApiCall(
-    buffer: Uint8Array,
-    publicKey?: string,
-    waitForReply?: boolean
-  ): Promise<Uint8Array> {
-    if (!!publicKey) {
-      let peer = await this.getPeer(publicKey!);
-      if (peer === null) {
-        throw new Error("peer not found. public key : " + publicKey + "");
-      }
-      if (peer.status !== "connected") {
-        throw new Error(`peer : ${peer.publicKey} not connected. status : ${peer.status}`);
-      }
-    }
-
-    if (waitForReply) {
-      return new Promise(async (resolve, reject) => {
-        this.callbackIndex++;
-        await this.promises.set(this.callbackIndex, {
-          resolve,
-          reject,
-        });
-        Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey || "");
-      });
-    } else {
-      return Saito.getLibInstance().send_api_call(buffer, this.callbackIndex, publicKey || "");
-    }
-  }
-
-  public async sendApiSuccess(msgId: number, buffer: Uint8Array, publicKey: string) {
-    return Saito.getLibInstance().send_api_success(buffer, msgId, publicKey);
-  }
-
-  public async sendApiError(msgId: number, buffer: Uint8Array, publicKey: string) {
-    return Saito.getLibInstance().send_api_error(buffer, msgId, publicKey);
-  }
-
-  public async sendTransactionWithCallback(
-    transaction: Transaction,
-    callback?: any,
-    publicKey?: string
-  ): Promise<any> {
-    // TODO : implement retry on fail
-    // TODO : stun code goes here probably???
-    // console.log(
-    //   "saito.sendTransactionWithCallback : peer = " + peerIndex + " sig = " + transaction.signature
-    // );
-    let buffer = transaction.wasmTransaction.serialize();
-
-    await this.sendApiCall(buffer, publicKey, !!callback)
-      .then((buffer: Uint8Array) => {
-        if (callback) {
-          // console.log("sendTransactionWithCallback. buffer length = " + buffer.byteLength);
-
-          let tx = this.factory.createTransaction();
-          tx.data = buffer;
-          tx.unpackData();
-          return callback(tx);
-        }
-      })
-      .catch((error) => {
-        console.info("couldn't send api call : ", error);
-        if (callback) {
-          return callback({ err: error.toString() });
-        }
-      });
-  }
-
-  public async sendRequest(
-    message: string,
-    data: any = "",
-    callback?: any,
-    publicKey?: string,
-    signature_required?: boolean
-  ): Promise<any> {
-    console.info("sending request : " + message + ", peer = " + publicKey);
-    let wallet = await this.getWallet();
-    let myPublicKey = await wallet.getPublicKey();
-    let tx = await this.createTransaction(myPublicKey, BigInt(0), BigInt(0));
-    tx.msg = {
-      request: message,
-      data: data,
-    };
-    tx.packData();
-
-    if (signature_required) {
-      await tx.sign();
-    }
-
-    return this.sendTransactionWithCallback(
-      tx,
-      (tx: Transaction) => {
-        if (callback) {
-          return callback(tx.msg);
-        }
-      },
-      publicKey
-    );
-  }
-
   public async getWallet() {
     if (!this.wallet) {
       let w = await Saito.getLibInstance().get_wallet();
@@ -636,10 +662,6 @@ export default class Saito {
     );
   }
 
-  public async getAccountSlips(publicKey: string) {
-    return Saito.getLibInstance().get_account_slips(publicKey);
-  }
-
   public async getBalanceSnapshot(keys: string[]): Promise<BalanceSnapshot> {
     let snapshot = await Saito.getLibInstance().get_balance_snapshot(keys);
     return new BalanceSnapshot(snapshot);
@@ -656,28 +678,6 @@ export default class Saito {
 
   public async updateBalanceFrom(snapshot: BalanceSnapshot) {
     await Saito.getLibInstance().update_from_balance_snapshot(snapshot.instance);
-  }
-
-  public async setWalletVersion(major: number, minor: number, patch: number) {
-    await Saito.getLibInstance().set_wallet_version(major, minor, patch);
-  }
-
-  public isValidPublicKey(key: string): boolean {
-    try {
-      return Saito.getLibInstance().is_valid_public_key(key);
-    } catch (e) {
-      // console.debug(e);
-    }
-    return false;
-  }
-
-  public async writeIssuanceFile(threshold: bigint) {
-    try {
-      return Saito.getLibInstance().write_issuance_file(threshold);
-    } catch (error) {
-      console.warn("failed writing issuance file");
-      console.error(error);
-    }
   }
 
   public async addPendingTx(tx: Transaction) {

@@ -39,7 +39,7 @@ class AdminKeyUI {
 
       let publicKey = document.getElementById("admin-public-key")?.value;
 
-      if (!this.app.crypto.isValidPublicKey(publicKey)) {
+      if (!this.app.crypto.isPublicKey(publicKey)) {
         salert("Not a valid Saito public key!");
         return;
       }

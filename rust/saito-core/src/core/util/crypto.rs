@@ -170,7 +170,7 @@ pub fn verify_many(hashes: &[[u8; 32]], sigs: &[SaitoSignature], pks: &[PublicKe
         .collect()
 }
 
-pub fn is_valid_public_key(key: &SaitoPublicKey) -> bool {
+pub fn is_public_key(key: &SaitoPublicKey) -> bool {
     let result = PublicKey::from_slice(key);
     result.is_ok()
 }
@@ -250,14 +250,14 @@ mod tests {
     }
 
     #[test]
-    fn is_valid_public_key_test() {
+    fn is_public_key_test() {
         let (public_key, _) = generate_keys();
-        assert!(is_valid_public_key(&public_key));
+        assert!(is_public_key(&public_key));
 
         let public_key: SaitoPublicKey = [0; 33];
-        assert!(!is_valid_public_key(&public_key));
+        assert!(!is_public_key(&public_key));
 
         let public_key: SaitoPublicKey = [u8::try_from('a').unwrap(); 33];
-        assert!(!is_valid_public_key(&public_key));
+        assert!(!is_public_key(&public_key));
     }
 }

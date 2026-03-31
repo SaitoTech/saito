@@ -425,14 +425,14 @@ class ExploreOverlay {
               This post could not be loaded or is no longer available.
             </p>
             ${
-              txSignature
-                ? `
+  txSignature
+    ? `
               <p style="font-size: 1.4rem; color: var(--saito-font-color-light); margin: 1.5rem 0 0 0; opacity: 0.7; font-family: monospace; word-break: break-all;">
                 ${txSignature.substring(0, 32)}...
               </p>
             `
-                : ''
-            }
+    : ''
+}
           </div>
         `;
         container.innerHTML = errorHtml;
@@ -610,11 +610,8 @@ class ExploreOverlay {
     try {
       let publicKey = input;
 
-      // Check if input is a valid publicKey
-      if (!this.app.wallet.isValidPublicKey(input)) {
-        if (!input.includes('@')) {
-          input += '@saito';
-        }
+      // Check if input is a publicKey
+      if (!this.app.crypto.isPublicKey(input)) {
         // Try to resolve username to publicKey via keychain
         const keyData = this.app.keychain.returnKey({ identifier: input });
         if (keyData && keyData.publicKey) {
@@ -626,8 +623,8 @@ class ExploreOverlay {
       }
 
       // Validate publicKey
-      if (!this.app.wallet.isValidPublicKey(publicKey)) {
-        siteMessage('Invalid public key. Please check and try again', 5000);
+      if (!this.app.crypto.isPublicKey(publicKey)) {
+        siteMessage('Invalid public key. Please check and try again.', 5000);
         return;
       }
 

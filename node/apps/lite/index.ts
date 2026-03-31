@@ -27,9 +27,9 @@ class WebMethods extends WebSharedMethods {
   async processApiCall(buffer: Uint8Array, msgIndex: number, publicKey: string): Promise<void> {
     const mycallback = async (response_object) => {
       try {
-        await S.getInstance().sendApiSuccess(
-          msgIndex,
+        await this.app.core.network.api.success(
           Buffer.from(JSON.stringify(response_object), 'utf-8'),
+          msgIndex,
           publicKey
         );
       } catch (error) {
@@ -184,6 +184,8 @@ async function init() {
   saito.wallet.app = saito;
   saito.blockchain = (await S.getInstance().getBlockchain()) as Blockchain;
   saito.blockchain.app = saito;
+  saito.core = S.getInstance().getCore();
+
   saito.BROWSER = 1;
   saito.SPVMODE = 1;
 

@@ -54,7 +54,7 @@ module.exports = (app, mod, group, chat_open) => {
 
 	// reduce flicker of browser mutation observer
 	let display_name = group.name;
-	if (app.wallet.isValidPublicKey(display_name)) {
+	if (app.crypto.isPublicKey(display_name)) {
 		display_name = app.keychain.returnUsername(display_name);
 	}
 

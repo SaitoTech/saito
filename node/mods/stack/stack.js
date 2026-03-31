@@ -1284,7 +1284,7 @@ class Stack extends ModTemplate {
    * @returns {boolean} - True if added, false if already subscribed
    */
   addSubscription(publicKey) {
-    if (!publicKey || !this.app.wallet.isValidPublicKey(publicKey)) {
+    if (!publicKey || !this.app.crypto.isPublicKey(publicKey)) {
       return false;
     }
 
@@ -2066,7 +2066,7 @@ class Stack extends ModTemplate {
    * @returns {Promise<Array<Transaction>>} Array of Transaction objects, deduplicated by signature
    */
   async loadPostsForAuthor(publicKey, { forceRemote = true } = {}) {
-    if (!publicKey || !this.app.wallet.isValidPublicKey(publicKey)) {
+    if (!publicKey || !this.app.crypto.isPublicKey(publicKey)) {
       return [];
     }
 

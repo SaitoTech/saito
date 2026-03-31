@@ -9,6 +9,8 @@ use crate::wasm_block::WasmBlock;
 use crate::wasm_blockchain::WasmBlockchain;
 use crate::wasm_configuration::WasmConfiguration;
 use crate::wasm_io_handler::WasmIoHandler;
+use crate::wasm_network::WasmNetwork;
+use crate::wasm_network_api::WasmNetworkApi;
 use crate::wasm_network_peer::WasmNetworkPeer;
 use crate::wasm_nft::WasmNFT;
 use crate::wasm_peer::WasmPeer;
@@ -58,7 +60,7 @@ use web_sys::console;
 #[wasm_bindgen]
 pub struct SaitoWasm {
     pub(crate) routing_thread: RoutingThread,
-    consensus_thread: ConsensusThread,
+    pub(crate) consensus_thread: ConsensusThread,
     mining_thread: MiningThread,
     verification_thread: VerificationThread,
     stat_thread: StatThread,
@@ -378,7 +380,7 @@ pub async fn initialize(
 
     trace!("trace test");
     debug!("debug test");
-    info!("initializing saito-wasm  2");
+    info!("initializing saito-wasm 5");
 
     let mut enable_stats = true;
     let mut genesis_period = 100_000;
@@ -1284,57 +1286,6 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
     saito_core::core::util::crypto::verify_signature(&h, &sig, &key.unwrap())
 }
 
-#[wasm_bindgen]
-pub async fn get_peers() -> Array {
-    let saito = SAITO.lock().await;
-    let peers = saito
-        .as_ref()
-        .unwrap()
-        .routing_thread
-        .network
-        .peer_lock
-        .read()
-        .await;
-    let connected_peers = collect_connected_peers(&peers);
-    let array = Array::new_with_length(connected_peers.len() as u32);
-    for (index, peer) in connected_peers.into_iter().enumerate() {
-        array.set(index as u32, JsValue::from(WasmPeer::new_from_peer(peer)));
-    }
-    array
-}
-
-fn collect_connected_peers(
-    peers: &PeerCollection,
-) -> Vec<saito_core::core::routing::peers::peer::Peer> {
-    peers
-        .peers
-        .values()
-        .filter(|peer| peer.is_connected())
-        .cloned()
-        .collect()
-}
-
-#[wasm_bindgen]
-pub async fn get_peer(key: JsString) -> Option<WasmPeer> {
-    let key: SaitoPublicKey = string_to_key(key).ok()?;
-    let saito = SAITO.lock().await;
-    let peers = saito
-        .as_ref()
-        .unwrap()
-        .routing_thread
-        .network
-        .peer_lock
-        .read()
-        .await;
-    let peer = peers.peers.get(&key);
-    if peer.is_none() {
-        warn!("peer not found");
-        return None;
-    }
-    let peer = peer.cloned().unwrap();
-    Some(WasmPeer::new_from_peer(peer))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1342,24 +1293,26 @@ mod tests {
     use saito_core::core::routing::peers::peer_collection::PeerCollection;
     use saito_core::core::util::crypto::generate_keys;
 
-    #[test]
-    fn get_peers_only_returns_connected_peers() {
-        let mut peers = PeerCollection::default();
-        let connected_key = generate_keys().0;
-        let disconnected_key = generate_keys().0;
+    /*
+        #[test]
+        fn get_peers_only_returns_connected_peers() {
+            let mut peers = PeerCollection::default();
+            let connected_key = generate_keys().0;
+            let disconnected_key = generate_keys().0;
 
-        let mut connected_peer = Peer::new(connected_key);
-        connected_peer.peer_status = PeerStatus::Connected;
-        peers.peers.insert(connected_key, connected_peer);
-        peers
-            .peers
-            .insert(disconnected_key, Peer::new(disconnected_key));
+            let mut connected_peer = Peer::new(connected_key);
+            connected_peer.peer_status = PeerStatus::Connected;
+            peers.peers.insert(connected_key, connected_peer);
+            peers
+                .peers
+                .insert(disconnected_key, Peer::new(disconnected_key));
 
-        let exported = collect_connected_peers(&peers);
+            let exported = collect_connected_peers(&peers);
 
-        assert_eq!(exported.len(), 1);
-        assert_eq!(exported[0].public_key, connected_key);
-    }
+            assert_eq!(exported.len(), 1);
+            assert_eq!(exported[0].public_key, connected_key);
+        }
+    */
 }
 
 #[wasm_bindgen]
@@ -1439,136 +1392,14 @@ pub fn generate_public_key(private_key: JsString) -> Result<JsString, JsValue> {
 }
 
 #[wasm_bindgen]
-pub async fn propagate_transaction(tx: &WasmTransaction) {
-    trace!("propagate_transaction");
-
-    let mut saito = SAITO.lock().await;
-    let mut tx = tx.clone().tx;
-    {
-        let wallet = saito
-            .as_ref()
-            .unwrap()
-            .routing_thread
-            .wallet_lock
-            .read()
-            .await;
-        tx.generate(&wallet.public_key, 0, 0);
-    }
-    debug!(
-        "propagating transaction: {} input: {}, output : {}",
-        tx.signature.to_hex(),
-        tx.from
-            .iter()
-            .map(|slip| format!("{}", slip))
-            .collect::<Vec<String>>()
-            .join(", "),
-        tx.to
-            .iter()
-            .map(|slip| format!("{}", slip))
-            .collect::<Vec<String>>()
-            .join(", "),
-    );
-    saito
-        .as_mut()
-        .unwrap()
-        .consensus_thread
-        .process_event(ConsensusEvent::NewTransaction { transaction: tx })
-        .await;
-
-    // saito
-    //     .as_mut()
-    //     .unwrap()
-    //     .routing_thread
-    //     .network
-    //     .propagate_transaction(&tx)
-    //     .await;
-}
-
-#[wasm_bindgen]
-pub async fn send_api_call(buffer: Uint8Array, msg_index: u32, key: JsString) {
-    let key: SaitoPublicKey = string_to_key(key).unwrap_or([0; 33]);
-    trace!("send_api_call : {:?}", key.to_base58());
-    let saito = SAITO.lock().await;
-    let api_message = ApiMessage {
-        msg_index,
-        data: buffer.to_vec(),
-    };
-    let message = Message::ApplicationMessage(api_message);
-    let buffer = message.serialize();
-    if key == [0; 33] {
-        saito
-            .as_ref()
-            .unwrap()
-            .routing_thread
-            .network
-            .io_interface
-            .send_message_to_all(buffer.as_slice(), vec![])
-            .await
-            .unwrap();
-    } else {
-        saito
-            .as_ref()
-            .unwrap()
-            .routing_thread
-            .network
-            .io_interface
-            .send_message(key, buffer.as_slice())
-            .await
-            .unwrap();
-    }
-}
-
-#[wasm_bindgen]
-pub async fn send_api_success(buffer: Uint8Array, msg_index: u32, key: JsString) {
-    let key: SaitoPublicKey = string_to_key(key).unwrap();
-    trace!("send_api_success : {:?}", key.to_base58());
-    let saito = SAITO.lock().await;
-    let api_message = ApiMessage {
-        msg_index,
-        data: buffer.to_vec(),
-    };
-    let message = Message::Result(api_message);
-    let buffer = message.serialize();
-
-    saito
-        .as_ref()
-        .unwrap()
-        .routing_thread
-        .network
-        .io_interface
-        .send_message(key, buffer.as_slice())
-        .await
-        .unwrap();
-}
-
-#[wasm_bindgen]
-pub async fn send_api_error(buffer: Uint8Array, msg_index: u32, key: JsString) {
-    let key: SaitoPublicKey = string_to_key(key).unwrap();
-
-    trace!("send_api_error : {:?}", key.to_base58());
-    let saito = SAITO.lock().await;
-    let api_message = ApiMessage {
-        msg_index,
-        data: buffer.to_vec(),
-    };
-    let message = Message::Error(api_message);
-    let buffer = message.serialize();
-
-    saito
-        .as_ref()
-        .unwrap()
-        .routing_thread
-        .network
-        .io_interface
-        .send_message(key, buffer.as_slice())
-        .await
-        .unwrap();
-}
-
-#[wasm_bindgen]
 pub async fn get_wallet() -> WasmWallet {
     let saito = SAITO.lock().await;
     return saito.as_ref().unwrap().wallet.clone();
+}
+
+#[wasm_bindgen]
+pub fn get_network() -> WasmNetwork {
+    WasmNetwork::new()
 }
 
 #[wasm_bindgen]
@@ -1596,25 +1427,14 @@ pub async fn get_mempool_txs() -> js_sys::Array {
     txs
 }
 
-#[wasm_bindgen]
-pub async fn set_wallet_version(major: u8, minor: u8, patch: u16) {
-    let saito = SAITO.lock().await;
-    let mut wallet = saito.as_ref().unwrap().wallet.wallet.write().await;
-    wallet.wallet_version = Version {
-        major,
-        minor,
-        patch,
-    };
-}
-
-#[wasm_bindgen]
-pub fn is_valid_public_key(key: JsString) -> bool {
+#[wasm_bindgen(js_name = isPublicKey)]
+pub fn is_public_key(key: JsString) -> bool {
     let result = string_to_key(key);
     if result.is_err() {
         return false;
     }
     let key: SaitoPublicKey = result.unwrap();
-    saito_core::core::util::crypto::is_valid_public_key(&key)
+    saito_core::core::util::crypto::is_public_key(&key)
 }
 
 #[wasm_bindgen]

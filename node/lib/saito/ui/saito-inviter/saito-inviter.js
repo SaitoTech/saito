@@ -40,7 +40,7 @@ class SaitoInviter {
 
       document.getElementById('saito-invite-button').onclick = (e) => {
         let address = document.getElementById('saito-invite-address').value;
-        if (this.app.wallet.isValidPublicKey(address)) {
+        if (this.app.crypto.isPublicKey(address)) {
           this.overlay.hide();
           if (mycallback != null) {
             mycallback(address);

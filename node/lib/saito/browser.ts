@@ -378,7 +378,7 @@ class Browser {
           let publicKey = e.target.getAttribute('data-id');
           if (
             !publicKey ||
-            !app.wallet.isValidPublicKey(publicKey) ||
+            !app.crypto.isPublicKey(publicKey) ||
             disable_click === 'true' ||
             disable_click == true
           ) {
@@ -468,7 +468,7 @@ class Browser {
             if (key) {
               add = key.publicKey;
             }
-            if (this.app.wallet.isValidPublicKey(cleaner) && (add == '' || add == null)) {
+            if (this.app.crypto.isPublicKey(cleaner) && (add == '' || add == null)) {
               add = cleaner;
             }
             if (!keys.includes(add) && add != '' && add != null) {
@@ -484,7 +484,7 @@ class Browser {
 
     if (adds) {
       adds.forEach((add) => {
-        if (this.app.wallet.isValidPublicKey(add) && !keys.includes(add)) {
+        if (this.app.crypto.isPublicKey(add) && !keys.includes(add)) {
           keys.push(add);
         }
       });
@@ -494,7 +494,7 @@ class Browser {
         let key = this.app.keychain.returnKey({ identifier: id });
         if (key.publicKey) {
           let add = key.publicKey;
-          if (this.app.wallet.isValidPublicKey(add)) {
+          if (this.app.crypto.isPublicKey(add)) {
             if (!keys.includes(add)) {
               keys.push(add);
             }
@@ -2508,7 +2508,7 @@ class Browser {
           if (el.classList.contains('saito-address') && !el.classList.contains('treated')) {
             el.classList.add('treated');
             let key = el.dataset?.id;
-            if (key && saito_app.wallet.isValidPublicKey(key)) {
+            if (key && saito_app.crypto.isPublicKey(key)) {
               // Returns registered name from our keychain or empty string
               let identifier = saito_app.keychain.returnIdentifierByPublicKey(key);
 
@@ -2728,7 +2728,7 @@ class Browser {
         key = split[1];
       }
 
-      if (this.app.wallet.isValidPublicKey(key)) {
+      if (this.app.crypto.isPublicKey(key)) {
         if (!keys.includes(key)) {
           keys.push(key);
         }
@@ -2752,7 +2752,7 @@ class Browser {
         key = split[1];
       }
 
-      if (this.app.wallet.isValidPublicKey(key)) {
+      if (this.app.crypto.isPublicKey(key)) {
         return `<span class="saito-mention saito-address" data-id="${key}">${username}</span>`;
       } else {
         return k;
