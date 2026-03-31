@@ -162,6 +162,23 @@ class ModTemplate {
     }
 
     //
+    // Modules can list their dependencies
+    // This checks and shows an error that if the dependent module is missing
+    // the module may not operate correctly
+    //
+    if (this.dependencies?.length) {
+      for (let om of this.dependencies) {
+        if (!this.app.modules.returnModule(om)) {
+          console.error(
+            `WARNING/ERROR : ${this.name} may not function correctly because ${om} not installed!!!`
+          );
+        } else {
+          //console.info(`${om} successfully installed for ${this.name}`);
+        }
+      }
+    }
+
+    //
     //
     //
     if (app.BROWSER === 1) {
