@@ -382,7 +382,7 @@ span.attention {
 	}
 	.league-overlay {
 		width: 100vw;
-		max-height: calc(95 * var(--saito-vh));
+		max-height: 95svh;
 	}
 	.contactAdminWarning {
 		min-height: 0;

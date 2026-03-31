@@ -313,17 +313,6 @@ class Browser {
       }
 
       this.updateThemeInHeader(theme);
-
-      const updateViewHeight = () => {
-        let vh = window.innerHeight / 100;
-        document.documentElement.style.setProperty('--saito-vh', `${vh}px`);
-        //siteMessage(`Update: ${vh}px`);
-      };
-
-      window.addEventListener('resize', debounce(updateViewHeight, 200));
-      setTimeout(() => {
-        updateViewHeight();
-      }, 200);
     } catch (err) {
       if (err == 'ReferenceError: document is not defined') {
         console.error('non-browser detected: ', err);

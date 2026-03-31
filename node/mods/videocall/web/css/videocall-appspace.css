@@ -6,8 +6,7 @@
 
 .stun-appspace {
 	width: 100vw;
-	height: 100vh;
-	height: calc(100 * var(--saito-vh));
+	height: 100dvh;
 	left: 0;
 	top: 0;
 	display: flex;
