@@ -67,7 +67,7 @@ impl Network {
 
         debug!("sending block : {:?} to peers", block.hash.to_hex());
         let message = Message::BlockHeaderHash(block.hash, block.id);
-	let serialized = message.serialize();
+        let serialized = message.serialize();
         self.io_interface
             .send_message_to_all(serialized.as_slice(), excluded_peers)
             .await
@@ -111,7 +111,7 @@ impl Network {
             let mut transaction = transaction.clone();
             transaction.add_hop(&wallet.private_key, &wallet.public_key, &public_key);
             let message = Message::Transaction(transaction);
-	    let serialized = message.serialize();
+            let serialized = message.serialize();
             _ = self
                 .io_interface
                 .send_message(*index, serialized.as_slice())

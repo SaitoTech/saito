@@ -1,28 +1,20 @@
-use crate::saitowasm::{SAITO, string_to_key};
+use crate::saitowasm::{string_to_key, SAITO};
 
+use js_sys::{JsString, Uint8Array};
+use log::trace;
 use saito_core::core::defs::PrintForLog;
+use saito_core::core::defs::SaitoPublicKey;
 use saito_core::core::msg::api_message::ApiMessage;
 use saito_core::core::msg::message::Message;
-use saito_core::core::defs::SaitoPublicKey;
-use log::trace;
 use wasm_bindgen::prelude::*;
-use js_sys::{Uint8Array, JsString};
-
 
 #[wasm_bindgen]
 pub struct WasmNetworkApi;
 
 #[wasm_bindgen]
 impl WasmNetworkApi {
-
-
     #[wasm_bindgen(js_name = send)]
-    pub async fn send(
-        &self,
-        buffer: Uint8Array,
-        msg_index: u32,
-       key: JsString,
-    ) {
+    pub async fn send(&self, buffer: Uint8Array, msg_index: u32, key: JsString) {
         let key: SaitoPublicKey = string_to_key(key).unwrap_or([0; 33]);
 
         trace!("send_api_call : {:?}", key.to_base58());
@@ -60,14 +52,8 @@ impl WasmNetworkApi {
         }
     }
 
-
     #[wasm_bindgen(js_name = success)]
-    pub async fn success(
-        &self,
-        buffer: Uint8Array,
-        msg_index: u32,
-        key: JsString,
-    ) {
+    pub async fn success(&self, buffer: Uint8Array, msg_index: u32, key: JsString) {
         let key: SaitoPublicKey = string_to_key(key).unwrap();
         trace!("send_api_success : {:?}", key.to_base58());
 
@@ -79,7 +65,7 @@ impl WasmNetworkApi {
         };
 
         let message = Message::Result(api_message);
-	let serialized = message.serialize();
+        let serialized = message.serialize();
 
         saito
             .as_ref()
@@ -92,14 +78,8 @@ impl WasmNetworkApi {
             .unwrap();
     }
 
-
     #[wasm_bindgen(js_name = error)]
-    pub async fn error(
-        &self,
-        buffer: Uint8Array,
-        msg_index: u32,
-        key: JsString,
-    ) {
+    pub async fn error(&self, buffer: Uint8Array, msg_index: u32, key: JsString) {
         let key: SaitoPublicKey = string_to_key(key).unwrap();
         trace!("send_api_error : {:?}", key.to_base58());
 
@@ -111,7 +91,7 @@ impl WasmNetworkApi {
         };
 
         let message = Message::Error(api_message);
-	let serialized = message.serialize();
+        let serialized = message.serialize();
 
         saito
             .as_ref()
@@ -123,6 +103,4 @@ impl WasmNetworkApi {
             .await
             .unwrap();
     }
-
 }
-

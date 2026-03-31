@@ -122,10 +122,7 @@ class NFTCryptoModule extends CryptoModule {
       recipient = recipient.trim();
 
       // If wallet has validation function, use it safely
-      if (
-        this.app.crypto.isPublicKey &&
-        typeof this.app.crypto.isPublicKey === 'function'
-      ) {
+      if (this.app.crypto.isPublicKey && typeof this.app.crypto.isPublicKey === 'function') {
         if (!this.app.crypto.isPublicKey(recipient)) {
           recipient = this.app.wallet.publicKey;
         }

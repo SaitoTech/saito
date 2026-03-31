@@ -442,7 +442,6 @@ class Server {
       return;
     }
 
-
     //
     // update server information from options file
     //

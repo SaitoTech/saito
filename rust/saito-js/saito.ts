@@ -212,7 +212,6 @@ export default class Saito {
   // ...
   //
   public getCore() {
-
     //
     // throw an error explicitly if these variables are uninitialized
     // as that can result in very difficult problems to debug later
@@ -228,7 +227,7 @@ export default class Saito {
     const core: any = {};
 
     // -------------------------
-    // NETWORK 
+    // NETWORK
     // -------------------------
     const wasmNetwork = wasm.get_network();
     const wasmApi = wasmNetwork.api;
@@ -344,8 +343,6 @@ export default class Saito {
       );
     };
 
-
-
     return {
       //
       // why? because network defined outside
@@ -380,7 +377,7 @@ export default class Saito {
         generatePrivateKey: wasm.generate_private_key?.bind(wasm),
         generatePublicKey: wasm.generate_public_key?.bind(wasm),
         hash: wasm.hash?.bind(wasm),
-	isPublicKey: wasm.is_public_key?.bind(wasm),
+        isPublicKey: wasm.is_public_key?.bind(wasm),
         signBuffer: wasm.sign_buffer?.bind(wasm),
         verifySignature: wasm.verify_signature?.bind(wasm),
       },

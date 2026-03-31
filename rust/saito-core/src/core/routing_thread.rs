@@ -1616,14 +1616,11 @@ impl RoutingThread {
                 "requesting genesis block from peer : {:?}",
                 public_key.to_base58()
             );
-	    let serialized = Message::GenesisBlockRequest().serialize();
+            let serialized = Message::GenesisBlockRequest().serialize();
             _ = self
                 .network
                 .io_interface
-                .send_message(
-                    public_key,
-                    serialized.as_slice(),
-                )
+                .send_message(public_key, serialized.as_slice())
                 .await
                 .inspect_err(|e| {
                     error!(

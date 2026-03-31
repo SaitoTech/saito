@@ -7,9 +7,7 @@ const bip39 = require('bip39');
 const CryptoJS = node_cryptojs.CryptoJS;
 const JsonFormatter = node_cryptojs.JsonFormatter;
 
-
 class Crypto {
-
   public app: any;
 
   constructor(app) {
@@ -339,9 +337,10 @@ class Crypto {
     return stringx;
   }
 
-
   isPublicKey(key: string) {
-    if (!key || typeof key !== "string") { return false; }
+    if (!key || typeof key !== 'string') {
+      return false;
+    }
     if (key.indexOf('@') <= 0) {
       if (this.isBase58(key)) {
         return this.app.core.crypto.isPublicKey(key);
@@ -355,7 +354,6 @@ class Crypto {
   isBase58(t: string) {
     return /^[A-HJ-NP-Za-km-z1-9]*$/.test(t);
   }
-
 
   generateSeedFromPrivateKey(existingPrivateKey: String) {
     // Create a seed that will deterministically generate your key first
@@ -572,4 +570,3 @@ class Crypto {
 }
 
 export default Crypto;
-
