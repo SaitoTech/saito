@@ -64,7 +64,7 @@ class AssetStore extends ModTemplate {
 			title: '🟥 Saito AssetStore',
 			url: 'https://saito.io/store/',
 			description: 'Buy or Sell Saito NFTs and other On-Chain Assets',
-			image: 'https://saito.tech/wp-content/uploads/2023/11/assetstore-300x300.png'
+			image: 'https://saito.io/store/img/splash.png'
 		};
 	}
 
