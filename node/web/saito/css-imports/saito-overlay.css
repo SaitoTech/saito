@@ -20,7 +20,7 @@
   height: min-content;
   width: min-content;
   /*min-height: 10%; Why? */
-  max-height: calc(100 * var(--saito-vh));
+  max-height: 100svh;
   max-width: 100vw;
   border-radius: var(--saito-border-radius);
   background-color: var(--saito-background-color); /* Dont know why had to be added manually*/
