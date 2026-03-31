@@ -1,4 +1,7 @@
 /* Stack Styles */
+body {
+  height: 100svh;
+}
 
 /* Smooth container transitions for ViewPost */
 .saito-container {
