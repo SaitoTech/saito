@@ -992,7 +992,6 @@ pub async fn process_peer_disconnection(key: JsString) {
         return;
     }
     let key: SaitoPublicKey = key.unwrap();
-    debug!("process_peer_disconnection : {:?}", key.to_base58());
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()

@@ -237,16 +237,20 @@ class Relay extends ModTemplate {
             if (relayed_tx.isTo(peers[i].publicKey)) {
               peer_found++;
 
-              app.network.sendTransactionWithCallback(
-                relayed_tx,
-                async function () {
-                  if (mycallback != null) {
-                    mycallback({ err: '', success: 1 });
-                  }
-                  return 1;
-                },
-                peers[i].publicKey
-              );
+              app.network
+                .sendTransactionWithCallback(
+                  relayed_tx,
+                  async function () {
+                    if (mycallback != null) {
+                      mycallback({ err: '', success: 1 });
+                    }
+                    return 1;
+                  },
+                  peers[i].publicKey
+                )
+                .catch((err) => {
+                  console.error('relay forward failed', err);
+                });
             }
           }
 
