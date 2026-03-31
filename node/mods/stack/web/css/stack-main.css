@@ -283,7 +283,7 @@
   .saito-container:has(.stack-splash),
   .saito-container.stack-splash-container {
     top: var(--saito-header-height);
-    height: calc(100% - var(--saito-header-height));
+    height: calc(100svh - var(--saito-header-height));
     grid-template-rows: minmax(0, 1fr);
   }
 
