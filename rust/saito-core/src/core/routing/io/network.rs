@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use log::{debug, error};
+use log::{debug, error, warn};
 use tokio::sync::RwLock;
 
 use crate::core::consensus::block::Block;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
-use crate::core::defs::PrintForLog;
+use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::routing::io::interface_io::InterfaceIO;
@@ -119,4 +119,82 @@ impl Network {
                 .inspect_err(|e| error!("{}", e));
         }
     }
+
+
+
+pub async fn update_peer_timestamp(
+    &self,
+    public_key: SaitoPublicKey,
+    timestamp: Timestamp,
+) {
+    let mut peers = self.peer_lock.write().await;
+    peers
+        .update_peer_timer(public_key, timestamp)
+        .await;
+}
+
+
+pub async fn record_received_transaction(
+    &self,
+    public_key: SaitoPublicKey,
+    transaction: &Transaction,
+    timestamp: Timestamp,
+) {
+    let mut peers = self.peer_lock.write().await;
+
+    if let Some(peer) = peers.peers.get_mut(&public_key) {
+        peer.stats.received_txs += 1;
+        peer.stats.last_received_tx_at = timestamp;
+        peer.stats.last_received_tx = transaction.signature.to_hex();
+    } else {
+        warn!(
+            "Received transaction from peer {:?} does not exist",
+            public_key.to_base58()
+        );
+    }
+}
+
+
+pub async fn record_received_block_header(
+    &self,
+    public_key: SaitoPublicKey,
+    block_hash: &SaitoHash,
+    timestamp: Timestamp,
+) {
+    let mut peers = self.peer_lock.write().await;
+
+    if let Some(peer) = peers.peers.get_mut(&public_key) {
+        peer.stats.received_block_headers += 1;
+        peer.stats.last_received_block_header_at = timestamp;
+        peer.stats.last_received_block_header = block_hash.to_hex();
+    } else {
+        warn!(
+            "Received block header from peer {:?} does not exist",
+            public_key.to_base58()
+        );
+    }
+}
+
+pub async fn send_message(
+    &self,
+    public_key: SaitoPublicKey,
+    message: Message,
+) {
+    let buffer = message.serialize();
+
+    if let Err(err) = self
+        .io_interface
+        .send_message(public_key, buffer.as_slice())
+        .await
+    {
+        error!(
+            "failed sending message to peer {:?}: {:?}",
+            public_key.to_base58(),
+            err
+        );
+    }
+}
+
+
+
 }
