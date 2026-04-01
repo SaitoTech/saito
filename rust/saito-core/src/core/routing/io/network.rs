@@ -2,11 +2,13 @@ use std::sync::Arc;
 
 use log::{debug, error, warn};
 use tokio::sync::RwLock;
+use std::io::Error;
 
 use crate::core::consensus::block::Block;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
+use crate::core::process::version::Version;
 use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::routing::io::interface_io::InterfaceIO;
@@ -197,4 +199,81 @@ pub async fn send_message(
 
 
 
+pub async fn get_peer_key_list(
+    &self,
+    public_key: SaitoPublicKey,
+) -> Option<Vec<SaitoPublicKey>> {
+    let peers = self.peer_lock.read().await;
+    if let Some(peer) = peers.peers.get(&public_key) {
+        let mut keys = vec![peer.public_key];
+        keys.extend(peer.key_list.clone());
+        Some(keys)
+    } else {
+        None
+    }
 }
+
+pub async fn should_request_blockchain(
+    &self,
+    public_key: SaitoPublicKey,
+    wallet_version: Version,
+    core_version: Version,
+) -> Option<bool> {
+    let peers = self.peer_lock.read().await;
+
+    if let Some(peer) = peers.peers.get(&public_key) {
+	let should_request =
+	    wallet_version > peer.wallet_version
+	        || (wallet_version == peer.wallet_version
+	            && core_version > peer.core_version);
+
+        Some(should_request)
+    } else {
+        None
+    }
+}
+
+
+pub async fn disconnect_from_peer(
+    &self,
+    public_key: SaitoPublicKey,
+    message: &str,
+) -> Result<(), Error> {
+    self.send_message(
+        public_key,
+        Message::ForcedDisconnection(message.to_string()),
+    )
+    .await;
+
+    self.io_interface
+        .disconnect_from_peer(public_key)
+        .await
+        .inspect_err(|err| {
+            error!(
+                "failed disconnecting from peer : {}. {}",
+                public_key.to_base58(),
+                err
+            )
+        })
+}
+
+
+pub async fn cleanup_disconnected_peer(
+    &self,
+    public_key: SaitoPublicKey,
+) -> Result<(), Error> {
+    self.io_interface
+        .disconnect_from_peer(public_key)
+        .await
+        .inspect_err(|err| {
+            error!(
+                "failed local cleanup disconnect for peer {:?}: {:?}",
+                public_key.to_base58(),
+                err
+            )
+        })
+}
+
+}
+
+
