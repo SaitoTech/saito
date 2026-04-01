@@ -307,8 +307,6 @@ impl ConsensusThread {
             }
             return true;
         }
-        // trace!("releasing blockchain 3");
-        false
     }
 
     async fn produce_genesis_block(&mut self, timestamp: Timestamp) {
