@@ -23,7 +23,7 @@ class PublishSettingsOverlay {
       ...this.postState,
       ...postData
     };
-    
+
     // Ensure accessMode is set correctly based on accessLevel
     if (this.postState.accessLevel === 'private' && !this.postState.accessMode) {
       this.postState.accessMode = 'transferable'; // Default for private posts is transferable (Flexible)
@@ -38,7 +38,7 @@ class PublishSettingsOverlay {
 
     const html = PublishSettingsTemplate(this.app, this.mod, this.postState);
     this.overlay.show(html);
-    
+
     setTimeout(() => {
       this.attachEvents();
     }, 25);
@@ -56,48 +56,51 @@ class PublishSettingsOverlay {
     // Access level checkbox cards (only one can be active)
     const accessCards = document.querySelectorAll('.stack-publish-access-card');
     const accessCheckboxes = document.querySelectorAll('.stack-publish-access-checkbox');
-    
-    accessCards.forEach(card => {
+
+    accessCards.forEach((card) => {
       card.addEventListener('click', (e) => {
         // Don't trigger if clicking directly on the checkbox
         if (e.target.type === 'checkbox') return;
-        
+
         const checkbox = card.querySelector('.stack-publish-access-checkbox');
         const accessValue = card.getAttribute('data-access');
-        
+
         // Uncheck all others
-        accessCheckboxes.forEach(cb => {
+        accessCheckboxes.forEach((cb) => {
           if (cb !== checkbox) {
             cb.checked = false;
-            cb.closest('.stack-publish-access-card')?.classList.remove('stack-publish-access-card-active');
+            cb.closest('.stack-publish-access-card')?.classList.remove(
+              'stack-publish-access-card-active'
+            );
           }
         });
-        
+
         // Toggle this one
         checkbox.checked = true;
         card.classList.add('stack-publish-access-card-active');
-        
+
         this.setAccessLevel(accessValue);
       });
     });
 
     // Checkbox change handlers (for direct checkbox clicks)
-    accessCheckboxes.forEach(checkbox => {
+    accessCheckboxes.forEach((checkbox) => {
       checkbox.addEventListener('change', (e) => {
         const card = checkbox.closest('.stack-publish-access-card');
         const accessValue = card?.getAttribute('data-access');
-        
+
         if (checkbox.checked) {
-          
           // Uncheck all others
-          accessCheckboxes.forEach(cb => {
+          accessCheckboxes.forEach((cb) => {
             if (cb !== checkbox) {
               cb.checked = false;
-              cb.closest('.stack-publish-access-card')?.classList.remove('stack-publish-access-card-active');
+              cb.closest('.stack-publish-access-card')?.classList.remove(
+                'stack-publish-access-card-active'
+              );
             }
           });
           card?.classList.add('stack-publish-access-card-active');
-          
+
           this.setAccessLevel(accessValue);
         } else {
           // Prevent unchecking - at least one must be selected
@@ -126,7 +129,7 @@ class PublishSettingsOverlay {
 
     // Access type radio buttons (for private posts)
     const accessTypeRadios = document.querySelectorAll('.stack-publish-access-type-radio');
-    accessTypeRadios.forEach(radio => {
+    accessTypeRadios.forEach((radio) => {
       radio.addEventListener('change', (e) => {
         if (e.target.checked) {
           this.setAccessMode(e.target.value);
@@ -139,10 +142,11 @@ class PublishSettingsOverlay {
     if (confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
       // Delete the draft transaction from the archive
       if (this.mod.create_post_ui && this.mod.create_post_ui.draftTransaction) {
-        this.app.storage.deleteTransaction(this.mod.create_post_ui.draftTransaction, null, 'localhost')
+        this.app.storage
+          .deleteTransaction(this.mod.create_post_ui.draftTransaction, null, 'localhost')
           .then(() => {
             this.mod.create_post_ui.draftTransaction = null; // Clear reference
-            
+
             // Clear the editor
             const editor = document.querySelector('#stack-post-body-editor');
             if (editor && this.mod.create_post_ui) {
@@ -152,26 +156,26 @@ class PublishSettingsOverlay {
               this.mod.create_post_ui.updatePlaceholderVisibility();
               this.mod.create_post_ui.updatePublishTriggerVisibility();
             }
-            
+
             // Clear title
             const titleInput = document.querySelector('#stack-post-title-input');
             if (titleInput) {
               titleInput.value = '';
             }
-            
+
             // Hide overlay and navigate back to front page
             this.overlay.hide();
-            
+
             // Navigate back to front page (main splash page)
             if (this.mod.main) {
               setTimeout(() => {
                 this.mod.main.render();
               }, 100); // Small delay for smooth transition
             }
-            
+
             siteMessage('Draft deleted', 1500);
           })
-          .catch(error => {
+          .catch((error) => {
             console.error('Error deleting draft transaction:', error);
             siteMessage('Failed to delete draft. Please try again.');
           });
@@ -185,30 +189,29 @@ class PublishSettingsOverlay {
           this.mod.create_post_ui.updatePlaceholderVisibility();
           this.mod.create_post_ui.updatePublishTriggerVisibility();
         }
-        
+
         const titleInput = document.querySelector('#stack-post-title-input');
         if (titleInput) {
           titleInput.value = '';
         }
-        
+
         this.overlay.hide();
-        
+
         // Navigate back to front page
         if (this.mod.main) {
           setTimeout(() => {
             this.mod.main.render();
           }, 100);
         }
-        
+
         siteMessage('Draft deleted', 1500);
       }
     }
   }
 
   setAccessLevel(level) {
-    
     this.postState.accessLevel = level; // 'public' or 'private'
-    
+
     // Reset accessMode when switching to public
     if (level === 'public') {
       this.postState.accessMode = null;
@@ -216,14 +219,14 @@ class PublishSettingsOverlay {
       // Default to transferable (Flexible) for private posts
       this.postState.accessMode = 'transferable';
     }
-    
+
     // Update checkbox card states
     const accessCards = document.querySelectorAll('.stack-publish-access-card');
-    
-    accessCards.forEach(card => {
+
+    accessCards.forEach((card) => {
       const cardValue = card.getAttribute('data-access');
       const checkbox = card.querySelector('.stack-publish-access-checkbox');
-      
+
       if (cardValue === level) {
         checkbox.checked = true;
         card.classList.add('stack-publish-access-card-active');
@@ -232,35 +235,35 @@ class PublishSettingsOverlay {
         card.classList.remove('stack-publish-access-card-active');
       }
     });
-    
+
     // Update educational content in middle column
     this.updateEducationalContent(level);
-    
+
     // Re-render to show/hide access type selector
     this.render(this.postState);
   }
 
   /**
    * Set access mode for private posts (transferable or non-transferable)
-   * 
+   *
    * @param {string} mode - 'transferable' | 'non-transferable'
    */
   setAccessMode(mode) {
     if (this.postState.accessLevel !== 'private') {
       return; // Only valid for private posts
     }
-    
+
     if (mode !== 'transferable' && mode !== 'non-transferable') {
       console.warn('Stack: Invalid access mode:', mode);
       return;
     }
-    
+
     this.postState.accessMode = mode;
-    
+
     // Update radio button states
     const radios = document.querySelectorAll('.stack-publish-access-type-radio');
-    radios.forEach(radio => {
-      radio.checked = (radio.value === mode);
+    radios.forEach((radio) => {
+      radio.checked = radio.value === mode;
     });
   }
 
@@ -270,77 +273,34 @@ class PublishSettingsOverlay {
   updateEducationalContent(level) {
     const educationalContentEl = document.querySelector('#stack-publish-educational-content');
     if (!educationalContentEl) return;
-    
+
     let content = '';
     switch (level) {
       case 'public':
-        content = 'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
+        content =
+          'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
         break;
       case 'private':
-        content = 'This post will only be readable by people you explicitly grant access to.\nYou control who can see it.';
+        content =
+          'This post will only be readable by people you explicitly grant access to.\nYou control who can see it.';
         break;
       case 'subscription':
-        content = 'This post will only be readable by people with an active subscription\n This option is under development.';
+        content =
+          'This post will only be readable by people with an active subscription\n This option is under development.';
         break;
       default:
-        content = 'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
+        content =
+          'This post will be visible to anyone with the link and may be shared freely.\nIf you later restrict access, copies may still exist.';
     }
-    
+
     // Render as paragraphs for proper line breaks
-    educationalContentEl.innerHTML = content.split('\n').map(line => `<p>${line}</p>`).join('');
+    educationalContentEl.innerHTML = content
+      .split('\n')
+      .map((line) => `<p>${line}</p>`)
+      .join('');
   }
-
-  async handleImageUpload(e) {
-    const file = e.target.files[0];
-    if (!file || !file.type.startsWith('image/')) return;
-
-    try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      let imageDataUrl = dataUrl;
-      if (this.app.browser && this.app.browser.resizeImg) {
-        try {
-          imageDataUrl = await this.app.browser.resizeImg(dataUrl);
-        } catch (err) {
-          console.warn('Image resize failed, using original:', err);
-        }
-      }
-
-      this.postState.image = imageDataUrl.split(',')[1]; // Base64 data
-      this.postState.imageUrl = null;
-
-      // Update preview
-      const previewImg = document.querySelector('#stack-publish-image-preview');
-      if (previewImg) {
-        previewImg.src = imageDataUrl;
-        previewImg.style.display = 'block';
-      }
-    } catch (err) {
-      console.error('Error uploading image:', err);
-    }
-  }
-
-  handleUnpublish() {
-    if (confirm('Are you sure you want to unpublish this post?')) {
-      this.postState.published = false;
-      this.overlay.hide();
-      // Update publish trigger state
-      if (this.mod.create_post_ui) {
-        this.mod.create_post_ui.isPublished = false;
-        this.mod.create_post_ui.updatePublishTriggerState();
-      }
-      siteMessage('Post unpublished', 1500);
-    }
-  }
-
 
   async handlePublish() {
-
     let wallet_balance = await this.app.wallet.getBalance('SAITO');
     if (Number(wallet_balance) == 0) {
       siteMessage('A Saito balance is needed to Publish Posts...', 3000);
@@ -348,12 +308,12 @@ class PublishSettingsOverlay {
       return;
     }
 
-
-    const title = document.querySelector('#stack-post-title-input') ? (document.querySelector('#stack-post-title-input').value || '') : '';
+    const title = document.querySelector('#stack-post-title-input')
+      ? document.querySelector('#stack-post-title-input').value || ''
+      : '';
     let content = '';
 
     if (this.mod.create_post_ui) {
-
       // ------------------------------------------------------------
       // CRITICAL: Build imageIdMap BEFORE serialization (publish mode)
       // ------------------------------------------------------------
@@ -366,8 +326,6 @@ class PublishSettingsOverlay {
       );
     }
 
-
-
     // ========================================================================
     // VALIDATION GUARD: Prevent publishing empty posts (no title AND no content)
     // ========================================================================
@@ -375,7 +333,7 @@ class PublishSettingsOverlay {
     // Allow publishing if EITHER title OR content exists
     const titleEmpty = !title.trim();
     const contentEmpty = !content.trim();
-    
+
     if (titleEmpty && contentEmpty) {
       siteMessage('Please add a title or some content before publishing.');
       return;
@@ -384,28 +342,38 @@ class PublishSettingsOverlay {
     try {
       // PART 2 — TRANSACTION CREATION CHANGE: Include parent_id if editing
       // If editor.parent_id exists, this is an edit - include parent_id in transaction data
-      const parent_id = this.mod.create_post_ui && this.mod.create_post_ui.parent_id ? this.mod.create_post_ui.parent_id : null;
-      
+      const parent_id =
+        this.mod.create_post_ui && this.mod.create_post_ui.parent_id
+          ? this.mod.create_post_ui.parent_id
+          : null;
+
       // Show appropriate message based on whether this is an update or new publish
       if (parent_id) {
         siteMessage('Updating post...', 1500);
       } else {
         siteMessage('Publishing post...', 1500);
       }
-      
+
       // Capture draft ID and transaction reference before publishing
-      const draftIdToDelete = this.mod.create_post_ui ? this.mod.create_post_ui.activeDraftId : null;
-      const draftTxToDelete = this.mod.create_post_ui ? this.mod.create_post_ui.draftTransaction : null;
-      
+      const draftIdToDelete = this.mod.create_post_ui
+        ? this.mod.create_post_ui.activeDraftId
+        : null;
+      const draftTxToDelete = this.mod.create_post_ui
+        ? this.mod.create_post_ui.draftTransaction
+        : null;
+
       // Get featured image from editor state (authoritative source)
-      const featuredImage = this.mod.create_post_ui && this.mod.create_post_ui.featuredImage ? this.mod.create_post_ui.featuredImage : (this.postState.image || '');
-      
+      const featuredImage =
+        this.mod.create_post_ui && this.mod.create_post_ui.featuredImage
+          ? this.mod.create_post_ui.featuredImage
+          : this.postState.image || '';
+
       // ========================================================================
       // PUBLISH INTENT: Generate normalized intent object from UI selection
       // ========================================================================
       // UI expresses intent, Stack handles script generation
       const visibility = this.postState.accessLevel || 'public';
-      
+
       // Map UI state to publish intent
       let publishIntent;
       if (visibility === 'public') {
@@ -435,29 +403,33 @@ class PublishSettingsOverlay {
           author: this.mod.publicKey
         };
       }
-      
+
       // Create and propagate the transaction
-      const publishedTx = await this.mod.createStackPostTransaction({
-        title,
-        content,
-        image: featuredImage, // Featured/teaser image (singular)
-	images: Array.isArray(this.mod.create_post_ui?.images)
-	  ? this.mod.create_post_ui.images
-	  : [],
-        imageUrl: this.postState.imageUrl,
-        tags: [],
-        timestamp: Date.now(),
-        subscriptionTier: this.postState.accessLevel === 'public' ? 'free' : 'paid',
-        excerpt: this.postState.description || content.substring(0, 200).replace(/\n/g, ' ').trim(),
-        publishIntent: publishIntent, // Normalized intent object
-        accessLevel: this.postState.accessLevel, // Legacy: kept for backward compatibility
-        parent_id: parent_id // Include parent_id if editing (null for new posts)
-      }, () => {
-        // This callback runs after network confirmation (may take time)
-        // State is already cleaned up below, this is just for final sync
-        this.postState.published = true;
-      });
-      
+      const publishedTx = await this.mod.createStackPostTransaction(
+        {
+          title,
+          content,
+          image: featuredImage, // Featured/teaser image (singular)
+          images: Array.isArray(this.mod.create_post_ui?.images)
+            ? this.mod.create_post_ui.images
+            : [],
+          imageUrl: this.postState.imageUrl,
+          tags: [],
+          timestamp: Date.now(),
+          subscriptionTier: this.postState.accessLevel === 'public' ? 'free' : 'paid',
+          excerpt:
+            this.postState.description || content.substring(0, 200).replace(/\n/g, ' ').trim(),
+          publishIntent: publishIntent, // Normalized intent object
+          accessLevel: this.postState.accessLevel, // Legacy: kept for backward compatibility
+          parent_id: parent_id // Include parent_id if editing (null for new posts)
+        },
+        () => {
+          // This callback runs after network confirmation (may take time)
+          // State is already cleaned up below, this is just for final sync
+          this.postState.published = true;
+        }
+      );
+
       // ========================================================================
       // OPTIMISTIC UPDATE: Apply immediate UI update for edits
       // ========================================================================
@@ -466,7 +438,7 @@ class PublishSettingsOverlay {
       if (parent_id && this.mod.applyOptimisticPostUpdate) {
         this.mod.applyOptimisticPostUpdate(publishedTx);
       }
-      
+
       // ========================================================================
       // OPTIMISTIC CACHE UPDATE: Add post to postsCache immediately
       // ========================================================================
@@ -475,22 +447,25 @@ class PublishSettingsOverlay {
       // it checks for duplicates, so it's safe to add optimistically here
       if (publishedTx && publishedTx.signature) {
         const txmsg = publishedTx.returnMessage();
-        const from = publishedTx.from && publishedTx.from.length > 0 ? publishedTx.from[0].publicKey : this.mod.publicKey;
-        
+        const from =
+          publishedTx.from && publishedTx.from.length > 0
+            ? publishedTx.from[0].publicKey
+            : this.mod.publicKey;
+
         if (txmsg && txmsg.data && from) {
           // ISSUE 2 — DUPLICATE POSTS AFTER EDITING: Remove old versions before adding new one
           // Compute logical post ID for this transaction using canonical helper
           const incomingLogicalPostId = this.mod.getLogicalPostId(publishedTx);
-          
+
           // Extract parent_id from transaction message data (source of truth)
           const postParentId = txmsg.data.parent_id || null;
-          
+
           // Remove older versions of the same logical post from cache
           if (this.mod.postsCache) {
             // Remove from allPosts: filter out posts that belong to the same logical post
             if (this.mod.postsCache.allPosts) {
               try {
-                this.mod.postsCache.allPosts = this.mod.postsCache.allPosts.filter(p => {
+                this.mod.postsCache.allPosts = this.mod.postsCache.allPosts.filter((p) => {
                   if (!p) return false; // Skip null/undefined entries
                   try {
                     return this.mod.getLogicalPostIdFromPost(p) !== incomingLogicalPostId;
@@ -503,12 +478,12 @@ class PublishSettingsOverlay {
                 console.error('Stack: Error filtering allPosts cache:', err);
               }
             }
-            
+
             // Remove from byAuthor cache
             if (this.mod.postsCache.byAuthor && this.mod.postsCache.byAuthor.has(from)) {
               try {
                 const authorPosts = this.mod.postsCache.byAuthor.get(from);
-                const filteredAuthorPosts = authorPosts.filter(p => {
+                const filteredAuthorPosts = authorPosts.filter((p) => {
                   if (!p) return false; // Skip null/undefined entries
                   try {
                     return this.mod.getLogicalPostIdFromPost(p) !== incomingLogicalPostId;
@@ -523,7 +498,7 @@ class PublishSettingsOverlay {
               }
             }
           }
-          
+
           const post = {
             ...txmsg.data,
             sig: publishedTx.signature,
@@ -532,13 +507,15 @@ class PublishSettingsOverlay {
             lastEdited: txmsg.data.timestamp || publishedTx.timestamp,
             parent_id: postParentId // Store parent_id from transaction data
           };
-          
+
           // Add to transactionCache for immediate access
           this.mod.transactionCache[publishedTx.signature] = publishedTx;
-          
+
           // Add to allPosts (check for duplicates first)
           if (this.mod.postsCache && this.mod.postsCache.allPosts) {
-            const existingIndex = this.mod.postsCache.allPosts.findIndex(p => p.sig === publishedTx.signature);
+            const existingIndex = this.mod.postsCache.allPosts.findIndex(
+              (p) => p.sig === publishedTx.signature
+            );
             if (existingIndex < 0) {
               this.mod.postsCache.allPosts.push(post);
             } else {
@@ -546,14 +523,14 @@ class PublishSettingsOverlay {
               this.mod.postsCache.allPosts[existingIndex] = post;
             }
           }
-          
+
           // Add to byAuthor cache (check for duplicates first)
           if (this.mod.postsCache && this.mod.postsCache.byAuthor) {
             if (!this.mod.postsCache.byAuthor.has(from)) {
               this.mod.postsCache.byAuthor.set(from, []);
             }
             const authorPosts = this.mod.postsCache.byAuthor.get(from);
-            const existingIndex = authorPosts.findIndex(p => p.sig === publishedTx.signature);
+            const existingIndex = authorPosts.findIndex((p) => p.sig === publishedTx.signature);
             if (existingIndex < 0) {
               authorPosts.push(post);
             } else {
@@ -563,13 +540,13 @@ class PublishSettingsOverlay {
           }
         }
       }
-      
+
       // ========================================================================
       // PUBLISH CONSUMES DRAFT: Delete draft immediately after broadcasting
       // ========================================================================
       // [DRAFT-CHECK] Log draft deletion on publish
       console.log('[DRAFT-CHECK] Publishing post - deleting draft:', draftIdToDelete || 'N/A');
-      
+
       if (draftIdToDelete && this.mod.deleteDraft) {
         // Delete from archive and refresh in-memory draft list
         const deleted = await this.mod.deleteDraft(draftIdToDelete);
@@ -587,7 +564,7 @@ class PublishSettingsOverlay {
           console.warn('Stack: Error deleting draft transaction:', err);
         }
       }
-      
+
       // ========================================================================
       // CLEAR SESSION-SCOPED DRAFT STATE
       // ========================================================================
@@ -597,27 +574,30 @@ class PublishSettingsOverlay {
         this.mod.create_post_ui.sessionIntent = null;
         this.mod.create_post_ui.isPublished = true;
       }
-      
+
       // Hide overlay
       this.overlay.hide();
-      
+
       // ========================================================================
       // IMMEDIATE TRANSITION TO VIEW POST
       // ========================================================================
       // Unmount editor before navigating to viewer
-      if (this.mod.create_post_ui && typeof this.mod.create_post_ui.onEditorUnmount === 'function') {
+      if (
+        this.mod.create_post_ui &&
+        typeof this.mod.create_post_ui.onEditorUnmount === 'function'
+      ) {
         this.mod.create_post_ui.onEditorUnmount();
       }
-      
+
       // Initialize ViewPost component if needed
       if (!this.mod.viewPostComponent) {
         const ViewPost = require('../view-post');
         this.mod.viewPostComponent = new ViewPost(this.app, this.mod, '.saito-container');
       }
-      
+
       // Render View Post with the just-broadcast transaction
       this.mod.viewPostComponent.render(publishedTx);
-      
+
       // Update URL to reflect the published post
       if (publishedTx && publishedTx.signature) {
         const authorPublicKey = this.mod.publicKey;
@@ -630,20 +610,24 @@ class PublishSettingsOverlay {
           );
         }
       }
-      
+
       // Success message - use appropriate message based on whether this is an update or new publish
       // Extract parent_id from transaction data (source of truth)
-      const finalParentId = publishedTx ? (publishedTx.returnMessage()?.data?.parent_id || null) : null;
+      const finalParentId = publishedTx
+        ? publishedTx.returnMessage()?.data?.parent_id || null
+        : null;
       if (finalParentId) {
         siteMessage('Post updated', 1500);
       } else {
         siteMessage('Stack post published', 1500);
       }
-      
     } catch (error) {
       console.error('Error publishing post:', error);
       // Check parent_id again in error handler to determine appropriate message
-      const parent_id = this.mod.create_post_ui && this.mod.create_post_ui.parent_id ? this.mod.create_post_ui.parent_id : null;
+      const parent_id =
+        this.mod.create_post_ui && this.mod.create_post_ui.parent_id
+          ? this.mod.create_post_ui.parent_id
+          : null;
       if (parent_id) {
         siteMessage('Unable to update post', 3000);
       } else {
@@ -663,4 +647,3 @@ class PublishSettingsOverlay {
 }
 
 module.exports = PublishSettingsOverlay;
-
