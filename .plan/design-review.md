@@ -14,9 +14,9 @@ The Saito codebase implements a hybrid architecture: a Rust consensus core compi
 
 | Severity | Count | Examples |
 |----------|-------|---------|
-| CRITICAL | 11 | `eval()` in modules.ts, `rawSQL` handler, 10 GB WS limit, SQL injection, wasm boundary unwraps |
-| HIGH | 26 | Unmaintained crypto deps, missing security headers, open CORS, no rate limiting, singleton coupling |
-| MEDIUM | 36+ | Dead code, naming inconsistencies, excessive allocations, mixed imports, no DB migrations |
+| CRITICAL | 12 | `eval()`, `rawSQL`, 10 GB WS limit, SQL injection, wasm unwraps, no crash-safe writes |
+| HIGH | 35 | Wasm memory leaks, TURN creds in source, wallet backup over network, no replay protection, unmaintained deps |
+| MEDIUM | 50+ | Block timestamp manipulation, stats endpoints unauthenticated, command injection in scripts, no metrics |
 
 ---
 
@@ -154,6 +154,54 @@ if (txreq === 'rawSQL') {
 
 **Recommendation:** Generate and store a random salt per config file.
 
+### HIGH: Wallet Backup Sends Private Key Material Over Network
+
+**File:** `node/mods/recovery/recovery.js` L229-281  
+**Finding:** `backupWallet()` creates a transaction containing AES-encrypted wallet state (including private keys) and propagates it to peers via `propagateTransaction()`. Encryption uses a hardcoded salt `'BYTHEPRICKINGOFMYTHUMBSSOMETHINGWICKEDTHISWAYCOMES'` concatenated with the password. The same salt is reused in `storage-core.ts` L272, `options-tool.js` L79, and `options-manager.js` L57.
+
+**Impact:** Private key material traverses the public network. The shared salt enables rainbow table attacks across all installations. Weak passwords are trivially brute-forced.
+
+**Recommendation:** Use Argon2/scrypt with per-installation random salt for wallet encryption. Never transmit encrypted private keys over the network unless absolutely necessary.
+
+### HIGH: Hardcoded TURN Server Credentials
+
+**File:** `node/mods/stun/stun.js` L33-51  
+**Finding:** Three TURN servers configured with `username: 'guest'`, `credential: 'somepassword'` shipped in public source code.
+
+**Impact:** Anyone can abuse these TURN servers for relay traffic or DDoS amplification.
+
+**Recommendation:** Use short-lived TURN credentials generated per-session via a credential service (e.g. TURN REST API with HMAC).
+
+### HIGH: Command Injection in Dynamic Module Compiler
+
+**File:** `node/scripts/dynmods/compile.js` L163  
+**Finding:** `execSync(\`node config/build/webpack.config.dynmod.cjs --entrypoint=${appPath}\`)` interpolates `appPath` directly into a shell command. Shell metacharacters in the path achieve arbitrary command execution.
+
+**Recommendation:** Use `execFileSync('node', ['config/build/webpack.config.dynmod.cjs', '--entrypoint=' + appPath])` to avoid shell interpretation.
+
+### MEDIUM: Unauthenticated Stats Endpoints Expose Node State
+
+**File:** `node/lib/saito/core/server.ts` L1137-1149  
+**Finding:** `/stats`, `/stats/peers`, and `/stats/congestion` are public with no authentication. They expose blockchain state, peer public keys, IP addresses, and connection timestamps.
+
+**Recommendation:** Restrict to authenticated admin access or localhost-only binding.
+
+### MEDIUM: Block Timestamp Manipulation
+
+**File:** `rust/saito-core/src/core/consensus/mempool.rs` L197-215  
+**Finding:** Block timestamps are producer-controlled. `BurnFee` calculation only requires the timestamp to exceed the previous block's. A producer can set a far-future timestamp to reduce burn fee to zero (burn fee drops to 0 when `elapsed_time >= 2 * heartbeat`).
+
+**Recommendation:** Reject blocks with timestamps more than a configurable drift (e.g. 60s) ahead of the receiver's local clock.
+
+### MEDIUM: ICE Candidate IP Address Leakage
+
+**File:** `node/mods/stun/stun.js` L630-770  
+**Finding:** `RTCPeerConnection` is created with no ICE candidate filtering. All local network interface candidates (including private IPs) are sent to remote peers during negotiation.
+
+**Impact:** Users behind NAT/VPN have real local IP addresses leaked.
+
+**Recommendation:** Filter ICE candidates to exclude private addresses, or use `relay`-only transport policy when privacy is required.
+
 ---
 
 ## 2. Robustness
@@ -170,6 +218,31 @@ if (txreq === 'rawSQL') {
 4. Close database handles
 5. Exit cleanly
 
+### CRITICAL: No Crash-Safe Writes for Block or Wallet Data
+
+**Files:** `rust/saito-rust/src/rust_io_handler.rs` L302-318, `node/lib/saito/core/storage-core.ts` L396-410  
+**Finding:** Block files and wallet/config data are written with `writeFileSync` / `write_value` directly. There is no write-ahead log, fsync, or rename-into-place pattern. A crash during write produces a partially-written file that will fail deserialization on replay, potentially halting startup.
+
+**Recommendation:** Use atomic write pattern (write to temp, fsync, rename). Add checksums to block files for integrity verification on load.
+
+### HIGH: Rust Native Node Does Not Persist Wallet
+
+**File:** `rust/saito-rust/src/rust_io_handler.rs` L302-318  
+**Finding:** Both `save_wallet()` and `load_wallet()` are stubbed out — they return `Ok(())` without writing or reading anything. Wallet state (slips, balances) must be fully reconstructed from block replay after every restart.
+
+**Impact:** No incremental recovery; restart time grows linearly with chain length.
+
+**Recommendation:** Implement wallet persistence for the native Rust node. The commented-out code is already there.
+
+### HIGH: No Replay Protection for Peer Messages After Handshake
+
+**Files:** `rust/saito-core/src/core/routing/peers/network_peer.rs`, `rust/saito-core/src/core/routing_thread.rs`  
+**Finding:** After the handshake completes, there is no per-message authentication, nonce, or sequence number on the WebSocket stream. Messages are identified by a 1-byte type prefix and processed based purely on the socket's associated peer identity. An attacker who can inject data into the TCP stream (e.g. via a compromised proxy) can impersonate the peer for all subsequent operations.
+
+**Impact:** MITM after handshake can inject arbitrary blocks, transactions, or control messages.
+
+**Recommendation:** Use TLS for transport encryption, or add per-message HMACs using a session key derived during handshake.
+
 ### HIGH: Silent Error Swallowing
 
 **Finding:** 30+ instances across the Node codebase of `catch (err) {}` or `catch (err) { /* empty */ }`. Errors during wallet operations, module initialization, and network IO are silently discarded, making debugging extremely difficult.
@@ -181,12 +254,30 @@ if (txreq === 'rawSQL') {
 
 **Recommendation:** At minimum, log all caught errors with context. Replace empty catches with `console.error()` calls. For critical operations (wallet, blockchain), re-throw or bubble up error state.
 
+### HIGH: Rust Error Details Erased at Wasm Boundary
+
+**Files:** `rust/saito-wasm/src/wasm_block.rs` L165-171, `rust/saito-wasm/src/saitowasm.rs` multiple locations  
+**Finding:** Throughout the wasm bridge, Rust errors are converted to generic `JsValue` strings like `"failed"`, `"transaction deserialization failed"`, or `"Failed creating transaction"`. The underlying error details (parse errors, validation reasons) are discarded. Some newer code uses `.map_err(|e| JsValue::from_str(&e.to_string()))` but this is inconsistent.
+
+**Impact:** JS callers cannot distinguish between different failure modes. All errors appear as `"failed"`.
+
+**Recommendation:** Standardize on `.map_err(|e| JsValue::from_str(&format!("{context}: {e}")))`. Consider structured error objects with codes.
+
 ### HIGH: Event Listener Memory Leaks
 
 **File:** `node/lib/saito/connection.ts` L1-30  
 **Finding:** The `Connection` EventEmitter has `maxListeners` set to 200 (with a commented-out debug helper). Modules call `app.connection.on()` in render paths but never call `.off()`. Over time, duplicate listeners accumulate. The 200 limit masks the problem instead of solving it.
 
 **Recommendation:** Implement listener cleanup in module `detach()` or `onPeerDisconnect()`. Consider using `AbortSignal` with `once()` where applicable.
+
+### HIGH: Wasm Memory Leaks — FinalizationRegistry as Sole Deallocation
+
+**File:** `rust/saito-js/lib/wasm_wrapper.ts` L1-33  
+**Finding:** `WasmWrapper<T>` relies entirely on `FinalizationRegistry` to call `.free()` on wasm-allocated objects. The GC callback is non-deterministic — it may delay indefinitely or never run under memory pressure. The manual `.free()` method is commented out. Every getter (e.g. `WasmTransaction::to()`, `WasmBlock::get_transactions()`) clones wasm objects that go through this same leak-prone path.
+
+**Impact:** Under load, wasm linear memory grows unbounded because JS GC is unaware of wasm memory pressure. Accessing a block's 100 transactions creates 100+ wasm allocations per access.
+
+**Recommendation:** Uncomment and use explicit `.free()` for short-lived objects in hot paths (block processing loops). Keep FinalizationRegistry as a safety net, not the primary mechanism. Cache getter results on the JS side.
 
 ### HIGH: Wallet Slip Race Conditions (Rust)
 
@@ -218,6 +309,26 @@ if (txreq === 'rawSQL') {
 **Finding:** Some module event handlers call `queryDatabase()` without `await`, creating race conditions where the handler completes before the DB write lands.
 
 **Recommendation:** Ensure all DB operations in event handlers are properly awaited.
+
+### MEDIUM: `save_wallet`/`load_wallet` Fire-and-Forget Across Wasm Bridge
+
+**File:** `rust/saito-wasm/src/wasm_io_handler.rs` L282-293  
+**Finding:** Both methods call JS-side handlers and return `Ok(())` regardless of success. TODO comments acknowledge: `"// TODO : return error state"`. Wallet save failures are silently ignored.
+
+**Recommendation:** Propagate JS-side errors back through the wasm bridge.
+
+### MEDIUM: Module Dependencies Are Unchecked
+
+**Finding:** Modules use `app.modules.returnModule('ModuleName')` at runtime. Many callers (e.g. `buysaito.js` L57, `league.js` L253) don't null-check the result. If a required module is missing or failed to init, the depending module crashes later.
+
+**Recommendation:** Add null checks for all `returnModule()` calls. Consider a dependency declaration system validated at startup.
+
+### MEDIUM: Transaction Routing Path Validation is Optional
+
+**File:** `rust/saito-core/src/core/consensus/transaction.rs` L1224-1237  
+**Finding:** Code comments state: "we accept transactions WITHOUT routing paths but require that any transaction WITH a routing path must have a cryptographically valid path." Any transaction can bypass routing-work verification by omitting its path.
+
+**Recommendation:** Make routing path mandatory for non-system transaction types, or document the trust model implications.
 
 ---
 
@@ -392,6 +503,30 @@ if (txreq === 'rawSQL') {
 
 ---
 
+## 7. Observability
+
+### MEDIUM: Health Check is Static HTML, Not Application-Level
+
+**Files:** `node/web/healthcheck.html`, `node/mods/website/web/healthcheck.html`  
+**Finding:** The "health check" is a static page saying "web server is up!" — it doesn't verify blockchain sync state, peer connectivity, mempool health, or wasm runtime status. CI relies on this as the real health check.
+
+**Recommendation:** Implement a `/health` API endpoint returning JSON with: sync status, block height, peer count, wasm runtime state, and uptime.
+
+### MEDIUM: Stats File Grows Unbounded
+
+**File:** `rust/saito-core/src/core/stat_thread.rs`  
+**Finding:** `StatThread` appends to `./data/saito.stats` every 5 seconds with no log rotation, size limit, or cleanup.
+
+**Recommendation:** Add size-based or time-based rotation with retention limits.
+
+### LOW: No Structured Metrics Export
+
+**Finding:** The only metrics interface is the `/stats` HTTP endpoint and the flat file. No Prometheus exporter, StatsD, or OpenTelemetry support, making production monitoring and alerting difficult.
+
+**Recommendation:** Add a Prometheus `/metrics` endpoint for standard observability tooling.
+
+---
+
 ## Prioritized Action Items
 
 ### Phase 1 — Critical Security & Robustness (Immediate)
@@ -408,6 +543,14 @@ if (txreq === 'rawSQL') {
 | 8 | Add input validation to HTTP routes (bhash, pkey) | S | Prevents path traversal |
 | 9 | Implement graceful shutdown handler | M | Prevents data loss on SIGTERM |
 
+### Phase 1b — Critical Data Integrity (Immediate)
+
+| # | Item | Effort | Impact |
+|---|------|--------|--------|
+| 10 | Atomic writes for blocks and wallet (write-temp-fsync-rename) | M | Prevents corruption on crash |
+| 11 | Implement wallet persistence for Rust native node | M | Eliminates full replay on restart |
+| 12 | Add block timestamp bounds checking | S | Prevents burn fee manipulation |
+
 ### Phase 2 — High-Priority Quality (Next Sprint)
 
 | # | Item | Effort | Impact |
@@ -420,6 +563,17 @@ if (txreq === 'rawSQL') {
 | 15 | Add rate limiting to HTTP and WebSocket | S | DoS resistance |
 | 16 | Sanitize innerHTML usage across modules | L | Prevents XSS |
 | 17 | Eliminate redundant block file sorting on startup | S | Faster startup |
+
+### Phase 2b — Resource Management (Next Sprint)
+
+| # | Item | Effort | Impact |
+|---|------|--------|--------|
+| 18 | Expose explicit wasm `.free()`, cache getter results | M | Prevents wasm memory leaks |
+| 19 | Replace hardcoded TURN credentials with per-session generation | M | Prevents TURN abuse |
+| 20 | Fix `compile.js` command injection (use execFileSync) | S | Prevents shell injection |
+| 21 | Restrict stats endpoints to admin/localhost | S | Prevents info disclosure |
+| 22 | Standardize wasm error propagation (preserve error details) | M | Makes debugging possible |
+| 23 | Add null checks for all `returnModule()` calls | S | Prevents runtime crashes |
 
 ### Phase 3 — Architecture (Planned)
 
@@ -434,17 +588,28 @@ if (txreq === 'rawSQL') {
 | 24 | Break up monolithic files (blockchain.rs, server.ts) | L | Improves navigability |
 | 25 | Standardize on ES imports | M | Consistency |
 
+### Phase 3b — Protocol Hardening (Planned)
+
+| # | Item | Effort | Impact |
+|---|------|--------|--------|
+| 26 | Add TLS or per-message HMACs for post-handshake messages | L | Prevents MITM injection |
+| 27 | Filter ICE candidates to prevent IP leakage | S | Protects user privacy |
+| 28 | Remove hardcoded wallet encryption salt, use random per-install | S | Prevents rainbow table attacks |
+| 29 | Add `/health` endpoint with real application checks | M | Production readiness |
+
 ### Phase 4 — Performance & Testing (As Needed)
 
 | # | Item | Effort | Impact |
 |---|------|--------|--------|
-| 26 | Implement read-ahead block loading on startup | L | Faster cold start |
-| 27 | Pre-allocate serialization buffers | M | Reduces GC pressure |
-| 28 | Reduce write lock duration in consensus thread | M | Better concurrency |
-| 29 | Replace sync FS calls with async equivalents | S | Unblocks event loop |
-| 30 | Enable SQLite WAL mode | S | Better concurrent DB access |
-| 31 | Add fuzz targets for deserialization | M | Catch parsing crashes |
-| 32 | Add protocol-level integration tests | L | Verify handshake/sync |
+| 30 | Implement read-ahead block loading on startup | L | Faster cold start |
+| 31 | Pre-allocate serialization buffers | M | Reduces GC pressure |
+| 32 | Reduce write lock duration in consensus thread | M | Better concurrency |
+| 33 | Replace sync FS calls with async equivalents | S | Unblocks event loop |
+| 34 | Enable SQLite WAL mode | S | Better concurrent DB access |
+| 35 | Add fuzz targets for deserialization | M | Catch parsing crashes |
+| 36 | Add protocol-level integration tests | L | Verify handshake/sync |
+| 37 | Add Prometheus metrics endpoint | M | Production monitoring |
+| 38 | Add stats file rotation | S | Prevent disk exhaustion |
 
 ---
 
