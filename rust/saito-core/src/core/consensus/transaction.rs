@@ -7,7 +7,6 @@ use log::{debug, error, trace, warn};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use primitive_types::U256;
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::core::consensus::hop::{Hop, HOP_SIZE};

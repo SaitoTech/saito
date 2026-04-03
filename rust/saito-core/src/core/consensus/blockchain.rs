@@ -6,7 +6,6 @@ use std::sync::Arc;
 
 use ahash::{AHashMap, HashMap};
 use log::{debug, error, info, trace, warn};
-use rayon::prelude::*;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
@@ -72,8 +71,6 @@ pub enum AddBlockResult {
 
 type WindIndex = usize;
 type Failed = bool;
-type NewChain = Vec<SaitoHash>;
-type OldChain = Vec<SaitoHash>;
 
 pub const ALERT_ON_NEWER_CHAIN_LENGTH: BlockId = 50;
 pub const ALERT_ON_NEWER_CHAIN_GAP: BlockId = 20;
@@ -428,7 +425,7 @@ impl Blockchain {
         }
 
         // find shared ancestor of new_block with old_chain
-        let mut old_chain: Vec<[u8; 32]> = Vec::new();
+        let old_chain: Vec<[u8; 32]>;
         let mut am_i_the_longest_chain = false;
 
         let (shared_ancestor_found, shared_block_hash, new_chain) =
@@ -964,9 +961,12 @@ impl Blockchain {
             buffer.extend(buf);
         }
 
-        storage
-            .io_interface
-            .ensure_directory_exists("./data/issuance/archive");
+	if let Err(e) = storage
+	    .io_interface
+	    .ensure_directory_exists("./data/issuance/archive")
+	{
+	    log::error!("Failed to create archive directory: {:?}", e);
+	}
 
         storage
             .io_interface
@@ -2986,8 +2986,8 @@ fn is_golden_ticket_count_valid_<'a, F: Fn(SaitoHash) -> Option<&'a Block>>(
     bypass: bool,
     get_block: F,
 ) -> bool {
+
     let mut golden_tickets_found = 0;
-    let mut required_tickets = 0;
     let mut search_depth_index = 0;
     let mut latest_block_hash = previous_block_hash;
 
@@ -3005,20 +3005,17 @@ fn is_golden_ticket_count_valid_<'a, F: Fn(SaitoHash) -> Option<&'a Block>>(
             if block.has_golden_ticket {
                 golden_tickets_found += 1;
             }
-            // if i == 0 {
-            //     // 3/7 => [1,2,3,4,5,6 + 7(current)]. but we only check the first 6 since we start from previous block.
-            //     // if we only have 5 blocks, we need 1 golden ticket. if we have 6 blocks, we need 2 golden tickets. if current block has golden ticket, we need 3 golden tickets.
-            //     required_tickets = MIN_GOLDEN_TICKETS_NUMERATOR
-            //         .saturating_sub(MIN_GOLDEN_TICKETS_DENOMINATOR.saturating_sub(block.id));
-            // }
             latest_block_hash = block.previous_block_hash;
         } else {
             break;
         }
     }
+
     // 2/6 => [1,2,3,4,5 + 6(current)]. but we only check the first 5 since we start from previous block.
-    // if we only have 4 blocks, we need 1 golden ticket. if we have 5 blocks, we need 2 golden tickets (including the gt at hand). because we calculate only upto the previous block and then consider the current block's gt
-    required_tickets = MIN_GOLDEN_TICKETS_NUMERATOR
+    // if we only have 4 blocks, we need 1 golden ticket. if we have 5 blocks, we need 2 golden tickets 
+    // (including the gt at hand). because we calculate only upto the previous block and then consider 
+    // the current block's gt
+    let required_tickets = MIN_GOLDEN_TICKETS_NUMERATOR
         .saturating_sub(MIN_GOLDEN_TICKETS_DENOMINATOR.saturating_sub(search_depth_index + 1));
 
     if current_block_has_golden_ticket {

@@ -1,4 +1,3 @@
-use rayon::prelude::*;
 use std::fs::File;
 use std::io::{Error, ErrorKind, Write};
 use std::sync::Arc;
@@ -199,7 +198,7 @@ impl Storage {
                         return vec![];
                     }
                 };
-                let mut contents = contents.trim_end_matches('\r').to_string();
+                let contents = contents.trim_end_matches('\r').to_string();
                 let lines: Vec<&str> = contents.split('\n').collect();
 
                 for line in lines {
@@ -349,7 +348,7 @@ impl Storage {
                     return None;
                 }
             };
-            let mut contents = contents.trim_end_matches('\r').to_string();
+            let contents = contents.trim_end_matches('\r').to_string();
             let lines: Vec<&str> = contents.split('\n').collect();
             let mut keys: Vec<SaitoUTXOSetKey> = vec![];
             for line in lines {

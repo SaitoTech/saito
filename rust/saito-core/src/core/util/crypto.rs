@@ -1,10 +1,10 @@
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature};
 use blake3::Hasher;
-use block_modes::BlockMode;
 use lazy_static::lazy_static;
 pub use merkle::MerkleTree;
-use rand::{Rng, SeedableRng};
+use rand::{Rng};
 use secp256k1::{ecdsa, Secp256k1};
+use rayon::prelude::*;
 pub use secp256k1::{Message, PublicKey, SecretKey, SECP256K1};
 
 // type Aes128Cbc = Cbc<Aes128, Pkcs7>;
@@ -78,12 +78,9 @@ pub fn sign_blob<'a>(vbytes: &'a mut Vec<u8>, private_key: &SaitoPrivateKey) -> 
 #[cfg(test)]
 lazy_static! {
     pub static ref TEST_RNG: tokio::sync::Mutex<rand::rngs::StdRng> =
-        tokio::sync::Mutex::new(create_test_rng());
+        tokio::sync::Mutex::new(rand::rngs::StdRng::from_seed([0; 32]));
 }
 
-fn create_test_rng() -> rand::rngs::StdRng {
-    rand::rngs::StdRng::from_seed([0; 32])
-}
 
 pub async fn generate_random_bytes(len: u64) -> Vec<u8> {
     if len == 0 {
@@ -99,7 +96,6 @@ pub async fn generate_random_bytes(len: u64) -> Vec<u8> {
     }
     #[cfg(test)]
     {
-        // let mut rng = TEST_RNG.clone();
         let mut rng = TEST_RNG.lock().await;
         (0..len).map(|_| rng.gen::<u8>()).collect()
     }
@@ -129,7 +125,7 @@ pub fn hash(data: &[u8]) -> SaitoHash {
 
 pub fn sign(message_bytes: &[u8], private_key: &SaitoPrivateKey) -> SaitoSignature {
     let hash = hash(message_bytes);
-    let msg = Message::from_slice(&hash).unwrap();
+    let msg = Message::from_digest(hash);
     let secret = SecretKey::from_slice(private_key).unwrap();
     let sig = SECP256K1_SIGN.sign_ecdsa(&msg, &secret);
     sig.serialize_compact()
@@ -145,17 +141,18 @@ pub fn verify_signature(
     sig: &SaitoSignature,
     public_key: &SaitoPublicKey,
 ) -> bool {
+    let msg = Message::from_digest(*hash);
+
     match (
-        Message::from_slice(hash),
         PublicKey::from_slice(public_key),
         ecdsa::Signature::from_compact(sig),
     ) {
-        (Ok(m), Ok(p), Ok(s)) => SECP256K1_VERIFY.verify_ecdsa(&m, &s, &p).is_ok(),
+        (Ok(p), Ok(s)) => SECP256K1_VERIFY.verify_ecdsa(&msg, &s, &p).is_ok(),
         _ => false,
     }
 }
 
-use rayon::prelude::*;
+
 
 pub fn verify_many(hashes: &[[u8; 32]], sigs: &[SaitoSignature], pks: &[PublicKey]) -> Vec<bool> {
     hashes
@@ -163,7 +160,7 @@ pub fn verify_many(hashes: &[[u8; 32]], sigs: &[SaitoSignature], pks: &[PublicKe
         .zip(sigs)
         .zip(pks)
         .map(|((h, s), p)| {
-            let m = Message::from_slice(h).unwrap();
+            let m = Message::from_digest(*h);
             let sig = ecdsa::Signature::from_compact(s).unwrap();
             SECP256K1_VERIFY.verify_ecdsa(&m, &sig, p).is_ok()
         })

@@ -1,6 +1,5 @@
 use std::io::{Error, ErrorKind};
 use std::ops::{Deref, DerefMut};
-use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -13,7 +12,6 @@ use crate::wasm_network::WasmNetwork;
 use crate::wasm_network_api::WasmNetworkApi;
 use crate::wasm_network_peer::WasmNetworkPeer;
 use crate::wasm_nft::WasmNFT;
-use crate::wasm_peer::WasmPeer;
 use crate::wasm_slip::WasmSlip;
 use crate::wasm_stats::WasmStats;
 use crate::wasm_time_keeper::WasmTimeKeeper;
@@ -33,11 +31,8 @@ use saito_core::core::defs::{
     Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
-use saito_core::core::msg::api_message::ApiMessage;
-use saito_core::core::msg::message::Message;
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::process::version::Version;
 use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
 use saito_core::core::routing::io::network::{Network, PeerDisconnectType};
 use saito_core::core::routing::io::network_event::NetworkEvent;
@@ -50,7 +45,6 @@ use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::crypto::{generate_keypair_from_private_key, sign};
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
 use secp256k1::SECP256K1;
-use serde::Serialize;
 use std::convert::TryInto;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::{Mutex, RwLock};
