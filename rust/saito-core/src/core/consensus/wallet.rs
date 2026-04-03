@@ -215,7 +215,6 @@ impl Wallet {
             block.transactions.len(),
             lc
         );
-        let mut tx_index = 0;
 
         if lc {
             for tx in block.transactions.iter() {
@@ -308,15 +307,6 @@ impl Wallet {
                         }
                         i += 1;
                     }
-                }
-
-                //
-                // Advance transaction index and prune old slips
-                //
-                if let TransactionType::SPV = tx.transaction_type {
-                    tx_index += tx.txs_replacements as u64;
-                } else {
-                    tx_index += 1;
                 }
 
                 if block.id > genesis_period {
@@ -415,14 +405,6 @@ impl Wallet {
                     }
                 }
 
-                //
-                // advance index exactly as in lc
-                //
-                if let TransactionType::SPV = tx.transaction_type {
-                    tx_index += tx.txs_replacements as u64;
-                } else {
-                    tx_index += 1;
-                }
             }
         }
 
@@ -566,7 +548,7 @@ impl Wallet {
 
         // grab inputs
         let mut keys_to_remove = Vec::new();
-        let mut unspent_slips;
+        let unspent_slips;
         #[cfg(test)]
         {
             // this part is compiled for tests to make sure selected slips are predictable. otherwise we will get random slips from a hashset

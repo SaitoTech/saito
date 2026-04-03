@@ -7,7 +7,7 @@ use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::Endpoint;
 use log::{debug, error, info, trace};
-use serde::{Serialize, Serializer};
+use serde::{Serialize};
 use std::cmp::Ordering;
 use std::io::{Error, ErrorKind};
 use std::sync::Arc;
@@ -49,22 +49,6 @@ pub struct PeerStats {
     pub last_sent_tx_at: Timestamp,
     pub connected_at: Timestamp,
 }
-
-fn vec_of_arrays_as_base58<S>(vec: &Vec<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let hex_vec: Vec<String> = vec.iter().map(|arr| arr.to_base58()).collect();
-    serializer.collect_seq(hex_vec)
-}
-fn option_as_base58<S>(bytes: &Option<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(&bytes.unwrap_or([0; 33]).to_base58())
-}
-
-// TODO : since we are keeping the peers against a peer index, once a peer is reconnected, we will lose the stats from the previous connection.
 
 // #[serde_with::serde_as]
 #[derive(Debug, Clone)]

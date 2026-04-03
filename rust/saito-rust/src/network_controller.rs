@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use futures::stream::{SplitSink, SplitStream};
-use futures::{SinkExt, StreamExt, TryStreamExt};
+use futures::{SinkExt, StreamExt};
 use log::{debug, error, info, trace, warn};
 use reqwest::Client;
 use saito_core::core::stat_thread::StatEvent;
@@ -40,8 +40,6 @@ use saito_core::core::routing::peers::network_peer::NetworkPeer;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
 use saito_core::core::routing::peers::peer_service::PeerService;
 use saito_core::core::util::configuration::Configuration;
-use saito_core::core::util::serialize::Serialize;
-// use crate::{IoEvent, NetworkEvent, TimeKeeper};
 
 type SocketSender = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, tungstenite::Message>;
 type SocketReceiver = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;

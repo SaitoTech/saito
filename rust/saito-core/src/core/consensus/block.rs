@@ -1678,7 +1678,8 @@ impl Block {
                                 // - `regular_slips` will hold any standalone valid slips
                                 let mut nft_groups: Vec<(Slip, Slip, Slip)> = Vec::new();
                                 let mut regular_slips: Vec<Slip> = Vec::new();
-                                let mut total_nolan_eligible_for_atr_payout: Currency = 0;
+				// currently un-used
+                                //let mut total_nolan_eligible_for_atr_payout: Currency = 0;
 
                                 // Loop output slip in the transaction
                                 // recognized NFT groups once they are collected.
@@ -1731,7 +1732,7 @@ impl Block {
                                                 //
                                                 // Only the payload slip2 amount counts toward the ATR payout
                                                 //
-                                                total_nolan_eligible_for_atr_payout += slip2.amount;
+                                                //total_nolan_eligible_for_atr_payout += slip2.amount;
                                             }
 
                                             //
@@ -1766,7 +1767,7 @@ impl Block {
                                         }
 
                                         regular_slips.push(slip.clone());
-                                        total_nolan_eligible_for_atr_payout += slip.amount;
+                                        //total_nolan_eligible_for_atr_payout += slip.amount;
                                     }
                                     i += 1;
                                 }
@@ -2225,8 +2226,9 @@ impl Block {
                 //
                 // finding a router consumes 2 hashes
                 //
-                next_random_number = hash(next_random_number.as_ref());
-                next_random_number = hash(next_random_number.as_ref());
+		let h1 = hash(next_random_number.as_ref());
+		next_random_number = hash(h1.as_ref());
+
 
                 //
                 // if the previous block ALSO HAD a golden ticket there is no need for further
@@ -2285,8 +2287,13 @@ impl Block {
                         //
                         // finding a router consumes 2 hashes
                         //
-                        next_random_number = hash(next_random_number.as_slice());
-                        next_random_number = hash(next_random_number.as_slice());
+			// this should be uncommented if we make the router payouts MAX_RECURSION
+			// greater than 2 blocks, as then we need to hash again before continuing
+			// our loop.
+			//
+			//let h1 = hash(next_random_number.as_slice());
+			//next_random_number = hash(h1.as_slice());
+
                     }
                 }
             } else {
@@ -2352,7 +2359,8 @@ impl Block {
                     output.tx_ordinal = total_number_of_non_fee_transactions + 1;
                     output.block_id = self.id;
                     transaction.add_to_slip(output.clone());
-                    slip_index += 1;
+	  	    // uncomment if we add another payout 
+                    // slip_index += 1;
                 } else {
                     graveyard_contribution += router2_payout;
                 }

@@ -14,7 +14,6 @@ use crate::core::msg::handshake::HandshakeResponse;
 use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
-use crate::core::process::version::Version;
 use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
 use crate::core::routing::io::interface_io::InterfaceEvent;
 use crate::core::routing::io::network::{Network, PeerDisconnectType};
@@ -90,6 +89,22 @@ impl RoutingStats {
 }
 
 /// Manages peers and routes messages to correct controller
+///
+///
+/// There are three primary types of messages and events that are produced 
+/// and processed by this thread:
+///
+/// * peer messages --> process_peer_message()
+/// * system events --> process_network_event()
+/// * system events --> process_timer_event()
+/// * system events --> process_event()
+///
+/// Peer Messages are initiated by other nodes on the network and communicated
+/// to a node through the network socket. System events are broadcast by other 
+/// threads or components in the Saito software stack (JS, WASM, Rust). And 
+/// timer actions are triggered by the passage of time but not specific messages
+/// or events.
+///
 pub struct RoutingThread {
     pub blockchain_lock: Arc<RwLock<Blockchain>>,
     pub mempool_lock: Arc<RwLock<Mempool>>,
@@ -133,7 +148,7 @@ impl RoutingThread {
     /// ```
     ///
     /// ```
-    async fn process_incoming_message(&mut self, public_key: SaitoPublicKey, message: Message) {
+    async fn process_peer_message(&mut self, public_key: SaitoPublicKey, message: Message) {
 
 	self.network
 	    .update_peer_timestamp(
@@ -143,10 +158,10 @@ impl RoutingThread {
 	    .await;
 
         match message {
-            Message::HandshakeChallenge(challenge) => {
+            Message::HandshakeChallenge(_challenge) => {
                 // debug!("received handshake challenge from peer : {:?}", public_key);
             }
-            Message::HandshakeResponse(response) => {
+            Message::HandshakeResponse(_response) => {
                 // trace!("received handshake response from peer : {:?}", public_key);
             }
             Message::Transaction(mut transaction) => {
@@ -328,11 +343,6 @@ impl RoutingThread {
                     message,
                     public_key.to_base58()
                 );
-                // let mut peers = self.network.peer_lock.write().await;
-                // if let Some(peer) = peers.find_peer_by_index_mut(public_key) {
-                //     // we remove the static peer config to make sure we don't connect again to the peer
-                //     peer.static_peer_config = None;
-                // }
             }
         }
     }
@@ -1539,7 +1549,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 };
 
                 self.stats.total_incoming_messages.increment();
-                self.process_incoming_message(public_key, message).await;
+                self.process_peer_message(public_key, message).await;
                 return Some(());
             }
             NetworkEvent::PeerConnectionResult { result } => match result {

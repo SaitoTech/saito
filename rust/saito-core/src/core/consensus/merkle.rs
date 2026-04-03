@@ -1,7 +1,5 @@
 use std::collections::LinkedList;
 
-use rayon::prelude::*;
-
 use crate::core::consensus::transaction::Transaction;
 use crate::core::defs::SaitoHash;
 use crate::core::util::crypto::hash;

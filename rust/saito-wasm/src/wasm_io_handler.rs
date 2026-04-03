@@ -3,7 +3,7 @@ use std::io::{Error, ErrorKind};
 
 use async_trait::async_trait;
 use js_sys::{Array, BigInt, Boolean, Uint8Array};
-use log::{debug, error, trace};
+use log::{error, trace};
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
