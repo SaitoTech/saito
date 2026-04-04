@@ -1975,6 +1975,7 @@ mod tests {
     use crate::core::consensus::transaction::Transaction;
     use crate::core::defs::Timestamp;
     use crate::core::defs::NOLAN_PER_SAITO;
+    use crate::core::defs::SaitoPublicKey;
     use crate::core::process::process_event::ProcessEvent;
     use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
     use crate::core::routing::io::network::PeerDisconnectType;
@@ -2022,6 +2023,10 @@ mod tests {
         async fn send_message(&self, _public_key: [u8; 33], _buffer: &[u8]) -> Result<(), Error> {
             Ok(())
         }
+
+	async fn disconnect_from_peer(&self, _public_key: SaitoPublicKey) -> Result<(), Error> {
+	    Ok(())
+	}
 
         async fn send_message_to_all(
             &self,

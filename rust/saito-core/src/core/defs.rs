@@ -76,6 +76,8 @@ pub const LOCK_ORDER_MEMPOOL: u8 = 5;
 pub const LOCK_ORDER_PEERS: u8 = 6;
 pub const LOCK_ORDER_WALLET: u8 = 7;
 
+
+
 #[macro_export]
 macro_rules! iterate {
     ($collection:expr, $min:expr) => {{
@@ -120,6 +122,7 @@ macro_rules! drain {
         }
     }};
 }
+
 
 #[derive(Clone, Debug)]
 pub struct StatVariable {

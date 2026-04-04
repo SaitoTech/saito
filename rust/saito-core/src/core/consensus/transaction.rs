@@ -9,6 +9,12 @@ use num_traits::FromPrimitive;
 use primitive_types::U256;
 use serde::{Deserialize, Serialize};
 
+use rayon::iter::{
+    IntoParallelRefIterator,
+    IndexedParallelIterator,
+    ParallelIterator,
+};
+
 use crate::core::consensus::hop::{Hop, HOP_SIZE};
 use crate::core::consensus::slip::{Slip, SlipType, SLIP_SIZE};
 use crate::core::consensus::wallet::Wallet;
@@ -1955,10 +1961,8 @@ mod tests {
     }
     #[test]
     fn slip_count_test() {
-        let mock_input = Slip::default();
         let mock_output = Slip::default();
         let mock_hop = Hop::default();
-
         let mut mock_tx = Transaction::default();
         for i in 0..1000 {
             let mut mock_input = Slip::default();

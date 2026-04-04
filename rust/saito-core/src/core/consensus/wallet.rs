@@ -548,21 +548,20 @@ impl Wallet {
 
         // grab inputs
         let mut keys_to_remove = Vec::new();
-        let unspent_slips;
-        #[cfg(test)]
-        {
-            // this part is compiled for tests to make sure selected slips are predictable. otherwise we will get random slips from a hashset
-            unspent_slips = self.unspent_slips.iter().collect::<Vec<&SaitoUTXOSetKey>>();
-            unspent_slips.sort_by(|slip, slip2| {
-                let slip = Slip::parse_slip_from_utxokey(slip).unwrap();
-                let slip2 = Slip::parse_slip_from_utxokey(slip2).unwrap();
-                slip.amount.cmp(&slip2.amount)
-            });
-        }
-        #[cfg(not(test))]
-        {
-            unspent_slips = &self.unspent_slips;
-        }
+
+
+	#[cfg_attr(not(test), allow(unused_mut))]
+	let mut unspent_slips: Vec<&SaitoUTXOSetKey> = self.unspent_slips.iter().collect();
+
+	#[cfg(test)]
+	{
+	    unspent_slips.sort_by(|slip, slip2| {
+	        let slip = Slip::parse_slip_from_utxokey(slip).unwrap();
+	        let slip2 = Slip::parse_slip_from_utxokey(slip2).unwrap();
+	        slip.amount.cmp(&slip2.amount)
+	    });
+	}
+
 
         for key in unspent_slips {
             let slip = self.slips.get_mut(key).expect("slip should be here");

@@ -9,7 +9,6 @@ use crate::wasm_blockchain::WasmBlockchain;
 use crate::wasm_configuration::WasmConfiguration;
 use crate::wasm_io_handler::WasmIoHandler;
 use crate::wasm_network::WasmNetwork;
-use crate::wasm_network_api::WasmNetworkApi;
 use crate::wasm_network_peer::WasmNetworkPeer;
 use crate::wasm_nft::WasmNFT;
 use crate::wasm_slip::WasmSlip;
@@ -447,8 +446,8 @@ pub async fn initialize(
             wallet.private_key = keys.1;
             wallet.public_key = keys.0;
             if let Some(wallet) = configs.get_wallet_configs_mut() {
-                wallet.privateKey = keys.1.to_hex();
-                wallet.publicKey = keys.0.to_base58();
+                wallet.private_key = keys.1.to_hex();
+                wallet.public_key = keys.0.to_base58();
             }
         }
         info!("current core version : {:?}", wallet.core_version);
@@ -1020,7 +1019,8 @@ pub async fn process_msg_buffer_from_peer(
     } else {
         saito.routing_thread.network.io_interface.get_my_services()
     };
-    drop(saito);
+    // drop(saito) is not needed as dropping a reference does nothing, and
+    // will be automatically cleaned up at the end of the function
     drop(saito1);
 
     trace!("buffer size : {}", buffer.len());

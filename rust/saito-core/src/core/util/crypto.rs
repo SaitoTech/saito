@@ -3,6 +3,8 @@ use blake3::Hasher;
 use lazy_static::lazy_static;
 pub use merkle::MerkleTree;
 use rand::{Rng};
+#[allow(unused_imports)]
+use rand::SeedableRng;				// test => TEST_RNG
 use secp256k1::{ecdsa, Secp256k1};
 use rayon::prelude::*;
 pub use secp256k1::{Message, PublicKey, SecretKey, SECP256K1};
@@ -75,6 +77,7 @@ pub fn sign_blob<'a>(vbytes: &'a mut Vec<u8>, private_key: &SaitoPrivateKey) -> 
     vbytes.extend(&sig);
     vbytes
 }
+
 #[cfg(test)]
 lazy_static! {
     pub static ref TEST_RNG: tokio::sync::Mutex<rand::rngs::StdRng> =

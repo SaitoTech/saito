@@ -2,7 +2,11 @@ use ahash::{AHashMap, AHashSet};
 use log::{debug, error, info, trace, warn};
 use num_derive::FromPrimitive;
 use num_traits::Zero;
-use rayon::prelude::*;
+use rayon::iter::{
+    IntoParallelRefIterator,
+    IndexedParallelIterator,
+    ParallelIterator,
+};
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::fmt::{Display, Formatter};

@@ -165,17 +165,6 @@ pub mod test {
             let source_path = Path::new(TEST_ISSUANCE_FILEPATH);
             let target_filename = "issuance.txt";
             let target_path = temp_dir.join(target_filename);
-            let cwd = std::env::current_dir().unwrap();
-            // error!(
-            //     "cwd : {:?} copying file from {:?} to {:?}",
-            //     cwd, source_path, target_path
-            // );
-            // if !target_path.exists() {
-            //     error!("target_path does not exist.");
-            // }
-            // if !source_path.exists() {
-            //     error!("source_path does not exist.");
-            // }
             fs::copy(source_path, &target_path).unwrap();
             let target_path_str = target_path
                 .to_str()
@@ -1199,22 +1188,18 @@ pub mod test {
 
         fn set_congestion_data(
             &mut self,
-            congestion_data: Option<
+            _congestion_data: Option<
                 crate::core::routing::peers::congestion_controller::CongestionStatsDisplay,
             >,
         ) {
             todo!()
         }
 
-        // fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
-        //     self.blockchain = config;
-        // }
-
         fn get_config_path(&self) -> String {
             String::new()
         }
 
-        fn set_config_path(&mut self, path: String) {}
+        fn set_config_path(&mut self, _path: String) {}
 
         fn save(&self) -> Result<(), std::io::Error> {
             Ok(())
