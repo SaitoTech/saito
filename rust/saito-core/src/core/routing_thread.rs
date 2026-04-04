@@ -160,25 +160,29 @@ impl RoutingThread {
             Message::HandshakeResponse(_response) => {
                 // ...
             }
+            Message::Block(_) => {
+                // ...
+            }
+	    Message::SPVChain() => {
+		// ...
+            }
+
             Message::Transaction(transaction) => {
                 self.process_transaction_message(public_key, transaction)
                     .await;
             }
-            Message::BlockchainRequest(request) => {
-                self.process_blockchain_request_message(public_key, request)
+            Message::RequestBlockchain(request) => {
+                self.process_request_blockchain_message(public_key, request)
                     .await;
             }
-            Message::BlockHeaderHash(hash, block_id) => {
-                self.process_block_header_hash_message(public_key, hash, block_id)
+            Message::BlockReference(hash, block_id) => {
+                self.process_block_reference_message(public_key, hash, block_id)
                     .await;
             }
             Message::Ping() => {
                 self.network.send_message(public_key, Message::Pong()).await;
             }
             Message::Pong() => {
-                // ...
-            }
-            Message::SPVChain() => {
                 // ...
             }
             Message::Services(services) => {
@@ -189,8 +193,8 @@ impl RoutingThread {
             Message::GhostChain(chain) => {
                 self.process_ghost_chain(chain, public_key).await;
             }
-            Message::GhostChainRequest(block_id, block_hash, fork_id) => {
-                self.process_ghost_chain_request(block_id, block_hash, fork_id, public_key)
+            Message::RequestGhostChain(block_id, block_hash, fork_id) => {
+                self.process_request_ghost_chain_message(block_id, block_hash, fork_id, public_key)
                     .await;
             }
             Message::ApplicationMessage(api_message) => {
@@ -211,25 +215,21 @@ impl RoutingThread {
                     .process_api_error(api_message.data, api_message.msg_index, public_key)
                     .await;
             }
-            Message::KeyListUpdate(key_list) => {
+            Message::KeyList(key_list) => {
                 self.network
                     .handle_key_list_update(public_key, key_list, self.timer.get_timestamp_in_ms())
                     .await;
             }
-            Message::Block(_) => {
-                error!("received block message");
-                unreachable!();
+            Message::RequestGenesisBlockReference() => {
+                self.process_request_genesis_block_reference_message(public_key).await;
             }
-            Message::GenesisBlockRequest() => {
-                self.process_genesis_block_request_message(public_key).await;
-            }
-            Message::GenesisBlockHeader(hash, block_id) => {
-                self.process_genesis_block_header_message(public_key, hash, block_id)
+            Message::GenesisBlockReference(hash, block_id) => {
+                self.process_genesis_block_reference_message(public_key, hash, block_id)
                     .await;
             }
-            Message::ForcedDisconnection(message) => {
+            Message::Disconnect(message) => {
                 warn!(
-                    "Received forced disconnection message: {:?}. from peer : {}",
+                    "Received disconnection message: {:?}. from peer : {}",
                     message,
                     public_key.to_base58()
                 );
@@ -263,7 +263,7 @@ impl RoutingThread {
             .await;
     }
 
-    async fn process_blockchain_request_message(
+    async fn process_request_blockchain_message(
         &mut self,
         public_key: SaitoPublicKey,
         request: BlockchainRequest,
@@ -294,7 +294,7 @@ impl RoutingThread {
         }
     }
 
-    async fn process_block_header_hash_message(
+    async fn process_block_reference_message(
         &mut self,
         public_key: SaitoPublicKey,
         hash: SaitoHash,
@@ -324,7 +324,7 @@ impl RoutingThread {
             .await;
     }
 
-    async fn process_genesis_block_request_message(&mut self, public_key: SaitoPublicKey) {
+    async fn process_request_genesis_block_reference_message(&mut self, public_key: SaitoPublicKey) {
         let blockchain = self.blockchain_lock.read().await;
 
         info!(
@@ -341,7 +341,7 @@ impl RoutingThread {
                 self.network
                     .send_message(
                         public_key,
-                        Message::GenesisBlockHeader(
+                        Message::GenesisBlockReference(
                             genesis_block_hash,
                             blockchain.genesis_block_id,
                         ),
@@ -356,7 +356,7 @@ impl RoutingThread {
         }
     }
 
-    async fn process_genesis_block_header_message(
+    async fn process_genesis_block_reference_message(
         &mut self,
         public_key: SaitoPublicKey,
         hash: SaitoHash,
@@ -443,7 +443,7 @@ impl RoutingThread {
     /// ```
     ///
     /// ```
-    async fn process_ghost_chain_request(
+    async fn process_request_ghost_chain_message(
         &self,
         block_id: u64,
         block_hash: SaitoHash,
@@ -1090,13 +1090,13 @@ impl RoutingThread {
             .send_message(
                 public_key,
                 if is_spv_mode {
-                    Message::GhostChainRequest(
+                    Message::RequestGhostChain(
                         request.latest_block_id,
                         request.latest_block_hash,
                         request.fork_id,
                     )
                 } else {
-                    Message::BlockchainRequest(request)
+                    Message::RequestBlockchain(request)
                 },
             )
             .await;
@@ -1271,7 +1271,7 @@ impl RoutingThread {
                     self.network
                         .send_message(
                             entry.peer_idx,
-                            Message::BlockHeaderHash(block_hash, block_id),
+                            Message::BlockReference(block_hash, block_id),
                         )
                         .await;
                 }

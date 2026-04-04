@@ -18,21 +18,21 @@ pub enum Message {
     HandshakeResponse(HandshakeResponse),
     Block(Block),
     Transaction(Transaction),
-    BlockchainRequest(BlockchainRequest),
-    BlockHeaderHash(BlockHash, BlockId),
+    RequestBlockchain(BlockchainRequest),
+    BlockReference(BlockHash, BlockId),
     Ping(),
     Pong(),
     SPVChain(),
     Services(Vec<PeerService>),
     GhostChain(GhostChainSync),
-    GhostChainRequest(BlockId, BlockHash, ForkId),
+    RequestGhostChain(BlockId, BlockHash, ForkId),
     ApplicationMessage(ApiMessage),
     Result(ApiMessage),
     Error(ApiMessage),
-    KeyListUpdate(Vec<SaitoPublicKey>),
-    GenesisBlockRequest(),
-    GenesisBlockHeader(BlockHash, BlockId),
-    ForcedDisconnection(String),
+    KeyList(Vec<SaitoPublicKey>),
+    RequestGenesisBlockReference(),
+    GenesisBlockReference(BlockHash, BlockId),
+    Disconnect(String),
 }
 
 impl Message {
@@ -47,12 +47,12 @@ impl Message {
             // Message::ApplicationTransaction(data) => data.clone(),
             Message::Block(data) => data.serialize_for_net(BlockType::Full),
             Message::Transaction(data) => data.serialize_for_net(),
-            Message::BlockchainRequest(data) => data.serialize(),
-            Message::BlockHeaderHash(block_hash, block_id) => {
+            Message::RequestBlockchain(data) => data.serialize(),
+            Message::BlockReference(block_hash, block_id) => {
                 [block_hash.as_slice(), block_id.to_be_bytes().as_slice()].concat()
             }
             Message::GhostChain(chain) => chain.serialize(),
-            Message::GhostChainRequest(block_id, block_hash, fork_id) => [
+            Message::RequestGhostChain(block_id, block_hash, fork_id) => [
                 block_id.to_be_bytes().as_slice(),
                 block_hash.as_slice(),
                 fork_id.as_slice(),
@@ -67,12 +67,12 @@ impl Message {
             Message::Services(services) => PeerService::serialize_services(services),
             Message::Result(data) => data.serialize(),
             Message::Error(data) => data.serialize(),
-            Message::KeyListUpdate(data) => data.as_slice().concat(),
-            Message::GenesisBlockRequest() => vec![],
-            Message::GenesisBlockHeader(block_hash, block_id) => {
+            Message::KeyList(data) => data.as_slice().concat(),
+            Message::RequestGenesisBlockReference() => vec![],
+            Message::GenesisBlockReference(block_hash, block_id) => {
                 [block_hash.as_slice(), block_id.to_be_bytes().as_slice()].concat()
             }
-            Message::ForcedDisconnection(message) => message.as_bytes().to_vec(),
+            Message::Disconnect(message) => message.as_bytes().to_vec(),
             _ => {
                 error!("unhandled type : {:?}", message_type);
                 vec![]
@@ -109,7 +109,7 @@ impl Message {
             }
             5 => {
                 let result = BlockchainRequest::deserialize(&buffer)?;
-                Ok(Message::BlockchainRequest(result))
+                Ok(Message::RequestBlockchain(result))
             }
             6 => {
                 if buffer.len() != 40 {
@@ -130,7 +130,7 @@ impl Message {
                         .try_into()
                         .or(Err(ErrorKind::InvalidData))?,
                 );
-                Ok(Message::BlockHeaderHash(block_hash, block_id))
+                Ok(Message::BlockReference(block_hash, block_id))
             }
             7 => Ok(Message::Ping()),
             8 => Ok(Message::SPVChain()),
@@ -163,7 +163,7 @@ impl Message {
                     .to_vec()
                     .try_into()
                     .or(Err(ErrorKind::InvalidData))?;
-                Ok(Message::GhostChainRequest(block_id, block_hash, fork_id))
+                Ok(Message::RequestGhostChain(block_id, block_hash, fork_id))
             }
             12 => {
                 if buffer.len() < 4 {
@@ -221,10 +221,10 @@ impl Message {
 
                     keylist.push(key);
                 }
-                Ok(Message::KeyListUpdate(keylist))
+                Ok(Message::KeyList(keylist))
             }
             16 => Ok(Message::Pong()),
-            17 => Ok(Message::GenesisBlockRequest()),
+            17 => Ok(Message::RequestGenesisBlockReference()),
             18 => {
                 if buffer.len() != 40 {
                     warn!(
@@ -244,11 +244,11 @@ impl Message {
                         .try_into()
                         .or(Err(ErrorKind::InvalidData))?,
                 );
-                Ok(Message::GenesisBlockHeader(block_hash, block_id))
+                Ok(Message::GenesisBlockReference(block_hash, block_id))
             }
             19 => {
                 let str = String::from_utf8(buffer.to_vec()).or(Err(ErrorKind::InvalidData))?;
-                Ok(Message::ForcedDisconnection(str))
+                Ok(Message::Disconnect(str))
             }
             _ => {
                 error!("message type : {:?} not valid", message_type);
@@ -262,21 +262,21 @@ impl Message {
             Message::HandshakeResponse(_) => 2,
             Message::Block(_) => 3,
             Message::Transaction(_) => 4,
-            Message::BlockchainRequest(_) => 5,
-            Message::BlockHeaderHash(_, _) => 6,
+            Message::RequestBlockchain(_) => 5,
+            Message::BlockReference(_, _) => 6,
             Message::Ping() => 7,
             Message::SPVChain() => 8,
             Message::Services(_) => 9,
             Message::GhostChain(_) => 10,
-            Message::GhostChainRequest(..) => 11,
+            Message::RequestGhostChain(..) => 11,
             Message::ApplicationMessage(_) => 12,
             Message::Result(_) => 13,
             Message::Error(_) => 14,
-            Message::KeyListUpdate(_) => 15,
+            Message::KeyList(_) => 15,
             Message::Pong() => 16,
-            Message::GenesisBlockRequest() => 17,
-            Message::GenesisBlockHeader(_, _) => 18,
-            Message::ForcedDisconnection(_) => 19,
+            Message::RequestGenesisBlockReference() => 17,
+            Message::GenesisBlockReference(_, _) => 18,
+            Message::Disconnect(_) => 19,
         }
     }
 }
