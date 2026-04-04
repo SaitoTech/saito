@@ -851,18 +851,15 @@ pub async fn run_network_controller(
                         let event = result.unwrap();
                         let interface_event = event.event;
                         match interface_event {
-                            NetworkEvent::OutgoingNetworkMessageForAll { buffer, exceptions } => {
-
+                            NetworkEvent::SendMessageToAllPeers { buffer, exceptions } => {
                                     let mut network_controller = network_controller_lock.write().await;
-
                                 network_controller.send_to_all( buffer, exceptions).await;
                                 outgoing_messages.increment();
                             }
-                            NetworkEvent::OutgoingNetworkMessage {
+                            NetworkEvent::SendMessageToPeer {
                                 public_key,
                                 buffer,
                             } => {
-
                                     let mut network_controller = network_controller_lock.write().await;
                                 network_controller.send_outgoing_message(&public_key, buffer).await;
                                 outgoing_messages.increment();
