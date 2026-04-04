@@ -1,10 +1,10 @@
 use std::sync::Arc;
-
 use log::{debug, error, warn, trace, info};
 use tokio::sync::RwLock;
 use std::io::Error;
 
 use crate::core::consensus::block::Block;
+use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
@@ -15,6 +15,11 @@ use crate::core::routing::io::interface_io::InterfaceIO;
 use crate::core::routing::peers::peer_collection::PeerCollection;
 use crate::core::routing::peers::peer::PeerStatus;
 use crate::core::routing::io::interface_io::InterfaceEvent;
+use crate::core::util::configuration::Configuration;
+use crate::core::routing::peers::network_peer::NetworkPeer;
+use crate::core::routing::peers::peer::Peer;
+use crate::core::routing::peers::congestion_controller::CongestionType;
+use crate::core::routing::peers::peer_service::PeerService;
 
 #[derive(Debug)]
 pub enum PeerDisconnectType {
@@ -159,6 +164,206 @@ pub async fn record_received_transaction(
 }
 
 
+pub async fn record_failed_block_fetch(
+    &self,
+    public_key: SaitoPublicKey,
+    timestamp: Timestamp,
+) {
+    let mut peers = self.peer_lock.write().await;
+
+    peers.add_congestion_event(
+        public_key,
+        CongestionType::FailedBlockFetches,
+        timestamp,
+    );
+}
+
+pub async fn record_incoming_message(
+    &self,
+    public_key: SaitoPublicKey,
+    timestamp: Timestamp,
+) {
+    let mut peers = self.peer_lock.write().await;
+
+    peers.add_congestion_event(
+        public_key,
+        CongestionType::IncomingMessages,
+        timestamp,
+    );
+}
+
+
+pub async fn add_peer(
+    &mut self,
+    network_peer: NetworkPeer,
+    wallet_lock: Arc<RwLock<Wallet>>,
+    current_time: Timestamp,
+) -> Option<SaitoPublicKey> {
+    let public_key = match network_peer.public_key {
+        Some(k) => k,
+        None => {
+            warn!("handle_new_peer: received peer with no public key (incomplete handshake); dropping");
+            return None;
+        }
+    };
+
+    {
+        let mut peers = self.peer_lock.write().await;
+
+        if peers.is_peer_blacklisted(public_key, current_time) {
+            warn!(
+                "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
+                public_key.to_base58(),
+                network_peer.ip.as_deref().unwrap_or("unknown")
+            );
+            return Some(public_key);
+        }
+
+        let mut peer = Peer::new(public_key);
+
+        if let Err(err) = peer
+            .handle_new_peer(
+                network_peer,
+                wallet_lock,
+                &self.io_interface,
+                current_time,
+            )
+            .await
+        {
+            error!(
+                "failed finalizing newly connected peer {:?}: {:?}",
+                public_key.to_base58(),
+                err
+            );
+            return None;
+        }
+
+        peers.add_congestion_event(public_key, CongestionType::PeerConnections, current_time);
+
+        info!("adding new peer : {}", public_key.to_base58());
+
+        peers.peers.insert(public_key, peer);
+    }
+
+    Some(public_key)
+}
+
+
+pub async fn cleanup_peers(&self, current_time: Timestamp) {
+    let mut peers = self.peer_lock.write().await;
+
+    peers
+        .disconnect_stale_peers(current_time, self.io_interface.as_ref())
+        .await;
+
+    peers.remove_disconnected_peers(current_time);
+}
+
+
+pub async fn process_services_message(
+    &self,
+    public_key: SaitoPublicKey,
+    services: Vec<PeerService>,
+) {
+    let mut peers = self.peer_lock.write().await;
+    peers.process_peer_services(services, public_key).await;
+}
+
+pub async fn handle_key_list_update(
+    &self,
+    public_key: SaitoPublicKey,
+    key_list: Vec<SaitoPublicKey>,
+    timestamp: Timestamp,
+) {
+    let mut peers = self.peer_lock.write().await;
+
+    if let Err(e) = peers
+        .handle_received_key_list(public_key, key_list, timestamp)
+        .await
+    {
+        error!("Received key list error: {:?}", e);
+    }
+}
+
+pub async fn add_stun_peer(
+    &self,
+    public_key: SaitoPublicKey,
+    timestamp: Timestamp,
+) {
+    let mut peers = self.peer_lock.write().await;
+    peers
+        .handle_new_stun_peer(
+            public_key,
+            timestamp,
+            &self.io_interface,
+        )
+        .await;
+}
+
+pub async fn remove_stun_peer(
+    &self,
+    public_key: SaitoPublicKey,
+) {
+    let mut peers = self.peer_lock.write().await;
+    peers
+        .remove_stun_peer(public_key, &self.io_interface)
+        .await;
+}
+
+
+pub async fn request_blockchain_on_connect(
+    &self,
+    public_key: SaitoPublicKey,
+    blockchain_lock: Arc<RwLock<Blockchain>>,
+    is_browser: bool,
+) -> bool {
+    let blockchain = blockchain_lock.read().await;
+
+    if blockchain.get_latest_block().is_none() && !is_browser {
+        // request genesis block
+        info!(
+            "requesting genesis block from peer : {:?}",
+            public_key.to_base58()
+        );
+
+        self.send_message(public_key, Message::GenesisBlockRequest())
+            .await;
+
+        return true; // waiting_for_genesis_block = true
+    }
+
+    drop(blockchain);
+
+    info!(
+        "requesting blockchain from peer : {:?} after handshake",
+        public_key.to_base58()
+    );
+
+    // NOTE: we do NOT move request_blockchain_from_peer yet
+    // so routing_thread still calls it
+
+    false
+}
+
+
+pub async fn initialize_static_peers(
+    &mut self,
+    configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+) {
+    let configs = configs_lock.read().await;
+
+    for peer in configs.get_peer_configs().iter() {
+        let peer_url = peer.get_url();
+
+        if let Err(err) = self.io_interface.connect_to_peer(peer_url.clone()).await {
+            error!(
+                "failed connecting to configured peer {:?}: {:?}",
+                peer_url, err
+            );
+        }
+    }
+}
+
 
 pub async fn ping(&mut self) {
     let current_time = self.timer.get_timestamp_in_ms();
@@ -189,6 +394,44 @@ pub async fn manage_congested_peers(&mut self) {
         }
     }
 }
+
+
+pub async fn send_key_list(&self, key_list: &[SaitoPublicKey]) {
+    trace!(
+        "sending key list to all the peers {:?}",
+        key_list
+            .iter()
+            .map(|key| key.to_base58())
+            .collect::<Vec<String>>()
+    );
+
+    {
+        let peers = self.peer_lock.read().await;
+
+        let exclusions = peers
+            .peers
+            .values()
+            .filter_map(|peer| {
+                if !matches!(peer.peer_status, PeerStatus::Connected) {
+                    Some(peer.public_key)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+
+        self.io_interface
+            .send_message_to_all(
+                Message::KeyListUpdate(key_list.to_vec())
+                    .serialize()
+                    .as_slice(),
+                exclusions,
+            )
+            .await
+            .unwrap();
+    }
+}
+
 
 pub async fn record_received_block_header(
     &self,
