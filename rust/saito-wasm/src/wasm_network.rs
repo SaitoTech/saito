@@ -1,16 +1,16 @@
-use wasm_bindgen::prelude::*;
 use js_sys::{Array, JsString};
+use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
+use crate::saitowasm::{string_to_key, SAITO};
 use crate::wasm_network_api::WasmNetworkApi;
 use crate::wasm_peer::WasmPeer;
-use crate::saitowasm::{SAITO, string_to_key};
 use crate::wasm_transaction::WasmTransaction;
 
-use log::{warn, trace, debug};
-use saito_core::core::defs::SaitoPublicKey;
+use log::{debug, trace, warn};
 use saito_core::core::consensus_thread::ConsensusEvent;
 use saito_core::core::defs::PrintForLog;
+use saito_core::core::defs::SaitoPublicKey;
 use saito_core::core::process::process_event::ProcessEvent;
 
 #[wasm_bindgen]
@@ -18,7 +18,6 @@ pub struct WasmNetwork;
 
 #[wasm_bindgen]
 impl WasmNetwork {
-
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmNetwork {
         WasmNetwork {}
@@ -91,7 +90,6 @@ impl WasmNetwork {
         Some(WasmPeer::new_from_peer(peer))
     }
 
-
     #[wasm_bindgen(js_name = propagateTransaction)]
     pub async fn propagate_transaction(&self, wtx: &WasmTransaction) {
         trace!("propagate_transaction");
@@ -125,7 +123,7 @@ impl WasmNetwork {
                 .collect::<Vec<String>>()
                 .join(", "),
         );
-   
+
         saito
             .as_mut()
             .unwrap()
@@ -133,12 +131,6 @@ impl WasmNetwork {
             .process_event(ConsensusEvent::NewTransaction { transaction: tx })
             .await;
 
-
         //crate::saitowasm::process_new_transaction(wtx).await;
-
-
     }
-
 }
-
-

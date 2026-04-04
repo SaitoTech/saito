@@ -1,6 +1,7 @@
 use super::stat_thread::StatEvent;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
+use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
@@ -22,7 +23,7 @@ use crate::core::routing::peers::congestion_controller::{
     CongestionStatsDisplay, PeerCongestionControls,
 };
 use crate::core::routing::peers::network_peer::NetworkPeer;
-use crate::core::routing::peers::peer::{PeerStatus};
+use crate::core::routing::peers::peer::PeerStatus;
 use crate::core::util;
 use crate::core::util::config_manager::ConfigManager;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
@@ -90,7 +91,7 @@ impl RoutingStats {
 /// Manages peers and routes messages to correct controller
 ///
 ///
-/// There are three primary types of messages and events that are produced 
+/// There are three primary types of messages and events that are produced
 /// and processed by this thread:
 ///
 /// * peer messages --> process_peer_message()
@@ -99,8 +100,8 @@ impl RoutingStats {
 /// * system events --> process_event()
 ///
 /// Peer Messages are initiated by other nodes on the network and communicated
-/// to a node through the network socket. System events are broadcast by other 
-/// threads or components in the Saito software stack (JS, WASM, Rust). And 
+/// to a node through the network socket. System events are broadcast by other
+/// threads or components in the Saito software stack (JS, WASM, Rust). And
 /// timer actions are triggered by the passage of time but not specific messages
 /// or events.
 ///
@@ -148,100 +149,42 @@ impl RoutingThread {
     ///
     /// ```
     async fn process_peer_message(&mut self, public_key: SaitoPublicKey, message: Message) {
-
-	self.network
-	    .update_peer_timestamp(
-	        public_key,
-	        self.timer.get_timestamp_in_ms(),
-	    )
-	    .await;
+        self.network
+            .update_peer_timestamp(public_key, self.timer.get_timestamp_in_ms())
+            .await;
 
         match message {
             Message::HandshakeChallenge(_challenge) => {
-                // debug!("received handshake challenge from peer : {:?}", public_key);
+                // ...
             }
             Message::HandshakeResponse(_response) => {
-                // trace!("received handshake response from peer : {:?}", public_key);
+                // ...
             }
-            Message::Transaction(mut transaction) => {
-                trace!(
-                    "received transaction : {} from peer : {:?}",
-                    transaction.signature.to_hex(),
-                    public_key.to_base58()
-                );
-                transaction.routed_from_peer = Some(public_key);
-		self.network
-    			.record_received_transaction(
-    			    public_key,
-    			    &transaction,
-    			    self.timer.get_timestamp_in_ms(),
-    			)
-			.await;
-                self.stats.received_transactions.increment();
-                self.send_to_verification_thread(VerifyRequest::Transaction(transaction))
+            Message::Transaction(transaction) => {
+                self.process_transaction_message(public_key, transaction)
                     .await;
             }
             Message::BlockchainRequest(request) => {
-                trace!(
-                    "received blockchain request from peer : {:?} with block id : {:?} and hash : {:?}",
-                    public_key.to_base58(),
-                    request.latest_block_id,
-                    request.latest_block_hash.to_hex()
-                );
-                {
-                    let configs = self.config_lock.read().await;
-                    if configs.is_browser() || configs.is_spv_mode() {
-                        // not processing incoming blockchain request. since we cannot provide any blocks
-                        return;
-                    }
-                }
-		if let Err(e) = self
-		    .process_incoming_blockchain_request(request, public_key)
-		    .await
-		{
-		    error!(
-		        "failed processing incoming blockchain request from peer {}: {}",
-		        public_key.to_base58(),
-		        e
-		    );
-		}
+                self.process_blockchain_request_message(public_key, request)
+                    .await;
             }
             Message::BlockHeaderHash(hash, block_id) => {
-                if self.waiting_for_genesis_block {
-                    info!("Won't process received block header : {:?}-{:?} since we are waiting for a genesis block",block_id, hash.to_hex());
-                    // since we request the blockchain anyway, we don't have to keep this received header in memory
-                    return;
-                }
-                debug!(
-                    "received block header hash from peer : {:?} with block id : {:?} and hash : {:?}",
-                    public_key.to_base58(),
-                    block_id,
-                    hash.to_hex()
-                );
-		self.network
-		    .record_received_block_header(
-		        public_key,
-		        &hash,
-		        self.timer.get_timestamp_in_ms(),
-		    )
-		    .await;
-                self.process_incoming_block_hash(hash, block_id, public_key)
+                self.process_block_header_hash_message(public_key, hash, block_id)
                     .await;
             }
             Message::Ping() => {
-                trace!("received ping from peer : {:?}", public_key.to_base58());
-		self.network
-		    .send_message(public_key, Message::Pong())
-		    .await;
+                self.network.send_message(public_key, Message::Pong()).await;
             }
             Message::Pong() => {
-                // not processing this
+                // ...
             }
-            Message::SPVChain() => {}
+            Message::SPVChain() => {
+                // ...
+            }
             Message::Services(services) => {
-	        self.network
-        	    .process_services_message(public_key, services)
-        	    .await;
+                self.network
+                    .process_services_message(public_key, services)
+                    .await;
             }
             Message::GhostChain(chain) => {
                 self.process_ghost_chain(chain, public_key).await;
@@ -251,11 +194,6 @@ impl RoutingThread {
                     .await;
             }
             Message::ApplicationMessage(api_message) => {
-                trace!(
-                    "processing application msg with buffer size : {:?} from peer : {:?}",
-                    api_message.data.len(),
-                    public_key.to_base58()
-                );
                 self.network
                     .io_interface
                     .process_api_call(api_message.data, api_message.msg_index, public_key)
@@ -274,62 +212,19 @@ impl RoutingThread {
                     .await;
             }
             Message::KeyListUpdate(key_list) => {
-	        self.network
-    		    .handle_key_list_update(
-    		        public_key,
-    		        key_list,
-    		        self.timer.get_timestamp_in_ms(),
-    		    )
-    		    .await;
+                self.network
+                    .handle_key_list_update(public_key, key_list, self.timer.get_timestamp_in_ms())
+                    .await;
             }
             Message::Block(_) => {
                 error!("received block message");
                 unreachable!();
             }
             Message::GenesisBlockRequest() => {
-                let blockchain = self.blockchain_lock.read().await;
-                info!(
-                    "Received genesis block request from peer : {:?}. current genesis block id : {:?}",
-                    public_key.to_base58(),
-                    blockchain.genesis_block_id
-                );
-                if blockchain.genesis_block_id != 0 {
-                    if let Some(genesis_block_hash) = blockchain
-                        .blockring
-                        .get_longest_chain_block_hash_at_block_id(blockchain.genesis_block_id)
-                    {
-			self.network
-			    .send_message(
-			        public_key,
-			        Message::GenesisBlockHeader(
-			            genesis_block_hash,
-			            blockchain.genesis_block_id,
-			        ),
-			    )
-			    .await;
-		    }
-                } else {
-                    warn!(
-                        "We don't have a genesis block id set to alert the peer : {:?}",
-                        public_key.to_base58()
-                    );
-                }
+                self.process_genesis_block_request_message(public_key).await;
             }
             Message::GenesisBlockHeader(hash, block_id) => {
-                info!(
-                    "Received genesis block header : {:?}-{:?} from peer : {:?}",
-                    block_id,
-                    hash.to_hex(),
-                    public_key.to_base58(),
-                );
-		self.network
-		    .record_received_block_header(
-		        public_key,
-		        &hash,
-		        self.timer.get_timestamp_in_ms(),
-		    )
-		    .await;
-                self.process_incoming_block_hash(hash, block_id, public_key)
+                self.process_genesis_block_header_message(public_key, hash, block_id)
                     .await;
             }
             Message::ForcedDisconnection(message) => {
@@ -340,6 +235,146 @@ impl RoutingThread {
                 );
             }
         }
+    }
+
+    //
+    // support functions that execute peer messages that require more complicated
+    // logic or execution across multiple threads or system components.
+    //
+    async fn process_transaction_message(
+        &mut self,
+        public_key: SaitoPublicKey,
+        mut transaction: Transaction,
+    ) {
+        trace!(
+            "received transaction : {} from peer : {:?}",
+            transaction.signature.to_hex(),
+            public_key.to_base58()
+        );
+        transaction.routed_from_peer = Some(public_key);
+
+        self.network
+            .record_received_transaction(public_key, &transaction, self.timer.get_timestamp_in_ms())
+            .await;
+
+        self.stats.received_transactions.increment();
+
+        self.send_to_verification_thread(VerifyRequest::Transaction(transaction))
+            .await;
+    }
+
+    async fn process_blockchain_request_message(
+        &mut self,
+        public_key: SaitoPublicKey,
+        request: BlockchainRequest,
+    ) {
+        trace!(
+            "received blockchain request from peer : {:?} with block id : {:?} and hash : {:?}",
+            public_key.to_base58(),
+            request.latest_block_id,
+            request.latest_block_hash.to_hex()
+        );
+
+        {
+            let configs = self.config_lock.read().await;
+            if configs.is_browser() || configs.is_spv_mode() {
+                return;
+            }
+        }
+
+        if let Err(e) = self
+            .process_incoming_blockchain_request(request, public_key)
+            .await
+        {
+            error!(
+                "failed processing incoming blockchain request from peer {}: {}",
+                public_key.to_base58(),
+                e
+            );
+        }
+    }
+
+    async fn process_block_header_hash_message(
+        &mut self,
+        public_key: SaitoPublicKey,
+        hash: SaitoHash,
+        block_id: u64,
+    ) {
+        if self.waiting_for_genesis_block {
+            info!(
+            "Won't process received block header : {:?}-{:?} since we are waiting for a genesis block",
+            block_id,
+            hash.to_hex()
+        );
+            return;
+        }
+
+        debug!(
+            "received block header hash from peer : {:?} with block id : {:?} and hash : {:?}",
+            public_key.to_base58(),
+            block_id,
+            hash.to_hex()
+        );
+
+        self.network
+            .record_received_block_header(public_key, &hash, self.timer.get_timestamp_in_ms())
+            .await;
+
+        self.process_incoming_block_hash(hash, block_id, public_key)
+            .await;
+    }
+
+    async fn process_genesis_block_request_message(&mut self, public_key: SaitoPublicKey) {
+        let blockchain = self.blockchain_lock.read().await;
+
+        info!(
+            "Received genesis block request from peer : {:?}. current genesis block id : {:?}",
+            public_key.to_base58(),
+            blockchain.genesis_block_id
+        );
+
+        if blockchain.genesis_block_id != 0 {
+            if let Some(genesis_block_hash) = blockchain
+                .blockring
+                .get_longest_chain_block_hash_at_block_id(blockchain.genesis_block_id)
+            {
+                self.network
+                    .send_message(
+                        public_key,
+                        Message::GenesisBlockHeader(
+                            genesis_block_hash,
+                            blockchain.genesis_block_id,
+                        ),
+                    )
+                    .await;
+            }
+        } else {
+            warn!(
+                "We don't have a genesis block id set to alert the peer : {:?}",
+                public_key.to_base58()
+            );
+        }
+    }
+
+    async fn process_genesis_block_header_message(
+        &mut self,
+        public_key: SaitoPublicKey,
+        hash: SaitoHash,
+        block_id: u64,
+    ) {
+        info!(
+            "Received genesis block header : {:?}-{:?} from peer : {:?}",
+            block_id,
+            hash.to_hex(),
+            public_key.to_base58(),
+        );
+
+        self.network
+            .record_received_block_header(public_key, &hash, self.timer.get_timestamp_in_ms())
+            .await;
+
+        self.process_incoming_block_hash(hash, block_id, public_key)
+            .await;
     }
 
     /// Processes a received ghost chain request from a peer to sync itself with the blockchain
@@ -373,16 +408,16 @@ impl RoutingThread {
         );
         let blockchain = self.blockchain_lock.read().await;
 
-	let peer_key_list = match self.network.get_peer_key_list(public_key).await {
-	    Some(keys) => keys,
-	    None => {
-	        warn!(
-	            "couldn't find peer : {:?} for processing ghost chain request",
-	            public_key.to_base58()
-	        );
-	        return;
-	    }
-	};
+        let peer_key_list = match self.network.get_peer_key_list(public_key).await {
+            Some(keys) => keys,
+            None => {
+                warn!(
+                    "couldn't find peer : {:?} for processing ghost chain request",
+                    public_key.to_base58()
+                );
+                return;
+            }
+        };
 
         debug!(
             "peer key list: {:?}",
@@ -394,9 +429,9 @@ impl RoutingThread {
 
         let ghost = Self::generate_ghost_chain(block_id, fork_id, &blockchain, peer_key_list).await;
         debug!("sending ghost chain to peer : {:?}", public_key.to_base58());
-	self.network
-	    .send_message(public_key, Message::GhostChain(ghost))
-	    .await;
+        self.network
+            .send_message(public_key, Message::GhostChain(ghost))
+            .await;
     }
 
     pub(crate) async fn generate_ghost_chain(
@@ -576,18 +611,17 @@ impl RoutingThread {
                     public_key.to_base58()
                 );
 
-		if let Err(e) = self
-		    .network
-		    .disconnect_from_peer(public_key, "cannot find peer details")
-		    .await
-		{
-		    error!(
-		        "error disconnecting from peer : {}. {}",
-		        public_key.to_base58(),
-		        e
-		    );
-		}
-
+                if let Err(e) = self
+                    .network
+                    .disconnect_from_peer(public_key, "cannot find peer details")
+                    .await
+                {
+                    error!(
+                        "error disconnecting from peer : {}. {}",
+                        public_key.to_base58(),
+                        e
+                    );
+                }
             }
         }
 
@@ -635,21 +669,20 @@ impl RoutingThread {
                 }
             }
 
-	    if let Err(e) = self
-		.network
-    		.disconnect_from_peer(
-    		    public_key,
-    		    "Cannot find a shared ancestor block to sync 2 nodes",
-    		)
-    		.await
-		{
-		    error!(
-		        "error disconnecting from peer : {}. {}",
-		        public_key.to_base58(),
-		        e
-		    );
-		}
-
+            if let Err(e) = self
+                .network
+                .disconnect_from_peer(
+                    public_key,
+                    "Cannot find a shared ancestor block to sync 2 nodes",
+                )
+                .await
+            {
+                error!(
+                    "error disconnecting from peer : {}. {}",
+                    public_key.to_base58(),
+                    e
+                );
+            }
 
             return Ok(());
         }
@@ -719,35 +752,28 @@ impl RoutingThread {
         }
         // trace!("releasing blockchain 6");
 
-	let wallet = self.wallet_lock.read().await;
-	let wallet_version = wallet.wallet_version;
-	let core_version = wallet.core_version;
-	drop(wallet);
+        let wallet = self.wallet_lock.read().await;
+        let wallet_version = wallet.wallet_version;
+        let core_version = wallet.core_version;
+        drop(wallet);
 
-	match self
-	    .network
-	    .should_request_blockchain(
-  	        public_key,
-    		wallet_version,
-    		core_version,
-	    )
-	    .await
-	{
-	    Some(true) => {
-		self.request_blockchain_from_peer(
-		    public_key,
-		    self.blockchain_lock.clone(),
-		)
-		.await;
-	    }
-	    Some(false) => {}
-	    None => {
-	        warn!(
-	            "couldn't find peer : {:?} for processing block header hash",
-	            public_key.to_base58()
-	        );
-	    }
-	}
+        match self
+            .network
+            .should_request_blockchain(public_key, wallet_version, core_version)
+            .await
+        {
+            Some(true) => {
+                self.request_blockchain_from_peer(public_key, self.blockchain_lock.clone())
+                    .await;
+            }
+            Some(false) => {}
+            None => {
+                warn!(
+                    "couldn't find peer : {:?} for processing block header hash",
+                    public_key.to_base58()
+                );
+            }
+        }
 
         self.blockchain_sync_state
             .add_entry(
@@ -1003,34 +1029,33 @@ impl RoutingThread {
         }
         // need to drop the reference here to avoid deadlocks.
 
-	let is_spv_mode = configs.is_spv_mode();
+        let is_spv_mode = configs.is_spv_mode();
 
         // we need blockchain lock till here to avoid integrity issues
         drop(blockchain);
         drop(configs);
         // trace!("releasing blockchain 1");
 
-	self.network
-	    .send_message(
-	        public_key,
-	        if is_spv_mode {
-	            Message::GhostChainRequest(
-	                request.latest_block_id,
-	                request.latest_block_hash,
-	                request.fork_id,
-	            )
-	        } else {
-	            Message::BlockchainRequest(request)
-	        },
-	    )
-	    .await;
+        self.network
+            .send_message(
+                public_key,
+                if is_spv_mode {
+                    Message::GhostChainRequest(
+                        request.latest_block_id,
+                        request.latest_block_hash,
+                        request.fork_id,
+                    )
+                } else {
+                    Message::BlockchainRequest(request)
+                },
+            )
+            .await;
 
         trace!(
             "blockchain request sent to peer : {:?}",
             public_key.to_base58()
         );
     }
-
 
     async fn send_to_verification_thread(&mut self, request: VerifyRequest) {
         // waiting till we get an acceptable sender
@@ -1179,7 +1204,6 @@ impl RoutingThread {
         }
     }
 
-
     async fn send_block_headers(&mut self) {
         if self.blockchain_send_results.is_empty() {
             return;
@@ -1194,12 +1218,12 @@ impl RoutingThread {
                     .blockring
                     .get_longest_chain_block_hash_at_block_id(block_id)
                 {
-		    self.network
-		        .send_message(
-    			    entry.peer_idx,
-    			    Message::BlockHeaderHash(block_hash, block_id),
-    			)
-    			.await;
+                    self.network
+                        .send_message(
+                            entry.peer_idx,
+                            Message::BlockHeaderHash(block_hash, block_id),
+                        )
+                        .await;
                 }
             }
         }
@@ -1214,35 +1238,26 @@ impl RoutingThread {
             configs.is_browser()
         };
 
+        let public_key = match self
+            .network
+            .add_peer(network_peer, self.wallet_lock.clone(), time)
+            .await
+        {
+            Some(pk) => pk,
+            None => return None,
+        };
 
-	let public_key = match self
-	    .network
-	    .add_peer(
-	        network_peer,
-	        self.wallet_lock.clone(),
-	        time,
-	    )
-	    .await
-	{
-	    Some(pk) => pk,
-	    None => return None,
-	};
+        let waiting_for_genesis = self
+            .network
+            .request_blockchain_on_connect(public_key, self.blockchain_lock.clone(), is_browser)
+            .await;
 
-	let waiting_for_genesis = self
-	    .network
-	    .request_blockchain_on_connect(
-	        public_key,
-	        self.blockchain_lock.clone(),
-	        is_browser,
-	    )
-	    .await;
-
-	if waiting_for_genesis {
-	    self.waiting_for_genesis_block = true;
-	} else {
-	    self.request_blockchain_from_peer(public_key, self.blockchain_lock.clone())
-	        .await;
-	}
+        if waiting_for_genesis {
+            self.waiting_for_genesis_block = true;
+        } else {
+            self.request_blockchain_from_peer(public_key, self.blockchain_lock.clone())
+                .await;
+        }
 
         return Some(());
     }
@@ -1260,10 +1275,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 );
                 {
                     // TODO : move this before deserialization to avoid spending CPU time on it. moved here to just print message type
-		    let time: u64 = self.timer.get_timestamp_in_ms();
-		    self.network
-    			.record_incoming_message(public_key, time)
-    			.await;
+                    let time: u64 = self.timer.get_timestamp_in_ms();
+                    self.network.record_incoming_message(public_key, time).await;
                 }
                 let buffer_len = buffer.len();
                 let message = match Message::deserialize(buffer) {
@@ -1300,23 +1313,21 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 }
             },
             NetworkEvent::AddStunPeer { public_key } => {
-    		self.network
-        	    .add_stun_peer(public_key, self.timer.get_timestamp_in_ms())
-        	    .await;
-    		return Some(());
+                self.network
+                    .add_stun_peer(public_key, self.timer.get_timestamp_in_ms())
+                    .await;
+                return Some(());
             }
             NetworkEvent::RemoveStunPeer { public_key } => {
-                self.network
-		    .remove_stun_peer(public_key).await;
-		return Some(());
+                self.network.remove_stun_peer(public_key).await;
+                return Some(());
             }
             NetworkEvent::PeerDisconnected {
                 public_key,
                 disconnect_type,
             } => {
-                self
-		    .network
-		    .handle_peer_disconnect(public_key, disconnect_type)
+                self.network
+                    .handle_peer_disconnect(public_key, disconnect_type)
                     .await;
                 return Some(());
             }
@@ -1350,10 +1361,10 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     block_hash.to_hex()
                 );
 
-		let time = self.timer.get_timestamp_in_ms();
-		self.network
-		    .record_failed_block_fetch(public_key, time)
-		    .await;
+                let time = self.timer.get_timestamp_in_ms();
+                self.network
+                    .record_failed_block_fetch(public_key, time)
+                    .await;
 
                 self.blockchain_sync_state
                     .mark_as_failed(block_id, block_hash, public_key);
@@ -1447,7 +1458,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         self.peer_removal_timer += duration_value;
         if self.peer_removal_timer >= PEER_REMOVAL_TIMER_PERIOD {
             self.peer_removal_timer = 0;
-	    self.network.cleanup_peers(current_time).await;
+            self.network.cleanup_peers(current_time).await;
             work_done = true;
         }
 
@@ -1624,7 +1635,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         }
 
         // connect to peers
-        self.network.initialize_static_peers(self.config_lock.clone()).await;
+        self.network
+            .initialize_static_peers(self.config_lock.clone())
+            .await;
     }
     async fn on_stat_interval(&mut self, current_time: Timestamp) {
         self.stats
@@ -1707,9 +1720,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 #[cfg(test)]
 mod tests {
     use crate::core::consensus::transaction::Transaction;
+    use crate::core::defs::SaitoPublicKey;
     use crate::core::defs::Timestamp;
     use crate::core::defs::NOLAN_PER_SAITO;
-    use crate::core::defs::SaitoPublicKey;
     use crate::core::process::process_event::ProcessEvent;
     use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
     use crate::core::routing::io::network::PeerDisconnectType;
@@ -1758,9 +1771,9 @@ mod tests {
             Ok(())
         }
 
-	async fn disconnect_from_peer(&self, _public_key: SaitoPublicKey) -> Result<(), Error> {
-	    Ok(())
-	}
+        async fn disconnect_from_peer(&self, _public_key: SaitoPublicKey) -> Result<(), Error> {
+            Ok(())
+        }
 
         async fn send_message_to_all(
             &self,
@@ -2253,7 +2266,7 @@ mod tests {
         tester
             .routing_thread
             .network
-	    .handle_peer_disconnect(public_key, PeerDisconnectType::InternalDisconnect)
+            .handle_peer_disconnect(public_key, PeerDisconnectType::InternalDisconnect)
             .await;
 
         let peers = tester.routing_thread.network.peer_lock.read().await;

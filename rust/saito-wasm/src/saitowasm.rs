@@ -912,7 +912,6 @@ pub async fn get_block(block_hash: JsString) -> Result<WasmBlock, JsValue> {
     Ok(WasmBlock::from_block(block))
 }
 
-
 #[wasm_bindgen]
 pub async fn process_new_peer(peer: WasmNetworkPeer) {
     // let key: SaitoPublicKey = string_to_key(key).unwrap();
@@ -1281,8 +1280,6 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
     saito_core::core::util::crypto::verify_signature(&h, &sig, &key.unwrap())
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1290,27 +1287,26 @@ mod tests {
     use saito_core::core::routing::peers::peer_collection::PeerCollection;
     use saito_core::core::util::crypto::generate_keys;
 
+    /*
+        #[test]
+        fn get_peers_only_returns_connected_peers() {
+            let mut peers = PeerCollection::default();
+            let connected_key = generate_keys().0;
+            let disconnected_key = generate_keys().0;
 
-/*
-    #[test]
-    fn get_peers_only_returns_connected_peers() {
-        let mut peers = PeerCollection::default();
-        let connected_key = generate_keys().0;
-        let disconnected_key = generate_keys().0;
+            let mut connected_peer = Peer::new(connected_key);
+            connected_peer.peer_status = PeerStatus::Connected;
+            peers.peers.insert(connected_key, connected_peer);
+            peers
+                .peers
+                .insert(disconnected_key, Peer::new(disconnected_key));
 
-        let mut connected_peer = Peer::new(connected_key);
-        connected_peer.peer_status = PeerStatus::Connected;
-        peers.peers.insert(connected_key, connected_peer);
-        peers
-            .peers
-            .insert(disconnected_key, Peer::new(disconnected_key));
+            let exported = collect_connected_peers(&peers);
 
-        let exported = collect_connected_peers(&peers);
-
-        assert_eq!(exported.len(), 1);
-        assert_eq!(exported[0].public_key, connected_key);
-    }
-*/
+            assert_eq!(exported.len(), 1);
+            assert_eq!(exported[0].public_key, connected_key);
+        }
+    */
 }
 
 #[wasm_bindgen]
@@ -1388,7 +1384,6 @@ pub fn generate_public_key(private_key: JsString) -> Result<JsString, JsValue> {
     let (public_key, _) = generate_keypair_from_private_key(&private_key);
     Ok(public_key.to_base58().into())
 }
-
 
 #[wasm_bindgen]
 pub async fn get_wallet() -> WasmWallet {
