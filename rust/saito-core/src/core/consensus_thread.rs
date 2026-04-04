@@ -1372,9 +1372,8 @@ mod tests {
         let timer = tester.consensus_thread.timer.clone();
 
         let mut utxokey = [0; UTXO_KEY_LENGTH];
-        let mut block_3_hash = [0; 32];
         let alternate_block_4;
-        // create a main fork first
+
         for i in 2..=4 {
             let tx = tester.create_transaction(10, 10, public_key).await.unwrap();
 
@@ -1387,7 +1386,6 @@ mod tests {
 
             if i == 3 {
                 let blockchain = tester.consensus_thread.blockchain_lock.read().await;
-                block_3_hash = blockchain.blockring.get_block_hash_by_block_id(3).unwrap();
             }
         }
 
@@ -1630,7 +1628,6 @@ mod tests {
         NodeTester::delete_data().await.unwrap();
         let mut tester = NodeTester::new(10, None, None);
         let public_key = tester.get_public_key().await;
-        let private_key = tester.get_private_key().await;
         tester.set_staking_requirement(2 * NOLAN_PER_SAITO, 8).await;
         let issuance = vec![
             (public_key.to_base58(), 8 * 2 * NOLAN_PER_SAITO),
@@ -2411,16 +2408,11 @@ mod tests {
             .await
             .get_latest_block_id();
         assert_eq!(latest_block_id, 40);
-        let block_hash_40 = tester
-            .consensus_thread
-            .blockchain_lock
-            .read()
-            .await
-            .get_latest_block_hash();
 
         info!("\n+++++++++ continuing till block 50 +++++++++\n");
         // now we have the blocks upto 40 in the chain. now we create a new chain upto 50.
         for i in 40..=50 {
+
             let tx = tester.create_transaction(10, 0, public_key).await.unwrap();
 
             tester.add_transaction(tx).await;
@@ -2459,16 +2451,10 @@ mod tests {
 
         // then re-add old blocks from 40 to 60 so it would become the longest chain
         for block in blocks {
-            let block_hash = block.hash;
-            let block_id = block.id;
             if block.id > 60 {
                 continue;
             }
             tester.add_block(block).await;
-            // tester
-            //     .wait_till_block_id_with_hash(block_id, block_hash)
-            //     .await
-            //     .unwrap();
         }
         tester
             .wait_till_block_id_with_hash(block_id_old, block_hash_old)
@@ -2638,7 +2624,6 @@ mod tests {
         info!("\n+++++++++ restarting the node 2 +++++++++\n");
         let mut tester = NodeTester::new(100, Some(private_key), Some(tester.timer));
         let public_key = tester.get_public_key().await;
-        let private_key = tester.get_private_key().await;
         tester
             .set_staking_requirement(2 * NOLAN_PER_SAITO, 50)
             .await;

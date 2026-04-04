@@ -7,6 +7,12 @@ use log::{debug, info, trace, warn};
 use primitive_types::U256;
 use tokio::sync::RwLock;
 
+use rayon::iter::{
+    IntoParallelRefIterator,
+    IndexedParallelIterator,
+    ParallelIterator,
+};
+
 use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::burnfee::BurnFee;

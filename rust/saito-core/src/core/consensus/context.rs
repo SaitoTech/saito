@@ -7,7 +7,6 @@ use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{BlockId, Currency};
-use crate::core::process::run_task::RunTask;
 use crate::core::util::configuration::Configuration;
 
 #[derive(Clone)]
@@ -43,7 +42,7 @@ impl Context {
             config_lock,
         }
     }
-    pub async fn init(&self, _task_runner: &dyn RunTask) -> Result<(), Error> {
+    pub async fn init(&self) -> Result<(), Error> {
         Ok(())
     }
 }

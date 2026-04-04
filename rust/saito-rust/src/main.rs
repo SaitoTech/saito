@@ -521,12 +521,12 @@ async fn run_node(
         let mut configs = configs_lock.write().await;
 
         if let Some(wallet) = configs.get_wallet_configs_mut() {
-            if !wallet.privateKey.is_empty() {
-                private_key = SaitoPrivateKey::from_hex(wallet.privateKey.as_str())
+            if !wallet.private_key.is_empty() {
+                private_key = SaitoPrivateKey::from_hex(wallet.private_key.as_str())
                     .expect("invalid private key");
 
-                if !wallet.publicKey.is_empty() {
-                    public_key = SaitoPublicKey::from_base58(wallet.publicKey.as_str())
+                if !wallet.public_key.is_empty() {
+                    public_key = SaitoPublicKey::from_base58(wallet.public_key.as_str())
                         .expect("invalid public key");
                     info!(
                         "found public key as : {} in Wallet Configs",
@@ -535,8 +535,8 @@ async fn run_node(
                 }
             } else {
                 if let Some(wallet) = configs.get_wallet_configs_mut() {
-                    wallet.privateKey = private_key.to_hex();
-                    wallet.publicKey = public_key.to_base58();
+                    wallet.private_key = private_key.to_hex();
+                    wallet.public_key = public_key.to_base58();
                 }
             }
         } else {

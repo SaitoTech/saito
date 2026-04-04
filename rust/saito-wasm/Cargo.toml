@@ -16,7 +16,7 @@ serde-wasm-bindgen = { version = "=0.6.5" }
 web-sys = "=0.3.69"
 async-trait = "=0.1.80"
 hex = "=0.4.3"
-tokio = "=1.37.0"
+tokio = "=1.51.0"
 js-sys = { version = "=0.3.69" }
 lazy_static = "=1.4.0"
 console_log = { version = "=1.0.0", features = ["color"] }
@@ -34,12 +34,6 @@ rayon = "=1.10.0"
 
 [package.metadata.wasm-pack.profile.release]
 wasm-opt = ['-Oz']
-
-[profile.release]
-lto = "thin"
-codegen-units = 1
-opt-level = 3
-panic = "abort"
 
 [features]
 default = []

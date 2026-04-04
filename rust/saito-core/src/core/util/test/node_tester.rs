@@ -93,7 +93,7 @@ pub mod test {
             self.browser_mode
         }
 
-        fn replace(&mut self, config: &dyn Configuration) {
+        fn replace(&mut self, _config: &dyn Configuration) {
             todo!()
         }
 
@@ -114,7 +114,7 @@ pub mod test {
 
         fn set_congestion_data(
             &mut self,
-            congestion_data: Option<
+            _congestion_data: Option<
                 crate::core::routing::peers::congestion_controller::CongestionStatsDisplay,
             >,
         ) {
@@ -128,7 +128,7 @@ pub mod test {
             String::new()
         }
 
-        fn set_config_path(&mut self, path: String) {}
+        fn set_config_path(&mut self, _path: String) {}
 
         fn save(&self) -> Result<(), Error> {
             Ok(())
@@ -659,7 +659,7 @@ pub mod test {
             &self,
             _parent_hash: SaitoHash,
             _tx_count: u32,
-            fee_amount: Currency,
+            _fee_amount: Currency,
             _with_gt: bool,
         ) -> Result<Block, Error> {
             todo!()

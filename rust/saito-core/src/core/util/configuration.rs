@@ -34,9 +34,9 @@ pub struct Endpoint {
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Default, PartialEq)]
 pub struct WalletConfig {
-    #[serde(default, rename="publicKey")]
+    #[serde(default, rename="publicKey", alias="public_key", alias="publickey")]
     pub public_key: String,
-    #[serde(default, rename="privateKey")]
+    #[serde(default, rename="privateKey", alias="public_key", alias="publickey")]
     pub private_key: String,
 }
 
