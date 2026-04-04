@@ -245,7 +245,7 @@ impl NetworkPeer {
                 error!("connected peer has no public key set; skipping message dispatch");
                 return Err(Error::from(ErrorKind::InvalidData));
             };
-            send_event(NetworkEvent::IncomingNetworkMessage { public_key, buffer }).await;
+            send_event(NetworkEvent::PeerMessageReceived { public_key, buffer }).await;
             Ok(vec![])
         } else {
             if self.challenge.is_some() {

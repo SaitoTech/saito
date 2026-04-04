@@ -5,15 +5,15 @@ use crate::core::routing::peers::network_peer::NetworkPeer;
 
 #[derive(Debug)]
 pub enum NetworkEvent {
-    OutgoingNetworkMessage {
+    SendMessageToPeer {
         public_key: SaitoPublicKey,
         buffer: Vec<u8>,
     },
-    OutgoingNetworkMessageForAll {
+    SendMessageToAllPeers {
         buffer: Vec<u8>,
         exceptions: Vec<SaitoPublicKey>,
     },
-    IncomingNetworkMessage {
+    PeerMessageReceived {
         public_key: SaitoPublicKey,
         buffer: Vec<u8>,
     },

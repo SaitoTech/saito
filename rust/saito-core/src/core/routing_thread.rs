@@ -377,6 +377,56 @@ impl RoutingThread {
             .await;
     }
 
+    async fn process_peer_message_received_event(
+        &mut self,
+        public_key: SaitoPublicKey,
+        buffer: Vec<u8>,
+    ) -> Option<()> {
+        let time: u64 = self.timer.get_timestamp_in_ms();
+        self.network.record_incoming_message(public_key, time).await;
+
+        let buffer_len = buffer.len();
+
+        let message = match Message::deserialize(buffer) {
+            Ok(message) => message,
+            Err(err) => {
+                error!(
+                    "failed deserializing msg from peer : {:?} with buffer size : {:?}",
+                    public_key.to_base58(),
+                    buffer_len
+                );
+                error!(
+                    "deserialization error from peer {:?}: {:?}",
+                    public_key.to_base58(),
+                    err
+                );
+                return None;
+            }
+        };
+
+        self.stats.total_incoming_messages.increment();
+
+        self.process_peer_message(public_key, message).await;
+
+        Some(())
+    }
+
+    async fn process_block_fetch_failed_event(
+        &mut self,
+        block_hash: SaitoHash,
+        public_key: SaitoPublicKey,
+        block_id: BlockId,
+    ) {
+        let time = self.timer.get_timestamp_in_ms();
+
+        self.network
+            .record_failed_block_fetch(public_key, time)
+            .await;
+
+        self.blockchain_sync_state
+            .mark_as_failed(block_id, block_hash, public_key);
+    }
+
     /// Processes a received ghost chain request from a peer to sync itself with the blockchain
     ///
     /// # Arguments
@@ -1286,38 +1336,10 @@ impl RoutingThread {
 impl ProcessEvent<RoutingEvent> for RoutingThread {
     async fn process_network_event(&mut self, event: NetworkEvent) -> Option<()> {
         match event {
-            NetworkEvent::IncomingNetworkMessage { public_key, buffer } => {
-                trace!(
-                    "processing incoming network message from peer : {:?} of size : {}",
-                    public_key.to_base58(),
-                    buffer.len()
-                );
-                {
-                    // TODO : move this before deserialization to avoid spending CPU time on it. moved here to just print message type
-                    let time: u64 = self.timer.get_timestamp_in_ms();
-                    self.network.record_incoming_message(public_key, time).await;
-                }
-                let buffer_len = buffer.len();
-                let message = match Message::deserialize(buffer) {
-                    Ok(message) => message,
-                    Err(err) => {
-                        error!(
-                            "failed deserializing msg from peer : {:?} with buffer size : {:?}. Check for any version mismatches or data corruptions",
-                            public_key.to_base58(), buffer_len
-                        );
-                        error!(
-                            "deserialization error from peer {:?}: {:?}",
-                            public_key.to_base58(),
-                            err
-                        );
-                        // NOTE : not disconnecting here to support newer npm versions having new types of messages
-                        return None;
-                    }
-                };
-
-                self.stats.total_incoming_messages.increment();
-                self.process_peer_message(public_key, message).await;
-                return Some(());
+            NetworkEvent::PeerMessageReceived { public_key, buffer } => {
+                return self
+                    .process_peer_message_received_event(public_key, buffer)
+                    .await;
             }
             NetworkEvent::PeerConnectionResult { result } => match result {
                 Ok(network_peer) => {
@@ -1365,8 +1387,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
                 self.blockchain_sync_state.mark_as_fetched(block_hash);
 
-                // self.fetch_next_blocks().await;
-
                 return Some(());
             }
             NetworkEvent::BlockFetchFailed {
@@ -1374,19 +1394,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 public_key,
                 block_id,
             } => {
-                debug!(
-                    "block fetch failed : {:?}-{:?}",
-                    block_id,
-                    block_hash.to_hex()
-                );
-
-                let time = self.timer.get_timestamp_in_ms();
-                self.network
-                    .record_failed_block_fetch(public_key, time)
+                self.process_block_fetch_failed_event(block_hash, public_key, block_id)
                     .await;
-
-                self.blockchain_sync_state
-                    .mark_as_failed(block_id, block_hash, public_key);
             }
             _ => unreachable!(),
         }
@@ -1395,8 +1404,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
     }
 
     async fn process_timer_event(&mut self, duration: Duration) -> Option<()> {
-        // trace!("processing timer event : {:?}", duration.as_micros());
-
         let duration_value: Timestamp = duration.as_millis() as Timestamp;
 
         let mut work_done = false;
@@ -1416,7 +1423,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             self.network.ping().await;
             self.reconnection_timer = 0;
             self.fetch_next_blocks().await;
-
             work_done = true;
         }
 
@@ -1425,7 +1431,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
             self.message_sending_timer = 0;
             self.send_block_headers().await;
-
             work_done = true;
         }
 
