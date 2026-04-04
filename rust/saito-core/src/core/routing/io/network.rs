@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use log::{debug, error, warn};
+use log::{debug, error, warn, trace, info};
 use tokio::sync::RwLock;
 use std::io::Error;
 
@@ -13,6 +13,8 @@ use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::routing::io::interface_io::InterfaceIO;
 use crate::core::routing::peers::peer_collection::PeerCollection;
+use crate::core::routing::peers::peer::PeerStatus;
+use crate::core::routing::io::interface_io::InterfaceEvent;
 
 #[derive(Debug)]
 pub enum PeerDisconnectType {
@@ -157,6 +159,37 @@ pub async fn record_received_transaction(
 }
 
 
+
+pub async fn ping(&mut self) {
+    let current_time = self.timer.get_timestamp_in_ms();
+    let mut peers = self.peer_lock.write().await;
+    for (_, peer) in peers.peers.iter_mut() {
+        peer.send_ping(current_time, self.io_interface.as_ref())
+            .await;
+    }
+}
+
+pub async fn manage_congested_peers(&mut self) {
+    let peers = self.peer_lock.write().await;
+    let current_time = self.timer.get_timestamp_in_ms();
+    let congested_peers: Vec<SaitoPublicKey> =
+        peers.get_congested_peers(current_time);
+    drop(peers);
+
+    for public_key in congested_peers {
+        warn!(
+            "peer : {:?} is congested. so disconnecting...",
+            public_key.to_base58()
+        );
+        if let Err(e) = self
+            .disconnect_from_peer(public_key, "Peer is congested")
+            .await
+        {
+            error!("{:?}", e);
+        }
+    }
+}
+
 pub async fn record_received_block_header(
     &self,
     public_key: SaitoPublicKey,
@@ -176,6 +209,53 @@ pub async fn record_received_block_header(
         );
     }
 }
+
+
+pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
+    trace!("connecting to static peers");
+
+    let mut peers = self.peer_lock.write().await;
+
+    for (public_key, peer) in &mut peers.peers {
+        let url = match peer.url.as_ref() {
+            Some(u) => u.clone(),
+            None => {
+                trace!(
+                    "peer : {} doesn't have a url. so not connecting to it",
+                    public_key.to_base58()
+                );
+                continue;
+            }
+        };
+
+        if let PeerStatus::Disconnected(connect_time, period) = &mut peer.peer_status {
+            if current_time < *connect_time {
+                continue;
+            }
+
+            info!(
+                "trying to connect to static peer : {:?} with {:?}",
+                public_key.to_base58(),
+                url
+            );
+
+            if let Err(err) = self.io_interface.connect_to_peer(url).await {
+                error!(
+                    "failed connecting to static peer {:?}: {:?}",
+                    public_key.to_base58(),
+                    err
+                );
+            }
+
+            if *period < 10_000 {
+                *period *= 2;
+            }
+
+            *connect_time = current_time + *period;
+        }
+    }
+}
+
 
 pub async fn send_message(
     &self,
@@ -212,6 +292,42 @@ pub async fn get_peer_key_list(
         None
     }
 }
+
+pub async fn handle_peer_disconnect(
+    &mut self,
+    public_key: SaitoPublicKey,
+    disconnect_type: PeerDisconnectType,
+) {
+    info!(
+        "handling peer disconnect, public_key = {}",
+        public_key.to_base58()
+    );
+
+    if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
+        info!("peer disconnected externally, cleaning up locally created peer");
+
+        if let Err(err) = self.cleanup_disconnected_peer(public_key).await {
+            error!(
+                "failed local cleanup disconnect for peer {:?}: {:?}",
+                public_key.to_base58(),
+                err
+            );
+        }
+    }
+
+    let mut peers = self.peer_lock.write().await;
+    if let Some(peer) = peers.peers.get_mut(&public_key) {
+        self.io_interface
+            .send_interface_event(InterfaceEvent::PeerConnectionDropped(
+                peer.get_public_key(),
+            ));
+
+        peer.mark_as_disconnected(self.timer.get_timestamp_in_ms());
+    } else {
+        error!("unknown peer : {:?} disconnected", public_key.to_base58());
+    }
+}
+
 
 pub async fn should_request_blockchain(
     &self,

@@ -16,7 +16,7 @@ use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
 use crate::core::routing::io::interface_io::InterfaceEvent;
-use crate::core::routing::io::network::{Network, PeerDisconnectType};
+use crate::core::routing::io::network::Network;
 use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::routing::io::storage::Storage;
 use crate::core::routing::peers::congestion_controller::{
@@ -404,54 +404,6 @@ impl RoutingThread {
 	    .await;
     }
 
-    pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
-        trace!("connecting to static peers");
-        let mut peers = self.network.peer_lock.write().await;
-        for (public_key, peer) in &mut peers.peers {
-            let url = match peer.url.as_ref() {
-                Some(u) => u.clone(),
-                None => {
-                    trace!(
-                        "peer : {} doesn't have a url. so not connecting to it",
-                        public_key.to_base58()
-                    );
-                    continue;
-                }
-            };
-            if let PeerStatus::Disconnected(connect_time, period) = &mut peer.peer_status {
-                if current_time < *connect_time {
-                    continue;
-                }
-                info!(
-                    "trying to connect to static peer : {:?} with {:?}",
-                    public_key.to_base58(),
-                    url
-                );
-
-		if let Err(err) = self.network.io_interface.connect_to_peer(url).await {
-		    error!(
-		        "failed connecting to static peer {:?}: {:?}",
-		        public_key.to_base58(),
-		        err
-		    );
-		}
-
-                if *period < 10_000 {
-                    *period *= 2;
-                }
-                *connect_time = current_time + *period;
-            }
-        }
-    }
-
-    pub async fn send_pings(&mut self) {
-        let current_time = self.timer.get_timestamp_in_ms();
-        let mut peers = self.network.peer_lock.write().await;
-        for (_, peer) in peers.peers.iter_mut() {
-            peer.send_ping(current_time, self.network.io_interface.as_ref())
-                .await;
-        }
-    }
     pub(crate) async fn generate_ghost_chain(
         block_id: u64,
         fork_id: SaitoHash,
@@ -558,43 +510,6 @@ impl RoutingThread {
         ghost
     }
 
-    async fn handle_peer_disconnect(
-        &mut self,
-        public_key: SaitoPublicKey,
-        disconnect_type: PeerDisconnectType,
-    ) {
-        info!(
-            "handling peer disconnect, public_key = {}",
-            public_key.to_base58()
-        );
-
-	if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
-	    info!("peer disconnected externally, cleaning up locally created peer");
-	
-	    if let Err(err) = self
-	        .network
-	        .cleanup_disconnected_peer(public_key)
-	        .await
-	    {
-	        error!(
-	            "failed local cleanup disconnect for peer {:?}: {:?}",
-	            public_key.to_base58(),
-	            err
-	        );
-	    }
-	}
-
-        let mut peers = self.network.peer_lock.write().await;
-        if let Some(peer) = peers.peers.get_mut(&public_key) {
-            self.network
-                .io_interface
-                .send_interface_event(InterfaceEvent::PeerConnectionDropped(peer.get_public_key()));
-
-            peer.mark_as_disconnected(self.timer.get_timestamp_in_ms());
-        } else {
-            error!("unknown peer : {:?} disconnected", public_key.to_base58());
-        }
-    }
     pub async fn set_my_key_list(&mut self, mut key_list: Vec<SaitoPublicKey>) {
         let mut wallet = self.wallet_lock.write().await;
         trace!(
@@ -1366,28 +1281,6 @@ impl RoutingThread {
         self.refresh_sync_fetch_floor().await;
     }
 
-    // TODO : remove if not required
-
-    async fn manage_congested_peers(&mut self) {
-        let peers = self.network.peer_lock.write().await;
-        let current_time = self.timer.get_timestamp_in_ms();
-        let congested_peers: Vec<SaitoPublicKey> = peers.get_congested_peers(current_time);
-        drop(peers);
-
-        for public_key in congested_peers {
-            warn!(
-                "peer : {:?} is congested. so disconnecting...",
-                public_key.to_base58()
-            );
-	    if let Err(e) = self
-    		.network
-    		.disconnect_from_peer(public_key, "Peer is congested")
-    		.await
-	    {
-		    error!("{:?}", e);
-	    }
-        }
-    }
 
     async fn send_block_headers(&mut self) {
         if self.blockchain_send_results.is_empty() {
@@ -1590,7 +1483,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 public_key,
                 disconnect_type,
             } => {
-                self.handle_peer_disconnect(public_key, disconnect_type)
+                self
+		    .network
+		    .handle_peer_disconnect(public_key, disconnect_type)
                     .await;
                 return Some(());
             }
@@ -1661,8 +1556,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
         let current_time = self.timer.get_timestamp_in_ms();
         if self.reconnection_timer >= RECONNECTION_PERIOD {
-            self.connect_to_static_peers(current_time).await;
-            self.send_pings().await;
+            self.network.connect_to_static_peers(current_time).await;
+            self.network.ping().await;
             self.reconnection_timer = 0;
             self.fetch_next_blocks().await;
 
@@ -1681,7 +1576,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         const CONGESTION_CHECK_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
         self.congestion_check_timer += duration_value;
         if self.congestion_check_timer >= CONGESTION_CHECK_PERIOD {
-            self.manage_congested_peers().await;
+            self.network.manage_congested_peers().await;
             {
                 let wallet = self.wallet_lock.read().await;
                 self.send_key_list(&wallet.key_list).await;
@@ -2538,7 +2433,8 @@ mod tests {
 
         tester
             .routing_thread
-            .handle_peer_disconnect(public_key, PeerDisconnectType::InternalDisconnect)
+            .network
+	    .handle_peer_disconnect(public_key, PeerDisconnectType::InternalDisconnect)
             .await;
 
         let peers = tester.routing_thread.network.peer_lock.read().await;
