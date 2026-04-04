@@ -134,7 +134,7 @@ impl WasmWallet {
 
     #[wasm_bindgen(js_name = getWalletVersion)]
     pub async fn get_wallet_version(&self) -> js_sys::Object {
-	let wallet = self.wallet.write().await;
+        let wallet = self.wallet.write().await;
         let version = &wallet.wallet_version;
         let obj = js_sys::Object::new();
 

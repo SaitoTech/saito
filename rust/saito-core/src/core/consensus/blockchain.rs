@@ -10,10 +10,7 @@ use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
 use rayon::iter::{
-    IntoParallelRefIterator,
-    IndexedParallelIterator,
-    ParallelIterator,
-    ParallelDrainRange,
+    IndexedParallelIterator, IntoParallelRefIterator, ParallelDrainRange, ParallelIterator,
 };
 
 use crate::core::consensus::block::{Block, BlockType};
@@ -975,12 +972,12 @@ impl Blockchain {
             buffer.extend(buf);
         }
 
-	if let Err(e) = storage
-	    .io_interface
-	    .ensure_directory_exists("./data/issuance/archive")
-	{
-	    log::error!("Failed to create archive directory: {:?}", e);
-	}
+        if let Err(e) = storage
+            .io_interface
+            .ensure_directory_exists("./data/issuance/archive")
+        {
+            log::error!("Failed to create archive directory: {:?}", e);
+        }
 
         storage
             .io_interface
@@ -3001,7 +2998,6 @@ fn is_golden_ticket_count_valid_<'a, F: Fn(SaitoHash) -> Option<&'a Block>>(
     bypass: bool,
     get_block: F,
 ) -> bool {
-
     let mut golden_tickets_found = 0;
     let mut search_depth_index = 0;
     let mut latest_block_hash = previous_block_hash;
@@ -3027,8 +3023,8 @@ fn is_golden_ticket_count_valid_<'a, F: Fn(SaitoHash) -> Option<&'a Block>>(
     }
 
     // 2/6 => [1,2,3,4,5 + 6(current)]. but we only check the first 5 since we start from previous block.
-    // if we only have 4 blocks, we need 1 golden ticket. if we have 5 blocks, we need 2 golden tickets 
-    // (including the gt at hand). because we calculate only upto the previous block and then consider 
+    // if we only have 4 blocks, we need 1 golden ticket. if we have 5 blocks, we need 2 golden tickets
+    // (including the gt at hand). because we calculate only upto the previous block and then consider
     // the current block's gt
     let required_tickets = MIN_GOLDEN_TICKETS_NUMERATOR
         .saturating_sub(MIN_GOLDEN_TICKETS_DENOMINATOR.saturating_sub(search_depth_index + 1));

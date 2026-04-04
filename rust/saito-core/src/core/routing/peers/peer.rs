@@ -7,7 +7,7 @@ use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::Endpoint;
 use log::{debug, error, info, trace};
-use serde::{Serialize};
+use serde::Serialize;
 use std::cmp::Ordering;
 use std::io::{Error, ErrorKind};
 use std::sync::Arc;

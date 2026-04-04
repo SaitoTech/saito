@@ -5,10 +5,7 @@ use crate::core::defs::SaitoHash;
 use crate::core::util::crypto::hash;
 use crate::iterate_mut;
 
-use rayon::iter::{
-    IntoParallelRefMutIterator,
-    ParallelIterator,
-};
+use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
 
 #[derive(PartialEq)]
 pub enum TraverseMode {

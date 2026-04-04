@@ -2412,7 +2412,6 @@ mod tests {
         info!("\n+++++++++ continuing till block 50 +++++++++\n");
         // now we have the blocks upto 40 in the chain. now we create a new chain upto 50.
         for i in 40..=50 {
-
             let tx = tester.create_transaction(10, 0, public_key).await.unwrap();
 
             tester.add_transaction(tx).await;

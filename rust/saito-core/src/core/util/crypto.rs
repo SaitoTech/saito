@@ -2,11 +2,11 @@ use crate::core::defs::{PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey,
 use blake3::Hasher;
 use lazy_static::lazy_static;
 pub use merkle::MerkleTree;
-use rand::{Rng};
+use rand::Rng;
 #[allow(unused_imports)]
-use rand::SeedableRng;				// test => TEST_RNG
-use secp256k1::{ecdsa, Secp256k1};
+use rand::SeedableRng; // test => TEST_RNG
 use rayon::prelude::*;
+use secp256k1::{ecdsa, Secp256k1};
 pub use secp256k1::{Message, PublicKey, SecretKey, SECP256K1};
 
 // type Aes128Cbc = Cbc<Aes128, Pkcs7>;
@@ -84,7 +84,6 @@ lazy_static! {
         tokio::sync::Mutex::new(rand::rngs::StdRng::from_seed([0; 32]));
 }
 
-
 pub async fn generate_random_bytes(len: u64) -> Vec<u8> {
     if len == 0 {
         let x: Vec<u8> = vec![];
@@ -154,8 +153,6 @@ pub fn verify_signature(
         _ => false,
     }
 }
-
-
 
 pub fn verify_many(hashes: &[[u8; 32]], sigs: &[SaitoSignature], pks: &[PublicKey]) -> Vec<bool> {
     hashes
