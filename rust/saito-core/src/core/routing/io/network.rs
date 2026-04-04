@@ -75,7 +75,7 @@ impl Network {
         }
 
         debug!("sending block : {:?} to peers", block.hash.to_hex());
-        let message = Message::BlockHeaderHash(block.hash, block.id);
+        let message = Message::BlockReference(block.hash, block.id);
         let serialized = message.serialize();
         self.io_interface
             .send_message_to_all(serialized.as_slice(), excluded_peers)
@@ -282,7 +282,7 @@ impl Network {
                 public_key.to_base58()
             );
 
-            self.send_message(public_key, Message::GenesisBlockRequest())
+            self.send_message(public_key, Message::RequestGenesisBlockReference())
                 .await;
 
             return true; // waiting_for_genesis_block = true
@@ -374,7 +374,7 @@ impl Network {
 
             self.io_interface
                 .send_message_to_all(
-                    Message::KeyListUpdate(key_list.to_vec())
+                    Message::KeyList(key_list.to_vec())
                         .serialize()
                         .as_slice(),
                     exclusions,
@@ -537,7 +537,7 @@ impl Network {
     ) -> Result<(), Error> {
         self.send_message(
             public_key,
-            Message::ForcedDisconnection(message.to_string()),
+            Message::Disconnect(message.to_string()),
         )
         .await;
 

@@ -193,7 +193,7 @@ impl Peer {
 
         let _ = io_handler
             .send_message_to_all(
-                Message::KeyListUpdate(wallet.key_list.to_vec())
+                Message::KeyList(wallet.key_list.to_vec())
                     .serialize()
                     .as_slice(),
                 vec![],
