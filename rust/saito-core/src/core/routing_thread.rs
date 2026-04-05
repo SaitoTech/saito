@@ -148,6 +148,12 @@ impl RoutingThread {
     /// ```
     ///
     /// ```
+    ///
+    /// Note that message names follow a distinct format. If the message is a request for 
+    /// data or an object, the name of the message is Message::Request[Object]. If the 
+    /// message name is Message::[Object] it is the provision of that information by the
+    /// peer. Thus "KeyList" sends the latest KeyList. We do not need KeyListUpdate, etc.
+    ///
     async fn process_peer_message(&mut self, public_key: SaitoPublicKey, message: Message) {
         self.network
             .update_peer_timestamp(public_key, self.timer.get_timestamp_in_ms())
@@ -169,10 +175,6 @@ impl RoutingThread {
 
             Message::Transaction(transaction) => {
                 self.process_transaction_message(public_key, transaction)
-                    .await;
-            }
-            Message::RequestBlockchain(request) => {
-                self.process_request_blockchain_message(public_key, request)
                     .await;
             }
             Message::BlockReference(hash, block_id) => {
@@ -197,6 +199,13 @@ impl RoutingThread {
                 self.process_request_ghost_chain_message(block_id, block_hash, fork_id, public_key)
                     .await;
             }
+            Message::RequestBlockchain(request) => {
+                self.process_request_blockchain_message(public_key, request)
+                    .await;
+            }
+            Message::RequestGenesisBlockReference() => {
+                self.process_request_genesis_block_reference_message(public_key).await;
+            }
             Message::ApplicationMessage(api_message) => {
                 self.network
                     .io_interface
@@ -219,9 +228,6 @@ impl RoutingThread {
                 self.network
                     .handle_key_list_update(public_key, key_list, self.timer.get_timestamp_in_ms())
                     .await;
-            }
-            Message::RequestGenesisBlockReference() => {
-                self.process_request_genesis_block_reference_message(public_key).await;
             }
             Message::GenesisBlockReference(hash, block_id) => {
                 self.process_genesis_block_reference_message(public_key, hash, block_id)
