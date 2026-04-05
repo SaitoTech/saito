@@ -14,7 +14,6 @@ use crate::core::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
-use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
 use crate::core::routing::io::interface_io::InterfaceEvent;
 use crate::core::routing::io::network::Network;
 use crate::core::routing::io::network_event::NetworkEvent;
@@ -24,6 +23,7 @@ use crate::core::routing::peers::congestion_controller::{
 };
 use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer::PeerStatus;
+use crate::core::routing::sync::SyncManager;
 use crate::core::util;
 use crate::core::util::config_manager::ConfigManager;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
@@ -124,7 +124,7 @@ pub struct RoutingThread {
     pub senders_to_verification: Vec<Sender<VerifyRequest>>,
     pub last_verification_thread_index: usize,
     pub stat_sender: Sender<StatEvent>,
-    pub blockchain_sync_state: BlockchainSyncState,
+    pub sync: SyncManager,
     /// if we receive a ghost chain with a gap between our latest block id and starting block id of the received ghost chain,
     /// we emit an event and store the received chain until the user handles the event. TODO : handle this functionality after JS functions are implemented.
     pub received_ghost_chain: Option<(GhostChainSync, SaitoPublicKey)>,
@@ -149,8 +149,8 @@ impl RoutingThread {
     ///
     /// ```
     ///
-    /// Note that message names follow a distinct format. If the message is a request for 
-    /// data or an object, the name of the message is Message::Request[Object]. If the 
+    /// Note that message names follow a distinct format. If the message is a request for
+    /// data or an object, the name of the message is Message::Request[Object]. If the
     /// message name is Message::[Object] it is the provision of that information by the
     /// peer. Thus "KeyList" sends the latest KeyList. We do not need KeyListUpdate, etc.
     ///
@@ -169,8 +169,8 @@ impl RoutingThread {
             Message::Block(_) => {
                 // ...
             }
-	    Message::SPVChain() => {
-		// ...
+            Message::SPVChain() => {
+                // ...
             }
 
             Message::Transaction(transaction) => {
@@ -204,7 +204,8 @@ impl RoutingThread {
                     .await;
             }
             Message::RequestGenesisBlockReference() => {
-                self.process_request_genesis_block_reference_message(public_key).await;
+                self.process_request_genesis_block_reference_message(public_key)
+                    .await;
             }
             Message::ApplicationMessage(api_message) => {
                 self.network
@@ -326,11 +327,22 @@ impl RoutingThread {
             .record_received_block_header(public_key, &hash, self.timer.get_timestamp_in_ms())
             .await;
 
-        self.process_incoming_block_hash(hash, block_id, public_key)
+        self.sync
+            .process_incoming_block_hash(
+                hash,
+                block_id,
+                public_key,
+                self.blockchain_lock.clone(),
+                self.wallet_lock.clone(),
+                &self.network,
+            )
             .await;
     }
 
-    async fn process_request_genesis_block_reference_message(&mut self, public_key: SaitoPublicKey) {
+    async fn process_request_genesis_block_reference_message(
+        &mut self,
+        public_key: SaitoPublicKey,
+    ) {
         let blockchain = self.blockchain_lock.read().await;
 
         info!(
@@ -379,7 +391,15 @@ impl RoutingThread {
             .record_received_block_header(public_key, &hash, self.timer.get_timestamp_in_ms())
             .await;
 
-        self.process_incoming_block_hash(hash, block_id, public_key)
+        self.sync
+            .process_incoming_block_hash(
+                hash,
+                block_id,
+                public_key,
+                self.blockchain_lock.clone(),
+                self.wallet_lock.clone(),
+                &self.network,
+            )
             .await;
     }
 
@@ -429,7 +449,8 @@ impl RoutingThread {
             .record_failed_block_fetch(public_key, time)
             .await;
 
-        self.blockchain_sync_state
+        self.sync
+            .state
             .mark_as_failed(block_id, block_hash, public_key);
     }
 
@@ -483,117 +504,14 @@ impl RoutingThread {
                 .collect::<Vec<String>>()
         );
 
-        let ghost = Self::generate_ghost_chain(block_id, fork_id, &blockchain, peer_key_list).await;
+        let ghost =
+            SyncManager::generate_ghost_chain(block_id, fork_id, &blockchain, peer_key_list).await;
+
         debug!("sending ghost chain to peer : {:?}", public_key.to_base58());
+
         self.network
             .send_message(public_key, Message::GhostChain(ghost))
             .await;
-    }
-
-    pub(crate) async fn generate_ghost_chain(
-        block_id: u64,
-        fork_id: SaitoHash,
-        blockchain: &Blockchain,
-        peer_key_list: Vec<SaitoPublicKey>,
-    ) -> GhostChainSync {
-        debug!(
-            "generating ghost chain for block_id : {:?} fork_id : {:?}",
-            block_id,
-            fork_id.to_hex()
-        );
-        let mut last_shared_ancestor;
-
-        if block_id == 0 || block_id < blockchain.genesis_block_id {
-            // this means the peer is starting from beginning
-            // since ghost chain is only used by lite clients, we only need to send the last 10 blocks.
-            last_shared_ancestor = blockchain.get_latest_block_id().saturating_sub(10);
-        } else {
-            last_shared_ancestor = blockchain.generate_last_shared_ancestor(block_id, fork_id);
-        }
-
-        debug!("last_shared_ancestor 1 : {:?}", last_shared_ancestor);
-
-        debug!(
-            "peer key list: {:?}",
-            peer_key_list
-                .iter()
-                .map(|pk| pk.to_base58())
-                .collect::<Vec<String>>()
-        );
-
-        if last_shared_ancestor == 0 {
-            // if we cannot find the last shared ancestor in a long chain, we just need to sync from peer's block id or the genesis block id if it's too far behind.
-            last_shared_ancestor = std::cmp::max(block_id, blockchain.genesis_block_id);
-        }
-
-        let start = blockchain
-            .blockring
-            .get_longest_chain_block_hash_at_block_id(last_shared_ancestor)
-            .unwrap_or([0; 32]);
-
-        let latest_block_id = blockchain.blockring.get_latest_block_id();
-        debug!("latest_block_id : {:?}", latest_block_id);
-        debug!("last_shared_ancestor : {:?}", last_shared_ancestor);
-        debug!("start : {:?}", start.to_hex());
-
-        //
-        // DEBUGGING - to test server load stability, we restrict temporarily to processing
-        // only the sender's actual key. This can be relaxed once we no longer need to run
-        // saito node on a single server with throttled network throughput limits.
-        //
-        let sender_only_key_list: Vec<SaitoPublicKey> =
-            peer_key_list.iter().take(1).cloned().collect();
-
-        let mut ghost = GhostChainSync {
-            start,
-            prehashes: vec![],
-            previous_block_hashes: vec![],
-            block_ids: vec![],
-            block_ts: vec![],
-            txs: vec![],
-            gts: vec![],
-        };
-        for i in (last_shared_ancestor + 1)..=latest_block_id {
-            if let Some(hash) = blockchain
-                .blockring
-                .get_longest_chain_block_hash_at_block_id(i)
-            {
-                let block = blockchain.get_block(&hash);
-                if let Some(block) = block {
-                    if ghost.start == [0; 32] && ghost.gts.is_empty() {
-                        // we only set the start if we are at the beginning of the ghost chain
-                        ghost.start = block.previous_block_hash;
-                    }
-
-                    ghost.gts.push(block.has_golden_ticket);
-                    ghost.block_ts.push(block.timestamp);
-                    ghost.prehashes.push(block.pre_hash);
-                    ghost.previous_block_hashes.push(block.previous_block_hash);
-                    ghost.block_ids.push(block.id);
-
-                    debug!(
-                        "pushing block : {:?} at index : {:?} has txs : {:?} pre_hash : {} prev_block_hash : {}",
-                        block.hash.to_hex(),
-                        i,
-                        // clone.transactions.len(),
-                        block.has_keylist_txs(&peer_key_list),
-                        block.pre_hash.to_hex(),
-                        block.previous_block_hash.to_hex()
-                    );
-                    debug_assert_eq!(
-                        block.hash,
-                        crate::core::util::crypto::hash(block.serialize_for_hash().as_slice())
-                    );
-                    // whether this block has any txs which the peer will be interested in
-                    ghost.txs.push(block.has_keylist_txs(&sender_only_key_list));
-                    //
-                    // note the above -- we we temporarily processing only the key of the peer itself
-                    //
-                    //ghost.txs.push(block.has_keylist_txs(&peer_key_list));
-                }
-            }
-        }
-        ghost
     }
 
     pub async fn set_my_key_list(&mut self, mut key_list: Vec<SaitoPublicKey>) {
@@ -773,212 +691,6 @@ impl RoutingThread {
         }
         info!("queued block headers for peer : {}", public_key.to_base58());
         Ok(())
-    }
-    async fn process_incoming_block_hash(
-        &mut self,
-        block_hash: SaitoHash,
-        block_id: u64,
-        public_key: SaitoPublicKey,
-    ) {
-        debug!(
-            "processing incoming block hash : {:?}-{:?} from peer : {:?}",
-            block_id,
-            block_hash.to_hex(),
-            public_key.to_base58()
-        );
-        {
-            // trace!("locking blockchain 6");
-            let blockchain = self.blockchain_lock.read().await;
-            if !blockchain.blocks.is_empty() && blockchain.lowest_acceptable_block_id >= block_id {
-                debug!("skipping block header : {:?}-{:?} from peer : {:?} since our lowest acceptable id : {:?}",
-                    block_id,
-                    block_hash.to_hex(),
-                    public_key.to_base58(),
-                    blockchain.lowest_acceptable_block_id);
-                return;
-            }
-            if block_id < max(1, blockchain.genesis_block_id) {
-                debug!("skipping block header : {:?}-{:?} from peer : {:?} since it's earlier than our genesis block id : {}",
-                    block_id,
-                    block_hash.to_hex(),
-                    public_key.to_base58(),
-                    blockchain.genesis_block_id);
-                return;
-            }
-        }
-        // trace!("releasing blockchain 6");
-
-        let wallet = self.wallet_lock.read().await;
-        let wallet_version = wallet.wallet_version;
-        let core_version = wallet.core_version;
-        drop(wallet);
-
-        match self
-            .network
-            .should_request_blockchain(public_key, wallet_version, core_version)
-            .await
-        {
-            Some(true) => {
-                self.request_blockchain_from_peer(public_key, self.blockchain_lock.clone())
-                    .await;
-            }
-            Some(false) => {}
-            None => {
-                warn!(
-                    "couldn't find peer : {:?} for processing block header hash",
-                    public_key.to_base58()
-                );
-            }
-        }
-
-        self.blockchain_sync_state
-            .add_entry(
-                block_hash,
-                block_id,
-                public_key,
-                self.network.peer_lock.clone(),
-            )
-            .await;
-        self.refresh_sync_fetch_floor().await;
-
-        // self.fetch_next_blocks().await;
-    }
-
-    async fn fetch_next_blocks(&mut self) -> bool {
-        let mut work_done = false;
-        {
-            let blockchain = self.blockchain_lock.read().await;
-            self.blockchain_sync_state
-                .build_peer_block_picture(&blockchain);
-        }
-
-        let map = self.blockchain_sync_state.get_blocks_to_fetch_per_peer();
-
-        let fetching_count = self.blockchain_sync_state.get_fetching_block_count();
-        // trace!("fetching next blocks : {:?} from peers", fetching_count);
-        self.network
-            .io_interface
-            .send_interface_event(InterfaceEvent::BlockFetchStatus(fetching_count as BlockId));
-
-        let mut fetched_blocks: Vec<(SaitoPublicKey, SaitoHash)> = Default::default();
-        for (public_key, vec) in map {
-            for (hash, block_id) in vec.iter().rev() {
-                work_done = true;
-                let result = self
-                    .process_incoming_block_hash_(
-                        *hash,
-                        *block_id,
-                        public_key,
-                        self.blockchain_lock.clone(),
-                        self.mempool_lock.clone(),
-                    )
-                    .await;
-                if result.is_some() {
-                    fetched_blocks.push((public_key, *hash));
-                } else {
-                    // if we already have the block added don't need to request it from peer
-                    self.blockchain_sync_state.remove_entry(*hash);
-                }
-            }
-        }
-        self.refresh_sync_fetch_floor().await;
-        work_done
-    }
-
-    async fn refresh_sync_fetch_floor(&self) {
-        let sync_fetch_floor_block_id = self
-            .blockchain_sync_state
-            .get_sync_fetch_floor_block_id()
-            .unwrap_or(0);
-
-        let mut blockchain = self.blockchain_lock.write().await;
-        blockchain.sync_fetch_floor_block_id = sync_fetch_floor_block_id;
-    }
-
-    pub async fn process_incoming_block_hash_(
-        &mut self,
-        block_hash: SaitoHash,
-        block_id: BlockId,
-        public_key: SaitoPublicKey,
-        blockchain_lock: Arc<RwLock<Blockchain>>,
-        mempool_lock: Arc<RwLock<Mempool>>,
-    ) -> Option<()> {
-        trace!(
-            "fetching block : {:?}-{:?} from peer : {:?}",
-            block_id,
-            block_hash.to_hex(),
-            public_key.to_base58()
-        );
-        let block_exists;
-        let my_public_key;
-
-        {
-            // trace!("locking blockchain 2");
-            let blockchain = blockchain_lock.read().await;
-            if blockchain.is_block_indexed(block_hash) {
-                block_exists = true;
-            } else {
-                let mempool = mempool_lock.read().await;
-                block_exists = mempool.blocks_queue.iter().any(|b| b.hash == block_hash);
-            }
-        }
-        // trace!("releasing blockchain 2");
-        {
-            let wallet = self.wallet_lock.read().await;
-            my_public_key = wallet.public_key;
-        }
-        if block_exists {
-            debug!(
-                "block : {:?}-{:?} already exists in chain. not fetching",
-                block_id,
-                block_hash.to_hex()
-            );
-            return None;
-        }
-        let url;
-        {
-            let configs = self.config_lock.read().await;
-            let peers = self.network.peer_lock.read().await;
-
-            if let Some(peer) = peers.peers.get(&public_key) {
-                if peer.block_fetch_url.is_empty() {
-                    debug!(
-                        "won't fetch block : {:?} from peer : {:?} since no url found",
-                        block_hash.to_hex(),
-                        public_key.to_base58()
-                    );
-                    return None;
-                }
-                url = peer.get_block_fetch_url(block_hash, configs.is_spv_mode(), my_public_key);
-            } else {
-                warn!(
-                    "peer : {:?} is not in peer list. cannot generate the block fetch url",
-                    public_key.to_base58()
-                );
-                return None;
-            }
-        }
-
-        debug!(
-            "fetching block for incoming hash : {:?}-{:?}",
-            block_id,
-            block_hash.to_hex()
-        );
-
-        if self
-            .network
-            .io_interface
-            .fetch_block_from_peer(block_hash, public_key, url.as_str(), block_id)
-            .await
-            .is_err()
-        {
-            // failed fetching block from peer
-            warn!(
-                "failed fetching block : {:?} for block hash. so unmarking block as fetching",
-                block_hash.to_hex()
-            );
-        }
-        Some(())
     }
 
     pub async fn request_blockchain_from_peer(
@@ -1195,7 +907,8 @@ impl RoutingThread {
                     block_hash.to_hex(),
                     public_key.to_base58()
                 );
-                self.blockchain_sync_state
+                self.sync
+                    .state
                     .add_entry(
                         block_hash,
                         chain.block_ids[i],
@@ -1391,7 +1104,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 ))
                 .await;
 
-                self.blockchain_sync_state.mark_as_fetched(block_hash);
+                self.sync.state.mark_as_fetched(block_hash);
 
                 return Some(());
             }
@@ -1428,7 +1141,17 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             self.network.connect_to_static_peers(current_time).await;
             self.network.ping().await;
             self.reconnection_timer = 0;
-            self.fetch_next_blocks().await;
+
+	    self.sync
+	        .fetch_next_blocks(
+	            self.blockchain_lock.clone(),
+	            self.mempool_lock.clone(),
+	            &self.network,
+	            self.wallet_lock.clone(),
+	            self.config_lock.clone(),
+	        )
+	    .await;
+
             work_done = true;
         }
 
@@ -1506,8 +1229,18 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     block_hash.to_hex()
                 );
 
-                self.blockchain_sync_state.remove_entry(block_hash);
-                self.fetch_next_blocks().await;
+                self.sync.state.remove_entry(block_hash);
+
+		self.sync
+		    .fetch_next_blocks(
+		        self.blockchain_lock.clone(),
+		        self.mempool_lock.clone(),
+		        &self.network,
+		        self.wallet_lock.clone(),
+		        self.config_lock.clone(),
+		    )
+		.await;
+
                 {
                     let mut configs = self.config_lock.write().await;
                     let blockchain = self.blockchain_lock.read().await;
@@ -1592,7 +1325,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     block_hash.to_hex(),
                     block_id
                 );
-                self.blockchain_sync_state
+                self.sync
+                    .state
                     .add_entry(
                         block_hash,
                         block_id,
@@ -1713,7 +1447,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 .unwrap();
         }
 
-        let stats = self.blockchain_sync_state.get_stats();
+        let stats = self.sync.state.get_stats();
         for stat in stats {
             self.stat_sender
                 .send(StatEvent::StringStat(stat))
@@ -2256,31 +1990,6 @@ mod tests {
         assert!(result.is_none());
         let peers = tester.routing_thread.network.peer_lock.read().await;
         assert!(peers.peers.is_empty());
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn process_incoming_block_hash_skips_peer_without_fetch_url() {
-        let mut tester = NodeTester::default();
-        let public_key = generate_keys().0;
-
-        {
-            let mut peers = tester.routing_thread.network.peer_lock.write().await;
-            peers.peers.insert(public_key, Peer::new(public_key));
-        }
-
-        let result = tester
-            .routing_thread
-            .process_incoming_block_hash_(
-                [7; 32],
-                1,
-                public_key,
-                tester.routing_thread.blockchain_lock.clone(),
-                tester.routing_thread.mempool_lock.clone(),
-            )
-            .await;
-
-        assert!(result.is_none());
     }
 
     #[tokio::test]
