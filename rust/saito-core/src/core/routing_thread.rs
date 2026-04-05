@@ -504,43 +504,13 @@ impl RoutingThread {
             .await;
     }
 
-    pub async fn set_my_key_list(&mut self, mut key_list: Vec<SaitoPublicKey>) {
-        let mut wallet = self.wallet_lock.write().await;
-        trace!(
-            "updating my key list : {:?} from : {:?}",
-            key_list
-                .iter()
-                .map(|k| k.to_base58())
-                .collect::<Vec<String>>(),
-            wallet
-                .key_list
-                .iter()
-                .map(|k| k.to_base58())
-                .collect::<Vec<String>>()
-        );
-
-        key_list.sort();
-        // check if key list is different from what we already have
-        if key_list.len() != wallet.key_list.len()
-            || wallet
-                .key_list
-                .iter()
-                .zip(key_list.iter())
-                .any(|(a, b)| a != b)
-        {
-            trace!(
-                "updating my key list : {:?} from : {:?}",
-                key_list
-                    .iter()
-                    .map(|k| k.to_base58())
-                    .collect::<Vec<String>>(),
-                wallet
-                    .key_list
-                    .iter()
-                    .map(|k| k.to_base58())
-                    .collect::<Vec<String>>()
-            );
-            wallet.set_key_list(key_list);
+    pub async fn process_key_list_updated_event(&mut self, key_list: Vec<SaitoPublicKey>) {
+        let changed = {
+            let mut wallet = self.wallet_lock.write().await;
+            wallet.set_key_list(key_list)
+        };
+        if changed {
+            let wallet = self.wallet_lock.read().await;
             self.network.send_key_list(&wallet.key_list).await;
         }
     }
@@ -1124,7 +1094,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     .await;
             }
             RoutingEvent::KeyListUpdated(key_list) => {
-                self.set_my_key_list(key_list).await;
+                self.process_key_list_updated_event(key_list).await;
             }
         }
         None

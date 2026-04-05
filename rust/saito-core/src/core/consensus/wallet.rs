@@ -1549,8 +1549,21 @@ impl Wallet {
                 .send_interface_event(InterfaceEvent::WalletUpdate());
         }
     }
-    pub fn set_key_list(&mut self, key_list: Vec<SaitoPublicKey>) {
-        self.key_list = key_list;
+
+    pub fn set_key_list(&mut self, mut key_list: Vec<SaitoPublicKey>) -> bool {
+        key_list.sort();
+        if key_list.len() != self.key_list.len()
+            || self
+                .key_list
+                .iter()
+                .zip(key_list.iter())
+                .any(|(a, b)| a != b)
+        {
+            self.key_list = key_list;
+            return true;
+        }
+
+        false
     }
 
     pub fn create_staking_transaction(
