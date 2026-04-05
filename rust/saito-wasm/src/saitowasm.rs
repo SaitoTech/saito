@@ -32,12 +32,12 @@ use saito_core::core::defs::{
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::routing::sync::SyncManager;
 use saito_core::core::routing::io::network::{Network, PeerDisconnectType};
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
+use saito_core::core::routing::sync::SyncManager;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
 use saito_core::core::util::configuration::Configuration;
@@ -1764,7 +1764,9 @@ pub async fn start_from_received_ghost_chain() {
     let mut saito = SAITO.lock().await;
     let routing_thread = &mut saito.as_mut().unwrap().routing_thread;
     if let Some((chain, public_key)) = routing_thread.received_ghost_chain.take() {
-        routing_thread.process_ghost_chain(chain, public_key).await;
+        routing_thread
+            .process_ghost_chain_message(chain, public_key)
+            .await;
     }
 }
 

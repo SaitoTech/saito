@@ -2,20 +2,22 @@ use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
-
-use crate::core::consensus::mempool::Mempool;
-use crate::core::routing::io::interface_io::InterfaceEvent;
-use crate::core::util::configuration::Configuration;
 use crate::core::consensus::blockchain::Blockchain;
+use crate::core::consensus::mempool::Mempool;
 use crate::core::consensus::wallet::Wallet;
+use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
+use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
+use crate::core::msg::message::Message;
+use crate::core::routing::io::interface_io::InterfaceEvent;
 use crate::core::routing::io::network::Network;
 use crate::core::routing::peers::peer_collection::PeerCollection;
+use crate::core::routing_thread::BlockchainSendResults;
+use crate::core::util::configuration::Configuration;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
+use std::io::Error;
 use tokio::sync::RwLock;
-
-use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey};
 
 #[derive(Debug)]
 enum BlockStatus {
@@ -668,6 +670,317 @@ impl SyncManager {
         ghost
     }
 
+    pub async fn send_block_headers(
+        &self,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        network: &Network,
+        blockchain_send_results: &mut Vec<BlockchainSendResults>,
+    ) {
+        if blockchain_send_results.is_empty() {
+            return;
+        }
+
+        let blockchain = blockchain_lock.read().await;
+
+        for entry in blockchain_send_results.iter_mut() {
+            let start = entry.start_id;
+            let end = std::cmp::min(entry.end_id, entry.start_id + 100);
+
+            entry.start_id = end + 1;
+
+            for block_id in start..=end {
+                if let Some(block_hash) = blockchain
+                    .blockring
+                    .get_longest_chain_block_hash_at_block_id(block_id)
+                {
+                    network
+                        .send_message(
+                            entry.peer_idx,
+                            Message::BlockReference(block_hash, block_id),
+                        )
+                        .await;
+                }
+            }
+        }
+
+        blockchain_send_results.retain(|entry| entry.start_id <= entry.end_id);
+    }
+
+    pub async fn process_incoming_blockchain_request(
+        &mut self,
+        request: BlockchainRequest,
+        public_key: SaitoPublicKey,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        network: &Network,
+        blockchain_send_results: &mut Vec<BlockchainSendResults>,
+    ) -> Result<(), Error> {
+        info!(
+            "processing incoming blockchain request : {:?}-{:?}-{:?} from peer : {:?}",
+            request.latest_block_id,
+            request.latest_block_hash.to_hex(),
+            request.fork_id.to_hex(),
+            public_key.to_base58()
+        );
+
+        let blockchain = blockchain_lock.read().await;
+
+        {
+            let mut peers = network.peer_lock.write().await;
+            if let Some(peer) = peers.peers.get_mut(&public_key) {
+                if peer.requested_blockchain_from_us {
+                    info!("peer : {:?} already requested the blockchain from us once. Not processing this request again until a reconnection", public_key.to_base58());
+                    return Ok(());
+                }
+                peer.requested_blockchain_from_us = true;
+            } else {
+                error!(
+                    "Cannot find the peer : {} to process the incoming blockchain request",
+                    public_key.to_base58()
+                );
+
+                if let Err(e) = network
+                    .disconnect_from_peer(public_key, "cannot find peer details")
+                    .await
+                {
+                    error!(
+                        "error disconnecting from peer : {}. {}",
+                        public_key.to_base58(),
+                        e
+                    );
+                }
+            }
+        }
+
+        let mut last_shared_ancestor =
+            blockchain.generate_last_shared_ancestor(request.latest_block_id, request.fork_id);
+
+        debug!(
+            "last shared ancestor = {:?} latest_id = {:?}",
+            last_shared_ancestor,
+            blockchain.blockring.get_latest_block_id()
+        );
+
+        debug!("peer : {:?} has latest block : {}-{}. our latest block : {}-{}. last shared ancestor = {:?}. genesis_id : {}",
+            public_key.to_base58(),
+            request.latest_block_id,
+            request.latest_block_hash.to_hex(),
+            blockchain.get_latest_block_id(),
+            blockchain.get_latest_block_hash().to_hex(),
+            last_shared_ancestor,
+            blockchain.genesis_block_id
+    );
+
+        if request.latest_block_id > 0
+            && request.latest_block_id < blockchain.genesis_block_id.saturating_sub(100)
+            && (last_shared_ancestor == 0 || last_shared_ancestor < blockchain.genesis_block_id)
+            && blockchain.get_latest_block_id() > 0
+        {
+            info!("peer : {:?} has latest block : {}-{}. our latest block : {}-{}. cannot find a shared ancestor. Therefore disconnecting the peer",
+            public_key.to_base58(),
+            request.latest_block_id,
+            request.latest_block_hash.to_hex(),
+            blockchain.get_latest_block_id(),
+            blockchain.get_latest_block_hash().to_hex());
+            {
+                if let Some(peer) = network.peer_lock.write().await.peers.get_mut(&public_key) {
+                    peer.url = None;
+                }
+            }
+
+            if let Err(e) = network
+                .disconnect_from_peer(
+                    public_key,
+                    "Cannot find a shared ancestor block to sync 2 nodes",
+                )
+                .await
+            {
+                error!(
+                    "error disconnecting from peer : {}. {}",
+                    public_key.to_base58(),
+                    e
+                );
+            }
+
+            return Ok(());
+        }
+
+        if last_shared_ancestor == 0 {
+            debug!(
+                "since last shared ancestor = {:?} we set it to genesis block id : {}",
+                last_shared_ancestor, blockchain.genesis_block_id
+            );
+            last_shared_ancestor = blockchain.genesis_block_id;
+        }
+
+        info!(
+            "queueing {} block headers to be sent to peer : {}. from : {} to : {}",
+            blockchain.blockring.get_latest_block_id() + 1 - last_shared_ancestor,
+            public_key.to_base58(),
+            last_shared_ancestor,
+            blockchain.blockring.get_latest_block_id()
+        );
+
+        if !blockchain_send_results
+            .iter()
+            .any(|r| r.peer_idx == public_key)
+        {
+            blockchain_send_results.push(BlockchainSendResults {
+                start_id: last_shared_ancestor,
+                end_id: blockchain.blockring.get_latest_block_id() + 1,
+                peer_idx: public_key,
+            });
+        }
+
+        info!("queued block headers for peer : {}", public_key.to_base58());
+
+        Ok(())
+    }
+
+    pub async fn request_blockchain_from_peer(
+        &self,
+        public_key: SaitoPublicKey,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        network: &Network,
+    ) {
+        let configs = config_lock.read().await;
+        let blockchain = blockchain_lock.read().await;
+
+        {
+            let mut peers = network.peer_lock.write().await;
+            if let Some(peer) = peers.peers.get_mut(&public_key) {
+                if peer.requested_blockchain_from_peer {
+                    info!("we already requested blockchain from peer : {}. so not requesting again until a reconnection",public_key.to_base58());
+                    return;
+                }
+                peer.requested_blockchain_from_peer = true;
+            } else {
+                warn!(
+                    "Cannot request blockchain from non existent peer : {}",
+                    public_key.to_base58()
+                );
+            }
+        }
+
+        info!(
+            "requesting blockchain from peer : {:?} latest_block_id : {:?}, last_block_id : {:?}",
+            public_key.to_base58(),
+            blockchain.get_latest_block_id(),
+            blockchain.last_block_id,
+        );
+
+        let request;
+
+        if configs.is_spv_mode() {
+            {
+                debug!(
+                    "blockchain last block id : {:?}, latest block id : {:?}",
+                    blockchain.last_block_id,
+                    blockchain.get_latest_block_id()
+                );
+                if blockchain.last_block_id >= blockchain.get_latest_block_id() {
+                    let fork_id = blockchain.fork_id.unwrap_or([0; 32]);
+                    debug!(
+                        "blockchain request 1 : latest_id: {:?} latest_hash: {:?} fork_id: {:?}",
+                        blockchain.last_block_id,
+                        blockchain.last_block_hash.to_hex(),
+                        fork_id.to_hex()
+                    );
+                    request = BlockchainRequest {
+                        latest_block_id: blockchain.last_block_id,
+                        latest_block_hash: blockchain.last_block_hash,
+                        fork_id,
+                    };
+                } else if let Some(fork_id) =
+                    blockchain.generate_fork_id(blockchain.get_latest_block_id())
+                {
+                    debug!(
+                        "blockchain request 2 : latest_id: {:?} latest_hash: {:?} fork_id: {:?}",
+                        blockchain.get_latest_block_id(),
+                        blockchain.get_latest_block_hash().to_hex(),
+                        fork_id.to_hex()
+                    );
+                    request = BlockchainRequest {
+                        latest_block_id: blockchain.get_latest_block_id(),
+                        latest_block_hash: blockchain.get_latest_block_hash(),
+                        fork_id,
+                    };
+                } else {
+                    debug!(
+                        "blockchain request 3 : latest_id: {:?} latest_hash: {:?} fork_id: {:?}",
+                        blockchain.get_latest_block_id(),
+                        blockchain.get_latest_block_hash().to_hex(),
+                        [0; 32]
+                    );
+                    request = BlockchainRequest {
+                        latest_block_id: blockchain.get_latest_block_id(),
+                        latest_block_hash: blockchain.get_latest_block_hash(),
+                        fork_id: [0; 32],
+                    };
+                }
+            }
+            debug!(
+                "sending ghost chain request to peer : {:?}",
+                public_key.to_base58()
+            );
+        } else {
+            if let Some(fork_id) = blockchain.generate_fork_id(blockchain.get_latest_block_id()) {
+                request = BlockchainRequest {
+                    latest_block_id: blockchain.get_latest_block_id(),
+                    latest_block_hash: blockchain.get_latest_block_hash(),
+                    fork_id,
+                };
+                debug!(
+                    "blockchain request 4 : latest_id: {:?} latest_hash: {:?} fork_id: {:?}",
+                    blockchain.get_latest_block_id(),
+                    blockchain.get_latest_block_hash().to_hex(),
+                    fork_id.to_hex()
+                );
+            } else {
+                request = BlockchainRequest {
+                    latest_block_id: blockchain.get_latest_block_id(),
+                    latest_block_hash: blockchain.get_latest_block_hash(),
+                    fork_id: [0; 32],
+                };
+                debug!(
+                    "blockchain request 5 : latest_id: {:?} latest_hash: {:?} fork_id: {:?}",
+                    blockchain.get_latest_block_id(),
+                    blockchain.get_latest_block_hash().to_hex(),
+                    [0; 32]
+                );
+            }
+            debug!(
+                "sending blockchain request to peer : {:?}",
+                public_key.to_base58()
+            );
+        }
+
+        let is_spv_mode = configs.is_spv_mode();
+
+        drop(blockchain);
+        drop(configs);
+
+        network
+            .send_message(
+                public_key,
+                if is_spv_mode {
+                    Message::RequestGhostChain(
+                        request.latest_block_id,
+                        request.latest_block_hash,
+                        request.fork_id,
+                    )
+                } else {
+                    Message::RequestBlockchain(request)
+                },
+            )
+            .await;
+
+        trace!(
+            "blockchain request sent to peer : {:?}",
+            public_key.to_base58()
+        );
+    }
+
     pub async fn fetch_next_blocks(
         &mut self,
         blockchain_lock: Arc<RwLock<Blockchain>>,
@@ -720,18 +1033,33 @@ impl SyncManager {
                     continue;
                 }
 
-                let url;
+                let url: String;
 
                 {
-                    let configs = config_lock.read().await;
                     let peers = network.peer_lock.read().await;
 
                     if let Some(peer) = peers.peers.get(&public_key) {
                         if peer.block_fetch_url.is_empty() {
+                            warn!(
+                                "dropping block fetch: peer {:?} has no fetch URL for block {:?}",
+                                public_key.to_base58(),
+                                hash.to_hex()
+                            );
+                            self.state.remove_entry(*hash);
                             continue;
                         }
-                        url = peer.get_block_fetch_url(*hash, configs.is_spv_mode(), my_public_key);
+
+                        let configs = config_lock.read().await;
+                        let lite = configs.is_spv_mode();
+
+                        url = peer.get_block_fetch_url(*hash, lite, my_public_key);
                     } else {
+                        warn!(
+                            "dropping block fetch: peer {:?} not found for block {:?}",
+                            public_key.to_base58(),
+                            hash.to_hex()
+                        );
+                        self.state.remove_entry(*hash);
                         continue;
                     }
                 }
@@ -742,7 +1070,14 @@ impl SyncManager {
                     .await
                     .is_err()
                 {
-                    // leave state as-is
+                    warn!(
+        "fetch_block_from_peer failed immediately for block {:?}-{:?} from peer {:?}",
+        block_id,
+        hash.to_hex(),
+        public_key.to_base58()
+    );
+
+                    self.state.mark_as_failed(*block_id, *hash, public_key);
                 } else {
                     fetched_blocks.push((public_key, *hash));
                 }
@@ -750,6 +1085,21 @@ impl SyncManager {
         }
 
         work_done
+    }
+
+    pub async fn process_block_fetch_failed_event(
+        &mut self,
+        block_hash: SaitoHash,
+        public_key: SaitoPublicKey,
+        block_id: BlockId,
+        network: &Network,
+        current_time: Timestamp,
+    ) {
+        network
+            .record_failed_block_fetch(public_key, current_time)
+            .await;
+
+        self.state.mark_as_failed(block_id, block_hash, public_key);
     }
 }
 
