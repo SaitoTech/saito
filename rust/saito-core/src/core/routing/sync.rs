@@ -2,7 +2,14 @@ use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
+
+use crate::core::consensus::mempool::Mempool;
+use crate::core::routing::io::interface_io::InterfaceEvent;
+use crate::core::util::configuration::Configuration;
 use crate::core::consensus::blockchain::Blockchain;
+use crate::core::consensus::wallet::Wallet;
+use crate::core::msg::ghost_chain_sync::GhostChainSync;
+use crate::core::routing::io::network::Network;
 use crate::core::routing::peers::peer_collection::PeerCollection;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
@@ -464,6 +471,264 @@ impl BlockchainSyncState {
         } else {
             debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a peer",id,hash.to_hex(),key);
         }
+    }
+}
+
+pub struct SyncManager {
+    pub state: BlockchainSyncState,
+}
+
+impl SyncManager {
+    pub fn new(batch_size: usize) -> Self {
+        Self {
+            state: BlockchainSyncState::new(batch_size),
+        }
+    }
+
+    pub fn get_stats(&self) -> Vec<String> {
+        self.state.get_stats()
+    }
+
+    pub async fn process_incoming_block_hash(
+        &mut self,
+        block_hash: SaitoHash,
+        block_id: u64,
+        public_key: SaitoPublicKey,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        wallet_lock: Arc<RwLock<Wallet>>,
+        network: &Network,
+    ) {
+        debug!(
+            "processing incoming block hash : {:?}-{:?} from peer : {:?}",
+            block_id,
+            block_hash.to_hex(),
+            public_key.to_base58()
+        );
+
+        {
+            let blockchain = blockchain_lock.read().await;
+            if !blockchain.blocks.is_empty() && blockchain.lowest_acceptable_block_id >= block_id {
+                debug!(
+                "skipping block header : {:?}-{:?} from peer : {:?} since our lowest acceptable id : {:?}",
+                block_id,
+                block_hash.to_hex(),
+                public_key.to_base58(),
+                blockchain.lowest_acceptable_block_id
+            );
+                return;
+            }
+            if block_id < std::cmp::max(1, blockchain.genesis_block_id) {
+                debug!(
+                "skipping block header : {:?}-{:?} from peer : {:?} since it's earlier than our genesis block id : {}",
+                block_id,
+                block_hash.to_hex(),
+                public_key.to_base58(),
+                blockchain.genesis_block_id
+            );
+                return;
+            }
+        }
+
+        let wallet = wallet_lock.read().await;
+        let wallet_version = wallet.wallet_version;
+        let core_version = wallet.core_version;
+        drop(wallet);
+
+        match network
+            .should_request_blockchain(public_key, wallet_version, core_version)
+            .await
+        {
+            Some(true) => {
+                // NOTE: we cannot call request_blockchain_from_peer here (still in RoutingThread)
+            }
+            Some(false) => {}
+            None => {
+                warn!(
+                    "couldn't find peer : {:?} for processing block header hash",
+                    public_key.to_base58()
+                );
+            }
+        }
+
+        self.state
+            .add_entry(block_hash, block_id, public_key, network.peer_lock.clone())
+            .await;
+    }
+
+    pub async fn generate_ghost_chain(
+        block_id: u64,
+        fork_id: SaitoHash,
+        blockchain: &Blockchain,
+        peer_key_list: Vec<SaitoPublicKey>,
+    ) -> GhostChainSync {
+        debug!(
+            "generating ghost chain for block_id : {:?} fork_id : {:?}",
+            block_id,
+            fork_id.to_hex()
+        );
+        let mut last_shared_ancestor;
+
+        if block_id == 0 || block_id < blockchain.genesis_block_id {
+            last_shared_ancestor = blockchain.get_latest_block_id().saturating_sub(10);
+        } else {
+            last_shared_ancestor = blockchain.generate_last_shared_ancestor(block_id, fork_id);
+        }
+
+        debug!("last_shared_ancestor 1 : {:?}", last_shared_ancestor);
+
+        debug!(
+            "peer key list: {:?}",
+            peer_key_list
+                .iter()
+                .map(|pk| pk.to_base58())
+                .collect::<Vec<String>>()
+        );
+
+        if last_shared_ancestor == 0 {
+            last_shared_ancestor = std::cmp::max(block_id, blockchain.genesis_block_id);
+        }
+
+        let start = blockchain
+            .blockring
+            .get_longest_chain_block_hash_at_block_id(last_shared_ancestor)
+            .unwrap_or([0; 32]);
+
+        let latest_block_id = blockchain.blockring.get_latest_block_id();
+
+        let sender_only_key_list: Vec<SaitoPublicKey> =
+            peer_key_list.iter().take(1).cloned().collect();
+
+        let mut ghost = GhostChainSync {
+            start,
+            prehashes: vec![],
+            previous_block_hashes: vec![],
+            block_ids: vec![],
+            block_ts: vec![],
+            txs: vec![],
+            gts: vec![],
+        };
+
+        for i in (last_shared_ancestor + 1)..=latest_block_id {
+            if let Some(hash) = blockchain
+                .blockring
+                .get_longest_chain_block_hash_at_block_id(i)
+            {
+                let block = blockchain.get_block(&hash);
+                if let Some(block) = block {
+                    if ghost.start == [0; 32] && ghost.gts.is_empty() {
+                        ghost.start = block.previous_block_hash;
+                    }
+
+                    ghost.gts.push(block.has_golden_ticket);
+                    ghost.block_ts.push(block.timestamp);
+                    ghost.prehashes.push(block.pre_hash);
+                    ghost.previous_block_hashes.push(block.previous_block_hash);
+                    ghost.block_ids.push(block.id);
+
+                    debug!(
+                    "pushing block : {:?} at index : {:?} has txs : {:?} pre_hash : {} prev_block_hash : {}",
+                    block.hash.to_hex(),
+                    i,
+                    block.has_keylist_txs(&peer_key_list),
+                    block.pre_hash.to_hex(),
+                    block.previous_block_hash.to_hex()
+                );
+
+                    debug_assert_eq!(
+                        block.hash,
+                        crate::core::util::crypto::hash(block.serialize_for_hash().as_slice())
+                    );
+
+                    ghost.txs.push(block.has_keylist_txs(&sender_only_key_list));
+                }
+            }
+        }
+
+        ghost
+    }
+
+    pub async fn fetch_next_blocks(
+        &mut self,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        mempool_lock: Arc<RwLock<Mempool>>,
+        network: &Network,
+        wallet_lock: Arc<RwLock<Wallet>>,
+        config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+    ) -> bool {
+        let mut work_done = false;
+
+        {
+            let blockchain = blockchain_lock.read().await;
+            self.state.build_peer_block_picture(&blockchain);
+        }
+
+        let map = self.state.get_blocks_to_fetch_per_peer();
+
+        let fetching_count = self.state.get_fetching_block_count();
+
+        network
+            .io_interface
+            .send_interface_event(InterfaceEvent::BlockFetchStatus(fetching_count as BlockId));
+
+        let mut fetched_blocks: Vec<(SaitoPublicKey, SaitoHash)> = Default::default();
+
+        for (public_key, vec) in map {
+            for (hash, block_id) in vec.iter().rev() {
+                work_done = true;
+
+                let block_exists;
+                let my_public_key;
+
+                {
+                    let blockchain = blockchain_lock.read().await;
+                    if blockchain.is_block_indexed(*hash) {
+                        block_exists = true;
+                    } else {
+                        let mempool = mempool_lock.read().await;
+                        block_exists = mempool.blocks_queue.iter().any(|b| b.hash == *hash);
+                    }
+                }
+
+                {
+                    let wallet = wallet_lock.read().await;
+                    my_public_key = wallet.public_key;
+                }
+
+                if block_exists {
+                    self.state.remove_entry(*hash);
+                    continue;
+                }
+
+                let url;
+
+                {
+                    let configs = config_lock.read().await;
+                    let peers = network.peer_lock.read().await;
+
+                    if let Some(peer) = peers.peers.get(&public_key) {
+                        if peer.block_fetch_url.is_empty() {
+                            continue;
+                        }
+                        url = peer.get_block_fetch_url(*hash, configs.is_spv_mode(), my_public_key);
+                    } else {
+                        continue;
+                    }
+                }
+
+                if network
+                    .io_interface
+                    .fetch_block_from_peer(*hash, public_key, url.as_str(), *block_id)
+                    .await
+                    .is_err()
+                {
+                    // leave state as-is
+                } else {
+                    fetched_blocks.push((public_key, *hash));
+                }
+            }
+        }
+
+        work_done
     }
 }
 

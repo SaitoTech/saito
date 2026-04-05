@@ -4,8 +4,8 @@ pub mod test {
     use crate::core::consensus::blockchain::Blockchain;
     use crate::core::consensus::context::Context;
     use crate::core::consensus::mempool::Mempool;
-    use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
     use crate::core::routing::peers::peer_collection::PeerCollection;
+    use crate::core::routing::sync::SyncManager;
 
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::transaction::Transaction;
@@ -279,7 +279,7 @@ pub mod test {
                     senders_to_verification: vec![sender_to_verification.clone()],
                     last_verification_thread_index: 0,
                     stat_sender: sender_to_stat.clone(),
-                    blockchain_sync_state: BlockchainSyncState::new(10),
+                    sync: SyncManager::new(10),
                     congestion_check_timer: 0,
                     received_ghost_chain: None,
                     waiting_for_genesis_block: false,

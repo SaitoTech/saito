@@ -32,7 +32,7 @@ use saito_core::core::defs::{
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
+use saito_core::core::routing::sync::SyncManager;
 use saito_core::core::routing::io::network::{Network, PeerDisconnectType};
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::io::storage::Storage;
@@ -154,7 +154,7 @@ pub fn new(
             senders_to_verification: vec![sender_to_verification.clone()],
             last_verification_thread_index: 0,
             stat_sender: sender_to_stat.clone(),
-            blockchain_sync_state: BlockchainSyncState::new(block_fetch_batch_size as usize),
+            sync: SyncManager::new(block_fetch_batch_size as usize),
             congestion_check_timer: 0,
             received_ghost_chain: None,
             waiting_for_genesis_block: false,

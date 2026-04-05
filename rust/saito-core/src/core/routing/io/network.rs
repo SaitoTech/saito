@@ -374,9 +374,7 @@ impl Network {
 
             self.io_interface
                 .send_message_to_all(
-                    Message::KeyList(key_list.to_vec())
-                        .serialize()
-                        .as_slice(),
+                    Message::KeyList(key_list.to_vec()).serialize().as_slice(),
                     exclusions,
                 )
                 .await
@@ -535,11 +533,8 @@ impl Network {
         public_key: SaitoPublicKey,
         message: &str,
     ) -> Result<(), Error> {
-        self.send_message(
-            public_key,
-            Message::Disconnect(message.to_string()),
-        )
-        .await;
+        self.send_message(public_key, Message::Disconnect(message.to_string()))
+            .await;
 
         self.io_interface
             .disconnect_from_peer(public_key)
