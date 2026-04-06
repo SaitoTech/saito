@@ -11,7 +11,7 @@ use crate::core::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::msg::message::Message;
 use crate::core::routing::io::interface_io::InterfaceEvent;
 use crate::core::routing::io::network::Network;
-use crate::core::routing::peers::peer_collection::PeerCollection;
+use crate::core::routing::peers::peers::Peers;
 use crate::core::routing_thread::BlockchainSendResults;
 use crate::core::util::configuration::Configuration;
 use ahash::HashMap;
@@ -362,7 +362,7 @@ impl BlockchainSyncState {
         block_hash: SaitoHash,
         block_id: BlockId,
         public_key: SaitoPublicKey,
-        peer_lock: Arc<RwLock<PeerCollection>>,
+        peer_lock: Arc<RwLock<Peers>>,
     ) {
         debug!(
             "adding sync state entry : {:?} - {:?} from {:?}",

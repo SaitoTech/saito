@@ -17,8 +17,9 @@ use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer::Peer;
 use crate::core::routing::peers::peer::PeerStatus;
-use crate::core::routing::peers::peer_collection::PeerCollection;
+use crate::core::routing::peers::peers::Peers;
 use crate::core::routing::peers::peer_service::PeerService;
+use crate::core::routing::peers::peerv2::PeerV2;
 use crate::core::util::configuration::Configuration;
 
 #[derive(Debug)]
@@ -32,7 +33,7 @@ pub enum PeerDisconnectType {
 // #[derive(Debug)]
 pub struct Network {
     // TODO : manage peers from network
-    pub peer_lock: Arc<RwLock<PeerCollection>>,
+    pub peer_lock: Arc<RwLock<Peers>>,
     pub io_interface: Box<dyn InterfaceIO + Send + Sync>,
     pub wallet_lock: Arc<RwLock<Wallet>>,
     pub timer: Timer,
@@ -41,7 +42,7 @@ pub struct Network {
 impl Network {
     pub fn new(
         io_handler: Box<dyn InterfaceIO + Send + Sync>,
-        peer_lock: Arc<RwLock<PeerCollection>>,
+        peer_lock: Arc<RwLock<Peers>>,
         wallet_lock: Arc<RwLock<Wallet>>,
         timer: Timer,
     ) -> Network {
@@ -152,6 +153,10 @@ impl Network {
                 public_key.to_base58()
             );
         }
+
+        if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
+            peer_v2.on_transaction_received(timestamp);
+        }
     }
 
     pub async fn record_failed_block_fetch(
@@ -166,8 +171,11 @@ impl Network {
 
     pub async fn record_incoming_message(&self, public_key: SaitoPublicKey, timestamp: Timestamp) {
         let mut peers = self.peer_lock.write().await;
-
         peers.add_congestion_event(public_key, CongestionType::IncomingMessages, timestamp);
+        // PEER V2 REFACTO
+        if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
+            peer_v2.on_message_received(timestamp);
+        }
     }
 
     pub async fn add_peer(
@@ -198,6 +206,10 @@ impl Network {
 
             let mut peer = Peer::new(public_key);
 
+            // PEER V2 REFACTOR
+            let peer_id = current_time; // temporary unique id
+            let mut peer_v2 = PeerV2::new(peer_id);
+
             if let Err(err) = peer
                 .handle_new_peer(network_peer, wallet_lock, &self.io_interface, current_time)
                 .await
@@ -210,11 +222,15 @@ impl Network {
                 return None;
             }
 
+            // PEER V2 REFACTOR
+            peer_v2.on_handshake_complete(public_key, current_time);
+
             peers.add_congestion_event(public_key, CongestionType::PeerConnections, current_time);
 
             info!("adding new peer : {}", public_key.to_base58());
 
             peers.peers.insert(public_key, peer);
+            peers.peers_v2.insert(peer_id, peer_v2);
         }
 
         Some(public_key)
@@ -400,6 +416,10 @@ impl Network {
                 public_key.to_base58()
             );
         }
+
+        if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
+            peer_v2.on_block_received(timestamp);
+        }
     }
 
     pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
@@ -507,6 +527,10 @@ impl Network {
             peer.mark_as_disconnected(self.timer.get_timestamp_in_ms());
         } else {
             error!("unknown peer : {:?} disconnected", public_key.to_base58());
+        }
+
+        if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
+            peer_v2.on_disconnect(self.timer.get_timestamp_in_ms());
         }
     }
 
