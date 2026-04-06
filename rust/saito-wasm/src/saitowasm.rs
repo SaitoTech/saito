@@ -36,7 +36,7 @@ use saito_core::core::routing::io::network::{Network, PeerDisconnectType};
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
-use saito_core::core::routing::peers::peer_collection::PeerCollection;
+use saito_core::core::routing::peers::peers::Peers;
 use saito_core::core::routing::sync::SyncManager;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
@@ -103,7 +103,7 @@ pub fn new(
         panic!("cannot continue");
     }
 
-    let peers = Arc::new(RwLock::new(PeerCollection::default()));
+    let peers = Arc::new(RwLock::new(Peers::default()));
     let context = Context {
         blockchain_lock: Arc::new(RwLock::new(Blockchain::new(
             wallet.clone(),
@@ -1284,13 +1284,13 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
 mod tests {
     use super::*;
     use saito_core::core::routing::peers::peer::{Peer, PeerStatus};
-    use saito_core::core::routing::peers::peer_collection::PeerCollection;
+    use saito_core::core::routing::peers::peers::Peers;
     use saito_core::core::util::crypto::generate_keys;
 
     /*
         #[test]
         fn get_peers_only_returns_connected_peers() {
-            let mut peers = PeerCollection::default();
+            let mut peers = Peers::default();
             let connected_key = generate_keys().0;
             let disconnected_key = generate_keys().0;
 

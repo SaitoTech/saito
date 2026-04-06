@@ -37,7 +37,7 @@ use saito_core::core::routing::io::network::PeerDisconnectType;
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::peers::io_event::IoEvent;
 use saito_core::core::routing::peers::network_peer::NetworkPeer;
-use saito_core::core::routing::peers::peer_collection::PeerCollection;
+use saito_core::core::routing::peers::peers::Peers;
 use saito_core::core::routing::peers::peer_service::PeerService;
 use saito_core::core::util::configuration::Configuration;
 
@@ -766,7 +766,7 @@ pub async fn run_network_controller(
     configs_lock: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
     _blockchain_lock: Arc<RwLock<Blockchain>>,
     sender_to_stat: Sender<StatEvent>,
-    peers_lock: Arc<RwLock<PeerCollection>>,
+    peers_lock: Arc<RwLock<Peers>>,
     sender_to_network: Sender<IoEvent>,
     timer: &Timer,
     wallet: Arc<RwLock<Wallet>>,
@@ -975,7 +975,7 @@ fn run_websocket_server(
     port: u16,
     host: String,
     public_key: SaitoPublicKey,
-    peers_lock: Arc<RwLock<PeerCollection>>,
+    peers_lock: Arc<RwLock<Peers>>,
     wallet: Arc<RwLock<Wallet>>,
     configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
     timer: &Timer,
@@ -1086,7 +1086,7 @@ fn run_websocket_server(
             .and_then(
                 move |block_hash: String,
                       key: Option<String>,
-                      peer_lock: Arc<RwLock<PeerCollection>>| async move {
+                      peer_lock: Arc<RwLock<Peers>>| async move {
                     // debug!("serving lite block : {:?}", block_hash);
 
                     let key1;

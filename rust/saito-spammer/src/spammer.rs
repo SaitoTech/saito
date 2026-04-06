@@ -14,14 +14,14 @@ use saito_core::core::defs::Currency;
 use saito_core::core::msg::message::Message;
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::peers::io_event::IoEvent;
-use saito_core::core::routing::peers::peer_collection::PeerCollection;
+use saito_core::core::routing::peers::peers::Peers;
 
 use crate::config_handler::SpammerConfigs;
 use crate::transaction_generator::{GeneratorState, TransactionGenerator};
 
 pub struct Spammer {
     sender_to_network: Sender<IoEvent>,
-    // peer_lock: Arc<RwLock<PeerCollection>>,
+    // peer_lock: Arc<RwLock<Peers>>,
     config_lock: Arc<RwLock<SpammerConfigs>>,
     bootstrap_done: bool,
     // sent_tx_count: u64,
@@ -31,7 +31,7 @@ pub struct Spammer {
 impl Spammer {
     pub async fn new(
         wallet_lock: Arc<RwLock<Wallet>>,
-        peers_lock: Arc<RwLock<PeerCollection>>,
+        peers_lock: Arc<RwLock<Peers>>,
         blockchain_lock: Arc<RwLock<Blockchain>>,
         sender_to_network: Sender<IoEvent>,
         sender: Sender<VecDeque<Transaction>>,
@@ -171,7 +171,7 @@ impl Spammer {
 
 pub async fn run_spammer(
     wallet_lock: Arc<RwLock<Wallet>>,
-    peers_lock: Arc<RwLock<PeerCollection>>,
+    peers_lock: Arc<RwLock<Peers>>,
     blockchain_lock: Arc<RwLock<Blockchain>>,
     sender_to_network: Sender<IoEvent>,
     configs_lock: Arc<RwLock<SpammerConfigs>>,

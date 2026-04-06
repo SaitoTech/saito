@@ -19,7 +19,7 @@ use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::routing::peers::congestion_controller::CongestionType;
-use crate::core::routing::peers::peer_collection::PeerCollection;
+use crate::core::routing::peers::peers::Peers;
 
 use super::stat_thread::StatEvent;
 
@@ -33,7 +33,7 @@ pub enum VerifyRequest {
 pub struct VerificationThread {
     pub sender_to_consensus: Sender<ConsensusEvent>,
     pub blockchain_lock: Arc<RwLock<Blockchain>>,
-    pub peer_lock: Arc<RwLock<PeerCollection>>,
+    pub peer_lock: Arc<RwLock<Peers>>,
     pub wallet_lock: Arc<RwLock<Wallet>>,
     pub processed_txs: StatVariable,
     pub processed_blocks: StatVariable,
