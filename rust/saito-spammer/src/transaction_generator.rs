@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use log::{debug, info};
-use rayon::prelude::*;
 use saito_core::core::routing::peers::peer::PeerStatus;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;

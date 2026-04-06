@@ -199,28 +199,10 @@ impl NetworkPeer {
                 response.public_key.to_base58()
             );
             return Ok(Some(response_new));
-            // io_handler
-            //     .send_message(
-            //         self.index,
-            //         Message::HandshakeResponse(response).serialize().as_slice(),
-            //     )
-            //     .await?;
-            // debug!("second handshake response sent for peer: {:?}", self.index);
         }
         self.challenge = None;
 
         return Ok(None);
-        // io_handler
-        //     .send_message_to_all(
-        //         Message::KeyListUpdate(wallet.key_list.to_vec())
-        //             .serialize()
-        //             .as_slice(),
-        //         vec![],
-        //     )
-        //     .await
-        //     .unwrap();
-        //
-        // io_handler.send_interface_event(InterfaceEvent::PeerHandshakeComplete(self.index));
     }
     pub async fn process_incoming_buffer<F2, S>(
         &mut self,
@@ -245,7 +227,7 @@ impl NetworkPeer {
                 error!("connected peer has no public key set; skipping message dispatch");
                 return Err(Error::from(ErrorKind::InvalidData));
             };
-            send_event(NetworkEvent::IncomingNetworkMessage { public_key, buffer }).await;
+            send_event(NetworkEvent::PeerMessageReceived { public_key, buffer }).await;
             Ok(vec![])
         } else {
             if self.challenge.is_some() {

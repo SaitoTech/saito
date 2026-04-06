@@ -4,8 +4,8 @@ pub mod test {
     use crate::core::consensus::blockchain::Blockchain;
     use crate::core::consensus::context::Context;
     use crate::core::consensus::mempool::Mempool;
-    use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
     use crate::core::routing::peers::peer_collection::PeerCollection;
+    use crate::core::routing::sync::SyncManager;
 
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::transaction::Transaction;
@@ -93,7 +93,7 @@ pub mod test {
             self.browser_mode
         }
 
-        fn replace(&mut self, config: &dyn Configuration) {
+        fn replace(&mut self, _config: &dyn Configuration) {
             todo!()
         }
 
@@ -114,7 +114,7 @@ pub mod test {
 
         fn set_congestion_data(
             &mut self,
-            congestion_data: Option<
+            _congestion_data: Option<
                 crate::core::routing::peers::congestion_controller::CongestionStatsDisplay,
             >,
         ) {
@@ -128,7 +128,7 @@ pub mod test {
             String::new()
         }
 
-        fn set_config_path(&mut self, path: String) {}
+        fn set_config_path(&mut self, _path: String) {}
 
         fn save(&self) -> Result<(), Error> {
             Ok(())
@@ -279,7 +279,7 @@ pub mod test {
                     senders_to_verification: vec![sender_to_verification.clone()],
                     last_verification_thread_index: 0,
                     stat_sender: sender_to_stat.clone(),
-                    blockchain_sync_state: BlockchainSyncState::new(10),
+                    sync: SyncManager::new(10),
                     congestion_check_timer: 0,
                     received_ghost_chain: None,
                     waiting_for_genesis_block: false,
@@ -659,7 +659,7 @@ pub mod test {
             &self,
             _parent_hash: SaitoHash,
             _tx_count: u32,
-            fee_amount: Currency,
+            _fee_amount: Currency,
             _with_gt: bool,
         ) -> Result<Block, Error> {
             todo!()

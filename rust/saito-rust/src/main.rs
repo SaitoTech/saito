@@ -35,12 +35,12 @@ use saito_core::core::defs::{
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::process::keep_time::{KeepTime, Timer};
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
 use saito_core::core::routing::io::network::Network;
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::routing::peers::io_event::IoEvent;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
+use saito_core::core::routing::sync::SyncManager;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
 use saito_core::core::util::configuration::Configuration;
@@ -278,7 +278,7 @@ async fn run_routing_event_processor(
         senders_to_verification: senders,
         last_verification_thread_index: 0,
         stat_sender: sender_to_stat.clone(),
-        blockchain_sync_state: BlockchainSyncState::new(fetch_batch_size),
+        sync: SyncManager::new(fetch_batch_size),
         congestion_check_timer: 0,
         received_ghost_chain: None,
         waiting_for_genesis_block: false,
@@ -521,12 +521,12 @@ async fn run_node(
         let mut configs = configs_lock.write().await;
 
         if let Some(wallet) = configs.get_wallet_configs_mut() {
-            if !wallet.privateKey.is_empty() {
-                private_key = SaitoPrivateKey::from_hex(wallet.privateKey.as_str())
+            if !wallet.private_key.is_empty() {
+                private_key = SaitoPrivateKey::from_hex(wallet.private_key.as_str())
                     .expect("invalid private key");
 
-                if !wallet.publicKey.is_empty() {
-                    public_key = SaitoPublicKey::from_base58(wallet.publicKey.as_str())
+                if !wallet.public_key.is_empty() {
+                    public_key = SaitoPublicKey::from_base58(wallet.public_key.as_str())
                         .expect("invalid public key");
                     info!(
                         "found public key as : {} in Wallet Configs",
@@ -535,8 +535,8 @@ async fn run_node(
                 }
             } else {
                 if let Some(wallet) = configs.get_wallet_configs_mut() {
-                    wallet.privateKey = private_key.to_hex();
-                    wallet.publicKey = public_key.to_base58();
+                    wallet.private_key = private_key.to_hex();
+                    wallet.public_key = public_key.to_base58();
                 }
             }
         } else {

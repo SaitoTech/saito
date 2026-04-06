@@ -16,13 +16,13 @@ use saito_core::core::defs::{
 use saito_core::core::process::version::Version;
 use saito_core::core::routing::io::network::Network;
 use saito_core::core::routing::io::storage::Storage;
+use saito_core::core::routing_thread::RoutingEvent;
 
 use crate::saitowasm::{string_array_to_base58_keys, string_to_hex, SAITO};
 use crate::wasm_io_handler::WasmIoHandler;
 use crate::wasm_transaction::WasmTransaction;
 
 use hex;
-use saito_core::core::util::configuration::Configuration;
 use std::convert::TryInto;
 
 /// Parse a hex string into a fixed-size UTXO set key
@@ -135,7 +135,7 @@ impl WasmWallet {
 
     #[wasm_bindgen(js_name = getWalletVersion)]
     pub async fn get_wallet_version(&self) -> js_sys::Object {
-        let mut wallet = self.wallet.write().await;
+        let wallet = self.wallet.write().await;
         let version = &wallet.wallet_version;
         let obj = js_sys::Object::new();
 
@@ -221,7 +221,11 @@ impl WasmWallet {
 
         let mut saito = SAITO.lock().await;
         if let Some(saito) = saito.as_mut() {
-            saito.routing_thread.set_my_key_list(key_list).await;
+            let _ = saito
+                .consensus_thread
+                .sender_to_router
+                .send(RoutingEvent::KeyListUpdated(key_list))
+                .await;
         } else {
             error!("set_key_list called before runtime is initialized");
         }
