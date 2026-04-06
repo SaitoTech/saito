@@ -21,8 +21,8 @@ use crate::core::routing::io::storage::Storage;
 use crate::core::routing::peers::congestion_controller::{
     CongestionStatsDisplay, PeerCongestionControls,
 };
-use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer::PeerStatus;
+use crate::core::routing::peers::peerv2::PeerV2;
 use crate::core::routing::sync::SyncManager;
 use crate::core::util;
 use crate::core::util::config_manager::ConfigManager;
@@ -130,7 +130,7 @@ pub struct RoutingThread {
     pub received_ghost_chain: Option<(GhostChainSync, SaitoPublicKey)>,
     pub waiting_for_genesis_block: bool,
     pub blockchain_send_results: Vec<BlockchainSendResults>,
-    pub new_peers: Vec<NetworkPeer>,
+    pub new_peers: Vec<PeerV2>,
 }
 
 impl RoutingThread {
@@ -670,7 +670,7 @@ impl RoutingThread {
     async fn process_new_peer_timer_event(&mut self) -> bool {
         let mut work_done = false;
 
-        let peers = self.new_peers.drain(..).collect::<Vec<_>>();
+        let peers = self.new_peers.drain(..).collect::<Vec<PeerV2>>();
         for network_peer in peers {
             let time = self.timer.get_timestamp_in_ms();
 
@@ -1240,7 +1240,6 @@ mod tests {
     use crate::core::routing::peers::congestion_controller::{
         CongestionStatsDisplay, PeerCongestionControls,
     };
-    use crate::core::routing::peers::network_peer::NetworkPeer;
     use crate::core::routing::peers::peer::{Peer, PeerStatus};
     use crate::core::routing_thread::RoutingThread;
     use crate::core::util::config_manager::CONGESTION_CONFIG_PATH;

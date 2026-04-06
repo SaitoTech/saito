@@ -3,8 +3,8 @@ use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp, WS_KE
 use crate::core::msg::message::Message;
 use crate::core::process::version::Version;
 use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer_service::PeerService;
+use crate::core::routing::peers::peerv2::PeerV2;
 use crate::core::util::configuration::Endpoint;
 use log::{debug, error, info, trace};
 use serde::Serialize;
@@ -126,7 +126,7 @@ impl Peer {
 
     pub async fn handle_new_peer(
         &mut self,
-        peer: NetworkPeer,
+        peer: PeerV2,
         wallet_lock: Arc<RwLock<Wallet>>,
         io_handler: &Box<dyn InterfaceIO + Send + Sync>,
         current_time: Timestamp,

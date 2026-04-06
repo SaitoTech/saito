@@ -354,12 +354,13 @@ impl BlockchainSyncState {
             let peers = peer_lock.read().await;
             debug!("block : {:?}-{:?} is requested without a peer. request the block from all the peers", block_id,block_hash.to_hex());
 
-            for (index, peer) in peers.peers.iter() {
+            for peer in peers.iter() {
                 if peer.block_fetch_url.is_empty() {
                     continue;
                 }
+
                 self.received_block_picture
-                    .entry(*index)
+                    .entry(peer.get_public_key())
                     .or_default()
                     .push_back((block_id, block_hash));
             }
@@ -705,12 +706,13 @@ impl SyncManager {
 
         {
             let mut peers = network.peer_lock.write().await;
-            if let Some(peer) = peers.peers.get_mut(&public_key) {
-                if peer.requested_blockchain_from_us {
+
+            if let Some(peer) = peers.get_peer_by_public_key_mut(&public_key) {
+                if peer.requested_blocks_from_us {
                     info!("peer : {:?} already requested the blockchain from us once. Not processing this request again until a reconnection", public_key.to_base58());
                     return Ok(());
                 }
-                peer.requested_blockchain_from_us = true;
+                peer.requested_blocks_from_us = true;
             } else {
                 error!(
                     "Cannot find the peer : {} to process the incoming blockchain request",
@@ -827,12 +829,12 @@ impl SyncManager {
 
         {
             let mut peers = network.peer_lock.write().await;
-            if let Some(peer) = peers.peers.get_mut(&public_key) {
-                if peer.requested_blockchain_from_peer {
+            if let Some(peer) = peers.get_peer_by_public_key_mut(&public_key) {
+                if peer.requested_blocks_from_peer {
                     info!("we already requested blockchain from peer : {}. so not requesting again until a reconnection",public_key.to_base58());
                     return;
                 }
-                peer.requested_blockchain_from_peer = true;
+                peer.requested_blocks_from_peer = true;
             } else {
                 warn!(
                     "Cannot request blockchain from non existent peer : {}",
@@ -1017,7 +1019,7 @@ impl SyncManager {
                 {
                     let peers = network.peer_lock.read().await;
 
-                    if let Some(peer) = peers.peers.get(&public_key) {
+                    if let Some(peer) = peers.get_peer_by_public_key(&public_key) {
                         if peer.block_fetch_url.is_empty() {
                             warn!(
                                 "dropping block fetch: peer {:?} has no fetch URL for block {:?}",
