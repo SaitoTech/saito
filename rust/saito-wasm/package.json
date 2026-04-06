@@ -1,6 +1,15 @@
 {
   "name": "saito-wasm",
   "version": "0.2.11",
+  "files": [
+    "pkg/web/**/*",
+    "pkg/node/**/*",
+    "package.json",
+    "Cargo.toml",
+    "tsconfig.json",
+    "webpack.config.js",
+    "webpack.prod.config.js"
+  ],
   "description": "js wrappings around saito-core using wasm",
   "repository": {
     "type": "git",
