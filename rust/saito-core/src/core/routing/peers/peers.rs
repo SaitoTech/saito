@@ -1,3 +1,4 @@
+use super::peerv2::PeerV2;
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
 use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::congestion_controller::{
@@ -26,7 +27,7 @@ const PEER_STALE_PERIOD: Timestamp = Duration::from_secs(30).as_millis() as Time
 // }
 
 #[derive(Debug, Default)]
-pub struct PeerCollection {
+pub struct Peers {
     // pub index_to_peers: HashMap<PeerIndex, Peer>,
     // #[serde(skip)]
     pub peers: HashMap<SaitoPublicKey, Peer>,
@@ -44,25 +45,49 @@ pub struct PeerCollection {
     // if a peer connects with the same key as an existing peer, we store the received handshake here and then check if the old peer is still connected. if the old peer is unresponsive, we continue with the new peer.
     // if the old peer is still there, we discard the new peer
     // pub pending_handshake_responses: Vec<(PeerIndex, PeerIndex, HandshakeResponse, Timestamp)>,
+    // PEER V2 REFACTOR
+    pub peers_v2: HashMap<u64, PeerV2>,
 }
 
-impl PeerCollection {
-    // pub async fn initialize_static_peers(&mut self, configs: &(dyn Configuration + Send + Sync)) {
-    //     // TODO : can create a new disconnected peer with a is_static flag set. so we don't need to keep the static peers separately
-    //     configs
-    //         .get_peer_configs()
-    //         .clone()
-    //         .drain(..)
-    //         .for_each(|config| {
-    //             let mut peer = Peer::new(self.peer_counter.get_next_index());
+impl Peers {
     //
-    //             peer.static_peer_config = Some(config);
+    // PEER V2 REFACTOR API
     //
-    //             self.peers.insert(peer.index, peer);
-    //         });
-    //     todo!();
-    //     info!("added {:?} static peers", self.peers.len());
-    // }
+    pub fn get_peer_by_public_key_mut(
+        &mut self,
+        public_key: &SaitoPublicKey,
+    ) -> Option<&mut PeerV2> {
+        self.peers_v2
+            .values_mut()
+            .find(|p| p.public_key.as_ref() == Some(public_key))
+    }
+
+    pub fn get_peer_by_id_mut(&mut self, peer_id: u64) -> Option<&mut PeerV2> {
+        self.peers_v2.get_mut(&peer_id)
+    }
+
+    pub fn get_peer_by_public_key(&self, public_key: &SaitoPublicKey) -> Option<&PeerV2> {
+        self.peers_v2
+            .values()
+            .find(|p| p.public_key.as_ref() == Some(public_key))
+    }
+
+    pub fn get_peer_by_id(&self, peer_id: u64) -> Option<&PeerV2> {
+        self.peers_v2.get(&peer_id)
+    }
+
+    pub fn remove_peer_by_public_key(&mut self, public_key: &SaitoPublicKey) {
+        if let Some(peer_id) = self.peers_v2.iter().find_map(|(id, p)| {
+            if p.public_key.as_ref() == Some(public_key) {
+                Some(*id)
+            } else {
+                None
+            }
+        }) {
+            self.peers_v2.remove(&peer_id);
+        }
+    }
+
     pub async fn process_peer_services(
         &mut self,
         services: Vec<PeerService>,
@@ -96,8 +121,16 @@ impl PeerCollection {
             return;
         }
         let mut peer = Peer::new_stun(public_key, io_handler.as_ref());
+
+        // PEER V2 REFACTOR
+        let peer_id = current_time;
+        let mut peer_v2 = PeerV2::new(peer_id);
+        peer_v2.on_stun_connect(public_key, current_time);
+
         peer.last_msg_received_at = current_time;
         self.peers.insert(public_key, peer);
+        self.peers_v2.insert(peer_id, peer_v2);
+
         debug!("STUN peer added successfully");
 
         io_handler.send_interface_event(InterfaceEvent::StunPeerConnected(public_key));
@@ -106,19 +139,6 @@ impl PeerCollection {
         if let Some(peer) = self.peers.get_mut(&public_key) {
             peer.last_msg_received_at = current_time;
         }
-
-        // if peer.public_key.is_none() {
-        //     return;
-        // }
-        // let peer_public_key = peer.public_key.unwrap();
-
-        // if we receive any messages from an old peer while a new peer is pending, we remove the pending peer
-        // self.pending_handshake_responses
-        //     .retain(|(new_public_key, _, response, _)| {
-        //         !(response.public_key == peer_public_key
-        //             // we check this peer index check to make sure we aren't removing the pending peer from any message sent by itself
-        //             && *new_public_key != public_key)
-        //     });
     }
     pub async fn handle_received_key_list(
         &mut self,
@@ -149,11 +169,6 @@ impl PeerCollection {
             peer.key_list = key_list;
             Ok(())
         } else {
-            // error!(
-            //     "peer not found for index : {:?}. cannot handle received key list",
-            //     public_key.to_base58()
-            // );
-            // Err(Error::from(ErrorKind::NotFound))
             Ok(())
         }
     }
@@ -176,11 +191,15 @@ impl PeerCollection {
                 public_key.to_base58()
             );
         }
+
+        self.remove_peer_by_public_key(&public_key);
     }
 
     pub fn remove_reconnected_peer(&mut self, public_key: &SaitoPublicKey) -> Option<Peer> {
         let peer = self.peers.remove(public_key)?;
         self.peers.remove(&peer.public_key);
+        self.remove_peer_by_public_key(&public_key);
+
         debug!(
             "removed reconnected peer : {:?} with key : {:?}. current peer count : {:?}",
             public_key,
@@ -225,42 +244,66 @@ impl PeerCollection {
                     public_key.to_base58()
                 );
             }
+            self.remove_peer_by_public_key(&public_key);
         }
     }
 
-    pub async fn disconnect_stale_peers(
-        &mut self,
-        current_time: Timestamp,
-        io_handler: &(dyn InterfaceIO + Send + Sync),
-    ) {
-        trace!(
-            "disconnecting stale peers out of {:?} peers",
-            self.peers.len()
-        );
-        for peer in self.peers.values_mut() {
-            if let PeerStatus::Connected = peer.peer_status {
-                trace!(
-                    "checking connected peer for staleness : {:?}",
-                    peer.public_key.to_base58()
-                );
-                if peer.last_msg_received_at + PEER_STALE_PERIOD < current_time {
-                    info!(
-                        "disconnecting stale peer : {:?} since we didn't receive msgs for {:?} seconds",
-                        peer.public_key.to_base58(),
-                        (current_time - peer.last_msg_received_at) / 1000
-                        );
-                    peer.mark_as_disconnected(current_time);
-                    if let Err(err) = io_handler.disconnect_from_peer(peer.public_key).await {
-                        error!(
-                            "failed disconnecting stale peer {:?}: {:?}",
-                            peer.public_key.to_base58(),
-                            err
-                        );
-                    }
-                }
+
+pub async fn disconnect_stale_peers(
+    &mut self,
+    current_time: Timestamp,
+    io_handler: &(dyn InterfaceIO + Send + Sync),
+) {
+    trace!(
+        "disconnecting stale peers out of {:?} peers",
+        self.peers.len()
+    );
+
+    // --- Phase 1: collect stale peers (no mutation) ---
+    let mut stale_peers: Vec<SaitoPublicKey> = Vec::new();
+
+    for peer in self.peers.values() {
+        if let PeerStatus::Connected = peer.peer_status {
+            trace!(
+                "checking connected peer for staleness : {:?}",
+                peer.public_key.to_base58()
+            );
+
+            if peer.last_msg_received_at + PEER_STALE_PERIOD < current_time {
+                stale_peers.push(peer.public_key);
             }
         }
     }
+
+    // --- Phase 2: apply mutations ---
+    for public_key in stale_peers {
+        info!(
+            "disconnecting stale peer : {:?} since we didn't receive msgs for {:?} seconds",
+            public_key.to_base58(),
+            (current_time - self.peers.get(&public_key).map(|p| p.last_msg_received_at).unwrap_or(current_time)) / 1000
+        );
+
+        // Update legacy Peer
+        if let Some(peer) = self.peers.get_mut(&public_key) {
+            peer.mark_as_disconnected(current_time);
+        }
+
+        // Update PeerV2
+        if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {
+            peer_v2.on_disconnect(current_time);
+        }
+
+        // IO disconnect (no borrow conflict now)
+        if let Err(err) = io_handler.disconnect_from_peer(public_key).await {
+            error!(
+                "failed disconnecting stale peer {:?}: {:?}",
+                public_key.to_base58(),
+                err
+            );
+        }
+    }
+}
+
 
     pub fn add_congestion_event(
         &mut self,
@@ -507,7 +550,7 @@ mod tests {
     #[tokio::test]
     async fn disconnect_stale_peers_marks_peer_disconnected_when_io_fails() {
         let public_key = [5; 33];
-        let mut collection = PeerCollection::default();
+        let mut collection = Peers::default();
         let mut peer = Peer::new(public_key);
         peer.peer_status = PeerStatus::Connected;
         peer.last_msg_received_at = 0;
@@ -534,7 +577,7 @@ mod tests {
     #[test]
     fn remove_disconnected_peers_removes_old_dynamic_peers() {
         let public_key = [9; 33];
-        let mut collection = PeerCollection::default();
+        let mut collection = Peers::default();
         let mut peer = Peer::new(public_key);
         peer.disconnected_at = 1;
         collection.peers.insert(public_key, peer);
