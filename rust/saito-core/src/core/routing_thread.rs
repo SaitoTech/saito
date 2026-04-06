@@ -1229,6 +1229,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::routing::sync::SyncManager;
     use crate::core::consensus::transaction::Transaction;
     use crate::core::defs::SaitoPublicKey;
     use crate::core::defs::Timestamp;
@@ -1575,7 +1576,7 @@ mod tests {
             let fork_id = tester.get_fork_id(50).await;
             let blockchain = tester.routing_thread.blockchain_lock.read().await;
 
-            let ghost_chain = RoutingThread::generate_ghost_chain(
+            let ghost_chain = SyncManager::generate_ghost_chain(
                 50,
                 fork_id,
                 &blockchain,
@@ -1610,7 +1611,7 @@ mod tests {
             let block_id = 101;
             let fork_id = tester.get_fork_id(block_id).await;
             let blockchain = tester.routing_thread.blockchain_lock.read().await;
-            let ghost_chain = RoutingThread::generate_ghost_chain(
+            let ghost_chain = SyncManager::generate_ghost_chain(
                 block_id,
                 fork_id,
                 &blockchain,
@@ -1669,7 +1670,7 @@ mod tests {
         // flagged for fetching.
         {
             let blockchain = tester.routing_thread.blockchain_lock.read().await;
-            let ghost_chain = RoutingThread::generate_ghost_chain(
+            let ghost_chain = SyncManager::generate_ghost_chain(
                 peer_block_id,
                 peer_fork_id,
                 &blockchain,
@@ -1691,7 +1692,7 @@ mod tests {
         // filter for all blocks.
         {
             let blockchain = tester.routing_thread.blockchain_lock.read().await;
-            let ghost_chain = RoutingThread::generate_ghost_chain(
+            let ghost_chain = SyncManager::generate_ghost_chain(
                 peer_block_id,
                 peer_fork_id,
                 &blockchain,
@@ -1744,7 +1745,7 @@ mod tests {
 
         let result = tester
             .routing_thread
-            .process_network_event(NetworkEvent::IncomingNetworkMessage {
+            .process_network_event(NetworkEvent::PeerMessageReceived {
                 public_key,
                 buffer: vec![255, 0, 1],
             })
@@ -1801,6 +1802,7 @@ mod tests {
         let config_lock = tester.routing_thread.config_lock.clone();
         tester
             .routing_thread
+            .network
             .initialize_static_peers(config_lock)
             .await;
 

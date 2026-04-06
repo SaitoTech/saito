@@ -1085,9 +1085,9 @@ impl SyncManager {
 #[cfg(test)]
 mod tests {
     use crate::core::defs::BlockId;
-    use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
     use crate::core::util::test::test_manager::test::TestManager;
     use std::ops::Deref;
+    use super::BlockchainSyncState;
 
     #[tokio::test]
     #[serial_test::serial]
