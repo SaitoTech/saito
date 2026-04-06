@@ -672,7 +672,13 @@ impl RoutingThread {
         drop(configs);
         self.refresh_sync_fetch_floor().await;
     }
+    async fn refresh_sync_fetch_floor(&self) {
+        let sync_fetch_floor_block_id =
+            self.sync.state.get_sync_fetch_floor_block_id().unwrap_or(0);
 
+        let mut blockchain = self.blockchain_lock.write().await;
+        blockchain.sync_fetch_floor_block_id = sync_fetch_floor_block_id;
+    }
     async fn process_new_peer_timer_event(&mut self) -> bool {
         let mut work_done = false;
 
@@ -1249,6 +1255,7 @@ mod tests {
     };
     use crate::core::routing::peers::network_peer::NetworkPeer;
     use crate::core::routing::peers::peer::{Peer, PeerStatus};
+    use crate::core::routing::sync::SyncManager;
     use crate::core::routing_thread::RoutingThread;
     use crate::core::util::config_manager::CONGESTION_CONFIG_PATH;
     use crate::core::util::configuration::{
@@ -1582,13 +1589,9 @@ mod tests {
             let fork_id = tester.get_fork_id(50).await;
             let blockchain = tester.routing_thread.blockchain_lock.read().await;
 
-            let ghost_chain = RoutingThread::generate_ghost_chain(
-                50,
-                fork_id,
-                &blockchain,
-                vec![peer_public_key],
-            )
-            .await;
+            let ghost_chain =
+                SyncManager::generate_ghost_chain(50, fork_id, &blockchain, vec![peer_public_key])
+                    .await;
 
             assert_eq!(ghost_chain.block_ids.len(), 50);
             assert_eq!(ghost_chain.block_ts.len(), 50);
@@ -1617,7 +1620,7 @@ mod tests {
             let block_id = 101;
             let fork_id = tester.get_fork_id(block_id).await;
             let blockchain = tester.routing_thread.blockchain_lock.read().await;
-            let ghost_chain = RoutingThread::generate_ghost_chain(
+            let ghost_chain = SyncManager::generate_ghost_chain(
                 block_id,
                 fork_id,
                 &blockchain,
@@ -1676,7 +1679,7 @@ mod tests {
         // flagged for fetching.
         {
             let blockchain = tester.routing_thread.blockchain_lock.read().await;
-            let ghost_chain = RoutingThread::generate_ghost_chain(
+            let ghost_chain = SyncManager::generate_ghost_chain(
                 peer_block_id,
                 peer_fork_id,
                 &blockchain,
@@ -1698,7 +1701,7 @@ mod tests {
         // filter for all blocks.
         {
             let blockchain = tester.routing_thread.blockchain_lock.read().await;
-            let ghost_chain = RoutingThread::generate_ghost_chain(
+            let ghost_chain = SyncManager::generate_ghost_chain(
                 peer_block_id,
                 peer_fork_id,
                 &blockchain,
@@ -1751,7 +1754,7 @@ mod tests {
 
         let result = tester
             .routing_thread
-            .process_network_event(NetworkEvent::IncomingNetworkMessage {
+            .process_network_event(NetworkEvent::PeerMessageReceived {
                 public_key,
                 buffer: vec![255, 0, 1],
             })
@@ -1808,6 +1811,7 @@ mod tests {
         let config_lock = tester.routing_thread.config_lock.clone();
         tester
             .routing_thread
+            .network
             .initialize_static_peers(config_lock)
             .await;
 

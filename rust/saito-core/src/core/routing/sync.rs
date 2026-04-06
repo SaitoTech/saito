@@ -1105,8 +1105,8 @@ impl SyncManager {
 
 #[cfg(test)]
 mod tests {
+    use super::BlockchainSyncState;
     use crate::core::defs::BlockId;
-    use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
     use crate::core::util::test::test_manager::test::TestManager;
     use std::ops::Deref;
 
