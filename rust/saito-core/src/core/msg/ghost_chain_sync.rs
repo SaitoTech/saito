@@ -1,5 +1,7 @@
 use crate::core::defs::{PrintForLog, SaitoHash, Timestamp};
+use log::warn;
 use std::fmt::{Debug, Formatter};
+use std::io::{Error, ErrorKind};
 
 pub struct GhostChainSync {
     pub start: SaitoHash,
@@ -45,9 +47,31 @@ impl GhostChainSync {
         ]
         .concat()
     }
-    pub fn deserialize(buffer: Vec<u8>) -> GhostChainSync {
-        let start: SaitoHash = buffer[0..32].to_vec().try_into().unwrap();
-        let count: usize = u32::from_be_bytes(buffer[32..36].try_into().unwrap()) as usize;
+    pub fn deserialize(buffer: Vec<u8>) -> Result<GhostChainSync, Error> {
+        if buffer.len() < 36 {
+            warn!("ghost chain sync buffer too short: {} bytes", buffer.len());
+            return Err(Error::from(ErrorKind::InvalidData));
+        }
+        let start: SaitoHash = buffer[0..32]
+            .try_into()
+            .or(Err(Error::from(ErrorKind::InvalidData)))?;
+        let count: usize = u32::from_be_bytes(
+            buffer[32..36]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        ) as usize;
+        let required = count
+            .checked_mul(82)
+            .ok_or(Error::from(ErrorKind::InvalidData))?;
+        if buffer.len() < 36 + required {
+            warn!(
+                "ghost chain sync buffer too short for {} entries: {} bytes, need {}",
+                count,
+                buffer.len(),
+                36 + required
+            );
+            return Err(Error::from(ErrorKind::InvalidData));
+        }
         let mut prehashes: Vec<SaitoHash> = vec![];
         let mut previous_block_hashes = vec![];
         let mut block_ids = vec![];
@@ -55,37 +79,45 @@ impl GhostChainSync {
         let mut txs = vec![];
         let mut gts = vec![];
 
-        let buffer = &buffer[36..buffer.len()];
-        let buf = buffer[0..(count * 32)].to_vec();
+        let tail = &buffer[36..];
         for i in 0..count {
-            prehashes.push(buf[i * 32..(i + 1) * 32].try_into().unwrap());
+            prehashes.push(
+                tail[i * 32..(i + 1) * 32]
+                    .try_into()
+                    .or(Err(Error::from(ErrorKind::InvalidData)))?,
+            );
         }
-        let buf = buffer[(count * 32)..(count * 64)].to_vec();
         for i in 0..count {
-            previous_block_hashes.push(buf[i * 32..(i + 1) * 32].try_into().unwrap());
+            previous_block_hashes.push(
+                tail[(count * 32) + i * 32..(count * 32) + (i + 1) * 32]
+                    .try_into()
+                    .or(Err(Error::from(ErrorKind::InvalidData)))?,
+            );
         }
-        let buf = buffer[(count * 64)..(count * 72)].to_vec();
         for i in 0..count {
+            let offset = count * 64 + i * 8;
             block_ids.push(u64::from_be_bytes(
-                buf[i * 8..(i + 1) * 8].try_into().unwrap(),
+                tail[offset..offset + 8]
+                    .try_into()
+                    .or(Err(Error::from(ErrorKind::InvalidData)))?,
             ));
         }
-        let buf = buffer[(count * 72)..(count * 80)].to_vec();
         for i in 0..count {
+            let offset = count * 72 + i * 8;
             block_ts.push(Timestamp::from_be_bytes(
-                buf[i * 8..(i + 1) * 8].try_into().unwrap(),
+                tail[offset..offset + 8]
+                    .try_into()
+                    .or(Err(Error::from(ErrorKind::InvalidData)))?,
             ));
         }
-        let buf = buffer[(count * 80)..(count * 81)].to_vec();
         for i in 0..count {
-            txs.push(buf[i] != 0);
+            txs.push(tail[count * 80 + i] != 0);
         }
-        let buf = buffer[(count * 81)..(count * 82)].to_vec();
         for i in 0..count {
-            gts.push(buf[i] != 0);
+            gts.push(tail[count * 81 + i] != 0);
         }
 
-        GhostChainSync {
+        Ok(GhostChainSync {
             start,
             prehashes,
             previous_block_hashes,
@@ -93,7 +125,7 @@ impl GhostChainSync {
             block_ts,
             txs,
             gts,
-        }
+        })
     }
 }
 
@@ -141,7 +173,7 @@ mod tests {
             gts: vec![true, false],
         };
         let buffer = chain.serialize();
-        let chain2 = GhostChainSync::deserialize(buffer);
+        let chain2 = GhostChainSync::deserialize(buffer).expect("deserialization failed");
         assert_eq!(chain.start, chain2.start);
         assert_eq!(chain.prehashes, chain2.prehashes);
         assert_eq!(chain.previous_block_hashes, chain2.previous_block_hashes);
@@ -149,5 +181,34 @@ mod tests {
         assert_eq!(chain.block_ts, chain2.block_ts);
         assert_eq!(chain.txs, chain2.txs);
         assert_eq!(chain.gts, chain2.gts);
+    }
+
+    // Item 25: reject buffers too short to contain the 36-byte header.
+    #[test]
+    fn deserialize_rejects_empty_buffer() {
+        assert!(GhostChainSync::deserialize(vec![]).is_err());
+    }
+
+    #[test]
+    fn deserialize_rejects_short_header() {
+        assert!(GhostChainSync::deserialize(vec![0u8; 35]).is_err());
+    }
+
+    // Item 25: reject buffers where the entry count exceeds available data.
+    #[test]
+    fn deserialize_rejects_count_larger_than_remaining_bytes() {
+        // header: 36 bytes, count = 1, so requires 36 + 82 = 118 bytes total.
+        // Provide exactly 36 bytes — too short for 1 entry.
+        let mut buf = vec![0u8; 36];
+        buf[32..36].copy_from_slice(&1u32.to_be_bytes()); // count = 1
+        assert!(GhostChainSync::deserialize(buf).is_err());
+    }
+
+    // Item 25: u32::MAX count causes checked_mul to overflow and returns Err.
+    #[test]
+    fn deserialize_rejects_overflow_count() {
+        let mut buf = vec![0u8; 36];
+        buf[32..36].copy_from_slice(&u32::MAX.to_be_bytes());
+        assert!(GhostChainSync::deserialize(buf).is_err());
     }
 }

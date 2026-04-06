@@ -7,9 +7,9 @@ use crate::core::routing::peers::network_peer::NetworkPeer;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::Endpoint;
 use log::{debug, error, info, trace};
-use serde::{Serialize, Serializer};
+use serde::Serialize;
 use std::cmp::Ordering;
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -49,22 +49,6 @@ pub struct PeerStats {
     pub last_sent_tx_at: Timestamp,
     pub connected_at: Timestamp,
 }
-
-fn vec_of_arrays_as_base58<S>(vec: &Vec<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let hex_vec: Vec<String> = vec.iter().map(|arr| arr.to_base58()).collect();
-    serializer.collect_seq(hex_vec)
-}
-fn option_as_base58<S>(bytes: &Option<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(&bytes.unwrap_or([0; 33]).to_base58())
-}
-
-// TODO : since we are keeping the peers against a peer index, once a peer is reconnected, we will lose the stats from the previous connection.
 
 // #[serde_with::serde_as]
 #[derive(Debug, Clone)]
@@ -149,7 +133,13 @@ impl Peer {
     ) -> Result<(), Error> {
         let wallet = wallet_lock.read().await;
 
-        let response = peer.response.unwrap();
+        let Some(response) = peer.response else {
+            error!(
+                "cannot finalize peer {} without completed handshake response",
+                self.public_key.to_base58()
+            );
+            return Err(Error::from(ErrorKind::InvalidInput));
+        };
         self.public_key = response.public_key;
         // if !wallet
         //     .core_version
@@ -203,7 +193,7 @@ impl Peer {
 
         let _ = io_handler
             .send_message_to_all(
-                Message::KeyListUpdate(wallet.key_list.to_vec())
+                Message::KeyList(wallet.key_list.to_vec())
                     .serialize()
                     .as_slice(),
                 vec![],
@@ -263,8 +253,9 @@ impl Peer {
                 return;
             }
             trace!("sending ping to peer : {:?}", self.public_key.to_base58());
+            let serialized = Message::Ping().serialize();
             io_handler
-                .send_message(self.public_key, Message::Ping().serialize().as_slice())
+                .send_message(self.public_key, serialized.as_slice())
                 .await
                 .unwrap();
         }

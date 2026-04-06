@@ -14,7 +14,7 @@ use base64::Engine;
 use pbkdf2::pbkdf2_hmac_array;
 use rand::rngs::OsRng;
 use rand::RngCore;
-use sha2::{Digest, Sha256};
+use sha2::Sha256;
 
 fn get_default_consensus() -> Option<ConsensusConfig> {
     Some(ConsensusConfig::default())

@@ -2,7 +2,7 @@ use ahash::{AHashMap, AHashSet};
 use log::{debug, error, info, trace, warn};
 use num_derive::FromPrimitive;
 use num_traits::Zero;
-use rayon::prelude::*;
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::fmt::{Display, Formatter};
@@ -968,48 +968,136 @@ impl Block {
             .try_into()
             .or(Err(Error::from(ErrorKind::InvalidData)))?;
 
-        let graveyard: Currency = Currency::from_be_bytes(bytes[181..189].try_into().unwrap());
-        let treasury: Currency = Currency::from_be_bytes(bytes[189..197].try_into().unwrap());
-        let burnfee: Currency = Currency::from_be_bytes(bytes[197..205].try_into().unwrap());
-        let difficulty: u64 = u64::from_be_bytes(bytes[205..213].try_into().unwrap());
-        let _avg_total_fees: Currency =
-            Currency::from_be_bytes(bytes[213..221].try_into().unwrap()); // dupe below
-        let avg_fee_per_byte: Currency =
-            Currency::from_be_bytes(bytes[221..229].try_into().unwrap());
-        let avg_nolan_rebroadcast_per_block: Currency =
-            Currency::from_be_bytes(bytes[229..237].try_into().unwrap());
-        let previous_block_unpaid: Currency =
-            Currency::from_be_bytes(bytes[237..245].try_into().unwrap());
-        let avg_total_fees: Currency = Currency::from_be_bytes(bytes[245..253].try_into().unwrap());
-        let avg_total_fees_new: Currency =
-            Currency::from_be_bytes(bytes[253..261].try_into().unwrap());
-        let avg_total_fees_atr: Currency =
-            Currency::from_be_bytes(bytes[261..269].try_into().unwrap());
-        let avg_payout_routing: Currency =
-            Currency::from_be_bytes(bytes[269..277].try_into().unwrap());
-        let avg_payout_mining: Currency =
-            Currency::from_be_bytes(bytes[277..285].try_into().unwrap());
-        let avg_payout_treasury: Currency =
-            Currency::from_be_bytes(bytes[285..293].try_into().unwrap());
-        let avg_payout_graveyard: Currency =
-            Currency::from_be_bytes(bytes[293..301].try_into().unwrap());
-        let avg_payout_atr: Currency = Currency::from_be_bytes(bytes[301..309].try_into().unwrap());
-        let total_payout_routing: Currency =
-            Currency::from_be_bytes(bytes[309..317].try_into().unwrap());
-        let total_payout_mining: Currency =
-            Currency::from_be_bytes(bytes[317..325].try_into().unwrap());
-        let total_payout_treasury: Currency =
-            Currency::from_be_bytes(bytes[325..333].try_into().unwrap());
-        let total_payout_graveyard: Currency =
-            Currency::from_be_bytes(bytes[333..341].try_into().unwrap());
-        let total_payout_atr: Currency =
-            Currency::from_be_bytes(bytes[341..349].try_into().unwrap());
-        let total_fees: Currency = Currency::from_be_bytes(bytes[349..357].try_into().unwrap());
-        let total_fees_new: Currency = Currency::from_be_bytes(bytes[357..365].try_into().unwrap());
-        let total_fees_atr: Currency = Currency::from_be_bytes(bytes[365..373].try_into().unwrap());
-        let fee_per_byte: Currency = Currency::from_be_bytes(bytes[373..381].try_into().unwrap());
-        let total_fees_cumulative: Currency =
-            Currency::from_be_bytes(bytes[381..389].try_into().unwrap());
+        let graveyard: Currency = Currency::from_be_bytes(
+            bytes[181..189]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let treasury: Currency = Currency::from_be_bytes(
+            bytes[189..197]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let burnfee: Currency = Currency::from_be_bytes(
+            bytes[197..205]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let difficulty: u64 = u64::from_be_bytes(
+            bytes[205..213]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let _avg_total_fees: Currency = Currency::from_be_bytes(
+            bytes[213..221]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        ); // dupe below
+        let avg_fee_per_byte: Currency = Currency::from_be_bytes(
+            bytes[221..229]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let avg_nolan_rebroadcast_per_block: Currency = Currency::from_be_bytes(
+            bytes[229..237]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let previous_block_unpaid: Currency = Currency::from_be_bytes(
+            bytes[237..245]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let avg_total_fees: Currency = Currency::from_be_bytes(
+            bytes[245..253]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let avg_total_fees_new: Currency = Currency::from_be_bytes(
+            bytes[253..261]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let avg_total_fees_atr: Currency = Currency::from_be_bytes(
+            bytes[261..269]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let avg_payout_routing: Currency = Currency::from_be_bytes(
+            bytes[269..277]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let avg_payout_mining: Currency = Currency::from_be_bytes(
+            bytes[277..285]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let avg_payout_treasury: Currency = Currency::from_be_bytes(
+            bytes[285..293]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let avg_payout_graveyard: Currency = Currency::from_be_bytes(
+            bytes[293..301]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let avg_payout_atr: Currency = Currency::from_be_bytes(
+            bytes[301..309]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let total_payout_routing: Currency = Currency::from_be_bytes(
+            bytes[309..317]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let total_payout_mining: Currency = Currency::from_be_bytes(
+            bytes[317..325]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let total_payout_treasury: Currency = Currency::from_be_bytes(
+            bytes[325..333]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let total_payout_graveyard: Currency = Currency::from_be_bytes(
+            bytes[333..341]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let total_payout_atr: Currency = Currency::from_be_bytes(
+            bytes[341..349]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let total_fees: Currency = Currency::from_be_bytes(
+            bytes[349..357]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let total_fees_new: Currency = Currency::from_be_bytes(
+            bytes[357..365]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let total_fees_atr: Currency = Currency::from_be_bytes(
+            bytes[365..373]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let fee_per_byte: Currency = Currency::from_be_bytes(
+            bytes[373..381]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
+        let total_fees_cumulative: Currency = Currency::from_be_bytes(
+            bytes[381..389]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+        );
 
         let mut transactions = vec![];
         let mut start_of_transaction_data = BLOCK_HEADER_SIZE;
@@ -1590,7 +1678,8 @@ impl Block {
                                 // - `regular_slips` will hold any standalone valid slips
                                 let mut nft_groups: Vec<(Slip, Slip, Slip)> = Vec::new();
                                 let mut regular_slips: Vec<Slip> = Vec::new();
-                                let mut total_nolan_eligible_for_atr_payout: Currency = 0;
+                                // currently un-used
+                                //let mut total_nolan_eligible_for_atr_payout: Currency = 0;
 
                                 // Loop output slip in the transaction
                                 // recognized NFT groups once they are collected.
@@ -1643,7 +1732,7 @@ impl Block {
                                                 //
                                                 // Only the payload slip2 amount counts toward the ATR payout
                                                 //
-                                                total_nolan_eligible_for_atr_payout += slip2.amount;
+                                                //total_nolan_eligible_for_atr_payout += slip2.amount;
                                             }
 
                                             //
@@ -1678,7 +1767,7 @@ impl Block {
                                         }
 
                                         regular_slips.push(slip.clone());
-                                        total_nolan_eligible_for_atr_payout += slip.amount;
+                                        //total_nolan_eligible_for_atr_payout += slip.amount;
                                     }
                                     i += 1;
                                 }
@@ -2073,7 +2162,13 @@ impl Block {
             // golden ticket needed to process payout
             //
             let golden_ticket: GoldenTicket =
-                GoldenTicket::deserialize_from_net(&self.transactions[gt_index].data);
+                match GoldenTicket::deserialize_from_net(&self.transactions[gt_index].data) {
+                    Ok(gt) => gt,
+                    Err(_) => {
+                        warn!("failed to deserialize golden ticket for payout; skipping payout");
+                        return cv;
+                    }
+                };
             let mut next_random_number = hash(golden_ticket.random.as_ref());
 
             //
@@ -2131,8 +2226,8 @@ impl Block {
                 //
                 // finding a router consumes 2 hashes
                 //
-                next_random_number = hash(next_random_number.as_ref());
-                next_random_number = hash(next_random_number.as_ref());
+                let h1 = hash(next_random_number.as_ref());
+                next_random_number = hash(h1.as_ref());
 
                 //
                 // if the previous block ALSO HAD a golden ticket there is no need for further
@@ -2191,8 +2286,12 @@ impl Block {
                         //
                         // finding a router consumes 2 hashes
                         //
-                        next_random_number = hash(next_random_number.as_slice());
-                        next_random_number = hash(next_random_number.as_slice());
+                        // this should be uncommented if we make the router payouts MAX_RECURSION
+                        // greater than 2 blocks, as then we need to hash again before continuing
+                        // our loop.
+                        //
+                        //let h1 = hash(next_random_number.as_slice());
+                        //next_random_number = hash(h1.as_slice());
                     }
                 }
             } else {
@@ -2258,7 +2357,8 @@ impl Block {
                     output.tx_ordinal = total_number_of_non_fee_transactions + 1;
                     output.block_id = self.id;
                     transaction.add_to_slip(output.clone());
-                    slip_index += 1;
+                // uncomment if we add another payout
+                // slip_index += 1;
                 } else {
                     graveyard_contribution += router2_payout;
                 }
@@ -3108,7 +3208,13 @@ impl Block {
             //
             if let Some(gt_index) = cv.gt_index {
                 let golden_ticket: GoldenTicket =
-                    GoldenTicket::deserialize_from_net(&self.transactions[gt_index].data);
+                    match GoldenTicket::deserialize_from_net(&self.transactions[gt_index].data) {
+                        Ok(gt) => gt,
+                        Err(_) => {
+                            warn!("failed to deserialize golden ticket during validation");
+                            return false;
+                        }
+                    };
 
                 //
                 // we already have a golden ticket, but create a new one pulling the
@@ -3253,9 +3359,11 @@ impl Block {
                         &fee_transaction_in_block.serialize_for_signature()
                     );
                     if let Some(gt_index) = cv.gt_index {
-                        let golden_ticket: GoldenTicket =
-                            GoldenTicket::deserialize_from_net(&self.transactions[gt_index].data);
-                        error!("gt.publickey = {:?}", golden_ticket.public_key.to_hex());
+                        if let Ok(golden_ticket) =
+                            GoldenTicket::deserialize_from_net(&self.transactions[gt_index].data)
+                        {
+                            error!("gt.publickey = {:?}", golden_ticket.public_key.to_hex());
+                        }
                     }
 
                     return false;
@@ -3436,7 +3544,7 @@ mod tests {
     use futures::future::join_all;
     use log::info;
 
-    use crate::core::consensus::block::{Block, BlockType};
+    use crate::core::consensus::block::{Block, BlockType, BLOCK_HEADER_SIZE};
 
     use crate::core::consensus::merkle::MerkleTree;
     use crate::core::consensus::slip::{Slip, SlipType};
@@ -4139,5 +4247,15 @@ mod tests {
             }
             assert!(have_atr_tx);
         }
+    }
+
+    #[test]
+    fn deserialize_from_net_rejects_empty_buffer() {
+        assert!(Block::deserialize_from_net(&[]).is_err());
+    }
+
+    #[test]
+    fn deserialize_from_net_rejects_short_header() {
+        assert!(Block::deserialize_from_net(&vec![0u8; BLOCK_HEADER_SIZE - 1]).is_err());
     }
 }

@@ -489,7 +489,7 @@ class CryptoModule extends ModTemplate {
       return publicKey;
     }
 
-    if (!this.app.wallet.isValidPublicKey(publicKey)) {
+    if (!this.app.crypto.isPublicKey(publicKey)) {
       throw new Error(`Error 237509: ${publicKey} is not a Saito public key`);
     }
 

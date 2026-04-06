@@ -7,7 +7,6 @@ use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
-use crate::core::util::serialize::Serialize;
 use log::{debug, error, info, trace, warn};
 use std::io::{Error, ErrorKind};
 use std::ops::Deref;
@@ -106,15 +105,17 @@ impl NetworkPeer {
             return Err(Error::from(ErrorKind::InvalidInput));
         }
 
-        if self.challenge.is_none() {
-            warn!(
-                "we don't have a challenge to verify for peer : {:?}",
-                response.public_key.to_base58()
-            );
-            return Err(Error::from(ErrorKind::InvalidInput));
-        }
         // TODO : validate block fetch URL
-        let sent_challenge = self.challenge.unwrap();
+        let sent_challenge = match self.challenge {
+            Some(c) => c,
+            None => {
+                warn!(
+                    "we don't have a challenge to verify for peer : {:?}",
+                    response.public_key.to_base58()
+                );
+                return Err(Error::from(ErrorKind::InvalidInput));
+            }
+        };
         let result = verify(&sent_challenge, &response.signature, &response.public_key);
         if !result {
             warn!(
@@ -143,14 +144,15 @@ impl NetworkPeer {
             }
         }
 
-        if self.public_key.is_some() {
-            assert_eq!(
-                response.public_key,
-                self.public_key.unwrap(),
-                "This peer instance is to handle a peer with a different public key. current : {} new : {}",
-                self.public_key.unwrap().to_base58(),
-                response.public_key.to_base58()
-            );
+        if let Some(existing_key) = self.public_key {
+            if response.public_key != existing_key {
+                warn!(
+                    "peer public key mismatch: existing {} vs new {}",
+                    existing_key.to_base58(),
+                    response.public_key.to_base58()
+                );
+                return Err(Error::from(ErrorKind::InvalidInput));
+            }
         }
 
         // self.block_fetch_url = response.block_fetch_url;
@@ -194,31 +196,13 @@ impl NetworkPeer {
             };
             debug!(
                 "sending handshake response for peer: {:?}",
-                self.public_key.unwrap().to_base58()
+                response.public_key.to_base58()
             );
             return Ok(Some(response_new));
-            // io_handler
-            //     .send_message(
-            //         self.index,
-            //         Message::HandshakeResponse(response).serialize().as_slice(),
-            //     )
-            //     .await?;
-            // debug!("second handshake response sent for peer: {:?}", self.index);
         }
         self.challenge = None;
 
         return Ok(None);
-        // io_handler
-        //     .send_message_to_all(
-        //         Message::KeyListUpdate(wallet.key_list.to_vec())
-        //             .serialize()
-        //             .as_slice(),
-        //         vec![],
-        //     )
-        //     .await
-        //     .unwrap();
-        //
-        // io_handler.send_interface_event(InterfaceEvent::PeerHandshakeComplete(self.index));
     }
     pub async fn process_incoming_buffer<F2, S>(
         &mut self,
@@ -239,11 +223,11 @@ impl NetworkPeer {
             self.public_key.unwrap_or([0; 33]).to_base58()
         );
         if self.is_connected() {
-            send_event(NetworkEvent::IncomingNetworkMessage {
-                public_key: self.public_key.unwrap(),
-                buffer,
-            })
-            .await;
+            let Some(public_key) = self.public_key else {
+                error!("connected peer has no public key set; skipping message dispatch");
+                return Err(Error::from(ErrorKind::InvalidData));
+            };
+            send_event(NetworkEvent::PeerMessageReceived { public_key, buffer }).await;
             Ok(vec![])
         } else {
             if self.challenge.is_some() {
@@ -285,7 +269,7 @@ impl NetworkPeer {
                             .await;
                             debug!(
                                 "handshake completed for peer : {:?}",
-                                self.public_key.unwrap().to_base58()
+                                self.public_key.unwrap_or([0; 33]).to_base58()
                             );
                             Ok(buffer)
                         } else {

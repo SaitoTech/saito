@@ -1,7 +1,11 @@
 {
   "name": "saito-js",
-  "version": "0.2.205",
+  "version": "0.2.210",
   "description": "js wrappings around saito-core using wasm",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SaitoTech/saito"
+  },
   "scripts": {
     "test": "env TS_NODE_PROJECT=\"tsconfig.testing.json\" mocha --require ts-node/register 'tests/**/*.ts'",
     "build": "tsc",

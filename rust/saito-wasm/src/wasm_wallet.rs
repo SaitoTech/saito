@@ -13,15 +13,16 @@ use saito_core::core::consensus::wallet::{Wallet, WalletSlip};
 use saito_core::core::defs::{
     Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoSignature, SaitoUTXOSetKey,
 };
+use saito_core::core::process::version::Version;
 use saito_core::core::routing::io::network::Network;
 use saito_core::core::routing::io::storage::Storage;
+use saito_core::core::routing_thread::RoutingEvent;
 
 use crate::saitowasm::{string_array_to_base58_keys, string_to_hex, SAITO};
 use crate::wasm_io_handler::WasmIoHandler;
 use crate::wasm_transaction::WasmTransaction;
 
 use hex;
-use saito_core::core::util::configuration::Configuration;
 use std::convert::TryInto;
 
 /// Parse a hex string into a fixed-size UTXO set key
@@ -83,20 +84,12 @@ impl WasmWallet {
     }
     pub async fn set_public_key(&mut self, key: JsString) {
         let str: String = key.into();
-        // if str.len() != 66 {
-        //     error!(
-        //         "invalid length : {:?} for public key string. expected 66",
-        //         str.len()
-        //     );
-        //     return;
-        // }
         let key = SaitoPublicKey::from_base58(str.as_str());
         if key.is_err() {
             error!("{:?}", key.err().unwrap());
             return;
         }
         let key = key.unwrap();
-        // let key: SaitoPublicKey = key.try_into().unwrap();
         let mut wallet = self.wallet.write().await;
         wallet.public_key = key;
     }
@@ -108,7 +101,7 @@ impl WasmWallet {
         let str: String = key.into();
         if str.len() != 64 {
             error!(
-                "invalid length : {:?} for public key string. expected 64",
+                "invalid length : {:?} for private key string. expected 64",
                 str.len()
             );
             return;
@@ -119,10 +112,57 @@ impl WasmWallet {
             return;
         }
         let key = key.unwrap();
-        let key: SaitoPrivateKey = key.try_into().unwrap();
+        let key: SaitoPrivateKey = match key.try_into() {
+            Ok(k) => k,
+            Err(_) => {
+                error!("private key decoded to unexpected length; expected 32 bytes");
+                return;
+            }
+        };
         let mut wallet = self.wallet.write().await;
         wallet.private_key = key;
     }
+
+    #[wasm_bindgen(js_name = setWalletVersion)]
+    pub async fn set_wallet_version(&self, major: u8, minor: u8, patch: u16) {
+        let mut wallet = self.wallet.write().await;
+        wallet.wallet_version = Version {
+            major,
+            minor,
+            patch,
+        };
+    }
+
+    #[wasm_bindgen(js_name = getWalletVersion)]
+    pub async fn get_wallet_version(&self) -> js_sys::Object {
+        let wallet = self.wallet.write().await;
+        let version = &wallet.wallet_version;
+        let obj = js_sys::Object::new();
+
+        js_sys::Reflect::set(
+            &obj,
+            &"major".into(),
+            &wasm_bindgen::JsValue::from(version.major),
+        )
+        .unwrap();
+
+        js_sys::Reflect::set(
+            &obj,
+            &"minor".into(),
+            &wasm_bindgen::JsValue::from(version.minor),
+        )
+        .unwrap();
+
+        js_sys::Reflect::set(
+            &obj,
+            &"patch".into(),
+            &wasm_bindgen::JsValue::from(version.patch),
+        )
+        .unwrap();
+
+        obj
+    }
+
     pub async fn get_balance(&self) -> Currency {
         let wallet = self.wallet.read().await;
         // info!("get balance : {:?}", wallet.get_available_balance());
@@ -155,8 +195,10 @@ impl WasmWallet {
     pub async fn add_slip(&mut self, slip: WasmWalletSlip) {
         let wallet_slip = slip.slip;
         let mut wallet = self.wallet.write().await;
-        let slip = Slip::parse_slip_from_utxokey(&wallet_slip.utxokey).unwrap();
-        wallet.add_slip(&slip, wallet_slip.lc, Some(self.network.deref()));
+        match Slip::parse_slip_from_utxokey(&wallet_slip.utxokey) {
+            Ok(slip) => wallet.add_slip(&slip, wallet_slip.lc, Some(self.network.deref())),
+            Err(e) => error!("add_slip: failed to parse utxo key: {:?}", e),
+        }
     }
 
     pub async fn add_to_pending(&mut self, tx: &WasmTransaction) {
@@ -178,12 +220,15 @@ impl WasmWallet {
         let key_list: Vec<SaitoPublicKey> = string_array_to_base58_keys(key_list);
 
         let mut saito = SAITO.lock().await;
-        saito
-            .as_mut()
-            .unwrap()
-            .routing_thread
-            .set_my_key_list(key_list)
-            .await;
+        if let Some(saito) = saito.as_mut() {
+            let _ = saito
+                .consensus_thread
+                .sender_to_router
+                .send(RoutingEvent::KeyListUpdated(key_list))
+                .await;
+        } else {
+            error!("set_key_list called before runtime is initialized");
+        }
     }
 
     #[wasm_bindgen]
@@ -196,7 +241,10 @@ impl WasmWallet {
         sig_hex: String,
     ) -> Result<(), JsValue> {
         let saito = SAITO.lock().await;
-        let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
+        let saito_ref = saito
+            .as_ref()
+            .ok_or_else(|| JsValue::from_str("runtime not initialized"))?;
+        let mut wallet = saito_ref.context.wallet_lock.write().await;
 
         let slip1: SaitoUTXOSetKey = string_to_utxoset_key(&slip1_hex)
             .map_err(|e| JsValue::from_str(&format!("slip1 parse error: {}", e)))?;

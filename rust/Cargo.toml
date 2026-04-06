@@ -2,3 +2,14 @@
 
 members = ["saito-core", "saito-wasm", "saito-rust", "saito-spammer"]
 resolver = "2"
+
+
+[profile.dev]
+panic = "unwind"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+opt-level = 3
+panic = "abort"
+

@@ -25,9 +25,17 @@ impl Serialize<Self> for BlockchainRequest {
             return Err(Error::from(ErrorKind::InvalidData));
         }
         Ok(BlockchainRequest {
-            latest_block_id: u64::from_be_bytes(buffer[0..8].to_vec().try_into().unwrap()),
-            latest_block_hash: buffer[8..40].to_vec().try_into().unwrap(),
-            fork_id: buffer[40..72].to_vec().try_into().unwrap(),
+            latest_block_id: u64::from_be_bytes(
+                buffer[0..8]
+                    .try_into()
+                    .or(Err(Error::from(ErrorKind::InvalidData)))?,
+            ),
+            latest_block_hash: buffer[8..40]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
+            fork_id: buffer[40..72]
+                .try_into()
+                .or(Err(Error::from(ErrorKind::InvalidData)))?,
         })
     }
 }
@@ -54,5 +62,21 @@ mod tests {
         assert_eq!(request.latest_block_id, new_request.latest_block_id);
         assert_eq!(request.latest_block_hash, new_request.latest_block_hash);
         assert_eq!(request.fork_id, new_request.fork_id);
+    }
+
+    #[test]
+    fn deserialize_rejects_empty_buffer() {
+        assert!(BlockchainRequest::deserialize(&vec![]).is_err());
+    }
+
+    #[test]
+    fn deserialize_rejects_short_buffer() {
+        // 71 bytes is one byte short of the required 72
+        assert!(BlockchainRequest::deserialize(&vec![0u8; 71]).is_err());
+    }
+
+    #[test]
+    fn deserialize_accepts_exact_72_byte_buffer() {
+        assert!(BlockchainRequest::deserialize(&vec![0u8; 72]).is_ok());
     }
 }

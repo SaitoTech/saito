@@ -6,9 +6,12 @@ use std::sync::Arc;
 
 use ahash::{AHashMap, HashMap};
 use log::{debug, error, info, trace, warn};
-use rayon::prelude::*;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
+
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefIterator, ParallelDrainRange, ParallelIterator,
+};
 
 use crate::core::consensus::block::{Block, BlockType};
 use crate::core::consensus::blockring::BlockRing;
@@ -72,8 +75,6 @@ pub enum AddBlockResult {
 
 type WindIndex = usize;
 type Failed = bool;
-type NewChain = Vec<SaitoHash>;
-type OldChain = Vec<SaitoHash>;
 
 pub const ALERT_ON_NEWER_CHAIN_LENGTH: BlockId = 50;
 pub const ALERT_ON_NEWER_CHAIN_GAP: BlockId = 20;
@@ -125,6 +126,7 @@ pub struct Blockchain {
     pub lowest_acceptable_timestamp: u64,
     pub lowest_acceptable_block_hash: SaitoHash,
     pub lowest_acceptable_block_id: u64,
+    pub sync_fetch_floor_block_id: u64,
 
     pub social_stake_requirement: Currency,
     pub social_stake_period: u64,
@@ -167,6 +169,7 @@ impl Blockchain {
             lowest_acceptable_timestamp: 0,
             lowest_acceptable_block_hash: [0; 32],
             lowest_acceptable_block_id: 0,
+            sync_fetch_floor_block_id: 0,
             // blocks_fetching: Default::default(),
             social_stake_requirement: social_stake,
             social_stake_period,
@@ -326,10 +329,12 @@ impl Blockchain {
                 let previous_block_fetched = iterate!(mempool.blocks_queue, 100)
                     .any(|b| block.previous_block_hash == b.hash);
                 let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+                let minimum_parent_fetch_block_id =
+                    max(1, self.get_latest_block_id().saturating_sub(genesis_period))
+                        .max(self.sync_fetch_floor_block_id);
 
                 return if !previous_block_fetched {
-                    if block.id > max(1, self.get_latest_block_id().saturating_sub(genesis_period))
-                    {
+                    if block.id.saturating_sub(1) >= minimum_parent_fetch_block_id {
                         // let block_diff_before_fetching_chain: BlockId =
                         //     std::cmp::min(1000, genesis_period);
                         // if block.id.abs_diff(self.get_latest_block_id())
@@ -348,10 +353,13 @@ impl Blockchain {
                         //     AddBlockResult::FailedButRetry(block, false, false)
                         // }
                     } else {
-                        debug!(
-                            "block : {:?}-{:?} is too old to be added to the blockchain",
+                        warn!(
+                            "block : {:?}-{:?} is missing parent {:?}, but requesting {:?} would go below the current fetch floor {:?}",
                             block.id,
-                            block.hash.to_hex()
+                            block.hash.to_hex(),
+                            block.previous_block_hash.to_hex(),
+                            block.id.saturating_sub(1),
+                            minimum_parent_fetch_block_id
                         );
                         AddBlockResult::FailedNotValid
                     }
@@ -428,7 +436,7 @@ impl Blockchain {
         }
 
         // find shared ancestor of new_block with old_chain
-        let mut old_chain: Vec<[u8; 32]> = Vec::new();
+        let old_chain: Vec<[u8; 32]>;
         let mut am_i_the_longest_chain = false;
 
         let (shared_ancestor_found, shared_block_hash, new_chain) =
@@ -964,9 +972,12 @@ impl Blockchain {
             buffer.extend(buf);
         }
 
-        storage
+        if let Err(e) = storage
             .io_interface
-            .ensure_directory_exists("./data/issuance/archive");
+            .ensure_directory_exists("./data/issuance/archive")
+        {
+            log::error!("Failed to create archive directory: {:?}", e);
+        }
 
         storage
             .io_interface
@@ -1625,7 +1636,17 @@ impl Blockchain {
         // function because of limitatins imposed by Rust on mutable data
         // structures. So validation is "read-only" and our "write" actions
         // happen first.
-        let block_hash = new_chain.get(current_wind_index).unwrap();
+        let block_hash = match new_chain.get(current_wind_index) {
+            Some(bh) => bh,
+            None => {
+                warn!(
+                    "wind_chain: index {} out of bounds for new_chain length {}",
+                    current_wind_index,
+                    new_chain.len()
+                );
+                return WindingResult::FinishWithFailure;
+            }
+        };
 
         debug!("winding hash: {:?}", block_hash.to_hex());
         self.upgrade_blocks_for_wind_chain(storage, configs, block_hash)
@@ -1636,7 +1657,16 @@ impl Blockchain {
         let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
         let validate_against_utxo = self.has_total_supply_loaded(genesis_period);
 
-        let mut block = self.blocks.get(block_hash).cloned().unwrap();
+        let mut block = match self.blocks.get(block_hash).cloned() {
+            Some(b) => b,
+            None => {
+                warn!(
+                    "wind_chain: block {:?} not found in blocks map",
+                    block_hash.to_hex()
+                );
+                return WindingResult::FinishWithFailure;
+            }
+        };
         if block.has_checkpoint {
             info!("block has checkpoint. cannot wind over this block");
             // Re-insert before returning to keep state consistent
@@ -1661,7 +1691,10 @@ impl Blockchain {
 
         // Put the block back into the map before proceeding
         self.blocks.insert(*block_hash, block);
-        let block = self.blocks.get(block_hash).unwrap();
+        let block = match self.blocks.get(block_hash) {
+            Some(b) => b,
+            None => return WindingResult::FinishWithFailure,
+        };
 
         let mut wallet_updated = WALLET_NOT_UPDATED;
 
@@ -1687,8 +1720,14 @@ impl Blockchain {
 
             // utxoset update
             {
-                let block = self.blocks.get_mut(block_hash).unwrap();
-                block.on_chain_reorganization(&mut self.utxoset, true);
+                if let Some(block) = self.blocks.get_mut(block_hash) {
+                    block.on_chain_reorganization(&mut self.utxoset, true);
+                } else {
+                    warn!(
+                        "wind_chain: block {:?} not found for utxo reorganization",
+                        block_hash.to_hex()
+                    );
+                }
             }
 
             wallet_updated |= self
@@ -2012,10 +2051,16 @@ impl Blockchain {
         let block_hash;
         let mut wallet_updated = WALLET_NOT_UPDATED;
         {
-            let block = self
-                .blocks
-                .get_mut(&old_chain[current_unwind_index])
-                .unwrap();
+            let block = match self.blocks.get_mut(&old_chain[current_unwind_index]) {
+                Some(b) => b,
+                None => {
+                    warn!(
+                        "unwind_chain: block {:?} not found in blocks map; cannot unwind",
+                        old_chain[current_unwind_index].to_hex()
+                    );
+                    return WindingResult::FinishWithFailure;
+                }
+            };
             if block.has_checkpoint {
                 info!("block has checkpoint. cannot unwind over this block");
                 return WindingResult::FinishWithFailure;
@@ -2284,8 +2329,7 @@ impl Blockchain {
         );
         let wallet_update_status;
         // ask block to delete itself / utxo-wise
-        {
-            let block = self.blocks.get(&delete_block_hash).unwrap();
+        if let Some(block) = self.blocks.get(&delete_block_hash) {
             let block_filename = storage.generate_block_filepath(block);
 
             // remove slips from wallet
@@ -2301,6 +2345,13 @@ impl Blockchain {
             storage
                 .delete_block_from_disk(block_filename.as_str())
                 .await;
+        } else {
+            warn!(
+                "delete_block: block {}-{} not found in blocks map; skipping utxo/wallet cleanup",
+                delete_block_id,
+                delete_block_hash.to_hex()
+            );
+            wallet_update_status = WALLET_NOT_UPDATED;
         }
 
         // ask blockring to remove
@@ -2402,15 +2453,19 @@ impl Blockchain {
                                 if let Some((key, _)) = self.utxoset.remove_entry(&key) {
                                     if let Ok(slip) = Slip::parse_slip_from_utxokey(&key) {
                                         wallet.delete_slip(&slip, None);
-                                        let block = self.blocks.get_mut(&block_hash).unwrap();
-                                        block.graveyard += slip.amount;
-                                        block.has_checkpoint = true;
-                                        self.checkpoint_found = true;
-                                        info!("skipping slip : {} according to the checkpoint file : {}-{}",
-                                            slip,block_id,block_hash.to_hex());
+                                        if let Some(block) = self.blocks.get_mut(&block_hash) {
+                                            block.graveyard += slip.amount;
+                                            block.has_checkpoint = true;
+                                            self.checkpoint_found = true;
+                                            info!("skipping slip : {} according to the checkpoint file : {}-{}",
+                                                slip,block_id,block_hash.to_hex());
+                                        } else {
+                                            warn!("block {}-{} not found while processing checkpoint slip",
+                                                block_id, block_hash.to_hex());
+                                        }
                                     } else {
                                         error!("Key : {:?} in checkpoint file : {}-{} cannot be parsed to a slip", key.to_hex(),block_id,block_hash.to_hex());
-                                        panic!("cannot continue loading blocks");
+                                        warn!("checkpoint file may be corrupt; UTXO entry removed but slip not reconciled; continuing");
                                     }
                                 }
                             }
@@ -2636,6 +2691,7 @@ impl Blockchain {
         self.lowest_acceptable_block_id = 0;
         self.lowest_acceptable_timestamp = 0;
         self.lowest_acceptable_block_hash = [0; 32];
+        self.sync_fetch_floor_block_id = 0;
         self.fork_id = Some([0; 32]);
         self.save().await;
     }
@@ -2943,7 +2999,6 @@ fn is_golden_ticket_count_valid_<'a, F: Fn(SaitoHash) -> Option<&'a Block>>(
     get_block: F,
 ) -> bool {
     let mut golden_tickets_found = 0;
-    let mut required_tickets = 0;
     let mut search_depth_index = 0;
     let mut latest_block_hash = previous_block_hash;
 
@@ -2961,20 +3016,17 @@ fn is_golden_ticket_count_valid_<'a, F: Fn(SaitoHash) -> Option<&'a Block>>(
             if block.has_golden_ticket {
                 golden_tickets_found += 1;
             }
-            // if i == 0 {
-            //     // 3/7 => [1,2,3,4,5,6 + 7(current)]. but we only check the first 6 since we start from previous block.
-            //     // if we only have 5 blocks, we need 1 golden ticket. if we have 6 blocks, we need 2 golden tickets. if current block has golden ticket, we need 3 golden tickets.
-            //     required_tickets = MIN_GOLDEN_TICKETS_NUMERATOR
-            //         .saturating_sub(MIN_GOLDEN_TICKETS_DENOMINATOR.saturating_sub(block.id));
-            // }
             latest_block_hash = block.previous_block_hash;
         } else {
             break;
         }
     }
+
     // 2/6 => [1,2,3,4,5 + 6(current)]. but we only check the first 5 since we start from previous block.
-    // if we only have 4 blocks, we need 1 golden ticket. if we have 5 blocks, we need 2 golden tickets (including the gt at hand). because we calculate only upto the previous block and then consider the current block's gt
-    required_tickets = MIN_GOLDEN_TICKETS_NUMERATOR
+    // if we only have 4 blocks, we need 1 golden ticket. if we have 5 blocks, we need 2 golden tickets
+    // (including the gt at hand). because we calculate only upto the previous block and then consider
+    // the current block's gt
+    let required_tickets = MIN_GOLDEN_TICKETS_NUMERATOR
         .saturating_sub(MIN_GOLDEN_TICKETS_DENOMINATOR.saturating_sub(search_depth_index + 1));
 
     if current_block_has_golden_ticket {
@@ -3028,14 +3080,16 @@ mod tests {
     use crate::core::consensus::block::Block;
     use crate::core::consensus::blockchain::{
         bit_pack, bit_unpack, is_golden_ticket_count_valid_, AddBlockResult, Blockchain,
+        WindingResult,
     };
     use crate::core::consensus::slip::Slip;
-    use crate::core::consensus::wallet::Wallet;
+    use crate::core::consensus::wallet::{Wallet, WALLET_NOT_UPDATED};
     use crate::core::defs::{ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO};
     use crate::core::routing::io::storage::Storage;
+    use crate::core::util::configuration::InitialLoadingStatus;
     use crate::core::util::crypto::{generate_keys, hash};
     use crate::core::util::test::node_tester::test::NodeTester;
-    use crate::core::util::test::test_manager::test::TestManager;
+    use crate::core::util::test::test_manager::test::{create_timestamp, TestManager};
     use ahash::HashMap;
     use log::{debug, error, info};
     use std::fs;
@@ -3067,6 +3121,85 @@ mod tests {
 
         assert_eq!(blockchain.fork_id, None);
         assert_eq!(blockchain.genesis_block_id, 0);
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn add_block_requests_missing_parent_within_sync_fetch_floor() {
+        let mut t = TestManager::default();
+        t.initialize(100, 1_000_000_000).await;
+
+        {
+            let mut configs = t.config_lock.write().await;
+            configs.get_blockchain_configs_mut().initial_loading_status =
+                InitialLoadingStatus::Completed;
+        }
+
+        let latest_hash = t.get_latest_block_hash().await;
+        let mut block = t
+            .create_block(latest_hash, create_timestamp() + 1, 0, 0, 0, false)
+            .await;
+        block.previous_block_hash = [7; 32];
+
+        let result = {
+            let mut blockchain = t.blockchain_lock.write().await;
+            blockchain.sync_fetch_floor_block_id = block.id.saturating_sub(1);
+            let mut mempool = t.mempool_lock.write().await;
+            let mut configs = t.config_lock.write().await;
+
+            blockchain
+                .add_block(
+                    block,
+                    &mut t.storage,
+                    &mut mempool,
+                    &mut *configs,
+                    Some(&t.network),
+                )
+                .await
+        };
+
+        assert!(matches!(
+            result,
+            AddBlockResult::FailedButRetry(_, true, false)
+        ));
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn add_block_does_not_request_parent_below_sync_fetch_floor() {
+        let mut t = TestManager::default();
+        t.initialize(100, 1_000_000_000).await;
+
+        {
+            let mut configs = t.config_lock.write().await;
+            configs.get_blockchain_configs_mut().initial_loading_status =
+                InitialLoadingStatus::Completed;
+        }
+
+        let latest_hash = t.get_latest_block_hash().await;
+        let mut block = t
+            .create_block(latest_hash, create_timestamp() + 1, 0, 0, 0, false)
+            .await;
+        block.previous_block_hash = [9; 32];
+
+        let result = {
+            let mut blockchain = t.blockchain_lock.write().await;
+            blockchain.sync_fetch_floor_block_id = block.id;
+            let mut mempool = t.mempool_lock.write().await;
+            let mut configs = t.config_lock.write().await;
+
+            blockchain
+                .add_block(
+                    block,
+                    &mut t.storage,
+                    &mut mempool,
+                    &mut *configs,
+                    Some(&t.network),
+                )
+                .await
+        };
+
+        assert!(matches!(result, AddBlockResult::FailedNotValid));
     }
 
     #[test]
@@ -5156,5 +5289,45 @@ mod tests {
             blocks.get(&block_hash)
         });
         assert!(!result);
+    }
+
+    // Item 20: winding with wind_failure=true and empty new_chain returns FinishWithFailure
+    // without accessing any block data, so no blocks need to be present.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn wind_chain_failure_flag_with_empty_new_chain_returns_finish_with_failure() {
+        let mut t = TestManager::default();
+        t.initialize(100, 720_000).await;
+
+        let blockchain_lock = t.blockchain_lock.clone();
+        let mempool_lock = t.mempool_lock.clone();
+        let config_lock = t.config_lock.clone();
+
+        let mut bc = blockchain_lock.write().await;
+        let mut mempool = mempool_lock.write().await;
+        let config = config_lock.read().await;
+
+        let result = bc
+            .wind_chain(&[], &[], 0, true, &t.storage, &*config, &mut mempool, None)
+            .await;
+
+        assert!(matches!(result, WindingResult::FinishWithFailure));
+    }
+
+    // Item 21: deleting a block whose hash is absent from self.blocks returns WALLET_NOT_UPDATED
+    // without modifying wallet or utxo state.
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn delete_block_with_absent_hash_returns_wallet_not_updated() {
+        let mut t = TestManager::default();
+        t.initialize(100, 720_000).await;
+
+        let blockchain_lock = t.blockchain_lock.clone();
+        let mut bc = blockchain_lock.write().await;
+
+        let absent_hash: SaitoHash = [42u8; 32];
+        let result = bc.delete_block(99, absent_hash, &t.storage).await;
+
+        assert_eq!(result, WALLET_NOT_UPDATED);
     }
 }

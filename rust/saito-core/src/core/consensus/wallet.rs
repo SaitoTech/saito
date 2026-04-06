@@ -215,7 +215,6 @@ impl Wallet {
             block.transactions.len(),
             lc
         );
-        let mut tx_index = 0;
 
         if lc {
             for tx in block.transactions.iter() {
@@ -308,15 +307,6 @@ impl Wallet {
                         }
                         i += 1;
                     }
-                }
-
-                //
-                // Advance transaction index and prune old slips
-                //
-                if let TransactionType::SPV = tx.transaction_type {
-                    tx_index += tx.txs_replacements as u64;
-                } else {
-                    tx_index += 1;
                 }
 
                 if block.id > genesis_period {
@@ -413,15 +403,6 @@ impl Wallet {
                         }
                         i += 1;
                     }
-                }
-
-                //
-                // advance index exactly as in lc
-                //
-                if let TransactionType::SPV = tx.transaction_type {
-                    tx_index += tx.txs_replacements as u64;
-                } else {
-                    tx_index += 1;
                 }
             }
         }
@@ -566,20 +547,17 @@ impl Wallet {
 
         // grab inputs
         let mut keys_to_remove = Vec::new();
-        let mut unspent_slips;
+
+        #[cfg_attr(not(test), allow(unused_mut))]
+        let mut unspent_slips: Vec<&SaitoUTXOSetKey> = self.unspent_slips.iter().collect();
+
         #[cfg(test)]
         {
-            // this part is compiled for tests to make sure selected slips are predictable. otherwise we will get random slips from a hashset
-            unspent_slips = self.unspent_slips.iter().collect::<Vec<&SaitoUTXOSetKey>>();
             unspent_slips.sort_by(|slip, slip2| {
                 let slip = Slip::parse_slip_from_utxokey(slip).unwrap();
                 let slip2 = Slip::parse_slip_from_utxokey(slip2).unwrap();
                 slip.amount.cmp(&slip2.amount)
             });
-        }
-        #[cfg(not(test))]
-        {
-            unspent_slips = &self.unspent_slips;
         }
 
         for key in unspent_slips {
@@ -1571,8 +1549,21 @@ impl Wallet {
                 .send_interface_event(InterfaceEvent::WalletUpdate());
         }
     }
-    pub fn set_key_list(&mut self, key_list: Vec<SaitoPublicKey>) {
-        self.key_list = key_list;
+
+    pub fn set_key_list(&mut self, mut key_list: Vec<SaitoPublicKey>) -> bool {
+        key_list.sort();
+        if key_list.len() != self.key_list.len()
+            || self
+                .key_list
+                .iter()
+                .zip(key_list.iter())
+                .any(|(a, b)| a != b)
+        {
+            self.key_list = key_list;
+            return true;
+        }
+
+        false
     }
 
     pub fn create_staking_transaction(

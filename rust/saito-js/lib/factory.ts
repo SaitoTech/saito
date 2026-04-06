@@ -7,7 +7,7 @@ import Blockchain from "./blockchain";
 import Hop from "./hop";
 
 export default class Factory {
-  constructor() { }
+  constructor() {}
 
   public createBlock(data?: any): Block {
     return new Block(data);

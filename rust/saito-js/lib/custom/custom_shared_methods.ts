@@ -52,9 +52,11 @@ export default class CustomSharedMethods implements SharedMethods {
   }
 
   processApiError(buffer: Uint8Array, msgIndex: number, publicKey: string): void {
-    let promise = Saito.getInstance().promises.get(msgIndex);
+    const saito = Saito.getInstance();
+    let promise = saito.promises.get(msgIndex);
     if (promise) {
       promise.reject(buffer);
+      saito.promises.delete(msgIndex);
     } else {
       console.error(
         "callback not found for callback index : " + msgIndex + " from peer : " + publicKey
@@ -63,9 +65,11 @@ export default class CustomSharedMethods implements SharedMethods {
   }
 
   processApiSuccess(buffer: Uint8Array, msgIndex: number, publicKey: string): void {
-    let promise = Saito.getInstance().promises.get(msgIndex);
+    const saito = Saito.getInstance();
+    let promise = saito.promises.get(msgIndex);
     if (promise) {
       promise.resolve(buffer);
+      saito.promises.delete(msgIndex);
     } else {
       console.error(
         "callback not found for callback index : " + msgIndex + " from peer : " + publicKey
