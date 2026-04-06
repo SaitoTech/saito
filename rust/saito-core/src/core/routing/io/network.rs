@@ -14,11 +14,9 @@ use crate::core::process::version::Version;
 use crate::core::routing::io::interface_io::InterfaceEvent;
 use crate::core::routing::io::interface_io::InterfaceIO;
 use crate::core::routing::peers::congestion_controller::CongestionType;
-use crate::core::routing::peers::network_peer::NetworkPeer;
-use crate::core::routing::peers::peer::Peer;
 use crate::core::routing::peers::peer::PeerStatus;
-use crate::core::routing::peers::peers::Peers;
 use crate::core::routing::peers::peer_service::PeerService;
+use crate::core::routing::peers::peers::Peers;
 use crate::core::routing::peers::peerv2::PeerV2;
 use crate::core::util::configuration::Configuration;
 
@@ -142,18 +140,6 @@ impl Network {
         timestamp: Timestamp,
     ) {
         let mut peers = self.peer_lock.write().await;
-
-        if let Some(peer) = peers.peers.get_mut(&public_key) {
-            peer.stats.received_txs += 1;
-            peer.stats.last_received_tx_at = timestamp;
-            peer.stats.last_received_tx = transaction.signature.to_hex();
-        } else {
-            warn!(
-                "Received transaction from peer {:?} does not exist",
-                public_key.to_base58()
-            );
-        }
-
         if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
             peer_v2.on_transaction_received(timestamp);
         }
@@ -165,14 +151,12 @@ impl Network {
         timestamp: Timestamp,
     ) {
         let mut peers = self.peer_lock.write().await;
-
         peers.add_congestion_event(public_key, CongestionType::FailedBlockFetches, timestamp);
     }
 
     pub async fn record_incoming_message(&self, public_key: SaitoPublicKey, timestamp: Timestamp) {
         let mut peers = self.peer_lock.write().await;
         peers.add_congestion_event(public_key, CongestionType::IncomingMessages, timestamp);
-        // PEER V2 REFACTO
         if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
             peer_v2.on_message_received(timestamp);
         }
@@ -180,11 +164,11 @@ impl Network {
 
     pub async fn add_peer(
         &mut self,
-        network_peer: NetworkPeer,
+        mut peer: PeerV2,
         wallet_lock: Arc<RwLock<Wallet>>,
         current_time: Timestamp,
     ) -> Option<SaitoPublicKey> {
-        let public_key = match network_peer.public_key {
+        let public_key = match peer.public_key {
             Some(k) => k,
             None => {
                 warn!("handle_new_peer: received peer with no public key (incomplete handshake); dropping");
@@ -199,38 +183,29 @@ impl Network {
                 warn!(
                     "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
                     public_key.to_base58(),
-                    network_peer.ip.as_deref().unwrap_or("unknown")
+                    peer.ip.as_deref().unwrap_or("unknown")
                 );
                 return Some(public_key);
             }
 
-            let mut peer = Peer::new(public_key);
+            info!("adding new peer : {}", public_key.to_base58());
+            peer.on_handshake_complete(public_key, current_time);
 
-            // PEER V2 REFACTOR
-            let peer_id = current_time; // temporary unique id
-            let mut peer_v2 = PeerV2::new(peer_id);
+            let _ = self
+                .io_interface
+                .send_message_to_all(
+                    Message::KeyList(wallet.key_list.to_vec())
+                        .serialize()
+                        .as_slice(),
+                    vec![],
+                )
+                .await;
 
-            if let Err(err) = peer
-                .handle_new_peer(network_peer, wallet_lock, &self.io_interface, current_time)
-                .await
-            {
-                error!(
-                    "failed finalizing newly connected peer {:?}: {:?}",
-                    public_key.to_base58(),
-                    err
-                );
-                return None;
-            }
-
-            // PEER V2 REFACTOR
-            peer_v2.on_handshake_complete(public_key, current_time);
+            self.io_interface
+                .send_interface_event(InterfaceEvent::PeerHandshakeComplete(public_key));
 
             peers.add_congestion_event(public_key, CongestionType::PeerConnections, current_time);
-
-            info!("adding new peer : {}", public_key.to_base58());
-
-            peers.peers.insert(public_key, peer);
-            peers.peers_v2.insert(peer_id, peer_v2);
+            peers.peers_v2.insert(peer.id, peer);
         }
 
         Some(public_key)
@@ -405,18 +380,6 @@ impl Network {
         timestamp: Timestamp,
     ) {
         let mut peers = self.peer_lock.write().await;
-
-        if let Some(peer) = peers.peers.get_mut(&public_key) {
-            peer.stats.received_block_headers += 1;
-            peer.stats.last_received_block_header_at = timestamp;
-            peer.stats.last_received_block_header = block_hash.to_hex();
-        } else {
-            warn!(
-                "Received block header from peer {:?} does not exist",
-                public_key.to_base58()
-            );
-        }
-
         if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
             peer_v2.on_block_received(timestamp);
         }

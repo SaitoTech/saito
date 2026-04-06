@@ -36,17 +36,26 @@ use saito_core::core::process::keep_time::Timer;
 use saito_core::core::routing::io::network::PeerDisconnectType;
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::peers::io_event::IoEvent;
-use saito_core::core::routing::peers::network_peer::NetworkPeer;
-use saito_core::core::routing::peers::peers::Peers;
 use saito_core::core::routing::peers::peer_service::PeerService;
+use saito_core::core::routing::peers::peers::Peers;
+use saito_core::core::routing::peers::peerv2::PeerV2;
 use saito_core::core::util::configuration::Configuration;
+
+//
+// ID for PEERS (unique, monotonic)
+//
+use std::sync::atomic::{AtomicU64, Ordering};
+static NEXT_PEER_ID: AtomicU64 = AtomicU64::new(1);
+pub fn generate_peer_id() -> u64 {
+    NEXT_PEER_ID.fetch_add(1, Ordering::Relaxed)
+}
 
 type SocketSender = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, tungstenite::Message>;
 type SocketReceiver = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
 pub struct NetworkController {
     currently_queried_urls: Arc<Mutex<HashSet<String>>>,
-    network_peers: HashMap<SaitoPublicKey, (NetworkPeer, Option<PeerSender>)>,
+    network_peers: HashMap<SaitoPublicKey, (PeerV2, Option<PeerSender>)>,
     services: Vec<PeerService>,
     pub sender_to_core: Sender<IoEvent>,
 }
@@ -139,25 +148,8 @@ impl NetworkController {
 
             info!("connected to peer : {:?}", url,);
 
-            // let network_peer: NetworkPeer = {
-            //     let network_controller = network_controller.read().await;
-            //
-            //     let mut selected_peer = None;
-            //     for (key, (peer, _)) in network_controller.network_peers.iter() {
-            //         if let Some(url2) = peer.url.as_ref() {
-            //             if url == *url2 {
-            //                 selected_peer = Some(peer);
-            //             }
-            //         }
-            //     }
-            //     if let Some(peer) = selected_peer {
-            //         peer.clone()
-            //     } else {
-            //         NetworkPeer::new(Some(url))
-            //     }
-            // };
-
-            let mut network_peer = NetworkPeer::new(Some(url));
+            let mut network_peer = PeerV2::new(generate_peer_id());
+            network_peer.url = Some(url);
             network_peer.ip = ip;
 
             NetworkController::handle_new_connection(
@@ -324,7 +316,7 @@ impl NetworkController {
         // debug!("block buffer sent to blockchain controller");
     }
     pub async fn handle_new_connection(
-        mut network_peer: NetworkPeer,
+        mut network_peer: PeerV2,
         mut sender: PeerSender,
         receiver: PeerReceiver,
         network_controller: Arc<RwLock<NetworkController>>,
@@ -342,11 +334,6 @@ impl NetworkController {
             let buffer = Message::HandshakeChallenge(challenge).serialize();
             NetworkController::send(&mut sender, buffer).await;
         }
-
-        // {
-        //
-        //     sockets.lock().await.insert(public_key, sender);
-        // }
 
         NetworkController::receive_message_from_peer(
             receiver,
@@ -412,7 +399,7 @@ impl NetworkController {
     }
     pub async fn receive_message_from_peer(
         receiver: PeerReceiver,
-        mut peer: NetworkPeer,
+        mut peer: PeerV2,
         socket: PeerSender,
         wallet: Arc<RwLock<Wallet>>,
         configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
@@ -712,32 +699,6 @@ impl NetworkController {
             // );
         });
     }
-
-    // async fn handle_received_buffer(
-    //     peer: &mut NetworkPeer,
-    //     mut socket: &mut PeerSender,
-    //     wallet: Arc<RwLock<Wallet>>,
-    //     configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
-    //     timer: &Timer,
-    //     public_key: &mut Option<SaitoPublicKey>,
-    //     network_controller: &mut NetworkController,
-    //     buffer: Vec<u8>,
-    // ) -> bool {
-    //     peer.process_incoming_buffer(
-    //         buffer,
-    //         network_controller.sender_to_core.clone(),
-    //         public_key,
-    //         wallet,
-    //         configs,
-    //         timer,
-    //         &network_controller.services,
-    //         async |buffer| {
-    //             NetworkController::send(&mut socket, buffer).await;
-    //         },
-    //     )
-    //     .await
-    //     .is_ok()
-    // }
 }
 
 ///
@@ -1009,8 +970,10 @@ fn run_websocket_server(
 
                         let (sender, receiver) = socket.split();
 
-                        let mut network_peer = NetworkPeer::new(None);
+                        let mut network_peer = PeerV2::new(generate_peer_id());
+                        network_peer.url = None;
                         network_peer.ip = addr.map(|a| a.ip().to_string());
+
                         NetworkController::handle_new_connection(
                             network_peer,
                             PeerSender::Warp(sender),
@@ -1079,119 +1042,120 @@ fn run_websocket_server(
         let opt = warp::path::param::<String>()
             .map(Some)
             .or_else(|_| async { Ok::<(Option<String>,), std::convert::Infallible>((None,)) });
-        let lite_route = warp::path!("lite-block" / String / ..)
-            .and(opt)
-            .and(warp::path::end())
-            .and(warp::any().map(move || peers_lock.clone()))
-            .and_then(
-                move |block_hash: String,
-                      key: Option<String>,
-                      peer_lock: Arc<RwLock<Peers>>| async move {
-                    // debug!("serving lite block : {:?}", block_hash);
+        let lite_route =
+            warp::path!("lite-block" / String / ..)
+                .and(opt)
+                .and(warp::path::end())
+                .and(warp::any().map(move || peers_lock.clone()))
+                .and_then(
+                    move |block_hash: String,
+                          key: Option<String>,
+                          peer_lock: Arc<RwLock<Peers>>| async move {
+                        // debug!("serving lite block : {:?}", block_hash);
 
-                    let key1;
-                    if key.is_some() {
-                        key1 = key.unwrap();
-                    } else {
-                        warn!("key is not set to request lite blocks");
-                        return Err(warp::reject::reject());
-                    }
-
-                    let key;
-                    if key1.is_empty() {
-                        key = public_key;
-                    } else {
-                        let result: Result<SaitoPublicKey, String>;
-                        if key1.len() == 66 {
-                            result = SaitoPublicKey::from_hex(key1.as_str());
+                        let key1;
+                        if key.is_some() {
+                            key1 = key.unwrap();
                         } else {
-                            result = SaitoPublicKey::from_base58(key1.as_str());
+                            warn!("key is not set to request lite blocks");
+                            return Err(warp::reject::reject());
                         }
+
+                        let key;
+                        if key1.is_empty() {
+                            key = public_key;
+                        } else {
+                            let result: Result<SaitoPublicKey, String>;
+                            if key1.len() == 66 {
+                                result = SaitoPublicKey::from_hex(key1.as_str());
+                            } else {
+                                result = SaitoPublicKey::from_base58(key1.as_str());
+                            }
+                            if result.is_err() {
+                                warn!("key : {:?} couldn't be decoded", key1);
+                                return Err(warp::reject::reject());
+                            }
+
+                            let result = result.unwrap();
+                            if result.len() != 33 {
+                                warn!("key length : {:?} is not for public key", result.len());
+                                return Err(warp::reject::reject());
+                            }
+                            key = result;
+                        }
+                        let mut keylist;
+                        {
+                            let peers = peer_lock.read().await;
+                            let peer = peers.peers.get(&key);
+                            if peer.is_none() {
+                                debug!(
+                                    "lite block requester : {:?} is not connected as a peer",
+                                    key.to_hex()
+                                );
+                                keylist = vec![key];
+                            } else {
+                                keylist = peer.as_ref().unwrap().key_list.clone();
+                                keylist.push(key);
+                            }
+                        }
+
+                        let mut buffer: Vec<u8> = Default::default();
+                        let result = fs::read_dir(BLOCKS_DIR_PATH.to_string());
                         if result.is_err() {
-                            warn!("key : {:?} couldn't be decoded", key1);
-                            return Err(warp::reject::reject());
+                            debug!("no blocks found");
+                            return Err(warp::reject::not_found());
                         }
+                        let paths: Vec<_> = result
+                            .unwrap()
+                            .map(|r| r.unwrap())
+                            .filter(|r| {
+                                let filename = r.file_name().into_string().unwrap();
+                                if !filename.contains(BLOCK_FILE_EXTENSION) {
+                                    return false;
+                                }
+                                if !filename.contains(block_hash.as_str()) {
+                                    return false;
+                                }
+                                true
+                            })
+                            .collect();
 
-                        let result = result.unwrap();
-                        if result.len() != 33 {
-                            warn!("key length : {:?} is not for public key", result.len());
-                            return Err(warp::reject::reject());
+                        if paths.is_empty() {
+                            return Err(warp::reject::not_found());
                         }
-                        key = result;
-                    }
-                    let mut keylist;
-                    {
-                        let peers = peer_lock.read().await;
-                        let peer = peers.peers.get(&key);
-                        if peer.is_none() {
-                            debug!(
-                                "lite block requester : {:?} is not connected as a peer",
-                                key.to_hex()
-                            );
-                            keylist = vec![key];
-                        } else {
-                            keylist = peer.as_ref().unwrap().key_list.clone();
-                            keylist.push(key);
+                        let path = paths.first().unwrap();
+                        let file_path = BLOCKS_DIR_PATH.to_string()
+                            + "/"
+                            + path.file_name().into_string().unwrap().as_str();
+                        let result = File::open(file_path.as_str()).await;
+                        if result.is_err() {
+                            error!("failed opening file : {:?}", result.err().unwrap());
+                            return Err(warp::reject::not_found());
                         }
-                    }
+                        let mut file = result.unwrap();
 
-                    let mut buffer: Vec<u8> = Default::default();
-                    let result = fs::read_dir(BLOCKS_DIR_PATH.to_string());
-                    if result.is_err() {
-                        debug!("no blocks found");
-                        return Err(warp::reject::not_found());
-                    }
-                    let paths: Vec<_> = result
-                        .unwrap()
-                        .map(|r| r.unwrap())
-                        .filter(|r| {
-                            let filename = r.file_name().into_string().unwrap();
-                            if !filename.contains(BLOCK_FILE_EXTENSION) {
-                                return false;
-                            }
-                            if !filename.contains(block_hash.as_str()) {
-                                return false;
-                            }
-                            true
-                        })
-                        .collect();
+                        let result = file.read_to_end(&mut buffer).await;
+                        if result.is_err() {
+                            error!("failed reading file : {:?}", result.err().unwrap());
+                            return Err(warp::reject::not_found());
+                        }
+                        drop(file);
 
-                    if paths.is_empty() {
-                        return Err(warp::reject::not_found());
-                    }
-                    let path = paths.first().unwrap();
-                    let file_path = BLOCKS_DIR_PATH.to_string()
-                        + "/"
-                        + path.file_name().into_string().unwrap().as_str();
-                    let result = File::open(file_path.as_str()).await;
-                    if result.is_err() {
-                        error!("failed opening file : {:?}", result.err().unwrap());
-                        return Err(warp::reject::not_found());
-                    }
-                    let mut file = result.unwrap();
-
-                    let result = file.read_to_end(&mut buffer).await;
-                    if result.is_err() {
-                        error!("failed reading file : {:?}", result.err().unwrap());
-                        return Err(warp::reject::not_found());
-                    }
-                    drop(file);
-
-                    let block = Block::deserialize_from_net(&buffer);
-                    if block.is_err() {
-                        error!("failed parsing buffer into a block");
-                        return Err(warp::reject::not_found());
-                    }
-                    let mut block = block.unwrap();
-                    if block.generate().is_err() {
-                        error!("failed generating block : {}", block_hash);
-                        return Err(warp::reject::not_found());
-                    }
-                    let block = block.generate_lite_block(keylist);
-                    let buffer = block.serialize_for_net(BlockType::Full);
-                    Ok(warp::reply::with_status(buffer, StatusCode::OK))
-                },
-            );
+                        let block = Block::deserialize_from_net(&buffer);
+                        if block.is_err() {
+                            error!("failed parsing buffer into a block");
+                            return Err(warp::reject::not_found());
+                        }
+                        let mut block = block.unwrap();
+                        if block.generate().is_err() {
+                            error!("failed generating block : {}", block_hash);
+                            return Err(warp::reject::not_found());
+                        }
+                        let block = block.generate_lite_block(keylist);
+                        let buffer = block.serialize_for_net(BlockType::Full);
+                        Ok(warp::reply::with_status(buffer, StatusCode::OK))
+                    },
+                );
         let routes = http_route.or(ws_route).or(lite_route);
         // let (_, server) =
         //     warp::serve(ws_route).bind_with_graceful_shutdown(([127, 0, 0, 1], port), async {

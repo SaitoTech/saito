@@ -3,7 +3,7 @@ use std::io::{Error, ErrorKind};
 use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct PeerService {
     pub service: String,
     pub domain: String,

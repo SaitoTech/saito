@@ -12,6 +12,7 @@ use saito_core::core::consensus_thread::ConsensusEvent;
 use saito_core::core::defs::PrintForLog;
 use saito_core::core::defs::SaitoPublicKey;
 use saito_core::core::process::process_event::ProcessEvent;
+use saito_core::core::routing::peers::peerv2::PeerV2;
 
 #[wasm_bindgen]
 pub struct WasmNetwork;
@@ -44,9 +45,8 @@ impl WasmNetwork {
             .read()
             .await;
 
-        let connected_peers: Vec<_> = peers
-            .peers
-            .values()
+        let connected_peers: Vec<PeerV2> = peers
+            .iter()
             .filter(|peer| peer.is_connected())
             .cloned()
             .collect();
@@ -78,7 +78,7 @@ impl WasmNetwork {
             .read()
             .await;
 
-        let peer = peers.peers.get(&key);
+        let peer = peers.get_peer_by_public_key(&key);
 
         if peer.is_none() {
             warn!("peer not found");

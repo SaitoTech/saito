@@ -1,7 +1,7 @@
 use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey};
 use crate::core::process::version::Version;
 use crate::core::routing::io::network::PeerDisconnectType;
-use crate::core::routing::peers::network_peer::NetworkPeer;
+use crate::core::routing::peers::peerv2::PeerV2;
 
 #[derive(Debug)]
 pub enum NetworkEvent {
@@ -25,7 +25,7 @@ pub enum NetworkEvent {
         public_key: SaitoPublicKey,
     },
     PeerConnectionResult {
-        result: Result<NetworkPeer, std::io::Error>,
+        result: Result<PeerV2, std::io::Error>,
     },
     AddStunPeer {
         public_key: SaitoPublicKey,

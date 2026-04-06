@@ -49,6 +49,31 @@ pub struct Peers {
     pub peers_v2: HashMap<u64, PeerV2>,
 }
 
+impl<'a> IntoIterator for &'a Peers {
+    type Item = &'a PeerV2;
+    type IntoIter = std::collections::hash_map::Values<'a, u64, PeerV2>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.peers_v2.values()
+    }
+}
+impl<'a> IntoIterator for &'a mut Peers {
+    type Item = &'a mut PeerV2;
+    type IntoIter = std::collections::hash_map::ValuesMut<'a, u64, PeerV2>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.peers_v2.values_mut()
+    }
+}
+impl IntoIterator for Peers {
+    type Item = PeerV2;
+    type IntoIter = std::collections::hash_map::IntoValues<u64, PeerV2>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.peers_v2.into_values()
+    }
+}
+
 impl Peers {
     //
     // PEER V2 REFACTOR API
@@ -88,6 +113,23 @@ impl Peers {
         }
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = &PeerV2> {
+        self.peers_v2.values()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut PeerV2> {
+        self.peers_v2.values_mut()
+    }
+
+    //
+    //
+    // LEGACY FUNCTIONS BELOW
+    //
+    //
+    //
+    //
+    //
+    //
     pub async fn process_peer_services(
         &mut self,
         services: Vec<PeerService>,
@@ -248,62 +290,66 @@ impl Peers {
         }
     }
 
+    pub async fn disconnect_stale_peers(
+        &mut self,
+        current_time: Timestamp,
+        io_handler: &(dyn InterfaceIO + Send + Sync),
+    ) {
+        trace!(
+            "disconnecting stale peers out of {:?} peers",
+            self.peers.len()
+        );
 
-pub async fn disconnect_stale_peers(
-    &mut self,
-    current_time: Timestamp,
-    io_handler: &(dyn InterfaceIO + Send + Sync),
-) {
-    trace!(
-        "disconnecting stale peers out of {:?} peers",
-        self.peers.len()
-    );
+        // --- Phase 1: collect stale peers (no mutation) ---
+        let mut stale_peers: Vec<SaitoPublicKey> = Vec::new();
 
-    // --- Phase 1: collect stale peers (no mutation) ---
-    let mut stale_peers: Vec<SaitoPublicKey> = Vec::new();
+        for peer in self.peers.values() {
+            if let PeerStatus::Connected = peer.peer_status {
+                trace!(
+                    "checking connected peer for staleness : {:?}",
+                    peer.public_key.to_base58()
+                );
 
-    for peer in self.peers.values() {
-        if let PeerStatus::Connected = peer.peer_status {
-            trace!(
-                "checking connected peer for staleness : {:?}",
-                peer.public_key.to_base58()
+                if peer.last_msg_received_at + PEER_STALE_PERIOD < current_time {
+                    stale_peers.push(peer.public_key);
+                }
+            }
+        }
+
+        // --- Phase 2: apply mutations ---
+        for public_key in stale_peers {
+            info!(
+                "disconnecting stale peer : {:?} since we didn't receive msgs for {:?} seconds",
+                public_key.to_base58(),
+                (current_time
+                    - self
+                        .peers
+                        .get(&public_key)
+                        .map(|p| p.last_msg_received_at)
+                        .unwrap_or(current_time))
+                    / 1000
             );
 
-            if peer.last_msg_received_at + PEER_STALE_PERIOD < current_time {
-                stale_peers.push(peer.public_key);
+            // Update legacy Peer
+            if let Some(peer) = self.peers.get_mut(&public_key) {
+                peer.mark_as_disconnected(current_time);
+            }
+
+            // Update PeerV2
+            if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {
+                peer_v2.on_disconnect(current_time);
+            }
+
+            // IO disconnect (no borrow conflict now)
+            if let Err(err) = io_handler.disconnect_from_peer(public_key).await {
+                error!(
+                    "failed disconnecting stale peer {:?}: {:?}",
+                    public_key.to_base58(),
+                    err
+                );
             }
         }
     }
-
-    // --- Phase 2: apply mutations ---
-    for public_key in stale_peers {
-        info!(
-            "disconnecting stale peer : {:?} since we didn't receive msgs for {:?} seconds",
-            public_key.to_base58(),
-            (current_time - self.peers.get(&public_key).map(|p| p.last_msg_received_at).unwrap_or(current_time)) / 1000
-        );
-
-        // Update legacy Peer
-        if let Some(peer) = self.peers.get_mut(&public_key) {
-            peer.mark_as_disconnected(current_time);
-        }
-
-        // Update PeerV2
-        if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {
-            peer_v2.on_disconnect(current_time);
-        }
-
-        // IO disconnect (no borrow conflict now)
-        if let Err(err) = io_handler.disconnect_from_peer(public_key).await {
-            error!(
-                "failed disconnecting stale peer {:?}: {:?}",
-                public_key.to_base58(),
-                err
-            );
-        }
-    }
-}
-
 
     pub fn add_congestion_event(
         &mut self,
