@@ -7,8 +7,9 @@ use log::{debug, error, trace, warn};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use primitive_types::U256;
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 use crate::core::consensus::hop::{Hop, HOP_SIZE};
 use crate::core::consensus::slip::{Slip, SlipType, SLIP_SIZE};
@@ -1956,10 +1957,8 @@ mod tests {
     }
     #[test]
     fn slip_count_test() {
-        let mock_input = Slip::default();
         let mock_output = Slip::default();
         let mock_hop = Hop::default();
-
         let mut mock_tx = Transaction::default();
         for i in 0..1000 {
             let mut mock_input = Slip::default();

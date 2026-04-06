@@ -60,7 +60,7 @@ impl Debug for RustIOHandler {
 impl InterfaceIO for RustIOHandler {
     async fn send_message(&self, public_key: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error> {
         // TODO : refactor to combine event and the future
-        let event = IoEvent::new(NetworkEvent::OutgoingNetworkMessage {
+        let event = IoEvent::new(NetworkEvent::SendMessageToPeer {
             public_key,
             buffer: buffer.to_vec(),
         });
@@ -77,7 +77,7 @@ impl InterfaceIO for RustIOHandler {
     ) -> Result<(), Error> {
         // debug!("send message to all");
 
-        let event = IoEvent::new(NetworkEvent::OutgoingNetworkMessageForAll {
+        let event = IoEvent::new(NetworkEvent::SendMessageToAllPeers {
             buffer: buffer.to_vec(),
             exceptions: peer_exceptions,
         });

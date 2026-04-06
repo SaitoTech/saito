@@ -1,6 +1,5 @@
 use std::io::{Error, ErrorKind};
 use std::ops::{Deref, DerefMut};
-use std::str::FromStr;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -10,10 +9,8 @@ use crate::wasm_blockchain::WasmBlockchain;
 use crate::wasm_configuration::WasmConfiguration;
 use crate::wasm_io_handler::WasmIoHandler;
 use crate::wasm_network::WasmNetwork;
-use crate::wasm_network_api::WasmNetworkApi;
 use crate::wasm_network_peer::WasmNetworkPeer;
 use crate::wasm_nft::WasmNFT;
-use crate::wasm_peer::WasmPeer;
 use crate::wasm_slip::WasmSlip;
 use crate::wasm_stats::WasmStats;
 use crate::wasm_time_keeper::WasmTimeKeeper;
@@ -33,24 +30,20 @@ use saito_core::core::defs::{
     Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
-use saito_core::core::msg::api_message::ApiMessage;
-use saito_core::core::msg::message::Message;
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::process::version::Version;
-use saito_core::core::routing::blockchain_sync_state::BlockchainSyncState;
 use saito_core::core::routing::io::network::{Network, PeerDisconnectType};
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use saito_core::core::routing::peers::peer_collection::PeerCollection;
+use saito_core::core::routing::sync::SyncManager;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::crypto::{generate_keypair_from_private_key, sign};
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
 use secp256k1::SECP256K1;
-use serde::Serialize;
 use std::convert::TryInto;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::{Mutex, RwLock};
@@ -161,7 +154,7 @@ pub fn new(
             senders_to_verification: vec![sender_to_verification.clone()],
             last_verification_thread_index: 0,
             stat_sender: sender_to_stat.clone(),
-            blockchain_sync_state: BlockchainSyncState::new(block_fetch_batch_size as usize),
+            sync: SyncManager::new(block_fetch_batch_size as usize),
             congestion_check_timer: 0,
             received_ghost_chain: None,
             waiting_for_genesis_block: false,
@@ -453,8 +446,8 @@ pub async fn initialize(
             wallet.private_key = keys.1;
             wallet.public_key = keys.0;
             if let Some(wallet) = configs.get_wallet_configs_mut() {
-                wallet.privateKey = keys.1.to_hex();
-                wallet.publicKey = keys.0.to_base58();
+                wallet.private_key = keys.1.to_hex();
+                wallet.public_key = keys.0.to_base58();
             }
         }
         info!("current core version : {:?}", wallet.core_version);
@@ -1024,7 +1017,8 @@ pub async fn process_msg_buffer_from_peer(
     } else {
         saito.routing_thread.network.io_interface.get_my_services()
     };
-    drop(saito);
+    // drop(saito) is not needed as dropping a reference does nothing, and
+    // will be automatically cleaned up at the end of the function
     drop(saito1);
 
     trace!("buffer size : {}", buffer.len());
@@ -1770,7 +1764,9 @@ pub async fn start_from_received_ghost_chain() {
     let mut saito = SAITO.lock().await;
     let routing_thread = &mut saito.as_mut().unwrap().routing_thread;
     if let Some((chain, public_key)) = routing_thread.received_ghost_chain.take() {
-        routing_thread.process_ghost_chain(chain, public_key).await;
+        routing_thread
+            .process_ghost_chain_message(chain, public_key)
+            .await;
     }
 }
 

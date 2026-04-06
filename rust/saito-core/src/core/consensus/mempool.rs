@@ -5,8 +5,9 @@ use std::time::Duration;
 use ahash::AHashMap;
 use log::{debug, info, trace, warn};
 use primitive_types::U256;
-use rayon::prelude::*;
 use tokio::sync::RwLock;
+
+use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
 use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;

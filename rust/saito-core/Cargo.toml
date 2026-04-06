@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "=1.37.0", features = [
+tokio = { version = "=1.51.0", features = [
     "sync",
     "tokio-macros",
     "test-util",
@@ -44,7 +44,7 @@ serde_json = "=1.0.120"
 
 [dev-dependencies]
 serial_test = "=3.0.0"
-tokio = { version = "=1.37.0", features = ["full"] }
+tokio = { version = "=1.51.0", features = ["full"] }
 criterion = { version = "=0.5.1", features = ["default", "html_reports"] }
 tracing-subscriber = { version = "=0.3.18", features = ["env-filter"] }
 mockall = "=0.13.1"
@@ -58,8 +58,3 @@ with-rayon = []
 name = "benches"
 harness = false
 
-[profile.release]
-lto = "thin"
-codegen-units = 1
-opt-level = 3
-panic = "abort"
