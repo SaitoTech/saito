@@ -30,7 +30,7 @@ use saito_core::core::routing::io::network::Network;
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::routing::peers::io_event::IoEvent;
-use saito_core::core::routing::peers::peer_collection::PeerCollection;
+use saito_core::core::routing::peers::peers::Peers;
 use saito_core::core::routing::sync::SyncManager;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::StatThread;
@@ -163,7 +163,7 @@ async fn run_mining_event_processor(
 
 async fn run_consensus_event_processor(
     context: &Context,
-    peer_lock: Arc<RwLock<PeerCollection>>,
+    peer_lock: Arc<RwLock<Peers>>,
     receiver_for_blockchain: Receiver<ConsensusEvent>,
     sender_to_routing: &Sender<RoutingEvent>,
     sender_to_miner: Sender<MiningEvent>,
@@ -228,7 +228,7 @@ async fn run_consensus_event_processor(
 async fn run_verification_threads(
     sender_to_consensus: Sender<ConsensusEvent>,
     blockchain_lock: Arc<RwLock<Blockchain>>,
-    peer_lock: Arc<RwLock<PeerCollection>>,
+    peer_lock: Arc<RwLock<Peers>>,
     wallet_lock: Arc<RwLock<Wallet>>,
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
@@ -291,7 +291,7 @@ async fn run_routing_event_processor(
     sender_to_io_controller: Sender<IoEvent>,
     configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     context: &Context,
-    peers_lock: Arc<RwLock<PeerCollection>>,
+    peers_lock: Arc<RwLock<Peers>>,
     sender_to_mempool: &Sender<ConsensusEvent>,
     receiver_for_routing: Receiver<RoutingEvent>,
     sender_to_miner: &Sender<MiningEvent>,
@@ -538,7 +538,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         block_confirmation_limit,
     );
 
-    let peers_lock = Arc::new(RwLock::new(PeerCollection::default()));
+    let peers_lock = Arc::new(RwLock::new(Peers::default()));
 
     let (sender_to_consensus, receiver_for_consensus) =
         tokio::sync::mpsc::channel::<ConsensusEvent>(channel_size);

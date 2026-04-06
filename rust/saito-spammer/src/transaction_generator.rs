@@ -13,7 +13,7 @@ use saito_core::core::consensus::transaction::Transaction;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{Currency, SaitoPrivateKey, SaitoPublicKey};
 use saito_core::core::process::keep_time::KeepTime;
-use saito_core::core::routing::peers::peer_collection::PeerCollection;
+use saito_core::core::routing::peers::peers::Peers;
 use saito_core::core::util::crypto::generate_random_bytes;
 use saito_core::drain;
 use saito_rust::time_keeper::TimeKeeper;
@@ -41,14 +41,14 @@ pub struct TransactionGenerator {
     sender: Sender<VecDeque<Transaction>>,
     tx_payment: Currency,
     tx_fee: Currency,
-    pub peer_lock: Arc<RwLock<PeerCollection>>,
+    pub peer_lock: Arc<RwLock<Peers>>,
     configuration_lock: Arc<RwLock<SpammerConfigs>>,
 }
 
 impl TransactionGenerator {
     pub async fn create(
         wallet_lock: Arc<RwLock<Wallet>>,
-        peers_lock: Arc<RwLock<PeerCollection>>,
+        peers_lock: Arc<RwLock<Peers>>,
         blockchain_lock: Arc<RwLock<Blockchain>>,
         configuration_lock: Arc<RwLock<SpammerConfigs>>,
         sender: Sender<VecDeque<Transaction>>,
