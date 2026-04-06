@@ -22,12 +22,12 @@
     "build-profile": "cross-env WASM_BINDGEN_WEAKREF=1 npm run build-web-profile && npm run build-nodejs-profile",
     "build": "cross-env WASM_BINDGEN_WEAKREF=1 npm run build-web && npm run build-nodejs",
     "serve": "webpack-dev-server",
-    "build-web": "wasm-pack build --target web --out-dir ./pkg/web --out-name index --dev",
-    "build-nodejs": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index --dev",
-    "build-web-prod": "wasm-pack build --target web --out-dir ./pkg/web --out-name index --release",
-    "build-nodejs-prod": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index --release",
-    "build-web-profile": "wasm-pack build --target web --out-dir ./pkg/web --out-name index --profiling",
-    "build-nodejs-profile": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index --profiling"
+    "build-web": "wasm-pack build --target web --out-dir ./pkg/web --out-name index --dev && node ./scripts/fix-wasm-pack-output.js web",
+    "build-nodejs": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index --dev && node ./scripts/fix-wasm-pack-output.js node",
+    "build-web-prod": "wasm-pack build --target web --out-dir ./pkg/web --out-name index --release && node ./scripts/fix-wasm-pack-output.js web",
+    "build-nodejs-prod": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index --release && node ./scripts/fix-wasm-pack-output.js node",
+    "build-web-profile": "wasm-pack build --target web --out-dir ./pkg/web --out-name index --profiling && node ./scripts/fix-wasm-pack-output.js web",
+    "build-nodejs-profile": "wasm-pack build --target nodejs --out-dir ./pkg/node --out-name index --profiling && node ./scripts/fix-wasm-pack-output.js node"
   },
   "author": "",
   "license": "ISC",
