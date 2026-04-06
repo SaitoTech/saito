@@ -455,7 +455,10 @@ class BuySaito extends ModTemplate {
           }
         } else if (tx.isFrom(this.authorized_public_key) && this.app.BROWSER) {
           this.pending_payments.push(txmsg.data);
-          this.app.connection.emit('saito-purchase-address-reserved', txmsg.data);
+          // Keep pending payment on base page; only open overlay when user clicks "Continue".
+          if (document.getElementById('buysaito-button')) {
+            document.getElementById('buysaito-button').innerText = 'Continue';
+          }
         } else {
           console.warn("BUYSAITO - We are getting a request we shouldn't be...");
           // console.warn(txmsg);

@@ -31,6 +31,7 @@ class SaitoPurchaseOverlay {
     this.countdown_interval = null;
 
     this.ui_msg = '';
+    this.active_session = false;
 
     /**
      * Events (in reverse order):
@@ -49,6 +50,7 @@ class SaitoPurchaseOverlay {
     });
 
     app.connection.on('saito-purchase-error-notification', () => {
+      this.active_session = false;
       this.overlay.close();
       this.overlay.closebox = true;
       this.overlay.show(SaitoPurchaseErrorTemplate());
@@ -58,6 +60,7 @@ class SaitoPurchaseOverlay {
       'saito-purchase-launch',
       async (amount, recipient = '', tx = null, description = '', launch_options = {}) => {
         this.reset();
+        this.active_session = true;
         this.amount = Number(amount);
         this.description = description;
         this.recipient = recipient || this.mod.publicKey;
@@ -112,6 +115,9 @@ class SaitoPurchaseOverlay {
 
     app.connection.on('saito-purchase-cryptos', () => {
       console.log('saito-purchase-cryptos', this.mod.available_currencies);
+      if (!this.active_session) {
+        return;
+      }
       clearTimeout(this.timer);
       setTimeout(async () => {
         this.fancy_ui = false;
@@ -639,6 +645,7 @@ class SaitoPurchaseOverlay {
     this.deposit_confirmed_by_user = false;
     this.show_percentage_buttons = false;
     this.launch_options = {};
+    this.active_session = false;
 
     clearTimeout(this.timer);
     this.timer = null;
