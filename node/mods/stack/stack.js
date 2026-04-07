@@ -2361,18 +2361,52 @@ class Stack extends ModTemplate {
     //   - loadPost()
     //   - explore logic
     //
-    let html = HomePage(app, stack_self, app.build_number);
+    let updateSocial = Object.assign({}, stack_self.social);
 
     expressapp.get(`${uri}`, (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
-      return res.send(html);
+
+      if (req?.query?.og_img_sig) {
+        let sig = req.query.og_img_sig;
+        app.storage.loadTransactions(
+          { sig, field1: 'Stack' },
+          (txs) => {
+            if (txs?.length > 0) {
+              const tx = txs[0];
+              const txmsg = tx.returnMessage();
+              const img_uri = txmsg.data.image;
+              let img_type = img_uri.substring(img_uri.indexOf(':') + 1, img_uri.indexOf(';'));
+              let base64Data = img_uri.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+              let img = Buffer.from(base64Data, 'base64');
+
+              if (img_type == 'image/svg+xml') {
+                img_type = 'image/svg';
+              }
+
+              if (!res.finished) {
+                res.writeHead(200, {
+                  'Content-Type': img_type,
+                  'Content-Length': img.length
+                });
+                return res.end(img);
+              }
+            }
+          },
+          'localhost'
+        );
+
+        return;
+      }
+
+      return res.send(HomePage(app, stack_self, app.build_number, updateSocial));
     });
 
     expressapp.get(`${uri}/:publickey`, (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
-      return res.send(html);
+      updateSocial.description = `Follow ${app.keychain.returnUsername(req.params.publicKey)}`;
+      return res.send(HomePage(app, stack_self, app.build_number, updateSocial));
     });
 
     expressapp.get(`${uri}/:publickey/:txsig`, (req, res) => {
@@ -2380,16 +2414,42 @@ class Stack extends ModTemplate {
       res.charset = 'UTF-8';
       const txsig = req.params.txsig;
       const cachedTx = txsig ? stack_self.transactionCache[txsig] : null;
+
+      updateSocial.description = `Follow ${app.keychain.returnUsername(req.params.publicKey)}`;
+
       if (cachedTx) {
         try {
-          const serializedTx = cachedTx.serialize_to_web(app);
-          const htmlWithPost = HomePage(app, stack_self, app.build_number, {}, serializedTx);
-          return res.send(htmlWithPost);
+          let txmsg = cachedTx.returnMessage();
+          if (txmsg?.data?.title) {
+            updateSocial.title = txmsg.data.title;
+          }
+          if (txmsg?.data?.image) {
+            console.log(txmsg?.data?.image);
+            updateSocial.image = uri + '?og_img_sig=' + txsig;
+          } else if (txmsg?.data?.imageUrl) {
+            updateSocial.image = txmsg.data.imageUrl;
+          }
+
+          let summary = txmsg?.data?.summary || txmsg?.data?.excerpt || '';
+          if (summary) {
+            updateSocial.description = summary;
+          } else {
+            updateSocial.description =
+              app.keychain.returnUsername(req.params.publicKey) + ' writes on Saito Stack...';
+          }
         } catch (err) {
           console.debug('Stack: Failed to serialize cached post for initial HTML', err);
         }
       }
-      return res.send(html);
+      return res.send(
+        HomePage(
+          app,
+          stack_self,
+          app.build_number,
+          updateSocial,
+          cachedTx ? cachedTx.serialize_to_web(app) : null
+        )
+      );
     });
   }
 }
