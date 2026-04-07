@@ -85,15 +85,16 @@ impl Spammer {
             loop {
                 {
                     let peers = peer_lock.read().await;
-                    if let Some((_, peer)) = peers.peers.iter().next() {
-                        if let PeerStatus::Connected = peer.peer_status {
-                            // info!("peer count : {}", peers.index_to_peers.len());
-                            // info!("peer status : {:?}", peer.peer_status);
-                        } else {
-                            info!("peer not connected. status : {:?}", peer.peer_status);
-                            tokio::time::sleep(Duration::from_millis(timer_in_milli)).await;
-                            continue;
-                        }
+
+                    let any_connected = peers
+                        .peers_v2
+                        .values()
+                        .any(|p| p.is_connected && p.public_key.is_some());
+
+                    if !any_connected {
+                        info!("no connected peers available");
+                        tokio::time::sleep(Duration::from_millis(timer_in_milli)).await;
+                        continue;
                     }
                 }
                 if let Some(transactions) = receiver.recv().await {
@@ -140,21 +141,17 @@ impl Spammer {
             work_done = false;
 
             if !self.bootstrap_done {
-                // if self.tx_generator.get_state() != GeneratorState::Done  {
-                //     self.tx_generator.check_blockchain_for_confirmation().await ;
-                // }
                 {
                     let peers = self.tx_generator.peer_lock.read().await;
-                    if let Some((_, peer)) = peers.peers.iter().next() {
-                        if let PeerStatus::Connected = peer.peer_status {
-                            // info!("peer count : {}", peers.index_to_peers.len());
-                            // info!("peer status : {:?}", peer.peer_status);
-                            // to_public_key = peer.get_public_key().unwrap();
-                        } else {
-                            info!("peer not connected. status : {:?}", peer.peer_status);
-                            tokio::time::sleep(Duration::from_millis(timer_in_milli)).await;
-                            continue;
-                        }
+
+                    let any_connected = peers
+                        .peers_v2
+                        .values()
+                        .any(|p| p.is_connected && p.public_key.is_some());
+
+                    if !any_connected {
+                        tokio::time::sleep(Duration::from_millis(timer_in_milli)).await;
+                        continue;
                     }
                 }
                 self.tx_generator.on_new_block().await;

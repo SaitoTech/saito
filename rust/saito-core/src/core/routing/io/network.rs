@@ -14,11 +14,12 @@ use crate::core::process::version::Version;
 use crate::core::routing::io::interface_io::InterfaceEvent;
 use crate::core::routing::io::interface_io::InterfaceIO;
 use crate::core::routing::peers::congestion_controller::CongestionType;
-use crate::core::routing::peers::peer::PeerStatus;
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::routing::peers::peers::Peers;
 use crate::core::routing::peers::peerv2::PeerV2;
 use crate::core::util::configuration::Configuration;
+
+const RECONNECTION_PERIOD: Timestamp = 5_000;
 
 #[derive(Debug)]
 pub enum PeerDisconnectType {
@@ -52,97 +53,95 @@ impl Network {
         }
     }
 
+    pub async fn propagate_block(&self, block: &Block) {
+        let peers = self.peer_lock.read().await;
 
-pub async fn propagate_block(&self, block: &Block) {
-    let peers = self.peer_lock.read().await;
+        let mut excluded_peers: Vec<SaitoPublicKey> = vec![];
 
-    let mut excluded_peers: Vec<SaitoPublicKey> = vec![];
-
-    // --- exclude sender (preserve original behavior) ---
-    if let Some(sender) = block.routed_from_peer {
-        excluded_peers.push(sender);
-    }
-
-    // --- exclude disconnected / uninitialized peers ---
-    for peer in peers.peers_v2.values() {
-        let Some(pk) = peer.public_key else {
-            continue;
-        };
-
-        if !peer.is_connected {
-            excluded_peers.push(pk);
-        }
-    }
-
-    drop(peers);
-
-    // --- correct message type (post-refactor) ---
-    let message = Message::BlockReference(block.hash, block.id);
-    let serialized = message.serialize();
-
-    let _ = self
-        .io_interface
-        .send_message_to_all(serialized.as_slice(), excluded_peers)
-        .await;
-}
-
-
-pub async fn propagate_transaction(&self, transaction: &Transaction) {
-    // --- STEP 1: read wallet (no write lock yet) ---
-    let (wallet_public_key, wallet_private_key) = {
-        let wallet = self.wallet_lock.read().await;
-        (wallet.public_key, wallet.private_key)
-    };
-
-    // --- STEP 2: conditionally update wallet ---
-    if transaction
-        .from
-        .first()
-        .expect("from slip should exist")
-        .public_key
-        == wallet_public_key
-    {
-        if !matches!(transaction.transaction_type, TransactionType::GoldenTicket) {
-            let mut wallet = self.wallet_lock.write().await;
-            wallet.add_to_pending(transaction.clone());
-        }
-    }
-
-    // --- STEP 3: lock peers ---
-    let mut peers = self.peer_lock.write().await;
-
-    for peer in peers.peers_v2.values_mut() {
-        let Some(peer_public_key) = peer.public_key else {
-            continue;
-        };
-
-        if !peer.is_connected {
-            continue;
+        // --- exclude sender (preserve original behavior) ---
+        if let Some(sender) = block.routed_from_peer {
+            excluded_peers.push(sender);
         }
 
-        if transaction.is_in_path(&peer_public_key) {
-            continue;
+        // --- exclude disconnected / uninitialized peers ---
+        for peer in peers.peers_v2.values() {
+            let Some(pk) = peer.public_key else {
+                continue;
+            };
+
+            if !peer.is_connected {
+                excluded_peers.push(pk);
+            }
         }
 
-        // --- update peer stats ---
-        peer.transactions_sent += 1;
-        peer.last_transaction_at = self.timer.get_timestamp_in_ms();
+        drop(peers);
 
-        // --- prepare transaction ---
-        let mut tx = transaction.clone();
-        tx.add_hop(&wallet_private_key, &wallet_public_key, &peer_public_key);
-
-        let message = Message::Transaction(tx);
+        // --- correct message type (post-refactor) ---
+        let message = Message::BlockReference(block.hash, block.id);
         let serialized = message.serialize();
 
-        // --- send ---
         let _ = self
             .io_interface
-            .send_message(peer_public_key, serialized.as_slice())
-            .await
-            .inspect_err(|e| error!("{}", e));
+            .send_message_to_all(serialized.as_slice(), excluded_peers)
+            .await;
     }
-}
+
+    pub async fn propagate_transaction(&self, transaction: &Transaction) {
+        // --- STEP 1: read wallet (no write lock yet) ---
+        let (wallet_public_key, wallet_private_key) = {
+            let wallet = self.wallet_lock.read().await;
+            (wallet.public_key, wallet.private_key)
+        };
+
+        // --- STEP 2: conditionally update wallet ---
+        if transaction
+            .from
+            .first()
+            .expect("from slip should exist")
+            .public_key
+            == wallet_public_key
+        {
+            if !matches!(transaction.transaction_type, TransactionType::GoldenTicket) {
+                let mut wallet = self.wallet_lock.write().await;
+                wallet.add_to_pending(transaction.clone());
+            }
+        }
+
+        // --- STEP 3: lock peers ---
+        let mut peers = self.peer_lock.write().await;
+
+        for peer in peers.peers_v2.values_mut() {
+            let Some(peer_public_key) = peer.public_key else {
+                continue;
+            };
+
+            if !peer.is_connected {
+                continue;
+            }
+
+            if transaction.is_in_path(&peer_public_key) {
+                continue;
+            }
+
+            // --- update peer stats ---
+            peer.transactions_sent += 1;
+            peer.last_transaction_at = self.timer.get_timestamp_in_ms();
+
+            // --- prepare transaction ---
+            let mut tx = transaction.clone();
+            tx.add_hop(&wallet_private_key, &wallet_public_key, &peer_public_key);
+
+            let message = Message::Transaction(tx);
+            let serialized = message.serialize();
+
+            // --- send ---
+            let _ = self
+                .io_interface
+                .send_message(peer_public_key, serialized.as_slice())
+                .await
+                .inspect_err(|e| error!("{}", e));
+        }
+    }
 
     pub async fn update_peer_timestamp(&self, public_key: SaitoPublicKey, timestamp: Timestamp) {
         let mut peers = self.peer_lock.write().await;
@@ -341,34 +340,33 @@ pub async fn propagate_transaction(&self, transaction: &Transaction) {
         }
     }
 
-pub async fn ping(&self) {
-    let peers = self.peer_lock.read().await;
+    pub async fn ping(&self) {
+        let peers = self.peer_lock.read().await;
 
-    let mut targets: Vec<SaitoPublicKey> = vec![];
+        let mut targets: Vec<SaitoPublicKey> = vec![];
 
-    for peer in peers.peers_v2.values() {
-        let Some(pk) = peer.public_key else {
-            continue;
-        };
-        if !peer.is_connected {
-            continue;
+        for peer in peers.peers_v2.values() {
+            let Some(pk) = peer.public_key else {
+                continue;
+            };
+            if !peer.is_connected {
+                continue;
+            }
+            targets.push(pk);
         }
-        targets.push(pk);
+
+        drop(peers);
+
+        let message = Message::Ping();
+        let serialized = message.serialize();
+
+        for pk in targets {
+            let _ = self
+                .io_interface
+                .send_message(pk, serialized.as_slice())
+                .await;
+        }
     }
-
-    drop(peers);
-
-    let message = Message::Ping();
-    let serialized = message.serialize();
-
-    for pk in targets {
-        let _ = self
-            .io_interface
-            .send_message(pk, serialized.as_slice())
-            .await;
-    }
-}
-
 
     pub async fn manage_congested_peers(&mut self) {
         let peers = self.peer_lock.write().await;
@@ -390,34 +388,32 @@ pub async fn ping(&self) {
         }
     }
 
+    pub async fn send_key_list(&self, keys: Vec<SaitoPublicKey>) {
+        let peers = self.peer_lock.read().await;
 
-pub async fn send_key_list(&self, keys: Vec<SaitoPublicKey>) {
-    let peers = self.peer_lock.read().await;
+        let mut exclusions: Vec<SaitoPublicKey> = vec![];
 
-    let mut exclusions: Vec<SaitoPublicKey> = vec![];
+        for peer in peers.peers_v2.values() {
+            let Some(pk) = peer.public_key else {
+                continue;
+            };
 
-    for peer in peers.peers_v2.values() {
-        let Some(pk) = peer.public_key else {
-            continue;
-        };
-
-        // exclude non-connected peers
-        if !peer.is_connected {
-            exclusions.push(pk);
+            // exclude non-connected peers
+            if !peer.is_connected {
+                exclusions.push(pk);
+            }
         }
+
+        drop(peers);
+
+        let message = Message::KeyList(keys);
+        let serialized = message.serialize();
+
+        let _ = self
+            .io_interface
+            .send_message_to_all(serialized.as_slice(), exclusions)
+            .await;
     }
-
-    drop(peers);
-
-    let message = Message::KeyList(keys);
-    let serialized = message.serialize();
-
-    let _ = self
-        .io_interface
-        .send_message_to_all(serialized.as_slice(), exclusions)
-        .await;
-}
-
 
     pub async fn record_received_block_header(
         &self,
@@ -432,46 +428,37 @@ pub async fn send_key_list(&self, keys: Vec<SaitoPublicKey>) {
     }
 
     pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
-        trace!("connecting to static peers");
-
         let mut peers = self.peer_lock.write().await;
 
-        for (public_key, peer) in &mut peers.peers {
-            let url = match peer.url.as_ref() {
-                Some(u) => u.clone(),
-                None => {
-                    trace!(
-                        "peer : {} doesn't have a url. so not connecting to it",
-                        public_key.to_base58()
-                    );
-                    continue;
-                }
+        for peer in peers.peers_v2.values_mut() {
+            let Some(url) = peer.url.clone() else {
+                continue;
             };
 
-            if let PeerStatus::Disconnected(connect_time, period) = &mut peer.peer_status {
-                if current_time < *connect_time {
-                    continue;
-                }
+            // Skip already connected or connecting peers
+            if peer.is_connected || peer.is_connecting {
+                continue;
+            }
 
-                info!(
-                    "trying to connect to static peer : {:?} with {:?}",
-                    public_key.to_base58(),
-                    url
-                );
+            // Basic backoff using last_activity_at
+            if peer.last_activity_at + RECONNECTION_PERIOD > current_time {
+                continue;
+            }
 
-                if let Err(err) = self.io_interface.connect_to_peer(url).await {
-                    error!(
-                        "failed connecting to static peer {:?}: {:?}",
-                        public_key.to_base58(),
-                        err
-                    );
-                }
+            trace!(
+                "attempting reconnection to peer {:?} at {}",
+                peer.public_key
+                    .map(|pk| pk.to_base58())
+                    .unwrap_or("unknown".to_string()),
+                url
+            );
 
-                if *period < 10_000 {
-                    *period *= 2;
-                }
+            peer.is_connecting = true;
+            peer.last_activity_at = current_time;
 
-                *connect_time = current_time + *period;
+            if let Err(err) = self.io_interface.connect_to_peer(url).await {
+                error!("failed reconnecting to peer: {:?}", err);
+                peer.is_connecting = false;
             }
         }
     }
@@ -492,21 +479,20 @@ pub async fn send_key_list(&self, keys: Vec<SaitoPublicKey>) {
         }
     }
 
-pub async fn get_peer_key_list(
-    &self,
-    public_key: SaitoPublicKey,
-) -> Option<Vec<SaitoPublicKey>> {
-    let peers = self.peer_lock.read().await;
+    pub async fn get_peer_key_list(
+        &self,
+        public_key: SaitoPublicKey,
+    ) -> Option<Vec<SaitoPublicKey>> {
+        let peers = self.peer_lock.read().await;
 
-    if let Some(peer) = peers.get_peer_by_public_key(&public_key) {
-        let mut keys = vec![public_key];
-        keys.extend(peer.key_list.clone());
-        Some(keys)
-    } else {
-        None
+        if let Some(peer) = peers.get_peer_by_public_key(&public_key) {
+            let mut keys = vec![public_key];
+            keys.extend(peer.key_list.clone());
+            Some(keys)
+        } else {
+            None
+        }
     }
-}
-
 
     pub async fn handle_peer_disconnect(
         &mut self,
@@ -544,24 +530,23 @@ pub async fn get_peer_key_list(
         }
     }
 
+    pub async fn should_request_blockchain(
+        &self,
+        public_key: SaitoPublicKey,
+        wallet_version: Version,
+        core_version: Version,
+    ) -> Option<bool> {
+        let peers = self.peer_lock.read().await;
 
-pub async fn should_request_blockchain(
-    &self,
-    public_key: SaitoPublicKey,
-    wallet_version: Version,
-    core_version: Version,
-) -> Option<bool> {
-    let peers = self.peer_lock.read().await;
+        if let Some(peer) = peers.get_peer_by_public_key(&public_key) {
+            let should_request = wallet_version > peer.wallet_version
+                || (wallet_version == peer.wallet_version && core_version > peer.core_version);
 
-    if let Some(peer) = peers.get_peer_by_public_key(&public_key) {
-        let should_request = wallet_version > peer.wallet_version
-            || (wallet_version == peer.wallet_version && core_version > peer.core_version);
-
-        Some(should_request)
-    } else {
-        None
+            Some(should_request)
+        } else {
+            None
+        }
     }
-}
 
     pub async fn disconnect_from_peer(
         &self,

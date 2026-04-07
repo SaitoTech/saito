@@ -3,7 +3,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use log::{debug, info};
-use saito_core::core::routing::peers::peer::PeerStatus;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
@@ -139,22 +138,35 @@ impl TransactionGenerator {
             {
                 let peers = self.peer_lock.read().await;
 
-                if peers.peers.is_empty() {
+                let mut connected_peers: Vec<SaitoPublicKey> = peers
+                    .peers_v2
+                    .values()
+                    .filter_map(|peer| {
+                        if peer.is_connected {
+                            peer.public_key
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+
+                if connected_peers.is_empty() {
                     info!("not yet connected to a node");
                     return;
                 }
 
-                if let Some((_, peer)) = peers.peers.iter().next() {
-                    if let PeerStatus::Connected = peer.peer_status {
-                        to_public_key = peer.get_public_key();
-                    } else {
-                        info!("peer not connected. status : {:?}", peer.peer_status);
-                        return;
-                    }
-                }
-                assert_eq!(peers.peers.len(), 1usize, "we have assumed connecting to a single node. move add_hop to correct place if not.");
+                // preserve original assumption: exactly one peer
+                assert_eq!(
+                    connected_peers.len(),
+                    1,
+                    "expected exactly one connected peer"
+                );
+
+                to_public_key = connected_peers.pop().unwrap();
+
                 assert_ne!(to_public_key, self.public_key);
             }
+
             let mut txs: VecDeque<Transaction> = Default::default();
             for _i in 0..unspent_slip_count {
                 let transaction = self
@@ -363,15 +375,25 @@ impl TransactionGenerator {
         {
             let peers = self.peer_lock.read().await;
 
-            if let Some((_, peer)) = peers.peers.iter().next() {
-                // if let PeerStatus::Connected = peer.peer_status {
-                info!("peer count : {}", peers.peers.len());
-                info!("peer status : {:?}", peer.peer_status);
-                to_public_key = peer.get_public_key();
-                // } else {
-                //     info!("peer not connected. status : {:?}", peer.peer_status);
-                // }
+            let mut connected_peers: Vec<SaitoPublicKey> = peers
+                .peers_v2
+                .values()
+                .filter_map(|peer| {
+                    if peer.is_connected {
+                        peer.public_key
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            if connected_peers.is_empty() {
+                info!("no connected peers available");
+            } else {
+                info!("connected peer count : {}", connected_peers.len());
+                to_public_key = connected_peers[0];
             }
+
             // assert_eq!(peers.address_to_peers.len(), 1 as usize, "we have assumed connecting to a single node. move add_hop to correct place if not.");
             assert_ne!(to_public_key, self.public_key);
         }
