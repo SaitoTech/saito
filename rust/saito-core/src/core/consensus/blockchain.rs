@@ -746,6 +746,7 @@ impl Blockchain {
 
                 if writing_interval > 0
                     && block_id >= self.last_issuance_written_on + writing_interval
+                    && in_longest_chain
                 {
                     debug!("writing interval : {:?} last issuance written on : {:?}, writing for current block : {}", writing_interval, self.last_issuance_written_on, block_id);
                     self.write_issuance_file(0, "", storage).await;
