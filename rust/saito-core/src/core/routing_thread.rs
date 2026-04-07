@@ -511,7 +511,7 @@ impl RoutingThread {
         };
         if changed {
             let wallet = self.wallet_lock.read().await;
-            self.network.send_key_list(&wallet.key_list).await;
+	    self.network.send_key_list(wallet.key_list.clone()).await;
         }
     }
 
@@ -777,7 +777,7 @@ impl RoutingThread {
 
             {
                 let wallet = self.wallet_lock.read().await;
-                self.network.send_key_list(&wallet.key_list).await;
+                self.network.send_key_list(wallet.key_list.clone()).await;
             }
 
             let mut configs = self.config_lock.write().await;
@@ -1034,15 +1034,17 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     // FIXME : This could cause a performance issue if we have many peers sending a lot of block headers to us which we cannot process fast enough
                     let mut peer_list = vec![];
                     {
-for peer in peers.peers_v2.values() {
-    let Some(pk) = peer.public_key else {
-        continue;
-    };
+    let peers = self.network.peer_lock.read().await;
 
-    if peer.is_connected {
-        peer_list.push(pk);
+    for peer in peers.peers_v2.values() {
+        let Some(pk) = peer.public_key else {
+            continue;
+        };
+
+        if peer.is_connected {
+            peer_list.push(pk);
+        }
     }
-}
                     }
                     for public_key in &peer_list {
                         self.sync
