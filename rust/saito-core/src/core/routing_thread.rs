@@ -1034,12 +1034,15 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     // FIXME : This could cause a performance issue if we have many peers sending a lot of block headers to us which we cannot process fast enough
                     let mut peer_list = vec![];
                     {
-                        let peers = self.network.peer_lock.read().await;
-                        for (public_key, peer) in &peers.peers {
-                            if let PeerStatus::Connected = peer.peer_status {
-                                peer_list.push(*public_key);
-                            }
-                        }
+for peer in peers.peers_v2.values() {
+    let Some(pk) = peer.public_key else {
+        continue;
+    };
+
+    if peer.is_connected {
+        peer_list.push(pk);
+    }
+}
                     }
                     for public_key in &peer_list {
                         self.sync

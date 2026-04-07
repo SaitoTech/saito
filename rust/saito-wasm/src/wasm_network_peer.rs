@@ -34,7 +34,7 @@ impl WasmNetworkPeer {
     #[wasm_bindgen(constructor)]
     pub fn new_peer(url: Option<String>) -> WasmNetworkPeer {
         let mut peer = PeerV2::new(generate_peer_id());
-        peer.url = Some(url);
+        peer.url = url;
         Self { peer }
     }
     pub async fn get_handshake_challenge_buffer(&mut self) -> js_sys::Uint8Array {

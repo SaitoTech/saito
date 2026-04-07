@@ -51,35 +51,41 @@ impl Network {
             timer,
         }
     }
-    pub async fn propagate_block(&self, block: &Block) {
-        debug!("propagating block : {:?}", block.hash.to_hex());
 
-        let mut excluded_peers = vec![];
-        // finding block sender to avoid resending the block to that node
-        if let Some(index) = block.routed_from_peer.as_ref() {
-            excluded_peers.push(*index);
-        }
+    pub async fn propagate_block(&mut self, block: &Block) {
+        let mut peers = self.peer_lock.write().await;
 
-        {
-            let mut peers = self.peer_lock.write().await;
-            for (index, peer) in peers.peers.iter_mut() {
-                if !peer.is_connected() {
-                    excluded_peers.push(*index);
-                    continue;
-                }
-                peer.stats.sent_block_headers += 1;
-                peer.stats.last_sent_block_header_at = self.timer.get_timestamp_in_ms();
-                peer.stats.last_received_block_header = block.hash.to_hex();
+        let mut excluded_peers: Vec<SaitoPublicKey> = vec![];
+
+        let current_time = self.timer.get_timestamp_in_ms();
+
+        // --- determine exclusions + update stats ---
+        for peer in peers.peers_v2.values_mut() {
+            let Some(public_key) = peer.public_key else {
+                continue;
+            };
+
+            // exclude disconnected peers
+            if !peer.is_connected {
+                excluded_peers.push(public_key);
+                continue;
             }
+
+            // update v2 stats (approximate legacy behavior)
+            peer.blocks_sent += 1;
+            peer.last_block_at = current_time;
         }
 
-        debug!("sending block : {:?} to peers", block.hash.to_hex());
-        let message = Message::BlockReference(block.hash, block.id);
+        drop(peers); // release lock before async send
+
+        // --- broadcast block to all peers except excluded ---
+        let message = Message::BlockHeaderHash(block.hash);
         let serialized = message.serialize();
-        self.io_interface
+
+        let _ = self
+            .io_interface
             .send_message_to_all(serialized.as_slice(), excluded_peers)
-            .await
-            .unwrap();
+            .await;
     }
 
     pub async fn propagate_transaction(&self, transaction: &Transaction) {
@@ -103,26 +109,28 @@ impl Network {
             }
         }
 
-        for (index, peer) in peers.peers.iter_mut() {
-            if !peer.is_connected() {
+        for peer in peers.peers_v2.values_mut() {
+            let Some(public_key) = peer.public_key else {
+                continue;
+            };
+            if !peer.is_connected {
                 continue;
             }
-            let public_key = peer.get_public_key();
             if transaction.is_in_path(&public_key) {
                 continue;
             }
 
-            peer.stats.sent_txs += 1;
-            peer.stats.last_sent_tx_at = self.timer.get_timestamp_in_ms();
-            peer.stats.last_sent_tx = transaction.signature.to_hex();
+            peer.transactions_sent += 1;
+            peer.last_transaction_at = self.timer.get_timestamp_in_ms();
 
             let mut transaction = transaction.clone();
             transaction.add_hop(&wallet.private_key, &wallet.public_key, &public_key);
+
             let message = Message::Transaction(transaction);
             let serialized = message.serialize();
             _ = self
                 .io_interface
-                .send_message(*index, serialized.as_slice())
+                .send_message(public_key, serialized.as_slice())
                 .await
                 .inspect_err(|e| error!("{}", e));
         }
@@ -191,27 +199,27 @@ impl Network {
             info!("adding new peer : {}", public_key.to_base58());
             peer.on_handshake_complete(public_key, current_time);
 
-	    let wallet_version;
-	    let wallet_keylist;
+            let wallet_version;
+            let wallet_keylist;
 
-	    {
-	        let wallet = wallet_lock.read().await;
-		wallet_version = wallet.wallet_version;
-		wallet_keylist = wallet.key_list.to_vec();	
-	    }
+            {
+                let wallet = wallet_lock.read().await;
+                wallet_version = wallet.wallet_version;
+                wallet_keylist = wallet.key_list.to_vec();
+            }
 
-	    if wallet_version < peer.wallet_version {
-    	        self.io_interface.send_interface_event(
-            	    InterfaceEvent::NewVersionDetected(public_key, peer.wallet_version)
-    		);
-	    }
+            if wallet_version < peer.wallet_version {
+                self.io_interface
+                    .send_interface_event(InterfaceEvent::NewVersionDetected(
+                        public_key,
+                        peer.wallet_version,
+                    ));
+            }
 
             let _ = self
                 .io_interface
                 .send_message_to_all(
-                    Message::KeyList(wallet_keylist)
-                        .serialize()
-                        .as_slice(),
+                    Message::KeyList(wallet_keylist).serialize().as_slice(),
                     vec![],
                 )
                 .await;
@@ -325,14 +333,36 @@ impl Network {
         }
     }
 
-    pub async fn ping(&mut self) {
-        let current_time = self.timer.get_timestamp_in_ms();
-        let mut peers = self.peer_lock.write().await;
-        for (_, peer) in peers.peers.iter_mut() {
-            peer.send_ping(current_time, self.io_interface.as_ref())
-                .await;
+pub async fn ping(&mut self, current_time: Timestamp) {
+    let peers = self.peer_lock.read().await;
+
+    let mut targets: Vec<SaitoPublicKey> = vec![];
+
+    for peer in peers.peers_v2.values() {
+        let Some(pk) = peer.public_key else {
+            continue;
+        };
+
+        if !peer.is_connected {
+            continue;
         }
+
+        targets.push(pk);
     }
+
+    drop(peers);
+
+    let message = Message::Ping();
+    let serialized = message.serialize();
+
+    for pk in targets {
+        let _ = self
+            .io_interface
+            .send_message(pk, serialized.as_slice())
+            .await;
+    }
+}
+
 
     pub async fn manage_congested_peers(&mut self) {
         let peers = self.peer_lock.write().await;
@@ -354,39 +384,34 @@ impl Network {
         }
     }
 
-    pub async fn send_key_list(&self, key_list: &[SaitoPublicKey]) {
-        trace!(
-            "sending key list to all the peers {:?}",
-            key_list
-                .iter()
-                .map(|key| key.to_base58())
-                .collect::<Vec<String>>()
-        );
 
-        {
-            let peers = self.peer_lock.read().await;
+pub async fn send_key_list(&mut self, keys: Vec<SaitoPublicKey>) {
+    let peers = self.peer_lock.read().await;
 
-            let exclusions = peers
-                .peers
-                .values()
-                .filter_map(|peer| {
-                    if !matches!(peer.peer_status, PeerStatus::Connected) {
-                        Some(peer.public_key)
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>();
+    let mut exclusions: Vec<SaitoPublicKey> = vec![];
 
-            self.io_interface
-                .send_message_to_all(
-                    Message::KeyList(key_list.to_vec()).serialize().as_slice(),
-                    exclusions,
-                )
-                .await
-                .unwrap();
+    for peer in peers.peers_v2.values() {
+        let Some(pk) = peer.public_key else {
+            continue;
+        };
+
+        // exclude non-connected peers
+        if !peer.is_connected {
+            exclusions.push(pk);
         }
     }
+
+    drop(peers);
+
+    let message = Message::KeyList(keys);
+    let serialized = message.serialize();
+
+    let _ = self
+        .io_interface
+        .send_message_to_all(serialized.as_slice(), exclusions)
+        .await;
+}
+
 
     pub async fn record_received_block_header(
         &self,
@@ -461,19 +486,21 @@ impl Network {
         }
     }
 
-    pub async fn get_peer_key_list(
-        &self,
-        public_key: SaitoPublicKey,
-    ) -> Option<Vec<SaitoPublicKey>> {
-        let peers = self.peer_lock.read().await;
-        if let Some(peer) = peers.peers.get(&public_key) {
-            let mut keys = vec![peer.public_key];
-            keys.extend(peer.key_list.clone());
-            Some(keys)
-        } else {
-            None
-        }
+pub async fn get_peer_key_list(
+    &self,
+    public_key: SaitoPublicKey,
+) -> Option<Vec<SaitoPublicKey>> {
+    let peers = self.peer_lock.read().await;
+
+    if let Some(peer) = peers.get_peer_by_public_key(&public_key) {
+        let mut keys = vec![public_key];
+        keys.extend(peer.key_list.clone());
+        Some(keys)
+    } else {
+        None
     }
+}
+
 
     pub async fn handle_peer_disconnect(
         &mut self,
@@ -485,50 +512,50 @@ impl Network {
             public_key.to_base58()
         );
 
+        //
+        // instruction socket-layer to disconnect
+        //
         if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
             info!("peer disconnected externally, cleaning up locally created peer");
 
-            if let Err(err) = self.cleanup_disconnected_peer(public_key).await {
-                error!(
-                    "failed local cleanup disconnect for peer {:?}: {:?}",
-                    public_key.to_base58(),
-                    err
-                );
-            }
+            self.io_interface
+                .disconnect_from_peer(public_key)
+                .await
+                .inspect_err(|err| {
+                    error!(
+                        "failed local cleanup disconnect for peer {:?}: {:?}",
+                        public_key.to_base58(),
+                        err
+                    )
+                });
         }
 
         let mut peers = self.peer_lock.write().await;
-        if let Some(peer) = peers.peers.get_mut(&public_key) {
-            self.io_interface
-                .send_interface_event(InterfaceEvent::PeerConnectionDropped(peer.get_public_key()));
-
-            peer.mark_as_disconnected(self.timer.get_timestamp_in_ms());
-        } else {
-            error!("unknown peer : {:?} disconnected", public_key.to_base58());
-        }
-
         if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
+            self.io_interface
+                .send_interface_event(InterfaceEvent::PeerConnectionDropped(public_key));
             peer_v2.on_disconnect(self.timer.get_timestamp_in_ms());
         }
     }
 
-    pub async fn should_request_blockchain(
-        &self,
-        public_key: SaitoPublicKey,
-        wallet_version: Version,
-        core_version: Version,
-    ) -> Option<bool> {
-        let peers = self.peer_lock.read().await;
 
-        if let Some(peer) = peers.peers.get(&public_key) {
-            let should_request = wallet_version > peer.wallet_version
-                || (wallet_version == peer.wallet_version && core_version > peer.core_version);
+pub async fn should_request_blockchain(
+    &self,
+    public_key: SaitoPublicKey,
+    wallet_version: u64,
+    core_version: u64,
+) -> Option<bool> {
+    let peers = self.peer_lock.read().await;
 
-            Some(should_request)
-        } else {
-            None
-        }
+    if let Some(peer) = peers.get_peer_by_public_key(&public_key) {
+        let should_request = wallet_version > peer.wallet_version
+            || (wallet_version == peer.wallet_version && core_version > peer.core_version);
+
+        Some(should_request)
+    } else {
+        None
     }
+}
 
     pub async fn disconnect_from_peer(
         &self,
@@ -544,19 +571,6 @@ impl Network {
             .inspect_err(|err| {
                 error!(
                     "failed disconnecting from peer : {}. {}",
-                    public_key.to_base58(),
-                    err
-                )
-            })
-    }
-
-    pub async fn cleanup_disconnected_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error> {
-        self.io_interface
-            .disconnect_from_peer(public_key)
-            .await
-            .inspect_err(|err| {
-                error!(
-                    "failed local cleanup disconnect for peer {:?}: {:?}",
                     public_key.to_base58(),
                     err
                 )

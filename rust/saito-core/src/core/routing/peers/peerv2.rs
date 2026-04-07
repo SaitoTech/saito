@@ -8,7 +8,7 @@ use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
-use log::{debug, error, trace, warn};
+use log::{debug, error, info, trace, warn};
 use std::io::{Error, ErrorKind};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -438,13 +438,35 @@ impl PeerV2 {
     }
 
     pub fn on_disconnect(&mut self, current_time: Timestamp) {
+        // --- lifecycle ---
         self.is_connected = false;
         self.is_connecting = false;
         self.is_handshaking = false;
+        self.is_verified = false;
+
+        // --- timing ---
         self.last_activity_at = current_time;
+
+        // --- handshake state ---
+        self.challenge = None;
+        self.response = None;
+        self.handshake_challenge_sent = None;
+        self.handshake_challenge_received = None;
+        self.handshake_attempts = 0;
+        self.handshake_attempts_failed = 0;
+
+        // --- protocol state ---
+        self.services.clear();
         self.requested_blocks_from_peer = false;
         self.requested_blocks_from_us = false;
-        self.services.clear();
+
+        // --- sync state ---
+        self.is_synced = false;
+
+        // --- logging (safe) ---
+        if let Some(pk) = &self.public_key {
+            info!("peer {:?} disconnected at {}", pk.to_base58(), current_time);
+        }
     }
 
     pub fn on_stun_connect(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {

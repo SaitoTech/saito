@@ -357,16 +357,32 @@ impl Peers {
         congestion_type: CongestionType,
         current_time: Timestamp,
     ) {
-        if let Some(peer) = self.peers.get(&public_key) {
-            let controls = self
-                .congestion_controls_by_key
-                .entry(public_key)
-                .or_default();
-            controls.increase(congestion_type, current_time);
-            if let Some(ip) = peer.ip_address.clone() {
-                let controls = self.congestion_controls_by_ip.entry(ip).or_default();
-                controls.increase(congestion_type, current_time);
+        // --- extract data first (no long-lived borrow) ---
+        let ip_opt = {
+            let peer_v2 = self.get_peer_by_public_key(&public_key);
+            let peer_legacy = self.peers.get(&public_key);
+
+            if peer_v2.is_none() && peer_legacy.is_none() {
+                return;
             }
+
+            peer_v2
+                .and_then(|p| p.ip.clone())
+                .or_else(|| peer_legacy.and_then(|p| p.ip_address.clone()))
+        };
+
+        // --- now safe to mutate self ---
+
+        let controls = self
+            .congestion_controls_by_key
+            .entry(public_key)
+            .or_default();
+
+        controls.increase(congestion_type, current_time);
+
+        if let Some(ip) = ip_opt {
+            let controls = self.congestion_controls_by_ip.entry(ip).or_default();
+            controls.increase(congestion_type, current_time);
         }
     }
 
@@ -376,40 +392,63 @@ impl Peers {
         current_time: Timestamp,
     ) -> Vec<PeerCongestionStatus> {
         let mut statuses = Vec::new();
-        if let Some(peer) = self.peers.get(&public_key) {
-            let public_key = peer.get_public_key();
-            if let Some(controls) = self.congestion_controls_by_key.get(&public_key) {
+
+        let peer_v2 = self.get_peer_by_public_key(&public_key);
+        let peer_legacy = self.peers.get(&public_key);
+
+        // if peer doesn't exist anywhere, return empty (same behavior as before)
+        if peer_v2.is_none() && peer_legacy.is_none() {
+            return statuses;
+        }
+
+        // key-based congestion
+        if let Some(controls) = self.congestion_controls_by_key.get(&public_key) {
+            let result = controls.get_congestion_status(current_time);
+            statuses.push(result);
+        }
+
+        // IP-based congestion
+        let ip = peer_v2
+            .and_then(|p| p.ip.as_ref())
+            .or_else(|| peer_legacy.and_then(|p| p.ip_address.as_ref()));
+
+        if let Some(ip) = ip {
+            if let Some(controls) = self.congestion_controls_by_ip.get(ip) {
                 let result = controls.get_congestion_status(current_time);
                 statuses.push(result);
             }
-
-            if let Some(ip) = &peer.ip_address {
-                if let Some(controls) = self.congestion_controls_by_ip.get(ip) {
-                    let result = controls.get_congestion_status(current_time);
-                    statuses.push(result);
-                }
-            }
         }
+
         statuses
     }
 
     pub fn is_peer_blacklisted(&self, public_key: SaitoPublicKey, current_time: Timestamp) -> bool {
         let statuses = self.get_congestion_status(public_key, current_time);
-        !statuses.is_empty()
-            && statuses.iter().any(|status| {
-                matches!(
-                    status,
-                    PeerCongestionStatus::Blacklist(_) | PeerCongestionStatus::Throttle(_)
-                )
-            })
-    }
 
+        for status in statuses {
+            if matches!(status, PeerCongestionStatus::Blacklist(_)) {
+                return true;
+            }
+        }
+
+        false
+    }
     pub fn get_congested_peers(&self, current_time: Timestamp) -> Vec<SaitoPublicKey> {
-        self.peers
-            .iter()
-            .filter_map(|(index, _peer)| {
+        let mut keys: Vec<SaitoPublicKey> = self.peers.keys().copied().collect();
+
+        // include v2-only peers
+        for peer in self.peers_v2.values() {
+            if let Some(pk) = peer.public_key {
+                if !keys.contains(&pk) {
+                    keys.push(pk);
+                }
+            }
+        }
+
+        keys.into_iter()
+            .filter_map(|public_key| {
                 let results = self
-                    .get_congestion_status(*index, current_time)
+                    .get_congestion_status(public_key, current_time)
                     .iter()
                     .filter_map(|status| {
                         if !matches!(status, PeerCongestionStatus::NoAction) {
@@ -419,15 +458,15 @@ impl Peers {
                         }
                     })
                     .collect::<Vec<PeerCongestionStatus>>();
+
                 if !results.is_empty() {
-                    Some(*index)
+                    Some(public_key)
                 } else {
                     None
                 }
             })
             .collect()
     }
-
     pub fn print_current_peers(&self) {
         self.peers.iter().for_each(|(index, peer)| {
             peer.public_key.iter().for_each(|_key| {
