@@ -191,10 +191,25 @@ impl Network {
             info!("adding new peer : {}", public_key.to_base58());
             peer.on_handshake_complete(public_key, current_time);
 
+	    let wallet_version;
+	    let wallet_keylist;
+
+	    {
+	        let wallet = wallet_lock.read().await;
+		wallet_version = wallet.wallet_version;
+		wallet_keylist = wallet.key_list.to_vec();	
+	    }
+
+	    if wallet_version < peer.wallet_version {
+    	        self.io_interface.send_interface_event(
+            	    InterfaceEvent::NewVersionDetected(public_key, peer.wallet_version)
+    		);
+	    }
+
             let _ = self
                 .io_interface
                 .send_message_to_all(
-                    Message::KeyList(wallet.key_list.to_vec())
+                    Message::KeyList(wallet_keylist)
                         .serialize()
                         .as_slice(),
                     vec![],
