@@ -784,8 +784,13 @@ impl SyncManager {
             blockchain.get_latest_block_id(),
             blockchain.get_latest_block_hash().to_hex());
             {
-                if let Some(peer) = network.peer_lock.write().await.peers.get_mut(&public_key) {
-                    peer.url = None;
+                if let Some(peer_v2) = network
+                    .peer_lock
+                    .write()
+                    .await
+                    .get_peer_by_public_key_mut(&public_key)
+                {
+                    peer_v2.url = None;
                 }
             }
 

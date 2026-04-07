@@ -21,7 +21,6 @@ use crate::core::routing::io::storage::Storage;
 use crate::core::routing::peers::congestion_controller::{
     CongestionStatsDisplay, PeerCongestionControls,
 };
-use crate::core::routing::peers::peer::PeerStatus;
 use crate::core::routing::peers::peerv2::PeerV2;
 use crate::core::routing::sync::SyncManager;
 use crate::core::util;
@@ -511,7 +510,7 @@ impl RoutingThread {
         };
         if changed {
             let wallet = self.wallet_lock.read().await;
-	    self.network.send_key_list(wallet.key_list.clone()).await;
+            self.network.send_key_list(wallet.key_list.clone()).await;
         }
     }
 
@@ -1046,17 +1045,17 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     // FIXME : This could cause a performance issue if we have many peers sending a lot of block headers to us which we cannot process fast enough
                     let mut peer_list = vec![];
                     {
-    let peers = self.network.peer_lock.read().await;
+                        let peers = self.network.peer_lock.read().await;
 
-    for peer in peers.peers_v2.values() {
-        let Some(pk) = peer.public_key else {
-            continue;
-        };
+                        for peer in peers.peers_v2.values() {
+                            let Some(pk) = peer.public_key else {
+                                continue;
+                            };
 
-        if peer.is_connected {
-            peer_list.push(pk);
-        }
-    }
+                            if peer.is_connected {
+                                peer_list.push(pk);
+                            }
+                        }
                     }
                     for public_key in &peer_list {
                         self.sync
@@ -1258,8 +1257,6 @@ mod tests {
     use crate::core::routing::peers::congestion_controller::{
         CongestionStatsDisplay, PeerCongestionControls,
     };
-    use crate::core::routing::peers::peer::{Peer, PeerStatus};
-    use crate::core::routing::sync::SyncManager;
     use crate::core::routing_thread::RoutingThread;
     use crate::core::util::config_manager::CONGESTION_CONFIG_PATH;
     use crate::core::util::configuration::{
@@ -1722,32 +1719,6 @@ mod tests {
                 ghost_chain.txs.len(),
             );
         }
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn handle_peer_disconnect_marks_minimally_initialized_peer_disconnected() {
-        let mut tester = NodeTester::default();
-        let public_key = generate_keys().0;
-
-        {
-            let mut peers = tester.routing_thread.network.peer_lock.write().await;
-            peers.peers.insert(public_key, Peer::new(public_key));
-        }
-
-        tester
-            .routing_thread
-            .network
-            .handle_peer_disconnect(public_key, PeerDisconnectType::InternalDisconnect)
-            .await;
-
-        let peers = tester.routing_thread.network.peer_lock.read().await;
-        let peer = peers
-            .peers
-            .get(&public_key)
-            .expect("peer should still exist");
-        assert!(matches!(peer.peer_status, PeerStatus::Disconnected(_, _)));
-        assert_ne!(peer.disconnected_at, Timestamp::MAX);
     }
 
     #[tokio::test]

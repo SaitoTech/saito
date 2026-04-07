@@ -1083,21 +1083,14 @@ fn run_websocket_server(
                             }
                             key = result;
                         }
-                        let mut keylist;
-                        {
+
+                        let keylist = {
                             let peers = peer_lock.read().await;
-                            let peer = peers.peers.get(&key);
-                            if peer.is_none() {
-                                debug!(
-                                    "lite block requester : {:?} is not connected as a peer",
-                                    key.to_hex()
-                                );
-                                keylist = vec![key];
-                            } else {
-                                keylist = peer.as_ref().unwrap().key_list.clone();
-                                keylist.push(key);
-                            }
-                        }
+                            peers
+                                .get_peer_by_public_key(&key)
+                                .map(|p| p.key_list.clone())
+                                .unwrap_or_default()
+                        };
 
                         let mut buffer: Vec<u8> = Default::default();
                         let result = fs::read_dir(BLOCKS_DIR_PATH.to_string());

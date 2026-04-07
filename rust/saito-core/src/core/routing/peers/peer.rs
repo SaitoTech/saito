@@ -141,20 +141,6 @@ impl Peer {
             return Err(Error::from(ErrorKind::InvalidInput));
         };
         self.public_key = response.public_key;
-        // if !wallet
-        //     .core_version
-        //     .is_same_minor_version(&response.core_version)
-        // {
-        //     warn!("peer : {:?} core version is not compatible. current core version : {:?} peer core version : {:?}",
-        //         self.public_key, wallet.core_version, response.core_version);
-        //     io_handler.send_interface_event(InterfaceEvent::NewVersionDetected(
-        //         self.public_key,
-        //         response.wallet_version,
-        //     ));
-        //     self.mark_as_disconnected(current_time);
-        //     io_handler.disconnect_from_peer(self.public_key).await?;
-        //     return Err(Error::from(ErrorKind::InvalidInput));
-        // }
 
         self.block_fetch_url = response.block_fetch_url;
         self.services = response.services;

@@ -1279,35 +1279,6 @@ pub fn verify_signature(buffer: Uint8Array, signature: JsString, public_key: JsS
     saito_core::core::util::crypto::verify_signature(&h, &sig, &key.unwrap())
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use saito_core::core::routing::peers::peer::{Peer, PeerStatus};
-    use saito_core::core::routing::peers::peers::Peers;
-    use saito_core::core::util::crypto::generate_keys;
-
-    /*
-        #[test]
-        fn get_peers_only_returns_connected_peers() {
-            let mut peers = Peers::default();
-            let connected_key = generate_keys().0;
-            let disconnected_key = generate_keys().0;
-
-            let mut connected_peer = Peer::new(connected_key);
-            connected_peer.peer_status = PeerStatus::Connected;
-            peers.peers.insert(connected_key, connected_peer);
-            peers
-                .peers
-                .insert(disconnected_key, Peer::new(disconnected_key));
-
-            let exported = collect_connected_peers(&peers);
-
-            assert_eq!(exported.len(), 1);
-            assert_eq!(exported[0].public_key, connected_key);
-        }
-    */
-}
-
 #[wasm_bindgen]
 pub async fn get_account_slips(public_key: JsString) -> Result<Array, JsValue> {
     let saito = SAITO.lock().await;

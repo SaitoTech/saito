@@ -4,7 +4,7 @@ use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::congestion_controller::{
     CongestionType, PeerCongestionControls, PeerCongestionStatus,
 };
-use crate::core::routing::peers::peer::{Peer, PeerStatus};
+use crate::core::routing::peers::peer::Peer;
 use crate::core::routing::peers::peer_service::PeerService;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
@@ -135,8 +135,8 @@ impl Peers {
         services: Vec<PeerService>,
         public_key: SaitoPublicKey,
     ) {
-        if let Some(peer) = self.peers.get_mut(&public_key) {
-            peer.services = services;
+        if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {
+            peer_v2.services = services;
         } else {
             warn!(
                 "peer {:?} not found to update services",
@@ -155,31 +155,29 @@ impl Peers {
             "Adding STUN peer with public key: {}",
             public_key.to_base58()
         );
-        if self.peers.contains_key(&public_key) {
+
+        if self.get_peer_by_public_key(&public_key).is_some() {
             error!(
                 "Failed to add STUN peer: Peer with key {} already exists",
                 public_key.to_base58()
             );
             return;
         }
-        let mut peer = Peer::new_stun(public_key, io_handler.as_ref());
 
-        // PEER V2 REFACTOR
         let peer_id = current_time;
         let mut peer_v2 = PeerV2::new(peer_id);
         peer_v2.on_stun_connect(public_key, current_time);
 
-        peer.last_msg_received_at = current_time;
-        self.peers.insert(public_key, peer);
         self.peers_v2.insert(peer_id, peer_v2);
 
         debug!("STUN peer added successfully");
 
         io_handler.send_interface_event(InterfaceEvent::StunPeerConnected(public_key));
     }
+
     pub async fn update_peer_timer(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {
-        if let Some(peer) = self.peers.get_mut(&public_key) {
-            peer.last_msg_received_at = current_time;
+        if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {
+            peer_v2.last_message_at = current_time;
         }
     }
     pub async fn handle_received_key_list(
@@ -197,96 +195,60 @@ impl Peers {
         // Lock peers to write
         self.add_congestion_event(public_key, CongestionType::ReceivedKeyLists, current_time);
 
-        if let Some(peer) = self.peers.get_mut(&public_key) {
-            // Check rate peers
-            trace!(
-                "handling received keylist : {:?} from peer : {:?}-{:?}",
-                key_list
-                    .iter()
-                    .map(|k| k.to_base58())
-                    .collect::<Vec<String>>(),
-                public_key.to_base58(),
-                peer.get_public_key().to_base58()
-            );
-            peer.key_list = key_list;
+        if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {
+            peer_v2.key_list = key_list;
             Ok(())
         } else {
             Ok(())
         }
     }
+
     pub async fn remove_stun_peer(
         &mut self,
         public_key: SaitoPublicKey,
         io_handler: &Box<dyn InterfaceIO + Send + Sync>,
     ) {
-        debug!("Removing STUN peer with index: {}", public_key.to_base58());
-        let peer_public_key: SaitoPublicKey;
-        if let Some(peer) = self.peers.remove(&public_key) {
-            let public_key = peer.get_public_key();
-            peer_public_key = public_key;
-            self.peers.remove(&public_key);
+        debug!("Removing STUN peer with key: {}", public_key.to_base58());
+
+        if self.get_peer_by_public_key(&public_key).is_some() {
+            self.remove_peer_by_public_key(&public_key);
+
             debug!("STUN peer removed from network successfully");
-            io_handler.send_interface_event(InterfaceEvent::StunPeerDisconnected(peer_public_key));
+
+            io_handler.send_interface_event(InterfaceEvent::StunPeerDisconnected(public_key));
         } else {
             error!(
-                "Failed to remove STUN peer: Peer with index {} not found",
+                "Failed to remove STUN peer: Peer with key {} not found",
                 public_key.to_base58()
             );
         }
-
-        self.remove_peer_by_public_key(&public_key);
-    }
-
-    pub fn remove_reconnected_peer(&mut self, public_key: &SaitoPublicKey) -> Option<Peer> {
-        let peer = self.peers.remove(public_key)?;
-        self.peers.remove(&peer.public_key);
-        self.remove_peer_by_public_key(&public_key);
-
-        debug!(
-            "removed reconnected peer : {:?} with key : {:?}. current peer count : {:?}",
-            public_key,
-            peer.public_key.to_base58(),
-            self.peers.len()
-        );
-
-        Some(peer)
     }
 
     pub fn remove_disconnected_peers(&mut self, current_time: Timestamp) {
-        let peer_indices: Vec<SaitoPublicKey> = self
-            .peers
+        let peer_ids: Vec<u64> = self
+            .peers_v2
             .iter()
-            .filter_map(|(public_key, peer)| {
+            .filter_map(|(id, peer)| {
+                if peer.is_connected {
+                    return None;
+                }
+
+                // Skip static peers (have URL)
                 if peer.url.is_some() {
-                    // static peers always remain in memory
                     return None;
                 }
-                if peer.is_stun_peer() {
-                    // stun peers remain unless explicity removed
-                    return None;
+
+                // Remove peers inactive beyond window
+                if peer.last_activity_at + PEER_REMOVAL_WINDOW < current_time {
+                    return Some(*id);
                 }
-                if peer.disconnected_at == Timestamp::MAX
-                    || peer.disconnected_at + PEER_REMOVAL_WINDOW > current_time
-                {
-                    return None;
-                }
-                info!(
-                    "removing peer : {:?} as peer hasn't connected for more than {:?} seconds",
-                    public_key.to_base58(),
-                    Duration::from_millis(current_time - peer.disconnected_at).as_secs()
-                );
-                Some(*public_key)
+
+                None
             })
             .collect();
 
-        for public_key in peer_indices {
-            if self.peers.remove(&public_key).is_none() {
-                debug!(
-                    "peer {:?} already removed during disconnected-peer cleanup",
-                    public_key.to_base58()
-                );
-            }
-            self.remove_peer_by_public_key(&public_key);
+        for peer_id in peer_ids {
+            self.peers_v2.remove(&peer_id);
         }
     }
 
@@ -297,50 +259,39 @@ impl Peers {
     ) {
         trace!(
             "disconnecting stale peers out of {:?} peers",
-            self.peers.len()
+            self.peers_v2.len()
         );
 
-        // --- Phase 1: collect stale peers (no mutation) ---
+        // --- Phase 1: collect stale peers ---
         let mut stale_peers: Vec<SaitoPublicKey> = Vec::new();
 
-        for peer in self.peers.values() {
-            if let PeerStatus::Connected = peer.peer_status {
+        for peer in self.peers_v2.values() {
+            let Some(pk) = peer.public_key else {
+                continue;
+            };
+
+            if peer.is_connected && peer.last_message_at + PEER_STALE_PERIOD < current_time {
                 trace!(
-                    "checking connected peer for staleness : {:?}",
-                    peer.public_key.to_base58()
+                    "peer {:?} is stale (last_message_at = {:?}, now = {:?})",
+                    pk.to_base58(),
+                    peer.last_message_at,
+                    current_time
                 );
 
-                if peer.last_msg_received_at + PEER_STALE_PERIOD < current_time {
-                    stale_peers.push(peer.public_key);
-                }
+                stale_peers.push(pk);
             }
         }
 
-        // --- Phase 2: apply mutations ---
+        // --- Phase 2: apply disconnect ---
         for public_key in stale_peers {
-            info!(
-                "disconnecting stale peer : {:?} since we didn't receive msgs for {:?} seconds",
-                public_key.to_base58(),
-                (current_time
-                    - self
-                        .peers
-                        .get(&public_key)
-                        .map(|p| p.last_msg_received_at)
-                        .unwrap_or(current_time))
-                    / 1000
-            );
+            info!("disconnecting stale peer : {:?}", public_key.to_base58());
 
-            // Update legacy Peer
-            if let Some(peer) = self.peers.get_mut(&public_key) {
-                peer.mark_as_disconnected(current_time);
-            }
-
-            // Update PeerV2
+            // update PeerV2 state
             if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {
                 peer_v2.on_disconnect(current_time);
             }
 
-            // IO disconnect (no borrow conflict now)
+            // IO disconnect
             if let Err(err) = io_handler.disconnect_from_peer(public_key).await {
                 error!(
                     "failed disconnecting stale peer {:?}: {:?}",
@@ -357,22 +308,17 @@ impl Peers {
         congestion_type: CongestionType,
         current_time: Timestamp,
     ) {
-        // --- extract data first (no long-lived borrow) ---
-        let ip_opt = {
-            let peer_v2 = self.get_peer_by_public_key(&public_key);
-            let peer_legacy = self.peers.get(&public_key);
+        // --- extract IP from PeerV2 ---
+        let ip_opt = self
+            .get_peer_by_public_key(&public_key)
+            .and_then(|p| p.ip.clone());
 
-            if peer_v2.is_none() && peer_legacy.is_none() {
-                return;
-            }
+        // If peer does not exist at all, do nothing (preserves prior behavior)
+        if self.get_peer_by_public_key(&public_key).is_none() {
+            return;
+        }
 
-            peer_v2
-                .and_then(|p| p.ip.clone())
-                .or_else(|| peer_legacy.and_then(|p| p.ip_address.clone()))
-        };
-
-        // --- now safe to mutate self ---
-
+        // --- update key-based congestion ---
         let controls = self
             .congestion_controls_by_key
             .entry(public_key)
@@ -380,6 +326,7 @@ impl Peers {
 
         controls.increase(congestion_type, current_time);
 
+        // --- update IP-based congestion ---
         if let Some(ip) = ip_opt {
             let controls = self.congestion_controls_by_ip.entry(ip).or_default();
             controls.increase(congestion_type, current_time);
@@ -394,23 +341,20 @@ impl Peers {
         let mut statuses = Vec::new();
 
         let peer_v2 = self.get_peer_by_public_key(&public_key);
-        let peer_legacy = self.peers.get(&public_key);
 
-        // if peer doesn't exist anywhere, return empty (same behavior as before)
-        if peer_v2.is_none() && peer_legacy.is_none() {
+        // If peer does not exist, return empty (same as before)
+        if peer_v2.is_none() {
             return statuses;
         }
 
-        // key-based congestion
+        // --- key-based congestion ---
         if let Some(controls) = self.congestion_controls_by_key.get(&public_key) {
             let result = controls.get_congestion_status(current_time);
             statuses.push(result);
         }
 
-        // IP-based congestion
-        let ip = peer_v2
-            .and_then(|p| p.ip.as_ref())
-            .or_else(|| peer_legacy.and_then(|p| p.ip_address.as_ref()));
+        // --- IP-based congestion ---
+        let ip = peer_v2.and_then(|p| p.ip.as_ref());
 
         if let Some(ip) = ip {
             if let Some(controls) = self.congestion_controls_by_ip.get(ip) {
@@ -433,51 +377,38 @@ impl Peers {
 
         false
     }
-    pub fn get_congested_peers(&self, current_time: Timestamp) -> Vec<SaitoPublicKey> {
-        let mut keys: Vec<SaitoPublicKey> = self.peers.keys().copied().collect();
 
-        // include v2-only peers
+    pub fn get_congested_peers(&self, current_time: Timestamp) -> Vec<SaitoPublicKey> {
+        let mut result = Vec::new();
+
         for peer in self.peers_v2.values() {
-            if let Some(pk) = peer.public_key {
-                if !keys.contains(&pk) {
-                    keys.push(pk);
-                }
+            let Some(pk) = peer.public_key else {
+                continue;
+            };
+
+            let statuses = self.get_congestion_status(pk, current_time);
+
+            if statuses
+                .iter()
+                .any(|status| matches!(status, PeerCongestionStatus::Blacklist(_)))
+            {
+                result.push(pk);
             }
         }
 
-        keys.into_iter()
-            .filter_map(|public_key| {
-                let results = self
-                    .get_congestion_status(public_key, current_time)
-                    .iter()
-                    .filter_map(|status| {
-                        if !matches!(status, PeerCongestionStatus::NoAction) {
-                            Some(*status)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<Vec<PeerCongestionStatus>>();
-
-                if !results.is_empty() {
-                    Some(public_key)
-                } else {
-                    None
-                }
-            })
-            .collect()
+        result
     }
+
     pub fn print_current_peers(&self) {
-        self.peers.iter().for_each(|(index, peer)| {
-            peer.public_key.iter().for_each(|_key| {
+        self.peers_v2.values().for_each(|peer| {
+            if let Some(pk) = peer.public_key {
                 debug!(
-                    "peer : {:?} with key : {:?} and endpoint : {} is currently connected : {:?}",
-                    index,
-                    peer.get_public_key().to_base58(),
+                    "peer : {:?} endpoint : {:?} connected : {:?}",
+                    pk.to_base58(),
                     peer.endpoint,
-                    peer.peer_status
+                    peer.is_connected
                 );
-            });
+            }
         });
     }
 }
