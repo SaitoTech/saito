@@ -4,7 +4,6 @@ use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
 use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::version::Version;
-use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::io::network_event::NetworkEvent;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
@@ -14,8 +13,13 @@ use std::ops::Deref;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use super::peer::PeerType;
 use super::peer_service::PeerService;
+
+#[derive(Clone, Debug)]
+pub enum PeerType {
+    Default,
+    Stun,
+}
 
 #[derive(Debug, Clone)]
 pub struct PeerV2 {
@@ -150,10 +154,6 @@ impl PeerV2 {
             requested_blocks_from_peer: false,
             block_fetch_url: "".to_string(),
         }
-    }
-
-    pub fn is_connected(&self) -> bool {
-        self.response.is_some()
     }
 
     pub async fn get_handshake_challenge_buffer(&mut self) -> HandshakeChallenge {
@@ -325,13 +325,21 @@ impl PeerV2 {
             "PeerV2::process_msg_buffer_from_peer : {}",
             self.public_key.unwrap_or([0; 33]).to_base58()
         );
-        if self.is_connected() {
+
+        //
+        // if the handshake is completed, this is a peer message
+        //
+        if self.is_verified {
             let Some(public_key) = self.public_key else {
                 error!("connected peer has no public key set; skipping message dispatch");
                 return Err(Error::from(ErrorKind::InvalidData));
             };
             send_event(NetworkEvent::PeerMessageReceived { public_key, buffer }).await;
             Ok(vec![])
+
+        //
+        // otherwise, it must be the handshake
+        //
         } else if self.challenge.is_some() {
             if let Message::HandshakeResponse(response) = Message::deserialize(buffer)? {
                 let configs = configs.read().await;
@@ -415,6 +423,17 @@ impl PeerV2 {
         self.public_key.unwrap()
     }
 
+    pub fn on_connect(&mut self, current_time: Timestamp) {
+        self.is_connected = true;
+        self.is_connecting = false;
+        self.is_verified = false;
+        self.is_handshaking = false;
+
+        self.connected_at = current_time;
+        self.last_activity_at = current_time;
+        self.last_message_at = current_time;
+    }
+
     pub fn on_handshake_complete(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {
         let response = self.response.as_ref().expect("handshake response missing");
         self.block_fetch_url = response.block_fetch_url.clone();
@@ -470,7 +489,13 @@ impl PeerV2 {
     }
 
     pub fn on_stun_connect(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {
-        self.on_handshake_complete(public_key, current_time);
+        self.public_key = Some(public_key);
+        self.is_verified = true;
+        self.is_connected = true;
+        self.is_connecting = false;
+        self.is_handshaking = false;
+        self.last_activity_at = current_time;
+        self.last_message_at = current_time;
         self.peer_type = PeerType::Stun;
     }
 
