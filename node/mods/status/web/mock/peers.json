@@ -2,7 +2,6 @@
   "index_to_peers": {
     "1": {
       "index": 1,
-      "peer_status": "Connected",
       "block_fetch_url": "http://localhost:12101",
       "static_peer_config": {
         "host": "127.0.0.1",
