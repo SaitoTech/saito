@@ -1,4 +1,4 @@
-use log::{debug, error, info, trace, warn};
+use log::{error, info, trace, warn};
 use std::io::Error;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -20,6 +20,7 @@ use crate::core::routing::peers::peerv2::PeerV2;
 use crate::core::util::configuration::Configuration;
 
 const RECONNECTION_PERIOD: Timestamp = 5_000;
+const HANDSHAKE_TIMEOUT: Timestamp = 15_000; // 15 seconds
 
 #[derive(Debug)]
 pub enum PeerDisconnectType {
@@ -84,6 +85,23 @@ impl Network {
             .io_interface
             .send_message_to_all(serialized.as_slice(), excluded_peers)
             .await;
+    }
+
+    pub async fn process_stuck_handshakes(&mut self, current_time: Timestamp) -> bool {
+        let mut peers = self.peer_lock.write().await;
+        let mut work_done = false;
+
+        for peer in peers.peers_v2.values_mut() {
+            if peer.is_connected && !peer.is_verified {
+                if peer.last_activity_at + HANDSHAKE_TIMEOUT < current_time {
+                    warn!("Peer stuck in handshake, resetting");
+                    peer.on_disconnect(current_time);
+                    work_done = true;
+                }
+            }
+        }
+
+        work_done
     }
 
     pub async fn propagate_transaction(&self, transaction: &Transaction) {
@@ -151,7 +169,7 @@ impl Network {
     pub async fn record_received_transaction(
         &self,
         public_key: SaitoPublicKey,
-        transaction: &Transaction,
+        _transaction: &Transaction,
         timestamp: Timestamp,
     ) {
         let mut peers = self.peer_lock.write().await;
@@ -418,7 +436,7 @@ impl Network {
     pub async fn record_received_block_header(
         &self,
         public_key: SaitoPublicKey,
-        block_hash: &SaitoHash,
+        _block_hash: &SaitoHash,
         timestamp: Timestamp,
     ) {
         let mut peers = self.peer_lock.write().await;
@@ -510,7 +528,8 @@ impl Network {
         if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
             info!("peer disconnected externally, cleaning up locally created peer");
 
-            self.io_interface
+            let _ = self
+                .io_interface
                 .disconnect_from_peer(public_key)
                 .await
                 .inspect_err(|err| {

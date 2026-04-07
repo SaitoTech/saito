@@ -723,6 +723,13 @@ impl RoutingThread {
         work_done
     }
 
+    async fn process_stuck_handshake_timer_event(&mut self, duration_value: Timestamp) -> bool {
+        let mut work_done = false;
+        let current_time = self.timer.get_timestamp_in_ms();
+        work_done = self.network.process_stuck_handshakes(current_time).await;
+        work_done
+    }
+
     async fn process_reconnection_timer_event(&mut self, duration_value: Timestamp) -> bool {
         let mut work_done = false;
 
@@ -947,6 +954,10 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
         // Timer Event: reconnection + sync
         work_done |= self.process_reconnection_timer_event(duration_value).await;
+
+        // Timer Event: stuck handshake
+        work_done |= self.process_stuck_handshake_timer_event(duration_value)
+            .await;
 
         // Timer Event: message sending (block headers)
         work_done |= self
