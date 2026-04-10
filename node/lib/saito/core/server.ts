@@ -73,14 +73,14 @@ export class NodeSharedMethods extends CustomSharedMethods {
     });
   }
 
-  connectToPeer(url: string): void {
+  async connectToPeer(url: string): Promise<void> {
     try {
       console.log('connecting to ' + url + '....');
 
       let socket = new ws.WebSocket(url);
       // S.getInstance().addNewSocket(socket, peer_index);
 
-      let peer = new NetworkPeer(undefined, url);
+      let peer = await NetworkPeer.create(url);
       peer.socket = socket;
 
       socket.on('message', (buffer: any) => {
@@ -91,6 +91,9 @@ export class NodeSharedMethods extends CustomSharedMethods {
               if (buffer && buffer.byteLength > 0) {
                 socket.send(buffer);
               }
+	      if (!peer.publicKey) {
+    	 	await peer.syncFromRust();
+  	      }
               if (peer.publicKey) {
                 if (!S.getInstance().peers.has(peer.publicKey)) {
                   console.info('added peer : ' + peer.publicKey + ', url : ' + peer.url);
@@ -384,14 +387,16 @@ class Server {
     webserver.on('error', (error) => {
       console.error('error on express : ', error);
     });
-    wss.on('connection', (socket: any, request: any) => {
+    wss.on('connection', async (socket: any, request: any) => {
       const { pathname } = parse(request.url);
       console.log(
         'connection established : ',
         request.headers['x-forwarded-for'] + ' || ' + request.socket.remoteAddress
       );
-      let peer = new NetworkPeer();
+
+      let peer = await NetworkPeer.create();
       peer.socket = socket;
+
 
       // console.log(
       //   'adding new peer : ' + (request.headers['x-forwarded-for'] + request.socket.remoteAddress)
@@ -405,6 +410,9 @@ class Server {
             if (buffer && buffer.byteLength > 0) {
               socket.send(buffer);
             }
+  	    if (!peer.publicKey) {
+    	      await peer.syncFromRust();
+  	    }
             if (peer.publicKey) {
               if (!S.getInstance().peers.has(peer.publicKey)) {
                 console.info('added peer : ', peer.publicKey);
