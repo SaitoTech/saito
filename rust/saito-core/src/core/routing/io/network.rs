@@ -222,7 +222,6 @@ impl Network {
             }
 
             info!("adding new peer : {}", public_key.to_base58());
-            peer.on_handshake_complete(public_key, current_time);
 
             let wallet_version;
             let wallet_keylist;
@@ -253,7 +252,6 @@ impl Network {
                 .send_interface_event(InterfaceEvent::PeerHandshakeComplete(public_key));
 
             peers.add_congestion_event(public_key, CongestionType::PeerConnections, current_time);
-            peers.peers_v2.insert(peer.id, peer);
         }
 
         Some(public_key)

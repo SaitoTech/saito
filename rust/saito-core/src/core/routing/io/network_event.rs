@@ -5,14 +5,6 @@ use crate::core::routing::peers::peerv2::PeerV2;
 
 #[derive(Debug)]
 pub enum NetworkEvent {
-    SendMessageToPeer {
-        public_key: SaitoPublicKey,
-        buffer: Vec<u8>,
-    },
-    SendMessageToAllPeers {
-        buffer: Vec<u8>,
-        exceptions: Vec<SaitoPublicKey>,
-    },
     PeerMessageReceived {
         public_key: SaitoPublicKey,
         buffer: Vec<u8>,
@@ -21,11 +13,12 @@ pub enum NetworkEvent {
         url: String,
         // public_key: PeerIndex,
     },
-    DisconnectFromPeer {
-        public_key: SaitoPublicKey,
-    },
     PeerConnectionResult {
-        result: Result<PeerV2, std::io::Error>,
+        peer_id: u64,
+    },
+    PeerHandshakeResult {
+        peer_id: u64,
+        public_key: SaitoPublicKey,
     },
     AddStunPeer {
         public_key: SaitoPublicKey,

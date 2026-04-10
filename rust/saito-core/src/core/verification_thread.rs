@@ -76,66 +76,7 @@ impl VerificationThread {
             .send(ConsensusEvent::NewTransaction { transaction })
             .await
             .unwrap();
-        // trace!("releasing blockchain 7");
     }
-    // pub async fn verify_txs(&mut self, transactions: &mut VecDeque<Transaction>) {
-    //     self.processed_txs.increment_by(transactions.len() as u64);
-    //     self.processed_msgs.increment_by(transactions.len() as u64);
-    //     let prev_count = transactions.len();
-    //     let txs: Vec<Transaction>;
-    //     {
-    //         // trace!("locking blockchain 8");
-    //         let blockchain = self.blockchain_lock.read().await;
-
-    //         let public_key = {
-    //             let wallet = self.wallet_lock.read().await;
-    //             wallet.public_key
-    //         };
-    //         let mut peers = self.peer_lock.write().await;
-
-    //         let current_time = self.timer.get_timestamp_in_ms();
-    //         txs = drain!(transactions, 10)
-    //             .filter_map(|mut transaction| {
-    //                 transaction.generate(&public_key, 0, 0);
-
-    //                 if !transaction.validate(&blockchain.utxoset, &blockchain, true) {
-    //                     debug!(
-    //                         "transaction : {:?} not valid",
-    //                         transaction.signature.to_hex()
-    //                     );
-
-    //                     if let Some(public_key) = transaction.routed_from_peer {
-    //                         peers.add_congestion_event(
-    //                             public_key,
-    //                             CongestionType::ReceivedInvalidTransactions,
-    //                             current_time,
-    //                         );
-    //                     }
-
-    //                     None
-    //                 } else {
-    //                     if let Some(public_key) = transaction.routed_from_peer {
-    //                         peers.add_congestion_event(
-    //                             public_key,
-    //                             CongestionType::ReceivedValidTransactions,
-    //                             current_time,
-    //                         );
-    //                     }
-    //                     Some(transaction)
-    //                 }
-    //             })
-    //             .collect();
-    //     }
-
-    //     let invalid_txs = prev_count - txs.len();
-    //     for transaction in txs {
-    //         self.sender_to_consensus
-    //             .send(ConsensusEvent::NewTransaction { transaction })
-    //             .await
-    //             .unwrap();
-    //     }
-    //     self.invalid_txs.increment_by(invalid_txs as u64);
-    // }
     pub async fn verify_block(
         &mut self,
         buffer: &[u8],

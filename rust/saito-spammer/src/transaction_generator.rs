@@ -133,7 +133,7 @@ impl TransactionGenerator {
                 available_balance / unspent_slip_count as Currency;
             let mut total_output_slips_created: u64 = 0;
 
-            let mut to_public_key = [0; 33];
+            let to_public_key;
 
             {
                 let peers = self.peer_lock.read().await;
@@ -375,7 +375,7 @@ impl TransactionGenerator {
         {
             let peers = self.peer_lock.read().await;
 
-            let mut connected_peers: Vec<SaitoPublicKey> = peers
+            let connected_peers: Vec<SaitoPublicKey> = peers
                 .peers_v2
                 .values()
                 .filter_map(|peer| {

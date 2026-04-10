@@ -37,6 +37,7 @@ use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::io::storage::Storage;
 use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use saito_core::core::routing::peers::peers::Peers;
+use saito_core::core::routing::peers::peerv2::PeerV2;
 use saito_core::core::routing::sync::SyncManager;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
@@ -49,6 +50,14 @@ use tokio::sync::mpsc::Receiver;
 use tokio::sync::{Mutex, RwLock};
 use wasm_bindgen::prelude::*;
 use web_sys::console;
+
+use std::sync::atomic::{AtomicU64, Ordering};
+
+static NEXT_PEER_ID: AtomicU64 = AtomicU64::new(1);
+
+fn generate_peer_id() -> u64 {
+    NEXT_PEER_ID.fetch_add(1, Ordering::Relaxed)
+}
 
 #[wasm_bindgen]
 pub struct SaitoWasm {
@@ -160,7 +169,6 @@ pub fn new(
             waiting_for_genesis_block: false,
             message_sending_timer: 0,
             blockchain_send_results: Default::default(),
-            new_peers: vec![],
         },
         consensus_thread: ConsensusThread {
             mempool_lock: context.mempool_lock.clone(),
@@ -345,6 +353,25 @@ pub fn log(record: &Record) {
     let file_line_style = JsValue::from_str(STYLE.file_line);
     let text_style = JsValue::from_str(STYLE.text);
     console_log(&message, &level_style, &file_line_style, &text_style);
+}
+
+#[wasm_bindgen]
+pub async fn create_network_peer(url: Option<String>) -> WasmNetworkPeer {
+    let mut saito = SAITO.lock().await;
+    let saito = saito.as_mut().unwrap();
+
+    let mut peer = PeerV2::new(generate_peer_id());
+    peer.url = url;
+
+    let peer_id = peer.id;
+
+    {
+        let mut peers = saito.routing_thread.network.peer_lock.write().await;
+
+        peers.peers_v2.insert(peer_id, peer);
+    }
+
+    WasmNetworkPeer::new(peer_id)
 }
 
 #[wasm_bindgen]
@@ -914,19 +941,13 @@ pub async fn get_block(block_hash: JsString) -> Result<WasmBlock, JsValue> {
 
 #[wasm_bindgen]
 pub async fn process_new_peer(peer: WasmNetworkPeer) {
-    // let key: SaitoPublicKey = string_to_key(key).unwrap();
-
-    // let peer = NetworkPeer::new(ip.as_string());
-
-    // debug!("process_new_peer : {:?} - {:?}", peer.key.to_base58(), ip);
     let mut saito = SAITO.lock().await;
-
     saito
         .as_mut()
         .unwrap()
         .routing_thread
         .process_network_event(NetworkEvent::PeerConnectionResult {
-            result: Ok(peer.get_peer().clone()),
+            peer_id: peer.get_id(),
         })
         .await;
 }
@@ -997,6 +1018,7 @@ pub async fn process_peer_disconnection(key: JsString) {
         .await;
 }
 
+
 #[wasm_bindgen]
 pub async fn process_msg_buffer_from_peer(
     buffer: js_sys::Uint8Array,
@@ -1004,28 +1026,35 @@ pub async fn process_msg_buffer_from_peer(
 ) -> js_sys::Uint8Array {
     let buffer = buffer.to_vec();
     trace!("process_msg_buffer_from_peer : {}", buffer.len());
-    let mut saito1 = SAITO.lock().await;
-    let saito = saito1.as_mut().unwrap();
 
-    let wallet = saito.context.wallet_lock.clone();
-    let configs = saito.context.config_lock.clone();
-    let timer = saito.routing_thread.timer.clone();
-    // let services = saito.routing_thread.network.io_interface.get_my_services();
-    let network_peer = peer.get_peer_mut();
-    let services = if network_peer.is_connected() {
+
+let mut saito1 = SAITO.lock().await;
+let saito = saito1.as_mut().unwrap();
+
+let wallet = saito.context.wallet_lock.clone();
+let configs = saito.context.config_lock.clone();
+let timer = saito.routing_thread.timer.clone();
+
+let peer_id = peer.get_id();
+
+trace!("buffer size : {}", buffer.len());
+
+let buffer = {
+    let mut peers = saito.routing_thread.network.peer_lock.write().await;
+
+    let Some(network_peer) = peers.get_peer_by_id_mut(peer_id) else {
+        return js_sys::Uint8Array::new_with_length(0);
+    };
+
+    let services = if network_peer.is_verified {
         vec![]
     } else {
         saito.routing_thread.network.io_interface.get_my_services()
     };
-    // drop(saito) is not needed as dropping a reference does nothing, and
-    // will be automatically cleaned up at the end of the function
-    drop(saito1);
 
-    trace!("buffer size : {}", buffer.len());
-    let buffer = network_peer
+    network_peer
         .process_incoming_buffer(
             buffer,
-            // &mut network_peer.public_key,
             wallet,
             configs,
             &timer,
@@ -1040,7 +1069,10 @@ pub async fn process_msg_buffer_from_peer(
                     .await;
             },
         )
-        .await;
+        .await
+};
+
+
     if buffer.is_err() {
         error!(
             "process_msg_buffer_from_peer failed. {}",
@@ -1833,23 +1865,3 @@ pub fn string_array_to_base58_keys<T: TryFrom<Vec<u8>> + PrintForLog<T>>(
         .collect();
     array
 }
-
-// #[cfg(test)]
-// mod test {
-//     use js_sys::JsString;
-//     use saito_core::common::defs::SaitoPublicKey;
-//
-//     use crate::saitowasm::string_to_key;
-//
-//     #[test]
-//     fn string_to_key_test() {
-//         let empty_key = [
-//             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-//             0, 0, 0, 0,
-//         ];
-//         let key = string_to_key(JsString::from(""));
-//         assert!(key.is_ok());
-//         let key: SaitoPublicKey = key.unwrap();
-//         assert_eq!(key, empty_key);
-//     }
-// }

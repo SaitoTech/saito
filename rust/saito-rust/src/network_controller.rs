@@ -55,13 +55,26 @@ type SocketReceiver = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
 pub struct NetworkController {
     currently_queried_urls: Arc<Mutex<HashSet<String>>>,
-    network_peers: HashMap<SaitoPublicKey, (PeerV2, Option<PeerSender>)>,
+    // Transport single source of truth: every live socket is keyed by peer_id only.
+    sockets_by_peer_id: HashMap<u64, PeerSender>,
+    // Temporary bridge for current InterfaceIO(public_key, ...). Valid after handshake.
+    peer_id_by_public_key: HashMap<SaitoPublicKey, u64>,
     services: Vec<PeerService>,
     pub sender_to_core: Sender<IoEvent>,
 }
 
 impl NetworkController {
-    pub async fn send(connection: &mut PeerSender, buffer: Vec<u8>) -> bool {
+    pub fn new(sender_to_core: Sender<IoEvent>) -> Self {
+        Self {
+            currently_queried_urls: Arc::new(Default::default()),
+            sockets_by_peer_id: Default::default(),
+            peer_id_by_public_key: Default::default(),
+            services: vec![],
+            sender_to_core,
+        }
+    }
+
+    pub async fn send_on_socket(connection: &mut PeerSender, buffer: Vec<u8>) -> bool {
         trace!("sending buffer of size : {:?} to peer", buffer.len());
         let mut send_failed = false;
         // TODO : can be better optimized if we buffer the messages and flush once per timer event
@@ -86,39 +99,57 @@ impl NetworkController {
         !send_failed
     }
 
-    pub async fn send_outgoing_message(&mut self, public_key: &SaitoPublicKey, buffer: Vec<u8>) {
-        let buf_len = buffer.len();
+    pub fn resolve_peer_id_by_public_key(&self, public_key: &SaitoPublicKey) -> Option<u64> {
+        self.peer_id_by_public_key.get(public_key).copied()
+    }
 
-        // let mut sockets = sockets.lock().await;
-        if let Some((_network_peer, sender)) = self.network_peers.get_mut(public_key) {
-            if let Some(sender) = sender {
-                if !Self::send(sender, buffer).await {
-                    warn!(
-                        "failed sending buffer of size : {:?} to peer : {:?}",
-                        buf_len,
-                        public_key.to_base58()
-                    );
+    pub fn resolve_peer_ids_by_public_keys(&self, public_keys: &[SaitoPublicKey]) -> Vec<u64> {
+        public_keys
+            .iter()
+            .filter_map(|k| self.peer_id_by_public_key.get(k).copied())
+            .collect()
+    }
 
-                    // sockets.remove(&public_key);
+    pub fn register_socket(&mut self, peer_id: u64, sender: PeerSender) {
+        self.sockets_by_peer_id.insert(peer_id, sender);
+    }
+
+    pub async fn register_public_key_mapping(&mut self, public_key: SaitoPublicKey, peer_id: u64) {
+        if let Some(previous_peer_id) = self.peer_id_by_public_key.insert(public_key, peer_id) {
+            if previous_peer_id != peer_id {
+                if let Some(old_sender) = self.sockets_by_peer_id.remove(&previous_peer_id) {
+                    // Reconnect safety: close stale sender belonging to replaced peer_id.
+                    self.disconnect_socket(old_sender).await;
                 }
             }
+        }
+    }
+
+    pub async fn send(&mut self, peer_id: u64, buffer: Vec<u8>) -> bool {
+        let buf_len = buffer.len();
+        if let Some(sender) = self.sockets_by_peer_id.get_mut(&peer_id) {
+            if !Self::send_on_socket(sender, buffer).await {
+                warn!(
+                    "failed sending buffer of size : {:?} to peer_id : {:?}",
+                    buf_len, peer_id
+                );
+                return false;
+            }
+            true
         } else {
-            error!(
-                "Cannot find the corresponding sender socket, key : {:?}",
-                public_key.to_base58()
-            );
+            warn!("cannot find sender socket for peer_id : {:?}", peer_id);
+            false
         }
     }
 
     pub async fn connect_to_peer(
         network_controller: Arc<RwLock<NetworkController>>,
+        peers_lock: Arc<RwLock<Peers>>,
         url: String,
         wallet: Arc<RwLock<Wallet>>,
         configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: &Timer,
     ) {
-        // TODO : handle connecting to an already connected (via incoming connection) node.
-
         debug!("connecting to peer : {:?}", url);
 
         let result = connect_async(url.clone()).await;
@@ -151,6 +182,7 @@ impl NetworkController {
             let mut network_peer = PeerV2::new(generate_peer_id());
             network_peer.url = Some(url);
             network_peer.ip = ip;
+            network_peer.on_connect(timer.get_timestamp_in_ms());
 
             NetworkController::handle_new_connection(
                 network_peer,
@@ -160,6 +192,7 @@ impl NetworkController {
                 wallet,
                 configs,
                 timer,
+                peers_lock,
             )
             .await;
         } else {
@@ -171,31 +204,26 @@ impl NetworkController {
         }
     }
 
-    pub async fn send_to_all(&mut self, buffer: Vec<u8>, exceptions: Vec<SaitoPublicKey>) {
+    pub async fn broadcast(&mut self, buffer: Vec<u8>, excluded_peer_ids: &[u64]) {
         trace!("sending buffer of size : {:?} to all", buffer.len());
-        let _peers_with_errors: Vec<SaitoPublicKey> = Default::default();
-
-        for (key, (_, sender)) in self.network_peers.iter_mut() {
-            if exceptions.contains(&key) {
+        let excluded: HashSet<u64> = excluded_peer_ids.iter().copied().collect();
+        for (peer_id, sender) in &mut self.sockets_by_peer_id {
+            if excluded.contains(peer_id) {
                 continue;
             }
-            if let Some(sender) = sender.as_mut() {
-                trace!(
-                    "sending buffer of size : {:?} to peer : {:?}",
+            trace!(
+                "sending buffer of size : {:?} to peer_id : {:?}",
+                buffer.len(),
+                peer_id
+            );
+            if !Self::send_on_socket(sender, buffer.clone()).await {
+                warn!(
+                    "failed sending buffer (all) of size : {:?} to peer_id : {:?}",
                     buffer.len(),
-                    key.to_base58()
+                    peer_id
                 );
-                if !Self::send(sender, buffer.clone()).await {
-                    warn!(
-                        "failed sending buffer (all) of size : {:?} to peer : {:?}",
-                        buffer.len(),
-                        key.to_base58()
-                    );
-                }
             }
         }
-
-        // trace!("message sent to all");
     }
     pub async fn fetch_block(
         block_hash: SaitoHash,
@@ -316,29 +344,56 @@ impl NetworkController {
         // debug!("block buffer sent to blockchain controller");
     }
     pub async fn handle_new_connection(
-        mut network_peer: PeerV2,
-        mut sender: PeerSender,
+        network_peer: PeerV2,
+        sender: PeerSender,
         receiver: PeerReceiver,
         network_controller: Arc<RwLock<NetworkController>>,
         wallet: Arc<RwLock<Wallet>>,
         configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: &Timer,
+        peers_lock: Arc<RwLock<Peers>>,
     ) {
-        if network_peer.url.is_none() {
-            // we send the handshake challenge to the peer if we received this connection
-            debug!(
-                "sending handshake challenge to peer : {}",
-                network_peer.ip.as_ref().cloned().unwrap_or_default()
-            );
-            let challenge = network_peer.get_handshake_challenge_buffer().await;
-            let buffer = Message::HandshakeChallenge(challenge).serialize();
-            NetworkController::send(&mut sender, buffer).await;
+        let peer_id = network_peer.id;
+        {
+            let mut peers = peers_lock.write().await;
+            peers.peers_v2.insert(peer_id, network_peer);
+        }
+        {
+            let mut controller = network_controller.write().await;
+            controller.register_socket(peer_id, sender);
+        }
+
+        let handshake_buffer = {
+            let mut peers = peers_lock.write().await;
+            let Some(p) = peers.get_peer_by_id_mut(peer_id) else {
+                warn!(
+                    "handle_new_connection: peer_id {} missing after insert; closing socket",
+                    peer_id
+                );
+                let mut controller = network_controller.write().await;
+                controller.disconnect(peer_id).await;
+                return;
+            };
+            if p.url.is_none() {
+                debug!(
+                    "sending handshake challenge to peer : {}",
+                    p.ip.as_ref().cloned().unwrap_or_default()
+                );
+                let challenge = p.get_handshake_challenge_buffer().await;
+                Some(Message::HandshakeChallenge(challenge).serialize())
+            } else {
+                None
+            }
+        };
+
+        if let Some(buffer) = handshake_buffer {
+            let _ = network_controller.write().await.send(peer_id, buffer).await;
         }
 
         NetworkController::receive_message_from_peer(
             receiver,
-            network_peer,
-            sender,
+            peer_id,
+            peers_lock,
             wallet,
             configs,
             timer.clone(),
@@ -364,229 +419,238 @@ impl NetworkController {
             }
         }
     }
-    pub async fn disconnect_socket_by_key(&mut self, public_key: SaitoPublicKey) {
-        info!("disconnecting peer : {:?}", public_key.to_base58());
-        if let Some((_peer, sender)) = self.network_peers.remove(&public_key) {
-            if let Some(sender) = sender {
-                match sender {
-                    PeerSender::Warp(mut sender) => {
-                        let _ = sender.close().await.or_else(|e| {
-                            error!("Failed disconnecting socket. Reason {:?}", e);
-                            Err(e)
-                        });
-                    }
-                    PeerSender::Tungstenite(mut sender) => {
-                        let _ = sender.close().await.or_else(|e| {
-                            error!("Failed disconnecting socket. Reason {:?}", e);
-                            Err(e)
-                        });
-                    }
-                }
+    pub async fn disconnect(&mut self, peer_id: u64) {
+        info!("disconnecting peer_id : {:?}", peer_id);
+        if let Some(sender) = self.sockets_by_peer_id.remove(&peer_id) {
+            self.disconnect_socket(sender).await;
+        }
+        let mut stale_public_keys: Vec<SaitoPublicKey> = Vec::new();
+        self.peer_id_by_public_key.retain(|k, v| {
+            if *v == peer_id {
+                stale_public_keys.push(*k);
+                false
+            } else {
+                true
+            }
+        });
+        for public_key in stale_public_keys {
+            if let Err(e) = self
+                .sender_to_core
+                .send(IoEvent {
+                    event_processor_id: 1,
+                    event: NetworkEvent::PeerDisconnected {
+                        public_key,
+                        disconnect_type: PeerDisconnectType::InternalDisconnect,
+                    },
+                })
+                .await
+            {
+                warn!(
+                    "sender_to_core send failed (peer_id={} op=disconnect_notify pk={:?} err={})",
+                    peer_id,
+                    public_key.to_base58(),
+                    e
+                );
             }
         }
-
-        self.sender_to_core
-            .send(IoEvent {
-                event_processor_id: 1,
-                // event_id: 0,
-                event: NetworkEvent::PeerDisconnected {
-                    public_key,
-                    disconnect_type: PeerDisconnectType::InternalDisconnect,
-                },
-            })
-            .await
-            .expect("sending failed");
     }
+
     pub async fn receive_message_from_peer(
         receiver: PeerReceiver,
-        mut peer: PeerV2,
-        socket: PeerSender,
+        peer_id: u64,
+        peers_lock: Arc<RwLock<Peers>>,
         wallet: Arc<RwLock<Wallet>>,
         configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: Timer,
         network_controller: Arc<RwLock<NetworkController>>,
     ) {
-        debug!("starting new task for reading from peer",);
+        debug!("starting new task for reading from peer");
+
         tokio::spawn(async move {
             debug!("new thread started for peer receiving");
 
             let network_controller_clone = network_controller.clone();
             let wallet_clone = wallet.clone();
             let configs_clone = configs.clone();
-            let socket_lock = Arc::new(Mutex::new(Some(socket)));
+            let peers_lock_clone = peers_lock;
 
             match receiver {
                 PeerReceiver::Warp(mut receiver) => loop {
                     let result = receiver.next().await;
                     if result.is_none() {
-                        trace!("no message received");
                         continue;
                     }
+
                     let result = result.unwrap();
+
                     if result.is_err() {
-                        // TODO : handle peer disconnections
-                        warn!("failed receiving message [1] : {:?}", result.err().unwrap());
+                        warn!(
+                            "failed receiving message [warp]: {:?}",
+                            result.err().unwrap()
+                        );
+
                         let mut network_controller = network_controller_clone.write().await;
-                        if let Some(socket) = socket_lock.lock().await.take() {
-                            network_controller.disconnect_socket(socket).await;
-                        } else {
-                            if let Some(public_key) = peer.public_key {
-                                network_controller
-                                    .disconnect_socket_by_key(public_key)
-                                    .await;
-                            } else {
-                                warn!("socket was not found for peer");
-                            }
-                        }
-                        // NetworkController::disconnect_socket(sockets, sender).await;
+
+                        network_controller.disconnect(peer_id).await;
+
                         break;
                     }
+
                     let result = result.unwrap();
 
                     if result.is_binary() {
                         let buffer = result.into_bytes();
-                        trace!("received buffer of size : {:?}", buffer.len());
-                        let network_controller_for_closure = network_controller_clone.clone();
-                        let socket_lock_for_closure = socket_lock.clone();
 
-                        let services = if peer.is_connected() {
+                        let network_controller_for_closure = network_controller_clone.clone();
+                        let is_verified = {
+                            let peers = peers_lock_clone.read().await;
+                            peers
+                                .get_peer_by_id(peer_id)
+                                .map(|p| p.is_verified)
+                                .unwrap_or(false)
+                        };
+                        let services = if is_verified {
                             vec![]
                         } else {
                             network_controller_clone.read().await.services.clone()
                         };
-                        let result = peer
-                            .process_incoming_buffer(
+
+                        let process_result = {
+                            let mut peers = peers_lock_clone.write().await;
+                            let Some(peer) = peers.get_peer_by_id_mut(peer_id) else {
+                                warn!(
+                                    "warp receive: peer_id {} missing from peers map",
+                                    peer_id
+                                );
+                                let mut network_controller = network_controller_clone.write().await;
+                                network_controller.disconnect(peer_id).await;
+                                break;
+                            };
+                            peer.process_incoming_buffer(
                                 buffer,
-                                // &mut public_key,
                                 wallet_clone.clone(),
                                 configs_clone.clone(),
                                 &timer,
                                 &services,
                                 |event| {
                                     let network_controller = network_controller_for_closure.clone();
-                                    let socket_lock = socket_lock_for_closure.clone();
-                                    async move {
-                                        let mut peer_to_store = None;
-                                        if let NetworkEvent::PeerConnectionResult {
-                                            result: Ok(ref peer),
-                                        } = event
-                                        {
-                                            peer_to_store = Some(peer.clone());
-                                        }
 
+                                    async move {
                                         let message = IoEvent {
                                             event_processor_id: 1,
                                             event,
                                         };
-                                        let mut network_controller =
-                                            network_controller.write().await;
 
-                                        if let Some(peer) = peer_to_store {
-                                            if let Some(public_key) = peer.public_key {
-                                                if !network_controller
-                                                    .network_peers
-                                                    .contains_key(&public_key)
-                                                {
-                                                    let socket = socket_lock.lock().await.take();
-                                                    network_controller
-                                                        .network_peers
-                                                        .insert(public_key, (peer, socket));
-                                                }
-                                            }
-                                        }
-
-                                        network_controller
+                                        if let Err(e) = network_controller
+                                            .write()
+                                            .await
                                             .sender_to_core
                                             .send(message)
                                             .await
-                                            .expect("sending failed");
+                                        {
+                                            warn!(
+                                                "sender_to_core send failed (peer_id={} op=from_peer_process err={})",
+                                                peer_id, e
+                                            );
+                                        }
                                     }
                                 },
                             )
-                            .await;
-                        if !result.is_ok() {
-                            info!("disconnecting socket since we couldn't process the received buffer");
-                            let mut network_controller = network_controller_clone.write().await;
-                            if let Some(socket) = socket_lock.lock().await.take() {
-                                network_controller.disconnect_socket(socket).await;
-                            } else {
-                                if let Some(public_key) = peer.public_key {
-                                    network_controller
-                                        .disconnect_socket_by_key(public_key)
-                                        .await;
-                                } else {
-                                    warn!("socket was not found for peer");
-                                }
+                            .await
+                        };
+
+                        if let Ok(buffer) = process_result {
+                            let should_send = !buffer.is_empty();
+                            let maybe_pk = {
+                                let peers = peers_lock_clone.read().await;
+                                peers.get_peer_by_id(peer_id).and_then(|p| {
+                                    if p.is_verified {
+                                        p.public_key
+                                    } else {
+                                        None
+                                    }
+                                })
+                            };
+
+                            if should_send {
+                                let _ = network_controller_clone
+                                    .write()
+                                    .await
+                                    .send(peer_id, buffer)
+                                    .await;
+                            }
+                            if let Some(pk) = maybe_pk {
+                                let mut c = network_controller_clone.write().await;
+                                c.register_public_key_mapping(pk, peer_id).await;
                             }
                         } else {
-                            let buffer = result.unwrap();
-                            if !buffer.is_empty() {
-                                if let Some(socket) = socket_lock.lock().await.as_mut() {
-                                    NetworkController::send(socket, buffer).await;
-                                } else {
-                                    network_controller_clone
-                                        .write()
-                                        .await
-                                        .send_outgoing_message(&peer.public_key.unwrap(), buffer)
-                                        .await;
-                                }
-                            }
+                            warn!("disconnecting warp peer due to processing failure");
+
+                            let mut network_controller = network_controller_clone.write().await;
+                            network_controller.disconnect(peer_id).await;
+
+                            break;
                         }
                     } else if result.is_close() {
-                        warn!("connection closed by remote peer",);
+                        warn!("warp connection closed by remote peer");
+
                         let mut network_controller = network_controller_clone.write().await;
-                        if let Some(socket) = socket_lock.lock().await.take() {
-                            network_controller.disconnect_socket(socket).await;
-                        } else {
-                            if let Some(public_key) = peer.public_key {
-                                network_controller
-                                    .disconnect_socket_by_key(public_key)
-                                    .await;
-                            } else {
-                                warn!("socket was not found for peer");
-                            }
-                        }
+                        network_controller.disconnect(peer_id).await;
+
                         break;
                     }
                 },
+
                 PeerReceiver::Tungstenite(mut receiver) => loop {
                     let result = receiver.next().await;
                     if result.is_none() {
-                        trace!("no message received");
                         continue;
                     }
+
                     let result = result.unwrap();
+
                     if result.is_err() {
-                        warn!("failed receiving message [2] : {:?}", result.err().unwrap());
+                        warn!(
+                            "failed receiving message [tungstenite]: {:?}",
+                            result.err().unwrap()
+                        );
+
                         let mut network_controller = network_controller_clone.write().await;
-                        if let Some(socket) = socket_lock.lock().await.take() {
-                            network_controller.disconnect_socket(socket).await;
-                        } else {
-                            if let Some(public_key) = peer.public_key {
-                                network_controller
-                                    .disconnect_socket_by_key(public_key)
-                                    .await;
-                            } else {
-                                warn!("socket was not found for peer");
-                            }
-                        }
+                        network_controller.disconnect(peer_id).await;
+
                         break;
                     }
-                    let result = result.unwrap();
-                    match result {
+
+                    match result.unwrap() {
                         tokio_tungstenite::tungstenite::Message::Binary(buffer) => {
-                            trace!("received buffer of size : {:?}", buffer.len());
                             let network_controller_for_closure = network_controller_clone.clone();
-                            let socket_lock_for_closure = socket_lock.clone();
-                            let services = if peer.is_connected() {
+                            let is_verified = {
+                                let peers = peers_lock_clone.read().await;
+                                peers
+                                    .get_peer_by_id(peer_id)
+                                    .map(|p| p.is_verified)
+                                    .unwrap_or(false)
+                            };
+                            let services = if is_verified {
                                 vec![]
                             } else {
                                 network_controller_clone.read().await.services.clone()
                             };
-                            let result = peer
-                                .process_incoming_buffer(
+
+                            let process_result = {
+                                let mut peers = peers_lock_clone.write().await;
+                                let Some(peer) = peers.get_peer_by_id_mut(peer_id) else {
+                                    warn!(
+                                        "tungstenite receive: peer_id {} missing from peers map",
+                                        peer_id
+                                    );
+                                    let mut network_controller =
+                                        network_controller_clone.write().await;
+                                    network_controller.disconnect(peer_id).await;
+                                    break;
+                                };
+                                peer.process_incoming_buffer(
                                     buffer,
-                                    // &mut public_key,
                                     wallet_clone.clone(),
                                     configs_clone.clone(),
                                     &timer,
@@ -594,109 +658,78 @@ impl NetworkController {
                                     |event| {
                                         let network_controller =
                                             network_controller_for_closure.clone();
-                                        let socket_lock = socket_lock_for_closure.clone();
-                                        async move {
-                                            let mut peer_to_store = None;
-                                            if let NetworkEvent::PeerConnectionResult {
-                                                result: Ok(ref peer),
-                                            } = event
-                                            {
-                                                peer_to_store = Some(peer.clone());
-                                            }
 
+                                        async move {
                                             let message = IoEvent {
                                                 event_processor_id: 1,
                                                 event,
                                             };
-                                            // TODO : this lock needs to be removed probably for performance
-                                            let mut network_controller =
-                                                network_controller.write().await;
 
-                                            if let Some(peer) = peer_to_store {
-                                                if let Some(public_key) = peer.public_key {
-                                                    if !network_controller
-                                                        .network_peers
-                                                        .contains_key(&public_key)
-                                                    {
-                                                        let socket =
-                                                            socket_lock.lock().await.take();
-                                                        debug!(
-                                                            "adding network peer : {:?}",
-                                                            public_key.to_base58()
-                                                        );
-                                                        network_controller
-                                                            .network_peers
-                                                            .insert(public_key, (peer, socket));
-                                                    }
-                                                }
-                                            }
-                                            network_controller
+                                            if let Err(e) = network_controller
+                                                .write()
+                                                .await
                                                 .sender_to_core
                                                 .send(message)
                                                 .await
-                                                .expect("sending failed");
+                                            {
+                                                warn!(
+                                                    "sender_to_core send failed (peer_id={} op=from_peer_process err={})",
+                                                    peer_id, e
+                                                );
+                                            }
                                         }
                                     },
                                 )
-                                .await;
-                            if !result.is_ok() {
-                                info!("disconnecting socket since we couldn't process the received buffer");
-                                let mut network_controller = network_controller_clone.write().await;
-                                if let Some(socket) = socket_lock.lock().await.take() {
-                                    network_controller.disconnect_socket(socket).await;
-                                } else {
-                                    if let Some(public_key) = peer.public_key {
-                                        network_controller
-                                            .disconnect_socket_by_key(public_key)
-                                            .await;
-                                    } else {
-                                        warn!("socket was not found for peer");
-                                    }
+                                .await
+                            };
+
+                            if let Ok(buffer) = process_result {
+                                let should_send = !buffer.is_empty();
+                                let maybe_pk = {
+                                    let peers = peers_lock_clone.read().await;
+                                    peers.get_peer_by_id(peer_id).and_then(|p| {
+                                        if p.is_verified {
+                                            p.public_key
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                };
+
+                                if should_send {
+                                    let _ = network_controller_clone
+                                        .write()
+                                        .await
+                                        .send(peer_id, buffer)
+                                        .await;
+                                }
+                                if let Some(pk) = maybe_pk {
+                                    let mut c = network_controller_clone.write().await;
+                                    c.register_public_key_mapping(pk, peer_id).await;
                                 }
                             } else {
-                                let buffer = result.unwrap();
-                                if !buffer.is_empty() {
-                                    if let Some(socket) = socket_lock.lock().await.as_mut() {
-                                        NetworkController::send(socket, buffer).await;
-                                    } else {
-                                        network_controller_clone
-                                            .write()
-                                            .await
-                                            .send_outgoing_message(
-                                                &peer.public_key.unwrap(),
-                                                buffer,
-                                            )
-                                            .await;
-                                    }
-                                }
+                                warn!("disconnecting tungstenite peer due to processing failure");
+
+                                let mut network_controller = network_controller_clone.write().await;
+                                network_controller.disconnect(peer_id).await;
+
+                                break;
                             }
                         }
+
                         tokio_tungstenite::tungstenite::Message::Close(_) => {
-                            info!("socket for peer was closed");
+                            warn!("tungstenite connection closed");
+
                             let mut network_controller = network_controller_clone.write().await;
-                            if let Some(socket) = socket_lock.lock().await.take() {
-                                network_controller.disconnect_socket(socket).await;
-                            } else {
-                                if let Some(public_key) = peer.public_key {
-                                    network_controller
-                                        .disconnect_socket_by_key(public_key)
-                                        .await;
-                                } else {
-                                    warn!("socket was not found for peer");
-                                }
-                            }
+                            network_controller.disconnect(peer_id).await;
+
                             break;
                         }
-                        _ => {
-                            // Not handling these scenarios
-                        }
+
+                        _ => {}
                     }
                 },
             }
-            // debug!(
-            //     "listening thread existed for peer : {:?}",
-            //     public_key.unwrap_or([0; 33]).to_base58()
-            // );
         });
     }
 }
@@ -722,6 +755,7 @@ impl NetworkController {
 /// ```
 // TODO : refactor to use ProcessEvent trait
 pub async fn run_network_controller(
+    network_controller_lock: Arc<RwLock<NetworkController>>,
     mut receiver: Receiver<IoEvent>,
     sender_to_core: Sender<IoEvent>,
     configs_lock: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
@@ -762,13 +796,10 @@ pub async fn run_network_controller(
     info!("starting server on : {:?}", url);
     let sender_clone = sender_to_core.clone();
 
-    let network_controller_lock = Arc::new(RwLock::new(NetworkController {
-        // sockets: Arc::new(Mutex::new(HashMap::new())),
-        sender_to_core,
-        currently_queried_urls: Arc::new(Default::default()),
-        network_peers: Default::default(),
-        services: vec![],
-    }));
+    {
+        let mut controller = network_controller_lock.write().await;
+        controller.sender_to_core = sender_to_core;
+    }
     let time_keeper = timer.clone();
 
     let server_handle = run_websocket_server(
@@ -777,7 +808,7 @@ pub async fn run_network_controller(
         port,
         host,
         public_key,
-        peers_lock,
+        peers_lock.clone(),
         wallet.clone(),
         configs_lock.clone(),
         timer,
@@ -807,109 +838,105 @@ pub async fn run_network_controller(
         let mut last_stat_on: Instant = Instant::now();
         loop {
             select! {
-                result = receiver.recv()=>{
-                    if result.is_some() {
-                        let event = result.unwrap();
-                        let interface_event = event.event;
-                        match interface_event {
-                            NetworkEvent::SendMessageToAllPeers { buffer, exceptions } => {
-                                    let mut network_controller = network_controller_lock.write().await;
-                                network_controller.send_to_all( buffer, exceptions).await;
-                                outgoing_messages.increment();
-                            }
-                            NetworkEvent::SendMessageToPeer {
-                                public_key,
-                                buffer,
-                            } => {
-                                    let mut network_controller = network_controller_lock.write().await;
-                                network_controller.send_outgoing_message(&public_key, buffer).await;
-                                outgoing_messages.increment();
-                            }
-                            NetworkEvent::ConnectToPeer {url,  } => {
-                                NetworkController::connect_to_peer(
-                                    network_controller_lock.clone(),
-                                    url,
-                                    wallet.clone(),
-                                    configs_lock.clone(),
-                                    &time_keeper,
-                                )
-                                .await;
-                            }
+                            result = receiver.recv()=>{
+                                if result.is_some() {
+                                    let event = result.unwrap();
+                                    let interface_event = event.event;
+                                    match interface_event {
+                                        NetworkEvent::ConnectToPeer {url,  } => {
 
-                            NetworkEvent::BlockFetchRequest {
-                                block_hash,
-                                public_key,
-                                url,
-                                block_id,
-                            } => {
-                                let sender;
-                                let current_queries;
-                                {
-                                    let network_controller = network_controller_lock.read().await;
+            NetworkController::connect_to_peer(
+                network_controller_lock.clone(),
+                peers_lock.clone(),
+                url,
+                wallet.clone(),
+                configs_lock.clone(),
+                &time_keeper,
+            )
+            .await;
+                                        }
 
-                                    sender = network_controller.sender_to_core.clone();
-                                    current_queries = network_controller.currently_queried_urls.clone();
+                                        NetworkEvent::BlockFetchRequest {
+                                            block_hash,
+                                            public_key,
+                                            url,
+                                            block_id,
+                                        } => {
+                                            let sender;
+                                            let current_queries;
+                                            {
+                                                let network_controller = network_controller_lock.read().await;
+
+                                                sender = network_controller.sender_to_core.clone();
+                                                current_queries = network_controller.currently_queried_urls.clone();
+                                            }
+                                            // starting new thread to stop io controller from getting blocked
+                                            io_pool.spawn(async move {
+                                                let client = reqwest::Client::new();
+
+                                                NetworkController::fetch_block(
+                                                    block_hash,
+                                                    public_key,
+                                                    url,
+                                                    sender,
+                                                    current_queries,
+                                                    client,
+                                                    block_id,
+                                                )
+                                                .await
+                                            });
+                                        }
+
+                                        _ => unreachable!()
+                                    }
                                 }
-                                // starting new thread to stop io controller from getting blocked
-                                io_pool.spawn(async move {
-                                    let client = reqwest::Client::new();
-
-                                    NetworkController::fetch_block(
-                                        block_hash,
-                                        public_key,
-                                        url,
-                                        sender,
-                                        current_queries,
-                                        client,
-                                        block_id,
-                                    )
-                                    .await
-                                });
                             }
+                            _ = stat_interval.tick() => {
+                                {
+                                    if Instant::now().duration_since(last_stat_on)
+                                        > Duration::from_millis(stat_timer_in_ms)
+                                    {
+                                        last_stat_on = Instant::now();
+                                        outgoing_messages
+                                            .calculate_stats(time_keeper.get_timestamp_in_ms())
+                                            .await;
+                                        let network_controller = network_controller_lock.read().await;
 
-                            NetworkEvent::DisconnectFromPeer { public_key } => {
-                                    let mut network_controller = network_controller_lock.write().await;
-                                network_controller.disconnect_socket_by_key(
-                                  public_key
-                                )
-                                .await
+                                        let stat = format!(
+                                            "{} - {} - capacity : {:?} / {:?}",
+                                            StatVariable::format_timestamp(time_keeper.get_timestamp_in_ms()),
+                                            format!("{:width$}", "network::channel_to_core", width = 40),
+                                            network_controller.sender_to_core.capacity(),
+                                            network_controller.sender_to_core.max_capacity()
+                                        );
+                                        if let Err(e) =
+                                            sender_to_stat.send(StatEvent::StringStat(stat)).await
+                                        {
+                                            warn!(
+                                                "sender_to_stat send failed (op=network_channel_to_core_stat err={})",
+                                                e
+                                            );
+                                        }
+
+                                        let stat = format!(
+                                            "{} - {} - capacity : {:?} / {:?}",
+                                            StatVariable::format_timestamp(time_keeper.get_timestamp_in_ms()),
+                                            format!("{:width$}", "network::channel_outgoing", width = 40),
+                                            sender_to_network.capacity(),
+                                            sender_to_network.max_capacity()
+                                        );
+                                        if let Err(e) =
+                                            sender_to_stat.send(StatEvent::StringStat(stat)).await
+                                        {
+                                            warn!(
+                                                "sender_to_stat send failed (op=network_channel_outgoing_stat err={})",
+                                                e
+                                            );
+                                        }
+                                    }
+                                }
                             }
-                            _ => unreachable!()
                         }
-                    }
-                }
-                _ = stat_interval.tick() => {
-                    {
-                        if Instant::now().duration_since(last_stat_on)
-                            > Duration::from_millis(stat_timer_in_ms)
-                        {
-                            last_stat_on = Instant::now();
-                            outgoing_messages
-                                .calculate_stats(time_keeper.get_timestamp_in_ms())
-                                .await;
-                            let network_controller = network_controller_lock.read().await;
-
-                            let stat = format!(
-                                "{} - {} - capacity : {:?} / {:?}",
-                                StatVariable::format_timestamp(time_keeper.get_timestamp_in_ms()),
-                                format!("{:width$}", "network::channel_to_core", width = 40),
-                                network_controller.sender_to_core.capacity(),
-                                network_controller.sender_to_core.max_capacity()
-                            );
-                            sender_to_stat.send(StatEvent::StringStat(stat)).await.unwrap();
-
-                            let stat = format!(
-                                "{} - {} - capacity : {:?} / {:?}",
-                                StatVariable::format_timestamp(time_keeper.get_timestamp_in_ms()),
-                                format!("{:width$}", "network::channel_outgoing", width = 40),
-                                sender_to_network.capacity(),
-                                sender_to_network.max_capacity()
-                            );
-                            sender_to_stat.send(StatEvent::StringStat(stat)).await.unwrap();
-                        }
-                    }
-                }
-            }
         }
     });
     (server_handle, controller_handle)
@@ -930,6 +957,7 @@ struct ConfigsWrapper {
     configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
 }
 
+
 fn run_websocket_server(
     _sender_clone: Sender<IoEvent>,
     io_controller: Arc<RwLock<NetworkController>>,
@@ -945,8 +973,15 @@ fn run_websocket_server(
 
     let timer = timer.clone();
     let configs_wrapper = ConfigsWrapper { configs };
+
+    // Separate `Arc` clones so ws and lite routes each own a capture for warp filters.
+    let peers_lock_for_ws = peers_lock.clone();
+    let peers_lock_for_lite = peers_lock.clone();
+
     tokio::spawn(async move {
         info!("starting websocket server");
+
+        // ---------------- WS ROUTE ----------------
         let ws_route = warp::path("wsopen")
             .and(warp::ws())
             .and(warp::addr::remote())
@@ -961,6 +996,9 @@ fn run_websocket_server(
                       wallet: Arc<RwLock<Wallet>>,
                       configs: ConfigsWrapper,
                       timer: Timer| {
+
+                    let peers_lock = peers_lock_for_ws.clone();
+
                     debug!("incoming connection received");
                     let ws = ws.max_message_size(10_000_000_000);
                     let ws = ws.max_frame_size(10_000_000_000);
@@ -973,6 +1011,7 @@ fn run_websocket_server(
                         let mut network_peer = PeerV2::new(generate_peer_id());
                         network_peer.url = None;
                         network_peer.ip = addr.map(|a| a.ip().to_string());
+                        network_peer.on_connect(timer.get_timestamp_in_ms());
 
                         NetworkController::handle_new_connection(
                             network_peer,
@@ -982,17 +1021,18 @@ fn run_websocket_server(
                             wallet,
                             configs.configs,
                             &timer,
+                            peers_lock,
                         )
                         .await
                     })
                 },
             );
+
+        // ---------------- HTTP ROUTE ----------------
         let http_route = warp::path!("block" / String).and_then(|block_hash: String| async move {
-            // debug!("serving block : {:?}", block_hash);
             let mut buffer: Vec<u8> = Default::default();
             let result = fs::read_dir(BLOCKS_DIR_PATH.to_string());
             if result.is_err() {
-                debug!("no blocks found");
                 return Err(warp::reject::not_found());
             }
             let paths: Vec<_> = result
@@ -1000,213 +1040,108 @@ fn run_websocket_server(
                 .map(|r| r.unwrap())
                 .filter(|r| {
                     let filename = r.file_name().into_string().unwrap();
-                    if !filename.contains(BLOCK_FILE_EXTENSION) {
-                        return false;
-                    }
-                    if !filename.contains(block_hash.as_str()) {
-                        return false;
-                    }
-                    // debug!("selected file : {:?}", filename);
-                    true
+                    filename.contains(BLOCK_FILE_EXTENSION) && filename.contains(block_hash.as_str())
                 })
                 .collect();
 
             if paths.is_empty() {
                 return Err(warp::reject::not_found());
             }
+
             let path = paths.first().unwrap();
             let file_path = BLOCKS_DIR_PATH.to_string()
                 + "/"
                 + path.file_name().into_string().unwrap().as_str();
-            let result = File::open(file_path.as_str()).await;
-            if result.is_err() {
-                error!("failed opening file : {:?}", result.err().unwrap());
-                return Err(warp::reject::not_found());
-            }
-            let mut file = result.unwrap();
 
-            let result = file.read_to_end(&mut buffer).await;
-            if result.is_err() {
-                error!("failed reading file : {:?}", result.err().unwrap());
-                return Err(warp::reject::not_found());
-            }
-            drop(file);
+            let mut file = File::open(file_path.as_str()).await.map_err(|_| warp::reject::not_found())?;
+            file.read_to_end(&mut buffer).await.map_err(|_| warp::reject::not_found())?;
 
-            let _buffer_len = buffer.len();
-            let result = Ok(warp::reply::with_status(buffer, StatusCode::OK));
-            // debug!("served block with : {:?} length", buffer_len);
-            result
+            Ok(warp::reply::with_status(buffer, StatusCode::OK))
         });
 
-        // TODO : review this code
+        // ---------------- LITE ROUTE ----------------
         let opt = warp::path::param::<String>()
             .map(Some)
             .or_else(|_| async { Ok::<(Option<String>,), std::convert::Infallible>((None,)) });
-        let lite_route =
-            warp::path!("lite-block" / String / ..)
-                .and(opt)
-                .and(warp::path::end())
-                .and(warp::any().map(move || peers_lock.clone()))
-                .and_then(
-                    move |block_hash: String,
-                          key: Option<String>,
-                          peer_lock: Arc<RwLock<Peers>>| async move {
-                        // debug!("serving lite block : {:?}", block_hash);
 
-                        let key1;
-                        if key.is_some() {
-                            key1 = key.unwrap();
-                        } else {
-                            warn!("key is not set to request lite blocks");
-                            return Err(warp::reject::reject());
-                        }
+        let lite_route = warp::path!("lite-block" / String / ..)
+            .and(opt)
+            .and(warp::path::end())
+            .and(warp::any().map(move || peers_lock_for_lite.clone()))
+            .and_then(
+                move |block_hash: String,
+                      key: Option<String>,
+                      peer_lock: Arc<RwLock<Peers>>| async move {
 
-                        let key;
+                    let key = if let Some(key1) = key {
                         if key1.is_empty() {
-                            key = public_key;
+                            public_key
                         } else {
-                            let result: Result<SaitoPublicKey, String>;
-                            if key1.len() == 66 {
-                                result = SaitoPublicKey::from_hex(key1.as_str());
+                            let parsed = if key1.len() == 66 {
+                                SaitoPublicKey::from_hex(key1.as_str())
                             } else {
-                                result = SaitoPublicKey::from_base58(key1.as_str());
-                            }
-                            if result.is_err() {
-                                warn!("key : {:?} couldn't be decoded", key1);
+                                SaitoPublicKey::from_base58(key1.as_str())
+                            }.map_err(|_| warp::reject::reject())?;
+
+                            if parsed.len() != 33 {
                                 return Err(warp::reject::reject());
                             }
+                            parsed
+                        }
+                    } else {
+                        return Err(warp::reject::reject());
+                    };
 
-                            let result = result.unwrap();
-                            if result.len() != 33 {
-                                warn!("key length : {:?} is not for public key", result.len());
-                                return Err(warp::reject::reject());
-                            }
-                            key = result;
-                        }
+                    let keylist = {
+                        let peers = peer_lock.read().await;
+                        peers.get_peer_by_public_key(&key)
+                            .map(|p| p.key_list.clone())
+                            .unwrap_or_default()
+                    };
 
-                        let keylist = {
-                            let peers = peer_lock.read().await;
-                            peers
-                                .get_peer_by_public_key(&key)
-                                .map(|p| p.key_list.clone())
-                                .unwrap_or_default()
-                        };
+                    let mut buffer: Vec<u8> = Default::default();
+                    let result = fs::read_dir(BLOCKS_DIR_PATH.to_string());
+                    if result.is_err() {
+                        return Err(warp::reject::not_found());
+                    }
 
-                        let mut buffer: Vec<u8> = Default::default();
-                        let result = fs::read_dir(BLOCKS_DIR_PATH.to_string());
-                        if result.is_err() {
-                            debug!("no blocks found");
-                            return Err(warp::reject::not_found());
-                        }
-                        let paths: Vec<_> = result
-                            .unwrap()
-                            .map(|r| r.unwrap())
-                            .filter(|r| {
-                                let filename = r.file_name().into_string().unwrap();
-                                if !filename.contains(BLOCK_FILE_EXTENSION) {
-                                    return false;
-                                }
-                                if !filename.contains(block_hash.as_str()) {
-                                    return false;
-                                }
-                                true
-                            })
-                            .collect();
+                    let paths: Vec<_> = result
+                        .unwrap()
+                        .map(|r| r.unwrap())
+                        .filter(|r| {
+                            let filename = r.file_name().into_string().unwrap();
+                            filename.contains(BLOCK_FILE_EXTENSION) && filename.contains(block_hash.as_str())
+                        })
+                        .collect();
 
-                        if paths.is_empty() {
-                            return Err(warp::reject::not_found());
-                        }
-                        let path = paths.first().unwrap();
-                        let file_path = BLOCKS_DIR_PATH.to_string()
-                            + "/"
-                            + path.file_name().into_string().unwrap().as_str();
-                        let result = File::open(file_path.as_str()).await;
-                        if result.is_err() {
-                            error!("failed opening file : {:?}", result.err().unwrap());
-                            return Err(warp::reject::not_found());
-                        }
-                        let mut file = result.unwrap();
+                    if paths.is_empty() {
+                        return Err(warp::reject::not_found());
+                    }
 
-                        let result = file.read_to_end(&mut buffer).await;
-                        if result.is_err() {
-                            error!("failed reading file : {:?}", result.err().unwrap());
-                            return Err(warp::reject::not_found());
-                        }
-                        drop(file);
+                    let path = paths.first().unwrap();
+                    let file_path = BLOCKS_DIR_PATH.to_string()
+                        + "/"
+                        + path.file_name().into_string().unwrap().as_str();
 
-                        let block = Block::deserialize_from_net(&buffer);
-                        if block.is_err() {
-                            error!("failed parsing buffer into a block");
-                            return Err(warp::reject::not_found());
-                        }
-                        let mut block = block.unwrap();
-                        if block.generate().is_err() {
-                            error!("failed generating block : {}", block_hash);
-                            return Err(warp::reject::not_found());
-                        }
-                        let block = block.generate_lite_block(keylist);
-                        let buffer = block.serialize_for_net(BlockType::Full);
-                        Ok(warp::reply::with_status(buffer, StatusCode::OK))
-                    },
-                );
+                    let mut file = File::open(file_path.as_str()).await.map_err(|_| warp::reject::not_found())?;
+                    file.read_to_end(&mut buffer).await.map_err(|_| warp::reject::not_found())?;
+
+                    let mut block = Block::deserialize_from_net(&buffer)
+                        .map_err(|_| warp::reject::not_found())?;
+
+                    block.generate().map_err(|_| warp::reject::not_found())?;
+
+                    let block = block.generate_lite_block(keylist);
+                    let buffer = block.serialize_for_net(BlockType::Full);
+
+                    Ok(warp::reply::with_status(buffer, StatusCode::OK))
+                },
+            );
+
         let routes = http_route.or(ws_route).or(lite_route);
-        // let (_, server) =
-        //     warp::serve(ws_route).bind_with_graceful_shutdown(([127, 0, 0, 1], port), async {
-        //         // tokio::signal::ctrl_c().await.ok();
-        //     });
-        // server.await;
-        let address =
-            SocketAddr::from_str((host + ":" + port.to_string().as_str()).as_str()).unwrap();
+
+        let address = SocketAddr::from_str((host + ":" + port.to_string().as_str()).as_str()).unwrap();
         warp::serve(routes).run(address).await;
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use futures::SinkExt;
-    use log::info;
-
-    use saito_core::core::msg::handshake::HandshakeChallenge;
-    use saito_core::core::msg::message::Message;
-    use saito_core::core::util::crypto::generate_random_bytes;
-    use tokio_tungstenite::connect_async;
-
-    // #[tokio::test]
-    // #[serial_test::serial]
-    // async fn multi_peer_perf_test() {
-    //     // pretty_env_logger::init();
-    //     let url = "ws://127.0.0.1:12101/wsopen";
-    //
-    //     info!("url = {:?}", url);
-    //
-    //     let mut sockets = vec![];
-    //     let it = 10000;
-    //     for i in 0..it {
-    //         let result = connect_async(url).await;
-    //         if result.is_err() {
-    //             println!("{:?}", result.err().unwrap());
-    //             return;
-    //         }
-    //         let result = result.unwrap();
-    //         let mut socket = result.0;
-    //
-    //         let challenge = HandshakeChallenge {
-    //             challenge: generate_random_bytes(32).await.try_into().unwrap(),
-    //         };
-    //         // challenge_for_peer = Some(challenge.challenge);
-    //         let message = Message::HandshakeChallenge(challenge);
-    //
-    //         socket
-    //             .send(tokio_tungstenite::tungstenite::Message::Binary(
-    //                 message.serialize(),
-    //             ))
-    //             .await
-    //             .unwrap();
-    //
-    //         sockets.push(socket);
-    //
-    //         // let (socket_sender, socket_receiver): (SocketSender, SocketReceiver) = socket.split();
-    //         info!("connecting ... : {:?}", i);
-    //     }
-    // }
-}
