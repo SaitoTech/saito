@@ -9,7 +9,9 @@ use log::{debug, error, info, trace, warn};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
-use rayon::iter::{IndexedParallelIterator};
+use rayon::iter::{
+    IndexedParallelIterator, IntoParallelRefIterator, ParallelDrainRange, ParallelIterator,
+};
 
 use crate::core::consensus::block::{Block, BlockType};
 use crate::core::consensus::blockring::BlockRing;

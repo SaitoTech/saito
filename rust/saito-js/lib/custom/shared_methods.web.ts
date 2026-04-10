@@ -4,15 +4,16 @@ import CustomSharedMethods from "./custom_shared_methods";
 import NetworkPeer from "../network_peer";
 
 export default class WebSharedMethods extends CustomSharedMethods {
-  connectToPeer(url: string): void {
+  async connectToPeer(url: string): Promise<void> {
     try {
       console.debug("connecting to " + url + "....");
       let socket = new WebSocket(url);
       socket.binaryType = "arraybuffer";
 
+
       // handle handshake here
-      let peer = new NetworkPeer(undefined, url);
-      peer.socket = socket;
+     let peer = await NetworkPeer.create(url);
+     peer.socket = socket;
 
       // Saito.getInstance().addNewSocket(socket, public_key);
 
@@ -41,9 +42,10 @@ export default class WebSharedMethods extends CustomSharedMethods {
         }
       };
 
-      socket.onopen = () => {
+      socket.onopen = async () => {
         try {
-          // Saito.getLibInstance().process_new_peer(public_key, url);
+	  Saito.getLibInstance().process_new_peer(peer.instance);
+	  await peer.syncFromRust();
           console.debug("connected to : " + url);
         } catch (error) {
           console.error(error);

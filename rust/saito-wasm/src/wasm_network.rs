@@ -47,7 +47,7 @@ impl WasmNetwork {
 
         let connected_peers: Vec<PeerV2> = peers
             .iter()
-            .filter(|peer| peer.is_connected())
+            .filter(|peer| peer.is_verified)
             .cloned()
             .collect();
 

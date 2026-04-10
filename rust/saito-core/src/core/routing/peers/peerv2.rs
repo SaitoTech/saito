@@ -370,9 +370,9 @@ impl PeerV2 {
                             // we need to send this response to the other side
                             buffer = Message::HandshakeResponse(response).serialize();
                         }
-                        // now the handshake is complete. We need to alert the core
-                        send_event(NetworkEvent::PeerConnectionResult {
-                            result: Ok(self.clone()),
+                        send_event(NetworkEvent::PeerHandshakeResult {
+                            peer_id: self.id,
+                            public_key: response.public_key,
                         })
                         .await;
                         debug!(

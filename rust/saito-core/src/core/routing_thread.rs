@@ -129,7 +129,6 @@ pub struct RoutingThread {
     pub received_ghost_chain: Option<(GhostChainSync, SaitoPublicKey)>,
     pub waiting_for_genesis_block: bool,
     pub blockchain_send_results: Vec<BlockchainSendResults>,
-    pub new_peers: Vec<PeerV2>,
 }
 
 impl RoutingThread {
@@ -666,51 +665,6 @@ impl RoutingThread {
         }
     }
 
-    async fn process_new_peer_timer_event(&mut self) -> bool {
-        let mut work_done = false;
-
-        let peers = self.new_peers.drain(..).collect::<Vec<PeerV2>>();
-        for network_peer in peers {
-            let time = self.timer.get_timestamp_in_ms();
-
-            let is_browser = {
-                let configs = self.config_lock.read().await;
-                configs.is_browser()
-            };
-
-            let public_key = match self
-                .network
-                .add_peer(network_peer, self.wallet_lock.clone(), time)
-                .await
-            {
-                Some(pk) => pk,
-                None => continue,
-            };
-
-            let waiting_for_genesis = self
-                .network
-                .request_blockchain_on_connect(public_key, self.blockchain_lock.clone(), is_browser)
-                .await;
-
-            if waiting_for_genesis {
-                self.waiting_for_genesis_block = true;
-            } else {
-                self.sync
-                    .request_blockchain_from_peer(
-                        public_key,
-                        self.blockchain_lock.clone(),
-                        self.config_lock.clone(),
-                        &self.network,
-                    )
-                    .await;
-            }
-
-            work_done = true;
-        }
-
-        work_done
-    }
-
     async fn process_stuck_handshake_timer_event(&mut self, duration_value: Timestamp) -> bool {
         let mut work_done = false;
         let current_time = self.timer.get_timestamp_in_ms();
@@ -861,18 +815,76 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     .process_peer_message_received_event(public_key, buffer)
                     .await;
             }
-            NetworkEvent::PeerConnectionResult { result } => match result {
-                Ok(network_peer) => {
-                    info!(
-                        "adding new peer : {} to be processed",
-                        network_peer.public_key.unwrap_or([0; 33]).to_base58()
-                    );
-                    self.new_peers.push(network_peer);
+            NetworkEvent::PeerConnectionResult { peer_id } => {
+                let mut peers = self.network.peer_lock.write().await;
+                if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                    peer.on_connect(self.timer.get_timestamp_in_ms());
+                } else {
+                    warn!("PeerConnectionResult: unknown peer_id {}", peer_id);
+                    return None;
                 }
-                Err(err) => {
-                    warn!("peer connection result returned error: {:?}", err);
+            }
+
+            NetworkEvent::PeerHandshakeResult {
+                peer_id,
+                public_key,
+            } => {
+                let time = self.timer.get_timestamp_in_ms();
+
+                {
+                    let mut peers = self.network.peer_lock.write().await;
+                    let peer_exists = if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                        peer.on_handshake_complete(public_key, time);
+                        true
+                    } else {
+                        warn!("PeerHandshakeResult: unknown peer_id {}", peer_id);
+                        false
+                    };
+
+                    if !peer_exists {
+                        return None;
+                    }
                 }
-            },
+
+                let is_browser = {
+                    let configs = self.config_lock.read().await;
+                    configs.is_browser()
+                };
+
+                // ensure peer still exists before continuing
+                {
+                    let peers = self.network.peer_lock.read().await;
+                    if peers.get_peer_by_id(peer_id).is_none() {
+                        warn!(
+                            "PeerHandshakeResult: peer disappeared after handshake {}",
+                            peer_id
+                        );
+                        return None;
+                    }
+                }
+
+                let waiting_for_genesis = self
+                    .network
+                    .request_blockchain_on_connect(
+                        public_key,
+                        self.blockchain_lock.clone(),
+                        is_browser,
+                    )
+                    .await;
+
+                if waiting_for_genesis {
+                    self.waiting_for_genesis_block = true;
+                } else {
+                    self.sync
+                        .request_blockchain_from_peer(
+                            public_key,
+                            self.blockchain_lock.clone(),
+                            self.config_lock.clone(),
+                            &self.network,
+                        )
+                        .await;
+                }
+            }
             NetworkEvent::AddStunPeer { public_key } => {
                 self.network
                     .add_stun_peer(public_key, self.timer.get_timestamp_in_ms())
@@ -937,14 +949,12 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
         let mut work_done = false;
 
-        // Timer Event: process newly connected peers
-        work_done |= self.process_new_peer_timer_event().await;
-
         // Timer Event: reconnection + sync
         work_done |= self.process_reconnection_timer_event(duration_value).await;
 
         // Timer Event: stuck handshake
-        work_done |= self.process_stuck_handshake_timer_event(duration_value)
+        work_done |= self
+            .process_stuck_handshake_timer_event(duration_value)
             .await;
 
         // Timer Event: message sending (block headers)
