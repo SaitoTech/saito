@@ -18,16 +18,11 @@ pub struct WasmIoHandler {}
 
 #[async_trait]
 impl InterfaceIO for WasmIoHandler {
-
-async fn send_message_by_peer_id(
-    &self,
-    peer_id: u64,
-    buffer: &[u8],
-) -> Result<(), Error> {
-    let array = js_sys::Uint8Array::from(buffer);
-    MsgHandler::send_message_by_peer_id(peer_id, &array);
-    Ok(())
-}
+    async fn send_message_by_peer_id(&self, peer_id: u64, buffer: &[u8]) -> Result<(), Error> {
+        let array = js_sys::Uint8Array::from(buffer);
+        MsgHandler::send_message_by_peer_id(peer_id, &array);
+        Ok(())
+    }
 
     async fn send_message(&self, public_key: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error> {
         trace!("WasmIoHandler::send_message : {:?}", public_key.to_base58());
@@ -335,7 +330,6 @@ impl Debug for WasmIoHandler {
 #[wasm_bindgen(module = "/js/msg_handler.js")]
 extern "C" {
     pub type MsgHandler;
-
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     fn send_message_by_peer_id(peer_id: u64, buffer: &js_sys::Uint8Array);

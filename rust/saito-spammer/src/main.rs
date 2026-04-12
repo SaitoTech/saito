@@ -618,7 +618,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await;
 
     let (sender, _receiver) = tokio::sync::mpsc::channel::<IoEvent>(channel_size);
-    let stat_thread = Box::new(StatThread::new(Box::new(RustIOHandler::new(sender, None, 1))).await);
+    let stat_thread =
+        Box::new(StatThread::new(Box::new(RustIOHandler::new(sender, None, 1))).await);
     let stat_handle = run_thread(
         stat_thread,
         None,

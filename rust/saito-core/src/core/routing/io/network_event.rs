@@ -9,16 +9,16 @@ pub enum NetworkEvent {
         public_key: SaitoPublicKey,
         buffer: Vec<u8>,
     },
+    PeerBufferReceived {
+        peer_id: u64,
+        buffer: Vec<u8>,
+    },
     ConnectToPeer {
         url: String,
         // public_key: PeerIndex,
     },
     PeerConnectionResult {
         peer_id: u64,
-    },
-    PeerHandshakeResult {
-        peer_id: u64,
-        public_key: SaitoPublicKey,
     },
     AddStunPeer {
         public_key: SaitoPublicKey,

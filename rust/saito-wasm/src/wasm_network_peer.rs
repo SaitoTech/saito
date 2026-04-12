@@ -67,8 +67,15 @@ impl WasmNetworkPeer {
             return js_sys::Uint8Array::new_with_length(0);
         };
 
-        let challenge = peer.get_handshake_challenge_buffer().await;
-        let buffer = Message::HandshakeChallenge(challenge).serialize();
+        peer.handshake_nonce = Some(saito_core::core::util::crypto::hash(
+            &saito_core::core::util::crypto::generate_random_bytes(32).await,
+        ));
+
+        let buffer =
+            Message::RequestHandshake(saito_core::core::msg::handshake::RequestHandshake {
+                nonce: peer.handshake_nonce.unwrap(),
+            })
+            .serialize();
 
         js_sys::Uint8Array::from(buffer.as_slice())
     }
