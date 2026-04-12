@@ -187,7 +187,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
     }
   }
 
-  sendMessageByPeerId(peerId: number | bigint, buffer: Uint8Array): void {
+  sendMessageByPeerId(peerId: bigint, buffer: Uint8Array): void {
     try {
       let socket = Saito.getInstance().getSocketByPeerId(peerId);
       if (socket) {

@@ -59,7 +59,7 @@ export async function initialize(
   PeerServiceList.Type = s.WasmPeerServiceList;
   BalanceSnapshot.Type = s.WasmBalanceSnapshot;
   WalletSlip.Type = s.WasmWalletSlip;
-  NetworkPeer.Type = s.WasmNetworkPeer;
+  // NetworkPeer.Type = s.WasmNetworkPeer;
   // Config.Type = s.WasmConfiguration;
 
   return Saito.initialize(

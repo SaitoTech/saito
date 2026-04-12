@@ -22,7 +22,7 @@ export default class Saito {
   private static instance: Saito;
   private static libInstance: any;
   peers: Map<string, NetworkPeer> = new Map<string, NetworkPeer>();
-  peersByPeerId: Map<number, NetworkPeer> = new Map();
+  peersByPeerId: Map<bigint, NetworkPeer> = new Map();
   private stunPeers: Map<bigint, { peerConnection: RTCPeerConnection; publicKey: string }> =
     new Map();
   stunManager: StunPeer;
@@ -49,7 +49,7 @@ export default class Saito {
     // @ts-ignore
     globalThis.shared_methods = {
 
-      send_message_by_peer_id: (peer_id: number, buffer: Uint8Array) => {
+      send_message_by_peer_id: (peer_id: bigint, buffer: Uint8Array) => {
         return sharedMethods.sendMessageByPeerId(peer_id, buffer);
       },
       send_message: (public_key: string, buffer: Uint8Array) => {
@@ -425,11 +425,30 @@ export default class Saito {
   //   console.log("adding socket : " + public_key + ". total sockets : " + this.sockets.size);
   // }
 
+  public disconnectPeer(peer: NetworkPeer) {
+    this.peersByPeerId.delete(peer.peerId);
+
+    if (peer.publicKey) {
+      this.removeSocket(peer.publicKey);
+      return;
+    }
+
+    if (peer.socket) {
+      // @ts-ignore
+      if (peer.socket.readyState !== 1 && peer.socket.terminate) {
+        // @ts-ignore
+        peer.socket.terminate();
+      } else {
+        // @ts-ignore
+        peer.socket.close();
+      }
+    }
+  }
   public async addStunPeer(publicKey: string, peerConnection: RTCPeerConnection) {
     await this.stunManager.addStunPeer(publicKey, peerConnection);
   }
 
-  public getSocketByPeerId(peer_id: number): any | null {
+  public getSocketByPeerId(peer_id: bigint): any | null {
     return this.peersByPeerId.get(peer_id)?.socket || null;
   }
 
