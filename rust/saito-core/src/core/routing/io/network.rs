@@ -495,6 +495,26 @@ impl Network {
         }
     }
 
+pub async fn send_message_by_peer_id(
+    &self,
+    peer_id: u64,
+    message: Message,
+) {
+    let buffer = message.serialize();
+
+    if let Err(err) = self
+        .io_interface
+        .send_message_by_peer_id(peer_id, buffer.as_slice())
+        .await
+    {
+        log::warn!(
+            "failed to send message to peer_id {}: {:?}",
+            peer_id,
+            err
+        );
+    }
+}
+
     pub async fn get_peer_key_list(
         &self,
         public_key: SaitoPublicKey,

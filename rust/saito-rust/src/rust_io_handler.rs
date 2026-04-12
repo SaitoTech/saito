@@ -84,6 +84,28 @@ impl InterfaceIO for RustIOHandler {
         Ok(())
     }
 
+async fn send_message_by_peer_id(
+    &self,
+    peer_id: u64,
+    buffer: &[u8],
+) -> Result<(), Error> {
+    let Some(network_controller) = &self.network_controller else {
+        log::warn!("send_message_by_peer_id: no network controller");
+        return Err(Error::from(ErrorKind::NotConnected));
+    };
+
+    let mut controller = network_controller.write().await;
+
+    let success = controller.send(peer_id, buffer.to_vec()).await;
+
+    if !success {
+        log::warn!("send_message_by_peer_id: peer {} not found", peer_id);
+        return Err(Error::from(ErrorKind::NotFound));
+    }
+
+    Ok(())
+}
+
     async fn send_message_to_all(
         &self,
         buffer: &[u8],

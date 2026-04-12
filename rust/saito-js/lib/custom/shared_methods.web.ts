@@ -4,18 +4,18 @@ import CustomSharedMethods from "./custom_shared_methods";
 import NetworkPeer from "../network_peer";
 
 export default class WebSharedMethods extends CustomSharedMethods {
+
   async connectToPeer(url: string): Promise<void> {
     try {
       console.debug("connecting to " + url + "....");
       let socket = new WebSocket(url);
       socket.binaryType = "arraybuffer";
 
-
       // handle handshake here
-     let peer = await NetworkPeer.create(url);
-     peer.socket = socket;
+      let peer = await NetworkPeer.create(url);
+      peer.socket = socket;
+      Saito.getInstance().peersByPeerId.set(peer.peerId, peer);
 
-      // Saito.getInstance().addNewSocket(socket, public_key);
 
       socket.onmessage = (event: MessageEvent) => {
         try {
@@ -54,6 +54,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
       socket.onclose = () => {
         try {
           console.debug("socket.onclose : " + url + " , key : " + peer.publicKey);
+          Saito.getInstance().disconnectPeer(peer);
           Saito.getLibInstance().process_peer_disconnection(peer.publicKey);
         } catch (error) {
           console.error(error);
@@ -62,7 +63,8 @@ export default class WebSharedMethods extends CustomSharedMethods {
       socket.onerror = (error) => {
         try {
           console.error(`socket.onerror ${peer.publicKey}: `, error);
-          Saito.getInstance().removeSocket(peer.publicKey);
+          Saito.getInstance().disconnectPeer(peer);
+          Saito.getLibInstance().process_peer_disconnection(peer.publicKey);
         } catch (error) {
           console.error(error);
         }
@@ -179,6 +181,17 @@ export default class WebSharedMethods extends CustomSharedMethods {
         socket.send(buffer);
       } else {
         console.error(`No WebSocket found for peer ${publicKey}`);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  sendMessageByPeerId(peerId: number | bigint, buffer: Uint8Array): void {
+    try {
+      let socket = Saito.getInstance().getSocketByPeerId(peerId);
+      if (socket) {
+        socket.send(buffer);
       }
     } catch (e) {
       console.error(e);

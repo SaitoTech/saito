@@ -18,6 +18,17 @@ pub struct WasmIoHandler {}
 
 #[async_trait]
 impl InterfaceIO for WasmIoHandler {
+
+async fn send_message_by_peer_id(
+    &self,
+    peer_id: u64,
+    buffer: &[u8],
+) -> Result<(), Error> {
+    let array = js_sys::Uint8Array::from(buffer);
+    MsgHandler::send_message_by_peer_id(peer_id, &array);
+    Ok(())
+}
+
     async fn send_message(&self, public_key: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error> {
         trace!("WasmIoHandler::send_message : {:?}", public_key.to_base58());
 
@@ -304,29 +315,7 @@ impl InterfaceIO for WasmIoHandler {
     // }
 
     fn get_my_services(&self) -> Vec<PeerService> {
-        // let mut services = vec![];
         let mut result: WasmPeerServiceList = MsgHandler::get_my_services();
-        // for i in 0..result.length() {
-        //     // let service: WasmPeerService = result.at(i as i32) as WasmPeerService;
-        //     let service = serde_wasm_bindgen::from_value(result.at(i as i32));
-        //     if service.is_err() {
-        //         error!("failed deserializing service. {:?}", service.err().unwrap());
-        //         return vec![];
-        //     }
-        //     services.push(service.unwrap());
-        // }
-        // debug!("services 1 : {:?}", services);
-        // let services = JsValue::from(services);
-        // debug!("services 2 : {:?}", services);
-        // let services = serde_wasm_bindgen::from_value(services);
-        // if services.is_err() {
-        //     error!(
-        //         "failed deserializing services. {:?}",
-        //         services.err().unwrap()
-        //     );
-        //     return vec![];
-        // }
-        // let mut services: Vec<WasmPeerService> = services.unwrap();
         result
             .services
             .drain(..)
@@ -346,6 +335,10 @@ impl Debug for WasmIoHandler {
 #[wasm_bindgen(module = "/js/msg_handler.js")]
 extern "C" {
     pub type MsgHandler;
+
+
+    #[wasm_bindgen(static_method_of = MsgHandler)]
+    fn send_message_by_peer_id(peer_id: u64, buffer: &js_sys::Uint8Array);
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_message(public_key: String, buffer: &Uint8Array);
