@@ -61,6 +61,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
     });
   }
 
+
   sendMessage(publicKey: string, buffer: Uint8Array): void {
     try {
       let socket = S.getInstance().getSocket(publicKey);
@@ -69,6 +70,17 @@ export class NodeSharedMethods extends CustomSharedMethods {
           S.getInstance().removeSocket(publicKey);
           return;
         }
+        socket.send(buffer);
+      }
+    } catch (e) {
+      // console.error(e);
+    }
+  }
+
+  sendMessageByPeerId(peerId: bigint, buffer: Uint8Array): void {
+    try {
+      let socket = S.getInstance().getSocketByPeerId(peerId);
+      if (socket) {
         socket.send(buffer);
       }
     } catch (e) {
@@ -105,12 +117,13 @@ export class NodeSharedMethods extends CustomSharedMethods {
 
       let peer = await NetworkPeer.create(url);
       peer.socket = socket;
+      S.getInstance().peersByPeerId.set(peer.peerId, peer);
 
       socket.on('message', (buffer: any) => {
         try {
           S.getLibInstance()
             .process_msg_buffer_from_peer(buffer, peer.instance)
-            .then((buffer: any) => {
+            .then(async (buffer: any) => {
               if (buffer && buffer.byteLength > 0) {
                 socket.send(buffer);
               }
@@ -138,27 +151,28 @@ export class NodeSharedMethods extends CustomSharedMethods {
         }
       });
       socket.on('close', () => {
-        S.getLibInstance()
-          .process_peer_disconnection(peer.publicKey)
-          .catch((e: any) =>
-            console.error(
-              `failed processing socket close from peer : ${peer.publicKey} from url : ${url}`,
-              e
-            )
+        try {
+          S.getInstance().disconnectPeer(peer);
+          S.getLibInstance().process_peer_disconnection(peer.publicKey);
+        } catch (e) {
+          console.error(
+            `failed processing socket close from peer : ${peer.publicKey} from url : ${url}`,
+            e
           );
       });
+
       socket.on('error', (error) => {
         console.error(
           `received socket error from peer : ${peer.publicKey} from url : ${url}`,
           error
         );
-        S.getLibInstance()
-          .process_peer_disconnection(peer.publicKey)
-          .catch((e: any) =>
-            console.error(
-              `failed processing error from peer : ${peer.publicKey} from url : ${url}`,
-              e
-            )
+        try {
+          S.getInstance().disconnectPeer(peer);
+          S.getLibInstance().process_peer_disconnection(peer.publicKey);
+        } catch (e) {
+          console.error(
+            `failed processing error from peer : ${peer.publicKey} from url : ${url}`,
+            e
           );
       });
       socket.on('open', () => {
@@ -420,7 +434,7 @@ class Server {
 
       let peer = await NetworkPeer.create();
       peer.socket = socket;
-
+      S.getInstance().peersByPeerId.set(peer.peerId, peer);
 
       // console.log(
       //   'adding new peer : ' + (request.headers['x-forwarded-for'] + request.socket.remoteAddress)
@@ -430,7 +444,7 @@ class Server {
       socket.on('message', (buffer: any) => {
         S.getLibInstance()
           .process_msg_buffer_from_peer(new Uint8Array(buffer), peer.instance)
-          .then((buffer: any) => {
+          .then(async (buffer: any) => {
             if (buffer && buffer.byteLength > 0) {
               socket.send(buffer);
             }
@@ -451,21 +465,17 @@ class Server {
             );
           });
       });
+
       socket.on('close', () => {
-        S.getLibInstance()
-          .process_peer_disconnection(peer.publicKey)
-          .catch((e: any) =>
-            console.error(`failed processing socket close from peer : ${peer.publicKey}`, e)
-          );
+        S.getInstance().disconnectPeer(peer);
+        S.getLibInstance().process_peer_disconnection(peer.publicKey);
       });
       socket.on('error', (error) => {
         console.error('error on socket : ' + peer.publicKey, error);
-        S.getLibInstance()
-          .process_peer_disconnection(peer.publicKey)
-          .catch((e: any) =>
-            console.error(`failed processing socket error from peer : ${peer.publicKey}`, e)
-          );
+        S.getInstance().disconnectPeer(peer);
+        S.getLibInstance().process_peer_disconnection(peer.publicKey);
       });
+
       peer.get_handshake_challenge_buffer().then((buffer) => {
         console.log('sending handshake challenge to peer : ', peer.publicKey);
         socket.send(buffer);

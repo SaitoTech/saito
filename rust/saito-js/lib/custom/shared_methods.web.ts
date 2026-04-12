@@ -47,7 +47,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
       socket.onopen = async () => {
         try {
-	  Saito.getLibInstance().process_new_peer(peer.instance);
+	  Saito.getLibInstance().process_new_peer(peer.peerId);
 	  await peer.syncFromRust();
           console.debug("connected to : " + url);
         } catch (error) {
