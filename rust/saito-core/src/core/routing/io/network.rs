@@ -195,68 +195,6 @@ impl Network {
         }
     }
 
-    pub async fn add_peer(
-        &self,
-        mut peer: PeerV2,
-        wallet_lock: Arc<RwLock<Wallet>>,
-        current_time: Timestamp,
-    ) -> Option<SaitoPublicKey> {
-        let public_key = match peer.public_key {
-            Some(k) => k,
-            None => {
-                warn!("handle_new_peer: received peer with no public key (incomplete handshake); dropping");
-                return None;
-            }
-        };
-
-        {
-            let mut peers = self.peer_lock.write().await;
-
-            if peers.is_peer_blacklisted(public_key, current_time) {
-                warn!(
-                    "peer : {:?} is blacklisted. not connecting to it. ip : {:?}",
-                    public_key.to_base58(),
-                    peer.ip.as_deref().unwrap_or("unknown")
-                );
-                return Some(public_key);
-            }
-
-            info!("adding new peer : {}", public_key.to_base58());
-
-            let wallet_version;
-            let wallet_keylist;
-
-            {
-                let wallet = wallet_lock.read().await;
-                wallet_version = wallet.wallet_version;
-                wallet_keylist = wallet.key_list.to_vec();
-            }
-
-            if wallet_version < peer.wallet_version {
-                self.io_interface
-                    .send_interface_event(InterfaceEvent::NewVersionDetected(
-                        public_key,
-                        peer.wallet_version,
-                    ));
-            }
-
-            let _ = self
-                .io_interface
-                .send_message_to_all(
-                    Message::KeyList(wallet_keylist).serialize().as_slice(),
-                    vec![],
-                )
-                .await;
-
-            self.io_interface
-                .send_interface_event(InterfaceEvent::PeerHandshakeComplete(public_key));
-
-            peers.add_congestion_event(public_key, CongestionType::PeerConnections, current_time);
-        }
-
-        Some(public_key)
-    }
-
     pub async fn cleanup_peers(&self, current_time: Timestamp) {
         let mut peers = self.peer_lock.write().await;
 
@@ -338,21 +276,27 @@ impl Network {
         false
     }
 
-    pub async fn initialize_static_peers(
-        &mut self,
-        configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
-    ) {
-        let configs = configs_lock.read().await;
+    pub async fn initialize(&mut self, configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>) {
+        let peer_urls = {
+            let configs = configs_lock.read().await;
+            configs
+                .get_peer_configs()
+                .iter()
+                .map(|peer| peer.get_url())
+                .collect::<Vec<_>>()
+        };
 
-        for peer in configs.get_peer_configs().iter() {
-            let peer_url = peer.get_url();
+        for peer_url in peer_urls {
+            self.connect_to_peer(peer_url).await;
+        }
+    }
 
-            if let Err(err) = self.io_interface.connect_to_peer(peer_url.clone()).await {
-                error!(
-                    "failed connecting to configured peer {:?}: {:?}",
-                    peer_url, err
-                );
-            }
+    pub async fn connect_to_peer(&mut self, peer_url: String) {
+        if let Err(err) = self.io_interface.connect_to_peer(peer_url.clone()).await {
+            error!(
+                "failed connecting to configured peer {:?}: {:?}",
+                peer_url, err
+            );
         }
     }
 
@@ -443,40 +387,93 @@ impl Network {
         }
     }
 
-    pub async fn connect_to_static_peers(&mut self, current_time: Timestamp) {
-        let mut peers = self.peer_lock.write().await;
+    pub async fn monitor_peers(&mut self, current_time: Timestamp) -> bool {
 
-        for peer in peers.peers_v2.values_mut() {
-            let Some(url) = peer.url.clone() else {
-                continue;
-            };
+        let mut work_done = false;
 
-            // Skip already connected or connecting peers
-            if peer.is_connected || peer.is_connecting {
-                continue;
-            }
+        //
+        // PASS 1: monitor / mutate peer lifecycle state
+        //
+        {
+            let mut peers = self.peer_lock.write().await;
 
-            // Basic backoff using last_activity_at
-            if peer.last_activity_at + RECONNECTION_PERIOD > current_time {
-                continue;
-            }
+            for peer in peers.peers_v2.values_mut() {
+                //
+                // STUCK HANDSHAKE DETECTION
+                //
+                if peer.is_connected && !peer.is_verified {
+                    if peer.last_activity_at + HANDSHAKE_TIMEOUT < current_time {
+                        warn!("Peer stuck in handshake, resetting");
+                        peer.on_disconnect(current_time);
+                        work_done = true;
+                        continue;
+                    }
+                }
 
-            trace!(
-                "attempting reconnection to peer {:?} at {}",
-                peer.public_key
-                    .map(|pk| pk.to_base58())
-                    .unwrap_or("unknown".to_string()),
-                url
-            );
+                //
+                // SKIP ACTIVE CONNECTIONS
+                //
+                if peer.is_connected || peer.is_connecting {
+                    continue;
+                }
 
-            peer.is_connecting = true;
-            peer.last_activity_at = current_time;
+                //
+                // BACKOFF / RECONNECT THROTTLE
+                //
+                if peer.last_activity_at + RECONNECTION_PERIOD > current_time {
+                    continue;
+                }
 
-            if let Err(err) = self.io_interface.connect_to_peer(url).await {
-                error!("failed reconnecting to peer: {:?}", err);
-                peer.is_connecting = false;
+                let Some(url) = peer.url.clone() else {
+                    continue;
+                };
+
+                trace!(
+                    "attempting reconnection to peer {:?} at {}",
+                    peer.public_key
+                        .map(|pk| pk.to_base58())
+                        .unwrap_or("unknown".to_string()),
+                    url
+                );
+
+                peer.is_connecting = true;
+                peer.last_activity_at = current_time;
+                work_done = true;
             }
         }
+
+        //
+        // PASS 2: execute reconnects outside lock
+        //
+        {
+            let reconnect_targets = {
+                let peers = self.peer_lock.read().await;
+
+                peers
+                    .peers_v2
+                    .values()
+                    .filter(|peer| {
+                        peer.is_connecting
+                            && !peer.is_connected
+                            && peer.last_activity_at == current_time
+                    })
+                    .filter_map(|peer| peer.url.clone())
+                    .collect::<Vec<_>>()
+            };
+
+            for url in reconnect_targets {
+                if let Err(err) = self.io_interface.connect_to_peer(url.clone()).await {
+                    error!("failed reconnecting to peer {}: {:?}", url, err);
+                }
+            }
+        }
+
+        //
+        // PASS 3: cleanup stale/disconnected peers
+        //
+        self.cleanup_peers(current_time).await;
+
+        work_done
     }
 
     pub async fn send_message(&self, public_key: SaitoPublicKey, message: Message) {
@@ -495,25 +492,17 @@ impl Network {
         }
     }
 
-pub async fn send_message_by_peer_id(
-    &self,
-    peer_id: u64,
-    message: Message,
-) {
-    let buffer = message.serialize();
+    pub async fn send_message_by_peer_id(&self, peer_id: u64, message: Message) {
+        let buffer = message.serialize();
 
-    if let Err(err) = self
-        .io_interface
-        .send_message_by_peer_id(peer_id, buffer.as_slice())
-        .await
-    {
-        log::warn!(
-            "failed to send message to peer_id {}: {:?}",
-            peer_id,
-            err
-        );
+        if let Err(err) = self
+            .io_interface
+            .send_message_by_peer_id(peer_id, buffer.as_slice())
+            .await
+        {
+            log::warn!("failed to send message to peer_id {}: {:?}", peer_id, err);
+        }
     }
-}
 
     pub async fn get_peer_key_list(
         &self,

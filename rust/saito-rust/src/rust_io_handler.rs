@@ -15,7 +15,9 @@ use tokio::sync::RwLock;
 
 use crate::network_controller::NetworkController;
 use saito_core::core::consensus::wallet::Wallet;
-use saito_core::core::defs::{BlockId, PrintForLog, SaitoHash, SaitoPublicKey, BLOCK_FILE_EXTENSION};
+use saito_core::core::defs::{
+    BlockId, PrintForLog, SaitoHash, SaitoPublicKey, BLOCK_FILE_EXTENSION,
+};
 use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::peers::peer_service::PeerService;
@@ -84,27 +86,23 @@ impl InterfaceIO for RustIOHandler {
         Ok(())
     }
 
-async fn send_message_by_peer_id(
-    &self,
-    peer_id: u64,
-    buffer: &[u8],
-) -> Result<(), Error> {
-    let Some(network_controller) = &self.network_controller else {
-        log::warn!("send_message_by_peer_id: no network controller");
-        return Err(Error::from(ErrorKind::NotConnected));
-    };
+    async fn send_message_by_peer_id(&self, peer_id: u64, buffer: &[u8]) -> Result<(), Error> {
+        let Some(network_controller) = &self.network_controller else {
+            log::warn!("send_message_by_peer_id: no network controller");
+            return Err(Error::from(ErrorKind::NotConnected));
+        };
 
-    let mut controller = network_controller.write().await;
+        let mut controller = network_controller.write().await;
 
-    let success = controller.send(peer_id, buffer.to_vec()).await;
+        let success = controller.send(peer_id, buffer.to_vec()).await;
 
-    if !success {
-        log::warn!("send_message_by_peer_id: peer {} not found", peer_id);
-        return Err(Error::from(ErrorKind::NotFound));
+        if !success {
+            log::warn!("send_message_by_peer_id: peer {} not found", peer_id);
+            return Err(Error::from(ErrorKind::NotFound));
+        }
+
+        Ok(())
     }
-
-    Ok(())
-}
 
     async fn send_message_to_all(
         &self,
@@ -117,7 +115,9 @@ async fn send_message_by_peer_id(
         };
         let mut controller = network_controller.write().await;
         let excluded_peer_ids = controller.resolve_peer_ids_by_public_keys(&peer_exceptions);
-        controller.broadcast(buffer.to_vec(), &excluded_peer_ids).await;
+        controller
+            .broadcast(buffer.to_vec(), &excluded_peer_ids)
+            .await;
         Ok(())
     }
 

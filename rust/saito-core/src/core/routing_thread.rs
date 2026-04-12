@@ -11,6 +11,7 @@ use crate::core::defs::{
 use crate::core::mining_thread::MiningEvent;
 use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
+use crate::core::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
@@ -27,6 +28,7 @@ use crate::core::util;
 use crate::core::util::config_manager::ConfigManager;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::hash;
+use crate::core::util::crypto::{generate_random_bytes, sign, verify};
 use crate::core::verification_thread::VerifyRequest;
 use ahash::HashMap;
 use async_trait::async_trait;
@@ -153,25 +155,26 @@ impl RoutingThread {
     /// peer. Thus "KeyList" sends the latest KeyList. We do not need KeyListUpdate, etc.
     ///
     async fn process_peer_message(&mut self, peer_id: u64, message: Message) {
+        let public_key = {
+            let peers = self.network.peer_lock.read().await;
+            peers.get_peer_by_id(peer_id).and_then(|p| p.public_key)
+        };
 
-	let public_key = {
-	    let peers = self.network.peer_lock.read().await;
-	    peers.get_peer_by_id(peer_id).and_then(|p| p.public_key)
-	};
-
-    	if let Some(public_key) = public_key {
-        	self.network
-            	    .update_peer_timestamp(public_key, self.timer.get_timestamp_in_ms())
-        	    .await;
-    	}
+        if let Some(public_key) = public_key {
+            self.network
+                .update_peer_timestamp(public_key, self.timer.get_timestamp_in_ms())
+                .await;
+        }
 
         match message {
-
-            Message::HandshakeChallenge(_challenge) => {
-                // ...
+            Message::RequestHandshake(_challenge) => {
+info!("HANDSHAKE REQUEST: received handshake request");
+                self.process_request_handshake_message(peer_id, _challenge)
+                    .await;
             }
-            Message::HandshakeResponse(_response) => {
-                // ...
+            Message::Handshake(_response) => {
+info!("HANDSHAKE RESPONSE: received handshake response");
+                self.process_handshake_message(peer_id, _response).await;
             }
             Message::Block(_) => {
                 // ...
@@ -181,7 +184,7 @@ impl RoutingThread {
             }
 
             Message::Transaction(transaction) => {
-	        if let Some(public_key) = public_key {
+                if let Some(public_key) = public_key {
                     self.process_transaction_message(public_key, transaction)
                         .await;
                 } else {
@@ -189,16 +192,16 @@ impl RoutingThread {
                 }
             }
             Message::BlockReference(hash, block_id) => {
-	        if let Some(public_key) = public_key {
-           	     self.process_block_reference_message(public_key, hash, block_id)
-           	         .await;
+                if let Some(public_key) = public_key {
+                    self.process_block_reference_message(public_key, hash, block_id)
+                        .await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::Ping() => {
-	        if let Some(public_key) = public_key {
-            	    self.network.send_message(public_key, Message::Pong()).await;
+                if let Some(public_key) = public_key {
+                    self.network.send_message(public_key, Message::Pong()).await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
@@ -207,99 +210,105 @@ impl RoutingThread {
                 // ...
             }
             Message::Services(services) => {
-	        if let Some(public_key) = public_key {
-            	    self.network
-            	        .process_services_message(public_key, services)
-            	        .await;
+                if let Some(public_key) = public_key {
+                    self.network
+                        .process_services_message(public_key, services)
+                        .await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::GhostChain(chain) => {
-	        if let Some(public_key) = public_key {
-            	    self.process_ghost_chain_message(chain, public_key).await;
+                if let Some(public_key) = public_key {
+                    self.process_ghost_chain_message(chain, public_key).await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::RequestGhostChain(block_id, block_hash, fork_id) => {
-	        if let Some(public_key) = public_key {
-            	    self.process_request_ghost_chain_message(block_id, block_hash, fork_id, public_key)
-            	        .await;
+                if let Some(public_key) = public_key {
+                    self.process_request_ghost_chain_message(
+                        block_id, block_hash, fork_id, public_key,
+                    )
+                    .await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::RequestBlockchain(request) => {
-	        if let Some(public_key) = public_key {
-            	    self.process_request_blockchain_message(public_key, request)
-            	        .await;
+                if let Some(public_key) = public_key {
+                    self.process_request_blockchain_message(public_key, request)
+                        .await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::RequestGenesisBlockReference() => {
-	        if let Some(public_key) = public_key {
-            	    self.process_request_genesis_block_reference_message(public_key)
-            	        .await;
+                if let Some(public_key) = public_key {
+                    self.process_request_genesis_block_reference_message(public_key)
+                        .await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::ApplicationMessage(api_message) => {
-	        if let Some(public_key) = public_key {
-            	    self.network
-            	        .io_interface
-            	        .process_api_call(api_message.data, api_message.msg_index, public_key)
-            	        .await;
+                if let Some(public_key) = public_key {
+                    self.network
+                        .io_interface
+                        .process_api_call(api_message.data, api_message.msg_index, public_key)
+                        .await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::Result(api_message) => {
-	        if let Some(public_key) = public_key {
-            	    self.network
-            	        .io_interface
-            	        .process_api_success(api_message.data, api_message.msg_index, public_key)
-            	        .await;
+                if let Some(public_key) = public_key {
+                    self.network
+                        .io_interface
+                        .process_api_success(api_message.data, api_message.msg_index, public_key)
+                        .await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::Error(api_message) => {
-	        if let Some(public_key) = public_key {
-            	    self.network
-            	        .io_interface
-            	        .process_api_error(api_message.data, api_message.msg_index, public_key)
-            	        .await;
+                if let Some(public_key) = public_key {
+                    self.network
+                        .io_interface
+                        .process_api_error(api_message.data, api_message.msg_index, public_key)
+                        .await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::KeyList(key_list) => {
-	        if let Some(public_key) = public_key {
-            	    self.network
-            	        .handle_key_list_update(public_key, key_list, self.timer.get_timestamp_in_ms())
-            	        .await;
+                if let Some(public_key) = public_key {
+                    self.network
+                        .handle_key_list_update(
+                            public_key,
+                            key_list,
+                            self.timer.get_timestamp_in_ms(),
+                        )
+                        .await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::GenesisBlockReference(hash, block_id) => {
-	        if let Some(public_key) = public_key {
-            	    self.process_genesis_block_reference_message(public_key, hash, block_id)
-            	        .await;
+                if let Some(public_key) = public_key {
+                    self.process_genesis_block_reference_message(public_key, hash, block_id)
+                        .await;
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
             Message::Disconnect(message) => {
-	        if let Some(public_key) = public_key {
-            	    warn!(
-            	        "Received disconnection message: {:?}. from peer : {}",
-            	        message,
-            	        public_key.to_base58()
-            	    );
+                if let Some(public_key) = public_key {
+                    warn!(
+                        "Received disconnection message: {:?}. from peer : {}",
+                        message,
+                        public_key.to_base58()
+                    );
                 } else {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
@@ -307,26 +316,23 @@ impl RoutingThread {
         }
     }
 
-pub async fn process_peer_buffer(
-    &mut self,
-    peer_id: u64,
-    buffer: Vec<u8>,
-) {
+    pub async fn process_peer_buffer(&mut self, peer_id: u64, buffer: Vec<u8>) {
+        // Step 1: deserialize buffer → Message
+        let message = match Message::deserialize(buffer) {
+            Ok(msg) => msg,
+            Err(err) => {
+                log::warn!(
+                    "failed to deserialize message from peer {}: {:?}",
+                    peer_id,
+                    err
+                );
+                return;
+            }
+        };
 
-    // Step 1: deserialize buffer → Message
-    let message = match Message::deserialize(buffer) {
-        Ok(msg) => msg,
-        Err(err) => {
-            log::warn!("failed to deserialize message from peer {}: {:?}", peer_id, err);
-            return;
-        }
-    };
-
-    // Step 2: forward into normal message handling
-    self.process_peer_message(peer_id, message).await;
-}
-
-
+        // Step 2: forward into normal message handling
+        self.process_peer_message(peer_id, message).await;
+    }
 
     //
     // support functions that execute peer messages that require more complicated
@@ -334,7 +340,7 @@ pub async fn process_peer_buffer(
     //
     async fn process_transaction_message(
         &mut self,
-	public_key: SaitoPublicKey,
+        public_key: SaitoPublicKey,
         mut transaction: Transaction,
     ) {
         trace!(
@@ -429,6 +435,96 @@ pub async fn process_peer_buffer(
             )
             .await;
     }
+    async fn process_request_handshake_message(&mut self, peer_id: u64, request: RequestHandshake) {
+        let (public_key, private_key) = {
+            let wallet = self.wallet_lock.read().await;
+            (wallet.public_key, wallet.private_key)
+        };
+
+        let counter_nonce = {
+            let mut peers = self.network.peer_lock.write().await;
+
+            let Some(peer) = peers.get_peer_by_id_mut(peer_id) else {
+                warn!(
+                    "process_request_handshake_message: unknown peer_id {}",
+                    peer_id
+                );
+                return;
+            };
+
+            if peer.is_verified {
+                [0; 32]
+            } else {
+                let random_bytes: Vec<u8> = generate_random_bytes(32).await;
+                let nonce = hash(random_bytes.as_slice());
+                peer.handshake_nonce = Some(nonce);
+                nonce
+            }
+        };
+
+        self.network
+            .send_message_by_peer_id(
+                peer_id,
+                Message::Handshake(Handshake {
+                    public_key,
+                    signature: sign(&request.nonce, &private_key),
+                    counter_nonce,
+                }),
+            )
+            .await;
+    }
+
+    async fn process_handshake_message(&mut self, peer_id: u64, handshake: Handshake) {
+        let had_pending_nonce;
+        let counter_nonce = handshake.counter_nonce;
+
+        {
+            let mut peers = self.network.peer_lock.write().await;
+
+            let Some(peer) = peers.get_peer_by_id_mut(peer_id) else {
+                warn!("process_handshake_message: unknown peer_id {}", peer_id);
+                return;
+            };
+
+            let Some(expected_nonce) = peer.handshake_nonce else {
+                warn!(
+                    "process_handshake_message: peer {} sent unsolicited handshake",
+                    peer_id
+                );
+                return;
+            };
+
+            had_pending_nonce = true;
+
+            if !verify(&expected_nonce, &handshake.signature, &handshake.public_key) {
+                warn!(
+                    "process_handshake_message: invalid signature from peer_id {}",
+                    peer_id
+                );
+                return;
+            }
+
+            peer.on_handshake_complete(handshake.public_key, self.timer.get_timestamp_in_ms());
+        }
+
+        if had_pending_nonce && counter_nonce != [0; 32] {
+            let (public_key, private_key) = {
+                let wallet = self.wallet_lock.read().await;
+                (wallet.public_key, wallet.private_key)
+            };
+
+            self.network
+                .send_message_by_peer_id(
+                    peer_id,
+                    Message::Handshake(Handshake {
+                        public_key,
+                        signature: sign(&counter_nonce, &private_key),
+                        counter_nonce: [0; 32],
+                    }),
+                )
+                .await;
+        }
+    }
 
     async fn process_request_genesis_block_reference_message(
         &mut self,
@@ -504,7 +600,6 @@ pub async fn process_peer_buffer(
 
         let buffer_len = buffer.len();
 
-
         let message = match Message::deserialize(buffer) {
             Ok(message) => message,
             Err(err) => {
@@ -524,9 +619,9 @@ pub async fn process_peer_buffer(
 
         self.stats.total_incoming_messages.increment();
 
-	//
-	// somewhat messy middleware as part of peer_id refactor
-	//
+        //
+        // somewhat messy middleware as part of peer_id refactor
+        //
         let peer_id = {
             let peers = self.network.peer_lock.read().await;
             peers
@@ -537,13 +632,10 @@ pub async fn process_peer_buffer(
         if let Some(peer_id) = peer_id {
             self.process_peer_message(peer_id, message).await;
         } else {
-            warn!(
-                "dropping message from unknown public key; no peer_id mapping found"
-            );
+            warn!("dropping message from unknown public key; no peer_id mapping found");
         }
 
         Some(())
-
     }
 
     /// Processes a received ghost chain request from a peer to sync itself with the blockchain
@@ -769,42 +861,6 @@ pub async fn process_peer_buffer(
                 InitialLoadingStatus::Completed;
         }
 
-    async fn process_stuck_handshake_timer_event(&mut self, duration_value: Timestamp) -> bool {
-        let mut work_done = false;
-        let current_time = self.timer.get_timestamp_in_ms();
-        work_done = self.network.process_stuck_handshakes(current_time).await;
-        work_done
-    }
-
-    async fn process_reconnection_timer_event(&mut self, duration_value: Timestamp) -> bool {
-        let mut work_done = false;
-
-        self.reconnection_timer = self.reconnection_timer.saturating_add(duration_value);
-
-        let current_time = self.timer.get_timestamp_in_ms();
-
-        if self.reconnection_timer >= RECONNECTION_PERIOD {
-            self.network.connect_to_static_peers(current_time).await;
-            self.network.ping().await;
-
-            self.reconnection_timer = 0;
-
-            self.sync
-                .fetch_next_blocks(
-                    self.blockchain_lock.clone(),
-                    self.mempool_lock.clone(),
-                    &self.network,
-                    self.wallet_lock.clone(),
-                    self.config_lock.clone(),
-                )
-                .await;
-
-            work_done = true;
-        }
-
-        work_done
-    }
-
     async fn process_message_sending_timer_event(&mut self, duration_value: Timestamp) -> bool {
         let mut work_done = false;
 
@@ -887,27 +943,6 @@ pub async fn process_peer_buffer(
 
         work_done
     }
-
-    async fn process_peer_cleanup_timer_event(&mut self, duration_value: Timestamp) -> bool {
-        let mut work_done = false;
-
-        const PEER_REMOVAL_TIMER_PERIOD: Timestamp =
-            Duration::from_secs(5).as_millis() as Timestamp;
-
-        self.peer_removal_timer += duration_value;
-
-        let current_time = self.timer.get_timestamp_in_ms();
-
-        if self.peer_removal_timer >= PEER_REMOVAL_TIMER_PERIOD {
-            self.peer_removal_timer = 0;
-
-            self.network.cleanup_peers(current_time).await;
-
-            work_done = true;
-        }
-
-        work_done
-    }
 }
 
 #[async_trait]
@@ -919,6 +954,10 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     .process_peer_message_received_event(public_key, buffer)
                     .await;
             }
+            NetworkEvent::PeerBufferReceived { peer_id, buffer } => {
+                self.process_peer_buffer(peer_id, buffer).await;
+                return Some(());
+            }
             NetworkEvent::PeerConnectionResult { peer_id } => {
                 let mut peers = self.network.peer_lock.write().await;
                 if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
@@ -926,67 +965,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 } else {
                     warn!("PeerConnectionResult: unknown peer_id {}", peer_id);
                     return None;
-                }
-            }
-
-            NetworkEvent::PeerHandshakeResult {
-                peer_id,
-                public_key,
-            } => {
-                let time = self.timer.get_timestamp_in_ms();
-
-                {
-                    let mut peers = self.network.peer_lock.write().await;
-                    let peer_exists = if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-                        peer.on_handshake_complete(public_key, time);
-                        true
-                    } else {
-                        warn!("PeerHandshakeResult: unknown peer_id {}", peer_id);
-                        false
-                    };
-
-                    if !peer_exists {
-                        return None;
-                    }
-                }
-
-                let is_browser = {
-                    let configs = self.config_lock.read().await;
-                    configs.is_browser()
-                };
-
-                // ensure peer still exists before continuing
-                {
-                    let peers = self.network.peer_lock.read().await;
-                    if peers.get_peer_by_id(peer_id).is_none() {
-                        warn!(
-                            "PeerHandshakeResult: peer disappeared after handshake {}",
-                            peer_id
-                        );
-                        return None;
-                    }
-                }
-
-                let waiting_for_genesis = self
-                    .network
-                    .request_blockchain_on_connect(
-                        public_key,
-                        self.blockchain_lock.clone(),
-                        is_browser,
-                    )
-                    .await;
-
-                if waiting_for_genesis {
-                    self.waiting_for_genesis_block = true;
-                } else {
-                    self.sync
-                        .request_blockchain_from_peer(
-                            public_key,
-                            self.blockchain_lock.clone(),
-                            self.config_lock.clone(),
-                            &self.network,
-                        )
-                        .await;
                 }
             }
             NetworkEvent::AddStunPeer { public_key } => {
@@ -1050,27 +1028,17 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
     async fn process_timer_event(&mut self, duration: Duration) -> Option<()> {
         let duration_value: Timestamp = duration.as_millis() as Timestamp;
-
         let mut work_done = false;
 
-        // Timer Event: reconnection + sync
-        work_done |= self.process_reconnection_timer_event(duration_value).await;
+        let current_time = self.timer.get_timestamp_in_ms();
 
-        // Timer Event: stuck handshake
-        work_done |= self
-            .process_stuck_handshake_timer_event(duration_value)
-            .await;
+        work_done |= self.network.monitor_peers(current_time).await;
 
-        // Timer Event: message sending (block headers)
         work_done |= self
             .process_message_sending_timer_event(duration_value)
             .await;
 
-        // Timer Event: congestion management
         work_done |= self.process_congestion_timer_event(duration_value).await;
-
-        // Timer Event: peer cleanup
-        work_done |= self.process_peer_cleanup_timer_event(duration_value).await;
 
         if work_done {
             return Some(());
@@ -1274,10 +1242,10 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             }
         }
 
-        // connect to peers
-        self.network
-            .initialize_static_peers(self.config_lock.clone())
-            .await;
+        //
+        // initialize outbound conditions to peers
+        //
+        self.network.initialize(self.config_lock.clone()).await;
     }
     async fn on_stat_interval(&mut self, current_time: Timestamp) {
         self.stats
@@ -1875,44 +1843,6 @@ mod tests {
 
         let peers = tester.routing_thread.network.peer_lock.read().await;
         assert!(peers.congestion_controls_by_key.is_empty());
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn initialize_static_peers_continues_after_connect_failures() {
-        let mut tester = NodeTester::default();
-        let state = Arc::new(Mutex::new(TestHarnessIoState {
-            fail_connect: true,
-            ..Default::default()
-        }));
-        install_test_io(&mut tester, state.clone());
-
-        let mut config = TestHarnessConfig::default();
-        config.peers = vec![PeerConfig {
-            host: "peer.example".to_string(),
-            port: 443,
-            protocol: "https".to_string(),
-            synctype: "full".to_string(),
-        }];
-        install_test_config(&mut tester, config);
-
-        let config_lock = tester.routing_thread.config_lock.clone();
-        tester
-            .routing_thread
-            .network
-            .initialize_static_peers(config_lock)
-            .await;
-
-        let attempts = state.lock().unwrap().connect_attempts.clone();
-        assert_eq!(
-            attempts,
-            vec![peer_url_from_config(&PeerConfig {
-                host: "peer.example".to_string(),
-                port: 443,
-                protocol: "https".to_string(),
-                synctype: "full".to_string(),
-            })]
-        );
     }
 
     #[tokio::test]

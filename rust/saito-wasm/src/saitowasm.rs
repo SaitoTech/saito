@@ -1018,29 +1018,29 @@ pub async fn process_peer_disconnection(key: JsString) {
         .await;
 }
 
-
 #[wasm_bindgen]
 pub async fn process_msg_buffer_from_peer(
     buffer: js_sys::Uint8Array,
     peer: &mut WasmNetworkPeer,
 ) -> js_sys::Uint8Array {
     let buffer = buffer.to_vec();
-    trace!("saitowasm.rs - process_msg_buffer_from_peer : {}", buffer.len());
+    trace!(
+        "saitowasm.rs - process_msg_buffer_from_peer : {}",
+        buffer.len()
+    );
 
+    let mut saito = SAITO.lock().await;
+    let saito = saito.as_mut().unwrap();
+    let peer_id = peer.get_id();
 
-let mut saito = SAITO.lock().await;
-let saito = saito.as_mut().unwrap();
-let peer_id = peer.get_id();
+    // forward buffer directly to routing thread
+    saito
+        .routing_thread
+        .process_peer_buffer(peer_id, buffer)
+        .await;
 
-// forward buffer directly to routing thread
-saito
-    .routing_thread
-    .process_peer_buffer(peer_id, buffer)
-    .await;
-
-// no immediate response (handshake will be async now)
-return js_sys::Uint8Array::new_with_length(0);
-
+    // no immediate response (handshake will be async now)
+    return js_sys::Uint8Array::new_with_length(0);
 }
 
 #[wasm_bindgen]

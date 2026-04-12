@@ -7,15 +7,15 @@ use crate::core::defs::{BlockHash, BlockId, ForkId, SaitoPublicKey};
 use crate::core::msg::api_message::ApiMessage;
 use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
-use crate::core::msg::handshake::{HandshakeChallenge, HandshakeResponse};
+use crate::core::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::util::serialize::Serialize;
 use log::{error, warn};
 
 #[derive(Debug)]
 pub enum Message {
-    HandshakeChallenge(HandshakeChallenge),
-    HandshakeResponse(HandshakeResponse),
+    RequestHandshake(RequestHandshake),
+    Handshake(Handshake),
     Block(Block),
     Transaction(Transaction),
     RequestBlockchain(BlockchainRequest),
@@ -41,8 +41,8 @@ impl Message {
         let mut buffer: Vec<u8> = vec![];
         buffer.extend(&message_type.to_be_bytes());
         buffer.append(&mut match self {
-            Message::HandshakeChallenge(data) => data.serialize(),
-            Message::HandshakeResponse(data) => data.serialize(),
+            Message::RequestHandshake(data) => data.serialize(),
+            Message::Handshake(data) => data.serialize(),
             Message::ApplicationMessage(data) => data.serialize(),
             // Message::ApplicationTransaction(data) => data.clone(),
             Message::Block(data) => data.serialize_for_net(BlockType::Full),
@@ -92,12 +92,12 @@ impl Message {
 
         match message_type {
             1 => {
-                let result = HandshakeChallenge::deserialize(&buffer)?;
-                Ok(Message::HandshakeChallenge(result))
+                let result = RequestHandshake::deserialize(&buffer)?;
+                Ok(Message::RequestHandshake(result))
             }
             2 => {
-                let result = HandshakeResponse::deserialize(&buffer)?;
-                Ok(Message::HandshakeResponse(result))
+                let result = Handshake::deserialize(&buffer)?;
+                Ok(Message::Handshake(result))
             }
             3 => {
                 let block = Block::deserialize_from_net(&buffer)?;
@@ -258,8 +258,8 @@ impl Message {
     }
     pub fn get_type_value(&self) -> u8 {
         match self {
-            Message::HandshakeChallenge(_) => 1,
-            Message::HandshakeResponse(_) => 2,
+            Message::RequestHandshake(_) => 1,
+            Message::Handshake(_) => 2,
             Message::Block(_) => 3,
             Message::Transaction(_) => 4,
             Message::RequestBlockchain(_) => 5,
