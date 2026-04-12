@@ -1,3 +1,4 @@
+import Saito from "../saito";
 import { WasmNetworkPeer, WasmPeer, WasmPeerService } from "saito-wasm/pkg/node/index";
 import WasmWrapper from "./wasm_wrapper";
 
@@ -9,11 +10,11 @@ export default class NetworkPeer extends WasmWrapper<WasmNetworkPeer> {
 
   constructor(peer: WasmNetworkPeer) {
     super(peer);
-    this._peerId = BigInt(peer.get_id() as bigint | number);
+    this._peerId = peer.get_id();
   }
 
   static async create(url?: string): Promise<NetworkPeer> {
-    const wasm = await WasmWrapper.getLibInstance();
+    const wasm = await Saito.getLibInstance();
     const peer = await wasm.create_network_peer(url ?? null);
     return new NetworkPeer(peer);
   }

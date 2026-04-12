@@ -4,7 +4,7 @@ import PeerServiceList from "./lib/peer_service_list";
 
 export default interface SharedMethods {
 
-  sendMessageByPeerId(peer_id: number, buffer: Uint8Array): void;
+  sendMessageByPeerId(peer_id: bigint, buffer: Uint8Array): void;
 
   sendMessage(public_key: string, buffer: Uint8Array): void;
 
