@@ -940,14 +940,14 @@ pub async fn get_block(block_hash: JsString) -> Result<WasmBlock, JsValue> {
 }
 
 #[wasm_bindgen]
-pub async fn process_new_peer(peer: WasmNetworkPeer) {
+pub async fn process_new_peer(peer_id: u64) {
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()
         .unwrap()
         .routing_thread
         .process_network_event(NetworkEvent::PeerConnectionResult {
-            peer_id: peer.get_id(),
+            peer_id: peer_id,
         })
         .await;
 }
