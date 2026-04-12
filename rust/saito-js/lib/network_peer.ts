@@ -5,9 +5,11 @@ export default class NetworkPeer extends WasmWrapper<WasmNetworkPeer> {
   public socket: any;
   private _publicKey: string = "";
   private _url: string = "";
+  private readonly _peerId: bigint;
 
   constructor(peer: WasmNetworkPeer) {
     super(peer);
+    this._peerId = BigInt(peer.get_id() as bigint | number);
   }
 
   static async create(url?: string): Promise<NetworkPeer> {
@@ -16,20 +18,25 @@ export default class NetworkPeer extends WasmWrapper<WasmNetworkPeer> {
     return new NetworkPeer(peer);
   }
 
-public get publicKey(): string {
-  return this._publicKey;
-}
+  public get peerId(): bigint {
+    return this._peerId;
+  }
 
-public get url(): string {
-  return this._url;
-}
+  public get publicKey(): string {
+    return this._publicKey;
+  }
 
-public async syncFromRust(): Promise<void> {
-  this._publicKey = await this.instance.get_public_key();
-  this._url = await this.instance.get_url();
-}
+  public get url(): string {
+    return this._url;
+  }
+
+  public async syncFromRust(): Promise<void> {
+    this._publicKey = await this.instance.get_public_key();
+    this._url = await this.instance.get_url();
+  }
 
   public get_handshake_challenge_buffer() {
     return this.instance.get_handshake_challenge_buffer();
   }
 }
+

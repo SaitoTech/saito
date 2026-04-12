@@ -93,6 +93,10 @@ export default class CustomSharedMethods implements SharedMethods {
     throw new Error("Method not implemented.");
   }
 
+  sendMessageByPeerId(peerId: number | bigint, buffer: Uint8Array): void {
+    throw new Error("Method not implemented.");
+  }
+
   sendMessageToAll(buffer: Uint8Array, exceptions: Array<string>): void {
     throw new Error("Method not implemented.");
   }

@@ -24,6 +24,13 @@ pub enum InterfaceEvent {
 /// An interface is provided to access the IO functionalities in a platform (Rust/WASM) agnostic way
 #[async_trait]
 pub trait InterfaceIO: Debug {
+
+async fn send_message_by_peer_id(
+    &self,
+    peer_id: u64,
+    buffer: &[u8],
+) -> Result<(), Error>;
+
     async fn send_message(&self, public_key: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error>;
 
     /// Sends the given message buffer to all the peers except the ones specified

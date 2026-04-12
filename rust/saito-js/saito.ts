@@ -22,6 +22,7 @@ export default class Saito {
   private static instance: Saito;
   private static libInstance: any;
   peers: Map<string, NetworkPeer> = new Map<string, NetworkPeer>();
+  peersByPeerId: Map<number, NetworkPeer> = new Map();
   private stunPeers: Map<bigint, { peerConnection: RTCPeerConnection; publicKey: string }> =
     new Map();
   stunManager: StunPeer;
@@ -31,6 +32,7 @@ export default class Saito {
   private wallet: Wallet | null = null;
   private blockchain: Blockchain | null = null;
   private static wasmMemory: WebAssembly.Memory | null = null;
+
 
   public static async initialize(
     configs: any,
@@ -46,6 +48,10 @@ export default class Saito {
 
     // @ts-ignore
     globalThis.shared_methods = {
+
+      send_message_by_peer_id: (peer_id: number, buffer: Uint8Array) => {
+        return sharedMethods.sendMessageByPeerId(peer_id, buffer);
+      },
       send_message: (public_key: string, buffer: Uint8Array) => {
         sharedMethods.sendMessage(public_key, buffer);
       },
@@ -418,6 +424,10 @@ export default class Saito {
 
   public async addStunPeer(publicKey: string, peerConnection: RTCPeerConnection) {
     await this.stunManager.addStunPeer(publicKey, peerConnection);
+  }
+
+  public getSocketByPeerId(peer_id: number): any | null {
+    return this.peersByPeerId.get(peer_id)?.socket || null;
   }
 
   public getSocket(publicKey: string): any | null {

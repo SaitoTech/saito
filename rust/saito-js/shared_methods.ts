@@ -3,6 +3,9 @@ import Blockchain from "./lib/blockchain";
 import PeerServiceList from "./lib/peer_service_list";
 
 export default interface SharedMethods {
+
+  sendMessageByPeerId(peer_id: number, buffer: Uint8Array): void;
+
   sendMessage(public_key: string, buffer: Uint8Array): void;
 
   sendMessageToAll(buffer: Uint8Array, exceptions: Array<string>): void;

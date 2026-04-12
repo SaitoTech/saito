@@ -1025,69 +1025,22 @@ pub async fn process_msg_buffer_from_peer(
     peer: &mut WasmNetworkPeer,
 ) -> js_sys::Uint8Array {
     let buffer = buffer.to_vec();
-    trace!("process_msg_buffer_from_peer : {}", buffer.len());
+    trace!("saitowasm.rs - process_msg_buffer_from_peer : {}", buffer.len());
 
 
-let mut saito1 = SAITO.lock().await;
-let saito = saito1.as_mut().unwrap();
-
-let wallet = saito.context.wallet_lock.clone();
-let configs = saito.context.config_lock.clone();
-let timer = saito.routing_thread.timer.clone();
-
+let mut saito = SAITO.lock().await;
+let saito = saito.as_mut().unwrap();
 let peer_id = peer.get_id();
 
-trace!("buffer size : {}", buffer.len());
+// forward buffer directly to routing thread
+saito
+    .routing_thread
+    .process_peer_buffer(peer_id, buffer)
+    .await;
 
-let buffer = {
-    let mut peers = saito.routing_thread.network.peer_lock.write().await;
+// no immediate response (handshake will be async now)
+return js_sys::Uint8Array::new_with_length(0);
 
-    let Some(network_peer) = peers.get_peer_by_id_mut(peer_id) else {
-        return js_sys::Uint8Array::new_with_length(0);
-    };
-
-    let services = if network_peer.is_verified {
-        vec![]
-    } else {
-        saito.routing_thread.network.io_interface.get_my_services()
-    };
-
-    network_peer
-        .process_incoming_buffer(
-            buffer,
-            wallet,
-            configs,
-            &timer,
-            &services,
-            |event| async move {
-                let mut saito = SAITO.lock().await;
-                saito
-                    .as_mut()
-                    .unwrap()
-                    .routing_thread
-                    .process_network_event(event)
-                    .await;
-            },
-        )
-        .await
-};
-
-
-    if buffer.is_err() {
-        error!(
-            "process_msg_buffer_from_peer failed. {}",
-            buffer.err().unwrap()
-        );
-        let array = js_sys::Uint8Array::new_with_length(0);
-        array
-    } else {
-        let buffer = buffer.unwrap();
-
-        trace!("return buffer size : {}", buffer.len());
-        let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
-        array.copy_from(buffer.as_slice());
-        array
-    }
 }
 
 #[wasm_bindgen]

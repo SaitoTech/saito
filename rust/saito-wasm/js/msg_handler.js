@@ -1,7 +1,12 @@
 class MsgHandler {
-  static send_message(public_key, buffer) {
-    return global.shared_methods.send_message(public_key, buffer);
-  }
+
+static send_message_by_peer_id(peer_id, buffer) {
+  return global.shared_methods.send_message_by_peer_id(peer_id, buffer);
+}
+
+    static send_message(public_key, buffer) {
+        return global.shared_methods.send_message(public_key, buffer);
+    }
 
   static send_message_to_all(buffer, exceptions) {
     return global.shared_methods.send_message_to_all(buffer, exceptions);
