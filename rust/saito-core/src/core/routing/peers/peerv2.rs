@@ -36,6 +36,7 @@ pub struct PeerV2 {
     pub is_connected: bool,
     pub is_connecting: bool,
     pub is_handshaking: bool,
+    pub is_syncing: bool,
     pub is_synced: bool,
     pub is_services_fetching: bool ,
     pub is_services_fetched: bool ,
@@ -113,6 +114,7 @@ impl PeerV2 {
             is_connected: false,
             is_connecting: true,
             is_handshaking: false,
+            is_syncing: false,
             is_synced: false,
     	    is_services_fetching: false ,
             is_services_fetched: false ,
@@ -181,6 +183,9 @@ impl PeerV2 {
         self.is_handshaking = false;
         self.is_verified = false;
 
+	self.is_syncing = false;
+	self.is_synced = false;
+
 	// --- services ---
 	self.services.clear();
 	self.is_services_fetching = false;
@@ -198,6 +203,7 @@ impl PeerV2 {
         self.requested_blocks_from_us = false;
 
         // --- sync state ---
+        self.is_syncing = false;
         self.is_synced = false;
 
         // --- logging (safe) ---
