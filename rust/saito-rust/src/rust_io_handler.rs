@@ -20,7 +20,7 @@ use saito_core::core::defs::{
 };
 use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use saito_core::core::routing::io::network_event::NetworkEvent;
-use saito_core::core::routing::peers::peer_service::PeerService;
+use saito_core::core::routing::peers::service::Service;
 
 use saito_core::core::routing::peers::io_event::IoEvent;
 
@@ -356,7 +356,7 @@ impl InterfaceIO for RustIOHandler {
         Ok(())
     }
 
-    fn get_my_services(&self) -> Vec<PeerService> {
+    fn get_my_services(&self) -> Vec<Service> {
         vec![]
     }
 }

@@ -36,7 +36,7 @@ use saito_core::core::process::keep_time::Timer;
 use saito_core::core::routing::io::network::PeerDisconnectType;
 use saito_core::core::routing::io::network_event::NetworkEvent;
 use saito_core::core::routing::peers::io_event::IoEvent;
-use saito_core::core::routing::peers::peer_service::PeerService;
+use saito_core::core::routing::peers::service::Service;
 use saito_core::core::routing::peers::peers::Peers;
 use saito_core::core::routing::peers::peerv2::PeerV2;
 use saito_core::core::util::configuration::Configuration;
@@ -59,7 +59,6 @@ pub struct NetworkController {
     sockets_by_peer_id: HashMap<u64, PeerSender>,
     // Temporary bridge for current InterfaceIO(public_key, ...). Valid after handshake.
     peer_id_by_public_key: HashMap<SaitoPublicKey, u64>,
-    services: Vec<PeerService>,
     pub sender_to_core: Sender<IoEvent>,
 }
 
@@ -69,7 +68,6 @@ impl NetworkController {
             currently_queried_urls: Arc::new(Default::default()),
             sockets_by_peer_id: Default::default(),
             peer_id_by_public_key: Default::default(),
-            services: vec![],
             sender_to_core,
         }
     }
