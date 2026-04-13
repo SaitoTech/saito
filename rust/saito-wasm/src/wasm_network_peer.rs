@@ -1,4 +1,5 @@
 use js_sys::JsString;
+use log::info;
 use saito_core::core::defs::PrintForLog;
 use saito_core::core::msg::message::Message;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -71,6 +72,10 @@ impl WasmNetworkPeer {
             &saito_core::core::util::crypto::generate_random_bytes(32).await,
         ));
 
+        info!(
+            "[SAITO STEP 6] wasm get_handshake_challenge_buffer building RequestHandshake peer_id={}",
+            self.peer_id
+        );
         let buffer =
             Message::RequestHandshake(saito_core::core::msg::handshake::RequestHandshake {
                 nonce: peer.handshake_nonce.unwrap(),

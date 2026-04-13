@@ -45,6 +45,9 @@ export async function initialize(
     })
     .then((s) => {
       Saito.setLibInstance(s);
+      console.info(
+        "[SAITO STEP 1] BUNDLE_INIT browser saito-js index.web.ts (wasm module loaded; marker=SAITO-HS-PIPE-2026)"
+      );
 
       Transaction.Type = s.WasmTransaction;
       Slip.Type = s.WasmSlip;

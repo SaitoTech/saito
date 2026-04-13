@@ -7,8 +7,10 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
   async connectToPeer(url: string): Promise<void> {
     try {
+      console.info("[SAITO STEP 2] connectToPeer called url=", url);
       console.debug("connecting to " + url + "....");
       let socket = new WebSocket(url);
+      console.info("[SAITO STEP 3] WebSocket constructed url=", url, "readyState=", socket.readyState);
       socket.binaryType = "arraybuffer";
 
       // handle handshake here
@@ -20,6 +22,12 @@ export default class WebSharedMethods extends CustomSharedMethods {
       socket.onmessage = (event: MessageEvent) => {
         try {
           let buffer = Buffer.from(event.data);
+          console.info(
+            "[SAITO STEP 10] browser socket.onmessage byteLength=",
+            buffer.byteLength,
+            "url=",
+            url
+          );
 
           Saito.getLibInstance()
             .process_msg_buffer_from_peer(buffer, peer.instance)
@@ -44,7 +52,15 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
       socket.onopen = async () => {
         try {
+          console.info("[SAITO STEP 4] socket.onopen url=", url, "readyState=", socket.readyState);
+          console.info(
+            "[SAITO STEP 5a] before process_new_peer peerId=",
+            peer.peerId,
+            "typeof peerId=",
+            typeof peer.peerId
+          );
 	  Saito.getLibInstance().process_new_peer(peer.peerId);
+          console.info("[SAITO STEP 5b] after process_new_peer peerId=", peer.peerId);
 	  await peer.syncFromRust();
           console.debug("connected to : " + url);
         } catch (error) {
