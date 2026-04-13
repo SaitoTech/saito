@@ -211,13 +211,12 @@ impl RoutingThread {
                 // ...
             }
             Message::Services(data) => {
-                if let Some(public_key) = public_key {
-                    self.network
-                        .process_services_message(public_key, data.services)
-                        .await;
-                } else {
-                    warn!("received Services before peer public key established");
-                }
+	        let mut peers = self.network.peer_lock.write().await;
+    		if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+    		    peer.services = data.services;
+    		} else {
+    		    warn!("received Services for unknown peer_id {:?}", peer_id);
+    		}
             }
             Message::RequestServices(_) => {
                 let services = self.network.io_interface.get_my_services();

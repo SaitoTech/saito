@@ -9,6 +9,7 @@ use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::msg::message::Message;
+use crate::core::msg::services::{RequestServices};
 use crate::core::process::keep_time::Timer;
 use crate::core::process::version::Version;
 use crate::core::routing::io::interface_io::InterfaceEvent;
@@ -205,15 +206,6 @@ impl Network {
         peers.remove_disconnected_peers(current_time);
     }
 
-    pub async fn process_services_message(
-        &self,
-        public_key: SaitoPublicKey,
-        services: Vec<Service>,
-    ) {
-        let mut peers = self.peer_lock.write().await;
-        peers.process_peer_services(services, public_key).await;
-    }
-
     pub async fn handle_key_list_update(
         &self,
         public_key: SaitoPublicKey,
@@ -387,7 +379,16 @@ impl Network {
         }
     }
 
+
     pub async fn monitor_peers(&mut self, current_time: Timestamp) -> bool {
+
+	//
+	// in order to avoid .await while holding the peer lock, we collect
+	// references for the peer_ids that we want to send, and send at the
+	// end once we have iterated through all of the peers.
+	//
+	let mut request_services_for: Vec<u64> = vec![];
+
         let mut work_done = false;
 
         //
@@ -397,6 +398,16 @@ impl Network {
             let mut peers = self.peer_lock.write().await;
 
             for peer in peers.peers_v2.values_mut() {
+
+                //
+                // NO PEER SERVICES
+                //
+                if !peer.is_services_fetching && !peer.is_services_fetched {
+                    peer.is_services_fetching = true;
+		    request_services_for.push(peer.id);
+                    work_done = true;
+                }
+
                 //
                 // STUCK HANDSHAKE DETECTION
                 //
@@ -471,6 +482,19 @@ impl Network {
         // PASS 3: cleanup stale/disconnected peers
         //
         self.cleanup_peers(current_time).await;
+
+
+	//
+	// send 
+	//
+    	for peer_id in request_services_for {
+        	self.send_message_by_peer_id(
+        	    peer_id,
+        	    Message::RequestServices(RequestServices {}),
+        	)
+        	.await;
+    	}
+
 
         work_done
     }
