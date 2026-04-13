@@ -10,7 +10,7 @@ use wasm_bindgen::JsValue;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{BlockId, PrintForLog, SaitoHash, SaitoPublicKey};
 use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-use saito_core::core::routing::peers::peer_service::PeerService;
+use saito_core::core::routing::peers::service::Service;
 
 use crate::wasm_peer_service::{WasmPeerService, WasmPeerServiceList};
 
@@ -309,7 +309,7 @@ impl InterfaceIO for WasmIoHandler {
     //     Ok(())
     // }
 
-    fn get_my_services(&self) -> Vec<PeerService> {
+    fn get_my_services(&self) -> Vec<Service> {
         let mut result: WasmPeerServiceList = MsgHandler::get_my_services();
         result
             .services

@@ -1,5 +1,5 @@
 use js_sys::JsString;
-use saito_core::core::routing::peers::peer_service::PeerService;
+use saito_core::core::routing::peers::service::Service;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -11,7 +11,7 @@ pub struct WasmPeerServiceList {
 #[wasm_bindgen]
 #[derive(Clone, Serialize, Deserialize)]
 pub struct WasmPeerService {
-    pub(crate) service: PeerService,
+    pub(crate) service: Service,
 }
 
 #[wasm_bindgen]
@@ -19,7 +19,7 @@ impl WasmPeerService {
     #[wasm_bindgen(constructor)]
     pub fn new() -> WasmPeerService {
         WasmPeerService {
-            service: PeerService {
+            service: Service {
                 service: "".to_string(),
                 domain: "".to_string(),
                 name: "".to_string(),
