@@ -37,6 +37,8 @@ pub struct PeerV2 {
     pub is_connecting: bool,
     pub is_handshaking: bool,
     pub is_synced: bool,
+    pub is_services_fetching: bool ,
+    pub is_services_fetched: bool ,
 
     //
     // --- connection metadata ---
@@ -112,6 +114,8 @@ impl PeerV2 {
             is_connecting: true,
             is_handshaking: false,
             is_synced: false,
+    	    is_services_fetching: false ,
+            is_services_fetched: false ,
             ip: None,
             url: None,
             key_list: Vec::new(),
