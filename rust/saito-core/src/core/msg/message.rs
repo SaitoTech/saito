@@ -9,6 +9,7 @@ use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::msg::services::{RequestServices, Services};
+use crate::core::msg::chainsync::{RequestChainSync, ChainSync};
 use crate::core::routing::peers::service::Service;
 use crate::core::util::serialize::Serialize;
 use log::{error, warn};
@@ -35,6 +36,8 @@ pub enum Message {
     RequestGenesisBlockReference(),
     GenesisBlockReference(BlockHash, BlockId),
     Disconnect(String),
+    RequestChainSync(RequestChainSync),
+    ChainSync(ChainSync),
 }
 
 impl Message {
@@ -75,11 +78,13 @@ impl Message {
             Message::GenesisBlockReference(block_hash, block_id) => {
                 [block_hash.as_slice(), block_id.to_be_bytes().as_slice()].concat()
             }
-            Message::Disconnect(message) => message.as_bytes().to_vec(),
-            _ => {
-                error!("unhandled type : {:?}", message_type);
-                vec![]
-            }
+Message::Disconnect(message) => message.as_bytes().to_vec(),
+Message::RequestChainSync(data) => data.serialize(),
+Message::ChainSync(data) => data.serialize(),
+_ => {
+    error!("unhandled type : {:?}", message_type);
+    vec![]
+}
         });
 
         buffer
@@ -244,14 +249,20 @@ impl Message {
                 );
                 Ok(Message::GenesisBlockReference(block_hash, block_id))
             }
-            19 => {
-                let str = String::from_utf8(buffer.to_vec()).or(Err(ErrorKind::InvalidData))?;
-                Ok(Message::Disconnect(str))
-            }
-            _ => {
-                error!("message type : {:?} not valid", message_type);
-                Err(Error::from(ErrorKind::InvalidData))
-            }
+19 => {
+    let str = String::from_utf8(buffer.to_vec()).or(Err(ErrorKind::InvalidData))?;
+    Ok(Message::Disconnect(str))
+}
+21 => Ok(Message::RequestChainSync(
+    RequestChainSync::deserialize(&buffer)?
+)),
+22 => Ok(Message::ChainSync(
+    ChainSync::deserialize(&buffer)?
+)),
+_ => {
+    error!("message type : {:?} not valid", message_type);
+    Err(Error::from(ErrorKind::InvalidData))
+}
         }
     }
     pub fn get_type_value(&self) -> u8 {
@@ -276,6 +287,8 @@ impl Message {
             Message::RequestServices(_) => 20,
             Message::Services(_) => 9,
             Message::RequestBlockchain(_) => 5,
+            Message::RequestChainSync(_) => 21,
+            Message::ChainSync(_) => 22,
         }
     }
 }

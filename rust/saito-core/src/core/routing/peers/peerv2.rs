@@ -172,12 +172,19 @@ impl PeerV2 {
         self.last_message_at = current_time;
     }
 
+
     pub fn on_disconnect(&mut self, current_time: Timestamp) {
+
         // --- lifecycle ---
         self.is_connected = false;
         self.is_connecting = false;
         self.is_handshaking = false;
         self.is_verified = false;
+
+	// --- services ---
+	self.services.clear();
+	self.is_services_fetching = false;
+	self.is_services_fetched = false;
 
         // --- timing ---
         self.last_activity_at = current_time;

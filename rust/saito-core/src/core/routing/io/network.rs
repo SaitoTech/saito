@@ -88,23 +88,6 @@ impl Network {
             .await;
     }
 
-    pub async fn process_stuck_handshakes(&mut self, current_time: Timestamp) -> bool {
-        let mut peers = self.peer_lock.write().await;
-        let mut work_done = false;
-
-        for peer in peers.peers_v2.values_mut() {
-            if peer.is_connected && !peer.is_verified {
-                if peer.last_activity_at + HANDSHAKE_TIMEOUT < current_time {
-                    warn!("Peer stuck in handshake, resetting");
-                    peer.on_disconnect(current_time);
-                    work_done = true;
-                }
-            }
-        }
-
-        work_done
-    }
-
     pub async fn propagate_transaction(&self, transaction: &Transaction) {
         // --- STEP 1: read wallet (no write lock yet) ---
         let (wallet_public_key, wallet_private_key) = {

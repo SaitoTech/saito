@@ -14,6 +14,7 @@ use crate::core::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::msg::message::Message;
 use crate::core::msg::services::{RequestServices, Services};
+use crate::core::msg::chainsync::{RequestChainSync, ChainSync};
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::routing::io::interface_io::InterfaceEvent;
@@ -214,7 +215,9 @@ impl RoutingThread {
 	        let mut peers = self.network.peer_lock.write().await;
     		if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
     		    peer.services = data.services;
-    		} else {
+		    peer.is_services_fetching = false;
+		    peer.is_services_fetched = true;
+   		} else {
     		    warn!("received Services for unknown peer_id {:?}", peer_id);
     		}
             }
@@ -319,6 +322,13 @@ impl RoutingThread {
                     warn!("dropping transaction from unidentified peer_id {}", peer_id);
                 }
             }
+Message::RequestChainSync(data) => {
+    info!("REQUEST CHAIN SYNC: in process_peer_message");
+}
+
+Message::ChainSync(data) => {
+    info!("CHAIN SYNC: in process_peer_message");
+}
         }
     }
 
