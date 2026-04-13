@@ -442,8 +442,15 @@ class Server {
       // S.getInstance().addNewSocket(socket, peer_index);
 
       socket.on('message', (buffer: any) => {
+        const u8 = new Uint8Array(buffer);
+        console.info(
+          '[SAITO STEP 7] server inbound WS raw frame byteLength=',
+          u8.byteLength,
+          'peerId=',
+          peer.peerId
+        );
         S.getLibInstance()
-          .process_msg_buffer_from_peer(new Uint8Array(buffer), peer.instance)
+          .process_msg_buffer_from_peer(u8, peer.instance)
           .then(async (buffer: any) => {
             if (buffer && buffer.byteLength > 0) {
               socket.send(buffer);
@@ -478,6 +485,12 @@ class Server {
 
       peer.get_handshake_challenge_buffer().then((buffer) => {
         console.log('sending handshake challenge to peer : ', peer.publicKey);
+        console.info(
+          '[SAITO STEP 6] server about to send RequestHandshake challenge frame byteLength=',
+          buffer?.byteLength ?? (buffer as any)?.length,
+          'peerId=',
+          peer.peerId
+        );
         socket.send(buffer);
       });
     });

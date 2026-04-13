@@ -145,10 +145,6 @@ impl PeerV2 {
         }
     }
 
-    pub fn get_public_key(&self) -> SaitoPublicKey {
-        self.public_key.unwrap()
-    }
-
     pub fn on_connect(&mut self, current_time: Timestamp) {
         self.is_connected = true;
         self.is_connecting = false;
@@ -229,6 +225,10 @@ info!("ON HANDSHAKE COMPLETE: received handshake request");
         self.last_block_at = now;
         self.last_activity_at = now;
         self.recent_block_count += 1;
+    }
+
+    pub fn get_public_key(&self) -> SaitoPublicKey {
+        self.public_key.unwrap()
     }
 
     pub fn get_block_fetch_url(

@@ -436,6 +436,10 @@ info!("HANDSHAKE RESPONSE: received handshake response");
             .await;
     }
     async fn process_request_handshake_message(&mut self, peer_id: u64, request: RequestHandshake) {
+        info!(
+            "[SAITO STEP 8] routing enter process_request_handshake_message peer_id={}",
+            peer_id
+        );
         let (public_key, private_key) = {
             let wallet = self.wallet_lock.read().await;
             (wallet.public_key, wallet.private_key)
@@ -462,6 +466,10 @@ info!("HANDSHAKE RESPONSE: received handshake response");
             }
         };
 
+        info!(
+            "[SAITO STEP 9] routing send Message::Handshake (reply to RequestHandshake) peer_id={}",
+            peer_id
+        );
         self.network
             .send_message_by_peer_id(
                 peer_id,
@@ -475,6 +483,10 @@ info!("HANDSHAKE RESPONSE: received handshake response");
     }
 
     async fn process_handshake_message(&mut self, peer_id: u64, handshake: Handshake) {
+        info!(
+            "[SAITO STEP 8] routing enter process_handshake_message peer_id={}",
+            peer_id
+        );
         let had_pending_nonce;
         let counter_nonce = handshake.counter_nonce;
 
@@ -513,6 +525,10 @@ info!("HANDSHAKE RESPONSE: received handshake response");
                 (wallet.public_key, wallet.private_key)
             };
 
+            info!(
+                "[SAITO STEP 9] routing send Message::Handshake (counter-nonce reply) peer_id={}",
+                peer_id
+            );
             self.network
                 .send_message_by_peer_id(
                     peer_id,
@@ -719,7 +735,7 @@ info!("HANDSHAKE RESPONSE: received handshake response");
         let mut trials = 0;
         loop {
             trials += 1;
-            self.last_verification_thread_index += 1;
+	    self.last_verification_thread_index = self.last_verification_thread_index.saturating_add(1);
             let sender_index: usize = self.last_verification_thread_index % sender_count;
             let Some(sender) = self.senders_to_verification.get(sender_index) else {
                 error!(
@@ -861,29 +877,31 @@ info!("HANDSHAKE RESPONSE: received handshake response");
                 InitialLoadingStatus::Completed;
         }
 
-    async fn process_message_sending_timer_event(&mut self, duration_value: Timestamp) -> bool {
-        let mut work_done = false;
+async fn process_message_sending_timer_event(&mut self, duration_value: Timestamp) -> bool {
+    let mut work_done = false;
 
-        const MESSAGES_SENDING_PERIOD: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
+    const MESSAGES_SENDING_PERIOD: Timestamp =
+        Duration::from_secs(1).as_millis() as Timestamp;
 
-        self.message_sending_timer += duration_value;
+    self.message_sending_timer =
+        self.message_sending_timer.saturating_add(duration_value);
 
-        if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
-            self.message_sending_timer = 0;
+    if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
+        self.message_sending_timer %= MESSAGES_SENDING_PERIOD;
 
-            self.sync
-                .send_block_headers(
-                    self.blockchain_lock.clone(),
-                    &self.network,
-                    &mut self.blockchain_send_results,
-                )
-                .await;
+        self.sync
+            .send_block_headers(
+                self.blockchain_lock.clone(),
+                &self.network,
+                &mut self.blockchain_send_results,
+            )
+            .await;
 
-            work_done = true;
-        }
-
-        work_done
+        work_done = true;
     }
+
+    work_done
+}
 
     async fn process_congestion_timer_event(&mut self, duration_value: Timestamp) -> bool {
         let mut work_done = false;
