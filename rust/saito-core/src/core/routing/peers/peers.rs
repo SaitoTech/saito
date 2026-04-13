@@ -92,24 +92,12 @@ impl Peers {
         self.peers_v2.values_mut()
     }
 
+
+
+
     //
     // LEGACY FUNCTIONS BELOW
     //
-    pub async fn process_peer_services(
-        &mut self,
-        services: Vec<Service>,
-        public_key: SaitoPublicKey,
-    ) {
-        if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {
-            peer_v2.services = services;
-        } else {
-            warn!(
-                "peer {:?} not found to update services",
-                public_key.to_base58()
-            );
-        }
-    }
-
     pub async fn handle_new_stun_peer(
         &mut self,
         public_key: SaitoPublicKey,
