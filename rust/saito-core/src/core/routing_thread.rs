@@ -13,6 +13,7 @@ use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::msg::message::Message;
+use crate::core::msg::services::{RequestServices, Services};
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::routing::io::interface_io::InterfaceEvent;
@@ -168,12 +169,12 @@ impl RoutingThread {
 
         match message {
             Message::RequestHandshake(_challenge) => {
-info!("HANDSHAKE REQUEST: received handshake request");
+                info!("HANDSHAKE REQUEST: received handshake request");
                 self.process_request_handshake_message(peer_id, _challenge)
                     .await;
             }
             Message::Handshake(_response) => {
-info!("HANDSHAKE RESPONSE: received handshake response");
+                info!("HANDSHAKE RESPONSE: received handshake response");
                 self.process_handshake_message(peer_id, _response).await;
             }
             Message::Block(_) => {
@@ -209,14 +210,20 @@ info!("HANDSHAKE RESPONSE: received handshake response");
             Message::Pong() => {
                 // ...
             }
-            Message::Services(services) => {
+            Message::Services(data) => {
                 if let Some(public_key) = public_key {
                     self.network
-                        .process_services_message(public_key, services)
+                        .process_services_message(public_key, data.services)
                         .await;
                 } else {
-                    warn!("dropping transaction from unidentified peer_id {}", peer_id);
+                    warn!("received Services before peer public key established");
                 }
+            }
+            Message::RequestServices(_) => {
+                let services = self.network.io_interface.get_my_services();
+                self.network
+                    .send_message_by_peer_id(peer_id, Message::Services(Services { services }))
+                    .await;
             }
             Message::GhostChain(chain) => {
                 if let Some(public_key) = public_key {
@@ -735,7 +742,8 @@ info!("HANDSHAKE RESPONSE: received handshake response");
         let mut trials = 0;
         loop {
             trials += 1;
-	    self.last_verification_thread_index = self.last_verification_thread_index.saturating_add(1);
+            self.last_verification_thread_index =
+                self.last_verification_thread_index.saturating_add(1);
             let sender_index: usize = self.last_verification_thread_index % sender_count;
             let Some(sender) = self.senders_to_verification.get(sender_index) else {
                 error!(
@@ -877,31 +885,29 @@ info!("HANDSHAKE RESPONSE: received handshake response");
                 InitialLoadingStatus::Completed;
         }
 
-async fn process_message_sending_timer_event(&mut self, duration_value: Timestamp) -> bool {
-    let mut work_done = false;
+    async fn process_message_sending_timer_event(&mut self, duration_value: Timestamp) -> bool {
+        let mut work_done = false;
 
-    const MESSAGES_SENDING_PERIOD: Timestamp =
-        Duration::from_secs(1).as_millis() as Timestamp;
+        const MESSAGES_SENDING_PERIOD: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
 
-    self.message_sending_timer =
-        self.message_sending_timer.saturating_add(duration_value);
+        self.message_sending_timer = self.message_sending_timer.saturating_add(duration_value);
 
-    if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
-        self.message_sending_timer %= MESSAGES_SENDING_PERIOD;
+        if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
+            self.message_sending_timer %= MESSAGES_SENDING_PERIOD;
 
-        self.sync
-            .send_block_headers(
-                self.blockchain_lock.clone(),
-                &self.network,
-                &mut self.blockchain_send_results,
-            )
-            .await;
+            self.sync
+                .send_block_headers(
+                    self.blockchain_lock.clone(),
+                    &self.network,
+                    &mut self.blockchain_send_results,
+                )
+                .await;
 
-        work_done = true;
+            work_done = true;
+        }
+
+        work_done
     }
-
-    work_done
-}
 
     async fn process_congestion_timer_event(&mut self, duration_value: Timestamp) -> bool {
         let mut work_done = false;
@@ -1519,7 +1525,7 @@ mod tests {
             Ok(())
         }
 
-        fn get_my_services(&self) -> Vec<crate::core::routing::peers::peer_service::PeerService> {
+        fn get_my_services(&self) -> Vec<crate::core::routing::peers::service::Service> {
             vec![]
         }
     }

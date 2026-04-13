@@ -14,9 +14,9 @@ use crate::core::process::version::Version;
 use crate::core::routing::io::interface_io::InterfaceEvent;
 use crate::core::routing::io::interface_io::InterfaceIO;
 use crate::core::routing::peers::congestion_controller::CongestionType;
-use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::routing::peers::peers::Peers;
 use crate::core::routing::peers::peerv2::PeerV2;
+use crate::core::routing::peers::service::Service;
 use crate::core::util::configuration::Configuration;
 
 const RECONNECTION_PERIOD: Timestamp = 5_000;
@@ -208,7 +208,7 @@ impl Network {
     pub async fn process_services_message(
         &self,
         public_key: SaitoPublicKey,
-        services: Vec<PeerService>,
+        services: Vec<Service>,
     ) {
         let mut peers = self.peer_lock.write().await;
         peers.process_peer_services(services, public_key).await;
@@ -388,7 +388,6 @@ impl Network {
     }
 
     pub async fn monitor_peers(&mut self, current_time: Timestamp) -> bool {
-
         let mut work_done = false;
 
         //
