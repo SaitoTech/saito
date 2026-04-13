@@ -12,7 +12,7 @@ pub mod test {
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey, BLOCK_FILE_EXTENSION};
     use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-    use crate::core::routing::peers::peer_service::PeerService;
+    use crate::core::routing::peers::service::Service;
 
     #[derive(Clone, Debug)]
     pub struct TestIOHandler {}
@@ -199,7 +199,7 @@ pub mod test {
         //     todo!()
         // }
 
-        fn get_my_services(&self) -> Vec<PeerService> {
+        fn get_my_services(&self) -> Vec<Service> {
             todo!()
         }
     }

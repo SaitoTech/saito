@@ -4,17 +4,17 @@ use log::{error, warn};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct PeerService {
+pub struct Service {
     pub service: String,
     pub domain: String,
     pub name: String,
     // TODO: add versioning info here for application services for #622
 }
 
-impl TryFrom<String> for PeerService {
+impl TryFrom<String> for Service {
     type Error = std::io::Error;
 
-    fn try_from(value: String) -> Result<PeerService, std::io::Error> {
+    fn try_from(value: String) -> Result<Service, std::io::Error> {
         let values: Vec<&str> = value.split('|').collect();
         if values.len() != 3 {
             return Err(Error::from(ErrorKind::InvalidData));
@@ -31,7 +31,7 @@ impl TryFrom<String> for PeerService {
         if name.is_err() {
             return Err(Error::from(ErrorKind::InvalidData));
         }
-        Ok(PeerService {
+        Ok(Service {
             service: service.unwrap(),
             domain: domain.unwrap(),
             name: name.unwrap(),
@@ -39,14 +39,14 @@ impl TryFrom<String> for PeerService {
     }
 }
 
-impl Into<String> for PeerService {
+impl Into<String> for Service {
     fn into(self) -> String {
         self.service + "|" + self.domain.as_str() + "|" + self.name.as_str()
     }
 }
 
-impl PeerService {
-    pub fn serialize_services(services: &Vec<PeerService>) -> Vec<u8> {
+impl Service {
+    pub fn serialize(services: &Vec<Service>) -> Vec<u8> {
         if services.is_empty() {
             return vec![];
         }
@@ -60,7 +60,7 @@ impl PeerService {
             .join(";");
         str.as_bytes().to_vec()
     }
-    pub fn deserialize_services(buffer: Vec<u8>) -> Result<Vec<PeerService>, Error> {
+    pub fn deserialize(buffer: Vec<u8>) -> Result<Vec<Service>, Error> {
         if buffer.is_empty() {
             return Ok(vec![]);
         }
@@ -72,7 +72,7 @@ impl PeerService {
         }
         let str = str.unwrap();
         let strings = str.split(";");
-        let mut services: Vec<PeerService> = Default::default();
+        let mut services: Vec<Service> = Default::default();
         for str in strings {
             if str.is_empty() {
                 continue;
@@ -98,37 +98,37 @@ impl PeerService {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::routing::peers::peer_service::PeerService;
+    use crate::core::routing::peers::service::Service;
 
     #[test]
     fn test_serialize() {
         let mut services = vec![];
-        services.push(PeerService {
+        services.push(Service {
             service: "service1".to_string(),
             domain: "domain1".to_string(),
             name: "name1".to_string(),
         });
-        services.push(PeerService {
+        services.push(Service {
             service: "service2".to_string(),
             domain: "".to_string(),
             name: "name2".to_string(),
         });
-        services.push(PeerService {
+        services.push(Service {
             service: "service3".to_string(),
             domain: "domain3".to_string(),
             name: "".to_string(),
         });
-        services.push(PeerService {
+        services.push(Service {
             service: "service4".to_string(),
             domain: "".to_string(),
             name: "".to_string(),
         });
 
-        let buffer = PeerService::serialize_services(&services);
+        let buffer = Service::serialize(&services);
 
         assert!(buffer.len() > 0);
 
-        let result = PeerService::deserialize_services(buffer);
+        let result = Service::deserialize(buffer);
         assert!(result.is_ok());
         let services = result.unwrap();
         assert_eq!(services.len(), 4);

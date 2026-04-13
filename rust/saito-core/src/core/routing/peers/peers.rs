@@ -3,8 +3,8 @@ use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::congestion_controller::{
     CongestionType, PeerCongestionControls, PeerCongestionStatus,
 };
-use crate::core::routing::peers::peer_service::PeerService;
 use crate::core::routing::peers::peerv2::PeerV2;
+use crate::core::routing::peers::service::Service;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
 use std::io::Error;
@@ -97,7 +97,7 @@ impl Peers {
     //
     pub async fn process_peer_services(
         &mut self,
-        services: Vec<PeerService>,
+        services: Vec<Service>,
         public_key: SaitoPublicKey,
     ) {
         if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {

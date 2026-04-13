@@ -8,7 +8,8 @@ use crate::core::msg::api_message::ApiMessage;
 use crate::core::msg::block_request::BlockchainRequest;
 use crate::core::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::msg::handshake::{Handshake, RequestHandshake};
-use crate::core::routing::peers::peer_service::PeerService;
+use crate::core::msg::services::{RequestServices, Services};
+use crate::core::routing::peers::service::Service;
 use crate::core::util::serialize::Serialize;
 use log::{error, warn};
 
@@ -23,7 +24,8 @@ pub enum Message {
     Ping(),
     Pong(),
     SPVChain(),
-    Services(Vec<PeerService>),
+    RequestServices(RequestServices),
+    Services(Services),
     GhostChain(GhostChainSync),
     RequestGhostChain(BlockId, BlockHash, ForkId),
     ApplicationMessage(ApiMessage),
@@ -64,7 +66,8 @@ impl Message {
             Message::Pong() => {
                 vec![]
             }
-            Message::Services(services) => PeerService::serialize_services(services),
+            Message::Services(data) => data.serialize(),
+            Message::RequestServices(data) => data.serialize(),
             Message::Result(data) => data.serialize(),
             Message::Error(data) => data.serialize(),
             Message::KeyList(data) => data.as_slice().concat(),
@@ -134,15 +137,10 @@ impl Message {
             }
             7 => Ok(Message::Ping()),
             8 => Ok(Message::SPVChain()),
-            9 => {
-                let services = PeerService::deserialize_services(buffer);
-                if services.is_err() {
-                    warn!("couldn't parse peer service from buffer");
-                    return Err(Error::from(ErrorKind::InvalidData));
-                }
-                let services = services?;
-                Ok(Message::Services(services))
-            }
+            20 => Ok(Message::RequestServices(RequestServices::deserialize(
+                &buffer,
+            )?)),
+            9 => Ok(Message::Services(Services::deserialize(&buffer)?)),
             10 => Ok(Message::GhostChain(GhostChainSync::deserialize(buffer)?)),
             11 => {
                 if buffer.len() != 72 {
@@ -262,11 +260,9 @@ impl Message {
             Message::Handshake(_) => 2,
             Message::Block(_) => 3,
             Message::Transaction(_) => 4,
-            Message::RequestBlockchain(_) => 5,
             Message::BlockReference(_, _) => 6,
             Message::Ping() => 7,
             Message::SPVChain() => 8,
-            Message::Services(_) => 9,
             Message::GhostChain(_) => 10,
             Message::RequestGhostChain(..) => 11,
             Message::ApplicationMessage(_) => 12,
@@ -277,6 +273,9 @@ impl Message {
             Message::RequestGenesisBlockReference() => 17,
             Message::GenesisBlockReference(_, _) => 18,
             Message::Disconnect(_) => 19,
+            Message::RequestServices(_) => 20,
+            Message::Services(_) => 9,
+            Message::RequestBlockchain(_) => 5,
         }
     }
 }

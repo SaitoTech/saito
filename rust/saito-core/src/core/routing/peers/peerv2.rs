@@ -12,7 +12,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use super::peer_service::PeerService;
+use super::service::Service;
 
 #[derive(Clone, Debug)]
 pub enum PeerType {
@@ -53,7 +53,7 @@ pub struct PeerV2 {
     //
     // --- protocol state ---
     //
-    pub services: Vec<PeerService>,
+    pub services: Vec<Service>,
     pub peer_type: PeerType,
     pub wallet_version: Version,
     pub core_version: Version,
@@ -157,7 +157,7 @@ impl PeerV2 {
     }
 
     pub fn on_handshake_complete(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {
-info!("ON HANDSHAKE COMPLETE: received handshake request");
+        info!("ON HANDSHAKE COMPLETE: received handshake request");
         self.public_key = Some(public_key);
         self.is_verified = true;
         self.is_handshaking = false;
@@ -248,7 +248,7 @@ info!("ON HANDSHAKE COMPLETE: received handshake request");
         }
     }
 
-    pub fn has_service(&self, service: PeerService) -> bool {
+    pub fn has_service(&self, service: Service) -> bool {
         self.services.contains(&service)
     }
 }
