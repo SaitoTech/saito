@@ -10,6 +10,7 @@ use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::msg::message::Message;
 use crate::core::msg::services::{RequestServices};
+use crate::core::msg::chainsync::{RequestChainSync};
 use crate::core::process::keep_time::Timer;
 use crate::core::process::version::Version;
 use crate::core::routing::io::interface_io::InterfaceEvent;
@@ -371,6 +372,7 @@ impl Network {
 	// end once we have iterated through all of the peers.
 	//
 	let mut request_services_for: Vec<u64> = vec![];
+	let mut request_sync_for: Vec<u64> = vec![];
 
         let mut work_done = false;
 
@@ -381,15 +383,6 @@ impl Network {
             let mut peers = self.peer_lock.write().await;
 
             for peer in peers.peers_v2.values_mut() {
-
-                //
-                // NO PEER SERVICES
-                //
-                if !peer.is_services_fetching && !peer.is_services_fetched {
-                    peer.is_services_fetching = true;
-		    request_services_for.push(peer.id);
-                    work_done = true;
-                }
 
                 //
                 // STUCK HANDSHAKE DETECTION
@@ -404,14 +397,33 @@ impl Network {
                 }
 
                 //
-                // SKIP ACTIVE CONNECTIONS
+                // NO PEER SERVICES
+                //
+                if !peer.is_services_fetching && !peer.is_services_fetched && peer.is_connected {
+                    peer.is_services_fetching = true;
+		    request_services_for.push(peer.id);
+                    work_done = true;
+                }
+
+		//
+		// SYNCING
+		//
+		if peer.is_connected && !peer.is_syncing && !peer.is_synced {
+		    peer.is_syncing = true;
+		    request_sync_for.push(peer.id);
+		    work_done = true;
+		}
+
+
+                //
+                // NEXT SKIP ACTIVE CONNECTIONS
                 //
                 if peer.is_connected || peer.is_connecting {
                     continue;
                 }
 
                 //
-                // BACKOFF / RECONNECT THROTTLE
+                // ALL THAT IS LEFT ARE PROBLEMATIC / DISCONNECTS / RECONNECTS NEEDED
                 //
                 if peer.last_activity_at + RECONNECTION_PERIOD > current_time {
                     continue;
@@ -477,6 +489,22 @@ impl Network {
         	)
         	.await;
     	}
+
+	//
+	// sync
+	//
+    	for peer_id in request_sync_for {
+        	self.send_message_by_peer_id(
+        	    peer_id,
+        	    Message::RequestChainSync(RequestChainSync {
+    latest_block_id: 0,
+    latest_block_hash: [0; 32],
+		    }),
+        	)
+        	.await;
+    	}
+
+
 
 
         work_done
