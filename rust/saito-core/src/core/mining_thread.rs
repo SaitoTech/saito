@@ -14,7 +14,7 @@ use crate::core::defs::{
 };
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
-use crate::core::routing::io::network_event::NetworkEvent;
+use crate::core::network::events::NetworkEvent;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::{generate_random_bytes, hash};
 

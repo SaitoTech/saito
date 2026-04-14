@@ -17,9 +17,9 @@ use crate::core::defs::{
 };
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
-use crate::core::routing::io::network_event::NetworkEvent;
+use crate::core::network::events::NetworkEvent;
 use crate::core::routing::peers::congestion_controller::CongestionType;
-use crate::core::routing::peers::peers::Peers;
+use crate::core::network::peers::Peers;
 
 use super::stat_thread::StatEvent;
 

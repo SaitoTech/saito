@@ -1,0 +1,140 @@
+use crate::core::defs::{SaitoPublicKey, Timestamp};
+use crate::core::network::peers::Peers;
+use ahash::HashMap;
+use std::time::Duration;
+
+pub type PeerId = SaitoPublicKey;
+
+const MESSAGE_WINDOW: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
+const INVALID_BLOCK_WINDOW: Timestamp = Duration::from_secs(3600).as_millis() as Timestamp;
+
+
+//
+// AccessPermission defines all of the states in which a peer
+// can be labelled, thus limited access or regulating how the
+// routing_thread.rs handles requests from it.
+//
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AccessPermission {
+    Allowed,
+    Throttled,
+    Denied,
+}
+
+//
+// AccessRecord defines all of the variables that are tracked
+// peer-by-peer. They are provided in the gatekeeper.record()
+// function to track what is incremented when the record() 
+// function is called..
+//
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AccessRecord {
+    MessageReceived,
+    InvalidBlockReceived,
+}
+
+//
+// stores the specific variables that are tracked for each 
+// peer_id. This is where the variables are incremented and
+// saved locally before they are written into the peer 
+// periodically by the monitor_peers loop.
+//
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct PeerAccessRecords {
+    pub messages_received: u32,
+    pub messages_received_started_at: Timestamp,
+    pub invalid_blocks_received: u32,
+    pub invalid_blocks_received_started_at: Timestamp,
+}
+
+//
+// the Gatekeeper consists of two hashmaps that stores the 
+// default Permission (level) of each peer as well as 
+// records that it updates. The records are eventually 
+// synced into the peer itself. So it is a slightly-
+// delayed update.
+//
+#[derive(Debug, Default)]
+pub struct Gatekeeper {
+    pub permissions: HashMap<PeerId, AccessPermission>,
+    pub records: HashMap<PeerId, PeerAccessRecords>,
+}
+
+impl Gatekeeper {
+
+    pub fn reset(&mut self) {
+        self.permissions.clear();
+        self.records.clear();
+    }
+
+    pub fn is_allowed(&self, peer_id: PeerId) -> bool {
+        matches!(
+            self.permissions.get(&peer_id),
+            None | Some(AccessPermission::Allowed)
+        )
+    }
+
+    pub fn is_denied(&self, peer_id: PeerId) -> bool {
+        matches!(
+            self.permissions.get(&peer_id),
+            Some(AccessPermission::Denied)
+        )
+    }
+
+    pub fn is_throttled(&self, peer_id: PeerId) -> bool {
+        matches!(
+            self.permissions.get(&peer_id),
+            Some(AccessPermission::Throttled)
+        )
+    }
+
+
+    pub fn add_record(&mut self, peer_id: PeerId, record: AccessRecord, now: Timestamp) {
+        let peer_record = self.records.entry(peer_id).or_insert(PeerAccessRecords {
+            messages_received: 0,
+            messages_received_started_at: now,
+            invalid_blocks_received: 0,
+            invalid_blocks_received_started_at: now,
+        });
+
+        match record {
+            AccessRecord::MessageReceived => {
+                if now.saturating_sub(peer_record.messages_received_started_at) > MESSAGE_WINDOW {
+                    peer_record.messages_received = 0;
+                    peer_record.messages_received_started_at = now;
+                }
+                peer_record.messages_received += 1;
+            }
+            AccessRecord::InvalidBlockReceived => {
+                if now.saturating_sub(peer_record.invalid_blocks_received_started_at)
+                    > INVALID_BLOCK_WINDOW
+                {
+                    peer_record.invalid_blocks_received = 0;
+                    peer_record.invalid_blocks_received_started_at = now;
+                }
+                peer_record.invalid_blocks_received += 1;
+            }
+        }
+    }
+
+    //
+    // !!! IMPORTANT !!!
+    //
+    // this function runs intermittently -- and loops through the peers and 
+    // checks whether they should be upgraded or downgraded based on the 
+    // information in them.
+    //
+    pub fn monitor_peers(&mut self, peers: &Peers, _now: Timestamp) {
+
+        self.records
+            .retain(|peer_id, _| peers.get_peer_by_public_key(peer_id).is_some());
+        self.permissions
+            .retain(|peer_id, _| peers.get_peer_by_public_key(peer_id).is_some());
+
+        for (peer_id, _record) in &self.records {
+            self.permissions
+                .entry(*peer_id)
+                .or_insert(AccessPermission::Allowed);
+        }
+    }
+}

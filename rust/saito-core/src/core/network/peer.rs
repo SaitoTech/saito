@@ -1,9 +1,10 @@
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
-use crate::core::msg::message::Message;
+use crate::core::network::msg::message::Message;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::version::Version;
-use crate::core::routing::io::network_event::NetworkEvent;
+use crate::core::network::events::NetworkEvent;
+use crate::core::network::service::Service;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
 use log::{debug, error, info, trace, warn};
@@ -12,8 +13,6 @@ use std::ops::Deref;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use super::service::Service;
-
 #[derive(Clone, Debug)]
 pub enum PeerType {
     Default,
@@ -21,7 +20,7 @@ pub enum PeerType {
 }
 
 #[derive(Debug, Clone)]
-pub struct PeerV2 {
+pub struct Peer {
     //
     // --- identity ---
     //
@@ -38,8 +37,8 @@ pub struct PeerV2 {
     pub is_handshaking: bool,
     pub is_syncing: bool,
     pub is_synced: bool,
-    pub is_services_fetching: bool ,
-    pub is_services_fetched: bool ,
+    pub is_services_fetching: bool,
+    pub is_services_fetched: bool,
 
     //
     // --- connection metadata ---
@@ -104,7 +103,7 @@ pub struct PeerV2 {
     pub block_fetch_url: String,
 }
 
-impl PeerV2 {
+impl Peer {
     pub fn new(id: u64) -> Self {
         Self {
             id,
@@ -116,8 +115,8 @@ impl PeerV2 {
             is_handshaking: false,
             is_syncing: false,
             is_synced: false,
-    	    is_services_fetching: false ,
-            is_services_fetched: false ,
+            is_services_fetching: false,
+            is_services_fetched: false,
             ip: None,
             url: None,
             key_list: Vec::new(),
@@ -174,22 +173,20 @@ impl PeerV2 {
         self.last_message_at = current_time;
     }
 
-
     pub fn on_disconnect(&mut self, current_time: Timestamp) {
-
         // --- lifecycle ---
         self.is_connected = false;
         self.is_connecting = false;
         self.is_handshaking = false;
         self.is_verified = false;
 
-	self.is_syncing = false;
-	self.is_synced = false;
+        self.is_syncing = false;
+        self.is_synced = false;
 
-	// --- services ---
-	self.services.clear();
-	self.is_services_fetching = false;
-	self.is_services_fetched = false;
+        // --- services ---
+        self.services.clear();
+        self.is_services_fetching = false;
+        self.is_services_fetched = false;
 
         // --- timing ---
         self.last_activity_at = current_time;

@@ -1,7 +1,7 @@
 use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey};
 use crate::core::process::version::Version;
-use crate::core::routing::io::network::PeerDisconnectType;
-use crate::core::routing::peers::peerv2::PeerV2;
+use crate::core::network::network::PeerDisconnectType;
+use crate::core::network::peer::Peer;
 
 #[derive(Debug)]
 pub enum NetworkEvent {
@@ -51,4 +51,20 @@ pub enum NetworkEvent {
         public_key: SaitoPublicKey,
         version: Version,
     },
+}
+
+// TODO: transitional envelope; replace with typed command/event channels.
+#[derive(Debug)]
+pub struct IoEvent {
+    pub event_processor_id: u8,
+    pub event: NetworkEvent,
+}
+
+impl IoEvent {
+    pub fn new(event: NetworkEvent) -> IoEvent {
+        IoEvent {
+            event_processor_id: 0,
+            event,
+        }
+    }
 }

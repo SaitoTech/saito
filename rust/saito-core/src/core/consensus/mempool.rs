@@ -19,7 +19,7 @@ use crate::core::defs::SaitoUTXOSetKey;
 use crate::core::defs::{
     Currency, PrintForLog, SaitoHash, SaitoPublicKey, SaitoSignature, StatVariable, Timestamp,
 };
-use crate::core::routing::io::storage::Storage;
+use crate::core::storage::storage::Storage;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::hash;
 use crate::iterate;

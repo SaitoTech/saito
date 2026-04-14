@@ -21,9 +21,9 @@ use crate::core::defs::{
 use crate::core::mining_thread::MiningEvent;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
-use crate::core::routing::io::network::Network;
-use crate::core::routing::io::network_event::NetworkEvent;
-use crate::core::routing::io::storage::Storage;
+use crate::core::network::network::Network;
+use crate::core::network::events::NetworkEvent;
+use crate::core::storage::storage::Storage;
 use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};

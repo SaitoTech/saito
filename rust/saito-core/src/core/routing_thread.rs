@@ -9,23 +9,24 @@ use crate::core::defs::{
     CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
 use crate::core::mining_thread::MiningEvent;
-use crate::core::msg::block_request::BlockchainRequest;
-use crate::core::msg::ghost_chain_sync::GhostChainSync;
-use crate::core::msg::handshake::{Handshake, RequestHandshake};
-use crate::core::msg::message::Message;
-use crate::core::msg::services::{RequestServices, Services};
-use crate::core::msg::chainsync::{RequestChainSync, ChainSync};
+use crate::core::network::msg::block_request::BlockchainRequest;
+use crate::core::network::msg::ghost_chain_sync::GhostChainSync;
+use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
+use crate::core::network::msg::message::Message;
+use crate::core::network::msg::services::{RequestServices, Services};
+use crate::core::network::msg::chainsync::{RequestChainSync, ChainSync};
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
-use crate::core::routing::io::interface_io::InterfaceEvent;
-use crate::core::routing::io::network::Network;
-use crate::core::routing::io::network_event::NetworkEvent;
-use crate::core::routing::io::storage::Storage;
+use crate::core::network::interface_io::InterfaceEvent;
+use crate::core::network::network::Network;
+use crate::core::network::events::NetworkEvent;
+use crate::core::storage::storage::Storage;
 use crate::core::routing::peers::congestion_controller::{
     CongestionStatsDisplay, PeerCongestionControls,
 };
-use crate::core::routing::peers::peerv2::PeerV2;
-use crate::core::routing::sync::SyncManager;
+use crate::core::network::gatekeeper::Gatekeeper;
+use crate::core::network::peer::Peer;
+use crate::core::network::sync::manager::SyncManager;
 use crate::core::util;
 use crate::core::util::config_manager::ConfigManager;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
@@ -43,6 +44,7 @@ use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
 const RECONNECTION_PERIOD: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
+const GATEKEEPER_MONITOR_PERIOD: Timestamp = Duration::from_secs(30).as_millis() as Timestamp;
 
 #[derive(Debug)]
 pub enum RoutingEvent {
@@ -121,6 +123,7 @@ pub struct RoutingThread {
     pub reconnection_timer: Timestamp,
     pub peer_removal_timer: Timestamp,
     pub congestion_check_timer: Timestamp,
+    pub gatekeeper_monitor_timer: Timestamp,
     pub message_sending_timer: Timestamp,
     pub last_emitted_block_fetch_count: BlockId,
     pub stats: RoutingStats,
@@ -128,6 +131,7 @@ pub struct RoutingThread {
     pub last_verification_thread_index: usize,
     pub stat_sender: Sender<StatEvent>,
     pub sync: SyncManager,
+    pub gatekeeper: Gatekeeper,
     /// if we receive a ghost chain with a gap between our latest block id and starting block id of the received ghost chain,
     /// we emit an event and store the received chain until the user handles the event. TODO : handle this functionality after JS functions are implemented.
     pub received_ghost_chain: Option<(GhostChainSync, SaitoPublicKey)>,
@@ -1065,6 +1069,17 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
         let current_time = self.timer.get_timestamp_in_ms();
 
+        self.gatekeeper_monitor_timer = self
+            .gatekeeper_monitor_timer
+            .saturating_add(duration_value);
+
+        if self.gatekeeper_monitor_timer >= GATEKEEPER_MONITOR_PERIOD {
+            let peers = self.network.peer_lock.read().await;
+            self.gatekeeper.monitor_peers(&peers, current_time);
+            self.gatekeeper_monitor_timer %= GATEKEEPER_MONITOR_PERIOD;
+            work_done = true;
+        }
+
         work_done |= self.network.monitor_peers(current_time).await;
 
         work_done |= self
@@ -1225,8 +1240,13 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
     }
 
     async fn on_init(&mut self) {
+
         assert!(!self.senders_to_verification.is_empty());
         self.reconnection_timer = RECONNECTION_PERIOD;
+
+
+        self.gatekeeper.reset();
+
 
         let congestion_data =
             ConfigManager::read_congestion_data(self.network.io_interface.deref())
@@ -1365,9 +1385,9 @@ mod tests {
     use crate::core::defs::Timestamp;
     use crate::core::defs::NOLAN_PER_SAITO;
     use crate::core::process::process_event::ProcessEvent;
-    use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-    use crate::core::routing::io::network::PeerDisconnectType;
-    use crate::core::routing::io::network_event::NetworkEvent;
+    use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
+    use crate::core::network::network::PeerDisconnectType;
+    use crate::core::network::events::NetworkEvent;
     use crate::core::routing::peers::congestion_controller::{
         CongestionStatsDisplay, PeerCongestionControls,
     };
@@ -1534,7 +1554,7 @@ mod tests {
             Ok(())
         }
 
-        fn get_my_services(&self) -> Vec<crate::core::routing::peers::service::Service> {
+        fn get_my_services(&self) -> Vec<crate::core::network::service::Service> {
             vec![]
         }
     }

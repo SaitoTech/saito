@@ -54,8 +54,8 @@ pub mod test {
     };
     use crate::core::mining_thread::MiningEvent;
     use crate::core::process::keep_time::{KeepTime, Timer};
-    use crate::core::routing::io::network::Network;
-    use crate::core::routing::io::storage::Storage;
+    use crate::core::network::network::Network;
+    use crate::core::storage::storage::Storage;
     use crate::core::routing::peers::peer_collection::PeerCollection;
     use crate::core::util::configuration::{
         get_default_recollect_mode, BlockchainConfig, Configuration, ConsensusConfig, PeerConfig,

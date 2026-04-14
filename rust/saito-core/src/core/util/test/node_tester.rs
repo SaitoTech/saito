@@ -5,7 +5,8 @@ pub mod test {
     use crate::core::consensus::context::Context;
     use crate::core::consensus::mempool::Mempool;
     use crate::core::routing::peers::peer_collection::PeerCollection;
-    use crate::core::routing::sync::SyncManager;
+    use crate::core::network::sync::manager::SyncManager;
+    use crate::core::network::gatekeeper::Gatekeeper;
 
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::transaction::Transaction;
@@ -20,9 +21,9 @@ pub mod test {
     use crate::core::process::keep_time::KeepTime;
     use crate::core::process::keep_time::Timer;
     use crate::core::process::process_event::ProcessEvent;
-    use crate::core::routing::io::network::Network;
-    use crate::core::routing::io::network_event::NetworkEvent;
-    use crate::core::routing::io::storage::Storage;
+    use crate::core::network::network::Network;
+    use crate::core::network::events::NetworkEvent;
+    use crate::core::storage::storage::Storage;
     use crate::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
     use crate::core::stat_thread::{StatEvent, StatThread};
     use crate::core::util::config_manager::{BLOCKCHAIN_CONFIG_PATH, CONGESTION_CONFIG_PATH};
@@ -280,7 +281,9 @@ pub mod test {
                     last_verification_thread_index: 0,
                     stat_sender: sender_to_stat.clone(),
                     sync: SyncManager::new(10),
+                    gatekeeper: Gatekeeper::default(),
                     congestion_check_timer: 0,
+                    gatekeeper_monitor_timer: 0,
                     received_ghost_chain: None,
                     waiting_for_genesis_block: false,
                     message_sending_timer: 0,
