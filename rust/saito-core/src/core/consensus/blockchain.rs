@@ -26,9 +26,9 @@ use crate::core::defs::{
     RECOLLECT_TXS_WITH_FEES,
 };
 use crate::core::mining_thread::MiningEvent;
-use crate::core::routing::io::interface_io::InterfaceEvent;
-use crate::core::routing::io::network::Network;
-use crate::core::routing::io::storage::Storage;
+use crate::core::network::interface_io::InterfaceEvent;
+use crate::core::network::network::Network;
+use crate::core::storage::storage::Storage;
 use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
@@ -3077,7 +3077,7 @@ mod tests {
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::wallet::{Wallet, WALLET_NOT_UPDATED};
     use crate::core::defs::{ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO};
-    use crate::core::routing::io::storage::Storage;
+    use crate::core::storage::storage::Storage;
     use crate::core::util::crypto::{generate_keys, hash};
     use crate::core::util::test::node_tester::test::NodeTester;
     use crate::core::util::test::test_manager::test::TestManager;

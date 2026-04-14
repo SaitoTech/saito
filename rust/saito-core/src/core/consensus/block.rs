@@ -21,7 +21,7 @@ use crate::core::defs::{
     BlockId, Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, Timestamp, UtxoSet, BLOCK_FILE_EXTENSION,
 };
-use crate::core::routing::io::storage::Storage;
+use crate::core::storage::storage::Storage;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::{hash, sign, verify_signature};
 use crate::iterate;
@@ -3553,7 +3553,7 @@ mod tests {
     use crate::core::defs::{
         Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, NOLAN_PER_SAITO,
     };
-    use crate::core::routing::io::storage::Storage;
+    use crate::core::storage::storage::Storage;
     use crate::core::util::crypto::{generate_keys, verify_signature};
     use crate::core::util::test::node_tester::test::NodeTester;
     use crate::core::util::test::test_manager::test::TestManager;

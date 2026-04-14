@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey};
 use crate::core::process::version::Version;
-use crate::core::routing::peers::service::Service;
+use crate::core::network::service::Service;
 
 pub enum InterfaceEvent {
     PeerHandshakeComplete(SaitoPublicKey),

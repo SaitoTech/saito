@@ -13,7 +13,7 @@ use crate::core::consensus::slip::{Slip, SlipType};
 use crate::core::defs::{
     BlockId, PrintForLog, SaitoHash, SaitoPublicKey, SaitoUTXOSetKey, PROJECT_PUBLIC_KEY,
 };
-use crate::core::routing::io::interface_io::InterfaceIO;
+use crate::core::network::interface_io::InterfaceIO;
 
 #[derive(Debug)]
 pub struct Storage {

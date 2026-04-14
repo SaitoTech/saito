@@ -18,7 +18,7 @@ use crate::core::defs::{
     Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, Timestamp, UtxoSet, UTXO_KEY_LENGTH,
 };
-use crate::core::routing::io::network::Network;
+use crate::core::network::network::Network;
 use crate::core::util::crypto::{hash, sign, verify, verify_signature};
 use crate::iterate;
 

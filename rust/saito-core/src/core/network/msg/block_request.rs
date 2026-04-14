@@ -42,7 +42,7 @@ impl Serialize<Self> for BlockchainRequest {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::msg::block_request::BlockchainRequest;
+    use crate::core::network::msg::block_request::BlockchainRequest;
     use crate::core::util::crypto::generate_random_bytes;
     use crate::core::util::serialize::Serialize;
 

@@ -11,8 +11,8 @@ pub mod test {
 
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey, BLOCK_FILE_EXTENSION};
-    use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-    use crate::core::routing::peers::service::Service;
+    use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
+    use crate::core::network::service::Service;
 
     #[derive(Clone, Debug)]
     pub struct TestIOHandler {}

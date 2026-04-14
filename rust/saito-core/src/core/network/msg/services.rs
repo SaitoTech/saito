@@ -1,4 +1,4 @@
-use crate::core::routing::peers::service::Service;
+use crate::core::network::service::Service;
 use crate::core::util::serialize::Serialize;
 use log::warn;
 use std::io::{Error, ErrorKind};

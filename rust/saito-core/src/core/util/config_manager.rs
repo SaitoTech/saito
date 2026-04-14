@@ -1,5 +1,5 @@
 use crate::core::defs::{BlockId, SaitoHash};
-use crate::core::routing::io::interface_io::InterfaceIO;
+use crate::core::network::interface_io::InterfaceIO;
 use crate::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use crate::core::util::configuration::BlockchainConfig;
 use log::{error, warn};

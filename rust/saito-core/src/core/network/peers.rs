@@ -1,10 +1,10 @@
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
-use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
+use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::routing::peers::congestion_controller::{
     CongestionType, PeerCongestionControls, PeerCongestionStatus,
 };
-use crate::core::routing::peers::peerv2::PeerV2;
-use crate::core::routing::peers::service::Service;
+use crate::core::network::peer::Peer;
+use crate::core::network::service::Service;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
 use std::io::Error;
@@ -17,28 +17,28 @@ const PEER_STALE_PERIOD: Timestamp = Duration::from_secs(30).as_millis() as Time
 pub struct Peers {
     pub congestion_controls_by_key: HashMap<SaitoPublicKey, PeerCongestionControls>,
     pub congestion_controls_by_ip: HashMap<String, PeerCongestionControls>,
-    pub peers_v2: HashMap<u64, PeerV2>,
+    pub peers_v2: HashMap<u64, Peer>,
 }
 
 impl<'a> IntoIterator for &'a Peers {
-    type Item = &'a PeerV2;
-    type IntoIter = std::collections::hash_map::Values<'a, u64, PeerV2>;
+    type Item = &'a Peer;
+    type IntoIter = std::collections::hash_map::Values<'a, u64, Peer>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.peers_v2.values()
     }
 }
 impl<'a> IntoIterator for &'a mut Peers {
-    type Item = &'a mut PeerV2;
-    type IntoIter = std::collections::hash_map::ValuesMut<'a, u64, PeerV2>;
+    type Item = &'a mut Peer;
+    type IntoIter = std::collections::hash_map::ValuesMut<'a, u64, Peer>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.peers_v2.values_mut()
     }
 }
 impl IntoIterator for Peers {
-    type Item = PeerV2;
-    type IntoIter = std::collections::hash_map::IntoValues<u64, PeerV2>;
+    type Item = Peer;
+    type IntoIter = std::collections::hash_map::IntoValues<u64, Peer>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.peers_v2.into_values()
@@ -52,23 +52,23 @@ impl Peers {
     pub fn get_peer_by_public_key_mut(
         &mut self,
         public_key: &SaitoPublicKey,
-    ) -> Option<&mut PeerV2> {
+    ) -> Option<&mut Peer> {
         self.peers_v2
             .values_mut()
             .find(|p| p.public_key.as_ref() == Some(public_key))
     }
 
-    pub fn get_peer_by_id_mut(&mut self, peer_id: u64) -> Option<&mut PeerV2> {
+    pub fn get_peer_by_id_mut(&mut self, peer_id: u64) -> Option<&mut Peer> {
         self.peers_v2.get_mut(&peer_id)
     }
 
-    pub fn get_peer_by_public_key(&self, public_key: &SaitoPublicKey) -> Option<&PeerV2> {
+    pub fn get_peer_by_public_key(&self, public_key: &SaitoPublicKey) -> Option<&Peer> {
         self.peers_v2
             .values()
             .find(|p| p.public_key.as_ref() == Some(public_key))
     }
 
-    pub fn get_peer_by_id(&self, peer_id: u64) -> Option<&PeerV2> {
+    pub fn get_peer_by_id(&self, peer_id: u64) -> Option<&Peer> {
         self.peers_v2.get(&peer_id)
     }
 
@@ -84,11 +84,11 @@ impl Peers {
         }
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &PeerV2> {
+    pub fn iter(&self) -> impl Iterator<Item = &Peer> {
         self.peers_v2.values()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut PeerV2> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Peer> {
         self.peers_v2.values_mut()
     }
 
@@ -118,7 +118,7 @@ impl Peers {
         }
 
         let peer_id = current_time;
-        let mut peer_v2 = PeerV2::new(peer_id);
+        let mut peer_v2 = Peer::new(peer_id);
         peer_v2.on_stun_connect(public_key, current_time);
 
         self.peers_v2.insert(peer_id, peer_v2);

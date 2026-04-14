@@ -159,7 +159,7 @@ impl Debug for GhostChainSync {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::msg::ghost_chain_sync::GhostChainSync;
+    use crate::core::network::msg::ghost_chain_sync::GhostChainSync;
 
     #[test]
     fn serialize_test() {

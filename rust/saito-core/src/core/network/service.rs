@@ -98,7 +98,7 @@ impl Service {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::routing::peers::service::Service;
+    use crate::core::network::service::Service;
 
     #[test]
     fn test_serialize() {
