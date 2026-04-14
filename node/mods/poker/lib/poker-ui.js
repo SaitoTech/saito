@@ -55,9 +55,9 @@ class PokerUI {
     $('.game-playerbox-seat-1').appendTo('.mystuff');
 
     if (this.game.player == 0) {
-      this.observerControls.render();
+      this?.observerControls?.render?.();
     } else {
-      this.observerControls.remove();
+      this?.observerControls?.remove?.();
     }
   }
 
