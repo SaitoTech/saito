@@ -1,9 +1,8 @@
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
 use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::network::peer::Peer;
-use crate::core::network::service::Service;
 use ahash::HashMap;
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, info, trace};
 use std::io::Error;
 use std::time::Duration;
 

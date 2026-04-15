@@ -1,4 +1,4 @@
-use crate::core::defs::{SaitoPublicKey, Timestamp};
+use crate::core::defs::Timestamp;
 use crate::core::network::peers::Peers;
 use ahash::HashMap;
 use std::mem;

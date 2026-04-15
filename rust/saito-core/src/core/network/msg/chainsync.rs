@@ -1,4 +1,4 @@
-use crate::core::defs::{PrintForLog, SaitoHash};
+use crate::core::defs::SaitoHash;
 use crate::core::util::serialize::Serialize;
 use log::warn;
 use std::io::{Error, ErrorKind};

@@ -37,7 +37,6 @@ use saito_core::core::network::msg::message::Message;
 use saito_core::core::network::network::PeerDisconnectType;
 use saito_core::core::network::peer::Peer;
 use saito_core::core::network::peers::Peers;
-use saito_core::core::network::service::Service;
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::util::configuration::Configuration;
 
