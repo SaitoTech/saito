@@ -28,7 +28,7 @@ export default interface SharedMethods {
 
   removeValue(key: string): void;
 
-  disconnectFromPeer(public_key: string): void;
+  disconnectFromPeer(peer_id: bigint): void;
 
   fetchBlockFromPeer(url: string): Promise<Uint8Array>;
 

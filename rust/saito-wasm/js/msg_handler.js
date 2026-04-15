@@ -12,8 +12,8 @@ static send_message_by_peer_id(peer_id, buffer) {
         return global.shared_methods.send_message_to_all(buffer, exceptions);
     }
 
-    static connect_to_peer(url, public_key) {
-        return global.shared_methods.connect_to_peer(url, public_key);
+    static connect_to_peer(url) {
+        return global.shared_methods.connect_to_peer(url);
     }
 
     static write_value(key, value) {
@@ -48,8 +48,8 @@ static send_message_by_peer_id(peer_id, buffer) {
         return global.shared_methods.remove_value(key);
     }
 
-    static disconnect_from_peer(public_key) {
-        return global.shared_methods.disconnect_from_peer(public_key);
+    static disconnect_from_peer(peer_id) {
+        return global.shared_methods.disconnect_from_peer(peer_id);
     }
 
     static fetch_block_from_peer(hash, public_key, url, block_id) {

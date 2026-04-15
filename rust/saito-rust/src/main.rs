@@ -35,12 +35,13 @@ use saito_core::core::defs::{
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::process::keep_time::{KeepTime, Timer};
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::routing::io::network::Network;
-use saito_core::core::routing::io::network_event::NetworkEvent;
-use saito_core::core::routing::io::storage::Storage;
-use saito_core::core::routing::peers::io_event::IoEvent;
-use saito_core::core::routing::peers::peers::Peers;
-use saito_core::core::routing::sync::SyncManager;
+use saito_core::core::network::network::Network;
+use saito_core::core::network::events::NetworkEvent;
+use saito_core::core::storage::storage::Storage;
+use saito_core::core::network::events::IoEvent;
+use saito_core::core::network::peers::Peers;
+use saito_core::core::network::sync::manager::SyncManager;
+use saito_core::core::network::gatekeeper::Gatekeeper;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
 use saito_core::core::util::configuration::Configuration;
@@ -284,7 +285,9 @@ async fn run_routing_event_processor(
         last_verification_thread_index: 0,
         stat_sender: sender_to_stat.clone(),
         sync: SyncManager::new(fetch_batch_size),
+        gatekeeper: Gatekeeper::default(),
         congestion_check_timer: 0,
+        gatekeeper_monitor_timer: 0,
         received_ghost_chain: None,
         waiting_for_genesis_block: false,
         message_sending_timer: 0,

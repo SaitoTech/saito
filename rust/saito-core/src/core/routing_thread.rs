@@ -21,9 +21,6 @@ use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::network::Network;
 use crate::core::network::events::NetworkEvent;
 use crate::core::storage::storage::Storage;
-use crate::core::routing::peers::congestion_controller::{
-    CongestionStatsDisplay, PeerCongestionControls,
-};
 use crate::core::network::gatekeeper::Gatekeeper;
 use crate::core::network::peer::Peer;
 use crate::core::network::sync::manager::SyncManager;
@@ -166,11 +163,19 @@ impl RoutingThread {
             peers.get_peer_by_id(peer_id).and_then(|p| p.public_key)
         };
 
-        if let Some(public_key) = public_key {
-            self.network
-                .update_peer_timestamp(public_key, self.timer.get_timestamp_in_ms())
-                .await;
-        }
+	//
+	// this will update our gatekeeper (buffer) which will periodically sweep the information
+	// back into the peer, allowing rapid responses to messages without the need to unlock
+	// the peers simply to update network-access statistics.
+	//
+	self.gatekeeper.add_record(public_key, AccessRecord::MessageReceived, create_timestamp());
+
+
+        //if let Some(public_key) = public_key {
+        //    self.network
+        //        .update_peer_timestamp(public_key, self.timer.get_timestamp_in_ms())
+        //        .await;
+        //}
 
         match message {
             Message::RequestHandshake(_challenge) => {
@@ -188,29 +193,16 @@ impl RoutingThread {
             Message::SPVChain() => {
                 // ...
             }
-
             Message::Transaction(transaction) => {
-                if let Some(public_key) = public_key {
-                    self.process_transaction_message(public_key, transaction)
-                        .await;
-                } else {
-                    warn!("dropping transaction from unidentified peer_id {}", peer_id);
-                }
+                self.process_transaction_message(peer_id, transaction)
+                    .await;
             }
             Message::BlockReference(hash, block_id) => {
-                if let Some(public_key) = public_key {
-                    self.process_block_reference_message(public_key, hash, block_id)
-                        .await;
-                } else {
-                    warn!("dropping transaction from unidentified peer_id {}", peer_id);
-                }
+                self.process_block_reference_message(public_key, hash, block_id)
+                    .await;
             }
             Message::Ping() => {
-                if let Some(public_key) = public_key {
-                    self.network.send_message(public_key, Message::Pong()).await;
-                } else {
-                    warn!("dropping transaction from unidentified peer_id {}", peer_id);
-                }
+                self.network.send_message_by_peer_id(public_key, Message::Pong()).await;
             }
             Message::Pong() => {
                 // ...
@@ -249,20 +241,12 @@ impl RoutingThread {
                 }
             }
             Message::RequestBlockchain(request) => {
-                if let Some(public_key) = public_key {
-                    self.process_request_blockchain_message(public_key, request)
-                        .await;
-                } else {
-                    warn!("dropping transaction from unidentified peer_id {}", peer_id);
-                }
+                self.process_request_blockchain_message(peer_id, request)
+                    .await;
             }
             Message::RequestGenesisBlockReference() => {
-                if let Some(public_key) = public_key {
-                    self.process_request_genesis_block_reference_message(public_key)
-                        .await;
-                } else {
-                    warn!("dropping transaction from unidentified peer_id {}", peer_id);
-                }
+                self.process_request_genesis_block_reference_message(peer_id)
+                    .await;
             }
             Message::ApplicationMessage(api_message) => {
                 if let Some(public_key) = public_key {
@@ -360,22 +344,14 @@ Message::ChainSync(data) => {
     //
     async fn process_transaction_message(
         &mut self,
-        public_key: SaitoPublicKey,
+        peer_id: u64 ,
         mut transaction: Transaction,
     ) {
         trace!(
             "received transaction : {} from peer : {:?}",
             transaction.signature.to_hex(),
-            public_key.to_base58()
+            peer_id
         );
-        transaction.routed_from_peer = Some(public_key);
-
-        self.network
-            .record_received_transaction(public_key, &transaction, self.timer.get_timestamp_in_ms())
-            .await;
-
-        self.stats.received_transactions.increment();
-
         self.send_to_verification_thread(VerifyRequest::Transaction(transaction))
             .await;
     }
@@ -420,7 +396,7 @@ Message::ChainSync(data) => {
 
     async fn process_block_reference_message(
         &mut self,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         hash: SaitoHash,
         block_id: u64,
     ) {
@@ -435,20 +411,16 @@ Message::ChainSync(data) => {
 
         debug!(
             "received block header hash from peer : {:?} with block id : {:?} and hash : {:?}",
-            public_key.to_base58(),
+            peer_id ,
             block_id,
             hash.to_hex()
         );
 
-        self.network
-            .record_received_block_header(public_key, &hash, self.timer.get_timestamp_in_ms())
-            .await;
-
         self.sync
-            .process_incoming_block_hash(
+            .process_block_reference_message(
                 hash,
                 block_id,
-                public_key,
+                peer_id,
                 self.blockchain_lock.clone(),
                 self.wallet_lock.clone(),
                 &self.network,
@@ -610,10 +582,6 @@ Message::ChainSync(data) => {
             public_key.to_base58(),
         );
 
-        self.network
-            .record_received_block_header(public_key, &hash, self.timer.get_timestamp_in_ms())
-            .await;
-
         self.sync
             .process_incoming_block_hash(
                 hash,
@@ -631,9 +599,8 @@ Message::ChainSync(data) => {
         public_key: SaitoPublicKey,
         buffer: Vec<u8>,
     ) -> Option<()> {
-        let time: u64 = self.timer.get_timestamp_in_ms();
-        self.network.record_incoming_message(public_key, time).await;
 
+        let time: u64 = self.timer.get_timestamp_in_ms();
         let buffer_len = buffer.len();
 
         let message = match Message::deserialize(buffer) {
@@ -922,64 +889,6 @@ Message::ChainSync(data) => {
         work_done
     }
 
-    async fn process_congestion_timer_event(&mut self, duration_value: Timestamp) -> bool {
-        let mut work_done = false;
-
-        const CONGESTION_CHECK_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
-
-        self.congestion_check_timer += duration_value;
-
-        if self.congestion_check_timer >= CONGESTION_CHECK_PERIOD {
-            self.network.manage_congested_peers().await;
-
-            {
-                let wallet = self.wallet_lock.read().await;
-                self.network.send_key_list(wallet.key_list.clone()).await;
-            }
-
-            let mut configs = self.config_lock.write().await;
-
-            if !configs.is_browser() {
-                let peers = self.network.peer_lock.read().await;
-
-                let congestion_data = CongestionStatsDisplay {
-                    congestion_controls_by_key: peers
-                        .congestion_controls_by_key
-                        .iter()
-                        .map(|(key, value)| (key.to_base58(), value.clone()))
-                        .collect(),
-                    congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
-                };
-
-                drop(peers);
-
-                ConfigManager::write_congestion_data(
-                    &congestion_data,
-                    self.network.io_interface.deref(),
-                )
-                .await
-                .unwrap_or_else(|e| {
-                    error!("failed to write congestion data : {:?}", e);
-                });
-
-                configs.set_congestion_data(Some(congestion_data));
-            }
-
-            ConfigManager::write_confirmation_data(
-                configs.get_blockchain_configs().confirmations.as_ref(),
-                self.network.io_interface.deref(),
-            )
-            .await
-            .unwrap_or_else(|e| {
-                error!("failed to write confirmation data : {:?}", e);
-            });
-
-            self.congestion_check_timer = 0;
-            work_done = true;
-        }
-
-        work_done
-    }
 }
 
 #[async_trait]
@@ -1015,11 +924,11 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 return Some(());
             }
             NetworkEvent::PeerDisconnected {
-                public_key,
+                peer_id,
                 disconnect_type,
             } => {
                 self.network
-                    .handle_peer_disconnect(public_key, disconnect_type)
+                    .handle_peer_disconnect(peer_id, disconnect_type)
                     .await;
                 return Some(());
             }
@@ -1085,8 +994,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         work_done |= self
             .process_message_sending_timer_event(duration_value)
             .await;
-
-        work_done |= self.process_congestion_timer_event(duration_value).await;
 
         if work_done {
             return Some(());
@@ -1247,15 +1154,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         self.gatekeeper.reset();
 
 
-        let congestion_data =
-            ConfigManager::read_congestion_data(self.network.io_interface.deref())
-                .await
-                .map(|result| Some(result))
-                .unwrap_or_else(|e| {
-                    error!("Couldn't read congestion data on load up. {:?}", e);
-                    None
-                });
-
         let confirmation_data =
             ConfigManager::read_confirmation_data(self.network.io_interface.deref())
                 .await
@@ -1268,27 +1166,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         {
             let mut configs = self.config_lock.write().await;
             let mut peers = self.network.peer_lock.write().await;
-            configs.set_congestion_data(congestion_data);
-
-            if let Some(display) = configs.get_congestion_data() {
-                peers.congestion_controls_by_ip = display.congestion_controls_by_ip.clone();
-                peers.congestion_controls_by_key = display
-                    .congestion_controls_by_key
-                    .iter()
-                    .filter_map(
-                        |(key, value)| match SaitoPublicKey::from_base58(key.as_str()) {
-                            Ok(public_key) => Some((public_key, value.clone())),
-                            Err(err) => {
-                                error!(
-                                    "ignoring malformed public key in congestion data: {:?} ({:?})",
-                                    key, err
-                                );
-                                None
-                            }
-                        },
-                    )
-                    .collect::<HashMap<SaitoPublicKey, PeerCongestionControls>>();
-            }
             if let Some(confirmation_data) = confirmation_data {
                 configs.get_blockchain_configs_mut().confirmations = confirmation_data;
             }
@@ -1429,7 +1306,7 @@ mod tests {
             Ok(())
         }
 
-        async fn disconnect_from_peer(&self, _public_key: SaitoPublicKey) -> Result<(), Error> {
+        async fn disconnect_from_peer(&self, _peer_id: u64) -> Result<(), Error> {
             Ok(())
         }
 

@@ -130,10 +130,10 @@ export class NodeSharedMethods extends CustomSharedMethods {
       socket.on('close', () => {
         try {
           S.getInstance().disconnectPeer(peer);
-          S.getLibInstance().process_peer_disconnection(peer.publicKey);
+          S.getLibInstance().process_peer_disconnection(peer.id);
         } catch (e) {
           console.error(
-            `failed processing socket close from peer : ${peer.publicKey} from url : ${url}`,
+            `failed processing socket close from peer : ${peer.id} from url : ${url}`,
             e
           );
         }
@@ -141,15 +141,15 @@ export class NodeSharedMethods extends CustomSharedMethods {
 
       socket.on('error', (error) => {
         console.error(
-          `received socket error from peer : ${peer.publicKey} from url : ${url}`,
+          `received socket error from peer : ${peer.id} from url : ${url}`,
           error
         );
         try {
           S.getInstance().disconnectPeer(peer);
-          S.getLibInstance().process_peer_disconnection(peer.publicKey);
+          S.getLibInstance().process_peer_disconnection(peer.id);
         } catch (e) {
           console.error(
-            `failed processing error from peer : ${peer.publicKey} from url : ${url}`,
+            `failed processing error from peer : ${peer.id} from url : ${url}`,
             e
           );
         }
@@ -230,8 +230,8 @@ export class NodeSharedMethods extends CustomSharedMethods {
     }
   }
 
-  disconnectFromPeer(publicKey: string): void {
-    S.getInstance().removeSocket(publicKey);
+  disconnectFromPeer(peer_id: bigint): void {
+    S.getInstance().removeSocket(peer_id);
   }
 
   fetchBlockFromPeer(url: string): Promise<Uint8Array> {

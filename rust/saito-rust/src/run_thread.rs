@@ -10,7 +10,7 @@ use tokio::task::JoinHandle;
 
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::routing::io::network_event::NetworkEvent;
+use saito_core::core::network::events::NetworkEvent;
 
 pub async fn receive_event<T>(receiver: &mut Option<Receiver<T>>) -> Option<T> {
     if let Some(receiver) = receiver.as_mut() {

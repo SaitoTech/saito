@@ -12,7 +12,7 @@ use saito_core::core::consensus_thread::ConsensusEvent;
 use saito_core::core::defs::PrintForLog;
 use saito_core::core::defs::SaitoPublicKey;
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::routing::peers::peerv2::PeerV2;
+use saito_core::core::network::peer::Peer;
 
 #[wasm_bindgen]
 pub struct WasmNetwork;
@@ -45,7 +45,7 @@ impl WasmNetwork {
             .read()
             .await;
 
-        let connected_peers: Vec<PeerV2> = peers
+        let connected_peers: Vec<Peer> = peers
             .iter()
             .filter(|peer| peer.is_verified)
             .cloned()

@@ -1,6 +1,5 @@
 use crate::core::defs::{BlockId, SaitoHash, Timestamp};
 use crate::core::defs::{Currency, RECOLLECT_EVERY_TX};
-use crate::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use log::error;
 use serde::Deserialize;
 use serde::Serialize;
@@ -260,9 +259,6 @@ pub trait Configuration: Debug {
     fn replace(&mut self, config: &dyn Configuration);
     fn get_consensus_config(&self) -> Option<&ConsensusConfig>;
     fn get_consensus_config_mut(&mut self) -> Option<&mut ConsensusConfig>;
-    fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay>;
-    fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>);
-    // fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>);
     fn get_config_path(&self) -> String;
     fn set_config_path(&mut self, path: String);
     fn save(&self) -> Result<(), Error>;

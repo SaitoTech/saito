@@ -35,7 +35,7 @@ export default class CustomSharedMethods implements SharedMethods {
     throw new Error("Method not implemented.");
   }
 
-  disconnectFromPeer(publicKey: string): void {
+  disconnectFromPeer(peer_id: bigint): void {
     throw new Error("Method not implemented.");
   }
 

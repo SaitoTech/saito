@@ -4,12 +4,12 @@ use wasm_bindgen::JsValue;
 
 use crate::wasm_peer_service::WasmPeerService;
 use saito_core::core::defs::PrintForLog;
-use saito_core::core::routing::peers::peerv2::PeerV2;
+use saito_core::core::network::peer::Peer;
 
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct WasmPeer {
-    peer: PeerV2,
+    peer: Peer,
 }
 
 #[wasm_bindgen]
@@ -83,7 +83,7 @@ impl WasmPeer {
 }
 
 impl WasmPeer {
-    pub fn new_from_peer(peer: PeerV2) -> WasmPeer {
+    pub fn new_from_peer(peer: Peer) -> WasmPeer {
         WasmPeer { peer }
     }
 }

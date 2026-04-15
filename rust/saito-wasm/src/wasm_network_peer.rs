@@ -1,7 +1,7 @@
 use js_sys::JsString;
 use log::info;
 use saito_core::core::defs::PrintForLog;
-use saito_core::core::msg::message::Message;
+use saito_core::core::network::msg::message::Message;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -77,7 +77,7 @@ impl WasmNetworkPeer {
             self.peer_id
         );
         let buffer =
-            Message::RequestHandshake(saito_core::core::msg::handshake::RequestHandshake {
+            Message::RequestHandshake(saito_core::core::network::msg::handshake::RequestHandshake {
                 nonce: peer.handshake_nonce.unwrap(),
             })
             .serialize();

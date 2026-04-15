@@ -4,7 +4,6 @@ pub mod defs;
 pub mod mining_thread;
 pub mod network;
 pub mod process;
-pub mod routing;
 pub mod routing_thread;
 pub mod stat_thread;
 pub mod storage;

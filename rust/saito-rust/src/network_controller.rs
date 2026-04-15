@@ -31,14 +31,14 @@ use saito_core::core::defs::{
     BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, BLOCK_FILE_EXTENSION,
     STAT_BIN_COUNT,
 };
-use saito_core::core::msg::message::Message;
+use saito_core::core::network::msg::message::Message;
 use saito_core::core::process::keep_time::Timer;
-use saito_core::core::routing::io::network::PeerDisconnectType;
-use saito_core::core::routing::io::network_event::NetworkEvent;
-use saito_core::core::routing::peers::io_event::IoEvent;
-use saito_core::core::routing::peers::service::Service;
-use saito_core::core::routing::peers::peers::Peers;
-use saito_core::core::routing::peers::peerv2::PeerV2;
+use saito_core::core::network::network::PeerDisconnectType;
+use saito_core::core::network::events::NetworkEvent;
+use saito_core::core::network::events::IoEvent;
+use saito_core::core::network::service::Service;
+use saito_core::core::network::peers::Peers;
+use saito_core::core::network::peer::Peer;
 use saito_core::core::util::configuration::Configuration;
 
 //
@@ -177,7 +177,7 @@ impl NetworkController {
 
             info!("connected to peer : {:?}", url,);
 
-            let mut network_peer = PeerV2::new(generate_peer_id());
+            let mut network_peer = Peer::new(generate_peer_id());
             network_peer.url = Some(url);
             network_peer.ip = ip;
             network_peer.on_connect(timer.get_timestamp_in_ms());
@@ -342,7 +342,7 @@ impl NetworkController {
         // debug!("block buffer sent to blockchain controller");
     }
     pub async fn handle_new_connection(
-        network_peer: PeerV2,
+        network_peer: Peer,
         sender: PeerSender,
         receiver: PeerReceiver,
         network_controller: Arc<RwLock<NetworkController>>,
@@ -384,7 +384,7 @@ impl NetworkController {
                 ));
 
                 Some(
-                    Message::RequestHandshake(saito_core::core::msg::handshake::RequestHandshake {
+                    Message::RequestHandshake(saito_core::core::network::msg::handshake::RequestHandshake {
                         nonce: p.handshake_nonce.unwrap(),
                     })
                     .serialize(),
@@ -428,38 +428,26 @@ impl NetworkController {
         }
     }
     pub async fn disconnect(&mut self, peer_id: u64) {
-        info!("disconnecting peer_id : {:?}", peer_id);
-        if let Some(sender) = self.sockets_by_peer_id.remove(&peer_id) {
-            self.disconnect_socket(sender).await;
-        }
-        let mut stale_public_keys: Vec<SaitoPublicKey> = Vec::new();
-        self.peer_id_by_public_key.retain(|k, v| {
-            if *v == peer_id {
-                stale_public_keys.push(*k);
-                false
-            } else {
-                true
-            }
-        });
-        for public_key in stale_public_keys {
-            if let Err(e) = self
-                .sender_to_core
-                .send(IoEvent {
-                    event_processor_id: 1,
-                    event: NetworkEvent::PeerDisconnected {
-                        public_key,
-                        disconnect_type: PeerDisconnectType::InternalDisconnect,
-                    },
-                })
-                .await
-            {
-                warn!(
-                    "sender_to_core send failed (peer_id={} op=disconnect_notify pk={:?} err={})",
-                    peer_id,
-                    public_key.to_base58(),
-                    e
-                );
-            }
+
+      if let Some(sender) = self.sockets_by_peer_id.remove(&peer_id) {
+          self.disconnect_socket(sender).await;
+      }
+      self.peer_id_by_public_key.retain(|_k, v| *v != peer_id);
+        if let Err(e) = self
+          .sender_to_core
+          .send(IoEvent {
+            event_processor_id: 1,
+            event: NetworkEvent::PeerDisconnected {
+              peer_id,
+              disconnect_type: PeerDisconnectType::InternalDisconnect,
+            },
+          })
+          .await
+        {
+          warn!(
+            "sender_to_core send failed (peer_id={} op=disconnect_notify err={})",
+            peer_id, e
+          );
         }
     }
 
@@ -876,7 +864,7 @@ fn run_websocket_server(
 
                         let (sender, receiver) = socket.split();
 
-                        let mut network_peer = PeerV2::new(generate_peer_id());
+                        let mut network_peer = Peer::new(generate_peer_id());
                         network_peer.url = None;
                         network_peer.ip = addr.map(|a| a.ip().to_string());
                         network_peer.on_connect(timer.get_timestamp_in_ms());

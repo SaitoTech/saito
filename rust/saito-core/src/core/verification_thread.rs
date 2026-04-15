@@ -18,7 +18,6 @@ use crate::core::defs::{
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::network::events::NetworkEvent;
-use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::network::peers::Peers;
 
 use super::stat_thread::StatEvent;
@@ -59,14 +58,6 @@ impl VerificationThread {
                 transaction.signature.to_hex()
             );
             self.processed_txs.increment();
-            if let Some(public_key) = transaction.routed_from_peer {
-                peers.add_congestion_event(
-                    public_key,
-                    CongestionType::ReceivedInvalidTransactions,
-                    self.timer.get_timestamp_in_ms(),
-                );
-            }
-
             return;
         }
 
@@ -92,12 +83,6 @@ impl VerificationThread {
                 "failed verifying block buffer with length : {:?}",
                 buffer_len
             );
-            let mut peers = self.peer_lock.write().await;
-            peers.add_congestion_event(
-                public_key,
-                CongestionType::ReceivedInvalidBlocks,
-                self.timer.get_timestamp_in_ms(),
-            );
             return;
         }
 
@@ -113,12 +98,6 @@ impl VerificationThread {
                 block.hash.to_hex(),
                 block_id,
                 block_hash.to_hex()
-            );
-            let mut peers = self.peer_lock.write().await;
-            peers.add_congestion_event(
-                public_key,
-                CongestionType::ReceivedInvalidBlocks,
-                self.timer.get_timestamp_in_ms(),
             );
             return;
         }

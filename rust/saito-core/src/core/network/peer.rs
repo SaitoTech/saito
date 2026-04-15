@@ -70,7 +70,7 @@ pub struct Peer {
     pub last_transaction_at: Timestamp,
 
     //
-    // --- volume counters (lifetime) ---
+    // --- statistics and congestion tracking ---
     //
     pub messages_received: u64,
     pub messages_sent: u64,
@@ -78,6 +78,10 @@ pub struct Peer {
     pub blocks_sent: u64,
     pub transactions_received: u64,
     pub transactions_sent: u64,
+    pub invalid_messages_received: u32,
+    pub invalid_blocks_received: u32,
+    pub invalid_transactions_received: u32,
+    pub dropped_requests: u32,
 
     //
     // --- short-term load tracking ---
@@ -86,14 +90,6 @@ pub struct Peer {
     pub recent_message_count: u32,
     pub recent_transaction_count: u32,
     pub recent_block_count: u32,
-
-    //
-    // --- error / failure signals ---
-    //
-    pub invalid_messages: u32,
-    pub invalid_blocks: u32,
-    pub invalid_transactions: u32,
-    pub dropped_requests: u32,
 
     //
     // --- sync / protocol flags ---
@@ -140,9 +136,9 @@ impl Peer {
             recent_message_count: 0,
             recent_transaction_count: 0,
             recent_block_count: 0,
-            invalid_messages: 0,
-            invalid_blocks: 0,
-            invalid_transactions: 0,
+            invalid_messages_received: 0,
+            invalid_blocks_received: 0,
+            invalid_transactions_received: 0,
             dropped_requests: 0,
             requested_blocks_from_us: false,
             requested_blocks_from_peer: false,
@@ -218,27 +214,6 @@ impl Peer {
         self.last_activity_at = current_time;
         self.last_message_at = current_time;
         self.peer_type = PeerType::Stun;
-    }
-
-    pub fn on_message_received(&mut self, now: Timestamp) {
-        self.messages_received += 1;
-        self.last_message_at = now;
-        self.last_activity_at = now;
-        self.recent_message_count += 1;
-    }
-
-    pub fn on_transaction_received(&mut self, now: Timestamp) {
-        self.transactions_received += 1;
-        self.last_transaction_at = now;
-        self.last_activity_at = now;
-        self.recent_transaction_count += 1;
-    }
-
-    pub fn on_block_received(&mut self, now: Timestamp) {
-        self.blocks_received += 1;
-        self.last_block_at = now;
-        self.last_activity_at = now;
-        self.recent_block_count += 1;
     }
 
     pub fn get_public_key(&self) -> SaitoPublicKey {
