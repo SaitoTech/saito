@@ -19,12 +19,12 @@ use crate::core::defs::{
     STAT_BIN_COUNT,
 };
 use crate::core::mining_thread::MiningEvent;
+use crate::core::network::events::NetworkEvent;
+use crate::core::network::network::Network;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
-use crate::core::network::network::Network;
-use crate::core::network::events::NetworkEvent;
-use crate::core::storage::storage::Storage;
 use crate::core::routing_thread::RoutingEvent;
+use crate::core::storage::storage::Storage;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::hash;
 

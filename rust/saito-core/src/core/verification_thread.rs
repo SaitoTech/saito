@@ -15,10 +15,10 @@ use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
     BlockHash, BlockId, PrintForLog, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
 };
-use crate::core::process::keep_time::Timer;
-use crate::core::process::process_event::ProcessEvent;
 use crate::core::network::events::NetworkEvent;
 use crate::core::network::peers::Peers;
+use crate::core::process::keep_time::Timer;
+use crate::core::process::process_event::ProcessEvent;
 
 use super::stat_thread::StatEvent;
 

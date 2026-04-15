@@ -28,8 +28,8 @@ use crate::core::defs::{
 use crate::core::mining_thread::MiningEvent;
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::network::Network;
-use crate::core::storage::storage::Storage;
 use crate::core::routing_thread::RoutingEvent;
+use crate::core::storage::storage::Storage;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::{drain, iterate};
@@ -2499,7 +2499,7 @@ impl Blockchain {
                     }
                     AddBlockResult::FailedNotValid => {
                         if let Some(public_key) = public_key {
-			    // TODO -- notify gatekeeper of invalid block
+                            // TODO -- notify gatekeeper of invalid block
                         }
                     }
                 }

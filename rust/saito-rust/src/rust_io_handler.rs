@@ -18,8 +18,8 @@ use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{
     BlockId, PrintForLog, SaitoHash, SaitoPublicKey, BLOCK_FILE_EXTENSION,
 };
-use saito_core::core::network::interface_io::{InterfaceEvent, InterfaceIO};
 use saito_core::core::network::events::NetworkEvent;
+use saito_core::core::network::interface_io::{InterfaceEvent, InterfaceIO};
 use saito_core::core::network::service::Service;
 
 use saito_core::core::network::events::IoEvent;

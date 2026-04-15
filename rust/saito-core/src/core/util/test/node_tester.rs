@@ -4,9 +4,9 @@ pub mod test {
     use crate::core::consensus::blockchain::Blockchain;
     use crate::core::consensus::context::Context;
     use crate::core::consensus::mempool::Mempool;
-    use crate::core::routing::peers::peer_collection::PeerCollection;
-    use crate::core::network::sync::manager::SyncManager;
     use crate::core::network::gatekeeper::Gatekeeper;
+    use crate::core::network::sync::manager::SyncManager;
+    use crate::core::routing::peers::peer_collection::PeerCollection;
 
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::transaction::Transaction;
@@ -18,14 +18,14 @@ pub mod test {
     };
     use crate::core::defs::{SaitoPublicKey, Timestamp};
     use crate::core::mining_thread::{MiningEvent, MiningThread};
+    use crate::core::network::events::NetworkEvent;
+    use crate::core::network::network::Network;
     use crate::core::process::keep_time::KeepTime;
     use crate::core::process::keep_time::Timer;
     use crate::core::process::process_event::ProcessEvent;
-    use crate::core::network::network::Network;
-    use crate::core::network::events::NetworkEvent;
-    use crate::core::storage::storage::Storage;
     use crate::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
     use crate::core::stat_thread::{StatEvent, StatThread};
+    use crate::core::storage::storage::Storage;
     use crate::core::util::config_manager::{BLOCKCHAIN_CONFIG_PATH, CONGESTION_CONFIG_PATH};
     use crate::core::util::configuration::{
         get_default_issuance_writing_block_interval, get_default_recollect_mode, BlockchainConfig,

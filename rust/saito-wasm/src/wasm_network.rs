@@ -11,8 +11,8 @@ use log::{debug, trace, warn};
 use saito_core::core::consensus_thread::ConsensusEvent;
 use saito_core::core::defs::PrintForLog;
 use saito_core::core::defs::SaitoPublicKey;
-use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::network::peer::Peer;
+use saito_core::core::process::process_event::ProcessEvent;
 
 #[wasm_bindgen]
 pub struct WasmNetwork;

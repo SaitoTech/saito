@@ -33,17 +33,17 @@ use saito_core::core::defs::{
     PROJECT_PUBLIC_KEY, STAT_BIN_COUNT,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
-use saito_core::core::process::keep_time::{KeepTime, Timer};
-use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::network::network::Network;
-use saito_core::core::network::events::NetworkEvent;
-use saito_core::core::storage::storage::Storage;
 use saito_core::core::network::events::IoEvent;
+use saito_core::core::network::events::NetworkEvent;
+use saito_core::core::network::gatekeeper::Gatekeeper;
+use saito_core::core::network::network::Network;
 use saito_core::core::network::peers::Peers;
 use saito_core::core::network::sync::manager::SyncManager;
-use saito_core::core::network::gatekeeper::Gatekeeper;
+use saito_core::core::process::keep_time::{KeepTime, Timer};
+use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
+use saito_core::core::storage::storage::Storage;
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::crypto::generate_keys;
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};

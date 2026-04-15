@@ -1,10 +1,10 @@
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
+use crate::core::network::events::NetworkEvent;
 use crate::core::network::msg::message::Message;
+use crate::core::network::service::Service;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::version::Version;
-use crate::core::network::events::NetworkEvent;
-use crate::core::network::service::Service;
 use crate::core::util::configuration::{Configuration, Endpoint};
 use crate::core::util::crypto::{generate_random_bytes, hash, sign, verify};
 use log::{debug, error, info, trace, warn};

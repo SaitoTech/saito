@@ -10,8 +10,8 @@ use saito_core::core::consensus::blockchain::Blockchain;
 use saito_core::core::consensus::transaction::Transaction;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::Currency;
-use saito_core::core::network::msg::message::Message;
 use saito_core::core::network::interface_io::InterfaceIO;
+use saito_core::core::network::msg::message::Message;
 use saito_core::core::network::peers::Peers;
 
 use crate::config_handler::SpammerConfigs;

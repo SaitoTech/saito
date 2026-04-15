@@ -1,5 +1,5 @@
-use crate::core::util::serialize::Serialize;
 use crate::core::defs::{PrintForLog, SaitoHash};
+use crate::core::util::serialize::Serialize;
 use log::warn;
 use std::io::{Error, ErrorKind};
 
@@ -10,10 +10,7 @@ pub struct RequestChainSync {
 }
 
 #[derive(Debug)]
-pub struct ChainSync {
-}
-
-
+pub struct ChainSync {}
 
 impl Serialize<Self> for RequestChainSync {
     fn serialize(&self) -> Vec<u8> {
@@ -38,13 +35,9 @@ impl Serialize<Self> for RequestChainSync {
 
         Ok(RequestChainSync {
             latest_block_id: u64::from_be_bytes(
-                buffer[0..8]
-                    .try_into()
-                    .or(Err(ErrorKind::InvalidData))?,
+                buffer[0..8].try_into().or(Err(ErrorKind::InvalidData))?,
             ),
-            latest_block_hash: buffer[8..40]
-                .try_into()
-                .or(Err(ErrorKind::InvalidData))?,
+            latest_block_hash: buffer[8..40].try_into().or(Err(ErrorKind::InvalidData))?,
         })
     }
 }
@@ -66,5 +59,3 @@ impl Serialize<Self> for ChainSync {
         Ok(ChainSync {})
     }
 }
-
-
