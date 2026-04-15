@@ -44,36 +44,18 @@ impl Peers {
     //
     // PEER V2 REFACTOR API
     //
-    pub fn get_peer_by_public_key_mut(&mut self, public_key: &SaitoPublicKey) -> Option<&mut Peer> {
-        self.peers_v2
-            .values_mut()
-            .find(|p| p.public_key.as_ref() == Some(public_key))
-    }
-
     pub fn get_peer_by_id_mut(&mut self, peer_id: u64) -> Option<&mut Peer> {
         self.peers_v2.get_mut(&peer_id)
-    }
-
-    pub fn get_peer_by_public_key(&self, public_key: &SaitoPublicKey) -> Option<&Peer> {
-        self.peers_v2
-            .values()
-            .find(|p| p.public_key.as_ref() == Some(public_key))
     }
 
     pub fn get_peer_by_id(&self, peer_id: u64) -> Option<&Peer> {
         self.peers_v2.get(&peer_id)
     }
 
-    pub fn remove_peer_by_public_key(&mut self, public_key: &SaitoPublicKey) {
-        if let Some(peer_id) = self.peers_v2.iter().find_map(|(id, p)| {
-            if p.public_key.as_ref() == Some(public_key) {
-                Some(*id)
-            } else {
-                None
-            }
-        }) {
-            self.peers_v2.remove(&peer_id);
-        }
+    pub fn get_peer_by_public_key(&self, public_key: &SaitoPublicKey) -> Option<&Peer> {
+        self.peers_v2
+            .values()
+            .find(|p| p.public_key.as_ref() == Some(public_key))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Peer> {
@@ -84,44 +66,84 @@ impl Peers {
         self.peers_v2.values_mut()
     }
 
-    //
-    // LEGACY FUNCTIONS BELOW
-    //
-    pub async fn handle_new_stun_peer(
+    pub async fn add_stun_peer(
         &mut self,
+        peer_id: u64,
         public_key: SaitoPublicKey,
         current_time: Timestamp,
         io_handler: &Box<dyn InterfaceIO + Send + Sync>,
     ) {
         debug!(
-            "Adding STUN peer with public key: {}",
+            "Registering STUN transport for peer_id={} public_key={}",
+            peer_id,
             public_key.to_base58()
         );
 
-        if self.get_peer_by_public_key(&public_key).is_some() {
+        let Some(peer) = self.get_peer_by_id_mut(peer_id) else {
             error!(
-                "Failed to add STUN peer: Peer with key {} already exists",
+                "Failed to register STUN transport: unknown peer_id={} public_key={}",
+                peer_id,
                 public_key.to_base58()
             );
             return;
+        };
+
+        if let Some(existing_key) = peer.public_key {
+            if existing_key != public_key {
+                error!(
+                    "peer_id={} already bound to different key {} (incoming {})",
+                    peer_id,
+                    existing_key.to_base58(),
+                    public_key.to_base58()
+                );
+                return;
+            }
         }
 
-        let peer_id = current_time;
-        let mut peer_v2 = Peer::new(peer_id);
-        peer_v2.on_stun_connect(public_key, current_time);
-
-        self.peers_v2.insert(peer_id, peer_v2);
-
-        debug!("STUN peer added successfully");
-
+        peer.on_stun_connect(public_key, current_time);
         io_handler.send_interface_event(InterfaceEvent::StunPeerConnected(public_key));
     }
 
-    pub async fn update_peer_timer(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {
-        if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {
-            peer_v2.last_message_at = current_time;
+    pub async fn remove_stun_peer(
+        &mut self,
+        peer_id: u64,
+        public_key: SaitoPublicKey,
+        io_handler: &Box<dyn InterfaceIO + Send + Sync>,
+    ) {
+        debug!(
+            "Removing STUN transport binding for peer_id={} public_key={}",
+            peer_id,
+            public_key.to_base58()
+        );
+
+        let Some(peer) = self.get_peer_by_id_mut(peer_id) else {
+            error!(
+                "Failed to remove STUN transport: unknown peer_id={} public_key={}",
+                peer_id,
+                public_key.to_base58()
+            );
+            return;
+        };
+
+        // Safety check only; do not remove the peer object.
+        if let Some(existing_key) = peer.public_key {
+            if existing_key != public_key {
+                error!(
+                    "peer_id={} key mismatch on STUN remove: existing={} incoming={}",
+                    peer_id,
+                    existing_key.to_base58(),
+                    public_key.to_base58()
+                );
+                return;
+            }
         }
+
+        io_handler.send_interface_event(InterfaceEvent::StunPeerDisconnected(public_key));
     }
+
+    //
+    // LEGACY FUNCTIONS BELOW
+    //
     pub async fn set_peer_key_list(
         &mut self,
         peer_id: u64,
@@ -138,27 +160,6 @@ impl Peers {
             Ok(())
         } else {
             Ok(())
-        }
-    }
-
-    pub async fn remove_stun_peer(
-        &mut self,
-        public_key: SaitoPublicKey,
-        io_handler: &Box<dyn InterfaceIO + Send + Sync>,
-    ) {
-        debug!("Removing STUN peer with key: {}", public_key.to_base58());
-
-        if self.get_peer_by_public_key(&public_key).is_some() {
-            self.remove_peer_by_public_key(&public_key);
-
-            debug!("STUN peer removed from network successfully");
-
-            io_handler.send_interface_event(InterfaceEvent::StunPeerDisconnected(public_key));
-        } else {
-            error!(
-                "Failed to remove STUN peer: Peer with key {} not found",
-                public_key.to_base58()
-            );
         }
     }
 

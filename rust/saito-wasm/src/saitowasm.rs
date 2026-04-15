@@ -949,8 +949,11 @@ pub async fn process_new_peer(peer_id: u64) {
 }
 
 #[wasm_bindgen]
-pub async fn process_stun_peer(public_key: JsString) -> Result<(), JsValue> {
-    debug!("processing stun peer with public key: {:?} ", public_key);
+pub async fn process_stun_peer(peer_id: u64, public_key: JsString) -> Result<(), JsValue> {
+    debug!(
+        "processing stun peer registration peer_id={} public_key={:?}",
+        peer_id, public_key
+    );
     let mut saito = SAITO.lock().await;
     let key: SaitoPublicKey = string_to_key(public_key.into())
         .map_err(|e| JsValue::from_str(&format!("Failed to parse public key: {}", e)))?;
@@ -959,13 +962,16 @@ pub async fn process_stun_peer(public_key: JsString) -> Result<(), JsValue> {
         .as_mut()
         .unwrap()
         .routing_thread
-        .process_network_event(NetworkEvent::AddStunPeer { public_key: key })
+        .process_network_event(NetworkEvent::AddStunPeer {
+            peer_id: peer_id,
+            public_key: key,
+        })
         .await;
     Ok(())
 }
 
 #[wasm_bindgen]
-pub async fn remove_stun_peer(public_key: JsString) {
+pub async fn remove_stun_peer(peer_id: u64, public_key: JsString) {
     let key: SaitoPublicKey = string_to_key(public_key).unwrap();
     debug!(
         "removing stun peer with index: {:?} from netowrk ",
@@ -976,7 +982,10 @@ pub async fn remove_stun_peer(public_key: JsString) {
         .as_mut()
         .unwrap()
         .routing_thread
-        .process_network_event(NetworkEvent::RemoveStunPeer { public_key: key })
+        .process_network_event(NetworkEvent::RemoveStunPeer {
+            peer_id: peer_id,
+            public_key: key,
+        })
         .await;
 }
 //
@@ -1513,10 +1522,7 @@ pub async fn produce_block_with_gt() -> bool {
                 .as_mut()
                 .unwrap()
                 .consensus_thread
-                .process_event(ConsensusEvent::BlockFetched {
-                    peer_id: 0,
-                    block,
-                })
+                .process_event(ConsensusEvent::BlockFetched { peer_id: 0, block })
                 .await;
             return true;
         }
@@ -1612,10 +1618,7 @@ pub async fn produce_block_without_gt() -> bool {
                 .as_mut()
                 .unwrap()
                 .consensus_thread
-                .process_event(ConsensusEvent::BlockFetched {
-                    peer_id: 0,
-                    block,
-                })
+                .process_event(ConsensusEvent::BlockFetched { peer_id: 0, block })
                 .await;
             return true;
         }
@@ -1638,26 +1641,6 @@ pub async fn get_stats() -> Result<JsString, JsValue> {
 
     let str = serde_json::to_string(&stat)
         .map_err(|e| JsValue::from_str(&format!("Failed to serialize stats: {}", e)))?;
-    Ok(str.into())
-}
-
-#[wasm_bindgen]
-pub async fn get_confirmations() -> Result<JsValue, JsValue> {
-    let saito = SAITO.lock().await;
-    let configs = &saito
-        .as_ref()
-        .unwrap()
-        .routing_thread
-        .config_lock
-        .read()
-        .await;
-    let str =
-        serde_json::to_string(&configs.get_blockchain_configs().confirmations).map_err(|e| {
-            JsValue::from_str(&format!(
-                "Failed to serialize blockchain confirmations configs: {}",
-                e
-            ))
-        })?;
     Ok(str.into())
 }
 

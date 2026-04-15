@@ -4,13 +4,13 @@ use crate::core::consensus::mempool::Mempool;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
-use crate::core::network::gatekeeper::AccessRecord;
 use crate::core::defs::{
     BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, Timestamp,
     CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
 use crate::core::mining_thread::MiningEvent;
 use crate::core::network::events::NetworkEvent;
+use crate::core::network::gatekeeper::AccessRecord;
 use crate::core::network::gatekeeper::Gatekeeper;
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::msg::block_request::BlockchainRequest;
@@ -51,7 +51,6 @@ pub enum RoutingEvent {
     BlockchainRequest(u64),
     KeyListUpdated(Vec<SaitoPublicKey>),
 }
-
 
 pub struct RoutingStats {
     pub received_transactions: StatVariable,
@@ -153,7 +152,6 @@ impl RoutingThread {
     /// peer. Thus "KeyList" sends the latest KeyList. We do not need KeyListUpdate, etc.
     ///
     async fn process_peer_message(&mut self, peer_id: u64, message: Message) {
-
         //
         // this will update our gatekeeper (buffer) which will periodically sweep the information
         // back into the peer, allowing rapid responses to messages without the need to unlock
@@ -162,7 +160,7 @@ impl RoutingThread {
         self.gatekeeper.add_record(
             peer_id,
             AccessRecord::MessageReceived,
-	    self.timer.get_timestamp_in_ms()
+            self.timer.get_timestamp_in_ms(),
         );
 
         match message {
@@ -320,7 +318,7 @@ impl RoutingThread {
             transaction.signature.to_hex(),
             peer_id
         );
-	transaction.routed_from_peer_id = peer_id;
+        transaction.routed_from_peer_id = peer_id;
         self.send_to_verification_thread(VerifyRequest::Transaction(transaction))
             .await;
     }
@@ -356,8 +354,7 @@ impl RoutingThread {
         {
             error!(
                 "failed processing incoming blockchain request from peer {}: {}",
-                peer_id,
-                e
+                peer_id, e
             );
         }
     }
@@ -502,16 +499,12 @@ impl RoutingThread {
         }
     }
 
-    async fn process_request_genesis_block_reference_message(
-        &mut self,
-        peer_id: u64
-    ) {
+    async fn process_request_genesis_block_reference_message(&mut self, peer_id: u64) {
         let blockchain = self.blockchain_lock.read().await;
 
         info!(
             "Received genesis block request from peer : {:?}. current genesis block id : {:?}",
-            peer_id,
-            blockchain.genesis_block_id
+            peer_id, blockchain.genesis_block_id
         );
 
         if blockchain.genesis_block_id != 0 {
@@ -561,7 +554,6 @@ impl RoutingThread {
             )
             .await;
     }
-
 
     /// Processes a received ghost chain request from a peer to sync itself with the blockchain
     ///
@@ -694,10 +686,7 @@ impl RoutingThread {
         }
     }
     pub async fn process_ghost_chain_message(&mut self, chain: GhostChainSync, peer_id: u64) {
-        debug!(
-            "processing ghost chain from peer : {:?}",
-            peer_id
-        );
+        debug!("processing ghost chain from peer : {:?}", peer_id);
 
         let mut previous_block_hash = chain.start;
         let mut configs = self.config_lock.write().await;
@@ -809,10 +798,7 @@ impl RoutingThread {
             self.message_sending_timer %= MESSAGES_SENDING_PERIOD;
 
             self.sync
-                .send_block_reference(
-                    self.blockchain_lock.clone(),
-                    &self.network,
-                )
+                .send_block_reference(self.blockchain_lock.clone(), &self.network)
                 .await;
 
             work_done = true;
@@ -839,14 +825,20 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     return None;
                 }
             }
-            NetworkEvent::AddStunPeer { public_key } => {
+            NetworkEvent::AddStunPeer {
+                peer_id,
+                public_key,
+            } => {
                 self.network
-                    .add_stun_peer(public_key, self.timer.get_timestamp_in_ms())
+                    .add_stun_peer(peer_id, public_key, self.timer.get_timestamp_in_ms())
                     .await;
                 return Some(());
             }
-            NetworkEvent::RemoveStunPeer { public_key } => {
-                self.network.remove_stun_peer(public_key).await;
+            NetworkEvent::RemoveStunPeer {
+                peer_id,
+                public_key,
+            } => {
+                self.network.remove_stun_peer(peer_id, public_key).await;
                 return Some(());
             }
             NetworkEvent::PeerDisconnected {
@@ -908,8 +900,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             self.gatekeeper_monitor_timer.saturating_add(duration_value);
 
         if self.gatekeeper_monitor_timer >= GATEKEEPER_MONITOR_PERIOD {
-	    let mut peers = self.network.peer_lock.write().await;
-	    self.gatekeeper.monitor_peers(&mut peers, current_time);
+            let mut peers = self.network.peer_lock.write().await;
+            self.gatekeeper.monitor_peers(&mut peers, current_time);
             self.gatekeeper_monitor_timer %= GATEKEEPER_MONITOR_PERIOD;
             work_done = true;
         }
@@ -927,134 +919,130 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         None
     }
 
-
-
-
-
-async fn process_event(&mut self, event: RoutingEvent) -> Option<()> {
-    match event {
-        RoutingEvent::BlockchainUpdated(block_hash, initial_sync) => {
-            trace!("received blockchain update event : {:?}", block_hash.to_hex());
-            self.sync.state.remove_entry(block_hash);
-            self.sync
-                .fetch_next_blocks(
-                    self.blockchain_lock.clone(),
-                    self.mempool_lock.clone(),
-                    &self.network,
-                    self.wallet_lock.clone(),
-                    self.config_lock.clone(),
-                )
-                .await;
-            {
-                let mut configs = self.config_lock.write().await;
-                let blockchain = self.blockchain_lock.read().await;
-                let confs = {
+    async fn process_event(&mut self, event: RoutingEvent) -> Option<()> {
+        match event {
+            RoutingEvent::BlockchainUpdated(block_hash, initial_sync) => {
+                trace!(
+                    "received blockchain update event : {:?}",
+                    block_hash.to_hex()
+                );
+                self.sync.state.remove_entry(block_hash);
+                self.sync
+                    .fetch_next_blocks(
+                        self.blockchain_lock.clone(),
+                        self.mempool_lock.clone(),
+                        &self.network,
+                        self.wallet_lock.clone(),
+                        self.config_lock.clone(),
+                    )
+                    .await;
+                {
+                    let mut configs = self.config_lock.write().await;
+                    let blockchain = self.blockchain_lock.read().await;
+                    let confs = {
+                        let blockchain_configs = configs.get_blockchain_configs_mut();
+                        blockchain_configs.last_block_hash = blockchain.last_block_hash.to_hex();
+                        blockchain_configs.last_block_id = blockchain.last_block_id;
+                        blockchain_configs.last_timestamp = blockchain.last_timestamp;
+                        blockchain_configs.genesis_block_id = blockchain.genesis_block_id;
+                        blockchain_configs.genesis_timestamp = blockchain.genesis_timestamp;
+                        blockchain_configs.lowest_acceptable_timestamp =
+                            blockchain.lowest_acceptable_timestamp;
+                        blockchain_configs.lowest_acceptable_block_hash =
+                            blockchain.lowest_acceptable_block_hash.to_hex();
+                        blockchain_configs.lowest_acceptable_block_id =
+                            blockchain.lowest_acceptable_block_id;
+                        blockchain_configs.fork_id =
+                            blockchain.fork_id.unwrap_or_default().to_hex();
+                        let confs = blockchain_configs.confirmations.clone();
+                        blockchain_configs.confirmations.clear();
+                        confs
+                    };
+                    let save_result = configs.save();
                     let blockchain_configs = configs.get_blockchain_configs_mut();
-                    blockchain_configs.last_block_hash = blockchain.last_block_hash.to_hex();
-                    blockchain_configs.last_block_id = blockchain.last_block_id;
-                    blockchain_configs.last_timestamp = blockchain.last_timestamp;
-                    blockchain_configs.genesis_block_id = blockchain.genesis_block_id;
-                    blockchain_configs.genesis_timestamp = blockchain.genesis_timestamp;
-                    blockchain_configs.lowest_acceptable_timestamp =
-                        blockchain.lowest_acceptable_timestamp;
-                    blockchain_configs.lowest_acceptable_block_hash =
-                        blockchain.lowest_acceptable_block_hash.to_hex();
-                    blockchain_configs.lowest_acceptable_block_id =
-                        blockchain.lowest_acceptable_block_id;
-                    blockchain_configs.fork_id = blockchain.fork_id.unwrap_or_default().to_hex();
-                    let confs = blockchain_configs.confirmations.clone();
-                    blockchain_configs.confirmations.clear();
-                    confs
-                };
-                let save_result = configs.save();
-                let blockchain_configs = configs.get_blockchain_configs_mut();
-                blockchain_configs.confirmations = confs;
-                if let Err(err) = save_result {
-                    error!("failed saving blockchain configs after update: {:?}", err);
-                }
-            }
-            if initial_sync {
-                {
-                    let configs = self.config_lock.read().await;
-                    let mut blockchain = self.blockchain_lock.write().await;
-                    let block_id = max(
-                        blockchain.get_latest_block_id().saturating_sub(
-                            configs.get_consensus_config().unwrap().genesis_period,
-                        ),
-                        1,
-                    );
-                    blockchain.genesis_block_id = block_id;
-                    info!(
-                        "setting genesis block id to the received genesis block id : {}",
-                        blockchain.genesis_block_id
-                    );
-                }
-                // we set this to false here since now we know the genesis block is added already.
-                self.waiting_for_genesis_block = false;
-                info!("since initial sync is done, we will request the chain from peers");
-                // request blockchain by peer_id (no public_key lookup needed)
-                let mut peer_ids: Vec<u64> = vec![];
-                {
-                    let peers = self.network.peer_lock.read().await;
-                    for peer in peers.peers_v2.values() {
-                        if peer.is_connected {
-                            peer_ids.push(peer.id);
-                        }
+                    blockchain_configs.confirmations = confs;
+                    if let Err(err) = save_result {
+                        error!("failed saving blockchain configs after update: {:?}", err);
                     }
                 }
-                for peer_id in peer_ids {
-                    self.sync
-                        .request_blockchain_from_peer(
-                            peer_id,
-                            self.blockchain_lock.clone(),
-                            self.config_lock.clone(),
-                            &self.network,
-                        )
-                        .await;
+                if initial_sync {
+                    {
+                        let configs = self.config_lock.read().await;
+                        let mut blockchain = self.blockchain_lock.write().await;
+                        let block_id = max(
+                            blockchain.get_latest_block_id().saturating_sub(
+                                configs.get_consensus_config().unwrap().genesis_period,
+                            ),
+                            1,
+                        );
+                        blockchain.genesis_block_id = block_id;
+                        info!(
+                            "setting genesis block id to the received genesis block id : {}",
+                            blockchain.genesis_block_id
+                        );
+                    }
+                    // we set this to false here since now we know the genesis block is added already.
+                    self.waiting_for_genesis_block = false;
+                    info!("since initial sync is done, we will request the chain from peers");
+                    // request blockchain by peer_id (no public_key lookup needed)
+                    let mut peer_ids: Vec<u64> = vec![];
+                    {
+                        let peers = self.network.peer_lock.read().await;
+                        for peer in peers.peers_v2.values() {
+                            if peer.is_connected {
+                                peer_ids.push(peer.id);
+                            }
+                        }
+                    }
+                    for peer_id in peer_ids {
+                        self.sync
+                            .request_blockchain_from_peer(
+                                peer_id,
+                                self.blockchain_lock.clone(),
+                                self.config_lock.clone(),
+                                &self.network,
+                            )
+                            .await;
+                    }
                 }
             }
-        }
-        RoutingEvent::BlockFetchRequest(peer_id, block_hash, block_id) => {
-            trace!(
-                "received block fetch request from peer : {:?} for block : {:?}-{:?}",
-                peer_id,
-                block_hash.to_hex(),
-                block_id
-            );
-            self.sync
-                .state
-                .add_entry(
-                    block_hash,
-                    block_id,
+            RoutingEvent::BlockFetchRequest(peer_id, block_hash, block_id) => {
+                trace!(
+                    "received block fetch request from peer : {:?} for block : {:?}-{:?}",
                     peer_id,
-                    self.network.peer_lock.clone(),
-                )
-                .await;
+                    block_hash.to_hex(),
+                    block_id
+                );
+                self.sync
+                    .state
+                    .add_entry(
+                        block_hash,
+                        block_id,
+                        peer_id,
+                        self.network.peer_lock.clone(),
+                    )
+                    .await;
+            }
+            RoutingEvent::BlockchainRequest(peer_id) => {
+                info!(
+                    "requesting blockchain from peer : {:?} after block add failure",
+                    peer_id
+                );
+                self.sync
+                    .request_blockchain_from_peer(
+                        peer_id,
+                        self.blockchain_lock.clone(),
+                        self.config_lock.clone(),
+                        &self.network,
+                    )
+                    .await;
+            }
+            RoutingEvent::KeyListUpdated(key_list) => {
+                self.process_key_list_updated_event(key_list).await;
+            }
         }
-        RoutingEvent::BlockchainRequest(peer_id) => {
-            info!(
-                "requesting blockchain from peer : {:?} after block add failure",
-                peer_id
-            );
-            self.sync
-                .request_blockchain_from_peer(
-                    peer_id,
-                    self.blockchain_lock.clone(),
-                    self.config_lock.clone(),
-                    &self.network,
-                )
-                .await;
-        }
-        RoutingEvent::KeyListUpdated(key_list) => {
-            self.process_key_list_updated_event(key_list).await;
-        }
+        None
     }
-    None
-}
-
-
-
-
 
     async fn on_init(&mut self) {
         assert!(!self.senders_to_verification.is_empty());

@@ -2608,9 +2608,7 @@ impl Blockchain {
                     block.hash.to_hex()
                 );
                 sender
-                    .send(RoutingEvent::BlockchainRequest(
-                        block.routed_from_peer_id,
-                    ))
+                    .send(RoutingEvent::BlockchainRequest(block.routed_from_peer_id))
                     .await
                     .expect("sending blockchain request failed");
             } else if fetch_prev_block {

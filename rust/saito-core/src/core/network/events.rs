@@ -17,9 +17,11 @@ pub enum NetworkEvent {
         peer_id: u64,
     },
     AddStunPeer {
+        peer_id: u64,
         public_key: SaitoPublicKey,
     },
     RemoveStunPeer {
+        peer_id: u64,
         public_key: SaitoPublicKey,
     },
     PeerDisconnected {

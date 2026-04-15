@@ -22,6 +22,10 @@ export class StunManager {
     peerConnection.ondatachannel = async (event) => {
       const dataChannel = event.channel;
       const peer = await NetworkPeer.create();
+      let peer = Saito.getInstance().peers.get(publicKey);
+      if (!peer) {
+        peer = await NetworkPeer.create();
+      }
 
       dataChannel.onmessage = (messageEvent) => {
         // Handle incoming messages
@@ -47,7 +51,12 @@ export class StunManager {
 
         this.stunPeers.set(publicKey, { peerConnection, publicKey });
         console.log(`Data channel opened and STUN peer added with public key: ${publicKey}`);
-        Saito.getLibInstance().process_stun_peer(publicKey);
+
+if (!Saito.getInstance().peers.has(publicKey)) {
+  Saito.getLibInstance().process_stun_peer(peer.peerId, publicKey);
+}
+
+
       };
 
       dataChannel.onerror = (error: any) => {
@@ -81,7 +90,10 @@ export class StunManager {
     } else {
       console.warn(`Attempt to remove non-existent STUN peer with index: ${publicKey}`);
     }
-    Saito.getLibInstance().remove_stun_peer(publicKey);
+const peer = Saito.getInstance().peers.get(publicKey);
+if (peer) {
+  Saito.getLibInstance().remove_stun_peer(peer.peerId, publicKey);
+}
   }
 
   private findPeerIndexByPublicKey(publicKey: string): string | null {

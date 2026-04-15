@@ -207,10 +207,8 @@ impl Peer {
 
     pub fn on_stun_connect(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {
         self.public_key = Some(public_key);
-        self.is_verified = true;
         self.is_connected = true;
         self.is_connecting = false;
-        self.is_handshaking = false;
         self.last_activity_at = current_time;
         self.last_message_at = current_time;
         self.peer_type = PeerType::Stun;
