@@ -1,6 +1,5 @@
 use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey};
 use crate::core::network::network::PeerDisconnectType;
-use crate::core::network::peer::Peer;
 use crate::core::process::version::Version;
 
 #[derive(Debug)]

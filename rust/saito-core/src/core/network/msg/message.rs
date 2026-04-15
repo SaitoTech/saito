@@ -10,7 +10,6 @@ use crate::core::network::msg::chainsync::{ChainSync, RequestChainSync};
 use crate::core::network::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::network::msg::services::{RequestServices, Services};
-use crate::core::network::service::Service;
 use crate::core::util::serialize::Serialize;
 use log::{error, warn};
 

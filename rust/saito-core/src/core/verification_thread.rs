@@ -13,7 +13,7 @@ use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
-    BlockHash, BlockId, PrintForLog, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
+    BlockHash, BlockId, PrintForLog, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
 };
 use crate::core::network::events::NetworkEvent;
 use crate::core::network::peers::Peers;
