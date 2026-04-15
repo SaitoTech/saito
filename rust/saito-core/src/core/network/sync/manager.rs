@@ -12,7 +12,6 @@ use crate::core::network::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::network::msg::message::Message;
 use crate::core::network::network::Network;
 use crate::core::network::peers::Peers;
-use crate::core::routing_thread::BlockchainSendResults;
 use crate::core::util::configuration::Configuration;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
@@ -26,6 +25,13 @@ enum BlockStatus {
     Fetched,
     Failed,
 }
+
+    
+pub struct BlockchainSendResults {
+    pub start_id: BlockId,
+    pub end_id: BlockId,
+    pub peer_id: u64,
+}   
 
 struct BlockData {
     block_hash: BlockHash,
@@ -455,12 +461,14 @@ impl BlockchainSyncState {
 
 pub struct SyncManager {
     pub state: BlockchainSyncState,
+    pub blockchain_send_results: Vec<BlockchainSendResults>,
 }
 
 impl SyncManager {
     pub fn new(batch_size: usize) -> Self {
         Self {
             state: BlockchainSyncState::new(batch_size),
+	    blockchain_send_results: vec![],
         }
     }
 
@@ -630,15 +638,14 @@ impl SyncManager {
         &self,
         blockchain_lock: Arc<RwLock<Blockchain>>,
         network: &Network,
-        blockchain_send_results: &mut Vec<BlockchainSendResults>,
     ) {
-        if blockchain_send_results.is_empty() {
+        if self.blockchain_send_results.is_empty() {
             return;
         }
 
         let blockchain = blockchain_lock.read().await;
 
-        for entry in blockchain_send_results.iter_mut() {
+        for entry in self.blockchain_send_results.iter_mut() {
             let start = entry.start_id;
             let end = std::cmp::min(entry.end_id, entry.start_id + 100);
 
@@ -659,7 +666,7 @@ impl SyncManager {
             }
         }
 
-        blockchain_send_results.retain(|entry| entry.start_id <= entry.end_id);
+        self.blockchain_send_results.retain(|entry| entry.start_id <= entry.end_id);
     }
 
     pub async fn process_blockchain_request_message(
@@ -668,7 +675,6 @@ impl SyncManager {
         peer_id: u64,
         blockchain_lock: Arc<RwLock<Blockchain>>,
         network: &Network,
-        blockchain_send_results: &mut Vec<BlockchainSendResults>,
     ) -> Result<(), Error> {
         info!(
             "processing incoming blockchain request : {:?}-{:?}-{:?} from peer : {:?}",
@@ -778,11 +784,11 @@ impl SyncManager {
             blockchain.blockring.get_latest_block_id()
         );
 
-        if !blockchain_send_results
+        if !self.blockchain_send_results
             .iter()
             .any(|r| r.peer_id == peer_id)
         {
-            blockchain_send_results.push(BlockchainSendResults {
+            self.blockchain_send_results.push(BlockchainSendResults {
                 start_id: last_shared_ancestor,
                 end_id: blockchain.blockring.get_latest_block_id() + 1,
                 peer_id: peer_id,
@@ -806,7 +812,7 @@ impl SyncManager {
 
         {
             let mut peers = network.peer_lock.write().await;
-            if let Some(peer) = peers.get_peer_by_public_key_mut(&public_key) {
+            if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
                 if peer.requested_blocks_from_peer {
                     info!("we already requested blockchain from peer : {}. so not requesting again until a reconnection",peer_id);
                     return;
@@ -822,8 +828,8 @@ impl SyncManager {
 
         info!(
             "requesting blockchain from peer : {:?} latest_block_id : {:?}, last_block_id : {:?}",
-            p,
-            blockchaind_get_latest_block_id(),
+            peer_id,
+            blockchain.get_latest_block_id(),
             blockchain.last_block_id,
         );
 

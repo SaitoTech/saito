@@ -42,7 +42,7 @@ impl InterfaceIO for WasmIoHandler {
     async fn send_message_to_all(
         &self,
         buffer: &[u8],
-        peer_exceptions: Vec<SaitoPublicKey>,
+        peer_exceptions: Vec<u64>,
     ) -> Result<(), Error> {
         let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
         array.copy_from(buffer);
@@ -52,7 +52,6 @@ impl InterfaceIO for WasmIoHandler {
         for (i, ex) in peer_exceptions.iter().enumerate() {
             let res = ex.to_base58();
             let res = JsValue::from(res);
-
             arr2.set(i as u32, res);
         }
 
@@ -81,7 +80,7 @@ impl InterfaceIO for WasmIoHandler {
     async fn fetch_block_from_peer(
         &self,
         block_hash: SaitoHash,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         url: &str,
         block_id: BlockId,
     ) -> Result<(), Error> {
@@ -89,7 +88,7 @@ impl InterfaceIO for WasmIoHandler {
         hash.copy_from(block_hash.as_slice());
         let result = MsgHandler::fetch_block_from_peer(
             &hash,
-            public_key.to_base58(),
+            peer_id,
             url.to_string(),
             BigInt::from(block_id),
         );

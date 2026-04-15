@@ -69,7 +69,7 @@ pub struct Transaction {
     /// cumulative fees for this tx-in-block
     pub cumulative_fees: Currency,
     #[serde(skip)]
-    pub routed_from_peer: Option<SaitoPublicKey>,
+    pub routed_from_peer_id: u64,
 }
 
 impl Display for Transaction {
@@ -133,7 +133,7 @@ impl Default for Transaction {
             total_fees: 0,
             total_work_for_me: 0,
             cumulative_fees: 0,
-            routed_from_peer: None,
+            routed_from_peer_id: 0,
         }
     }
 }

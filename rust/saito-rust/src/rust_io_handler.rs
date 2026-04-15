@@ -107,7 +107,7 @@ impl InterfaceIO for RustIOHandler {
     async fn send_message_to_all(
         &self,
         buffer: &[u8],
-        peer_exceptions: Vec<SaitoPublicKey>,
+        peer_exceptions: Vec<u64>,
     ) -> Result<(), Error> {
         let Some(network_controller) = &self.network_controller else {
             warn!("send_message_to_all called without network controller attached");
@@ -143,7 +143,7 @@ impl InterfaceIO for RustIOHandler {
     async fn fetch_block_from_peer(
         &self,
         block_hash: SaitoHash,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         url: &str,
         block_id: BlockId,
     ) -> Result<(), Error> {
@@ -154,7 +154,7 @@ impl InterfaceIO for RustIOHandler {
         debug!("fetching block : {:?} from peer : {:?}", block_id, url);
         let event = IoEvent::new(NetworkEvent::BlockFetchRequest {
             block_hash,
-            public_key,
+            peer_id,
             block_id,
             url: url.to_string(),
         });

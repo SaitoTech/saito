@@ -2418,7 +2418,7 @@ impl Blockchain {
 
             debug!("blocks to add : {:?}", blocks.len());
             while let Some(block) = blocks.pop_front() {
-                let public_key = block.routed_from_peer;
+                let peer_id = block.routed_from_peer_id;
                 let block_id = block.id;
                 let result = self
                     .add_block(block, storage, &mut mempool, configs, network)
@@ -2490,7 +2490,7 @@ impl Blockchain {
                         .await;
                     }
                     AddBlockResult::FailedNotValid => {
-                        if let Some(public_key) = public_key {
+                        if peer_id == peer_id {
                             // TODO -- notify gatekeeper of invalid block
                         }
                     }
@@ -2601,7 +2601,7 @@ impl Blockchain {
                 );
                 sender
                     .send(RoutingEvent::BlockchainRequest(
-                        block.routed_from_peer.unwrap(),
+                        block.routed_from_peer_id,
                     ))
                     .await
                     .expect("sending blockchain request failed");
@@ -2609,7 +2609,7 @@ impl Blockchain {
                 debug!("need to fetch the previous block. failed to add the block : {}-{} to the chain", block.id, block.hash.to_hex());
                 sender
                     .send(RoutingEvent::BlockFetchRequest(
-                        block.routed_from_peer.unwrap_or([0; 33]),
+                        block.routed_from_peer_id,
                         block.previous_block_hash,
                         block.id - 1,
                     ))

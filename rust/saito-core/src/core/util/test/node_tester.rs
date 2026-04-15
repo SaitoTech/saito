@@ -287,8 +287,6 @@ pub mod test {
                     received_ghost_chain: None,
                     waiting_for_genesis_block: false,
                     message_sending_timer: 0,
-                    blockchain_send_results: Default::default(),
-                    new_peers: vec![],
                 },
                 consensus_thread: ConsensusThread {
                     mempool_lock: context.mempool_lock.clone(),
@@ -619,7 +617,7 @@ pub mod test {
                 .process_network_event(NetworkEvent::BlockFetched {
                     block_hash: block.hash,
                     block_id: block.id,
-                    public_key: block.routed_from_peer.unwrap_or([0; 33]),
+                    public_key: block.routed_from_peer_id,
                     buffer: block.serialize_for_net(BlockType::Full),
                 })
                 .await;
