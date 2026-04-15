@@ -160,9 +160,8 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
   sendMessage(publicKey: string, buffer: Uint8Array): void {
     try {
-      if (Saito.getInstance().stunManager.isStunPeer(publicKey)) {
-        const stunPeer = Saito.getInstance().stunManager.getStunPeer(publicKey);
-        if (stunPeer) {
+      if (Saito.getInstance().stunManager.isStunPeerByPublicKey(publicKey)) {
+        const stunPeer = Saito.getInstance().stunManager.getStunPeerByPublicKey(publicKey);        if (stunPeer) {
           //@ts-ignore
           const { peerConnection, publicKey } = stunPeer;
           //@ts-ignore
@@ -205,14 +204,27 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
   sendMessageByPeerId(peerId: bigint, buffer: Uint8Array): void {
     try {
+      const stunPeer = Saito.getInstance().stunManager.getStunPeerByPeerId(peerId);
+      if (stunPeer) {
+        // @ts-ignore
+        const dc = stunPeer.peerConnection.dc;
+        if (dc && dc.readyState === "open") {
+          dc.send(buffer);
+          return;
+        }
+      }
+  
       let socket = Saito.getInstance().getSocketByPeerId(peerId);
       if (socket) {
         socket.send(buffer);
+      } else {
+        console.error(`No transport found for peerId ${peerId.toString()}`);
       }
     } catch (e) {
       console.error(e);
     }
   }
+  
 
   sendMessageToAll(buffer: Uint8Array, exceptions: Array<string>): void {
     // console.debug("sending message to all with size: " + buffer.byteLength);

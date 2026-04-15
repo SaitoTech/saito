@@ -132,7 +132,6 @@ impl Gatekeeper {
         let pending = mem::take(&mut self.pending_records);
 
         for (peer_id, pending_record) in pending {
-
             if let Some(_peer) = peers.get_peer_by_id_mut(peer_id) {
                 // _peer.messages_received += pending_record.messages_received as u64;
                 // _peer.invalid_blocks += pending_record.invalid_blocks_received;

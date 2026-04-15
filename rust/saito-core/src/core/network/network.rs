@@ -56,7 +56,6 @@ impl Network {
     }
 
     pub async fn propagate_block(&self, block: &Block) {
-
         let peers = self.peer_lock.read().await;
         let mut excluded_peers: Vec<u64> = vec![];
 
@@ -139,11 +138,6 @@ impl Network {
         }
     }
 
-    pub async fn update_peer_timestamp(&self, public_key: SaitoPublicKey, timestamp: Timestamp) {
-        let mut peers = self.peer_lock.write().await;
-        peers.update_peer_timer(public_key, timestamp).await;
-    }
-
     pub async fn cleanup_peers(&self, current_time: Timestamp) {
         let mut peers = self.peer_lock.write().await;
 
@@ -161,16 +155,23 @@ impl Network {
         }
     }
 
-    pub async fn add_stun_peer(&self, public_key: SaitoPublicKey, timestamp: Timestamp) {
+    pub async fn add_stun_peer(
+        &self,
+        peer_id: u64,
+        public_key: SaitoPublicKey,
+        timestamp: Timestamp,
+    ) {
         let mut peers = self.peer_lock.write().await;
         peers
-            .handle_new_stun_peer(public_key, timestamp, &self.io_interface)
+            .add_stun_peer(peer_id, public_key, timestamp, &self.io_interface)
             .await;
     }
 
-    pub async fn remove_stun_peer(&self, public_key: SaitoPublicKey) {
+    pub async fn remove_stun_peer(&self, peer_id: u64, public_key: SaitoPublicKey) {
         let mut peers = self.peer_lock.write().await;
-        peers.remove_stun_peer(public_key, &self.io_interface).await;
+        peers
+            .remove_stun_peer(peer_id, public_key, &self.io_interface)
+            .await;
     }
 
     pub async fn request_blockchain_on_connect(

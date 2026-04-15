@@ -34,19 +34,10 @@ pub const BLOCK_PRODUCING_TIMER: u64 = Duration::from_millis(1000).as_millis() a
 
 #[derive(Debug)]
 pub enum ConsensusEvent {
-    NewGoldenTicket {
-        golden_ticket: GoldenTicket,
-    },
-    BlockFetched {
-        peer_id: u64,
-        block: Block,
-    },
-    NewTransaction {
-        transaction: Transaction,
-    },
-    NewTransactions {
-        transactions: Vec<Transaction>,
-    },
+    NewGoldenTicket { golden_ticket: GoldenTicket },
+    BlockFetched { peer_id: u64, block: Block },
+    NewTransaction { transaction: Transaction },
+    NewTransactions { transactions: Vec<Transaction> },
 }
 
 pub struct ConsensusStats {

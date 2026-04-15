@@ -26,12 +26,11 @@ enum BlockStatus {
     Failed,
 }
 
-    
 pub struct BlockchainSendResults {
     pub start_id: BlockId,
     pub end_id: BlockId,
     pub peer_id: u64,
-}   
+}
 
 struct BlockData {
     block_hash: BlockHash,
@@ -468,7 +467,7 @@ impl SyncManager {
     pub fn new(batch_size: usize) -> Self {
         Self {
             state: BlockchainSyncState::new(batch_size),
-	    blockchain_send_results: vec![],
+            blockchain_send_results: vec![],
         }
     }
 
@@ -666,7 +665,8 @@ impl SyncManager {
             }
         }
 
-        self.blockchain_send_results.retain(|entry| entry.start_id <= entry.end_id);
+        self.blockchain_send_results
+            .retain(|entry| entry.start_id <= entry.end_id);
     }
 
     pub async fn process_blockchain_request_message(
@@ -741,12 +741,7 @@ impl SyncManager {
             blockchain.get_latest_block_id(),
             blockchain.get_latest_block_hash().to_hex());
             {
-                if let Some(peer_v2) = network
-                    .peer_lock
-                    .write()
-                    .await
-                    .get_peer_by_id_mut(peer_id)
-                {
+                if let Some(peer_v2) = network.peer_lock.write().await.get_peer_by_id_mut(peer_id) {
                     peer_v2.url = None;
                 }
             }
@@ -758,11 +753,7 @@ impl SyncManager {
                 )
                 .await
             {
-                error!(
-                    "error disconnecting from peer : {}. {}",
-                    peer_id,
-                    e
-                );
+                error!("error disconnecting from peer : {}. {}", peer_id, e);
             }
 
             return Ok(());
@@ -784,7 +775,8 @@ impl SyncManager {
             blockchain.blockring.get_latest_block_id()
         );
 
-        if !self.blockchain_send_results
+        if !self
+            .blockchain_send_results
             .iter()
             .any(|r| r.peer_id == peer_id)
         {
@@ -883,10 +875,7 @@ impl SyncManager {
                     };
                 }
             }
-            debug!(
-                "sending ghost chain request to peer : {:?}",
-                peer_id
-            );
+            debug!("sending ghost chain request to peer : {:?}", peer_id);
         } else {
             if let Some(fork_id) = blockchain.generate_fork_id(blockchain.get_latest_block_id()) {
                 request = BlockchainRequest {
@@ -913,10 +902,7 @@ impl SyncManager {
                     [0; 32]
                 );
             }
-            debug!(
-                "sending blockchain request to peer : {:?}",
-                peer_id
-            );
+            debug!("sending blockchain request to peer : {:?}", peer_id);
         }
 
         let is_spv_mode = configs.is_spv_mode();
@@ -939,10 +925,7 @@ impl SyncManager {
             )
             .await;
 
-        trace!(
-            "blockchain request sent to peer : {:?}",
-            peer_id
-        );
+        trace!("blockchain request sent to peer : {:?}", peer_id);
     }
 
     pub async fn fetch_next_blocks(
