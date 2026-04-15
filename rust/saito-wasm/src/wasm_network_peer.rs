@@ -76,11 +76,12 @@ impl WasmNetworkPeer {
             "[SAITO STEP 6] wasm get_handshake_challenge_buffer building RequestHandshake peer_id={}",
             self.peer_id
         );
-        let buffer =
-            Message::RequestHandshake(saito_core::core::network::msg::handshake::RequestHandshake {
+        let buffer = Message::RequestHandshake(
+            saito_core::core::network::msg::handshake::RequestHandshake {
                 nonce: peer.handshake_nonce.unwrap(),
-            })
-            .serialize();
+            },
+        )
+        .serialize();
 
         js_sys::Uint8Array::from(buffer.as_slice())
     }

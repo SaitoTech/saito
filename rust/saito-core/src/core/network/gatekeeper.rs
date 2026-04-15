@@ -9,7 +9,6 @@ pub type PeerId = SaitoPublicKey;
 const MESSAGE_WINDOW: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
 const INVALID_BLOCK_WINDOW: Timestamp = Duration::from_secs(3600).as_millis() as Timestamp;
 
-
 //
 // AccessPermission defines all of the states in which a peer
 // can be labelled, thus limited access or regulating how the
@@ -25,7 +24,7 @@ pub enum AccessPermission {
 //
 // AccessRecord defines all of the variables that are tracked
 // peer-by-peer. They are provided in the gatekeeper.record()
-// function to track what is incremented when the record() 
+// function to track what is incremented when the record()
 // function is called..
 //
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,9 +34,9 @@ pub enum AccessRecord {
 }
 
 //
-// stores the specific variables that are tracked for each 
+// stores the specific variables that are tracked for each
 // peer_id. This is where the variables are incremented and
-// saved locally before they are written into the peer 
+// saved locally before they are written into the peer
 // periodically by the monitor_peers loop.
 //
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -49,9 +48,9 @@ pub struct PeerAccessRecords {
 }
 
 //
-// the Gatekeeper consists of two hashmaps that stores the 
-// default Permission (level) of each peer as well as 
-// records that it updates. The records are eventually 
+// the Gatekeeper consists of two hashmaps that stores the
+// default Permission (level) of each peer as well as
+// records that it updates. The records are eventually
 // synced into the peer itself. So it is a slightly-
 // delayed update.
 //
@@ -88,17 +87,16 @@ impl Gatekeeper {
         )
     }
 
-
     pub fn add_record(&mut self, peer_id: PeerId, record: AccessRecord, now: Timestamp) {
         let peer_record = self
             .pending_records
             .entry(peer_id)
             .or_insert(PeerAccessRecords {
-            messages_received: 0,
-            messages_received_started_at: now,
-            invalid_blocks_received: 0,
-            invalid_blocks_received_started_at: now,
-        });
+                messages_received: 0,
+                messages_received_started_at: now,
+                invalid_blocks_received: 0,
+                invalid_blocks_received_started_at: now,
+            });
 
         match record {
             AccessRecord::MessageReceived => {
@@ -123,8 +121,8 @@ impl Gatekeeper {
     //
     // !!! IMPORTANT !!!
     //
-    // this function runs intermittently -- and loops through the peers and 
-    // checks whether they should be upgraded or downgraded based on the 
+    // this function runs intermittently -- and loops through the peers and
+    // checks whether they should be upgraded or downgraded based on the
     // information in them.
     //
     pub fn monitor_peers(&mut self, peers: &mut Peers, _now: Timestamp) {

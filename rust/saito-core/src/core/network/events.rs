@@ -1,14 +1,10 @@
 use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey};
-use crate::core::process::version::Version;
 use crate::core::network::network::PeerDisconnectType;
 use crate::core::network::peer::Peer;
+use crate::core::process::version::Version;
 
 #[derive(Debug)]
 pub enum NetworkEvent {
-    PeerMessageReceived {
-        public_key: SaitoPublicKey,
-        buffer: Vec<u8>,
-    },
     PeerBufferReceived {
         peer_id: u64,
         buffer: Vec<u8>,
@@ -39,12 +35,12 @@ pub enum NetworkEvent {
     BlockFetched {
         block_hash: SaitoHash,
         block_id: BlockId,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         buffer: Vec<u8>,
     },
     BlockFetchFailed {
         block_hash: SaitoHash,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         block_id: BlockId,
     },
     NewVersionDetected {

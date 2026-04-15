@@ -8,16 +8,16 @@ use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
-use crate::core::network::msg::message::Message;
-use crate::core::network::msg::services::{RequestServices};
-use crate::core::network::msg::chainsync::{RequestChainSync};
-use crate::core::process::keep_time::Timer;
-use crate::core::process::version::Version;
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::interface_io::InterfaceIO;
-use crate::core::network::peers::Peers;
+use crate::core::network::msg::chainsync::RequestChainSync;
+use crate::core::network::msg::message::Message;
+use crate::core::network::msg::services::RequestServices;
 use crate::core::network::peer::Peer;
+use crate::core::network::peers::Peers;
 use crate::core::network::service::Service;
+use crate::core::process::keep_time::Timer;
+use crate::core::process::version::Version;
 use crate::core::util::configuration::Configuration;
 
 const RECONNECTION_PERIOD: Timestamp = 5_000;
@@ -160,18 +160,9 @@ impl Network {
         peers.remove_disconnected_peers(current_time);
     }
 
-    pub async fn handle_key_list_update(
-        &self,
-        public_key: SaitoPublicKey,
-        key_list: Vec<SaitoPublicKey>,
-        timestamp: Timestamp,
-    ) {
+    pub async fn set_peer_key_list(&self, peer_id: u64, key_list: Vec<SaitoPublicKey>) {
         let mut peers = self.peer_lock.write().await;
-
-        if let Err(e) = peers
-            .handle_received_key_list(public_key, key_list, timestamp)
-            .await
-        {
+        if let Err(e) = peers.set_peer_key_list(peer_id, key_list).await {
             error!("Received key list error: {:?}", e);
         }
     }
@@ -301,17 +292,14 @@ impl Network {
             .await;
     }
 
-
-
     pub async fn monitor_peers(&mut self, current_time: Timestamp) -> bool {
-
-	//
-	// in order to avoid .await while holding the peer lock, we collect
-	// references for the peer_ids that we want to send, and send at the
-	// end once we have iterated through all of the peers.
-	//
-	let mut request_services_for: Vec<u64> = vec![];
-	let mut request_sync_for: Vec<u64> = vec![];
+        //
+        // in order to avoid .await while holding the peer lock, we collect
+        // references for the peer_ids that we want to send, and send at the
+        // end once we have iterated through all of the peers.
+        //
+        let mut request_services_for: Vec<u64> = vec![];
+        let mut request_sync_for: Vec<u64> = vec![];
 
         let mut work_done = false;
 
@@ -322,7 +310,6 @@ impl Network {
             let mut peers = self.peer_lock.write().await;
 
             for peer in peers.peers_v2.values_mut() {
-
                 //
                 // STUCK HANDSHAKE DETECTION
                 //
@@ -340,19 +327,18 @@ impl Network {
                 //
                 if !peer.is_services_fetching && !peer.is_services_fetched && peer.is_connected {
                     peer.is_services_fetching = true;
-		    request_services_for.push(peer.id);
+                    request_services_for.push(peer.id);
                     work_done = true;
                 }
 
-		//
-		// SYNCING
-		//
-		if peer.is_connected && !peer.is_syncing && !peer.is_synced {
-		    peer.is_syncing = true;
-		    request_sync_for.push(peer.id);
-		    work_done = true;
-		}
-
+                //
+                // SYNCING
+                //
+                if peer.is_connected && !peer.is_syncing && !peer.is_synced {
+                    peer.is_syncing = true;
+                    request_sync_for.push(peer.id);
+                    work_done = true;
+                }
 
                 //
                 // NEXT SKIP ACTIVE CONNECTIONS
@@ -417,34 +403,27 @@ impl Network {
         //
         self.cleanup_peers(current_time).await;
 
+        //
+        // send
+        //
+        for peer_id in request_services_for {
+            self.send_message_by_peer_id(peer_id, Message::RequestServices(RequestServices {}))
+                .await;
+        }
 
-	//
-	// send 
-	//
-    	for peer_id in request_services_for {
-        	self.send_message_by_peer_id(
-        	    peer_id,
-        	    Message::RequestServices(RequestServices {}),
-        	)
-        	.await;
-    	}
-
-	//
-	// sync
-	//
-    	for peer_id in request_sync_for {
-        	self.send_message_by_peer_id(
-        	    peer_id,
-        	    Message::RequestChainSync(RequestChainSync {
-    latest_block_id: 0,
-    latest_block_hash: [0; 32],
-		    }),
-        	)
-        	.await;
-    	}
-
-
-
+        //
+        // sync
+        //
+        for peer_id in request_sync_for {
+            self.send_message_by_peer_id(
+                peer_id,
+                Message::RequestChainSync(RequestChainSync {
+                    latest_block_id: 0,
+                    latest_block_hash: [0; 32],
+                }),
+            )
+            .await;
+        }
 
         work_done
     }
@@ -477,36 +456,17 @@ impl Network {
         }
     }
 
-    pub async fn get_peer_key_list(
-        &self,
-        public_key: SaitoPublicKey,
-    ) -> Option<Vec<SaitoPublicKey>> {
-        let peers = self.peer_lock.read().await;
-
-        if let Some(peer) = peers.get_peer_by_public_key(&public_key) {
-            let mut keys = vec![public_key];
-            keys.extend(peer.key_list.clone());
-            Some(keys)
-        } else {
-            None
-        }
-    }
-
     pub async fn handle_peer_disconnect(
         &mut self,
-	peer_id: u64,
+        peer_id: u64,
         disconnect_type: PeerDisconnectType,
     ) {
-        info!(
-            "handling peer disconnect, peer_id = {}",
-            peer_id
-        );
+        info!("handling peer disconnect, peer_id = {}", peer_id);
 
         //
         // instruction socket-layer to disconnect
         //
         if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
-
             let _ = self
                 .io_interface
                 .disconnect_from_peer(peer_id)
@@ -514,8 +474,7 @@ impl Network {
                 .inspect_err(|err| {
                     error!(
                         "failed local cleanup disconnect for peer {:?}: {:?}",
-                        peer_id,
-                        err
+                        peer_id, err
                     )
                 });
         }
@@ -546,24 +505,13 @@ impl Network {
         }
     }
 
-    pub async fn disconnect_from_peer(
-        &self,
-        peer_id: u64,
-        message: &str,
-    ) -> Result<(), Error> {
-
+    pub async fn disconnect_from_peer(&self, peer_id: u64, message: &str) -> Result<(), Error> {
         self.send_message_by_peer_id(peer_id, Message::Disconnect(message.to_string()))
             .await;
 
         self.io_interface
             .disconnect_from_peer(peer_id)
             .await
-            .inspect_err(|err| {
-                error!(
-                    "failed disconnecting from peer : {}. {}",
-                    peer_id,
-                    err
-                )
-            })
+            .inspect_err(|err| error!("failed disconnecting from peer : {}. {}", peer_id, err))
     }
 }

@@ -30,18 +30,18 @@ use saito_core::core::defs::{
     Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
+use saito_core::core::network::events::NetworkEvent;
+use saito_core::core::network::gatekeeper::Gatekeeper;
+use saito_core::core::network::network::{Network, PeerDisconnectType};
+use saito_core::core::network::peer::Peer;
+use saito_core::core::network::peers::Peers;
+use saito_core::core::network::sync::manager::SyncManager;
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::network::network::{Network, PeerDisconnectType};
-use saito_core::core::network::events::NetworkEvent;
-use saito_core::core::storage::storage::Storage;
 use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
-use saito_core::core::network::peers::Peers;
-use saito_core::core::network::peer::Peer;
-use saito_core::core::network::sync::manager::SyncManager;
-use saito_core::core::network::gatekeeper::Gatekeeper;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
+use saito_core::core::storage::storage::Storage;
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::crypto::{generate_keypair_from_private_key, sign};
 use saito_core::core::verification_thread::{VerificationThread, VerifyRequest};
@@ -949,9 +949,7 @@ pub async fn process_new_peer(peer_id: u64) {
         .as_mut()
         .unwrap()
         .routing_thread
-        .process_network_event(NetworkEvent::PeerConnectionResult {
-            peer_id: peer_id,
-        })
+        .process_network_event(NetworkEvent::PeerConnectionResult { peer_id: peer_id })
         .await;
 }
 

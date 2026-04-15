@@ -44,17 +44,14 @@ impl Peers {
     //
     // PEER V2 REFACTOR API
     //
-    pub fn get_peer_by_public_key_mut(
-        &mut self,
-        public_key: &SaitoPublicKey,
-    ) -> Option<&mut Peer> {
+    pub fn get_peer_by_public_key_mut(&mut self, public_key: &SaitoPublicKey) -> Option<&mut Peer> {
         self.peers_v2
             .values_mut()
             .find(|p| p.public_key.as_ref() == Some(public_key))
     }
 
     pub fn get_peer_by_id_mut(&mut self, peer_id: u64) -> Option<&mut Peer> {
-        self.peers_v2.get_mut(&peer_id)
+        self.peers_v2.get_mut(peer_id)
     }
 
     pub fn get_peer_by_public_key(&self, public_key: &SaitoPublicKey) -> Option<&Peer> {
@@ -64,7 +61,7 @@ impl Peers {
     }
 
     pub fn get_peer_by_id(&self, peer_id: u64) -> Option<&Peer> {
-        self.peers_v2.get(&peer_id)
+        self.peers_v2.get(peer_id)
     }
 
     pub fn remove_peer_by_public_key(&mut self, public_key: &SaitoPublicKey) {
@@ -75,7 +72,7 @@ impl Peers {
                 None
             }
         }) {
-            self.peers_v2.remove(&peer_id);
+            self.peers_v2.remove(peer_id);
         }
     }
 
@@ -86,9 +83,6 @@ impl Peers {
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Peer> {
         self.peers_v2.values_mut()
     }
-
-
-
 
     //
     // LEGACY FUNCTIONS BELOW
@@ -128,19 +122,18 @@ impl Peers {
             peer_v2.last_message_at = current_time;
         }
     }
-    pub async fn handle_received_key_list(
+    pub async fn set_peer_key_list(
         &mut self,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         key_list: Vec<SaitoPublicKey>,
-        current_time: Timestamp,
     ) -> Result<(), Error> {
         trace!(
             "handler received key list of length : {:?} from peer : {:?}",
             key_list.len(),
-            public_key.to_base58()
+            peer_id
         );
 
-        if let Some(peer_v2) = self.get_peer_by_public_key_mut(&public_key) {
+        if let Some(peer_v2) = self.get_peer_by_id_mut(peer_id) {
             peer_v2.key_list = key_list;
             Ok(())
         } else {
@@ -193,55 +186,58 @@ impl Peers {
             .collect();
 
         for peer_id in peer_ids {
-            self.peers_v2.remove(&peer_id);
+            self.peers_v2.remove(peer_id);
         }
     }
 
-pub async fn disconnect_stale_peers(
-    &mut self,
-    current_time: Timestamp,
-    io_handler: &(dyn InterfaceIO + Send + Sync),
-) {
-    trace!(
-        "disconnecting stale peers out of {:?} peers",
-        self.peers_v2.len()
-    );
-    // --- Phase 1: collect stale peer_ids ---
-    let mut stale_peer_ids: Vec<u64> = Vec::new();
-    for peer in self.peers_v2.values() {
-        if peer.is_connected && peer.last_message_at + PEER_STALE_PERIOD < current_time {
-            if let Some(pk) = peer.public_key {
-                trace!(
-                    "peer {:?} (id={}) is stale (last_message_at = {:?}, now = {:?})",
-                    pk.to_base58(),
-                    peer.id,
-                    peer.last_message_at,
-                    current_time
-                );
-            } else {
-                trace!(
-                    "peer id={} is stale (last_message_at = {:?}, now = {:?})",
-                    peer.id,
-                    peer.last_message_at,
-                    current_time
+    pub async fn disconnect_stale_peers(
+        &mut self,
+        current_time: Timestamp,
+        io_handler: &(dyn InterfaceIO + Send + Sync),
+    ) {
+        trace!(
+            "disconnecting stale peers out of {:?} peers",
+            self.peers_v2.len()
+        );
+        // --- Phase 1: collect stale peer_ids ---
+        let mut stale_peer_ids: Vec<u64> = Vec::new();
+        for peer in self.peers_v2.values() {
+            if peer.is_connected && peer.last_message_at + PEER_STALE_PERIOD < current_time {
+                if let Some(pk) = peer.public_key {
+                    trace!(
+                        "peer {:?} (id={}) is stale (last_message_at = {:?}, now = {:?})",
+                        pk.to_base58(),
+                        peer.id,
+                        peer.last_message_at,
+                        current_time
+                    );
+                } else {
+                    trace!(
+                        "peer id={} is stale (last_message_at = {:?}, now = {:?})",
+                        peer.id,
+                        peer.last_message_at,
+                        current_time
+                    );
+                }
+                stale_peer_ids.push(peer.id);
+            }
+        }
+        // --- Phase 2: apply disconnect ---
+        for peer_id in stale_peer_ids {
+            info!("disconnecting stale peer_id : {:?}", peer_id);
+            // update PeerV2 state
+            if let Some(peer_v2) = self.get_peer_by_id_mut(peer_id) {
+                peer_v2.on_disconnect(current_time);
+            }
+            // IO disconnect by peer_id
+            if let Err(err) = io_handler.disconnect_from_peer(peer_id).await {
+                error!(
+                    "failed disconnecting stale peer_id {:?}: {:?}",
+                    peer_id, err
                 );
             }
-            stale_peer_ids.push(peer.id);
         }
     }
-    // --- Phase 2: apply disconnect ---
-    for peer_id in stale_peer_ids {
-        info!("disconnecting stale peer_id : {:?}", peer_id);
-        // update PeerV2 state
-        if let Some(peer_v2) = self.get_peer_by_id_mut(&peer_id) {
-            peer_v2.on_disconnect(current_time);
-        }
-        // IO disconnect by peer_id
-        if let Err(err) = io_handler.disconnect_from_peer(peer_id).await {
-            error!("failed disconnecting stale peer_id {:?}: {:?}", peer_id, err);
-        }
-    }
-}
 
     pub fn print_current_peers(&self) {
         self.peers_v2.values().for_each(|peer| {

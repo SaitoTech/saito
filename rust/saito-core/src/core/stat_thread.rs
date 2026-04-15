@@ -6,9 +6,9 @@ use log::info;
 use serde::Serialize;
 
 use crate::core::defs::Timestamp;
-use crate::core::process::process_event::ProcessEvent;
-use crate::core::network::interface_io::InterfaceIO;
 use crate::core::network::events::NetworkEvent;
+use crate::core::network::interface_io::InterfaceIO;
+use crate::core::process::process_event::ProcessEvent;
 
 const STAT_FILENAME: &str = "./data/saito.stats";
 const STAT_FILE_WRITE_INTERVAL: u64 = 5_000; // in milliseconds

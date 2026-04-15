@@ -31,14 +31,14 @@ use saito_core::core::defs::{
     BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, BLOCK_FILE_EXTENSION,
     STAT_BIN_COUNT,
 };
-use saito_core::core::network::msg::message::Message;
-use saito_core::core::process::keep_time::Timer;
-use saito_core::core::network::network::PeerDisconnectType;
-use saito_core::core::network::events::NetworkEvent;
 use saito_core::core::network::events::IoEvent;
-use saito_core::core::network::service::Service;
-use saito_core::core::network::peers::Peers;
+use saito_core::core::network::events::NetworkEvent;
+use saito_core::core::network::msg::message::Message;
+use saito_core::core::network::network::PeerDisconnectType;
 use saito_core::core::network::peer::Peer;
+use saito_core::core::network::peers::Peers;
+use saito_core::core::network::service::Service;
+use saito_core::core::process::keep_time::Timer;
 use saito_core::core::util::configuration::Configuration;
 
 //
@@ -384,9 +384,11 @@ impl NetworkController {
                 ));
 
                 Some(
-                    Message::RequestHandshake(saito_core::core::network::msg::handshake::RequestHandshake {
-                        nonce: p.handshake_nonce.unwrap(),
-                    })
+                    Message::RequestHandshake(
+                        saito_core::core::network::msg::handshake::RequestHandshake {
+                            nonce: p.handshake_nonce.unwrap(),
+                        },
+                    )
                     .serialize(),
                 )
             } else {
@@ -428,26 +430,25 @@ impl NetworkController {
         }
     }
     pub async fn disconnect(&mut self, peer_id: u64) {
-
-      if let Some(sender) = self.sockets_by_peer_id.remove(&peer_id) {
-          self.disconnect_socket(sender).await;
-      }
-      self.peer_id_by_public_key.retain(|_k, v| *v != peer_id);
+        if let Some(sender) = self.sockets_by_peer_id.remove(&peer_id) {
+            self.disconnect_socket(sender).await;
+        }
+        self.peer_id_by_public_key.retain(|_k, v| *v != peer_id);
         if let Err(e) = self
-          .sender_to_core
-          .send(IoEvent {
-            event_processor_id: 1,
-            event: NetworkEvent::PeerDisconnected {
-              peer_id,
-              disconnect_type: PeerDisconnectType::InternalDisconnect,
-            },
-          })
-          .await
+            .sender_to_core
+            .send(IoEvent {
+                event_processor_id: 1,
+                event: NetworkEvent::PeerDisconnected {
+                    peer_id,
+                    disconnect_type: PeerDisconnectType::InternalDisconnect,
+                },
+            })
+            .await
         {
-          warn!(
-            "sender_to_core send failed (peer_id={} op=disconnect_notify err={})",
-            peer_id, e
-          );
+            warn!(
+                "sender_to_core send failed (peer_id={} op=disconnect_notify err={})",
+                peer_id, e
+            );
         }
     }
 
