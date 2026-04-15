@@ -50,9 +50,8 @@ impl InterfaceIO for WasmIoHandler {
         let arr2 = js_sys::Array::new_with_length(peer_exceptions.len() as u32);
 
         for (i, ex) in peer_exceptions.iter().enumerate() {
-            let res = ex.to_base58();
-            let res = JsValue::from(res);
-            arr2.set(i as u32, res);
+            let peer_id = BigInt::from(*ex);
+            arr2.set(i as u32, JsValue::from(peer_id));
         }
 
         MsgHandler::send_message_to_all(&array, &arr2);
@@ -364,12 +363,12 @@ extern "C" {
     pub fn remove_value(key: String) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
-    pub fn disconnect_from_peer(peer_id: bigint) -> Result<JsValue, js_sys::Error>;
+    pub fn disconnect_from_peer(peer_id: u64) -> Result<JsValue, js_sys::Error>;
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
     pub fn fetch_block_from_peer(
         hash: &Uint8Array,
-        public_key: String,
+        peer_id: u64,
         url: String,
         block_id: BigInt,
     ) -> Result<JsValue, JsValue>;

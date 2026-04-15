@@ -288,7 +288,6 @@ async fn run_routing_event_processor(
         gatekeeper: Gatekeeper::default(),
         congestion_check_timer: 0,
         gatekeeper_monitor_timer: 0,
-        received_ghost_chain: None,
         waiting_for_genesis_block: false,
         message_sending_timer: 0,
     };

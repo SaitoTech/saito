@@ -38,7 +38,7 @@ pub enum ConsensusEvent {
         golden_ticket: GoldenTicket,
     },
     BlockFetched {
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         block: Block,
     },
     NewTransaction {

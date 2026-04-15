@@ -51,7 +51,7 @@ impl Peers {
     }
 
     pub fn get_peer_by_id_mut(&mut self, peer_id: u64) -> Option<&mut Peer> {
-        self.peers_v2.get_mut(peer_id)
+        self.peers_v2.get_mut(&peer_id)
     }
 
     pub fn get_peer_by_public_key(&self, public_key: &SaitoPublicKey) -> Option<&Peer> {
@@ -61,7 +61,7 @@ impl Peers {
     }
 
     pub fn get_peer_by_id(&self, peer_id: u64) -> Option<&Peer> {
-        self.peers_v2.get(peer_id)
+        self.peers_v2.get(&peer_id)
     }
 
     pub fn remove_peer_by_public_key(&mut self, public_key: &SaitoPublicKey) {
@@ -72,7 +72,7 @@ impl Peers {
                 None
             }
         }) {
-            self.peers_v2.remove(peer_id);
+            self.peers_v2.remove(&peer_id);
         }
     }
 
@@ -186,7 +186,7 @@ impl Peers {
             .collect();
 
         for peer_id in peer_ids {
-            self.peers_v2.remove(peer_id);
+            self.peers_v2.remove(&peer_id);
         }
     }
 

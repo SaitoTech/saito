@@ -89,7 +89,7 @@ impl BlockchainSyncState {
                 },
             );
 
-            let blocks_to_fetch_from_peer = self.blocks_to_fetch.entry(peer_id).or_default();
+            let blocks_to_fetch_from_peer = self.blocks_to_fetch.entry(*peer_id).or_default();
             let mut counter = 0;
 
             loop {
@@ -207,7 +207,7 @@ impl BlockchainSyncState {
                         );
                         allowed_quota -= 1;
                         selected_blocks_per_peer
-                            .entry(peer_id)
+                            .entry(*peer_id)
                             .or_default()
                             .push((block_data.block_hash, block_data.block_id));
                         block_data.status = BlockStatus::Fetching;
@@ -441,7 +441,7 @@ impl BlockchainSyncState {
             peer_id
         );
 
-        if let Some(deq) = self.blocks_to_fetch.get_mut(peer_id) {
+        if let Some(deq) = self.blocks_to_fetch.get_mut(&peer_id) {
             let data = deq
                 .iter_mut()
                 .find(|data| data.block_id == id && data.block_hash == hash);
@@ -634,8 +634,8 @@ impl SyncManager {
         ghost
     }
 
-    pub async fn send_block_headers(
-        &self,
+    pub async fn send_block_reference(
+        &mut self,
         blockchain_lock: Arc<RwLock<Blockchain>>,
         network: &Network,
     ) {

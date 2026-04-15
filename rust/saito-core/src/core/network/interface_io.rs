@@ -69,7 +69,7 @@ pub trait InterfaceIO: Debug {
     /// # Arguments
     ///
     /// * `block_hash`:
-    /// * `public_key`:
+    /// * `peer_id`:
     /// * `url`:
     ///
     /// returns: Result<(), Error>

@@ -107,14 +107,13 @@ impl InterfaceIO for RustIOHandler {
     async fn send_message_to_all(
         &self,
         buffer: &[u8],
-        peer_exceptions: Vec<u64>,
+        excluded_peer_ids: Vec<u64>,
     ) -> Result<(), Error> {
         let Some(network_controller) = &self.network_controller else {
             warn!("send_message_to_all called without network controller attached");
             return Err(Error::from(ErrorKind::NotConnected));
         };
         let mut controller = network_controller.write().await;
-        let excluded_peer_ids = controller.resolve_peer_ids_by_public_keys(&peer_exceptions);
         controller
             .broadcast(buffer.to_vec(), &excluded_peer_ids)
             .await;
