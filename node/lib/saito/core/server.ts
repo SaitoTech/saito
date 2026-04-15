@@ -153,25 +153,25 @@ export class NodeSharedMethods extends CustomSharedMethods {
       socket.on('close', () => {
         try {
           S.getInstance().disconnectPeer(peer);
-          S.getLibInstance().process_peer_disconnection(peer.id);
+          S.getLibInstance().process_peer_disconnection(peer.peerId);
         } catch (e) {
           console.error(
-            `failed processing socket close from peer : ${peer.id} from url : ${url}`,
+            `failed processing socket close from peer : ${peer.peerId} from url : ${url}`,
             e
           );
       });
 
       socket.on('error', (error) => {
         console.error(
-          `received socket error from peer : ${peer.id} from url : ${url}`,
+          `received socket error from peer : ${peer.peerId} from url : ${url}`,
           error
         );
         try {
           S.getInstance().disconnectPeer(peer);
-          S.getLibInstance().process_peer_disconnection(peer.id);
+          S.getLibInstance().process_peer_disconnection(peer.peerId);
         } catch (e) {
           console.error(
-            `failed processing error from peer : ${peer.id} from url : ${url}`,
+            `failed processing error from peer : ${peer.peerId} from url : ${url}`,
             e
           );
       });
@@ -475,12 +475,12 @@ class Server {
 
       socket.on('close', () => {
         S.getInstance().disconnectPeer(peer);
-        S.getLibInstance().process_peer_disconnection(peer.publicKey);
+        S.getLibInstance().process_peer_disconnection(peer.peerId);
       });
       socket.on('error', (error) => {
         console.error('error on socket : ' + peer.publicKey, error);
         S.getInstance().disconnectPeer(peer);
-        S.getLibInstance().process_peer_disconnection(peer.publicKey);
+        S.getLibInstance().process_peer_disconnection(peer.peerId);
       });
 
       peer.get_handshake_challenge_buffer().then((buffer) => {

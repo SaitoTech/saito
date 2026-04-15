@@ -3,7 +3,6 @@ use std::io::{Error, ErrorKind};
 use figment::providers::{Format, Json};
 use figment::Figment;
 use log::error;
-use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use serde::Deserialize;
 use wasm_bindgen::prelude::*;
 
@@ -26,7 +25,6 @@ pub struct WasmConfiguration {
     #[serde(default = "get_default_consensus")]
     consensus: Option<ConsensusConfig>,
     #[serde(skip)]
-    congestion: Option<CongestionStatsDisplay>,
     wallet: Option<WalletConfig>,
 }
 
@@ -72,7 +70,6 @@ impl WasmConfiguration {
             spv_mode: false,
             browser_mode: false,
             consensus: Some(ConsensusConfig::default()),
-            congestion: None,
             wallet: Default::default(),
         }
     }
@@ -139,7 +136,6 @@ impl Configuration for WasmConfiguration {
         self.browser_mode = config.is_browser();
         self.blockchain = config.get_blockchain_configs().clone();
         self.consensus = config.get_consensus_config().cloned();
-        self.congestion = config.get_congestion_data().cloned();
     }
 
     fn get_consensus_config(&self) -> Option<&ConsensusConfig> {
@@ -149,18 +145,6 @@ impl Configuration for WasmConfiguration {
     fn get_consensus_config_mut(&mut self) -> Option<&mut ConsensusConfig> {
         self.consensus.as_mut()
     }
-
-    fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay> {
-        self.congestion.as_ref()
-    }
-
-    fn set_congestion_data(&mut self, congestion_data: Option<CongestionStatsDisplay>) {
-        self.congestion = congestion_data;
-    }
-
-    // fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
-    //     self.blockchain = config;
-    // }
 
     fn get_config_path(&self) -> String {
         String::new()

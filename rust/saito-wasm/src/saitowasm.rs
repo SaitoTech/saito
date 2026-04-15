@@ -38,7 +38,6 @@ use saito_core::core::network::peers::Peers;
 use saito_core::core::network::sync::manager::SyncManager;
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
 use saito_core::core::storage::storage::Storage;
@@ -168,7 +167,6 @@ pub fn new(
             gatekeeper: Gatekeeper::default(),
             congestion_check_timer: 0,
             gatekeeper_monitor_timer: 0,
-            received_ghost_chain: None,
             waiting_for_genesis_block: false,
             message_sending_timer: 0,
         },
@@ -427,8 +425,6 @@ pub async fn initialize(
                 enable_stats = false;
             }
             info!("config loaded");
-            //info!("config : {:?}", config);
-            // info!("config congestion : {:?}", config.congestion);
             configs.replace(&config);
             genesis_period = configs.get_consensus_config().unwrap().genesis_period;
             social_stake = configs.get_consensus_config().unwrap().default_social_stake;
@@ -1043,10 +1039,8 @@ pub async fn process_fetched_block(
     buffer: js_sys::Uint8Array,
     hash: js_sys::Uint8Array,
     block_id: BlockId,
-    key: JsString,
+    peer_id: u64,
 ) -> Result<(), JsValue> {
-    let key: SaitoPublicKey =
-        string_to_key(key).map_err(|e| JsValue::from_str(&format!("invalid public key: {}", e)))?;
     let hash_vec = hash.to_vec();
     let hash_len = hash_vec.len();
     let block_hash: [u8; 32] = hash_vec.try_into().map_err(|_| {
@@ -1064,7 +1058,7 @@ pub async fn process_fetched_block(
         .process_network_event(NetworkEvent::BlockFetched {
             block_hash,
             block_id,
-            public_key: key,
+            peer_id,
             buffer: buffer.to_vec(),
         })
         .await;
@@ -1075,10 +1069,8 @@ pub async fn process_fetched_block(
 pub async fn process_failed_block_fetch(
     hash: js_sys::Uint8Array,
     block_id: u64,
-    key: JsString,
+    peer_id: u64,
 ) -> Result<(), JsValue> {
-    let key: SaitoPublicKey =
-        string_to_key(key).map_err(|e| JsValue::from_str(&format!("invalid public key: {}", e)))?;
     let hash_vec = hash.to_vec();
     let hash_len = hash_vec.len();
     let block_hash: [u8; 32] = hash_vec.try_into().map_err(|_| {
@@ -1095,7 +1087,7 @@ pub async fn process_failed_block_fetch(
         .routing_thread
         .process_network_event(NetworkEvent::BlockFetchFailed {
             block_hash,
-            public_key: key,
+            peer_id,
             block_id,
         })
         .await;
@@ -1522,7 +1514,7 @@ pub async fn produce_block_with_gt() -> bool {
                 .unwrap()
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
-                    public_key: [0; 33],
+                    peer_id: 0,
                     block,
                 })
                 .await;
@@ -1621,7 +1613,7 @@ pub async fn produce_block_without_gt() -> bool {
                 .unwrap()
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
-                    public_key: [0; 33],
+                    peer_id: 0,
                     block,
                 })
                 .await;
@@ -1649,47 +1641,6 @@ pub async fn get_stats() -> Result<JsString, JsValue> {
     Ok(str.into())
 }
 
-// #[wasm_bindgen]
-// pub async fn get_peer_stats() -> Result<JsString, JsValue> {
-//     let saito = SAITO.lock().await;
-//     let peers = &saito
-//         .as_ref()
-//         .unwrap()
-//         .routing_thread
-//         .network
-//         .peer_lock
-//         .read()
-//         .await;
-//
-//     let str = serde_json::to_string(peers.deref())
-//         .map_err(|e| JsValue::from_str(&format!("Failed to serialize peer stats: {}", e)))?;
-//     Ok(str.into())
-// }
-
-#[wasm_bindgen]
-pub async fn get_congestion_stats() -> Result<JsString, JsValue> {
-    let saito = SAITO.lock().await;
-    let peers = saito
-        .as_ref()
-        .unwrap()
-        .routing_thread
-        .network
-        .peer_lock
-        .read()
-        .await;
-    let stats = CongestionStatsDisplay {
-        congestion_controls_by_key: peers
-            .congestion_controls_by_key
-            .iter()
-            .map(|(key, control)| (key.to_base58(), control.clone()))
-            .collect(),
-        congestion_controls_by_ip: peers.congestion_controls_by_ip.clone(),
-    };
-    let str = serde_json::to_string(&stats)
-        .map_err(|e| JsValue::from_str(&format!("Failed to serialize peer stats: {}", e)))?;
-    Ok(str.into())
-}
-
 #[wasm_bindgen]
 pub async fn get_confirmations() -> Result<JsValue, JsValue> {
     let saito = SAITO.lock().await;
@@ -1708,17 +1659,6 @@ pub async fn get_confirmations() -> Result<JsValue, JsValue> {
             ))
         })?;
     Ok(str.into())
-}
-
-#[wasm_bindgen]
-pub async fn start_from_received_ghost_chain() {
-    let mut saito = SAITO.lock().await;
-    let routing_thread = &mut saito.as_mut().unwrap().routing_thread;
-    if let Some((chain, public_key)) = routing_thread.received_ghost_chain.take() {
-        routing_thread
-            .process_ghost_chain_message(chain, public_key)
-            .await;
-    }
 }
 
 pub fn generate_keys_wasm() -> (SaitoPublicKey, SaitoPrivateKey) {

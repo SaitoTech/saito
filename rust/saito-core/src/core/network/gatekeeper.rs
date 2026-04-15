@@ -125,15 +125,15 @@ impl Gatekeeper {
     //
     pub fn monitor_peers(&mut self, peers: &mut Peers, _now: Timestamp) {
         self.pending_records
-            .retain(|peer_id, _| peers.get_peer_by_id(peer_id).is_some());
+            .retain(|peer_id, _| peers.get_peer_by_id(*peer_id).is_some());
         self.permissions
-            .retain(|peer_id, _| peers.get_peer_by_id(peer_id).is_some());
+            .retain(|peer_id, _| peers.get_peer_by_id(*peer_id).is_some());
 
         let pending = mem::take(&mut self.pending_records);
 
         for (peer_id, pending_record) in pending {
-            if let Some(_peer) = peers.get_peer_by_public_key_mut(&peer_id) {
-                // Keep this commented until peer-side fields are finalized.
+
+            if let Some(_peer) = peers.get_peer_by_id_mut(peer_id) {
                 // _peer.messages_received += pending_record.messages_received as u64;
                 // _peer.invalid_blocks += pending_record.invalid_blocks_received;
             }

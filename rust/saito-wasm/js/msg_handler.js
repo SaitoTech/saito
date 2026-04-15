@@ -52,14 +52,9 @@ static send_message_by_peer_id(peer_id, buffer) {
         return global.shared_methods.disconnect_from_peer(peer_id);
     }
 
-  static fetch_block_from_peer(hash, public_key, url, block_id) {
-    return global.shared_methods.fetch_block_from_peer(
-      hash,
-      public_key,
-      url,
-      block_id,
-    );
-  }
+    static fetch_block_from_peer(hash, peer_id, url, block_id) {
+        return global.shared_methods.fetch_block_from_peer(hash, peer_id, url, block_id);
+    }
 
   static process_api_call(buffer, msgIndex, peerIndex) {
     return global.shared_methods.process_api_call(buffer, msgIndex, peerIndex);

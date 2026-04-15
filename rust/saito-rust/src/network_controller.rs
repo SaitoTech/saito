@@ -225,7 +225,7 @@ impl NetworkController {
     }
     pub async fn fetch_block(
         block_hash: SaitoHash,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         url: String,
         // event_id: u64,
         sender_to_core: Sender<IoEvent>,
@@ -261,7 +261,7 @@ impl NetworkController {
                     // event_id,
                     event: NetworkEvent::BlockFetchFailed {
                         block_hash,
-                        public_key,
+                        peer_id,
                         block_id,
                     },
                 })
@@ -285,7 +285,7 @@ impl NetworkController {
                     // event_id,
                     event: NetworkEvent::BlockFetchFailed {
                         block_hash,
-                        public_key,
+                        peer_id,
                         block_id,
                     },
                 })
@@ -304,7 +304,7 @@ impl NetworkController {
                     // event_id,
                     event: NetworkEvent::BlockFetchFailed {
                         block_hash,
-                        public_key,
+                        peer_id,
                         block_id,
                     },
                 })
@@ -328,7 +328,7 @@ impl NetworkController {
                 event: NetworkEvent::BlockFetched {
                     block_hash,
                     block_id,
-                    public_key,
+                    peer_id,
                     buffer,
                 },
             })
@@ -702,7 +702,7 @@ pub async fn run_network_controller(
                                     let event = result.unwrap();
                                     let interface_event = event.event;
                                     match interface_event {
-                                        NetworkEvent::ConnectToPeer {url,  } => {
+                                        NetworkEvent::ConnectToPeer {url} => {
 
             NetworkController::connect_to_peer(
                 network_controller_lock.clone(),
@@ -717,7 +717,7 @@ pub async fn run_network_controller(
 
                                         NetworkEvent::BlockFetchRequest {
                                             block_hash,
-                                            public_key,
+                                            peer_id,
                                             url,
                                             block_id,
                                         } => {
@@ -735,7 +735,7 @@ pub async fn run_network_controller(
 
                                                 NetworkController::fetch_block(
                                                     block_hash,
-                                                    public_key,
+                                                    peer_id,
                                                     url,
                                                     sender,
                                                     current_queries,
