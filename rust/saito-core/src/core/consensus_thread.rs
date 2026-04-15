@@ -24,7 +24,6 @@ use crate::core::process::process_event::ProcessEvent;
 use crate::core::network::network::Network;
 use crate::core::network::events::NetworkEvent;
 use crate::core::storage::storage::Storage;
-use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::hash;
@@ -459,18 +458,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 );
                 self.stats.received_tx.increment();
 
-                {
-                    if let Some(public_key) = transaction.routed_from_peer {
-                        let mut peers = self.network.peer_lock.write().await;
-                        let time: u64 = self.timer.get_timestamp_in_ms();
-                        peers.add_congestion_event(
-                            public_key,
-                            CongestionType::ReceivedValidTransactions,
-                            time,
-                        );
-                    }
-                }
-
                 if let TransactionType::GoldenTicket = transaction.transaction_type {
                     let mut mempool = self.mempool_lock.write().await;
 
@@ -497,14 +484,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 let mut mempool = self.mempool_lock.write().await;
                 let mut peers = self.network.peer_lock.write().await;
                 for transaction in transactions.drain(..) {
-                    if let Some(public_key) = transaction.routed_from_peer {
-                        let time: u64 = self.timer.get_timestamp_in_ms();
-                        peers.add_congestion_event(
-                            public_key,
-                            CongestionType::ReceivedValidTransactions,
-                            time,
-                        );
-                    }
                     if let TransactionType::GoldenTicket = transaction.transaction_type {
                         self.stats.received_gts.increment();
                         mempool.add_golden_ticket(transaction).await;

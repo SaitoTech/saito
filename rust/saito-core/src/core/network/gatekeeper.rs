@@ -1,6 +1,7 @@
 use crate::core::defs::{SaitoPublicKey, Timestamp};
 use crate::core::network::peers::Peers;
 use ahash::HashMap;
+use std::mem;
 use std::time::Duration;
 
 pub type PeerId = SaitoPublicKey;
@@ -57,14 +58,13 @@ pub struct PeerAccessRecords {
 #[derive(Debug, Default)]
 pub struct Gatekeeper {
     pub permissions: HashMap<PeerId, AccessPermission>,
-    pub records: HashMap<PeerId, PeerAccessRecords>,
+    pub pending_records: HashMap<PeerId, PeerAccessRecords>,
 }
 
 impl Gatekeeper {
-
     pub fn reset(&mut self) {
         self.permissions.clear();
-        self.records.clear();
+        self.pending_records.clear();
     }
 
     pub fn is_allowed(&self, peer_id: PeerId) -> bool {
@@ -90,7 +90,10 @@ impl Gatekeeper {
 
 
     pub fn add_record(&mut self, peer_id: PeerId, record: AccessRecord, now: Timestamp) {
-        let peer_record = self.records.entry(peer_id).or_insert(PeerAccessRecords {
+        let peer_record = self
+            .pending_records
+            .entry(peer_id)
+            .or_insert(PeerAccessRecords {
             messages_received: 0,
             messages_received_started_at: now,
             invalid_blocks_received: 0,
@@ -124,16 +127,24 @@ impl Gatekeeper {
     // checks whether they should be upgraded or downgraded based on the 
     // information in them.
     //
-    pub fn monitor_peers(&mut self, peers: &Peers, _now: Timestamp) {
-
-        self.records
+    pub fn monitor_peers(&mut self, peers: &mut Peers, _now: Timestamp) {
+        self.pending_records
             .retain(|peer_id, _| peers.get_peer_by_public_key(peer_id).is_some());
         self.permissions
             .retain(|peer_id, _| peers.get_peer_by_public_key(peer_id).is_some());
 
-        for (peer_id, _record) in &self.records {
+        let pending = mem::take(&mut self.pending_records);
+
+        for (peer_id, pending_record) in pending {
+            if let Some(_peer) = peers.get_peer_by_public_key_mut(&peer_id) {
+                // Keep this commented until peer-side fields are finalized.
+                // _peer.messages_received += pending_record.messages_received as u64;
+                // _peer.invalid_blocks += pending_record.invalid_blocks_received;
+            }
+
+            // TODO: implement threshold-driven permission transitions.
             self.permissions
-                .entry(*peer_id)
+                .entry(peer_id)
                 .or_insert(AccessPermission::Allowed);
         }
     }

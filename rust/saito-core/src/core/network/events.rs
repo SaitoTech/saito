@@ -27,7 +27,7 @@ pub enum NetworkEvent {
         public_key: SaitoPublicKey,
     },
     PeerDisconnected {
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         disconnect_type: PeerDisconnectType,
     },
     BlockFetchRequest {

@@ -41,7 +41,7 @@ const MAX_RETRIES_PER_BLOCK: u32 = 500;
 /// Tries to fetch the blocks in the most resource efficient way possible.
 pub struct BlockchainSyncState {
     /// These are the blocks we have received from each of our peers
-    received_block_picture: HashMap<SaitoPublicKey, VecDeque<(BlockId, SaitoHash)>>,
+    received_block_picture: HashMap<u64, VecDeque<(BlockId, SaitoHash)>>,
     /// These are the blocks which we have to fetch from each of our peers
     blocks_to_fetch: HashMap<SaitoPublicKey, VecDeque<BlockData>>,
     /// Maximum amount of blocks which can be fetched concurrently from a peer. If this number is too high, the peer's performance might get affected or the requests might be rejected
@@ -72,7 +72,7 @@ impl BlockchainSyncState {
                 .sum::<usize>()
         );
         // for every block picture received from a peer, we sort and create a list of sequential hashes to fetch from peers
-        for (public_key, received_picture_from_peer) in self.received_block_picture.iter_mut() {
+        for (peer_id, received_picture_from_peer) in self.received_block_picture.iter_mut() {
             // need to sort before sequencing
             received_picture_from_peer.make_contiguous().sort_by(
                 |(id_a, hash_a), (id_b, hash_b)| {
@@ -83,7 +83,7 @@ impl BlockchainSyncState {
                 },
             );
 
-            let blocks_to_fetch_from_peer = self.blocks_to_fetch.entry(*public_key).or_default();
+            let blocks_to_fetch_from_peer = self.blocks_to_fetch.entry(peer_id).or_default();
             let mut counter = 0;
 
             loop {
@@ -134,7 +134,7 @@ impl BlockchainSyncState {
                     counter,
                     blocks_to_fetch_from_peer.len(),
                     received_picture_from_peer.len(),
-                    public_key.to_base58()
+                    peer_id
                 );
             }
         }
@@ -149,37 +149,16 @@ impl BlockchainSyncState {
             .sum::<BlockId>()
     }
 
-    pub fn get_sync_fetch_floor_block_id(&self) -> Option<BlockId> {
-        let received_floor = self
-            .received_block_picture
-            .values()
-            .flat_map(|entries| entries.iter().map(|(block_id, _)| *block_id))
-            .min();
-        let queued_floor = self
-            .blocks_to_fetch
-            .values()
-            .flat_map(|entries| entries.iter().map(|entry| entry.block_id))
-            .min();
-
-        match (received_floor, queued_floor) {
-            (Some(received_floor), Some(queued_floor)) => Some(received_floor.min(queued_floor)),
-            (Some(received_floor), None) => Some(received_floor),
-            (None, Some(queued_floor)) => Some(queued_floor),
-            (None, None) => None,
-        }
-    }
-
     /// Generates the list of blocks which needs to be fetched next. A list is generated per each peer since we can fetch from multiple peers concurrently.
     pub fn get_blocks_to_fetch_per_peer(
         &mut self,
-    ) -> HashMap<SaitoPublicKey, Vec<(SaitoHash, BlockId)>> {
+    ) -> HashMap<u64, Vec<(SaitoHash, BlockId)>> {
         trace!("getting block to be fetched per each peer",);
-        let mut selected_blocks_per_peer: HashMap<SaitoPublicKey, Vec<(SaitoHash, BlockId)>> =
+        let mut selected_blocks_per_peer: HashMap<u64, Vec<(SaitoHash, BlockId)>> =
             Default::default();
 
         // for each peer check if we can fetch block
-        for (public_key, deq) in self.blocks_to_fetch.iter_mut() {
-            // TODO : sorting this array can be a performance hit. need to check
+        for (peer_id, deq) in self.blocks_to_fetch.iter_mut() {
 
             // we need to sort the list to make sure we are fetching the next in sequence blocks.
             // otherwise our memory will grow since we need to keep those fetched blocks in memory.
@@ -200,7 +179,6 @@ impl BlockchainSyncState {
                     BlockStatus::Queued => {}
                     BlockStatus::Fetching => {
                         fetching_count += 1;
-                        trace!("currently fetching : {:?}-{:?} from peer : {:?} with retry_count : {:?}",block_data.block_id,block_data.block_hash.to_hex(),public_key, block_data.retry_count);
                     }
                     BlockStatus::Fetched => {}
                     BlockStatus::Failed => {}
@@ -222,11 +200,11 @@ impl BlockchainSyncState {
                             "selecting entry : {:?}-{:?} for peer : {:?}",
                             block_data.block_id,
                             block_data.block_hash.to_hex(),
-                            public_key
+                            peer_id
                         );
                         allowed_quota -= 1;
                         selected_blocks_per_peer
-                            .entry(*public_key)
+                            .entry(peer_id)
                             .or_default()
                             .push((block_data.block_hash, block_data.block_id));
                         block_data.status = BlockStatus::Fetching;
@@ -241,7 +219,7 @@ impl BlockchainSyncState {
                                     "selecting failed entry : {:?}-{:?} for peer : {:?}",
                                     block_data.block_id,
                                     block_data.block_hash.to_hex(),
-                                    public_key
+                                    peer_id
                                 );
                                 allowed_quota -= 1;
                                 block_data.status = BlockStatus::Queued;
@@ -250,7 +228,7 @@ impl BlockchainSyncState {
                                 error!("ignoring block : {:?}-{:?} from peer : {:?} since we have repeatedly failed to fetch it",
                                 block_data.block_id,
                                 block_data.block_hash.to_hex(),
-                                public_key);
+                                peer_id);
 
                                 // increasing this so the error is only printed once per block per peer
                                 block_data.retry_count += 1;
@@ -263,7 +241,7 @@ impl BlockchainSyncState {
 
             debug!(
                 "peer : {:?} to be fetched {:?} blocks. first : {:?} last : {:?} fetching : {:?} failed : {:?} queued : {:?}",
-                public_key.to_base58(),
+                peer_id,
                 deq.len(),
                 deq.front().unwrap().block_id,
                 deq.back().unwrap().block_id,
@@ -286,7 +264,6 @@ impl BlockchainSyncState {
     ///
     /// # Arguments
     ///
-    /// * `public_key`:
     /// * `hash`:
     ///
     /// returns: ()
@@ -298,14 +275,14 @@ impl BlockchainSyncState {
     /// ```
     pub fn mark_as_fetched(&mut self, hash: SaitoHash) {
         debug!("marking block : {:?} as fetched", hash.to_hex());
-        for (public_key, deq) in self.blocks_to_fetch.iter_mut() {
+        for (peer_id, deq) in self.blocks_to_fetch.iter_mut() {
             for block_data in deq {
                 if hash.eq(&block_data.block_hash) {
                     block_data.status = BlockStatus::Fetched;
                     trace!(
                         "block : {:?} marked as fetched from peer : {:?}",
                         block_data.block_hash.to_hex(),
-                        public_key
+                        peer_id
                     );
                     break;
                 }
@@ -318,8 +295,6 @@ impl BlockchainSyncState {
     /// Removes all the entries related to fetched blocks and removes any empty collections from memory
     ///
     /// # Arguments
-    ///
-    /// * `public_key`:
     ///
     /// returns: ()
     ///
@@ -348,7 +323,7 @@ impl BlockchainSyncState {
     ///
     /// * `block_hash`:
     /// * `block_id`:
-    /// * `public_key`:
+    /// * `peer_id`:
     ///
     /// returns: ()
     ///
@@ -361,43 +336,26 @@ impl BlockchainSyncState {
         &mut self,
         block_hash: SaitoHash,
         block_id: BlockId,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         peer_lock: Arc<RwLock<Peers>>,
     ) {
         debug!(
             "adding sync state entry : {:?} - {:?} from {:?}",
             block_hash.to_hex(),
             block_id,
-            public_key.to_base58()
+            peer_id
         );
-        if public_key == [0; 33] {
-            // this means we don't have which peer to request this block from
-            let peers = peer_lock.read().await;
-            debug!("block : {:?}-{:?} is requested without a peer. request the block from all the peers", block_id,block_hash.to_hex());
-
-            for peer in peers.iter() {
-                if peer.block_fetch_url.is_empty() {
-                    continue;
-                }
-
-                self.received_block_picture
-                    .entry(peer.get_public_key())
-                    .or_default()
-                    .push_back((block_id, block_hash));
-            }
-        } else {
-            self.received_block_picture
-                .entry(public_key)
-                .or_default()
-                .push_back((block_id, block_hash));
-        }
+        self.received_block_picture
+            .entry(peer_id)
+            .or_default()
+            .push_back((block_id, block_hash));
     }
+
     /// Removes entry when the hash is added to the blockchain. If so we can move the block ceiling up.
     ///
     /// # Arguments
     ///
     /// * `block_hash`:
-    /// * `public_key`:
     ///
     /// returns: ()
     ///
@@ -417,8 +375,8 @@ impl BlockchainSyncState {
 
     pub fn get_stats(&self) -> Vec<String> {
         let mut stats = vec![];
-        for (public_key, vec) in self.blocks_to_fetch.iter() {
-            let res = self.received_block_picture.get(public_key);
+        for (peer_id, vec) in self.blocks_to_fetch.iter() {
+            let res = self.received_block_picture.get(peer_id);
             let mut count = 0;
             if let Some(deq) = res {
                 count = deq.len();
@@ -440,7 +398,7 @@ impl BlockchainSyncState {
             let stat = format!(
                 "{} - peer : {:?} lowest_id: {:?} fetching_count : {:?} ordered_till : {:?} unordered_block_ids : {:?}",
                 format!("{:width$}", "routing::sync_state", width = 40),
-                public_key,
+                peer_id,
                 lowest_id,
                 fetching_blocks_count,
                 highest_id,
@@ -463,7 +421,7 @@ impl BlockchainSyncState {
     ///
     /// * `id`:
     /// * `hash`:
-    /// * `public_key`:
+    /// * `peer_id`:
     ///
     /// returns: ()
     ///
@@ -472,28 +430,28 @@ impl BlockchainSyncState {
     /// ```
     ///
     /// ```
-    pub fn mark_as_failed(&mut self, id: BlockId, hash: BlockHash, key: SaitoPublicKey) {
+    pub fn mark_as_failed(&mut self, id: BlockId, hash: BlockHash, peer_id: u64) {
         warn!(
             "failed to fetch block : {:?}-{:?} from peer : {:?}",
             id,
             hash.to_hex(),
-            key
+            peer_id
         );
 
-        if let Some(deq) = self.blocks_to_fetch.get_mut(&key) {
+        if let Some(deq) = self.blocks_to_fetch.get_mut(peer_id) {
             let data = deq
                 .iter_mut()
                 .find(|data| data.block_id == id && data.block_hash == hash);
             match data {
                 None => {
-                    debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a block or it's already fetched",id,hash.to_hex(),key);
+                    debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a block or it's already fetched",id,hash.to_hex(),peer_id);
                 }
                 Some(data) => {
                     data.status = BlockStatus::Failed;
                 }
             }
         } else {
-            debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a peer",id,hash.to_hex(),key);
+            debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a peer",id,hash.to_hex(),peer_id);
         }
     }
 }
@@ -513,11 +471,11 @@ impl SyncManager {
         self.state.get_stats()
     }
 
-    pub async fn process_incoming_block_hash(
+    pub async fn process_block_reference_message(
         &mut self,
         block_hash: SaitoHash,
         block_id: u64,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         blockchain_lock: Arc<RwLock<Blockchain>>,
         wallet_lock: Arc<RwLock<Wallet>>,
         network: &Network,
@@ -526,7 +484,7 @@ impl SyncManager {
             "processing incoming block hash : {:?}-{:?} from peer : {:?}",
             block_id,
             block_hash.to_hex(),
-            public_key.to_base58()
+            peer_id 
         );
 
         {
@@ -536,7 +494,7 @@ impl SyncManager {
                 "skipping block header : {:?}-{:?} from peer : {:?} since our lowest acceptable id : {:?}",
                 block_id,
                 block_hash.to_hex(),
-                public_key.to_base58(),
+                peer_id,
                 blockchain.lowest_acceptable_block_id
             );
                 return;
@@ -546,7 +504,7 @@ impl SyncManager {
                 "skipping block header : {:?}-{:?} from peer : {:?} since it's earlier than our genesis block id : {}",
                 block_id,
                 block_hash.to_hex(),
-                public_key.to_base58(),
+                peer_id,
                 blockchain.genesis_block_id
             );
                 return;
@@ -559,7 +517,7 @@ impl SyncManager {
         drop(wallet);
 
         match network
-            .should_request_blockchain(public_key, wallet_version, core_version)
+            .should_request_blockchain(peer_id, wallet_version, core_version)
             .await
         {
             Some(true) => {
@@ -569,13 +527,13 @@ impl SyncManager {
             None => {
                 warn!(
                     "couldn't find peer : {:?} for processing block header hash",
-                    public_key.to_base58()
+                    peer_id
                 );
             }
         }
 
         self.state
-            .add_entry(block_hash, block_id, public_key, network.peer_lock.clone())
+            .add_entry(block_hash, block_id, peer_id, network.peer_lock.clone())
             .await;
     }
 
@@ -710,7 +668,7 @@ impl SyncManager {
     pub async fn process_incoming_blockchain_request(
         &mut self,
         request: BlockchainRequest,
-        public_key: SaitoPublicKey,
+        peer_id: u64 ,
         blockchain_lock: Arc<RwLock<Blockchain>>,
         network: &Network,
         blockchain_send_results: &mut Vec<BlockchainSendResults>,
@@ -720,7 +678,7 @@ impl SyncManager {
             request.latest_block_id,
             request.latest_block_hash.to_hex(),
             request.fork_id.to_hex(),
-            public_key.to_base58()
+            peer_id
         );
 
         let blockchain = blockchain_lock.read().await;
@@ -728,7 +686,7 @@ impl SyncManager {
         {
             let mut peers = network.peer_lock.write().await;
 
-            if let Some(peer) = peers.get_peer_by_public_key_mut(&public_key) {
+            if let Some(peer) = peers.get_peer_by_peer_id_mut(peer_id) {
                 if peer.requested_blocks_from_us {
                     info!("peer : {:?} already requested the blockchain from us once. Not processing this request again until a reconnection", public_key.to_base58());
                     return Ok(());
@@ -737,16 +695,16 @@ impl SyncManager {
             } else {
                 error!(
                     "Cannot find the peer : {} to process the incoming blockchain request",
-                    public_key.to_base58()
+                    peer_id
                 );
 
                 if let Err(e) = network
-                    .disconnect_from_peer(public_key, "cannot find peer details")
+                    .disconnect_from_peer(peer_id, "cannot find peer details")
                     .await
                 {
                     error!(
                         "error disconnecting from peer : {}. {}",
-                        public_key.to_base58(),
+                        peer_id,
                         e
                     );
                 }
@@ -796,7 +754,7 @@ impl SyncManager {
 
             if let Err(e) = network
                 .disconnect_from_peer(
-                    public_key,
+                    peer_id,
                     "Cannot find a shared ancestor block to sync 2 nodes",
                 )
                 .await
@@ -1102,10 +1060,6 @@ impl SyncManager {
         network: &Network,
         current_time: Timestamp,
     ) {
-        network
-            .record_failed_block_fetch(public_key, current_time)
-            .await;
-
         self.state.mark_as_failed(block_id, block_hash, public_key);
     }
 }

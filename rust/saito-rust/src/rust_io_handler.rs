@@ -18,11 +18,11 @@ use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{
     BlockId, PrintForLog, SaitoHash, SaitoPublicKey, BLOCK_FILE_EXTENSION,
 };
-use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-use saito_core::core::routing::io::network_event::NetworkEvent;
-use saito_core::core::routing::peers::service::Service;
+use saito_core::core::network::interface_io::{InterfaceEvent, InterfaceIO};
+use saito_core::core::network::events::NetworkEvent;
+use saito_core::core::network::service::Service;
 
-use saito_core::core::routing::peers::io_event::IoEvent;
+use saito_core::core::network::events::IoEvent;
 
 lazy_static! {
     pub static ref BLOCKS_DIR_PATH: String = configure_storage();
@@ -130,19 +130,12 @@ impl InterfaceIO for RustIOHandler {
         Ok(())
     }
 
-    async fn disconnect_from_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error> {
+    async fn disconnect_from_peer(&self, peer_id: u64) -> Result<(), Error> {
         let Some(network_controller) = &self.network_controller else {
             warn!("disconnect_from_peer called without network controller attached");
             return Err(Error::from(ErrorKind::NotConnected));
         };
         let mut controller = network_controller.write().await;
-        let Some(peer_id) = controller.resolve_peer_id_by_public_key(&public_key) else {
-            warn!(
-                "disconnect_from_peer failed: public_key {:?} has no mapped peer_id",
-                public_key.to_base58()
-            );
-            return Err(Error::from(ErrorKind::NotFound));
-        };
         controller.disconnect(peer_id).await;
         Ok(())
     }
@@ -363,7 +356,7 @@ impl InterfaceIO for RustIOHandler {
 
 #[cfg(test)]
 mod tests {
-    use saito_core::core::routing::io::interface_io::InterfaceIO;
+    use saito_core::core::network::interface_io::InterfaceIO;
 
     use crate::rust_io_handler::RustIOHandler;
 

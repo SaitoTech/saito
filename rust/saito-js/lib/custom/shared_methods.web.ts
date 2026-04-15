@@ -72,18 +72,18 @@ export default class WebSharedMethods extends CustomSharedMethods {
       };
       socket.onclose = () => {
         try {
-          console.debug("socket.onclose : " + url + " , key : " + peer.publicKey);
+          console.debug("socket.onclose : " + url + " , key : " + peer.id);
           Saito.getInstance().disconnectPeer(peer);
-          Saito.getLibInstance().process_peer_disconnection(peer.publicKey);
+          Saito.getLibInstance().process_peer_disconnection(peer.id);
         } catch (error) {
           console.error(error);
         }
       };
       socket.onerror = (error) => {
         try {
-          console.error(`socket.onerror ${peer.publicKey}: `, error);
+          console.error(`socket.onerror ${peer.id}: `, error);
           Saito.getInstance().disconnectPeer(peer);
-          Saito.getLibInstance().process_peer_disconnection(peer.publicKey);
+          Saito.getLibInstance().process_peer_disconnection(peer.id);
         } catch (error) {
           console.error(error);
         }
@@ -93,9 +93,9 @@ export default class WebSharedMethods extends CustomSharedMethods {
     }
   }
 
-  disconnectFromPeer(publicKey: string): void {
-    console.debug("disconnect from peer : " + publicKey);
-    Saito.getInstance().removeSocket(publicKey);
+  disconnectFromPeer(peer_id: bigint): void {
+    console.debug("disconnect from peer : " + peer_id);
+    Saito.getInstance().removeSocket(peer_id);
   }
 
   fetchBlockFromPeer(url: string): Promise<Uint8Array> {

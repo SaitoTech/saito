@@ -85,8 +85,8 @@ export default class Saito {
       remove_value: (key: string) => {
         return sharedMethods.removeValue(key);
       },
-      disconnect_from_peer: (public_key: string) => {
-        return sharedMethods.disconnectFromPeer(public_key);
+      disconnect_from_peer: (peer_id: bigint) => {
+        return sharedMethods.disconnectFromPeer(peer_id);
       },
       fetch_block_from_peer: (
         hash: Uint8Array,
@@ -426,7 +426,7 @@ export default class Saito {
     this.peersByPeerId.delete(peer.peerId);
 
     if (peer.publicKey) {
-      this.removeSocket(peer.publicKey);
+      this.removeSocket(peer.peerId);
       return;
     }
 
@@ -453,17 +453,27 @@ export default class Saito {
     return this.peers.get(publicKey)?.socket;
   }
 
-  public removeSocket(publicKey: string) {
+  public removeSocket(peer_id: bigint) {
     try {
       console.log(
-        "Removing socket for : " + publicKey + " out of " + this.peers.size + " total sockets"
+        "Removing socket for : " + peer_id + " out of " + this.peers.size + " total sockets"
       );
-      let peer = this.peers.get(publicKey);
-      let socket = peer?.socket;
-      this.peers.delete(publicKey);
-      if (socket) {
-        console.info("closing socket for peer  : " + publicKey);
 
+      const peer = this.peersByPeerId.get(peer_id);
+      const socket = peer.socket;
+
+      if (!peer) {
+        console.info("no peer found for peer_id : " + peer_id);
+        return;
+      }
+
+      if (peer.publicKey) {
+        this.peers.delete(peer.publicKey);
+      }
+      this.peersByPeerId.delete(peer_id);
+
+      if (socket) {
+        console.info("closing socket for peer_id : " + peer_id);
         // @ts-ignore
         if (socket.readyState !== 1 && socket.terminate) {
           // @ts-ignore
@@ -473,11 +483,12 @@ export default class Saito {
           socket.close();
         }
       } else {
-        console.info("no socket found for index : " + publicKey);
+        console.info("no socket on peer for peer_id : " + peer_id);
       }
     } catch (error) {
       console.error("failed removing socket", error);
     }
+
   }
 
   public async initialize(configs: any): Promise<any> {

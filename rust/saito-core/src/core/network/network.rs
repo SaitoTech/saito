@@ -15,7 +15,6 @@ use crate::core::process::keep_time::Timer;
 use crate::core::process::version::Version;
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::interface_io::InterfaceIO;
-use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::network::peers::Peers;
 use crate::core::network::peer::Peer;
 use crate::core::network::service::Service;
@@ -151,35 +150,6 @@ impl Network {
         peers.update_peer_timer(public_key, timestamp).await;
     }
 
-    pub async fn record_received_transaction(
-        &self,
-        public_key: SaitoPublicKey,
-        _transaction: &Transaction,
-        timestamp: Timestamp,
-    ) {
-        let mut peers = self.peer_lock.write().await;
-        if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
-            peer_v2.on_transaction_received(timestamp);
-        }
-    }
-
-    pub async fn record_failed_block_fetch(
-        &self,
-        public_key: SaitoPublicKey,
-        timestamp: Timestamp,
-    ) {
-        let mut peers = self.peer_lock.write().await;
-        peers.add_congestion_event(public_key, CongestionType::FailedBlockFetches, timestamp);
-    }
-
-    pub async fn record_incoming_message(&self, public_key: SaitoPublicKey, timestamp: Timestamp) {
-        let mut peers = self.peer_lock.write().await;
-        peers.add_congestion_event(public_key, CongestionType::IncomingMessages, timestamp);
-        if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
-            peer_v2.on_message_received(timestamp);
-        }
-    }
-
     pub async fn cleanup_peers(&self, current_time: Timestamp) {
         let mut peers = self.peer_lock.write().await;
 
@@ -304,26 +274,6 @@ impl Network {
         }
     }
 
-    pub async fn manage_congested_peers(&mut self) {
-        let peers = self.peer_lock.write().await;
-        let current_time = self.timer.get_timestamp_in_ms();
-        let congested_peers: Vec<SaitoPublicKey> = peers.get_congested_peers(current_time);
-        drop(peers);
-
-        for public_key in congested_peers {
-            warn!(
-                "peer : {:?} is congested. so disconnecting...",
-                public_key.to_base58()
-            );
-            if let Err(e) = self
-                .disconnect_from_peer(public_key, "Peer is congested")
-                .await
-            {
-                error!("{:?}", e);
-            }
-        }
-    }
-
     pub async fn send_key_list(&self, keys: Vec<SaitoPublicKey>) {
         let peers = self.peer_lock.read().await;
 
@@ -351,17 +301,6 @@ impl Network {
             .await;
     }
 
-    pub async fn record_received_block_header(
-        &self,
-        public_key: SaitoPublicKey,
-        _block_hash: &SaitoHash,
-        timestamp: Timestamp,
-    ) {
-        let mut peers = self.peer_lock.write().await;
-        if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
-            peer_v2.on_block_received(timestamp);
-        }
-    }
 
 
     pub async fn monitor_peers(&mut self, current_time: Timestamp) -> bool {
@@ -555,35 +494,35 @@ impl Network {
 
     pub async fn handle_peer_disconnect(
         &mut self,
-        public_key: SaitoPublicKey,
+	peer_id: u64,
         disconnect_type: PeerDisconnectType,
     ) {
         info!(
-            "handling peer disconnect, public_key = {}",
-            public_key.to_base58()
+            "handling peer disconnect, peer_id = {}",
+            peer_id
         );
 
         //
         // instruction socket-layer to disconnect
         //
         if let PeerDisconnectType::ExternalDisconnect = disconnect_type {
-            info!("peer disconnected externally, cleaning up locally created peer");
 
             let _ = self
                 .io_interface
-                .disconnect_from_peer(public_key)
+                .disconnect_from_peer(peer_id)
                 .await
                 .inspect_err(|err| {
                     error!(
                         "failed local cleanup disconnect for peer {:?}: {:?}",
-                        public_key.to_base58(),
+                        peer_id,
                         err
                     )
                 });
         }
 
         let mut peers = self.peer_lock.write().await;
-        if let Some(peer_v2) = peers.get_peer_by_public_key_mut(&public_key) {
+        if let Some(peer_v2) = peers.get_peer_by_id_mut(&peer_id) {
+            let public_key = peer_v2.get_public_key();
             self.io_interface
                 .send_interface_event(InterfaceEvent::PeerConnectionDropped(public_key));
             peer_v2.on_disconnect(self.timer.get_timestamp_in_ms());
@@ -592,16 +531,15 @@ impl Network {
 
     pub async fn should_request_blockchain(
         &self,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         wallet_version: Version,
         core_version: Version,
     ) -> Option<bool> {
         let peers = self.peer_lock.read().await;
 
-        if let Some(peer) = peers.get_peer_by_public_key(&public_key) {
+        if let Some(peer) = peers.get_peer_by_id(peer_id) {
             let should_request = wallet_version > peer.wallet_version
                 || (wallet_version == peer.wallet_version && core_version > peer.core_version);
-
             Some(should_request)
         } else {
             None
@@ -610,19 +548,20 @@ impl Network {
 
     pub async fn disconnect_from_peer(
         &self,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         message: &str,
     ) -> Result<(), Error> {
-        self.send_message(public_key, Message::Disconnect(message.to_string()))
+
+        self.send_message_by_peer_id(peer_id, Message::Disconnect(message.to_string()))
             .await;
 
         self.io_interface
-            .disconnect_from_peer(public_key)
+            .disconnect_from_peer(peer_id)
             .await
             .inspect_err(|err| {
                 error!(
                     "failed disconnecting from peer : {}. {}",
-                    public_key.to_base58(),
+                    peer_id,
                     err
                 )
             })

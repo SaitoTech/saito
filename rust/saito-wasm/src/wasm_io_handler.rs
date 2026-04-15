@@ -9,8 +9,8 @@ use wasm_bindgen::JsValue;
 
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{BlockId, PrintForLog, SaitoHash, SaitoPublicKey};
-use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-use saito_core::core::routing::peers::service::Service;
+use saito_core::core::network::interface_io::{InterfaceEvent, InterfaceIO};
+use saito_core::core::network::service::Service;
 
 use crate::wasm_peer_service::{WasmPeerService, WasmPeerServiceList};
 
@@ -72,9 +72,9 @@ impl InterfaceIO for WasmIoHandler {
         Ok(())
     }
 
-    async fn disconnect_from_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error> {
-        trace!("disconnect from peer : {:?}", public_key.to_base58());
-        MsgHandler::disconnect_from_peer(public_key.to_base58()).expect("TODO: panic message");
+    async fn disconnect_from_peer(&self, peer_id: u64) -> Result<(), Error> {
+        trace!("disconnect from peer : {:?}", peer_id);
+        MsgHandler::disconnect_from_peer(peer_id).expect("TODO: panic message");
         Ok(())
     }
 
@@ -365,7 +365,7 @@ extern "C" {
     pub fn remove_value(key: String) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
-    pub fn disconnect_from_peer(public_key: String) -> Result<JsValue, js_sys::Error>;
+    pub fn disconnect_from_peer(peer_id: bigint) -> Result<JsValue, js_sys::Error>;
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
     pub fn fetch_block_from_peer(

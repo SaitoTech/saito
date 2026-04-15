@@ -49,7 +49,7 @@ pub mod test {
             Ok(())
         }
 
-        async fn disconnect_from_peer(&self, _public_key: SaitoPublicKey) -> Result<(), Error> {
+        async fn disconnect_from_peer(&self, _peer_id: u64) -> Result<(), Error> {
             todo!("")
         }
 

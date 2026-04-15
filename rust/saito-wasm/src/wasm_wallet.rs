@@ -14,8 +14,8 @@ use saito_core::core::defs::{
     Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoSignature, SaitoUTXOSetKey,
 };
 use saito_core::core::process::version::Version;
-use saito_core::core::routing::io::network::Network;
-use saito_core::core::routing::io::storage::Storage;
+use saito_core::core::network::network::Network;
+use saito_core::core::storage::storage::Storage;
 use saito_core::core::routing_thread::RoutingEvent;
 
 use crate::saitowasm::{string_array_to_base58_keys, string_to_hex, SAITO};

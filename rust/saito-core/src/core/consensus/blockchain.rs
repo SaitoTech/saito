@@ -29,7 +29,6 @@ use crate::core::mining_thread::MiningEvent;
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::network::Network;
 use crate::core::storage::storage::Storage;
-use crate::core::routing::peers::congestion_controller::CongestionType;
 use crate::core::routing_thread::RoutingEvent;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
@@ -2500,12 +2499,7 @@ impl Blockchain {
                     }
                     AddBlockResult::FailedNotValid => {
                         if let Some(public_key) = public_key {
-                            let mut peers = network.unwrap().peer_lock.write().await;
-                            peers.add_congestion_event(
-                                public_key,
-                                CongestionType::ReceivedInvalidBlocks,
-                                network.unwrap().timer.get_timestamp_in_ms(),
-                            );
+			    // TODO -- notify gatekeeper of invalid block
                         }
                     }
                 }

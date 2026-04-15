@@ -1,5 +1,5 @@
 use js_sys::JsString;
-use saito_core::core::routing::peers::service::Service;
+use saito_core::core::network::service::Service;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::wasm_bindgen;
 

@@ -32,13 +32,14 @@ use saito_core::core::defs::{
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::routing::io::network::{Network, PeerDisconnectType};
-use saito_core::core::routing::io::network_event::NetworkEvent;
-use saito_core::core::routing::io::storage::Storage;
+use saito_core::core::network::network::{Network, PeerDisconnectType};
+use saito_core::core::network::events::NetworkEvent;
+use saito_core::core::storage::storage::Storage;
 use saito_core::core::routing::peers::congestion_controller::CongestionStatsDisplay;
-use saito_core::core::routing::peers::peers::Peers;
-use saito_core::core::routing::peers::peerv2::PeerV2;
-use saito_core::core::routing::sync::SyncManager;
+use saito_core::core::network::peers::Peers;
+use saito_core::core::network::peer::Peer;
+use saito_core::core::network::sync::manager::SyncManager;
+use saito_core::core::network::gatekeeper::Gatekeeper;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::{StatEvent, StatThread};
 use saito_core::core::util::configuration::Configuration;
@@ -164,7 +165,9 @@ pub fn new(
             last_verification_thread_index: 0,
             stat_sender: sender_to_stat.clone(),
             sync: SyncManager::new(block_fetch_batch_size as usize),
+            gatekeeper: Gatekeeper::default(),
             congestion_check_timer: 0,
+            gatekeeper_monitor_timer: 0,
             received_ghost_chain: None,
             waiting_for_genesis_block: false,
             message_sending_timer: 0,
@@ -360,7 +363,7 @@ pub async fn create_network_peer(url: Option<String>) -> WasmNetworkPeer {
     let mut saito = SAITO.lock().await;
     let saito = saito.as_mut().unwrap();
 
-    let mut peer = PeerV2::new(generate_peer_id());
+    let mut peer = Peer::new(generate_peer_id());
     peer.url = url;
 
     let peer_id = peer.id;
@@ -1000,19 +1003,14 @@ pub async fn remove_stun_peer(public_key: JsString) {
 // }
 
 #[wasm_bindgen]
-pub async fn process_peer_disconnection(key: JsString) {
-    let key = string_to_key(key);
-    if key.is_err() {
-        return;
-    }
-    let key: SaitoPublicKey = key.unwrap();
+pub async fn process_peer_disconnection(peer_id: u64) {
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()
         .unwrap()
         .routing_thread
         .process_network_event(NetworkEvent::PeerDisconnected {
-            public_key: key,
+            peer_id: peer_id,
             disconnect_type: PeerDisconnectType::ExternalDisconnect,
         })
         .await;
