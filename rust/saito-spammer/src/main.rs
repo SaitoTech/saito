@@ -343,7 +343,6 @@ async fn run_routing_event_processor(
         received_ghost_chain: None,
         waiting_for_genesis_block: false,
         message_sending_timer: 0,
-        blockchain_send_results: Default::default(),
     };
 
     let (interface_sender_to_routing, interface_receiver_for_routing) =

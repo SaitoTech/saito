@@ -4,8 +4,6 @@ use ahash::HashMap;
 use std::mem;
 use std::time::Duration;
 
-pub type PeerId = SaitoPublicKey;
-
 const MESSAGE_WINDOW: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
 const INVALID_BLOCK_WINDOW: Timestamp = Duration::from_secs(3600).as_millis() as Timestamp;
 
@@ -56,8 +54,8 @@ pub struct PeerAccessRecords {
 //
 #[derive(Debug, Default)]
 pub struct Gatekeeper {
-    pub permissions: HashMap<PeerId, AccessPermission>,
-    pub pending_records: HashMap<PeerId, PeerAccessRecords>,
+    pub permissions: HashMap<u64, AccessPermission>,
+    pub pending_records: HashMap<u64, PeerAccessRecords>,
 }
 
 impl Gatekeeper {
@@ -66,28 +64,28 @@ impl Gatekeeper {
         self.pending_records.clear();
     }
 
-    pub fn is_allowed(&self, peer_id: PeerId) -> bool {
+    pub fn is_allowed(&self, peer_id: u64) -> bool {
         matches!(
             self.permissions.get(&peer_id),
             None | Some(AccessPermission::Allowed)
         )
     }
 
-    pub fn is_denied(&self, peer_id: PeerId) -> bool {
+    pub fn is_denied(&self, peer_id: u64) -> bool {
         matches!(
             self.permissions.get(&peer_id),
             Some(AccessPermission::Denied)
         )
     }
 
-    pub fn is_throttled(&self, peer_id: PeerId) -> bool {
+    pub fn is_throttled(&self, peer_id: u64) -> bool {
         matches!(
             self.permissions.get(&peer_id),
             Some(AccessPermission::Throttled)
         )
     }
 
-    pub fn add_record(&mut self, peer_id: PeerId, record: AccessRecord, now: Timestamp) {
+    pub fn add_record(&mut self, peer_id: u64, record: AccessRecord, now: Timestamp) {
         let peer_record = self
             .pending_records
             .entry(peer_id)
@@ -127,9 +125,9 @@ impl Gatekeeper {
     //
     pub fn monitor_peers(&mut self, peers: &mut Peers, _now: Timestamp) {
         self.pending_records
-            .retain(|peer_id, _| peers.get_peer_by_public_key(peer_id).is_some());
+            .retain(|peer_id, _| peers.get_peer_by_id(peer_id).is_some());
         self.permissions
-            .retain(|peer_id, _| peers.get_peer_by_public_key(peer_id).is_some());
+            .retain(|peer_id, _| peers.get_peer_by_id(peer_id).is_some());
 
         let pending = mem::take(&mut self.pending_records);
 

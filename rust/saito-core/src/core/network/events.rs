@@ -28,7 +28,7 @@ pub enum NetworkEvent {
     },
     BlockFetchRequest {
         block_hash: SaitoHash,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         url: String,
         block_id: BlockId,
     },

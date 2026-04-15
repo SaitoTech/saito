@@ -56,23 +56,17 @@ impl Network {
     }
 
     pub async fn propagate_block(&self, block: &Block) {
+
         let peers = self.peer_lock.read().await;
+        let mut excluded_peers: Vec<u64> = vec![];
 
-        let mut excluded_peers: Vec<SaitoPublicKey> = vec![];
-
-        // --- exclude sender (preserve original behavior) ---
-        if let Some(sender) = block.routed_from_peer {
-            excluded_peers.push(sender);
-        }
-
-        // --- exclude disconnected / uninitialized peers ---
         for peer in peers.peers_v2.values() {
-            let Some(pk) = peer.public_key else {
-                continue;
-            };
-
-            if !peer.is_connected {
-                excluded_peers.push(pk);
+            if peer.id == block.routed_from_peer_id {
+                excluded_peers.push(peer.id);
+            } else {
+                if !peer.is_connected {
+                    excluded_peers.push(peer.id);
+                }
             }
         }
 
@@ -268,16 +262,11 @@ impl Network {
     pub async fn send_key_list(&self, keys: Vec<SaitoPublicKey>) {
         let peers = self.peer_lock.read().await;
 
-        let mut exclusions: Vec<SaitoPublicKey> = vec![];
+        let mut excluded_peers: Vec<u64> = vec![];
 
         for peer in peers.peers_v2.values() {
-            let Some(pk) = peer.public_key else {
-                continue;
-            };
-
-            // exclude non-connected peers
             if !peer.is_connected {
-                exclusions.push(pk);
+                excluded_peers.push(peer.id);
             }
         }
 
@@ -288,7 +277,7 @@ impl Network {
 
         let _ = self
             .io_interface
-            .send_message_to_all(serialized.as_slice(), exclusions)
+            .send_message_to_all(serialized.as_slice(), excluded_peers)
             .await;
     }
 
@@ -480,7 +469,7 @@ impl Network {
         }
 
         let mut peers = self.peer_lock.write().await;
-        if let Some(peer_v2) = peers.get_peer_by_id_mut(&peer_id) {
+        if let Some(peer_v2) = peers.get_peer_by_id_mut(peer_id) {
             let public_key = peer_v2.get_public_key();
             self.io_interface
                 .send_interface_event(InterfaceEvent::PeerConnectionDropped(public_key));

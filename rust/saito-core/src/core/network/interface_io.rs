@@ -46,7 +46,7 @@ pub trait InterfaceIO: Debug {
     async fn send_message_to_all(
         &self,
         buffer: &[u8],
-        excluded_peers: Vec<SaitoPublicKey>,
+        excluded_peers: Vec<u64>,
     ) -> Result<(), Error>;
     /// Connects to the peer with given configuration
     ///
@@ -82,7 +82,7 @@ pub trait InterfaceIO: Debug {
     async fn fetch_block_from_peer(
         &self,
         block_hash: SaitoHash,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         url: &str,
         block_id: BlockId,
     ) -> Result<(), Error>;

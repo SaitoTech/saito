@@ -171,7 +171,6 @@ pub fn new(
             received_ghost_chain: None,
             waiting_for_genesis_block: false,
             message_sending_timer: 0,
-            blockchain_send_results: Default::default(),
         },
         consensus_thread: ConsensusThread {
             mempool_lock: context.mempool_lock.clone(),

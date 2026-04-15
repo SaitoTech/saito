@@ -25,8 +25,7 @@ use super::stat_thread::StatEvent;
 #[derive(Debug)]
 pub enum VerifyRequest {
     Transaction(Transaction),
-    // Transactions(VecDeque<Transaction>),
-    Block(Vec<u8>, SaitoPublicKey, BlockHash, BlockId),
+    Block(Vec<u8>, u64, BlockHash, BlockId),
 }
 
 pub struct VerificationThread {
@@ -43,7 +42,7 @@ pub struct VerificationThread {
 }
 
 impl VerificationThread {
-    pub async fn verify_tx(&mut self, mut transaction: Transaction) {
+    pub async fn verify_transaction(&mut self, mut transaction: Transaction) {
         trace!("verifying tx : {:?}", transaction.signature.to_hex());
         let blockchain = self.blockchain_lock.read().await;
         let mut peers = self.peer_lock.write().await;
@@ -71,7 +70,7 @@ impl VerificationThread {
     pub async fn verify_block(
         &mut self,
         buffer: &[u8],
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         block_hash: BlockHash,
         block_id: BlockId,
     ) {
@@ -87,8 +86,7 @@ impl VerificationThread {
         }
 
         let mut block = result.unwrap();
-        block.routed_from_peer = Some(public_key);
-
+        block.routed_from_peer_id = peer_id;
         block.generate().unwrap();
 
         if block.id != block_id || block.hash != block_hash {
@@ -106,14 +104,14 @@ impl VerificationThread {
             "block : {:?}-{:?} deserialized from buffer from peer : {:?}",
             block.id,
             block.hash.to_hex(),
-            public_key.to_base58()
+            peer_id
         );
 
         self.processed_blocks.increment();
         self.processed_msgs.increment();
 
         self.sender_to_consensus
-            .send(ConsensusEvent::BlockFetched { public_key, block })
+            .send(ConsensusEvent::BlockFetched { peer_id, block })
             .await
             .unwrap();
     }
@@ -136,14 +134,12 @@ impl ProcessEvent<VerifyRequest> for VerificationThread {
         );
         match request {
             VerifyRequest::Transaction(transaction) => {
-                self.verify_tx(transaction).await;
+                self.verify_transaction(transaction).await;
             }
-            VerifyRequest::Block(block, public_key, block_hash, block_id) => {
-                self.verify_block(block.as_slice(), public_key, block_hash, block_id)
+            VerifyRequest::Block(block, peer_id, block_hash, block_id) => {
+                self.verify_block(block.as_slice(), peer_id, block_hash, block_id)
                     .await;
-            } // VerifyRequest::Transactions(mut txs) => {
-              //     self.verify_txs(&mut txs).await;
-              // }
+            }
         }
 
         Some(())

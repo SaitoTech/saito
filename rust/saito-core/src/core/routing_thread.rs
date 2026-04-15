@@ -4,6 +4,7 @@ use crate::core::consensus::mempool::Mempool;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
+use crate::core::network::gatekeeper::AccessRecord;
 use crate::core::defs::{
     BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, Timestamp,
     CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
@@ -46,8 +47,8 @@ const GATEKEEPER_MONITOR_PERIOD: Timestamp = Duration::from_secs(30).as_millis()
 #[derive(Debug)]
 pub enum RoutingEvent {
     BlockchainUpdated(BlockHash, bool),
-    BlockFetchRequest(SaitoPublicKey, BlockHash, BlockId),
-    BlockchainRequest(SaitoPublicKey),
+    BlockFetchRequest(u64, BlockHash, BlockId),
+    BlockchainRequest(u64),
     KeyListUpdated(Vec<SaitoPublicKey>),
 }
 
@@ -129,7 +130,6 @@ pub struct RoutingThread {
     /// we emit an event and store the received chain until the user handles the event. TODO : handle this functionality after JS functions are implemented.
     pub received_ghost_chain: Option<(GhostChainSync, SaitoPublicKey)>,
     pub waiting_for_genesis_block: bool,
-    pub blockchain_send_results: Vec<BlockchainSendResults>,
 }
 
 impl RoutingThread {
@@ -163,14 +163,8 @@ impl RoutingThread {
         self.gatekeeper.add_record(
             peer_id,
             AccessRecord::MessageReceived,
-            create_timestamp(),
+	    self.timer.get_timestamp_in_ms()
         );
-
-        //if let Some(public_key) = public_key {
-        //    self.network
-        //        .update_peer_timestamp(public_key, self.timer.get_timestamp_in_ms())
-        //        .await;
-        //}
 
         match message {
             Message::RequestHandshake(_challenge) => {
@@ -327,6 +321,7 @@ impl RoutingThread {
             transaction.signature.to_hex(),
             peer_id
         );
+	transaction.routed_from_peer_id = peer_id;
         self.send_to_verification_thread(VerifyRequest::Transaction(transaction))
             .await;
     }
@@ -357,7 +352,6 @@ impl RoutingThread {
                 peer_id,
                 self.blockchain_lock.clone(),
                 &self.network,
-                &mut self.blockchain_send_results,
             )
             .await
         {
@@ -869,13 +863,13 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             NetworkEvent::BlockFetched {
                 block_hash,
                 block_id,
-                public_key,
+                peer_id,
                 buffer,
             } => {
                 debug!("block received : {:?}", block_hash.to_hex());
 
                 self.send_to_verification_thread(VerifyRequest::Block(
-                    buffer, public_key, block_hash, block_id,
+                    buffer, peer_id, block_hash, block_id,
                 ))
                 .await;
 
@@ -885,7 +879,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             }
             NetworkEvent::BlockFetchFailed {
                 block_hash,
-                public_key,
+                peer_id,
                 block_id,
             } => {
                 let time = self.timer.get_timestamp_in_ms();
@@ -893,7 +887,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 self.sync
                     .process_block_fetch_failed_event(
                         block_hash,
-                        public_key,
+                        peer_id,
                         block_id,
                         &self.network,
                         time,
@@ -1039,11 +1033,11 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 }
             }
 
-            RoutingEvent::BlockFetchRequest(public_key, block_hash, block_id) => {
+            RoutingEvent::BlockFetchRequest(peer_id, block_hash, block_id) => {
                 trace!(
                     "
                     received block fetch request from peer : {:?} for block : {:?}-{:?}",
-                    public_key,
+                    peer_id,
                     block_hash.to_hex(),
                     block_id
                 );
@@ -1052,20 +1046,20 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     .add_entry(
                         block_hash,
                         block_id,
-                        public_key,
+                        peer_id,
                         self.network.peer_lock.clone(),
                     )
                     .await;
                 self.refresh_sync_fetch_floor().await;
             }
-            RoutingEvent::BlockchainRequest(public_key) => {
+            RoutingEvent::BlockchainRequest(peer_id) => {
                 info!(
                     "requesting blockchain from peer : {:?} after block add failure",
-                    public_key
+                    peer_id
                 );
                 self.sync
                     .request_blockchain_from_peer(
-                        public_key,
+                        peer_id,
                         self.blockchain_lock.clone(),
                         self.config_lock.clone(),
                         &self.network,
