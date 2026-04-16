@@ -11,7 +11,7 @@ const PEER_STALE_PERIOD: Timestamp = Duration::from_secs(30).as_millis() as Time
 
 #[derive(Debug, Default)]
 pub struct Peers {
-    pub peers_v2: HashMap<u64, Peer>,
+    pub peers: HashMap<u64, Peer>,
 }
 
 impl<'a> IntoIterator for &'a Peers {
@@ -19,7 +19,7 @@ impl<'a> IntoIterator for &'a Peers {
     type IntoIter = std::collections::hash_map::Values<'a, u64, Peer>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.peers_v2.values()
+        self.peers.values()
     }
 }
 impl<'a> IntoIterator for &'a mut Peers {
@@ -27,7 +27,7 @@ impl<'a> IntoIterator for &'a mut Peers {
     type IntoIter = std::collections::hash_map::ValuesMut<'a, u64, Peer>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.peers_v2.values_mut()
+        self.peers.values_mut()
     }
 }
 impl IntoIterator for Peers {
@@ -35,34 +35,34 @@ impl IntoIterator for Peers {
     type IntoIter = std::collections::hash_map::IntoValues<u64, Peer>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.peers_v2.into_values()
+        self.peers.into_values()
     }
 }
 
 impl Peers {
     //
-    // PEER V2 REFACTOR API
+    // Peer API
     //
     pub fn get_peer_by_id_mut(&mut self, peer_id: u64) -> Option<&mut Peer> {
-        self.peers_v2.get_mut(&peer_id)
+        self.peers.get_mut(&peer_id)
     }
 
     pub fn get_peer_by_id(&self, peer_id: u64) -> Option<&Peer> {
-        self.peers_v2.get(&peer_id)
+        self.peers.get(&peer_id)
     }
 
     pub fn get_peer_by_public_key(&self, public_key: &SaitoPublicKey) -> Option<&Peer> {
-        self.peers_v2
+        self.peers
             .values()
             .find(|p| p.public_key.as_ref() == Some(public_key))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Peer> {
-        self.peers_v2.values()
+        self.peers.values()
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Peer> {
-        self.peers_v2.values_mut()
+        self.peers.values_mut()
     }
 
     pub async fn add_stun_peer(
@@ -154,8 +154,8 @@ impl Peers {
             peer_id
         );
 
-        if let Some(peer_v2) = self.get_peer_by_id_mut(peer_id) {
-            peer_v2.key_list = key_list;
+        if let Some(peer) = self.get_peer_by_id_mut(peer_id) {
+            peer.key_list = key_list;
             Ok(())
         } else {
             Ok(())
@@ -164,7 +164,7 @@ impl Peers {
 
     pub fn remove_disconnected_peers(&mut self, current_time: Timestamp) {
         let peer_ids: Vec<u64> = self
-            .peers_v2
+            .peers
             .iter()
             .filter_map(|(id, peer)| {
                 if peer.is_connected {
@@ -186,7 +186,7 @@ impl Peers {
             .collect();
 
         for peer_id in peer_ids {
-            self.peers_v2.remove(&peer_id);
+            self.peers.remove(&peer_id);
         }
     }
 
@@ -197,11 +197,11 @@ impl Peers {
     ) {
         trace!(
             "disconnecting stale peers out of {:?} peers",
-            self.peers_v2.len()
+            self.peers.len()
         );
         // --- Phase 1: collect stale peer_ids ---
         let mut stale_peer_ids: Vec<u64> = Vec::new();
-        for peer in self.peers_v2.values() {
+        for peer in self.peers.values() {
             if peer.is_connected && peer.last_message_at + PEER_STALE_PERIOD < current_time {
                 if let Some(pk) = peer.public_key {
                     trace!(
@@ -225,9 +225,9 @@ impl Peers {
         // --- Phase 2: apply disconnect ---
         for peer_id in stale_peer_ids {
             info!("disconnecting stale peer_id : {:?}", peer_id);
-            // update PeerV2 state
-            if let Some(peer_v2) = self.get_peer_by_id_mut(peer_id) {
-                peer_v2.on_disconnect(current_time);
+            // update peer state
+            if let Some(peer) = self.get_peer_by_id_mut(peer_id) {
+                peer.on_disconnect(current_time);
             }
             // IO disconnect by peer_id
             if let Err(err) = io_handler.disconnect_from_peer(peer_id).await {
@@ -240,7 +240,7 @@ impl Peers {
     }
 
     pub fn print_current_peers(&self) {
-        self.peers_v2.values().for_each(|peer| {
+        self.peers.values().for_each(|peer| {
             if let Some(pk) = peer.public_key {
                 debug!(
                     "peer : {:?} endpoint : {:?} connected : {:?}",
