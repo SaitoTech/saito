@@ -353,7 +353,7 @@ impl NetworkController {
         let peer_id = network_peer.id;
         {
             let mut peers = peers_lock.write().await;
-            peers.peers_v2.insert(peer_id, network_peer);
+            peers.peers.insert(peer_id, network_peer);
         }
         {
             let mut controller = network_controller.write().await;

@@ -368,7 +368,7 @@ pub async fn create_network_peer(url: Option<String>) -> WasmNetworkPeer {
     {
         let mut peers = saito.routing_thread.network.peer_lock.write().await;
 
-        peers.peers_v2.insert(peer_id, peer);
+        peers.peers.insert(peer_id, peer);
     }
 
     WasmNetworkPeer::new(peer_id)
