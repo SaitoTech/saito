@@ -5,9 +5,13 @@
 	position: absolute;
 	z-index: 200;
 	bottom: 0;
-	border: 1px solid var(--saito-border-color);
+	border: 1px solid rgba(71, 72, 75, 0.45);
 	cursor: grab;
-	background: var(--saito-black);
+	background: rgba(36, 38, 42, 0.78);
+	backdrop-filter: blur(12px);
+	border-radius: 1rem;
+	box-shadow: 0 16px 28px rgba(0, 0, 0, 0.4);
+	color: #f2f0f4;
 }
 
 .audio-box {
@@ -26,7 +30,7 @@
 	top: 50%;
 	transform: translate(-50%, -50%);
 	font-size: larger;
-	color: var(--saito-black);
+	color: #16171a;
 }
 
 .small-audio-chatbox .stun-identicon-list img {
@@ -47,24 +51,28 @@
 	align-items: center;
 }
 
+.small-audio-chatbox .counter {
+	color: #ff914d;
+}
+
 .small-audio-chatbox .control-panel {
 	gap: 1.5rem;
 }
 
 .audio-box.speaking {
-	border-color: var(--saito-secondary);
+	border-color: #fb9532;
 	animation: speaker-pulse 0.1s infinite;
 }
 
 @keyframes speaker-pulse {
 	0%,
 	100% {
-		box-shadow: 0 0 20px 10px var(--saito-secondary);
-		border-color: var(--saito-secondary);
+		box-shadow: 0 0 20px 10px rgba(251, 149, 50, 0.5);
+		border-color: #fb9532;
 	}
 	50% {
-		box-shadow: 0 0 20px 10px var(--saito-primary);
-		border-color: var(--saito-primary);
+		box-shadow: 0 0 20px 10px rgba(255, 145, 77, 0.5);
+		border-color: #ff914d;
 	}
 }
 

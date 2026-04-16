@@ -1,10 +1,13 @@
 module.exports = (app, mod, keys) => {
   let html = `
-      <div class="stun-appspace"> 
+      <div class="stun-appspace">
         <div class="stun-appspace-content">
             <div class="stunx-appspace-splash">
+              <div class="stun-brand-pill">
+                <img class="stun-brand-pill-logo" src="/saito/img/logo-orange.svg" alt="Saito logo" />
+              </div>
               <div class="stun-title">Saito Talk</div>
-              <div>peer-to-peer video chat</div>
+              <div class="stun-subtitle">peer-to-peer video chat</div>
               <div class="stunx-splash-image"></div>
             </div>
 
@@ -15,7 +18,7 @@ module.exports = (app, mod, keys) => {
     html += `<div class="saito-button-primary stunx-appspace-launch-call-btn" id="createRoom" data-id="${mod.room_obj?.call_id}">Join Meeting</div>`;
     mode = 'join';
   } else if (keys.length > 0) {
-    html += `<div class="saito-button-primary stunx-appspace-launch-call-btn" id="joinScheduleRoom">Join / Start Meeting</div>`;
+    html += `<div class="saito-button-primary stunx-appspace-launch-call-btn" id="joinScheduleRoom">JOIN CALL</div>`;
     mode = 'select';
   } else {
     html += `<div class="saito-button-primary stunx-appspace-launch-call-btn" id="createRoom">Start Meeting</div>`;
@@ -24,12 +27,12 @@ module.exports = (app, mod, keys) => {
   }
 
   html += `</div>
-        
+
           <div class="stun-appspace-footer">
             <div id="stunx-call-settings" class="stunx-call-settings saito-anchor"><i class="fa-solid fa-gears"></i><span>media settings</span></div>
             <div id="createScheduleRoom" class="stun-schedule-call saito-anchor"><i class="fas fa-calendar"></i><span>schedule call</span></div>
         </div>
-      
+
       </div>
 
     `;
