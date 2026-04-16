@@ -1,7 +1,8 @@
 module.exports = (app, mod) => {
 	let privacy = app.options.stun?.settings?.privacy || 'all';
 	let html = `
-			<fieldset class="saito-grid">
+			<div class="stun-settings-shell">
+			<fieldset class="saito-grid stun-settings-privacy">
 			<legend class="settings-label">Enable direct calls on Saito Talk from:</legend>
 			<input type="radio" id="all" name="stun-privacy" value="all" ${
 	privacy == 'all' ? 'checked' : ''
@@ -23,19 +24,22 @@ module.exports = (app, mod) => {
 			`;
 
 	if (mod?.streams?.active){
-		html += `<fieldset class="stun-input-settings">
+		html += `<fieldset class="stun-input-settings cinematic-inputs">
             <legend class="stun-input-settings-label">Adjust Inputs</legend>
             <select style="display:none" class="saito-select" id="video-input"></select>
             <select style="display:none" class="saito-select" id="audio-input"></select>
-            <button style="display:none"  id="test-mic" class="chat-settings-test-mic">Test Microphone</button>
-            <div style="display:none"  class="chat-settings-audio-controls">
+            <button style="display:none" id="test-mic" class="chat-settings-test-mic">Test Microphone</button>
+            <div style="display:none" class="chat-settings-audio-controls">
             <i id="toggle-playback" class="fas fa-play chat-settings-toggle-icon"></i>
                 <span id="audio-progress">00:00 / 00:00</span>
             </div>
-            <div style="display:none"  class="chat-settings-audio-progress-bar">
+            <div style="display:none" class="chat-settings-audio-progress-bar">
               <div id="progress" class="chat-settings-progress"></div>
             </div>
         </fieldset>`;
-	}		
+	}
+
+	html += `</div>`;
+
 	return html;
 };

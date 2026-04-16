@@ -785,6 +785,7 @@ video#presentation {
 	position: relative;
 }
 
+/*
 .control-list > div:first-child {
 	border-top-left-radius: var(--saito-border-radius);
 	border-bottom-left-radius: var(--saito-border-radius);
@@ -794,7 +795,7 @@ video#presentation {
 	border-top-right-radius: var(--saito-border-radius);
 	border-bottom-right-radius: var(--saito-border-radius);
 }
-
+*/
 .control-list .icon_click_area.disabled {
 	background-color: grey;
 }
@@ -1235,4 +1236,291 @@ video#presentation {
 	color: var(--saito-font-color);
 	padding: 2rem;
 	font-size: 1.75rem;
+}
+
+/* Cinematic refresh overrides */
+
+.stun-chatbox {
+	background: var(--stun-noir-bg, #0d0e11);
+	color: var(--stun-noir-text, #f2f0f4);
+	font-family: Manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.stun-chatbox .video-container-large {
+	padding: 1.25rem;
+	gap: 1.25rem;
+}
+
+.stun-chatbox .video-box-container-large {
+	border: 1px solid var(--stun-noir-outline, rgba(71, 72, 75, 0.35));
+	border-radius: 0.9rem;
+	background: linear-gradient(
+		145deg,
+		var(--stun-noir-surface-low, #121316),
+		var(--stun-noir-surface, #181a1d)
+	);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.02),
+		0 12px 24px rgba(0, 0, 0, 0.28);
+}
+
+.stun-chatbox .video-box-container-large video {
+	border-radius: inherit;
+}
+
+.stun-chatbox .video-call-info {
+	padding: 0 1rem 1rem;
+	width: 100%;
+	bottom: 0;
+	height: auto;
+	grid-template-columns: min-content 1fr min-content min-content;
+}
+
+.stun-chatbox .video-call-info .saito-address {
+	background: rgba(36, 38, 42, 0.65);
+	backdrop-filter: blur(10px);
+	padding: 0.45rem 0.85rem;
+	border-radius: 999px;
+	font-size: 1.4rem;
+	max-width: fit-content;
+}
+
+.speaker {
+	border: 2px solid var(--stun-noir-accent-2) !important;
+	box-shadow: 0 0 24px -10px var(--stun-noir-accent-2);
+}
+
+.footer {
+	justify-content: center;
+	padding: 1.2rem;
+}
+
+.stun-toolbar-shell {
+	width: min(1180px, calc(100vw - 3rem));
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1.8rem;
+	padding: 2.2rem;
+	background: rgba(36, 38, 42, 0.72);
+	backdrop-filter: blur(12px);
+	border: 1px solid rgba(71, 72, 75, 0.45);
+	border-radius: 2rem;
+	box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+
+.footer .timer {
+	flex-direction: row;
+	min-width: 0;
+	gap: 1.2rem;
+}
+
+.timer .counter {
+	color: var(--stun-noir-accent);
+	font-size: 1.8rem;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+		'Courier New', monospace;
+}
+
+.users-on-call {
+	background-color: rgba(13, 14, 17, 0.55);
+	padding: 0.55rem 0.85rem;
+	border-radius: 999px;
+}
+
+.stun-identicon-list img {
+	width: 3.2rem;
+	height: 3.2rem;
+	border-radius: 999px;
+	border: 1px solid rgba(71, 72, 75, 0.45);
+}
+
+.control-panel {
+	gap: 1rem;
+	align-items: center;
+}
+
+.control-list {
+	background-color: rgba(13, 14, 17, 0.6);
+	border: 1px solid rgba(71, 72, 75, 0.45);
+	padding: 0.3rem;
+	gap: 0.3rem;
+	border-radius: 999px;
+}
+
+.control-list .icon_click_area {
+	width: 4.6rem;
+	height: 4.6rem;
+	border-radius: 999px;
+	background-color: #1e2023;
+}
+
+.control-list .icon_click_area label,
+.add-users-container label {
+	bottom: -2.3rem;
+	color: #abaaae;
+}
+
+.icon_click_area i {
+	color: #f2f0f4;
+}
+
+.control-list .icon_click_area.disabled {
+	background-color: #47484b;
+}
+
+.control-list .icon_click_area.disabled i {
+	color: #0d0e11;
+}
+
+.add-users-container {
+	width: fit-content;
+}
+
+.disconnect-control.icon_click_area {
+	background: var(--stun-noir-accent-3);
+}
+
+.disconnect-control.icon_click_area i {
+	color: #2b0d02;
+}
+
+.disconnect-control.icon_click_area:hover i.disconnect_btn {
+	color: var(--stun-noir-text);
+}
+
+.chat-settings-preview {
+	border-radius: 0.9rem;
+	border: 1px solid var(--stun-noir-outline);
+	background-color: var(--stun-noir-surface-low);
+	overflow: hidden;
+}
+
+.chat-settings-preview span {
+	font-size: 1.3rem;
+	letter-spacing: 0.04em;
+	color: #abaaae;
+}
+
+.chat-settings-toggle-icons {
+	left: 50%;
+	transform: translateX(-50%);
+	bottom: 1.4rem;
+	display: flex;
+	gap: 0.7rem;
+	background: rgba(36, 38, 42, 0.75);
+	backdrop-filter: blur(10px);
+	padding: 0.5rem;
+	border-radius: 999px;
+}
+
+.chat-settings-toggle-icon {
+	width: 4.2rem;
+	height: 4.2rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 999px;
+	font-size: 1.8rem;
+	color: #f2f0f4;
+	background-color: #1e2023;
+	text-shadow: none;
+}
+
+.chat-settings-toggle-icon:hover {
+	color: #0d0e11;
+	background: linear-gradient(135deg, #ff914d, #f38239);
+}
+
+.stun-input-settings.cinematic-inputs {
+	width: 100%;
+	border-radius: 0.9rem;
+	padding: 1.2rem;
+	background-color: #121316;
+	border: 1px solid rgba(71, 72, 75, 0.35);
+}
+
+.stun-input-settings.cinematic-inputs legend {
+	display: block;
+	font-size: 1.2rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: #ff914d;
+	margin-bottom: 0.65rem;
+}
+
+.stun-input-settings.cinematic-inputs select {
+	background-color: #1e2023;
+	color: #f2f0f4;
+	border-radius: 0.75rem;
+	border: 1px solid rgba(71, 72, 75, 0.35);
+}
+
+.videocall-setting-grid-item {
+	background: #121316;
+	color: #f2f0f4;
+	border-radius: 0.9rem;
+	border: 1px solid rgba(71, 72, 75, 0.35) !important;
+}
+
+.videocall-setting-grid-item .saito-modal-title {
+	font-family: 'Space Grotesk', Manrope, sans-serif;
+	font-size: 2.2rem;
+	letter-spacing: -0.02em;
+}
+
+.videocall-option-label {
+	background: #1e2023;
+	border-radius: 0.9rem;
+	padding: 1rem 1.2rem;
+	font-size: 1.7rem;
+	border: 1px solid transparent;
+}
+
+.videocall-option-label.active,
+.videocall-option-label:hover {
+	border-color: rgba(255, 145, 77, 0.45);
+}
+
+.stun-settings-shell {
+	display: grid;
+	gap: 1.2rem;
+}
+
+.stun-settings-privacy {
+	background: #121316;
+	padding: 1.2rem;
+	border-radius: 0.9rem;
+	border: 1px solid rgba(71, 72, 75, 0.35);
+}
+
+.stun-settings-privacy .settings-label {
+	color: #ff914d;
+	margin-bottom: 1rem;
+}
+
+@media screen and (max-width: 900px) {
+	.stun-toolbar-shell {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 1.2rem;
+	}
+
+	.footer .timer,
+	.control-panel {
+		justify-content: center;
+        flex-wrap: wrap;
+		}
+}
+
+@media screen and (max-width: 600px) {
+	.stun-toolbar-shell {
+		width: calc(100vw - 1rem);
+		padding: 0.8rem;
+	}
+
+	.control-list .icon_click_area {
+		width: 4.1rem;
+		height: 4.1rem;
+	}
 }

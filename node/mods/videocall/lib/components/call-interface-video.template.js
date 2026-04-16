@@ -11,40 +11,39 @@ module.exports  = (mod, videoEnabled = true, audioEnabled = true) => {
         </section>
 
         <section class="footer">
-
-          
-          <div class="timer">
-            <div class="counter"> 00:00 </div>
-            <div class="users-on-call">
-              <div class="stun-identicon-list"></div>
-              <div class="users-on-call-text"><span class="users-on-call-count">1</span> on call</div>
-            </div>
-            <div class="add-users-container control-list">
-              <div class="icon_click_area">
-                <label>Invite</label>
-                <i class="add_users fa fa-plus"></i>
+          <div class="stun-toolbar-shell">
+            <div class="timer">
+              <div class="counter">00:00</div>
+              <div class="users-on-call">
+                <div class="stun-identicon-list"></div>
+                <div class="users-on-call-text"><span class="users-on-call-count">1</span> on call</div>
+              </div>
+              <div class="add-users-container control-list">
+                <div class="icon_click_area">
+                  <label>Invite</label>
+                  <i class="add_users fa fa-plus"></i>
+                </div>
               </div>
             </div>
-          </div>
-       
-          <div class="control-panel">
-            <div class="control-list imported-actions">
-            </div>
 
-            <div class="control-list call-controls">
+            <div class="control-panel">
+              <div class="control-list imported-actions">
+              </div>
 
-              <div class="audio-control icon_click_area${audioEnabled ? '' : ' disabled'}">
-                <label>Audio</label>
-                <i class="fa ${audioEnabled ? 'fa-microphone' : 'fa-microphone-slash'}"> </i>
-              </div>
-            
-              <div class="video-control icon_click_area${videoEnabled ? '' : ' disabled'}">
-                <label>Video</label>
-                <i class="fas ${videoEnabled ? 'fa-video' : 'fa-video-slash'}"></i>
-              </div>
-              <div class="disconnect-control icon_click_area">
-                 <label>End </label>
-                 <i class="disconnect_btn  fas fa-phone"> </i>
+              <div class="control-list call-controls">
+                <div class="audio-control icon_click_area${audioEnabled ? '' : ' disabled'}">
+                  <label>Audio</label>
+                  <i class="fa ${audioEnabled ? 'fa-microphone' : 'fa-microphone-slash'}"></i>
+                </div>
+
+                <div class="video-control icon_click_area${videoEnabled ? '' : ' disabled'}">
+                  <label>Video</label>
+                  <i class="fas ${videoEnabled ? 'fa-video' : 'fa-video-slash'}"></i>
+                </div>
+                <div class="disconnect-control icon_click_area">
+                   <label>End</label>
+                   <i class="disconnect_btn fas fa-phone"></i>
+                </div>
               </div>
             </div>
           </div>

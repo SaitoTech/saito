@@ -1,6 +1,10 @@
 module.exports = () => {
 	return `
     <div class="videocall-media-settings">
+        <div class="videocall-media-settings-header">
+            <h2>Media Setup</h2>
+            <p>Check your camera and microphone before you join.</p>
+        </div>
         <div class="chat-settings-preview-section">
             <div id="video-preview" class="chat-settings-preview">
                 <span>getting user media</span>
@@ -11,7 +15,7 @@ module.exports = () => {
                 </div>
             </div>
         </div>
-        <fieldset class="stun-input-settings">
+        <fieldset class="stun-input-settings cinematic-inputs">
             <legend class="stun-input-settings-label">Adjust Inputs</legend>
             <select style="display:none" class="saito-select" id="video-input"></select>
             <select style="display:none" class="saito-select" id="audio-input"></select>
