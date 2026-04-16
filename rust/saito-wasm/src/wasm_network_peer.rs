@@ -4,12 +4,6 @@ use saito_core::core::defs::PrintForLog;
 use saito_core::core::network::msg::message::Message;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use std::sync::atomic::{AtomicU64, Ordering};
-static NEXT_PEER_ID: AtomicU64 = AtomicU64::new(1);
-fn generate_peer_id() -> u64 {
-    NEXT_PEER_ID.fetch_add(1, Ordering::Relaxed)
-}
-
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct WasmNetworkPeer {
