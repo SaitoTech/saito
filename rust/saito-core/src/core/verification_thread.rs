@@ -45,7 +45,6 @@ impl VerificationThread {
     pub async fn verify_transaction(&mut self, mut transaction: Transaction) {
         trace!("verifying tx : {:?}", transaction.signature.to_hex());
         let blockchain = self.blockchain_lock.read().await;
-        let mut peers = self.peer_lock.write().await;
         let wallet = self.wallet_lock.read().await;
         let public_key = wallet.public_key;
         transaction.generate(&public_key, 0, 0);
