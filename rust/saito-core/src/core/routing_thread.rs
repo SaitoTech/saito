@@ -276,11 +276,11 @@ impl RoutingThread {
                     message, peer_id
                 );
             }
-            Message::RequestChainSync(data) => {
+            Message::RequestChainSync(_data) => {
                 info!("REQUEST CHAIN SYNC: in process_peer_message");
             }
 
-            Message::ChainSync(data) => {
+            Message::ChainSync(_data) => {
                 info!("CHAIN SYNC: in process_peer_message");
             }
         }
@@ -710,7 +710,6 @@ impl RoutingThread {
                         block_hash,
                         chain.block_ids[i],
                         peer_id,
-                        self.network.peer_lock.clone(),
                     )
                     .await;
                 need_blocks_fetched = true;
@@ -1015,7 +1014,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         block_hash,
                         block_id,
                         peer_id,
-                        self.network.peer_lock.clone(),
                     )
                     .await;
             }
@@ -1057,7 +1055,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
 
         {
             let mut configs = self.config_lock.write().await;
-            let mut peers = self.network.peer_lock.write().await;
             if let Some(confirmation_data) = confirmation_data {
                 configs.get_blockchain_configs_mut().confirmations = confirmation_data;
             }

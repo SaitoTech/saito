@@ -11,7 +11,6 @@ use crate::core::network::msg::block_request::BlockchainRequest;
 use crate::core::network::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::network::msg::message::Message;
 use crate::core::network::network::Network;
-use crate::core::network::peers::Peers;
 use crate::core::util::configuration::Configuration;
 use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
@@ -339,7 +338,6 @@ impl BlockchainSyncState {
         block_hash: SaitoHash,
         block_id: BlockId,
         peer_id: u64,
-        peer_lock: Arc<RwLock<Peers>>,
     ) {
         debug!(
             "adding sync state entry : {:?} - {:?} from {:?}",
@@ -537,7 +535,7 @@ impl SyncManager {
         }
 
         self.state
-            .add_entry(block_hash, block_id, peer_id, network.peer_lock.clone())
+            .add_entry(block_hash, block_id, peer_id)
             .await;
     }
 
@@ -1039,8 +1037,8 @@ impl SyncManager {
         block_hash: SaitoHash,
         peer_id: u64,
         block_id: BlockId,
-        network: &Network,
-        current_time: Timestamp,
+        _network: &Network,
+        _current_time: Timestamp,
     ) {
         self.state.mark_as_failed(block_id, block_hash, peer_id);
     }

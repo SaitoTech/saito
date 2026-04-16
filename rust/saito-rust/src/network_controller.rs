@@ -454,10 +454,10 @@ impl NetworkController {
     pub async fn receive_message_from_peer(
         receiver: PeerReceiver,
         peer_id: u64,
-        peers_lock: Arc<RwLock<Peers>>,
-        wallet: Arc<RwLock<Wallet>>,
-        configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
-        timer: Timer,
+        _peers_lock: Arc<RwLock<Peers>>,
+        _wallet: Arc<RwLock<Wallet>>,
+        _configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
+        _timer: Timer,
         network_controller: Arc<RwLock<NetworkController>>,
     ) {
         debug!("starting new task for reading from peer");
@@ -466,9 +466,6 @@ impl NetworkController {
             debug!("new thread started for peer receiving");
 
             let network_controller_clone = network_controller.clone();
-            let wallet_clone = wallet.clone();
-            let configs_clone = configs.clone();
-            let peers_lock_clone = peers_lock;
 
             match receiver {
                 PeerReceiver::Warp(mut receiver) => loop {
@@ -484,11 +481,8 @@ impl NetworkController {
                             "failed receiving message [warp]: {:?}",
                             result.err().unwrap()
                         );
-
                         let mut network_controller = network_controller_clone.write().await;
-
                         network_controller.disconnect(peer_id).await;
-
                         break;
                     }
 
@@ -496,7 +490,6 @@ impl NetworkController {
 
                     if result.is_binary() {
                         let buffer = result.into_bytes();
-
                         let send_result = network_controller_clone
                             .write()
                             .await
@@ -506,25 +499,20 @@ impl NetworkController {
                                 event: NetworkEvent::PeerBufferReceived { peer_id, buffer },
                             })
                             .await;
-
                         if let Err(e) = send_result {
                             warn!(
                                 "sender_to_core send failed (peer_id={} op=peer_buffer_received err={})",
                                 peer_id,
                                 e
                             );
-
                             let mut network_controller = network_controller_clone.write().await;
                             network_controller.disconnect(peer_id).await;
-
                             break;
                         }
                     } else if result.is_close() {
                         warn!("warp connection closed by remote peer");
-
                         let mut network_controller = network_controller_clone.write().await;
                         network_controller.disconnect(peer_id).await;
-
                         break;
                     }
                 },
@@ -536,16 +524,13 @@ impl NetworkController {
                     }
 
                     let result = result.unwrap();
-
                     if result.is_err() {
                         warn!(
                             "failed receiving message [tungstenite]: {:?}",
                             result.err().unwrap()
                         );
-
                         let mut network_controller = network_controller_clone.write().await;
                         network_controller.disconnect(peer_id).await;
-
                         break;
                     }
 
@@ -560,27 +545,22 @@ impl NetworkController {
                                     event: NetworkEvent::PeerBufferReceived { peer_id, buffer },
                                 })
                                 .await;
-
                             if let Err(e) = send_result {
                                 warn!(
                                 "sender_to_core send failed (peer_id={} op=peer_buffer_received err={})",
                                 peer_id,
                                 e
                             );
-
                                 let mut network_controller = network_controller_clone.write().await;
                                 network_controller.disconnect(peer_id).await;
-
                                 break;
                             }
                         }
 
                         tokio_tungstenite::tungstenite::Message::Close(_) => {
                             warn!("tungstenite connection closed");
-
                             let mut network_controller = network_controller_clone.write().await;
                             network_controller.disconnect(peer_id).await;
-
                             break;
                         }
 

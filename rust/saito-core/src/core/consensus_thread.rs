@@ -472,7 +472,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
 
                 self.txs_for_mempool.reserve(transactions.len());
                 let mut mempool = self.mempool_lock.write().await;
-                let mut peers = self.network.peer_lock.write().await;
                 for transaction in transactions.drain(..) {
                     if let TransactionType::GoldenTicket = transaction.transaction_type {
                         self.stats.received_gts.increment();
