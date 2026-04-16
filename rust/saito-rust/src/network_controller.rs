@@ -39,15 +39,8 @@ use saito_core::core::network::peer::Peer;
 use saito_core::core::network::peers::Peers;
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::util::configuration::Configuration;
+use saito_core::core::network::peers::generate_peer_id;
 
-//
-// ID for PEERS (unique, monotonic)
-//
-use std::sync::atomic::{AtomicU64, Ordering};
-static NEXT_PEER_ID: AtomicU64 = AtomicU64::new(1);
-pub fn generate_peer_id() -> u64 {
-    NEXT_PEER_ID.fetch_add(1, Ordering::Relaxed)
-}
 
 type SocketSender = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, tungstenite::Message>;
 type SocketReceiver = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
