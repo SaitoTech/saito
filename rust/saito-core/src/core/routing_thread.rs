@@ -984,7 +984,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     let mut peer_ids: Vec<u64> = vec![];
                     {
                         let peers = self.network.peer_lock.read().await;
-                        for peer in peers.peers_v2.values() {
+                        for peer in peers.peers.values() {
                             if peer.is_connected {
                                 peer_ids.push(peer.id);
                             }

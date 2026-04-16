@@ -57,7 +57,7 @@ impl Network {
         let peers = self.peer_lock.read().await;
         let mut excluded_peers: Vec<u64> = vec![];
 
-        for peer in peers.peers_v2.values() {
+        for peer in peers.peers.values() {
             if peer.id == block.routed_from_peer_id {
                 excluded_peers.push(peer.id);
             } else {
@@ -103,7 +103,7 @@ impl Network {
         // --- STEP 3: lock peers ---
         let mut peers = self.peer_lock.write().await;
 
-        for peer in peers.peers_v2.values_mut() {
+        for peer in peers.peers.values_mut() {
             let Some(peer_public_key) = peer.public_key else {
                 continue;
             };
@@ -235,7 +235,7 @@ impl Network {
 
         let mut targets: Vec<SaitoPublicKey> = vec![];
 
-        for peer in peers.peers_v2.values() {
+        for peer in peers.peers.values() {
             let Some(pk) = peer.public_key else {
                 continue;
             };
@@ -263,7 +263,7 @@ impl Network {
 
         let mut excluded_peers: Vec<u64> = vec![];
 
-        for peer in peers.peers_v2.values() {
+        for peer in peers.peers.values() {
             if !peer.is_connected {
                 excluded_peers.push(peer.id);
             }
@@ -297,7 +297,7 @@ impl Network {
         {
             let mut peers = self.peer_lock.write().await;
 
-            for peer in peers.peers_v2.values_mut() {
+            for peer in peers.peers.values_mut() {
                 //
                 // STUCK HANDSHAKE DETECTION
                 //
@@ -368,7 +368,7 @@ impl Network {
                 let peers = self.peer_lock.read().await;
 
                 peers
-                    .peers_v2
+                    .peers
                     .values()
                     .filter(|peer| {
                         peer.is_connecting
@@ -468,11 +468,11 @@ impl Network {
         }
 
         let mut peers = self.peer_lock.write().await;
-        if let Some(peer_v2) = peers.get_peer_by_id_mut(peer_id) {
-            let public_key = peer_v2.get_public_key();
+        if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+            let public_key = peer.get_public_key();
             self.io_interface
                 .send_interface_event(InterfaceEvent::PeerConnectionDropped(public_key));
-            peer_v2.on_disconnect(self.timer.get_timestamp_in_ms());
+            peer.on_disconnect(self.timer.get_timestamp_in_ms());
         }
     }
 
