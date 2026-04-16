@@ -85,7 +85,7 @@ impl Spammer {
                     let peers = peer_lock.read().await;
 
                     let any_connected = peers
-                        .peers_v2
+                        .peers
                         .values()
                         .any(|p| p.is_connected && p.public_key.is_some());
 
@@ -131,7 +131,7 @@ impl Spammer {
                     let peers = self.tx_generator.peer_lock.read().await;
 
                     let any_connected = peers
-                        .peers_v2
+                        .peers
                         .values()
                         .any(|p| p.is_connected && p.public_key.is_some());
 

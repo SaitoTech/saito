@@ -139,7 +139,7 @@ impl TransactionGenerator {
                 let peers = self.peer_lock.read().await;
 
                 let mut connected_peers: Vec<SaitoPublicKey> = peers
-                    .peers_v2
+                    .peers
                     .values()
                     .filter_map(|peer| {
                         if peer.is_connected {
@@ -376,7 +376,7 @@ impl TransactionGenerator {
             let peers = self.peer_lock.read().await;
 
             let connected_peers: Vec<SaitoPublicKey> = peers
-                .peers_v2
+                .peers
                 .values()
                 .filter_map(|peer| {
                     if peer.is_connected {
