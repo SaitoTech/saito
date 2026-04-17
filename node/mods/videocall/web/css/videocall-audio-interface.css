@@ -5,13 +5,13 @@
 	position: absolute;
 	z-index: 200;
 	bottom: 0;
-	border: 1px solid rgba(71, 72, 75, 0.45);
+	border: 1px solid var(--stun-noir-outline-strong);
 	cursor: grab;
-	background: rgba(36, 38, 42, 0.78);
+	background: var(--stun-noir-glass);
 	backdrop-filter: blur(12px);
 	border-radius: 1rem;
-	box-shadow: 0 16px 28px rgba(0, 0, 0, 0.4);
-	color: #f2f0f4;
+	box-shadow: var(--stun-noir-shadow-audio);
+	color: var(--stun-noir-text);
 }
 
 .audio-box {
@@ -30,7 +30,7 @@
 	top: 50%;
 	transform: translate(-50%, -50%);
 	font-size: larger;
-	color: #16171a;
+	color: var(--stun-noir-icon-dark);
 }
 
 .small-audio-chatbox .stun-identicon-list img {
@@ -52,7 +52,7 @@
 }
 
 .small-audio-chatbox .counter {
-	color: #ff914d;
+	color: var(--stun-noir-accent);
 }
 
 .small-audio-chatbox .control-panel {
@@ -60,19 +60,19 @@
 }
 
 .audio-box.speaking {
-	border-color: #fb9532;
+	border-color: var(--stun-noir-accent-strong);
 	animation: speaker-pulse 0.1s infinite;
 }
 
 @keyframes speaker-pulse {
 	0%,
 	100% {
-		box-shadow: 0 0 20px 10px rgba(251, 149, 50, 0.5);
-		border-color: #fb9532;
+		box-shadow: 0 0 20px 10px var(--stun-noir-secondary-glow-pulse);
+		border-color: var(--stun-noir-accent-strong);
 	}
 	50% {
-		box-shadow: 0 0 20px 10px rgba(255, 145, 77, 0.5);
-		border-color: #ff914d;
+		box-shadow: 0 0 20px 10px var(--stun-noir-accent-glow-pulse);
+		border-color: var(--stun-noir-accent);
 	}
 }
 
