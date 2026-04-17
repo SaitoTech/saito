@@ -196,6 +196,21 @@
 	color: var(--stun-noir-title-contrast);
 	box-shadow: 0 0 32px -10px var(--stun-noir-accent-glow-strong);
 	border: none;
+	transition:
+		transform 0.18s ease,
+		box-shadow 0.18s ease,
+		filter 0.18s ease;
+}
+
+.stunx-appspace-launch-call-btn:hover {
+	transform: translateY(-1px);
+	box-shadow: 0 0 36px -10px var(--stun-noir-accent-glow-strong);
+	filter: brightness(1.03);
+}
+
+.stunx-appspace-launch-call-btn:active {
+	transform: translateY(0);
+	filter: brightness(0.98);
 }
 
 .stunx-precall-link {
@@ -377,7 +392,7 @@ input:checked + .slider:before {
 
 @media (max-width: 600px) {
 	.stun-appspace {
-		padding: 1rem;
+		padding: 0;
 	}
 
 	.stun-appspace-content {
@@ -418,3 +433,5 @@ input:checked + .slider:before {
 		align-items: stretch;
 	}
 }
+
+
