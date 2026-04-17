@@ -37,7 +37,7 @@
 .stun-chatbox .minimizer,
 .stun-chatbox .maximizer {
 	position: absolute;
-	right: 1.8rem;
+	right: 2.8rem;
 	top: 1.5rem;
 	z-index: 2;
 	cursor: pointer;
@@ -198,7 +198,7 @@
 .stun-chatbox .video-container-large {
 	/*width: 97%; Why!!?? */
 	height: 100%;
-	max-height: 85svh;
+	max-height: calc(100vh - 150px);
 	transition: all 0.5s ease;
 	position: relative;
 	padding: 1rem;
@@ -504,7 +504,7 @@ video#local {
 	height: 100%;
 	max-width: 100%;
 	object-fit: cover;
-	max-height: 85svh;
+	max-height: calc(100svh - 150px);
 	z-index: 2;
 	border-radius: inherit;
 	border: none;
@@ -932,6 +932,10 @@ video#presentation {
 		width: 2rem;
 		height: 2rem;
 	}
+	.stun-identicon-list img {
+		width: 3rem;
+		height: 3rem;
+	  }
 }
 
 @media screen and (max-width: 395px) {
@@ -1018,6 +1022,7 @@ video#presentation {
 
 .chat-settings video {
 	width: 100%;
+	max-width: 100vw;
 	border-radius: var(--saito-border-radius);
 	max-height: 50vh;
 }
@@ -1251,7 +1256,7 @@ video#presentation {
 }
 
 .stun-chatbox .video-container-large {
-	padding: 1.25rem;
+	padding: 1.25rem 2rem 0;
 	gap: 1.25rem;
 }
 
@@ -1296,11 +1301,11 @@ video#presentation {
 
 .footer {
 	justify-content: center;
-	padding: 1.2rem;
+	padding: 0 2rem 1.2rem;
 }
 
 .stun-toolbar-shell {
-	width: min(1180px, calc(100vw - 3rem));
+	width: min(900px, calc(100vw - 3rem));
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -1330,11 +1335,12 @@ video#presentation {
 	background-color: var(--stun-noir-surface-overlay);
 	padding: 0.55rem 0.85rem;
 	border-radius: 999px;
+	border: 1px solid var(--stun-noir-outline-strong);
 }
 
 .stun-identicon-list img {
-	width: 3.2rem;
-	height: 3.2rem;
+	width: 5rem;
+	height: 5rem;
 	border-radius: 999px;
 	border: 1px solid var(--stun-noir-outline-strong);
 }
@@ -1347,14 +1353,14 @@ video#presentation {
 .control-list {
 	background-color: var(--stun-noir-surface-overlay-strong);
 	border: 1px solid var(--stun-noir-outline-strong);
-	padding: 0.3rem;
-	gap: 0.3rem;
+	padding: 0.5rem;
+	gap: 0.5rem;
 	border-radius: 999px;
 }
 
 .control-list .icon_click_area {
-	width: 4.6rem;
-	height: 4.6rem;
+	width: 5rem;
+	height: 5rem;
 	border-radius: 999px;
 	background-color: var(--stun-noir-surface-high);
 }
@@ -1363,6 +1369,17 @@ video#presentation {
 .add-users-container label {
 	bottom: -2.3rem;
 	color: var(--stun-noir-text-muted);
+	opacity: 0;
+	transform: translateY(4px);
+	pointer-events: none;
+	transition: opacity 0.18s ease, transform 0.18s ease, color 0.18s ease;
+}
+
+.control-list .icon_click_area:hover label,
+.add-users-container .icon_click_area:hover label {
+	opacity: 1;
+	transform: translateY(0);
+	color: var(--stun-noir-text);
 }
 
 .icon_click_area i {
@@ -1374,7 +1391,12 @@ video#presentation {
 }
 
 .control-list .icon_click_area.disabled i {
-	color: var(--stun-noir-bg);
+	color: var(--stun-noir-text);
+}
+
+.call-controls .audio-control.disabled i,
+.call-controls .video-control.disabled i {
+	color: var(--stun-noir-text);
 }
 
 .add-users-container {
@@ -1519,12 +1541,11 @@ video#presentation {
 
 @media screen and (max-width: 600px) {
 	.stun-toolbar-shell {
-		width: calc(100vw - 1rem);
-		padding: 0.8rem;
+		padding: 0.75rem 2rem;
 	}
 
 	.control-list .icon_click_area {
-		width: 4.1rem;
-		height: 4.1rem;
+		width: 3.75rem;
+		height: 3.75rem;
 	}
 }
