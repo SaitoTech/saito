@@ -93,16 +93,18 @@
   width: 3rem;
   color: var(--saito-primary);
   background-color: var(--saito-primary-text);
-  font-size: 3rem;
+  font-size: 3.1rem;
   border-radius: 50%;
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 48%;
+  left: 48%;
   transform: translate(-50%, -50%);
 }
 
 .saito-overlay-closebox:hover {
-  transform: rotate(90deg);
+  transform: scale(1.1);
+  transform-origin: center;
+  transition: transform 0.2s ease-in-out;
 }
 
 .saito-app-overlay .saito-app-body .saito-app-upload {
