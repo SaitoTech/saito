@@ -1,6 +1,5 @@
-use std::cmp::Ordering;
-use std::collections::VecDeque;
 use std::sync::Arc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
@@ -8,465 +7,557 @@ use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::msg::block_request::BlockchainRequest;
+use crate::core::network::msg::chainsync::{
+    is_supported_sync_type, ChainSync, RequestChainSync, SYNC_TYPE_FULL, SYNC_TYPE_SPV,
+};
 use crate::core::network::msg::ghost_chain_sync::GhostChainSync;
 use crate::core::network::msg::message::Message;
 use crate::core::network::network::Network;
+use crate::core::network::sync::chain::{
+    build_blockchain_response, validate_parsed_blockchain, MAX_CHAIN_SYNC_CHUNK,
+};
 use crate::core::util::configuration::Configuration;
-use ahash::HashMap;
 use log::{debug, error, info, trace, warn};
+use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::io::Error;
 use tokio::sync::RwLock;
 
-#[derive(Debug)]
-enum BlockStatus {
-    Queued,
-    Fetching,
-    Fetched,
-    Failed,
+// ---------------------------------------------------------------------------
+// Block fetch queue policy (Phase 1)
+// ---------------------------------------------------------------------------
+
+/// Maximum block bodies fetched concurrently across all peers.
+pub const MAX_CONCURRENT_BLOCK_FETCHES: usize = 10;
+
+/// After this many failed attempts for one block, drop the queue entry.
+pub const MAX_BLOCK_FETCH_RETRIES: u32 = 20;
+
+/// Minimum milliseconds after a failed attempt before the block is eligible for
+/// another fetch. With value `0`, the next `fetch_next_blocks` pass may retry
+/// immediately (same behavior as a tight poll loop).
+pub const BLOCK_FETCH_RETRY_DELAY_MS: Timestamp = 0;
+
+fn timestamp_ms_now() -> Timestamp {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as Timestamp)
+        .unwrap_or(0)
 }
 
+// ---------------------------------------------------------------------------
+
+/// **Legacy:** streams [`Message::BlockReference`] after [`BlockchainRequest`].
+/// Canonical chain sync uses [`Message::RequestChainSync`] / [`Message::ChainSync`].
 pub struct BlockchainSendResults {
     pub start_id: BlockId,
     pub end_id: BlockId,
     pub peer_id: u64,
 }
 
-struct BlockData {
-    block_hash: BlockHash,
-    block_id: BlockId,
-    status: BlockStatus,
-    retry_count: u32,
+/// One block the node intends to fetch; peers are candidates for HTTP fetch.
+#[derive(Debug, Clone)]
+pub struct BlockFetchEntry {
+    pub block_id: BlockId,
+    pub block_hash: BlockHash,
+    pub peer_ids: Vec<u64>,
+    pub retry_count: u32,
+    pub last_attempt_at: Timestamp,
+    pub in_flight: bool,
+    pub in_flight_peer_id: Option<u64>,
 }
 
-/// How many times should we retry before giving up on that block for that peer
-const MAX_RETRIES_PER_BLOCK: u32 = 500;
-
-/// Maintains the state for fetching blocks from other peers into this peer.
-/// Tries to fetch the blocks in the most resource efficient way possible.
-pub struct BlockchainSyncState {
-    /// These are the blocks we have received from each of our peers
-    received_block_picture: HashMap<u64, VecDeque<(BlockId, SaitoHash)>>,
-    /// These are the blocks which we have to fetch from each of our peers
-    blocks_to_fetch: HashMap<u64, VecDeque<BlockData>>,
-    /// Maximum amount of blocks which can be fetched concurrently from a peer. If this number is too high, the peer's performance might get affected or the requests might be rejected
-    batch_size: usize,
+/// Ordered global queue of blocks to fetch (`block_id` ascending, then `block_hash`).
+/// Queue key is `(block_id, block_hash)` so iteration order matches scheduling preference.
+pub struct BlockFetchQueue {
+    entries: BTreeMap<(BlockId, SaitoHash), BlockFetchEntry>,
 }
 
-impl BlockchainSyncState {
-    pub fn new(batch_size: usize) -> BlockchainSyncState {
+impl BlockFetchQueue {
+    pub fn new() -> Self {
         info!(
-            "max concurrent block fetches per peer is set as {:?}",
-            batch_size
+            "BlockFetchQueue: max concurrent block fetches = {}",
+            MAX_CONCURRENT_BLOCK_FETCHES
         );
-        BlockchainSyncState {
-            received_block_picture: Default::default(),
-            blocks_to_fetch: Default::default(),
-            batch_size,
+        Self {
+            entries: BTreeMap::new(),
         }
     }
 
-    /// Builds the list of blocks to be fetched from each peer. Blocks fetched are in order if in the same fork,
-    /// or at the same level for multiple forks to make sure the blocks fetched can be processed most efficiently
-    pub(crate) fn build_peer_block_picture(&mut self, blockchain: &Blockchain) {
-        trace!(
-            "building peer block picture. total : {}",
-            self.received_block_picture
-                .iter()
-                .map(|x| x.1.len())
-                .sum::<usize>()
+    pub fn queue_len(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// Iterate entries in queue order (ascending `block_id`, then `block_hash`).
+    pub fn iter_queue(&self) -> impl Iterator<Item = (&(BlockId, SaitoHash), &BlockFetchEntry)> {
+        self.entries.iter()
+    }
+
+    /// Enqueue or merge `peer_id` into the entry for this block identity.
+    pub fn enqueue_block(&mut self, block_id: BlockId, block_hash: SaitoHash, peer_id: u64) {
+        debug!(
+            "enqueue_block : {:?}-{:?} peer {}",
+            block_id,
+            block_hash.to_hex(),
+            peer_id
         );
-        // for every block picture received from a peer, we sort and create a list of sequential hashes to fetch from peers
-        for (peer_id, received_picture_from_peer) in self.received_block_picture.iter_mut() {
-            // need to sort before sequencing
-            received_picture_from_peer.make_contiguous().sort_by(
-                |(id_a, hash_a), (id_b, hash_b)| {
-                    if id_a == id_b {
-                        return hash_a.cmp(hash_b);
-                    }
-                    id_a.cmp(id_b)
-                },
-            );
-
-            let blocks_to_fetch_from_peer = self.blocks_to_fetch.entry(*peer_id).or_default();
-            let mut counter = 0;
-
-            loop {
-                if received_picture_from_peer.is_empty() {
-                    // have added all the received block hashes to the fetching list
-                    break;
-                }
-
-                let (id, hash) = received_picture_from_peer
-                    .pop_front()
-                    .expect("failed popping front from received picture");
-
-                if blockchain.blocks.contains_key(&hash) {
-                    // not fetching blocks we already have
-                    continue;
-                }
-
-                let block_data = BlockData {
-                    block_hash: hash,
-                    block_id: id,
-                    status: BlockStatus::Queued,
-                    retry_count: 0,
-                };
-
-                let already_exists = blocks_to_fetch_from_peer.iter().any(|b| {
-                    let exists =
-                        b.block_hash == block_data.block_hash && b.block_id == block_data.block_id;
-                    if exists {
-                        debug!(
-                            "block : {:?}-{:?} already in the queue to be fetched with status : {:?} / retry_count : {:?}",
-                            b.block_id,
-                            b.block_hash.to_hex(),
-                            b.status,
-                            b.retry_count
-                        );
-                    }
-                    exists
-                });
-
-                if !already_exists {
-                    counter += 1;
-                    blocks_to_fetch_from_peer.push_back(block_data);
+        let key = (block_id, block_hash);
+        match self.entries.get_mut(&key) {
+            Some(entry) => {
+                if !entry.peer_ids.contains(&peer_id) {
+                    entry.peer_ids.push(peer_id);
                 }
             }
-            if counter > 0 {
-                debug!(
-                    "{:?} blocks selected (total : {:?}/{:?}) for peer : {:?}",
-                    counter,
-                    blocks_to_fetch_from_peer.len(),
-                    received_picture_from_peer.len(),
-                    peer_id
+            None => {
+                self.entries.insert(
+                    key,
+                    BlockFetchEntry {
+                        block_id,
+                        block_hash,
+                        peer_ids: vec![peer_id],
+                        retry_count: 0,
+                        last_attempt_at: 0,
+                        in_flight: false,
+                        in_flight_peer_id: None,
+                    },
                 );
             }
         }
-        // removing empty lists from memory
-        self.received_block_picture.retain(|_, map| !map.is_empty());
-        self.blocks_to_fetch.retain(|_, vec| !vec.is_empty());
-    }
-    pub fn get_fetching_block_count(&self) -> BlockId {
-        self.blocks_to_fetch
-            .values()
-            .map(|v| v.len() as BlockId)
-            .sum::<BlockId>()
     }
 
-    /// Generates the list of blocks which needs to be fetched next. A list is generated per each peer since we can fetch from multiple peers concurrently.
-    pub fn get_blocks_to_fetch_per_peer(&mut self) -> HashMap<u64, Vec<(SaitoHash, BlockId)>> {
-        trace!("getting block to be fetched per each peer",);
-        let mut selected_blocks_per_peer: HashMap<u64, Vec<(SaitoHash, BlockId)>> =
-            Default::default();
-
-        // for each peer check if we can fetch block
-        for (peer_id, deq) in self.blocks_to_fetch.iter_mut() {
-            // we need to sort the list to make sure we are fetching the next in sequence blocks.
-            // otherwise our memory will grow since we need to keep those fetched blocks in memory.
-            // we need to sort this here because some previous block hashes can be received out of sequence
-            deq.make_contiguous().sort_by(|a, b| {
-                if a.block_id == b.block_id {
-                    return a.block_hash.cmp(&b.block_hash);
-                }
-                a.block_id.cmp(&b.block_id)
-            });
-
-            let mut fetching_count = 0;
-
-            // TODO : we don't need to iterate through this list multiple times. refactor !!!
-            //  (can collect more than required and drop larger block ids if there are too many)
-            for block_data in deq.iter_mut() {
-                match block_data.status {
-                    BlockStatus::Queued => {}
-                    BlockStatus::Fetching => {
-                        fetching_count += 1;
-                    }
-                    BlockStatus::Fetched => {}
-                    BlockStatus::Failed => {}
-                }
-            }
-
-            let mut allowed_quota = self.batch_size - fetching_count;
-
-            for block_data in deq.iter_mut() {
-                // we limit concurrent fetches to this amount
-                if allowed_quota == 0 {
-                    // we have reached allowed concurrent fetches quota.
-                    break;
-                }
-
-                match block_data.status {
-                    BlockStatus::Queued => {
-                        trace!(
-                            "selecting entry : {:?}-{:?} for peer : {:?}",
-                            block_data.block_id,
-                            block_data.block_hash.to_hex(),
-                            peer_id
-                        );
-                        allowed_quota -= 1;
-                        selected_blocks_per_peer
-                            .entry(*peer_id)
-                            .or_default()
-                            .push((block_data.block_hash, block_data.block_id));
-                        block_data.status = BlockStatus::Fetching;
-                    }
-                    BlockStatus::Fetching => {}
-                    BlockStatus::Fetched => {}
-                    BlockStatus::Failed => {
-                        match block_data.retry_count.cmp(&MAX_RETRIES_PER_BLOCK) {
-                            Ordering::Less => {
-                                block_data.retry_count += 1;
-                                debug!(
-                                    "selecting failed entry : {:?}-{:?} for peer : {:?}",
-                                    block_data.block_id,
-                                    block_data.block_hash.to_hex(),
-                                    peer_id
-                                );
-                                allowed_quota -= 1;
-                                block_data.status = BlockStatus::Queued;
-                            }
-                            Ordering::Equal => {
-                                error!("ignoring block : {:?}-{:?} from peer : {:?} since we have repeatedly failed to fetch it",
-                                block_data.block_id,
-                                block_data.block_hash.to_hex(),
-                                peer_id);
-
-                                // increasing this so the error is only printed once per block per peer
-                                block_data.retry_count += 1;
-                            }
-                            Ordering::Greater => {}
-                        }
-                    }
-                }
-            }
-
-            debug!(
-                "peer : {:?} to be fetched {:?} blocks. first : {:?} last : {:?} fetching : {:?} failed : {:?} queued : {:?}",
-                peer_id,
-                deq.len(),
-                deq.front().unwrap().block_id,
-                deq.back().unwrap().block_id,
-                deq.iter()
-                    .filter(|b| matches!(b.status, BlockStatus::Fetching))
-                    .count(),
-                deq.iter()
-                    .filter(|b| matches!(b.status, BlockStatus::Failed))
-                    .count(),
-                deq.iter()
-                    .filter(|b| matches!(b.status, BlockStatus::Queued))
-                    .count()
-            );
+    /// Remove every queue row matching `block_hash` (normally one).
+    pub fn remove_block(&mut self, block_hash: SaitoHash) {
+        trace!("remove_block : {:?}", block_hash.to_hex());
+        let keys: Vec<(BlockId, SaitoHash)> = self
+            .entries
+            .keys()
+            .filter(|(_, h)| *h == block_hash)
+            .copied()
+            .collect();
+        for k in keys {
+            self.entries.remove(&k);
         }
-
-        selected_blocks_per_peer
     }
 
-    /// Mark the block state as "fetched"
-    ///
-    /// # Arguments
-    ///
-    /// * `hash`:
-    ///
-    /// returns: ()
-    ///
-    /// # Examples
-    ///
-    /// ```
-    ///
-    /// ```
-    pub fn mark_as_fetched(&mut self, hash: SaitoHash) {
-        debug!("marking block : {:?} as fetched", hash.to_hex());
-        for (peer_id, deq) in self.blocks_to_fetch.iter_mut() {
-            for block_data in deq {
-                if hash.eq(&block_data.block_hash) {
-                    block_data.status = BlockStatus::Fetched;
-                    trace!(
-                        "block : {:?} marked as fetched from peer : {:?}",
-                        block_data.block_hash.to_hex(),
-                        peer_id
-                    );
-                    break;
-                }
-            }
-        }
-
-        self.remove_fetched_blocks();
-    }
-
-    /// Removes all the entries related to fetched blocks and removes any empty collections from memory
-    ///
-    /// # Arguments
-    ///
-    /// returns: ()
-    ///
-    /// # Examples
-    ///
-    /// ```
-    ///
-    /// ```
-    fn remove_fetched_blocks(&mut self) {
-        let mut counter = 0;
-        self.blocks_to_fetch.retain(|_, res| {
-            res.retain(|b| {
-                if matches!(b.status, BlockStatus::Fetched) {
-                    counter += 1;
-                    return false;
-                }
-                true
-            });
-            !res.is_empty()
-        });
-        trace!("{:?} fetched blocks removed from sync state", counter);
-    }
-    /// Adds an entry to this data structure which will be fetched later after prioritizing.
-    ///
-    /// # Arguments
-    ///
-    /// * `block_hash`:
-    /// * `block_id`:
-    /// * `peer_id`:
-    ///
-    /// returns: ()
-    ///
-    /// # Examples
-    ///
-    /// ```
-    ///
-    /// ```
-    pub async fn add_entry(
+    /// Mark a started HTTP fetch (`in_flight`, chosen peer, timestamp).
+    pub fn mark_fetch_started(
         &mut self,
-        block_hash: SaitoHash,
         block_id: BlockId,
+        block_hash: SaitoHash,
         peer_id: u64,
+        now: Timestamp,
     ) {
-        debug!(
-            "adding sync state entry : {:?} - {:?} from {:?}",
-            block_hash.to_hex(),
+        if let Some(e) = self.entries.get_mut(&(block_id, block_hash)) {
+            e.in_flight = true;
+            e.in_flight_peer_id = Some(peer_id);
+            e.last_attempt_at = now;
+        }
+    }
+
+    /// Successful fetch: remove the entry.
+    pub fn complete_fetch(&mut self, block_hash: SaitoHash) {
+        debug!("complete_fetch : {:?}", block_hash.to_hex());
+        self.remove_block(block_hash);
+    }
+
+    /// Record a failed fetch attempt; may clear in_flight, bump retries, or drop the entry.
+    pub fn record_fetch_failure(
+        &mut self,
+        block_id: BlockId,
+        block_hash: BlockHash,
+        peer_id: u64,
+        now: Timestamp,
+    ) {
+        warn!(
+            "record_fetch_failure : {:?}-{:?} peer {}",
             block_id,
+            block_hash.to_hex(),
             peer_id
         );
-        self.received_block_picture
-            .entry(peer_id)
-            .or_default()
-            .push_back((block_id, block_hash));
-    }
-
-    /// Removes entry when the hash is added to the blockchain. If so we can move the block ceiling up.
-    ///
-    /// # Arguments
-    ///
-    /// * `block_hash`:
-    ///
-    /// returns: ()
-    ///
-    /// # Examples
-    ///
-    /// ```
-    ///
-    /// ```
-    pub fn remove_entry(&mut self, block_hash: SaitoHash) {
-        trace!("removing entry : {:?} from peer", block_hash.to_hex());
-        for (_, deq) in self.blocks_to_fetch.iter_mut() {
-            deq.retain(|block_data| block_data.block_hash != block_hash);
+        let Some(entry) = self.entries.get_mut(&(block_id, block_hash)) else {
+            debug!(
+                "record_fetch_failure: no queue entry for {:?}",
+                block_hash.to_hex()
+            );
+            return;
+        };
+        if !entry.in_flight {
+            debug!("record_fetch_failure: entry not in flight; ignoring duplicate failure");
+            return;
+        }
+        if entry.in_flight_peer_id != Some(peer_id) {
+            debug!(
+                "record_fetch_failure: stale peer {} (expected {:?})",
+                peer_id, entry.in_flight_peer_id
+            );
+            return;
         }
 
-        self.blocks_to_fetch.retain(|_, deq| !deq.is_empty());
+        entry.in_flight = false;
+        entry.in_flight_peer_id = None;
+        entry.last_attempt_at = now;
+        entry.retry_count = entry.retry_count.saturating_add(1);
+
+        if entry.retry_count >= MAX_BLOCK_FETCH_RETRIES {
+            error!(
+                "dropping block {:?}-{:?} from fetch queue after {} failures",
+                block_id,
+                block_hash.to_hex(),
+                entry.retry_count
+            );
+            self.entries.remove(&(block_id, block_hash));
+        }
+    }
+
+    /// Select up to `max_new` new fetches in **queue order** (ascending `block_id`).
+    /// Marks selected entries in-flight and returns `(peer_id, hash, block_id)` for dispatch.
+    pub fn select_next_fetch_batch(
+        &mut self,
+        max_new: usize,
+        now: Timestamp,
+    ) -> Vec<(u64, SaitoHash, BlockId)> {
+        if max_new == 0 {
+            return vec![];
+        }
+
+        let in_flight_count = self
+            .entries
+            .values()
+            .filter(|e| e.in_flight)
+            .count();
+        let capacity = MAX_CONCURRENT_BLOCK_FETCHES.saturating_sub(in_flight_count);
+        let limit = max_new.min(capacity);
+        if limit == 0 {
+            return vec![];
+        }
+
+        let keys_to_start: Vec<(BlockId, SaitoHash)> = self
+            .entries
+            .iter()
+            .filter(|(_, e)| {
+                if e.in_flight || e.peer_ids.is_empty() {
+                    return false;
+                }
+                if e.last_attempt_at == 0 {
+                    return true;
+                }
+                now.saturating_sub(e.last_attempt_at) >= BLOCK_FETCH_RETRY_DELAY_MS
+            })
+            .take(limit)
+            .map(|(k, _)| *k)
+            .collect();
+
+        let mut out = Vec::new();
+        for key in keys_to_start {
+            let Some(entry) = self.entries.get_mut(&key) else {
+                continue;
+            };
+            if entry.in_flight || entry.peer_ids.is_empty() {
+                continue;
+            }
+            let idx = (entry.retry_count as usize) % entry.peer_ids.len();
+            let peer_id = entry.peer_ids[idx];
+            entry.in_flight = true;
+            entry.in_flight_peer_id = Some(peer_id);
+            entry.last_attempt_at = now;
+            out.push((peer_id, key.1, entry.block_id));
+        }
+        out
+    }
+
+    pub fn get_fetching_block_count(&self) -> BlockId {
+        self.entries.values().filter(|e| e.in_flight).count() as BlockId
     }
 
     pub fn get_stats(&self) -> Vec<String> {
-        let mut stats = vec![];
-        for (peer_id, vec) in self.blocks_to_fetch.iter() {
-            let res = self.received_block_picture.get(peer_id);
-            let mut count = 0;
-            if let Some(deq) = res {
-                count = deq.len();
-            }
-            let mut highest_id = 0;
-            let last = vec.back();
-            if let Some(block_data) = last {
-                highest_id = block_data.block_id;
-            }
-            let mut lowest_id = 0;
-            let first = vec.front();
-            if first.is_some() {
-                lowest_id = first.unwrap().block_id;
-            }
-            let fetching_blocks_count = vec
-                .iter()
-                .filter(|block_data| matches!(block_data.status, BlockStatus::Fetching))
-                .count();
-            let stat = format!(
-                "{} - peer : {:?} lowest_id: {:?} fetching_count : {:?} ordered_till : {:?} unordered_block_ids : {:?}",
-                format!("{:width$}", "routing::sync_state", width = 40),
-                peer_id,
-                lowest_id,
-                fetching_blocks_count,
-                highest_id,
-                count
-            );
-            stats.push(stat);
+        if self.entries.is_empty() {
+            return vec![];
         }
-        // let stat = format!(
-        //     "{} - block_fetch_ceiling : {:?}",
-        //     format!("{:width$}", "routing::sync_state", width = 40),
-        //     self.block_fetch_ceiling
-        // );
-        // stats.push(stat);
-        stats
-    }
-
-    /// Mark the blocks which we couldn't fetch from the peer. After a sevaral retries we will stop fetching the block until we fetch it from another peer.
-    ///
-    /// # Arguments
-    ///
-    /// * `id`:
-    /// * `hash`:
-    /// * `peer_id`:
-    ///
-    /// returns: ()
-    ///
-    /// # Examples
-    ///
-    /// ```
-    ///
-    /// ```
-    pub fn mark_as_failed(&mut self, id: BlockId, hash: BlockHash, peer_id: u64) {
-        warn!(
-            "failed to fetch block : {:?}-{:?} from peer : {:?}",
-            id,
-            hash.to_hex(),
-            peer_id
+        let &(lowest_id, _) = self.entries.keys().next().unwrap();
+        let &(highest_id, _) = self.entries.keys().next_back().unwrap();
+        let fetching = self.entries.values().filter(|e| e.in_flight).count();
+        let stat = format!(
+            "{} - entries: {:?} lowest_id: {:?} highest_id: {:?} in_flight: {:?}",
+            format!("{:width$}", "routing::block_fetch_queue", width = 40),
+            self.entries.len(),
+            lowest_id,
+            highest_id,
+            fetching
         );
-
-        if let Some(deq) = self.blocks_to_fetch.get_mut(&peer_id) {
-            let data = deq
-                .iter_mut()
-                .find(|data| data.block_id == id && data.block_hash == hash);
-            match data {
-                None => {
-                    debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a block or it's already fetched",id,hash.to_hex(),peer_id);
-                }
-                Some(data) => {
-                    data.status = BlockStatus::Failed;
-                }
-            }
-        } else {
-            debug!("we are marking a block {:?}-{:?} from peer : {:?} as failed to fetch. But we don't have such a peer",id,hash.to_hex(),peer_id);
-        }
+        vec![stat]
     }
+}
+
+/// Per-peer state for chunked outbound [`Message::ChainSync`] replies.
+#[derive(Clone, Debug)]
+struct ChainSyncSendState {
+    last_peer_fork_id: SaitoHash,
+    out_cursor: BlockId,
 }
 
 pub struct SyncManager {
-    pub state: BlockchainSyncState,
+    pub state: BlockFetchQueue,
+    /// **Legacy:** queued ranges for [`Self::send_block_reference`].
     pub blockchain_send_results: Vec<BlockchainSendResults>,
+    /// Responder-side cursor for chunked `ChainSync` (canonical).
+    chain_sync_send_by_peer: HashMap<u64, ChainSyncSendState>,
 }
 
 impl SyncManager {
-    pub fn new(batch_size: usize) -> Self {
+    pub fn new() -> Self {
         Self {
-            state: BlockchainSyncState::new(batch_size),
+            state: BlockFetchQueue::new(),
             blockchain_send_results: vec![],
+            chain_sync_send_by_peer: HashMap::new(),
         }
+    }
+
+    pub fn clear_blockchain_peer(&mut self, peer_id: u64) {
+        self.chain_sync_send_by_peer.remove(&peer_id);
+    }
+
+    pub fn build_request_blockchain_from_blockchain(
+        blockchain: &Blockchain,
+        sync_type: u8,
+    ) -> RequestChainSync {
+        let fork_id = blockchain
+            .generate_fork_id(blockchain.get_latest_block_id())
+            .or(blockchain.fork_id)
+            .unwrap_or([0; 32]);
+        RequestChainSync {
+            latest_known_block_id: blockchain.get_latest_block_id(),
+            latest_known_block_hash: blockchain.get_latest_block_hash(),
+            fork_id,
+            sync_type,
+        }
+    }
+
+    pub async fn send_request_blockchain_to_peer(
+        &self,
+        peer_id: u64,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        network: &Network,
+    ) {
+        let configs = config_lock.read().await;
+        if configs.is_browser() {
+            return;
+        }
+        let sync_type = if configs.is_spv_mode() {
+            SYNC_TYPE_SPV
+        } else {
+            SYNC_TYPE_FULL
+        };
+        drop(configs);
+
+        let blockchain = blockchain_lock.read().await;
+        let req = Self::build_request_blockchain_from_blockchain(&blockchain, sync_type);
+        drop(blockchain);
+
+        network
+            .send_message_by_peer_id(peer_id, Message::RequestChainSync(req))
+            .await;
+    }
+
+    pub async fn process_request_blockchain_message(
+        &mut self,
+        request: RequestChainSync,
+        peer_id: u64,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        network: &Network,
+    ) -> Result<(), Error> {
+        let configs = config_lock.read().await;
+        if configs.is_browser() {
+            return Ok(());
+        }
+        drop(configs);
+
+        if !is_supported_sync_type(request.sync_type) {
+            warn!(
+                "process_request_chain_sync_message: unsupported sync_type {} from peer {}",
+                request.sync_type, peer_id
+            );
+            return Ok(());
+        }
+
+        let mut insane_fork = false;
+        let mut last_shared_ancestor = 0u64;
+        let mut our_latest_id = 0u64;
+        let mut our_latest_hash = [0u8; 32];
+        let mut our_fork_id = [0u8; 32];
+        let mut shared_ancestor_block_hash = [0u8; 32];
+
+        {
+            let blockchain = blockchain_lock.read().await;
+
+            let mut lsa =
+                blockchain.generate_last_shared_ancestor(request.latest_known_block_id, request.fork_id);
+
+            if request.latest_known_block_id > 0
+                && request.latest_known_block_id
+                    < blockchain.genesis_block_id.saturating_sub(100)
+                && (lsa == 0 || lsa < blockchain.genesis_block_id)
+                && blockchain.get_latest_block_id() > 0
+            {
+                insane_fork = true;
+            } else {
+                if lsa == 0 {
+                    lsa = blockchain.genesis_block_id;
+                }
+                last_shared_ancestor = lsa;
+                our_latest_id = blockchain.get_latest_block_id();
+                our_latest_hash = blockchain.get_latest_block_hash();
+                our_fork_id = blockchain
+                    .generate_fork_id(our_latest_id)
+                    .or(blockchain.fork_id)
+                    .unwrap_or([0; 32]);
+                shared_ancestor_block_hash = blockchain
+                    .blockring
+                    .get_longest_chain_block_hash_at_block_id(last_shared_ancestor)
+                    .unwrap_or([0; 32]);
+            }
+        }
+
+        if insane_fork {
+            info!(
+                "RequestChainSync: disconnecting peer {} (no shared ancestor / insane fork)",
+                peer_id
+            );
+            {
+                if let Some(peer) = network.peer_lock.write().await.get_peer_by_id_mut(peer_id) {
+                    peer.url = None;
+                }
+            }
+            let _ = network
+                .disconnect_from_peer(
+                    peer_id,
+                    "Cannot find a shared ancestor block to sync 2 nodes",
+                )
+                .await;
+            return Ok(());
+        }
+
+        let send_from = {
+            let state = self
+                .chain_sync_send_by_peer
+                .entry(peer_id)
+                .or_insert(ChainSyncSendState {
+                    last_peer_fork_id: request.fork_id,
+                    out_cursor: last_shared_ancestor,
+                });
+            if state.last_peer_fork_id != request.fork_id {
+                state.last_peer_fork_id = request.fork_id;
+                state.out_cursor = last_shared_ancestor;
+            }
+            state.out_cursor.max(last_shared_ancestor)
+        };
+
+        let ordered_refs = {
+            let blockchain = blockchain_lock.read().await;
+            let mut refs = Vec::new();
+            let mut next_id = send_from.saturating_add(1);
+            while next_id <= our_latest_id && refs.len() < MAX_CHAIN_SYNC_CHUNK {
+                if let Some(h) = blockchain
+                    .blockring
+                    .get_longest_chain_block_hash_at_block_id(next_id)
+                {
+                    refs.push((next_id, h));
+                }
+                next_id = next_id.saturating_add(1);
+            }
+            refs
+        };
+
+        let (payload_earliest_id, payload_earliest_hash, payload_latest_id, payload_latest_hash) =
+            if ordered_refs.is_empty() {
+                (
+                    our_latest_id,
+                    our_latest_hash,
+                    our_latest_id,
+                    our_latest_hash,
+                )
+            } else {
+                let first = ordered_refs[0];
+                let last = *ordered_refs.last().unwrap();
+                (first.0, first.1, last.0, last.1)
+            };
+
+        let new_out_cursor = if ordered_refs.is_empty() {
+            our_latest_id
+        } else {
+            payload_latest_id
+        };
+
+        if let Some(st) = self.chain_sync_send_by_peer.get_mut(&peer_id) {
+            st.out_cursor = new_out_cursor;
+        }
+
+        let cs = build_blockchain_response(
+            our_latest_id,
+            our_latest_hash,
+            our_fork_id,
+            last_shared_ancestor,
+            shared_ancestor_block_hash,
+            payload_earliest_id,
+            payload_earliest_hash,
+            payload_latest_id,
+            payload_latest_hash,
+            ordered_refs,
+        )?;
+
+        network
+            .send_message_by_peer_id(peer_id, Message::ChainSync(cs))
+            .await;
+
+        Ok(())
+    }
+
+    pub async fn process_blockchain_message(
+        &mut self,
+        cs: ChainSync,
+        peer_id: u64,
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
+        network: &Network,
+    ) -> Result<(), Error> {
+        validate_parsed_blockchain(&cs)?;
+
+        let mut send_follow_up = false;
+        {
+            let blockchain = blockchain_lock.read().await;
+            if cs.payload_latest_block_id < cs.latest_known_block_id {
+                send_follow_up = true;
+            }
+            for (block_id, block_hash) in &cs.block_references {
+                if blockchain.get_block(block_hash).is_none() {
+                    self.state.enqueue_block(*block_id, *block_hash, peer_id);
+                }
+            }
+        }
+
+        if send_follow_up {
+            let configs = config_lock.read().await;
+            if configs.is_browser() {
+                return Ok(());
+            }
+            let sync_type = if configs.is_spv_mode() {
+                SYNC_TYPE_SPV
+            } else {
+                SYNC_TYPE_FULL
+            };
+            drop(configs);
+
+            let blockchain = blockchain_lock.read().await;
+            let req = Self::build_request_blockchain_from_blockchain(&blockchain, sync_type);
+            drop(blockchain);
+
+            network
+                .send_message_by_peer_id(peer_id, Message::RequestChainSync(req))
+                .await;
+        }
+
+        Ok(())
     }
 
     pub fn get_stats(&self) -> Vec<String> {
@@ -535,10 +626,10 @@ impl SyncManager {
         }
 
         self.state
-            .add_entry(block_hash, block_id, peer_id)
-            .await;
+            .enqueue_block(block_id, block_hash, peer_id);
     }
 
+    /// **Legacy:** ghost-chain payload for SPV / pre-`RequestChainSync` flows.
     pub async fn generate_ghost_chain(
         block_id: u64,
         fork_id: SaitoHash,
@@ -631,6 +722,7 @@ impl SyncManager {
         ghost
     }
 
+    /// **Legacy:** drains [`Self::blockchain_send_results`] via [`Message::BlockReference`].
     pub async fn send_block_reference(
         &mut self,
         blockchain_lock: Arc<RwLock<Blockchain>>,
@@ -667,6 +759,8 @@ impl SyncManager {
             .retain(|entry| entry.start_id <= entry.end_id);
     }
 
+    /// **Legacy:** inbound [`Message::RequestBlockchain`] — queues [`BlockchainSendResults`].
+    /// Canonical: [`Self::process_request_chain_sync_message`].
     pub async fn process_blockchain_request_message(
         &mut self,
         request: BlockchainRequest,
@@ -790,6 +884,8 @@ impl SyncManager {
         Ok(())
     }
 
+    /// **Legacy:** sends [`Message::RequestBlockchain`] or [`Message::RequestGhostChain`].
+    /// Canonical initial pull: [`Self::send_request_blockchain_to_peer`].
     pub async fn request_blockchain_from_peer(
         &self,
         peer_id: u64,
@@ -935,13 +1031,11 @@ impl SyncManager {
         config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     ) -> bool {
         let mut work_done = false;
+        let now = timestamp_ms_now();
 
-        {
-            let blockchain = blockchain_lock.read().await;
-            self.state.build_peer_block_picture(&blockchain);
-        }
-
-        let map = self.state.get_blocks_to_fetch_per_peer();
+        let batch = self
+            .state
+            .select_next_fetch_batch(MAX_CONCURRENT_BLOCK_FETCHES, now);
 
         let fetching_count = self.state.get_fetching_block_count();
 
@@ -949,83 +1043,77 @@ impl SyncManager {
             .io_interface
             .send_interface_event(InterfaceEvent::BlockFetchStatus(fetching_count as BlockId));
 
-        let mut fetched_blocks: Vec<(u64, SaitoHash)> = Default::default();
+        for (peer_id, hash, block_id) in batch {
+            work_done = true;
 
-        for (peer_id, vec) in map {
-            for (hash, block_id) in vec.iter().rev() {
-                work_done = true;
+            let block_exists;
+            let my_public_key;
 
-                let block_exists;
-                let my_public_key;
-
-                {
-                    let blockchain = blockchain_lock.read().await;
-                    if blockchain.is_block_indexed(*hash) {
-                        block_exists = true;
-                    } else {
-                        let mempool = mempool_lock.read().await;
-                        block_exists = mempool.blocks_queue.iter().any(|b| b.hash == *hash);
-                    }
+            {
+                let blockchain = blockchain_lock.read().await;
+                if blockchain.is_block_indexed(hash) {
+                    block_exists = true;
+                } else {
+                    let mempool = mempool_lock.read().await;
+                    block_exists = mempool.blocks_queue.iter().any(|b| b.hash == hash);
                 }
+            }
 
-                {
-                    let wallet = wallet_lock.read().await;
-                    my_public_key = wallet.public_key;
-                }
+            {
+                let wallet = wallet_lock.read().await;
+                my_public_key = wallet.public_key;
+            }
 
-                if block_exists {
-                    self.state.remove_entry(*hash);
-                    continue;
-                }
+            if block_exists {
+                self.state.remove_block(hash);
+                continue;
+            }
 
-                let url: String;
+            let url: String;
 
-                {
-                    let peers = network.peer_lock.read().await;
+            {
+                let peers = network.peer_lock.read().await;
 
-                    if let Some(peer) = peers.get_peer_by_id(peer_id) {
-                        if peer.block_fetch_url.is_empty() {
-                            warn!(
-                                "dropping block fetch: peer {:?} has no fetch URL for block {:?}",
-                                peer_id,
-                                hash.to_hex()
-                            );
-                            self.state.remove_entry(*hash);
-                            continue;
-                        }
-
-                        let configs = config_lock.read().await;
-                        let lite = configs.is_spv_mode();
-
-                        url = peer.get_block_fetch_url(*hash, lite, my_public_key);
-                    } else {
+                if let Some(peer) = peers.get_peer_by_id(peer_id) {
+                    if peer.block_fetch_url.is_empty() {
                         warn!(
-                            "dropping block fetch: peer {:?} not found for block {:?}",
+                            "dropping block fetch: peer {:?} has no fetch URL for block {:?}",
                             peer_id,
                             hash.to_hex()
                         );
-                        self.state.remove_entry(*hash);
+                        self.state.record_fetch_failure(block_id, hash, peer_id, now);
                         continue;
                     }
-                }
 
-                if network
-                    .io_interface
-                    .fetch_block_from_peer(*hash, peer_id, url.as_str(), *block_id)
-                    .await
-                    .is_err()
-                {
-                    warn!(
-        		"fetch_block_from_peer failed immediately for block {:?}-{:?} from peer {:?}",
-        		block_id,
-        		hash.to_hex(),
-        		peer_id
-    		    );
+                    let configs = config_lock.read().await;
+                    let lite = configs.is_spv_mode();
 
-                    self.state.mark_as_failed(*block_id, *hash, peer_id);
+                    url = peer.get_block_fetch_url(hash, lite, my_public_key);
                 } else {
-                    fetched_blocks.push((peer_id, *hash));
+                    warn!(
+                        "dropping block fetch: peer {:?} not found for block {:?}",
+                        peer_id,
+                        hash.to_hex()
+                    );
+                    self.state.record_fetch_failure(block_id, hash, peer_id, now);
+                    continue;
                 }
+            }
+
+            if network
+                .io_interface
+                .fetch_block_from_peer(hash, peer_id, url.as_str(), block_id)
+                .await
+                .is_err()
+            {
+                warn!(
+                    "fetch_block_from_peer failed immediately for block {:?}-{:?} from peer {:?}",
+                    block_id,
+                    hash.to_hex(),
+                    peer_id
+                );
+
+                self.state.record_fetch_failure(block_id, hash, peer_id, now);
             }
         }
 
@@ -1038,85 +1126,57 @@ impl SyncManager {
         peer_id: u64,
         block_id: BlockId,
         _network: &Network,
-        _current_time: Timestamp,
+        current_time: Timestamp,
     ) {
-        self.state.mark_as_failed(block_id, block_hash, peer_id);
+        self.state
+            .record_fetch_failure(block_id, block_hash, peer_id, current_time);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::core::defs::BlockId;
-    use crate::core::routing::blockchain_sync_state::BlockchainSyncState;
-    use crate::core::util::test::test_manager::test::TestManager;
-    use std::ops::Deref;
+    use super::*;
 
     #[tokio::test]
     #[serial_test::serial]
-    async fn multiple_forks_from_multiple_peers_test() {
-        let t = TestManager::default();
-        let mut state = BlockchainSyncState::new(10);
-        for i in 0..state.batch_size + 50 {
-            state
-                .add_entry(
-                    [(i + 1) as u8; 32],
-                    (i + 1) as BlockId,
-                    [1; 33],
-                    t.peer_lock.clone(),
-                )
-                .await;
-        }
-        for i in 4..state.batch_size + 50 {
-            state
-                .add_entry(
-                    [(i + 101) as u8; 32],
-                    (i + 1) as BlockId,
-                    [1; 33],
-                    t.peer_lock.clone(),
-                )
-                .await;
-        }
+    async fn enqueue_dedupes_and_merges_peers() {
+        let mut q = BlockFetchQueue::new();
+        q.enqueue_block(1, [1u8; 32], 100);
+        q.enqueue_block(1, [1u8; 32], 200);
+        assert_eq!(q.queue_len(), 1);
+        let batch = q.select_next_fetch_batch(1, 1);
+        assert_eq!(batch.len(), 1);
+        assert_eq!(batch[0].0, 100);
+    }
 
-        state.build_peer_block_picture(t.blockchain_lock.read().await.deref());
-        let mut result = state.get_blocks_to_fetch_per_peer();
-        assert_eq!(result.len(), 1);
-        let vec = result.get_mut(&[1; 33]);
-        assert!(vec.is_some());
-        let vec = vec.unwrap();
-        assert_eq!(vec.len(), state.batch_size);
-        assert_eq!(state.batch_size, 10);
-        let mut fetching = vec![];
-        for i in 0..4 {
-            let (entry, _) = vec.get(i).unwrap();
-            assert_eq!(*entry, [(i + 1) as u8; 32]);
-            fetching.push((1, [(i + 1) as u8; 32]));
+    #[test]
+    fn select_respects_global_concurrency() {
+        let mut q = BlockFetchQueue::new();
+        let now = 1_000_000u64;
+        for i in 1..=15u64 {
+            q.enqueue_block(i, [i as u8; 32], 1);
         }
-        let mut value = 4;
-        for index in (4..10).step_by(2) {
-            value += 1;
-            let (entry, _) = vec.get(index).unwrap();
-            assert_eq!(*entry, [(value) as u8; 32]);
-            fetching.push((1, [(value) as u8; 32]));
+        let b1 = q.select_next_fetch_batch(MAX_CONCURRENT_BLOCK_FETCHES, now);
+        assert_eq!(b1.len(), MAX_CONCURRENT_BLOCK_FETCHES);
+        let b2 = q.select_next_fetch_batch(MAX_CONCURRENT_BLOCK_FETCHES, now);
+        assert!(b2.is_empty());
+        assert_eq!(q.get_fetching_block_count(), MAX_CONCURRENT_BLOCK_FETCHES as BlockId);
+    }
 
-            let (entry, _) = vec.get(index + 1).unwrap();
-            assert_eq!(*entry, [(value + 100) as u8; 32]);
-            fetching.push((1, [(value + 100) as u8; 32]));
-        }
-        state.build_peer_block_picture(t.blockchain_lock.read().await.deref());
-        let result = state.get_blocks_to_fetch_per_peer();
-        assert_eq!(result.len(), 0);
-
-        state.remove_entry([1; 32]);
-        state.remove_entry([5; 32]);
-        state.remove_entry([106; 32]);
-        state.build_peer_block_picture(t.blockchain_lock.read().await.deref());
-        let mut result = state.get_blocks_to_fetch_per_peer();
-        assert_eq!(result.len(), 1);
-        let vec = result.get_mut(&[1; 33]).unwrap();
-        assert_eq!(vec.len(), 3);
-        // TODO : fix this
-        // assert!(vec.contains(&[8; 32]));
-        // assert!(vec.contains(&[108; 32]));
-        // assert!(vec.contains(&[9; 32]));
+    #[test]
+    fn failure_rotates_and_drops_at_limit() {
+        let mut q = BlockFetchQueue::new();
+        let h = [7u8; 32];
+        q.enqueue_block(42, h, 10);
+        q.enqueue_block(42, h, 20);
+        let now = 5u64;
+        let batch = q.select_next_fetch_batch(1, now);
+        assert_eq!(batch.len(), 1);
+        assert_eq!(batch[0].0, 10);
+        q.record_fetch_failure(42, h, 10, now);
+        assert_eq!(q.queue_len(), 1);
+        let batch2 = q.select_next_fetch_batch(1, now);
+        assert_eq!(batch2.len(), 1);
+        assert_eq!(batch2[0].0, 20);
     }
 }

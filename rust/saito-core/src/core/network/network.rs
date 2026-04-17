@@ -10,7 +10,6 @@ use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::interface_io::InterfaceIO;
-use crate::core::network::msg::chainsync::RequestChainSync;
 use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::RequestServices;
 use crate::core::network::peers::Peers;
@@ -280,7 +279,10 @@ impl Network {
             .await;
     }
 
-    pub async fn monitor_peers(&mut self, current_time: Timestamp) -> bool {
+    /// Periodic peer lifecycle maintenance. Returns peers that should receive an outbound
+    /// [`Message::RequestChainSync`] (canonical pull); the caller supplies the real tip via
+    /// [`SyncManager::send_request_chain_sync_to_peer`](crate::core::network::sync::manager::SyncManager::send_request_chain_sync_to_peer).
+    pub async fn monitor_peers(&mut self, current_time: Timestamp) -> (bool, Vec<u64>) {
         //
         // in order to avoid .await while holding the peer lock, we collect
         // references for the peer_ids that we want to send, and send at the
@@ -399,21 +401,7 @@ impl Network {
                 .await;
         }
 
-        //
-        // sync
-        //
-        for peer_id in request_sync_for {
-            self.send_message_by_peer_id(
-                peer_id,
-                Message::RequestChainSync(RequestChainSync {
-                    latest_block_id: 0,
-                    latest_block_hash: [0; 32],
-                }),
-            )
-            .await;
-        }
-
-        work_done
+        (work_done, request_sync_for)
     }
 
     pub async fn send_message(&self, public_key: SaitoPublicKey, message: Message) {

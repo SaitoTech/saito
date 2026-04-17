@@ -280,7 +280,7 @@ pub mod test {
                     senders_to_verification: vec![sender_to_verification.clone()],
                     last_verification_thread_index: 0,
                     stat_sender: sender_to_stat.clone(),
-                    sync: SyncManager::new(10),
+                    sync: SyncManager::new(),
                     gatekeeper: Gatekeeper::default(),
                     congestion_check_timer: 0,
                     gatekeeper_monitor_timer: 0,
