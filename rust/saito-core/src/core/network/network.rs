@@ -279,9 +279,6 @@ impl Network {
             .await;
     }
 
-    /// Periodic peer lifecycle maintenance. Returns peers that should receive an outbound
-    /// [`Message::RequestChainSync`] (canonical pull); the caller supplies the real tip via
-    /// [`SyncManager::send_request_chain_sync_to_peer`](crate::core::network::sync::manager::SyncManager::send_request_chain_sync_to_peer).
     pub async fn monitor_peers(&mut self, current_time: Timestamp) -> (bool, Vec<u64>) {
         //
         // in order to avoid .await while holding the peer lock, we collect
