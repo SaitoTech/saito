@@ -12,8 +12,6 @@ use crate::core::mining_thread::MiningEvent;
 use crate::core::network::events::NetworkEvent;
 use crate::core::network::gatekeeper::AccessRecord;
 use crate::core::network::gatekeeper::Gatekeeper;
-use crate::core::network::interface_io::InterfaceEvent;
-use crate::core::network::msg::block_request::BlockchainRequest;
 use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::Services;
@@ -23,7 +21,7 @@ use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::storage::storage::Storage;
 use crate::core::util::config_manager::ConfigManager;
-use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
+use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::hash;
 use crate::core::util::crypto::{generate_random_bytes, sign, verify};
 use crate::core::verification_thread::VerifyRequest;
@@ -51,12 +49,6 @@ pub struct RoutingStats {
     pub received_transactions: StatVariable,
     pub received_blocks: StatVariable,
     pub total_incoming_messages: StatVariable,
-}
-
-pub struct BlockchainSendResults {
-    pub start_id: BlockId,
-    pub end_id: BlockId,
-    pub peer_id: u64,
 }
 
 impl RoutingStats {
@@ -147,6 +139,7 @@ impl RoutingThread {
     /// peer. Thus "KeyList" sends the latest KeyList. We do not need KeyListUpdate, etc.
     ///
     async fn process_peer_message(&mut self, peer_id: u64, message: Message) {
+
         //
         // this will update our gatekeeper (buffer) which will periodically sweep the information
         // back into the peer, allowing rapid responses to messages without the need to unlock
@@ -169,9 +162,6 @@ impl RoutingThread {
                 self.process_handshake_message(peer_id, _response).await;
             }
             Message::Block(_) => {
-                // ...
-            }
-            Message::SPVChain() => {
                 // ...
             }
             Message::Transaction(transaction) => {
@@ -202,6 +192,7 @@ impl RoutingThread {
                         chaindata,
                         peer_id,
                         self.blockchain_lock.clone(),
+                        self.mempool_lock.clone(),
                         self.config_lock.clone(),
                         &self.network,
                     )
@@ -209,6 +200,10 @@ impl RoutingThread {
                 {
                     error!("failed processing Blockchain Peer Message {}: {}", peer_id, e);
                 }
+            }
+            Message::BlockReference(hash, block_id) => {
+                self.process_block_reference_message(peer_id, hash, block_id)
+                    .await;
             }
             Message::Ping() => {
                 self.network
@@ -234,10 +229,6 @@ impl RoutingThread {
                     .send_message_by_peer_id(peer_id, Message::Services(Services { services }))
                     .await;
             }
-            //Message::RequestBlockchain(request) => {
-            //    self.process_request_blockchain_message(peer_id, request)
-            //        .await;
-            //}
             Message::RequestGenesisBlockReference() => {
                 self.process_request_genesis_block_reference_message(peer_id)
                     .await;
@@ -355,16 +346,77 @@ impl RoutingThread {
             hash.to_hex()
         );
 
-        self.sync
-            .process_block_reference_message(
-                hash,
-                block_id,
-                peer_id,
-                self.blockchain_lock.clone(),
-                self.wallet_lock.clone(),
-                &self.network,
-            )
-            .await;
+        self.queue_inbound_block_header(peer_id, hash, block_id).await;
+    }
+
+    /// Enqueue a block header from a peer for HTTP fetch (canonical path: queue → `fetch`).
+    async fn queue_inbound_block_header(
+        &mut self,
+        peer_id: u64,
+        block_hash: SaitoHash,
+        block_id: u64,
+    ) {
+        debug!(
+            "queue_inbound_block_header : {:?}-{:?} from peer : {:?}",
+            block_id,
+            block_hash.to_hex(),
+            peer_id
+        );
+
+        {
+            let blockchain = self.blockchain_lock.read().await;
+            if !blockchain.blocks.is_empty() && blockchain.lowest_acceptable_block_id >= block_id {
+                debug!(
+                    "skipping block header : {:?}-{:?} from peer : {:?} since our lowest acceptable id : {:?}",
+                    block_id,
+                    block_hash.to_hex(),
+                    peer_id,
+                    blockchain.lowest_acceptable_block_id
+                );
+                return;
+            }
+            if block_id < std::cmp::max(1, blockchain.genesis_block_id) {
+                debug!(
+                    "skipping block header : {:?}-{:?} from peer : {:?} since it's earlier than our genesis block id : {}",
+                    block_id,
+                    block_hash.to_hex(),
+                    peer_id,
+                    blockchain.genesis_block_id
+                );
+                return;
+            }
+        }
+
+        let wallet = self.wallet_lock.read().await;
+        let wallet_version = wallet.wallet_version;
+        let core_version = wallet.core_version;
+        drop(wallet);
+
+        match self
+            .network
+            .should_request_blockchain(peer_id, wallet_version, core_version)
+            .await
+        {
+            Some(true) => {
+                self.sync
+                    .send_request_blockchain_message(
+                        peer_id,
+                        self.blockchain_lock.clone(),
+                        self.config_lock.clone(),
+                        &self.network,
+                    )
+                    .await;
+            }
+            Some(false) => {}
+            None => {
+                warn!(
+                    "couldn't find peer : {:?} for processing block header hash",
+                    peer_id
+                );
+            }
+        }
+
+        self.sync.queue.add(block_id, block_hash, peer_id);
     }
     async fn process_request_handshake_message(&mut self, peer_id: u64, request: RequestHandshake) {
         info!(
@@ -517,16 +569,7 @@ impl RoutingThread {
             peer_id,
         );
 
-        self.sync
-            .process_block_reference_message(
-                hash,
-                block_id,
-                peer_id,
-                self.blockchain_lock.clone(),
-                self.wallet_lock.clone(),
-                &self.network,
-            )
-            .await;
+        self.queue_inbound_block_header(peer_id, hash, block_id).await;
     }
 
     pub async fn process_key_list_updated_event(&mut self, key_list: Vec<SaitoPublicKey>) {
@@ -586,23 +629,15 @@ impl RoutingThread {
     }
 
     async fn process_message_sending_timer_event(&mut self, duration_value: Timestamp) -> bool {
-        let mut work_done = false;
-
         const MESSAGES_SENDING_PERIOD: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
 
         self.message_sending_timer = self.message_sending_timer.saturating_add(duration_value);
 
         if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
             self.message_sending_timer %= MESSAGES_SENDING_PERIOD;
-
-            self.sync
-                .send_block_reference(self.blockchain_lock.clone(), &self.network)
-                .await;
-
-            work_done = true;
         }
 
-        work_done
+        false
     }
 }
 
@@ -646,7 +681,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 self.network
                     .handle_peer_disconnect(peer_id, disconnect_type)
                     .await;
-                self.sync.clear_blockchain_peer(peer_id);
                 return Some(());
             }
             NetworkEvent::BlockFetched {
@@ -662,7 +696,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 ))
                 .await;
 
-                self.sync.state.complete_fetch(block_hash);
+                self.sync.queue.on_fetch_success(block_hash);
 
                 return Some(());
             }
@@ -673,15 +707,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             } => {
                 let time = self.timer.get_timestamp_in_ms();
 
-                self.sync
-                    .process_block_fetch_failed_event(
-                        block_hash,
-                        peer_id,
-                        block_id,
-                        &self.network,
-                        time,
-                    )
-                    .await;
+                self.sync.queue.on_fetch_fail(block_id, block_hash, peer_id, time);
             }
             _ => unreachable!(),
         }
@@ -709,7 +735,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         work_done |= net_done;
         for peer_id in chain_sync_peers {
             self.sync
-                .send_request_blockchain_to_peer(
+                .send_request_blockchain_message(
                     peer_id,
                     self.blockchain_lock.clone(),
                     self.config_lock.clone(),
@@ -736,9 +762,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     "received blockchain update event : {:?}",
                     block_hash.to_hex()
                 );
-                self.sync.state.remove_block(block_hash);
+                self.sync.queue.remove(block_hash);
                 self.sync
-                    .fetch_next_blocks(
+                    .fetch(
                         self.blockchain_lock.clone(),
                         self.mempool_lock.clone(),
                         &self.network,
@@ -806,7 +832,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     }
                     for peer_id in peer_ids {
                         self.sync
-                            .request_blockchain_from_peer(
+                            .send_request_blockchain_message(
                                 peer_id,
                                 self.blockchain_lock.clone(),
                                 self.config_lock.clone(),
@@ -823,9 +849,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     block_hash.to_hex(),
                     block_id
                 );
-                self.sync
-                    .state
-                    .enqueue_block(block_id, block_hash, peer_id);
+                self.sync.queue.add(block_id, block_hash, peer_id);
             }
             RoutingEvent::BlockchainRequest(peer_id) => {
                 info!(
@@ -833,7 +857,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     peer_id
                 );
                 self.sync
-                    .request_blockchain_from_peer(
+                    .send_request_blockchain_message(
                         peer_id,
                         self.blockchain_lock.clone(),
                         self.config_lock.clone(),
@@ -918,14 +942,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 .unwrap();
         }
 
-        let stats = self.sync.state.get_stats();
-        for stat in stats {
-            self.stat_sender
-                .send(StatEvent::StringStat(stat))
-                .await
-                .unwrap();
-        }
-
         let _peers = self.network.peer_lock.read().await;
         let peer_count = 0;
         let peers_in_handshake = 0;
@@ -958,7 +974,6 @@ mod tests {
     use crate::core::consensus::transaction::Transaction;
     use crate::core::defs::SaitoPublicKey;
     use crate::core::defs::Timestamp;
-    use crate::core::defs::NOLAN_PER_SAITO;
     use crate::core::network::events::NetworkEvent;
     use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
     use crate::core::network::network::PeerDisconnectType;
@@ -1279,159 +1294,6 @@ mod tests {
             "ws"
         };
         format!("{}://{}:{}/wsopen", protocol, peer.host, peer.port)
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn test_ghost_chain_gen() {
-        // pretty_env_logger::init();
-        NodeTester::delete_data().await.unwrap();
-        let peer_public_key = generate_keys().0;
-        let mut tester = NodeTester::new(1000, None, None);
-        tester
-            .init_with_staking(0, 60, 100_000 * NOLAN_PER_SAITO)
-            .await
-            .unwrap();
-
-        tester.wait_till_block_id_with_txs(100, 0, 0).await.unwrap();
-
-        {
-            let fork_id = tester.get_fork_id(50).await;
-            let blockchain = tester.routing_thread.blockchain_lock.read().await;
-
-            let ghost_chain = RoutingThread::generate_ghost_chain(
-                50,
-                fork_id,
-                &blockchain,
-                vec![peer_public_key],
-            )
-            .await;
-
-            assert_eq!(ghost_chain.block_ids.len(), 50);
-            assert_eq!(ghost_chain.block_ts.len(), 50);
-            assert_eq!(ghost_chain.gts.len(), 50);
-            assert_eq!(ghost_chain.prehashes.len(), 50);
-            assert_eq!(ghost_chain.previous_block_hashes.len(), 50);
-            assert!(ghost_chain.txs.iter().all(|x| !(*x)));
-        }
-
-        {
-            let tx = tester
-                .create_transaction(100, 10, peer_public_key)
-                .await
-                .unwrap();
-            tester.add_transaction(tx).await;
-        }
-
-        tester.wait_till_block_id(101).await.unwrap();
-
-        tester
-            .wait_till_block_id_with_txs(105, 10, 0)
-            .await
-            .unwrap();
-
-        {
-            let block_id = 101;
-            let fork_id = tester.get_fork_id(block_id).await;
-            let blockchain = tester.routing_thread.blockchain_lock.read().await;
-            let ghost_chain = RoutingThread::generate_ghost_chain(
-                block_id,
-                fork_id,
-                &blockchain,
-                vec![peer_public_key],
-            )
-            .await;
-
-            assert_eq!(ghost_chain.block_ids.len(), 5);
-            assert_eq!(ghost_chain.block_ts.len(), 5);
-            assert_eq!(ghost_chain.gts.len(), 5);
-            assert_eq!(ghost_chain.prehashes.len(), 5);
-            assert_eq!(ghost_chain.previous_block_hashes.len(), 5);
-            assert_eq!(ghost_chain.txs.iter().filter(|x| **x).count(), 1);
-        }
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    #[ignore]
-    async fn test_ghost_chain_common_key_marks_all_blocks_as_relevant() {
-        // Regression test for Bug 2: if peer_key_list contains a key that
-        // participates in the transaction slips of every block (e.g. the
-        // routing node's own public key, which appears in the from/to slips
-        // of every fee-bearing transaction it routes), then
-        // generate_ghost_chain sets txs[i] = true for ALL those blocks.
-        // A browser peer that merely watches the routing node key would then
-        // fetch the entire chain instead of only the blocks that contain
-        // transactions directly involving the peer.
-        NodeTester::delete_data().await.unwrap();
-        let unrelated_peer_key = generate_keys().0;
-        let mut tester = NodeTester::new(1000, None, None);
-        tester
-            .init_with_staking(0, 60, 100_000 * NOLAN_PER_SAITO)
-            .await
-            .unwrap();
-
-        // Produce 11 blocks each containing a transaction whose from and to
-        // slips both use the node's own public key.  This guarantees the node
-        // key is present in keys_invloved for every one of these blocks.
-        // Note: with genesis_period=1000 and latest_block_id=11,
-        // generate_ghost_chain(block_id=0) sets
-        //   last_shared_ancestor = max(0, genesis_block_id=1) → 1
-        // so the resulting ghost chain covers blocks 2..=11 = 10 entries.
-        tester
-            .wait_till_block_id_with_txs(11, 100, 10)
-            .await
-            .unwrap();
-
-        let node_public_key = tester.get_public_key().await;
-        // Simulate a brand-new browser peer that has no blocks yet.
-        let peer_block_id: u64 = 0;
-        let peer_fork_id = [0u8; 32];
-
-        // Case 1 – only the browser peer's own (unrelated) key in peer_key_list.
-        // The peer has no transactions in the chain, so no blocks should be
-        // flagged for fetching.
-        {
-            let blockchain = tester.routing_thread.blockchain_lock.read().await;
-            let ghost_chain = RoutingThread::generate_ghost_chain(
-                peer_block_id,
-                peer_fork_id,
-                &blockchain,
-                vec![unrelated_peer_key],
-            )
-            .await;
-            assert_eq!(ghost_chain.txs.len(), 10);
-            assert!(
-                ghost_chain.txs.iter().all(|x| !(*x)),
-                "expected no blocks to be relevant when only the peer's own key is watched"
-            );
-        }
-
-        // Case 2 – the peer also watches the routing node's public key.
-        // Because the node key is present in transaction slips of every block,
-        // all blocks are now flagged txs=true.  The browser would download the
-        // entire chain even though it has no transactions of its own.
-        // This is Bug 2: a single commonly-held key poisons the ghost chain
-        // filter for all blocks.
-        {
-            let blockchain = tester.routing_thread.blockchain_lock.read().await;
-            let ghost_chain = RoutingThread::generate_ghost_chain(
-                peer_block_id,
-                peer_fork_id,
-                &blockchain,
-                vec![unrelated_peer_key, node_public_key],
-            )
-            .await;
-            assert_eq!(ghost_chain.txs.len(), 10);
-            assert!(
-                ghost_chain.txs.iter().all(|x| *x),
-                "Bug 2: expected all {} blocks to be marked relevant when the routing \
-                 node key is watched, but only {}/{} were flagged",
-                ghost_chain.txs.len(),
-                ghost_chain.txs.iter().filter(|x| **x).count(),
-                ghost_chain.txs.len(),
-            );
-        }
     }
 
     #[tokio::test]

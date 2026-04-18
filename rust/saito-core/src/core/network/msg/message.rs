@@ -3,11 +3,9 @@ use std::io::{Error, ErrorKind};
 
 use crate::core::consensus::block::{Block, BlockType};
 use crate::core::consensus::transaction::Transaction;
-use crate::core::defs::{BlockHash, BlockId, ForkId, SaitoPublicKey};
+use crate::core::defs::{BlockHash, BlockId, SaitoPublicKey};
 use crate::core::network::msg::api_message::ApiMessage;
-use crate::core::network::msg::block_request::BlockchainRequest;
-use crate::core::network::msg::chainsync::{ChainSync, RequestChainSync};
-use crate::core::network::msg::ghost_chain_sync::GhostChainSync;
+use crate::core::network::msg::blockchain::{Blockchain, RequestBlockchain};
 use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::network::msg::services::{RequestServices, Services};
 use crate::core::util::serialize::Serialize;
@@ -19,15 +17,13 @@ pub enum Message {
     Handshake(Handshake),
     Block(Block),
     Transaction(Transaction),
-    RequestBlockchain(BlockchainRequest),
+    RequestBlockchain(RequestBlockchain),
+    Blockchain(Blockchain),
     BlockReference(BlockHash, BlockId),
     Ping(),
     Pong(),
-    SPVChain(),
     RequestServices(RequestServices),
     Services(Services),
-    GhostChain(GhostChainSync),
-    RequestGhostChain(BlockId, BlockHash, ForkId),
     ApplicationMessage(ApiMessage),
     Result(ApiMessage),
     Error(ApiMessage),
@@ -35,8 +31,6 @@ pub enum Message {
     RequestGenesisBlockReference(),
     GenesisBlockReference(BlockHash, BlockId),
     Disconnect(String),
-    RequestChainSync(RequestChainSync),
-    ChainSync(ChainSync),
 }
 
 impl Message {
@@ -48,26 +42,15 @@ impl Message {
             Message::RequestHandshake(data) => data.serialize(),
             Message::Handshake(data) => data.serialize(),
             Message::ApplicationMessage(data) => data.serialize(),
-            // Message::ApplicationTransaction(data) => data.clone(),
             Message::Block(data) => data.serialize_for_net(BlockType::Full),
             Message::Transaction(data) => data.serialize_for_net(),
             Message::RequestBlockchain(data) => data.serialize(),
+            Message::Blockchain(data) => data.serialize(),
             Message::BlockReference(block_hash, block_id) => {
                 [block_hash.as_slice(), block_id.to_be_bytes().as_slice()].concat()
             }
-            Message::GhostChain(chain) => chain.serialize(),
-            Message::RequestGhostChain(block_id, block_hash, fork_id) => [
-                block_id.to_be_bytes().as_slice(),
-                block_hash.as_slice(),
-                fork_id.as_slice(),
-            ]
-            .concat(),
-            Message::Ping() => {
-                vec![]
-            }
-            Message::Pong() => {
-                vec![]
-            }
+            Message::Ping() => vec![],
+            Message::Pong() => vec![],
             Message::Services(data) => data.serialize(),
             Message::RequestServices(data) => data.serialize(),
             Message::Result(data) => data.serialize(),
@@ -78,16 +61,11 @@ impl Message {
                 [block_hash.as_slice(), block_id.to_be_bytes().as_slice()].concat()
             }
             Message::Disconnect(message) => message.as_bytes().to_vec(),
-            Message::RequestChainSync(data) => data.serialize(),
-            Message::ChainSync(data) => data.serialize(),
-            _ => {
-                error!("unhandled type : {:?}", message_type);
-                vec![]
-            }
         });
 
         buffer
     }
+
     pub fn deserialize(buffer: Vec<u8>) -> Result<Message, Error> {
         if buffer.is_empty() {
             warn!("empty buffer is not valid for message deserialization",);
@@ -114,9 +92,10 @@ impl Message {
                 let tx = Transaction::deserialize_from_net(&buffer)?;
                 Ok(Message::Transaction(tx))
             }
+            // 5 = legacy RequestBlockchain (block_request); removed from protocol surface.
             5 => {
-                let result = BlockchainRequest::deserialize(&buffer)?;
-                Ok(Message::RequestBlockchain(result))
+                warn!("rejecting deprecated message type 5 (legacy RequestBlockchain wire)");
+                Err(Error::from(ErrorKind::InvalidData))
             }
             6 => {
                 if buffer.len() != 40 {
@@ -140,32 +119,24 @@ impl Message {
                 Ok(Message::BlockReference(block_hash, block_id))
             }
             7 => Ok(Message::Ping()),
-            8 => Ok(Message::SPVChain()),
+            // 8 = SPVChain; removed.
+            8 => {
+                warn!("rejecting deprecated message type 8 (SPVChain)");
+                Err(Error::from(ErrorKind::InvalidData))
+            }
             20 => Ok(Message::RequestServices(RequestServices::deserialize(
                 &buffer,
             )?)),
             9 => Ok(Message::Services(Services::deserialize(&buffer)?)),
-            10 => Ok(Message::GhostChain(GhostChainSync::deserialize(buffer)?)),
+            // 10 = GhostChain; removed.
+            10 => {
+                warn!("rejecting deprecated message type 10 (GhostChain)");
+                Err(Error::from(ErrorKind::InvalidData))
+            }
+            // 11 = RequestGhostChain; removed.
             11 => {
-                if buffer.len() != 72 {
-                    warn!(
-                        "buffer size : {:?} is not valid for type : {:?}",
-                        buffer.len(),
-                        message_type
-                    );
-                    return Err(Error::from(ErrorKind::InvalidData));
-                }
-                let block_id =
-                    u64::from_be_bytes(buffer[0..8].try_into().or(Err(ErrorKind::InvalidData))?);
-                let block_hash = buffer[8..40]
-                    .to_vec()
-                    .try_into()
-                    .or(Err(ErrorKind::InvalidData))?;
-                let fork_id = buffer[40..72]
-                    .to_vec()
-                    .try_into()
-                    .or(Err(ErrorKind::InvalidData))?;
-                Ok(Message::RequestGhostChain(block_id, block_hash, fork_id))
+                warn!("rejecting deprecated message type 11 (RequestGhostChain)");
+                Err(Error::from(ErrorKind::InvalidData))
             }
             12 => {
                 if buffer.len() < 4 {
@@ -252,16 +223,17 @@ impl Message {
                 let str = String::from_utf8(buffer.to_vec()).or(Err(ErrorKind::InvalidData))?;
                 Ok(Message::Disconnect(str))
             }
-            21 => Ok(Message::RequestChainSync(RequestChainSync::deserialize(
+            21 => Ok(Message::RequestBlockchain(RequestBlockchain::deserialize(
                 &buffer,
             )?)),
-            22 => Ok(Message::ChainSync(ChainSync::deserialize(&buffer)?)),
+            22 => Ok(Message::Blockchain(Blockchain::deserialize(&buffer)?)),
             _ => {
                 error!("message type : {:?} not valid", message_type);
                 Err(Error::from(ErrorKind::InvalidData))
             }
         }
     }
+
     pub fn get_type_value(&self) -> u8 {
         match self {
             Message::RequestHandshake(_) => 1,
@@ -270,9 +242,6 @@ impl Message {
             Message::Transaction(_) => 4,
             Message::BlockReference(_, _) => 6,
             Message::Ping() => 7,
-            Message::SPVChain() => 8,
-            Message::GhostChain(_) => 10,
-            Message::RequestGhostChain(..) => 11,
             Message::ApplicationMessage(_) => 12,
             Message::Result(_) => 13,
             Message::Error(_) => 14,
@@ -283,9 +252,8 @@ impl Message {
             Message::Disconnect(_) => 19,
             Message::RequestServices(_) => 20,
             Message::Services(_) => 9,
-            Message::RequestBlockchain(_) => 5,
-            Message::RequestChainSync(_) => 21,
-            Message::ChainSync(_) => 22,
+            Message::RequestBlockchain(_) => 21,
+            Message::Blockchain(_) => 22,
         }
     }
 }

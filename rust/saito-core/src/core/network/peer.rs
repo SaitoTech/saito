@@ -86,7 +86,6 @@ pub struct Peer {
     // --- sync / protocol flags ---
     //
     pub requested_blocks_from_us: bool,
-    pub requested_blocks_from_peer: bool,
     pub block_fetch_url: String,
 }
 
@@ -132,7 +131,6 @@ impl Peer {
             invalid_transactions_received: 0,
             dropped_requests: 0,
             requested_blocks_from_us: false,
-            requested_blocks_from_peer: false,
             block_fetch_url: "".to_string(),
         }
     }
@@ -183,7 +181,6 @@ impl Peer {
 
         // --- protocol state ---
         self.services.clear();
-        self.requested_blocks_from_peer = false;
         self.requested_blocks_from_us = false;
 
         // --- sync state ---
