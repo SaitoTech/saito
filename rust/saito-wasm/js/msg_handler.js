@@ -80,13 +80,9 @@ static send_message_by_peer_id(peer_id, buffer) {
     );
   }
 
-  static send_block_fetch_status_event(count) {
-    return global.shared_methods.send_block_fetch_status_event(count);
-  }
-
-  static save_wallet() {
-    return global.shared_methods.save_wallet();
-  }
+    static save_wallet() {
+        return global.shared_methods.save_wallet();
+    }
 
   static load_wallet() {
     return global.shared_methods.load_wallet();

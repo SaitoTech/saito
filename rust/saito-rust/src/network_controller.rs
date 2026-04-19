@@ -36,11 +36,10 @@ use saito_core::core::network::events::NetworkEvent;
 use saito_core::core::network::msg::message::Message;
 use saito_core::core::network::network::PeerDisconnectType;
 use saito_core::core::network::peer::Peer;
+use saito_core::core::network::peers::generate_peer_id;
 use saito_core::core::network::peers::Peers;
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::util::configuration::Configuration;
-use saito_core::core::network::peers::generate_peer_id;
-
 
 type SocketSender = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, tungstenite::Message>;
 type SocketReceiver = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
@@ -172,7 +171,6 @@ impl NetworkController {
             let mut network_peer = Peer::new(generate_peer_id());
             network_peer.url = Some(url);
             network_peer.ip = ip;
-            network_peer.on_connect(timer.get_timestamp_in_ms());
 
             NetworkController::handle_new_connection(
                 network_peer,
@@ -183,6 +181,7 @@ impl NetworkController {
                 configs,
                 timer,
                 peers_lock,
+		true,
             )
             .await;
         } else {
@@ -342,6 +341,7 @@ impl NetworkController {
         configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: &Timer,
         peers_lock: Arc<RwLock<Peers>>,
+	initiate_handshake: bool,
     ) {
         let peer_id = network_peer.id;
         {
@@ -353,46 +353,27 @@ impl NetworkController {
             controller.register_socket(peer_id, sender);
         }
 
-        let handshake_buffer = {
-            let mut peers = peers_lock.write().await;
-            let Some(p) = peers.get_peer_by_id_mut(peer_id) else {
+	let sender_to_core = {
+	    let controller = network_controller.read().await;
+	    controller.sender_to_core.clone()
+	};
+
+	{
+            if let Err(e) = sender_to_core
+                .send(IoEvent {
+                    event_processor_id: 1,
+                    event: NetworkEvent::PeerConnectionResult { peer_id , initiate_handshake },
+                })
+                .await
+            {
                 warn!(
-                    "handle_new_connection: peer_id {} missing after insert; closing socket",
-                    peer_id
+                    "sender_to_core send failed (peer_id={} op=peer_connection_result err={})",
+                    peer_id, e
                 );
-                let mut controller = network_controller.write().await;
-                controller.disconnect(peer_id).await;
-                return;
-            };
-
-            if p.url.is_none() {
-                debug!(
-                    "sending handshake request to peer : {}",
-                    p.ip.as_ref().cloned().unwrap_or_default()
-                );
-
-                p.handshake_nonce = Some(saito_core::core::util::crypto::hash(
-                    &saito_core::core::util::crypto::generate_random_bytes(32).await,
-                ));
-
-                Some(
-                    Message::RequestHandshake(
-                        saito_core::core::network::msg::handshake::RequestHandshake {
-                            nonce: p.handshake_nonce.unwrap(),
-                        },
-                    )
-                    .serialize(),
-                )
-            } else {
-                None
             }
-        };
-
-        if let Some(buffer) = handshake_buffer {
-            let _ = network_controller.write().await.send(peer_id, buffer).await;
         }
 
-        NetworkController::receive_message_from_peer(
+        NetworkController::start_listening_to_peer(
             receiver,
             peer_id,
             peers_lock,
@@ -444,7 +425,7 @@ impl NetworkController {
         }
     }
 
-    pub async fn receive_message_from_peer(
+    pub async fn start_listening_to_peer(
         receiver: PeerReceiver,
         peer_id: u64,
         _peers_lock: Arc<RwLock<Peers>>,
@@ -840,7 +821,6 @@ fn run_websocket_server(
                         let mut network_peer = Peer::new(generate_peer_id());
                         network_peer.url = None;
                         network_peer.ip = addr.map(|a| a.ip().to_string());
-                        network_peer.on_connect(timer.get_timestamp_in_ms());
 
                         NetworkController::handle_new_connection(
                             network_peer,
@@ -851,6 +831,7 @@ fn run_websocket_server(
                             configs.configs,
                             &timer,
                             peers_lock,
+			    false,
                         )
                         .await
                     })

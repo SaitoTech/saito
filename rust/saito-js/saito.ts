@@ -124,9 +124,6 @@ export default class Saito {
       send_interface_event: (event: string, public_key: string) => {
         return sharedMethods.sendInterfaceEvent(event, public_key);
       },
-      send_block_fetch_status_event: (count: bigint) => {
-        return sharedMethods.sendBlockFetchStatus(count);
-      },
       send_block_success: (hash: string, blockId: bigint) => {
         return sharedMethods.sendBlockSuccess(hash, blockId);
       },

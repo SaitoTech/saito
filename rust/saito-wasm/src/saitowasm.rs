@@ -34,6 +34,7 @@ use saito_core::core::network::events::NetworkEvent;
 use saito_core::core::network::gatekeeper::Gatekeeper;
 use saito_core::core::network::network::{Network, PeerDisconnectType};
 use saito_core::core::network::peer::Peer;
+use saito_core::core::network::peers::generate_peer_id;
 use saito_core::core::network::peers::Peers;
 use saito_core::core::network::sync::manager::SyncManager;
 use saito_core::core::process::keep_time::Timer;
@@ -50,8 +51,6 @@ use tokio::sync::mpsc::Receiver;
 use tokio::sync::{Mutex, RwLock};
 use wasm_bindgen::prelude::*;
 use web_sys::console;
-use saito_core::core::network::peers::generate_peer_id;
-
 
 #[wasm_bindgen]
 pub struct SaitoWasm {
@@ -72,7 +71,7 @@ pub struct SaitoWasm {
 
 lazy_static! {
     pub static ref SAITO: Mutex<Option<SaitoWasm>> =
-        Mutex::new(Some(new(1, true, 100_000, 0, 60, false, 6, 6, 10)));
+        Mutex::new(Some(new(1, true, 100_000, 0, 60, false, 6, 6)));
     static ref CONFIGS: Arc<RwLock<dyn Configuration + Send + Sync>> =
         Arc::new(RwLock::new(WasmConfiguration::new()));
     static ref PRIVATE_KEY: Mutex<String> = Mutex::new("".to_string());
@@ -87,7 +86,6 @@ pub fn new(
     delete_old_blocks: bool,
     prune_after_blocks: BlockId,
     block_confirmation_limit: BlockId,
-    block_fetch_batch_size: u64,
 ) -> SaitoWasm {
     info!("creating new saito wasm instance");
     console_error_panic_hook::set_once();
@@ -107,6 +105,8 @@ pub fn new(
     }
 
     let peers = Arc::new(RwLock::new(Peers::default()));
+    let sync_public_key = wallet.blocking_read().public_key;
+    let sync_lite_block_fetch = configuration.blocking_read().is_spv_mode();
     let context = Context {
         blockchain_lock: Arc::new(RwLock::new(Blockchain::new(
             wallet.clone(),
@@ -157,11 +157,15 @@ pub fn new(
             senders_to_verification: vec![sender_to_verification.clone()],
             last_verification_thread_index: 0,
             stat_sender: sender_to_stat.clone(),
-            sync: SyncManager::new(block_fetch_batch_size as usize),
+            sync: SyncManager::new(
+                context.blockchain_lock.clone(),
+                context.mempool_lock.clone(),
+                sync_public_key,
+                sync_lite_block_fetch,
+            ),
             gatekeeper: Gatekeeper::default(),
             congestion_check_timer: 0,
             gatekeeper_monitor_timer: 0,
-            waiting_for_genesis_block: false,
             message_sending_timer: 0,
         },
         consensus_thread: ConsensusThread {
@@ -402,7 +406,6 @@ pub async fn initialize(
     let mut social_stake_period = 60;
     let mut prune_after_blocks = 6;
     let mut block_confirmation_limit = 6;
-    let mut block_fetch_batch_size = 10;
     {
         info!("setting configs...");
         let mut configs = CONFIGS.write().await;
@@ -431,10 +434,6 @@ pub async fn initialize(
                 .get_consensus_config()
                 .unwrap()
                 .block_confirmation_limit;
-            if configs.get_server_configs().is_some() {
-                block_fetch_batch_size =
-                    configs.get_server_configs().unwrap().block_fetch_batch_size;
-            }
         }
     }
 
@@ -451,7 +450,6 @@ pub async fn initialize(
         delete_old_blocks,
         prune_after_blocks,
         block_confirmation_limit,
-        block_fetch_batch_size,
     ));
 
     let private_key: SaitoPrivateKey = string_to_hex(private_key).or(Err(JsValue::from(
@@ -938,7 +936,7 @@ pub async fn process_new_peer(peer_id: u64) {
         .as_mut()
         .unwrap()
         .routing_thread
-        .process_network_event(NetworkEvent::PeerConnectionResult { peer_id: peer_id })
+        .process_network_event(NetworkEvent::PeerConnectionResult { peer_id: peer_id , initiate_handshake: true })
         .await;
 }
 
