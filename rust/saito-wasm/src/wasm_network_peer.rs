@@ -1,7 +1,5 @@
 use js_sys::JsString;
-use log::info;
 use saito_core::core::defs::PrintForLog;
-use saito_core::core::network::msg::message::Message;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
@@ -50,34 +48,6 @@ impl WasmNetworkPeer {
     #[wasm_bindgen(constructor)]
     pub fn new_peer(peer_id: u64) -> WasmNetworkPeer {
         Self { peer_id }
-    }
-
-    pub async fn get_handshake_challenge_buffer(&mut self) -> js_sys::Uint8Array {
-        let mut saito = crate::saitowasm::SAITO.lock().await;
-        let saito = saito.as_mut().unwrap();
-
-        let mut peers = saito.routing_thread.network.peer_lock.write().await;
-
-        let Some(peer) = peers.get_peer_by_id_mut(self.peer_id) else {
-            return js_sys::Uint8Array::new_with_length(0);
-        };
-
-        peer.handshake_nonce = Some(saito_core::core::util::crypto::hash(
-            &saito_core::core::util::crypto::generate_random_bytes(32).await,
-        ));
-
-        info!(
-            "[SAITO STEP 6] wasm get_handshake_challenge_buffer building RequestHandshake peer_id={}",
-            self.peer_id
-        );
-        let buffer = Message::RequestHandshake(
-            saito_core::core::network::msg::handshake::RequestHandshake {
-                nonce: peer.handshake_nonce.unwrap(),
-            },
-        )
-        .serialize();
-
-        js_sys::Uint8Array::from(buffer.as_slice())
     }
 }
 

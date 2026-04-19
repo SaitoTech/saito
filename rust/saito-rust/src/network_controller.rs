@@ -33,7 +33,6 @@ use saito_core::core::defs::{
 };
 use saito_core::core::network::events::IoEvent;
 use saito_core::core::network::events::NetworkEvent;
-use saito_core::core::network::msg::message::Message;
 use saito_core::core::network::network::PeerDisconnectType;
 use saito_core::core::network::peer::Peer;
 use saito_core::core::network::peers::generate_peer_id;
@@ -181,7 +180,7 @@ impl NetworkController {
                 configs,
                 timer,
                 peers_lock,
-		true,
+                true,
             )
             .await;
         } else {
@@ -341,7 +340,7 @@ impl NetworkController {
         configs: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
         timer: &Timer,
         peers_lock: Arc<RwLock<Peers>>,
-	initiate_handshake: bool,
+        initiate_handshake: bool,
     ) {
         let peer_id = network_peer.id;
         {
@@ -353,16 +352,19 @@ impl NetworkController {
             controller.register_socket(peer_id, sender);
         }
 
-	let sender_to_core = {
-	    let controller = network_controller.read().await;
-	    controller.sender_to_core.clone()
-	};
+        let sender_to_core = {
+            let controller = network_controller.read().await;
+            controller.sender_to_core.clone()
+        };
 
-	{
+        {
             if let Err(e) = sender_to_core
                 .send(IoEvent {
                     event_processor_id: 1,
-                    event: NetworkEvent::PeerConnectionResult { peer_id , initiate_handshake },
+                    event: NetworkEvent::PeerConnectionResult {
+                        peer_id,
+                        initiate_handshake,
+                    },
                 })
                 .await
             {
@@ -831,7 +833,7 @@ fn run_websocket_server(
                             configs.configs,
                             &timer,
                             peers_lock,
-			    false,
+                            false,
                         )
                         .await
                     })

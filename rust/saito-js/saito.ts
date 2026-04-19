@@ -459,17 +459,20 @@ export default class Saito {
         "Removing socket for : " + peer_id + " out of " + this.peers.size + " total sockets"
       );
 
-      const peer = this.peersByPeerId.get(peer_id);
-      const socket = peer.socket;
+const peer = this.peersByPeerId.get(peer_id);
 
-      if (!peer) {
-        console.info("no peer found for peer_id : " + peer_id);
-        return;
-      }
+if (!peer) {
+  return;
+}
 
-      if (peer.publicKey) {
-        this.peers.delete(peer.publicKey);
-      }
+const socket = peer.socket;
+
+this.peersByPeerId.delete(peer_id);
+
+if (peer.publicKey) {
+  this.peers.delete(peer.publicKey);
+}
+
       this.peersByPeerId.delete(peer_id);
 
       if (socket) {

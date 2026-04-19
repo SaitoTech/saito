@@ -109,10 +109,6 @@ class SaitoHeader extends UIModTemplate {
       this.updateHeaderMessage(msg, flash, callback, timeout);
     });
 
-    app.connection.on('block-fetch-status', (count) => {
-      // trigger block sync ui here
-    });
-
     app.connection.on('saito-header-update-crypto', async () => {
       if (!this.installing_crypto) {
         await this.renderCrypto();

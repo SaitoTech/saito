@@ -59,7 +59,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
             "typeof peerId=",
             typeof peer.peerId
           );
-	  Saito.getLibInstance().process_new_peer(peer.peerId);
+	  Saito.getLibInstance().process_new_peer(peer.peerId, true);
           console.info("[SAITO STEP 5b] after process_new_peer peerId=", peer.peerId);
 	  await peer.syncFromRust();
           console.debug("connected to : " + url);
@@ -69,18 +69,18 @@ export default class WebSharedMethods extends CustomSharedMethods {
       };
       socket.onclose = () => {
         try {
-          console.debug("socket.onclose : " + url + " , key : " + peer.id);
+          console.debug("socket.onclose : " + url + " , key : " + peer.peerId);
           Saito.getInstance().disconnectPeer(peer);
-          Saito.getLibInstance().process_peer_disconnection(peer.id);
+          Saito.getLibInstance().process_peer_disconnection(peer.peerId);
         } catch (error) {
           console.error(error);
         }
       };
       socket.onerror = (error) => {
         try {
-          console.error(`socket.onerror ${peer.id}: `, error);
+          console.error(`socket.onerror ${peer.peerId}: `, error);
           Saito.getInstance().disconnectPeer(peer);
-          Saito.getLibInstance().process_peer_disconnection(peer.id);
+          Saito.getLibInstance().process_peer_disconnection(peer.peerId);
         } catch (error) {
           console.error(error);
         }
@@ -160,8 +160,9 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
   sendMessage(publicKey: string, buffer: Uint8Array): void {
     try {
-      if (Saito.getInstance().stunManager.isStunPeerByPublicKey(publicKey)) {
-        const stunPeer = Saito.getInstance().stunManager.getStunPeerByPublicKey(publicKey);        if (stunPeer) {
+      if (Saito.getInstance().stunManager.isStunPeer(publicKey)) {
+        const stunPeer = Saito.getInstance().stunManager.getStunPeer(publicKey);
+        if (stunPeer) {
           //@ts-ignore
           const { peerConnection, publicKey } = stunPeer;
           //@ts-ignore
@@ -204,7 +205,13 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
   sendMessageByPeerId(peerId: bigint, buffer: Uint8Array): void {
     try {
-      const stunPeer = Saito.getInstance().stunManager.getStunPeerByPeerId(peerId);
+const networkPeer = Saito.getInstance().peersByPeerId.get(peerId);
+
+const stunPeer =
+  networkPeer && networkPeer.publicKey
+    ? Saito.getInstance().stunManager.getStunPeer(networkPeer.publicKey)
+    : undefined;
+
       if (stunPeer) {
         // @ts-ignore
         const dc = stunPeer.peerConnection.dc;
