@@ -14,6 +14,7 @@ pub enum NetworkEvent {
     },
     PeerConnectionResult {
         peer_id: u64,
+        initiate_handshake: bool,
     },
     AddStunPeer {
         peer_id: u64,

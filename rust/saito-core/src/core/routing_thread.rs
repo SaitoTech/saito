@@ -136,7 +136,6 @@ impl RoutingThread {
     /// peer. Thus "KeyList" sends the latest KeyList. We do not need KeyListUpdate, etc.
     ///
     async fn process_peer_message(&mut self, peer_id: u64, message: Message) {
-
         //
         // this will update our gatekeeper (buffer) which will periodically sweep the information
         // back into the peer, allowing rapid responses to messages without the need to unlock
@@ -192,7 +191,10 @@ impl RoutingThread {
                     )
                     .await
                 {
-                    error!("failed processing Blockchain Peer Message {}: {}", peer_id, e);
+                    error!(
+                        "failed processing Blockchain Peer Message {}: {}",
+                        peer_id, e
+                    );
                 }
             }
             Message::BlockReference(hash, block_id) => {
@@ -324,20 +326,17 @@ impl RoutingThread {
         hash: SaitoHash,
         block_id: u64,
     ) {
-
         if self
             .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, hash, block_id)
             .await
         {
-            self.sync
-                .add(&self.network, block_id, hash, peer_id)
-                .await;
+            self.sync.add(&self.network, block_id, hash, peer_id).await;
         }
     }
 
     //
     // this is called when we receive references to individual blocks as opposed to
-    // chain-sync requests. It checks whether the request fits the criteria for 
+    // chain-sync requests. It checks whether the request fits the criteria for
     // getting sent to the block sync queue.
     //
     async fn should_dispatch_block_reference_from_peer_to_sync_manager(
@@ -527,9 +526,7 @@ impl RoutingThread {
             .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, hash, block_id)
             .await
         {
-            self.sync
-                .add(&self.network, block_id, hash, peer_id)
-                .await;
+            self.sync.add(&self.network, block_id, hash, peer_id).await;
         }
     }
 
@@ -610,15 +607,44 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 self.process_peer_buffer(peer_id, buffer).await;
                 return Some(());
             }
-            NetworkEvent::PeerConnectionResult { peer_id } => {
-                let mut peers = self.network.peer_lock.write().await;
-                if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-                    peer.on_connect(self.timer.get_timestamp_in_ms());
-                } else {
-                    warn!("PeerConnectionResult: unknown peer_id {}", peer_id);
-                    return None;
-                }
-            }
+NetworkEvent::PeerConnectionResult {
+    peer_id,
+    initiate_handshake,
+} => {
+    let mut handshake_message: Option<Message> = None;
+
+    {
+        let mut peers = self.network.peer_lock.write().await;
+
+        let Some(peer) = peers.get_peer_by_id_mut(peer_id) else {
+            warn!("PeerConnectionResult: unknown peer_id {}", peer_id);
+            return None;
+        };
+
+        peer.on_connect(self.timer.get_timestamp_in_ms());
+
+        if initiate_handshake {
+            let nonce = hash(&generate_random_bytes(32).await);
+            peer.handshake_nonce = Some(nonce);
+
+            handshake_message = Some(
+                Message::RequestHandshake(
+                    RequestHandshake {
+                        nonce,
+                    }
+                )
+            );
+        }
+    }
+
+    if let Some(message) = handshake_message {
+        self.network
+            .send_message_by_peer_id(peer_id, message)
+            .await;
+    }
+
+    return Some(());
+}
             NetworkEvent::AddStunPeer {
                 peer_id,
                 public_key,
@@ -696,11 +722,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         work_done |= net_done;
         for peer_id in chain_sync_peers {
             self.sync
-                .send_request_blockchain_message(
-                    peer_id,
-                    self.config_lock.clone(),
-                    &self.network,
-                )
+                .send_request_blockchain_message(peer_id, self.config_lock.clone(), &self.network)
                 .await;
         }
 

@@ -5,8 +5,8 @@ use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
 use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::network::msg::blockchain::{
-    is_supported_sync_type, Blockchain as BlockchainWire, RequestBlockchain, SYNC_TYPE_FULL,
-    SYNC_TYPE_SPV, MAX_BLOCKCHAIN_CHUNK,
+    is_supported_sync_type, Blockchain as BlockchainWire, RequestBlockchain, MAX_BLOCKCHAIN_CHUNK,
+    SYNC_TYPE_FULL, SYNC_TYPE_SPV,
 };
 use crate::core::network::msg::message::Message;
 use crate::core::network::network::Network;
@@ -19,7 +19,6 @@ use tokio::sync::RwLock;
 pub const MAX_CONCURRENT_BLOCK_FETCHES: usize = 10;
 pub const MAX_BLOCK_FETCH_RETRIES: u32 = 20;
 pub const BLOCK_FETCH_RETRY_DELAY_MS: Timestamp = 0;
-
 
 #[derive(Debug, Clone)]
 pub struct QueueItem {
@@ -42,7 +41,6 @@ pub struct SyncManager {
 }
 
 impl SyncManager {
-
     pub fn new(
         blockchain_lock: Arc<RwLock<Blockchain>>,
         mempool_lock: Arc<RwLock<Mempool>>,
@@ -130,8 +128,8 @@ impl SyncManager {
     }
 
     //
-    // 
-    // 
+    //
+    //
     pub(crate) fn on_fetch_fail(
         &mut self,
         block_id: BlockId,
@@ -173,12 +171,7 @@ impl SyncManager {
             .unwrap_or(0);
 
         loop {
-
-            let items_being_fetched = self
-                .queue
-                .values()
-                .filter(|e| e.fetch_active)
-                .count();
+            let items_being_fetched = self.queue.values().filter(|e| e.fetch_active).count();
 
             if items_being_fetched >= MAX_CONCURRENT_BLOCK_FETCHES {
                 break;
@@ -186,7 +179,6 @@ impl SyncManager {
 
             let mut next_fetch: Option<(BlockId, SaitoHash, u64)> = None;
             for (key, entry) in self.queue.iter() {
-
                 if entry.fetch_active || entry.peer_ids.is_empty() {
                     continue;
                 }
@@ -249,12 +241,7 @@ impl SyncManager {
 
             if network
                 .io_interface
-                .fetch_block_from_peer(
-                    block_hash,
-                    selected_peer_id,
-                    url.as_str(),
-                    block_id,
-                )
+                .fetch_block_from_peer(block_hash, selected_peer_id, url.as_str(), block_id)
                 .await
                 .is_err()
             {
@@ -271,7 +258,6 @@ impl SyncManager {
 
         work_done
     }
-
 
     /////////////////////////////
     // PEER MESSAGE PROCESSING //
@@ -317,7 +303,8 @@ impl SyncManager {
 
         trace!(
             "RequestBlockchain sent to peer {} (latest_block_id {})",
-            peer_id, latest_known_block_id
+            peer_id,
+            latest_known_block_id
         );
     }
 
@@ -353,12 +340,11 @@ impl SyncManager {
         {
             let blockchain = self.blockchain_lock.read().await;
 
-            let mut lsa =
-                blockchain.generate_last_shared_ancestor(request.latest_known_block_id, request.fork_id);
+            let mut lsa = blockchain
+                .generate_last_shared_ancestor(request.latest_known_block_id, request.fork_id);
 
             if request.latest_known_block_id > 0
-                && request.latest_known_block_id
-                    < blockchain.genesis_block_id.saturating_sub(100)
+                && request.latest_known_block_id < blockchain.genesis_block_id.saturating_sub(100)
                 && (lsa == 0 || lsa < blockchain.genesis_block_id)
                 && blockchain.get_latest_block_id() > 0
             {
@@ -478,4 +464,3 @@ impl SyncManager {
         Ok(())
     }
 }
-

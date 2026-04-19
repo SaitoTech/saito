@@ -266,11 +266,7 @@ mod tests {
             payload_earliest_block_hash: [6u8; 32],
             payload_latest_block_id: 13,
             payload_latest_block_hash: [7u8; 32],
-            payload: vec![
-                (11, [6u8; 32]),
-                (12, [8u8; 32]),
-                (13, [7u8; 32]),
-            ],
+            payload: vec![(11, [6u8; 32]), (12, [8u8; 32]), (13, [7u8; 32])],
         };
         let buf = c.serialize();
         assert_eq!(buf.len(), c.wire_len());

@@ -4,20 +4,16 @@ use crate::core::network::peer::Peer;
 use ahash::HashMap;
 use log::{debug, error, info, trace};
 use std::io::Error;
-use std::time::Duration;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 static PEER_ID_GENERATOR: AtomicU64 = AtomicU64::new(1);
 const PEER_REMOVAL_WINDOW: Timestamp = Duration::from_secs(600).as_millis() as Timestamp;
 const PEER_STALE_PERIOD: Timestamp = Duration::from_secs(30).as_millis() as Timestamp;
 
-
-
 pub fn generate_peer_id() -> u64 {
     PEER_ID_GENERATOR.fetch_add(1, Ordering::Relaxed)
 }
-
-
 
 #[derive(Debug, Default)]
 pub struct Peers {

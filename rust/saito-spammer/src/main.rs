@@ -305,11 +305,15 @@ async fn run_routing_event_processor(
     thread_sleep_time_in_ms: u64,
     channel_size: usize,
     sender_to_stat: Sender<StatEvent>,
-    fetch_batch_size: usize,
     timer: &Timer,
 ) -> (Sender<NetworkEvent>, JoinHandle<()>) {
     let (sender, _receiver) = tokio::sync::mpsc::channel::<IoEvent>(channel_size);
 
+    let (sync_public_key, sync_lite_block_fetch) = {
+        let w = context.wallet_lock.read().await;
+        let c = configs_lock.read().await;
+        (w.public_key, c.is_spv_mode())
+    };
     let routing_event_processor = RoutingThread {
         blockchain_lock: context.blockchain_lock.clone(),
         mempool_lock: context.mempool_lock.clone(),
@@ -336,11 +340,15 @@ async fn run_routing_event_processor(
         senders_to_verification: senders,
         last_verification_thread_index: 0,
         stat_sender: sender_to_stat.clone(),
-        sync: SyncManager::new(fetch_batch_size),
+        sync: SyncManager::new(
+            context.blockchain_lock.clone(),
+            context.mempool_lock.clone(),
+            sync_public_key,
+            sync_lite_block_fetch,
+        ),
         gatekeeper: Gatekeeper::default(),
         congestion_check_timer: 0,
         gatekeeper_monitor_timer: 0,
-        waiting_for_genesis_block: false,
         message_sending_timer: 0,
     };
 
@@ -478,7 +486,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let thread_sleep_time_in_ms;
     let stat_timer_in_ms;
     let verification_thread_count;
-    let fetch_batch_size: usize;
     let genesis_period;
     let social_stake;
     let social_stake_period;
@@ -494,7 +501,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .thread_sleep_time_in_ms;
         stat_timer_in_ms = configs.get_server_configs().unwrap().stat_timer_in_ms;
         verification_thread_count = configs.get_server_configs().unwrap().verification_threads;
-        fetch_batch_size = configs.get_server_configs().unwrap().block_fetch_batch_size as usize;
         genesis_period = configs.get_consensus_config().unwrap().genesis_period;
         social_stake = configs.get_consensus_config().unwrap().default_social_stake;
         social_stake_period = configs
@@ -586,7 +592,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         thread_sleep_time_in_ms,
         channel_size,
         sender_to_stat.clone(),
-        fetch_batch_size,
         &timer,
     )
     .await;

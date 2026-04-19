@@ -3,10 +3,6 @@ import Saito from "../../saito";
 import PeerServiceList from "../peer_service_list";
 
 export default class CustomSharedMethods implements SharedMethods {
-  sendBlockFetchStatus(count: bigint): void {
-    throw new Error("Method not implemented.");
-  }
-
   flushData(key: string): void {
     throw new Error("Method not implemented.");
   }
