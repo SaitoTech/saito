@@ -21,7 +21,7 @@ export class StunManager {
     peerConnection.dc = dc;
     peerConnection.ondatachannel = async (event) => {
       const dataChannel = event.channel;
-      const peer = await NetworkPeer.create();
+
       let peer = Saito.getInstance().peers.get(publicKey);
       if (!peer) {
         peer = await NetworkPeer.create();

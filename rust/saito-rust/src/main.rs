@@ -291,6 +291,7 @@ async fn run_routing_event_processor(
         sync: SyncManager::new(
             context.blockchain_lock.clone(),
             context.mempool_lock.clone(),
+	    Arc::new(time_keeper_origin.clone()),
             sync_public_key,
             sync_lite_block_fetch,
         ),

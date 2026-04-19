@@ -393,6 +393,10 @@ impl Network {
         // send
         //
         for peer_id in request_services_for {
+            info!(
+                "[TEMP_SYNC_TRACE][SERVICES] send RequestServices peer_id={}",
+                peer_id
+            );
             self.send_message_by_peer_id(peer_id, Message::RequestServices(RequestServices {}))
                 .await;
         }

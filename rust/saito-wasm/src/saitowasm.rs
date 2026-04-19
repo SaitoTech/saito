@@ -160,6 +160,7 @@ pub fn new(
             sync: SyncManager::new(
                 context.blockchain_lock.clone(),
                 context.mempool_lock.clone(),
+		Arc::new(timer.clone()),
                 sync_public_key,
                 sync_lite_block_fetch,
             ),
@@ -930,13 +931,16 @@ pub async fn get_block(block_hash: JsString) -> Result<WasmBlock, JsValue> {
 }
 
 #[wasm_bindgen]
-pub async fn process_new_peer(peer_id: u64) {
+pub async fn process_new_peer(peer_id: u64, initiate_handshake: bool) {
     let mut saito = SAITO.lock().await;
     saito
         .as_mut()
         .unwrap()
         .routing_thread
-        .process_network_event(NetworkEvent::PeerConnectionResult { peer_id: peer_id , initiate_handshake: true })
+        .process_network_event(NetworkEvent::PeerConnectionResult {
+            peer_id: peer_id,
+            initiate_handshake: initiate_handshake,
+        })
         .await;
 }
 

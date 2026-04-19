@@ -177,11 +177,6 @@ export class NodeSharedMethods extends CustomSharedMethods {
       });
       socket.on('open', () => {
         try {
-          // S.getLibInstance()
-          //   .process_new_peer(peer_index, url)
-          //   .then(() => {
-          //     console.log('connected to : ' + url + ' with peer index : ' + peer_index);
-          //   });
         } catch (e) {
           console.error(
             `failed processing socket open from peer : ${peer.publicKey} from url : ${url}`,
@@ -306,10 +301,6 @@ export class NodeSharedMethods extends CustomSharedMethods {
 
   sendWalletUpdate() {
     this.emitAsync('wallet-updated');
-  }
-
-  sendBlockFetchStatus(count: bigint) {
-    this.emitAsync('block-fetch-status', { count: count });
   }
 
   async saveWallet(): Promise<void> {
@@ -483,16 +474,8 @@ class Server {
         S.getLibInstance().process_peer_disconnection(peer.peerId);
       });
 
-      peer.get_handshake_challenge_buffer().then((buffer) => {
-        console.log('sending handshake challenge to peer : ', peer.publicKey);
-        console.info(
-          '[SAITO STEP 6] server about to send RequestHandshake challenge frame byteLength=',
-          buffer?.byteLength ?? (buffer as any)?.length,
-          'peerId=',
-          peer.peerId
-        );
-        socket.send(buffer);
-      });
+      await S.getLibInstance().process_new_peer(peer.peerId, false);
+
     });
 
     this.app.modules.onWebSocketServer(webserver);

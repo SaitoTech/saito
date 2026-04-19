@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::core::process::keep_time::Timer;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
 use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
@@ -33,6 +33,7 @@ pub struct QueueItem {
 
 pub struct SyncManager {
     queue: BTreeMap<(BlockId, SaitoHash), QueueItem>,
+    timer: Arc<Timer>,
     peer_fetch_urls: HashMap<u64, String>,
     blockchain_lock: Arc<RwLock<Blockchain>>,
     mempool_lock: Arc<RwLock<Mempool>>,
@@ -44,12 +45,14 @@ impl SyncManager {
     pub fn new(
         blockchain_lock: Arc<RwLock<Blockchain>>,
         mempool_lock: Arc<RwLock<Mempool>>,
+        timer: Arc<Timer>,
         my_public_key: SaitoPublicKey,
         spv_fetch: bool,
     ) -> Self {
         Self {
             queue: BTreeMap::new(),
             peer_fetch_urls: HashMap::new(),
+	    timer,
             blockchain_lock,
             mempool_lock,
             my_public_key,
@@ -79,8 +82,20 @@ impl SyncManager {
             let blockchain = self.blockchain_lock.read().await;
             let mempool = self.mempool_lock.read().await;
             if blockchain.is_block_indexed(block_hash) {
+                info!(
+                    "[TEMP_SYNC_TRACE][FETCH] queue skip indexed peer_id={} block_id={} block_hash={}",
+                    peer_id,
+                    block_id,
+                    block_hash.to_hex()
+                );
                 false
             } else if mempool.blocks_queue.iter().any(|b| b.hash == block_hash) {
+                info!(
+                    "[TEMP_SYNC_TRACE][FETCH] queue skip mempool-duplicate peer_id={} block_id={} block_hash={}",
+                    peer_id,
+                    block_id,
+                    block_hash.to_hex()
+                );
                 false
             } else {
                 true
@@ -92,6 +107,13 @@ impl SyncManager {
                 Some(entry) => {
                     if !entry.peer_ids.contains(&peer_id) {
                         entry.peer_ids.push(peer_id);
+                        info!(
+                            "[TEMP_SYNC_TRACE][FETCH] block queued merge-peer peer_id={} block_id={} block_hash={} peers_n={}",
+                            peer_id,
+                            block_id,
+                            block_hash.to_hex(),
+                            entry.peer_ids.len()
+                        );
                     }
                 }
                 None => {
@@ -106,6 +128,12 @@ impl SyncManager {
                             fetch_active: false,
                             fetch_peer_id: None,
                         },
+                    );
+                    info!(
+                        "[TEMP_SYNC_TRACE][FETCH] block queued new peer_id={} block_id={} block_hash={}",
+                        peer_id,
+                        block_id,
+                        block_hash.to_hex()
                     );
                 }
             }
@@ -153,6 +181,13 @@ impl SyncManager {
         entry.retry_count = entry.retry_count.saturating_add(1);
 
         if entry.retry_count >= MAX_BLOCK_FETCH_RETRIES {
+            info!(
+                "[TEMP_SYNC_TRACE][FETCH] fetch fail dropped peer_id={} block_id={} block_hash={} retries={}",
+                peer_id,
+                block_id,
+                block_hash.to_hex(),
+                entry.retry_count
+            );
             error!(
                 "dropping block {:?}-{:?} from fetch queue after {} failures",
                 block_id,
@@ -165,11 +200,7 @@ impl SyncManager {
 
     pub async fn fetch(&mut self, network: &Network) -> bool {
         let mut work_done = false;
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_millis() as Timestamp)
-            .unwrap_or(0);
-
+        let now = self.timer.get_timestamp_in_ms();
         loop {
             let items_being_fetched = self.queue.values().filter(|e| e.fetch_active).count();
 
@@ -220,6 +251,12 @@ impl SyncManager {
                     }
                 }
                 Some(_) => {
+                    info!(
+                        "[TEMP_SYNC_TRACE][FETCH] fetch fail no-url peer_id={} block_id={} block_hash={}",
+                        selected_peer_id,
+                        block_id,
+                        block_hash.to_hex()
+                    );
                     warn!(
                         "dropping block fetch: peer {:?} has no fetch URL for block {:?}",
                         selected_peer_id,
@@ -229,6 +266,12 @@ impl SyncManager {
                     continue;
                 }
                 None => {
+                    info!(
+                        "[TEMP_SYNC_TRACE][FETCH] fetch fail peer-not-in-url-map peer_id={} block_id={} block_hash={}",
+                        selected_peer_id,
+                        block_id,
+                        block_hash.to_hex()
+                    );
                     warn!(
                         "dropping block fetch: peer {:?} not found for block {:?}",
                         selected_peer_id,
@@ -239,12 +282,25 @@ impl SyncManager {
                 }
             };
 
+            info!(
+                "[TEMP_SYNC_TRACE][FETCH] fetch begin peer_id={} block_id={} block_hash={}",
+                selected_peer_id,
+                block_id,
+                block_hash.to_hex()
+            );
+
             if network
                 .io_interface
                 .fetch_block_from_peer(block_hash, selected_peer_id, url.as_str(), block_id)
                 .await
                 .is_err()
             {
+                info!(
+                    "[TEMP_SYNC_TRACE][FETCH] fetch fail immediate-io peer_id={} block_id={} block_hash={}",
+                    selected_peer_id,
+                    block_id,
+                    block_hash.to_hex()
+                );
                 warn!(
                     "fetch_block_from_peer failed immediately for block {:?}-{:?} from peer {:?}",
                     block_id,
@@ -270,9 +326,6 @@ impl SyncManager {
         network: &Network,
     ) {
         let configs = config_lock.read().await;
-        if configs.is_browser() {
-            return;
-        }
         let sync_type = if configs.is_spv_mode() {
             SYNC_TYPE_SPV
         } else {
@@ -288,6 +341,11 @@ impl SyncManager {
             .or(blockchain.fork_id)
             .unwrap_or([0; 32]);
         drop(blockchain);
+
+        info!(
+            "[TEMP_SYNC_TRACE][SYNC] send RequestBlockchain peer_id={} latest_known_block_id={} sync_type={}",
+            peer_id, latest_known_block_id, sync_type
+        );
 
         network
             .send_message_by_peer_id(
@@ -317,6 +375,10 @@ impl SyncManager {
     ) -> Result<(), Error> {
         let configs = config_lock.read().await;
         if configs.is_browser() {
+            info!(
+                "[TEMP_SYNC_TRACE][SYNC] skip process RequestBlockchain is_browser peer_id={}",
+                peer_id
+            );
             return Ok(());
         }
         drop(configs);
@@ -423,6 +485,12 @@ impl SyncManager {
                 (first.0, first.1, last.0, last.1)
             };
 
+        let chunk_n = ordered_refs.len();
+        info!(
+            "[TEMP_SYNC_TRACE][SYNC] send Blockchain response peer_id={} chunk_blocks={} our_latest_id={} shared_ancestor={}",
+            peer_id, chunk_n, our_latest_id, shared_ancestor
+        );
+
         network
             .send_message_by_peer_id(
                 peer_id,
@@ -452,11 +520,23 @@ impl SyncManager {
         network: &Network,
     ) -> Result<(), Error> {
         let send_follow_up = cs.payload_latest_block_id < cs.latest_known_block_id;
+        info!(
+            "[TEMP_SYNC_TRACE][SYNC] process Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={} follow_up={}",
+            peer_id,
+            cs.payload.len(),
+            cs.payload_latest_block_id,
+            cs.latest_known_block_id,
+            send_follow_up
+        );
         for (block_id, block_hash) in &cs.payload {
             self.add(network, *block_id, *block_hash, peer_id).await;
         }
 
         if send_follow_up {
+            info!(
+                "[TEMP_SYNC_TRACE][SYNC] follow-up RequestBlockchain peer_id={} after partial chunk",
+                peer_id
+            );
             self.send_request_blockchain_message(peer_id, config_lock.clone(), network)
                 .await;
         }

@@ -149,11 +149,21 @@ impl RoutingThread {
 
         match message {
             Message::RequestHandshake(_challenge) => {
+                info!(
+                    "[TEMP_SYNC_TRACE][VERIFY] recv RequestHandshake peer_id={}",
+                    peer_id
+                );
+                info!("[routing] RECEIVED RequestHandshake peer_id={}", peer_id);
                 info!("HANDSHAKE REQUEST: received handshake request");
                 self.process_request_handshake_message(peer_id, _challenge)
                     .await;
             }
             Message::Handshake(_response) => {
+                info!(
+                    "[TEMP_SYNC_TRACE][VERIFY] recv Handshake peer_id={}",
+                    peer_id
+                );
+                info!("[routing] RECEIVED Handshake peer_id={}", peer_id);
                 info!("HANDSHAKE RESPONSE: received handshake response");
                 self.process_handshake_message(peer_id, _response).await;
             }
@@ -164,6 +174,10 @@ impl RoutingThread {
                 self.process_transaction_message(peer_id, transaction).await;
             }
             Message::RequestBlockchain(request) => {
+                info!(
+                    "[TEMP_SYNC_TRACE][SYNC] recv RequestBlockchain peer_id={} remote_latest_id={}",
+                    peer_id, request.latest_known_block_id
+                );
                 if let Err(e) = self
                     .sync
                     .process_request_blockchain_message(
@@ -181,6 +195,19 @@ impl RoutingThread {
                 }
             }
             Message::Blockchain(chaindata) => {
+                info!(
+                    "[TEMP_SYNC_TRACE][SYNC] recv Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={}",
+                    peer_id,
+                    chaindata.payload.len(),
+                    chaindata.payload_latest_block_id,
+                    chaindata.latest_known_block_id
+                );
+                info!(
+                    "[routing] RECEIVED Blockchain peer_id={} payload_entries={} payload_latest_block_id={}",
+                    peer_id,
+                    chaindata.payload.len(),
+                    chaindata.payload_latest_block_id
+                );
                 if let Err(e) = self
                     .sync
                     .process_blockchain_message(
@@ -210,6 +237,16 @@ impl RoutingThread {
                 // ...
             }
             Message::Services(data) => {
+                info!(
+                    "[TEMP_SYNC_TRACE][SERVICES] recv Services peer_id={} service_count={}",
+                    peer_id,
+                    data.services.len()
+                );
+                info!(
+                    "[routing] RECEIVED Services peer_id={} service_count={}",
+                    peer_id,
+                    data.services.len()
+                );
                 let mut peers = self.network.peer_lock.write().await;
                 if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
                     peer.services = data.services;
@@ -220,7 +257,16 @@ impl RoutingThread {
                 }
             }
             Message::RequestServices(_) => {
+                info!(
+                    "[TEMP_SYNC_TRACE][SERVICES] recv RequestServices peer_id={}",
+                    peer_id
+                );
                 let services = self.network.io_interface.get_my_services();
+                let n = services.len();
+                info!(
+                    "[TEMP_SYNC_TRACE][SERVICES] send Services peer_id={} service_count={}",
+                    peer_id, n
+                );
                 self.network
                     .send_message_by_peer_id(peer_id, Message::Services(Services { services }))
                     .await;
@@ -310,11 +356,6 @@ impl RoutingThread {
     // logic or execution across multiple threads or system components.
     //
     async fn process_transaction_message(&mut self, peer_id: u64, mut transaction: Transaction) {
-        trace!(
-            "received transaction : {} from peer : {:?}",
-            transaction.signature.to_hex(),
-            peer_id
-        );
         transaction.routed_from_peer_id = peer_id;
         self.send_to_verification_thread(VerifyRequest::Transaction(transaction))
             .await;
@@ -372,10 +413,6 @@ impl RoutingThread {
         true
     }
     async fn process_request_handshake_message(&mut self, peer_id: u64, request: RequestHandshake) {
-        info!(
-            "[SAITO STEP 8] routing enter process_request_handshake_message peer_id={}",
-            peer_id
-        );
         let (public_key, private_key) = {
             let wallet = self.wallet_lock.read().await;
             (wallet.public_key, wallet.private_key)
@@ -402,10 +439,6 @@ impl RoutingThread {
             }
         };
 
-        info!(
-            "[SAITO STEP 9] routing send Message::Handshake (reply to RequestHandshake) peer_id={}",
-            peer_id
-        );
         self.network
             .send_message_by_peer_id(
                 peer_id,
@@ -416,13 +449,14 @@ impl RoutingThread {
                 }),
             )
             .await;
+        info!(
+            "[TEMP_SYNC_TRACE][VERIFY] send Handshake reply peer_id={} counter_nonce_nonzero={}",
+            peer_id,
+            counter_nonce != [0; 32]
+        );
     }
 
     async fn process_handshake_message(&mut self, peer_id: u64, handshake: Handshake) {
-        info!(
-            "[SAITO STEP 8] routing enter process_handshake_message peer_id={}",
-            peer_id
-        );
         let had_pending_nonce;
         let counter_nonce = handshake.counter_nonce;
 
@@ -455,16 +489,18 @@ impl RoutingThread {
             peer.on_handshake_complete(handshake.public_key, self.timer.get_timestamp_in_ms());
         }
 
+        info!(
+            "[TEMP_SYNC_TRACE][VERIFY] handshake verified peer_id={} peer_pubkey={}",
+            peer_id,
+            handshake.public_key.to_hex()
+        );
+
         if had_pending_nonce && counter_nonce != [0; 32] {
             let (public_key, private_key) = {
                 let wallet = self.wallet_lock.read().await;
                 (wallet.public_key, wallet.private_key)
             };
 
-            info!(
-                "[SAITO STEP 9] routing send Message::Handshake (counter-nonce reply) peer_id={}",
-                peer_id
-            );
             self.network
                 .send_message_by_peer_id(
                     peer_id,
@@ -475,16 +511,15 @@ impl RoutingThread {
                     }),
                 )
                 .await;
+            info!(
+                "[TEMP_SYNC_TRACE][VERIFY] send counter Handshake peer_id={}",
+                peer_id
+            );
         }
     }
 
     async fn process_request_genesis_block_reference_message(&mut self, peer_id: u64) {
         let blockchain = self.blockchain_lock.read().await;
-
-        info!(
-            "Received genesis block request from peer : {:?}. current genesis block id : {:?}",
-            peer_id, blockchain.genesis_block_id
-        );
 
         if blockchain.genesis_block_id != 0 {
             if let Some(genesis_block_hash) = blockchain
@@ -515,13 +550,6 @@ impl RoutingThread {
         hash: SaitoHash,
         block_id: u64,
     ) {
-        info!(
-            "Received genesis block header : {:?}-{:?} from peer : {:?}",
-            block_id,
-            hash.to_hex(),
-            peer_id,
-        );
-
         if self
             .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, hash, block_id)
             .await
@@ -542,7 +570,6 @@ impl RoutingThread {
     }
 
     async fn send_to_verification_thread(&mut self, request: VerifyRequest) {
-        // waiting till we get an acceptable sender
         let sender_count = self.senders_to_verification.len();
         if sender_count == 0 {
             error!("no verification-thread senders configured; dropping request");
@@ -563,7 +590,6 @@ impl RoutingThread {
             };
 
             if sender.capacity() > 0 {
-                trace!("sending to verification thread : {:?}", sender_index);
                 if let Err(err) = sender.send(request).await {
                     error!(
                         "failed sending request to verification thread {}: {:?}",
@@ -573,14 +599,7 @@ impl RoutingThread {
 
                 return;
             }
-            trace!(
-                "verification thread sender : {:?} is full. capacity : {:?} max capacity : {:?}",
-                sender_index,
-                sender.capacity(),
-                sender.max_capacity()
-            );
             if trials == sender_count {
-                // todo : if all the channels are full, we should wait here. cannot sleep to support wasm interface
                 trials = 0;
             }
         }
@@ -588,13 +607,10 @@ impl RoutingThread {
 
     async fn process_message_sending_timer_event(&mut self, duration_value: Timestamp) -> bool {
         const MESSAGES_SENDING_PERIOD: Timestamp = Duration::from_secs(1).as_millis() as Timestamp;
-
         self.message_sending_timer = self.message_sending_timer.saturating_add(duration_value);
-
         if self.message_sending_timer >= MESSAGES_SENDING_PERIOD {
             self.message_sending_timer %= MESSAGES_SENDING_PERIOD;
         }
-
         false
     }
 }
@@ -607,44 +623,37 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 self.process_peer_buffer(peer_id, buffer).await;
                 return Some(());
             }
-NetworkEvent::PeerConnectionResult {
-    peer_id,
-    initiate_handshake,
-} => {
-    let mut handshake_message: Option<Message> = None;
+            NetworkEvent::PeerConnectionResult {
+                peer_id,
+                initiate_handshake,
+            } => {
+                let mut handshake_message: Option<Message> = None;
 
-    {
-        let mut peers = self.network.peer_lock.write().await;
+                {
+                    let mut peers = self.network.peer_lock.write().await;
 
-        let Some(peer) = peers.get_peer_by_id_mut(peer_id) else {
-            warn!("PeerConnectionResult: unknown peer_id {}", peer_id);
-            return None;
-        };
+                    let Some(peer) = peers.get_peer_by_id_mut(peer_id) else {
+                        warn!("PeerConnectionResult: unknown peer_id {}", peer_id);
+                        return None;
+                    };
 
-        peer.on_connect(self.timer.get_timestamp_in_ms());
+                    peer.on_connect(self.timer.get_timestamp_in_ms());
 
-        if initiate_handshake {
-            let nonce = hash(&generate_random_bytes(32).await);
-            peer.handshake_nonce = Some(nonce);
+                    if initiate_handshake {
+                        let nonce = hash(&generate_random_bytes(32).await);
+                        peer.handshake_nonce = Some(nonce);
 
-            handshake_message = Some(
-                Message::RequestHandshake(
-                    RequestHandshake {
-                        nonce,
+                        handshake_message =
+                            Some(Message::RequestHandshake(RequestHandshake { nonce }));
                     }
-                )
-            );
-        }
-    }
+                }
 
-    if let Some(message) = handshake_message {
-        self.network
-            .send_message_by_peer_id(peer_id, message)
-            .await;
-    }
+                if let Some(message) = handshake_message {
+                    self.network.send_message_by_peer_id(peer_id, message).await;
+                }
 
-    return Some(());
-}
+                return Some(());
+            }
             NetworkEvent::AddStunPeer {
                 peer_id,
                 public_key,
@@ -676,6 +685,13 @@ NetworkEvent::PeerConnectionResult {
                 peer_id,
                 buffer,
             } => {
+                info!(
+                    "[TEMP_SYNC_TRACE][FETCH] fetch success peer_id={} block_id={} block_hash={} bytes={}",
+                    peer_id,
+                    block_id,
+                    block_hash.to_hex(),
+                    buffer.len()
+                );
                 debug!("block received : {:?}", block_hash.to_hex());
 
                 self.send_to_verification_thread(VerifyRequest::Block(
@@ -692,6 +708,12 @@ NetworkEvent::PeerConnectionResult {
                 peer_id,
                 block_id,
             } => {
+                info!(
+                    "[TEMP_SYNC_TRACE][FETCH] fetch fail (network) peer_id={} block_id={} block_hash={}",
+                    peer_id,
+                    block_id,
+                    block_hash.to_hex()
+                );
                 let time = self.timer.get_timestamp_in_ms();
 
                 self.sync.on_fetch_fail(block_id, block_hash, peer_id, time);
@@ -721,6 +743,10 @@ NetworkEvent::PeerConnectionResult {
         let (net_done, chain_sync_peers) = self.network.monitor_peers(current_time).await;
         work_done |= net_done;
         for peer_id in chain_sync_peers {
+            info!(
+                "[TEMP_SYNC_TRACE][SYNC] chain sync start peer_id={} (post-services)",
+                peer_id
+            );
             self.sync
                 .send_request_blockchain_message(peer_id, self.config_lock.clone(), &self.network)
                 .await;
@@ -802,6 +828,10 @@ NetworkEvent::PeerConnectionResult {
                         }
                     }
                     for peer_id in peer_ids {
+                        info!(
+                            "[TEMP_SYNC_TRACE][SYNC] chain sync start peer_id={} (initial_sync)",
+                            peer_id
+                        );
                         self.sync
                             .send_request_blockchain_message(
                                 peer_id,
@@ -824,6 +854,10 @@ NetworkEvent::PeerConnectionResult {
                     .await;
             }
             RoutingEvent::BlockchainRequest(peer_id) => {
+                info!(
+                    "[TEMP_SYNC_TRACE][SYNC] chain sync start peer_id={} (BlockchainRequest)",
+                    peer_id
+                );
                 info!(
                     "requesting blockchain from peer : {:?} after block add failure",
                     peer_id
