@@ -112,9 +112,6 @@ pub struct RoutingThread {
     pub stat_sender: Sender<StatEvent>,
     pub sync: SyncManager,
     pub gatekeeper: Gatekeeper,
-    /// if we receive a ghost chain with a gap between our latest block id and starting block id of the received ghost chain,
-    /// we emit an event and store the received chain until the user handles the event. TODO : handle this functionality after JS functions are implemented.
-    pub waiting_for_genesis_block: bool,
 }
 
 impl RoutingThread {
@@ -173,7 +170,6 @@ impl RoutingThread {
                     .process_request_blockchain_message(
                         request,
                         peer_id,
-                        self.blockchain_lock.clone(),
                         self.config_lock.clone(),
                         &self.network,
                     )
@@ -191,8 +187,6 @@ impl RoutingThread {
                     .process_blockchain_message(
                         chaindata,
                         peer_id,
-                        self.blockchain_lock.clone(),
-                        self.mempool_lock.clone(),
                         self.config_lock.clone(),
                         &self.network,
                     )
@@ -330,93 +324,53 @@ impl RoutingThread {
         hash: SaitoHash,
         block_id: u64,
     ) {
-        if self.waiting_for_genesis_block {
-            info!(
-            "Won't process received block header : {:?}-{:?} since we are waiting for a genesis block",
-            block_id,
-            hash.to_hex()
-        );
-            return;
-        }
 
-        debug!(
-            "received block header hash from peer : {:?} with block id : {:?} and hash : {:?}",
-            peer_id,
-            block_id,
-            hash.to_hex()
-        );
-
-        self.queue_inbound_block_header(peer_id, hash, block_id).await;
-    }
-
-    /// Enqueue a block header from a peer for HTTP fetch (canonical path: queue → `fetch`).
-    async fn queue_inbound_block_header(
-        &mut self,
-        peer_id: u64,
-        block_hash: SaitoHash,
-        block_id: u64,
-    ) {
-        debug!(
-            "queue_inbound_block_header : {:?}-{:?} from peer : {:?}",
-            block_id,
-            block_hash.to_hex(),
-            peer_id
-        );
-
-        {
-            let blockchain = self.blockchain_lock.read().await;
-            if !blockchain.blocks.is_empty() && blockchain.lowest_acceptable_block_id >= block_id {
-                debug!(
-                    "skipping block header : {:?}-{:?} from peer : {:?} since our lowest acceptable id : {:?}",
-                    block_id,
-                    block_hash.to_hex(),
-                    peer_id,
-                    blockchain.lowest_acceptable_block_id
-                );
-                return;
-            }
-            if block_id < std::cmp::max(1, blockchain.genesis_block_id) {
-                debug!(
-                    "skipping block header : {:?}-{:?} from peer : {:?} since it's earlier than our genesis block id : {}",
-                    block_id,
-                    block_hash.to_hex(),
-                    peer_id,
-                    blockchain.genesis_block_id
-                );
-                return;
-            }
-        }
-
-        let wallet = self.wallet_lock.read().await;
-        let wallet_version = wallet.wallet_version;
-        let core_version = wallet.core_version;
-        drop(wallet);
-
-        match self
-            .network
-            .should_request_blockchain(peer_id, wallet_version, core_version)
+        if self
+            .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, hash, block_id)
             .await
         {
-            Some(true) => {
-                self.sync
-                    .send_request_blockchain_message(
-                        peer_id,
-                        self.blockchain_lock.clone(),
-                        self.config_lock.clone(),
-                        &self.network,
-                    )
-                    .await;
-            }
-            Some(false) => {}
-            None => {
-                warn!(
-                    "couldn't find peer : {:?} for processing block header hash",
-                    peer_id
-                );
+            self.sync
+                .add(&self.network, block_id, hash, peer_id)
+                .await;
+        }
+    }
+
+    //
+    // this is called when we receive references to individual blocks as opposed to
+    // chain-sync requests. It checks whether the request fits the criteria for 
+    // getting sent to the block sync queue.
+    //
+    async fn should_dispatch_block_reference_from_peer_to_sync_manager(
+        &self,
+        peer_id: u64,
+        block_hash: SaitoHash,
+        block_id: BlockId,
+    ) -> bool {
+        {
+            let peers = self.network.peer_lock.read().await;
+            if peers.get_peer_by_id(peer_id).is_none() {
+                return false;
             }
         }
 
-        self.sync.queue.add(block_id, block_hash, peer_id);
+        let blockchain = self.blockchain_lock.read().await;
+        if blockchain.is_block_indexed(block_hash) {
+            return false;
+        }
+        if !blockchain.blocks.is_empty() && blockchain.lowest_acceptable_block_id >= block_id {
+            return false;
+        }
+        if block_id < max(1, blockchain.genesis_block_id) {
+            return false;
+        }
+        drop(blockchain);
+
+        let mempool = self.mempool_lock.read().await;
+        if mempool.blocks_queue.iter().any(|b| b.hash == block_hash) {
+            return false;
+        }
+
+        true
     }
     async fn process_request_handshake_message(&mut self, peer_id: u64, request: RequestHandshake) {
         info!(
@@ -569,7 +523,14 @@ impl RoutingThread {
             peer_id,
         );
 
-        self.queue_inbound_block_header(peer_id, hash, block_id).await;
+        if self
+            .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, hash, block_id)
+            .await
+        {
+            self.sync
+                .add(&self.network, block_id, hash, peer_id)
+                .await;
+        }
     }
 
     pub async fn process_key_list_updated_event(&mut self, key_list: Vec<SaitoPublicKey>) {
@@ -696,7 +657,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 ))
                 .await;
 
-                self.sync.queue.on_fetch_success(block_hash);
+                self.sync.remove(block_hash);
 
                 return Some(());
             }
@@ -707,7 +668,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             } => {
                 let time = self.timer.get_timestamp_in_ms();
 
-                self.sync.queue.on_fetch_fail(block_id, block_hash, peer_id, time);
+                self.sync.on_fetch_fail(block_id, block_hash, peer_id, time);
             }
             _ => unreachable!(),
         }
@@ -737,7 +698,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             self.sync
                 .send_request_blockchain_message(
                     peer_id,
-                    self.blockchain_lock.clone(),
                     self.config_lock.clone(),
                     &self.network,
                 )
@@ -762,16 +722,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     "received blockchain update event : {:?}",
                     block_hash.to_hex()
                 );
-                self.sync.queue.remove(block_hash);
-                self.sync
-                    .fetch(
-                        self.blockchain_lock.clone(),
-                        self.mempool_lock.clone(),
-                        &self.network,
-                        self.wallet_lock.clone(),
-                        self.config_lock.clone(),
-                    )
-                    .await;
+                self.sync.remove(block_hash);
+                self.sync.fetch(&self.network).await;
                 {
                     let mut configs = self.config_lock.write().await;
                     let blockchain = self.blockchain_lock.read().await;
@@ -817,10 +769,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                             blockchain.genesis_block_id
                         );
                     }
-                    // we set this to false here since now we know the genesis block is added already.
-                    self.waiting_for_genesis_block = false;
-                    info!("since initial sync is done, we will request the chain from peers");
-                    // request blockchain by peer_id (no public_key lookup needed)
+
                     let mut peer_ids: Vec<u64> = vec![];
                     {
                         let peers = self.network.peer_lock.read().await;
@@ -834,7 +783,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         self.sync
                             .send_request_blockchain_message(
                                 peer_id,
-                                self.blockchain_lock.clone(),
                                 self.config_lock.clone(),
                                 &self.network,
                             )
@@ -849,7 +797,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     block_hash.to_hex(),
                     block_id
                 );
-                self.sync.queue.add(block_id, block_hash, peer_id);
+                self.sync
+                    .add(&self.network, block_id, block_hash, peer_id)
+                    .await;
             }
             RoutingEvent::BlockchainRequest(peer_id) => {
                 info!(
@@ -859,7 +809,6 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 self.sync
                     .send_request_blockchain_message(
                         peer_id,
-                        self.blockchain_lock.clone(),
                         self.config_lock.clone(),
                         &self.network,
                     )

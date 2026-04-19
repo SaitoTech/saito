@@ -3,9 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
-use crate::core::consensus::wallet::Wallet;
-use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, Timestamp};
-use crate::core::network::interface_io::InterfaceEvent;
+use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::network::msg::blockchain::{
     is_supported_sync_type, Blockchain as BlockchainWire, RequestBlockchain, SYNC_TYPE_FULL,
     SYNC_TYPE_SPV, MAX_BLOCKCHAIN_CHUNK,
@@ -13,8 +11,8 @@ use crate::core::network::msg::blockchain::{
 use crate::core::network::msg::message::Message;
 use crate::core::network::network::Network;
 use crate::core::util::configuration::Configuration;
-use log::{debug, error, info, trace, warn};
-use std::collections::BTreeMap;
+use log::{error, info, trace, warn};
+use std::collections::{BTreeMap, HashMap};
 use std::io::Error;
 use tokio::sync::RwLock;
 
@@ -23,18 +21,8 @@ pub const MAX_BLOCK_FETCH_RETRIES: u32 = 20;
 pub const BLOCK_FETCH_RETRY_DELAY_MS: Timestamp = 0;
 
 
-//
-// the queue for managing downloads
-//
-pub struct BlockFetchQueue {
-    entries: BTreeMap<(BlockId, SaitoHash), BlockFetchEntry>,
-}
-
-//
-// entries in the queue
-//
 #[derive(Debug, Clone)]
-pub struct BlockFetchEntry {
+pub struct QueueItem {
     pub block_id: BlockId,
     pub block_hash: BlockHash,
     pub peer_ids: Vec<u64>,
@@ -44,94 +32,120 @@ pub struct BlockFetchEntry {
     pub fetch_peer_id: Option<u64>,
 }
 
+pub struct SyncManager {
+    queue: BTreeMap<(BlockId, SaitoHash), QueueItem>,
+    peer_fetch_urls: HashMap<u64, String>,
+    blockchain_lock: Arc<RwLock<Blockchain>>,
+    mempool_lock: Arc<RwLock<Mempool>>,
+    my_public_key: SaitoPublicKey,
+    spv_fetch: bool,
+}
 
-impl BlockFetchQueue {
+impl SyncManager {
 
-    pub fn new() -> Self {
+    pub fn new(
+        blockchain_lock: Arc<RwLock<Blockchain>>,
+        mempool_lock: Arc<RwLock<Mempool>>,
+        my_public_key: SaitoPublicKey,
+        spv_fetch: bool,
+    ) -> Self {
         Self {
-            entries: BTreeMap::new(),
+            queue: BTreeMap::new(),
+            peer_fetch_urls: HashMap::new(),
+            blockchain_lock,
+            mempool_lock,
+            my_public_key,
+            spv_fetch,
         }
     }
 
     //
-    // add entries to the queue
+    // add item to queue
     //
-    pub fn add(&mut self, block_id: BlockId, block_hash: SaitoHash, peer_id: u64) {
-        let key = (block_id, block_hash);
-        match self.entries.get_mut(&key) {
-            Some(entry) => {
-                if !entry.peer_ids.contains(&peer_id) {
-                    entry.peer_ids.push(peer_id);
+    pub async fn add(
+        &mut self,
+        network: &Network,
+        block_id: BlockId,
+        block_hash: SaitoHash,
+        peer_id: u64,
+    ) {
+        if !self.peer_fetch_urls.contains_key(&peer_id) {
+            let peers = network.peer_lock.read().await;
+            if let Some(peer) = peers.get_peer_by_id(peer_id) {
+                self.peer_fetch_urls
+                    .insert(peer_id, peer.block_fetch_url.clone());
+            }
+        }
+
+        let should_merge = {
+            let blockchain = self.blockchain_lock.read().await;
+            let mempool = self.mempool_lock.read().await;
+            if blockchain.is_block_indexed(block_hash) {
+                false
+            } else if mempool.blocks_queue.iter().any(|b| b.hash == block_hash) {
+                false
+            } else {
+                true
+            }
+        };
+        if should_merge {
+            let key = (block_id, block_hash);
+            match self.queue.get_mut(&key) {
+                Some(entry) => {
+                    if !entry.peer_ids.contains(&peer_id) {
+                        entry.peer_ids.push(peer_id);
+                    }
+                }
+                None => {
+                    self.queue.insert(
+                        key,
+                        QueueItem {
+                            block_id,
+                            block_hash,
+                            peer_ids: vec![peer_id],
+                            retry_count: 0,
+                            last_attempt_at: 0,
+                            fetch_active: false,
+                            fetch_peer_id: None,
+                        },
+                    );
                 }
             }
-            None => {
-                self.entries.insert(
-                    key,
-                    BlockFetchEntry {
-                        block_id,
-                        block_hash,
-                        peer_ids: vec![peer_id],
-                        retry_count: 0,
-                        last_attempt_at: 0,
-                        fetch_active: false,
-                        fetch_peer_id: None,
-                    },
-                );
-            }
         }
     }
 
     //
-    // remove entries from the queue
+    // remove item from queue
     //
     pub fn remove(&mut self, block_hash: SaitoHash) {
         let keys: Vec<(BlockId, SaitoHash)> = self
-            .entries
+            .queue
             .keys()
             .filter(|(_, h)| *h == block_hash)
             .copied()
             .collect();
         for k in keys {
-            self.entries.remove(&k);
+            self.queue.remove(&k);
         }
     }
 
-    /// Successful fetch: remove the entry.
-    pub fn on_fetch_success(&mut self, block_hash: SaitoHash) {
-        debug!("on_fetch_success : {:?}", block_hash.to_hex());
-        self.remove(block_hash);
-    }
-
-    /// After a failed fetch attempt: clear fetch active flag, bump retries, or drop the entry.
-    pub fn on_fetch_fail(
+    //
+    // 
+    // 
+    pub(crate) fn on_fetch_fail(
         &mut self,
         block_id: BlockId,
         block_hash: BlockHash,
         peer_id: u64,
         now: Timestamp,
     ) {
-        warn!(
-            "on_fetch_fail : {:?}-{:?} peer {}",
-            block_id,
-            block_hash.to_hex(),
-            peer_id
-        );
-        let Some(entry) = self.entries.get_mut(&(block_id, block_hash)) else {
-            debug!(
-                "on_fetch_fail: no queue entry for {:?}",
-                block_hash.to_hex()
-            );
+        let Some(entry) = self.queue.get_mut(&(block_id, block_hash)) else {
             return;
         };
         if !entry.fetch_active {
-            debug!("on_fetch_fail: entry has no active fetch; ignoring duplicate failure");
             return;
         }
         if entry.fetch_peer_id != Some(peer_id) {
-            debug!(
-                "on_fetch_fail: stale peer {} (expected {:?})",
-                peer_id, entry.fetch_peer_id
-            );
             return;
         }
 
@@ -147,54 +161,21 @@ impl BlockFetchQueue {
                 block_hash.to_hex(),
                 entry.retry_count
             );
-            self.entries.remove(&(block_id, block_hash));
-        }
-    }
-}
-
-pub struct SyncManager {
-    pub queue: BlockFetchQueue,
-}
-
-impl SyncManager {
-
-    pub fn new() -> Self {
-        Self {
-            queue: BlockFetchQueue::new(),
+            self.queue.remove(&(block_id, block_hash));
         }
     }
 
-    pub async fn fetch(
-        &mut self,
-        blockchain_lock: Arc<RwLock<Blockchain>>,
-        mempool_lock: Arc<RwLock<Mempool>>,
-        network: &Network,
-        wallet_lock: Arc<RwLock<Wallet>>,
-        config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
-    ) -> bool {
-
+    pub async fn fetch(&mut self, network: &Network) -> bool {
         let mut work_done = false;
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_millis() as Timestamp)
             .unwrap_or(0);
 
-        let items_being_fetched = self
-            .queue
-            .entries
-            .values()
-            .filter(|e| e.fetch_active)
-            .count() as BlockId;
-
-        network
-            .io_interface
-            .send_interface_event(InterfaceEvent::BlockFetchStatus(items_being_fetched));
-
         loop {
 
             let items_being_fetched = self
                 .queue
-                .entries
                 .values()
                 .filter(|e| e.fetch_active)
                 .count();
@@ -204,7 +185,7 @@ impl SyncManager {
             }
 
             let mut next_fetch: Option<(BlockId, SaitoHash, u64)> = None;
-            for (key, entry) in self.queue.entries.iter() {
+            for (key, entry) in self.queue.iter() {
 
                 if entry.fetch_active || entry.peer_ids.is_empty() {
                     continue;
@@ -227,68 +208,44 @@ impl SyncManager {
                 break;
             };
 
-            let block_already_exists = {
-                let blockchain = blockchain_lock.read().await;
-                if blockchain.is_block_indexed(block_hash) {
-                    true
-                } else {
-                    let mempool = mempool_lock.read().await;
-                    mempool
-                        .blocks_queue
-                        .iter()
-                        .any(|b| b.hash == block_hash)
-                }
-            };
-
-            if block_already_exists {
-                self.queue.remove(block_hash);
-                continue;
-            }
-
-            let my_public_key = {
-                let wallet = wallet_lock.read().await;
-                wallet.public_key
-            };
-
-            if let Some(e) = self.queue.entries.get_mut(&(block_id, block_hash)) {
+            if let Some(e) = self.queue.get_mut(&(block_id, block_hash)) {
                 e.fetch_active = true;
                 e.fetch_peer_id = Some(selected_peer_id);
                 e.last_attempt_at = now;
             }
             work_done = true;
 
-            let url: String;
-
-            {
-                let peers = network.peer_lock.read().await;
-
-                if let Some(peer) = peers.get_peer_by_id(selected_peer_id) {
-                    if peer.block_fetch_url.is_empty() {
-                        warn!(
-                            "dropping block fetch: peer {:?} has no fetch URL for block {:?}",
-                            selected_peer_id,
-                            block_hash.to_hex()
-                        );
-                        self.queue
-                            .on_fetch_fail(block_id, block_hash, selected_peer_id, now);
-                        continue;
+            let url: String = match self.peer_fetch_urls.get(&selected_peer_id) {
+                Some(base) if !base.is_empty() => {
+                    if self.spv_fetch {
+                        base.clone()
+                            + "/lite-block/"
+                            + block_hash.to_hex().as_str()
+                            + "/"
+                            + self.my_public_key.to_base58().as_str()
+                    } else {
+                        base.clone() + "/block/" + block_hash.to_hex().as_str()
                     }
-
-                    let configs = config_lock.read().await;
-                    let lite = configs.is_spv_mode();
-
-                    url = peer.get_block_fetch_url(block_hash, lite, my_public_key);
-                } else {
+                }
+                Some(_) => {
+                    warn!(
+                        "dropping block fetch: peer {:?} has no fetch URL for block {:?}",
+                        selected_peer_id,
+                        block_hash.to_hex()
+                    );
+                    self.on_fetch_fail(block_id, block_hash, selected_peer_id, now);
+                    continue;
+                }
+                None => {
                     warn!(
                         "dropping block fetch: peer {:?} not found for block {:?}",
                         selected_peer_id,
                         block_hash.to_hex()
                     );
-                    self.queue
-                        .on_fetch_fail(block_id, block_hash, selected_peer_id, now);
+                    self.on_fetch_fail(block_id, block_hash, selected_peer_id, now);
                     continue;
                 }
-            }
+            };
 
             if network
                 .io_interface
@@ -308,8 +265,7 @@ impl SyncManager {
                     selected_peer_id
                 );
 
-                self.queue
-                    .on_fetch_fail(block_id, block_hash, selected_peer_id, now);
+                self.on_fetch_fail(block_id, block_hash, selected_peer_id, now);
             }
         }
 
@@ -317,15 +273,13 @@ impl SyncManager {
     }
 
 
-    /// Sends [`Message::RequestBlockchain`] (full or SPV) using the latest chain head at call time.
-    ///
-    /// When not in browser mode, every call builds a fresh [`RequestBlockchain`] and sends it.
-    /// Callers may invoke this repeatedly; peers respond with current sync state (including an
-    /// empty chunk when our head already matches theirs). Throttle at the caller if needed.
-    pub async fn send_request_blockchain_message(
+    /////////////////////////////
+    // PEER MESSAGE PROCESSING //
+    /////////////////////////////
+
+    pub(crate) async fn send_request_blockchain_message(
         &self,
         peer_id: u64,
-        blockchain_lock: Arc<RwLock<Blockchain>>,
         config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
         network: &Network,
     ) {
@@ -340,7 +294,7 @@ impl SyncManager {
         };
         drop(configs);
 
-        let blockchain = blockchain_lock.read().await;
+        let blockchain = self.blockchain_lock.read().await;
         let latest_known_block_id = blockchain.get_latest_block_id();
         let latest_known_block_hash = blockchain.get_latest_block_hash();
         let fork_id = blockchain
@@ -367,11 +321,10 @@ impl SyncManager {
         );
     }
 
-    pub async fn process_request_blockchain_message(
+    pub(crate) async fn process_request_blockchain_message(
         &self,
         request: RequestBlockchain,
         peer_id: u64,
-        blockchain_lock: Arc<RwLock<Blockchain>>,
         config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
         network: &Network,
     ) -> Result<(), Error> {
@@ -398,7 +351,7 @@ impl SyncManager {
         let mut ordered_refs: Vec<(BlockId, BlockHash)> = Vec::new();
 
         {
-            let blockchain = blockchain_lock.read().await;
+            let blockchain = self.blockchain_lock.read().await;
 
             let mut lsa =
                 blockchain.generate_last_shared_ancestor(request.latest_known_block_id, request.fork_id);
@@ -505,46 +458,24 @@ impl SyncManager {
         Ok(())
     }
 
-    pub async fn process_blockchain_message(
+    pub(crate) async fn process_blockchain_message(
         &mut self,
         cs: BlockchainWire,
         peer_id: u64,
-        blockchain_lock: Arc<RwLock<Blockchain>>,
-        mempool_lock: Arc<RwLock<Mempool>>,
         config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
         network: &Network,
     ) -> Result<(), Error> {
-        let mut send_follow_up = false;
-        {
-            let blockchain = blockchain_lock.read().await;
-            let mempool = mempool_lock.read().await;
-            if cs.payload_latest_block_id < cs.latest_known_block_id {
-                send_follow_up = true;
-            }
-            for (block_id, block_hash) in &cs.payload {
-                if blockchain.is_block_indexed(*block_hash) {
-                    continue;
-                }
-                if mempool.blocks_queue.iter().any(|b| b.hash == *block_hash) {
-                    continue;
-                }
-                self.queue.add(*block_id, *block_hash, peer_id);
-            }
+        let send_follow_up = cs.payload_latest_block_id < cs.latest_known_block_id;
+        for (block_id, block_hash) in &cs.payload {
+            self.add(network, *block_id, *block_hash, peer_id).await;
         }
 
         if send_follow_up {
-            self.send_request_blockchain_message(
-                peer_id,
-                blockchain_lock.clone(),
-                config_lock.clone(),
-                network,
-            )
-            .await;
+            self.send_request_blockchain_message(peer_id, config_lock.clone(), network)
+                .await;
         }
 
         Ok(())
     }
-
-    
 }
 

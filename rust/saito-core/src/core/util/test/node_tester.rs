@@ -257,6 +257,9 @@ pub mod test {
                 });
             }
 
+            let sync_public_key = wallet.blocking_read().public_key;
+            let sync_lite_block_fetch = configuration.blocking_read().is_spv_mode();
+
             NodeTester {
                 routing_thread: RoutingThread {
                     blockchain_lock: context.blockchain_lock.clone(),
@@ -280,11 +283,15 @@ pub mod test {
                     senders_to_verification: vec![sender_to_verification.clone()],
                     last_verification_thread_index: 0,
                     stat_sender: sender_to_stat.clone(),
-                    sync: SyncManager::new(),
+                    sync: SyncManager::new(
+                        context.blockchain_lock.clone(),
+                        context.mempool_lock.clone(),
+                        sync_public_key,
+                        sync_lite_block_fetch,
+                    ),
                     gatekeeper: Gatekeeper::default(),
                     congestion_check_timer: 0,
                     gatekeeper_monitor_timer: 0,
-                    waiting_for_genesis_block: false,
                     message_sending_timer: 0,
                 },
                 consensus_thread: ConsensusThread {

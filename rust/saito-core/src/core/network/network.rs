@@ -14,7 +14,6 @@ use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::RequestServices;
 use crate::core::network::peers::Peers;
 use crate::core::process::keep_time::Timer;
-use crate::core::process::version::Version;
 use crate::core::util::configuration::Configuration;
 
 const RECONNECTION_PERIOD: Timestamp = 5_000;
@@ -189,7 +188,7 @@ impl Network {
             self.send_message(public_key, Message::RequestGenesisBlockReference())
                 .await;
 
-            return true; // waiting_for_genesis_block = true
+            return true;
         }
 
         drop(blockchain);
@@ -458,23 +457,6 @@ impl Network {
             self.io_interface
                 .send_interface_event(InterfaceEvent::PeerConnectionDropped(public_key));
             peer.on_disconnect(self.timer.get_timestamp_in_ms());
-        }
-    }
-
-    pub async fn should_request_blockchain(
-        &self,
-        peer_id: u64,
-        wallet_version: Version,
-        core_version: Version,
-    ) -> Option<bool> {
-        let peers = self.peer_lock.read().await;
-
-        if let Some(peer) = peers.get_peer_by_id(peer_id) {
-            let should_request = wallet_version > peer.wallet_version
-                || (wallet_version == peer.wallet_version && core_version > peer.core_version);
-            Some(should_request)
-        } else {
-            None
         }
     }
 

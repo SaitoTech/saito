@@ -17,7 +17,6 @@ pub enum InterfaceEvent {
     NewVersionDetected(SaitoPublicKey, Version),
     StunPeerConnected(SaitoPublicKey),
     StunPeerDisconnected(SaitoPublicKey),
-    BlockFetchStatus(BlockId),
     NewChainDetected(),
 }
 
