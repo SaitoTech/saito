@@ -35,7 +35,10 @@ if (target === "web") {
   normalizedPackage.main = "index.js";
 }
 
-fs.writeFileSync(pkgPackagePath, `${JSON.stringify(normalizedPackage, null, 2)}\n`);
+fs.writeFileSync(
+  pkgPackagePath,
+  `${JSON.stringify(normalizedPackage, null, 2)}\n`,
+);
 
 const npmIgnorePath = path.join(pkgDir, ".npmignore");
 fs.writeFileSync(
@@ -50,7 +53,7 @@ fs.writeFileSync(
     "!snippets/",
     "!snippets/**",
     "",
-  ].join("\n")
+  ].join("\n"),
 );
 
 if (target === "web") {
@@ -60,7 +63,7 @@ if (target === "web") {
     const replacement = "\nexport { MsgHandler };\n";
     const commonJsFooter = [
       "\nexport { MsgHandler };\n",
-      "\nif (typeof module !== \"undefined\") {\n",
+      '\nif (typeof module !== "undefined") {\n',
       "  module.exports = { MsgHandler };\n",
       "}\n",
       "\n",
@@ -69,7 +72,7 @@ if (target === "web") {
       "// module.exports = exports = {MsgHandler};\n",
       "//\n",
       "\n",
-      "// if (typeof exports === \"undefined\") {\n",
+      '// if (typeof exports === "undefined") {\n',
       "//     module.exports = {MsgHandler};\n",
       "// } else {\n",
       "//     exports = {MsgHandler};\n",
@@ -77,12 +80,19 @@ if (target === "web") {
       "// export {MsgHandler};\n",
     ].join("");
 
-    for (const snippetFolder of fs.readdirSync(snippetsDir, { withFileTypes: true })) {
+    for (const snippetFolder of fs.readdirSync(snippetsDir, {
+      withFileTypes: true,
+    })) {
       if (!snippetFolder.isDirectory()) {
         continue;
       }
 
-      const snippetPath = path.join(snippetsDir, snippetFolder.name, "js", "msg_handler.js");
+      const snippetPath = path.join(
+        snippetsDir,
+        snippetFolder.name,
+        "js",
+        "msg_handler.js",
+      );
 
       if (!fs.existsSync(snippetPath)) {
         continue;
@@ -90,7 +100,10 @@ if (target === "web") {
 
       const content = fs.readFileSync(snippetPath, "utf8");
       if (content.includes(commonJsFooter)) {
-        fs.writeFileSync(snippetPath, content.replace(commonJsFooter, replacement));
+        fs.writeFileSync(
+          snippetPath,
+          content.replace(commonJsFooter, replacement),
+        );
       }
     }
   }
