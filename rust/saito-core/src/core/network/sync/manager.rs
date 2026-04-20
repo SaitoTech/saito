@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::core::process::keep_time::Timer;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
 use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
@@ -10,6 +9,7 @@ use crate::core::network::msg::blockchain::{
 };
 use crate::core::network::msg::message::Message;
 use crate::core::network::network::Network;
+use crate::core::process::keep_time::Timer;
 use crate::core::util::configuration::Configuration;
 use log::{error, info, trace, warn};
 use std::collections::{BTreeMap, HashMap};
@@ -52,7 +52,7 @@ impl SyncManager {
         Self {
             queue: BTreeMap::new(),
             peer_fetch_urls: HashMap::new(),
-	    timer,
+            timer,
             blockchain_lock,
             mempool_lock,
             my_public_key,
