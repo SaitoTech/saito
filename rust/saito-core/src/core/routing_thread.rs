@@ -1327,10 +1327,11 @@ mod tests {
         let mut tester = NodeTester::default();
         let state = Arc::new(Mutex::new(TestHarnessIoState::default()));
 
-        state.lock().unwrap().stored_values.insert(
-            CONFIRMATION_CONFIG_PATH.to_string(),
-            b"not-json".to_vec(),
-        );
+        state
+            .lock()
+            .unwrap()
+            .stored_values
+            .insert(CONFIRMATION_CONFIG_PATH.to_string(), b"not-json".to_vec());
         install_test_io(&mut tester, state);
 
         let mut config = TestHarnessConfig::default();

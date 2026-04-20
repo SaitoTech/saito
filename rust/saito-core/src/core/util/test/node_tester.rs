@@ -276,7 +276,7 @@ pub mod test {
                     sync: SyncManager::new(
                         context.blockchain_lock.clone(),
                         context.mempool_lock.clone(),
-			Arc::new(timer.clone().unwrap()),
+                        Arc::new(timer.clone().unwrap()),
                         sync_public_key,
                         sync_lite_block_fetch,
                     ),

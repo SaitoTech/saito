@@ -160,7 +160,7 @@ pub fn new(
             sync: SyncManager::new(
                 context.blockchain_lock.clone(),
                 context.mempool_lock.clone(),
-		Arc::new(timer.clone()),
+                Arc::new(timer.clone()),
                 sync_public_key,
                 sync_lite_block_fetch,
             ),

@@ -1669,10 +1669,7 @@ mod tests {
 
                 tester
                     .consensus_thread
-                    .process_event(ConsensusEvent::BlockFetched {
-                        block,
-                        peer_id: 0,
-                    })
+                    .process_event(ConsensusEvent::BlockFetched { block, peer_id: 0 })
                     .await;
             }
         }
@@ -1772,10 +1769,7 @@ mod tests {
 
             tester
                 .consensus_thread
-                .process_event(ConsensusEvent::BlockFetched {
-                    block,
-                    peer_id: 0,
-                })
+                .process_event(ConsensusEvent::BlockFetched { block, peer_id: 0 })
                 .await;
         }
 
@@ -2026,10 +2020,7 @@ mod tests {
             let block_id = block.id;
             tester
                 .consensus_thread
-                .process_event(ConsensusEvent::BlockFetched {
-                    block,
-                    peer_id: 0,
-                })
+                .process_event(ConsensusEvent::BlockFetched { block, peer_id: 0 })
                 .await;
             tester.wait_till_block_id(block_id).await.unwrap();
 
@@ -2060,10 +2051,7 @@ mod tests {
 
                 tester
                     .consensus_thread
-                    .process_event(ConsensusEvent::BlockFetched {
-                        block,
-                        peer_id: 0,
-                    })
+                    .process_event(ConsensusEvent::BlockFetched { block, peer_id: 0 })
                     .await;
                 tester
                     .wait_till_block_id_with_hash(block_id, block_hash)
