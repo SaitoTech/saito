@@ -983,11 +983,8 @@ mod tests {
     use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
     use crate::core::network::network::PeerDisconnectType;
     use crate::core::process::process_event::ProcessEvent;
-    use crate::core::routing::peers::congestion_controller::{
-        CongestionStatsDisplay, PeerCongestionControls,
-    };
     use crate::core::routing_thread::RoutingThread;
-    use crate::core::util::config_manager::CONGESTION_CONFIG_PATH;
+    use crate::core::util::config_manager::CONFIRMATION_CONFIG_PATH;
     use crate::core::util::configuration::{
         BlockchainConfig, Configuration, ConsensusConfig, PeerConfig, Server, WalletConfig,
     };
@@ -1021,6 +1018,14 @@ mod tests {
 
     #[async_trait]
     impl InterfaceIO for TestHarnessIo {
+        async fn send_message_by_peer_id(
+            &self,
+            _peer_id: u64,
+            _buffer: &[u8],
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
         async fn send_message(&self, _public_key: [u8; 33], _buffer: &[u8]) -> Result<(), Error> {
             Ok(())
         }
@@ -1032,7 +1037,7 @@ mod tests {
         async fn send_message_to_all(
             &self,
             _buffer: &[u8],
-            _excluded_peers: Vec<[u8; 33]>,
+            _excluded_peers: Vec<u64>,
         ) -> Result<(), Error> {
             Ok(())
         }
@@ -1049,7 +1054,7 @@ mod tests {
         async fn fetch_block_from_peer(
             &self,
             _block_hash: [u8; 32],
-            _public_key: [u8; 33],
+            _peer_id: u64,
             _url: &str,
             _block_id: u64,
         ) -> Result<(), Error> {
@@ -1114,14 +1119,19 @@ mod tests {
             Ok(())
         }
 
-        async fn process_api_call(&self, _buffer: Vec<u8>, _msg_index: u32, _public_key: [u8; 33]) {
+        async fn process_api_call(
+            &self,
+            _buffer: Vec<u8>,
+            _msg_index: u32,
+            _public_key: SaitoPublicKey,
+        ) {
         }
 
         async fn process_api_success(
             &self,
             _buffer: Vec<u8>,
             _msg_index: u32,
-            _public_key: [u8; 33],
+            _public_key: SaitoPublicKey,
         ) {
         }
 
@@ -1129,7 +1139,7 @@ mod tests {
             &self,
             _buffer: Vec<u8>,
             _msg_index: u32,
-            _public_key: [u8; 33],
+            _public_key: SaitoPublicKey,
         ) {
         }
 
@@ -1253,12 +1263,6 @@ mod tests {
             self.consensus.as_mut()
         }
 
-        fn get_congestion_data(&self) -> Option<&CongestionStatsDisplay> {
-            None
-        }
-
-        fn set_congestion_data(&mut self, _congestion_data: Option<CongestionStatsDisplay>) {}
-
         fn get_config_path(&self) -> String {
             self.config_path.clone()
         }
@@ -1305,43 +1309,41 @@ mod tests {
     #[serial_test::serial]
     async fn malformed_network_messages_do_not_panic_routing_thread() {
         let mut tester = NodeTester::default();
-        let public_key = generate_keys().0;
 
         let result = tester
             .routing_thread
-            .process_network_event(NetworkEvent::PeerMessageReceived {
-                public_key,
+            .process_network_event(NetworkEvent::PeerBufferReceived {
+                peer_id: 1,
                 buffer: vec![255, 0, 1],
             })
             .await;
 
-        assert!(result.is_none());
+        assert!(result.is_some());
     }
 
     #[tokio::test]
     #[serial_test::serial]
-    async fn on_init_ignores_malformed_congestion_public_keys() {
+    async fn on_init_ignores_malformed_confirmation_data() {
         let mut tester = NodeTester::default();
         let state = Arc::new(Mutex::new(TestHarnessIoState::default()));
-        let mut congestion_controls_by_key = HashMap::default();
-        congestion_controls_by_key.insert(
-            "not-a-valid-key".to_string(),
-            PeerCongestionControls::default(),
-        );
-        let malformed = CongestionStatsDisplay {
-            congestion_controls_by_key,
-            congestion_controls_by_ip: HashMap::default(),
-        };
+
         state.lock().unwrap().stored_values.insert(
-            CONGESTION_CONFIG_PATH.to_string(),
-            serde_json::to_vec(&malformed).unwrap(),
+            CONFIRMATION_CONFIG_PATH.to_string(),
+            b"not-json".to_vec(),
         );
         install_test_io(&mut tester, state);
 
+        let mut config = TestHarnessConfig::default();
+        config.blockchain.confirmations = vec![(11, [3; 32], 5)];
+        install_test_config(&mut tester, config);
+
         tester.routing_thread.on_init().await;
 
-        let peers = tester.routing_thread.network.peer_lock.read().await;
-        assert!(peers.congestion_controls_by_key.is_empty());
+        let config = tester.routing_thread.config_lock.read().await;
+        assert_eq!(
+            config.get_blockchain_configs().confirmations,
+            vec![(11, [3; 32], 5)]
+        );
     }
 
     #[tokio::test]

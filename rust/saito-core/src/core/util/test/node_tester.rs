@@ -5,8 +5,8 @@ pub mod test {
     use crate::core::consensus::context::Context;
     use crate::core::consensus::mempool::Mempool;
     use crate::core::network::gatekeeper::Gatekeeper;
+    use crate::core::network::peers::Peers;
     use crate::core::network::sync::manager::SyncManager;
-    use crate::core::routing::peers::peer_collection::PeerCollection;
 
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::transaction::Transaction;
@@ -26,7 +26,6 @@ pub mod test {
     use crate::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
     use crate::core::stat_thread::{StatEvent, StatThread};
     use crate::core::storage::storage::Storage;
-    use crate::core::util::config_manager::{BLOCKCHAIN_CONFIG_PATH, CONGESTION_CONFIG_PATH};
     use crate::core::util::configuration::{
         get_default_issuance_writing_block_interval, get_default_recollect_mode, BlockchainConfig,
         Configuration, ConsensusConfig, Endpoint, PeerConfig, Server, WalletConfig,
@@ -104,21 +103,6 @@ pub mod test {
 
         fn get_consensus_config_mut(&mut self) -> Option<&mut ConsensusConfig> {
             self.consensus.as_mut()
-        }
-
-        fn get_congestion_data(
-            &self,
-        ) -> Option<&crate::core::routing::peers::congestion_controller::CongestionStatsDisplay>
-        {
-            None
-        }
-
-        fn set_congestion_data(
-            &mut self,
-            _congestion_data: Option<
-                crate::core::routing::peers::congestion_controller::CongestionStatsDisplay,
-            >,
-        ) {
         }
 
         // fn set_blockchain_configs(&mut self, config: Option<BlockchainConfig>) {
@@ -225,7 +209,7 @@ pub mod test {
 
             let channel_size = 1_000_000;
 
-            let peers = Arc::new(RwLock::new(PeerCollection::default()));
+            let peers = Arc::new(RwLock::new(Peers::default()));
             let context = Context {
                 blockchain_lock: Arc::new(RwLock::new(Blockchain::new(
                     wallet.clone(),
@@ -257,8 +241,14 @@ pub mod test {
                 });
             }
 
-            let sync_public_key = wallet.blocking_read().public_key;
-            let sync_lite_block_fetch = configuration.blocking_read().is_spv_mode();
+            let sync_public_key = wallet
+                .try_read()
+                .expect("wallet lock should be available during NodeTester init")
+                .public_key;
+            let sync_lite_block_fetch = configuration
+                .try_read()
+                .expect("config lock should be available during NodeTester init")
+                .is_spv_mode();
 
             NodeTester {
                 routing_thread: RoutingThread {
@@ -624,7 +614,7 @@ pub mod test {
                 .process_network_event(NetworkEvent::BlockFetched {
                     block_hash: block.hash,
                     block_id: block.id,
-                    public_key: block.routed_from_peer_id,
+                    peer_id: block.routed_from_peer_id,
                     buffer: block.serialize_for_net(BlockType::Full),
                 })
                 .await;

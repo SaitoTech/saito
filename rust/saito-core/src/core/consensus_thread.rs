@@ -1671,7 +1671,7 @@ mod tests {
                     .consensus_thread
                     .process_event(ConsensusEvent::BlockFetched {
                         block,
-                        public_key: [0; 33],
+                        peer_id: 0,
                     })
                     .await;
             }
@@ -1774,7 +1774,7 @@ mod tests {
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
                     block,
-                    public_key: [0; 33],
+                    peer_id: 0,
                 })
                 .await;
         }
@@ -2028,7 +2028,7 @@ mod tests {
                 .consensus_thread
                 .process_event(ConsensusEvent::BlockFetched {
                     block,
-                    public_key: [0; 33],
+                    peer_id: 0,
                 })
                 .await;
             tester.wait_till_block_id(block_id).await.unwrap();
@@ -2062,7 +2062,7 @@ mod tests {
                     .consensus_thread
                     .process_event(ConsensusEvent::BlockFetched {
                         block,
-                        public_key: [0; 33],
+                        peer_id: 0,
                     })
                     .await;
                 tester
