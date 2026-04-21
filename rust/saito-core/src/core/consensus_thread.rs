@@ -1662,7 +1662,7 @@ mod tests {
         {
             for mut block in blocks {
                 block.in_longest_chain = false;
-                block.keys_invloved.clear();
+                block.publickeys_referenced_in_block_transactions.clear();
                 block.created_hashmap_of_slips_spent_this_block = false;
                 block.safe_to_prune_transactions = false;
                 block.slips_spent_this_block.clear();
@@ -1762,7 +1762,7 @@ mod tests {
 
         for mut block in blocks {
             block.in_longest_chain = false;
-            block.keys_invloved.clear();
+            block.publickeys_referenced_in_block_transactions.clear();
             block.created_hashmap_of_slips_spent_this_block = false;
             block.safe_to_prune_transactions = false;
             block.slips_spent_this_block.clear();
@@ -2012,7 +2012,7 @@ mod tests {
 
         for mut block in blocks.drain(0..19) {
             block.in_longest_chain = false;
-            block.keys_invloved.clear();
+            block.publickeys_referenced_in_block_transactions.clear();
             block.created_hashmap_of_slips_spent_this_block = false;
             block.safe_to_prune_transactions = false;
             block.slips_spent_this_block.clear();
@@ -2041,7 +2041,7 @@ mod tests {
         {
             for mut block in blocks {
                 block.in_longest_chain = false;
-                block.keys_invloved.clear();
+                block.publickeys_referenced_in_block_transactions.clear();
                 block.created_hashmap_of_slips_spent_this_block = false;
                 block.safe_to_prune_transactions = false;
                 block.slips_spent_this_block.clear();

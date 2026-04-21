@@ -5,13 +5,15 @@ use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
-    BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, Timestamp,
+    BlockHash, BlockId, PrintForLog, SaitoPublicKey, StatVariable, Timestamp,
     CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
 };
 use crate::core::mining_thread::MiningEvent;
 use crate::core::network::events::NetworkEvent;
 use crate::core::network::gatekeeper::AccessRecord;
 use crate::core::network::gatekeeper::Gatekeeper;
+use crate::core::network::msg::block::BlockReference;
+use crate::core::network::msg::blockchain::MAX_BLOCKCHAIN_CHUNK;
 use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::Services;
@@ -183,7 +185,6 @@ impl RoutingThread {
                     .process_request_blockchain_message(
                         request,
                         peer_id,
-                        self.config_lock.clone(),
                         &self.network,
                     )
                     .await
@@ -195,10 +196,11 @@ impl RoutingThread {
                 }
             }
             Message::Blockchain(chaindata) => {
+                let chunk_len = chaindata.payload.len();
                 {
                     let mut peers = self.network.peer_lock.write().await;
                     if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-                        peer.is_syncing = false;
+                        peer.is_syncing = chunk_len == MAX_BLOCKCHAIN_CHUNK;
                     }
                 }
                 info!(
@@ -230,10 +232,11 @@ impl RoutingThread {
                     );
                 }
             }
-            Message::BlockReference(hash, block_id) => {
-                self.process_block_reference_message(peer_id, hash, block_id)
+            Message::BlockReference(block_reference) => {
+                self.process_block_reference_message(peer_id, block_reference)
                     .await;
             }
+            Message::RequestBlockReference(_) => {}
             Message::Ping() => {
                 self.network
                     .send_message_by_peer_id(peer_id, Message::Pong())
@@ -281,8 +284,8 @@ impl RoutingThread {
                 self.process_request_genesis_block_reference_message(peer_id)
                     .await;
             }
-            Message::GenesisBlockReference(hash, block_id) => {
-                self.process_genesis_block_reference_message(peer_id, hash, block_id)
+            Message::GenesisBlockReference(block_reference) => {
+                self.process_genesis_block_reference_message(peer_id, block_reference)
                     .await;
             }
             Message::ApplicationMessage(api_message) => {
@@ -370,14 +373,13 @@ impl RoutingThread {
     async fn process_block_reference_message(
         &mut self,
         peer_id: u64,
-        hash: SaitoHash,
-        block_id: u64,
+        block_reference: BlockReference,
     ) {
         if self
-            .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, hash, block_id)
+            .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, &block_reference)
             .await
         {
-            self.sync.add(&self.network, block_id, hash, peer_id).await;
+            self.sync.add(&self.network, block_reference, peer_id).await;
             self.sync.fetch(&self.network).await;
         }
     }
@@ -390,9 +392,12 @@ impl RoutingThread {
     async fn should_dispatch_block_reference_from_peer_to_sync_manager(
         &self,
         peer_id: u64,
-        block_hash: SaitoHash,
-        block_id: BlockId,
+        block_reference: &BlockReference,
     ) -> bool {
+
+	let block_id = block_reference.block_id;
+	let block_hash = block_reference.block_hash;
+
         {
             let peers = self.network.peer_lock.read().await;
             if peers.get_peer_by_id(peer_id).is_none() {
@@ -537,8 +542,16 @@ impl RoutingThread {
                     .send_message_by_peer_id(
                         peer_id,
                         Message::GenesisBlockReference(
-                            genesis_block_hash,
-                            blockchain.genesis_block_id,
+			    //
+			    // timestamp , transactions, has_golden_ticket placeholders
+			    //
+			    BlockReference {
+                                block_id: blockchain.genesis_block_id,
+                                block_hash: genesis_block_hash,
+				timestamp: 0,
+				transactions: 0,
+				has_golden_ticket: false,
+			    }
                         ),
                     )
                     .await;
@@ -554,14 +567,13 @@ impl RoutingThread {
     async fn process_genesis_block_reference_message(
         &mut self,
         peer_id: u64,
-        hash: SaitoHash,
-        block_id: u64,
+        block_reference: BlockReference,
     ) {
         if self
-            .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, hash, block_id)
+            .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, &block_reference)
             .await
         {
-            self.sync.add(&self.network, block_id, hash, peer_id).await;
+            self.sync.add(&self.network, block_reference, peer_id).await;
             self.sync.fetch(&self.network).await;
         }
     }
@@ -780,6 +792,27 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 );
                 self.sync.remove(block_hash);
                 self.sync.fetch(&self.network).await;
+                if self.sync.queue.is_empty() {
+                    let mut next_sync_peer_id: Option<u64> = None;
+                    {
+                        let peers = self.network.peer_lock.read().await;
+                        for peer in peers.peers.values() {
+                            if peer.is_connected && peer.is_syncing {
+                                next_sync_peer_id = Some(peer.id);
+                                break;
+                            }
+                        }
+                    }
+                    if let Some(peer_id) = next_sync_peer_id {
+                        self.sync
+                            .send_request_blockchain_message(
+                                peer_id,
+                                self.config_lock.clone(),
+                                &self.network,
+                            )
+                            .await;
+                    }
+                }
                 {
                     let mut configs = self.config_lock.write().await;
                     let blockchain = self.blockchain_lock.read().await;
@@ -858,7 +891,17 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     block_id
                 );
                 self.sync
-                    .add(&self.network, block_id, block_hash, peer_id)
+                    .add(
+                        &self.network,
+                        BlockReference {
+                            block_id,
+                            block_hash,
+                            timestamp: 0,
+                            transactions: 0,
+                            has_golden_ticket: false,
+                        },
+                        peer_id,
+                    )
                     .await;
 		self.sync
 		    .fetch(&self.network)

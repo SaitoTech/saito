@@ -3,8 +3,9 @@ use std::io::{Error, ErrorKind};
 
 use crate::core::consensus::block::{Block, BlockType};
 use crate::core::consensus::transaction::Transaction;
-use crate::core::defs::{BlockHash, BlockId, SaitoPublicKey};
+use crate::core::defs::{SaitoPublicKey};
 use crate::core::network::msg::api_message::ApiMessage;
+use crate::core::network::msg::block::{BlockReference, RequestBlockReference};
 use crate::core::network::msg::blockchain::{Blockchain, RequestBlockchain};
 use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::network::msg::services::{RequestServices, Services};
@@ -19,7 +20,8 @@ pub enum Message {
     Transaction(Transaction),
     RequestBlockchain(RequestBlockchain),
     Blockchain(Blockchain),
-    BlockReference(BlockHash, BlockId),
+    BlockReference(BlockReference),
+    RequestBlockReference(RequestBlockReference),
     Ping(),
     Pong(),
     RequestServices(RequestServices),
@@ -29,7 +31,7 @@ pub enum Message {
     Error(ApiMessage),
     KeyList(Vec<SaitoPublicKey>),
     RequestGenesisBlockReference(),
-    GenesisBlockReference(BlockHash, BlockId),
+    GenesisBlockReference(BlockReference),
     Disconnect(String),
 }
 
@@ -46,9 +48,8 @@ impl Message {
             Message::Transaction(data) => data.serialize_for_net(),
             Message::RequestBlockchain(data) => data.serialize(),
             Message::Blockchain(data) => data.serialize(),
-            Message::BlockReference(block_hash, block_id) => {
-                [block_hash.as_slice(), block_id.to_be_bytes().as_slice()].concat()
-            }
+            Message::BlockReference(data) => data.serialize(),
+            Message::RequestBlockReference(data) => data.serialize(),
             Message::Ping() => vec![],
             Message::Pong() => vec![],
             Message::Services(data) => data.serialize(),
@@ -57,9 +58,7 @@ impl Message {
             Message::Error(data) => data.serialize(),
             Message::KeyList(data) => data.as_slice().concat(),
             Message::RequestGenesisBlockReference() => vec![],
-            Message::GenesisBlockReference(block_hash, block_id) => {
-                [block_hash.as_slice(), block_id.to_be_bytes().as_slice()].concat()
-            }
+            Message::GenesisBlockReference(data) => data.serialize(),
             Message::Disconnect(message) => message.as_bytes().to_vec(),
         });
 
@@ -98,25 +97,7 @@ impl Message {
                 Err(Error::from(ErrorKind::InvalidData))
             }
             6 => {
-                if buffer.len() != 40 {
-                    warn!(
-                        "buffer size : {:?} is not valid for type : {:?}",
-                        buffer.len(),
-                        message_type
-                    );
-                    return Err(Error::from(ErrorKind::InvalidData));
-                }
-                let block_hash = buffer[0..32]
-                    .to_vec()
-                    .try_into()
-                    .or(Err(ErrorKind::InvalidData))?;
-                let block_id = u64::from_be_bytes(
-                    buffer[32..40]
-                        .to_vec()
-                        .try_into()
-                        .or(Err(ErrorKind::InvalidData))?,
-                );
-                Ok(Message::BlockReference(block_hash, block_id))
+                Ok(Message::BlockReference(BlockReference::deserialize(&buffer)?))
             }
             7 => Ok(Message::Ping()),
             // 8 = SPVChain; removed.
@@ -199,25 +180,9 @@ impl Message {
             16 => Ok(Message::Pong()),
             17 => Ok(Message::RequestGenesisBlockReference()),
             18 => {
-                if buffer.len() != 40 {
-                    warn!(
-                        "buffer size : {:?} is not valid for type : {:?}",
-                        buffer.len(),
-                        message_type
-                    );
-                    return Err(Error::from(ErrorKind::InvalidData));
-                }
-                let block_hash = buffer[0..32]
-                    .to_vec()
-                    .try_into()
-                    .or(Err(ErrorKind::InvalidData))?;
-                let block_id = u64::from_be_bytes(
-                    buffer[32..40]
-                        .to_vec()
-                        .try_into()
-                        .or(Err(ErrorKind::InvalidData))?,
-                );
-                Ok(Message::GenesisBlockReference(block_hash, block_id))
+                Ok(Message::GenesisBlockReference(BlockReference::deserialize(
+                    &buffer,
+                )?))
             }
             19 => {
                 let str = String::from_utf8(buffer.to_vec()).or(Err(ErrorKind::InvalidData))?;
@@ -227,6 +192,9 @@ impl Message {
                 &buffer,
             )?)),
             22 => Ok(Message::Blockchain(Blockchain::deserialize(&buffer)?)),
+            23 => Ok(Message::RequestBlockReference(
+                RequestBlockReference::deserialize(&buffer)?,
+            )),
             _ => {
                 error!("message type : {:?} not valid", message_type);
                 Err(Error::from(ErrorKind::InvalidData))
@@ -240,7 +208,7 @@ impl Message {
             Message::Handshake(_) => 2,
             Message::Block(_) => 3,
             Message::Transaction(_) => 4,
-            Message::BlockReference(_, _) => 6,
+            Message::BlockReference(_) => 6,
             Message::Ping() => 7,
             Message::ApplicationMessage(_) => 12,
             Message::Result(_) => 13,
@@ -248,12 +216,13 @@ impl Message {
             Message::KeyList(_) => 15,
             Message::Pong() => 16,
             Message::RequestGenesisBlockReference() => 17,
-            Message::GenesisBlockReference(_, _) => 18,
+            Message::GenesisBlockReference(_) => 18,
             Message::Disconnect(_) => 19,
             Message::RequestServices(_) => 20,
             Message::Services(_) => 9,
             Message::RequestBlockchain(_) => 21,
             Message::Blockchain(_) => 22,
+            Message::RequestBlockReference(_) => 23,
         }
     }
 }

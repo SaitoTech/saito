@@ -11,6 +11,7 @@ use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::interface_io::InterfaceIO;
 use crate::core::network::msg::message::Message;
+use crate::core::network::msg::block::{BlockReference};
 use crate::core::network::msg::services::RequestServices;
 use crate::core::network::peers::Peers;
 use crate::core::process::keep_time::Timer;
@@ -68,9 +69,16 @@ impl Network {
         drop(peers);
 
         // --- correct message type (post-refactor) ---
-        let message = Message::BlockReference(block.hash, block.id);
+        let message = Message::BlockReference(
+	    BlockReference {
+		block_hash: block.hash, 
+		block_id: block.id,
+		timestamp: 0,
+		transactions: 0,
+		has_golden_ticket: false,
+	    }
+	);
         let serialized = message.serialize();
-
         let _ = self
             .io_interface
             .send_message_to_all(serialized.as_slice(), excluded_peers)
