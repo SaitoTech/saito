@@ -13,7 +13,7 @@ const CRYPTPAD_URL = 'https://cp.hda0.net';
 // auth fragment, writes to sessionStorage, and redirects to /login.
 // Served from CryptPad's customize/saito-auth.html.
 //
-const SAITO_AUTH_RELAY = `${CRYPTPAD_URL}/saito-auth.html`;
+const SAITO_AUTH_RELAY = `${CRYPTPAD_URL}/customize/saito-auth.html`;
 
 class Docs extends ModTemplate {
   constructor(app) {
@@ -43,24 +43,46 @@ class Docs extends ModTemplate {
   }
 
   // ---------------------------------------------------------------------------
-  // render() — called when the user navigates to /docs
+  // render() — follows standard Saito module pattern:
+  //   1. Create SaitoHeader component (standard nav/wallet)
+  //   2. Call super.render() to let framework render header + components
+  //   3. Inject our CryptPad iframe below the header
   // ---------------------------------------------------------------------------
 
   async render() {
     if (!this.browser_active) return;
 
-    // Inject our stylesheet
-    this.attachStyleSheets();
+    // Set up the standard Saito header (once)
+    if (!this.header) {
+      this.header = new SaitoHeader(this.app, this);
+      await this.header.initialize(this.app);
+      this.addComponent(this.header);
+    }
 
-    // Render the page shell
-    document.querySelector('body').innerHTML = this._buildShell();
+    // Let framework render the header and attach stylesheets
+    await super.render();
 
-    // Resolve wallet keys, derive CryptPad keypairs, hand off auth,
-    // then load the iframe.
+    // Inject the CryptPad iframe container if not already present
+    if (!document.getElementById('docs-main')) {
+      const main = document.createElement('div');
+      main.id = 'docs-main';
+      main.innerHTML = `
+        <iframe
+          id="docs-iframe"
+          src="about:blank"
+          allow="clipboard-read; clipboard-write; fullscreen"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals allow-top-navigation-by-user-activation"
+        ></iframe>
+        <div id="docs-auth-status"></div>
+      `;
+      document.querySelector('body').appendChild(main);
+    }
+
+    // Tap-to-expand for the thin strip header (mobile + desktop click)
+    this._attachStripEvents();
+
+    // Start auth flow and load CryptPad
     await this._initAuth();
-
-    // Wire up the header interactions
-    this._attachHeaderEvents();
   }
 
   // ---------------------------------------------------------------------------
@@ -80,21 +102,14 @@ class Docs extends ModTemplate {
         return;
       }
 
-      // Derive CryptPad keypairs from Saito keys.
-      // saito-cryptpad-keys.js is loaded on the CryptPad origin — we perform
-      // the derivation here using the same algorithm so we don't need to
-      // load cross-origin scripts.
       const keys = await this._deriveKeys(privkey, this._pubkey);
 
       // Encode keys as base64 JSON and pass via the relay page fragment.
       // The fragment is NEVER sent to the server.
       const payload = btoa(JSON.stringify(keys));
 
-      // Render the username in the strip
-      this._renderUsername();
-
-      // Load the relay page first. It will write to sessionStorage on
-      // cp.hda0.net and redirect to /login automatically.
+      // Load the relay page. It writes to sessionStorage on cp.hda0.net
+      // and redirects to /login automatically.
       this._showStatus('Authenticating…');
       this._loadIframe(`${SAITO_AUTH_RELAY}#${payload}`);
 
@@ -116,7 +131,6 @@ class Docs extends ModTemplate {
   // ---------------------------------------------------------------------------
 
   async _deriveKeys(privkeyHex, pubkeyBase58) {
-    // Convert hex private key to Uint8Array (64 bytes)
     const privBytes = new Uint8Array(
       privkeyHex.match(/.{1,2}/g).map((b) => parseInt(b, 16))
     );
@@ -137,176 +151,36 @@ class Docs extends ModTemplate {
 
     iframe.addEventListener('load', () => {
       this._hideStatus();
-      // Once the relay page has fired and redirected, the iframe will reload
-      // on the CryptPad login/drive URL — at that point we're done.
     }, { once: true });
 
     iframe.src = url;
   }
 
   // ---------------------------------------------------------------------------
-  // Header strip
+  // Strip header — tap/click to expand on touch devices
   // ---------------------------------------------------------------------------
 
-  _buildShell() {
-    return `
-      <div id="docs-header">
-        <div id="docs-header-inner">
-          <a class="docs-header-left" href="/docs">
-            <img class="docs-header-logo" src="/saito/img/logo.svg" alt="Saito" />
-            <span class="docs-header-title">Docs</span>
-          </a>
-          <div class="docs-header-centre">
-            <span id="docs-username">…</span>
-          </div>
-          <div class="docs-header-right">
-            <div id="docs-hamburger" title="Wallet &amp; Navigation">
-              <i class="fa-solid fa-bars"></i>
-              <span class="docs-notif-badge"></span>
-            </div>
-          </div>
-        </div>
-      </div>
+  _attachStripEvents() {
+    const header = document.getElementById('saito-header');
+    if (!header || header._docsEventsAttached) return;
+    header._docsEventsAttached = true;
 
-      <div id="docs-sidebar-backdrop"></div>
-
-      <div id="docs-sidebar">
-        <!-- SaitoHeader hamburger contents rendered here -->
-      </div>
-
-      <iframe
-        id="docs-iframe"
-        src="about:blank"
-        allow="clipboard-read; clipboard-write; fullscreen"
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals allow-top-navigation-by-user-activation"
-      ></iframe>
-
-      <div id="docs-auth-status"></div>
-    `;
-  }
-
-  _renderUsername() {
-    const el = document.getElementById('docs-username');
-    if (!el || !this._pubkey) return;
-
-    const identifier = this.app.keychain.returnIdentifierByPublicKey(this._pubkey, true);
-    el.textContent = identifier && identifier !== this._pubkey
-      ? identifier
-      : 'Anonymous';
-  }
-
-  _attachHeaderEvents() {
-    const header = document.getElementById('docs-header');
-    const hamburger = document.getElementById('docs-hamburger');
-    const backdrop = document.getElementById('docs-sidebar-backdrop');
-    const sidebar = document.getElementById('docs-sidebar');
-
-    if (!header || !hamburger) return;
-
-    // Touch support — tap the strip to expand/collapse
     header.addEventListener('click', (e) => {
-      // Only toggle on click of the strip itself (not inner controls)
-      if (e.target === header || e.target.closest('#docs-header') === header) {
-        if (!header.classList.contains('expanded')) {
-          header.classList.add('expanded');
-        }
+      // Toggle expanded state on click (for touch devices where hover doesn't work)
+      if (!header.classList.contains('docs-expanded')) {
+        header.classList.add('docs-expanded');
+      } else if (e.target === header || e.target.closest('#saito-header') === header) {
+        // Click on the header itself (not inner controls) collapses it
+        header.classList.remove('docs-expanded');
       }
     });
 
-    // Hamburger — open wallet/nav sidebar
-    hamburger.addEventListener('click', (e) => {
-      e.stopPropagation();
-      this._openSidebar();
-    });
-
-    // Backdrop — close sidebar
-    if (backdrop) {
-      backdrop.addEventListener('click', () => this._closeSidebar());
-    }
-
-    // Keyboard — Escape closes sidebar
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') this._closeSidebar();
-    });
-
-    // Listen for SaitoHeader notification events so we can badge the hamburger
-    this.app.connection.on('saito-header-notification', (source_mod, unread) => {
-      this._updateNotifBadge();
-    });
-  }
-
-  _openSidebar() {
-    const sidebar = document.getElementById('docs-sidebar');
-    const backdrop = document.getElementById('docs-sidebar-backdrop');
-
-    // Instantiate SaitoHeader into the sidebar if not already done
-    if (!this._header) {
-      this._header = new SaitoHeader(this.app, this);
-      this._header.initialize(this.app).then(() => {
-        // Render SaitoHeader's hamburger contents into our sidebar
-        // by temporarily injecting a wrapper element it can prepend into,
-        // then moving the hamburger contents node into our sidebar.
-        this._renderHeaderIntoSidebar();
-      });
-    } else {
-      sidebar?.classList.add('open');
-      backdrop?.classList.add('visible');
-    }
-  }
-
-  _renderHeaderIntoSidebar() {
-    const sidebar = document.getElementById('docs-sidebar');
-    const backdrop = document.getElementById('docs-sidebar-backdrop');
-
-    if (!sidebar) return;
-
-    // Render the full SaitoHeader into a hidden temp container,
-    // then extract just the hamburger contents into our sidebar.
-    const tmp = document.createElement('div');
-    tmp.id = 'docs-header-tmp';
-    tmp.style.display = 'none';
-    document.body.appendChild(tmp);
-
-    this._header.render().then(() => {
-      const hamburgerContents = document.querySelector('.saito-header-hamburger-contents');
-      if (hamburgerContents) {
-        // Detach from the standard header and place in our sidebar
-        sidebar.appendChild(hamburgerContents);
-        hamburgerContents.classList.add('show-menu');
+    // Click outside header collapses it
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#saito-header') && !e.target.closest('.saito-header-hamburger-contents')) {
+        header.classList.remove('docs-expanded');
       }
-
-      // Remove the temp header from DOM (we only wanted its hamburger panel)
-      const fullHeader = document.getElementById('saito-header');
-      if (fullHeader) fullHeader.remove();
-      tmp.remove();
-
-      sidebar.classList.add('open');
-      backdrop?.classList.add('visible');
     });
-  }
-
-  _closeSidebar() {
-    document.getElementById('docs-sidebar')?.classList.remove('open');
-    document.getElementById('docs-sidebar-backdrop')?.classList.remove('visible');
-    document.getElementById('docs-header')?.classList.remove('expanded');
-  }
-
-  _updateNotifBadge() {
-    // Count unread notifications across all modules
-    const hamburger = document.getElementById('docs-hamburger');
-    if (!hamburger) return;
-
-    // SaitoHeader tracks these on the header component — mirror it
-    let total = 0;
-    if (this._header?.notifications) {
-      for (const m in this._header.notifications) {
-        total += this._header.notifications[m];
-      }
-    }
-
-    const badge = hamburger.querySelector('.docs-notif-badge');
-    if (badge) badge.textContent = total > 0 ? total : '';
-    hamburger.classList.toggle('has-notif', total > 0);
   }
 
   // ---------------------------------------------------------------------------
@@ -327,7 +201,35 @@ class Docs extends ModTemplate {
   }
 
   // ---------------------------------------------------------------------------
-  // respondTo — register in the Saito header nav on other pages
+  // webServer — serve the HTML page + static assets
+  //
+  // modtemplate.webServer only serves static OR HTML, not both.
+  // We need both: static assets from web/ (CSS, images) AND the HTML shell.
+  // Same pattern as RedSquare, Vault, Stack.
+  // ---------------------------------------------------------------------------
+
+  webServer(app, expressapp, express) {
+    const webdir = `${__dirname}/web`;
+    const slug = encodeURI(this.returnSlug());
+    const mod_self = this;
+
+    // 1. Static assets from web/ FIRST, but with redirect disabled
+    //    so express.static doesn't redirect /docs → /docs/ for the directory
+    expressapp.use('/' + slug, express.static(webdir, { redirect: false }));
+
+    // 2. HTML page at /docs and /docs/
+    expressapp.get(['/' + slug, '/' + slug + '/'], (req, res) => {
+      const html = HomePage(app, mod_self, app.build_number, mod_self.social || {});
+      if (!res.finished) {
+        res.setHeader('Content-type', 'text/html');
+        res.charset = 'UTF-8';
+        return res.send(html);
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // respondTo — register "Docs" in the Saito header nav on other pages
   // ---------------------------------------------------------------------------
 
   respondTo(type) {

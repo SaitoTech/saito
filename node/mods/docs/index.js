@@ -52,6 +52,8 @@ module.exports = (app, mod, build_number, og_card) => {
   <body class="docs">
   </body>
 
+  <script type="text/javascript" src="/saito/saito.js?build=${build_number}"></script>
+
   </html>
   `;
 };
