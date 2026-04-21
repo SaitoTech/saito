@@ -1,0 +1,272 @@
+/* ==========================================================================
+   Saito Docs — CryptPad module styles
+   ========================================================================== */
+
+/* ---- Reset body so iframe fills the full viewport ---- */
+body.docs {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #111;
+  font-family: 'Open Sans', sans-serif;
+}
+
+/* ==========================================================================
+   Thin-strip header
+   - Sits as a fixed overlay at the top of the viewport
+   - Normally 5px tall (just a coloured strip)
+   - Expands to --docs-header-expanded on hover or when .expanded is toggled
+   ========================================================================== */
+
+:root {
+  --docs-strip-height:    5px;
+  --docs-header-expanded: 48px;
+  --docs-transition:      200ms ease;
+  --docs-brand:           #E3361C;   /* Saito red — update to match final brand */
+  --docs-header-bg:       #1a1a1a;
+  --docs-header-fg:       #f0f0f0;
+  --docs-header-border:   rgba(255,255,255,0.08);
+}
+
+#docs-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+
+  height: var(--docs-strip-height);
+  overflow: hidden;
+
+  background: var(--docs-brand);
+  border-bottom: 1px solid transparent;
+
+  transition:
+    height            var(--docs-transition),
+    background        var(--docs-transition),
+    border-color      var(--docs-transition);
+
+  /* Allow pointer events only on the visible strip so the iframe stays usable */
+  cursor: pointer;
+}
+
+/* Expanded state — triggered by hover OR .expanded class (touch / click) */
+#docs-header:hover,
+#docs-header.expanded {
+  height: var(--docs-header-expanded);
+  background: var(--docs-header-bg);
+  border-color: var(--docs-header-border);
+  cursor: default;
+  overflow: visible;
+}
+
+/* ---- Inner layout — hidden until expanded ---- */
+#docs-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--docs-header-expanded);
+  padding: 0 12px;
+
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--docs-transition);
+}
+
+#docs-header:hover #docs-header-inner,
+#docs-header.expanded #docs-header-inner {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---- Left: logo + app name ---- */
+.docs-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--docs-header-fg);
+}
+
+.docs-header-logo {
+  height: 24px;
+  width: auto;
+}
+
+.docs-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--docs-header-fg);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* ---- Centre: status / username ---- */
+.docs-header-centre {
+  flex: 1;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255,255,255,0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 16px;
+}
+
+#docs-username {
+  cursor: pointer;
+}
+#docs-username:hover {
+  color: var(--docs-header-fg);
+}
+
+/* ---- Right: hamburger ---- */
+.docs-header-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#docs-hamburger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--docs-header-fg);
+  font-size: 16px;
+  transition: background 150ms ease;
+  position: relative;
+}
+
+#docs-hamburger:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* notification badge on hamburger */
+#docs-hamburger .docs-notif-badge {
+  display: none;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--docs-brand);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+#docs-hamburger.has-notif .docs-notif-badge {
+  display: block;
+}
+
+/* ==========================================================================
+   Wallet / nav sidebar — slides in from the right when hamburger clicked
+   Reuses SaitoHeader's hamburger contents via a wrapper
+   ========================================================================== */
+
+#docs-sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(0,0,0,0.5);
+}
+
+#docs-sidebar-backdrop.visible {
+  display: block;
+}
+
+/* The actual sidebar inherits SaitoHeader's .saito-header-hamburger-contents
+   styles — we just need to position it correctly when detached from the header */
+#docs-sidebar {
+  position: fixed;
+  top: 0;
+  right: -340px;
+  width: 320px;
+  height: 100vh;
+  z-index: 9999;
+  background: var(--docs-header-bg);
+  overflow-y: auto;
+  transition: right 250ms ease;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.4);
+}
+
+#docs-sidebar.open {
+  right: 0;
+}
+
+/* ---- Loading / auth state indicator ---- */
+#docs-auth-status {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  white-space: nowrap;
+}
+
+#docs-auth-status.visible {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   CryptPad iframe
+   ========================================================================== */
+
+#docs-iframe {
+  position: fixed;
+  top: var(--docs-strip-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: calc(100vh - var(--docs-strip-height));
+  border: none;
+  background: #fff;
+  transition: top var(--docs-transition), height var(--docs-transition);
+}
+
+/* Push iframe down when header is expanded */
+#docs-header:hover ~ #docs-iframe,
+#docs-header.expanded ~ #docs-iframe {
+  top: var(--docs-header-expanded);
+  height: calc(100vh - var(--docs-header-expanded));
+}
+
+/* ==========================================================================
+   Mobile — touch devices get a slightly taller strip and tap-to-expand
+   ========================================================================== */
+
+@media (hover: none) {
+  :root {
+    --docs-strip-height: 8px;
+  }
+
+  /* On touch devices, hover doesn't fire — expansion is class-driven only */
+  #docs-header:hover {
+    height: var(--docs-strip-height);
+    background: var(--docs-brand);
+    border-color: transparent;
+  }
+
+  #docs-header:hover #docs-header-inner {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
