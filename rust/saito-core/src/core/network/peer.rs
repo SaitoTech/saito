@@ -203,7 +203,7 @@ impl Peer {
     }
 
     pub fn get_public_key(&self) -> SaitoPublicKey {
-        self.public_key.unwrap()
+        self.public_key.unwrap_or([0; 33])
     }
 
     pub fn get_block_fetch_url(

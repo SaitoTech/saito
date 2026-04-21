@@ -120,8 +120,12 @@ static send_message_by_peer_id(peer_id, buffer) {
 
 export { MsgHandler };
 
-if (typeof module !== "undefined") {
-  module.exports = { MsgHandler };
+if (
+    typeof module !== "undefined" &&
+    typeof exports !== "undefined" &&
+    typeof module.exports !== "undefined"
+) {
+    module.exports = { MsgHandler };
 }
 
 //
