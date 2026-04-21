@@ -195,6 +195,12 @@ impl RoutingThread {
                 }
             }
             Message::Blockchain(chaindata) => {
+                {
+                    let mut peers = self.network.peer_lock.write().await;
+                    if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                        peer.is_syncing = false;
+                    }
+                }
                 info!(
                     "[TEMP_SYNC_TRACE][SYNC] recv Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={}",
                     peer_id,
@@ -372,6 +378,7 @@ impl RoutingThread {
             .await
         {
             self.sync.add(&self.network, block_id, hash, peer_id).await;
+            self.sync.fetch(&self.network).await;
         }
     }
 
@@ -555,6 +562,7 @@ impl RoutingThread {
             .await
         {
             self.sync.add(&self.network, block_id, hash, peer_id).await;
+            self.sync.fetch(&self.network).await;
         }
     }
 
@@ -852,6 +860,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 self.sync
                     .add(&self.network, block_id, block_hash, peer_id)
                     .await;
+		self.sync
+		    .fetch(&self.network)
+		    .await;
             }
             RoutingEvent::BlockchainRequest(peer_id) => {
                 info!(

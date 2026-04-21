@@ -531,6 +531,7 @@ impl SyncManager {
         for (block_id, block_hash) in &cs.payload {
             self.add(network, *block_id, *block_hash, peer_id).await;
         }
+	self.fetch(network).await;
 
         if send_follow_up {
             info!(
