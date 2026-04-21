@@ -47,7 +47,6 @@ module.exports = (app, mod, build_number, og_card) => {
 
     <title>Saito Docs</title>
 
-    <script type="text/javascript" src="/saito/lib/jquery/jquery-3.2.1.min.js"></script>
   </head>
 
   <body class="docs">

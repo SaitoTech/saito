@@ -106,33 +106,24 @@ class Docs extends ModTemplate {
   }
 
   // ---------------------------------------------------------------------------
-  // Key derivation — Ed25519 → CryptPad signing + Curve25519 encryption keys.
-  //
-  // Uses the Web Crypto API (SubtleCrypto) which is available in all modern
-  // browsers. This mirrors saito-cryptpad-keys.js on the CryptPad side.
+  // Key material for CryptPad auth handoff.
   //
   // Saito private key format: 128-char hex string = 64 bytes (seed || pubkey).
-  // CryptPad signing key:  same Ed25519 keypair, re-encoded as Uint8Array.
-  // CryptPad encrypt key:  Curve25519 derived via standard Ed25519→X25519 conversion.
-  //
-  // NOTE: The Ed25519→Curve25519 conversion requires libsodium. We load
-  // libsodium-wrappers lazily here. If unavailable, we fall back to passing
-  // the raw keys and letting the CryptPad relay page handle derivation.
+  // We send the raw 64-byte key as a plain array to the relay page, which
+  // stores it in sessionStorage. CryptPad's customize/login.js then derives
+  // 192 bytes of deterministic entropy via BLAKE2b (libsodium on CryptPad's
+  // origin), bypassing scrypt. Same wallet → same CryptPad identity.
   // ---------------------------------------------------------------------------
 
   async _deriveKeys(privkeyHex, pubkeyBase58) {
-    // Convert hex private key to Uint8Array
+    // Convert hex private key to Uint8Array (64 bytes)
     const privBytes = new Uint8Array(
       privkeyHex.match(/.{1,2}/g).map((b) => parseInt(b, 16))
     );
 
-    // Return the raw key material — the relay page / CryptPad customize/login.js
-    // will complete the Curve25519 conversion using libsodium which is already
-    // loaded on the CryptPad origin.
     return {
-      signingKey: Array.from(privBytes),   // Ed25519 secret key (64 bytes)
+      signingKey: Array.from(privBytes),   // Ed25519 secret key (64 bytes) as plain array
       publicKey:  pubkeyBase58,            // Saito base58 public key (for username derivation)
-      // curve25519 conversion deferred to CryptPad origin (libsodium available there)
     };
   }
 
