@@ -457,9 +457,10 @@ impl Network {
 
         let mut peers = self.peer_lock.write().await;
         if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-            let public_key = peer.get_public_key();
-            self.io_interface
-                .send_interface_event(InterfaceEvent::PeerConnectionDropped(public_key));
+            if let Some(public_key) = peer.public_key {
+                self.io_interface
+                    .send_interface_event(InterfaceEvent::PeerConnectionDropped(public_key));
+            }
             peer.on_disconnect(self.timer.get_timestamp_in_ms());
         }
     }
