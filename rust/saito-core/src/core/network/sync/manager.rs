@@ -3,8 +3,9 @@ use std::sync::Arc;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
 use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
+use crate::core::network::msg::block::{BlockReference};
 use crate::core::network::msg::blockchain::{
-    is_supported_sync_type, Blockchain as BlockchainWire, RequestBlockchain, MAX_BLOCKCHAIN_CHUNK,
+    is_supported_sync_type, Blockchain as BlockchainPeerMessage, RequestBlockchain, MAX_BLOCKCHAIN_CHUNK,
     SYNC_TYPE_FULL, SYNC_TYPE_SPV,
 };
 use crate::core::network::msg::message::Message;
@@ -13,7 +14,7 @@ use crate::core::process::keep_time::Timer;
 use crate::core::util::configuration::Configuration;
 use log::{error, info, trace, warn};
 use std::collections::{BTreeMap, HashMap};
-use std::io::Error;
+use std::io::{Error, ErrorKind};
 use tokio::sync::RwLock;
 
 pub const MAX_CONCURRENT_BLOCK_FETCHES: usize = 10;
@@ -32,7 +33,7 @@ pub struct QueueItem {
 }
 
 pub struct SyncManager {
-    queue: BTreeMap<(BlockId, SaitoHash), QueueItem>,
+    pub(crate) queue: BTreeMap<(BlockId, SaitoHash), QueueItem>,
     timer: Arc<Timer>,
     peer_fetch_urls: HashMap<u64, String>,
     blockchain_lock: Arc<RwLock<Blockchain>>,
@@ -66,10 +67,13 @@ impl SyncManager {
     pub async fn add(
         &mut self,
         network: &Network,
-        block_id: BlockId,
-        block_hash: SaitoHash,
+        block_reference: BlockReference,
         peer_id: u64,
     ) {
+
+	let block_id = block_reference.block_id;
+	let block_hash = block_reference.block_hash;
+
         if !self.peer_fetch_urls.contains_key(&peer_id) {
             let peers = network.peer_lock.read().await;
             if let Some(peer) = peers.get_peer_by_id(peer_id) {
@@ -355,6 +359,8 @@ impl SyncManager {
                     latest_known_block_hash,
                     fork_id,
                     sync_type,
+                    public_key: self.my_public_key,
+                    keylist: vec![self.my_public_key],
                 }),
             )
             .await;
@@ -370,141 +376,145 @@ impl SyncManager {
         &self,
         request: RequestBlockchain,
         peer_id: u64,
-        config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
         network: &Network,
     ) -> Result<(), Error> {
-        let configs = config_lock.read().await;
-        if configs.is_browser() {
-            info!(
-                "[TEMP_SYNC_TRACE][SYNC] skip process RequestBlockchain is_browser peer_id={}",
-                peer_id
-            );
-            return Ok(());
-        }
-        drop(configs);
 
-        if !is_supported_sync_type(request.sync_type) {
+        let requested_sync_type = request.sync_type;
+        if !is_supported_sync_type(requested_sync_type) {
             warn!(
-                "process_request_blockchain_message: unsupported sync_type {} from peer {}",
-                request.sync_type, peer_id
+                "received RequestBlockchain with unsupported sync_type {} from peer {}",
+                requested_sync_type, peer_id
             );
-            return Ok(());
+            return Err(Error::from(ErrorKind::InvalidData));
         }
-
-        let mut insane_fork = false;
-        let mut shared_ancestor = 0u64;
-        let mut our_latest_id = 0u64;
-        let mut our_latest_hash = [0u8; 32];
-        let mut our_fork_id = [0u8; 32];
-        let mut shared_ancestor_block_hash = [0u8; 32];
-        let mut ordered_refs: Vec<(BlockId, BlockHash)> = Vec::new();
+        let peer_latest_known_block_id = request.latest_known_block_id;
+        let peer_fork_id = request.fork_id;
+        let requested_public_key = request.public_key;
+        let mut requested_keylist = request.keylist;
+        if requested_keylist.is_empty() {
+            requested_keylist.push(requested_public_key);
+        }
+        let our_latest_id: u64;
+        let our_latest_hash: [u8; 32];
+        let our_fork_id: [u8; 32];
+        let mut shared_ancestor_block_id: u64;
+        let mut shared_ancestor_block_hash: [u8; 32];
+        let mut ordered_refs: Vec<BlockReference> = Vec::new();
+	let mut send_response_starting_from_block_id: u64;
 
         {
+
             let blockchain = self.blockchain_lock.read().await;
 
-            let mut lsa = blockchain
-                .generate_last_shared_ancestor(request.latest_known_block_id, request.fork_id);
+	    //
+	    // cache our latest consensus information
+	    //
+            our_latest_id = blockchain.get_latest_block_id();
+            our_latest_hash = blockchain.get_latest_block_hash();
+            our_fork_id = blockchain
+                .generate_fork_id(our_latest_id)
+                .or(blockchain.fork_id)
+                .unwrap_or([0; 32]);
 
-            if request.latest_known_block_id > 0
-                && request.latest_known_block_id < blockchain.genesis_block_id.saturating_sub(100)
-                && (lsa == 0 || lsa < blockchain.genesis_block_id)
-                && blockchain.get_latest_block_id() > 0
-            {
-                insane_fork = true;
-            } else {
-                if lsa == 0 {
-                    lsa = blockchain.genesis_block_id;
+	    //
+	    // find shared ancestor with peer chain
+	    //
+            shared_ancestor_block_id = blockchain
+                .generate_last_shared_ancestor(peer_latest_known_block_id, peer_fork_id);
+            shared_ancestor_block_hash = blockchain
+                .blockring
+                .get_longest_chain_block_hash_at_block_id(shared_ancestor_block_id)
+                .unwrap_or([0; 32]);
+
+	    //
+	    // determine starting block for sync to peer
+	    //
+            send_response_starting_from_block_id = blockchain.genesis_block_id;
+            if peer_latest_known_block_id == 0 {
+                if requested_sync_type == SYNC_TYPE_FULL {
+                    send_response_starting_from_block_id = blockchain.genesis_block_id;
                 }
-                shared_ancestor = lsa;
-                our_latest_id = blockchain.get_latest_block_id();
-                our_latest_hash = blockchain.get_latest_block_hash();
-                our_fork_id = blockchain
-                    .generate_fork_id(our_latest_id)
-                    .or(blockchain.fork_id)
-                    .unwrap_or([0; 32]);
+                if requested_sync_type == SYNC_TYPE_SPV {
+                    send_response_starting_from_block_id =
+                        std::cmp::max(blockchain.genesis_block_id, our_latest_id.saturating_sub(9));
+                }
+            } else if shared_ancestor_block_id == 0 {
+                send_response_starting_from_block_id =
+                    std::cmp::max(blockchain.genesis_block_id, our_latest_id.saturating_sub(9));
+                shared_ancestor_block_id = send_response_starting_from_block_id.saturating_sub(1);
                 shared_ancestor_block_hash = blockchain
                     .blockring
-                    .get_longest_chain_block_hash_at_block_id(shared_ancestor)
+                    .get_longest_chain_block_hash_at_block_id(shared_ancestor_block_id)
                     .unwrap_or([0; 32]);
-
-                // Stateless chunk: derived only from request + our chain (no per-peer cursor).
-                let start_block_id = std::cmp::max(
-                    shared_ancestor.saturating_add(1),
-                    request.latest_known_block_id.saturating_add(1),
+            } else {
+                if shared_ancestor_block_id < blockchain.genesis_block_id {
+                    shared_ancestor_block_id = blockchain.genesis_block_id;
+                    shared_ancestor_block_hash = blockchain
+                        .blockring
+                        .get_longest_chain_block_hash_at_block_id(shared_ancestor_block_id)
+                        .unwrap_or([0; 32]);
+                }
+                send_response_starting_from_block_id = std::cmp::max(
+                    shared_ancestor_block_id.saturating_add(1),
+                    peer_latest_known_block_id.saturating_add(1),
                 );
-                let end_block_id = std::cmp::min(
-                    start_block_id.saturating_add((MAX_BLOCKCHAIN_CHUNK as u64).saturating_sub(1)),
-                    our_latest_id,
-                );
+            }
 
-                if start_block_id <= our_latest_id && start_block_id <= end_block_id {
-                    let mut next_id = start_block_id;
-                    while next_id <= end_block_id && ordered_refs.len() < MAX_BLOCKCHAIN_CHUNK {
-                        if let Some(h) = blockchain
-                            .blockring
-                            .get_longest_chain_block_hash_at_block_id(next_id)
-                        {
-                            ordered_refs.push((next_id, h));
+	    //
+	    // generate block references (payload)
+	    //
+            let mut block_id = send_response_starting_from_block_id;
+            while block_id <= our_latest_id && ordered_refs.len() < MAX_BLOCKCHAIN_CHUNK {
+                if let Some(block_hash) = blockchain
+                    .blockring
+                    .get_longest_chain_block_hash_at_block_id(block_id)
+                {
+                    if let Some(block) = blockchain.get_block(&block_hash) {
+                        let mut transactions: u32 = 0;
+                        if requested_sync_type == SYNC_TYPE_SPV {
+                            transactions = if block.has_keylist_txs(&requested_keylist) {
+                                1
+                            } else {
+                                0
+                            };
                         }
-                        next_id = next_id.saturating_add(1);
+                        ordered_refs.push(BlockReference {
+                            block_id,
+                            block_hash,
+                            timestamp: block.timestamp,
+                            transactions,
+                            has_golden_ticket: block.has_golden_ticket,
+                        });
                     }
                 }
+                block_id = block_id.saturating_add(1);
             }
         }
 
-        if insane_fork {
-            info!(
-                "RequestBlockchain: disconnecting peer {} (no shared ancestor / insane fork)",
-                peer_id
-            );
-            {
-                if let Some(peer) = network.peer_lock.write().await.get_peer_by_id_mut(peer_id) {
-                    peer.url = None;
-                }
-            }
-            let _ = network
-                .disconnect_from_peer(
-                    peer_id,
-                    "Cannot find a shared ancestor block to sync 2 nodes",
-                )
-                .await;
-            return Ok(());
-        }
-
-        let (payload_earliest_id, payload_earliest_hash, payload_latest_id, payload_latest_hash) =
-            if ordered_refs.is_empty() {
-                (
-                    our_latest_id,
-                    our_latest_hash,
-                    our_latest_id,
-                    our_latest_hash,
-                )
-            } else {
-                let first = ordered_refs[0];
-                let last = *ordered_refs.last().unwrap();
-                (first.0, first.1, last.0, last.1)
-            };
-
-        let chunk_n = ordered_refs.len();
+	//
+	// now generate tthe response
+	//
+        let first_ref = ordered_refs.first();
+        let last_ref = ordered_refs.last();
         info!(
             "[TEMP_SYNC_TRACE][SYNC] send Blockchain response peer_id={} chunk_blocks={} our_latest_id={} shared_ancestor={}",
-            peer_id, chunk_n, our_latest_id, shared_ancestor
+            peer_id, ordered_refs.len(), our_latest_id, shared_ancestor_block_id
         );
 
         network
             .send_message_by_peer_id(
                 peer_id,
-                Message::Blockchain(BlockchainWire {
+                Message::Blockchain(BlockchainPeerMessage {
                     latest_known_block_id: our_latest_id,
                     latest_known_block_hash: our_latest_hash,
                     fork_id: our_fork_id,
-                    shared_ancestor_block_id: shared_ancestor,
+                    shared_ancestor_block_id,
                     shared_ancestor_block_hash,
-                    payload_earliest_block_id: payload_earliest_id,
-                    payload_earliest_block_hash: payload_earliest_hash,
-                    payload_latest_block_id: payload_latest_id,
-                    payload_latest_block_hash: payload_latest_hash,
-                    payload: ordered_refs,
+                    payload_earliest_block_id: first_ref.map_or(our_latest_id, |r| r.block_id),
+                    payload_earliest_block_hash: first_ref.map_or(our_latest_hash, |r| r.block_hash),
+                    payload_latest_block_id: last_ref.map_or(our_latest_id, |r| r.block_id),
+                    payload_latest_block_hash: last_ref.map_or(our_latest_hash, |r| r.block_hash),
+                    payload: ordered_refs.clone(),
                 }),
             )
             .await;
@@ -514,33 +524,77 @@ impl SyncManager {
 
     pub(crate) async fn process_blockchain_message(
         &mut self,
-        cs: BlockchainWire,
+        cs: BlockchainPeerMessage,
         peer_id: u64,
         config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
         network: &Network,
     ) -> Result<(), Error> {
-        let send_follow_up = cs.payload_latest_block_id < cs.latest_known_block_id;
+        let is_spv_mode = {
+            let configs = config_lock.read().await;
+            configs.is_spv_mode()
+        };
+        if cs.shared_ancestor_block_id == 0 || cs.shared_ancestor_block_hash == [0; 32] {
+            warn!(
+                "received Blockchain without shared ancestor signal peer_id={} shared_ancestor_id={} shared_ancestor_hash={}",
+                peer_id,
+                cs.shared_ancestor_block_id,
+                cs.shared_ancestor_block_hash.to_hex()
+            );
+        }
         info!(
-            "[TEMP_SYNC_TRACE][SYNC] process Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={} follow_up={}",
+            "[TEMP_SYNC_TRACE][SYNC] process Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={} mode={}",
             peer_id,
             cs.payload.len(),
             cs.payload_latest_block_id,
             cs.latest_known_block_id,
-            send_follow_up
+            if is_spv_mode { "spv" } else { "full" }
         );
-        for (block_id, block_hash) in &cs.payload {
-            self.add(network, *block_id, *block_hash, peer_id).await;
-        }
-	self.fetch(network).await;
+        for block_reference in &cs.payload {
+            if !is_spv_mode {
+                self.add(network, block_reference.clone(), peer_id).await;
+                continue;
+            }
 
-        if send_follow_up {
-            info!(
-                "[TEMP_SYNC_TRACE][SYNC] follow-up RequestBlockchain peer_id={} after partial chunk",
-                peer_id
-            );
-            self.send_request_blockchain_message(peer_id, config_lock.clone(), network)
-                .await;
+            if block_reference.transactions > 0 {
+                self.add(network, block_reference.clone(), peer_id).await;
+                continue;
+            }
+
+            let ghost_metadata = {
+                let blockchain = self.blockchain_lock.read().await;
+                blockchain.get_block(&block_reference.block_hash).and_then(|block| {
+                    if block.id == block_reference.block_id
+                        && block.timestamp == block_reference.timestamp
+                        && block.pre_hash != [0; 32]
+                    {
+                        Some((
+                            block.id,
+                            block.previous_block_hash,
+                            block.timestamp,
+                            block.pre_hash,
+                            block.has_golden_ticket,
+                            block.hash,
+                        ))
+                    } else {
+                        None
+                    }
+                })
+            };
+
+            if let Some((id, previous_block_hash, ts, pre_hash, gt, hash)) = ghost_metadata {
+                let mut blockchain = self.blockchain_lock.write().await;
+                blockchain.add_ghost_block(id, previous_block_hash, ts, pre_hash, gt, hash);
+            } else {
+                warn!(
+                    "cannot trust ghost insertion metadata for block {}-{} from peer {}; falling back to fetch",
+                    block_reference.block_id,
+                    block_reference.block_hash.to_hex(),
+                    peer_id
+                );
+                self.add(network, block_reference.clone(), peer_id).await;
+            }
         }
+        self.fetch(network).await;
 
         Ok(())
     }
