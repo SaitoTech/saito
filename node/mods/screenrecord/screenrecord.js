@@ -2,6 +2,21 @@ const ModTemplate = require('../../lib/templates/modtemplate');
 const StreamCapturer = require('../../lib/saito/ui/stream-capturer/stream-capturer');
 const screenrecordWizard = require('./lib/screenrecord-wizard');
 const ScreenRecordControls = require('./lib/screenrecord-lite-controls');
+// lamejs@1.2.1 has a packaging bug: several of its internal files (Lame.js,
+// BitStream.js, etc.) reference sibling classes as bare identifiers without
+// requiring them, causing "X is not defined" errors in browser/bundler
+// contexts. Exposing the classes globally before loading lamejs fixes it.
+if (typeof globalThis !== 'undefined') {
+	if (typeof globalThis.MPEGMode === 'undefined') {
+		globalThis.MPEGMode = require('lamejs/src/js/MPEGMode');
+	}
+	if (typeof globalThis.Lame === 'undefined') {
+		globalThis.Lame = require('lamejs/src/js/Lame');
+	}
+	if (typeof globalThis.BitStream === 'undefined') {
+		globalThis.BitStream = require('lamejs/src/js/BitStream');
+	}
+}
 const lamejs = require('lamejs');
 const VideoBox = require('../../lib/saito/ui/saito-videobox/video-box');
 
@@ -509,7 +524,6 @@ class Record extends ModTemplate {
 			this.recorderVideoCallStreamCapture = null;
 		}
 
-		console.log(this.gameStreamCapturer, 'gameStreamCapturer');
 		if (this.gameRecordCapturer) {
 			this.is_recording_game = false;
 			this.gameRecordCapturer.stopCaptureGameStream();
