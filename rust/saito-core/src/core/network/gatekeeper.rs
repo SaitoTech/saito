@@ -1,6 +1,6 @@
 use crate::core::defs::Timestamp;
-use crate::core::network::peers::Peers;
 use crate::core::network::msg::message::Message;
+use crate::core::network::peers::Peers;
 use ahash::HashMap;
 use std::mem;
 use std::time::Duration;
@@ -44,6 +44,7 @@ pub struct PeerAccessRecords {
     pub last_request_blockchain_block_id: u64,
     pub last_request_blockchain_timestamp: u64,
     pub last_request_blockchain_score: u32,
+    pub request_blockchain_messages_received: u32,
     pub messages_received: u32,
     pub messages_received_started_at: Timestamp,
     pub invalid_blocks_received: u32,
@@ -90,8 +91,13 @@ impl Gatekeeper {
         )
     }
 
-    pub fn add_record(&mut self, peer_id: u64, message: &Message, record: AccessRecord, now: Timestamp) {
-
+    pub fn add_record(
+        &mut self,
+        peer_id: u64,
+        _message: &Message,
+        record: AccessRecord,
+        now: Timestamp,
+    ) {
         let peer_record = self
             .pending_records
             .entry(peer_id)
@@ -99,6 +105,7 @@ impl Gatekeeper {
                 last_request_blockchain_block_id: 0,
                 last_request_blockchain_timestamp: 0,
                 last_request_blockchain_score: 0,
+                request_blockchain_messages_received: 0,
                 messages_received: 0,
                 messages_received_started_at: now,
                 invalid_blocks_received: 0,
@@ -112,7 +119,7 @@ impl Gatekeeper {
                     peer_record.messages_received_started_at = now;
                 }
                 peer_record.messages_received += 1;
-            }
+            },
             AccessRecord::InvalidBlockReceived => {
                 if now.saturating_sub(peer_record.invalid_blocks_received_started_at)
                     > INVALID_BLOCK_WINDOW
@@ -121,9 +128,11 @@ impl Gatekeeper {
                     peer_record.invalid_blocks_received_started_at = now;
                 }
                 peer_record.invalid_blocks_received += 1;
-            }
-	    _ => {
-	    } 
+            },
+            AccessRecord::RequestBlockchainMessageReceived => {
+                peer_record.request_blockchain_messages_received += 1;
+            },
+            //_ => {}
         }
     }
 
@@ -151,17 +160,37 @@ impl Gatekeeper {
         now: Timestamp,
     ) -> bool {
         self.add_record(peer_id, message, record, now);
+        let Some(peer_record) = self.pending_records.get_mut(&peer_id) else {
+            return false;
+        };
 
-        //
-        // process costly request types
-        //
         match record {
             AccessRecord::RequestBlockchainMessageReceived => {
-                return self.check_permission_request_blockchain(peer_id);
-            },
-	    _ => { return true; }
+                if let Message::RequestBlockchain(request) = message {
+                    if peer_record.request_blockchain_messages_received > 50 {
+                        return false;
+                    }
+                    if peer_record.last_request_blockchain_block_id == request.latest_known_block_id
+                    {
+                        peer_record.last_request_blockchain_score += 10;
+                    } else {
+                        if peer_record.last_request_blockchain_score > 5 {
+                            peer_record.last_request_blockchain_score -= 5;
+                        } else {
+                            peer_record.last_request_blockchain_score = 0;
+                        }
+                    }
+                    peer_record.last_request_blockchain_timestamp = now;
+                    if peer_record.last_request_blockchain_score > 10 {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            _ => {
+                return true;
+            }
         }
-
     }
 
     //
@@ -181,8 +210,10 @@ impl Gatekeeper {
 
         for (peer_id, pending_record) in pending {
             if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-                peer.last_request_blockchain_block_id = pending_record.last_request_blockchain_block_id;
-                peer.last_request_blockchain_timestamp = pending_record.last_request_blockchain_timestamp;
+                peer.last_request_blockchain_block_id =
+                    pending_record.last_request_blockchain_block_id;
+                peer.last_request_blockchain_timestamp =
+                    pending_record.last_request_blockchain_timestamp;
                 peer.last_request_blockchain_score = pending_record.last_request_blockchain_score;
                 peer.messages_received += pending_record.messages_received as u64;
                 peer.invalid_blocks_received += pending_record.invalid_blocks_received;
@@ -195,9 +226,4 @@ impl Gatekeeper {
         }
     }
 
-    pub fn check_permission_request_blockchain(&mut self, peer_id: u64) -> bool {
-       true
-    }
-
 }
-

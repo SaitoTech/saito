@@ -145,7 +145,7 @@ impl RoutingThread {
         //
         self.gatekeeper.add_record(
             peer_id,
-	    &message,
+            &message,
             AccessRecord::MessageReceived,
             self.timer.get_timestamp_in_ms(),
         );
@@ -176,37 +176,29 @@ impl RoutingThread {
             Message::Transaction(transaction) => {
                 self.process_transaction_message(peer_id, transaction).await;
             }
-Message::RequestBlockchain(ref request) => {
-    info!(
-        "[TEMP_SYNC_TRACE][SYNC] recv RequestBlockchain peer_id={} remote_latest_id={}",
-        peer_id,
-        request.latest_known_block_id
-    );
+            Message::RequestBlockchain(ref request) => {
+                info!(
+                    "[TEMP_SYNC_TRACE][SYNC] recv RequestBlockchain peer_id={} remote_latest_id={}",
+                    peer_id, request.latest_known_block_id
+                );
 
-    if !self.gatekeeper.add_costly_record(
-        peer_id,
-        &message,
-        AccessRecord::RequestBlockchainMessageReceived,
-        self.timer.get_timestamp_in_ms(),
-    ) {
-        return;
-    }
+                if !self.gatekeeper.add_costly_record(
+                    peer_id,
+                    &message,
+                    AccessRecord::RequestBlockchainMessageReceived,
+                    self.timer.get_timestamp_in_ms(),
+                ) {
+                    return;
+                }
 
-    if let Err(e) = self
-        .sync
-        .process_request_blockchain_message(
-            request.clone(),
-            peer_id,
-            &self.network,
-        )
-        .await
-    {
-        error!(
-            "process_request_blockchain_message error: {:?}",
-            e
-        );
-    }
-}
+                if let Err(e) = self
+                    .sync
+                    .process_request_blockchain_message(request.clone(), peer_id, &self.network)
+                    .await
+                {
+                    error!("process_request_blockchain_message error: {:?}", e);
+                }
+            }
             Message::Blockchain(chaindata) => {
                 let chunk_len = chaindata.payload.len();
                 {
