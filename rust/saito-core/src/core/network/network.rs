@@ -10,8 +10,8 @@ use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
 use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::interface_io::InterfaceIO;
+use crate::core::network::msg::block::BlockReference;
 use crate::core::network::msg::message::Message;
-use crate::core::network::msg::block::{BlockReference};
 use crate::core::network::msg::services::RequestServices;
 use crate::core::network::peers::Peers;
 use crate::core::process::keep_time::Timer;
@@ -69,15 +69,13 @@ impl Network {
         drop(peers);
 
         // --- correct message type (post-refactor) ---
-        let message = Message::BlockReference(
-	    BlockReference {
-		block_hash: block.hash, 
-		block_id: block.id,
-		timestamp: 0,
-		transactions: 0,
-		has_golden_ticket: false,
-	    }
-	);
+        let message = Message::BlockReference(BlockReference {
+            block_hash: block.hash,
+            block_id: block.id,
+            timestamp: block.timestamp,
+            transactions: block.transactions.len() as u32,
+            has_golden_ticket: block.has_golden_ticket,
+        });
         let serialized = message.serialize();
         let _ = self
             .io_interface
@@ -329,9 +327,13 @@ impl Network {
                 // SYNCING
                 //
                 if peer.is_connected && !peer.is_syncing && !peer.is_synced {
-                    peer.is_syncing = true;
-                    request_sync_for.push(peer.id);
-                    work_done = true;
+                    if peer.block_fetch_url.is_empty() {
+                        peer.on_sync_complete();
+                    } else {
+                        peer.is_syncing = true;
+                        request_sync_for.push(peer.id);
+                        work_done = true;
+                    }
                 }
 
                 //

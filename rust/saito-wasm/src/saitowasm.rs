@@ -36,7 +36,7 @@ use saito_core::core::network::network::{Network, PeerDisconnectType};
 use saito_core::core::network::peer::Peer;
 use saito_core::core::network::peers::generate_peer_id;
 use saito_core::core::network::peers::Peers;
-use saito_core::core::network::sync::manager::SyncManager;
+use saito_core::core::network::sync::SyncManager;
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};

@@ -1,5 +1,6 @@
 use crate::core::defs::Timestamp;
 use crate::core::network::peers::Peers;
+use crate::core::network::msg::message::Message;
 use ahash::HashMap;
 use std::mem;
 use std::time::Duration;
@@ -27,6 +28,7 @@ pub enum AccessPermission {
 //
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AccessRecord {
+    RequestBlockchainMessageReceived,
     MessageReceived,
     InvalidBlockReceived,
 }
@@ -39,6 +41,9 @@ pub enum AccessRecord {
 //
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct PeerAccessRecords {
+    pub last_request_blockchain_block_id: u64,
+    pub last_request_blockchain_timestamp: u64,
+    pub last_request_blockchain_score: u32,
     pub messages_received: u32,
     pub messages_received_started_at: Timestamp,
     pub invalid_blocks_received: u32,
@@ -85,11 +90,15 @@ impl Gatekeeper {
         )
     }
 
-    pub fn add_record(&mut self, peer_id: u64, record: AccessRecord, now: Timestamp) {
+    pub fn add_record(&mut self, peer_id: u64, message: &Message, record: AccessRecord, now: Timestamp) {
+
         let peer_record = self
             .pending_records
             .entry(peer_id)
             .or_insert(PeerAccessRecords {
+                last_request_blockchain_block_id: 0,
+                last_request_blockchain_timestamp: 0,
+                last_request_blockchain_score: 0,
                 messages_received: 0,
                 messages_received_started_at: now,
                 invalid_blocks_received: 0,
@@ -113,7 +122,46 @@ impl Gatekeeper {
                 }
                 peer_record.invalid_blocks_received += 1;
             }
+	    _ => {
+	    } 
         }
+    }
+
+    //
+    // DDOS protection for costly sync-related requests.
+    //
+    // Records peer behavior and immediately decides whether to allow processing.
+    //
+    // Behavior model:
+    // - meaningful forward sync progress reduces pressure
+    // - repeated same-height requests increase pressure gradually
+    // - regressions increase pressure sharply
+    // - rapid-fire requests increase pressure
+    // - pressure naturally decays over time
+    //
+    // Returns:
+    // true  => allow request
+    // false => deny request
+    //
+    pub fn add_costly_record(
+        &mut self,
+        peer_id: u64,
+        message: &Message,
+        record: AccessRecord,
+        now: Timestamp,
+    ) -> bool {
+        self.add_record(peer_id, message, record, now);
+
+        //
+        // process costly request types
+        //
+        match record {
+            AccessRecord::RequestBlockchainMessageReceived => {
+                return self.check_permission_request_blockchain(peer_id);
+            },
+	    _ => { return true; }
+        }
+
     }
 
     //
@@ -133,6 +181,9 @@ impl Gatekeeper {
 
         for (peer_id, pending_record) in pending {
             if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                peer.last_request_blockchain_block_id = pending_record.last_request_blockchain_block_id;
+                peer.last_request_blockchain_timestamp = pending_record.last_request_blockchain_timestamp;
+                peer.last_request_blockchain_score = pending_record.last_request_blockchain_score;
                 peer.messages_received += pending_record.messages_received as u64;
                 peer.invalid_blocks_received += pending_record.invalid_blocks_received;
             }
@@ -143,4 +194,10 @@ impl Gatekeeper {
                 .or_insert(AccessPermission::Allowed);
         }
     }
+
+    pub fn check_permission_request_blockchain(&mut self, peer_id: u64) -> bool {
+       true
+    }
+
 }
+

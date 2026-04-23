@@ -5,8 +5,8 @@ use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
-    BlockHash, BlockId, PrintForLog, SaitoPublicKey, StatVariable, Timestamp,
-    CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
+    BlockHash, BlockId, PrintForLog, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
+    STAT_BIN_COUNT,
 };
 use crate::core::mining_thread::MiningEvent;
 use crate::core::network::events::NetworkEvent;
@@ -18,7 +18,7 @@ use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
 use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::Services;
 use crate::core::network::network::Network;
-use crate::core::network::sync::manager::SyncManager;
+use crate::core::network::sync::SyncManager;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::storage::storage::Storage;
@@ -145,6 +145,7 @@ impl RoutingThread {
         //
         self.gatekeeper.add_record(
             peer_id,
+	    &message,
             AccessRecord::MessageReceived,
             self.timer.get_timestamp_in_ms(),
         );
@@ -175,32 +176,45 @@ impl RoutingThread {
             Message::Transaction(transaction) => {
                 self.process_transaction_message(peer_id, transaction).await;
             }
-            Message::RequestBlockchain(request) => {
-                info!(
-                    "[TEMP_SYNC_TRACE][SYNC] recv RequestBlockchain peer_id={} remote_latest_id={}",
-                    peer_id, request.latest_known_block_id
-                );
-                if let Err(e) = self
-                    .sync
-                    .process_request_blockchain_message(
-                        request,
-                        peer_id,
-                        &self.network,
-                    )
-                    .await
-                {
-                    error!(
-                        "failed processing RequestBlockchain from peer {}: {}",
-                        peer_id, e
-                    );
-                }
-            }
+Message::RequestBlockchain(ref request) => {
+    info!(
+        "[TEMP_SYNC_TRACE][SYNC] recv RequestBlockchain peer_id={} remote_latest_id={}",
+        peer_id,
+        request.latest_known_block_id
+    );
+
+    if !self.gatekeeper.add_costly_record(
+        peer_id,
+        &message,
+        AccessRecord::RequestBlockchainMessageReceived,
+        self.timer.get_timestamp_in_ms(),
+    ) {
+        return;
+    }
+
+    if let Err(e) = self
+        .sync
+        .process_request_blockchain_message(
+            request.clone(),
+            peer_id,
+            &self.network,
+        )
+        .await
+    {
+        error!(
+            "process_request_blockchain_message error: {:?}",
+            e
+        );
+    }
+}
             Message::Blockchain(chaindata) => {
                 let chunk_len = chaindata.payload.len();
                 {
                     let mut peers = self.network.peer_lock.write().await;
                     if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-                        peer.is_syncing = chunk_len == MAX_BLOCKCHAIN_CHUNK;
+                        if chunk_len == MAX_BLOCKCHAIN_CHUNK {
+                            peer.on_sync_complete();
+                        }
                     }
                 }
                 info!(
@@ -379,8 +393,9 @@ impl RoutingThread {
             .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, &block_reference)
             .await
         {
-            self.sync.add(&self.network, block_reference, peer_id).await;
-            self.sync.fetch(&self.network).await;
+            if self.sync.add(&self.network, block_reference, peer_id).await {
+                self.sync.fetch(&self.network).await;
+            }
         }
     }
 
@@ -394,9 +409,8 @@ impl RoutingThread {
         peer_id: u64,
         block_reference: &BlockReference,
     ) -> bool {
-
-	let block_id = block_reference.block_id;
-	let block_hash = block_reference.block_hash;
+        let block_id = block_reference.block_id;
+        let block_hash = block_reference.block_hash;
 
         {
             let peers = self.network.peer_lock.read().await;
@@ -538,20 +552,31 @@ impl RoutingThread {
                 .blockring
                 .get_longest_chain_block_hash_at_block_id(blockchain.genesis_block_id)
             {
+                let (timestamp, transactions, has_golden_ticket) =
+                    if let Some(genesis_block) = blockchain.get_block(&genesis_block_hash) {
+                        (
+                            genesis_block.timestamp,
+                            genesis_block.transactions.len() as u32,
+                            genesis_block.has_golden_ticket,
+                        )
+                    } else {
+                        (0, 0, false)
+                    };
+
                 self.network
                     .send_message_by_peer_id(
                         peer_id,
                         Message::GenesisBlockReference(
-			    //
-			    // timestamp , transactions, has_golden_ticket placeholders
-			    //
-			    BlockReference {
+                            //
+                            // timestamp , transactions, has_golden_ticket placeholders
+                            //
+                            BlockReference {
                                 block_id: blockchain.genesis_block_id,
                                 block_hash: genesis_block_hash,
-				timestamp: 0,
-				transactions: 0,
-				has_golden_ticket: false,
-			    }
+                                timestamp,
+                                transactions,
+                                has_golden_ticket,
+                            },
                         ),
                     )
                     .await;
@@ -573,8 +598,9 @@ impl RoutingThread {
             .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, &block_reference)
             .await
         {
-            self.sync.add(&self.network, block_reference, peer_id).await;
-            self.sync.fetch(&self.network).await;
+            if self.sync.add(&self.network, block_reference, peer_id).await {
+                self.sync.fetch(&self.network).await;
+            }
         }
     }
 
@@ -596,16 +622,16 @@ impl RoutingThread {
             return;
         }
         let mut trials = 0;
+
         loop {
             trials += 1;
+
             self.last_verification_thread_index =
                 self.last_verification_thread_index.saturating_add(1);
-            let sender_index: usize = self.last_verification_thread_index % sender_count;
+
+            let sender_index = self.last_verification_thread_index % sender_count;
+
             let Some(sender) = self.senders_to_verification.get(sender_index) else {
-                error!(
-                    "verification-thread sender index {} missing out of {} senders; dropping request",
-                    sender_index, sender_count
-                );
                 return;
             };
 
@@ -616,11 +642,12 @@ impl RoutingThread {
                         sender_index, err
                     );
                 }
-
                 return;
             }
-            if trials == sender_count {
+
+            if trials >= sender_count {
                 trials = 0;
+                tokio::task::yield_now().await;
             }
         }
     }
@@ -903,9 +930,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         peer_id,
                     )
                     .await;
-		self.sync
-		    .fetch(&self.network)
-		    .await;
+                self.sync.fetch(&self.network).await;
             }
             RoutingEvent::BlockchainRequest(peer_id) => {
                 info!(

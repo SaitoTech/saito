@@ -2673,6 +2673,38 @@ impl Blockchain {
         self.blocks.insert(hash, block);
     }
 
+    // adds without pre_hash, but not needed unless verifying merkle roots
+    pub fn add_ghost_block_without_transactions(
+        &mut self,
+        id: u64,
+        ts: Timestamp,
+        gt: bool,
+        hash: SaitoHash,
+        previous_block_hash: SaitoHash,
+    ) {
+        if self.is_block_indexed(hash) {
+            warn!("block :{:?} exists in blockchain", hash.to_hex());
+            return;
+        }
+        let ring_buffer_size = self.blockring.get_ring_buffer_size();
+        let mut block = Block::new();
+        block.id = id;
+        block.previous_block_hash = previous_block_hash;
+        block.timestamp = ts;
+        block.has_golden_ticket = gt;
+        block.hash = hash;
+        block.block_type = BlockType::Ghost;
+
+        if !self.blockring.contains_block_hash_at_block_id(id, hash) {
+            block.in_longest_chain = true;
+            self.blockring.add_block(&block);
+            self.blockring.lc_pos = Some((id % ring_buffer_size) as usize);
+            self.blockring.ring[(id % ring_buffer_size) as usize].lc_pos = Some(0);
+        } else {
+        }
+        self.blocks.insert(hash, block);
+    }
+
     pub async fn reset(&mut self) {
         self.last_burnfee = 0;
         self.last_timestamp = 0;

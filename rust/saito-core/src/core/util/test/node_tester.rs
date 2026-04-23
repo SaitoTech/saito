@@ -6,7 +6,7 @@ pub mod test {
     use crate::core::consensus::mempool::Mempool;
     use crate::core::network::gatekeeper::Gatekeeper;
     use crate::core::network::peers::Peers;
-    use crate::core::network::sync::manager::SyncManager;
+    use crate::core::network::sync::SyncManager;
 
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::transaction::Transaction;
