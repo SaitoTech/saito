@@ -30,7 +30,7 @@ use saito_core::core::network::events::NetworkEvent;
 use saito_core::core::network::gatekeeper::Gatekeeper;
 use saito_core::core::network::network::Network;
 use saito_core::core::network::peers::Peers;
-use saito_core::core::network::sync::manager::SyncManager;
+use saito_core::core::network::sync::SyncManager;
 use saito_core::core::process::keep_time::{KeepTime, Timer};
 use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
 use saito_core::core::stat_thread::StatThread;

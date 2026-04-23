@@ -63,6 +63,10 @@ pub struct Peer {
     //
     // --- statistics and congestion tracking ---
     //
+    pub last_request_blockchain_block_id: u64,
+    pub last_request_blockchain_timestamp: u64,
+    pub last_request_blockchain_score: u32,
+
     pub messages_received: u64,
     pub messages_sent: u64,
     pub blocks_received: u64,
@@ -116,6 +120,9 @@ impl Peer {
             last_message_at: 0,
             last_block_at: 0,
             last_transaction_at: 0,
+            last_request_blockchain_block_id: 0,
+            last_request_blockchain_timestamp: 0,
+            last_request_blockchain_score: 0,
             messages_received: 0,
             messages_sent: 0,
             blocks_received: 0,
@@ -191,6 +198,11 @@ impl Peer {
         if let Some(pk) = &self.public_key {
             info!("peer {:?} disconnected at {}", pk.to_base58(), current_time);
         }
+    }
+
+    pub fn on_sync_complete(&mut self) {
+        self.is_syncing = false;
+        self.is_synced = true;
     }
 
     pub fn on_stun_connect(&mut self, public_key: SaitoPublicKey, current_time: Timestamp) {

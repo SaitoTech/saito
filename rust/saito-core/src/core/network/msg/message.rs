@@ -3,7 +3,7 @@ use std::io::{Error, ErrorKind};
 
 use crate::core::consensus::block::{Block, BlockType};
 use crate::core::consensus::transaction::Transaction;
-use crate::core::defs::{SaitoPublicKey};
+use crate::core::defs::SaitoPublicKey;
 use crate::core::network::msg::api_message::ApiMessage;
 use crate::core::network::msg::block::{BlockReference, RequestBlockReference};
 use crate::core::network::msg::blockchain::{Blockchain, RequestBlockchain};
@@ -96,9 +96,9 @@ impl Message {
                 warn!("rejecting deprecated message type 5 (legacy RequestBlockchain wire)");
                 Err(Error::from(ErrorKind::InvalidData))
             }
-            6 => {
-                Ok(Message::BlockReference(BlockReference::deserialize(&buffer)?))
-            }
+            6 => Ok(Message::BlockReference(BlockReference::deserialize(
+                &buffer,
+            )?)),
             7 => Ok(Message::Ping()),
             // 8 = SPVChain; removed.
             8 => {
@@ -179,11 +179,9 @@ impl Message {
             }
             16 => Ok(Message::Pong()),
             17 => Ok(Message::RequestGenesisBlockReference()),
-            18 => {
-                Ok(Message::GenesisBlockReference(BlockReference::deserialize(
-                    &buffer,
-                )?))
-            }
+            18 => Ok(Message::GenesisBlockReference(BlockReference::deserialize(
+                &buffer,
+            )?)),
             19 => {
                 let str = String::from_utf8(buffer.to_vec()).or(Err(ErrorKind::InvalidData))?;
                 Ok(Message::Disconnect(str))
