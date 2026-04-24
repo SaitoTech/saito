@@ -42,6 +42,47 @@ pub struct SyncManager {
 }
 
 impl SyncManager {
+    fn normalize_peer_url_to_block_fetch_base(url: &str) -> Option<String> {
+        let mut normalized = url.trim().to_string();
+        if normalized.is_empty() {
+            return None;
+        }
+
+        if let Some(rest) = normalized.strip_prefix("ws://") {
+            normalized = format!("http://{}", rest);
+        } else if let Some(rest) = normalized.strip_prefix("wss://") {
+            normalized = format!("https://{}", rest);
+        }
+
+        if let Some(index) = normalized.find("/wsopen") {
+            normalized.truncate(index);
+        }
+
+        while normalized.ends_with('/') {
+            normalized.pop();
+        }
+
+        if normalized.is_empty() {
+            None
+        } else {
+            Some(normalized)
+        }
+    }
+
+    fn derive_peer_block_fetch_url(peer: &crate::core::network::peer::Peer) -> String {
+        if !peer.block_fetch_url.is_empty() {
+            return peer.block_fetch_url.clone();
+        }
+
+        if let Some(url) = peer.url.as_ref() {
+            if let Some(fetch_base) = Self::normalize_peer_url_to_block_fetch_base(url) {
+                return fetch_base;
+            }
+        }
+
+        String::new()
+    }
+
     pub fn new(
         blockchain_lock: Arc<RwLock<Blockchain>>,
         mempool_lock: Arc<RwLock<Mempool>>,
@@ -70,11 +111,17 @@ impl SyncManager {
         block_hash: SaitoHash,
         peer_id: u64,
     ) {
-        if !self.peer_fetch_urls.contains_key(&peer_id) {
+        let refresh_fetch_url = self
+            .peer_fetch_urls
+            .get(&peer_id)
+            .map(|url| url.is_empty())
+            .unwrap_or(true);
+
+        if refresh_fetch_url {
             let peers = network.peer_lock.read().await;
             if let Some(peer) = peers.get_peer_by_id(peer_id) {
                 self.peer_fetch_urls
-                    .insert(peer_id, peer.block_fetch_url.clone());
+                    .insert(peer_id, Self::derive_peer_block_fetch_url(peer));
             }
         }
 
@@ -520,6 +567,7 @@ impl SyncManager {
         network: &Network,
     ) -> Result<(), Error> {
         let send_follow_up = cs.payload_latest_block_id < cs.latest_known_block_id;
+        let sync_complete = !send_follow_up && cs.payload.is_empty();
         info!(
             "[TEMP_SYNC_TRACE][SYNC] process Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={} follow_up={}",
             peer_id,
@@ -528,6 +576,22 @@ impl SyncManager {
             cs.latest_known_block_id,
             send_follow_up
         );
+
+        {
+            let mut peers = network.peer_lock.write().await;
+            if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                if send_follow_up {
+                    // Keep the peer in syncing state while we fetch additional chunks.
+                    peer.is_syncing = true;
+                    peer.is_synced = false;
+                } else if sync_complete {
+                    // Empty final response means both peers are in sync at this moment.
+                    peer.is_syncing = false;
+                    peer.is_synced = true;
+                }
+            }
+        }
+
         for (block_id, block_hash) in &cs.payload {
             self.add(network, *block_id, *block_hash, peer_id).await;
         }
