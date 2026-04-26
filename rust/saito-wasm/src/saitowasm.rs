@@ -363,6 +363,12 @@ pub async fn create_network_peer(url: Option<String>) -> WasmNetworkPeer {
     peer.url = url;
 
     let peer_id = peer.id;
+    log::info!(
+        "[SAITO PEERS] create_network_peer peer_id={} core Peer.url is_some={} url_len={}",
+        peer_id,
+        peer.url.is_some(),
+        peer.url.as_ref().map(|s| s.len()).unwrap_or(0)
+    );
 
     {
         let mut peers = saito.routing_thread.network.peer_lock.write().await;

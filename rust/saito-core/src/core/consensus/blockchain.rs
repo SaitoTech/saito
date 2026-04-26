@@ -99,7 +99,12 @@ pub enum WindingResult<'a> {
 }
 
 pub trait BlockchainObserver: Send + Sync {
-    fn on_chain_reorg(&self, block_id: BlockId, block_hash: &BlockHash, longest_chain: bool);
+    fn on_chain_reorganization(
+        &self,
+        block_id: BlockId,
+        block_hash: &BlockHash,
+        longest_chain: bool,
+    );
     fn on_add_block_success(&self, block_id: BlockId, block_hash: &BlockHash);
     fn on_block_confirmation(
         &self,
@@ -188,49 +193,6 @@ impl Blockchain {
     pub fn register_observer(&mut self, observer: Box<dyn BlockchainObserver>) {
         info!("registering observer");
         self.observers.push(observer);
-    }
-    fn notify_on_chain_reorganization(
-        &self,
-        block_id: BlockId,
-        block_hash: &BlockHash,
-        longest_chain: bool,
-    ) {
-        trace!(
-            "notifying reorg : {:?}-{:?}, {:?}",
-            block_id,
-            block_hash.to_hex(),
-            longest_chain
-        );
-        for observer in &self.observers {
-            observer.on_chain_reorg(block_id, &block_hash, longest_chain);
-        }
-    }
-    fn notify_on_add_block_success(&self, block_id: BlockId, block_hash: &BlockHash) {
-        trace!(
-            "notifying add_block_success : {:?}-{:?}",
-            block_id,
-            block_hash.to_hex()
-        );
-        for observer in &self.observers {
-            observer.on_add_block_success(block_id, &block_hash);
-        }
-    }
-
-    fn notify_on_confirmation(
-        &self,
-        block_id: BlockId,
-        block_hash: &BlockHash,
-        confirmations: &[BlockId],
-    ) {
-        debug!(
-            "notifying on confirmation : {:?}-{:?} confirmations : {:?}",
-            block_id,
-            block_hash.to_hex(),
-            confirmations
-        );
-        for observer in &self.observers {
-            observer.on_block_confirmation(block_id, &block_hash, confirmations);
-        }
     }
 
     pub fn set_fork_id(&mut self, fork_id: SaitoHash) {
@@ -892,7 +854,13 @@ impl Blockchain {
                 ));
             }
 
-            self.notify_on_confirmation(block_id, &block_hash, &confs);
+            //
+            // notify observers ( wasm / js )
+            //
+            for observer in &self.observers {
+                observer.on_block_confirmation(block_id, &block_hash, &confs);
+            }
+
             confs.clear();
         }
 
@@ -2208,7 +2176,12 @@ impl Blockchain {
 
         self.downgrade_blockchain_data(configs).await;
 
-        self.notify_on_chain_reorganization(block_id, &block_hash, longest_chain);
+        //
+        // notify observers (wasm / js)
+        //
+        for observer in &self.observers {
+            observer.on_chain_reorganization(block_id, &block_hash, longest_chain);
+        }
 
         wallet_updated
     }
@@ -2473,11 +2446,11 @@ impl Blockchain {
 
                         // TODO : to fix blocks being pruned before js processing them, pass a parameter in add_block to not prune and then prune manually after adding all.
                         //  need to do that in batches to make sure too much memory is not being used.
-                        self.handle_successful_block_addition(
+                        self.on_add_block_success(
                             network,
                             sender_to_miner,
                             sender_to_router.clone(),
-                            configs.is_spv_mode(),
+                            configs,
                             block_hash,
                             in_longest_chain,
                             wallet_updated,
@@ -2519,12 +2492,12 @@ impl Blockchain {
         Wallet::save(&mut wallet, storage.io_interface.as_ref()).await;
     }
 
-    async fn handle_successful_block_addition(
+    async fn on_add_block_success(
         &mut self,
         network: Option<&Network>,
         sender_to_miner: Option<Sender<MiningEvent>>,
         sender_to_router: Option<Sender<RoutingEvent>>,
-        is_spv_mode: bool,
+        configs: &mut (dyn Configuration + Send + Sync),
         block_hash: BlockHash,
         in_longest_chain: bool,
         wallet_updated: WalletUpdateStatus,
@@ -2539,6 +2512,7 @@ impl Blockchain {
             .blocks
             .get(&block_hash)
             .expect("block should be here since it was added successfully");
+        let is_spv_mode = configs.is_spv_mode();
 
         if sender_to_miner.is_some() && in_longest_chain && !is_spv_mode {
             debug!("sending longest chain block added event to miner : hash : {:?} difficulty : {:?} channel_capacity : {:?}",
@@ -2577,14 +2551,49 @@ impl Blockchain {
                     .send_interface_event(InterfaceEvent::NewChainDetected());
             }
         }
-        self.notify_on_add_block_success(block.id, &block.hash);
 
+        //
+        // notify observers (i.e. wasm / js)
+        //
+        for observer in &self.observers {
+            observer.on_add_block_success(block.id, &block_hash);
+        }
+
+        //
+        // notify other parts of the rust core
+        //
         if let Some(sender) = sender_to_router {
             debug!("sending blockchain updated event to router. channel_capacity : {:?} block_hash : {:?}", sender.capacity(),block_hash.to_hex());
             sender
-                .send(RoutingEvent::BlockchainUpdated(block_hash, initial_sync))
+                .send(RoutingEvent::OnAddBlockSuccess(block_hash))
                 .await
                 .unwrap();
+        }
+
+        //
+        // save the updated blockchain data to disk
+        //
+        let confs = {
+            let blockchain_configs = configs.get_blockchain_configs_mut();
+            blockchain_configs.last_block_hash = self.last_block_hash.to_hex();
+            blockchain_configs.last_block_id = self.last_block_id;
+            blockchain_configs.last_timestamp = self.last_timestamp;
+            blockchain_configs.genesis_block_id = self.genesis_block_id;
+            blockchain_configs.genesis_timestamp = self.genesis_timestamp;
+            blockchain_configs.lowest_acceptable_timestamp = self.lowest_acceptable_timestamp;
+            blockchain_configs.lowest_acceptable_block_hash =
+                self.lowest_acceptable_block_hash.to_hex();
+            blockchain_configs.lowest_acceptable_block_id = self.lowest_acceptable_block_id;
+            blockchain_configs.fork_id = self.fork_id.unwrap_or_default().to_hex();
+            let confs = blockchain_configs.confirmations.clone();
+            blockchain_configs.confirmations.clear();
+            confs
+        };
+        let save_result = configs.save();
+        let blockchain_configs = configs.get_blockchain_configs_mut();
+        blockchain_configs.confirmations = confs;
+        if let Err(err) = save_result {
+            error!("failed saving blockchain configs after update: {:?}", err);
         }
     }
 
@@ -2614,7 +2623,7 @@ impl Blockchain {
             } else if fetch_prev_block {
                 debug!("need to fetch the previous block. failed to add the block : {}-{} to the chain", block.id, block.hash.to_hex());
                 sender
-                    .send(RoutingEvent::BlockFetchRequest(
+                    .send(RoutingEvent::MissingBlock(
                         block.routed_from_peer_id,
                         block.previous_block_hash,
                         block.id - 1,

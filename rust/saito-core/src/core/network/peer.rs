@@ -37,6 +37,7 @@ pub struct Peer {
     pub ip: Option<String>,
     pub url: Option<String>,
     pub key_list: Vec<SaitoPublicKey>,
+    pub disconnect_on_stale: bool,
 
     //
     // --- handshake ---
@@ -110,6 +111,7 @@ impl Peer {
             ip: None,
             url: None,
             key_list: Vec::new(),
+            disconnect_on_stale: true,
             handshake_nonce: None,
             services: Vec::new(),
             peer_type: PeerType::Default,
@@ -166,6 +168,12 @@ impl Peer {
     }
 
     pub fn on_disconnect(&mut self, current_time: Timestamp) {
+        let prev_connected = self.is_connected;
+        let prev_syncing = self.is_syncing;
+        let prev_synced = self.is_synced;
+        let prev_services_fetching = self.is_services_fetching;
+        let prev_services_fetched = self.is_services_fetched;
+
         // --- lifecycle ---
         self.is_connected = false;
         self.is_connecting = false;
@@ -195,6 +203,21 @@ impl Peer {
         self.is_synced = false;
 
         // --- logging (safe) ---
+        info!(
+            "[TEMP_SYNC_TRACE][SYNC] peer disconnect reset peer_id={} connected:{}->{} syncing:{}->{} synced:{}->{} services_fetching:{}->{} services_fetched:{}->{} at={}",
+            self.id,
+            prev_connected,
+            self.is_connected,
+            prev_syncing,
+            self.is_syncing,
+            prev_synced,
+            self.is_synced,
+            prev_services_fetching,
+            self.is_services_fetching,
+            prev_services_fetched,
+            self.is_services_fetched,
+            current_time
+        );
         if let Some(pk) = &self.public_key {
             info!("peer {:?} disconnected at {}", pk.to_base58(), current_time);
         }
@@ -224,14 +247,49 @@ impl Peer {
         lite: bool,
         my_public_key: SaitoPublicKey,
     ) -> String {
+
+        let mut base = self.block_fetch_url.clone();
+
+        if base.is_empty() {
+            if let Some(url) = &self.url {
+                if let Some((scheme, rest)) = url.split_once("://") {
+                    let authority = rest.split('/').next().unwrap_or_default(); // host[:port]
+                    if !authority.is_empty() {
+                        let http_scheme = match scheme {
+                            "wss" => "https",
+                            "ws" => "http",
+                            "https" => "https",
+                            "http" => "http",
+                            _ => "",
+                        };
+                        if !http_scheme.is_empty() {
+                            base = format!("{}://{}", http_scheme, authority);
+                        }
+                    }
+                }
+            }
+        }
+
+        if base.is_empty() && !self.endpoint.host.is_empty() && self.endpoint.port > 0 {
+            let http_scheme = match self.endpoint.protocol.as_str() {
+                "wss" | "https" => "https",
+                _ => "http",
+            };
+            base = format!(
+                "{}://{}:{}",
+                http_scheme, self.endpoint.host, self.endpoint.port
+            );
+        }
+
         if lite {
-            self.block_fetch_url.to_string()
-                + "/lite-block/"
-                + block_hash.to_hex().as_str()
-                + "/"
-                + my_public_key.to_base58().as_str()
+            format!(
+                "{}/lite-block/{}/{}",
+                base,
+                block_hash.to_hex(),
+                my_public_key.to_base58()
+            )
         } else {
-            self.block_fetch_url.to_string() + "/block/" + block_hash.to_hex().as_str()
+            format!("{}/block/{}", base, block_hash.to_hex())
         }
     }
 

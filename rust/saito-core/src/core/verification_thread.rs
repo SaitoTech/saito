@@ -81,6 +81,13 @@ impl VerificationThread {
                 "failed verifying block buffer with length : {:?}",
                 buffer_len
             );
+            info!(
+                "[TRACE_SYNC] verify_failed reason=deserialize peer_id={} expected_block_id={} expected_block_hash={} bytes={}",
+                peer_id,
+                block_id,
+                block_hash.to_hex(),
+                buffer_len
+            );
             return;
         }
 
@@ -95,6 +102,14 @@ impl VerificationThread {
                 block.hash.to_hex(),
                 block_id,
                 block_hash.to_hex()
+            );
+            info!(
+                "[TRACE_SYNC] verify_failed reason=id_hash_mismatch peer_id={} expected={}::{} got={}::{}",
+                peer_id,
+                block_id,
+                block_hash.to_hex(),
+                block.id,
+                block.hash.to_hex()
             );
             return;
         }
@@ -113,6 +128,12 @@ impl VerificationThread {
             .send(ConsensusEvent::BlockFetched { peer_id, block })
             .await
             .unwrap();
+        info!(
+            "[TRACE_SYNC] verify_ok_submitted_to_consensus peer_id={} block_id={} block_hash={}",
+            peer_id,
+            block_id,
+            block_hash.to_hex()
+        );
     }
 }
 

@@ -205,10 +205,26 @@ impl Peers {
             "disconnecting stale peers out of {:?} peers",
             self.peers.len()
         );
+
         // --- Phase 1: collect stale peer_ids ---
         let mut stale_peer_ids: Vec<u64> = Vec::new();
         for peer in self.peers.values() {
-            if peer.is_connected && peer.last_message_at + PEER_STALE_PERIOD < current_time {
+            if peer.disconnect_on_stale
+                && peer.is_connected
+                && peer.last_message_at + PEER_STALE_PERIOD < current_time
+            {
+                let elapsed_since_last_message = current_time.saturating_sub(peer.last_message_at);
+                info!(
+                    "[TEMP_SYNC_TRACE][STALE] mark stale peer_id={} connected={} syncing={} synced={} last_message_at={} now={} elapsed_ms={} stale_threshold_ms={}",
+                    peer.id,
+                    peer.is_connected,
+                    peer.is_syncing,
+                    peer.is_synced,
+                    peer.last_message_at,
+                    current_time,
+                    elapsed_since_last_message,
+                    PEER_STALE_PERIOD
+                );
                 if let Some(pk) = peer.public_key {
                     trace!(
                         "peer {:?} (id={}) is stale (last_message_at = {:?}, now = {:?})",
@@ -231,8 +247,16 @@ impl Peers {
         // --- Phase 2: apply disconnect ---
         for peer_id in stale_peer_ids {
             info!("disconnecting stale peer_id : {:?}", peer_id);
-            // update peer state
             if let Some(peer) = self.get_peer_by_id_mut(peer_id) {
+                info!(
+                    "[TEMP_SYNC_TRACE][STALE] disconnect stale peer_id={} pre_disconnect connected={} syncing={} synced={} services_fetching={} services_fetched={}",
+                    peer.id,
+                    peer.is_connected,
+                    peer.is_syncing,
+                    peer.is_synced,
+                    peer.is_services_fetching,
+                    peer.is_services_fetched
+                );
                 peer.on_disconnect(current_time);
             }
             // IO disconnect by peer_id
