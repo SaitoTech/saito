@@ -22,7 +22,12 @@ thread_local! {
 }
 
 impl BlockchainObserver for JsBlockchainObserver {
-    fn on_chain_reorg(&self, block_id: BlockId, block_hash: &BlockHash, longest_chain: bool) {
+    fn on_chain_reorganization(
+        &self,
+        block_id: BlockId,
+        block_hash: &BlockHash,
+        longest_chain: bool,
+    ) {
         let hash = block_hash.to_hex();
         REORG_FN.with(|cell| {
             if let Some(f) = cell.borrow().as_ref() {

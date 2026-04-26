@@ -13,6 +13,7 @@ use crate::core::network::interface_io::InterfaceIO;
 use crate::core::network::msg::block::BlockReference;
 use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::RequestServices;
+use crate::core::network::peer::PeerType;
 use crate::core::network::peers::Peers;
 use crate::core::process::keep_time::Timer;
 use crate::core::util::configuration::Configuration;
@@ -220,7 +221,15 @@ impl Network {
                 .collect::<Vec<_>>()
         };
 
+        info!(
+            "[SAITO PEERS] network.initialize outbound peer_urls count={}",
+            peer_urls.len()
+        );
         for peer_url in peer_urls {
+            info!(
+                "[SAITO PEERS] network.initialize connect_to_peer url_len={}",
+                peer_url.len()
+            );
             self.connect_to_peer(peer_url).await;
         }
     }
@@ -326,15 +335,60 @@ impl Network {
                 //
                 // SYNCING
                 //
-                if peer.is_connected && !peer.is_syncing && !peer.is_synced {
-                    if peer.block_fetch_url.is_empty() {
-                        peer.on_sync_complete();
-                    } else {
-                        peer.is_syncing = true;
-                        request_sync_for.push(peer.id);
-                        work_done = true;
-                    }
-                }
+                // RequestBlockchain means "we want this peer to describe the chain to us".
+                // - Outbound peers (`url.is_some()`): we dialed them (e.g. browser → server). We
+                //   should kick off WS chain sync even if `block_fetch_url` is not filled yet; that
+                //   field is for HTTP block fetch (SyncManager::add), not for deciding whether to
+                //   ask for headers on the socket.
+                // - Inbound peers with no `block_fetch_url`: typical wallet/browser incoming to a
+                //   server — they do not serve blocks; do not send RequestBlockchain to them.
+                //
+                /******* DISABLED TEMPORARILY
+                                if peer.is_connected
+                                    && peer.is_verified
+                                    && !matches!(peer.peer_type, PeerType::Stun)
+                                    && !peer.is_syncing
+                                    && !peer.is_synced
+                                {
+                                    let want_chain_from_peer =
+                                        peer.url.is_some() || !peer.get_block_fetch_url().is_empty();
+
+                                    info!(
+                                        "[SYNCING IN MONITOR_PEERS] peer_id={} connected={} verified={} syncing={} synced={} outbound_url={} fetch_url_len={}",
+                                        peer.id,
+                                        peer.is_connected,
+                                        peer.is_verified,
+                                        peer.is_syncing,
+                                        peer.is_synced,
+                                        peer.url.is_some(),
+                                        peer.block_fetch_url.len()
+                                    );
+
+                                    if want_chain_from_peer {
+                                        if peer.block_fetch_url.is_empty() {
+                                            info!(
+                                                "[TEMP_SYNC_TRACE][SYNC] monitor arm sync (outbound; ws chain sync) peer_id={}",
+                                                peer.id
+                                            );
+                                        } else {
+                                            info!(
+                                                "[TEMP_SYNC_TRACE][SYNC] monitor arm sync peer_id={} fetch_url_len={}",
+                                                peer.id,
+                                                peer.block_fetch_url.len()
+                                            );
+                                        }
+                                        peer.is_syncing = true;
+                                        request_sync_for.push(peer.id);
+                                        work_done = true;
+                                    } else {
+                                        info!(
+                                            "[TEMP_SYNC_TRACE][SYNC] monitor skip RequestBlockchain (inbound, no block_fetch_url) peer_id={}",
+                                            peer.id
+                                        );
+                                        peer.on_sync_complete();
+                                    }
+                                }
+                *************/
 
                 //
                 // NEXT SKIP ACTIVE CONNECTIONS

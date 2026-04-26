@@ -35,7 +35,7 @@ impl WasmPeer {
     // }
     #[wasm_bindgen(getter = sync_type)]
     pub fn get_sync_type(&self) -> JsString {
-        if self.peer.block_fetch_url.is_empty() {
+        if self.peer.get_block_fetch_url().is_empty() {
             return "lite".into();
         }
         return "full".into();

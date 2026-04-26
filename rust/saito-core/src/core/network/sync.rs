@@ -82,18 +82,28 @@ impl SyncManager {
         block_reference: BlockReference,
         peer_id: u64,
     ) -> bool {
+
         let block_id = block_reference.block_id;
         let block_hash = block_reference.block_hash;
 
         if !self.peer_fetch_urls.contains_key(&peer_id) {
             let peers = network.peer_lock.read().await;
             if let Some(peer) = peers.get_peer_by_id(peer_id) {
-                if peer.block_fetch_url.is_empty() {
+
+		let peer_block_fetch_url = peer.get_block_fetch_url();
+
+                if peer_block_fetch_url.is_empty() {
+                    info!(
+                        "[TRACE_SYNC] queue_skip reason=missing_fetch_url peer_id={} block_id={} block_hash={}",
+                        peer_id,
+                        block_id,
+                        block_hash.to_hex()
+                    );
                     return false;
                 }
 
                 self.peer_fetch_urls
-                    .insert(peer_id, peer.block_fetch_url.clone());
+                    .insert(peer_id, peer_block_fetch_url);
             }
         }
 
@@ -103,8 +113,24 @@ impl SyncManager {
         let blockchain = self.blockchain_lock.read().await;
         let mempool = self.mempool_lock.read().await;
         if blockchain.is_block_indexed(block_hash) {
+            info!("[BLOCK_FETCH_TRACE][FETCH] block is indexed...");
+            info!(
+                "[TRACE_SYNC] queue_skip reason=already_indexed peer_id={} block_id={} block_hash={}",
+                peer_id,
+                block_id,
+                block_hash.to_hex()
+            );
         } else if mempool.blocks_queue.iter().any(|b| b.hash == block_hash) {
+            info!("[BLOCK_FETCH_TRACE][FETCH] block is in mempool...");
+            info!(
+                "[TRACE_SYNC] queue_skip reason=already_in_mempool peer_id={} block_id={} block_hash={}",
+                peer_id,
+                block_id,
+                block_hash.to_hex()
+            );
         } else {
+            info!("[BLOCK_FETCH_TRACE][FETCH] block inserting into queue...");
+
             let key = (block_id, block_hash);
             match self.queue.get_mut(&key) {
                 Some(entry) => {
@@ -124,6 +150,13 @@ impl SyncManager {
                             fetch_active: false,
                             fetch_peer_id: None,
                         },
+                    );
+                    info!(
+                        "[TRACE_SYNC] queue_insert peer_id={} block_id={} block_hash={} queue_len={}",
+                        peer_id,
+                        block_id,
+                        block_hash.to_hex(),
+                        self.queue.len()
                     );
                     return true;
                 }
@@ -261,17 +294,7 @@ impl SyncManager {
             work_done = true;
 
             let url: String = match self.peer_fetch_urls.get(&selected_peer_id) {
-                Some(base) if !base.is_empty() => {
-                    if self.spv_fetch {
-                        base.clone()
-                            + "/lite-block/"
-                            + block_hash.to_hex().as_str()
-                            + "/"
-                            + self.my_public_key.to_base58().as_str()
-                    } else {
-                        base.clone() + "/block/" + block_hash.to_hex().as_str()
-                    }
-                }
+                Some(url) if !url.is_empty() => url.clone(),
 
                 //
                 // no url to fetch blocks? mark as complete
@@ -311,6 +334,13 @@ impl SyncManager {
                     continue;
                 }
             };
+            info!(
+                "[TRACE_SYNC] fetch_dispatch peer_id={} block_id={} block_hash={} url={}",
+                selected_peer_id,
+                block_id,
+                block_hash.to_hex(),
+                url
+            );
 
             info!(
                 "[TEMP_SYNC_TRACE][FETCH] fetch begin peer_id={} block_id={} block_hash={}",
@@ -465,31 +495,8 @@ impl SyncManager {
             } else if shared_ancestor_block_id == 0 {
                 send_response_starting_from_block_id =
                     std::cmp::max(blockchain.genesis_block_id, our_latest_id.saturating_sub(9));
-                shared_ancestor_block_id = send_response_starting_from_block_id.saturating_sub(1);
-                shared_ancestor_block_hash = blockchain
-                    .blockring
-                    .get_longest_chain_block_hash_at_block_id(shared_ancestor_block_id)
-                    .unwrap_or([0; 32]);
-            } else if shared_ancestor_block_id == 0 {
-                send_response_starting_from_block_id =
-                    std::cmp::max(blockchain.genesis_block_id, our_latest_id.saturating_sub(9));
-
-                if send_response_starting_from_block_id <= blockchain.genesis_block_id {
-                    shared_ancestor_block_id = blockchain.genesis_block_id;
-                } else {
-                    shared_ancestor_block_id =
-                        send_response_starting_from_block_id.saturating_sub(1);
-                }
-
-                shared_ancestor_block_hash = blockchain
-                    .blockring
-                    .get_longest_chain_block_hash_at_block_id(shared_ancestor_block_id)
-                    .unwrap_or_else(|| {
-                        blockchain
-                            .blockring
-                            .get_longest_chain_block_hash_at_block_id(blockchain.genesis_block_id)
-                            .unwrap_or([0; 32])
-                    });
+                shared_ancestor_block_id = 0;
+                shared_ancestor_block_hash = [0; 32];
             }
 
             //
@@ -566,35 +573,60 @@ impl SyncManager {
             let configs = config_lock.read().await;
             configs.is_spv_mode()
         };
+
         if cs.shared_ancestor_block_id == 0 || cs.shared_ancestor_block_hash == [0; 32] {
             warn!(
-                "received Blockchain without shared ancestor signal peer_id={} shared_ancestor_id={} shared_ancestor_hash={}",
-                peer_id,
-                cs.shared_ancestor_block_id,
-                cs.shared_ancestor_block_hash.to_hex()
-            );
-        }
-        info!(
-            "[TEMP_SYNC_TRACE][SYNC] process Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={} mode={}",
+            "received Blockchain without shared ancestor signal peer_id={} shared_ancestor_id={} shared_ancestor_hash={}",
             peer_id,
-            cs.payload.len(),
-            cs.payload_latest_block_id,
-            cs.latest_known_block_id,
-            if is_spv_mode { "spv" } else { "full" }
+            cs.shared_ancestor_block_id,
+            cs.shared_ancestor_block_hash.to_hex()
         );
+        }
+
+        info!(
+        "[TEMP_SYNC_TRACE][SYNC] process Blockchain peer_id={} payload_n={} payload_latest_id={} remote_latest_id={} mode={}",
+        peer_id,
+        cs.payload.len(),
+        cs.payload_latest_block_id,
+        cs.latest_known_block_id,
+        if is_spv_mode { "spv" } else { "full" }
+    );
 
         let mut previous_block_id = cs.shared_ancestor_block_id;
         let mut previous_block_hash = cs.shared_ancestor_block_hash;
         let mut did_queue_any_blocks = false;
 
-        for block_reference in &cs.payload {
+        let is_local_chain_empty = {
+            let blockchain = self.blockchain_lock.read().await;
+            blockchain.blocks.is_empty()
+        };
+
+        let mut should_add_block = true;
+
+        for (i, block_reference) in cs.payload.iter().enumerate() {
             //
             // only process sequential blocks
             //
             if block_reference.block_id != (previous_block_id + 1) {
+                if previous_block_id == 0 {
+                    //
+                    // fresh wallet may join from first returned block
+                    //
+                    if !is_local_chain_empty {
+                        should_add_block = false;
+                    }
+                } else {
+                    should_add_block = false;
+                }
+            }
+
+            if !should_add_block {
                 info!(
-        	    "[TEMP_SYNC_TRACE][SYNC] refusing to add block as is not sequential to previous block..."
-        	);
+                "[TEMP_SYNC_TRACE][SYNC] refusing to add block as is not sequential to previous block... block_id={} - p_block_id={} - shared_ancestor_block_id={}",
+                block_reference.block_id,
+                previous_block_id,
+                cs.shared_ancestor_block_id,
+            );
                 continue;
             }
 
@@ -604,36 +636,92 @@ impl SyncManager {
             if !is_spv_mode {
                 if self.add(network, block_reference.clone(), peer_id).await {
                     did_queue_any_blocks = true;
+                    info!(
+                    "[TEMP_SYNC_TRACE][FETCH] queued block download peer_id={} block_id={} block_hash={} reason=full-node",
+                    peer_id,
+                    block_reference.block_id,
+                    block_reference.block_hash.to_hex()
+                );
                 }
+
                 previous_block_id = block_reference.block_id;
                 previous_block_hash = block_reference.block_hash;
                 continue;
             }
 
             //
-            // spv nodes download if relevant
+            // SPV MODE
+            // Always fully fetch the final block in the chunk.
+            // Earlier blocks only fetched if tx-relevant.
             //
-            if block_reference.transactions > 0 {
+            let is_last_block_in_chunk = i + 1 == cs.payload.len();
+
+            if block_reference.transactions > 0 || is_last_block_in_chunk {
                 if self.add(network, block_reference.clone(), peer_id).await {
                     did_queue_any_blocks = true;
+
+                    let reason = if block_reference.transactions > 0 {
+                        "spv-has-transactions"
+                    } else {
+                        "final-block-anchor"
+                    };
+
+                    info!(
+                    "[TEMP_SYNC_TRACE][FETCH] queued block download peer_id={} block_id={} block_hash={} reason={} tx_count={}",
+                    peer_id,
+                    block_reference.block_id,
+                    block_reference.block_hash.to_hex(),
+                    reason,
+                    block_reference.transactions
+                );
+                    info!(
+                        "[TRACE_SYNC] chunk_decision action=queue peer_id={} block_id={} block_hash={} is_last_block={} tx_count={} reason={}",
+                        peer_id,
+                        block_reference.block_id,
+                        block_reference.block_hash.to_hex(),
+                        is_last_block_in_chunk,
+                        block_reference.transactions,
+                        reason
+                    );
+                } else {
+                    info!(
+                        "[TRACE_SYNC] chunk_decision action=queue_failed peer_id={} block_id={} block_hash={} is_last_block={} tx_count={}",
+                        peer_id,
+                        block_reference.block_id,
+                        block_reference.block_hash.to_hex(),
+                        is_last_block_in_chunk,
+                        block_reference.transactions
+                    );
                 }
+
                 previous_block_id = block_reference.block_id;
                 previous_block_hash = block_reference.block_hash;
                 continue;
-            } else {
-                //
-                // otherwise, they add a ghost block
-                //
-                {
-                    let mut blockchain = self.blockchain_lock.write().await;
-                    blockchain.add_ghost_block_without_transactions(
-                        block_reference.block_id,
-                        block_reference.timestamp,
-                        block_reference.has_golden_ticket,
-                        block_reference.block_hash,
-                        previous_block_hash,
-                    );
-                }
+            }
+
+            //
+            // otherwise add ghost block
+            //
+            {
+                let mut blockchain = self.blockchain_lock.write().await;
+
+                info!(
+                "[TEMP_SYNC_TRACE][GHOST] add_ghost_block peer_id={} block_id={} block_hash={} prev_hash={} has_golden_ticket={} tx_count={}",
+                peer_id,
+                block_reference.block_id,
+                block_reference.block_hash.to_hex(),
+                previous_block_hash.to_hex(),
+                block_reference.has_golden_ticket,
+                block_reference.transactions
+            );
+
+                blockchain.add_ghost_block_without_transactions(
+                    block_reference.block_id,
+                    block_reference.timestamp,
+                    block_reference.has_golden_ticket,
+                    block_reference.block_hash,
+                    previous_block_hash,
+                );
             }
 
             previous_block_id = block_reference.block_id;
@@ -643,12 +731,19 @@ impl SyncManager {
         if !did_queue_any_blocks
             && self.queue.is_empty()
             && cs.payload.len() == MAX_BLOCKCHAIN_CHUNK
+            && cs.shared_ancestor_block_id != 0
         {
             self.send_request_blockchain_message(peer_id, config_lock.clone(), network)
                 .await;
+        } else if !did_queue_any_blocks && self.queue.is_empty() {
+            let mut peers = network.peer_lock.write().await;
+            if let Some(peer) = peers.peers.get_mut(&peer_id) {
+                peer.on_sync_complete();
+            }
         }
 
         self.fetch(network).await;
+
         Ok(())
     }
 }

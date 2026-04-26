@@ -400,9 +400,19 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 Some(())
             }
             ConsensusEvent::BlockFetched { block, .. } => {
+                let fetched_block_hash_hex = block.hash.to_hex();
                 trace!(
                     "ConsensusThread::process_event : new block fetched : {:?}",
-                    block.hash.to_hex()
+                    fetched_block_hash_hex
+                );
+                info!(
+                    "[TRACE_SYNC] consensus_received_fetched_block block_id={} block_hash={}",
+                    block.id, fetched_block_hash_hex
+                );
+                info!(
+                    "[TEMP_SYNC_TRACE][FETCH] consensus received fetched block block_id={} block_hash={} -> mempool -> add_blocks_from_mempool",
+                    block.id,
+                    fetched_block_hash_hex
                 );
                 let mut configs = self.config_lock.write().await;
                 // trace!("locking blockchain 4");
@@ -425,8 +435,21 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     );
                     let mut mempool = self.mempool_lock.write().await;
                     mempool.add_block(block);
+                    info!(
+                        "[TRACE_SYNC] added_to_mempool_from_fetch block_hash={} mempool_block_queue_len={}",
+                        fetched_block_hash_hex,
+                        mempool.blocks_queue.len()
+                    );
                 }
                 self.stats.blocks_fetched.increment();
+                info!(
+                    "[TEMP_SYNC_TRACE][FETCH] consensus submit queued blocks to blockchain add_blocks_from_mempool trigger=fetched-block block_hash={}",
+                    fetched_block_hash_hex
+                );
+                info!(
+                    "[TRACE_SYNC] submit_mempool_to_blockchain trigger=fetched_block block_hash={}",
+                    fetched_block_hash_hex
+                );
                 blockchain
                     .add_blocks_from_mempool(
                         self.mempool_lock.clone(),
@@ -2208,7 +2231,7 @@ mod tests {
     pub struct TempTestBlockchainObserver;
 
     impl BlockchainObserver for TempTestBlockchainObserver {
-        fn on_chain_reorg(
+        fn on_chain_reorganization(
             &self,
             block_id: u64,
             block_hash: &crate::core::defs::BlockHash,

@@ -7,14 +7,29 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
   async connectToPeer(url: string): Promise<void> {
     try {
-      console.info("[SAITO STEP 2] connectToPeer called url=", url);
-      console.debug("connecting to " + url + "....");
-      let socket = new WebSocket(url);
-      console.info("[SAITO STEP 3] WebSocket constructed url=", url, "readyState=", socket.readyState);
+      const trimmed = typeof url === 'string' ? url.trim() : '';
+      const looksLikeWs = /^wss?:\/\//i.test(trimmed);
+      console.log('[SAITO CONNECT] connectToPeer (browser)', {
+        hasUrl: trimmed.length > 0,
+        urlLength: trimmed.length,
+        looksLikeWebSocketUrl: looksLikeWs,
+        willOpenWebSocket: trimmed.length > 0 && looksLikeWs,
+        url: trimmed || '(empty)'
+      });
+      if (!trimmed || !looksLikeWs) {
+        console.log(
+          '[SAITO CONNECT] skipping WebSocket open: need a non-empty ws: or wss: URL from core.'
+        );
+        return;
+      }
+      console.info('[SAITO STEP 2] connectToPeer called url=', trimmed);
+      console.debug('connecting to ' + trimmed + '....');
+      let socket = new WebSocket(trimmed);
+      console.info("[SAITO STEP 3] WebSocket constructed url=", trimmed, "readyState=", socket.readyState);
       socket.binaryType = "arraybuffer";
 
       // handle handshake here
-      let peer = await NetworkPeer.create(url);
+      let peer = await NetworkPeer.create(trimmed);
       peer.socket = socket;
       Saito.getInstance().peersByPeerId.set(peer.peerId, peer);
 
@@ -26,7 +41,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
             "[SAITO STEP 10] browser socket.onmessage byteLength=",
             buffer.byteLength,
             "url=",
-            url
+            trimmed
           );
 
           Saito.getLibInstance()
@@ -52,7 +67,11 @@ export default class WebSharedMethods extends CustomSharedMethods {
 
       socket.onopen = async () => {
         try {
-          console.info("[SAITO STEP 4] socket.onopen url=", url, "readyState=", socket.readyState);
+          console.log('[SAITO CONNECT] WebSocket open — peer will register with core', {
+            url: trimmed,
+            readyState: socket.readyState
+          });
+          console.info("[SAITO STEP 4] socket.onopen url=", trimmed, "readyState=", socket.readyState);
           console.info(
             "[SAITO STEP 5a] before process_new_peer peerId=",
             peer.peerId,
@@ -62,14 +81,15 @@ export default class WebSharedMethods extends CustomSharedMethods {
 	  Saito.getLibInstance().process_new_peer(peer.peerId, true);
           console.info("[SAITO STEP 5b] after process_new_peer peerId=", peer.peerId);
 	  await peer.syncFromRust();
-          console.debug("connected to : " + url);
+          console.log('[SAITO CONNECT] handshake path: process_new_peer + syncFromRust for', trimmed);
+          console.debug("connected to : " + trimmed);
         } catch (error) {
           console.error(error);
         }
       };
       socket.onclose = () => {
         try {
-          console.debug("socket.onclose : " + url + " , key : " + peer.peerId);
+          console.debug("socket.onclose : " + trimmed + " , key : " + peer.peerId);
           Saito.getInstance().disconnectPeer(peer);
           Saito.getLibInstance().process_peer_disconnection(peer.peerId);
         } catch (error) {

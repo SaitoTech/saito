@@ -15,7 +15,14 @@ export default class NetworkPeer extends WasmWrapper<WasmNetworkPeer> {
 
   static async create(url?: string): Promise<NetworkPeer> {
     const wasm = await Saito.getLibInstance();
-    const peer = await wasm.create_network_peer(url ?? null);
+    const u = url ?? null;
+    const s = u === null || u === undefined ? "" : String(u).trim();
+    console.log("[SAITO CONNECT] NetworkPeer.create → Rust create_network_peer", {
+      hasUrl: s.length > 0,
+      urlLength: s.length,
+      url: s || "(null/undefined/empty)"
+    });
+    const peer = await wasm.create_network_peer(u);
     return new NetworkPeer(peer);
   }
 
