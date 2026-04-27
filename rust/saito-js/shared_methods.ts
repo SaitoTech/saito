@@ -38,7 +38,7 @@ export default interface SharedMethods {
 
   processApiError(buffer: Uint8Array, msgIndex: number, public_key: string): void;
 
-  sendInterfaceEvent(event: String, public_key: string): void;
+  sendInterfaceEvent(event: String, peer_id: bigint, public_key: string): void;
 
   sendNewVersionAlert(major: number, minor: number, patch: number, public_key: string): void;
 

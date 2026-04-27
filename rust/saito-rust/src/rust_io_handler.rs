@@ -329,22 +329,13 @@ impl InterfaceIO for RustIOHandler {
     }
 
     fn send_interface_event(&self, _event: InterfaceEvent) {
-        // no one is listening to these events in rust node
     }
 
     async fn save_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
-        // let buffer = wallet.serialize_for_disk();
-        // self.write_value(WALLET_DIR_PATH.as_str(), buffer.as_slice())
-        //     .await
         Ok(())
     }
 
     async fn load_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
-        // if !self.is_existing_file(WALLET_DIR_PATH.as_str()).await {
-        //     return Ok(());
-        // }
-        // let buffer = self.read_value(WALLET_DIR_PATH.as_str()).await?;
-        // wallet.deserialize_from_disk(&buffer)?;
         Ok(())
     }
 

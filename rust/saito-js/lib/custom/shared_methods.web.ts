@@ -347,7 +347,7 @@ const stunPeer =
     // TODO : check if this needs implementing. might be not needed for web
   }
 
-  sendInterfaceEvent(event: String, public_key: string) {
+  sendInterfaceEvent(event: String, peer_id: bigint, public_key: string) {
     throw new Error("Method not implemented.");
   }
 }

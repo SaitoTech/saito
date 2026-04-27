@@ -237,7 +237,12 @@ impl Gatekeeper {
 
         for (peer_id, pending_record) in pending {
             if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-                peer.last_message_at = pending_record.last_message_at;
+		//
+		// Pong can update too, so check
+		//
+		if pending_record.last_message_at > peer.last_message_at {
+                    peer.last_message_at = pending_record.last_message_at;
+		}
                 peer.last_request_blockchain_block_id =
                     pending_record.last_request_blockchain_block_id;
                 peer.last_request_blockchain_timestamp =

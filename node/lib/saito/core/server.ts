@@ -291,8 +291,8 @@ export class NodeSharedMethods extends CustomSharedMethods {
     }
   }
 
-  sendInterfaceEvent(event: string, public_key: string) {
-    this.emitAsync(event, public_key);
+  sendInterfaceEvent(event: string, peer_id: bigint, public_key: string) {
+    this.app.connection.emit(event, peer_id, public_key);
   }
 
   sendBlockSuccess(hash: string, blockId: bigint) {
