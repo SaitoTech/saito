@@ -1,6 +1,7 @@
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
 use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
 use crate::core::network::peer::Peer;
+use crate::core::network::msg::message::Message;
 use ahash::HashMap;
 use log::{debug, error, info, trace};
 use std::io::Error;
@@ -9,7 +10,8 @@ use std::time::Duration;
 
 static PEER_ID_GENERATOR: AtomicU64 = AtomicU64::new(1);
 const PEER_REMOVAL_WINDOW: Timestamp = Duration::from_secs(600).as_millis() as Timestamp;
-const PEER_STALE_PERIOD: Timestamp = Duration::from_secs(30).as_millis() as Timestamp;
+const PEER_STALE_PERIOD: Timestamp = Duration::from_secs(300).as_millis() as Timestamp;
+const PEER_PING_PERIOD: Timestamp = Duration::from_secs(30).as_millis() as Timestamp;
 
 pub fn generate_peer_id() -> u64 {
     PEER_ID_GENERATOR.fetch_add(1, Ordering::Relaxed)
@@ -130,7 +132,7 @@ impl Peers {
         }
 
         peer.on_stun_connect(public_key, current_time);
-        io_handler.send_interface_event(InterfaceEvent::StunPeerConnected(public_key));
+        io_handler.send_interface_event(InterfaceEvent::StunPeerConnected(peer_id, public_key));
     }
 
     pub async fn remove_stun_peer(
@@ -167,7 +169,7 @@ impl Peers {
             }
         }
 
-        io_handler.send_interface_event(InterfaceEvent::StunPeerDisconnected(public_key));
+        io_handler.send_interface_event(InterfaceEvent::StunPeerDisconnected(peer_id, public_key));
     }
 
     //
@@ -229,45 +231,51 @@ impl Peers {
             self.peers.len()
         );
 
-        // --- Phase 1: collect stale peer_ids ---
+	//
+	// IDENTIFY STALE PEERS
+	//
         let mut stale_peer_ids: Vec<u64> = Vec::new();
+        let mut ping_peer_ids: Vec<u64> = Vec::new();
         for peer in self.peers.values() {
-            if peer.disconnect_on_stale
-                && peer.is_connected
-                && peer.last_message_at + PEER_STALE_PERIOD < current_time
-            {
-                let elapsed_since_last_message = current_time.saturating_sub(peer.last_message_at);
-                info!(
-                    "[TEMP_SYNC_TRACE][STALE] mark stale peer_id={} connected={} syncing={} synced={} last_message_at={} now={} elapsed_ms={} stale_threshold_ms={}",
-                    peer.id,
-                    peer.is_connected,
-                    peer.is_syncing,
-                    peer.is_synced,
-                    peer.last_message_at,
-                    current_time,
-                    elapsed_since_last_message,
-                    PEER_STALE_PERIOD
-                );
-                if let Some(pk) = peer.public_key {
-                    trace!(
-                        "peer {:?} (id={}) is stale (last_message_at = {:?}, now = {:?})",
-                        pk.to_base58(),
-                        peer.id,
-                        peer.last_message_at,
-                        current_time
-                    );
+            if peer.disconnect_on_stale && peer.is_connected {
+		//
+		// 5 minutes or more -- disconnect
+		//
+		if (peer.last_message_at + PEER_STALE_PERIOD) < current_time {
+                    stale_peer_ids.push(peer.id);
+
+		//
+		// 30 seconds or more -- ping
+		//
                 } else {
-                    trace!(
-                        "peer id={} is stale (last_message_at = {:?}, now = {:?})",
-                        peer.id,
-                        peer.last_message_at,
-                        current_time
-                    );
-                }
-                stale_peer_ids.push(peer.id);
+		    if (peer.last_message_at + PEER_PING_PERIOD) < current_time {
+                        ping_peer_ids.push(peer.id);
+		    }
+		}
             }
-        }
-        // --- Phase 2: apply disconnect ---
+	}
+
+
+	//
+	// AND PING
+	//
+        for peer_id in ping_peer_ids {
+	    let buffer = Message::Ping().serialize();
+            if let Err(err) = io_handler
+                .send_message_by_peer_id(peer_id, buffer.as_slice())
+                .await
+            {
+                log::warn!(
+                    "failed sending Ping to peer_id {}: {:?}",
+                    peer_id,
+                    err
+                );
+            }
+	}
+
+	//
+	// AND DISCONNECT
+	//
         for peer_id in stale_peer_ids {
             info!("disconnecting stale peer_id : {:?}", peer_id);
             if let Some(peer) = self.get_peer_by_id_mut(peer_id) {
@@ -282,7 +290,6 @@ impl Peers {
                 );
                 peer.on_disconnect(current_time);
             }
-            // IO disconnect by peer_id
             if let Err(err) = io_handler.disconnect_from_peer(peer_id).await {
                 error!(
                     "failed disconnecting stale peer_id {:?}: {:?}",

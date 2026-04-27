@@ -9,15 +9,15 @@ use crate::core::network::service::Service;
 use crate::core::process::version::Version;
 
 pub enum InterfaceEvent {
-    OnPeerHandshakeComplete(SaitoPublicKey),
-    OnPeerServicesUp(SaitoPublicKey),
-    PeerConnectionDropped(SaitoPublicKey),
-    PeerConnected(SaitoPublicKey),
+    OnPeerHandshakeComplete(u64, SaitoPublicKey),
+    OnPeerServicesUp(u64, SaitoPublicKey),
+    PeerConnectionDropped(u64, SaitoPublicKey),
+    PeerConnected(u64, SaitoPublicKey),
     BlockAddSuccess(SaitoHash, u64),
     WalletUpdate(),
     NewVersionDetected(SaitoPublicKey, Version),
-    StunPeerConnected(SaitoPublicKey),
-    StunPeerDisconnected(SaitoPublicKey),
+    StunPeerConnected(u64, SaitoPublicKey),
+    StunPeerDisconnected(u64, SaitoPublicKey),
     NewChainDetected(),
 }
 

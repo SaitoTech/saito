@@ -237,7 +237,15 @@ impl RoutingThread {
                     .await;
             }
             Message::Pong() => {
-                // ...
+                // 
+		// update peer last_message_at immediately
+		//
+    		let now = self.timer.get_timestamp_in_ms();
+    		let mut peers = self.network.peer_lock.write().await;
+    		if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+    		    peer.last_message_at = now;
+    		    peer.last_activity_at = now;
+    		}
             }
             Message::Services(data) => {
                 let mut emit_key: Option<SaitoPublicKey> = None;
@@ -253,7 +261,7 @@ impl RoutingThread {
                 if let Some(public_key) = emit_key {
                     self.network
                         .io_interface
-                        .send_interface_event(InterfaceEvent::OnPeerServicesUp(public_key));
+                        .send_interface_event(InterfaceEvent::OnPeerServicesUp(peer_id, public_key));
                 }
             }
             Message::RequestServices(_) => {
@@ -498,7 +506,7 @@ impl RoutingThread {
 	    self.network.remove_duplicate_peers(peer_id, handshake.public_key);
             peer.on_handshake_complete(handshake.public_key, self.timer.get_timestamp_in_ms());
             self.network.io_interface.send_interface_event(
-                InterfaceEvent::OnPeerHandshakeComplete(handshake.public_key),
+                InterfaceEvent::OnPeerHandshakeComplete(peer_id, handshake.public_key),
             );
         }
 
@@ -827,17 +835,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
             work_done = true;
         }
 
-        let (net_done, chain_sync_peers) = self.network.monitor_peers(current_time).await;
-        work_done |= net_done;
-        for peer_id in chain_sync_peers {
-            info!(
-                "[TEMP_SYNC_TRACE][SYNC] chain sync start peer_id={} (post-services)",
-                peer_id
-            );
-            self.sync
-                .send_request_blockchain_message(peer_id, self.config_lock.clone(), &self.network)
-                .await;
-        }
+        work_done |= self.network.monitor_peers(current_time).await;
 
         work_done |= self
             .process_message_sending_timer_event(duration_value)

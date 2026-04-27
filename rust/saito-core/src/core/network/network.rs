@@ -143,11 +143,9 @@ impl Network {
 
     pub async fn cleanup_peers(&self, current_time: Timestamp) {
         let mut peers = self.peer_lock.write().await;
-
         peers
             .disconnect_stale_peers(current_time, self.io_interface.as_ref())
             .await;
-
         peers.remove_disconnected_peers(current_time);
     }
 
@@ -266,15 +264,12 @@ impl Network {
             .await;
     }
 
-    pub async fn monitor_peers(&mut self, current_time: Timestamp) -> (bool, Vec<u64>) {
+    pub async fn monitor_peers(&mut self, current_time: Timestamp) -> bool {
+
         //
-        // in order to avoid .await while holding the peer lock, we collect
-        // references for the peer_ids that we want to send, and send at the
-        // end once we have iterated through all of the peers.
+        // store peer_ids to avoid holding lock
         //
         let mut request_services_for: Vec<u64> = vec![];
-        let mut request_sync_for: Vec<u64> = vec![];
-
         let mut work_done = false;
 
         //
@@ -284,6 +279,7 @@ impl Network {
             let mut peers = self.peer_lock.write().await;
 
             for peer in peers.peers.values_mut() {
+
                 //
                 // STUCK HANDSHAKE DETECTION
                 //
@@ -342,7 +338,7 @@ impl Network {
         }
 
         //
-        // PASS 2: execute reconnects outside lock
+        // IDENTIFY PEERS for reconnection
         //
         {
             let reconnect_targets = {
@@ -368,12 +364,12 @@ impl Network {
         }
 
         //
-        // PASS 3: cleanup stale/disconnected peers
+        // REMOVE STALE PEERS
         //
         self.cleanup_peers(current_time).await;
 
         //
-        // send
+        // REQUEST SERVICES (non-locking from queued peers)
         //
         for peer_id in request_services_for {
             info!(
@@ -384,7 +380,7 @@ impl Network {
                 .await;
         }
 
-        (work_done, request_sync_for)
+        work_done
     }
 
     pub async fn send_message(&self, public_key: SaitoPublicKey, message: Message) {
@@ -442,7 +438,7 @@ impl Network {
         if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
             if let Some(public_key) = peer.public_key {
                 self.io_interface
-                    .send_interface_event(InterfaceEvent::PeerConnectionDropped(public_key));
+                    .send_interface_event(InterfaceEvent::PeerConnectionDropped(peer_id, public_key));
             }
             peer.on_disconnect(self.timer.get_timestamp_in_ms());
         }

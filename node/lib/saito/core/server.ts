@@ -269,8 +269,8 @@ export class NodeSharedMethods extends CustomSharedMethods {
     await this.app.modules.handlePeerTransaction(newtx, peer, mycallback);
   }
 
-  sendInterfaceEvent(event: string, public_key: string) {
-    this.app.connection.emit(event, public_key);
+  sendInterfaceEvent(event: string, peer_id: bigint, public_key: string) {
+    this.app.connection.emit(event, peer_id, public_key);
   }
 
   sendBlockSuccess(hash: string, blockId: bigint) {
