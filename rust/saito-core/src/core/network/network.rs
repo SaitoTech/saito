@@ -170,9 +170,7 @@ impl Network {
 
     pub async fn remove_duplicate_peers(&self, peer_id: u64, public_key: SaitoPublicKey) {
         let mut peers = self.peer_lock.write().await;
-        peers
-            .remove_duplicate_peers(peer_id, public_key)
-            .await;
+        peers.remove_duplicate_peers(peer_id, public_key).await;
     }
 
     pub async fn remove_stun_peer(&self, peer_id: u64, public_key: SaitoPublicKey) {
@@ -265,7 +263,6 @@ impl Network {
     }
 
     pub async fn monitor_peers(&mut self, current_time: Timestamp) -> bool {
-
         //
         // store peer_ids to avoid holding lock
         //
@@ -279,7 +276,6 @@ impl Network {
             let mut peers = self.peer_lock.write().await;
 
             for peer in peers.peers.values_mut() {
-
                 //
                 // STUCK HANDSHAKE DETECTION
                 //
@@ -438,7 +434,9 @@ impl Network {
         if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
             if let Some(public_key) = peer.public_key {
                 self.io_interface
-                    .send_interface_event(InterfaceEvent::PeerConnectionDropped(peer_id, public_key));
+                    .send_interface_event(InterfaceEvent::PeerConnectionDropped(
+                        peer_id, public_key,
+                    ));
             }
             peer.on_disconnect(self.timer.get_timestamp_in_ms());
         }

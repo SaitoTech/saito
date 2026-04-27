@@ -29,8 +29,7 @@ use saito_core::core::consensus::context::Context;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusThread};
 use saito_core::core::defs::{
-    Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, CHANNEL_SAFE_BUFFER,
-    PROJECT_PUBLIC_KEY,
+    Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, CHANNEL_SAFE_BUFFER, PROJECT_PUBLIC_KEY,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::network::events::IoEvent;

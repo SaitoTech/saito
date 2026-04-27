@@ -638,17 +638,16 @@ pub async fn run_network_controller(
                 let event = result.unwrap();
                 let interface_event = event.event;
                 match interface_event {
-                    NetworkEvent::ConnectToPeer {url} => {
-
-            NetworkController::connect_to_peer(
-                network_controller_lock.clone(),
-                peers_lock.clone(),
-                url,
-                wallet.clone(),
-                configs_lock.clone(),
-                &time_keeper,
-            )
-            .await;
+                    NetworkEvent::ConnectToPeer { url } => {
+                        NetworkController::connect_to_peer(
+                            network_controller_lock.clone(),
+                            peers_lock.clone(),
+                            url,
+                            wallet.clone(),
+                            configs_lock.clone(),
+                            &time_keeper,
+                        )
+                        .await;
                     }
 
                     NetworkEvent::BlockFetchRequest {
@@ -682,7 +681,7 @@ pub async fn run_network_controller(
                         });
                     }
 
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 }
             }
         }

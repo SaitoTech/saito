@@ -494,8 +494,6 @@ if (peer.publicKey) {
   this.peers.delete(peer.publicKey);
 }
 
-      this.peersByPeerId.delete(peer_id);
-
       if (socket) {
         console.info("closing socket for peer_id : " + peer_id);
         // @ts-ignore

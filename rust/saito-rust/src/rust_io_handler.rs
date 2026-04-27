@@ -328,8 +328,7 @@ impl InterfaceIO for RustIOHandler {
     ) {
     }
 
-    fn send_interface_event(&self, _event: InterfaceEvent) {
-    }
+    fn send_interface_event(&self, _event: InterfaceEvent) {}
 
     async fn save_wallet(&self, _wallet: &mut Wallet) -> Result<(), Error> {
         Ok(())

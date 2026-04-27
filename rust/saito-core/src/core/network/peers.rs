@@ -1,7 +1,7 @@
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
 use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
-use crate::core::network::peer::Peer;
 use crate::core::network::msg::message::Message;
+use crate::core::network::peer::Peer;
 use ahash::HashMap;
 use log::{debug, error, info, trace};
 use std::io::Error;
@@ -73,28 +73,24 @@ impl Peers {
         self.peers.values_mut()
     }
 
-    pub async fn remove_duplicate_peers(
-	&mut self,
-        new_peer_id: u64,
-        public_key: SaitoPublicKey,
-    ) {
-      let stale_ids: Vec<u64> = self
-        .peers
-        .iter()
-        .filter_map(|(&id, p)| {
-            if id == new_peer_id {
-                return None;
-            }
-            if p.public_key == Some(public_key) {
-                Some(id)
-            } else {
-                None
-            }
-        })
-        .collect();
-      for stale_id in stale_ids {
-        self.peers.remove(&stale_id);
-      }
+    pub async fn remove_duplicate_peers(&mut self, new_peer_id: u64, public_key: SaitoPublicKey) {
+        let stale_ids: Vec<u64> = self
+            .peers
+            .iter()
+            .filter_map(|(&id, p)| {
+                if id == new_peer_id {
+                    return None;
+                }
+                if p.public_key == Some(public_key) {
+                    Some(id)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for stale_id in stale_ids {
+            self.peers.remove(&stale_id);
+        }
     }
 
     pub async fn add_stun_peer(
@@ -231,51 +227,46 @@ impl Peers {
             self.peers.len()
         );
 
-	//
-	// IDENTIFY STALE PEERS
-	//
+        //
+        // IDENTIFY STALE PEERS
+        //
         let mut stale_peer_ids: Vec<u64> = Vec::new();
         let mut ping_peer_ids: Vec<u64> = Vec::new();
         for peer in self.peers.values() {
             if peer.disconnect_on_stale && peer.is_connected {
-		//
-		// 5 minutes or more -- disconnect
-		//
-		if (peer.last_message_at + PEER_STALE_PERIOD) < current_time {
+                //
+                // 5 minutes or more -- disconnect
+                //
+                if (peer.last_message_at + PEER_STALE_PERIOD) < current_time {
                     stale_peer_ids.push(peer.id);
 
-		//
-		// 30 seconds or more -- ping
-		//
+                //
+                // 30 seconds or more -- ping
+                //
                 } else {
-		    if (peer.last_message_at + PEER_PING_PERIOD) < current_time {
+                    if (peer.last_message_at + PEER_PING_PERIOD) < current_time {
                         ping_peer_ids.push(peer.id);
-		    }
-		}
+                    }
+                }
             }
-	}
+        }
 
-
-	//
-	// AND PING
-	//
+        //
+        // AND PING
+        //
         for peer_id in ping_peer_ids {
-	    let buffer = Message::Ping().serialize();
+            let buffer = Message::Ping().serialize();
             if let Err(err) = io_handler
                 .send_message_by_peer_id(peer_id, buffer.as_slice())
                 .await
             {
-                log::warn!(
-                    "failed sending Ping to peer_id {}: {:?}",
-                    peer_id,
-                    err
-                );
+                log::warn!("failed sending Ping to peer_id {}: {:?}", peer_id, err);
             }
-	}
+        }
 
-	//
-	// AND DISCONNECT
-	//
+        //
+        // AND DISCONNECT
+        //
         for peer_id in stale_peer_ids {
             info!("disconnecting stale peer_id : {:?}", peer_id);
             if let Some(peer) = self.get_peer_by_id_mut(peer_id) {

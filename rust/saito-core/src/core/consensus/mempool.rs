@@ -17,8 +17,7 @@ use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::SaitoUTXOSetKey;
 use crate::core::defs::{
-    format_timestamp, Currency, PrintForLog, SaitoHash, SaitoPublicKey, SaitoSignature,
-    Timestamp,
+    format_timestamp, Currency, PrintForLog, SaitoHash, SaitoPublicKey, SaitoSignature, Timestamp,
 };
 use crate::core::storage::storage::Storage;
 use crate::core::util::configuration::Configuration;
