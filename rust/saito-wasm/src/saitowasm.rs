@@ -12,7 +12,6 @@ use crate::wasm_network::WasmNetwork;
 use crate::wasm_network_peer::WasmNetworkPeer;
 use crate::wasm_nft::WasmNFT;
 use crate::wasm_slip::WasmSlip;
-use crate::wasm_stats::WasmStats;
 use crate::wasm_time_keeper::WasmTimeKeeper;
 use crate::wasm_transaction::WasmTransaction;
 use crate::wasm_wallet::WasmWallet;
@@ -24,10 +23,10 @@ use saito_core::core::consensus::context::Context;
 use saito_core::core::consensus::mempool::Mempool;
 use saito_core::core::consensus::transaction::{Transaction, TransactionType};
 use saito_core::core::consensus::wallet::{DetailedNFT, Wallet};
-use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusStats, ConsensusThread};
+use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusThread};
 use saito_core::core::defs::{
-    BlockId, Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoUTXOSetKey, StatVariable,
-    Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
+    BlockId, Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoUTXOSetKey,
+    Timestamp, CHANNEL_SAFE_BUFFER,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::network::events::NetworkEvent;
@@ -39,8 +38,7 @@ use saito_core::core::network::peers::Peers;
 use saito_core::core::network::sync::SyncManager;
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
-use saito_core::core::stat_thread::{StatEvent, StatThread};
+use saito_core::core::routing_thread::{RoutingEvent, RoutingThread};
 use saito_core::core::storage::storage::Storage;
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::crypto::{generate_keypair_from_private_key, sign};
@@ -58,12 +56,10 @@ pub struct SaitoWasm {
     pub(crate) consensus_thread: ConsensusThread,
     mining_thread: MiningThread,
     verification_thread: VerificationThread,
-    stat_thread: StatThread,
     receiver_for_router: Receiver<RoutingEvent>,
     receiver_for_consensus: Receiver<ConsensusEvent>,
     receiver_for_miner: Receiver<MiningEvent>,
     receiver_for_verification: Receiver<VerifyRequest>,
-    receiver_for_stats: Receiver<StatEvent>,
     pub(crate) context: Context,
     wallet: WasmWallet,
     blockchain: WasmBlockchain,
@@ -71,7 +67,7 @@ pub struct SaitoWasm {
 
 lazy_static! {
     pub static ref SAITO: Mutex<Option<SaitoWasm>> =
-        Mutex::new(Some(new(1, true, 100_000, 0, 60, false, 6, 6)));
+        Mutex::new(Some(new(1, 100_000, 0, 60, false, 6, 6)));
     static ref CONFIGS: Arc<RwLock<dyn Configuration + Send + Sync>> =
         Arc::new(RwLock::new(WasmConfiguration::new()));
     static ref PRIVATE_KEY: Mutex<String> = Mutex::new("".to_string());
@@ -79,7 +75,6 @@ lazy_static! {
 
 pub fn new(
     haste_multiplier: u64,
-    enable_stats: bool,
     genesis_period: BlockId,
     social_stake: Currency,
     social_stake_period: BlockId,
@@ -123,7 +118,6 @@ pub fn new(
     let (sender_to_consensus, receiver_in_mempool) = tokio::sync::mpsc::channel(channel_size);
     let (sender_to_blockchain, receiver_in_blockchain) = tokio::sync::mpsc::channel(channel_size);
     let (sender_to_miner, receiver_in_miner) = tokio::sync::mpsc::channel(channel_size);
-    let (sender_to_stat, receiver_in_stats) = tokio::sync::mpsc::channel(channel_size);
     let (sender_to_verification, receiver_in_verification) =
         tokio::sync::mpsc::channel(channel_size);
 
@@ -152,10 +146,8 @@ pub fn new(
             reconnection_timer: 0,
             peer_removal_timer: 0,
             last_emitted_block_fetch_count: 0,
-            stats: RoutingStats::new(sender_to_stat.clone()),
             senders_to_verification: vec![sender_to_verification.clone()],
             last_verification_thread_index: 0,
-            stat_sender: sender_to_stat.clone(),
             sync: SyncManager::new(
                 context.blockchain_lock.clone(),
                 context.mempool_lock.clone(),
@@ -184,9 +176,7 @@ pub fn new(
                 timer.clone(),
             ),
             storage: Storage::new(Box::new(WasmIoHandler {})),
-            stats: ConsensusStats::new(sender_to_stat.clone()),
             txs_for_mempool: vec![],
-            stat_sender: sender_to_stat.clone(),
             config_lock: configuration.clone(),
             produce_blocks_by_timer: true,
             delete_old_blocks,
@@ -201,7 +191,6 @@ pub fn new(
             difficulty: 0,
             public_key: [0; 33],
             mined_golden_tickets: 0,
-            stat_sender: sender_to_stat.clone(),
             config_lock: configuration.clone(),
             enabled: true,
             mining_iterations: 1_000,
@@ -212,38 +201,7 @@ pub fn new(
             blockchain_lock: context.blockchain_lock.clone(),
             peer_lock: peers.clone(),
             wallet_lock: wallet.clone(),
-            processed_txs: StatVariable::new(
-                "verification::processed_txs".to_string(),
-                STAT_BIN_COUNT,
-                sender_to_stat.clone(),
-            ),
-            processed_blocks: StatVariable::new(
-                "verification::processed_blocks".to_string(),
-                STAT_BIN_COUNT,
-                sender_to_stat.clone(),
-            ),
-            processed_msgs: StatVariable::new(
-                "verification::processed_msgs".to_string(),
-                STAT_BIN_COUNT,
-                sender_to_stat.clone(),
-            ),
-            invalid_txs: StatVariable::new(
-                "verification::invalid_txs".to_string(),
-                STAT_BIN_COUNT,
-                sender_to_stat.clone(),
-            ),
-            stat_sender: sender_to_stat.clone(),
             timer: timer.clone(),
-        },
-        stat_thread: StatThread {
-            stat_queue: Default::default(),
-            io_interface: Box::new(WasmIoHandler {}),
-            enabled: enable_stats,
-            current_wallet_state: Default::default(),
-            current_mining_state: Default::default(),
-            current_blockchain_state: Default::default(),
-            current_mempool_state: Default::default(),
-            file_write_timer: 0,
         },
         receiver_for_router: receiver_in_blockchain,
         receiver_for_consensus: receiver_in_mempool,
@@ -262,7 +220,6 @@ pub fn new(
             blockchain_lock: context.blockchain_lock.clone(),
         },
         context,
-        receiver_for_stats: receiver_in_stats,
     }
 }
 
@@ -406,7 +363,6 @@ pub async fn initialize(
     debug!("debug test");
     info!("initializing saito-wasm 5");
 
-    let mut enable_stats = true;
     let mut genesis_period = 100_000;
     let mut social_stake = 0;
     let mut social_stake_period = 60;
@@ -424,9 +380,6 @@ pub async fn initialize(
             error!("failed parsing configs. {:?}", config.err().unwrap());
         } else {
             let config: WasmConfiguration = config.unwrap();
-            if config.is_browser() {
-                enable_stats = false;
-            }
             info!("config loaded");
             configs.replace(&config);
             genesis_period = configs.get_consensus_config().unwrap().genesis_period;
@@ -449,7 +402,6 @@ pub async fn initialize(
     info!("social_stake = {:?}", social_stake);
     saito.replace(new(
         hasten_multiplier,
-        enable_stats,
         genesis_period,
         social_stake,
         social_stake_period,
@@ -476,7 +428,6 @@ pub async fn initialize(
         info!("current core version : {:?}", wallet.core_version);
     }
 
-    saito.as_mut().unwrap().stat_thread.on_init().await;
     saito.as_mut().unwrap().mining_thread.on_init().await;
     saito.as_mut().unwrap().verification_thread.on_init().await;
     saito.as_mut().unwrap().routing_thread.on_init().await;
@@ -1203,20 +1154,6 @@ pub async fn process_timer_event(duration_in_ms: u64) {
     }
 
     saito.mining_thread.process_timer_event(duration).await;
-
-    saito.stat_thread.process_timer_event(duration).await;
-
-    event_counter = 0;
-    while let Ok(event) = saito.receiver_for_stats.try_recv() {
-        let _result = saito.stat_thread.process_event(event).await;
-        event_counter += 1;
-        if event_counter >= EVENT_LIMIT {
-            break;
-        }
-        if !saito.stat_thread.is_ready_to_process() {
-            break;
-        }
-    }
 }
 
 #[wasm_bindgen]
@@ -1659,23 +1596,6 @@ pub async fn produce_block_without_gt() -> bool {
     }
     warn!("couldn't produce block");
     false
-}
-
-#[wasm_bindgen]
-pub async fn get_stats() -> Result<JsString, JsValue> {
-    let saito = SAITO.lock().await;
-    let stat_thread = &saito.as_ref().unwrap().stat_thread;
-    let stat = WasmStats {
-        // current_peer_state: stat_thread.current_peer_state.clone(),
-        current_wallet_state: stat_thread.current_wallet_state.clone(),
-        current_blockchain_state: stat_thread.current_blockchain_state.clone(),
-        current_mempool_state: stat_thread.current_mempool_state.clone(),
-        current_mining_state: stat_thread.current_mining_state.clone(),
-    };
-
-    let str = serde_json::to_string(&stat)
-        .map_err(|e| JsValue::from_str(&format!("Failed to serialize stats: {}", e)))?;
-    Ok(str.into())
 }
 
 pub fn generate_keys_wasm() -> (SaitoPublicKey, SaitoPrivateKey) {

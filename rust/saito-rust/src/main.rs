@@ -27,10 +27,10 @@ use once_cell::sync::OnceCell;
 use saito_core::core::consensus::blockchain::Blockchain;
 use saito_core::core::consensus::context::Context;
 use saito_core::core::consensus::wallet::Wallet;
-use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusStats, ConsensusThread};
+use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusThread};
 use saito_core::core::defs::{
-    Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, StatVariable, CHANNEL_SAFE_BUFFER,
-    PROJECT_PUBLIC_KEY, STAT_BIN_COUNT,
+    Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, CHANNEL_SAFE_BUFFER,
+    PROJECT_PUBLIC_KEY,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::network::events::IoEvent;
@@ -41,8 +41,7 @@ use saito_core::core::network::peers::Peers;
 use saito_core::core::network::sync::SyncManager;
 use saito_core::core::process::keep_time::{KeepTime, Timer};
 use saito_core::core::process::process_event::ProcessEvent;
-use saito_core::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
-use saito_core::core::stat_thread::{StatEvent, StatThread};
+use saito_core::core::routing_thread::{RoutingEvent, RoutingThread};
 use saito_core::core::storage::storage::Storage;
 use saito_core::core::util::configuration::Configuration;
 use saito_core::core::util::crypto::generate_keys;
@@ -119,12 +118,6 @@ async fn run_verification_thread(
                     }
                 }
             }
-            // if !requests.is_empty() {
-            //     event_processor
-            //         .processed_msgs
-            //         .increment_by(requests.len() as u64);
-            //     event_processor.verify_txs(&mut requests).await;
-            // }
             for request in queued_requests.drain(..) {
                 event_processor.process_event(request).await;
             }
@@ -139,7 +132,6 @@ async fn run_mining_event_processor(
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
     channel_size: usize,
-    sender_to_stat: Sender<StatEvent>,
     time_keeper_origin: &Timer,
 ) -> (Sender<NetworkEvent>, JoinHandle<()>) {
     let mining_event_processor = MiningThread {
@@ -152,7 +144,6 @@ async fn run_mining_event_processor(
         difficulty: 0,
         public_key: [0; 33],
         mined_golden_tickets: 0,
-        stat_sender: sender_to_stat.clone(),
         config_lock: context.config_lock.clone(),
         enabled: true,
         mining_iterations: 10_000,
@@ -187,7 +178,6 @@ async fn run_consensus_event_processor(
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
     channel_size: usize,
-    sender_to_stat: Sender<StatEvent>,
     time_keeper_origin: &Timer,
 ) -> (Sender<NetworkEvent>, JoinHandle<()>) {
     let consensus_event_processor = ConsensusThread {
@@ -216,9 +206,7 @@ async fn run_consensus_event_processor(
             None,
             CONSENSUS_EVENT_PROCESSOR_ID,
         ))),
-        stats: ConsensusStats::new(sender_to_stat.clone()),
         txs_for_mempool: Vec::new(),
-        stat_sender: sender_to_stat.clone(),
         config_lock: context.config_lock.clone(),
         produce_blocks_by_timer: true,
         delete_old_blocks: true,
@@ -253,7 +241,6 @@ async fn run_routing_event_processor(
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
     channel_size: usize,
-    sender_to_stat: Sender<StatEvent>,
     time_keeper_origin: &Timer,
 ) -> (Sender<NetworkEvent>, JoinHandle<()>) {
     let (sender, _receiver) = tokio::sync::mpsc::channel::<IoEvent>(channel_size);
@@ -283,10 +270,8 @@ async fn run_routing_event_processor(
         reconnection_timer: 0,
         peer_removal_timer: 0,
         last_emitted_block_fetch_count: 0,
-        stats: RoutingStats::new(sender_to_stat.clone()),
         senders_to_verification: senders,
         last_verification_thread_index: 0,
-        stat_sender: sender_to_stat.clone(),
         sync: SyncManager::new(
             context.blockchain_lock.clone(),
             context.mempool_lock.clone(),
@@ -326,7 +311,6 @@ async fn run_verification_threads(
     stat_timer_in_ms: u64,
     thread_sleep_time_in_ms: u64,
     verification_thread_count: u16,
-    sender_to_stat: Sender<StatEvent>,
     time_keeper_origin: &Timer,
 ) -> (Vec<Sender<VerifyRequest>>, Vec<JoinHandle<()>>) {
     let mut senders = vec![];
@@ -340,27 +324,6 @@ async fn run_verification_threads(
             blockchain_lock: blockchain_lock.clone(),
             peer_lock: peer_lock.clone(),
             wallet_lock: wallet_lock.clone(),
-            processed_txs: StatVariable::new(
-                format!("verification_{:?}::processed_txs", i),
-                STAT_BIN_COUNT,
-                sender_to_stat.clone(),
-            ),
-            processed_blocks: StatVariable::new(
-                format!("verification_{:?}::processed_blocks", i),
-                STAT_BIN_COUNT,
-                sender_to_stat.clone(),
-            ),
-            processed_msgs: StatVariable::new(
-                format!("verification_{:?}::processed_msgs", i),
-                STAT_BIN_COUNT,
-                sender_to_stat.clone(),
-            ),
-            invalid_txs: StatVariable::new(
-                format!("verification_{:?}::invalid_txs", i),
-                STAT_BIN_COUNT,
-                sender_to_stat.clone(),
-            ),
-            stat_sender: sender_to_stat.clone(),
             timer: time_keeper_origin.clone(),
         };
 
@@ -383,52 +346,20 @@ async fn run_verification_threads(
 fn run_loop_thread(
     mut receiver: Receiver<IoEvent>,
     network_event_sender_to_routing_ep: Sender<NetworkEvent>,
-    stat_timer_in_ms: u64,
     _thread_sleep_time_in_ms: u64,
-    sender_to_stat: Sender<StatEvent>,
-    time_keeper_origin: &Timer,
 ) -> JoinHandle<()> {
-    let time_keeper = time_keeper_origin.clone();
     tokio::spawn(async move {
-        let mut incoming_msgs = StatVariable::new(
-            "network::incoming_msgs".to_string(),
-            STAT_BIN_COUNT,
-            sender_to_stat.clone(),
-        );
-        let mut stat_interval = tokio::time::interval(Duration::from_millis(stat_timer_in_ms));
-
-        let mut last_stat_on: Instant = Instant::now();
-        loop {
-            select! {
-                result = receiver.recv()=>{
-                    if result.is_some() {
-                        let command = result.unwrap();
-                        incoming_msgs.increment();
-                        match command.event_processor_id {
-                            ROUTING_EVENT_PROCESSOR_ID => {
-                                network_event_sender_to_routing_ep
-                                    .send(command.event)
-                                    .await
-                                    .unwrap();
-                            }
-
-                            _ => {
-                                unreachable!()
-                            }
-                        }
-                    }
+        while let Some(command) = receiver.recv().await {
+            match command.event_processor_id {
+                ROUTING_EVENT_PROCESSOR_ID => {
+                    network_event_sender_to_routing_ep
+                        .send(command.event)
+                        .await
+                        .unwrap();
                 }
-                _ = stat_interval.tick()=>{
-                    {
-                        if Instant::now().duration_since(last_stat_on)
-                            > Duration::from_millis(stat_timer_in_ms)
-                        {
-                            last_stat_on = Instant::now();
-                            incoming_msgs
-                                .calculate_stats(time_keeper.get_timestamp_in_ms())
-                                .await;
-                        }
-                    }
+
+                _ => {
+                    unreachable!()
                 }
             }
         }
@@ -634,7 +565,6 @@ async fn run_node(
 
     let (sender_to_miner, receiver_for_miner) =
         tokio::sync::mpsc::channel::<MiningEvent>(channel_size);
-    let (sender_to_stat, receiver_for_stat) = tokio::sync::mpsc::channel::<StatEvent>(channel_size);
 
     let (senders, verification_handles) = run_verification_threads(
         sender_to_consensus.clone(),
@@ -644,7 +574,6 @@ async fn run_node(
         stat_timer_in_ms,
         thread_sleep_time_in_ms,
         verification_thread_count,
-        sender_to_stat.clone(),
         &time_keeper,
     )
     .await;
@@ -662,7 +591,6 @@ async fn run_node(
         stat_timer_in_ms,
         thread_sleep_time_in_ms,
         channel_size,
-        sender_to_stat.clone(),
         &time_keeper,
     )
     .await;
@@ -678,7 +606,6 @@ async fn run_node(
         stat_timer_in_ms,
         thread_sleep_time_in_ms,
         channel_size,
-        sender_to_stat.clone(),
         &time_keeper,
     )
     .await;
@@ -690,34 +617,13 @@ async fn run_node(
         stat_timer_in_ms,
         thread_sleep_time_in_ms,
         channel_size,
-        sender_to_stat.clone(),
-        &time_keeper,
-    )
-    .await;
-    let stat_handle = run_thread(
-        Box::new(
-            StatThread::new(Box::new(RustIOHandler::new(
-                sender_to_network_controller.clone(),
-                None,
-                ROUTING_EVENT_PROCESSOR_ID,
-            )))
-            .await,
-        ),
-        None,
-        Some(receiver_for_stat),
-        stat_timer_in_ms,
-        "saito-stats",
-        thread_sleep_time_in_ms,
         &time_keeper,
     )
     .await;
     let loop_handle: JoinHandle<()> = run_loop_thread(
         event_receiver_in_loop,
         network_event_sender_to_routing,
-        stat_timer_in_ms,
         thread_sleep_time_in_ms,
-        sender_to_stat.clone(),
-        &time_keeper,
     );
 
     let (server_handle, controller_handle) = run_network_controller(
@@ -726,7 +632,6 @@ async fn run_node(
         event_sender_to_loop.clone(),
         configs_lock.clone(),
         context.blockchain_lock.clone(),
-        sender_to_stat.clone(),
         peers_lock.clone(),
         sender_to_network_controller.clone(),
         &time_keeper,
@@ -741,7 +646,6 @@ async fn run_node(
         loop_handle,
         server_handle,
         controller_handle,
-        stat_handle,
         futures::future::join_all(verification_handles)
     );
 }

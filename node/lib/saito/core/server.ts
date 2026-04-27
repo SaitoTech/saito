@@ -1146,10 +1146,6 @@ class Server {
       return;
     });
 
-    expressApp.get('/stats', async (req, res) => {
-      let stat = await S.getLibInstance().get_stats();
-      res.send(stat);
-    });
     expressApp.get('/stats/peers', async (req, res) => {
       let stat = await S.getLibInstance().get_peer_stats();
       res.send(stat);

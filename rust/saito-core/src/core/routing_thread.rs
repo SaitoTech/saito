@@ -1,12 +1,10 @@
-use super::stat_thread::StatEvent;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
-    BlockHash, BlockId, PrintForLog, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
-    STAT_BIN_COUNT,
+    BlockHash, BlockId, PrintForLog, SaitoPublicKey, Timestamp, CHANNEL_SAFE_BUFFER,
 };
 use crate::core::mining_thread::MiningEvent;
 use crate::core::network::events::NetworkEvent;
@@ -49,34 +47,6 @@ pub enum RoutingEvent {
     KeyListUpdated(Vec<SaitoPublicKey>),
 }
 
-pub struct RoutingStats {
-    pub received_transactions: StatVariable,
-    pub received_blocks: StatVariable,
-    pub total_incoming_messages: StatVariable,
-}
-
-impl RoutingStats {
-    pub fn new(sender: Sender<StatEvent>) -> Self {
-        RoutingStats {
-            received_transactions: StatVariable::new(
-                "routing::received_txs".to_string(),
-                STAT_BIN_COUNT,
-                sender.clone(),
-            ),
-            received_blocks: StatVariable::new(
-                "routing::received_blocks".to_string(),
-                STAT_BIN_COUNT,
-                sender.clone(),
-            ),
-            total_incoming_messages: StatVariable::new(
-                "routing::incoming_msgs".to_string(),
-                STAT_BIN_COUNT,
-                sender,
-            ),
-        }
-    }
-}
-
 /// Manages peers and routes messages to correct controller
 ///
 ///
@@ -110,10 +80,8 @@ pub struct RoutingThread {
     pub gatekeeper_monitor_timer: Timestamp,
     pub message_sending_timer: Timestamp,
     pub last_emitted_block_fetch_count: BlockId,
-    pub stats: RoutingStats,
     pub senders_to_verification: Vec<Sender<VerifyRequest>>,
     pub last_verification_thread_index: usize,
-    pub stat_sender: Sender<StatEvent>,
     pub sync: SyncManager,
     pub gatekeeper: Gatekeeper,
 }
@@ -965,64 +933,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         //
         self.network.initialize(self.config_lock.clone()).await;
     }
-    async fn on_stat_interval(&mut self, current_time: Timestamp) {
-        self.stats
-            .received_transactions
-            .calculate_stats(current_time)
-            .await;
-        self.stats
-            .received_blocks
-            .calculate_stats(current_time)
-            .await;
-        self.stats
-            .total_incoming_messages
-            .calculate_stats(current_time)
-            .await;
-
-        let stat = format!(
-            "{} - {} - capacity : {:?} / {:?}",
-            StatVariable::format_timestamp(current_time),
-            format!("{:width$}", "consensus::channel", width = 40),
-            self.sender_to_consensus.capacity(),
-            self.sender_to_consensus.max_capacity()
-        );
-        self.stat_sender
-            .send(StatEvent::StringStat(stat))
-            .await
-            .unwrap();
-        for (index, sender) in self.senders_to_verification.iter().enumerate() {
-            let stat = format!(
-                "{} - {} - capacity : {:?} / {:?}",
-                StatVariable::format_timestamp(current_time),
-                format!(
-                    "{:width$}",
-                    format!("verification_{:?}::channel", index),
-                    width = 40
-                ),
-                sender.capacity(),
-                sender.max_capacity()
-            );
-            self.stat_sender
-                .send(StatEvent::StringStat(stat))
-                .await
-                .unwrap();
-        }
-
-        let _peers = self.network.peer_lock.read().await;
-        let peer_count = 0;
-        let peers_in_handshake = 0;
-
-        let stat = format!(
-            "{} - {} - total peers : {:?}. in handshake : {:?}",
-            StatVariable::format_timestamp(current_time),
-            format!("{:width$}", "peers::state", width = 40),
-            peer_count,
-            peers_in_handshake,
-        );
-        self.stat_sender
-            .send(StatEvent::StringStat(stat))
-            .await
-            .unwrap();
+    async fn on_stat_interval(&mut self, _current_time: Timestamp) {
     }
 
     fn is_ready_to_process(&self) -> bool {

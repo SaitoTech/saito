@@ -11,10 +11,10 @@ pub mod test {
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::transaction::Transaction;
     use crate::core::consensus::wallet::Wallet;
-    use crate::core::consensus_thread::{ConsensusEvent, ConsensusStats, ConsensusThread};
+    use crate::core::consensus_thread::{ConsensusEvent, ConsensusThread};
     use crate::core::defs::{
         BlockHash, BlockId, Currency, ForkId, PrintForLog, SaitoHash, SaitoPrivateKey,
-        StatVariable, RECOLLECT_NOTHING, STAT_BIN_COUNT,
+        RECOLLECT_NOTHING,
     };
     use crate::core::defs::{SaitoPublicKey, Timestamp};
     use crate::core::mining_thread::{MiningEvent, MiningThread};
@@ -23,8 +23,7 @@ pub mod test {
     use crate::core::process::keep_time::KeepTime;
     use crate::core::process::keep_time::Timer;
     use crate::core::process::process_event::ProcessEvent;
-    use crate::core::routing_thread::{RoutingEvent, RoutingStats, RoutingThread};
-    use crate::core::stat_thread::{StatEvent, StatThread};
+    use crate::core::routing_thread::{RoutingEvent, RoutingThread};
     use crate::core::storage::storage::Storage;
     use crate::core::util::configuration::{
         get_default_issuance_writing_block_interval, get_default_recollect_mode, BlockchainConfig,
@@ -170,13 +169,11 @@ pub mod test {
         pub routing_thread: RoutingThread,
         pub mining_thread: MiningThread,
         pub verification_thread: VerificationThread,
-        pub stat_thread: StatThread,
         pub timer: Timer,
         receiver_for_router: Receiver<RoutingEvent>,
         receiver_for_consensus: Receiver<ConsensusEvent>,
         receiver_for_miner: Receiver<MiningEvent>,
         receiver_for_verification: Receiver<VerifyRequest>,
-        receiver_for_stats: Receiver<StatEvent>,
         pub timeout_in_ms: u64,
         last_run_time: Timestamp,
         pub initial_token_supply: Currency,
@@ -229,7 +226,6 @@ pub mod test {
             let (sender_to_blockchain, receiver_in_blockchain) =
                 tokio::sync::mpsc::channel(channel_size);
             let (sender_to_miner, receiver_in_miner) = tokio::sync::mpsc::channel(channel_size);
-            let (sender_to_stat, receiver_in_stats) = tokio::sync::mpsc::channel(channel_size);
             let (sender_to_verification, receiver_in_verification) =
                 tokio::sync::mpsc::channel(channel_size);
 
@@ -265,10 +261,8 @@ pub mod test {
                     reconnection_timer: 0,
                     peer_removal_timer: 0,
                     last_emitted_block_fetch_count: 0,
-                    stats: RoutingStats::new(sender_to_stat.clone()),
                     senders_to_verification: vec![sender_to_verification.clone()],
                     last_verification_thread_index: 0,
-                    stat_sender: sender_to_stat.clone(),
                     sync: SyncManager::new(
                         context.blockchain_lock.clone(),
                         context.mempool_lock.clone(),
@@ -298,9 +292,7 @@ pub mod test {
                         timer.clone().unwrap(),
                     ),
                     storage: Storage::new(Box::new(TestIOHandler {})),
-                    stats: ConsensusStats::new(sender_to_stat.clone()),
                     txs_for_mempool: vec![],
-                    stat_sender: sender_to_stat.clone(),
                     config_lock: configuration.clone(),
                     produce_blocks_by_timer: true,
                     delete_old_blocks: true,
@@ -315,7 +307,6 @@ pub mod test {
                     difficulty: 0,
                     public_key: [0; 33],
                     mined_golden_tickets: 0,
-                    stat_sender: sender_to_stat.clone(),
                     config_lock: configuration.clone(),
                     enabled: true,
                     mining_iterations: 1,
@@ -326,46 +317,13 @@ pub mod test {
                     blockchain_lock: context.blockchain_lock.clone(),
                     peer_lock: peers.clone(),
                     wallet_lock: wallet.clone(),
-                    processed_txs: StatVariable::new(
-                        "verification::processed_txs".to_string(),
-                        STAT_BIN_COUNT,
-                        sender_to_stat.clone(),
-                    ),
-                    processed_blocks: StatVariable::new(
-                        "verification::processed_blocks".to_string(),
-                        STAT_BIN_COUNT,
-                        sender_to_stat.clone(),
-                    ),
-                    processed_msgs: StatVariable::new(
-                        "verification::processed_msgs".to_string(),
-                        STAT_BIN_COUNT,
-                        sender_to_stat.clone(),
-                    ),
-                    invalid_txs: StatVariable::new(
-                        "verification::invalid_txs".to_string(),
-                        STAT_BIN_COUNT,
-                        sender_to_stat.clone(),
-                    ),
-                    stat_sender: sender_to_stat.clone(),
                     timer: timer.clone().unwrap(),
-                },
-                stat_thread: StatThread {
-                    stat_queue: Default::default(),
-                    io_interface: Box::new(TestIOHandler {}),
-                    enabled: true,
-                    // current_peer_state: Default::default(),
-                    current_wallet_state: Default::default(),
-                    current_mining_state: Default::default(),
-                    current_blockchain_state: Default::default(),
-                    current_mempool_state: Default::default(),
-                    file_write_timer: 0,
                 },
                 timer: timer.clone().unwrap(),
                 receiver_for_router: receiver_in_blockchain,
                 receiver_for_consensus: receiver_in_mempool,
                 receiver_for_miner: receiver_in_miner,
                 receiver_for_verification: receiver_in_verification,
-                receiver_for_stats: receiver_in_stats,
                 timeout_in_ms: Duration::new(10, 0).as_millis() as u64,
                 last_run_time: 0,
                 initial_token_supply: 0,
@@ -376,7 +334,6 @@ pub mod test {
             self.routing_thread.on_init().await;
             self.mining_thread.on_init().await;
             self.verification_thread.on_init().await;
-            self.stat_thread.on_init().await;
             self.initial_token_supply += self
                 .consensus_thread
                 .blockchain_lock
@@ -413,9 +370,6 @@ pub mod test {
             if let Ok(event) = self.receiver_for_miner.try_recv() {
                 self.mining_thread.process_event(event).await;
             }
-            if let Ok(event) = self.receiver_for_stats.try_recv() {
-                self.stat_thread.process_event(event).await;
-            }
             if let Ok(event) = self.receiver_for_consensus.try_recv() {
                 self.consensus_thread.process_event(event).await;
             }
@@ -433,7 +387,6 @@ pub mod test {
             let duration = Duration::from_millis(diff);
             self.routing_thread.process_timer_event(duration).await;
             self.mining_thread.process_timer_event(duration).await;
-            self.stat_thread.process_timer_event(duration).await;
             self.consensus_thread.process_timer_event(duration).await;
             self.verification_thread.process_timer_event(duration).await;
             self.last_run_time = self.timer.get_timestamp_in_ms();

@@ -10,15 +10,13 @@ use crate::core::consensus::golden_ticket::GoldenTicket;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
-    BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
+    BlockId, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp, CHANNEL_SAFE_BUFFER,
 };
 use crate::core::network::events::NetworkEvent;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::{generate_random_bytes, hash};
-
-use super::stat_thread::StatEvent;
 
 #[derive(Debug)]
 pub enum MiningEvent {
@@ -40,7 +38,6 @@ pub struct MiningThread {
     pub difficulty: u64,
     pub public_key: SaitoPublicKey,
     pub mined_golden_tickets: u64,
-    pub stat_sender: Sender<StatEvent>,
     pub config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     // todo : make this private and init using configs
     pub enabled: bool,
@@ -152,22 +149,7 @@ impl ProcessEvent<MiningEvent> for MiningThread {
         info!("node public key = {:?}", self.public_key.to_base58());
     }
 
-    async fn on_stat_interval(&mut self, current_time: Timestamp) {
-        if !self.enabled {
-            return;
-        }
-
-        let stat = format!("{} - {} - total : {:?}, current difficulty : {:?}, miner_active : {:?}, current target : {:?} ",
-                           StatVariable::format_timestamp(current_time),
-                           format!("{:width$}", "mining::golden_tickets", width = 40),
-                           self.mined_golden_tickets,
-                           self.difficulty,
-                           self.miner_active,
-                           self.target.to_hex());
-        self.stat_sender
-            .send(StatEvent::StringStat(stat))
-            .await
-            .unwrap();
+    async fn on_stat_interval(&mut self, _current_time: Timestamp) {
     }
 
     fn is_ready_to_process(&self) -> bool {
