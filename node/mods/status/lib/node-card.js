@@ -106,10 +106,6 @@ try {
     );
 
     let nodeType = 'lite';
-    if (this.props.config && Object.keys(this.props.config).length > 0) {
-      const url = this.props.config.block_fetch_url;
-      nodeType = (url && url !== '') ? 'full' : 'lite';
-    }
 
     const summary = {
       nodeType,
@@ -123,11 +119,6 @@ try {
       summary.blockHeight   = this.props.options.blockchain.last_block_id;
       summary.walletVersion = this.props.options.wallet.version;
       summary.coreVersion =  '—';
-
-      // const firstFull = peers.find(p => p.block_fetch_url && p.block_fetch_url !== '');
-      // summary.coreVersion = firstFull
-      //   ? fmtVersion(firstFull.core_version || {})
-      //   : '—';
     }
 
     if (Object.keys(this.props.config).length > 0) {
@@ -140,10 +131,10 @@ try {
         <p><strong>Node type:</strong> <span>${summary.nodeType}</span></p>
         <p><strong>Number of attached peers:</strong> <span>${peers.length}</span></p>
         <p><strong>Number of full node peers:</strong>
-           <span>${peers.filter(p => p.block_fetch_url && p.block_fetch_url !== '').length}</span>
+           <span>...</span>
         </p>
         <p><strong>Number of browser peers:</strong>
-           <span>${peers.filter(p => !p.block_fetch_url).length}</span>
+           <span>...</span>
         </p>
         <p><strong>Block Height:</strong> <span>${summary.blockHeight}</span></p>
         <p><strong>Wallet version:</strong> <span>${summary.walletVersion}</span></p>
@@ -214,7 +205,7 @@ try {
     let url = '';
    const el = document.createElement('div');
 
-    let block_fetch_url = peer.block_fetch_url;
+    let block_fetch_url = "";
 
     if (
       block_fetch_url == ""

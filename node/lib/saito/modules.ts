@@ -388,10 +388,9 @@ class Mods {
 
     const onPeerHandshakeComplete = this.onPeerHandshakeComplete.bind(this);
     const onStunPeerDisconnected = this.onStunPeerDisconnected.bind(this);
-    // include events here
-    this.app.connection.on('handshake_complete', async (publicKey: string) => {
+
+    this.app.connection.on('on_peer_handshake_complete', async (publicKey: string) => {
       if (this.app.BROWSER) {
-        // broadcasts my keylist to other peers
         await this.app.wallet.setKeyList(this.app.keychain.returnWatchedPublicKeys());
       }
       let peer = await this.app.network.getPeer(publicKey);
@@ -401,9 +400,12 @@ class Mods {
         this.app.network.sendRequest('software-update', data, null, peer);
       }
       console.log('handshake complete : ', publicKey);
-      await onPeerHandshakeComplete(peer);
+      await this.onPeerHandshakeComplete(peer);
     });
-
+    this.app.connection.on('on_peer_services_up', async (publicKey: string) => {
+        let peer = await this.app.network.getPeer(publicKey);
+        await this.onPeerServicesUp(peer);
+    });
     this.app.connection.on('stun peer connect', async (publicKey: string) => {
       let peer = await this.app.network.getPeer(publicKey);
       await onPeerHandshakeComplete(peer);
@@ -672,19 +674,15 @@ class Mods {
     for (let i = 0; i < this.mods.length; i++) {
       await this.mods[i].onPeerHandshakeComplete(this.app, peer);
     }
-    //
-    // then they learn about any services now-available
-    //
-    if (peer.services) {
-      for (let i = 0; i < peer.services.length; i++) {
-        await this.onPeerServiceUp(peer, peer.services[i]);
-      }
-    }
   }
 
-  async onPeerServiceUp(peer, service) {
-    for (let i = 0; i < this.mods.length; i++) {
-      await this.mods[i].onPeerServiceUp(this.app, peer, service);
+  async onPeerServicesUp(peer: Peer) {
+    if (peer.services) {
+      for (let i = 0; i < peer.services.length; i++) {
+        for (let j = 0; j < this.mods.length; j++) {
+          await this.mods[j].onPeerServiceUp(this.app, peer, peer.services[i]);
+        }
+      }
     }
   }
 

@@ -177,40 +177,6 @@ impl Network {
             .await;
     }
 
-    pub async fn request_blockchain_on_connect(
-        &self,
-        public_key: SaitoPublicKey,
-        blockchain_lock: Arc<RwLock<Blockchain>>,
-        is_browser: bool,
-    ) -> bool {
-        let blockchain = blockchain_lock.read().await;
-
-        if blockchain.get_latest_block().is_none() && !is_browser {
-            // request genesis block
-            info!(
-                "requesting genesis block from peer : {:?}",
-                public_key.to_base58()
-            );
-
-            self.send_message(public_key, Message::RequestGenesisBlockReference())
-                .await;
-
-            return true;
-        }
-
-        drop(blockchain);
-
-        info!(
-            "requesting blockchain from peer : {:?} after handshake",
-            public_key.to_base58()
-        );
-
-        // NOTE: we do NOT move request_blockchain_from_peer yet
-        // so routing_thread still calls it
-
-        false
-    }
-
     pub async fn initialize(&mut self, configs_lock: Arc<RwLock<dyn Configuration + Send + Sync>>) {
         let peer_urls = {
             let configs = configs_lock.read().await;
@@ -335,60 +301,6 @@ impl Network {
                 //
                 // SYNCING
                 //
-                // RequestBlockchain means "we want this peer to describe the chain to us".
-                // - Outbound peers (`url.is_some()`): we dialed them (e.g. browser → server). We
-                //   should kick off WS chain sync even if `block_fetch_url` is not filled yet; that
-                //   field is for HTTP block fetch (SyncManager::add), not for deciding whether to
-                //   ask for headers on the socket.
-                // - Inbound peers with no `block_fetch_url`: typical wallet/browser incoming to a
-                //   server — they do not serve blocks; do not send RequestBlockchain to them.
-                //
-                /******* DISABLED TEMPORARILY
-                                if peer.is_connected
-                                    && peer.is_verified
-                                    && !matches!(peer.peer_type, PeerType::Stun)
-                                    && !peer.is_syncing
-                                    && !peer.is_synced
-                                {
-                                    let want_chain_from_peer =
-                                        peer.url.is_some() || !peer.get_block_fetch_url().is_empty();
-
-                                    info!(
-                                        "[SYNCING IN MONITOR_PEERS] peer_id={} connected={} verified={} syncing={} synced={} outbound_url={} fetch_url_len={}",
-                                        peer.id,
-                                        peer.is_connected,
-                                        peer.is_verified,
-                                        peer.is_syncing,
-                                        peer.is_synced,
-                                        peer.url.is_some(),
-                                        peer.block_fetch_url.len()
-                                    );
-
-                                    if want_chain_from_peer {
-                                        if peer.block_fetch_url.is_empty() {
-                                            info!(
-                                                "[TEMP_SYNC_TRACE][SYNC] monitor arm sync (outbound; ws chain sync) peer_id={}",
-                                                peer.id
-                                            );
-                                        } else {
-                                            info!(
-                                                "[TEMP_SYNC_TRACE][SYNC] monitor arm sync peer_id={} fetch_url_len={}",
-                                                peer.id,
-                                                peer.block_fetch_url.len()
-                                            );
-                                        }
-                                        peer.is_syncing = true;
-                                        request_sync_for.push(peer.id);
-                                        work_done = true;
-                                    } else {
-                                        info!(
-                                            "[TEMP_SYNC_TRACE][SYNC] monitor skip RequestBlockchain (inbound, no block_fetch_url) peer_id={}",
-                                            peer.id
-                                        );
-                                        peer.on_sync_complete();
-                                    }
-                                }
-                *************/
 
                 //
                 // NEXT SKIP ACTIVE CONNECTIONS

@@ -12,6 +12,7 @@ use crate::core::mining_thread::MiningEvent;
 use crate::core::network::events::NetworkEvent;
 use crate::core::network::gatekeeper::AccessRecord;
 use crate::core::network::gatekeeper::Gatekeeper;
+use crate::core::network::interface_io::InterfaceEvent;
 use crate::core::network::msg::block::BlockReference;
 use crate::core::network::msg::blockchain::MAX_BLOCKCHAIN_CHUNK;
 use crate::core::network::msg::handshake::{Handshake, RequestHandshake};
@@ -162,14 +163,12 @@ impl RoutingThread {
                 self.process_request_handshake_message(peer_id, _challenge)
                     .await;
             }
-            Message::Handshake(_response) => {
+            Message::Handshake(response) => {
                 info!(
                     "[TEMP_SYNC_TRACE][VERIFY] recv Handshake peer_id={}",
                     peer_id
                 );
-                info!("[routing] RECEIVED Handshake peer_id={}", peer_id);
-                info!("HANDSHAKE RESPONSE: received handshake response");
-                self.process_handshake_message(peer_id, _response).await;
+                self.process_handshake_message(peer_id, response).await;
             }
             Message::Block(_) => {
                 // ...
@@ -273,23 +272,20 @@ impl RoutingThread {
                 // ...
             }
             Message::Services(data) => {
-                info!(
-                    "[TEMP_SYNC_TRACE][SERVICES] recv Services peer_id={} service_count={}",
-                    peer_id,
-                    data.services.len()
-                );
-                info!(
-                    "[routing] RECEIVED Services peer_id={} service_count={}",
-                    peer_id,
-                    data.services.len()
-                );
-                let mut peers = self.network.peer_lock.write().await;
-                if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-                    peer.services = data.services;
-                    peer.is_services_fetching = false;
-                    peer.is_services_fetched = true;
-                } else {
-                    warn!("received Services for unknown peer_id {:?}", peer_id);
+                let mut emit_key: Option<SaitoPublicKey> = None;
+                {
+                    let mut peers = self.network.peer_lock.write().await;
+                    if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                        peer.services = data.services;
+                        peer.is_services_fetching = false;
+                        peer.is_services_fetched = true;
+                        emit_key = peer.public_key;
+                    }
+                }
+                if let Some(public_key) = emit_key {
+                    self.network
+                        .io_interface
+                        .send_interface_event(InterfaceEvent::OnPeerServicesUp(public_key));
                 }
             }
             Message::RequestServices(_) => {
@@ -532,6 +528,9 @@ impl RoutingThread {
             }
 
             peer.on_handshake_complete(handshake.public_key, self.timer.get_timestamp_in_ms());
+            self.network.io_interface.send_interface_event(
+                InterfaceEvent::OnPeerHandshakeComplete(handshake.public_key),
+            );
         }
 
         info!(
@@ -771,12 +770,25 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 peer_id,
                 buffer,
             } => {
+                let prefix_len = std::cmp::min(32, buffer.len());
+                let prefix_hex = buffer[..prefix_len]
+                    .iter()
+                    .map(|b| format!("{:02x}", b))
+                    .collect::<String>();
                 info!(
                     "[TRACE_SYNC] fetched_from_network peer_id={} block_id={} block_hash={} bytes={}",
                     peer_id,
                     block_id,
                     block_hash.to_hex(),
                     buffer.len()
+                );
+                info!(
+                    "[TRACE_SYNC][SERDE] routing_block_fetched peer_id={} block_id={} block_hash={} bytes={} prefix32={}",
+                    peer_id,
+                    block_id,
+                    block_hash.to_hex(),
+                    buffer.len(),
+                    prefix_hex
                 );
                 info!(
                     "[TEMP_SYNC_TRACE][FETCH] fetch success peer_id={} block_id={} block_hash={} bytes={}",

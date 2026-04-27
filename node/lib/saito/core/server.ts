@@ -365,7 +365,6 @@ class Server {
     protocol: '',
     name: '',
     url: '',
-    block_fetch_url: '',
     endpoint: {
       host: '',
       port: 0,
@@ -566,7 +565,6 @@ class Server {
     // url += "/block/";
 
     this.server.url = url;
-    this.server.block_fetch_url = url;
 
     //
     // save options

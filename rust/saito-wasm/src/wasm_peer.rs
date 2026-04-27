@@ -26,19 +26,14 @@ impl WasmPeer {
         }
         array
     }
-    //
-    // #[wasm_bindgen(constructor)]
-    // pub fn new(public_key: PeerIndex) -> WasmPeer {
-    //     WasmPeer {
-    //         peer: Peer::new(public_key),
-    //     }
-    // }
     #[wasm_bindgen(getter = sync_type)]
     pub fn get_sync_type(&self) -> JsString {
-        if self.peer.get_block_fetch_url().is_empty() {
+        // Sentinel args return the derived HTTP base URL only (see Peer::get_block_fetch_url).
+        let base = self.peer.get_block_fetch_url([0; 32], false, [0; 33]);
+        if base.is_empty() {
             return "lite".into();
         }
-        return "full".into();
+        "full".into()
     }
     #[wasm_bindgen(getter = services)]
     pub fn get_services(&self) -> JsValue {

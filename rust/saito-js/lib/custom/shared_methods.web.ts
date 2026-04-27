@@ -119,14 +119,64 @@ export default class WebSharedMethods extends CustomSharedMethods {
   }
 
   fetchBlockFromPeer(url: string): Promise<Uint8Array> {
+    console.info("[TRACE_SYNC] fetch_block_http_get url=", url);
     console.debug("fetching block from url : " + url);
+    let pathname = "";
+    try {
+      pathname = new URL(url).pathname || "";
+    } catch (_e) {
+      pathname = "";
+    }
+    const isBlockPath = pathname.includes("/block/") || pathname.includes("/lite-block/");
+    if (!isBlockPath) {
+      console.log(
+        "%c[TRACE_SYNC][WARNING] Rejecting invalid block fetch URL (missing /block/ or /lite-block/ path): " +
+          url,
+        "color:#ff3b30;font-weight:700"
+      );
+      return Promise.reject(new Error("invalid block fetch URL shape"));
+    }
+    if (pathname.includes("/block/") && !pathname.includes("/lite-block/")) {
+      console.log(
+        "%c[TRACE_SYNC][WARNING] Fetching FULL block endpoint for browser sync (likely SPV key fallback): " +
+          url,
+        "color:#ff3b30;font-weight:700"
+      );
+    }
     return fetch(url)
       .then((res: any) => {
+        console.info(
+          "[TRACE_SYNC] fetch_block_http_response url=%s status=%s ok=%s content_type=%s content_length=%s",
+          url,
+          res?.status,
+          res?.ok,
+          res?.headers?.get?.("content-type"),
+          res?.headers?.get?.("content-length")
+        );
         return res.arrayBuffer();
       })
       .then((buffer: ArrayBuffer) => {
-        console.debug("block fetched from : " + url + "with size : " + buffer.byteLength);
-        return new Uint8Array(buffer);
+        const bytes = new Uint8Array(buffer);
+        const prefix = Array.from(bytes.slice(0, 32))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        let parsed = "n/a";
+        if (bytes.length >= 20) {
+          const view = new DataView(buffer);
+          const txs = view.getUint32(0, false);
+          const blockId = Number(view.getBigUint64(4, false));
+          const ts = Number(view.getBigUint64(12, false));
+          parsed = `txs=${txs} block_id=${blockId} ts=${ts}`;
+        }
+        console.info(
+          "[TRACE_SYNC] fetch_block_http_bytes url=%s bytes=%s prefix32=%s parsed_header=%s",
+          url,
+          bytes.byteLength,
+          prefix,
+          parsed
+        );
+        console.debug("block fetched from : " + url + "with size : " + bytes.byteLength);
+        return bytes;
       })
       .catch((err) => {
         console.error("failed fetching block : ", err);

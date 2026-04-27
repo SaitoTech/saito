@@ -227,9 +227,15 @@ impl InterfaceIO for WasmIoHandler {
 
     fn send_interface_event(&self, event: InterfaceEvent) {
         match event {
-            InterfaceEvent::PeerHandshakeComplete(public_key) => {
+            InterfaceEvent::OnPeerHandshakeComplete(public_key) => {
                 MsgHandler::send_interface_event(
-                    "handshake_complete".to_string(),
+                    "on_peer_handshake_complete".to_string(),
+                    public_key.to_base58(),
+                );
+            }
+            InterfaceEvent::OnPeerServicesUp(public_key) => {
+                MsgHandler::send_interface_event(
+                    "on_peer_services_up".to_string(),
                     public_key.to_base58(),
                 );
             }

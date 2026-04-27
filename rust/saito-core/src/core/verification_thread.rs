@@ -3,7 +3,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use log::{debug, trace, warn};
+use log::{debug, info, trace, warn};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
@@ -75,6 +75,13 @@ impl VerificationThread {
     ) {
         // debug!("verifying block buffer of size : {:?}", buffer.len());
         let buffer_len = buffer.len();
+        info!(
+            "[TRACE_SYNC][SERDE] verify_block_start peer_id={} expected_block_id={} expected_block_hash={} bytes={}",
+            peer_id,
+            block_id,
+            block_hash.to_hex(),
+            buffer_len
+        );
         let result = Block::deserialize_from_net(buffer);
         if result.is_err() {
             warn!(
@@ -92,6 +99,14 @@ impl VerificationThread {
         }
 
         let mut block = result.unwrap();
+        info!(
+            "[TRACE_SYNC][SERDE] verify_block_deserialize_ok peer_id={} block_id={} block_hash={} tx_count={} bytes={}",
+            peer_id,
+            block.id,
+            block.hash.to_hex(),
+            block.transactions.len(),
+            buffer_len
+        );
         block.routed_from_peer_id = peer_id;
         block.generate().unwrap();
 
