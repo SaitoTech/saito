@@ -53,17 +53,58 @@ class Storage {
         return;
       }
     }
-    const response = await fetch(`/options`);
+    const response = await fetch('/options');
     let receivedOptions = await response.json();
+    const logPeers = (source: string) => {
+      const peers = this.app.options?.peers;
+      const n = Array.isArray(peers) ? peers.length : 0;
+      const first = n > 0 ? peers[0] : null;
+      const wsHint =
+        first &&
+        first.host != null &&
+        first.port != null &&
+        first.protocol != null
+          ? `${first.protocol === 'https' ? 'wss' : 'ws'}://${first.host}:${first.port}/wsopen`
+          : null;
+      const hasUrl = !!wsHint;
+      const willConnect = n > 0 && hasUrl;
+      console.log('[SAITO OPTIONS] peer list after loadOptions', {
+        source,
+        peerCount: n,
+        derivedWebSocketUrl: wsHint,
+        hasWebSocketUrl: hasUrl,
+        wasmWillAttemptConnect: willConnect,
+        firstPeer: first ? { ...first } : null
+      });
+      if (!willConnect) {
+        console.log(
+          '[SAITO OPTIONS] WASM will not open outbound sockets (no peers or incomplete host/port/protocol).'
+        );
+      }
+    };
     if (typeof Storage !== 'undefined') {
       const data = localStorage.getItem('options');
       if (data != 'null' && data != null) {
         this.app.options = JSON.parse(data);
         this.app.options.consensus = receivedOptions.consensus;
+        // Cached wallet previously only refreshed consensus from the server; peers stayed
+        // whatever was in localStorage (often []). Core builds ws://…/wsopen from peers[].
+        const cachedPeers = this.app.options.peers;
+        const cachedEmpty = !Array.isArray(cachedPeers) || cachedPeers.length === 0;
+        const serverPeers = receivedOptions.peers;
+        const serverHasPeers = Array.isArray(serverPeers) && serverPeers.length > 0;
+        if (cachedEmpty && serverHasPeers) {
+          console.log(
+            '[SAITO OPTIONS] localStorage had no peers; merging peers[] from GET /options'
+          );
+          this.app.options.peers = serverPeers;
+        }
+        logPeers('localStorage+merge');
         return;
       }
     }
     this.app.options = receivedOptions;
+    logPeers('GET_/options_only');
   }
 
   returnClientOptions(): string {

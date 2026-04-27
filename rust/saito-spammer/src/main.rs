@@ -309,10 +309,9 @@ async fn run_routing_event_processor(
 ) -> (Sender<NetworkEvent>, JoinHandle<()>) {
     let (sender, _receiver) = tokio::sync::mpsc::channel::<IoEvent>(channel_size);
 
-    let (sync_public_key, sync_lite_block_fetch) = {
-        let w = context.wallet_lock.read().await;
+    let sync_lite_block_fetch = {
         let c = configs_lock.read().await;
-        (w.public_key, c.is_spv_mode())
+        c.is_spv_mode()
     };
     let routing_event_processor = RoutingThread {
         blockchain_lock: context.blockchain_lock.clone(),
@@ -343,8 +342,8 @@ async fn run_routing_event_processor(
         sync: SyncManager::new(
             context.blockchain_lock.clone(),
             context.mempool_lock.clone(),
+            context.wallet_lock.clone(),
             Arc::new(timer.clone()),
-            sync_public_key,
             sync_lite_block_fetch,
         ),
         gatekeeper: Gatekeeper::default(),

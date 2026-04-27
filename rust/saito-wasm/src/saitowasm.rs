@@ -105,7 +105,6 @@ pub fn new(
     }
 
     let peers = Arc::new(RwLock::new(Peers::default()));
-    let sync_public_key = wallet.blocking_read().public_key;
     let sync_lite_block_fetch = configuration.blocking_read().is_spv_mode();
     let context = Context {
         blockchain_lock: Arc::new(RwLock::new(Blockchain::new(
@@ -160,8 +159,8 @@ pub fn new(
             sync: SyncManager::new(
                 context.blockchain_lock.clone(),
                 context.mempool_lock.clone(),
+                context.wallet_lock.clone(),
                 Arc::new(timer.clone()),
-                sync_public_key,
                 sync_lite_block_fetch,
             ),
             gatekeeper: Gatekeeper::default(),
@@ -1052,6 +1051,8 @@ pub async fn process_fetched_block(
     block_id: BlockId,
     peer_id: u64,
 ) -> Result<(), JsValue> {
+    let block_buffer = buffer.to_vec();
+    let buffer_len = block_buffer.len();
     let hash_vec = hash.to_vec();
     let hash_len = hash_vec.len();
     let block_hash: [u8; 32] = hash_vec.try_into().map_err(|_| {
@@ -1060,6 +1061,37 @@ pub async fn process_fetched_block(
             hash_len
         ))
     })?;
+    let prefix_len = std::cmp::min(32, buffer_len);
+    let prefix_hex = block_buffer[..prefix_len]
+        .iter()
+        .map(|b| format!("{:02x}", b))
+        .collect::<String>();
+    if buffer_len >= 20 {
+        let tx_count = u32::from_be_bytes(block_buffer[0..4].try_into().unwrap_or([0; 4]));
+        let parsed_block_id = u64::from_be_bytes(block_buffer[4..12].try_into().unwrap_or([0; 8]));
+        let parsed_timestamp =
+            u64::from_be_bytes(block_buffer[12..20].try_into().unwrap_or([0; 8]));
+        info!(
+            "[TRACE_SYNC][SERDE] wasm_process_fetched_block peer_id={} expected_block_id={} expected_block_hash={} bytes={} prefix32={} parsed_header_txs={} parsed_header_block_id={} parsed_header_ts={}",
+            peer_id,
+            block_id,
+            block_hash.to_hex(),
+            buffer_len,
+            prefix_hex,
+            tx_count,
+            parsed_block_id,
+            parsed_timestamp
+        );
+    } else {
+        info!(
+            "[TRACE_SYNC][SERDE] wasm_process_fetched_block peer_id={} expected_block_id={} expected_block_hash={} bytes={} prefix32={} parsed_header=too_short",
+            peer_id,
+            block_id,
+            block_hash.to_hex(),
+            buffer_len,
+            prefix_hex
+        );
+    }
     let mut saito = SAITO.lock().await;
     let saito = saito
         .as_mut()
@@ -1070,7 +1102,7 @@ pub async fn process_fetched_block(
             block_hash,
             block_id,
             peer_id,
-            buffer: buffer.to_vec(),
+            buffer: block_buffer,
         })
         .await;
     Ok(())

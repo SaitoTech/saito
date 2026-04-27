@@ -2,7 +2,7 @@ use crate::core::defs::{PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
 use crate::core::network::service::Service;
 use crate::core::process::version::Version;
 use crate::core::util::configuration::Endpoint;
-use log::info;
+use log::{info, warn};
 
 #[derive(Clone, Debug)]
 pub enum PeerType {
@@ -91,7 +91,6 @@ pub struct Peer {
     // --- sync / protocol flags ---
     //
     pub requested_blocks_from_us: bool,
-    pub block_fetch_url: String,
 }
 
 impl Peer {
@@ -140,7 +139,6 @@ impl Peer {
             invalid_transactions_received: 0,
             dropped_requests: 0,
             requested_blocks_from_us: false,
-            block_fetch_url: "".to_string(),
         }
     }
 
@@ -247,24 +245,22 @@ impl Peer {
         lite: bool,
         my_public_key: SaitoPublicKey,
     ) -> String {
+        let mut base = String::new();
 
-        let mut base = self.block_fetch_url.clone();
-
-        if base.is_empty() {
-            if let Some(url) = &self.url {
-                if let Some((scheme, rest)) = url.split_once("://") {
-                    let authority = rest.split('/').next().unwrap_or_default(); // host[:port]
-                    if !authority.is_empty() {
-                        let http_scheme = match scheme {
-                            "wss" => "https",
-                            "ws" => "http",
-                            "https" => "https",
-                            "http" => "http",
-                            _ => "",
-                        };
-                        if !http_scheme.is_empty() {
-                            base = format!("{}://{}", http_scheme, authority);
-                        }
+        // Prefer deriving from peer.url (typically ws(s)://host:port/wsopen).
+        if let Some(url) = &self.url {
+            if let Some((scheme, rest)) = url.split_once("://") {
+                let authority = rest.split('/').next().unwrap_or_default(); // host[:port]
+                if !authority.is_empty() {
+                    let http_scheme = match scheme {
+                        "wss" => "https",
+                        "ws" => "http",
+                        "https" => "https",
+                        "http" => "http",
+                        _ => "",
+                    };
+                    if !http_scheme.is_empty() {
+                        base = format!("{}://{}", http_scheme, authority);
                     }
                 }
             }
@@ -279,6 +275,23 @@ impl Peer {
                 "{}://{}:{}",
                 http_scheme, self.endpoint.host, self.endpoint.port
             );
+        }
+
+        // If no block-specific metadata is provided, return only the base fetch URL.
+        // This supports callers that want to cache/inspect the base endpoint.
+        let missing_hash = block_hash == [0; 32];
+        let missing_lite_pk = lite && my_public_key == [0; 33];
+        if missing_hash {
+            return base;
+        }
+
+        if missing_lite_pk {
+            warn!(
+                "[TRACE_SYNC] missing_spv_public_key_fallback_to_full_block_url base={} block_hash={}",
+                base,
+                block_hash.to_hex()
+            );
+            return format!("{}/block/{}", base, block_hash.to_hex());
         }
 
         if lite {

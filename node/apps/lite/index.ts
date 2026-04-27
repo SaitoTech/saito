@@ -108,6 +108,25 @@ async function init() {
   const saito = new Saito({ mod_paths: mods_config.lite });
   await saito.storage.initialize();
 
+  {
+    const peers = saito.options?.peers;
+    const n = Array.isArray(peers) ? peers.length : 0;
+    const first = n > 0 ? peers[0] : null;
+    const ws =
+      first &&
+      first.host != null &&
+      first.port != null &&
+      first.protocol != null
+        ? `${first.protocol === 'https' ? 'wss' : 'ws'}://${first.host}:${first.port}/wsopen`
+        : null;
+    console.log('[SAITO LITE] before WASM init: outbound connect preview', {
+      peerCount: n,
+      derivedWebSocketUrl: ws,
+      wasmWillCallConnectToPeer: !!(ws && n > 0),
+      peersPassedToWasm: peers
+    });
+  }
+
   saito.options.browser_mode = true;
   saito.options.spv_mode = true;
   saito.build_number = parseInt(build.build_number);

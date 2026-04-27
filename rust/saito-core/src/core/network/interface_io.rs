@@ -9,7 +9,8 @@ use crate::core::network::service::Service;
 use crate::core::process::version::Version;
 
 pub enum InterfaceEvent {
-    PeerHandshakeComplete(SaitoPublicKey),
+    OnPeerHandshakeComplete(SaitoPublicKey),
+    OnPeerServicesUp(SaitoPublicKey),
     PeerConnectionDropped(SaitoPublicKey),
     PeerConnected(SaitoPublicKey),
     BlockAddSuccess(SaitoHash, u64),

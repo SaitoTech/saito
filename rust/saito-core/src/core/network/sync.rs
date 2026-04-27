@@ -2,7 +2,8 @@ use std::sync::Arc;
 
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::mempool::Mempool;
-use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, SaitoPublicKey, Timestamp};
+use crate::core::consensus::wallet::Wallet;
+use crate::core::defs::{BlockHash, BlockId, PrintForLog, SaitoHash, Timestamp};
 use crate::core::network::msg::block::BlockReference;
 use crate::core::network::msg::blockchain::{
     is_supported_sync_type, Blockchain as BlockchainPeerMessage, RequestBlockchain,
@@ -50,7 +51,7 @@ pub struct SyncManager {
     peer_fetch_urls: HashMap<u64, String>,
     blockchain_lock: Arc<RwLock<Blockchain>>,
     mempool_lock: Arc<RwLock<Mempool>>,
-    my_public_key: SaitoPublicKey,
+    wallet_lock: Arc<RwLock<Wallet>>,
     spv_fetch: bool,
 }
 
@@ -58,8 +59,8 @@ impl SyncManager {
     pub fn new(
         blockchain_lock: Arc<RwLock<Blockchain>>,
         mempool_lock: Arc<RwLock<Mempool>>,
+        wallet_lock: Arc<RwLock<Wallet>>,
         timer: Arc<Timer>,
-        my_public_key: SaitoPublicKey,
         spv_fetch: bool,
     ) -> Self {
         Self {
@@ -68,7 +69,7 @@ impl SyncManager {
             timer,
             blockchain_lock,
             mempool_lock,
-            my_public_key,
+            wallet_lock,
             spv_fetch,
         }
     }
@@ -82,15 +83,18 @@ impl SyncManager {
         block_reference: BlockReference,
         peer_id: u64,
     ) -> bool {
-
         let block_id = block_reference.block_id;
         let block_hash = block_reference.block_hash;
+        let my_public_key = {
+            let wallet = self.wallet_lock.read().await;
+            wallet.public_key
+        };
 
         if !self.peer_fetch_urls.contains_key(&peer_id) {
             let peers = network.peer_lock.read().await;
             if let Some(peer) = peers.get_peer_by_id(peer_id) {
-
-		let peer_block_fetch_url = peer.get_block_fetch_url();
+                let peer_block_fetch_url =
+                    peer.get_block_fetch_url([0; 32], self.spv_fetch, my_public_key);
 
                 if peer_block_fetch_url.is_empty() {
                     info!(
@@ -102,8 +106,7 @@ impl SyncManager {
                     return false;
                 }
 
-                self.peer_fetch_urls
-                    .insert(peer_id, peer_block_fetch_url);
+                self.peer_fetch_urls.insert(peer_id, peer_block_fetch_url);
             }
         }
 
@@ -292,48 +295,72 @@ impl SyncManager {
                 e.last_attempt_at = now;
             }
             work_done = true;
+            let my_public_key = {
+                let wallet = self.wallet_lock.read().await;
+                wallet.public_key
+            };
 
-            let url: String = match self.peer_fetch_urls.get(&selected_peer_id) {
-                Some(url) if !url.is_empty() => url.clone(),
-
-                //
-                // no url to fetch blocks? mark as complete
-                //
-                // note that on_fetch_url_unavailable will delete peer and possibly block if no fallback peers available
-                //
-                Some(_) => {
-                    warn!(
-                        "peer {:?} has no fetch URL, disabling sync attempts",
-                        selected_peer_id
-                    );
-
-                    {
-                        let mut peers = network.peer_lock.write().await;
-                        if let Some(peer) = peers.get_peer_by_id_mut(selected_peer_id) {
-                            peer.on_sync_complete();
-                        }
-                    }
-
-                    self.on_fetch_url_unavailable(selected_peer_id, now);
-                    continue;
-                }
-
-                None => {
-                    info!(
-                        "[TEMP_SYNC_TRACE][FETCH] fetch fail peer-not-in-url-map peer_id={} block_id={} block_hash={}",
-                        selected_peer_id,
-                        block_id,
-                        block_hash.to_hex()
-                    );
-                    warn!(
-                        "dropping block fetch: peer {:?} not found for block {:?}",
-                        selected_peer_id,
-                        block_hash.to_hex()
-                    );
-                    self.on_fetch_fail(block_id, block_hash, selected_peer_id, now);
-                    continue;
+            let (peer_found, url) = {
+                let peers = network.peer_lock.read().await;
+                match peers.get_peer_by_id(selected_peer_id) {
+                    Some(peer) => (
+                        true,
+                        peer.get_block_fetch_url(block_hash, self.spv_fetch, my_public_key),
+                    ),
+                    None => (false, String::new()),
                 }
             };
+
+            if !peer_found {
+                info!(
+                    "[TEMP_SYNC_TRACE][FETCH] fetch fail peer-not-found peer_id={} block_id={} block_hash={}",
+                    selected_peer_id,
+                    block_id,
+                    block_hash.to_hex()
+                );
+                warn!(
+                    "dropping block fetch: peer {:?} not found for block {:?}",
+                    selected_peer_id,
+                    block_hash.to_hex()
+                );
+                self.on_fetch_fail(block_id, block_hash, selected_peer_id, now);
+                continue;
+            }
+
+            //
+            // no url to fetch blocks? mark as complete
+            //
+            // note that on_fetch_url_unavailable will delete peer and possibly block if no fallback peers available
+            //
+            if url.is_empty() {
+                warn!(
+                    "peer {:?} has no fetch URL, disabling sync attempts",
+                    selected_peer_id
+                );
+
+                {
+                    let mut peers = network.peer_lock.write().await;
+                    if let Some(peer) = peers.get_peer_by_id_mut(selected_peer_id) {
+                        peer.on_sync_complete();
+                    }
+                }
+
+                self.on_fetch_url_unavailable(selected_peer_id, now);
+                continue;
+            }
+
+            let is_block_url = url.contains("/block/") || url.contains("/lite-block/");
+            if !is_block_url {
+                warn!(
+                    "[TRACE_SYNC] invalid_fetch_url_shape peer_id={} block_id={} block_hash={} url={}",
+                    selected_peer_id,
+                    block_id,
+                    block_hash.to_hex(),
+                    url
+                );
+                self.on_fetch_fail(block_id, block_hash, selected_peer_id, now);
+                continue;
+            }
             info!(
                 "[TRACE_SYNC] fetch_dispatch peer_id={} block_id={} block_hash={} url={}",
                 selected_peer_id,
@@ -406,6 +433,10 @@ impl SyncManager {
             "[TEMP_SYNC_TRACE][SYNC] send RequestBlockchain peer_id={} latest_known_block_id={} sync_type={}",
             peer_id, latest_known_block_id, sync_type
         );
+        let my_public_key = {
+            let wallet = self.wallet_lock.read().await;
+            wallet.public_key
+        };
 
         network
             .send_message_by_peer_id(
@@ -415,8 +446,8 @@ impl SyncManager {
                     latest_known_block_hash,
                     fork_id,
                     sync_type,
-                    public_key: self.my_public_key,
-                    keylist: vec![self.my_public_key],
+                    public_key: my_public_key,
+                    keylist: vec![my_public_key],
                 }),
             )
             .await;

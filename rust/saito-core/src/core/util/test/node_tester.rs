@@ -241,10 +241,6 @@ pub mod test {
                 });
             }
 
-            let sync_public_key = wallet
-                .try_read()
-                .expect("wallet lock should be available during NodeTester init")
-                .public_key;
             let sync_lite_block_fetch = configuration
                 .try_read()
                 .expect("config lock should be available during NodeTester init")
@@ -276,8 +272,8 @@ pub mod test {
                     sync: SyncManager::new(
                         context.blockchain_lock.clone(),
                         context.mempool_lock.clone(),
+                        context.wallet_lock.clone(),
                         Arc::new(timer.clone().unwrap()),
-                        sync_public_key,
                         sync_lite_block_fetch,
                     ),
                     gatekeeper: Gatekeeper::default(),
