@@ -636,8 +636,7 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
         );
     }
 
-    async fn on_stat_interval(&mut self, _current_time: Timestamp) {
-    }
+    async fn on_stat_interval(&mut self, _current_time: Timestamp) {}
 
     fn is_ready_to_process(&self) -> bool {
         self.sender_to_miner.capacity() > CHANNEL_SAFE_BUFFER

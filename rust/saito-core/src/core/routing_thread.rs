@@ -237,15 +237,15 @@ impl RoutingThread {
                     .await;
             }
             Message::Pong() => {
-                // 
-		// update peer last_message_at immediately
-		//
-    		let now = self.timer.get_timestamp_in_ms();
-    		let mut peers = self.network.peer_lock.write().await;
-    		if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
-    		    peer.last_message_at = now;
-    		    peer.last_activity_at = now;
-    		}
+                //
+                // update peer last_message_at immediately
+                //
+                let now = self.timer.get_timestamp_in_ms();
+                let mut peers = self.network.peer_lock.write().await;
+                if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                    peer.last_message_at = now;
+                    peer.last_activity_at = now;
+                }
             }
             Message::Services(data) => {
                 let mut emit_key: Option<SaitoPublicKey> = None;
@@ -259,9 +259,9 @@ impl RoutingThread {
                     }
                 }
                 if let Some(public_key) = emit_key {
-                    self.network
-                        .io_interface
-                        .send_interface_event(InterfaceEvent::OnPeerServicesUp(peer_id, public_key));
+                    self.network.io_interface.send_interface_event(
+                        InterfaceEvent::OnPeerServicesUp(peer_id, public_key),
+                    );
                 }
             }
             Message::RequestServices(_) => {
@@ -503,7 +503,8 @@ impl RoutingThread {
                 return;
             }
 
-	    self.network.remove_duplicate_peers(peer_id, handshake.public_key);
+            self.network
+                .remove_duplicate_peers(peer_id, handshake.public_key);
             peer.on_handshake_complete(handshake.public_key, self.timer.get_timestamp_in_ms());
             self.network.io_interface.send_interface_event(
                 InterfaceEvent::OnPeerHandshakeComplete(peer_id, handshake.public_key),
@@ -931,8 +932,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
         //
         self.network.initialize(self.config_lock.clone()).await;
     }
-    async fn on_stat_interval(&mut self, _current_time: Timestamp) {
-    }
+    async fn on_stat_interval(&mut self, _current_time: Timestamp) {}
 
     fn is_ready_to_process(&self) -> bool {
         self.sender_to_miner.capacity() > CHANNEL_SAFE_BUFFER
@@ -1328,9 +1328,7 @@ mod tests {
 
         tester
             .routing_thread
-            .process_event(
-                crate::core::routing_thread::RoutingEvent::OnAddBlockSuccess([1; 32]),
-            )
+            .process_event(crate::core::routing_thread::RoutingEvent::OnAddBlockSuccess([1; 32]))
             .await;
 
         let config = tester.routing_thread.config_lock.read().await;

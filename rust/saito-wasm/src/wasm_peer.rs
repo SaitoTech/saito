@@ -14,6 +14,10 @@ pub struct WasmPeer {
 
 #[wasm_bindgen]
 impl WasmPeer {
+    #[wasm_bindgen(getter = id)]
+    pub fn get_id(&self) -> u64 {
+        self.peer.id
+    }
     #[wasm_bindgen(getter = public_key)]
     pub fn get_public_key(&self) -> JsString {
         self.peer.get_public_key().to_base58().into()

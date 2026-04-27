@@ -403,7 +403,7 @@ console.log("###");
         this.app.network.sendRequest('software-update', data, null, peer);
       }
       console.log('handshake complete : ', publicKey);
-      await this.onPeerHandshakeComplete(peer);
+      await this.onPeerHandshakeComplete(peer, peer_id);
     });
     this.app.connection.on('on_peer_services_up', async (peer_id: bigint, publicKey: string) => {
 console.log("###");
@@ -414,7 +414,7 @@ console.log("###");
     });
     this.app.connection.on('stun peer connect', async (peer_id: bigint, publicKey: string) => {
       let peer = await this.app.network.getPeer(publicKey);
-      await onPeerHandshakeComplete(peer);
+      await onPeerHandshakeComplete(peer, peer_id);
     });
 
     this.app.connection.on('stun peer disconnect', async (peer_id, publicKey) => {
@@ -435,6 +435,27 @@ console.log("###");
     });
 
     this.is_initialized = true;
+
+    //
+    // any peers that connected / handshoke / serviced us before the above
+    // events were attached would not have run their handshake or services
+    // code, so we manually double-check here.
+    //
+console.log("BEFORE SANITY HANDSERV...");
+    for (const peer of await this.app.network.getPeers()) {
+console.log("###");
+console.log("### INTO GETPEERS");
+console.log("###");
+      if (peer?.publicKey) { await this.onPeerHandshakeComplete(peer, peer.id); }
+console.log("###");
+console.log("### AFTER OPHC");
+console.log("###");
+      if (peer?.services?.length) { await this.onPeerServicesUp(peer); }
+console.log("###");
+console.log("### AFTER OPSU");
+console.log("###");
+    }
+console.log("AFTER SANITY HANDSERV...");
 
     //
     // we load the NFTs from the wallet now, since they have modules to
@@ -673,7 +694,35 @@ console.log("###");
     return null;
   }
 
-  async onPeerHandshakeComplete(peer: Peer) {
+  async onPeerHandshakeComplete(peer: Peer, peer_id?: bigint) {
+    const publicKey = peer?.publicKey;
+    if (publicKey) {
+      try {
+        const SaitoRuntime = require('saito-js/saito').default;
+        const runtime = SaitoRuntime?.getInstance?.();
+        if (runtime?.peers && runtime?.peersByPeerId) {
+          let networkPeer = null;
+          if (peer_id !== undefined && peer_id !== null) {
+            networkPeer = runtime.peersByPeerId.get(peer_id);
+          }
+          if (!networkPeer && runtime.peers.has(publicKey)) {
+            networkPeer = runtime.peers.get(publicKey);
+          }
+          if (!networkPeer) {
+            for (const candidate of runtime.peersByPeerId.values()) {
+              if (candidate?.publicKey === publicKey) {
+                networkPeer = candidate;
+                break;
+              }
+            }
+          }
+          if (networkPeer) {
+            networkPeer._publicKey = publicKey;
+            runtime.peers.set(publicKey, networkPeer);
+          }
+        }
+      } catch (err) {}
+    }
     //
     // all modules learn about the peer connecting
     //

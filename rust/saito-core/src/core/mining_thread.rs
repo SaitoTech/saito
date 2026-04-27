@@ -149,8 +149,7 @@ impl ProcessEvent<MiningEvent> for MiningThread {
         info!("node public key = {:?}", self.public_key.to_base58());
     }
 
-    async fn on_stat_interval(&mut self, _current_time: Timestamp) {
-    }
+    async fn on_stat_interval(&mut self, _current_time: Timestamp) {}
 
     fn is_ready_to_process(&self) -> bool {
         self.sender_to_mempool.capacity() > CHANNEL_SAFE_BUFFER

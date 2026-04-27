@@ -25,8 +25,8 @@ use saito_core::core::consensus::transaction::{Transaction, TransactionType};
 use saito_core::core::consensus::wallet::{DetailedNFT, Wallet};
 use saito_core::core::consensus_thread::{ConsensusEvent, ConsensusThread};
 use saito_core::core::defs::{
-    BlockId, Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoUTXOSetKey,
-    Timestamp, CHANNEL_SAFE_BUFFER,
+    BlockId, Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoUTXOSetKey, Timestamp,
+    CHANNEL_SAFE_BUFFER,
 };
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::network::events::NetworkEvent;

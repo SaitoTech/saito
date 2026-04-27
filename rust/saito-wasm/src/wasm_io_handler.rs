@@ -231,21 +231,21 @@ impl InterfaceIO for WasmIoHandler {
                 MsgHandler::send_interface_event(
                     "on_peer_handshake_complete".to_string(),
                     peer_id,
-		    public_key.to_base58(),
+                    public_key.to_base58(),
                 );
             }
             InterfaceEvent::OnPeerServicesUp(peer_id, public_key) => {
                 MsgHandler::send_interface_event(
                     "on_peer_services_up".to_string(),
                     peer_id,
-		    public_key.to_base58(),
+                    public_key.to_base58(),
                 );
             }
             InterfaceEvent::PeerConnectionDropped(peer_id, public_key) => {
                 MsgHandler::send_interface_event(
                     "peer_disconnect".to_string(),
                     peer_id,
-		    public_key.to_base58(),
+                    public_key.to_base58(),
                 );
             }
             InterfaceEvent::PeerConnected(peer_id, public_key) => {
@@ -274,7 +274,7 @@ impl InterfaceIO for WasmIoHandler {
             InterfaceEvent::StunPeerConnected(peer_id, public_key) => {
                 MsgHandler::send_interface_event(
                     "stun peer connect".to_string(),
-		    peer_id,
+                    peer_id,
                     public_key.to_base58(),
                 );
             }

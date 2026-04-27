@@ -12,9 +12,7 @@ use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
-use crate::core::defs::{
-    BlockHash, BlockId, PrintForLog, Timestamp, CHANNEL_SAFE_BUFFER,
-};
+use crate::core::defs::{BlockHash, BlockId, PrintForLog, Timestamp, CHANNEL_SAFE_BUFFER};
 use crate::core::network::events::NetworkEvent;
 use crate::core::network::peers::Peers;
 use crate::core::process::keep_time::Timer;
@@ -169,8 +167,7 @@ impl ProcessEvent<VerifyRequest> for VerificationThread {
 
     async fn on_init(&mut self) {}
 
-    async fn on_stat_interval(&mut self, _current_time: Timestamp) {
-    }
+    async fn on_stat_interval(&mut self, _current_time: Timestamp) {}
 
     fn is_ready_to_process(&self) -> bool {
         self.sender_to_consensus.capacity() > CHANNEL_SAFE_BUFFER
