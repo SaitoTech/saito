@@ -13,14 +13,12 @@ use crate::core::consensus::transaction::Transaction;
 use crate::core::consensus::wallet::Wallet;
 use crate::core::consensus_thread::ConsensusEvent;
 use crate::core::defs::{
-    BlockHash, BlockId, PrintForLog, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER,
+    BlockHash, BlockId, PrintForLog, Timestamp, CHANNEL_SAFE_BUFFER,
 };
 use crate::core::network::events::NetworkEvent;
 use crate::core::network::peers::Peers;
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
-
-use super::stat_thread::StatEvent;
 
 #[derive(Debug)]
 pub enum VerifyRequest {
@@ -33,11 +31,6 @@ pub struct VerificationThread {
     pub blockchain_lock: Arc<RwLock<Blockchain>>,
     pub peer_lock: Arc<RwLock<Peers>>,
     pub wallet_lock: Arc<RwLock<Wallet>>,
-    pub processed_txs: StatVariable,
-    pub processed_blocks: StatVariable,
-    pub processed_msgs: StatVariable,
-    pub invalid_txs: StatVariable,
-    pub stat_sender: Sender<StatEvent>,
     pub timer: Timer,
 }
 
@@ -55,12 +48,9 @@ impl VerificationThread {
                 "transaction : {:?} not valid",
                 transaction.signature.to_hex()
             );
-            self.processed_txs.increment();
             return;
         }
 
-        self.processed_txs.increment();
-        self.processed_msgs.increment();
         self.sender_to_consensus
             .send(ConsensusEvent::NewTransaction { transaction })
             .await
@@ -136,9 +126,6 @@ impl VerificationThread {
             peer_id
         );
 
-        self.processed_blocks.increment();
-        self.processed_msgs.increment();
-
         self.sender_to_consensus
             .send(ConsensusEvent::BlockFetched { peer_id, block })
             .await
@@ -182,11 +169,7 @@ impl ProcessEvent<VerifyRequest> for VerificationThread {
 
     async fn on_init(&mut self) {}
 
-    async fn on_stat_interval(&mut self, current_time: Timestamp) {
-        self.processed_msgs.calculate_stats(current_time).await;
-        self.invalid_txs.calculate_stats(current_time).await;
-        self.processed_txs.calculate_stats(current_time).await;
-        self.processed_blocks.calculate_stats(current_time).await;
+    async fn on_stat_interval(&mut self, _current_time: Timestamp) {
     }
 
     fn is_ready_to_process(&self) -> bool {

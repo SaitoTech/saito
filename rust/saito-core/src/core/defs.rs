@@ -1,10 +1,6 @@
-use std::collections::VecDeque;
 use std::time::Duration;
 
 use ahash::AHashMap;
-use tokio::sync::mpsc::Sender;
-
-use super::stat_thread::StatEvent;
 
 pub type Currency = u64;
 
@@ -48,7 +44,6 @@ pub const MIN_GOLDEN_TICKETS_NUMERATOR: u64 = 2;
 pub const MIN_GOLDEN_TICKETS_DENOMINATOR: u64 = 6;
 
 pub const BLOCK_FILE_EXTENSION: &str = ".sai";
-pub const STAT_BIN_COUNT: usize = 3;
 
 pub const PEER_RECONNECT_WAIT_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
 pub const WS_KEEP_ALIVE_PERIOD: Timestamp = Duration::from_secs(10).as_millis() as Timestamp;
@@ -121,91 +116,10 @@ macro_rules! drain {
     }};
 }
 
-#[derive(Clone, Debug)]
-pub struct StatVariable {
-    pub total: u64,
-    pub count_since_last_stat: u64,
-    pub last_stat_at: Timestamp,
-    pub bins: VecDeque<(u64, Timestamp)>,
-    pub avg: f64,
-    pub max_avg: f64,
-    pub min_avg: f64,
-    pub name: String,
-    pub sender: Sender<StatEvent>,
-}
-
-impl StatVariable {
-    pub fn new(name: String, bin_count: usize, sender: Sender<StatEvent>) -> StatVariable {
-        StatVariable {
-            total: 0,
-            count_since_last_stat: 0,
-            last_stat_at: 0,
-            bins: VecDeque::with_capacity(bin_count),
-            avg: 0.0,
-            max_avg: 0.0,
-            min_avg: f64::MAX,
-            name,
-            sender,
-        }
-    }
-    pub fn increment(&mut self) {
-        {
-            self.total += 1;
-            self.count_since_last_stat += 1;
-        }
-    }
-    pub fn increment_by(&mut self, amount: u64) {
-        {
-            self.total += amount;
-            self.count_since_last_stat += amount;
-        }
-    }
-    pub async fn calculate_stats(&mut self, current_time_in_ms: Timestamp) {
-        let time_elapsed_in_ms = current_time_in_ms - self.last_stat_at;
-        self.last_stat_at = current_time_in_ms;
-        if self.bins.len() == self.bins.capacity() - 1 {
-            self.bins.pop_front();
-        }
-        self.bins
-            .push_back((self.count_since_last_stat, time_elapsed_in_ms));
-        self.count_since_last_stat = 0;
-
-        let mut total = 0;
-        let mut total_time_in_ms = 0;
-        for (count, time) in self.bins.iter() {
-            total += *count;
-            total_time_in_ms += *time;
-        }
-
-        self.avg = (1_000.0 * total as f64) / total_time_in_ms as f64;
-        if self.avg > self.max_avg {
-            self.max_avg = self.avg;
-        }
-        if self.avg < self.min_avg {
-            self.min_avg = self.avg;
-        }
-        self.sender
-            .send(StatEvent::StringStat(self.print(current_time_in_ms)))
-            .await
-            .expect("failed sending stat update");
-    }
-    pub fn format_timestamp(timestamp: Timestamp) -> String {
-        chrono::DateTime::from_timestamp_millis(timestamp as i64)
-            .unwrap()
-            .to_string()
-    }
-    fn print(&self, current_time_in_ms: Timestamp) -> String {
-        format!(
-            // target : "saito_stats",
-            "{} - {} - total : {:?}, current_rate : {:.2}, max_rate : {:.2}, min_rate : {:.2}",
-            Self::format_timestamp(current_time_in_ms),
-            format!("{:width$}", self.name, width = 40),
-            self.total,
-            self.avg,
-            self.max_avg,
-            self.min_avg
-        )
-    }
+pub fn format_timestamp(timestamp: Timestamp) -> String {
+    chrono::DateTime::from_timestamp_millis(timestamp as i64)
+        .unwrap()
+        .to_string()
 }
 
 pub trait PrintForLog<T: TryFrom<Vec<u8>>> {

@@ -17,7 +17,8 @@ use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::SaitoUTXOSetKey;
 use crate::core::defs::{
-    Currency, PrintForLog, SaitoHash, SaitoPublicKey, SaitoSignature, StatVariable, Timestamp,
+    format_timestamp, Currency, PrintForLog, SaitoHash, SaitoPublicKey, SaitoSignature,
+    Timestamp,
 };
 use crate::core::storage::storage::Storage;
 use crate::core::util::configuration::Configuration;
@@ -205,8 +206,8 @@ impl Mempool {
             if current_timestamp <= previous_block_timestamp {
                 warn!(
                     "current timestamp = {:?} should be larger than previous block timestamp : {:?}",
-                    StatVariable::format_timestamp(current_timestamp),
-                    StatVariable::format_timestamp(previous_block_timestamp)
+                    format_timestamp(current_timestamp),
+                    format_timestamp(previous_block_timestamp)
                 );
                 return None;
             }

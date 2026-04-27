@@ -45,7 +45,6 @@ Important areas under `saito-core/src/core/`:
 - `mining_thread.rs`: golden-ticket mining loop
 - `msg/`: wire-level protocol messages
 - `process/`: shared event-loop interfaces and time helpers
-- `stat_thread.rs`: metrics and state reporting
 - `util/`: configuration, crypto, serialization, test helpers, and utilities
 
 ```mermaid
@@ -60,7 +59,6 @@ flowchart LR
 	CORE --> MSG[msg]
 	CORE --> PROC[process]
 	CORE --> UTIL[util]
-	CORE --> STAT[stat_thread]
 ```
 
 ### `saito-rust`
