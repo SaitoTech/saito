@@ -71,6 +71,30 @@ impl Peers {
         self.peers.values_mut()
     }
 
+    pub async fn remove_duplicate_peers(
+	&mut self,
+        new_peer_id: u64,
+        public_key: SaitoPublicKey,
+    ) {
+      let stale_ids: Vec<u64> = self
+        .peers
+        .iter()
+        .filter_map(|(&id, p)| {
+            if id == new_peer_id {
+                return None;
+            }
+            if p.public_key == Some(public_key) {
+                Some(id)
+            } else {
+                None
+            }
+        })
+        .collect();
+      for stale_id in stale_ids {
+        self.peers.remove(&stale_id);
+      }
+    }
+
     pub async fn add_stun_peer(
         &mut self,
         peer_id: u64,
@@ -176,9 +200,8 @@ impl Peers {
                 if peer.is_connected {
                     return None;
                 }
-
                 // Skip static peers (have URL)
-                if peer.url.is_some() {
+                if !peer.disconnect_on_stale {
                     return None;
                 }
 

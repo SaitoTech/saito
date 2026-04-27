@@ -170,6 +170,13 @@ impl Network {
             .await;
     }
 
+    pub async fn remove_duplicate_peers(&self, peer_id: u64, public_key: SaitoPublicKey) {
+        let mut peers = self.peer_lock.write().await;
+        peers
+            .remove_duplicate_peers(peer_id, public_key)
+            .await;
+    }
+
     pub async fn remove_stun_peer(&self, peer_id: u64, public_key: SaitoPublicKey) {
         let mut peers = self.peer_lock.write().await;
         peers
