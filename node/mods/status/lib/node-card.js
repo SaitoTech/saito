@@ -46,13 +46,12 @@ try {
   async loadData() {
     if (!this.contentEl) return;
     try {
-        const [statsRaw, peerRaw, congestionRaw] = await Promise.all([
-          this.fetchData('stats'),
+        const [peerRaw, congestionRaw] = await Promise.all([
           this.fetchData('stats/peers'),
           this.fetchData('stats/congestion'),
         ]);
         
-        this.stats = this.safeParse(statsRaw);
+        this.stats = {};
         this.peers = Object.values(
           this.safeParse(peerRaw, { index_to_peers: {} }).index_to_peers
         );
@@ -74,10 +73,10 @@ try {
     if (this.props.endpoint) {
       return fetch(`${this.props.endpoint}/${path}`).then(r => r.text());
     }
-    // fallback to local stats
-    return path.includes('peers')
-      ? S.getLibInstance().get_peer_stats()
-      : S.getLibInstance().get_stats();
+    if (path.includes('peers')) {
+      return S.getLibInstance().get_peer_stats();
+    }
+    return S.getLibInstance().get_congestion_stats();
   }
 
   safeParse(data, fallback = {}) {
@@ -90,12 +89,7 @@ try {
 
 
   buildSummary() {
-    const stats = this.stats;
     const peers = this.peers;
-
-    const state     = stats.current_wallet_state || {};
-    const coreObj   = state.core_version   || {};
-    const walletObj = state.wallet_version || {};
 
     const fmtVersion = v => (
       typeof v.major === 'number' &&
@@ -109,9 +103,9 @@ try {
 
     const summary = {
       nodeType,
-      blockHeight   : stats?.current_blockchain_state?.longest_chain_length ?? '—',
-      walletVersion : fmtVersion(walletObj),
-      coreVersion   : fmtVersion(coreObj),
+      blockHeight   : '—',
+      walletVersion : '—',
+      coreVersion   : '—',
     };
 
     if (Object.keys(this.props.options).length > 0) {
@@ -181,10 +175,6 @@ try {
     } else if (activeTab === 'peerStats') {
     
       jsonTree.create(this.peers, this.contentEl);
-    
-    } else if (activeTab === 'stats') {
-    
-      jsonTree.create(this.stats, this.contentEl);
     
     } else if (activeTab === 'monitors') {
 
