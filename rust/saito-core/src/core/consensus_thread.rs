@@ -8,14 +8,14 @@ use log::{debug, info, trace, warn};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
-use crate::core::consensus::block::{Block, BlockType};
+use crate::core::consensus::block::Block;
 use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::golden_ticket::GoldenTicket;
 use crate::core::consensus::mempool::Mempool;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
-    BlockId, PrintForLog, SaitoHash, StatVariable, Timestamp, CHANNEL_SAFE_BUFFER, STAT_BIN_COUNT,
+    format_timestamp, BlockId, PrintForLog, SaitoHash, Timestamp, CHANNEL_SAFE_BUFFER,
 };
 use crate::core::mining_thread::MiningEvent;
 use crate::core::network::events::NetworkEvent;
@@ -27,8 +27,6 @@ use crate::core::storage::storage::Storage;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::core::util::crypto::hash;
 
-use super::stat_thread::{BlockchainStat, MempoolStat, StatEvent, WalletStat};
-
 pub const BLOCK_PRODUCING_TIMER: u64 = Duration::from_millis(1000).as_millis() as u64;
 
 #[derive(Debug)]
@@ -37,40 +35,6 @@ pub enum ConsensusEvent {
     BlockFetched { peer_id: u64, block: Block },
     NewTransaction { transaction: Transaction },
     NewTransactions { transactions: Vec<Transaction> },
-}
-
-pub struct ConsensusStats {
-    pub blocks_fetched: StatVariable,
-    pub blocks_created: StatVariable,
-    pub received_tx: StatVariable,
-    pub received_gts: StatVariable,
-}
-
-impl ConsensusStats {
-    pub fn new(sender: Sender<StatEvent>) -> Self {
-        ConsensusStats {
-            blocks_fetched: StatVariable::new(
-                "consensus::blocks_fetched".to_string(),
-                STAT_BIN_COUNT,
-                sender.clone(),
-            ),
-            blocks_created: StatVariable::new(
-                "consensus::blocks_created".to_string(),
-                STAT_BIN_COUNT,
-                sender.clone(),
-            ),
-            received_tx: StatVariable::new(
-                "consensus::received_tx".to_string(),
-                STAT_BIN_COUNT,
-                sender.clone(),
-            ),
-            received_gts: StatVariable::new(
-                "consensus::received_gts".to_string(),
-                STAT_BIN_COUNT,
-                sender.clone(),
-            ),
-        }
-    }
 }
 
 /// Manages blockchain and the mempool
@@ -85,9 +49,7 @@ pub struct ConsensusThread {
     pub timer: Timer,
     pub network: Network,
     pub storage: Storage,
-    pub stats: ConsensusStats,
     pub txs_for_mempool: Vec<Transaction>,
-    pub stat_sender: Sender<StatEvent>,
     pub config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
     pub produce_blocks_by_timer: bool,
     pub delete_old_blocks: bool,
@@ -253,7 +215,6 @@ impl ConsensusThread {
             mempool.add_block(block);
             // dropping the lock here since blockchain needs the write lock to add blocks
             drop(mempool);
-            self.stats.blocks_created.increment();
             let _updated = blockchain
                 .add_blocks_from_mempool(
                     self.mempool_lock.clone(),
@@ -354,7 +315,6 @@ impl ConsensusThread {
         let transaction =
             Wallet::create_golden_ticket_transaction(golden_ticket, &public_key, &private_key)
                 .await;
-        self.stats.received_gts.increment();
         mempool.add_golden_ticket(transaction).await;
     }
 }
@@ -441,7 +401,6 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                         mempool.blocks_queue.len()
                     );
                 }
-                self.stats.blocks_fetched.increment();
                 info!(
                     "[TEMP_SYNC_TRACE][FETCH] consensus submit queued blocks to blockchain add_blocks_from_mempool trigger=fetched-block block_hash={}",
                     fetched_block_hash_hex
@@ -469,12 +428,10 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     "ConsensusThread::process_event : new transaction : {:?}",
                     transaction.signature.to_hex()
                 );
-                self.stats.received_tx.increment();
 
                 if let TransactionType::GoldenTicket = transaction.transaction_type {
                     let mut mempool = self.mempool_lock.write().await;
 
-                    self.stats.received_gts.increment();
                     trace!("adding golden ticket to mempool");
                     mempool.add_golden_ticket(transaction).await;
                 } else {
@@ -489,15 +446,11 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     "ConsensusThread::process_event : new transactions : {:?}",
                     transactions.len()
                 );
-                self.stats
-                    .received_tx
-                    .increment_by(transactions.len() as u64);
 
                 self.txs_for_mempool.reserve(transactions.len());
                 let mut mempool = self.mempool_lock.write().await;
                 for transaction in transactions.drain(..) {
                     if let TransactionType::GoldenTicket = transaction.transaction_type {
-                        self.stats.received_gts.increment();
                         mempool.add_golden_ticket(transaction).await;
                     } else {
                         self.txs_for_mempool.push(transaction);
@@ -588,7 +541,7 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
             info!(
                 "loading {:?} blocks from disk. Timestamp : {:?}",
                 list.len(),
-                StatVariable::format_timestamp(start_time)
+                format_timestamp(start_time)
             );
             let mut files_to_delete: HashMap<String, BlockId> = Default::default();
 
@@ -621,7 +574,7 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                 info!(
                     "{:?} blocks remaining to be loaded. Timestamp : {:?}",
                     list.len(),
-                    StatVariable::format_timestamp(self.timer.get_timestamp_in_ms())
+                    format_timestamp(self.timer.get_timestamp_in_ms())
                 );
             }
             {
@@ -660,7 +613,7 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
             info!(
                 "{:?} total blocks in blockchain. Timestamp : {:?}, elapsed_time : {:?}",
                 blockchain.blocks.len(),
-                StatVariable::format_timestamp(self.timer.get_timestamp_in_ms()),
+                format_timestamp(self.timer.get_timestamp_in_ms()),
                 self.timer.get_timestamp_in_ms() - start_time
             );
             {
@@ -683,117 +636,7 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
         );
     }
 
-    async fn on_stat_interval(&mut self, current_time: Timestamp) {
-        // println!("on_stat_interval : {:?}", current_time);
-
-        self.stats
-            .blocks_fetched
-            .calculate_stats(current_time)
-            .await;
-        self.stats
-            .blocks_created
-            .calculate_stats(current_time)
-            .await;
-        self.stats.received_tx.calculate_stats(current_time).await;
-        self.stats.received_gts.calculate_stats(current_time).await;
-
-        {
-            let wallet = self.wallet_lock.read().await;
-
-            let stat = format!(
-                "{} - {} - total_slips : {:?}, unspent_slips : {:?}, current_balance : {:?}",
-                StatVariable::format_timestamp(current_time),
-                format!("{:width$}", "wallet::state", width = 40),
-                wallet.slips.len(),
-                wallet.get_unspent_slip_count(),
-                wallet.get_available_balance()
-            );
-            self.stat_sender
-                .send(StatEvent::StringStat(stat))
-                .await
-                .unwrap();
-
-            let wallet_stat = WalletStat {
-                wallet_balance: wallet.get_available_balance(),
-                wallet_address: wallet.public_key.to_base58(),
-            };
-            self.stat_sender
-                .send(StatEvent::WalletStat(wallet_stat))
-                .await
-                .unwrap();
-        }
-        {
-            let stat;
-            {
-                // trace!("locking blockchain 5");
-                let blockchain = self.blockchain_lock.read().await;
-
-                stat = format!(
-                    "{} - {} - utxo_size : {:?}, block_count : {:?}, longest_chain_len : {:?} full_block_count : {:?} txs_in_blocks : {:?}",
-                    StatVariable::format_timestamp(current_time),
-                    format!("{:width$}", "blockchain::state", width = 40),
-                    blockchain.utxoset.len(),
-                    blockchain.blocks.len(),
-                    blockchain.get_latest_block_id(),
-                    blockchain.blocks.iter().filter(|(_hash, block)| { block.block_type == BlockType::Full }).count(),
-                    blockchain.blocks.iter().map(|(_hash, block)| { block.transactions.len() }).sum::<usize>()
-                );
-
-                let blockchain_stat = BlockchainStat {
-                    longest_chain_length: blockchain.get_latest_block_id(),
-                    latest_block_hash: blockchain.get_latest_block_hash().to_hex(),
-                };
-                self.stat_sender
-                    .send(StatEvent::BlockchainStat(blockchain_stat))
-                    .await
-                    .unwrap();
-            }
-            // trace!("releasing blockchain 5");
-            self.stat_sender
-                .send(StatEvent::StringStat(stat))
-                .await
-                .unwrap();
-        }
-        {
-            let stat;
-            {
-                let mempool = self.mempool_lock.read().await;
-
-                stat = format!(
-                    "{} - {} - blocks_queue : {:?}, transactions : {:?}",
-                    StatVariable::format_timestamp(current_time),
-                    format!("{:width$}", "mempool:state", width = 40),
-                    mempool.blocks_queue.len(),
-                    mempool.transactions.len(),
-                );
-
-                let mempool_stat = MempoolStat {
-                    mempool_size: mempool.transactions.len() as u64,
-                };
-                self.stat_sender
-                    .send(StatEvent::MempoolStat(mempool_stat))
-                    .await
-                    .unwrap();
-            }
-
-            self.stat_sender
-                .send(StatEvent::StringStat(stat))
-                .await
-                .unwrap();
-        }
-        {
-            let stat = format!(
-                "{} - {} - capacity : {:?} / {:?}",
-                StatVariable::format_timestamp(current_time),
-                format!("{:width$}", "router::channel", width = 40),
-                self.sender_to_router.capacity(),
-                self.sender_to_router.max_capacity()
-            );
-            self.stat_sender
-                .send(StatEvent::StringStat(stat))
-                .await
-                .unwrap();
-        }
+    async fn on_stat_interval(&mut self, _current_time: Timestamp) {
     }
 
     fn is_ready_to_process(&self) -> bool {

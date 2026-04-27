@@ -9,7 +9,6 @@ use futures::stream::{SplitSink, SplitStream};
 use futures::{SinkExt, StreamExt};
 use log::{debug, error, info, trace, warn};
 use reqwest::Client;
-use saito_core::core::stat_thread::StatEvent;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpStream;
@@ -28,8 +27,7 @@ use saito_core::core::consensus::block::{Block, BlockType};
 use saito_core::core::consensus::blockchain::Blockchain;
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{
-    BlockId, PrintForLog, SaitoHash, SaitoPublicKey, StatVariable, BLOCK_FILE_EXTENSION,
-    STAT_BIN_COUNT,
+    BlockId, PrintForLog, SaitoHash, SaitoPublicKey, BLOCK_FILE_EXTENSION,
 };
 use saito_core::core::network::events::IoEvent;
 use saito_core::core::network::events::NetworkEvent;
@@ -556,9 +554,8 @@ impl NetworkController {
 /// * `sender_to_core`:
 /// * `configs_lock`:
 /// * `blockchain_lock`:
-/// * `sender_to_stat`:
 /// * `peers_lock`:
-/// * `sender_to_network`: sender for this thread. only used for reading performance stats
+/// * `sender_to_network`: sender for this thread
 ///
 /// returns: ()
 ///
@@ -574,9 +571,8 @@ pub async fn run_network_controller(
     sender_to_core: Sender<IoEvent>,
     configs_lock: Arc<RwLock<dyn Configuration + Send + Sync + 'static>>,
     _blockchain_lock: Arc<RwLock<Blockchain>>,
-    sender_to_stat: Sender<StatEvent>,
     peers_lock: Arc<RwLock<Peers>>,
-    sender_to_network: Sender<IoEvent>,
+    _sender_to_network: Sender<IoEvent>,
     timer: &Timer,
     wallet: Arc<RwLock<Wallet>>,
 ) -> (JoinHandle<()>, JoinHandle<()>) {
@@ -629,18 +625,6 @@ pub async fn run_network_controller(
     );
 
     let controller_handle = tokio::spawn(async move {
-        let mut outgoing_messages = StatVariable::new(
-            "network::outgoing_msgs".to_string(),
-            STAT_BIN_COUNT,
-            sender_to_stat.clone(),
-        );
-        let stat_timer_in_ms;
-        {
-            let configs_temp = configs_lock.read().await;
-            stat_timer_in_ms = configs_temp.get_server_configs().unwrap().stat_timer_in_ms;
-        }
-        let mut stat_interval = tokio::time::interval(Duration::from_millis(stat_timer_in_ms));
-
         let io_pool = tokio::runtime::Builder::new_multi_thread()
             .worker_threads(10)
             .enable_io()
@@ -648,16 +632,13 @@ pub async fn run_network_controller(
             .thread_name("saito-io-thread-pool")
             .build()
             .unwrap();
-
-        let mut last_stat_on: Instant = Instant::now();
         loop {
-            select! {
-                            result = receiver.recv()=>{
-                                if result.is_some() {
-                                    let event = result.unwrap();
-                                    let interface_event = event.event;
-                                    match interface_event {
-                                        NetworkEvent::ConnectToPeer {url} => {
+            let result = receiver.recv().await;
+            if result.is_some() {
+                let event = result.unwrap();
+                let interface_event = event.event;
+                match interface_event {
+                    NetworkEvent::ConnectToPeer {url} => {
 
             NetworkController::connect_to_peer(
                 network_controller_lock.clone(),
@@ -668,89 +649,42 @@ pub async fn run_network_controller(
                 &time_keeper,
             )
             .await;
-                                        }
+                    }
 
-                                        NetworkEvent::BlockFetchRequest {
-                                            block_hash,
-                                            peer_id,
-                                            url,
-                                            block_id,
-                                        } => {
-                                            let sender;
-                                            let current_queries;
-                                            {
-                                                let network_controller = network_controller_lock.read().await;
+                    NetworkEvent::BlockFetchRequest {
+                        block_hash,
+                        peer_id,
+                        url,
+                        block_id,
+                    } => {
+                        let sender;
+                        let current_queries;
+                        {
+                            let network_controller = network_controller_lock.read().await;
 
-                                                sender = network_controller.sender_to_core.clone();
-                                                current_queries = network_controller.currently_queried_urls.clone();
-                                            }
-                                            // starting new thread to stop io controller from getting blocked
-                                            io_pool.spawn(async move {
-                                                let client = reqwest::Client::new();
-
-                                                NetworkController::fetch_block(
-                                                    block_hash,
-                                                    peer_id,
-                                                    url,
-                                                    sender,
-                                                    current_queries,
-                                                    client,
-                                                    block_id,
-                                                )
-                                                .await
-                                            });
-                                        }
-
-                                        _ => unreachable!()
-                                    }
-                                }
-                            }
-                            _ = stat_interval.tick() => {
-                                {
-                                    if Instant::now().duration_since(last_stat_on)
-                                        > Duration::from_millis(stat_timer_in_ms)
-                                    {
-                                        last_stat_on = Instant::now();
-                                        outgoing_messages
-                                            .calculate_stats(time_keeper.get_timestamp_in_ms())
-                                            .await;
-                                        let network_controller = network_controller_lock.read().await;
-
-                                        let stat = format!(
-                                            "{} - {} - capacity : {:?} / {:?}",
-                                            StatVariable::format_timestamp(time_keeper.get_timestamp_in_ms()),
-                                            format!("{:width$}", "network::channel_to_core", width = 40),
-                                            network_controller.sender_to_core.capacity(),
-                                            network_controller.sender_to_core.max_capacity()
-                                        );
-                                        if let Err(e) =
-                                            sender_to_stat.send(StatEvent::StringStat(stat)).await
-                                        {
-                                            warn!(
-                                                "sender_to_stat send failed (op=network_channel_to_core_stat err={})",
-                                                e
-                                            );
-                                        }
-
-                                        let stat = format!(
-                                            "{} - {} - capacity : {:?} / {:?}",
-                                            StatVariable::format_timestamp(time_keeper.get_timestamp_in_ms()),
-                                            format!("{:width$}", "network::channel_outgoing", width = 40),
-                                            sender_to_network.capacity(),
-                                            sender_to_network.max_capacity()
-                                        );
-                                        if let Err(e) =
-                                            sender_to_stat.send(StatEvent::StringStat(stat)).await
-                                        {
-                                            warn!(
-                                                "sender_to_stat send failed (op=network_channel_outgoing_stat err={})",
-                                                e
-                                            );
-                                        }
-                                    }
-                                }
-                            }
+                            sender = network_controller.sender_to_core.clone();
+                            current_queries = network_controller.currently_queried_urls.clone();
                         }
+                        // starting new thread to stop io controller from getting blocked
+                        io_pool.spawn(async move {
+                            let client = reqwest::Client::new();
+
+                            NetworkController::fetch_block(
+                                block_hash,
+                                peer_id,
+                                url,
+                                sender,
+                                current_queries,
+                                client,
+                                block_id,
+                            )
+                            .await
+                        });
+                    }
+
+                    _ => unreachable!()
+                }
+            }
         }
     });
     (server_handle, controller_handle)

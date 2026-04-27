@@ -20,7 +20,6 @@ flowchart LR
 	VT[Verification Threads]
 	CT[ConsensusThread]
 	MT[MiningThread]
-	ST[StatThread]
 	CX[Context<br/>blockchain, mempool, wallet, config]
 
 	NC --> LD
@@ -29,10 +28,6 @@ flowchart LR
 	VT --> CT
 	CT --> MT
 	CT --> RT
-	RT --> ST
-	VT --> ST
-	CT --> ST
-	MT --> ST
 	CX --- RT
 	CX --- VT
 	CX --- CT
@@ -181,10 +176,6 @@ It:
 - emits a new golden ticket back to consensus when one is found
 
 Mining is therefore coupled to the chain tip but decoupled from networking and block assembly.
-
-### Stats Thread
-
-`StatThread` aggregates state and performance metrics coming from the other processors. This is operational plumbing rather than protocol logic, but it is part of the node runtime and is started as a first-class processor.
 
 ### Network Controller
 
