@@ -28,6 +28,10 @@ export default class Network {
     return this.app.core.network.getPeer(publicKey);
   }
 
+  public async getPeerByPeerId(peer_id: bigint): Promise<Peer> {
+    return this.app.core.network.getPeerByPeerId(peer_id);
+  }
+
   public async sendRequest(
     message: string,
     data: any = '',
