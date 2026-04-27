@@ -1420,7 +1420,7 @@ mod tests {
         tester
             .routing_thread
             .process_event(
-                crate::core::routing_thread::RoutingEvent::OnAddBlockSuccess([1; 32], false),
+                crate::core::routing_thread::RoutingEvent::OnAddBlockSuccess([1; 32]),
             )
             .await;
 
