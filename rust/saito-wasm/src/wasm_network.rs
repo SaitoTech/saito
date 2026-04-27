@@ -90,6 +90,25 @@ impl WasmNetwork {
         Some(WasmPeer::new_from_peer(peer))
     }
 
+    #[wasm_bindgen(js_name = getPeerByPeerId)]
+    pub async fn get_peer_by_peer_id(&self, peer_id: u64) -> Option<WasmPeer> {
+        let saito = SAITO.lock().await;
+
+        let peers = saito
+            .as_ref()
+            .unwrap()
+            .routing_thread
+            .network
+            .peer_lock
+            .read()
+            .await;
+
+        let peer = peers.get_peer_by_id(peer_id)?;
+
+        Some(WasmPeer::new_from_peer(peer.clone()))
+    }
+
+
     #[wasm_bindgen(js_name = propagateTransaction)]
     pub async fn propagate_transaction(&self, wtx: &WasmTransaction) {
         trace!("propagate_transaction");

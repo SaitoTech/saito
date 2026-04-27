@@ -131,8 +131,19 @@ export class NodeSharedMethods extends CustomSharedMethods {
     	 	await peer.syncFromRust();
   	      }
               if (peer.publicKey) {
-                if (!S.getInstance().peers.has(peer.publicKey)) {
+                const current = S.getInstance().peers.get(peer.publicKey);
+                if (!current) {
                   console.info('added peer : ' + peer.publicKey + ', url : ' + peer.url);
+                  S.getInstance().peers.set(peer.publicKey, peer);
+                } else if (current.peerId !== peer.peerId) {
+                  console.info(
+                    'updated peer mapping : ' +
+                      peer.publicKey +
+                      ' old peer_id=' +
+                      current.peerId.toString() +
+                      ' new peer_id=' +
+                      peer.peerId.toString()
+                  );
                   S.getInstance().peers.set(peer.publicKey, peer);
                 }
               }
@@ -449,8 +460,19 @@ class Server {
     	      await peer.syncFromRust();
   	    }
             if (peer.publicKey) {
-              if (!S.getInstance().peers.has(peer.publicKey)) {
+              const current = S.getInstance().peers.get(peer.publicKey);
+              if (!current) {
                 console.info('added peer : ', peer.publicKey);
+                S.getInstance().peers.set(peer.publicKey, peer);
+              } else if (current.peerId !== peer.peerId) {
+                console.info(
+                  'updated peer mapping : ' +
+                    peer.publicKey +
+                    ' old peer_id=' +
+                    current.peerId.toString() +
+                    ' new peer_id=' +
+                    peer.peerId.toString()
+                );
                 S.getInstance().peers.set(peer.publicKey, peer);
               }
             }

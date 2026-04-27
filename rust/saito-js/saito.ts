@@ -300,6 +300,12 @@ export default class Saito {
         return self.factory.createPeer(peer);
       },
 
+      getPeerByPeerId: async (peer_id: bigint) => {
+        const peer = await wasmNetwork.getPeerByPeerId(peer_id);
+        if (!peer) return null;
+        return self.factory.createPeer(peer);
+      },
+
       propagateTransaction: async (tx: any) => {
         return wasmNetwork.propagateTransaction(tx.clone().wasmTransaction);
       },
@@ -488,7 +494,26 @@ const socket = peer.socket;
 this.peersByPeerId.delete(peer_id);
 
 if (peer.publicKey) {
-  this.peers.delete(peer.publicKey);
+  const current = this.peers.get(peer.publicKey);
+  if (current?.peerId === peer_id) {
+    console.info(
+      "deleting publicKey mapping for same peer_id : " +
+        peer.publicKey +
+        " -> " +
+        peer_id.toString()
+    );
+    this.peers.delete(peer.publicKey);
+  } else if (current) {
+    console.info(
+      "skipping publicKey delete; mapping now belongs to newer peer_id : " +
+        peer.publicKey +
+        " -> " +
+        current.peerId.toString() +
+        " (removing " +
+        peer_id.toString() +
+        ")"
+    );
+  }
 }
 
       if (socket) {

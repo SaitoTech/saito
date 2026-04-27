@@ -396,7 +396,7 @@ console.log("###");
       if (this.app.BROWSER) {
         await this.app.wallet.setKeyList(this.app.keychain.returnWatchedPublicKeys());
       }
-      let peer = await this.app.network.getPeer(publicKey);
+      let peer = await this.app.network.getPeerByPeerId(peer_id);
       if (this.app.BROWSER == 0) {
         let data = `{"build_number": "${this.app.build_number}"}`;
         console.info(data);
@@ -409,11 +409,11 @@ console.log("###");
 console.log("###");
 console.log("### OPSU");
 console.log("###");
-        let peer = await this.app.network.getPeer(publicKey);
+        let peer = await this.app.network.getPeerByPeerId(peer_id);
         await this.onPeerServicesUp(peer);
     });
     this.app.connection.on('stun peer connect', async (peer_id: bigint, publicKey: string) => {
-      let peer = await this.app.network.getPeer(publicKey);
+      let peer = await this.app.network.getPeerByPeerId(peer_id);
       await onPeerHandshakeComplete(peer, peer_id);
     });
 
@@ -430,7 +430,7 @@ console.log("###");
 
     this.app.connection.on('peer_connect', async (peer_id: bigint, publicKey: string) => {
       console.log('peer_connect received for : ' + publicKey);
-      let peer = await this.app.network.getPeer(publicKey);
+      let peer = await this.app.network.getPeerByPeerId(peer_id);
       this.onConnectionStable(peer);
     });
 

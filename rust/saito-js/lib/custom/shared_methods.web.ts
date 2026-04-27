@@ -51,8 +51,19 @@ export default class WebSharedMethods extends CustomSharedMethods {
                 socket.send(buffer);
               }
               if (peer.publicKey) {
-                if (!Saito.getInstance().peers.has(peer.publicKey)) {
+                const current = Saito.getInstance().peers.get(peer.publicKey);
+                if (!current) {
                   console.info("added peer : " + peer.publicKey + ", url : " + peer.url);
+                  Saito.getInstance().peers.set(peer.publicKey, peer);
+                } else if (current.peerId !== peer.peerId) {
+                  console.info(
+                    "updated peer mapping : " +
+                      peer.publicKey +
+                      " old peer_id=" +
+                      current.peerId.toString() +
+                      " new peer_id=" +
+                      peer.peerId.toString()
+                  );
                   Saito.getInstance().peers.set(peer.publicKey, peer);
                 }
               }
