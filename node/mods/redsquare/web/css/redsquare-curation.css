@@ -81,7 +81,7 @@
 
 .tweet-container.active-curation .tweet[data-check='1'][data-curated='0'] {
   display: grid;
-  background: rgba(255, 0, 0, 0.25);
+  background: color-mix(in srgb, var(--saito-red) 25%, transparent);
 }
 
 .tweet-container.active-curation .tweet[data-check='1'] .tweet-controls {

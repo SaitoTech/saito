@@ -11,7 +11,7 @@
   top: 5.5rem;
   left: 3.9rem;
   z-index: 3;
-  border-left: 2px dashed #718695;
+  border-left: 2px dashed var(--saito-muted-color);
 }
 
 .tweet.highlight-tweet {
@@ -35,7 +35,7 @@
   top: 3rem;
   left: 3.9rem;
   z-index: 3;
-  border-left: 2px dotted #718695;
+  border-left: 2px dotted var(--saito-muted-color);
 }
 
 .tweet.is-reply {
@@ -51,8 +51,8 @@
   top: -0.25rem;
   left: -1px;
   z-index: 3;
-  border-left: 2px dotted #718695;
-  border-bottom: 2px dotted #718695;
+  border-left: 2px dotted var(--saito-muted-color);
+  border-bottom: 2px dotted var(--saito-muted-color);
 }
 
 .tweet.is-reply:has(+ .is-reply)::after {
@@ -63,7 +63,7 @@
   left: -1px;
   top: 3rem;
   z-index: 3;
-  border-left: 2px dotted #718695;
+  border-left: 2px dotted var(--saito-muted-color);
 }
 
 .tweet.is-reply .tweet-avatar {
@@ -133,7 +133,7 @@
   justify-content: space-between;
 
   font-size: 14px;
-  color: #718695;
+  color: var(--saito-muted-color);
   padding-bottom: unset;
   margin-bottom: unset;
 
@@ -226,7 +226,7 @@
 }
 
 .tweet-tool-like .heart-bg {
-  background: rgba(255, 192, 200, 0);
+  background: transparent;
   border-radius: 50%;
   width: 35px;
   display: flex;
@@ -237,7 +237,7 @@
 }
 
 .tweet-tool-like .heart-bg:hover {
-  background: rgba(255, 192, 200, 0.7);
+  background: color-mix(in srgb, var(--saito-red) 25%, transparent);
 }
 
 .tweet td {
@@ -315,7 +315,7 @@
   width: 100%;
   background: linear-gradient(
     180deg,
-    rgba(0,0,0,0),
+    transparent,
     var(--saito-background-color)
   );
   pointer-events: none;

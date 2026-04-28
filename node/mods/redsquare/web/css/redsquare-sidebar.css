@@ -17,7 +17,7 @@
 	align-items: center;
 	background-size: cover;
 	background-position: center;
-	background-color: color-mix(in srgb, var(--saito-grey-700) 27%, transparent);
+	background-color: var(--saito-card-bg);
 	background-blend-mode: soft-light;
 	border-radius: 16px;
 	overflow: hidden;
@@ -36,7 +36,7 @@
 	white-space: nowrap;
 	overflow-wrap: break-word;
 	opacity: 0.8;
-	background: #000a;
+	background: var(--saito-chip-bg);
 	border-radius: var(--saito-border-radius);
 }
 
@@ -45,13 +45,13 @@
 }
 
 .saito-module-titlebar-title {
-	color: #fff;
+	color: var(--saito-chip-fg);
 	font-size: 2rem;
 }
 
 .saito-module-titlebar-details {
 	font-size: 1.2rem;
-	color: #fff;
+	color: var(--saito-chip-fg);
 }
 
 .saito-game-identicons {
@@ -78,13 +78,13 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background-color: #222;
+	background-color: var(--saito-surface-color);
 	flex-shrink: 0;
-	background-color: none;
+	background-color: transparent;
 }
 
 .saito-game-identicons div {
-	border: 1px solid #fff8;
+	border: 1px solid var(--saito-chip-border);
 }
 
 .saito-module-identicon {

@@ -2,16 +2,31 @@
 
 html[data-theme='dark'] {
   /*BASE COLOR SECTION*/
-  --saito-background-color: #1c1c23;
-  --saito-background-color-inverse: #e2e2e6;
+  --palette-bg: #1c1c23;
+  --palette-bg-inverse: #e2e2e6;
+  --palette-surface-1: rgba(255, 255, 255, 0.04);
+  --palette-surface-2: rgba(255, 255, 255, 0.07);
+  --palette-surface-3: rgba(255, 255, 255, 0.12);
+  --palette-surface-inverse: var(--palette-bg-inverse);
+  --palette-outline: var(--saito-border-color-dark);
+  --palette-outline-strong: var(--saito-gray-550);
+
+  --saito-background-color: var(--palette-bg);
+  --saito-background-color-inverse: var(--palette-bg-inverse);
   --saito-header-background: var(--saito-background-color);
 
-  --saito-surface-color: rgba(255, 255, 255, 0.04);
+  --saito-surface-color: var(--palette-surface-1);
   --saito-surface-text: var(--saito-font-color);
-  --saito-surface-hover: rgba(255, 255, 255, 0.07);
-  --saito-surface-selected: rgba(255, 255, 255, 0.12);
-  --saito-surface-inverse: var(--saito-background-color-inverse);
+  --saito-surface-hover: var(--palette-surface-2);
+  --saito-surface-selected: var(--palette-surface-3);
+  --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-surface-inverse-text: var(--saito-font-color-inverse);
+  --saito-overlay-panel-bg: color-mix(in srgb, var(--saito-background-color) 92%, var(--saito-white));
+  --saito-modal-background: var(--saito-overlay-panel-bg);
+  --saito-modal-texture: none;
+  --saito-card-bg: var(--saito-surface-color);
+  --saito-card-bg-hover: var(--saito-surface-hover);
+  --saito-card-shadow-hover: var(--saito-elevation-2);
 
   /*FONTS SECTION*/
   --saito-font-color-primary: var(--saito-gray-150);
@@ -24,8 +39,8 @@ html[data-theme='dark'] {
   --saito-highlight-heavy: #8885;
 
   /* BORDER COLORS */
-  --saito-border-color: var(--saito-border-color-dark);
-  --border-color-general-dividers: var(--saito-gray-550);
+  --saito-border-color: var(--palette-outline);
+  --border-color-general-dividers: var(--palette-outline-strong);
 
   --saito-box-shadow:
     0px 12px 17px 2px #00000024, 0px 5px 22px 4px #0000001f, 0px 7px 8px -4px #00000033;

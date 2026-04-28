@@ -300,19 +300,11 @@ class Browser {
 
       this.browser_active = 1;
 
-      let theme = /*document.documentElement.getAttribute('data-theme') ||*/ 'lite';
+      const theme_from_document = document.documentElement.getAttribute('data-theme');
+      const theme =
+        this.app.options?.theme?.[active_module] ?? theme_from_document ?? 'dark';
 
-      // ignore html-embedded default theme preference until we are sorted on the themese
-      // because all of them are undefined!
-
-      if (this.app.options?.theme) {
-        if (this.app.options.theme[active_module]) {
-          theme = this.app.options.theme[active_module];
-          this.switchTheme(theme);
-        }
-      }
-
-      this.updateThemeInHeader(theme);
+      this.switchTheme(theme);
     } catch (err) {
       if (err == 'ReferenceError: document is not defined') {
         console.error('non-browser detected: ', err);

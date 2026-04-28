@@ -2,20 +2,38 @@
 
 html[data-theme='raven'] {
   /*BASE COLOR SECTION*/
-  --saito-background-color: #14212d;
-  --saito-background-color-inverse: #e3e7eb;
+  --palette-primary: #358ccf;
+  --palette-primary-dark: #3071a6;
+  --palette-secondary: #c535cf;
+  --palette-bg: #14212d;
+  --palette-bg-inverse: #e3e7eb;
+  --palette-surface-1: rgba(255, 255, 255, 0.03);
+  --palette-surface-2: rgba(255, 255, 255, 0.06);
+  --palette-surface-3: rgba(255, 255, 255, 0.12);
+  --palette-surface-inverse: var(--palette-bg-inverse);
+  --palette-outline: var(--saito-border-color-dark);
+  --palette-outline-strong: var(--saito-gray-500);
+
+  --saito-background-color: var(--palette-bg);
+  --saito-background-color-inverse: var(--palette-bg-inverse);
   --saito-header-background: var(--saito-background-color);
 
-  --saito-surface-color: rgba(255, 255, 255, 0.03);
+  --saito-surface-color: var(--palette-surface-1);
   --saito-surface-text: var(--saito-font-color);
-  --saito-surface-hover: rgba(255, 255, 255, 0.06);
-  --saito-surface-selected: rgba(255, 255, 255, 0.12);
-  --saito-surface-inverse: var(--saito-background-color-inverse);
+  --saito-surface-hover: var(--palette-surface-2);
+  --saito-surface-selected: var(--palette-surface-3);
+  --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-surface-inverse-text: var(--saito-font-color-inverse);
+  --saito-overlay-panel-bg: color-mix(in srgb, var(--saito-background-color) 92%, var(--saito-white));
+  --saito-modal-background: var(--saito-overlay-panel-bg);
+  --saito-modal-texture: none;
+  --saito-card-bg: var(--saito-surface-color);
+  --saito-card-bg-hover: var(--saito-surface-hover);
+  --saito-card-shadow-hover: var(--saito-elevation-2);
 
-  --saito-primary: #358ccf;
-  --saito-primary-dark: #3071a6;
-  --saito-secondary: #c535cf;
+  --saito-primary: var(--palette-primary);
+  --saito-primary-dark: var(--palette-primary-dark);
+  --saito-secondary: var(--palette-secondary);
 
   /*FONTS SECTION*/
   --saito-font-color-primary: var(--saito-gray-150); /* also --saito-font-color */
@@ -28,8 +46,8 @@ html[data-theme='raven'] {
   --saito-highlight-heavy: #7775;
 
   /* BORDER COLORS */
-  --saito-border-color: var(--saito-border-color-dark);
-  --border-color-general-dividers: var(--saito-gray-500);
+  --saito-border-color: var(--palette-outline);
+  --border-color-general-dividers: var(--palette-outline-strong);
 
   --saito-box-shadow:
     12px 17px 2px #00000024, 0px 5px 22px 4px #0000001f, 0px 7px 8px -4px #00000033;

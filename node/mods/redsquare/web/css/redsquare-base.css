@@ -107,7 +107,7 @@
   display: flex;
   align-items: center;
   font-size: 13px;
-  color: #718695;
+  color: var(--saito-muted-color);
   margin-bottom: 6px;
   gap: 6px;
 }
@@ -166,7 +166,7 @@
   height: 48px;
   margin-right: 12px;
   border-radius: 50%;
-  background-color: #aaa;
+  background-color: var(--saito-muted-color);
   flex-shrink: 0;
   z-index: 5;
   display: block !important;
