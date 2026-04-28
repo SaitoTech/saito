@@ -174,6 +174,7 @@ Palette themes only need to set palette + these semantic hooks; base CSS uses th
 | **D** | (Deferred) Packaged “noir” / videocall-style theme in global bundle — **keep videocall CSS in the mod** for now. |
 | **E** | ~~Audit Red Square lite rules~~ **Done:** lite lives in `themes/saito-lite.theme.css`; Red Square keeps layout-only overrides in module CSS. |
 | **F** | **Done:** first hard-coded color cleanup across shared CSS plus high-impact Red Square / Arcade surfaces. Added chip and muted tokens; tokenized tweet thread lines, module title chips, Arcade observer controls, install ribbon, and overlay shadows. |
+| **G** | **Done:** gradient-aware canvas and panel tokens added across all themes. Body backgrounds, overlays, modals, module overlays, and mention/selection popups now consume `--saito-canvas-background` and `--saito-overlay-panel-background` with theme-specific borders and shadows. |
 
 ---
 

@@ -13,8 +13,8 @@ This alows for a header with a header with title to be added without extra CSS
   max-height: 95vh;
   border: var(--border-thickness-thick) solid var(--saito-modal-border);
   border-radius: var(--saito-border-radius);
-  background-color: var(--saito-modal-background);
-  background-image: var(--saito-modal-texture);
+  background: var(--saito-modal-background);
+  background-image: var(--saito-modal-texture), var(--saito-modal-background);
   box-shadow: var(--saito-modal-shadow);
 }
 

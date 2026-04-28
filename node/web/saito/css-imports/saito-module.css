@@ -117,7 +117,7 @@
   width: min(90vw, 80rem);
   max-height: 70vh;
   overflow: auto;
-  background: var(--saito-overlay-panel-bg);
+  background: var(--saito-overlay-panel-background);
   border-radius: var(--saito-border-radius);
   border: var(--border-thickness-thin) solid var(--saito-overlay-panel-border);
   box-shadow: var(--saito-overlay-panel-shadow);

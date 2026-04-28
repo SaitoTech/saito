@@ -13,9 +13,18 @@ html[data-theme='raven'] {
   --palette-surface-inverse: var(--palette-bg-inverse);
   --palette-outline: var(--saito-border-color-dark);
   --palette-outline-strong: var(--saito-gray-500);
+  --palette-bg-gradient:
+    radial-gradient(circle at 14% 0%, color-mix(in srgb, var(--palette-primary) 18%, transparent), transparent 35rem),
+    radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--palette-secondary) 12%, transparent), transparent 38rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--palette-bg) 86%, var(--saito-black)), var(--palette-bg));
+  --palette-surface-gradient:
+    linear-gradient(180deg, color-mix(in srgb, var(--palette-primary) 8%, var(--palette-bg)), color-mix(in srgb, var(--saito-black) 10%, var(--palette-bg)));
+  --palette-overlay-gradient:
+    linear-gradient(180deg, color-mix(in srgb, var(--palette-primary) 10%, var(--palette-bg)), color-mix(in srgb, var(--saito-black) 8%, var(--palette-bg)));
 
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
+  --saito-canvas-background: var(--palette-bg-gradient);
   --saito-header-background: var(--saito-background-color);
 
   --saito-surface-color: var(--palette-surface-1);
@@ -25,7 +34,15 @@ html[data-theme='raven'] {
   --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-surface-inverse-text: var(--saito-font-color-inverse);
   --saito-overlay-panel-bg: color-mix(in srgb, var(--saito-background-color) 92%, var(--saito-white));
-  --saito-modal-background: var(--saito-overlay-panel-bg);
+  --saito-overlay-panel-background: var(--palette-overlay-gradient);
+  --saito-overlay-panel-border: color-mix(in srgb, var(--palette-primary) 28%, var(--palette-outline-strong));
+  --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--palette-primary) 20%, transparent);
+  --saito-overlay-panel-shadow:
+    0 24px 70px color-mix(in srgb, var(--saito-black) 50%, transparent),
+    0 8px 22px color-mix(in srgb, var(--palette-primary) 14%, transparent),
+    inset 0 1px 0 var(--saito-overlay-panel-border-highlight);
+  --saito-modal-background: var(--saito-overlay-panel-background);
+  --saito-modal-shadow: var(--saito-overlay-panel-shadow);
   --saito-modal-texture: none;
   --saito-card-bg: var(--saito-surface-color);
   --saito-card-bg-hover: var(--saito-surface-hover);
