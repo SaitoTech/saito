@@ -5,12 +5,12 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: var(--background-color-shim-normal);
+  background-color: var(--saito-overlay-backdrop);
   z-index: 100;
 }
 
 .saito-overlay-backdrop ~ .saito-overlay-backdrop {
-  background-color: var(--background-color-shim-light);
+  background-color: var(--saito-overlay-backdrop-stacked);
 }
 
 .saito-overlay {
@@ -23,19 +23,19 @@
   max-height: 100svh;
   max-width: 100vw;
   border-radius: var(--saito-border-radius);
-  background-color: var(--saito-background-color); /* Dont know why had to be added manually*/
+  background-color: var(--saito-overlay-panel-bg);
 }
 
 .saito-overlay-size {
   width: min(600px, 95vw);
   min-height: min(400px, 80vh);
   max-height: 80vh;
-  padding: 2rem;
+  padding: var(--saito-space-xl);
 }
 
 .saito-overlay-size.wide {
   width: min(900px, 100vw);
-  padding: 3rem;
+  padding: var(--saito-space-xxl);
 }
 
 .saito-overlay-size.tall {
@@ -50,9 +50,9 @@
 
 .saito-overlay > div:last-child,
 .saito-overlay > form {
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-overlay-panel-shadow);
   border-radius: var(--saito-border-radius);
-  border: var(--border-thickness) solid var(--border-color-general-dividers);
+  border: var(--border-thickness) solid var(--saito-overlay-panel-border);
 }
 
 .center-overlay {
@@ -124,11 +124,11 @@
 
 .saito-overlay-form {
   width: min(60rem, 95vw);
-  padding: 2rem;
-  background-color: var(--saito-background-color);
+  padding: var(--saito-space-xl);
+  background-color: var(--saito-overlay-panel-bg);
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: var(--saito-space-xl);
 }
 
 .saito-overlay-form .token-dropdown {
@@ -249,10 +249,11 @@
   min-height: min(400px, 90vh);
   max-width: 95vw;
   max-height: 95vh;
-  padding: 2rem;
-  background: var(--saito-background-color);
+  padding: var(--saito-space-xl);
+  background: var(--saito-overlay-panel-bg);
   border-radius: var(--saito-border-radius);
   border: var(--border-thickness-medium) solid var(--saito-primary);
+  box-shadow: var(--saito-overlay-panel-shadow);
   display: flex;
   flex-direction: column;
 }
@@ -283,7 +284,7 @@
   }
 
   .module-settings-overlay {
-    padding: 1rem;
+    padding: var(--saito-space-md);
   }
 
   .bottom-mobile-overlay.center-overlay {
@@ -293,6 +294,6 @@
   }
 
   .saito-overlay-size.wide {
-    padding: 2rem 1rem;
+    padding: var(--saito-space-xl) var(--saito-space-md);
   }
 }

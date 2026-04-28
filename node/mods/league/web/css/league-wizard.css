@@ -169,7 +169,7 @@ textarea {
 	width: 100%;
 	border-radius: 0 1rem 1rem 0;
 	outline: none;
-	background-color: none;
+	background-color: transparent;
 }
 
 .league-wizard-game-controls .settings {

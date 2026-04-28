@@ -283,7 +283,7 @@
 
 /*.saito-multi-select_btn.showAll>.saito-multi-select_btn_options button {
   background-color: var(--saito-primary);
-  color: #fff;
+  color: var(--saito-white);
 }*/
 
 .saito-multi-btn {

@@ -1,8 +1,3 @@
-html[data-theme='lite'] {
-  --saito-header-color: var(--saito-red);
-  --saito-header-background: var(--saito-background-color);
-}
-
 html,
 body {
   margin: 0;

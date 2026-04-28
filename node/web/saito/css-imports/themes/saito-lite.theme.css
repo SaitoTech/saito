@@ -1,0 +1,25 @@
+/*-------------------- LITE THEME --------------------
+ * Light UI: warm background from :root tokens; header uses brand red on flat background.
+ */
+
+html[data-theme='lite'] {
+  --palette-bg: #fff9f9;
+  --palette-bg-inverse: #4e4e4e;
+  --palette-surface-1: rgba(102, 102, 102, 0.125);
+  --palette-surface-2: rgba(102, 102, 102, 0.2);
+  --palette-surface-3: rgba(68, 68, 68, 0.33);
+  --palette-surface-inverse: rgba(255, 255, 255, 0.85);
+  --palette-outline: color-mix(in srgb, var(--saito-gray-200) 73%, transparent);
+  --palette-outline-strong: var(--saito-gray-750);
+
+  --saito-background-color: var(--palette-bg);
+  --saito-background-color-inverse: var(--palette-bg-inverse);
+  --saito-surface-color: var(--palette-surface-1);
+  --saito-surface-hover: var(--palette-surface-2);
+  --saito-surface-selected: var(--palette-surface-3);
+  --saito-surface-inverse: var(--palette-surface-inverse);
+  --saito-border-color: var(--palette-outline);
+  --border-color-general-dividers: var(--palette-outline-strong);
+  --saito-header-color: var(--saito-red);
+  --saito-header-background: var(--saito-background-color);
+}

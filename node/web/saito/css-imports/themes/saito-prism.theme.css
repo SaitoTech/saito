@@ -9,28 +9,61 @@ html[data-theme='prism'] {
      ============================================ */
 
   /* Background Colors - Deep dark Prism palette */
-  --saito-background-color: #0b0b10;
-  --saito-background-color-inverse: #e5e5eb;
+  --palette-primary: #6366f1; /* --pr-accent */
+  --palette-primary-dark: #4f46e5;
+  --palette-on-primary: #ffffff;
+  --palette-secondary: #a855f7; /* --pr-purple */
+  --palette-on-secondary: #ffffff;
+  --palette-bg: #0b0b10;
+  --palette-bg-inverse: #e5e5eb;
+  --palette-surface-1: rgba(26, 26, 38, 0.8); /* --pr-card with transparency */
+  --palette-surface-2: rgba(32, 32, 46, 0.9); /* --pr-card-hover */
+  --palette-surface-3: rgba(99, 102, 241, 0.15); /* --pr-accent-glow */
+  --palette-surface-inverse: var(--palette-bg-inverse);
+  --palette-outline: #2a2a3a; /* --pr-border */
+  --palette-outline-strong: #2a2a3a;
+
+  --saito-background-color: var(--palette-bg);
+  --saito-background-color-inverse: var(--palette-bg-inverse);
   --saito-header-background: #0b0b10;
 
   /* Surface Colors - Card-based UI layers */
-  --saito-surface-color: rgba(26, 26, 38, 0.8); /* --pr-card with transparency */
+  --saito-surface-color: var(--palette-surface-1);
   --saito-surface-text: var(--saito-font-color);
-  --saito-surface-hover: rgba(32, 32, 46, 0.9); /* --pr-card-hover */
-  --saito-surface-selected: rgba(99, 102, 241, 0.15); /* --pr-accent-glow */
-  --saito-surface-inverse: var(--saito-background-color-inverse);
+  --saito-surface-hover: var(--palette-surface-2);
+  --saito-surface-selected: var(--palette-surface-3);
+  --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-surface-inverse-text: #0b0b10;
+  --saito-overlay-panel-bg: var(--saito-surface-color);
+  --saito-modal-background: var(--saito-surface-color);
+  --saito-modal-texture: none;
+  --saito-card-bg: var(--saito-surface-color);
+  --saito-card-bg-hover: var(--saito-surface-hover);
+  --saito-card-border-initial: var(--saito-border-color);
+  --saito-card-border: var(--saito-border-color);
+  --saito-card-shadow-hover: var(--saito-box-shadow);
+  --saito-card-transform-hover: translateY(-2px);
+  --saito-input-bg: var(--saito-surface-color);
+  --saito-input-border: var(--saito-border-color);
+  --saito-input-font: var(--saito-font-monospace);
+  --saito-table-header-transform: uppercase;
+  --saito-table-header-size: 11px;
+  --saito-table-header-letter-spacing: 0.5px;
+  --saito-button-secondary-bg: var(--saito-surface-color);
+  --saito-button-secondary-bg-hover: var(--saito-surface-hover);
+  --saito-button-secondary-fg: var(--saito-primary);
+  --saito-button-secondary-fg-hover: var(--saito-primary-text);
 
   /* Primary Colors - Indigo accent from Prism */
-  --saito-primary: #6366f1; /* --pr-accent */
-  --saito-primary-dark: #4f46e5;
-  --saito-primary-text: #ffffff;
+  --saito-primary: var(--palette-primary);
+  --saito-primary-dark: var(--palette-primary-dark);
+  --saito-primary-text: var(--palette-on-primary);
   --saito-primary-background: linear-gradient(45deg, #6366f1 0%, #818cf8 55%, #6366f1 100%)
     transparent no-repeat left top / 400% auto;
 
   /* Secondary Colors */
-  --saito-secondary: #a855f7; /* --pr-purple */
-  --saito-secondary-text: #ffffff;
+  --saito-secondary: var(--palette-secondary);
+  --saito-secondary-text: var(--palette-on-secondary);
 
   /* ============================================
      FONTS SECTION
@@ -58,10 +91,10 @@ html[data-theme='prism'] {
      BORDER COLORS
      ============================================ */
 
-  --saito-border-color: #2a2a3a; /* --pr-border */
-  --saito-border-color-light: #2a2a3a;
-  --saito-border-color-dark: #2a2a3a;
-  --border-color-general-dividers: #2a2a3a;
+  --saito-border-color: var(--palette-outline);
+  --saito-border-color-light: var(--palette-outline);
+  --saito-border-color-dark: var(--palette-outline);
+  --border-color-general-dividers: var(--palette-outline-strong);
   --saito-border-radius: 12px; /* --pr-radius */
 
   /* ============================================
@@ -80,10 +113,6 @@ html[data-theme='prism'] {
   /* Buttons - Match Prism's button style */
   button,
   .saito-button-primary {
-    background: var(--saito-primary);
-    color: var(--saito-primary-text);
-    border-color: var(--saito-primary);
-    border-radius: var(--saito-border-radius);
     font-weight: 600;
     transition:
       opacity 0.2s,
@@ -96,93 +125,12 @@ html[data-theme='prism'] {
     transform: translateY(-1px);
   }
 
-  .saito-button-secondary {
-    background: var(--saito-surface-color);
-    color: var(--saito-primary);
-    border-color: var(--saito-primary);
-  }
-
-  .saito-button-secondary:hover {
-    background: var(--saito-surface-hover);
-    color: var(--saito-primary-text);
-  }
-
-  /* Modals - Dark card style */
-  .saito-modal {
-    background: var(--saito-surface-color);
-    border-color: var(--saito-border-color);
-    box-shadow: var(--saito-box-shadow-high);
-  }
-
   .saito-modal-title {
     color: var(--saito-font-color-heavy);
   }
 
-  /* Tables - Prism table styling */
-  .saito-table-row {
-    background: var(--saito-surface-color);
-    border-radius: 8px;
-    transition:
-      background 0.2s,
-      border-color 0.2s;
-  }
-
-  .saito-table-row:hover {
-    background: var(--saito-surface-hover);
-    border-color: var(--saito-primary);
-  }
-
   .saito-table-header {
-    background: var(--saito-surface-selected);
     color: var(--saito-font-color-secondary);
-    text-transform: uppercase;
-    font-size: 11px;
-    letter-spacing: 0.5px;
-  }
-
-  /* Input Fields - Match Prism search bar style */
-  input[type='text'],
-  input[type='email'],
-  input[type='password'],
-  textarea,
-  select {
-    background: var(--saito-surface-color);
-    border: 1px solid var(--saito-border-color);
-    border-radius: var(--saito-border-radius);
-    color: var(--saito-font-color);
-    font-family: var(--saito-font-monospace);
-    transition: border-color 0.2s;
-  }
-
-  input[type='text']:focus,
-  input[type='email']:focus,
-  input[type='password']:focus,
-  textarea:focus,
-  select:focus {
-    border-color: var(--saito-primary);
-    outline: none;
-  }
-
-  input::placeholder,
-  textarea::placeholder {
-    color: var(--saito-font-color-secondary);
-  }
-
-  /* Cards & Modules - Prism card styling */
-  .saito-module {
-    background: var(--saito-surface-color);
-    border: 1px solid var(--saito-border-color);
-    border-radius: var(--saito-border-radius);
-    transition:
-      border-color 0.3s,
-      transform 0.3s,
-      box-shadow 0.3s;
-  }
-
-  .saito-module:hover {
-    border-color: var(--saito-primary);
-    transform: translateY(-2px);
-    box-shadow: var(--saito-box-shadow);
   }
 
   /* Links - Indigo accent */
@@ -220,36 +168,7 @@ html[data-theme='prism'] {
     backdrop-filter: blur(10px);
   }
 
-  /* ============================================
-     SCROLLBARS - Hide scrollbars like Prism
-     ============================================ */
-
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: var(--saito-background-color);
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: var(--saito-border-color);
-    border-radius: 4px;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--saito-primary);
-  }
-
-  /* ============================================
-     SELECTION & FOCUS
-     ============================================ */
-
-  ::selection {
-    background: var(--saito-primary);
-    color: var(--saito-primary-text);
-  }
+  /* Scrollbars & ::selection: shared in saito-dark-themes-chrome.css */
 
   /* ============================================
      UTILITY CLASSES - Prism-inspired

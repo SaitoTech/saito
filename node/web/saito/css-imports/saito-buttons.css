@@ -13,10 +13,10 @@ button,
   font-size: 1.8rem;
   border-radius: var(--saito-border-radius);
   cursor: pointer;
-  border: var(--border-thickness-thin) solid var(--saito-primary);
+  border: var(--border-thickness-thin) solid var(--saito-button-primary-border);
   text-transform: capitalize;
-  padding: /*0 */ 1rem;
-  margin: 0.5rem;
+  padding: var(--saito-space-md);
+  margin: var(--saito-space-xs);
   white-space: nowrap;
   min-width: 18rem;
   min-height: 4.5rem;
@@ -25,13 +25,14 @@ button,
 
 button,
 .saito-button-primary {
-  background: var(--saito-primary);
-  color: var(--saito-primary-text);
+  background: var(--saito-button-primary-bg);
+  color: var(--saito-button-primary-fg);
 }
 
 .saito-button-secondary {
-  color: var(--saito-primary);
-  background: var(--saito-background-color);
+  color: var(--saito-button-secondary-fg);
+  background: var(--saito-button-secondary-bg);
+  border-color: var(--saito-button-secondary-border);
 }
 
 button:focus,
@@ -40,9 +41,15 @@ button:focus,
   outline: none;
 }
 
+button:focus-visible,
+.saito-button-primary:focus-visible,
+.saito-button-secondary:focus-visible {
+  box-shadow: var(--saito-focus-ring);
+}
+
 .saito-button-primary.disabled,
 .saito-button-primary[disabled] {
-  background: var(---saito-background-color);
+  background: var(--saito-button-disabled-bg);
   color: var(--saito-font-color-primary);
   border: var(--border-thickness-thin) solid var(--saito-font-color-primary);
   cursor: not-allowed;
@@ -50,20 +57,20 @@ button:focus,
 
 .saito-button-secondary.disabled,
 .saito-button-secondary[disabled] {
-  background: var(---saito-background-color);
-  color: var(--saito-font-color-light);
-  border: var(--border-thickness-thin) solid var(--saito-font-color-light);
+  background: var(--saito-button-disabled-bg);
+  color: var(--saito-button-disabled-fg);
+  border: var(--border-thickness-thin) solid var(--saito-button-disabled-border);
   cursor: not-allowed;
 }
 
 button:hover,
 .saito-button-primary:hover {
-  background: var(--saito-primary-dark);
+  background: var(--saito-button-primary-bg-hover);
 }
 
 .saito-button-secondary:hover {
-  background: var(--saito-primary);
-  color: var(--saito-primary-text);
+  background: var(--saito-button-secondary-bg-hover);
+  color: var(--saito-button-secondary-fg-hover);
 }
 
 button.small,
@@ -196,7 +203,7 @@ span.saito-anchor {
   /* This allows row to become column */
   .saito-button-row {
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: var(--saito-space-md);
   }
 
   .saito-button-row button,
