@@ -108,7 +108,6 @@ impl WasmNetwork {
         Some(WasmPeer::new_from_peer(peer.clone()))
     }
 
-
     #[wasm_bindgen(js_name = propagateTransaction)]
     pub async fn propagate_transaction(&self, wtx: &WasmTransaction) {
         trace!("propagate_transaction");
