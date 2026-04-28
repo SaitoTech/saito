@@ -23,7 +23,7 @@
   max-height: 100svh;
   max-width: 100vw;
   border-radius: var(--saito-border-radius);
-  background-color: var(--saito-overlay-panel-bg);
+  background: var(--saito-overlay-panel-background);
 }
 
 .saito-overlay-size {
@@ -53,6 +53,7 @@
   box-shadow: var(--saito-overlay-panel-shadow);
   border-radius: var(--saito-border-radius);
   border: var(--border-thickness) solid var(--saito-overlay-panel-border);
+  background: var(--saito-overlay-panel-background);
 }
 
 .center-overlay {
@@ -125,7 +126,7 @@
 .saito-overlay-form {
   width: min(60rem, 95vw);
   padding: var(--saito-space-xl);
-  background-color: var(--saito-overlay-panel-bg);
+  background: var(--saito-overlay-panel-background);
   display: flex;
   flex-direction: column;
   gap: var(--saito-space-xl);
@@ -250,9 +251,9 @@
   max-width: 95vw;
   max-height: 95vh;
   padding: var(--saito-space-xl);
-  background: var(--saito-overlay-panel-bg);
+  background: var(--saito-overlay-panel-background);
   border-radius: var(--saito-border-radius);
-  border: var(--border-thickness-medium) solid var(--saito-primary);
+  border: var(--border-thickness-medium) solid var(--saito-overlay-panel-border);
   box-shadow: var(--saito-overlay-panel-shadow);
   display: flex;
   flex-direction: column;

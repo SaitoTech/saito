@@ -22,9 +22,18 @@ html[data-theme='prism'] {
   --palette-surface-inverse: var(--palette-bg-inverse);
   --palette-outline: #2a2a3a; /* --pr-border */
   --palette-outline-strong: #2a2a3a;
+  --palette-bg-gradient:
+    radial-gradient(circle at 18% 0%, rgba(99, 102, 241, 0.2), transparent 36rem),
+    radial-gradient(circle at 88% 8%, rgba(168, 85, 247, 0.16), transparent 38rem),
+    linear-gradient(180deg, #11111a 0%, var(--palette-bg) 55%, #08080c 100%);
+  --palette-surface-gradient:
+    linear-gradient(180deg, rgba(32, 32, 46, 0.94), rgba(18, 18, 28, 0.94));
+  --palette-overlay-gradient:
+    linear-gradient(180deg, rgba(32, 32, 46, 0.96), rgba(14, 14, 22, 0.98));
 
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
+  --saito-canvas-background: var(--palette-bg-gradient);
   --saito-header-background: #0b0b10;
 
   /* Surface Colors - Card-based UI layers */
@@ -35,7 +44,15 @@ html[data-theme='prism'] {
   --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-surface-inverse-text: #0b0b10;
   --saito-overlay-panel-bg: var(--saito-surface-color);
-  --saito-modal-background: var(--saito-surface-color);
+  --saito-overlay-panel-background: var(--palette-overlay-gradient);
+  --saito-overlay-panel-border: color-mix(in srgb, var(--palette-primary) 28%, var(--palette-outline));
+  --saito-overlay-panel-border-highlight: rgba(129, 140, 248, 0.28);
+  --saito-overlay-panel-shadow:
+    0 28px 80px -18px rgba(99, 102, 241, 0.36),
+    0 14px 34px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 var(--saito-overlay-panel-border-highlight);
+  --saito-modal-background: var(--saito-overlay-panel-background);
+  --saito-modal-shadow: var(--saito-overlay-panel-shadow);
   --saito-modal-texture: none;
   --saito-card-bg: var(--saito-surface-color);
   --saito-card-bg-hover: var(--saito-surface-hover);

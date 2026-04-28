@@ -11,15 +11,33 @@ html[data-theme='lite'] {
   --palette-surface-inverse: rgba(255, 255, 255, 0.85);
   --palette-outline: color-mix(in srgb, var(--saito-gray-200) 73%, transparent);
   --palette-outline-strong: var(--saito-gray-750);
+  --palette-bg-gradient:
+    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--saito-orange) 16%, transparent), transparent 34rem),
+    radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--saito-red) 8%, transparent), transparent 32rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--palette-bg) 95%, var(--saito-white)), var(--palette-bg));
+  --palette-surface-gradient:
+    linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 82%, var(--saito-orange) 18%), var(--palette-bg));
+  --palette-overlay-gradient:
+    linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 88%, var(--saito-orange) 12%), var(--palette-bg));
 
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
+  --saito-canvas-background: var(--palette-bg-gradient);
   --saito-surface-color: var(--palette-surface-1);
   --saito-surface-hover: var(--palette-surface-2);
   --saito-surface-selected: var(--palette-surface-3);
   --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-border-color: var(--palette-outline);
   --border-color-general-dividers: var(--palette-outline-strong);
+  --saito-overlay-panel-background: var(--palette-overlay-gradient);
+  --saito-modal-background: var(--saito-overlay-panel-background);
+  --saito-overlay-panel-border: color-mix(in srgb, var(--palette-outline-strong) 34%, transparent);
+  --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--saito-white) 72%, transparent);
+  --saito-overlay-panel-shadow:
+    0 18px 48px color-mix(in srgb, var(--saito-gray-900) 18%, transparent),
+    0 2px 8px color-mix(in srgb, var(--saito-gray-900) 10%, transparent),
+    inset 0 1px 0 var(--saito-overlay-panel-border-highlight);
+  --saito-modal-shadow: var(--saito-overlay-panel-shadow);
   --saito-header-color: var(--saito-red);
   --saito-header-background: var(--saito-background-color);
 }

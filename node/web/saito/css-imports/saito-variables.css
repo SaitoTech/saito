@@ -110,6 +110,13 @@ font imports
   --palette-outline-strong: var(--saito-gray-750);
   --palette-shadow: var(--saito-gray-900);
   --palette-texture-overlay: url(/saito/img/tiled-logo.svg);
+  --palette-bg-gradient:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--palette-primary) 9%, transparent), transparent 32rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--palette-bg) 92%, var(--saito-white)), var(--palette-bg));
+  --palette-surface-gradient:
+    linear-gradient(180deg, color-mix(in srgb, var(--palette-surface-1) 92%, var(--saito-white)), var(--palette-surface-1));
+  --palette-overlay-gradient:
+    linear-gradient(180deg, color-mix(in srgb, var(--palette-bg) 94%, var(--saito-white)), var(--palette-bg));
 
   --dreamscape:
     linear-gradient(125deg, #e8001e 30%, #0001 55%, #ff8235 80%),
@@ -132,6 +139,7 @@ font imports
 
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
+  --saito-canvas-background: var(--palette-bg-gradient);
 
   /* panels, tables that sit above the background */
   --saito-surface-color: var(--palette-surface-1);
@@ -151,12 +159,15 @@ font imports
   --saito-overlay-backdrop: var(--background-color-shim-normal);
   --saito-overlay-backdrop-stacked: var(--background-color-shim-light);
   --saito-overlay-panel-bg: var(--saito-background-color);
-  --saito-overlay-panel-border: var(--border-color-general-dividers);
-  --saito-overlay-panel-shadow: var(--saito-box-shadow);
-  --saito-modal-background: var(--saito-background-color);
+  --saito-overlay-panel-background: var(--palette-overlay-gradient);
+  --saito-overlay-panel-border: color-mix(in srgb, var(--border-color-general-dividers) 76%, transparent);
+  --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--saito-white) 36%, transparent);
+  --saito-overlay-panel-shadow:
+    var(--saito-box-shadow-high), inset 0 1px 0 var(--saito-overlay-panel-border-highlight);
+  --saito-modal-background: var(--saito-overlay-panel-background);
   --saito-modal-texture: var(--palette-texture-overlay);
-  --saito-modal-border: var(--border-color-general-dividers);
-  --saito-modal-shadow: var(--saito-box-shadow-high);
+  --saito-modal-border: var(--saito-overlay-panel-border);
+  --saito-modal-shadow: var(--saito-overlay-panel-shadow);
 
   --saito-heart-animation: url('/redsquare/images/heart-orange.png');
 
