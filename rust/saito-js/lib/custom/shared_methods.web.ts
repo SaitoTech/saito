@@ -44,36 +44,54 @@ export default class WebSharedMethods extends CustomSharedMethods {
             trimmed
           );
 
-          Saito.getLibInstance()
-            .process_msg_buffer_from_peer(buffer, peer.instance)
-            .then((buffer: any) => {
-              if (buffer && buffer.byteLength > 0) {
-                socket.send(buffer);
-              }
-              if (peer.publicKey) {
-                const current = Saito.getInstance().peers.get(peer.publicKey);
-                if (!current) {
-                  console.info("added peer : " + peer.publicKey + ", url : " + peer.url);
-                  Saito.getInstance().peers.set(peer.publicKey, peer);
-                } else if (current.peerId !== peer.peerId) {
-                  console.info(
-                    "updated peer mapping : " +
-                      peer.publicKey +
-                      " old peer_id=" +
-                      current.peerId.toString() +
-                      " new peer_id=" +
-                      peer.peerId.toString()
-                  );
-                  Saito.getInstance().peers.set(peer.publicKey, peer);
-                }
-              }
-            })
-            .catch((error: any) => {
-              console.error(
-                "processing incoming message buffer failed for peer : " + peer.publicKey,
-                error
-              );
-            });
+
+//
+// initialize per-peer queue once
+//
+// this prevents multiple msgs being processed
+// simultaneously, which can now happen if msgs
+// arrive at essentially the same time and there
+// is an await inside, locking the peer that needs
+// to have its instance sent inside
+//
+const inflight = peer._inflight ?? Promise.resolve();
+
+peer._inflight = inflight
+  .then(() => {
+    return Saito.getLibInstance()
+      .process_msg_buffer_from_peer(buffer, peer.instance);
+  })
+  .then((buffer: any) => {
+    if (buffer && buffer.byteLength > 0) {
+      socket.send(buffer);
+    }
+
+    if (peer.publicKey) {
+      const current = Saito.getInstance().peers.get(peer.publicKey);
+      if (!current) {
+        console.info("added peer : " + peer.publicKey + ", url : " + peer.url);
+        Saito.getInstance().peers.set(peer.publicKey, peer);
+      } else if (current.peerId !== peer.peerId) {
+        console.info(
+          "updated peer mapping : " +
+            peer.publicKey +
+            " old peer_id=" +
+            current.peerId.toString() +
+            " new peer_id=" +
+            peer.peerId.toString()
+        );
+        Saito.getInstance().peers.set(peer.publicKey, peer);
+      }
+    }
+  })
+  .catch((error: any) => {
+    console.error(
+      "processing incoming message buffer failed for peer : " +
+        peer.publicKey,
+      error
+    );
+  });
+
         } catch (error) {
           console.error("processing incoming message buffer failed.", error);
         }
@@ -189,7 +207,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
         console.debug("block fetched from : " + url + "with size : " + bytes.byteLength);
         return bytes;
       })
-      .catch((err) => {
+      .catch((err: any) => {
         console.error("failed fetching block : ", err);
         throw err;
       });

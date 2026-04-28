@@ -7,6 +7,7 @@ export default class NetworkPeer extends WasmWrapper<WasmNetworkPeer> {
   private _publicKey: string = "";
   private _url: string = "";
   private readonly _peerId: bigint;
+  public _inflight?: Promise<any>;
 
   constructor(peer: WasmNetworkPeer) {
     super(peer);
