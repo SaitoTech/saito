@@ -27,16 +27,35 @@ export class StunManager {
         peer = await NetworkPeer.create();
       }
 
-      dataChannel.onmessage = (messageEvent) => {
-        // Handle incoming messages
-        if (messageEvent.data instanceof ArrayBuffer) {
-          const buffer = new Uint8Array(messageEvent.data);
-	  Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
-          console.log("Received message via stun data channel from ", publicKey);
-        } else {
-          console.warn("Received unexpected data type from STUN peer", publicKey, messageEvent);
-        }
-      };
+// initialize per-peer chain once
+dataChannel.onmessage = (messageEvent) => {
+  // Handle incoming messages
+  if (messageEvent.data instanceof ArrayBuffer) {
+    const buffer = new Uint8Array(messageEvent.data);
+    const inflight = peer._inflight ?? Promise.resolve();
+
+    peer._inflight = inflight
+      .then(() => {
+        return Saito.getLibInstance()
+          .process_msg_buffer_from_peer(buffer, peer.instance);
+      })
+      .catch((err: any) => {
+        console.error(
+          "STUN process_msg_buffer_from_peer failed for ",
+          publicKey,
+          err
+        );
+      });
+
+    console.log("Received message via stun data channel from ", publicKey);
+  } else {
+    console.warn(
+      "Received unexpected data type from STUN peer",
+      publicKey,
+      messageEvent
+    );
+  }
+};
 
       dataChannel.onopen = () => {
         console.log("Data channel is open for STUN peer", publicKey);

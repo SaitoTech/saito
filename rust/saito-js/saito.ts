@@ -552,9 +552,28 @@ if (peer.publicKey) {
     }
   }
 
-  public async processMsgBufferFromPeer(buffer: Uint8Array, peer: NetworkPeer): Promise<void> {
-    return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
-  }
+public async processMsgBufferFromPeer(
+  buffer: Uint8Array,
+  peer: NetworkPeer
+): Promise<void> {
+  // initialize per-peer chain once
+  const inflight = peer._inflight ?? Promise.resolve();
+
+  peer._inflight = inflight
+    .then(() => {
+      return Saito.getLibInstance()
+        .process_msg_buffer_from_peer(buffer, peer.instance);
+    })
+    .catch((err: any) => {
+      console.error(
+        "process_msg_buffer_from_peer failed for peer:",
+        peer.publicKey,
+        err
+      );
+    });
+
+  return peer._inflight;
+}
 
   public async createTransaction<T extends Transaction>(
     publickey = "",

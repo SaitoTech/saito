@@ -60,6 +60,14 @@ impl Peers {
     }
 
     pub fn get_peer_by_public_key(&self, public_key: &SaitoPublicKey) -> Option<&Peer> {
+        if let Some(peer) = self
+            .peers
+            .values()
+            .filter(|p| p.public_key.as_ref() == Some(public_key) && p.is_connected)
+            .next()
+        {
+            return Some(peer);
+        }
         self.peers
             .values()
             .find(|p| p.public_key.as_ref() == Some(public_key))

@@ -503,8 +503,6 @@ impl RoutingThread {
                 return;
             }
 
-            self.network
-                .remove_duplicate_peers(peer_id, handshake.public_key);
             peer.on_handshake_complete(handshake.public_key, self.timer.get_timestamp_in_ms());
             self.network.io_interface.send_interface_event(
                 InterfaceEvent::OnPeerHandshakeComplete(peer_id, handshake.public_key),
