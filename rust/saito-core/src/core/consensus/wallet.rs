@@ -16,6 +16,7 @@ use ahash::{AHashMap, AHashSet};
 use log::{debug, error, info, trace, warn};
 use std::fmt::Display;
 use std::io::{Error, ErrorKind};
+use serde::Serialize;
 
 pub const WALLET_SIZE: usize = 65;
 
@@ -34,8 +35,9 @@ pub const WALLET_NOT_UPDATED: WalletUpdateStatus = false;
 /// are spent on one fork are not recaptured on chains, for instance, and once
 /// a slip is spent it is marked as spent.
 ///
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct WalletSlip {
+    #[serde(with = "crate::core::defs::saito_utxosetkey_serde")]
     pub utxokey: SaitoUTXOSetKey,
     pub amount: Currency,
     pub block_id: u64,
@@ -46,12 +48,17 @@ pub struct WalletSlip {
     pub slip_type: SlipType,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct NFT {
+    #[serde(with = "crate::core::defs::saito_utxosetkey_serde")]
     pub slip1: SaitoUTXOSetKey,
+    #[serde(with = "crate::core::defs::saito_utxosetkey_serde")]
     pub slip2: SaitoUTXOSetKey,
+    #[serde(with = "crate::core::defs::saito_utxosetkey_serde")]
     pub slip3: SaitoUTXOSetKey,
+    #[serde(with = "crate::core::defs::vec_u8_serde")]
     pub id: Vec<u8>,
+    #[serde(with = "crate::core::defs::saito_signature_serde")]
     pub tx_sig: SaitoSignature,
 }
 
@@ -90,20 +97,32 @@ impl Default for DetailedNFT {
 
 /// The `Wallet` manages the public and private keypair of the node and holds the
 /// slips that are used to form transactions on the network.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct Wallet {
+
+    #[serde(with = "crate::core::defs::saito_public_key_serde")]
     pub public_key: SaitoPublicKey,
+
+    #[serde(skip)]
     pub private_key: SaitoPrivateKey,
+    #[serde(serialize_with = "crate::core::defs::utxo_map_serde::serialize")]
     pub slips: AHashMap<SaitoUTXOSetKey, WalletSlip>,
+    #[serde(serialize_with = "crate::core::defs::utxo_set_serde::serialize")]
     pub unspent_slips: AHashSet<SaitoUTXOSetKey>,
+    #[serde(serialize_with = "crate::core::defs::utxo_set_serde::serialize")]
     pub staking_slips: AHashSet<SaitoUTXOSetKey>,
     pub filename: String,
+    #[serde(skip)]
     pub filepass: String,
+
     available_balance: Currency,
+
+    #[serde(skip)]
     pub pending_txs: AHashMap<SaitoHash, Transaction>,
     // TODO : this version should be removed. only added as a temporary hack to allow SLR app version to be easily upgraded in browsers
     pub wallet_version: Version,
     pub core_version: Version,
+    #[serde(with = "crate::core::defs::saito_public_key_serde::vec")]
     pub key_list: Vec<SaitoPublicKey>,
     pub nfts: Vec<NFT>,
 }
