@@ -140,6 +140,7 @@ impl ConsensusThread {
         }
         None
     }
+
     pub async fn bundle_block(
         &mut self,
         timestamp: Timestamp,
@@ -148,7 +149,6 @@ impl ConsensusThread {
         let config_lock = self.config_lock.clone();
         let mut configs = config_lock.write().await;
 
-        // trace!("locking blockchain 3");
         let blockchain_lock = self.blockchain_lock.clone();
         let mempool_lock = self.mempool_lock.clone();
         let mut blockchain = blockchain_lock.write().await;
@@ -177,11 +177,13 @@ impl ConsensusThread {
                 gt_propagated = *propagated;
             }
         }
+
         let mut block = None;
         let mut disable_block_production = false;
         if let Some(configs) = configs.get_consensus_config() {
             disable_block_production = configs.disable_block_production;
         }
+
         if (produce_without_limits || (!configs.is_browser() && !configs.is_spv_mode()))
             && !blockchain.blocks.is_empty()
             && !disable_block_production
@@ -195,12 +197,8 @@ impl ConsensusThread {
                     configs.deref(),
                 )
                 .await;
-        } else {
-            // debug!("skipped bundling block. : produce_without_limits = {:?}, is_browser : {:?} block_count : {:?}",
-            //     produce_without_limits,
-            //     configs.is_browser() || configs.is_spv_mode(),
-            //     blockchain.blocks.len());
         }
+
         if let Some(block) = block {
             debug!(
                 "adding bundled block : {:?} with id : {:?} to mempool",
@@ -213,8 +211,9 @@ impl ConsensusThread {
             );
 
             mempool.add_block(block);
-            // dropping the lock here since blockchain needs the write lock to add blocks
+
             drop(mempool);
+
             let _updated = blockchain
                 .add_blocks_from_mempool(
                     self.mempool_lock.clone(),
@@ -229,7 +228,7 @@ impl ConsensusThread {
             debug!("blocks added to blockchain");
             return true;
         } else {
-            // route messages to peers
+            let mut txs_to_propagate: Vec<Transaction> = Vec::new();
             if !self.txs_for_mempool.is_empty() {
                 debug!(
                     "since a block was not produced, propagating {:?} txs to peers",
@@ -237,24 +236,44 @@ impl ConsensusThread {
                 );
                 for tx in self.txs_for_mempool.drain(..) {
                     debug!("propagating tx : {} to peers", tx.signature.to_hex());
-                    self.network.propagate_transaction(&tx).await;
+                    txs_to_propagate.push(tx);
                 }
             }
-            // route golden tickets to peers
-            if gt_result.is_some() && !gt_propagated {
-                self.network
-                    .propagate_transaction(gt_result.as_ref().unwrap())
-                    .await;
+
+            let gt_tx_to_propagate: Option<Transaction> = if gt_result.is_some() && !gt_propagated {
+                Some(gt_result.as_ref().unwrap().clone())
+            } else {
+                None
+            };
+
+            drop(mempool);
+            drop(blockchain);
+            drop(configs);
+
+            for tx in txs_to_propagate {
+                self.network.propagate_transaction(&tx).await;
+            }
+
+            if let Some(ref gt_tx) = gt_tx_to_propagate {
+                self.network.propagate_transaction(gt_tx).await;
                 debug!(
                     "propagating gt : {:?} to peers",
-                    hash(&gt_result.unwrap().serialize_for_net()).to_hex()
+                    hash(&gt_tx.serialize_for_net()).to_hex()
                 );
-                let (_, propagated) = mempool
+            }
+
+            if gt_tx_to_propagate.is_some() {
+                let mut mempool = self.mempool_lock.write().await;
+                let blockchain = self.blockchain_lock.read().await;
+
+                if let Some((_, propagated)) = mempool
                     .golden_tickets
                     .get_mut(&blockchain.get_latest_block_hash())
-                    .unwrap();
-                *propagated = true;
+                {
+                    *propagated = true;
+                }
             }
+
             return true;
         }
     }
