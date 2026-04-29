@@ -9,7 +9,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 saito-core = { path = "../saito-core" }
-wasm-bindgen = { version = "=0.2.92" }
+wasm-bindgen = { version = "=0.2.92" , features = ["serde-serialize"]}
 wasm-bindgen-futures = "=0.4.42"
 serde = { version = "=1.0.204", features = ["derive"] }
 serde-wasm-bindgen = { version = "=0.6.5" }

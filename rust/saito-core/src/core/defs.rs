@@ -130,6 +130,83 @@ pub trait PrintForLog<T: TryFrom<Vec<u8>>> {
     fn from_base58(str: &str) -> Result<T, String>;
 }
 
+pub mod saito_public_key_serde {
+    use crate::core::defs::PrintForLog;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S>(key: &[u8; 33], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&key.to_hex())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 33], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        <[u8; 33]>::from_hex(&s).map_err(serde::de::Error::custom)
+    }
+
+    pub mod option {
+        use super::*;
+        use serde::{Deserializer, Serializer};
+
+        pub fn serialize<S>(value: &Option<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match value {
+                Some(v) => serializer.serialize_some(&v.to_hex()),
+                None => serializer.serialize_none(),
+            }
+        }
+
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<[u8; 33]>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let opt = Option::<String>::deserialize(deserializer)?;
+            match opt {
+                Some(s) => {
+                    let val = <[u8; 33]>::from_hex(&s).map_err(serde::de::Error::custom)?;
+                    Ok(Some(val))
+                }
+                None => Ok(None),
+            }
+        }
+    }
+
+    pub mod vec {
+        use super::*;
+        use serde::{Deserializer, Serializer};
+
+        pub fn serialize<S>(value: &Vec<[u8; 33]>, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            let hex_vec: Vec<String> = value.iter().map(|v| v.to_hex()).collect();
+            serializer.serialize_some(&hex_vec)
+        }
+
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<[u8; 33]>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let vec = Vec::<String>::deserialize(deserializer)?;
+            let mut result = Vec::with_capacity(vec.len());
+
+            for s in vec {
+                let val = <[u8; 33]>::from_hex(&s).map_err(serde::de::Error::custom)?;
+                result.push(val);
+            }
+
+            Ok(result)
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! impl_print {
     ($st:ident) => {

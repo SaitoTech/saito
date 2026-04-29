@@ -4,6 +4,7 @@ use crate::core::network::msg::message::Message;
 use crate::core::network::peer::Peer;
 use ahash::HashMap;
 use log::{debug, error, info, trace};
+use serde::{Deserialize, Serialize};
 use std::io::Error;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
@@ -17,7 +18,7 @@ pub fn generate_peer_id() -> u64 {
     PEER_ID_GENERATOR.fetch_add(1, Ordering::Relaxed)
 }
 
-#[derive(Debug, Default)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct Peers {
     pub peers: HashMap<u64, Peer>,
 }

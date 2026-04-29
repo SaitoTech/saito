@@ -3,19 +3,21 @@ use crate::core::network::service::Service;
 use crate::core::process::version::Version;
 use crate::core::util::configuration::Endpoint;
 use log::{info, warn};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum PeerType {
     Default,
     Stun,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Peer {
     //
     // --- identity ---
     //
     pub id: u64,
+    #[serde(with = "crate::core::defs::saito_public_key_serde::option")]
     pub public_key: Option<SaitoPublicKey>,
     pub endpoint: Endpoint,
 
@@ -36,6 +38,7 @@ pub struct Peer {
     //
     pub ip: Option<String>,
     pub url: Option<String>,
+    #[serde(with = "crate::core::defs::saito_public_key_serde::vec")]
     pub key_list: Vec<SaitoPublicKey>,
     pub disconnect_on_stale: bool,
 

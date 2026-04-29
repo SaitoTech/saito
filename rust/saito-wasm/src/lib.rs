@@ -12,6 +12,7 @@ mod wasm_network_peer;
 mod wasm_nft;
 mod wasm_peer;
 mod wasm_peer_service;
+mod wasm_peers;
 mod wasm_slip;
 mod wasm_time_keeper;
 mod wasm_transaction;
