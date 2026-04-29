@@ -168,7 +168,6 @@ impl Network {
             .await;
     }
 
-
     pub async fn remove_stun_peer(&self, peer_id: u64, public_key: SaitoPublicKey) {
         let mut peers = self.peer_lock.write().await;
         peers

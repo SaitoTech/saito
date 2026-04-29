@@ -200,16 +200,32 @@ export default class Saito {
     Saito.getInstance().call_stat_functions(5000);
   }
 
-  public call_timed_functions(interval: number, lastCalledTime: number) {
-    setTimeout(() => {
-      let time = Date.now();
-      Saito.getLibInstance()
-        .process_timer_event(BigInt(time - lastCalledTime))
-        .then(() => {
-          this.call_timed_functions(interval, time);
-        });
-    }, interval);
-  }
+public call_timed_functions(interval: number, lastCalledTime: number) {
+  setTimeout(() => {
+    let time = Date.now();
+    let delta = time - lastCalledTime;
+    // guard: clock went backwards (can happen with Date.now)
+    if (delta < 0) {
+      delta = 0;
+    }
+
+    if (delta > 60000) {
+      delta = 60000;
+    }
+
+    // --- call into WASM ---
+    Saito.getLibInstance()
+      .process_timer_event(BigInt(delta))
+      .then(() => {
+        this.call_timed_functions(interval, time);
+      })
+      .catch((err: any) => {
+        console.error("timer error:", err);
+        this.call_timed_functions(interval, Date.now());
+      });
+
+  }, interval);
+}
 
   public call_stat_functions(interval: number) {
     setTimeout(() => {

@@ -336,10 +336,9 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
         }
 
         // generate blocks
-        self.block_producing_timer += duration_value;
+        self.block_producing_timer = self.block_producing_timer.saturating_add(duration_value);
         if self.produce_blocks_by_timer && self.block_producing_timer >= BLOCK_PRODUCING_TIMER {
             self.bundle_block(timestamp, false).await;
-
             work_done = true;
         }
 
