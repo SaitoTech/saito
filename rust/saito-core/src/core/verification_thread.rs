@@ -35,13 +35,20 @@ pub struct VerificationThread {
 impl VerificationThread {
     pub async fn verify_transaction(&mut self, mut transaction: Transaction) {
         trace!("verifying tx : {:?}", transaction.signature.to_hex());
-        let blockchain = self.blockchain_lock.read().await;
-        let wallet = self.wallet_lock.read().await;
-        let public_key = wallet.public_key;
-        transaction.generate(&public_key, 0, 0);
 
-        // TODO : should we skip validation against utxo if we don't have the full utxo ?
-        if !transaction.validate(&blockchain.utxoset, &blockchain, true) {
+        let (public_key, is_valid) = {
+            let blockchain = self.blockchain_lock.read().await;
+            let wallet = self.wallet_lock.read().await;
+
+            let public_key = wallet.public_key;
+            transaction.generate(&public_key, 0, 0);
+
+            let is_valid = transaction.validate(&blockchain.utxoset, &blockchain, true);
+
+            (public_key, is_valid)
+        };
+
+        if !is_valid {
             debug!(
                 "transaction : {:?} not valid",
                 transaction.signature.to_hex()
@@ -54,6 +61,7 @@ impl VerificationThread {
             .await
             .unwrap();
     }
+
     pub async fn verify_block(
         &mut self,
         buffer: &[u8],

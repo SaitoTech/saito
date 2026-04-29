@@ -20,6 +20,7 @@ use crate::core::util::configuration::Configuration;
 
 const RECONNECTION_PERIOD: Timestamp = 5_000;
 const HANDSHAKE_TIMEOUT: Timestamp = 15_000; // 15 seconds
+const PEER_STALE_PERIOD: Timestamp = 300_000; // see peers 6 minutes
 
 #[derive(Debug)]
 pub enum PeerDisconnectType {
@@ -85,13 +86,13 @@ impl Network {
     }
 
     pub async fn propagate_transaction(&self, transaction: &Transaction) {
-        // --- STEP 1: read wallet (no write lock yet) ---
+        // --- STEP 1: read wallet ---
         let (wallet_public_key, wallet_private_key) = {
             let wallet = self.wallet_lock.read().await;
             (wallet.public_key, wallet.private_key)
         };
 
-        // --- STEP 2: conditionally update wallet ---
+        // --- STEP 2: update wallet if needed ---
         if transaction
             .from
             .first()
@@ -105,47 +106,82 @@ impl Network {
             }
         }
 
-        // --- STEP 3: lock peers ---
-        let mut peers = self.peer_lock.write().await;
+        // --- STEP 3: collect send targets (NO AWAIT HERE) ---
+        let targets: Vec<(SaitoPublicKey, Vec<u8>)> = {
+            let mut peers = self.peer_lock.write().await;
 
-        for peer in peers.peers.values_mut() {
-            let Some(peer_public_key) = peer.public_key else {
-                continue;
-            };
+            let mut out = Vec::new();
 
-            if !peer.is_connected {
-                continue;
+            for peer in peers.peers.values_mut() {
+                let Some(peer_public_key) = peer.public_key else {
+                    continue;
+                };
+
+                if !peer.is_connected {
+                    continue;
+                }
+
+                if transaction.is_in_path(&peer_public_key) {
+                    continue;
+                }
+
+                // update stats
+                peer.transactions_sent += 1;
+                peer.last_transaction_at = self.timer.get_timestamp_in_ms();
+
+                // prepare tx
+                let mut tx = transaction.clone();
+                tx.add_hop(&wallet_private_key, &wallet_public_key, &peer_public_key);
+
+                let message = Message::Transaction(tx);
+                let serialized = message.serialize();
+
+                out.push((peer_public_key, serialized));
             }
 
-            if transaction.is_in_path(&peer_public_key) {
-                continue;
-            }
+            out
+        }; // LOCK DROPPED HERE
 
-            // --- update peer stats ---
-            peer.transactions_sent += 1;
-            peer.last_transaction_at = self.timer.get_timestamp_in_ms();
-
-            // --- prepare transaction ---
-            let mut tx = transaction.clone();
-            tx.add_hop(&wallet_private_key, &wallet_public_key, &peer_public_key);
-
-            let message = Message::Transaction(tx);
-            let serialized = message.serialize();
-
-            // --- send ---
+        // --- STEP 4: send outside lock ---
+        for (peer_public_key, buffer) in targets {
             let _ = self
                 .io_interface
-                .send_message(peer_public_key, serialized.as_slice())
-                .await
-                .inspect_err(|e| error!("{}", e));
+                .send_message(peer_public_key, buffer.as_slice())
+                .await;
         }
     }
 
     pub async fn cleanup_peers(&self, current_time: Timestamp) {
+        // STEP 1: collect stale peer IDs
+        let stale_peer_ids: Vec<u64> = {
+            let peers = self.peer_lock.read().await;
+
+            peers
+                .peers
+                .values()
+                .filter(|peer| {
+                    peer.disconnect_on_stale
+                        && peer.is_connected
+                        && peer.last_message_at + PEER_STALE_PERIOD < current_time
+                })
+                .map(|peer| peer.id)
+                .collect()
+        };
+
+        // STEP 2: disconnect outside lock
+        for peer_id in &stale_peer_ids {
+            let _ = self.io_interface.disconnect_from_peer(*peer_id).await;
+        }
+
+        // STEP 3: apply state changes
         let mut peers = self.peer_lock.write().await;
-        peers
-            .disconnect_stale_peers(current_time, self.io_interface.as_ref())
-            .await;
+
+        for peer_id in stale_peer_ids {
+            if let Some(peer) = peers.get_peer_by_id_mut(peer_id) {
+                peer.on_disconnect(current_time);
+            }
+        }
+
         peers.remove_disconnected_peers(current_time);
     }
 

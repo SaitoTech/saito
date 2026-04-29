@@ -2378,6 +2378,7 @@ impl Blockchain {
             }
         }
     }
+
     pub async fn add_blocks_from_mempool(
         &mut self,
         mempool_lock: Arc<RwLock<Mempool>>,
@@ -2388,100 +2389,128 @@ impl Blockchain {
         configs: &mut (dyn Configuration + Send + Sync),
     ) {
         debug!("adding blocks from mempool to blockchain");
+
         let mut blocks: VecDeque<Block>;
+
         {
             let mut mempool = mempool_lock.write().await;
-
             blocks = mempool.blocks_queue.drain(..).collect();
-            blocks.make_contiguous().sort_by(|a, b| a.id.cmp(&b.id));
+        }
 
-            let initial_sync = self.genesis_block_id == 0;
+        blocks.make_contiguous().sort_by(|a, b| a.id.cmp(&b.id));
 
-            debug!("blocks to add : {:?}", blocks.len());
-            while let Some(block) = blocks.pop_front() {
-                let peer_id = block.routed_from_peer_id;
-                let block_id = block.id;
-                let result = self
-                    .add_block(block, storage, &mut mempool, configs, network)
-                    .await;
-                match result {
-                    AddBlockResult::BlockAddedSuccessfully(
+        let initial_sync = self.genesis_block_id == 0;
+
+        debug!("blocks to add : {:?}", blocks.len());
+
+        while let Some(block) = blocks.pop_front() {
+            let peer_id = block.routed_from_peer_id;
+            let block_id = block.id;
+
+            let mut mempool = mempool_lock.write().await;
+
+            let result = self
+                .add_block(block, storage, &mut mempool, configs, network)
+                .await;
+
+            match result {
+                AddBlockResult::BlockAddedSuccessfully(
+                    block_hash,
+                    in_longest_chain,
+                    wallet_updated,
+                    new_chain_detected,
+                ) => {
+                    let sender_to_miner = if blocks.is_empty() {
+                        sender_to_miner.clone()
+                    } else {
+                        None
+                    };
+
+                    drop(mempool);
+
+                    if let Some(checkpoints) =
+                        storage.load_checkpoint_file(&block_hash, block_id).await
+                    {
+                        let mut wallet = self.wallet_lock.write().await;
+                        for key in checkpoints {
+                            if let Some((key, _)) = self.utxoset.remove_entry(&key) {
+                                if let Ok(slip) = Slip::parse_slip_from_utxokey(&key) {
+                                    wallet.delete_slip(&slip, None);
+                                    if let Some(block) = self.blocks.get_mut(&block_hash) {
+                                        block.graveyard += slip.amount;
+                                        block.has_checkpoint = true;
+                                        self.checkpoint_found = true;
+                                        info!(
+                                        "skipping slip : {} according to the checkpoint file : {}-{}",
+                                        slip,
+                                        block_id,
+                                        block_hash.to_hex()
+                                    );
+                                    } else {
+                                        warn!(
+                                        "block {}-{} not found while processing checkpoint slip",
+                                        block_id,
+                                        block_hash.to_hex()
+                                    );
+                                    }
+                                } else {
+                                    error!(
+                                    "Key : {:?} in checkpoint file : {}-{} cannot be parsed to a slip",
+                                    key.to_hex(),
+                                    block_id,
+                                    block_hash.to_hex()
+                                );
+                                    warn!("checkpoint file may be corrupt; UTXO entry removed but slip not reconciled; continuing");
+                                }
+                            }
+                        }
+                    }
+
+                    self.on_add_block_success(
+                        network,
+                        sender_to_miner,
+                        sender_to_router.clone(),
+                        configs,
                         block_hash,
                         in_longest_chain,
                         wallet_updated,
                         new_chain_detected,
-                    ) => {
-                        let sender_to_miner = if blocks.is_empty() {
-                            sender_to_miner.clone()
-                        } else {
-                            None
-                        };
+                        initial_sync,
+                    )
+                    .await;
+                }
 
-                        // check for any checkpoint data and process them
-                        if let Some(checkpoints) =
-                            storage.load_checkpoint_file(&block_hash, block_id).await
-                        {
-                            let mut wallet = self.wallet_lock.write().await;
-                            for key in checkpoints {
-                                if let Some((key, _)) = self.utxoset.remove_entry(&key) {
-                                    if let Ok(slip) = Slip::parse_slip_from_utxokey(&key) {
-                                        wallet.delete_slip(&slip, None);
-                                        if let Some(block) = self.blocks.get_mut(&block_hash) {
-                                            block.graveyard += slip.amount;
-                                            block.has_checkpoint = true;
-                                            self.checkpoint_found = true;
-                                            info!("skipping slip : {} according to the checkpoint file : {}-{}",
-                                                slip,block_id,block_hash.to_hex());
-                                        } else {
-                                            warn!("block {}-{} not found while processing checkpoint slip",
-                                                block_id, block_hash.to_hex());
-                                        }
-                                    } else {
-                                        error!("Key : {:?} in checkpoint file : {}-{} cannot be parsed to a slip", key.to_hex(),block_id,block_hash.to_hex());
-                                        warn!("checkpoint file may be corrupt; UTXO entry removed but slip not reconciled; continuing");
-                                    }
-                                }
-                            }
-                        }
+                AddBlockResult::BlockAlreadyExists => {
+                    drop(mempool);
+                }
 
-                        // TODO : to fix blocks being pruned before js processing them, pass a parameter in add_block to not prune and then prune manually after adding all.
-                        //  need to do that in batches to make sure too much memory is not being used.
-                        self.on_add_block_success(
-                            network,
-                            sender_to_miner,
-                            sender_to_router.clone(),
-                            configs,
-                            block_hash,
-                            in_longest_chain,
-                            wallet_updated,
-                            new_chain_detected,
-                            initial_sync,
-                        )
-                        .await;
-                    }
-                    AddBlockResult::BlockAlreadyExists => {}
-                    AddBlockResult::FailedButRetry(block, fetch_prev_block, fetch_blockchain) => {
-                        Self::handle_failed_block_to_be_retried(
-                            sender_to_router.clone(),
-                            &mut mempool,
-                            block,
-                            fetch_prev_block,
-                            fetch_blockchain,
-                        )
-                        .await;
-                    }
-                    AddBlockResult::FailedNotValid => {
-                        if peer_id == peer_id {
-                            // TODO -- notify gatekeeper of invalid block
-                        }
+                AddBlockResult::FailedButRetry(block, fetch_prev_block, fetch_blockchain) => {
+                    Self::handle_failed_block_to_be_retried(
+                        sender_to_router.clone(),
+                        &mut mempool,
+                        block,
+                        fetch_prev_block,
+                        fetch_blockchain,
+                    )
+                    .await;
+                    drop(mempool);
+                }
+
+                AddBlockResult::FailedNotValid => {
+                    drop(mempool);
+                    if peer_id == peer_id {
+                        // TODO -- notify gatekeeper of invalid block
                     }
                 }
             }
+        }
 
-            if sender_to_miner.is_some() {
-                self.print(10, configs);
-            }
+        if sender_to_miner.is_some() {
+            self.print(10, configs);
+        }
 
+        {
+            let mempool = mempool_lock.read().await;
             debug!(
                 "added blocks to blockchain. added back : {:?}",
                 mempool.blocks_queue.len()

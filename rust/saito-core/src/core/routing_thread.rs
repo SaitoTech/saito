@@ -609,40 +609,27 @@ impl RoutingThread {
         }
     }
 
-    async fn send_to_verification_thread(&mut self, request: VerifyRequest) {
+    pub async fn send_to_verification_thread(&mut self, request: VerifyRequest) {
         let sender_count = self.senders_to_verification.len();
+
         if sender_count == 0 {
             error!("no verification-thread senders configured; dropping request");
             return;
         }
-        let mut trials = 0;
 
-        loop {
-            trials += 1;
+        self.last_verification_thread_index = self.last_verification_thread_index.saturating_add(1);
 
-            self.last_verification_thread_index =
-                self.last_verification_thread_index.saturating_add(1);
+        let sender_index = self.last_verification_thread_index % sender_count;
 
-            let sender_index = self.last_verification_thread_index % sender_count;
+        let Some(sender) = self.senders_to_verification.get(sender_index) else {
+            return;
+        };
 
-            let Some(sender) = self.senders_to_verification.get(sender_index) else {
-                return;
-            };
-
-            if sender.capacity() > 0 {
-                if let Err(err) = sender.send(request).await {
-                    error!(
-                        "failed sending request to verification thread {}: {:?}",
-                        sender_index, err
-                    );
-                }
-                return;
-            }
-
-            if trials >= sender_count {
-                trials = 0;
-                tokio::task::yield_now().await;
-            }
+        if let Err(err) = sender.send(request).await {
+            error!(
+                "failed sending request to verification thread {}: {:?}",
+                sender_index, err
+            );
         }
     }
 
