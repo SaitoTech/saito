@@ -1089,10 +1089,16 @@ pub async fn process_failed_block_fetch(
 }
 
 #[wasm_bindgen]
+
 pub async fn process_timer_event(duration_in_ms: u64) {
     let mut saito = SAITO.lock().await;
     let saito = saito.as_mut().unwrap();
 
+    // --- clamp duration coming from JS ---
+    // protects against:
+    // - negative → u64 wraparound (from JS BigInt)
+    // - large spikes (sleep, clock jumps, event loop stalls)
+    let duration_in_ms = duration_in_ms.min(60_000);
     let duration = Duration::from_millis(duration_in_ms);
     const EVENT_LIMIT: u32 = 100;
     let mut event_counter = 0;
