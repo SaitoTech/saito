@@ -6,7 +6,7 @@ pub mod test {
     use crate::core::consensus::mempool::Mempool;
     use crate::core::network::gatekeeper::Gatekeeper;
     use crate::core::network::peers::Peers;
-    use crate::core::network::sync::SyncManager;
+    use crate::core::network::sync::{FetchDispatcher, SyncManager};
 
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::transaction::Transaction;
@@ -241,6 +241,10 @@ pub mod test {
                 .try_read()
                 .expect("config lock should be available during NodeTester init")
                 .is_spv_mode();
+            let fetch_dispatcher: FetchDispatcher =
+                Arc::new(move |_block_hash, _peer_id, _url, _block_id| {
+                    // no-op
+                });
 
             NodeTester {
                 routing_thread: RoutingThread {
@@ -263,17 +267,18 @@ pub mod test {
                     last_emitted_block_fetch_count: 0,
                     senders_to_verification: vec![sender_to_verification.clone()],
                     last_verification_thread_index: 0,
-                    sync: SyncManager::new(
+                    sync: Arc::new(RwLock::new(SyncManager::new(
                         context.blockchain_lock.clone(),
                         context.mempool_lock.clone(),
                         context.wallet_lock.clone(),
                         Arc::new(timer.clone().unwrap()),
                         sync_lite_block_fetch,
-                    ),
+                    ))),
                     gatekeeper: Gatekeeper::default(),
                     congestion_check_timer: 0,
                     gatekeeper_monitor_timer: 0,
                     message_sending_timer: 0,
+                    fetch_dispatcher,
                 },
                 consensus_thread: ConsensusThread {
                     mempool_lock: context.mempool_lock.clone(),

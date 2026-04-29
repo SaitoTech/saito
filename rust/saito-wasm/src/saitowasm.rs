@@ -31,11 +31,12 @@ use saito_core::core::defs::{
 use saito_core::core::mining_thread::{MiningEvent, MiningThread};
 use saito_core::core::network::events::NetworkEvent;
 use saito_core::core::network::gatekeeper::Gatekeeper;
+use saito_core::core::network::interface_io::InterfaceIO;
 use saito_core::core::network::network::{Network, PeerDisconnectType};
 use saito_core::core::network::peer::Peer;
 use saito_core::core::network::peers::generate_peer_id;
 use saito_core::core::network::peers::Peers;
-use saito_core::core::network::sync::SyncManager;
+use saito_core::core::network::sync::{FetchDispatcher, SyncManager};
 use saito_core::core::process::keep_time::Timer;
 use saito_core::core::process::process_event::ProcessEvent;
 use saito_core::core::routing_thread::{RoutingEvent, RoutingThread};
@@ -126,6 +127,14 @@ pub fn new(
         hasten_multiplier: haste_multiplier,
         start_time: js_sys::Date::now() as Timestamp,
     };
+    let fetch_dispatcher: FetchDispatcher = Arc::new(move |block_hash, peer_id, url, block_id| {
+        wasm_bindgen_futures::spawn_local(async move {
+            let io = WasmIoHandler {};
+            let _ = io
+                .fetch_block_from_peer(block_hash, peer_id, url.as_str(), block_id)
+                .await;
+        });
+    });
 
     SaitoWasm {
         routing_thread: RoutingThread {
@@ -148,17 +157,18 @@ pub fn new(
             last_emitted_block_fetch_count: 0,
             senders_to_verification: vec![sender_to_verification.clone()],
             last_verification_thread_index: 0,
-            sync: SyncManager::new(
+            sync: Arc::new(RwLock::new(SyncManager::new(
                 context.blockchain_lock.clone(),
                 context.mempool_lock.clone(),
                 context.wallet_lock.clone(),
                 Arc::new(timer.clone()),
                 sync_lite_block_fetch,
-            ),
+            ))),
             gatekeeper: Gatekeeper::default(),
             congestion_check_timer: 0,
             gatekeeper_monitor_timer: 0,
             message_sending_timer: 0,
+            fetch_dispatcher,
         },
         consensus_thread: ConsensusThread {
             mempool_lock: context.mempool_lock.clone(),

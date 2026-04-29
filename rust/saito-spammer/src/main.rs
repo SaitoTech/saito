@@ -27,7 +27,7 @@ use saito_core::core::network::events::NetworkEvent;
 use saito_core::core::network::gatekeeper::Gatekeeper;
 use saito_core::core::network::network::Network;
 use saito_core::core::network::peers::Peers;
-use saito_core::core::network::sync::SyncManager;
+use saito_core::core::network::sync::{FetchDispatcher, SyncManager};
 use saito_core::core::process::keep_time::{KeepTime, Timer};
 use saito_core::core::routing_thread::{RoutingEvent, RoutingThread};
 use saito_core::core::storage::storage::Storage;
@@ -281,6 +281,26 @@ async fn run_routing_event_processor(
         let c = configs_lock.read().await;
         c.is_spv_mode()
     };
+    let fetch_dispatcher: FetchDispatcher = {
+        let sender_to_io = sender_to_io_controller.clone();
+        Arc::new(move |block_hash, peer_id, url, block_id| {
+            let sender_to_io = sender_to_io.clone();
+            tokio::spawn(async move {
+                if sender_to_io
+                    .send(IoEvent::new(NetworkEvent::BlockFetchRequest {
+                        block_hash,
+                        peer_id,
+                        url,
+                        block_id,
+                    }))
+                    .await
+                    .is_err()
+                {
+                    log::error!("failed to dispatch block fetch request");
+                }
+            });
+        })
+    };
     let routing_event_processor = RoutingThread {
         blockchain_lock: context.blockchain_lock.clone(),
         mempool_lock: context.mempool_lock.clone(),
@@ -305,17 +325,18 @@ async fn run_routing_event_processor(
         last_emitted_block_fetch_count: 0,
         senders_to_verification: senders,
         last_verification_thread_index: 0,
-        sync: SyncManager::new(
+        sync: Arc::new(RwLock::new(SyncManager::new(
             context.blockchain_lock.clone(),
             context.mempool_lock.clone(),
             context.wallet_lock.clone(),
             Arc::new(timer.clone()),
             sync_lite_block_fetch,
-        ),
+        ))),
         gatekeeper: Gatekeeper::default(),
         congestion_check_timer: 0,
         gatekeeper_monitor_timer: 0,
         message_sending_timer: 0,
+        fetch_dispatcher,
     };
 
     let (interface_sender_to_routing, interface_receiver_for_routing) =

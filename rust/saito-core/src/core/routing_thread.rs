@@ -18,7 +18,7 @@ use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::RequestServices;
 use crate::core::network::msg::services::Services;
 use crate::core::network::network::Network;
-use crate::core::network::sync::SyncManager;
+use crate::core::network::sync::{FetchDispatcher, SyncManager};
 use crate::core::process::keep_time::Timer;
 use crate::core::process::process_event::ProcessEvent;
 use crate::core::storage::storage::Storage;
@@ -82,8 +82,9 @@ pub struct RoutingThread {
     pub last_emitted_block_fetch_count: BlockId,
     pub senders_to_verification: Vec<Sender<VerifyRequest>>,
     pub last_verification_thread_index: usize,
-    pub sync: SyncManager,
+    pub sync: Arc<RwLock<SyncManager>>,
     pub gatekeeper: Gatekeeper,
+    pub fetch_dispatcher: FetchDispatcher,
 }
 
 impl RoutingThread {
@@ -161,8 +162,8 @@ impl RoutingThread {
                     return;
                 }
 
-                if let Err(e) = self
-                    .sync
+                let sync = self.sync.read().await;
+                if let Err(e) = sync
                     .process_request_blockchain_message(request.clone(), peer_id, &self.network)
                     .await
                 {
@@ -210,13 +211,14 @@ impl RoutingThread {
                     chaindata.payload.len(),
                     chaindata.payload_latest_block_id
                 );
-                if let Err(e) = self
-                    .sync
+                let mut sync = self.sync.write().await;
+                if let Err(e) = sync
                     .process_blockchain_message(
                         chaindata,
                         peer_id,
                         self.config_lock.clone(),
                         &self.network,
+                        &self.fetch_dispatcher,
                     )
                     .await
                 {
@@ -384,9 +386,10 @@ impl RoutingThread {
             .await
         {
             info!("[BLOCK_PROCESS_TRACE][VERIFY] adding to sync manager...");
-            if self.sync.add(&self.network, block_reference, peer_id).await {
-                self.sync.fetch(&self.network).await;
-            }
+            let mut sync = self.sync.write().await;
+if sync.add(&self.network, block_reference, peer_id).await {
+    sync.fetch(&self.network, &self.fetch_dispatcher).await;
+}
         }
     }
 
@@ -592,9 +595,10 @@ impl RoutingThread {
             .should_dispatch_block_reference_from_peer_to_sync_manager(peer_id, &block_reference)
             .await
         {
-            if self.sync.add(&self.network, block_reference, peer_id).await {
-                self.sync.fetch(&self.network).await;
-            }
+            let mut sync = self.sync.write().await;
+if sync.add(&self.network, block_reference, peer_id).await {
+    sync.fetch(&self.network, &self.fetch_dispatcher).await;
+}
         }
     }
 
@@ -691,8 +695,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     .await;
 
                 if should_request_sync {
-                    self.sync
-                        .send_request_blockchain_message(
+                    let sync = self.sync.read().await;
+                    sync.send_request_blockchain_message(
                             peer_id,
                             self.config_lock.clone(),
                             &self.network,
@@ -780,7 +784,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     block_hash.to_hex()
                 );
 
-                self.sync.remove(block_hash);
+                let mut sync = self.sync.write().await;
+                sync.remove(block_hash);
 
                 return Some(());
             }
@@ -797,7 +802,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 );
                 let time = self.timer.get_timestamp_in_ms();
 
-                self.sync.on_fetch_fail(block_id, block_hash, peer_id, time);
+                let mut sync = self.sync.write().await;
+                sync.on_fetch_fail(block_id, block_hash, peer_id, time);
             }
             _ => unreachable!(),
         }
@@ -841,8 +847,9 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     "[TEMP_SYNC] - block added - removing from SyncManager queue : {:?}",
                     block_hash.to_hex()
                 );
-                self.sync.remove(block_hash);
-                self.sync.fetch(&self.network).await;
+                let mut sync = self.sync.write().await;
+sync.remove(block_hash);
+sync.fetch(&self.network, &self.fetch_dispatcher).await;
             }
             RoutingEvent::MissingBlock(peer_id, block_hash, block_id) => {
                 trace!(
@@ -851,8 +858,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     block_hash.to_hex(),
                     block_id
                 );
-                self.sync
-                    .add(
+                let mut sync = self.sync.write().await;
+                sync.add(
                         &self.network,
                         BlockReference {
                             block_id,
@@ -864,7 +871,7 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                         peer_id,
                     )
                     .await;
-                self.sync.fetch(&self.network).await;
+sync.fetch(&self.network, &self.fetch_dispatcher).await;
             }
             RoutingEvent::BlockchainRequest(peer_id) => {
                 info!(
@@ -875,8 +882,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     "requesting blockchain from peer : {:?} after block add failure",
                     peer_id
                 );
-                self.sync
-                    .send_request_blockchain_message(
+                let sync = self.sync.read().await;
+                sync.send_request_blockchain_message(
                         peer_id,
                         self.config_lock.clone(),
                         &self.network,
