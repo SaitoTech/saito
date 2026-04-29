@@ -2523,7 +2523,7 @@ impl Blockchain {
         in_longest_chain: bool,
         wallet_updated: WalletUpdateStatus,
         new_chain_detected: bool,
-        initial_sync: bool,
+        _initial_sync: bool,
     ) {
         trace!(
             "handle successful block addition for block : {}",

@@ -561,8 +561,8 @@ impl SyncManager {
         let our_fork_id: [u8; 32];
         let mut shared_ancestor_block_id: u64;
         let mut shared_ancestor_block_hash: [u8; 32];
-        let mut calculated_shared_ancestor_block_id: u64;
-        let mut calculated_shared_ancestor_block_hash: [u8; 32];
+        let calculated_shared_ancestor_block_id: u64;
+        let calculated_shared_ancestor_block_hash: [u8; 32];
         let mut ordered_refs: Vec<BlockReference> = Vec::new();
         let mut send_response_starting_from_block_id: u64;
         let mut fallback_last_10 = false;
