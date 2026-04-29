@@ -21,6 +21,8 @@ use tokio::sync::RwLock;
 pub const MAX_CONCURRENT_BLOCK_FETCHES: usize = 10;
 pub const MAX_BLOCK_FETCH_RETRIES: u32 = 20;
 pub const BLOCK_FETCH_RETRY_DELAY_MS: Timestamp = 250;
+pub type FetchDispatcher =
+    Arc<dyn Fn(SaitoHash, u64, String, BlockId) + Send + Sync + 'static>;
 
 //
 // The SyncManager is responsible for downloading blocks and handling the initial chain-sync
@@ -256,7 +258,11 @@ impl SyncManager {
         }
     }
 
-    pub async fn fetch(&mut self, network: &Network) -> bool {
+    pub async fn fetch(
+	&mut self, 
+	network: &Network,
+	fetch_dispatcher: &FetchDispatcher,
+    ) -> bool {
         let mut work_done = false;
         let now = self.timer.get_timestamp_in_ms();
         loop {
@@ -376,27 +382,8 @@ impl SyncManager {
                 block_hash.to_hex()
             );
 
-            if network
-                .io_interface
-                .fetch_block_from_peer(block_hash, selected_peer_id, url.as_str(), block_id)
-                .await
-                .is_err()
-            {
-                info!(
-                    "[TEMP_SYNC_TRACE][FETCH] fetch fail immediate-io peer_id={} block_id={} block_hash={}",
-                    selected_peer_id,
-                    block_id,
-                    block_hash.to_hex()
-                );
-                warn!(
-                    "fetch_block_from_peer failed immediately for block {:?}-{:?} from peer {:?}",
-                    block_id,
-                    block_hash.to_hex(),
-                    selected_peer_id
-                );
+	    fetch_dispatcher(block_hash, selected_peer_id, url.clone(), block_id);
 
-                self.on_fetch_fail(block_id, block_hash, selected_peer_id, now);
-            }
         }
 
         work_done
@@ -720,6 +707,7 @@ impl SyncManager {
         peer_id: u64,
         config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
         network: &Network,
+        fetch_dispatcher: &FetchDispatcher,
     ) -> Result<(), Error> {
         let is_spv_mode = {
             let configs = config_lock.read().await;
@@ -932,7 +920,7 @@ impl SyncManager {
             }
         }
 
-        self.fetch(network).await;
+        self.fetch(network, fetch_dispatcher).await;
 
         Ok(())
     }
