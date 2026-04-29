@@ -7,6 +7,7 @@ use num_traits::FromPrimitive;
 use tokio::sync::RwLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
+use serde_wasm_bindgen::to_value;
 
 use saito_core::core::consensus::slip::{Slip, SlipType};
 use saito_core::core::consensus::wallet::{Wallet, WalletSlip};
@@ -57,6 +58,20 @@ pub struct WasmWalletSlip {
 
 #[wasm_bindgen]
 impl WasmWallet {
+
+    pub fn get(&self) -> JsValue {
+        let saito = SAITO.blocking_lock();
+
+        let wallet = saito
+            .as_ref()
+            .unwrap()
+            .routing_thread
+            .wallet_lock
+            .blocking_read();
+
+        to_value(&*wallet).unwrap()
+    }
+
     pub async fn save(&self) {
         let mut wallet = self.wallet.write().await;
         Wallet::save(&mut wallet, &(WasmIoHandler {})).await;

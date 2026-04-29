@@ -130,6 +130,46 @@ pub trait PrintForLog<T: TryFrom<Vec<u8>>> {
     fn from_base58(str: &str) -> Result<T, String>;
 }
 
+pub mod utxo_map_serde {
+    use serde::Serializer;
+    use ahash::AHashMap;
+    use crate::core::defs::PrintForLog;
+
+    pub fn serialize<S, V>(
+        map: &AHashMap<[u8; 59], V>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        V: serde::Serialize,
+    {
+        use serde::ser::SerializeMap;
+
+        let mut m = serializer.serialize_map(Some(map.len()))?;
+        for (k, v) in map.iter() {
+            m.serialize_entry(&k.to_hex(), v)?;
+        }
+        m.end()
+    }
+}
+
+pub mod utxo_set_serde {
+    use serde::{Serializer, Serialize};
+    use ahash::AHashSet;
+    use crate::core::defs::PrintForLog;
+
+    pub fn serialize<S>(
+        set: &AHashSet<[u8; 59]>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let vec: Vec<String> = set.iter().map(|k| k.to_hex()).collect();
+        vec.serialize(serializer)
+    }
+}
+
 pub mod saito_public_key_serde {
     use crate::core::defs::PrintForLog;
     use serde::{Deserialize, Deserializer, Serializer};
@@ -203,6 +243,121 @@ pub mod saito_public_key_serde {
             }
 
             Ok(result)
+        }
+    }
+}
+
+pub mod saito_utxosetkey_serde {
+    use serde::{Serializer, Deserializer, Deserialize};
+    use crate::core::defs::PrintForLog;
+
+    pub fn serialize<S>(key: &[u8; 59], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&key.to_hex())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 59], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        <[u8; 59]>::from_hex(&s).map_err(serde::de::Error::custom)
+    }
+}
+
+pub mod vec_u8_serde {
+    use serde::{Serializer, Deserializer, Deserialize};
+
+    pub fn serialize<S>(data: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&hex::encode(data))
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        hex::decode(s).map_err(serde::de::Error::custom)
+    }
+}
+
+pub mod saito_signature_serde {
+    use serde::{Serializer, Deserializer, Deserialize};
+    use crate::core::defs::PrintForLog;
+
+    pub fn serialize<S>(sig: &[u8; 64], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&sig.to_hex())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 64], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        <[u8; 64]>::from_hex(&s).map_err(serde::de::Error::custom)
+    }
+}
+
+
+pub mod saito_hash_serde {
+    use serde::{Serializer, Deserializer, Deserialize};
+    use crate::core::defs::PrintForLog;
+
+    pub fn serialize<S>(hash: &[u8; 32], serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&hash.to_hex())
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<[u8; 32], D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        <[u8; 32]>::from_hex(&s).map_err(serde::de::Error::custom)
+    }
+
+    pub mod option {
+        use super::*;
+        use serde::{Serializer, Deserializer};
+
+        pub fn serialize<S>(
+            value: &Option<[u8; 32]>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            match value {
+                Some(v) => serializer.serialize_some(&v.to_hex()),
+                None => serializer.serialize_none(),
+            }
+        }
+
+        pub fn deserialize<'de, D>(
+            deserializer: D,
+        ) -> Result<Option<[u8; 32]>, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            let opt = Option::<String>::deserialize(deserializer)?;
+            match opt {
+                Some(s) => {
+                    let val = <[u8; 32]>::from_hex(&s)
+                        .map_err(serde::de::Error::custom)?;
+                    Ok(Some(val))
+                }
+                None => Ok(None),
+            }
         }
     }
 }

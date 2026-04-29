@@ -8,6 +8,7 @@ use ahash::{AHashMap, HashMap};
 use log::{debug, error, info, trace, warn};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
+use serde::{Serialize};
 
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelRefIterator, ParallelDrainRange, ParallelIterator,
@@ -114,13 +115,23 @@ pub trait BlockchainObserver: Send + Sync {
     );
 }
 
+#[derive(Serialize)]
 pub struct Blockchain {
+
+    #[serde(skip)]
     pub utxoset: UtxoSet,
+    #[serde(skip)]
     pub blockring: BlockRing,
+    #[serde(skip)]
     pub blocks: AHashMap<SaitoHash, Block>,
+    #[serde(skip)]
     pub wallet_lock: Arc<RwLock<Wallet>>,
+
     pub genesis_block_id: u64,
+
+    #[serde(with = "crate::core::defs::saito_hash_serde::option")]
     pub fork_id: Option<SaitoHash>,
+    #[serde(with = "crate::core::defs::saito_hash_serde")]
     pub last_block_hash: SaitoHash,
     pub last_block_id: u64,
     pub last_timestamp: u64,
@@ -128,6 +139,7 @@ pub struct Blockchain {
 
     pub genesis_timestamp: u64,
     pub lowest_acceptable_timestamp: u64,
+    #[serde(with = "crate::core::defs::saito_hash_serde")]
     pub lowest_acceptable_block_hash: SaitoHash,
     pub lowest_acceptable_block_id: u64,
     pub sync_fetch_floor_block_id: u64,
@@ -143,6 +155,7 @@ pub struct Blockchain {
     pub prune_after_blocks: BlockId,
     pub block_confirmation_limit: BlockId,
 
+    #[serde(skip)]
     observers: Vec<Box<dyn BlockchainObserver>>,
 }
 
