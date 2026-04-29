@@ -233,7 +233,7 @@ async fn run_verification_threads(
     let mut senders = vec![];
     let mut thread_handles = vec![];
 
-    for i in 0..verification_thread_count {
+    for _i in 0..verification_thread_count {
         let (sender, receiver) = tokio::sync::mpsc::channel(10_000);
         senders.push(sender);
         let verification_thread = VerificationThread {

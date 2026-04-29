@@ -4,7 +4,6 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::core::consensus::block::Block;
-use crate::core::consensus::blockchain::Blockchain;
 use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{PrintForLog, SaitoPublicKey, Timestamp};
@@ -13,7 +12,6 @@ use crate::core::network::interface_io::InterfaceIO;
 use crate::core::network::msg::block::BlockReference;
 use crate::core::network::msg::message::Message;
 use crate::core::network::msg::services::RequestServices;
-use crate::core::network::peer::PeerType;
 use crate::core::network::peers::Peers;
 use crate::core::process::keep_time::Timer;
 use crate::core::util::configuration::Configuration;

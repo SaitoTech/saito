@@ -36,16 +36,13 @@ impl VerificationThread {
     pub async fn verify_transaction(&mut self, mut transaction: Transaction) {
         trace!("verifying tx : {:?}", transaction.signature.to_hex());
 
-        let (public_key, is_valid) = {
+        let is_valid = {
             let blockchain = self.blockchain_lock.read().await;
             let wallet = self.wallet_lock.read().await;
-
             let public_key = wallet.public_key;
             transaction.generate(&public_key, 0, 0);
-
             let is_valid = transaction.validate(&blockchain.utxoset, &blockchain, true);
-
-            (public_key, is_valid)
+            is_valid
         };
 
         if !is_valid {
