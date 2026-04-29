@@ -21,8 +21,7 @@ use tokio::sync::RwLock;
 pub const MAX_CONCURRENT_BLOCK_FETCHES: usize = 10;
 pub const MAX_BLOCK_FETCH_RETRIES: u32 = 20;
 pub const BLOCK_FETCH_RETRY_DELAY_MS: Timestamp = 250;
-pub type FetchDispatcher =
-    Arc<dyn Fn(SaitoHash, u64, String, BlockId) + Send + Sync + 'static>;
+pub type FetchDispatcher = Arc<dyn Fn(SaitoHash, u64, String, BlockId) + Send + Sync + 'static>;
 
 //
 // The SyncManager is responsible for downloading blocks and handling the initial chain-sync
@@ -258,11 +257,7 @@ impl SyncManager {
         }
     }
 
-    pub async fn fetch(
-	&mut self, 
-	network: &Network,
-	fetch_dispatcher: &FetchDispatcher,
-    ) -> bool {
+    pub async fn fetch(&mut self, network: &Network, fetch_dispatcher: &FetchDispatcher) -> bool {
         let mut work_done = false;
         let now = self.timer.get_timestamp_in_ms();
         loop {
@@ -382,8 +377,7 @@ impl SyncManager {
                 block_hash.to_hex()
             );
 
-	    fetch_dispatcher(block_hash, selected_peer_id, url.clone(), block_id);
-
+            fetch_dispatcher(block_hash, selected_peer_id, url.clone(), block_id);
         }
 
         work_done

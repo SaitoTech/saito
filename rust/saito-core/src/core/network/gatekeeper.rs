@@ -2,7 +2,7 @@ use crate::core::defs::Timestamp;
 use crate::core::network::msg::message::Message;
 use crate::core::network::peers::Peers;
 use ahash::HashMap;
-use log::{info};
+use log::info;
 use std::mem;
 use std::time::Duration;
 
