@@ -5,6 +5,7 @@ use wasm_bindgen::JsValue;
 use crate::saitowasm::{string_to_key, SAITO};
 use crate::wasm_network_api::WasmNetworkApi;
 use crate::wasm_peer::WasmPeer;
+use crate::wasm_peers::WasmPeers;
 use crate::wasm_transaction::WasmTransaction;
 
 use log::{debug, trace, warn};
@@ -27,6 +28,11 @@ impl WasmNetwork {
     #[wasm_bindgen(getter)]
     pub fn api(&self) -> WasmNetworkApi {
         WasmNetworkApi {}
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn peers(&self) -> WasmPeers {
+        WasmPeers {}
     }
 
     // -------------------------

@@ -304,6 +304,8 @@ public call_timed_functions(interval: number, lastCalledTime: number) {
     core.network = {
       api,
 
+      peers: wasmNetwork.peers,
+
       getPeers: async () => {
         const peers = await wasmNetwork.getPeers();
         return peers.map((peer: any) => {
