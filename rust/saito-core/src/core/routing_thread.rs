@@ -387,9 +387,9 @@ impl RoutingThread {
         {
             info!("[BLOCK_PROCESS_TRACE][VERIFY] adding to sync manager...");
             let mut sync = self.sync.write().await;
-if sync.add(&self.network, block_reference, peer_id).await {
-    sync.fetch(&self.network, &self.fetch_dispatcher).await;
-}
+            if sync.add(&self.network, block_reference, peer_id).await {
+                sync.fetch(&self.network, &self.fetch_dispatcher).await;
+            }
         }
     }
 
@@ -596,9 +596,9 @@ if sync.add(&self.network, block_reference, peer_id).await {
             .await
         {
             let mut sync = self.sync.write().await;
-if sync.add(&self.network, block_reference, peer_id).await {
-    sync.fetch(&self.network, &self.fetch_dispatcher).await;
-}
+            if sync.add(&self.network, block_reference, peer_id).await {
+                sync.fetch(&self.network, &self.fetch_dispatcher).await;
+            }
         }
     }
 
@@ -697,11 +697,11 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                 if should_request_sync {
                     let sync = self.sync.read().await;
                     sync.send_request_blockchain_message(
-                            peer_id,
-                            self.config_lock.clone(),
-                            &self.network,
-                        )
-                        .await;
+                        peer_id,
+                        self.config_lock.clone(),
+                        &self.network,
+                    )
+                    .await;
                 }
 
                 return Some(());
@@ -848,8 +848,8 @@ impl ProcessEvent<RoutingEvent> for RoutingThread {
                     block_hash.to_hex()
                 );
                 let mut sync = self.sync.write().await;
-sync.remove(block_hash);
-sync.fetch(&self.network, &self.fetch_dispatcher).await;
+                sync.remove(block_hash);
+                sync.fetch(&self.network, &self.fetch_dispatcher).await;
             }
             RoutingEvent::MissingBlock(peer_id, block_hash, block_id) => {
                 trace!(
@@ -860,18 +860,18 @@ sync.fetch(&self.network, &self.fetch_dispatcher).await;
                 );
                 let mut sync = self.sync.write().await;
                 sync.add(
-                        &self.network,
-                        BlockReference {
-                            block_id,
-                            block_hash,
-                            timestamp: 0,
-                            transactions: 0,
-                            has_golden_ticket: false,
-                        },
-                        peer_id,
-                    )
-                    .await;
-sync.fetch(&self.network, &self.fetch_dispatcher).await;
+                    &self.network,
+                    BlockReference {
+                        block_id,
+                        block_hash,
+                        timestamp: 0,
+                        transactions: 0,
+                        has_golden_ticket: false,
+                    },
+                    peer_id,
+                )
+                .await;
+                sync.fetch(&self.network, &self.fetch_dispatcher).await;
             }
             RoutingEvent::BlockchainRequest(peer_id) => {
                 info!(
@@ -884,11 +884,11 @@ sync.fetch(&self.network, &self.fetch_dispatcher).await;
                 );
                 let sync = self.sync.read().await;
                 sync.send_request_blockchain_message(
-                        peer_id,
-                        self.config_lock.clone(),
-                        &self.network,
-                    )
-                    .await;
+                    peer_id,
+                    self.config_lock.clone(),
+                    &self.network,
+                )
+                .await;
             }
             RoutingEvent::KeyListUpdated(key_list) => {
                 self.process_key_list_updated_event(key_list).await;
