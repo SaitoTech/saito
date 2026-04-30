@@ -6,7 +6,7 @@ const HomePage = require('./index');
 // CRYPTPAD_URL — the origin of the CryptPad instance.
 // Update this to match config/config.js httpUnsafeOrigin.
 //
-const CRYPTPAD_URL = 'https://cp.hda0.net';
+const CRYPTPAD_URL = 'https://cryptpad.saito.io';
 
 //
 // SAITO_AUTH_RELAY — the relay page on CryptPad's origin that accepts the
