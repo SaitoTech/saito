@@ -200,32 +200,29 @@ export default class Saito {
     Saito.getInstance().call_stat_functions(5000);
   }
 
-public call_timed_functions(interval: number, lastCalledTime: number) {
-  setTimeout(() => {
-    let time = Date.now();
-    let delta = time - lastCalledTime;
-    // guard: clock went backwards (can happen with Date.now)
-    if (delta < 0) {
-      delta = 0;
-    }
+  public call_timed_functions(interval: number, lastCalledTime: number) {
+    setTimeout(() => {
+      let time = Date.now();
+      let delta = time - lastCalledTime;
+      if (delta < 0) {
+        delta = 0;
+      }
 
-    if (delta > 60000) {
-      delta = 60000;
-    }
+      if (delta > 60000) {
+        delta = 60000;
+      }
 
-    // --- call into WASM ---
-    Saito.getLibInstance()
-      .process_timer_event(BigInt(delta))
-      .then(() => {
-        this.call_timed_functions(interval, time);
-      })
-      .catch((err: any) => {
-        console.error("timer error:", err);
-        this.call_timed_functions(interval, Date.now());
-      });
-
-  }, interval);
-}
+      Saito.getLibInstance()
+        .process_timer_event(BigInt(delta))
+        .then(() => {
+          this.call_timed_functions(interval, time);
+        })
+        .catch((err: any) => {
+          console.error("timer error:", err);
+          this.call_timed_functions(interval, Date.now());
+        });
+    }, interval);
+  }
 
   public call_stat_functions(interval: number) {
     setTimeout(() => {
@@ -262,10 +259,69 @@ public call_timed_functions(interval: number, lastCalledTime: number) {
     if (!this.wallet || !this.blockchain) {
       throw new Error("Core not initialized yet");
     }
+    if (!this.wallet?.instance) {
+      throw new Error("Wallet instance not initialized");
+    }
 
     const self = this;
     const wasm = Saito.getLibInstance();
     const core: any = {};
+    let modified_wallet: any = {};
+
+    // --------------------------
+    // WALLET
+    // --------------------------
+    const wasmWallet: any = this.wallet.instance;
+    const factory = this.factory;
+    let wallet = undefined;
+    if (wasmWallet) {
+
+      const wrapTx = <T extends Transaction>(fn: Function) => {
+        return async (...args: any[]): Promise<T> => {
+          const wasmTx = await fn(...args);
+          const tx = factory.createTransaction(wasmTx) as T;
+          tx.timestamp = Date.now();
+          return tx;
+        };
+      };
+
+      wallet = Object.create(wasmWallet);
+
+      wallet.createTransaction = wrapTx(
+        wasmWallet.createTransaction.bind(wasmWallet)
+      );
+
+      wallet.createTransactionWithMultiplePayments = wrapTx(
+        wasmWallet.createTransactionWithMultiplePayments.bind(wasmWallet)
+      );
+
+      wallet.createBoundTransaction = wrapTx(
+  	wasmWallet.createBoundTransaction.bind(wasmWallet)
+      );
+
+      wallet.createSendBoundTransaction = wrapTx(
+  	wasmWallet.createSendBoundTransaction.bind(wasmWallet)
+      );
+
+      wallet.createSplitBoundTransaction = wrapTx(
+  	wasmWallet.createSplitBoundTransaction.bind(wasmWallet)
+      );
+
+      wallet.createMergeBoundTransaction = wrapTx(
+  	wasmWallet.createMergeBoundTransaction.bind(wasmWallet)
+      );
+
+      wallet.createAtomizeBoundTransaction = wrapTx(
+  	wasmWallet.createAtomizeBoundTransaction.bind(wasmWallet)
+      );
+
+      wallet.createRemoveBoundTransaction = wrapTx(
+  	wasmWallet.createRemoveBoundTransaction.bind(wasmWallet)
+      );
+
+    }
+    modified_wallet = wallet;
+
 
     // -------------------------
     // NETWORK 
@@ -367,7 +423,7 @@ public call_timed_functions(interval: number, lastCalledTime: number) {
       const wallet = await self.getWallet();
       const myPublicKey = await wallet.getPublicKey();
 
-      const tx = await wasm.create_transaction(myPublicKey, BigInt(0), BigInt(0), false);
+      const tx = await modified_wallet.createTransaction(myPublicKey, BigInt(0), BigInt(0), false);
 
       const txObj = self.factory.createTransaction(tx);
       txObj.msg = {
@@ -404,7 +460,7 @@ public call_timed_functions(interval: number, lastCalledTime: number) {
       // ROOT STATE OBJECTS (singletons backed by Rust)
       //
       blockchain: this.blockchain?.instance,
-      wallet: this.wallet?.instance,
+      wallet,
 
       //
       // OBJECT CLASSES (constructors from WASM)
@@ -462,11 +518,6 @@ public call_timed_functions(interval: number, lastCalledTime: number) {
     return Saito.wasmMemory;
   }
 
-  // public addNewSocket(peer: NetworkPeer, public_key: bigint) {
-  //   this.sockets.set(public_key, socket);
-  //   console.log("adding socket : " + public_key + ". total sockets : " + this.sockets.size);
-  // }
-
   public disconnectPeer(peer: NetworkPeer) {
     this.peersByPeerId.delete(peer.peerId);
 
@@ -504,41 +555,24 @@ public call_timed_functions(interval: number, lastCalledTime: number) {
         "Removing socket for : " + peer_id + " out of " + this.peers.size + " total sockets"
       );
 
-const peer = this.peersByPeerId.get(peer_id);
+      const peer = this.peersByPeerId.get(peer_id);
 
-if (!peer) {
-  return;
-}
+      if (!peer) {
+        return;
+      }
 
-const socket = peer.socket;
+      const socket = peer.socket;
 
-this.peersByPeerId.delete(peer_id);
+      this.peersByPeerId.delete(peer_id);
 
-if (peer.publicKey) {
-  const current = this.peers.get(peer.publicKey);
-  if (current?.peerId === peer_id) {
-    console.info(
-      "deleting publicKey mapping for same peer_id : " +
-        peer.publicKey +
-        " -> " +
-        peer_id.toString()
-    );
-    this.peers.delete(peer.publicKey);
-  } else if (current) {
-    console.info(
-      "skipping publicKey delete; mapping now belongs to newer peer_id : " +
-        peer.publicKey +
-        " -> " +
-        current.peerId.toString() +
-        " (removing " +
-        peer_id.toString() +
-        ")"
-    );
-  }
-}
+      if (peer.publicKey) {
+        const current = this.peers.get(peer.publicKey);
+        if (current?.peerId === peer_id) {
+          this.peers.delete(peer.publicKey);
+        }
+      }
 
       if (socket) {
-        console.info("closing socket for peer_id : " + peer_id);
         // @ts-ignore
         if (socket.readyState !== 1 && socket.terminate) {
           // @ts-ignore
@@ -570,194 +604,25 @@ if (peer.publicKey) {
     }
   }
 
-public async processMsgBufferFromPeer(
-  buffer: Uint8Array,
-  peer: NetworkPeer
-): Promise<void> {
-  // initialize per-peer chain once
-  const inflight = peer._inflight ?? Promise.resolve();
-
-  peer._inflight = inflight
-    .then(() => {
-      return Saito.getLibInstance()
-        .process_msg_buffer_from_peer(buffer, peer.instance);
-    })
-    .catch((err: any) => {
-      console.error(
-        "process_msg_buffer_from_peer failed for peer:",
-        peer.publicKey,
-        err
-      );
+  public async processMsgBufferFromPeer(
+    buffer: Uint8Array,
+    peer: NetworkPeer
+  ): Promise<void> {
+    // initialize per-peer chain once
+    const inflight = peer._inflight ?? Promise.resolve();
+    peer._inflight = inflight
+      .then(() => {
+        return Saito.getLibInstance()
+          .process_msg_buffer_from_peer(buffer, peer.instance);
+      })
+      .catch((err: any) => {
+        console.error(
+          "process_msg_buffer_from_peer failed for peer:",
+          peer.publicKey,
+          err
+        );
     });
-
-  return peer._inflight;
-}
-
-  public async createTransaction<T extends Transaction>(
-    publickey = "",
-    amount = BigInt(0),
-    fee = BigInt(0),
-    force_merge = false
-  ): Promise<T> {
-    let wasmTx = await Saito.getLibInstance().create_transaction(
-      publickey,
-      amount,
-      fee,
-      force_merge
-    );
-    let tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = new Date().getTime();
-    return tx;
-  }
-
-  public async createTransactionWithMultiplePayments<T extends Transaction>(
-    keys: string[],
-    amounts: bigint[],
-    fee: bigint
-  ): Promise<T> {
-    let wasmTx = await Saito.getLibInstance().create_transaction_with_multiple_payments(
-      keys,
-      amounts,
-      fee
-    );
-
-    let tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = new Date().getTime();
-
-    return tx;
-  }
-
-  public async createBoundTransaction<T extends Transaction>(
-    num: bigint,
-    deposit: bigint,
-    tx_msg: any,
-    fee: bigint,
-    recipient_public_key: string,
-    nft_type: string
-  ): Promise<T> {
-    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
-
-    let wasmTx = await Saito.getLibInstance().create_bound_transaction(
-      num,
-      deposit,
-      new Uint8Array(tx_msg_arr),
-      fee,
-      recipient_public_key,
-      nft_type
-    );
-
-    let tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = new Date().getTime();
-
-    return tx;
-  }
-
-  public async createSendBoundTransaction<T extends Transaction>(
-    amt: bigint,
-    slip1UtxoKey: string,
-    slip2UtxoKey: string,
-    slip3UtxoKey: string,
-    recipientPublicKey: string,
-    tx_msg: any
-  ): Promise<T> {
-    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
-
-    const wasmTx = await Saito.getLibInstance().create_send_bound_transaction(
-      amt,
-      slip1UtxoKey,
-      slip2UtxoKey,
-      slip3UtxoKey,
-      recipientPublicKey,
-      new Uint8Array(tx_msg_arr)
-    );
-
-    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = Date.now();
-    return tx;
-  }
-
-  public async createAtomizeBoundTransaction<T extends Transaction>(
-    slip1UtxoKey: string,
-    slip2UtxoKey: string,
-    slip3UtxoKey: string,
-    tx_msg: any
-  ): Promise<T> {
-    const tx_msg_arr = Buffer.from(JSON.stringify(tx_msg), "utf-8");
-
-    const wasmTx = await Saito.getLibInstance().create_atomize_bound_transaction(
-      slip1UtxoKey,
-      slip2UtxoKey,
-      slip3UtxoKey,
-      new Uint8Array(tx_msg_arr)
-    );
-
-    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-
-    tx.timestamp = Date.now();
-
-    return tx;
-  }
-
-  public async createSplitBoundTransaction<T extends Transaction>(
-    slip1UtxoKey: string,
-    slip2UtxoKey: string,
-    slip3UtxoKey: string,
-    leftCount: number,
-    rightCount: number,
-    tx_msg: any
-  ): Promise<T> {
-    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
-
-    const wasmTx = await Saito.getLibInstance().create_split_bound_transaction(
-      slip1UtxoKey,
-      slip2UtxoKey,
-      slip3UtxoKey,
-      leftCount,
-      rightCount,
-      new Uint8Array(tx_msg_arr)
-    );
-
-    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = Date.now();
-
-    return tx;
-  }
-
-  public async createMergeBoundTransaction<T extends Transaction>(
-    nftId: string,
-    tx_msg: any
-  ): Promise<T> {
-    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
-
-    const wasmTx = await Saito.getLibInstance().create_merge_bound_transaction(
-      nftId,
-      new Uint8Array(tx_msg_arr)
-    );
-
-    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = Date.now();
-
-    return tx;
-  }
-
-  public async createRemoveBoundTransaction<T extends Transaction>(
-    slip1UtxoKey: string,
-    slip2UtxoKey: string,
-    slip3UtxoKey: string,
-    tx_msg: any // ADD THIS
-  ): Promise<T> {
-    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
-
-    const wasmTx = await Saito.getLibInstance().create_remove_bound_transaction(
-      slip1UtxoKey,
-      slip2UtxoKey,
-      slip3UtxoKey,
-      new Uint8Array(tx_msg_arr) // SEND IT TO WASM
-    );
-
-    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = Date.now();
-    return tx;
+    return peer._inflight;
   }
 
   public async getWallet() {
