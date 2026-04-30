@@ -57,7 +57,7 @@ export default class Wallet extends SaitoWallet {
     if (publicKey == '') {
       publicKey = await this.getPublicKey();
     }
-    return S.getInstance().createTransaction(publicKey, amount, fee, force_merge);
+    return this.app.core.wallet.createTransaction(publicKey, amount, fee, force_merge);
   }
 
   public async createUnsignedTransactionWithMultiplePayments(
@@ -65,7 +65,7 @@ export default class Wallet extends SaitoWallet {
     amounts: bigint[],
     fee: bigint = this.default_fee
   ): Promise<Transaction> {
-    return S.getInstance().createTransactionWithMultiplePayments(keys, amounts, fee);
+    return this.app.core.wallet.createTransactionWithMultiplePayments(keys, amounts, fee);
   }
 
   public async getNFTList(): Promise<String> {
@@ -1747,7 +1747,7 @@ export default class Wallet extends SaitoWallet {
     receipient_publicKey,
     nft_type
   ): Promise<Transaction> {
-    return S.getInstance().createBoundTransaction(
+    return this.app.core.wallet.createBoundTransaction(
       num,
       deposit,
       tx_msg,
@@ -1766,7 +1766,7 @@ export default class Wallet extends SaitoWallet {
   public async createSendNFTTransaction(nft, receipient_publicKey) {
     await nft.fetchTransaction();
 
-    return S.getInstance().createSendBoundTransaction(
+    return this.app.core.wallet.createSendBoundTransaction(
       BigInt(nft.amount),
       nft.slip1.utxo_key,
       nft.slip2.utxo_key,
@@ -1784,7 +1784,7 @@ export default class Wallet extends SaitoWallet {
   public async createSplitNFTTransaction(nft, leftCount, rightCount): Promise<Transaction> {
     await nft.fetchTransaction();
 
-    return S.getInstance().createSplitBoundTransaction(
+    return this.app.core.wallet.createSplitBoundTransaction(
       nft.slip1.utxo_key,
       nft.slip2.utxo_key,
       nft.slip3.utxo_key,
@@ -1802,7 +1802,7 @@ export default class Wallet extends SaitoWallet {
   public async createAtomizeNFTTransaction(nft: any): Promise<Transaction> {
     await nft.fetchTransaction();
 
-    return S.getInstance().createAtomizeBoundTransaction(
+    return this.app.core.wallet.createAtomizeBoundTransaction(
       nft.slip1.utxo_key,
       nft.slip2.utxo_key,
       nft.slip3.utxo_key,
@@ -1818,7 +1818,7 @@ export default class Wallet extends SaitoWallet {
   public async createMergeNFTTransaction(nft): Promise<Transaction> {
     await nft.fetchTransaction();
 
-    return S.getInstance().createMergeBoundTransaction(nft.id, nft.txmsg);
+    return this.app.core.wallet.createMergeBoundTransaction(nft.id, nft.txmsg);
   }
 
   /**
@@ -1828,7 +1828,7 @@ export default class Wallet extends SaitoWallet {
    *
    */
   public async createRemoveNFTTransaction(nft) {
-    return S.getInstance().createRemoveBoundTransaction(
+    return this.app.core.wallet.createRemoveBoundTransaction(
       nft.slip1.utxo_key,
       nft.slip2.utxo_key,
       nft.slip3.utxo_key,

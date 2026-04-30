@@ -1318,7 +1318,7 @@ socket.on('message', (buffer: any) => {
     express.get('/test-api/transfer/:to/:amt', async (req, res) => {
       let to = req.params.to;
       let amt = req.params.amt;
-      let tx = await S.getInstance().createTransaction(to, amt, BigInt(0));
+      let tx = await this.app.core.wallet.createTransaction(to, amt, BigInt(0));
       await tx.sign();
       await this.app.core.network.core.propagateTransaction(tx);
       res.send({});
