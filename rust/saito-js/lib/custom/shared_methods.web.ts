@@ -22,10 +22,7 @@ export default class WebSharedMethods extends CustomSharedMethods {
         );
         return;
       }
-      console.info('[SAITO STEP 2] connectToPeer called url=', trimmed);
-      console.debug('connecting to ' + trimmed + '....');
       let socket = new WebSocket(trimmed);
-      console.info("[SAITO STEP 3] WebSocket constructed url=", trimmed, "readyState=", socket.readyState);
       socket.binaryType = "arraybuffer";
 
       // handle handshake here
@@ -37,61 +34,44 @@ export default class WebSharedMethods extends CustomSharedMethods {
       socket.onmessage = (event: MessageEvent) => {
         try {
           let buffer = Buffer.from(event.data);
-          console.info(
-            "[SAITO STEP 10] browser socket.onmessage byteLength=",
-            buffer.byteLength,
-            "url=",
-            trimmed
-          );
 
+	  //
+	  // initialize per-peer queue once
+	  //
+	  // this prevents multiple msgs being processed
+	  // simultaneously, which can now happen if msgs
+	  // arrive at essentially the same time and there
+	  // is an await inside, locking the peer that needs
+	  // to have its instance sent inside
+	  //
+	  const inflight = peer._inflight ?? Promise.resolve();
 
-//
-// initialize per-peer queue once
-//
-// this prevents multiple msgs being processed
-// simultaneously, which can now happen if msgs
-// arrive at essentially the same time and there
-// is an await inside, locking the peer that needs
-// to have its instance sent inside
-//
-const inflight = peer._inflight ?? Promise.resolve();
-
-peer._inflight = inflight
-  .then(() => {
-    return Saito.getLibInstance()
-      .process_msg_buffer_from_peer(buffer, peer.instance);
-  })
-  .then((buffer: any) => {
-    if (buffer && buffer.byteLength > 0) {
-      socket.send(buffer);
-    }
-
-    if (peer.publicKey) {
-      const current = Saito.getInstance().peers.get(peer.publicKey);
-      if (!current) {
-        console.info("added peer : " + peer.publicKey + ", url : " + peer.url);
-        Saito.getInstance().peers.set(peer.publicKey, peer);
-      } else if (current.peerId !== peer.peerId) {
-        console.info(
-          "updated peer mapping : " +
-            peer.publicKey +
-            " old peer_id=" +
-            current.peerId.toString() +
-            " new peer_id=" +
-            peer.peerId.toString()
-        );
-        Saito.getInstance().peers.set(peer.publicKey, peer);
-      }
-    }
-  })
-  .catch((error: any) => {
-    console.error(
-      "processing incoming message buffer failed for peer : " +
-        peer.publicKey,
-      error
-    );
-  });
-
+	  peer._inflight = inflight
+	    .then(() => {
+	      return Saito.getLibInstance()
+	        .process_msg_buffer_from_peer(buffer, peer.instance);
+	    })
+	    .then((buffer: any) => {
+	      if (buffer && buffer.byteLength > 0) {
+	        socket.send(buffer);
+	      }
+	      if (peer.publicKey) {
+	        const current = Saito.getInstance().peers.get(peer.publicKey);
+	        if (!current) {
+	          console.info("added peer : " + peer.publicKey + ", url : " + peer.url);
+  	          Saito.getInstance().peers.set(peer.publicKey, peer);
+ 	        } else if (current.peerId !== peer.peerId) {
+        	  Saito.getInstance().peers.set(peer.publicKey, peer);
+      	  	}
+    	      }
+  	    })
+	    .catch((error: any) => {
+	      console.error(
+	      "processing incoming message buffer failed for peer : " +
+	        peer.publicKey,
+	        error
+	      );
+	  });
         } catch (error) {
           console.error("processing incoming message buffer failed.", error);
         }
@@ -99,26 +79,13 @@ peer._inflight = inflight
 
       socket.onopen = async () => {
         try {
-          console.log('[SAITO CONNECT] WebSocket open — peer will register with core', {
-            url: trimmed,
-            readyState: socket.readyState
-          });
-          console.info("[SAITO STEP 4] socket.onopen url=", trimmed, "readyState=", socket.readyState);
-          console.info(
-            "[SAITO STEP 5a] before process_new_peer peerId=",
-            peer.peerId,
-            "typeof peerId=",
-            typeof peer.peerId
-          );
 	  Saito.getLibInstance().process_new_peer(peer.peerId, true);
-          console.info("[SAITO STEP 5b] after process_new_peer peerId=", peer.peerId);
 	  await peer.syncFromRust();
-          console.log('[SAITO CONNECT] handshake path: process_new_peer + syncFromRust for', trimmed);
-          console.debug("connected to : " + trimmed);
         } catch (error) {
           console.error(error);
         }
       };
+
       socket.onclose = () => {
         try {
           console.debug("socket.onclose : " + trimmed + " , key : " + peer.peerId);
