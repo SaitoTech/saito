@@ -231,7 +231,7 @@ class Docs extends ModTemplate {
   // ---------------------------------------------------------------------------
   // respondTo — register "Docs" in the Saito header nav on other pages
   // ---------------------------------------------------------------------------
-
+/*
   respondTo(type) {
     if (type === 'saito-header') {
       return [
@@ -249,6 +249,6 @@ class Docs extends ModTemplate {
     }
     return super.respondTo(type);
   }
+*/
 }
-
 module.exports = Docs;
