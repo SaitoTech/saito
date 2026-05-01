@@ -417,13 +417,6 @@ socket.on('message', (buffer: any) => {
   try {
     const u8 = new Uint8Array(buffer);
 
-    console.info(
-      '[SAITO STEP 7] server inbound WS raw frame byteLength=',
-      u8.byteLength,
-      'peerId=',
-      peer.peerId
-    );
-
     peer._inflight = peer._inflight
       .then(() => {
         return S.getLibInstance()

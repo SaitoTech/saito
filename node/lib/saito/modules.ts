@@ -441,21 +441,10 @@ console.log("###");
     // events were attached would not have run their handshake or services
     // code, so we manually double-check here.
     //
-console.log("BEFORE SANITY HANDSERV...");
     for (const peer of await this.app.network.getPeers()) {
-console.log("###");
-console.log("### INTO GETPEERS");
-console.log("###");
       if (peer?.publicKey) { await this.onPeerHandshakeComplete(peer, peer.id); }
-console.log("###");
-console.log("### AFTER OPHC");
-console.log("###");
       if (peer?.services?.length) { await this.onPeerServicesUp(peer); }
-console.log("###");
-console.log("### AFTER OPSU");
-console.log("###");
     }
-console.log("AFTER SANITY HANDSERV...");
 
     //
     // we load the NFTs from the wallet now, since they have modules to
