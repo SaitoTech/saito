@@ -4,23 +4,23 @@ use std::sync::Arc;
 use js_sys::{Array, JsString, Uint8Array};
 use log::{debug, error, warn};
 use num_traits::FromPrimitive;
+use serde_wasm_bindgen::to_value;
 use tokio::sync::RwLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
-use serde_wasm_bindgen::to_value;
 
 use saito_core::core::consensus::slip::{Slip, SlipType};
+use saito_core::core::consensus::transaction::Transaction;
 use saito_core::core::consensus::wallet::{Wallet, WalletSlip};
 use saito_core::core::defs::{
     Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoSignature, SaitoUTXOSetKey,
 };
-use saito_core::core::consensus::transaction::Transaction;
 use saito_core::core::network::network::Network;
 use saito_core::core::process::version::Version;
 use saito_core::core::routing_thread::RoutingEvent;
 use saito_core::core::storage::storage::Storage;
 
-use crate::saitowasm::{string_to_key, string_array_to_base58_keys, string_to_hex, SAITO};
+use crate::saitowasm::{string_array_to_base58_keys, string_to_hex, string_to_key, SAITO};
 use crate::wasm_io_handler::WasmIoHandler;
 use crate::wasm_transaction::WasmTransaction;
 
@@ -59,303 +59,285 @@ pub struct WasmWalletSlip {
 
 #[wasm_bindgen]
 impl WasmWallet {
+    #[wasm_bindgen(js_name = createTransaction)]
+    pub async fn create_transaction(
+        &self,
+        public_key: JsString,
+        amount: u64,
+        fee: u64,
+        force_merge: bool,
+    ) -> Result<WasmTransaction, JsValue> {
+        let saito = SAITO.lock().await;
+        let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
 
+        let key = string_to_key(public_key).map_err(|_| JsValue::from("invalid public key"))?;
 
-#[wasm_bindgen(js_name = createTransaction)]
-pub async fn create_transaction(
-    &self,
-    public_key: JsString,
-    amount: u64,
-    fee: u64,
-    force_merge: bool,
-) -> Result<WasmTransaction, JsValue> {
+        let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
+        let configs = config_lock.read().await;
+        let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
 
-    let saito = SAITO.lock().await;
-    let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
+        let blockchain = saito.as_ref().unwrap().context.blockchain_lock.read().await;
+        let latest_block_id = blockchain.get_latest_block_id();
 
-    let key = string_to_key(public_key)
-        .map_err(|_| JsValue::from("invalid public key"))?;
-
-    let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
-    let configs = config_lock.read().await;
-    let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
-
-    let blockchain = saito.as_ref().unwrap().context.blockchain_lock.read().await;
-    let latest_block_id = blockchain.get_latest_block_id();
-
-    let tx = Transaction::create(
-        &mut wallet,
-        key,
-        amount,
-        fee,
-        force_merge,
-        Some(&saito.as_ref().unwrap().consensus_thread.network),
-        latest_block_id,
-        genesis_period,
-    )
-    .map_err(|_| JsValue::from("failed creating transaction"))?;
-
-    Ok(WasmTransaction::from_transaction(tx))
-}
-
-#[wasm_bindgen(js_name = createTransactionWithMultiplePayments)]
-pub async fn create_transaction_with_multiple_payments(
-    &self,
-    public_keys: js_sys::Array,
-    amounts: js_sys::BigUint64Array,
-    fee: u64,
-    _force_merge: bool,
-) -> Result<WasmTransaction, JsValue> {
-
-    let saito = SAITO.lock().await;
-    let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
-
-    let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
-    let configs = config_lock.read().await;
-    let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
-
-    let blockchain = saito.as_ref().unwrap().context.blockchain_lock.read().await;
-    let latest_block_id = blockchain.get_latest_block_id();
-
-    let keys: Vec<SaitoPublicKey> = string_array_to_base58_keys(public_keys);
-    let amounts: Vec<Currency> = amounts.to_vec();
-
-    if keys.len() != amounts.len() {
-        return Err(JsValue::from("keys and payments have different counts"));
-    }
-
-    let tx = Transaction::create_with_multiple_payments(
-        &mut wallet,
-        keys,
-        amounts,
-        fee,
-        Some(&saito.as_ref().unwrap().consensus_thread.network),
-        latest_block_id,
-        genesis_period,
-    )
-    .map_err(|_| JsValue::from("failed creating transaction"))?;
-
-    Ok(WasmTransaction::from_transaction(tx))
-}
-
-#[wasm_bindgen(js_name = createBoundTransaction)]
-pub async fn create_bound_transaction(
-    &self,
-    num: u64,
-    deposit: u64,
-    tx_msg: Uint8Array,
-    _fee: u64,
-    recipient_public_key: JsString,
-    nft_type: JsString,
-) -> Result<WasmTransaction, JsValue> {
-
-    let mut saito = SAITO.lock().await;
-    let saito = saito.as_mut().unwrap();
-
-    let genesis_period = {
-        let configs = saito.routing_thread.config_lock.read().await;
-        configs.get_consensus_config().unwrap().genesis_period
-    };
-
-    let latest_block_id = {
-        let blockchain = saito.context.blockchain_lock.read().await;
-        blockchain.get_latest_block_id()
-    };
-
-    let serialized_msg = tx_msg.to_vec();
-
-    let key = string_to_key(recipient_public_key)
-        .map_err(|_| JsValue::from("invalid public key"))?;
-
-    let mut wallet = saito.context.wallet_lock.write().await;
-
-    let tx = wallet
-        .create_bound_transaction(
-            num,
-            deposit,
-            serialized_msg,
-            &key,
-            Some(&saito.consensus_thread.network),
+        let tx = Transaction::create(
+            &mut wallet,
+            key,
+            amount,
+            fee,
+            force_merge,
+            Some(&saito.as_ref().unwrap().consensus_thread.network),
             latest_block_id,
             genesis_period,
-            nft_type.as_string().unwrap(),
         )
-        .await
-        .map_err(|_| JsValue::from("failed creating bound transaction"))?;
+        .map_err(|_| JsValue::from("failed creating transaction"))?;
 
-    Ok(WasmTransaction::from_transaction(tx))
-}
+        Ok(WasmTransaction::from_transaction(tx))
+    }
 
-#[wasm_bindgen(js_name = createSendBoundTransaction)]
-pub async fn create_send_bound_transaction(
-    &self,
-    amt: u64,
-    slip1: JsString,
-    slip2: JsString,
-    slip3: JsString,
-    recipient: JsString,
-    tx_msg: Uint8Array,
-) -> Result<WasmTransaction, JsValue> {
+    #[wasm_bindgen(js_name = createTransactionWithMultiplePayments)]
+    pub async fn create_transaction_with_multiple_payments(
+        &self,
+        public_keys: js_sys::Array,
+        amounts: js_sys::BigUint64Array,
+        fee: u64,
+        _force_merge: bool,
+    ) -> Result<WasmTransaction, JsValue> {
+        let saito = SAITO.lock().await;
+        let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
 
-    let mut saito = SAITO.lock().await;
-    let saito = saito.as_mut().unwrap();
+        let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
+        let configs = config_lock.read().await;
+        let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
 
-    let s1: SaitoUTXOSetKey = string_to_hex(slip1).map_err(|_| JsValue::from("bad slip1"))?;
-    let s2: SaitoUTXOSetKey = string_to_hex(slip2).map_err(|_| JsValue::from("bad slip2"))?;
-    let s3: SaitoUTXOSetKey = string_to_hex(slip3).map_err(|_| JsValue::from("bad slip3"))?;
+        let blockchain = saito.as_ref().unwrap().context.blockchain_lock.read().await;
+        let latest_block_id = blockchain.get_latest_block_id();
 
-    let key = string_to_key(recipient).map_err(|_| JsValue::from("bad recipient"))?;
+        let keys: Vec<SaitoPublicKey> = string_array_to_base58_keys(public_keys);
+        let amounts: Vec<Currency> = amounts.to_vec();
 
-    let serialized_msg = tx_msg.to_vec();
+        if keys.len() != amounts.len() {
+            return Err(JsValue::from("keys and payments have different counts"));
+        }
 
-    let mut wallet = saito.context.wallet_lock.write().await;
+        let tx = Transaction::create_with_multiple_payments(
+            &mut wallet,
+            keys,
+            amounts,
+            fee,
+            Some(&saito.as_ref().unwrap().consensus_thread.network),
+            latest_block_id,
+            genesis_period,
+        )
+        .map_err(|_| JsValue::from("failed creating transaction"))?;
 
-    let tx = wallet
-        .create_send_bound_transaction(amt, s1, s2, s3, &key, serialized_msg)
-        .await
-        .map_err(|_| JsValue::from("failed"))?;
+        Ok(WasmTransaction::from_transaction(tx))
+    }
 
-    Ok(WasmTransaction::from_transaction(tx))
-}
+    #[wasm_bindgen(js_name = createBoundTransaction)]
+    pub async fn create_bound_transaction(
+        &self,
+        num: u64,
+        deposit: u64,
+        tx_msg: Uint8Array,
+        _fee: u64,
+        recipient_public_key: JsString,
+        nft_type: JsString,
+    ) -> Result<WasmTransaction, JsValue> {
+        let mut saito = SAITO.lock().await;
+        let saito = saito.as_mut().unwrap();
 
-#[wasm_bindgen(js_name = createSplitBoundTransaction)]
-pub async fn create_split_bound_transaction(
-    &self,
-    slip1: JsString,
-    slip2: JsString,
-    slip3: JsString,
-    left: u32,
-    right: u32,
-    tx_msg: Uint8Array,
-) -> Result<WasmTransaction, JsValue> {
+        let genesis_period = {
+            let configs = saito.routing_thread.config_lock.read().await;
+            configs.get_consensus_config().unwrap().genesis_period
+        };
 
-    let mut saito = SAITO.lock().await;
-    let saito = saito.as_mut().unwrap();
+        let latest_block_id = {
+            let blockchain = saito.context.blockchain_lock.read().await;
+            blockchain.get_latest_block_id()
+        };
 
-    let s1: SaitoUTXOSetKey = string_to_hex(slip1).map_err(|_| JsValue::from("bad slip1"))?;
-    let s2: SaitoUTXOSetKey = string_to_hex(slip2).map_err(|_| JsValue::from("bad slip2"))?;
-    let s3: SaitoUTXOSetKey = string_to_hex(slip3).map_err(|_| JsValue::from("bad slip3"))?;
+        let serialized_msg = tx_msg.to_vec();
 
-    let serialized_msg = tx_msg.to_vec();
+        let key =
+            string_to_key(recipient_public_key).map_err(|_| JsValue::from("invalid public key"))?;
 
-    let mut wallet = saito.context.wallet_lock.write().await;
-
-    let tx = wallet
-        .create_split_bound_transaction(s1, s2, s3, left, right, serialized_msg)
-        .map_err(|e| JsValue::from(e.to_string()))?;
-
-    Ok(WasmTransaction::from_transaction(tx))
-}
-
-#[wasm_bindgen(js_name = createAtomizeBoundTransaction)]
-pub async fn create_atomize_bound_transaction(
-    &self,
-    slip1_utxo_key: JsString,
-    slip2_utxo_key: JsString,
-    slip3_utxo_key: JsString,
-    tx_msg: Uint8Array,
-) -> Result<WasmTransaction, JsValue> {
-
-    let mut saito_guard = SAITO.lock().await;
-    let saito = saito_guard
-        .as_mut()
-        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
-
-    // parse UTXO keys
-    let s1: SaitoUTXOSetKey =
-        string_to_hex(slip1_utxo_key).map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
-    let s2: SaitoUTXOSetKey =
-        string_to_hex(slip2_utxo_key).map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
-    let s3: SaitoUTXOSetKey =
-        string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
-
-    // serialize message
-    let serialized_msg: Vec<u8> = tx_msg.to_vec();
-
-    // create tx (SYNC)
-    let tx = {
         let mut wallet = saito.context.wallet_lock.write().await;
-        wallet
-            .create_atomize_bound_transaction(s1, s2, s3, serialized_msg)
-            .map_err(|e| JsValue::from_str(&e.to_string()))?
-    };
 
-    Ok(WasmTransaction::from_transaction(tx))
-}
-
-
-#[wasm_bindgen(js_name = createMergeBoundTransaction)]
-pub async fn create_merge_bound_transaction(
-    &self,
-    nft_id_hex: String,
-    tx_msg: Uint8Array,
-) -> Result<WasmTransaction, JsValue> {
-
-    let mut saito_guard = SAITO.lock().await;
-    let saito = saito_guard
-        .as_mut()
-        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
-
-    // decode NFT id
-    let id_bytes: Vec<u8> = hex::decode(&nft_id_hex)
-        .map_err(|e| JsValue::from_str(&format!("nft_id hex decode error: {}", e)))?;
-
-    // serialize message
-    let serialized_msg: Vec<u8> = tx_msg.to_vec();
-
-    // create tx (SYNC)
-    let tx = {
-        let mut wallet = saito.context.wallet_lock.write().await;
-        wallet
-            .create_merge_bound_transaction(id_bytes, serialized_msg)
-            .map_err(|e| JsValue::from_str(&e.to_string()))?
-    };
-
-    Ok(WasmTransaction::from_transaction(tx))
-}
-
-
-#[wasm_bindgen(js_name = createRemoveBoundTransaction)]
-pub async fn create_remove_bound_transaction(
-    &self,
-    slip1_utxo_key: JsString,
-    slip2_utxo_key: JsString,
-    slip3_utxo_key: JsString,
-    tx_msg: Uint8Array,
-) -> Result<WasmTransaction, JsValue> {
-
-    let mut saito_guard = SAITO.lock().await;
-    let saito = saito_guard
-        .as_mut()
-        .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
-
-    // parse UTXO keys
-    let s1: SaitoUTXOSetKey =
-        string_to_hex(slip1_utxo_key).map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
-    let s2: SaitoUTXOSetKey =
-        string_to_hex(slip2_utxo_key).map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
-    let s3: SaitoUTXOSetKey =
-        string_to_hex(slip3_utxo_key).map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
-
-    // serialize message
-    let serialized_msg: Vec<u8> = tx_msg.to_vec();
-
-    // create tx (ASYNC)
-    let tx = {
-        let mut wallet = saito.context.wallet_lock.write().await;
-        wallet
-            .create_remove_bound_transaction(s1, s2, s3, serialized_msg)
+        let tx = wallet
+            .create_bound_transaction(
+                num,
+                deposit,
+                serialized_msg,
+                &key,
+                Some(&saito.consensus_thread.network),
+                latest_block_id,
+                genesis_period,
+                nft_type.as_string().unwrap(),
+            )
             .await
-            .map_err(|_| JsValue::from_str("create_remove_bound_transaction failed"))?
-    };
+            .map_err(|_| JsValue::from("failed creating bound transaction"))?;
 
-    Ok(WasmTransaction::from_transaction(tx))
-}
+        Ok(WasmTransaction::from_transaction(tx))
+    }
 
+    #[wasm_bindgen(js_name = createSendBoundTransaction)]
+    pub async fn create_send_bound_transaction(
+        &self,
+        amt: u64,
+        slip1: JsString,
+        slip2: JsString,
+        slip3: JsString,
+        recipient: JsString,
+        tx_msg: Uint8Array,
+    ) -> Result<WasmTransaction, JsValue> {
+        let mut saito = SAITO.lock().await;
+        let saito = saito.as_mut().unwrap();
 
+        let s1: SaitoUTXOSetKey = string_to_hex(slip1).map_err(|_| JsValue::from("bad slip1"))?;
+        let s2: SaitoUTXOSetKey = string_to_hex(slip2).map_err(|_| JsValue::from("bad slip2"))?;
+        let s3: SaitoUTXOSetKey = string_to_hex(slip3).map_err(|_| JsValue::from("bad slip3"))?;
 
+        let key = string_to_key(recipient).map_err(|_| JsValue::from("bad recipient"))?;
 
+        let serialized_msg = tx_msg.to_vec();
 
+        let mut wallet = saito.context.wallet_lock.write().await;
+
+        let tx = wallet
+            .create_send_bound_transaction(amt, s1, s2, s3, &key, serialized_msg)
+            .await
+            .map_err(|_| JsValue::from("failed"))?;
+
+        Ok(WasmTransaction::from_transaction(tx))
+    }
+
+    #[wasm_bindgen(js_name = createSplitBoundTransaction)]
+    pub async fn create_split_bound_transaction(
+        &self,
+        slip1: JsString,
+        slip2: JsString,
+        slip3: JsString,
+        left: u32,
+        right: u32,
+        tx_msg: Uint8Array,
+    ) -> Result<WasmTransaction, JsValue> {
+        let mut saito = SAITO.lock().await;
+        let saito = saito.as_mut().unwrap();
+
+        let s1: SaitoUTXOSetKey = string_to_hex(slip1).map_err(|_| JsValue::from("bad slip1"))?;
+        let s2: SaitoUTXOSetKey = string_to_hex(slip2).map_err(|_| JsValue::from("bad slip2"))?;
+        let s3: SaitoUTXOSetKey = string_to_hex(slip3).map_err(|_| JsValue::from("bad slip3"))?;
+
+        let serialized_msg = tx_msg.to_vec();
+
+        let mut wallet = saito.context.wallet_lock.write().await;
+
+        let tx = wallet
+            .create_split_bound_transaction(s1, s2, s3, left, right, serialized_msg)
+            .map_err(|e| JsValue::from(e.to_string()))?;
+
+        Ok(WasmTransaction::from_transaction(tx))
+    }
+
+    #[wasm_bindgen(js_name = createAtomizeBoundTransaction)]
+    pub async fn create_atomize_bound_transaction(
+        &self,
+        slip1_utxo_key: JsString,
+        slip2_utxo_key: JsString,
+        slip3_utxo_key: JsString,
+        tx_msg: Uint8Array,
+    ) -> Result<WasmTransaction, JsValue> {
+        let mut saito_guard = SAITO.lock().await;
+        let saito = saito_guard
+            .as_mut()
+            .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+        // parse UTXO keys
+        let s1: SaitoUTXOSetKey = string_to_hex(slip1_utxo_key)
+            .map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
+        let s2: SaitoUTXOSetKey = string_to_hex(slip2_utxo_key)
+            .map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
+        let s3: SaitoUTXOSetKey = string_to_hex(slip3_utxo_key)
+            .map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
+
+        // serialize message
+        let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+        // create tx (SYNC)
+        let tx = {
+            let mut wallet = saito.context.wallet_lock.write().await;
+            wallet
+                .create_atomize_bound_transaction(s1, s2, s3, serialized_msg)
+                .map_err(|e| JsValue::from_str(&e.to_string()))?
+        };
+
+        Ok(WasmTransaction::from_transaction(tx))
+    }
+
+    #[wasm_bindgen(js_name = createMergeBoundTransaction)]
+    pub async fn create_merge_bound_transaction(
+        &self,
+        nft_id_hex: String,
+        tx_msg: Uint8Array,
+    ) -> Result<WasmTransaction, JsValue> {
+        let mut saito_guard = SAITO.lock().await;
+        let saito = saito_guard
+            .as_mut()
+            .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+        // decode NFT id
+        let id_bytes: Vec<u8> = hex::decode(&nft_id_hex)
+            .map_err(|e| JsValue::from_str(&format!("nft_id hex decode error: {}", e)))?;
+
+        // serialize message
+        let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+        // create tx (SYNC)
+        let tx = {
+            let mut wallet = saito.context.wallet_lock.write().await;
+            wallet
+                .create_merge_bound_transaction(id_bytes, serialized_msg)
+                .map_err(|e| JsValue::from_str(&e.to_string()))?
+        };
+
+        Ok(WasmTransaction::from_transaction(tx))
+    }
+
+    #[wasm_bindgen(js_name = createRemoveBoundTransaction)]
+    pub async fn create_remove_bound_transaction(
+        &self,
+        slip1_utxo_key: JsString,
+        slip2_utxo_key: JsString,
+        slip3_utxo_key: JsString,
+        tx_msg: Uint8Array,
+    ) -> Result<WasmTransaction, JsValue> {
+        let mut saito_guard = SAITO.lock().await;
+        let saito = saito_guard
+            .as_mut()
+            .ok_or_else(|| JsValue::from_str("SAITO not initialized"))?;
+
+        // parse UTXO keys
+        let s1: SaitoUTXOSetKey = string_to_hex(slip1_utxo_key)
+            .map_err(|_| JsValue::from_str("Invalid slip1_utxo_key"))?;
+        let s2: SaitoUTXOSetKey = string_to_hex(slip2_utxo_key)
+            .map_err(|_| JsValue::from_str("Invalid slip2_utxo_key"))?;
+        let s3: SaitoUTXOSetKey = string_to_hex(slip3_utxo_key)
+            .map_err(|_| JsValue::from_str("Invalid slip3_utxo_key"))?;
+
+        // serialize message
+        let serialized_msg: Vec<u8> = tx_msg.to_vec();
+
+        // create tx (ASYNC)
+        let tx = {
+            let mut wallet = saito.context.wallet_lock.write().await;
+            wallet
+                .create_remove_bound_transaction(s1, s2, s3, serialized_msg)
+                .await
+                .map_err(|_| JsValue::from_str("create_remove_bound_transaction failed"))?
+        };
+
+        Ok(WasmTransaction::from_transaction(tx))
+    }
 
     pub fn get(&self) -> JsValue {
         let saito = SAITO.blocking_lock();

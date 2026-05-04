@@ -6,9 +6,9 @@ use std::sync::Arc;
 
 use ahash::{AHashMap, HashMap};
 use log::{debug, error, info, trace, warn};
+use serde::Serialize;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
-use serde::{Serialize};
 
 use rayon::iter::{
     IndexedParallelIterator, IntoParallelRefIterator, ParallelDrainRange, ParallelIterator,
@@ -117,7 +117,6 @@ pub trait BlockchainObserver: Send + Sync {
 
 #[derive(Serialize)]
 pub struct Blockchain {
-
     #[serde(skip)]
     pub utxoset: UtxoSet,
     #[serde(skip)]

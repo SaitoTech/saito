@@ -14,9 +14,9 @@ use crate::core::util::balance_snapshot::BalanceSnapshot;
 use crate::core::util::crypto::{generate_keys, hash, sign};
 use ahash::{AHashMap, AHashSet};
 use log::{debug, error, info, trace, warn};
+use serde::Serialize;
 use std::fmt::Display;
 use std::io::{Error, ErrorKind};
-use serde::Serialize;
 
 pub const WALLET_SIZE: usize = 65;
 
@@ -99,7 +99,6 @@ impl Default for DetailedNFT {
 /// slips that are used to form transactions on the network.
 #[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct Wallet {
-
     #[serde(with = "crate::core::defs::saito_public_key_serde")]
     pub public_key: SaitoPublicKey,
 

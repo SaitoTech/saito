@@ -389,28 +389,31 @@ class Mods {
     const onPeerHandshakeComplete = this.onPeerHandshakeComplete.bind(this);
     const onStunPeerDisconnected = this.onStunPeerDisconnected.bind(this);
 
-    this.app.connection.on('on_peer_handshake_complete', async (peer_id: bigint, publicKey: string) => {
-console.log("###");
-console.log("### OPHC");
-console.log("###");
-      if (this.app.BROWSER) {
-        await this.app.wallet.setKeyList(this.app.keychain.returnWatchedPublicKeys());
-      }
-      let peer = await this.app.network.getPeerByPeerId(peer_id);
-      if (this.app.BROWSER == 0) {
-        let data = `{"build_number": "${this.app.build_number}"}`;
-        console.info(data);
-        this.app.network.sendRequest('software-update', data, null, peer);
-      }
-      console.log('handshake complete : ', publicKey);
-      await this.onPeerHandshakeComplete(peer, peer_id);
-    });
-    this.app.connection.on('on_peer_services_up', async (peer_id: bigint, publicKey: string) => {
-console.log("###");
-console.log("### OPSU");
-console.log("###");
+    this.app.connection.on(
+      'on_peer_handshake_complete',
+      async (peer_id: bigint, publicKey: string) => {
+        console.log('###');
+        console.log('### OPHC');
+        console.log('###');
+        if (this.app.BROWSER) {
+          await this.app.wallet.setKeyList(this.app.keychain.returnWatchedPublicKeys());
+        }
         let peer = await this.app.network.getPeerByPeerId(peer_id);
-        await this.onPeerServicesUp(peer);
+        if (this.app.BROWSER == 0) {
+          let data = `{"build_number": "${this.app.build_number}"}`;
+          console.info(data);
+          this.app.network.sendRequest('software-update', data, null, peer);
+        }
+        console.log('handshake complete : ', publicKey);
+        await this.onPeerHandshakeComplete(peer, peer_id);
+      }
+    );
+    this.app.connection.on('on_peer_services_up', async (peer_id: bigint, publicKey: string) => {
+      console.log('###');
+      console.log('### OPSU');
+      console.log('###');
+      let peer = await this.app.network.getPeerByPeerId(peer_id);
+      await this.onPeerServicesUp(peer);
     });
     this.app.connection.on('stun peer connect', async (peer_id: bigint, publicKey: string) => {
       let peer = await this.app.network.getPeerByPeerId(peer_id);
@@ -442,8 +445,12 @@ console.log("###");
     // code, so we manually double-check here.
     //
     for (const peer of await this.app.network.getPeers()) {
-      if (peer?.publicKey) { await this.onPeerHandshakeComplete(peer, peer.id); }
-      if (peer?.services?.length) { await this.onPeerServicesUp(peer); }
+      if (peer?.publicKey) {
+        await this.onPeerHandshakeComplete(peer, peer.id);
+      }
+      if (peer?.services?.length) {
+        await this.onPeerServicesUp(peer);
+      }
     }
 
     //

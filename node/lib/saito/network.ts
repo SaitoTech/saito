@@ -71,7 +71,13 @@ export default class Network {
     publicKey?: string,
     signature_required?: boolean
   ) {
-    return this.app.core.network.sendRequest(message, data, callback, publicKey, signature_required);
+    return this.app.core.network.sendRequest(
+      message,
+      data,
+      callback,
+      publicKey,
+      signature_required
+    );
   }
 
   public close() {}

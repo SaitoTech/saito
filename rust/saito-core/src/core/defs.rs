@@ -131,14 +131,11 @@ pub trait PrintForLog<T: TryFrom<Vec<u8>>> {
 }
 
 pub mod utxo_map_serde {
-    use serde::Serializer;
-    use ahash::AHashMap;
     use crate::core::defs::PrintForLog;
+    use ahash::AHashMap;
+    use serde::Serializer;
 
-    pub fn serialize<S, V>(
-        map: &AHashMap<[u8; 59], V>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub fn serialize<S, V>(map: &AHashMap<[u8; 59], V>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
         V: serde::Serialize,
@@ -154,14 +151,11 @@ pub mod utxo_map_serde {
 }
 
 pub mod utxo_set_serde {
-    use serde::{Serializer, Serialize};
-    use ahash::AHashSet;
     use crate::core::defs::PrintForLog;
+    use ahash::AHashSet;
+    use serde::{Serialize, Serializer};
 
-    pub fn serialize<S>(
-        set: &AHashSet<[u8; 59]>,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(set: &AHashSet<[u8; 59]>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
@@ -248,8 +242,8 @@ pub mod saito_public_key_serde {
 }
 
 pub mod saito_utxosetkey_serde {
-    use serde::{Serializer, Deserializer, Deserialize};
     use crate::core::defs::PrintForLog;
+    use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(key: &[u8; 59], serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -268,7 +262,7 @@ pub mod saito_utxosetkey_serde {
 }
 
 pub mod vec_u8_serde {
-    use serde::{Serializer, Deserializer, Deserialize};
+    use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(data: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -287,8 +281,8 @@ pub mod vec_u8_serde {
 }
 
 pub mod saito_signature_serde {
-    use serde::{Serializer, Deserializer, Deserialize};
     use crate::core::defs::PrintForLog;
+    use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(sig: &[u8; 64], serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -306,10 +300,9 @@ pub mod saito_signature_serde {
     }
 }
 
-
 pub mod saito_hash_serde {
-    use serde::{Serializer, Deserializer, Deserialize};
     use crate::core::defs::PrintForLog;
+    use serde::{Deserialize, Deserializer, Serializer};
 
     pub fn serialize<S>(hash: &[u8; 32], serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -328,12 +321,9 @@ pub mod saito_hash_serde {
 
     pub mod option {
         use super::*;
-        use serde::{Serializer, Deserializer};
+        use serde::{Deserializer, Serializer};
 
-        pub fn serialize<S>(
-            value: &Option<[u8; 32]>,
-            serializer: S,
-        ) -> Result<S::Ok, S::Error>
+        pub fn serialize<S>(value: &Option<[u8; 32]>, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,
         {
@@ -343,17 +333,14 @@ pub mod saito_hash_serde {
             }
         }
 
-        pub fn deserialize<'de, D>(
-            deserializer: D,
-        ) -> Result<Option<[u8; 32]>, D::Error>
+        pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<[u8; 32]>, D::Error>
         where
             D: Deserializer<'de>,
         {
             let opt = Option::<String>::deserialize(deserializer)?;
             match opt {
                 Some(s) => {
-                    let val = <[u8; 32]>::from_hex(&s)
-                        .map_err(serde::de::Error::custom)?;
+                    let val = <[u8; 32]>::from_hex(&s).map_err(serde::de::Error::custom)?;
                     Ok(Some(val))
                 }
                 None => Ok(None),
