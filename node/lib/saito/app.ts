@@ -135,7 +135,7 @@ class Saito {
       console.error(
         'Error occured initializing your Saito install. The most likely cause of this is a module that is throwing an error on initialization. You can debug this by removing modules from your config file to test which ones are causing the problem and restarting.'
       );
-      // console.error(err);
+      console.error(err);
     }
   }
 
