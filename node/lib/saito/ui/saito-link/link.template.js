@@ -36,8 +36,6 @@ module.exports = (link) => {
       include_graphics = false;
     }
 
-    console.log(slug, info);
-
     // ---> Use a respondTo to further customize which info to include and add a class...
   }
 

@@ -238,31 +238,27 @@ class Arcade extends ModTemplate {
 			// my games stored in local wallet
 			//
 			if (this.app.options.games) {
+
 				this.purge();
 
 				for (let game of this.app.options.games) {
-					if (game.players.includes(this.publicKey) || game.accepted.includes(this.publicKey)) {
-						if (game.over) {
-							if (game.last_block > 0) {
-								console.debug(`ARCADE: don't add finished game from options`);
-								return;
-							}
-						}
+  					if (!(game.players.includes(this.publicKey) || game.accepted.includes(this.publicKey))) {
+  						continue;
+  					}
+  					if (game.over) {
+    						continue;
+  					}
+  					let game_tx = await this.createPseudoTransaction(game);
+  					this.addGame(game_tx, 'active');
 
-						//
-						// We create a dummy tx from the saved game state so that the arcade can render the
-						// active game like a new open invite
-						//
-						let game_tx = await this.createPseudoTransaction(game);
-
-						//
-						// and add to list of my games
-						//
-						if (!game.over) {
-							this.addGame(game_tx, 'active');
-						} else {
-							this.addGame(game_tx, 'over');
-						}
+		
+					//
+					// and add to list of my games
+					//
+					if (!game.over) {
+						this.addGame(game_tx, 'active');
+					} else {
+						this.addGame(game_tx, 'over');
 					}
 				}
 			}
@@ -446,7 +442,6 @@ class Arcade extends ModTemplate {
 								this.removeGame(game_tx.signature);
 								this.addGame(game_tx);
 							}
-							this.app.browser.logMatomoEvent('GameInvite', 'FollowLink', game_tx.game);
 							const invite = new Invite(this.app, this, null, null, game_tx, this.publicKey);
 							this.render('lounge_overlay', { invite_data: invite.invite_data });
 						} else {
@@ -567,15 +562,28 @@ console.log("##################");
 			this.app.network.sendRequestAsTransaction('arcade invite list', {}, async (txs) => {
 				if (txs?.length > 0) {
 					for (let serial_tx of txs) {
+
 						let game_tx = new Transaction();
-						game_tx.deserialize_from_web(app, serial_tx);
+    						game_tx.deserialize_from_web(app, serial_tx);
+						let status = game_tx?.msg?.request;
 
-						let status = game_tx.msg.request;
-						let game_added = arcade_self.addGame(game_tx);
+    						if (arcade_self.isMyGame(game_tx)) {
+        						let exists_locally = arcade_self.app.options?.games?.find(
+            							g => g.id === game_tx.signature
+        						);
+        						if (!exists_locally) {
+								//
+								// if this invite was created in the last 30 seconds, show it anyway
+								// as I may just not have received it online and refreshed...
+								//
+								let msg = game_tx.returnMessage();
+								if ((Date.now() - msg.timestamp) > 30000) {
+            								continue;
+        							}
+        						}
+    						}
 
-						if (arcade_self?.debug && arcade_self.browser_active) {
-							console.debug('Available arcade game:', status, game_added, game_tx);
-						}
+    						let game_added = arcade_self.addGame(game_tx);
 
 						//Game is marked as "active" but we didn't already add it from our app.options file...
 						if (status == 'active' && game_added && arcade_self.isMyGame(game_tx)) {
@@ -610,7 +618,6 @@ console.log("##################");
 							arcade_self.removeGame(game_tx.signature);
 							arcade_self.addGame(game_tx);
 						}
-						arcade_self.app.browser.logMatomoEvent('GameInvite', 'FollowLink', game_tx.game);
 						const invite = new Invite(
 							arcade_self.app,
 							arcade_self,
@@ -728,8 +735,6 @@ console.log("##################");
 		let arcade_self = this.app.modules.returnModule('Arcade');
 
 		if (Number(conf) == 0) {
-			console.log('INTO ONCONFIRMATION IN ARCADE...');
-			console.log(JSON.stringify(txmsg));
 
 			try {
 				if (txmsg.module === 'Arcade') {
@@ -825,9 +830,9 @@ console.log("##################");
 			return 0;
 		}
 		let message = newtx.returnMessage();
+		let requester = peer.publicKey;
 
 		if (message.request === 'arcade invite list') {
-			// Process stuff on server side
 
 			this.purge();
 
@@ -836,7 +841,10 @@ console.log("##################");
 
 			for (let id in this.games) {
 				let record = this.games[id];
-				if (record.is_sender_reachable !== true) continue;
+				if (record.is_sender_reachable !== true && (requester != record.tx.from[0].publicKey)) {
+					continue;
+				}
+				if (record.status === "closed" || record.status === "over") { continue; }
 				let g = record.tx;
 				txs.push(g.serialize_to_web(this.app));
 			}
@@ -877,7 +885,9 @@ console.log("##################");
 					await this.receiveJoinTransaction(tx);
 				}
 
+				//
 				// Remove player from ongoing game
+				//
 				if (txmsg.request == 'leave') {
 					await this.receiveLeaveTransaction(tx);
 				}
@@ -1015,10 +1025,12 @@ console.log("##################");
 		let sendto = this.publicKey;
 		let moduletype = 'Arcade';
 
-		let { timestamp, name, options, players_needed, invitation_type } = gamedata;
+		let { ts, name, options, players_needed, invitation_type } = gamedata;
+
+console.log("GAMEDATA: " + JSON.stringify(gamedata));
 
 		let accept_sig = await this.app.crypto.signMessage(
-			`invite_game_${timestamp}`,
+			`invite_game_${ts}`,
 			await this.app.wallet.getPrivateKey()
 		);
 
@@ -1029,7 +1041,7 @@ console.log("##################");
 		}
 
 		newtx.msg = {
-			timestamp: timestamp,
+			timestamp: ts,
 			module: moduletype,
 			request: invitation_type,
 			game: name,
@@ -1267,7 +1279,6 @@ console.log("##################");
 			data: newtx.toJson()
 		});
 
-		this.app.browser.logMatomoEvent('GameInvite', 'JoinGame', invite.game_name);
 		this.renderInvites();
 	}
 
@@ -1577,10 +1588,11 @@ console.log("##################");
 	}
 
 	async receivePeerStatusUpdateTransaction(tx) {
+
 		let txmsg = tx.returnMessage();
 		let pk = txmsg.data?.publickey;
 		let status = txmsg.data?.status;
-		if (!pk || !status) return 0;
+		if (!pk || !status) { return 0; }
 
 		for (let id in this.games) {
 			let record = this.games[id];
@@ -1760,6 +1772,7 @@ console.log("##################");
 	}
 
 	purge() {
+
 		const INVITE_CUTOFF = 2000000; // 30 minutes
 		const GAME_CUTOFF = 600000000;
 
@@ -1834,6 +1847,7 @@ console.log("##################");
 
 		if (walletModified) {
 			this.app.storage.saveOptions();
+			this.renderInvites();
 		}
 	}
 
@@ -2139,7 +2153,7 @@ console.log("##################");
 
 			this.game_timeout = setTimeout(() => {
 				salert(
-					"Haven't received confirmation of your game invite. Please check your network connections."
+					"Your browser may have broadcast that invite, but network seems unstable. Please refresh to confirm!"
 				);
 			}, 10000);
 		}

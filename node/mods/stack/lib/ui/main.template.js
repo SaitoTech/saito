@@ -27,7 +27,7 @@ module.exports = (app, mod) => {
         <div class="stack-cta-content">
           <h2 class="stack-cta-title">Publish without Publishers</h2>
           <p class="stack-cta-description">
-            Create a subscription-based blog, use NFTs to limit access, and build your own audience on your own terms.
+            Create a subscription-based blog, use NFTs to limit access, and build your audience on your own terms.
           </p>
           <div class="stack-cta-buttons">
             <button class="stack-btn-primary" id="stack-create-post-btn">

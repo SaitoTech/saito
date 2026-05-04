@@ -111,7 +111,7 @@ class SaitoHeader extends UIModTemplate {
 
     app.connection.on('saito-header-update-crypto', async () => {
       if (!this.installing_crypto) {
-        await this.renderCrypto();
+        this.renderCrypto();
       } else {
         console.log('dont render crypto');
       }
@@ -250,7 +250,7 @@ class SaitoHeader extends UIModTemplate {
     // render QR code and cryptos
     //
     //console.log("$$$$ header.Render --> renderCrypto");
-    await this.renderCrypto(true);
+    this.renderCrypto(true);
 
     //
     // Nothing happens here
@@ -766,7 +766,7 @@ class SaitoHeader extends UIModTemplate {
    * *******************************************************
    * *******************************************************/
 
-  async renderCrypto(force = false) {
+  renderCrypto(force = false) {
     let available_cryptos = this.app.wallet.returnInstalledCryptos();
     let preferred_crypto = this.app.wallet.returnPreferredCrypto();
     let add = preferred_crypto.returnAddress();

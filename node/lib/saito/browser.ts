@@ -96,6 +96,7 @@ class Browser {
       setTimeout(() => {
         if (elem) {
           elem.classList.add('pace-erase');
+          this.render_ts = Date.now();
         }
         document.querySelector('body').classList.add('xclose');
       }, delay);
@@ -312,17 +313,6 @@ class Browser {
       }
 
       this.updateThemeInHeader(theme);
-
-      const updateViewHeight = () => {
-        let vh = window.innerHeight / 100;
-        document.documentElement.style.setProperty('--saito-vh', `${vh}px`);
-        //siteMessage(`Update: ${vh}px`);
-      };
-
-      window.addEventListener('resize', debounce(updateViewHeight, 200));
-      setTimeout(() => {
-        updateViewHeight();
-      }, 200);
     } catch (err) {
       if (err == 'ReferenceError: document is not defined') {
         console.error('non-browser detected: ', err);
@@ -346,7 +336,15 @@ class Browser {
       } else {
         siteMessage('Connection Restored', 1000);
       }
+      console.info('Browser... Peer Connect');
       first_connect = false;
+      if (this.render_ts) {
+        let now = Date.now();
+        console.info(
+          `${(Math.round((now - this.render_ts) / 1000), 1)}s from Render to Peer Connect [Browser]`
+        );
+        delete this.render_ts;
+      }
     });
     this.app.connection.on('peer_disconnect', function (publicKey: string) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -1871,17 +1869,6 @@ class Browser {
     }
   }
 
-  logMatomoEvent(category, action, name, value) {
-    try {
-      let m = this.app.modules.returnFirstRespondTo('matomo_event_push');
-      if (m) {
-        m.push(category, action, name, value);
-      }
-    } catch (err) {
-      console.error('Browser [logMatomoEvent] error: ', err);
-    }
-  }
-
   //////////////////////////////////////////////////////////////////////////////
   /////////////////////// url-hash helper functions ////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -3004,6 +2991,63 @@ class Browser {
       default:
         console.log(header, new_obj);
     }
+  }
+
+  handleShare(data) {
+    // Use Web Share API if available, otherwise fall back to copy
+    if (this.isMobileBrowser() && navigator.share) {
+      navigator.share(data).catch((err) => {
+        // User cancelled or error - fall back to copy
+        this.handleCopyLink(data?.url);
+      });
+    } else {
+      // Fall back to copy link
+      this.handleCopyLink(data?.url);
+    }
+  }
+
+  handleCopyLink(shareUrl = window.location.href) {
+    // Copy to clipboard
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard
+        .writeText(shareUrl)
+        .then(() => {
+          if (typeof siteMessage === 'function') {
+            siteMessage('Link copied to clipboard', 1500);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to copy:', err);
+          this.fallbackCopy(shareUrl);
+        });
+    } else {
+      this.fallbackCopy(shareUrl);
+    }
+  }
+
+  fallbackCopy(text) {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      document.execCommand('copy');
+      if (typeof siteMessage === 'function') {
+        siteMessage('Link copied to clipboard', 1500);
+      }
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+      if (typeof siteMessage === 'function') {
+        siteMessage('Failed to copy link', 1500);
+      }
+    }
+
+    document.body.removeChild(textArea);
   }
 
   /**

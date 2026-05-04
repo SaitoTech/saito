@@ -1,4 +1,5 @@
 module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = null) => {
+  console.log(og_card);
 
   let html = `
 
@@ -26,26 +27,19 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
   <meta name="twitter:card" content="https://saito.io/stack/img/splash.png" />
   <meta name="twitter:site" content="${og_card.twitter}" />
   <meta name="twitter:creator" content="${og_card.twitter}" />
-  <!--meta name="twitter:title" content="${og_card.title}" /-->
-  <meta name="twitter:title" content="Stack - Open, Unstoppable Publishing" />
+  <meta name="twitter:title" content="${og_card.title}" />
   <meta name="twitter:url" content="${og_card.url}" />
-  <!--meta name="twitter:description" content="${og_card.description}" /-->
-  <meta name="twitter:description" content="Open-source subscription-based blogging platform" />
-  <!--meta name="twitter:image" content="${og_card.image}" /-->
-  <meta name="twitter:image" content="https://saito.io/stack/img/splash.png" />
+  <meta name="twitter:description" content="${og_card.description}" />
+  <meta name="twitter:image" content="${og_card.image}" />
 
   <meta property="og:type" content="website" />
-  <!--meta property="og:title" content="${og_card.title}" /-->
-  <meta property="og:title" content="Stack - Open, Unstoppable Publishing" />
+  <meta property="og:title" content="${og_card.title}" />
   <meta property="og:url" content="${og_card.url}" />
-  <!--meta property="og:description" content="${og_card.description}"/-->
-  <meta property="og:description" content="Open-source subscription-based blogging platform"/>
+  <meta property="og:description" content="${og_card.description}"/>
   <meta property="og:site_name" content="Saito" />
-  <meta property="og:image" content="https://saito.io/stack/img/splash.png"/>
-  <meta property="og:image:url" content="https://saito.io/stack/img/splash.png"/>
-  <!--meta property="og:image" content="${og_card.image}"/>
+  <meta property="og:image" content="${og_card.image}"/>
   <meta property="og:image:url" content="${og_card.image}"/>
-  <meta property="og:image:secure_url" content="${og_card.image}"/-->
+  <meta property="og:image:secure_url" content="${og_card.image}"/>
   <meta property="og:image:secure_url" content="https://saito.io/stack/img/splash.png"/>
 
   <link rel="icon" sizes="192x192" href="/saito/img/touch/pwa-192x192.png" />
@@ -86,7 +80,7 @@ module.exports = (app, mod, build_number, og_card = {}, initialPostSerialized = 
 
 </head>
 <body>
-  <div class="saito-container" id="saito-container"></div>
+  <div class="saito-container hide-scrollbar" id="saito-container"></div>
 </body>
 `;
   if (initialPostSerialized) {

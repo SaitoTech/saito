@@ -11,8 +11,8 @@
   grid-template-columns: 1fr !important;
   padding: 0 !important;
   position: relative !important;
-  top: 0 !important;
-  height: auto !important;
+  top: var(--saito-header-height, 60px);
+  height: auto;
   overflow: visible !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -27,7 +27,7 @@
 
 /* Splash page layout */
 .stack-splash {
-  min-height: calc(100vh - var(--saito-header-height, 60px));
+  height: calc(100svh - var(--saito-header-height, 60px));
   display: flex;
   flex-direction: column;
   position: relative;
@@ -72,19 +72,16 @@
   width: 100%;
 }
 
-@media (min-width: 769px) {
-  .stack-cta-section {
-    padding-top: 6rem;
-    padding-bottom: 4rem;
-  }
-}
-
 @media (max-width: 768px) {
   .stack-cta-section {
     flex-direction: column;
     gap: 2rem;
     padding: 1.5rem;
     min-height: auto;
+    height: 100%;
+    display: grid;
+    /*grid-template-rows: minmax(0, 1fr) minmax(0, max-content);*/
+    grid-template-rows: minmax(0, min-content) minmax(min-content, 1fr);
   }
 }
 
@@ -143,7 +140,11 @@
 }
 
 .stack-cta-image-placeholder {
-  background: linear-gradient(135deg, var(--saito-primary) 0%, var(--saito-primary-dark, #4a90e2) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--saito-primary) 0%,
+    var(--saito-primary-dark, #4a90e2) 100%
+  );
   display: flex;
   align-items: center;
   justify-content: center;
@@ -154,7 +155,7 @@
 }
 
 .stack-cta-image-placeholder::before {
-  content: "📝";
+  content: '📝';
   font-size: 8rem;
   opacity: 0.3;
 }
@@ -170,7 +171,16 @@
   justify-content: flex-start; /* Start from top, not centered */
   padding: 2.5rem;
   /* Do NOT set base font-size - each role has explicit rem size */
-  font-family: var(--saito-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+  font-family: var(
+    --saito-font-family,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif
+  );
 }
 
 .stack-cta-image-back-content h3 {
@@ -263,9 +273,20 @@
 }
 
 @media (max-width: 768px) {
+  .saito-container:has(.stack-splash),
+  .saito-container.stack-splash-container {
+    max-height: calc(100svh - var(--saito-header-height));
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .stack-splash {
+    height: 100%;
+  }
+
   .stack-cta-image-flip {
     max-width: 100%;
     max-height: 300px;
+    height: 100%;
   }
 
   .stack-cta-image-back-content {
@@ -327,23 +348,22 @@
 
 @media (max-width: 768px) {
   .stack-cta-title {
-    font-size: 3.5rem;
+    font-size: 3rem;
   }
-  
+
   .stack-cta-description {
     font-size: 1.8rem;
   }
-  
+
   .stack-cta-buttons {
     flex-direction: column;
   }
-  
+
   .stack-cta-buttons button {
     width: 100%;
     font-size: 1.5rem;
   }
 }
-
 
 .stack-container {
   max-width: 1200px;
@@ -656,16 +676,28 @@
   .stack-main {
     order: 1;
   }
-}
 
+  .stack-features-list {
+    display: none;
+  }
+
+  .stack-cta-description {
+    margin-bottom: 1.5rem;
+  }
+
+  .stack-cta-buttons {
+    margin-bottom: 2rem;
+  }
+
+  .stack-cta-buttons button {
+    margin: 0;
+  }
+}
 
 /* ============================================
    PUBLISH SETTINGS OVERLAY
    ============================================ */
 
-
 /* ============================================
    EXPLORE OVERLAY
    ============================================ */
-
-

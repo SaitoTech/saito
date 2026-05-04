@@ -117,9 +117,9 @@ class GameMenu {
             game_mod.menu.hideSubMenus();
             menu_self.overlay.show(
               `<div class="debug_overlay">
-			<button class="saito-button-primary" id="checkmoves">Check for missed transaction</button>
-			<div class="debug-stats"><span>Gaming Active</span><span>${game_mod.gaming_active}</span><span>Halted</span><span>${game_mod.halted}</span><span>Game run initialized</span><span>${game_mod.initialize_game_run}</span></div>
-	       </div>`
+      <button class="saito-button-primary" id="checkmoves">Check for missed transaction</button>
+      <div class="debug-stats"><span>Gaming Active</span><span>${game_mod.gaming_active}</span><span>Halted</span><span>${game_mod.halted}</span><span>Game run initialized</span><span>${game_mod.initialize_game_run}</span></div>
+         </div>`
             );
 
             //debug info
@@ -146,45 +146,10 @@ class GameMenu {
             if (btn) {
               btn.onclick = async (e) => {
                 e.stopPropagation();
-
-                let newtx = await game_mod.app.wallet.createUnsignedTransactionWithDefaultFee();
-                let recipients = [];
-                game_mod.game.accepted.forEach((player) => {
-                  if (player != game_mod.publicKey) {
-                    newtx.addTo(player);
-                    recipients.push(player);
-                  }
-                });
-                newtx.msg = {
-                  request: 'game relay recent moves',
-                  module: game_mod.name,
-                  game_id: game_mod.game.id,
-                  timestamp: new Date().getTime()
-                };
-
-                game_mod.app.connection.emit('relay-send-message', {
-                  request: 'game relay recent moves',
-                  recipient: recipients,
-                  data: newtx.toJson()
-                });
-
                 btn.onclick = null;
                 btn.classList.add('disabled');
                 btn.innerHTML = 'fetching';
-
-                app.storage.loadTransactions(
-                  {
-                    field4: game_mod.game.id
-                  },
-                  async (txs) => {
-                    siteMessage(`Analyzing ${txs.length} recent moves...`, 2500);
-                    for (let i = txs.length - 1; i >= 0; i--) {
-                      console.log(txs[i]);
-                      await game_mod.onConfirmation(-1, txs[i], 0);
-                    }
-                  },
-                  null
-                );
+                game_mod.fetchRecentGameMoves();
               };
             }
           }

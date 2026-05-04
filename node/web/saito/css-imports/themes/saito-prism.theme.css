@@ -7,7 +7,7 @@ html[data-theme='prism'] {
   /* ============================================
      BASE COLOR SECTION
      ============================================ */
-  
+
   /* Background Colors - Deep dark Prism palette */
   --saito-background-color: #0b0b10;
   --saito-background-color-inverse: #e5e5eb;
@@ -25,12 +25,8 @@ html[data-theme='prism'] {
   --saito-primary: #6366f1; /* --pr-accent */
   --saito-primary-dark: #4f46e5;
   --saito-primary-text: #ffffff;
-  --saito-primary-background: linear-gradient(
-    45deg,
-    #6366f1 0%,
-    #818cf8 55%,
-    #6366f1 100%
-  ) transparent no-repeat left top / 400% auto;
+  --saito-primary-background: linear-gradient(45deg, #6366f1 0%, #818cf8 55%, #6366f1 100%)
+    transparent no-repeat left top / 400% auto;
 
   /* Secondary Colors */
   --saito-secondary: #a855f7; /* --pr-purple */
@@ -39,14 +35,13 @@ html[data-theme='prism'] {
   /* ============================================
      FONTS SECTION
      ============================================ */
-  
+
   /* Font Colors - Light text on dark background */
-  --saito-font-color: #e5e5eb; /* --pr-text */
+  --saito-font-color-primary: #e5e5eb; /* --pr-text */
   --saito-font-color-heavy: #ffffff;
   --saito-font-color-light: #8888a0; /* --pr-text-secondary */
   --saito-font-color-secondary: #8888a0;
   --saito-font-color-inverse: #0b0b10;
-  --saito-font-color-primary: #e5e5eb;
 
   /* Font Family - Modern system fonts like Prism */
   --saito-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -55,14 +50,14 @@ html[data-theme='prism'] {
   /* ============================================
      TINTS & HIGHLIGHTS
      ============================================ */
-  
+
   --saito-highlight: rgba(99, 102, 241, 0.1); /* Subtle indigo glow */
   --saito-highlight-heavy: rgba(99, 102, 241, 0.2);
 
   /* ============================================
      BORDER COLORS
      ============================================ */
-  
+
   --saito-border-color: #2a2a3a; /* --pr-border */
   --saito-border-color-light: #2a2a3a;
   --saito-border-color-dark: #2a2a3a;
@@ -72,12 +67,11 @@ html[data-theme='prism'] {
   /* ============================================
      BOX SHADOWS - Modern, subtle shadows
      ============================================ */
-  
+
   --saito-box-shadow-low: 0px 1px 2px rgba(0, 0, 0, 0.3);
-  --saito-box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.4), 
-                      0px 2px 4px rgba(0, 0, 0, 0.2);
-  --saito-box-shadow-high: 0px 12px 32px -8px rgba(99, 102, 241, 0.3),
-                           0px 8px 16px rgba(0, 0, 0, 0.4);
+  --saito-box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.4), 0px 2px 4px rgba(0, 0, 0, 0.2);
+  --saito-box-shadow-high:
+    0px 12px 32px -8px rgba(99, 102, 241, 0.3), 0px 8px 16px rgba(0, 0, 0, 0.4);
 
   /* ============================================
      COMPONENT-SPECIFIC OVERRIDES
@@ -91,7 +85,9 @@ html[data-theme='prism'] {
     border-color: var(--saito-primary);
     border-radius: var(--saito-border-radius);
     font-weight: 600;
-    transition: opacity 0.2s, transform 0.2s;
+    transition:
+      opacity 0.2s,
+      transform 0.2s;
   }
 
   button:hover,
@@ -126,7 +122,9 @@ html[data-theme='prism'] {
   .saito-table-row {
     background: var(--saito-surface-color);
     border-radius: 8px;
-    transition: background 0.2s, border-color 0.2s;
+    transition:
+      background 0.2s,
+      border-color 0.2s;
   }
 
   .saito-table-row:hover {
@@ -143,9 +141,9 @@ html[data-theme='prism'] {
   }
 
   /* Input Fields - Match Prism search bar style */
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
   textarea,
   select {
     background: var(--saito-surface-color);
@@ -156,9 +154,9 @@ html[data-theme='prism'] {
     transition: border-color 0.2s;
   }
 
-  input[type="text"]:focus,
-  input[type="email"]:focus,
-  input[type="password"]:focus,
+  input[type='text']:focus,
+  input[type='email']:focus,
+  input[type='password']:focus,
   textarea:focus,
   select:focus {
     border-color: var(--saito-primary);
@@ -175,7 +173,10 @@ html[data-theme='prism'] {
     background: var(--saito-surface-color);
     border: 1px solid var(--saito-border-color);
     border-radius: var(--saito-border-radius);
-    transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+    transition:
+      border-color 0.3s,
+      transform 0.3s,
+      box-shadow 0.3s;
   }
 
   .saito-module:hover {
@@ -198,21 +199,21 @@ html[data-theme='prism'] {
   /* Status Colors - Match Prism's semantic colors */
   /* Success/Green */
   --saito-green: #22c55e; /* --pr-green */
-  
+
   /* Error/Red */
   --saito-red: #ef4444; /* --pr-red */
   --saito-red-dark: #dc2626;
-  
+
   /* Warning/Yellow */
   --saito-yellow-light: #f59e0b; /* --pr-yellow */
-  
+
   /* Info/Blue */
   --saito-blue: #3b82f6; /* --pr-blue */
 
   /* ============================================
      HEADER STYLING
      ============================================ */
-  
+
   #saito-header {
     background: var(--saito-header-background);
     border-bottom: 1px solid var(--saito-border-color);
@@ -222,7 +223,7 @@ html[data-theme='prism'] {
   /* ============================================
      SCROLLBARS - Hide scrollbars like Prism
      ============================================ */
-  
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -244,7 +245,7 @@ html[data-theme='prism'] {
   /* ============================================
      SELECTION & FOCUS
      ============================================ */
-  
+
   ::selection {
     background: var(--saito-primary);
     color: var(--saito-primary-text);
@@ -253,7 +254,7 @@ html[data-theme='prism'] {
   /* ============================================
      UTILITY CLASSES - Prism-inspired
      ============================================ */
-  
+
   /* Monospace text for addresses/hashes */
   .mono,
   code {
@@ -269,7 +270,9 @@ html[data-theme='prism'] {
 
   /* Card hover effect */
   .card-hover {
-    transition: transform 0.3s, box-shadow 0.3s;
+    transition:
+      transform 0.3s,
+      box-shadow 0.3s;
   }
 
   .card-hover:hover {

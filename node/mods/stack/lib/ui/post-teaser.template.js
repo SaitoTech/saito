@@ -1,9 +1,11 @@
 /**
  * Post Teaser Template
- * 
+ *
  * Editorial-style blog post preview component.
  * Reads from transaction data: tx.msg.data.title, subtitle, summary, image, timestamp
- * 
+ *
+ *  ** Post is a Transaction **
+ *
  * Structure:
  * - Feature image (left on desktop, top on mobile)
  * - Title (required, dominant)
@@ -16,7 +18,7 @@ module.exports = (app, mod, post) => {
   let timestamp = null;
   let postId = '';
   let publicKey = '';
-  
+
   if (post && post.msg) {
     // Transaction object
     const msg = post.returnMessage ? post.returnMessage() : post.msg;
@@ -31,14 +33,14 @@ module.exports = (app, mod, post) => {
     postId = post.id || post.signature || post.sig || '';
     publicKey = post.publicKey || (post.author && post.author.publicKey) || post.author || '';
   }
-  
+
   // Extract fields from transaction data structure
   const title = data.title || 'Untitled post';
   const subtitle = data.subtitle || null;
   const summary = data.summary || data.excerpt || null;
   const image = data.image || null;
   const imageUrl = data.imageUrl || null;
-  
+
   // Always use an image - fallback to placeholder if none provided
   let displayImage = imageUrl || '/saito/img/dreamscape.png';
   if (image && !imageUrl) {
@@ -46,7 +48,7 @@ module.exports = (app, mod, post) => {
     const mimeType = 'image/png'; // Default
     displayImage = `data:image/${mimeType};base64,${image}`;
   }
-  
+
   // Format date (subtle, optional)
   let dateString = null;
   if (timestamp && app.browser.formatDate) {
@@ -55,19 +57,20 @@ module.exports = (app, mod, post) => {
       dateString = `${date.month} ${date.day}, ${date.year}`;
     }
   }
-  
+
   // Prefer subtitle, fallback to summary
   const description = subtitle || summary;
-  
+
   // Clamp description to approximately 120 characters (1-2 lines)
   let displayDescription = null;
   if (description) {
     const maxLength = 120;
-    displayDescription = description.length > maxLength 
-      ? description.substring(0, maxLength).trim() + '...'
-      : description;
+    displayDescription =
+      description.length > maxLength
+        ? description.substring(0, maxLength).trim() + '...'
+        : description;
   }
-  
+
   return `
     <article class="stack-post-teaser" data-tx-signature="${postId}" data-post-id="${postId}" data-public-key="${publicKey}">
       <div class="stack-post-teaser-image">
@@ -77,17 +80,24 @@ module.exports = (app, mod, post) => {
       <div class="stack-post-teaser-content">
         <h3 class="stack-post-teaser-title">${app.browser.escapeHTML(title)}</h3>
         
-        ${displayDescription ? `
+        ${
+          displayDescription
+            ? `
           <p class="stack-post-teaser-description">${app.browser.escapeHTML(displayDescription)}</p>
-        ` : ''}
+        `
+            : ''
+        }
         
-        ${dateString ? `
+        ${
+          dateString
+            ? `
           <div class="stack-post-teaser-meta">
             <time class="stack-post-teaser-date">${dateString}</time>
           </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     </article>
   `;
 };
-

@@ -8,6 +8,7 @@ const HomePage = require('./index');
 const StackMain = require('./lib/ui/main');
 const ExploreOverlay = require('./lib/ui/overlay/explore');
 const CreatePost = require('./lib/ui/create-post');
+const ViewPost = require('./lib/ui/view-post');
 const { getAccessScriptForIntent } = require('./lib/access/access-scripts');
 
 //
@@ -233,25 +234,8 @@ class Stack extends ModTemplate {
     // Show overlay immediately with loading state
     this.exploreOverlay.isLoading = true;
     this.exploreOverlay.posts = [];
-    this.exploreOverlay.currentFilter = 'creator';
     this.exploreOverlay.targetPublicKey = publicKey;
     this.exploreOverlay.render();
-
-    // Load posts for this creator using loadPostsForAuthor
-    try {
-      const posts = await this.loadPostsForAuthor(publicKey, { forceRemote: true });
-
-      // Update overlay with loaded posts
-      this.exploreOverlay.posts = posts;
-      this.exploreOverlay.isLoading = false;
-      this.exploreOverlay.updatePostsGrid(publicKey);
-    } catch (error) {
-      console.error('Stack: Error loading creator posts:', error);
-      // Show error state
-      this.exploreOverlay.isLoading = false;
-      this.exploreOverlay.posts = [];
-      this.exploreOverlay.updatePostsGrid(publicKey);
-    }
   }
 
   /**
@@ -266,7 +250,6 @@ class Stack extends ModTemplate {
 
     // Initialize ViewPost if needed (cache for reuse)
     if (!this.viewPostComponent) {
-      const ViewPost = require('./lib/ui/view-post');
       this.viewPostComponent = new ViewPost(this.app, this, '.saito-container');
     }
 
@@ -479,6 +462,16 @@ class Stack extends ModTemplate {
       return x;
     }
 
+    if (type === 'user-menu') {
+      return {
+        text: `View Stack`,
+        icon: this.icon_fa,
+        callback: function (app, publicKey) {
+          navigateWindow(`/stack/${publicKey}`);
+        }
+      };
+    }
+
     if (type === 'saito-create-nft') {
       let this_mod = this;
 
@@ -571,6 +564,32 @@ class Stack extends ModTemplate {
           });
 
           return tx;
+        }
+      };
+    }
+
+    if (type == 'saito-return-key') {
+      return {
+        returnKey: (data = null) => {
+          //
+          // data might be a publickey, permit flexibility
+          // in how this is called by pushing it into a
+          // suitable object for searching
+          //
+          if (typeof data === 'string') {
+            let d = { publicKey: '' };
+            d.publicKey = data;
+            data = d;
+          }
+
+          if (data?.publicKey == this.STACK_OFFICIAL_PUBLICKEY) {
+            return {
+              publicKey: data.publicKey,
+              identifier: 'SaitoOfficial'
+            };
+          }
+
+          return null;
         }
       };
     }
@@ -1128,11 +1147,6 @@ class Stack extends ModTemplate {
     // INVARIANT: app.options.stack is lightweight - no post bodies, images, or heavy data
     // ========================================================================
     if (tx.isFrom(this.publicKey)) {
-      this.load();
-      if (!this.app.options.stack.posts) {
-        this.app.options.stack.posts = [];
-      }
-
       // Extract parent_id for revision tracking
       const parent_id = txmsg.data?.parent_id || null;
 
@@ -1274,22 +1288,18 @@ class Stack extends ModTemplate {
       return false;
     }
 
-    this.load();
-    const subscriptions = this.app.options.stack.subscriptions || [];
-
-    // Check if already subscribed
-    if (subscriptions.some((sub) => sub.publicKey === publicKey)) {
+    if (this.isSubscribed(publicKey)) {
       return false;
     }
 
     // Add subscription
-    subscriptions.push({
+    this.app.options.stack.subscriptions.push({
       publicKey: publicKey,
       addedAt: Date.now()
     });
 
-    this.app.options.stack.subscriptions = subscriptions;
     this.save();
+
     return true;
   }
 
@@ -1300,7 +1310,11 @@ class Stack extends ModTemplate {
    */
   isSubscribed(publicKey) {
     if (!publicKey) return false;
-    this.load();
+
+    if (publicKey == this.publicKey || publicKey == this.STACK_OFFICIAL_PUBLICKEY) {
+      return true;
+    }
+
     const subscriptions = this.app.options.stack.subscriptions || [];
     return subscriptions.some((sub) => sub.publicKey === publicKey);
   }
@@ -1310,7 +1324,6 @@ class Stack extends ModTemplate {
    * @returns {Array<string>}
    */
   getSubscriptions() {
-    this.load();
     const subscriptions = this.app.options.stack.subscriptions || [];
     return subscriptions.map((sub) => sub.publicKey);
   }
@@ -1321,9 +1334,6 @@ class Stack extends ModTemplate {
    * This is CLIENT-SIDE STATE ONLY - not authoritative
    */
   save() {
-    if (!this.app.options.stack) {
-      this.app.options.stack = {};
-    }
     this.app.storage.saveOptions();
   }
 
@@ -2254,6 +2264,8 @@ class Stack extends ModTemplate {
       return bTime - aTime;
     });
 
+    this.postsCache.byAuthor.set(publicKey, collapsedPosts);
+
     return collapsedPosts;
   }
 
@@ -2349,18 +2361,52 @@ class Stack extends ModTemplate {
     //   - loadPost()
     //   - explore logic
     //
-    let html = HomePage(app, stack_self, app.build_number);
+    let updateSocial = Object.assign({}, stack_self.social);
 
     expressapp.get(`${uri}`, (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
-      return res.send(html);
+
+      if (req?.query?.og_img_sig) {
+        let sig = req.query.og_img_sig;
+        app.storage.loadTransactions(
+          { sig, field1: 'Stack' },
+          (txs) => {
+            if (txs?.length > 0) {
+              const tx = txs[0];
+              const txmsg = tx.returnMessage();
+              const img_uri = txmsg.data.image;
+              let img_type = img_uri.substring(img_uri.indexOf(':') + 1, img_uri.indexOf(';'));
+              let base64Data = img_uri.replace(/^data:image\/(png|jpeg|jpg);base64,/, '');
+              let img = Buffer.from(base64Data, 'base64');
+
+              if (img_type == 'image/svg+xml') {
+                img_type = 'image/svg';
+              }
+
+              if (!res.finished) {
+                res.writeHead(200, {
+                  'Content-Type': img_type,
+                  'Content-Length': img.length
+                });
+                return res.end(img);
+              }
+            }
+          },
+          'localhost'
+        );
+
+        return;
+      }
+
+      return res.send(HomePage(app, stack_self, app.build_number, updateSocial));
     });
 
     expressapp.get(`${uri}/:publickey`, (req, res) => {
       res.setHeader('Content-type', 'text/html');
       res.charset = 'UTF-8';
-      return res.send(html);
+      updateSocial.description = `Follow ${app.keychain.returnUsername(req.params.publicKey)}`;
+      return res.send(HomePage(app, stack_self, app.build_number, updateSocial));
     });
 
     expressapp.get(`${uri}/:publickey/:txsig`, (req, res) => {
@@ -2368,332 +2414,43 @@ class Stack extends ModTemplate {
       res.charset = 'UTF-8';
       const txsig = req.params.txsig;
       const cachedTx = txsig ? stack_self.transactionCache[txsig] : null;
+
+      updateSocial.description = `Follow ${app.keychain.returnUsername(req.params.publicKey)}`;
+
       if (cachedTx) {
         try {
-          const serializedTx = cachedTx.serialize_to_web(app);
-          const htmlWithPost = HomePage(app, stack_self, app.build_number, {}, serializedTx);
-          return res.send(htmlWithPost);
+          let txmsg = cachedTx.returnMessage();
+          if (txmsg?.data?.title) {
+            updateSocial.title = txmsg.data.title;
+          }
+          if (txmsg?.data?.image) {
+            console.log(txmsg?.data?.image);
+            updateSocial.image = uri + '?og_img_sig=' + txsig;
+          } else if (txmsg?.data?.imageUrl) {
+            updateSocial.image = txmsg.data.imageUrl;
+          }
+
+          let summary = txmsg?.data?.summary || txmsg?.data?.excerpt || '';
+          if (summary) {
+            updateSocial.description = summary;
+          } else {
+            updateSocial.description =
+              app.keychain.returnUsername(req.params.publicKey) + ' writes on Saito Stack...';
+          }
         } catch (err) {
           console.debug('Stack: Failed to serialize cached post for initial HTML', err);
         }
       }
-      return res.send(html);
+      return res.send(
+        HomePage(
+          app,
+          stack_self,
+          app.build_number,
+          updateSocial,
+          cachedTx ? cachedTx.serialize_to_web(app) : null
+        )
+      );
     });
-  }
-
-  ////////////////////////////
-  // DEVELOPMENT ONLY: Demo Transactions
-  ////////////////////////////
-  /**
-   * Generates synthetic blog post transactions for development/testing.
-   * These transactions exist only in memory and are not persisted to disk.
-   *
-   * TODO: Remove this function and its call in initialize() when ready for production.
-   *
-   * This function:
-   * - Creates 3 Transaction objects with realistic blog content
-   * - Inserts them into transactionCache and postsCache
-   * - Makes them discoverable by loadPost/loadPosts
-   */
-  async generateDemoStackTransactions() {
-    if (!this.publicKey) {
-      console.debug('Stack: Cannot generate demo posts without publicKey');
-      return;
-    }
-
-    const demoPosts = [
-      {
-        title: 'On Shared Dreaming',
-        subtitle: 'Exploring the architecture of collective consciousness',
-        text: `# On Shared Dreaming
-
-The idea of shared dreaming has haunted human imagination for as long as we have told stories. What happens when we build worlds together, not just in our minds, but in spaces we can enter together? The question touches on something fundamental about how we construct reality and trust one another within it.
-
-## The Architecture of Collective Consciousness
-
-When we dream alone, the rules are simple: everything we encounter is a product of our own mind. The physics, the logic, the people—all of it exists because we believe it does. But what if someone else could enter that space? What if the dream had to accommodate not just one consciousness, but two, or many?
-
-The first challenge is coordination. In a private dream, you can change the rules on a whim. A door that was locked can suddenly be open because you willed it. But in a shared space, such changes require consensus, or at least acknowledgment. The shared dream becomes a negotiation, a collaborative construction where each participant brings their own expectations and limitations.
-
-This negotiation is not just about what is possible, but about what is real. In your own dream, you know—or at least believe—that everything you see is a projection. But when another person enters, their presence introduces a fundamental uncertainty: are they real, or are they another projection? The question of authenticity becomes central, and trust becomes the currency of the shared space.
-
-## Trust and Coordination Inside a Dream
-
-Trust in a shared dream operates differently than trust in waking life. In the physical world, we have external referents—we can touch, measure, verify. But in a dream, verification is circular. If I ask you to prove you're real, and you respond, how do I know your response isn't just my mind creating what I expect to hear?
-
-The answer, perhaps, is that trust in a shared dream is not about verification, but about surrender. To enter someone else's dream is to accept, at least provisionally, that their reality is as valid as your own. It is to agree to play by rules you did not create, to see things you did not imagine, to experience perspectives that are genuinely other.
-
-This surrender is not passive. It requires active participation in the construction of the shared space. You must contribute your own elements, your own rules, your own understanding. The dream becomes a collaborative work, constantly being rewritten by all participants.
-
-## The Difference Between Private and Collective Experience
-
-A private dream is a monologue. A shared dream is a dialogue, or perhaps a polyphonic composition where multiple voices speak simultaneously, sometimes in harmony, sometimes in tension.
-
-In a private dream, you are both the author and the audience. You know the plot because you wrote it, even if you don't remember writing it. But in a shared dream, you are only one of the authors, and you are constantly surprised by what the others create. The experience becomes genuinely collaborative, genuinely unpredictable.
-
-This unpredictability is both the risk and the reward. In a private dream, you can control everything, but you can also be trapped by your own limitations. In a shared dream, you lose control, but you gain access to perspectives and possibilities you could never have imagined alone.
-
-## The Boundaries of Shared Space
-
-The question of boundaries becomes crucial. Where does one person's dream end and another's begin? If we are truly sharing a space, then the boundaries must be permeable, or perhaps non-existent. But if there are no boundaries, how do we maintain our individual identity? How do we know where we end and the other begins?
-
-Perhaps the answer is that in a truly shared dream, identity itself becomes fluid. You are not just yourself, but also part of the collective construction. Your thoughts influence the space, and the space influences your thoughts. The distinction between self and other, between internal and external, begins to blur.
-
-This blurring is not necessarily a loss. It can be an expansion, a way of experiencing consciousness that transcends individual boundaries. But it also requires a kind of courage—the willingness to let go of the certainty that comes with being the sole author of your reality.
-
-## The Ethics of Shared Dreaming
-
-If we can truly share dreams, then we must consider the ethics of such sharing. What are the responsibilities of the dream architect? What are the rights of the dream participant? Can someone be harmed in a shared dream? Can they be healed?
-
-These questions are not just theoretical. They touch on fundamental issues of consent, agency, and the nature of experience itself. If a shared dream feels real, does that make it real? And if it is real, what obligations do we have to those who share it with us?
-
-The answer may be that shared dreaming, like any form of shared experience, requires mutual respect and care. We must enter each other's spaces with intention, with awareness of the power we have to shape the experience, and with respect for the autonomy of others.
-
-## Conclusion: The Promise of Shared Spaces
-
-Shared dreaming, whether literal or metaphorical, represents a profound possibility: that we can construct realities together, that we can experience consciousness not just individually but collectively. This possibility challenges our assumptions about the boundaries of self and other, about what is real and what is imagined.
-
-In the end, perhaps the question is not whether shared dreaming is possible, but whether we are willing to take the risk of entering spaces we did not create, of trusting others with the architecture of our experience, of surrendering control in exchange for the possibility of genuine collaboration.
-
-The shared dream, then, becomes a metaphor for all forms of collective construction—for art, for community, for the ways we build worlds together in waking life. And in that sense, we are all already shared dreamers, architects of spaces we enter together, constantly negotiating the rules, the boundaries, and the meaning of what we create.`,
-        imageUrl: '/saito/img/dreamscape.png',
-        timestamp: Date.now() - 86400000 * 3, // 3 days ago
-        url: window.location.href + '#post/shared-dreaming'
-      },
-      {
-        title: 'Getting Started with Saito Stack',
-        subtitle:
-          'Learn how to create your first post, set up subscriptions, and build your audience on the decentralized web.',
-        text: `# Getting Started with Saito Stack
-
-Welcome to Saito Stack, a permissioned blogging platform built on the decentralized Saito network. This guide will help you create your first post and understand the core concepts.
-
-## Creating Your First Post
-
-To create a post, click the "Start Writing" button in the main interface. You'll be taken to the editor where you can:
-
-- Write your content using Markdown
-- Add a feature image
-- Set a title and subtitle
-- Configure subscription tiers
-
-## Understanding Subscriptions
-
-Saito Stack supports both free and paid subscriptions. You can:
-
-- Offer free content to build your audience
-- Create premium content behind a paywall
-- Manage subscriber access and permissions
-
-## Building Your Audience
-
-The Explore feature lets readers discover your content. Make sure to:
-
-- Write engaging titles and subtitles
-- Use clear, readable formatting
-- Add compelling feature images
-- Publish regularly to keep readers engaged
-
-## Next Steps
-
-Once you've published your first post, you can:
-
-- Share it with your network
-- Build on existing posts (fork functionality)
-- Engage with your readers
-- Monetize your content through subscriptions
-
-Happy writing!`,
-        imageUrl: '/saito/img/dreamscape.png',
-        timestamp: Date.now() - 86400000 * 2, // 2 days ago
-        url: window.location.href + '#post/demo-getting-started'
-      },
-      {
-        title: 'Understanding Peer-to-Peer Publishing',
-        subtitle:
-          'Unlike traditional blogging platforms, Saito Stack runs on a peer-to-peer network.',
-        text: `# Understanding Peer-to-Peer Publishing
-
-Unlike traditional blogging platforms, Saito Stack runs on a peer-to-peer network. Your posts are stored across the network, giving you true ownership and control over your content.
-
-## The Decentralized Advantage
-
-Traditional platforms store your content on centralized servers. This means:
-
-- You don't own your content
-- Platforms can censor or remove posts
-- You're dependent on a single service
-- Your data is vulnerable to breaches
-
-With Saito Stack, your content is:
-
-- Stored across the network
-- Truly owned by you
-- Resistant to censorship
-- Accessible from any peer
-
-## How It Works
-
-When you publish a post:
-
-1. Your transaction is created and signed
-2. It's propagated across the Saito network
-3. Peers cache and serve your content
-4. Readers can access it from any peer
-
-## Network Resilience
-
-The peer-to-peer architecture means:
-
-- No single point of failure
-- Content remains available even if some peers go offline
-- Fast access through local caching
-- True decentralization
-
-## Your Content, Your Control
-
-With Saito Stack, you maintain full control over your content. No platform can:
-
-- Delete your posts
-- Modify your content
-- Restrict your access
-- Take ownership of your work
-
-This is the future of publishing.`,
-        imageUrl: '/saito/img/dreamscape.png',
-        timestamp: Date.now() - 86400000 * 5, // 5 days ago
-        url: window.location.href + '#post/demo-peer-to-peer'
-      },
-      {
-        title: 'Advanced Monetization Strategies',
-        subtitle:
-          'This premium content explores advanced techniques for monetizing your writing through NFT subscriptions.',
-        text: `# Advanced Monetization Strategies
-
-This premium content explores advanced techniques for monetizing your writing through NFT subscriptions, custom access rules, and building sustainable revenue streams.
-
-## Subscription Tiers
-
-Saito Stack supports multiple subscription models:
-
-### Free Tier
-- Build your audience
-- Establish credibility
-- Create a content library
-- Attract subscribers
-
-### Paid Tier
-- Generate revenue
-- Offer exclusive content
-- Reward loyal readers
-- Build a sustainable business
-
-## Setting Up Subscriptions
-
-To monetize your content:
-
-1. Define your subscription tiers
-2. Set pricing for each tier
-3. Create premium content
-4. Market to your audience
-
-## Access Control
-
-Control who can access your content:
-
-- Free posts: Available to everyone
-- Subscriber-only: Requires active subscription
-- Premium: Higher-tier subscribers only
-- Custom: Define your own access rules
-
-## Building Revenue
-
-Successful monetization requires:
-
-- Consistent, high-quality content
-- Clear value proposition
-- Engaged community
-- Strategic pricing
-
-## Best Practices
-
-- Start with free content to build trust
-- Gradually introduce paid tiers
-- Offer exclusive benefits to subscribers
-- Engage with your community regularly
-
-Remember: The best monetization strategy is one that provides genuine value to your readers.`,
-        imageUrl: '/saito/img/dreamscape.png',
-        timestamp: Date.now() - 86400000 * 7, // 7 days ago
-        url: window.location.href + '#post/demo-monetization'
-      }
-    ];
-
-    // Create and cache each demo transaction
-    // Use for...of loop to properly handle async operations
-    for (let index = 0; index < demoPosts.length; index++) {
-      const postData = demoPosts[index];
-      try {
-        // Create a new transaction
-        const tx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(this.publicKey);
-
-        // Set transaction message with blog post data
-        tx.msg = {
-          module: this.name,
-          request: 'create stack post request',
-          data: {
-            type: 'stack_post',
-            title: postData.title,
-            subtitle: postData.subtitle || '',
-            text: postData.text, // Use 'text' field for body content
-            content: postData.text, // Also set content for compatibility
-            image: '',
-            imageUrl: postData.imageUrl || '',
-            images: [],
-            url: postData.url || '',
-            tags: [],
-            timestamp: postData.timestamp || Date.now(),
-            subscriptionTier: 'free',
-            excerpt: postData.subtitle || ''
-          }
-        };
-
-        // Sign the transaction
-        await tx.sign();
-
-        // Add to transactionCache (keyed by signature)
-        const signature = tx.signature;
-        if (signature) {
-          this.transactionCache[signature] = tx;
-        }
-
-        // Add to postsCache (for Explorer discovery)
-        const from = tx.from && tx.from.length > 0 ? tx.from[0].publicKey : this.publicKey;
-        const txmsg = tx.returnMessage();
-        const post = {
-          ...txmsg.data,
-          sig: signature,
-          publicKey: from,
-          timestamp: txmsg.data.timestamp || tx.timestamp,
-          lastEdited: txmsg.data.timestamp || tx.timestamp
-        };
-
-        // Add to allPosts
-        this.postsCache.allPosts.push(post);
-
-        // Add to byAuthor cache
-        if (!this.postsCache.byAuthor.has(from)) {
-          this.postsCache.byAuthor.set(from, []);
-        }
-        this.postsCache.byAuthor.get(from).push(post);
-
-        console.debug(
-          `Stack: Generated demo post "${postData.title}" (${signature.substring(0, 16)}...)`
-        );
-      } catch (error) {
-        console.error(`Stack: Failed to generate demo post ${index + 1}:`, error);
-      }
-    }
   }
 }
 

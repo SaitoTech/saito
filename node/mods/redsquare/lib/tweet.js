@@ -992,9 +992,11 @@ class Tweet {
 
 					let tweetUrl =
 						window.location.origin + window.location.pathname + '?tweet_id=' + this.tx.signature;
-					navigator.clipboard.writeText(tweetUrl).then(() => {
+					this.app.browser.handleShare({ title: 'Saito Redsquare Post', url: tweetUrl });
+
+					/*navigator.clipboard.writeText(tweetUrl).then(() => {
 						siteMessage('Link copied to clipboard.', 2000);
-					});
+					});*/
 				};
 			}
 

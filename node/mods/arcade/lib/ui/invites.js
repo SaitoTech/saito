@@ -23,14 +23,10 @@ class InviteManager {
 	}
 
 	render() {
-
-console.log("INTO RENDER...");
-
 		//
 		// replace element or insert into page (deletes invites for a full refresh)
 		//
 		let target = this.container + ' .arcade-invite';
-console.log("INTO RENDER...: " + target);
 
 		if (document.querySelector(target)) {
 			this.app.browser.replaceElementBySelector(InviteManagerTemplate(this.app, this.mod), target);
@@ -86,13 +82,9 @@ console.log("INTO RENDER...: " + target);
 					}
 				}
 
-				for (let i = 0; i < listGames.length && i < 5; i++) {
+				for (let i = 0; i < listGames.length && i < 15; i++) {
 					if (!this?.game_filter || this.game_filter == listGames[i].msg.game) {
-						if (
-							list == 'active' &&
-							!listGames[i].msg.options['open-table'] &&
-							!this.mod.sudo
-						) {
+						if (list == 'active' && !listGames[i].msg.options['open-table'] && !this.mod.sudo) {
 							continue;
 						}
 
@@ -120,15 +112,14 @@ console.log("INTO RENDER...: " + target);
 		}
 
 		// Sudo: group records where sender is unreachable, label "Offline"
-		if (this.mod?.sudo && (this.list === 'all')) {
-			let offlineGames = this.mod.returnGamesWithFilter({ is_sender_reachable: false }).map((game) => game.tx);
+		if (this.mod?.sudo && this.list === 'all') {
+			let offlineGames = this.mod
+				.returnGamesWithFilter({ is_sender_reachable: false })
+				.map((game) => game.tx);
 			if (offlineGames.length > 0 && !this.game_filter) {
-				this.app.browser.addElementToSelector(
-					`<h5 class="sidebar-header">Offline</h5>`,
-					target
-				);
+				this.app.browser.addElementToSelector(`<h5 class="sidebar-header">Offline</h5>`, target);
 			}
-			for (let i = 0; i < offlineGames.length && i < 5; i++) {
+			for (let i = 0; i < offlineGames.length && i < 15; i++) {
 				if (!this?.game_filter || this.game_filter == offlineGames[i].msg.game) {
 					let newInvite = new Invite(
 						this.app,
@@ -150,6 +141,11 @@ console.log("INTO RENDER...: " + target);
 				}
 			}
 		}
+
+		//
+		// remove unneeded
+		//
+		this.mod.purge();
 
 		this.attachEvents();
 	}

@@ -51,7 +51,7 @@
 }
 
 .saito-sidebar.arcade-sidebar {
-	height: calc(100 * var(--saito-vh) - var(--saito-header-height));
+	height: calc(100dvh - var(--saito-header-height));
 	top: 0;
 	overflow: hidden;
 	display: flex;
@@ -116,7 +116,7 @@
 	min-width: 5rem;
 }
 
-.arcade-teaser-footer .angled-notification {
+.arcade-teaser-footer .arcade-invite-badge {
 	width: fit-content;
 	padding: 0 20% 0 33%;
 	max-width: unset;

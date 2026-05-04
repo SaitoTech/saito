@@ -130,6 +130,49 @@ class GameMoves {
   }
 
   //
+  // Query the archives of your peers for the most recent game moves
+  // Fixes out-of-sync game states
+  // Code copied from game-menu.js so it can live as a more general function
+  // in the game engine, also called automatically when players are refreshing
+  // to try to fix the game...
+
+  async fetchRecentGameMoves() {
+    let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee();
+    let recipients = [];
+    this.game.accepted.forEach((player) => {
+      if (player != this.publicKey) {
+        newtx.addTo(player);
+        recipients.push(player);
+      }
+    });
+    newtx.msg = {
+      request: 'game relay recent moves',
+      module: this.name,
+      game_id: this.game.id,
+      timestamp: new Date().getTime()
+    };
+
+    this.app.connection.emit('relay-send-message', {
+      request: 'game relay recent moves',
+      recipient: recipients,
+      data: newtx.toJson()
+    });
+
+    this.app.storage.loadTransactions(
+      {
+        field4: this.game.id
+      },
+      async (txs) => {
+        siteMessage(`Analyzing ${txs.length} recent moves...`, 2500);
+        for (let i = txs.length - 1; i >= 0; i--) {
+          await this.onConfirmation(-1, txs[i], 0);
+        }
+      },
+      null
+    );
+  }
+
+  //
   // we accept this as the next move if it is either one more than the current
   // in the MASTER step (i.e. legacy for two player games) or if it is one more
   // than the last move made by the specific player (i.e. 3P simultaneous moves)

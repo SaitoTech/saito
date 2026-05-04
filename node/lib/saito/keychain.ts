@@ -38,14 +38,38 @@ class Keychain {
     //
     // saved keys
     //
-    for (let i = 0; i < this.app.options.keys.length; i++) {
+    let ts = Date.now();
+    for (let key of this.app.options.keys) {
       //Rename JSON saved variable
-      if (this.app.options.keys[i].publickey && !this.app.options.keys[i].publicKey) {
-        this.app.options.keys[i].publicKey = this.app.options.keys[i].publickey;
-        delete this.app.options.keys[i].publickey;
+      if (key.publickey && !key.publicKey) {
+        key.publicKey = key.publickey;
+        delete key.publickey;
       }
-      this.keys.push(this.app.options.keys[i]);
-      this.publickey_keys_hmap[this.app.options.keys[i].publicKey] = 1;
+
+      //Formatting / Rectification code 2026/03/24
+      if (key.group) {
+        delete key.group;
+        key.type = 'group';
+      }
+
+      if (!key.last_update) {
+        key.last_update = ts;
+      }
+
+      delete key.identicon;
+
+      if (key.watched) {
+        // Only watch special keys
+        if (!(key.type == 'event' || key.type == 'group' || key.aes_secret)) {
+          delete key.watched;
+        }
+      }
+
+      // Only recover keys that have been touched in the last week
+      if (key.watched || ts - key.last_update < 7 * 24 * 60 * 60 * 1000) {
+        this.keys.push(key);
+        this.publickey_keys_hmap[key.publicKey] = 1;
+      }
     }
 
     //
@@ -104,7 +128,7 @@ class Keychain {
       return;
     }
 
-    let data = { publicKey: '' };
+    let data = { publicKey: '', last_update: Date.now() };
 
     //
     // argument-overloading permitted !!
@@ -300,7 +324,7 @@ class Keychain {
     }
   }
 
-  returnKey(data = null, force_local_keychain = false) {
+  returnKey(data: any = {}, force_local_keychain = false) {
     //
     // data might be a publicKey, permit flexibility
     // in how this is called by pushing it into a
@@ -324,6 +348,7 @@ class Keychain {
         }
       }
       if (match) {
+        this.keys[x].last_update = Date.now();
         key_idx = x;
         break; //Stop Looping
       }
@@ -470,16 +495,6 @@ class Keychain {
   }
 
   returnIdenticon(publicKey: string, img_format = 'svg') {
-    if (this.keys != undefined) {
-      for (let x = 0; x < this.keys.length; x++) {
-        if (this.keys[x].publicKey === publicKey) {
-          if (this.keys[x].identicon != '' && typeof this.keys[x].identicon !== 'undefined') {
-            return this.keys[x].identicon;
-          }
-        }
-      }
-    }
-
     //
     // if we reach here, generate from publicKey
     //

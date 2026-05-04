@@ -1,0 +1,360 @@
+/* Notifications Module - Tweet Component (scoped: .notifications-notifications .tweet) */
+
+.notifications-notifications .tweet {
+  position: relative;
+  display: block;
+  padding: 14px 16px;
+  max-width: 600px;
+  width: auto;
+  --avatar-size: 40px;
+  --avatar-gap: 12px;
+  --content-offset: calc(var(--avatar-size) + var(--avatar-gap));
+}
+
+.notifications-notifications .tweet:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+}
+
+.notifications-notifications .tweet .header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--avatar-gap);
+  margin-left: 0;
+  padding-left: 0;
+}
+
+.notifications-notifications .tweet .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #666;
+  flex-shrink: 0;
+  display: block;
+  position: relative;
+  z-index: 2;
+}
+
+.notifications-notifications .tweet .user {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.notifications-notifications .tweet .saito-address,
+.notifications-notifications .tweet .username {
+  font-weight: 600;
+  color: #000 !important;
+}
+
+.notifications-notifications .tweet .username {
+  font-size: 15px;
+}
+
+.notifications-notifications .tweet .meta {
+  font-size: 13px;
+  color: #536471;
+  margin-top: 2px;
+}
+
+.notifications-notifications .tweet .identicon img,
+.notifications-notifications .tweet .identicon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.notifications-notifications .tweet img {
+  max-width: 100%;
+  display: block;
+}
+
+.notifications-notifications .tweet .saito-userline,
+.notifications-notifications .tweet .timestamp {
+  font-size: 0.9em;
+  color: #777 !important;
+  margin-top: 2px;
+}
+
+.notifications-notifications .tweet .body {
+  font-size: 15px;
+  line-height: 20px;
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+.notifications-notifications .tweet .body,
+.notifications-notifications .tweet .controls {
+  margin-left: var(--content-offset);
+}
+
+.notifications-notifications .tweet .body,
+.notifications-notifications .tweet .body * {
+  line-height: 20px;
+}
+
+.notifications-notifications .tweet .body p {
+  margin: 0;
+  padding: 0;
+}
+
+.notifications-notifications .tweet .body p + p {
+  margin-top: 10px;
+}
+
+.notifications-notifications .tweet .text {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  position: relative;
+}
+
+/* Clamp + fade only in preview; avoids extra blank band from max-height on all tweets */
+.notifications-notifications .tweet .text.preview {
+  max-height: 19rem;
+  overflow: hidden;
+  transition: max-height 0.2s ease;
+  /*
+   * Fade via mask (not a painted overlay): matches any real background, including
+   * .tweet:hover tint and gray feed chrome — avoids wrong solid from --saito-background-color.
+   */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 72px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 72px), transparent 100%);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* Hover anywhere on this tweet card: drop fade on *this* tweet’s main text only (not nested quote .text) */
+.notifications-notifications .tweet:hover > .body > .text.preview {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.notifications-notifications .tweet .text.expanded {
+  max-height: none;
+  overflow: visible;
+  transition: none;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+.notifications-notifications .tweet .media {
+  margin-top: 8px;
+}
+
+.notifications-notifications .tweet .media-item {
+  border-radius: 12px;
+}
+
+.notifications-notifications .tweet .link-preview {
+  margin-top: 8px;
+}
+
+.notifications-notifications .tweet .link-card {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  text-decoration: none;
+  color: #222 !important;
+}
+
+.notifications-notifications .tweet .link-card:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.notifications-notifications .tweet .controls {
+  margin-top: 6px;
+  display: flex;
+  gap: 4px;
+  justify-content: space-between;
+  color: #536471 !important;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.notifications-notifications .tweet .controls > .action {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
+  min-width: 45px;
+  border-radius: 1rem;
+}
+
+.notifications-notifications .tweet .controls .action .count {
+  display: inline-block;
+  z-index: 1;
+}
+
+.notifications-notifications .tweet .controls .action .icon {
+  font-size: 1.5rem;
+  margin: 0 0.5rem;
+  text-align: center;
+  color: inherit;
+}
+
+/* Font Awesome: restore icon box for <i class="icon ..."> */
+.notifications-notifications .tweet .controls .action i.icon {
+  display: inline-block;
+  line-height: 1;
+}
+
+/* Like: single .icon div (replaces heart-bg / heart-icon) */
+.notifications-notifications .tweet .controls .action[data-action='like'] .icon {
+  background: var(--saito-heart-animation);
+  cursor: pointer;
+  width: 50px;
+  height: 50px;
+  background-size: cover;
+  flex-shrink: 0;
+  margin: 0 0.5rem;
+  font-size: 0;
+  line-height: 0;
+}
+
+.notifications-notifications .tweet .controls .action[data-action='like'] .icon.liked {
+  animation: notifications-like-anim 0s steps(28) forwards;
+}
+
+.notifications-notifications .tweet .controls .action[data-action='like'] .icon.likes {
+  animation: notifications-like-anim 1.2s steps(28) forwards;
+}
+
+@keyframes notifications-like-anim {
+  to {
+    background-position: right;
+  }
+}
+
+.notifications-notifications .tweet .media:empty,
+.notifications-notifications .tweet .link-preview:empty,
+.notifications-notifications .tweet .quoted:empty {
+  display: none;
+}
+
+.notifications-notifications .tweet.is_parent_focus .body,
+.notifications-notifications .tweet.is_parent_focus .controls {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
+.notifications-notifications .tweet.is_parent_focus .header {
+  margin-bottom: 10px;
+}
+
+.notifications-notifications .tweet.is_parent_focus .body {
+  letter-spacing: -0.01em;
+  font-size: 16px;
+  line-height: 1.5;
+  margin-top: 0;
+}
+
+.notifications-notifications .tweet.is_parent_focus .body,
+.notifications-notifications .tweet.is_parent_focus .body * {
+  line-height: 1.5;
+}
+
+.notifications-notifications .tweet.is_parent_focus .text,
+.notifications-notifications .tweet.is_parent_focus .body {
+  color: #0f1419 !important;
+}
+
+.notifications-notifications .tweet.is_parent_focus .text {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Legacy pseudo connectors (disabled by !important; overlay draws lines in main.js) */
+.notifications-notifications .tweet.has_child + .tweet.has_parent::before,
+.notifications-notifications .tweet.has_child + .tweet.has_parent::after {
+  display: none !important;
+}
+
+/* Embedded tweet: only direct child .tweet inside parent .body (structure; JS may still set is_embedded for threading) */
+.notifications-notifications .tweet .body > .tweet {
+  margin-top: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.055);
+  border: 1px solid rgba(0, 0, 0, 0.045);
+  padding: 6px 10px 4px 10px;
+  max-width: 100%;
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  --tweet-space-s: 4px;
+  --tweet-space-m: 3px;
+  --avatar-size: 33px;
+  --avatar-gap: 8px;
+  --content-offset: calc(var(--avatar-size) + var(--avatar-gap));
+}
+
+.notifications-notifications .tweet .retweet-meta {
+  font-size: 12px;
+  color: #536471;
+  margin-bottom: 6px;
+}
+
+.notifications-notifications .tweet .body > .tweet .avatar {
+  width: var(--avatar-size) !important;
+  height: var(--avatar-size) !important;
+  align-self: flex-start;
+  margin-top: 1px;
+}
+
+.notifications-notifications .tweet .body > .tweet:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+.notifications-notifications .tweet .body > .tweet .body,
+.notifications-notifications .tweet .body > .tweet .body * {
+  font-size: 14px;
+  line-height: 16.5px;
+}
+
+.notifications-notifications .tweet .body > .tweet .body {
+  text-align: left;
+  margin-top: var(--tweet-space-s);
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.notifications-notifications .tweet .body > .tweet .text {
+  text-align: left;
+}
+
+.notifications-notifications .tweet .body > .tweet .user {
+  align-items: flex-start;
+  line-height: 1.05;
+}
+
+.notifications-notifications .tweet .body > .tweet .controls {
+  margin-top: var(--tweet-space-m);
+}
+
+.notifications-notifications .tweet .body > .tweet .username {
+  font-size: 14px;
+}
+
+.notifications-notifications .tweet .body > .tweet .meta {
+  font-size: 11px;
+  margin-top: 0;
+  opacity: 0.72;
+}
+
+.notifications-notifications .tweet > .body:has(> .tweet) + .controls {
+  margin-top: 8px;
+}
+
+/* JS toggles is_embedded_open when user focuses/opens an embedded card */
+.notifications-notifications .tweet .body > .tweet.is_embedded_open {
+  outline: 2px solid rgba(0, 0, 0, 0.08);
+  outline-offset: 2px;
+}

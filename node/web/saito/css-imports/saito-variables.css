@@ -136,7 +136,6 @@ font imports
 
   /* Main Theme */
   --saito-width: 1200px;
-  --saito-vh: 1vh;
   --saito-header-height: 7rem;
   --saito-header-color: var(--saito-primary-text);
   --saito-header-background: var(--dreamscape);
