@@ -60,10 +60,7 @@ class Storage {
       const n = Array.isArray(peers) ? peers.length : 0;
       const first = n > 0 ? peers[0] : null;
       const wsHint =
-        first &&
-        first.host != null &&
-        first.port != null &&
-        first.protocol != null
+        first && first.host != null && first.port != null && first.protocol != null
           ? `${first.protocol === 'https' ? 'wss' : 'ws'}://${first.host}:${first.port}/wsopen`
           : null;
       const hasUrl = !!wsHint;

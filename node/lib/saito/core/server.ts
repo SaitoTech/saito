@@ -61,7 +61,6 @@ export class NodeSharedMethods extends CustomSharedMethods {
     });
   }
 
-
   sendMessage(publicKey: string, buffer: Uint8Array): void {
     try {
       let socket = S.getInstance().getSocket(publicKey);
@@ -119,34 +118,32 @@ export class NodeSharedMethods extends CustomSharedMethods {
       peer.socket = socket;
       S.getInstance().peersByPeerId.set(peer.peerId, peer);
 
+      // initialize per-peer chain once (safe if repeated)
+      if (!peer._inflight) {
+        peer._inflight = Promise.resolve();
+      }
 
-// initialize per-peer chain once (safe if repeated)
-if (!peer._inflight) {
-  peer._inflight = Promise.resolve();
-}
-
-socket.on('message', (buffer: any) => {
-  try {
-    peer._inflight = peer._inflight
-      .then(() => {
-        return S.getLibInstance()
-          .process_msg_buffer_from_peer(buffer, peer.instance);
-      })
-      .then(async (buffer: any) => {
-        if (buffer && buffer.byteLength > 0) {
-          socket.send(buffer);
+      socket.on('message', (buffer: any) => {
+        try {
+          peer._inflight = peer._inflight
+            .then(() => {
+              return S.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
+            })
+            .then(async (buffer: any) => {
+              if (buffer && buffer.byteLength > 0) {
+                socket.send(buffer);
+              }
+              if (!peer.publicKey) {
+                await peer.syncFromRust();
+              }
+            })
+            .catch((err: any) => {
+              console.error('server process_msg_buffer_from_peer failed:', err);
+            });
+        } catch (err) {
+          console.error("server socket.on('message') handler threw:", err);
         }
-        if (!peer.publicKey) {
-          await peer.syncFromRust();
-        }
-      })
-      .catch((err: any) => {
-        console.error("server process_msg_buffer_from_peer failed:", err);
       });
-  } catch (err) {
-    console.error("server socket.on('message') handler threw:", err);
-  }
-});
 
       socket.on('close', () => {
         try {
@@ -160,18 +157,13 @@ socket.on('message', (buffer: any) => {
       });
 
       socket.on('error', (error) => {
-        console.error(
-          `received socket error from peer : ${peer.peerId} from url : ${url}`,
-          error
-        );
+        console.error(`received socket error from peer : ${peer.peerId} from url : ${url}`, error);
         try {
           S.getInstance().disconnectPeer(peer);
           S.getLibInstance().process_peer_disconnection(peer.peerId);
         } catch (e) {
-          console.error(
-            `failed processing error from peer : ${peer.peerId} from url : ${url}`,
-            e
-          );
+          console.error(`failed processing error from peer : ${peer.peerId} from url : ${url}`, e);
+        }
       });
       socket.on('open', () => {
         try {
@@ -429,36 +421,34 @@ class Server {
       // );
       // S.getInstance().addNewSocket(socket, peer_index);
 
+      // initialize per-peer chain once (safe if repeated)
+      if (!peer._inflight) {
+        peer._inflight = Promise.resolve();
+      }
 
-// initialize per-peer chain once (safe if repeated)
-if (!peer._inflight) {
-  peer._inflight = Promise.resolve();
-}
+      socket.on('message', (buffer: any) => {
+        try {
+          const u8 = new Uint8Array(buffer);
 
-socket.on('message', (buffer: any) => {
-  try {
-    const u8 = new Uint8Array(buffer);
-
-    peer._inflight = peer._inflight
-      .then(() => {
-        return S.getLibInstance()
-          .process_msg_buffer_from_peer(u8, peer.instance);
-      })
-      .then(async (buffer: any) => {
-        if (buffer && buffer.byteLength > 0) {
-          socket.send(buffer);
+          peer._inflight = peer._inflight
+            .then(() => {
+              return S.getLibInstance().process_msg_buffer_from_peer(u8, peer.instance);
+            })
+            .then(async (buffer: any) => {
+              if (buffer && buffer.byteLength > 0) {
+                socket.send(buffer);
+              }
+              if (!peer.publicKey) {
+                await peer.syncFromRust();
+              }
+            })
+            .catch((err: any) => {
+              console.error('server process_msg_buffer_from_peer failed:', err);
+            });
+        } catch (err) {
+          console.error("server socket.on('message') handler threw:", err);
         }
-        if (!peer.publicKey) {
-          await peer.syncFromRust();
-        }
-      })
-      .catch((err: any) => {
-        console.error("server process_msg_buffer_from_peer failed:", err);
       });
-  } catch (err) {
-    console.error("server socket.on('message') handler threw:", err);
-  }
-});
 
       socket.on('close', () => {
         S.getInstance().disconnectPeer(peer);
@@ -471,7 +461,6 @@ socket.on('message', (buffer: any) => {
       });
 
       await S.getLibInstance().process_new_peer(peer.peerId, false);
-
     });
 
     this.app.modules.onWebSocketServer(webserver);
@@ -483,16 +472,6 @@ socket.on('message', (buffer: any) => {
     if (this.app.BROWSER === 1) {
       return;
     }
-
-    process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
-      console.error('[SAITO] Unhandled Promise Rejection:', reason);
-      if (reason?.stack) console.error(reason.stack);
-    });
-
-    process.on('uncaughtException', (error: Error) => {
-      console.error('[SAITO] Uncaught Exception:', error);
-      if (error?.stack) console.error(error.stack);
-    });
 
     //
     // update server information from options file
