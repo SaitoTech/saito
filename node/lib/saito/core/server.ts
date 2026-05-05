@@ -145,6 +145,7 @@ export class NodeSharedMethods extends CustomSharedMethods {
       });
       socket.on('open', () => {
         try {
+          S.getLibInstance().process_new_peer(peer.peerId, true);
         } catch (e) {
           console.error(
             `failed processing socket open from peer : ${peer.publicKey} from url : ${url}`,
