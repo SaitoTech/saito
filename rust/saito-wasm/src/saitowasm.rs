@@ -1037,10 +1037,6 @@ pub async fn produce_block_with_gt() -> bool {
 
     let configs = config_lock.read().await;
     let blockchain = blockchain_lock.read().await;
-
-    let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
-    let latest_block_id = blockchain.get_latest_block_id();
-
     let mut mempool = mempool_lock.write().await;
     let public_key;
     let private_key;
@@ -1081,16 +1077,7 @@ pub async fn produce_block_with_gt() -> bool {
 
     {
         let mut wallet = wallet_lock.write().await;
-        if let Ok(mut tx) = Transaction::create(
-            &mut wallet,
-            public_key,
-            0,
-            0,
-            false,
-            None,
-            latest_block_id,
-            genesis_period,
-        ) {
+        if let Ok(mut tx) = wallet.create_transaction(vec![public_key], vec![0], 0) {
             drop(wallet);
             info!("created tx");
             tx.transaction_type = TransactionType::Vip;
@@ -1156,10 +1143,6 @@ pub async fn produce_block_without_gt() -> bool {
 
     let configs = config_lock.read().await;
     let blockchain = blockchain_lock.read().await;
-
-    let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
-    let latest_block_id = blockchain.get_latest_block_id();
-
     let mut mempool = mempool_lock.write().await;
     let public_key;
     let private_key;
@@ -1177,16 +1160,7 @@ pub async fn produce_block_without_gt() -> bool {
     }
     {
         let mut wallet = wallet_lock.write().await;
-        if let Ok(mut tx) = Transaction::create(
-            &mut wallet,
-            public_key,
-            0,
-            0,
-            false,
-            None,
-            latest_block_id,
-            genesis_period,
-        ) {
+        if let Ok(mut tx) = wallet.create_transaction(vec![public_key], vec![0], 0) {
             drop(wallet);
             info!("created tx");
             tx.transaction_type = TransactionType::Vip;

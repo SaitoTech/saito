@@ -9,6 +9,7 @@ use tokio::sync::RwLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
+use saito_core::core::network::interface_io::InterfaceEvent;
 use saito_core::core::consensus::slip::{Slip, SlipType};
 use saito_core::core::consensus::transaction::Transaction;
 use saito_core::core::consensus::wallet::{Wallet, WalletSlip};
@@ -65,31 +66,29 @@ impl WasmWallet {
         public_key: JsString,
         amount: u64,
         fee: u64,
-        force_merge: bool,
+        _force_merge: bool,
     ) -> Result<WasmTransaction, JsValue> {
-        let saito = SAITO.lock().await;
-        let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
 
-        let key = string_to_key(public_key).map_err(|_| JsValue::from("invalid public key"))?;
+        //
+        // parse recipient key
+        //
+        let recipient_key =
+            string_to_key(public_key).map_err(|_| JsValue::from("invalid public key"))?;
 
-        let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
-        let configs = config_lock.read().await;
-        let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+        //
+        // build transaction via wallet
+        //
+        let tx;
+	{
+            let mut wallet = self.wallet.write().await;
+	    tx = wallet
+            	.create_transaction(vec![recipient_key], vec![amount], fee)
+            	.map_err(|e| JsValue::from(format!("failed creating transaction: {:?}", e)))?;
+	}
 
-        let blockchain = saito.as_ref().unwrap().context.blockchain_lock.read().await;
-        let latest_block_id = blockchain.get_latest_block_id();
-
-        let tx = Transaction::create(
-            &mut wallet,
-            key,
-            amount,
-            fee,
-            force_merge,
-            Some(&saito.as_ref().unwrap().consensus_thread.network),
-            latest_block_id,
-            genesis_period,
-        )
-        .map_err(|_| JsValue::from("failed creating transaction"))?;
+        self.network
+            .io_interface
+            .send_interface_event(InterfaceEvent::WalletUpdate());
 
         Ok(WasmTransaction::from_transaction(tx))
     }
@@ -102,33 +101,32 @@ impl WasmWallet {
         fee: u64,
         _force_merge: bool,
     ) -> Result<WasmTransaction, JsValue> {
-        let saito = SAITO.lock().await;
-        let mut wallet = saito.as_ref().unwrap().context.wallet_lock.write().await;
 
-        let config_lock = saito.as_ref().unwrap().routing_thread.config_lock.clone();
-        let configs = config_lock.read().await;
-        let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+        //
+        // parse inputs
+        //
+        let recipient_keys: Vec<SaitoPublicKey> = string_array_to_base58_keys(public_keys);
 
-        let blockchain = saito.as_ref().unwrap().context.blockchain_lock.read().await;
-        let latest_block_id = blockchain.get_latest_block_id();
+        let saito_amounts: Vec<Currency> = amounts.to_vec();
 
-        let keys: Vec<SaitoPublicKey> = string_array_to_base58_keys(public_keys);
-        let amounts: Vec<Currency> = amounts.to_vec();
-
-        if keys.len() != amounts.len() {
+        if recipient_keys.len() != saito_amounts.len() {
             return Err(JsValue::from("keys and payments have different counts"));
         }
 
-        let tx = Transaction::create_with_multiple_payments(
-            &mut wallet,
-            keys,
-            amounts,
-            fee,
-            Some(&saito.as_ref().unwrap().consensus_thread.network),
-            latest_block_id,
-            genesis_period,
-        )
-        .map_err(|_| JsValue::from("failed creating transaction"))?;
+        //
+        // create transaction via wallet
+        //
+	let tx;
+        {
+            let mut wallet = self.wallet.write().await;
+            tx = wallet
+            	.create_transaction(recipient_keys, saito_amounts, fee)
+            	.map_err(|e| JsValue::from(format!("failed creating transaction: {:?}", e)))?;
+        }
+
+        self.network
+            .io_interface
+            .send_interface_event(InterfaceEvent::WalletUpdate());
 
         Ok(WasmTransaction::from_transaction(tx))
     }
