@@ -65,8 +65,31 @@ class WebMethods extends WebSharedMethods {
     });
   }
 
+  sendOnTransactionCreated() {
+    this.app.connection.emit('on-transaction-created');
+  }
+  sendOnTransactionSent() {
+    this.app.connection.emit('on-transaction-sent');
+  }
+  sendOnTransactionReceived() {
+    this.app.connection.emit('on-transaction-received');
+  }
+  sendOnNFTCreated() {
+    this.app.connection.emit('on-nft-sent');
+  }
+  sendOnNFTSent() {
+    this.app.connection.emit('on-nft-sent');
+  }
+  sendOnNFTReceived() {
+    this.app.connection.emit('on-nft-received');
+  }
+
   sendWalletUpdate() {
     this.app.connection.emit('wallet-updated');
+  }
+
+  sendNewChainDetectedEvent(): void {
+    this.app.connection.emit('new-chain-detected');
   }
 
   async saveWallet() {
@@ -96,9 +119,6 @@ class WebMethods extends WebSharedMethods {
 
   ensureDirExists(path: string): void {}
 
-  sendNewChainDetectedEvent(): void {
-    this.app.connection.emit('new-chain-detected');
-  }
 }
 
 async function init() {

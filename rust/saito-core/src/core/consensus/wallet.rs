@@ -163,7 +163,6 @@ impl Wallet {
             io.save_wallet(wallet).await.unwrap();
         } else {
             info!("wallet loaded");
-
             io.send_interface_event(InterfaceEvent::WalletUpdate());
         }
     }
@@ -225,6 +224,11 @@ impl Wallet {
         Ok(())
     }
 
+    //
+    // on chain reorg
+    //
+    // this receives transactions (nft and normal) over the 
+    //
     pub fn on_chain_reorganization(
         &mut self,
         block: &Block,
@@ -422,14 +426,8 @@ impl Wallet {
                         );
 
                         wallet_changed |= WALLET_UPDATED;
-
-                        // if let Some(network) = network {
-                        //     network
-                        //         .io_interface
-                        //         .send_interface_event(InterfaceEvent::WalletUpdate());
-                        // }
-
                         i += 3;
+
                     } else {
                         //
                         // normal input → add back

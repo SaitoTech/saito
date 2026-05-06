@@ -148,6 +148,24 @@ export default class Saito {
       send_block_success: (hash: string, blockId: bigint) => {
         return sharedMethods.sendBlockSuccess(hash, blockId);
       },
+      send_on_transaction_created: () => {
+        return sharedMethods.sendOnTransactionCreated();
+      },
+      send_on_transaction_sent: () => {
+        return sharedMethods.sendOnTransactionSent();
+      },
+      send_on_transaction_received: () => {
+        return sharedMethods.sendOnTransactionReceived();
+      },
+      send_on_nft_created: () => {
+        return sharedMethods.sendOnNFTCreated();
+      },
+      send_on_nft_sent: () => {
+        return sharedMethods.sendOnNFTSent();
+      },
+      send_on_nft_received: () => {
+        return sharedMethods.sendOnNFTReceived();
+      },
       send_wallet_update: () => {
         return sharedMethods.sendWalletUpdate();
       },

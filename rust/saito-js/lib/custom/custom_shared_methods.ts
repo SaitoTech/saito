@@ -15,6 +15,30 @@ export default class CustomSharedMethods implements SharedMethods {
     throw new Error("Method not implemented.");
   }
 
+  sendOnTransactionCreated(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  sendOnTransactionSent(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  sendOnTransactionReceived(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  sendOnNFTCreated(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  sendOnNFTSent(): void {
+    throw new Error("Method not implemented.");
+  }
+
+  sendOnNFTReceived(): void {
+    throw new Error("Method not implemented.");
+  }
+
   sendBlockSuccess(hash: String, blockId: bigint): void {
     throw new Error("Method not implemented.");
   }

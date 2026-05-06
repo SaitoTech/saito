@@ -61,11 +61,17 @@ class SaitoHeader extends UIModTemplate {
   }
 
   async initialize(app) {
+
     await super.initialize(app);
 
-    // here because we need publicKey defined
+    //
+    // initialized here because we need our publickey
+    //
     this.userMenu = new UserMenu(app, this.publicKey);
 
+    //
+    // registry 
+    //
     app.connection.on('registry-update-identifier', (publicKey) => {
       if (publicKey === this.publicKey) {
         this.renderUsername();
@@ -249,7 +255,6 @@ class SaitoHeader extends UIModTemplate {
     //
     // render QR code and cryptos
     //
-    //console.log("$$$$ header.Render --> renderCrypto");
     this.renderCrypto(true);
 
     //
@@ -767,26 +772,28 @@ class SaitoHeader extends UIModTemplate {
    * *******************************************************/
 
   renderCrypto(force = false) {
+
     let available_cryptos = this.app.wallet.returnInstalledCryptos();
     let preferred_crypto = this.app.wallet.returnPreferredCrypto();
     let add = preferred_crypto.returnAddress();
 
-    const addressContainer = document.querySelector('#profile-public-key');
+console.log("into render Crypto in SaitoHeader...");
 
     try {
+
+      //
+      // insert address and qrcode
+      //
+      const addressContainer = document.querySelector('#profile-public-key');
       if (add && addressContainer) {
         if (addressContainer.dataset?.add != add || force) {
-          //console.log("$$$$ Rendering crypto in Saito Header");
           if (addressContainer.classList.contains('generate-keys')) {
             addressContainer.classList.remove('generate-keys');
           }
 
-          //Set address
           addressContainer.dataset.add = add;
-
           addressContainer.innerHTML = `${add.slice(0, 8)}...${add.slice(-8)}`;
 
-          // There is an annoying flicker when a new qr code is added because canvas resizing / img generation
           document.querySelector('#qrcode').style.visibility = 'hidden';
           document.querySelector('#qrcode').style.opacity = '0';
 
@@ -796,41 +803,28 @@ class SaitoHeader extends UIModTemplate {
             document.querySelector('#qrcode').removeAttribute('style');
           }, 100);
         }
-      } else {
-        console.log(
-          '$$$ header or crypto not rendered yet',
-          preferred_crypto,
-          add,
-          addressContainer
-        );
       }
 
+
+      //
+      // dropdown crypto options
+      //
       document.querySelector('.wallet-select-crypto').innerHTML = '';
 
-      //
-      // add crypto options
-      //
       let options_html = '';
       let menu_html = '';
-      //let ercMod = null;
-
-      //try {
-      //  ercMod = this.app.wallet.returnCryptoModuleByTicker('ERC-SAITO');
-      //} catch (err) {}
-
       for (let i = 0; i < available_cryptos.length; i++) {
+
         let crypto_mod = available_cryptos[i];
 
-        // We allow Mixin to collectively handle some stuff for us...
+	// mixin handles 
         let rtn_val = crypto_mod.returnLogos();
 
         options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
         id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${
           crypto_mod.ticker
         }</option>`;
-
         menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
-
         menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${rtn_val.img}">`;
 
         if (rtn_val.sub_logo) {
@@ -839,32 +833,11 @@ class SaitoHeader extends UIModTemplate {
 
         menu_html += `</div><div class="header-crypto-balance">${this.app.browser.formatDecimals(crypto_mod.returnBalance())} ${crypto_mod.ticker}</div>`;
 
-        //price_usd
-        /*if (crypto_mod.ticker !== 'SAITO') {
-          let saito_numerator = Number(crypto_mod?.price_usd);
-          let saito_denom = Number(ercMod?.price_usd);
-
-          if (saito_numerator && saito_denom) {
-            let multiplier = (0.92 * saito_numerator) / saito_denom;
-            crypto_mod.exchange_rate = multiplier;
-            value_in_saito = Number(crypto_mod.returnBalance) * multiplier;
-
-            if (value_in_saito) {
-              menu_html += `<div class="header-crypto-value">≈ ${this.app.browser.formatDecimals(value_in_saito)} SAITO</div>`;
-            } else {
-              menu_html += '<div></div>';
-              //menu_html += `<div class="header-crypto-value">( 1 $${crypto_mod.ticker} ≈ ${this.app.browser.formatDecimals(multiplier)} $SAITO )</div>`;
-            }
-          } else {
-            menu_html += '<div></div>';
-          }
-        } else {*/
         if (crypto_mod.pending_balance) {
           menu_html += `<div class="header-crypto-pending">${crypto_mod.pending_balance} pending </div>`;
         } else {
           menu_html += '<div></div>';
         }
-        //}
 
         menu_html += `</div>`;
 
@@ -879,7 +852,9 @@ class SaitoHeader extends UIModTemplate {
       console.error('Error rendering crypto selector: ' + err);
     }
 
-    //Insert crypto balance
+    //
+    // insert crypto balance
+    //
     try {
       if (preferred_crypto.isActivated()) {
         let balance_as_string = '';
@@ -894,9 +869,15 @@ class SaitoHeader extends UIModTemplate {
         b_elm.innerHTML = this.app.browser.returnBalanceHTML(balance_as_string);
 
         if (Date.now() - preferred_crypto.history_update_ts > 30000 && !this.checking_history) {
+
+console.log("CHECKING BECAUSE: " + Date.now() + " - " + preferred_crypto.history_update_ts + " -- " + this.checking_history);
+
           this.checking_history = true;
           console.log('Checking preferred crypto history for new transactions');
           preferred_crypto.checkHistory(() => {
+
+console.log("FINISHED CHECKING...");
+
             delete this.checking_history;
           });
         }
@@ -905,7 +886,9 @@ class SaitoHeader extends UIModTemplate {
       console.error('Error rendering crypto balance: ' + err);
     }
 
-    // Attach Crypto events....
+    //
+    //
+    //
     Array.from(document.querySelectorAll('.saito-crypto-details')).forEach((c) => {
       c.onclick = (e) => {
         this.app.connection.emit(
@@ -920,6 +903,9 @@ class SaitoHeader extends UIModTemplate {
         this.app.connection.emit('saito-crypto-details-render-request', preferred_crypto.ticker);
       };
     }
+
+console.log("done wallet update...");
+
   }
 
   initiateBalanceCheck() {

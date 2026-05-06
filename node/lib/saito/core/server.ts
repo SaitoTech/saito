@@ -268,7 +268,26 @@ export class NodeSharedMethods extends CustomSharedMethods {
   }
 
   sendWalletUpdate() {
+console.log("SERVER SEND WALLET UPDATE EVENT EMMITTED...");
     this.app.connection.emit('wallet-updated');
+  }
+  sendOnTransactionCreated() {
+    this.app.connection.emit('on-transaction-created');
+  }
+  sendOnTransactionSent() {
+    this.app.connection.emit('on-transaction-sent');
+  }
+  sendOnTransactionReceived() {
+    this.app.connection.emit('on-transaction-received');
+  }
+  sendOnNFTCreated() {
+    this.app.connection.emit('on-nft-created');
+  }
+  sendOnNFTSent() {
+    this.app.connection.emit('on-nft-sent');
+  }
+  sendOnNFTReceived() {
+    this.app.connection.emit('on-nft-received');
   }
 
   async saveWallet(): Promise<void> {

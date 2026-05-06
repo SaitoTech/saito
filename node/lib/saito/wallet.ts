@@ -99,6 +99,7 @@ export default class Wallet extends SaitoWallet {
     let storedFee = this.app.options.wallet.default_fee;
     this.default_fee = !storedFee ? BigInt(0) : BigInt(storedFee);
 
+
     ////////////////////////////////////////////////////////
     // add ghost crypto module so Saito interface available
     ////////////////////////////////////////////////////////
@@ -115,9 +116,12 @@ export default class Wallet extends SaitoWallet {
         app.connection.on('wallet-updated', async () => {
           this.checkBalanceUpdate();
         });
+
       }
 
+      //
       // Check if I have a net change in slips amounts...
+      //
       shouldAffixCallbackToModule(modname, tx = null) {
         if (this.app.BROWSER) {
           if (tx.isTo(this.address) || tx.isFrom(this.address)) {
@@ -343,11 +347,15 @@ export default class Wallet extends SaitoWallet {
       // Pull a ledger of payments from an archive (explorerc)
       //
       async checkHistory(callback) {
-        // Parse return results from Memento
+
+        console.log(
+          `DISABLED - MEMENTO - we do not watch to check balance every time on WalletUpdate`
+        );
         console.log(
           `Checking for missed SAITO transactions since ${new Date(this.history_update_ts)}`
         );
 
+/*****
         const mycallback = (rows) => {
           let timestamp = 0;
           if (rows?.length) {
@@ -402,6 +410,9 @@ export default class Wallet extends SaitoWallet {
           },
           mycallback
         );
+*****/
+
+
       }
 
       async sendPayment(

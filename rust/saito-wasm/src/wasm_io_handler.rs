@@ -258,6 +258,24 @@ impl InterfaceIO for WasmIoHandler {
             InterfaceEvent::BlockAddSuccess(hash, block_id) => {
                 MsgHandler::send_block_success(hash.to_hex(), BigInt::from(block_id));
             }
+            InterfaceEvent::OnTransactionCreated() => {
+                MsgHandler::send_on_transaction_created();
+            }
+            InterfaceEvent::OnTransactionSent() => {
+                MsgHandler::send_on_transaction_sent();
+            }
+            InterfaceEvent::OnTransactionReceived() => {
+                MsgHandler::send_on_transaction_received();
+            }
+            InterfaceEvent::OnNFTCreated() => {
+                MsgHandler::send_on_transaction_created();
+            }
+            InterfaceEvent::OnNFTSent() => {
+                MsgHandler::send_on_transaction_sent();
+            }
+            InterfaceEvent::OnNFTReceived() => {
+                MsgHandler::send_on_transaction_received();
+            }
             InterfaceEvent::WalletUpdate() => {
                 MsgHandler::send_wallet_update();
             }
@@ -398,6 +416,24 @@ extern "C" {
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_wallet_update();
+
+    #[wasm_bindgen(static_method_of = MsgHandler)]
+    pub fn send_on_transaction_created();
+
+    #[wasm_bindgen(static_method_of = MsgHandler)]
+    pub fn send_on_transaction_received();
+
+    #[wasm_bindgen(static_method_of = MsgHandler)]
+    pub fn send_on_transaction_sent();
+
+    #[wasm_bindgen(static_method_of = MsgHandler)]
+    pub fn send_on_nft_created();
+
+    #[wasm_bindgen(static_method_of = MsgHandler)]
+    pub fn send_on_nft_received();
+
+    #[wasm_bindgen(static_method_of = MsgHandler)]
+    pub fn send_on_nft_sent();
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_new_chain_detected_event();

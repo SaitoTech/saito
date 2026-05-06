@@ -44,6 +44,18 @@ export default interface SharedMethods {
 
   sendBlockSuccess(hash: String, blockId: bigint): void;
 
+  sendOnTransactionCreated(): void;
+
+  sendOnTransactionSent(): void;
+
+  sendOnTransactionReceived(): void;
+
+  sendOnNFTCreated(): void;
+
+  sendOnNFTSent(): void;
+
+  sendOnNFTReceived(): void;
+
   sendWalletUpdate(): void;
 
   saveWallet(wallet: Wallet): void;

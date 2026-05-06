@@ -11,7 +11,6 @@ use wasm_bindgen::JsValue;
 
 use saito_core::core::network::interface_io::InterfaceEvent;
 use saito_core::core::consensus::slip::{Slip, SlipType};
-use saito_core::core::consensus::transaction::Transaction;
 use saito_core::core::consensus::wallet::{Wallet, WalletSlip};
 use saito_core::core::defs::{
     Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoSignature, SaitoUTXOSetKey,
@@ -88,7 +87,7 @@ impl WasmWallet {
 
         self.network
             .io_interface
-            .send_interface_event(InterfaceEvent::WalletUpdate());
+            .send_interface_event(InterfaceEvent::OnTransactionCreated());
 
         Ok(WasmTransaction::from_transaction(tx))
     }
@@ -126,7 +125,7 @@ impl WasmWallet {
 
         self.network
             .io_interface
-            .send_interface_event(InterfaceEvent::WalletUpdate());
+            .send_interface_event(InterfaceEvent::OnTransactionCreated());
 
         Ok(WasmTransaction::from_transaction(tx))
     }
@@ -159,21 +158,31 @@ impl WasmWallet {
         let key =
             string_to_key(recipient_public_key).map_err(|_| JsValue::from("invalid public key"))?;
 
-        let mut wallet = saito.context.wallet_lock.write().await;
+	let tx;
 
-        let tx = wallet
-            .create_bound_transaction(
-                num,
-                deposit,
-                serialized_msg,
-                &key,
-                Some(&saito.consensus_thread.network),
-                latest_block_id,
-                genesis_period,
-                nft_type.as_string().unwrap(),
-            )
-            .await
-            .map_err(|_| JsValue::from("failed creating bound transaction"))?;
+	{
+
+            let mut wallet = saito.context.wallet_lock.write().await;
+
+            tx = wallet
+            	.create_bound_transaction(
+            	    num,
+            	    deposit,
+            	    serialized_msg,
+            	    &key,
+            	    Some(&saito.consensus_thread.network),
+            	    latest_block_id,
+            	    genesis_period,
+            	    nft_type.as_string().unwrap(),
+            	)
+            	.await
+            	.map_err(|_| JsValue::from("failed creating bound transaction"))?;
+
+	}
+
+        self.network
+            .io_interface
+            .send_interface_event(InterfaceEvent::OnNFTCreated());
 
         Ok(WasmTransaction::from_transaction(tx))
     }
