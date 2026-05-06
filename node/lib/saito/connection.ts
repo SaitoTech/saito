@@ -1,18 +1,21 @@
-const EventEmitter = require('events');
+import { EventEmitter } from 'events';
 
 class Connection extends EventEmitter {
-  // TODO : @richard handles this typically
+
   public setMaxListeners: any;
 
   constructor() {
     super();
-    // I set this to 200 because 200 should be sufficient for anything. Default is 10.
-    // I'd like to know if we go beyond 200. It is very easy to accidentally
-    // create hundreds of listeners here if someone is doing app.connection.on()
-    // in a render function that gets called repeatedly, for example.
+
+    //
+    // 200 should be sufficient (default is 10)
+    //
+    // note -- it is easy to create hundreds of listeners here if someone
+    // does app.connection.on() in a render function that gets called repeatedly
+    //
     this.setMaxListeners(200);
 
-    // Please don't delete the following commented code yet:
+    //
     // This code should be enabled occasionally just to do a sanity check on
     // the number of listeners or as a way of doing debugging in case we
     // start to go beyond 200 totalListeners

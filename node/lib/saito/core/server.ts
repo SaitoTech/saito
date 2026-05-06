@@ -3,6 +3,8 @@ import express from 'express';
 import { Server as Ser } from 'http';
 import S from 'saito-js/index.node';
 
+import fetch, { RequestInit } from "node-fetch";
+
 import fs from 'fs';
 import path from 'path';
 import bodyParser from 'body-parser';
@@ -868,7 +870,11 @@ class Server {
   // servers can fetch open graph graphics (of links in tweets)
   //
   async fetchOpenGraphProperties(link, callback = null) {
-    return fetch(link, { redirect: 'follow', follow: 50 })
+    const opts: RequestInit & { follow: number } = {
+      redirect: 'follow',
+      follow: 50
+    };
+    return fetch(link, opts)
       .then((res) => {
         if (res.ok) {
           return res.text();
