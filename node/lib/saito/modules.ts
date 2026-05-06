@@ -109,6 +109,29 @@ class Mods {
     }
   }
 
+  async handlePeerTransactionBuffer(
+    buffer: Uint8Array,
+    peer: Peer,
+    mycallback: (any) => Promise<void> = null
+  ) {
+    let tx = new Transaction();
+
+    try {
+      tx.deserialize(buffer);
+      tx.unpackData();
+      // console.debug("processing peer tx : ", tx.msg);
+    } catch (error) {
+      console.error(error);
+
+      //
+      // preserve previous fallback behavior for opaque payloads
+      //
+      tx.msg = buffer;
+    }
+
+    return this.handlePeerTransaction(tx, peer, mycallback);
+  }
+
   async handlePeerTransaction(
     tx: Transaction,
     peer: Peer,

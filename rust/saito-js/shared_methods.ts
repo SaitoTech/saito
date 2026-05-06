@@ -3,6 +3,26 @@ import Blockchain from "./lib/blockchain";
 import PeerServiceList from "./lib/peer_service_list";
 import Saito from "./saito";
 
+const TYPED_LEAF_TAG_KEY = "$t";
+const TYPED_LEAF_VALUE_KEY = "v";
+const BIGINT_TYPED_LEAF = "bigint";
+
+function interfaceEventPayloadReviver(_key: string, value: any): any {
+  if (
+    value &&
+    typeof value === "object" &&
+    value[TYPED_LEAF_TAG_KEY] === BIGINT_TYPED_LEAF &&
+    typeof value[TYPED_LEAF_VALUE_KEY] === "string"
+  ) {
+    return BigInt(value[TYPED_LEAF_VALUE_KEY]);
+  }
+  return value;
+}
+
+export function parseInterfaceEventPayload(payload_json: string): any {
+  return payload_json ? JSON.parse(payload_json, interfaceEventPayloadReviver) : null;
+}
+
 /*
  * shared_methods.browser.ts and shared_methods.server.ts are runtime bridge implementations
  * owned by saito-js. They previously imported concrete Node runtime classes from
@@ -30,6 +50,11 @@ export interface SaitoRuntimeApp {
   modules: {
     handlePeerTransaction(
       tx: any,
+      peer: any,
+      callback: (response: any) => Promise<void>
+    ): Promise<void>;
+    handlePeerTransactionBuffer(
+      buffer: Uint8Array,
       peer: any,
       callback: (response: any) => Promise<void>
     ): Promise<void>;

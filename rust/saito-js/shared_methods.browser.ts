@@ -1,4 +1,5 @@
 import SharedMethods, {
+  parseInterfaceEventPayload,
   processApiError,
   processApiSuccess,
   type SaitoRuntimeApp
@@ -6,7 +7,6 @@ import SharedMethods, {
 import PeerServiceList from "./lib/peer_service_list";
 import NetworkPeer from "./lib/network_peer";
 import SaitoJs from "./saito";
-import Transaction from "./lib/transaction";
 
 export class BrowserSharedMethods implements SharedMethods {
   app: SaitoRuntimeApp;
@@ -366,16 +366,7 @@ const stunPeer =
       }
     };
     let peer = await this.app.network.getPeer(publicKey);
-    let newtx = new Transaction();
-    try {
-      newtx.deserialize(buffer);
-      newtx.unpackData();
-      // console.debug("processing peer tx : ", newtx.msg);
-    } catch (error) {
-      console.error(error);
-      newtx.msg = buffer;
-    }
-    await this.app.modules.handlePeerTransaction(newtx, peer, mycallback);
+    await this.app.modules.handlePeerTransactionBuffer(buffer, peer, mycallback);
   }
 
   processApiError(buffer: Uint8Array, msgIndex: number, publicKey: string): void {
@@ -387,7 +378,7 @@ const stunPeer =
   }
 
   emitInterfaceEvent(event_name: string, payload_json: string) {
-    const payload = payload_json ? JSON.parse(payload_json) : null;
+    const payload = parseInterfaceEventPayload(payload_json);
 
     if (payload === null) {
         this.app.connection.emit(event_name);

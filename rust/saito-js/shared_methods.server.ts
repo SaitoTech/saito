@@ -1,4 +1,5 @@
 import SharedMethods, {
+  parseInterfaceEventPayload,
   processApiError,
   processApiSuccess,
   type SaitoRuntimeApp
@@ -6,7 +7,6 @@ import SharedMethods, {
 import S from "./index.node";
 import PeerServiceList from "./lib/peer_service_list";
 import NetworkPeer from "./lib/network_peer";
-import Transaction from "./lib/transaction";
 import fs from "fs";
 import ws from "ws";
 import fetch from "node-fetch";
@@ -221,18 +221,7 @@ export class ServerSharedMethods implements SharedMethods {
       );
     };
     let peer = await this.app.core.network.getPeer(publicKey);
-    let newtx = new Transaction();
-    try {
-      // console.log("buffer length : " + buffer.byteLength, buffer);
-      newtx.deserialize(buffer);
-      newtx.unpackData();
-      // console.debug("processing peer tx : ", newtx.msg);
-    } catch (error) {
-      console.error(error);
-      newtx.msg = buffer;
-    }
-
-    await this.app.modules.handlePeerTransaction(newtx, peer, mycallback);
+    await this.app.modules.handlePeerTransactionBuffer(buffer, peer, mycallback);
   }
 
   processApiError(buffer: Uint8Array, msgIndex: number, publicKey: string): void {
@@ -244,7 +233,7 @@ export class ServerSharedMethods implements SharedMethods {
   }
 
   emitInterfaceEvent(event_name: string, payload_json: string) {
-    const payload = payload_json ? JSON.parse(payload_json) : null;
+    const payload = parseInterfaceEventPayload(payload_json);
 
     if (payload === null) {
         this.app.connection.emit(event_name);

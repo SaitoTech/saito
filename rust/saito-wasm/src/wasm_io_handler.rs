@@ -270,23 +270,43 @@ impl InterfaceIO for WasmIoHandler {
     	        );
             }
             InterfaceEvent::OnPeerHandshakeComplete(peer_id, public_key) => {
-                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
+                );
                 MsgHandler::emit_interface_event("on_peer_handshake_complete", &payload);
             }
             InterfaceEvent::OnPeerServicesUp(peer_id, public_key) => {
-                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
+                );
                 MsgHandler::emit_interface_event("on_peer_services_up", &payload);
             }
             InterfaceEvent::PeerConnectionDropped(peer_id, public_key) => {
-                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
+                );
                 MsgHandler::emit_interface_event("peer_disconnect", &payload);
             }
             InterfaceEvent::PeerConnected(peer_id, public_key) => {
-                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
+                );
                 MsgHandler::emit_interface_event("peer_connect", &payload);
             }
             InterfaceEvent::BlockAddSuccess(hash, block_id) => {
-                let payload = format!("{{\"hash\":\"{}\",\"blockId\":{}}}", hash.to_hex(), block_id);
+                let payload = format!(
+                    "{{\"hash\":\"{}\",\"blockId\":{}}}",
+                    hash.to_hex(),
+                    encode_bigint_leaf(block_id)
+                );
                 MsgHandler::emit_interface_event("add-block-success", &payload);
             }
             InterfaceEvent::NewVersionDetected(index, version) => {
@@ -300,11 +320,19 @@ impl InterfaceIO for WasmIoHandler {
                 MsgHandler::emit_interface_event("new-version-detected", &payload);
             }
             InterfaceEvent::StunPeerConnected(peer_id, public_key) => {
-                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
+                );
                 MsgHandler::emit_interface_event("stun peer connect", &payload);
             }
             InterfaceEvent::StunPeerDisconnected(peer_id, public_key) => {
-                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
+                );
                 MsgHandler::emit_interface_event("stun peer disconnect", &payload);
             }
             InterfaceEvent::NewChainDetected() => {
@@ -345,6 +373,10 @@ impl InterfaceIO for WasmIoHandler {
             .map(|s: WasmPeerService| s.service)
             .collect()
     }
+}
+
+fn encode_bigint_leaf(value: u64) -> String {
+    format!("{{\"$t\":\"bigint\",\"v\":\"{}\"}}", value)
 }
 
 impl Debug for WasmIoHandler {
