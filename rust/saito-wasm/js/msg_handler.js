@@ -1,7 +1,11 @@
 class MsgHandler {
 
     static send_message_by_peer_id(peer_id, buffer) {
-       return global.shared_methods.send_message_by_peer_id(peer_id, buffer);
+        return global.shared_methods.send_message_by_peer_id(peer_id, buffer);
+    }
+
+    static emit_interface_event(event_name, payload_json) {
+        return global.shared_methods.emit_interface_event(event_name, payload_json);
     }
 
     static send_message(public_key, buffer) {
@@ -72,10 +76,6 @@ class MsgHandler {
         return global.shared_methods.process_api_error(buffer, msgIndex, peerIndex);
     }
 
-    static send_interface_event(event, peerIndex, public_key) {
-        return global.shared_methods.send_interface_event(event, peerIndex, public_key);
-    }
-
     static save_wallet() {
         return global.shared_methods.save_wallet();
     }
@@ -96,50 +96,6 @@ class MsgHandler {
         return global.shared_methods.get_my_services();
     }
 
-    static send_block_success(hash, block_id) {
-        return global.shared_methods.send_block_success(hash, block_id);
-    }
-
-    static send_wallet_update() {
-        return global.shared_methods.send_wallet_update();
-    }
-
-    static send_on_transaction_created() {
-        return global.shared_methods.send_on_transaction_created();
-    }
-
-    static send_on_transaction_sent() {
-        return global.shared_methods.send_on_transaction_sent();
-    }
-
-    static send_on_transaction_received() {
-        return global.shared_methods.send_on_transaction_received();
-    }
-
-    static send_on_nft_created() {
-        return global.shared_methods.send_on_nft_created();
-    }
-
-    static send_on_nft_sent() {
-        return global.shared_methods.send_on_nft_sent();
-    }
-
-    static send_on_nft_received() {
-        return global.shared_methods.send_on_nft_received();
-    }
-
-    static send_new_version_alert(major, minor, patch, peerIndex) {
-        return global.shared_methods.send_new_version_alert(
-            major,
-            minor,
-            patch,
-            peerIndex
-        );
-    }
-
-    static send_new_chain_detected_event() {
-        return global.shared_methods.send_new_chain_detected_event();
-    }
 }
 
 export { MsgHandler };

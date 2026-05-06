@@ -1,8 +1,90 @@
 import Wallet from "./lib/wallet";
 import Blockchain from "./lib/blockchain";
 import PeerServiceList from "./lib/peer_service_list";
+import Saito from "./saito";
+
+/*
+ * shared_methods.browser.ts and shared_methods.server.ts are runtime bridge implementations
+ * owned by saito-js. They previously imported concrete Node runtime classes from
+ * node/lib/saito/*, which inverted package boundaries and forced rust/saito-js builds to
+ * typecheck node runtime internals. This contract intentionally captures only the runtime
+ * surface that shared_methods.* actually uses, so bridge code can preserve behavior while
+ * depending on a minimal, local interface instead of the full Node application implementation.
+ */
+export interface SaitoRuntimeApp {
+  options: {
+    wallet?: {
+      publicKey?: string;
+      privateKey?: string;
+      balance?: string | bigint | number;
+    };
+  };
+  wallet: {
+    getPublicKey(): Promise<string>;
+    getPrivateKey(): Promise<string>;
+    getBalance(): Promise<string | bigint | number>;
+  };
+  connection: {
+    emit(eventName: string, ...args: any[]): void;
+  };
+  modules: {
+    handlePeerTransaction(
+      tx: any,
+      peer: any,
+      callback: (response: any) => Promise<void>
+    ): Promise<void>;
+  };
+  network: {
+    getPeer(publicKey: string): Promise<any>;
+    getServices(): any[];
+  };
+  core: {
+    network: {
+      getPeer(publicKey: string): Promise<any>;
+      api: {
+        success(buffer: Uint8Array, msgIndex: number, publicKey: string): Promise<void>;
+      };
+    };
+  };
+}
+
+export function processApiError(
+  buffer: Uint8Array,
+  msgIndex: number,
+  publicKey: string
+): void {
+  const saito = Saito.getInstance();
+  let promise = saito.promises.get(msgIndex);
+  if (promise) {
+    promise.reject(buffer);
+    saito.promises.delete(msgIndex);
+  } else {
+    console.error(
+      "callback not found for callback index : " + msgIndex + " from peer : " + publicKey
+    );
+  }
+}
+
+export function processApiSuccess(
+  buffer: Uint8Array,
+  msgIndex: number,
+  publicKey: string
+): void {
+  const saito = Saito.getInstance();
+  let promise = saito.promises.get(msgIndex);
+  if (promise) {
+    promise.resolve(buffer);
+    saito.promises.delete(msgIndex);
+  } else {
+    console.error(
+      "callback not found for callback index : " + msgIndex + " from peer : " + publicKey
+    );
+  }
+}
 
 export default interface SharedMethods {
+
+  emitInterfaceEvent(event_name: string, payload_json: string): void;
 
   sendMessageByPeerId(peer_id: bigint, buffer: Uint8Array): void;
 
@@ -38,26 +120,6 @@ export default interface SharedMethods {
 
   processApiError(buffer: Uint8Array, msgIndex: number, public_key: string): void;
 
-  sendInterfaceEvent(event: String, peer_id: bigint, public_key: string): void;
-
-  sendNewVersionAlert(major: number, minor: number, patch: number, public_key: string): void;
-
-  sendBlockSuccess(hash: String, blockId: bigint): void;
-
-  sendOnTransactionCreated(): void;
-
-  sendOnTransactionSent(): void;
-
-  sendOnTransactionReceived(): void;
-
-  sendOnNFTCreated(): void;
-
-  sendOnNFTSent(): void;
-
-  sendOnNFTReceived(): void;
-
-  sendWalletUpdate(): void;
-
   saveWallet(wallet: Wallet): void;
 
   loadWallet(wallet: Wallet): void;
@@ -68,5 +130,4 @@ export default interface SharedMethods {
 
   getMyServices(): PeerServiceList;
 
-  sendNewChainDetectedEvent(): void;
 }

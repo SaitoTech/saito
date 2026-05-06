@@ -1,6 +1,6 @@
 {
   "name": "saito-js",
- "version": "0.2.210",
+  "version": "0.2.210",
   "description": "js wrappings around saito-core using wasm",
   "repository": {
     "type": "git",
@@ -15,6 +15,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/jest": "29.2.5",
+    "@types/node-fetch": "^2.6.13",
     "@types/ws": "8.5.5",
     "babel-loader": "8.2.3",
     "babel-polyfill": "6.26.0",

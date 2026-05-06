@@ -1,11 +1,10 @@
-// import { Saito } from "../../apps/core";
+// import { Saito } from "../../apps/export";
 // import NetworkAPI from "./networkapi";
 // import Crypto from "./crypto";
 // import Binary from "./binary";
 // import Wallet from "./wallet";
 // import Transaction, { TransactionType } from "./transaction";
 // import Slip, { SlipType } from "./slip";
-// import hashLoader from "../../apps/core/hash-loader";
 //
 // test("tx serialize deserialze", async () => {
 //   // eslint-disable-next-line @typescript-eslint/ban-ts-comment

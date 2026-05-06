@@ -227,84 +227,88 @@ impl InterfaceIO for WasmIoHandler {
 
     fn send_interface_event(&self, event: InterfaceEvent) {
         match event {
-            InterfaceEvent::OnPeerHandshakeComplete(peer_id, public_key) => {
-                MsgHandler::send_interface_event(
-                    "on_peer_handshake_complete".to_string(),
-                    peer_id,
-                    public_key.to_base58(),
-                );
-            }
-            InterfaceEvent::OnPeerServicesUp(peer_id, public_key) => {
-                MsgHandler::send_interface_event(
-                    "on_peer_services_up".to_string(),
-                    peer_id,
-                    public_key.to_base58(),
-                );
-            }
-            InterfaceEvent::PeerConnectionDropped(peer_id, public_key) => {
-                MsgHandler::send_interface_event(
-                    "peer_disconnect".to_string(),
-                    peer_id,
-                    public_key.to_base58(),
-                );
-            }
-            InterfaceEvent::PeerConnected(peer_id, public_key) => {
-                MsgHandler::send_interface_event(
-                    "peer_connect".to_string(),
-                    peer_id,
-                    public_key.to_base58(),
-                );
-            }
-            InterfaceEvent::BlockAddSuccess(hash, block_id) => {
-                MsgHandler::send_block_success(hash.to_hex(), BigInt::from(block_id));
-            }
+	    InterfaceEvent::WalletUpdate() => {
+    		MsgHandler::emit_interface_event(
+    	            "wallet-updated",
+        	    "{}",
+    	        );
+	    }
             InterfaceEvent::OnTransactionCreated() => {
-                MsgHandler::send_on_transaction_created();
+    		MsgHandler::emit_interface_event(
+    	            "on-transaction-created",
+        	    "{}",
+    	        );
             }
             InterfaceEvent::OnTransactionSent() => {
-                MsgHandler::send_on_transaction_sent();
+    		MsgHandler::emit_interface_event(
+    	            "on-transaction-sent",
+        	    "{}",
+    	        );
             }
             InterfaceEvent::OnTransactionReceived() => {
-                MsgHandler::send_on_transaction_received();
+    		MsgHandler::emit_interface_event(
+    	            "on-transaction-received",
+        	    "{}",
+    	        );
             }
             InterfaceEvent::OnNFTCreated() => {
-                MsgHandler::send_on_transaction_created();
+    		MsgHandler::emit_interface_event(
+    	            "on-nft-created",
+        	    "{}",
+    	        );
             }
             InterfaceEvent::OnNFTSent() => {
-                MsgHandler::send_on_transaction_sent();
+    		MsgHandler::emit_interface_event(
+    	            "on-nft-sent",
+        	    "{}",
+    	        );
             }
             InterfaceEvent::OnNFTReceived() => {
-                MsgHandler::send_on_transaction_received();
+    		MsgHandler::emit_interface_event(
+    	            "on-nft-received",
+        	    "{}",
+    	        );
             }
-            InterfaceEvent::WalletUpdate() => {
-                MsgHandler::send_wallet_update();
+            InterfaceEvent::OnPeerHandshakeComplete(peer_id, public_key) => {
+                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                MsgHandler::emit_interface_event("on_peer_handshake_complete", &payload);
+            }
+            InterfaceEvent::OnPeerServicesUp(peer_id, public_key) => {
+                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                MsgHandler::emit_interface_event("on_peer_services_up", &payload);
+            }
+            InterfaceEvent::PeerConnectionDropped(peer_id, public_key) => {
+                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                MsgHandler::emit_interface_event("peer_disconnect", &payload);
+            }
+            InterfaceEvent::PeerConnected(peer_id, public_key) => {
+                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                MsgHandler::emit_interface_event("peer_connect", &payload);
+            }
+            InterfaceEvent::BlockAddSuccess(hash, block_id) => {
+                let payload = format!("{{\"hash\":\"{}\",\"blockId\":{}}}", hash.to_hex(), block_id);
+                MsgHandler::emit_interface_event("add-block-success", &payload);
             }
             InterfaceEvent::NewVersionDetected(index, version) => {
-                MsgHandler::send_new_version_alert(
-                    format!(
-                        "{:?}.{:?}.{:?}",
-                        version.major, version.minor, version.patch
-                    )
-                    .to_string(),
-                    index.to_base58(),
+                let payload = format!(
+                    "{{\"version\":\"{}.{}.{}\",\"publicKey\":\"{}\"}}",
+                    version.major,
+                    version.minor,
+                    version.patch,
+                    index.to_base58()
                 );
+                MsgHandler::emit_interface_event("new-version-detected", &payload);
             }
             InterfaceEvent::StunPeerConnected(peer_id, public_key) => {
-                MsgHandler::send_interface_event(
-                    "stun peer connect".to_string(),
-                    peer_id,
-                    public_key.to_base58(),
-                );
+                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                MsgHandler::emit_interface_event("stun peer connect", &payload);
             }
             InterfaceEvent::StunPeerDisconnected(peer_id, public_key) => {
-                MsgHandler::send_interface_event(
-                    "stun peer disconnect".to_string(),
-                    peer_id,
-                    public_key.to_base58(),
-                );
+                let payload = format!("[{},\"{}\"]", peer_id, public_key.to_base58());
+                MsgHandler::emit_interface_event("stun peer disconnect", &payload);
             }
             InterfaceEvent::NewChainDetected() => {
-                MsgHandler::send_new_chain_detected_event();
+                MsgHandler::emit_interface_event("new-chain-detected", "null");
             }
         }
     }
@@ -361,6 +365,9 @@ extern "C" {
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_message(public_key: String, buffer: &Uint8Array);
 
+    #[wasm_bindgen(js_namespace = MsgHandler)]
+    fn emit_interface_event(event_name: &str, payload_json: &str);
+
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_message_to_all(buffer: &Uint8Array, exceptions: &Array);
 
@@ -409,36 +416,6 @@ extern "C" {
     pub fn process_api_error(buffer: Uint8Array, msg_index: u32, public_key: String);
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_interface_event(event: String, peer_id: u64, public_key: String);
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_block_success(hash: String, block_id: BigInt);
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_wallet_update();
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_on_transaction_created();
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_on_transaction_received();
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_on_transaction_sent();
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_on_nft_created();
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_on_nft_received();
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_on_nft_sent();
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_new_chain_detected_event();
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn save_wallet();
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn load_wallet();
@@ -451,6 +428,4 @@ extern "C" {
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn get_my_services() -> WasmPeerServiceList;
 
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_new_version_alert(version: String, public_key: String);
 }

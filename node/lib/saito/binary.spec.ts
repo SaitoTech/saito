@@ -1,4 +1,4 @@
-import { Saito } from '../../apps/core';
+import { Saito } from '../../apps/export';
 import Binary from './binary';
 
 test('u64FromBytes', () => {

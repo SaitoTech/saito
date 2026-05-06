@@ -154,7 +154,7 @@ class Mods {
     if (have_responded == false) {
       if (mycallback) {
         //
-        // callback is defined in apps/lite/index.ts
+        // callback is defined in apps/browser/index.ts
         // it runs sendApiSuccess() with the response object
         //
         mycallback({ err: 'no response' });

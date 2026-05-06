@@ -142,32 +142,8 @@ export default class Saito {
       process_api_error: (buffer: Uint8Array, msgIndex: number, public_key: string) => {
         return sharedMethods.processApiError(buffer, msgIndex, public_key);
       },
-      send_interface_event: (event: string, peer_id: bigint, public_key: string) => {
-        return sharedMethods.sendInterfaceEvent(event, peer_id, public_key);
-      },
-      send_block_success: (hash: string, blockId: bigint) => {
-        return sharedMethods.sendBlockSuccess(hash, blockId);
-      },
-      send_on_transaction_created: () => {
-        return sharedMethods.sendOnTransactionCreated();
-      },
-      send_on_transaction_sent: () => {
-        return sharedMethods.sendOnTransactionSent();
-      },
-      send_on_transaction_received: () => {
-        return sharedMethods.sendOnTransactionReceived();
-      },
-      send_on_nft_created: () => {
-        return sharedMethods.sendOnNFTCreated();
-      },
-      send_on_nft_sent: () => {
-        return sharedMethods.sendOnNFTSent();
-      },
-      send_on_nft_received: () => {
-        return sharedMethods.sendOnNFTReceived();
-      },
-      send_wallet_update: () => {
-        return sharedMethods.sendWalletUpdate();
+      emit_interface_event: (event_name: string, payload_json: string) => {
+        return sharedMethods.emitInterfaceEvent(event_name, payload_json);
       },
       save_wallet: (wallet: any) => {
         return sharedMethods.saveWallet(wallet);
@@ -183,12 +159,6 @@ export default class Saito {
       },
       get_my_services: () => {
         return sharedMethods.getMyServices().instance;
-      },
-      send_new_version_alert: (major: number, minor: number, patch: number, public_key: string) => {
-        return sharedMethods.sendNewVersionAlert(major, minor, patch, public_key);
-      },
-      send_new_chain_detected_event: () => {
-        return sharedMethods.sendNewChainDetectedEvent();
       },
     };
     if (privateKey === "") {

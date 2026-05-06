@@ -4,14 +4,14 @@ const webpack = require("webpack");
 
 let minimize = true;
 let devtool = "source-map";
-let entrypoint = "../../dist/bundler/default/apps/lite/index.ts";
+let entrypoint = "../../dist/bundler/default/apps/browser/index.ts";
 let outputfile = "saito.js";
 if (process.argv.includes("dev")) {
   minimize = false;
   devtool = "eval";
 }
 if (process.argv.includes("web3")) {
-  entrypoint = "../../dist/bundler/default/apps/lite/web3index.ts";
+  entrypoint = "../../dist/bundler/default/apps/browser/web3index.ts";
   outputfile = "web3saito.js";
 }
 webpack(
