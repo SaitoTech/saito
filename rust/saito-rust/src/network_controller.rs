@@ -163,7 +163,7 @@ impl NetworkController {
 
             info!("connected to peer : {:?}", url,);
 
-            let mut network_peer = Peer::new(generate_peer_id());
+            let mut network_peer = Peer::new(generate_peer_id(), timer.get_timestamp_in_ms());
             network_peer.url = Some(url);
             network_peer.ip = ip;
 
@@ -751,7 +751,8 @@ fn run_websocket_server(
 
                         let (sender, receiver) = socket.split();
 
-                        let mut network_peer = Peer::new(generate_peer_id());
+                        let mut network_peer =
+                            Peer::new(generate_peer_id(), timer.get_timestamp_in_ms());
                         network_peer.url = None;
                         network_peer.ip = addr.map(|a| a.ip().to_string());
 

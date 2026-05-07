@@ -97,7 +97,7 @@ pub struct Peer {
 }
 
 impl Peer {
-    pub fn new(id: u64) -> Self {
+    pub fn new(id: u64, timestamp: Timestamp) -> Self {
         Self {
             id,
             public_key: None,
@@ -120,7 +120,7 @@ impl Peer {
             wallet_version: Version::default(),
             core_version: Version::default(),
             connected_at: 0,
-            last_activity_at: 0,
+            last_activity_at: timestamp,
             last_message_at: 0,
             last_block_at: 0,
             last_transaction_at: 0,

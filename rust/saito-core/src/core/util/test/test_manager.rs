@@ -664,17 +664,9 @@ pub mod test {
                 {
                     let mut wallet = self.wallet_lock.write().await;
 
-                    transaction = Transaction::create(
-                        &mut wallet,
-                        public_key,
-                        txs_amount,
-                        txs_fee,
-                        false,
-                        None,
-                        latest_block_id,
-                        genesis_period,
-                    )
-                    .unwrap();
+                    transaction = wallet
+                        .create_transaction(vec![public_key], vec![txs_amount], txs_fee)
+                        .unwrap();
                 }
 
                 transaction.sign(&private_key);
@@ -1075,18 +1067,9 @@ pub mod test {
             let private_key;
 
             {
-                let wallet = self.wallet_lock.read().await;
+                let mut wallet = self.wallet_lock.write().await;
                 private_key = wallet.private_key;
-                let mut tx = Transaction::create(
-                    &mut wallet.clone(),
-                    to_public_key,
-                    amount,
-                    0,
-                    false,
-                    None,
-                    latest_block_id,
-                    genesis_period,
-                )?;
+                let mut tx = wallet.create_transaction(vec![to_public_key], vec![amount], 0)?;
                 tx.sign(&private_key);
                 block.add_transaction(tx);
             }

@@ -9,12 +9,12 @@ use tokio::sync::RwLock;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsValue;
 
-use saito_core::core::network::interface_io::InterfaceEvent;
 use saito_core::core::consensus::slip::{Slip, SlipType};
 use saito_core::core::consensus::wallet::{Wallet, WalletSlip};
 use saito_core::core::defs::{
     Currency, PrintForLog, SaitoPrivateKey, SaitoPublicKey, SaitoSignature, SaitoUTXOSetKey,
 };
+use saito_core::core::network::interface_io::InterfaceEvent;
 use saito_core::core::network::network::Network;
 use saito_core::core::process::version::Version;
 use saito_core::core::routing_thread::RoutingEvent;
@@ -67,7 +67,6 @@ impl WasmWallet {
         fee: u64,
         _force_merge: bool,
     ) -> Result<WasmTransaction, JsValue> {
-
         //
         // parse recipient key
         //
@@ -78,12 +77,12 @@ impl WasmWallet {
         // build transaction via wallet
         //
         let tx;
-	{
+        {
             let mut wallet = self.wallet.write().await;
-	    tx = wallet
-            	.create_transaction(vec![recipient_key], vec![amount], fee)
-            	.map_err(|e| JsValue::from(format!("failed creating transaction: {:?}", e)))?;
-	}
+            tx = wallet
+                .create_transaction(vec![recipient_key], vec![amount], fee)
+                .map_err(|e| JsValue::from(format!("failed creating transaction: {:?}", e)))?;
+        }
 
         self.network
             .io_interface
@@ -100,7 +99,6 @@ impl WasmWallet {
         fee: u64,
         _force_merge: bool,
     ) -> Result<WasmTransaction, JsValue> {
-
         //
         // parse inputs
         //
@@ -115,12 +113,12 @@ impl WasmWallet {
         //
         // create transaction via wallet
         //
-	let tx;
+        let tx;
         {
             let mut wallet = self.wallet.write().await;
             tx = wallet
-            	.create_transaction(recipient_keys, saito_amounts, fee)
-            	.map_err(|e| JsValue::from(format!("failed creating transaction: {:?}", e)))?;
+                .create_transaction(recipient_keys, saito_amounts, fee)
+                .map_err(|e| JsValue::from(format!("failed creating transaction: {:?}", e)))?;
         }
 
         self.network

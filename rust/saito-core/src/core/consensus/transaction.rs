@@ -1842,5 +1842,4 @@ mod tests {
         let serialized_tx = mock_tx.serialize_for_net();
         assert_eq!(serialized_tx.len(), 0);
     }
-
 }

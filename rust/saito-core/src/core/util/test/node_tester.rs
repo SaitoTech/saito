@@ -629,16 +629,7 @@ pub mod test {
             let latest_block_id = blockchain.get_latest_block_id();
             let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
 
-            let mut tx = Transaction::create(
-                wallet.deref_mut(),
-                to_key,
-                with_payment,
-                with_fee,
-                false,
-                None,
-                latest_block_id,
-                genesis_period,
-            )?;
+            let mut tx = wallet.create_transaction(vec![to_key], vec![with_payment], with_fee)?;
             tx.generate(&wallet.public_key, 0, 0);
             tx.sign(&wallet.private_key);
             Ok(tx)

@@ -501,8 +501,7 @@ mod tests {
             {
                 let mut wallet = wallet_lock.write().await;
 
-                let (inputs, outputs) =
-                    wallet.generate_slips(720_000, None, latest_block_id, genesis_period);
+                let (inputs, outputs) = wallet.generate_slips(720_000);
                 tx.from = inputs;
                 tx.to = outputs;
                 // _i prevents sig from being identical during test

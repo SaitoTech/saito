@@ -222,6 +222,7 @@ impl Peers {
             .collect();
 
         for peer_id in peer_ids {
+            debug!("removing disconnected peer_id : {:?}", peer_id);
             self.peers.remove(&peer_id);
         }
     }

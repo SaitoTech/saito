@@ -23,7 +23,7 @@ export default class NetworkPeer extends WasmWrapper<WasmNetworkPeer> {
       urlLength: s.length,
       url: s || "(null/undefined/empty)"
     });
-    const peer = await wasm.create_network_peer(u);
+    const peer = await wasm.create_network_peer(u,);
     return new NetworkPeer(peer);
   }
 
