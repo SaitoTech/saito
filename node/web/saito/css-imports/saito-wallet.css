@@ -202,7 +202,7 @@
 }
 
 .pagination-number {
-  border: 1px solid var(--border-color-general-dividers);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
   cursor: pointer;
   padding: 0.3rem 1rem;
   transition: all 0.2s ease-in-out;
@@ -211,7 +211,7 @@
 
 /*changed*/
 .pagination-number:hover {
-  border: 1px solid var(--border-color-general-dividers);
+  border: var(--border-thickness-thin) solid var(--saito-primary);
 }
 
 .pagination-button {
@@ -271,7 +271,7 @@
   position: relative;
   padding: 0 0.5rem;
   border-radius: var(--saito-border-radius);
-  border: 1px solid var(--saito-border-color);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
   gap: 0.25rem;
   align-items: center;
 }
@@ -298,7 +298,7 @@
 
 .withdraw-input-cont {
   background: var(--saito-background-color);
-  border: 1px solid var(--saito-border-color);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
   display: grid;
   grid-template-columns: 1fr min-content;
   align-items: center;
@@ -508,7 +508,7 @@
 
 .withdraw-error {
   padding: 0rem 1rem;
-  color: var(--saito-red);
+  color: var(--saito-status-danger);
   display: none;
   position: absolute;
   right: 6.5rem;
@@ -662,7 +662,7 @@ textarea {
 .nft-file-transfer {
   border-radius: var(--saito-border-radius);
   position: relative;
-  border: 1px dashed;
+  border: var(--border-thickness-thin) dashed var(--saito-file-transfer-border);
   display: grid;
   align-items: center;
   padding: 1rem;
@@ -677,7 +677,7 @@ textarea {
 }
 
 .nft-file-transfer.complete {
-  border: 1px solid;
+  border: var(--border-thickness-thin) solid var(--saito-file-transfer-border);
 }
 
 .nft-file-transfer.received {
@@ -750,7 +750,7 @@ textarea {
 .create-nft-amount {
   max-width: 8rem;
   text-align: center;
-  border: 1px solid var(--saito-font-color);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
   padding: 0.3rem 0rem;
   border-radius: var(--saito-border-radius);
 }
@@ -764,7 +764,7 @@ textarea {
 .nft-creator > .saito-file-transfer {
   border-radius: var(--saito-border-radius);
   position: relative;
-  border: 1px dashed;
+  border: var(--border-thickness-thin) dashed var(--saito-file-transfer-border);
   display: grid;
   align-items: center;
   padding: 2rem;
@@ -787,7 +787,7 @@ textarea {
   z-index: 10;
   padding: 0;
   height: 4.5rem;
-  border: 1px solid var(--saito-border-color-dark);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
 }
 
 .split-half {
@@ -817,7 +817,7 @@ nft cards
   height: 24rem;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--saito-border-color);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
   border-radius: var(--saito-border-radius);
   overflow: hidden;
   padding: 1rem;
@@ -827,11 +827,11 @@ nft cards
 
 .nft-card:hover {
   cursor: pointer;
-  border: 1px solid var(--saito-primary);
+  border: var(--border-thickness-thin) solid var(--saito-primary);
 }
 
 .nft-card.nft-selected {
-  border: 1px solid var(--saito-primary);
+  border: var(--border-thickness-thin) solid var(--saito-primary);
 }
 
 .nft-card-title {

@@ -61,14 +61,14 @@
 }
 
 .saito-module-titlebar-title {
-  color: var(--saito-white);
+  color: var(--saito-chip-fg);
   font-size: 2rem;
 }
 
 .saito-module-titlebar-details {
   font-size: 1.4rem;
   text-transform: uppercase;
-  color: var(--saito-white);
+  color: var(--saito-chip-fg);
 }
 
 .saito-game-details {
@@ -126,7 +126,7 @@
 }
 
 .saito-module-header {
-  background: var(--dreamscape); /* testing not sure where*/
+  background: var(--saito-header-background);
   background-size: cover;
   background-position: center;
   padding: var(--saito-space-xs);
@@ -140,7 +140,7 @@
 
 .saito-module-overlay .saito-module-titlebar {
   background: var(--saito-header-background);
-  color: var(--saito-white);
+  color: var(--saito-header-color);
 }
 
 .saito-module-details {

@@ -12,7 +12,7 @@ link preview
   max-height: 2rem;
   border-top-left-radius: var(--saito-border-radius);
   border-top-right-radius: var(--saito-border-radius);
-  border: 1px solid var(--saito-border-color);
+  border: var(--border-thickness-thin) solid var(--saito-link-preview-border);
   border-bottom: none;
   overflow: hidden;
   display: flex;
@@ -32,7 +32,7 @@ link preview
 
 .link-info {
   padding: 2rem;
-  border: 1px solid var(--saito-border-color);
+  border: var(--border-thickness-thin) solid var(--saito-link-preview-border);
   border-radius: var(--saito-border-radius);
   border-top: none;
   border-top-right-radius: unset;
@@ -40,7 +40,7 @@ link preview
   overflow-wrap: anywhere;
   color: var(--saito-font-color);
   font-size: 1.5rem;
-  background-color: color-mix(in srgb, var(--saito-gray-700) 27%, transparent);
+  background-color: var(--saito-link-preview-bg);
   display: flex;
   flex-direction: column;
   gap: 0.8rem;

@@ -52,7 +52,7 @@
 }
 
 .char-limit-container.warning {
-  color: var(--saito-red);
+  color: var(--saito-status-danger);
 }
 
 .tweet-overlay-content .tweet-overlay-header {
