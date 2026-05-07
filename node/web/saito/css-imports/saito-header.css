@@ -44,8 +44,8 @@
 
 #saito-header.game .hamburger-container {
   padding: 0.5rem;
-  background: #0003;
-  border-radius: 0.5rem;
+  background: var(--saito-chip-bg);
+  border-radius: var(--saito-radius-md);
   margin-top: 1rem;
 }
 
@@ -86,8 +86,8 @@
   height: 4px;
   margin-bottom: 5px;
   position: relative;
-  background: var(--saito-white);
-  border-radius: 3px;
+  background: var(--saito-header-color);
+  border-radius: var(--saito-radius-sm);
   z-index: 1;
   transform-origin: 4px 0px;
   transition: transform 0.5s cubic-bezier(0.77, 0.2, 0.05, 1);
@@ -403,7 +403,7 @@
 
 .saito-floating-plus-btn i {
   font-size: 2.5rem;
-  color: #fff;
+  color: var(--saito-primary-text);
   width: 2.5rem;
   height: 2.5rem;
   text-align: center;

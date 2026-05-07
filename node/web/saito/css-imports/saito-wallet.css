@@ -1,7 +1,7 @@
 .mixin_crypto_overlay {
   padding: 2rem;
-  background-color: var(--saito-white);
-  color: black;
+  background: var(--saito-wallet-panel-bg);
+  color: var(--saito-wallet-panel-fg);
   line-height: 1.6em;
   font-size: 1.5em;
   width: 90rem;
@@ -32,7 +32,7 @@
 }
 
 .input-cont p {
-  color: #fff;
+  color: var(--saito-wallet-panel-fg);
 }
 
 .input-heading {
@@ -45,7 +45,7 @@
   position: absolute;
   top: 54%;
   right: 4%;
-  color: #444;
+  color: var(--saito-wallet-muted-color);
   cursor: pointer;
 }
 
@@ -85,12 +85,12 @@
 }
 
 .decision-cont a {
-  color: #fff;
+  color: var(--saito-primary);
   transition: all 0.1s ease-in-out;
 }
 
 .decision-cont a:hover {
-  color: #333;
+  color: var(--saito-primary-dark);
 }
 
 .withdraw-identicon-container {
@@ -107,7 +107,7 @@
 }
 
 .mixin-withdraw-token-wrapper p {
-  color: #fff;
+  color: var(--saito-wallet-panel-fg);
 }
 
 .mixin-withdraw-input {
@@ -122,7 +122,7 @@
 
 .max-amount-error {
   display: none;
-  color: #5d1919;
+  color: var(--saito-wallet-error-color);
 }
 
 .input-heading {
@@ -197,7 +197,7 @@
 
 /*changed*/
 .pagination-number.active {
-  color: var(--saito-white);
+  color: var(--saito-primary-text);
   background: var(--saito-primary);
 }
 
@@ -229,7 +229,7 @@
 }
 
 .pagination-container.disabled .pagination-button {
-  color: #9f9b9b;
+  color: var(--saito-wallet-muted-color);
 }
 
 .pagination-container.disabled .pagination-button:hover {
@@ -586,13 +586,13 @@
 }
 
 .data-table tr.total_supply_value {
-  background-color: #fdeed5;
+  background-color: var(--saito-wallet-nft-summary-bg);
 }
 .data-table tr.payout_value {
-  background-color: #e0ebf0b0;
+  background-color: var(--saito-wallet-nft-payout-bg);
 }
 .data-table tr.total_supply.total_supply_value {
-  background-color: #d8c3a2;
+  background-color: var(--saito-wallet-nft-total-bg);
 }
 .inputs div {
   flex: 1;
@@ -609,8 +609,8 @@ textarea {
   width: 100%;
   height: 100px;
   padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: var(--border-thickness-thin) solid var(--saito-input-border);
+  border-radius: var(--saito-input-radius);
   resize: none;
 }
 
@@ -672,8 +672,8 @@ textarea {
   column-gap: 2rem;
   justify-items: flex-end;
   overflow: hidden;
-  background-color: var(--saito-gray-600);
-  color: var(--saito-white);
+  background-color: var(--saito-file-transfer-bg);
+  color: var(--saito-file-transfer-fg);
 }
 
 .nft-file-transfer.complete {
@@ -774,8 +774,8 @@ textarea {
   column-gap: 2rem;
   justify-items: flex-end;
   overflow: hidden;
-  background-color: var(--saito-gray-600);
-  color: var(--saito-white);
+  background-color: var(--saito-file-transfer-bg);
+  color: var(--saito-file-transfer-fg);
 }
 
 .fancy-slider-bar {
@@ -953,9 +953,9 @@ nft cards
   -webkit-line-clamp: 10;
   overflow: hidden;
   white-space: pre;
-  color: #3ea63e;
+  color: var(--saito-status-code-fg);
   padding: 5px;
-  background: var(--saito-black);
+  background: var(--saito-status-code-bg);
   height: 100%;
 }
 
@@ -973,7 +973,7 @@ nft cards
 
 .nft-details-header,
 .nft-details-actions {
-  border: 1px solid var(--saito-gray-200);
+  border: var(--border-thickness-thin) solid var(--saito-border-color);
   border-radius: var(--saito-border-radius);
   padding: 1.5rem;
   gap: 1.5rem;
@@ -1039,7 +1039,7 @@ nft cards
 }
 
 .nft-details-actions .nft-card-details {
-  border: 1px solid color-mix(in srgb, var(--saito-gray-700) 27%, transparent);
+  border: var(--border-thickness-thin) solid var(--saito-card-border);
   padding: 1rem;
 }
 
