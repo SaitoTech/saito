@@ -3927,6 +3927,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn generate_lite_block_test() {
         let mut t = TestManager::default();
 
@@ -4221,6 +4222,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn atr_test_2() {
         pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();

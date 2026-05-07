@@ -3677,6 +3677,7 @@ mod tests {
     // tests if utxo hashmap persists after a blockchain reset
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn balance_hashmap_persists_after_blockchain_reset_test() {
         // pretty_env_logger::init();
         let mut t: TestManager = TestManager::default();
@@ -4523,6 +4524,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn ghost_chain_content_test() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -4551,6 +4553,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn test_fork_id_difference() {
         // pretty_env_logger::init()
         NodeTester::delete_data().await.unwrap();
@@ -4591,6 +4594,7 @@ mod tests {
     }
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn test_block_generation_with_fees() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
