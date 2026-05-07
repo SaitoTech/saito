@@ -180,9 +180,9 @@ html[data-theme='prism'] {
      ============================================ */
 
   #saito-header {
-    background: var(--saito-header-background);
-    border-bottom: 1px solid var(--saito-border-color);
-    backdrop-filter: blur(10px);
+    background: transparent;
+    border-bottom: none;
+    backdrop-filter: none;
   }
 
   /* Scrollbars & ::selection: shared in saito-dark-themes-chrome.css */

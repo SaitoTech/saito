@@ -2,7 +2,7 @@
   position: fixed;
   display: flex;
   width: 100vw;
-  backdrop-filter: blur(1px);
+  backdrop-filter: none;
   margin: 0;
   align-items: center;
   justify-content: space-between;
@@ -16,7 +16,7 @@
     height 0.33s linear,
     padding 0.33s linear;
   color: var(--saito-header-color);
-  background: var(--saito-header-background);
+  background: transparent;
 }
 
 #saito-header.wide-screen {
@@ -511,7 +511,7 @@
   top: 0;
   left: 0;
   color: var(--saito-header-color);
-  background: var(--saito-header-background);
+  background: transparent;
   background-size: 100vw;
   background-position-x: min(-2rem, calc(- (100vw - var(--saito-width)) / 2 + 0.5rem));
 }

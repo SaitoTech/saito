@@ -7,7 +7,7 @@ module.exports = (app, mod, post) => {
   			<div class="tweet-overlay-content">
     			<div class="tweet-overlay-header"></div>
     			<div id="post-tweet-img-preview-container" class="post-tweet-img-preview-container"></div>
-  		     	<div class="saito-button-primary post-tweet-button" id="post-tweet-button" title="Pro-tip: ctrl+enter to submit">${post.type}</div>  
+				<button type="button" class="saito-button-primary fat post-tweet-button" id="post-tweet-button" title="Pro-tip: ctrl+enter to submit">${post.type}</button>
 		    </div>
 
 	        <section id="post-tweet-loader" class="post-tweet-loader">

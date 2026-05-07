@@ -42,7 +42,7 @@
 	border: 1px solid var(--saito-border-color);
 	box-shadow: -1px -1px #000;
 	background-color: var(--background-color-shim-light);
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius-md);
 }
 
 /*
@@ -92,5 +92,6 @@
 	text-shadow: 1px 1px 2px var(--saito-black);
 	background-color: var(--saito-primary);
 	color: var(--saito-primary-text);
+	border-radius: 0 var(--saito-radius-md) var(--saito-radius-md) 0;
 	clip-path: polygon(25% 0, 100% 0, 100% 100%, 0 100%);
 }

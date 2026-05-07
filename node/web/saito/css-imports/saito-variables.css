@@ -111,8 +111,12 @@ font imports
   --palette-shadow: var(--saito-gray-900);
   --palette-texture-overlay: url(/saito/img/tiled-logo.svg);
   --palette-bg-gradient:
-    radial-gradient(circle at top left, color-mix(in srgb, var(--palette-primary) 9%, transparent), transparent 32rem),
-    linear-gradient(180deg, color-mix(in srgb, var(--palette-bg) 92%, var(--saito-white)), var(--palette-bg));
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--palette-bg) 94%, var(--saito-white)) 0%,
+      color-mix(in srgb, var(--palette-bg) 98%, var(--saito-orange)) 46%,
+      var(--palette-bg) 100%
+    );
   --palette-surface-gradient:
     linear-gradient(180deg, color-mix(in srgb, var(--palette-surface-1) 92%, var(--saito-white)), var(--palette-surface-1));
   --palette-overlay-gradient:
@@ -174,7 +178,7 @@ font imports
   /* Main Theme */
   --saito-width: 1200px;
   --saito-header-height: 7rem;
-  --saito-header-color: var(--saito-primary-text);
+  --saito-header-color: var(--saito-primary);
   --saito-header-background: var(--dreamscape);
 
   /* Box Shadows */
@@ -264,6 +268,16 @@ font imports
   --saito-input-radius: var(--saito-radius-md);
   --saito-input-shadow: var(--saito-elevation-0);
   --saito-input-font: inherit;
+
+  --saito-post-overlay-bg: var(--saito-background-color);
+  --saito-post-overlay-border: transparent;
+  --saito-post-overlay-shadow: none;
+  --saito-post-textarea-bg: var(--saito-background-color);
+  --saito-post-textarea-bg-focus: var(--saito-surface-hover);
+  --saito-post-controls-bg: transparent;
+  --saito-post-control-color: var(--saito-primary);
+  --saito-post-button-radius: var(--saito-radius-full);
+  --saito-feed-bg: var(--saito-background-color);
 
   --saito-table-row-bg: var(--saito-surface-hover);
   --saito-table-row-bg-hover: var(--saito-surface-selected);

@@ -1,5 +1,7 @@
 .tweet-overlay {
-  background: var(--saito-background-color);
+  background: var(--saito-post-overlay-bg);
+  border: var(--border-thickness-thin) solid var(--saito-post-overlay-border);
+  box-shadow: var(--saito-post-overlay-shadow);
   padding: var(--border-padding-wide);
   max-height: 95vh;
   max-width: 98vw;
@@ -69,12 +71,13 @@
   justify-content: right;
   align-items: center;
   flex-wrap: wrap;
+  background: var(--saito-post-controls-bg);
 }
 
 .tweet-overlay-content-controls i {
   color: transparent;
   font-size: 2rem;
-  -webkit-text-stroke: var(--saito-primary) 1px; /* testing */
+  -webkit-text-stroke: var(--saito-post-control-color) 1px;
   padding: 1rem;
   cursor: pointer;
   position: relative;
@@ -93,8 +96,13 @@
   margin-bottom: 1.5rem;
   padding: 0 0 2rem;
   max-height: 50vh;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-width: none;
+}
+
+.post-tweet-preview > .tweet::-webkit-scrollbar {
+  display: none;
 }
 
 .post-tweet-textarea {
@@ -113,13 +121,13 @@
 
   border-radius: var(--saito-input-radius);
   /* Copied from textarea in saito-form-elements */
-  background: var(--saito-background-color);
+  background: var(--saito-post-textarea-bg);
   color: var(--saito-font-color);
   border: none;
 }
 
 .post-tweet-textarea:focus {
-  background: var(--saito-surface-hover);
+  background: var(--saito-post-textarea-bg-focus);
   box-shadow: inset 0 0 0 1px var(--saito-primary);
 }
 
@@ -135,6 +143,7 @@
   flex-wrap: wrap;
   gap: 1rem;
   padding-top: 1rem;
+  background: transparent;
 }
 
 .post-tweet-img-preview {
@@ -184,16 +193,10 @@
 }
 
 .post-tweet-button {
-  margin-right: 0;
-  line-height: 2.5rem;
-  font-size: 1.8rem;
   position: absolute;
-  max-width: 35%;
   bottom: 2rem;
   right: 2rem;
-  padding: 15px 35px;
-  border-radius: var(--saito-radius-full);
-  font-weight: bold;
+  margin: 0;
   z-index: 1; /* So button is clickable above the saito-input-large */
 }
 
@@ -213,7 +216,6 @@
 
   .post-tweet-button {
     bottom: 2.4rem;
-    padding: 15px 25px;
   }
 
   .post-tweet-img-preview-container {

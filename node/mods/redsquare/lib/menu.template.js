@@ -35,7 +35,7 @@ module.exports = (app, mod) => {
 
 	html += `
           </ul>
-          <button class="tweet-button">
+          <button class="saito-button-primary fat tweet-button">
           	<i class="redsquare-tweet-icon fa-solid fa-pen"></i>
 			<span>Post</span>
 		  </button>
