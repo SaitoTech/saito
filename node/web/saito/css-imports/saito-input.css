@@ -262,7 +262,7 @@ emoji-picker {
 
 .chat-footer .saito-input-quote i.cancel-quote:hover {
 	background-color: var(--saito-primary);
-	color: var(--saito-white);
+	color: var(--saito-primary-text);
 }
 
 /* saito mentions list */

@@ -285,4 +285,55 @@ font imports
   --saito-chip-fg: var(--saito-white);
   --saito-chip-border: color-mix(in srgb, var(--saito-white) 53%, transparent);
   --saito-muted-color: var(--saito-gray-500);
+
+  --saito-status-success: var(--saito-green);
+  --saito-status-danger: var(--saito-red);
+  --saito-status-warning: var(--saito-orange);
+  --saito-status-info: var(--saito-primary);
+  --saito-status-code-fg: #3ea63e;
+  --saito-status-code-bg: var(--saito-black);
+
+  --saito-tooltip-icon-color: var(--saito-primary);
+  --saito-tooltip-bg: var(--saito-overlay-panel-background);
+  --saito-tooltip-fg: var(--saito-font-color-heavy);
+  --saito-tooltip-border: var(--saito-overlay-panel-border);
+  --saito-tooltip-shadow: var(--saito-overlay-panel-shadow);
+  --saito-tooltip-radius: var(--saito-radius-md);
+
+  --saito-chat-background: var(--saito-background-color);
+  --saito-chat-background-image: var(--palette-texture-overlay);
+  --saito-chat-shell-bg: var(--saito-background-color);
+  --saito-chat-message-bg: var(--saito-background-color);
+  --saito-chat-message-shadow: var(--saito-elevation-2);
+  --saito-chat-active-bg: var(--saito-card-bg);
+  --saito-chat-header-shadow: var(--saito-elevation-1);
+  --saito-chat-notification-gradient: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--saito-black) 20%, transparent) 47%,
+    var(--saito-primary),
+    color-mix(in srgb, var(--saito-black) 20%, transparent) 53%
+  );
+
+  --saito-calendar-event-border: var(--saito-border-color);
+  --saito-calendar-muted-color: var(--saito-font-color-secondary);
+  --saito-calendar-muted-past-color: color-mix(
+    in srgb,
+    var(--saito-font-color-secondary) 68%,
+    transparent
+  );
+  --saito-calendar-event-dot-bg: var(--saito-status-danger);
+
+  --saito-wallet-panel-bg: var(--saito-overlay-panel-background);
+  --saito-wallet-panel-fg: var(--saito-font-color);
+  --saito-wallet-muted-color: var(--saito-muted-color);
+  --saito-wallet-error-color: var(--saito-status-danger);
+  --saito-wallet-nft-summary-bg: color-mix(in srgb, var(--saito-status-warning) 18%, var(--saito-surface-color));
+  --saito-wallet-nft-payout-bg: color-mix(in srgb, var(--saito-status-info) 14%, var(--saito-surface-color));
+  --saito-wallet-nft-total-bg: color-mix(in srgb, var(--saito-secondary) 24%, var(--saito-surface-color));
+  --saito-file-transfer-bg: var(--saito-chip-bg);
+  --saito-file-transfer-fg: var(--saito-chip-fg);
+
+  --saito-empty-state-icon-color: var(--saito-font-color-light);
+  --saito-empty-state-title-color: var(--saito-font-color-heavy);
+  --saito-empty-state-text-color: var(--saito-font-color-light);
 }
