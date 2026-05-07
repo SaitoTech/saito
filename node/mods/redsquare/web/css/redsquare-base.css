@@ -5,7 +5,7 @@
   border-right: 1px solid var(--saito-border-color);
   border-left: 1px solid var(--saito-border-color);
   border-bottom: 1px solid var(--saito-border-color);
-  background: var(--saito-background-color);
+  background: var(--saito-feed-bg);
 }
 
 .saito-end-of-redsquare {

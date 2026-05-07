@@ -12,9 +12,12 @@ html[data-theme='lite'] {
   --palette-outline: color-mix(in srgb, var(--saito-gray-200) 73%, transparent);
   --palette-outline-strong: var(--saito-gray-750);
   --palette-bg-gradient:
-    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--saito-orange) 16%, transparent), transparent 34rem),
-    radial-gradient(circle at 88% 8%, color-mix(in srgb, var(--saito-red) 8%, transparent), transparent 32rem),
-    linear-gradient(180deg, color-mix(in srgb, var(--palette-bg) 95%, var(--saito-white)), var(--palette-bg));
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--palette-bg) 93%, var(--saito-white)) 0%,
+      color-mix(in srgb, var(--palette-bg) 98%, var(--saito-orange)) 42%,
+      var(--palette-bg) 100%
+    );
   --palette-surface-gradient:
     linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 82%, var(--saito-orange) 18%), var(--palette-bg));
   --palette-overlay-gradient:

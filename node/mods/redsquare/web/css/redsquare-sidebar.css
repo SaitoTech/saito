@@ -19,7 +19,7 @@
 	background-position: center;
 	background-color: var(--saito-card-bg);
 	background-blend-mode: soft-light;
-	border-radius: 16px;
+	border-radius: var(--saito-radius-md);
 	overflow: hidden;
 }
 
@@ -37,7 +37,7 @@
 	overflow-wrap: break-word;
 	opacity: 0.8;
 	background: var(--saito-chip-bg);
-	border-radius: var(--saito-border-radius);
+	border-radius: var(--saito-radius-md);
 }
 
 .saito-module-titlebar > div {
@@ -81,6 +81,7 @@
 	background-color: var(--saito-surface-color);
 	flex-shrink: 0;
 	background-color: transparent;
+	border-radius: var(--saito-radius-md);
 }
 
 .saito-game-identicons div {
@@ -94,6 +95,7 @@
 	display: block;
 	max-width: 100%;
 	max-height: 100%;
+	border-radius: inherit;
 }
 
 .redsquare-tweet-icon {
