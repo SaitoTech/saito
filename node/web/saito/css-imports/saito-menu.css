@@ -18,12 +18,12 @@
 
 .saito-menu > ul > li:active {
   /* newly added state, for use in Sangre3000 -only so far */
-  background: var(--background-color-button-active-sidebar);
+  background: var(--saito-menu-item-active-bg);
 }
 
 .saito-menu > ul > li:hover p {
-  background-color: var(--saito-background-color);
-  color: var(--saito-background-color);
+  background-color: var(--saito-menu-item-hover-bg);
+  color: var(--saito-menu-item-hover-fg);
 }
 
 .saito-menu > ul > li > i {
@@ -95,13 +95,13 @@
 }
 
 .saito-menu i::before {
-  -webkit-text-stroke-color: var(--saito-font-color);
+  -webkit-text-stroke-color: var(--saito-menu-icon-color);
   -webkit-text-stroke-width: 1px;
   color: transparent;
 }
 
 .saito-menu li:hover i::before {
-  -webkit-text-stroke-color: var(--saito-primary-text);
+  -webkit-text-stroke-color: var(--saito-menu-icon-hover-color);
 }
 
 @media screen and (max-width: 620px) {

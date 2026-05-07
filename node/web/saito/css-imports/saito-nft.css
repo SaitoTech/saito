@@ -650,7 +650,7 @@
   z-index: 10;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  box-shadow: 0 0 0 2px var(--saito-background-color);
+  box-shadow: var(--saito-control-ring-shadow);
 }
 
 .split-bar::before,
@@ -676,7 +676,7 @@
 .split-bar:hover {
   background: var(--saito-primary-dark);
   box-shadow:
-    0 0 0 2px var(--saito-background-color),
+    var(--saito-control-ring-shadow),
     var(--saito-elevation-2);
 }
 

@@ -292,6 +292,42 @@ font imports
   --saito-status-info: var(--saito-primary);
   --saito-status-code-fg: #3ea63e;
   --saito-status-code-bg: var(--saito-black);
+  --saito-control-ring-shadow: 0 0 0 2px var(--saito-background-color);
+
+  --saito-link-preview-bg: var(--saito-card-bg);
+  --saito-link-preview-border: var(--saito-card-border);
+
+  --saito-menu-item-active-bg: var(--saito-surface-selected);
+  --saito-menu-item-hover-bg: var(--saito-primary);
+  --saito-menu-item-hover-fg: var(--saito-primary-text);
+  --saito-menu-icon-color: var(--saito-font-color);
+  --saito-menu-icon-hover-color: var(--saito-primary-text);
+
+  --saito-notification-bg: var(--saito-primary);
+  --saito-notification-fg: var(--saito-primary-text);
+  --saito-notification-hover-bg: var(--saito-surface-selected);
+  --saito-notification-online-bg: var(--saito-status-success);
+  --saito-notification-busy-bg: var(--saito-muted-color);
+  --saito-notification-ring: var(--saito-background-color);
+
+  --saito-alert-backdrop: var(--background-color-shim-dark);
+  --saito-alert-bg: var(--saito-overlay-panel-background);
+  --saito-alert-fg: var(--saito-font-color);
+  --saito-alert-border: var(--saito-overlay-panel-border);
+  --saito-alert-shadow: var(--saito-overlay-panel-shadow);
+
+  --saito-header-menu-bg: var(--saito-overlay-panel-background);
+  --saito-header-menu-border: var(--saito-overlay-panel-border);
+  --saito-header-menu-shadow: var(--saito-overlay-panel-shadow);
+  --saito-floating-action-bg: var(--saito-primary);
+  --saito-floating-action-fg: var(--saito-primary-text);
+  --saito-floating-action-shadow: 1px 1px 2px color-mix(in srgb, var(--palette-shadow) 45%, transparent);
+  --saito-floating-menu-bg: var(--saito-overlay-panel-bg);
+  --saito-floating-menu-border: var(--saito-overlay-panel-border);
+
+  --saito-file-transfer-panel-bg: var(--saito-overlay-panel-background);
+  --saito-file-transfer-panel-border: var(--saito-overlay-panel-border);
+  --saito-file-transfer-panel-shadow: var(--saito-overlay-panel-shadow);
 
   --saito-tooltip-icon-color: var(--saito-primary);
   --saito-tooltip-bg: var(--saito-overlay-panel-background);
@@ -332,6 +368,10 @@ font imports
   --saito-wallet-nft-total-bg: color-mix(in srgb, var(--saito-secondary) 24%, var(--saito-surface-color));
   --saito-file-transfer-bg: var(--saito-chip-bg);
   --saito-file-transfer-fg: var(--saito-chip-fg);
+  --saito-file-transfer-border: var(--saito-chip-border);
+  --saito-crypto-transfer-bg: var(--saito-gray-900);
+  --saito-crypto-transfer-fg: var(--saito-white);
+  --saito-crypto-transfer-border: color-mix(in srgb, var(--saito-white) 45%, transparent);
 
   --saito-empty-state-icon-color: var(--saito-font-color-light);
   --saito-empty-state-title-color: var(--saito-font-color-heavy);

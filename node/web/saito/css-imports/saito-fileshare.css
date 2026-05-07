@@ -8,11 +8,11 @@
   justify-content: space-between;
 
   /* pseudo overlay */
-  box-shadow: var(--saito-box-shadow);
+  box-shadow: var(--saito-file-transfer-panel-shadow);
   border-radius: var(--saito-border-radius);
   overflow: hidden;
-  background-color: var(--saito-background-color);
-  border: var(--border-thickness-thin) solid var(--border-color-general-dividers);
+  background: var(--saito-file-transfer-panel-bg);
+  border: var(--border-thickness-thin) solid var(--saito-file-transfer-panel-border);
   position: fixed;
   /*left: 50%;
   top: 50%;
@@ -47,7 +47,7 @@
 
 .pseudo-overlay-controls .icon-button:hover {
   background-color: var(--saito-primary);
-  color: var(--saito-background-color);
+  color: var(--saito-primary-text);
 }
 
 .saito-file-transfer-overlay.minimize {
@@ -95,11 +95,11 @@
 }
 
 .teleporter-status .fa-check {
-  color: var(--saito-green);
+  color: var(--saito-status-success);
 }
 
 .teleporter-status .fa-xmark {
-  color: var(--saito-red);
+  color: var(--saito-status-danger);
   font-size: 2.8rem;
 }
 
@@ -117,7 +117,7 @@
 .saito-file-transfer {
   border-radius: var(--saito-border-radius);
   position: relative;
-  border: 1px dashed;
+  border: var(--border-thickness-thin) dashed var(--saito-file-transfer-border);
   display: grid;
   align-items: center;
   padding: 1rem;
@@ -127,12 +127,12 @@
   column-gap: 2rem;
   justify-items: flex-end;
   overflow: hidden;
-  background-color: var(--saito-gray-600);
-  color: var(--saito-white);
+  background-color: var(--saito-file-transfer-bg);
+  color: var(--saito-file-transfer-fg);
 }
 
 .saito-file-transfer.complete {
-  border: 1px solid;
+  border: var(--border-thickness-thin) solid var(--saito-file-transfer-border);
 }
 
 .saito-file-transfer.received {
