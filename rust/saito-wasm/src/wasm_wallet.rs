@@ -156,27 +156,25 @@ impl WasmWallet {
         let key =
             string_to_key(recipient_public_key).map_err(|_| JsValue::from("invalid public key"))?;
 
-	let tx;
+        let tx;
 
-	{
-
+        {
             let mut wallet = saito.context.wallet_lock.write().await;
 
             tx = wallet
-            	.create_bound_transaction(
-            	    num,
-            	    deposit,
-            	    serialized_msg,
-            	    &key,
-            	    Some(&saito.consensus_thread.network),
-            	    latest_block_id,
-            	    genesis_period,
-            	    nft_type.as_string().unwrap(),
-            	)
-            	.await
-            	.map_err(|_| JsValue::from("failed creating bound transaction"))?;
-
-	}
+                .create_bound_transaction(
+                    num,
+                    deposit,
+                    serialized_msg,
+                    &key,
+                    Some(&saito.consensus_thread.network),
+                    latest_block_id,
+                    genesis_period,
+                    nft_type.as_string().unwrap(),
+                )
+                .await
+                .map_err(|_| JsValue::from("failed creating bound transaction"))?;
+        }
 
         self.network
             .io_interface

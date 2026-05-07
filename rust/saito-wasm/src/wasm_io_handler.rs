@@ -227,47 +227,26 @@ impl InterfaceIO for WasmIoHandler {
 
     fn send_interface_event(&self, event: InterfaceEvent) {
         match event {
-	    InterfaceEvent::WalletUpdate() => {
-    		MsgHandler::emit_interface_event(
-    	            "wallet-updated",
-        	    "{}",
-    	        );
-	    }
+            InterfaceEvent::WalletUpdate() => {
+                MsgHandler::emit_interface_event("wallet-updated", "{}");
+            }
             InterfaceEvent::OnTransactionCreated() => {
-    		MsgHandler::emit_interface_event(
-    	            "on-transaction-created",
-        	    "{}",
-    	        );
+                MsgHandler::emit_interface_event("on-transaction-created", "{}");
             }
             InterfaceEvent::OnTransactionSent() => {
-    		MsgHandler::emit_interface_event(
-    	            "on-transaction-sent",
-        	    "{}",
-    	        );
+                MsgHandler::emit_interface_event("on-transaction-sent", "{}");
             }
             InterfaceEvent::OnTransactionReceived() => {
-    		MsgHandler::emit_interface_event(
-    	            "on-transaction-received",
-        	    "{}",
-    	        );
+                MsgHandler::emit_interface_event("on-transaction-received", "{}");
             }
             InterfaceEvent::OnNFTCreated() => {
-    		MsgHandler::emit_interface_event(
-    	            "on-nft-created",
-        	    "{}",
-    	        );
+                MsgHandler::emit_interface_event("on-nft-created", "{}");
             }
             InterfaceEvent::OnNFTSent() => {
-    		MsgHandler::emit_interface_event(
-    	            "on-nft-sent",
-        	    "{}",
-    	        );
+                MsgHandler::emit_interface_event("on-nft-sent", "{}");
             }
             InterfaceEvent::OnNFTReceived() => {
-    		MsgHandler::emit_interface_event(
-    	            "on-nft-received",
-        	    "{}",
-    	        );
+                MsgHandler::emit_interface_event("on-nft-received", "{}");
             }
             InterfaceEvent::OnPeerHandshakeComplete(peer_id, public_key) => {
                 let payload = format!(

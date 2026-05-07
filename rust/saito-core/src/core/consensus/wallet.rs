@@ -227,7 +227,7 @@ impl Wallet {
     //
     // on chain reorg
     //
-    // this receives transactions (nft and normal) over the 
+    // this receives transactions (nft and normal) over the
     //
     pub fn on_chain_reorganization(
         &mut self,
@@ -427,7 +427,6 @@ impl Wallet {
 
                         wallet_changed |= WALLET_UPDATED;
                         i += 3;
-
                     } else {
                         //
                         // normal input → add back
