@@ -3,7 +3,7 @@ import express from 'express';
 import { Server as Ser } from 'http';
 import S from 'saito-js/index.node';
 
-import fetch, { RequestInit } from "node-fetch";
+import fetch, { RequestInit } from 'node-fetch';
 
 import fs from 'fs';
 import path from 'path';
@@ -32,8 +32,6 @@ const expressApp = express();
 expressApp.use(cors());
 
 const webserver = new Ser(expressApp);
-
-
 
 /**
  * Constructor

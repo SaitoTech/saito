@@ -61,7 +61,6 @@ class SaitoHeader extends UIModTemplate {
   }
 
   async initialize(app) {
-
     await super.initialize(app);
 
     //
@@ -70,7 +69,7 @@ class SaitoHeader extends UIModTemplate {
     this.userMenu = new UserMenu(app, this.publicKey);
 
     //
-    // registry 
+    // registry
     //
     app.connection.on('registry-update-identifier', (publicKey) => {
       if (publicKey === this.publicKey) {
@@ -772,15 +771,13 @@ class SaitoHeader extends UIModTemplate {
    * *******************************************************/
 
   renderCrypto(force = false) {
-
     let available_cryptos = this.app.wallet.returnInstalledCryptos();
     let preferred_crypto = this.app.wallet.returnPreferredCrypto();
     let add = preferred_crypto.returnAddress();
 
-console.log("into render Crypto in SaitoHeader...");
+    console.log('into render Crypto in SaitoHeader...');
 
     try {
-
       //
       // insert address and qrcode
       //
@@ -805,7 +802,6 @@ console.log("into render Crypto in SaitoHeader...");
         }
       }
 
-
       //
       // dropdown crypto options
       //
@@ -814,10 +810,9 @@ console.log("into render Crypto in SaitoHeader...");
       let options_html = '';
       let menu_html = '';
       for (let i = 0; i < available_cryptos.length; i++) {
-
         let crypto_mod = available_cryptos[i];
 
-	// mixin handles 
+        // mixin handles
         let rtn_val = crypto_mod.returnLogos();
 
         options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
@@ -869,14 +864,19 @@ console.log("into render Crypto in SaitoHeader...");
         b_elm.innerHTML = this.app.browser.returnBalanceHTML(balance_as_string);
 
         if (Date.now() - preferred_crypto.history_update_ts > 30000 && !this.checking_history) {
-
-console.log("CHECKING BECAUSE: " + Date.now() + " - " + preferred_crypto.history_update_ts + " -- " + this.checking_history);
+          console.log(
+            'CHECKING BECAUSE: ' +
+              Date.now() +
+              ' - ' +
+              preferred_crypto.history_update_ts +
+              ' -- ' +
+              this.checking_history
+          );
 
           this.checking_history = true;
           console.log('Checking preferred crypto history for new transactions');
           preferred_crypto.checkHistory(() => {
-
-console.log("FINISHED CHECKING...");
+            console.log('FINISHED CHECKING...');
 
             delete this.checking_history;
           });
@@ -904,8 +904,7 @@ console.log("FINISHED CHECKING...");
       };
     }
 
-console.log("done wallet update...");
-
+    console.log('done wallet update...');
   }
 
   initiateBalanceCheck() {

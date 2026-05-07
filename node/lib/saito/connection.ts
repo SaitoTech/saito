@@ -1,7 +1,6 @@
 import { EventEmitter } from 'events';
 
 class Connection extends EventEmitter {
-
   public setMaxListeners: any;
 
   constructor() {
