@@ -446,6 +446,11 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     "ConsensusThread::process_event : new transaction : {:?}",
                     transaction.signature.to_hex()
                 );
+                info!(
+                    "[TRANSACTION - RECEIPT] - consensus received validated transaction tx_sig={} tx_type={:?}",
+                    transaction.signature.to_hex(),
+                    transaction.transaction_type
+                );
 
                 if let TransactionType::GoldenTicket = transaction.transaction_type {
                     let mut mempool = self.mempool_lock.write().await;

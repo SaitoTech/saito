@@ -35,6 +35,11 @@ pub struct VerificationThread {
 impl VerificationThread {
     pub async fn verify_transaction(&mut self, mut transaction: Transaction) {
         trace!("verifying tx : {:?}", transaction.signature.to_hex());
+        info!(
+            "[TRANSACTION - RECEIPT] - verification started tx_sig={} routed_from_peer_id={}",
+            transaction.signature.to_hex(),
+            transaction.routed_from_peer_id
+        );
 
         let is_valid = {
             let blockchain = self.blockchain_lock.read().await;
@@ -50,9 +55,17 @@ impl VerificationThread {
                 "transaction : {:?} not valid",
                 transaction.signature.to_hex()
             );
+            info!(
+                "[TRANSACTION - RECEIPT] - verification failed tx_sig={}",
+                transaction.signature.to_hex()
+            );
             return;
         }
 
+        info!(
+            "[TRANSACTION - RECEIPT] - verification passed, forwarding to consensus tx_sig={}",
+            transaction.signature.to_hex()
+        );
         self.sender_to_consensus
             .send(ConsensusEvent::NewTransaction { transaction })
             .await

@@ -589,6 +589,7 @@ impl Wallet {
         }
 
         for key in unspent_slips {
+
             let slip = self.slips.get_mut(key).expect("slip should be here");
 
             // Prevent using slips from blocks earlier than (latest_block_id - (genesis_period-1)
@@ -600,6 +601,7 @@ impl Wallet {
             if nolan_in >= nolan_requested {
                 break;
             }
+
 
             nolan_in += slip.amount;
 

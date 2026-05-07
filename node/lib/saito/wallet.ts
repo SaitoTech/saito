@@ -416,6 +416,9 @@ export default class Wallet extends SaitoWallet {
         unique_hash: string = '',
         memo: string = ''
       ) {
+        console.info(
+          `[TRANSACTION - SENDING] - sendPayment invoked amount=${amount} to=${to_address}`
+        );
         let nolan_amount = this.app.wallet.convertSaitoToNolan(amount);
 
         if (!this.pending_balance) {
@@ -429,15 +432,20 @@ export default class Wallet extends SaitoWallet {
         if (this.pending_balance < 0) {
           throw new Error('sendPayment: Attempting to send payment with insufficient balance');
         }
+        console.info(
+          `[TRANSACTION - SENDING] - balance check passed pending_balance=${this.pending_balance}`
+        );
 
         if (!this.validateAddress(to_address)) {
           throw new Error('sendPayment: Attempting to send payment to invalid public key');
         }
+        console.info(`[TRANSACTION - SENDING] - recipient address validated`);
 
         let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
           to_address,
           nolan_amount
         );
+        console.info(`[TRANSACTION - SENDING] - unsigned transaction created`);
 
         newtx.msg = {
           module: this.name,
@@ -448,9 +456,15 @@ export default class Wallet extends SaitoWallet {
           hash: unique_hash,
           memo
         };
+        console.info(`[TRANSACTION - SENDING] - transaction message payload attached`);
 
+        console.info(`[TRANSACTION - SENDING] - signing/encrypting transaction`);
         await this.app.wallet.signAndEncryptTransaction(newtx);
+        console.info(
+          `[TRANSACTION - SENDING] - transaction signed signature=${newtx.signature}`
+        );
 
+        console.info(`[TRANSACTION - SENDING] - propagating transaction to network`);
         await this.app.network.propagateTransaction(newtx);
 
         console.log(
@@ -1347,16 +1361,47 @@ export default class Wallet extends SaitoWallet {
   }
 
   public async fetchBalanceSnapshot(key: string) {
+    const balanceUrl = '/balance/' + key;
     try {
       console.log('fetching balance snapshot for key : ' + key);
-      let response = await fetch('/balance/' + key);
+      console.log('[BALANCE FETCH] requesting snapshot URL:', balanceUrl);
+      let response = await fetch(balanceUrl);
+      if (!response.ok) {
+        console.log(
+          `[BALANCE FETCH] non-OK response status=${response.status} statusText=${response.statusText} url=${balanceUrl}`
+        );
+      }
       let data = await response.text();
       let snapshot = BalanceSnapshot.fromString(data);
       if (snapshot) {
+        const expectedBalance = snapshot.rows.reduce((total, row) => {
+          const cols = row.split(' ');
+          if (cols.length < 5) {
+            return total;
+          }
+          try {
+            return total + BigInt(cols[4]);
+          } catch (_err) {
+            return total;
+          }
+        }, BigInt(0));
+        console.log(
+          `[BALANCE FETCH] snapshot parsed file=${snapshot.file_name} rows=${snapshot.rows.length} expected_balance_nolan=${expectedBalance.toString()}`
+        );
+        const beforeSlipCount = (await this.getSlips()).length;
         await S.getInstance().updateBalanceFrom(snapshot);
+        const afterSlipCount = (await this.getSlips()).length;
+        console.log(
+          `[BALANCE FETCH] wallet slips updated before=${beforeSlipCount} after=${afterSlipCount} added=${Math.max(
+            0,
+            afterSlipCount - beforeSlipCount
+          )}`
+        );
+      } else {
+        console.log(`[BALANCE FETCH] snapshot parse failed url=${balanceUrl}`);
       }
     } catch (error) {
-      // console.error(error);
+      console.log('[BALANCE FETCH] request/update failed:', error);
     }
   }
 

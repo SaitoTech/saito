@@ -143,6 +143,11 @@ impl RoutingThread {
                 // ...
             }
             Message::Transaction(transaction) => {
+                info!(
+                    "[TRANSACTION - RECEIPT] - transaction message received from peer peer_id={} tx_sig={}",
+                    peer_id,
+                    transaction.signature.to_hex()
+                );
                 self.process_transaction_message(peer_id, transaction).await;
             }
             Message::RequestBlockchain(ref request) => {
@@ -344,6 +349,11 @@ impl RoutingThread {
     }
 
     pub async fn process_peer_buffer(&mut self, peer_id: u64, buffer: Vec<u8>) {
+        info!(
+            "[TRANSACTION - RECEIPT] - received peer buffer for processing peer_id={} bytes={}",
+            peer_id,
+            buffer.len()
+        );
         // Step 1: deserialize buffer → Message
         let message = match Message::deserialize(buffer) {
             Ok(msg) => msg,
@@ -366,9 +376,18 @@ impl RoutingThread {
     // logic or execution across multiple threads or system components.
     //
     async fn process_transaction_message(&mut self, peer_id: u64, mut transaction: Transaction) {
+        info!(
+            "[TRANSACTION - RECEIPT] - dispatching transaction to verification peer_id={} tx_sig={}",
+            peer_id,
+            transaction.signature.to_hex()
+        );
         transaction.routed_from_peer_id = peer_id;
         self.send_to_verification_thread(VerifyRequest::Transaction(transaction))
             .await;
+        info!(
+            "[TRANSACTION - RECEIPT] - transaction enqueued to verification peer_id={}",
+            peer_id
+        );
     }
 
     async fn process_block_reference_message(
