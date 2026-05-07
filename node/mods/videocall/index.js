@@ -3,7 +3,7 @@ module.exports = (app, mod, build_number, og_card) => {
 
   
   <!DOCTYPE html>
-  <html lang="en" data-theme="dark">
+  <html lang="en" data-theme="noir">
   
   <head>
     <meta charset="utf-8" />
@@ -20,8 +20,8 @@ module.exports = (app, mod, build_number, og_card) => {
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="application-name" content="saito.io ${mod.returnSlug()}" />
     <meta name="apple-mobile-web-app-title" content="Saito Talk" />
-    <meta name="theme-color" content="#FFFFFF" />
-    <meta name="msapplication-navbutton-color" content="#FFFFFF" />
+    <meta name="theme-color" content="#0d0e11" />
+    <meta name="msapplication-navbutton-color" content="#0d0e11" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="msapplication-starturl" content="/index.html" />
   
@@ -69,8 +69,7 @@ module.exports = (app, mod, build_number, og_card) => {
       height: 100vh;
       width: 100vw;
       /* hardcode bg colors used because saito-variables arent accessible here */
-      background-color: #222;
-      background-image: url('/saito/img/tiled-logo.svg');
+      background-color: #0d0e11;
     }
   </style>
   </head>

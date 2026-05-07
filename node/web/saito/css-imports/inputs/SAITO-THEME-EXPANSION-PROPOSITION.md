@@ -26,7 +26,7 @@ There are **no** alternate-prefix CSS files (e.g. `cyto-*.css`); implementation 
 - **Defaults** are set on `:root` in `saito-variables.css`.
 - **Theme overrides** are scoped to `html[data-theme='…']`, which wins for matching properties when the attribute is set (specificity beats bare `:root` for those declarations).
 
-Themes included in the bundle today: **prism**, **dark**, **raven** (plus implicit **lite** via modules — see below).
+Themes included in the bundle today: **prism**, **noir**, **dark**, **lite**, and **raven**.
 
 ### 1.3 Token model (`saito-variables.css`)
 
@@ -74,13 +74,13 @@ Red Square’s `mods/redsquare/web/style.css` imports a **stack of module-local 
 
 ### 1.7 Videocall / “Neon Nocturne” direction
 
-`mods/videocall/web/stitch_web_call_ui_refresh/saito_noir/DESIGN.md` describes a **palette-first**, Material-adjacent vocabulary:
+`mods/videocall/web/stitch_web_call_ui_refresh/saito_noir/DESIGN.md` describes a **palette-first**, Material-adjacent vocabulary that is now represented by the global **noir** theme:
 
 - Surfaces: `surface-container-low` / `surface-container` / `surface-container-high`
 - Rules: tonal layering over harsh borders, long soft shadows, glass / blur for floating controls, gradient primary CTAs
 - Typography: dual stack (display vs body) — **broader than** current global Visuelt-only approach
 
-That document is **design intent**, not yet wired as shared CSS variables in `css-imports/`. It is the natural conceptual source for a **palette block** when generalizing.
+That document remains the design reference for the cinematic videocall flow; the reusable aesthetic is wired into `css-imports/themes/saito-noir.theme.css`.
 
 ---
 
@@ -171,7 +171,7 @@ Palette themes only need to set palette + these semantic hooks; base CSS uses th
 | **A** | **Done:** palette + semantic tokens added to `saito-variables.css`; existing `--saito-*` compatibility tokens now map through them. |
 | **B** | **Done:** button disabled typo fixed; `--saito-focus-ring`, `--saito-button-*`, `--saito-overlay-*`, and `--saito-modal-*` are wired into shared CSS. |
 | **C** | **Mostly done:** **prism** now uses palette + semantic component tokens for core colors, surfaces, borders, inputs, tables, cards, buttons, modals, and overlays; only distinctive Prism behavior remains as selector rules. |
-| **D** | (Deferred) Packaged “noir” / videocall-style theme in global bundle — **keep videocall CSS in the mod** for now. |
+| **D** | **Done:** Packaged **noir** / videocall-style theme in the global bundle as `themes/saito-noir.theme.css`; videocall-specific layout polish remains in the module. |
 | **E** | ~~Audit Red Square lite rules~~ **Done:** lite lives in `themes/saito-lite.theme.css`; Red Square keeps layout-only overrides in module CSS. |
 | **F** | **Done:** first hard-coded color cleanup across shared CSS plus high-impact Red Square / Arcade surfaces. Added chip and muted tokens; tokenized tweet thread lines, module title chips, Arcade observer controls, install ribbon, and overlay shadows. |
 | **G** | **Done:** gradient-aware canvas and panel tokens added across all themes. Body backgrounds, overlays, modals, module overlays, and mention/selection popups now consume `--saito-canvas-background` and `--saito-overlay-panel-background` with theme-specific borders and shadows. |
@@ -198,8 +198,8 @@ Palette themes only need to set palette + these semantic hooks; base CSS uses th
 ## 7. Resolved decisions
 
 1. **Lite theme:** First-class file `css-imports/themes/saito-lite.theme.css`; modules only supply layout overrides. Runtime default falls through to **`dark`** when no saved preference and no `data-theme` on `<html>` (`browser.ts`).
-2. **Videocall styling:** Keep video call polish **only** under `mods/videocall/web/css`; no videocall-derived theme in the global bundle for now (Phase D palette demo deferred).
-3. **Scrollbars / selection:** Shared stylesheet `css-imports/saito-dark-themes-chrome.css` applies WebKit scrollbar + `::selection` (+ Firefox `scrollbar-color`) for **`dark`**, **`raven`**, and **`prism`** using each theme’s tokens.
+2. **Videocall styling:** Shared **noir** tokens now live in the global bundle; video-call-specific layout and media controls remain under `mods/videocall/web/css`.
+3. **Scrollbars / selection:** Shared stylesheet `css-imports/saito-dark-themes-chrome.css` applies WebKit scrollbar + `::selection` (+ Firefox `scrollbar-color`) for **`dark`**, **`raven`**, **`prism`**, and **`noir`** using each theme’s tokens.
 
 ---
 
