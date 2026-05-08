@@ -273,8 +273,21 @@ export default class Saito {
         };
       };
 
+      const bindAndConvert = (fn: Function, argNames: string[]) => {
+        const boundFn = fn.bind(wasmWallet);
+        const payloadArgNames = new Set(["tx_msg", "msg"]);
+        return (...args: any[]) => {
+          const convertedArgs = args.map((arg, index) => {
+            const argName = argNames[index];
+            if (!payloadArgNames.has(argName)) {
+              return arg;
+            }
+            return new Uint8Array(Buffer.from(JSON.stringify(arg), "utf-8"));
+          });
+          return boundFn(...convertedArgs);
+        };
+      };
       wallet = Object.create(wasmWallet);
-
       wallet.createTransaction = wrapTx(
         wasmWallet.createTransaction.bind(wasmWallet)
       );
@@ -284,27 +297,61 @@ export default class Saito {
       );
 
       wallet.createBoundTransaction = wrapTx(
-  	wasmWallet.createBoundTransaction.bind(wasmWallet)
+        bindAndConvert(wasmWallet.createBoundTransaction, [
+          "num",
+          "deposit",
+          "tx_msg",
+          "fee",
+          "recipient_public_key",
+          "nft_type",
+        ])
       );
 
       wallet.createSendBoundTransaction = wrapTx(
-  	wasmWallet.createSendBoundTransaction.bind(wasmWallet)
+        bindAndConvert(wasmWallet.createSendBoundTransaction, [
+          "amt",
+          "slip1",
+          "slip2",
+          "slip3",
+          "recipient",
+          "tx_msg",
+        ])
       );
 
       wallet.createSplitBoundTransaction = wrapTx(
-  	wasmWallet.createSplitBoundTransaction.bind(wasmWallet)
+        bindAndConvert(wasmWallet.createSplitBoundTransaction, [
+          "slip1",
+          "slip2",
+          "slip3",
+          "left",
+          "right",
+          "tx_msg",
+        ])
       );
 
       wallet.createMergeBoundTransaction = wrapTx(
-  	wasmWallet.createMergeBoundTransaction.bind(wasmWallet)
+        bindAndConvert(wasmWallet.createMergeBoundTransaction, [
+          "nft_id_hex",
+          "tx_msg",
+        ])
       );
 
       wallet.createAtomizeBoundTransaction = wrapTx(
-  	wasmWallet.createAtomizeBoundTransaction.bind(wasmWallet)
+        bindAndConvert(wasmWallet.createAtomizeBoundTransaction, [
+          "slip1_utxo_key",
+          "slip2_utxo_key",
+          "slip3_utxo_key",
+          "tx_msg",
+        ])
       );
 
       wallet.createRemoveBoundTransaction = wrapTx(
-  	wasmWallet.createRemoveBoundTransaction.bind(wasmWallet)
+        bindAndConvert(wasmWallet.createRemoveBoundTransaction, [
+          "slip1_utxo_key",
+          "slip2_utxo_key",
+          "slip3_utxo_key",
+          "tx_msg",
+        ])
       );
 
     }

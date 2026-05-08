@@ -245,18 +245,20 @@ impl Wallet {
         );
 
         if lc {
+
             //
             // update wallet with latest_block_id information, making transactions
             // spendable as we now have a longest-chain...
             //
-            if self.genesis_period == 0 {
-                self.genesis_period = genesis_period;
-            }
-            self.latest_block_id = block.id;
-            self.minimum_block_id = block
-                .id
-                .saturating_sub(self.genesis_period)
-                .saturating_add(2);
+if self.genesis_period == 0 {
+    self.genesis_period = genesis_period;
+}
+self.latest_block_id = block.id;
+self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
+    block.id.saturating_sub(self.genesis_period).saturating_add(2)
+} else {
+    1
+};
 
             for tx in block.transactions.iter() {
                 trace!("Processing transaction: {:?}", tx.signature.to_hex());
@@ -593,7 +595,7 @@ impl Wallet {
             let slip = self.slips.get_mut(key).expect("slip should be here");
 
             // Prevent using slips from blocks earlier than (latest_block_id - (genesis_period-1)
-            if slip.block_id <= self.minimum_block_id {
+            if slip.block_id < self.minimum_block_id {
                 debug!("Balance in process of rebroadcasting. Please wait 2 blocks and retry...");
                 continue;
             }
