@@ -43,8 +43,8 @@ pub struct WalletConfig {
     #[serde(
         default,
         rename = "privateKey",
-        alias = "public_key",
-        alias = "publickey"
+        alias = "private_key",
+        alias = "privatekey"
     )]
     pub private_key: String,
 }

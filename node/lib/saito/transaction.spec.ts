@@ -186,4 +186,3 @@
 //   expect(tx1_buffer).toEqual(tx2_buffer);
 //   expect(tx.serializeForSignature(mockApp)).toEqual(tx2.serializeForSignature(mockApp));
 //   expect(tx2.validateSignature(mockApp)).toBeTruthy();
-// });

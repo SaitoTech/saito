@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="430" viewBox="0 0 1320 430">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4a5568" />
+    </marker>
+    <style>
+      .title { font: 700 24px sans-serif; fill: #1a202c; }
+      .box { stroke-width: 2; rx: 12; ry: 12; }
+      .text { font: 14px sans-serif; fill: #1f2937; }
+      .small { font: 13px sans-serif; fill: #374151; }
+      .line { stroke: #4a5568; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
+      .dash { stroke-dasharray: 7 6; }
+    </style>
+  </defs>
+
+  <text x="30" y="36" class="title">Handshake flow</text>
+
+  <rect x="30" y="90" width="220" height="76" class="box" fill="#dbeafe" stroke="#60a5fa" />
+  <text x="50" y="120" class="text">Incoming or outgoing</text>
+  <text x="50" y="142" class="text">transport socket established</text>
+
+  <rect x="300" y="78" width="250" height="100" class="box" fill="#fef3c7" stroke="#f59e0b" />
+  <text x="320" y="110" class="text">NetworkPeer decides role</text>
+  <text x="320" y="136" class="small">Incoming: send challenge</text>
+  <text x="320" y="158" class="small">Outgoing: wait for challenge</text>
+
+  <rect x="600" y="78" width="280" height="100" class="box" fill="#fee2e2" stroke="#ef4444" />
+  <text x="620" y="110" class="text">HandshakeChallenge /</text>
+  <text x="620" y="132" class="text">HandshakeResponse exchange</text>
+  <text x="620" y="158" class="small">signature, versions, services,</text>
+  <text x="620" y="180" class="small">endpoint, block_fetch_url</text>
+
+  <rect x="930" y="78" width="280" height="100" class="box" fill="#dcfce7" stroke="#22c55e" />
+  <text x="950" y="110" class="text">process_handshake_response()</text>
+  <text x="950" y="136" class="small">verify signature against stored</text>
+  <text x="950" y="158" class="small">challenge and retain metadata</text>
+
+  <rect x="930" y="238" width="280" height="92" class="box" fill="#ede9fe" stroke="#8b5cf6" />
+  <text x="950" y="270" class="text">Incoming verifier only:</text>
+  <text x="950" y="296" class="small">send final response signed over</text>
+  <text x="950" y="318" class="small">the responder challenge</text>
+
+  <rect x="300" y="248" width="250" height="82" class="box" fill="#dbeafe" stroke="#60a5fa" />
+  <text x="320" y="280" class="text">Emit PeerConnectionResult</text>
+  <text x="320" y="304" class="small">RoutingThread queues new_peers</text>
+
+  <rect x="600" y="238" width="280" height="92" class="box" fill="#dcfce7" stroke="#22c55e" />
+  <text x="620" y="270" class="text">Peer::handle_new_peer()</text>
+  <text x="620" y="294" class="small">promotes response into durable</text>
+  <text x="620" y="316" class="small">Peer and emits handshake event</text>
+
+  <rect x="930" y="356" width="280" height="54" class="box" fill="#fef3c7" stroke="#f59e0b" />
+  <text x="950" y="387" class="text">Bootstrap next: genesis request or chain sync</text>
+
+  <path d="M250 128 L300 128" class="line" />
+  <path d="M550 128 L600 128" class="line" />
+  <path d="M880 128 L930 128" class="line" />
+  <path d="M1070 178 L1070 238" class="line dash" />
+  <path d="M930 178 C 900 210, 740 232, 550 274" class="line" />
+  <path d="M550 289 L600 284" class="line" />
+  <path d="M880 284 L930 383" class="line" />
+</svg>

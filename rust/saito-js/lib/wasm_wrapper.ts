@@ -4,7 +4,6 @@
 //   heldValue.free();
 // });
 
-
 export default class WasmWrapper<T> {
   public instance: T;
 
@@ -24,7 +23,6 @@ export default class WasmWrapper<T> {
     WasmWrapper.registry.register(this, instance);
     // WasmWrapper.createdCounter++;
   }
-
 
   // free() {
   //   // @ts-ignore
