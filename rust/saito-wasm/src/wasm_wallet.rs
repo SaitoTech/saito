@@ -214,6 +214,42 @@ impl WasmWallet {
         Ok(WasmTransaction::from_transaction(tx))
     }
 
+    #[wasm_bindgen(js_name = createNFTTransaction)]
+    pub async fn create_nft_transaction(
+        &self,
+        recipient_public_key: JsString,
+        nft_amount: u64,
+        nft_uuid: JsString,
+        fee: u64,
+        saito_deposit: u64,
+        tx_msg: Uint8Array,
+    ) -> Result<WasmTransaction, JsValue> {
+        let mut saito = SAITO.lock().await;
+        let saito = saito.as_mut().unwrap();
+
+        let recipient_key = string_to_key(recipient_public_key)
+            .map_err(|_| JsValue::from("invalid recipient public key"))?;
+        let nft_uuid_key: SaitoPublicKey =
+            string_to_hex(nft_uuid).map_err(|_| JsValue::from("invalid nft uuid"))?;
+
+        let serialized_msg = tx_msg.to_vec();
+
+        let mut wallet = saito.context.wallet_lock.write().await;
+
+        let tx = wallet
+            .create_nft_transaction(
+                vec![recipient_key],
+                vec![nft_amount],
+                nft_uuid_key,
+                fee,
+                saito_deposit,
+                serialized_msg,
+            )
+            .map_err(|e| JsValue::from(format!("failed creating nft transaction: {:?}", e)))?;
+
+        Ok(WasmTransaction::from_transaction(tx))
+    }
+
     #[wasm_bindgen(js_name = createSplitBoundTransaction)]
     pub async fn create_split_bound_transaction(
         &self,

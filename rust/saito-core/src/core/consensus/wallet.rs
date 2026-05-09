@@ -245,20 +245,22 @@ impl Wallet {
         );
 
         if lc {
-
             //
             // update wallet with latest_block_id information, making transactions
             // spendable as we now have a longest-chain...
             //
-if self.genesis_period == 0 {
-    self.genesis_period = genesis_period;
-}
-self.latest_block_id = block.id;
-self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
-    block.id.saturating_sub(self.genesis_period).saturating_add(2)
-} else {
-    1
-};
+            if self.genesis_period == 0 {
+                self.genesis_period = genesis_period;
+            }
+            self.latest_block_id = block.id;
+            self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
+                block
+                    .id
+                    .saturating_sub(self.genesis_period)
+                    .saturating_add(2)
+            } else {
+                1
+            };
 
             for tx in block.transactions.iter() {
                 trace!("Processing transaction: {:?}", tx.signature.to_hex());
@@ -558,6 +560,10 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
         }
     }
 
+    pub fn get_pending_balance(&self) -> Currency {
+        self.available_balance
+    }
+
     pub fn get_available_balance(&self) -> Currency {
         self.available_balance
     }
@@ -591,7 +597,6 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
         }
 
         for key in unspent_slips {
-
             let slip = self.slips.get_mut(key).expect("slip should be here");
 
             // Prevent using slips from blocks earlier than (latest_block_id - (genesis_period-1)
@@ -603,7 +608,6 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
             if nolan_in >= nolan_requested {
                 break;
             }
-
 
             nolan_in += slip.amount;
 
@@ -688,6 +692,7 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
     ) -> (Vec<Slip>, Vec<Slip>) {
         let mut candidate_inputs: Vec<(Slip, Slip, Slip, SaitoUTXOSetKey)> = vec![];
         let mut collected: Currency = 0;
+        let mut total_slip2_in: Currency = 0;
 
         //
         // first pass: gather enough NFT groups (no mutation yet)
@@ -715,6 +720,7 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
                 continue;
             }
 
+            total_slip2_in = total_slip2_in.saturating_add(slip2.amount);
             candidate_inputs.push((slip1, slip2, slip3, nft.slip1));
             collected += candidate_inputs.last().unwrap().0.amount;
 
@@ -757,6 +763,12 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
         let change = collected - amount;
 
         if change > 0 {
+            let dep_to_recipients_floor = total_slip2_in
+                .saturating_mul(amount)
+                .checked_div(collected)
+                .unwrap_or(0);
+            let dep_to_change = total_slip2_in.saturating_sub(dep_to_recipients_floor);
+
             let change_slip1 = Slip {
                 public_key: self.public_key,
                 amount: change,
@@ -766,7 +778,7 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
 
             let change_slip2 = Slip {
                 public_key: self.public_key,
-                amount: 0,
+                amount: dep_to_change,
                 slip_type: SlipType::Normal,
                 ..Default::default()
             };
@@ -910,6 +922,7 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
         nft_uuid: SaitoPublicKey,
         fee: Currency,
         saito_deposit: Currency,
+        tx_msg: Vec<u8>,
     ) -> Result<Transaction, Error> {
         //
         // ----------------------------------------------------
@@ -942,6 +955,37 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
             ));
         }
 
+        let mut total_nft_in: Currency = 0;
+        let mut total_dep_in: Currency = 0;
+        let mut inp_idx = 0;
+
+        while inp_idx + 2 < nft_input_slips.len() {
+            total_nft_in = total_nft_in.saturating_add(nft_input_slips[inp_idx].amount);
+
+            total_dep_in = total_dep_in.saturating_add(nft_input_slips[inp_idx + 1].amount);
+
+            inp_idx += 3;
+        }
+
+        if total_nft_in == 0 {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "NFT error - zero NFT input amount",
+            ));
+        }
+
+        if total_nft_requested > total_nft_in {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "NFT error - requested amounts exceed selected inputs",
+            ));
+        }
+
+        let dep_recipients_floor = total_dep_in
+            .saturating_mul(total_nft_requested)
+            .checked_div(total_nft_in)
+            .unwrap_or(0);
+
         //
         // ----------------------------------------------------
         // STEP 2: GET SAITO INPUTS (FEE + OPTIONAL DEPOSIT)
@@ -964,7 +1008,7 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
         // ----------------------------------------------------
         //
         let mut tx = Transaction::default();
-        tx.transaction_type = TransactionType::Normal;
+        tx.transaction_type = TransactionType::Bound;
 
         //
         // ADD INPUTS
@@ -995,21 +1039,40 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
 
         let mut saito_remaining_to_assign: Currency = saito_deposit;
 
+        let mut preserved_remaining: Currency = dep_recipients_floor;
+        let mut nft_weight_remaining: Currency = total_nft_requested;
+
         for i in 0..recipients.len() {
             let recipient = recipients[i];
             let nft_amount_for_recipient = nft_amounts[i];
 
+            let preserved_deposit_for_recipient: Currency = if nft_weight_remaining > 0 {
+                preserved_remaining.saturating_mul(nft_amount_for_recipient) / nft_weight_remaining
+            } else {
+                0
+            };
+
+            preserved_remaining =
+                preserved_remaining.saturating_sub(preserved_deposit_for_recipient);
+
+            nft_weight_remaining = nft_weight_remaining.saturating_sub(nft_amount_for_recipient);
+
             //
-            // exact SAITO allocation (integer-safe, no loss)
+            // exact additive SAITO allocation
             //
-            let mut saito_deposit_for_recipient = saito_base_share_per_recipient;
+            let mut saito_extra_for_recipient = saito_base_share_per_recipient;
 
             if saito_remainder_to_allocate > 0 {
-                saito_deposit_for_recipient += 1;
+                saito_extra_for_recipient = saito_extra_for_recipient.saturating_add(1);
+
                 saito_remainder_to_allocate -= 1;
             }
 
-            saito_remaining_to_assign -= saito_deposit_for_recipient;
+            saito_remaining_to_assign =
+                saito_remaining_to_assign.saturating_sub(saito_extra_for_recipient);
+
+            let slip2_amount =
+                preserved_deposit_for_recipient.saturating_add(saito_extra_for_recipient);
 
             //
             // NFT OUTPUT GROUP
@@ -1023,7 +1086,7 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
 
             let saito_deposit_slip = Slip {
                 public_key: recipient,
-                amount: saito_deposit_for_recipient,
+                amount: slip2_amount,
                 slip_type: SlipType::Normal,
                 ..Default::default()
             };
@@ -1040,10 +1103,9 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
             tx.add_to_slip(nft_uuid_slip);
         }
 
-        //
-        // SAFETY CHECK: ensure exact conservation
-        //
-        debug_assert!(saito_remaining_to_assign == 0);
+        debug_assert_eq!(preserved_remaining, 0);
+        debug_assert_eq!(nft_weight_remaining, 0);
+        debug_assert_eq!(saito_remaining_to_assign, 0);
 
         //
         // ----------------------------------------------------
@@ -1062,6 +1124,31 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
         for slip in saito_change_slips {
             tx.add_to_slip(slip);
         }
+
+        let mut sum_nft_tuple_slip2_out: Currency = 0;
+        let mut out_idx = 0usize;
+
+        while out_idx + 2 < tx.to.len() {
+            if tx.to[out_idx].slip_type == SlipType::Bound
+                && (tx.to[out_idx + 1].slip_type == SlipType::Normal
+                    || tx.to[out_idx + 1].slip_type == SlipType::ATR)
+                && tx.to[out_idx + 2].slip_type == SlipType::Bound
+            {
+                sum_nft_tuple_slip2_out =
+                    sum_nft_tuple_slip2_out.saturating_add(tx.to[out_idx + 1].amount);
+
+                out_idx += 3;
+            } else {
+                out_idx += 1;
+            }
+        }
+
+        debug_assert_eq!(
+            sum_nft_tuple_slip2_out,
+            total_dep_in.saturating_add(saito_deposit)
+        );
+
+        tx.data = tx_msg;
 
         Ok(tx)
     }
@@ -1231,7 +1318,7 @@ self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
         //       • 8 bytes of nft_uuid_block_id,
         //       • 8 bytes of nft_uuid_transaction_id,
         //       • 1 byte of nft_uuid_slip_id (totaling 17 bytes)
-        //       • 16 bytes padded by remainder of recipient's public key
+        //       • 16 bytes padded by nft_type
         //
         // the transaction includes a copy of the NFT UUID at the head of the
         // transaction MSG field. Whenever the NFT is send between addresses

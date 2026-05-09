@@ -1604,7 +1604,9 @@ impl Block {
                 total_number_of_non_fee_transactions += 1;
             }
 
-            if (transaction.is_golden_ticket() || transaction.is_normal_transaction())
+            if (transaction.is_golden_ticket()
+                || transaction.is_normal_transaction()
+                || transaction.transaction_type == TransactionType::Bound)
                 && !transaction.is_atr_transaction()
             {
                 cv.total_bytes_new += transaction.get_serialized_size() as u64;

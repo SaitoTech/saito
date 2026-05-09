@@ -112,6 +112,27 @@ export default class Wallet extends WasmWrapper<WasmWallet> {
       }
     }
 
+    public async createNFTTransaction(
+      recipientPublicKey: string,
+      nftAmount: bigint,
+      nftUuid: string,
+      fee: bigint = BigInt(0),
+      saitoDeposit: bigint = BigInt(0),
+      txMsg: object = {}
+    ) {
+      const payload = new Uint8Array(
+        Buffer.from(JSON.stringify(txMsg ?? {}), "utf-8")
+      );
+      return this.instance.createNFTTransaction(
+        recipientPublicKey,
+        nftAmount,
+        nftUuid,
+        fee,
+        saitoDeposit,
+        payload
+      );
+    }
+
 }
 
 export class WalletSlip extends WasmWrapper<WasmWalletSlip> {

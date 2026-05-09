@@ -258,6 +258,10 @@ class NFTOverlay {
     //
     let cancel_send_btn = document.querySelector('.saito-nft-panel-send .saito-nft-cancel-btn');
     let confirm_send_btn = document.querySelector('.saito-nft-panel-send .saito-nft-confirm-btn');
+    let max_amount_btn = document.querySelector('.saito-nft-panel-send .nft-send-max-btn');
+    let amount_input = document.querySelector('.saito-nft-panel-send #nft-send-amount');
+    let advanced_toggle = document.querySelector('.saito-nft-panel-send .nft-advanced-toggle');
+    let advanced_container = document.querySelector('.saito-nft-panel-send .nft-advanced-options');
 
     //
     // enable / disable
@@ -278,6 +282,24 @@ class NFTOverlay {
 
     enable_btn.style.display = can_enable ? 'flex' : 'none';
     disable_btn.style.display = can_disable ? 'flex' : 'none';
+
+    if (advanced_toggle && advanced_container) {
+      advanced_toggle.onclick = (e) => {
+        e.preventDefault();
+        advanced_container.classList.toggle('collapsed');
+        advanced_toggle.setAttribute(
+          'aria-expanded',
+          advanced_container.classList.contains('collapsed') ? 'false' : 'true'
+        );
+      };
+    }
+
+    if (max_amount_btn && amount_input) {
+      max_amount_btn.onclick = (e) => {
+        e.preventDefault();
+        amount_input.value = String(this.nft.getTotalAmount() || 0);
+      };
+    }
 
     //
     // SEND NFT
@@ -301,36 +323,57 @@ class NFTOverlay {
 
         let rec_in = document.querySelector('#nft-receiver-address');
         let receiver = rec_in ? rec_in.value.trim() : '';
+        let is_advanced_open = advanced_container && !advanced_container.classList.contains('collapsed');
 
         if (!this.app.crypto.isPublicKey(receiver)) {
           salert('Receiver’s public key is not valid');
           return;
         }
 
-        let selected_shard = document.querySelector('.saito-nft-panel-send .selected-shard');
-        if (!selected_shard) {
-          salert('Please select which shard you want to send');
-          return;
-        } else {
-          let idx = parseInt(selected_shard.getAttribute('data-utxo-idx')) - 1;
-          this.nft.resetNFT(this.all_slips[idx]);
-        }
-
         try {
-          let newtx = await this.app.wallet.createSendNFTTransaction(this.nft, receiver);
+          let newtx = null;
+
+          if (is_advanced_open) {
+            let selected_shard = document.querySelector('.saito-nft-panel-send .selected-shard');
+            if (!selected_shard) {
+              salert('Please select which shard you want to send');
+              return;
+            } else {
+              let idx = parseInt(selected_shard.getAttribute('data-utxo-idx')) - 1;
+              this.nft.resetNFT(this.all_slips[idx]);
+            }
+            newtx = await this.app.wallet.createNFTShardTransaction(this.nft, receiver);
+          } else {
+            let amount_in = document.querySelector('#nft-send-amount');
+            let amount_raw = amount_in ? amount_in.value.trim() : '';
+            if (!amount_raw) {
+              salert('Please enter NFT amount');
+              return;
+            }
+            let amount = parseInt(amount_raw);
+            if (!Number.isInteger(amount) || amount <= 0) {
+              salert('Please enter a valid NFT amount');
+              return;
+            }
+            let tx_msg = JSON.parse(JSON.stringify(this.nft.txmsg || {}));
+            newtx = await this.app.wallet.createNFTTransaction(
+              this.nft,
+              receiver,
+              amount,
+              BigInt(0),
+              BigInt(0),
+              tx_msg
+            );
+          }
 
           let nft_type = this.nft?.nft_type;
-          console.log('about to go into looking for this nft-type: ' + nft_type);
-
           const handlers = this.app.modules.getRespondTos('saito-nft-transfer', this.nft);
 
           for (const modobj of handlers) {
             if (!modobj?.class || !modobj.class.includes(nft_type) || !nft_type) {
-              console.log('no class or incude type found... ');
               continue;
             }
             if (typeof modobj.onTransfer === 'function') {
-              console.log('running ontransfer...');
               try {
                 newtx = await modobj.onTransfer(this.nft, newtx, receiver);
               } catch (err) {
