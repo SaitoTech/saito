@@ -323,7 +323,8 @@ class NFTOverlay {
 
         let rec_in = document.querySelector('#nft-receiver-address');
         let receiver = rec_in ? rec_in.value.trim() : '';
-        let is_advanced_open = advanced_container && !advanced_container.classList.contains('collapsed');
+        let is_advanced_open =
+          advanced_container && !advanced_container.classList.contains('collapsed');
 
         if (!this.app.crypto.isPublicKey(receiver)) {
           salert('Receiver’s public key is not valid');
