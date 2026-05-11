@@ -460,9 +460,7 @@ export default class Wallet extends SaitoWallet {
 
         console.info(`[TRANSACTION - SENDING] - signing/encrypting transaction`);
         await this.app.wallet.signAndEncryptTransaction(newtx);
-        console.info(
-          `[TRANSACTION - SENDING] - transaction signed signature=${newtx.signature}`
-        );
+        console.info(`[TRANSACTION - SENDING] - transaction signed signature=${newtx.signature}`);
 
         console.info(`[TRANSACTION - SENDING] - propagating transaction to network`);
         await this.app.network.propagateTransaction(newtx);
