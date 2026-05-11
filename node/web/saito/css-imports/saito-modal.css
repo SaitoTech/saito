@@ -353,7 +353,8 @@ This alows for a header with a header with title to be added without extra CSS
   margin: 2rem;
 }
 
-#qr-share-link img {
+#qr-share-link img,
+#qr-share-link svg {
   height: auto;
   max-width: 24rem;
   width: 24vh;

@@ -21,7 +21,7 @@ html[data-theme='lite'] {
   --palette-surface-gradient:
     linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 82%, var(--saito-orange) 18%), var(--palette-bg));
   --palette-overlay-gradient:
-    linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 88%, var(--saito-orange) 12%), var(--palette-bg));
+    linear-gradient(145deg, var(--saito-overlay-panel-surface-low), var(--saito-overlay-panel-surface));
 
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
@@ -32,6 +32,8 @@ html[data-theme='lite'] {
   --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-border-color: var(--palette-outline);
   --border-color-general-dividers: var(--palette-outline-strong);
+  --saito-overlay-panel-surface-low: color-mix(in srgb, var(--saito-white) 88%, var(--saito-orange) 12%);
+  --saito-overlay-panel-surface: var(--palette-bg);
   --saito-overlay-panel-background: var(--palette-overlay-gradient);
   --saito-modal-background: var(--saito-overlay-panel-background);
   --saito-overlay-panel-border: color-mix(in srgb, var(--palette-outline-strong) 34%, transparent);

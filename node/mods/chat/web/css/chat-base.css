@@ -70,9 +70,15 @@
 	margin-left: 1%;
 }
 
-.text-input {
+.chat-main-container .text-input {
 	border-radius: var(--saito-border-radius);
-	box-shadow: 0 0 1px var(--saito-primary);
+	box-shadow: none;
+}
+
+.chat-main-container .text-input:focus,
+.chat-main-container .text-input:focus-within {
+	border-color: var(--saito-input-border-focus);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--saito-input-border-focus) 34%, transparent);
 }
 
 .chat-footer > i {

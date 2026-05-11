@@ -199,29 +199,86 @@
 }
 
 .tweet-tool-like-count.liked {
-  color: var(--saito-red);
+  color: var(--saito-primary);
 }
 
 .tweet-tool-like .heart-icon {
-  background: var(--saito-heart-animation);
   cursor: pointer;
   position: absolute;
-  width: 50px;
-  height: 50px;
-  background-size: cover;
+  width: 3.6rem;
+  height: 3.6rem;
+  color: var(--saito-primary);
+  display: grid;
+  place-items: center;
+  transform-origin: center;
 }
 
-.tweet-tool-like .heart-icon.liked {
-  animation: like-anim 0s steps(28) forwards;
+.tweet-tool-like .heart-icon::before {
+  content: '';
+  width: 1.9rem;
+  height: 1.9rem;
+  background: currentColor;
+  mask: url('/saito/lib/font-awesome-6/svgs/regular/heart.svg') center / contain no-repeat;
+  -webkit-mask: url('/saito/lib/font-awesome-6/svgs/regular/heart.svg') center / contain no-repeat;
+  transition:
+    mask 0.12s ease,
+    -webkit-mask 0.12s ease,
+    transform 0.16s ease,
+    filter 0.16s ease;
+}
+
+.tweet-tool-like .heart-icon.liked::before,
+.tweet-tool-like .heart-icon.likes::before {
+  mask-image: url('/saito/lib/font-awesome-6/svgs/solid/heart.svg');
+  -webkit-mask-image: url('/saito/lib/font-awesome-6/svgs/solid/heart.svg');
+  filter: drop-shadow(0 0 0.6rem color-mix(in srgb, var(--saito-primary) 36%, transparent));
 }
 
 .tweet-tool-like .heart-icon.likes {
-  animation: like-anim 1.2s steps(28) forwards;
+  animation: like-heart-pop 0.44s cubic-bezier(0.18, 0.9, 0.22, 1.18) forwards;
 }
 
-@keyframes like-anim {
-  to {
-    background-position: right;
+.tweet-tool-like .heart-icon.likes::after {
+  content: '';
+  position: absolute;
+  width: 0.38rem;
+  height: 0.38rem;
+  border-radius: 50%;
+  background: var(--saito-primary);
+  opacity: 0;
+  box-shadow:
+    0 -1.8rem 0 color-mix(in srgb, var(--saito-primary) 95%, transparent),
+    1.55rem -0.9rem 0 color-mix(in srgb, var(--saito-primary) 82%, transparent),
+    1.45rem 1rem 0 color-mix(in srgb, var(--saito-primary) 72%, transparent),
+    0 1.85rem 0 color-mix(in srgb, var(--saito-primary) 88%, transparent),
+    -1.45rem 1rem 0 color-mix(in srgb, var(--saito-primary) 72%, transparent),
+    -1.55rem -0.9rem 0 color-mix(in srgb, var(--saito-primary) 82%, transparent);
+  animation: like-heart-burst 0.48s ease-out forwards;
+}
+
+@keyframes like-heart-pop {
+  0% {
+    transform: scale(0.88);
+  }
+  45% {
+    transform: scale(1.24);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes like-heart-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  42% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.65);
   }
 }
 
@@ -237,7 +294,7 @@
 }
 
 .tweet-tool-like .heart-bg:hover {
-  background: color-mix(in srgb, var(--saito-red) 25%, transparent);
+  background: color-mix(in srgb, var(--saito-primary) 25%, transparent);
 }
 
 .tweet td {

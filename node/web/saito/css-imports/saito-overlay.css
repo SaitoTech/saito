@@ -65,19 +65,33 @@
 
 .saito-overlay-closebox {
   position: absolute;
-  width: 2.7rem;
-  height: 2.7rem;
-  border-radius: 50%;
+  width: 4.2rem;
+  height: 3.4rem;
+  border-radius: 0.8rem;
   z-index: 100;
-  top: -1.5rem;
-  right: -1.5rem;
-  background-color: var(--font-color-icon-close); /* testing */
-  transition: all 0.3s;
+  top: 1rem;
+  right: 1rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--saito-surface-inverse) 12%, transparent), transparent),
+    color-mix(in srgb, var(--saito-surface-color) 84%, var(--saito-primary));
+  border: 1px solid color-mix(in srgb, var(--saito-primary) 42%, var(--saito-overlay-panel-border));
+  box-shadow:
+    0 1.2rem 3rem color-mix(in srgb, var(--saito-black) 28%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--saito-white) 16%, transparent);
+  backdrop-filter: blur(10px);
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
   display: none;
+  cursor: pointer;
 }
 
 .saito-overlay > .saito-overlay-closebox {
-  box-shadow: unset;
+  box-shadow:
+    0 1.2rem 3rem color-mix(in srgb, var(--saito-black) 28%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--saito-white) 16%, transparent);
 }
 
 .maximized-overlay .saito-overlay-closebox {
@@ -88,24 +102,51 @@
 /* Close icon */
 
 .saito-overlay-closebox-btn {
-  cursor: pointer;
+  pointer-events: none;
   display: block;
-  height: 3rem;
-  width: 3rem;
-  color: var(--saito-primary);
-  background-color: var(--saito-primary-text);
-  font-size: 3.1rem;
-  border-radius: 50%;
+  height: 100%;
+  width: 100%;
+  color: transparent;
+  background-color: transparent;
+  font-size: 0;
+  border-radius: inherit;
   position: absolute;
-  top: 48%;
-  left: 48%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  transform: none;
+}
+
+.saito-overlay-closebox::before,
+.saito-overlay-closebox::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.45rem;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--saito-primary-text);
+  transform-origin: center;
+}
+
+.saito-overlay-closebox::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.saito-overlay-closebox::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .saito-overlay-closebox:hover {
-  transform: scale(1.1);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 18%, transparent), transparent),
+    var(--saito-primary);
+  border-color: var(--saito-primary);
+  box-shadow:
+    0 1.4rem 3.6rem color-mix(in srgb, var(--saito-black) 34%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--saito-primary) 24%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--saito-white) 24%, transparent);
+  transform: translateY(-1px);
   transform-origin: center;
-  transition: transform 0.2s ease-in-out;
 }
 
 .saito-app-overlay .saito-app-body .saito-app-upload {

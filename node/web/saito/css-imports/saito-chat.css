@@ -614,6 +614,17 @@
   padding: 1.3rem 0.5rem;
 }
 
+.chat-footer .saito-input .text-input:not(.post-tweet-textarea) {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.chat-footer .saito-input .text-input:not(.post-tweet-textarea):focus,
+.chat-footer .saito-input .text-input:not(.post-tweet-textarea):focus-within {
+  border-color: var(--saito-input-border-focus);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--saito-input-border-focus) 34%, transparent);
+}
+
 /* This is the submit paper airplane icon */
 
 .chat-footer > i {

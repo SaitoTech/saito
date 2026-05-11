@@ -29,7 +29,7 @@ html[data-theme='prism'] {
   --palette-surface-gradient:
     linear-gradient(180deg, rgba(32, 32, 46, 0.94), rgba(18, 18, 28, 0.94));
   --palette-overlay-gradient:
-    linear-gradient(180deg, rgba(32, 32, 46, 0.96), rgba(14, 14, 22, 0.98));
+    linear-gradient(145deg, var(--saito-overlay-panel-surface-low), var(--saito-overlay-panel-surface));
 
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
@@ -44,6 +44,8 @@ html[data-theme='prism'] {
   --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-surface-inverse-text: #0b0b10;
   --saito-overlay-panel-bg: var(--saito-surface-color);
+  --saito-overlay-panel-surface-low: rgba(32, 32, 46, 0.96);
+  --saito-overlay-panel-surface: rgba(14, 14, 22, 0.98);
   --saito-overlay-panel-background: var(--palette-overlay-gradient);
   --saito-overlay-panel-border: color-mix(in srgb, var(--palette-primary) 28%, var(--palette-outline));
   --saito-overlay-panel-border-highlight: rgba(129, 140, 248, 0.28);

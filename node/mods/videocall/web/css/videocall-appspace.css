@@ -101,9 +101,9 @@
 	padding: 3.2rem;
 	gap: 2.4rem;
 	border-radius: calc(var(--stun-noir-radius) + 0.15rem);
-	background: linear-gradient(145deg, var(--stun-noir-surface-low), var(--stun-noir-surface));
-	box-shadow: var(--stun-noir-shadow);
-	border: 1px solid var(--stun-noir-outline);
+	background: var(--saito-overlay-panel-background);
+	box-shadow: var(--saito-overlay-panel-shadow);
+	border: 1px solid var(--saito-overlay-panel-border);
 }
 
 .stunx-splash-image {
@@ -433,5 +433,4 @@ input:checked + .slider:before {
 		align-items: stretch;
 	}
 }
-
 

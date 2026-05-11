@@ -257,7 +257,8 @@
   .wallet-details .qrcode {
     height: 15rem;
   }
-  .wallet-details .qrcode img {
+  .wallet-details .qrcode img,
+  .wallet-details .qrcode svg {
     height: 15rem;
     width: 15rem;
   }

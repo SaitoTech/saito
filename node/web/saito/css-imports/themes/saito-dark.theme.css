@@ -11,13 +11,13 @@ html[data-theme='dark'] {
   --palette-outline: var(--saito-border-color-dark);
   --palette-outline-strong: var(--saito-gray-550);
   --palette-bg-gradient:
-    radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--saito-primary) 13%, transparent), transparent 34rem),
-    radial-gradient(circle at 90% 10%, color-mix(in srgb, var(--saito-secondary) 8%, transparent), transparent 36rem),
+    radial-gradient(circle at 24% 68%, color-mix(in srgb, var(--saito-primary) 8%, transparent), transparent 32rem),
+    radial-gradient(circle at 86% 34%, color-mix(in srgb, var(--saito-secondary) 4%, transparent), transparent 30rem),
     linear-gradient(180deg, color-mix(in srgb, var(--palette-bg) 82%, var(--saito-black)), var(--palette-bg));
   --palette-surface-gradient:
     linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 5%, var(--palette-bg)), color-mix(in srgb, var(--saito-black) 12%, var(--palette-bg)));
   --palette-overlay-gradient:
-    linear-gradient(180deg, color-mix(in srgb, var(--saito-white) 8%, var(--palette-bg)), color-mix(in srgb, var(--saito-black) 8%, var(--palette-bg)));
+    linear-gradient(145deg, var(--saito-overlay-panel-surface-low), var(--saito-overlay-panel-surface));
 
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
@@ -31,12 +31,13 @@ html[data-theme='dark'] {
   --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-surface-inverse-text: var(--saito-font-color-inverse);
   --saito-overlay-panel-bg: color-mix(in srgb, var(--saito-background-color) 92%, var(--saito-white));
+  --saito-overlay-panel-surface-low: #121316;
+  --saito-overlay-panel-surface: #181a1d;
   --saito-overlay-panel-background: var(--palette-overlay-gradient);
-  --saito-overlay-panel-border: color-mix(in srgb, var(--palette-outline-strong) 80%, transparent);
-  --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--saito-white) 12%, transparent);
+  --saito-overlay-panel-border: rgba(71, 72, 75, 0.35);
+  --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--saito-white) 8%, transparent);
   --saito-overlay-panel-shadow:
-    0 24px 70px color-mix(in srgb, var(--saito-black) 48%, transparent),
-    0 8px 24px color-mix(in srgb, var(--saito-black) 32%, transparent),
+    0 20px 40px rgba(0, 0, 0, 0.45),
     inset 0 1px 0 var(--saito-overlay-panel-border-highlight);
   --saito-modal-background: var(--saito-overlay-panel-background);
   --saito-modal-shadow: var(--saito-overlay-panel-shadow);
