@@ -3161,6 +3161,7 @@ mod tests {
     use crate::core::consensus::wallet::{Wallet, WALLET_NOT_UPDATED};
     use crate::core::defs::{ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO};
     use crate::core::storage::storage::Storage;
+    use crate::core::util::configuration::InitialLoadingStatus;
     use crate::core::util::crypto::{generate_keys, hash};
     use crate::core::util::test::node_tester::test::NodeTester;
     use crate::core::util::test::test_manager::test::{create_timestamp, TestManager};
