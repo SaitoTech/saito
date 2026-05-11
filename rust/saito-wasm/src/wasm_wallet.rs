@@ -497,6 +497,16 @@ impl WasmWallet {
         obj
     }
 
+    #[wasm_bindgen(js_name = getAvailableBalance)]
+    pub async fn get_available_balance(&self) -> Currency {
+        let wallet = self.wallet.read().await;
+        wallet.get_available_balance()
+    }
+    #[wasm_bindgen(js_name = getPendingBalance)]
+    pub async fn get_pending_balance(&self) -> Currency {
+        let wallet = self.wallet.read().await;
+        wallet.get_pending_balance()
+    }
     pub async fn get_balance(&self) -> Currency {
         let wallet = self.wallet.read().await;
         // info!("get balance : {:?}", wallet.get_available_balance());

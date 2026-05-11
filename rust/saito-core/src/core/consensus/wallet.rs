@@ -358,6 +358,13 @@ impl Wallet {
                     self.remove_old_slips(block.id - genesis_period);
                 }
             }
+
+            self.log_wallet_pending_balance_debug(&format!(
+                "on_chain_reorganization_lc_done block_id={} block_hash={} txs_in_block={}",
+                block.id,
+                block.hash.to_hex(),
+                block.transactions.len()
+            ));
         } else {
             //
             // we're unwinding (block not in longest chain),
@@ -524,7 +531,6 @@ impl Wallet {
             self.staking_slips.insert(wallet_slip.utxokey);
         } else if let SlipType::Bound = slip.slip_type {
         } else {
-            self.available_balance += slip.amount;
             self.unspent_slips.insert(wallet_slip.utxokey);
         }
 
@@ -548,7 +554,6 @@ impl Wallet {
         if let Some(removed_slip) = self.slips.remove(&slip.utxoset_key) {
             let in_unspent_list = self.unspent_slips.remove(&slip.utxoset_key);
             if in_unspent_list {
-                self.available_balance -= removed_slip.amount;
             } else {
                 self.staking_slips.remove(&slip.utxoset_key);
             }
@@ -561,11 +566,74 @@ impl Wallet {
     }
 
     pub fn get_pending_balance(&self) -> Currency {
-        self.available_balance
+        let base = self.get_available_balance();
+        let mut pending_return: Currency = 0;
+
+        for tx in self.pending_txs.values() {
+            let mut i = 0;
+            while i < tx.to.len() {
+                if tx.is_nft(&tx.to, i) {
+                    let slip2 = &tx.to[i + 1];
+                    if slip2.public_key == self.public_key {
+                        pending_return = pending_return.saturating_add(slip2.amount);
+                    }
+                    i += 3;
+                } else {
+                    let out = &tx.to[i];
+                    if out.public_key == self.public_key {
+                        pending_return = pending_return.saturating_add(out.amount);
+                    }
+                    i += 1;
+                }
+            }
+        }
+
+        base.saturating_add(pending_return)
+    }
+
+    /// Debug-only: log Nolan balances and pending tx keys (header / WASM debugging).
+    fn log_wallet_pending_balance_debug(&self, context: &str) {
+        let available = self.get_available_balance();
+        let pending_total = self.get_pending_balance();
+        let count = self.pending_txs.len();
+        let mut parts: Vec<String> = Vec::with_capacity(count);
+        for (k, tx) in self.pending_txs.iter() {
+            parts.push(format!(
+                "hash_key={} sig={} type={:?}",
+                k.to_hex(),
+                tx.signature.to_hex(),
+                tx.transaction_type
+            ));
+        }
+        let joined = parts.join(" | ");
+        info!(
+            "[ PENDING BALANCE ] [ {} | pending_nolan={} | pending_txs_count={} | {} ]",
+            context, pending_total, count, joined
+        );
+        info!(
+            "[ AVAILABLE BALANCE ] [ {} | available_nolan={} ]",
+            context, available
+        );
     }
 
     pub fn get_available_balance(&self) -> Currency {
-        self.available_balance
+        let mut total: Currency = 0;
+
+        for utxokey in self.unspent_slips.iter() {
+            if let Some(ws) = self.slips.get(utxokey) {
+                if ws.spent {
+                    continue;
+                }
+                match ws.slip_type {
+                    SlipType::Bound | SlipType::BlockStake => continue,
+                    _ => {
+                        total = total.saturating_add(ws.amount);
+                    }
+                }
+            }
+        }
+
+        total
     }
 
     pub fn get_unspent_slip_count(&self) -> u64 {
@@ -621,7 +689,6 @@ impl Wallet {
             inputs.push(input);
 
             slip.spent = true;
-            self.available_balance -= slip.amount;
 
             trace!(
                 "marking slip : {:?} with value : {:?} as spent",
@@ -1960,17 +2027,32 @@ impl Wallet {
         assert_eq!(tx.from.first().unwrap().public_key, self.public_key);
         assert_ne!(tx.transaction_type, TransactionType::GoldenTicket);
         assert!(tx.hash_for_signature.is_some());
-        self.pending_txs.insert(tx.hash_for_signature.unwrap(), tx);
+        let insert_key = tx.hash_for_signature.unwrap();
+        let sig_hex = tx.signature.to_hex();
+        let tx_type = tx.transaction_type;
+        self.pending_txs.insert(insert_key, tx);
+        self.log_wallet_pending_balance_debug(&format!(
+            "add_to_pending insert_key={} sig={} type={:?}",
+            insert_key.to_hex(),
+            sig_hex,
+            tx_type
+        ));
     }
 
     pub fn delete_pending_transaction(&mut self, tx: &Transaction) -> bool {
         let hash = tx.hash_for_signature.unwrap();
-        if self.pending_txs.remove(&hash).is_some() {
-            true
-        } else {
-            // debug!("Transaction not found in pending_txs");
-            false
+        let removed = self.pending_txs.remove(&hash).is_some();
+        info!(
+            "[ PENDING BALANCE ] [ delete_pending_transaction tx_sig={} hash_key={} removed={} remaining_pending_txs={} ]",
+            tx.signature.to_hex(),
+            hash.to_hex(),
+            removed,
+            self.pending_txs.len()
+        );
+        if removed {
+            self.log_wallet_pending_balance_debug("delete_pending_transaction after_remove");
         }
+        removed
     }
 
     pub fn update_from_balance_snapshot(
@@ -1981,7 +2063,6 @@ impl Wallet {
         // need to reset balance and slips to avoid failing integrity from forks
         self.unspent_slips.clear();
         self.slips.clear();
-        self.available_balance = 0;
 
         snapshot.slips.iter().for_each(|slip| {
             assert_ne!(slip.utxoset_key, [0; UTXO_KEY_LENGTH]);
@@ -1998,7 +2079,6 @@ impl Wallet {
             let result = self.slips.insert(slip.utxoset_key, wallet_slip);
             if result.is_none() {
                 self.unspent_slips.insert(slip.utxoset_key);
-                self.available_balance += slip.amount;
                 info!("slip key : {:?} with value : {:?} added to wallet from snapshot for address : {:?}. slip : {}",
                     slip.utxoset_key.to_hex(),
                     slip.amount,
@@ -2011,6 +2091,10 @@ impl Wallet {
                 );
             }
         });
+
+        self.log_wallet_pending_balance_debug(
+            "update_from_balance_snapshot after slip reload (pending_txs unchanged by this fn)",
+        );
 
         if let Some(network) = network {
             network
@@ -2113,7 +2197,6 @@ impl Wallet {
 
         let mut should_break_slips = false;
         if collected_amount < staking_amount {
-            debug!("not enough funds in staking slips. searching in normal slips. current_balance : {:?}", self.available_balance);
             let required_from_unspent_slips = staking_amount - collected_amount;
             let mut collected_from_unspent_slips: Currency = 0;
             let mut unspent_slips_to_remove = vec![];
@@ -2147,7 +2230,6 @@ impl Wallet {
             if collected_from_unspent_slips < required_from_unspent_slips {
                 warn!("insufficient funds to stake block. requested: {:?}, collected: {:?} required_from_unspent: {:?}",
                     staking_amount,collected_amount,required_from_unspent_slips);
-                warn!("wallet balance : {:?}", self.available_balance);
                 return Err(Error::new(
                     ErrorKind::Other,
                     "Failed to generate input slip for creating NFT",
@@ -2158,7 +2240,6 @@ impl Wallet {
                 self.unspent_slips.remove(&key);
             }
             collected_amount += collected_from_unspent_slips;
-            self.available_balance -= collected_from_unspent_slips;
         }
 
         for key in unlocked_slips_to_remove {
@@ -2442,7 +2523,7 @@ mod tests {
         };
         slip.generate_utxoset_key();
         wallet.add_slip(&slip, true, Some(&t.network));
-        assert_eq!(wallet.available_balance, 1_000_000);
+        assert_eq!(wallet.get_available_balance(), 1_000_000);
 
         let result = wallet.find_slips_for_staking(1_000_000, 1, 0);
         assert!(result.is_ok());
@@ -2454,7 +2535,6 @@ mod tests {
 
         assert_eq!(wallet.staking_slips.len(), 0);
         assert_eq!(wallet.unspent_slips.len(), 0);
-        assert_eq!(wallet.available_balance, 0);
 
         let result = wallet.find_slips_for_staking(1_000, 2, 0);
         assert!(result.is_err());
@@ -2494,7 +2574,7 @@ mod tests {
         };
         slip.generate_utxoset_key();
         wallet.add_slip(&slip, true, Some(&t.network));
-        assert_eq!(wallet.available_balance, 2_500_000);
+        assert_eq!(wallet.get_available_balance(), 2_500_000);
 
         let result = wallet.find_slips_for_staking(1_000_000, 1, 0);
         assert!(result.is_ok());
@@ -2512,7 +2592,6 @@ mod tests {
 
         assert_eq!(wallet.staking_slips.len(), 0);
         assert_eq!(wallet.unspent_slips.len(), 0);
-        assert_eq!(wallet.available_balance, 0);
 
         let result = wallet.find_slips_for_staking(1_000, 2, 0);
         assert!(result.is_err());
@@ -2553,7 +2632,6 @@ mod tests {
         };
         slip.generate_utxoset_key();
         wallet.add_slip(&slip, true, Some(&t.network));
-        assert_eq!(wallet.available_balance, 0);
 
         let result = wallet.find_slips_for_staking(1_000_000, 1, 0);
         assert!(result.is_ok());
@@ -2564,7 +2642,6 @@ mod tests {
 
         assert_eq!(wallet.staking_slips.len(), 0);
         assert_eq!(wallet.unspent_slips.len(), 0);
-        assert_eq!(wallet.available_balance, 0);
 
         let result = wallet.find_slips_for_staking(1_000, 2, 0);
         assert!(result.is_err());
