@@ -141,6 +141,7 @@ pub struct Blockchain {
     #[serde(with = "crate::core::defs::saito_hash_serde")]
     pub lowest_acceptable_block_hash: SaitoHash,
     pub lowest_acceptable_block_id: u64,
+    pub sync_fetch_floor_block_id: u64,
 
     pub social_stake_requirement: Currency,
     pub social_stake_period: u64,
@@ -184,6 +185,7 @@ impl Blockchain {
             lowest_acceptable_timestamp: 0,
             lowest_acceptable_block_hash: [0; 32],
             lowest_acceptable_block_id: 0,
+            sync_fetch_floor_block_id: 0,
             // blocks_fetching: Default::default(),
             social_stake_requirement: social_stake,
             social_stake_period,
@@ -300,10 +302,12 @@ impl Blockchain {
                 let previous_block_fetched = iterate!(mempool.blocks_queue, 100)
                     .any(|b| block.previous_block_hash == b.hash);
                 let genesis_period = configs.get_consensus_config().unwrap().genesis_period;
+                let minimum_parent_fetch_block_id =
+                    max(1, self.get_latest_block_id().saturating_sub(genesis_period))
+                        .max(self.sync_fetch_floor_block_id);
 
                 return if !previous_block_fetched {
-                    if block.id > max(1, self.get_latest_block_id().saturating_sub(genesis_period))
-                    {
+                    if block.id.saturating_sub(1) >= minimum_parent_fetch_block_id {
                         // let block_diff_before_fetching_chain: BlockId =
                         //     std::cmp::min(1000, genesis_period);
                         // if block.id.abs_diff(self.get_latest_block_id())
@@ -322,10 +326,13 @@ impl Blockchain {
                         //     AddBlockResult::FailedButRetry(block, false, false)
                         // }
                     } else {
-                        debug!(
-                            "block : {:?}-{:?} is too old to be added to the blockchain",
+                        warn!(
+                            "block : {:?}-{:?} is missing parent {:?}, but requesting {:?} would go below the current fetch floor {:?}",
                             block.id,
-                            block.hash.to_hex()
+                            block.hash.to_hex(),
+                            block.previous_block_hash.to_hex(),
+                            block.id.saturating_sub(1),
+                            minimum_parent_fetch_block_id
                         );
                         AddBlockResult::FailedNotValid
                     }
@@ -712,6 +719,7 @@ impl Blockchain {
 
                 if writing_interval > 0
                     && block_id >= self.last_issuance_written_on + writing_interval
+                    && in_longest_chain
                 {
                     debug!("writing interval : {:?} last issuance written on : {:?}, writing for current block : {}", writing_interval, self.last_issuance_written_on, block_id);
                     self.write_issuance_file(0, "", storage).await;
@@ -2758,6 +2766,7 @@ impl Blockchain {
         self.lowest_acceptable_block_id = 0;
         self.lowest_acceptable_timestamp = 0;
         self.lowest_acceptable_block_hash = [0; 32];
+        self.sync_fetch_floor_block_id = 0;
         self.fork_id = Some([0; 32]);
         self.save().await;
     }
@@ -3152,9 +3161,10 @@ mod tests {
     use crate::core::consensus::wallet::{Wallet, WALLET_NOT_UPDATED};
     use crate::core::defs::{ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO};
     use crate::core::storage::storage::Storage;
+    use crate::core::util::configuration::InitialLoadingStatus;
     use crate::core::util::crypto::{generate_keys, hash};
     use crate::core::util::test::node_tester::test::NodeTester;
-    use crate::core::util::test::test_manager::test::TestManager;
+    use crate::core::util::test::test_manager::test::{create_timestamp, TestManager};
     use ahash::HashMap;
     use log::{debug, error, info};
     use std::fs;
@@ -3186,6 +3196,85 @@ mod tests {
 
         assert_eq!(blockchain.fork_id, None);
         assert_eq!(blockchain.genesis_block_id, 0);
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn add_block_requests_missing_parent_within_sync_fetch_floor() {
+        let mut t = TestManager::default();
+        t.initialize(100, 1_000_000_000).await;
+
+        {
+            let mut configs = t.config_lock.write().await;
+            configs.get_blockchain_configs_mut().initial_loading_status =
+                InitialLoadingStatus::Completed;
+        }
+
+        let latest_hash = t.get_latest_block_hash().await;
+        let mut block = t
+            .create_block(latest_hash, create_timestamp() + 1, 0, 0, 0, false)
+            .await;
+        block.previous_block_hash = [7; 32];
+
+        let result = {
+            let mut blockchain = t.blockchain_lock.write().await;
+            blockchain.sync_fetch_floor_block_id = block.id.saturating_sub(1);
+            let mut mempool = t.mempool_lock.write().await;
+            let mut configs = t.config_lock.write().await;
+
+            blockchain
+                .add_block(
+                    block,
+                    &mut t.storage,
+                    &mut mempool,
+                    &mut *configs,
+                    Some(&t.network),
+                )
+                .await
+        };
+
+        assert!(matches!(
+            result,
+            AddBlockResult::FailedButRetry(_, true, false)
+        ));
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn add_block_does_not_request_parent_below_sync_fetch_floor() {
+        let mut t = TestManager::default();
+        t.initialize(100, 1_000_000_000).await;
+
+        {
+            let mut configs = t.config_lock.write().await;
+            configs.get_blockchain_configs_mut().initial_loading_status =
+                InitialLoadingStatus::Completed;
+        }
+
+        let latest_hash = t.get_latest_block_hash().await;
+        let mut block = t
+            .create_block(latest_hash, create_timestamp() + 1, 0, 0, 0, false)
+            .await;
+        block.previous_block_hash = [9; 32];
+
+        let result = {
+            let mut blockchain = t.blockchain_lock.write().await;
+            blockchain.sync_fetch_floor_block_id = block.id;
+            let mut mempool = t.mempool_lock.write().await;
+            let mut configs = t.config_lock.write().await;
+
+            blockchain
+                .add_block(
+                    block,
+                    &mut t.storage,
+                    &mut mempool,
+                    &mut *configs,
+                    Some(&t.network),
+                )
+                .await
+        };
+
+        assert!(matches!(result, AddBlockResult::FailedNotValid));
     }
 
     #[test]

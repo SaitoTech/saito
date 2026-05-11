@@ -111,15 +111,10 @@
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true,
     /* Skip type checking all .d.ts files. */
-//    "lib": [
-////      "es2020.full",
-////      "es2021.weakref"
-//    ]
-    "lib": [
-      "es2022",
-      "dom",
-      "dom.iterable",
-      "webworker"
-    ]
+    //    "lib": [
+    ////      "es2020.full",
+    ////      "es2021.weakref"
+    //    ]
+    "lib": ["es2022", "dom", "dom.iterable", "webworker"]
   }
 }

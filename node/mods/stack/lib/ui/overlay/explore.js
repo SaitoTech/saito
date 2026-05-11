@@ -425,14 +425,14 @@ class ExploreOverlay {
               This post could not be loaded or is no longer available.
             </p>
             ${
-              txSignature
-                ? `
+  txSignature
+    ? `
               <p style="font-size: 1.4rem; color: var(--saito-font-color-light); margin: 1.5rem 0 0 0; opacity: 0.7; font-family: monospace; word-break: break-all;">
                 ${txSignature.substring(0, 32)}...
               </p>
             `
-                : ''
-            }
+    : ''
+}
           </div>
         `;
         container.innerHTML = errorHtml;
