@@ -109,6 +109,29 @@ class Mods {
     }
   }
 
+  async handlePeerTransactionBuffer(
+    buffer: Uint8Array,
+    peer: Peer,
+    mycallback: (any) => Promise<void> = null
+  ) {
+    let tx = new Transaction();
+
+    try {
+      tx.deserialize(buffer);
+      tx.unpackData();
+      // console.debug("processing peer tx : ", tx.msg);
+    } catch (error) {
+      console.error(error);
+
+      //
+      // preserve previous fallback behavior for opaque payloads
+      //
+      tx.msg = buffer;
+    }
+
+    return this.handlePeerTransaction(tx, peer, mycallback);
+  }
+
   async handlePeerTransaction(
     tx: Transaction,
     peer: Peer,
@@ -154,7 +177,7 @@ class Mods {
     if (have_responded == false) {
       if (mycallback) {
         //
-        // callback is defined in apps/lite/index.ts
+        // callback is defined in apps/browser/index.ts
         // it runs sendApiSuccess() with the response object
         //
         mycallback({ err: 'no response' });
@@ -388,46 +411,70 @@ class Mods {
 
     const onPeerHandshakeComplete = this.onPeerHandshakeComplete.bind(this);
     const onStunPeerDisconnected = this.onStunPeerDisconnected.bind(this);
-    // include events here
-    this.app.connection.on('handshake_complete', async (publicKey: string) => {
-      if (this.app.BROWSER) {
-        // broadcasts my keylist to other peers
-        await this.app.wallet.setKeyList(this.app.keychain.returnWatchedPublicKeys());
+
+    this.app.connection.on(
+      'on_peer_handshake_complete',
+      async (peer_id: bigint, publicKey: string) => {
+        console.log('###');
+        console.log('### OPHC');
+        console.log('###');
+        if (this.app.BROWSER) {
+          await this.app.wallet.setKeyList(this.app.keychain.returnWatchedPublicKeys());
+        }
+        let peer = await this.app.network.getPeerByPeerId(peer_id);
+        if (this.app.BROWSER == 0) {
+          let data = `{"build_number": "${this.app.build_number}"}`;
+          console.info(data);
+          this.app.network.sendRequest('software-update', data, null, peer);
+        }
+        console.log('handshake complete : ', publicKey);
+        await this.onPeerHandshakeComplete(peer, peer_id);
       }
-      // await this.app.network.propagateServices(peerIndex);
-      let peer = await this.app.network.getPeer(publicKey);
-      if (this.app.BROWSER == 0) {
-        let data = `{"build_number": "${this.app.build_number}"}`;
-        console.info(data);
-        this.app.network.sendRequest('software-update', data, null, peer);
-      }
-      console.log('handshake complete : ', publicKey);
-      await onPeerHandshakeComplete(peer);
+    );
+    this.app.connection.on('on_peer_services_up', async (peer_id: bigint, publicKey: string) => {
+      console.log('###');
+      console.log('### OPSU');
+      console.log('###');
+      let peer = await this.app.network.getPeerByPeerId(peer_id);
+      await this.onPeerServicesUp(peer);
+    });
+    this.app.connection.on('stun peer connect', async (peer_id: bigint, publicKey: string) => {
+      let peer = await this.app.network.getPeerByPeerId(peer_id);
+      await onPeerHandshakeComplete(peer, peer_id);
     });
 
-    this.app.connection.on('stun peer connect', async (publicKey: string) => {
-      let peer = await this.app.network.getPeer(publicKey);
-      await onPeerHandshakeComplete(peer);
-    });
-
-    this.app.connection.on('stun peer disconnect', async (publicKey) => {
+    this.app.connection.on('stun peer disconnect', async (peer_id, publicKey) => {
       await onStunPeerDisconnected(publicKey);
       console.log('peer handshake completed for peer', publicKey);
     });
 
     const onConnectionUnstable = this.onConnectionUnstable.bind(this);
-    this.app.connection.on('peer_disconnect', async (public_key: string) => {
+    this.app.connection.on('peer_disconnect', async (peer_id: bigint, public_key: string) => {
       console.log('connection dropped -- triggering on connection unstable. key : ', public_key);
       this.onConnectionUnstable(public_key);
     });
 
-    this.app.connection.on('peer_connect', async (publicKey: string) => {
+    this.app.connection.on('peer_connect', async (peer_id: bigint, publicKey: string) => {
       console.log('peer_connect received for : ' + publicKey);
-      let peer = await this.app.network.getPeer(publicKey);
+      let peer = await this.app.network.getPeerByPeerId(peer_id);
       this.onConnectionStable(peer);
     });
 
     this.is_initialized = true;
+
+    //
+    // any peers that connected / handshoke / serviced us before the above
+    // events were attached would not have run their handshake or services
+    // code, so we manually double-check here.
+    //
+    for (const peer of await this.app.network.getPeers()) {
+      if (peer?.publicKey) {
+        await this.onPeerHandshakeComplete(peer, peer.id);
+      }
+      if (peer?.services?.length) {
+        await this.onPeerServicesUp(peer);
+      }
+    }
 
     //
     // we load the NFTs from the wallet now, since they have modules to
@@ -666,26 +713,50 @@ class Mods {
     return null;
   }
 
-  async onPeerHandshakeComplete(peer: Peer) {
+  async onPeerHandshakeComplete(peer: Peer, peer_id?: bigint) {
+    const publicKey = peer?.publicKey;
+    if (publicKey) {
+      try {
+        const SaitoRuntime = require('saito-js/saito').default;
+        const runtime = SaitoRuntime?.getInstance?.();
+        if (runtime?.peers && runtime?.peersByPeerId) {
+          let networkPeer = null;
+          if (peer_id !== undefined && peer_id !== null) {
+            networkPeer = runtime.peersByPeerId.get(peer_id);
+          }
+          if (!networkPeer && runtime.peers.has(publicKey)) {
+            networkPeer = runtime.peers.get(publicKey);
+          }
+          if (!networkPeer) {
+            for (const candidate of runtime.peersByPeerId.values()) {
+              if (candidate?.publicKey === publicKey) {
+                networkPeer = candidate;
+                break;
+              }
+            }
+          }
+          if (networkPeer) {
+            networkPeer._publicKey = publicKey;
+            runtime.peers.set(publicKey, networkPeer);
+          }
+        }
+      } catch (err) {}
+    }
     //
     // all modules learn about the peer connecting
     //
     for (let i = 0; i < this.mods.length; i++) {
       await this.mods[i].onPeerHandshakeComplete(this.app, peer);
     }
-    //
-    // then they learn about any services now-available
-    //
-    if (peer.services) {
-      for (let i = 0; i < peer.services.length; i++) {
-        await this.onPeerServiceUp(peer, peer.services[i]);
-      }
-    }
   }
 
-  async onPeerServiceUp(peer, service) {
-    for (let i = 0; i < this.mods.length; i++) {
-      await this.mods[i].onPeerServiceUp(this.app, peer, service);
+  async onPeerServicesUp(peer: Peer) {
+    if (peer.services) {
+      for (let i = 0; i < peer.services.length; i++) {
+        for (let j = 0; j < this.mods.length; j++) {
+          await this.mods[j].onPeerServiceUp(this.app, peer, peer.services[i]);
+        }
+      }
     }
   }
 

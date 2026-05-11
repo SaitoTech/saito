@@ -1,4 +1,4 @@
-// import { Saito } from "../../apps/core";
+// import { Saito } from "../../apps/export";
 //
 // import NetworkAPI from "./networkapi";
 // import Crypto from "./crypto";
@@ -6,7 +6,6 @@
 // import Wallet from "./wallet";
 // import Slip from "./slip";
 // import { SLIP_SIZE } from "./transaction";
-// import hashLoader from "../../apps/core/hash-loader";
 //
 // test("slip serialize deserialze", async () => {
 //   // eslint-disable-next-line @typescript-eslint/ban-ts-comment

@@ -5,14 +5,14 @@ pub mod test {
     use std::path::Path;
 
     use async_trait::async_trait;
-    use log::{debug, info, trace};
+    use log::{info, trace};
     use tokio::fs::File;
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::{BlockId, SaitoHash, SaitoPublicKey, BLOCK_FILE_EXTENSION};
-    use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-    use crate::core::routing::peers::peer_service::PeerService;
+    use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
+    use crate::core::network::service::Service;
 
     #[derive(Clone, Debug)]
     pub struct TestIOHandler {}
@@ -25,6 +25,14 @@ pub mod test {
 
     #[async_trait]
     impl InterfaceIO for TestIOHandler {
+        async fn send_message_by_peer_id(
+            &self,
+            _peer_id: u64,
+            _buffer: &[u8],
+        ) -> Result<(), Error> {
+            Ok(())
+        }
+
         async fn send_message(
             &self,
             _public_key: SaitoPublicKey,
@@ -38,7 +46,7 @@ pub mod test {
         async fn send_message_to_all(
             &self,
             _buffer: &[u8],
-            _peer_exceptions: Vec<SaitoPublicKey>,
+            _peer_exceptions: Vec<u64>,
         ) -> Result<(), Error> {
             // debug!("send message to all");
 
@@ -49,18 +57,18 @@ pub mod test {
             Ok(())
         }
 
-        async fn disconnect_from_peer(&self, _public_key: SaitoPublicKey) -> Result<(), Error> {
-            todo!("")
+        async fn disconnect_from_peer(&self, _peer_id: u64) -> Result<(), Error> {
+            Ok(())
         }
 
         async fn fetch_block_from_peer(
             &self,
             _block_hash: SaitoHash,
-            _public_key: SaitoPublicKey,
+            _peer_id: u64,
             _url: &str,
             _block_id: BlockId,
         ) -> Result<(), Error> {
-            todo!()
+            Ok(())
         }
 
         async fn write_value(&self, key: &str, value: &[u8]) -> Result<(), Error> {
@@ -161,7 +169,7 @@ pub mod test {
             _msg_index: u32,
             _public_key: SaitoPublicKey,
         ) {
-            todo!()
+            // no-op for tests
         }
 
         async fn process_api_success(
@@ -170,7 +178,7 @@ pub mod test {
             _msg_index: u32,
             _public_key: SaitoPublicKey,
         ) {
-            todo!()
+            // no-op for tests
         }
 
         async fn process_api_error(
@@ -179,7 +187,7 @@ pub mod test {
             _msg_index: u32,
             _public_key: SaitoPublicKey,
         ) {
-            todo!()
+            // no-op for tests
         }
 
         fn send_interface_event(&self, _event: InterfaceEvent) {}
@@ -199,8 +207,8 @@ pub mod test {
         //     todo!()
         // }
 
-        fn get_my_services(&self) -> Vec<PeerService> {
-            todo!()
+        fn get_my_services(&self) -> Vec<Service> {
+            vec![]
         }
     }
 }

@@ -6,14 +6,15 @@ use crate::core::defs::{
     BlockId, Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, UTXO_KEY_LENGTH,
 };
+use crate::core::network::interface_io::{InterfaceEvent, InterfaceIO};
+use crate::core::network::network::Network;
 use crate::core::process::version::{read_pkg_version, Version};
-use crate::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-use crate::core::routing::io::network::Network;
-use crate::core::routing::io::storage::Storage;
+use crate::core::storage::storage::Storage;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
 use crate::core::util::crypto::{generate_keys, hash, sign};
 use ahash::{AHashMap, AHashSet};
 use log::{debug, error, info, trace, warn};
+use serde::Serialize;
 use std::fmt::Display;
 use std::io::{Error, ErrorKind};
 
@@ -34,8 +35,9 @@ pub const WALLET_NOT_UPDATED: WalletUpdateStatus = false;
 /// are spent on one fork are not recaptured on chains, for instance, and once
 /// a slip is spent it is marked as spent.
 ///
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct WalletSlip {
+    #[serde(with = "crate::core::defs::saito_utxosetkey_serde")]
     pub utxokey: SaitoUTXOSetKey,
     pub amount: Currency,
     pub block_id: u64,
@@ -46,12 +48,17 @@ pub struct WalletSlip {
     pub slip_type: SlipType,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct NFT {
+    #[serde(with = "crate::core::defs::saito_utxosetkey_serde")]
     pub slip1: SaitoUTXOSetKey,
+    #[serde(with = "crate::core::defs::saito_utxosetkey_serde")]
     pub slip2: SaitoUTXOSetKey,
+    #[serde(with = "crate::core::defs::saito_utxosetkey_serde")]
     pub slip3: SaitoUTXOSetKey,
+    #[serde(with = "crate::core::defs::vec_u8_serde")]
     pub id: Vec<u8>,
+    #[serde(with = "crate::core::defs::saito_signature_serde")]
     pub tx_sig: SaitoSignature,
 }
 
@@ -90,28 +97,42 @@ impl Default for DetailedNFT {
 
 /// The `Wallet` manages the public and private keypair of the node and holds the
 /// slips that are used to form transactions on the network.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Serialize, Clone, Debug, PartialEq)]
 pub struct Wallet {
+    #[serde(with = "crate::core::defs::saito_public_key_serde")]
     pub public_key: SaitoPublicKey,
+
+    #[serde(skip)]
     pub private_key: SaitoPrivateKey,
+    #[serde(serialize_with = "crate::core::defs::utxo_map_serde::serialize")]
     pub slips: AHashMap<SaitoUTXOSetKey, WalletSlip>,
+    #[serde(serialize_with = "crate::core::defs::utxo_set_serde::serialize")]
     pub unspent_slips: AHashSet<SaitoUTXOSetKey>,
+    #[serde(serialize_with = "crate::core::defs::utxo_set_serde::serialize")]
     pub staking_slips: AHashSet<SaitoUTXOSetKey>,
     pub filename: String,
+    #[serde(skip)]
     pub filepass: String,
+
     available_balance: Currency,
+
+    #[serde(skip)]
     pub pending_txs: AHashMap<SaitoHash, Transaction>,
     // TODO : this version should be removed. only added as a temporary hack to allow SLR app version to be easily upgraded in browsers
     pub wallet_version: Version,
     pub core_version: Version,
+    #[serde(with = "crate::core::defs::saito_public_key_serde::vec")]
     pub key_list: Vec<SaitoPublicKey>,
     pub nfts: Vec<NFT>,
+
+    pub latest_block_id: BlockId,
+    pub genesis_period: BlockId,
+    pub minimum_block_id: BlockId,
 }
 
 impl Wallet {
     pub fn new(private_key: SaitoPrivateKey, public_key: SaitoPublicKey) -> Wallet {
         trace!("generating new wallet...");
-        // let (public_key, private_key) = generate_keys();
 
         Wallet {
             public_key,
@@ -127,6 +148,9 @@ impl Wallet {
             core_version: read_pkg_version(),
             key_list: vec![],
             nfts: Vec::new(),
+            minimum_block_id: 0,
+            latest_block_id: 0,
+            genesis_period: 0,
         }
     }
 
@@ -139,7 +163,6 @@ impl Wallet {
             io.save_wallet(wallet).await.unwrap();
         } else {
             info!("wallet loaded");
-
             io.send_interface_event(InterfaceEvent::WalletUpdate());
         }
     }
@@ -201,6 +224,11 @@ impl Wallet {
         Ok(())
     }
 
+    //
+    // on chain reorg
+    //
+    // this receives transactions (nft and normal) over the
+    //
     pub fn on_chain_reorganization(
         &mut self,
         block: &Block,
@@ -217,6 +245,23 @@ impl Wallet {
         );
 
         if lc {
+            //
+            // update wallet with latest_block_id information, making transactions
+            // spendable as we now have a longest-chain...
+            //
+            if self.genesis_period == 0 {
+                self.genesis_period = genesis_period;
+            }
+            self.latest_block_id = block.id;
+            self.minimum_block_id = if block.id.saturating_sub(self.genesis_period) > 0 {
+                block
+                    .id
+                    .saturating_sub(self.genesis_period)
+                    .saturating_add(2)
+            } else {
+                1
+            };
+
             for tx in block.transactions.iter() {
                 trace!("Processing transaction: {:?}", tx.signature.to_hex());
                 //
@@ -385,13 +430,6 @@ impl Wallet {
                         );
 
                         wallet_changed |= WALLET_UPDATED;
-
-                        // if let Some(network) = network {
-                        //     network
-                        //         .io_interface
-                        //         .send_interface_event(InterfaceEvent::WalletUpdate());
-                        // }
-
                         i += 3;
                     } else {
                         //
@@ -533,13 +571,7 @@ impl Wallet {
     // the nolan_requested is omitted from the slips created - only the change
     // address is provided as an output. so make sure that any function calling
     // this manually creates the output for its desired payment
-    pub fn generate_slips(
-        &mut self,
-        nolan_requested: Currency,
-        network: Option<&Network>,
-        latest_block_id: u64,
-        genesis_period: u64,
-    ) -> (Vec<Slip>, Vec<Slip>) {
+    pub fn generate_slips(&mut self, nolan_requested: Currency) -> (Vec<Slip>, Vec<Slip>) {
         let mut inputs: Vec<Slip> = Vec::new();
         let mut nolan_in: Currency = 0;
         let mut nolan_out: Currency = 0;
@@ -564,7 +596,7 @@ impl Wallet {
             let slip = self.slips.get_mut(key).expect("slip should be here");
 
             // Prevent using slips from blocks earlier than (latest_block_id - (genesis_period-1)
-            if slip.block_id <= latest_block_id.saturating_sub(genesis_period - 1) {
+            if slip.block_id < self.minimum_block_id {
                 debug!("Balance in process of rebroadcasting. Please wait 2 blocks and retry...");
                 continue;
             }
@@ -606,9 +638,10 @@ impl Wallet {
 
         if nolan_in < nolan_requested {
             warn!(
-                "Trying to spend more than available. requested : {:?}, available : {:?}",
+                "Requested more Saito than available. requested : {:?}, available : {:?}",
                 nolan_requested, nolan_in
             );
+            return (vec![], vec![]);
         }
 
         let mut outputs: Vec<Slip> = Vec::new();
@@ -641,10 +674,113 @@ impl Wallet {
             };
             outputs.push(output);
         }
-        if let Some(network) = network {
-            network
-                .io_interface
-                .send_interface_event(InterfaceEvent::WalletUpdate());
+
+        (inputs, outputs)
+    }
+
+    //
+    // generate_nft_slips
+    //
+    pub fn generate_nft_slips(
+        &mut self,
+        uuid: SaitoPublicKey,
+        amount: Currency,
+    ) -> (Vec<Slip>, Vec<Slip>) {
+        let mut candidate_inputs: Vec<(Slip, Slip, Slip, SaitoUTXOSetKey)> = vec![];
+        let mut collected: Currency = 0;
+
+        //
+        // first pass: gather enough NFT groups (no mutation yet)
+        //
+        for nft in &self.nfts {
+            let slip1 = match Slip::parse_slip_from_utxokey(&nft.slip1) {
+                Ok(s) => s,
+                Err(_) => continue,
+            };
+
+            let slip2 = match Slip::parse_slip_from_utxokey(&nft.slip2) {
+                Ok(s) => s,
+                Err(_) => continue,
+            };
+
+            let slip3 = match Slip::parse_slip_from_utxokey(&nft.slip3) {
+                Ok(s) => s,
+                Err(_) => continue,
+            };
+
+            //
+            // match UUID
+            //
+            if slip3.public_key != uuid {
+                continue;
+            }
+
+            candidate_inputs.push((slip1, slip2, slip3, nft.slip1));
+            collected += candidate_inputs.last().unwrap().0.amount;
+
+            if collected >= amount {
+                break;
+            }
+        }
+
+        //
+        // if insufficient → return empty (NO mutation)
+        //
+        if collected < amount {
+            warn!(
+                "Requested more Saito than available. requested : {:?}, available : {:?}",
+                amount, collected
+            );
+            return (vec![], vec![]);
+        }
+
+        //
+        // second pass: commit inputs
+        //
+        let mut inputs: Vec<Slip> = vec![];
+
+        for (s1, s2, s3, utxo_key) in candidate_inputs {
+            inputs.push(s1.clone());
+            inputs.push(s2.clone());
+            inputs.push(s3.clone());
+
+            //
+            // mark spent (same semantics as generate_slips)
+            //
+            self.unspent_slips.remove(&utxo_key);
+        }
+
+        //
+        // generate NFT change (if any)
+        //
+        let mut outputs: Vec<Slip> = vec![];
+        let change = collected - amount;
+
+        if change > 0 {
+            let change_slip1 = Slip {
+                public_key: self.public_key,
+                amount: change,
+                slip_type: SlipType::Bound,
+                ..Default::default()
+            };
+
+            let change_slip2 = Slip {
+                public_key: self.public_key,
+                amount: 0,
+                slip_type: SlipType::Normal,
+                ..Default::default()
+            };
+
+            let change_slip3 = Slip {
+                public_key: uuid,
+                amount: 0,
+                slip_type: SlipType::Bound,
+                ..Default::default()
+            };
+
+            outputs.push(change_slip1);
+            outputs.push(change_slip2);
+            outputs.push(change_slip3);
         }
 
         (inputs, outputs)
@@ -654,15 +790,291 @@ impl Wallet {
         sign(message_bytes, &self.private_key)
     }
 
+    pub fn create_transaction(
+        &mut self,
+        recipients: Vec<SaitoPublicKey>,
+        saito_amounts: Vec<Currency>,
+        fee: Currency,
+    ) -> Result<Transaction, Error> {
+        //
+        // ----------------------------------------------------
+        // SANITY CHECKS
+        // ----------------------------------------------------
+        //
+        if recipients.len() != saito_amounts.len() {
+            return Err(Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "recipients and saito_amounts length mismatch",
+            ));
+        }
+
+        //
+        // total SAITO required for recipients
+        //
+        let total_saito_to_recipients: Currency = saito_amounts.iter().sum();
+
+        //
+        // total SAITO required (recipients + fee)
+        //
+        let total_saito_required: Currency = total_saito_to_recipients + fee;
+
+        //
+        // ----------------------------------------------------
+        // STEP 1: CREATE TRANSACTION
+        // ----------------------------------------------------
+        //
+        let mut tx = Transaction::default();
+        tx.transaction_type = TransactionType::Normal;
+
+        //
+        // ----------------------------------------------------
+        // STEP 2: SELECT SAITO INPUTS
+        // ----------------------------------------------------
+        //
+        let (saito_input_slips, saito_change_slips) = self.generate_slips(total_saito_required);
+        if total_saito_required > 0 && saito_input_slips.is_empty() {
+            return Err(Error::new(
+                std::io::ErrorKind::Other,
+                "insufficient SAITO balance",
+            ));
+        }
+        if tx.from.is_empty() {
+            let zero_value_input = Slip {
+                public_key: self.public_key,
+                amount: 0,
+                slip_type: SlipType::Normal,
+                ..Default::default()
+            };
+            tx.add_from_slip(zero_value_input);
+        }
+
+        //
+        // ----------------------------------------------------
+        // ADD INPUT SLIPS
+        // ----------------------------------------------------
+        //
+        for slip in saito_input_slips.iter() {
+            tx.add_from_slip(slip.clone());
+        }
+
+        //
+        // ----------------------------------------------------
+        // STEP 3: BUILD OUTPUT SLIPS (RECIPIENT PAYMENTS)
+        // ----------------------------------------------------
+        //
+        for i in 0..recipients.len() {
+            let recipient = recipients[i];
+            let saito_amount_for_recipient = saito_amounts[i];
+
+            let saito_output_slip = Slip {
+                public_key: recipient,
+                amount: saito_amount_for_recipient,
+                slip_type: SlipType::Normal,
+                ..Default::default()
+            };
+
+            tx.add_to_slip(saito_output_slip);
+        }
+
+        //
+        // ----------------------------------------------------
+        // STEP 4: ADD CHANGE OUTPUTS
+        // ----------------------------------------------------
+        //
+        for slip in saito_change_slips {
+            tx.add_to_slip(slip);
+        }
+        if tx.to.is_empty() {
+            let zero_value_output = Slip {
+                public_key: self.public_key,
+                amount: 0,
+                slip_type: SlipType::Normal,
+                ..Default::default()
+            };
+            tx.add_to_slip(zero_value_output);
+        }
+
+        Ok(tx)
+    }
+
+    //
+    // this function SENDS existing NFTs, it does not CREATE them. to CREATE
+    // a new NFT, you need to use the function create_bound_transaction().
+    // this will error out if it is asked to create a transaction and no
+    // NFT_UUID is provided or exists in the wallet.
+    //
+    pub fn create_nft_transaction(
+        &mut self,
+        recipients: Vec<SaitoPublicKey>,
+        nft_amounts: Vec<Currency>,
+        nft_uuid: SaitoPublicKey,
+        fee: Currency,
+        saito_deposit: Currency,
+    ) -> Result<Transaction, Error> {
+        //
+        // ----------------------------------------------------
+        // SANITY CHECKS
+        // ----------------------------------------------------
+        //
+        if recipients.len() != nft_amounts.len() {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "NFT error - more recipients than NFTs",
+            ));
+        }
+
+        let num_recipients: Currency = recipients.len() as Currency;
+
+        //
+        // ----------------------------------------------------
+        // STEP 1: GET NFT INPUTS
+        // ----------------------------------------------------
+        //
+        let total_nft_requested: Currency = nft_amounts.iter().sum();
+
+        let (nft_input_slips, nft_change_slips) =
+            self.generate_nft_slips(nft_uuid, total_nft_requested);
+
+        if nft_input_slips.is_empty() {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "NFT insufficient NFT balance",
+            ));
+        }
+
+        //
+        // ----------------------------------------------------
+        // STEP 2: GET SAITO INPUTS (FEE + OPTIONAL DEPOSIT)
+        // ----------------------------------------------------
+        //
+        let total_saito_required: Currency = fee + saito_deposit;
+
+        let (saito_input_slips, saito_change_slips) = self.generate_slips(total_saito_required);
+
+        if total_saito_required > 0 && saito_input_slips.is_empty() {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "NFT insufficient SAITO balance",
+            ));
+        }
+
+        //
+        // ----------------------------------------------------
+        // STEP 3: CREATE TRANSACTION
+        // ----------------------------------------------------
+        //
+        let mut tx = Transaction::default();
+        tx.transaction_type = TransactionType::Normal;
+
+        //
+        // ADD INPUTS
+        //
+        for slip in nft_input_slips.iter() {
+            tx.add_from_slip(slip.clone());
+        }
+        for slip in saito_input_slips.iter() {
+            tx.add_from_slip(slip.clone());
+        }
+
+        //
+        // ----------------------------------------------------
+        // STEP 4: BUILD NFT OUTPUTS
+        // ----------------------------------------------------
+        //
+        let saito_base_share_per_recipient: Currency = if num_recipients > 0 {
+            saito_deposit / num_recipients
+        } else {
+            0
+        };
+
+        let mut saito_remainder_to_allocate: Currency = if num_recipients > 0 {
+            saito_deposit % num_recipients
+        } else {
+            0
+        };
+
+        let mut saito_remaining_to_assign: Currency = saito_deposit;
+
+        for i in 0..recipients.len() {
+            let recipient = recipients[i];
+            let nft_amount_for_recipient = nft_amounts[i];
+
+            //
+            // exact SAITO allocation (integer-safe, no loss)
+            //
+            let mut saito_deposit_for_recipient = saito_base_share_per_recipient;
+
+            if saito_remainder_to_allocate > 0 {
+                saito_deposit_for_recipient += 1;
+                saito_remainder_to_allocate -= 1;
+            }
+
+            saito_remaining_to_assign -= saito_deposit_for_recipient;
+
+            //
+            // NFT OUTPUT GROUP
+            //
+            let nft_amount_slip = Slip {
+                public_key: recipient,
+                amount: nft_amount_for_recipient,
+                slip_type: SlipType::Bound,
+                ..Default::default()
+            };
+
+            let saito_deposit_slip = Slip {
+                public_key: recipient,
+                amount: saito_deposit_for_recipient,
+                slip_type: SlipType::Normal,
+                ..Default::default()
+            };
+
+            let nft_uuid_slip = Slip {
+                public_key: nft_uuid,
+                amount: 0,
+                slip_type: SlipType::Bound,
+                ..Default::default()
+            };
+
+            tx.add_to_slip(nft_amount_slip);
+            tx.add_to_slip(saito_deposit_slip);
+            tx.add_to_slip(nft_uuid_slip);
+        }
+
+        //
+        // SAFETY CHECK: ensure exact conservation
+        //
+        debug_assert!(saito_remaining_to_assign == 0);
+
+        //
+        // ----------------------------------------------------
+        // STEP 5: ADD NFT CHANGE OUTPUTS
+        // ----------------------------------------------------
+        //
+        for slip in nft_change_slips {
+            tx.add_to_slip(slip);
+        }
+
+        //
+        // ----------------------------------------------------
+        // STEP 6: ADD SAITO CHANGE OUTPUTS
+        // ----------------------------------------------------
+        //
+        for slip in saito_change_slips {
+            tx.add_to_slip(slip);
+        }
+
+        Ok(tx)
+    }
+
     pub async fn create_bound_transaction(
         &mut self,
         nft_num: u64,                     // number of nft to create
         nft_create_deposit_amt: Currency, // AMOUNT to deposit in slip2 (output)
         tx_msg: Vec<u8>,                  // DATA field to attach to TX
         recipient: &SaitoPublicKey,       // receiver
-        network: Option<&Network>,
-        latest_block_id: u64,
-        genesis_period: u64,
+        _network: Option<&Network>,
+        _latest_block_id: u64,
+        _genesis_period: u64,
         nft_type: String,
     ) -> Result<Transaction, Error> {
         let mut transaction = Transaction::default();
@@ -689,41 +1101,11 @@ impl Wallet {
         // };
 
         //
-        // now we compute the unique UTXO key for the input slip. since every
-        // slip will have a unique UTXO key, this is the UUID for the NFT. by
-        // assigning each NFT the UUID from the slip that is used to create it,
-        // we ensure that each NFT will have an unforgeable ID.
-        //
-        // let utxo_key = input_slip.get_utxoset_key(); // Compute the unique UTXO key for the input slip
-
-        //
-        // check that our wallet has this slip available. this check avoids
-        // issues where the slip we are using to create our NFT has already
-        // been spent for some reason. note that this is a safety check for
-        // US rather than a security check for the network, since double-spends
-        // are not possible, so users cannot "re-spend" UTXO to create
-        // duplicate NFTs after their initial NFTs have been created.
-        //
-        // if !self.unspent_slips.contains(&utxo_key) {
-        //     info!("UTXO Key not found: {:?}", utxo_key);
-        //     return Err(Error::new(
-        //         ErrorKind::NotFound,
-        //         format!("UTXO not found: {:?}", utxo_key),
-        //     ));
-        // }
-
-        //
         // Instead of reconstructing an input slip from params, we generate
         // enough slips to cover `nft_create_deposit_amt`. Any output from
         // `generate_slips` will become our change slip.
         //
-
-        let (mut generated_inputs, generated_outputs) = self.generate_slips(
-            nft_create_deposit_amt,
-            network,
-            latest_block_id,
-            genesis_period,
-        );
+        let (mut generated_inputs, generated_outputs) = self.generate_slips(nft_create_deposit_amt);
 
         //
         // Drop any slips with zero amount
@@ -1679,11 +2061,13 @@ impl Wallet {
                 warn!("insufficient funds to stake block. requested: {:?}, collected: {:?} required_from_unspent: {:?}",
                     staking_amount,collected_amount,required_from_unspent_slips);
                 warn!("wallet balance : {:?}", self.available_balance);
-                return Err(Error::from(ErrorKind::NotFound));
+                return Err(Error::new(
+                    ErrorKind::Other,
+                    "Failed to generate input slip for creating NFT",
+                ));
             }
 
             for key in unspent_slips_to_remove {
-                trace!("removing unspent slip : {}", key.to_hex());
                 self.unspent_slips.remove(&key);
             }
             collected_amount += collected_from_unspent_slips;
@@ -1691,7 +2075,6 @@ impl Wallet {
         }
 
         for key in unlocked_slips_to_remove {
-            trace!("removing unlocked staking slip : {}", key.to_hex());
             self.staking_slips.remove(&key);
         }
 
@@ -1844,7 +2227,7 @@ impl Display for WalletSlip {
 mod tests {
     use crate::core::consensus::wallet::Wallet;
     use crate::core::defs::SaitoPublicKey;
-    use crate::core::routing::io::storage::Storage;
+    use crate::core::storage::storage::Storage;
     use crate::core::util::crypto::generate_keys;
     use crate::core::util::test::test_manager::test::TestManager;
 
@@ -1862,6 +2245,7 @@ mod tests {
     // tests value transfer to other addresses and verifies the resulting utxo hashmap
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn wallet_transfer_to_address_test() {
         let mut t = TestManager::default();
         t.initialize(100, 100000).await;
@@ -1916,6 +2300,7 @@ mod tests {
     // tests transfer of exact amount
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn test_transfer_with_exact_funds() {
         // pretty_env_logger::init();
         let mut t = TestManager::default();

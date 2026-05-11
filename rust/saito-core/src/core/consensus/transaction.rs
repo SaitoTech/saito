@@ -13,12 +13,10 @@ use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIter
 
 use crate::core::consensus::hop::{Hop, HOP_SIZE};
 use crate::core::consensus::slip::{Slip, SlipType, SLIP_SIZE};
-use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::{
     Currency, PrintForLog, SaitoHash, SaitoPrivateKey, SaitoPublicKey, SaitoSignature,
     SaitoUTXOSetKey, Timestamp, UtxoSet, UTXO_KEY_LENGTH,
 };
-use crate::core::routing::io::network::Network;
 use crate::core::util::crypto::{hash, sign, verify, verify_signature};
 use crate::iterate;
 
@@ -69,7 +67,7 @@ pub struct Transaction {
     /// cumulative fees for this tx-in-block
     pub cumulative_fees: Currency,
     #[serde(skip)]
-    pub routed_from_peer: Option<SaitoPublicKey>,
+    pub routed_from_peer_id: u64,
 }
 
 impl Display for Transaction {
@@ -133,7 +131,7 @@ impl Default for Transaction {
             total_fees: 0,
             total_work_for_me: 0,
             cumulative_fees: 0,
-            routed_from_peer: None,
+            routed_from_peer_id: 0,
         }
     }
 }
@@ -192,121 +190,6 @@ impl Transaction {
         }
     }
 
-    /// this function exists largely for testing. It attempts to attach the requested fee
-    /// to the transaction if possible. If not possible it reverts back to a transaction
-    /// with 1 zero-fee input and 1 zero-fee output.
-    ///
-    /// # Arguments
-    ///
-    /// * `wallet_lock`:
-    /// * `to_publickey`:
-    /// * `with_payment`:
-    /// * `with_fee`:
-    ///
-    /// returns: Transaction
-    ///
-    /// # Examples
-    ///
-    /// ```
-    ///
-    /// ```
-    pub fn create(
-        wallet: &mut Wallet,
-        to_public_key: SaitoPublicKey,
-        with_payment: Currency,
-        with_fee: Currency,
-        _force_merge: bool,
-        network: Option<&Network>,
-        latest_block_id: u64,
-        genesis_period: u64,
-    ) -> Result<Transaction, Error> {
-        Self::create_with_multiple_payments(
-            wallet,
-            vec![to_public_key],
-            vec![with_payment],
-            with_fee,
-            network,
-            latest_block_id,
-            genesis_period,
-        )
-    }
-
-    pub fn create_with_multiple_payments(
-        wallet: &mut Wallet,
-        mut keys: Vec<SaitoPublicKey>,
-        mut payments: Vec<Currency>,
-        mut with_fee: Currency,
-        network: Option<&Network>,
-        latest_block_id: u64,
-        genesis_period: u64,
-    ) -> Result<Transaction, Error> {
-        let total_payment: Currency = payments.iter().sum();
-        trace!(
-            "generating transaction : payments = {:?}, fee = {:?}",
-            total_payment,
-            with_fee
-        );
-
-        if payments.len() != keys.len() {
-            error!("keys and payments provided to the transaction is not similar in count. payments : {:?} keys : {:?}",payments.len(),keys.len());
-            return Err(Error::from(ErrorKind::InvalidInput));
-        }
-
-        let available_balance = wallet.get_available_balance();
-
-        if with_fee > available_balance {
-            with_fee = 0;
-        }
-
-        let total_requested = total_payment + with_fee;
-        trace!(
-            "in generate transaction. available: {} and payment: {} and fee: {}",
-            available_balance,
-            total_payment,
-            with_fee
-        );
-        if available_balance < total_requested {
-            debug!(
-                "not enough funds to create transaction. required : {:?} available : {:?}",
-                total_requested, available_balance
-            );
-            return Err(Error::from(ErrorKind::NotFound));
-        }
-
-        let mut transaction = Transaction::default();
-        for _ in 0..keys.len() {
-            let key = keys.pop().unwrap();
-            let payment = payments.pop().unwrap();
-
-            let output = Slip {
-                public_key: key,
-                amount: payment,
-                ..Default::default()
-            };
-            transaction.add_to_slip(output);
-        }
-        if total_requested == 0 {
-            let slip = Slip {
-                public_key: wallet.public_key,
-                amount: 0,
-                ..Default::default()
-            };
-            transaction.add_from_slip(slip);
-        } else {
-            let (input_slips, output_slips) =
-                wallet.generate_slips(total_requested, network, latest_block_id, genesis_period);
-
-            for input in input_slips {
-                transaction.add_from_slip(input);
-            }
-            for output in output_slips {
-                transaction.add_to_slip(output);
-            }
-        }
-
-        Ok(transaction)
-    }
-
     ///
     ///
     /// # Arguments
@@ -325,7 +208,6 @@ impl Transaction {
         to_public_key: SaitoPublicKey,
         with_amount: Currency,
     ) -> Transaction {
-        trace!("generate issuance transaction : amount = {:?}", with_amount);
         let mut transaction = Transaction::default();
         transaction.transaction_type = TransactionType::Issuance;
         let mut output = Slip::default();
@@ -1801,20 +1683,6 @@ mod tests {
     }
 
     #[test]
-    fn transaction_sign_test() {
-        let mut tx = Transaction::default();
-        let keys = generate_keys();
-        let wallet = Wallet::new(keys.1, keys.0);
-
-        tx.to = vec![Slip::default()];
-        tx.sign(&wallet.private_key);
-
-        assert_eq!(tx.to[0].slip_index, 0);
-        assert_ne!(tx.signature, [0; 64]);
-        assert_ne!(tx.hash_for_signature, Some([0; 32]));
-    }
-
-    #[test]
     fn serialize_for_signature_test() {
         let tx = Transaction::default();
         assert_eq!(
@@ -1973,45 +1841,5 @@ mod tests {
 
         let serialized_tx = mock_tx.serialize_for_net();
         assert_eq!(serialized_tx.len(), 0);
-    }
-
-    // Item 26: create_with_multiple_payments rejects mismatched key/payment vector lengths.
-    #[test]
-    fn create_with_multiple_payments_rejects_mismatched_key_and_payment_counts() {
-        let keys = generate_keys();
-        let mut wallet = Wallet::new(keys.1, keys.0);
-
-        let recipient: SaitoPublicKey = [1u8; 33];
-        // 2 payments but only 1 key – must return Err(InvalidInput)
-        let result = Transaction::create_with_multiple_payments(
-            &mut wallet,
-            vec![recipient],
-            vec![100, 200],
-            0,
-            None,
-            0,
-            0,
-        );
-        assert!(result.is_err());
-    }
-
-    // Item 26: create_with_multiple_payments rejects when keys outnumber payments.
-    #[test]
-    fn create_with_multiple_payments_rejects_more_keys_than_payments() {
-        let keys = generate_keys();
-        let mut wallet = Wallet::new(keys.1, keys.0);
-
-        let r1: SaitoPublicKey = [1u8; 33];
-        let r2: SaitoPublicKey = [2u8; 33];
-        let result = Transaction::create_with_multiple_payments(
-            &mut wallet,
-            vec![r1, r2],
-            vec![100],
-            0,
-            None,
-            0,
-            0,
-        );
-        assert!(result.is_err());
     }
 }

@@ -9,8 +9,8 @@ use wasm_bindgen::JsValue;
 
 use saito_core::core::consensus::wallet::Wallet;
 use saito_core::core::defs::{BlockId, PrintForLog, SaitoHash, SaitoPublicKey};
-use saito_core::core::routing::io::interface_io::{InterfaceEvent, InterfaceIO};
-use saito_core::core::routing::peers::peer_service::PeerService;
+use saito_core::core::network::interface_io::{InterfaceEvent, InterfaceIO};
+use saito_core::core::network::service::Service;
 
 use crate::wasm_peer_service::{WasmPeerService, WasmPeerServiceList};
 
@@ -18,6 +18,12 @@ pub struct WasmIoHandler {}
 
 #[async_trait]
 impl InterfaceIO for WasmIoHandler {
+    async fn send_message_by_peer_id(&self, peer_id: u64, buffer: &[u8]) -> Result<(), Error> {
+        let array = js_sys::Uint8Array::from(buffer);
+        MsgHandler::send_message_by_peer_id(peer_id, &array);
+        Ok(())
+    }
+
     async fn send_message(&self, public_key: SaitoPublicKey, buffer: &[u8]) -> Result<(), Error> {
         trace!("WasmIoHandler::send_message : {:?}", public_key.to_base58());
 
@@ -36,7 +42,7 @@ impl InterfaceIO for WasmIoHandler {
     async fn send_message_to_all(
         &self,
         buffer: &[u8],
-        peer_exceptions: Vec<SaitoPublicKey>,
+        peer_exceptions: Vec<u64>,
     ) -> Result<(), Error> {
         let array = js_sys::Uint8Array::new_with_length(buffer.len() as u32);
         array.copy_from(buffer);
@@ -44,10 +50,8 @@ impl InterfaceIO for WasmIoHandler {
         let arr2 = js_sys::Array::new_with_length(peer_exceptions.len() as u32);
 
         for (i, ex) in peer_exceptions.iter().enumerate() {
-            let res = ex.to_base58();
-            let res = JsValue::from(res);
-
-            arr2.set(i as u32, res);
+            let peer_id = BigInt::from(*ex);
+            arr2.set(i as u32, JsValue::from(peer_id));
         }
 
         MsgHandler::send_message_to_all(&array, &arr2);
@@ -66,16 +70,16 @@ impl InterfaceIO for WasmIoHandler {
         Ok(())
     }
 
-    async fn disconnect_from_peer(&self, public_key: SaitoPublicKey) -> Result<(), Error> {
-        trace!("disconnect from peer : {:?}", public_key.to_base58());
-        MsgHandler::disconnect_from_peer(public_key.to_base58()).expect("TODO: panic message");
+    async fn disconnect_from_peer(&self, peer_id: u64) -> Result<(), Error> {
+        trace!("disconnect from peer : {:?}", peer_id);
+        MsgHandler::disconnect_from_peer(peer_id).expect("TODO: panic message");
         Ok(())
     }
 
     async fn fetch_block_from_peer(
         &self,
         block_hash: SaitoHash,
-        public_key: SaitoPublicKey,
+        peer_id: u64,
         url: &str,
         block_id: BlockId,
     ) -> Result<(), Error> {
@@ -83,7 +87,7 @@ impl InterfaceIO for WasmIoHandler {
         hash.copy_from(block_hash.as_slice());
         let result = MsgHandler::fetch_block_from_peer(
             &hash,
-            public_key.to_base58(),
+            peer_id,
             url.to_string(),
             BigInt::from(block_id),
         );
@@ -223,58 +227,95 @@ impl InterfaceIO for WasmIoHandler {
 
     fn send_interface_event(&self, event: InterfaceEvent) {
         match event {
-            InterfaceEvent::PeerHandshakeComplete(public_key) => {
-                MsgHandler::send_interface_event(
-                    "handshake_complete".to_string(),
-                    public_key.to_base58(),
-                );
+            InterfaceEvent::WalletUpdate() => {
+                MsgHandler::emit_interface_event("wallet-updated", "{}");
             }
-            InterfaceEvent::PeerConnectionDropped(public_key) => {
-                MsgHandler::send_interface_event(
-                    "peer_disconnect".to_string(),
-                    public_key.to_base58(),
-                );
+            InterfaceEvent::OnTransactionCreated() => {
+                MsgHandler::emit_interface_event("on-transaction-created", "{}");
             }
-            InterfaceEvent::PeerConnected(public_key) => {
-                MsgHandler::send_interface_event(
-                    "peer_connect".to_string(),
-                    public_key.to_base58(),
+            InterfaceEvent::OnTransactionSent() => {
+                MsgHandler::emit_interface_event("on-transaction-sent", "{}");
+            }
+            InterfaceEvent::OnTransactionReceived() => {
+                MsgHandler::emit_interface_event("on-transaction-received", "{}");
+            }
+            InterfaceEvent::OnNFTCreated() => {
+                MsgHandler::emit_interface_event("on-nft-created", "{}");
+            }
+            InterfaceEvent::OnNFTSent() => {
+                MsgHandler::emit_interface_event("on-nft-sent", "{}");
+            }
+            InterfaceEvent::OnNFTReceived() => {
+                MsgHandler::emit_interface_event("on-nft-received", "{}");
+            }
+            InterfaceEvent::OnPeerHandshakeComplete(peer_id, public_key) => {
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
                 );
+                MsgHandler::emit_interface_event("on_peer_handshake_complete", &payload);
+            }
+            InterfaceEvent::OnPeerServicesUp(peer_id, public_key) => {
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
+                );
+                MsgHandler::emit_interface_event("on_peer_services_up", &payload);
+            }
+            InterfaceEvent::PeerConnectionDropped(peer_id, public_key) => {
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
+                );
+                MsgHandler::emit_interface_event("peer_disconnect", &payload);
+            }
+            InterfaceEvent::PeerConnected(peer_id, public_key) => {
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
+                );
+                MsgHandler::emit_interface_event("peer_connect", &payload);
             }
             InterfaceEvent::BlockAddSuccess(hash, block_id) => {
-                MsgHandler::send_block_success(hash.to_hex(), BigInt::from(block_id));
-            }
-            InterfaceEvent::WalletUpdate() => {
-                MsgHandler::send_wallet_update();
+                let payload = format!(
+                    "{{\"hash\":\"{}\",\"blockId\":{}}}",
+                    hash.to_hex(),
+                    encode_bigint_leaf(block_id)
+                );
+                MsgHandler::emit_interface_event("add-block-success", &payload);
             }
             InterfaceEvent::NewVersionDetected(index, version) => {
-                MsgHandler::send_new_version_alert(
-                    format!(
-                        "{:?}.{:?}.{:?}",
-                        version.major, version.minor, version.patch
-                    )
-                    .to_string(),
-                    index.to_base58(),
+                let payload = format!(
+                    "{{\"version\":\"{}.{}.{}\",\"publicKey\":\"{}\"}}",
+                    version.major,
+                    version.minor,
+                    version.patch,
+                    index.to_base58()
                 );
+                MsgHandler::emit_interface_event("new-version-detected", &payload);
             }
-
-            InterfaceEvent::StunPeerConnected(public_key) => {
-                MsgHandler::send_interface_event(
-                    "stun peer connect".to_string(),
-                    public_key.to_base58(),
+            InterfaceEvent::StunPeerConnected(peer_id, public_key) => {
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
                 );
+                MsgHandler::emit_interface_event("stun peer connect", &payload);
             }
-            InterfaceEvent::StunPeerDisconnected(public_key) => {
-                MsgHandler::send_interface_event(
-                    "stun peer disconnect".to_string(),
-                    public_key.to_base58(),
+            InterfaceEvent::StunPeerDisconnected(peer_id, public_key) => {
+                let payload = format!(
+                    "[{},\"{}\"]",
+                    encode_bigint_leaf(peer_id),
+                    public_key.to_base58()
                 );
-            }
-            InterfaceEvent::BlockFetchStatus(count) => {
-                MsgHandler::send_block_fetch_status_event(count);
+                MsgHandler::emit_interface_event("stun peer disconnect", &payload);
             }
             InterfaceEvent::NewChainDetected() => {
-                MsgHandler::send_new_chain_detected_event();
+                MsgHandler::emit_interface_event("new-chain-detected", "null");
             }
         }
     }
@@ -303,36 +344,18 @@ impl InterfaceIO for WasmIoHandler {
     //     Ok(())
     // }
 
-    fn get_my_services(&self) -> Vec<PeerService> {
-        // let mut services = vec![];
+    fn get_my_services(&self) -> Vec<Service> {
         let mut result: WasmPeerServiceList = MsgHandler::get_my_services();
-        // for i in 0..result.length() {
-        //     // let service: WasmPeerService = result.at(i as i32) as WasmPeerService;
-        //     let service = serde_wasm_bindgen::from_value(result.at(i as i32));
-        //     if service.is_err() {
-        //         error!("failed deserializing service. {:?}", service.err().unwrap());
-        //         return vec![];
-        //     }
-        //     services.push(service.unwrap());
-        // }
-        // debug!("services 1 : {:?}", services);
-        // let services = JsValue::from(services);
-        // debug!("services 2 : {:?}", services);
-        // let services = serde_wasm_bindgen::from_value(services);
-        // if services.is_err() {
-        //     error!(
-        //         "failed deserializing services. {:?}",
-        //         services.err().unwrap()
-        //     );
-        //     return vec![];
-        // }
-        // let mut services: Vec<WasmPeerService> = services.unwrap();
         result
             .services
             .drain(..)
             .map(|s: WasmPeerService| s.service)
             .collect()
     }
+}
+
+fn encode_bigint_leaf(value: u64) -> String {
+    format!("{{\"$t\":\"bigint\",\"v\":\"{}\"}}", value)
 }
 
 impl Debug for WasmIoHandler {
@@ -348,7 +371,13 @@ extern "C" {
     pub type MsgHandler;
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
+    fn send_message_by_peer_id(peer_id: u64, buffer: &js_sys::Uint8Array);
+
+    #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_message(public_key: String, buffer: &Uint8Array);
+
+    #[wasm_bindgen(js_namespace = MsgHandler)]
+    fn emit_interface_event(event_name: &str, payload_json: &str);
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn send_message_to_all(buffer: &Uint8Array, exceptions: &Array);
@@ -378,12 +407,12 @@ extern "C" {
     pub fn remove_value(key: String) -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
-    pub fn disconnect_from_peer(public_key: String) -> Result<JsValue, js_sys::Error>;
+    pub fn disconnect_from_peer(peer_id: u64) -> Result<JsValue, js_sys::Error>;
 
     #[wasm_bindgen(static_method_of = MsgHandler, catch)]
     pub fn fetch_block_from_peer(
         hash: &Uint8Array,
-        public_key: String,
+        peer_id: u64,
         url: String,
         block_id: BigInt,
     ) -> Result<JsValue, JsValue>;
@@ -398,21 +427,6 @@ extern "C" {
     pub fn process_api_error(buffer: Uint8Array, msg_index: u32, public_key: String);
 
     #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_interface_event(event: String, public_key: String);
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_block_success(hash: String, block_id: BigInt);
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_wallet_update();
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_block_fetch_status_event(count: BlockId);
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_new_chain_detected_event();
-
-    #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn save_wallet();
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn load_wallet();
@@ -425,6 +439,4 @@ extern "C" {
     #[wasm_bindgen(static_method_of = MsgHandler)]
     pub fn get_my_services() -> WasmPeerServiceList;
 
-    #[wasm_bindgen(static_method_of = MsgHandler)]
-    pub fn send_new_version_alert(version: String, public_key: String);
 }

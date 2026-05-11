@@ -19,35 +19,11 @@ class ScreenRecordWizard{
 
 	attachEvents(){
 
-		if (document.getElementById("screenrecord-wizard-btn")){
-			document.getElementById("screenrecord-wizard-btn").onclick = (e) => {
-				let title_el = document.getElementById("screenrecord-wizard-identifier");
-				let title = document.getElementById("screenrecord-wizard-identifier")?.value || "";
-				let mode = document.querySelector(".record-mode-option.selected");
-
-                this.options.includeCamera = false;
-				if (mode){
-					if (mode.getAttribute("id") == "mode-video"){
-						this.options.includeCamera = true;
-					}
-
-				}
-
-				let description_el = document.getElementById("screenrecord-wizard-description");
-				let description = description_el?.innerText || description_el?.value || "";
-
-				
-				this.mod.startRecording(this.options);
-				this.overlay.close();
-			}
-		}
-
 		Array.from(document.querySelectorAll(".record-mode-option")).forEach(icon => {
 			icon.onclick = (e) => {
-				document.querySelectorAll(".record-mode-option").forEach(i => {
-					i.classList.remove("selected");
-				})
-				e.currentTarget.classList.add("selected");
+				this.options.includeCamera = (e.currentTarget.getAttribute("id") === "mode-video");
+				this.mod.startRecording(this.options);
+				this.overlay.close();
 			}
 		});
 

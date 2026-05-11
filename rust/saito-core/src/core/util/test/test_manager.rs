@@ -53,10 +53,10 @@ pub mod test {
         RECOLLECT_NOTHING,
     };
     use crate::core::mining_thread::MiningEvent;
+    use crate::core::network::network::Network;
+    use crate::core::network::peers::Peers;
     use crate::core::process::keep_time::{KeepTime, Timer};
-    use crate::core::routing::io::network::Network;
-    use crate::core::routing::io::storage::Storage;
-    use crate::core::routing::peers::peer_collection::PeerCollection;
+    use crate::core::storage::storage::Storage;
     use crate::core::util::configuration::{
         get_default_recollect_mode, BlockchainConfig, Configuration, ConsensusConfig, PeerConfig,
         Server, WalletConfig,
@@ -89,7 +89,7 @@ pub mod test {
         pub latest_block_hash: SaitoHash,
         pub network: Network,
         pub storage: Storage,
-        pub peer_lock: Arc<RwLock<PeerCollection>>,
+        pub peer_lock: Arc<RwLock<Peers>>,
         pub sender_to_miner: Sender<MiningEvent>,
         pub receiver_in_miner: Receiver<MiningEvent>,
         pub config_lock: Arc<RwLock<dyn Configuration + Send + Sync>>,
@@ -99,7 +99,7 @@ pub mod test {
         fn default() -> Self {
             let keys = generate_keys();
             let wallet = Wallet::new(keys.1, keys.0);
-            let peers = Arc::new(RwLock::new(PeerCollection::default()));
+            let peers = Arc::new(RwLock::new(Peers::default()));
             let wallet_lock = Arc::new(RwLock::new(wallet));
             let blockchain_lock = Arc::new(RwLock::new(Blockchain::new(
                 wallet_lock.clone(),
@@ -664,17 +664,9 @@ pub mod test {
                 {
                     let mut wallet = self.wallet_lock.write().await;
 
-                    transaction = Transaction::create(
-                        &mut wallet,
-                        public_key,
-                        txs_amount,
-                        txs_fee,
-                        false,
-                        None,
-                        latest_block_id,
-                        genesis_period,
-                    )
-                    .unwrap();
+                    transaction = wallet
+                        .create_transaction(vec![public_key], vec![txs_amount], txs_fee)
+                        .unwrap();
                 }
 
                 transaction.sign(&private_key);
@@ -1075,18 +1067,9 @@ pub mod test {
             let private_key;
 
             {
-                let wallet = self.wallet_lock.read().await;
+                let mut wallet = self.wallet_lock.write().await;
                 private_key = wallet.private_key;
-                let mut tx = Transaction::create(
-                    &mut wallet.clone(),
-                    to_public_key,
-                    amount,
-                    0,
-                    false,
-                    None,
-                    latest_block_id,
-                    genesis_period,
-                )?;
+                let mut tx = wallet.create_transaction(vec![to_public_key], vec![amount], 0)?;
                 tx.sign(&private_key);
                 block.add_transaction(tx);
             }
@@ -1177,22 +1160,6 @@ pub mod test {
 
         fn get_consensus_config_mut(&mut self) -> Option<&mut ConsensusConfig> {
             Some(&mut self.consensus)
-        }
-
-        fn get_congestion_data(
-            &self,
-        ) -> Option<&crate::core::routing::peers::congestion_controller::CongestionStatsDisplay>
-        {
-            todo!()
-        }
-
-        fn set_congestion_data(
-            &mut self,
-            _congestion_data: Option<
-                crate::core::routing::peers::congestion_controller::CongestionStatsDisplay,
-            >,
-        ) {
-            todo!()
         }
 
         fn get_config_path(&self) -> String {

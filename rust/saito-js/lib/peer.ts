@@ -11,6 +11,10 @@ export default class Peer extends WasmWrapper<WasmPeer> {
     super(peer!);
   }
 
+  public get id(): bigint {
+    return this.instance.id;
+  }
+
   public get publicKey(): string {
     return this.instance.public_key;
   }

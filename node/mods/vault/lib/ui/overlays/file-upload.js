@@ -2,7 +2,7 @@ const ScriptingKeyOverlay = require('./scripting.js');
 const FileInfoOverlay = require('./file-info.js');
 const FileUploadTemplate = require('./file-upload.template');
 const SaitoOverlay = require('./../../../../../lib/saito/ui/saito-overlay/saito-overlay');
-let SaitoNFT = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
+const SaitoNFT = require('./../../../../../lib/saito/ui/saito-nft/saito-nft');
 
 class FileUpload {
   constructor(app, mod, container = '') {

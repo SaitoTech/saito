@@ -4,8 +4,8 @@ use js_sys::{JsString, Uint8Array};
 use log::trace;
 use saito_core::core::defs::PrintForLog;
 use saito_core::core::defs::SaitoPublicKey;
-use saito_core::core::msg::api_message::ApiMessage;
-use saito_core::core::msg::message::Message;
+use saito_core::core::network::msg::api_message::ApiMessage;
+use saito_core::core::network::msg::message::Message;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]

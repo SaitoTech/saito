@@ -14,15 +14,11 @@ module.exports = VaultMainTemplate = (app, mod) => {
 
         <div class="vault-cta">
           <button class="vault-btn primary" id="vault-secure-btn">
-            Upload File
+            Open Vault
           </button>
         </div>
   
       </section>
-
-      <div id="vault-access-link" class="vault-access-link">
-        or <div class="vault-access-textlink">access</div> an existing file...
-      </div>
 
     </div>
 
@@ -30,4 +26,3 @@ module.exports = VaultMainTemplate = (app, mod) => {
 
 `;
 };
-

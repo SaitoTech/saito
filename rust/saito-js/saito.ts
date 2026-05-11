@@ -22,6 +22,7 @@ export default class Saito {
   private static instance: Saito;
   private static libInstance: any;
   peers: Map<string, NetworkPeer> = new Map<string, NetworkPeer>();
+  peersByPeerId: Map<bigint, NetworkPeer> = new Map();
   private stunPeers: Map<bigint, { peerConnection: RTCPeerConnection; publicKey: string }> =
     new Map();
   stunManager: StunPeer;
@@ -31,6 +32,7 @@ export default class Saito {
   private wallet: Wallet | null = null;
   private blockchain: Blockchain | null = null;
   private static wasmMemory: WebAssembly.Memory | null = null;
+
 
   public static async initialize(
     configs: any,
@@ -46,6 +48,10 @@ export default class Saito {
 
     // @ts-ignore
     globalThis.shared_methods = {
+
+      send_message_by_peer_id: (peer_id: bigint, buffer: Uint8Array) => {
+        return sharedMethods.sendMessageByPeerId(peer_id, buffer);
+      },
       send_message: (public_key: string, buffer: Uint8Array) => {
         sharedMethods.sendMessage(public_key, buffer);
       },
@@ -79,31 +85,52 @@ export default class Saito {
       remove_value: (key: string) => {
         return sharedMethods.removeValue(key);
       },
-      disconnect_from_peer: (public_key: string) => {
-        return sharedMethods.disconnectFromPeer(public_key);
+      disconnect_from_peer: (peer_id: bigint) => {
+        return sharedMethods.disconnectFromPeer(peer_id);
       },
       fetch_block_from_peer: (
         hash: Uint8Array,
-        public_key: string,
+        peer_id: bigint,
         url: string,
         block_id: bigint
       ) => {
+        const expectedHash = Array.from(hash)
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        console.info(
+          "[TRACE_SYNC] js_fetch_dispatch peer_id=%s block_id=%s expected_hash=%s url=%s",
+          peer_id.toString(),
+          block_id.toString(),
+          expectedHash,
+          url
+        );
         sharedMethods
           .fetchBlockFromPeer(url)
           .then((buffer: Uint8Array) => {
-            return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, public_key);
+            const prefix = Array.from(buffer.slice(0, 32))
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join("");
+            console.info(
+              "[TRACE_SYNC] js_fetch_completed peer_id=%s block_id=%s expected_hash=%s bytes=%s prefix32=%s",
+              peer_id.toString(),
+              block_id.toString(),
+              expectedHash,
+              buffer.byteLength,
+              prefix
+            );
+            return Saito.getLibInstance().process_fetched_block(buffer, hash, block_id, peer_id);
           })
           .catch((error: any) => {
             console.log(
               "failed fetching block for url : " +
                 url +
                 " from peer : " +
-                public_key +
+                peer_id +
                 ", block id = " +
                 block_id
             );
             console.error(error);
-            return Saito.getLibInstance().process_failed_block_fetch(hash, block_id, public_key);
+            return Saito.getLibInstance().process_failed_block_fetch(hash, block_id, peer_id);
           });
       },
       process_api_call: (buffer: Uint8Array, msgIndex: number, public_key: string) => {
@@ -115,17 +142,8 @@ export default class Saito {
       process_api_error: (buffer: Uint8Array, msgIndex: number, public_key: string) => {
         return sharedMethods.processApiError(buffer, msgIndex, public_key);
       },
-      send_interface_event: (event: string, public_key: string) => {
-        return sharedMethods.sendInterfaceEvent(event, public_key);
-      },
-      send_block_fetch_status_event: (count: bigint) => {
-        return sharedMethods.sendBlockFetchStatus(count);
-      },
-      send_block_success: (hash: string, blockId: bigint) => {
-        return sharedMethods.sendBlockSuccess(hash, blockId);
-      },
-      send_wallet_update: () => {
-        return sharedMethods.sendWalletUpdate();
+      emit_interface_event: (event_name: string, payload_json: string) => {
+        return sharedMethods.emitInterfaceEvent(event_name, payload_json);
       },
       save_wallet: (wallet: any) => {
         return sharedMethods.saveWallet(wallet);
@@ -141,12 +159,6 @@ export default class Saito {
       },
       get_my_services: () => {
         return sharedMethods.getMyServices().instance;
-      },
-      send_new_version_alert: (major: number, minor: number, patch: number, public_key: string) => {
-        return sharedMethods.sendNewVersionAlert(major, minor, patch, public_key);
-      },
-      send_new_chain_detected_event: () => {
-        return sharedMethods.sendNewChainDetectedEvent();
       },
     };
     if (privateKey === "") {
@@ -179,10 +191,23 @@ export default class Saito {
   public call_timed_functions(interval: number, lastCalledTime: number) {
     setTimeout(() => {
       let time = Date.now();
+      let delta = time - lastCalledTime;
+      if (delta < 0) {
+        delta = 0;
+      }
+
+      if (delta > 60000) {
+        delta = 60000;
+      }
+
       Saito.getLibInstance()
-        .process_timer_event(BigInt(time - lastCalledTime))
+        .process_timer_event(BigInt(delta))
         .then(() => {
           this.call_timed_functions(interval, time);
+        })
+        .catch((err: any) => {
+          console.error("timer error:", err);
+          this.call_timed_functions(interval, Date.now());
         });
     }, interval);
   }
@@ -221,10 +246,116 @@ export default class Saito {
     if (!this.wallet || !this.blockchain) {
       throw new Error("Core not initialized yet");
     }
+    if (!this.wallet?.instance) {
+      throw new Error("Wallet instance not initialized");
+    }
 
     const self = this;
     const wasm = Saito.getLibInstance();
     const core: any = {};
+    let modified_wallet: any = {};
+
+    // --------------------------
+    // WALLET
+    // --------------------------
+    const wasmWallet: any = this.wallet.instance;
+    const factory = this.factory;
+    let wallet = undefined;
+    if (wasmWallet) {
+
+      const wrapTx = <T extends Transaction>(fn: Function) => {
+        return async (...args: any[]): Promise<T> => {
+          const wasmTx = await fn(...args);
+          const tx = factory.createTransaction(wasmTx) as T;
+          tx.timestamp = Date.now();
+          return tx;
+        };
+      };
+
+      const bindAndConvert = (fn: Function, argNames: string[]) => {
+        const boundFn = fn.bind(wasmWallet);
+        const payloadArgNames = new Set(["tx_msg", "msg"]);
+        return (...args: any[]) => {
+          const convertedArgs = args.map((arg, index) => {
+            const argName = argNames[index];
+            if (!payloadArgNames.has(argName)) {
+              return arg;
+            }
+            return new Uint8Array(Buffer.from(JSON.stringify(arg), "utf-8"));
+          });
+          return boundFn(...convertedArgs);
+        };
+      };
+      wallet = Object.create(wasmWallet);
+      wallet.createTransaction = wrapTx(
+        wasmWallet.createTransaction.bind(wasmWallet)
+      );
+
+      wallet.createTransactionWithMultiplePayments = wrapTx(
+        wasmWallet.createTransactionWithMultiplePayments.bind(wasmWallet)
+      );
+
+      wallet.createBoundTransaction = wrapTx(
+        bindAndConvert(wasmWallet.createBoundTransaction, [
+          "num",
+          "deposit",
+          "tx_msg",
+          "fee",
+          "recipient_public_key",
+          "nft_type",
+        ])
+      );
+
+      wallet.createSendBoundTransaction = wrapTx(
+        bindAndConvert(wasmWallet.createSendBoundTransaction, [
+          "amt",
+          "slip1",
+          "slip2",
+          "slip3",
+          "recipient",
+          "tx_msg",
+        ])
+      );
+
+      wallet.createSplitBoundTransaction = wrapTx(
+        bindAndConvert(wasmWallet.createSplitBoundTransaction, [
+          "slip1",
+          "slip2",
+          "slip3",
+          "left",
+          "right",
+          "tx_msg",
+        ])
+      );
+
+      wallet.createMergeBoundTransaction = wrapTx(
+        bindAndConvert(wasmWallet.createMergeBoundTransaction, [
+          "nft_id_hex",
+          "tx_msg",
+        ])
+      );
+
+      wallet.createAtomizeBoundTransaction = wrapTx(
+        bindAndConvert(wasmWallet.createAtomizeBoundTransaction, [
+          "slip1_utxo_key",
+          "slip2_utxo_key",
+          "slip3_utxo_key",
+          "tx_msg",
+        ])
+      );
+
+      wallet.createRemoveBoundTransaction = wrapTx(
+        bindAndConvert(wasmWallet.createRemoveBoundTransaction, [
+          "slip1_utxo_key",
+          "slip2_utxo_key",
+          "slip3_utxo_key",
+          "tx_msg",
+        ])
+      );
+
+    }
+    modified_wallet = wallet;
+
 
     // -------------------------
     // NETWORK
@@ -263,6 +394,8 @@ export default class Saito {
     core.network = {
       api,
 
+      peers: wasmNetwork.peers,
+
       getPeers: async () => {
         const peers = await wasmNetwork.getPeers();
         return peers.map((peer: any) => {
@@ -272,6 +405,12 @@ export default class Saito {
 
       getPeer: async (publicKey: string) => {
         const peer = await wasmNetwork.getPeer(publicKey);
+        if (!peer) return null;
+        return self.factory.createPeer(peer);
+      },
+
+      getPeerByPeerId: async (peer_id: bigint) => {
+        const peer = await wasmNetwork.getPeerByPeerId(peer_id);
         if (!peer) return null;
         return self.factory.createPeer(peer);
       },
@@ -318,7 +457,7 @@ export default class Saito {
       const wallet = await self.getWallet();
       const myPublicKey = await wallet.getPublicKey();
 
-      const tx = await wasm.create_transaction(myPublicKey, BigInt(0), BigInt(0), false);
+      const tx = await modified_wallet.createTransaction(myPublicKey, BigInt(0), BigInt(0), false);
 
       const txObj = self.factory.createTransaction(tx);
       txObj.msg = {
@@ -353,7 +492,7 @@ export default class Saito {
       // ROOT STATE OBJECTS (singletons backed by Rust)
       //
       blockchain: this.blockchain?.instance,
-      wallet: this.wallet?.instance,
+      wallet,
 
       //
       // OBJECT CLASSES (constructors from WASM)
@@ -411,30 +550,61 @@ export default class Saito {
     return Saito.wasmMemory;
   }
 
-  // public addNewSocket(peer: NetworkPeer, public_key: bigint) {
-  //   this.sockets.set(public_key, socket);
-  //   console.log("adding socket : " + public_key + ". total sockets : " + this.sockets.size);
-  // }
+  public disconnectPeer(peer: NetworkPeer) {
+    this.peersByPeerId.delete(peer.peerId);
 
+    if (peer.publicKey) {
+      this.removeSocket(peer.peerId);
+      return;
+    }
+
+    if (peer.socket) {
+      // @ts-ignore
+      if (peer.socket.readyState !== 1 && peer.socket.terminate) {
+        // @ts-ignore
+        peer.socket.terminate();
+      } else {
+        // @ts-ignore
+        peer.socket.close();
+      }
+    }
+  }
   public async addStunPeer(publicKey: string, peerConnection: RTCPeerConnection) {
     await this.stunManager.addStunPeer(publicKey, peerConnection);
+  }
+
+  public getSocketByPeerId(peer_id: bigint): any | null {
+    return this.peersByPeerId.get(peer_id)?.socket || null;
   }
 
   public getSocket(publicKey: string): any | null {
     return this.peers.get(publicKey)?.socket;
   }
 
-  public removeSocket(publicKey: string) {
+  public removeSocket(peer_id: bigint) {
     try {
       console.log(
-        "Removing socket for : " + publicKey + " out of " + this.peers.size + " total sockets"
+        "Removing socket for : " + peer_id + " out of " + this.peers.size + " total sockets"
       );
-      let peer = this.peers.get(publicKey);
-      let socket = peer?.socket;
-      this.peers.delete(publicKey);
-      if (socket) {
-        console.info("closing socket for peer  : " + publicKey);
 
+      const peer = this.peersByPeerId.get(peer_id);
+
+      if (!peer) {
+        return;
+      }
+
+      const socket = peer.socket;
+
+      this.peersByPeerId.delete(peer_id);
+
+      if (peer.publicKey) {
+        const current = this.peers.get(peer.publicKey);
+        if (current?.peerId === peer_id) {
+          this.peers.delete(peer.publicKey);
+        }
+      }
+
+      if (socket) {
         // @ts-ignore
         if (socket.readyState !== 1 && socket.terminate) {
           // @ts-ignore
@@ -444,11 +614,12 @@ export default class Saito {
           socket.close();
         }
       } else {
-        console.info("no socket found for index : " + publicKey);
+        console.info("no socket on peer for peer_id : " + peer_id);
       }
     } catch (error) {
       console.error("failed removing socket", error);
     }
+
   }
 
   public async initialize(configs: any): Promise<any> {
@@ -465,175 +636,25 @@ export default class Saito {
     }
   }
 
-  public async processMsgBufferFromPeer(buffer: Uint8Array, peer: NetworkPeer): Promise<void> {
-    return Saito.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
-  }
-
-  public async createTransaction<T extends Transaction>(
-    publickey = "",
-    amount = BigInt(0),
-    fee = BigInt(0),
-    force_merge = false
-  ): Promise<T> {
-    let wasmTx = await Saito.getLibInstance().create_transaction(
-      publickey,
-      amount,
-      fee,
-      force_merge
-    );
-    let tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = new Date().getTime();
-    return tx;
-  }
-
-  public async createTransactionWithMultiplePayments<T extends Transaction>(
-    keys: string[],
-    amounts: bigint[],
-    fee: bigint
-  ): Promise<T> {
-    let wasmTx = await Saito.getLibInstance().create_transaction_with_multiple_payments(
-      keys,
-      amounts,
-      fee
-    );
-
-    let tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = new Date().getTime();
-
-    return tx;
-  }
-
-  public async createBoundTransaction<T extends Transaction>(
-    num: bigint,
-    deposit: bigint,
-    tx_msg: any,
-    fee: bigint,
-    recipient_public_key: string,
-    nft_type: string
-  ): Promise<T> {
-    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
-
-    let wasmTx = await Saito.getLibInstance().create_bound_transaction(
-      num,
-      deposit,
-      new Uint8Array(tx_msg_arr),
-      fee,
-      recipient_public_key,
-      nft_type
-    );
-
-    let tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = new Date().getTime();
-
-    return tx;
-  }
-
-  public async createSendBoundTransaction<T extends Transaction>(
-    amt: bigint,
-    slip1UtxoKey: string,
-    slip2UtxoKey: string,
-    slip3UtxoKey: string,
-    recipientPublicKey: string,
-    tx_msg: any
-  ): Promise<T> {
-    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
-
-    const wasmTx = await Saito.getLibInstance().create_send_bound_transaction(
-      amt,
-      slip1UtxoKey,
-      slip2UtxoKey,
-      slip3UtxoKey,
-      recipientPublicKey,
-      new Uint8Array(tx_msg_arr)
-    );
-
-    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = Date.now();
-    return tx;
-  }
-
-  public async createAtomizeBoundTransaction<T extends Transaction>(
-    slip1UtxoKey: string,
-    slip2UtxoKey: string,
-    slip3UtxoKey: string,
-    tx_msg: any
-  ): Promise<T> {
-    const tx_msg_arr = Buffer.from(JSON.stringify(tx_msg), "utf-8");
-
-    const wasmTx = await Saito.getLibInstance().create_atomize_bound_transaction(
-      slip1UtxoKey,
-      slip2UtxoKey,
-      slip3UtxoKey,
-      new Uint8Array(tx_msg_arr)
-    );
-
-    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-
-    tx.timestamp = Date.now();
-
-    return tx;
-  }
-
-  public async createSplitBoundTransaction<T extends Transaction>(
-    slip1UtxoKey: string,
-    slip2UtxoKey: string,
-    slip3UtxoKey: string,
-    leftCount: number,
-    rightCount: number,
-    tx_msg: any
-  ): Promise<T> {
-    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
-
-    const wasmTx = await Saito.getLibInstance().create_split_bound_transaction(
-      slip1UtxoKey,
-      slip2UtxoKey,
-      slip3UtxoKey,
-      leftCount,
-      rightCount,
-      new Uint8Array(tx_msg_arr)
-    );
-
-    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = Date.now();
-
-    return tx;
-  }
-
-  public async createMergeBoundTransaction<T extends Transaction>(
-    nftId: string,
-    tx_msg: any
-  ): Promise<T> {
-    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
-
-    const wasmTx = await Saito.getLibInstance().create_merge_bound_transaction(
-      nftId,
-      new Uint8Array(tx_msg_arr)
-    );
-
-    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = Date.now();
-
-    return tx;
-  }
-
-  public async createRemoveBoundTransaction<T extends Transaction>(
-    slip1UtxoKey: string,
-    slip2UtxoKey: string,
-    slip3UtxoKey: string,
-    tx_msg: any // ADD THIS
-  ): Promise<T> {
-    let tx_msg_arr = new Uint8Array(Buffer.from(JSON.stringify(tx_msg), "utf-8"));
-
-    const wasmTx = await Saito.getLibInstance().create_remove_bound_transaction(
-      slip1UtxoKey,
-      slip2UtxoKey,
-      slip3UtxoKey,
-      new Uint8Array(tx_msg_arr) // SEND IT TO WASM
-    );
-
-    const tx = Saito.getInstance().factory.createTransaction(wasmTx) as T;
-    tx.timestamp = Date.now();
-    return tx;
+  public async processMsgBufferFromPeer(
+    buffer: Uint8Array,
+    peer: NetworkPeer
+  ): Promise<void> {
+    // initialize per-peer chain once
+    const inflight = peer._inflight ?? Promise.resolve();
+    peer._inflight = inflight
+      .then(() => {
+        return Saito.getLibInstance()
+          .process_msg_buffer_from_peer(buffer, peer.instance);
+      })
+      .catch((err: any) => {
+        console.error(
+          "process_msg_buffer_from_peer failed for peer:",
+          peer.publicKey,
+          err
+        );
+    });
+    return peer._inflight;
   }
 
   public async getWallet() {

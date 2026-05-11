@@ -5,9 +5,13 @@
 	position: absolute;
 	z-index: 200;
 	bottom: 0;
-	border: 1px solid var(--saito-border-color);
+	border: 1px solid var(--stun-noir-outline-strong);
 	cursor: grab;
-	background: var(--saito-black);
+	background: var(--stun-noir-glass);
+	backdrop-filter: blur(12px);
+	border-radius: 1rem;
+	box-shadow: var(--stun-noir-shadow-audio);
+	color: var(--stun-noir-text);
 }
 
 .audio-box {
@@ -26,7 +30,7 @@
 	top: 50%;
 	transform: translate(-50%, -50%);
 	font-size: larger;
-	color: var(--saito-black);
+	color: var(--stun-noir-icon-dark);
 }
 
 .small-audio-chatbox .stun-identicon-list img {
@@ -47,24 +51,28 @@
 	align-items: center;
 }
 
+.small-audio-chatbox .counter {
+	color: var(--stun-noir-accent);
+}
+
 .small-audio-chatbox .control-panel {
 	gap: 1.5rem;
 }
 
 .audio-box.speaking {
-	border-color: var(--saito-secondary);
+	border-color: var(--stun-noir-accent-strong);
 	animation: speaker-pulse 0.1s infinite;
 }
 
 @keyframes speaker-pulse {
 	0%,
 	100% {
-		box-shadow: 0 0 20px 10px var(--saito-secondary);
-		border-color: var(--saito-secondary);
+		box-shadow: 0 0 20px 10px var(--stun-noir-secondary-glow-pulse);
+		border-color: var(--stun-noir-accent-strong);
 	}
 	50% {
-		box-shadow: 0 0 20px 10px var(--saito-primary);
-		border-color: var(--saito-primary);
+		box-shadow: 0 0 20px 10px var(--stun-noir-accent-glow-pulse);
+		border-color: var(--stun-noir-accent);
 	}
 }
 

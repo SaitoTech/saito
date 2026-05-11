@@ -2,7 +2,7 @@ name: publish
 
 on:
   push:
-    branches: [ master , cifix/20260223_sanka ]
+    branches: [ master , saitocore_peer_refactor ]
 
 permissions:
   id-token: write  # Required for OIDC

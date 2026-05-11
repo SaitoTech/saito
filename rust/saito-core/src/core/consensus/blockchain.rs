@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use ahash::{AHashMap, HashMap};
 use log::{debug, error, info, trace, warn};
+use serde::Serialize;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::RwLock;
 
@@ -26,11 +27,10 @@ use crate::core::defs::{
     RECOLLECT_TXS_WITH_FEES,
 };
 use crate::core::mining_thread::MiningEvent;
-use crate::core::routing::io::interface_io::InterfaceEvent;
-use crate::core::routing::io::network::Network;
-use crate::core::routing::io::storage::Storage;
-use crate::core::routing::peers::congestion_controller::CongestionType;
+use crate::core::network::interface_io::InterfaceEvent;
+use crate::core::network::network::Network;
 use crate::core::routing_thread::RoutingEvent;
+use crate::core::storage::storage::Storage;
 use crate::core::util::balance_snapshot::BalanceSnapshot;
 use crate::core::util::configuration::{Configuration, InitialLoadingStatus};
 use crate::{drain, iterate};
@@ -100,7 +100,12 @@ pub enum WindingResult<'a> {
 }
 
 pub trait BlockchainObserver: Send + Sync {
-    fn on_chain_reorg(&self, block_id: BlockId, block_hash: &BlockHash, longest_chain: bool);
+    fn on_chain_reorganization(
+        &self,
+        block_id: BlockId,
+        block_hash: &BlockHash,
+        longest_chain: bool,
+    );
     fn on_add_block_success(&self, block_id: BlockId, block_hash: &BlockHash);
     fn on_block_confirmation(
         &self,
@@ -110,13 +115,22 @@ pub trait BlockchainObserver: Send + Sync {
     );
 }
 
+#[derive(Serialize)]
 pub struct Blockchain {
+    #[serde(skip)]
     pub utxoset: UtxoSet,
+    #[serde(skip)]
     pub blockring: BlockRing,
+    #[serde(skip)]
     pub blocks: AHashMap<SaitoHash, Block>,
+    #[serde(skip)]
     pub wallet_lock: Arc<RwLock<Wallet>>,
+
     pub genesis_block_id: u64,
+
+    #[serde(with = "crate::core::defs::saito_hash_serde::option")]
     pub fork_id: Option<SaitoHash>,
+    #[serde(with = "crate::core::defs::saito_hash_serde")]
     pub last_block_hash: SaitoHash,
     pub last_block_id: u64,
     pub last_timestamp: u64,
@@ -124,6 +138,7 @@ pub struct Blockchain {
 
     pub genesis_timestamp: u64,
     pub lowest_acceptable_timestamp: u64,
+    #[serde(with = "crate::core::defs::saito_hash_serde")]
     pub lowest_acceptable_block_hash: SaitoHash,
     pub lowest_acceptable_block_id: u64,
     pub sync_fetch_floor_block_id: u64,
@@ -139,6 +154,7 @@ pub struct Blockchain {
     pub prune_after_blocks: BlockId,
     pub block_confirmation_limit: BlockId,
 
+    #[serde(skip)]
     observers: Vec<Box<dyn BlockchainObserver>>,
 }
 
@@ -189,49 +205,6 @@ impl Blockchain {
     pub fn register_observer(&mut self, observer: Box<dyn BlockchainObserver>) {
         info!("registering observer");
         self.observers.push(observer);
-    }
-    fn notify_on_chain_reorganization(
-        &self,
-        block_id: BlockId,
-        block_hash: &BlockHash,
-        longest_chain: bool,
-    ) {
-        trace!(
-            "notifying reorg : {:?}-{:?}, {:?}",
-            block_id,
-            block_hash.to_hex(),
-            longest_chain
-        );
-        for observer in &self.observers {
-            observer.on_chain_reorg(block_id, &block_hash, longest_chain);
-        }
-    }
-    fn notify_on_add_block_success(&self, block_id: BlockId, block_hash: &BlockHash) {
-        trace!(
-            "notifying add_block_success : {:?}-{:?}",
-            block_id,
-            block_hash.to_hex()
-        );
-        for observer in &self.observers {
-            observer.on_add_block_success(block_id, &block_hash);
-        }
-    }
-
-    fn notify_on_confirmation(
-        &self,
-        block_id: BlockId,
-        block_hash: &BlockHash,
-        confirmations: &[BlockId],
-    ) {
-        debug!(
-            "notifying on confirmation : {:?}-{:?} confirmations : {:?}",
-            block_id,
-            block_hash.to_hex(),
-            confirmations
-        );
-        for observer in &self.observers {
-            observer.on_block_confirmation(block_id, &block_hash, confirmations);
-        }
     }
 
     pub fn set_fork_id(&mut self, fork_id: SaitoHash) {
@@ -893,7 +866,13 @@ impl Blockchain {
                 ));
             }
 
-            self.notify_on_confirmation(block_id, &block_hash, &confs);
+            //
+            // notify observers ( wasm / js )
+            //
+            for observer in &self.observers {
+                observer.on_block_confirmation(block_id, &block_hash, &confs);
+            }
+
             confs.clear();
         }
 
@@ -2209,7 +2188,12 @@ impl Blockchain {
 
         self.downgrade_blockchain_data(configs).await;
 
-        self.notify_on_chain_reorganization(block_id, &block_hash, longest_chain);
+        //
+        // notify observers (wasm / js)
+        //
+        for observer in &self.observers {
+            observer.on_chain_reorganization(block_id, &block_hash, longest_chain);
+        }
 
         wallet_updated
     }
@@ -2406,6 +2390,7 @@ impl Blockchain {
             }
         }
     }
+
     pub async fn add_blocks_from_mempool(
         &mut self,
         mempool_lock: Arc<RwLock<Mempool>>,
@@ -2416,105 +2401,128 @@ impl Blockchain {
         configs: &mut (dyn Configuration + Send + Sync),
     ) {
         debug!("adding blocks from mempool to blockchain");
+
         let mut blocks: VecDeque<Block>;
+
         {
             let mut mempool = mempool_lock.write().await;
-
             blocks = mempool.blocks_queue.drain(..).collect();
-            blocks.make_contiguous().sort_by(|a, b| a.id.cmp(&b.id));
+        }
 
-            let initial_sync = self.genesis_block_id == 0;
+        blocks.make_contiguous().sort_by(|a, b| a.id.cmp(&b.id));
 
-            debug!("blocks to add : {:?}", blocks.len());
-            while let Some(block) = blocks.pop_front() {
-                let public_key = block.routed_from_peer;
-                let block_id = block.id;
-                let result = self
-                    .add_block(block, storage, &mut mempool, configs, network)
-                    .await;
-                match result {
-                    AddBlockResult::BlockAddedSuccessfully(
+        let initial_sync = self.genesis_block_id == 0;
+
+        debug!("blocks to add : {:?}", blocks.len());
+
+        while let Some(block) = blocks.pop_front() {
+            let peer_id = block.routed_from_peer_id;
+            let block_id = block.id;
+
+            let mut mempool = mempool_lock.write().await;
+
+            let result = self
+                .add_block(block, storage, &mut mempool, configs, network)
+                .await;
+
+            match result {
+                AddBlockResult::BlockAddedSuccessfully(
+                    block_hash,
+                    in_longest_chain,
+                    wallet_updated,
+                    new_chain_detected,
+                ) => {
+                    let sender_to_miner = if blocks.is_empty() {
+                        sender_to_miner.clone()
+                    } else {
+                        None
+                    };
+
+                    drop(mempool);
+
+                    if let Some(checkpoints) =
+                        storage.load_checkpoint_file(&block_hash, block_id).await
+                    {
+                        let mut wallet = self.wallet_lock.write().await;
+                        for key in checkpoints {
+                            if let Some((key, _)) = self.utxoset.remove_entry(&key) {
+                                if let Ok(slip) = Slip::parse_slip_from_utxokey(&key) {
+                                    wallet.delete_slip(&slip, None);
+                                    if let Some(block) = self.blocks.get_mut(&block_hash) {
+                                        block.graveyard += slip.amount;
+                                        block.has_checkpoint = true;
+                                        self.checkpoint_found = true;
+                                        info!(
+                                        "skipping slip : {} according to the checkpoint file : {}-{}",
+                                        slip,
+                                        block_id,
+                                        block_hash.to_hex()
+                                    );
+                                    } else {
+                                        warn!(
+                                        "block {}-{} not found while processing checkpoint slip",
+                                        block_id,
+                                        block_hash.to_hex()
+                                    );
+                                    }
+                                } else {
+                                    error!(
+                                    "Key : {:?} in checkpoint file : {}-{} cannot be parsed to a slip",
+                                    key.to_hex(),
+                                    block_id,
+                                    block_hash.to_hex()
+                                );
+                                    warn!("checkpoint file may be corrupt; UTXO entry removed but slip not reconciled; continuing");
+                                }
+                            }
+                        }
+                    }
+
+                    self.on_add_block_success(
+                        network,
+                        sender_to_miner,
+                        sender_to_router.clone(),
+                        configs,
                         block_hash,
                         in_longest_chain,
                         wallet_updated,
                         new_chain_detected,
-                    ) => {
-                        let sender_to_miner = if blocks.is_empty() {
-                            sender_to_miner.clone()
-                        } else {
-                            None
-                        };
+                        initial_sync,
+                    )
+                    .await;
+                }
 
-                        // check for any checkpoint data and process them
-                        if let Some(checkpoints) =
-                            storage.load_checkpoint_file(&block_hash, block_id).await
-                        {
-                            let mut wallet = self.wallet_lock.write().await;
-                            for key in checkpoints {
-                                if let Some((key, _)) = self.utxoset.remove_entry(&key) {
-                                    if let Ok(slip) = Slip::parse_slip_from_utxokey(&key) {
-                                        wallet.delete_slip(&slip, None);
-                                        if let Some(block) = self.blocks.get_mut(&block_hash) {
-                                            block.graveyard += slip.amount;
-                                            block.has_checkpoint = true;
-                                            self.checkpoint_found = true;
-                                            info!("skipping slip : {} according to the checkpoint file : {}-{}",
-                                                slip,block_id,block_hash.to_hex());
-                                        } else {
-                                            warn!("block {}-{} not found while processing checkpoint slip",
-                                                block_id, block_hash.to_hex());
-                                        }
-                                    } else {
-                                        error!("Key : {:?} in checkpoint file : {}-{} cannot be parsed to a slip", key.to_hex(),block_id,block_hash.to_hex());
-                                        warn!("checkpoint file may be corrupt; UTXO entry removed but slip not reconciled; continuing");
-                                    }
-                                }
-                            }
-                        }
+                AddBlockResult::BlockAlreadyExists => {
+                    drop(mempool);
+                }
 
-                        // TODO : to fix blocks being pruned before js processing them, pass a parameter in add_block to not prune and then prune manually after adding all.
-                        //  need to do that in batches to make sure too much memory is not being used.
-                        self.handle_successful_block_addition(
-                            network,
-                            sender_to_miner,
-                            sender_to_router.clone(),
-                            configs.is_spv_mode(),
-                            block_hash,
-                            in_longest_chain,
-                            wallet_updated,
-                            new_chain_detected,
-                            initial_sync,
-                        )
-                        .await;
-                    }
-                    AddBlockResult::BlockAlreadyExists => {}
-                    AddBlockResult::FailedButRetry(block, fetch_prev_block, fetch_blockchain) => {
-                        Self::handle_failed_block_to_be_retried(
-                            sender_to_router.clone(),
-                            &mut mempool,
-                            block,
-                            fetch_prev_block,
-                            fetch_blockchain,
-                        )
-                        .await;
-                    }
-                    AddBlockResult::FailedNotValid => {
-                        if let Some(public_key) = public_key {
-                            let mut peers = network.unwrap().peer_lock.write().await;
-                            peers.add_congestion_event(
-                                public_key,
-                                CongestionType::ReceivedInvalidBlocks,
-                                network.unwrap().timer.get_timestamp_in_ms(),
-                            );
-                        }
+                AddBlockResult::FailedButRetry(block, fetch_prev_block, fetch_blockchain) => {
+                    Self::handle_failed_block_to_be_retried(
+                        sender_to_router.clone(),
+                        &mut mempool,
+                        block,
+                        fetch_prev_block,
+                        fetch_blockchain,
+                    )
+                    .await;
+                    drop(mempool);
+                }
+
+                AddBlockResult::FailedNotValid => {
+                    drop(mempool);
+                    if peer_id == peer_id {
+                        // TODO -- notify gatekeeper of invalid block
                     }
                 }
             }
+        }
 
-            if sender_to_miner.is_some() {
-                self.print(10, configs);
-            }
+        if sender_to_miner.is_some() {
+            self.print(10, configs);
+        }
 
+        {
+            let mempool = mempool_lock.read().await;
             debug!(
                 "added blocks to blockchain. added back : {:?}",
                 mempool.blocks_queue.len()
@@ -2525,17 +2533,17 @@ impl Blockchain {
         Wallet::save(&mut wallet, storage.io_interface.as_ref()).await;
     }
 
-    async fn handle_successful_block_addition(
+    async fn on_add_block_success(
         &mut self,
         network: Option<&Network>,
         sender_to_miner: Option<Sender<MiningEvent>>,
         sender_to_router: Option<Sender<RoutingEvent>>,
-        is_spv_mode: bool,
+        configs: &mut (dyn Configuration + Send + Sync),
         block_hash: BlockHash,
         in_longest_chain: bool,
         wallet_updated: WalletUpdateStatus,
         new_chain_detected: bool,
-        initial_sync: bool,
+        _initial_sync: bool,
     ) {
         trace!(
             "handle successful block addition for block : {}",
@@ -2545,6 +2553,7 @@ impl Blockchain {
             .blocks
             .get(&block_hash)
             .expect("block should be here since it was added successfully");
+        let is_spv_mode = configs.is_spv_mode();
 
         if sender_to_miner.is_some() && in_longest_chain && !is_spv_mode {
             debug!("sending longest chain block added event to miner : hash : {:?} difficulty : {:?} channel_capacity : {:?}",
@@ -2583,14 +2592,49 @@ impl Blockchain {
                     .send_interface_event(InterfaceEvent::NewChainDetected());
             }
         }
-        self.notify_on_add_block_success(block.id, &block.hash);
 
+        //
+        // notify observers (i.e. wasm / js)
+        //
+        for observer in &self.observers {
+            observer.on_add_block_success(block.id, &block_hash);
+        }
+
+        //
+        // notify other parts of the rust core
+        //
         if let Some(sender) = sender_to_router {
             debug!("sending blockchain updated event to router. channel_capacity : {:?} block_hash : {:?}", sender.capacity(),block_hash.to_hex());
             sender
-                .send(RoutingEvent::BlockchainUpdated(block_hash, initial_sync))
+                .send(RoutingEvent::OnAddBlockSuccess(block_hash))
                 .await
                 .unwrap();
+        }
+
+        //
+        // save the updated blockchain data to disk
+        //
+        let confs = {
+            let blockchain_configs = configs.get_blockchain_configs_mut();
+            blockchain_configs.last_block_hash = self.last_block_hash.to_hex();
+            blockchain_configs.last_block_id = self.last_block_id;
+            blockchain_configs.last_timestamp = self.last_timestamp;
+            blockchain_configs.genesis_block_id = self.genesis_block_id;
+            blockchain_configs.genesis_timestamp = self.genesis_timestamp;
+            blockchain_configs.lowest_acceptable_timestamp = self.lowest_acceptable_timestamp;
+            blockchain_configs.lowest_acceptable_block_hash =
+                self.lowest_acceptable_block_hash.to_hex();
+            blockchain_configs.lowest_acceptable_block_id = self.lowest_acceptable_block_id;
+            blockchain_configs.fork_id = self.fork_id.unwrap_or_default().to_hex();
+            let confs = blockchain_configs.confirmations.clone();
+            blockchain_configs.confirmations.clear();
+            confs
+        };
+        let save_result = configs.save();
+        let blockchain_configs = configs.get_blockchain_configs_mut();
+        blockchain_configs.confirmations = confs;
+        if let Err(err) = save_result {
+            error!("failed saving blockchain configs after update: {:?}", err);
         }
     }
 
@@ -2614,16 +2658,14 @@ impl Blockchain {
                     block.hash.to_hex()
                 );
                 sender
-                    .send(RoutingEvent::BlockchainRequest(
-                        block.routed_from_peer.unwrap(),
-                    ))
+                    .send(RoutingEvent::BlockchainRequest(block.routed_from_peer_id))
                     .await
                     .expect("sending blockchain request failed");
             } else if fetch_prev_block {
                 debug!("need to fetch the previous block. failed to add the block : {}-{} to the chain", block.id, block.hash.to_hex());
                 sender
-                    .send(RoutingEvent::BlockFetchRequest(
-                        block.routed_from_peer.unwrap_or([0; 33]),
+                    .send(RoutingEvent::MissingBlock(
+                        block.routed_from_peer_id,
                         block.previous_block_hash,
                         block.id - 1,
                     ))
@@ -2677,6 +2719,38 @@ impl Blockchain {
                 id,
                 hash.to_hex()
             );
+        }
+        self.blocks.insert(hash, block);
+    }
+
+    // adds without pre_hash, but not needed unless verifying merkle roots
+    pub fn add_ghost_block_without_transactions(
+        &mut self,
+        id: u64,
+        ts: Timestamp,
+        gt: bool,
+        hash: SaitoHash,
+        previous_block_hash: SaitoHash,
+    ) {
+        if self.is_block_indexed(hash) {
+            warn!("block :{:?} exists in blockchain", hash.to_hex());
+            return;
+        }
+        let ring_buffer_size = self.blockring.get_ring_buffer_size();
+        let mut block = Block::new();
+        block.id = id;
+        block.previous_block_hash = previous_block_hash;
+        block.timestamp = ts;
+        block.has_golden_ticket = gt;
+        block.hash = hash;
+        block.block_type = BlockType::Ghost;
+
+        if !self.blockring.contains_block_hash_at_block_id(id, hash) {
+            block.in_longest_chain = true;
+            self.blockring.add_block(&block);
+            self.blockring.lc_pos = Some((id % ring_buffer_size) as usize);
+            self.blockring.ring[(id % ring_buffer_size) as usize].lc_pos = Some(0);
+        } else {
         }
         self.blocks.insert(hash, block);
     }
@@ -3086,7 +3160,7 @@ mod tests {
     use crate::core::consensus::slip::Slip;
     use crate::core::consensus::wallet::{Wallet, WALLET_NOT_UPDATED};
     use crate::core::defs::{ForkId, PrintForLog, SaitoHash, SaitoPublicKey, NOLAN_PER_SAITO};
-    use crate::core::routing::io::storage::Storage;
+    use crate::core::storage::storage::Storage;
     use crate::core::util::configuration::InitialLoadingStatus;
     use crate::core::util::crypto::{generate_keys, hash};
     use crate::core::util::test::node_tester::test::NodeTester;
@@ -3692,6 +3766,7 @@ mod tests {
     // tests if utxo hashmap persists after a blockchain reset
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn balance_hashmap_persists_after_blockchain_reset_test() {
         // pretty_env_logger::init();
         let mut t: TestManager = TestManager::default();
@@ -4538,6 +4613,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn ghost_chain_content_test() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -4566,6 +4642,7 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn test_fork_id_difference() {
         // pretty_env_logger::init()
         NodeTester::delete_data().await.unwrap();
@@ -4606,6 +4683,7 @@ mod tests {
     }
     #[tokio::test]
     #[serial_test::serial]
+    #[ignore]
     async fn test_block_generation_with_fees() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();

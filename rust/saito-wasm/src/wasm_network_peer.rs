@@ -1,51 +1,58 @@
 use js_sys::JsString;
 use saito_core::core::defs::PrintForLog;
-use saito_core::core::msg::message::Message;
-use saito_core::core::routing::peers::network_peer::NetworkPeer;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct WasmNetworkPeer {
-    peer: NetworkPeer,
+    peer_id: u64,
 }
 
 #[wasm_bindgen]
 impl WasmNetworkPeer {
-    pub fn get_public_key(&self) -> JsString {
-        if self.peer.public_key.is_none() {
-            return "".into();
-        }
-        self.peer.public_key.unwrap().to_base58().into()
+    pub fn get_id(&self) -> u64 {
+        self.peer_id
     }
-    pub fn get_url(&self) -> JsString {
-        if self.peer.url.is_none() {
+
+    pub async fn get_public_key(&self) -> JsString {
+        let mut saito = crate::saitowasm::SAITO.lock().await;
+        let saito = saito.as_mut().unwrap();
+
+        let peers = saito.routing_thread.network.peer_lock.read().await;
+
+        let Some(peer) = peers.get_peer_by_id(self.peer_id) else {
             return "".into();
+        };
+
+        match peer.public_key {
+            Some(pk) => pk.to_base58().into(),
+            None => "".into(),
         }
-        self.peer.url.as_ref().unwrap().clone().into()
+    }
+    pub async fn get_url(&self) -> JsString {
+        let mut saito = crate::saitowasm::SAITO.lock().await;
+        let saito = saito.as_mut().unwrap();
+
+        let peers = saito.routing_thread.network.peer_lock.read().await;
+
+        let Some(peer) = peers.get_peer_by_id(self.peer_id) else {
+            return "".into();
+        };
+
+        match &peer.url {
+            Some(url) => url.clone().into(),
+            None => "".into(),
+        }
     }
 
     #[wasm_bindgen(constructor)]
-    pub fn new_peer(url: Option<String>) -> WasmNetworkPeer {
-        Self {
-            peer: NetworkPeer::new(url),
-        }
-    }
-    pub async fn get_handshake_challenge_buffer(&mut self) -> js_sys::Uint8Array {
-        let challenge = self.peer.get_handshake_challenge_buffer().await;
-        let buffer = Message::HandshakeChallenge(challenge).serialize();
-        js_sys::Uint8Array::from(buffer.as_slice())
+    pub fn new_peer(peer_id: u64) -> WasmNetworkPeer {
+        Self { peer_id }
     }
 }
 
 impl WasmNetworkPeer {
-    pub fn new(peer: NetworkPeer) -> WasmNetworkPeer {
-        Self { peer }
-    }
-    pub fn get_peer(&self) -> &NetworkPeer {
-        &self.peer
-    }
-    pub fn get_peer_mut(&mut self) -> &mut NetworkPeer {
-        &mut self.peer
+    pub fn new(peer_id: u64) -> WasmNetworkPeer {
+        Self { peer_id }
     }
 }

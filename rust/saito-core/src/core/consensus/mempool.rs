@@ -17,9 +17,9 @@ use crate::core::consensus::transaction::{Transaction, TransactionType};
 use crate::core::consensus::wallet::Wallet;
 use crate::core::defs::SaitoUTXOSetKey;
 use crate::core::defs::{
-    Currency, PrintForLog, SaitoHash, SaitoPublicKey, SaitoSignature, StatVariable, Timestamp,
+    format_timestamp, Currency, PrintForLog, SaitoHash, SaitoPublicKey, SaitoSignature, Timestamp,
 };
-use crate::core::routing::io::storage::Storage;
+use crate::core::storage::storage::Storage;
 use crate::core::util::configuration::Configuration;
 use crate::core::util::crypto::hash;
 use crate::iterate;
@@ -128,6 +128,10 @@ impl Mempool {
 
         // validate
         if tx_valid {
+            info!(
+                "[TRANSACTION - RECEIPT] - transaction passed mempool pre-check tx_sig={}",
+                transaction.signature.to_hex()
+            );
             self.add_transaction(transaction).await;
         } else {
             debug!(
@@ -179,6 +183,11 @@ impl Mempool {
                 let utxo_key = input.utxoset_key;
                 self.utxo_map.insert(utxo_key, 1);
             }
+            info!(
+                "[TRANSACTION - RECEIPT] - transaction added to mempool tx_sig={} mempool_tx_count={}",
+                transaction.signature.to_hex(),
+                self.transactions.len()
+            );
         }
     }
 
@@ -205,8 +214,8 @@ impl Mempool {
             if current_timestamp <= previous_block_timestamp {
                 warn!(
                     "current timestamp = {:?} should be larger than previous block timestamp : {:?}",
-                    StatVariable::format_timestamp(current_timestamp),
-                    StatVariable::format_timestamp(previous_block_timestamp)
+                    format_timestamp(current_timestamp),
+                    format_timestamp(previous_block_timestamp)
                 );
                 return None;
             }
@@ -501,8 +510,7 @@ mod tests {
             {
                 let mut wallet = wallet_lock.write().await;
 
-                let (inputs, outputs) =
-                    wallet.generate_slips(720_000, None, latest_block_id, genesis_period);
+                let (inputs, outputs) = wallet.generate_slips(720_000);
                 tx.from = inputs;
                 tx.to = outputs;
                 // _i prevents sig from being identical during test

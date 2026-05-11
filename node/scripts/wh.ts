@@ -1,11 +1,11 @@
 import StorageCore from '../lib/saito/core/storage-core';
-import { Saito } from '../apps/core';
+import { Saito } from '../apps/export';
 import fs from 'fs-extra';
 
 import mods_config from '../config/modules.config';
 import * as blake3 from 'blake3';
 import S, { initialize as initS } from 'saito-js/index.node';
-import { NodeSharedMethods } from '../lib/saito/core/server';
+import { ServerSharedMethods } from 'saito-js/shared_methods.server';
 import Factory from '../lib/saito/factory';
 import { LogLevel } from 'saito-js/saito';
 import Wallet from '../lib/saito/wallet';
@@ -36,7 +36,7 @@ async function initCLI() {
 
 	await initS(
 		app.options,
-		new NodeSharedMethods(app),
+		new ServerSharedMethods(app),
 		new Factory(),
 		privateKey,
 		LogLevel.Info,

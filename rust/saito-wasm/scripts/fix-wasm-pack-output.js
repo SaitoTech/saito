@@ -1,110 +1,65 @@
 const fs = require("fs");
 const path = require("path");
 
-const target = process.argv[2];
+function patchMsgHandlerForWeb(filePath) {
+  const original = fs.readFileSync(filePath, "utf8");
+  let updated = original;
 
-if (!target || !["web", "node"].includes(target)) {
-  console.error("usage: node scripts/fix-wasm-pack-output.js <web|node>");
-  process.exit(1);
+  // Current guarded CommonJS block.
+  updated = updated.replace(
+    /\nif\s*\(\s*typeof module !== \"undefined\"\s*&&\s*typeof exports !== \"undefined\"\s*&&\s*typeof module\.exports !== \"undefined\"\s*\)\s*\{\s*module\.exports\s*=\s*\{\s*MsgHandler\s*\};\s*\}\n/m,
+    "\n"
+  );
+
+  // Previous guarded CommonJS block variant.
+  updated = updated.replace(
+    /\nconst canAssignCommonJsExports = \(\(\) => \{[\s\S]*?\}\)\(\);\s*\n\s*if \(canAssignCommonJsExports\) \{\s*module\.exports = \{ MsgHandler \};\s*\}\n/m,
+    "\n"
+  );
+
+  // Legacy simple CommonJS block variant.
+  updated = updated.replace(
+    /\nif \(typeof module !== \"undefined\"\) \{\s*module\.exports = \{ MsgHandler \};\s*\}\n/m,
+    "\n"
+  );
+
+  if (updated !== original) {
+    fs.writeFileSync(filePath, updated, "utf8");
+    return true;
+  }
+
+  return false;
 }
 
-const projectRoot = path.resolve(__dirname, "..");
-const rootPackagePath = path.join(projectRoot, "package.json");
-const rootPackage = JSON.parse(fs.readFileSync(rootPackagePath, "utf8"));
-const pkgDir = path.join(projectRoot, "pkg", target);
-const pkgPackagePath = path.join(pkgDir, "package.json");
+function run() {
+  const snippetsDir = path.join(__dirname, "..", "pkg", "web", "snippets");
 
-if (!fs.existsSync(pkgPackagePath)) {
-  console.error(`missing wasm-pack output: ${pkgPackagePath}`);
-  process.exit(1);
-}
+  if (!fs.existsSync(snippetsDir)) {
+    console.log("No web snippets directory found; skipping wasm web snippet patch.");
+    return;
+  }
 
-const pkgPackage = JSON.parse(fs.readFileSync(pkgPackagePath, "utf8"));
-const normalizedPackage = {
-  name: rootPackage.name,
-  version: rootPackage.version,
-  files: ["index_bg.wasm", "index.js", "index.d.ts", "snippets/**/*"],
-  types: "index.d.ts",
-  dependencies: pkgPackage.dependencies || {},
-};
+  let scanned = 0;
+  let patched = 0;
 
-if (target === "web") {
-  normalizedPackage.module = "index.js";
-  normalizedPackage.sideEffects = ["./snippets/*"];
-} else {
-  normalizedPackage.main = "index.js";
-}
+  for (const entry of fs.readdirSync(snippetsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
 
-fs.writeFileSync(
-  pkgPackagePath,
-  `${JSON.stringify(normalizedPackage, null, 2)}\n`,
-);
+    const msgHandlerPath = path.join(snippetsDir, entry.name, "js", "msg_handler.js");
+    if (!fs.existsSync(msgHandlerPath)) {
+      continue;
+    }
 
-const npmIgnorePath = path.join(pkgDir, ".npmignore");
-fs.writeFileSync(
-  npmIgnorePath,
-  [
-    "*",
-    "!index.d.ts",
-    "!index.js",
-    "!index_bg.wasm",
-    "!index_bg.wasm.d.ts",
-    "!package.json",
-    "!snippets/",
-    "!snippets/**",
-    "",
-  ].join("\n"),
-);
-
-if (target === "web") {
-  const snippetsDir = path.join(pkgDir, "snippets");
-
-  if (fs.existsSync(snippetsDir)) {
-    const replacement = "\nexport { MsgHandler };\n";
-    const commonJsFooter = [
-      "\nexport { MsgHandler };\n",
-      '\nif (typeof module !== "undefined") {\n',
-      "  module.exports = { MsgHandler };\n",
-      "}\n",
-      "\n",
-      "//\n",
-      "// FEB 12, 2026 - above replaces this\n",
-      "// module.exports = exports = {MsgHandler};\n",
-      "//\n",
-      "\n",
-      '// if (typeof exports === "undefined") {\n',
-      "//     module.exports = {MsgHandler};\n",
-      "// } else {\n",
-      "//     exports = {MsgHandler};\n",
-      "// }\n",
-      "// export {MsgHandler};\n",
-    ].join("");
-
-    for (const snippetFolder of fs.readdirSync(snippetsDir, {
-      withFileTypes: true,
-    })) {
-      if (!snippetFolder.isDirectory()) {
-        continue;
-      }
-
-      const snippetPath = path.join(
-        snippetsDir,
-        snippetFolder.name,
-        "js",
-        "msg_handler.js",
-      );
-
-      if (!fs.existsSync(snippetPath)) {
-        continue;
-      }
-
-      const content = fs.readFileSync(snippetPath, "utf8");
-      if (content.includes(commonJsFooter)) {
-        fs.writeFileSync(
-          snippetPath,
-          content.replace(commonJsFooter, replacement),
-        );
-      }
+    scanned += 1;
+    if (patchMsgHandlerForWeb(msgHandlerPath)) {
+      patched += 1;
+      console.log(`Patched browser snippet: ${msgHandlerPath}`);
     }
   }
+
+  console.log(`Scanned ${scanned} web msg_handler snippet(s), patched ${patched}.`);
 }
+
+run();

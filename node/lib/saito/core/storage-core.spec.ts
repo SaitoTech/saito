@@ -9,7 +9,6 @@
 // import Binary from "../binary";
 // import Wallet from "../wallet";
 // import Block from "../block";
-// import hashLoader from "../../../apps/core/hash-loader";
 //
 // test("write_read_empty_block_to_file", async () => {
 //   fs.emptyDirSync("../data/blocks");

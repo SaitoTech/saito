@@ -57,7 +57,7 @@ export default class Wallet extends SaitoWallet {
     if (publicKey == '') {
       publicKey = await this.getPublicKey();
     }
-    return S.getInstance().createTransaction(publicKey, amount, fee, force_merge);
+    return this.app.core.wallet.createTransaction(publicKey, amount, fee, force_merge);
   }
 
   public async createUnsignedTransactionWithMultiplePayments(
@@ -65,7 +65,7 @@ export default class Wallet extends SaitoWallet {
     amounts: bigint[],
     fee: bigint = this.default_fee
   ): Promise<Transaction> {
-    return S.getInstance().createTransactionWithMultiplePayments(keys, amounts, fee);
+    return this.app.core.wallet.createTransactionWithMultiplePayments(keys, amounts, fee);
   }
 
   public async getNFTList(): Promise<String> {
@@ -117,7 +117,9 @@ export default class Wallet extends SaitoWallet {
         });
       }
 
+      //
       // Check if I have a net change in slips amounts...
+      //
       shouldAffixCallbackToModule(modname, tx = null) {
         if (this.app.BROWSER) {
           if (tx.isTo(this.address) || tx.isFrom(this.address)) {
@@ -343,11 +345,14 @@ export default class Wallet extends SaitoWallet {
       // Pull a ledger of payments from an archive (explorerc)
       //
       async checkHistory(callback) {
-        // Parse return results from Memento
+        console.log(
+          `DISABLED - MEMENTO - we do not watch to check balance every time on WalletUpdate`
+        );
         console.log(
           `Checking for missed SAITO transactions since ${new Date(this.history_update_ts)}`
         );
 
+        /*****
         const mycallback = (rows) => {
           let timestamp = 0;
           if (rows?.length) {
@@ -402,6 +407,7 @@ export default class Wallet extends SaitoWallet {
           },
           mycallback
         );
+*****/
       }
 
       async sendPayment(
@@ -410,6 +416,9 @@ export default class Wallet extends SaitoWallet {
         unique_hash: string = '',
         memo: string = ''
       ) {
+        console.info(
+          `[TRANSACTION - SENDING] - sendPayment invoked amount=${amount} to=${to_address}`
+        );
         let nolan_amount = this.app.wallet.convertSaitoToNolan(amount);
 
         if (!this.pending_balance) {
@@ -423,15 +432,20 @@ export default class Wallet extends SaitoWallet {
         if (this.pending_balance < 0) {
           throw new Error('sendPayment: Attempting to send payment with insufficient balance');
         }
+        console.info(
+          `[TRANSACTION - SENDING] - balance check passed pending_balance=${this.pending_balance}`
+        );
 
         if (!this.validateAddress(to_address)) {
           throw new Error('sendPayment: Attempting to send payment to invalid public key');
         }
+        console.info(`[TRANSACTION - SENDING] - recipient address validated`);
 
         let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
           to_address,
           nolan_amount
         );
+        console.info(`[TRANSACTION - SENDING] - unsigned transaction created`);
 
         newtx.msg = {
           module: this.name,
@@ -442,9 +456,13 @@ export default class Wallet extends SaitoWallet {
           hash: unique_hash,
           memo
         };
+        console.info(`[TRANSACTION - SENDING] - transaction message payload attached`);
 
+        console.info(`[TRANSACTION - SENDING] - signing/encrypting transaction`);
         await this.app.wallet.signAndEncryptTransaction(newtx);
+        console.info(`[TRANSACTION - SENDING] - transaction signed signature=${newtx.signature}`);
 
+        console.info(`[TRANSACTION - SENDING] - propagating transaction to network`);
         await this.app.network.propagateTransaction(newtx);
 
         console.log(
@@ -1341,16 +1359,47 @@ export default class Wallet extends SaitoWallet {
   }
 
   public async fetchBalanceSnapshot(key: string) {
+    const balanceUrl = '/balance/' + key;
     try {
       console.log('fetching balance snapshot for key : ' + key);
-      let response = await fetch('/balance/' + key);
+      console.log('[BALANCE FETCH] requesting snapshot URL:', balanceUrl);
+      let response = await fetch(balanceUrl);
+      if (!response.ok) {
+        console.log(
+          `[BALANCE FETCH] non-OK response status=${response.status} statusText=${response.statusText} url=${balanceUrl}`
+        );
+      }
       let data = await response.text();
       let snapshot = BalanceSnapshot.fromString(data);
       if (snapshot) {
+        const expectedBalance = snapshot.rows.reduce((total, row) => {
+          const cols = row.split(' ');
+          if (cols.length < 5) {
+            return total;
+          }
+          try {
+            return total + BigInt(cols[4]);
+          } catch (_err) {
+            return total;
+          }
+        }, BigInt(0));
+        console.log(
+          `[BALANCE FETCH] snapshot parsed file=${snapshot.file_name} rows=${snapshot.rows.length} expected_balance_nolan=${expectedBalance.toString()}`
+        );
+        const beforeSlipCount = (await this.getSlips()).length;
         await S.getInstance().updateBalanceFrom(snapshot);
+        const afterSlipCount = (await this.getSlips()).length;
+        console.log(
+          `[BALANCE FETCH] wallet slips updated before=${beforeSlipCount} after=${afterSlipCount} added=${Math.max(
+            0,
+            afterSlipCount - beforeSlipCount
+          )}`
+        );
+      } else {
+        console.log(`[BALANCE FETCH] snapshot parse failed url=${balanceUrl}`);
       }
     } catch (error) {
-      // console.error(error);
+      console.log('[BALANCE FETCH] request/update failed:', error);
     }
   }
 
@@ -1747,7 +1796,7 @@ export default class Wallet extends SaitoWallet {
     receipient_publicKey,
     nft_type
   ): Promise<Transaction> {
-    return S.getInstance().createBoundTransaction(
+    return this.app.core.wallet.createBoundTransaction(
       num,
       deposit,
       tx_msg,
@@ -1766,7 +1815,7 @@ export default class Wallet extends SaitoWallet {
   public async createSendNFTTransaction(nft, receipient_publicKey) {
     await nft.fetchTransaction();
 
-    return S.getInstance().createSendBoundTransaction(
+    return this.app.core.wallet.createSendBoundTransaction(
       BigInt(nft.amount),
       nft.slip1.utxo_key,
       nft.slip2.utxo_key,
@@ -1784,7 +1833,7 @@ export default class Wallet extends SaitoWallet {
   public async createSplitNFTTransaction(nft, leftCount, rightCount): Promise<Transaction> {
     await nft.fetchTransaction();
 
-    return S.getInstance().createSplitBoundTransaction(
+    return this.app.core.wallet.createSplitBoundTransaction(
       nft.slip1.utxo_key,
       nft.slip2.utxo_key,
       nft.slip3.utxo_key,
@@ -1802,7 +1851,7 @@ export default class Wallet extends SaitoWallet {
   public async createAtomizeNFTTransaction(nft: any): Promise<Transaction> {
     await nft.fetchTransaction();
 
-    return S.getInstance().createAtomizeBoundTransaction(
+    return this.app.core.wallet.createAtomizeBoundTransaction(
       nft.slip1.utxo_key,
       nft.slip2.utxo_key,
       nft.slip3.utxo_key,
@@ -1818,7 +1867,7 @@ export default class Wallet extends SaitoWallet {
   public async createMergeNFTTransaction(nft): Promise<Transaction> {
     await nft.fetchTransaction();
 
-    return S.getInstance().createMergeBoundTransaction(nft.id, nft.txmsg);
+    return this.app.core.wallet.createMergeBoundTransaction(nft.id, nft.txmsg);
   }
 
   /**
@@ -1828,7 +1877,7 @@ export default class Wallet extends SaitoWallet {
    *
    */
   public async createRemoveNFTTransaction(nft) {
-    return S.getInstance().createRemoveBoundTransaction(
+    return this.app.core.wallet.createRemoveBoundTransaction(
       nft.slip1.utxo_key,
       nft.slip2.utxo_key,
       nft.slip3.utxo_key,

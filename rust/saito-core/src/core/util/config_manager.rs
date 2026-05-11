@@ -1,12 +1,10 @@
 use crate::core::defs::{BlockId, SaitoHash};
-use crate::core::routing::io::interface_io::InterfaceIO;
-use crate::core::routing::peers::congestion_controller::CongestionStatsDisplay;
+use crate::core::network::interface_io::InterfaceIO;
 use crate::core::util::configuration::BlockchainConfig;
 use log::{error, warn};
 use std::io::Error;
 
 pub const BLOCKCHAIN_CONFIG_PATH: &str = "./data/state/blockchain.json";
-pub const CONGESTION_CONFIG_PATH: &str = "./data/state/congestion.json";
 
 pub const CONFIRMATION_CONFIG_PATH: &str = "./data/state/confirmations.json";
 pub struct ConfigManager {}
@@ -23,20 +21,6 @@ impl ConfigManager {
             .await
             .or_else(|e| {
                 error!("Failed to write blockchain config: {}", e);
-                Err(e)
-            })
-    }
-    pub async fn write_congestion_data(
-        congestion_data: &CongestionStatsDisplay,
-        io_handler: &(dyn InterfaceIO + Send + Sync),
-    ) -> Result<(), Error> {
-        io_handler.ensure_directory_exists("./data/state")?;
-        let json_bytes = serde_json::to_vec_pretty(&congestion_data)?;
-        io_handler
-            .write_value(CONGESTION_CONFIG_PATH, &json_bytes)
-            .await
-            .or_else(|e| {
-                error!("Failed to write congestion data: {}", e);
                 Err(e)
             })
     }
@@ -73,30 +57,6 @@ impl ConfigManager {
 
         let configs = serde_json::from_slice::<BlockchainConfig>(&buffer).or_else(|e| {
             error!("Error reading config file: {}", BLOCKCHAIN_CONFIG_PATH);
-            error!("{}", e);
-            Err(e)
-        })?;
-
-        Ok(configs)
-    }
-    pub async fn read_congestion_data(
-        io_handler: &(dyn InterfaceIO + Send + Sync),
-    ) -> Result<CongestionStatsDisplay, Error> {
-        if !io_handler.is_existing_file(CONGESTION_CONFIG_PATH).await {
-            return Ok(Default::default());
-        }
-        io_handler.ensure_directory_exists("./data/state")?;
-        let buffer = io_handler
-            .read_value(CONGESTION_CONFIG_PATH)
-            .await
-            .or_else(|e| {
-                warn!("Error reading config file: {}", CONGESTION_CONFIG_PATH);
-                error!("{}", e);
-                Err(e)
-            })?;
-
-        let configs = serde_json::from_slice::<CongestionStatsDisplay>(&buffer).or_else(|e| {
-            error!("Error reading config file: {}", CONGESTION_CONFIG_PATH);
             error!("{}", e);
             Err(e)
         })?;
