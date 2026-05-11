@@ -163,7 +163,10 @@ font imports
   --saito-overlay-backdrop: var(--background-color-shim-normal);
   --saito-overlay-backdrop-stacked: var(--background-color-shim-light);
   --saito-overlay-panel-bg: var(--saito-background-color);
-  --saito-overlay-panel-background: var(--palette-overlay-gradient);
+  --saito-overlay-panel-surface-low: var(--palette-bg);
+  --saito-overlay-panel-surface: color-mix(in srgb, var(--palette-bg) 92%, var(--saito-black));
+  --saito-overlay-panel-background:
+    linear-gradient(145deg, var(--saito-overlay-panel-surface-low), var(--saito-overlay-panel-surface));
   --saito-overlay-panel-border: color-mix(in srgb, var(--border-color-general-dividers) 76%, transparent);
   --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--saito-white) 36%, transparent);
   --saito-overlay-panel-shadow:

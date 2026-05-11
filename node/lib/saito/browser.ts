@@ -713,13 +713,19 @@ class Browser {
     const QRCode = require('./../helpers/qrcode');
     let obj = document.getElementById(qrid);
 
-    if (typeof data === 'object') {
-      data.width = 256;
-      data.height = 256;
-      data.colorDark = '#000000';
-      data.colorLight = '#ffffff';
-      data.correctLevel = QRCode.CorrectLevel.H;
-    }
+    data =
+      typeof data === 'object' && data !== null
+        ? data
+        : {
+            text: data
+          };
+
+    data.width = data.width || 256;
+    data.height = data.height || 256;
+    data.colorDark = data.colorDark || '#000000';
+    data.colorLight = data.colorLight || '#ffffff';
+    data.correctLevel = data.correctLevel || QRCode.CorrectLevel.H;
+    data.useSVG = true;
 
     console.debug('browser [generateQRCode]: ', data);
 

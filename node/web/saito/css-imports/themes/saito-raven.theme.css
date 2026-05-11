@@ -20,7 +20,7 @@ html[data-theme='raven'] {
   --palette-surface-gradient:
     linear-gradient(180deg, color-mix(in srgb, var(--palette-primary) 8%, var(--palette-bg)), color-mix(in srgb, var(--saito-black) 10%, var(--palette-bg)));
   --palette-overlay-gradient:
-    linear-gradient(180deg, color-mix(in srgb, var(--palette-primary) 10%, var(--palette-bg)), color-mix(in srgb, var(--saito-black) 8%, var(--palette-bg)));
+    linear-gradient(145deg, var(--saito-overlay-panel-surface-low), var(--saito-overlay-panel-surface));
 
   --saito-background-color: var(--palette-bg);
   --saito-background-color-inverse: var(--palette-bg-inverse);
@@ -34,6 +34,8 @@ html[data-theme='raven'] {
   --saito-surface-inverse: var(--palette-surface-inverse);
   --saito-surface-inverse-text: var(--saito-font-color-inverse);
   --saito-overlay-panel-bg: color-mix(in srgb, var(--saito-background-color) 92%, var(--saito-white));
+  --saito-overlay-panel-surface-low: color-mix(in srgb, var(--palette-primary) 10%, var(--palette-bg));
+  --saito-overlay-panel-surface: color-mix(in srgb, var(--saito-black) 8%, var(--palette-bg));
   --saito-overlay-panel-background: var(--palette-overlay-gradient);
   --saito-overlay-panel-border: color-mix(in srgb, var(--palette-primary) 28%, var(--palette-outline-strong));
   --saito-overlay-panel-border-highlight: color-mix(in srgb, var(--palette-primary) 20%, transparent);

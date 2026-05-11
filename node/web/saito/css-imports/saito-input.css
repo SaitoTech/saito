@@ -160,7 +160,7 @@ emoji-picker {
 .saito-input-large .selection-box-tabs {
 	width: 14rem;
 	border-top: unset;
-	background-color: unset;
+	background: transparent;
 	align-items: flex-end;
 	justify-content: space-between;
 }
