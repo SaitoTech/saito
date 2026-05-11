@@ -1807,12 +1807,9 @@ export default class Wallet extends SaitoWallet {
   }
 
   /**
-   *
-   *  Send an NFT
-   *
-   *
+   * Advanced / manual shard NFT transfer (legacy bound-transaction path).
    */
-  public async createSendNFTTransaction(nft, receipient_publicKey) {
+  public async createNFTShardTransaction(nft, receipient_publicKey) {
     await nft.fetchTransaction();
 
     return this.app.core.wallet.createSendBoundTransaction(
@@ -1822,6 +1819,34 @@ export default class Wallet extends SaitoWallet {
       nft.slip3.utxo_key,
       receipient_publicKey,
       nft.txmsg
+    );
+  }
+
+  /**
+   * Default amount-based NFT send (wallet selects shards; tx_msg carried on transaction.data).
+   */
+  public async createNFTTransaction(
+    nft,
+    recipient_public_key,
+    amount,
+    fee = BigInt(0),
+    saito_deposit = BigInt(0),
+    tx_msg?: object | null
+  ) {
+    await nft.fetchTransaction();
+
+    const msg =
+      tx_msg !== undefined && tx_msg !== null
+        ? tx_msg
+        : JSON.parse(JSON.stringify(nft.txmsg || {}));
+
+    return this.app.core.wallet.createNFTTransaction(
+      recipient_public_key,
+      BigInt(amount),
+      nft.id,
+      fee,
+      saito_deposit,
+      msg
     );
   }
 

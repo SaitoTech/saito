@@ -576,7 +576,7 @@ class AssetStore extends ModTemplate {
 		//
 		// create the NFT transaction
 		//
-		let nfttx = await this.app.wallet.createSendNFTTransaction(nft, receiver, 'AssetStore');
+		let nfttx = await this.app.wallet.createNFTShardTransaction(nft, receiver, 'AssetStore');
 		await nfttx.sign();
 
 		//
@@ -700,7 +700,7 @@ class AssetStore extends ModTemplate {
 					// create the return transfer
 					//
 					console.log('about se send nft to: ' + seller);
-					let delist_nfttx = await this.app.wallet.createSendNFTTransaction(nft, seller);
+					let delist_nfttx = await this.app.wallet.createNFTShardTransaction(nft, seller);
 
 					console.log('after we have created this tx...');
 
@@ -718,7 +718,7 @@ class AssetStore extends ModTemplate {
 			}
 
 			//
-			let nfttx = await this.app.wallet.createSendNFTTransaction(nft, receiver, 'AssetStore');
+			let nfttx = await this.app.wallet.createNFTShardTransaction(nft, receiver, 'AssetStore');
 			await nfttx.sign();
 		} catch (err) {
 			// console.error('receiveDelistAssetTransaction error:', err);
@@ -903,7 +903,7 @@ class AssetStore extends ModTemplate {
 		//
 		// transfer NFT to buyer
 		//
-		let nft_tx = await this.app.wallet.createSendNFTTransaction(nft, buyer);
+		let nft_tx = await this.app.wallet.createNFTShardTransaction(nft, buyer);
 
 		//
 		// if nft_tx.msg is null, that means we haven't actually put the NFT into the

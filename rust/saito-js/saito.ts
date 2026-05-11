@@ -344,6 +344,17 @@ export default class Saito {
         ])
       );
 
+      wallet.createNFTTransaction = wrapTx(
+        bindAndConvert(wasmWallet.createNFTTransaction, [
+          "recipient_public_key",
+          "nft_amount",
+          "nft_uuid",
+          "fee",
+          "saito_deposit",
+          "tx_msg",
+        ])
+      );
+
       wallet.createRemoveBoundTransaction = wrapTx(
         bindAndConvert(wasmWallet.createRemoveBoundTransaction, [
           "slip1_utxo_key",

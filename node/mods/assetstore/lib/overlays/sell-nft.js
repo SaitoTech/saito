@@ -164,7 +164,7 @@ class SellNFTOverlay extends NFTDetailsOverlay {
         try {
           // create the NFT transaction
           //
-          let nfttx = await this.app.wallet.createSendNFTTransaction(
+          let nfttx = await this.app.wallet.createNFTShardTransaction(
             this.nft,
             this.mod.assetStore.publicKey,
             'AssetStore'
