@@ -2,15 +2,14 @@ const Deposit = require('./overlays/deposit');
 const Withdraw = require('./overlays/withdraw');
 const History = require('./overlays/history');
 const Send = require('./overlays/send');
+const Confirm = require('./overlays/confirm');
 const Receive = require('./overlays/receive');
 const Details = require('./overlays/details');
 
-/*
-	This is a container for all the independent overlays for sending (withdrawing), 
-	depositing, sending, checking history of installed cryptocurrencies
-*/
 class SaitoCrypto {
+
   constructor(app, mod) {
+
     this.app = app;
     this.mod = mod;
 
@@ -23,7 +22,10 @@ class SaitoCrypto {
     //'saito-crypto-history-render-request'
     this.history_overlay = new History(app, mod);
 
-    //'saito-crypto-send-render-request'
+    //'saito-crypto-send-render-request' / 'saito-crypto-send-confirm' (games / modules)
+    this.send_confirm_overlay = new Confirm(app, mod);
+
+    // Wallet send form (future); not wired to game events
     this.send_overlay = new Send(app, mod);
 
     //'saito-crypto-receive-render-request'

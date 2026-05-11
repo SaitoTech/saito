@@ -20,6 +20,8 @@ class Withdraw {
       address: false
     };
 
+    this.available_balance = 0;
+
     // We will only programattically input the address if it is a Saito PublicKey
     this.app.connection.on('saito-crypto-withdraw-render-request', async (obj) => {
       this.ticker = obj?.ticker || '';
@@ -57,8 +59,7 @@ class Withdraw {
 
     await this.loadCryptos();
 
-    document.querySelector('.withdraw-info-value.balance').innerHTML =
-      `${this.app.browser.formatDecimals(this.pc.returnBalance())}`;
+    await this.refreshAvailableBalanceDisplay();
 
     document
       .querySelectorAll(`#withdraw-logo-cont img[data-ticker="${this.pc.ticker}"]`)
@@ -69,11 +70,31 @@ class Withdraw {
     this.attachEvents();
   }
 
+  async refreshAvailableBalanceDisplay() {
+    const el = document.querySelector('.withdraw-info-value.balance');
+    if (!this.pc || !el) {
+      return;
+    }
+    const raw = await this.pc.getAvailableBalance();
+    const n = Number(raw);
+    this.available_balance = Number.isFinite(n) ? n : 0;
+    el.textContent = this.app.browser.formatDecimals(String(this.available_balance));
+  }
+
   async loadCryptos() {
+    const sel = document.getElementById('withdraw-select-crypto');
+    const menu = document.getElementById('withdraw-token-menu');
+    if (sel) {
+      sel.replaceChildren();
+    }
+    if (menu) {
+      menu.replaceChildren();
+    }
+
     let available_cryptos = this.app.wallet.returnActivatedCryptos();
 
     //
-    // Populate drop down menu to change cryptos
+    // Populate hidden select + custom token menu
     //
     for (let crypto_mod of available_cryptos) {
       if (
@@ -96,62 +117,152 @@ class Withdraw {
         }
 
         this.app.browser.addElementToId(img_html, 'withdraw-logo-cont');
+
+        if (menu) {
+          const li = document.createElement('li');
+          li.className = 'withdraw-token-option';
+          li.setAttribute('role', 'option');
+          li.setAttribute('aria-selected', show_me ? 'true' : 'false');
+          li.dataset.ticker = crypto_mod.ticker;
+          let sub = '';
+          if (icons.sub_logo) {
+            sub = `<img class="withdraw-token-option-chain" src="${icons.sub_logo}" alt="" />`;
+          }
+          li.innerHTML = `<img class="withdraw-token-option-logo" src="${icons.img}" alt="" />${sub}<span class="withdraw-token-option-ticker">${crypto_mod.ticker}</span>`;
+          menu.appendChild(li);
+        }
       }
     }
+    const triggerTick = document.getElementById('withdraw-token-trigger-ticker');
+    if (triggerTick) {
+      triggerTick.textContent = this.pc.ticker;
+    }
+  }
+
+  closeTokenMenu() {
+    const menu = document.getElementById('withdraw-token-menu');
+    const trigger = document.getElementById('withdraw-token-trigger');
+    if (menu) {
+      menu.classList.add('hide-element');
+    }
+    if (trigger) {
+      trigger.setAttribute('aria-expanded', 'false');
+    }
+  }
+
+  async selectCryptoTicker(ticker) {
+    const balEl = document.querySelector('.withdraw-info-value.balance');
+    if (balEl) {
+      balEl.textContent = 'fetching...';
+    }
+    document
+      .querySelectorAll(`#withdraw-logo-cont img`)
+      .forEach((el) => el.classList.add('hide-element'));
+
+    document
+      .querySelectorAll(`#withdraw-logo-cont img[data-ticker="${ticker}"]`)
+      .forEach((el) => el.classList.remove('hide-element'));
+
+    await this.app.wallet.setPreferredCrypto(ticker);
+    this.fee = null;
+
+    const sel = document.getElementById('withdraw-select-crypto');
+    if (sel) {
+      sel.value = ticker;
+    }
+    const triggerTick = document.getElementById('withdraw-token-trigger-ticker');
+    if (triggerTick) {
+      triggerTick.textContent = ticker;
+    }
+    document.querySelectorAll('.withdraw-token-option').forEach((li) => {
+      li.setAttribute('aria-selected', li.dataset.ticker === ticker ? 'true' : 'false');
+    });
+
+    if (this.publicKey) {
+      this.closeTokenMenu();
+      this.render();
+      return;
+    }
+
+    document.querySelector('#withdraw-input-address').value = '';
+    document.querySelector('#withdraw-input-amount').value = '';
+    this.resetErrors();
+
+    this.pc = this.app.wallet.returnPreferredCrypto();
+    this.ticker = this.pc.ticker;
+    await this.fetchWithdrawFee();
+
+    setTimeout(async () => {
+      await this.refreshAvailableBalanceDisplay();
+    }, 500);
+
+    this.closeTokenMenu();
   }
 
   async attachEvents() {
     let this_withdraw = this;
 
-    document.querySelector('#withdraw-select-crypto').onchange = async (e) => {
-      let element = e.target;
+    const trigger = document.getElementById('withdraw-token-trigger');
+    const menu = document.getElementById('withdraw-token-menu');
+    if (trigger && menu) {
+      trigger.onclick = (e) => {
+        e.stopPropagation();
+        const open = menu.classList.contains('hide-element');
+        if (open) {
+          menu.classList.remove('hide-element');
+          trigger.setAttribute('aria-expanded', 'true');
+          setTimeout(() => {
+            document.addEventListener(
+              'click',
+              () => {
+                this.closeTokenMenu();
+              },
+              { once: true }
+            );
+          }, 0);
+        } else {
+          this.closeTokenMenu();
+        }
+      };
 
-      document.querySelector('.withdraw-info-value.balance').innerHTML = `fetching...`;
-      document
-        .querySelectorAll(`#withdraw-logo-cont img`)
-        .forEach((el) => el.classList.add('hide-element'));
+      menu.onclick = (e) => {
+        const li = e.target.closest('.withdraw-token-option');
+        if (!li || !li.dataset.ticker) {
+          return;
+        }
+        e.stopPropagation();
+        void this.selectCryptoTicker(li.dataset.ticker);
+      };
+    }
 
-      document
-        .querySelectorAll(`#withdraw-logo-cont img[data-ticker="${element.value}"]`)
-        .forEach((el) => el.classList.remove('hide-element'));
-
-      await this.app.wallet.setPreferredCrypto(element.value);
-      this.fee = null;
-
-      if (this.publicKey) {
-        this.render();
-        return;
-      }
-
-      document.querySelector('#withdraw-input-address').value = '';
-      document.querySelector('#withdraw-input-amount').value = '';
-      this.resetErrors();
-
-      this.pc = this.app.wallet.returnPreferredCrypto();
-      this.ticker = this.pc.ticker;
-      await this.fetchWithdrawFee();
-
-      setTimeout(async () => {
-        document.querySelector('.withdraw-info-value.balance').innerHTML =
-          `${this.app.browser.formatDecimals(this.pc.returnBalance())}`;
-      }, 500);
-    };
-
-    if (document.querySelector('#withdraw-input-address')) {
-      document.querySelector('#withdraw-input-address').onblur = async (e) => {
+    const addrInput = document.querySelector('#withdraw-input-address');
+    if (addrInput) {
+      const clearAddressUi = () => {
+        this.clearAddressError();
+        this.handleErrors();
+      };
+      addrInput.onfocus = clearAddressUi;
+      addrInput.oninput = clearAddressUi;
+      addrInput.onblur = async (e) => {
         this.validateAddressInput();
         await this.fetchWithdrawFee();
       };
     }
 
-    if (document.querySelector('#withdraw-input-amount')) {
-      //#withdraw-input-amount
-      document.querySelector('#withdraw-input-amount').onblur = (e) => {
+    const amtInput = document.querySelector('#withdraw-input-amount');
+    if (amtInput) {
+      const clearAmountUi = () => {
+        this.clearAmountError();
+        this.handleErrors();
+      };
+      amtInput.onfocus = clearAmountUi;
+      amtInput.oninput = clearAmountUi;
+      amtInput.onblur = (e) => {
         this.validateAmountInput();
       };
 
       // Prevent entering non-numeric values...
-      document.querySelector('#withdraw-input-amount').onchange = (e) => {
+      amtInput.onchange = (e) => {
         let amount = document.querySelector('#withdraw-input-amount').value;
         this.app.browser.validateAmountLimit(amount, e);
       };
@@ -181,10 +292,6 @@ class Withdraw {
         // Change view to confirmation screen
         document.querySelector('#withdraw-step-one').classList.toggle('hide-element');
         document.querySelector('#withdraw-step-two').classList.toggle('hide-element');
-      };
-
-      document.getElementById('reset-form').onclick = (e) => {
-        this.app.connection.emit('saito-crypto-withdraw-render-request');
       };
 
       document.querySelector('#withdraw-cancel').onclick = (e) => {
@@ -250,13 +357,11 @@ class Withdraw {
       if (document.querySelector('#withdraw-max-btn') != null) {
         document.querySelector('#withdraw-max-btn').onclick = async (e) => {
           if (!document.querySelector('#withdraw-input-amount').disabled) {
-            let amount_avl = this.pc.returnBalance();
-            let thousand_separator = this.app.browser.getThousandSeparator();
-            let replace = amount_avl.split(thousand_separator).join('');
-
-            let balance_as_float = parseFloat(Number(replace));
-            document.querySelector('#withdraw-input-amount').value =
-              balance_as_float - this_withdraw.fee;
+            await this_withdraw.refreshAvailableBalanceDisplay();
+            const fee = Number(this_withdraw.fee) || 0;
+            document.querySelector('#withdraw-input-amount').value = String(
+              this_withdraw.available_balance - fee
+            );
             this_withdraw.validateAmountInput();
           }
         };
@@ -326,7 +431,7 @@ class Withdraw {
     if (amount != '') {
       amount = Number(amount);
 
-      let amount_avl = Number(this.pc.returnBalance());
+      let amount_avl = this.available_balance;
       this.fee = Number(this.fee);
 
       if (amount <= 0) {
