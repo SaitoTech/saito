@@ -2443,6 +2443,17 @@ impl Blockchain {
                     if let Some(checkpoints) =
                         storage.load_checkpoint_file(&block_hash, block_id).await
                     {
+                        if let Some(block) = self.blocks.get_mut(&block_hash) {
+                            block.has_checkpoint = true;
+                            self.checkpoint_found = true;
+                        } else {
+                            warn!(
+                                "block {}-{} not found while applying checkpoint file",
+                                block_id,
+                                block_hash.to_hex()
+                            );
+                        }
+
                         let mut wallet = self.wallet_lock.write().await;
                         for key in checkpoints {
                             if let Some((key, _)) = self.utxoset.remove_entry(&key) {
@@ -2450,8 +2461,6 @@ impl Blockchain {
                                     wallet.delete_slip(&slip, None);
                                     if let Some(block) = self.blocks.get_mut(&block_hash) {
                                         block.graveyard += slip.amount;
-                                        block.has_checkpoint = true;
-                                        self.checkpoint_found = true;
                                         info!(
                                         "skipping slip : {} according to the checkpoint file : {}-{}",
                                         slip,
@@ -2475,6 +2484,13 @@ impl Blockchain {
                                     warn!("checkpoint file may be corrupt; UTXO entry removed but slip not reconciled; continuing");
                                 }
                             }
+                        }
+
+                        if !matches!(
+                            configs.get_blockchain_configs().initial_loading_status,
+                            InitialLoadingStatus::Completed
+                        ) {
+                            blocks.clear();
                         }
                     }
 
@@ -3766,7 +3782,6 @@ mod tests {
     // tests if utxo hashmap persists after a blockchain reset
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn balance_hashmap_persists_after_blockchain_reset_test() {
         // pretty_env_logger::init();
         let mut t: TestManager = TestManager::default();
@@ -4613,7 +4628,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn ghost_chain_content_test() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -4642,7 +4656,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn test_fork_id_difference() {
         // pretty_env_logger::init()
         NodeTester::delete_data().await.unwrap();
@@ -4683,7 +4696,6 @@ mod tests {
     }
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn test_block_generation_with_fees() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();

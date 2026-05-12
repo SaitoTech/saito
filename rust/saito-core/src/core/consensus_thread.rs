@@ -594,6 +594,10 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     )
                     .await;
 
+                if blockchain.checkpoint_found {
+                    list.clear();
+                }
+
                 info!(
                     "{:?} blocks remaining to be loaded. Timestamp : {:?}",
                     list.len(),
@@ -693,7 +697,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn total_supply_test() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -766,7 +769,6 @@ mod tests {
     }
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn total_supply_test_with_atr() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -814,7 +816,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn total_supply_test_with_with_restarts_over_atr() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -947,7 +948,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn total_supply_test_with_staking_for_slip_count() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -1014,7 +1014,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn blockchain_state_over_atr() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -1143,7 +1142,6 @@ mod tests {
     }
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn checkpoints_test() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -1212,7 +1210,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn reorg_over_checkpoints() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -1384,7 +1381,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     /// This test ensures that when the node restarts, it correctly cleans up any isolated or duplicate block files that are not part of the main chain, maintaining a consistent and correct state both in memory and on disk. This is important for blockchain integrity and disk space management.
     async fn loading_isolated_forks_test() {
         // pretty_env_logger::init();
@@ -1486,7 +1482,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     /// This test is a safety check for the blockchain's consensus logic, ensuring that receiving old, already-processed blocks does not affect the chain's correctness or token supply.
     async fn receiving_old_blocks_again_test() {
         // pretty_env_logger::init();
@@ -1586,7 +1581,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     /// This test is a safety check for the blockchain's consensus logic, ensuring that receiving old, already-processed blocks does not affect the chain's correctness or token supply.
     async fn receiving_old_blocks_again_test_2() {
         // setup_log();
@@ -1686,7 +1680,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     /// This test is a safety check for the blockchain's consensus logic, ensuring that receiving old, already-processed blocks does not affect the chain's correctness or token supply.
     async fn partial_chain_on_disk_test() {
         // setup_log();
@@ -2373,7 +2366,6 @@ mod tests {
     }
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn invalid_block_test() {
         // setup_log();
 
