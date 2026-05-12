@@ -113,6 +113,35 @@ export default class Wallet extends SaitoWallet {
         this.options.isActivated = true;
 
         app.connection.on('wallet-updated', async () => {
+          try {
+            const ab = await this.getAvailableBalance();
+            const pb = await this.getPendingBalance();
+            let pendingTxSummary = 'rust_pending_txs=unavailable';
+            try {
+              const ptxs = await this.app.wallet.getPendingTxs();
+              pendingTxSummary =
+                ptxs.length === 0
+                  ? 'rust_pending_txs=0'
+                  : `rust_pending_txs=${ptxs.length} ` +
+                    ptxs
+                      .map((t: Transaction) =>
+                        t.signature ? String(t.signature).slice(0, 24) + '…' : '?'
+                      )
+                      .join(', ');
+            } catch (e) {
+              pendingTxSummary = `getPendingTxs_err=${e}`;
+            }
+            console.log(
+              `[ PENDING BALANCE ] [ SaitoCrypto wallet-updated | pending_display=${pb} | pending_vs_available=${
+                pb !== ab
+              } | ${pendingTxSummary} ]`
+            );
+            console.log(
+              `[ AVAILABLE BALANCE ] [ SaitoCrypto wallet-updated | available_display=${ab} ]`
+            );
+          } catch (logErr) {
+            console.log(`[ PENDING BALANCE ] [ SaitoCrypto wallet-updated log_error | ${logErr} ]`);
+          }
           this.checkBalanceUpdate();
         });
       }
@@ -416,36 +445,21 @@ export default class Wallet extends SaitoWallet {
         unique_hash: string = '',
         memo: string = ''
       ) {
-        console.info(
-          `[TRANSACTION - SENDING] - sendPayment invoked amount=${amount} to=${to_address}`
-        );
         let nolan_amount = this.app.wallet.convertSaitoToNolan(amount);
+        let current_balance = await this.getAvailableBalance();
 
-        if (!this.pending_balance) {
-          this.pending_balance = await this.checkBalance();
-        }
-
-        console.log(`Sending ${amount} with balance of ${this.pending_balance}`);
-
-        this.pending_balance = Number(this.pending_balance) - Number(amount);
-
-        if (this.pending_balance < 0) {
+        if (Number(current_balance) - Number(amount) < 0) {
           throw new Error('sendPayment: Attempting to send payment with insufficient balance');
         }
-        console.info(
-          `[TRANSACTION - SENDING] - balance check passed pending_balance=${this.pending_balance}`
-        );
 
         if (!this.validateAddress(to_address)) {
           throw new Error('sendPayment: Attempting to send payment to invalid public key');
         }
-        console.info(`[TRANSACTION - SENDING] - recipient address validated`);
 
         let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(
           to_address,
           nolan_amount
         );
-        console.info(`[TRANSACTION - SENDING] - unsigned transaction created`);
 
         newtx.msg = {
           module: this.name,
@@ -456,22 +470,9 @@ export default class Wallet extends SaitoWallet {
           hash: unique_hash,
           memo
         };
-        console.info(`[TRANSACTION - SENDING] - transaction message payload attached`);
 
-        console.info(`[TRANSACTION - SENDING] - signing/encrypting transaction`);
         await this.app.wallet.signAndEncryptTransaction(newtx);
-        console.info(`[TRANSACTION - SENDING] - transaction signed signature=${newtx.signature}`);
-
-        console.info(`[TRANSACTION - SENDING] - propagating transaction to network`);
         await this.app.network.propagateTransaction(newtx);
-
-        console.log(
-          'Current balance: ',
-          await this.checkBalance(),
-          '\nExpecting new balance of: ',
-          this.pending_balance
-        );
-
         return newtx.signature;
       }
 
@@ -549,12 +550,6 @@ export default class Wallet extends SaitoWallet {
         // }
       }
 
-      async checkBalance() {
-        let x = await this.app.wallet.getBalance();
-        this.balance = this.app.wallet.convertNolanToSaito(x);
-        return this.balance;
-      }
-
       //typically async
       validateAddress(address) {
         return this.app.crypto.isPublicKey(address);
@@ -564,17 +559,26 @@ export default class Wallet extends SaitoWallet {
         return { img: '/saito/img/saito-icon.png', alt_img: '/saito/img/logo.png' };
       }
 
-      async checkBalanceUpdate() {
-        let balance = this.balance;
-        await this.checkBalance();
+      async getAvailableBalance() {
+        let x = await this.app.core.wallet.getAvailableBalance();
+        return this.app.wallet.convertNolanToSaito(x);
+      }
 
-        if (this.pending_balance || balance !== this.balance) {
-          if (this.pending_balance == this.balance) {
-            delete this.pending_balance;
-            console.log('Pending transferred cleared!');
-          }
-          this.app.connection.emit('saito-header-update-crypto');
-        }
+      async getPendingBalance() {
+        let x = await this.app.core.wallet.getPendingBalance();
+        return this.app.wallet.convertNolanToSaito(x);
+      }
+
+      async returnBalance() {
+        return await this.getAvailableBalance();
+      }
+
+      async checkBalance() {
+        return await this.getAvailableBalance();
+      }
+
+      async checkBalanceUpdate() {
+        this.app.connection.emit('saito-header-update-crypto');
       }
     }
 
@@ -824,9 +828,9 @@ export default class Wallet extends SaitoWallet {
     this.app.storage.saveOptions();
   }
 
-  returnBalance() {
+  async returnBalance() {
     let s = this.returnCryptoModuleByTicker('SAITO');
-    return s.returnBalance();
+    return await s.returnBalance();
   }
 
   /////////////////////////
@@ -905,7 +909,15 @@ export default class Wallet extends SaitoWallet {
 
   returnPreferredCrypto() {
     try {
-      return this.returnCryptoModuleByTicker(this.preferred_crypto);
+      let m = this.returnCryptoModuleByTicker(this.preferred_crypto);
+      if (m == null) {
+        this.preferred_crypto = 'SAITO';
+        if (this.app.options?.wallet) {
+          this.app.options.wallet.preferred_crypto = 'SAITO';
+        }
+        m = this.returnCryptoModuleByTicker('SAITO');
+      }
+      return m;
     } catch (err) {
       if (err.startsWith('Module Not Found:')) {
         console.warn(`Preferred crypto (${this.preferred_crypto}) not installed!`);
@@ -955,7 +967,7 @@ export default class Wallet extends SaitoWallet {
       for (let i = 0; i < mods.length; i++) {
         ticker = mods[i].ticker;
         let address = mods[i].formatAddress();
-        await mods[i].checkBalance();
+        await mods[i].getAvailableBalance();
         let balance = mods[i].returnBalance();
 
         if (!cryptos[ticker]) {
@@ -1980,38 +1992,38 @@ export default class Wallet extends SaitoWallet {
           }
         }
 
-        /*******************************
-for (let nft_id in nft_balance_by_id) {
+        //
+        // make spendable as other tokens
+        //
+        for (let nft_id in nft_balance_by_id) {
+          let total = nft_balance_by_id[nft_id];
+          if (total <= 0n) {
+            continue;
+          }
 
-    let total = nft_balance_by_id[nft_id];
-    if (total <= 0n) { continue; }
-
-    let ticker = "";
+          let ticker = '';
 
           for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
             let nft = this.app.options.wallet.nfts[z];
             if (nft.id == nft_id) {
-        ticker = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
-      }
-    }
+              ticker = `NFT-${this.app.crypto.hash(nft_id).slice(0, 6)}`;
+            }
+          }
 
-    if (this.returnCryptoModuleByTicker(ticker) || ticker == "") {
-      continue;
-    }
+          if (this.returnCryptoModuleByTicker(ticker) || ticker == '') {
+            continue;
+          }
 
-    let mod = new NFTCryptoModule(this.app, nft_id, {
-      ticker,
-      name: ticker
-    });
+          let mod = new NFTCryptoModule(this.app, nft_id, {
+            ticker,
+            name: ticker
+          });
 
-  this.app.modules.mods.push(mod);
-  await mod.initialize(this.app);
+          this.app.modules.mods.push(mod);
+          await mod.initialize(this.app);
 
-  console.log(
-    `NFT crypto module installed: ${ticker} (balance ${total.toString()})`
-  );
-}
-***********************************/
+          console.log(`NFT crypto module installed: ${ticker} (balance ${total.toString()})`);
+        }
       }
     } catch (err) {
       console.log('Error: load nfts');

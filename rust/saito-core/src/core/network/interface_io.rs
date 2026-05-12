@@ -15,6 +15,7 @@ pub enum InterfaceEvent {
     PeerConnected(u64, SaitoPublicKey),
     BlockAddSuccess(SaitoHash, u64),
     WalletUpdate(),
+    OnTransactionPending(),
     OnTransactionCreated(),
     OnTransactionSent(),
     OnTransactionReceived(),

@@ -933,7 +933,7 @@ impl Block {
 
     /// [transaction][transaction][transaction]...
     pub fn deserialize_from_net(bytes: &[u8]) -> Result<Block, Error> {
-        info!(
+        debug!(
             "[TRACE_SYNC][SERDE] block_deserialize_start bytes={}",
             bytes.len()
         );
@@ -1259,7 +1259,7 @@ impl Block {
             block.block_type = BlockType::Header;
         }
 
-        info!(
+        debug!(
             "[TRACE_SYNC][SERDE] block_deserialize_ok block_id={} tx_count={} bytes={}",
             block.id,
             transactions_len,
@@ -2608,7 +2608,7 @@ impl Block {
 
     /// [transaction][transaction][transaction]...
     pub fn serialize_for_net(&self, block_type: BlockType) -> Vec<u8> {
-        info!(
+        debug!(
             "[TRACE_SYNC][SERDE] block_serialize_start block_id={} block_hash={} tx_count={} block_type={:?}",
             self.id,
             self.hash.to_hex(),
@@ -2672,7 +2672,7 @@ impl Block {
         ]
         .concat();
 
-        info!(
+        debug!(
             "[TRACE_SYNC][SERDE] block_serialize_ok block_id={} block_hash={} bytes={} block_type={:?}",
             self.id,
             self.hash.to_hex(),
@@ -3929,7 +3929,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn generate_lite_block_test() {
         let mut t = TestManager::default();
 
@@ -4066,7 +4065,6 @@ mod tests {
     }
 
     #[tokio::test]
-    #[ignore]
     #[serial_test::serial]
     async fn avg_fee_per_byte_test() {
         // pretty_env_logger::init();
@@ -4107,7 +4105,7 @@ mod tests {
             tx_size,
             block.transactions.len()
         );
-        assert_eq!(block.avg_fee_per_byte, total_fees / tx_size as Currency);
+        assert_eq!(block.fee_per_byte, total_fees / tx_size as Currency);
 
         let mut block = t
             .create_block(
@@ -4138,7 +4136,7 @@ mod tests {
             tx_size,
             block.transactions.len()
         );
-        assert_eq!(block.avg_fee_per_byte, total_fees / tx_size as Currency);
+        assert_eq!(block.fee_per_byte, total_fees / tx_size as Currency);
     }
 
     #[ignore]
@@ -4224,7 +4222,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn atr_test_2() {
         pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();

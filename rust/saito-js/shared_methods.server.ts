@@ -2,7 +2,7 @@ import SharedMethods, {
   parseInterfaceEventPayload,
   processApiError,
   processApiSuccess,
-  type SaitoRuntimeApp
+  type SaitoRuntimeApp,
 } from "./shared_methods";
 import S from "./index.node";
 import PeerServiceList from "./lib/peer_service_list";
@@ -61,7 +61,7 @@ export class ServerSharedMethods implements SharedMethods {
 
   async connectToPeer(url: string): Promise<void> {
     try {
-      console.log('connecting to ' + url + '....');
+      console.log("connecting to " + url + "....");
 
       let socket = new ws.WebSocket(url);
       // S.getInstance().addNewSocket(socket, peer_index);
@@ -75,7 +75,7 @@ export class ServerSharedMethods implements SharedMethods {
         peer._inflight = Promise.resolve();
       }
 
-      socket.on('message', (buffer: any) => {
+      socket.on("message", (buffer: any) => {
         try {
           const inflight = peer._inflight ?? Promise.resolve();
           peer._inflight = inflight
@@ -91,14 +91,14 @@ export class ServerSharedMethods implements SharedMethods {
               }
             })
             .catch((err: any) => {
-              console.error('server process_msg_buffer_from_peer failed:', err);
+              console.error("server process_msg_buffer_from_peer failed:", err);
             });
         } catch (err) {
           console.error("server socket.on('message') handler threw:", err);
         }
       });
 
-      socket.on('close', () => {
+      socket.on("close", () => {
         try {
           S.getInstance().disconnectPeer(peer);
           S.getLibInstance().process_peer_disconnection(peer.peerId);
@@ -110,7 +110,7 @@ export class ServerSharedMethods implements SharedMethods {
         }
       });
 
-      socket.on('error', (error) => {
+      socket.on("error", (error) => {
         console.error(`received socket error from peer : ${peer.peerId} from url : ${url}`, error);
         try {
           S.getInstance().disconnectPeer(peer);
@@ -119,7 +119,7 @@ export class ServerSharedMethods implements SharedMethods {
           console.error(`failed processing error from peer : ${peer.peerId} from url : ${url}`, e);
         }
       });
-      socket.on('open', () => {
+      socket.on("open", () => {
         try {
           S.getLibInstance().process_new_peer(peer.peerId, true);
         } catch (e) {
@@ -163,11 +163,11 @@ export class ServerSharedMethods implements SharedMethods {
 
   loadBlockFileList(): string[] {
     try {
-      let files = fs.readdirSync('data/blocks/');
-      files = files.filter((file: string) => file.endsWith('.sai'));
+      let files = fs.readdirSync("data/blocks/");
+      files = files.filter((file: string) => file.endsWith(".sai"));
       return files;
     } catch (e) {
-      console.log('cwd : ', process.cwd());
+      console.log("cwd : ", process.cwd());
       // console.error(e);
       return [];
     }
@@ -196,18 +196,18 @@ export class ServerSharedMethods implements SharedMethods {
   }
 
   fetchBlockFromPeer(url: string): Promise<Uint8Array> {
-    console.log('fetching block from peer: ' + url);
+    console.log("fetching block from peer: " + url);
     return fetch(url)
       .then((res: any) => {
         return res.arrayBuffer();
       })
       .then((buffer: ArrayBuffer) => {
-        console.log('block data fetched for ' + url + ' with size : ' + buffer.byteLength);
+        console.log("block data fetched for " + url + " with size : " + buffer.byteLength);
         return new Uint8Array(buffer);
       })
       .catch((err) => {
-        console.error('Error fetching block: ' + url, err);
-        throw 'failed fetching block';
+        console.error("Error fetching block: " + url, err);
+        throw "failed fetching block";
       });
   }
 
@@ -215,7 +215,7 @@ export class ServerSharedMethods implements SharedMethods {
     const mycallback = async (response_object: any) => {
       // console.log("response_object ", response_object);
       await this.app.core.network.api.success(
-        response_object ? Buffer.from(JSON.stringify(response_object), 'utf-8') : Buffer.alloc(0),
+        response_object ? Buffer.from(JSON.stringify(response_object), "utf-8") : Buffer.alloc(0),
         msgIndex,
         publicKey
       );
@@ -236,13 +236,13 @@ export class ServerSharedMethods implements SharedMethods {
     const payload = parseInterfaceEventPayload(payload_json);
 
     if (payload === null) {
-        this.app.connection.emit(event_name);
-        return;
+      this.app.connection.emit(event_name);
+      return;
     }
 
     if (Array.isArray(payload)) {
-        this.app.connection.emit(event_name, ...payload);
-        return;
+      this.app.connection.emit(event_name, ...payload);
+      return;
     }
 
     this.app.connection.emit(event_name, payload);
@@ -257,15 +257,15 @@ export class ServerSharedMethods implements SharedMethods {
   }
 
   loadWallet(): void {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
 
   saveBlockchain(): void {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
 
   loadBlockchain(): void {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
 
   getMyServices() {

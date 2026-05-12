@@ -230,11 +230,14 @@ impl InterfaceIO for WasmIoHandler {
             InterfaceEvent::WalletUpdate() => {
                 MsgHandler::emit_interface_event("wallet-updated", "{}");
             }
-            InterfaceEvent::OnTransactionCreated() => {
-                MsgHandler::emit_interface_event("on-transaction-created", "{}");
+            InterfaceEvent::OnTransactionPending() => {
+                MsgHandler::emit_interface_event("on-transaction-pending", "{}");
             }
             InterfaceEvent::OnTransactionSent() => {
                 MsgHandler::emit_interface_event("on-transaction-sent", "{}");
+            }
+            InterfaceEvent::OnTransactionCreated() => {
+                MsgHandler::emit_interface_event("on-transaction-created", "{}");
             }
             InterfaceEvent::OnTransactionReceived() => {
                 MsgHandler::emit_interface_event("on-transaction-received", "{}");

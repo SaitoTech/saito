@@ -408,6 +408,26 @@ impl Blockchain {
             return AddBlockResult::BlockAlreadyExists;
         }
 
+        // A fork fragment below our current tip cannot win yet under the
+        // current longest-chain rule. Keep it indexed so a later higher fork tip
+        // can evaluate the complete fork without walking this stale fragment now.
+        if !self.blockring.is_empty() && block_id < self.get_latest_block_id() {
+            debug!(
+                "block {}-{} is below latest block {}; storing without longest-chain evaluation",
+                block_id,
+                block_hash.to_hex(),
+                self.get_latest_block_id()
+            );
+            self.add_block_success(block_hash, storage, mempool, configs)
+                .await;
+            return AddBlockResult::BlockAddedSuccessfully(
+                block_hash,
+                false,
+                WALLET_NOT_UPDATED,
+                false,
+            );
+        }
+
         // find shared ancestor of new_block with old_chain
         let old_chain: Vec<[u8; 32]>;
         let mut am_i_the_longest_chain = false;
@@ -630,7 +650,7 @@ impl Blockchain {
         let mut old_chain: Vec<[u8; 32]> = Vec::new();
         let mut old_chain_hash = latest_block_hash;
 
-        while old_chain.len() <= length as usize {
+        while old_chain.len() < length as usize {
             if self.blocks.contains_key(&old_chain_hash) {
                 old_chain.push(old_chain_hash);
                 old_chain_hash = self
@@ -1333,9 +1353,13 @@ impl Blockchain {
         if self.blockring.is_empty() {
             return true;
         }
+        if new_chain.is_empty() {
+            debug!("new chain is empty. not changing longest chain");
+            return false;
+        }
         if old_chain.len() > new_chain.len() {
             warn!(
-                "WARN: old chain length : {:?} is greater than new chain length : {:?}",
+                "old chain length : {:?} is greater than new chain length : {:?}",
                 old_chain.len(),
                 new_chain.len()
             );
@@ -2416,7 +2440,6 @@ impl Blockchain {
         debug!("blocks to add : {:?}", blocks.len());
 
         while let Some(block) = blocks.pop_front() {
-            let peer_id = block.routed_from_peer_id;
             let block_id = block.id;
 
             let mut mempool = mempool_lock.write().await;
@@ -2443,6 +2466,17 @@ impl Blockchain {
                     if let Some(checkpoints) =
                         storage.load_checkpoint_file(&block_hash, block_id).await
                     {
+                        if let Some(block) = self.blocks.get_mut(&block_hash) {
+                            block.has_checkpoint = true;
+                            self.checkpoint_found = true;
+                        } else {
+                            warn!(
+                                "block {}-{} not found while applying checkpoint file",
+                                block_id,
+                                block_hash.to_hex()
+                            );
+                        }
+
                         let mut wallet = self.wallet_lock.write().await;
                         for key in checkpoints {
                             if let Some((key, _)) = self.utxoset.remove_entry(&key) {
@@ -2450,8 +2484,6 @@ impl Blockchain {
                                     wallet.delete_slip(&slip, None);
                                     if let Some(block) = self.blocks.get_mut(&block_hash) {
                                         block.graveyard += slip.amount;
-                                        block.has_checkpoint = true;
-                                        self.checkpoint_found = true;
                                         info!(
                                         "skipping slip : {} according to the checkpoint file : {}-{}",
                                         slip,
@@ -2475,6 +2507,13 @@ impl Blockchain {
                                     warn!("checkpoint file may be corrupt; UTXO entry removed but slip not reconciled; continuing");
                                 }
                             }
+                        }
+
+                        if !matches!(
+                            configs.get_blockchain_configs().initial_loading_status,
+                            InitialLoadingStatus::Completed
+                        ) {
+                            blocks.clear();
                         }
                     }
 
@@ -2510,9 +2549,7 @@ impl Blockchain {
 
                 AddBlockResult::FailedNotValid => {
                     drop(mempool);
-                    if peer_id == peer_id {
-                        // TODO -- notify gatekeeper of invalid block
-                    }
+                    // TODO -- notify gatekeeper of invalid block
                 }
             }
         }
@@ -3766,7 +3803,6 @@ mod tests {
     // tests if utxo hashmap persists after a blockchain reset
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn balance_hashmap_persists_after_blockchain_reset_test() {
         // pretty_env_logger::init();
         let mut t: TestManager = TestManager::default();
@@ -4613,7 +4649,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn ghost_chain_content_test() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();
@@ -4642,7 +4677,6 @@ mod tests {
 
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn test_fork_id_difference() {
         // pretty_env_logger::init()
         NodeTester::delete_data().await.unwrap();
@@ -4683,7 +4717,6 @@ mod tests {
     }
     #[tokio::test]
     #[serial_test::serial]
-    #[ignore]
     async fn test_block_generation_with_fees() {
         // pretty_env_logger::init();
         NodeTester::delete_data().await.unwrap();

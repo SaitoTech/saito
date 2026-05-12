@@ -73,11 +73,7 @@ export interface SaitoRuntimeApp {
   };
 }
 
-export function processApiError(
-  buffer: Uint8Array,
-  msgIndex: number,
-  publicKey: string
-): void {
+export function processApiError(buffer: Uint8Array, msgIndex: number, publicKey: string): void {
   const saito = Saito.getInstance();
   let promise = saito.promises.get(msgIndex);
   if (promise) {
@@ -90,11 +86,7 @@ export function processApiError(
   }
 }
 
-export function processApiSuccess(
-  buffer: Uint8Array,
-  msgIndex: number,
-  publicKey: string
-): void {
+export function processApiSuccess(buffer: Uint8Array, msgIndex: number, publicKey: string): void {
   const saito = Saito.getInstance();
   let promise = saito.promises.get(msgIndex);
   if (promise) {
@@ -108,7 +100,6 @@ export function processApiSuccess(
 }
 
 export default interface SharedMethods {
-
   emitInterfaceEvent(event_name: string, payload_json: string): void;
 
   sendMessageByPeerId(peer_id: bigint, buffer: Uint8Array): void;
@@ -154,5 +145,4 @@ export default interface SharedMethods {
   loadBlockchain(blockchain: Blockchain): void;
 
   getMyServices(): PeerServiceList;
-
 }

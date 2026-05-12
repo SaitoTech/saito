@@ -2,7 +2,7 @@ import SharedMethods, {
   parseInterfaceEventPayload,
   processApiError,
   processApiSuccess,
-  type SaitoRuntimeApp
+  type SaitoRuntimeApp,
 } from "./shared_methods";
 import PeerServiceList from "./lib/peer_service_list";
 import NetworkPeer from "./lib/network_peer";
@@ -17,18 +17,18 @@ export class BrowserSharedMethods implements SharedMethods {
 
   async connectToPeer(url: string): Promise<void> {
     try {
-      const trimmed = typeof url === 'string' ? url.trim() : '';
+      const trimmed = typeof url === "string" ? url.trim() : "";
       const looksLikeWs = /^wss?:\/\//i.test(trimmed);
-      console.log('[SAITO CONNECT] connectToPeer (browser)', {
+      console.log("[SAITO CONNECT] connectToPeer (browser)", {
         hasUrl: trimmed.length > 0,
         urlLength: trimmed.length,
         looksLikeWebSocketUrl: looksLikeWs,
         willOpenWebSocket: trimmed.length > 0 && looksLikeWs,
-        url: trimmed || '(empty)'
+        url: trimmed || "(empty)",
       });
       if (!trimmed || !looksLikeWs) {
         console.log(
-          '[SAITO CONNECT] skipping WebSocket open: need a non-empty ws: or wss: URL from core.'
+          "[SAITO CONNECT] skipping WebSocket open: need a non-empty ws: or wss: URL from core."
         );
         return;
       }
@@ -40,48 +40,45 @@ export class BrowserSharedMethods implements SharedMethods {
       peer.socket = socket;
       SaitoJs.getInstance().peersByPeerId.set(peer.peerId, peer);
 
-
       socket.onmessage = (event: MessageEvent) => {
         try {
           let buffer = Buffer.from(event.data);
 
-	  //
-	  // initialize per-peer queue once
-	  //
-	  // this prevents multiple msgs being processed
-	  // simultaneously, which can now happen if msgs
-	  // arrive at essentially the same time and there
-	  // is an await inside, locking the peer that needs
-	  // to have its instance sent inside
-	  //
-	  const inflight = peer._inflight ?? Promise.resolve();
+          //
+          // initialize per-peer queue once
+          //
+          // this prevents multiple msgs being processed
+          // simultaneously, which can now happen if msgs
+          // arrive at essentially the same time and there
+          // is an await inside, locking the peer that needs
+          // to have its instance sent inside
+          //
+          const inflight = peer._inflight ?? Promise.resolve();
 
-	  peer._inflight = inflight
-	    .then(() => {
-	      return SaitoJs.getLibInstance()
-	        .process_msg_buffer_from_peer(buffer, peer.instance);
-	    })
-	    .then((buffer: any) => {
-	      if (buffer && buffer.byteLength > 0) {
-	        socket.send(buffer);
-	      }
-	      if (peer.publicKey) {
-	        const current = SaitoJs.getInstance().peers.get(peer.publicKey);
-	        if (!current) {
-	          console.info("added peer : " + peer.publicKey + ", url : " + peer.url);
-  	          SaitoJs.getInstance().peers.set(peer.publicKey, peer);
- 	        } else if (current.peerId !== peer.peerId) {
-        	  SaitoJs.getInstance().peers.set(peer.publicKey, peer);
-      	  	}
-    	      }
-  	    })
-	    .catch((error: any) => {
-	      console.error(
-	      "processing incoming message buffer failed for peer : " +
-	        peer.publicKey,
-	        error
-	      );
-	  });
+          peer._inflight = inflight
+            .then(() => {
+              return SaitoJs.getLibInstance().process_msg_buffer_from_peer(buffer, peer.instance);
+            })
+            .then((buffer: any) => {
+              if (buffer && buffer.byteLength > 0) {
+                socket.send(buffer);
+              }
+              if (peer.publicKey) {
+                const current = SaitoJs.getInstance().peers.get(peer.publicKey);
+                if (!current) {
+                  console.info("added peer : " + peer.publicKey + ", url : " + peer.url);
+                  SaitoJs.getInstance().peers.set(peer.publicKey, peer);
+                } else if (current.peerId !== peer.peerId) {
+                  SaitoJs.getInstance().peers.set(peer.publicKey, peer);
+                }
+              }
+            })
+            .catch((error: any) => {
+              console.error(
+                "processing incoming message buffer failed for peer : " + peer.publicKey,
+                error
+              );
+            });
         } catch (error) {
           console.error("processing incoming message buffer failed.", error);
         }
@@ -89,8 +86,8 @@ export class BrowserSharedMethods implements SharedMethods {
 
       socket.onopen = async () => {
         try {
-	  SaitoJs.getLibInstance().process_new_peer(peer.peerId, true);
-	  await peer.syncFromRust();
+          SaitoJs.getLibInstance().process_new_peer(peer.peerId, true);
+          await peer.syncFromRust();
         } catch (error) {
           console.error(error);
         }
@@ -284,12 +281,12 @@ export class BrowserSharedMethods implements SharedMethods {
 
   sendMessageByPeerId(peerId: bigint, buffer: Uint8Array): void {
     try {
-const networkPeer = SaitoJs.getInstance().peersByPeerId.get(peerId);
+      const networkPeer = SaitoJs.getInstance().peersByPeerId.get(peerId);
 
-const stunPeer =
-  networkPeer && networkPeer.publicKey
-    ? SaitoJs.getInstance().stunManager.getStunPeer(networkPeer.publicKey)
-    : undefined;
+      const stunPeer =
+        networkPeer && networkPeer.publicKey
+          ? SaitoJs.getInstance().stunManager.getStunPeer(networkPeer.publicKey)
+          : undefined;
 
       if (stunPeer) {
         // @ts-ignore
@@ -299,7 +296,7 @@ const stunPeer =
           return;
         }
       }
-  
+
       let socket = SaitoJs.getInstance().getSocketByPeerId(peerId);
       if (socket) {
         socket.send(buffer);
@@ -310,7 +307,6 @@ const stunPeer =
       console.error(e);
     }
   }
-  
 
   sendMessageToAll(buffer: Uint8Array, exceptions: Array<string>): void {
     // console.debug("sending message to all with size: " + buffer.byteLength);
@@ -357,7 +353,7 @@ const stunPeer =
     const mycallback = async (response_object: any) => {
       try {
         await this.app.core.network.api.success(
-          Buffer.from(JSON.stringify(response_object), 'utf-8'),
+          Buffer.from(JSON.stringify(response_object), "utf-8"),
           msgIndex,
           publicKey
         );
@@ -381,13 +377,13 @@ const stunPeer =
     const payload = parseInterfaceEventPayload(payload_json);
 
     if (payload === null) {
-        this.app.connection.emit(event_name);
-        return;
+      this.app.connection.emit(event_name);
+      return;
     }
 
     if (Array.isArray(payload)) {
-        this.app.connection.emit(event_name, ...payload);
-        return;
+      this.app.connection.emit(event_name, ...payload);
+      return;
     }
 
     this.app.connection.emit(event_name, payload);
@@ -401,15 +397,15 @@ const stunPeer =
   }
 
   async loadWallet() {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
 
   async saveBlockchain() {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
 
   async loadBlockchain() {
-    throw new Error('Method not implemented.');
+    throw new Error("Method not implemented.");
   }
 
   getMyServices() {

@@ -20,8 +20,17 @@ module.exports = (app, mod, publickey = '', address = '') => {
           <div class="dropdown-cont">
             <div class="saito-overlay-form-input">
                 <div class="token-dropdown">
-                  <div id="withdraw-logo-cont" class="withdraw-logo-cont"></div>
-                  <select class="withdraw-select-crypto" id="withdraw-select-crypto"></select>
+                  <div class="withdraw-token-custom" id="withdraw-token-custom">
+                    <button type="button" class="withdraw-token-trigger" id="withdraw-token-trigger" aria-haspopup="listbox" aria-expanded="false">
+                      <div class="withdraw-token-trigger-left">
+                        <div id="withdraw-logo-cont" class="withdraw-logo-cont"></div>
+                        <span id="withdraw-token-trigger-ticker"></span>
+                      </div>
+                      <div class="withdraw-token-trigger-caret" aria-hidden="true">▾</div>
+                    </button>
+                    <ul id="withdraw-token-menu" class="withdraw-token-menu hide-element" role="listbox"></ul>
+                    <select class="withdraw-select-crypto hide-element" id="withdraw-select-crypto" aria-hidden="true" tabindex="-1"></select>
+                  </div>
                 </div>
             </div>
 
@@ -66,7 +75,6 @@ module.exports = (app, mod, publickey = '', address = '') => {
 
 
           <div class="saito-button-row form-submit-container">
-            <button type="submit" class="saito-button-secondary" id="reset-form">Clear</button>
             <button type="submit" class="withdraw-submit saito-button-primary saito-overlay-form-submit" id="saito-overlay-submit">Send</button>
           </div>
 

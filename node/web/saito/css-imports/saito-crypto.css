@@ -322,3 +322,181 @@
 .saito-crypto-deposit-container .game-loader-spinner {
   margin: 10rem auto;
 }
+
+/* -----------------------------------------------------------------
+   Withdraw overlay — unified token selector (single bordered control)
+   Overrides legacy split layout in saito-wallet.css via specificity.
+   ----------------------------------------------------------------- */
+
+#withdrawal-form #withdraw-step-one .token-dropdown {
+  display: block;
+  position: relative;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  gap: 0;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-custom {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-trigger {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 4.25rem;
+  padding: 0.45rem 0.65rem;
+  margin: 0;
+  box-sizing: border-box;
+  border: 1px solid
+    color-mix(in srgb, var(--saito-border-color) 40%, var(--saito-font-color-heavy) 60%);
+  border-radius: var(--saito-border-radius);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--saito-background-color) 90%, var(--saito-primary) 10%),
+    color-mix(in srgb, var(--saito-background-color) 96%, black)
+  );
+  color: var(--saito-font-color);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-trigger-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  flex: 1;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-logo-cont {
+  position: relative;
+  width: 1.75rem;
+  height: 1.75rem;
+  min-width: 1.75rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-logo-cont .crypto-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-logo-cont .chain-logo {
+  position: absolute;
+  width: auto;
+  height: 34%;
+  bottom: 6%;
+  right: 6%;
+}
+
+#withdrawal-form #withdraw-step-one #withdraw-token-trigger-ticker {
+  display: inline-flex;
+  align-items: center;
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-trigger-caret {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+  opacity: 0.82;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-select-crypto.hide-element,
+#withdrawal-form #withdraw-step-one .token-dropdown select.hide-element {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  border: none !important;
+  clip: rect(0, 0, 0, 0);
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  z-index: 120;
+  margin: 0;
+  padding: 0.18rem 0;
+  list-style: none;
+  max-height: 14rem;
+  overflow-y: auto;
+  background: color-mix(in srgb, var(--saito-background-color) 78%, black);
+  color: var(--saito-font-color);
+  border: 1px solid
+    color-mix(in srgb, var(--saito-border-color) 35%, var(--saito-font-color-heavy) 65%);
+  border-radius: var(--saito-border-radius);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--saito-font-color-heavy) 10%, transparent),
+    0 6px 16px rgba(0, 0, 0, 0.26);
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.28rem 0.5rem;
+  min-height: 2.35rem;
+  cursor: pointer;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-option:hover {
+  background: color-mix(in srgb, var(--saito-primary) 7%, transparent);
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-option[aria-selected='true'] {
+  background: color-mix(in srgb, var(--saito-primary) 4.5%, transparent);
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-option-logo {
+  width: 1.65rem;
+  height: 1.65rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-option-chain {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  align-self: center;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+#withdrawal-form #withdraw-step-one .withdraw-token-option-ticker {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.1;
+  display: inline-flex;
+  align-items: center;
+}

@@ -263,6 +263,18 @@ class NFTOverlay {
     let advanced_toggle = document.querySelector('.saito-nft-panel-send .nft-advanced-toggle');
     let advanced_container = document.querySelector('.saito-nft-panel-send .nft-advanced-options');
 
+    const shardMode = () =>
+      !!(advanced_container && !advanced_container.classList.contains('collapsed'));
+    const syncAmountToSelectedShard = () => {
+      const sel = document.querySelector('.saito-nft-panel-send .selected-shard');
+      if (!sel || !amount_input || !this.all_slips?.length) {
+        return;
+      }
+      const i = parseInt(sel.getAttribute('data-utxo-idx'), 10) - 1;
+      const a = this.all_slips[i]?.slip1?.amount;
+      amount_input.value = a == null ? '0' : typeof a === 'bigint' ? a.toString() : String(a);
+    };
+
     //
     // enable / disable
     //
@@ -291,12 +303,26 @@ class NFTOverlay {
           'aria-expanded',
           advanced_container.classList.contains('collapsed') ? 'false' : 'true'
         );
+        if (amount_input && max_amount_btn) {
+          const sm = shardMode();
+          amount_input.readOnly = sm;
+          max_amount_btn.disabled = sm;
+          if (sm) {
+            syncAmountToSelectedShard();
+          }
+        }
       };
     }
 
     if (max_amount_btn && amount_input) {
       max_amount_btn.onclick = (e) => {
         e.preventDefault();
+        if (shardMode()) {
+          salert(
+            'Disable Advanced Options to use MAX or set a custom amount. Shard mode sends the full selected shard.'
+          );
+          return;
+        }
         amount_input.value = String(this.nft.getTotalAmount() || 0);
       };
     }
@@ -312,6 +338,9 @@ class NFTOverlay {
             if (!e.currentTarget.classList.contains('selected-shard')) {
               document.querySelector('.selected-shard').classList.remove('selected-shard');
               e.currentTarget.classList.add('selected-shard');
+            }
+            if (shardMode()) {
+              syncAmountToSelectedShard();
             }
           };
         }
@@ -343,6 +372,9 @@ class NFTOverlay {
               let idx = parseInt(selected_shard.getAttribute('data-utxo-idx')) - 1;
               this.nft.resetNFT(this.all_slips[idx]);
             }
+            if (amount_input) {
+              syncAmountToSelectedShard();
+            }
             newtx = await this.app.wallet.createNFTShardTransaction(this.nft, receiver);
           } else {
             let amount_in = document.querySelector('#nft-send-amount');
@@ -367,22 +399,13 @@ class NFTOverlay {
             );
           }
 
-          let nft_type = this.nft?.nft_type;
-          const handlers = this.app.modules.getRespondTos('saito-nft-transfer', this.nft);
-
-          for (const modobj of handlers) {
-            if (!modobj?.class || !modobj.class.includes(nft_type) || !nft_type) {
-              continue;
-            }
-            if (typeof modobj.onTransfer === 'function') {
-              try {
-                newtx = await modobj.onTransfer(this.nft, newtx, receiver);
-              } catch (err) {
-                console.error('onTransfer() failed in module...');
-                salert(`NFT transfer blocked by module...`);
-                return;
-              }
-            }
+          //
+          // having created the NFT, we now modify its TX_MSG if there are
+          // any handlers that want to process the transaction
+          //
+          newtx = await this.nft.modifyBeforeSend(newtx, receiver);
+          if (!newtx) {
+            return;
           }
 
           await newtx.sign();
