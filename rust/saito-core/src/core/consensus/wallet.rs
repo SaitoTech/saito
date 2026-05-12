@@ -573,10 +573,11 @@ impl Wallet {
             let mut i = 0;
             while i < tx.to.len() {
                 if tx.is_nft(&tx.to, i) {
-                    let slip2 = &tx.to[i + 1];
-                    if slip2.public_key == self.public_key {
-                        pending_return = pending_return.saturating_add(slip2.amount);
-                    }
+		    // do not count deposits as balance
+                    //let slip2 = &tx.to[i + 1];
+                    //if slip2.public_key == self.public_key {
+                    //    pending_return = pending_return.saturating_add(slip2.amount);
+                    //}
                     i += 3;
                 } else {
                     let out = &tx.to[i];
