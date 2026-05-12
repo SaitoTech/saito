@@ -62,6 +62,35 @@ class SaitoNFT {
     }
   }
 
+  /**
+   * Let modules respond to `saito-nft-transfer` mutate the outbound tx before sign/propagate.
+   * @param {*} newtx unsigned transaction
+   * @param {string} receiver recipient public key
+   * @returns {Promise<*>} updated tx, or null if a handler blocked the send (after salert)
+   */
+  async modifyBeforeSend(newtx, receiver) {
+    const nft_type =
+      this.nft_type || (typeof this.returnType === 'function' ? this.returnType() : null);
+    const handlers = this.app.modules.getRespondTos('saito-nft-transfer', this);
+
+    for (const modobj of handlers) {
+      if (!modobj?.class || !modobj.class.includes(nft_type) || !nft_type) {
+        continue;
+      }
+      if (typeof modobj.onTransfer === 'function') {
+        try {
+          newtx = await modobj.onTransfer(this, newtx, receiver);
+        } catch (err) {
+          console.error('onTransfer() failed in module...', err);
+          salert(`NFT transfer blocked by module...`);
+          return null;
+        }
+      }
+    }
+
+    return newtx;
+  }
+
   async fetchTransaction(callback = null, localhost_only = false) {
     const my_callback = () => {
       this.load_failed = false;

@@ -2,7 +2,7 @@ name: publish
 
 on:
   push:
-    branches: [ master , saitocore_peer_refactor ]
+    branches: [ master ]
 
 permissions:
   id-token: write  # Required for OIDC
@@ -15,6 +15,9 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Check fixed dependency versions
+        run: node scripts/check_fixed_dependency_versions.js
 
       - name: Install moreutils for sponge
         run: sudo apt-get install -y moreutils

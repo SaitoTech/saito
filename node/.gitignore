@@ -57,6 +57,7 @@ data/issuance/issuance
 data/issuance/*.issuance
 data/issuance/archive
 data/state
+data/*.tar.gz
 
 dist
 dist/*

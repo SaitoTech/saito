@@ -101,6 +101,9 @@ impl Network {
             if !matches!(transaction.transaction_type, TransactionType::GoldenTicket) {
                 let mut wallet = self.wallet_lock.write().await;
                 wallet.add_to_pending(transaction.clone());
+
+                self.io_interface
+                    .send_interface_event(InterfaceEvent::OnTransactionPending())
             }
         }
 

@@ -3,14 +3,15 @@
  WEB3 CRYPTO MODULE v.2
 
  This is a general parent class for modules that wish to define a cryptocurrency 
- that can interact with the Saito ecosystem. It introduces generic  functions that 
+ that can interact with the Saito ecosystem. It introduces generic functions that 
  should be implemented by these modules to handle web3 cryptos interaction with 
- their external blockchains or  networks. 
+ their external blockchains or networks. 
 
  To understand how your module can integrate cryptocurrencies, the API is handled
  in lib/saito/wallet.ts
 
   Minimum extension functionality: 
+
   -- checkBalance
   -- returnPrivateKey
   -- sendPayment
@@ -53,6 +54,7 @@ class CryptoModule extends ModTemplate {
     // quick sanity check -- cache the balance
     //
     this.balance = '0.0';
+    this.pending_balance = '0.0';
     this.address = '';
 
     //
@@ -66,6 +68,14 @@ class CryptoModule extends ModTemplate {
     //
     this.options = {};
     this.options.isActivated = false;
+  }
+
+  async getAvailableBalance() {
+    return this.checkBalance();
+  }
+
+  async getPendingBalance() {
+    return this.checkBalance();
   }
 
   /**
