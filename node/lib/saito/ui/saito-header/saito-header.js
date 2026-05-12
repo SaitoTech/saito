@@ -103,12 +103,12 @@ class SaitoHeader extends UIModTemplate {
           } catch (e) {
             pendingTxSummary = `getPendingTxs_err=${e}`;
           }
-          console.log(
+          console.debug(
             `[ PENDING BALANCE ] [ on-transaction-pending | pending_display=${pb} | pending_mode=${
               pb !== ab
             } | ${pendingTxSummary} ]`
           );
-          console.log(
+          console.debug(
             `[ AVAILABLE BALANCE ] [ on-transaction-pending | available_display=${ab} ]`
           );
         } catch (logErr) {
@@ -915,12 +915,12 @@ class SaitoHeader extends UIModTemplate {
           } catch (e) {
             pendingTxSummary = `getPendingTxs_err=${e}`;
           }
-          console.log(
+          console.debug(
             `[ PENDING BALANCE ] [ renderCrypto | pending_display=${pb} | pending_mode=${
               pb !== ab
             } | ${pendingTxSummary} ]`
           );
-          console.log(`[ AVAILABLE BALANCE ] [ renderCrypto | available_display=${ab} ]`);
+          console.debug(`[ AVAILABLE BALANCE ] [ renderCrypto | available_display=${ab} ]`);
         } catch (logErr) {
           console.log(`[ PENDING BALANCE ] [ renderCrypto log_error | ${logErr} ]`);
         }

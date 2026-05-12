@@ -606,11 +606,11 @@ impl Wallet {
             ));
         }
         let joined = parts.join(" | ");
-        info!(
+        debug!(
             "[ PENDING BALANCE ] [ {} | pending_nolan={} | pending_txs_count={} | {} ]",
             context, pending_total, count, joined
         );
-        info!(
+        debug!(
             "[ AVAILABLE BALANCE ] [ {} | available_nolan={} ]",
             context, available
         );
@@ -2042,7 +2042,7 @@ impl Wallet {
     pub fn delete_pending_transaction(&mut self, tx: &Transaction) -> bool {
         let hash = tx.hash_for_signature.unwrap();
         let removed = self.pending_txs.remove(&hash).is_some();
-        info!(
+        debug!(
             "[ PENDING BALANCE ] [ delete_pending_transaction tx_sig={} hash_key={} removed={} remaining_pending_txs={} ]",
             tx.signature.to_hex(),
             hash.to_hex(),

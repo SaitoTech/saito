@@ -383,11 +383,12 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     "ConsensusThread::process_event : new block fetched : {:?}",
                     fetched_block_hash_hex
                 );
-                info!(
+                trace!(
                     "[TRACE_SYNC] consensus_received_fetched_block block_id={} block_hash={}",
-                    block.id, fetched_block_hash_hex
+                    block.id,
+                    fetched_block_hash_hex
                 );
-                info!(
+                trace!(
                     "[TEMP_SYNC_TRACE][FETCH] consensus received fetched block block_id={} block_hash={} -> mempool -> add_blocks_from_mempool",
                     block.id,
                     fetched_block_hash_hex
@@ -413,17 +414,17 @@ impl ProcessEvent<ConsensusEvent> for ConsensusThread {
                     );
                     let mut mempool = self.mempool_lock.write().await;
                     mempool.add_block(block);
-                    info!(
+                    trace!(
                         "[TRACE_SYNC] added_to_mempool_from_fetch block_hash={} mempool_block_queue_len={}",
                         fetched_block_hash_hex,
                         mempool.blocks_queue.len()
                     );
                 }
-                info!(
+                trace!(
                     "[TEMP_SYNC_TRACE][FETCH] consensus submit queued blocks to blockchain add_blocks_from_mempool trigger=fetched-block block_hash={}",
                     fetched_block_hash_hex
                 );
-                info!(
+                trace!(
                     "[TRACE_SYNC] submit_mempool_to_blockchain trigger=fetched_block block_hash={}",
                     fetched_block_hash_hex
                 );

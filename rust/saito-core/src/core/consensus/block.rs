@@ -933,7 +933,7 @@ impl Block {
 
     /// [transaction][transaction][transaction]...
     pub fn deserialize_from_net(bytes: &[u8]) -> Result<Block, Error> {
-        info!(
+        debug!(
             "[TRACE_SYNC][SERDE] block_deserialize_start bytes={}",
             bytes.len()
         );
@@ -1259,7 +1259,7 @@ impl Block {
             block.block_type = BlockType::Header;
         }
 
-        info!(
+        debug!(
             "[TRACE_SYNC][SERDE] block_deserialize_ok block_id={} tx_count={} bytes={}",
             block.id,
             transactions_len,
@@ -2608,7 +2608,7 @@ impl Block {
 
     /// [transaction][transaction][transaction]...
     pub fn serialize_for_net(&self, block_type: BlockType) -> Vec<u8> {
-        info!(
+        debug!(
             "[TRACE_SYNC][SERDE] block_serialize_start block_id={} block_hash={} tx_count={} block_type={:?}",
             self.id,
             self.hash.to_hex(),
@@ -2672,7 +2672,7 @@ impl Block {
         ]
         .concat();
 
-        info!(
+        debug!(
             "[TRACE_SYNC][SERDE] block_serialize_ok block_id={} block_hash={} bytes={} block_type={:?}",
             self.id,
             self.hash.to_hex(),
