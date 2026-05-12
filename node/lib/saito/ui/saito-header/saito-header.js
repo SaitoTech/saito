@@ -85,36 +85,8 @@ class SaitoHeader extends UIModTemplate {
       let preferred_crypto = app.wallet.returnPreferredCrypto();
       if (preferred_crypto?.ticker == 'SAITO') {
         preferred_crypto.pending_balance = await app.core.wallet.getPendingBalance();
-        try {
-          const ab = await preferred_crypto.getAvailableBalance();
-          const pb = await preferred_crypto.getPendingBalance();
-          let pendingTxSummary = 'rust_pending_txs=unavailable';
-          try {
-            const ptxs = await app.wallet.getPendingTxs();
-            pendingTxSummary =
-              ptxs.length === 0
-                ? 'rust_pending_txs=0'
-                : `rust_pending_txs=${ptxs.length} ` +
-                  ptxs
-                    .map((t) =>
-                      t.signature ? String(t.signature).slice(0, 24) + '…' : '?'
-                    )
-                    .join(', ');
-          } catch (e) {
-            pendingTxSummary = `getPendingTxs_err=${e}`;
-          }
-          console.log(
-            `[ PENDING BALANCE ] [ on-transaction-pending | pending_display=${pb} | pending_mode=${
-              pb !== ab
-            } | ${pendingTxSummary} ]`
-          );
-          console.log(
-            `[ AVAILABLE BALANCE ] [ on-transaction-pending | available_display=${ab} ]`
-          );
-        } catch (logErr) {
-          console.log(`[ PENDING BALANCE ] [ on-transaction-pending log_error | ${logErr} ]`);
-        }
       }
+      this.app.connection.emit('saito-header-update-crypto');
     });
 
 
@@ -186,16 +158,24 @@ class SaitoHeader extends UIModTemplate {
 
     app.connection.on('saito-crypto-activated', async (ticker) => {
       if (this.installing_crypto && this.installing_crypto == ticker) {
-        setTimeout(() => {
+        const activated_mod = this.app.wallet.returnCryptoModuleByTicker(ticker);
+        const is_nft_synthetic =
+          activated_mod?.categories === 'NFT' ||
+          String(ticker).toUpperCase().startsWith('NFT-');
+        if (is_nft_synthetic) {
           this.installing_crypto = false;
-          this.app.connection.emit('saito-backup-render-request', {
-            msg: `Your wallet has added new crypto keys for ${ticker}. Unless you backup your wallet, you may lose any deposits with those keys.`
-          });
-        }, 1500);
+        } else {
+          setTimeout(() => {
+            this.installing_crypto = false;
+            this.app.connection.emit('saito-backup-render-request', {
+              msg: `Your wallet has added new crypto keys for ${ticker}. Unless you backup your wallet, you may lose any deposits with those keys.`
+            });
+          }, 1500);
+        }
       }
-
       await this.renderCrypto(true);
     });
+
 
     //
     // This allows us to replace the saito logo with a back arrow and a click event
@@ -811,6 +791,59 @@ class SaitoHeader extends UIModTemplate {
    *
    * *******************************************************
    * *******************************************************/
+  /**
+   * Synthetic NFT rows from multiwallet use whole-unit balances (no SAITO-style decimals).
+   */
+  isNftCryptoModule(mod) {
+    return (
+      mod?.categories === 'NFT' ||
+      String(mod?.ticker || '')
+        .toUpperCase()
+        .startsWith('NFT-')
+    );
+  }
+
+  /**
+   * Plain string for dropdown menu balance line.
+   */
+  async formatSlideInWalletBalanceNumber(mod, balanceRaw) {
+    const raw =
+      balanceRaw != null && typeof balanceRaw.then === 'function'
+        ? await balanceRaw
+        : balanceRaw;
+    if (this.isNftCryptoModule(mod)) {
+      const s = String(raw ?? '').trim();
+      if (!s) {
+        return '0';
+      }
+      try {
+        const whole = s.split(/[.eE]/)[0] || '0';
+        return BigInt(whole).toString();
+      } catch (e) {
+        return s.split('.')[0] || '0';
+      }
+    }
+    return this.app.browser.formatDecimals(String(raw));
+  }
+
+  /**
+   * HTML for main .balance-amount (matches returnBalanceHTML structure for NFT = whole only).
+   */
+  formatSlideInWalletBalanceHtml(mod, balanceRaw) {
+    if (this.isNftCryptoModule(mod)) {
+      const s = String(balanceRaw ?? '').trim();
+      let whole = '0';
+      try {
+        const w = s.split(/[.eE]/)[0] || '0';
+        whole = BigInt(w).toString();
+      } catch (e) {
+        whole = s.split('.')[0] || '0';
+      }
+      return `<span class="balance-amount-whole">${whole}</span>`;
+    }
+    return this.app.browser.returnBalanceHTML(balanceRaw);
+  }
+
   async renderCrypto(force = false) {
 
     let available_cryptos = this.app.wallet.returnInstalledCryptos();
@@ -868,10 +901,18 @@ class SaitoHeader extends UIModTemplate {
           menu_html += `<img class="chain-logo" src="${rtn_val.sub_logo}">`;
         }
 
-        menu_html += `</div><div class="header-crypto-balance">${this.app.browser.formatDecimals(await crypto_mod.returnBalance())} ${crypto_mod.ticker}</div>`;
+        const menuBal = await this.formatSlideInWalletBalanceNumber(
+          crypto_mod,
+          await Promise.resolve(crypto_mod.returnBalance())
+        );
+        menu_html += `</div><div class="header-crypto-balance">${menuBal} ${crypto_mod.ticker}</div>`;
 
         if (crypto_mod.pending_balance) {
-          menu_html += `<div class="header-crypto-pending">${crypto_mod.pending_balance} pending </div>`;
+          const pendRaw =
+            this.isNftCryptoModule(crypto_mod) && crypto_mod.pending_balance != null
+              ? String(crypto_mod.pending_balance).split(/[.eE]/)[0] || '0'
+              : crypto_mod.pending_balance;
+          menu_html += `<div class="header-crypto-pending">${pendRaw} pending </div>`;
         } else {
           menu_html += '<div></div>';
         }
@@ -927,13 +968,21 @@ class SaitoHeader extends UIModTemplate {
 
         let b_elm = document.querySelector('.balance-amount');
 
-	if (pb !== ab) {
+        if (this.isNftCryptoModule(preferred_crypto)) {
+          if (pb !== ab) {
+            b_elm.classList.add('pending');
+            b_elm.innerHTML = this.formatSlideInWalletBalanceHtml(preferred_crypto, pb);
+          } else {
+            b_elm.classList.remove('pending');
+            b_elm.innerHTML = this.formatSlideInWalletBalanceHtml(preferred_crypto, ab);
+          }
+        } else if (pb !== ab) {
           b_elm.classList.add('pending');
           b_elm.innerHTML = this.app.browser.returnBalanceHTML(pb);
-	} else {
+        } else {
           b_elm.classList.remove('pending');
           b_elm.innerHTML = this.app.browser.returnBalanceHTML(ab);
-	}
+        }
 
         if (Date.now() - preferred_crypto.history_update_ts > 30000 && !this.checking_history) {
           console.log(

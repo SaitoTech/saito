@@ -913,7 +913,15 @@ export default class Wallet extends SaitoWallet {
 
   returnPreferredCrypto() {
     try {
-      return this.returnCryptoModuleByTicker(this.preferred_crypto);
+      let m = this.returnCryptoModuleByTicker(this.preferred_crypto);
+      if (m == null) {
+        this.preferred_crypto = 'SAITO';
+        if (this.app.options?.wallet) {
+          this.app.options.wallet.preferred_crypto = 'SAITO';
+        }
+        m = this.returnCryptoModuleByTicker('SAITO');
+      }
+      return m;
     } catch (err) {
       if (err.startsWith('Module Not Found:')) {
         console.warn(`Preferred crypto (${this.preferred_crypto}) not installed!`);
@@ -1988,38 +1996,42 @@ export default class Wallet extends SaitoWallet {
           }
         }
 
-        /*******************************
-for (let nft_id in nft_balance_by_id) {
 
-    let total = nft_balance_by_id[nft_id];
-    if (total <= 0n) { continue; }
+	//
+	// make spendable as other tokens
+	//
+	for (let nft_id in nft_balance_by_id) {
 
-    let ticker = "";
+	  let total = nft_balance_by_id[nft_id];
+    	  if (total <= 0n) { continue; }
+
+    	  let ticker = "";
 
           for (let z = 0; z < this.app.options.wallet.nfts.length; z++) {
             let nft = this.app.options.wallet.nfts[z];
             if (nft.id == nft_id) {
-        ticker = this.extractNFTType(this.app.options?.wallet?.nfts[z]?.slip3.utxo_key);
-      }
-    }
+              ticker = `NFT-${this.app.crypto.hash(nft_id).slice(0, 6)}`;
+      	    }
+    	  }
 
-    if (this.returnCryptoModuleByTicker(ticker) || ticker == "") {
-      continue;
-    }
+    	  if (this.returnCryptoModuleByTicker(ticker) || ticker == "") {
+    	    continue;
+    	  }
 
-    let mod = new NFTCryptoModule(this.app, nft_id, {
-      ticker,
-      name: ticker
-    });
+    	  let mod = new NFTCryptoModule(this.app, nft_id, {
+    	    ticker,
+    	    name: ticker
+    	  });
 
-  this.app.modules.mods.push(mod);
-  await mod.initialize(this.app);
+	  this.app.modules.mods.push(mod);
+	  await mod.initialize(this.app);
 
-  console.log(
-    `NFT crypto module installed: ${ticker} (balance ${total.toString()})`
-  );
-}
-***********************************/
+	  console.log(
+	    `NFT crypto module installed: ${ticker} (balance ${total.toString()})`
+	  );
+	}
+
+
       }
     } catch (err) {
       console.log('Error: load nfts');

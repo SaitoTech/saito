@@ -1,6 +1,7 @@
 const WithdrawTemplate = require('./withdraw.template');
 const SaitoOverlay = require('./../../saito-overlay/saito-overlay');
 const SaitoContacts = require('./../../modals/saito-contacts/saito-contacts');
+const SaitoNFT = require('../../saito-nft/saito-nft');
 
 class Withdraw {
   constructor(app, mod, container = '') {
@@ -21,6 +22,8 @@ class Withdraw {
     };
 
     this.available_balance = 0;
+    /** Raw string balance for NFT withdraw validation (avoids Number precision loss). */
+    this._nft_balance_raw = null;
 
     // We will only programattically input the address if it is a Saito PublicKey
     this.app.connection.on('saito-crypto-withdraw-render-request', async (obj) => {
@@ -76,6 +79,11 @@ class Withdraw {
       return;
     }
     const raw = await this.pc.getAvailableBalance();
+    if (this.isNftWithdrawSelection()) {
+      this._nft_balance_raw = String(raw).trim();
+    } else {
+      this._nft_balance_raw = null;
+    }
     const n = Number(raw);
     this.available_balance = Number.isFinite(n) ? n : 0;
     el.textContent = this.app.browser.formatDecimals(String(this.available_balance));
@@ -320,8 +328,54 @@ class Withdraw {
 
           console.log('network fee:', this.fee);
 
+          if (this_withdraw.isNftWithdrawSelection()) {
+            const nft = await this_withdraw.loadSaitoNftForWithdraw();
+            const amountRaw = String(amount).trim();
+            let amountInt;
+            try {
+              amountInt = parseInt(amountRaw, 10);
+            } catch (e) {
+              throw new Error('Error sending NFT: invalid amount.');
+            }
+            if (!Number.isInteger(amountInt) || amountInt <= 0) {
+              throw new Error('Error sending NFT: amount must be a positive integer.');
+            }
+            const tx_msg = JSON.parse(JSON.stringify(nft.txmsg || {}));
+            let newtx = await this_withdraw.app.wallet.createNFTTransaction(
+              nft,
+              address,
+              amountInt,
+              BigInt(0),
+              BigInt(0),
+              tx_msg
+            );
+
+            //
+            // having created the NFT, we now modify its TX_MSG if there are
+            // any handlers that want to process the transaction
+            //
+            newtx = await nft.modifyBeforeSend(newtx, address);
+            if (!newtx) {
+              throw new Error('NFT transfer blocked by module.');
+            }
+
+            await newtx.sign();
+            await this_withdraw.app.network.propagateTransaction(newtx);
+            try {
+              await this_withdraw.app.wallet.updateNFTList();
+            } catch (e) {
+              console.warn('withdraw NFT: updateNFTList', e);
+            }
+            this_withdraw.app.connection.emit('saito-header-update-crypto');
+            if (document.querySelector('.nft-list-container')) {
+              this_withdraw.app.connection.emit('saito-nft-list-render-request');
+            }
+            this_withdraw.withdrawBroadcastSuccessUi();
+            return;
+          }
+
           let ts = new Date().getTime();
-          let hash = await this.app.wallet.sendPayment(
+          await this.app.wallet.sendPayment(
             ticker,
             [sender],
             [address],
@@ -329,19 +383,7 @@ class Withdraw {
             btoa(sender + address + amount + ts),
             async function (res) {
               if (res.hash != '') {
-                setTimeout(function () {
-                  if (document.querySelector('.confirm-msg')) {
-                    document.querySelector('.confirm-msg').innerHTML =
-                      `Your transaction has been broadcast <br > Please check transaction history in the sidebar menu for confirmation`;
-                    document
-                      .querySelector('.confirm-msg-container .spinner')
-                      .classList.remove('show');
-                    document.querySelector('.withdraw-msg-icon').classList.toggle('hide');
-                    document
-                      .querySelector('.withdraw-msg-icon')
-                      .classList.toggle('fa-circle-check');
-                  }
-                }, 1000);
+                this_withdraw.withdrawBroadcastSuccessUi();
               } else {
                 this_withdraw.showError();
               }
@@ -350,7 +392,7 @@ class Withdraw {
           );
         } catch (err) {
           console.error('Send Error: ' + err);
-          this_withdraw.showError();
+          this_withdraw.showError(err?.message || String(err));
         }
       };
 
@@ -358,10 +400,18 @@ class Withdraw {
         document.querySelector('#withdraw-max-btn').onclick = async (e) => {
           if (!document.querySelector('#withdraw-input-amount').disabled) {
             await this_withdraw.refreshAvailableBalanceDisplay();
-            const fee = Number(this_withdraw.fee) || 0;
-            document.querySelector('#withdraw-input-amount').value = String(
-              this_withdraw.available_balance - fee
-            );
+            if (this_withdraw.isNftWithdrawSelection()) {
+              document.querySelector('#withdraw-input-amount').value = String(
+                this_withdraw._nft_balance_raw != null
+                  ? this_withdraw._nft_balance_raw
+                  : this_withdraw.available_balance
+              );
+            } else {
+              const fee = Number(this_withdraw.fee) || 0;
+              document.querySelector('#withdraw-input-amount').value = String(
+                this_withdraw.available_balance - fee
+              );
+            }
             this_withdraw.validateAmountInput();
           }
         };
@@ -391,14 +441,54 @@ class Withdraw {
     }
   }
 
-  showError() {
-    document.querySelector('.confirm-msg').innerHTML =
-      `Transfer request unsuccessful <br > Please try again`;
+  showError(detail = '') {
+    let msg = `Transfer request unsuccessful <br > Please try again`;
+    if (detail) {
+      const safe = this.app.browser.escapeHTML(String(detail));
+      msg += `<br><span class="withdraw-error-detail">${safe}</span>`;
+    }
+    document.querySelector('.confirm-msg').innerHTML = msg;
     document.querySelector('.confirm-msg-container .spinner').classList.remove('show');
     document.querySelector('.withdraw-msg-icon').classList.toggle('hide');
     document.querySelector('.withdraw-msg-icon').classList.remove('fa-circle-notch');
     document.querySelector('.withdraw-msg-icon').classList.remove('fa-circle-check');
     document.querySelector('.withdraw-msg-icon').classList.toggle('fa-circle-xmark');
+  }
+
+  /** Synthetic NFT row from multiwallet (see {@link NFTCryptoModule}). */
+  isNftWithdrawSelection() {
+    return this.pc?.categories === 'NFT' && typeof this.pc?.nft_id === 'string' && this.pc.nft_id;
+  }
+
+  /** Wallet row + archive mint tx, aligned with nft-overlay send. */
+  async loadSaitoNftForWithdraw() {
+    const nft_id = this.pc.nft_id;
+    const list = this.app?.options?.wallet?.nfts || [];
+    const row = list.find((n) => n && n.id === nft_id);
+    if (!row) {
+      throw new Error('Error loading NFT: no wallet row for this NFT id.');
+    }
+    const modStub = { publicKey: this.app.wallet.publicKey };
+    const nft = new SaitoNFT(this.app, modStub, null, row);
+    await nft.fetchTransaction();
+    if (nft.load_failed && !nft.tx) {
+      throw new Error(
+        'Error loading NFT: mint transaction not available (local archive / sync).'
+      );
+    }
+    return nft;
+  }
+
+  withdrawBroadcastSuccessUi() {
+    setTimeout(function () {
+      if (document.querySelector('.confirm-msg')) {
+        document.querySelector('.confirm-msg').innerHTML =
+          `Your transaction has been broadcast <br > Please check transaction history in the sidebar menu for confirmation`;
+        document.querySelector('.confirm-msg-container .spinner').classList.remove('show');
+        document.querySelector('.withdraw-msg-icon').classList.toggle('hide');
+        document.querySelector('.withdraw-msg-icon').classList.toggle('fa-circle-check');
+      }
+    }, 1000);
   }
 
   hideSaitoHeaderMenu() {
@@ -429,17 +519,35 @@ class Withdraw {
     let error_msg = null;
 
     if (amount != '') {
-      amount = Number(amount);
+      if (this.isNftWithdrawSelection()) {
+        const amtStr = String(amount).trim();
+        try {
+          const want = BigInt(amtStr);
+          const avail =
+            this._nft_balance_raw != null && this._nft_balance_raw !== ''
+              ? BigInt(this._nft_balance_raw)
+              : BigInt(Math.floor(Number(this.available_balance) || 0));
+          if (want <= 0n) {
+            error_msg = 'Error: Amount should be greater than 0';
+          } else if (want > avail) {
+            error_msg = `Error: Insufficient NFT units (${avail.toString()} ${this.ticker} available)`;
+          }
+        } catch (e) {
+          error_msg = 'Error: Enter a whole number of NFT units';
+        }
+      } else {
+        amount = Number(amount);
 
-      let amount_avl = this.available_balance;
-      this.fee = Number(this.fee);
+        let amount_avl = this.available_balance;
+        this.fee = Number(this.fee);
 
-      if (amount <= 0) {
-        error_msg = 'Error: Amount should be greater than 0';
-      } else if (amount > amount_avl) {
-        error_msg = `Error: Insufficent funds ( ${amount_avl} ${this.ticker} available)`;
-      } else if (amount + this.fee > amount_avl) {
-        error_msg = `Error: Your withdrawal amount + transaction fee exceeds available balance. Please reduce the amount to cover withdrawal fee.`;
+        if (amount <= 0) {
+          error_msg = 'Error: Amount should be greater than 0';
+        } else if (amount > amount_avl) {
+          error_msg = `Error: Insufficent funds ( ${amount_avl} ${this.ticker} available)`;
+        } else if (amount + this.fee > amount_avl) {
+          error_msg = `Error: Your withdrawal amount + transaction fee exceeds available balance. Please reduce the amount to cover withdrawal fee.`;
+        }
       }
     } else {
       error_msg = 'Error: No input';
