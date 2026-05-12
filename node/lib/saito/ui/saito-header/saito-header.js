@@ -172,6 +172,7 @@ class SaitoHeader extends UIModTemplate {
       await this.renderCrypto(true);
     });
 
+
     //
     // This allows us to replace the saito logo with a back arrow and a click event
     // In the future, we may want to parameterize what we replace the logo with

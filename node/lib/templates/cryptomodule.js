@@ -121,6 +121,7 @@ class CryptoModule extends ModTemplate {
   }
 
   async onConfirmation(blk, tx, conf) {
+
     if (Number(conf) == 0) {
       if (!tx.isTo(this.publicKey) && !tx.isFrom(this.publicKey)) {
         return 0;
@@ -164,6 +165,7 @@ class CryptoModule extends ModTemplate {
   }
 
   async sendPaymentTransaction(publicKey, from_address, to_address, amount, hash, memo = '') {
+
     let newtx = await this.app.wallet.createUnsignedTransactionWithDefaultFee(publicKey);
 
     newtx.msg = {

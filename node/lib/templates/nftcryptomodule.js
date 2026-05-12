@@ -39,7 +39,9 @@ function isNftInputTriple(slips, i) {
 }
 
 class NFTCryptoModule extends CryptoModule {
+
   constructor(app, nft_id, opts = {}) {
+
     // ticker must be unique per NFT
     const ticker = opts.ticker || `NFT-${app.crypto.hash(nft_id).slice(0, 6)}`;
 
