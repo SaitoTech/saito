@@ -16,6 +16,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - name: Check fixed dependency versions
+        run: node scripts/check_fixed_dependency_versions.js
       - uses: jetli/wasm-pack-action@v0.3.0
         with:
           version: 'v0.12.1'
