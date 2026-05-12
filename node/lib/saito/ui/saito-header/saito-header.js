@@ -172,7 +172,6 @@ class SaitoHeader extends UIModTemplate {
       await this.renderCrypto(true);
     });
 
-
     //
     // This allows us to replace the saito logo with a back arrow and a click event
     // In the future, we may want to parameterize what we replace the logo with
@@ -885,8 +884,8 @@ class SaitoHeader extends UIModTemplate {
 
         options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
         id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${
-  crypto_mod.ticker
-}</option>`;
+          crypto_mod.ticker
+        }</option>`;
         menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
         menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${rtn_val.img}">`;
 
