@@ -157,8 +157,7 @@ class SaitoHeader extends UIModTemplate {
       if (this.installing_crypto && this.installing_crypto == ticker) {
         const activated_mod = this.app.wallet.returnCryptoModuleByTicker(ticker);
         const is_nft_synthetic =
-          activated_mod?.categories === 'NFT' ||
-          String(ticker).toUpperCase().startsWith('NFT-');
+          activated_mod?.categories === 'NFT' || String(ticker).toUpperCase().startsWith('NFT-');
         if (is_nft_synthetic) {
           this.installing_crypto = false;
         } else {
@@ -172,7 +171,6 @@ class SaitoHeader extends UIModTemplate {
       }
       await this.renderCrypto(true);
     });
-
 
     //
     // This allows us to replace the saito logo with a back arrow and a click event
@@ -805,9 +803,7 @@ class SaitoHeader extends UIModTemplate {
    */
   async formatSlideInWalletBalanceNumber(mod, balanceRaw) {
     const raw =
-      balanceRaw != null && typeof balanceRaw.then === 'function'
-        ? await balanceRaw
-        : balanceRaw;
+      balanceRaw != null && typeof balanceRaw.then === 'function' ? await balanceRaw : balanceRaw;
     if (this.isNftCryptoModule(mod)) {
       const s = String(raw ?? '').trim();
       if (!s) {
@@ -888,8 +884,8 @@ class SaitoHeader extends UIModTemplate {
 
         options_html = `<option ${crypto_mod.name == preferred_crypto.name ? 'selected' : ``} 
         id="crypto-option-${crypto_mod.name}" value="${crypto_mod.ticker}">${
-  crypto_mod.ticker
-}</option>`;
+          crypto_mod.ticker
+        }</option>`;
         menu_html += `<div class="saito-crypto-details ${crypto_mod.isActivated() ? 'active' : 'unactive'}" data-ticker="${crypto_mod.ticker}">`;
         menu_html += `<div class="crypto-logo-container"><img class="crypto-logo" src="${rtn_val.img}">`;
 
